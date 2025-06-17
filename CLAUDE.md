@@ -74,26 +74,49 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - **Cost Validation**: Verify pricing estimates are accurate
 - **User Journey Testing**: End-to-end workflows from researcher perspective
 
-## Current Phase: MVP (Phase 1)
+## Current Phase: Distributed Architecture (Phase 1 Complete → Phase 2)
 
-**Goal**: Ultra-simple, working tool that provides immediate value
+**Phase 1 COMPLETED**: Architectural transformation to distributed system
 
-**Scope**: 
-- Single Go file implementation
-- Hard-coded templates (no YAML files)
-- Basic commands: launch, list, connect, stop, delete
-- AWS only
-- Public instances (no VPN yet)
-- JSON state file
+**Achievements**: 
+- ✅ Split monolithic main.go into daemon + CLI client
+- ✅ REST API backend with full endpoint coverage
+- ✅ Thin CLI client maintaining identical UX
+- ✅ Modular package structure ready for GUI
+- ✅ Cross-platform build system with Makefile
+- ✅ Complete API interface for all operations
+- ✅ State management abstraction layer
 
-**NOT in MVP**:
-- Multi-user support
-- VPN/private networking
-- Budget management
-- Configuration sync
-- GUI
-- Template validation
-- Multiple cloud providers
+**Phase 2 Goals**: Basic GUI with menubar/system tray
+- Implement GUI client using existing REST API
+- Progressive disclosure interface design
+- Background state synchronization
+- System tray/menubar integration for non-technical users
+- Complete AWS operations extraction from legacy monolith
+
+**Current Architecture**:
+```
+cmd/
+├── cws/          # CLI client binary
+└── cwsd/         # Backend daemon binary
+
+pkg/
+├── api/          # API client interface
+├── daemon/       # Daemon core logic  
+├── aws/          # AWS operations
+├── state/        # State management
+└── types/        # Shared types
+
+internal/
+└── cli/          # CLI application logic
+```
+
+**Available in Phase 2**:
+- REST API backend daemon
+- Full CLI client functionality
+- Template and instance management
+- EFS/EBS volume management
+- Cross-platform builds
 
 ## Architecture Decisions
 
