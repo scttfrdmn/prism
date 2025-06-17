@@ -15,6 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
+	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
@@ -45,12 +47,45 @@ type Instance struct {
 	State          string    `json:"state"`
 	LaunchTime     time.Time `json:"launch_time"`
 	EstimatedDailyCost float64 `json:"estimated_daily_cost"`
+	AttachedVolumes []string  `json:"attached_volumes"`  // EFS volume names
+	AttachedEBSVolumes []string `json:"attached_ebs_volumes"` // EBS volume IDs
+}
+
+// EFSVolume represents a persistent EFS file system
+type EFSVolume struct {
+	Name            string    `json:"name"`             // User-friendly name
+	FileSystemId    string    `json:"filesystem_id"`    // AWS EFS ID  
+	Region          string    `json:"region"`
+	CreationTime    time.Time `json:"creation_time"`
+	MountTargets    []string  `json:"mount_targets"`    // Mount target IDs
+	State           string    `json:"state"`            // available, creating, deleting
+	PerformanceMode string    `json:"performance_mode"` // generalPurpose, maxIO
+	ThroughputMode  string    `json:"throughput_mode"`  // bursting, provisioned
+	EstimatedCostGB float64   `json:"estimated_cost_gb"` // $/GB/month
+	SizeBytes       int64     `json:"size_bytes"`       // Current size
+}
+
+// EBSVolume represents a secondary EBS volume for high-performance storage
+type EBSVolume struct {
+	Name           string    `json:"name"`           // User-friendly name
+	VolumeID       string    `json:"volume_id"`      // AWS EBS volume ID
+	Region         string    `json:"region"`
+	CreationTime   time.Time `json:"creation_time"`
+	State          string    `json:"state"`          // available, creating, in-use, deleting
+	VolumeType     string    `json:"volume_type"`    // gp3, io2, etc.
+	SizeGB         int32     `json:"size_gb"`        // Volume size in GB
+	IOPS           int32     `json:"iops"`           // Provisioned IOPS (for io2)
+	Throughput     int32     `json:"throughput"`     // Throughput in MB/s (for gp3)
+	EstimatedCostGB float64  `json:"estimated_cost_gb"` // $/GB/month
+	AttachedTo     string    `json:"attached_to"`    // Instance name if attached
 }
 
 // State manages the application state
 type State struct {
-	Instances map[string]Instance `json:"instances"`
-	Config    Config              `json:"config"`
+	Instances  map[string]Instance  `json:"instances"`
+	Volumes    map[string]EFSVolume `json:"volumes"`
+	EBSVolumes map[string]EBSVolume `json:"ebs_volumes"`
+	Config     Config               `json:"config"`
 }
 
 // Hard-coded templates for MVP
@@ -198,6 +233,7 @@ echo "Setup complete" > /var/log/cws-setup.log
 }
 
 var ec2Client *ec2.Client
+var efsClient *efs.Client
 
 // getLocalArchitecture detects the local system architecture and maps it to AWS instance architectures
 func getLocalArchitecture() string {
@@ -295,6 +331,10 @@ func main() {
 		handleDelete()
 	case "test":
 		handleTest()
+	case "volume":
+		handleVolume()
+	case "storage":
+		handleStorage()
 	default:
 		fmt.Printf("❌ Unknown command: %s\n", command)
 		printUsage()
@@ -356,6 +396,7 @@ func initializeAWSClient() {
 	}
 	
 	ec2Client = ec2.NewFromConfig(cfg)
+	efsClient = efs.NewFromConfig(cfg)
 }
 
 func printUsage() {
@@ -373,11 +414,15 @@ func printUsage() {
 	fmt.Println("  cws config region <region>      Set default AWS region")
 	fmt.Println("  cws config show                 Show current configuration")
 	fmt.Println("  cws test                        Test AWS connectivity and permissions")
+	fmt.Println("  cws volume <command>            Manage EFS volumes (create, list, info, delete)")
+	fmt.Println("  cws storage <command>           Manage EBS volumes (create, list, info, delete, attach, detach)")
 	fmt.Println("  cws arch                        Show detected architecture")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  cws launch r-research my-analysis")
 	fmt.Println("  cws launch python-research ml-project --dry-run")
+	fmt.Println("  cws launch r-research data-analysis --volume research-data")
+	fmt.Println("  cws volume create research-data")
 	fmt.Println("  cws connect my-analysis")
 	fmt.Println("  cws list")
 	fmt.Println("  cws config profile research")
@@ -386,8 +431,12 @@ func printUsage() {
 
 func handleLaunch() {
 	if len(os.Args) < 4 {
-		fmt.Println("Usage: cws launch <template> <name> [--dry-run]")
-		fmt.Println("  --dry-run    Validate configuration without launching instance")
+		fmt.Println("Usage: cws launch <template> <name> [options]")
+		fmt.Println("Options:")
+		fmt.Println("  --dry-run              Validate configuration without launching instance")
+		fmt.Println("  --volume <volume-name> Attach EFS volume to instance")
+		fmt.Println("  --storage <size>       Create EBS volume (XS=100GB, S=500GB, M=1TB, L=2TB, XL=4TB)")
+		fmt.Println("  --storage-type <type>  EBS volume type (gp3, io2) - default: gp3")
 		handleTemplates()
 		return
 	}
@@ -395,10 +444,45 @@ func handleLaunch() {
 	templateName := os.Args[2]
 	instanceName := os.Args[3]
 	
-	// Check for dry-run flag
+	// Parse additional flags
 	dryRun := false
-	if len(os.Args) > 4 && os.Args[4] == "--dry-run" {
-		dryRun = true
+	volumeName := ""
+	storageSize := ""
+	storageType := "gp3" // Default to gp3
+	
+	for i := 4; i < len(os.Args); i++ {
+		switch os.Args[i] {
+		case "--dry-run":
+			dryRun = true
+		case "--volume":
+			if i+1 < len(os.Args) {
+				volumeName = os.Args[i+1]
+				i++ // Skip the next argument as it's the volume name
+			} else {
+				fmt.Println("❌ --volume flag requires a volume name")
+				return
+			}
+		case "--storage":
+			if i+1 < len(os.Args) {
+				storageSize = os.Args[i+1]
+				i++ // Skip the next argument as it's the storage size
+			} else {
+				fmt.Println("❌ --storage flag requires a size (XS, S, M, L, XL)")
+				return
+			}
+		case "--storage-type":
+			if i+1 < len(os.Args) {
+				storageType = os.Args[i+1]
+				if storageType != "gp3" && storageType != "io2" {
+					fmt.Println("❌ Storage type must be gp3 or io2")
+					return
+				}
+				i++ // Skip the next argument as it's the storage type
+			} else {
+				fmt.Println("❌ --storage-type flag requires a type (gp3, io2)")
+				return
+			}
+		}
 	}
 
 	template, exists := templates[templateName]
@@ -408,12 +492,36 @@ func handleLaunch() {
 		return
 	}
 
+	// Validate volume if specified
+	state := loadState()
+	var volume *EFSVolume
+	if volumeName != "" {
+		vol, exists := state.Volumes[volumeName]
+		if !exists {
+			fmt.Printf("❌ Volume '%s' not found\n", volumeName)
+			fmt.Println("💡 Use 'cws volume list' to see available volumes")
+			return
+		}
+		if vol.State != "available" {
+			fmt.Printf("❌ Volume '%s' is not available (current state: %s)\n", volumeName, vol.State)
+			return
+		}
+		volume = &vol
+	}
+
 	// Detect local architecture and get appropriate template values
 	arch := getLocalArchitecture()
 	region := getCurrentRegion()
 	if region == "" {
 		fmt.Printf("❌ No AWS region configured\n")
 		fmt.Println("💡 Set a region with: cws config region <region>")
+		return
+	}
+	
+	// Validate region matches volume region if volume is specified
+	if volume != nil && volume.Region != region {
+		fmt.Printf("❌ Volume '%s' is in region %s, but you're launching in region %s\n", volumeName, volume.Region, region)
+		fmt.Println("💡 Change region or use a volume in the same region")
 		return
 	}
 	
@@ -433,7 +541,6 @@ func handleLaunch() {
 	}
 
 	// Check if instance name already exists
-	state := loadState()
 	if _, exists := state.Instances[instanceName]; exists {
 		fmt.Printf("❌ Instance '%s' already exists\n", instanceName)
 		return
@@ -449,6 +556,19 @@ func handleLaunch() {
 	fmt.Printf("   Instance Type: %s\n", instanceType)
 	fmt.Printf("   Estimated Cost: $%.2f/day\n", costPerHour*24)
 	fmt.Printf("   Ports: %v\n", template.Ports)
+	if volume != nil {
+		fmt.Printf("   EFS Volume: %s (%s)\n", volume.Name, volume.FileSystemId)
+	}
+	if storageSize != "" {
+		sizeGB, iops, throughput, cost := parseStorageConfiguration(storageSize, storageType)
+		fmt.Printf("   EBS Storage: %s (%dGB %s, ~$%.2f/month)\n", storageSize, sizeGB, storageType, cost)
+		if storageType == "io2" {
+			fmt.Printf("   Provisioned IOPS: %d\n", iops)
+		}
+		if storageType == "gp3" && throughput > 125 {
+			fmt.Printf("   Provisioned Throughput: %d MB/s\n", throughput)
+		}
+	}
 	
 	if dryRun {
 		fmt.Println()
@@ -458,13 +578,19 @@ func handleLaunch() {
 	}
 	fmt.Println()
 
+	// Prepare UserData with EFS mounting if volume is specified
+	userData := template.UserData
+	if volume != nil {
+		userData = addEFSMountToUserData(userData, volume.FileSystemId, region)
+	}
+
 	// Launch EC2 instance
 	input := &ec2.RunInstancesInput{
 		ImageId:      aws.String(ami),
 		InstanceType: types.InstanceType(instanceType),
 		MinCount:     aws.Int32(1),
 		MaxCount:     aws.Int32(1),
-		UserData:     aws.String(base64.StdEncoding.EncodeToString([]byte(template.UserData))),
+		UserData:     aws.String(base64.StdEncoding.EncodeToString([]byte(userData))),
 		SecurityGroups: []string{"default"},
 		TagSpecifications: []types.TagSpecification{
 			{
@@ -557,14 +683,25 @@ func handleLaunch() {
 	}
 
 	// Save to state
+	attachedVolumes := []string{}
+	if volume != nil {
+		attachedVolumes = []string{volume.Name}
+	}
+	
+	attachedEBSVolumes := []string{}
+	// TODO: Add EBS volume creation during launch if storageSize is specified
+	
 	instance := Instance{
 		ID:                 instanceID,
 		Name:               instanceName,
 		Template:           templateName,
 		PublicIP:           publicIP,
+		PrivateIP:          privateIP,
 		State:              "running",
 		LaunchTime:         time.Now(),
 		EstimatedDailyCost: costPerHour * 24,
+		AttachedVolumes:    attachedVolumes,
+		AttachedEBSVolumes: attachedEBSVolumes,
 	}
 
 	state.Instances[instanceName] = instance
@@ -576,6 +713,9 @@ func handleLaunch() {
 	fmt.Printf("   Template: %s (%s)\n", template.Name, arch)
 	fmt.Printf("   Instance Type: %s\n", instanceType)
 	fmt.Printf("   Estimated cost: $%.2f/day\n", instance.EstimatedDailyCost)
+	if volume != nil {
+		fmt.Printf("   EFS Volume: %s mounted at /efs\n", volume.Name)
+	}
 	fmt.Println()
 	
 	if templateName == "r-research" {
@@ -1132,8 +1272,10 @@ func loadState() State {
 	stateFile := getStateFilePath()
 	
 	state := State{
-		Instances: make(map[string]Instance),
-		Config:    Config{},
+		Instances:  make(map[string]Instance),
+		Volumes:    make(map[string]EFSVolume),
+		EBSVolumes: make(map[string]EBSVolume),
+		Config:     Config{},
 	}
 	
 	data, err := os.ReadFile(stateFile)
@@ -1147,14 +1289,22 @@ func loadState() State {
 		fmt.Printf("⚠️  Failed to parse state file: %v\n", err)
 		fmt.Println("   Starting with empty state...")
 		return State{
-			Instances: make(map[string]Instance),
-			Config:    Config{},
+			Instances:  make(map[string]Instance),
+			Volumes:    make(map[string]EFSVolume),
+			EBSVolumes: make(map[string]EBSVolume),
+			Config:     Config{},
 		}
 	}
 	
-	// Initialize Config if it doesn't exist (for backward compatibility)
+	// Initialize maps if they don't exist (for backward compatibility)
 	if state.Instances == nil {
 		state.Instances = make(map[string]Instance)
+	}
+	if state.Volumes == nil {
+		state.Volumes = make(map[string]EFSVolume)
+	}
+	if state.EBSVolumes == nil {
+		state.EBSVolumes = make(map[string]EBSVolume)
 	}
 	
 	return state
@@ -1173,4 +1323,913 @@ func saveState(state State) {
 	if err != nil {
 		fmt.Printf("❌ Failed to save state: %v\n", err)
 	}
+}
+
+func handleVolume() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: cws volume <command> [args]")
+		fmt.Println("Commands:")
+		fmt.Println("  create <name>    Create a new EFS volume")
+		fmt.Println("  list             List all EFS volumes")
+		fmt.Println("  info <name>      Show detailed volume information")
+		fmt.Println("  delete <name>    Delete EFS volume (with confirmation)")
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  cws volume create research-data")
+		fmt.Println("  cws volume list")
+		fmt.Println("  cws volume info research-data")
+		fmt.Println("  cws volume delete research-data")
+		return
+	}
+
+	subcommand := os.Args[2]
+	switch subcommand {
+	case "create":
+		handleVolumeCreate()
+	case "list":
+		handleVolumeList()
+	case "info":
+		handleVolumeInfo()
+	case "delete":
+		handleVolumeDelete()
+	default:
+		fmt.Printf("❌ Unknown volume command: %s\n", subcommand)
+		fmt.Println("Use 'cws volume' to see available commands")
+	}
+}
+
+func handleVolumeCreate() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: cws volume create <name>")
+		fmt.Println("Example: cws volume create research-data")
+		return
+	}
+
+	volumeName := os.Args[3]
+	region := getCurrentRegion()
+	if region == "" {
+		fmt.Println("❌ No AWS region configured")
+		fmt.Println("💡 Set a region with: cws config region <region>")
+		return
+	}
+
+	// Check if volume name already exists
+	state := loadState()
+	if _, exists := state.Volumes[volumeName]; exists {
+		fmt.Printf("❌ Volume '%s' already exists\n", volumeName)
+		return
+	}
+
+	fmt.Printf("🗄️  Creating EFS volume '%s' in %s...\n", volumeName, region)
+
+	// Create EFS file system
+	createInput := &efs.CreateFileSystemInput{
+		CreationToken:   aws.String(fmt.Sprintf("cws-%s-%d", volumeName, time.Now().Unix())),
+		PerformanceMode: efsTypes.PerformanceModeGeneralPurpose, // Default to general purpose
+		ThroughputMode:  efsTypes.ThroughputModeBursting,        // Default to bursting
+		Tags: []efsTypes.Tag{
+			{Key: aws.String("Name"), Value: aws.String(volumeName)},
+			{Key: aws.String("CreatedBy"), Value: aws.String("cloudworkstation")},
+		},
+	}
+
+	result, err := efsClient.CreateFileSystem(context.TODO(), createInput)
+	if err != nil {
+		fmt.Printf("❌ Failed to create EFS volume: %v\n", err)
+		return
+	}
+
+	fileSystemId := *result.FileSystemId
+	fmt.Printf("🎯 EFS File System ID: %s\n", fileSystemId)
+
+	// Wait for file system to become available
+	fmt.Println("⏳ Waiting for EFS volume to become available...")
+	startTime := time.Now()
+	
+	for i := 0; i < 60; i++ { // Wait up to 10 minutes
+		elapsed := time.Since(startTime).Round(time.Second)
+		
+		describeInput := &efs.DescribeFileSystemsInput{
+			FileSystemId: aws.String(fileSystemId),
+		}
+		
+		describeResult, err := efsClient.DescribeFileSystems(context.TODO(), describeInput)
+		if err != nil {
+			fmt.Printf("   [%s] ⚠️  Error checking status: %v\n", elapsed, err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		
+		if len(describeResult.FileSystems) > 0 {
+			fs := describeResult.FileSystems[0]
+			currentState := string(fs.LifeCycleState)
+			
+			switch currentState {
+			case "creating":
+				fmt.Printf("   [%s] 🟡 Creating EFS volume...\n", elapsed)
+			case "available":
+				fmt.Printf("   [%s] 🟢 EFS volume is available!\n", elapsed)
+				
+				// Save volume to state
+				volume := EFSVolume{
+					Name:            volumeName,
+					FileSystemId:    fileSystemId,
+					Region:          region,
+					CreationTime:    time.Now(),
+					MountTargets:    []string{}, // Will be populated when mount targets are created
+					State:           currentState,
+					PerformanceMode: string(fs.PerformanceMode),
+					ThroughputMode:  string(fs.ThroughputMode),
+					EstimatedCostGB: 0.30, // $0.30/GB/month for standard storage
+					SizeBytes:       0,    // Will be updated when data is stored
+				}
+				
+				state.Volumes[volumeName] = volume
+				saveState(state)
+				
+				fmt.Printf("✅ EFS volume '%s' created successfully!\n", volumeName)
+				fmt.Printf("📋 Volume Details:\n")
+				fmt.Printf("   Name: %s\n", volume.Name)
+				fmt.Printf("   File System ID: %s\n", volume.FileSystemId)
+				fmt.Printf("   Region: %s\n", volume.Region)
+				fmt.Printf("   Performance Mode: %s\n", volume.PerformanceMode)
+				fmt.Printf("   Throughput Mode: %s\n", volume.ThroughputMode)
+				fmt.Printf("   Estimated Cost: $%.2f/GB/month\n", volume.EstimatedCostGB)
+				fmt.Println()
+				fmt.Printf("💡 To use this volume, specify it when launching: cws launch <template> <name> --volume %s\n", volumeName)
+				return
+			case "deleting":
+				fmt.Printf("❌ Volume is being deleted\n")
+				return
+			default:
+				fmt.Printf("   [%s] 🔄 State: %s\n", elapsed, currentState)
+			}
+		}
+		
+		time.Sleep(10 * time.Second)
+	}
+	
+	fmt.Println("⚠️  Timeout waiting for EFS volume to become available")
+	fmt.Printf("💡 Check AWS console for file system %s status\n", fileSystemId)
+}
+
+func handleVolumeList() {
+	state := loadState()
+	
+	if len(state.Volumes) == 0 {
+		fmt.Println("📭 No EFS volumes found")
+		fmt.Println("💡 Create one with: cws volume create <name>")
+		return
+	}
+
+	fmt.Printf("📋 EFS Volumes (%d total):\n\n", len(state.Volumes))
+	fmt.Printf("%-20s %-25s %-12s %-15s %-12s\n", "NAME", "FILE SYSTEM ID", "STATE", "REGION", "SIZE")
+	fmt.Printf("%-20s %-25s %-12s %-15s %-12s\n", "----", "--------------", "-----", "------", "----")
+	
+	for _, volume := range state.Volumes {
+		sizeStr := "0 GB"
+		if volume.SizeBytes > 0 {
+			sizeGB := float64(volume.SizeBytes) / (1024 * 1024 * 1024)
+			sizeStr = fmt.Sprintf("%.2f GB", sizeGB)
+		}
+		
+		fmt.Printf("%-20s %-25s %-12s %-15s %-12s\n", 
+			volume.Name, 
+			volume.FileSystemId, 
+			volume.State, 
+			volume.Region,
+			sizeStr,
+		)
+	}
+	
+	fmt.Println()
+	fmt.Println("💡 Use 'cws volume info <name>' for detailed information")
+}
+
+func handleVolumeInfo() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: cws volume info <name>")
+		fmt.Println("Example: cws volume info research-data")
+		return
+	}
+
+	volumeName := os.Args[3]
+	state := loadState()
+	
+	volume, exists := state.Volumes[volumeName]
+	if !exists {
+		fmt.Printf("❌ Volume '%s' not found\n", volumeName)
+		fmt.Println("💡 Use 'cws volume list' to see available volumes")
+		return
+	}
+
+	fmt.Printf("📋 EFS Volume Information: %s\n\n", volume.Name)
+	fmt.Printf("Basic Details:\n")
+	fmt.Printf("  Name: %s\n", volume.Name)
+	fmt.Printf("  File System ID: %s\n", volume.FileSystemId)
+	fmt.Printf("  Region: %s\n", volume.Region)
+	fmt.Printf("  State: %s\n", volume.State)
+	fmt.Printf("  Created: %s\n", volume.CreationTime.Format("2006-01-02 15:04:05 MST"))
+	
+	fmt.Printf("\nConfiguration:\n")
+	fmt.Printf("  Performance Mode: %s\n", volume.PerformanceMode)
+	fmt.Printf("  Throughput Mode: %s\n", volume.ThroughputMode)
+	
+	fmt.Printf("\nStorage:\n")
+	if volume.SizeBytes > 0 {
+		sizeGB := float64(volume.SizeBytes) / (1024 * 1024 * 1024)
+		fmt.Printf("  Current Size: %.2f GB\n", sizeGB)
+		monthlyCost := sizeGB * volume.EstimatedCostGB
+		fmt.Printf("  Estimated Monthly Cost: $%.2f\n", monthlyCost)
+	} else {
+		fmt.Printf("  Current Size: 0 GB (no data stored yet)\n")
+		fmt.Printf("  Base Cost: $%.2f/GB/month\n", volume.EstimatedCostGB)
+	}
+	
+	fmt.Printf("\nMount Targets:\n")
+	if len(volume.MountTargets) > 0 {
+		for i, mtId := range volume.MountTargets {
+			fmt.Printf("  %d. %s\n", i+1, mtId)
+		}
+	} else {
+		fmt.Printf("  None created yet\n")
+		fmt.Printf("  💡 Mount targets will be created automatically when attaching to instances\n")
+	}
+}
+
+func handleVolumeDelete() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: cws volume delete <name>")
+		fmt.Println("Example: cws volume delete research-data")
+		return
+	}
+
+	volumeName := os.Args[3]
+	state := loadState()
+	
+	volume, exists := state.Volumes[volumeName]
+	if !exists {
+		fmt.Printf("❌ Volume '%s' not found\n", volumeName)
+		fmt.Println("💡 Use 'cws volume list' to see available volumes")
+		return
+	}
+
+	// Check if volume is attached to any instances
+	attachedInstances := []string{}
+	for instanceName, instance := range state.Instances {
+		for _, attachedVolume := range instance.AttachedVolumes {
+			if attachedVolume == volumeName {
+				attachedInstances = append(attachedInstances, instanceName)
+			}
+		}
+	}
+	
+	if len(attachedInstances) > 0 {
+		fmt.Printf("❌ Cannot delete volume '%s' - it is attached to the following instances:\n", volumeName)
+		for _, instanceName := range attachedInstances {
+			fmt.Printf("   - %s\n", instanceName)
+		}
+		fmt.Println("💡 Detach the volume from all instances before deleting")
+		return
+	}
+
+	fmt.Printf("⚠️  WARNING: This will permanently delete EFS volume '%s'!\n", volumeName)
+	fmt.Printf("   File System ID: %s\n", volume.FileSystemId)
+	fmt.Printf("   Region: %s\n", volume.Region)
+	if volume.SizeBytes > 0 {
+		sizeGB := float64(volume.SizeBytes) / (1024 * 1024 * 1024)
+		fmt.Printf("   Current Size: %.2f GB\n", sizeGB)
+		fmt.Printf("   ⚠️  ALL DATA WILL BE LOST!\n")
+	}
+	fmt.Println()
+	fmt.Print("Type 'yes' to confirm deletion: ")
+	
+	var confirmation string
+	fmt.Scanln(&confirmation)
+	
+	if confirmation != "yes" {
+		fmt.Println("❌ Deletion cancelled")
+		return
+	}
+
+	fmt.Printf("🗑️  Deleting EFS volume '%s'...\n", volumeName)
+
+	// First, delete all mount targets
+	if len(volume.MountTargets) > 0 {
+		fmt.Println("⏳ Removing mount targets...")
+		for _, mtId := range volume.MountTargets {
+			deleteMtInput := &efs.DeleteMountTargetInput{
+				MountTargetId: aws.String(mtId),
+			}
+			
+			_, err := efsClient.DeleteMountTarget(context.TODO(), deleteMtInput)
+			if err != nil {
+				fmt.Printf("⚠️  Warning: Failed to delete mount target %s: %v\n", mtId, err)
+			} else {
+				fmt.Printf("   ✅ Deleted mount target: %s\n", mtId)
+			}
+		}
+		
+		// Wait for mount targets to be deleted
+		fmt.Println("⏳ Waiting for mount targets to be removed...")
+		time.Sleep(10 * time.Second)
+	}
+
+	// Delete the file system
+	deleteInput := &efs.DeleteFileSystemInput{
+		FileSystemId: aws.String(volume.FileSystemId),
+	}
+	
+	_, err := efsClient.DeleteFileSystem(context.TODO(), deleteInput)
+	if err != nil {
+		fmt.Printf("❌ Failed to delete EFS volume: %v\n", err)
+		return
+	}
+
+	// Remove from state
+	delete(state.Volumes, volumeName)
+	saveState(state)
+
+	fmt.Printf("✅ EFS volume '%s' deletion initiated\n", volumeName)
+	fmt.Println("💡 The volume will be fully deleted within a few minutes")
+}
+
+// addEFSMountToUserData modifies the UserData script to include EFS mounting commands
+func addEFSMountToUserData(originalUserData, fileSystemId, region string) string {
+	// EFS mounting commands to append to the user data
+	efsMountCommands := fmt.Sprintf(`
+
+# CloudWorkstation EFS Volume Mount
+echo "Setting up EFS volume mounting..." >> /var/log/cws-setup.log
+
+# Install EFS utilities
+apt-get update -y
+apt-get install -y amazon-efs-utils
+
+# Create mount point
+mkdir -p /efs
+mkdir -p /home/ubuntu/efs
+
+# Mount EFS file system
+echo "%s.efs.%s.amazonaws.com:/ /efs efs defaults,_netdev" >> /etc/fstab
+mount -a
+
+# Give ubuntu user access to EFS
+chown ubuntu:ubuntu /efs
+chmod 755 /efs
+
+# Create symlink in ubuntu home directory for easy access
+ln -sf /efs /home/ubuntu/efs
+chown -h ubuntu:ubuntu /home/ubuntu/efs
+
+echo "EFS volume mounted successfully at /efs" >> /var/log/cws-setup.log
+`, fileSystemId, region)
+
+	return originalUserData + efsMountCommands
+}
+
+// parseStorageConfiguration converts t-shirt sizes to EBS specifications
+func parseStorageConfiguration(size, volumeType string) (sizeGB int32, iops int32, throughput int32, monthlyCost float64) {
+	switch size {
+	case "XS":
+		sizeGB = 100
+		iops = 3000   // Default for gp3, minimum for io2
+		throughput = 125 // Default for gp3
+		if volumeType == "gp3" {
+			monthlyCost = 100 * 0.08  // $0.08/GB/month for gp3
+		} else {
+			monthlyCost = 100*0.125 + 3000*0.065  // $0.125/GB/month + $0.065/IOPS/month for io2
+		}
+	case "S":
+		sizeGB = 500
+		iops = 5000
+		throughput = 250
+		if volumeType == "gp3" {
+			monthlyCost = 500 * 0.08
+		} else {
+			monthlyCost = 500*0.125 + 5000*0.065
+		}
+	case "M":
+		sizeGB = 1000
+		iops = 10000
+		throughput = 500
+		if volumeType == "gp3" {
+			monthlyCost = 1000*0.08 + (500-125)*0.04  // Base + extra throughput cost
+		} else {
+			monthlyCost = 1000*0.125 + 10000*0.065
+		}
+	case "L":
+		sizeGB = 2000
+		iops = 20000
+		throughput = 1000
+		if volumeType == "gp3" {
+			monthlyCost = 2000*0.08 + (1000-125)*0.04
+		} else {
+			monthlyCost = 2000*0.125 + 20000*0.065
+		}
+	case "XL":
+		sizeGB = 4000
+		iops = 32000  // Max for most instance types
+		throughput = 1000
+		if volumeType == "gp3" {
+			monthlyCost = 4000*0.08 + (1000-125)*0.04
+		} else {
+			monthlyCost = 4000*0.125 + 32000*0.065
+		}
+	default:
+		// Default to M if invalid size provided
+		sizeGB = 1000
+		iops = 10000
+		throughput = 500
+		if volumeType == "gp3" {
+			monthlyCost = 1000*0.08 + (500-125)*0.04
+		} else {
+			monthlyCost = 1000*0.125 + 10000*0.065
+		}
+	}
+	
+	return sizeGB, iops, throughput, monthlyCost
+}
+
+// handleStorage manages EBS volume operations
+func handleStorage() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: cws storage <command> [args]")
+		fmt.Println("Commands:")
+		fmt.Println("  create <name> <size> [type]  Create EBS volume (size: XS,S,M,L,XL; type: gp3,io2)")
+		fmt.Println("  list                         List all EBS volumes")
+		fmt.Println("  info <name>                  Show detailed volume information")
+		fmt.Println("  attach <volume> <instance>   Attach volume to instance")
+		fmt.Println("  detach <volume>              Detach volume from instance")
+		fmt.Println("  delete <name>                Delete EBS volume (with confirmation)")
+		fmt.Println()
+		fmt.Println("Storage Sizes:")
+		fmt.Println("  XS = 100GB   (~$8/month)")
+		fmt.Println("  S  = 500GB   (~$40/month)")
+		fmt.Println("  M  = 1TB     (~$95/month)")
+		fmt.Println("  L  = 2TB     (~$195/month)")
+		fmt.Println("  XL = 4TB     (~$355/month)")
+		fmt.Println()
+		fmt.Println("Examples:")
+		fmt.Println("  cws storage create ml-data L io2")
+		fmt.Println("  cws storage list")
+		fmt.Println("  cws storage attach ml-data my-instance")
+		fmt.Println("  cws storage detach ml-data")
+		return
+	}
+
+	subcommand := os.Args[2]
+	switch subcommand {
+	case "create":
+		handleStorageCreate()
+	case "list":
+		handleStorageList()
+	case "info":
+		handleStorageInfo()
+	case "attach":
+		handleStorageAttach()
+	case "detach":
+		handleStorageDetach()
+	case "delete":
+		handleStorageDelete()
+	default:
+		fmt.Printf("❌ Unknown storage command: %s\n", subcommand)
+		fmt.Println("Use 'cws storage' to see available commands")
+	}
+}
+
+func handleStorageCreate() {
+	if len(os.Args) < 5 {
+		fmt.Println("Usage: cws storage create <name> <size> [type]")
+		fmt.Println("  name: Volume name")
+		fmt.Println("  size: XS, S, M, L, XL")
+		fmt.Println("  type: gp3 (default), io2")
+		fmt.Println("Example: cws storage create ml-data L io2")
+		return
+	}
+
+	volumeName := os.Args[3]
+	sizeStr := os.Args[4]
+	volumeType := "gp3"
+	if len(os.Args) > 5 {
+		volumeType = os.Args[5]
+		if volumeType != "gp3" && volumeType != "io2" {
+			fmt.Println("❌ Volume type must be gp3 or io2")
+			return
+		}
+	}
+
+	region := getCurrentRegion()
+	if region == "" {
+		fmt.Println("❌ No AWS region configured")
+		fmt.Println("💡 Set a region with: cws config region <region>")
+		return
+	}
+
+	// Check if volume name already exists
+	state := loadState()
+	if _, exists := state.EBSVolumes[volumeName]; exists {
+		fmt.Printf("❌ EBS volume '%s' already exists\n", volumeName)
+		return
+	}
+
+	// Parse storage configuration
+	sizeGB, iops, throughput, monthlyCost := parseStorageConfiguration(sizeStr, volumeType)
+	
+	fmt.Printf("💾 Creating EBS volume '%s' (%s)...\n", volumeName, sizeStr)
+	fmt.Printf("📋 Configuration:\n")
+	fmt.Printf("   Size: %dGB\n", sizeGB)
+	fmt.Printf("   Type: %s\n", volumeType)
+	if volumeType == "io2" {
+		fmt.Printf("   Provisioned IOPS: %d\n", iops)
+	}
+	if volumeType == "gp3" && throughput > 125 {
+		fmt.Printf("   Throughput: %d MB/s\n", throughput)
+	}
+	fmt.Printf("   Estimated Cost: $%.2f/month\n", monthlyCost)
+	fmt.Println()
+
+	// Create EBS volume
+	var createInput *ec2.CreateVolumeInput
+	
+	if volumeType == "gp3" {
+		createInput = &ec2.CreateVolumeInput{
+			Size:               aws.Int32(sizeGB),
+			VolumeType:         types.VolumeTypeGp3,
+			AvailabilityZone:   aws.String(region + "a"), // Use first AZ
+			Iops:               aws.Int32(iops),
+			Throughput:         aws.Int32(throughput),
+			TagSpecifications: []types.TagSpecification{
+				{
+					ResourceType: types.ResourceTypeVolume,
+					Tags: []types.Tag{
+						{Key: aws.String("Name"), Value: aws.String(volumeName)},
+						{Key: aws.String("CreatedBy"), Value: aws.String("cloudworkstation")},
+						{Key: aws.String("Size"), Value: aws.String(sizeStr)},
+					},
+				},
+			},
+		}
+	} else { // io2
+		createInput = &ec2.CreateVolumeInput{
+			Size:               aws.Int32(sizeGB),
+			VolumeType:         types.VolumeTypeIo2,
+			AvailabilityZone:   aws.String(region + "a"), // Use first AZ
+			Iops:               aws.Int32(iops),
+			TagSpecifications: []types.TagSpecification{
+				{
+					ResourceType: types.ResourceTypeVolume,
+					Tags: []types.Tag{
+						{Key: aws.String("Name"), Value: aws.String(volumeName)},
+						{Key: aws.String("CreatedBy"), Value: aws.String("cloudworkstation")},
+						{Key: aws.String("Size"), Value: aws.String(sizeStr)},
+					},
+				},
+			},
+		}
+	}
+
+	result, err := ec2Client.CreateVolume(context.TODO(), createInput)
+	if err != nil {
+		fmt.Printf("❌ Failed to create EBS volume: %v\n", err)
+		return
+	}
+
+	volumeID := *result.VolumeId
+	fmt.Printf("🎯 EBS Volume ID: %s\n", volumeID)
+
+	// Wait for volume to become available
+	fmt.Println("⏳ Waiting for EBS volume to become available...")
+	startTime := time.Now()
+	
+	for i := 0; i < 30; i++ { // Wait up to 5 minutes
+		elapsed := time.Since(startTime).Round(time.Second)
+		
+		describeInput := &ec2.DescribeVolumesInput{
+			VolumeIds: []string{volumeID},
+		}
+		
+		describeResult, err := ec2Client.DescribeVolumes(context.TODO(), describeInput)
+		if err != nil {
+			fmt.Printf("   [%s] ⚠️  Error checking status: %v\n", elapsed, err)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		
+		if len(describeResult.Volumes) > 0 {
+			volume := describeResult.Volumes[0]
+			currentState := string(volume.State)
+			
+			switch currentState {
+			case "creating":
+				fmt.Printf("   [%s] 🟡 Creating EBS volume...\n", elapsed)
+			case "available":
+				fmt.Printf("   [%s] 🟢 EBS volume is available!\n", elapsed)
+				
+				// Save volume to state
+				ebsVolume := EBSVolume{
+					Name:           volumeName,
+					VolumeID:       volumeID,
+					Region:         region,
+					CreationTime:   time.Now(),
+					State:          currentState,
+					VolumeType:     volumeType,
+					SizeGB:         sizeGB,
+					IOPS:           iops,
+					Throughput:     throughput,
+					EstimatedCostGB: monthlyCost / float64(sizeGB),
+					AttachedTo:     "",
+				}
+				
+				state.EBSVolumes[volumeName] = ebsVolume
+				saveState(state)
+				
+				fmt.Printf("✅ EBS volume '%s' created successfully!\n", volumeName)
+				fmt.Printf("💡 To attach: cws storage attach %s <instance-name>\n", volumeName)
+				return
+			case "error":
+				fmt.Printf("❌ Volume creation failed\n")
+				return
+			default:
+				fmt.Printf("   [%s] 🔄 State: %s\n", elapsed, currentState)
+			}
+		}
+		
+		time.Sleep(10 * time.Second)
+	}
+	
+	fmt.Println("⚠️  Timeout waiting for EBS volume to become available")
+	fmt.Printf("💡 Check AWS console for volume %s status\n", volumeID)
+}
+
+func handleStorageList() {
+	state := loadState()
+	
+	if len(state.EBSVolumes) == 0 {
+		fmt.Println("📭 No EBS volumes found")
+		fmt.Println("💡 Create one with: cws storage create <name> <size> [type]")
+		return
+	}
+
+	fmt.Printf("📋 EBS Volumes (%d total):\n\n", len(state.EBSVolumes))
+	fmt.Printf("%-20s %-15s %-8s %-10s %-15s %-12s\n", "NAME", "VOLUME ID", "SIZE", "TYPE", "STATE", "ATTACHED TO")
+	fmt.Printf("%-20s %-15s %-8s %-10s %-15s %-12s\n", "----", "---------", "----", "----", "-----", "-----------")
+	
+	for _, volume := range state.EBSVolumes {
+		attachedTo := volume.AttachedTo
+		if attachedTo == "" {
+			attachedTo = "-"
+		}
+		
+		fmt.Printf("%-20s %-15s %-8dGB %-10s %-15s %-12s\n", 
+			volume.Name, 
+			volume.VolumeID, 
+			volume.SizeGB,
+			volume.VolumeType,
+			volume.State, 
+			attachedTo,
+		)
+	}
+	
+	fmt.Println()
+	fmt.Println("💡 Use 'cws storage info <name>' for detailed information")
+}
+
+func handleStorageInfo() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: cws storage info <name>")
+		fmt.Println("Example: cws storage info ml-data")
+		return
+	}
+
+	volumeName := os.Args[3]
+	state := loadState()
+	
+	volume, exists := state.EBSVolumes[volumeName]
+	if !exists {
+		fmt.Printf("❌ EBS volume '%s' not found\n", volumeName)
+		fmt.Println("💡 Use 'cws storage list' to see available volumes")
+		return
+	}
+
+	fmt.Printf("📋 EBS Volume Information: %s\n\n", volume.Name)
+	fmt.Printf("Basic Details:\n")
+	fmt.Printf("  Name: %s\n", volume.Name)
+	fmt.Printf("  Volume ID: %s\n", volume.VolumeID)
+	fmt.Printf("  Region: %s\n", volume.Region)
+	fmt.Printf("  State: %s\n", volume.State)
+	fmt.Printf("  Created: %s\n", volume.CreationTime.Format("2006-01-02 15:04:05 MST"))
+	
+	fmt.Printf("\nConfiguration:\n")
+	fmt.Printf("  Size: %dGB\n", volume.SizeGB)
+	fmt.Printf("  Volume Type: %s\n", volume.VolumeType)
+	if volume.IOPS > 0 {
+		fmt.Printf("  IOPS: %d\n", volume.IOPS)
+	}
+	if volume.Throughput > 0 && volume.VolumeType == "gp3" {
+		fmt.Printf("  Throughput: %d MB/s\n", volume.Throughput)
+	}
+	
+	fmt.Printf("\nCost:\n")
+	monthlyCost := float64(volume.SizeGB) * volume.EstimatedCostGB
+	fmt.Printf("  Estimated Monthly Cost: $%.2f\n", monthlyCost)
+	
+	fmt.Printf("\nAttachment:\n")
+	if volume.AttachedTo != "" {
+		fmt.Printf("  Attached to: %s\n", volume.AttachedTo)
+		fmt.Printf("  Mount point: /data (automatic)\n")
+	} else {
+		fmt.Printf("  Not attached\n")
+		fmt.Printf("  💡 To attach: cws storage attach %s <instance-name>\n", volume.Name)
+	}
+}
+
+func handleStorageAttach() {
+	if len(os.Args) < 5 {
+		fmt.Println("Usage: cws storage attach <volume-name> <instance-name>")
+		fmt.Println("Example: cws storage attach ml-data my-instance")
+		return
+	}
+
+	volumeName := os.Args[3]
+	instanceName := os.Args[4]
+	
+	state := loadState()
+	
+	// Check if volume exists
+	volume, volumeExists := state.EBSVolumes[volumeName]
+	if !volumeExists {
+		fmt.Printf("❌ EBS volume '%s' not found\n", volumeName)
+		fmt.Println("💡 Use 'cws storage list' to see available volumes")
+		return
+	}
+	
+	// Check if instance exists
+	instance, instanceExists := state.Instances[instanceName]
+	if !instanceExists {
+		fmt.Printf("❌ Instance '%s' not found\n", instanceName)
+		fmt.Println("💡 Use 'cws list' to see available instances")
+		return
+	}
+	
+	// Check if volume is already attached
+	if volume.AttachedTo != "" {
+		fmt.Printf("❌ Volume '%s' is already attached to instance '%s'\n", volumeName, volume.AttachedTo)
+		return
+	}
+	
+	// Check if instance is running
+	if instance.State != "running" {
+		fmt.Printf("❌ Instance '%s' is not running (current state: %s)\n", instanceName, instance.State)
+		fmt.Println("💡 Start the instance first with: cws start " + instanceName)
+		return
+	}
+
+	fmt.Printf("🔗 Attaching EBS volume '%s' to instance '%s'...\n", volumeName, instanceName)
+
+	// Find next available device name
+	deviceName := "/dev/sdf" // Start with /dev/sdf for secondary volumes
+	
+	// Attach volume
+	attachInput := &ec2.AttachVolumeInput{
+		VolumeId:   aws.String(volume.VolumeID),
+		InstanceId: aws.String(instance.ID),
+		Device:     aws.String(deviceName),
+	}
+	
+	_, err := ec2Client.AttachVolume(context.TODO(), attachInput)
+	if err != nil {
+		fmt.Printf("❌ Failed to attach volume: %v\n", err)
+		return
+	}
+
+	// Update state
+	volume.AttachedTo = instanceName
+	state.EBSVolumes[volumeName] = volume
+	
+	// Add to instance's attached volumes list
+	instance.AttachedEBSVolumes = append(instance.AttachedEBSVolumes, volume.VolumeID)
+	state.Instances[instanceName] = instance
+	
+	saveState(state)
+
+	fmt.Printf("✅ Volume '%s' attached successfully!\n", volumeName)
+	fmt.Printf("💡 The volume will be automatically mounted at /data on next boot\n")
+	fmt.Printf("💡 To manually mount: sudo mount %s /data\n", deviceName)
+}
+
+func handleStorageDetach() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: cws storage detach <volume-name>")
+		fmt.Println("Example: cws storage detach ml-data")
+		return
+	}
+
+	volumeName := os.Args[3]
+	state := loadState()
+	
+	volume, exists := state.EBSVolumes[volumeName]
+	if !exists {
+		fmt.Printf("❌ EBS volume '%s' not found\n", volumeName)
+		fmt.Println("💡 Use 'cws storage list' to see available volumes")
+		return
+	}
+	
+	if volume.AttachedTo == "" {
+		fmt.Printf("❌ Volume '%s' is not attached to any instance\n", volumeName)
+		return
+	}
+
+	fmt.Printf("🔌 Detaching EBS volume '%s' from instance '%s'...\n", volumeName, volume.AttachedTo)
+
+	// Detach volume
+	detachInput := &ec2.DetachVolumeInput{
+		VolumeId: aws.String(volume.VolumeID),
+	}
+	
+	_, err := ec2Client.DetachVolume(context.TODO(), detachInput)
+	if err != nil {
+		fmt.Printf("❌ Failed to detach volume: %v\n", err)
+		return
+	}
+
+	// Update state
+	instanceName := volume.AttachedTo
+	volume.AttachedTo = ""
+	state.EBSVolumes[volumeName] = volume
+	
+	// Remove from instance's attached volumes list
+	if instance, exists := state.Instances[instanceName]; exists {
+		updatedEBSVolumes := []string{}
+		for _, volID := range instance.AttachedEBSVolumes {
+			if volID != volume.VolumeID {
+				updatedEBSVolumes = append(updatedEBSVolumes, volID)
+			}
+		}
+		instance.AttachedEBSVolumes = updatedEBSVolumes
+		state.Instances[instanceName] = instance
+	}
+	
+	saveState(state)
+
+	fmt.Printf("✅ Volume '%s' detached successfully!\n", volumeName)
+}
+
+func handleStorageDelete() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: cws storage delete <volume-name>")
+		fmt.Println("Example: cws storage delete ml-data")
+		return
+	}
+
+	volumeName := os.Args[3]
+	state := loadState()
+	
+	volume, exists := state.EBSVolumes[volumeName]
+	if !exists {
+		fmt.Printf("❌ EBS volume '%s' not found\n", volumeName)
+		fmt.Println("💡 Use 'cws storage list' to see available volumes")
+		return
+	}
+	
+	// Check if volume is attached
+	if volume.AttachedTo != "" {
+		fmt.Printf("❌ Cannot delete volume '%s' - it is attached to instance '%s'\n", volumeName, volume.AttachedTo)
+		fmt.Printf("💡 Detach first with: cws storage detach %s\n", volumeName)
+		return
+	}
+
+	fmt.Printf("⚠️  WARNING: This will permanently delete EBS volume '%s'!\n", volumeName)
+	fmt.Printf("   Volume ID: %s\n", volume.VolumeID)
+	fmt.Printf("   Size: %dGB (%s)\n", volume.SizeGB, volume.VolumeType)
+	fmt.Printf("   ⚠️  ALL DATA WILL BE LOST!\n")
+	fmt.Println()
+	fmt.Print("Type 'yes' to confirm deletion: ")
+	
+	var confirmation string
+	fmt.Scanln(&confirmation)
+	
+	if confirmation != "yes" {
+		fmt.Println("❌ Deletion cancelled")
+		return
+	}
+
+	fmt.Printf("🗑️  Deleting EBS volume '%s'...\n", volumeName)
+
+	// Delete volume
+	deleteInput := &ec2.DeleteVolumeInput{
+		VolumeId: aws.String(volume.VolumeID),
+	}
+	
+	_, err := ec2Client.DeleteVolume(context.TODO(), deleteInput)
+	if err != nil {
+		fmt.Printf("❌ Failed to delete volume: %v\n", err)
+		return
+	}
+
+	// Remove from state
+	delete(state.EBSVolumes, volumeName)
+	saveState(state)
+
+	fmt.Printf("✅ EBS volume '%s' deleted successfully!\n", volumeName)
 }
