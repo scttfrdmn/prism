@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yourusername/cloudworkstation/pkg/aws"
-	"github.com/yourusername/cloudworkstation/pkg/state"
-	"github.com/yourusername/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
+	"github.com/scttfrdmn/cloudworkstation/pkg/state"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // Server represents the CloudWorkstation daemon server

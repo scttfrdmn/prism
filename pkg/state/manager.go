@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/yourusername/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // Manager handles state persistence

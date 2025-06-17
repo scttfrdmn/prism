@@ -7,8 +7,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/yourusername/cloudworkstation/pkg/api"
-	"github.com/yourusername/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // App represents the CLI application

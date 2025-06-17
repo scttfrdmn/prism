@@ -117,6 +117,9 @@ internal/
 - Template and instance management
 - EFS/EBS volume management
 - Cross-platform builds
+- Comprehensive testing framework
+- Linting and code quality checks
+- AMI creation system design
 
 ## Architecture Decisions
 

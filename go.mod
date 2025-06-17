@@ -1,4 +1,4 @@
-module github.com/yourusername/cloudworkstation
+module github.com/scttfrdmn/cloudworkstation
 
 go 1.24.4
 
