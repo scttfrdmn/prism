@@ -458,3 +458,68 @@ cws launch neuroimaging brain-analysis --python-with spack --fsl-with native
 - All with desktop GUI support via NICE DCV
 
 This phase establishes CloudWorkstation as a comprehensive research computing platform, not just a simple VM launcher.
+
+## GUI Development Strategy
+
+### Strategic Pivot to Multi-Modal Access
+CloudWorkstation will evolve from CLI-only to support multiple interface modes while maintaining its core design principles:
+
+**Target Interfaces:**
+- **CLI**: Power users, automation, scripting (maintain current functionality)
+- **GUI**: Non-technical researchers, visual management, always-on monitoring
+- **Web** (future): Browser-based access, collaboration features
+
+### Architecture Transformation Required
+Current monolithic `main.go` must split into distributed architecture:
+
+```
+Current:                    Target:
+┌─────────────┐            ┌─────────────┐  ┌─────────────┐
+│   main.go   │    →       │ GUI Client  │  │ CLI Client  │
+│ Everything  │            │(menubar/tray)│  │ (current)   │
+└─────────────┘            └──────┬──────┘  └──────┬──────┘
+                                  │                │
+                                  └────────┬───────┘
+                                          │
+                                   ┌─────────────┐
+                                   │ Backend     │
+                                   │ Daemon      │
+                                   │ (API server)│
+                                   └─────────────┘
+```
+
+### Progressive Disclosure in GUI
+Following CloudWorkstation's core principles:
+
+**Level 1 - Menubar/System Tray:**
+- Instance status at a glance
+- One-click launch common templates
+- Cost monitoring ($12.45/day visible)
+- Notifications (idle instances, budget alerts)
+
+**Level 2 - Dashboard Window:**
+- Visual instance management
+- Template selection with descriptions
+- Budget tracking with project context
+- Quick access to common operations
+
+**Level 3 - Advanced Configuration:**
+- Full CLI-equivalent options
+- Custom template creation
+- Advanced storage configuration
+- Multi-project management
+
+### Key Design Benefits
+- **Accessibility**: Non-technical researchers can use CloudWorkstation
+- **Always-On Monitoring**: Menubar shows costs/status continuously  
+- **Proactive Notifications**: Idle detection, budget warnings
+- **Progressive Disclosure**: Simple by default, advanced when needed
+- **Unified Experience**: GUI and CLI share same backend/state
+
+### Implementation Phases
+1. **Phase 1**: Split architecture (daemon + API + CLI client)
+2. **Phase 2**: Basic GUI (menubar + simple dashboard)
+3. **Phase 3**: Advanced GUI (full feature parity)
+4. **Phase 4**: Polish + ecosystem integration
+
+This GUI strategy will dramatically expand CloudWorkstation's reach to researchers who prefer visual interfaces while maintaining the power and flexibility that technical users require.
