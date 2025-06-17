@@ -134,3 +134,36 @@ type DaemonStatus struct {
 	TotalRequests int64     `json:"total_requests"`
 	AWSRegion     string    `json:"aws_region"`
 }
+
+// CreditInfo represents AWS credit information
+type CreditInfo struct {
+	TotalCredits     float64    `json:"total_credits"`
+	RemainingCredits float64    `json:"remaining_credits"`
+	UsedCredits      float64    `json:"used_credits"`
+	CreditType       string     `json:"credit_type"`  // "AWS Promotional", "AWS Educate", etc.
+	ExpirationDate   *time.Time `json:"expiration_date,omitempty"`
+	Description      string     `json:"description"`
+}
+
+// BillingInfo represents current billing and cost information
+type BillingInfo struct {
+	MonthToDateSpend float64      `json:"month_to_date_spend"`
+	ForecastedSpend  float64      `json:"forecasted_spend"`
+	Credits          []CreditInfo `json:"credits"`
+	BillingPeriod    string       `json:"billing_period"`
+	LastUpdated      time.Time    `json:"last_updated"`
+}
+
+// DiscountConfig represents pricing discount configuration
+type DiscountConfig struct {
+	EC2Discount         float64 `json:"ec2_discount"`         // Percentage discount (0.0-1.0)
+	EBSDiscount         float64 `json:"ebs_discount"`         // Percentage discount (0.0-1.0)
+	EFSDiscount         float64 `json:"efs_discount"`         // Percentage discount (0.0-1.0)
+	SavingsPlansDiscount float64 `json:"savings_plans_discount"` // Additional savings plan discount
+	ReservedInstanceDiscount float64 `json:"reserved_instance_discount"` // RI discount
+	SpotDiscount        float64 `json:"spot_discount"`        // Spot instance discount
+	VolumeDiscount      float64 `json:"volume_discount"`      // Volume discount for large usage
+	EducationalDiscount float64 `json:"educational_discount"` // Educational institution discount
+	StartupDiscount     float64 `json:"startup_discount"`     // AWS Activate/startup credits
+	EnterpriseDiscount  float64 `json:"enterprise_discount"`  // Enterprise agreement discount
+}

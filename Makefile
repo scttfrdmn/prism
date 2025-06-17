@@ -12,9 +12,9 @@ LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) 
 .PHONY: all
 all: build
 
-# Build both binaries
+# Build all binaries
 .PHONY: build
-build: build-daemon build-cli
+build: build-daemon build-cli build-gui
 
 # Build daemon binary
 .PHONY: build-daemon
@@ -28,15 +28,23 @@ build-cli:
 	@echo "Building CloudWorkstation CLI..."
 	@go build $(LDFLAGS) -o bin/cws ./cmd/cws
 
+# Build GUI binary
+.PHONY: build-gui
+build-gui:
+	@echo "Building CloudWorkstation GUI..."
+	@go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
+
 # Install binaries to system
 .PHONY: install
 install: build
 	@echo "Installing CloudWorkstation..."
 	@sudo cp bin/cwsd /usr/local/bin/
 	@sudo cp bin/cws /usr/local/bin/
+	@sudo cp bin/cws-gui /usr/local/bin/
 	@echo "✅ CloudWorkstation installed successfully"
 	@echo "Start daemon with: cwsd"
 	@echo "Use CLI with: cws --help"
+	@echo "Use GUI with: cws-gui"
 
 # Uninstall binaries from system
 .PHONY: uninstall
@@ -44,6 +52,7 @@ uninstall:
 	@echo "Uninstalling CloudWorkstation..."
 	@sudo rm -f /usr/local/bin/cwsd
 	@sudo rm -f /usr/local/bin/cws
+	@sudo rm -f /usr/local/bin/cws-gui
 	@echo "✅ CloudWorkstation uninstalled"
 
 # Clean build artifacts
