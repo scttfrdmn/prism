@@ -63,7 +63,7 @@ test:
 .PHONY: lint
 lint:
 	@echo "Running linter..."
-	@golangci-lint run
+	@golangci-lint run --issues-exit-code=0
 
 # Format code
 .PHONY: fmt

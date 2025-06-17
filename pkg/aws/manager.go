@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-	"github.com/yourusername/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // Manager handles all AWS operations

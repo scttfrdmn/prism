@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/yourusername/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // Client provides an interface to communicate with the CloudWorkstation daemon

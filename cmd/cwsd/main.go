@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/yourusername/cloudworkstation/pkg/daemon"
+	"github.com/scttfrdmn/cloudworkstation/pkg/daemon"
 )
 
 const (

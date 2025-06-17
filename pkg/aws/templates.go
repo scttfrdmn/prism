@@ -1,6 +1,6 @@
 package aws
 
-import "github.com/yourusername/cloudworkstation/pkg/types"
+import "github.com/scttfrdmn/cloudworkstation/pkg/types"
 
 // getTemplates returns the hard-coded templates for MVP
 func getTemplates() map[string]types.Template {
