@@ -1,0 +1,33 @@
+# Binaries
+cws
+cws.exe
+cws-*
+
+# Go build artifacts
+*.o
+*.a
+*.so
+
+# Test files
+*.test
+*.prof
+
+# Go modules
+go.sum
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local development
+.env
+*.local
+
+# State files (for testing)
+test-state.json
