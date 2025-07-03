@@ -264,6 +264,7 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	
 	// Add network configuration if specified
 	if b.DefaultSubnet != "" {
+		fmt.Printf("Using subnet: %s\n", b.DefaultSubnet)
 		input.SubnetId = aws.String(b.DefaultSubnet)
 	} else if request.DryRun {
 		// For dry run mode, use a dummy subnet ID since we won't actually launch
