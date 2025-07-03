@@ -242,12 +242,13 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	AWS_PROFILE=aws AWS_REGION=%s aws ec2 run-instances \
 	  --image-id %s \
 	  --instance-type %s \
-	  --subnet-id %s \
+	  --subnet-id subnet-025428f66d069b5c9 \
+	  --vpc-id vpc-095b2a5443d394b4a \
 	  --associate-public-ip-address \
 	  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ami-builder-%s-%s}]' \
 	  --count 1 \
 	  --output json
-	`, request.Region, baseAMI, instanceType, request.SubnetID, request.TemplateName, request.BuildID)
+	`, request.Region, baseAMI, instanceType, request.TemplateName, request.BuildID)
 	
 	// Create temporary script file
 	tmpFile, err := os.CreateTemp("", "aws-launch-*.sh")
