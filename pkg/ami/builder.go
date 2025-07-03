@@ -249,10 +249,11 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	
 	// Launch the instance
 	input := &ec2.RunInstancesInput{
-		ImageId:      aws.String(baseAMI),
-		InstanceType: types.InstanceType(instanceType),
-		MinCount:     aws.Int32(1),
-		MaxCount:     aws.Int32(1),
+		ImageId:                  aws.String(baseAMI),
+		InstanceType:            types.InstanceType(instanceType),
+		MinCount:                aws.Int32(1),
+		MaxCount:                aws.Int32(1),
+		AssociatePublicIpAddress: aws.Bool(true), // Enable public IP
 		TagSpecifications: []types.TagSpecification{
 			{
 				ResourceType: types.ResourceTypeInstance,
