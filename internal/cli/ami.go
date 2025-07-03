@@ -50,6 +50,7 @@ func (a *App) handleAMIBuild(args []string) error {
 	region := cmdArgs["region"]
 	architecture := cmdArgs["arch"]
 	dryRun := cmdArgs["dry-run"] != ""
+	subnetID := cmdArgs["subnet"]
 
 	if region == "" {
 		region = os.Getenv("AWS_REGION")
@@ -74,8 +75,12 @@ func (a *App) handleAMIBuild(args []string) error {
 	// Create AMI registry
 	registry := ami.NewRegistry(ssmClient, "")
 
-	// Create AMI builder
-	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, map[string]string{})
+	// Create AMI builder with configuration
+	builderConfig := map[string]string{}
+	if subnetID != "" {
+		builderConfig["subnet_id"] = subnetID
+	}
+	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create AMI builder: %w", err)
 	}
