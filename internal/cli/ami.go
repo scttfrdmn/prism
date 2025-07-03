@@ -53,6 +53,17 @@ func (a *App) handleAMIBuild(args []string) error {
 	dryRun := cmdArgs["dry-run"] != ""
 	subnetID := cmdArgs["subnet"]
 	vpcID := cmdArgs["vpc"]
+	
+	// Check required parameters
+	if !dryRun {
+		if subnetID == "" {
+			return fmt.Errorf("subnet ID is required for AMI builds (--subnet parameter)")
+		}
+		if vpcID == "" {
+			return fmt.Errorf("VPC ID is required for AMI builds (--vpc parameter)")
+		}
+	}
+	vpcID := cmdArgs["vpc"]
 
 	if region == "" {
 		region = os.Getenv("AWS_REGION")
