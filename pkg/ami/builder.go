@@ -3,10 +3,7 @@ package ami
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -236,78 +233,63 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		return "i-dryruninstance", nil
 	}
 	
-	// Create script for AWS CLI command with environment variables
-	scriptContent := fmt.Sprintf(`#!/bin/bash
-	set -x
-	AWS_PROFILE=aws AWS_REGION=%s aws ec2 run-instances \
-	  --image-id %s \
-	  --instance-type %s \
-	  --subnet-id subnet-025428f66d069b5c9 \
-	  --vpc-id vpc-095b2a5443d394b4a \
-	  --associate-public-ip-address \
-	  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ami-builder-%s-%s}]' \
-	  --count 1 \
-	  --output json
-	`, request.Region, baseAMI, instanceType, request.TemplateName, request.BuildID)
+	// Create tags
+	tags := []types.Tag{
+		{
+			Key:   aws.String("Name"),
+			Value: aws.String(fmt.Sprintf("ami-builder-%s-%s", request.TemplateName, request.BuildID)),
+		},
+		{
+			Key:   aws.String("CloudWorkstationBuilderID"),
+			Value: aws.String(request.BuildID),
+		},
+		{
+			Key:   aws.String("CloudWorkstationTemplate"),
+			Value: aws.String(request.TemplateName),
+		},
+		{
+			Key:   aws.String("CloudWorkstationBuildType"),
+			Value: aws.String(request.BuildType),
+		},
+	}
 	
-	// Create temporary script file
-	tmpFile, err := os.CreateTemp("", "aws-launch-*.sh")
+	// Prepare network interface with subnet and security group
+	networkInterface := types.InstanceNetworkInterfaceSpecification{
+		DeviceIndex:              aws.Int32(0),
+		AssociatePublicIpAddress: aws.Bool(true),
+		SubnetId:                 aws.String(request.SubnetID),
+		Groups:                   []string{"sg-052d842a020512194"}, // Default security group
+	}
+	
+	// Launch the instance
+	input := &ec2.RunInstancesInput{
+		ImageId:      aws.String(baseAMI),
+		InstanceType: types.InstanceType(instanceType),
+		MinCount:     aws.Int32(1),
+		MaxCount:     aws.Int32(1),
+		NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{networkInterface},
+		TagSpecifications: []types.TagSpecification{
+			{
+				ResourceType: types.ResourceTypeInstance,
+				Tags:         tags,
+			},
+		},
+		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
+	}
+	
+	
+	// Launch the instance
+	result, err := b.EC2Client.RunInstances(ctx, input)
 	if err != nil {
-		return "", fmt.Errorf("failed to create temp script: %w", err)
-	}
-	defer os.Remove(tmpFile.Name())
-	
-	// Write script content
-	if _, err := tmpFile.WriteString(scriptContent); err != nil {
-		return "", fmt.Errorf("failed to write temp script: %w", err)
+		return "", fmt.Errorf("failed to launch instance: %w", err)
 	}
 	
-	// Close the file
-	if err := tmpFile.Close(); err != nil {
-		return "", fmt.Errorf("failed to close temp script: %w", err)
+	if len(result.Instances) == 0 {
+		return "", fmt.Errorf("no instances were launched")
 	}
 	
-	// Make executable
-	if err := os.Chmod(tmpFile.Name(), 0700); err != nil {
-		return "", fmt.Errorf("failed to make script executable: %w", err)
-	}
-	
-	// Debug output
-	fmt.Printf("Executing: %s\n", scriptContent)
-	
-	// Execute script
-	cmd := exec.Command("bash", tmpFile.Name())
-	
-	// Run the command
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("failed to launch instance via AWS CLI: %w\n%s", err, string(output))
-	}
-	
-	// Parse the output to get instance ID
-	var result map[string]interface{}
-	err = json.Unmarshal(output, &result)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse AWS CLI output: %w", err)
-	}
-	
-	// Extract instance ID
-	instances, ok := result["Instances"].([]interface{})
-	if !ok || len(instances) == 0 {
-		return "", fmt.Errorf("no instances found in AWS CLI output")
-	}
-	
-	instance, ok := instances[0].(map[string]interface{})
-	if !ok {
-		return "", fmt.Errorf("invalid instance data in AWS CLI output")
-	}
-	
-	instanceID, ok := instance["InstanceId"].(string)
-	if !ok {
-		return "", fmt.Errorf("no instance ID found in AWS CLI output")
-	}
-	
-	fmt.Printf("Successfully launched instance %s using AWS CLI\n", instanceID)
+	instanceID := *result.Instances[0].InstanceId
+	fmt.Printf("Successfully launched instance %s\n", instanceID)
 	
 	return instanceID, nil
 	
