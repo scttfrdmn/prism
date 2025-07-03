@@ -263,17 +263,32 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	}
 	
 	// Add network configuration if specified
-	if b.DefaultSubnet != "" {
-		fmt.Printf("Using subnet: %s\n", b.DefaultSubnet)
-		input.SubnetId = aws.String(b.DefaultSubnet)
-	} else if b.DefaultSubnet == "" && \!request.DryRun {
-		// For dry run mode, use a dummy subnet ID since we won't actually launch
-		return "", fmt.Errorf("subnet ID is required - specify with --subnet parameter")
+	var subnetID string
+	
+	// Use request subnet first if specified (command line parameter)
+	if request.SubnetID != "" {
+		subnetID = request.SubnetID
+		fmt.Printf("Using subnet from request: %s\n", subnetID)
+	} else if b.DefaultSubnet != "" {
+		subnetID = b.DefaultSubnet
+		fmt.Printf("Using default subnet: %s\n", subnetID)
 	} else if request.DryRun {
+		// For dry run mode, use a dummy subnet ID
+		subnetID = "subnet-dummy"
+	} else {
+		return "", fmt.Errorf("subnet ID is required - specify with --subnet parameter")
+	}
+	
+	// Set subnet ID in launch request
+	input.SubnetId = aws.String(subnetID)
+	
+	// For dry run mode only
 		input.SubnetId = aws.String("subnet-dummy")
 	}
 	
+	// Add security group if specified
 	if b.SecurityGroupID != "" {
+		fmt.Printf("Using security group: %s\n", b.SecurityGroupID)
 		input.SecurityGroupIds = []string{b.SecurityGroupID}
 	} else if request.DryRun {
 		// For dry run mode, use a dummy security group ID
@@ -283,6 +298,11 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	// Add IAM profile if specified
 	if iamInstanceProfile != nil {
 		input.IamInstanceProfile = iamInstanceProfile
+	}
+	
+	// Check VPC configuration if specified
+	if request.VpcID != "" {
+		fmt.Printf("Using VPC: %s\n", request.VpcID)
 	}
 	
 	// Handle dry run specially

@@ -45,12 +45,14 @@ func (a *App) handleAMIBuild(args []string) error {
 
 	templateName := args[0]
 	cmdArgs := parseCmdArgs(args[1:])
+	fmt.Printf("DEBUG: Command args parsed: %+v\n", cmdArgs)
 
 	// Parse command line arguments
 	region := cmdArgs["region"]
 	architecture := cmdArgs["arch"]
 	dryRun := cmdArgs["dry-run"] != ""
 	subnetID := cmdArgs["subnet"]
+	vpcID := cmdArgs["vpc"]
 
 	if region == "" {
 		region = os.Getenv("AWS_REGION")
@@ -80,10 +82,14 @@ func (a *App) handleAMIBuild(args []string) error {
 	if subnetID != "" {
 		builderConfig["subnet_id"] = subnetID
 	}
+	if vpcID != "" {
+		builderConfig["vpc_id"] = vpcID
+	}
 	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create AMI builder: %w", err)
 	}
+	fmt.Printf("DEBUG: Builder config: %+v\n", builderConfig)
 
 	// Create template parser
 	parser := ami.NewParser(nil)
@@ -113,6 +119,8 @@ func (a *App) handleAMIBuild(args []string) error {
 		DryRun:       dryRun,
 		BuildID:      fmt.Sprintf("%s-%d", templateName, time.Now().Unix()),
 		BuildType:    "manual",
+		VpcID:        vpcID,
+		SubnetID:     subnetID,
 	}
 
 	fmt.Printf("Building AMI for template '%s' in region %s (%s)\n", templateName, region, architecture)
@@ -349,7 +357,7 @@ func parseCmdArgs(args []string) map[string]string {
 			// Remove leading dashes
 			key := arg[2:]
 			value := ""
-			
+
 			// Check if next arg is a value (not a flag)
 			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "--") {
 				value = args[i+1]
@@ -358,7 +366,8 @@ func parseCmdArgs(args []string) map[string]string {
 				// Flag without value
 				value = "true"
 			}
-			
+
+			fmt.Printf("DEBUG: Parsed arg '%s' = '%s'\n", key, value)
 			result[key] = value
 		}
 	}
