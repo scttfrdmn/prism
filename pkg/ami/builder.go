@@ -3,7 +3,9 @@ package ami
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -219,49 +221,64 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		instanceType = "t3.medium" // x86 instance
 	}
 	
-	// Create tags
-	tags := []types.Tag{
-		{
-			Key:   aws.String("Name"),
-			Value: aws.String(fmt.Sprintf("ami-builder-%s-%s", request.TemplateName, request.BuildID)),
-		},
-		{
-			Key:   aws.String("CloudWorkstationBuilderID"),
-			Value: aws.String(request.BuildID),
-		},
-		{
-			Key:   aws.String("CloudWorkstationTemplate"),
-			Value: aws.String(request.TemplateName),
-		},
-		{
-			Key:   aws.String("CloudWorkstationBuildType"),
-			Value: aws.String(request.BuildType),
-		},
+	// Check for subnet
+	if request.SubnetID == "" && !request.DryRun {
+		return "", fmt.Errorf("subnet ID is required - specify with --subnet parameter")
 	}
 	
-	// Prepare IAM instance profile if available
-	var iamInstanceProfile *types.IamInstanceProfileSpecification
-	if b.BuilderProfile != "" {
-		iamInstanceProfile = &types.IamInstanceProfileSpecification{
-			Name: aws.String(b.BuilderProfile),
-		}
+	// Use direct AWS CLI instead for launch - AWS SDK issues with subnet
+	fmt.Printf("Using direct AWS CLI for launching instance...\n")
+	
+	// Handle dry run specially
+	if request.DryRun {
+		// In dry run mode, just return a dummy instance ID
+		return "i-dryruninstance", nil
 	}
 	
-	// Launch the instance
-	input := &ec2.RunInstancesInput{
-		ImageId:                  aws.String(baseAMI),
-		InstanceType:            types.InstanceType(instanceType),
-		MinCount:                aws.Int32(1),
-		MaxCount:                aws.Int32(1),
-		AssociatePublicIpAddress: aws.Bool(true), // Enable public IP
-		TagSpecifications: []types.TagSpecification{
-			{
-				ResourceType: types.ResourceTypeInstance,
-				Tags:         tags,
-			},
-		},
-		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
+	// Create AWS CLI command
+	cmd := exec.Command(
+		"aws", "ec2", "run-instances",
+		"--image-id", baseAMI,
+		"--instance-type", string(instanceType),
+		"--subnet-id", request.SubnetID,
+		"--associate-public-ip-address",
+		"--tag-specifications", fmt.Sprintf("ResourceType=instance,Tags=[{Key=Name,Value=ami-builder-%s-%s}]", request.TemplateName, request.BuildID),
+		"--count", "1",
+		"--output", "json",
+	)
+	
+	// Run the command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to launch instance via AWS CLI: %w\n%s", err, string(output))
 	}
+	
+	// Parse the output to get instance ID
+	var result map[string]interface{}
+	err = json.Unmarshal(output, &result)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse AWS CLI output: %w", err)
+	}
+	
+	// Extract instance ID
+	instances, ok := result["Instances"].([]interface{})
+	if !ok || len(instances) == 0 {
+		return "", fmt.Errorf("no instances found in AWS CLI output")
+	}
+	
+	instance, ok := instances[0].(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid instance data in AWS CLI output")
+	}
+	
+	instanceID, ok := instance["InstanceId"].(string)
+	if !ok {
+		return "", fmt.Errorf("no instance ID found in AWS CLI output")
+	}
+	
+	fmt.Printf("Successfully launched instance %s using AWS CLI\n", instanceID)
+	
+	return instanceID, nil
 	
 	// Use request subnet first if specified (command line parameter)
 	var subnetToUse string
