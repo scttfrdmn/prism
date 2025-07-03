@@ -252,6 +252,7 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		ImageId:      aws.String(baseAMI),
 		InstanceType: types.InstanceType(instanceType),
 		MinCount:     aws.Int32(1),
+		NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{},
 		MaxCount:     aws.Int32(1),
 		TagSpecifications: []types.TagSpecification{
 			{
@@ -262,37 +263,38 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
 	}
 	
-	// Add network configuration if specified
-	var subnetID string
+	// Create network interface specification
+	networkInterface := types.InstanceNetworkInterfaceSpecification{
+		DeviceIndex:              aws.Int32(0),
+		AssociatePublicIpAddress: aws.Bool(true),
+	}
 	
 	// Use request subnet first if specified (command line parameter)
 	if request.SubnetID != "" {
-		subnetID = request.SubnetID
-		fmt.Printf("Using subnet from request: %s\n", subnetID)
+		fmt.Printf("Using subnet from request: %s\n", request.SubnetID)
+		networkInterface.SubnetId = aws.String(request.SubnetID)
 	} else if b.DefaultSubnet != "" {
-		subnetID = b.DefaultSubnet
-		fmt.Printf("Using default subnet: %s\n", subnetID)
+		fmt.Printf("Using default subnet: %s\n", b.DefaultSubnet)
+		networkInterface.SubnetId = aws.String(b.DefaultSubnet)
 	} else if request.DryRun {
 		// For dry run mode, use a dummy subnet ID
-		subnetID = "subnet-dummy"
+		networkInterface.SubnetId = aws.String("subnet-dummy")
 	} else {
 		return "", fmt.Errorf("subnet ID is required - specify with --subnet parameter")
-	}
-	
-	// Set subnet ID in launch request
-	input.SubnetId = aws.String(subnetID)
-	
-	// For dry run mode only
-		input.SubnetId = aws.String("subnet-dummy")
 	}
 	
 	// Add security group if specified
 	if b.SecurityGroupID != "" {
 		fmt.Printf("Using security group: %s\n", b.SecurityGroupID)
-		input.SecurityGroupIds = []string{b.SecurityGroupID}
-	} else if request.DryRun {
-		// For dry run mode, use a dummy security group ID
-		input.SecurityGroupIds = []string{"sg-dummy"}
+		networkInterface.Groups = []string{b.SecurityGroupID}
+	}
+	
+	// Add network interface to the instance
+	input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{networkInterface}
+	
+	if request.DryRun {
+		// For dry run mode, handle anything special here
+		// This block intentionally left mostly empty
 	}
 	
 	// Add IAM profile if specified
