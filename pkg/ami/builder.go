@@ -224,8 +224,8 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		return "", fmt.Errorf("subnet ID is required - specify with --subnet parameter")
 	}
 	
-	// Use direct AWS CLI instead for launch - AWS SDK issues with subnet
-	fmt.Printf("Using direct AWS CLI for launching instance...\n")
+	// Debug info
+	fmt.Printf("Using subnet: %s\n", request.SubnetID)
 	
 	// Handle dry run specially
 	if request.DryRun {
@@ -292,11 +292,6 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	fmt.Printf("Successfully launched instance %s\n", instanceID)
 	
 	return instanceID, nil
-	
-	// Use request subnet first if specified (command line parameter)
-	var subnetToUse string
-	if request.SubnetID != "" {
-		subnetToUse = request.SubnetID
 		fmt.Printf("Using subnet from request: %s\n", subnetToUse)
 	} else if b.DefaultSubnet != "" {
 		subnetToUse = b.DefaultSubnet
