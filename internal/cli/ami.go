@@ -63,7 +63,6 @@ func (a *App) handleAMIBuild(args []string) error {
 			return fmt.Errorf("VPC ID is required for AMI builds (--vpc parameter)")
 		}
 	}
-	vpcID := cmdArgs["vpc"]
 
 	if region == "" {
 		region = os.Getenv("AWS_REGION")
