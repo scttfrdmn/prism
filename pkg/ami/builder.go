@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -235,18 +236,46 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		return "i-dryruninstance", nil
 	}
 	
-	// Create AWS CLI command
-	cmd := exec.Command(
-		"aws", "ec2", "run-instances",
-                "--profile", "aws",
-		"--image-id", baseAMI,
-		"--instance-type", string(instanceType),
-		"--subnet-id", request.SubnetID,
-		"--associate-public-ip-address",
-		"--tag-specifications", fmt.Sprintf("ResourceType=instance,Tags=[{Key=Name,Value=ami-builder-%s-%s}]", request.TemplateName, request.BuildID),
-		"--count", "1",
-		"--output", "json",
-	)
+	// Create script for AWS CLI command
+	scriptContent := fmt.Sprintf(`#!/bin/bash
+	AWS_PROFILE=aws aws ec2 run-instances \
+	  --region %s \
+	  --image-id %s \
+	  --instance-type %s \
+	  --subnet-id %s \
+	  --associate-public-ip-address \
+	  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ami-builder-%s-%s}]' \
+	  --count 1 \
+	  --output json
+	`, request.Region, baseAMI, instanceType, request.SubnetID, request.TemplateName, request.BuildID)
+	
+	// Create temporary script file
+	tmpFile, err := os.CreateTemp("", "aws-launch-*.sh")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp script: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	
+	// Write script content
+	if _, err := tmpFile.WriteString(scriptContent); err != nil {
+		return "", fmt.Errorf("failed to write temp script: %w", err)
+	}
+	
+	// Close the file
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("failed to close temp script: %w", err)
+	}
+	
+	// Make executable
+	if err := os.Chmod(tmpFile.Name(), 0700); err != nil {
+		return "", fmt.Errorf("failed to make script executable: %w", err)
+	}
+	
+	// Debug output
+	fmt.Printf("Executing: %s\n", scriptContent)
+	
+	// Execute script
+	cmd := exec.Command("bash", tmpFile.Name())
 	
 	// Run the command
 	output, err := cmd.CombinedOutput()
