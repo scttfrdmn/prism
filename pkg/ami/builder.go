@@ -238,6 +238,7 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	// Create AWS CLI command
 	cmd := exec.Command(
 		"aws", "ec2", "run-instances",
+                "--profile", "aws",
 		"--image-id", baseAMI,
 		"--instance-type", string(instanceType),
 		"--subnet-id", request.SubnetID,
