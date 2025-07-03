@@ -292,11 +292,6 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 	fmt.Printf("Successfully launched instance %s\n", instanceID)
 	
 	return instanceID, nil
-		fmt.Printf("Using subnet from request: %s\n", subnetToUse)
-	} else if b.DefaultSubnet != "" {
-		subnetToUse = b.DefaultSubnet
-		fmt.Printf("Using default subnet: %s\n", subnetToUse)
-	} else if request.DryRun {
 		// For dry run mode, use a dummy subnet ID
 		subnetToUse = "subnet-dummy"
 	} else {
