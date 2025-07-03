@@ -252,7 +252,6 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		ImageId:      aws.String(baseAMI),
 		InstanceType: types.InstanceType(instanceType),
 		MinCount:     aws.Int32(1),
-		NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{},
 		MaxCount:     aws.Int32(1),
 		TagSpecifications: []types.TagSpecification{
 			{
@@ -263,34 +262,29 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		InstanceInitiatedShutdownBehavior: types.ShutdownBehaviorTerminate,
 	}
 	
-	// Create network interface specification
-	networkInterface := types.InstanceNetworkInterfaceSpecification{
-		DeviceIndex:              aws.Int32(0),
-		AssociatePublicIpAddress: aws.Bool(true),
-	}
-	
 	// Use request subnet first if specified (command line parameter)
+	var subnetToUse string
 	if request.SubnetID != "" {
-		fmt.Printf("Using subnet from request: %s\n", request.SubnetID)
-		networkInterface.SubnetId = aws.String(request.SubnetID)
+		subnetToUse = request.SubnetID
+		fmt.Printf("Using subnet from request: %s\n", subnetToUse)
 	} else if b.DefaultSubnet != "" {
-		fmt.Printf("Using default subnet: %s\n", b.DefaultSubnet)
-		networkInterface.SubnetId = aws.String(b.DefaultSubnet)
+		subnetToUse = b.DefaultSubnet
+		fmt.Printf("Using default subnet: %s\n", subnetToUse)
 	} else if request.DryRun {
 		// For dry run mode, use a dummy subnet ID
-		networkInterface.SubnetId = aws.String("subnet-dummy")
+		subnetToUse = "subnet-dummy"
 	} else {
 		return "", fmt.Errorf("subnet ID is required - specify with --subnet parameter")
 	}
 	
+	// Set the subnet ID
+	input.SubnetId = aws.String(subnetToUse)
+	
 	// Add security group if specified
 	if b.SecurityGroupID != "" {
 		fmt.Printf("Using security group: %s\n", b.SecurityGroupID)
-		networkInterface.Groups = []string{b.SecurityGroupID}
+		input.SecurityGroupIds = []string{b.SecurityGroupID}
 	}
-	
-	// Add network interface to the instance
-	input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{networkInterface}
 	
 	if request.DryRun {
 		// For dry run mode, handle anything special here
