@@ -236,10 +236,10 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 		return "i-dryruninstance", nil
 	}
 	
-	// Create script for AWS CLI command
+	// Create script for AWS CLI command with environment variables
 	scriptContent := fmt.Sprintf(`#!/bin/bash
-	AWS_PROFILE=aws aws ec2 run-instances \
-	  --region %s \
+	set -x
+	AWS_PROFILE=aws AWS_REGION=%s aws ec2 run-instances \
 	  --image-id %s \
 	  --instance-type %s \
 	  --subnet-id %s \
