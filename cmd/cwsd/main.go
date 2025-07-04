@@ -1,3 +1,34 @@
+// CloudWorkstation Daemon (cwsd) - Background service for AWS operations.
+//
+// The cwsd daemon provides a REST API server for CloudWorkstation operations.
+// It manages AWS resources, maintains state, and serves requests from CLI and
+// GUI clients. The daemon handles all AWS authentication, resource management,
+// and cost tracking while providing a simple API interface.
+//
+// Server Features:
+//   - REST API for all CloudWorkstation operations
+//   - Background AWS resource management
+//   - State persistence and synchronization
+//   - Cost tracking and billing integration
+//   - Health monitoring and logging
+//
+// API Endpoints:
+//
+//	POST /instances                         # Launch new instances
+//	GET /instances                          # List instances
+//	GET /instances/{name}                   # Get instance details
+//	DELETE /instances/{name}                # Terminate instance
+//	POST/GET/DELETE /volumes/{name}         # EFS volume management
+//	POST/GET/DELETE /storage/{name}         # EBS storage management
+//
+// Usage:
+//
+//	cwsd                                    # Start daemon on :8080
+//	cwsd -port 9000                         # Start on custom port
+//	cwsd -config /path/to/config.json      # Use custom config
+//
+// The daemon implements CloudWorkstation's core principles of reliability,
+// cost transparency, and zero-surprise operations.
 package main
 
 import (
@@ -7,11 +38,9 @@ import (
 	"os"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/daemon"
+	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
-const (
-	version = "0.1.0"
-)
 
 func main() {
 	var (
@@ -27,11 +56,11 @@ func main() {
 	}
 
 	if *showVer {
-		fmt.Printf("CloudWorkstation Daemon v%s\n", version)
+		fmt.Println(version.GetVersionInfo())
 		return
 	}
 
-	log.Printf("CloudWorkstation Daemon v%s starting...", version)
+	log.Printf("CloudWorkstation Daemon v%s starting...", version.GetVersion())
 
 	server, err := daemon.NewServer(*port)
 	if err != nil {
@@ -44,7 +73,7 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Printf("CloudWorkstation Daemon v%s\n\n", version)
+	fmt.Printf("CloudWorkstation Daemon v%s\n\n", version.GetVersion())
 	fmt.Println("The CloudWorkstation daemon provides a REST API for managing cloud research environments.")
 	fmt.Println()
 	fmt.Println("Usage:")

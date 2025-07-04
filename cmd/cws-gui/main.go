@@ -1,3 +1,26 @@
+// CloudWorkstation GUI (cws-gui) - Desktop application for research environments.
+//
+// The cws-gui provides a user-friendly desktop interface for CloudWorkstation.
+// It offers visual management of cloud research environments with real-time
+// cost monitoring, instance status, and one-click operations for non-technical users.
+//
+// Key Features:
+//   - Dashboard with cost overview and instance status
+//   - Visual template selection with descriptions
+//   - One-click launch with smart defaults
+//   - Real-time status updates and notifications
+//   - System tray integration for background monitoring
+//
+// Interface Sections:
+//   - Dashboard: Overview of running instances and costs
+//   - Instances: Detailed instance management
+//   - Templates: Research environment catalog
+//   - Volumes: Storage management interface
+//   - Settings: Configuration and preferences
+//
+// The GUI implements CloudWorkstation's "Progressive Disclosure" principle -
+// simple interface for basic operations with advanced options available
+// when needed. Perfect for researchers who prefer visual interfaces.
 package main
 
 import (
@@ -15,21 +38,25 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
-const (
-	version = "0.1.0"
-)
 
 // NavigationSection represents different sections of the app
 type NavigationSection int
 
 const (
+	// SectionDashboard displays the main overview with costs and status
 	SectionDashboard NavigationSection = iota
+	// SectionInstances shows detailed instance management
 	SectionInstances
+	// SectionTemplates provides the research environment catalog
 	SectionTemplates
+	// SectionVolumes manages EFS and EBS storage
 	SectionVolumes
+	// SectionBilling shows cost tracking and budgets
 	SectionBilling
+	// SectionSettings handles configuration and preferences
 	SectionSettings
 )
 
@@ -38,45 +65,45 @@ type CloudWorkstationGUI struct {
 	app       fyne.App
 	window    fyne.Window
 	apiClient api.CloudWorkstationAPI
-	
+
 	// Navigation
 	currentSection NavigationSection
 	sidebar        *fyne.Container
 	content        *fyne.Container
 	notification   *fyne.Container
-	
+
 	// Data
-	instances     []types.Instance
-	templates     map[string]types.Template
-	totalCost     float64
-	lastUpdate    time.Time
-	
+	instances  []types.Instance
+	templates  map[string]types.Template
+	totalCost  float64
+	lastUpdate time.Time
+
 	// UI Components
 	refreshTicker *time.Ticker
-	
+
 	// Form state
 	launchForm struct {
 		templateSelect *widget.Select
-		nameEntry     *widget.Entry
-		sizeSelect    *widget.Select
-		launchBtn     *widget.Button
+		nameEntry      *widget.Entry
+		sizeSelect     *widget.Select
+		launchBtn      *widget.Button
 	}
 }
 
 func main() {
-	log.Printf("CloudWorkstation GUI v%s starting...", version)
-	
+	log.Printf("CloudWorkstation GUI v%s starting...", version.GetVersion())
+
 	// Create the application
 	gui := &CloudWorkstationGUI{
 		app:       app.NewWithID("com.cloudworkstation.gui"),
 		apiClient: api.NewClient("http://localhost:8080"),
 	}
-	
+
 	// Initialize and run
 	if err := gui.initialize(); err != nil {
 		log.Fatalf("Failed to initialize GUI: %v", err)
 	}
-	
+
 	gui.run()
 }
 
@@ -86,33 +113,34 @@ func (g *CloudWorkstationGUI) initialize() error {
 	metadata := g.app.Metadata()
 	metadata.ID = "com.cloudworkstation.gui"
 	metadata.Name = "CloudWorkstation"
-	metadata.Version = version
-	
+	metadata.Version = version.GetVersion()
+
 	// Create main window
 	g.window = g.app.NewWindow("CloudWorkstation")
 	g.window.Resize(fyne.NewSize(1200, 800))
 	g.window.SetMaster()
-	
-	// Check daemon connectivity
-	if err := g.apiClient.Ping(); err != nil {
-		g.showNotification("error", "Cannot connect to CloudWorkstation daemon", "Make sure it's running with 'cwsd'")
-		// Continue anyway for demo purposes
+
+	// Check daemon connectivity with retry logic
+	if err := g.checkDaemonConnection(); err != nil {
+		g.showNotification("error", "Cannot connect to CloudWorkstation daemon", 
+			"Make sure the daemon is running with 'cwsd'. GUI will retry automatically.")
+		// Continue anyway - daemon might start later
 	}
-	
+
 	// Initialize data
 	g.refreshData()
-	
+
 	// Setup UI
 	g.setupMainLayout()
-	
+
 	// Setup system tray if supported
 	if desk, ok := g.app.(desktop.App); ok {
 		g.setupSystemTray(desk)
 	}
-	
+
 	// Start background refresh
 	g.startBackgroundRefresh()
-	
+
 	return nil
 }
 
@@ -122,7 +150,7 @@ func (g *CloudWorkstationGUI) setupMainLayout() {
 	g.setupSidebar()
 	g.setupContent()
 	g.setupNotification()
-	
+
 	// Create main layout: sidebar | content
 	mainLayout := container.NewHSplit(
 		g.sidebar,
@@ -132,9 +160,9 @@ func (g *CloudWorkstationGUI) setupMainLayout() {
 		),
 	)
 	mainLayout.SetOffset(0.2) // 20% for sidebar, 80% for content
-	
+
 	g.window.SetContent(mainLayout)
-	
+
 	// Show dashboard by default
 	g.navigateToSection(SectionDashboard)
 }
@@ -149,7 +177,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 					widget.NewIcon(theme.ComputerIcon()),
 					widget.NewLabelWithStyle("CloudWorkstation", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 				),
-				widget.NewLabelWithStyle(fmt.Sprintf("v%s", version), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
+				widget.NewLabelWithStyle(fmt.Sprintf("v%s", version.GetVersion()), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
 				widget.NewSeparator(),
 				container.NewHBox(
 					widget.NewIcon(theme.InfoIcon()),
@@ -158,7 +186,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 			),
 		),
 	)
-	
+
 	// Navigation buttons
 	navButtons := container.NewVBox(
 		g.createNavButton("🏠 Dashboard", SectionDashboard),
@@ -168,7 +196,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 		g.createNavButton("💰 Billing", SectionBilling),
 		g.createNavButton("⚙️ Settings", SectionSettings),
 	)
-	
+
 	// Quick actions
 	quickActions := widget.NewCard("Quick Actions", "",
 		container.NewVBox(
@@ -183,20 +211,20 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 			}),
 		),
 	)
-	
+
 	// Connection status
 	statusText := "Connected"
 	if g.lastUpdate.IsZero() {
 		statusText = "Disconnected"
 	}
-	
+
 	statusCard := widget.NewCard("Status", "",
 		container.NewHBox(
 			widget.NewIcon(theme.ConfirmIcon()),
 			widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**", statusText)),
 		),
 	)
-	
+
 	// Combine sidebar elements
 	g.sidebar = container.NewVBox(
 		titleCard,
@@ -214,12 +242,12 @@ func (g *CloudWorkstationGUI) createNavButton(label string, section NavigationSe
 	btn := widget.NewButton(label, func() {
 		g.navigateToSection(section)
 	})
-	
+
 	// Style the button based on current section
 	if g.currentSection == section {
 		btn.Importance = widget.HighImportance
 	}
-	
+
 	return btn
 }
 
@@ -237,13 +265,13 @@ func (g *CloudWorkstationGUI) setupNotification() {
 // navigateToSection switches to a different section of the app
 func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
 	g.currentSection = section
-	
+
 	// Update sidebar buttons
 	g.setupSidebar()
-	
+
 	// Clear and update content
 	g.content.RemoveAll()
-	
+
 	switch section {
 	case SectionDashboard:
 		g.content.Add(g.createDashboardView())
@@ -258,7 +286,7 @@ func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
 	case SectionSettings:
 		g.content.Add(g.createSettingsView())
 	}
-	
+
 	g.content.Refresh()
 }
 
@@ -273,7 +301,7 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 			g.showNotification("success", "Data refreshed", "")
 		}),
 	)
-	
+
 	// Overview cards
 	overviewCards := container.NewGridWithColumns(3,
 		widget.NewCard("Active Instances", "",
@@ -295,17 +323,17 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 			),
 		),
 	)
-	
+
 	// Quick launch section
 	quickLaunchCard := widget.NewCard("Quick Launch", "Launch a new research environment",
 		g.createQuickLaunchForm(),
 	)
-	
+
 	// Recent instances
 	recentInstancesCard := widget.NewCard("Recent Instances", "Your latest cloud workstations",
 		g.createRecentInstancesList(),
 	)
-	
+
 	// Layout
 	content := container.NewVBox(
 		header,
@@ -317,7 +345,7 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 			recentInstancesCard,
 		),
 	)
-	
+
 	return container.NewScroll(content)
 }
 
@@ -327,21 +355,21 @@ func (g *CloudWorkstationGUI) createQuickLaunchForm() *fyne.Container {
 	templateNames := []string{"r-research", "python-research", "basic-ubuntu"}
 	g.launchForm.templateSelect = widget.NewSelect(templateNames, nil)
 	g.launchForm.templateSelect.SetSelected("r-research")
-	
+
 	// Instance name
 	g.launchForm.nameEntry = widget.NewEntry()
 	g.launchForm.nameEntry.SetPlaceHolder("my-workspace")
-	
+
 	// Size selection
 	g.launchForm.sizeSelect = widget.NewSelect([]string{"XS", "S", "M", "L", "XL"}, nil)
 	g.launchForm.sizeSelect.SetSelected("M")
-	
+
 	// Launch button
 	g.launchForm.launchBtn = widget.NewButton("🚀 Launch Environment", func() {
 		g.handleLaunchInstance()
 	})
 	g.launchForm.launchBtn.Importance = widget.HighImportance
-	
+
 	form := container.NewVBox(
 		widget.NewForm(
 			widget.NewFormItem("Template", g.launchForm.templateSelect),
@@ -350,7 +378,7 @@ func (g *CloudWorkstationGUI) createQuickLaunchForm() *fyne.Container {
 		),
 		g.launchForm.launchBtn,
 	)
-	
+
 	return form
 }
 
@@ -362,7 +390,7 @@ func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 			widget.NewLabel("Launch your first environment using Quick Launch"),
 		)
 	}
-	
+
 	// Show up to 3 most recent instances
 	items := make([]fyne.CanvasObject, 0)
 	count := 0
@@ -370,9 +398,9 @@ func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 		if count >= 3 {
 			break
 		}
-		
+
 		statusIcon := g.getStatusIcon(instance.State)
-		
+
 		instanceItem := container.NewHBox(
 			widget.NewLabel(statusIcon),
 			container.NewVBox(
@@ -384,11 +412,11 @@ func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 				g.navigateToSection(SectionInstances)
 			}),
 		)
-		
+
 		items = append(items, instanceItem)
 		count++
 	}
-	
+
 	return container.NewVBox(items...)
 }
 
@@ -404,10 +432,10 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 			g.refreshData()
 		}),
 	)
-	
+
 	// Instance cards
 	instanceCards := container.NewVBox()
-	
+
 	if len(g.instances) == 0 {
 		instanceCards.Add(widget.NewCard("No Instances", "You haven't launched any instances yet",
 			widget.NewButton("Launch Your First Instance", func() {
@@ -420,20 +448,20 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 			instanceCards.Add(card)
 		}
 	}
-	
+
 	content := container.NewVBox(
 		header,
 		widget.NewSeparator(),
 		instanceCards,
 	)
-	
+
 	return container.NewScroll(content)
 }
 
 // createInstanceCard creates a detailed card for an instance
 func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widget.Card {
 	statusIcon := g.getStatusIcon(instance.State)
-	
+
 	// Instance details
 	details := container.NewVBox(
 		widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -441,7 +469,7 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 		widget.NewLabel(fmt.Sprintf("Cost: $%.2f/day", instance.EstimatedDailyCost)),
 		widget.NewLabel(fmt.Sprintf("Launched: %s", instance.LaunchTime.Format("Jan 2, 2006 15:04"))),
 	)
-	
+
 	// Status
 	status := container.NewVBox(
 		container.NewHBox(
@@ -449,10 +477,10 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 			widget.NewLabelWithStyle(instance.State, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		),
 	)
-	
+
 	// Actions
 	actions := container.NewVBox()
-	
+
 	if instance.State == "running" {
 		actions.Add(widget.NewButton("Connect", func() {
 			g.handleConnectInstance(instance.Name)
@@ -465,11 +493,11 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 			g.handleStartInstance(instance.Name)
 		}))
 	}
-	
+
 	actions.Add(widget.NewButton("Delete", func() {
 		g.handleDeleteInstance(instance.Name)
 	}))
-	
+
 	// Card content
 	cardContent := container.NewHBox(
 		details,
@@ -478,14 +506,14 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 		layout.NewSpacer(),
 		actions,
 	)
-	
+
 	return widget.NewCard("", "", cardContent)
 }
 
 // createTemplatesView creates the templates view
 func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 	header := widget.NewLabelWithStyle("Templates", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	
+
 	// Template cards
 	templateCards := container.NewGridWithColumns(2,
 		widget.NewCard("R Research Environment", "RStudio Server + R packages for data science",
@@ -527,20 +555,20 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 			),
 		),
 	)
-	
+
 	content := container.NewVBox(
 		header,
 		widget.NewSeparator(),
 		templateCards,
 	)
-	
+
 	return container.NewScroll(content)
 }
 
 // createVolumesView creates the storage/volumes view
 func (g *CloudWorkstationGUI) createVolumesView() *fyne.Container {
 	header := widget.NewLabelWithStyle("Storage & Volumes", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	
+
 	content := container.NewVBox(
 		header,
 		widget.NewSeparator(),
@@ -548,14 +576,14 @@ func (g *CloudWorkstationGUI) createVolumesView() *fyne.Container {
 			widget.NewLabel("Storage management features coming soon..."),
 		),
 	)
-	
+
 	return content
 }
 
 // createBillingView creates the billing/cost view
 func (g *CloudWorkstationGUI) createBillingView() *fyne.Container {
 	header := widget.NewLabelWithStyle("Billing & Costs", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	
+
 	// Cost breakdown
 	costCards := container.NewGridWithColumns(2,
 		widget.NewCard("Current Costs", "",
@@ -573,7 +601,7 @@ func (g *CloudWorkstationGUI) createBillingView() *fyne.Container {
 			),
 		),
 	)
-	
+
 	content := container.NewVBox(
 		header,
 		widget.NewSeparator(),
@@ -583,14 +611,14 @@ func (g *CloudWorkstationGUI) createBillingView() *fyne.Container {
 			widget.NewLabel("Advanced billing features coming soon..."),
 		),
 	)
-	
+
 	return content
 }
 
 // createSettingsView creates the settings view
 func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 	header := widget.NewLabelWithStyle("Settings", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-	
+
 	// Connection settings
 	connectionCard := widget.NewCard("Connection", "Daemon connection settings",
 		container.NewVBox(
@@ -610,17 +638,17 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 			}),
 		),
 	)
-	
+
 	// About
 	aboutCard := widget.NewCard("About", "CloudWorkstation information",
 		container.NewVBox(
-			widget.NewLabel(fmt.Sprintf("Version: %s", version)),
+			widget.NewLabel(fmt.Sprintf("Version: %s", version.GetVersion())),
 			widget.NewLabel("A tool for managing cloud research environments"),
 			widget.NewHyperlink("Documentation", nil),
 			widget.NewHyperlink("GitHub Repository", nil),
 		),
 	)
-	
+
 	content := container.NewVBox(
 		header,
 		widget.NewSeparator(),
@@ -628,50 +656,73 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 		widget.NewSeparator(),
 		aboutCard,
 	)
-	
+
 	return content
 }
 
 // Event handlers
 
 func (g *CloudWorkstationGUI) handleLaunchInstance() {
-	if g.launchForm.templateSelect.Selected == "" || g.launchForm.nameEntry.Text == "" {
-		g.showNotification("error", "Validation Error", "Please select a template and enter an instance name")
+	// Enhanced validation
+	if err := g.validateLaunchForm(); err != nil {
+		g.showNotification("error", "Validation Error", err.Error())
 		return
 	}
 	
+	// Check daemon connection before launching
+	if err := g.apiClient.Ping(); err != nil {
+		g.showNotification("error", "Connection Error", "Cannot connect to daemon. Please ensure cwsd is running.")
+		return
+	}
+
 	req := types.LaunchRequest{
 		Template: g.launchForm.templateSelect.Selected,
 		Name:     g.launchForm.nameEntry.Text,
 		Size:     g.launchForm.sizeSelect.Selected,
 	}
-	
+
 	// Show loading state
 	g.launchForm.launchBtn.SetText("Launching...")
 	g.launchForm.launchBtn.Disable()
-	
-	// Launch in background
+
+	// Launch in background with timeout
 	go func() {
-		response, err := g.apiClient.LaunchInstance(req)
+		// Set timeout for launch operation
+		done := make(chan bool, 1)
+		var response *types.LaunchResponse
+		var err error
 		
+		go func() {
+			response, err = g.apiClient.LaunchInstance(req)
+			done <- true
+		}()
+		
+		// Wait for completion or timeout
+		select {
+		case <-done:
+			// Launch completed
+		case <-time.After(5 * time.Minute):
+			err = fmt.Errorf("launch operation timed out after 5 minutes")
+		}
+
 		// Update UI on main thread
 		g.app.Driver().StartAnimation(&fyne.Animation{
 			Duration: 100 * time.Millisecond,
-			Tick: func(f float32) {
+			Tick: func(_ float32) {
 				if err != nil {
 					g.showNotification("error", "Launch Failed", err.Error())
 				} else {
-					g.showNotification("success", "Launch Successful", 
-						fmt.Sprintf("Instance %s launched successfully! Estimated cost: %s", 
+					g.showNotification("success", "Launch Successful",
+						fmt.Sprintf("Instance %s launched successfully! Estimated cost: %s",
 							response.Instance.Name, response.EstimatedCost))
-					
+
 					// Clear form
 					g.launchForm.nameEntry.SetText("")
-					
+
 					// Refresh data
 					g.refreshData()
 				}
-				
+
 				// Reset button
 				g.launchForm.launchBtn.SetText("🚀 Launch Environment")
 				g.launchForm.launchBtn.Enable()
@@ -680,13 +731,55 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 	}()
 }
 
+// validateLaunchForm performs comprehensive validation of the launch form
+func (g *CloudWorkstationGUI) validateLaunchForm() error {
+	if g.launchForm.templateSelect.Selected == "" {
+		return fmt.Errorf("please select a template")
+	}
+	
+	instanceName := g.launchForm.nameEntry.Text
+	if instanceName == "" {
+		return fmt.Errorf("please enter an instance name")
+	}
+	
+	// Validate instance name format
+	if len(instanceName) < 3 {
+		return fmt.Errorf("instance name must be at least 3 characters long")
+	}
+	
+	if len(instanceName) > 50 {
+		return fmt.Errorf("instance name must be less than 50 characters")
+	}
+	
+	// Check for valid characters (alphanumeric and hyphens)
+	for _, char := range instanceName {
+		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || 
+			 (char >= '0' && char <= '9') || char == '-') {
+			return fmt.Errorf("instance name can only contain letters, numbers, and hyphens")
+		}
+	}
+	
+	// Check for duplicate names
+	for _, instance := range g.instances {
+		if instance.Name == instanceName {
+			return fmt.Errorf("instance name '%s' already exists", instanceName)
+		}
+	}
+	
+	if g.launchForm.sizeSelect.Selected == "" {
+		return fmt.Errorf("please select an instance size")
+	}
+	
+	return nil
+}
+
 func (g *CloudWorkstationGUI) handleConnectInstance(name string) {
 	connectionInfo, err := g.apiClient.ConnectInstance(name)
 	if err != nil {
 		g.showNotification("error", "Connection Failed", err.Error())
 		return
 	}
-	
+
 	g.showNotification("info", "Connection Information", connectionInfo)
 }
 
@@ -695,7 +788,7 @@ func (g *CloudWorkstationGUI) handleStartInstance(name string) {
 		g.showNotification("error", "Start Failed", err.Error())
 		return
 	}
-	
+
 	g.showNotification("success", "Instance Starting", fmt.Sprintf("Instance %s is starting up", name))
 	g.refreshData()
 }
@@ -705,7 +798,7 @@ func (g *CloudWorkstationGUI) handleStopInstance(name string) {
 		g.showNotification("error", "Stop Failed", err.Error())
 		return
 	}
-	
+
 	g.showNotification("success", "Instance Stopping", fmt.Sprintf("Instance %s is shutting down", name))
 	g.refreshData()
 }
@@ -715,7 +808,7 @@ func (g *CloudWorkstationGUI) handleDeleteInstance(name string) {
 		g.showNotification("error", "Delete Failed", err.Error())
 		return
 	}
-	
+
 	g.showNotification("success", "Instance Deleted", fmt.Sprintf("Instance %s has been deleted", name))
 	g.refreshData()
 }
@@ -758,7 +851,7 @@ func (g *CloudWorkstationGUI) getStatusIcon(state string) string {
 func (g *CloudWorkstationGUI) showNotification(notificationType, title, message string) {
 	// Clear previous notifications
 	g.notification.RemoveAll()
-	
+
 	var icon fyne.Resource
 	switch notificationType {
 	case "success":
@@ -770,7 +863,7 @@ func (g *CloudWorkstationGUI) showNotification(notificationType, title, message 
 	default:
 		icon = theme.InfoIcon()
 	}
-	
+
 	// Create notification
 	var content *fyne.Container
 	if message != "" {
@@ -795,11 +888,11 @@ func (g *CloudWorkstationGUI) showNotification(notificationType, title, message 
 			}),
 		)
 	}
-	
+
 	notification := widget.NewCard("", "", content)
 	g.notification.Add(notification)
 	g.notification.Show()
-	
+
 	// Auto-hide after 5 seconds
 	time.AfterFunc(5*time.Second, func() {
 		if g.notification.Visible() {
@@ -808,31 +901,85 @@ func (g *CloudWorkstationGUI) showNotification(notificationType, title, message 
 	})
 }
 
+// checkDaemonConnection verifies daemon connectivity with retry logic
+func (g *CloudWorkstationGUI) checkDaemonConnection() error {
+	maxRetries := 3
+	retryDelay := time.Second
+	
+	for i := 0; i < maxRetries; i++ {
+		if err := g.apiClient.Ping(); err == nil {
+			return nil
+		}
+		
+		if i < maxRetries-1 {
+			time.Sleep(retryDelay)
+			retryDelay *= 2 // Exponential backoff
+		}
+	}
+	
+	return fmt.Errorf("daemon unreachable after %d attempts", maxRetries)
+}
+
 func (g *CloudWorkstationGUI) refreshData() {
-	// Fetch instances
+	// Fetch instances with error handling
 	response, err := g.apiClient.ListInstances()
 	if err != nil {
 		log.Printf("Failed to refresh instance data: %v", err)
+		
+		// Check if this is a connection error
+		if err := g.apiClient.Ping(); err != nil {
+			// Connection lost - clear last update to show disconnected status
+			g.lastUpdate = time.Time{}
+		}
+		
+		// Don't refresh UI if we can't get data
 		return
 	}
-	
+
 	g.instances = response.Instances
 	g.totalCost = response.TotalCost
 	g.lastUpdate = time.Now()
-	
-	// Refresh current view
+
+	// Refresh current view only if we have valid data
 	g.navigateToSection(g.currentSection)
 }
 
 func (g *CloudWorkstationGUI) startBackgroundRefresh() {
 	// Initial refresh
 	g.refreshData()
-	
-	// Start ticker for periodic refresh
+
+	// Start ticker for periodic refresh with connection monitoring
 	g.refreshTicker = time.NewTicker(30 * time.Second)
 	go func() {
+		consecutiveFailures := 0
+		maxFailures := 3
+		
 		for range g.refreshTicker.C {
+			// Try to refresh data
+			prevLastUpdate := g.lastUpdate
 			g.refreshData()
+			
+			// Check if refresh succeeded
+			if g.lastUpdate.Equal(prevLastUpdate) && !g.lastUpdate.IsZero() {
+				// No update occurred and we had a previous update - likely connection issue
+				consecutiveFailures++
+			} else {
+				// Successful refresh
+				consecutiveFailures = 0
+			}
+			
+			// If we have too many failures, try to reconnect
+			if consecutiveFailures >= maxFailures {
+				log.Printf("Multiple refresh failures, checking daemon connection...")
+				if err := g.checkDaemonConnection(); err != nil {
+					// Connection still failing - increase refresh interval to reduce load
+					g.refreshTicker.Reset(60 * time.Second)
+				} else {
+					// Connection restored - restore normal interval
+					g.refreshTicker.Reset(30 * time.Second)
+					consecutiveFailures = 0
+				}
+			}
 		}
 	}()
 }
@@ -849,14 +996,14 @@ func (g *CloudWorkstationGUI) setupSystemTray(desk desktop.App) {
 			g.app.Quit()
 		}),
 	)
-	
+
 	desk.SetSystemTrayMenu(menu)
 }
 
 func (g *CloudWorkstationGUI) run() {
 	// Show window and run
 	g.window.ShowAndRun()
-	
+
 	// Cleanup
 	if g.refreshTicker != nil {
 		g.refreshTicker.Stop()

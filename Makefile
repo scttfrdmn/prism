@@ -6,7 +6,7 @@ BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Build flags
-LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) -X main.gitCommit=$(GIT_COMMIT)"
+LDFLAGS := -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$(VERSION) -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$(BUILD_TIME) -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=$(GIT_COMMIT)"
 
 # Default target
 .PHONY: all
@@ -62,17 +62,75 @@ clean:
 	@rm -rf bin/
 	@go clean
 
-# Run tests
-.PHONY: test
-test:
-	@echo "Running tests..."
-	@go test ./...
+# Test targets
+.PHONY: test test-unit test-integration test-e2e test-coverage test-all
 
-# Run linter
+# Run all unit tests
+test-unit:
+	@echo "🧪 Running unit tests..."
+	@go test -race -short ./... -coverprofile=unit-coverage.out
+
+# Run integration tests with LocalStack
+test-integration:
+	@echo "🔗 Running integration tests..."
+	@docker-compose -f docker-compose.test.yml up -d localstack
+	@echo "⏳ Waiting for LocalStack to be ready..."
+	@sleep 10
+	@INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=integration-coverage.out
+	@docker-compose -f docker-compose.test.yml down
+
+# Run end-to-end tests
+test-e2e: build
+	@echo "🎯 Running end-to-end tests..."
+	@E2E_TESTS=1 go test -tags=e2e ./e2e -v -timeout=30m
+
+# Generate comprehensive coverage report
+test-coverage:
+	@echo "📊 Generating coverage report..."
+	@go test ./... -coverprofile=coverage.out -covermode=atomic
+	@go tool cover -html=coverage.out -o coverage.html
+	@go tool cover -func=coverage.out | grep total
+	@echo "📋 Coverage report generated: coverage.html"
+
+# Run all tests (unit + integration + e2e)
+test-all: test-unit test-integration test-e2e test-coverage
+
+# Legacy test target for backwards compatibility
+test: test-unit
+
+# Validate entire build and test pipeline
+.PHONY: validate
+validate:
+	@echo "🔧 Running CloudWorkstation validation pipeline..."
+	@./scripts/validate.sh
+
+# Quality gates
+.PHONY: quality-check vet security check-docs
+
+# Run all quality checks
+quality-check: fmt vet lint security check-docs test-coverage
+	@echo "✅ All quality checks passed!"
+
+# Check documentation standards
+check-docs:
+	@echo "📚 Checking documentation standards..."
+	@./scripts/check-docs.sh
+
+# Enhanced linting
 .PHONY: lint
 lint:
-	@echo "Running linter..."
-	@golangci-lint run --issues-exit-code=0
+	@echo "🔍 Running linter..."
+	@golangci-lint run --issues-exit-code=1 --timeout=5m
+
+# Vet code
+vet:
+	@echo "🔎 Running go vet..."
+	@go vet ./...
+
+# Security scan
+security:
+	@echo "🔒 Running security scan..."
+	@gosec -quiet ./...
 
 # Format code
 .PHONY: fmt
@@ -127,6 +185,34 @@ release: clean
 	
 	@echo "✅ Release binaries built in bin/release/"
 
+# Pre-commit simulation
+.PHONY: pre-commit
+pre-commit: quality-check test-unit
+	@echo "🚀 Pre-commit checks complete!"
+
+# CI/CD targets
+.PHONY: ci-test ci-coverage ci-build
+
+# Full CI test suite
+ci-test:
+	@echo "🤖 Running CI test suite..."
+	@make quality-check
+	@make test-unit
+	@make test-integration
+	@make build
+
+# CI coverage enforcement
+ci-coverage:
+	@echo "📊 Checking CI coverage requirements..."
+	@./scripts/check-coverage.sh
+
+# CI build verification
+ci-build:
+	@echo "🏗️ Verifying CI build..."
+	@make clean
+	@make build
+	@make test-unit
+
 # Create bin directory
 bin:
 	@mkdir -p bin
@@ -147,6 +233,45 @@ version:
 	@echo "Build time: $(BUILD_TIME)"
 	@echo "Git commit: $(GIT_COMMIT)"
 
+# Version bumping targets following SemVer
+.PHONY: bump-major bump-minor bump-patch
+
+# Bump major version (e.g., 1.2.3 -> 2.0.0)
+bump-major:
+	@echo "Bumping major version..."
+	$(eval MAJOR := $(shell echo $(VERSION) | cut -d. -f1))
+	$(eval NEW_VERSION := $$(( $(MAJOR) + 1 )).0.0)
+	@sed -i.bak "s/VERSION := $(VERSION)/VERSION := $(NEW_VERSION)/" Makefile
+	@sed -i.bak "s/Version = \"$(VERSION)\"/Version = \"$(NEW_VERSION)\"/" pkg/version/version.go
+	@echo "✅ Version bumped from $(VERSION) to $(NEW_VERSION)"
+	@echo "Don't forget to update the CHANGELOG.md!"
+	@rm -f Makefile.bak pkg/version/version.go.bak
+
+# Bump minor version (e.g., 1.2.3 -> 1.3.0)
+bump-minor:
+	@echo "Bumping minor version..."
+	$(eval MAJOR := $(shell echo $(VERSION) | cut -d. -f1))
+	$(eval MINOR := $(shell echo $(VERSION) | cut -d. -f2))
+	$(eval NEW_VERSION := $(MAJOR).$$(( $(MINOR) + 1 )).0)
+	@sed -i.bak "s/VERSION := $(VERSION)/VERSION := $(NEW_VERSION)/" Makefile
+	@sed -i.bak "s/Version = \"$(VERSION)\"/Version = \"$(NEW_VERSION)\"/" pkg/version/version.go
+	@echo "✅ Version bumped from $(VERSION) to $(NEW_VERSION)"
+	@echo "Don't forget to update the CHANGELOG.md!"
+	@rm -f Makefile.bak pkg/version/version.go.bak
+
+# Bump patch version (e.g., 1.2.3 -> 1.2.4)
+bump-patch:
+	@echo "Bumping patch version..."
+	$(eval MAJOR := $(shell echo $(VERSION) | cut -d. -f1))
+	$(eval MINOR := $(shell echo $(VERSION) | cut -d. -f2))
+	$(eval PATCH := $(shell echo $(VERSION) | cut -d. -f3))
+	$(eval NEW_VERSION := $(MAJOR).$(MINOR).$$(( $(PATCH) + 1 )))
+	@sed -i.bak "s/VERSION := $(VERSION)/VERSION := $(NEW_VERSION)/" Makefile
+	@sed -i.bak "s/Version = \"$(VERSION)\"/Version = \"$(NEW_VERSION)\"/" pkg/version/version.go
+	@echo "✅ Version bumped from $(VERSION) to $(NEW_VERSION)"
+	@echo "Don't forget to update the CHANGELOG.md!"
+	@rm -f Makefile.bak pkg/version/version.go.bak
+
 # Show help
 .PHONY: help
 help:
@@ -159,12 +284,25 @@ help:
 	@echo "  install      Install binaries to /usr/local/bin"
 	@echo "  uninstall    Remove binaries from /usr/local/bin"
 	@echo "  clean        Remove build artifacts"
-	@echo "  test         Run tests"
+	@echo "  test         Run unit tests (legacy)"
+	@echo "  test-unit    Run unit tests"
+	@echo "  test-integration Run integration tests with LocalStack"
+	@echo "  test-e2e     Run end-to-end tests"
+	@echo "  test-coverage Generate coverage report"
+	@echo "  test-all     Run all tests"
+	@echo "  validate     Validate entire build and test pipeline"
+	@echo "  quality-check Run all quality checks"
 	@echo "  lint         Run linter"
+	@echo "  vet          Run go vet"
+	@echo "  security     Run security scan"
+	@echo "  pre-commit   Simulate pre-commit checks"
 	@echo "  fmt          Format code"
 	@echo "  deps         Update dependencies"
 	@echo "  release      Build release binaries for all platforms"
 	@echo "  dev-daemon   Build and run daemon for development"
 	@echo "  dev-cli      Build and test CLI"
 	@echo "  version      Show version information"
+	@echo "  bump-major   Bump major version (X.y.z)"
+	@echo "  bump-minor   Bump minor version (x.Y.z)"
+	@echo "  bump-patch   Bump patch version (x.y.Z)"
 	@echo "  help         Show this help"
