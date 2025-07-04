@@ -1,0 +1,299 @@
+name: "Bioinformatics Environment"
+base: "ubuntu-22.04-server-lts"
+description: "Bioinformatics toolkit with BWA, GATK, Samtools, R Bioconductor and common NGS tools"
+
+build_steps:
+  - name: "System updates"
+    script: |
+      apt-get update -y && apt-get upgrade -y
+      apt-get install -y build-essential curl wget software-properties-common git
+      apt-get install -y cmake pkg-config autoconf automake
+      apt-get install -y libncurses5-dev libbz2-dev liblzma-dev zlib1g-dev libcurl4-openssl-dev
+
+  - name: "Install Python environment"
+    script: |
+      apt-get install -y python3 python3-pip python3-dev python3-venv
+      python3 -m venv /opt/bio_env
+      
+      # Install Python bioinformatics packages
+      /opt/bio_env/bin/pip install --upgrade pip
+      /opt/bio_env/bin/pip install numpy scipy pandas matplotlib biopython
+      /opt/bio_env/bin/pip install jupyterlab notebook ipywidgets
+      
+      # Install specialized bioinformatics packages
+      /opt/bio_env/bin/pip install pysam pyvcf scikit-bio
+      /opt/bio_env/bin/pip install pyfaidx pybedtools
+
+  - name: "Install R and Bioconductor"
+    script: |
+      # Add R repository
+      apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
+      add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_release -cs)-cran40/"
+      apt-get update -y
+      
+      # Install R
+      apt-get install -y r-base r-base-dev
+      
+      # Install R packages for bioinformatics
+      R -e 'install.packages(c("tidyverse", "ggplot2", "shiny", "BiocManager"), repos="http://cran.rstudio.com/")'
+      
+      # Install Bioconductor core packages
+      R -e 'BiocManager::install(c("DESeq2", "edgeR", "limma", "GenomicRanges", "Biostrings", "IRanges", "BSgenome", "rtracklayer", "GenomicFeatures"))'
+      
+      # Install RStudio Server
+      ARCH=$(uname -m)
+      if [ "$ARCH" = "x86_64" ]; then
+        wget -O rstudio.deb https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2023.06.1-524-amd64.deb
+      else
+        wget -O rstudio.deb https://download2.rstudio.org/server/jammy/arm64/rstudio-server-2023.06.1-524-arm64.deb
+      fi
+      
+      dpkg -i rstudio.deb || apt-get install -f -y
+      systemctl enable rstudio-server
+      
+      # Configure RStudio
+      echo "www-port=8787" >> /etc/rstudio/rserver.conf
+
+  - name: "Install SAMtools, BCFtools, and HTSlib"
+    script: |
+      # Install dependencies
+      apt-get install -y libncurses5-dev libbz2-dev liblzma-dev zlib1g-dev
+      
+      # Clone repositories
+      cd /tmp
+      git clone https://github.com/samtools/htslib.git
+      git clone https://github.com/samtools/samtools.git
+      git clone https://github.com/samtools/bcftools.git
+      
+      # Build and install HTSlib
+      cd htslib
+      autoheader
+      autoconf
+      ./configure
+      make
+      make install
+      
+      # Build and install SAMtools
+      cd ../samtools
+      autoheader
+      autoconf -Wno-syntax
+      ./configure
+      make
+      make install
+      
+      # Build and install BCFtools
+      cd ../bcftools
+      autoheader
+      autoconf -Wno-syntax
+      ./configure
+      make
+      make install
+      
+      # Update library path
+      ldconfig
+
+  - name: "Install BWA"
+    script: |
+      cd /tmp
+      git clone https://github.com/lh3/bwa.git
+      cd bwa
+      make
+      cp bwa /usr/local/bin/
+
+  - name: "Install GATK"
+    script: |
+      # Install Java
+      apt-get install -y default-jdk
+      
+      # Download GATK
+      mkdir -p /opt/gatk
+      cd /opt/gatk
+      wget -O gatk.zip https://github.com/broadinstitute/gatk/releases/download/4.4.0.0/gatk-4.4.0.0.zip
+      unzip gatk.zip
+      mv gatk-4.4.0.0/* .
+      rmdir gatk-4.4.0.0
+      rm gatk.zip
+      
+      # Create GATK command wrapper
+      cat > /usr/local/bin/gatk << 'EOF'
+#!/bin/bash
+java -jar /opt/gatk/gatk-package-4.4.0.0-local.jar "$@"
+EOF
+      chmod +x /usr/local/bin/gatk
+
+  - name: "Install IGV"
+    script: |
+      # Download IGV
+      mkdir -p /opt/igv
+      cd /opt/igv
+      wget -O igv.zip https://data.broadinstitute.org/igv/projects/downloads/2.15/IGV_Linux_2.15.2.zip
+      unzip igv.zip
+      mv IGV_Linux_2.15.2/* .
+      rmdir IGV_Linux_2.15.2
+      rm igv.zip
+      
+      # Create IGV command wrapper
+      cat > /usr/local/bin/igv << 'EOF'
+#!/bin/bash
+/opt/igv/igv.sh "$@"
+EOF
+      chmod +x /usr/local/bin/igv
+
+  - name: "Configure Jupyter"
+    script: |
+      # Create Jupyter configuration
+      mkdir -p /etc/jupyter
+      
+      # Generate configuration
+      /opt/bio_env/bin/jupyter server --generate-config -f /etc/jupyter/jupyter_server_config.py
+      
+      # Configure Jupyter to allow remote access
+      cat >> /etc/jupyter/jupyter_server_config.py << EOF
+c.ServerApp.ip = '0.0.0.0'
+c.ServerApp.port = 8888
+c.ServerApp.open_browser = False
+c.ServerApp.allow_root = True
+c.ServerApp.allow_remote_access = True
+c.ServerApp.token = ''
+EOF
+      
+      # Create a service for Jupyter
+      cat > /etc/systemd/system/jupyter.service << EOF
+[Unit]
+Description=Jupyter Server
+After=network.target
+
+[Service]
+Type=simple
+User=researcher
+ExecStart=/opt/bio_env/bin/jupyter lab --config=/etc/jupyter/jupyter_server_config.py
+WorkingDirectory=/home/researcher
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+      
+      systemctl enable jupyter.service
+
+  - name: "Setup user environment"
+    script: |
+      # Create default researcher user
+      useradd -m -s /bin/bash researcher
+      echo "researcher:password123" | chpasswd
+      usermod -aG sudo researcher
+      
+      # Create projects directory
+      mkdir -p /home/researcher/bio_projects
+      chown -R researcher:researcher /home/researcher/bio_projects
+      
+      # Configure environment for researcher
+      echo 'source /opt/bio_env/bin/activate' >> /home/researcher/.bashrc
+      echo 'export PATH=/opt/bio_env/bin:${PATH}' >> /home/researcher/.bashrc
+      
+      # Add aliases
+      cat >> /home/researcher/.bashrc << 'EOF'
+alias start-jupyter="sudo systemctl start jupyter.service"
+alias stop-jupyter="sudo systemctl stop jupyter.service"
+alias start-rstudio="sudo systemctl start rstudio-server"
+alias stop-rstudio="sudo systemctl stop rstudio-server"
+EOF
+
+  - name: "Download sample data"
+    script: |
+      # Create sample data directory
+      mkdir -p /home/researcher/bio_projects/sample_data
+      cd /home/researcher/bio_projects/sample_data
+      
+      # Download small reference sequence
+      wget -O e_coli.fasta.gz ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/005/845/GCF_000005845.2_ASM584v2/GCF_000005845.2_ASM584v2_genomic.fna.gz
+      gunzip e_coli.fasta.gz
+      
+      # Index with BWA
+      bwa index e_coli.fasta
+      
+      # Create README
+      cat > /home/researcher/bio_projects/README.md << 'EOF'
+# Bioinformatics Environment
+
+This environment provides tools for bioinformatics research including:
+
+## Available Software
+- BWA: Alignment of short reads
+- Samtools: Manipulation of alignment files
+- BCFtools: Variant calling and manipulation
+- GATK: Variant discovery and genotyping toolkit
+- R with Bioconductor: Statistical analysis and visualization
+- Python with BioPython: Programming and analysis
+
+## Example Workflow
+```bash
+# Index reference
+bwa index reference.fasta
+
+# Align reads
+bwa mem reference.fasta reads_1.fastq reads_2.fastq > alignment.sam
+
+# Convert to BAM
+samtools view -bS alignment.sam > alignment.bam
+
+# Sort BAM
+samtools sort alignment.bam -o alignment.sorted.bam
+
+# Index BAM
+samtools index alignment.sorted.bam
+
+# Call variants
+bcftools mpileup -f reference.fasta alignment.sorted.bam | bcftools call -mv > variants.vcf
+```
+EOF
+      
+      # Fix ownership
+      chown -R researcher:researcher /home/researcher/bio_projects
+
+  - name: "Cleanup"
+    script: |
+      apt-get autoremove -y && apt-get autoclean
+      rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+      rm -f rstudio.deb
+
+validation:
+  - name: "Python bioinformatics packages"
+    command: "/opt/bio_env/bin/python -c 'import biopython; print(\"Import successful\")'"
+    success: true
+  
+  - name: "BWA installed"
+    command: "bwa"
+    success: true
+  
+  - name: "Samtools installed"
+    command: "samtools --version"
+    success: true
+  
+  - name: "GATK installed"
+    command: "gatk --help"
+    success: true
+  
+  - name: "R Bioconductor installed"
+    command: "R -e 'library(BiocManager); sessionInfo()'"
+    success: true
+  
+  - name: "RStudio Server configured"
+    command: "systemctl is-enabled rstudio-server"
+    equals: "enabled"
+  
+  - name: "Jupyter configured"
+    command: "systemctl is-enabled jupyter.service"
+    equals: "enabled"
+  
+  - name: "User setup"
+    command: "id researcher"
+    success: true
+
+tags:
+  Name: "bioinformatics"
+  Type: "research"
+  Software: "BWA,GATK,Samtools,R-Bioconductor,Biopython"
+  Purpose: "genomics"
+
+min_disk_size: 30

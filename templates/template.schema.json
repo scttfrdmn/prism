@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CloudWorkstation Template Schema",
+  "description": "Schema for CloudWorkstation AMI template files",
+  "type": "object",
+  "required": ["name", "base", "description", "build_steps", "validation"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Display name of the template"
+    },
+    "base": {
+      "type": "string",
+      "description": "Base AMI identifier (e.g., 'ubuntu-22.04-server-lts')",
+      "enum": [
+        "ubuntu-22.04-server-lts", 
+        "ubuntu-20.04-server-lts", 
+        "amazon-linux-2"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the template"
+    },
+    "build_steps": {
+      "type": "array",
+      "description": "List of build steps to create the AMI",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "script"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Descriptive name of the step"
+          },
+          "script": {
+            "type": "string",
+            "description": "Shell script to execute"
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "description": "Maximum execution time in seconds",
+            "default": 600,
+            "minimum": 1,
+            "maximum": 3600
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "array",
+      "description": "List of tests to validate the AMI build",
+      "items": {
+        "type": "object",
+        "required": ["name", "command"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Descriptive name of the check"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command to execute for validation"
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Whether the command should exit with code 0"
+          },
+          "contains": {
+            "type": "string",
+            "description": "String that should be present in command output"
+          },
+          "equals": {
+            "type": "string",
+            "description": "String that should exactly match the command output"
+          }
+        },
+        "oneOf": [
+          { "required": ["success"] },
+          { "required": ["contains"] },
+          { "required": ["equals"] }
+        ]
+      }
+    },
+    "tags": {
+      "type": "object",
+      "description": "Key-value pairs to add as tags to the AMI",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "properties": {
+        "Name": {
+          "type": "string",
+          "description": "Name tag for the AMI"
+        },
+        "Type": {
+          "type": "string",
+          "description": "Type of AMI (e.g., 'research', 'general')"
+        },
+        "Software": {
+          "type": "string",
+          "description": "Comma-separated list of main software packages"
+        },
+        "Purpose": {
+          "type": "string",
+          "description": "Main purpose of the AMI (e.g., 'machine-learning', 'development')"
+        }
+      }
+    },
+    "min_disk_size": {
+      "type": "integer",
+      "description": "Minimum disk size in GB",
+      "minimum": 8,
+      "default": 8
+    },
+    "architecture": {
+      "type": "string",
+      "description": "Target architecture",
+      "enum": ["x86_64", "arm64"],
+      "default": "x86_64"
+    }
+  },
+  "additionalProperties": false
+}
