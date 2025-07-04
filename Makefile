@@ -76,8 +76,17 @@ test-integration:
 	@docker-compose -f docker-compose.test.yml up -d localstack
 	@echo "⏳ Waiting for LocalStack to be ready..."
 	@sleep 10
-	@INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=integration-coverage.out
+	@INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=aws-integration-coverage.out
+	@INTEGRATION_TESTS=1 go test -tags=integration ./pkg/ami -v -coverprofile=ami-integration-coverage.out
 	@docker-compose -f docker-compose.test.yml down
+	@echo "📊 Integration test coverage:"
+	@go tool cover -func=aws-integration-coverage.out | grep "total"
+	@go tool cover -func=ami-integration-coverage.out | grep "total"
+
+# Run AMI builder integration tests specifically
+test-ami-builder:
+	@echo "🧪 Running AMI builder integration tests..."
+	@./scripts/test-ami-builder.sh
 
 # Run end-to-end tests
 test-e2e: build
