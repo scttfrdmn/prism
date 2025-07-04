@@ -31,8 +31,8 @@ type Template struct {
 	Validation  []Validation `yaml:"validation"`
 	// Optional fields
 	Tags         map[string]string `yaml:"tags,omitempty"`
-	MinDiskSize  int              `yaml:"min_disk_size,omitempty"` // GB
-	Architecture string           `yaml:"architecture,omitempty"`  // Default is both
+	MinDiskSize  int               `yaml:"min_disk_size,omitempty"` // GB
+	Architecture string            `yaml:"architecture,omitempty"`  // Default is both
 }
 
 // BuildStep represents a single step in the AMI build process
@@ -55,16 +55,18 @@ type Validation struct {
 
 // BuildRequest contains parameters for building an AMI
 type BuildRequest struct {
-	TemplateName string
-	Template     Template
-	Region       string
-	Architecture string
-	Version      string
-	DryRun       bool
-	BuildID      string
-	BuildType    string // "scheduled", "manual", "ci"
-	VpcID        string
-	SubnetID     string
+	TemplateName  string
+	Template      Template
+	Region        string
+	Architecture  string
+	Version       string
+	DryRun        bool
+	BuildID       string
+	BuildType     string   // "scheduled", "manual", "ci"
+	VpcID         string
+	SubnetID      string
+	SecurityGroup string
+	CopyToRegions []string // Regions to copy the AMI to after building
 }
 
 // BuildResult contains the outcome of an AMI build
@@ -74,12 +76,19 @@ type BuildResult struct {
 	Region        string
 	Architecture  string
 	AMIID         string
+	CopiedAMIs    map[string]string // Region -> AMI ID map of copied AMIs
 	BuildTime     time.Duration
 	Status        string
 	ErrorMessage  string
 	Logs          string
 	BuilderID     string
 	ValidationLog string
+	SourceAMI     string // Base AMI used as the source for this build
+}
+
+// IsSuccessful returns true if the build was successful
+func (b *BuildResult) IsSuccessful() bool {
+	return b.Status == "completed" || b.Status == "dry-run"
 }
 
 // Builder handles the AMI creation process
@@ -124,8 +133,8 @@ type ValidationResult struct {
 	Details         map[string]string
 }
 
-// AMIReference contains details for referencing an AMI
-type AMIReference struct {
+// Reference contains details for referencing an AMI
+type Reference struct {
 	AMIID        string
 	Region       string
 	Architecture string

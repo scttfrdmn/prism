@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Centralized version management package
   - Security group parameter support
   - Helper scripts for AMI building
+  - Integration testing with LocalStack
 - Comprehensive testing infrastructure with LocalStack integration
 - Docker-based AWS service emulation for integration testing
 - Advanced test coverage analysis and reporting
