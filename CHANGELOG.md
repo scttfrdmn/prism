@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multi-region AMI builder support
+  - Region validation and error handling
+  - Cross-region AMI copying functionality
+  - Region-specific configuration system
+  - Centralized version management package
+  - Security group parameter support
+  - Helper scripts for AMI building
 - Comprehensive testing infrastructure with LocalStack integration
 - Docker-based AWS service emulation for integration testing
 - Advanced test coverage analysis and reporting
