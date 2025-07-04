@@ -1,0 +1,11 @@
+name: "Invalid Template"
+# Missing base image
+description: "This template is intentionally invalid for testing"
+
+# Missing build steps
+
+# Validation without command
+validation:
+  - name: "Invalid test"
+    # No command
+    success: true

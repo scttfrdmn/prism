@@ -1,0 +1,110 @@
+name: "Basic Ubuntu Server"
+base: "ubuntu-22.04-server-lts"
+description: "Plain Ubuntu 22.04 LTS with common development tools and utilities"
+
+build_steps:
+  - name: "System updates"
+    script: |
+      apt-get update -y && apt-get upgrade -y
+      apt-get install -y build-essential curl wget software-properties-common git
+
+  - name: "Install common utilities"
+    script: |
+      apt-get install -y vim nano tmux screen htop 
+      apt-get install -y zip unzip bzip2 gzip tar
+      apt-get install -y ca-certificates gnupg lsb-release
+
+  - name: "Install development tools"
+    script: |
+      # Install Python
+      apt-get install -y python3 python3-pip python3-venv
+      
+      # Install Node.js
+      curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+      apt-get install -y nodejs
+      
+      # Install common build tools
+      apt-get install -y cmake pkg-config autoconf automake
+      apt-get install -y libssl-dev libcurl4-openssl-dev zlib1g-dev
+
+  - name: "Install Docker"
+    script: |
+      # Add Docker repository
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      
+      # Install Docker
+      apt-get update -y
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  - name: "Setup user environment"
+    script: |
+      # Create default researcher user
+      useradd -m -s /bin/bash researcher
+      echo "researcher:password123" | chpasswd
+      usermod -aG sudo researcher
+      
+      # Add to Docker group
+      usermod -aG docker researcher
+      
+      # Create projects directory
+      mkdir -p /home/researcher/projects
+      chown researcher:researcher /home/researcher/projects
+
+  - name: "Configure system environment"
+    script: |
+      # Set timezone to UTC
+      timedatectl set-timezone UTC
+      
+      # Increase file descriptor limits
+      echo "* soft nofile 65536" >> /etc/security/limits.conf
+      echo "* hard nofile 65536" >> /etc/security/limits.conf
+      
+      # Add common aliases
+      cat > /etc/profile.d/aliases.sh << 'EOF'
+# Common aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+alias ..='cd ..'
+alias ...='cd ../..'
+EOF
+      chmod +x /etc/profile.d/aliases.sh
+
+  - name: "Cleanup"
+    script: |
+      apt-get autoremove -y && apt-get autoclean
+      rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+validation:
+  - name: "System updated"
+    command: "apt-get update -y"
+    success: true
+  
+  - name: "Common tools installed"
+    command: "which git"
+    success: true
+  
+  - name: "Python installed"
+    command: "python3 --version"
+    success: true
+  
+  - name: "Node.js installed"
+    command: "node --version"
+    success: true
+  
+  - name: "Docker installed"
+    command: "docker --version"
+    success: true
+  
+  - name: "User setup"
+    command: "id researcher"
+    contains: "sudo"
+
+tags:
+  Name: "basic-ubuntu"
+  Type: "general"
+  Software: "Ubuntu,Docker,Python,Node.js"
+  Purpose: "development"
+
+min_disk_size: 10
