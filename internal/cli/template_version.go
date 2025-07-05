@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -205,7 +206,8 @@ func (a *App) handleTemplateVersionList(args []string, manager *ami.TemplateMana
 	fmt.Printf("🔍 Listing versions for template '%s'\n", templateName)
 
 	// List versions from registry
-	versions, err := manager.Registry.ListSharedTemplateVersions(a.ctx, templateName)
+	ctx := context.Background()
+	versions, err := manager.Registry.ListSharedTemplateVersions(ctx, templateName)
 	if err != nil {
 		return fmt.Errorf("failed to list template versions: %w", err)
 	}
@@ -244,6 +246,10 @@ func (a *App) handleTemplateDependency(args []string, manager *ami.TemplateManag
 		return a.handleTemplateDependencyCheck(subargs, manager)
 	case "graph":
 		return a.handleTemplateDependencyGraph(subargs, manager)
+	case "resolve":
+		return a.handleTemplateDependencyResolve(subargs, manager)
+	case "analyze":
+		return a.handleTemplateDependencyAnalyze(subargs, manager)
 	default:
 		return fmt.Errorf("unknown dependency command: %s", subcommand)
 	}
