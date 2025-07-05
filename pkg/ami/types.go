@@ -80,13 +80,15 @@ type BuildResult struct {
 	Architecture  string
 	AMIID         string
 	CopiedAMIs    map[string]string // Region -> AMI ID map of copied AMIs
-	BuildTime     time.Duration
+	BuildTime     time.Time
+	BuildDuration time.Duration
 	Status        string
 	ErrorMessage  string
 	Logs          string
 	BuilderID     string
 	ValidationLog string
 	SourceAMI     string // Base AMI used as the source for this build
+	Version       string // Semantic version of the template
 }
 
 // IsSuccessful returns true if the build was successful
