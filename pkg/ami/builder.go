@@ -710,9 +710,9 @@ func (b *Builder) copyAMIToRegion(ctx context.Context, sourceAMIID, sourceName, 
 		return "", ImageCreationError(
 			fmt.Sprintf("failed to copy AMI to region %s", targetRegion),
 			err,
-		).WithContext("sourceAMI", sourceAMIID)
-		 .WithContext("sourceRegion", sourceRegion)
-		 .WithContext("targetRegion", targetRegion)
+		).WithContext("sourceAMI", sourceAMIID).
+		WithContext("sourceRegion", sourceRegion).
+		WithContext("targetRegion", targetRegion)
 	}
 	
 	// Wait for the AMI to be available in the target region
@@ -724,8 +724,8 @@ func (b *Builder) copyAMIToRegion(ctx context.Context, sourceAMIID, sourceName, 
 			ErrorTypeImageCreation,
 			fmt.Sprintf("timeout waiting for AMI to be available in region %s", targetRegion),
 			err,
-		).WithContext("amiID", *result.ImageId)
-		 .WithContext("region", targetRegion)
+		).WithContext("amiID", *result.ImageId).
+		WithContext("region", targetRegion)
 	}
 	
 	return *result.ImageId, nil

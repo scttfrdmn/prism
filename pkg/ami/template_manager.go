@@ -39,6 +39,19 @@ type TemplateMetadata struct {
 	Version          string    `json:"version,omitempty"`
 }
 
+// Clock provides time-related functionality
+type Clock interface {
+	Now() time.Time
+}
+
+// RealClock is the default clock implementation
+type RealClock struct{}
+
+// Now returns the current time
+func (r *RealClock) Now() time.Time {
+	return time.Now()
+}
+
 // TemplateManager handles template management operations
 type TemplateManager struct {
 	Parser            *Parser
@@ -49,6 +62,7 @@ type TemplateManager struct {
 	HTTPClient        *http.Client
 	SchemaValidator   *SchemaValidator
 	PublicDirectory   string // Directory for publicly shared templates
+	clock             Clock   // Clock for time operations
 }
 
 // TemplateBuilder is a builder for creating and modifying templates
@@ -71,27 +85,7 @@ type TemplateExportOptions struct {
 	PrettyPrint bool
 }
 
-// ErrorTypeTemplate represents template management error types
-const (
-	ErrorTypeTemplateImport     ErrorType = "template_import"
-	ErrorTypeTemplateExport     ErrorType = "template_export"
-	ErrorTypeTemplateManagement ErrorType = "template_management"
-)
-
-// TemplateImportError creates a new template import error
-func TemplateImportError(message string, cause error) *BuildError {
-	return NewBuildError(ErrorTypeTemplateImport, message, cause)
-}
-
-// TemplateExportError creates a new template export error
-func TemplateExportError(message string, cause error) *BuildError {
-	return NewBuildError(ErrorTypeTemplateExport, message, cause)
-}
-
-// TemplateManagementError creates a new template management error
-func TemplateManagementError(message string, cause error) *BuildError {
-	return NewBuildError(ErrorTypeTemplateManagement, message, cause)
-}
+// Template management error types defined in errors.go
 
 // NewTemplateManager creates a new template manager
 //
@@ -126,6 +120,7 @@ func NewTemplateManager(parser *Parser, registry *Registry, templateDir string) 
 		TemplateMetadata:  make(map[string]TemplateMetadata),
 		HTTPClient:        &http.Client{Timeout: 30 * time.Second},
 		SchemaValidator:   validator,
+		clock:             &RealClock{},
 	}
 }
 
