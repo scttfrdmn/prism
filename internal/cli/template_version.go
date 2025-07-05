@@ -29,6 +29,10 @@ func (a *App) handleTemplateVersion(args []string, manager *ami.TemplateManager)
 		return a.handleTemplateVersionCreate(subargs, manager)
 	case "list":
 		return a.handleTemplateVersionList(subargs, manager)
+	case "search":
+		return a.handleTemplateVersionSearch(subargs, manager)
+	case "compare":
+		return a.handleTemplateVersionCompare(subargs, manager)
 	default:
 		return fmt.Errorf("unknown version command: %s", subcommand)
 	}
