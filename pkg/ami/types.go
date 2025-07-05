@@ -61,7 +61,7 @@ type BuildRequest struct {
 	Template      Template
 	Region        string
 	Architecture  string
-	Version       string
+	Version       string    // Semantic version in format major.minor.patch
 	DryRun        bool
 	BuildID       string
 	BuildType     string   // "scheduled", "manual", "ci"
@@ -69,6 +69,7 @@ type BuildRequest struct {
 	SubnetID      string
 	SecurityGroup string
 	CopyToRegions []string // Regions to copy the AMI to after building
+	SetAsDefault  bool     // Whether to set this AMI as the default latest
 }
 
 // BuildResult contains the outcome of an AMI build
