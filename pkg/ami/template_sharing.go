@@ -242,6 +242,56 @@ func (r *Registry) GetSharedTemplate(ctx context.Context, templateName, version 
 	return &entry, nil
 }
 
+// ListSharedTemplateVersions lists all versions of a template in the registry
+//
+// This method queries SSM Parameter Store for all versions of a specific template.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts
+//   - templateName: Name of the template to list versions for
+//
+// Returns:
+//   - []string: List of version strings (e.g., "1.0.0", "1.1.0")
+//   - error: Any listing errors
+func (r *Registry) ListSharedTemplateVersions(ctx context.Context, templateName string) ([]string, error) {
+	result := []string{}
+	
+	// Parameter path for template versions: /prefix/templates/template-name/
+	paramPath := fmt.Sprintf("%s/templates/%s/", r.ParameterPrefix, templateName)
+	
+	// Get parameters by path
+	input := &ssm.GetParametersByPathInput{
+		Path:      aws.String(paramPath),
+		Recursive: aws.Bool(true),
+	}
+	
+	paginator := ssm.NewGetParametersByPathPaginator(r.SSMClient, input)
+	
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return result, RegistryError("failed to list template versions", err).
+				WithContext("template_name", templateName).
+				WithContext("parameter_path", paramPath)
+		}
+		
+		for _, param := range page.Parameters {
+			// Extract version from path
+			pathParts := strings.Split(*param.Name, "/")
+			version := pathParts[len(pathParts)-1]
+			
+			// Skip "latest" as it's not a real version
+			if version != "latest" {
+				result = append(result, version)
+			}
+		}
+	}
+	
+	// Sort versions (TODO: use semantic versioning for proper sorting)
+	
+	return result, nil
+}
+
 // DeleteSharedTemplate deletes a template from the registry
 //
 // This method removes a template from SSM Parameter Store.

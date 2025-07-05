@@ -33,6 +33,8 @@ type Template struct {
 	Tags         map[string]string `yaml:"tags,omitempty"`
 	MinDiskSize  int               `yaml:"min_disk_size,omitempty"` // GB
 	Architecture string            `yaml:"architecture,omitempty"`  // Default is both
+	// Dependency management
+	Dependencies []TemplateDependency `yaml:"dependencies,omitempty"` // Template dependencies
 }
 
 // BuildStep represents a single step in the AMI build process

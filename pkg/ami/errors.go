@@ -36,6 +36,18 @@ const (
 	
 	// ErrorTypeInternal indicates an unexpected internal error
 	ErrorTypeInternal ErrorType = "internal"
+	
+	// ErrorTypeTemplateImport indicates a template import error
+	ErrorTypeTemplateImport ErrorType = "template_import"
+	
+	// ErrorTypeTemplateExport indicates a template export error
+	ErrorTypeTemplateExport ErrorType = "template_export"
+	
+	// ErrorTypeTemplateManagement indicates a template management error
+	ErrorTypeTemplateManagement ErrorType = "template_management"
+	
+	// ErrorTypeDependency indicates a template dependency error
+	ErrorTypeDependency ErrorType = "dependency"
 )
 
 // BuildError represents an error that occurred during AMI building.
@@ -208,6 +220,26 @@ func RegistryError(message string, cause error) *BuildError {
 // InternalError creates a new internal error.
 func InternalError(message string, cause error) *BuildError {
 	return NewBuildError(ErrorTypeInternal, message, cause)
+}
+
+// TemplateImportError creates a new template import error.
+func TemplateImportError(message string, cause error) *BuildError {
+	return NewBuildError(ErrorTypeTemplateImport, message, cause)
+}
+
+// TemplateExportError creates a new template export error.
+func TemplateExportError(message string, cause error) *BuildError {
+	return NewBuildError(ErrorTypeTemplateExport, message, cause)
+}
+
+// TemplateManagementError creates a new template management error.
+func TemplateManagementError(message string, cause error) *BuildError {
+	return NewBuildError(ErrorTypeTemplateManagement, message, cause)
+}
+
+// DependencyError creates a new dependency error.
+func DependencyError(message string, cause error) *BuildError {
+	return NewBuildError(ErrorTypeDependency, message, cause)
 }
 
 // IsValidationError checks if the error is a validation error.
