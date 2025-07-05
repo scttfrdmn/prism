@@ -3,7 +3,6 @@ package ami
 
 import (
 	"fmt"
-	"sort"
 )
 
 // TemplateDependency represents a dependency on another template
