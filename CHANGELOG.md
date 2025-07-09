@@ -5,7 +5,20 @@ All notable changes to CloudWorkstation will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0-alpha] - 2023-07-10
+
+Initial alpha release with core functionality and testing framework. This release focuses on establishing a solid foundation with distributed architecture and comprehensive testing.
+
+### Key Features
+- Distributed client-server architecture with REST API
+- Complete AWS integration with instance management
+- Template-based workstation provisioning
+- EFS and EBS volume management
+- Multi-region support
+- Comprehensive testing framework
+- Desktop environment support with NICE DCV
+
+## [0.1.1] - 2023-07-08 (Development)
 
 ### Added
 - Multi-region AMI builder support
@@ -49,6 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Volume operations testing (EFS, EBS creation/deletion)
 - Storage attachment/detachment testing
 - Multi-instance management testing
+- Standardized template repository with yaml templates
+- End-to-end testing framework with real AWS
+- Desktop environment support with NICE DCV
+- Templates for various research domains:
+  - python-research: Python with scientific and ML libraries
+  - neuroimaging: FSL, AFNI, ANTs and MRtrix
+  - bioinformatics: BWA, GATK, Samtools and R Bioconductor
+  - gis-research: QGIS, GRASS, PostGIS and geospatial libraries
+  - desktop-research: Ubuntu Desktop with NICE DCV
+- Documentation for template format
 
 ### Improved
 - Test coverage from basic unit tests to production-ready testing strategy
