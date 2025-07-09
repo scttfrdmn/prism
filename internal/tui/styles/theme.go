@@ -20,6 +20,8 @@ type Theme struct {
 	// Styles
 	Title       lipgloss.Style
 	Subtitle    lipgloss.Style
+	SectionTitle lipgloss.Style
+	SubTitle    lipgloss.Style
 	Panel       lipgloss.Style
 	PanelHeader lipgloss.Style
 	TableHeader lipgloss.Style
@@ -32,6 +34,7 @@ type Theme struct {
 	StatusError lipgloss.Style
 	StatusWarning lipgloss.Style
 	Help        lipgloss.Style
+	Pagination  lipgloss.Style
 }
 
 // DefaultTheme returns the default CloudWorkstation theme
@@ -133,6 +136,19 @@ func DefaultTheme() Theme {
 		Help: lipgloss.NewStyle().
 			Foreground(mutedColor).
 			Italic(true),
+			
+		SectionTitle: lipgloss.NewStyle().
+			Foreground(primaryColor).
+			Bold(true).
+			Underline(true).
+			MarginBottom(1),
+			
+		SubTitle: lipgloss.NewStyle().
+			Foreground(secondaryColor).
+			Bold(true),
+			
+		Pagination: lipgloss.NewStyle().
+			Foreground(mutedColor),
 	}
 	
 	return t

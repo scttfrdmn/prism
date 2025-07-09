@@ -41,6 +41,7 @@ type AppModel struct {
 	apiClient     api.CloudWorkstationAPI
 	currentPage   PageID
 	dashboardModel models.DashboardModel
+	templatesModel models.TemplatesModel
 	// Add other page models here
 	width         int
 	height        int
@@ -64,6 +65,7 @@ func (a *App) Run() error {
 		apiClient:     a.apiClient,
 		currentPage:   DashboardPage,
 		dashboardModel: models.NewDashboardModel(a.apiClient),
+		templatesModel: models.NewTemplatesModel(a.apiClient),
 	}
 
 	// Create program with model
@@ -79,7 +81,14 @@ func (a *App) Run() error {
 
 // Init initializes the application model
 func (m AppModel) Init() tea.Cmd {
-	return m.dashboardModel.Init()
+	switch m.currentPage {
+	case DashboardPage:
+		return m.dashboardModel.Init()
+	case TemplatesPage:
+		return m.templatesModel.Init()
+	default:
+		return m.dashboardModel.Init()
+	}
 }
 
 // Update handles messages and updates the model
@@ -107,7 +116,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "3":
 			// Switch to templates page
 			m.currentPage = TemplatesPage
-			// TODO: Initialize templates page
+			{
+				cmds = append(cmds, m.templatesModel.Init())
+			}
 		case "4":
 			// Switch to storage page
 			m.currentPage = StoragePage
@@ -125,6 +136,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newModel, newCmd := m.dashboardModel.Update(msg)
 		m.dashboardModel = newModel.(models.DashboardModel)
 		cmd = newCmd
+	case TemplatesPage:
+		newModel, newCmd := m.templatesModel.Update(msg)
+		m.templatesModel = newModel.(models.TemplatesModel)
+		cmd = newCmd
 	// Handle other pages here
 	}
 
@@ -141,7 +156,7 @@ func (m AppModel) View() string {
 	case InstancesPage:
 		return "Instances Page" // TODO: Implement instances page view
 	case TemplatesPage:
-		return "Templates Page" // TODO: Implement templates page view
+		return m.templatesModel.View()
 	case StoragePage:
 		return "Storage Page" // TODO: Implement storage page view
 	case SettingsPage:
