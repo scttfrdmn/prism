@@ -1,0 +1,57 @@
+package components
+
+import (
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+)
+
+// Spinner is a loading spinner component
+type Spinner struct {
+	spinner spinner.Model
+	message string
+}
+
+// NewSpinner creates a new spinner component with a message
+func NewSpinner(message string) Spinner {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(styles.CurrentTheme.PrimaryColor)
+	
+	return Spinner{
+		spinner: s,
+		message: message,
+	}
+}
+
+// Update handles messages for the spinner
+func (s *Spinner) Update(msg tea.Msg) (Spinner, tea.Cmd) {
+	var cmd tea.Cmd
+	s.spinner, cmd = s.spinner.Update(msg)
+	return *s, cmd
+}
+
+// View renders the spinner
+func (s *Spinner) View() string {
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		s.spinner.View(),
+		" "+s.message,
+	)
+}
+
+// SetMessage updates the spinner message
+func (s *Spinner) SetMessage(message string) {
+	s.message = message
+}
+
+// Spinner returns the underlying spinner model
+func (s *Spinner) Spinner() spinner.Model {
+	return s.spinner
+}
+
+// InitialCmd returns the spinner's initial command
+func (s *Spinner) InitialCmd() tea.Cmd {
+	return s.spinner.Tick
+}
