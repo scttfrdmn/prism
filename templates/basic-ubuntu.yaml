@@ -1,0 +1,243 @@
+name: "Basic Ubuntu"
+description: "Plain Ubuntu 22.04 for general use"
+base: "ubuntu-22.04-server-lts"
+architecture: "x86_64"  # Default architecture, will be overridden during build
+
+build_steps:
+  - name: "System updates"
+    script: |
+      apt-get update -y && apt-get upgrade -y
+      apt-get install -y build-essential curl wget software-properties-common git
+      
+  - name: "Install common utilities"
+    script: |
+      # Install essential utilities
+      apt-get install -y \
+        vim nano htop tmux screen \
+        zip unzip tar gzip bzip2 \
+        rsync tree ncdu \
+        net-tools dnsutils iputils-ping traceroute \
+        lsof netcat-openbsd \
+        jq yq python3-pip
+      
+      # Set vim as default editor
+      update-alternatives --set editor /usr/bin/vim.basic
+      
+  - name: "Install development tools"
+    script: |
+      # Install development tools
+      apt-get install -y \
+        git git-lfs \
+        make cmake autoconf automake \
+        gcc g++ gdb \
+        python3-dev python3-venv \
+        libssl-dev libcurl4-openssl-dev \
+        zlib1g-dev libbz2-dev libreadline-dev \
+        libsqlite3-dev libffi-dev liblzma-dev
+        
+      # Install Python packages
+      python3 -m pip install --upgrade pip setuptools wheel
+  
+  - name: "Configure SSH"
+    script: |
+      # Secure SSH configuration
+      cat > /etc/ssh/sshd_config.d/secure.conf << 'EOF'
+      # CloudWorkstation SSH Security Settings
+      PermitRootLogin no
+      PasswordAuthentication yes
+      PubkeyAuthentication yes
+      PermitEmptyPasswords no
+      X11Forwarding yes
+      EOF
+      
+      # Restart SSH service
+      systemctl restart sshd
+      
+  - name: "Set up user environment"
+    script: |
+      # Create ubuntu user if it doesn't exist
+      id -u ubuntu &>/dev/null || useradd -m -s /bin/bash ubuntu
+      echo "ubuntu:password123" | chpasswd
+      
+      # Add user to sudo group
+      usermod -aG sudo ubuntu
+      
+      # Create bashrc additions
+      cat > /home/ubuntu/.bash_aliases << 'EOF'
+      # CloudWorkstation default aliases
+      alias ll='ls -alF'
+      alias la='ls -A'
+      alias l='ls -CF'
+      alias ..='cd ..'
+      alias ...='cd ../..'
+      alias update='sudo apt update && sudo apt upgrade -y'
+      
+      # Git shortcuts
+      alias gs='git status'
+      alias gl='git log'
+      alias gd='git diff'
+      
+      # System monitoring
+      alias mem='free -h'
+      alias disk='df -h'
+      alias cpu='htop'
+      
+      # Docker shortcuts (if installed)
+      which docker > /dev/null && alias dk='docker' || true
+      which docker > /dev/null && alias dkps='docker ps' || true
+      which docker-compose > /dev/null && alias dc='docker-compose' || true
+      EOF
+      
+      # Create example files directory
+      mkdir -p /home/ubuntu/examples
+      
+      # Create example Python script
+      cat > /home/ubuntu/examples/hello.py << 'EOF'
+      #!/usr/bin/env python3
+      
+      print("Hello from CloudWorkstation!")
+      print("This is a basic Ubuntu 22.04 environment.")
+      
+      # System information
+      import platform
+      import os
+      
+      print("\nSystem Information:")
+      print(f"Python version: {platform.python_version()}")
+      print(f"Platform: {platform.platform()}")
+      print(f"Processor: {platform.processor()}")
+      print(f"CPU cores: {os.cpu_count()}")
+      
+      # Check available memory
+      try:
+          with open('/proc/meminfo', 'r') as f:
+              for line in f:
+                  if 'MemTotal' in line:
+                      print(f"Total memory: {line.split()[1]} kB")
+                      break
+      except:
+          print("Could not determine memory size")
+      EOF
+      
+      # Make the script executable
+      chmod +x /home/ubuntu/examples/hello.py
+      
+      # Create example bash script
+      cat > /home/ubuntu/examples/system_info.sh << 'EOF'
+      #!/bin/bash
+      
+      echo "============================================"
+      echo "CloudWorkstation System Information"
+      echo "============================================"
+      echo
+      
+      echo "SYSTEM:"
+      uname -a
+      echo
+      
+      echo "CPU INFO:"
+      lscpu | grep -E "Model name|CPU\(s\)|Thread|Core"
+      echo
+      
+      echo "MEMORY:"
+      free -h
+      echo
+      
+      echo "DISK SPACE:"
+      df -h /
+      echo
+      
+      echo "NETWORK:"
+      ip addr show | grep -E "inet "
+      echo
+      
+      echo "============================================"
+      EOF
+      
+      # Make the script executable
+      chmod +x /home/ubuntu/examples/system_info.sh
+      
+      # Set correct ownership
+      chown -R ubuntu:ubuntu /home/ubuntu
+      
+  - name: "Configure welcome message"
+    script: |
+      # Create welcome message
+      cat > /etc/profile.d/welcome.sh << 'EOF'
+      #!/bin/bash
+      
+      echo -e "\033[1;32m"
+      echo "Welcome to CloudWorkstation Basic Ubuntu Environment!"
+      echo "====================================================="
+      echo -e "\033[0m"
+      echo "System: Ubuntu 22.04 LTS ($(uname -r))"
+      echo "Architecture: $(uname -m)"
+      echo
+      echo -e "\033[1mUseful commands:\033[0m"
+      echo "  system_info.sh - Show system information"
+      echo "  update         - Update system packages"
+      echo
+      echo -e "\033[1mExample files:\033[0m"
+      echo "  ~/examples/hello.py       - Example Python script"
+      echo "  ~/examples/system_info.sh - System information script"
+      echo
+      echo "For help, run: man <command> or <command> --help"
+      echo -e "\033[1;32m====================================================="
+      echo -e "\033[0m"
+      EOF
+      
+      chmod +x /etc/profile.d/welcome.sh
+  
+  - name: "Cleanup"
+    script: |
+      apt-get autoremove -y && apt-get autoclean
+      rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+      
+      # Create setup log
+      echo "Setup complete" > /var/log/cws-setup.log
+
+validation:
+  - name: "System updated"
+    command: "apt-get update -y"
+    success: true
+  
+  - name: "Common utilities installed"
+    command: "which vim htop tmux jq"
+    success: true
+  
+  - name: "Git installed"
+    command: "git --version"
+    success: true
+  
+  - name: "Python installed"
+    command: "python3 --version"
+    success: true
+  
+  - name: "SSH configured"
+    command: "grep CloudWorkstation /etc/ssh/sshd_config.d/secure.conf"
+    success: true
+  
+  - name: "User setup complete"
+    command: "id ubuntu"
+    success: true
+  
+  - name: "Welcome message configured"
+    command: "grep CloudWorkstation /etc/profile.d/welcome.sh"
+    success: true
+
+tags:
+  Name: "basic-ubuntu"
+  Type: "base"
+  Software: "Ubuntu,Bash,Python"
+  Category: "general"
+
+instance_types:
+  x86_64: "t3.micro"
+  arm64: "t4g.micro"
+
+ports:
+  - 22   # SSH
+
+estimated_cost_per_hour:
+  x86_64: 0.0104
+  arm64: 0.0084

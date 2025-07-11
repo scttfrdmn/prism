@@ -5,6 +5,66 @@ All notable changes to CloudWorkstation will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2024-07-11
+
+This release focuses on two major improvements: the AMI Builder System and Terminal User Interface (TUI). These enhancements significantly improve the user experience and performance of CloudWorkstation.
+
+### Added
+- **AMI Builder System** (replacing UserData scripts)
+  - Automated AMI building with GitHub Actions
+  - YAML template format for AMI definitions
+  - Multi-region and multi-architecture support
+  - JSON Schema validation for templates
+  - Template registry for version management
+  - Registry lookup API with fallback mechanism
+  - Template conversion utilities
+  - Comprehensive documentation for AMI Builder
+
+- **Terminal User Interface (TUI)**
+  - Dashboard view for system overview
+  - Instances view with management capabilities
+  - Templates view for environment selection
+  - Storage management view for volumes
+  - Settings page with theme switching
+  - Notification system for asynchronous operations
+  - Dark/light theme support
+  - Search functionality across all list views
+  - Customized TabBar component
+  
+- **Template Library Expansion**
+  - r-research: R + RStudio Server + tidyverse
+  - python-research: Python + Jupyter + data science
+  - desktop-research: Ubuntu Desktop + NICE DCV
+  - basic-ubuntu: Plain Ubuntu 22.04
+  - neuroimaging: FSL + AFNI + ANTs
+  - bioinformatics: BWA + GATK + Samtools
+  - gis-research: QGIS + GRASS + PostGIS
+
+### Improved
+- **Performance**
+  - Reduced instance launch time from 10+ minutes to under 60 seconds
+  - More reliable environment setup with pre-built AMIs
+  - Consistent software configuration across launches
+  
+- **User Experience**
+  - Streamlined terminal UI with intuitive navigation
+  - Visual feedback for all operations
+  - Improved error messages and troubleshooting
+  - Progressive disclosure of advanced features
+
+- **Architecture**
+  - Enhanced distributed architecture with daemon and client
+  - Complete API integration between components
+  - Clean separation of concerns
+
+### Technical
+- Go 1.24+ compatibility
+- Bubble Tea framework for TUI
+- GitHub Actions for CI/CD
+- AWS SSM Parameter Store for registry
+- Comprehensive testing framework
+- Enhanced documentation
+
 ## [0.1.0-alpha] - 2023-07-10
 
 Initial alpha release with core functionality and testing framework. This release focuses on establishing a solid foundation with distributed architecture and comprehensive testing.
