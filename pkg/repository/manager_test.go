@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"

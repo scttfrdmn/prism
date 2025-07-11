@@ -40,15 +40,10 @@ func (m *Manager) buildDependencyGraph(graph *DependencyGraph, ref TemplateRefer
 		return err
 	}
 
-	// Get template path
-	templatePath := template.Path
-	if repo.Type == "local" {
-		templatePath = fmt.Sprintf("%s/%s", repo.Path, template.Path)
-	} else {
-		// Use cached path
-		cachePath := m.cache.Repositories[repo.Name].Path
-		templatePath = fmt.Sprintf("%s/%s", cachePath, template.Path)
-	}
+	// Get template path (unused for now, will be used for reading dependencies)
+	// We don't actually read from this path yet since the dependencies feature
+	// is not fully implemented
+	_ = getTemplatePath(template, repo, m.cache)
 
 	// Read template file to get dependencies
 	// TODO: Implement reading template dependencies
@@ -73,6 +68,20 @@ func (m *Manager) buildDependencyGraph(graph *DependencyGraph, ref TemplateRefer
 	}
 
 	return nil
+}
+
+// getTemplatePath gets the path to a template file.
+func getTemplatePath(template *TemplateMetadata, repo *Repository, cache *RepositoryCache) string {
+	if repo.Type == "local" {
+		return fmt.Sprintf("%s/%s", repo.Path, template.Path)
+	}
+	
+	// Use cached path
+	if entry, ok := cache.Repositories[repo.Name]; ok {
+		return fmt.Sprintf("%s/%s", entry.Path, template.Path)
+	}
+	
+	return template.Path
 }
 
 // resolveDependencyGraph resolves dependencies in the graph.
