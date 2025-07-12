@@ -1,6 +1,7 @@
 package components
 
 import (
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
 )

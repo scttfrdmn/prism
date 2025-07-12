@@ -31,8 +31,8 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-// CloudWorkstationAPI defines the interface for all CloudWorkstation operations
-type CloudWorkstationAPI interface {
+// LegacyCloudWorkstationAPI defines the interface for CloudWorkstation operations without context
+type LegacyCloudWorkstationAPI interface {
 	// Instance operations
 	LaunchInstance(req types.LaunchRequest) (*types.LaunchResponse, error)
 	ListInstances() (*types.ListResponse, error)
@@ -65,8 +65,8 @@ type CloudWorkstationAPI interface {
 	Ping() error
 }
 
-// Ensure Client implements CloudWorkstationAPI
-var _ CloudWorkstationAPI = (*Client)(nil)
+// Ensure Client implements LegacyCloudWorkstationAPI
+var _ LegacyCloudWorkstationAPI = (*Client)(nil)
 
 // LaunchInstance launches a new instance
 func (c *Client) LaunchInstance(req types.LaunchRequest) (*types.LaunchResponse, error) {
