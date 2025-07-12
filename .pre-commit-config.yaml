@@ -1,0 +1,74 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: Go Format
+        language: system
+        entry: gofmt -l -d
+        types: [go]
+        fail_fast: true
+
+      - id: go-imports
+        name: Go Imports
+        language: system
+        entry: goimports -l -d
+        types: [go]
+        fail_fast: true
+
+      - id: go-lint
+        name: Go Lint (golangci-lint)
+        language: system
+        entry: golangci-lint run --issues-exit-code=1
+        types: [go]
+        pass_filenames: false
+        fail_fast: true
+
+      - id: go-test
+        name: Go Test
+        language: system
+        entry: go test -race -short ./...
+        types: [go]
+        pass_filenames: false
+        fail_fast: true
+
+      - id: go-coverage
+        name: Go Coverage Check (85%)
+        language: system
+        entry: ./scripts/check-coverage.sh
+        types: [go]
+        pass_filenames: false
+        fail_fast: true
+
+      - id: go-mod-tidy
+        name: Go Mod Tidy
+        language: system
+        entry: go mod tidy
+        types: [go]
+        pass_filenames: false
+        fail_fast: true
+
+      - id: go-sec
+        name: Go Security Check
+        language: system
+        entry: gosec -quiet ./...
+        types: [go]
+        pass_filenames: false
+        fail_fast: true
+
+      - id: govulncheck
+        name: Go Vulnerability Check
+        language: system
+        entry: govulncheck ./...
+        types: [go]
+        pass_filenames: false
+        fail_fast: true
