@@ -5,6 +5,70 @@ All notable changes to CloudWorkstation will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 0.4.0 Development
+
+### Added
+- Redesigned Terminal User Interface (TUI) for improved visual management
+  - Dashboard view with instance status and cost monitoring
+  - Template browser with detailed template information
+  - Interactive instance management interface
+  - System status monitoring and notifications
+  - Visual storage and volume management
+  - Keyboard shortcuts for common operations
+- Integration with new CloudWorkstation API context-aware methods
+- Consistent help system with keyboard shortcut reference
+- Better terminal compatibility across platforms
+- Tab-based navigation between sections
+- Progressive disclosure of advanced features
+
+### Changed
+- Updated API client interface to use context support
+- Improved TUI components with active/inactive state handling
+- Enhanced error handling with clear user feedback
+- Updated Bubbles and BubbleTea dependencies to latest versions
+- More consistent user experience between CLI and TUI
+
+### Fixed
+- Fixed spinner rendering issues during API operations
+- Improved terminal compatibility with various terminal emulators
+- Better error messages for API connection failures
+
+## [0.3.0] - 2025-07-11
+
+### Added
+- Research domain templates for specialized workloads:
+  - neuroimaging: FSL + AFNI + ANTs + MRtrix + Neuroglancer
+  - bioinformatics: BWA + GATK + Samtools + R Bioconductor + Galaxy
+  - scientific-visualization: ParaView + VisIt + VTK + Blender
+  - python-research: Python + Jupyter + data science stack
+  - desktop-research: Ubuntu Desktop + NICE DCV + research GUI applications
+- Idle detection system to optimize resource usage
+  - Smart cost controls with desktop activity monitoring
+  - Research-aware idle detection to avoid interrupting computations
+  - Configurable idle thresholds with different policies
+  - Detailed activity logging for usage patterns
+- Multi-repository support with priority-based resolution
+  - Template repository management with configurable sources
+  - Cascading fallback for template resolution
+  - Automatic template updates with version control
+  - Personal and organizational template repositories
+- Template validation and schema enforcement
+- Distributed architecture with CLI client and daemon
+- REST API backend with full endpoint coverage
+
+### Changed
+- Split monolithic main.go into daemon + CLI client
+- Modular package structure ready for GUI
+- Cross-platform build system with Makefile
+- Complete API interface for all operations
+- Enhanced state management abstraction layer
+
+### Fixed
+- Improved error handling and validation
+- Fixed template loading in non-standard directories
+- Enhanced connection helpers for better user experience
+- Better cost tracking with persistent storage awareness
+
 ## [0.2.0] - 2024-07-11
 
 This release focuses on two major improvements: the AMI Builder System and Terminal User Interface (TUI). These enhancements significantly improve the user experience and performance of CloudWorkstation.
