@@ -15,7 +15,7 @@ import (
 var (
 	// Version is the current version of CloudWorkstation.
 	// Should be in the format MAJOR.MINOR.PATCH.
-	Version = "0.1.0-alpha"
+	Version = "0.2.0"
 
 	// GitCommit is the git commit hash of the build.
 	GitCommit = ""
