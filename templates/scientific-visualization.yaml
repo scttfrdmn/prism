@@ -1,0 +1,766 @@
+name: "Scientific Visualization Environment"
+description: "Comprehensive scientific visualization environment with ParaView, VisIt, VTK, and related tools"
+base: "ubuntu-22.04-server-lts"
+architecture: "x86_64"  # Default architecture, will be overridden during build
+
+build_steps:
+  - name: "System updates"
+    script: |
+      apt-get update -y && apt-get upgrade -y
+      apt-get install -y build-essential cmake curl wget software-properties-common git
+      apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libxt-dev libxi-dev libglu1-mesa-dev
+      apt-get install -y libxmu-dev mesa-common-dev libgl1-mesa-glx xvfb
+    timeout_seconds: 900
+
+  - name: "Install Ubuntu Desktop"
+    script: |
+      # Install Ubuntu Desktop for GUI applications
+      apt-get install -y --no-install-recommends ubuntu-desktop
+      
+      # Install essential desktop tools
+      apt-get install -y firefox gedit nautilus gnome-terminal gnome-system-monitor \
+                         gnome-shell-extension-manager gnome-tweaks
+    timeout_seconds: 1800
+
+  - name: "Install NICE DCV Server"
+    script: |
+      # Install dependencies
+      apt-get install -y ca-certificates libglvnd0 libgl1 libegl1
+
+      # Detect architecture and install appropriate DCV Server
+      ARCH=$(uname -m)
+      if [ "$ARCH" = "x86_64" ]; then
+        # Add NICE DCV repository
+        wget https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
+        gpg --import NICE-GPG-KEY
+        wget https://d1uj6qtbmh3dt5.cloudfront.net/2022.2/Servers/nice-dcv-2022.2-14357-ubuntu2204-x86_64.tgz
+        tar -xvzf nice-dcv-2022.2-14357-ubuntu2204-x86_64.tgz
+        cd nice-dcv-2022.2-14357-ubuntu2204-x86_64
+        apt-get install -y ./nice-dcv-server_2022.2.14357-1_amd64.ubuntu2204.deb
+        apt-get install -y ./nice-dcv-web-viewer_2022.2.14357-1_amd64.ubuntu2204.deb
+        apt-get install -y ./nice-xdcv_2022.2.556-1_amd64.ubuntu2204.deb
+      elif [ "$ARCH" = "aarch64" ]; then
+        # Add NICE DCV repository for ARM64
+        wget https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
+        gpg --import NICE-GPG-KEY
+        wget https://d1uj6qtbmh3dt5.cloudfront.net/2022.2/Servers/nice-dcv-2022.2-14357-ubuntu2204-aarch64.tgz
+        tar -xvzf nice-dcv-2022.2-14357-ubuntu2204-aarch64.tgz
+        cd nice-dcv-2022.2-14357-ubuntu2204-aarch64
+        apt-get install -y ./nice-dcv-server_2022.2.14357-1_arm64.ubuntu2204.deb
+        apt-get install -y ./nice-dcv-web-viewer_2022.2.14357-1_arm64.ubuntu2204.deb
+        apt-get install -y ./nice-xdcv_2022.2.556-1_arm64.ubuntu2204.deb
+      fi
+      
+      # Configure NICE DCV Server
+      mkdir -p /etc/dcv
+      cat > /etc/dcv/dcv.conf << 'EOF'
+      [license]
+      [connectivity]
+      web-url-path="/"
+      web-port=8443
+      
+      [session-management]
+      create-session = true
+      disconnect-timeout-seconds=3600
+      
+      [display]
+      target-fps=60
+      enable-yuv444=true
+      
+      [input]
+      enable-relative-mouse=true
+      enable-ime=true
+      
+      [security]
+      authentication="system"
+      auth-token-verifier=""
+      
+      [clipboard]
+      primary-selection-copy=true
+      primary-selection-paste=true
+      
+      [webcam]
+      enable=true
+      max-resolution=FHD
+      
+      [audio]
+      enable-input=true
+      EOF
+
+      # Create default session
+      cat > /etc/profile.d/dcv-session.sh << 'EOF'
+      #!/bin/bash
+      # This script creates a DCV session for the user if one doesn't exist
+
+      # Only run for the ubuntu user
+      if [ "$(id -un)" = "ubuntu" ]; then
+        # Check if a session exists
+        SESSION_EXISTS=$(dcv list-sessions | grep ubuntu-desktop)
+        if [ -z "$SESSION_EXISTS" ]; then
+          # Create new session
+          dcv create-session ubuntu-desktop --owner ubuntu
+          echo "DCV session 'ubuntu-desktop' created"
+        fi
+      fi
+      EOF
+      chmod +x /etc/profile.d/dcv-session.sh
+      
+      # Configure automatic session for ubuntu user
+      mkdir -p /etc/dcv/session-init.d
+      cat > /etc/dcv/session-init.d/init-gnome.sh << 'EOF'
+      #!/bin/bash
+      export DISPLAY=:0
+      export XAUTHORITY=/home/ubuntu/.Xauthority
+      gnome-session &
+      EOF
+      chmod +x /etc/dcv/session-init.d/init-gnome.sh
+      
+      # Start DCV server
+      systemctl enable dcvserver
+      systemctl start dcvserver
+    timeout_seconds: 1800
+
+  - name: "Install CUDA and GPU drivers"
+    script: |
+      # Install NVIDIA driver (for NVIDIA GPUs only)
+      ARCH=$(uname -m)
+      if [ "$ARCH" = "x86_64" ]; then
+        # Install NVIDIA driver on x86_64 architecture
+        apt-get install -y nvidia-driver-525 nvidia-utils-525
+        
+        # Add CUDA repository
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
+        dpkg -i cuda-keyring_1.0-1_all.deb
+        apt-get update
+        
+        # Install CUDA toolkit (core components only)
+        apt-get install -y cuda-toolkit-12-0
+        
+        # Add CUDA to PATH
+        echo 'export PATH=/usr/local/cuda/bin:$PATH' > /etc/profile.d/cuda.sh
+        echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH' >> /etc/profile.d/cuda.sh
+        chmod +x /etc/profile.d/cuda.sh
+      fi
+    timeout_seconds: 3600
+
+  - name: "Install ParaView"
+    script: |
+      # Install ParaView dependencies
+      apt-get install -y \
+        libgl1-mesa-dev libxt-dev qt5-default \
+        libqt5x11extras5-dev qttools5-dev libqt5svg5-dev qtxmlpatterns5-dev-tools \
+        libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libqt5help5 \
+        python3-dev python3-numpy python3-pip
+
+      # Download and install ParaView
+      cd /tmp
+      wget -q https://www.paraview.org/paraview-downloads/download.php?submit=Download&version=5.11&type=binary&os=Linux&downloadFile=ParaView-5.11.0-MPI-Linux-Python3.9-x86_64.tar.gz -O ParaView-5.11.0.tar.gz
+      
+      # Extract to opt directory
+      mkdir -p /opt/paraview
+      tar -xzf ParaView-5.11.0.tar.gz -C /opt/paraview --strip-components=1
+      rm ParaView-5.11.0.tar.gz
+      
+      # Create desktop shortcut and symlinks
+      ln -s /opt/paraview/bin/paraview /usr/local/bin/paraview
+      
+      # Create desktop entry
+      cat > /usr/share/applications/paraview.desktop << 'EOF'
+      [Desktop Entry]
+      Name=ParaView
+      Comment=Data Analysis and Visualization Application
+      Exec=/opt/paraview/bin/paraview
+      Icon=/opt/paraview/share/icons/hicolor/256x256/apps/paraview.png
+      Terminal=false
+      Type=Application
+      Categories=Graphics;Science;
+      StartupNotify=true
+      EOF
+    timeout_seconds: 1800
+
+  - name: "Install VisIt"
+    script: |
+      # Install VisIt dependencies
+      apt-get install -y \
+        libgl1-mesa-glx libglu1-mesa libsm6 libice6 libxrender1 \
+        libfontconfig1 libfreetype6 libxext6 libxt6 libx11-6 \
+        libxcursor1 libxfixes3 libxi6 libxrandr2
+        
+      # Download VisIt
+      cd /tmp
+      wget -q https://github.com/visit-dav/visit/releases/download/v3.2.2/visit3.2.2.linux-x86_64-ubuntu20.tar.gz
+      
+      # Extract to opt directory
+      mkdir -p /opt/visit
+      tar -xzf visit3.2.2.linux-x86_64-ubuntu20.tar.gz -C /opt/visit --strip-components=1
+      rm visit3.2.2.linux-x86_64-ubuntu20.tar.gz
+      
+      # Create symlinks
+      ln -s /opt/visit/bin/visit /usr/local/bin/visit
+      
+      # Create desktop entry
+      cat > /usr/share/applications/visit.desktop << 'EOF'
+      [Desktop Entry]
+      Name=VisIt
+      Comment=Visualization and Data Analysis for Mesh-based Data
+      Exec=/opt/visit/bin/visit
+      Icon=/opt/visit/resources/images/visit_logo.png
+      Terminal=false
+      Type=Application
+      Categories=Graphics;Science;
+      StartupNotify=true
+      EOF
+    timeout_seconds: 1800
+
+  - name: "Install VTK and Python packages"
+    script: |
+      # Install VTK dependencies
+      apt-get install -y \
+        libvtk9-dev python3-vtk9 vtk9-examples \
+        python3-matplotlib python3-numpy python3-scipy python3-pip \
+        jupyter jupyterlab
+        
+      # Install Python visualization packages
+      pip3 install --upgrade pip
+      pip3 install pyvista mayavi pyqt5 plotly dash seaborn scikit-image
+      pip3 install ipyvtklink itkwidgets jupyterlab-dash vtk
+      pip3 install opencv-python h5py networkx gdal
+    timeout_seconds: 1800
+
+  - name: "Install scientific data processing tools"
+    script: |
+      # Install data processing tools
+      apt-get install -y \
+        python3-pandas python3-scikit-learn python3-nibabel python3-pydicom \
+        hdf5-tools libhdf5-dev h5utils \
+        imagemagick ffmpeg \
+        gnuplot octave
+      
+      # Install additional Python packages
+      pip3 install nibabel dipy nilearn
+      pip3 install itk simpleitk
+      pip3 install trimesh meshio
+      pip3 install SimpleITK-SimpleElastix
+      pip3 install fury
+    timeout_seconds: 1800
+
+  - name: "Install Blender"
+    script: |
+      # Install Blender
+      add-apt-repository -y ppa:blender/ppa
+      apt-get update
+      apt-get install -y blender
+    timeout_seconds: 1200
+
+  - name: "Install OpenFOAM (CFD)"
+    script: |
+      # Add OpenFOAM repository
+      curl -s https://dl.openfoam.org/gpg.key | apt-key add -
+      add-apt-repository http://dl.openfoam.org/ubuntu
+      apt-get update
+      
+      # Install OpenFOAM
+      apt-get install -y openfoam10
+      
+      # Configure OpenFOAM environment
+      echo '. /opt/openfoam10/etc/bashrc' > /etc/profile.d/openfoam.sh
+      chmod +x /etc/profile.d/openfoam.sh
+    timeout_seconds: 2400
+
+  - name: "Create example visualization scripts"
+    script: |
+      # Create examples directory
+      mkdir -p /home/ubuntu/examples
+      
+      # Create PyVista example
+      cat > /home/ubuntu/examples/pyvista_example.py << 'EOF'
+      """
+      PyVista Basic Example - Visualization of 3D data
+      """
+      import pyvista as pv
+      import numpy as np
+      
+      # Create a PyVista mesh object - a sphere with some noise
+      sphere = pv.Sphere(radius=1, phi_resolution=40, theta_resolution=40)
+      
+      # Add some noise to the sphere
+      noise = np.random.random(sphere.n_points) * 0.1
+      sphere.points += sphere.points * noise[:, np.newaxis]
+      
+      # Calculate surface curvature
+      curv = sphere.curvature()
+      
+      # Create a plotter
+      plotter = pv.Plotter()
+      
+      # Add the mesh to the plotter with a color map based on curvature
+      plotter.add_mesh(sphere, scalars=curv, cmap='plasma', smooth_shading=True)
+      
+      # Add a title
+      plotter.add_text('Sphere with Noise - Colored by Curvature', font_size=24)
+      
+      # Show the plot
+      plotter.show()
+      EOF
+      
+      # Create Matplotlib 3D example
+      cat > /home/ubuntu/examples/matplotlib_3d.py << 'EOF'
+      """
+      Matplotlib 3D visualization example
+      """
+      import numpy as np
+      import matplotlib.pyplot as plt
+      from matplotlib import cm
+      from mpl_toolkits.mplot3d import Axes3D
+      
+      # Create a figure and 3D axis
+      fig = plt.figure(figsize=(10, 8))
+      ax = fig.add_subplot(111, projection='3d')
+      
+      # Create data for 3D plot - a parametric spiral
+      theta = np.linspace(-8 * np.pi, 8 * np.pi, 1000)
+      z = np.linspace(-2, 2, 1000)
+      r = z**2 + 1
+      x = r * np.sin(theta)
+      y = r * np.cos(theta)
+      
+      # Create the 3D plot with a color map
+      ax.scatter(x, y, z, c=z, cmap='viridis', marker='o', s=10, alpha=0.8)
+      
+      # Add labels and title
+      ax.set_xlabel('X axis')
+      ax.set_ylabel('Y axis')
+      ax.set_zlabel('Z axis')
+      ax.set_title('3D Parametric Spiral')
+      
+      # Set a better viewing angle
+      ax.view_init(elev=30, azim=45)
+      
+      plt.tight_layout()
+      plt.show()
+      EOF
+      
+      # Create ParaView example dataset
+      cat > /home/ubuntu/examples/paraview_example.py << 'EOF'
+      """
+      Generate an example dataset for ParaView
+      """
+      import numpy as np
+      import vtk
+      from vtk.util.numpy_support import numpy_to_vtk
+      
+      # Create a structured grid
+      n = 50
+      x = np.linspace(-5, 5, n)
+      y = np.linspace(-5, 5, n)
+      z = np.linspace(-5, 5, n)
+      X, Y, Z = np.meshgrid(x, y, z)
+      
+      # Create a function to visualize
+      r = np.sqrt(X**2 + Y**2 + Z**2)
+      values = np.sin(r) / r
+      values[r == 0] = 1.0  # Handle division by zero
+      
+      # Create VTK structured grid
+      grid = vtk.vtkStructuredGrid()
+      grid.SetDimensions(n, n, n)
+      
+      # Create points
+      points = vtk.vtkPoints()
+      points.SetNumberOfPoints(n*n*n)
+      for k in range(n):
+          for j in range(n):
+              for i in range(n):
+                  idx = k*n*n + j*n + i
+                  points.SetPoint(idx, X[i, j, k], Y[i, j, k], Z[i, j, k])
+      grid.SetPoints(points)
+      
+      # Add scalar values
+      vtk_values = numpy_to_vtk(values.flatten())
+      vtk_values.SetName("sinc_field")
+      grid.GetPointData().SetScalars(vtk_values)
+      
+      # Write the dataset to a VTK file
+      writer = vtk.vtkXMLStructuredGridWriter()
+      writer.SetFileName("/home/ubuntu/examples/sinc_field.vts")
+      writer.SetInputData(grid)
+      writer.Write()
+      
+      print("Created example dataset: /home/ubuntu/examples/sinc_field.vts")
+      print("You can open this file in ParaView")
+      EOF
+      
+      # Create visualization cheat sheet
+      cat > /home/ubuntu/examples/visualization_cheatsheet.md << 'EOF'
+      # Scientific Visualization Cheat Sheet
+      
+      ## ParaView Quick Commands
+      
+      ```bash
+      # Start ParaView
+      paraview
+      
+      # ParaView in server mode
+      pvserver
+      ```
+      
+      ## VisIt Quick Commands
+      
+      ```bash
+      # Start VisIt
+      visit
+      
+      # VisIt in server mode
+      visit -server
+      ```
+      
+      ## VTK with Python
+      
+      ```python
+      # Basic VTK object with PyVista
+      import pyvista as pv
+      mesh = pv.Sphere()
+      mesh.plot()
+      
+      # With matplotlib and VTK
+      from mayavi import mlab
+      mlab.figure()
+      mlab.points3d(x, y, z, color=(1, 0, 0))
+      mlab.show()
+      ```
+      
+      ## Common File Formats
+      
+      - `.vti`, `.vtu`, `.vtp` - VTK files (ImageData, UnstructuredGrid, PolyData)
+      - `.vtk` - Legacy VTK format
+      - `.stl` - Stereolithography (3D triangle mesh)
+      - `.obj` - Wavefront OBJ (3D geometry)
+      - `.ply` - Stanford Polygon File Format (3D geometry)
+      - `.nii`, `.nii.gz` - NIfTI format (neuroimaging data)
+      - `.hdf5`, `.h5` - Hierarchical Data Format
+      - `.xdmf` - eXtensible Data Model and Format
+      - `.mhd`, `.raw` - MetaImage format
+      
+      ## Useful Python Visualization Libraries
+      
+      - **PyVista**: Streamlined VTK interface
+      - **Mayavi**: 3D scientific visualization
+      - **Matplotlib**: General-purpose plotting
+      - **Plotly**: Interactive visualizations
+      - **Dash**: Web-based dashboards
+      - **FURY**: Free Unified Rendering (focus on neuroimaging)
+      - **ipyvolume**: 3D plotting for Jupyter
+      - **napari**: Multi-dimensional image viewing
+      - **nilearn**: Neuroimaging visualization
+      
+      ## Common Operations
+      
+      1. **Loading Data**:
+         - Use appropriate reader for file format
+         - Check coordinate system and units
+      
+      2. **Filtering**:
+         - Threshold: Extract regions based on data values
+         - Clip: Cut geometry with a plane/box
+         - Contour: Extract isosurfaces
+      
+      3. **Visualization Techniques**:
+         - Surface rendering with colormaps
+         - Volume rendering with transfer functions
+         - Streamlines/pathlines for vector fields
+         - Glyphs for vector visualization
+      
+      4. **Camera Control**:
+         - Orbit, pan, zoom
+         - Set specific viewing angles
+         - Save/restore camera positions
+      
+      5. **Saving Results**:
+         - Screenshots (PNG, JPG)
+         - Animations (MP4, AVI)
+         - Interactive web visualizations (HTML, JS)
+         - State files for reproducibility
+      EOF
+      
+      # Set correct ownership
+      chown -R ubuntu:ubuntu /home/ubuntu/examples
+      chmod +x /home/ubuntu/examples/*.py
+    timeout_seconds: 600
+
+  - name: "Configure desktop environment"
+    script: |
+      # Set up desktop environment preferences
+      mkdir -p /etc/skel/.config/dconf
+      
+      # Create desktop shortcuts
+      mkdir -p /etc/skel/Desktop
+      
+      cat > /etc/skel/Desktop/paraview.desktop << 'EOF'
+      [Desktop Entry]
+      Name=ParaView
+      Comment=Data Analysis and Visualization Application
+      Exec=/opt/paraview/bin/paraview
+      Icon=/opt/paraview/share/icons/hicolor/256x256/apps/paraview.png
+      Terminal=false
+      Type=Application
+      Categories=Graphics;Science;
+      StartupNotify=true
+      EOF
+      
+      cat > /etc/skel/Desktop/visit.desktop << 'EOF'
+      [Desktop Entry]
+      Name=VisIt
+      Comment=Visualization and Data Analysis for Mesh-based Data
+      Exec=/opt/visit/bin/visit
+      Icon=/opt/visit/resources/images/visit_logo.png
+      Terminal=false
+      Type=Application
+      Categories=Graphics;Science;
+      StartupNotify=true
+      EOF
+      
+      cat > /etc/skel/Desktop/blender.desktop << 'EOF'
+      [Desktop Entry]
+      Name=Blender
+      Comment=3D Modeling and Animation
+      Exec=blender
+      Icon=blender
+      Terminal=false
+      Type=Application
+      Categories=Graphics;3DGraphics;
+      StartupNotify=true
+      EOF
+      
+      cat > /etc/skel/Desktop/terminal.desktop << 'EOF'
+      [Desktop Entry]
+      Name=Terminal
+      Comment=Command line interface
+      Exec=gnome-terminal
+      Icon=utilities-terminal
+      Terminal=false
+      Type=Application
+      Categories=System;TerminalEmulator;
+      StartupNotify=true
+      EOF
+      
+      cat > /etc/skel/Desktop/jupyter.desktop << 'EOF'
+      [Desktop Entry]
+      Name=Jupyter Lab
+      Comment=Interactive Python Environment
+      Exec=jupyter lab
+      Icon=jupyter
+      Terminal=true
+      Type=Application
+      Categories=Development;Science;
+      StartupNotify=true
+      EOF
+
+      # Make desktop shortcuts executable
+      chmod +x /etc/skel/Desktop/*.desktop
+      
+      # Set up welcome document
+      mkdir -p /etc/skel/Documents
+      cat > /etc/skel/Documents/welcome.md << 'EOF'
+      # Welcome to CloudWorkstation Scientific Visualization Environment
+
+      This environment includes several applications for scientific visualization:
+
+      ## Core Visualization Tools
+      - **ParaView** - Full-featured visualization application
+      - **VisIt** - Tool for visualizing scientific data
+      - **VTK** - Visualization Toolkit with Python bindings
+      - **Blender** - 3D modeling, animation, and rendering
+
+      ## Python Libraries
+      - PyVista - Streamlined VTK interface
+      - Matplotlib - General-purpose plotting
+      - Plotly - Interactive visualizations
+      - Mayavi - 3D scientific data visualization
+      - FURY - Free Unified Rendering for visualization
+      - And many more...
+
+      ## Additional Tools
+      - Jupyter Lab for interactive computing
+      - OpenFOAM for computational fluid dynamics
+      - Scientific computing libraries (NumPy, SciPy, etc.)
+
+      ## Example Code
+      Check the `~/examples` directory for example visualization scripts.
+
+      ## Remote Access
+      This machine is accessible via:
+      - NICE DCV - High-performance remote desktop (port 8443)
+      - SSH - Secure shell access (port 22)
+
+      Enjoy your CloudWorkstation!
+      EOF
+
+      # Copy settings to ubuntu user
+      mkdir -p /home/ubuntu/Desktop /home/ubuntu/Documents
+      cp -r /etc/skel/Desktop/* /home/ubuntu/Desktop/
+      cp -r /etc/skel/Documents/* /home/ubuntu/Documents/
+      chown -R ubuntu:ubuntu /home/ubuntu/Desktop /home/ubuntu/Documents
+    timeout_seconds: 600
+
+  - name: "Configure idle detection"
+    script: |
+      # Create idle detection script
+      cat > /usr/local/bin/detect-idle.sh << 'EOF'
+      #!/bin/bash
+      
+      # Report user activity to CloudWorkstation idle detection service
+      # This script gets user activity from the X server and reports it
+      
+      LAST_ACTIVITY=$(DISPLAY=:0 xprintidle 2>/dev/null || echo 0)
+      IDLE_THRESHOLD=$((15 * 60 * 1000)) # 15 minutes in milliseconds
+      
+      if [ "$LAST_ACTIVITY" -lt "$IDLE_THRESHOLD" ]; then
+        # User is active, touch activity file
+        touch /var/run/user-active
+        echo "User active: $LAST_ACTIVITY ms since last activity"
+        exit 0
+      else
+        # User is idle
+        echo "User idle: $LAST_ACTIVITY ms since last activity"
+        exit 1
+      fi
+      EOF
+      chmod +x /usr/local/bin/detect-idle.sh
+      
+      # Install xprintidle
+      apt-get install -y xprintidle
+      
+      # Create systemd service
+      cat > /etc/systemd/system/idle-detection.service << 'EOF'
+      [Unit]
+      Description=Desktop activity detection for CloudWorkstation
+      After=dcvserver.service
+
+      [Service]
+      ExecStart=/bin/bash -c "while true; do /usr/local/bin/detect-idle.sh; sleep 60; done"
+      Restart=always
+      RestartSec=60
+      User=ubuntu
+
+      [Install]
+      WantedBy=multi-user.target
+      EOF
+      
+      # Enable and start idle detection
+      systemctl daemon-reload
+      systemctl enable idle-detection
+      systemctl start idle-detection
+    timeout_seconds: 300
+
+  - name: "Set up user environment"
+    script: |
+      # Create ubuntu user if it doesn't exist
+      id -u ubuntu &>/dev/null || useradd -m -s /bin/bash ubuntu
+      echo "ubuntu:password123" | chpasswd
+      
+      # Add user to necessary groups
+      usermod -aG sudo ubuntu
+      
+      # Set default resolution for NICE DCV
+      mkdir -p /home/ubuntu/.dcv
+      cat > /home/ubuntu/.dcv/preferences.conf << 'EOF'
+      [display]
+      width=1920
+      height=1080
+      EOF
+      
+      # Create scivis environment setup script
+      cat > /home/ubuntu/.scivis_profile << 'EOF'
+      # Scientific Visualization Environment Setup
+      
+      # Add ParaView and VisIt to PATH
+      export PATH="/opt/paraview/bin:$PATH"
+      export PATH="/opt/visit/bin:$PATH"
+      
+      # Add CUDA to PATH if available
+      if [ -d "/usr/local/cuda/bin" ]; then
+        export PATH="/usr/local/cuda/bin:$PATH"
+        export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+      fi
+      
+      # Add OpenFOAM to environment if available
+      if [ -f "/opt/openfoam10/etc/bashrc" ]; then
+        source /opt/openfoam10/etc/bashrc
+      fi
+      
+      # Useful aliases
+      alias paraview='paraview &'
+      alias visit='visit &'
+      alias blender='blender &'
+      alias jupyter='jupyter lab &'
+      
+      # Set default display
+      export DISPLAY=:0
+      EOF
+      
+      # Add to .bashrc for ubuntu user
+      echo "source ~/.scivis_profile" >> /home/ubuntu/.bashrc
+      
+      # Set ownership
+      chown -R ubuntu:ubuntu /home/ubuntu
+    timeout_seconds: 300
+
+  - name: "Cleanup"
+    script: |
+      apt-get autoremove -y && apt-get autoclean
+      rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+      
+      # Create setup log
+      echo "Setup complete" > /var/log/cws-setup.log
+    timeout_seconds: 300
+
+validation:
+  - name: "Ubuntu Desktop installed"
+    command: "dpkg -l | grep ubuntu-desktop"
+    success: true
+  
+  - name: "NICE DCV installed"
+    command: "systemctl status dcvserver"
+    success: true
+  
+  - name: "ParaView installed"
+    command: "ls -la /opt/paraview/bin/paraview"
+    success: true
+  
+  - name: "VisIt installed"
+    command: "ls -la /opt/visit/bin/visit"
+    success: true
+  
+  - name: "VTK Python installed"
+    command: "python3 -c 'import vtk; print(\"VTK version:\", vtk.vtkVersion.GetVTKVersion())'"
+    success: true
+  
+  - name: "PyVista installed"
+    command: "python3 -c 'import pyvista; print(\"PyVista version:\", pyvista.__version__)'"
+    success: true
+  
+  - name: "Blender installed"
+    command: "blender --version"
+    success: true
+  
+  - name: "Idle detection running"
+    command: "systemctl is-active idle-detection"
+    equals: "active"
+
+tags:
+  Name: "scivis"
+  Type: "desktop"
+  Software: "ParaView,VisIt,VTK,Blender,NICE DCV"
+  Category: "scientific-visualization"
+
+instance_types:
+  x86_64: "g4dn.xlarge"  # 4 vCPU, 16GB RAM, NVIDIA T4 GPU
+  arm64: "g5g.xlarge"    # 4 vCPU, 8GB RAM, NVIDIA T4g GPU
+
+ports:
+  - 22    # SSH
+  - 8443  # NICE DCV
+
+estimated_cost_per_hour:
+  x86_64: 0.526
+  arm64: 0.450
