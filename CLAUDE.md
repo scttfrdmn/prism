@@ -73,6 +73,7 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - **Architecture Coverage**: Ensure ARM/x86 parity where possible
 - **Cost Validation**: Verify pricing estimates are accurate
 - **User Journey Testing**: End-to-end workflows from researcher perspective
+- **Test Coverage Requirements**: 85%+ overall code coverage and 80%+ for individual files
 
 ## Current Phase: Distributed Architecture (Phase 1 Complete → Phase 2)
 

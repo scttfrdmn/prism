@@ -1,351 +1,353 @@
 package repository
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+	
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// TestNewManager tests creation of a new repository manager.
+// TestNewManager tests creating a new repository manager
 func TestNewManager(t *testing.T) {
-	// Create temporary directory for config and cache
-	tempDir, err := ioutil.TempDir("", "repo-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
-
-	// Set up test environment
-	setupTestEnvironment(t, tempDir)
-
-	// Create manager with custom paths
-	manager, err := createTestManager(tempDir)
-	if err != nil {
-		t.Fatalf("Failed to create manager: %v", err)
-	}
-
-	// Check that default repository exists
-	repos := manager.GetRepositories()
-	if len(repos) != 1 {
-		t.Fatalf("Expected 1 repository, got %d", len(repos))
-	}
-
-	if repos[0].Name != "default" {
-		t.Errorf("Expected repository name 'default', got %q", repos[0].Name)
-	}
-
-	if repos[0].Type != "github" {
-		t.Errorf("Expected repository type 'github', got %q", repos[0].Type)
-	}
-
-	if repos[0].URL != DefaultRepositoryURL {
-		t.Errorf("Expected repository URL %q, got %q", DefaultRepositoryURL, repos[0].URL)
-	}
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	assert.NotNil(t, manager)
+	
+	// Should have no repositories initially
+	repos, err := manager.ListRepositories()
+	require.NoError(t, err)
+	assert.Empty(t, repos)
 }
 
-// TestAddRepository tests adding a new repository.
+// TestAddRepository tests adding a repository
 func TestAddRepository(t *testing.T) {
-	// Create temporary directory for config and cache
-	tempDir, err := ioutil.TempDir("", "repo-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
-
-	// Set up test environment
-	setupTestEnvironment(t, tempDir)
-
-	// Create manager with custom paths
-	manager, err := createTestManager(tempDir)
-	if err != nil {
-		t.Fatalf("Failed to create manager: %v", err)
-	}
-
-	// Add a new repository
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	
+	// Add a repository
 	repo := Repository{
-		Name:     "test",
+		Name:     "test-repo",
+		URL:      "https://github.com/test/repo",
 		Type:     "github",
-		URL:      "github.com/test/repo",
-		Branch:   "main",
-		Priority: 10,
+		Priority: 1,
 	}
-
-	if err := manager.AddRepository(repo); err != nil {
-		t.Fatalf("Failed to add repository: %v", err)
-	}
-
+	
+	err = manager.AddRepository(repo)
+	require.NoError(t, err)
+	
 	// Check that repository was added
-	repos := manager.GetRepositories()
-	if len(repos) != 2 {
-		t.Fatalf("Expected 2 repositories, got %d", len(repos))
-	}
-
-	// Check that repositories are sorted by priority
-	if repos[0].Name != "test" {
-		t.Errorf("Expected first repository to be 'test', got %q", repos[0].Name)
-	}
-
-	if repos[0].Priority != 10 {
-		t.Errorf("Expected repository priority 10, got %d", repos[0].Priority)
-	}
-
-	// Try to add a repository with the same name
+	repos, err := manager.ListRepositories()
+	require.NoError(t, err)
+	assert.Len(t, repos, 1)
+	assert.Equal(t, "test-repo", repos[0].Name)
+	assert.Equal(t, "https://github.com/test/repo", repos[0].URL)
+	assert.Equal(t, "github", repos[0].Type)
+	assert.Equal(t, 1, repos[0].Priority)
+	
+	// Add another repository
 	repo2 := Repository{
-		Name:     "test",
+		Name:     "test-repo2",
+		URL:      "https://github.com/test/repo2",
 		Type:     "github",
-		URL:      "github.com/test/repo2",
-		Branch:   "main",
-		Priority: 20,
+		Priority: 2,
 	}
-
-	if err := manager.AddRepository(repo2); err == nil {
-		t.Fatal("Expected error when adding repository with same name, got nil")
-	}
+	
+	err = manager.AddRepository(repo2)
+	require.NoError(t, err)
+	
+	// Check that both repositories are present
+	repos, err = manager.ListRepositories()
+	require.NoError(t, err)
+	assert.Len(t, repos, 2)
+	
+	// Repositories should be sorted by priority (highest first)
+	assert.Equal(t, "test-repo2", repos[0].Name)
+	assert.Equal(t, "test-repo", repos[1].Name)
 }
 
-// TestRemoveRepository tests removing a repository.
+// TestRemoveRepository tests removing a repository
 func TestRemoveRepository(t *testing.T) {
-	// Create temporary directory for config and cache
-	tempDir, err := ioutil.TempDir("", "repo-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
-
-	// Set up test environment
-	setupTestEnvironment(t, tempDir)
-
-	// Create manager with custom paths
-	manager, err := createTestManager(tempDir)
-	if err != nil {
-		t.Fatalf("Failed to create manager: %v", err)
-	}
-
-	// Add a new repository
-	repo := Repository{
-		Name:     "test",
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	
+	// Add repositories
+	repo1 := Repository{
+		Name:     "test-repo1",
+		URL:      "https://github.com/test/repo1",
 		Type:     "github",
-		URL:      "github.com/test/repo",
-		Branch:   "main",
-		Priority: 10,
+		Priority: 1,
 	}
-
-	if err := manager.AddRepository(repo); err != nil {
-		t.Fatalf("Failed to add repository: %v", err)
+	
+	repo2 := Repository{
+		Name:     "test-repo2",
+		URL:      "https://github.com/test/repo2",
+		Type:     "github",
+		Priority: 2,
 	}
-
-	// Remove the repository
-	if err := manager.RemoveRepository("test"); err != nil {
-		t.Fatalf("Failed to remove repository: %v", err)
-	}
-
-	// Check that repository was removed
-	repos := manager.GetRepositories()
-	if len(repos) != 1 {
-		t.Fatalf("Expected 1 repository, got %d", len(repos))
-	}
-
-	// Try to remove the default repository
-	if err := manager.RemoveRepository("default"); err == nil {
-		t.Fatal("Expected error when removing default repository, got nil")
-	}
-
-	// Try to remove a non-existent repository
-	if err := manager.RemoveRepository("non-existent"); err == nil {
-		t.Fatal("Expected error when removing non-existent repository, got nil")
-	}
+	
+	err = manager.AddRepository(repo1)
+	require.NoError(t, err)
+	
+	err = manager.AddRepository(repo2)
+	require.NoError(t, err)
+	
+	// Remove first repository
+	err = manager.RemoveRepository("test-repo1")
+	require.NoError(t, err)
+	
+	// Check that only second repository remains
+	repos, err := manager.ListRepositories()
+	require.NoError(t, err)
+	assert.Len(t, repos, 1)
+	assert.Equal(t, "test-repo2", repos[0].Name)
+	
+	// Try removing non-existent repository
+	err = manager.RemoveRepository("non-existent")
+	assert.Error(t, err)
 }
 
-// TestUpdateRepository tests updating a repository.
+// TestGetRepository tests getting a specific repository
+func TestGetRepository(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	
+	// Add repositories
+	repo1 := Repository{
+		Name:     "test-repo1",
+		URL:      "https://github.com/test/repo1",
+		Type:     "github",
+		Priority: 1,
+	}
+	
+	repo2 := Repository{
+		Name:     "test-repo2",
+		URL:      "https://github.com/test/repo2",
+		Type:     "github",
+		Priority: 2,
+	}
+	
+	err = manager.AddRepository(repo1)
+	require.NoError(t, err)
+	
+	err = manager.AddRepository(repo2)
+	require.NoError(t, err)
+	
+	// Get specific repository
+	repo, err := manager.GetRepository("test-repo1")
+	require.NoError(t, err)
+	assert.Equal(t, "test-repo1", repo.Name)
+	assert.Equal(t, "https://github.com/test/repo1", repo.URL)
+	
+	// Try getting non-existent repository
+	_, err = manager.GetRepository("non-existent")
+	assert.Error(t, err)
+}
+
+// TestUpdateRepository tests updating a repository
 func TestUpdateRepository(t *testing.T) {
-	// Create temporary directory for config and cache
-	tempDir, err := ioutil.TempDir("", "repo-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
-
-	// Set up test environment
-	setupTestEnvironment(t, tempDir)
-
-	// Create manager with custom paths
-	manager, err := createTestManager(tempDir)
-	if err != nil {
-		t.Fatalf("Failed to create manager: %v", err)
-	}
-
-	// Add a new repository
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	
+	// Add repository
 	repo := Repository{
-		Name:     "test",
+		Name:     "test-repo",
+		URL:      "https://github.com/test/repo",
 		Type:     "github",
-		URL:      "github.com/test/repo",
-		Branch:   "main",
-		Priority: 10,
+		Priority: 1,
 	}
-
-	if err := manager.AddRepository(repo); err != nil {
-		t.Fatalf("Failed to add repository: %v", err)
-	}
-
-	// Update the repository
-	repo.URL = "github.com/test/repo2"
-	repo.Priority = 20
-
-	if err := manager.UpdateRepository(repo); err != nil {
-		t.Fatalf("Failed to update repository: %v", err)
-	}
-
-	// Check that repository was updated
-	updatedRepo, err := manager.GetRepository("test")
-	if err != nil {
-		t.Fatalf("Failed to get repository: %v", err)
-	}
-
-	if updatedRepo.URL != "github.com/test/repo2" {
-		t.Errorf("Expected repository URL 'github.com/test/repo2', got %q", updatedRepo.URL)
-	}
-
-	if updatedRepo.Priority != 20 {
-		t.Errorf("Expected repository priority 20, got %d", updatedRepo.Priority)
-	}
-
-	// Try to update a non-existent repository
-	nonExistentRepo := Repository{
-		Name:     "non-existent",
-		Type:     "github",
-		URL:      "github.com/test/repo",
-		Branch:   "main",
-		Priority: 10,
-	}
-
-	if err := manager.UpdateRepository(nonExistentRepo); err == nil {
-		t.Fatal("Expected error when updating non-existent repository, got nil")
-	}
+	
+	err = manager.AddRepository(repo)
+	require.NoError(t, err)
+	
+	// Create local repository directory
+	repoDir := filepath.Join(tempDir, "repositories", "test-repo")
+	err = os.MkdirAll(repoDir, 0755)
+	require.NoError(t, err)
+	
+	// Create a dummy file to simulate repository content
+	dummyFile := filepath.Join(repoDir, "dummy.txt")
+	err = os.WriteFile(dummyFile, []byte("dummy content"), 0644)
+	require.NoError(t, err)
+	
+	// Mock repo update - in a real test this would actually clone/pull from git
+	err = manager.UpdateRepository("test-repo")
+	require.NoError(t, err)
+	
+	// Try updating non-existent repository
+	err = manager.UpdateRepository("non-existent")
+	assert.Error(t, err)
 }
 
-// TestParseTemplateReference tests parsing template references.
-func TestParseTemplateReference(t *testing.T) {
-	// Create temporary directory for config and cache
-	tempDir, err := ioutil.TempDir("", "repo-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+// TestTemplateResolution tests template resolution
+func TestTemplateResolution(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
-
-	// Set up test environment
-	setupTestEnvironment(t, tempDir)
-
-	// Create manager with custom paths
-	manager, err := createTestManager(tempDir)
-	if err != nil {
-		t.Fatalf("Failed to create manager: %v", err)
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	
+	// Add repositories
+	repo1 := Repository{
+		Name:     "test-repo1",
+		URL:      "https://github.com/test/repo1",
+		Type:     "github",
+		Priority: 1,
 	}
-
-	// Test cases
-	testCases := []struct {
-		input         string
-		expectedRepo  string
-		expectedTemp  string
-		expectedVer   string
-		expectedError bool
-	}{
-		{
-			input:        "template",
-			expectedTemp: "template",
-		},
-		{
-			input:        "repo:template",
-			expectedRepo: "repo",
-			expectedTemp: "template",
-		},
-		{
-			input:        "template@1.0.0",
-			expectedTemp: "template",
-			expectedVer:  "1.0.0",
-		},
-		{
-			input:        "repo:template@1.0.0",
-			expectedRepo: "repo",
-			expectedTemp: "template",
-			expectedVer:  "1.0.0",
-		},
-		{
-			input:         "",
-			expectedError: true,
-		},
-		{
-			input:         "repo:",
-			expectedError: true,
-		},
+	
+	repo2 := Repository{
+		Name:     "test-repo2",
+		URL:      "https://github.com/test/repo2",
+		Type:     "github",
+		Priority: 2,
 	}
-
-	for _, tc := range testCases {
-		t.Run(tc.input, func(t *testing.T) {
-			ref, err := manager.ParseTemplateReference(tc.input)
-
-			// Check error
-			if tc.expectedError && err == nil {
-				t.Fatal("Expected error, got nil")
-			} else if !tc.expectedError && err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-
-			// If error expected, no need to check other fields
-			if tc.expectedError {
-				return
-			}
-
-			// Check fields
-			if ref.Repository != tc.expectedRepo {
-				t.Errorf("Expected repository %q, got %q", tc.expectedRepo, ref.Repository)
-			}
-
-			if ref.Template != tc.expectedTemp {
-				t.Errorf("Expected template %q, got %q", tc.expectedTemp, ref.Template)
-			}
-
-			if ref.Version != tc.expectedVer {
-				t.Errorf("Expected version %q, got %q", tc.expectedVer, ref.Version)
-			}
-		})
-	}
+	
+	err = manager.AddRepository(repo1)
+	require.NoError(t, err)
+	
+	err = manager.AddRepository(repo2)
+	require.NoError(t, err)
+	
+	// Create repository directories
+	repo1Dir := filepath.Join(tempDir, "repositories", "test-repo1")
+	repo2Dir := filepath.Join(tempDir, "repositories", "test-repo2")
+	
+	err = os.MkdirAll(filepath.Join(repo1Dir, "domains", "test"), 0755)
+	require.NoError(t, err)
+	
+	err = os.MkdirAll(filepath.Join(repo2Dir, "domains", "test"), 0755)
+	require.NoError(t, err)
+	
+	// Create template files
+	template1Path := filepath.Join(repo1Dir, "domains", "test", "template1.yaml")
+	template2Path := filepath.Join(repo2Dir, "domains", "test", "template1.yaml")
+	
+	// Template in repo1 with same name but lower priority
+	err = os.WriteFile(template1Path, []byte("name: template1\nversion: 1.0.0"), 0644)
+	require.NoError(t, err)
+	
+	// Template in repo2 with same name but higher priority
+	err = os.WriteFile(template2Path, []byte("name: template1\nversion: 2.0.0"), 0644)
+	require.NoError(t, err)
+	
+	// Test repository-specified template resolution
+	templatePath, err := manager.ResolveTemplate("test-repo1:template1", "")
+	require.NoError(t, err)
+	assert.Equal(t, template1Path, templatePath)
+	
+	templatePath, err = manager.ResolveTemplate("test-repo2:template1", "")
+	require.NoError(t, err)
+	assert.Equal(t, template2Path, templatePath)
+	
+	// Test priority-based resolution (should use repo2 version as it has higher priority)
+	templatePath, err = manager.ResolveTemplate("template1", "")
+	require.NoError(t, err)
+	assert.Equal(t, template2Path, templatePath)
 }
 
-// setupTestEnvironment sets up a test environment with custom paths.
-func setupTestEnvironment(t *testing.T, tempDir string) {
-	// Create config directory
-	configDir := filepath.Join(tempDir, ConfigDirName)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		t.Fatalf("Failed to create config directory: %v", err)
+// TestDependencyResolution tests dependency resolution
+func TestDependencyResolution(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "repo-manager-test")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+	
+	// Create manager with test directory
+	manager, err := NewManager(WithBasePath(tempDir))
+	require.NoError(t, err)
+	
+	// Add repository
+	repo := Repository{
+		Name:     "test-repo",
+		URL:      "https://github.com/test/repo",
+		Type:     "github",
+		Priority: 1,
 	}
-
-	// Create cache directory
-	cacheDir := filepath.Join(configDir, CacheDirName)
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("Failed to create cache directory: %v", err)
-	}
-}
-
-// createTestManager creates a new manager with custom paths.
-func createTestManager(tempDir string) (*Manager, error) {
-	configDir := filepath.Join(tempDir, ConfigDirName)
-	cacheDir := filepath.Join(configDir, CacheDirName)
-	configPath := filepath.Join(configDir, ConfigFileName)
-	cacheFilePath := filepath.Join(cacheDir, CacheFileName)
-
-	manager := &Manager{
-		configPath:    configPath,
-		cachePath:     cacheDir,
-		cacheFilePath: cacheFilePath,
-		config:        &Config{},
-		cache:         &RepositoryCache{Repositories: make(map[string]RepositoryCacheEntry)},
-	}
-
-	// Ensure default repository exists
-	if err := manager.ensureDefaultRepository(); err != nil {
-		return nil, err
-	}
-
-	return manager, nil
+	
+	err = manager.AddRepository(repo)
+	require.NoError(t, err)
+	
+	// Create repository directory structure
+	repoDir := filepath.Join(tempDir, "repositories", "test-repo")
+	baseDir := filepath.Join(repoDir, "base")
+	stacksDir := filepath.Join(repoDir, "stacks")
+	
+	err = os.MkdirAll(baseDir, 0755)
+	require.NoError(t, err)
+	
+	err = os.MkdirAll(stacksDir, 0755)
+	require.NoError(t, err)
+	
+	// Create template files
+	baseTemplate := filepath.Join(baseDir, "ubuntu.yaml")
+	stackTemplate := filepath.Join(stacksDir, "python.yaml")
+	appTemplate := filepath.Join(stacksDir, "django.yaml")
+	
+	// Base template with no dependencies
+	err = os.WriteFile(baseTemplate, []byte("name: ubuntu\nversion: 1.0.0"), 0644)
+	require.NoError(t, err)
+	
+	// Stack template that depends on base
+	pythonTemplateContent := `name: python
+version: 1.0.0
+dependencies:
+  - name: ubuntu
+    version: 1.0.0
+`
+	err = os.WriteFile(stackTemplate, []byte(pythonTemplateContent), 0644)
+	require.NoError(t, err)
+	
+	// App template that depends on python stack
+	djangoTemplateContent := `name: django
+version: 1.0.0
+dependencies:
+  - name: python
+    version: 1.0.0
+`
+	err = os.WriteFile(appTemplate, []byte(djangoTemplateContent), 0644)
+	require.NoError(t, err)
+	
+	// Resolve dependencies for django template
+	deps, err := manager.ResolveDependencies("test-repo:django", "")
+	require.NoError(t, err)
+	assert.Len(t, deps, 3) // Should include ubuntu, python, and django itself
+	
+	// Dependencies should be ordered correctly - base first, then dependencies
+	assert.Equal(t, "ubuntu", deps[0].Name)
+	assert.Equal(t, "python", deps[1].Name)
+	assert.Equal(t, "django", deps[2].Name)
 }
