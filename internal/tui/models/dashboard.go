@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -72,7 +73,7 @@ func (m DashboardModel) Init() tea.Cmd {
 
 // fetchInstances retrieves instance data from the API
 func (m DashboardModel) fetchInstances() tea.Msg {
-	response, err := m.apiClient.ListInstances()
+	response, err := m.apiClient.ListInstances(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list instances: %w", err)
 	}
