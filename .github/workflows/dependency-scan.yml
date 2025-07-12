@@ -60,7 +60,7 @@ jobs:
           output-file: cloudworkstation-sbom.spdx.json
           
       - name: Upload SBOM
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-artifact
           path: cloudworkstation-sbom.spdx.json
