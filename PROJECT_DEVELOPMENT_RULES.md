@@ -103,6 +103,45 @@ All development decisions should be documented with:
 - **Verification**: How we know it works correctly
 - **Future Considerations**: Any implications for future development
 
+### 🔢 **Versioning and Changelog Requirements**
+
+#### Semantic Versioning 2.0
+
+CloudWorkstation strictly follows [Semantic Versioning 2.0](https://semver.org/spec/v2.0.0.html):
+
+- **Major version (X.0.0)**: Incompatible API changes
+- **Minor version (0.X.0)**: Added functionality in a backward compatible manner
+- **Patch version (0.0.X)**: Backward compatible bug fixes
+- **Pre-release versions**: Denoted with hyphen (e.g., 1.0.0-alpha.1)
+- **Build metadata**: Denoted with plus sign (e.g., 1.0.0+20240712)
+
+**Rules for version increments:**
+- Breaking changes MUST increment the major version
+- New non-breaking features MUST increment the minor version
+- Bug fixes MUST increment the patch version
+- Pre-release versions have lower precedence than the associated normal version
+
+#### Keep a Changelog Format
+
+CloudWorkstation follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format:
+
+- One section per version with format: `## [X.Y.Z] - YYYY-MM-DD`
+- Unreleased changes in `## [Unreleased]` section
+- Changes categorized as:
+  - `Added`: New features
+  - `Changed`: Changes to existing functionality
+  - `Deprecated`: Features that will be removed in future releases
+  - `Removed`: Features removed in this release
+  - `Fixed`: Bug fixes
+  - `Security`: Security vulnerability fixes
+
+**Requirements for changelog entries:**
+- Each PR must include appropriate changelog entries
+- Entries must be clear, concise, and user-focused
+- Entries must specify which component was affected
+- Internal changes with no user impact should not be included
+- Security fixes must provide context without exposing vulnerabilities
+
 ### ⚖️ **Enforcement**
 
 This rule applies to:
@@ -110,6 +149,7 @@ This rule applies to:
 - **All Developers**: Solo development, team contributions, external PRs
 - **All Phases**: Initial development, bug fixes, refactoring, maintenance
 - **All Components**: Backend, frontend, infrastructure, tooling
+- **All Releases**: Every version must follow SemVer 2.0 and maintain accurate changelogs
 
 ### 🎖️ **Success Metrics**
 
@@ -121,6 +161,8 @@ A successful implementation following this rule will demonstrate:
 - All warnings and errors addressed
 - All external dependencies work correctly
 - All documentation is accurate and complete
+- All releases properly versioned with SemVer 2.0
+- Complete and accurate changelog entries for all releases
 
 ---
 
