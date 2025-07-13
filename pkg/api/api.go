@@ -7,6 +7,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
+
 // CloudWorkstationAPI defines the interface for interacting with the CloudWorkstation API
 type CloudWorkstationAPI interface {
 	// Instance operations
