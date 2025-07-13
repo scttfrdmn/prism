@@ -29,25 +29,117 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/internal/cli"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	// Define flags
+	versionFlag := flag.Bool("version", false, "Show version information")
+	helpFlag := flag.Bool("help", false, "Show help information")
+	
+	// Parse flags but keep command and arguments separate
+	flag.CommandLine.Parse(os.Args[1:])
+	
+	// Handle version and help flags
+	if *versionFlag {
+		fmt.Println(version.GetVersionInfo())
+		return
+	}
+	
+	if *helpFlag {
+		printUsage()
+		return
+	}
+	
+	// Get remaining arguments after flag parsing
+	remaining := flag.Args()
+	if len(remaining) == 0 {
 		printUsage()
 		os.Exit(1)
 	}
+	
+	// First argument is the command
+	command := remaining[0]
+	args := remaining[1:]
+	
+	// Load configuration from config.json
+	configFile := "config.json"
+	configData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		// Try to find config in same directory as binary
+		execPath, err := os.Executable()
+		if err == nil {
+			configPath := filepath.Join(filepath.Dir(execPath), "config.json")
+			configData, err = ioutil.ReadFile(configPath)
+		}
+	}
+	
+	// Define config structure
+	config := struct {
+		AWS struct {
+			Profile       string `json:"profile"`
+			Region        string `json:"region"`
+			VpcID         string `json:"vpc_id"`
+			SubnetID      string `json:"subnet_id"`
+			SecurityGroup string `json:"security_group_id"`
+		} `json:"aws"`
+		Daemon struct {
+			Port int    `json:"port"`
+			Host string `json:"host"`
+		} `json:"daemon"`
+	}{}
+	
+	// Set defaults
+	config.AWS.Profile = "aws"
+	config.AWS.Region = "us-west-2"
+	config.AWS.SubnetID = "subnet-06a8cff8a4457b4a7" // Fixed subnet
+	config.AWS.VpcID = "vpc-e7e2999f" // Fixed VPC
+	config.Daemon.Host = "localhost"
+	config.Daemon.Port = 8091
+	
+	// Parse config if found
+	if configData != nil {
+		if err := json.Unmarshal(configData, &config); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to parse config file: %v\n", err)
+		}
+	}
 
-	command := os.Args[1]
-	args := os.Args[2:]
-
+	// Set AWS environment variables if not already set
+	if os.Getenv("AWS_PROFILE") == "" {
+		os.Setenv("AWS_PROFILE", config.AWS.Profile)
+	}
+	
+	if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
+		os.Setenv("AWS_REGION", config.AWS.Region)
+	}
+	
+	// Set environment variables for subnet and VPC
+	os.Setenv("CWS_SUBNET_ID", config.AWS.SubnetID)
+	os.Setenv("CWS_VPC_ID", config.AWS.VpcID)
+	
+	// Set daemon URL if not already set
+	if os.Getenv("CWSD_URL") == "" {
+		os.Setenv("CWSD_URL", fmt.Sprintf("http://%s:%d", config.Daemon.Host, config.Daemon.Port))
+	}
+	
+	// Create app
 	cliApp := cli.NewApp(version.GetVersion())
 
 	switch command {
+	case "tui":
+		err := cliApp.TUI(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "launch":
 		err := cliApp.Launch(args)
 		if err != nil {
@@ -130,9 +222,15 @@ func printUsage() {
 	fmt.Println("Launch pre-configured cloud workstations for research in seconds.")
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  cws <command> [arguments]")
+	fmt.Println("  cws [options] <command> [arguments]")
+	
+	fmt.Println()
+	fmt.Println("Options:")
+	fmt.Println("  --version        Show version information")
+	fmt.Println("  --help           Show this help information")
 	fmt.Println()
 	fmt.Println("Commands:")
+	fmt.Println("  tui                                 Launch terminal UI")
 	fmt.Println("  launch <template> <name> [options]  Launch a new workstation")
 	fmt.Println("  list                                List all workstations")
 	fmt.Println("  connect <name>                      Get connection info for workstation")
@@ -171,6 +269,7 @@ func printUsage() {
 	fmt.Println("  help                                Show this help")
 	fmt.Println()
 	fmt.Println("Examples:")
+	fmt.Println("  cws tui                                      # Launch terminal UI")
 	fmt.Println("  cws launch r-research my-analysis           # Launch R environment")
 	fmt.Println("  cws launch python-research ml-project --size L  # Launch Python with large instance")
 	fmt.Println("  cws list                                    # List all workstations")
