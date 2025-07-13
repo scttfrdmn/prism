@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// BuildRequest represents a request to build an AMI.
-type BuildRequest struct {
+// EnhancedBuildRequest represents an enhanced request to build an AMI.
+type EnhancedBuildRequest struct {
 	// Template is the name of the template to build
 	Template string `json:"template"`
 
@@ -40,8 +40,8 @@ type BuildRequest struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// BuildResult represents the result of an AMI build.
-type BuildResult struct {
+// EnhancedBuildResult represents the enhanced result of an AMI build.
+type EnhancedBuildResult struct {
 	// RequestID is a unique identifier for the build request
 	RequestID string `json:"request_id"`
 
@@ -79,8 +79,8 @@ type BuildResult struct {
 	CopiedAMIs map[string]string `json:"copied_amis,omitempty"`
 }
 
-// Template represents a CloudWorkstation template.
-type Template struct {
+// EnhancedTemplate represents an enhanced CloudWorkstation template with additional fields.
+type EnhancedTemplate struct {
 	// Name is the template name
 	Name string `yaml:"name" json:"name"`
 
@@ -127,8 +127,8 @@ type Template struct {
 	Documentation *Documentation `yaml:"docs,omitempty" json:"docs,omitempty"`
 }
 
-// BuildStep represents a step in building an AMI.
-type BuildStep struct {
+// EnhancedBuildStep represents an enhanced step in building an AMI.
+type EnhancedBuildStep struct {
 	// Name is the step name
 	Name string `yaml:"name" json:"name"`
 

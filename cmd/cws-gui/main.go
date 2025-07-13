@@ -24,6 +24,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
@@ -96,7 +97,7 @@ func main() {
 	// Create the application
 	gui := &CloudWorkstationGUI{
 		app:       app.NewWithID("com.cloudworkstation.gui"),
-		apiClient: api.NewClient("http://localhost:8080"),
+		apiClient: api.NewContextClient("http://localhost:8080"),
 	}
 
 	// Initialize and run
@@ -121,7 +122,7 @@ func (g *CloudWorkstationGUI) initialize() error {
 	g.window.SetMaster()
 
 	// Check daemon connectivity with retry logic
-	if err := g.checkDaemonConnection(); err != nil {
+	if err := g.checkDaemonConnection(context.Background()); err != nil {
 		g.showNotification("error", "Cannot connect to CloudWorkstation daemon", 
 			"Make sure the daemon is running with 'cwsd'. GUI will retry automatically.")
 		// Continue anyway - daemon might start later
@@ -630,7 +631,7 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 				return "Connected"
 			}())),
 			widget.NewButton("Test Connection", func() {
-				if err := g.apiClient.Ping(); err != nil {
+				if err := g.apiClient.Ping(context.Background()); err != nil {
 					g.showNotification("error", "Connection failed", err.Error())
 				} else {
 					g.showNotification("success", "Connection successful", "")
@@ -670,7 +671,7 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 	}
 	
 	// Check daemon connection before launching
-	if err := g.apiClient.Ping(); err != nil {
+	if err := g.apiClient.Ping(context.Background()); err != nil {
 		g.showNotification("error", "Connection Error", "Cannot connect to daemon. Please ensure cwsd is running.")
 		return
 	}
@@ -687,13 +688,17 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 
 	// Launch in background with timeout
 	go func() {
-		// Set timeout for launch operation
-		done := make(chan bool, 1)
+		// Create context with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		
+		// Launch instance with timeout context
 		var response *types.LaunchResponse
 		var err error
 		
+		done := make(chan bool, 1)
 		go func() {
-			response, err = g.apiClient.LaunchInstance(req)
+			response, err = g.apiClient.LaunchInstance(ctx, req)
 			done <- true
 		}()
 		
@@ -701,7 +706,7 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 		select {
 		case <-done:
 			// Launch completed
-		case <-time.After(5 * time.Minute):
+		case <-ctx.Done():
 			err = fmt.Errorf("launch operation timed out after 5 minutes")
 		}
 
@@ -774,17 +779,39 @@ func (g *CloudWorkstationGUI) validateLaunchForm() error {
 }
 
 func (g *CloudWorkstationGUI) handleConnectInstance(name string) {
-	connectionInfo, err := g.apiClient.ConnectInstance(name)
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Get instance details instead of using deprecated ConnectInstance
+	instance, err := g.apiClient.GetInstance(ctx, name)
 	if err != nil {
 		g.showNotification("error", "Connection Failed", err.Error())
 		return
 	}
 
+	// Format connection info based on template
+	var connectionInfo string
+	switch instance.Template {
+	case "r-research":
+		connectionInfo = fmt.Sprintf("RStudio Server: http://%s:8787 (username: rstudio, password: cloudworkstation)", instance.PublicIP)
+	case "python-research":
+		connectionInfo = fmt.Sprintf("JupyterLab: http://%s:8888 (token: cloudworkstation)", instance.PublicIP)
+	case "desktop-research":
+		connectionInfo = fmt.Sprintf("NICE DCV: https://%s:8443 (username: ubuntu, password: cloudworkstation)", instance.PublicIP)
+	default:
+		connectionInfo = fmt.Sprintf("SSH: ssh ubuntu@%s", instance.PublicIP)
+	}
+	
 	g.showNotification("info", "Connection Information", connectionInfo)
 }
 
 func (g *CloudWorkstationGUI) handleStartInstance(name string) {
-	if err := g.apiClient.StartInstance(name); err != nil {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := g.apiClient.StartInstance(ctx, name); err != nil {
 		g.showNotification("error", "Start Failed", err.Error())
 		return
 	}
@@ -794,7 +821,11 @@ func (g *CloudWorkstationGUI) handleStartInstance(name string) {
 }
 
 func (g *CloudWorkstationGUI) handleStopInstance(name string) {
-	if err := g.apiClient.StopInstance(name); err != nil {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := g.apiClient.StopInstance(ctx, name); err != nil {
 		g.showNotification("error", "Stop Failed", err.Error())
 		return
 	}
@@ -804,7 +835,11 @@ func (g *CloudWorkstationGUI) handleStopInstance(name string) {
 }
 
 func (g *CloudWorkstationGUI) handleDeleteInstance(name string) {
-	if err := g.apiClient.DeleteInstance(name); err != nil {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := g.apiClient.DeleteInstance(ctx, name); err != nil {
 		g.showNotification("error", "Delete Failed", err.Error())
 		return
 	}
@@ -902,12 +937,12 @@ func (g *CloudWorkstationGUI) showNotification(notificationType, title, message 
 }
 
 // checkDaemonConnection verifies daemon connectivity with retry logic
-func (g *CloudWorkstationGUI) checkDaemonConnection() error {
+func (g *CloudWorkstationGUI) checkDaemonConnection(ctx context.Context) error {
 	maxRetries := 3
 	retryDelay := time.Second
 	
 	for i := 0; i < maxRetries; i++ {
-		if err := g.apiClient.Ping(); err == nil {
+		if err := g.apiClient.Ping(ctx); err == nil {
 			return nil
 		}
 		
@@ -921,13 +956,17 @@ func (g *CloudWorkstationGUI) checkDaemonConnection() error {
 }
 
 func (g *CloudWorkstationGUI) refreshData() {
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	// Fetch instances with error handling
-	response, err := g.apiClient.ListInstances()
+	response, err := g.apiClient.ListInstances(ctx)
 	if err != nil {
 		log.Printf("Failed to refresh instance data: %v", err)
 		
 		// Check if this is a connection error
-		if err := g.apiClient.Ping(); err != nil {
+		if err := g.apiClient.Ping(ctx); err != nil {
 			// Connection lost - clear last update to show disconnected status
 			g.lastUpdate = time.Time{}
 		}
@@ -971,7 +1010,7 @@ func (g *CloudWorkstationGUI) startBackgroundRefresh() {
 			// If we have too many failures, try to reconnect
 			if consecutiveFailures >= maxFailures {
 				log.Printf("Multiple refresh failures, checking daemon connection...")
-				if err := g.checkDaemonConnection(); err != nil {
+				if err := g.checkDaemonConnection(context.Background()); err != nil {
 					// Connection still failing - increase refresh interval to reduce load
 					g.refreshTicker.Reset(60 * time.Second)
 				} else {

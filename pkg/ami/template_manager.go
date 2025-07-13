@@ -72,8 +72,8 @@ type TemplateBuilder struct {
 	hasModified bool
 }
 
-// TemplateImportOptions configures template import behavior
-type TemplateImportOptions struct {
+// TemplateManagerImportOptions configures template import behavior for the template manager
+type TemplateManagerImportOptions struct {
 	Validate      bool
 	Force         bool
 	OverwriteName string
@@ -143,9 +143,9 @@ func NewTemplateManager(parser *Parser, registry *Registry, templateDir string) 
 //	if err != nil {
 //	    log.Fatalf("Failed to import template: %v", err)
 //	}
-func (m *TemplateManager) ImportFromFile(filePath string, options *TemplateImportOptions) (*Template, error) {
+func (m *TemplateManager) ImportFromFile(filePath string, options *TemplateManagerImportOptions) (*Template, error) {
 	if options == nil {
-		options = &TemplateImportOptions{
+		options = &TemplateManagerImportOptions{
 			Validate: true,
 			Force:    false,
 		}
@@ -218,9 +218,9 @@ func (m *TemplateManager) ImportFromFile(filePath string, options *TemplateImpor
 // Example:
 //
 //	template, err := manager.ImportFromURL("https://example.com/templates/python-ml.yaml", nil)
-func (m *TemplateManager) ImportFromURL(url string, options *TemplateImportOptions) (*Template, error) {
+func (m *TemplateManager) ImportFromURL(url string, options *TemplateManagerImportOptions) (*Template, error) {
 	if options == nil {
-		options = &TemplateImportOptions{
+		options = &TemplateManagerImportOptions{
 			Validate: true,
 			Force:    false,
 		}
@@ -324,7 +324,7 @@ func (m *TemplateManager) ImportFromURL(url string, options *TemplateImportOptio
 //	    "main",
 //	    nil,
 //	)
-func (m *TemplateManager) ImportFromGitHub(repo, path, ref string, options *TemplateImportOptions) (*Template, error) {
+func (m *TemplateManager) ImportFromGitHub(repo, path, ref string, options *TemplateManagerImportOptions) (*Template, error) {
 	// Construct raw GitHub URL
 	url := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s", repo, ref, path)
 	return m.ImportFromURL(url, options)
@@ -709,7 +709,7 @@ func (m *TemplateManager) GetTemplate(name string) (*Template, error) {
 		filePath := filepath.Join(m.TemplateDirectory, name+".yaml")
 		if _, err := os.Stat(filePath); err == nil {
 			// File exists, try to load it
-			template, err := m.ImportFromFile(filePath, &TemplateImportOptions{
+			template, err := m.ImportFromFile(filePath, &TemplateManagerImportOptions{
 				Validate: false, // Don't validate during get
 				Force:    true,  // Force load even if it already exists
 			})

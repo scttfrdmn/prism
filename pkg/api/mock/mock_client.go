@@ -12,6 +12,7 @@
 package mock
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -223,7 +224,7 @@ func loadMockStorage() map[string]types.EBSVolume {
 }
 
 // LaunchInstance simulates launching a new instance
-func (m *MockClient) LaunchInstance(req types.LaunchRequest) (*types.LaunchResponse, error) {
+func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest) (*types.LaunchResponse, error) {
 	// Validate template exists
 	if _, exists := m.Templates[req.Template]; !exists {
 		return nil, fmt.Errorf("template not found: %s", req.Template)
@@ -329,7 +330,7 @@ var costPerHour float64
 }
 
 // ListInstances returns mock instances
-func (m *MockClient) ListInstances() (*types.ListResponse, error) {
+func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
 	instances := make([]types.Instance, 0, len(m.Instances))
 	totalCost := 0.0
 	
@@ -347,7 +348,7 @@ func (m *MockClient) ListInstances() (*types.ListResponse, error) {
 }
 
 // GetInstance returns a specific instance
-func (m *MockClient) GetInstance(name string) (*types.Instance, error) {
+func (m *MockClient) GetInstance(ctx context.Context, name string) (*types.Instance, error) {
 	if instance, exists := m.Instances[name]; exists {
 		return &instance, nil
 	}
@@ -355,7 +356,7 @@ func (m *MockClient) GetInstance(name string) (*types.Instance, error) {
 }
 
 // DeleteInstance simulates deleting an instance
-func (m *MockClient) DeleteInstance(name string) error {
+func (m *MockClient) DeleteInstance(ctx context.Context, name string) error {
 	if _, exists := m.Instances[name]; !exists {
 		return fmt.Errorf("instance not found: %s", name)
 	}
@@ -365,7 +366,7 @@ func (m *MockClient) DeleteInstance(name string) error {
 }
 
 // StopInstance simulates stopping an instance
-func (m *MockClient) StopInstance(name string) error {
+func (m *MockClient) StopInstance(ctx context.Context, name string) error {
 	if instance, exists := m.Instances[name]; exists {
 		instance.State = "stopped"
 		m.Instances[name] = instance
@@ -375,7 +376,7 @@ func (m *MockClient) StopInstance(name string) error {
 }
 
 // StartInstance simulates starting an instance
-func (m *MockClient) StartInstance(name string) error {
+func (m *MockClient) StartInstance(ctx context.Context, name string) error {
 	if instance, exists := m.Instances[name]; exists {
 		instance.State = "running"
 		m.Instances[name] = instance
@@ -384,7 +385,7 @@ func (m *MockClient) StartInstance(name string) error {
 	return fmt.Errorf("instance not found: %s", name)
 }
 
-// ConnectInstance returns mock connection information
+// ConnectInstance returns mock connection information (deprecated, use GetInstance instead)
 func (m *MockClient) ConnectInstance(name string) (string, error) {
 	if instance, exists := m.Instances[name]; exists {
 		switch m.Templates[instance.Template].Name {
@@ -402,12 +403,12 @@ func (m *MockClient) ConnectInstance(name string) (string, error) {
 }
 
 // ListTemplates returns mock templates
-func (m *MockClient) ListTemplates() (map[string]types.Template, error) {
+func (m *MockClient) ListTemplates(ctx context.Context) (map[string]types.Template, error) {
 	return m.Templates, nil
 }
 
 // GetTemplate returns a specific template
-func (m *MockClient) GetTemplate(name string) (*types.Template, error) {
+func (m *MockClient) GetTemplate(ctx context.Context, name string) (*types.Template, error) {
 	if template, exists := m.Templates[name]; exists {
 		return &template, nil
 	}
@@ -415,7 +416,7 @@ func (m *MockClient) GetTemplate(name string) (*types.Template, error) {
 }
 
 // CreateVolume simulates creating an EFS volume
-func (m *MockClient) CreateVolume(req types.VolumeCreateRequest) (*types.EFSVolume, error) {
+func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.EFSVolume, error) {
 	if _, exists := m.Volumes[req.Name]; exists {
 		return nil, fmt.Errorf("volume already exists: %s", req.Name)
 	}
@@ -457,12 +458,16 @@ func (m *MockClient) CreateVolume(req types.VolumeCreateRequest) (*types.EFSVolu
 }
 
 // ListVolumes returns all mock EFS volumes
-func (m *MockClient) ListVolumes() (map[string]types.EFSVolume, error) {
-	return m.Volumes, nil
+func (m *MockClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error) {
+	volumes := make([]types.EFSVolume, 0, len(m.Volumes))
+	for _, volume := range m.Volumes {
+		volumes = append(volumes, volume)
+	}
+	return volumes, nil
 }
 
 // GetVolume returns a specific EFS volume
-func (m *MockClient) GetVolume(name string) (*types.EFSVolume, error) {
+func (m *MockClient) GetVolume(ctx context.Context, name string) (*types.EFSVolume, error) {
 	if volume, exists := m.Volumes[name]; exists {
 		return &volume, nil
 	}
@@ -470,7 +475,7 @@ func (m *MockClient) GetVolume(name string) (*types.EFSVolume, error) {
 }
 
 // DeleteVolume simulates deleting an EFS volume
-func (m *MockClient) DeleteVolume(name string) error {
+func (m *MockClient) DeleteVolume(ctx context.Context, name string) error {
 	if _, exists := m.Volumes[name]; !exists {
 		return fmt.Errorf("volume not found: %s", name)
 	}
@@ -480,7 +485,7 @@ func (m *MockClient) DeleteVolume(name string) error {
 }
 
 // CreateStorage simulates creating an EBS volume
-func (m *MockClient) CreateStorage(req types.StorageCreateRequest) (*types.EBSVolume, error) {
+func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
 	if _, exists := m.Storage[req.Name]; exists {
 		return nil, fmt.Errorf("storage volume already exists: %s", req.Name)
 	}
@@ -567,12 +572,16 @@ func (m *MockClient) CreateStorage(req types.StorageCreateRequest) (*types.EBSVo
 }
 
 // ListStorage returns all mock EBS volumes
-func (m *MockClient) ListStorage() (map[string]types.EBSVolume, error) {
-	return m.Storage, nil
+func (m *MockClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error) {
+	volumes := make([]types.EBSVolume, 0, len(m.Storage))
+	for _, volume := range m.Storage {
+		volumes = append(volumes, volume)
+	}
+	return volumes, nil
 }
 
 // GetStorage returns a specific EBS volume
-func (m *MockClient) GetStorage(name string) (*types.EBSVolume, error) {
+func (m *MockClient) GetStorage(ctx context.Context, name string) (*types.EBSVolume, error) {
 	if volume, exists := m.Storage[name]; exists {
 		return &volume, nil
 	}
@@ -580,7 +589,7 @@ func (m *MockClient) GetStorage(name string) (*types.EBSVolume, error) {
 }
 
 // DeleteStorage simulates deleting an EBS volume
-func (m *MockClient) DeleteStorage(name string) error {
+func (m *MockClient) DeleteStorage(ctx context.Context, name string) error {
 	if _, exists := m.Storage[name]; !exists {
 		return fmt.Errorf("storage volume not found: %s", name)
 	}
@@ -614,7 +623,7 @@ func (m *MockClient) AttachStorage(ctx context.Context, volumeName, instanceName
 }
 
 // DetachStorage simulates detaching an EBS volume
-func (m *MockClient) DetachStorage(volumeName string) error {
+func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error {
 	volume, exists := m.Storage[volumeName]
 	if !exists {
 		return fmt.Errorf("storage volume not found: %s", volumeName)
@@ -647,19 +656,121 @@ func (m *MockClient) DetachStorage(volumeName string) error {
 }
 
 // GetStatus returns mock daemon status
-func (m *MockClient) GetStatus() (*types.DaemonStatus, error) {
+func (m *MockClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error) {
 	return &types.DaemonStatus{
 		Version:       "0.1.0",
 		Status:        "running",
 		StartTime:     time.Now().Add(-24 * time.Hour),
 		ActiveOps:     0,
 		TotalRequests: 42,
-		ErrorCount:    2,
 		AWSRegion:     "us-east-1",
 	}, nil
 }
 
 // Ping simulates a health check
-func (m *MockClient) Ping() error {
+func (m *MockClient) Ping(ctx context.Context) error {
 	return nil
+}
+
+// AttachVolume simulates attaching an EFS volume to an instance
+func (m *MockClient) AttachVolume(ctx context.Context, volumeName, instanceName string) error {
+	_, exists := m.Volumes[volumeName]
+	if !exists {
+		return fmt.Errorf("volume not found: %s", volumeName)
+	}
+	
+	if _, exists := m.Instances[instanceName]; !exists {
+		return fmt.Errorf("instance not found: %s", instanceName)
+	}
+	
+	// Update instance
+	instance := m.Instances[instanceName]
+	instance.AttachedVolumes = append(instance.AttachedVolumes, volumeName)
+	m.Instances[instanceName] = instance
+	
+	return nil
+}
+
+// DetachVolume simulates detaching an EFS volume from an instance
+func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error {
+	if _, exists := m.Volumes[volumeName]; !exists {
+		return fmt.Errorf("volume not found: %s", volumeName)
+	}
+	
+	// Update instances that have this volume attached
+	for instName, instance := range m.Instances {
+		updatedVolumes := []string{}
+		for _, vol := range instance.AttachedVolumes {
+			if vol != volumeName {
+				updatedVolumes = append(updatedVolumes, vol)
+			}
+		}
+		instance.AttachedVolumes = updatedVolumes
+		m.Instances[instName] = instance
+	}
+	
+	return nil
+}
+
+// GetRegistryStatus returns the status of the AMI registry
+func (m *MockClient) GetRegistryStatus(ctx context.Context) (*api.RegistryStatusResponse, error) {
+	return &api.RegistryStatusResponse{
+		Enabled: true,
+	}, nil
+}
+
+// SetRegistryStatus enables or disables the AMI registry
+func (m *MockClient) SetRegistryStatus(ctx context.Context, enabled bool) error {
+	// In a mock client, we just return success
+	return nil
+}
+
+// LookupAMI finds an AMI for a specific template in a region
+func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch string) (*api.AMIReferenceResponse, error) {
+	template, exists := m.Templates[templateName]
+	if !exists {
+		return nil, fmt.Errorf("template not found: %s", templateName)
+	}
+	
+	regionAMIs, exists := template.AMI[region]
+	if !exists {
+		return nil, fmt.Errorf("template not available in region %s", region)
+	}
+	
+	amiID, exists := regionAMIs[arch]
+	if !exists {
+		return nil, fmt.Errorf("template not available for architecture %s in region %s", arch, region)
+	}
+	
+	return &api.AMIReferenceResponse{
+		AMIID:      amiID,
+		Region:     region,
+		Arch:       arch,
+		Version:    "1.0.0",
+		CreateDate: time.Now().Add(-24 * time.Hour),
+	}, nil
+}
+
+// ListTemplateAMIs lists all AMIs available for a template across regions
+func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) ([]api.AMIReferenceResponse, error) {
+	template, exists := m.Templates[templateName]
+	if !exists {
+		return nil, fmt.Errorf("template not found: %s", templateName)
+	}
+	
+	var result []api.AMIReferenceResponse
+	
+	for region, archMap := range template.AMI {
+		for arch, amiID := range archMap {
+			result = append(result, api.AMIReferenceResponse{
+				AMIID:      amiID,
+				Region:     region,
+				Arch:       arch,
+				Version:    "1.0.0",
+				CreateDate: time.Now().Add(-24 * time.Hour),
+			})
+		}
+	}
+	
+	return result, nil
 }

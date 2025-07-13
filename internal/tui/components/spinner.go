@@ -1,30 +1,29 @@
 package components
 
 import (
-	"time"
-
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
 )
 
-// Spinner represents a loading spinner component
+// Spinner is a loading spinner component
 type Spinner struct {
-	message   string
-	frames    []string
-	current   int
-	lastTick  time.Time
-	interval  time.Duration
-	active    bool
+	spinner spinner.Model
+	message string
+	active  bool
 }
 
-// NewSpinner creates a new spinner with the given message
-func NewSpinner(message string) *Spinner {
-	return &Spinner{
-		message:  message,
-		frames:   []string{"⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"},
-		current:  0,
-		lastTick: time.Now(),
-		interval: 80 * time.Millisecond,
-		active:   true,
+// NewSpinner creates a new spinner component with a message
+func NewSpinner(message string) Spinner {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(styles.CurrentTheme.PrimaryColor)
+	
+	return Spinner{
+		spinner: s,
+		message: message,
+		active:  true,
 	}
 }
 
@@ -36,6 +35,30 @@ func (s *Spinner) Start() {
 // Stop deactivates the spinner
 func (s *Spinner) Stop() {
 	s.active = false
+}
+
+// Update handles messages for the spinner
+func (s *Spinner) Update(msg tea.Msg) (Spinner, tea.Cmd) {
+	if !s.active {
+		return *s, nil
+	}
+	
+	var cmd tea.Cmd
+	s.spinner, cmd = s.spinner.Update(msg)
+	return *s, cmd
+}
+
+// View renders the spinner
+func (s *Spinner) View() string {
+	if !s.active {
+		return ""
+	}
+	
+	return lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		s.spinner.View(),
+		" "+s.message,
+	)
 }
 
 // SetMessage updates the spinner message
@@ -53,39 +76,12 @@ func (s *Spinner) IsActive() bool {
 	return s.active
 }
 
-// Update advances the spinner animation if enough time has passed
-func (s *Spinner) Update() {
-	if !s.active {
-		return
-	}
-
-	now := time.Now()
-	if now.Sub(s.lastTick) >= s.interval {
-		s.current = (s.current + 1) % len(s.frames)
-		s.lastTick = now
-	}
+// Spinner returns the underlying spinner model
+func (s *Spinner) Spinner() spinner.Model {
+	return s.spinner
 }
 
-// View renders the spinner
-func (s *Spinner) View() string {
-	if !s.active {
-		return ""
-	}
-
-	spinnerStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("6")).
-		Bold(true)
-
-	messageStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("15"))
-
-	spinnerText := spinnerStyle.Render(s.frames[s.current])
-	messageText := messageStyle.Render(s.message)
-
-	return lipgloss.JoinHorizontal(
-		lipgloss.Center,
-		spinnerText,
-		" ",
-		messageText,
-	)
+// InitialCmd returns the spinner's initial command
+func (s *Spinner) InitialCmd() tea.Cmd {
+	return s.spinner.Tick
 }
