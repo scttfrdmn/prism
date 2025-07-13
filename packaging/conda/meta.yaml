@@ -1,0 +1,58 @@
+{% set name = "cloudworkstation" %}
+{% set version = "0.4.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-linux-amd64.tar.gz  # [linux64]
+    sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [linux64]
+  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-linux-arm64.tar.gz  # [aarch64]
+    sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [aarch64]
+  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-macos-amd64.tar.gz  # [osx and x86_64]
+    sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [osx and x86_64]
+  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-macos-arm64.tar.gz  # [osx and arm64]
+    sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [osx and arm64]
+  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-windows-amd64.zip  # [win]
+    sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [win]
+
+build:
+  number: 0
+  skip: true  # [win32]
+  string: "dev"  # Use "dev" for test channel
+
+# For test channel
+test_settings:
+  anaconda_upload: false
+  channels:
+    - scttfrdmn
+    - conda-forge
+  label: dev
+
+requirements:
+  run:
+    - python >=3.7
+
+test:
+  commands:
+    - cws version  # [not win]
+    - cws.exe version  # [win]
+
+about:
+  home: https://github.com/scttfrdmn/cloudworkstation
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'Launch research environments in the cloud in seconds'
+  description: |
+    CloudWorkstation helps you launch pre-configured research environments in the 
+    cloud in seconds, not hours. It provides templates for Python, R, and specialized 
+    research domains, with automatic configuration and cost optimization. The tool offers 
+    a CLI, TUI, and GUI interface for managing your cloud workstations.
+  doc_url: https://github.com/scttfrdmn/cloudworkstation/tree/main/docs
+  dev_url: https://github.com/scttfrdmn/cloudworkstation
+
+extra:
+  recipe-maintainers:
+    - scttfrdmn

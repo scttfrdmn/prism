@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>cloudworkstation</id>
+    <version>0.4.1</version>
+    <title>CloudWorkstation</title>
+    <authors>CloudWorkstation Team</authors>
+    <projectUrl>https://github.com/scttfrdmn/cloudworkstation</projectUrl>
+    <licenseUrl>https://github.com/scttfrdmn/cloudworkstation/blob/main/LICENSE</licenseUrl>
+    <iconUrl>https://raw.githubusercontent.com/scttfrdmn/cloudworkstation/main/docs/images/cloudworkstation.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>CloudWorkstation helps you launch pre-configured research environments in the cloud in seconds, not hours. It provides templates for Python, R, and specialized research domains, with automatic configuration and cost optimization. The tool offers a CLI, TUI, and GUI interface for managing your cloud workstations.</description>
+    <summary>Launch research environments in the cloud in seconds, not hours</summary>
+    <releaseNotes>https://github.com/scttfrdmn/cloudworkstation/blob/main/CHANGELOG.md</releaseNotes>
+    <copyright>2024 CloudWorkstation Team</copyright>
+    <tags>cloud research aws ec2 development workstation python r</tags>
+    <packageSourceUrl>https://github.com/scttfrdmn/cloudworkstation/tree/main/packaging/chocolatey</packageSourceUrl>
+    <docsUrl>https://github.com/scttfrdmn/cloudworkstation/tree/main/docs</docsUrl>
+    <bugTrackerUrl>https://github.com/scttfrdmn/cloudworkstation/issues</bugTrackerUrl>
+    <projectSourceUrl>https://github.com/scttfrdmn/cloudworkstation</projectSourceUrl>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
