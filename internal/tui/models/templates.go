@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -35,7 +34,7 @@ func (t BrowserTemplateItem) Description() string { return t.description }
 
 // TemplatesModel represents the templates view
 type TemplatesModel struct {
-	apiClient    api.CloudWorkstationAPI
+	apiClient    apiClient
 	templateList list.Model
 	detailView   viewport.Model
 	statusBar    components.StatusBar
@@ -49,7 +48,7 @@ type TemplatesModel struct {
 }
 
 // NewTemplatesModel creates a new templates model
-func NewTemplatesModel(apiClient api.CloudWorkstationAPI) TemplatesModel {
+func NewTemplatesModel(apiClient apiClient) TemplatesModel {
 	theme := styles.CurrentTheme
 	
 	// Set up template list

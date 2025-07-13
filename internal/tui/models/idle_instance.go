@@ -12,7 +12,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -66,7 +65,7 @@ type IdleInstancesModel struct {
 	height        int
 	loading       bool
 	error         string
-	instances     []api.InstanceResponse
+	instances     []types.Instance
 	selected      string
 	confirmEnable bool
 	confirmPolicy string
@@ -95,7 +94,7 @@ func NewIdleInstancesModel(apiClient apiClient) IdleInstancesModel {
 		width:        80,
 		height:       24,
 		loading:      true,
-		instances:    []api.InstanceResponse{},
+		instances:    []types.Instance{},
 	}
 }
 
@@ -299,7 +298,7 @@ func (m IdleInstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// For policy selection dialog
 		return m, nil
 		
-	case *api.ListInstancesResponse:
+	case *types.ListResponse:
 		m.loading = false
 		m.instances = msg.Instances
 		

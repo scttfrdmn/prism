@@ -21,16 +21,21 @@ type Config struct {
 
 // Instance represents a running cloud workstation
 type Instance struct {
-	ID                 string    `json:"id"`
-	Name               string    `json:"name"`
-	Template           string    `json:"template"`
-	PublicIP           string    `json:"public_ip"`
-	PrivateIP          string    `json:"private_ip"`
-	State              string    `json:"state"`
-	LaunchTime         time.Time `json:"launch_time"`
-	EstimatedDailyCost float64   `json:"estimated_daily_cost"`
-	AttachedVolumes    []string  `json:"attached_volumes"`     // EFS volume names
-	AttachedEBSVolumes []string  `json:"attached_ebs_volumes"` // EBS volume IDs
+	ID                 string          `json:"id"`
+	Name               string          `json:"name"`
+	Template           string          `json:"template"`
+	PublicIP           string          `json:"public_ip"`
+	PrivateIP          string          `json:"private_ip"`
+	State              string          `json:"state"`
+	LaunchTime         time.Time       `json:"launch_time"`
+	EstimatedDailyCost float64         `json:"estimated_daily_cost"`
+	AttachedVolumes    []string        `json:"attached_volumes"`     // EFS volume names
+	AttachedEBSVolumes []string        `json:"attached_ebs_volumes"` // EBS volume IDs
+	InstanceType       string          `json:"instance_type"`
+	Username           string          `json:"username"`
+	WebPort            int             `json:"web_port"`
+	HasWebInterface    bool            `json:"has_web_interface"`
+	IdleDetection      *IdleDetection  `json:"idle_detection,omitempty"`
 }
 
 // EFSVolume represents a persistent EFS file system
@@ -143,6 +148,16 @@ type CreditInfo struct {
 	CreditType       string     `json:"credit_type"`  // "AWS Promotional", "AWS Educate", etc.
 	ExpirationDate   *time.Time `json:"expiration_date,omitempty"`
 	Description      string     `json:"description"`
+}
+
+// IdleDetection represents idle detection configuration for an instance
+type IdleDetection struct {
+	Enabled        bool      `json:"enabled"`
+	Policy         string    `json:"policy"`
+	IdleTime       int       `json:"idle_time"`       // Minutes
+	Threshold      int       `json:"threshold"`       // Minutes
+	ActionSchedule time.Time `json:"action_schedule"` // When action will occur
+	ActionPending  bool      `json:"action_pending"`  // Whether action is pending
 }
 
 // BillingInfo represents current billing and cost information

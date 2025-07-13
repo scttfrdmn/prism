@@ -521,9 +521,19 @@ func (m *InstancesModel) updateDetailView(showConnect bool) {
 		content.WriteString("SSH Command:\n")
 		content.WriteString(fmt.Sprintf("  ssh ubuntu@%s\n\n", instance.PublicIP))
 		
-		if len(instance.Ports) > 0 {
+		// Determine ports based on template
+		ports := []int{}
+		if instance.Template == "r-research" {
+			ports = []int{8787}
+		} else if instance.Template == "python-research" {
+			ports = []int{8888}
+		} else if instance.Template == "desktop-research" {
+			ports = []int{8443}
+		}
+		
+		if len(ports) > 0 {
 			content.WriteString("Open Ports:\n")
-			for _, port := range instance.Ports {
+			for _, port := range ports {
 				content.WriteString(fmt.Sprintf("  %d: http://%s:%d\n", port, instance.PublicIP, port))
 			}
 			content.WriteString("\n")

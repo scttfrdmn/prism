@@ -6,13 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // ActionItem represents an action in the action list
@@ -215,7 +214,7 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 		
-	case *api.InstanceResponse:
+	case *types.Instance:
 		m.loading = false
 		
 		// Build list of actions based on instance state

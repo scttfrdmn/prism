@@ -6,17 +6,17 @@ package tui
 
 import (
 	"fmt"
-	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
+	// "github.com/scttfrdmn/cloudworkstation/internal/tui/api/mock" // Temporarily commented out
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/models"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
 // App represents the TUI application
 type App struct {
-	apiClient api.CloudWorkstationAPI
+	apiClient *api.TUIClient
 	program   *tea.Program
 }
 
@@ -38,7 +38,7 @@ const (
 
 // AppModel represents the main application model
 type AppModel struct {
-	apiClient     api.CloudWorkstationAPI
+	apiClient     *api.TUIClient
 	currentPage   PageID
 	dashboardModel models.DashboardModel
 	templatesModel models.TemplatesModel
@@ -49,12 +49,16 @@ type AppModel struct {
 
 // NewApp creates a new TUI application
 func NewApp() *App {
-	// Check for custom API URL from environment
-	apiURL := os.Getenv("CWSD_URL")
-	apiClient := api.NewClient(apiURL) // Uses default or environment URL
+	// Create a mock client for now since we're refactoring
+	// Temporarily commenting out until we fix the API client issues
+	/*
+	mockClient := mock.NewMockClient()
+	apiClient := api.NewTUIClient(mockClient)
+	*/
 	
 	return &App{
-		apiClient: apiClient,
+		apiClient: nil, // Temporarily nil until we fix API client issues
+		program:   nil,
 	}
 }
 
