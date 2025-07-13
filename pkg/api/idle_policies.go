@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"encoding/json"
-	"net/http"
 	
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -133,22 +131,4 @@ func (c *Client) GetIdleStatusLegacy(instance string) (*types.IdleStatus, error)
 	return &status, nil
 }
 
-// Implementation of the PUT HTTP method
-func (c *Client) put(path string, body, resp interface{}) error {
-	url := c.buildURL(path)
-	
-	// Marshal body to JSON
-	jsonBody, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	
-	// Create request
-	req, err := http.NewRequest("PUT", url, nil)
-	if err != nil {
-		return err
-	}
-	
-	// Execute request
-	return c.doRequest(req, jsonBody, resp)
-}
+// NOTE: The put method is now implemented in client.go

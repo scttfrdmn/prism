@@ -90,14 +90,9 @@ func (c *Client) RemoveRepository(ctx context.Context, name string) error {
 
 // RemoveRepositoryLegacy removes a template repository without context
 func (c *Client) RemoveRepositoryLegacy(name string) error {
-	var resp RepositoryResponse
-	err := c.delete(fmt.Sprintf("/api/v1/repositories/%s", name), &resp)
+	err := c.delete(fmt.Sprintf("/api/v1/repositories/%s", name))
 	if err != nil {
 		return fmt.Errorf("failed to remove repository: %w", err)
-	}
-	
-	if !resp.Success {
-		return fmt.Errorf("API error: %s", resp.Message)
 	}
 	
 	return nil
@@ -138,16 +133,4 @@ func (c *Client) GetRepositoryStatusLegacy() (*types.RepositoryStatus, error) {
 	return &status, nil
 }
 
-// Implementation of the DELETE HTTP method
-func (c *Client) delete(path string, resp interface{}) error {
-	url := c.buildURL(path)
-	
-	// Create request
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return err
-	}
-	
-	// Execute request
-	return c.doRequest(req, nil, resp)
-}
+// NOTE: These methods are now implemented in client.go

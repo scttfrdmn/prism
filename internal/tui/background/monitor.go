@@ -214,13 +214,14 @@ func (m *InstanceMonitor) refreshInstances() error {
 		// Update state
 		m.instanceStates[instance.Name] = instance.State
 		
-		// Check idle detection
-		if instance.IdleDetection != nil && instance.IdleDetection.Enabled {
+		// Check if instance has idle detection information
+		instanceExt, ok := interface{}(instance).(types.InstanceExtended)
+		if ok && instanceExt.IdleDetection != nil && instanceExt.IdleDetection.Enabled {
 			oldIdle, hasOldIdle := m.idleStates[instance.Name]
 			
 			// Check for approaching idle action
-			if instance.IdleDetection.ActionPending {
-				timeUntilAction := time.Until(instance.IdleDetection.ActionSchedule)
+			if instanceExt.IdleDetection.ActionPending {
+				timeUntilAction := time.Until(instanceExt.IdleDetection.ActionSchedule)
 				minutesUntilAction := int(timeUntilAction.Minutes())
 				
 				// Only warn if we're within the notification threshold and haven't warned before
@@ -231,13 +232,13 @@ func (m *InstanceMonitor) refreshInstances() error {
 						Type:      EventTypeIdleWarning,
 						Instance:  instance.Name,
 						Message:   fmt.Sprintf("Instance will %s in %d minutes due to inactivity", 
-							instance.IdleDetection.Policy, minutesUntilAction),
+							instanceExt.IdleDetection.Policy, minutesUntilAction),
 						Timestamp: time.Now(),
 						Level:     EventLevelWarning,
 						Data: map[string]interface{}{
-							"idle_time":   instance.IdleDetection.IdleTime,
-							"threshold":   instance.IdleDetection.Threshold,
-							"action":      instance.IdleDetection.Policy,
+							"idle_time":   instanceExt.IdleDetection.IdleTime,
+							"threshold":   instanceExt.IdleDetection.Policy,
+							"action":      instanceExt.IdleDetection.Policy,
 							"minutes_left": minutesUntilAction,
 						},
 					})
@@ -247,11 +248,11 @@ func (m *InstanceMonitor) refreshInstances() error {
 			// Store current idle state
 			m.idleStates[instance.Name] = &types.IdleStatus{
 				Instance:       instance.Name,
-				Enabled:        instance.IdleDetection.Enabled,
-				Policy:         instance.IdleDetection.Policy,
-				IdleTime:       instance.IdleDetection.IdleTime,
-				ActionSchedule: instance.IdleDetection.ActionSchedule,
-				ActionPending:  instance.IdleDetection.ActionPending,
+				Enabled:        instanceExt.IdleDetection.Enabled,
+				Policy:         instanceExt.IdleDetection.Policy,
+				IdleTime:       instanceExt.IdleDetection.IdleTime,
+				ActionSchedule: instanceExt.IdleDetection.ActionSchedule,
+				ActionPending:  instanceExt.IdleDetection.ActionPending,
 			}
 		} else {
 			// No idle detection or disabled

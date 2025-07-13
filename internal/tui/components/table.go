@@ -14,6 +14,17 @@ type Table struct {
 	selectedItem string
 }
 
+// SetSize sets the table size
+func (t *Table) SetSize(width, height int) {
+	t.table.SetWidth(width)
+	t.table.SetHeight(height)
+}
+
+// Focusable returns whether the table can be focused
+func (t Table) Focusable() bool {
+	return t.focusable
+}
+
 // NewTable creates a new table component
 func NewTable(columns []table.Column, rows []table.Row, 
 	          width, height int, focusable bool) Table {

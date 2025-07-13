@@ -54,6 +54,11 @@ func (c *ContextClient) DeleteInstance(ctx context.Context, name string) error {
 	return c.client.DeleteInstance(name)
 }
 
+// ConnectInstance returns connection information for an instance
+func (c *ContextClient) ConnectInstance(ctx context.Context, name string) (string, error) {
+	return c.client.ConnectInstance(name)
+}
+
 // Template operations
 
 // ListTemplates lists all templates with context
@@ -190,4 +195,47 @@ func (c *ContextClient) LookupAMI(ctx context.Context, template, region, arch st
 func (c *ContextClient) ListTemplateAMIs(ctx context.Context, template string) ([]AMIReferenceResponse, error) {
 	// Implement based on legacy client or return not implemented
 	return nil, fmt.Errorf("ListTemplateAMIs not implemented")
+}
+
+// Repository operations
+
+// ListRepositories lists all template repositories
+func (c *ContextClient) ListRepositories(ctx context.Context) ([]types.TemplateRepository, error) {
+	// Stub implementation for now
+	return []types.TemplateRepository{}, nil
+}
+
+// GetRepository gets a specific template repository
+func (c *ContextClient) GetRepository(ctx context.Context, name string) (*types.TemplateRepository, error) {
+	// Stub implementation for now
+	return &types.TemplateRepository{
+		Name:     name,
+		URL:      "https://example.com/repo",
+		Priority: 0,
+		Enabled:  true,
+	}, nil
+}
+
+// AddRepository adds a new template repository
+func (c *ContextClient) AddRepository(ctx context.Context, repo types.TemplateRepositoryUpdate) error {
+	// Stub implementation for now
+	return nil
+}
+
+// UpdateRepository updates an existing template repository
+func (c *ContextClient) UpdateRepository(ctx context.Context, repo types.TemplateRepositoryUpdate) error {
+	// Stub implementation for now
+	return nil
+}
+
+// RemoveRepository removes a template repository
+func (c *ContextClient) RemoveRepository(ctx context.Context, name string) error {
+	// Stub implementation for now
+	return nil
+}
+
+// SyncRepositories synchronizes all template repositories
+func (c *ContextClient) SyncRepositories(ctx context.Context) error {
+	// Stub implementation for now
+	return nil
 }

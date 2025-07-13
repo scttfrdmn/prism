@@ -1,20 +1,19 @@
 package components
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
 )
 
-// TabItem represents a single tab in the tab bar
-type TabItem struct {
+// TabBarItem represents a single tab in the advanced tab bar
+type TabBarItem struct {
 	ID    string
 	Title string
 }
 
-// TabBar represents a tab bar component
-type TabBar struct {
-	tabs        []TabItem
+// AdvancedTabBar represents an advanced tab bar component
+type AdvancedTabBar struct {
+	tabs        []TabBarItem
 	activeTab   string
 	width       int
 	showBorder  bool
@@ -22,9 +21,9 @@ type TabBar struct {
 	height      int // typically 1 or 3 (for borders)
 }
 
-// NewTabBar creates a new tab bar with the specified tabs
-func NewTabBar(tabs []TabItem, activeTab string) TabBar {
-	return TabBar{
+// NewAdvancedTabBar creates a new advanced tab bar with the specified tabs
+func NewAdvancedTabBar(tabs []TabBarItem, activeTab string) AdvancedTabBar {
+	return AdvancedTabBar{
 		tabs:      tabs,
 		activeTab: activeTab,
 		width:     80,
@@ -34,27 +33,27 @@ func NewTabBar(tabs []TabItem, activeTab string) TabBar {
 }
 
 // SetActiveTab changes the active tab
-func (t *TabBar) SetActiveTab(tabID string) {
+func (t *AdvancedTabBar) SetActiveTab(tabID string) {
 	t.activeTab = tabID
 }
 
 // GetActiveTab returns the ID of the active tab
-func (t *TabBar) GetActiveTab() string {
+func (t *AdvancedTabBar) GetActiveTab() string {
 	return t.activeTab
 }
 
 // SetWidth sets the width of the tab bar
-func (t *TabBar) SetWidth(width int) {
+func (t *AdvancedTabBar) SetWidth(width int) {
 	t.width = width
 }
 
 // SetTabWidth sets a fixed width for each tab
-func (t *TabBar) SetTabWidth(width int) {
+func (t *AdvancedTabBar) SetTabWidth(width int) {
 	t.tabWidth = width
 }
 
 // SetShowBorder sets whether to show borders
-func (t *TabBar) SetShowBorder(show bool) {
+func (t *AdvancedTabBar) SetShowBorder(show bool) {
 	t.showBorder = show
 	if show {
 		t.height = 3
@@ -64,7 +63,7 @@ func (t *TabBar) SetShowBorder(show bool) {
 }
 
 // ClickTab handles a tab click at the given x position
-func (t *TabBar) ClickTab(x int) (clicked bool) {
+func (t *AdvancedTabBar) ClickTab(x int) (clicked bool) {
 	tabWidth := t.calculateTabWidth()
 	
 	// Calculate which tab was clicked
@@ -83,7 +82,7 @@ func (t *TabBar) ClickTab(x int) (clicked bool) {
 }
 
 // calculateTabWidth returns the width each tab should have
-func (t *TabBar) calculateTabWidth() int {
+func (t *AdvancedTabBar) calculateTabWidth() int {
 	if t.tabWidth > 0 {
 		return t.tabWidth
 	}
@@ -96,8 +95,8 @@ func (t *TabBar) calculateTabWidth() int {
 	return t.width / tabCount
 }
 
-// View renders the tab bar
-func (t *TabBar) View() string {
+// View renders the advanced tab bar
+func (t *AdvancedTabBar) View() string {
 	theme := styles.CurrentTheme
 	
 	// Calculate tab width

@@ -33,6 +33,11 @@ type StatusBar struct {
 	width       int
 }
 
+// LastUpdated returns the time the status was last updated
+func (s StatusBar) LastUpdated() time.Time {
+	return s.lastUpdated
+}
+
 // NewStatusBar creates a new status bar component
 func NewStatusBar(version, region string) StatusBar {
 	return StatusBar{

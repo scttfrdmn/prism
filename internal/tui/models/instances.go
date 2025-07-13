@@ -306,7 +306,7 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Only process table inputs when not loading or performing an action
 		if !m.loading && !m.actionInProgress {
-			var cmd tea.Cmd
+			var _ tea.Cmd
 			tableModel, tableCmd := m.instancesTable.Update(msg)
 			m.instancesTable = tableModel
 			cmds = append(cmds, tableCmd)

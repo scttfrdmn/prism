@@ -299,7 +299,7 @@ func (m IdleInstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// For policy selection dialog
 		return m, nil
 		
-	case api.ListInstancesResponse:
+	case *api.ListInstancesResponse:
 		m.loading = false
 		m.instances = msg.Instances
 		
@@ -418,7 +418,7 @@ func (m IdleInstancesModel) View() string {
 				// Build idle information
 				var idleInfo string
 				if instance.IdleDetection == nil || !instance.IdleDetection.Enabled {
-					idleInfo = theme.WarningText.Render("Idle detection is disabled for this instance")
+					idleInfo = theme.Warning.Render("Idle detection is disabled for this instance")
 				} else {
 					idleInfo = fmt.Sprintf("Idle time: %d minutes\n", instance.IdleDetection.IdleTime)
 					idleInfo += fmt.Sprintf("Policy: %s\n", instance.IdleDetection.Policy)

@@ -110,8 +110,8 @@ func NewRepositoriesModel(apiClient api.CloudWorkstationAPI) RepositoriesModel {
 	spinner := components.NewSpinner("Loading repositories...")
 	
 	// Create tabs
-	tabs := components.NewTabBar(
-		[]components.TabItem{
+	tabs := components.NewAdvancedTabBar(
+		[]components.TabBarItem{
 			{ID: "view", Title: "View"},
 			{ID: "add", Title: "Add Repository"},
 			{ID: "sync", Title: "Sync"},

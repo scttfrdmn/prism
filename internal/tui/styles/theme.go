@@ -33,6 +33,7 @@ type Theme struct {
 	StatusOK    lipgloss.Style
 	StatusError lipgloss.Style
 	StatusWarning lipgloss.Style
+	Warning     lipgloss.Style
 	Help        lipgloss.Style
 	Pagination  lipgloss.Style
 }
@@ -130,6 +131,10 @@ func DefaultTheme() Theme {
 			Bold(true),
 		
 		StatusWarning: lipgloss.NewStyle().
+			Foreground(warningColor).
+			Bold(true),
+		
+		Warning: lipgloss.NewStyle().
 			Foreground(warningColor).
 			Bold(true),
 		

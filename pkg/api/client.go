@@ -204,6 +204,7 @@ func (c *Client) Ping() error {
 
 // HTTP helper methods
 
+// get sends a GET request to the specified path and decodes response into result
 func (c *Client) get(path string, result interface{}) error {
 	resp, err := c.httpClient.Get(c.baseURL + path)
 	if err != nil {
@@ -214,6 +215,7 @@ func (c *Client) get(path string, result interface{}) error {
 	return c.handleResponse(resp, result)
 }
 
+// post sends a POST request to the specified path with optional body and decodes response into result
 func (c *Client) post(path string, body interface{}, result interface{}) error {
 	var reqBody io.Reader
 	if body != nil {
@@ -233,6 +235,36 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 	return c.handleResponse(resp, result)
 }
 
+// put sends a PUT request to the specified path with optional body and decodes response into result
+func (c *Client) put(path string, body interface{}, result interface{}) error {
+	var reqBody io.Reader
+	if body != nil {
+		jsonBody, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("failed to marshal request: %w", err)
+		}
+		reqBody = bytes.NewBuffer(jsonBody)
+	}
+
+	req, err := http.NewRequest(http.MethodPut, c.baseURL+path, reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if reqBody != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return c.handleResponse(resp, result)
+}
+
+// delete sends a DELETE request to the specified path
 func (c *Client) delete(path string) error {
 	req, err := http.NewRequest("DELETE", c.baseURL+path, nil)
 	if err != nil {
@@ -248,6 +280,7 @@ func (c *Client) delete(path string) error {
 	return c.handleResponse(resp, nil)
 }
 
+// handleResponse processes the HTTP response and decodes JSON into the result if provided
 func (c *Client) handleResponse(resp *http.Response, result interface{}) error {
 	if resp.StatusCode >= 400 {
 		var apiErr types.APIError

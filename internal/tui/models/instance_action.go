@@ -215,7 +215,7 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 		
-	case api.InstanceResponse:
+	case *api.InstanceResponse:
 		m.loading = false
 		
 		// Build list of actions based on instance state
@@ -339,7 +339,7 @@ func (m InstanceActionModel) View() string {
 					"",
 					fmt.Sprintf("Are you sure you want to perform this action: %s?", selected.name),
 					"",
-					theme.WarningText.Render("This action may have permanent consequences."),
+					theme.Warning.Render("This action may have permanent consequences."),
 					"",
 					"Press Y to confirm, N to cancel",
 				),

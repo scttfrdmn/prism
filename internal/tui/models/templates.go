@@ -15,8 +15,8 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
-// TemplateItem represents a template in the list
-type TemplateItem struct {
+// BrowserTemplateItem represents a template in the browser list
+type BrowserTemplateItem struct {
 	name        string
 	description string
 	costX86     float64
@@ -25,13 +25,13 @@ type TemplateItem struct {
 }
 
 // FilterValue returns the value to filter on in the list
-func (t TemplateItem) FilterValue() string { return t.name }
+func (t BrowserTemplateItem) FilterValue() string { return t.name }
 
 // Title returns the name of the template
-func (t TemplateItem) Title() string { return t.name }
+func (t BrowserTemplateItem) Title() string { return t.name }
 
 // Description returns a short description of the template
-func (t TemplateItem) Description() string { return t.description }
+func (t BrowserTemplateItem) Description() string { return t.description }
 
 // TemplatesModel represents the templates view
 type TemplatesModel struct {
@@ -137,7 +137,7 @@ func (m TemplatesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 			
 			// Handle template selection changes
-			if i, ok := m.templateList.SelectedItem().(TemplateItem); ok {
+			if i, ok := m.templateList.SelectedItem().(BrowserTemplateItem); ok {
 				if i.name != m.selected {
 					m.selected = i.name
 					m.updateDetailView()
@@ -166,7 +166,7 @@ func (m TemplatesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update template list items
 		var items []list.Item
 		for name, template := range m.templates {
-			items = append(items, TemplateItem{
+			items = append(items, BrowserTemplateItem{
 				name:        name,
 				description: template.Description,
 				costX86:     template.EstimatedCostPerHour["x86_64"],
@@ -180,7 +180,7 @@ func (m TemplatesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		
 		// Select first item
 		if len(items) > 0 {
-			m.selected = items[0].(TemplateItem).name
+			m.selected = items[0].(BrowserTemplateItem).name
 			m.updateDetailView()
 		}
 	}

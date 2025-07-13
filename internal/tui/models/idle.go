@@ -10,10 +10,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // IdlePolicy represents an idle policy configuration item
@@ -22,6 +21,11 @@ type IdlePolicy struct {
 	description string
 	threshold   int    // in minutes
 	action      string // stop, hibernate, notify
+	// Added uppercase for external compatibility
+	Name        string
+	Desc        string // Using Desc instead of Description to avoid conflict with the method
+	Threshold   int
+	Action      string
 }
 
 // FilterValue returns the value to filter on in the list
@@ -38,7 +42,7 @@ func (p IdlePolicy) Description() string {
 
 // IdleSettingsModel represents the idle detection settings view
 type IdleSettingsModel struct {
-	apiClient   api.CloudWorkstationAPI
+	apiClient   apiClient
 	policyList  list.Model
 	statusBar   components.StatusBar
 	spinner     components.Spinner
@@ -46,7 +50,7 @@ type IdleSettingsModel struct {
 	height      int
 	loading     bool
 	error       string
-	policies    []types.IdlePolicy
+	policies    []IdlePolicy
 	selected    string
 	editing     bool
 	threshInput textinput.Model
@@ -54,7 +58,7 @@ type IdleSettingsModel struct {
 }
 
 // NewIdleSettingsModel creates a new idle settings model
-func NewIdleSettingsModel(apiClient api.CloudWorkstationAPI) IdleSettingsModel {
+func NewIdleSettingsModel(apiClient apiClient) IdleSettingsModel {
 	theme := styles.CurrentTheme
 	
 	// Set up policy list
@@ -88,7 +92,7 @@ func NewIdleSettingsModel(apiClient api.CloudWorkstationAPI) IdleSettingsModel {
 		width:       80,
 		height:      24,
 		loading:     true,
-		policies:    []types.IdlePolicy{},
+		policies:    []IdlePolicy{},
 		threshInput: threshInput,
 		actionInput: actionInput,
 		editing:     false,
@@ -131,7 +135,7 @@ func (m IdleSettingsModel) savePolicyChanges() tea.Msg {
 	}
 	
 	// Create update request
-	req := types.IdlePolicyUpdateRequest{
+	req := api.IdlePolicyUpdateRequest{
 		Name:      m.selected,
 		Threshold: threshold,
 		Action:    action,
@@ -239,7 +243,7 @@ func (m IdleSettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.error = msg.Error()
 		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
 		
-	case []types.IdlePolicy:
+	case []IdlePolicy:
 		m.loading = false
 		m.policies = msg
 		
@@ -247,10 +251,15 @@ func (m IdleSettingsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var items []list.Item
 		for _, policy := range m.policies {
 			items = append(items, IdlePolicy{
-				name:        policy.Name,
-				description: policy.Description,
-				threshold:   policy.Threshold,
-				action:      policy.Action,
+				name:        policy.name,
+				description: policy.description,
+				threshold:   policy.threshold,
+				action:      policy.action,
+				// Set uppercase fields for external compatibility
+				Name:        policy.name,
+				Desc:        policy.description,
+				Threshold:   policy.threshold,
+				Action:      policy.action,
 			})
 		}
 		
@@ -332,11 +341,11 @@ func (m IdleSettingsModel) View() string {
 						lipgloss.Left,
 						theme.PanelHeader.Render("Policy Details"),
 						"",
-						"Name: " + policy.Name,
-						"Description: " + policy.Description,
-						"Threshold: " + strconv.Itoa(policy.Threshold) + " minutes",
-						"Action: " + strings.ToUpper(policy.Action),
-						"Instance Types: " + strings.Join(policy.AppliesTo, ", "),
+						"Name: " + policy.name,
+						"Description: " + policy.description,
+						"Threshold: " + strconv.Itoa(policy.threshold) + " minutes",
+						"Action: " + strings.ToUpper(policy.action),
+						"Instance Types: All",
 						"",
 						"Press 'e' to edit this policy",
 					),

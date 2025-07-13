@@ -9,32 +9,47 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
+// CostData represents cost information for display
+type CostData struct {
+	DailyCost   float64
+	MonthlyCost float64
+	ByTemplate  map[string]float64
+	ByInstance  map[string]float64
+	Storage     float64
+	Volumes     float64
+}
+
 // DashboardModel represents the dashboard view
 type DashboardModel struct {
-	apiClient      api.CloudWorkstationAPI
+	apiClient      apiClient
 	instancesTable components.Table
 	statusBar      components.StatusBar
 	spinner        components.Spinner
+	tabs           components.TabBar
 	width          int
 	height         int
 	loading        bool
 	error          string
-	instances      []types.Instance
-	totalCost      float64
+	instances      []api.InstanceResponse
+	storage        []api.StorageResponse
+	volumes        []api.VolumeResponse
+	costData       CostData
+	activeTab      string
+	refreshTicker  tea.Cmd
 }
 
-// RefreshMsg is sent when data should be refreshed
-type RefreshMsg struct{}
+// DashboardRefreshMsg is sent when dashboard data should be refreshed
+type DashboardRefreshMsg struct{}
 
 // NewDashboardModel creates a new dashboard model
-func NewDashboardModel(apiClient api.CloudWorkstationAPI) DashboardModel {
+func NewDashboardModel(apiClient apiClient) DashboardModel {
+	
 	// Create instances table
 	columns := []table.Column{
 		{Title: "NAME", Width: 20},
@@ -45,21 +60,31 @@ func NewDashboardModel(apiClient api.CloudWorkstationAPI) DashboardModel {
 	
 	instancesTable := components.NewTable(columns, []table.Row{}, 60, 5, true)
 	
-	// Create status bar with version and placeholder region
-	statusBar := components.NewStatusBar(version.GetVersion(), "us-west-2")
+	// Create tabs
+	tabs := components.NewTabBar(
+		[]string{"Overview", "Instances", "Storage", "Costs"},
+		0,
+	)
 	
-	// Create spinner for loading state
-	spinner := components.NewSpinner("Loading instances...")
+	// Create status bar and spinner
+	statusBar := components.NewStatusBar("CloudWorkstation Dashboard", version.GetVersion())
+	spinner := components.NewSpinner("Loading dashboard data...")
 	
 	return DashboardModel{
-		apiClient:      apiClient,
+		apiClient:     apiClient,
 		instancesTable: instancesTable,
-		statusBar:      statusBar,
-		spinner:        spinner,
-		width:          80,
-		height:         24,
-		loading:        true,
-		instances:      []types.Instance{},
+		statusBar:     statusBar,
+		spinner:       spinner,
+		tabs:          tabs,
+		width:         80,
+		height:        24,
+		loading:       true,
+		activeTab:     "Overview",
+		refreshTicker: refreshRoutine(30 * time.Second),
+		costData: CostData{
+			ByTemplate: make(map[string]float64),
+			ByInstance: make(map[string]float64),
+		},
 	}
 }
 
@@ -67,12 +92,13 @@ func NewDashboardModel(apiClient api.CloudWorkstationAPI) DashboardModel {
 func (m DashboardModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.InitialCmd(),
-		m.fetchInstances,
+		m.fetchDashboardData,
+		m.refreshTicker,
 	)
 }
 
-// fetchInstances retrieves instance data from the API
-func (m DashboardModel) fetchInstances() tea.Msg {
+// fetchDashboardData retrieves instance data from the API
+func (m DashboardModel) fetchDashboardData() tea.Msg {
 	response, err := m.apiClient.ListInstances(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list instances: %w", err)
@@ -96,26 +122,26 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			m.loading = true
 			m.error = ""
-			return m, m.fetchInstances
+			return m, m.fetchDashboardData
 			
 		case "q", "esc":
 			return m, tea.Quit
 		}
 
-	case RefreshMsg:
+	case DashboardRefreshMsg:
 		m.loading = true
 		m.error = ""
-		return m, m.fetchInstances
+		return m, m.fetchDashboardData
 
 	case error:
 		m.loading = false
 		m.error = msg.Error()
 		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
 		
-	case *types.ListResponse:
+	case *api.ListInstancesResponse:
 		m.loading = false
 		m.instances = msg.Instances
-		m.totalCost = msg.TotalCost
+		m.costData.DailyCost = msg.TotalCost
 
 		// Update instances table
 		rows := []table.Row{}
@@ -133,7 +159,7 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Schedule next refresh
 		return m, tea.Tick(30*time.Second, func(t time.Time) tea.Msg {
-			return RefreshMsg{}
+			return DashboardRefreshMsg{}
 		})
 	}
 
@@ -197,8 +223,8 @@ func (m DashboardModel) View() string {
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				theme.PanelHeader.Render("Cost Overview"),
-				fmt.Sprintf("Daily Cost: $%.2f", m.totalCost),
-				fmt.Sprintf("Monthly Estimate: $%.2f", m.totalCost*30),
+				fmt.Sprintf("Daily Cost: $%.2f", m.costData.DailyCost),
+				fmt.Sprintf("Monthly Estimate: $%.2f", m.costData.DailyCost*30),
 			),
 		)
 		
