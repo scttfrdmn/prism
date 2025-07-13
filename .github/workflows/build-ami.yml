@@ -1,0 +1,195 @@
+name: AMI Builder
+
+on:
+  # Build AMIs on a weekly schedule for security updates
+  schedule:
+    - cron: '0 2 * * 1'  # Every Monday at 2:00 AM UTC
+  
+  # Build AMIs when templates change
+  push:
+    branches: [main]
+    paths:
+      - 'templates/**'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      templates:
+        description: 'Comma-separated list of templates to build (leave empty for all)'
+        required: false
+        default: ''
+      regions:
+        description: 'Comma-separated list of AWS regions'
+        required: false
+        default: 'us-east-1,us-west-2'
+      architectures:
+        description: 'Comma-separated list of architectures to build'
+        required: false
+        default: 'x86_64,arm64'
+
+env:
+  DEFAULT_REGIONS: 'us-east-1,us-west-2,us-east-2,us-west-1'
+  DEFAULT_ARCHITECTURES: 'x86_64,arm64'
+
+jobs:
+  prepare:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+      
+      - name: Determine templates to build
+        id: set-templates
+        run: |
+          if [[ -n "${{ github.event.inputs.templates }}" ]]; then
+            # User provided specific templates
+            TEMPLATES="${{ github.event.inputs.templates }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            # Get templates that changed in the push
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+            CHANGED_TEMPLATES=""
+            for FILE in $CHANGED_FILES; do
+              if [[ $FILE == templates/*.y*ml ]]; then
+                TEMPLATE=$(basename $FILE)
+                TEMPLATE_NAME="${TEMPLATE%.*}"
+                CHANGED_TEMPLATES="$CHANGED_TEMPLATES,$TEMPLATE_NAME"
+              fi
+            done
+            TEMPLATES="${CHANGED_TEMPLATES#,}"
+          else
+            # Get all available templates
+            TEMPLATES=""
+            for FILE in templates/*.y*ml; do
+              TEMPLATE=$(basename $FILE)
+              TEMPLATE_NAME="${TEMPLATE%.*}"
+              TEMPLATES="$TEMPLATES,$TEMPLATE_NAME"
+            done
+            TEMPLATES="${TEMPLATES#,}"
+          fi
+          echo "Templates to build: $TEMPLATES"
+          echo "templates=$TEMPLATES" >> $GITHUB_OUTPUT
+      
+      - name: Determine regions and architectures
+        id: set-regions-archs
+        run: |
+          # Set regions
+          if [[ -n "${{ github.event.inputs.regions }}" ]]; then
+            REGIONS="${{ github.event.inputs.regions }}"
+          else
+            REGIONS="${DEFAULT_REGIONS}"
+          fi
+          
+          # Set architectures
+          if [[ -n "${{ github.event.inputs.architectures }}" ]]; then
+            ARCHITECTURES="${{ github.event.inputs.architectures }}"
+          else
+            ARCHITECTURES="${DEFAULT_ARCHITECTURES}"
+          fi
+          
+          echo "regions=$REGIONS" >> $GITHUB_OUTPUT
+          echo "architectures=$ARCHITECTURES" >> $GITHUB_OUTPUT
+
+      - name: Set build matrix
+        id: set-matrix
+        run: |
+          # Convert comma-separated lists to JSON arrays
+          TEMPLATES_JSON=$(echo "${{ steps.set-templates.outputs.templates }}" | sed 's/,/","/g')
+          REGIONS_JSON=$(echo "${{ steps.set-regions-archs.outputs.regions }}" | sed 's/,/","/g')
+          ARCHITECTURES_JSON=$(echo "${{ steps.set-regions-archs.outputs.architectures }}" | sed 's/,/","/g')
+          
+          # Create the matrix JSON
+          echo "matrix={\"template\":[\"$TEMPLATES_JSON\"],\"region\":[\"$REGIONS_JSON\"],\"architecture\":[\"$ARCHITECTURES_JSON\"]}" >> $GITHUB_OUTPUT
+
+  build-ami:
+    name: Build AMI
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+      fail-fast: false  # Continue with other matrix jobs even if one fails
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+      
+      - name: Build CloudWorkstation
+        run: go build -o cws
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ matrix.region }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-duration-seconds: 3600
+
+      - name: Get Default VPC and Subnet
+        id: aws-resources
+        run: |
+          # Get default VPC
+          VPC_ID=$(aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query "Vpcs[0].VpcId" --output text)
+          echo "vpc_id=$VPC_ID" >> $GITHUB_OUTPUT
+
+          # Get first subnet in the default VPC
+          SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query "Subnets[0].SubnetId" --output text)
+          echo "subnet_id=$SUBNET_ID" >> $GITHUB_OUTPUT
+          
+          # Get default security group
+          SG_ID=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC_ID" "Name=group-name,Values=default" --query "SecurityGroups[0].GroupId" --output text)
+          echo "security_group_id=$SG_ID" >> $GITHUB_OUTPUT
+      
+      - name: Build AMI
+        id: build-ami
+        env:
+          AWS_REGION: ${{ matrix.region }}
+          AWS_DEFAULT_VPC: ${{ steps.aws-resources.outputs.vpc_id }}
+          AWS_DEFAULT_SUBNET: ${{ steps.aws-resources.outputs.subnet_id }}
+          AWS_DEFAULT_SECURITY_GROUP: ${{ steps.aws-resources.outputs.security_group_id }}
+        run: |
+          echo "Building AMI for template: ${{ matrix.template }}, region: ${{ matrix.region }}, architecture: ${{ matrix.architecture }}"
+          
+          # Build AMI using CLI
+          ./cws ami build ${{ matrix.template }} --region ${{ matrix.region }} --arch ${{ matrix.architecture }} --copy-to-regions "${DEFAULT_REGIONS}" | tee build.log
+          
+          # Extract AMI ID from the output
+          AMI_ID=$(grep -oP "AMI build successful: \K[a-zA-Z0-9-]+" build.log || echo "")
+          
+          if [[ -n "$AMI_ID" ]]; then
+            echo "ami_id=$AMI_ID" >> $GITHUB_OUTPUT
+            echo "✅ AMI build successful: $AMI_ID"
+          else
+            echo "❌ AMI build failed"
+            exit 1
+          fi
+      
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ami-build-logs-${{ matrix.template }}-${{ matrix.region }}-${{ matrix.architecture }}
+          path: |
+            build.log
+            *-build.log
+      
+      - name: Update AMI Registry
+        if: success()
+        run: |
+          # Log the AMI details to a GitHub step summary
+          echo "## AMI Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Template:** ${{ matrix.template }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ matrix.region }}" >> $GITHUB_STEP_SUMMARY 
+          echo "- **Architecture:** ${{ matrix.architecture }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AMI ID:** ${{ steps.build-ami.outputs.ami_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
