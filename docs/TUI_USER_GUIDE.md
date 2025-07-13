@@ -1,233 +1,187 @@
-# CloudWorkstation Terminal User Interface (TUI) Guide
+# CloudWorkstation TUI Guide
 
-## Overview
+![TUI Screenshot](https://via.placeholder.com/800x400?text=CloudWorkstation+TUI)
 
-CloudWorkstation's Terminal User Interface (TUI) provides an intuitive, keyboard-driven interface for managing your cloud workstations. It offers all the functionality of the command-line interface in a visual format that's easy to navigate and use.
+## What is the TUI?
 
-## Getting Started
+TUI stands for "Terminal User Interface." It's a colorful, interactive way to use CloudWorkstation without typing lots of commands. You can navigate with arrow keys and see everything on one screen!
 
-To launch the TUI, run:
+## How to Start the TUI
+
+Open your terminal and type:
 
 ```bash
 cws tui
 ```
 
-This will open the dashboard view showing a summary of your CloudWorkstation resources.
+That's it! You'll see a colorful screen with tabs at the top.
 
-## Navigation
+## Finding Your Way Around
 
-The TUI is organized into multiple views, with a tab bar at the top for navigation:
+The TUI has several different screens (called "views") that you can switch between:
 
-- **Dashboard**: Overview of your workstations and resources
-- **Instances**: Manage your running and stopped workstations
-- **Templates**: Browse and launch available workstation templates
-- **Storage**: Manage EFS volumes and EBS storage
-- **Settings**: Configure CloudWorkstation preferences
+![TUI Navigation](https://via.placeholder.com/600x100?text=Dashboard+|+Instances+|+Templates+|+Storage+|+Settings)
 
-### Basic Controls
+### How to Move Between Views
 
-- **Tab Navigation**: Use <kbd>←</kbd> and <kbd>→</kbd> arrow keys or <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd> to move between tabs
-- **List Navigation**: Use <kbd>↑</kbd> and <kbd>↓</kbd> arrow keys to navigate lists
-- **Selection**: Press <kbd>Enter</kbd> to select an item or activate a control
-- **Help**: Press <kbd>?</kbd> to show available keyboard shortcuts for the current view
-- **Quit**: Press <kbd>Ctrl+C</kbd> or <kbd>q</kbd> to exit the TUI
+- Use the **Left Arrow** and **Right Arrow** keys to move between tabs
+- Or press **Tab** to move forward and **Shift+Tab** to move backward
+- Press **?** anytime to see available keyboard shortcuts
 
-### Search
+## The Dashboard View
 
-In list views (Instances, Templates, Storage), you can search by pressing <kbd>/</kbd> to activate the search box. Type your search query and results will filter as you type. Press <kbd>Esc</kbd> to cancel search mode.
+![Dashboard](https://via.placeholder.com/600x300?text=Dashboard+View)
 
-## Dashboard View
+The Dashboard shows you:
+- How many cloud computers you have running
+- How much they cost per day
+- Recent activities
+- Quick actions you can take
 
-The Dashboard provides an overview of your CloudWorkstation resources:
+**Keyboard shortcuts:**
+- **r**: Refresh the dashboard
+- **→**: Go to Instances view
 
-- **Instance Summary**: Count of running and stopped instances
-- **Cost Summary**: Daily and monthly estimated costs
-- **Recent Activity**: Latest actions performed
-- **Quick Actions**: Common operations accessible with keyboard shortcuts
+## The Instances View
 
-### Dashboard Controls
+![Instances](https://via.placeholder.com/600x300?text=Instances+View)
 
-- <kbd>r</kbd>: Refresh dashboard data
-- <kbd>→</kbd>: Navigate to Instances view
+This is where you can see and manage all your cloud computers.
 
-## Instances View
+For each instance, you'll see:
+- **Name**: What you named your cloud computer
+- **Template**: What research environment it uses
+- **State**: Whether it's running or stopped
+- **IP Address**: Its internet address (when running)
+- **Cost/Day**: How much it costs per day
 
-The Instances view shows all your workstations with their current status:
+**Keyboard shortcuts:**
+- **↑/↓**: Move up and down the list
+- **Enter**: Show more details about a selected instance
+- **s**: Start a stopped instance
+- **p**: Stop a running instance
+- **c**: Connect to an instance
+- **d**: Delete an instance (it will ask you to confirm first)
+- **r**: Refresh the list
+- **/**: Search for a specific instance
 
-- **Name**: Instance name
-- **Template**: The template used to create the instance
-- **State**: Current state (running, stopped, etc.)
-- **IP**: Public IP address (if available)
-- **Cost/Day**: Estimated daily cost
+## The Templates View
 
-### Instance Controls
+![Templates](https://via.placeholder.com/600x300?text=Templates+View)
 
-- <kbd>↑</kbd>/<kbd>↓</kbd>: Navigate instance list
-- <kbd>Enter</kbd>: Show instance details
-- <kbd>s</kbd>: Start selected instance
-- <kbd>p</kbd>: Stop selected instance
-- <kbd>c</kbd>: Connect to selected instance (shows connection options)
-- <kbd>d</kbd>: Delete selected instance (with confirmation)
-- <kbd>r</kbd>: Refresh instance list
-- <kbd>/</kbd>: Search instances
+This is where you can see all the available research environments and launch new cloud computers.
 
-## Templates View
+**Keyboard shortcuts:**
+- **↑/↓**: Move up and down the list
+- **Enter**: See more details about a template
+- **l**: Launch a new cloud computer using the selected template
+- **r**: Refresh the template list
+- **/**: Search for a specific template
 
-The Templates view allows you to browse and launch available workstation templates:
+### Launching a New Cloud Computer
 
-- **Name**: Template name
-- **Description**: Brief description of the template
-- **Architecture**: Supported architectures (x86_64, arm64)
-- **Cost**: Estimated hourly/daily cost
+When you press **l** to launch a template, you'll see a form where you can:
 
-### Template Controls
+1. Enter a name for your new cloud computer
+2. Choose a size (XS, S, M, L, XL) - bigger sizes are more powerful but cost more
+3. See advanced options (optional)
 
-- <kbd>↑</kbd>/<kbd>↓</kbd>: Navigate template list
-- <kbd>Enter</kbd>: View template details
-- <kbd>l</kbd>: Launch selected template (opens launch dialog)
-- <kbd>r</kbd>: Refresh template list
-- <kbd>/</kbd>: Search templates
+## The Storage View
 
-### Launch Dialog
+![Storage](https://via.placeholder.com/600x300?text=Storage+View)
 
-When launching a template, you'll be prompted to configure:
+This is where you can manage your storage volumes (places to save your files).
 
-1. **Instance Name**: Enter a name for your workstation
-2. **Size**: Select from XS, S, M, L, XL (determines instance type)
-3. **Advanced Options**: Toggle to show/hide advanced settings
-   - Instance Type: Override automatic selection
-   - Spot Instance: Use spot pricing for lower cost (with interruption risk)
-   - Volumes: Attach EFS volumes
-   - Storage: Add EBS storage volumes
+### EFS Volumes (Shared Storage)
 
-## Storage View
+These are special storage volumes that can be shared between multiple cloud computers.
 
-The Storage view manages your persistent storage resources:
+**Keyboard shortcuts:**
+- **↑/↓**: Move up and down the list
+- **Enter**: See volume details
+- **c**: Create a new volume
+- **d**: Delete a volume
+- **r**: Refresh the list
 
-### EFS Volumes Tab
+### EBS Storage (Computer Storage)
 
-- **Name**: Volume name
-- **Size**: Current size in GB
-- **State**: Available, creating, etc.
-- **Mount Target**: Network location for mounting
+These are storage volumes attached to a specific cloud computer.
 
-#### EFS Controls
+**Keyboard shortcuts:**
+- **↑/↓**: Move up and down the list
+- **Enter**: See storage details
+- **c**: Create a new storage volume
+- **a**: Attach a volume to a cloud computer
+- **d**: Detach a volume
+- **x**: Delete a volume
+- **r**: Refresh the list
 
-- <kbd>↑</kbd>/<kbd>↓</kbd>: Navigate volume list
-- <kbd>Enter</kbd>: View volume details
-- <kbd>c</kbd>: Create new volume
-- <kbd>d</kbd>: Delete selected volume (with confirmation)
-- <kbd>r</kbd>: Refresh volume list
+## The Settings View
 
-### EBS Storage Tab
+![Settings](https://via.placeholder.com/600x300?text=Settings+View)
 
-- **Name**: Storage volume name
-- **Size**: Size in GB
-- **Type**: gp3, io2, etc.
-- **State**: Available, in-use, etc.
-- **Attached To**: Instance name (if attached)
+Here you can change how CloudWorkstation works.
 
-#### EBS Controls
+**Settings you can change:**
+- **AWS Profile**: Which AWS account to use
+- **AWS Region**: Which part of the world to create your cloud computers in
+- **Theme**: Choose between light and dark colors
+- **Registry**: Where to find templates
 
-- <kbd>↑</kbd>/<kbd>↓</kbd>: Navigate storage list
-- <kbd>Enter</kbd>: View storage details
-- <kbd>c</kbd>: Create new storage volume
-- <kbd>a</kbd>: Attach selected volume to an instance
-- <kbd>d</kbd>: Detach selected volume
-- <kbd>x</kbd>: Delete selected volume (with confirmation)
-- <kbd>r</kbd>: Refresh storage list
+**Keyboard shortcuts:**
+- **Tab/Shift+Tab**: Move between settings
+- **Enter**: Change a setting
+- **↑/↓**: Select from available options
+- **s**: Save your changes
 
-## Settings View
+## Changing Colors: Light and Dark Theme
 
-The Settings view allows you to configure CloudWorkstation preferences:
+CloudWorkstation can use either dark colors (easier on the eyes at night) or light colors (better in bright rooms).
 
-- **AWS Profile**: Select AWS profile to use
-- **AWS Region**: Select default region
-- **Theme**: Toggle between light and dark mode
-- **Registry**: Enable/disable AMI registry lookup
-
-### Settings Controls
-
-- <kbd>Tab</kbd>/<kbd>Shift+Tab</kbd>: Navigate between settings
-- <kbd>Enter</kbd>: Select/edit a setting
-- <kbd>↑</kbd>/<kbd>↓</kbd>: Change selected option
-- <kbd>s</kbd>: Save changes
-
-## Theme Switching
-
-CloudWorkstation TUI supports both light and dark themes:
-
-- **Dark Theme**: Default theme optimized for low-light environments
-- **Light Theme**: High-contrast theme for bright environments
-
-To toggle between themes:
-1. Navigate to the Settings view
+To switch between them:
+1. Go to the Settings view
 2. Select the Theme setting
-3. Press <kbd>Enter</kbd> to toggle between Dark and Light
-4. Press <kbd>s</kbd> to save your preference
+3. Press **Enter** to switch between Dark and Light
+4. Press **s** to save your choice
 
-## Notifications
+## Helpful Messages
 
-The TUI displays notifications for important events:
+The TUI will show you messages at the top of the screen:
 
-- **Success**: Green notifications for completed operations
-- **Error**: Red notifications for failed operations
-- **Info**: Blue notifications for information messages
+- **Green messages**: Success! Something worked correctly
+- **Red messages**: Error - something went wrong
+- **Blue messages**: Just information for you to know
 
-Notifications appear at the top of the screen and automatically dismiss after a few seconds.
+These messages will disappear after a few seconds.
 
-## Advanced Features
+## Searching for Things
 
-### Keyboard Shortcuts Reference
+In any list (Instances, Templates, Storage), you can search by:
 
-Press <kbd>?</kbd> in any view to show a contextual help dialog with all available keyboard shortcuts.
+1. Pressing **/** to start searching
+2. Typing what you're looking for
+3. Pressing **Esc** to cancel the search and show everything again
 
-### Search Functionality
+## What If the TUI Doesn't Look Right?
 
-- The search feature (<kbd>/</kbd>) supports partial matching and is case-insensitive.
-- Search results update in real-time as you type.
-- Press <kbd>Esc</kbd> to clear the search and show all items.
+If the TUI doesn't display correctly:
+- Try making your terminal window bigger
+- Check that your terminal supports colors
+- Make sure you have the latest version of CloudWorkstation
 
-### Progress Indicators
+## Getting Out of the TUI
 
-Long-running operations (launch, delete, etc.) display progress indicators to keep you informed:
+When you're done using the TUI:
+- Press **q** to quit
+- Or press **Ctrl+C**
 
-- Spinner animation during the operation
-- Percentage complete (when available)
-- Operation-specific status messages
+You'll go back to the regular command line.
 
-## Troubleshooting
+## Need More Help?
 
-### Common Issues
+If you need more help, press **?** while in the TUI to see all available keyboard shortcuts for the current view.
 
-1. **TUI doesn't display properly**:
-   - Ensure your terminal supports TrueColor and Unicode
-   - Try resizing your terminal window
-   - Check if TERM environment variable is set correctly
-
-2. **Operation fails with error**:
-   - Check AWS credentials are configured correctly
-   - Verify you have necessary permissions in AWS
-   - Check daemon is running with `cws daemon status`
-
-3. **TUI appears frozen**:
-   - Some operations may take time to complete
-   - Look for progress indicators at the bottom of the screen
-   - Press <kbd>Ctrl+C</kbd> to exit if unresponsive
-
-### Logs
-
-The TUI logs errors and important events to:
-```
-~/.cloudworkstation/logs/tui.log
-```
-
-Examine this file for detailed error information when troubleshooting.
-
-## Integration with CLI
-
-The TUI works alongside the CLI, sharing the same state file and daemon process. Changes made in one interface will be reflected in the other.
-
-To switch between interfaces:
-- Exit TUI with <kbd>q</kbd>, then use CLI commands
-- From CLI, run `cws tui` to launch the TUI again
+Or check out these resources:
+- The CloudWorkstation help command: `cws help`
+- The Getting Started Guide
+- Ask your research supervisor for help

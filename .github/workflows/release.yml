@@ -1,0 +1,197 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (without v prefix)'
+        required: true
+        default: '0.4.1'
+      prerelease:
+        description: 'Is this a pre-release?'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Build Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "PRERELEASE=${{ github.event.inputs.prerelease }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+            echo "PRERELEASE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Build for Linux amd64
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o bin/cws-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
+          GOOS=linux GOARCH=amd64 go build -o bin/cwsd-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
+          cd bin && tar -czf cws-linux-amd64.tar.gz cws-linux-amd64 cwsd-linux-amd64 && cd ..
+
+      - name: Build for Linux arm64
+        run: |
+          GOOS=linux GOARCH=arm64 go build -o bin/cws-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
+          GOOS=linux GOARCH=arm64 go build -o bin/cwsd-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
+          cd bin && tar -czf cws-linux-arm64.tar.gz cws-linux-arm64 cwsd-linux-arm64 && cd ..
+
+      - name: Build for macOS amd64
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -o bin/cws-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
+          GOOS=darwin GOARCH=amd64 go build -o bin/cwsd-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
+          cd bin && tar -czf cws-macos-amd64.tar.gz cws-macos-amd64 cwsd-macos-amd64 && cd ..
+
+      - name: Build for macOS arm64
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -o bin/cws-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
+          GOOS=darwin GOARCH=arm64 go build -o bin/cwsd-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
+          cd bin && tar -czf cws-macos-arm64.tar.gz cws-macos-arm64 cwsd-macos-arm64 && cd ..
+
+      - name: Build for Windows amd64
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o bin/cws-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cws
+          GOOS=windows GOARCH=amd64 go build -o bin/cwsd-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
+          cd bin && zip -r cws-windows-amd64.zip cws-windows-amd64.exe cwsd-windows-amd64.exe && cd ..
+
+      - name: Generate checksums
+        run: |
+          cd bin
+          sha256sum cws-linux-amd64.tar.gz cws-linux-arm64.tar.gz cws-macos-amd64.tar.gz cws-macos-arm64.tar.gz cws-windows-amd64.zip > SHA256SUMS
+          cd ..
+      
+      - name: Determine release type
+        id: release_type
+        run: |
+          if [[ "$PRERELEASE" == "true" ]]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+            echo "RELEASE_NAME=CloudWorkstation v${VERSION} (Beta)" >> $GITHUB_ENV
+            echo "CHANNEL=beta" >> $GITHUB_ENV
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+            echo "RELEASE_NAME=CloudWorkstation v${VERSION}" >> $GITHUB_ENV
+            echo "CHANNEL=stable" >> $GITHUB_ENV
+          fi
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.VERSION }}
+          release_name: ${{ env.RELEASE_NAME }}
+          draft: true
+          prerelease: ${{ env.IS_PRERELEASE }}
+          body: |
+            # CloudWorkstation v${{ env.VERSION }} (${{ env.CHANNEL }})
+            
+            Release notes: [CHANGELOG.md](https://github.com/scttfrdmn/cloudworkstation/blob/main/CHANGELOG.md)
+            
+            ## Installation
+            
+            ### Homebrew (macOS and Linux)
+            ```bash
+            # Stable channel
+            brew install scttfrdmn/cloudworkstation/cloudworkstation
+            
+            # Test channel (if applicable)
+            brew install --head scttfrdmn/cloudworkstation/cloudworkstation
+            ```
+            
+            ### Chocolatey (Windows)
+            ```powershell
+            # Stable channel
+            choco install cloudworkstation
+            
+            # Test channel (if applicable)
+            choco install cloudworkstation --pre
+            ```
+            
+            ### Conda (All platforms)
+            ```bash
+            # Stable channel
+            conda install cloudworkstation -c scttfrdmn
+            
+            # Test channel (if applicable)
+            conda install cloudworkstation -c scttfrdmn/label/dev
+            ```
+            
+            ### Direct download
+            Download the appropriate binary for your platform below.
+
+      - name: Upload Linux amd64 asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/cws-linux-amd64.tar.gz
+          asset_name: cws-linux-amd64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Linux arm64 asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/cws-linux-arm64.tar.gz
+          asset_name: cws-linux-arm64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload macOS amd64 asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/cws-macos-amd64.tar.gz
+          asset_name: cws-macos-amd64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload macOS arm64 asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/cws-macos-arm64.tar.gz
+          asset_name: cws-macos-arm64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Windows amd64 asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/cws-windows-amd64.zip
+          asset_name: cws-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Upload checksums
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/SHA256SUMS
+          asset_name: SHA256SUMS
+          asset_content_type: text/plain
