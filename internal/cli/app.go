@@ -1,39 +1,95 @@
+// Package cli implements CloudWorkstation's command-line interface application.
+//
+// This package provides the CLI application logic for the CloudWorkstation client (cws).
+// It handles command parsing, API client communication, output formatting, and user
+// interaction flows while maintaining CloudWorkstation's core design principles.
+//
+// Application Structure:
+//   - App: Main CLI application with command routing
+//   - Command handlers for all CloudWorkstation operations
+//   - Output formatting with tables and JSON support
+//   - Error handling with user-friendly messages
+//   - Configuration management and validation
+//
+// Supported Commands:
+//   - launch: Create new research instances
+//   - list: Show instance status and costs
+//   - connect: Get connection information
+//   - stop/start: Instance lifecycle management
+//   - volumes: EFS volume operations
+//   - storage: EBS storage management
+//
+// Design Philosophy:
+// Follows "Progressive Disclosure" - simple commands with optional advanced flags.
+// All operations provide clear feedback and cost visibility.
+//
+// Usage:
+//
+//	app := cli.NewApp(apiClient)
+//	err := app.Run(os.Args)
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/spf13/cobra"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // App represents the CLI application
 type App struct {
-	version   string
-	apiClient api.CloudWorkstationAPI
+	version    string
+	apiClient  api.CloudWorkstationAPI
+	ctx        context.Context // Context for AWS operations
+	tuiCommand *cobra.Command
 }
 
 // NewApp creates a new CLI application
 func NewApp(version string) *App {
-	return &App{
-		version:   version,
-		apiClient: api.NewClient(""), // Uses default localhost:8080
+	// Check for custom API URL from environment
+	apiURL := os.Getenv("CWSD_URL")
+	
+	app := &App{
+		version:    version,
+		apiClient:  api.NewClient(apiURL), // Uses CWSD_URL or default localhost:8080
+		ctx:        context.Background(),
 	}
+	
+	// Initialize TUI command
+	app.tuiCommand = NewTUICommand()
+	
+	return app
+}
+
+// NewAppWithClient creates a new CLI application with a custom API client
+func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
+	return &App{
+		version:    version,
+		apiClient:  client,
+		ctx:        context.Background(),
+	}
+}
+
+// TUI launches the terminal UI
+func (a *App) TUI(_ []string) error {
+	return a.tuiCommand.Execute()
 }
 
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws launch <template> <name> [options]")
+		return fmt.Errorf("usage: cws launch <template> <n> [options]")
 	}
 
 	template := args[0]
 	name := args[1]
-	
+
 	// Parse options
 	req := types.LaunchRequest{
 		Template: template,
@@ -55,6 +111,12 @@ func (a *App) Launch(args []string) error {
 			i++
 		case arg == "--region" && i+1 < len(args):
 			req.Region = args[i+1]
+			i++
+		case arg == "--subnet" && i+1 < len(args):
+			req.SubnetID = args[i+1]
+			i++
+		case arg == "--vpc" && i+1 < len(args):
+			req.VpcID = args[i+1]
 			i++
 		case arg == "--spot":
 			req.Spot = true
@@ -78,12 +140,12 @@ func (a *App) Launch(args []string) error {
 	fmt.Printf("🚀 %s\n", response.Message)
 	fmt.Printf("💰 Estimated cost: %s\n", response.EstimatedCost)
 	fmt.Printf("🔗 Connect with: %s\n", response.ConnectionInfo)
-	
+
 	return nil
 }
 
 // List handles the list command
-func (a *App) List(args []string) error {
+func (a *App) List(_ []string) error {
 	// Check daemon is running
 	if err := a.apiClient.Ping(); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -95,13 +157,13 @@ func (a *App) List(args []string) error {
 	}
 
 	if len(response.Instances) == 0 {
-		fmt.Println("No workstations found. Launch one with: cws launch <template> <name>")
+		fmt.Println("No workstations found. Launch one with: cws launch <template> <n>")
 		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tLAUNCHED")
-	
+
 	for _, instance := range response.Instances {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\n",
 			instance.Name,
@@ -112,17 +174,17 @@ func (a *App) List(args []string) error {
 			instance.LaunchTime.Format("2006-01-02 15:04"),
 		)
 	}
-	
+
 	fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", response.TotalCost)
 	w.Flush()
-	
+
 	return nil
 }
 
 // Connect handles the connect command
 func (a *App) Connect(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws connect <name>")
+		return fmt.Errorf("usage: cws connect <n>")
 	}
 
 	name := args[0]
@@ -146,7 +208,7 @@ func (a *App) Connect(args []string) error {
 // Stop handles the stop command
 func (a *App) Stop(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws stop <name>")
+		return fmt.Errorf("usage: cws stop <n>")
 	}
 
 	name := args[0]
@@ -168,7 +230,7 @@ func (a *App) Stop(args []string) error {
 // Start handles the start command
 func (a *App) Start(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws start <name>")
+		return fmt.Errorf("usage: cws start <n>")
 	}
 
 	name := args[0]
@@ -190,7 +252,7 @@ func (a *App) Start(args []string) error {
 // Delete handles the delete command
 func (a *App) Delete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws delete <name>")
+		return fmt.Errorf("usage: cws delete <n>")
 	}
 
 	name := args[0]
@@ -239,7 +301,7 @@ func (a *App) Volume(args []string) error {
 
 func (a *App) volumeCreate(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume create <name> [options]")
+		return fmt.Errorf("usage: cws volume create <n> [options]")
 	}
 
 	req := types.VolumeCreateRequest{
@@ -269,43 +331,43 @@ func (a *App) volumeCreate(args []string) error {
 		return fmt.Errorf("failed to create volume: %w", err)
 	}
 
-	fmt.Printf("📁 Created EFS volume %s (%s)\n", volume.Name, volume.FileSystemId)
+	fmt.Printf("📁 Created EFS volume %s (%s)\n", volume.Name, volume.FileSystemID)
 	return nil
 }
 
-func (a *App) volumeList(args []string) error {
+func (a *App) volumeList(_ []string) error {
 	volumes, err := a.apiClient.ListVolumes()
 	if err != nil {
 		return fmt.Errorf("failed to list volumes: %w", err)
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println("No EFS volumes found. Create one with: cws volume create <name>")
+		fmt.Println("No EFS volumes found. Create one with: cws volume create <n>")
 		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 	fmt.Fprintln(w, "NAME\tFILESYSTEM ID\tSTATE\tSIZE\tCOST/MONTH")
-	
+
 	for _, volume := range volumes {
 		sizeGB := float64(volume.SizeBytes) / (1024 * 1024 * 1024)
 		costMonth := sizeGB * volume.EstimatedCostGB
 		fmt.Fprintf(w, "%s\t%s\t%s\t%.1f GB\t$%.2f\n",
 			volume.Name,
-			volume.FileSystemId,
+			volume.FileSystemID,
 			strings.ToUpper(volume.State),
 			sizeGB,
 			costMonth,
 		)
 	}
 	w.Flush()
-	
+
 	return nil
 }
 
 func (a *App) volumeInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume info <name>")
+		return fmt.Errorf("usage: cws volume info <n>")
 	}
 
 	name := args[0]
@@ -315,7 +377,7 @@ func (a *App) volumeInfo(args []string) error {
 	}
 
 	fmt.Printf("📁 EFS Volume: %s\n", volume.Name)
-	fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemId)
+	fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemID)
 	fmt.Printf("   State: %s\n", strings.ToUpper(volume.State))
 	fmt.Printf("   Region: %s\n", volume.Region)
 	fmt.Printf("   Performance Mode: %s\n", volume.PerformanceMode)
@@ -329,7 +391,7 @@ func (a *App) volumeInfo(args []string) error {
 
 func (a *App) volumeDelete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume delete <name>")
+		return fmt.Errorf("usage: cws volume delete <n>")
 	}
 
 	name := args[0]
@@ -376,7 +438,7 @@ func (a *App) Storage(args []string) error {
 
 func (a *App) storageCreate(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws storage create <name> <size> [type]")
+		return fmt.Errorf("usage: cws storage create <n> <size> [type]")
 	}
 
 	req := types.StorageCreateRequest{
@@ -406,25 +468,25 @@ func (a *App) storageCreate(args []string) error {
 		return fmt.Errorf("failed to create storage: %w", err)
 	}
 
-	fmt.Printf("💾 Created EBS volume %s (%s) - %d GB %s\n", 
+	fmt.Printf("💾 Created EBS volume %s (%s) - %d GB %s\n",
 		volume.Name, volume.VolumeID, volume.SizeGB, volume.VolumeType)
 	return nil
 }
 
-func (a *App) storageList(args []string) error {
+func (a *App) storageList(_ []string) error {
 	volumes, err := a.apiClient.ListStorage()
 	if err != nil {
 		return fmt.Errorf("failed to list storage: %w", err)
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println("No EBS volumes found. Create one with: cws storage create <name> <size>")
+		fmt.Println("No EBS volumes found. Create one with: cws storage create <n> <size>")
 		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 	fmt.Fprintln(w, "NAME\tVOLUME ID\tSTATE\tSIZE\tTYPE\tATTACHED TO\tCOST/MONTH")
-	
+
 	for _, volume := range volumes {
 		costMonth := float64(volume.SizeGB) * volume.EstimatedCostGB
 		attachedTo := volume.AttachedTo
@@ -442,13 +504,13 @@ func (a *App) storageList(args []string) error {
 		)
 	}
 	w.Flush()
-	
+
 	return nil
 }
 
 func (a *App) storageInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws storage info <name>")
+		return fmt.Errorf("usage: cws storage info <n>")
 	}
 
 	name := args[0]
@@ -513,7 +575,7 @@ func (a *App) storageDetach(args []string) error {
 
 func (a *App) storageDelete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws storage delete <name>")
+		return fmt.Errorf("usage: cws storage delete <n>")
 	}
 
 	name := args[0]
@@ -527,7 +589,7 @@ func (a *App) storageDelete(args []string) error {
 }
 
 // Templates handles the templates command
-func (a *App) Templates(args []string) error {
+func (a *App) Templates(_ []string) error {
 	// Check daemon is running
 	if err := a.apiClient.Ping(); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -544,7 +606,7 @@ func (a *App) Templates(args []string) error {
 	for name, template := range templates {
 		fmt.Printf("🏗️  %s\n", name)
 		fmt.Printf("   %s\n", template.Description)
-		fmt.Printf("   Cost: $%.2f/hour (x86_64), $%.2f/hour (arm64)\n", 
+		fmt.Printf("   Cost: $%.2f/hour (x86_64), $%.2f/hour (arm64)\n",
 			template.EstimatedCostPerHour["x86_64"],
 			template.EstimatedCostPerHour["arm64"])
 		fmt.Println()
@@ -583,7 +645,7 @@ func (a *App) daemonStart() error {
 	}
 
 	fmt.Println("🚀 Starting CloudWorkstation daemon...")
-	
+
 	// Start daemon in the background
 	cmd := exec.Command("cwsd")
 	if err := cmd.Start(); err != nil {
@@ -592,19 +654,19 @@ func (a *App) daemonStart() error {
 
 	// TODO: Wait for daemon to be ready and verify it started correctly
 	fmt.Printf("✅ Daemon started (PID %d)\n", cmd.Process.Pid)
-	
+
 	return nil
 }
 
 func (a *App) daemonStop() error {
 	// TODO: Implement graceful daemon shutdown
 	fmt.Println("⏹️ Stopping daemon...")
-	
+
 	// For now, just inform user how to stop manually
 	fmt.Println("Find the daemon process and stop it manually:")
 	fmt.Println("  ps aux | grep cwsd")
 	fmt.Println("  kill <PID>")
-	
+
 	return nil
 }
 
@@ -638,3 +700,5 @@ func (a *App) daemonLogs() error {
 	fmt.Println("Check system logs manually for now")
 	return nil
 }
+
+// Note: AMI command is implemented in internal/cli/ami.go
