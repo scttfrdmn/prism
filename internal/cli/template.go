@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/scttfrdmn/cloudworkstation/pkg/ami"
 )
@@ -26,7 +25,7 @@ func (a *App) handleAMITemplate(args []string) error {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	ec2Client := ec2.NewFromConfig(cfg)
+	// ec2Client := ec2.NewFromConfig(cfg)
 	ssmClient := ssm.NewFromConfig(cfg)
 
 	// Initialize AMI registry for template sharing
@@ -98,7 +97,7 @@ func (a *App) handleTemplateImport(args []string, manager *ami.TemplateManager) 
 	cmdArgs := parseCmdArgs(args[1:])
 	
 	// Parse options
-	options := &ami.TemplateImportOptions{
+	options := &ami.TemplateManagerImportOptions{
 		Validate:      true,
 		Force:         cmdArgs["force"] != "",
 		OverwriteName: cmdArgs["name"],
