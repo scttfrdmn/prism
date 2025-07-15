@@ -3,6 +3,7 @@ package ami
 
 import (
 	"fmt"
+	"time"
 )
 
 // ImportFromTemplate imports a template from an existing Template struct

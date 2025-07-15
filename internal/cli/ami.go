@@ -345,7 +345,7 @@ func (a *App) handleAMIPublish(args []string) error {
 		Architecture:  architecture,
 		AMIID:         amiID,
 		Status:        "manual",
-		BuildTime:     0,
+		BuildTime:     time.Now(),
 	}
 
 	// Publish to registry

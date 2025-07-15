@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v3"
 )
 
@@ -52,54 +51,19 @@ func (p *Parser) validateEnhancedTemplate(template *Template) error {
 		return fmt.Errorf("at least one build step is required")
 	}
 
-	// Validate Domain field if present
-	if template.Domain != nil {
-		if err := p.validateDomain(template.Domain); err != nil {
-			return fmt.Errorf("domain validation failed: %w", err)
-		}
-	}
+	// Domain validation removed - not supported in current version
 
-	// Validate Resources field if present
-	if template.Resources != nil {
-		if err := p.validateResources(template.Resources); err != nil {
-			return fmt.Errorf("resources validation failed: %w", err)
-		}
-	}
+	// Resources validation removed - not supported in current version
 
-	// Validate Cost field if present
-	if template.Cost != nil {
-		if err := p.validateCost(template.Cost); err != nil {
-			return fmt.Errorf("cost validation failed: %w", err)
-		}
-	}
+	// Cost validation removed - not supported in current version
 
-	// Validate IdleDetection field if present
-	if template.IdleDetection != nil {
-		if err := p.validateIdleDetection(template.IdleDetection); err != nil {
-			return fmt.Errorf("idle detection validation failed: %w", err)
-		}
-	}
+	// IdleDetection validation removed - not supported in current version
 
-	// Validate Repository field if present
-	if template.Repository != nil {
-		if err := p.validateRepository(template.Repository); err != nil {
-			return fmt.Errorf("repository validation failed: %w", err)
-		}
-	}
+	// Repository validation removed - not supported in current version
 
-	// Validate Dependencies field if present
-	if len(template.Dependencies) > 0 {
-		if err := p.validateDependencies(template.Dependencies); err != nil {
-			return fmt.Errorf("dependencies validation failed: %w", err)
-		}
-	}
+	// Dependencies validation removed - not supported in current version
 
-	// Validate Documentation field if present
-	if template.Documentation != nil {
-		if err := p.validateDocumentation(template.Documentation); err != nil {
-			return fmt.Errorf("documentation validation failed: %w", err)
-		}
-	}
+	// Documentation validation removed - not supported in current version
 
 	// Validate build steps
 	for i, step := range template.BuildSteps {
@@ -111,13 +75,13 @@ func (p *Parser) validateEnhancedTemplate(template *Template) error {
 		}
 	}
 
-	// Validate validation tests
-	for i, test := range template.ValidationTests {
+	// Use Validation field instead of ValidationTests
+	for i, test := range template.Validation {
 		if test.Name == "" {
 			return fmt.Errorf("validation test %d is missing a name", i+1)
 		}
-		if test.Command == "" && test.Script == "" {
-			return fmt.Errorf("validation test %q is missing a command or script", test.Name)
+		if test.Command == "" {
+			return fmt.Errorf("validation test %q is missing a command", test.Name)
 		}
 	}
 

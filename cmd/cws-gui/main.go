@@ -27,17 +27,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
@@ -79,6 +84,10 @@ type CloudWorkstationGUI struct {
 	totalCost  float64
 	lastUpdate time.Time
 
+	// Profile Management
+	profileManager *profile.Manager
+	activeProfile  profile.Profile
+	
 	// UI Components
 	refreshTicker *time.Ticker
 
@@ -121,6 +130,24 @@ func (g *CloudWorkstationGUI) initialize() error {
 	g.window.Resize(fyne.NewSize(1200, 800))
 	g.window.SetMaster()
 
+	// Initialize profile manager
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to determine user home directory: %w", err)
+	}
+	
+	g.profileManager, err = profile.NewManager(homeDir)
+	if err != nil {
+		return fmt.Errorf("failed to initialize profile manager: %w", err)
+	}
+	
+	// Set active profile
+	if activeProfile, exists := g.profileManager.Current(); exists {
+		g.activeProfile = activeProfile
+		// Initialize API client with profile settings
+		g.updateApiClientWithProfile()
+	}
+	
 	// Check daemon connectivity with retry logic
 	if err := g.checkDaemonConnection(context.Background()); err != nil {
 		g.showNotification("error", "Cannot connect to CloudWorkstation daemon", 
@@ -188,6 +215,36 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 		),
 	)
 
+	// Profile indicator
+	profileText := "No profile selected"
+	profileType := "Personal"
+	
+	// Check if active profile exists
+	if g.activeProfile.Name != "" {
+		profileText = g.activeProfile.Name
+		if g.activeProfile.Type == profile.ProfileTypeInvitation {
+			profileType = "Invitation"
+		}
+	}
+	
+	// Create profile card
+	profileCard := widget.NewCard("", "",
+		container.NewVBox(
+			container.NewHBox(
+				widget.NewIcon(theme.AccountIcon()),
+				widget.NewLabelWithStyle("AWS Profile", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			),
+			container.NewHBox(
+				widget.NewLabelWithStyle(profileText, fyne.TextAlignLeading, fyne.TextStyle{}),
+				widget.NewLabelWithStyle(fmt.Sprintf("(%s)", profileType), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
+			),
+			widget.NewButton("Switch Profile", func() {
+				// Navigate to settings and focus on profiles section
+				g.navigateToSection(SectionSettings)
+			}),
+		),
+	)
+
 	// Navigation buttons
 	navButtons := container.NewVBox(
 		g.createNavButton("🏠 Dashboard", SectionDashboard),
@@ -229,6 +286,8 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	// Combine sidebar elements
 	g.sidebar = container.NewVBox(
 		titleCard,
+		widget.NewSeparator(),
+		profileCard,
 		widget.NewSeparator(),
 		navButtons,
 		widget.NewSeparator(),
@@ -289,6 +348,36 @@ func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
 	}
 
 	g.content.Refresh()
+}
+
+// updateApiClientWithProfile updates the API client with the current profile's credentials
+func (g *CloudWorkstationGUI) updateApiClientWithProfile() {
+	// Skip if no active profile
+	if g.activeProfile.Name == "" {
+		return
+	}
+	
+	// Get API client options based on profile type
+	options := api.ClientOptions{}
+	
+	// Set AWS profile and region from profile
+	if g.activeProfile.AWSProfile != "" {
+		options.AWSProfile = g.activeProfile.AWSProfile
+	}
+	
+	if g.activeProfile.Region != "" {
+		options.AWSRegion = g.activeProfile.Region
+	}
+	
+	// For invitation profiles, add invitation token
+	if g.activeProfile.Type == profile.ProfileTypeInvitation {
+		options.InvitationToken = g.activeProfile.InvitationToken
+		options.OwnerAccount = g.activeProfile.OwnerAccount
+		options.S3ConfigPath = g.activeProfile.S3ConfigPath
+	}
+	
+	// Update API client with new options
+	g.apiClient.SetOptions(options)
 }
 
 // createDashboardView creates the main dashboard view
@@ -640,6 +729,11 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 		),
 	)
 
+	// Profile management
+	profileCard := widget.NewCard("Profile Management", "Manage AWS account profiles",
+		g.createProfileManagerView(),
+	)
+
 	// About
 	aboutCard := widget.NewCard("About", "CloudWorkstation information",
 		container.NewVBox(
@@ -654,6 +748,8 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 		header,
 		widget.NewSeparator(),
 		connectionCard,
+		widget.NewSeparator(),
+		profileCard,
 		widget.NewSeparator(),
 		aboutCard,
 	)
@@ -1037,6 +1133,218 @@ func (g *CloudWorkstationGUI) setupSystemTray(desk desktop.App) {
 	)
 
 	desk.SetSystemTrayMenu(menu)
+}
+
+// createProfileManagerView creates the profile management interface
+func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
+	// Get all profiles
+	profiles := g.profileManager.List()
+	
+	// Create profile list
+	profileList := widget.NewList(
+		func() int {
+			return len(profiles)
+		},
+		func() fyne.CanvasObject {
+			return container.NewHBox(
+				widget.NewIcon(theme.AccountIcon()),
+				container.NewVBox(
+					widget.NewLabel("Profile Name"),
+					widget.NewLabel("Type"),
+				),
+				layout.NewSpacer(),
+				widget.NewButton("Use", nil),
+			)
+		},
+		func(id widget.ListItemID, item fyne.CanvasObject) {
+			profile := profiles[id]
+			container := item.(*fyne.Container)
+			
+			// Get the profile info container
+			infoContainer := container.Objects[1].(*fyne.Container)
+			
+			// Update profile name
+			nameLabel := infoContainer.Objects[0].(*widget.Label)
+			nameLabel.SetText(profile.Name)
+			
+			// Update profile type
+			typeLabel := infoContainer.Objects[1].(*widget.Label)
+			typeText := "Personal AWS Account"
+			if profile.Type == profile.ProfileTypeInvitation {
+				typeText = "Invitation from " + profile.OwnerAccount
+			}
+			typeLabel.SetText(typeText)
+			
+			// Update use button
+			useButton := container.Objects[3].(*widget.Button)
+			
+			// Generate unique ID for this profile
+			profileID := fmt.Sprintf("%s-%s", profile.Type, profile.Name)
+			profileID = strings.ReplaceAll(profileID, " ", "-")
+			
+			// Check if this is the current profile
+			currentProfile, exists := g.profileManager.Current()
+			if exists && currentProfile.Name == profile.Name && currentProfile.Type == profile.Type {
+				useButton.SetText("Current")
+				useButton.Disable()
+			} else {
+				useButton.SetText("Use")
+				useButton.Enable()
+				useButton.OnTapped = func() {
+					g.switchProfile(profileID)
+				}
+			}
+		},
+	)
+	
+	// Add profile button
+	addProfileButton := widget.NewButton("Add Personal Profile", func() {
+		g.showAddPersonalProfileDialog()
+	})
+	
+	// Add invitation button
+	addInvitationButton := widget.NewButton("Add Invitation", func() {
+		g.showAddInvitationDialog()
+	})
+	
+	// Layout the buttons in a horizontal container
+	buttonContainer := container.NewHBox(
+		addProfileButton,
+		addInvitationButton,
+	)
+	
+	// Combine everything into a vertical container
+	return container.NewVBox(
+		widget.NewLabel("Select a profile to use:"),
+		profileList,
+		widget.NewSeparator(),
+		buttonContainer,
+	)
+}
+
+// switchProfile switches to a different AWS profile
+func (g *CloudWorkstationGUI) switchProfile(profileID string) {
+	// Use the selected profile
+	if err := g.profileManager.Use(profileID); err != nil {
+		g.showNotification("error", "Profile Switch Failed", err.Error())
+		return
+	}
+	
+	// Update the active profile
+	activeProfile, exists := g.profileManager.Current()
+	if !exists {
+		g.showNotification("error", "Profile Error", "Could not load selected profile")
+		return
+	}
+	
+	g.activeProfile = activeProfile
+	
+	// Update API client with new profile
+	g.updateApiClientWithProfile()
+	
+	// Refresh GUI to reflect profile change
+	g.navigateToSection(g.currentSection)
+	
+	// Update status bar
+	g.showNotification("success", "Profile Changed", fmt.Sprintf("Now using profile: %s", activeProfile.Name))
+	
+	// Refresh data with new profile
+	g.refreshData()
+}
+
+// showAddPersonalProfileDialog shows the dialog to add a new personal profile
+func (g *CloudWorkstationGUI) showAddPersonalProfileDialog() {
+	// Create entry fields
+	nameEntry := widget.NewEntry()
+	nameEntry.SetPlaceHolder("My AWS Account")
+	
+	awsProfileEntry := widget.NewEntry()
+	awsProfileEntry.SetPlaceHolder("default")
+	
+	regionEntry := widget.NewEntry()
+	regionEntry.SetPlaceHolder("us-west-2")
+	
+	// Create form
+	form := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Profile Name", Widget: nameEntry},
+			{Text: "AWS Profile", Widget: awsProfileEntry, HintText: "Name in ~/.aws/credentials"},
+			{Text: "AWS Region", Widget: regionEntry, HintText: "Optional - uses AWS defaults if empty"},
+		},
+		OnSubmit: func() {
+			// Generate profile ID
+			profileID := fmt.Sprintf("personal-%s", nameEntry.Text)
+			profileID = strings.ReplaceAll(profileID, " ", "-")
+			
+			// Create profile
+			newProfile := profile.Profile{
+				Type:       profile.ProfileTypePersonal,
+				Name:       nameEntry.Text,
+				AWSProfile: awsProfileEntry.Text,
+				Region:     regionEntry.Text,
+				CreatedAt:  time.Now(),
+			}
+			
+			// Add the profile
+			if err := g.profileManager.Add(profileID, newProfile); err != nil {
+				g.showNotification("error", "Add Profile Failed", err.Error())
+				return
+			}
+			
+			// Refresh the view
+			g.showNotification("success", "Profile Added", fmt.Sprintf("Added profile: %s", newProfile.Name))
+			g.navigateToSection(SectionSettings)
+		},
+	}
+	
+	// Create and show dialog
+	dialog := dialog.NewCustom("Add Personal Profile", "Cancel", form, g.window)
+	dialog.Show()
+}
+
+// showAddInvitationDialog shows the dialog to add a new invitation profile
+func (g *CloudWorkstationGUI) showAddInvitationDialog() {
+	// Create entry fields
+	nameEntry := widget.NewEntry()
+	nameEntry.SetPlaceHolder("Class Project")
+	
+	tokenEntry := widget.NewEntry()
+	tokenEntry.SetPlaceHolder("invitation-token-123")
+	
+	ownerEntry := widget.NewEntry()
+	ownerEntry.SetPlaceHolder("Professor's Account")
+	
+	regionEntry := widget.NewEntry()
+	regionEntry.SetPlaceHolder("us-west-2")
+	
+	// Create form
+	form := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Profile Name", Widget: nameEntry},
+			{Text: "Invitation Token", Widget: tokenEntry},
+			{Text: "Owner Account", Widget: ownerEntry},
+			{Text: "AWS Region", Widget: regionEntry},
+		},
+		OnSubmit: func() {
+			// Generate profile ID
+			profileID := fmt.Sprintf("invitation-%s", nameEntry.Text)
+			profileID = strings.ReplaceAll(profileID, " ", "-")
+			
+			// Add the invitation
+			if err := g.profileManager.AddInvitation(profileID, nameEntry.Text, tokenEntry.Text, ownerEntry.Text, regionEntry.Text); err != nil {
+				g.showNotification("error", "Add Invitation Failed", err.Error())
+				return
+			}
+			
+			// Refresh the view
+			g.showNotification("success", "Invitation Added", fmt.Sprintf("Added invitation: %s", nameEntry.Text))
+			g.navigateToSection(SectionSettings)
+		},
+	}
+	
+	// Create and show dialog
+	dialog := dialog.NewCustom("Add Invitation", "Cancel", form, g.window)
+	dialog.Show()
 }
 
 func (g *CloudWorkstationGUI) run() {

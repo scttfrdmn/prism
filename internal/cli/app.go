@@ -57,7 +57,7 @@ func NewApp(version string) *App {
 	
 	app := &App{
 		version:    version,
-		apiClient:  api.NewClient(apiURL), // Uses CWSD_URL or default localhost:8080
+		apiClient:  api.NewContextClient(apiURL), // Uses CWSD_URL or default localhost:8080
 		ctx:        context.Background(),
 	}
 	
@@ -128,11 +128,11 @@ func (a *App) Launch(args []string) error {
 	}
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	response, err := a.apiClient.LaunchInstance(req)
+	response, err := a.apiClient.LaunchInstance(a.ctx, req)
 	if err != nil {
 		return fmt.Errorf("failed to launch instance: %w", err)
 	}
@@ -147,11 +147,11 @@ func (a *App) Launch(args []string) error {
 // List handles the list command
 func (a *App) List(_ []string) error {
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	response, err := a.apiClient.ListInstances()
+	response, err := a.apiClient.ListInstances(a.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list instances: %w", err)
 	}
@@ -190,11 +190,11 @@ func (a *App) Connect(args []string) error {
 	name := args[0]
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	connectionInfo, err := a.apiClient.ConnectInstance(name)
+	connectionInfo, err := a.apiClient.ConnectInstance(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to get connection info: %w", err)
 	}
@@ -214,11 +214,11 @@ func (a *App) Stop(args []string) error {
 	name := args[0]
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	err := a.apiClient.StopInstance(name)
+	err := a.apiClient.StopInstance(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to stop instance: %w", err)
 	}
@@ -236,11 +236,11 @@ func (a *App) Start(args []string) error {
 	name := args[0]
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	err := a.apiClient.StartInstance(name)
+	err := a.apiClient.StartInstance(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to start instance: %w", err)
 	}
@@ -258,11 +258,11 @@ func (a *App) Delete(args []string) error {
 	name := args[0]
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	err := a.apiClient.DeleteInstance(name)
+	err := a.apiClient.DeleteInstance(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete instance: %w", err)
 	}
@@ -281,7 +281,7 @@ func (a *App) Volume(args []string) error {
 	volumeArgs := args[1:]
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
@@ -326,17 +326,17 @@ func (a *App) volumeCreate(args []string) error {
 		}
 	}
 
-	volume, err := a.apiClient.CreateVolume(req)
+	volume, err := a.apiClient.CreateVolume(a.ctx, req)
 	if err != nil {
 		return fmt.Errorf("failed to create volume: %w", err)
 	}
 
-	fmt.Printf("📁 Created EFS volume %s (%s)\n", volume.Name, volume.FileSystemID)
+	fmt.Printf("📁 Created EFS volume %s (%s)\n", volume.Name, volume.FileSystemId)
 	return nil
 }
 
 func (a *App) volumeList(_ []string) error {
-	volumes, err := a.apiClient.ListVolumes()
+	volumes, err := a.apiClient.ListVolumes(a.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list volumes: %w", err)
 	}
@@ -354,7 +354,7 @@ func (a *App) volumeList(_ []string) error {
 		costMonth := sizeGB * volume.EstimatedCostGB
 		fmt.Fprintf(w, "%s\t%s\t%s\t%.1f GB\t$%.2f\n",
 			volume.Name,
-			volume.FileSystemID,
+			volume.FileSystemId,
 			strings.ToUpper(volume.State),
 			sizeGB,
 			costMonth,
@@ -371,13 +371,13 @@ func (a *App) volumeInfo(args []string) error {
 	}
 
 	name := args[0]
-	volume, err := a.apiClient.GetVolume(name)
+	volume, err := a.apiClient.GetVolume(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to get volume info: %w", err)
 	}
 
 	fmt.Printf("📁 EFS Volume: %s\n", volume.Name)
-	fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemID)
+	fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemId)
 	fmt.Printf("   State: %s\n", strings.ToUpper(volume.State))
 	fmt.Printf("   Region: %s\n", volume.Region)
 	fmt.Printf("   Performance Mode: %s\n", volume.PerformanceMode)
@@ -395,7 +395,7 @@ func (a *App) volumeDelete(args []string) error {
 	}
 
 	name := args[0]
-	err := a.apiClient.DeleteVolume(name)
+	err := a.apiClient.DeleteVolume(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete volume: %w", err)
 	}
@@ -414,7 +414,7 @@ func (a *App) Storage(args []string) error {
 	storageArgs := args[1:]
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
@@ -463,7 +463,7 @@ func (a *App) storageCreate(args []string) error {
 		}
 	}
 
-	volume, err := a.apiClient.CreateStorage(req)
+	volume, err := a.apiClient.CreateStorage(a.ctx, req)
 	if err != nil {
 		return fmt.Errorf("failed to create storage: %w", err)
 	}
@@ -474,7 +474,7 @@ func (a *App) storageCreate(args []string) error {
 }
 
 func (a *App) storageList(_ []string) error {
-	volumes, err := a.apiClient.ListStorage()
+	volumes, err := a.apiClient.ListStorage(a.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list storage: %w", err)
 	}
@@ -514,7 +514,7 @@ func (a *App) storageInfo(args []string) error {
 	}
 
 	name := args[0]
-	volume, err := a.apiClient.GetStorage(name)
+	volume, err := a.apiClient.GetStorage(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to get storage info: %w", err)
 	}
@@ -548,7 +548,7 @@ func (a *App) storageAttach(args []string) error {
 	volumeName := args[0]
 	instanceName := args[1]
 
-	err := a.apiClient.AttachStorage(volumeName, instanceName)
+	err := a.apiClient.AttachStorage(a.ctx, volumeName, instanceName)
 	if err != nil {
 		return fmt.Errorf("failed to attach storage: %w", err)
 	}
@@ -564,7 +564,7 @@ func (a *App) storageDetach(args []string) error {
 
 	volumeName := args[0]
 
-	err := a.apiClient.DetachStorage(volumeName)
+	err := a.apiClient.DetachStorage(a.ctx, volumeName)
 	if err != nil {
 		return fmt.Errorf("failed to detach storage: %w", err)
 	}
@@ -579,7 +579,7 @@ func (a *App) storageDelete(args []string) error {
 	}
 
 	name := args[0]
-	err := a.apiClient.DeleteStorage(name)
+	err := a.apiClient.DeleteStorage(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to delete storage: %w", err)
 	}
@@ -591,11 +591,11 @@ func (a *App) storageDelete(args []string) error {
 // Templates handles the templates command
 func (a *App) Templates(_ []string) error {
 	// Check daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	templates, err := a.apiClient.ListTemplates()
+	templates, err := a.apiClient.ListTemplates(a.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to list templates: %w", err)
 	}
@@ -639,7 +639,7 @@ func (a *App) Daemon(args []string) error {
 
 func (a *App) daemonStart() error {
 	// Check if daemon is already running
-	if err := a.apiClient.Ping(); err == nil {
+	if err := a.apiClient.Ping(a.ctx); err == nil {
 		fmt.Println("✅ Daemon is already running")
 		return nil
 	}
@@ -672,13 +672,13 @@ func (a *App) daemonStop() error {
 
 func (a *App) daemonStatus() error {
 	// Check if daemon is running
-	if err := a.apiClient.Ping(); err != nil {
+	if err := a.apiClient.Ping(a.ctx); err != nil {
 		fmt.Println("❌ Daemon is not running")
 		fmt.Println("Start with: cws daemon start")
 		return nil
 	}
 
-	status, err := a.apiClient.GetStatus()
+	status, err := a.apiClient.GetStatus(a.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get daemon status: %w", err)
 	}

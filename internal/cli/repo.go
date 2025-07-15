@@ -271,7 +271,7 @@ func (a *App) repoTemplates(args []string) error {
 
 	// If repository name is provided, list templates from that repository
 	if repoName != "" {
-		repo, err := repoManager.GetRepository(repoName)
+		_, err := repoManager.GetRepository(repoName)
 		if err != nil {
 			return fmt.Errorf("failed to get repository: %w", err)
 		}
@@ -427,7 +427,7 @@ func (a *App) repoPush(args []string) error {
 	}
 
 	// Get repository
-	repo, err := repoManager.GetRepository(repoName)
+	_, err = repoManager.GetRepository(repoName)
 	if err != nil {
 		return fmt.Errorf("failed to get repository: %w", err)
 	}

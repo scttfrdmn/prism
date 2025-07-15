@@ -85,6 +85,8 @@ type LaunchRequest struct {
 	Volumes     []string `json:"volumes,omitempty"`     // EFS volume names to attach
 	EBSVolumes  []string `json:"ebs_volumes,omitempty"` // EBS volume IDs to attach
 	Region      string   `json:"region,omitempty"`
+	SubnetID    string   `json:"subnet_id,omitempty"`
+	VpcID       string   `json:"vpc_id,omitempty"`
 	Spot        bool     `json:"spot,omitempty"`
 	DryRun      bool     `json:"dry_run,omitempty"`
 }

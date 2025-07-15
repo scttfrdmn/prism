@@ -4,7 +4,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/ami"

@@ -1,10 +1,12 @@
-# CloudWorkstation GUI - Coming in v0.4.1!
+# CloudWorkstation GUI Guide
 
-![GUI Preview](https://via.placeholder.com/800x450?text=CloudWorkstation+GUI+Preview)
+<p align="center">
+  <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
+</p>
 
-## Exciting News! GUI Coming Soon
+## Welcome to the CloudWorkstation GUI!
 
-In the next release (v0.4.1), CloudWorkstation will have a brand new graphical interface that makes managing your cloud workstations even easier! No more typing commands - just point and click!
+The CloudWorkstation GUI makes managing your research cloud computers easy - no more typing commands! Just click buttons and see everything visually.
 
 ## What is the GUI?
 
@@ -16,7 +18,7 @@ GUI stands for "Graphical User Interface." Instead of typing commands, you'll us
 
 The GUI is perfect for visual learners and anyone who prefers using a mouse over typing commands.
 
-## Main Features Coming in the GUI
+## Main Features of the GUI
 
 ### Main Dashboard
 ![Dashboard](https://via.placeholder.com/600x300?text=Dashboard)
@@ -57,14 +59,22 @@ Manage your data storage visually:
 ## Cool GUI Features
 
 ### System Tray / Menu Bar
-The GUI will run in your system tray or menu bar (top of your screen), so you can:
+The GUI runs in your system tray or menu bar (top of your screen), so you can:
 - See status at a glance
 - Get notifications about your cloud computers
 - Access CloudWorkstation without opening a terminal
 - Monitor costs continuously
 
+### Profile Management
+Manage different AWS accounts from one place:
+- Switch between your personal AWS account and invited accounts
+- See which profile you're currently using in the sidebar
+- Add new personal profiles for your own AWS accounts
+- Add invitation profiles when someone invites you to use their account
+- Learn more in the [Multi-Profile Guide](MULTI_PROFILE_GUIDE.md)
+
 ### Automatic Updates
-The GUI will check for updates and let you know when:
+The GUI checks for updates and lets you know when:
 - New CloudWorkstation versions are available
 - New templates have been added
 - Your cloud computers need attention
@@ -75,7 +85,7 @@ Choose the colors that work best for you:
 - Light theme for daytime use
 - Automatic switching based on your computer's settings
 
-## How You'll Use the GUI
+## How to Use the GUI
 
 1. **Starting the GUI**
    ```bash
@@ -101,34 +111,44 @@ Choose the colors that work best for you:
    - Click "Start" when you want to use it again
    - Click "Delete" when you're completely finished
 
-## When Will the GUI Be Available?
+## Switching Between AWS Profiles
 
-The GUI will be released in CloudWorkstation v0.4.1, coming soon!
+The CloudWorkstation GUI makes it easy to switch between different AWS accounts:
 
-Want to try it early? Help test the beta version:
-```bash
-cws update --channel=beta
-cws gui --experimental
-```
+1. **See your current profile**
+   - Look in the sidebar under "AWS Profile"
+   - It shows the name and type (Personal or Invitation)
 
-## Get Ready for the GUI!
+2. **Switch profiles**
+   - Click the "Switch Profile" button in the sidebar, or
+   - Go to Settings → Profile Management
+   - Select the profile you want to use
 
-While waiting for the GUI release, you can:
+3. **Add a new personal profile**
+   - Go to Settings → Profile Management
+   - Click "Add Personal Profile"
+   - Fill in the profile information
+   - Click "Submit"
 
-1. Update to the latest version:
-   ```bash
-   cws update
-   ```
+4. **Add an invitation profile**
+   - Go to Settings → Profile Management
+   - Click "Add Invitation"
+   - Enter the invitation token and other details
+   - Click "Submit"
 
-2. Try the TUI (Terminal User Interface):
-   ```bash
-   cws tui
-   ```
-   This will help you get familiar with the layout and features coming in the GUI.
+When you switch profiles, the GUI automatically refreshes to show the cloud computers in that AWS account.
 
-3. Check that your AWS credentials are working:
+## Get Help
+
+If you need help with the GUI:
+
+1. Check the documentation at [docs.cloudworkstation.org](https://docs.cloudworkstation.org)
+
+2. Run the tests to check your setup:
    ```bash
    cws test
    ```
 
-We can't wait for you to try the new CloudWorkstation GUI in v0.4.1! 🚀
+3. Visit the community forum at [community.cloudworkstation.org](https://community.cloudworkstation.org)
+
+4. Report issues on GitHub at [github.com/scttfrdmn/cloudworkstation/issues](https://github.com/scttfrdmn/cloudworkstation/issues)

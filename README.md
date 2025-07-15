@@ -37,6 +37,7 @@ No more waiting hours to set up software - CloudWorkstation comes with everythin
 - **Set up a powerful computer for brain research** with all the special tools scientists use
 - **Start and stop your cloud computer** whenever you want
 - **Pay only for what you use** - turn it off when you're not using it!
+- **Use multiple AWS accounts** - switch between your personal account and class accounts
 
 ## Getting Started in 3 Easy Steps
 
@@ -159,4 +160,17 @@ cws templates
 - **Keyboard shortcuts** - Work faster with quick commands
 - **Tab navigation** - Easily switch between different sections
 
-**Coming in Version 0.4.1: GUI interface!**
+## New in Version 0.4.1!
+
+- **Graphical User Interface (GUI)** - Point-and-click interface for easier use
+- **System tray integration** - Monitor your cloud computers right from your desktop
+- **Visual dashboard** - See costs and status at a glance
+- **Package manager distribution** - Easy installation with Homebrew, Chocolatey, and Conda
+- **Multi-architecture support** - Works on both Intel and ARM processors
+
+## Coming in Version 0.4.2!
+
+- **Multi-profile support** - Use your own AWS account and accounts others invite you to use
+- **Invitation system** - Let others use your AWS account with restrictions you control
+- **Template restrictions** - Control which templates invited users can access
+- **Group-based access** - Create groups for classes or team projects
