@@ -1,7 +1,7 @@
 # CloudWorkstation Makefile
 # Builds both daemon and CLI client
 
-VERSION := 0.2.0
+VERSION := 0.4.1
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
@@ -175,22 +175,27 @@ release: clean
 	# Linux amd64
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cwsd ./cmd/cwsd
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cws ./cmd/cws
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cws-gui ./cmd/cws-gui
 	
 	# Linux arm64
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cwsd ./cmd/cwsd
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cws ./cmd/cws
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cws-gui ./cmd/cws-gui
 	
 	# macOS amd64
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cwsd ./cmd/cwsd
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cws ./cmd/cws
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cws-gui ./cmd/cws-gui
 	
 	# macOS arm64 (Apple Silicon)
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cwsd ./cmd/cwsd
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cws ./cmd/cws
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cws-gui ./cmd/cws-gui
 	
 	# Windows amd64
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cwsd.exe ./cmd/cwsd
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cws.exe ./cmd/cws
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cws-gui.exe ./cmd/cws-gui
 	
 	@echo "✅ Release binaries built in bin/release/"
 
@@ -229,6 +234,7 @@ bin:
 # Ensure bin directory exists before building
 build-daemon: bin
 build-cli: bin
+build-gui: bin
 
 # Docker builds (future)
 .PHONY: docker
@@ -282,14 +288,92 @@ bump-patch:
 	@rm -f Makefile.bak pkg/version/version.go.bak
 
 # Show help
+# Package manager distribution targets
+.PHONY: package package-homebrew package-chocolatey package-conda package-test
+
+# Create all package distribution files
+package: package-homebrew package-chocolatey package-conda
+
+# Create test packages with dummy files for testing distribution
+package-test:
+	@echo "Creating test packages for distribution testing..."
+	@mkdir -p bin/release
+	@mkdir -p dist/{homebrew,chocolatey/tools,conda}
+	
+	# Create dummy binaries
+	@echo "#!/bin/sh\necho \"CloudWorkstation CLI v0.4.1\"" > bin/release/darwin-amd64-cws
+	@echo "#!/bin/sh\necho \"CloudWorkstation Daemon v0.4.1\"" > bin/release/darwin-amd64-cwsd
+	@echo "#!/bin/sh\necho \"CloudWorkstation GUI v0.4.1\"" > bin/release/darwin-amd64-cws-gui
+	@chmod +x bin/release/darwin-amd64-cws bin/release/darwin-amd64-cwsd bin/release/darwin-amd64-cws-gui
+	
+	# Create test archives
+	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
+	@cp scripts/chocolatey/cloudworkstation.nuspec dist/chocolatey/
+	@cp scripts/chocolatey/tools/chocolateyinstall.ps1 dist/chocolatey/tools/
+	@cp scripts/chocolatey/tools/chocolateyuninstall.ps1 dist/chocolatey/tools/
+	@cd bin/release && zip -j ../../dist/chocolatey/tools/cloudworkstation-windows-amd64.zip darwin-amd64-*
+	@cp scripts/conda/meta.yaml dist/conda/
+	
+	# Generate test checksums
+	@openssl sha256 dist/homebrew/cloudworkstation-darwin-amd64.tar.gz > dist/homebrew/darwin-amd64.sha256
+	@openssl sha256 dist/chocolatey/tools/cloudworkstation-windows-amd64.zip > dist/chocolatey/windows-amd64.sha256
+	
+	@echo "✅ Test packages created in dist/ directory"
+
+# Create Homebrew formula
+package-homebrew: release
+	@echo "Creating Homebrew package..."
+	@mkdir -p dist/homebrew
+	@cp scripts/homebrew/cloudworkstation.rb dist/homebrew/
+	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
+	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-arm64.tar.gz darwin-arm64-*
+	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-linux-amd64.tar.gz linux-amd64-*
+	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-linux-arm64.tar.gz linux-arm64-*
+	@openssl sha256 dist/homebrew/cloudworkstation-darwin-amd64.tar.gz | awk '{print $$2}' > dist/homebrew/darwin-amd64.sha256
+	@openssl sha256 dist/homebrew/cloudworkstation-darwin-arm64.tar.gz | awk '{print $$2}' > dist/homebrew/darwin-arm64.sha256
+	@openssl sha256 dist/homebrew/cloudworkstation-linux-amd64.tar.gz | awk '{print $$2}' > dist/homebrew/linux-amd64.sha256
+	@openssl sha256 dist/homebrew/cloudworkstation-linux-arm64.tar.gz | awk '{print $$2}' > dist/homebrew/linux-arm64.sha256
+	@echo "✅ Homebrew package created in dist/homebrew"
+
+# Create Chocolatey package
+package-chocolatey: release
+	@echo "Creating Chocolatey package..."
+	@mkdir -p dist/chocolatey/tools
+	@cp scripts/chocolatey/cloudworkstation.nuspec dist/chocolatey/
+	@cp scripts/chocolatey/tools/chocolateyinstall.ps1 dist/chocolatey/tools/
+	@cp scripts/chocolatey/tools/chocolateyuninstall.ps1 dist/chocolatey/tools/
+	@cd bin/release && zip -j ../../dist/chocolatey/tools/cloudworkstation-windows-amd64.zip windows-amd64-*
+	@openssl sha256 dist/chocolatey/tools/cloudworkstation-windows-amd64.zip | awk '{print $$2}' > dist/chocolatey/windows-amd64.sha256
+	@echo "✅ Chocolatey package created in dist/chocolatey"
+
+# Create Conda package
+package-conda: release
+	@echo "Creating Conda package..."
+	@mkdir -p dist/conda
+	@cp scripts/conda/meta.yaml dist/conda/
+	@cp scripts/conda/build.sh dist/conda/
+	@cp scripts/conda/bld.bat dist/conda/
+	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-linux-amd64.tar.gz linux-amd64-*
+	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-linux-arm64.tar.gz linux-arm64-*
+	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
+	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-darwin-arm64.tar.gz darwin-arm64-*
+	@cd bin/release && zip -j ../../dist/conda/cloudworkstation-windows-amd64.zip windows-amd64-*
+	@openssl sha256 dist/conda/cloudworkstation-linux-amd64.tar.gz | awk '{print $$2}' > dist/conda/linux-amd64.sha256
+	@openssl sha256 dist/conda/cloudworkstation-linux-arm64.tar.gz | awk '{print $$2}' > dist/conda/linux-arm64.sha256
+	@openssl sha256 dist/conda/cloudworkstation-darwin-amd64.tar.gz | awk '{print $$2}' > dist/conda/darwin-amd64.sha256
+	@openssl sha256 dist/conda/cloudworkstation-darwin-arm64.tar.gz | awk '{print $$2}' > dist/conda/darwin-arm64.sha256
+	@openssl sha256 dist/conda/cloudworkstation-windows-amd64.zip | awk '{print $$2}' > dist/conda/windows-amd64.sha256
+	@echo "✅ Conda package created in dist/conda"
+
 .PHONY: help
 help:
 	@echo "CloudWorkstation Build System"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  build        Build both daemon and CLI"
+	@echo "  build        Build daemon, CLI, and GUI"
 	@echo "  build-daemon Build daemon binary (cwsd)"
 	@echo "  build-cli    Build CLI binary (cws)"
+	@echo "  build-gui    Build GUI binary (cws-gui)"
 	@echo "  install      Install binaries to /usr/local/bin"
 	@echo "  uninstall    Remove binaries from /usr/local/bin"
 	@echo "  clean        Remove build artifacts"
@@ -308,8 +392,13 @@ help:
 	@echo "  fmt          Format code"
 	@echo "  deps         Update dependencies"
 	@echo "  release      Build release binaries for all platforms"
+	@echo "  package      Create all package manager distribution files"
+	@echo "  package-homebrew Create Homebrew formula and packages"
+	@echo "  package-chocolatey Create Chocolatey package"
+	@echo "  package-conda Create Conda package"
 	@echo "  dev-daemon   Build and run daemon for development"
 	@echo "  dev-cli      Build and test CLI"
+	@echo "  dev-gui      Build and test GUI"
 	@echo "  version      Show version information"
 	@echo "  bump-major   Bump major version (X.y.z)"
 	@echo "  bump-minor   Bump minor version (x.Y.z)"

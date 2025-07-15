@@ -2,12 +2,11 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/ami"
@@ -198,8 +197,8 @@ func printVersionsSimple(versions []string) {
 	}
 }
 
-// handleTemplateDependencyGraph shows a visual representation of the dependency graph
-func (a *App) handleTemplateDependencyGraph(args []string, manager *ami.TemplateManager) error {
+// handleTemplateDependencyGraphSearch shows a visual representation of the dependency graph
+func (a *App) handleTemplateDependencyGraphSearch(args []string, manager *ami.TemplateManager) error {
 	if len(args) < 1 {
 		return fmt.Errorf("usage: cws ami template dependency graph <template-name> [--format <format>]")
 	}
@@ -269,7 +268,7 @@ func printDependencyGraphDot(templateName string, graph []string, manager *ami.T
 	
 	// Output nodes
 	for _, name := range graph {
-		label := name
+		// label := name
 		if name == templateName {
 			fmt.Printf("  \"%s\" [fillcolor=lightgreen, fontcolor=black];\n", name)
 		} else {

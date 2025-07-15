@@ -44,37 +44,67 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 go build -o bin/cws-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=linux GOARCH=amd64 go build -o bin/cwsd-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          cd bin && tar -czf cws-linux-amd64.tar.gz cws-linux-amd64 cwsd-linux-amd64 && cd ..
+          GOOS=linux GOARCH=amd64 go build -o bin/cws-gui-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
+          cd bin && tar -czf cws-linux-amd64.tar.gz cws-linux-amd64 cwsd-linux-amd64 cws-gui-linux-amd64 && cd ..
 
       - name: Build for Linux arm64
         run: |
           GOOS=linux GOARCH=arm64 go build -o bin/cws-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=linux GOARCH=arm64 go build -o bin/cwsd-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          cd bin && tar -czf cws-linux-arm64.tar.gz cws-linux-arm64 cwsd-linux-arm64 && cd ..
+          GOOS=linux GOARCH=arm64 go build -o bin/cws-gui-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
+          cd bin && tar -czf cws-linux-arm64.tar.gz cws-linux-arm64 cwsd-linux-arm64 cws-gui-linux-arm64 && cd ..
 
       - name: Build for macOS amd64
         run: |
           GOOS=darwin GOARCH=amd64 go build -o bin/cws-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=darwin GOARCH=amd64 go build -o bin/cwsd-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          cd bin && tar -czf cws-macos-amd64.tar.gz cws-macos-amd64 cwsd-macos-amd64 && cd ..
+          GOOS=darwin GOARCH=amd64 go build -o bin/cws-gui-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
+          cd bin && tar -czf cws-macos-amd64.tar.gz cws-macos-amd64 cwsd-macos-amd64 cws-gui-macos-amd64 && cd ..
 
       - name: Build for macOS arm64
         run: |
           GOOS=darwin GOARCH=arm64 go build -o bin/cws-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=darwin GOARCH=arm64 go build -o bin/cwsd-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          cd bin && tar -czf cws-macos-arm64.tar.gz cws-macos-arm64 cwsd-macos-arm64 && cd ..
+          GOOS=darwin GOARCH=arm64 go build -o bin/cws-gui-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
+          cd bin && tar -czf cws-macos-arm64.tar.gz cws-macos-arm64 cwsd-macos-arm64 cws-gui-macos-arm64 && cd ..
 
       - name: Build for Windows amd64
         run: |
           GOOS=windows GOARCH=amd64 go build -o bin/cws-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=windows GOARCH=amd64 go build -o bin/cwsd-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          cd bin && zip -r cws-windows-amd64.zip cws-windows-amd64.exe cwsd-windows-amd64.exe && cd ..
+          GOOS=windows GOARCH=amd64 go build -o bin/cws-gui-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
+          cd bin && zip -r cws-windows-amd64.zip cws-windows-amd64.exe cwsd-windows-amd64.exe cws-gui-windows-amd64.exe && cd ..
 
       - name: Generate checksums
         run: |
           cd bin
           sha256sum cws-linux-amd64.tar.gz cws-linux-arm64.tar.gz cws-macos-amd64.tar.gz cws-macos-arm64.tar.gz cws-windows-amd64.zip > SHA256SUMS
           cd ..
+      
+      - name: Prepare package manager distributions
+        run: |
+          mkdir -p dist/{homebrew,chocolatey,conda}
+          
+          # Prepare Homebrew
+          cp scripts/homebrew/cloudworkstation.rb dist/homebrew/
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_AMD64/$(sha256sum bin/cws-macos-amd64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_ARM64/$(sha256sum bin/cws-macos-arm64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_AMD64/$(sha256sum bin/cws-linux-amd64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_ARM64/$(sha256sum bin/cws-linux-arm64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
+          
+          # Prepare Chocolatey
+          cp -r scripts/chocolatey/* dist/chocolatey/
+          mkdir -p dist/chocolatey/tools
+          cp bin/cws-windows-amd64.zip dist/chocolatey/tools/
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM/$(sha256sum bin/cws-windows-amd64.zip | cut -d' ' -f1)/g" dist/chocolatey/tools/chocolateyinstall.ps1
+          
+          # Prepare Conda
+          cp -r scripts/conda/* dist/conda/
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_AMD64/$(sha256sum bin/cws-linux-amd64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_ARM64/$(sha256sum bin/cws-linux-arm64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_DARWIN_AMD64/$(sha256sum bin/cws-macos-amd64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_DARWIN_ARM64/$(sha256sum bin/cws-macos-arm64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml
+          sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_WINDOWS/$(sha256sum bin/cws-windows-amd64.zip | cut -d' ' -f1)/g" dist/conda/meta.yaml
       
       - name: Determine release type
         id: release_type
@@ -194,4 +224,35 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./bin/SHA256SUMS
           asset_name: SHA256SUMS
+          asset_content_type: text/plain
+          
+      # Upload package manager distributions
+      - name: Upload Homebrew formula
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/homebrew/cloudworkstation.rb
+          asset_name: cloudworkstation.rb
+          asset_content_type: text/plain
+          
+      - name: Upload Chocolatey package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/chocolatey/cloudworkstation.nuspec
+          asset_name: cloudworkstation.nuspec
+          asset_content_type: text/plain
+          
+      - name: Upload Conda package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/conda/meta.yaml
+          asset_name: meta.yaml
           asset_content_type: text/plain

@@ -4,7 +4,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/ami"
 )
@@ -17,12 +16,11 @@ func (a *App) handleTemplateValidate(args []string, manager *ami.TemplateManager
 
 	source := args[0]
 	var template *ami.Template
-	var err error
 	
 	// Check if source is a file path or template name
 	if _, err := os.Stat(source); err == nil {
 		// It's a file, import it
-		template, err = manager.ImportFromFile(source, &ami.TemplateImportOptions{
+		template, err = manager.ImportFromFile(source, &ami.TemplateManagerImportOptions{
 			Validate: false, // Don't validate yet
 			Force:    true,  // Allow import even if already exists
 		})

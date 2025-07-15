@@ -58,8 +58,12 @@ func (a *App) handleTemplateImportShared(args []string, manager *ami.TemplateMan
 	}
 
 	// Get template from registry
+	versionStr := ""
+	if version != "" {
+		versionStr = " version " + version
+	}
 	fmt.Printf("🔄 Importing shared template '%s'%s from registry...\n", 
-		templateName, version != "" ? " version " + version : "")
+		templateName, versionStr)
 	
 	entry, err := manager.Registry.GetSharedTemplate(a.ctx, templateName, version)
 	if err != nil {

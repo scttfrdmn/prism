@@ -19,6 +19,27 @@ func NewContextClient(baseURL string) *ContextClient {
 	}
 }
 
+// SetOptions updates the client's configuration options
+func (c *ContextClient) SetOptions(options ClientOptions) {
+	// Pass options to the underlying client
+	if c.client != nil {
+		// Set AWS profile
+		if options.AWSProfile != "" {
+			c.client.SetAWSProfile(options.AWSProfile)
+		}
+		
+		// Set AWS region
+		if options.AWSRegion != "" {
+			c.client.SetAWSRegion(options.AWSRegion)
+		}
+		
+		// Set invitation details
+		if options.InvitationToken != "" {
+			c.client.SetInvitationToken(options.InvitationToken, options.OwnerAccount, options.S3ConfigPath)
+		}
+	}
+}
+
 // Ensure ContextClient implements CloudWorkstationAPI
 var _ CloudWorkstationAPI = (*ContextClient)(nil)
 

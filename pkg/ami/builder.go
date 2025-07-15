@@ -263,7 +263,8 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 	// Finalize result
 	buildDuration := time.Since(buildStart)
 	result.Status = "success"
-	result.BuildTime = buildDuration
+	result.BuildDuration = buildDuration
+	result.BuildTime = time.Now()
 	fmt.Printf("\n🎉 Build completed in %s\n", buildDuration)
 	buildLog.WriteString(fmt.Sprintf("\nBuild completed in %s\n", buildDuration))
 	result.Logs = buildLog.String()

@@ -1,7 +1,7 @@
 title: CloudWorkstation
 description: Launch research environments in the cloud in seconds, not hours
 baseurl: "/cloudworkstation"
-url: "https://yourusername.github.io"
+url: "https://scttfrdmn.github.io"
 logo: /images/cloudworkstation.png
 
 # Theme settings
@@ -31,12 +31,14 @@ navigation:
     url: /tui-guide/
   - text: Templates
     url: /templates/
-  - text: GUI Preview
-    url: /gui-preview/
+  - text: GUI Guide
+    url: /gui-user-guide/
+  - text: Multi-Profile Guide
+    url: /multi-profile-guide/
   - text: Installation
     url: /installation/
   - text: GitHub
-    url: https://github.com/yourusername/cloudworkstation
+    url: https://github.com/scttfrdmn/cloudworkstation
 
 # Collections
 collections:

@@ -15,6 +15,13 @@ import (
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
+	
+	// Configuration
+	awsProfile      string
+	awsRegion       string
+	invitationToken string
+	ownerAccount    string
+	s3ConfigPath    string
 }
 
 // NewClient creates a new API client
@@ -202,11 +209,60 @@ func (c *Client) Ping() error {
 	return c.get("/api/v1/ping", nil)
 }
 
+// Configuration methods
+
+// SetAWSProfile sets the AWS profile to use for requests
+func (c *Client) SetAWSProfile(profile string) {
+	c.awsProfile = profile
+}
+
+// SetAWSRegion sets the AWS region to use for requests
+func (c *Client) SetAWSRegion(region string) {
+	c.awsRegion = region
+}
+
+// SetInvitationToken sets the invitation token and related information
+func (c *Client) SetInvitationToken(token, ownerAccount, s3ConfigPath string) {
+	c.invitationToken = token
+	c.ownerAccount = ownerAccount
+	c.s3ConfigPath = s3ConfigPath
+}
+
 // HTTP helper methods
+
+// addRequestHeaders adds common headers and auth headers to requests
+func (c *Client) addRequestHeaders(req *http.Request) {
+	// Add profile header if configured
+	if c.awsProfile != "" {
+		req.Header.Set("X-AWS-Profile", c.awsProfile)
+	}
+	
+	// Add region header if configured
+	if c.awsRegion != "" {
+		req.Header.Set("X-AWS-Region", c.awsRegion)
+	}
+	
+	// Add invitation headers if configured
+	if c.invitationToken != "" {
+		req.Header.Set("X-Invitation-Token", c.invitationToken)
+		req.Header.Set("X-Owner-Account", c.ownerAccount)
+		if c.s3ConfigPath != "" {
+			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
+		}
+	}
+}
 
 // get sends a GET request to the specified path and decodes response into result
 func (c *Client) get(path string, result interface{}) error {
-	resp, err := c.httpClient.Get(c.baseURL + path)
+	req, err := http.NewRequest("GET", c.baseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	// Add headers
+	c.addRequestHeaders(req)
+	
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -226,7 +282,20 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
-	resp, err := c.httpClient.Post(c.baseURL+path, "application/json", reqBody)
+	req, err := http.NewRequest("POST", c.baseURL+path, reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	// Set content type
+	if reqBody != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	
+	// Add headers
+	c.addRequestHeaders(req)
+	
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
@@ -255,6 +324,9 @@ func (c *Client) put(path string, body interface{}, result interface{}) error {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
+	// Add headers
+	c.addRequestHeaders(req)
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
@@ -270,6 +342,9 @@ func (c *Client) delete(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+	
+	// Add headers
+	c.addRequestHeaders(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

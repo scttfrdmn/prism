@@ -337,12 +337,12 @@ func (m *Manager) FindTemplate(ref TemplateReference) (*TemplateMetadata, *Repos
 		}
 
 		// Ensure repository is cached
-		if err := m.updateRepositoryCache(repo); err != nil {
+		if err := m.UpdateRepositoryCache(repo); err != nil {
 			return nil, nil, err
 		}
 
 		// Get repository metadata
-		metadata, err := m.getRepositoryMetadata(repo.Name)
+		metadata, err := m.GetRepositoryMetadata(repo.Name)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -361,14 +361,14 @@ func (m *Manager) FindTemplate(ref TemplateReference) (*TemplateMetadata, *Repos
 	repos := m.GetRepositories()
 	for _, repo := range repos {
 		// Ensure repository is cached
-		if err := m.updateRepositoryCache(&repo); err != nil {
+		if err := m.UpdateRepositoryCache(&repo); err != nil {
 			// Just log the error and continue
 			fmt.Fprintf(os.Stderr, "Warning: failed to update cache for repository %q: %v\n", repo.Name, err)
 			continue
 		}
 
 		// Get repository metadata
-		metadata, err := m.getRepositoryMetadata(repo.Name)
+		metadata, err := m.GetRepositoryMetadata(repo.Name)
 		if err != nil {
 			// Just log the error and continue
 			fmt.Fprintf(os.Stderr, "Warning: failed to get metadata for repository %q: %v\n", repo.Name, err)
@@ -387,7 +387,7 @@ func (m *Manager) FindTemplate(ref TemplateReference) (*TemplateMetadata, *Repos
 }
 
 // getRepositoryMetadata retrieves the metadata for a repository from cache.
-func (m *Manager) getRepositoryMetadata(name string) (*RepositoryMetadata, error) {
+func (m *Manager) GetRepositoryMetadata(name string) (*RepositoryMetadata, error) {
 	entry, ok := m.cache.Repositories[name]
 	if !ok {
 		return nil, fmt.Errorf("repository %q not found in cache", name)
@@ -401,7 +401,7 @@ func (m *Manager) getRepositoryMetadata(name string) (*RepositoryMetadata, error
 }
 
 // updateRepositoryCache ensures a repository is cached and up-to-date.
-func (m *Manager) updateRepositoryCache(repo *Repository) error {
+func (m *Manager) UpdateRepositoryCache(repo *Repository) error {
 	// Check if repository is in cache and up-to-date
 	entry, ok := m.cache.Repositories[repo.Name]
 	if ok {
