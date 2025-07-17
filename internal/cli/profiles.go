@@ -10,6 +10,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/spf13/cobra"
+	"github.com/fatih/color"
 )
 
 // AddProfileCommands adds profile-related commands to the CLI
@@ -435,6 +436,206 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 			fmt.Printf("Renamed profile to '%s'\n", newName)
 		},
 	})
+	
+	// Invitation management commands
+	invitationsCmd := &cobra.Command{
+		Use:   "invitations",
+		Short: "Manage shared access invitations",
+		Long:  `Create and manage invitations for sharing access to your CloudWorkstation resources.`,
+	}
+	profilesCmd.AddCommand(invitationsCmd)
+	
+	// Create invitation
+	invitationsCmd.AddCommand(&cobra.Command{
+		Use:   "create [name] --type [read_only|read_write|admin] --valid-days [days]",
+		Short: "Create a new invitation",
+		Long:  `Generate a new invitation that can be shared with others to grant access to your CloudWorkstation resources.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			name := args[0]
+			invType, _ := cmd.Flags().GetString("type")
+			validDays, _ := cmd.Flags().GetInt("valid-days")
+			s3ConfigPath, _ := cmd.Flags().GetString("s3-config")
+			
+			// Create profile manager
+			profileManager, err := createProfileManager(config)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Create invitation manager
+			invitationManager, err := createInvitationManager(profileManager)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Validate invitation type
+			var invitationType profile.InvitationType
+			switch invType {
+			case "read_only":
+				invitationType = profile.InvitationTypeReadOnly
+			case "read_write":
+				invitationType = profile.InvitationTypeReadWrite
+			case "admin":
+				invitationType = profile.InvitationTypeAdmin
+			default:
+				fmt.Fprintf(os.Stderr, "Error: Invalid invitation type '%s'. Must be one of: read_only, read_write, admin\n", invType)
+				os.Exit(1)
+			}
+			
+			// Create the invitation
+			invitation, err := invitationManager.CreateInvitation(name, invitationType, validDays, s3ConfigPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating invitation: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Encode the invitation for sharing
+			encodedInvitation, err := invitation.EncodeToString()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error encoding invitation: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Print the invitation details
+			fmt.Println("\nInvitation Created Successfully")
+			fmt.Printf("Name: %s\n", invitation.Name)
+			fmt.Printf("Type: %s\n", invitation.Type)
+			fmt.Printf("Expires: %s (in %s)\n", invitation.Expires.Format("Jan 2, 2006"), 
+				invitation.GetExpirationDuration().Round(time.Hour))
+			
+			// Print the shareable token
+			fmt.Println("\nShare this invitation code with the recipient:")
+			fmt.Printf("\n%s\n", color.GreenString(encodedInvitation))
+			
+			// Print acceptance instructions
+			fmt.Println("\nThey can accept it with:")
+			fmt.Printf("cws profiles accept-invitation --encoded '%s' --name 'Collaboration'\n", encodedInvitation)
+		},
+	})
+	// Add flags for the create command
+	createCmd := invitationsCmd.Commands()[0]
+	createCmd.Flags().String("type", "read_only", "Type of access (read_only, read_write, or admin)")
+	createCmd.Flags().Int("valid-days", 30, "Number of days the invitation is valid")
+	createCmd.Flags().String("s3-config", "", "Optional S3 path to configuration")
+	
+	// List invitations
+	invitationsCmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "List active invitations",
+		Long:  `Show all active invitations you've created.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			// Create profile manager
+			profileManager, err := createProfileManager(config)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Create invitation manager
+			invitationManager, err := createInvitationManager(profileManager)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Get invitations
+			invitations := invitationManager.ListInvitations()
+			if len(invitations) == 0 {
+				fmt.Println("No active invitations found.")
+				return
+			}
+			
+			// Display invitations
+			fmt.Printf("Found %d active invitation(s):\n\n", len(invitations))
+			
+			for i, invitation := range invitations {
+				fmt.Printf("[%d] %s\n", i+1, invitation.Name)
+				fmt.Printf("  - Token: %s\n", invitation.Token)
+				fmt.Printf("  - Type: %s\n", invitation.Type)
+				fmt.Printf("  - Created: %s\n", invitation.Created.Format("Jan 2, 2006"))
+				fmt.Printf("  - Expires: %s (in %s)\n", invitation.Expires.Format("Jan 2, 2006"),
+					invitation.GetExpirationDuration().Round(time.Hour))
+				if i < len(invitations)-1 {
+					fmt.Println()
+				}
+			}
+		},
+	})
+	
+	// Revoke invitation
+	invitationsCmd.AddCommand(&cobra.Command{
+		Use:   "revoke [token]",
+		Short: "Revoke an invitation",
+		Long:  `Revoke an active invitation so it can no longer be used.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			token := args[0]
+			
+			// Create profile manager
+			profileManager, err := createProfileManager(config)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Create invitation manager
+			invitationManager, err := createInvitationManager(profileManager)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Get invitation details first
+			invitation, err := invitationManager.GetInvitation(token)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			
+			// Revoke the invitation
+			err = invitationManager.RevokeInvitation(token)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error revoking invitation: %v\n", err)
+				os.Exit(1)
+			}
+			
+			fmt.Printf("Successfully revoked invitation '%s' (%s)\n", invitation.Name, token)
+		},
+	})
+	
+	// Update the accept-invitation command to use the new invitation system
+	acceptCmd := profilesCmd.Commands()[len(profilesCmd.Commands())-2] // The accept-invitation command
+	acceptCmd.Flags().String("encoded", "", "Encoded invitation string")
+	acceptCmd.MarkFlagRequired("encoded")
+	acceptCmd.Run = func(cmd *cobra.Command, args []string) {
+		encoded, _ := cmd.Flags().GetString("encoded")
+		name, _ := cmd.Flags().GetString("name")
+		
+		// Create profile manager
+		profileManager, err := createProfileManager(config)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		
+		// Create invitation manager
+		invitationManager, err := createInvitationManager(profileManager)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		
+		// Add the invitation to profiles
+		if err := invitationManager.AddToProfile(encoded, name); err != nil {
+			fmt.Fprintf(os.Stderr, "Error accepting invitation: %v\n", err)
+			os.Exit(1)
+		}
+		
+		fmt.Printf("Accepted invitation and created profile '%s'\n", name)
+	}
 }
 
 // Helper functions
@@ -449,8 +650,12 @@ func valueOrEmpty(s string) string {
 
 // createProfileManager creates a profile manager from config
 func createProfileManager(config *Config) (*profile.ManagerEnhanced, error) {
-	configPath := getConfigPath()
-	return profile.NewManagerEnhanced(configPath)
+	return profile.NewManagerEnhanced()
+}
+
+// createInvitationManager creates an invitation manager
+func createInvitationManager(profileManager *profile.ManagerEnhanced) (*profile.InvitationManager, error) {
+	return profile.NewInvitationManager(profileManager)
 }
 
 // createAPIClient creates an API client from config
