@@ -48,6 +48,15 @@ type InvitationToken struct {
 	
 	// Expires is when this invitation will no longer be valid
 	Expires time.Time `json:"expires"`
+	
+	// Security attributes for enhanced invitations (v0.4.3+)
+	CanInvite    bool `json:"can_invite,omitempty"`
+	Transferable bool `json:"transferable,omitempty"`
+	DeviceBound  bool `json:"device_bound,omitempty"`
+	MaxDevices   int  `json:"max_devices,omitempty"`
+	
+	// Parentage tracking for invitation chains
+	ParentToken string `json:"parent_token,omitempty"`
 }
 
 // GenerateInvitationToken creates a new secure invitation token
@@ -75,6 +84,11 @@ func GenerateInvitationToken(ownerProfile, ownerAccount, name string, invType In
 		Name:         name,
 		Created:      time.Now(),
 		Expires:      time.Now().AddDate(0, 0, validDays),
+		// Default security attributes
+		CanInvite:    invType == InvitationTypeAdmin,
+		Transferable: false,
+		DeviceBound:  true,
+		MaxDevices:   1,
 	}
 	
 	return invitation, nil
@@ -117,6 +131,27 @@ func (i *InvitationToken) IsValid() bool {
 	return time.Now().Before(i.Expires)
 }
 
+// GenerateSecureInvitationToken creates an enhanced invitation token with security features
+func GenerateSecureInvitationToken(ownerProfile, ownerAccount, name string, 
+	invType InvitationType, validDays int, s3ConfigPath string,
+	canInvite, transferable, deviceBound bool, maxDevices int, parentToken string) (*InvitationToken, error) {
+	
+	// Generate basic token
+	token, err := GenerateInvitationToken(ownerProfile, ownerAccount, name, invType, validDays, s3ConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Add security attributes
+	token.CanInvite = canInvite
+	token.Transferable = transferable
+	token.DeviceBound = deviceBound
+	token.MaxDevices = maxDevices
+	token.ParentToken = parentToken
+	
+	return token, nil
+}
+
 // GetExpirationDuration returns the duration until this invitation expires
 func (i *InvitationToken) GetExpirationDuration() time.Duration {
 	return time.Until(i.Expires)
@@ -124,6 +159,16 @@ func (i *InvitationToken) GetExpirationDuration() time.Duration {
 
 // GetDescription returns a human-readable description of the invitation
 func (i *InvitationToken) GetDescription() string {
-	return fmt.Sprintf("Invitation '%s' to %s (%s access, expires in %s)",
-		i.Name, i.OwnerAccount, i.Type, i.GetExpirationDuration().Round(time.Hour))
+	securityInfo := ""
+	if i.DeviceBound {
+		securityInfo = fmt.Sprintf(", device-bound (max %d)", i.MaxDevices)
+	}
+	canInviteInfo := ""
+	if i.CanInvite {
+		canInviteInfo = ", can invite others"
+	}
+	
+	return fmt.Sprintf("Invitation '%s' to %s (%s access%s%s, expires in %s)",
+		i.Name, i.OwnerAccount, i.Type, securityInfo, canInviteInfo, 
+		i.GetExpirationDuration().Round(time.Hour))
 }

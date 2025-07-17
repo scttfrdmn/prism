@@ -41,6 +41,7 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
@@ -244,20 +245,51 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	// Profile indicator
 	profileText := "No profile selected"
 	profileType := "Personal"
+	var profileIcon fyne.Resource = theme.AccountIcon()
+	var securityText string
 	
 	// Check if active profile exists
 	if g.activeProfile != nil {
 		profileText = g.activeProfile.Name
 		if g.activeProfile.Type == "invitation" {
 			profileType = "Invitation"
+			
+			// Set security icon and text based on device binding
+			if g.activeProfile.DeviceBound {
+				profileIcon = theme.ConfirmIcon()
+				securityText = "🔒 Device-Bound"
+			} else {
+				profileIcon = theme.WarningIcon()
+				securityText = "⚠️ Not Device-Bound"
+			}
 		}
 	}
 	
-	// Create profile card
-	profileCard := widget.NewCard("", "",
-		container.NewVBox(
+	// Create profile card with security info
+	var profileCardContent *fyne.Container
+	
+	if securityText != "" {
+		// Show security status for invitation profiles
+		profileCardContent = container.NewVBox(
 			container.NewHBox(
-				widget.NewIcon(theme.AccountIcon()),
+				widget.NewIcon(profileIcon),
+				widget.NewLabelWithStyle("AWS Profile", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			),
+			container.NewHBox(
+				widget.NewLabelWithStyle(profileText, fyne.TextAlignLeading, fyne.TextStyle{}),
+				widget.NewLabelWithStyle(fmt.Sprintf("(%s)", profileType), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
+			),
+			widget.NewLabelWithStyle(securityText, fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
+			widget.NewButton("Switch Profile", func() {
+				// Navigate to settings and focus on profiles section
+				g.navigateToSection(SectionSettings)
+			}),
+		)
+	} else {
+		// Simple view for personal profiles
+		profileCardContent = container.NewVBox(
+			container.NewHBox(
+				widget.NewIcon(profileIcon),
 				widget.NewLabelWithStyle("AWS Profile", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			),
 			container.NewHBox(
@@ -268,8 +300,11 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 				// Navigate to settings and focus on profiles section
 				g.navigateToSection(SectionSettings)
 			}),
-		),
-	)
+		)
+	}
+	
+	// Create the card
+	profileCard := widget.NewCard("", "", profileCardContent)
 
 	// Navigation buttons
 	navButtons := container.NewVBox(
@@ -1133,6 +1168,60 @@ func (g *CloudWorkstationGUI) startBackgroundRefresh() {
 					consecutiveFailures = 0
 				}
 			}
+			
+			// Check device binding validity if using a device-bound profile
+			g.checkDeviceBindingValidity()
+		}
+	}()
+}
+
+// checkDeviceBindingValidity validates the current profile's device binding
+func (g *CloudWorkstationGUI) checkDeviceBindingValidity() {
+	// Skip if no active profile or not a device-bound profile
+	if g.activeProfile == nil || !g.activeProfile.DeviceBound {
+		return
+	}
+	
+	// Validate device binding in background
+	go func() {
+		if g.activeProfile.BindingRef != "" {
+			// Create secure invitation manager
+			secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+			if err != nil {
+				// Log error but don't show notification - this is a background check
+				log.Printf("Failed to initialize security system for binding check: %v", err)
+				return
+			}
+			
+			// Validate device binding
+			if err := secureManager.ValidateSecureProfile(g.activeProfile); err != nil {
+				// Device binding is no longer valid - show warning on main thread
+				g.app.Driver().StartAnimation(&fyne.Animation{
+					Duration: 100 * time.Millisecond,
+					Tick: func(_ float32) {
+						g.showNotification("error", "Security Alert", 
+							"Your device binding has been revoked. This profile is no longer valid on this device.")
+						
+						// Show device management dialog to help user understand
+						dialog.NewInformation(
+							"Device Binding Revoked", 
+							"The device binding for your current profile has been revoked. "+
+								"This means your access has been restricted by the invitation owner. "+
+								"Please switch to a different profile.",
+							g.window,
+						).Show()
+						
+						// Switch to a default profile if available
+						for _, p := range g.profiles {
+							if p.Type == profile.ProfileTypePersonal {
+								// Switch to first personal profile
+								g.switchProfile(p.AWSProfile)
+								break
+							}
+						}
+					},
+				})
+			}
 		}
 	}()
 }
@@ -1170,7 +1259,7 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 					widget.NewLabelWithStyle("Profile Name", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 					widget.NewLabel("Type"),
 					widget.NewLabel("AWS Profile"),
-					widget.NewLabel("Region"),
+					widget.NewLabel("Security Status"),
 				),
 				layout.NewSpacer(),
 				container.NewVBox(
@@ -1191,7 +1280,19 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 			nameLabel := infoContainer.Objects[0].(*widget.Label)
 			typeLabel := infoContainer.Objects[1].(*widget.Label)
 			awsProfileLabel := infoContainer.Objects[2].(*widget.Label)
-			regionLabel := infoContainer.Objects[3].(*widget.Label)
+			securityLabel := infoContainer.Objects[3].(*widget.Label)
+			
+			// Set profile icon based on type and security
+			profileIcon := container.Objects[0].(*widget.Icon)
+			if profile.Type == profile.ProfileTypeInvitation {
+				if profile.DeviceBound {
+					profileIcon.SetResource(theme.ConfirmIcon()) // Using lock icon for secure profiles
+				} else {
+					profileIcon.SetResource(theme.WarningIcon()) // Warning for non-device-bound invitations
+				}
+			} else {
+				profileIcon.SetResource(theme.AccountIcon()) // Standard icon for personal profiles
+			}
 			
 			nameLabel.SetText(profile.Name)
 			
@@ -1205,12 +1306,16 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 			// Display AWS profile
 			awsProfileLabel.SetText(profile.AWSProfile)
 			
-			// Display region
-			region := profile.Region
-			if region == "" {
-				region = "Default"
+			// Display security status
+			securityText := "Standard"
+			if profile.Type == "invitation" {
+				if profile.DeviceBound {
+					securityText = "🔒 Device-Bound"
+				} else {
+					securityText = "⚠️ Not Device-Bound"
+				}
 			}
-			regionLabel.SetText(region)
+			securityLabel.SetText(securityText)
 			
 			// Get button container
 			buttonContainer := container.Objects[3].(*fyne.Container)
@@ -1239,7 +1344,11 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 			
 			// Set up validate button
 			validateButton.OnTapped = func() {
-				g.validateProfile(profile.AWSProfile)
+				if profile.DeviceBound {
+					g.validateSecureProfile(profile.AWSProfile)
+				} else {
+					g.validateProfile(profile.AWSProfile)
+				}
 			}
 			
 			// Set up remove button
@@ -1265,10 +1374,23 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 		g.showAddInvitationDialog()
 	})
 	
+	// Add device management button
+	manageDevicesButton := widget.NewButton("Manage Devices", func() {
+		g.showDeviceManagementDialog()
+	})
+	
 	// Layout the buttons in a horizontal container
 	buttonContainer := container.NewHBox(
 		addProfileButton,
 		addInvitationButton,
+		manageDevicesButton,
+	)
+	
+	// Add security explanation
+	securityContainer := container.NewVBox(
+		widget.NewRichTextFromMarkdown("**Profile Security:**"),
+		widget.NewRichTextFromMarkdown("🔒 **Device-Bound:** Profile can only be used on this device"),
+		widget.NewRichTextFromMarkdown("⚠️ **Not Device-Bound:** Profile can be used on any device (less secure)"),
 	)
 	
 	// Combine everything into a vertical container with more information
@@ -1280,11 +1402,45 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 		container.NewVScroll(profileList),
 		widget.NewSeparator(),
 		buttonContainer,
+		widget.NewSeparator(),
+		securityContainer,
 	)
 }
 
 // switchProfile switches to a different AWS profile
 func (g *CloudWorkstationGUI) switchProfile(profileID string) {
+	// Get the profile to check if it's device-bound
+	profile, err := g.profileManager.GetProfile(profileID)
+	if err != nil {
+		g.showNotification("error", "Profile Error", fmt.Sprintf("Failed to get profile: %v", err))
+		return
+	}
+	
+	// Check if this is a device-bound profile
+	if profile.Type == profile.ProfileTypeInvitation && profile.DeviceBound {
+		// Create secure invitation manager for validation
+		secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+		if err != nil {
+			g.showNotification("error", "Security Error", 
+				fmt.Sprintf("Failed to initialize security system: %v", err))
+			return
+		}
+		
+		// Show validating notification
+		g.showNotification("info", "Validating Device Binding", 
+			"Verifying this device is authorized to use this profile...")
+		
+		// Validate device binding
+		err = secureManager.ValidateSecureProfile(profile)
+		if err != nil {
+			g.showNotification("error", "Device Binding Failed", 
+				fmt.Sprintf("This profile is not authorized for use on this device: %v", err))
+			return
+		}
+		
+		// If we get here, device binding is valid
+	}
+	
 	// Use the selected profile via the profile-aware client
 	if err := g.profileAwareClient.SwitchProfile(profileID); err != nil {
 		g.showNotification("error", "Profile Switch Failed", err.Error())
@@ -1306,8 +1462,19 @@ func (g *CloudWorkstationGUI) switchProfile(profileID string) {
 	// Refresh GUI to reflect profile change
 	g.navigateToSection(g.currentSection)
 	
-	// Update status bar
-	g.showNotification("success", "Profile Changed", fmt.Sprintf("Now using profile: %s", activeProfile.Name))
+	// Update status bar with security information
+	if profile.Type == profile.ProfileTypeInvitation {
+		if profile.DeviceBound {
+			g.showNotification("success", "Secure Profile Activated", 
+				fmt.Sprintf("Now using device-bound profile: %s", activeProfile.Name))
+		} else {
+			g.showNotification("warning", "Profile Changed", 
+				fmt.Sprintf("Now using profile: %s (Not device-bound - less secure)", activeProfile.Name))
+		}
+	} else {
+		g.showNotification("success", "Profile Changed", 
+			fmt.Sprintf("Now using profile: %s", activeProfile.Name))
+	}
 	
 	// Refresh data with new profile
 	g.refreshData()
@@ -1369,11 +1536,27 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 	tokenEntry := widget.NewMultiLineEntry()
 	tokenEntry.SetPlaceHolder("Paste the full invitation token here (starts with inv-...)")
 	
+	// Create device binding checkbox
+	deviceBindingCheck := widget.NewCheck("Enable device binding (recommended)", nil)
+	deviceBindingCheck.SetChecked(true) // Enable by default for security
+	
+	// Create explanation text for device binding
+	securityExplanation := widget.NewRichTextFromMarkdown(
+		"**Device binding** restricts this profile to only work on this device. " +
+		"This improves security by preventing unauthorized access from other computers.")
+	
+	// Create device binding container
+	deviceBindingContainer := container.NewVBox(
+		deviceBindingCheck,
+		securityExplanation,
+	)
+	
 	// Create form
 	form := &widget.Form{
 		Items: []*widget.FormItem{
 			{Text: "Profile Name", Widget: nameEntry},
 			{Text: "Invitation Token", Widget: tokenEntry, HintText: "Paste the complete invitation token"},
+			{Text: "Security", Widget: deviceBindingContainer},
 		},
 		OnSubmit: func() {
 			// Validate inputs
@@ -1395,25 +1578,87 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 				return
 			}
 			
-			// Create a profile with the token
-			newProfile := profile.Profile{
-				Type:            "invitation",
-				Name:            nameEntry.Text,
-				InvitationToken: tokenEntry.Text,
-				CreatedAt:       time.Now(),
-			}
-			
-			// Add the profile using enhanced profile manager
-			if err := g.profileManager.AddProfile(newProfile); err != nil {
-				g.showNotification("error", "Add Invitation Failed", err.Error())
+			// Decode the invitation token to check its properties
+			invitation, err := profile.DecodeFromString(tokenEntry.Text)
+			if err != nil {
+				g.showNotification("error", "Invalid Token", "Could not decode invitation token: " + err.Error())
 				return
 			}
 			
-			g.showNotification("success", "Invitation Added", fmt.Sprintf("Added invitation profile: %s", nameEntry.Text))
+			// Check if the invitation is valid (not expired)
+			if !invitation.IsValid() {
+				g.showNotification("error", "Expired Invitation", "This invitation has expired and cannot be used")
+				return
+			}
 			
-			// Refresh the view
-			g.loadProfiles()
-			g.navigateToSection(SectionSettings)
+			// Create a profile with the token
+			newProfile := profile.Profile{
+				Type:            profile.ProfileTypeInvitation,
+				Name:            nameEntry.Text,
+				InvitationToken: tokenEntry.Text,
+				OwnerAccount:    invitation.OwnerAccount,
+				S3ConfigPath:    invitation.S3ConfigPath,
+				CreatedAt:       time.Now(),
+				// Security properties
+				DeviceBound:     deviceBindingCheck.Checked,
+			}
+			
+			// Handle device binding
+			if deviceBindingCheck.Checked {
+				// Show confirmation dialog for device binding
+				confirmDialog := dialog.NewConfirm(
+					"Confirm Device Binding",
+					"Device binding will restrict this profile to only work on this computer. You cannot use this profile on other devices. Continue?",
+					func(confirmed bool) {
+						if !confirmed {
+							return
+						}
+						
+						// Try to create secure invitation manager
+						invitationManager, err := profile.NewSecureInvitationManager(g.profileManager)
+						if err != nil {
+							g.showNotification("error", "Security Error", 
+								"Failed to initialize security system: " + err.Error())
+							return
+						}
+						
+						// Use secure add to profile to handle device binding
+						err = invitationManager.SecureAddToProfile(tokenEntry.Text, nameEntry.Text)
+						if err != nil {
+							g.showNotification("error", "Device Binding Failed", 
+								"Failed to add secure profile: " + err.Error())
+							return
+						}
+						
+						g.showNotification("success", "Secure Invitation Added", 
+							fmt.Sprintf("Added device-bound profile: %s", nameEntry.Text))
+						
+						// Refresh the view
+						g.loadProfiles()
+						g.navigateToSection(SectionSettings)
+					},
+					g.window,
+				)
+				confirmDialog.SetConfirmText("Continue with Binding")
+				confirmDialog.SetDismissText("Cancel")
+				confirmDialog.Show()
+				
+				// Return early since we're handling this in the confirm dialog
+				return
+			} else {
+				// Standard add profile without device binding
+				if err := g.profileManager.AddProfile(newProfile); err != nil {
+					g.showNotification("error", "Add Invitation Failed", err.Error())
+					return
+				}
+				
+				g.showNotification("success", "Invitation Added", 
+					fmt.Sprintf("Added invitation profile: %s", nameEntry.Text))
+				
+				// Refresh the view
+				g.loadProfiles()
+				g.navigateToSection(SectionSettings)
+			}
 		},
 	}
 	
@@ -1474,6 +1719,305 @@ func (g *CloudWorkstationGUI) validateProfile(profileID string) {
 		g.showNotification("success", "Profile Valid", 
 			fmt.Sprintf("Personal profile '%s' is valid and can access the API", profile.Name))
 	}
+}
+
+// validateSecureProfile tests if a device-bound profile is valid on this device
+func (g *CloudWorkstationGUI) validateSecureProfile(profileID string) {
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	// Show loading notification
+	g.showNotification("info", "Validating Device Binding", "Verifying device security binding...")
+	
+	// Get the profile
+	profile, err := g.profileManager.GetProfile(profileID)
+	if err != nil {
+		g.showNotification("error", "Profile Error", fmt.Sprintf("Failed to get profile: %v", err))
+		return
+	}
+	
+	// Create secure invitation manager
+	secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+	if err != nil {
+		g.showNotification("error", "Security Error", 
+			fmt.Sprintf("Failed to initialize security system: %v", err))
+		return
+	}
+	
+	// Validate device binding
+	err = secureManager.ValidateSecureProfile(profile)
+	if err != nil {
+		g.showNotification("error", "Device Binding Invalid", 
+			fmt.Sprintf("This profile is not authorized for use on this device: %v", err))
+		return
+	}
+	
+	// Also check API connection with that profile (as a secondary validation)
+	client, err := g.profileAwareClient.WithProfile(profileID)
+	if err != nil {
+		g.showNotification("error", "Profile Error", 
+			fmt.Sprintf("Device binding is valid, but API connection failed: %v", err))
+		return
+	}
+	
+	err = client.Ping(ctx)
+	if err != nil {
+		g.showNotification("error", "API Connection Failed", 
+			fmt.Sprintf("Device binding is valid, but API connection failed: %v", err))
+		return
+	}
+	
+	// All validations passed
+	g.showNotification("success", "Profile Valid", 
+		fmt.Sprintf("Device-bound profile '%s' is valid on this device", profile.Name))
+	
+	// Try to check with registry in background (non-blocking)
+	go func() {
+		if profile.BindingRef != "" {
+			// Use the security package to retrieve binding
+			binding, err := security.RetrieveDeviceBinding(profile.BindingRef)
+			if err == nil && binding != nil {
+				// For now, just log that we would check the registry
+				fmt.Printf("Would check registry for token %s and device %s\n", 
+					binding.InvitationToken, binding.DeviceID)
+				
+				// In a real implementation, we would check with registry:
+				// valid, _ := secureManager.registry.ValidateDevice(binding.InvitationToken, binding.DeviceID)
+				// if !valid {
+				//     // Show notification on main thread
+				//     g.app.Driver().StartAnimation(&fyne.Animation{
+				//         Duration: 100 * time.Millisecond,
+				//         Tick: func(_ float32) {
+				//             g.showNotification("warning", "Registry Check Failed", 
+				//                 "The central registry could not validate this device. Local validation succeeded.")
+				//         },
+				//     })
+				// }
+			}
+		}
+	}()
+}
+
+// showDeviceManagementDialog shows the dialog for managing devices registered to invitations
+func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
+	// Find all device-bound profiles
+	var deviceBoundProfiles []profile.Profile
+	for _, p := range g.profiles {
+		if p.DeviceBound && p.Type == profile.ProfileTypeInvitation {
+			deviceBoundProfiles = append(deviceBoundProfiles, p)
+		}
+	}
+	
+	if len(deviceBoundProfiles) == 0 {
+		g.showNotification("info", "No Device-Bound Profiles", 
+			"You don't have any device-bound profiles to manage")
+		return
+	}
+	
+	// Create secure invitation manager
+	secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+	if err != nil {
+		g.showNotification("error", "Security Error", 
+			fmt.Sprintf("Failed to initialize security system: %v", err))
+		return
+	}
+	
+	// Create a tab container for each profile
+	tabs := container.NewAppTabs()
+	
+	for _, p := range deviceBoundProfiles {
+		// For each profile, try to get its devices
+		profileTab := container.NewVBox(
+			widget.NewLabelWithStyle("Loading devices...", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		)
+		
+		// Add tab with profile name
+		tab := container.NewTabItem(p.Name, container.NewVScroll(profileTab))
+		tabs.Append(tab)
+		
+		// Load devices in background
+		go func(profile profile.Profile, container *fyne.Container) {
+			// Try to load devices from registry
+			var devices []map[string]interface{}
+			if profile.InvitationToken != "" {
+				devices, _ = secureManager.GetInvitationDevices(profile.InvitationToken)
+			}
+			
+			// Get local device info
+			localDeviceInfo := ""
+			if profile.BindingRef != "" {
+				// Use proper import to retrieve binding
+				binding, err := security.RetrieveDeviceBinding(profile.BindingRef)
+				if err == nil && binding != nil {
+					localDeviceInfo = fmt.Sprintf("Current device: %s\nDevice ID: %s\nBound on: %s", 
+						binding.DeviceName, binding.DeviceID, binding.Created.Format("Jan 2, 2006 15:04"))
+				} else {
+					localDeviceInfo = "This profile is device-bound, but binding information could not be retrieved."
+				}
+			}
+			
+			// Update UI on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					// Clear container
+					container.RemoveAll()
+					
+					// Add local device info
+					if localDeviceInfo != "" {
+						container.Add(widget.NewCard("This Device", "",
+							widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**", localDeviceInfo))))
+					}
+					
+					// Add header for registered devices
+					container.Add(widget.NewLabelWithStyle("Registered Devices", 
+						fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+					
+					// Show devices or message if none
+					if len(devices) == 0 {
+						container.Add(widget.NewLabelWithStyle(
+							"No other devices registered with this invitation",
+							fyne.TextAlignCenter, fyne.TextStyle{Italic: true}))
+					} else {
+						// Add each device
+						for i, device := range devices {
+							// Extract device info
+							deviceID, _ := device["device_id"].(string)
+							hostname, _ := device["hostname"].(string)
+							username, _ := device["username"].(string)
+							timestamp, _ := device["timestamp"].(string)
+							
+							if deviceID == "" {
+								deviceID = fmt.Sprintf("Unknown device %d", i+1)
+							}
+							
+							// Create device card
+							deviceInfo := fmt.Sprintf("Device ID: %s\n", deviceID)
+							if hostname != "" {
+								deviceInfo += fmt.Sprintf("Hostname: %s\n", hostname)
+							}
+							if username != "" {
+								deviceInfo += fmt.Sprintf("Username: %s\n", username)
+							}
+							if timestamp != "" {
+								deviceInfo += fmt.Sprintf("Registered: %s\n", timestamp)
+							}
+							
+							deviceCard := widget.NewCard(deviceID, "",
+								container.NewVBox(
+									widget.NewLabel(deviceInfo),
+									widget.NewButton("Revoke Device", func() {
+										g.revokeDevice(profile.InvitationToken, deviceID)
+									}),
+								))
+							
+							container.Add(deviceCard)
+						}
+					}
+					
+					// Add revoke all button
+					container.Add(widget.NewSeparator())
+					container.Add(widget.NewButton("Revoke All Devices", func() {
+						g.revokeAllDevices(profile.InvitationToken)
+					}))
+				},
+			})
+		}(p, profileTab)
+	}
+	
+	// Create the dialog
+	dialog := dialog.NewCustom("Device Management", "Close",
+		container.NewVBox(
+			widget.NewRichTextFromMarkdown("**Device Management**\n\nView and manage all devices registered with your secure invitations."),
+			widget.NewSeparator(),
+			tabs,
+		), g.window)
+	
+	dialog.Resize(fyne.NewSize(600, 400))
+	dialog.Show()
+}
+
+// revokeDevice revokes a specific device from using an invitation
+func (g *CloudWorkstationGUI) revokeDevice(invitationToken, deviceID string) {
+	// Confirm before revoking
+	confirmDialog := dialog.NewConfirm(
+		"Confirm Device Revocation",
+		fmt.Sprintf("Are you sure you want to revoke access for device %s?\nThis action cannot be undone.", deviceID),
+		func(confirmed bool) {
+			if !confirmed {
+				return
+			}
+			
+			// Create secure invitation manager
+			secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+			if err != nil {
+				g.showNotification("error", "Security Error", 
+					fmt.Sprintf("Failed to initialize security system: %v", err))
+				return
+			}
+			
+			// Revoke the device
+			err = secureManager.RevokeDevice(invitationToken, deviceID)
+			if err != nil {
+				g.showNotification("error", "Revocation Failed", 
+					fmt.Sprintf("Failed to revoke device: %v", err))
+				return
+			}
+			
+			g.showNotification("success", "Device Revoked", 
+				fmt.Sprintf("Device %s has been revoked successfully", deviceID))
+			
+			// Refresh the device management dialog
+			g.showDeviceManagementDialog()
+		},
+		g.window,
+	)
+	
+	confirmDialog.SetConfirmText("Revoke Device")
+	confirmDialog.SetDismissText("Cancel")
+	confirmDialog.Show()
+}
+
+// revokeAllDevices revokes all devices for an invitation
+func (g *CloudWorkstationGUI) revokeAllDevices(invitationToken string) {
+	// Confirm before revoking all
+	confirmDialog := dialog.NewConfirm(
+		"Confirm Revocation",
+		"Are you sure you want to revoke ALL devices for this invitation?\nThis action cannot be undone.",
+		func(confirmed bool) {
+			if !confirmed {
+				return
+			}
+			
+			// Create secure invitation manager
+			secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+			if err != nil {
+				g.showNotification("error", "Security Error", 
+					fmt.Sprintf("Failed to initialize security system: %v", err))
+				return
+			}
+			
+			// Revoke all devices
+			err = secureManager.RevokeAllDevices(invitationToken)
+			if err != nil {
+				g.showNotification("error", "Revocation Failed", 
+					fmt.Sprintf("Failed to revoke all devices: %v", err))
+				return
+			}
+			
+			g.showNotification("success", "All Devices Revoked", 
+				"All devices have been revoked successfully")
+			
+			// Refresh the device management dialog
+			g.showDeviceManagementDialog()
+		},
+		g.window,
+	)
+	
+	confirmDialog.SetConfirmText("Revoke All Devices")
+	confirmDialog.SetDismissText("Cancel")
+	confirmDialog.Show()
 }
 
 // removeProfile removes a profile after confirmation
