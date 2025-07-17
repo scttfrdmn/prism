@@ -22,6 +22,7 @@ type Client struct {
 	invitationToken string
 	ownerAccount    string
 	s3ConfigPath    string
+	profileID       string
 }
 
 // NewClient creates a new API client
@@ -30,11 +31,12 @@ func NewClient(baseURL string) *Client {
 		baseURL = "http://localhost:8080"
 	}
 
+	// Create a client with default performance options
+	httpClient := createHTTPClient(DefaultClientPerformanceOptions())
+
 	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		baseURL:    baseURL,
+		httpClient: httpClient,
 	}
 }
 
@@ -249,6 +251,11 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 		if c.s3ConfigPath != "" {
 			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
 		}
+	}
+	
+	// Add profile ID header if configured
+	if c.profileID != "" {
+		req.Header.Set("X-Profile-ID", c.profileID)
 	}
 }
 
