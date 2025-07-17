@@ -36,14 +36,28 @@ type DeviceOperationResult struct {
 
 // BatchDeviceManager provides functionality for batch device operations
 type BatchDeviceManager struct {
-	secureManager *SecureInvitationManager
+	secureManager      *SecureInvitationManager
+	defaultConcurrency int
 }
 
 // NewBatchDeviceManager creates a new batch device manager
 func NewBatchDeviceManager(secureManager *SecureInvitationManager) *BatchDeviceManager {
 	return &BatchDeviceManager{
 		secureManager: secureManager,
+		defaultConcurrency: 5,
 	}
+}
+
+// NewBatchDeviceManagerWithConfig creates a new batch device manager with configuration
+func NewBatchDeviceManagerWithConfig(secureManager *SecureInvitationManager, config *BatchInvitationConfig) *BatchDeviceManager {
+	manager := NewBatchDeviceManager(secureManager)
+	
+	// Apply configuration
+	if config != nil {
+		manager.defaultConcurrency = config.DefaultConcurrency
+	}
+	
+	return manager
 }
 
 // BatchRevokeDevices revokes multiple devices across multiple invitations
