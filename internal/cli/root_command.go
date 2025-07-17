@@ -168,6 +168,8 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 	// Add profile commands
 	if a.profileManager != nil {
 		AddProfileCommands(rootCmd, a.config)
+		// Add migration command
+		AddMigrateCommand(rootCmd, a.config)
 	}
 
 	return rootCmd
