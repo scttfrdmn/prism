@@ -121,14 +121,14 @@ type StorageCreateRequest struct {
 	Region     string `json:"region,omitempty"`
 }
 
-// APIError represents an API error response
-type APIError struct {
+// SimpleAPIError represents a simple API error response (legacy)
+type SimpleAPIError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Details string `json:"details,omitempty"`
 }
 
-func (e APIError) Error() string {
+func (e SimpleAPIError) Error() string {
 	return e.Message
 }
 
