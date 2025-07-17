@@ -43,6 +43,7 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
@@ -71,6 +72,7 @@ type CloudWorkstationGUI struct {
 	app       fyne.App
 	window    fyne.Window
 	apiClient api.CloudWorkstationAPI
+	profileAwareClient *api.ProfileAwareClient
 
 	// Navigation
 	currentSection NavigationSection
@@ -85,8 +87,10 @@ type CloudWorkstationGUI struct {
 	lastUpdate time.Time
 
 	// Profile Management
-	profileManager *profile.Manager
-	activeProfile  profile.Profile
+	profileManager *profile.ManagerEnhanced
+	stateManager   *profile.ProfileAwareStateManager
+	activeProfile  *profile.Profile
+	profiles       []profile.Profile
 	
 	// UI Components
 	refreshTicker *time.Ticker
@@ -105,8 +109,8 @@ func main() {
 
 	// Create the application
 	gui := &CloudWorkstationGUI{
-		app:       app.NewWithID("com.cloudworkstation.gui"),
-		apiClient: api.NewContextClient("http://localhost:8080"),
+		app: app.NewWithID("com.cloudworkstation.gui"),
+		// apiClient will be initialized after setting up profile manager
 	}
 
 	// Initialize and run
@@ -130,23 +134,36 @@ func (g *CloudWorkstationGUI) initialize() error {
 	g.window.Resize(fyne.NewSize(1200, 800))
 	g.window.SetMaster()
 
-	// Initialize profile manager
-	homeDir, err := os.UserHomeDir()
+	// Initialize enhanced profile manager
+	g.profileManager, err = profile.NewManagerEnhanced()
 	if err != nil {
-		return fmt.Errorf("failed to determine user home directory: %w", err)
+		return fmt.Errorf("failed to initialize enhanced profile manager: %w", err)
 	}
 	
-	g.profileManager, err = profile.NewManager(homeDir)
+	// Initialize state manager with profile manager
+	g.stateManager, err = profile.NewProfileAwareStateManager(g.profileManager)
 	if err != nil {
-		return fmt.Errorf("failed to initialize profile manager: %w", err)
+		return fmt.Errorf("failed to initialize profile-aware state manager: %w", err)
 	}
 	
-	// Set active profile
-	if activeProfile, exists := g.profileManager.Current(); exists {
-		g.activeProfile = activeProfile
-		// Initialize API client with profile settings
-		g.updateApiClientWithProfile()
+	// Initialize profile-aware client
+	g.profileAwareClient, err = api.NewProfileAwareClient("http://localhost:8080", g.profileManager, g.stateManager)
+	if err != nil {
+		return fmt.Errorf("failed to initialize profile-aware client: %w", err)
 	}
+	
+	// Set the API client interface
+	g.apiClient = g.profileAwareClient.Client()
+	
+	// Get current profile
+	currentProfile, err := g.profileManager.GetCurrentProfile()
+	if err == nil {
+		// Store active profile pointer
+		g.activeProfile = currentProfile
+	}
+	
+	// Load all profiles
+	g.loadProfiles()
 	
 	// Check daemon connectivity with retry logic
 	if err := g.checkDaemonConnection(context.Background()); err != nil {
@@ -220,7 +237,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	profileType := "Personal"
 	
 	// Check if active profile exists
-	if g.activeProfile.Name != "" {
+	if g.activeProfile != nil {
 		profileText = g.activeProfile.Name
 		if g.activeProfile.Type == profile.ProfileTypeInvitation {
 			profileType = "Invitation"
@@ -350,34 +367,18 @@ func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
 	g.content.Refresh()
 }
 
-// updateApiClientWithProfile updates the API client with the current profile's credentials
-func (g *CloudWorkstationGUI) updateApiClientWithProfile() {
-	// Skip if no active profile
-	if g.activeProfile.Name == "" {
-		return
+// loadProfiles loads all profiles from the profile manager
+func (g *CloudWorkstationGUI) loadProfiles() error {
+	// Get all profiles
+	profiles, err := g.profileManager.ListProfiles()
+	if err != nil {
+		return fmt.Errorf("failed to list profiles: %w", err)
 	}
 	
-	// Get API client options based on profile type
-	options := api.ClientOptions{}
+	// Store profiles
+	g.profiles = profiles
 	
-	// Set AWS profile and region from profile
-	if g.activeProfile.AWSProfile != "" {
-		options.AWSProfile = g.activeProfile.AWSProfile
-	}
-	
-	if g.activeProfile.Region != "" {
-		options.AWSRegion = g.activeProfile.Region
-	}
-	
-	// For invitation profiles, add invitation token
-	if g.activeProfile.Type == profile.ProfileTypeInvitation {
-		options.InvitationToken = g.activeProfile.InvitationToken
-		options.OwnerAccount = g.activeProfile.OwnerAccount
-		options.S3ConfigPath = g.activeProfile.S3ConfigPath
-	}
-	
-	// Update API client with new options
-	g.apiClient.SetOptions(options)
+	return nil
 }
 
 // createDashboardView creates the main dashboard view
@@ -718,6 +719,12 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 					return "Disconnected"
 				}
 				return "Connected"
+			}())),
+			widget.NewLabel(fmt.Sprintf("Active Profile: %s", func() string {
+				if g.activeProfile != nil {
+					return g.activeProfile.Name
+				}
+				return "None"
 			}())),
 			widget.NewButton("Test Connection", func() {
 				if err := g.apiClient.Ping(context.Background()); err != nil {
@@ -1137,72 +1144,112 @@ func (g *CloudWorkstationGUI) setupSystemTray(desk desktop.App) {
 
 // createProfileManagerView creates the profile management interface
 func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
-	// Get all profiles
-	profiles := g.profileManager.List()
+	// Reload profiles to ensure we have the latest
+	g.loadProfiles()
 	
 	// Create profile list
 	profileList := widget.NewList(
 		func() int {
-			return len(profiles)
+			return len(g.profiles)
 		},
 		func() fyne.CanvasObject {
 			return container.NewHBox(
 				widget.NewIcon(theme.AccountIcon()),
 				container.NewVBox(
-					widget.NewLabel("Profile Name"),
+					widget.NewLabelWithStyle("Profile Name", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 					widget.NewLabel("Type"),
+					widget.NewLabel("AWS Profile"),
+					widget.NewLabel("Region"),
 				),
 				layout.NewSpacer(),
-				widget.NewButton("Use", nil),
+				container.NewVBox(
+					widget.NewButton("Use", nil),
+					widget.NewButton("Validate", nil),
+					widget.NewButton("Remove", nil),
+				),
 			)
 		},
 		func(id widget.ListItemID, item fyne.CanvasObject) {
-			profile := profiles[id]
+			profile := g.profiles[id]
 			container := item.(*fyne.Container)
 			
 			// Get the profile info container
 			infoContainer := container.Objects[1].(*fyne.Container)
 			
-			// Update profile name
+			// Update profile information
 			nameLabel := infoContainer.Objects[0].(*widget.Label)
+			typeLabel := infoContainer.Objects[1].(*widget.Label)
+			awsProfileLabel := infoContainer.Objects[2].(*widget.Label)
+			regionLabel := infoContainer.Objects[3].(*widget.Label)
+			
 			nameLabel.SetText(profile.Name)
 			
-			// Update profile type
-			typeLabel := infoContainer.Objects[1].(*widget.Label)
+			// Display type
 			typeText := "Personal AWS Account"
 			if profile.Type == profile.ProfileTypeInvitation {
-				typeText = "Invitation from " + profile.OwnerAccount
+				typeText = "Invitation Profile"
 			}
 			typeLabel.SetText(typeText)
 			
-			// Update use button
-			useButton := container.Objects[3].(*widget.Button)
+			// Display AWS profile
+			awsProfileLabel.SetText(profile.AWSProfile)
 			
-			// Generate unique ID for this profile
-			profileID := fmt.Sprintf("%s-%s", profile.Type, profile.Name)
-			profileID = strings.ReplaceAll(profileID, " ", "-")
+			// Display region
+			region := profile.Region
+			if region == "" {
+				region = "Default"
+			}
+			regionLabel.SetText(region)
+			
+			// Get button container
+			buttonContainer := container.Objects[3].(*fyne.Container)
+			useButton := buttonContainer.Objects[0].(*widget.Button)
+			validateButton := buttonContainer.Objects[1].(*widget.Button)
+			removeButton := buttonContainer.Objects[2].(*widget.Button)
 			
 			// Check if this is the current profile
-			currentProfile, exists := g.profileManager.Current()
-			if exists && currentProfile.Name == profile.Name && currentProfile.Type == profile.Type {
+			isCurrentProfile := false
+			if g.activeProfile != nil {
+				isCurrentProfile = (g.activeProfile.AWSProfile == profile.AWSProfile && 
+				                   g.activeProfile.Type == profile.Type && 
+				                   g.activeProfile.Name == profile.Name)
+			}
+			
+			if isCurrentProfile {
 				useButton.SetText("Current")
 				useButton.Disable()
 			} else {
 				useButton.SetText("Use")
 				useButton.Enable()
 				useButton.OnTapped = func() {
-					g.switchProfile(profileID)
+					g.switchProfile(profile.AWSProfile)
 				}
+			}
+			
+			// Set up validate button
+			validateButton.OnTapped = func() {
+				g.validateProfile(profile.AWSProfile)
+			}
+			
+			// Set up remove button
+			removeButton.OnTapped = func() {
+				g.removeProfile(profile.AWSProfile)
+			}
+			
+			// Disable remove button if this is the current profile
+			if isCurrentProfile {
+				removeButton.Disable()
+			} else {
+				removeButton.Enable()
 			}
 		},
 	)
 	
-	// Add profile button
+	// Add profile buttons
 	addProfileButton := widget.NewButton("Add Personal Profile", func() {
 		g.showAddPersonalProfileDialog()
 	})
 	
-	// Add invitation button
 	addInvitationButton := widget.NewButton("Add Invitation", func() {
 		g.showAddInvitationDialog()
 	})
@@ -1213,10 +1260,13 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 		addInvitationButton,
 	)
 	
-	// Combine everything into a vertical container
+	// Combine everything into a vertical container with more information
 	return container.NewVBox(
-		widget.NewLabel("Select a profile to use:"),
-		profileList,
+		widget.NewLabelWithStyle("Profile Management", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewLabel("Manage AWS profiles and shared access through invitations"),
+		widget.NewSeparator(),
+		widget.NewLabel("Your Profiles:"),
+		container.NewVScroll(profileList),
 		widget.NewSeparator(),
 		buttonContainer,
 	)
@@ -1224,23 +1274,23 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 
 // switchProfile switches to a different AWS profile
 func (g *CloudWorkstationGUI) switchProfile(profileID string) {
-	// Use the selected profile
-	if err := g.profileManager.Use(profileID); err != nil {
+	// Use the selected profile via the profile-aware client
+	if err := g.profileAwareClient.SwitchProfile(profileID); err != nil {
 		g.showNotification("error", "Profile Switch Failed", err.Error())
 		return
 	}
 	
 	// Update the active profile
-	activeProfile, exists := g.profileManager.Current()
-	if !exists {
+	activeProfile, err := g.profileManager.GetCurrentProfile()
+	if err != nil {
 		g.showNotification("error", "Profile Error", "Could not load selected profile")
 		return
 	}
 	
+	// Store active profile
 	g.activeProfile = activeProfile
 	
-	// Update API client with new profile
-	g.updateApiClientWithProfile()
+	// The API client is already updated by the profile-aware client
 	
 	// Refresh GUI to reflect profile change
 	g.navigateToSection(g.currentSection)
@@ -1272,10 +1322,6 @@ func (g *CloudWorkstationGUI) showAddPersonalProfileDialog() {
 			{Text: "AWS Region", Widget: regionEntry, HintText: "Optional - uses AWS defaults if empty"},
 		},
 		OnSubmit: func() {
-			// Generate profile ID
-			profileID := fmt.Sprintf("personal-%s", nameEntry.Text)
-			profileID = strings.ReplaceAll(profileID, " ", "-")
-			
 			// Create profile
 			newProfile := profile.Profile{
 				Type:       profile.ProfileTypePersonal,
@@ -1285,14 +1331,15 @@ func (g *CloudWorkstationGUI) showAddPersonalProfileDialog() {
 				CreatedAt:  time.Now(),
 			}
 			
-			// Add the profile
-			if err := g.profileManager.Add(profileID, newProfile); err != nil {
+			// Add the profile using enhanced profile manager
+			if err := g.profileManager.AddProfile(newProfile); err != nil {
 				g.showNotification("error", "Add Profile Failed", err.Error())
 				return
 			}
 			
 			// Refresh the view
 			g.showNotification("success", "Profile Added", fmt.Sprintf("Added profile: %s", newProfile.Name))
+			g.loadProfiles()
 			g.navigateToSection(SectionSettings)
 		},
 	}
@@ -1317,6 +1364,9 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 	regionEntry := widget.NewEntry()
 	regionEntry.SetPlaceHolder("us-west-2")
 	
+	s3ConfigPathEntry := widget.NewEntry()
+	s3ConfigPathEntry.SetPlaceHolder("s3://shared-config/settings.json")
+	
 	// Create form
 	form := &widget.Form{
 		Items: []*widget.FormItem{
@@ -1324,20 +1374,29 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 			{Text: "Invitation Token", Widget: tokenEntry},
 			{Text: "Owner Account", Widget: ownerEntry},
 			{Text: "AWS Region", Widget: regionEntry},
+			{Text: "S3 Config Path", Widget: s3ConfigPathEntry, HintText: "Optional"},
 		},
 		OnSubmit: func() {
-			// Generate profile ID
-			profileID := fmt.Sprintf("invitation-%s", nameEntry.Text)
-			profileID = strings.ReplaceAll(profileID, " ", "-")
+			// Create profile
+			newProfile := profile.Profile{
+				Type:            profile.ProfileTypeInvitation,
+				Name:            nameEntry.Text,
+				InvitationToken: tokenEntry.Text,
+				OwnerAccount:    ownerEntry.Text,
+				Region:          regionEntry.Text,
+				S3ConfigPath:    s3ConfigPathEntry.Text,
+				CreatedAt:       time.Now(),
+			}
 			
-			// Add the invitation
-			if err := g.profileManager.AddInvitation(profileID, nameEntry.Text, tokenEntry.Text, ownerEntry.Text, regionEntry.Text); err != nil {
+			// Add the profile using enhanced profile manager
+			if err := g.profileManager.AddProfile(newProfile); err != nil {
 				g.showNotification("error", "Add Invitation Failed", err.Error())
 				return
 			}
 			
 			// Refresh the view
 			g.showNotification("success", "Invitation Added", fmt.Sprintf("Added invitation: %s", nameEntry.Text))
+			g.loadProfiles()
 			g.navigateToSection(SectionSettings)
 		},
 	}
@@ -1345,6 +1404,69 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 	// Create and show dialog
 	dialog := dialog.NewCustom("Add Invitation", "Cancel", form, g.window)
 	dialog.Show()
+}
+
+// validateProfile tests if a profile has valid credentials and configuration
+func (g *CloudWorkstationGUI) validateProfile(profileID string) {
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	// Show loading notification
+	g.showNotification("info", "Validating Profile", "Testing connection with profile...")
+	
+	// Get client with the specified profile
+	client, err := g.profileAwareClient.WithProfile(profileID)
+	if err != nil {
+		g.showNotification("error", "Profile Error", fmt.Sprintf("Failed to create client with profile: %v", err))
+		return
+	}
+	
+	// Test connection with that profile
+	err = client.Ping(ctx)
+	if err != nil {
+		g.showNotification("error", "Validation Failed", fmt.Sprintf("Profile validation failed: %v", err))
+		return
+	}
+	
+	// If we get here, validation succeeded
+	g.showNotification("success", "Profile Valid", fmt.Sprintf("Profile '%s' is valid and can access the API", profileID))
+}
+
+// removeProfile removes a profile after confirmation
+func (g *CloudWorkstationGUI) removeProfile(profileID string) {
+	// Check if this is the current profile
+	current, err := g.profileManager.GetCurrentProfile()
+	if err == nil && current.AWSProfile == profileID {
+		g.showNotification("error", "Cannot Remove", "Cannot remove the active profile. Switch to another profile first.")
+		return
+	}
+	
+	// Show confirmation dialog
+	confirm := dialog.NewConfirm(
+		"Confirm Profile Removal",
+		fmt.Sprintf("Are you sure you want to remove profile '%s'? This cannot be undone.", profileID),
+		func(confirmed bool) {
+			if confirmed {
+				// Remove the profile
+				err := g.profileManager.RemoveProfile(profileID)
+				if err != nil {
+					g.showNotification("error", "Remove Failed", err.Error())
+					return
+				}
+				
+				// Reload profiles and update view
+				g.loadProfiles()
+				g.showNotification("success", "Profile Removed", fmt.Sprintf("Profile '%s' has been removed", profileID))
+				g.navigateToSection(SectionSettings)
+			}
+		},
+		g.window,
+	)
+	
+	confirm.SetDismissText("Cancel")
+	confirm.SetConfirmText("Remove")
+	confirm.Show()
 }
 
 func (g *CloudWorkstationGUI) run() {
