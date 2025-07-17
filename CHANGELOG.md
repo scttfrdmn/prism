@@ -43,6 +43,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build system for cross-platform package generation
 - Documentation to reflect current features and installation methods
 
+## [Unreleased] - 0.4.3 Secure Profiles
+
+### Added
+- Secure invitation system with device binding
+- Cross-platform keychain integration for secure credential storage
+- S3-based registry for tracking authorized devices
+- Multi-level permissions model for invitation delegation
+- Device management interface in GUI, TUI and CLI
+- Administrator utilities for device management
+
+### Enhanced
+- Profile management with security attributes
+- GUI invitation dialog with device binding options
+- TUI profile component with security indicators
+- CLI invitation commands with security features
+
+### Documentation
+- SECURE_PROFILE_IMPLEMENTATION.md with technical details
+- SECURE_INVITATION_ARCHITECTURE.md with design documentation
+- ADMINISTRATOR_GUIDE.md with security management instructions
+- Updated comments throughout the codebase
+
+## [0.4.2] - 2025-07-16
+
+### Added
+- Multi-profile support for multiple AWS accounts
+- Profile-aware client for state isolation
+- Invitation-based profile sharing
+- Profile switching in GUI, TUI and CLI
+
+### Enhanced
+- API client with context support
+- Error handling with detailed context information
+- Performance optimizations with connection pooling
+- GUI interface with profile management
+
+### Documentation
+- Profile export/import documentation
+- Multi-profile guide with technical details
+
 ## [Unreleased] - 0.4.0 Development
 
 ### Added
