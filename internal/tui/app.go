@@ -34,6 +34,8 @@ const (
 	StoragePage
 	// SettingsPage shows application settings
 	SettingsPage
+	// ProfilesPage shows profile management
+	ProfilesPage
 )
 
 // AppModel represents the main application model
@@ -42,6 +44,7 @@ type AppModel struct {
 	currentPage   PageID
 	dashboardModel models.DashboardModel
 	templatesModel models.TemplatesModel
+	profilesModel models.ProfilesModel
 	// Add other page models here
 	width         int
 	height        int
@@ -70,6 +73,7 @@ func (a *App) Run() error {
 		currentPage:   DashboardPage,
 		dashboardModel: models.NewDashboardModel(a.apiClient),
 		templatesModel: models.NewTemplatesModel(a.apiClient),
+		profilesModel: models.NewProfilesModel(a.apiClient),
 	}
 
 	// Create program with model
@@ -90,6 +94,8 @@ func (m AppModel) Init() tea.Cmd {
 		return m.dashboardModel.Init()
 	case TemplatesPage:
 		return m.templatesModel.Init()
+	case ProfilesPage:
+		return m.profilesModel.Init()
 	default:
 		return m.dashboardModel.Init()
 	}
@@ -131,6 +137,14 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Switch to settings page
 			m.currentPage = SettingsPage
 			// TODO: Initialize settings page
+		case "6":
+			// Switch to profiles page
+			m.currentPage = ProfilesPage
+			{
+				// Initialize profiles page
+				m.profilesModel.SetSize(m.width, m.height)
+				cmds = append(cmds, func() tea.Msg { return models.ProfileInitMsg{} })
+			}
 		}
 	}
 
@@ -143,6 +157,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TemplatesPage:
 		newModel, newCmd := m.templatesModel.Update(msg)
 		m.templatesModel = newModel.(models.TemplatesModel)
+		cmd = newCmd
+	case ProfilesPage:
+		newModel, newCmd := m.profilesModel.Update(msg)
+		m.profilesModel = newModel.(models.ProfilesModel)
 		cmd = newCmd
 	// Handle other pages here
 	}
@@ -165,6 +183,8 @@ func (m AppModel) View() string {
 		return "Storage Page" // TODO: Implement storage page view
 	case SettingsPage:
 		return "Settings Page" // TODO: Implement settings page view
+	case ProfilesPage:
+		return m.profilesModel.View()
 	default:
 		return fmt.Sprintf("CloudWorkstation v%s\n\nUnknown page", version.GetVersion())
 	}
