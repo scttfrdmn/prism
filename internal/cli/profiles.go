@@ -613,8 +613,9 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 	// Add export and import commands
 	AddExportCommands(profilesCmd, config)
 	
-	// Add batch invitation commands
+	// Add batch invitation and device commands
 	AddBatchInvitationCommands(invitationsCmd, config)
+	AddBatchDeviceCommands(invitationsCmd, config)
 	
 	// Update the accept-invitation command to use the new invitation system
 	acceptCmd := profilesCmd.Commands()[len(profilesCmd.Commands())-4] // The accept-invitation command
