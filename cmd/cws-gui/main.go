@@ -27,8 +27,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -43,7 +41,6 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
@@ -134,7 +131,12 @@ func (g *CloudWorkstationGUI) initialize() error {
 	g.window.Resize(fyne.NewSize(1200, 800))
 	g.window.SetMaster()
 
+	// Setup containers first (needed for notifications)
+	g.notification = container.NewVBox()
+	g.content = container.NewStack()
+
 	// Initialize enhanced profile manager
+	var err error
 	g.profileManager, err = profile.NewManagerEnhanced()
 	if err != nil {
 		return fmt.Errorf("failed to initialize enhanced profile manager: %w", err)
@@ -161,9 +163,22 @@ func (g *CloudWorkstationGUI) initialize() error {
 		// Store active profile pointer
 		g.activeProfile = currentProfile
 	}
+	// Don't show notifications yet - UI isn't ready
 	
 	// Load all profiles
 	g.loadProfiles()
+	
+	// Initialize data
+	g.refreshData()
+
+	// Setup UI
+	g.setupMainLayout()
+
+	// Now we can show notifications if needed
+	if g.activeProfile == nil {
+		g.showNotification("warning", "Profile Notice", 
+			"No active profile selected. Please create or select a profile in Settings.")
+	}
 	
 	// Check daemon connectivity with retry logic
 	if err := g.checkDaemonConnection(context.Background()); err != nil {
@@ -171,12 +186,6 @@ func (g *CloudWorkstationGUI) initialize() error {
 			"Make sure the daemon is running with 'cwsd'. GUI will retry automatically.")
 		// Continue anyway - daemon might start later
 	}
-
-	// Initialize data
-	g.refreshData()
-
-	// Setup UI
-	g.setupMainLayout()
 
 	// Setup system tray if supported
 	if desk, ok := g.app.(desktop.App); ok {
@@ -239,7 +248,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	// Check if active profile exists
 	if g.activeProfile != nil {
 		profileText = g.activeProfile.Name
-		if g.activeProfile.Type == profile.ProfileTypeInvitation {
+		if g.activeProfile.Type == "invitation" {
 			profileType = "Invitation"
 		}
 	}
@@ -330,13 +339,15 @@ func (g *CloudWorkstationGUI) createNavButton(label string, section NavigationSe
 
 // setupContent creates the main content area
 func (g *CloudWorkstationGUI) setupContent() {
-	g.content = container.NewStack()
+	// content container is already created in initialize
+	// nothing to do here
 }
 
 // setupNotification creates the notification area
 func (g *CloudWorkstationGUI) setupNotification() {
-	g.notification = container.NewVBox()
-	g.notification.Hide() // Hidden by default
+	// notification container is already created in initialize
+	// just make sure it's hidden by default
+	g.notification.Hide()
 }
 
 // navigateToSection switches to a different section of the app
@@ -1186,7 +1197,7 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 			
 			// Display type
 			typeText := "Personal AWS Account"
-			if profile.Type == profile.ProfileTypeInvitation {
+			if profile.Type == "invitation" {
 				typeText = "Invitation Profile"
 			}
 			typeLabel.SetText(typeText)
@@ -1324,7 +1335,7 @@ func (g *CloudWorkstationGUI) showAddPersonalProfileDialog() {
 		OnSubmit: func() {
 			// Create profile
 			newProfile := profile.Profile{
-				Type:       profile.ProfileTypePersonal,
+				Type:       "personal",
 				Name:       nameEntry.Text,
 				AWSProfile: awsProfileEntry.Text,
 				Region:     regionEntry.Text,
@@ -1355,36 +1366,40 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 	nameEntry := widget.NewEntry()
 	nameEntry.SetPlaceHolder("Class Project")
 	
-	tokenEntry := widget.NewEntry()
-	tokenEntry.SetPlaceHolder("invitation-token-123")
-	
-	ownerEntry := widget.NewEntry()
-	ownerEntry.SetPlaceHolder("Professor's Account")
-	
-	regionEntry := widget.NewEntry()
-	regionEntry.SetPlaceHolder("us-west-2")
-	
-	s3ConfigPathEntry := widget.NewEntry()
-	s3ConfigPathEntry.SetPlaceHolder("s3://shared-config/settings.json")
+	tokenEntry := widget.NewMultiLineEntry()
+	tokenEntry.SetPlaceHolder("Paste the full invitation token here (starts with inv-...)")
 	
 	// Create form
 	form := &widget.Form{
 		Items: []*widget.FormItem{
 			{Text: "Profile Name", Widget: nameEntry},
-			{Text: "Invitation Token", Widget: tokenEntry},
-			{Text: "Owner Account", Widget: ownerEntry},
-			{Text: "AWS Region", Widget: regionEntry},
-			{Text: "S3 Config Path", Widget: s3ConfigPathEntry, HintText: "Optional"},
+			{Text: "Invitation Token", Widget: tokenEntry, HintText: "Paste the complete invitation token"},
 		},
 		OnSubmit: func() {
-			// Create profile
+			// Validate inputs
+			if nameEntry.Text == "" {
+				g.showNotification("error", "Validation Error", "Profile name cannot be empty")
+				return
+			}
+			
+			if tokenEntry.Text == "" {
+				g.showNotification("error", "Validation Error", "Invitation token cannot be empty")
+				return
+			}
+			
+			// Check if token has the correct format
+			// In a full implementation, we would validate with the server
+			tokenValid := strings.HasPrefix(tokenEntry.Text, "inv-")
+			if !tokenValid {
+				g.showNotification("error", "Invalid Token", "The invitation token appears to be invalid. It should start with 'inv-'")
+				return
+			}
+			
+			// Create a profile with the token
 			newProfile := profile.Profile{
-				Type:            profile.ProfileTypeInvitation,
+				Type:            "invitation",
 				Name:            nameEntry.Text,
 				InvitationToken: tokenEntry.Text,
-				OwnerAccount:    ownerEntry.Text,
-				Region:          regionEntry.Text,
-				S3ConfigPath:    s3ConfigPathEntry.Text,
 				CreatedAt:       time.Now(),
 			}
 			
@@ -1394,8 +1409,9 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 				return
 			}
 			
+			g.showNotification("success", "Invitation Added", fmt.Sprintf("Added invitation profile: %s", nameEntry.Text))
+			
 			// Refresh the view
-			g.showNotification("success", "Invitation Added", fmt.Sprintf("Added invitation: %s", nameEntry.Text))
 			g.loadProfiles()
 			g.navigateToSection(SectionSettings)
 		},
@@ -1415,6 +1431,27 @@ func (g *CloudWorkstationGUI) validateProfile(profileID string) {
 	// Show loading notification
 	g.showNotification("info", "Validating Profile", "Testing connection with profile...")
 	
+	// Get the profile to check its type
+	profile, err := g.profileManager.GetProfile(profileID)
+	if err != nil {
+		g.showNotification("error", "Profile Error", fmt.Sprintf("Failed to get profile: %v", err))
+		return
+	}
+	
+	// Check if this is an invitation profile
+	if profile.Type == "invitation" {
+		// For invitation profiles, we need to check the invitation validity first
+		if profile.InvitationToken != "" {
+			// Simple validation - check if token has the expected format
+			if !strings.HasPrefix(profile.InvitationToken, "inv-") {
+				g.showNotification("error", "Invalid Invitation", 
+					"This invitation token appears to be invalid")
+				return
+			}
+			// If we got here, token format is valid - proceed with validation
+		}
+	}
+	
 	// Get client with the specified profile
 	client, err := g.profileAwareClient.WithProfile(profileID)
 	if err != nil {
@@ -1430,7 +1467,13 @@ func (g *CloudWorkstationGUI) validateProfile(profileID string) {
 	}
 	
 	// If we get here, validation succeeded
-	g.showNotification("success", "Profile Valid", fmt.Sprintf("Profile '%s' is valid and can access the API", profileID))
+	if profile.Type == "invitation" {
+		g.showNotification("success", "Invitation Valid", 
+			fmt.Sprintf("Invitation profile '%s' is valid and can access resources", profile.Name))
+	} else {
+		g.showNotification("success", "Profile Valid", 
+			fmt.Sprintf("Personal profile '%s' is valid and can access the API", profile.Name))
+	}
 }
 
 // removeProfile removes a profile after confirmation
