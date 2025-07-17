@@ -4,19 +4,44 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // ContextClient wraps the legacy client to implement the context-aware CloudWorkstationAPI interface
+// and supports profile-aware operations through ProfileAwareAPI
 type ContextClient struct {
 	client *Client
+	profileManager *profile.ManagerEnhanced
 }
 
 // NewContextClient creates a new context-aware client
-func NewContextClient(baseURL string) *ContextClient {
+func NewContextClient(client *Client) *ContextClient {
+	return &ContextClient{
+		client: client,
+	}
+}
+
+// NewContextClientWithURL creates a new context-aware client with a URL
+func NewContextClientWithURL(baseURL string) *ContextClient {
 	return &ContextClient{
 		client: NewClient(baseURL),
 	}
+}
+
+// WithProfileOverride creates a new client using the specified profile
+func (c *ContextClient) WithProfileOverride(profileManager *profile.ManagerEnhanced, profileID string) (CloudWorkstationAPI, error) {
+	// Create a base client with profile
+	baseClient, err := c.client.WithProfile(profileManager, profileID)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Create a new context client with the configured base client
+	return &ContextClient{
+		client: baseClient,
+		profileManager: profileManager,
+	}, nil
 }
 
 // SetOptions updates the client's configuration options
