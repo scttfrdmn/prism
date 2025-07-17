@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
+	// "time" - commented out due to unused import
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -230,6 +230,11 @@ func (c *Client) SetInvitationToken(token, ownerAccount, s3ConfigPath string) {
 	c.s3ConfigPath = s3ConfigPath
 }
 
+// SetProfileID sets the profile ID for the client
+func (c *Client) SetProfileID(profileID string) {
+	c.profileID = profileID
+}
+
 // HTTP helper methods
 
 // addRequestHeaders adds common headers and auth headers to requests
@@ -242,6 +247,20 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 	// Add region header if configured
 	if c.awsRegion != "" {
 		req.Header.Set("X-AWS-Region", c.awsRegion)
+	}
+	
+	// Add invitation headers if configured
+	if c.invitationToken != "" {
+		req.Header.Set("X-Invitation-Token", c.invitationToken)
+		req.Header.Set("X-Owner-Account", c.ownerAccount)
+		if c.s3ConfigPath != "" {
+			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
+		}
+	}
+	
+	// Add profile ID header if configured
+	if c.profileID != "" {
+		req.Header.Set("X-Profile-ID", c.profileID)
 	}
 	
 	// Add invitation headers if configured

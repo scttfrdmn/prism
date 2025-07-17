@@ -64,8 +64,7 @@ func NewApp(version string) *App {
 	}
 	
 	// Initialize profile manager
-	configPath := getConfigPath()
-	profileManager, err := profile.NewManagerEnhanced(configPath)
+	profileManager, err := profile.NewManagerEnhanced()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize profile manager: %v\n", err)
 		// Continue without profile manager
@@ -85,7 +84,7 @@ func NewApp(version string) *App {
 	baseClient.SetAWSRegion(config.AWS.Region)
 	
 	// Create context client
-	contextClient := api.NewContextClient(baseClient)
+	contextClient := api.NewContextClientWithURL(apiURL)
 	
 	// Create app
 	app := &App{
@@ -112,8 +111,7 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 	}
 	
 	// Initialize profile manager
-	configPath := getConfigPath()
-	profileManager, err := profile.NewManagerEnhanced(configPath)
+	profileManager, err := profile.NewManagerEnhanced()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize profile manager: %v\n", err)
 		// Continue without profile manager
@@ -665,6 +663,28 @@ func (a *App) Templates(_ []string) error {
 	}
 
 	return nil
+}
+
+// Migrate handles the migration command
+func (a *App) Migrate(args []string) error {
+	// Create migrate command
+	migrateCmd := &cobra.Command{}
+	AddMigrateCommand(migrateCmd, a.config)
+	
+	// Execute the first subcommand
+	migrateCmd.SetArgs(args)
+	return migrateCmd.Execute()
+}
+
+// Profiles handles the profiles commands
+func (a *App) Profiles(args []string) error {
+	// Create profiles command
+	profilesCmd := &cobra.Command{}
+	AddProfileCommands(profilesCmd, a.config)
+	
+	// Execute the first subcommand
+	profilesCmd.SetArgs(args)
+	return profilesCmd.Execute()
 }
 
 // Daemon handles daemon management commands

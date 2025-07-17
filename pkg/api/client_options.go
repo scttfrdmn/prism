@@ -2,8 +2,8 @@ package api
 
 import (
 	"context"
-	"fmt"
-	"net/http"
+	// "fmt" - commented out due to unused import
+	// "net/http" - commented out due to unused import
 	
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 )
@@ -14,8 +14,8 @@ type profileContextKey struct{}
 // ProfileContextKey is used to access profile information in context
 var ProfileContextKey = profileContextKey{}
 
-// ClientOptions represents configuration options for the API client
-type ClientOptions struct {
+// ExtendedClientOptions extends the basic ClientOptions with additional fields
+type ExtendedClientOptions struct {
 	// AWS configuration
 	AWSProfile      string
 	AWSRegion       string
@@ -29,6 +29,8 @@ type ClientOptions struct {
 	ProfileID       string
 }
 
+// These methods are commented out because they duplicate methods in client.go
+/*
 // SetAWSProfile sets the AWS profile to use for requests
 func (c *Client) SetAWSProfile(profile string) {
 	c.awsProfile = profile
@@ -45,14 +47,12 @@ func (c *Client) SetInvitationToken(token, ownerAccount, s3ConfigPath string) {
 	c.ownerAccount = ownerAccount
 	c.s3ConfigPath = s3ConfigPath
 }
+*/
 
-// SetProfileID sets the profile ID for the client
-func (c *Client) SetProfileID(profileID string) {
-	c.profileID = profileID
-}
+// SetProfileID method is now in client.go
 
 // SetOptions updates the client's configuration options
-func (c *Client) SetOptions(options ClientOptions) {
+func (c *Client) SetOptions(options ExtendedClientOptions) {
 	// Set AWS profile
 	if options.AWSProfile != "" {
 		c.awsProfile = options.AWSProfile
@@ -76,6 +76,8 @@ func (c *Client) SetOptions(options ClientOptions) {
 	}
 }
 
+// These methods are commented out because they duplicate methods in client.go
+/*
 // addRequestHeaders adds common headers and auth headers to requests
 func (c *Client) addRequestHeaders(req *http.Request) {
 	// Add profile header if configured
@@ -102,6 +104,7 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 		req.Header.Set("X-Profile-ID", c.profileID)
 	}
 }
+*/
 
 // WithProfile returns a new client using the specified profile
 func (c *Client) WithProfile(profileManager *profile.ManagerEnhanced, profileID string) (*Client, error) {
