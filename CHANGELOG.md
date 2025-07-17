@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-level permissions model for invitation delegation
 - Device management interface in GUI, TUI and CLI
 - Administrator utilities for device management
+- Batch invitation system for managing multiple invitations at once
+- CSV import/export for bulk invitation management
+- Concurrent invitation processing with worker pools
 
 ### Enhanced
 - Profile management with security attributes
@@ -63,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SECURE_PROFILE_IMPLEMENTATION.md with technical details
 - SECURE_INVITATION_ARCHITECTURE.md with design documentation
 - ADMINISTRATOR_GUIDE.md with security management instructions
+- BATCH_INVITATION_GUIDE.md with bulk invitation instructions
 - Updated comments throughout the codebase
 
 ## [0.4.2] - 2025-07-16
