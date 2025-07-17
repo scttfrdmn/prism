@@ -7,6 +7,26 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 )
 
+// ProfileAwareAPI extends the CloudWorkstationAPI with profile management capabilities
+type ProfileAwareAPI interface {
+	CloudWorkstationAPI
+	
+	// WithProfile returns a new CloudWorkstationAPI client for a specific profile
+	WithProfile(profileID string) (CloudWorkstationAPI, error)
+	
+	// Current profile operations
+	CurrentProfile() string
+	SwitchProfile(profileID string) error
+	
+	// Profile management
+	ListProfiles() ([]profile.Profile, error)
+	GetProfile(profileID string) (*profile.Profile, error)
+	AddProfile(prof profile.Profile) error
+	UpdateProfile(profileID string, updates profile.Profile) error
+	RemoveProfile(profileID string) error
+	StoreProfileCredentials(profileID string, creds *profile.Credentials) error
+}
+
 // ProfileAwareClient provides a client that integrates with the profile management system
 type ProfileAwareClient struct {
 	baseClient      *Client
@@ -65,14 +85,11 @@ func (c *ProfileAwareClient) Client() CloudWorkstationAPI {
 
 // WithProfile returns a new CloudWorkstationAPI client for the specified profile
 func (c *ProfileAwareClient) WithProfile(profileID string) (CloudWorkstationAPI, error) {
-	// Get the profile
-	prof, err := c.profileManager.GetProfile(profileID)
+	// Check if profile exists
+	_, err := c.profileManager.GetProfile(profileID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profile: %w", err)
 	}
-	
-	// Create context with profile
-	ctx := WithProfileContext(context.Background(), prof)
 	
 	// Create new context client with profile
 	client, err := c.contextClient.WithProfile(c.profileManager, profileID)

@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 	
@@ -329,8 +328,12 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 				os.Exit(1)
 			}
 			
-			// Create API client with profile
-			client := createAPIClient(config)
+			// Create client
+			client := api.NewClient(config.Daemon.URL)
+			client.SetAWSProfile(config.AWS.Profile)
+			client.SetAWSRegion(config.AWS.Region)
+			
+			// Create client with profile - use regular WithProfile method
 			profileClient, err := client.WithProfile(profileManager, profileID)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating client with profile: %v\n", err)
@@ -338,7 +341,7 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 			}
 			
 			// Test API access
-			err = profileClient.Ping(cmd.Context())
+			err = profileClient.Ping()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Profile validation failed: %v\n", err)
 				os.Exit(1)
@@ -666,5 +669,5 @@ func createAPIClient(config *Config) api.CloudWorkstationAPI {
 	client.SetAWSProfile(config.AWS.Profile)
 	client.SetAWSRegion(config.AWS.Region)
 	
-	return api.NewContextClient(client)
+	return api.NewContextClientWithURL(config.Daemon.URL)
 }
