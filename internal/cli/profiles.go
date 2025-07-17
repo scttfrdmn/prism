@@ -14,6 +14,7 @@ import (
 
 // AddProfileCommands adds profile-related commands to the CLI
 func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
+	// This function is extended by AddExportCommands which adds export/import functionality
 	// Profiles root command
 	profilesCmd := &cobra.Command{
 		Use:   "profiles",
@@ -609,8 +610,11 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 		},
 	})
 	
+	// Add export and import commands
+	AddExportCommands(profilesCmd, config)
+	
 	// Update the accept-invitation command to use the new invitation system
-	acceptCmd := profilesCmd.Commands()[len(profilesCmd.Commands())-2] // The accept-invitation command
+	acceptCmd := profilesCmd.Commands()[len(profilesCmd.Commands())-4] // The accept-invitation command
 	acceptCmd.Flags().String("encoded", "", "Encoded invitation string")
 	acceptCmd.MarkFlagRequired("encoded")
 	acceptCmd.Run = func(cmd *cobra.Command, args []string) {
