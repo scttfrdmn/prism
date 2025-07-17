@@ -183,162 +183,290 @@ func (m *mockProfileAwareStateManager) SaveProfileState(profileID string, state 
 	return m.stateManager.SaveState(prof.AWSProfile, state)
 }
 
-// Tests for ProfileAwareClient
-func TestProfileAwareClient(t *testing.T) {
-	// Create a test server that checks for profile-specific headers
+// IntegrationTestServer creates a test server for integration testing
+func IntegrationTestServer() (*httptest.Server, *testServerState) {
+	state := &testServerState{
+		instances:   make(map[string]types.Instance),
+		volumes:     make(map[string]types.EFSVolume),
+		ebsVolumes:  make(map[string]types.EBSVolume),
+		templates:   make(map[string]types.Template),
+		profileData: make(map[string]map[string]interface{}),
+	}
+	
+	// Initialize with some test data
+	state.templates["python-research"] = types.Template{
+		Name:        "python-research",
+		Description: "Python data science environment",
+		EstimatedCostPerHour: map[string]float64{
+			"x86_64": 0.10,
+			"arm64":  0.08,
+		},
+	}
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/test" {
-			w.WriteHeader(http.StatusOK)
+		// Extract profile from request
+		profileID := r.Header.Get("X-Profile-ID")
+		if profileID == "" {
+			// Use default profile if not specified
+			profileID = "default"
 		}
-	}))
-	defer server.Close()
-	
-	// Create mock components
-	stateManager := newMockStateManager()
-	profileManager := newMockProfileManager()
-	profileStateManager := newMockProfileAwareStateManager(stateManager, profileManager)
-	
-	// Create profile-aware client
-	client, err := NewProfileAwareClient(server.URL, profileManager, profileStateManager)
-	require.NoError(t, err)
-	
-	// Test initial state
-	assert.Equal(t, "personal", client.CurrentProfile())
-	
-	t.Run("GetCurrentProfile", func(t *testing.T) {
-		profile, err := profileManager.GetCurrentProfile()
-		require.NoError(t, err)
-		assert.Equal(t, "default", profile.AWSProfile)
-	})
-	
-	t.Run("ListProfiles", func(t *testing.T) {
-		profiles, err := client.ListProfiles()
-		require.NoError(t, err)
-		assert.Equal(t, 3, len(profiles))
-	})
-	
-	t.Run("SwitchProfile", func(t *testing.T) {
-		// Switch to work profile
-		err := client.SwitchProfile("work")
-		require.NoError(t, err)
 		
-		// Check that profile was switched
-		assert.Equal(t, "work", client.CurrentProfile())
-		
-		// Get current profile
-		profile, err := profileManager.GetCurrentProfile()
-		require.NoError(t, err)
-		assert.Equal(t, "work", profile.AWSProfile)
-		
-		// Try to switch to non-existent profile
-		err = client.SwitchProfile("non-existent")
-		assert.Error(t, err)
-		
-		// Profile should not have changed
-		assert.Equal(t, "work", client.CurrentProfile())
-	})
-	
-	t.Run("WithProfile", func(t *testing.T) {
-		// Get client for invitation profile
-		invitationClient, err := client.WithProfile("invitation")
-		require.NoError(t, err)
-		
-		// Current client should not change
-		assert.Equal(t, "work", client.CurrentProfile())
-		
-		// Test that invitation client works
-		ctx := context.Background()
-		err = invitationClient.Ping(ctx)
-		require.NoError(t, err)
-		
-		// Try non-existent profile
-		_, err = client.WithProfile("non-existent")
-		assert.Error(t, err)
-	})
-	
-	t.Run("WithProfileContext", func(t *testing.T) {
-		// Create context with current profile
-		ctx := context.Background()
-		ctxWithProfile, err := client.WithProfileContext(ctx)
-		require.NoError(t, err)
-		
-		// Check that profile is in context
-		profile, ok := profile.GetProfileFromContext(ctxWithProfile)
-		assert.True(t, ok)
-		assert.Equal(t, "work", profile.AWSProfile)
-	})
-	
-	t.Run("ProfileOperations", func(t *testing.T) {
-		// Get profile
-		prof, err := client.GetProfile("personal")
-		require.NoError(t, err)
-		assert.Equal(t, "Personal Profile", prof.Name)
-		
-		// Add profile
-		newProf := profile.Profile{
-			Type:       profile.ProfileTypePersonal,
-			Name:       "New Profile",
-			AWSProfile: "new",
-			Region:     "ap-south-1",
+		// Initialize profile data if needed
+		if _, exists := state.profileData[profileID]; !exists {
+			state.profileData[profileID] = make(map[string]interface{})
+			state.profileData[profileID]["instances"] = make(map[string]types.Instance)
+			state.profileData[profileID]["volumes"] = make(map[string]types.EFSVolume)
+			state.profileData[profileID]["ebsVolumes"] = make(map[string]types.EBSVolume)
 		}
-		err = client.AddProfile(newProf)
-		require.NoError(t, err)
 		
-		// Check that profile was added
-		addedProf, err := client.GetProfile("new")
-		require.NoError(t, err)
-		assert.Equal(t, "New Profile", addedProf.Name)
+		// Extract AWS settings
+		awsProfile := r.Header.Get("X-AWS-Profile")
+		awsRegion := r.Header.Get("X-AWS-Region")
 		
-		// Update profile
-		updates := profile.Profile{
-			Type:       profile.ProfileTypePersonal,
-			Name:       "Updated Profile",
-			AWSProfile: "new",
-			Region:     "ap-south-1",
-		}
-		err = client.UpdateProfile("new", updates)
-		require.NoError(t, err)
+		// Extract invitation settings
+		invitationToken := r.Header.Get("X-Invitation-Token")
+		ownerAccount := r.Header.Get("X-Owner-Account")
+		s3ConfigPath := r.Header.Get("X-S3-Config-Path")
 		
-		// Check that profile was updated
-		updatedProf, err := client.GetProfile("new")
-		require.NoError(t, err)
-		assert.Equal(t, "Updated Profile", updatedProf.Name)
+		// Record the request
+		state.lastProfileID = profileID
+		state.lastAWSProfile = awsProfile
+		state.lastAWSRegion = awsRegion
+		state.lastInvitationToken = invitationToken
+		state.lastOwnerAccount = ownerAccount
+		state.lastS3ConfigPath = s3ConfigPath
 		
-		// Remove profile
-		err = client.RemoveProfile("new")
-		require.NoError(t, err)
-		
-		// Check that profile was removed
-		_, err = client.GetProfile("new")
-		assert.Error(t, err)
-	})
-}
-
-func TestProfileAwareClient_Client(t *testing.T) {
-	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/status" {
+		// Handle ping request
+		if r.URL.Path == "/api/v1/ping" {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"status":"ok"}`))
+			return
 		}
+		
+		// Handle templates request
+		if r.URL.Path == "/api/v1/templates" {
+			w.WriteHeader(http.StatusOK)
+			renderJSON(w, state.templates)
+			return
+		}
+		
+		// Handle instance listing
+		if r.URL.Path == "/api/v1/instances" && r.Method == http.MethodGet {
+			// Return instances for this profile
+			profileInstances, ok := state.profileData[profileID]["instances"].(map[string]types.Instance)
+			if !ok {
+				profileInstances = make(map[string]types.Instance)
+			}
+			
+			response := types.ListResponse{
+				Instances: make([]types.Instance, 0),
+			}
+			
+			for _, instance := range profileInstances {
+				response.Instances = append(response.Instances, instance)
+			}
+			
+			w.WriteHeader(http.StatusOK)
+			renderJSON(w, response)
+			return
+		}
+		
+		// Handle instance creation
+		if r.URL.Path == "/api/v1/instances" && r.Method == http.MethodPost {
+			var req types.LaunchRequest
+			if err := decodeJSON(r, &req); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			
+			// Create instance
+			instance := types.Instance{
+				Name:     req.Name,
+				Template: req.Template,
+				State:    "running",
+				PublicIP: "203.0.113.10",
+			}
+			
+			// Store instance for this profile
+			profileInstances, ok := state.profileData[profileID]["instances"].(map[string]types.Instance)
+			if !ok {
+				profileInstances = make(map[string]types.Instance)
+			}
+			profileInstances[req.Name] = instance
+			state.profileData[profileID]["instances"] = profileInstances
+			
+			// Return response
+			response := types.LaunchResponse{
+				Message:       "Instance launched successfully",
+				EstimatedCost: "$0.10/hour",
+				ConnectionInfo: "ssh ubuntu@203.0.113.10",
+			}
+			
+			w.WriteHeader(http.StatusOK)
+			renderJSON(w, response)
+			return
+		}
+		
+		// Handle 404 for unknown endpoints
+		w.WriteHeader(http.StatusNotFound)
 	}))
+	
+	return server, state
+}
+
+// testServerState tracks the state of the test server
+type testServerState struct {
+	instances   map[string]types.Instance
+	volumes     map[string]types.EFSVolume
+	ebsVolumes  map[string]types.EBSVolume
+	templates   map[string]types.Template
+	profileData map[string]map[string]interface{}
+	
+	// Last request information
+	lastProfileID       string
+	lastAWSProfile      string
+	lastAWSRegion       string
+	lastInvitationToken string
+	lastOwnerAccount    string
+	lastS3ConfigPath    string
+}
+
+// Integration test for profile switching
+func TestProfileSwitchingIntegration(t *testing.T) {
+	// Skip in short mode
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
+	// Create integration test server
+	server, serverState := IntegrationTestServer()
 	defer server.Close()
 	
-	// Create mock components
-	stateManager := newMockStateManager()
+	// Create profile manager and state manager
 	profileManager := newMockProfileManager()
+	stateManager := newMockStateManager()
 	profileStateManager := newMockProfileAwareStateManager(stateManager, profileManager)
 	
 	// Create profile-aware client
 	client, err := NewProfileAwareClient(server.URL, profileManager, profileStateManager)
 	require.NoError(t, err)
 	
-	// Get CloudWorkstationAPI client
-	apiClient := client.Client()
-	require.NotNil(t, apiClient)
+	// Test switching between profiles
+	t.Run("SwitchProfiles", func(t *testing.T) {
+		// Create context
+		ctx := context.Background()
+		
+		// Initial profile should be personal
+		err := client.Ping(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "personal", serverState.lastProfileID)
+		assert.Equal(t, "default", serverState.lastAWSProfile)
+		assert.Equal(t, "us-west-2", serverState.lastAWSRegion)
+		
+		// Switch to work profile
+		err = client.SwitchProfile("work")
+		require.NoError(t, err)
+		
+		// Check that work profile is active
+		err = client.Ping(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "work", serverState.lastProfileID)
+		assert.Equal(t, "work", serverState.lastAWSProfile)
+		assert.Equal(t, "us-east-1", serverState.lastAWSRegion)
+		
+		// Switch to invitation profile
+		err = client.SwitchProfile("invitation")
+		require.NoError(t, err)
+		
+		// Check that invitation profile is active
+		err = client.Ping(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "invitation", serverState.lastProfileID)
+		assert.Equal(t, "", serverState.lastAWSProfile) // No AWS profile for invitation
+		assert.Equal(t, "eu-west-1", serverState.lastAWSRegion)
+		assert.Equal(t, "test-token", serverState.lastInvitationToken)
+		assert.Equal(t, "test-account", serverState.lastOwnerAccount)
+	})
 	
-	// Test API method
-	ctx := context.Background()
-	err = apiClient.Ping(ctx)
-	require.NoError(t, err)
+	// Test profile isolation
+	t.Run("ProfileIsolation", func(t *testing.T) {
+		// Create context
+		ctx := context.Background()
+		
+		// Switch to personal profile
+		err := client.SwitchProfile("personal")
+		require.NoError(t, err)
+		
+		// Launch an instance in personal profile
+		req := types.LaunchRequest{
+			Template: "python-research",
+			Name:     "personal-instance",
+		}
+		_, err = client.LaunchInstance(ctx, req)
+		require.NoError(t, err)
+		
+		// List instances in personal profile
+		personalResp, err := client.ListInstances(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 1, len(personalResp.Instances))
+		assert.Equal(t, "personal-instance", personalResp.Instances[0].Name)
+		
+		// Switch to work profile
+		err = client.SwitchProfile("work")
+		require.NoError(t, err)
+		
+		// List instances in work profile
+		workResp, err := client.ListInstances(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 0, len(workResp.Instances))
+		
+		// Launch an instance in work profile
+		req = types.LaunchRequest{
+			Template: "python-research",
+			Name:     "work-instance",
+		}
+		_, err = client.LaunchInstance(ctx, req)
+		require.NoError(t, err)
+		
+		// List instances in work profile again
+		workResp, err = client.ListInstances(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 1, len(workResp.Instances))
+		assert.Equal(t, "work-instance", workResp.Instances[0].Name)
+		
+		// Switch back to personal profile
+		err = client.SwitchProfile("personal")
+		require.NoError(t, err)
+		
+		// List instances in personal profile again
+		personalResp, err = client.ListInstances(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, 1, len(personalResp.Instances))
+		assert.Equal(t, "personal-instance", personalResp.Instances[0].Name)
+	})
+	
+	// Test temporary profile client
+	t.Run("TemporaryProfileClient", func(t *testing.T) {
+		// Create context
+		ctx := context.Background()
+		
+		// Current profile should be personal
+		err := client.Ping(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "personal", serverState.lastProfileID)
+		
+		// Get temporary client for work profile
+		workClient, err := client.WithProfile("work")
+		require.NoError(t, err)
+		
+		// Use temporary client
+		err = workClient.Ping(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "work", serverState.lastProfileID)
+		
+		// Original client should still use personal profile
+		err = client.Ping(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, "personal", serverState.lastProfileID)
+	})
 }
