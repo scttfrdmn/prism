@@ -39,26 +39,61 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // App represents the CLI application
 type App struct {
-	version    string
-	apiClient  api.CloudWorkstationAPI
-	ctx        context.Context // Context for AWS operations
-	tuiCommand *cobra.Command
+	version        string
+	apiClient      api.CloudWorkstationAPI
+	ctx            context.Context // Context for AWS operations
+	tuiCommand     *cobra.Command
+	config         *Config
+	profileManager *profile.ManagerEnhanced
 }
 
 // NewApp creates a new CLI application
 func NewApp(version string) *App {
-	// Check for custom API URL from environment
-	apiURL := os.Getenv("CWSD_URL")
+	// Load config
+	config, err := LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
+		config = &Config{} // Use empty config
+		config.Daemon.URL = "http://localhost:8080" // Default URL
+	}
 	
+	// Initialize profile manager
+	configPath := getConfigPath()
+	profileManager, err := profile.NewManagerEnhanced(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize profile manager: %v\n", err)
+		// Continue without profile manager
+	}
+	
+	// Initialize API client
+	apiURL := config.Daemon.URL
+	if envURL := os.Getenv("CWSD_URL"); envURL != "" {
+		apiURL = envURL
+	}
+	
+	// Create base client
+	baseClient := api.NewClient(apiURL)
+	
+	// Configure with AWS settings
+	baseClient.SetAWSProfile(config.AWS.Profile)
+	baseClient.SetAWSRegion(config.AWS.Region)
+	
+	// Create context client
+	contextClient := api.NewContextClient(baseClient)
+	
+	// Create app
 	app := &App{
-		version:    version,
-		apiClient:  api.NewContextClient(apiURL), // Uses CWSD_URL or default localhost:8080
-		ctx:        context.Background(),
+		version:        version,
+		apiClient:      contextClient,
+		ctx:            context.Background(),
+		config:         config,
+		profileManager: profileManager,
 	}
 	
 	// Initialize TUI command
@@ -69,10 +104,27 @@ func NewApp(version string) *App {
 
 // NewAppWithClient creates a new CLI application with a custom API client
 func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
+	// Load config
+	config, err := LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
+		config = &Config{} // Use empty config
+	}
+	
+	// Initialize profile manager
+	configPath := getConfigPath()
+	profileManager, err := profile.NewManagerEnhanced(configPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize profile manager: %v\n", err)
+		// Continue without profile manager
+	}
+	
 	return &App{
-		version:    version,
-		apiClient:  client,
-		ctx:        context.Background(),
+		version:        version,
+		apiClient:      client,
+		ctx:            context.Background(),
+		config:         config,
+		profileManager: profileManager,
 	}
 }
 
