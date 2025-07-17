@@ -47,13 +47,44 @@ type BatchInvitationResult struct {
 // BatchInvitationManager provides functionality for batch invitation operations
 type BatchInvitationManager struct {
 	secureManager *SecureInvitationManager
+	
+	// Default settings from configuration
+	defaultConcurrency   int
+	defaultValidDays     int
+	defaultDeviceBound   bool
+	defaultMaxDevices    int
+	defaultCanInvite     bool
+	defaultTransferable  bool
 }
 
 // NewBatchInvitationManager creates a new batch invitation manager
 func NewBatchInvitationManager(secureManager *SecureInvitationManager) *BatchInvitationManager {
 	return &BatchInvitationManager{
 		secureManager: secureManager,
+		defaultConcurrency: 5,
+		defaultValidDays: 30,
+		defaultDeviceBound: true,
+		defaultMaxDevices: 1,
+		defaultCanInvite: false,
+		defaultTransferable: false,
 	}
+}
+
+// NewBatchInvitationManagerWithConfig creates a new batch invitation manager with configuration
+func NewBatchInvitationManagerWithConfig(secureManager *SecureInvitationManager, config *BatchInvitationConfig) *BatchInvitationManager {
+	manager := NewBatchInvitationManager(secureManager)
+	
+	// Apply configuration
+	if config != nil {
+		manager.defaultConcurrency = config.DefaultConcurrency
+		manager.defaultValidDays = config.DefaultValidDays
+		manager.defaultDeviceBound = config.DefaultDeviceBound
+		manager.defaultMaxDevices = config.DefaultMaxDevices
+		manager.defaultCanInvite = config.DefaultCanInvite
+		manager.defaultTransferable = config.DefaultTransferable
+	}
+	
+	return manager
 }
 
 // CreateBatchInvitations creates multiple invitations in a batch
