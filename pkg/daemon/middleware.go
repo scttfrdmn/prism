@@ -1,8 +1,23 @@
 package daemon
 
 import (
+	"context"
+	"crypto/subtle"
+	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+)
+
+// Middleware context keys
+type contextKey string
+
+const (
+	// Context keys for request context
+	awsProfileKey contextKey = "aws_profile"
+	awsRegionKey  contextKey = "aws_region"
+	authenticatedKey contextKey = "authenticated"
 )
 
 // AWSHeadersMiddleware extracts AWS-related headers from the request
@@ -32,6 +47,55 @@ func (s *Server) awsHeadersMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// authMiddleware validates API key in the request header
+func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Skip authentication for the ping endpoint (health check)
+		if r.URL.Path == "/api/v1/ping" {
+			next(w, r)
+			return
+		}
+        
+		// Skip authentication for the auth endpoint
+		if r.URL.Path == "/api/v1/auth" && r.Method == http.MethodPost {
+			next(w, r)
+			return
+		}
+
+		// Load state to get the API key
+		state, err := s.stateManager.LoadState()
+		if err != nil {
+			s.writeError(w, http.StatusInternalServerError, "Failed to load server configuration")
+			return
+		}
+
+		// Check if API key is enabled (exists in config)
+		if state.Config.APIKey == "" {
+			// No API key set, allow access without authentication
+			// This maintains backward compatibility for existing setups
+			next(w, r)
+			return
+		}
+
+		// Get API key from header
+		providedKey := r.Header.Get("X-API-Key")
+		if providedKey == "" {
+			s.writeError(w, http.StatusUnauthorized, "API key required")
+			return
+		}
+
+		// Constant-time comparison to prevent timing attacks
+		if subtle.ConstantTimeCompare([]byte(providedKey), []byte(state.Config.APIKey)) != 1 {
+			s.writeError(w, http.StatusUnauthorized, "Invalid API key")
+			return
+		}
+
+		// Mark the request as authenticated in the context
+		ctx := context.WithValue(r.Context(), authenticatedKey, true)
+		next(w, r.WithContext(ctx))
+	}
+}
+
 // combineMiddleware combines multiple middleware functions into a single middleware
 func (s *Server) combineMiddleware(handler http.HandlerFunc, middlewares ...func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
 	// Apply middleware in reverse order (so the first middleware is executed first)
@@ -39,4 +103,38 @@ func (s *Server) combineMiddleware(handler http.HandlerFunc, middlewares ...func
 		handler = middlewares[i](handler)
 	}
 	return handler
+}
+
+// Context helper functions
+
+func setAWSProfile(ctx context.Context, profile string) context.Context {
+	return context.WithValue(ctx, awsProfileKey, profile)
+}
+
+func getAWSProfile(ctx context.Context) string {
+	value := ctx.Value(awsProfileKey)
+	if value == nil {
+		return ""
+	}
+	return value.(string)
+}
+
+func setAWSRegion(ctx context.Context, region string) context.Context {
+	return context.WithValue(ctx, awsRegionKey, region)
+}
+
+func getAWSRegion(ctx context.Context) string {
+	value := ctx.Value(awsRegionKey)
+	if value == nil {
+		return ""
+	}
+	return value.(string)
+}
+
+func isAuthenticated(ctx context.Context) bool {
+	value := ctx.Value(authenticatedKey)
+	if value == nil {
+		return false
+	}
+	return value.(bool)
 }

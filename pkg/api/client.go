@@ -23,6 +23,7 @@ type Client struct {
 	ownerAccount    string
 	s3ConfigPath    string
 	profileID       string
+	apiKey          string  // API key for authentication
 }
 
 // NewClient creates a new API client
@@ -235,6 +236,41 @@ func (c *Client) SetProfileID(profileID string) {
 	c.profileID = profileID
 }
 
+// SetAPIKey sets the API key for authentication
+func (c *Client) SetAPIKey(apiKey string) {
+	c.apiKey = apiKey
+}
+
+// GenerateAPIKey requests a new API key from the server
+func (c *Client) GenerateAPIKey() (*types.AuthResponse, error) {
+	var resp types.AuthResponse
+	err := c.post("/api/v1/auth", nil, &resp)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Store the API key for future requests
+	c.SetAPIKey(resp.APIKey)
+	return &resp, nil
+}
+
+// GetAuthStatus returns the current authentication status
+func (c *Client) GetAuthStatus() (map[string]interface{}, error) {
+	var resp map[string]interface{}
+	err := c.get("/api/v1/auth", &resp)
+	return resp, err
+}
+
+// RevokeAPIKey revokes the current API key
+func (c *Client) RevokeAPIKey() error {
+	err := c.delete("/api/v1/auth")
+	if err == nil {
+		// Clear the stored API key
+		c.apiKey = ""
+	}
+	return err
+}
+
 // HTTP helper methods
 
 // addRequestHeaders adds common headers and auth headers to requests
@@ -261,6 +297,11 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 	// Add profile ID header if configured
 	if c.profileID != "" {
 		req.Header.Set("X-Profile-ID", c.profileID)
+	}
+	
+	// Add API key if configured
+	if c.apiKey != "" {
+		req.Header.Set("X-API-Key", c.apiKey)
 	}
 }
 

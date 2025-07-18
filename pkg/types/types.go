@@ -17,6 +17,8 @@ type Template struct {
 type Config struct {
 	DefaultProfile string `json:"default_profile"`
 	DefaultRegion  string `json:"default_region"`
+	APIKey        string `json:"api_key,omitempty"`
+	APIKeyCreated time.Time `json:"api_key_created,omitempty"`
 }
 
 // Instance represents a running cloud workstation
@@ -183,4 +185,12 @@ type DiscountConfig struct {
 	EducationalDiscount float64 `json:"educational_discount"` // Educational institution discount
 	StartupDiscount     float64 `json:"startup_discount"`     // AWS Activate/startup credits
 	EnterpriseDiscount  float64 `json:"enterprise_discount"`  // Enterprise agreement discount
+}
+
+// AuthResponse represents an authentication response
+type AuthResponse struct {
+	APIKey       string    `json:"api_key"`
+	CreatedAt    time.Time `json:"created_at"`
+	ExpiresAt    time.Time `json:"expires_at,omitempty"`
+	Message      string    `json:"message"`
 }
