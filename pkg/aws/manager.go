@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"runtime"
 	"strings"
 	"time"
@@ -17,19 +18,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 )
 
 // Manager handles all AWS operations
 type Manager struct {
 	cfg         aws.Config
-	ec2         *ec2.Client
-	efs         *efs.Client
-	sts         *sts.Client
+	ec2         EC2ClientInterface
+	efs         EFSClientInterface
+	sts         STSClientInterface
 	region      string
 	templates   map[string]ctypes.Template
 	pricingCache map[string]float64
 	lastPriceUpdate time.Time
 	discountConfig ctypes.DiscountConfig
+	stateManager StateManagerInterface
 }
 
 // NewManager creates a new AWS manager
@@ -39,16 +42,28 @@ func NewManager() (*Manager, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
+	// Initialize state manager
+	stateManager, err := state.NewManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize state manager: %w", err)
+	}
+
+	// Create clients
+	ec2Client := ec2.NewFromConfig(cfg)
+	efsClient := efs.NewFromConfig(cfg)
+	stsClient := sts.NewFromConfig(cfg)
+
 	manager := &Manager{
 		cfg:         cfg,
-		ec2:         ec2.NewFromConfig(cfg),
-		efs:         efs.NewFromConfig(cfg),
-		sts:         sts.NewFromConfig(cfg),
+		ec2:         ec2Client,
+		efs:         efsClient,
+		sts:         stsClient,
 		region:      cfg.Region,
 		templates:   getTemplates(),
 		pricingCache: make(map[string]float64),
 		lastPriceUpdate: time.Time{},
 		discountConfig: ctypes.DiscountConfig{}, // No discounts by default
+		stateManager: stateManager,
 	}
 
 	return manager, nil
@@ -308,8 +323,87 @@ func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.EFSVolum
 
 // DeleteVolume deletes an EFS volume
 func (m *Manager) DeleteVolume(name string) error {
-	// TODO: Implement EFS volume deletion logic
-	return fmt.Errorf("not implemented yet")
+	// Get volume state to find the FileSystemId
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return fmt.Errorf("failed to load state: %w", err)
+	}
+
+	volume, exists := state.Volumes[name]
+	if !exists {
+		return fmt.Errorf("volume '%s' not found in state", name)
+	}
+
+	// Check if the filesystem exists
+	fsId := volume.FileSystemId
+	if fsId == "" {
+		return fmt.Errorf("no filesystem ID found for volume '%s'", name)
+	}
+
+	log.Printf("Deleting EFS volume '%s' (filesystem ID: %s)...", name, fsId)
+
+	// 1. Delete all mount targets first
+	// List mount targets for the file system
+	mtResp, err := m.efs.DescribeMountTargets(context.TODO(), &efs.DescribeMountTargetsInput{
+		FileSystemId: aws.String(fsId),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list mount targets: %w", err)
+	}
+
+	// Delete all mount targets
+	for _, mt := range mtResp.MountTargets {
+		mountTargetId := *mt.MountTargetId
+		log.Printf("Deleting mount target %s...", mountTargetId)
+
+		_, err := m.efs.DeleteMountTarget(context.TODO(), &efs.DeleteMountTargetInput{
+			MountTargetId: aws.String(mountTargetId),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to delete mount target %s: %w", mountTargetId, err)
+		}
+	}
+
+	// 2. Wait for mount targets to be deleted
+	// The file system can't be deleted until all mount targets are deleted
+	if len(mtResp.MountTargets) > 0 {
+		log.Printf("Waiting for mount targets to be deleted...")
+
+		// Poll until all mount targets are gone
+		for i := 0; i < 30; i++ { // Try for up to 5 minutes (30 * 10 seconds)
+			// Check if mount targets still exist
+			mtCheck, err := m.efs.DescribeMountTargets(context.TODO(), &efs.DescribeMountTargetsInput{
+				FileSystemId: aws.String(fsId),
+			})
+			if err != nil {
+				// If the file system itself is gone, we don't care about mount targets
+				if strings.Contains(err.Error(), "FileSystemNotFound") {
+					break
+				}
+				return fmt.Errorf("error checking mount targets: %w", err)
+			}
+
+			// If no mount targets remain, we can proceed
+			if len(mtCheck.MountTargets) == 0 {
+				break
+			}
+
+			// Wait before checking again
+			time.Sleep(10 * time.Second)
+		}
+	}
+
+	// 3. Delete the file system
+	log.Printf("Deleting EFS file system %s...", fsId)
+	_, err = m.efs.DeleteFileSystem(context.TODO(), &efs.DeleteFileSystemInput{
+		FileSystemId: aws.String(fsId),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete file system: %w", err)
+	}
+
+	// 4. Remove from state
+	return m.stateManager.RemoveVolume(name)
 }
 
 // CreateStorage creates a new EBS volume
