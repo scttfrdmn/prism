@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -174,5 +175,39 @@ func (m *Manager) UpdateConfig(config types.Config) error {
 	}
 
 	state.Config = config
+	return m.SaveState(state)
+}
+
+// SaveAPIKey saves a new API key to the configuration
+func (m *Manager) SaveAPIKey(apiKey string) error {
+	state, err := m.LoadState()
+	if err != nil {
+		return err
+	}
+
+	state.Config.APIKey = apiKey
+	state.Config.APIKeyCreated = time.Now()
+	return m.SaveState(state)
+}
+
+// GetAPIKey retrieves the current API key
+func (m *Manager) GetAPIKey() (string, time.Time, error) {
+	state, err := m.LoadState()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+
+	return state.Config.APIKey, state.Config.APIKeyCreated, nil
+}
+
+// ClearAPIKey removes the API key from the configuration
+func (m *Manager) ClearAPIKey() error {
+	state, err := m.LoadState()
+	if err != nil {
+		return err
+	}
+
+	state.Config.APIKey = ""
+	state.Config.APIKeyCreated = time.Time{}
 	return m.SaveState(state)
 }

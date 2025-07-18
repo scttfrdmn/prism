@@ -2,9 +2,11 @@ package daemon
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -98,12 +100,16 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 			handler,
 			jsonMiddleware,
 			s.awsHeadersMiddleware,
+			s.authMiddleware,
 		)
 	}
 
 	// Health check
 	mux.HandleFunc("/api/v1/ping", applyMiddleware(s.handlePing))
 	mux.HandleFunc("/api/v1/status", applyMiddleware(s.handleStatus))
+
+	// Authentication
+	mux.HandleFunc("/api/v1/auth", applyMiddleware(s.handleAuth))
 
 	// Instance operations
 	mux.HandleFunc("/api/v1/instances", applyMiddleware(s.handleInstances))
@@ -644,4 +650,123 @@ func splitPath(path string) []string {
 		path = path[:len(path)-1]
 	}
 	return strings.Split(path, "/")
+}
+
+// handleAuth handles API authentication endpoints
+func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		s.handleGenerateAPIKey(w, r)
+	case http.MethodGet:
+		s.handleGetAuthStatus(w, r)
+	case http.MethodDelete:
+		s.handleRevokeAPIKey(w, r)
+	default:
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	}
+}
+
+// handleGenerateAPIKey generates a new API key
+func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
+	// Load current state
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+		return
+	}
+
+	// Generate a new random API key (64 characters)
+	apiKey, err := generateAPIKey(64)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to generate API key")
+		return
+	}
+
+	// Update state with the new API key
+	state.Config.APIKey = apiKey
+	state.Config.APIKeyCreated = time.Now()
+
+	// Save state
+	if err := s.stateManager.UpdateConfig(state.Config); err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to save API key")
+		return
+	}
+
+	// Return the new API key
+	response := types.AuthResponse{
+		APIKey:    apiKey,
+		CreatedAt: state.Config.APIKeyCreated,
+		Message:   "API key generated successfully. Keep this key secure.",
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleGetAuthStatus returns information about the current auth status
+func (s *Server) handleGetAuthStatus(w http.ResponseWriter, r *http.Request) {
+	// This endpoint requires authentication
+	if !isAuthenticated(r.Context()) {
+		s.writeError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	// Load state to get API key info
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+		return
+	}
+
+	// Return auth status
+	response := map[string]interface{}{
+		"auth_enabled": state.Config.APIKey != "",
+		"created_at":   state.Config.APIKeyCreated,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleRevokeAPIKey revokes the current API key
+func (s *Server) handleRevokeAPIKey(w http.ResponseWriter, r *http.Request) {
+	// This endpoint requires authentication
+	if !isAuthenticated(r.Context()) {
+		s.writeError(w, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	// Load state
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+		return
+	}
+
+	// Clear API key
+	state.Config.APIKey = ""
+	state.Config.APIKeyCreated = time.Time{}
+
+	// Save state
+	if err := s.stateManager.UpdateConfig(state.Config); err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to revoke API key")
+		return
+	}
+
+	response := map[string]string{
+		"message": "API key revoked successfully",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// generateAPIKey generates a random API key of the specified length
+func generateAPIKey(length int) (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		b[i] = charset[n.Int64()]
+	}
+	return string(b), nil
 }
