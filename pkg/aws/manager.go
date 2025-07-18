@@ -35,9 +35,33 @@ type Manager struct {
 	stateManager StateManagerInterface
 }
 
+// ManagerOptions contains optional parameters for creating a new Manager
+type ManagerOptions struct {
+	Profile string // AWS profile name
+	Region  string // AWS region
+}
+
 // NewManager creates a new AWS manager
-func NewManager() (*Manager, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func NewManager(opts ...ManagerOptions) (*Manager, error) {
+	var opt ManagerOptions
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+	
+	// Load AWS configuration with optional profile and region
+	cfgOpts := []func(*config.LoadOptions) error{}
+	
+	// Set profile if specified
+	if opt.Profile != "" {
+		cfgOpts = append(cfgOpts, config.WithSharedConfigProfile(opt.Profile))
+	}
+	
+	// Set region if specified
+	if opt.Region != "" {
+		cfgOpts = append(cfgOpts, config.WithRegion(opt.Region))
+	}
+	
+	cfg, err := config.LoadDefaultConfig(context.TODO(), cfgOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -52,13 +76,19 @@ func NewManager() (*Manager, error) {
 	ec2Client := ec2.NewFromConfig(cfg)
 	efsClient := efs.NewFromConfig(cfg)
 	stsClient := sts.NewFromConfig(cfg)
+	
+	// Use specified region or fallback to config region
+	region := opt.Region
+	if region == "" {
+		region = cfg.Region
+	}
 
 	manager := &Manager{
 		cfg:         cfg,
 		ec2:         ec2Client,
 		efs:         efsClient,
 		sts:         stsClient,
-		region:      cfg.Region,
+		region:      region,
 		templates:   getTemplates(),
 		pricingCache: make(map[string]float64),
 		lastPriceUpdate: time.Time{},
