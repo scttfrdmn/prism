@@ -239,12 +239,11 @@ func (c *Client) SetProfileID(profileID string) {
 
 // addRequestHeaders adds common headers and auth headers to requests
 func (c *Client) addRequestHeaders(req *http.Request) {
-	// Add profile header if configured
+	// Add AWS authentication headers
 	if c.awsProfile != "" {
 		req.Header.Set("X-AWS-Profile", c.awsProfile)
 	}
 	
-	// Add region header if configured
 	if c.awsRegion != "" {
 		req.Header.Set("X-AWS-Region", c.awsRegion)
 	}
@@ -253,20 +252,7 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 	if c.invitationToken != "" {
 		req.Header.Set("X-Invitation-Token", c.invitationToken)
 		req.Header.Set("X-Owner-Account", c.ownerAccount)
-		if c.s3ConfigPath != "" {
-			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
-		}
-	}
-	
-	// Add profile ID header if configured
-	if c.profileID != "" {
-		req.Header.Set("X-Profile-ID", c.profileID)
-	}
-	
-	// Add invitation headers if configured
-	if c.invitationToken != "" {
-		req.Header.Set("X-Invitation-Token", c.invitationToken)
-		req.Header.Set("X-Owner-Account", c.ownerAccount)
+		
 		if c.s3ConfigPath != "" {
 			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
 		}
