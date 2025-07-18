@@ -61,6 +61,12 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			next(w, r)
 			return
 		}
+		
+		// Skip authentication for the authentication endpoint
+		if r.URL.Path == "/api/v1/authenticate" {
+			next(w, r)
+			return
+		}
 
 		// Load state to get the API key
 		state, err := s.stateManager.LoadState()
@@ -92,6 +98,24 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		// Mark the request as authenticated in the context
 		ctx := context.WithValue(r.Context(), authenticatedKey, true)
+		
+		// Check for user authentication token
+		token := r.Header.Get("Authorization")
+		if token != "" && strings.HasPrefix(token, "Bearer ") {
+			// Extract token from header
+			token = strings.TrimPrefix(token, "Bearer ")
+			
+			// Check if user manager is initialized
+			if s.userManager != nil && s.userManager.initialized {
+				// TODO: Validate token and get user ID
+				// For now, just use the token as the user ID for testing
+				userID := token
+				
+				// Add user ID to context
+				ctx = setUserID(ctx, userID)
+			}
+		}
+		
 		next(w, r.WithContext(ctx))
 	}
 }
