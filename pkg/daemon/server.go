@@ -21,7 +21,6 @@ import (
 type Server struct {
 	port         string
 	httpServer   *http.Server
-	awsManager   *aws.Manager
 	stateManager *state.Manager
 	// Future: add cost tracker, idle monitor, etc.
 }
@@ -32,12 +31,6 @@ func NewServer(port string) (*Server, error) {
 		port = "8080"
 	}
 
-	// Initialize AWS manager
-	awsManager, err := aws.NewManager()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize AWS manager: %w", err)
-	}
-
 	// Initialize state manager
 	stateManager, err := state.NewManager()
 	if err != nil {
@@ -46,7 +39,6 @@ func NewServer(port string) (*Server, error) {
 
 	server := &Server{
 		port:         port,
-		awsManager:   awsManager,
 		stateManager: stateManager,
 	}
 
@@ -91,7 +83,7 @@ func (s *Server) Stop() error {
 
 // setupRoutes configures all HTTP routes
 func (s *Server) setupRoutes(mux *http.ServeMux) {
-	// Middleware for JSON responses and logging
+	// Define middleware for JSON responses and logging
 	jsonMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -99,26 +91,35 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 			handler(w, r)
 		}
 	}
+	
+	// Combine all middleware
+	applyMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
+		return s.combineMiddleware(
+			handler,
+			jsonMiddleware,
+			s.awsHeadersMiddleware,
+		)
+	}
 
 	// Health check
-	mux.HandleFunc("/api/v1/ping", jsonMiddleware(s.handlePing))
-	mux.HandleFunc("/api/v1/status", jsonMiddleware(s.handleStatus))
+	mux.HandleFunc("/api/v1/ping", applyMiddleware(s.handlePing))
+	mux.HandleFunc("/api/v1/status", applyMiddleware(s.handleStatus))
 
 	// Instance operations
-	mux.HandleFunc("/api/v1/instances", jsonMiddleware(s.handleInstances))
-	mux.HandleFunc("/api/v1/instances/", jsonMiddleware(s.handleInstanceOperations))
+	mux.HandleFunc("/api/v1/instances", applyMiddleware(s.handleInstances))
+	mux.HandleFunc("/api/v1/instances/", applyMiddleware(s.handleInstanceOperations))
 
 	// Template operations
-	mux.HandleFunc("/api/v1/templates", jsonMiddleware(s.handleTemplates))
-	mux.HandleFunc("/api/v1/templates/", jsonMiddleware(s.handleTemplateInfo))
+	mux.HandleFunc("/api/v1/templates", applyMiddleware(s.handleTemplates))
+	mux.HandleFunc("/api/v1/templates/", applyMiddleware(s.handleTemplateInfo))
 
 	// Volume operations
-	mux.HandleFunc("/api/v1/volumes", jsonMiddleware(s.handleVolumes))
-	mux.HandleFunc("/api/v1/volumes/", jsonMiddleware(s.handleVolumeOperations))
+	mux.HandleFunc("/api/v1/volumes", applyMiddleware(s.handleVolumes))
+	mux.HandleFunc("/api/v1/volumes/", applyMiddleware(s.handleVolumeOperations))
 
 	// Storage operations
-	mux.HandleFunc("/api/v1/storage", jsonMiddleware(s.handleStorage))
-	mux.HandleFunc("/api/v1/storage/", jsonMiddleware(s.handleStorageOperations))
+	mux.HandleFunc("/api/v1/storage", applyMiddleware(s.handleStorage))
+	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
 }
 
 // HTTP handlers
@@ -133,6 +134,18 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
+	
+	// Get region from context or create AWS manager to get default
+	awsRegion := getAWSRegion(r.Context())
+	if awsRegion == "" {
+		// If no region specified in request, get default from a new AWS manager
+		awsManager, err := s.createAWSManagerFromRequest(r)
+		if err == nil {
+			awsRegion = awsManager.GetDefaultRegion()
+		} else {
+			awsRegion = "unknown"
+		}
+	}
 
 	status := types.DaemonStatus{
 		Version:       "0.1.0",
@@ -140,7 +153,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		StartTime:     time.Now(), // TODO: track actual start time
 		ActiveOps:     0,          // TODO: implement operation tracking
 		TotalRequests: 0,          // TODO: implement request counting
-		AWSRegion:     s.awsManager.GetDefaultRegion(),
+		AWSRegion:     awsRegion,
 	}
 
 	json.NewEncoder(w).Encode(status)
@@ -188,11 +201,18 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-
-	// Delegate to AWS manager
-	instance, err := s.awsManager.LaunchInstance(req)
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to launch instance: %v", err))
+	
+	// Use AWS manager from request and handle launch
+	var instance *types.Instance
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		// Delegate to AWS manager
+		var err error
+		instance, err = awsManager.LaunchInstance(req)
+		return err
+	})
+	
+	// If instance is nil, withAWSManager already wrote an error response
+	if instance == nil {
 		return
 	}
 
@@ -268,13 +288,11 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, name 
 }
 
 func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, name string) {
-	err := s.awsManager.DeleteInstance(name)
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to delete instance: %v", err))
-		return
-	}
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		return awsManager.DeleteInstance(name)
+	})
 
-	// Remove from state
+	// Remove from state - only if we didn't error out above
 	if err := s.stateManager.RemoveInstance(name); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
 		return
@@ -289,11 +307,9 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request, nam
 		return
 	}
 
-	err := s.awsManager.StartInstance(name)
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to start instance: %v", err))
-		return
-	}
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		return awsManager.StartInstance(name)
+	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -304,11 +320,9 @@ func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, name
 		return
 	}
 
-	err := s.awsManager.StopInstance(name)
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to stop instance: %v", err))
-		return
-	}
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		return awsManager.StopInstance(name)
+	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -319,9 +333,15 @@ func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, n
 		return
 	}
 
-	connectionInfo, err := s.awsManager.GetConnectionInfo(name)
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get connection info: %v", err))
+	var connectionInfo string
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		connectionInfo, err = awsManager.GetConnectionInfo(name)
+		return err
+	})
+
+	if connectionInfo == "" {
+		// Error was already handled by withAWSManager
 		return
 	}
 
@@ -337,8 +357,15 @@ func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates := s.awsManager.GetTemplates()
-	json.NewEncoder(w).Encode(templates)
+	var templates map[string]types.Template
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		templates = awsManager.GetTemplates()
+		return nil
+	})
+
+	if templates != nil {
+		json.NewEncoder(w).Encode(templates)
+	}
 }
 
 func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
@@ -348,13 +375,17 @@ func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateName := r.URL.Path[len("/api/v1/templates/"):]
-	template, err := s.awsManager.GetTemplate(templateName)
-	if err != nil {
-		s.writeError(w, http.StatusNotFound, "Template not found")
-		return
-	}
+	
+	var template *types.Template
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		template, err = awsManager.GetTemplate(templateName)
+		return err
+	})
 
-	json.NewEncoder(w).Encode(template)
+	if template != nil {
+		json.NewEncoder(w).Encode(template)
+	}
 }
 
 func (s *Server) handleVolumes(w http.ResponseWriter, r *http.Request) {
