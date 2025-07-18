@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	// "time" - commented out due to unused import
+	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
 // Client provides an interface to communicate with the CloudWorkstation daemon
@@ -69,6 +70,27 @@ type LegacyCloudWorkstationAPI interface {
 	DeleteStorage(name string) error
 	AttachStorage(volumeName, instanceName string) error
 	DetachStorage(volumeName string) error
+
+	// User management operations
+	ListUsers(filter *usermgmt.UserFilter, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedUsers, error)
+	GetUser(id string) (*usermgmt.User, error)
+	GetUserByUsername(username string) (*usermgmt.User, error)
+	CreateUser(user *usermgmt.User) (*usermgmt.User, error)
+	UpdateUser(user *usermgmt.User) (*usermgmt.User, error)
+	DeleteUser(id string) error
+	EnableUser(id string) error
+	DisableUser(id string) error
+	GetUserGroups(id string) ([]*usermgmt.Group, error)
+	UpdateUserGroups(id string, groupNames []string) error
+	ListGroups(filter *usermgmt.GroupFilter, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedGroups, error)
+	GetGroup(id string) (*usermgmt.Group, error)
+	GetGroupByName(name string) (*usermgmt.Group, error)
+	CreateGroup(group *usermgmt.Group) (*usermgmt.Group, error)
+	UpdateGroup(group *usermgmt.Group) (*usermgmt.Group, error)
+	DeleteGroup(id string) error
+	GetGroupUsers(id string, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedUsers, error)
+	UpdateGroupUsers(id string, userIDs []string) error
+	Authenticate(username, password string) (*AuthenticationResult, error)
 
 	// Daemon operations
 	GetStatus() (*types.DaemonStatus, error)

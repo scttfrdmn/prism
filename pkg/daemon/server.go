@@ -17,6 +17,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
 // Server represents the CloudWorkstation daemon server
@@ -24,6 +25,7 @@ type Server struct {
 	port         string
 	httpServer   *http.Server
 	stateManager *state.Manager
+	userManager  *UserManager
 	// Future: add cost tracker, idle monitor, etc.
 }
 
@@ -39,9 +41,16 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize state manager: %w", err)
 	}
 
+	// Initialize user manager
+	userManager := NewUserManager()
+	if err := userManager.Initialize(); err != nil {
+		return nil, fmt.Errorf("failed to initialize user manager: %w", err)
+	}
+
 	server := &Server{
 		port:         port,
 		stateManager: stateManager,
+		userManager:  userManager,
 	}
 
 	// Setup HTTP routes
@@ -110,6 +119,17 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 
 	// Authentication
 	mux.HandleFunc("/api/v1/auth", applyMiddleware(s.handleAuth))
+	
+	// User authentication
+	mux.HandleFunc("/api/v1/authenticate", applyMiddleware(s.handleAuthenticate))
+
+	// User management
+	mux.HandleFunc("/api/v1/users", applyMiddleware(s.handleUsers))
+	mux.HandleFunc("/api/v1/users/", applyMiddleware(s.handleUserOperations))
+
+	// Group management
+	mux.HandleFunc("/api/v1/groups", applyMiddleware(s.handleGroups))
+	mux.HandleFunc("/api/v1/groups/", applyMiddleware(s.handleGroupOperations))
 
 	// Instance operations
 	mux.HandleFunc("/api/v1/instances", applyMiddleware(s.handleInstances))

@@ -9,12 +9,15 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
 // Manager handles state persistence
 type Manager struct {
 	statePath string
+	userPath  string
 	mutex     sync.RWMutex
+	userMutex sync.RWMutex
 }
 
 // NewManager creates a new state manager
@@ -30,9 +33,11 @@ func NewManager() (*Manager, error) {
 	}
 
 	statePath := filepath.Join(stateDir, "state.json")
+	userPath := filepath.Join(stateDir, "users.json")
 
 	return &Manager{
 		statePath: statePath,
+		userPath:  userPath,
 	}, nil
 }
 
