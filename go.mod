@@ -9,15 +9,20 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.69
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.225.1
 	github.com/aws/aws-sdk-go-v2/service/efs v1.36.1
+	github.com/aws/aws-sdk-go-v2/service/identitystore v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.60.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.21
+	github.com/aws/aws-sdk-go-v2/service/sso v1.25.4
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.2
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/coreos/go-oidc/v3 v3.9.0
 	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xeipuuv/gojsonschema v1.2.0
+	golang.org/x/oauth2 v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
