@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/errors"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
@@ -25,6 +27,7 @@ type Client struct {
 	s3ConfigPath    string
 	profileID       string
 	apiKey          string  // API key for authentication
+	lastOperation   string  // Last operation performed for error context
 }
 
 // NewClient creates a new API client
@@ -329,9 +332,12 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 
 // get sends a GET request to the specified path and decodes response into result
 func (c *Client) get(path string, result interface{}) error {
+	// Extract operation name from path for error context
+	c.lastOperation = errors.ExtractOperationFromPath(path)
+	
 	req, err := http.NewRequest("GET", c.baseURL+path, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
 	
 	// Add headers
@@ -339,7 +345,7 @@ func (c *Client) get(path string, result interface{}) error {
 	
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return types.NewAPIError(types.ErrNetworkError, "Request failed", err).WithOperation(c.lastOperation)
 	}
 	defer resp.Body.Close()
 
@@ -348,18 +354,21 @@ func (c *Client) get(path string, result interface{}) error {
 
 // post sends a POST request to the specified path with optional body and decodes response into result
 func (c *Client) post(path string, body interface{}, result interface{}) error {
+	// Extract operation name from path for error context
+	c.lastOperation = errors.ExtractOperationFromPath(path)
+	
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("failed to marshal request: %w", err)
+			return types.NewAPIError(types.ErrInvalidFormat, "Failed to marshal request", err).WithOperation(c.lastOperation)
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
 	req, err := http.NewRequest("POST", c.baseURL+path, reqBody)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
 	
 	// Set content type
@@ -372,7 +381,7 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 	
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return types.NewAPIError(types.ErrNetworkError, "Request failed", err).WithOperation(c.lastOperation)
 	}
 	defer resp.Body.Close()
 
@@ -381,18 +390,21 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 
 // put sends a PUT request to the specified path with optional body and decodes response into result
 func (c *Client) put(path string, body interface{}, result interface{}) error {
+	// Extract operation name from path for error context
+	c.lastOperation = errors.ExtractOperationFromPath(path)
+	
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("failed to marshal request: %w", err)
+			return types.NewAPIError(types.ErrInvalidFormat, "Failed to marshal request", err).WithOperation(c.lastOperation)
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
 	}
 
 	req, err := http.NewRequest(http.MethodPut, c.baseURL+path, reqBody)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
 
 	if reqBody != nil {
@@ -404,7 +416,7 @@ func (c *Client) put(path string, body interface{}, result interface{}) error {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return types.NewAPIError(types.ErrNetworkError, "Request failed", err).WithOperation(c.lastOperation)
 	}
 	defer resp.Body.Close()
 
@@ -413,9 +425,12 @@ func (c *Client) put(path string, body interface{}, result interface{}) error {
 
 // delete sends a DELETE request to the specified path
 func (c *Client) delete(path string) error {
+	// Extract operation name from path for error context
+	c.lastOperation = errors.ExtractOperationFromPath(path)
+	
 	req, err := http.NewRequest("DELETE", c.baseURL+path, nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
 	
 	// Add headers
@@ -423,7 +438,7 @@ func (c *Client) delete(path string) error {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
+		return types.NewAPIError(types.ErrNetworkError, "Request failed", err).WithOperation(c.lastOperation)
 	}
 	defer resp.Body.Close()
 
@@ -435,14 +450,31 @@ func (c *Client) handleResponse(resp *http.Response, result interface{}) error {
 	if resp.StatusCode >= 400 {
 		var apiErr types.APIError
 		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
-			return fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+			// Could not parse as APIError, create a standardized error
+			code := types.GetErrorCodeFromStatusCode(resp.StatusCode)
+			return types.NewAPIError(code, resp.Status, err).WithStatusCode(resp.StatusCode)
 		}
+		
+		// Set the status code if not already set
+		if apiErr.StatusCode == 0 {
+			apiErr.StatusCode = resp.StatusCode
+		}
+		
+		// Set operation if applicable
+		if c.lastOperation != "" && apiErr.Operation == "" {
+			apiErr.Operation = c.lastOperation
+		}
+		
 		return apiErr
 	}
 
 	if result != nil && resp.StatusCode != http.StatusNoContent {
 		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
+			return types.NewAPIError(
+				types.ErrInvalidFormat,
+				"Failed to decode response", 
+				err,
+			).WithOperation(c.lastOperation)
 		}
 	}
 
