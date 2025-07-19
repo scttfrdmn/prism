@@ -22,10 +22,12 @@ import (
 
 // Server represents the CloudWorkstation daemon server
 type Server struct {
-	port         string
-	httpServer   *http.Server
-	stateManager *state.Manager
-	userManager  *UserManager
+	port           string
+	httpServer     *http.Server
+	stateManager   *state.Manager
+	userManager    *UserManager
+	statusTracker  *StatusTracker
+	versionManager *APIVersionManager
 	// Future: add cost tracker, idle monitor, etc.
 }
 
@@ -47,10 +49,18 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize user manager: %w", err)
 	}
 
+	// Initialize status tracker
+	statusTracker := NewStatusTracker()
+
+	// Initialize API version manager
+	versionManager := NewAPIVersionManager("/api")
+
 	server := &Server{
-		port:         port,
-		stateManager: stateManager,
-		userManager:  userManager,
+		port:           port,
+		stateManager:   stateManager,
+		userManager:    userManager,
+		statusTracker:  statusTracker,
+		versionManager: versionManager,
 	}
 
 	// Setup HTTP routes
@@ -99,6 +109,57 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 		return func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			log.Printf("%s %s", r.Method, r.URL.Path)
+			// Record the request in status tracker
+			s.statusTracker.RecordRequest()
+			handler(w, r)
+		}
+	}
+	
+	// Operation tracking middleware
+	operationTrackingMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// Determine operation type from path
+			opType := extractOperationType(r.URL.Path)
+			
+			// Start tracking this operation with type information
+			opID := s.statusTracker.StartOperationWithType(opType)
+			
+			// Enhance logging
+			log.Printf("Operation %d (%s) started: %s %s", opID, opType, r.Method, r.URL.Path)
+			
+			// Record start time for duration tracking
+			startTime := time.Now()
+			
+			// Ensure operation is always marked as completed
+			defer func() {
+				s.statusTracker.EndOperationWithType(opType)
+				log.Printf("Operation %d (%s) completed in %v", opID, opType, time.Since(startTime))
+			}()
+			
+			// Call the handler
+			handler(w, r)
+		}
+	}
+
+	// Add API versioning middlewares
+	versionHeaderMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// Extract version from request path
+			requestedVersion := s.versionManager.ExtractVersionFromPath(r.URL.Path)
+			if requestedVersion == "" {
+				requestedVersion = s.versionManager.GetDefaultVersion()
+			}
+			
+			// Add version headers to response
+			w.Header().Set("X-API-Version", requestedVersion)
+			w.Header().Set("X-API-Latest-Version", s.versionManager.GetLatestVersion())
+			w.Header().Set("X-API-Stable-Version", s.versionManager.GetStableVersion())
+			
+			// Add version to request context for handlers to use
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, contextKey("api_version"), requestedVersion)
+			r = r.WithContext(ctx)
+			
 			handler(w, r)
 		}
 	}
@@ -108,11 +169,26 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 		return s.combineMiddleware(
 			handler,
 			jsonMiddleware,
+			operationTrackingMiddleware,
+			versionHeaderMiddleware,
 			s.awsHeadersMiddleware,
 			s.authMiddleware,
 		)
 	}
 
+	// API version information endpoint
+	mux.HandleFunc("/api/versions", applyMiddleware(s.handleAPIVersions))
+	
+	// Register v1 endpoints
+	s.registerV1Routes(mux, applyMiddleware)
+	
+	// API path matcher to handle any valid API request
+	// This allows proper versioning of new paths that may be added in the future
+	mux.HandleFunc("/api/", applyMiddleware(s.handleUnknownAPI))
+}
+
+// registerV1Routes registers all API v1 routes
+func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.HandlerFunc) http.HandlerFunc) {
 	// Health check
 	mux.HandleFunc("/api/v1/ping", applyMiddleware(s.handlePing))
 	mux.HandleFunc("/api/v1/status", applyMiddleware(s.handleStatus))
@@ -150,6 +226,110 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 
 // HTTP handlers
 
+// Helper function to get API version from request context
+func getAPIVersion(ctx context.Context) string {
+	version, _ := ctx.Value(contextKey("api_version")).(string)
+	return version
+}
+
+// handleAPIVersions returns information about supported API versions
+func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	
+	apiVersions := s.versionManager.GetSupportedVersions()
+	
+	// Convert internal APIVersion to public APIVersionInfo
+	versionInfos := make([]types.APIVersionInfo, 0, len(apiVersions))
+	for _, v := range apiVersions {
+		versionInfos = append(versionInfos, types.APIVersionInfo{
+			Version:         v.Version,
+			Status:          v.Status,
+			IsDefault:       v.IsDefault,
+			ReleaseDate:     v.ReleaseDate,
+			DeprecationDate: v.DeprecationDate,
+			SunsetDate:      v.SunsetDate,
+			DocsURL:         v.DocsURL,
+		})
+	}
+	
+	response := types.APIVersionResponse{
+		Versions:       versionInfos,
+		DefaultVersion: s.versionManager.GetDefaultVersion(),
+		StableVersion:  s.versionManager.GetStableVersion(),
+		LatestVersion:  s.versionManager.GetLatestVersion(),
+		DocsBaseURL:    "https://docs.cloudworkstation.dev/api",
+	}
+	
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleUnknownAPI handles requests to unknown API endpoints
+func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
+	// Generate request ID for tracking
+	requestID := fmt.Sprintf("req_%d", time.Now().UnixNano())
+	
+	// Extract API version from path
+	version := s.versionManager.ExtractVersionFromPath(r.URL.Path)
+	
+	// Check if version exists but endpoint doesn't
+	if version != "" {
+		// Valid version but unknown endpoint
+		errorResponse := types.APIErrorResponse{
+			Code:       "endpoint_not_found",
+			Status:     http.StatusNotFound,
+			Message:    "The requested API endpoint does not exist",
+			Details:    fmt.Sprintf("No handler found for %s %s", r.Method, r.URL.Path),
+			RequestID:  requestID,
+			APIVersion: version,
+			DocsURL:    fmt.Sprintf("https://docs.cloudworkstation.dev/api/%s", version),
+		}
+		
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(errorResponse)
+		return
+	}
+	
+	// No version specified, convert supported versions to APIVersionInfo
+	apiVersions := s.versionManager.GetSupportedVersions()
+	versionInfos := make([]types.APIVersionInfo, 0, len(apiVersions))
+	for _, v := range apiVersions {
+		versionInfos = append(versionInfos, types.APIVersionInfo{
+			Version:         v.Version,
+			Status:          v.Status,
+			IsDefault:       v.IsDefault,
+			ReleaseDate:     v.ReleaseDate,
+			DeprecationDate: v.DeprecationDate,
+			SunsetDate:      v.SunsetDate,
+			DocsURL:         v.DocsURL,
+		})
+	}
+	
+	// Create error response with available versions
+	errorResponse := types.APIErrorResponse{
+		Code:      "version_required",
+		Status:    http.StatusBadRequest,
+		Message:   "No API version specified",
+		Details:   "Please specify an API version in the URL path, e.g., /api/v1/...",
+		RequestID: requestID,
+		DocsURL:   "https://docs.cloudworkstation.dev/api",
+	}
+	
+	w.WriteHeader(http.StatusBadRequest)
+	
+	// Include version information in response body
+	responseBody := map[string]interface{}{
+		"error":             errorResponse,
+		"available_versions": versionInfos,
+		"default_version":    s.versionManager.GetDefaultVersion(),
+		"stable_version":     s.versionManager.GetStableVersion(),
+	}
+	
+	json.NewEncoder(w).Encode(responseBody)
+}
+
 func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
@@ -173,14 +353,12 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	status := types.DaemonStatus{
-		Version:       "0.1.0",
-		Status:        "running",
-		StartTime:     time.Now(), // TODO: track actual start time
-		ActiveOps:     0,          // TODO: implement operation tracking
-		TotalRequests: 0,          // TODO: implement request counting
-		AWSRegion:     awsRegion,
-	}
+	// Get current profile from request
+	currentProfile := getAWSProfile(r.Context())
+
+	// Use status tracker to get current daemon status
+	status := s.statusTracker.GetStatus("0.1.0", awsRegion)
+	status.CurrentProfile = currentProfile
 
 	json.NewEncoder(w).Encode(status)
 }
@@ -654,11 +832,57 @@ func (s *Server) handleDetachStorage(w http.ResponseWriter, r *http.Request, sto
 // Helper methods
 
 func (s *Server) writeError(w http.ResponseWriter, code int, message string) {
+	// Get API version from context if available
+	r := &http.Request{} // Create a minimal request to satisfy the function
+	apiVersion := getAPIVersion(r.Context())
+	if apiVersion == "" {
+		apiVersion = s.versionManager.GetDefaultVersion()
+	}
+	
+	// Generate request ID for tracking
+	requestID := fmt.Sprintf("req_%d", time.Now().UnixNano())
+	
+	// Map HTTP status code to an error code string
+	errorCode := getErrorCodeFromStatus(code)
+	
+	// Create standardized API error response
+	errorResponse := types.APIErrorResponse{
+		Code:       errorCode,
+		Status:     code,
+		Message:    message,
+		RequestID:  requestID,
+		APIVersion: apiVersion,
+		DocsURL:    fmt.Sprintf("https://docs.cloudworkstation.dev/api/%s/errors#%s", apiVersion, errorCode),
+	}
+	
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(types.APIError{
-		Code:    code,
-		Message: message,
-	})
+	json.NewEncoder(w).Encode(errorResponse)
+}
+
+// getErrorCodeFromStatus converts an HTTP status code to a string error code
+func getErrorCodeFromStatus(statusCode int) string {
+	switch statusCode {
+	case http.StatusBadRequest:
+		return "bad_request"
+	case http.StatusUnauthorized:
+		return "unauthorized"
+	case http.StatusForbidden:
+		return "forbidden"
+	case http.StatusNotFound:
+		return "not_found"
+	case http.StatusMethodNotAllowed:
+		return "method_not_allowed"
+	case http.StatusConflict:
+		return "conflict"
+	case http.StatusTooManyRequests:
+		return "rate_limit_exceeded"
+	case http.StatusInternalServerError:
+		return "internal_error"
+	case http.StatusServiceUnavailable:
+		return "service_unavailable"
+	default:
+		return fmt.Sprintf("status_%d", statusCode)
+	}
 }
 
 func splitPath(path string) []string {
@@ -670,6 +894,48 @@ func splitPath(path string) []string {
 		path = path[:len(path)-1]
 	}
 	return strings.Split(path, "/")
+}
+
+// extractOperationType extracts an operation type string from a URL path
+// Example: /api/v1/instances/create -> "InstanceCreate"
+func extractOperationType(path string) string {
+	parts := splitPath(path)
+	
+	if len(parts) < 3 {
+		return "Unknown"
+	}
+	
+	// Skip the /api/v1 prefix
+	if parts[0] == "" && parts[1] == "api" && parts[2] == "v1" {
+		parts = parts[3:]
+	} else if parts[0] == "api" && parts[1] == "v1" {
+		parts = parts[2:]
+	}
+	
+	if len(parts) == 0 {
+		return "Root"
+	}
+	
+	// Extract resource type (first part)
+	resourceType := strings.Title(parts[0])
+	if len(resourceType) > 0 && resourceType[len(resourceType)-1] == 's' {
+		// Convert plural to singular (instances -> instance)
+		resourceType = resourceType[:len(resourceType)-1]
+	}
+	
+	// If there's an ID and operation, use those
+	if len(parts) >= 3 {
+		operation := strings.Title(parts[2])
+		return resourceType + operation
+	}
+	
+	// If there's just an ID, determine operation based on HTTP method
+	if len(parts) == 2 {
+		return resourceType + "Operation"
+	}
+	
+	// Otherwise just return the resource type
+	return resourceType
 }
 
 // handleAuth handles API authentication endpoints
