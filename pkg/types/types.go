@@ -134,14 +134,34 @@ func (e SimpleAPIError) Error() string {
 	return e.Message
 }
 
-// DaemonStatus represents the daemon's current status
+// DaemonStatus represents the status of the CloudWorkstation daemon
 type DaemonStatus struct {
-	Version       string    `json:"version"`
-	Status        string    `json:"status"`
-	StartTime     time.Time `json:"start_time"`
-	ActiveOps     int       `json:"active_operations"`
-	TotalRequests int64     `json:"total_requests"`
-	AWSRegion     string    `json:"aws_region"`
+	// Version of the daemon
+	Version string `json:"version"`
+	
+	// Status of the daemon (running, starting, stopping)
+	Status string `json:"status"`
+	
+	// StartTime is when the daemon was started
+	StartTime time.Time `json:"start_time"`
+	
+	// Uptime is the duration the daemon has been running
+	Uptime string `json:"uptime,omitempty"`
+	
+	// ActiveOps is the number of currently active operations
+	ActiveOps int `json:"active_ops"`
+	
+	// TotalRequests is the total number of requests processed
+	TotalRequests int64 `json:"total_requests"`
+	
+	// RequestsPerMinute is the current request rate
+	RequestsPerMinute float64 `json:"requests_per_minute,omitempty"`
+	
+	// AWSRegion is the current AWS region being used
+	AWSRegion string `json:"aws_region"`
+	
+	// CurrentProfile is the active profile ID (if applicable)
+	CurrentProfile string `json:"current_profile,omitempty"`
 }
 
 // CreditInfo represents AWS credit information
