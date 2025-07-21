@@ -1,0 +1,71 @@
+<scroll size="0x0" direction="Vertical" content="container">
+  <container size="0x0">
+    <container size="0x0">
+      <label pos="0,0" size="0x0" text="Dashboard" alignment="TextAlignLeading" bold="true" italic="false" monospace="false"/>
+      <spacer/>
+      <button pos="0,0" size="0x0" text="Refresh" icon=""/>
+    </container>
+    <separator/>
+    <container size="0x0" type="grid">
+      <card size="0x0" title="Active Instances">
+        <container size="0x0">
+          <label pos="0,0" size="0x0" text="1" alignment="TextAlignCenter" bold="true" italic="false" monospace="false"/>
+          <label pos="0,0" size="0x0" text="Currently running" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+        </container>
+      </card>
+      <card size="0x0" title="Daily Cost">
+        <container size="0x0">
+          <label pos="0,0" size="0x0" text="$2.40" alignment="TextAlignCenter" bold="true" italic="false" monospace="false"/>
+          <label pos="0,0" size="0x0" text="Estimated per day" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+        </container>
+      </card>
+      <card size="0x0" title="Total Instances">
+        <container size="0x0">
+          <label pos="0,0" size="0x0" text="2" alignment="TextAlignCenter" bold="true" italic="false" monospace="false"/>
+          <label pos="0,0" size="0x0" text="All instances" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+        </container>
+      </card>
+    </container>
+    <separator/>
+    <container size="0x0" type="grid">
+      <card size="0x0" title="Quick Launch" subtitle="Launch a new research environment">
+        <container size="0x0">
+          <form size="0x0">
+            <formitem size="0x0" label="Template">
+              <select pos="0,0" size="0x0" options="[r-research, python-research, basic-ubuntu]" selected="r-research"/>
+            </formitem>
+            <formitem size="0x0" label="Name">
+              <entry pos="0,0" size="0x0" placeholder="my-workspace"/>
+            </formitem>
+            <formitem size="0x0" label="Size">
+              <select pos="0,0" size="0x0" options="[XS, S, M, L, XL]" selected="M"/>
+            </formitem>
+          </form>
+          <button pos="0,0" size="0x0" text="🚀 Launch Environment" icon=""/>
+        </container>
+      </card>
+      <card size="0x0" title="Recent Instances" subtitle="Your latest cloud workstations">
+        <container size="0x0">
+          <container size="0x0">
+            <label pos="0,0" size="0x0" text="🟢" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+            <container size="0x0">
+              <label pos="0,0" size="0x0" text="test-instance-1" alignment="TextAlignLeading" bold="true" italic="false" monospace="false"/>
+              <label pos="0,0" size="0x0" text="r-research • $2.40/day" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+            </container>
+            <spacer/>
+            <button pos="0,0" size="0x0" text="Manage" icon=""/>
+          </container>
+          <container size="0x0">
+            <label pos="0,0" size="0x0" text="🟡" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+            <container size="0x0">
+              <label pos="0,0" size="0x0" text="test-instance-2" alignment="TextAlignLeading" bold="true" italic="false" monospace="false"/>
+              <label pos="0,0" size="0x0" text="python-research • $0.00/day" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+            </container>
+            <spacer/>
+            <button pos="0,0" size="0x0" text="Manage" icon=""/>
+          </container>
+        </container>
+      </card>
+    </container>
+  </container>
+</scroll>
