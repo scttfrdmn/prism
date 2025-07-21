@@ -1,0 +1,23 @@
+<card size="0x0">
+  <container size="0x0">
+    <container size="0x0">
+      <label pos="0,0" size="0x0" text="test-instance" alignment="TextAlignLeading" bold="true" italic="false" monospace="false"/>
+      <label pos="0,0" size="0x0" text="Template: r-research" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+      <label pos="0,0" size="0x0" text="Cost: $2.40/day" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+      <label pos="0,0" size="0x0" text="Launched: " alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+    </container>
+    <spacer/>
+    <container size="0x0">
+      <container size="0x0">
+        <label pos="0,0" size="0x0" text="🟢" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+        <label pos="0,0" size="0x0" text="running" alignment="TextAlignLeading" bold="true" italic="false" monospace="false"/>
+      </container>
+    </container>
+    <spacer/>
+    <container size="0x0">
+      <button pos="0,0" size="0x0" text="Connect" icon=""/>
+      <button pos="0,0" size="0x0" text="Stop" icon=""/>
+      <button pos="0,0" size="0x0" text="Delete" icon=""/>
+    </container>
+  </container>
+</card>

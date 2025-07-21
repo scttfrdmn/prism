@@ -39,6 +39,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/scttfrdmn/cloudworkstation/cmd/cws-gui/systray"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
@@ -92,6 +93,7 @@ type CloudWorkstationGUI struct {
 	
 	// UI Components
 	refreshTicker *time.Ticker
+	systemTray    *systray.SystemTrayHandler
 
 	// Form state
 	launchForm struct {
@@ -190,7 +192,26 @@ func (g *CloudWorkstationGUI) initialize() error {
 
 	// Setup system tray if supported
 	if desk, ok := g.app.(desktop.App); ok {
-		g.setupSystemTray(desk)
+		// Create system tray handler
+g.systemTray = systray.NewSystemTrayHandler(desk, g.window, g.apiClient)
+
+// Set status change callback
+g.systemTray.SetOnStatusChange(func(connected bool) {
+	g.app.Driver().StartAnimation(&fyne.Animation{
+		Duration: 100 * time.Millisecond,
+		Tick: func(_ float32) {
+			// Update status in UI based on connection state
+			if !connected && g.notification != nil {
+				g.showNotification("warning", "Lost Connection", 
+					"Unable to connect to CloudWorkstation daemon. Is cwsd running?")
+			}
+		},
+	})
+})
+
+// Setup and start the system tray
+g.systemTray.Setup()
+g.systemTray.Start()
 	}
 
 	// Start background refresh
@@ -1226,21 +1247,6 @@ func (g *CloudWorkstationGUI) checkDeviceBindingValidity() {
 	}()
 }
 
-func (g *CloudWorkstationGUI) setupSystemTray(desk desktop.App) {
-	// Create minimal system tray menu
-	menu := fyne.NewMenu("CloudWorkstation",
-		fyne.NewMenuItem("Open CloudWorkstation", func() {
-			g.window.Show()
-			g.window.RequestFocus()
-		}),
-		fyne.NewMenuItemSeparator(),
-		fyne.NewMenuItem("Quit", func() {
-			g.app.Quit()
-		}),
-	)
-
-	desk.SetSystemTrayMenu(menu)
-}
 
 // createProfileManagerView creates the profile management interface
 func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
@@ -2063,5 +2069,10 @@ func (g *CloudWorkstationGUI) run() {
 	// Cleanup
 	if g.refreshTicker != nil {
 		g.refreshTicker.Stop()
+	}
+	
+	// Stop system tray handler
+	if g.systemTray != nil {
+		g.systemTray.Stop()
 	}
 }
