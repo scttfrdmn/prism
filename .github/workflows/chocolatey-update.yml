@@ -1,0 +1,62 @@
+name: Update Chocolatey Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., v0.4.2)'
+        required: true
+        default: 'v0.4.2'
+
+jobs:
+  update-chocolatey:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set version variable
+        id: version
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ github.event.inputs.version }}"
+          } else {
+            $version = "${{ github.ref }}".Replace('refs/tags/', '')
+          }
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+          
+      - name: Download release artifacts
+        run: |
+          mkdir -p dist/${{ env.VERSION }}
+          cd dist/${{ env.VERSION }}
+          
+          # Download Windows release archive
+          gh release download ${{ env.VERSION }} --repo ${{ github.repository }} --pattern "*.zip"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Chocolatey package
+        run: |
+          .\scripts\update_chocolatey.ps1 -Version ${{ env.VERSION }} -ReleaseDir .\dist\${{ env.VERSION }}
+
+      - name: Pack Chocolatey package
+        run: |
+          choco pack .\scripts\chocolatey\cloudworkstation.nuspec
+
+      - name: Push Chocolatey package (only on release)
+        if: github.event_name == 'release'
+        run: |
+          $packagePath = Get-ChildItem -Path . -Filter "cloudworkstation.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
+          choco push $packagePath -s https://push.chocolatey.org/ --api-key=${{ secrets.CHOCOLATEY_API_KEY }}
+        
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chocolatey-package
+          path: "*.nupkg"
+          retention-days: 30

@@ -1,0 +1,54 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-formula:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set version variable
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Download release artifacts
+        run: |
+          mkdir -p dist/${{ env.VERSION }}
+          cd dist/${{ env.VERSION }}
+          
+          # Download all release archives
+          gh release download ${{ env.VERSION }} --repo ${{ github.repository }} --pattern "*.tar.gz"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
+        run: |
+          ./scripts/update_homebrew.sh ${{ env.VERSION }} ./dist/${{ env.VERSION }}
+          
+      - name: Setup git for tap repository
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
+      - name: Clone tap repository
+        run: |
+          git clone https://x-access-token:${{ secrets.TAP_REPO_TOKEN }}@github.com/scttfrdmn/homebrew-cloudworkstation.git
+          
+      - name: Update formula in tap repository
+        run: |
+          cp scripts/homebrew/cloudworkstation.rb homebrew-cloudworkstation/Formula/
+          cd homebrew-cloudworkstation
+          git add Formula/cloudworkstation.rb
+          git commit -m "Update formula for ${{ env.VERSION }}"
+          git push
