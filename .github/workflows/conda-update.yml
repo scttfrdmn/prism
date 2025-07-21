@@ -1,0 +1,80 @@
+name: Update Conda Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g., v0.4.2)'
+        required: true
+        default: 'v0.4.2'
+
+jobs:
+  update-conda:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set version variable
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
+          
+      - name: Download release artifacts
+        run: |
+          mkdir -p dist/${{ env.VERSION }}
+          cd dist/${{ env.VERSION }}
+          
+          # Download all release archives
+          gh release download ${{ env.VERSION }} --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Conda package
+        run: |
+          python scripts/update_conda.py ${{ env.VERSION }} ./dist/${{ env.VERSION }}
+
+      - name: Setup conda-build
+        if: github.event_name == 'release'
+        run: |
+          conda install -y conda-build anaconda-client
+        shell: bash -el {0}
+
+      - name: Build conda package
+        if: github.event_name == 'release'
+        run: |
+          conda build scripts/conda --output-folder ./conda-build
+        shell: bash -el {0}
+
+      - name: Upload to Anaconda Cloud
+        if: github.event_name == 'release'
+        run: |
+          anaconda -t ${{ secrets.ANACONDA_TOKEN }} upload -u scttfrdmn ./conda-build/*/*.tar.bz2
+        shell: bash -el {0}
+        
+      - name: Upload changes as PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update Conda package for ${{ env.VERSION }}
+          title: Update Conda package for ${{ env.VERSION }}
+          body: |
+            This automated PR updates the Conda package for version ${{ env.VERSION }}.
+            - Updates version reference in meta.yaml
+            - Updates SHA256 checksums for all platform packages
+          branch: update-conda-package-${{ env.VERSION }}
+          base: main
