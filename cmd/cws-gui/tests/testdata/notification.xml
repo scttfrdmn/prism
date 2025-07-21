@@ -1,0 +1,13 @@
+<container size="0x0">
+  <card size="0x0">
+    <container size="0x0">
+      <icon pos="0,0" size="0x0" resource="confirm.svg"/>
+      <container size="0x0">
+        <label pos="0,0" size="0x0" text="Test Title" alignment="TextAlignLeading" bold="true" italic="false" monospace="false"/>
+        <label pos="0,0" size="0x0" text="Test Message" alignment="TextAlignLeading" bold="false" italic="false" monospace="false"/>
+      </container>
+      <spacer/>
+      <button pos="0,0" size="0x0" text="×" icon=""/>
+    </container>
+  </card>
+</container>
