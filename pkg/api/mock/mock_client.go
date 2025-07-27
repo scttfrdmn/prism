@@ -386,7 +386,7 @@ func (m *MockClient) StartInstance(ctx context.Context, name string) error {
 }
 
 // ConnectInstance returns mock connection information (deprecated, use GetInstance instead)
-func (m *MockClient) ConnectInstance(name string) (string, error) {
+func (m *MockClient) ConnectInstance(ctx context.Context, name string) (string, error) {
 	if instance, exists := m.Instances[name]; exists {
 		switch m.Templates[instance.Template].Name {
 		case "r-research":
@@ -715,7 +715,10 @@ func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error 
 // GetRegistryStatus returns the status of the AMI registry
 func (m *MockClient) GetRegistryStatus(ctx context.Context) (*api.RegistryStatusResponse, error) {
 	return &api.RegistryStatusResponse{
-		Enabled: true,
+		Active: true,
+		TemplateCount: 5,
+		AMICount: 15,
+		Status: "operational",
 	}, nil
 }
 
@@ -743,11 +746,13 @@ func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch s
 	}
 	
 	return &api.AMIReferenceResponse{
-		AMIID:      amiID,
-		Region:     region,
-		Arch:       arch,
-		Version:    "1.0.0",
-		CreateDate: time.Now().Add(-24 * time.Hour),
+		AMIID:        amiID,
+		Region:       region,
+		Architecture: arch,
+		TemplateName: templateName,
+		Version:      "1.0.0",
+		BuildDate:    time.Now().Add(-24 * time.Hour),
+		Status:       "available",
 	}, nil
 }
 
@@ -763,14 +768,21 @@ func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 	for region, archMap := range template.AMI {
 		for arch, amiID := range archMap {
 			result = append(result, api.AMIReferenceResponse{
-				AMIID:      amiID,
-				Region:     region,
-				Arch:       arch,
-				Version:    "1.0.0",
-				CreateDate: time.Now().Add(-24 * time.Hour),
+				AMIID:        amiID,
+				Region:       region,
+				Architecture: arch,
+				TemplateName: templateName,
+				Version:      "1.0.0",
+				BuildDate:    time.Now().Add(-24 * time.Hour),
+				Status:       "available",
 			})
 		}
 	}
 	
 	return result, nil
+}
+
+// SetOptions sets client configuration options
+func (m *MockClient) SetOptions(options api.ClientOptions) {
+	// Mock client ignores options but implements the interface
 }
