@@ -76,6 +76,13 @@ func (p *Parser) WriteTemplate(template *Template, writer io.Writer) error {
 	return nil
 }
 
+// ListTemplates returns a list of available templates (placeholder implementation)
+func (p *Parser) ListTemplates() ([]string, error) {
+	// TODO: Implement actual template listing logic
+	// For now, return an empty list to fix compilation
+	return []string{}, nil
+}
+
 // validateEnhancedTemplate validates a template against the enhanced schema.
 func (p *Parser) validateEnhancedTemplate(template *Template) error {
 	// Basic validation

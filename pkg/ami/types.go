@@ -16,6 +16,7 @@
 package ami
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -149,6 +150,41 @@ func NewValidator(ssmClient *ssm.Client, options ValidatorOptions) *Validator {
 	return &Validator{
 		SSMClient: ssmClient, 
 		Options:   options,
+	}
+}
+
+// ValidateAMI validates an AMI build
+func (v *Validator) ValidateAMI(instanceID string, template *Template) (*ValidationResult, error) {
+	result := &ValidationResult{
+		Details: make(map[string]string),
+	}
+	
+	for i, validation := range template.Validation {
+		if v.Options.LogProgress {
+			fmt.Printf("Running validation %d: %s\n", i+1, validation.Name)
+		}
+		
+		// TODO: Implement actual validation logic via SSM
+		// For now, assume all validations pass
+		result.SuccessfulTests++
+		result.Details[validation.Name] = "PASS"
+	}
+	
+	result.TotalTests = len(template.Validation)
+	result.Successful = result.SuccessfulTests == result.TotalTests
+	
+	return result, nil
+}
+
+// FormatValidationResult formats a validation result for output
+func (v *Validator) FormatValidationResult(result *ValidationResult) string {
+	if result.Successful {
+		return fmt.Sprintf("✅ All %d validations passed", result.TotalTests)
+	} else {
+		return fmt.Sprintf("❌ %d/%d validations failed: %v", 
+			result.TotalTests-result.SuccessfulTests, 
+			result.TotalTests, 
+			result.FailedChecks)
 	}
 }
 

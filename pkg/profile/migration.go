@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 	
+	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -88,13 +89,13 @@ func (m *ManagerEnhanced) MigrateFromLegacyState(profileName string) (*Migration
 	}
 	
 	// Create state manager
-	stateManager, err := NewStateManager()
+	stateManager, err := state.NewManager()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state manager: %w", err)
 	}
 	
 	// Save state for this profile
-	if err := stateManager.SaveState(profile.AWSProfile, &legacyState); err != nil {
+	if err := stateManager.SaveState(&legacyState); err != nil {
 		return nil, fmt.Errorf("failed to save migrated state: %w", err)
 	}
 	

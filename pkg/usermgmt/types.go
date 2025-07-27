@@ -314,3 +314,94 @@ type SyncResult struct {
 	// Duration is the duration of the sync in seconds
 	Duration float64 `json:"duration"`
 }
+
+// UserManagementService defines the interface for user management operations
+type UserManagementService interface {
+	// User operations
+	CreateUser(user *User) error
+	GetUser(id string) (*User, error)
+	GetUserByUsername(username string) (*User, error)
+	GetUserByEmail(email string) (*User, error)
+	UpdateUser(user *User) error
+	DeleteUser(id string) error
+	ListUsers(filter *UserFilter, pagination *PaginationOptions) (*PaginatedUsers, error)
+	
+	// Group operations
+	CreateGroup(group *Group) error
+	GetGroup(id string) (*Group, error)
+	GetGroupByName(name string) (*Group, error)
+	UpdateGroup(group *Group) error
+	DeleteGroup(id string) error
+	ListGroups(filter *GroupFilter, pagination *PaginationOptions) (*PaginatedGroups, error)
+	
+	// User-Group operations
+	AddUserToGroup(userID, groupID string) error
+	RemoveUserFromGroup(userID, groupID string) error
+	GetUserGroups(userID string) ([]*Group, error)
+	GetGroupUsers(groupID string) ([]*User, error)
+	
+	// Sync operations
+	SyncUsers(options *SyncOptions) (*SyncResult, error)
+	ProvisionUser(providerUser interface{}, options *UserProvisionOptions) (*User, error)
+}
+
+// UserStorage defines the interface for user data storage
+type UserStorage interface {
+	// User storage operations
+	StoreUser(user *User) error
+	RetrieveUser(id string) (*User, error)
+	UpdateUser(user *User) error
+	DeleteUser(id string) error
+	ListUsers(filter *UserFilter) ([]*User, error)
+	
+	// Group storage operations
+	StoreGroup(group *Group) error
+	RetrieveGroup(id string) (*Group, error)
+	UpdateGroup(group *Group) error
+	DeleteGroup(id string) error
+	ListGroups(filter *GroupFilter) ([]*Group, error)
+	
+	// User-Group relationship operations
+	StoreUserGroupMembership(userID, groupID string) error
+	RemoveUserGroupMembership(userID, groupID string) error
+	GetUserGroups(userID string) ([]string, error)
+	GetGroupUsers(groupID string) ([]string, error)
+}
+
+// UserManagementProvider interface for implementing different user management providers
+type UserManagementProvider interface {
+	// Provider identification
+	GetProviderType() Provider
+	
+	// Authentication operations
+	AuthenticateUser(username, password string) (*AuthenticationResult, error)
+	
+	// User and group sync operations
+	SyncUsers(options *SyncOptions) (*SyncResult, error)
+	SyncGroups() error
+	
+	// Provider-specific operations
+	ValidateConfiguration() error
+	TestConnection() error
+}
+
+// AuthenticationResult represents the result of authentication
+type AuthenticationResult struct {
+	// Success indicates if authentication was successful
+	Success bool `json:"success"`
+	
+	// User is the authenticated user (if successful)
+	User *User `json:"user,omitempty"`
+	
+	// Token is the authentication token (if applicable)
+	Token string `json:"token,omitempty"`
+	
+	// ExpiresAt is when the token expires
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	
+	// ErrorMessage contains the error message (if unsuccessful)
+	ErrorMessage string `json:"error_message,omitempty"`
+	
+	// Attributes contains additional authentication attributes
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
+}

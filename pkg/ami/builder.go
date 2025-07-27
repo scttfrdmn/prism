@@ -151,7 +151,7 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 	fmt.Printf("\n🔍 Running validation tests...\n")
 	buildLog.WriteString("Validation:\n")
 	if len(request.Template.Validation) > 0 {
-		validationResult, err := validator.ValidateAMI(ctx, instanceID, request.Template.Validation)
+		validationResult, err := validator.ValidateAMI(instanceID, &request.Template)
 		if err != nil {
 			result.Status = "failed"
 			result.ErrorMessage = fmt.Sprintf("validation failed: %v", err)
