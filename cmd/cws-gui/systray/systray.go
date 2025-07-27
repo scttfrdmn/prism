@@ -51,8 +51,7 @@ func (h *SystemTrayHandler) Setup() {
 	instanceCountMenuItem := fyne.NewMenuItem("Instances: 0", nil)
 	instanceCountMenuItem.Disabled = true
 	
-	// Create instance submenu (will be populated later)
-	instancesSubMenu := fyne.NewMenu("Instances")
+	// Instance submenu will be populated dynamically
 	
 	// Create main menu
 	menu := fyne.NewMenu("CloudWorkstation",
@@ -64,7 +63,8 @@ func (h *SystemTrayHandler) Setup() {
 			h.window.Show()
 			h.window.RequestFocus()
 		}),
-		fyne.NewMenuItem("Launch Instances", fyne.NewMenuItemSeparator()),
+		fyne.NewMenuItemSeparator(),
+		fyne.NewMenuItem("Launch Instances", nil),
 		fyne.NewMenuItem("R Research", func() {
 			h.window.Show()
 			h.window.RequestFocus()
@@ -86,7 +86,7 @@ func (h *SystemTrayHandler) Setup() {
 		}),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Quit", func() {
-			h.app.Quit()
+			h.window.Close()
 		}),
 	)
 	
