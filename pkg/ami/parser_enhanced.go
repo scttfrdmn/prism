@@ -2,6 +2,7 @@ package ami
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -34,6 +35,45 @@ func (p *Parser) ParseEnhancedTemplate(templatePath string) (*Template, error) {
 	}
 
 	return &template, nil
+}
+
+// ValidateTemplate validates a template against the enhanced schema
+func (p *Parser) ValidateTemplate(template *Template) error {
+	return p.validateEnhancedTemplate(template)
+}
+
+// ParseTemplate parses a template from a string
+func (p *Parser) ParseTemplate(content string) (*Template, error) {
+	var template Template
+	if err := yaml.Unmarshal([]byte(content), &template); err != nil {
+		return nil, fmt.Errorf("failed to parse template YAML: %w", err)
+	}
+
+	if err := p.ValidateTemplate(&template); err != nil {
+		return nil, fmt.Errorf("template validation failed: %w", err)
+	}
+
+	return &template, nil
+}
+
+// ParseTemplateFile parses a template from a file
+func (p *Parser) ParseTemplateFile(templatePath string) (*Template, error) {
+	return p.ParseEnhancedTemplate(templatePath)
+}
+
+// WriteTemplate writes a template to a writer
+func (p *Parser) WriteTemplate(template *Template, writer io.Writer) error {
+	data, err := yaml.Marshal(template)
+	if err != nil {
+		return fmt.Errorf("failed to marshal template to YAML: %w", err)
+	}
+
+	_, err = writer.Write(data)
+	if err != nil {
+		return fmt.Errorf("failed to write template: %w", err)
+	}
+
+	return nil
 }
 
 // validateEnhancedTemplate validates a template against the enhanced schema.

@@ -249,7 +249,7 @@ func (m *TemplateManager) ImportFromURL(url string, options *TemplateManagerImpo
 	}
 
 	// Parse template
-	template, err := m.Parser.ParseTemplate(content)
+	template, err := m.Parser.ParseTemplate(string(content))
 	if err != nil {
 		return nil, TemplateImportError("failed to parse template", err).
 			WithContext("url", url)
