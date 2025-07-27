@@ -117,6 +117,15 @@ func (c *HTTPClient) Ping(ctx context.Context) error {
 	return c.handleResponse(resp, nil)
 }
 
+// Shutdown gracefully shuts down the daemon
+func (c *HTTPClient) Shutdown(ctx context.Context) error {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/shutdown", nil)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
 // GetStatus gets the daemon status
 func (c *HTTPClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error) {
 	resp, err := c.makeRequest(ctx, "GET", "/api/v1/status", nil)

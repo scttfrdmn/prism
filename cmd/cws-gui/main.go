@@ -92,8 +92,9 @@ type CloudWorkstationGUI struct {
 	profiles       []profile.Profile
 	
 	// UI Components
-	refreshTicker *time.Ticker
-	systemTray    *systray.SystemTrayHandler
+	refreshTicker      *time.Ticker
+	systemTray         *systray.SystemTrayHandler
+	templatesContainer *fyne.Container
 
 	// Form state
 	launchForm struct {
@@ -156,10 +157,10 @@ func (g *CloudWorkstationGUI) initialize() error {
 	currentProfile, err := g.profileManager.GetCurrentProfile()
 	if err != nil {
 		// No profile available, use basic client
-		g.apiClient = api.NewClient("http://localhost:8080")
+		g.apiClient = api.NewClient("http://localhost:8947")
 	} else {
 		// Create client with current profile AWS settings
-		g.apiClient = api.NewClientWithOptions("http://localhost:8080", client.Options{
+		g.apiClient = api.NewClientWithOptions("http://localhost:8947", client.Options{
 			AWSProfile: currentProfile.AWSProfile,
 			AWSRegion:  currentProfile.Region,
 		})
@@ -670,57 +671,244 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 
 // createTemplatesView creates the templates view
 func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
-	header := widget.NewLabelWithStyle("Templates", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-
-	// Template cards
-	templateCards := fynecontainer.NewGridWithColumns(2,
-		widget.NewCard("R Research Environment", "RStudio Server + R packages for data science",
-			fynecontainer.NewVBox(
-				widget.NewLabel("• RStudio Server"),
-				widget.NewLabel("• Common R packages"),
-				widget.NewLabel("• Jupyter Lab"),
-				widget.NewButton("Launch R Environment", func() {
-					g.quickLaunch("r-research")
-				}),
-			),
-		),
-		widget.NewCard("Python ML Environment", "Python + Jupyter + ML libraries",
-			fynecontainer.NewVBox(
-				widget.NewLabel("• Jupyter Notebook"),
-				widget.NewLabel("• TensorFlow & PyTorch"),
-				widget.NewLabel("• Data science libraries"),
-				widget.NewButton("Launch Python Environment", func() {
-					g.quickLaunch("python-research")
-				}),
-			),
-		),
-		widget.NewCard("Basic Ubuntu Server", "Clean Ubuntu server for general use",
-			fynecontainer.NewVBox(
-				widget.NewLabel("• Ubuntu 22.04 LTS"),
-				widget.NewLabel("• Basic development tools"),
-				widget.NewLabel("• Docker pre-installed"),
-				widget.NewButton("Launch Ubuntu Server", func() {
-					g.quickLaunch("basic-ubuntu")
-				}),
-			),
-		),
-		widget.NewCard("Custom Template", "Create your own environment",
-			fynecontainer.NewVBox(
-				widget.NewLabel("• Custom AMI"),
-				widget.NewLabel("• Custom instance type"),
-				widget.NewLabel("• Custom configuration"),
-				widget.NewButton("Coming Soon", nil),
-			),
-		),
+	// Header with refresh button
+	header := fynecontainer.NewHBox(
+		widget.NewLabelWithStyle("Templates", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		layout.NewSpacer(),
+		widget.NewButton("Refresh", func() {
+			g.refreshTemplates()
+		}),
 	)
+
+	// Templates will be loaded dynamically
+	g.templatesContainer = fynecontainer.NewVBox()
+	g.refreshTemplates() // Load templates on first view
 
 	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
-		templateCards,
+		g.templatesContainer,
 	)
 
 	return fynecontainer.NewScroll(content)
+}
+
+// refreshTemplates loads templates from the API and updates the view
+func (g *CloudWorkstationGUI) refreshTemplates() {
+	// Clear existing templates
+	g.templatesContainer.RemoveAll()
+	
+	// Show loading indicator
+	loadingLabel := widget.NewLabel("Loading templates...")
+	g.templatesContainer.Add(loadingLabel)
+	g.templatesContainer.Refresh()
+	
+	// Fetch templates from API
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		templates, err := g.apiClient.ListTemplates(ctx)
+		if err != nil {
+			// Update UI on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					g.templatesContainer.RemoveAll()
+					g.templatesContainer.Add(widget.NewLabel("❌ Failed to load templates: " + err.Error()))
+					g.templatesContainer.Refresh()
+				},
+			})
+			return
+		}
+		
+		// Update UI on main thread
+		g.app.Driver().StartAnimation(&fyne.Animation{
+			Duration: 100 * time.Millisecond,  
+			Tick: func(_ float32) {
+				g.displayTemplates(templates)
+			},
+		})
+	}()
+}
+
+// displayTemplates renders the template cards in a grid layout
+func (g *CloudWorkstationGUI) displayTemplates(templates map[string]types.Template) {
+	g.templatesContainer.RemoveAll()
+	
+	if len(templates) == 0 {
+		g.templatesContainer.Add(widget.NewLabel("No templates available"))
+		g.templatesContainer.Refresh()
+		return
+	}
+	
+	// Create template cards in a grid (2 columns)
+	templateCards := fynecontainer.NewGridWithColumns(2)
+	
+	// Create cards for each template
+	for id, template := range templates {
+		templateID := id // Capture for closure
+		templateInfo := template // Capture for closure
+		
+		// Create template card with details
+		card := g.createTemplateCard(templateID, templateInfo)
+		templateCards.Add(card)
+	}
+	
+	g.templatesContainer.Add(templateCards)
+	g.templatesContainer.Refresh()
+}
+
+// createTemplateCard creates a card widget for a template
+func (g *CloudWorkstationGUI) createTemplateCard(templateID string, template types.Template) *widget.Card {
+	// Template details
+	detailsContainer := fynecontainer.NewVBox()
+	
+	// Add architecture info if available
+	if len(template.InstanceType) > 0 {
+		if armType, hasArm := template.InstanceType["arm64"]; hasArm {
+			detailsContainer.Add(widget.NewLabel("• ARM64: " + armType))
+		}
+		if x86Type, hasX86 := template.InstanceType["x86_64"]; hasX86 {
+			detailsContainer.Add(widget.NewLabel("• x86_64: " + x86Type))
+		}
+	}
+	
+	// Add cost information if available
+	if len(template.EstimatedCostPerHour) > 0 {
+		if armCost, hasArm := template.EstimatedCostPerHour["arm64"]; hasArm {
+			detailsContainer.Add(widget.NewLabel(fmt.Sprintf("• ARM cost: $%.4f/hour", armCost)))
+		}
+		if x86Cost, hasX86 := template.EstimatedCostPerHour["x86_64"]; hasX86 {
+			detailsContainer.Add(widget.NewLabel(fmt.Sprintf("• x86 cost: $%.4f/hour", x86Cost)))
+		}
+	}
+	
+	// Add ports information if available
+	if len(template.Ports) > 0 {
+		portsStr := ""
+		for i, port := range template.Ports {
+			if i > 0 {
+				portsStr += ", "
+			}
+			portsStr += fmt.Sprintf("%d", port)
+		}
+		detailsContainer.Add(widget.NewLabel("• Ports: " + portsStr))
+	}
+	
+	// Launch button
+	launchButton := widget.NewButton("Launch "+template.Name, func() {
+		g.showLaunchDialog(templateID, template)
+	})
+	launchButton.Importance = widget.HighImportance
+	
+	detailsContainer.Add(widget.NewSeparator())
+	detailsContainer.Add(launchButton)
+	
+	return widget.NewCard(template.Name, template.Description, detailsContainer)
+}
+
+// showLaunchDialog shows a dialog for launching a template
+func (g *CloudWorkstationGUI) showLaunchDialog(templateID string, template types.Template) {
+	// Instance name entry
+	nameEntry := widget.NewEntry()
+	nameEntry.SetPlaceHolder("Enter instance name...")
+	
+	// Instance size selection
+	sizeOptions := []string{"XS", "S", "M", "L", "XL"}
+	if len(template.InstanceType) > 0 {
+		// Add GPU sizes if this looks like a template that could benefit
+		if templateID == "python-research" || templateID == "r-research" {
+			sizeOptions = append(sizeOptions, "GPU-S", "GPU-M", "GPU-L")
+		}
+	}
+	sizeSelect := widget.NewSelect(sizeOptions, nil)
+	sizeSelect.SetSelected("M") // Default to medium
+	
+	// Create form
+	form := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle("Launch "+template.Name, fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		widget.NewLabel("Instance Name:"),
+		nameEntry,
+		widget.NewLabel("Instance Size:"),
+		sizeSelect,
+		widget.NewSeparator(),
+	)
+	
+	// Launch button
+	launchBtn := widget.NewButton("Launch Instance", func() {
+		instanceName := nameEntry.Text
+		instanceSize := sizeSelect.Selected
+		
+		if instanceName == "" {
+			g.showNotification("error", "Validation Error", "Please enter an instance name")
+			return
+		}
+		
+		// Close dialog and launch instance
+		g.window.Canvas().SetOnTypedKey(nil) // Clear any key handlers
+		g.launchInstance(templateID, instanceName, instanceSize)
+	})
+	launchBtn.Importance = widget.HighImportance
+	
+	cancelBtn := widget.NewButton("Cancel", func() {
+		g.window.Canvas().SetOnTypedKey(nil) // Clear any key handlers
+	})
+	
+	buttonContainer := fynecontainer.NewHBox(
+		layout.NewSpacer(),
+		cancelBtn,
+		launchBtn,
+	)
+	
+	form.Add(buttonContainer)
+	
+	// Show dialog
+	dialog := dialog.NewCustom("Launch Template", "Close", form, g.window)
+	dialog.Resize(fyne.NewSize(400, 300))
+	dialog.Show()
+}
+
+// launchInstance launches a new instance with the specified template and parameters
+func (g *CloudWorkstationGUI) launchInstance(templateID, instanceName, instanceSize string) {
+	// Show launching notification
+	g.showNotification("info", "Launching Instance", fmt.Sprintf("Starting %s with template %s...", instanceName, templateID))
+	
+	// Launch instance in background
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		
+		// Create launch request
+		request := types.LaunchRequest{
+			Template: templateID,
+			Name:     instanceName,
+			Size:     instanceSize,
+		}
+		
+		// Launch via API
+		response, err := g.apiClient.LaunchInstance(ctx, request)
+		if err != nil {
+			// Show error on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					g.showNotification("error", "Launch Failed", fmt.Sprintf("Failed to launch %s: %v", instanceName, err))
+				},
+			})
+			return
+		}
+		
+		// Show success on main thread and refresh data
+		g.app.Driver().StartAnimation(&fyne.Animation{
+			Duration: 100 * time.Millisecond,
+			Tick: func(_ float32) {
+				g.showNotification("success", "Instance Launched", fmt.Sprintf("%s launched successfully! Instance ID: %s", instanceName, response.Instance.ID))
+				g.refreshData() // Refresh dashboard data
+			},
+		})
+	}()
 }
 
 // createVolumesView creates the storage/volumes view

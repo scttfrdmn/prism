@@ -54,6 +54,7 @@ type CloudWorkstationAPI interface {
 	// Status operations
 	GetStatus(context.Context) (*types.DaemonStatus, error)
 	Ping(context.Context) error
+	Shutdown(context.Context) error
 	
 	// Registry operations
 	GetRegistryStatus(context.Context) (*RegistryStatusResponse, error)

@@ -28,7 +28,7 @@ type Server struct {
 // NewServer creates a new daemon server
 func NewServer(port string) (*Server, error) {
 	if port == "" {
-		port = "8080"
+		port = "8947" // CWS on phone keypad - more unique than 8080
 	}
 
 	// Initialize state manager
@@ -186,6 +186,7 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	// Health check
 	mux.HandleFunc("/api/v1/ping", applyMiddleware(s.handlePing))
 	mux.HandleFunc("/api/v1/status", applyMiddleware(s.handleStatus))
+	mux.HandleFunc("/api/v1/shutdown", applyMiddleware(s.handleShutdown))
 
 	// Authentication
 	mux.HandleFunc("/api/v1/auth", applyMiddleware(s.handleAuth))
