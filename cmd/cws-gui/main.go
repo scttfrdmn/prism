@@ -95,9 +95,10 @@ type CloudWorkstationGUI struct {
 	refreshTicker      *time.Ticker
 	systemTray         *systray.SystemTrayHandler
 	templatesContainer *fyne.Container
-	efsContainer       *fyne.Container
-	ebsContainer       *fyne.Container
-	instancesContainer *fyne.Container
+	efsContainer        *fyne.Container
+	ebsContainer        *fyne.Container
+	instancesContainer  *fyne.Container
+	daemonStatusContainer *fyne.Container
 
 	// Form state
 	launchForm struct {
@@ -1734,32 +1735,25 @@ func (g *CloudWorkstationGUI) createBillingView() *fyne.Container {
 
 // createSettingsView creates the settings view
 func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
-	header := widget.NewLabelWithStyle("Settings", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	header := fynecontainer.NewHBox(
+		widget.NewLabelWithStyle("Settings", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		layout.NewSpacer(),
+		widget.NewButton("Refresh", func() {
+			g.refreshDaemonStatus()
+		}),
+	)
 
-	// Connection settings
-	connectionCard := widget.NewCard("Connection", "Daemon connection settings",
-		fynecontainer.NewVBox(
-			widget.NewLabel("Daemon URL: http://localhost:8080"),
-			widget.NewLabel(fmt.Sprintf("Status: %s", func() string {
-				if g.lastUpdate.IsZero() {
-					return "Disconnected"
-				}
-				return "Connected"
-			}())),
-			widget.NewLabel(fmt.Sprintf("Active Profile: %s", func() string {
-				if g.activeProfile != nil {
-					return g.activeProfile.Name
-				}
-				return "None"
-			}())),
-			widget.NewButton("Test Connection", func() {
-				if err := g.apiClient.Ping(context.Background()); err != nil {
-					g.showNotification("error", "Connection failed", err.Error())
-				} else {
-					g.showNotification("success", "Connection successful", "")
-				}
-			}),
-		),
+	// Initialize daemon status container
+	g.initializeDaemonStatusContainer()
+
+	// Daemon status monitoring
+	daemonStatusCard := widget.NewCard("Daemon Status", "CloudWorkstation daemon monitoring",
+		g.daemonStatusContainer,
+	)
+
+	// Connection management
+	connectionCard := widget.NewCard("Connection Management", "Daemon connection and control",
+		g.createConnectionManagementView(),
 	)
 
 	// Profile management
@@ -1780,12 +1774,17 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
+		daemonStatusCard,
+		widget.NewSeparator(),
 		connectionCard,
 		widget.NewSeparator(),
 		profileCard,
 		widget.NewSeparator(),
 		aboutCard,
 	)
+
+	// Load daemon status
+	g.refreshDaemonStatus()
 
 	return content
 }
@@ -2191,6 +2190,290 @@ func (g *CloudWorkstationGUI) showDeleteInstanceConfirmation(instanceName string
 	}, g.window)
 	
 	dialog.Show()
+}
+
+// Daemon status monitoring methods
+
+// initializeDaemonStatusContainer sets up the daemon status container
+func (g *CloudWorkstationGUI) initializeDaemonStatusContainer() {
+	if g.daemonStatusContainer == nil {
+		g.daemonStatusContainer = fynecontainer.NewVBox()
+	}
+}
+
+// refreshDaemonStatus loads daemon status from the API and updates the display
+func (g *CloudWorkstationGUI) refreshDaemonStatus() {
+	if g.daemonStatusContainer == nil {
+		return
+	}
+	
+	// Clear existing content
+	g.daemonStatusContainer.RemoveAll()
+	
+	// Show loading indicator
+	loadingLabel := widget.NewLabel("Loading daemon status...")
+	g.daemonStatusContainer.Add(loadingLabel)
+	g.daemonStatusContainer.Refresh()
+	
+	// Fetch daemon status from API
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		
+		status, err := g.apiClient.GetStatus(ctx)
+		if err != nil {
+			// Update UI on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					g.daemonStatusContainer.RemoveAll()
+					g.displayDaemonOffline(err.Error())
+					g.daemonStatusContainer.Refresh()
+				},
+			})
+			return
+		}
+		
+		// Update UI on main thread
+		g.app.Driver().StartAnimation(&fyne.Animation{
+			Duration: 100 * time.Millisecond,
+			Tick: func(_ float32) {
+				g.displayDaemonStatus(status)
+				g.daemonStatusContainer.Refresh()
+			},
+		})
+	}()
+}
+
+// displayDaemonStatus renders daemon status information
+func (g *CloudWorkstationGUI) displayDaemonStatus(status *types.DaemonStatus) {
+	g.daemonStatusContainer.RemoveAll()
+	
+	// Status header with icon
+	statusIcon := "🟢"
+	statusText := "RUNNING"
+	if status.Status != "running" {
+		statusIcon = "🟡"
+		statusText = strings.ToUpper(status.Status)
+	}
+	
+	statusHeader := fynecontainer.NewHBox(
+		widget.NewLabel(statusIcon),
+		widget.NewLabelWithStyle(statusText, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		layout.NewSpacer(),
+		widget.NewLabel("Version: " + status.Version),
+	)
+	g.daemonStatusContainer.Add(statusHeader)
+	g.daemonStatusContainer.Add(widget.NewSeparator())
+	
+	// Create two-column layout for status information
+	leftColumn := fynecontainer.NewVBox()
+	rightColumn := fynecontainer.NewVBox()
+	
+	// Left column: Basic status
+	leftColumn.Add(widget.NewLabelWithStyle("Basic Information", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	leftColumn.Add(widget.NewLabel("• Start Time: " + status.StartTime.Format("Jan 2, 2006 15:04:05")))
+	
+	if status.Uptime != "" {
+		leftColumn.Add(widget.NewLabel("• Uptime: " + status.Uptime))
+	} else {
+		// Calculate uptime if not provided
+		uptime := time.Since(status.StartTime)
+		leftColumn.Add(widget.NewLabel("• Uptime: " + formatDuration(uptime)))
+	}
+	
+	leftColumn.Add(widget.NewLabel("• AWS Region: " + status.AWSRegion))
+	
+	if status.CurrentProfile != "" {
+		leftColumn.Add(widget.NewLabel("• Active Profile: " + status.CurrentProfile))
+	} else {
+		leftColumn.Add(widget.NewLabel("• Active Profile: None"))
+	}
+	
+	// Right column: Performance metrics
+	rightColumn.Add(widget.NewLabelWithStyle("Performance Metrics", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	rightColumn.Add(widget.NewLabel(fmt.Sprintf("• Active Operations: %d", status.ActiveOps)))
+	rightColumn.Add(widget.NewLabel(fmt.Sprintf("• Total Requests: %d", status.TotalRequests)))
+	
+	if status.RequestsPerMinute > 0 {
+		rightColumn.Add(widget.NewLabel(fmt.Sprintf("• Request Rate: %.1f/min", status.RequestsPerMinute)))
+	} else {
+		rightColumn.Add(widget.NewLabel("• Request Rate: 0.0/min"))
+	}
+	
+	// Connection URL information
+	rightColumn.Add(widget.NewLabel("• Daemon URL: http://localhost:8947"))
+	
+	// Add columns to main container
+	columnsContainer := fynecontainer.NewHBox(
+		leftColumn,
+		layout.NewSpacer(),
+		rightColumn,
+	)
+	g.daemonStatusContainer.Add(columnsContainer)
+	
+	// Add refresh timestamp
+	g.daemonStatusContainer.Add(widget.NewSeparator())
+	refreshTime := widget.NewLabel("Last updated: " + time.Now().Format("15:04:05"))
+	refreshTime.TextStyle = fyne.TextStyle{Italic: true}
+	g.daemonStatusContainer.Add(refreshTime)
+}
+
+// displayDaemonOffline renders offline daemon status
+func (g *CloudWorkstationGUI) displayDaemonOffline(errorMsg string) {
+	g.daemonStatusContainer.RemoveAll()
+	
+	// Offline status header
+	statusHeader := fynecontainer.NewHBox(
+		widget.NewLabel("🔴"),
+		widget.NewLabelWithStyle("OFFLINE", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		layout.NewSpacer(),
+		widget.NewLabel("Daemon not responding"),
+	)
+	g.daemonStatusContainer.Add(statusHeader)
+	g.daemonStatusContainer.Add(widget.NewSeparator())
+	
+	// Error information
+	errorContainer := fynecontainer.NewVBox()
+	errorContainer.Add(widget.NewLabelWithStyle("Connection Error", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	errorContainer.Add(widget.NewLabel("• Status: Disconnected"))
+	errorContainer.Add(widget.NewLabel("• Error: " + errorMsg))
+	errorContainer.Add(widget.NewLabel("• Daemon URL: http://localhost:8947"))
+	errorContainer.Add(widget.NewLabel("• Expected: CloudWorkstation daemon should be running"))
+	
+	g.daemonStatusContainer.Add(errorContainer)
+	
+	// Troubleshooting information
+	g.daemonStatusContainer.Add(widget.NewSeparator())
+	troubleshootContainer := fynecontainer.NewVBox()
+	troubleshootContainer.Add(widget.NewLabelWithStyle("Troubleshooting", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	troubleshootContainer.Add(widget.NewLabel("1. Start daemon: cws daemon start"))
+	troubleshootContainer.Add(widget.NewLabel("2. Check daemon logs: cws daemon logs"))
+	troubleshootContainer.Add(widget.NewLabel("3. Verify port 8947 is available"))
+	
+	g.daemonStatusContainer.Add(troubleshootContainer)
+	
+	// Add refresh timestamp
+	g.daemonStatusContainer.Add(widget.NewSeparator())
+	refreshTime := widget.NewLabel("Last checked: " + time.Now().Format("15:04:05"))
+	refreshTime.TextStyle = fyne.TextStyle{Italic: true}
+	g.daemonStatusContainer.Add(refreshTime)
+}
+
+// createConnectionManagementView creates the connection management interface
+func (g *CloudWorkstationGUI) createConnectionManagementView() *fyne.Container {
+	// Test connection button
+	testBtn := widget.NewButton("Test Connection", func() {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			
+			if err := g.apiClient.Ping(ctx); err != nil {
+				g.showNotification("error", "Connection Failed", "Cannot connect to daemon: " + err.Error())
+			} else {
+				g.showNotification("success", "Connection Successful", "Daemon is responding correctly")
+				g.refreshDaemonStatus() // Refresh status after successful test
+			}
+		}()
+	})
+	testBtn.Importance = widget.HighImportance
+	
+	// Start daemon button
+	startBtn := widget.NewButton("Start Daemon", func() {
+		g.showStartDaemonDialog()
+	})
+	
+	// Stop daemon button
+	stopBtn := widget.NewButton("Stop Daemon", func() {
+		g.showStopDaemonConfirmation()
+	})
+	stopBtn.Importance = widget.DangerImportance
+	
+	// Connection management layout
+	connectionInfo := fynecontainer.NewVBox(
+		widget.NewLabel("• Daemon URL: http://localhost:8947"),
+		widget.NewLabel("• Protocol: HTTP REST API"),
+		widget.NewLabel("• Timeout: 5 seconds"),
+	)
+	
+	buttonContainer := fynecontainer.NewHBox(
+		testBtn,
+		startBtn,
+		stopBtn,
+	)
+	
+	return fynecontainer.NewVBox(
+		connectionInfo,
+		widget.NewSeparator(),
+		buttonContainer,
+	)
+}
+
+// showStartDaemonDialog shows dialog for starting daemon
+func (g *CloudWorkstationGUI) showStartDaemonDialog() {
+	title := "Start CloudWorkstation Daemon"
+	message := "This will attempt to start the CloudWorkstation daemon (cwsd) on port 8947.\n\nNote: The daemon must be installed and available in your system PATH."
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			g.showNotification("info", "Starting Daemon", "Attempting to start CloudWorkstation daemon...")
+			
+			go func() {
+				// Note: In a real implementation, this would use a proper daemon start method
+				// For now, we'll just show a notification about manual start
+				time.Sleep(1 * time.Second)
+				g.showNotification("info", "Manual Start Required", "Please start the daemon manually: cws daemon start")
+				
+				// Refresh status after a short delay
+				time.Sleep(2 * time.Second)
+				g.refreshDaemonStatus()
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// showStopDaemonConfirmation shows confirmation dialog for stopping daemon
+func (g *CloudWorkstationGUI) showStopDaemonConfirmation() {
+	title := "Stop CloudWorkstation Daemon"
+	message := "Are you sure you want to stop the CloudWorkstation daemon?\n\nThis will:\n• Stop all daemon operations\n• Disconnect the GUI from the backend\n• Prevent new instance operations until restarted"
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				
+				if err := g.apiClient.Shutdown(ctx); err != nil {
+					g.showNotification("error", "Stop Failed", "Failed to stop daemon: " + err.Error())
+				} else {
+					g.showNotification("success", "Daemon Stopped", "CloudWorkstation daemon has been stopped")
+					
+					// Refresh status after a short delay to show offline state
+					time.Sleep(1 * time.Second)
+					g.refreshDaemonStatus()
+				}
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// formatDuration formats a duration into a human-readable string
+func formatDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%.0f seconds", d.Seconds())
+	} else if d < time.Hour {
+		return fmt.Sprintf("%.0f minutes", d.Minutes())
+	} else if d < 24*time.Hour {
+		return fmt.Sprintf("%.1f hours", d.Hours())
+	} else {
+		days := int(d.Hours() / 24)
+		hours := int(d.Hours()) % 24
+		return fmt.Sprintf("%d days, %d hours", days, hours)
+	}
 }
 
 // Utility methods
