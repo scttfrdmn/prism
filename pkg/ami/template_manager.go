@@ -747,16 +747,21 @@ func (m *TemplateManager) ListTemplates(includeDirectory bool) (map[string]*Temp
 
 	// Scan directory if requested
 	if includeDirectory && m.TemplateDirectory != "" {
-		templates, err := m.Parser.ListTemplates(m.TemplateDirectory)
+		templateNames, err := m.Parser.ListTemplates()
 		if err != nil {
 			return result, TemplateManagementError("failed to list templates from directory", err).
 				WithContext("directory", m.TemplateDirectory)
 		}
 
 		// Add templates from directory to result, skipping those already in cache
-		for name, template := range templates {
-			if _, exists := result[name]; !exists {
-				result[name] = template
+		for _, templateName := range templateNames {
+			if _, exists := result[templateName]; !exists {
+				// Parse template from file
+				template, err := m.Parser.ParseTemplateFile(filepath.Join(m.TemplateDirectory, templateName+".yaml"))
+				if err != nil {
+					continue // Skip failed templates
+				}
+				result[templateName] = template
 			}
 		}
 	}

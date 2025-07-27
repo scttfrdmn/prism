@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
 )
 
 // BatchDeviceManagementResult holds the results of a batch device management operation

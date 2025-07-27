@@ -160,7 +160,8 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 	}
 	
 	// Update last used timestamp
-	profile.LastUsed = time.Now()
+	now := time.Now()
+	profile.LastUsed = &now
 	m.profiles.Profiles[id] = profile
 	
 	// Set as current

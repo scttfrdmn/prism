@@ -10,6 +10,7 @@ type contextKey int
 const (
 	awsProfileKey contextKey = iota
 	awsRegionKey
+	apiVersionKey
 )
 
 // setAWSProfile adds the AWS profile to the context
@@ -51,4 +52,17 @@ func getAWSOptions(ctx context.Context) map[string]string {
 	}
 	
 	return options
+}
+
+// setAPIVersion adds the API version to the context
+func setAPIVersion(ctx context.Context, version string) context.Context {
+	return context.WithValue(ctx, apiVersionKey, version)
+}
+
+// getAPIVersion gets the API version from the context, or empty string if not set
+func getAPIVersion(ctx context.Context) string {
+	if version, ok := ctx.Value(apiVersionKey).(string); ok {
+		return version
+	}
+	return ""
 }
