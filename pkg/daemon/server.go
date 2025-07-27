@@ -2,11 +2,9 @@ package daemon
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,7 +15,6 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
-	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
 // Server represents the CloudWorkstation daemon server
