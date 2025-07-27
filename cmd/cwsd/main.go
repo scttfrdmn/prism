@@ -44,7 +44,7 @@ import (
 
 func main() {
 	var (
-		port    = flag.String("port", "8080", "Port to listen on")
+		port    = flag.String("port", "8947", "Port to listen on (default: 8947 - CWS on phone keypad)")
 		showVer = flag.Bool("version", false, "Show version")
 		help    = flag.Bool("help", false, "Show help")
 	)
@@ -84,6 +84,7 @@ func printUsage() {
 	fmt.Println("API Endpoints:")
 	fmt.Println("  GET    /api/v1/ping              - Health check")
 	fmt.Println("  GET    /api/v1/status            - Daemon status")
+	fmt.Println("  POST   /api/v1/shutdown          - Shutdown daemon")
 	fmt.Println("  GET    /api/v1/instances         - List instances")
 	fmt.Println("  POST   /api/v1/instances         - Launch instance")
 	fmt.Println("  GET    /api/v1/instances/{name}  - Get instance details")

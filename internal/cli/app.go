@@ -61,7 +61,7 @@ func NewApp(version string) *App {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
 		config = &Config{} // Use empty config
-		config.Daemon.URL = "http://localhost:8080" // Default URL
+		config.Daemon.URL = "http://localhost:8947" // Default URL (CWS on phone keypad)
 	}
 	
 	// Initialize profile manager
@@ -728,14 +728,18 @@ func (a *App) daemonStart() error {
 }
 
 func (a *App) daemonStop() error {
-	// TODO: Implement graceful daemon shutdown
 	fmt.Println("⏹️ Stopping daemon...")
 
-	// For now, just inform user how to stop manually
-	fmt.Println("Find the daemon process and stop it manually:")
-	fmt.Println("  ps aux | grep cwsd")
-	fmt.Println("  kill <PID>")
+	// Try graceful shutdown via API
+	if err := a.apiClient.Shutdown(a.ctx); err != nil {
+		fmt.Println("❌ Failed to stop daemon via API:", err)
+		fmt.Println("Find the daemon process and stop it manually:")
+		fmt.Println("  ps aux | grep cwsd")
+		fmt.Println("  kill <PID>")
+		return err
+	}
 
+	fmt.Println("✅ Daemon stopped successfully")
 	return nil
 }
 
