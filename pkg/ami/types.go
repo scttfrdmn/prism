@@ -138,6 +138,20 @@ type ValidationResult struct {
 	Details         map[string]string
 }
 
+// Validator handles AMI validation
+type Validator struct {
+	SSMClient *ssm.Client
+	Options   ValidatorOptions
+}
+
+// NewValidator creates a new AMI validator
+func NewValidator(ssmClient *ssm.Client, options ValidatorOptions) *Validator {
+	return &Validator{
+		SSMClient: ssmClient, 
+		Options:   options,
+	}
+}
+
 // Reference contains details for referencing an AMI
 type Reference struct {
 	AMIID        string
