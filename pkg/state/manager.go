@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
-	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
 // Manager handles state persistence

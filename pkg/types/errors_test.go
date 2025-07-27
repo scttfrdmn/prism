@@ -153,8 +153,8 @@ func TestErrorTypeChecking(t *testing.T) {
 	// Create different error types
 	notFoundErr := NewNotFoundError("Instance", "i-12345")
 	validationErr := NewValidationError("Invalid input", nil)
-	awsErr := NewAwsError(errors.New("AWS API error"), "DescribeInstances")
-	permissionErr := NewPermissionError("Volume", "attach")
+	_ = NewAwsError(errors.New("AWS API error"), "DescribeInstances")
+	_ = NewPermissionError("Volume", "attach")
 	standardErr := errors.New("standard error")
 	
 	// Test IsErrorCode

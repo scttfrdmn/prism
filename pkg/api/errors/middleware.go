@@ -19,8 +19,8 @@ func ErrorHandlingMiddleware(next http.Handler, errorHandler ErrorHandler) http.
 
 		// Recover from panics
 		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("Panic recovered in request handler: %v", r)
+			if panicValue := recover(); panicValue != nil {
+				log.Printf("Panic recovered in request handler: %v", panicValue)
 				err = types.NewAPIError(types.ErrServerError, "Internal server error", nil)
 				errorHandler(err, w, r)
 			}

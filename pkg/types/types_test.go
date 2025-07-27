@@ -143,7 +143,7 @@ func TestEBSVolumeSerialization(t *testing.T) {
 
 func TestAPIErrorImplementsError(t *testing.T) {
 	apiErr := APIError{
-		Code:    404,
+		Code:    "404",
 		Message: "Instance not found",
 		Details: "The specified instance does not exist",
 	}

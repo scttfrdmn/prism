@@ -1,7 +1,17 @@
 package usermgmt
 
 import (
+	"errors"
 	"time"
+)
+
+// Common errors
+var (
+	ErrUserNotFound       = errors.New("user not found")
+	ErrDuplicateUsername  = errors.New("username already exists")
+	ErrDuplicateEmail     = errors.New("email already exists")
+	ErrGroupNotFound      = errors.New("group not found")
+	ErrDuplicateGroup     = errors.New("group already exists")
 )
 
 // Provider represents a user management system provider
