@@ -157,7 +157,7 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 			
 			// Add version to request context for handlers to use
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, contextKey("api_version"), requestedVersion)
+			ctx = setAPIVersion(ctx, requestedVersion)
 			r = r.WithContext(ctx)
 			
 			handler(w, r)
@@ -226,11 +226,7 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 
 // HTTP handlers
 
-// Helper function to get API version from request context
-func getAPIVersion(ctx context.Context) string {
-	version, _ := ctx.Value(contextKey("api_version")).(string)
-	return version
-}
+// getAPIVersion function is defined in context.go
 
 // handleAPIVersions returns information about supported API versions
 func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
@@ -831,59 +827,7 @@ func (s *Server) handleDetachStorage(w http.ResponseWriter, r *http.Request, sto
 
 // Helper methods
 
-func (s *Server) writeError(w http.ResponseWriter, code int, message string) {
-	// Get API version from context if available
-	r := &http.Request{} // Create a minimal request to satisfy the function
-	apiVersion := getAPIVersion(r.Context())
-	if apiVersion == "" {
-		apiVersion = s.versionManager.GetDefaultVersion()
-	}
-	
-	// Generate request ID for tracking
-	requestID := fmt.Sprintf("req_%d", time.Now().UnixNano())
-	
-	// Map HTTP status code to an error code string
-	errorCode := getErrorCodeFromStatus(code)
-	
-	// Create standardized API error response
-	errorResponse := types.APIErrorResponse{
-		Code:       errorCode,
-		Status:     code,
-		Message:    message,
-		RequestID:  requestID,
-		APIVersion: apiVersion,
-		DocsURL:    fmt.Sprintf("https://docs.cloudworkstation.dev/api/%s/errors#%s", apiVersion, errorCode),
-	}
-	
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(errorResponse)
-}
-
-// getErrorCodeFromStatus converts an HTTP status code to a string error code
-func getErrorCodeFromStatus(statusCode int) string {
-	switch statusCode {
-	case http.StatusBadRequest:
-		return "bad_request"
-	case http.StatusUnauthorized:
-		return "unauthorized"
-	case http.StatusForbidden:
-		return "forbidden"
-	case http.StatusNotFound:
-		return "not_found"
-	case http.StatusMethodNotAllowed:
-		return "method_not_allowed"
-	case http.StatusConflict:
-		return "conflict"
-	case http.StatusTooManyRequests:
-		return "rate_limit_exceeded"
-	case http.StatusInternalServerError:
-		return "internal_error"
-	case http.StatusServiceUnavailable:
-		return "service_unavailable"
-	default:
-		return fmt.Sprintf("status_%d", statusCode)
-	}
-}
+// writeError method is implemented in error_handler.go
 
 func splitPath(path string) []string {
 	if path == "" {

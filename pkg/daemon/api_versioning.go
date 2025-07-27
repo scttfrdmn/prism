@@ -240,7 +240,7 @@ func (m *APIVersionManager) VersionRoutingMiddleware(next http.Handler) http.Han
 		
 		// Add version to request context for handlers to use
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, contextKey("api_version"), requestedVersion)
+		ctx = setAPIVersion(ctx, requestedVersion)
 		r = r.WithContext(ctx)
 		
 		// Translate path for version compatibility if needed

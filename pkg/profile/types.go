@@ -61,6 +61,12 @@ type Profile struct {
 	
 	// DeviceBound indicates if the profile is bound to a device
 	DeviceBound bool `json:"device_bound,omitempty"`
+	
+	// Transferable indicates if the profile can be transferred
+	Transferable bool `json:"transferable,omitempty"`
+	
+	// BindingRef is a reference to device binding information
+	BindingRef string `json:"binding_ref,omitempty"`
 }
 
 // Profiles represents the collection of all profiles

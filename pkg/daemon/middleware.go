@@ -6,18 +6,14 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
-// Middleware context keys
-type contextKey string
-
 const (
-	// Context keys for request context
-	awsProfileKey contextKey = "aws_profile"
-	awsRegionKey  contextKey = "aws_region"
-	authenticatedKey contextKey = "authenticated"
+	// Additional context keys for middleware
+	authenticatedKey contextKey = iota + 2 // Start after awsRegionKey
 )
 
 // AWSHeadersMiddleware extracts AWS-related headers from the request
@@ -129,31 +125,7 @@ func (s *Server) combineMiddleware(handler http.HandlerFunc, middlewares ...func
 	return handler
 }
 
-// Context helper functions
-
-func setAWSProfile(ctx context.Context, profile string) context.Context {
-	return context.WithValue(ctx, awsProfileKey, profile)
-}
-
-func getAWSProfile(ctx context.Context) string {
-	value := ctx.Value(awsProfileKey)
-	if value == nil {
-		return ""
-	}
-	return value.(string)
-}
-
-func setAWSRegion(ctx context.Context, region string) context.Context {
-	return context.WithValue(ctx, awsRegionKey, region)
-}
-
-func getAWSRegion(ctx context.Context) string {
-	value := ctx.Value(awsRegionKey)
-	if value == nil {
-		return ""
-	}
-	return value.(string)
-}
+// Context helper functions (setAWSProfile, getAWSProfile, setAWSRegion, getAWSRegion are defined in context.go)
 
 func isAuthenticated(ctx context.Context) bool {
 	value := ctx.Value(authenticatedKey)
