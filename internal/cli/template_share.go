@@ -71,7 +71,7 @@ func (a *App) handleTemplateImportShared(args []string, manager *ami.TemplateMan
 	}
 
 	// Parse the template data
-	template, err := manager.Parser.ParseTemplate([]byte(entry.TemplateData))
+	template, err := manager.Parser.ParseTemplate(entry.TemplateData)
 	if err != nil {
 		return fmt.Errorf("failed to parse template data: %w", err)
 	}

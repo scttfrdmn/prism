@@ -102,7 +102,7 @@ func (a *App) handleAMIBuild(args []string) error {
 	fmt.Printf("DEBUG: Builder config: %+v\n", builderConfig)
 
 	// Create template parser
-	parser := ami.NewParser(nil)
+	parser := ami.NewParser()
 
 	// Find template file
 	templateFile := filepath.Join("templates", templateName+".yml")
@@ -248,7 +248,7 @@ func (a *App) handleAMIValidate(args []string) error {
 	templateName := args[0]
 
 	// Create template parser
-	parser := ami.NewParser(nil)
+	parser := ami.NewParser()
 
 	// Find template file
 	templateFile := filepath.Join("templates", templateName+".yml")

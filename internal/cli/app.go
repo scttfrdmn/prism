@@ -39,6 +39,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -76,20 +77,16 @@ func NewApp(version string) *App {
 		apiURL = envURL
 	}
 	
-	// Create base client
-	baseClient := api.NewClient(apiURL)
-	
-	// Configure with AWS settings
-	baseClient.SetAWSProfile(config.AWS.Profile)
-	baseClient.SetAWSRegion(config.AWS.Region)
-	
-	// Create context client
-	contextClient := api.NewContextClientWithURL(apiURL)
+	// Create API client with configuration
+	baseClient := api.NewClientWithOptions(apiURL, client.Options{
+		AWSProfile: config.AWS.Profile,
+		AWSRegion:  config.AWS.Region,
+	})
 	
 	// Create app
 	app := &App{
 		version:        version,
-		apiClient:      contextClient,
+		apiClient:      baseClient,
 		ctx:            context.Background(),
 		config:         config,
 		profileManager: profileManager,

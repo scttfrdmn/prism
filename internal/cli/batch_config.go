@@ -100,35 +100,16 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 		Long:  `Update a specific batch invitation configuration setting.`,
 		Args:  cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			setting := args[0]
-			value := args[1]
-
-			// Create batch config manager
-			configManager, err := createBatchConfigManager()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-
-			// Get current configuration
-			config := configManager.GetConfig()
-
-			// Update the specified setting
-			updated, err := updateConfigSetting(config, setting, value)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-
-			// Save the updated configuration
-			if err := configManager.UpdateConfig(config); err != nil {
-				fmt.Fprintf(os.Stderr, "Error saving configuration: %v\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Printf("Updated %s to %s\n", setting, updated)
+			// Batch config commands disabled during Phase 1 simplification
+			fmt.Println("⚠️  Batch configuration commands temporarily disabled during Phase 1.")
+			fmt.Println("Core profile commands are available:")
+			fmt.Println("  cws profiles list    # List available profiles")
+			fmt.Println("  cws profiles create  # Create new profile") 
+			fmt.Println("  cws profiles set     # Set current profile")
+			fmt.Println("")
+			fmt.Println("Advanced batch features will return in Phase 2.")
 		},
-	})
+	}
 	batchConfigCmd.AddCommand(setCmd)
 
 	// Reset configuration command

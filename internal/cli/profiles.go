@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -8,6 +9,7 @@ import (
 	
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/spf13/cobra"
 	"github.com/fatih/color"
 )
@@ -69,8 +71,8 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 				
 				// Format last used time
 				lastUsed := "Never"
-				if !p.LastUsed.IsZero() {
-					duration := time.Since(p.LastUsed)
+				if p.LastUsed != nil && !p.LastUsed.IsZero() {
+					duration := time.Since(*p.LastUsed)
 					if duration < time.Hour {
 						lastUsed = fmt.Sprintf("%d minutes ago", int(duration.Minutes()))
 					} else if duration < 24*time.Hour {
@@ -206,7 +208,7 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 				Name:       name,
 				AWSProfile: awsProfile,
 				Region:     region,
-				LastUsed:   time.Now(),
+				LastUsed:   func() *time.Time { t := time.Now(); return &t }(),
 			}
 			
 			// Add profile
@@ -251,7 +253,7 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 				InvitationToken: token,
 				OwnerAccount:    owner,
 				S3ConfigPath:    s3ConfigPath,
-				LastUsed:        time.Now(),
+				LastUsed:        func() *time.Time { t := time.Now(); return &t }(),
 			}
 			
 			// Add profile
@@ -329,20 +331,15 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 				os.Exit(1)
 			}
 			
-			// Create client
-			client := api.NewClient(config.Daemon.URL)
-			client.SetAWSProfile(config.AWS.Profile)
-			client.SetAWSRegion(config.AWS.Region)
+			// Create client with configuration
+			client := api.NewClientWithOptions(config.Daemon.URL, client.Options{
+				AWSProfile: config.AWS.Profile,
+				AWSRegion:  config.AWS.Region,
+			})
 			
-			// Create client with profile - use regular WithProfile method
-			profileClient, err := client.WithProfile(profileManager, profileID)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating client with profile: %v\n", err)
-				os.Exit(1)
-			}
-			
-			// Test API access
-			err = profileClient.Ping()
+			// Test API access with current client
+			ctx := context.Background()
+			err = client.Ping(ctx)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Profile validation failed: %v\n", err)
 				os.Exit(1)
@@ -389,7 +386,7 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 				InvitationToken: token,
 				OwnerAccount:    owner,
 				S3ConfigPath:    s3ConfigPath,
-				LastUsed:        time.Now(),
+				LastUsed:        func() *time.Time { t := time.Now(); return &t }(),
 			}
 			
 			// Add profile
@@ -613,10 +610,10 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 	// Add export and import commands
 	AddExportCommands(profilesCmd, config)
 	
-	// Add batch invitation, device, and config commands
-	AddBatchInvitationCommands(invitationsCmd, config)
-	AddBatchDeviceCommands(invitationsCmd, config)
-	AddBatchConfigCommands(invitationsCmd, config)
+	// Batch commands temporarily disabled during Phase 1 profile system simplification
+	// AddBatchInvitationCommands(invitationsCmd, config)
+	// AddBatchDeviceCommands(invitationsCmd, config)
+	// AddBatchConfigCommands(invitationsCmd, config)
 	
 	// Update the accept-invitation command to use the new invitation system
 	acceptCmd := profilesCmd.Commands()[len(profilesCmd.Commands())-4] // The accept-invitation command
@@ -672,11 +669,9 @@ func createInvitationManager(profileManager *profile.ManagerEnhanced) (*profile.
 
 // createAPIClient creates an API client from config
 func createAPIClient(config *Config) api.CloudWorkstationAPI {
-	client := api.NewClient(config.Daemon.URL)
-	
-	// Configure client with AWS credentials
-	client.SetAWSProfile(config.AWS.Profile)
-	client.SetAWSRegion(config.AWS.Region)
-	
-	return api.NewContextClientWithURL(config.Daemon.URL)
+	// Create client with AWS configuration
+	return api.NewClientWithOptions(config.Daemon.URL, client.Options{
+		AWSProfile: config.AWS.Profile,
+		AWSRegion:  config.AWS.Region,
+	})
 }
