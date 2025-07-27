@@ -1,0 +1,54 @@
+name: "R Research Environment (Simplified)"
+description: "R + RStudio Server + tidyverse packages using simplified template system"
+base: "ubuntu-22.04"
+
+# Let CloudWorkstation pick the best package manager (conda will be selected for R)
+package_manager: "auto"
+
+# Simple package lists - let package managers handle complexity
+packages:
+  system:
+    - build-essential
+    - curl
+    - wget
+  
+  conda:
+    - r-base=4.3.0
+    - rstudio
+    - r-tidyverse
+    - r-ggplot2
+    - r-dplyr
+    - r-readr
+
+# Services to enable
+services:
+  - name: "rstudio-server"
+    port: 8787
+    enable: true
+    config:
+      - "www-port=8787"
+      - "server-daemonize=1"
+
+# User setup with auto-generated secure password
+users:
+  - name: "researcher"
+    password: "auto-generated"
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults (CloudWorkstation will optimize per-architecture)
+instance_defaults:
+  type: "t3.medium"  # Will be optimized to t4g.medium on ARM
+  ports: [22, 8787]
+  estimated_cost_per_hour:
+    x86_64: 0.0464
+    arm64: 0.0368
+
+# Template metadata
+version: "1.0.0"
+tags:
+  type: "research"
+  language: "r"
+  purpose: "statistical-analysis"
+  package_manager: "conda"
+maintainer: "CloudWorkstation Team"

@@ -1,0 +1,77 @@
+package types
+
+import "time"
+
+// RuntimeTemplate defines a cloud workstation template for launching instances
+// This is distinct from AMI build templates (see pkg/ami package)
+type RuntimeTemplate struct {
+	Name         string
+	Description  string
+	AMI          map[string]map[string]string // region -> arch -> AMI ID
+	InstanceType map[string]string            // arch -> instance type
+	UserData     string
+	Ports        []int
+	EstimatedCostPerHour map[string]float64 // arch -> cost per hour
+}
+
+// Instance represents a running cloud workstation
+type Instance struct {
+	ID                 string          `json:"id"`
+	Name               string          `json:"name"`
+	Template           string          `json:"template"`
+	PublicIP           string          `json:"public_ip"`
+	PrivateIP          string          `json:"private_ip"`
+	State              string          `json:"state"`
+	LaunchTime         time.Time       `json:"launch_time"`
+	EstimatedDailyCost float64         `json:"estimated_daily_cost"`
+	AttachedVolumes    []string        `json:"attached_volumes"`     // EFS volume names
+	AttachedEBSVolumes []string        `json:"attached_ebs_volumes"` // EBS volume IDs
+	InstanceType       string          `json:"instance_type"`
+	Username           string          `json:"username"`
+	WebPort            int             `json:"web_port"`
+	HasWebInterface    bool            `json:"has_web_interface"`
+	IdleDetection      *IdleDetection  `json:"idle_detection,omitempty"`
+}
+
+// IdleDetection represents idle detection configuration for an instance
+type IdleDetection struct {
+	Enabled        bool      `json:"enabled"`
+	Policy         string    `json:"policy"`
+	IdleTime       int       `json:"idle_time"`       // Minutes
+	Threshold      int       `json:"threshold"`       // Minutes
+	ActionSchedule time.Time `json:"action_schedule"` // When action will occur
+	ActionPending  bool      `json:"action_pending"`  // Whether action is pending
+}
+
+// CreditInfo represents AWS credit information
+type CreditInfo struct {
+	TotalCredits     float64    `json:"total_credits"`
+	RemainingCredits float64    `json:"remaining_credits"`
+	UsedCredits      float64    `json:"used_credits"`
+	CreditType       string     `json:"credit_type"`  // "AWS Promotional", "AWS Educate", etc.
+	ExpirationDate   *time.Time `json:"expiration_date,omitempty"`
+	Description      string     `json:"description"`
+}
+
+// BillingInfo represents current billing and cost information
+type BillingInfo struct {
+	MonthToDateSpend float64      `json:"month_to_date_spend"`
+	ForecastedSpend  float64      `json:"forecasted_spend"`
+	Credits          []CreditInfo `json:"credits"`
+	BillingPeriod    string       `json:"billing_period"`
+	LastUpdated      time.Time    `json:"last_updated"`
+}
+
+// DiscountConfig represents pricing discount configuration
+type DiscountConfig struct {
+	EC2Discount         float64 `json:"ec2_discount"`         // Percentage discount (0.0-1.0)
+	EBSDiscount         float64 `json:"ebs_discount"`         // Percentage discount (0.0-1.0)
+	EFSDiscount         float64 `json:"efs_discount"`         // Percentage discount (0.0-1.0)
+	SavingsPlansDiscount float64 `json:"savings_plans_discount"` // Additional savings plan discount
+	ReservedInstanceDiscount float64 `json:"reserved_instance_discount"` // RI discount
+	SpotDiscount        float64 `json:"spot_discount"`        // Spot instance discount
+	VolumeDiscount      float64 `json:"volume_discount"`      // Volume discount for large usage
+	EducationalDiscount float64 `json:"educational_discount"` // Educational institution discount
+	StartupDiscount     float64 `json:"startup_discount"`     // AWS Activate/startup credits
+	EnterpriseDiscount  float64 `json:"enterprise_discount"`  // Enterprise agreement discount
+}
