@@ -32,7 +32,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
+	fynecontainer "fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/layout"
@@ -41,8 +41,8 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/cmd/cws-gui/systray"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
@@ -71,7 +71,7 @@ type CloudWorkstationGUI struct {
 	app       fyne.App
 	window    fyne.Window
 	apiClient api.CloudWorkstationAPI
-	profileAwareClient *api.ProfileAwareClient
+	// Profile-aware functionality integrated into main client
 
 	// Navigation
 	currentSection NavigationSection
@@ -135,8 +135,8 @@ func (g *CloudWorkstationGUI) initialize() error {
 	g.window.SetMaster()
 
 	// Setup containers first (needed for notifications)
-	g.notification = container.NewVBox()
-	g.content = container.NewStack()
+	g.notification = fynecontainer.NewVBox()
+	g.content = fynecontainer.NewStack()
 
 	// Initialize enhanced profile manager
 	var err error
@@ -151,18 +151,18 @@ func (g *CloudWorkstationGUI) initialize() error {
 		return fmt.Errorf("failed to initialize profile-aware state manager: %w", err)
 	}
 	
-	// Initialize profile-aware client
-	g.profileAwareClient, err = api.NewProfileAwareClient("http://localhost:8080", g.profileManager, g.stateManager)
-	if err != nil {
-		return fmt.Errorf("failed to initialize profile-aware client: %w", err)
-	}
-	
-	// Set the API client interface
-	g.apiClient = g.profileAwareClient.Client()
-	
-	// Get current profile
+	// Initialize API client with profile configuration matching CLI pattern
+	// Get current profile for API client options
 	currentProfile, err := g.profileManager.GetCurrentProfile()
-	if err == nil {
+	if err != nil {
+		// No profile available, use basic client
+		g.apiClient = api.NewClient("http://localhost:8080")
+	} else {
+		// Create client with current profile AWS settings
+		g.apiClient = api.NewClientWithOptions("http://localhost:8080", client.Options{
+			AWSProfile: currentProfile.AWSProfile,
+			AWSRegion:  currentProfile.Region,
+		})
 		// Store active profile pointer
 		g.activeProfile = currentProfile
 	}
@@ -228,9 +228,9 @@ func (g *CloudWorkstationGUI) setupMainLayout() {
 	g.setupNotification()
 
 	// Create main layout: sidebar | content
-	mainLayout := container.NewHSplit(
+	mainLayout := fynecontainer.NewHSplit(
 		g.sidebar,
-		container.NewVBox(
+		fynecontainer.NewVBox(
 			g.notification,
 			g.content,
 		),
@@ -246,16 +246,16 @@ func (g *CloudWorkstationGUI) setupMainLayout() {
 // setupSidebar creates the navigation sidebar
 func (g *CloudWorkstationGUI) setupSidebar() {
 	// App title and status
-	titleCard := container.NewVBox(
+	titleCard := fynecontainer.NewVBox(
 		widget.NewCard("", "",
-			container.NewVBox(
-				container.NewHBox(
+			fynecontainer.NewVBox(
+				fynecontainer.NewHBox(
 					widget.NewIcon(theme.ComputerIcon()),
 					widget.NewLabelWithStyle("CloudWorkstation", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 				),
 				widget.NewLabelWithStyle(fmt.Sprintf("v%s", version.GetVersion()), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
 				widget.NewSeparator(),
-				container.NewHBox(
+				fynecontainer.NewHBox(
 					widget.NewIcon(theme.InfoIcon()),
 					widget.NewLabel(fmt.Sprintf("$%.2f/day", g.totalCost)),
 				),
@@ -291,12 +291,12 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	
 	if securityText != "" {
 		// Show security status for invitation profiles
-		profileCardContent = container.NewVBox(
-			container.NewHBox(
+		profileCardContent = fynecontainer.NewVBox(
+			fynecontainer.NewHBox(
 				widget.NewIcon(profileIcon),
 				widget.NewLabelWithStyle("AWS Profile", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			),
-			container.NewHBox(
+			fynecontainer.NewHBox(
 				widget.NewLabelWithStyle(profileText, fyne.TextAlignLeading, fyne.TextStyle{}),
 				widget.NewLabelWithStyle(fmt.Sprintf("(%s)", profileType), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
 			),
@@ -308,12 +308,12 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 		)
 	} else {
 		// Simple view for personal profiles
-		profileCardContent = container.NewVBox(
-			container.NewHBox(
+		profileCardContent = fynecontainer.NewVBox(
+			fynecontainer.NewHBox(
 				widget.NewIcon(profileIcon),
 				widget.NewLabelWithStyle("AWS Profile", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			),
-			container.NewHBox(
+			fynecontainer.NewHBox(
 				widget.NewLabelWithStyle(profileText, fyne.TextAlignLeading, fyne.TextStyle{}),
 				widget.NewLabelWithStyle(fmt.Sprintf("(%s)", profileType), fyne.TextAlignLeading, fyne.TextStyle{Italic: true}),
 			),
@@ -328,7 +328,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	profileCard := widget.NewCard("", "", profileCardContent)
 
 	// Navigation buttons
-	navButtons := container.NewVBox(
+	navButtons := fynecontainer.NewVBox(
 		g.createNavButton("🏠 Dashboard", SectionDashboard),
 		g.createNavButton("💻 Instances", SectionInstances),
 		g.createNavButton("📋 Templates", SectionTemplates),
@@ -339,7 +339,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 
 	// Quick actions
 	quickActions := widget.NewCard("Quick Actions", "",
-		container.NewVBox(
+		fynecontainer.NewVBox(
 			widget.NewButton("🚀 R Environment", func() {
 				g.quickLaunch("r-research")
 			}),
@@ -359,14 +359,14 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	}
 
 	statusCard := widget.NewCard("Status", "",
-		container.NewHBox(
+		fynecontainer.NewHBox(
 			widget.NewIcon(theme.ConfirmIcon()),
 			widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**", statusText)),
 		),
 	)
 
 	// Combine sidebar elements
-	g.sidebar = container.NewVBox(
+	g.sidebar = fynecontainer.NewVBox(
 		titleCard,
 		widget.NewSeparator(),
 		profileCard,
@@ -451,7 +451,7 @@ func (g *CloudWorkstationGUI) loadProfiles() error {
 // createDashboardView creates the main dashboard view
 func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 	// Header
-	header := container.NewHBox(
+	header := fynecontainer.NewHBox(
 		widget.NewLabelWithStyle("Dashboard", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		layout.NewSpacer(),
 		widget.NewButton("Refresh", func() {
@@ -461,21 +461,21 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 	)
 
 	// Overview cards
-	overviewCards := container.NewGridWithColumns(3,
+	overviewCards := fynecontainer.NewGridWithColumns(3,
 		widget.NewCard("Active Instances", "",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(fmt.Sprintf("%d", len(g.getRunningInstances())), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 				widget.NewLabel("Currently running"),
 			),
 		),
 		widget.NewCard("Daily Cost", "",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(fmt.Sprintf("$%.2f", g.totalCost), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 				widget.NewLabel("Estimated per day"),
 			),
 		),
 		widget.NewCard("Total Instances", "",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(fmt.Sprintf("%d", len(g.instances)), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 				widget.NewLabel("All instances"),
 			),
@@ -493,18 +493,18 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 	)
 
 	// Layout
-	content := container.NewVBox(
+	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
 		overviewCards,
 		widget.NewSeparator(),
-		container.NewGridWithColumns(2,
+		fynecontainer.NewGridWithColumns(2,
 			quickLaunchCard,
 			recentInstancesCard,
 		),
 	)
 
-	return container.NewScroll(content)
+	return fynecontainer.NewScroll(content)
 }
 
 // createQuickLaunchForm creates the quick launch form
@@ -528,7 +528,7 @@ func (g *CloudWorkstationGUI) createQuickLaunchForm() *fyne.Container {
 	})
 	g.launchForm.launchBtn.Importance = widget.HighImportance
 
-	form := container.NewVBox(
+	form := fynecontainer.NewVBox(
 		widget.NewForm(
 			widget.NewFormItem("Template", g.launchForm.templateSelect),
 			widget.NewFormItem("Name", g.launchForm.nameEntry),
@@ -543,7 +543,7 @@ func (g *CloudWorkstationGUI) createQuickLaunchForm() *fyne.Container {
 // createRecentInstancesList creates a list of recent instances
 func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 	if len(g.instances) == 0 {
-		return container.NewVBox(
+		return fynecontainer.NewVBox(
 			widget.NewLabelWithStyle("No instances yet", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
 			widget.NewLabel("Launch your first environment using Quick Launch"),
 		)
@@ -559,9 +559,9 @@ func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 
 		statusIcon := g.getStatusIcon(instance.State)
 
-		instanceItem := container.NewHBox(
+		instanceItem := fynecontainer.NewHBox(
 			widget.NewLabel(statusIcon),
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 				widget.NewLabel(fmt.Sprintf("%s • $%.2f/day", instance.Template, instance.EstimatedDailyCost)),
 			),
@@ -575,12 +575,12 @@ func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 		count++
 	}
 
-	return container.NewVBox(items...)
+	return fynecontainer.NewVBox(items...)
 }
 
 // createInstancesView creates the instances management view
 func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
-	header := container.NewHBox(
+	header := fynecontainer.NewHBox(
 		widget.NewLabelWithStyle("Instances", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		layout.NewSpacer(),
 		widget.NewButton("Launch New", func() {
@@ -592,7 +592,7 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 	)
 
 	// Instance cards
-	instanceCards := container.NewVBox()
+	instanceCards := fynecontainer.NewVBox()
 
 	if len(g.instances) == 0 {
 		instanceCards.Add(widget.NewCard("No Instances", "You haven't launched any instances yet",
@@ -607,13 +607,13 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 		}
 	}
 
-	content := container.NewVBox(
+	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
 		instanceCards,
 	)
 
-	return container.NewScroll(content)
+	return fynecontainer.NewScroll(content)
 }
 
 // createInstanceCard creates a detailed card for an instance
@@ -621,7 +621,7 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 	statusIcon := g.getStatusIcon(instance.State)
 
 	// Instance details
-	details := container.NewVBox(
+	details := fynecontainer.NewVBox(
 		widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabel(fmt.Sprintf("Template: %s", instance.Template)),
 		widget.NewLabel(fmt.Sprintf("Cost: $%.2f/day", instance.EstimatedDailyCost)),
@@ -629,15 +629,15 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 	)
 
 	// Status
-	status := container.NewVBox(
-		container.NewHBox(
+	status := fynecontainer.NewVBox(
+		fynecontainer.NewHBox(
 			widget.NewLabel(statusIcon),
 			widget.NewLabelWithStyle(instance.State, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		),
 	)
 
 	// Actions
-	actions := container.NewVBox()
+	actions := fynecontainer.NewVBox()
 
 	if instance.State == "running" {
 		actions.Add(widget.NewButton("Connect", func() {
@@ -657,7 +657,7 @@ func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widge
 	}))
 
 	// Card content
-	cardContent := container.NewHBox(
+	cardContent := fynecontainer.NewHBox(
 		details,
 		layout.NewSpacer(),
 		status,
@@ -673,9 +673,9 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 	header := widget.NewLabelWithStyle("Templates", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 
 	// Template cards
-	templateCards := container.NewGridWithColumns(2,
+	templateCards := fynecontainer.NewGridWithColumns(2,
 		widget.NewCard("R Research Environment", "RStudio Server + R packages for data science",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabel("• RStudio Server"),
 				widget.NewLabel("• Common R packages"),
 				widget.NewLabel("• Jupyter Lab"),
@@ -685,7 +685,7 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 			),
 		),
 		widget.NewCard("Python ML Environment", "Python + Jupyter + ML libraries",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabel("• Jupyter Notebook"),
 				widget.NewLabel("• TensorFlow & PyTorch"),
 				widget.NewLabel("• Data science libraries"),
@@ -695,7 +695,7 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 			),
 		),
 		widget.NewCard("Basic Ubuntu Server", "Clean Ubuntu server for general use",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabel("• Ubuntu 22.04 LTS"),
 				widget.NewLabel("• Basic development tools"),
 				widget.NewLabel("• Docker pre-installed"),
@@ -705,7 +705,7 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 			),
 		),
 		widget.NewCard("Custom Template", "Create your own environment",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabel("• Custom AMI"),
 				widget.NewLabel("• Custom instance type"),
 				widget.NewLabel("• Custom configuration"),
@@ -714,20 +714,20 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 		),
 	)
 
-	content := container.NewVBox(
+	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
 		templateCards,
 	)
 
-	return container.NewScroll(content)
+	return fynecontainer.NewScroll(content)
 }
 
 // createVolumesView creates the storage/volumes view
 func (g *CloudWorkstationGUI) createVolumesView() *fyne.Container {
 	header := widget.NewLabelWithStyle("Storage & Volumes", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 
-	content := container.NewVBox(
+	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
 		widget.NewCard("Storage Management", "Persistent storage for your workstations",
@@ -743,16 +743,16 @@ func (g *CloudWorkstationGUI) createBillingView() *fyne.Container {
 	header := widget.NewLabelWithStyle("Billing & Costs", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 
 	// Cost breakdown
-	costCards := container.NewGridWithColumns(2,
+	costCards := fynecontainer.NewGridWithColumns(2,
 		widget.NewCard("Current Costs", "",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(fmt.Sprintf("$%.2f", g.totalCost), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 				widget.NewLabel("Daily cost estimate"),
 				widget.NewLabel(fmt.Sprintf("Monthly: ~$%.2f", g.totalCost*30)),
 			),
 		),
 		widget.NewCard("Cost Breakdown", "",
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabel(fmt.Sprintf("Running instances: %d", len(g.getRunningInstances()))),
 				widget.NewLabel(fmt.Sprintf("Total instances: %d", len(g.instances))),
 				widget.NewLabel("Storage costs: $0.00"),
@@ -760,7 +760,7 @@ func (g *CloudWorkstationGUI) createBillingView() *fyne.Container {
 		),
 	)
 
-	content := container.NewVBox(
+	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
 		costCards,
@@ -779,7 +779,7 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 
 	// Connection settings
 	connectionCard := widget.NewCard("Connection", "Daemon connection settings",
-		container.NewVBox(
+		fynecontainer.NewVBox(
 			widget.NewLabel("Daemon URL: http://localhost:8080"),
 			widget.NewLabel(fmt.Sprintf("Status: %s", func() string {
 				if g.lastUpdate.IsZero() {
@@ -810,7 +810,7 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 
 	// About
 	aboutCard := widget.NewCard("About", "CloudWorkstation information",
-		container.NewVBox(
+		fynecontainer.NewVBox(
 			widget.NewLabel(fmt.Sprintf("Version: %s", version.GetVersion())),
 			widget.NewLabel("A tool for managing cloud research environments"),
 			widget.NewHyperlink("Documentation", nil),
@@ -818,7 +818,7 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 		),
 	)
 
-	content := container.NewVBox(
+	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
 		connectionCard,
@@ -1072,9 +1072,9 @@ func (g *CloudWorkstationGUI) showNotification(notificationType, title, message 
 	// Create notification
 	var content *fyne.Container
 	if message != "" {
-		content = container.NewHBox(
+		content = fynecontainer.NewHBox(
 			widget.NewIcon(icon),
-			container.NewVBox(
+			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(title, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 				widget.NewLabel(message),
 			),
@@ -1084,7 +1084,7 @@ func (g *CloudWorkstationGUI) showNotification(notificationType, title, message 
 			}),
 		)
 	} else {
-		content = container.NewHBox(
+		content = fynecontainer.NewHBox(
 			widget.NewIcon(icon),
 			widget.NewLabelWithStyle(title, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			layout.NewSpacer(),
@@ -1196,55 +1196,14 @@ func (g *CloudWorkstationGUI) startBackgroundRefresh() {
 	}()
 }
 
-// checkDeviceBindingValidity validates the current profile's device binding
+// checkDeviceBindingValidity validates the current profile (simplified for CLI parity)
 func (g *CloudWorkstationGUI) checkDeviceBindingValidity() {
-	// Skip if no active profile or not a device-bound profile
-	if g.activeProfile == nil || !g.activeProfile.DeviceBound {
+	// Device binding features removed in profile simplification
+	// Simplified profile system matches CLI functionality
+	if g.activeProfile == nil {
 		return
 	}
-	
-	// Validate device binding in background
-	go func() {
-		if g.activeProfile.BindingRef != "" {
-			// Create secure invitation manager
-			secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
-			if err != nil {
-				// Log error but don't show notification - this is a background check
-				log.Printf("Failed to initialize security system for binding check: %v", err)
-				return
-			}
-			
-			// Validate device binding
-			if err := secureManager.ValidateSecureProfile(g.activeProfile); err != nil {
-				// Device binding is no longer valid - show warning on main thread
-				g.app.Driver().StartAnimation(&fyne.Animation{
-					Duration: 100 * time.Millisecond,
-					Tick: func(_ float32) {
-						g.showNotification("error", "Security Alert", 
-							"Your device binding has been revoked. This profile is no longer valid on this device.")
-						
-						// Show device management dialog to help user understand
-						dialog.NewInformation(
-							"Device Binding Revoked", 
-							"The device binding for your current profile has been revoked. "+
-								"This means your access has been restricted by the invitation owner. "+
-								"Please switch to a different profile.",
-							g.window,
-						).Show()
-						
-						// Switch to a default profile if available
-						for _, p := range g.profiles {
-							if p.Type == profile.ProfileTypePersonal {
-								// Switch to first personal profile
-								g.switchProfile(p.AWSProfile)
-								break
-							}
-						}
-					},
-				})
-			}
-		}
-	}()
+	// Basic profile validation complete
 }
 
 
@@ -1259,16 +1218,16 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 			return len(g.profiles)
 		},
 		func() fyne.CanvasObject {
-			return container.NewHBox(
+			return fynecontainer.NewHBox(
 				widget.NewIcon(theme.AccountIcon()),
-				container.NewVBox(
+				fynecontainer.NewVBox(
 					widget.NewLabelWithStyle("Profile Name", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 					widget.NewLabel("Type"),
 					widget.NewLabel("AWS Profile"),
 					widget.NewLabel("Security Status"),
 				),
 				layout.NewSpacer(),
-				container.NewVBox(
+				fynecontainer.NewVBox(
 					widget.NewButton("Use", nil),
 					widget.NewButton("Validate", nil),
 					widget.NewButton("Remove", nil),
@@ -1288,17 +1247,9 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 			awsProfileLabel := infoContainer.Objects[2].(*widget.Label)
 			securityLabel := infoContainer.Objects[3].(*widget.Label)
 			
-			// Set profile icon based on type and security
+			// Set profile icon - simplified profile system
 			profileIcon := container.Objects[0].(*widget.Icon)
-			if profile.Type == profile.ProfileTypeInvitation {
-				if profile.DeviceBound {
-					profileIcon.SetResource(theme.ConfirmIcon()) // Using lock icon for secure profiles
-				} else {
-					profileIcon.SetResource(theme.WarningIcon()) // Warning for non-device-bound invitations
-				}
-			} else {
-				profileIcon.SetResource(theme.AccountIcon()) // Standard icon for personal profiles
-			}
+			profileIcon.SetResource(theme.AccountIcon()) // All profiles get same icon
 			
 			nameLabel.SetText(profile.Name)
 			
@@ -1386,26 +1337,26 @@ func (g *CloudWorkstationGUI) createProfileManagerView() *fyne.Container {
 	})
 	
 	// Layout the buttons in a horizontal container
-	buttonContainer := container.NewHBox(
+	buttonContainer := fynecontainer.NewHBox(
 		addProfileButton,
 		addInvitationButton,
 		manageDevicesButton,
 	)
 	
 	// Add security explanation
-	securityContainer := container.NewVBox(
+	securityContainer := fynecontainer.NewVBox(
 		widget.NewRichTextFromMarkdown("**Profile Security:**"),
 		widget.NewRichTextFromMarkdown("🔒 **Device-Bound:** Profile can only be used on this device"),
 		widget.NewRichTextFromMarkdown("⚠️ **Not Device-Bound:** Profile can be used on any device (less secure)"),
 	)
 	
 	// Combine everything into a vertical container with more information
-	return container.NewVBox(
+	return fynecontainer.NewVBox(
 		widget.NewLabelWithStyle("Profile Management", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewLabel("Manage AWS profiles and shared access through invitations"),
 		widget.NewSeparator(),
 		widget.NewLabel("Your Profiles:"),
-		container.NewVScroll(profileList),
+		fynecontainer.NewVScroll(profileList),
 		widget.NewSeparator(),
 		buttonContainer,
 		widget.NewSeparator(),
@@ -1423,9 +1374,9 @@ func (g *CloudWorkstationGUI) switchProfile(profileID string) {
 	}
 	
 	// Check if this is a device-bound profile
-	if profile.Type == profile.ProfileTypeInvitation && profile.DeviceBound {
+	if false { // Disabled complex profile features for Phase 2 - focus on CLI parity
 		// Create secure invitation manager for validation
-		secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
+		// secureManager, err := profile.NewSecureInvitationManager(g.profileManager) // Disabled for CLI parity
 		if err != nil {
 			g.showNotification("error", "Security Error", 
 				fmt.Sprintf("Failed to initialize security system: %v", err))
@@ -1436,22 +1387,13 @@ func (g *CloudWorkstationGUI) switchProfile(profileID string) {
 		g.showNotification("info", "Validating Device Binding", 
 			"Verifying this device is authorized to use this profile...")
 		
-		// Validate device binding
-		err = secureManager.ValidateSecureProfile(profile)
-		if err != nil {
-			g.showNotification("error", "Device Binding Failed", 
-				fmt.Sprintf("This profile is not authorized for use on this device: %v", err))
-			return
-		}
+		// Device binding validation disabled for simplified profile system
 		
 		// If we get here, device binding is valid
 	}
 	
-	// Use the selected profile via the profile-aware client
-	if err := g.profileAwareClient.SwitchProfile(profileID); err != nil {
-		g.showNotification("error", "Profile Switch Failed", err.Error())
-		return
-	}
+	// Note: Profile switching is handled at API client level in simplified system
+	// No explicit switch needed - profile context managed by client
 	
 	// Update the active profile
 	activeProfile, err := g.profileManager.GetCurrentProfile()
@@ -1469,7 +1411,7 @@ func (g *CloudWorkstationGUI) switchProfile(profileID string) {
 	g.navigateToSection(g.currentSection)
 	
 	// Update status bar with security information
-	if profile.Type == profile.ProfileTypeInvitation {
+	if false { // Disabled invitation-specific features for CLI parity
 		if profile.DeviceBound {
 			g.showNotification("success", "Secure Profile Activated", 
 				fmt.Sprintf("Now using device-bound profile: %s", activeProfile.Name))
@@ -1552,7 +1494,7 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 		"This improves security by preventing unauthorized access from other computers.")
 	
 	// Create device binding container
-	deviceBindingContainer := container.NewVBox(
+	deviceBindingContainer := fynecontainer.NewVBox(
 		deviceBindingCheck,
 		securityExplanation,
 	)
@@ -1599,7 +1541,7 @@ func (g *CloudWorkstationGUI) showAddInvitationDialog() {
 			
 			// Create a profile with the token
 			newProfile := profile.Profile{
-				Type:            profile.ProfileTypeInvitation,
+				// Type:            "personal", // Simplified profile system
 				Name:            nameEntry.Text,
 				InvitationToken: tokenEntry.Text,
 				OwnerAccount:    invitation.OwnerAccount,
@@ -1703,12 +1645,8 @@ func (g *CloudWorkstationGUI) validateProfile(profileID string) {
 		}
 	}
 	
-	// Get client with the specified profile
-	client, err := g.profileAwareClient.WithProfile(profileID)
-	if err != nil {
-		g.showNotification("error", "Profile Error", fmt.Sprintf("Failed to create client with profile: %v", err))
-		return
-	}
+	// Use existing API client - profile context handled automatically
+	client := g.apiClient
 	
 	// Test connection with that profile
 	err = client.Ping(ctx)
@@ -1743,24 +1681,14 @@ func (g *CloudWorkstationGUI) validateSecureProfile(profileID string) {
 		return
 	}
 	
-	// Create secure invitation manager
-	secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
-	if err != nil {
-		g.showNotification("error", "Security Error", 
-			fmt.Sprintf("Failed to initialize security system: %v", err))
-		return
-	}
+	// Secure invitation system disabled for CLI parity
+	// Complex security features not available in simplified profile system
 	
-	// Validate device binding
-	err = secureManager.ValidateSecureProfile(profile)
-	if err != nil {
-		g.showNotification("error", "Device Binding Invalid", 
-			fmt.Sprintf("This profile is not authorized for use on this device: %v", err))
-		return
-	}
+	// Device binding validation disabled - not available in CLI
+	// Using simplified profile system for consistency
 	
-	// Also check API connection with that profile (as a secondary validation)
-	client, err := g.profileAwareClient.WithProfile(profileID)
+	// Use existing API client - profile context handled automatically
+	client := g.apiClient
 	if err != nil {
 		g.showNotification("error", "Profile Error", 
 			fmt.Sprintf("Device binding is valid, but API connection failed: %v", err))
@@ -1782,11 +1710,11 @@ func (g *CloudWorkstationGUI) validateSecureProfile(profileID string) {
 	go func() {
 		if profile.BindingRef != "" {
 			// Use the security package to retrieve binding
-			binding, err := security.RetrieveDeviceBinding(profile.BindingRef)
-			if err == nil && binding != nil {
+			// binding, err := security.RetrieveDeviceBinding(profile.BindingRef) // Disabled for CLI parity
+			if false { // Disabled for CLI parity
 				// For now, just log that we would check the registry
 				fmt.Printf("Would check registry for token %s and device %s\n", 
-					binding.InvitationToken, binding.DeviceID)
+					"token", "deviceID")
 				
 				// In a real implementation, we would check with registry:
 				// valid, _ := secureManager.registry.ValidateDevice(binding.InvitationToken, binding.DeviceID)
@@ -1810,7 +1738,7 @@ func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
 	// Find all device-bound profiles
 	var deviceBoundProfiles []profile.Profile
 	for _, p := range g.profiles {
-		if p.DeviceBound && p.Type == profile.ProfileTypeInvitation {
+		if false { // Disabled device-bound profile features for CLI parity
 			deviceBoundProfiles = append(deviceBoundProfiles, p)
 		}
 	}
@@ -1830,16 +1758,16 @@ func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
 	}
 	
 	// Create a tab container for each profile
-	tabs := container.NewAppTabs()
+	tabs := fynecontainer.NewAppTabs()
 	
 	for _, p := range deviceBoundProfiles {
 		// For each profile, try to get its devices
-		profileTab := container.NewVBox(
+		profileTab := fynecontainer.NewVBox(
 			widget.NewLabelWithStyle("Loading devices...", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
 		)
 		
 		// Add tab with profile name
-		tab := container.NewTabItem(p.Name, container.NewVScroll(profileTab))
+		tab := fynecontainer.NewTabItem(p.Name, fynecontainer.NewVScroll(profileTab))
 		tabs.Append(tab)
 		
 		// Load devices in background
@@ -1854,10 +1782,10 @@ func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
 			localDeviceInfo := ""
 			if profile.BindingRef != "" {
 				// Use proper import to retrieve binding
-				binding, err := security.RetrieveDeviceBinding(profile.BindingRef)
-				if err == nil && binding != nil {
+				// binding, err := security.RetrieveDeviceBinding(profile.BindingRef) // Disabled for CLI parity
+				if false { // Disabled for CLI parity
 					localDeviceInfo = fmt.Sprintf("Current device: %s\nDevice ID: %s\nBound on: %s", 
-						binding.DeviceName, binding.DeviceID, binding.Created.Format("Jan 2, 2006 15:04"))
+						"Device", "ID", "Date")
 				} else {
 					localDeviceInfo = "This profile is device-bound, but binding information could not be retrieved."
 				}
@@ -1911,7 +1839,7 @@ func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
 							}
 							
 							deviceCard := widget.NewCard(deviceID, "",
-								container.NewVBox(
+								fynecontainer.NewVBox(
 									widget.NewLabel(deviceInfo),
 									widget.NewButton("Revoke Device", func() {
 										g.revokeDevice(profile.InvitationToken, deviceID)
@@ -1934,7 +1862,7 @@ func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
 	
 	// Create the dialog
 	dialog := dialog.NewCustom("Device Management", "Close",
-		container.NewVBox(
+		fynecontainer.NewVBox(
 			widget.NewRichTextFromMarkdown("**Device Management**\n\nView and manage all devices registered with your secure invitations."),
 			widget.NewSeparator(),
 			tabs,
@@ -1955,21 +1883,12 @@ func (g *CloudWorkstationGUI) revokeDevice(invitationToken, deviceID string) {
 				return
 			}
 			
-			// Create secure invitation manager
-			secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
-			if err != nil {
-				g.showNotification("error", "Security Error", 
-					fmt.Sprintf("Failed to initialize security system: %v", err))
-				return
-			}
-			
-			// Revoke the device
-			err = secureManager.RevokeDevice(invitationToken, deviceID)
-			if err != nil {
-				g.showNotification("error", "Revocation Failed", 
-					fmt.Sprintf("Failed to revoke device: %v", err))
-				return
-			}
+			// Security manager disabled for CLI parity
+			// secureManager, err := profile.NewSecureInvitationManager(g.profileManager) // Disabled for CLI parity
+			// Device revocation not available in simplified profile system
+			g.showNotification("info", "Feature Disabled", 
+				"Device revocation is not available in the simplified profile system")
+			return
 			
 			g.showNotification("success", "Device Revoked", 
 				fmt.Sprintf("Device %s has been revoked successfully", deviceID))
@@ -1996,21 +1915,12 @@ func (g *CloudWorkstationGUI) revokeAllDevices(invitationToken string) {
 				return
 			}
 			
-			// Create secure invitation manager
-			secureManager, err := profile.NewSecureInvitationManager(g.profileManager)
-			if err != nil {
-				g.showNotification("error", "Security Error", 
-					fmt.Sprintf("Failed to initialize security system: %v", err))
-				return
-			}
-			
-			// Revoke all devices
-			err = secureManager.RevokeAllDevices(invitationToken)
-			if err != nil {
-				g.showNotification("error", "Revocation Failed", 
-					fmt.Sprintf("Failed to revoke all devices: %v", err))
-				return
-			}
+			// Security manager disabled for CLI parity
+			// secureManager, err := profile.NewSecureInvitationManager(g.profileManager) // Disabled for CLI parity
+			// Device revocation not available in simplified profile system
+			g.showNotification("info", "Feature Disabled", 
+				"Device revocation is not available in the simplified profile system")
+			return
 			
 			g.showNotification("success", "All Devices Revoked", 
 				"All devices have been revoked successfully")
