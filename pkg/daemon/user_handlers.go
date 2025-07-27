@@ -269,7 +269,7 @@ func (s *Server) handleDisableUser(w http.ResponseWriter, r *http.Request, id st
 func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id string) {
 	if r.Method == http.MethodGet {
 		// Get user groups
-		groups, err := s.userManager.service.GetUserGroups(context.Background(), id)
+		groups, err := s.userManager.service.GetUserGroups(id)
 		if err != nil {
 			if err == usermgmt.ErrUserNotFound {
 				s.writeError(w, http.StatusNotFound, "User not found")
@@ -407,7 +407,7 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Get groups
-	groups, err := s.userManager.service.GetGroups(context.Background(), filter, pagination)
+	groups, err := s.userManager.service.GetGroups()
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to list groups: %v", err))
 		return
@@ -426,7 +426,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Create group
-	newGroup, err := s.userManager.service.CreateGroup(context.Background(), &group)
+	err := s.userManager.service.CreateGroup(&group)
 	if err != nil {
 		if err == usermgmt.ErrDuplicateGroup {
 			s.writeError(w, http.StatusConflict, err.Error())
@@ -437,13 +437,13 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newGroup)
+	json.NewEncoder(w).Encode(group)
 }
 
 // handleGetGroup handles getting a group
 func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request, id string) {
 	// Get group
-	group, err := s.userManager.service.GetGroup(context.Background(), id)
+	group, err := s.userManager.service.GetGroup(id)
 	if err != nil {
 		if err == usermgmt.ErrGroupNotFound {
 			s.writeError(w, http.StatusNotFound, "Group not found")
@@ -472,7 +472,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request, id st
 	}
 	
 	// Update group
-	updatedGroup, err := s.userManager.service.UpdateGroup(context.Background(), &group)
+	err := s.userManager.service.UpdateGroup(&group)
 	if err != nil {
 		if err == usermgmt.ErrGroupNotFound {
 			s.writeError(w, http.StatusNotFound, "Group not found")
@@ -484,13 +484,13 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 	
-	json.NewEncoder(w).Encode(updatedGroup)
+	json.NewEncoder(w).Encode(group)
 }
 
 // handleDeleteGroup handles deleting a group
 func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request, id string) {
 	// Delete group
-	err := s.userManager.service.DeleteGroup(context.Background(), id)
+	err := s.userManager.service.DeleteGroup(id)
 	if err != nil {
 		if err == usermgmt.ErrGroupNotFound {
 			s.writeError(w, http.StatusNotFound, "Group not found")
@@ -527,7 +527,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		}
 		
 		// Get group users
-		users, err := s.userManager.service.GetGroupUsers(context.Background(), id, pagination)
+		users, err := s.userManager.service.GetGroupUsers(id)
 		if err != nil {
 			if err == usermgmt.ErrGroupNotFound {
 				s.writeError(w, http.StatusNotFound, "Group not found")
@@ -547,12 +547,8 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		}
 		
 		// Get current users in group
-		pagination := &usermgmt.PaginationOptions{
-			Page: 1,
-			PageSize: 1000, // High value to get all users
-		}
 		
-		currentUsers, err := s.userManager.service.GetGroupUsers(context.Background(), id, pagination)
+		currentUsers, err := s.userManager.service.GetGroupUsers(id)
 		if err != nil {
 			if err == usermgmt.ErrGroupNotFound {
 				s.writeError(w, http.StatusNotFound, "Group not found")
@@ -564,7 +560,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		
 		// Build maps for efficient lookup
 		currentUserMap := make(map[string]bool)
-		for _, user := range currentUsers.Users {
+		for _, user := range currentUsers {
 			currentUserMap[user.ID] = true
 		}
 		
@@ -574,9 +570,9 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		}
 		
 		// Remove users not in the new list
-		for _, user := range currentUsers.Users {
+		for _, user := range currentUsers {
 			if !newUserMap[user.ID] {
-				err := s.userManager.service.RemoveUserFromGroup(context.Background(), user.ID, id)
+				err := s.userManager.service.RemoveUserFromGroup(user.ID, id)
 				if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
 					s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to remove user from group: %v", err))
 					return
@@ -587,7 +583,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		// Add new users
 		for _, userID := range userIDs {
 			if !currentUserMap[userID] {
-				err := s.userManager.service.AddUserToGroup(context.Background(), userID, id)
+				err := s.userManager.service.AddUserToGroup(userID, id)
 				if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
 					s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to add user to group: %v", err))
 					return
@@ -635,11 +631,11 @@ func (s *Server) handleAuthenticate(w http.ResponseWriter, r *http.Request) {
 	response := struct {
 		Token     string    `json:"token"`
 		User      *usermgmt.User `json:"user"`
-		ExpiresAt time.Time `json:"expires_at"`
+		ExpiresAt *time.Time `json:"expires_at"`
 	}{
 		Token:     result.Token,
 		User:      result.User,
-		ExpiresAt: time.Unix(result.Expiry, 0),
+		ExpiresAt: result.ExpiresAt,
 	}
 	
 	json.NewEncoder(w).Encode(response)

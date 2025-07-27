@@ -2,15 +2,18 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
+var ErrUserManagerNotInitialized = errors.New("user manager not initialized")
+
 // UserManager manages user-related operations in the daemon
 type UserManager struct {
 	// service is the user management service
-	service *usermgmt.UserManagementService
+	service usermgmt.UserManagementService
 	
 	// storage is the user storage
 	storage usermgmt.UserStorage
@@ -85,7 +88,7 @@ func (m *UserManager) Authenticate(ctx context.Context, username, password strin
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.Authenticate(ctx, username, password)
+	return m.service.Authenticate(username, password)
 }
 
 // GetUser gets a user by ID
@@ -97,7 +100,7 @@ func (m *UserManager) GetUser(ctx context.Context, id string) (*usermgmt.User, e
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.GetUser(ctx, id)
+	return m.service.GetUser(id)
 }
 
 // GetUserByUsername gets a user by username
@@ -109,7 +112,7 @@ func (m *UserManager) GetUserByUsername(ctx context.Context, username string) (*
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.GetUserByUsername(ctx, username)
+	return m.service.GetUserByUsername(username)
 }
 
 // GetUsers gets users matching the specified filter
@@ -121,7 +124,7 @@ func (m *UserManager) GetUsers(ctx context.Context, filter *usermgmt.UserFilter,
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.GetUsers(ctx, filter, pagination)
+	return m.service.ListUsers(filter, pagination)
 }
 
 // CreateUser creates a new user
@@ -133,7 +136,8 @@ func (m *UserManager) CreateUser(ctx context.Context, user *usermgmt.User) (*use
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.CreateUser(ctx, user)
+	err := m.service.CreateUser(user)
+	return user, err
 }
 
 // UpdateUser updates an existing user
@@ -145,7 +149,8 @@ func (m *UserManager) UpdateUser(ctx context.Context, user *usermgmt.User) (*use
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.UpdateUser(ctx, user)
+	err := m.service.UpdateUser(user)
+	return user, err
 }
 
 // DeleteUser deletes a user
@@ -157,7 +162,7 @@ func (m *UserManager) DeleteUser(ctx context.Context, id string) error {
 		return ErrUserManagerNotInitialized
 	}
 	
-	return m.service.DeleteUser(ctx, id)
+	return m.service.DeleteUser(id)
 }
 
 // EnableUser enables a user
@@ -169,7 +174,7 @@ func (m *UserManager) EnableUser(ctx context.Context, id string) error {
 		return ErrUserManagerNotInitialized
 	}
 	
-	return m.service.EnableUser(ctx, id)
+	return m.service.EnableUser(id)
 }
 
 // DisableUser disables a user
@@ -181,7 +186,7 @@ func (m *UserManager) DisableUser(ctx context.Context, id string) error {
 		return ErrUserManagerNotInitialized
 	}
 	
-	return m.service.DisableUser(ctx, id)
+	return m.service.DisableUser(id)
 }
 
 // SynchronizeUsers synchronizes users from all providers
@@ -193,7 +198,7 @@ func (m *UserManager) SynchronizeUsers(ctx context.Context, options *usermgmt.Sy
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.SynchronizeUsers(ctx, options)
+	return m.service.SynchronizeUsers(options)
 }
 
 // SetDefaultProvisionOptions sets the default options for provisioning users
@@ -218,7 +223,7 @@ func (m *UserManager) GetDefaultProvisionOptions() (*usermgmt.UserProvisionOptio
 		return nil, ErrUserManagerNotInitialized
 	}
 	
-	return m.service.GetDefaultProvisionOptions(), nil
+	return m.service.GetDefaultProvisionOptions()
 }
 
 // IsUserInRole checks if a user has the specified role
@@ -231,7 +236,7 @@ func (m *UserManager) IsUserInRole(ctx context.Context, userID string, role user
 	}
 	
 	// Get user
-	user, err := m.service.GetUser(ctx, userID)
+	user, err := m.service.GetUser(userID)
 	if err != nil {
 		return false, err
 	}
