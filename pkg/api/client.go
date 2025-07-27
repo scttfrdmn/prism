@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/errors"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -262,39 +260,7 @@ func (c *Client) SetProfileID(profileID string) {
 }
 
 // SetAPIKey sets the API key for authentication
-func (c *Client) SetAPIKey(apiKey string) {
-	c.apiKey = apiKey
-}
-
-// GenerateAPIKey requests a new API key from the server
-func (c *Client) GenerateAPIKey() (*types.AuthResponse, error) {
-	var resp types.AuthResponse
-	err := c.post("/api/v1/auth", nil, &resp)
-	if err != nil {
-		return nil, err
-	}
-	
-	// Store the API key for future requests
-	c.SetAPIKey(resp.APIKey)
-	return &resp, nil
-}
-
-// GetAuthStatus returns the current authentication status
-func (c *Client) GetAuthStatus() (map[string]interface{}, error) {
-	var resp map[string]interface{}
-	err := c.get("/api/v1/auth", &resp)
-	return resp, err
-}
-
-// RevokeAPIKey revokes the current API key
-func (c *Client) RevokeAPIKey() error {
-	err := c.delete("/api/v1/auth")
-	if err == nil {
-		// Clear the stored API key
-		c.apiKey = ""
-	}
-	return err
-}
+// Auth methods are implemented in auth.go
 
 // HTTP helper methods
 
