@@ -3,12 +3,9 @@ package daemon
 import (
 	"context"
 	"crypto/subtle"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 const (
