@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
