@@ -333,6 +333,7 @@ type UserManagementService interface {
 	UpdateGroup(group *Group) error
 	DeleteGroup(id string) error
 	ListGroups(filter *GroupFilter, pagination *PaginationOptions) (*PaginatedGroups, error)
+	GetGroups() ([]*Group, error) // Simplified list for compatibility
 	
 	// User-Group operations
 	AddUserToGroup(userID, groupID string) error
@@ -343,6 +344,19 @@ type UserManagementService interface {
 	// Sync operations
 	SyncUsers(options *SyncOptions) (*SyncResult, error)
 	ProvisionUser(providerUser interface{}, options *UserProvisionOptions) (*User, error)
+	
+	// Provider management
+	RegisterProvider(provider UserManagementProvider) error
+	UnregisterProvider(providerType Provider) error
+	Authenticate(username, password string) (*AuthenticationResult, error)
+	
+	// User management operations
+	EnableUser(id string) error
+	DisableUser(id string) error
+	SynchronizeUsers(options *SyncOptions) (*SyncResult, error)
+	SetDefaultProvisionOptions(options *UserProvisionOptions) error
+	GetDefaultProvisionOptions() (*UserProvisionOptions, error)
+	Close() error
 }
 
 // UserStorage defines the interface for user data storage
@@ -405,3 +419,83 @@ type AuthenticationResult struct {
 	// Attributes contains additional authentication attributes
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
+
+// NewMemoryUserStorage creates a new in-memory user storage (placeholder)
+func NewMemoryUserStorage() UserStorage {
+	return &memoryUserStorage{
+		users:  make(map[string]*User),
+		groups: make(map[string]*Group),
+	}
+}
+
+// NewUserManagementService creates a new user management service (placeholder)
+func NewUserManagementService(storage UserStorage) UserManagementService {
+	return &userManagementService{
+		storage: storage,
+	}
+}
+
+// Basic in-memory implementations (placeholder)
+type memoryUserStorage struct {
+	users  map[string]*User
+	groups map[string]*Group
+}
+
+type userManagementService struct {
+	storage UserStorage
+}
+
+// Placeholder implementations for UserStorage interface
+func (m *memoryUserStorage) StoreUser(user *User) error                 { return nil }
+func (m *memoryUserStorage) RetrieveUser(id string) (*User, error)      { return nil, ErrUserNotFound }
+func (m *memoryUserStorage) UpdateUser(user *User) error                { return nil }
+func (m *memoryUserStorage) DeleteUser(id string) error                 { return nil }
+func (m *memoryUserStorage) ListUsers(filter *UserFilter) ([]*User, error) { return []*User{}, nil }
+func (m *memoryUserStorage) StoreGroup(group *Group) error              { return nil }
+func (m *memoryUserStorage) RetrieveGroup(id string) (*Group, error)    { return nil, ErrGroupNotFound }
+func (m *memoryUserStorage) UpdateGroup(group *Group) error             { return nil }
+func (m *memoryUserStorage) DeleteGroup(id string) error                { return nil }
+func (m *memoryUserStorage) ListGroups(filter *GroupFilter) ([]*Group, error) { return []*Group{}, nil }
+func (m *memoryUserStorage) StoreUserGroupMembership(userID, groupID string) error { return nil }
+func (m *memoryUserStorage) RemoveUserGroupMembership(userID, groupID string) error { return nil }
+func (m *memoryUserStorage) GetUserGroups(userID string) ([]string, error) { return []string{}, nil }
+func (m *memoryUserStorage) GetGroupUsers(groupID string) ([]string, error) { return []string{}, nil }
+
+// Placeholder implementations for UserManagementService interface
+func (s *userManagementService) CreateUser(user *User) error { return nil }
+func (s *userManagementService) GetUser(id string) (*User, error) { return nil, ErrUserNotFound }
+func (s *userManagementService) GetUserByUsername(username string) (*User, error) { return nil, ErrUserNotFound }
+func (s *userManagementService) GetUserByEmail(email string) (*User, error) { return nil, ErrUserNotFound }
+func (s *userManagementService) UpdateUser(user *User) error { return nil }
+func (s *userManagementService) DeleteUser(id string) error { return nil }
+func (s *userManagementService) ListUsers(filter *UserFilter, pagination *PaginationOptions) (*PaginatedUsers, error) {
+	return &PaginatedUsers{Users: []*User{}, Total: 0}, nil
+}
+func (s *userManagementService) CreateGroup(group *Group) error { return nil }
+func (s *userManagementService) GetGroup(id string) (*Group, error) { return nil, ErrGroupNotFound }
+func (s *userManagementService) GetGroupByName(name string) (*Group, error) { return nil, ErrGroupNotFound }
+func (s *userManagementService) UpdateGroup(group *Group) error { return nil }
+func (s *userManagementService) DeleteGroup(id string) error { return nil }
+func (s *userManagementService) ListGroups(filter *GroupFilter, pagination *PaginationOptions) (*PaginatedGroups, error) {
+	return &PaginatedGroups{Groups: []*Group{}, Total: 0}, nil
+}
+func (s *userManagementService) GetGroups() ([]*Group, error) { return []*Group{}, nil }
+func (s *userManagementService) AddUserToGroup(userID, groupID string) error { return nil }
+func (s *userManagementService) RemoveUserFromGroup(userID, groupID string) error { return nil }
+func (s *userManagementService) GetUserGroups(userID string) ([]*Group, error) { return []*Group{}, nil }
+func (s *userManagementService) GetGroupUsers(groupID string) ([]*User, error) { return []*User{}, nil }
+func (s *userManagementService) SyncUsers(options *SyncOptions) (*SyncResult, error) { return &SyncResult{}, nil }
+func (s *userManagementService) ProvisionUser(providerUser interface{}, options *UserProvisionOptions) (*User, error) {
+	return nil, ErrUserNotFound
+}
+func (s *userManagementService) RegisterProvider(provider UserManagementProvider) error { return nil }
+func (s *userManagementService) UnregisterProvider(providerType Provider) error { return nil }
+func (s *userManagementService) Authenticate(username, password string) (*AuthenticationResult, error) {
+	return &AuthenticationResult{Success: false, ErrorMessage: "authentication not implemented"}, nil
+}
+func (s *userManagementService) EnableUser(id string) error { return nil }
+func (s *userManagementService) DisableUser(id string) error { return nil }
+func (s *userManagementService) SynchronizeUsers(options *SyncOptions) (*SyncResult, error) { return &SyncResult{}, nil }
+func (s *userManagementService) SetDefaultProvisionOptions(options *UserProvisionOptions) error { return nil }
+func (s *userManagementService) GetDefaultProvisionOptions() (*UserProvisionOptions, error) { return &UserProvisionOptions{}, nil }
+func (s *userManagementService) Close() error { return nil }
