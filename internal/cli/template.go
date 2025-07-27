@@ -40,7 +40,9 @@ func (a *App) handleAMITemplate(args []string) error {
 	}
 
 	// Initialize template parser
-	parser := ami.NewParser(baseAMIs)
+	parser := ami.NewParser()
+	// Set base AMIs for validation if needed
+	parser.BaseAMIs = baseAMIs
 
 	// Determine template directory
 	homeDir, err := os.UserHomeDir()

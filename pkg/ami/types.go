@@ -123,6 +123,13 @@ type Parser struct {
 	BaseAMIs map[string]map[string]string
 }
 
+// NewParser creates a new AMI template parser
+func NewParser() *Parser {
+	return &Parser{
+		BaseAMIs: make(map[string]map[string]string),
+	}
+}
+
 // ValidatorOptions configures the validation process
 type ValidatorOptions struct {
 	FailFast     bool
