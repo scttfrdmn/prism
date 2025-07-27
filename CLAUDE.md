@@ -122,6 +122,7 @@ internal/
 - Linting and code quality checks
 - AMI creation system design
 - **✅ GUI Foundation Complete**: Clean compilation, modern API integration, CLI/TUI/GUI parity
+- **✅ Dynamic Templates Section**: Real-time template catalog with launch integration, full CLI parity
 
 ## Architecture Decisions
 
@@ -576,3 +577,27 @@ GUI Architecture:
 ```
 
 The GUI now provides complete structural parity with CLI functionality while maintaining CloudWorkstation's core design principles of progressive disclosure and smart defaults.
+
+### Templates Section Implementation (July 2025)
+**Status: ✅ COMPLETED**
+
+Successfully implemented dynamic Templates section with complete CLI parity:
+
+**Dynamic Features:**
+- **Real-time Template Loading**: API-driven catalog replacing hardcoded templates
+- **Rich Information Display**: Architecture, costs, ports, and specifications
+- **Integrated Launch Workflow**: Complete instance launch with validation
+- **CLI Command Parity**: Matches `cws templates` and `cws launch` functionality
+
+**Technical Achievements:**
+- **Async Operations**: Background API calls with proper UI thread updates
+- **Error Handling**: Graceful failures with user-friendly messages
+- **Type Safety**: Proper integration with types.LaunchRequest/LaunchResponse
+- **Professional UI**: 2-column card layout with comprehensive template information
+
+**Infrastructure Improvements:**
+- **Unique Daemon Port**: Changed to 8947 (CWS on phone keypad) to avoid conflicts
+- **Graceful Shutdown**: Added `POST /api/v1/shutdown` endpoint with proper cleanup
+- **Enhanced API Client**: Added Shutdown method across all implementations
+
+The Templates section demonstrates CloudWorkstation's evolution toward accessible multi-modal research computing, allowing both technical and non-technical users to explore and launch research environments with confidence.
