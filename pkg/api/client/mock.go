@@ -209,6 +209,10 @@ func (m *MockClient) Ping(ctx context.Context) error {
 	return m.pingError
 }
 
+func (m *MockClient) Shutdown(ctx context.Context) error {
+	return nil // Mock always succeeds
+}
+
 // Registry operations
 func (m *MockClient) GetRegistryStatus(ctx context.Context) (*RegistryStatusResponse, error) {
 	return &RegistryStatusResponse{

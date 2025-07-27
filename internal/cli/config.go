@@ -23,7 +23,7 @@ func LoadConfig() (*Config, error) {
 	config := &Config{}
 	
 	// Set defaults
-	config.Daemon.URL = "http://localhost:8080" // Default daemon URL
+	config.Daemon.URL = "http://localhost:8947" // Default daemon URL (CWS on phone keypad)
 	
 	// Get config path
 	configPath := getConfigPath()

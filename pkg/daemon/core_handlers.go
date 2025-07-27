@@ -3,7 +3,9 @@ package daemon
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -140,4 +142,28 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	status.CurrentProfile = currentProfile
 
 	json.NewEncoder(w).Encode(status)
+}
+
+// handleShutdown handles daemon shutdown requests
+func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	
+	// Respond immediately before shutting down
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "shutting_down", 
+		"message": "Daemon shutdown initiated",
+	})
+	
+	// Shutdown in a goroutine to allow response to be sent
+	go func() {
+		time.Sleep(100 * time.Millisecond) // Allow response to be sent
+		if err := s.Stop(); err != nil {
+			log.Printf("Error during shutdown: %v", err)
+		}
+		os.Exit(0)
+	}()
 }
