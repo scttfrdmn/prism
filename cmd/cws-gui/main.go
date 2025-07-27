@@ -97,6 +97,7 @@ type CloudWorkstationGUI struct {
 	templatesContainer *fyne.Container
 	efsContainer       *fyne.Container
 	ebsContainer       *fyne.Container
+	instancesContainer *fyne.Container
 
 	// Form state
 	launchForm struct {
@@ -587,87 +588,236 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 		widget.NewLabelWithStyle("Instances", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		layout.NewSpacer(),
 		widget.NewButton("Launch New", func() {
-			g.navigateToSection(SectionDashboard)
+			g.navigateToSection(SectionTemplates)
 		}),
 		widget.NewButton("Refresh", func() {
-			g.refreshData()
+			g.refreshInstances()
 		}),
 	)
 
-	// Instance cards
-	instanceCards := fynecontainer.NewVBox()
-
-	if len(g.instances) == 0 {
-		instanceCards.Add(widget.NewCard("No Instances", "You haven't launched any instances yet",
-			widget.NewButton("Launch Your First Instance", func() {
-				g.navigateToSection(SectionDashboard)
-			}),
-		))
-	} else {
-		for _, instance := range g.instances {
-			card := g.createInstanceCard(instance)
-			instanceCards.Add(card)
-		}
-	}
+	// Initialize instances container if needed
+	g.initializeInstancesContainer()
 
 	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
-		instanceCards,
+		g.instancesContainer,
 	)
+
+	// Load instances data
+	g.refreshInstances()
 
 	return fynecontainer.NewScroll(content)
 }
 
-// createInstanceCard creates a detailed card for an instance
-func (g *CloudWorkstationGUI) createInstanceCard(instance types.Instance) *widget.Card {
-	statusIcon := g.getStatusIcon(instance.State)
-
-	// Instance details
-	details := fynecontainer.NewVBox(
-		widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		widget.NewLabel(fmt.Sprintf("Template: %s", instance.Template)),
-		widget.NewLabel(fmt.Sprintf("Cost: $%.2f/day", instance.EstimatedDailyCost)),
-		widget.NewLabel(fmt.Sprintf("Launched: %s", instance.LaunchTime.Format("Jan 2, 2006 15:04"))),
-	)
-
-	// Status
-	status := fynecontainer.NewVBox(
-		fynecontainer.NewHBox(
-			widget.NewLabel(statusIcon),
-			widget.NewLabelWithStyle(instance.State, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-		),
-	)
-
-	// Actions
-	actions := fynecontainer.NewVBox()
-
-	if instance.State == "running" {
-		actions.Add(widget.NewButton("Connect", func() {
-			g.handleConnectInstance(instance.Name)
-		}))
-		actions.Add(widget.NewButton("Stop", func() {
-			g.handleStopInstance(instance.Name)
-		}))
-	} else if instance.State == "stopped" {
-		actions.Add(widget.NewButton("Start", func() {
-			g.handleStartInstance(instance.Name)
-		}))
+// initializeInstancesContainer sets up the instances container
+func (g *CloudWorkstationGUI) initializeInstancesContainer() {
+	if g.instancesContainer == nil {
+		g.instancesContainer = fynecontainer.NewVBox()
 	}
+}
 
-	actions.Add(widget.NewButton("Delete", func() {
-		g.handleDeleteInstance(instance.Name)
-	}))
+// refreshInstances loads instances from the API and updates the display
+func (g *CloudWorkstationGUI) refreshInstances() {
+	if g.instancesContainer == nil {
+		return
+	}
+	
+	// Clear existing content
+	g.instancesContainer.RemoveAll()
+	
+	// Show loading indicator
+	loadingLabel := widget.NewLabel("Loading instances...")
+	g.instancesContainer.Add(loadingLabel)
+	g.instancesContainer.Refresh()
+	
+	// Fetch instances from API
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		response, err := g.apiClient.ListInstances(ctx)
+		if err != nil {
+			// Update UI on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					g.instancesContainer.RemoveAll()
+					g.instancesContainer.Add(widget.NewLabel("❌ Failed to load instances: " + err.Error()))
+					g.instancesContainer.Refresh()
+				},
+			})
+			return
+		}
+		
+		// Update UI on main thread
+		g.app.Driver().StartAnimation(&fyne.Animation{
+			Duration: 100 * time.Millisecond,
+			Tick: func(_ float32) {
+				g.displayInstances(response.Instances)
+			},
+		})
+	}()
+}
 
-	// Card content
-	cardContent := fynecontainer.NewHBox(
-		details,
-		layout.NewSpacer(),
-		status,
-		layout.NewSpacer(),
-		actions,
+// displayInstances renders instance cards
+func (g *CloudWorkstationGUI) displayInstances(instances []types.Instance) {
+	g.instancesContainer.RemoveAll()
+	g.instances = instances // Update internal state
+	
+	if len(instances) == 0 {
+		emptyState := widget.NewCard("No Instances", "You haven't launched any instances yet",
+			fynecontainer.NewVBox(
+				widget.NewLabel("Get started by launching your first research environment."),
+				widget.NewButton("Launch Your First Instance", func() {
+					g.navigateToSection(SectionTemplates)
+				}),
+			),
+		)
+		g.instancesContainer.Add(emptyState)
+		g.instancesContainer.Refresh()
+		return
+	}
+	
+	// Create instance cards
+	for _, instance := range instances {
+		inst := instance // Capture for closure
+		card := g.createEnhancedInstanceCard(inst)
+		g.instancesContainer.Add(card)
+	}
+	
+	g.instancesContainer.Refresh()
+}
+
+// createEnhancedInstanceCard creates a comprehensive card for an instance
+func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance) *widget.Card {
+	statusIcon := g.getStatusIcon(instance.State)
+	
+	// Left section: Instance details
+	detailsContainer := fynecontainer.NewVBox()
+	
+	// Instance name and template
+	nameLabel := widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	detailsContainer.Add(nameLabel)
+	detailsContainer.Add(widget.NewLabel("• Template: " + instance.Template))
+	detailsContainer.Add(widget.NewLabel("• Instance Type: " + instance.InstanceType))
+	detailsContainer.Add(widget.NewLabel("• Launched: " + instance.LaunchTime.Format("Jan 2, 2006 15:04")))
+	
+	// Network information
+	if instance.PublicIP != "" {
+		detailsContainer.Add(widget.NewLabel("• Public IP: " + instance.PublicIP))
+	}
+	if instance.PrivateIP != "" {
+		detailsContainer.Add(widget.NewLabel("• Private IP: " + instance.PrivateIP))
+	}
+	
+	// Attached storage information
+	if len(instance.AttachedVolumes) > 0 {
+		detailsContainer.Add(widget.NewLabel(fmt.Sprintf("• EFS Volumes: %d", len(instance.AttachedVolumes))))
+	}
+	if len(instance.AttachedEBSVolumes) > 0 {
+		detailsContainer.Add(widget.NewLabel(fmt.Sprintf("• EBS Volumes: %d", len(instance.AttachedEBSVolumes))))
+	}
+	
+	// Middle section: Status and cost
+	statusContainer := fynecontainer.NewVBox()
+	
+	// Status with icon
+	statusRow := fynecontainer.NewHBox(
+		widget.NewLabel(statusIcon),
+		widget.NewLabelWithStyle(strings.ToUpper(instance.State), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 	)
-
+	statusContainer.Add(statusRow)
+	
+	// Cost information
+	costLabel := widget.NewLabelWithStyle(fmt.Sprintf("$%.2f/day", instance.EstimatedDailyCost), fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	statusContainer.Add(costLabel)
+	
+	// Idle detection status if enabled
+	if instance.IdleDetection != nil && instance.IdleDetection.Enabled {
+		idleStatus := "Idle Detection: ON"
+		if instance.IdleDetection.ActionPending {
+			idleStatus = "⏰ Action Pending"
+		}
+		statusContainer.Add(widget.NewLabel(idleStatus))
+	}
+	
+	// Connection information for running instances
+	if instance.State == "running" && instance.HasWebInterface {
+		connectionContainer := fynecontainer.NewVBox()
+		
+		// Web interface information
+		var webURL string
+		switch instance.Template {
+		case "r-research":
+			webURL = fmt.Sprintf("http://%s:8787", instance.PublicIP)
+			connectionContainer.Add(widget.NewLabel("🌐 RStudio Server"))
+		case "python-research":
+			webURL = fmt.Sprintf("http://%s:8888", instance.PublicIP)
+			connectionContainer.Add(widget.NewLabel("🌐 JupyterLab"))
+		case "desktop-research":
+			webURL = fmt.Sprintf("https://%s:8443", instance.PublicIP)
+			connectionContainer.Add(widget.NewLabel("🖥️ NICE DCV"))
+		}
+		
+		if webURL != "" {
+			connectionContainer.Add(widget.NewLabel("• " + webURL))
+		}
+		
+		// SSH access
+		sshCommand := fmt.Sprintf("ssh %s@%s", instance.Username, instance.PublicIP)
+		connectionContainer.Add(widget.NewLabel("🔧 SSH: " + sshCommand))
+		
+		statusContainer.Add(widget.NewSeparator())
+		statusContainer.Add(connectionContainer)
+	}
+	
+	// Right section: Actions
+	actionsContainer := fynecontainer.NewVBox()
+	
+	// Primary action buttons based on state
+	if instance.State == "running" {
+		connectBtn := widget.NewButton("Connect", func() {
+			g.showConnectionDialog(instance)
+		})
+		connectBtn.Importance = widget.HighImportance
+		actionsContainer.Add(connectBtn)
+		
+		stopBtn := widget.NewButton("Stop", func() {
+			g.showStopConfirmation(instance.Name)
+		})
+		actionsContainer.Add(stopBtn)
+	} else if instance.State == "stopped" {
+		startBtn := widget.NewButton("Start", func() {
+			g.showStartConfirmation(instance.Name)
+		})
+		startBtn.Importance = widget.HighImportance
+		actionsContainer.Add(startBtn)
+	}
+	
+	// Secondary action buttons
+	moreBtn := widget.NewButton("Details", func() {
+		g.showInstanceDetails(instance)
+	})
+	actionsContainer.Add(moreBtn)
+	
+	// Danger zone
+	actionsContainer.Add(widget.NewSeparator())
+	deleteBtn := widget.NewButton("Delete", func() {
+		g.showDeleteInstanceConfirmation(instance.Name)
+	})
+	deleteBtn.Importance = widget.DangerImportance
+	actionsContainer.Add(deleteBtn)
+	
+	// Card layout
+	cardContent := fynecontainer.NewHBox(
+		detailsContainer,
+		layout.NewSpacer(),
+		statusContainer,
+		layout.NewSpacer(),
+		actionsContainer,
+	)
+	
 	return widget.NewCard("", "", cardContent)
 }
 
@@ -1824,7 +1974,223 @@ func (g *CloudWorkstationGUI) handleDeleteInstance(name string) {
 	}
 
 	g.showNotification("success", "Instance Deleted", fmt.Sprintf("Instance %s has been deleted", name))
-	g.refreshData()
+	g.refreshInstances()
+}
+
+// Enhanced instance dialog methods
+
+// showConnectionDialog shows comprehensive connection information and actions
+func (g *CloudWorkstationGUI) showConnectionDialog(instance types.Instance) {
+	title := fmt.Sprintf("Connect to %s", instance.Name)
+	
+	contentContainer := fynecontainer.NewVBox()
+	
+	// Instance information
+	contentContainer.Add(widget.NewLabelWithStyle("Instance Information", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel("• Name: " + instance.Name))
+	contentContainer.Add(widget.NewLabel("• Template: " + instance.Template))
+	contentContainer.Add(widget.NewLabel("• Public IP: " + instance.PublicIP))
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Connection methods
+	contentContainer.Add(widget.NewLabelWithStyle("Connection Methods", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	
+	// Web interface if available
+	if instance.HasWebInterface {
+		var webURL, webDescription string
+		switch instance.Template {
+		case "r-research":
+			webURL = fmt.Sprintf("http://%s:8787", instance.PublicIP)
+			webDescription = "RStudio Server (username: rstudio, password: cloudworkstation)"
+		case "python-research":
+			webURL = fmt.Sprintf("http://%s:8888", instance.PublicIP)
+			webDescription = "JupyterLab (token: cloudworkstation)"
+		case "desktop-research":
+			webURL = fmt.Sprintf("https://%s:8443", instance.PublicIP)
+			webDescription = "NICE DCV Desktop (username: ubuntu, password: cloudworkstation)"
+		}
+		
+		if webURL != "" {
+			contentContainer.Add(widget.NewLabel("🌐 " + webDescription))
+			webBtn := widget.NewButton("Open " + strings.Split(webDescription, " ")[0], func() {
+				// Copy URL to clipboard and show notification
+				g.showNotification("info", "Connection URL", "URL copied to clipboard: " + webURL)
+			})
+			webBtn.Importance = widget.HighImportance
+			contentContainer.Add(webBtn)
+		}
+	}
+	
+	// SSH access
+	sshCommand := fmt.Sprintf("ssh %s@%s", instance.Username, instance.PublicIP)
+	contentContainer.Add(widget.NewLabel("🔧 SSH Access"))
+	contentContainer.Add(widget.NewLabel("Command: " + sshCommand))
+	
+	sshBtn := widget.NewButton("Copy SSH Command", func() {
+		g.showNotification("info", "SSH Command", "Command copied to clipboard: " + sshCommand)
+	})
+	contentContainer.Add(sshBtn)
+	
+	// Port information
+	if len(instance.AttachedVolumes) > 0 || len(instance.AttachedEBSVolumes) > 0 {
+		contentContainer.Add(widget.NewSeparator())
+		contentContainer.Add(widget.NewLabelWithStyle("Attached Storage", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+		if len(instance.AttachedVolumes) > 0 {
+			contentContainer.Add(widget.NewLabel(fmt.Sprintf("• EFS Volumes: %d", len(instance.AttachedVolumes))))
+		}
+		if len(instance.AttachedEBSVolumes) > 0 {
+			contentContainer.Add(widget.NewLabel(fmt.Sprintf("• EBS Volumes: %d", len(instance.AttachedEBSVolumes))))
+		}
+	}
+	
+	dialog := dialog.NewCustom(title, "Close", contentContainer, g.window)
+	dialog.Resize(fyne.NewSize(450, 400))
+	dialog.Show()
+}
+
+// showInstanceDetails shows comprehensive instance details
+func (g *CloudWorkstationGUI) showInstanceDetails(instance types.Instance) {
+	title := fmt.Sprintf("Instance Details: %s", instance.Name)
+	
+	contentContainer := fynecontainer.NewVBox()
+	
+	// Basic information
+	contentContainer.Add(widget.NewLabelWithStyle("Basic Information", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel("• Name: " + instance.Name))
+	contentContainer.Add(widget.NewLabel("• ID: " + instance.ID))
+	contentContainer.Add(widget.NewLabel("• Template: " + instance.Template))
+	contentContainer.Add(widget.NewLabel("• Instance Type: " + instance.InstanceType))
+	contentContainer.Add(widget.NewLabel("• State: " + strings.ToUpper(instance.State)))
+	contentContainer.Add(widget.NewLabel("• Launch Time: " + instance.LaunchTime.Format("January 2, 2006 15:04:05")))
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Network information
+	contentContainer.Add(widget.NewLabelWithStyle("Network Information", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel("• Public IP: " + instance.PublicIP))
+	contentContainer.Add(widget.NewLabel("• Private IP: " + instance.PrivateIP))
+	contentContainer.Add(widget.NewLabel("• Username: " + instance.Username))
+	if instance.HasWebInterface {
+		contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Web Port: %d", instance.WebPort)))
+	}
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Cost information
+	contentContainer.Add(widget.NewLabelWithStyle("Cost Information", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Daily Cost: $%.2f", instance.EstimatedDailyCost)))
+	uptime := time.Since(instance.LaunchTime)
+	dailyCostSoFar := instance.EstimatedDailyCost * (uptime.Hours() / 24.0)
+	contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Cost So Far: $%.2f", dailyCostSoFar)))
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Storage information
+	if len(instance.AttachedVolumes) > 0 || len(instance.AttachedEBSVolumes) > 0 {
+		contentContainer.Add(widget.NewLabelWithStyle("Attached Storage", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+		
+		if len(instance.AttachedVolumes) > 0 {
+			contentContainer.Add(widget.NewLabel("EFS Volumes:"))
+			for _, volume := range instance.AttachedVolumes {
+				contentContainer.Add(widget.NewLabel("  • " + volume))
+			}
+		}
+		
+		if len(instance.AttachedEBSVolumes) > 0 {
+			contentContainer.Add(widget.NewLabel("EBS Volumes:"))
+			for _, volume := range instance.AttachedEBSVolumes {
+				contentContainer.Add(widget.NewLabel("  • " + volume))
+			}
+		}
+		contentContainer.Add(widget.NewSeparator())
+	}
+	
+	// Idle detection information
+	if instance.IdleDetection != nil && instance.IdleDetection.Enabled {
+		contentContainer.Add(widget.NewLabelWithStyle("Idle Detection", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+		contentContainer.Add(widget.NewLabel("• Status: Enabled"))
+		contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Policy: %s", instance.IdleDetection.Policy)))
+		contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Threshold: %d minutes", instance.IdleDetection.Threshold)))
+		if instance.IdleDetection.ActionPending {
+			contentContainer.Add(widget.NewLabel("• Action: Pending - " + instance.IdleDetection.ActionSchedule.Format("Jan 2, 15:04")))
+		}
+	}
+	
+	dialog := dialog.NewCustom(title, "Close", fynecontainer.NewScroll(contentContainer), g.window)
+	dialog.Resize(fyne.NewSize(500, 600))
+	dialog.Show()
+}
+
+// showStartConfirmation shows confirmation dialog for starting instance
+func (g *CloudWorkstationGUI) showStartConfirmation(instanceName string) {
+	title := "Start Instance"
+	message := fmt.Sprintf("Are you sure you want to start the instance '%s'?\n\nStarting the instance will resume billing.", instanceName)
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				if err := g.apiClient.StartInstance(ctx, instanceName); err != nil {
+					g.showNotification("error", "Start Failed", err.Error())
+					return
+				}
+				
+				g.showNotification("success", "Instance Starting", fmt.Sprintf("Instance %s is starting up", instanceName))
+				g.refreshInstances()
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// showStopConfirmation shows confirmation dialog for stopping instance
+func (g *CloudWorkstationGUI) showStopConfirmation(instanceName string) {
+	title := "Stop Instance"
+	message := fmt.Sprintf("Are you sure you want to stop the instance '%s'?\n\nStopping will preserve the instance but stop billing for compute resources.", instanceName)
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				if err := g.apiClient.StopInstance(ctx, instanceName); err != nil {
+					g.showNotification("error", "Stop Failed", err.Error())
+					return
+				}
+				
+				g.showNotification("success", "Instance Stopping", fmt.Sprintf("Instance %s is shutting down", instanceName))
+				g.refreshInstances()
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// showDeleteInstanceConfirmation shows confirmation dialog for deleting instance
+func (g *CloudWorkstationGUI) showDeleteInstanceConfirmation(instanceName string) {
+	title := "Delete Instance"
+	message := fmt.Sprintf("Are you sure you want to DELETE the instance '%s'?\n\n⚠️ WARNING: This action CANNOT be undone.\n\nAll data on the instance will be permanently lost.\nAttached EBS volumes will be preserved but detached.", instanceName)
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				if err := g.apiClient.DeleteInstance(ctx, instanceName); err != nil {
+					g.showNotification("error", "Delete Failed", err.Error())
+					return
+				}
+				
+				g.showNotification("success", "Instance Deleted", fmt.Sprintf("Instance %s has been deleted", instanceName))
+				g.refreshInstances()
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
 }
 
 // Utility methods
