@@ -95,6 +95,8 @@ type CloudWorkstationGUI struct {
 	refreshTicker      *time.Ticker
 	systemTray         *systray.SystemTrayHandler
 	templatesContainer *fyne.Container
+	efsContainer       *fyne.Container
+	ebsContainer       *fyne.Container
 
 	// Form state
 	launchForm struct {
@@ -913,17 +915,636 @@ func (g *CloudWorkstationGUI) launchInstance(templateID, instanceName, instanceS
 
 // createVolumesView creates the storage/volumes view
 func (g *CloudWorkstationGUI) createVolumesView() *fyne.Container {
-	header := widget.NewLabelWithStyle("Storage & Volumes", fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	// Header with refresh button
+	header := fynecontainer.NewHBox(
+		widget.NewLabelWithStyle("Storage & Volumes", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		layout.NewSpacer(),
+		widget.NewButton("Refresh", func() {
+			g.refreshStorage()
+		}),
+	)
+
+	// Tab container for EFS and EBS
+	efsTab := fynecontainer.NewTabItem("EFS Volumes", g.createEFSVolumesView())
+	ebsTab := fynecontainer.NewTabItem("EBS Storage", g.createEBSStorageView())
+	
+	tabs := fynecontainer.NewAppTabs(efsTab, ebsTab)
 
 	content := fynecontainer.NewVBox(
 		header,
 		widget.NewSeparator(),
-		widget.NewCard("Storage Management", "Persistent storage for your workstations",
-			widget.NewLabel("Storage management features coming soon..."),
-		),
+		tabs,
 	)
 
+	// Initialize storage containers and load data
+	g.initializeStorageContainers()
+	g.refreshStorage()
+
 	return content
+}
+
+// initializeStorageContainers sets up the storage containers
+func (g *CloudWorkstationGUI) initializeStorageContainers() {
+	if g.efsContainer == nil {
+		g.efsContainer = fynecontainer.NewVBox()
+	}
+	if g.ebsContainer == nil {
+		g.ebsContainer = fynecontainer.NewVBox()
+	}
+}
+
+// createEFSVolumesView creates the EFS volumes tab content
+func (g *CloudWorkstationGUI) createEFSVolumesView() fyne.CanvasObject {
+	// Create EFS container if not exists
+	if g.efsContainer == nil {
+		g.efsContainer = fynecontainer.NewVBox()
+	}
+
+	// Create volume button
+	createBtn := widget.NewButton("Create EFS Volume", func() {
+		g.showCreateEFSDialog()
+	})
+	createBtn.Importance = widget.HighImportance
+
+	content := fynecontainer.NewVBox(
+		fynecontainer.NewHBox(
+			widget.NewLabelWithStyle("EFS Volumes", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			layout.NewSpacer(),
+			createBtn,
+		),
+		widget.NewSeparator(),
+		g.efsContainer,
+	)
+
+	return fynecontainer.NewScroll(content)
+}
+
+// createEBSStorageView creates the EBS storage tab content
+func (g *CloudWorkstationGUI) createEBSStorageView() fyne.CanvasObject {
+	// Create EBS container if not exists
+	if g.ebsContainer == nil {
+		g.ebsContainer = fynecontainer.NewVBox()
+	}
+
+	// Create volume button
+	createBtn := widget.NewButton("Create EBS Volume", func() {
+		g.showCreateEBSDialog()
+	})
+	createBtn.Importance = widget.HighImportance
+
+	content := fynecontainer.NewVBox(
+		fynecontainer.NewHBox(
+			widget.NewLabelWithStyle("EBS Storage", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			layout.NewSpacer(),
+			createBtn,
+		),
+		widget.NewSeparator(),
+		g.ebsContainer,
+	)
+
+	return fynecontainer.NewScroll(content)
+}
+
+// refreshStorage loads both EFS and EBS data from the API
+func (g *CloudWorkstationGUI) refreshStorage() {
+	g.refreshEFSVolumes()
+	g.refreshEBSStorage()
+}
+
+// refreshEFSVolumes loads EFS volumes from the API and updates the display
+func (g *CloudWorkstationGUI) refreshEFSVolumes() {
+	if g.efsContainer == nil {
+		return
+	}
+	
+	// Clear existing content
+	g.efsContainer.RemoveAll()
+	
+	// Show loading indicator
+	loadingLabel := widget.NewLabel("Loading EFS volumes...")
+	g.efsContainer.Add(loadingLabel)
+	g.efsContainer.Refresh()
+	
+	// Fetch volumes from API
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		volumes, err := g.apiClient.ListVolumes(ctx)
+		if err != nil {
+			// Update UI on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					g.efsContainer.RemoveAll()
+					g.efsContainer.Add(widget.NewLabel("❌ Failed to load EFS volumes: " + err.Error()))
+					g.efsContainer.Refresh()
+				},
+			})
+			return
+		}
+		
+		// Update UI on main thread
+		g.app.Driver().StartAnimation(&fyne.Animation{
+			Duration: 100 * time.Millisecond,
+			Tick: func(_ float32) {
+				g.displayEFSVolumes(volumes)
+			},
+		})
+	}()
+}
+
+// refreshEBSStorage loads EBS volumes from the API and updates the display
+func (g *CloudWorkstationGUI) refreshEBSStorage() {
+	if g.ebsContainer == nil {
+		return
+	}
+	
+	// Clear existing content
+	g.ebsContainer.RemoveAll()
+	
+	// Show loading indicator
+	loadingLabel := widget.NewLabel("Loading EBS volumes...")
+	g.ebsContainer.Add(loadingLabel)
+	g.ebsContainer.Refresh()
+	
+	// Fetch storage from API
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		
+		volumes, err := g.apiClient.ListStorage(ctx)
+		if err != nil {
+			// Update UI on main thread
+			g.app.Driver().StartAnimation(&fyne.Animation{
+				Duration: 100 * time.Millisecond,
+				Tick: func(_ float32) {
+					g.ebsContainer.RemoveAll()
+					g.ebsContainer.Add(widget.NewLabel("❌ Failed to load EBS volumes: " + err.Error()))
+					g.ebsContainer.Refresh()
+				},
+			})
+			return
+		}
+		
+		// Update UI on main thread
+		g.app.Driver().StartAnimation(&fyne.Animation{
+			Duration: 100 * time.Millisecond,
+			Tick: func(_ float32) {
+				g.displayEBSStorage(volumes)
+			},
+		})
+	}()
+}
+
+// displayEFSVolumes renders EFS volume cards
+func (g *CloudWorkstationGUI) displayEFSVolumes(volumes []types.EFSVolume) {
+	g.efsContainer.RemoveAll()
+	
+	if len(volumes) == 0 {
+		g.efsContainer.Add(widget.NewLabel("No EFS volumes found. Create one to get started."))
+		g.efsContainer.Refresh()
+		return
+	}
+	
+	// Create volume cards
+	for _, volume := range volumes {
+		vol := volume // Capture for closure
+		card := g.createEFSVolumeCard(vol)
+		g.efsContainer.Add(card)
+	}
+	
+	g.efsContainer.Refresh()
+}
+
+// displayEBSStorage renders EBS volume cards
+func (g *CloudWorkstationGUI) displayEBSStorage(volumes []types.EBSVolume) {
+	g.ebsContainer.RemoveAll()
+	
+	if len(volumes) == 0 {
+		g.ebsContainer.Add(widget.NewLabel("No EBS volumes found. Create one to get started."))
+		g.ebsContainer.Refresh()
+		return
+	}
+	
+	// Create volume cards
+	for _, volume := range volumes {
+		vol := volume // Capture for closure
+		card := g.createEBSVolumeCard(vol)
+		g.ebsContainer.Add(card)
+	}
+	
+	g.ebsContainer.Refresh()
+}
+
+// createEFSVolumeCard creates a card widget for an EFS volume
+func (g *CloudWorkstationGUI) createEFSVolumeCard(volume types.EFSVolume) *widget.Card {
+	// Volume details
+	detailsContainer := fynecontainer.NewVBox()
+	
+	detailsContainer.Add(widget.NewLabel("• Filesystem ID: " + volume.FileSystemId))
+	detailsContainer.Add(widget.NewLabel("• Region: " + volume.Region))
+	detailsContainer.Add(widget.NewLabel("• Created: " + volume.CreationTime.Format("Jan 2, 2006 15:04")))
+	
+	if volume.State != "" {
+		detailsContainer.Add(widget.NewLabel("• State: " + volume.State))
+	}
+	
+	if len(volume.MountTargets) > 0 {
+		detailsContainer.Add(widget.NewLabel(fmt.Sprintf("• Mount Targets: %d", len(volume.MountTargets))))
+	}
+	
+	// Action buttons
+	buttonContainer := fynecontainer.NewHBox()
+	
+	infoBtn := widget.NewButton("Info", func() {
+		g.showVolumeInfo(volume.Name, "efs")
+	})
+	
+	deleteBtn := widget.NewButton("Delete", func() {
+		g.showDeleteConfirmation(volume.Name, "efs")
+	})
+	deleteBtn.Importance = widget.DangerImportance
+	
+	buttonContainer.Add(infoBtn)
+	buttonContainer.Add(deleteBtn)
+	
+	detailsContainer.Add(widget.NewSeparator())
+	detailsContainer.Add(buttonContainer)
+	
+	return widget.NewCard(volume.Name, "EFS Volume", detailsContainer)
+}
+
+// createEBSVolumeCard creates a card widget for an EBS volume
+func (g *CloudWorkstationGUI) createEBSVolumeCard(volume types.EBSVolume) *widget.Card {
+	// Volume details
+	detailsContainer := fynecontainer.NewVBox()
+	
+	detailsContainer.Add(widget.NewLabel("• Volume ID: " + volume.VolumeID))
+	detailsContainer.Add(widget.NewLabel("• Region: " + volume.Region))
+	detailsContainer.Add(widget.NewLabel("• Size: " + fmt.Sprintf("%d GB", volume.SizeGB)))
+	detailsContainer.Add(widget.NewLabel("• Type: " + volume.VolumeType))
+	detailsContainer.Add(widget.NewLabel("• State: " + volume.State))
+	detailsContainer.Add(widget.NewLabel("• Created: " + volume.CreationTime.Format("Jan 2, 2006 15:04")))
+	
+	if volume.AttachedTo != "" {
+		detailsContainer.Add(widget.NewLabel("• Attached to: " + volume.AttachedTo))
+	}
+	
+	// Action buttons
+	buttonContainer := fynecontainer.NewHBox()
+	
+	infoBtn := widget.NewButton("Info", func() {
+		g.showVolumeInfo(volume.Name, "ebs")
+	})
+	
+	// Attach/Detach button based on state
+	if volume.AttachedTo == "" && volume.State == "available" {
+		attachBtn := widget.NewButton("Attach", func() {
+			g.showAttachDialog(volume.Name)
+		})
+		attachBtn.Importance = widget.HighImportance
+		buttonContainer.Add(attachBtn)
+	} else if volume.AttachedTo != "" {
+		detachBtn := widget.NewButton("Detach", func() {
+			g.showDetachConfirmation(volume.Name)
+		})
+		buttonContainer.Add(detachBtn)
+	}
+	
+	deleteBtn := widget.NewButton("Delete", func() {
+		g.showDeleteConfirmation(volume.Name, "ebs")
+	})
+	deleteBtn.Importance = widget.DangerImportance
+	
+	buttonContainer.Add(infoBtn)
+	buttonContainer.Add(deleteBtn)
+	
+	detailsContainer.Add(widget.NewSeparator())
+	detailsContainer.Add(buttonContainer)
+	
+	return widget.NewCard(volume.Name, fmt.Sprintf("EBS Volume (%s)", volume.VolumeType), detailsContainer)
+}
+
+// Storage dialog methods
+
+// showCreateEFSDialog shows dialog for creating a new EFS volume
+func (g *CloudWorkstationGUI) showCreateEFSDialog() {
+	nameEntry := widget.NewEntry()
+	nameEntry.SetPlaceHolder("Enter volume name...")
+	
+	// Performance mode selection
+	perfModeSelect := widget.NewSelect([]string{"generalPurpose", "maxIO"}, nil)
+	perfModeSelect.SetSelected("generalPurpose")
+	
+	// Throughput mode selection
+	throughputSelect := widget.NewSelect([]string{"bursting", "provisioned"}, nil)
+	throughputSelect.SetSelected("bursting")
+	
+	form := fynecontainer.NewVBox(
+		widget.NewLabel("Create EFS Volume"),
+		widget.NewSeparator(),
+		widget.NewLabel("Name:"),
+		nameEntry,
+		widget.NewLabel("Performance Mode:"),
+		perfModeSelect,
+		widget.NewLabel("Throughput Mode:"),
+		throughputSelect,
+	)
+	
+	createBtn := widget.NewButton("Create Volume", func() {
+		volumeName := nameEntry.Text
+		if volumeName == "" {
+			g.showNotification("error", "Validation Error", "Please enter a volume name")
+			return
+		}
+		
+		// Create volume request
+		request := types.VolumeCreateRequest{
+			Name:            volumeName,
+			PerformanceMode: perfModeSelect.Selected,
+			ThroughputMode:  throughputSelect.Selected,
+		}
+		
+		g.createEFSVolume(request)
+	})
+	createBtn.Importance = widget.HighImportance
+	
+	cancelBtn := widget.NewButton("Cancel", func() {
+		// Dialog will close automatically
+	})
+	
+	buttons := fynecontainer.NewHBox(layout.NewSpacer(), cancelBtn, createBtn)
+	content := fynecontainer.NewVBox(form, buttons)
+	
+	dialog := dialog.NewCustom("Create EFS Volume", "Close", content, g.window)
+	dialog.Resize(fyne.NewSize(400, 300))
+	dialog.Show()
+}
+
+// showCreateEBSDialog shows dialog for creating a new EBS volume
+func (g *CloudWorkstationGUI) showCreateEBSDialog() {
+	nameEntry := widget.NewEntry()
+	nameEntry.SetPlaceHolder("Enter volume name...")
+	
+	// Size selection with predefined options
+	sizeSelect := widget.NewSelect([]string{"XS (100GB)", "S (500GB)", "M (1TB)", "L (2TB)", "XL (4TB)", "Custom"}, nil)
+	sizeSelect.SetSelected("S (500GB)")
+	
+	// Volume type selection
+	typeSelect := widget.NewSelect([]string{"gp3", "io2"}, nil)
+	typeSelect.SetSelected("gp3")
+	
+	form := fynecontainer.NewVBox(
+		widget.NewLabel("Create EBS Volume"),
+		widget.NewSeparator(),
+		widget.NewLabel("Name:"),
+		nameEntry,
+		widget.NewLabel("Size:"),
+		sizeSelect,
+		widget.NewLabel("Volume Type:"),
+		typeSelect,
+	)
+	
+	createBtn := widget.NewButton("Create Volume", func() {
+		volumeName := nameEntry.Text
+		if volumeName == "" {
+			g.showNotification("error", "Validation Error", "Please enter a volume name")
+			return
+		}
+		
+		// Parse size selection
+		size := "S" // Default
+		switch sizeSelect.Selected {
+		case "XS (100GB)":
+			size = "XS"
+		case "S (500GB)":
+			size = "S"
+		case "M (1TB)":
+			size = "M"
+		case "L (2TB)":
+			size = "L"
+		case "XL (4TB)":
+			size = "XL"
+		}
+		
+		// Create storage request
+		request := types.StorageCreateRequest{
+			Name:       volumeName,
+			Size:       size,
+			VolumeType: typeSelect.Selected,
+		}
+		
+		g.createEBSVolume(request)
+	})
+	createBtn.Importance = widget.HighImportance
+	
+	cancelBtn := widget.NewButton("Cancel", func() {
+		// Dialog will close automatically
+	})
+	
+	buttons := fynecontainer.NewHBox(layout.NewSpacer(), cancelBtn, createBtn)
+	content := fynecontainer.NewVBox(form, buttons)
+	
+	dialog := dialog.NewCustom("Create EBS Volume", "Close", content, g.window)
+	dialog.Resize(fyne.NewSize(400, 300))
+	dialog.Show()
+}
+
+// showVolumeInfo shows detailed information about a volume
+func (g *CloudWorkstationGUI) showVolumeInfo(volumeName, volumeType string) {
+	title := fmt.Sprintf("%s Volume Information", strings.ToUpper(volumeType))
+	
+	content := fynecontainer.NewVBox(
+		widget.NewLabel(fmt.Sprintf("Volume: %s", volumeName)),
+		widget.NewLabel(fmt.Sprintf("Type: %s", strings.ToUpper(volumeType))),
+		widget.NewSeparator(),
+		widget.NewLabel("Volume information will be loaded here..."),
+	)
+	
+	dialog := dialog.NewCustom(title, "Close", content, g.window)
+	dialog.Resize(fyne.NewSize(400, 200))
+	dialog.Show()
+}
+
+// showDeleteConfirmation shows confirmation dialog for volume deletion
+func (g *CloudWorkstationGUI) showDeleteConfirmation(volumeName, volumeType string) {
+	title := fmt.Sprintf("Delete %s Volume", strings.ToUpper(volumeType))
+	message := fmt.Sprintf("Are you sure you want to delete the %s volume '%s'?\n\nThis action cannot be undone.", strings.ToUpper(volumeType), volumeName)
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			g.deleteVolume(volumeName, volumeType)
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// showAttachDialog shows dialog for attaching EBS volume to instance
+func (g *CloudWorkstationGUI) showAttachDialog(volumeName string) {
+	// Get list of running instances
+	instanceNames := []string{}
+	for _, instance := range g.instances {
+		if instance.State == "running" {
+			instanceNames = append(instanceNames, instance.Name)
+		}
+	}
+	
+	if len(instanceNames) == 0 {
+		g.showNotification("warning", "No Running Instances", "No running instances available to attach volume to")
+		return
+	}
+	
+	instanceSelect := widget.NewSelect(instanceNames, nil)
+	if len(instanceNames) > 0 {
+		instanceSelect.SetSelected(instanceNames[0])
+	}
+	
+	form := fynecontainer.NewVBox(
+		widget.NewLabel(fmt.Sprintf("Attach Volume: %s", volumeName)),
+		widget.NewSeparator(),
+		widget.NewLabel("Instance:"),
+		instanceSelect,
+	)
+	
+	attachBtn := widget.NewButton("Attach", func() {
+		if instanceSelect.Selected == "" {
+			g.showNotification("error", "Validation Error", "Please select an instance")
+			return
+		}
+		
+		g.attachVolume(volumeName, instanceSelect.Selected)
+	})
+	attachBtn.Importance = widget.HighImportance
+	
+	cancelBtn := widget.NewButton("Cancel", func() {
+		// Dialog will close automatically
+	})
+	
+	buttons := fynecontainer.NewHBox(layout.NewSpacer(), cancelBtn, attachBtn)
+	content := fynecontainer.NewVBox(form, buttons)
+	
+	dialog := dialog.NewCustom("Attach Volume", "Close", content, g.window)
+	dialog.Resize(fyne.NewSize(400, 200))
+	dialog.Show()
+}
+
+// showDetachConfirmation shows confirmation dialog for detaching EBS volume
+func (g *CloudWorkstationGUI) showDetachConfirmation(volumeName string) {
+	title := "Detach Volume"
+	message := fmt.Sprintf("Are you sure you want to detach the volume '%s'?\n\nThe data will be preserved but the volume will no longer be accessible from the instance.", volumeName)
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			g.detachVolume(volumeName)
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// Storage operation methods
+
+// createEFSVolume creates a new EFS volume via API
+func (g *CloudWorkstationGUI) createEFSVolume(request types.VolumeCreateRequest) {
+	g.showNotification("info", "Creating Volume", "Creating EFS volume...")
+	
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		_, err := g.apiClient.CreateVolume(ctx, request)
+		if err != nil {
+			g.showNotification("error", "Create Failed", "Failed to create EFS volume: "+err.Error())
+			return
+		}
+		
+		g.showNotification("success", "Volume Created", "EFS volume created successfully")
+		g.refreshEFSVolumes()
+	}()
+}
+
+// createEBSVolume creates a new EBS volume via API
+func (g *CloudWorkstationGUI) createEBSVolume(request types.StorageCreateRequest) {
+	g.showNotification("info", "Creating Volume", "Creating EBS volume...")
+	
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		_, err := g.apiClient.CreateStorage(ctx, request)
+		if err != nil {
+			g.showNotification("error", "Create Failed", "Failed to create EBS volume: "+err.Error())
+			return
+		}
+		
+		g.showNotification("success", "Volume Created", "EBS volume created successfully")
+		g.refreshEBSStorage()
+	}()
+}
+
+// deleteVolume deletes a volume via API
+func (g *CloudWorkstationGUI) deleteVolume(volumeName, volumeType string) {
+	g.showNotification("info", "Deleting Volume", fmt.Sprintf("Deleting %s volume...", strings.ToUpper(volumeType)))
+	
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		var err error
+		if volumeType == "efs" {
+			err = g.apiClient.DeleteVolume(ctx, volumeName)
+		} else {
+			err = g.apiClient.DeleteStorage(ctx, volumeName)
+		}
+		
+		if err != nil {
+			g.showNotification("error", "Delete Failed", fmt.Sprintf("Failed to delete %s volume: %s", strings.ToUpper(volumeType), err.Error()))
+			return
+		}
+		
+		g.showNotification("success", "Volume Deleted", fmt.Sprintf("%s volume deleted successfully", strings.ToUpper(volumeType)))
+		g.refreshStorage()
+	}()
+}
+
+// attachVolume attaches an EBS volume to an instance
+func (g *CloudWorkstationGUI) attachVolume(volumeName, instanceName string) {
+	g.showNotification("info", "Attaching Volume", "Attaching volume to instance...")
+	
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		err := g.apiClient.AttachStorage(ctx, volumeName, instanceName)
+		if err != nil {
+			g.showNotification("error", "Attach Failed", "Failed to attach volume: "+err.Error())
+			return
+		}
+		
+		g.showNotification("success", "Volume Attached", "Volume attached successfully")
+		g.refreshEBSStorage()
+	}()
+}
+
+// detachVolume detaches an EBS volume from its instance
+func (g *CloudWorkstationGUI) detachVolume(volumeName string) {
+	g.showNotification("info", "Detaching Volume", "Detaching volume from instance...")
+	
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		
+		err := g.apiClient.DetachStorage(ctx, volumeName)
+		if err != nil {
+			g.showNotification("error", "Detach Failed", "Failed to detach volume: "+err.Error())
+			return
+		}
+		
+		g.showNotification("success", "Volume Detached", "Volume detached successfully")
+		g.refreshEBSStorage()
+	}()
 }
 
 // createBillingView creates the billing/cost view
