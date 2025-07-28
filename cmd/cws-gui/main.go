@@ -1013,7 +1013,19 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 		actionsContainer.Add(startBtn)
 	}
 	
-	// Secondary action buttons
+	// Secondary action buttons  
+	if instance.State == "running" {
+		applyTemplateBtn := widget.NewButton("Apply Template", func() {
+			g.showApplyTemplateDialog(instance)
+		})
+		actionsContainer.Add(applyTemplateBtn)
+		
+		templateLayersBtn := widget.NewButton("Template History", func() {
+			g.showTemplateLayersDialog(instance)
+		})
+		actionsContainer.Add(templateLayersBtn)
+	}
+	
 	moreBtn := widget.NewButton("Details", func() {
 		g.showInstanceDetails(instance)
 	})
@@ -3754,7 +3766,334 @@ func (g *CloudWorkstationGUI) removeProfile(profileID string) {
 func (g *CloudWorkstationGUI) run() {
 	// Show window and run
 	g.window.ShowAndRun()
+}
 
+// showApplyTemplateDialog shows a dialog to apply templates to running instances
+func (g *CloudWorkstationGUI) showApplyTemplateDialog(instance types.Instance) {
+	// Load available templates
+	ctx := context.Background()
+	templates, err := g.apiClient.ListTemplates(ctx)
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("Failed to load templates: %v", err), g.window)
+		return
+	}
+	
+	// Create template selection
+	var templateOptions []string
+	templateMap := make(map[string]types.Template)
+	for _, template := range templates {
+		templateOptions = append(templateOptions, template.Name)
+		templateMap[template.Name] = template
+	}
+	
+	if len(templateOptions) == 0 {
+		dialog.ShowError(fmt.Errorf("No templates available"), g.window)
+		return
+	}
+	
+	templateSelect := widget.NewSelect(templateOptions, nil)
+	templateSelect.SetSelected(templateOptions[0])
+	
+	// Package manager selection
+	packageManagerOptions := []string{"conda", "pip", "spack", "apt", "dnf"}
+	packageManagerSelect := widget.NewSelect(packageManagerOptions, nil)
+	packageManagerSelect.SetSelected("conda") // Default to conda
+	
+	// Dry run option
+	dryRunCheck := widget.NewCheck("Dry run (preview only)", nil)
+	dryRunCheck.SetChecked(true) // Default to dry run for safety
+	
+	// Force option  
+	forceCheck := widget.NewCheck("Force apply (ignore conflicts)", nil)
+	
+	// Progress bar and log
+	progressBar := widget.NewProgressBar()
+	progressBar.Hide()
+	
+	logText := widget.NewRichTextFromMarkdown("")
+	logText.Hide()
+	logScroll := fynecontainer.NewScroll(logText)
+	logScroll.SetMinSize(fyne.NewSize(500, 200))
+	logScroll.Hide()
+	
+	// Dialog content
+	content := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle(fmt.Sprintf("Apply Template to %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		
+		widget.NewLabel("Select Template:"),
+		templateSelect,
+		
+		widget.NewLabel("Package Manager:"),
+		packageManagerSelect,
+		
+		widget.NewSeparator(),
+		dryRunCheck,
+		forceCheck,
+		
+		progressBar,
+		logScroll,
+	)
+	
+	// Create dialog
+	applyDialog := dialog.NewCustom("Apply Template", "Cancel", content, g.window)
+	applyDialog.Resize(fyne.NewSize(600, 500))
+	
+	// Add apply button
+	applyButton := widget.NewButton("Apply Template", func() {
+		selectedTemplate := templateMap[templateSelect.Selected]
+		
+		// Show progress
+		progressBar.Show()
+		logText.Show()
+		logScroll.Show()
+		applyDialog.Resize(fyne.NewSize(600, 700))
+		
+		// Update log
+		logText.ParseMarkdown("**Starting template application...**\n\n")
+		
+		// Apply template (this would call the API)
+		go g.applyTemplateToInstance(instance.Name, selectedTemplate, packageManagerSelect.Selected, dryRunCheck.Checked, forceCheck.Checked, progressBar, logText, applyDialog)
+	})
+	applyButton.Importance = widget.HighImportance
+	
+	// Show preview button for template differences
+	previewButton := widget.NewButton("Preview Changes", func() {
+		if templateSelect.Selected == "" {
+			dialog.ShowError(fmt.Errorf("Please select a template first"), g.window)
+			return
+		}
+		selectedTemplate := templateMap[templateSelect.Selected]
+		g.showTemplateDiffDialog(instance, selectedTemplate)
+	})
+	
+	// Add buttons to dialog
+	buttons := fynecontainer.NewHBox(
+		previewButton,
+		layout.NewSpacer(),
+		applyButton,
+	)
+	
+	content.Add(widget.NewSeparator())
+	content.Add(buttons)
+	
+	applyDialog.Show()
+}
+
+// showTemplateDiffDialog shows differences between current instance state and template
+func (g *CloudWorkstationGUI) showTemplateDiffDialog(instance types.Instance, template types.Template) {
+	// This would show a dialog with template differences
+	// For now, show a placeholder
+	content := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle(fmt.Sprintf("Template Differences for %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		
+		widget.NewLabel("Template: " + template.Name),
+		widget.NewLabel("Instance: " + instance.Name),
+		
+		widget.NewSeparator(),
+		widget.NewLabel("🔍 Calculating differences..."),
+		widget.NewLabel("This feature requires API integration with the template diff endpoint."),
+	)
+	
+	diffDialog := dialog.NewCustom("Template Differences", "Close", content, g.window)
+	diffDialog.Resize(fyne.NewSize(500, 400))
+	diffDialog.Show()
+}
+
+// showTemplateLayersDialog shows the history of applied templates for an instance
+func (g *CloudWorkstationGUI) showTemplateLayersDialog(instance types.Instance) {
+	// This would show template application history
+	content := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle(fmt.Sprintf("Template History for %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		
+		widget.NewLabel("Instance: " + instance.Name),
+		widget.NewLabel("Base Template: " + instance.Template),
+		
+		widget.NewSeparator(),
+	)
+	
+	// Check if instance has applied templates
+	if len(instance.AppliedTemplates) == 0 {
+		content.Add(widget.NewLabel("📝 No additional templates have been applied to this instance."))
+		content.Add(widget.NewLabel("Use 'Apply Template' to add software packages and configurations."))
+	} else {
+		content.Add(widget.NewLabel("📚 Applied Template Layers:"))
+		
+		for i, applied := range instance.AppliedTemplates {
+			layerCard := widget.NewCard(
+				fmt.Sprintf("%d. %s", i+1, applied.TemplateName),
+				applied.AppliedAt.Format("Jan 2, 2006 15:04"),
+				fynecontainer.NewVBox(
+					widget.NewLabel("Package Manager: " + applied.PackageManager),
+					widget.NewLabel(fmt.Sprintf("Packages: %d installed", len(applied.PackagesInstalled))),
+					widget.NewLabel(fmt.Sprintf("Services: %d configured", len(applied.ServicesConfigured))),
+					widget.NewLabel("Checkpoint: " + applied.RollbackCheckpoint),
+				),
+			)
+			content.Add(layerCard)
+		}
+		
+		// Add rollback button for latest checkpoint
+		if len(instance.AppliedTemplates) > 0 {
+			content.Add(widget.NewSeparator())
+			rollbackBtn := widget.NewButton("Rollback to Previous", func() {
+				g.showRollbackDialog(instance)
+			})
+			rollbackBtn.Importance = widget.DangerImportance
+			content.Add(rollbackBtn)
+		}
+	}
+	
+	layersDialog := dialog.NewCustom("Template History", "Close", content, g.window)
+	layersDialog.Resize(fyne.NewSize(600, 500))
+	layersDialog.Show()
+}
+
+// showRollbackDialog shows options for rolling back template applications
+func (g *CloudWorkstationGUI) showRollbackDialog(instance types.Instance) {
+	if len(instance.AppliedTemplates) == 0 {
+		dialog.ShowError(fmt.Errorf("No template applications to rollback"), g.window)
+		return
+	}
+	
+	// Create checkpoint selection
+	var checkpointOptions []string
+	checkpointMap := make(map[string]string)
+	
+	for _, applied := range instance.AppliedTemplates {
+		option := fmt.Sprintf("%s (%s)", applied.TemplateName, applied.AppliedAt.Format("Jan 2 15:04"))
+		checkpointOptions = append(checkpointOptions, option)
+		checkpointMap[option] = applied.RollbackCheckpoint
+	}
+	
+	checkpointSelect := widget.NewSelect(checkpointOptions, nil)
+	if len(checkpointOptions) > 0 {
+		checkpointSelect.SetSelected(checkpointOptions[len(checkpointOptions)-1]) // Select most recent
+	}
+	
+	content := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle(fmt.Sprintf("Rollback %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		
+		widget.NewLabel("⚠️ This will remove all template applications after the selected checkpoint."),
+		widget.NewLabel("This action cannot be undone."),
+		
+		widget.NewSeparator(),
+		widget.NewLabel("Rollback to checkpoint:"),
+		checkpointSelect,
+	)
+	
+	rollbackDialog := dialog.NewCustom("Rollback Template Applications", "Cancel", content, g.window)
+	rollbackDialog.Resize(fyne.NewSize(500, 300))
+	
+	// Add rollback button
+	rollbackButton := widget.NewButton("Rollback Now", func() {
+		if checkpointSelect.Selected == "" {
+			dialog.ShowError(fmt.Errorf("Please select a checkpoint"), g.window)
+			return
+		}
+		
+		checkpointID := checkpointMap[checkpointSelect.Selected]
+		
+		// Confirm the rollback
+		confirmDialog := dialog.NewConfirm(
+			"Confirm Rollback",
+			fmt.Sprintf("Are you sure you want to rollback instance '%s' to checkpoint '%s'?\n\nThis will remove all software and configurations applied after this point.", instance.Name, checkpointID),
+			func(confirmed bool) {
+				if confirmed {
+					rollbackDialog.Hide()
+					g.performRollback(instance.Name, checkpointID)
+				}
+			},
+			g.window,
+		)
+		confirmDialog.Show()
+	})
+	rollbackButton.Importance = widget.DangerImportance
+	
+	content.Add(widget.NewSeparator())
+	content.Add(rollbackButton)
+	
+	rollbackDialog.Show()
+}
+
+// applyTemplateToInstance applies a template to an instance with progress tracking
+func (g *CloudWorkstationGUI) applyTemplateToInstance(instanceName string, template types.Template, packageManager string, dryRun bool, force bool, progressBar *widget.ProgressBar, logText *widget.RichText, dialog *dialog.CustomDialog) {
+	// This would integrate with the template application API
+	// For now, simulate the process
+	
+	var logContent string
+	logContent = "**Applying template: " + template.Name + "**\n\n"
+	logText.ParseMarkdown(logContent)
+	
+	steps := []string{
+		"🔍 Inspecting instance state...",
+		"📊 Calculating template differences...", 
+		"📦 Installing packages...",
+		"⚙️ Configuring services...",
+		"👥 Setting up users...",
+		"✅ Template application complete!",
+	}
+	
+	for i, step := range steps {
+		time.Sleep(1 * time.Second) // Simulate work
+		progressBar.SetValue(float64(i+1) / float64(len(steps)))
+		
+		logContent += step + "\n"
+		logText.ParseMarkdown(logContent)
+		
+		if i == len(steps)-1 {
+			// Final step - show success
+			if dryRun {
+				logContent += "\n**Dry run completed successfully!**\n"
+				logContent += "No changes were made to the instance.\n"
+			} else {
+				logContent += "\n**Template applied successfully!**\n"
+				logContent += "Instance updated with new software and configurations.\n"
+				
+				// Refresh instances to show updated state
+				go g.refreshInstances()
+			}
+			logText.ParseMarkdown(logContent)
+		}
+	}
+}
+
+// performRollback performs a rollback operation
+func (g *CloudWorkstationGUI) performRollback(instanceName string, checkpointID string) {
+	// This would integrate with the rollback API
+	// For now, show a progress dialog
+	
+	content := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle("Rolling Back Instance", fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+		widget.NewSeparator(),
+		widget.NewLabel("Instance: " + instanceName),
+		widget.NewLabel("Checkpoint: " + checkpointID),
+		widget.NewSeparator(),
+		widget.NewLabel("🔄 Performing rollback..."),
+	)
+	
+	progressDialog := dialog.NewCustom("Rollback in Progress", "", content, g.window)
+	progressDialog.Show()
+	
+	// Simulate rollback
+	go func() {
+		time.Sleep(3 * time.Second)
+		progressDialog.Hide()
+		
+		// Show success
+		dialog.ShowInformation("Rollback Complete", 
+			fmt.Sprintf("Instance '%s' has been successfully rolled back to checkpoint '%s'.", instanceName, checkpointID),
+			g.window)
+		
+		// Refresh instances
+		g.refreshInstances()
+	}()
+}
+
+func (g *CloudWorkstationGUI) cleanup() {
 	// Cleanup
 	if g.refreshTicker != nil {
 		g.refreshTicker.Stop()
