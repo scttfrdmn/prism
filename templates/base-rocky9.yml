@@ -1,0 +1,34 @@
+name: "Rocky Linux 9 Base"
+description: "Base Rocky Linux 9 environment with essential system tools"
+base: "ubuntu-22.04"  # Use Ubuntu as base since we don't have Rocky AMIs yet
+
+# Use DNF package manager to simulate Rocky Linux
+package_manager: "dnf"
+
+packages:
+  system:
+    - "build-essential"
+    - "curl"
+    - "wget"
+    - "git"
+    - "vim"
+    - "htop"
+    - "tree"
+    - "unzip"
+
+# Rocky Linux style user
+users:
+  - name: "rocky"
+    password: "auto-generated"
+    groups: ["wheel", "sudo"]
+
+services: []
+
+instance_defaults:
+  ports: [22]
+
+version: "1.0"
+tags:
+  type: "base"
+  os: "rocky-linux"
+  purpose: "base-template"

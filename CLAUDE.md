@@ -136,49 +136,57 @@ internal/
 - **Profile Integration**: Seamless AWS credential and region management
 - **Graceful Operations**: Proper shutdown, error handling, progress reporting
 
-### Templates (Stackable Architecture)
+### Templates (Inheritance Architecture)
 
-**Base Templates** (Foundation layers):
-- `basic-ubuntu`: Plain Ubuntu 22.04 for general use
-- `desktop-research`: Ubuntu Desktop + NICE DCV + research GUI applications
-- `gpu-workstation`: NVIDIA drivers + CUDA + NICE DCV + ML/rendering tools
+**✅ IMPLEMENTED: Template Inheritance System**
 
-**Application Stacks** (Can be layered on base templates):
-- `r-research`: R + RStudio Server + common packages
-- `python-research`: Python + Jupyter + data science stack
-- `scivis`: Scientific visualization + ParaView + VisIt + VTK
-- `gis-research`: QGIS + GRASS + PostGIS + R spatial + Python geospatial
-- `cuda-ml`: CUDA + cuDNN + PyTorch + TensorFlow + Jupyter + multi-GPU support
-- `neuroimaging`: FSL + AFNI + ANTs + MRtrix + Neuroglancer
-- `bioinformatics`: BWA + GATK + Samtools + R Bioconductor + Galaxy
-- `cad-engineering`: CAD software + NVIDIA Omniverse + NICE DCV for 3D work
+CloudWorkstation now supports template stacking and inheritance, allowing templates to build upon each other:
 
-**Multi-Stack Architecture (User Choice)**:
 ```bash
-# Simple templates (CloudWorkstation chooses best approach)
-cws launch neuroimaging my-brain-analysis       # Smart defaults
-cws launch cuda-ml gpu-training                 # Optimized for use case
+# Base template provides foundation
+# templates/base-rocky9.yml: Rocky Linux 9 + DNF + system tools + rocky user
 
-# Power users can specify approach when needed
-cws launch neuroimaging my-workstation --with spack
-cws launch python-ml my-project --with conda
-cws launch bioinformatics pipeline --with docker
-cws launch desktop-research+custom:my-env workstation --with apptainer
+# Stacked template inherits and extends  
+# templates/rocky9-conda-stack.yml:
+#   inherits: ["Rocky Linux 9 Base"]
+#   package_manager: "conda"  # Override parent's DNF
+#   adds: conda packages, datascientist user, jupyter service
 
-# Mix approaches based on what works best
-cws launch desktop-research my-workstation
-# ↳ GUI apps: Native installation (best performance)
-# ↳ Python environments: Conda (familiar to most researchers)  
-# ↳ HPC software: Spack (when available)
-# ↳ Web services: Docker (when appropriate)
+# Launch stacked template
+cws launch "Rocky Linux 9 + Conda Stack" my-analysis
+# ↳ Gets: rocky user + datascientist user, system packages + conda packages, ports 22 + 8888
 ```
 
-**Behind-the-Scenes Intelligence**:
-- **Smart Defaults**: CloudWorkstation picks the best tool for each component
-- **Hidden Complexity**: Researchers see simple templates, not package managers
-- **Flexible Override**: Power users can specify preferences when needed
-- **Progressive Disclosure**: Start simple, access advanced features when ready
-- **Workflow Awareness**: Different defaults for HPC vs desktop vs cloud-native workflows
+**Inheritance Merging Rules**:
+- **Packages**: Append (base system packages + child conda packages)
+- **Users**: Append (base rocky user + child datascientist user)  
+- **Services**: Append (base services + child jupyter service)
+- **Package Manager**: Override (child conda overrides parent DNF)
+- **Ports**: Deduplicate (base 22 + child 8888 = [22, 8888])
+
+**Available Templates**:
+- `Rocky Linux 9 Base`: Foundation with DNF, system tools, rocky user
+- `Rocky Linux 9 + Conda Stack`: Inherits base + adds conda ML packages
+- `Python Machine Learning (Simplified)`: Conda + Jupyter + ML packages  
+- `R Research Environment (Simplified)`: Conda + RStudio + tidyverse
+- `Basic Ubuntu (APT)`: Ubuntu + APT package management
+- `Web Development (APT)`: Ubuntu + web development tools
+
+**Future Multi-Stack Architecture**:
+```bash  
+# Planned: Complex inheritance chains
+cws launch gpu-ml-workstation my-training
+# ↳ Inherits: Base OS → GPU Drivers → Conda ML → Desktop GUI
+
+# Power users can override at launch
+cws launch "Rocky Linux 9 + Conda Stack" my-project --with spack
+```
+
+**Design Benefits**:
+- **Composition Over Duplication**: Inherit and extend vs copy/paste
+- **Maintainable Library**: Base template updates propagate to children
+- **Clear Relationships**: Explicit parent-child dependencies
+- **Flexible Override**: Change any aspect while preserving inheritance
 
 ### State Management
 Enhanced state management with profile integration:

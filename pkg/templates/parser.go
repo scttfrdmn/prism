@@ -25,10 +25,7 @@ func (p *TemplateParser) ParseTemplate(content []byte) (*Template, error) {
 		return nil, fmt.Errorf("failed to parse template YAML: %w", err)
 	}
 	
-	// Set defaults
-	if template.PackageManager == "" {
-		template.PackageManager = "auto"
-	}
+	// Templates must specify their package manager explicitly
 	
 	// Set default service enable state
 	for i := range template.Services {
@@ -99,7 +96,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 	}
 	
 	// Validate package manager
-	validPMs := []string{"auto", "apt", "dnf", "conda", "spack", "ami"}
+	validPMs := []string{"apt", "dnf", "conda", "spack", "ami"}
 	if template.PackageManager != "" {
 		valid := false
 		for _, pm := range validPMs {
@@ -164,74 +161,15 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 	return nil
 }
 
-// NewPackageManagerStrategy creates a new package manager strategy with default rules
+// NewPackageManagerStrategy creates a new package manager strategy
 func NewPackageManagerStrategy() *PackageManagerStrategy {
-	return &PackageManagerStrategy{
-		Rules: PackageManagerRules{
-			HPCIndicators: []string{
-				// Scientific computing packages typically available in Spack
-				"openmpi", "mpich", "fftw", "blas", "lapack", "scalapack",
-				"petsc", "trilinos", "boost", "eigen", "armadillo",
-				"paraview", "visit", "vtk", "hdf5", "netcdf",
-			},
-			PythonDataScienceIndicators: []string{
-				// Python data science packages better in conda
-				"numpy", "scipy", "pandas", "matplotlib", "seaborn",
-				"scikit-learn", "tensorflow", "pytorch", "jupyter",
-				"ipython", "bokeh", "plotly", "dask", "xarray",
-			},
-			RIndicators: []string{
-				// R packages better in conda
-				"r-base", "rstudio", "tidyverse", "ggplot2",
-				"dplyr", "shiny", "rmarkdown", "knitr",
-			},
-			DefaultManager: PackageManagerApt,
-		},
-	}
+	return &PackageManagerStrategy{}
 }
 
-// SelectPackageManager determines the best package manager for a template
+// SelectPackageManager returns the template's specified package manager
 func (s *PackageManagerStrategy) SelectPackageManager(template *Template) PackageManagerType {
-	if template.PackageManager != "auto" {
-		return PackageManagerType(template.PackageManager)
-	}
-	
-	// Collect all package names from template
-	allPackages := make([]string, 0)
-	allPackages = append(allPackages, template.Packages.System...)
-	allPackages = append(allPackages, template.Packages.Conda...)
-	allPackages = append(allPackages, template.Packages.Spack...)
-	allPackages = append(allPackages, template.Packages.Pip...)
-	
-	// Convert to lowercase for matching
-	packageSet := make(map[string]bool)
-	for _, pkg := range allPackages {
-		packageSet[strings.ToLower(pkg)] = true
-	}
-	
-	// Check for HPC indicators (highest priority)
-	for _, indicator := range s.Rules.HPCIndicators {
-		if packageSet[strings.ToLower(indicator)] {
-			return PackageManagerSpack
-		}
-	}
-	
-	// Check for Python data science indicators
-	for _, indicator := range s.Rules.PythonDataScienceIndicators {
-		if packageSet[strings.ToLower(indicator)] {
-			return PackageManagerConda
-		}
-	}
-	
-	// Check for R indicators
-	for _, indicator := range s.Rules.RIndicators {
-		if packageSet[strings.ToLower(indicator)] {
-			return PackageManagerConda
-		}
-	}
-	
-	// Default to system package manager
-	return s.Rules.DefaultManager
+	// Templates must specify their package manager explicitly
+	return PackageManagerType(template.PackageManager)
 }
 
 // getDefaultBaseAMIs returns the default base AMI mappings
@@ -335,6 +273,11 @@ func (r *TemplateRegistry) ScanTemplates() error {
 		}
 	}
 	
+	// After loading all templates, resolve inheritance
+	if err := r.ResolveInheritance(); err != nil {
+		return fmt.Errorf("failed to resolve template inheritance: %w", err)
+	}
+	
 	r.LastScan = time.Now()
 	return nil
 }
@@ -352,4 +295,140 @@ func (r *TemplateRegistry) GetTemplate(name string) (*Template, error) {
 // ListTemplates returns all available templates
 func (r *TemplateRegistry) ListTemplates() map[string]*Template {
 	return r.Templates
+}
+// ResolveInheritance resolves template inheritance by merging parent templates
+func (r *TemplateRegistry) ResolveInheritance() error {
+	// First pass: collect all templates that need inheritance resolution
+	templatesWithInheritance := make([]*Template, 0)
+	for _, template := range r.Templates {
+		if len(template.Inherits) > 0 {
+			templatesWithInheritance = append(templatesWithInheritance, template)
+		}
+	}
+	
+	// Second pass: resolve inheritance for each template
+	for _, template := range templatesWithInheritance {
+		resolved, err := r.resolveTemplateInheritance(template)
+		if err != nil {
+			return fmt.Errorf("failed to resolve inheritance for template %s: %w", template.Name, err)
+		}
+		
+		// Replace original template with resolved one
+		r.Templates[template.Name] = resolved
+	}
+	
+	return nil
+}
+
+// resolveTemplateInheritance resolves inheritance for a single template
+func (r *TemplateRegistry) resolveTemplateInheritance(template *Template) (*Template, error) {
+	// Create a new template to merge into
+	merged := &Template{
+		Name:           template.Name,
+		Description:    template.Description,
+		Base:          template.Base,
+		Version:        template.Version,
+		Maintainer:     template.Maintainer,
+		LastUpdated:    template.LastUpdated,
+		Tags:           make(map[string]string),
+		Packages:       PackageDefinitions{},
+		Users:          []UserConfig{},
+		Services:       []ServiceConfig{},
+		InstanceDefaults: InstanceDefaults{
+			Ports: []int{},
+			EstimatedCostPerHour: make(map[string]float64),
+		},
+	}
+	
+	// Process inheritance chain (parents first, then child)
+	for _, parentName := range template.Inherits {
+		parent, exists := r.Templates[parentName]
+		if !exists {
+			return nil, fmt.Errorf("parent template not found: %s", parentName)
+		}
+		
+		// Recursively resolve parent if it has inheritance
+		if len(parent.Inherits) > 0 {
+			resolvedParent, err := r.resolveTemplateInheritance(parent)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve parent template %s: %w", parentName, err)
+			}
+			parent = resolvedParent
+		}
+		
+		// Merge parent into merged template
+		r.mergeTemplate(merged, parent)
+	}
+	
+	// Finally merge the current template (child overrides parent)
+	r.mergeTemplate(merged, template)
+	
+	return merged, nil
+}
+
+// mergeTemplate merges source template into target template
+func (r *TemplateRegistry) mergeTemplate(target, source *Template) {
+	// Merge package manager (child overrides parent)
+	if source.PackageManager != "" {
+		target.PackageManager = source.PackageManager
+	}
+	
+	// Merge packages (append, don't override)
+	target.Packages.System = append(target.Packages.System, source.Packages.System...)
+	target.Packages.Conda = append(target.Packages.Conda, source.Packages.Conda...)
+	target.Packages.Spack = append(target.Packages.Spack, source.Packages.Spack...)
+	target.Packages.Pip = append(target.Packages.Pip, source.Packages.Pip...)
+	
+	// Merge users (append)
+	target.Users = append(target.Users, source.Users...)
+	
+	// Merge services (append)
+	target.Services = append(target.Services, source.Services...)
+	
+	// Merge tags (child overrides parent)
+	if target.Tags == nil {
+		target.Tags = make(map[string]string)
+	}
+	for k, v := range source.Tags {
+		target.Tags[k] = v
+	}
+	
+	// Merge AMI config (child overrides parent)
+	if source.AMIConfig.AMIs != nil {
+		target.AMIConfig = source.AMIConfig
+	}
+	
+	// Merge post-install script (append)
+	if source.PostInstall != "" {
+		if target.PostInstall != "" {
+			target.PostInstall += "\n\n# --- From parent template ---\n" + source.PostInstall
+		} else {
+			target.PostInstall = source.PostInstall
+		}
+	}
+	
+	// Merge instance defaults
+	if source.InstanceDefaults.Type != "" {
+		target.InstanceDefaults.Type = source.InstanceDefaults.Type
+	}
+	
+	// Merge ports (append and deduplicate)
+	portMap := make(map[int]bool)
+	for _, port := range target.InstanceDefaults.Ports {
+		portMap[port] = true
+	}
+	for _, port := range source.InstanceDefaults.Ports {
+		if !portMap[port] {
+			target.InstanceDefaults.Ports = append(target.InstanceDefaults.Ports, port)
+			portMap[port] = true
+		}
+	}
+	
+	// Merge cost estimates (child overrides parent)
+	if target.InstanceDefaults.EstimatedCostPerHour == nil {
+		target.InstanceDefaults.EstimatedCostPerHour = make(map[string]float64)
+	}
+	for k, v := range source.InstanceDefaults.EstimatedCostPerHour {
+		target.InstanceDefaults.EstimatedCostPerHour[k] = v
+	}
 }

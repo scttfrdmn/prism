@@ -2,8 +2,8 @@ name: "Python Machine Learning (Simplified)"
 description: "Python + Jupyter + ML packages using simplified template system"
 base: "ubuntu-22.04"
 
-# Let CloudWorkstation auto-select conda for Python data science
-package_manager: "auto"
+# Use conda for Python data science packages
+package_manager: "conda"
 
 packages:
   conda:
@@ -31,7 +31,7 @@ users:
     password: "auto-generated"
     groups: ["sudo"]
 
-# CloudWorkstation will detect ML packages and recommend GPU instance
+# GPU instances recommended for ML workloads
 instance_defaults:
   ports: [22, 8888]
 
