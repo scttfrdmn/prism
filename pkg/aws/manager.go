@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 )
 
@@ -120,14 +121,19 @@ func (m *Manager) GetTemplate(name string) (*ctypes.Template, error) {
 
 // LaunchInstance launches a new EC2 instance
 func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, error) {
-	// Get template
+	// Detect architecture (use local for now, could be part of request)
+	arch := m.getLocalArchitecture()
+	
+	// If PackageManager is specified, use unified template system
+	if req.PackageManager != "" {
+		return m.launchWithUnifiedTemplateSystem(req, arch)
+	}
+	
+	// Otherwise, use legacy templates for backward compatibility
 	template, exists := m.templates[req.Template]
 	if !exists {
 		return nil, fmt.Errorf("template '%s' not found", req.Template)
 	}
-
-	// Detect architecture (use local for now, could be part of request)
-	arch := m.getLocalArchitecture()
 	
 	// Get template configuration for architecture and region
 	ami, instanceType, _, err := m.getTemplateForArchitecture(template, arch, m.region)
@@ -203,6 +209,92 @@ func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, er
 	}
 
 	// Get the launched instance
+	instance := result.Instances[0]
+	
+	return &ctypes.Instance{
+		ID:                 *instance.InstanceId,
+		Name:               req.Name,
+		Template:           req.Template,
+		State:              string(instance.State.Name),
+		LaunchTime:         time.Now(),
+		EstimatedDailyCost: dailyCost,
+		AttachedVolumes:    req.Volumes,
+	}, nil
+}
+
+// launchWithUnifiedTemplateSystem launches instance using the unified template system with package manager override
+func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch string) (*ctypes.Instance, error) {
+	// Get template using unified template system with package manager override
+	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, req.PackageManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template: %w", err)
+	}
+	
+	// Extract configuration from unified template
+	ami, exists := template.AMI[m.region][arch]
+	if !exists {
+		return nil, fmt.Errorf("AMI not available for region %s and architecture %s", m.region, arch)
+	}
+	
+	instanceType, exists := template.InstanceType[arch]
+	if !exists {
+		return nil, fmt.Errorf("instance type not available for architecture %s", arch)
+	}
+	
+	// Get cost estimate
+	dailyCost := template.EstimatedCostPerHour[arch] * 24
+	
+	// Use generated UserData script
+	userData := template.UserData
+	
+	// Add EFS mount if volumes specified
+	if len(req.Volumes) > 0 {
+		for _, volumeName := range req.Volumes {
+			userData = m.addEFSMountToUserData(userData, volumeName, m.region)
+		}
+	}
+	
+	// Encode user data
+	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
+	
+	// Launch EC2 instance
+	minCount := int32(1)
+	maxCount := int32(1)
+	runInput := &ec2.RunInstancesInput{
+		ImageId:      &ami,
+		InstanceType: types.InstanceType(instanceType),
+		MinCount:     &minCount,
+		MaxCount:     &maxCount,
+		UserData:     &userDataEncoded,
+		TagSpecifications: []types.TagSpecification{
+			{
+				ResourceType: types.ResourceTypeInstance,
+				Tags: []types.Tag{
+					{Key: aws.String("Name"), Value: &req.Name},
+					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("Template"), Value: &req.Template},
+					{Key: aws.String("PackageManager"), Value: &req.PackageManager},
+				},
+			},
+		},
+	}
+	
+	// Handle dry run
+	if req.DryRun {
+		return &ctypes.Instance{
+			Name:               req.Name,
+			Template:           req.Template,
+			State:              "dry-run",
+			EstimatedDailyCost: dailyCost,
+		}, nil
+	}
+	
+	// Launch instance
+	result, err := m.ec2.RunInstances(context.TODO(), runInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to launch instance: %w", err)
+	}
+	
 	instance := result.Instances[0]
 	
 	return &ctypes.Instance{
