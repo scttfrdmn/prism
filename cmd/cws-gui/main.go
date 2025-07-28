@@ -43,6 +43,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
@@ -3882,9 +3883,8 @@ func (g *CloudWorkstationGUI) showApplyTemplateDialog(instance types.Instance) {
 
 // showTemplateDiffDialog shows differences between current instance state and template
 func (g *CloudWorkstationGUI) showTemplateDiffDialog(instance types.Instance, template types.Template) {
-	// This would show a dialog with template differences
-	// For now, show a placeholder
-	content := fynecontainer.NewVBox(
+	// Create loading content first
+	loadingContent := fynecontainer.NewVBox(
 		widget.NewLabelWithStyle(fmt.Sprintf("Template Differences for %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 		widget.NewSeparator(),
 		
@@ -3893,18 +3893,115 @@ func (g *CloudWorkstationGUI) showTemplateDiffDialog(instance types.Instance, te
 		
 		widget.NewSeparator(),
 		widget.NewLabel("🔍 Calculating differences..."),
-		widget.NewLabel("This feature requires API integration with the template diff endpoint."),
 	)
 	
-	diffDialog := dialog.NewCustom("Template Differences", "Close", content, g.window)
-	diffDialog.Resize(fyne.NewSize(500, 400))
+	diffDialog := dialog.NewCustom("Template Differences", "Close", loadingContent, g.window)
+	diffDialog.Resize(fyne.NewSize(600, 500))
 	diffDialog.Show()
+	
+	// Calculate differences in background
+	go func() {
+		ctx := context.Background()
+		
+		// Convert runtime template to unified template format
+		unifiedTemplate := &templates.Template{
+			Name:        template.Name,
+			Description: template.Description,
+			Packages: templates.PackageDefinitions{
+				System: []string{}, // Would be populated from template data
+				Conda:  []string{}, // Would be populated from template data  
+				Pip:    []string{}, // Would be populated from template data
+				Spack:  []string{}, // Would be populated from template data
+			},
+			Services: []templates.ServiceConfig{}, // Would be populated from template data
+			Users:    []templates.UserConfig{},    // Would be populated from template data
+		}
+		
+		// Create diff request
+		request := templates.DiffRequest{
+			InstanceName: instance.Name,
+			Template:     unifiedTemplate,
+		}
+		
+		// Call the API
+		diff, err := g.apiClient.DiffTemplate(ctx, request)
+		if err != nil {
+			// Hide loading dialog and show error
+			diffDialog.Hide()
+			dialog.ShowError(fmt.Errorf("Failed to calculate template differences: %v", err), g.window)
+			return
+		}
+		
+		// Create results content
+		resultsContent := fynecontainer.NewVBox(
+			widget.NewLabelWithStyle(fmt.Sprintf("Template Differences for %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+			widget.NewSeparator(),
+			
+			widget.NewLabel("Template: " + template.Name),
+			widget.NewLabel("Instance: " + instance.Name),
+			widget.NewSeparator(),
+		)
+		
+		// Show packages to install
+		if len(diff.PackagesToInstall) > 0 {
+			resultsContent.Add(widget.NewLabelWithStyle("📦 Packages to Install:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+			for _, pkg := range diff.PackagesToInstall {
+				pkgLabel := fmt.Sprintf("• %s", pkg.Name)
+				if pkg.TargetVersion != "" {
+					pkgLabel += fmt.Sprintf(" (%s)", pkg.TargetVersion)
+				}
+				pkgLabel += fmt.Sprintf(" via %s", pkg.PackageManager)
+				resultsContent.Add(widget.NewLabel(pkgLabel))
+			}
+			resultsContent.Add(widget.NewSeparator())
+		}
+		
+		// Show services to configure
+		if len(diff.ServicesToConfigure) > 0 {
+			resultsContent.Add(widget.NewLabelWithStyle("⚙️ Services to Configure:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+			for _, svc := range diff.ServicesToConfigure {
+				resultsContent.Add(widget.NewLabel(fmt.Sprintf("• %s (port %d)", svc.Name, svc.Port)))
+			}
+			resultsContent.Add(widget.NewSeparator())
+		}
+		
+		// Show users to create
+		if len(diff.UsersToCreate) > 0 {
+			resultsContent.Add(widget.NewLabelWithStyle("👥 Users to Create:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+			for _, user := range diff.UsersToCreate {
+				groupsStr := strings.Join(user.TargetGroups, ", ")
+				resultsContent.Add(widget.NewLabel(fmt.Sprintf("• %s (groups: %s)", user.Name, groupsStr)))
+			}
+			resultsContent.Add(widget.NewSeparator())
+		}
+		
+		// Show conflicts if any
+		if len(diff.ConflictsFound) > 0 {
+			resultsContent.Add(widget.NewLabelWithStyle("⚠️ Conflicts Found:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+			for _, conflict := range diff.ConflictsFound {
+				resultsContent.Add(widget.NewLabel(fmt.Sprintf("• %s: %s", conflict.Type, conflict.Description)))
+			}
+			resultsContent.Add(widget.NewSeparator())
+		}
+		
+		// Show message if no changes
+		if len(diff.PackagesToInstall) == 0 && len(diff.ServicesToConfigure) == 0 && len(diff.UsersToCreate) == 0 {
+			resultsContent.Add(widget.NewLabel("✅ No changes needed - template is already applied to this instance."))
+		}
+		
+		// Hide loading dialog and show results
+		diffDialog.Hide()
+		
+		resultsDialog := dialog.NewCustom("Template Differences", "Close", resultsContent, g.window)
+		resultsDialog.Resize(fyne.NewSize(600, 500))
+		resultsDialog.Show()
+	}()
 }
 
 // showTemplateLayersDialog shows the history of applied templates for an instance
 func (g *CloudWorkstationGUI) showTemplateLayersDialog(instance types.Instance) {
-	// This would show template application history
-	content := fynecontainer.NewVBox(
+	// Create loading content first
+	loadingContent := fynecontainer.NewVBox(
 		widget.NewLabelWithStyle(fmt.Sprintf("Template History for %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 		widget.NewSeparator(),
 		
@@ -3912,43 +4009,101 @@ func (g *CloudWorkstationGUI) showTemplateLayersDialog(instance types.Instance) 
 		widget.NewLabel("Base Template: " + instance.Template),
 		
 		widget.NewSeparator(),
+		widget.NewLabel("🔍 Loading template history..."),
 	)
 	
-	// Check if instance has applied templates
-	if len(instance.AppliedTemplates) == 0 {
-		content.Add(widget.NewLabel("📝 No additional templates have been applied to this instance."))
-		content.Add(widget.NewLabel("Use 'Apply Template' to add software packages and configurations."))
-	} else {
-		content.Add(widget.NewLabel("📚 Applied Template Layers:"))
-		
-		for i, applied := range instance.AppliedTemplates {
-			layerCard := widget.NewCard(
-				fmt.Sprintf("%d. %s", i+1, applied.TemplateName),
-				applied.AppliedAt.Format("Jan 2, 2006 15:04"),
-				fynecontainer.NewVBox(
-					widget.NewLabel("Package Manager: " + applied.PackageManager),
-					widget.NewLabel(fmt.Sprintf("Packages: %d installed", len(applied.PackagesInstalled))),
-					widget.NewLabel(fmt.Sprintf("Services: %d configured", len(applied.ServicesConfigured))),
-					widget.NewLabel("Checkpoint: " + applied.RollbackCheckpoint),
-				),
-			)
-			content.Add(layerCard)
-		}
-		
-		// Add rollback button for latest checkpoint
-		if len(instance.AppliedTemplates) > 0 {
-			content.Add(widget.NewSeparator())
-			rollbackBtn := widget.NewButton("Rollback to Previous", func() {
-				g.showRollbackDialog(instance)
-			})
-			rollbackBtn.Importance = widget.DangerImportance
-			content.Add(rollbackBtn)
-		}
-	}
-	
-	layersDialog := dialog.NewCustom("Template History", "Close", content, g.window)
+	layersDialog := dialog.NewCustom("Template History", "Close", loadingContent, g.window)
 	layersDialog.Resize(fyne.NewSize(600, 500))
 	layersDialog.Show()
+	
+	// Load template layers in background
+	go func() {
+		ctx := context.Background()
+		
+		// Call the API to get fresh template layers
+		appliedTemplates, err := g.apiClient.GetInstanceLayers(ctx, instance.Name)
+		if err != nil {
+			// Fall back to instance data if API fails
+			appliedTemplates = []templates.AppliedTemplate{}
+			
+			// Convert instance applied templates to API format
+			for _, applied := range instance.AppliedTemplates {
+				appliedTemplates = append(appliedTemplates, templates.AppliedTemplate{
+					Name:               applied.TemplateName,
+					AppliedAt:          applied.AppliedAt,
+					PackageManager:     applied.PackageManager,
+					PackagesInstalled:  applied.PackagesInstalled,
+					ServicesConfigured: applied.ServicesConfigured,
+					UsersCreated:       applied.UsersCreated,
+					RollbackCheckpoint: applied.RollbackCheckpoint,
+				})
+			}
+		}
+		
+		// Create results content
+		content := fynecontainer.NewVBox(
+			widget.NewLabelWithStyle(fmt.Sprintf("Template History for %s", instance.Name), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+			widget.NewSeparator(),
+			
+			widget.NewLabel("Instance: " + instance.Name),
+			widget.NewLabel("Base Template: " + instance.Template),
+			
+			widget.NewSeparator(),
+		)
+		
+		// Check if instance has applied templates
+		if len(appliedTemplates) == 0 {
+			content.Add(widget.NewLabel("📝 No additional templates have been applied to this instance."))
+			content.Add(widget.NewLabel("Use 'Apply Template' to add software packages and configurations."))
+		} else {
+			content.Add(widget.NewLabel("📚 Applied Template Layers:"))
+			
+			for i, applied := range appliedTemplates {
+				layerCard := widget.NewCard(
+					fmt.Sprintf("%d. %s", i+1, applied.Name),
+					applied.AppliedAt.Format("Jan 2, 2006 15:04"),
+					fynecontainer.NewVBox(
+						widget.NewLabel("Package Manager: " + applied.PackageManager),
+						widget.NewLabel(fmt.Sprintf("Packages: %d installed", len(applied.PackagesInstalled))),
+						widget.NewLabel(fmt.Sprintf("Services: %d configured", len(applied.ServicesConfigured))),
+						widget.NewLabel("Checkpoint: " + applied.RollbackCheckpoint),
+					),
+				)
+				content.Add(layerCard)
+			}
+			
+			// Add rollback button for latest checkpoint
+			if len(appliedTemplates) > 0 {
+				content.Add(widget.NewSeparator())
+				rollbackBtn := widget.NewButton("Rollback to Previous", func() {
+					// Create updated instance with fresh applied templates
+					updatedInstance := instance
+					updatedInstance.AppliedTemplates = []types.AppliedTemplateRecord{}
+					for _, applied := range appliedTemplates {
+						updatedInstance.AppliedTemplates = append(updatedInstance.AppliedTemplates, types.AppliedTemplateRecord{
+							TemplateName:       applied.Name,
+							AppliedAt:          applied.AppliedAt,
+							PackageManager:     applied.PackageManager,
+							PackagesInstalled:  applied.PackagesInstalled,
+							ServicesConfigured: applied.ServicesConfigured,
+							UsersCreated:       applied.UsersCreated,
+							RollbackCheckpoint: applied.RollbackCheckpoint,
+						})
+					}
+					g.showRollbackDialog(updatedInstance)
+				})
+				rollbackBtn.Importance = widget.DangerImportance
+				content.Add(rollbackBtn)
+			}
+		}
+		
+		// Hide loading dialog and show results
+		layersDialog.Hide()
+		
+		resultsDialog := dialog.NewCustom("Template History", "Close", content, g.window)
+		resultsDialog.Resize(fyne.NewSize(600, 500))
+		resultsDialog.Show()
+	}()
 }
 
 // showRollbackDialog shows options for rolling back template applications
@@ -4020,75 +4175,138 @@ func (g *CloudWorkstationGUI) showRollbackDialog(instance types.Instance) {
 }
 
 // applyTemplateToInstance applies a template to an instance with progress tracking
-func (g *CloudWorkstationGUI) applyTemplateToInstance(instanceName string, template types.Template, packageManager string, dryRun bool, force bool, progressBar *widget.ProgressBar, logText *widget.RichText, dialog *dialog.CustomDialog) {
-	// This would integrate with the template application API
-	// For now, simulate the process
-	
+func (g *CloudWorkstationGUI) applyTemplateToInstance(instanceName string, template types.Template, packageManager string, dryRun bool, force bool, progressBar *widget.ProgressBar, logText *widget.RichText, applyDialog *dialog.CustomDialog) {
 	var logContent string
 	logContent = "**Applying template: " + template.Name + "**\n\n"
 	logText.ParseMarkdown(logContent)
 	
-	steps := []string{
-		"🔍 Inspecting instance state...",
-		"📊 Calculating template differences...", 
-		"📦 Installing packages...",
-		"⚙️ Configuring services...",
-		"👥 Setting up users...",
-		"✅ Template application complete!",
+	ctx := context.Background()
+	
+	// Convert runtime template to unified template format
+	unifiedTemplate := &templates.Template{
+		Name:        template.Name,
+		Description: template.Description,
+		Packages: templates.PackageDefinitions{
+			System: []string{}, // Would be populated from template data
+			Conda:  []string{}, // Would be populated from template data  
+			Pip:    []string{}, // Would be populated from template data
+			Spack:  []string{}, // Would be populated from template data
+		},
+		Services: []templates.ServiceConfig{}, // Would be populated from template data
+		Users:    []templates.UserConfig{},    // Would be populated from template data
+		PackageManager: packageManager,
 	}
 	
-	for i, step := range steps {
-		time.Sleep(1 * time.Second) // Simulate work
-		progressBar.SetValue(float64(i+1) / float64(len(steps)))
-		
-		logContent += step + "\n"
+	// Create apply request
+	request := templates.ApplyRequest{
+		InstanceName: instanceName,
+		Template:     unifiedTemplate,
+		PackageManager: packageManager,
+		DryRun:       dryRun,
+		Force:        force,
+	}
+	
+	// Update progress and log
+	progressBar.SetValue(0.1)
+	logContent += "🔍 Connecting to CloudWorkstation daemon...\n"
+	logText.ParseMarkdown(logContent)
+	
+	// Call the API
+	response, err := g.apiClient.ApplyTemplate(ctx, request)
+	if err != nil {
+		progressBar.SetValue(1.0)
+		logContent += "\n❌ **Template application failed:**\n"
+		logContent += fmt.Sprintf("Error: %v\n", err)
 		logText.ParseMarkdown(logContent)
 		
-		if i == len(steps)-1 {
-			// Final step - show success
-			if dryRun {
-				logContent += "\n**Dry run completed successfully!**\n"
-				logContent += "No changes were made to the instance.\n"
-			} else {
-				logContent += "\n**Template applied successfully!**\n"
-				logContent += "Instance updated with new software and configurations.\n"
-				
-				// Refresh instances to show updated state
-				go g.refreshInstances()
-			}
-			logText.ParseMarkdown(logContent)
-		}
+		// Show error dialog
+		dialog.ShowError(fmt.Errorf("Failed to apply template: %v", err), g.window)
+		return
 	}
+	
+	// Update progress based on response
+	progressBar.SetValue(0.9)
+	logContent += "📊 Template application completed!\n\n"
+	
+	if response.Success {
+		if dryRun {
+			logContent += "**Dry run completed successfully!**\n\n"
+			logContent += fmt.Sprintf("• **Packages to install**: %d\n", response.PackagesInstalled)
+			logContent += fmt.Sprintf("• **Services to configure**: %d\n", response.ServicesConfigured)
+			logContent += fmt.Sprintf("• **Users to create**: %d\n", response.UsersCreated)
+			logContent += "\nNo changes were made to the instance.\n"
+		} else {
+			logContent += "**Template applied successfully!**\n\n"
+			logContent += fmt.Sprintf("• **Packages installed**: %d\n", response.PackagesInstalled)
+			logContent += fmt.Sprintf("• **Services configured**: %d\n", response.ServicesConfigured)  
+			logContent += fmt.Sprintf("• **Users created**: %d\n", response.UsersCreated)
+			logContent += fmt.Sprintf("• **Rollback checkpoint**: %s\n", response.RollbackCheckpoint)
+			logContent += fmt.Sprintf("• **Execution time**: %s\n", response.ExecutionTime)
+			
+			if len(response.Warnings) > 0 {
+				logContent += "\n**Warnings:**\n"
+				for _, warning := range response.Warnings {
+					logContent += fmt.Sprintf("⚠️ %s\n", warning)
+				}
+			}
+			
+			// Refresh instances to show updated state
+			go g.refreshInstances()
+		}
+	} else {
+		logContent += "❌ **Template application failed:**\n"
+		logContent += fmt.Sprintf("Error: %s\n", response.Message)
+	}
+	
+	progressBar.SetValue(1.0)
+	logText.ParseMarkdown(logContent)
 }
 
 // performRollback performs a rollback operation
 func (g *CloudWorkstationGUI) performRollback(instanceName string, checkpointID string) {
-	// This would integrate with the rollback API
-	// For now, show a progress dialog
-	
 	content := fynecontainer.NewVBox(
 		widget.NewLabelWithStyle("Rolling Back Instance", fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 		widget.NewSeparator(),
 		widget.NewLabel("Instance: " + instanceName),
 		widget.NewLabel("Checkpoint: " + checkpointID),
 		widget.NewSeparator(),
-		widget.NewLabel("🔄 Performing rollback..."),
+		widget.NewLabel("🔄 Connecting to CloudWorkstation daemon..."),
 	)
 	
 	progressDialog := dialog.NewCustom("Rollback in Progress", "", content, g.window)
 	progressDialog.Show()
 	
-	// Simulate rollback
+	// Perform actual rollback
 	go func() {
-		time.Sleep(3 * time.Second)
+		ctx := context.Background()
+		
+		// Create rollback request
+		request := types.RollbackRequest{
+			InstanceName: instanceName,
+			CheckpointID: checkpointID,
+		}
+		
+		// Update progress
+		content.Objects[5] = widget.NewLabel("🔄 Performing rollback operation...")
+		progressDialog.Refresh()
+		
+		// Call the API
+		err := g.apiClient.RollbackInstance(ctx, request)
+		
 		progressDialog.Hide()
+		
+		if err != nil {
+			// Show error dialog
+			dialog.ShowError(fmt.Errorf("Rollback failed: %v", err), g.window)
+			return
+		}
 		
 		// Show success
 		dialog.ShowInformation("Rollback Complete", 
 			fmt.Sprintf("Instance '%s' has been successfully rolled back to checkpoint '%s'.", instanceName, checkpointID),
 			g.window)
 		
-		// Refresh instances
+		// Refresh instances to show updated state
 		g.refreshInstances()
 	}()
 }
