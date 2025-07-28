@@ -96,6 +96,57 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 		},
 	})
 
+	// Apply command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "apply <template> <instance-name>",
+		Short: "Apply template to running instance",
+		Long: `Apply a template to an already running instance, enabling incremental 
+environment evolution without requiring instance recreation.
+
+This allows you to add packages, services, and users to existing instances
+while maintaining rollback capabilities.`,
+		Args: cobra.MinimumNArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Apply(args)
+		},
+	})
+
+	// Diff command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "diff <template> <instance-name>",
+		Short: "Show template differences",
+		Long: `Show what changes would be made when applying a template to a running instance.
+This provides a preview of packages, services, users, and ports that would be modified.`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Diff(args)
+		},
+	})
+
+	// Layers command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "layers <instance-name>",
+		Short: "List applied template layers",
+		Long: `List all templates that have been applied to an instance, showing the
+layer history with rollback checkpoints.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Layers(args)
+		},
+	})
+
+	// Rollback command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "rollback <instance-name>",
+		Short: "Rollback template applications",
+		Long: `Rollback an instance to a previous state by undoing template applications.
+Can rollback to the previous checkpoint or a specific checkpoint ID.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Rollback(args)
+		},
+	})
+
 	// Volume command
 	volumeCmd := &cobra.Command{
 		Use:   "volume <action>",

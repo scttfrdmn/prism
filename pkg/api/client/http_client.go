@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -450,4 +451,59 @@ func (c *HTTPClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 	}
 
 	return result, nil
+}
+
+// Template application operations
+
+func (c *HTTPClient) ApplyTemplate(ctx context.Context, req templates.ApplyRequest) (*templates.ApplyResponse, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/templates/apply", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result templates.ApplyResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c *HTTPClient) DiffTemplate(ctx context.Context, req templates.DiffRequest) (*templates.TemplateDiff, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/templates/diff", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result templates.TemplateDiff
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c *HTTPClient) GetInstanceLayers(ctx context.Context, instanceName string) ([]templates.AppliedTemplate, error) {
+	path := fmt.Sprintf("/api/v1/instances/%s/layers", instanceName)
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []templates.AppliedTemplate
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (c *HTTPClient) RollbackInstance(ctx context.Context, req types.RollbackRequest) error {
+	path := fmt.Sprintf("/api/v1/instances/%s/rollback", req.InstanceName)
+	resp, err := c.makeRequest(ctx, "POST", path, req)
+	if err != nil {
+		return err
+	}
+
+	return c.handleResponse(resp, nil)
 }
