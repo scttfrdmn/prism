@@ -29,6 +29,9 @@ type CloudWorkstationAPI interface {
 	GetInstance(context.Context, string) (*types.Instance, error)
 	StartInstance(context.Context, string) error
 	StopInstance(context.Context, string) error
+	HibernateInstance(context.Context, string) error
+	ResumeInstance(context.Context, string) error
+	GetInstanceHibernationStatus(context.Context, string) (*types.HibernationStatus, error)
 	DeleteInstance(context.Context, string) error
 	ConnectInstance(context.Context, string) (string, error)
 

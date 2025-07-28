@@ -87,3 +87,10 @@ type AppliedTemplateRecord struct {
 	UsersCreated       []string  `json:"users_created"`
 	RollbackCheckpoint string    `json:"rollback_checkpoint"`
 }
+
+// HibernationStatus represents the hibernation status of an instance
+type HibernationStatus struct {
+	HibernationSupported bool   `json:"hibernation_supported"`
+	IsHibernated        bool   `json:"is_hibernated"`
+	InstanceName        string `json:"instance_name"`
+}

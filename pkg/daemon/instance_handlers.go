@@ -115,6 +115,12 @@ func (s *Server) handleInstanceOperations(w http.ResponseWriter, r *http.Request
 			s.handleStartInstance(w, r, instanceName)
 		case "stop":
 			s.handleStopInstance(w, r, instanceName)
+		case "hibernate":
+			s.handleHibernateInstance(w, r, instanceName)
+		case "resume":
+			s.handleResumeInstance(w, r, instanceName)
+		case "hibernation-status":
+			s.handleInstanceHibernationStatus(w, r, instanceName)
 		case "connect":
 			s.handleConnectInstance(w, r, instanceName)
 		case "layers":
@@ -187,6 +193,57 @@ func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, name
 	})
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleHibernateInstance hibernates a running instance
+func (s *Server) handleHibernateInstance(w http.ResponseWriter, r *http.Request, name string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		return awsManager.HibernateInstance(name)
+	})
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleResumeInstance resumes a hibernated instance
+func (s *Server) handleResumeInstance(w http.ResponseWriter, r *http.Request, name string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		return awsManager.ResumeInstance(name)
+	})
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleInstanceHibernationStatus gets hibernation status for an instance
+func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.Request, name string) {
+	if r.Method != http.MethodGet {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var hibernationSupported, isHibernated bool
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		hibernationSupported, isHibernated, err = awsManager.GetInstanceHibernationStatus(name)
+		return err
+	})
+
+	response := map[string]interface{}{
+		"hibernation_supported": hibernationSupported,
+		"is_hibernated":        isHibernated,
+		"instance_name":        name,
+	}
+	
+	json.NewEncoder(w).Encode(response)
 }
 
 // handleConnectInstance gets connection information for an instance

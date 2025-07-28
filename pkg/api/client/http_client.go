@@ -205,6 +205,39 @@ func (c *HTTPClient) StopInstance(ctx context.Context, name string) error {
 	return c.handleResponse(resp, nil)
 }
 
+// HibernateInstance hibernates a running instance
+func (c *HTTPClient) HibernateInstance(ctx context.Context, name string) error {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/hibernate", name), nil)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
+// ResumeInstance resumes a hibernated instance
+func (c *HTTPClient) ResumeInstance(ctx context.Context, name string) error {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/resume", name), nil)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
+// GetInstanceHibernationStatus gets hibernation status for an instance
+func (c *HTTPClient) GetInstanceHibernationStatus(ctx context.Context, name string) (*types.HibernationStatus, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/instances/%s/hibernation-status", name), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var status types.HibernationStatus
+	if err := c.handleResponse(resp, &status); err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
 // DeleteInstance deletes an instance
 func (c *HTTPClient) DeleteInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/instances/%s", name), nil)
