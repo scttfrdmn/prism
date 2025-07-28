@@ -26,6 +26,9 @@ type Template struct {
 	// User setup
 	Users []UserConfig `yaml:"users,omitempty" json:"users,omitempty"`
 	
+	// Post-install script
+	PostInstall string `yaml:"post_install,omitempty" json:"post_install,omitempty"`
+	
 	// Instance defaults
 	InstanceDefaults InstanceDefaults `yaml:"instance_defaults,omitempty" json:"instance_defaults,omitempty"`
 	
