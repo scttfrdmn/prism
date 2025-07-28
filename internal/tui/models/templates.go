@@ -89,11 +89,11 @@ func (m TemplatesModel) Init() tea.Cmd {
 
 // fetchTemplates retrieves template data from the API
 func (m TemplatesModel) fetchTemplates() tea.Msg {
-	templates, err := m.apiClient.ListTemplates(context.Background())
+	resp, err := m.apiClient.ListTemplates(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list templates: %w", err)
 	}
-	return templates
+	return resp.Templates
 }
 
 // Update handles messages and updates the model
