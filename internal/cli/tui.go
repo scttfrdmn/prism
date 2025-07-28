@@ -6,7 +6,7 @@ import (
 	"os/exec"
 
 	"github.com/spf13/cobra"
-	// "github.com/scttfrdmn/cloudworkstation/internal/tui" // Disabled for Phase 1 - core functionality focus
+	"github.com/scttfrdmn/cloudworkstation/internal/tui"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
@@ -46,17 +46,12 @@ func runTUI() {
 	// Print TUI initialization message
 	fmt.Printf("Starting CloudWorkstation TUI v%s...\n", version.GetVersion())
 
-	// TUI disabled for Phase 1 - focusing on core CLI functionality
-	fmt.Println("⚠️  TUI is temporarily disabled during Phase 1 architectural completion.")
-	fmt.Println("")
-	fmt.Println("Core CLI commands are available:")
-	fmt.Println("  cws launch template-name instance-name  # Launch research environment")
-	fmt.Println("  cws list                               # Show running instances")
-	fmt.Println("  cws connect instance-name              # Get connection info")
-	fmt.Println("  cws stop/start instance-name           # Manage lifecycle")
-	fmt.Println("")
-	fmt.Println("TUI will be available in Phase 2 after GUI/TUI system completion.")
-	fmt.Println("Use 'cws --help' for complete command reference.")
+	// Create and run the TUI application
+	app := tui.NewApp()
+	if err := app.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "TUI error: %v\\n", err)
+		os.Exit(1)
+	}
 }
 
 // checkDaemonForTUI verifies if the daemon is running
