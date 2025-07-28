@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -34,6 +35,12 @@ type CloudWorkstationAPI interface {
 	// Template operations
 	ListTemplates(context.Context) (map[string]types.Template, error)
 	GetTemplate(context.Context, string) (*types.Template, error)
+
+	// Template application operations
+	ApplyTemplate(context.Context, templates.ApplyRequest) (*templates.ApplyResponse, error)
+	DiffTemplate(context.Context, templates.DiffRequest) (*templates.TemplateDiff, error)
+	GetInstanceLayers(context.Context, string) ([]templates.AppliedTemplate, error)
+	RollbackInstance(context.Context, types.RollbackRequest) error
 
 	// Volume operations (EFS)
 	CreateVolume(context.Context, types.VolumeCreateRequest) (*types.EFSVolume, error)
