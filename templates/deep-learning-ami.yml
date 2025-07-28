@@ -1,0 +1,64 @@
+name: "AWS Deep Learning AMI (AMI)"
+description: "Pre-built AWS Deep Learning AMI with PyTorch, TensorFlow, and CUDA drivers"
+base: "ami-based"
+
+# Use AMI package manager (no installation needed)
+package_manager: "ami"
+
+# AMI configuration
+ami_config:
+  # AWS Deep Learning AMI Ubuntu 22.04 (latest as of 2024)
+  amis:
+    us-east-1:
+      x86_64: "ami-0c02fb55956c7d316"  # Deep Learning AMI GPU PyTorch 2.0
+      arm64: "ami-0abcdef1234567890"   # Graviton3 if available
+    us-east-2:
+      x86_64: "ami-0c02fb55956c7d316"
+      arm64: "ami-0abcdef1234567890"
+    us-west-1:
+      x86_64: "ami-0c02fb55956c7d316"
+      arm64: "ami-0abcdef1234567890"
+    us-west-2:
+      x86_64: "ami-0c02fb55956c7d316"  
+      arm64: "ami-0abcdef1234567890"
+  
+  # GPU instance types for deep learning
+  instance_types:
+    x86_64: "g4dn.xlarge"  # GPU optimized
+    arm64: "g5g.xlarge"    # Graviton3 GPU
+  
+  # Default SSH user for AWS Deep Learning AMI
+  ssh_user: "ubuntu"
+  
+  # Optional customization script
+  user_data_script: |
+    # Activate conda environment for ML
+    echo 'conda activate pytorch' >> /home/ubuntu/.bashrc
+    
+    # Install additional packages
+    /opt/conda/envs/pytorch/bin/pip install wandb jupyterlab-git
+    
+    # Setup Jupyter for remote access
+    jupyter lab --generate-config
+    echo "c.NotebookApp.allow_remote_access = True" >> ~/.jupyter/jupyter_lab_config.py
+    echo "c.NotebookApp.ip = '0.0.0.0'" >> ~/.jupyter/jupyter_lab_config.py
+
+users:
+  - name: "researcher"
+    password: "auto-generated"
+    groups: ["sudo"]
+
+services:
+  - name: "jupyter-lab"
+    port: 8888
+    enable: false  # Let user start manually
+
+instance_defaults:
+  ports: [22, 8888, 6006]  # SSH, Jupyter, TensorBoard
+
+version: "1.0"
+tags:
+  type: "ml"
+  gpu: "required"
+  ami: "aws-deep-learning"
+  purpose: "deep-learning"
