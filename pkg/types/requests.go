@@ -28,3 +28,9 @@ type ListResponse struct {
 	Instances []Instance `json:"instances"`
 	TotalCost float64    `json:"total_cost"`
 }
+
+// RollbackRequest represents a request to rollback an instance
+type RollbackRequest struct {
+	InstanceName string `json:"instance_name"`
+	CheckpointID string `json:"checkpoint_id"`
+}

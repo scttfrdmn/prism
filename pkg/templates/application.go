@@ -40,6 +40,12 @@ type ApplyRequest struct {
 	Force          bool      `json:"force"` // Override conflicts
 }
 
+// DiffRequest represents a request to calculate template differences
+type DiffRequest struct {
+	InstanceName string    `json:"instance_name"`
+	Template     *Template `json:"template"`
+}
+
 // ApplyResponse represents the result of applying a template
 type ApplyResponse struct {
 	Success            bool     `json:"success"`

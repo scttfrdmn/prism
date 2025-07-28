@@ -194,6 +194,30 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "apply":
+		err := cliApp.Apply(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "diff":
+		err := cliApp.Diff(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "layers":
+		err := cliApp.Layers(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "rollback":
+		err := cliApp.Rollback(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "daemon":
 		err := cliApp.Daemon(args)
 		if err != nil {
@@ -251,6 +275,11 @@ func printUsage() {
 	fmt.Println("  delete <name>                       Delete a workstation")
 	fmt.Println("  templates                           List available templates")
 	fmt.Println()
+	fmt.Println("  apply <template> <instance>         Apply template to running instance")
+	fmt.Println("  diff <template> <instance>          Show template differences")
+	fmt.Println("  layers <instance>                   List applied template layers")  
+	fmt.Println("  rollback <instance>                 Rollback template applications")
+	fmt.Println()
 	fmt.Println("  volume <action> [args]              Manage EFS volumes")
 	fmt.Println("    create <name> [options]           Create new EFS volume")
 	fmt.Println("    list                              List EFS volumes")
@@ -286,6 +315,10 @@ func printUsage() {
 	fmt.Println("  cws launch python-research ml-project --size L  # Launch Python with large instance")
 	fmt.Println("  cws list                                    # List all workstations")
 	fmt.Println("  cws connect my-analysis                     # Get connection details")
+	fmt.Println("  cws apply python-ml my-analysis             # Add ML tools to existing instance")
+	fmt.Println("  cws diff python-ml my-analysis              # Preview template changes")
+	fmt.Println("  cws layers my-analysis                      # Show applied template history")
+	fmt.Println("  cws rollback my-analysis                    # Undo last template application")
 	fmt.Println("  cws volume create shared-data               # Create shared EFS volume")
 	fmt.Println("  cws storage create fast-storage XL io2     # Create high-performance storage")
 	fmt.Println("  cws ami build neuroimaging                  # Build AMI from template")
