@@ -1,0 +1,43 @@
+{
+  "institution": "Example University",
+  "created_at": "2025-07-28T15:20:39.750345-07:00",
+  "valid_until": "2026-07-28T15:20:39.750345-07:00",
+  "version": "1.0",
+  "contact": "cloudcomputing@example.university.edu",
+  "global_discounts": {
+    "ec2_discount": 0.3,
+    "ebs_discount": 0.2,
+    "efs_discount": 0.15,
+    "data_transfer": 0.25,
+    "general_discount": 0
+  },
+  "instance_family_discounts": {
+    "c5": 0.35,
+    "g4dn": 0.45,
+    "m5": 0.3,
+    "p3": 0.4,
+    "r5": 0.32
+  },
+  "commitment_programs": {
+    "reserved_instance_coverage": 0.6,
+    "savings_plan_coverage": 0,
+    "spot_instance_preference": 0.3
+  },
+  "programs": {
+    "educational_discount": 0.3,
+    "startup_credits": 0,
+    "research_credits": 0.5,
+    "nonprofit_discount": 0
+  },
+  "enterprise": {
+    "edp_discount": 0,
+    "volume_discount": 0,
+    "committed_spend": 0,
+    "custom_negotiated": 0
+  },
+  "cost_management": {
+    "budget_alerts": true,
+    "cost_optimization": true,
+    "spending_limit": 0
+  }
+}
