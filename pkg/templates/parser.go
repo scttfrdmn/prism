@@ -97,7 +97,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 	}
 	
 	// Validate package manager
-	validPMs := []string{"auto", "apt", "conda", "spack"}
+	validPMs := []string{"auto", "apt", "dnf", "conda", "spack"}
 	if template.PackageManager != "" {
 		valid := false
 		for _, pm := range validPMs {

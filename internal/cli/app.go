@@ -131,7 +131,7 @@ func (a *App) TUI(_ []string) error {
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --with conda|apt|dnf --dry-run\n  note: dnf support coming soon")
+		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --with conda|apt|dnf --dry-run")
 	}
 
 	template := args[0]
@@ -184,10 +184,7 @@ func (a *App) Launch(args []string) error {
 				return fmt.Errorf("unsupported package manager: %s (supported: conda, apt, dnf, auto)", packageManager)
 			}
 			
-			// Note: dnf support still coming soon
-			if packageManager == "dnf" {
-				return fmt.Errorf("package manager %s support coming soon (currently supported: conda, apt, auto)", packageManager)
-			}
+			// All package managers now supported
 			
 			req.PackageManager = packageManager
 			i++
