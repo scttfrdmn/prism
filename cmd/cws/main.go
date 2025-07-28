@@ -274,6 +274,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "pricing":
+		err := cliApp.Pricing(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "version", "--version", "-v":
 		fmt.Println(version.GetVersionInfo())
 	case "help", "--help", "-h":
@@ -363,6 +369,13 @@ func printUsage() {
 	fmt.Println("    members <name> [action]           Manage project members")
 	fmt.Println("    delete <name>                     Delete project")
 	fmt.Println()
+	fmt.Println("  pricing <action> [args]             Manage institutional pricing discounts")
+	fmt.Println("    show                              Show current pricing configuration")
+	fmt.Println("    install <config-file>             Install institutional pricing config")
+	fmt.Println("    validate [config-file]            Validate pricing configuration")
+	fmt.Println("    example [filename]                Create example pricing config")
+	fmt.Println("    calculate <type> <price> [region] Calculate discounted pricing")
+	fmt.Println()
 	fmt.Println("  idle <action> [args]                Manage idle detection and hibernation policies")
 	fmt.Println("    status [instance]                 Show idle detection status")
 	fmt.Println("    enable                            Enable idle detection")
@@ -394,6 +407,9 @@ func printUsage() {
 	fmt.Println("  cws project create brain-study --budget 1000  # Create project with budget")
 	fmt.Println("  cws project members brain-study add user@university.edu admin  # Add team member")
 	fmt.Println("  cws launch python-ml analysis --project brain-study  # Launch in project")
+	fmt.Println("  cws pricing show                            # Show institutional pricing config")
+	fmt.Println("  cws pricing install university_pricing.json  # Install institutional discounts")
+	fmt.Println("  cws pricing calculate c5.large 0.096 us-west-2  # Calculate discounted pricing")
 	fmt.Println()
 	fmt.Println("Template sizes: XS, S, M, L, XL, GPU-S, GPU-M, GPU-L")
 	fmt.Println("Storage sizes: XS (100GB), S (500GB), M (1TB), L (2TB), XL (4TB)")
