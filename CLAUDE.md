@@ -52,29 +52,28 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - Advanced: `cws launch template-name project-name --instance-type c5.2xlarge --spot`
 - Expert: Full template customization and regional optimization
 
-## Current Phase: Advanced Research Features (Phase 3 COMPLETE)
+## Current Phase: Enterprise Research Platform (Phase 4 COMPLETE)
 
 **Phase 1 COMPLETED**: Distributed Architecture (daemon + CLI client)
 **Phase 2 COMPLETED**: Multi-modal access with CLI/TUI/GUI parity  
-**Phase 3 Sprint 1 COMPLETED**: Multi-package template system activation
-**Phase 3 Sprint 2 COMPLETED**: Complete hibernation & cost optimization ecosystem
-**Phase 3 Sprint 3 COMPLETED**: Automated hibernation policies with comprehensive cost optimization
+**Phase 3 COMPLETED**: Comprehensive cost optimization with hibernation ecosystem
+**Phase 4 COMPLETED**: Project-based budget management and enterprise features
 
-**🎉 PHASE 3 COMPLETE: Comprehensive Cost Optimization System**
-- ✅ **Manual Hibernation Controls**: Direct hibernate/resume commands across all interfaces
-- ✅ **Automated Hibernation Policies**: Idle detection with configurable hibernation triggers
-- ✅ **Policy Management System**: Complete API and CLI for hibernation policy configuration
-- ✅ **Intelligent Cost Optimization**: Hibernation-first approach with smart fallbacks
-- ✅ **Research Domain Integration**: Domain-specific hibernation policies (ML, batch, GPU workloads)
-- ✅ **Comprehensive Audit**: Complete history tracking of hibernation cost savings
-- ✅ **Multi-Modal Integration**: Available across CLI, GUI, and API with consistent UX
+**🎉 PHASE 4 COMPLETE: Enterprise Research Management Platform**
+- ✅ **Project-Based Organization**: Complete project lifecycle management with role-based access control
+- ✅ **Advanced Budget Management**: Project-specific budgets with real-time tracking and automated controls
+- ✅ **Cost Analytics**: Detailed cost breakdowns, hibernation savings, and resource utilization metrics  
+- ✅ **Multi-User Collaboration**: Project member management with granular permissions (Owner/Admin/Member/Viewer)
+- ✅ **Enterprise API**: Full REST API for project management, budget monitoring, and cost analysis
+- ✅ **Budget Automation**: Configurable alerts and automated actions (hibernate/stop instances, prevent launches)
 
-**Phase 4 Planning**: Enterprise research features and collaboration
-- 🎯 **Multi-User Collaboration**: Shared instances and collaborative research environments
+CloudWorkstation is now a full **enterprise research platform** supporting collaborative projects, grant-funded budgets, and institutional research management while maintaining its core simplicity for individual researchers.
+
+**Phase 5 Planning**: Research ecosystem expansion
+- 🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing
 - 🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads
-- 🎯 **Budget Management**: Project-based budgets with automated cost controls
-- 🎯 **Template Marketplace**: Community-contributed research environment templates
-- 🎯 **Multi-Cloud Support**: AWS + Azure + GCP for global research collaboration
+- 🎯 **Multi-Cloud Support**: Azure and GCP integration for global research collaboration
+- 🎯 **Research Workflows**: Integration with research data management and CI/CD systems
 
 **Multi-Modal Access Strategy**:
 ```
@@ -104,13 +103,30 @@ pkg/
 ├── daemon/       # Daemon core logic  
 ├── aws/          # AWS operations
 ├── state/        # State management
+├── project/      # Project & budget management (Phase 4)
+├── idle/         # Hibernation & cost optimization (Phase 3)
 ├── profile/      # Enhanced profile system
-└── types/        # Shared types
+└── types/        # Shared types & project models
 
 internal/
 ├── cli/          # CLI application logic
 ├── tui/          # TUI application (BubbleTea-based)
 └── gui/          # (GUI logic is in cmd/cws-gui/)
+```
+
+**Phase 4 Enterprise Components**:
+```
+pkg/project/
+├── manager.go         # Project lifecycle & member management
+├── budget_tracker.go  # Real-time cost tracking & alerts
+├── cost_calculator.go # AWS pricing engine & hibernation savings
+└── types.go          # Request/response types & filters
+
+pkg/daemon/
+└── project_handlers.go # REST API endpoints (/api/v1/projects)
+
+pkg/types/
+└── project.go         # Enterprise data models & budget types
 ```
 
 **Feature Parity Matrix**:

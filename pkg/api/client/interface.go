@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -70,6 +71,20 @@ type CloudWorkstationAPI interface {
 	DeleteStorage(context.Context, string) error
 	AttachStorage(context.Context, string, string) error
 	DetachStorage(context.Context, string) error
+
+	// Project management operations
+	CreateProject(context.Context, project.CreateProjectRequest) (*types.Project, error)
+	ListProjects(context.Context, *project.ProjectFilter) (*project.ProjectListResponse, error)
+	GetProject(context.Context, string) (*types.Project, error)
+	UpdateProject(context.Context, string, project.UpdateProjectRequest) (*types.Project, error)
+	DeleteProject(context.Context, string) error
+	AddProjectMember(context.Context, string, project.AddMemberRequest) error
+	UpdateProjectMember(context.Context, string, string, project.UpdateMemberRequest) error
+	RemoveProjectMember(context.Context, string, string) error
+	GetProjectMembers(context.Context, string) ([]types.ProjectMember, error)
+	GetProjectBudgetStatus(context.Context, string) (*project.BudgetStatus, error)
+	GetProjectCostBreakdown(context.Context, string, time.Time, time.Time) (*types.ProjectCostBreakdown, error)
+	GetProjectResourceUsage(context.Context, string, time.Duration) (*types.ProjectResourceUsage, error)
 
 	// Status operations
 	GetStatus(context.Context) (*types.DaemonStatus, error)
