@@ -229,3 +229,133 @@ Template inheritance aligns with CloudWorkstation's core design principles:
 - **✅ Transparent Fallbacks**: Explicit parent relationships
 
 This system enables the "Rocky9 linux but install some conda software on it" use case that inspired this feature.
+
+## Template Validation
+
+CloudWorkstation includes comprehensive template validation to catch errors early and ensure templates work correctly.
+
+### Validation Commands
+
+```bash
+# Validate all templates
+cws templates validate
+
+# Validate specific template by name
+cws templates validate "Rocky Linux 9 + Conda Stack"
+
+# Validate template file directly
+cws templates validate templates/my-template.yml
+```
+
+### Validation Rules
+
+The validation system checks for:
+
+#### **Required Fields**
+- `name`: Template name must be specified
+- `description`: Template description must be provided
+- `base`: Base OS must be specified
+
+#### **Package Manager Validation**
+- Only supported package managers: `apt`, `dnf`, `conda`, `spack`, `ami`
+- Package consistency: APT/DNF templates shouldn't have conda/spack packages
+- AMI templates shouldn't define packages (use pre-built AMI instead)
+
+#### **Service Validation**
+- Service names must be specified
+- Ports must be between 0 and 65535
+
+#### **User Validation**
+- User names must be specified
+- User names cannot contain spaces or colons
+- Basic format validation for system compatibility
+
+#### **Port Validation**
+- All ports must be between 1 and 65535
+- Applies to both service ports and instance default ports
+
+#### **Inheritance Validation**
+- Templates cannot inherit from themselves (self-reference check)
+- Parent template names cannot be empty
+- Full inheritance resolution validation (missing parents, circular dependencies)
+
+#### **Base OS Validation**
+- Base OS must be supported (unless using AMI-based templates)
+- AMI-based templates skip base OS validation
+
+### Validation Examples
+
+**Valid Template:**
+```yaml
+name: "My Research Environment"
+description: "Python research environment with Jupyter"
+base: "ubuntu-22.04"
+package_manager: "conda"
+
+packages:
+  conda:
+    - "python=3.11"
+    - "jupyter"
+
+users:
+  - name: "researcher"
+    password: "auto-generated"
+    
+services:
+  - name: "jupyter"
+    port: 8888
+```
+
+**Invalid Templates:**
+
+```yaml
+# ❌ Invalid package manager
+package_manager: "invalid-manager"
+
+# ❌ Self-reference in inheritance
+inherits:
+  - "My Template"  # Same as template name
+
+# ❌ Invalid port
+services:
+  - name: "web"
+    port: 70000  # > 65535
+
+# ❌ Invalid user name
+users:
+  - name: "invalid user"  # Contains space
+
+# ❌ Package inconsistency
+package_manager: "apt"
+packages:
+  conda:  # APT template with conda packages
+    - "python"
+```
+
+### Error Messages
+
+The validation system provides clear, actionable error messages:
+
+```
+❌ template validation error in package_manager: 
+   unsupported package manager: invalid-manager (valid: [apt dnf conda spack ami])
+
+❌ template validation error in inherits: 
+   template cannot inherit from itself: My Template
+
+❌ template validation error in services[0].port: 
+   service port must be between 0 and 65535
+
+❌ template validation error in users[0].name: 
+   user name cannot contain spaces or colons
+```
+
+### Integration with Build Process
+
+Template validation is automatically run during:
+- Template inheritance resolution
+- Template loading and registry scanning
+- CLI validation commands
+- Template file parsing
+
+This ensures that only valid templates are used in the system, preventing runtime errors during instance launches.

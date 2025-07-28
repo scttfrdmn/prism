@@ -41,6 +41,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -655,7 +656,12 @@ func (a *App) storageDelete(args []string) error {
 }
 
 // Templates handles the templates command
-func (a *App) Templates(_ []string) error {
+func (a *App) Templates(args []string) error {
+	// Check if this is a validation subcommand
+	if len(args) > 0 && args[0] == "validate" {
+		return a.validateTemplates(args[1:])
+	}
+	
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -678,6 +684,54 @@ func (a *App) Templates(_ []string) error {
 		fmt.Println()
 	}
 
+	return nil
+}
+
+// validateTemplates handles template validation commands
+func (a *App) validateTemplates(args []string) error {
+	// Import templates package 
+	// Note: We need to add the import at the top of the file
+	
+	if len(args) == 0 {
+		// Validate all templates
+		fmt.Println("🔍 Validating all templates...")
+		
+		templateDirs := []string{"./templates"}
+		if err := templates.ValidateAllTemplates(templateDirs); err != nil {
+			fmt.Println("❌ Template validation failed")
+			return err
+		}
+		
+		fmt.Println("✅ All templates are valid")
+		return nil
+	}
+	
+	// Validate specific template or file
+	templateName := args[0]
+	
+	// Check if it's a file path
+	if strings.HasSuffix(templateName, ".yml") || strings.HasSuffix(templateName, ".yaml") {
+		fmt.Printf("🔍 Validating template file: %s\n", templateName)
+		
+		if err := templates.ValidateTemplate(templateName); err != nil {
+			fmt.Println("❌ Template validation failed")
+			return err
+		}
+		
+		fmt.Printf("✅ Template file '%s' is valid\n", templateName)
+		return nil
+	}
+	
+	// Treat as template name
+	fmt.Printf("🔍 Validating template: %s\n", templateName)
+	
+	templateDirs := []string{"./templates"}
+	if err := templates.ValidateTemplateWithRegistry(templateDirs, templateName); err != nil {
+		fmt.Println("❌ Template validation failed")
+		return err
+	}
+	
+	fmt.Printf("✅ Template '%s' is valid\n", templateName)
 	return nil
 }
 

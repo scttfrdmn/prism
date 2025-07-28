@@ -158,6 +158,16 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 		}
 	}
 	
+	// Validate inheritance (basic check - full validation happens during resolution)
+	if err := p.validateInheritance(template); err != nil {
+		return err
+	}
+	
+	// Validate package consistency
+	if err := p.validatePackageConsistency(template); err != nil {
+		return err
+	}
+	
 	return nil
 }
 
@@ -431,4 +441,71 @@ func (r *TemplateRegistry) mergeTemplate(target, source *Template) {
 	for k, v := range source.InstanceDefaults.EstimatedCostPerHour {
 		target.InstanceDefaults.EstimatedCostPerHour[k] = v
 	}
+}
+
+// validateInheritance performs basic inheritance validation
+func (p *TemplateParser) validateInheritance(template *Template) error {
+	// Check for self-reference
+	for _, parent := range template.Inherits {
+		if parent == template.Name {
+			return &TemplateValidationError{
+				Field:   "inherits",
+				Message: fmt.Sprintf("template cannot inherit from itself: %s", parent),
+			}
+		}
+	}
+	
+	// Check for empty parent names
+	for i, parent := range template.Inherits {
+		if strings.TrimSpace(parent) == "" {
+			return &TemplateValidationError{
+				Field:   fmt.Sprintf("inherits[%d]", i),
+				Message: "parent template name cannot be empty",
+			}
+		}
+	}
+	
+	return nil
+}
+
+// validatePackageConsistency validates package definitions are consistent with package manager
+func (p *TemplateParser) validatePackageConsistency(template *Template) error {
+	pm := template.PackageManager
+	
+	// If no package manager specified, we can't validate consistency
+	if pm == "" {
+		return nil
+	}
+	
+	// Check for packages that don't match the package manager
+	switch pm {
+	case "apt":
+		if len(template.Packages.Conda) > 0 || len(template.Packages.Spack) > 0 {
+			return &TemplateValidationError{
+				Field:   "packages",
+				Message: "template uses APT package manager but has conda/spack packages defined",
+			}
+		}
+	case "dnf":
+		if len(template.Packages.Conda) > 0 || len(template.Packages.Spack) > 0 {
+			return &TemplateValidationError{
+				Field:   "packages",
+				Message: "template uses DNF package manager but has conda/spack packages defined",
+			}
+		}
+	case "conda":
+		if len(template.Packages.System) > 0 {
+			// This is actually OK - conda templates can have system packages for base dependencies
+			// Just issue a warning-level validation (could be enhanced in future)
+		}
+	case "ami":
+		if len(template.Packages.System) > 0 || len(template.Packages.Conda) > 0 || len(template.Packages.Spack) > 0 {
+			return &TemplateValidationError{
+				Field:   "packages",
+				Message: "AMI-based templates should not define packages (use pre-built AMI instead)",
+			}
+		}
+	}
+	
+	return nil
 }
