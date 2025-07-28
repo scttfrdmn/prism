@@ -16,21 +16,22 @@ type RuntimeTemplate struct {
 
 // Instance represents a running cloud workstation
 type Instance struct {
-	ID                 string          `json:"id"`
-	Name               string          `json:"name"`
-	Template           string          `json:"template"`
-	PublicIP           string          `json:"public_ip"`
-	PrivateIP          string          `json:"private_ip"`
-	State              string          `json:"state"`
-	LaunchTime         time.Time       `json:"launch_time"`
-	EstimatedDailyCost float64         `json:"estimated_daily_cost"`
-	AttachedVolumes    []string        `json:"attached_volumes"`     // EFS volume names
-	AttachedEBSVolumes []string        `json:"attached_ebs_volumes"` // EBS volume IDs
-	InstanceType       string          `json:"instance_type"`
-	Username           string          `json:"username"`
-	WebPort            int             `json:"web_port"`
-	HasWebInterface    bool            `json:"has_web_interface"`
-	IdleDetection      *IdleDetection  `json:"idle_detection,omitempty"`
+	ID                 string                  `json:"id"`
+	Name               string                  `json:"name"`
+	Template           string                  `json:"template"`
+	PublicIP           string                  `json:"public_ip"`
+	PrivateIP          string                  `json:"private_ip"`
+	State              string                  `json:"state"`
+	LaunchTime         time.Time               `json:"launch_time"`
+	EstimatedDailyCost float64                 `json:"estimated_daily_cost"`
+	AttachedVolumes    []string                `json:"attached_volumes"`     // EFS volume names
+	AttachedEBSVolumes []string                `json:"attached_ebs_volumes"` // EBS volume IDs
+	InstanceType       string                  `json:"instance_type"`
+	Username           string                  `json:"username"`
+	WebPort            int                     `json:"web_port"`
+	HasWebInterface    bool                    `json:"has_web_interface"`
+	IdleDetection      *IdleDetection          `json:"idle_detection,omitempty"`
+	AppliedTemplates   []AppliedTemplateRecord `json:"applied_templates,omitempty"` // Template application history
 }
 
 // IdleDetection represents idle detection configuration for an instance
@@ -74,4 +75,15 @@ type DiscountConfig struct {
 	EducationalDiscount float64 `json:"educational_discount"` // Educational institution discount
 	StartupDiscount     float64 `json:"startup_discount"`     // AWS Activate/startup credits
 	EnterpriseDiscount  float64 `json:"enterprise_discount"`  // Enterprise agreement discount
+}
+
+// AppliedTemplateRecord represents a template that has been applied to an instance
+type AppliedTemplateRecord struct {
+	TemplateName       string    `json:"template_name"`
+	AppliedAt          time.Time `json:"applied_at"`
+	PackageManager     string    `json:"package_manager"`
+	PackagesInstalled  []string  `json:"packages_installed"`
+	ServicesConfigured []string  `json:"services_configured"`
+	UsersCreated       []string  `json:"users_created"`
+	RollbackCheckpoint string    `json:"rollback_checkpoint"`
 }
