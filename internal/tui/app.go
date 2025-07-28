@@ -8,9 +8,12 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	// "github.com/scttfrdmn/cloudworkstation/internal/tui/api/mock" // Temporarily commented out
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/models"
+	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
@@ -43,24 +46,39 @@ type AppModel struct {
 	apiClient     *api.TUIClient
 	currentPage   PageID
 	dashboardModel models.DashboardModel
+	instancesModel models.InstancesModel
 	templatesModel models.TemplatesModel
+	storageModel   models.StorageModel
+	settingsModel  models.SettingsModel
 	profilesModel models.ProfilesModel
-	// Add other page models here
 	width         int
 	height        int
 }
 
 // NewApp creates a new TUI application
 func NewApp() *App {
-	// Create a mock client for now since we're refactoring
-	// Temporarily commenting out until we fix the API client issues
-	/*
-	mockClient := mock.NewMockClient()
-	apiClient := api.NewTUIClient(mockClient)
-	*/
+	// Get current profile for API client configuration
+	currentProfile, err := profile.GetCurrentProfile()
+	if err != nil {
+		// Use default profile if none exists
+		currentProfile = &core.Profile{
+			Name:       "default",
+			AWSProfile: "",
+			Region:     "",
+		}
+	}
+	
+	// Create API client with modern Options pattern
+	apiClient := pkgapi.NewClientWithOptions("http://localhost:8947", client.Options{
+		AWSProfile: currentProfile.AWSProfile,
+		AWSRegion:  currentProfile.Region,
+	})
+	
+	// Wrap with TUI client
+	tuiClient := api.NewTUIClient(apiClient)
 	
 	return &App{
-		apiClient: nil, // Temporarily nil until we fix API client issues
+		apiClient: tuiClient,
 		program:   nil,
 	}
 }
@@ -72,7 +90,10 @@ func (a *App) Run() error {
 		apiClient:     a.apiClient,
 		currentPage:   DashboardPage,
 		dashboardModel: models.NewDashboardModel(a.apiClient),
+		instancesModel: models.NewInstancesModel(a.apiClient),
 		templatesModel: models.NewTemplatesModel(a.apiClient),
+		storageModel:   models.NewStorageModel(a.apiClient),
+		settingsModel:  models.NewSettingsModel(a.apiClient),
 		profilesModel: models.NewProfilesModel(a.apiClient),
 	}
 
@@ -92,8 +113,14 @@ func (m AppModel) Init() tea.Cmd {
 	switch m.currentPage {
 	case DashboardPage:
 		return m.dashboardModel.Init()
+	case InstancesPage:
+		return m.instancesModel.Init()
 	case TemplatesPage:
 		return m.templatesModel.Init()
+	case StoragePage:
+		return m.storageModel.Init()
+	case SettingsPage:
+		return m.settingsModel.Init()
 	case ProfilesPage:
 		return m.profilesModel.Init()
 	default:
@@ -122,7 +149,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "2":
 			// Switch to instances page
 			m.currentPage = InstancesPage
-			// TODO: Initialize instances page
+			{
+				cmds = append(cmds, m.instancesModel.Init())
+			}
 		case "3":
 			// Switch to templates page
 			m.currentPage = TemplatesPage
@@ -132,11 +161,15 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "4":
 			// Switch to storage page
 			m.currentPage = StoragePage
-			// TODO: Initialize storage page
+			{
+				cmds = append(cmds, m.storageModel.Init())
+			}
 		case "5":
 			// Switch to settings page
 			m.currentPage = SettingsPage
-			// TODO: Initialize settings page
+			{
+				cmds = append(cmds, m.settingsModel.Init())
+			}
 		case "6":
 			// Switch to profiles page
 			m.currentPage = ProfilesPage
@@ -154,15 +187,26 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		newModel, newCmd := m.dashboardModel.Update(msg)
 		m.dashboardModel = newModel.(models.DashboardModel)
 		cmd = newCmd
+	case InstancesPage:
+		newModel, newCmd := m.instancesModel.Update(msg)
+		m.instancesModel = newModel.(models.InstancesModel)
+		cmd = newCmd
 	case TemplatesPage:
 		newModel, newCmd := m.templatesModel.Update(msg)
 		m.templatesModel = newModel.(models.TemplatesModel)
+		cmd = newCmd
+	case StoragePage:
+		newModel, newCmd := m.storageModel.Update(msg)
+		m.storageModel = newModel.(models.StorageModel)
+		cmd = newCmd
+	case SettingsPage:
+		newModel, newCmd := m.settingsModel.Update(msg)
+		m.settingsModel = newModel.(models.SettingsModel)
 		cmd = newCmd
 	case ProfilesPage:
 		newModel, newCmd := m.profilesModel.Update(msg)
 		m.profilesModel = newModel.(models.ProfilesModel)
 		cmd = newCmd
-	// Handle other pages here
 	}
 
 	cmds = append(cmds, cmd)
@@ -176,13 +220,13 @@ func (m AppModel) View() string {
 	case DashboardPage:
 		return m.dashboardModel.View()
 	case InstancesPage:
-		return "Instances Page" // TODO: Implement instances page view
+		return m.instancesModel.View()
 	case TemplatesPage:
 		return m.templatesModel.View()
 	case StoragePage:
-		return "Storage Page" // TODO: Implement storage page view
+		return m.storageModel.View()
 	case SettingsPage:
-		return "Settings Page" // TODO: Implement settings page view
+		return m.settingsModel.View()
 	case ProfilesPage:
 		return m.profilesModel.View()
 	default:
