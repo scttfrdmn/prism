@@ -117,6 +117,10 @@ func (s *Server) handleInstanceOperations(w http.ResponseWriter, r *http.Request
 			s.handleStopInstance(w, r, instanceName)
 		case "connect":
 			s.handleConnectInstance(w, r, instanceName)
+		case "layers":
+			s.handleInstanceLayers(w, r)
+		case "rollback":
+			s.handleInstanceRollback(w, r)
 		default:
 			s.writeError(w, http.StatusNotFound, "Unknown operation")
 		}

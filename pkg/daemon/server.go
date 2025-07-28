@@ -210,6 +210,10 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/templates", applyMiddleware(s.handleTemplates))
 	mux.HandleFunc("/api/v1/templates/", applyMiddleware(s.handleTemplateInfo))
 
+	// Template application operations
+	mux.HandleFunc("/api/v1/templates/apply", applyMiddleware(s.handleTemplateApply))
+	mux.HandleFunc("/api/v1/templates/diff", applyMiddleware(s.handleTemplateDiff))
+
 	// Volume operations
 	mux.HandleFunc("/api/v1/volumes", applyMiddleware(s.handleVolumes))
 	mux.HandleFunc("/api/v1/volumes/", applyMiddleware(s.handleVolumeOperations))
