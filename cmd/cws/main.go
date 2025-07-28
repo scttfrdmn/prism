@@ -176,6 +176,18 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "hibernate":
+		err := cliApp.Hibernate(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "resume":
+		err := cliApp.Resume(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "volume":
 		err := cliApp.Volume(args)
 		if err != nil {
@@ -273,6 +285,8 @@ func printUsage() {
 	fmt.Println("  stop <name>                         Stop a workstation")
 	fmt.Println("  start <name>                        Start a stopped workstation")
 	fmt.Println("  delete <name>                       Delete a workstation")
+	fmt.Println("  hibernate <name>                    Hibernate a workstation (preserves RAM)")
+	fmt.Println("  resume <name>                       Resume a hibernated workstation")
 	fmt.Println("  templates                           List available templates")
 	fmt.Println()
 	fmt.Println("  apply <template> <instance>         Apply template to running instance")
@@ -315,6 +329,8 @@ func printUsage() {
 	fmt.Println("  cws launch python-research ml-project --size L  # Launch Python with large instance")
 	fmt.Println("  cws list                                    # List all workstations")
 	fmt.Println("  cws connect my-analysis                     # Get connection details")
+	fmt.Println("  cws hibernate my-analysis                   # Hibernate instance (preserve RAM)")
+	fmt.Println("  cws resume my-analysis                      # Resume hibernated instance")
 	fmt.Println("  cws apply python-ml my-analysis             # Add ML tools to existing instance")
 	fmt.Println("  cws diff python-ml my-analysis              # Preview template changes")
 	fmt.Println("  cws layers my-analysis                      # Show applied template history")

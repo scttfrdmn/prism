@@ -338,6 +338,86 @@ func (a *App) Delete(args []string) error {
 	return nil
 }
 
+// Hibernate handles the hibernate command
+func (a *App) Hibernate(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws hibernate <name>")
+	}
+
+	name := args[0]
+
+	// Check daemon is running
+	if err := a.apiClient.Ping(a.ctx); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	// Check hibernation status first
+	status, err := a.apiClient.GetInstanceHibernationStatus(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to check hibernation status: %w", err)
+	}
+
+	if !status.HibernationSupported {
+		fmt.Printf("⚠️  Instance %s does not support hibernation\n", name)
+		fmt.Printf("    Falling back to regular stop operation\n")
+	}
+
+	err = a.apiClient.HibernateInstance(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to hibernate instance: %w", err)
+	}
+
+	if status.HibernationSupported {
+		fmt.Printf("🛌 Hibernating instance %s...\n", name)
+		fmt.Printf("   💡 RAM state preserved for instant resume\n")
+		fmt.Printf("   💰 Compute billing stopped, storage continues\n")
+	} else {
+		fmt.Printf("⏹️ Stopping instance %s (hibernation not supported)...\n", name)
+	}
+
+	return nil
+}
+
+// Resume handles the resume command
+func (a *App) Resume(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws resume <name>")
+	}
+
+	name := args[0]
+
+	// Check daemon is running
+	if err := a.apiClient.Ping(a.ctx); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	// Check hibernation status first
+	status, err := a.apiClient.GetInstanceHibernationStatus(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to check hibernation status: %w", err)
+	}
+
+	if status.IsHibernated {
+		err = a.apiClient.ResumeInstance(a.ctx, name)
+		if err != nil {
+			return fmt.Errorf("failed to resume instance: %w", err)
+		}
+		fmt.Printf("⏰ Resuming hibernated instance %s...\n", name)
+		fmt.Printf("   🚀 Instant startup from preserved RAM state\n")
+	} else {
+		// Fall back to regular start
+		err = a.apiClient.StartInstance(a.ctx, name)
+		if err != nil {
+			return fmt.Errorf("failed to start instance: %w", err)
+		}
+		fmt.Printf("▶️ Starting instance %s...\n", name)
+		fmt.Printf("   💡 Instance was not hibernated, performing regular start\n")
+	}
+
+	return nil
+}
+
+
 // Volume handles volume commands
 func (a *App) Volume(args []string) error {
 	if len(args) < 1 {

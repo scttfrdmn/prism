@@ -86,6 +86,30 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 		},
 	})
 
+	// Hibernate command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "hibernate <name>",
+		Short: "Hibernate a workstation",
+		Long: `Hibernate a running workstation to preserve RAM state while stopping compute billing.
+If hibernation is not supported, automatically falls back to regular stop.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Hibernate(args)
+		},
+	})
+
+	// Resume command
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "resume <name>",
+		Short: "Resume a workstation",
+		Long: `Resume a hibernated workstation with instant startup from preserved RAM state.
+If not hibernated, performs regular start operation.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Resume(args)
+		},
+	})
+
 	// Templates command
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "templates",
