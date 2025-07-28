@@ -84,6 +84,11 @@ func (r *TemplateResolver) ResolveAllTemplates(registry *TemplateRegistry, regio
 
 // getAMIMapping generates AMI mapping for a template
 func (r *TemplateResolver) getAMIMapping(template *Template, region, architecture string) (map[string]map[string]string, error) {
+	// For AMI-based templates, use the AMI configuration directly
+	if template.PackageManager == "ami" && template.AMIConfig.AMIs != nil {
+		return template.AMIConfig.AMIs, nil
+	}
+	
 	// Check if we have pre-built AMIs for this template
 	if templateAMIs, exists := r.AMIRegistry[template.Name]; exists {
 		return templateAMIs, nil
@@ -100,6 +105,11 @@ func (r *TemplateResolver) getAMIMapping(template *Template, region, architectur
 
 // getInstanceTypeMapping generates instance type mapping based on template requirements
 func (r *TemplateResolver) getInstanceTypeMapping(template *Template, architecture string) map[string]string {
+	// For AMI-based templates, use the AMI instance type configuration
+	if template.PackageManager == "ami" && template.AMIConfig.InstanceTypes != nil {
+		return template.AMIConfig.InstanceTypes
+	}
+	
 	// If template specifies instance type, use it
 	if template.InstanceDefaults.Type != "" {
 		return map[string]string{

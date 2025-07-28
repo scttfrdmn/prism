@@ -17,8 +17,11 @@ type Template struct {
 	Base        string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.)
 	
 	// Package management strategy
-	PackageManager string             `yaml:"package_manager,omitempty" json:"package_manager,omitempty"` // "auto", "apt", "conda", "spack"
-	Packages       PackageDefinitions `yaml:"packages" json:"packages"`
+	PackageManager string             `yaml:"package_manager,omitempty" json:"package_manager,omitempty"` // "auto", "apt", "dnf", "conda", "spack", "ami"
+	Packages       PackageDefinitions `yaml:"packages,omitempty" json:"packages,omitempty"`
+	
+	// AMI configuration (for pre-built images)
+	AMIConfig AMIConfig `yaml:"ami_config,omitempty" json:"ami_config,omitempty"`
 	
 	// Service configuration
 	Services []ServiceConfig `yaml:"services,omitempty" json:"services,omitempty"`
@@ -45,6 +48,21 @@ type PackageDefinitions struct {
 	Conda  []string `yaml:"conda,omitempty" json:"conda,omitempty"`   // conda packages
 	Spack  []string `yaml:"spack,omitempty" json:"spack,omitempty"`   // spack packages
 	Pip    []string `yaml:"pip,omitempty" json:"pip,omitempty"`       // pip packages (when conda used)
+}
+
+// AMIConfig defines AMI-based template configuration
+type AMIConfig struct {
+	// AMI IDs for different regions and architectures
+	AMIs map[string]map[string]string `yaml:"amis" json:"amis"` // region -> arch -> AMI ID
+	
+	// Instance type overrides for different architectures
+	InstanceTypes map[string]string `yaml:"instance_types,omitempty" json:"instance_types,omitempty"` // arch -> instance type
+	
+	// Optional user data script for AMI customization
+	UserDataScript string `yaml:"user_data_script,omitempty" json:"user_data_script,omitempty"`
+	
+	// SSH username for the AMI (varies by image)
+	SSHUser string `yaml:"ssh_user,omitempty" json:"ssh_user,omitempty"`
 }
 
 // ServiceConfig defines a service to configure and enable
@@ -95,6 +113,7 @@ const (
 	PackageManagerDnf   PackageManagerType = "dnf"
 	PackageManagerConda PackageManagerType = "conda"
 	PackageManagerSpack PackageManagerType = "spack"
+	PackageManagerAMI   PackageManagerType = "ami"
 )
 
 // PackageManagerStrategy handles package manager selection logic
@@ -143,6 +162,7 @@ type ScriptGenerator struct {
 	DnfTemplate   string
 	CondaTemplate string
 	SpackTemplate string
+	AMITemplate   string
 }
 
 // TemplateValidationError represents template validation errors
