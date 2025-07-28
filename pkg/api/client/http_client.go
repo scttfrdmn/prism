@@ -540,3 +540,99 @@ func (c *HTTPClient) RollbackInstance(ctx context.Context, req types.RollbackReq
 
 	return c.handleResponse(resp, nil)
 }
+
+// Idle detection operations
+
+func (c *HTTPClient) GetIdleStatus(ctx context.Context) (*types.IdleStatusResponse, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/idle/status", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.IdleStatusResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c *HTTPClient) EnableIdleDetection(ctx context.Context) error {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/enable", nil)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
+func (c *HTTPClient) DisableIdleDetection(ctx context.Context) error {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/disable", nil)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
+func (c *HTTPClient) GetIdleProfiles(ctx context.Context) (map[string]types.IdleProfile, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/idle/profiles", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]types.IdleProfile
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (c *HTTPClient) AddIdleProfile(ctx context.Context, profile types.IdleProfile) error {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/profiles", profile)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
+func (c *HTTPClient) GetIdlePendingActions(ctx context.Context) ([]types.IdleState, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/idle/pending-actions", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []types.IdleState
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (c *HTTPClient) ExecuteIdleActions(ctx context.Context) (*types.IdleExecutionResponse, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/execute-actions", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.IdleExecutionResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (c *HTTPClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistoryEntry, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/idle/history", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []types.IdleHistoryEntry
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
