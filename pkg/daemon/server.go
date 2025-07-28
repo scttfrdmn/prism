@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 )
 
@@ -22,7 +23,8 @@ type Server struct {
 	userManager    *UserManager
 	statusTracker  *StatusTracker
 	versionManager *APIVersionManager
-	// Future: add cost tracker, idle monitor, etc.
+	idleManager    *idle.Manager
+	// Future: add cost tracker, etc.
 }
 
 // NewServer creates a new daemon server
@@ -49,12 +51,19 @@ func NewServer(port string) (*Server, error) {
 	// Initialize API version manager
 	versionManager := NewAPIVersionManager("/api")
 
+	// Initialize idle manager
+	idleManager, err := idle.NewManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize idle manager: %w", err)
+	}
+
 	server := &Server{
 		port:           port,
 		stateManager:   stateManager,
 		userManager:    userManager,
 		statusTracker:  statusTracker,
 		versionManager: versionManager,
+		idleManager:    idleManager,
 	}
 
 	// Setup HTTP routes
@@ -221,6 +230,15 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	// Storage operations
 	mux.HandleFunc("/api/v1/storage", applyMiddleware(s.handleStorage))
 	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
+
+	// Idle detection and hibernation policy operations
+	mux.HandleFunc("/api/v1/idle/status", applyMiddleware(s.handleIdleStatus))
+	mux.HandleFunc("/api/v1/idle/enable", applyMiddleware(s.handleIdleEnable))
+	mux.HandleFunc("/api/v1/idle/disable", applyMiddleware(s.handleIdleDisable))
+	mux.HandleFunc("/api/v1/idle/profiles", applyMiddleware(s.handleIdleProfiles))
+	mux.HandleFunc("/api/v1/idle/pending-actions", applyMiddleware(s.handleIdlePendingActions))
+	mux.HandleFunc("/api/v1/idle/execute-actions", applyMiddleware(s.handleIdleExecuteActions))
+	mux.HandleFunc("/api/v1/idle/history", applyMiddleware(s.handleIdleHistory))
 }
 
 // HTTP handlers

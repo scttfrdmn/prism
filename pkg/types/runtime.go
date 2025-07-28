@@ -94,3 +94,70 @@ type HibernationStatus struct {
 	IsHibernated        bool   `json:"is_hibernated"`
 	InstanceName        string `json:"instance_name"`
 }
+
+// IdleStatusResponse represents the response from GetIdleStatus
+type IdleStatusResponse struct {
+	Enabled        bool                    `json:"enabled"`
+	DefaultProfile string                  `json:"default_profile"`
+	Profiles       map[string]IdleProfile  `json:"profiles"`
+	DomainMappings map[string]string       `json:"domain_mappings"`
+}
+
+// IdleProfile represents an idle detection profile
+type IdleProfile struct {
+	Name             string  `json:"name"`
+	CPUThreshold     float64 `json:"cpu_threshold"`
+	MemoryThreshold  float64 `json:"memory_threshold"`
+	NetworkThreshold float64 `json:"network_threshold"`
+	DiskThreshold    float64 `json:"disk_threshold"`
+	GPUThreshold     float64 `json:"gpu_threshold"`
+	IdleMinutes      int     `json:"idle_minutes"`
+	Action           string  `json:"action"`
+	Notification     bool    `json:"notification"`
+}
+
+// IdleState represents the idle state of an instance
+type IdleState struct {
+	InstanceID   string                  `json:"instance_id"`
+	InstanceName string                  `json:"instance_name"`
+	Profile      string                  `json:"profile"`
+	IsIdle       bool                    `json:"is_idle"`
+	IdleSince    *time.Time              `json:"idle_since,omitempty"`
+	LastActivity time.Time               `json:"last_activity"`
+	NextAction   *IdleScheduledAction    `json:"next_action,omitempty"`
+	LastMetrics  *IdleUsageMetrics       `json:"last_metrics,omitempty"`
+}
+
+// IdleScheduledAction represents a scheduled idle action
+type IdleScheduledAction struct {
+	Action string    `json:"action"`
+	Time   time.Time `json:"time"`
+}
+
+// IdleUsageMetrics represents usage metrics for idle detection
+type IdleUsageMetrics struct {
+	Timestamp   time.Time `json:"timestamp"`
+	CPU         float64   `json:"cpu"`
+	Memory      float64   `json:"memory"`
+	Network     float64   `json:"network"`
+	Disk        float64   `json:"disk"`
+	GPU         *float64  `json:"gpu,omitempty"`
+	HasActivity bool      `json:"has_activity"`
+}
+
+// IdleHistoryEntry represents an entry in the idle history
+type IdleHistoryEntry struct {
+	InstanceID   string             `json:"instance_id"`
+	InstanceName string             `json:"instance_name"`
+	Action       string             `json:"action"`
+	Time         time.Time          `json:"time"`
+	IdleDuration time.Duration      `json:"idle_duration"`
+	Metrics      *IdleUsageMetrics  `json:"metrics,omitempty"`
+}
+
+// IdleExecutionResponse represents the response from executing idle actions
+type IdleExecutionResponse struct {
+	Executed int      `json:"executed"`
+	Errors   []string `json:"errors"`
+	Total    int      `json:"total"`
+}
