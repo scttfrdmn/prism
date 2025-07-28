@@ -1,0 +1,65 @@
+name: "Amazon Linux 2023 (AMI)"
+description: "Latest Amazon Linux 2023 AMI with AWS CLI and development tools pre-installed"
+base: "ami-based"
+
+# Use AMI package manager
+package_manager: "ami"
+
+# AMI configuration
+ami_config:
+  # Amazon Linux 2023 AMIs (latest)
+  amis:
+    us-east-1:
+      x86_64: "ami-0c94855ba95b798c7"  # Amazon Linux 2023
+      arm64: "ami-0f3c7d07486cad139"   # Amazon Linux 2023 ARM64
+    us-east-2:
+      x86_64: "ami-0c94855ba95b798c7"
+      arm64: "ami-0f3c7d07486cad139"
+    us-west-1:
+      x86_64: "ami-0c94855ba95b798c7"
+      arm64: "ami-0f3c7d07486cad139"
+    us-west-2:
+      x86_64: "ami-0c94855ba95b798c7"
+      arm64: "ami-0f3c7d07486cad139"
+  
+  # General purpose instance types
+  instance_types:
+    x86_64: "t3.medium"
+    arm64: "t4g.medium"
+  
+  # Default SSH user for Amazon Linux
+  ssh_user: "ec2-user"
+  
+  # Customization script for development setup
+  user_data_script: |
+    # Update system
+    dnf update -y
+    
+    # Install development tools
+    dnf groupinstall -y "Development Tools"
+    dnf install -y git docker podman nodejs npm python3-pip
+    
+    # Enable Docker
+    systemctl enable docker
+    systemctl start docker
+    usermod -aG docker ec2-user
+    
+    # Install AWS CDK and common tools
+    npm install -g aws-cdk typescript @aws-cdk/cli
+    pip3 install boto3 awscli
+
+users: []  # Use default ec2-user
+
+services:
+  - name: "docker"
+    enable: true
+
+instance_defaults:
+  ports: [22, 80, 443]
+
+version: "1.0"
+tags:
+  type: "development"  
+  os: "amazon-linux"
+  ami: "amazon-linux-2023"
+  purpose: "aws-development"

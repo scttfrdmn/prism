@@ -88,16 +88,18 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 		return &TemplateValidationError{Field: "base", Message: "base OS is required"}
 	}
 	
-	// Validate base OS is supported
-	if _, exists := p.BaseAMIs[template.Base]; !exists {
-		return &TemplateValidationError{
-			Field:   "base",
-			Message: fmt.Sprintf("unsupported base OS: %s", template.Base),
+	// Validate base OS is supported (skip for AMI-based templates)
+	if template.Base != "ami-based" {
+		if _, exists := p.BaseAMIs[template.Base]; !exists {
+			return &TemplateValidationError{
+				Field:   "base",
+				Message: fmt.Sprintf("unsupported base OS: %s", template.Base),
+			}
 		}
 	}
 	
 	// Validate package manager
-	validPMs := []string{"auto", "apt", "dnf", "conda", "spack"}
+	validPMs := []string{"auto", "apt", "dnf", "conda", "spack", "ami"}
 	if template.PackageManager != "" {
 		valid := false
 		for _, pm := range validPMs {

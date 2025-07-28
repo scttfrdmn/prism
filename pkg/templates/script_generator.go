@@ -15,6 +15,7 @@ func NewScriptGenerator() *ScriptGenerator {
 		DnfTemplate:   dnfScriptTemplate,
 		CondaTemplate: condaScriptTemplate,
 		SpackTemplate: spackScriptTemplate,
+		AMITemplate:   amiScriptTemplate,
 	}
 }
 
@@ -40,6 +41,9 @@ func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager Package
 		scriptTemplate = sg.CondaTemplate
 	case PackageManagerSpack:
 		scriptTemplate = sg.SpackTemplate
+	case PackageManagerAMI:
+		// AMI templates use minimal user data (AMI is already configured)
+		scriptTemplate = sg.AMITemplate
 	default:
 		return "", fmt.Errorf("unsupported package manager: %s", packageManager)
 	}
@@ -515,4 +519,74 @@ echo "Setup log: /var/log/cws-setup.log"
 # Write completion marker
 date > /var/log/cws-setup.log
 echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
+`
+
+const amiScriptTemplate = `#\!/bin/bash
+set -euo pipefail
+
+# CloudWorkstation Template: {{.Template.Name}}
+# Generated script for AMI-based template (minimal user data)
+# Generated at: $(date)
+
+echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "Using pre-built AMI - minimal setup required"
+
+{{if .Template.AMIConfig.UserDataScript}}
+# Custom user data script from AMI config
+echo "Running custom AMI user data script..."
+{{.Template.AMIConfig.UserDataScript}}
+{{end}}
+
+{{range .Users}}
+# Create user: {{.Name}}
+echo "Creating user: {{.Name}}"
+useradd -m -s {{.Shell}} {{.Name}} || true
+echo "{{.Name}}:{{.Password}}" | chpasswd
+{{if .Groups}}
+{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
+{{end}}
+{{end}}
+{{end}}
+
+{{range .Services}}
+# Configure service: {{.Name}}
+echo "Configuring service: {{.Name}}"
+{{if .Config}}
+mkdir -p /etc/{{.Name}}
+{{$service := .}}{{range .Config}}
+echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
+{{end}}
+{{end}}
+{{if .Enable}}
+systemctl enable {{.Name}} || true
+systemctl start {{.Name}} || true
+{{end}}
+{{end}}
+
+{{if .Template.PostInstall}}
+# Post-install script
+echo "Running post-install script..."
+{{.Template.PostInstall}}
+{{end}}
+
+echo "=== Setup Complete ==="
+echo "Template: {{.Template.Name}}"
+echo "Description: {{.Template.Description}}"
+echo "AMI-based template - most software pre-installed"
+{{if .Template.AMIConfig.SSHUser}}
+echo "SSH User: {{.Template.AMIConfig.SSHUser}}"
+{{end}}
+{{range .Users}}
+echo "Additional user created - Name: {{.Name}}, Password: {{.Password}}"
+{{end}}
+{{range .Services}}
+{{if .Port}}
+echo "Service available - {{.Name}} on port {{.Port}}"
+{{end}}
+{{end}}
+echo "Setup log: /var/log/cws-setup.log"
+
+# Write completion marker
+date > /var/log/cws-setup.log
+echo "CloudWorkstation AMI setup completed successfully" >> /var/log/cws-setup.log
 `
