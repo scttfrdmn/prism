@@ -131,7 +131,7 @@ func (a *App) TUI(_ []string) error {
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws launch <template> <n> [options]")
+		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --with conda|apt|dnf --dry-run\n  note: apt/dnf support coming in Sprint 2-3")
 	}
 
 	template := args[0]
@@ -170,7 +170,26 @@ func (a *App) Launch(args []string) error {
 		case arg == "--dry-run":
 			req.DryRun = true
 		case arg == "--with" && i+1 < len(args):
-			req.PackageManager = args[i+1]
+			packageManager := args[i+1]
+			// Validate supported package managers
+			supportedManagers := []string{"conda", "apt", "dnf", "auto"}
+			supported := false
+			for _, mgr := range supportedManagers {
+				if packageManager == mgr {
+					supported = true
+					break
+				}
+			}
+			if !supported {
+				return fmt.Errorf("unsupported package manager: %s (supported: conda, apt, dnf, auto)", packageManager)
+			}
+			
+			// Note: apt/dnf support coming in Sprint 2-3
+			if packageManager == "apt" || packageManager == "dnf" {
+				return fmt.Errorf("package manager %s support coming in Sprint 2-3 (currently supported: conda, auto)", packageManager)
+			}
+			
+			req.PackageManager = packageManager
 			i++
 		default:
 			return fmt.Errorf("unknown option: %s", arg)
