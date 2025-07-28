@@ -1006,12 +1006,24 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 			g.showStopConfirmation(instance.Name)
 		})
 		actionsContainer.Add(stopBtn)
+		
+		hibernateBtn := widget.NewButton("Hibernate", func() {
+			g.showHibernateConfirmation(instance)
+		})
+		actionsContainer.Add(hibernateBtn)
 	} else if instance.State == "stopped" {
 		startBtn := widget.NewButton("Start", func() {
 			g.showStartConfirmation(instance.Name)
 		})
 		startBtn.Importance = widget.HighImportance
 		actionsContainer.Add(startBtn)
+		
+		// Add Resume button for potentially hibernated instances
+		resumeBtn := widget.NewButton("Resume", func() {
+			g.showResumeConfirmation(instance.Name)
+		})
+		resumeBtn.Importance = widget.MediumImportance
+		actionsContainer.Add(resumeBtn)
 	}
 	
 	// Secondary action buttons  
@@ -2493,6 +2505,97 @@ func (g *CloudWorkstationGUI) showStopConfirmation(instanceName string) {
 				}
 				
 				g.showNotification("success", "Instance Stopping", fmt.Sprintf("Instance %s is shutting down", instanceName))
+				g.refreshInstances()
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// showHibernateConfirmation shows confirmation dialog for hibernating instance
+func (g *CloudWorkstationGUI) showHibernateConfirmation(instance types.Instance) {
+	// Check hibernation support first
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	hibernationStatus, err := g.apiClient.GetInstanceHibernationStatus(ctx, instance.Name)
+	if err != nil {
+		g.showNotification("error", "Hibernation Check Failed", err.Error())
+		return
+	}
+	
+	var title, message string
+	if hibernationStatus.HibernationSupported {
+		title = "Hibernate Instance"
+		message = fmt.Sprintf("Are you sure you want to hibernate the instance '%s'?\n\n💤 Hibernation preserves RAM state to storage for faster resume.\n⚡ Resume will be faster than a regular start.\n💰 Billing for compute stops, but storage costs for RAM persist.", instance.Name)
+	} else {
+		title = "Stop Instance (Hibernation Not Supported)"
+		message = fmt.Sprintf("Instance '%s' does not support hibernation.\n\nThis will perform a regular stop instead.\n\nThe instance will be stopped and billing for compute resources will stop.", instance.Name)
+	}
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				if err := g.apiClient.HibernateInstance(ctx, instance.Name); err != nil {
+					g.showNotification("error", "Hibernation Failed", err.Error())
+					return
+				}
+				
+				if hibernationStatus.HibernationSupported {
+					g.showNotification("success", "Instance Hibernating", fmt.Sprintf("Instance %s is hibernating (preserving RAM state)", instance.Name))
+				} else {
+					g.showNotification("success", "Instance Stopping", fmt.Sprintf("Instance %s is stopping (hibernation not supported)", instance.Name))
+				}
+				g.refreshInstances()
+			}()
+		}
+	}, g.window)
+	
+	dialog.Show()
+}
+
+// showResumeConfirmation shows confirmation dialog for resuming instance
+func (g *CloudWorkstationGUI) showResumeConfirmation(instanceName string) {
+	// Check hibernation status first
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	hibernationStatus, err := g.apiClient.GetInstanceHibernationStatus(ctx, instanceName)
+	if err != nil {
+		// Fall back to regular start if we can't check hibernation status
+		g.showStartConfirmation(instanceName)
+		return
+	}
+	
+	var title, message string
+	if hibernationStatus.IsHibernated {
+		title = "Resume Hibernated Instance"
+		message = fmt.Sprintf("Are you sure you want to resume the hibernated instance '%s'?\n\n⚡ Resuming from hibernation will be faster than a regular start.\n💾 RAM state will be restored from storage.\n💰 Full billing will resume.", instanceName)
+	} else {
+		title = "Start Instance"
+		message = fmt.Sprintf("Are you sure you want to start the instance '%s'?\n\nThis instance was not hibernated, so this will be a regular start.\n💰 Billing will resume for compute resources.", instanceName)
+	}
+	
+	dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
+		if confirmed {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				
+				if err := g.apiClient.ResumeInstance(ctx, instanceName); err != nil {
+					g.showNotification("error", "Resume Failed", err.Error())
+					return
+				}
+				
+				if hibernationStatus.IsHibernated {
+					g.showNotification("success", "Instance Resuming", fmt.Sprintf("Instance %s is resuming from hibernation", instanceName))
+				} else {
+					g.showNotification("success", "Instance Starting", fmt.Sprintf("Instance %s is starting", instanceName))
+				}
 				g.refreshInstances()
 			}()
 		}

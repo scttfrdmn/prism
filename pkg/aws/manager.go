@@ -277,6 +277,89 @@ func (m *Manager) StopInstance(name string) error {
 	return nil
 }
 
+// HibernateInstance hibernates (pauses) a running EC2 instance
+// This preserves the RAM state to storage for faster resume than regular stop/start
+func (m *Manager) HibernateInstance(name string) error {
+	// Find instance by name tag
+	instanceID, err := m.findInstanceByName(name)
+	if err != nil {
+		return fmt.Errorf("failed to find instance: %w", err)
+	}
+
+	// Check if instance supports hibernation
+	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to describe instance: %w", err)
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return fmt.Errorf("instance not found")
+	}
+
+	instance := result.Reservations[0].Instances[0]
+	
+	// Check if hibernation is enabled for this instance
+	if instance.HibernationOptions == nil || !*instance.HibernationOptions.Configured {
+		// Fall back to regular stop if hibernation is not supported
+		return m.StopInstance(name)
+	}
+
+	// Stop the instance with hibernation
+	_, err = m.ec2.StopInstances(context.TODO(), &ec2.StopInstancesInput{
+		InstanceIds: []string{instanceID},
+		Hibernate:   aws.Bool(true), // This enables hibernation
+	})
+	if err != nil {
+		return fmt.Errorf("failed to hibernate instance: %w", err)
+	}
+
+	return nil
+}
+
+// ResumeInstance resumes a hibernated instance (same as StartInstance for hibernated instances)
+func (m *Manager) ResumeInstance(name string) error {
+	// Resume is the same as start for hibernated instances
+	return m.StartInstance(name)
+}
+
+// GetInstanceHibernationStatus returns whether the instance supports and is configured for hibernation
+func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) {
+	// Find instance by name tag
+	instanceID, err := m.findInstanceByName(name)
+	if err != nil {
+		return false, false, fmt.Errorf("failed to find instance: %w", err)
+	}
+
+	// Get instance details
+	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return false, false, fmt.Errorf("failed to describe instance: %w", err)
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return false, false, fmt.Errorf("instance not found")
+	}
+
+	instance := result.Reservations[0].Instances[0]
+	
+	// Check hibernation configuration
+	hibernationSupported := instance.HibernationOptions != nil && *instance.HibernationOptions.Configured
+	
+	// Check if currently hibernated (stopped with hibernation)
+	isHibernated := false
+	if hibernationSupported && instance.State != nil && string(instance.State.Name) == "stopped" {
+		// Additional check might be needed to distinguish between hibernated and regular stop
+		// For now, assume stopped + hibernation-enabled = hibernated
+		isHibernated = true
+	}
+	
+	return hibernationSupported, isHibernated, nil
+}
+
 // GetConnectionInfo returns connection information for an instance
 func (m *Manager) GetConnectionInfo(name string) (string, error) {
 	// Find instance by name tag
