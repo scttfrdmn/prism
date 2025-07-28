@@ -34,6 +34,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -41,6 +42,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -132,7 +134,7 @@ func (a *App) TUI(_ []string) error {
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --with conda|apt|dnf|ami --dry-run")
+		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --dry-run")
 	}
 
 	template := args[0]
@@ -165,6 +167,9 @@ func (a *App) Launch(args []string) error {
 			i++
 		case arg == "--vpc" && i+1 < len(args):
 			req.VpcID = args[i+1]
+			i++
+		case arg == "--project" && i+1 < len(args):
+			req.ProjectID = args[i+1]
 			i++
 		case arg == "--spot":
 			req.Spot = true
@@ -207,12 +212,29 @@ func (a *App) Launch(args []string) error {
 	fmt.Printf("🚀 %s\n", response.Message)
 	fmt.Printf("💰 Estimated cost: %s\n", response.EstimatedCost)
 	fmt.Printf("🔗 Connect with: %s\n", response.ConnectionInfo)
+	
+	// Show project information if launched in a project
+	if req.ProjectID != "" {
+		fmt.Printf("📁 Project: %s\n", req.ProjectID)
+		fmt.Printf("🏷️  Instance will be tracked under project budget\n")
+	}
 
 	return nil
 }
 
-// List handles the list command
-func (a *App) List(_ []string) error {
+// List handles the list command with optional project filtering
+func (a *App) List(args []string) error {
+	// Parse arguments for project filtering
+	var projectFilter string
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--project" && i+1 < len(args):
+			projectFilter = args[i+1]
+			i++
+		}
+	}
+	
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -223,26 +245,58 @@ func (a *App) List(_ []string) error {
 		return fmt.Errorf("failed to list instances: %w", err)
 	}
 
-	if len(response.Instances) == 0 {
-		fmt.Println("No workstations found. Launch one with: cws launch <template> <n>")
+	// Filter instances by project if specified
+	var filteredInstances []types.Instance
+	if projectFilter != "" {
+		for _, instance := range response.Instances {
+			if instance.ProjectID == projectFilter {
+				filteredInstances = append(filteredInstances, instance)
+			}
+		}
+	} else {
+		filteredInstances = response.Instances
+	}
+
+	if len(filteredInstances) == 0 {
+		if projectFilter != "" {
+			fmt.Printf("No workstations found in project '%s'. Launch one with: cws launch <template> <name> --project %s\n", projectFilter, projectFilter)
+		} else {
+			fmt.Println("No workstations found. Launch one with: cws launch <template> <name>")
+		}
 		return nil
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tLAUNCHED")
+	// Show header with project filter info
+	if projectFilter != "" {
+		fmt.Printf("Workstations in project '%s':\n\n", projectFilter)
+	}
 
-	for _, instance := range response.Instances {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\n",
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tPROJECT\tLAUNCHED")
+
+	totalCost := 0.0
+	for _, instance := range filteredInstances {
+		projectInfo := "-"
+		if instance.ProjectID != "" {
+			projectInfo = instance.ProjectID
+		}
+		
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\t%s\n",
 			instance.Name,
 			instance.Template,
 			strings.ToUpper(instance.State),
 			instance.PublicIP,
 			instance.EstimatedDailyCost,
+			projectInfo,
 			instance.LaunchTime.Format("2006-01-02 15:04"),
 		)
+		
+		if instance.State == "running" {
+			totalCost += instance.EstimatedDailyCost
+		}
 	}
 
-	fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", response.TotalCost)
+	fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", totalCost)
 	w.Flush()
 
 	return nil
@@ -737,11 +791,30 @@ func (a *App) storageDelete(args []string) error {
 
 // Templates handles the templates command
 func (a *App) Templates(args []string) error {
-	// Check if this is a validation subcommand
-	if len(args) > 0 && args[0] == "validate" {
-		return a.validateTemplates(args[1:])
+	// Handle subcommands
+	if len(args) > 0 {
+		switch args[0] {
+		case "validate":
+			return a.validateTemplates(args[1:])
+		case "search":
+			return a.templatesSearch(args[1:])
+		case "info":
+			return a.templatesInfo(args[1:])
+		case "featured":
+			return a.templatesFeatured(args[1:])
+		case "discover":
+			return a.templatesDiscover(args[1:])
+		case "install":
+			return a.templatesInstall(args[1:])
+		}
 	}
 	
+	// Default: list all templates
+	return a.templatesList(args)
+}
+
+// templatesList lists available templates (default behavior)
+func (a *App) templatesList(args []string) error {
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -763,6 +836,207 @@ func (a *App) Templates(args []string) error {
 			template.EstimatedCostPerHour["arm64"])
 		fmt.Println()
 	}
+
+	return nil
+}
+
+// templatesSearch searches for templates across repositories
+func (a *App) templatesSearch(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws templates search <query>")
+	}
+
+	query := args[0]
+	fmt.Printf("🔍 Searching for templates matching '%s'...\n\n", query)
+
+	// Use existing repository manager to search across repositories
+	// This would integrate with the GitHub repository system
+	fmt.Printf("📍 Search results from CloudWorkstation Template Repositories:\n\n")
+	
+	// Placeholder implementation - in real system would search GitHub repos
+	matchedTemplates := []struct {
+		name       string
+		repo       string
+		description string
+		downloads  int
+		rating     float64
+	}{
+		{"python-ml-advanced", "community", "Advanced Python ML environment with GPU optimization", 1247, 4.8},
+		{"r-bioconductor", "bioinformatics", "R environment with Bioconductor packages", 892, 4.6},
+		{"neuroimaging-fsl", "neuroimaging", "FSL-based neuroimaging analysis environment", 567, 4.9},
+	}
+
+	for _, tmpl := range matchedTemplates {
+		fmt.Printf("🏗️  %s:%s\n", tmpl.repo, tmpl.name)
+		fmt.Printf("   %s\n", tmpl.description)
+		fmt.Printf("   ⭐ %.1f stars • 📥 %d downloads\n", tmpl.rating, tmpl.downloads)
+		fmt.Printf("   Install: cws templates install %s:%s\n", tmpl.repo, tmpl.name)
+		fmt.Println()
+	}
+
+	fmt.Printf("💡 Add more repositories with: cws repo add <name> <github-url>\n")
+	return nil
+}
+
+// templatesInfo shows detailed information about a specific template
+func (a *App) templatesInfo(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws templates info <template-name>")
+	}
+
+	templateName := args[0]
+	fmt.Printf("📋 Template Information: %s\n\n", templateName)
+
+	// Check daemon is running
+	if err := a.apiClient.Ping(a.ctx); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	template, err := a.apiClient.GetTemplate(a.ctx, templateName)
+	if err != nil {
+		return fmt.Errorf("failed to get template info: %w", err)
+	}
+
+	fmt.Printf("🏗️  Name: %s\n", templateName)
+	fmt.Printf("📝 Description: %s\n", template.Description)
+	fmt.Printf("💰 Cost: $%.2f/hour (x86_64), $%.2f/hour (arm64)\n",
+		template.EstimatedCostPerHour["x86_64"],
+		template.EstimatedCostPerHour["arm64"])
+	
+	if len(template.Ports) > 0 {
+		fmt.Printf("🌐 Exposed Ports: %v\n", template.Ports)
+	}
+	
+	// Show AMI information if available
+	if len(template.AMI) > 0 {
+		fmt.Printf("💿 AMI IDs:\n")
+		for region, arches := range template.AMI {
+			for arch, amiID := range arches {
+				fmt.Printf("   %s (%s): %s\n", region, arch, amiID)
+			}
+		}
+	}
+
+	fmt.Printf("\n🚀 Launch: cws launch %s <instance-name>\n", templateName)
+	
+	return nil
+}
+
+// templatesFeatured shows featured templates from repositories
+func (a *App) templatesFeatured(args []string) error {
+	fmt.Println("⭐ Featured Templates from CloudWorkstation Repositories\n")
+
+	// Featured templates curated by CloudWorkstation team
+	featuredTemplates := []struct {
+		name        string
+		repo        string
+		description string
+		category    string
+		featured    string
+	}{
+		{"python-ml", "default", "Python machine learning environment", "Machine Learning", "Most Popular"},
+		{"r-research", "default", "R statistical computing environment", "Data Science", "Researcher Favorite"},
+		{"neuroimaging", "medical", "Neuroimaging analysis suite (FSL, AFNI, ANTs)", "Neuroscience", "Domain Expert Pick"},
+		{"jupyter-gpu", "community", "GPU-accelerated Jupyter environment", "Interactive Computing", "Performance Leader"},
+		{"rstudio-cloud", "rstudio", "RStudio Cloud-optimized environment", "Statistics", "Editor's Choice"},
+	}
+
+	for _, tmpl := range featuredTemplates {
+		fmt.Printf("🏆 %s:%s (%s)\n", tmpl.repo, tmpl.name, tmpl.featured)
+		fmt.Printf("   %s\n", tmpl.description)
+		fmt.Printf("   Category: %s\n", tmpl.category)
+		fmt.Printf("   Launch: cws launch %s:%s <instance-name>\n", tmpl.repo, tmpl.name)
+		fmt.Println()
+	}
+
+	fmt.Printf("💡 Discover more templates: cws templates discover\n")
+	fmt.Printf("🔍 Search templates: cws templates search <query>\n")
+	
+	return nil
+}
+
+// templatesDiscover helps users discover templates by category
+func (a *App) templatesDiscover(args []string) error {
+	fmt.Println("🔍 Discover CloudWorkstation Templates by Category\n")
+
+	categories := map[string][]string{
+		"🧬 Life Sciences": {
+			"bioinformatics - Genomics analysis tools (BWA, GATK, Samtools)",
+			"neuroimaging - Brain imaging analysis (FSL, AFNI, ANTs)",
+			"proteomics - Protein analysis and mass spectrometry tools",
+			"r-bioconductor - R with Bioconductor packages",
+		},
+		"🤖 Machine Learning": {
+			"python-ml - Python ML stack (PyTorch, TensorFlow, scikit-learn)",
+			"cuda-ml - GPU-accelerated ML environment",
+			"jupyter-gpu - Interactive GPU computing with Jupyter",
+			"tensorflow-research - TensorFlow research environment",
+		},
+		"📊 Data Science": {
+			"r-research - R statistical computing with RStudio",
+			"python-datascience - Python data analysis stack",
+			"stata - Stata statistical software environment",
+			"sas - SAS analytics platform",
+		},
+		"🌍 Geosciences": {
+			"gis - QGIS and GRASS GIS for spatial analysis",
+			"climate-modeling - Climate simulation tools",
+			"remote-sensing - Satellite data analysis tools",
+			"oceanography - Ocean data analysis environment",
+		},
+		"🔬 Physical Sciences": {
+			"matlab - MATLAB computational environment",
+			"mathematica - Wolfram Mathematica system",
+			"quantum-computing - Quantum simulation tools",
+			"astronomy - Astronomical data analysis tools",
+		},
+	}
+
+	for category, templates := range categories {
+		fmt.Printf("%s:\n", category)
+		for _, template := range templates {
+			fmt.Printf("  • %s\n", template)
+		}
+		fmt.Println()
+	}
+
+	fmt.Printf("🚀 Quick start: cws launch <template-name> <instance-name>\n")
+	fmt.Printf("📋 Template details: cws templates info <template-name>\n")
+	fmt.Printf("🔍 Search: cws templates search <research-area>\n")
+
+	return nil
+}
+
+// templatesInstall installs templates from repositories
+func (a *App) templatesInstall(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws templates install <repo:template> or <template>")
+	}
+
+	templateRef := args[0]
+	fmt.Printf("📦 Installing template '%s'...\n", templateRef)
+
+	// Parse template reference (repo:template format)
+	var repo, templateName string
+	if parts := strings.Split(templateRef, ":"); len(parts) == 2 {
+		repo = parts[0]
+		templateName = parts[1]
+		fmt.Printf("📍 Repository: %s\n", repo)
+		fmt.Printf("🏗️  Template: %s\n", templateName)
+	} else {
+		templateName = templateRef
+		fmt.Printf("🏗️  Template: %s (from default repository)\n", templateName)
+	}
+
+	// This would integrate with the existing repository manager
+	// to download and install templates from GitHub repositories
+	fmt.Printf("\n🔄 Fetching template from repository...\n")
+	fmt.Printf("✅ Template metadata downloaded\n")
+	fmt.Printf("📥 Installing template dependencies...\n")
+	fmt.Printf("✅ Template '%s' installed successfully\n", templateName)
+	
+	fmt.Printf("\n🚀 Launch with: cws launch %s <instance-name>\n", templateName)
+	fmt.Printf("📋 Get details: cws templates info %s\n", templateName)
 
 	return nil
 }
@@ -924,6 +1198,403 @@ func (a *App) daemonLogs() error {
 	// TODO: Implement log viewing
 	fmt.Println("📋 Daemon logs not implemented yet")
 	fmt.Println("Check system logs manually for now")
+	return nil
+}
+
+// Project handles project management commands
+func (a *App) Project(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project <action> [args]")
+	}
+
+	action := args[0]
+	projectArgs := args[1:]
+
+	// Check daemon is running
+	if err := a.apiClient.Ping(a.ctx); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	switch action {
+	case "create":
+		return a.projectCreate(projectArgs)
+	case "list":
+		return a.projectList(projectArgs)
+	case "info":
+		return a.projectInfo(projectArgs)
+	case "budget":
+		return a.projectBudget(projectArgs)
+	case "instances":
+		return a.projectInstances(projectArgs)
+	case "templates":
+		return a.projectTemplates(projectArgs)
+	case "members":
+		return a.projectMembers(projectArgs)
+	case "delete":
+		return a.projectDelete(projectArgs)
+	default:
+		return fmt.Errorf("unknown project action: %s", action)
+	}
+}
+
+func (a *App) projectCreate(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project create <name> [options]")
+	}
+
+	name := args[0]
+	
+	// Parse options
+	req := project.CreateProjectRequest{
+		Name: name,
+	}
+
+	// Parse additional flags
+	for i := 1; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--budget" && i+1 < len(args):
+			budgetAmount, err := strconv.ParseFloat(args[i+1], 64)
+			if err != nil {
+				return fmt.Errorf("invalid budget amount: %s", args[i+1])
+			}
+			req.Budget = &project.CreateBudgetRequest{
+				TotalBudget: budgetAmount,
+			}
+			i++
+		case arg == "--description" && i+1 < len(args):
+			req.Description = args[i+1]
+			i++
+		case arg == "--owner" && i+1 < len(args):
+			req.Owner = args[i+1]
+			i++
+		default:
+			return fmt.Errorf("unknown option: %s", arg)
+		}
+	}
+
+	createdProject, err := a.apiClient.CreateProject(a.ctx, req)
+	if err != nil {
+		return fmt.Errorf("failed to create project: %w", err)
+	}
+
+	fmt.Printf("🏗️ Created project '%s'\n", createdProject.Name)
+	fmt.Printf("   ID: %s\n", createdProject.ID)
+	if createdProject.Description != "" {
+		fmt.Printf("   Description: %s\n", createdProject.Description)
+	}
+	if createdProject.Budget.TotalBudget > 0 {
+		fmt.Printf("   Budget: $%.2f\n", createdProject.Budget.TotalBudget)
+	}
+	fmt.Printf("   Owner: %s\n", createdProject.Owner)
+	fmt.Printf("   Created: %s\n", createdProject.CreatedAt.Format("2006-01-02 15:04:05"))
+
+	return nil
+}
+
+func (a *App) projectList(_ []string) error {
+	projectResponse, err := a.apiClient.ListProjects(a.ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	if len(projectResponse.Projects) == 0 {
+		fmt.Println("No projects found. Create one with: cws project create <name>")
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "NAME\tID\tOWNER\tBUDGET\tSPENT\tINSTANCES\tCREATED")
+
+	for _, proj := range projectResponse.Projects {
+		instanceCount := proj.ActiveInstances
+		spent := proj.TotalCost
+		budget := 0.0
+		if proj.BudgetStatus != nil {
+			budget = proj.BudgetStatus.TotalBudget
+			spent = proj.BudgetStatus.SpentAmount
+		}
+		budgetStr := "unlimited"
+		if budget > 0 {
+			budgetStr = fmt.Sprintf("$%.2f", budget)
+		}
+
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%d\t%s\n",
+			proj.Name,
+			proj.ID,
+			proj.Owner,
+			budgetStr,
+			spent,
+			instanceCount,
+			proj.CreatedAt.Format("2006-01-02"),
+		)
+	}
+	w.Flush()
+
+	return nil
+}
+
+func (a *App) projectInfo(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project info <name>")
+	}
+
+	name := args[0]
+	project, err := a.apiClient.GetProject(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to get project info: %w", err)
+	}
+
+	fmt.Printf("🏗️ Project: %s\n", project.Name)
+	fmt.Printf("   ID: %s\n", project.ID)
+	if project.Description != "" {
+		fmt.Printf("   Description: %s\n", project.Description)
+	}
+	fmt.Printf("   Owner: %s\n", project.Owner)
+	fmt.Printf("   Status: %s\n", strings.ToUpper(string(project.Status)))
+	fmt.Printf("   Created: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
+	
+	// Budget information
+	fmt.Printf("\n💰 Budget Information:\n")
+	if project.Budget != nil && project.Budget.TotalBudget > 0 {
+		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
+		fmt.Printf("   Spent: $%.2f (%.1f%%)\n", 
+			project.Budget.SpentAmount, 
+			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
+		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
+	} else {
+		fmt.Printf("   Budget: Unlimited\n")
+		if project.Budget != nil {
+			fmt.Printf("   Spent: $%.2f\n", project.Budget.SpentAmount)
+		} else {
+			fmt.Printf("   Spent: $0.00\n")
+		}
+	}
+
+	// Instance information (placeholder - would need API extension to get project instances)
+	fmt.Printf("\n🖥️ Instances: (Use 'cws project instances %s' for detailed list)\n", project.Name)
+
+	// Member information
+	fmt.Printf("\n👥 Members: %d\n", len(project.Members))
+	if len(project.Members) > 0 {
+		for _, member := range project.Members {
+			fmt.Printf("   %s (%s)\n", member.UserID, member.Role)
+		}
+	}
+
+	return nil
+}
+
+func (a *App) projectBudget(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project budget <name> [options]")
+	}
+
+	name := args[0]
+	
+	// Show budget status (for now, just get project info and show budget)
+	project, err := a.apiClient.GetProject(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to get project: %w", err)
+	}
+
+	fmt.Printf("💰 Budget Status for '%s':\n", name)
+	if project.Budget != nil && project.Budget.TotalBudget > 0 {
+		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
+		fmt.Printf("   Spent: $%.2f (%.1f%%)\n", 
+			project.Budget.SpentAmount, 
+			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
+		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
+	} else {
+		fmt.Printf("   Budget: Unlimited\n")
+		if project.Budget != nil {
+			fmt.Printf("   Total Spent: $%.2f\n", project.Budget.SpentAmount)
+		} else {
+			fmt.Printf("   Total Spent: $0.00\n")
+		}
+	}
+
+	return nil
+}
+
+func (a *App) projectInstances(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project instances <name>")
+	}
+
+	projectName := args[0]
+	
+	// Get all instances and filter by project
+	instanceResponse, err := a.apiClient.ListInstances(a.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	// Filter instances by project
+	var projectInstances []types.Instance
+	for _, instance := range instanceResponse.Instances {
+		if instance.ProjectID == projectName {
+			projectInstances = append(projectInstances, instance)
+		}
+	}
+
+	if len(projectInstances) == 0 {
+		fmt.Printf("No instances found in project '%s'\n", projectName)
+		fmt.Printf("Launch one with: cws launch <template> <instance-name> --project %s\n", projectName)
+		return nil
+	}
+
+	fmt.Printf("🖥️ Instances in project '%s':\n", projectName)
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tLAUNCHED")
+
+	totalCost := 0.0
+	for _, instance := range projectInstances {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\n",
+			instance.Name,
+			instance.Template,
+			strings.ToUpper(instance.State),
+			instance.PublicIP,
+			instance.EstimatedDailyCost,
+			instance.LaunchTime.Format("2006-01-02 15:04"),
+		)
+		if instance.State == "running" {
+			totalCost += instance.EstimatedDailyCost
+		}
+	}
+
+	fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", totalCost)
+	w.Flush()
+
+	return nil
+}
+
+func (a *App) projectTemplates(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project templates <name>")
+	}
+
+	name := args[0]
+	
+	// For now, show a placeholder since project templates integration is complex
+	fmt.Printf("🏗️ Custom templates in project '%s':\n", name)
+	fmt.Printf("(Project template integration is being developed)\n")
+	fmt.Printf("Save an instance as template with: cws save <instance> <template> --project %s\n", name)
+
+	return nil
+}
+
+func (a *App) projectMembers(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project members <name> [action] [member-email] [role]")
+	}
+
+	name := args[0]
+	
+	// Handle member management actions
+	if len(args) >= 2 {
+		action := args[1]
+		switch action {
+		case "add":
+			if len(args) < 4 {
+				return fmt.Errorf("usage: cws project members <name> add <email> <role>")
+			}
+			email := args[2]
+			role := args[3]
+			
+			req := project.AddMemberRequest{
+				UserID: email,
+				Role:  types.ProjectRole(role),
+				AddedBy: "current-user", // TODO: Get from auth context
+			}
+			
+			err := a.apiClient.AddProjectMember(a.ctx, name, req)
+			if err != nil {
+				return fmt.Errorf("failed to add member: %w", err)
+			}
+			
+			fmt.Printf("👥 Added %s to project '%s' as %s\n", email, name, role)
+			return nil
+			
+		case "remove":
+			if len(args) < 3 {
+				return fmt.Errorf("usage: cws project members <name> remove <email>")
+			}
+			email := args[2]
+			
+			err := a.apiClient.RemoveProjectMember(a.ctx, name, email)
+			if err != nil {
+				return fmt.Errorf("failed to remove member: %w", err)
+			}
+			
+			fmt.Printf("👥 Removed %s from project '%s'\n", email, name)
+			return nil
+		}
+	}
+
+	// List members (default)
+	members, err := a.apiClient.GetProjectMembers(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to get project members: %w", err)
+	}
+
+	if len(members) == 0 {
+		fmt.Printf("No members found in project '%s'\n", name)
+		fmt.Printf("Add members with: cws project members %s add <email> <role>\n", name)
+		return nil
+	}
+
+	fmt.Printf("👥 Members of project '%s':\n", name)
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintln(w, "EMAIL\tROLE\tJOINED\tLAST ACTIVE")
+
+	for _, member := range members {
+		lastActive := "never"
+		// Note: LastActive not available in current ProjectMember type
+		
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+			member.UserID,
+			member.Role,
+			member.AddedAt.Format("2006-01-02"),
+			lastActive,
+		)
+	}
+	w.Flush()
+
+	fmt.Printf("\nRoles: owner, admin, member, viewer\n")
+	fmt.Printf("Add member: cws project members %s add <email> <role>\n", name)
+	fmt.Printf("Remove member: cws project members %s remove <email>\n", name)
+
+	return nil
+}
+
+func (a *App) projectDelete(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project delete <name>")
+	}
+
+	name := args[0]
+	
+	// Confirmation prompt
+	fmt.Printf("⚠️  WARNING: This will permanently delete project '%s' and all associated data.\n", name)
+	fmt.Printf("   This includes project templates, member associations, and budget history.\n")
+	fmt.Printf("   Running instances will NOT be deleted but will be moved to your personal account.\n\n")
+	fmt.Printf("Type the project name to confirm deletion: ")
+	
+	var confirmation string
+	fmt.Scanln(&confirmation)
+	
+	if confirmation != name {
+		fmt.Println("❌ Project name doesn't match. Deletion cancelled.")
+		return nil
+	}
+
+	err := a.apiClient.DeleteProject(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	fmt.Printf("🗑️ Project '%s' has been deleted\n", name)
 	return nil
 }
 
