@@ -105,6 +105,8 @@ type CloudWorkstationGUI struct {
 		templateSelect    *widget.Select
 		nameEntry         *widget.Entry
 		sizeSelect        *widget.Select
+		packageMgrSelect  *widget.Select
+		packageMgrHelp    *widget.Label
 		launchBtn         *widget.Button
 		
 		// Advanced options
@@ -531,11 +533,18 @@ func (g *CloudWorkstationGUI) createQuickLaunchForm() *fyne.Container {
 	// Initialize advanced launch form
 	g.initializeAdvancedLaunchForm()
 	
+	// Package manager section with help text
+	packageMgrContainer := fynecontainer.NewVBox(
+		g.launchForm.packageMgrSelect,
+		g.launchForm.packageMgrHelp,
+	)
+
 	// Basic form
 	basicForm := widget.NewForm(
 		widget.NewFormItem("Template", g.launchForm.templateSelect),
 		widget.NewFormItem("Name", g.launchForm.nameEntry),
 		widget.NewFormItem("Size", g.launchForm.sizeSelect),
+		widget.NewFormItem("Package Manager", packageMgrContainer),
 	)
 
 	// Advanced options toggle
@@ -578,6 +587,18 @@ func (g *CloudWorkstationGUI) initializeAdvancedLaunchForm() {
 	// Size selection with GPU options
 	g.launchForm.sizeSelect = widget.NewSelect([]string{"XS", "S", "M", "L", "XL", "GPU-S", "GPU-M", "GPU-L"}, nil)
 	g.launchForm.sizeSelect.SetSelected("M")
+
+	// Package manager selection
+	g.launchForm.packageMgrSelect = widget.NewSelect([]string{"Default", "conda", "apt", "dnf", "spack", "ami"}, nil)
+	g.launchForm.packageMgrSelect.SetSelected("Default")
+	
+	// Package manager help text
+	g.launchForm.packageMgrHelp = widget.NewLabel("Let template choose optimal package manager")
+	g.launchForm.packageMgrHelp.TextStyle = fyne.TextStyle{Italic: true}
+	
+	g.launchForm.packageMgrSelect.OnChanged = func(selected string) {
+		g.updatePackageManagerHelp(selected)
+	}
 
 	// Load available volumes for selection
 	g.loadAvailableVolumes()
@@ -713,6 +734,32 @@ func (g *CloudWorkstationGUI) loadAvailableVolumes() {
 			g.launchForm.availableEBSVolumes = []string{}
 		}
 	}()
+}
+
+// updatePackageManagerHelp provides contextual help for package manager selection
+func (g *CloudWorkstationGUI) updatePackageManagerHelp(selected string) {
+	var helpText string
+	
+	switch selected {
+	case "conda":
+		helpText = "Best for Python data science and R packages. Cross-platform package manager."
+	case "apt":
+		helpText = "Native Ubuntu/Debian package manager. System-level packages."
+	case "dnf":
+		helpText = "Red Hat/Fedora package manager. Newer replacement for yum."
+	case "spack":
+		helpText = "HPC and scientific computing packages. Optimized builds."
+	case "ami":
+		helpText = "Use pre-built AMI with packages already installed."
+	case "Default":
+		helpText = "Let template choose optimal package manager for the workload."
+	default:
+		helpText = "Select a package manager to override template default."
+	}
+	
+	if g.launchForm.packageMgrHelp != nil {
+		g.launchForm.packageMgrHelp.SetText(helpText)
+	}
 }
 
 // createRecentInstancesList creates a list of recent instances
@@ -2034,6 +2081,11 @@ func (g *CloudWorkstationGUI) buildAdvancedLaunchRequest() types.LaunchRequest {
 		Name:     g.launchForm.nameEntry.Text,
 		Size:     g.launchForm.sizeSelect.Selected,
 		DryRun:   g.launchForm.dryRunCheck.Checked,
+	}
+	
+	// Add package manager selection (skip if "Default" selected)
+	if g.launchForm.packageMgrSelect.Selected != "" && g.launchForm.packageMgrSelect.Selected != "Default" {
+		req.PackageManager = g.launchForm.packageMgrSelect.Selected
 	}
 	
 	// Add selected volumes
