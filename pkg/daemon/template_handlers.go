@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 )
 
 // handleTemplates handles template collection operations
@@ -15,15 +14,25 @@ func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var templates map[string]types.Template
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		templates = awsManager.GetTemplates()
-		return nil
-	})
-
-	if templates != nil {
-		json.NewEncoder(w).Encode(templates)
+	// Get region and architecture from query params or headers
+	region := r.URL.Query().Get("region")
+	if region == "" {
+		region = "us-east-1" // Default region
 	}
+	
+	architecture := r.URL.Query().Get("architecture")
+	if architecture == "" {
+		architecture = "x86_64" // Default architecture
+	}
+
+	// Use the new unified template system
+	templates, err := templates.GetTemplatesForDaemonHandler(region, architecture)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load templates: "+err.Error())
+		return
+	}
+
+	json.NewEncoder(w).Encode(templates)
 }
 
 // handleTemplateInfo handles operations on specific templates
@@ -35,14 +44,23 @@ func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
 
 	templateName := r.URL.Path[len("/api/v1/templates/"):]
 	
-	var template *types.Template
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		var err error
-		template, err = awsManager.GetTemplate(templateName)
-		return err
-	})
-
-	if template != nil {
-		json.NewEncoder(w).Encode(template)
+	// Get region and architecture from query params or headers
+	region := r.URL.Query().Get("region")
+	if region == "" {
+		region = "us-east-1" // Default region
 	}
+	
+	architecture := r.URL.Query().Get("architecture")
+	if architecture == "" {
+		architecture = "x86_64" // Default architecture
+	}
+
+	// Use the new unified template system
+	template, err := templates.GetTemplate(templateName, region, architecture)
+	if err != nil {
+		s.writeError(w, http.StatusNotFound, "Template not found: "+err.Error())
+		return
+	}
+
+	json.NewEncoder(w).Encode(template)
 }
