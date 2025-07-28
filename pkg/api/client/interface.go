@@ -45,6 +45,16 @@ type CloudWorkstationAPI interface {
 	GetInstanceLayers(context.Context, string) ([]templates.AppliedTemplate, error)
 	RollbackInstance(context.Context, types.RollbackRequest) error
 
+	// Idle detection operations
+	GetIdleStatus(context.Context) (*types.IdleStatusResponse, error)
+	EnableIdleDetection(context.Context) error
+	DisableIdleDetection(context.Context) error
+	GetIdleProfiles(context.Context) (map[string]types.IdleProfile, error)
+	AddIdleProfile(context.Context, types.IdleProfile) error
+	GetIdlePendingActions(context.Context) ([]types.IdleState, error)
+	ExecuteIdleActions(context.Context) (*types.IdleExecutionResponse, error)
+	GetIdleHistory(context.Context) ([]types.IdleHistoryEntry, error)
+
 	// Volume operations (EFS)
 	CreateVolume(context.Context, types.VolumeCreateRequest) (*types.EFSVolume, error)
 	ListVolumes(context.Context) ([]types.EFSVolume, error)

@@ -254,6 +254,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "idle":
+		err := cliApp.Idle(args)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "version", "--version", "-v":
 		fmt.Println(version.GetVersionInfo())
 	case "help", "--help", "-h":
@@ -319,6 +325,15 @@ func printUsage() {
 	fmt.Println("    list [template]                   List available AMIs")
 	fmt.Println("    validate <template>               Validate AMI template")
 	fmt.Println("    publish <template> <ami-id>       Register AMI in registry")
+	fmt.Println()
+	fmt.Println("  idle <action> [args]                Manage idle detection and hibernation policies")
+	fmt.Println("    status [instance]                 Show idle detection status")
+	fmt.Println("    enable                            Enable idle detection")
+	fmt.Println("    disable                           Disable idle detection")
+	fmt.Println("    profile list                      List idle detection profiles")
+	fmt.Println("    profile create <name> [options]   Create new idle profile")
+	fmt.Println("    instance <name> [options]         Set instance-specific idle settings")
+	fmt.Println("    history [instance]                Show idle action history")
 	fmt.Println()
 	fmt.Println("  version                             Show version")
 	fmt.Println("  help                                Show this help")
