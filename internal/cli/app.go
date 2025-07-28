@@ -169,6 +169,9 @@ func (a *App) Launch(args []string) error {
 			req.Spot = true
 		case arg == "--dry-run":
 			req.DryRun = true
+		case arg == "--with" && i+1 < len(args):
+			req.PackageManager = args[i+1]
+			i++
 		default:
 			return fmt.Errorf("unknown option: %s", arg)
 		}

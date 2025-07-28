@@ -16,8 +16,18 @@ func NewTemplateResolver() *TemplateResolver {
 
 // ResolveTemplate converts a unified template to a runtime template
 func (r *TemplateResolver) ResolveTemplate(template *Template, region, architecture string) (*RuntimeTemplate, error) {
-	// Select package manager
-	packageManager := r.Parser.Strategy.SelectPackageManager(template)
+	return r.ResolveTemplateWithOptions(template, region, architecture, "")
+}
+
+// ResolveTemplateWithOptions converts a unified template to a runtime template with package manager override
+func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region, architecture, packageManagerOverride string) (*RuntimeTemplate, error) {
+	// Select package manager (use override if provided)
+	var packageManager PackageManagerType
+	if packageManagerOverride != "" {
+		packageManager = PackageManagerType(packageManagerOverride)
+	} else {
+		packageManager = r.Parser.Strategy.SelectPackageManager(template)
+	}
 	
 	// Generate installation script
 	userDataScript, err := r.ScriptGen.GenerateScript(template, packageManager)

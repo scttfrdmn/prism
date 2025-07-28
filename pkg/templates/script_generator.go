@@ -154,7 +154,7 @@ echo "Creating user: {{.Name}}"
 useradd -m -s {{.Shell}} {{.Name}} || true
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
-{{range .Groups}}usermod -aG {{.}} {{$.Name}}
+{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
 {{end}}
 {{end}}
@@ -164,8 +164,8 @@ echo "{{.Name}}:{{.Password}}" | chpasswd
 echo "Configuring service: {{.Name}}"
 {{if .Config}}
 mkdir -p /etc/{{.Name}}
-{{range .Config}}
-echo "{{.}}" >> /etc/{{$.Name}}/{{$.Name}}.conf
+{{$service := .}}{{range .Config}}
+echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
 {{end}}
 {{end}}
 {{if .Enable}}
@@ -258,7 +258,7 @@ echo "Creating user: {{.Name}}"
 useradd -m -s {{.Shell}} {{.Name}} || true
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
-{{range .Groups}}usermod -aG {{.}} {{$.Name}}
+{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
 {{end}}
 
@@ -273,8 +273,8 @@ chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 echo "Configuring service: {{.Name}}"
 {{if .Config}}
 mkdir -p /etc/{{.Name}}
-{{range .Config}}
-echo "{{.}}" >> /etc/{{$.Name}}/{{$.Name}}.conf
+{{$service := .}}{{range .Config}}
+echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
 {{end}}
 {{end}}
 {{if .Enable}}
@@ -371,7 +371,7 @@ echo "Creating user: {{.Name}}"
 useradd -m -s {{.Shell}} {{.Name}} || true
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
-{{range .Groups}}usermod -aG {{.}} {{$.Name}}
+{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
 {{end}}
 
@@ -390,8 +390,8 @@ chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 echo "Configuring service: {{.Name}}"
 {{if .Config}}
 mkdir -p /etc/{{.Name}}
-{{range .Config}}
-echo "{{.}}" >> /etc/{{$.Name}}/{{$.Name}}.conf
+{{$service := .}}{{range .Config}}
+echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
 {{end}}
 {{end}}
 {{if .Enable}}

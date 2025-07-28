@@ -65,17 +65,39 @@ func (cm *CompatibilityManager) GetLegacyTemplates(region, architecture string) 
 
 // GetLegacyTemplate returns a single template in legacy format
 func (cm *CompatibilityManager) GetLegacyTemplate(name, region, architecture string) (*types.RuntimeTemplate, error) {
-	templates, err := cm.GetLegacyTemplates(region, architecture)
-	if err != nil {
-		return nil, err
+	return cm.GetLegacyTemplateWithPackageManager(name, region, architecture, "")
+}
+
+// GetLegacyTemplateWithPackageManager returns a single template with package manager override
+func (cm *CompatibilityManager) GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager string) (*types.RuntimeTemplate, error) {
+	// Scan for new templates
+	if err := cm.Registry.ScanTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
 	}
 	
-	template, exists := templates[name]
+	template, exists := cm.Registry.Templates[name]
 	if !exists {
 		return nil, fmt.Errorf("template not found: %s", name)
 	}
 	
-	return &template, nil
+	// Resolve with package manager override
+	runtimeTemplate, err := cm.Resolver.ResolveTemplateWithOptions(template, region, architecture, packageManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve template %s: %w", name, err)
+	}
+	
+	// Convert to legacy format
+	legacyTemplate := types.RuntimeTemplate{
+		Name:         runtimeTemplate.Name,
+		Description:  runtimeTemplate.Description,
+		AMI:          runtimeTemplate.AMI,
+		InstanceType: runtimeTemplate.InstanceType,
+		UserData:     runtimeTemplate.UserData,
+		Ports:        runtimeTemplate.Ports,
+		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
+	}
+	
+	return &legacyTemplate, nil
 }
 
 // MigrateTemplateToYAML converts a legacy hardcoded template to YAML format
