@@ -4,6 +4,8 @@ package ami
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -604,6 +606,303 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, request Buil
 	}
 
 	return *result.ImageId, nil
+}
+
+// CreateAMIFromInstance creates an AMI from a running CloudWorkstation instance
+func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSaveRequest) (*BuildResult, error) {
+	// Generate a unique build ID
+	buildID := fmt.Sprintf("save-%s-%d", request.InstanceName, time.Now().Unix())
+	
+	// Start timing
+	buildStart := time.Now()
+	
+	// Get instance details to determine architecture and region
+	instanceDetails, err := b.EC2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{request.InstanceID},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe instance: %w", err)
+	}
+	
+	if len(instanceDetails.Reservations) == 0 || len(instanceDetails.Reservations[0].Instances) == 0 {
+		return nil, fmt.Errorf("instance %s not found", request.InstanceID)
+	}
+	
+	instance := instanceDetails.Reservations[0].Instances[0]
+	architecture := string(instance.Architecture)
+	region := string(b.EC2Client.Options().Region)
+	
+	// Initialize result
+	result := &BuildResult{
+		TemplateID:    buildID,
+		TemplateName:  request.TemplateName,
+		Region:        region,
+		Architecture:  architecture,
+		Status:        "in_progress",
+		BuilderID:     request.InstanceID,
+		CopiedAMIs:    make(map[string]string),
+	}
+	
+	fmt.Printf("📋 Creating AMI from instance %s\n", request.InstanceID)
+	fmt.Printf("🔧 Architecture: %s | Region: %s\n", architecture, region)
+	
+	// Step 1: Stop the instance for consistent AMI creation
+	fmt.Printf("\n🛑 Stopping instance for consistent AMI creation...\n")
+	_, err = b.EC2Client.StopInstances(ctx, &ec2.StopInstancesInput{
+		InstanceIds: []string{request.InstanceID},
+	})
+	if err != nil {
+		result.Status = "failed"
+		result.ErrorMessage = fmt.Sprintf("failed to stop instance: %v", err)
+		return result, fmt.Errorf("failed to stop instance: %w", err)
+	}
+	
+	// Wait for instance to be stopped
+	waiter := ec2.NewInstanceStoppedWaiter(b.EC2Client)
+	if err := waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{request.InstanceID},
+	}, 5*time.Minute); err != nil {
+		// Try to restart the instance if stopping failed
+		b.restartInstanceBestEffort(ctx, request.InstanceID)
+		result.Status = "failed" 
+		result.ErrorMessage = fmt.Sprintf("timeout waiting for instance to stop: %v", err)
+		return result, fmt.Errorf("timeout waiting for instance to stop: %w", err)
+	}
+	fmt.Printf("✅ Instance stopped\n")
+	
+	// Ensure instance restart on exit (best effort)
+	defer func() {
+		b.restartInstanceBestEffort(ctx, request.InstanceID)
+	}()
+	
+	// Step 2: Create AMI from stopped instance  
+	fmt.Printf("\n📸 Creating AMI...\n")
+	timestamp := time.Now().Format("20060102-150405")
+	amiName := fmt.Sprintf("%s-%s-%s-%s",
+		request.TemplateName,
+		architecture,
+		region,
+		timestamp)
+	
+	// Create AMI with proper tagging
+	tags := []types.TagSpecification{
+		{
+			ResourceType: types.ResourceTypeImage,
+			Tags: []types.Tag{
+				{
+					Key:   aws.String("Name"),
+					Value: aws.String(amiName),
+				},
+				{
+					Key:   aws.String("CloudWorkstationTemplate"),
+					Value: aws.String(request.TemplateName),
+				},
+				{
+					Key:   aws.String("CloudWorkstationSource"), 
+					Value: aws.String("saved-instance"),
+				},
+				{
+					Key:   aws.String("CloudWorkstationSavedFrom"),
+					Value: aws.String(request.InstanceName),
+				},
+				{
+					Key:   aws.String("CloudWorkstationSavedDate"),
+					Value: aws.String(timestamp),
+				},
+			},
+		},
+	}
+	
+	// Add custom tags from request
+	for key, value := range request.Tags {
+		tags[0].Tags = append(tags[0].Tags, types.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+	
+	createImageResult, err := b.EC2Client.CreateImage(ctx, &ec2.CreateImageInput{
+		InstanceId:        aws.String(request.InstanceID),
+		Name:              aws.String(amiName),
+		Description:       aws.String(request.Description),
+		TagSpecifications: tags,
+	})
+	if err != nil {
+		result.Status = "failed"
+		result.ErrorMessage = fmt.Sprintf("failed to create AMI: %v", err)
+		return result, fmt.Errorf("failed to create AMI: %w", err)
+	}
+	
+	amiID := *createImageResult.ImageId
+	result.AMIID = amiID
+	fmt.Printf("✅ AMI creation started: %s\n", amiID)
+	
+	// Step 3: Wait for AMI to be available
+	fmt.Printf("\n⏳ Waiting for AMI to be available (this may take several minutes)...\n")
+	amiWaiter := ec2.NewImageAvailableWaiter(b.EC2Client)
+	if err := amiWaiter.Wait(ctx, &ec2.DescribeImagesInput{
+		ImageIds: []string{amiID},
+	}, 30*time.Minute); err != nil {
+		result.Status = "failed"
+		result.ErrorMessage = fmt.Sprintf("timeout waiting for AMI to be available: %v", err)
+		return result, fmt.Errorf("timeout waiting for AMI to be available: %w", err)
+	}
+	fmt.Printf("✅ AMI is now available\n")
+	
+	// Step 4: Register AMI with registry
+	if b.RegistryClient != nil {
+		fmt.Printf("\n📝 Registering AMI in template registry...\n")
+		if err := b.RegistryClient.PublishAMI(ctx, result); err != nil {
+			// Non-fatal - log but continue
+			fmt.Printf("⚠️ Warning: Failed to register AMI in registry: %v\n", err)
+		} else {
+			fmt.Printf("✅ AMI registered in template registry\n")
+		}
+	}
+	
+	// Step 5: Copy AMI to other regions if requested
+	if len(request.CopyToRegions) > 0 {
+		fmt.Printf("\n🌍 Copying AMI to additional regions...\n")
+		
+		// Get AMI details for copying
+		image, err := b.EC2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+			ImageIds: []string{amiID},
+		})
+		if err != nil || len(image.Images) == 0 {
+			fmt.Printf("⚠️ Unable to copy AMI to other regions: %v\n", err)
+		} else {
+			amiDetails := image.Images[0]
+			
+			// Copy AMI to target regions
+			copiedAMIs, err := b.copyAMIToRegions(ctx, amiID, *amiDetails.Name,
+				*amiDetails.Description, request.CopyToRegions)
+			
+			if err != nil {
+				fmt.Printf("⚠️ Some AMI copies failed: %v\n", err)
+			} else if len(copiedAMIs) > 0 {
+				result.CopiedAMIs = copiedAMIs
+				
+				// Register copied AMIs in the registry
+				if b.RegistryClient != nil {
+					for copyRegion, copiedID := range copiedAMIs {
+						// Create a result for the copied AMI
+						copiedResult := *result
+						copiedResult.AMIID = copiedID
+						copiedResult.Region = copyRegion
+						
+						if err := b.RegistryClient.PublishAMI(ctx, &copiedResult); err != nil {
+							fmt.Printf("⚠️ Failed to register copied AMI in region %s: %v\n",
+								copyRegion, err)
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Create and save template definition file
+	fmt.Printf("\n📄 Creating template definition...\n")
+	if err := b.createTemplateDefinition(request, result); err != nil {
+		fmt.Printf("⚠️ Warning: Failed to create template definition: %v\n", err)
+	} else {
+		fmt.Printf("✅ Template definition created\n")
+	}
+	
+	// Finalize result
+	buildDuration := time.Since(buildStart)
+	result.Status = "success"
+	result.BuildDuration = buildDuration
+	result.BuildTime = time.Now()
+	
+	fmt.Printf("\n🎉 Instance saved as AMI successfully!\n")
+	fmt.Printf("🕒 Total time: %s\n", buildDuration)
+	
+	return result, nil
+}
+
+// restartInstanceBestEffort attempts to restart an instance (best effort, ignores errors)
+func (b *Builder) restartInstanceBestEffort(ctx context.Context, instanceID string) {
+	fmt.Printf("🔄 Restarting instance %s...\n", instanceID)
+	
+	_, err := b.EC2Client.StartInstances(ctx, &ec2.StartInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		fmt.Printf("⚠️ Warning: Failed to restart instance: %v\n", err)
+		return
+	}
+	
+	// Wait for instance to be running (with timeout)
+	waiter := ec2.NewInstanceRunningWaiter(b.EC2Client)
+	if err := waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	}, 3*time.Minute); err != nil {
+		fmt.Printf("⚠️ Warning: Instance may not have restarted successfully: %v\n", err)
+	} else {
+		fmt.Printf("✅ Instance restarted successfully\n")
+	}
+}
+
+// createTemplateDefinition creates a YAML template definition for the saved AMI
+func (b *Builder) createTemplateDefinition(request InstanceSaveRequest, result *BuildResult) error {
+	templateDir := "templates"
+	if _, err := os.Stat(templateDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(templateDir, 0755); err != nil {
+			return fmt.Errorf("failed to create templates directory: %w", err)
+		}
+	}
+	
+	templateFile := filepath.Join(templateDir, request.TemplateName+".yaml")
+	
+	// Create basic template structure
+	templateContent := fmt.Sprintf(`name: "%s"
+description: "%s"
+base: "saved-instance"
+source: "saved-from-instance"  
+original_instance: "%s"
+saved_from: "%s"
+saved_date: "%s"
+
+# AMI mappings (automatically populated)
+ami_config:
+  amis:
+    %s:
+      %s: "%s"
+
+# Ports (inherited from original instance - may need manual adjustment)
+ports: [22]
+
+# Cost estimates (placeholder - update based on actual usage)
+estimated_cost_per_hour:
+  %s: 0.05
+
+# Tags
+tags:
+  Name: "%s"
+  Type: "saved-instance"
+  Source: "CloudWorkstation-Save"
+`,
+		request.TemplateName,
+		request.Description,
+		request.InstanceName,
+		request.InstanceName,
+		time.Now().Format(time.RFC3339),
+		result.Region,
+		result.Architecture,
+		result.AMIID,
+		result.Architecture,
+		request.TemplateName)
+	
+	// Add copied AMIs to template
+	if len(result.CopiedAMIs) > 0 {
+		for region, amiID := range result.CopiedAMIs {
+			templateContent += fmt.Sprintf(`    %s:
+      %s: "%s"
+`, region, result.Architecture, amiID)
+		}
+	}
+	
+	return os.WriteFile(templateFile, []byte(templateContent), 0644)
 }
 
 // copyAMIToRegions copies an AMI to multiple regions
