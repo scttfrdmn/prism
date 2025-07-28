@@ -47,6 +47,36 @@ func ValidateTemplate(filename string) error {
 	return err
 }
 
+// ValidateTemplateWithRegistry validates a template with inheritance resolution
+func ValidateTemplateWithRegistry(templateDirs []string, templateName string) error {
+	registry := NewTemplateRegistry(templateDirs)
+	
+	// Scan templates to load all templates and resolve inheritance
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("failed to scan templates: %w", err)
+	}
+	
+	// Check if template exists
+	_, err := registry.GetTemplate(templateName)
+	if err != nil {
+		return fmt.Errorf("template validation failed: %w", err)
+	}
+	
+	return nil
+}
+
+// ValidateAllTemplates validates all templates in the given directories
+func ValidateAllTemplates(templateDirs []string) error {
+	registry := NewTemplateRegistry(templateDirs)
+	
+	// Scan templates - this will validate all templates and resolve inheritance
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("template validation failed: %w", err)
+	}
+	
+	return nil
+}
+
 // ListAvailableTemplates lists all available templates
 func ListAvailableTemplates() ([]string, error) {
 	registry := NewTemplateRegistry(DefaultTemplateDirs())
