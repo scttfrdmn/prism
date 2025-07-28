@@ -172,7 +172,7 @@ func (a *App) Launch(args []string) error {
 		case arg == "--with" && i+1 < len(args):
 			packageManager := args[i+1]
 			// Validate supported package managers
-			supportedManagers := []string{"conda", "apt", "dnf", "ami", "auto"}
+			supportedManagers := []string{"conda", "apt", "dnf", "ami"}
 			supported := false
 			for _, mgr := range supportedManagers {
 				if packageManager == mgr {
@@ -181,7 +181,7 @@ func (a *App) Launch(args []string) error {
 				}
 			}
 			if !supported {
-				return fmt.Errorf("unsupported package manager: %s (supported: conda, apt, dnf, ami, auto)", packageManager)
+				return fmt.Errorf("unsupported package manager: %s (supported: conda, apt, dnf, ami)", packageManager)
 			}
 			
 			// All package managers now supported
