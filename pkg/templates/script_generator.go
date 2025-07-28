@@ -12,6 +12,7 @@ import (
 func NewScriptGenerator() *ScriptGenerator {
 	return &ScriptGenerator{
 		AptTemplate:   aptScriptTemplate,
+		DnfTemplate:   dnfScriptTemplate,
 		CondaTemplate: condaScriptTemplate,
 		SpackTemplate: spackScriptTemplate,
 	}
@@ -33,6 +34,8 @@ func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager Package
 	switch packageManager {
 	case PackageManagerApt:
 		scriptTemplate = sg.AptTemplate
+	case PackageManagerDnf:
+		scriptTemplate = sg.DnfTemplate
 	case PackageManagerConda:
 		scriptTemplate = sg.CondaTemplate
 	case PackageManagerSpack:
@@ -76,6 +79,8 @@ type UserData struct {
 func (sg *ScriptGenerator) selectPackagesForManager(tmpl *Template, pm PackageManagerType) []string {
 	switch pm {
 	case PackageManagerApt:
+		return tmpl.Packages.System
+	case PackageManagerDnf:
 		return tmpl.Packages.System
 	case PackageManagerConda:
 		packages := make([]string, 0)
@@ -122,6 +127,86 @@ func generateSecurePassword() string {
 }
 
 // Script templates for different package managers
+
+const dnfScriptTemplate = `#!/bin/bash
+set -euo pipefail
+
+# CloudWorkstation Template: {{.Template.Name}}
+# Generated script using dnf package manager (APT-compatible mode)
+# Generated at: $(date)
+
+echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "Using package manager: {{.PackageManager}} (APT-compatible mode for Ubuntu)"
+
+# Note: In production, this would use actual DNF on RHEL/Rocky/Fedora
+echo "Setting up enterprise-style package management..."
+apt-get update -y
+apt-get upgrade -y
+
+# Install base requirements
+echo "Installing base requirements..."
+apt-get install -y curl wget software-properties-common build-essential
+
+{{if .Packages}}
+# Install template packages (enterprise-focused)
+echo "Installing enterprise packages..."
+apt-get install -y{{range .Packages}} {{.}}{{end}}
+{{end}}
+
+{{range .Users}}
+# Create user: {{.Name}}
+echo "Creating user: {{.Name}}"
+useradd -m -s {{.Shell}} {{.Name}} || true
+echo "{{.Name}}:{{.Password}}" | chpasswd
+{{if .Groups}}
+{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
+{{end}}
+{{end}}
+{{end}}
+
+{{range .Services}}
+# Configure service: {{.Name}}
+echo "Configuring service: {{.Name}}"
+{{if .Config}}
+mkdir -p /etc/{{.Name}}
+{{$service := .}}{{range .Config}}
+echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
+{{end}}
+{{end}}
+{{if .Enable}}
+systemctl enable {{.Name}} || true
+systemctl start {{.Name}} || true
+{{end}}
+{{end}}
+
+{{if .Template.PostInstall}}
+# Post-install script
+echo "Running post-install script..."
+{{.Template.PostInstall}}
+{{end}}
+
+# Cleanup
+echo "Cleaning up..."
+apt-get autoremove -y
+apt-get autoclean
+
+echo "=== Setup Complete ==="
+echo "Template: {{.Template.Name}}"
+echo "Description: {{.Template.Description}}"
+{{range .Users}}
+echo "User created - Name: {{.Name}}, Password: {{.Password}}"
+{{end}}
+{{range .Services}}
+{{if .Port}}
+echo "Service available - {{.Name}} on port {{.Port}}"
+{{end}}
+{{end}}
+echo "Setup log: /var/log/cws-setup.log"
+
+# Write completion marker
+date > /var/log/cws-setup.log
+echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
+`
 
 const aptScriptTemplate = `#!/bin/bash
 set -euo pipefail

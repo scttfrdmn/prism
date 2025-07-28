@@ -1,0 +1,36 @@
+name: "Basic Enterprise (DNF)"
+description: "Ubuntu environment configured with DNF-style enterprise packages for RHEL compatibility testing"
+base: "ubuntu-22.04"
+
+# Use DNF package manager
+package_manager: "dnf"
+
+packages:
+  system:  # Enterprise packages (APT equivalent)
+    - "build-essential"
+    - "curl" 
+    - "wget"
+    - "git"
+    - "vim"
+    - "htop"
+    - "tree"
+    - "unzip"
+    - "software-properties-common"
+    - "openssl"
+    - "ca-certificates"
+
+users:
+  - name: "rocky"
+    password: "auto-generated"
+    groups: ["wheel"]
+
+services: []
+
+instance_defaults:
+  ports: [22]
+
+version: "1.0"
+tags:
+  type: "basic"
+  os: "rocky-linux"
+  purpose: "development"

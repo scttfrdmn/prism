@@ -92,6 +92,7 @@ type PackageManagerType string
 const (
 	PackageManagerAuto  PackageManagerType = "auto"
 	PackageManagerApt   PackageManagerType = "apt"
+	PackageManagerDnf   PackageManagerType = "dnf"
 	PackageManagerConda PackageManagerType = "conda"
 	PackageManagerSpack PackageManagerType = "spack"
 )
@@ -139,6 +140,7 @@ type TemplateResolver struct {
 type ScriptGenerator struct {
 	// Script templates for each package manager
 	AptTemplate   string
+	DnfTemplate   string
 	CondaTemplate string
 	SpackTemplate string
 }
