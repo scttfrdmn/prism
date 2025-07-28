@@ -7,7 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
+	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -635,4 +639,200 @@ func (c *HTTPClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistoryEnt
 	}
 
 	return result, nil
+}
+
+// Project management operations
+
+// CreateProject creates a new project
+func (c *HTTPClient) CreateProject(ctx context.Context, req project.CreateProjectRequest) (*types.Project, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/projects", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var project types.Project
+	if err := c.handleResponse(resp, &project); err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+}
+
+// ListProjects lists projects with optional filtering
+func (c *HTTPClient) ListProjects(ctx context.Context, filter *project.ProjectFilter) (*project.ProjectListResponse, error) {
+	// Build query parameters
+	params := url.Values{}
+	if filter != nil {
+		if filter.Owner != "" {
+			params.Set("owner", filter.Owner)
+		}
+		if filter.Status != nil {
+			params.Set("status", string(*filter.Status))
+		}
+		if filter.HasBudget != nil {
+			params.Set("has_budget", strconv.FormatBool(*filter.HasBudget))
+		}
+		if filter.CreatedAfter != nil {
+			params.Set("created_after", filter.CreatedAfter.Format(time.RFC3339))
+		}
+		if filter.CreatedBefore != nil {
+			params.Set("created_before", filter.CreatedBefore.Format(time.RFC3339))
+		}
+	}
+
+	path := "/api/v1/projects"
+	if len(params) > 0 {
+		path += "?" + params.Encode()
+	}
+
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result project.ProjectListResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetProject retrieves a specific project
+func (c *HTTPClient) GetProject(ctx context.Context, projectID string) (*types.Project, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/projects/%s", projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var project types.Project
+	if err := c.handleResponse(resp, &project); err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+}
+
+// UpdateProject updates a project
+func (c *HTTPClient) UpdateProject(ctx context.Context, projectID string, req project.UpdateProjectRequest) (*types.Project, error) {
+	resp, err := c.makeRequest(ctx, "PUT", fmt.Sprintf("/api/v1/projects/%s", projectID), req)
+	if err != nil {
+		return nil, err
+	}
+
+	var project types.Project
+	if err := c.handleResponse(resp, &project); err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+}
+
+// DeleteProject deletes a project
+func (c *HTTPClient) DeleteProject(ctx context.Context, projectID string) error {
+	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/projects/%s", projectID), nil)
+	if err != nil {
+		return err
+	}
+
+	return c.handleResponse(resp, nil)
+}
+
+// AddProjectMember adds a member to a project
+func (c *HTTPClient) AddProjectMember(ctx context.Context, projectID string, req project.AddMemberRequest) error {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/projects/%s/members", projectID), req)
+	if err != nil {
+		return err
+	}
+
+	return c.handleResponse(resp, nil)
+}
+
+// UpdateProjectMember updates a project member's role
+func (c *HTTPClient) UpdateProjectMember(ctx context.Context, projectID, userID string, req project.UpdateMemberRequest) error {
+	resp, err := c.makeRequest(ctx, "PUT", fmt.Sprintf("/api/v1/projects/%s/members/%s", projectID, userID), req)
+	if err != nil {
+		return err
+	}
+
+	return c.handleResponse(resp, nil)
+}
+
+// RemoveProjectMember removes a member from a project
+func (c *HTTPClient) RemoveProjectMember(ctx context.Context, projectID, userID string) error {
+	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/projects/%s/members/%s", projectID, userID), nil)
+	if err != nil {
+		return err
+	}
+
+	return c.handleResponse(resp, nil)
+}
+
+// GetProjectMembers retrieves project members
+func (c *HTTPClient) GetProjectMembers(ctx context.Context, projectID string) ([]types.ProjectMember, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/projects/%s/members", projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var members []types.ProjectMember
+	if err := c.handleResponse(resp, &members); err != nil {
+		return nil, err
+	}
+
+	return members, nil
+}
+
+// GetProjectBudgetStatus retrieves budget status for a project
+func (c *HTTPClient) GetProjectBudgetStatus(ctx context.Context, projectID string) (*project.BudgetStatus, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/projects/%s/budget", projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var budgetStatus project.BudgetStatus
+	if err := c.handleResponse(resp, &budgetStatus); err != nil {
+		return nil, err
+	}
+
+	return &budgetStatus, nil
+}
+
+// GetProjectCostBreakdown retrieves detailed cost analysis for a project
+func (c *HTTPClient) GetProjectCostBreakdown(ctx context.Context, projectID string, startDate, endDate time.Time) (*types.ProjectCostBreakdown, error) {
+	params := url.Values{}
+	params.Set("start_date", startDate.Format(time.RFC3339))
+	params.Set("end_date", endDate.Format(time.RFC3339))
+
+	path := fmt.Sprintf("/api/v1/projects/%s/costs?%s", projectID, params.Encode())
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var costBreakdown types.ProjectCostBreakdown
+	if err := c.handleResponse(resp, &costBreakdown); err != nil {
+		return nil, err
+	}
+
+	return &costBreakdown, nil
+}
+
+// GetProjectResourceUsage retrieves resource utilization metrics for a project
+func (c *HTTPClient) GetProjectResourceUsage(ctx context.Context, projectID string, period time.Duration) (*types.ProjectResourceUsage, error) {
+	params := url.Values{}
+	params.Set("period", period.String())
+
+	path := fmt.Sprintf("/api/v1/projects/%s/usage?%s", projectID, params.Encode())
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var usage types.ProjectResourceUsage
+	if err := c.handleResponse(resp, &usage); err != nil {
+		return nil, err
+	}
+
+	return &usage, nil
 }
