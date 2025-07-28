@@ -174,6 +174,12 @@ systemctl start {{.Name}} || true
 {{end}}
 {{end}}
 
+{{if .Template.PostInstall}}
+# Post-install script
+echo "Running post-install script..."
+{{.Template.PostInstall}}
+{{end}}
+
 # Cleanup
 echo "Cleaning up..."
 apt-get autoremove -y

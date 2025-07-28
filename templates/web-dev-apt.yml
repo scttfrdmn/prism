@@ -1,0 +1,58 @@
+name: "Web Development (APT)" 
+description: "Full-stack web development environment with Node.js, Docker, and essential tools using APT"
+base: "ubuntu-22.04"
+
+# Use APT package manager
+package_manager: "apt"
+
+packages:
+  system:  # APT packages
+    - "build-essential"
+    - "curl"
+    - "wget"
+    - "git"
+    - "vim"
+    - "nano"
+    - "htop"
+    - "tree"
+    - "unzip"
+    - "software-properties-common"
+    - "apt-transport-https"
+    - "ca-certificates"
+    - "gnupg"
+    - "lsb-release"
+    - "docker.io"
+    - "docker-compose"
+    - "nginx"
+    - "postgresql-client"
+    - "redis-tools"
+    - "jq"
+
+users:
+  - name: "developer"
+    password: "auto-generated"
+    groups: ["sudo", "docker", "www-data"]
+
+services:
+  - name: "docker"
+    enable: true
+  - name: "nginx"
+    enable: false
+
+# Post-install script for Node.js
+post_install: |
+  # Install Node.js 20.x LTS via NodeSource
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  apt-get install -y nodejs
+  
+  # Install global packages
+  npm install -g yarn pnpm pm2 @vue/cli @angular/cli create-react-app
+
+instance_defaults:
+  ports: [22, 80, 443, 3000, 8080]
+
+version: "1.0"
+tags:
+  type: "development"
+  language: "javascript"
+  purpose: "web-development"

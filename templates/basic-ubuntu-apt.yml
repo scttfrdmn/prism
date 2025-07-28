@@ -1,0 +1,37 @@
+name: "Basic Ubuntu (APT)"
+description: "Minimal Ubuntu environment with essential development tools using APT package manager"
+base: "ubuntu-22.04"
+
+# Use APT package manager
+package_manager: "apt"
+
+packages:
+  system:  # APT packages
+    - "build-essential"
+    - "curl"
+    - "wget"
+    - "git"
+    - "vim"
+    - "htop"
+    - "tree"
+    - "unzip"
+    - "software-properties-common"
+    - "apt-transport-https"
+    - "ca-certificates"
+    - "gnupg"
+    - "lsb-release"
+
+users:
+  - name: "ubuntu"
+    password: "auto-generated"
+    groups: ["sudo"]
+
+services: []
+
+instance_defaults:
+  ports: [22]
+
+version: "1.0"
+tags:
+  type: "basic"
+  purpose: "development"
