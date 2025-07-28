@@ -30,6 +30,7 @@ type Instance struct {
 	Username           string                  `json:"username"`
 	WebPort            int                     `json:"web_port"`
 	HasWebInterface    bool                    `json:"has_web_interface"`
+	ProjectID          string                  `json:"project_id,omitempty"` // Associated project ID
 	IdleDetection      *IdleDetection          `json:"idle_detection,omitempty"`
 	AppliedTemplates   []AppliedTemplateRecord `json:"applied_templates,omitempty"` // Template application history
 }

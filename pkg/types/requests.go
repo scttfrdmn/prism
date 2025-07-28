@@ -11,6 +11,7 @@ type LaunchRequest struct {
 	Region         string   `json:"region,omitempty"`
 	SubnetID       string   `json:"subnet_id,omitempty"`
 	VpcID          string   `json:"vpc_id,omitempty"`
+	ProjectID      string   `json:"project_id,omitempty"`     // Project to associate instance with
 	Spot           bool     `json:"spot,omitempty"`
 	DryRun         bool     `json:"dry_run,omitempty"`
 }
