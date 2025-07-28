@@ -12,12 +12,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/scttfrdmn/cloudworkstation/pkg/ami"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // AMI processes AMI-related commands
 func (a *App) AMI(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing AMI command (build, list, validate, publish)")
+		return fmt.Errorf("missing AMI command (build, list, validate, publish, save)")
 	}
 
 	subcommand := args[0]
@@ -32,6 +33,8 @@ func (a *App) AMI(args []string) error {
 		return a.handleAMIValidate(subargs)
 	case "publish":
 		return a.handleAMIPublish(subargs)
+	case "save":
+		return a.handleAMISave(subargs)
 	default:
 		return fmt.Errorf("unknown AMI command: %s", subcommand)
 	}
@@ -355,6 +358,144 @@ func (a *App) handleAMIPublish(args []string) error {
 	}
 
 	fmt.Printf("✅ AMI %s published to registry for template '%s' (%s, %s)\n", amiID, templateName, region, architecture)
+	return nil
+}
+
+// handleAMISave saves a running instance as a new AMI template
+func (a *App) handleAMISave(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: cws ami save <instance-name> <template-name> [options]")
+	}
+
+	instanceName := args[0]
+	templateName := args[1]
+	cmdArgs := parseCmdArgs(args[2:])
+
+	// Parse command line arguments
+	description := cmdArgs["description"]
+	if description == "" {
+		description = fmt.Sprintf("Custom template saved from instance %s", instanceName)
+	}
+	region := cmdArgs["region"]
+	projectID := cmdArgs["project"]
+	public := cmdArgs["public"] != ""
+	copyToRegions := []string{}
+	if regions := cmdArgs["copy-to-regions"]; regions != "" {
+		copyToRegions = strings.Split(regions, ",")
+	}
+
+	if region == "" {
+		region = os.Getenv("AWS_REGION")
+		if region == "" {
+			region = "us-east-1" // Default
+		}
+	}
+
+	// Check daemon is running
+	if err := a.apiClient.Ping(context.TODO()); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	// Get instance information from daemon API
+	instances, err := a.apiClient.ListInstances(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to get instance list: %w", err)
+	}
+
+	var instance *types.Instance
+	for _, inst := range instances.Instances {
+		if inst.Name == instanceName {
+			instance = &inst
+			break
+		}
+	}
+
+	if instance == nil {
+		return fmt.Errorf("instance '%s' not found", instanceName)
+	}
+
+	if instance.State != "running" {
+		return fmt.Errorf("instance '%s' must be running to save as AMI (current state: %s)", instanceName, instance.State)
+	}
+
+	// Initialize AWS clients
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	ec2Client := ec2.NewFromConfig(cfg)
+	ssmClient := ssm.NewFromConfig(cfg)
+
+	// Create AMI registry
+	registry := ami.NewRegistry(ssmClient, "")
+
+	// Create AMI builder
+	builderConfig := map[string]string{}
+	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create AMI builder: %w", err)
+	}
+
+	fmt.Printf("💾 Saving instance '%s' as template '%s'\n", instanceName, templateName)
+	fmt.Printf("📍 Instance ID: %s\n", instance.ID)
+	fmt.Printf("🏷️  Description: %s\n", description)
+	if len(copyToRegions) > 0 {
+		fmt.Printf("🌍 Will copy to regions: %s\n", strings.Join(copyToRegions, ", "))
+	}
+
+	// Create save request
+	saveRequest := ami.InstanceSaveRequest{
+		InstanceID:    instance.ID,
+		InstanceName:  instanceName,
+		TemplateName:  templateName,
+		Description:   description,
+		CopyToRegions: copyToRegions,
+		ProjectID:     projectID,
+		Public:        public,
+		Tags: map[string]string{
+			"Name":                        templateName,
+			"CloudWorkstationTemplate":    templateName,
+			"CloudWorkstationSavedFrom":   instanceName,
+			"CloudWorkstationOriginalTemplate": instance.Template,
+		},
+	}
+
+	// Warning about temporary stop
+	fmt.Printf("\n⚠️  WARNING: Instance will be temporarily stopped to create a consistent AMI\n")
+	fmt.Printf("   This ensures the AMI captures a clean state of the filesystem.\n")
+	fmt.Printf("   The instance will be automatically restarted after AMI creation.\n\n")
+
+	// Confirm before proceeding
+	fmt.Printf("Continue? (y/N): ")
+	var response string
+	fmt.Scanln(&response)
+	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
+		fmt.Println("Operation cancelled")
+		return nil
+	}
+
+	// Create AMI from instance
+	result, err := builder.CreateAMIFromInstance(context.TODO(), saveRequest)
+	if err != nil {
+		return fmt.Errorf("failed to save instance as AMI: %w", err)
+	}
+
+	// Print results
+	fmt.Printf("\n🎉 Successfully saved instance as AMI!\n")
+	fmt.Printf("📸 AMI ID: %s\n", result.AMIID)
+	fmt.Printf("🕒 Build time: %s\n", result.BuildDuration)
+	
+	if len(result.CopiedAMIs) > 0 {
+		fmt.Printf("\n🌍 AMI copied to additional regions:\n")
+		for region, amiID := range result.CopiedAMIs {
+			fmt.Printf("   %s: %s\n", region, amiID)
+		}
+	}
+
+	fmt.Printf("\n✨ Template '%s' is now available for launching new instances:\n", templateName)
+	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
+
 	return nil
 }
 
