@@ -73,6 +73,18 @@ type BuildRequest struct {
 	SetAsDefault  bool     // Whether to set this AMI as the default latest
 }
 
+// InstanceSaveRequest contains parameters for saving a running instance as an AMI
+type InstanceSaveRequest struct {
+	InstanceID     string            // EC2 instance ID to save
+	InstanceName   string            // CloudWorkstation instance name
+	TemplateName   string            // Name for the new template
+	Description    string            // Template description
+	CopyToRegions  []string          // Regions to copy AMI
+	Tags           map[string]string // Custom tags
+	ProjectID      string            // Associated project (Phase 4)
+	Public         bool              // Allow public sharing
+}
+
 // BuildResult contains the outcome of an AMI build
 type BuildResult struct {
 	TemplateID    string

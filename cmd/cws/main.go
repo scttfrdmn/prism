@@ -242,6 +242,14 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "save":
+		// Route save command to ami save for now
+		saveArgs := append([]string{"save"}, args...)
+		err := cliApp.AMI(saveArgs)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	case "migrate":
 		err := cliApp.Migrate(args)
 		if err != nil {
@@ -293,6 +301,7 @@ func printUsage() {
 	fmt.Println("  delete <name>                       Delete a workstation")
 	fmt.Println("  hibernate <name>                    Hibernate a workstation (preserves RAM)")
 	fmt.Println("  resume <name>                       Resume a hibernated workstation")
+	fmt.Println("  save <instance> <template> [opts]   Save customized instance as reusable template")
 	fmt.Println("  templates                           List available templates")
 	fmt.Println()
 	fmt.Println("  apply <template> <instance>         Apply template to running instance")
@@ -325,6 +334,7 @@ func printUsage() {
 	fmt.Println("    list [template]                   List available AMIs")
 	fmt.Println("    validate <template>               Validate AMI template")
 	fmt.Println("    publish <template> <ami-id>       Register AMI in registry")
+	fmt.Println("    save <instance> <template> [opts] Save running instance as AMI template")
 	fmt.Println()
 	fmt.Println("  idle <action> [args]                Manage idle detection and hibernation policies")
 	fmt.Println("    status [instance]                 Show idle detection status")
@@ -353,6 +363,7 @@ func printUsage() {
 	fmt.Println("  cws volume create shared-data               # Create shared EFS volume")
 	fmt.Println("  cws storage create fast-storage XL io2     # Create high-performance storage")
 	fmt.Println("  cws ami build neuroimaging                  # Build AMI from template")
+	fmt.Println("  cws save my-analysis custom-ml-env          # Save customized instance as template")
 	fmt.Println()
 	fmt.Println("Template sizes: XS, S, M, L, XL, GPU-S, GPU-M, GPU-L")
 	fmt.Println("Storage sizes: XS (100GB), S (500GB), M (1TB), L (2TB), XL (4TB)")
