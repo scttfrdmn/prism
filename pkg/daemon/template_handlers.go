@@ -54,9 +54,12 @@ func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
 	if architecture == "" {
 		architecture = "x86_64" // Default architecture
 	}
+	
+	// Get package manager override from query params
+	packageManager := r.URL.Query().Get("package_manager")
 
-	// Use the new unified template system
-	template, err := templates.GetTemplate(templateName, region, architecture)
+	// Use the new unified template system with package manager support
+	template, err := templates.GetTemplateWithPackageManager(templateName, region, architecture, packageManager)
 	if err != nil {
 		s.writeError(w, http.StatusNotFound, "Template not found: "+err.Error())
 		return

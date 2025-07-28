@@ -102,10 +102,24 @@ type CloudWorkstationGUI struct {
 
 	// Form state
 	launchForm struct {
-		templateSelect *widget.Select
-		nameEntry      *widget.Entry
-		sizeSelect     *widget.Select
-		launchBtn      *widget.Button
+		templateSelect    *widget.Select
+		nameEntry         *widget.Entry
+		sizeSelect        *widget.Select
+		launchBtn         *widget.Button
+		
+		// Advanced options
+		advancedExpanded  bool
+		volumesSelect     *widget.Select
+		ebsVolumesSelect  *widget.Select
+		spotCheck         *widget.Check
+		dryRunCheck       *widget.Check
+		regionEntry       *widget.Entry
+		subnetEntry       *widget.Entry
+		vpcEntry          *widget.Entry
+		
+		// Available options for selection
+		availableVolumes    []string
+		availableEBSVolumes []string
 	}
 }
 
@@ -512,37 +526,193 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 	return fynecontainer.NewScroll(content)
 }
 
-// createQuickLaunchForm creates the quick launch form
+// createQuickLaunchForm creates the enhanced launch form
 func (g *CloudWorkstationGUI) createQuickLaunchForm() *fyne.Container {
-	// Template selection
-	templateNames := []string{"r-research", "python-research", "basic-ubuntu"}
-	g.launchForm.templateSelect = widget.NewSelect(templateNames, nil)
+	// Initialize advanced launch form
+	g.initializeAdvancedLaunchForm()
+	
+	// Basic form
+	basicForm := widget.NewForm(
+		widget.NewFormItem("Template", g.launchForm.templateSelect),
+		widget.NewFormItem("Name", g.launchForm.nameEntry),
+		widget.NewFormItem("Size", g.launchForm.sizeSelect),
+	)
+
+	// Advanced options toggle
+	advancedToggle := widget.NewButton("⚙️ Advanced Options", func() {
+		g.toggleAdvancedOptions()
+	})
+	
+	// Advanced options container (initially hidden)
+	advancedContainer := g.createAdvancedOptionsContainer()
+	
+	// Action buttons
+	buttonContainer := fynecontainer.NewHBox(
+		advancedToggle,
+		layout.NewSpacer(),
+		g.launchForm.dryRunCheck,
+		g.launchForm.launchBtn,
+	)
+
+	form := fynecontainer.NewVBox(
+		basicForm,
+		widget.NewSeparator(),
+		advancedContainer,
+		widget.NewSeparator(),
+		buttonContainer,
+	)
+
+	return form
+}
+
+// initializeAdvancedLaunchForm initializes the advanced launch form components
+func (g *CloudWorkstationGUI) initializeAdvancedLaunchForm() {
+	// Template selection with dynamic loading
+	g.launchForm.templateSelect = widget.NewSelect([]string{"r-research", "python-research", "basic-ubuntu"}, nil)
 	g.launchForm.templateSelect.SetSelected("r-research")
 
 	// Instance name
 	g.launchForm.nameEntry = widget.NewEntry()
 	g.launchForm.nameEntry.SetPlaceHolder("my-workspace")
 
-	// Size selection
-	g.launchForm.sizeSelect = widget.NewSelect([]string{"XS", "S", "M", "L", "XL"}, nil)
+	// Size selection with GPU options
+	g.launchForm.sizeSelect = widget.NewSelect([]string{"XS", "S", "M", "L", "XL", "GPU-S", "GPU-M", "GPU-L"}, nil)
 	g.launchForm.sizeSelect.SetSelected("M")
+
+	// Load available volumes for selection
+	g.loadAvailableVolumes()
+
+	// Volume selections
+	g.launchForm.volumesSelect = widget.NewSelect(g.launchForm.availableVolumes, nil)
+	g.launchForm.volumesSelect.PlaceHolder = "Select EFS volume (optional)"
+	
+	g.launchForm.ebsVolumesSelect = widget.NewSelect(g.launchForm.availableEBSVolumes, nil)
+	g.launchForm.ebsVolumesSelect.PlaceHolder = "Select EBS volume (optional)"
+
+	// Networking options
+	g.launchForm.regionEntry = widget.NewEntry()
+	g.launchForm.regionEntry.SetPlaceHolder("us-west-2 (optional)")
+	
+	g.launchForm.subnetEntry = widget.NewEntry()
+	g.launchForm.subnetEntry.SetPlaceHolder("subnet-xxxxx (optional)")
+	
+	g.launchForm.vpcEntry = widget.NewEntry()
+	g.launchForm.vpcEntry.SetPlaceHolder("vpc-xxxxx (optional)")
+
+	// Advanced options checkboxes
+	g.launchForm.spotCheck = widget.NewCheck("Use Spot Instance (lower cost)", nil)
+	g.launchForm.dryRunCheck = widget.NewCheck("Dry Run (preview only)", nil)
 
 	// Launch button
 	g.launchForm.launchBtn = widget.NewButton("🚀 Launch Environment", func() {
-		g.handleLaunchInstance()
+		g.handleAdvancedLaunchInstance()
 	})
 	g.launchForm.launchBtn.Importance = widget.HighImportance
+}
 
-	form := fynecontainer.NewVBox(
+// createAdvancedOptionsContainer creates the collapsible advanced options
+func (g *CloudWorkstationGUI) createAdvancedOptionsContainer() *fyne.Container {
+	// Storage options
+	storageSection := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle("Storage", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		widget.NewForm(
-			widget.NewFormItem("Template", g.launchForm.templateSelect),
-			widget.NewFormItem("Name", g.launchForm.nameEntry),
-			widget.NewFormItem("Size", g.launchForm.sizeSelect),
+			widget.NewFormItem("EFS Volume", g.launchForm.volumesSelect),
+			widget.NewFormItem("EBS Volume", g.launchForm.ebsVolumesSelect),
 		),
-		g.launchForm.launchBtn,
 	)
 
-	return form
+	// Networking options
+	networkingSection := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle("Networking", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		widget.NewForm(
+			widget.NewFormItem("Region", g.launchForm.regionEntry),
+			widget.NewFormItem("Subnet ID", g.launchForm.subnetEntry),
+			widget.NewFormItem("VPC ID", g.launchForm.vpcEntry),
+		),
+	)
+
+	// Instance options
+	instanceSection := fynecontainer.NewVBox(
+		widget.NewLabelWithStyle("Instance Options", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		g.launchForm.spotCheck,
+	)
+
+	// Advanced options layout
+	advancedContent := fynecontainer.NewVBox(
+		fynecontainer.NewGridWithColumns(2,
+			storageSection,
+			networkingSection,
+		),
+		widget.NewSeparator(),
+		instanceSection,
+	)
+
+	// Initially hidden container
+	advancedContainer := fynecontainer.NewVBox()
+	if g.launchForm.advancedExpanded {
+		advancedContainer.Add(advancedContent)
+	}
+
+	return advancedContainer
+}
+
+// toggleAdvancedOptions toggles the advanced options visibility
+func (g *CloudWorkstationGUI) toggleAdvancedOptions() {
+	g.launchForm.advancedExpanded = !g.launchForm.advancedExpanded
+	
+	// Refresh the entire dashboard to update the advanced options display
+	g.navigateToSection(SectionDashboard)
+}
+
+// loadAvailableVolumes loads available volumes for selection
+func (g *CloudWorkstationGUI) loadAvailableVolumes() {
+	// Load EFS volumes
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		
+		volumes, err := g.apiClient.ListVolumes(ctx)
+		if err == nil {
+			var volumeNames []string
+			for _, volume := range volumes {
+				volumeNames = append(volumeNames, volume.Name)
+			}
+			g.launchForm.availableVolumes = volumeNames
+			
+			// Update the select widget if it exists
+			if g.launchForm.volumesSelect != nil {
+				g.launchForm.volumesSelect.Options = volumeNames
+				g.launchForm.volumesSelect.Refresh()
+			}
+		} else {
+			g.launchForm.availableVolumes = []string{}
+		}
+	}()
+
+	// Load EBS volumes
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		
+		volumes, err := g.apiClient.ListStorage(ctx)
+		if err == nil {
+			var volumeNames []string
+			for _, volume := range volumes {
+				if volume.State == "available" { // Only show available volumes
+					volumeNames = append(volumeNames, volume.Name)
+				}
+			}
+			g.launchForm.availableEBSVolumes = volumeNames
+			
+			// Update the select widget if it exists
+			if g.launchForm.ebsVolumesSelect != nil {
+				g.launchForm.ebsVolumesSelect.Options = volumeNames
+				g.launchForm.ebsVolumesSelect.Refresh()
+			}
+		} else {
+			g.launchForm.availableEBSVolumes = []string{}
+		}
+	}()
 }
 
 // createRecentInstancesList creates a list of recent instances
@@ -1791,9 +1961,10 @@ func (g *CloudWorkstationGUI) createSettingsView() *fyne.Container {
 
 // Event handlers
 
-func (g *CloudWorkstationGUI) handleLaunchInstance() {
+// handleAdvancedLaunchInstance handles instance launch with advanced options
+func (g *CloudWorkstationGUI) handleAdvancedLaunchInstance() {
 	// Enhanced validation
-	if err := g.validateLaunchForm(); err != nil {
+	if err := g.validateAdvancedLaunchForm(); err != nil {
 		g.showNotification("error", "Validation Error", err.Error())
 		return
 	}
@@ -1804,14 +1975,17 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 		return
 	}
 
-	req := types.LaunchRequest{
-		Template: g.launchForm.templateSelect.Selected,
-		Name:     g.launchForm.nameEntry.Text,
-		Size:     g.launchForm.sizeSelect.Selected,
+	// Build advanced launch request
+	req := g.buildAdvancedLaunchRequest()
+	
+	// Show appropriate action message
+	actionMsg := "Launching..."
+	if req.DryRun {
+		actionMsg = "Validating..."
 	}
 
 	// Show loading state
-	g.launchForm.launchBtn.SetText("Launching...")
+	g.launchForm.launchBtn.SetText(actionMsg)
 	g.launchForm.launchBtn.Disable()
 
 	// Launch in background with timeout
@@ -1821,51 +1995,77 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 		defer cancel()
 		
 		// Launch instance with timeout context
-		var response *types.LaunchResponse
-		var err error
+		response, err := g.apiClient.LaunchInstance(ctx, req)
 		
-		done := make(chan bool, 1)
-		go func() {
-			response, err = g.apiClient.LaunchInstance(ctx, req)
-			done <- true
-		}()
-		
-		// Wait for completion or timeout
-		select {
-		case <-done:
-			// Launch completed
-		case <-ctx.Done():
-			err = fmt.Errorf("launch operation timed out after 5 minutes")
-		}
-
-		// Update UI on main thread
+		// Reset button state
 		g.app.Driver().StartAnimation(&fyne.Animation{
 			Duration: 100 * time.Millisecond,
 			Tick: func(_ float32) {
-				if err != nil {
-					g.showNotification("error", "Launch Failed", err.Error())
-				} else {
-					g.showNotification("success", "Launch Successful",
-						fmt.Sprintf("Instance %s launched successfully! Estimated cost: %s",
-							response.Instance.Name, response.EstimatedCost))
-
-					// Clear form
-					g.launchForm.nameEntry.SetText("")
-
-					// Refresh data
-					g.refreshData()
-				}
-
-				// Reset button
 				g.launchForm.launchBtn.SetText("🚀 Launch Environment")
 				g.launchForm.launchBtn.Enable()
 			},
 		})
+		
+		if err != nil {
+			g.showNotification("error", "Launch Failed", err.Error())
+			return
+		}
+		
+		// Handle dry run vs actual launch
+		if req.DryRun {
+			g.showDryRunResults(response)
+		} else {
+			g.showNotification("success", "Instance Launched", response.Message)
+			g.launchForm.nameEntry.SetText("") // Clear form
+			g.refreshData() // Refresh instance list
+		}
 	}()
 }
 
-// validateLaunchForm performs comprehensive validation of the launch form
-func (g *CloudWorkstationGUI) validateLaunchForm() error {
+func (g *CloudWorkstationGUI) handleLaunchInstance() {
+	// Redirect to advanced handler for backward compatibility
+	g.handleAdvancedLaunchInstance()
+}
+
+// buildAdvancedLaunchRequest builds the launch request with all advanced options
+func (g *CloudWorkstationGUI) buildAdvancedLaunchRequest() types.LaunchRequest {
+	req := types.LaunchRequest{
+		Template: g.launchForm.templateSelect.Selected,
+		Name:     g.launchForm.nameEntry.Text,
+		Size:     g.launchForm.sizeSelect.Selected,
+		DryRun:   g.launchForm.dryRunCheck.Checked,
+	}
+	
+	// Add selected volumes
+	if g.launchForm.volumesSelect.Selected != "" {
+		req.Volumes = []string{g.launchForm.volumesSelect.Selected}
+	}
+	
+	if g.launchForm.ebsVolumesSelect.Selected != "" {
+		req.EBSVolumes = []string{g.launchForm.ebsVolumesSelect.Selected}
+	}
+	
+	// Add networking options
+	if g.launchForm.regionEntry.Text != "" {
+		req.Region = g.launchForm.regionEntry.Text
+	}
+	
+	if g.launchForm.subnetEntry.Text != "" {
+		req.SubnetID = g.launchForm.subnetEntry.Text
+	}
+	
+	if g.launchForm.vpcEntry.Text != "" {
+		req.VpcID = g.launchForm.vpcEntry.Text
+	}
+	
+	// Add instance options
+	req.Spot = g.launchForm.spotCheck.Checked
+	
+	return req
+}
+
+// validateAdvancedLaunchForm validates the advanced launch form
+func (g *CloudWorkstationGUI) validateAdvancedLaunchForm() error {
 	if g.launchForm.templateSelect.Selected == "" {
 		return fmt.Errorf("please select a template")
 	}
@@ -1877,22 +2077,14 @@ func (g *CloudWorkstationGUI) validateLaunchForm() error {
 	
 	// Validate instance name format
 	if len(instanceName) < 3 {
-		return fmt.Errorf("instance name must be at least 3 characters long")
+		return fmt.Errorf("instance name must be at least 3 characters")
 	}
 	
 	if len(instanceName) > 50 {
 		return fmt.Errorf("instance name must be less than 50 characters")
 	}
 	
-	// Check for valid characters (alphanumeric and hyphens)
-	for _, char := range instanceName {
-		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || 
-			 (char >= '0' && char <= '9') || char == '-') {
-			return fmt.Errorf("instance name can only contain letters, numbers, and hyphens")
-		}
-	}
-	
-	// Check for duplicate names
+	// Check for duplicate instance names
 	for _, instance := range g.instances {
 		if instance.Name == instanceName {
 			return fmt.Errorf("instance name '%s' already exists", instanceName)
@@ -1903,7 +2095,84 @@ func (g *CloudWorkstationGUI) validateLaunchForm() error {
 		return fmt.Errorf("please select an instance size")
 	}
 	
+	// Validate networking options if provided
+	if g.launchForm.subnetEntry.Text != "" {
+		subnetID := g.launchForm.subnetEntry.Text
+		if !strings.HasPrefix(subnetID, "subnet-") {
+			return fmt.Errorf("subnet ID must start with 'subnet-'")
+		}
+	}
+	
+	if g.launchForm.vpcEntry.Text != "" {
+		vpcID := g.launchForm.vpcEntry.Text
+		if !strings.HasPrefix(vpcID, "vpc-") {
+			return fmt.Errorf("VPC ID must start with 'vpc-'")
+		}
+	}
+	
 	return nil
+}
+
+// showDryRunResults shows the dry run validation results
+func (g *CloudWorkstationGUI) showDryRunResults(response *types.LaunchResponse) {
+	title := "Dry Run Results"
+	
+	contentContainer := fynecontainer.NewVBox()
+	
+	// Validation status
+	contentContainer.Add(widget.NewLabelWithStyle("✅ Validation Successful", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Instance information
+	contentContainer.Add(widget.NewLabelWithStyle("Instance Configuration", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel("• Name: " + response.Instance.Name))
+	contentContainer.Add(widget.NewLabel("• Template: " + response.Instance.Template))
+	contentContainer.Add(widget.NewLabel("• Instance Type: " + response.Instance.InstanceType))
+	
+	if len(response.Instance.AttachedVolumes) > 0 {
+		contentContainer.Add(widget.NewLabel(fmt.Sprintf("• EFS Volumes: %d", len(response.Instance.AttachedVolumes))))
+	}
+	
+	if len(response.Instance.AttachedEBSVolumes) > 0 {
+		contentContainer.Add(widget.NewLabel(fmt.Sprintf("• EBS Volumes: %d", len(response.Instance.AttachedEBSVolumes))))
+	}
+	
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Cost estimation
+	contentContainer.Add(widget.NewLabelWithStyle("Cost Estimation", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel("• " + response.EstimatedCost))
+	
+	contentContainer.Add(widget.NewSeparator())
+	
+	// Launch confirmation
+	contentContainer.Add(widget.NewLabelWithStyle("Ready to Launch", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+	contentContainer.Add(widget.NewLabel("All configuration validated successfully. Uncheck 'Dry Run' to launch the instance."))
+	
+	// Action buttons
+	launchBtn := widget.NewButton("Launch Now", func() {
+		// Uncheck dry run and launch
+		g.launchForm.dryRunCheck.SetChecked(false)
+		g.handleAdvancedLaunchInstance()
+	})
+	launchBtn.Importance = widget.HighImportance
+	
+	editBtn := widget.NewButton("Edit Configuration", func() {
+		// Just close the dialog to return to form
+	})
+	
+	buttonContainer := fynecontainer.NewHBox(
+		layout.NewSpacer(),
+		editBtn,
+		launchBtn,
+	)
+	
+	contentContainer.Add(widget.NewSeparator())
+	contentContainer.Add(buttonContainer)
+	
+	dialog := dialog.NewCustom(title, "Close", fynecontainer.NewScroll(contentContainer), g.window)
+	dialog.Resize(fyne.NewSize(500, 450))
+	dialog.Show()
 }
 
 func (g *CloudWorkstationGUI) handleConnectInstance(name string) {
