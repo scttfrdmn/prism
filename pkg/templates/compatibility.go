@@ -58,14 +58,7 @@ func (cm *CompatibilityManager) GetLegacyTemplates(region, architecture string) 
 		legacyTemplates[name] = legacyTemplate
 	}
 	
-	// Merge with hardcoded legacy templates for backward compatibility
-	hardcodedTemplates := getHardcodedLegacyTemplates()
-	for name, template := range hardcodedTemplates {
-		// Only use hardcoded if no YAML version exists
-		if _, exists := legacyTemplates[name]; !exists {
-			legacyTemplates[name] = template
-		}
-	}
+	// No fallback to hardcoded templates - use only YAML templates
 	
 	return legacyTemplates, nil
 }

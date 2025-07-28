@@ -295,6 +295,11 @@ func (r *TemplateRegistry) ScanTemplates() error {
 	r.Templates = make(map[string]*Template)
 	
 	for _, dir := range r.TemplateDirs {
+		// Skip directories that don't exist
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			continue
+		}
+		
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
