@@ -2,8 +2,8 @@ name: "R Research Environment (Simplified)"
 description: "R + RStudio Server + tidyverse packages using simplified template system"
 base: "ubuntu-22.04"
 
-# Let CloudWorkstation pick the best package manager (conda will be selected for R)
-package_manager: "auto"
+# Use conda for R packages (better package management)
+package_manager: "conda"
 
 # Simple package lists - let package managers handle complexity
 packages:

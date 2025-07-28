@@ -124,108 +124,20 @@ func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, er
 	// Detect architecture (use local for now, could be part of request)
 	arch := m.getLocalArchitecture()
 	
-	// If PackageManager is specified, use unified template system
-	if req.PackageManager != "" {
-		return m.launchWithUnifiedTemplateSystem(req, arch)
-	}
-	
-	// Otherwise, use legacy templates for backward compatibility
-	template, exists := m.templates[req.Template]
-	if !exists {
-		return nil, fmt.Errorf("template '%s' not found", req.Template)
-	}
-	
-	// Get template configuration for architecture and region
-	ami, instanceType, _, err := m.getTemplateForArchitecture(template, arch, m.region)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get template configuration: %w", err)
-	}
-
-	// Get regional pricing for instance
-	regionalCostPerHour := m.getRegionalEC2Price(instanceType)
-	dailyCost := regionalCostPerHour * 24
-
-	// Prepare UserData
-	userData := template.UserData
-	
-	// Add EFS mount if volumes specified
-	if len(req.Volumes) > 0 {
-		for _, volumeName := range req.Volumes {
-			// Get volume details from state manager would be needed here
-			// For now, we'll include the volume name in user data
-			userData = m.addEFSMountToUserData(userData, volumeName, m.region)
-		}
-	}
-
-	// Encode UserData
-	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
-
-	// Launch instance
-	input := &ec2.RunInstancesInput{
-		ImageId:      aws.String(ami),
-		InstanceType: types.InstanceType(instanceType),
-		MinCount:     aws.Int32(1),
-		MaxCount:     aws.Int32(1),
-		UserData:     aws.String(userDataEncoded),
-		SecurityGroups: []string{
-			"default", // For now, use default security group
-		},
-		TagSpecifications: []types.TagSpecification{
-			{
-				ResourceType: types.ResourceTypeInstance,
-				Tags: []types.Tag{
-					{
-						Key:   aws.String("Name"),
-						Value: aws.String(req.Name),
-					},
-					{
-						Key:   aws.String("CloudWorkstation"),
-						Value: aws.String("true"),
-					},
-					{
-						Key:   aws.String("Template"),
-						Value: aws.String(req.Template),
-					},
-				},
-			},
-		},
-	}
-
-	if req.DryRun {
-		input.DryRun = aws.Bool(true)
-	}
-
-	result, err := m.ec2.RunInstances(context.TODO(), input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to launch instance: %w", err)
-	}
-
-	if req.DryRun {
-		return &ctypes.Instance{
-			Name:     req.Name,
-			Template: req.Template,
-			State:    "dry-run",
-		}, nil
-	}
-
-	// Get the launched instance
-	instance := result.Instances[0]
-	
-	return &ctypes.Instance{
-		ID:                 *instance.InstanceId,
-		Name:               req.Name,
-		Template:           req.Template,
-		State:              string(instance.State.Name),
-		LaunchTime:         time.Now(),
-		EstimatedDailyCost: dailyCost,
-		AttachedVolumes:    req.Volumes,
-	}, nil
+	// Always use unified template system with inheritance support
+	return m.launchWithUnifiedTemplateSystem(req, arch)
 }
 
 // launchWithUnifiedTemplateSystem launches instance using the unified template system with package manager override
 func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch string) (*ctypes.Instance, error) {
 	// Get template using unified template system with package manager override
-	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, req.PackageManager)
+	// If no package manager specified, use the template's default
+	packageManager := req.PackageManager
+	if packageManager == "" {
+		packageManager = "" // Let the template system use the template's specified package manager
+	}
+	
+	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}

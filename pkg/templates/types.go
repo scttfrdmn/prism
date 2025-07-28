@@ -14,7 +14,10 @@ type Template struct {
 	// Basic metadata
 	Name        string `yaml:"name" json:"name"`
 	Description string `yaml:"description" json:"description"`
-	Base        string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.)
+	Base        string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.) or parent template
+	
+	// Template inheritance
+	Inherits []string `yaml:"inherits,omitempty" json:"inherits,omitempty"` // Parent templates to inherit from
 	
 	// Package management strategy
 	PackageManager string             `yaml:"package_manager,omitempty" json:"package_manager,omitempty"` // "auto", "apt", "dnf", "conda", "spack", "ami"
@@ -108,7 +111,6 @@ type RuntimeTemplate struct {
 type PackageManagerType string
 
 const (
-	PackageManagerAuto  PackageManagerType = "auto"
 	PackageManagerApt   PackageManagerType = "apt"
 	PackageManagerDnf   PackageManagerType = "dnf"
 	PackageManagerConda PackageManagerType = "conda"
