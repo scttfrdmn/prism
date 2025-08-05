@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
 )
 

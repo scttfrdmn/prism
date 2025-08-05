@@ -5,25 +5,26 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
-	"strings"
 	"time"
 )
 
 // DeviceBinding represents the binding between a profile and a device
 type DeviceBinding struct {
-	DeviceID        string    `json:"device_id"`
-	ProfileID       string    `json:"profile_id"`
-	InvitationToken string    `json:"invitation_token,omitempty"`
-	Created         time.Time `json:"created"`
-	LastValidated   time.Time `json:"last_validated"`
-	DeviceName      string    `json:"device_name"`
-	MacAddresses    []string  `json:"mac_addresses,omitempty"`
-	UserName        string    `json:"user_name"`
+	DeviceID          string             `json:"device_id"`
+	ProfileID         string             `json:"profile_id"`
+	InvitationToken   string             `json:"invitation_token,omitempty"`
+	Created           time.Time          `json:"created"`
+	LastValidated     time.Time          `json:"last_validated"`
+	DeviceFingerprint *DeviceFingerprint `json:"device_fingerprint"`
+	
+	// Legacy fields (deprecated but kept for compatibility)
+	DeviceName    string   `json:"device_name,omitempty"`
+	MacAddresses  []string `json:"mac_addresses,omitempty"`
+	UserName      string   `json:"user_name,omitempty"`
 }
 
-// CreateDeviceBinding generates a new device binding
+// CreateDeviceBinding generates a new device binding with robust fingerprinting
 func CreateDeviceBinding(profileID, invitationToken string) (*DeviceBinding, error) {
 	// Generate device ID
 	deviceID, err := generateDeviceID()
@@ -31,24 +32,24 @@ func CreateDeviceBinding(profileID, invitationToken string) (*DeviceBinding, err
 		return nil, fmt.Errorf("failed to generate device ID: %w", err)
 	}
 	
-	// Get device name
-	deviceName, _ := os.Hostname()
-	
-	// Get MAC addresses (best effort)
-	macAddresses := getMacAddresses()
-	
-	// Get username
-	userName := getUserName()
+	// Generate comprehensive device fingerprint
+	fingerprint, err := GenerateDeviceFingerprint()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate device fingerprint: %w", err)
+	}
 	
 	binding := &DeviceBinding{
-		DeviceID:        deviceID,
-		ProfileID:       profileID,
-		InvitationToken: invitationToken,
-		Created:         time.Now(),
-		LastValidated:   time.Now(),
-		DeviceName:      deviceName,
-		MacAddresses:    macAddresses,
-		UserName:        userName,
+		DeviceID:          deviceID,
+		ProfileID:         profileID,
+		InvitationToken:   invitationToken,
+		Created:           time.Now(),
+		LastValidated:     time.Now(),
+		DeviceFingerprint: fingerprint,
+		
+		// Legacy fields for backward compatibility
+		DeviceName:   fingerprint.Hostname,
+		MacAddresses: fingerprint.MACAddresses,
+		UserName:     fingerprint.Username,
 	}
 	
 	return binding, nil
@@ -134,41 +135,108 @@ func UpdateLastValidated(bindingRef string) error {
 	return keychain.Store(bindingRef, data)
 }
 
-// ValidateDeviceBinding validates if a device binding is valid
+// ValidateDeviceBinding performs strict device binding validation
 func ValidateDeviceBinding(bindingRef string) (bool, error) {
-	// Retrieve binding
+	// Retrieve stored binding
 	binding, err := RetrieveDeviceBinding(bindingRef)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to retrieve device binding: %w", err)
 	}
 	
-	// Check device identity (additional validation)
-	// This is a lightweight check to detect if the binding has been copied
-	// to another device, but it's not meant to be foolproof
-	
-	// Check hostname
-	currentHostname, _ := os.Hostname()
-	if binding.DeviceName != "" && binding.DeviceName != currentHostname {
-		// Hostname has changed - this is suspicious but not conclusive
-		// We'll just log it for now but still allow access
-		fmt.Fprintf(os.Stderr, "Warning: Device hostname mismatch for profile %s\n", binding.ProfileID)
+	// Generate current device fingerprint
+	currentFingerprint, err := GenerateDeviceFingerprint()
+	if err != nil {
+		return false, fmt.Errorf("failed to generate current device fingerprint: %w", err)
 	}
 	
-	// Check user
-	currentUser := getUserName()
-	if binding.UserName != "" && binding.UserName != currentUser {
-		// Username has changed - this is suspicious but not conclusive
-		// We'll just log it for now but still allow access
-		fmt.Fprintf(os.Stderr, "Warning: Username mismatch for profile %s\n", binding.ProfileID)
+	// Strict validation: fingerprints must match
+	if binding.DeviceFingerprint == nil {
+		// Legacy binding without fingerprint - migrate or reject
+		return false, fmt.Errorf("binding lacks device fingerprint - migration required")
 	}
 	
-	// Update last validated timestamp
+	if !binding.DeviceFingerprint.Matches(currentFingerprint) {
+		// Device binding violation - BLOCK ACCESS
+		riskLevel := binding.DeviceFingerprint.GetRiskLevel(currentFingerprint)
+		
+		return false, &DeviceBindingViolation{
+			ProfileID:         binding.ProfileID,
+			ExpectedDevice:    binding.DeviceFingerprint.String(),
+			CurrentDevice:     currentFingerprint.String(),
+			RiskLevel:         riskLevel,
+			ViolationType:     determineViolationType(binding.DeviceFingerprint, currentFingerprint),
+		}
+	}
+	
+	// Validation successful - update timestamp
 	if err := UpdateLastValidated(bindingRef); err != nil {
-		// Non-fatal error, just log it
+		// Non-fatal error, but log it
 		fmt.Fprintf(os.Stderr, "Warning: Failed to update validation timestamp: %v\n", err)
 	}
 	
 	return true, nil
+}
+
+// DeviceBindingViolation represents a device binding security violation
+type DeviceBindingViolation struct {
+	ProfileID      string
+	ExpectedDevice string
+	CurrentDevice  string
+	RiskLevel      RiskLevel
+	ViolationType  ViolationType
+}
+
+func (e *DeviceBindingViolation) Error() string {
+	return fmt.Sprintf("device binding violation for profile %s: expected %s, got %s (risk: %s, type: %s)",
+		e.ProfileID, e.ExpectedDevice, e.CurrentDevice, e.RiskLevel, e.ViolationType)
+}
+
+// ViolationType categorizes the type of binding violation
+type ViolationType string
+
+const (
+	ViolationTypeHostname     ViolationType = "hostname_mismatch"
+	ViolationTypeUser         ViolationType = "user_mismatch"
+	ViolationTypeMAC          ViolationType = "mac_address_mismatch"
+	ViolationTypeSystemID     ViolationType = "system_id_mismatch"
+	ViolationTypeProfileCopy  ViolationType = "profile_copy_detected"
+	ViolationTypeUnknown      ViolationType = "unknown"
+)
+
+func (v ViolationType) String() string {
+	return string(v)
+}
+
+// determineViolationType analyzes fingerprint differences to categorize violation
+func determineViolationType(expected, current *DeviceFingerprint) ViolationType {
+	if expected.Hostname != current.Hostname {
+		return ViolationTypeHostname
+	}
+	
+	if expected.Username != current.Username || expected.UserID != current.UserID {
+		return ViolationTypeUser
+	}
+	
+	if !expected.HasMatchingMAC(current) {
+		return ViolationTypeMAC
+	}
+	
+	if (expected.SystemUUID != "" && current.SystemUUID != "" && expected.SystemUUID != current.SystemUUID) ||
+	   (expected.MachineID != "" && current.MachineID != "" && expected.MachineID != current.MachineID) {
+		return ViolationTypeSystemID
+	}
+	
+	// Multiple differences suggest profile copying
+	differences := 0
+	if expected.Hostname != current.Hostname { differences++ }
+	if expected.Username != current.Username { differences++ }
+	if !expected.HasMatchingMAC(current) { differences++ }
+	
+	if differences >= 2 {
+		return ViolationTypeProfileCopy
+	}
+	
+	return ViolationTypeUnknown
 }
 
 // Helper functions
@@ -189,45 +257,4 @@ func generateDeviceID() (string, error) {
 	return fmt.Sprintf("device-%s", id), nil
 }
 
-// getMacAddresses gets the MAC addresses of network interfaces
-func getMacAddresses() []string {
-	var addresses []string
-	
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return addresses
-	}
-	
-	for _, iface := range interfaces {
-		// Skip loopback interfaces
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue
-		}
-		
-		// Skip interfaces without a hardware address
-		if len(iface.HardwareAddr) == 0 {
-			continue
-		}
-		
-		// Add the MAC address
-		addresses = append(addresses, iface.HardwareAddr.String())
-	}
-	
-	return addresses
-}
-
-// getUserName gets the current username
-func getUserName() string {
-	user, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	
-	// Extract username from home directory path
-	parts := strings.Split(user, string(os.PathSeparator))
-	if len(parts) > 0 {
-		return parts[len(parts)-1]
-	}
-	
-	return ""
-}
+// Legacy helper functions removed - functionality moved to fingerprint.go
