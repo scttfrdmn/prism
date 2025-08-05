@@ -314,6 +314,10 @@ func (l *LinuxSecretService) Delete(key string) error {
 type FileSecureStorage struct {
 	// Base directory for secure storage
 	baseDir string
+	// Crypto provider for encryption
+	crypto *CryptoProvider
+	// Tamper protection for file integrity
+	tamperProtection *TamperProtection
 }
 
 // NewFileSecureStorage creates a new file-based secure storage provider
@@ -326,24 +330,48 @@ func NewFileSecureStorage() (*FileSecureStorage, error) {
 	
 	baseDir := fmt.Sprintf("%s/.cloudworkstation/secure", homeDir)
 	
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(baseDir, 0700); err != nil {
+	// Create directory if it doesn't exist with restrictive permissions
+	if err := os.MkdirAll(baseDir, 0700); err != nil {  // Owner only
 		return nil, fmt.Errorf("failed to create secure storage directory: %w", err)
 	}
 	
+	// Initialize crypto provider
+	crypto, err := NewCryptoProvider()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize crypto provider: %w", err)
+	}
+	
+	// Initialize tamper protection
+	tamperProtection := NewTamperProtection()
+	
 	return &FileSecureStorage{
-		baseDir: baseDir,
+		baseDir:          baseDir,
+		crypto:           crypto,
+		tamperProtection: tamperProtection,
 	}, nil
 }
 
 // Store implements KeychainProvider.Store for file-based storage
 func (f *FileSecureStorage) Store(key string, data []byte) error {
-	// Encrypt the data (simplified for now)
-	encryptedData := encryptData(data)
+	// Encrypt the data using AES-256-GCM
+	encryptedData, err := f.crypto.Encrypt(data)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt data: %w", err)
+	}
 	
-	// Write to file
+	// Write to file with restrictive permissions
 	filePath := f.getFilePath(key)
-	return os.WriteFile(filePath, encryptedData, 0600)
+	if err := os.WriteFile(filePath, encryptedData, 0600); err != nil {  // Owner read/write only
+		return fmt.Errorf("failed to write encrypted file: %w", err)
+	}
+	
+	// Add tamper protection to the newly created file
+	if err := f.tamperProtection.ProtectFile(filePath); err != nil {
+		// Non-fatal error, log but continue
+		fmt.Fprintf(os.Stderr, "Warning: Failed to add tamper protection to %s: %v\n", filePath, err)
+	}
+	
+	return nil
 }
 
 // Retrieve implements KeychainProvider.Retrieve for file-based storage
@@ -355,13 +383,24 @@ func (f *FileSecureStorage) Retrieve(key string) ([]byte, error) {
 		return nil, ErrKeychainNotFound
 	}
 	
-	// Read and decrypt
+	// Validate file integrity before reading
+	if err := f.tamperProtection.ValidateIntegrity(filePath); err != nil {
+		return nil, fmt.Errorf("file integrity violation detected: %w", err)
+	}
+	
+	// Read encrypted data
 	encryptedData, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read secure file: %w", err)
 	}
 	
-	return decryptData(encryptedData), nil
+	// Decrypt data using AES-256-GCM
+	plaintext, err := f.crypto.Decrypt(encryptedData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt data: %w", err)
+	}
+	
+	return plaintext, nil
 }
 
 // Exists implements KeychainProvider.Exists for file-based storage
@@ -380,6 +419,12 @@ func (f *FileSecureStorage) Delete(key string) error {
 		return nil
 	}
 	
+	// Remove tamper protection before deleting
+	if err := f.tamperProtection.RemoveProtection(filePath); err != nil {
+		// Non-fatal error, log but continue
+		fmt.Fprintf(os.Stderr, "Warning: Failed to remove tamper protection from %s: %v\n", filePath, err)
+	}
+	
 	return os.Remove(filePath)
 }
 
@@ -390,17 +435,7 @@ func (f *FileSecureStorage) getFilePath(key string) string {
 	return fmt.Sprintf("%s/%s.bin", f.baseDir, safeKey)
 }
 
-// Placeholder encryption/decryption functions
-// In a real implementation, these would use proper cryptography
-func encryptData(data []byte) []byte {
-	// This is a placeholder - real implementation would use encryption
-	return data
-}
-
-func decryptData(data []byte) []byte {
-	// This is a placeholder - real implementation would use decryption
-	return data
-}
+// Placeholder functions removed - using real AES-256-GCM encryption in FileSecureStorage
 
 func sanitizeKey(key string) string {
 	// Simple sanitization for demonstration

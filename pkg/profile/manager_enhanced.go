@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
 )
 
 // ContextKey is used to store profile information in context
@@ -157,6 +159,17 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 	// Check for expired invitation
 	if profile.Type == ProfileTypeInvitation {
 		// TODO: Check expiration from credentials
+	}
+	
+	// SECURITY: Enforce device binding validation for device-bound profiles
+	if profile.DeviceBound && profile.BindingRef != "" {
+		valid, err := security.ValidateDeviceBinding(profile.BindingRef)
+		if err != nil {
+			return fmt.Errorf("device binding validation failed: %w", err)
+		}
+		if !valid {
+			return fmt.Errorf("profile '%s' is not authorized for use on this device - device binding violation detected", profile.Name)
+		}
 	}
 	
 	// Update last used timestamp
