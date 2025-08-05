@@ -63,81 +63,28 @@ type MacOSKeychain struct {
 }
 
 // NewMacOSKeychain creates a new macOS keychain provider
-func NewMacOSKeychain() (*MacOSKeychain, error) {
-	return &MacOSKeychain{
-		serviceName: "com.cloudworkstation.profiles",
-	}, nil
-}
-
-// Store implements KeychainProvider.Store for macOS
-func (k *MacOSKeychain) Store(key string, data []byte) error {
-	// On macOS, we would use the keychain API
-	// This is a placeholder for the actual implementation
-	
-	// macOSKeychainAdd would be a CGO function calling the Security framework
-	// err := macOSKeychainAdd(k.serviceName, key, data)
-	// if err != nil {
-	//     return fmt.Errorf("failed to store in keychain: %w", err)
-	// }
-	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
+func NewMacOSKeychain() (KeychainProvider, error) {
+	// Try to use native macOS Keychain first
+	native, err := NewMacOSKeychainNative()
 	if err != nil {
-		return err
+		// Fall back to file-based storage with warning
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native macOS Keychain, using secure file storage: %v\n", err)
+		return NewFileSecureStorage()
 	}
-	return fs.Store(key, data)
-}
-
-// Retrieve implements KeychainProvider.Retrieve for macOS
-func (k *MacOSKeychain) Retrieve(key string) ([]byte, error) {
-	// On macOS, we would use the keychain API
-	// This is a placeholder for the actual implementation
 	
-	// data, err := macOSKeychainFind(k.serviceName, key)
-	// if err != nil {
-	//     return nil, fmt.Errorf("failed to retrieve from keychain: %w", err)
-	// }
+	// Test native keychain functionality
+	testKey := "test-keychain-access"
+	testData := []byte("test")
 	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return nil, err
+	if err := native.Store(testKey, testData); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: macOS Keychain test failed, using secure file storage: %v\n", err)
+		return NewFileSecureStorage()
 	}
-	return fs.Retrieve(key)
-}
-
-// Exists implements KeychainProvider.Exists for macOS
-func (k *MacOSKeychain) Exists(key string) bool {
-	// On macOS, we would check if the item exists in keychain
-	// This is a placeholder for the actual implementation
 	
-	// exists, _ := macOSKeychainExists(k.serviceName, key)
-	// return exists
+	// Clean up test data
+	native.Delete(testKey)
 	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return false
-	}
-	return fs.Exists(key)
-}
-
-// Delete implements KeychainProvider.Delete for macOS
-func (k *MacOSKeychain) Delete(key string) error {
-	// On macOS, we would use the keychain API
-	// This is a placeholder for the actual implementation
-	
-	// err := macOSKeychainDelete(k.serviceName, key)
-	// if err != nil {
-	//     return fmt.Errorf("failed to delete from keychain: %w", err)
-	// }
-	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return err
-	}
-	return fs.Delete(key)
+	return native, nil
 }
 
 // WindowsCredentialManager implements KeychainProvider for Windows
@@ -147,84 +94,28 @@ type WindowsCredentialManager struct {
 }
 
 // NewWindowsCredentialManager creates a new Windows credential manager provider
-func NewWindowsCredentialManager() (*WindowsCredentialManager, error) {
-	return &WindowsCredentialManager{
-		targetName: "CloudWorkstationProfiles",
-	}, nil
-}
-
-// Store implements KeychainProvider.Store for Windows
-func (w *WindowsCredentialManager) Store(key string, data []byte) error {
-	// On Windows, we would use the Credential Manager API
-	// This is a placeholder for the actual implementation
-	
-	// credKey := w.targetName + "/" + key
-	// err := windowsCredWrite(credKey, data)
-	// if err != nil {
-	//     return fmt.Errorf("failed to store in credential manager: %w", err)
-	// }
-	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
+func NewWindowsCredentialManager() (KeychainProvider, error) {
+	// Try to use native Windows Credential Manager first
+	native, err := NewWindowsCredentialManagerNative()
 	if err != nil {
-		return err
+		// Fall back to file-based storage with warning
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Windows Credential Manager, using secure file storage: %v\n", err)
+		return NewFileSecureStorage()
 	}
-	return fs.Store(key, data)
-}
-
-// Retrieve implements KeychainProvider.Retrieve for Windows
-func (w *WindowsCredentialManager) Retrieve(key string) ([]byte, error) {
-	// On Windows, we would use the Credential Manager API
-	// This is a placeholder for the actual implementation
 	
-	// credKey := w.targetName + "/" + key
-	// data, err := windowsCredRead(credKey)
-	// if err != nil {
-	//     return nil, fmt.Errorf("failed to retrieve from credential manager: %w", err)
-	// }
+	// Test native credential manager functionality
+	testKey := "test-credman-access"
+	testData := []byte("test")
 	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return nil, err
+	if err := native.Store(testKey, testData); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Windows Credential Manager test failed, using secure file storage: %v\n", err)
+		return NewFileSecureStorage()
 	}
-	return fs.Retrieve(key)
-}
-
-// Exists implements KeychainProvider.Exists for Windows
-func (w *WindowsCredentialManager) Exists(key string) bool {
-	// On Windows, we would check if the credential exists
-	// This is a placeholder for the actual implementation
 	
-	// credKey := w.targetName + "/" + key
-	// exists, _ := windowsCredExists(credKey)
-	// return exists
+	// Clean up test data
+	native.Delete(testKey)
 	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return false
-	}
-	return fs.Exists(key)
-}
-
-// Delete implements KeychainProvider.Delete for Windows
-func (w *WindowsCredentialManager) Delete(key string) error {
-	// On Windows, we would use the Credential Manager API
-	// This is a placeholder for the actual implementation
-	
-	// credKey := w.targetName + "/" + key
-	// err := windowsCredDelete(credKey)
-	// if err != nil {
-	//     return fmt.Errorf("failed to delete from credential manager: %w", err)
-	// }
-	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return err
-	}
-	return fs.Delete(key)
+	return native, nil
 }
 
 // LinuxSecretService implements KeychainProvider for Linux
@@ -234,80 +125,30 @@ type LinuxSecretService struct {
 }
 
 // NewLinuxSecretService creates a new Linux Secret Service provider
-func NewLinuxSecretService() (*LinuxSecretService, error) {
-	return &LinuxSecretService{
-		collection: "cloudworkstation",
-	}, nil
-}
-
-// Store implements KeychainProvider.Store for Linux
-func (l *LinuxSecretService) Store(key string, data []byte) error {
-	// On Linux, we would use the Secret Service API
-	// This is a placeholder for the actual implementation
-	
-	// err := secretServiceStore(l.collection, key, data)
-	// if err != nil {
-	//     return fmt.Errorf("failed to store in secret service: %w", err)
-	// }
-	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
+func NewLinuxSecretService() (KeychainProvider, error) {
+	// Try to use native Linux Secret Service first
+	native, err := NewLinuxSecretServiceNative()
 	if err != nil {
-		return err
+		// Fall back to file-based storage with warning
+		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Linux Secret Service, using secure file storage: %v\n", err)
+		return NewFileSecureStorage()
 	}
-	return fs.Store(key, data)
-}
-
-// Retrieve implements KeychainProvider.Retrieve for Linux
-func (l *LinuxSecretService) Retrieve(key string) ([]byte, error) {
-	// On Linux, we would use the Secret Service API
-	// This is a placeholder for the actual implementation
 	
-	// data, err := secretServiceRetrieve(l.collection, key)
-	// if err != nil {
-	//     return nil, fmt.Errorf("failed to retrieve from secret service: %w", err)
-	// }
+	// Test native secret service functionality
+	testKey := "test-secret-service-access"
+	testData := []byte("test")
 	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return nil, err
+	if err := native.Store(testKey, testData); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Linux Secret Service test failed, using secure file storage: %v\n", err)
+		// Close the connection
+		native.Close()
+		return NewFileSecureStorage()
 	}
-	return fs.Retrieve(key)
-}
-
-// Exists implements KeychainProvider.Exists for Linux
-func (l *LinuxSecretService) Exists(key string) bool {
-	// On Linux, we would check if the secret exists
-	// This is a placeholder for the actual implementation
 	
-	// exists, _ := secretServiceExists(l.collection, key)
-	// return exists
+	// Clean up test data
+	native.Delete(testKey)
 	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return false
-	}
-	return fs.Exists(key)
-}
-
-// Delete implements KeychainProvider.Delete for Linux
-func (l *LinuxSecretService) Delete(key string) error {
-	// On Linux, we would use the Secret Service API
-	// This is a placeholder for the actual implementation
-	
-	// err := secretServiceDelete(l.collection, key)
-	// if err != nil {
-	//     return fmt.Errorf("failed to delete from secret service: %w", err)
-	// }
-	
-	// For now, fall back to secure file storage
-	fs, err := NewFileSecureStorage()
-	if err != nil {
-		return err
-	}
-	return fs.Delete(key)
+	return native, nil
 }
 
 // FileSecureStorage is a fallback implementation using encrypted files
