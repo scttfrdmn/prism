@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"time"
 )
@@ -371,4 +372,13 @@ func getHostnameOrUnknown() string {
 		return "unknown"
 	}
 	return hostname
+}
+
+// Helper function to get username or "unknown"
+func getUserName() string {
+	currentUser, err := user.Current()
+	if err != nil {
+		return "unknown"
+	}
+	return currentUser.Username
 }
