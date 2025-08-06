@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/artifact"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
@@ -181,13 +180,12 @@ func (v *AWSComplianceValidator) getArtifactReport(ctx context.Context, framewor
 			continue // Try next term if this fails
 		}
 
-		for _, report := range reports.ReportSummaries {
+		for _, report := range reports.Reports {
 			if report.Name != nil && strings.Contains(strings.ToLower(*report.Name), strings.ToLower(term)) {
 				status.ArtifactReportID = *report.Id
 				status.AWSCompliant = true
-				if report.UploadState != nil {
-					status.LastUpdated = *report.UploadState
-				}
+				// Use current time since ReportSummary doesn't have LastModifiedAt
+				status.LastUpdated = time.Now()
 				break
 			}
 		}
@@ -337,7 +335,7 @@ func (v *AWSComplianceValidator) validateSCPs(ctx context.Context, framework Com
 	status.RequiredSCPs = scpList
 
 	// Check if organization has SCPs enabled
-	caller, err := v.stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	_, err := v.stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return fmt.Errorf("failed to get caller identity: %w", err)
 	}

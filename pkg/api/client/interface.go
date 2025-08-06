@@ -91,6 +91,9 @@ type CloudWorkstationAPI interface {
 	Ping(context.Context) error
 	Shutdown(context.Context) error
 	
+	// Raw API request method for generic endpoint access
+	MakeRequest(method, path string, body interface{}) ([]byte, error)
+	
 	// Registry operations
 	GetRegistryStatus(context.Context) (*RegistryStatusResponse, error)
 	SetRegistryStatus(context.Context, bool) error

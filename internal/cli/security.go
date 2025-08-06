@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -158,7 +158,7 @@ func (a *App) SecurityStatus() error {
 	fmt.Println("═══════════════════════════════════")
 
 	// Make API request to security status endpoint
-	resp, err := a.client.MakeRequest("GET", "/api/v1/security/status", nil)
+	resp, err := a.apiClient.MakeRequest("GET", "/api/v1/security/status", nil)
 	if err != nil {
 		return fmt.Errorf("failed to get security status: %w", err)
 	}
@@ -209,13 +209,13 @@ func (a *App) SecurityHealth() error {
 	fmt.Println("═══════════════════════")
 
 	// Trigger health check
-	_, err := a.client.MakeRequest("POST", "/api/v1/security/health", nil)
+	_, err := a.apiClient.MakeRequest("POST", "/api/v1/security/health", nil)
 	if err != nil {
 		return fmt.Errorf("failed to trigger health check: %w", err)
 	}
 
 	// Get health status
-	resp, err := a.client.MakeRequest("GET", "/api/v1/security/health", nil)
+	resp, err := a.apiClient.MakeRequest("GET", "/api/v1/security/health", nil)
 	if err != nil {
 		return fmt.Errorf("failed to get health status: %w", err)
 	}
@@ -249,7 +249,7 @@ func (a *App) SecurityDashboard() error {
 	fmt.Println("📊 Security Dashboard")
 	fmt.Println("════════════════════")
 
-	resp, err := a.client.MakeRequest("GET", "/api/v1/security/dashboard", nil)
+	resp, err := a.apiClient.MakeRequest("GET", "/api/v1/security/dashboard", nil)
 	if err != nil {
 		return fmt.Errorf("failed to get security dashboard: %w", err)
 	}
@@ -299,7 +299,7 @@ func (a *App) SecurityCorrelations() error {
 	fmt.Println("🔗 Security Event Correlations")
 	fmt.Println("═════════════════════════════")
 
-	resp, err := a.client.MakeRequest("GET", "/api/v1/security/correlations", nil)
+	resp, err := a.apiClient.MakeRequest("GET", "/api/v1/security/correlations", nil)
 	if err != nil {
 		return fmt.Errorf("failed to get correlations: %w", err)
 	}
@@ -356,7 +356,7 @@ func (a *App) SecurityKeychain() error {
 	fmt.Println("🔐 Keychain Information")
 	fmt.Println("══════════════════════")
 
-	resp, err := a.client.MakeRequest("GET", "/api/v1/security/keychain", nil)
+	resp, err := a.apiClient.MakeRequest("GET", "/api/v1/security/keychain", nil)
 	if err != nil {
 		return fmt.Errorf("failed to get keychain info: %w", err)
 	}
@@ -418,7 +418,7 @@ func (a *App) SecurityConfig() error {
 	fmt.Println("⚙️ Security Configuration")
 	fmt.Println("════════════════════════")
 
-	resp, err := a.client.MakeRequest("GET", "/api/v1/security/config", nil)
+	resp, err := a.apiClient.MakeRequest("GET", "/api/v1/security/config", nil)
 	if err != nil {
 		return fmt.Errorf("failed to get security config: %w", err)
 	}
@@ -508,7 +508,7 @@ func (a *App) ValidateAWSCompliance(framework string) error {
 	fmt.Println("═══════════════════════════════════════")
 
 	// Make API request for AWS compliance validation
-	resp, err := a.client.MakeRequest("POST", fmt.Sprintf("/api/v1/security/compliance/validate/%s", framework), nil)
+	resp, err := a.apiClient.MakeRequest("POST", fmt.Sprintf("/api/v1/security/compliance/validate/%s", framework), nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate AWS compliance: %w", err)
 	}
@@ -613,7 +613,7 @@ func (a *App) GenerateComplianceReport(framework string) error {
 	fmt.Printf("📊 Generating AWS Compliance Report: %s\n", strings.ToUpper(framework))
 	fmt.Println("════════════════════════════════════════════")
 
-	resp, err := a.client.MakeRequest("GET", fmt.Sprintf("/api/v1/security/compliance/report/%s", framework), nil)
+	resp, err := a.apiClient.MakeRequest("GET", fmt.Sprintf("/api/v1/security/compliance/report/%s", framework), nil)
 	if err != nil {
 		return fmt.Errorf("failed to generate compliance report: %w", err)
 	}
@@ -651,7 +651,7 @@ func (a *App) ValidateSCPs(framework string) error {
 	fmt.Printf("🛡️ Validating Service Control Policies: %s\n", strings.ToUpper(framework))
 	fmt.Println("══════════════════════════════════════════════")
 
-	resp, err := a.client.MakeRequest("GET", fmt.Sprintf("/api/v1/security/compliance/scp/%s", framework), nil)
+	resp, err := a.apiClient.MakeRequest("GET", fmt.Sprintf("/api/v1/security/compliance/scp/%s", framework), nil)
 	if err != nil {
 		return fmt.Errorf("failed to validate SCPs: %w", err)
 	}
