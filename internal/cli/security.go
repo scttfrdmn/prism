@@ -95,13 +95,20 @@ func (a *App) SecurityCommand() *cobra.Command {
 		
 Available frameworks:
   nist-800-171    NIST 800-171 (CUI Protection)
+  nist-800-53     NIST 800-53 (Federal/Healthcare Controls)
   soc-2           SOC 2 Type II 
-  hipaa           HIPAA (Healthcare)
-  fedramp         FedRAMP (Federal)
+  hipaa           HIPAA (Healthcare - includes NIST 800-53)
+  fedramp         FedRAMP (Federal - based on NIST 800-53)
   iso-27001       ISO 27001 (Information Security)
   pci-dss         PCI DSS (Payment Card)
   gdpr            GDPR (Privacy)
-  cmmc            CMMC (Defense Contractors)`,
+  itar            ITAR (Export Control - requires GovCloud)
+  ear             EAR (Export Administration)
+  cmmc            CMMC (Defense Contractors)
+  cmmc-l1         CMMC Level 1 (Basic Cyber Hygiene)
+  cmmc-l2         CMMC Level 2 (Intermediate + NIST 800-171)
+  cmmc-l3         CMMC Level 3 (Expert + NIST 800-53)
+  ferpa           FERPA (Student Privacy in Education)`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return a.ValidateAWSCompliance(args[0])
@@ -711,15 +718,22 @@ func (a *App) ListComplianceFrameworks() error {
 		Scope       string
 	}{
 		{"nist-800-171", "NIST 800-171", "Protecting Controlled Unclassified Information", "Federal Contracts, CUI"},
+		{"nist-800-53", "NIST 800-53", "Security Controls for Federal Information Systems", "Healthcare, Federal (HIPAA/FedRAMP)"},
 		{"soc-2", "SOC 2 Type II", "Security, Availability, and Confidentiality", "Service Organizations"},
-		{"hipaa", "HIPAA", "Health Insurance Portability and Accountability Act", "Healthcare"},
-		{"fedramp", "FedRAMP", "Federal Risk and Authorization Management Program", "Cloud Services for Government"},
+		{"hipaa", "HIPAA", "Health Insurance Portability and Accountability Act", "Healthcare (uses NIST 800-53)"},
+		{"fedramp", "FedRAMP", "Federal Risk and Authorization Management Program", "Cloud Services (uses NIST 800-53)"},
 		{"iso-27001", "ISO 27001", "Information Security Management Systems", "International Standard"},
 		{"pci-dss", "PCI DSS", "Payment Card Industry Data Security Standard", "Payment Processing"},
 		{"gdpr", "GDPR", "General Data Protection Regulation", "EU Privacy Protection"},
+		{"itar", "ITAR", "International Traffic in Arms Regulations", "Defense Export Control (GovCloud Only)"},
+		{"ear", "EAR", "Export Administration Regulations", "Dual-Use Technology Export Control"},
 		{"cmmc", "CMMC", "Cybersecurity Maturity Model Certification", "Defense Industrial Base"},
+		{"cmmc-l1", "CMMC Level 1", "Basic Cyber Hygiene", "Defense DIB Basic"},
+		{"cmmc-l2", "CMMC Level 2", "Intermediate Cyber Hygiene", "Defense DIB + CUI (NIST 800-171)"},
+		{"cmmc-l3", "CMMC Level 3", "Expert Cyber Hygiene", "Defense DIB Advanced (NIST 800-53)"},
 		{"fisma", "FISMA", "Federal Information Security Modernization Act", "Federal Information Systems"},
 		{"dfars", "DFARS", "Defense Federal Acquisition Regulation Supplement", "Defense Contractors"},
+		{"ferpa", "FERPA", "Family Educational Rights and Privacy Act", "Student Privacy in Education"},
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
