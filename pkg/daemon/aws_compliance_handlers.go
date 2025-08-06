@@ -21,15 +21,22 @@ func (s *Server) handleAWSComplianceValidate(w http.ResponseWriter, r *http.Requ
 	// Map CLI framework names to internal types
 	frameworkMapping := map[string]security.ComplianceFramework{
 		"nist-800-171": security.ComplianceNIST800171,
+		"nist-800-53":  security.ComplianceNIST80053,
 		"soc-2":        security.ComplianceSOC2,
 		"hipaa":        security.ComplianceHIPAA,
 		"fedramp":      security.ComplianceFedRAMP,
 		"iso-27001":    security.ComplianceISO27001,
 		"pci-dss":      security.CompliancePCIDSS,
 		"gdpr":         security.ComplianceGDPR,
+		"itar":         security.ComplianceITAR,
+		"ear":          security.ComplianceEAR,
 		"cmmc":         security.ComplianceCMMC,
+		"cmmc-l1":      security.ComplianceCMMCL1,
+		"cmmc-l2":      security.ComplianceCMMCL2,
+		"cmmc-l3":      security.ComplianceCMMCL3,
 		"fisma":        security.ComplianceFISMA,
 		"dfars":        security.ComplianceDFARS,
+		"ferpa":        security.ComplianceFERPA,
 	}
 
 	framework, exists := frameworkMapping[strings.ToLower(frameworkStr)]
@@ -90,15 +97,22 @@ func (s *Server) handleAWSComplianceReport(w http.ResponseWriter, r *http.Reques
 	// Map CLI framework names to internal types
 	frameworkMapping := map[string]security.ComplianceFramework{
 		"nist-800-171": security.ComplianceNIST800171,
+		"nist-800-53":  security.ComplianceNIST80053,
 		"soc-2":        security.ComplianceSOC2,
 		"hipaa":        security.ComplianceHIPAA,
 		"fedramp":      security.ComplianceFedRAMP,
 		"iso-27001":    security.ComplianceISO27001,
 		"pci-dss":      security.CompliancePCIDSS,
 		"gdpr":         security.ComplianceGDPR,
+		"itar":         security.ComplianceITAR,
+		"ear":          security.ComplianceEAR,
 		"cmmc":         security.ComplianceCMMC,
+		"cmmc-l1":      security.ComplianceCMMCL1,
+		"cmmc-l2":      security.ComplianceCMMCL2,
+		"cmmc-l3":      security.ComplianceCMMCL3,
 		"fisma":        security.ComplianceFISMA,
 		"dfars":        security.ComplianceDFARS,
+		"ferpa":        security.ComplianceFERPA,
 	}
 
 	framework, exists := frameworkMapping[strings.ToLower(frameworkStr)]
@@ -151,15 +165,22 @@ func (s *Server) handleAWSComplianceSCP(w http.ResponseWriter, r *http.Request) 
 	// Map CLI framework names to internal types
 	frameworkMapping := map[string]security.ComplianceFramework{
 		"nist-800-171": security.ComplianceNIST800171,
+		"nist-800-53":  security.ComplianceNIST80053,
 		"soc-2":        security.ComplianceSOC2,
 		"hipaa":        security.ComplianceHIPAA,
 		"fedramp":      security.ComplianceFedRAMP,
 		"iso-27001":    security.ComplianceISO27001,
 		"pci-dss":      security.CompliancePCIDSS,
 		"gdpr":         security.ComplianceGDPR,
+		"itar":         security.ComplianceITAR,
+		"ear":          security.ComplianceEAR,
 		"cmmc":         security.ComplianceCMMC,
+		"cmmc-l1":      security.ComplianceCMMCL1,
+		"cmmc-l2":      security.ComplianceCMMCL2,
+		"cmmc-l3":      security.ComplianceCMMCL3,
 		"fisma":        security.ComplianceFISMA,
 		"dfars":        security.ComplianceDFARS,
+		"ferpa":        security.ComplianceFERPA,
 	}
 
 	framework, exists := frameworkMapping[strings.ToLower(frameworkStr)]
