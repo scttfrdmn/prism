@@ -1,0 +1,68 @@
+# CloudWorkstation Daemon Production Dockerfile
+#
+# Multi-stage build for optimized production image with security features
+
+# Build stage
+FROM golang:1.21-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
+
+# Create non-root user
+RUN adduser -D -g '' appuser
+
+# Set working directory
+WORKDIR /src
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application with security features enabled
+RUN CGO_ENABLED=1 GOOS=linux go build \
+    -ldflags '-w -s -extldflags "-static"' \
+    -a -installsuffix cgo \
+    -o cwsd \
+    ./cmd/cwsd/
+
+# Production stage
+FROM scratch
+
+# Copy CA certificates for HTTPS requests
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy timezone data
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# Copy user account
+COPY --from=builder /etc/passwd /etc/passwd
+
+# Copy the binary
+COPY --from=builder /src/cwsd /usr/local/bin/cwsd
+
+# Create necessary directories
+COPY --from=builder --chown=appuser:appuser /tmp /tmp
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD ["/usr/local/bin/cwsd", "--help"]
+
+# Expose port
+EXPOSE 8947
+
+# Set default environment variables
+ENV CWS_PORT=8947
+ENV CWS_SECURITY_ENABLED=true
+ENV CWS_LOG_LEVEL=info
+
+# Run the daemon
+ENTRYPOINT ["/usr/local/bin/cwsd"]
+CMD ["-port", "8947"]
