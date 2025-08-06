@@ -309,15 +309,6 @@ func (s *Server) getSSHUsername(instance types.Instance) string {
 }
 
 // getAWSRegion returns the AWS region for Systems Manager connections
-func (s *Server) getAWSRegion() string {
-	// In a full implementation, this would get the region from:
-	// 1. AWS configuration
-	// 2. Instance metadata
-	// 3. CloudWorkstation config
-	
-	// For now, return default region
-	return "us-east-1"
-}
 
 // recordTemplateApplication records a successful template application in instance state
 func (s *Server) recordTemplateApplication(instanceName string, template *templates.Template, checkpointID string) error {

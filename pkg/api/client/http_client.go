@@ -146,6 +146,22 @@ func (c *HTTPClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error)
 	return &status, nil
 }
 
+// MakeRequest makes a generic HTTP request to any API endpoint
+func (c *HTTPClient) MakeRequest(method, path string, body interface{}) ([]byte, error) {
+	resp, err := c.makeRequest(context.Background(), method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d for %s %s: %s", resp.StatusCode, method, path, string(body))
+	}
+	
+	return io.ReadAll(resp.Body)
+}
+
 // LaunchInstance launches a new instance
 func (c *HTTPClient) LaunchInstance(ctx context.Context, req types.LaunchRequest) (*types.LaunchResponse, error) {
 	resp, err := c.makeRequest(ctx, "POST", "/api/v1/instances", req)

@@ -105,8 +105,15 @@ func (m *BatchInvitationManager) PreviewCSVFile(filePath string, hasHeader bool)
 		return nil, fmt.Errorf("file does not exist: %s", filePath)
 	}
 	
+	// Open and read the CSV file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open CSV file: %w", err)
+	}
+	defer file.Close()
+	
 	// Import invitations from CSV
-	invitations, err := m.batchManager.ImportBatchInvitationsFromCSVFile(filePath, hasHeader)
+	invitations, err := m.batchManager.ImportBatchInvitationsFromCSV(file, hasHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to import invitations: %w", err)
 	}
@@ -364,11 +371,16 @@ Admin User,admin,90,yes,no,yes,3
 
 // ShowCSVFile opens the CSV file in the default application
 func (m *BatchInvitationManager) ShowCSVFile(filePath string) error {
-	return runtime.OpenFile(m.ctx, filePath)
+	// TODO: Implement file opening functionality
+	// Could use exec.Command("open", filePath) on macOS or similar per-platform
+	return fmt.Errorf("file opening not implemented yet")
 }
 
 // OpenCSVFolder opens the folder containing the CSV file
 func (m *BatchInvitationManager) OpenCSVFolder(filePath string) error {
 	dir := filepath.Dir(filePath)
-	return runtime.OpenFile(m.ctx, dir)
+	// TODO: Implement folder opening functionality
+	// Could use exec.Command("open", dir) on macOS or similar per-platform
+	_ = dir
+	return fmt.Errorf("folder opening not implemented yet")
 }
