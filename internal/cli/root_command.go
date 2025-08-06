@@ -247,6 +247,9 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 		AddMigrateCommand(rootCmd, a.config)
 	}
 
+	// Add security command
+	rootCmd.AddCommand(a.SecurityCommand())
+
 	return rootCmd
 }
 

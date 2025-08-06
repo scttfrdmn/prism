@@ -1,0 +1,137 @@
+# CloudWorkstation Production Deployment Configuration
+# 
+# This docker-compose file provides a production-ready deployment for CloudWorkstation
+# with enterprise-grade security features enabled.
+#
+# Usage:
+#   docker-compose up -d     # Start services
+#   docker-compose logs -f   # View logs
+#   docker-compose down      # Stop services
+
+version: '3.8'
+
+services:
+  # CloudWorkstation Daemon - Main service
+  cwsd:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.cwsd
+    container_name: cloudworkstation-daemon
+    restart: unless-stopped
+    ports:
+      - "8947:8947"  # CWS API port
+    environment:
+      - CWS_PORT=8947
+      - CWS_LOG_LEVEL=info
+      - CWS_SECURITY_ENABLED=true
+      - CWS_AUDIT_ENABLED=true
+      - CWS_MONITORING_ENABLED=true
+      - CWS_CORRELATION_ENABLED=true
+      - CWS_REGISTRY_SECURITY_ENABLED=true
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      - AWS_PROFILE=${AWS_PROFILE:-default}
+    volumes:
+      - cws_data:/data
+      - cws_logs:/var/log/cloudworkstation
+      - cws_security:/var/lib/cloudworkstation/security
+      - ~/.aws:/root/.aws:ro  # AWS credentials (read-only)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8947/api/v1/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - cloudworkstation
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  # Security Monitor - Dedicated security monitoring service
+  cws-security-monitor:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.security-monitor
+    container_name: cloudworkstation-security-monitor
+    restart: unless-stopped
+    depends_on:
+      - cwsd
+    environment:
+      - CWS_DAEMON_URL=http://cwsd:8947
+      - CWS_MONITOR_INTERVAL=30s
+      - CWS_CORRELATION_INTERVAL=5m
+      - CWS_ALERT_THRESHOLD=MEDIUM
+    volumes:
+      - cws_security:/var/lib/cloudworkstation/security:ro
+      - cws_logs:/var/log/cloudworkstation
+    networks:
+      - cloudworkstation
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+
+  # Log Aggregator - Centralized logging
+  log-aggregator:
+    image: fluent/fluentd:v1.16-debian-1
+    container_name: cloudworkstation-logs
+    restart: unless-stopped
+    volumes:
+      - cws_logs:/var/log/cloudworkstation
+      - ./fluentd.conf:/fluentd/etc/fluent.conf:ro
+    networks:
+      - cloudworkstation
+    security_opt:
+      - no-new-privileges:true
+
+  # Metrics Exporter - Prometheus metrics
+  metrics-exporter:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.metrics
+    container_name: cloudworkstation-metrics
+    restart: unless-stopped
+    depends_on:
+      - cwsd
+    ports:
+      - "9090:9090"
+    environment:
+      - CWS_DAEMON_URL=http://cwsd:8947
+      - METRICS_PORT=9090
+    networks:
+      - cloudworkstation
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+
+networks:
+  cloudworkstation:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: cws-br0
+
+volumes:
+  cws_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/cloudworkstation/data
+  cws_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/cloudworkstation/logs
+  cws_security:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/cloudworkstation/security
