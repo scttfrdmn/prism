@@ -254,7 +254,14 @@ func (m *SecurityManager) ValidateDeviceBinding(deviceID string, expectedFingerp
 	}
 
 	// Validate fingerprint against expected
-	if !security.ValidateDeviceBinding(currentFingerprint, expectedFingerprint) {
+	isValid, err := security.ValidateDeviceBinding(currentFingerprint.Hash)
+	if err != nil {
+		m.LogAccessAttempt(deviceID, false, "validation_error", map[string]interface{}{
+			"error": err.Error(),
+		})
+		return fmt.Errorf("device binding validation error: %w", err)
+	}
+	if !isValid {
 		m.LogAccessAttempt(deviceID, false, "device_binding_violation", map[string]interface{}{
 			"expected_hash": expectedFingerprint,
 			"actual_hash":   currentFingerprint.Hash,
