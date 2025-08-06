@@ -13,19 +13,21 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
+	"github.com/scttfrdmn/cloudworkstation/pkg/security"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 )
 
 // Server represents the CloudWorkstation daemon server
 type Server struct {
-	port           string
-	httpServer     *http.Server
-	stateManager   *state.Manager
-	userManager    *UserManager
-	statusTracker  *StatusTracker
-	versionManager *APIVersionManager
-	idleManager    *idle.Manager
-	projectManager *project.Manager
+	port            string
+	httpServer      *http.Server
+	stateManager    *state.Manager
+	userManager     *UserManager
+	statusTracker   *StatusTracker
+	versionManager  *APIVersionManager
+	idleManager     *idle.Manager
+	projectManager  *project.Manager
+	securityManager *security.SecurityManager
 }
 
 // NewServer creates a new daemon server
@@ -64,14 +66,22 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize project manager: %w", err)
 	}
 
+	// Initialize security manager
+	securityConfig := security.GetDefaultSecurityConfig()
+	securityManager, err := security.NewSecurityManager(securityConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize security manager: %w", err)
+	}
+
 	server := &Server{
-		port:           port,
-		stateManager:   stateManager,
-		userManager:    userManager,
-		statusTracker:  statusTracker,
-		versionManager: versionManager,
-		idleManager:    idleManager,
-		projectManager: projectManager,
+		port:            port,
+		stateManager:    stateManager,
+		userManager:     userManager,
+		statusTracker:   statusTracker,
+		versionManager:  versionManager,
+		idleManager:     idleManager,
+		projectManager:  projectManager,
+		securityManager: securityManager,
 	}
 
 	// Setup HTTP routes
@@ -92,12 +102,25 @@ func NewServer(port string) (*Server, error) {
 func (s *Server) Start() error {
 	log.Printf("Starting CloudWorkstation daemon on port %s", s.port)
 
+	// Start security manager
+	if err := s.securityManager.Start(); err != nil {
+		log.Printf("Warning: Failed to start security manager: %v", err)
+	} else {
+		log.Printf("Security manager started successfully")
+	}
+
 	// Handle graceful shutdown
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Shutting down daemon...")
+		
+		// Stop security manager
+		if err := s.securityManager.Stop(); err != nil {
+			log.Printf("Warning: Failed to stop security manager: %v", err)
+		}
+		
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		s.httpServer.Shutdown(ctx)
@@ -251,6 +274,18 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	// Project management operations
 	mux.HandleFunc("/api/v1/projects", applyMiddleware(s.handleProjectOperations))
 	mux.HandleFunc("/api/v1/projects/", applyMiddleware(s.handleProjectByID))
+
+	// Security management endpoints (Phase 4: Security integration)
+	mux.HandleFunc("/api/v1/security/status", applyMiddleware(s.handleSecurityStatus))
+	mux.HandleFunc("/api/v1/security/health", applyMiddleware(s.handleSecurityHealth))
+	mux.HandleFunc("/api/v1/security/dashboard", applyMiddleware(s.handleSecurityDashboard))
+	mux.HandleFunc("/api/v1/security/correlations", applyMiddleware(s.handleSecurityCorrelations))
+	mux.HandleFunc("/api/v1/security/keychain", applyMiddleware(s.handleSecurityKeychain))
+	mux.HandleFunc("/api/v1/security/config", applyMiddleware(s.handleSecurityConfig))
+	// AWS Compliance validation endpoints
+	mux.HandleFunc("/api/v1/security/compliance/validate/{framework}", applyMiddleware(s.handleAWSComplianceValidate))
+	mux.HandleFunc("/api/v1/security/compliance/report/{framework}", applyMiddleware(s.handleAWSComplianceReport))
+	mux.HandleFunc("/api/v1/security/compliance/scp/{framework}", applyMiddleware(s.handleAWSComplianceSCP))
 }
 
 // HTTP handlers
