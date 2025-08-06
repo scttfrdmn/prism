@@ -29,6 +29,7 @@ type ComplianceFramework string
 const (
 	// Primary research compliance frameworks
 	ComplianceNIST800171    ComplianceFramework = "NIST-800-171"
+	ComplianceNIST80053     ComplianceFramework = "NIST-800-53"
 	ComplianceSOC2          ComplianceFramework = "SOC-2"
 	ComplianceHIPAA         ComplianceFramework = "HIPAA"
 	ComplianceGDPR          ComplianceFramework = "GDPR"
@@ -36,13 +37,19 @@ const (
 	ComplianceISO27001      ComplianceFramework = "ISO-27001"
 	CompliancePCIDSS        ComplianceFramework = "PCI-DSS"
 	
-	// Additional frameworks
+	// Export control and defense frameworks
+	ComplianceITAR          ComplianceFramework = "ITAR"
+	ComplianceEAR           ComplianceFramework = "EAR"
 	ComplianceCSA           ComplianceFramework = "CSA-STAR"
 	ComplianceFISMA         ComplianceFramework = "FISMA"
 	ComplianceDFARS         ComplianceFramework = "DFARS"
 	ComplianceCMMC          ComplianceFramework = "CMMC"
+	ComplianceCMMCL1        ComplianceFramework = "CMMC-L1"
+	ComplianceCMMCL2        ComplianceFramework = "CMMC-L2"
+	ComplianceCMMCL3        ComplianceFramework = "CMMC-L3"
 	ComplianceENISA         ComplianceFramework = "ENISA"
 	ComplianceC5            ComplianceFramework = "C5"
+	ComplianceFERPA         ComplianceFramework = "FERPA"
 )
 
 // AWSComplianceStatus represents the compliance status against AWS Artifact reports
@@ -145,14 +152,21 @@ func (v *AWSComplianceValidator) getArtifactReport(ctx context.Context, framewor
 	artifactMapping := map[ComplianceFramework][]string{
 		ComplianceSOC2:       {"SOC", "SOC 2 Type II"},
 		ComplianceHIPAA:      {"HIPAA", "HIPAA BAA"},
+		ComplianceNIST80053:  {"NIST", "NIST 800-53", "FedRAMP"},
 		ComplianceFedRAMP:    {"FedRAMP", "FedRAMP Moderate", "FedRAMP High"},
 		ComplianceISO27001:   {"ISO 27001", "ISO 27017", "ISO 27018"},
 		CompliancePCIDSS:     {"PCI DSS", "PCI"},
 		ComplianceNIST800171: {"NIST", "NIST 800-171"},
+		ComplianceITAR:       {"ITAR", "GovCloud", "DoD"},
+		ComplianceEAR:        {"EAR", "Export Administration Regulations"},
 		ComplianceCSA:        {"CSA STAR", "Cloud Security Alliance"},
 		ComplianceFISMA:      {"FISMA", "FedRAMP"},
 		ComplianceDFARS:      {"DFARS", "NIST 800-171"},
 		ComplianceCMMC:       {"CMMC", "NIST 800-171"},
+		ComplianceCMMCL1:     {"CMMC", "Level 1", "Basic Cyber Hygiene"},
+		ComplianceCMMCL2:     {"CMMC", "Level 2", "Intermediate Cyber Hygiene", "NIST 800-171"},
+		ComplianceCMMCL3:     {"CMMC", "Level 3", "Expert", "NIST 800-171", "NIST 800-53"},
+		ComplianceFERPA:      {"FERPA", "Family Educational Rights and Privacy Act", "Student Privacy"},
 	}
 
 	searchTerms, exists := artifactMapping[framework]
@@ -381,14 +395,45 @@ func (v *AWSComplianceValidator) performGapAnalysis(framework ComplianceFramewor
 		v.analyzeSOC2Gaps(status)
 	case ComplianceHIPAA:
 		v.analyzeHIPAAGaps(status)
+		// HIPAA often uses NIST 800-53 as underlying framework
+		v.analyzeNIST80053Gaps(status)
+	case ComplianceNIST80053:
+		v.analyzeNIST80053Gaps(status)
 	case ComplianceFedRAMP:
 		v.analyzeFedRAMPGaps(status)
+		// FedRAMP is based on NIST 800-53
+		v.analyzeNIST80053Gaps(status)
 	case ComplianceNIST800171:
 		v.analyzeNIST800171Gaps(status)
+	case ComplianceITAR:
+		v.analyzeITARGaps(status)
+	case ComplianceEAR:
+		v.analyzeEARGaps(status)
 	case ComplianceISO27001:
 		v.analyzeISO27001Gaps(status)
 	case CompliancePCIDSS:
 		v.analyzePCIDSSGaps(status)
+	case ComplianceCMMC:
+		// CMMC builds on NIST 800-171
+		v.analyzeNIST800171Gaps(status)
+		v.analyzeCMMCGaps(status)
+	case ComplianceCMMCL1:
+		v.analyzeCMMCL1Gaps(status)
+	case ComplianceCMMCL2:
+		v.analyzeNIST800171Gaps(status)
+		v.analyzeCMMCL2Gaps(status)
+	case ComplianceCMMCL3:
+		v.analyzeNIST800171Gaps(status)
+		v.analyzeNIST80053Gaps(status)
+		v.analyzeCMMCL3Gaps(status)
+	case ComplianceFISMA:
+		// FISMA uses NIST 800-53
+		v.analyzeNIST80053Gaps(status)
+	case ComplianceDFARS:
+		// DFARS references NIST 800-171
+		v.analyzeNIST800171Gaps(status)
+	case ComplianceFERPA:
+		v.analyzeFERPAGaps(status)
 	}
 
 	return nil
@@ -482,6 +527,108 @@ func (v *AWSComplianceValidator) analyzeNIST800171Gaps(status *AWSComplianceStat
 	status.GapAnalysis = append(status.GapAnalysis, gaps...)
 }
 
+// analyzeNIST80053Gaps performs NIST 800-53 specific gap analysis (for HIPAA/FedRAMP)
+func (v *AWSComplianceValidator) analyzeNIST80053Gaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "AC-2 - Account Management",
+			AWSImplementation:   "IAM with automated account lifecycle management",
+			CloudWorkstationGap: "Template-based account provisioning needs IAM integration",
+			Severity:            "HIGH",
+			Remediation:         "Implement automated account management with AWS IAM",
+		},
+		{
+			Control:             "AU-3 - Audit Record Content",
+			AWSImplementation:   "CloudTrail comprehensive audit logging with data events",
+			CloudWorkstationGap: "Local audit logs may need enhanced content for healthcare/federal compliance",
+			Severity:            "MEDIUM",
+			Remediation:         "Enhance audit record content to meet NIST 800-53 requirements",
+		},
+		{
+			Control:             "SC-7 - Boundary Protection",
+			AWSImplementation:   "VPC with network segmentation and managed boundaries",
+			CloudWorkstationGap: "Research instances may need additional network controls",
+			Severity:            "MEDIUM",
+			Remediation:         "Implement VPC endpoint and network segmentation for sensitive data",
+		},
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
+// analyzeITARGaps performs ITAR specific gap analysis (requires AWS GovCloud)
+func (v *AWSComplianceValidator) analyzeITARGaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "ITAR 120.17 - Physical and Technical Safeguards",
+			AWSImplementation:   "AWS GovCloud physical security and FIPS 140-2",
+			CloudWorkstationGap: "CRITICAL: ITAR compliance requires AWS GovCloud deployment",
+			Severity:            "CRITICAL",
+			Remediation:         "Migrate all ITAR-related workloads to AWS GovCloud (us-gov-east-1 or us-gov-west-1)",
+		},
+		{
+			Control:             "ITAR 120.17 - Export Control",
+			AWSImplementation:   "GovCloud provides export control compliance",
+			CloudWorkstationGap: "Commercial AWS regions cannot host ITAR-controlled data",
+			Severity:            "CRITICAL",
+			Remediation:         "Implement region restrictions to prevent ITAR data in commercial regions",
+		},
+		{
+			Control:             "ITAR 120.17 - Personnel Security",
+			AWSImplementation:   "GovCloud personnel are US persons with security clearances",
+			CloudWorkstationGap: "Commercial AWS support may include foreign nationals",
+			Severity:            "CRITICAL",
+			Remediation:         "Use only GovCloud support channels for ITAR-related workloads",
+		},
+	}
+
+	// Add critical region validation
+	if v.region != "us-gov-east-1" && v.region != "us-gov-west-1" {
+		gaps = append(gaps, ComplianceGap{
+			Control:             "ITAR Regional Compliance",
+			AWSImplementation:   "GovCloud regions provide ITAR compliance",
+			CloudWorkstationGap: fmt.Sprintf("Current region %s is not ITAR compliant", v.region),
+			Severity:            "CRITICAL",
+			Remediation:         "Immediately migrate to AWS GovCloud region (us-gov-east-1 or us-gov-west-1)",
+		})
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
+// analyzeEARGaps performs Export Administration Regulations gap analysis
+func (v *AWSComplianceValidator) analyzeEARGaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "EAR 734.3 - Export Control Classification",
+			AWSImplementation:   "AWS provides data residency and export controls",
+			CloudWorkstationGap: "Need to classify research data for export control purposes",
+			Severity:            "HIGH",
+			Remediation:         "Implement data classification system for dual-use technology",
+		},
+		{
+			Control:             "EAR 736.2 - General Prohibitions",
+			AWSImplementation:   "AWS Config rules can enforce geographic restrictions",
+			CloudWorkstationGap: "No automated controls for EAR-restricted countries",
+			Severity:            "HIGH",
+			Remediation:         "Implement geographic access controls and monitoring",
+		},
+	}
+
+	// Recommend GovCloud for high-sensitivity EAR data
+	if v.region != "us-gov-east-1" && v.region != "us-gov-west-1" {
+		gaps = append(gaps, ComplianceGap{
+			Control:             "EAR High-Sensitivity Data",
+			AWSImplementation:   "GovCloud provides additional export control protections",
+			CloudWorkstationGap: "High-sensitivity EAR data should use GovCloud",
+			Severity:            "MEDIUM",
+			Remediation:         "Consider migrating high-sensitivity dual-use technology research to GovCloud",
+		})
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
 // analyzeISO27001Gaps performs ISO 27001 specific gap analysis
 func (v *AWSComplianceValidator) analyzeISO27001Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
@@ -558,6 +705,155 @@ func (v *AWSComplianceValidator) generateRecommendations(framework ComplianceFra
 	}
 
 	status.RecommendedActions = baseRecommendations
+}
+
+// analyzeCMMCGaps performs general CMMC gap analysis
+func (v *AWSComplianceValidator) analyzeCMMCGaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "CMMC Maturity Processes",
+			AWSImplementation:   "AWS provides foundational security controls",
+			CloudWorkstationGap: "CMMC requires organizational maturity processes beyond technical controls",
+			Severity:            "MEDIUM",
+			Remediation:         "Implement CMMC-required processes: documentation, training, incident response",
+		},
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
+// analyzeCMMCL1Gaps performs CMMC Level 1 gap analysis
+func (v *AWSComplianceValidator) analyzeCMMCL1Gaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "AC.L1-3.1.1 - Limit System Access",
+			AWSImplementation:   "IAM provides user authentication and authorization",
+			CloudWorkstationGap: "Basic access controls implemented, CMMC Level 1 compliant",
+			Severity:            "LOW",
+			Remediation:         "Continue current access control implementation",
+		},
+		{
+			Control:             "IA.L1-3.5.1 - Identify Users",
+			AWSImplementation:   "IAM provides unique user identification",
+			CloudWorkstationGap: "Device binding provides additional identification, exceeds Level 1 requirements",
+			Severity:            "LOW",
+			Remediation:         "Current implementation exceeds CMMC Level 1 requirements",
+		},
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
+// analyzeCMMCL2Gaps performs CMMC Level 2 gap analysis  
+func (v *AWSComplianceValidator) analyzeCMMCL2Gaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "AC.L2-3.1.3 - Control Information Flow",
+			AWSImplementation:   "VPC and security groups provide network access controls",
+			CloudWorkstationGap: "Need to implement information flow controls for CUI",
+			Severity:            "HIGH",
+			Remediation:         "Implement VPC endpoints and network segmentation for CUI processing",
+		},
+		{
+			Control:             "AU.L2-3.3.1 - Audit Record Generation",
+			AWSImplementation:   "CloudTrail provides comprehensive audit logging",
+			CloudWorkstationGap: "Local audit logs should integrate with AWS audit services",
+			Severity:            "MEDIUM",
+			Remediation:         "Forward CloudWorkstation audit logs to CloudTrail and CloudWatch",
+		},
+		{
+			Control:             "SC.L2-3.13.11 - Cryptographic Key Management",
+			AWSImplementation:   "AWS KMS provides centralized key management",
+			CloudWorkstationGap: "CloudWorkstation uses custom encryption keys",
+			Severity:            "MEDIUM",
+			Remediation:         "Consider integrating invitation system encryption with AWS KMS",
+		},
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
+// analyzeCMMCL3Gaps performs CMMC Level 3 gap analysis
+func (v *AWSComplianceValidator) analyzeCMMCL3Gaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "AU.L2-3.3.8 - Protect Audit Information",
+			AWSImplementation:   "CloudTrail log file integrity and encryption",
+			CloudWorkstationGap: "Enhanced audit protection required for Level 3",
+			Severity:            "HIGH",
+			Remediation:         "Implement audit log encryption and integrity monitoring",
+		},
+		{
+			Control:             "RA.L2-3.11.2 - Vulnerability Scanning",
+			AWSImplementation:   "Inspector provides automated vulnerability scanning",
+			CloudWorkstationGap: "Need automated vulnerability scanning of research instances",
+			Severity:            "HIGH",
+			Remediation:         "Integrate AWS Inspector for continuous vulnerability assessment",
+		},
+		{
+			Control:             "SI.L2-3.14.6 - Software and Information Integrity",
+			AWSImplementation:   "Systems Manager provides patch management",
+			CloudWorkstationGap: "Need automated integrity monitoring and patch management",
+			Severity:            "HIGH",
+			Remediation:         "Implement AWS Systems Manager for automated patching and integrity monitoring",
+		},
+	}
+
+	// Add GovCloud recommendation for Level 3
+	if v.region != "us-gov-east-1" && v.region != "us-gov-west-1" {
+		gaps = append(gaps, ComplianceGap{
+			Control:             "CMMC L3 Enhanced Protection",
+			AWSImplementation:   "GovCloud provides additional security controls for Level 3",
+			CloudWorkstationGap: "Level 3 organizations often require GovCloud for enhanced protection",
+			Severity:            "MEDIUM",
+			Remediation:         "Consider migrating to AWS GovCloud for enhanced CMMC Level 3 controls",
+		})
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
+}
+
+// analyzeFERPAGaps performs FERPA specific gap analysis
+func (v *AWSComplianceValidator) analyzeFERPAGaps(status *AWSComplianceStatus) {
+	gaps := []ComplianceGap{
+		{
+			Control:             "FERPA §99.31 - Disclosure without Consent",
+			AWSImplementation:   "IAM policies can enforce directory information access controls",
+			CloudWorkstationGap: "Need to classify and protect personally identifiable information from education records",
+			Severity:            "HIGH",
+			Remediation:         "Implement data classification for student records and directory information",
+		},
+		{
+			Control:             "FERPA §99.32 - Record of Requests and Disclosures",
+			AWSImplementation:   "CloudTrail provides comprehensive access logging",
+			CloudWorkstationGap: "Need audit trail specifically for student record access",
+			Severity:            "HIGH",
+			Remediation:         "Configure detailed logging for any student record access with CloudTrail data events",
+		},
+		{
+			Control:             "FERPA §99.35 - Disclosure to Parents and Students",
+			AWSImplementation:   "IAM enables role-based access for student/parent access",
+			CloudWorkstationGap: "Need controlled access mechanism for students to access their own records",
+			Severity:            "MEDIUM",
+			Remediation:         "Implement student self-service access with appropriate authentication",
+		},
+		{
+			Control:             "FERPA Data Security",
+			AWSImplementation:   "EBS and S3 encryption protects data at rest",
+			CloudWorkstationGap: "Student records require encryption both at rest and in transit",
+			Severity:            "HIGH",
+			Remediation:         "Ensure all student data is encrypted with AES-256 and transmitted over TLS 1.3",
+		},
+		{
+			Control:             "FERPA Data Retention",
+			AWSImplementation:   "S3 lifecycle policies can automate retention",
+			CloudWorkstationGap: "Need automated retention policies for student records per institutional policy",
+			Severity:            "MEDIUM",
+			Remediation:         "Implement automated data retention and deletion policies for student records",
+		},
+	}
+
+	status.GapAnalysis = append(status.GapAnalysis, gaps...)
 }
 
 // GetSupportedFrameworks returns list of supported compliance frameworks
