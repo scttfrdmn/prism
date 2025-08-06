@@ -1,8 +1,11 @@
 # Binaries
 cws
 cws.exe
+cwsd
+cwsd.exe
 /cws-*
 !/cmd/cws-*
+/bin/
 
 # Go build artifacts
 *.o
