@@ -248,6 +248,65 @@ func (bt *BudgetTracker) GetResourceUsage(projectID string, period time.Duration
 	}, nil
 }
 
+// UpdateProjectSpending updates project spending with instance and storage costs
+func (bt *BudgetTracker) UpdateProjectSpending(projectID string, instanceCosts []types.InstanceCost, storageCosts []types.StorageCost) error {
+	bt.mutex.Lock()
+	defer bt.mutex.Unlock()
+
+	budgetData, exists := bt.budgetData[projectID]
+	if !exists {
+		return fmt.Errorf("budget data not found for project %q", projectID)
+	}
+
+	// Calculate total costs
+	var totalInstanceCost, totalStorageCost float64
+	
+	for _, instanceCost := range instanceCosts {
+		totalInstanceCost += instanceCost.TotalCost
+	}
+	
+	for _, storageCost := range storageCosts {
+		totalStorageCost += storageCost.Cost
+	}
+	
+	dailyTotalCost := totalInstanceCost + totalStorageCost
+	
+	// Add to previous spending (cumulative)
+	previousSpent := budgetData.Budget.SpentAmount
+	newTotalSpent := previousSpent + dailyTotalCost
+
+	// Create cost data point
+	costPoint := CostDataPoint{
+		Timestamp:     time.Now(),
+		TotalCost:     newTotalSpent,
+		InstanceCosts: instanceCosts,
+		StorageCosts:  storageCosts,
+		DailyCost:     dailyTotalCost,
+	}
+
+	// Add to history
+	budgetData.CostHistory = append(budgetData.CostHistory, costPoint)
+	
+	// Keep only last 90 days of history
+	cutoffTime := time.Now().AddDate(0, 0, -90)
+	bt.trimCostHistory(budgetData, cutoffTime)
+
+	// Update budget spent amount (cumulative)
+	if budgetData.Budget != nil {
+		budgetData.Budget.SpentAmount = newTotalSpent
+		budgetData.Budget.LastUpdated = time.Now()
+	}
+
+	budgetData.LastUpdated = time.Now()
+
+	// Check for budget alerts
+	if err := bt.checkBudgetAlerts(budgetData); err != nil {
+		return fmt.Errorf("failed to check budget alerts: %w", err)
+	}
+
+	return bt.saveBudgetData()
+}
+
 // CheckBudgetStatus checks the current budget status and returns detailed information
 func (bt *BudgetTracker) CheckBudgetStatus(projectID string) (*BudgetStatus, error) {
 	bt.mutex.RLock()
@@ -398,21 +457,25 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 		spentPercentage = budget.SpentAmount / budget.TotalBudget
 	}
 
-	// Check alert thresholds
+	// Check alert thresholds - only trigger each threshold once
 	for _, alert := range budget.AlertThresholds {
-		if !alert.Enabled {
-			continue
-		}
-
 		if spentPercentage >= alert.Threshold {
-			// Check if we've already sent this alert recently
-			if bt.shouldSendAlert(budgetData, alert.Threshold) {
+			// Check if we've already sent this specific alert threshold ever
+			alreadyTriggered := false
+			for _, event := range budgetData.AlertHistory {
+				if event.Threshold == alert.Threshold && event.AlertType == alert.Type {
+					alreadyTriggered = true
+					break
+				}
+			}
+			
+			if !alreadyTriggered {
 				alertEvent := AlertEvent{
 					Timestamp:   time.Now(),
 					AlertType:   alert.Type,
 					Threshold:   alert.Threshold,
 					SpentAmount: budget.SpentAmount,
-					Message:     fmt.Sprintf("Budget alert: %.1f%% of budget spent", spentPercentage*100),
+					Message:     fmt.Sprintf("Budget alert: %.1f%% of budget spent", alert.Threshold*100),
 					Resolved:    false,
 				}
 
@@ -424,17 +487,33 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 		}
 	}
 
-	// Check auto actions
+	// Check auto actions - only trigger each action once
 	for _, action := range budget.AutoActions {
-		if !action.Enabled {
-			continue
-		}
-
 		if spentPercentage >= action.Threshold {
-			// Check if we've already triggered this action recently
-			if bt.shouldTriggerAction(budgetData, action.Threshold) {
+			// Check if we've already triggered this specific action threshold ever
+			alreadyTriggered := false
+			actionAlertType := types.BudgetAlertType(fmt.Sprintf("action_%s", action.Action))
+			for _, event := range budgetData.AlertHistory {
+				if event.Threshold == action.Threshold && event.AlertType == actionAlertType {
+					alreadyTriggered = true
+					break
+				}
+			}
+			
+			if !alreadyTriggered {
 				// TODO: Execute the auto action
 				// This would integrate with the hibernation/stop functionality
+				
+				// For testing, add to alert history as a triggered action
+				actionEvent := AlertEvent{
+					Timestamp:   time.Now(),
+					AlertType:   actionAlertType,
+					Threshold:   action.Threshold,
+					SpentAmount: budget.SpentAmount,
+					Message:     fmt.Sprintf("Auto action triggered: %s at %.1f%% budget", action.Action, action.Threshold*100),
+					Resolved:    false,
+				}
+				budgetData.AlertHistory = append(budgetData.AlertHistory, actionEvent)
 			}
 		}
 	}
@@ -471,12 +550,15 @@ func (bt *BudgetTracker) shouldTriggerAction(budgetData *ProjectBudgetData, thre
 func (bt *BudgetTracker) getActiveAlerts(budgetData *ProjectBudgetData) []string {
 	var activeAlerts []string
 	
-	// Get alerts from last 24 hours
+	// Get alerts from last 24 hours - only actual alerts, not actions
 	dayAgo := time.Now().AddDate(0, 0, -1)
 	
 	for _, event := range budgetData.AlertHistory {
 		if event.Timestamp.After(dayAgo) && !event.Resolved {
-			activeAlerts = append(activeAlerts, event.Message)
+			// Only include actual alert types (email, slack, webhook), not actions
+			if event.AlertType == types.BudgetAlertEmail || event.AlertType == types.BudgetAlertSlack || event.AlertType == types.BudgetAlertWebhook {
+				activeAlerts = append(activeAlerts, event.Message)
+			}
 		}
 	}
 	
@@ -484,9 +566,21 @@ func (bt *BudgetTracker) getActiveAlerts(budgetData *ProjectBudgetData) []string
 }
 
 func (bt *BudgetTracker) getTriggeredActions(budgetData *ProjectBudgetData) []string {
-	// TODO: Implement action tracking
-	// For now, return empty slice
-	return []string{}
+	var triggeredActions []string
+	
+	// Get actions from last 24 hours
+	dayAgo := time.Now().AddDate(0, 0, -1)
+	
+	for _, event := range budgetData.AlertHistory {
+		if event.Timestamp.After(dayAgo) && !event.Resolved {
+			// Check if this is an action event (not a regular alert)
+			if event.AlertType != types.BudgetAlertEmail && event.AlertType != types.BudgetAlertSlack && event.AlertType != types.BudgetAlertWebhook {
+				triggeredActions = append(triggeredActions, event.Message)
+			}
+		}
+	}
+	
+	return triggeredActions
 }
 
 func (bt *BudgetTracker) loadBudgetData() error {
