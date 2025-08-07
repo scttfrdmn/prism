@@ -43,30 +43,53 @@ type KeychainProvider interface {
 
 // Global cached keychain provider to avoid multiple initialization prompts
 var (
-	cachedProvider KeychainProvider
-	providerError  error
-	providerOnce   sync.Once
+	globalProvider KeychainProvider
+	initError      error
+	initOnce       sync.Once
 )
 
-// NewKeychainProvider creates the appropriate keychain provider for the current platform
-// Uses caching to avoid multiple keychain access prompts during application lifetime
-func NewKeychainProvider() (KeychainProvider, error) {
-	providerOnce.Do(func() {
+// initializeGlobalProvider initializes the keychain provider once
+func initializeGlobalProvider() {
+	initOnce.Do(func() {
 		switch runtime.GOOS {
 		case "darwin":
-			cachedProvider, providerError = NewMacOSKeychain()
+			// Create native provider directly without test (to eliminate first prompt)
+			native, err := NewMacOSKeychainNative()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native macOS Keychain, using secure file storage: %v\n", err)
+				globalProvider, initError = NewFileSecureStorage()
+			} else {
+				globalProvider, initError = native, nil
+			}
 		case "windows":
-			cachedProvider, providerError = NewWindowsCredentialManager()
+			native, err := NewWindowsCredentialManagerNative()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Windows Credential Manager, using secure file storage: %v\n", err)
+				globalProvider, initError = NewFileSecureStorage()
+			} else {
+				globalProvider, initError = native, nil
+			}
 		case "linux":
-			cachedProvider, providerError = NewLinuxSecretService()
+			native, err := NewLinuxSecretServiceNative()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Linux Secret Service, using secure file storage: %v\n", err)
+				globalProvider, initError = NewFileSecureStorage()
+			} else {
+				globalProvider, initError = native, nil
+			}
 		default:
 			// Fallback to file-based storage with warning
 			fmt.Fprintf(os.Stderr, "Warning: Using fallback secure storage on platform: %s\n", runtime.GOOS)
-			cachedProvider, providerError = NewFileSecureStorage()
+			globalProvider, initError = NewFileSecureStorage()
 		}
 	})
-	
-	return cachedProvider, providerError
+}
+
+// NewKeychainProvider returns the global keychain provider instance
+// Initializes on first call, then returns cached instance
+func NewKeychainProvider() (KeychainProvider, error) {
+	initializeGlobalProvider()
+	return globalProvider, initError
 }
 
 // MacOSKeychain implements KeychainProvider for macOS
@@ -75,29 +98,9 @@ type MacOSKeychain struct {
 	serviceName string
 }
 
-// NewMacOSKeychain creates a new macOS keychain provider
+// NewMacOSKeychain creates a new macOS keychain provider (deprecated - use NewKeychainProvider)
 func NewMacOSKeychain() (KeychainProvider, error) {
-	// Try to use native macOS Keychain first
-	native, err := NewMacOSKeychainNative()
-	if err != nil {
-		// Fall back to file-based storage with warning
-		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native macOS Keychain, using secure file storage: %v\n", err)
-		return NewFileSecureStorage()
-	}
-	
-	// Test native keychain functionality (happens only once due to sync.Once caching)
-	testKey := "test-keychain-access"
-	testData := []byte("test")
-	
-	if err := native.Store(testKey, testData); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: macOS Keychain test failed, using secure file storage: %v\n", err)
-		return NewFileSecureStorage()
-	}
-	
-	// Clean up test data
-	native.Delete(testKey)
-	
-	return native, nil
+	return NewKeychainProvider()
 }
 
 // WindowsCredentialManager implements KeychainProvider for Windows
@@ -106,29 +109,9 @@ type WindowsCredentialManager struct {
 	targetName string
 }
 
-// NewWindowsCredentialManager creates a new Windows credential manager provider
+// NewWindowsCredentialManager creates a new Windows credential manager provider (deprecated - use NewKeychainProvider)
 func NewWindowsCredentialManager() (KeychainProvider, error) {
-	// Try to use native Windows Credential Manager first
-	native, err := NewWindowsCredentialManagerNative()
-	if err != nil {
-		// Fall back to file-based storage with warning
-		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Windows Credential Manager, using secure file storage: %v\n", err)
-		return NewFileSecureStorage()
-	}
-	
-	// Test native credential manager functionality (happens only once due to sync.Once caching)
-	testKey := "test-credman-access"
-	testData := []byte("test")
-	
-	if err := native.Store(testKey, testData); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Windows Credential Manager test failed, using secure file storage: %v\n", err)
-		return NewFileSecureStorage()
-	}
-	
-	// Clean up test data
-	native.Delete(testKey)
-	
-	return native, nil
+	return NewKeychainProvider()
 }
 
 // LinuxSecretService implements KeychainProvider for Linux
@@ -137,31 +120,9 @@ type LinuxSecretService struct {
 	collection string
 }
 
-// NewLinuxSecretService creates a new Linux Secret Service provider
+// NewLinuxSecretService creates a new Linux Secret Service provider (deprecated - use NewKeychainProvider)
 func NewLinuxSecretService() (KeychainProvider, error) {
-	// Try to use native Linux Secret Service first
-	native, err := NewLinuxSecretServiceNative()
-	if err != nil {
-		// Fall back to file-based storage with warning
-		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Linux Secret Service, using secure file storage: %v\n", err)
-		return NewFileSecureStorage()
-	}
-	
-	// Test native secret service functionality (happens only once due to sync.Once caching)
-	testKey := "test-secret-service-access"
-	testData := []byte("test")
-	
-	if err := native.Store(testKey, testData); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Linux Secret Service test failed, using secure file storage: %v\n", err)
-		// Close the connection
-		native.Close()
-		return NewFileSecureStorage()
-	}
-	
-	// Clean up test data
-	native.Delete(testKey)
-	
-	return native, nil
+	return NewKeychainProvider()
 }
 
 // FileSecureStorage is a fallback implementation using encrypted files

@@ -3006,8 +3006,11 @@ func (g *CloudWorkstationGUI) refreshData() {
 	g.totalCost = response.TotalCost
 	g.lastUpdate = time.Now()
 
-	// Refresh current view only if we have valid data
-	g.navigateToSection(g.currentSection)
+	// CRITICAL FIX: UI updates must be dispatched to main thread
+	fyne.DoAndWait(func() {
+		// Refresh current view only if we have valid data
+		g.navigateToSection(g.currentSection)
+	})
 }
 
 func (g *CloudWorkstationGUI) startBackgroundRefresh() {
