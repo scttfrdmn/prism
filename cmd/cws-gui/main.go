@@ -30,6 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -3043,8 +3044,17 @@ func (g *CloudWorkstationGUI) startDaemon(ctx context.Context) error {
 		}
 	}
 
-	// Start daemon in the background
+	// Start daemon in the background with proper environment inheritance
 	cmd := exec.Command(cwsdPath)
+	
+	// Inherit current environment (including keychain access context)
+	cmd.Env = os.Environ()
+	
+	// Set process attributes to match CLI behavior
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true, // Start in new process group
+	}
+	
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start daemon: %w", err)
 	}
@@ -3938,8 +3948,14 @@ func (g *CloudWorkstationGUI) removeProfile(profileID string) {
 }
 
 func (g *CloudWorkstationGUI) run() {
-	// Show window and run
-	g.window.ShowAndRun()
+	// Set window close intercept to minimize to system tray instead of quit
+	g.window.SetCloseIntercept(func() {
+		g.window.Hide() // Hide to system tray instead of closing
+	})
+
+	// Start in system tray only (don't show window immediately)
+	// Users can access via system tray menu
+	g.app.Run()
 }
 
 // showApplyTemplateDialog shows a dialog to apply templates to running instances
