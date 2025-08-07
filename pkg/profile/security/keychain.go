@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -40,20 +41,32 @@ type KeychainProvider interface {
 	Delete(key string) error
 }
 
+// Global cached keychain provider to avoid multiple initialization prompts
+var (
+	cachedProvider KeychainProvider
+	providerError  error
+	providerOnce   sync.Once
+)
+
 // NewKeychainProvider creates the appropriate keychain provider for the current platform
+// Uses caching to avoid multiple keychain access prompts during application lifetime
 func NewKeychainProvider() (KeychainProvider, error) {
-	switch runtime.GOOS {
-	case "darwin":
-		return NewMacOSKeychain()
-	case "windows":
-		return NewWindowsCredentialManager()
-	case "linux":
-		return NewLinuxSecretService()
-	default:
-		// Fallback to file-based storage with warning
-		fmt.Fprintf(os.Stderr, "Warning: Using fallback secure storage on platform: %s\n", runtime.GOOS)
-		return NewFileSecureStorage()
-	}
+	providerOnce.Do(func() {
+		switch runtime.GOOS {
+		case "darwin":
+			cachedProvider, providerError = NewMacOSKeychain()
+		case "windows":
+			cachedProvider, providerError = NewWindowsCredentialManager()
+		case "linux":
+			cachedProvider, providerError = NewLinuxSecretService()
+		default:
+			// Fallback to file-based storage with warning
+			fmt.Fprintf(os.Stderr, "Warning: Using fallback secure storage on platform: %s\n", runtime.GOOS)
+			cachedProvider, providerError = NewFileSecureStorage()
+		}
+	})
+	
+	return cachedProvider, providerError
 }
 
 // MacOSKeychain implements KeychainProvider for macOS
@@ -72,7 +85,7 @@ func NewMacOSKeychain() (KeychainProvider, error) {
 		return NewFileSecureStorage()
 	}
 	
-	// Test native keychain functionality
+	// Test native keychain functionality (happens only once due to sync.Once caching)
 	testKey := "test-keychain-access"
 	testData := []byte("test")
 	
@@ -103,7 +116,7 @@ func NewWindowsCredentialManager() (KeychainProvider, error) {
 		return NewFileSecureStorage()
 	}
 	
-	// Test native credential manager functionality
+	// Test native credential manager functionality (happens only once due to sync.Once caching)
 	testKey := "test-credman-access"
 	testData := []byte("test")
 	
@@ -134,7 +147,7 @@ func NewLinuxSecretService() (KeychainProvider, error) {
 		return NewFileSecureStorage()
 	}
 	
-	// Test native secret service functionality
+	// Test native secret service functionality (happens only once due to sync.Once caching)
 	testKey := "test-secret-service-access"
 	testData := []byte("test")
 	
