@@ -177,15 +177,13 @@ release: clean
 	@echo "Building release binaries..."
 	@mkdir -p bin/release
 	
-	# Linux amd64
+	# Linux amd64 (GUI excluded due to cross-compile OpenGL issues)
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cwsd ./cmd/cwsd
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cws ./cmd/cws
-	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cws-gui ./cmd/cws-gui
 	
-	# Linux arm64
+	# Linux arm64 (GUI excluded due to cross-compile OpenGL issues)
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cwsd ./cmd/cwsd
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cws ./cmd/cws
-	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cws-gui ./cmd/cws-gui
 	
 	# macOS amd64
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cwsd ./cmd/cwsd
@@ -197,10 +195,9 @@ release: clean
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cws ./cmd/cws
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cws-gui ./cmd/cws-gui
 	
-	# Windows amd64
+	# Windows amd64 (GUI excluded due to cross-compile OpenGL issues)
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cwsd.exe ./cmd/cwsd
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cws.exe ./cmd/cws
-	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cws-gui.exe ./cmd/cws-gui
 	
 	@echo "✅ Release binaries built in bin/release/"
 
