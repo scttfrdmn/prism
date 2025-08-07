@@ -56,7 +56,11 @@ func init() {
 func GetVersionInfo() string {
 	result := fmt.Sprintf("CloudWorkstation v%s", Version)
 	if GitCommit != "" {
-		result += fmt.Sprintf(" (commit: %s", GitCommit[:8])
+		commitLen := len(GitCommit)
+		if commitLen > 8 {
+			commitLen = 8
+		}
+		result += fmt.Sprintf(" (commit: %s", GitCommit[:commitLen])
 		if BuildDate != "" {
 			result += fmt.Sprintf(", built: %s", BuildDate)
 		}

@@ -103,6 +103,9 @@ type CloudWorkstationGUI struct {
 	ebsContainer        *fyne.Container
 	instancesContainer  *fyne.Container
 	daemonStatusContainer *fyne.Container
+	
+	// Navigation button references for highlighting
+	navButtons map[NavigationSection]*widget.Button
 
 	// Form state
 	launchForm struct {
@@ -136,6 +139,7 @@ func main() {
 	gui := &CloudWorkstationGUI{
 		app: app.NewWithID("com.cloudworkstation.gui"),
 		// apiClient will be initialized after setting up profile manager
+		navButtons: make(map[NavigationSection]*widget.Button),
 	}
 
 	// Initialize and run
@@ -164,7 +168,7 @@ func (g *CloudWorkstationGUI) initialize() error {
 
 	// Setup containers first (needed for notifications)
 	g.notification = fynecontainer.NewVBox()
-	g.content = fynecontainer.NewStack()
+	g.content = fynecontainer.NewVBox()
 
 	// Initialize enhanced profile manager
 	var err error
@@ -199,10 +203,7 @@ func (g *CloudWorkstationGUI) initialize() error {
 	// Load all profiles
 	g.loadProfiles()
 	
-	// Initialize data
-	g.refreshData()
-
-	// Setup UI
+	// Setup UI (without refreshing data yet - will be done when window is actually shown)
 	g.setupMainLayout()
 
 	// Now we can show notifications if needed
@@ -241,13 +242,36 @@ g.systemTray.SetOnStatusChange(func(connected bool) {
 	})
 })
 
+// Set window show callback to populate content when window is shown from system tray
+g.systemTray.SetOnShowWindow(func() {
+	log.Println("🔄 Window shown from system tray, refreshing all data...")
+	
+	// Refresh instance data first (this is synchronous and safe from main thread)
+	g.refreshData()
+	
+	log.Printf("📊 Instance data refreshed: %d instances, $%.2f total cost", len(g.instances), g.totalCost)
+	
+	// Also refresh templates if we're showing templates section or if templates container exists
+	if g.templatesContainer != nil {
+		log.Println("🔄 Refreshing templates data...")
+		g.refreshTemplates()
+	} else {
+		log.Println("⚠️ Templates container is nil - initializing templates view")
+	}
+	
+	// Then navigate to current section (already on main thread, no DoAndWait needed)
+	g.navigateToSection(g.currentSection)
+	
+	// Start background refresh only when window is actually shown
+	if g.refreshTicker == nil {
+		g.startBackgroundRefresh()
+	}
+})
+
 // Setup and start the system tray
 g.systemTray.Setup()
 g.systemTray.Start()
 	}
-
-	// Start background refresh
-	g.startBackgroundRefresh()
 
 	return nil
 }
@@ -271,8 +295,8 @@ func (g *CloudWorkstationGUI) setupMainLayout() {
 
 	g.window.SetContent(mainLayout)
 
-	// Show dashboard by default
-	g.navigateToSection(SectionDashboard)
+	// Initialize default section but don't populate content yet (for system tray startup)
+	g.currentSection = SectionDashboard
 }
 
 // setupSidebar creates the navigation sidebar
@@ -386,17 +410,19 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 
 	// Daemon connection status with improved detection
 	statusText := "Daemon: Connected"
+	statusColor := theme.ConfirmIcon()
 	
 	// Test daemon connection in real-time for accurate status
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := g.apiClient.Ping(ctx); err != nil {
 		statusText = "Daemon: Disconnected"
+		statusColor = theme.WarningIcon()
 	}
 
 	statusCard := widget.NewCard("Status", "",
 		fynecontainer.NewHBox(
-			widget.NewIcon(theme.ConfirmIcon()),
+			widget.NewIcon(statusColor),
 			widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**", statusText)),
 		),
 	)
@@ -421,12 +447,28 @@ func (g *CloudWorkstationGUI) createNavButton(label string, section NavigationSe
 		g.navigateToSection(section)
 	})
 
+	// Store button reference for highlighting updates
+	g.navButtons[section] = btn
+
 	// Style the button based on current section
 	if g.currentSection == section {
 		btn.Importance = widget.HighImportance
 	}
 
 	return btn
+}
+
+// updateSidebarHighlighting updates the navigation button highlighting without rebuilding the sidebar
+func (g *CloudWorkstationGUI) updateSidebarHighlighting() {
+	// Update all navigation buttons
+	for section, btn := range g.navButtons {
+		if section == g.currentSection {
+			btn.Importance = widget.HighImportance
+		} else {
+			btn.Importance = widget.MediumImportance
+		}
+		btn.Refresh()
+	}
 }
 
 // setupContent creates the main content area
@@ -444,31 +486,47 @@ func (g *CloudWorkstationGUI) setupNotification() {
 
 // navigateToSection switches to a different section of the app
 func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
+	log.Printf("🧭 Navigating to section: %d", int(section))
 	g.currentSection = section
 
-	// Update sidebar buttons
-	g.setupSidebar()
+	// Update sidebar button highlighting only (don't rebuild entire sidebar)
+	g.updateSidebarHighlighting()
 
 	// Clear and update content
 	g.content.RemoveAll()
 
+	var view fyne.CanvasObject
 	switch section {
 	case SectionDashboard:
-		g.content.Add(g.createDashboardView())
+		log.Println("📊 Creating dashboard view...")
+		view = g.createDashboardView()
+		g.content.Add(view)
 	case SectionInstances:
-		g.content.Add(g.createInstancesView())
+		log.Println("🖥️ Creating instances view...")
+		view = g.createInstancesView()
+		g.content.Add(view)
 	case SectionTemplates:
-		g.content.Add(g.createTemplatesView())
+		log.Println("📝 Creating templates view...")
+		view = g.createTemplatesView()
+		g.content.Add(view)
 	case SectionVolumes:
-		g.content.Add(g.createVolumesView())
+		log.Println("💾 Creating volumes view...")
+		view = g.createVolumesView()
+		g.content.Add(view)
 	case SectionBilling:
-		g.content.Add(g.createBillingView())
+		log.Println("💰 Creating billing view...")
+		view = g.createBillingView()
+		g.content.Add(view)
 	case SectionSettings:
-		g.content.Add(g.createSettingsView())
+		log.Println("⚙️ Creating settings view...")
+		view = g.createSettingsView()
+		g.content.Add(view)
 	}
 
+	log.Printf("✅ Section view created and added to content container")
 	// Refresh content (already on main thread)
 	g.content.Refresh()
+	log.Printf("✅ Content container refreshed")
 }
 
 // loadProfiles loads all profiles from the profile manager
@@ -487,6 +545,8 @@ func (g *CloudWorkstationGUI) loadProfiles() error {
 
 // createDashboardView creates the main dashboard view
 func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
+	log.Printf("🏠 Creating dashboard with %d instances, $%.2f total cost", len(g.instances), g.totalCost)
+	
 	// Header
 	header := fynecontainer.NewHBox(
 		widget.NewLabelWithStyle("Dashboard", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
@@ -498,10 +558,13 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 	)
 
 	// Overview cards
+	runningCount := len(g.getRunningInstances())
+	log.Printf("🏠 Dashboard: %d running instances out of %d total", runningCount, len(g.instances))
+	
 	overviewCards := fynecontainer.NewGridWithColumns(3,
 		widget.NewCard("Active Instances", "",
 			fynecontainer.NewVBox(
-				widget.NewLabelWithStyle(fmt.Sprintf("%d", len(g.getRunningInstances())), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+				widget.NewLabelWithStyle(fmt.Sprintf("%d", runningCount), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 				widget.NewLabel("Currently running"),
 			),
 		),
@@ -541,7 +604,8 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 		),
 	)
 
-	return fynecontainer.NewScroll(content)
+	log.Printf("🏠 Dashboard content created with %d children", len(content.Objects))
+	return content  // Remove scroll wrapper temporarily to test
 }
 
 // createQuickLaunchForm creates the enhanced launch form
@@ -849,7 +913,7 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 	// Load instances data
 	g.refreshInstances()
 
-	return fynecontainer.NewScroll(content)
+	return content  // Remove scroll wrapper - was preventing display
 }
 
 // initializeInstancesContainer sets up the instances container
@@ -1100,7 +1164,7 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 		g.templatesContainer,
 	)
 
-	return fynecontainer.NewScroll(content)
+	return content  // Remove scroll wrapper - was preventing display
 }
 
 // refreshTemplates loads templates from the API and updates the view
@@ -1370,7 +1434,7 @@ func (g *CloudWorkstationGUI) createEFSVolumesView() fyne.CanvasObject {
 		g.efsContainer,
 	)
 
-	return fynecontainer.NewScroll(content)
+	return content  // Remove scroll wrapper - was preventing display
 }
 
 // createEBSStorageView creates the EBS storage tab content
@@ -1396,7 +1460,7 @@ func (g *CloudWorkstationGUI) createEBSStorageView() fyne.CanvasObject {
 		g.ebsContainer,
 	)
 
-	return fynecontainer.NewScroll(content)
+	return content  // Remove scroll wrapper - was preventing display
 }
 
 // refreshStorage loads both EFS and EBS data from the API
@@ -3121,19 +3185,12 @@ func (g *CloudWorkstationGUI) refreshData() {
 	g.totalCost = response.TotalCost
 	g.lastUpdate = time.Now()
 
-	// Update UI - use DoAndWait only if called from background goroutine  
-	// This prevents threading warnings while ensuring UI updates work correctly
-	go func() {
-		fyne.DoAndWait(func() {
-			// Refresh current view only if we have valid data
-			g.navigateToSection(g.currentSection)
-		})
-	}()
+	// Note: UI updates will be handled by caller - this method only refreshes data
 }
 
 func (g *CloudWorkstationGUI) startBackgroundRefresh() {
-	// Initial refresh
-	g.refreshData()
+	// Initial refresh (already handled by caller)
+	// No need to refresh data or update UI here since it's already done
 
 	// Start ticker for periodic refresh with connection monitoring
 	g.refreshTicker = time.NewTicker(30 * time.Second)
@@ -3145,6 +3202,12 @@ func (g *CloudWorkstationGUI) startBackgroundRefresh() {
 			// Try to refresh data
 			prevLastUpdate := g.lastUpdate
 			g.refreshData()
+			
+			// Update UI if data was refreshed successfully - but don't recreate the entire view
+			if !g.lastUpdate.Equal(prevLastUpdate) {
+				log.Println("🔄 Background data refresh completed, but NOT recreating views")
+				// TODO: Implement targeted view updates instead of full recreation
+			}
 			
 			// Check if refresh succeeded
 			if g.lastUpdate.Equal(prevLastUpdate) && !g.lastUpdate.IsZero() {

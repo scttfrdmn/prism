@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
 // handleAPIVersions returns information about supported API versions
@@ -138,7 +139,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	currentProfile := getAWSProfile(r.Context())
 
 	// Use status tracker to get current daemon status
-	status := s.statusTracker.GetStatus("0.1.0", awsRegion)
+	status := s.statusTracker.GetStatus(version.GetVersion(), awsRegion)
 	status.CurrentProfile = currentProfile
 
 	json.NewEncoder(w).Encode(status)

@@ -39,6 +39,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
@@ -1224,9 +1225,15 @@ func (a *App) daemonStart() error {
 		return fmt.Errorf("failed to start daemon: %w", err)
 	}
 
-	// TODO: Wait for daemon to be ready and verify it started correctly
 	fmt.Printf("✅ Daemon started (PID %d)\n", cmd.Process.Pid)
-
+	fmt.Println("⏳ Waiting for daemon to initialize...")
+	
+	// Wait for daemon to be ready and verify version matches
+	if err := a.waitForDaemonAndVerifyVersion(); err != nil {
+		return fmt.Errorf("daemon startup verification failed: %w", err)
+	}
+	
+	fmt.Println("✅ Daemon is ready and version verified")
 	return nil
 }
 
@@ -1239,6 +1246,37 @@ func (a *App) getDaemonVersion() (string, error) {
 	}
 	
 	return status.Version, nil
+}
+
+// waitForDaemonAndVerifyVersion waits for daemon to be ready and verifies version matches
+func (a *App) waitForDaemonAndVerifyVersion() error {
+	// Wait for daemon to be responsive (up to 10 seconds)
+	maxAttempts := 20
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		// Try to ping the daemon
+		if err := a.apiClient.Ping(a.ctx); err == nil {
+			// Daemon is responsive, now verify version
+			daemonVersion, err := a.getDaemonVersion()
+			if err != nil {
+				return fmt.Errorf("daemon is running but version check failed: %w", err)
+			}
+			
+			if daemonVersion != version.Version {
+				return fmt.Errorf("daemon version mismatch after restart (expected: %s, got: %s)", version.Version, daemonVersion)
+			}
+			
+			// Success - daemon is running with correct version
+			return nil
+		}
+		
+		// Daemon not ready yet, wait and retry
+		if attempt < maxAttempts {
+			fmt.Printf("🔄 Daemon not ready yet, retrying in 0.5s (attempt %d/%d)\n", attempt, maxAttempts)
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+	
+	return fmt.Errorf("daemon failed to start within 10 seconds")
 }
 
 func (a *App) daemonStop() error {
