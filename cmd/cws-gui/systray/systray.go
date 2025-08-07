@@ -26,6 +26,7 @@ type SystemTrayHandler struct {
 	lastUpdate     time.Time
 	isRunning      bool
 	onStatusChange func(connected bool)
+	onShowWindow   func() // Callback to populate window content when shown
 }
 
 // NewSystemTrayHandler creates a new system tray handler
@@ -60,6 +61,10 @@ func (h *SystemTrayHandler) Setup() {
 		instanceCountMenuItem,
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("Show Dashboard", func() {
+			// Call callback to populate window content if defined
+			if h.onShowWindow != nil {
+				h.onShowWindow()
+			}
 			h.window.Show()
 			h.window.RequestFocus()
 		}),
@@ -132,6 +137,11 @@ func (h *SystemTrayHandler) Stop() {
 // SetOnStatusChange sets a callback for status changes
 func (h *SystemTrayHandler) SetOnStatusChange(callback func(connected bool)) {
 	h.onStatusChange = callback
+}
+
+// SetOnShowWindow sets a callback for when window should be shown and populated
+func (h *SystemTrayHandler) SetOnShowWindow(callback func()) {
+	h.onShowWindow = callback
 }
 
 // refreshStatus updates the system tray with current status
