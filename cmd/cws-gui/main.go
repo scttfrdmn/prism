@@ -454,10 +454,8 @@ func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
 		g.content.Add(g.createSettingsView())
 	}
 
-	// FIXED: Ensure refresh happens on main thread
-	fyne.DoAndWait(func() {
-		g.content.Refresh()
-	})
+	// Refresh content (already on main thread)
+	g.content.Refresh()
 }
 
 // loadProfiles loads all profiles from the profile manager
