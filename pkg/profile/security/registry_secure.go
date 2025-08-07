@@ -365,7 +365,8 @@ func getOrCreateSigningKey() ([]byte, error) {
 		return nil, fmt.Errorf("failed to create keychain provider: %w", err)
 	}
 
-	keyName := "com.cloudworkstation.registry.signing-key"
+	// IMPROVED UX: Use consistent service name to avoid multiple keychain prompts
+	keyName := "CloudWorkstation.registry.signing-key"
 	
 	// Try to retrieve existing key
 	existingKey, err := keychain.Retrieve(keyName)
