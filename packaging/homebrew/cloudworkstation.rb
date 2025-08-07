@@ -12,7 +12,7 @@ class Cloudworkstation < Formula
   if OS.mac?
     if Hardware::CPU.arm?
       url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v#{version}/cws-macos-arm64.tar.gz"
-      sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING"
+      sha256 "49eec953771fff58c9369975d29a9f55e363be8825e9c98e1532e6ad3760ef8b"
     else
       url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v#{version}/cws-macos-amd64.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING"
@@ -31,8 +31,27 @@ class Cloudworkstation < Formula
 
   def install
     # Binary is pre-built in the tarball, just copy it to bin
-    bin.install "cws"
-    bin.install "cwsd"
+    if OS.mac?
+      if Hardware::CPU.arm?
+        bin.install "cws-darwin-arm64" => "cws"
+        bin.install "cwsd-darwin-arm64" => "cwsd"
+        bin.install "cws-gui-darwin-arm64" => "cws-gui"
+      else
+        bin.install "cws-darwin-amd64" => "cws"
+        bin.install "cwsd-darwin-amd64" => "cwsd"
+        bin.install "cws-gui-darwin-amd64" => "cws-gui"
+      end
+    elsif OS.linux?
+      if Hardware::CPU.arm?
+        bin.install "cws-linux-arm64" => "cws"
+        bin.install "cwsd-linux-arm64" => "cwsd"
+        bin.install "cws-gui-linux-arm64" => "cws-gui"
+      else
+        bin.install "cws-linux-amd64" => "cws"
+        bin.install "cwsd-linux-amd64" => "cwsd"
+        bin.install "cws-gui-linux-amd64" => "cws-gui"
+      end
+    end
     
     # Install bash completion
     output = Utils.safe_popen_read(bin/"cws", "completion", "bash")

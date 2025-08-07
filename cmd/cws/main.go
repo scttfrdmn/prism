@@ -103,7 +103,7 @@ func main() {
 	config.AWS.SubnetID = "subnet-06a8cff8a4457b4a7" // Fixed subnet
 	config.AWS.VpcID = "vpc-e7e2999f" // Fixed VPC
 	config.Daemon.Host = "localhost"
-	config.Daemon.Port = 8091
+	config.Daemon.Port = 8947
 	
 	// Parse config if found
 	if configData != nil {
