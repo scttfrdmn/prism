@@ -1,0 +1,11 @@
+2025/08/07 15:42:02 CloudWorkstation GUI v0.4.1 starting...
+2025/08/07 15:42:02 Failed to refresh instance data: Get "http://localhost:8947/api/v1/instances": dial tcp [::1]:8947: connect: connection refused
+2025/08/07 15:42:02 🚀 Starting CloudWorkstation daemon...
+2025/08/07 15:42:02 ✅ Daemon started (PID 3729)
+2025/08/07 15:42:02 ⏳ Waiting for daemon to initialize...
+2025/08/07 15:42:07 🔄 Daemon not ready yet, retrying in 1s (attempt 1/5)
+2025/08/07 15:42:08 🔄 Daemon not ready yet, retrying in 1s (attempt 2/5)
+2025/08/07 15:42:09 🔄 Daemon not ready yet, retrying in 1s (attempt 3/5)
+2025/08/07 15:42:10 🔄 Daemon not ready yet, retrying in 1s (attempt 4/5)
+2025/08/07 15:42:11 Failed to start daemon automatically: daemon started but not responding after 5 attempts
+2025/08/07 15:42:11 Failed to refresh instance data: Get "http://localhost:8947/api/v1/instances": dial tcp [::1]:8947: connect: connection refused

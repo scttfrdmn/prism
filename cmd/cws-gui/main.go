@@ -3111,11 +3111,14 @@ func (g *CloudWorkstationGUI) refreshData() {
 	g.totalCost = response.TotalCost
 	g.lastUpdate = time.Now()
 
-	// CRITICAL FIX: UI updates must be dispatched to main thread
-	fyne.DoAndWait(func() {
-		// Refresh current view only if we have valid data
-		g.navigateToSection(g.currentSection)
-	})
+	// Update UI - use DoAndWait only if called from background goroutine  
+	// This prevents threading warnings while ensuring UI updates work correctly
+	go func() {
+		fyne.DoAndWait(func() {
+			// Refresh current view only if we have valid data
+			g.navigateToSection(g.currentSection)
+		})
+	}()
 }
 
 func (g *CloudWorkstationGUI) startBackgroundRefresh() {
