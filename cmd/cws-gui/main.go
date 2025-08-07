@@ -375,10 +375,14 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 		),
 	)
 
-	// Connection status
-	statusText := "Connected"
-	if g.lastUpdate.IsZero() {
-		statusText = "Disconnected"
+	// Daemon connection status with improved detection
+	statusText := "Daemon: Connected"
+	
+	// Test daemon connection in real-time for accurate status
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := g.apiClient.Ping(ctx); err != nil {
+		statusText = "Daemon: Disconnected"
 	}
 
 	statusCard := widget.NewCard("Status", "",
@@ -2735,7 +2739,7 @@ func (g *CloudWorkstationGUI) displayDaemonOffline(errorMsg string) {
 	// Error information
 	errorContainer := fynecontainer.NewVBox()
 	errorContainer.Add(widget.NewLabelWithStyle("Connection Error", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
-	errorContainer.Add(widget.NewLabel("• Status: Disconnected"))
+	errorContainer.Add(widget.NewLabel("• Status: Daemon Disconnected"))
 	errorContainer.Add(widget.NewLabel("• Error: " + errorMsg))
 	errorContainer.Add(widget.NewLabel("• Daemon URL: http://localhost:8947"))
 	errorContainer.Add(widget.NewLabel("• Expected: CloudWorkstation daemon should be running"))
