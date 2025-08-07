@@ -137,109 +137,127 @@ func main() {
 	case "tui":
 		err := cliApp.TUI(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "launch":
 		err := cliApp.Launch(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "list":
 		err := cliApp.List(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "connect":
 		err := cliApp.Connect(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "stop":
 		err := cliApp.Stop(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "start":
 		err := cliApp.Start(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "delete":
 		err := cliApp.Delete(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "hibernate":
 		err := cliApp.Hibernate(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "resume":
 		err := cliApp.Resume(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "volume":
 		err := cliApp.Volume(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "storage":
 		err := cliApp.Storage(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "templates":
 		err := cliApp.Templates(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "apply":
 		err := cliApp.Apply(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "diff":
 		err := cliApp.Diff(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "layers":
 		err := cliApp.Layers(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "rollback":
 		err := cliApp.Rollback(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "daemon":
 		err := cliApp.Daemon(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "ami":
 		err := cliApp.AMI(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "save":
@@ -247,37 +265,43 @@ func main() {
 		saveArgs := append([]string{"save"}, args...)
 		err := cliApp.AMI(saveArgs)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "migrate":
 		err := cliApp.Migrate(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "profiles":
 		err := cliApp.Profiles(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "idle":
 		err := cliApp.Idle(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "project":
 		err := cliApp.Project(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "pricing":
 		err := cliApp.Pricing(args)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			// IMPROVED: Use friendly error messages with actionable guidance
+			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 			os.Exit(1)
 		}
 	case "version", "--version", "-v":
