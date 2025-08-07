@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/scttfrdmn/cloudworkstation/pkg/ami"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -57,13 +59,33 @@ func (a *App) handleAMIBuild(args []string) error {
 	subnetID := cmdArgs["subnet"]
 	vpcID := cmdArgs["vpc"]
 	
-	// Check required parameters
+	// Auto-discover VPC and subnet if not provided (much better UX)
 	if !dryRun {
-		if subnetID == "" {
-			return fmt.Errorf("subnet ID is required for AMI builds (--subnet parameter)")
-		}
-		if vpcID == "" {
-			return fmt.Errorf("VPC ID is required for AMI builds (--vpc parameter)")
+		if vpcID == "" || subnetID == "" {
+			fmt.Printf("🔍 Auto-discovering default VPC and subnet...\n")
+			
+			// Initialize AWS clients for discovery
+			cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+			if err != nil {
+				return fmt.Errorf("failed to load AWS config: %w", err)
+			}
+			discoveryClient := ec2.NewFromConfig(cfg)
+			
+			if vpcID == "" {
+				vpcID, err = discoverDefaultVPC(context.TODO(), discoveryClient)
+				if err != nil {
+					return fmt.Errorf("failed to discover default VPC (you can specify with --vpc): %w", err)
+				}
+				fmt.Printf("   ✅ Using default VPC: %s\n", vpcID)
+			}
+			
+			if subnetID == "" {
+				subnetID, err = discoverPublicSubnet(context.TODO(), discoveryClient, vpcID)
+				if err != nil {
+					return fmt.Errorf("failed to discover public subnet in VPC %s (you can specify with --subnet): %w", vpcID, err)
+				}
+				fmt.Printf("   ✅ Using public subnet: %s\n", subnetID)
+			}
 		}
 	}
 
@@ -497,6 +519,92 @@ func (a *App) handleAMISave(args []string) error {
 	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
 
 	return nil
+}
+
+// discoverDefaultVPC finds the default VPC in the current region
+func discoverDefaultVPC(ctx context.Context, client *ec2.Client) (string, error) {
+	result, err := client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("is-default"),
+				Values: []string{"true"},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe VPCs: %w", err)
+	}
+	
+	if len(result.Vpcs) == 0 {
+		return "", fmt.Errorf("no default VPC found - please create one or specify --vpc")
+	}
+	
+	return *result.Vpcs[0].VpcId, nil
+}
+
+// discoverPublicSubnet finds a public subnet in the specified VPC
+func discoverPublicSubnet(ctx context.Context, client *ec2.Client, vpcID string) (string, error) {
+	// Get all subnets in the VPC
+	result, err := client.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []string{vpcID},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe subnets: %w", err)
+	}
+	
+	if len(result.Subnets) == 0 {
+		return "", fmt.Errorf("no subnets found in VPC %s", vpcID)
+	}
+	
+	// Find a public subnet by checking route tables
+	for _, subnet := range result.Subnets {
+		isPublic, err := isSubnetPublic(ctx, client, *subnet.SubnetId)
+		if err != nil {
+			continue // Skip this subnet on error
+		}
+		if isPublic {
+			return *subnet.SubnetId, nil
+		}
+	}
+	
+	// If no clearly public subnet found, use the first available subnet
+	// (this handles cases where route table detection fails)
+	return *result.Subnets[0].SubnetId, nil
+}
+
+// isSubnetPublic checks if a subnet is public by examining its route table
+func isSubnetPublic(ctx context.Context, client *ec2.Client, subnetID string) (bool, error) {
+	// Get route tables for this subnet
+	result, err := client.DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: []string{subnetID},
+			},
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+	
+	// Check each route table for internet gateway routes
+	for _, routeTable := range result.RouteTables {
+		for _, route := range routeTable.Routes {
+			// Look for route to 0.0.0.0/0 via internet gateway
+			if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == "0.0.0.0/0" {
+				if route.GatewayId != nil && strings.HasPrefix(*route.GatewayId, "igw-") {
+					return true, nil
+				}
+			}
+		}
+	}
+	
+	return false, nil
 }
 
 // Helper function to parse command line arguments

@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -385,6 +387,44 @@ func (m *MockClient) StartInstance(ctx context.Context, name string) error {
 	return fmt.Errorf("instance not found: %s", name)
 }
 
+// HibernateInstance simulates hibernating an instance
+func (m *MockClient) HibernateInstance(ctx context.Context, name string) error {
+	instance, exists := m.Instances[name]
+	if !exists {
+		return fmt.Errorf("instance not found: %s", name)
+	}
+	
+	instance.State = "hibernated"
+	m.Instances[name] = instance
+	return nil
+}
+
+// ResumeInstance simulates resuming an instance from hibernation
+func (m *MockClient) ResumeInstance(ctx context.Context, name string) error {
+	instance, exists := m.Instances[name]
+	if !exists {
+		return fmt.Errorf("instance not found: %s", name)
+	}
+	
+	instance.State = "running"
+	m.Instances[name] = instance
+	return nil
+}
+
+// GetInstanceHibernationStatus returns hibernation status (mock)
+func (m *MockClient) GetInstanceHibernationStatus(ctx context.Context, name string) (*types.HibernationStatus, error) {
+	instance, exists := m.Instances[name]
+	if !exists {
+		return nil, fmt.Errorf("instance not found: %s", name)
+	}
+	
+	return &types.HibernationStatus{
+		HibernationSupported: true,
+		IsHibernated:        instance.State == "hibernated",
+		InstanceName:        name,
+	}, nil
+}
+
 // ConnectInstance returns mock connection information (deprecated, use GetInstance instead)
 func (m *MockClient) ConnectInstance(ctx context.Context, name string) (string, error) {
 	if instance, exists := m.Instances[name]; exists {
@@ -655,22 +695,7 @@ func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error
 	return nil
 }
 
-// GetStatus returns mock daemon status
-func (m *MockClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error) {
-	return &types.DaemonStatus{
-		Version:       "0.1.0",
-		Status:        "running",
-		StartTime:     time.Now().Add(-24 * time.Hour),
-		ActiveOps:     0,
-		TotalRequests: 42,
-		AWSRegion:     "us-east-1",
-	}, nil
-}
-
-// Ping simulates a health check
-func (m *MockClient) Ping(ctx context.Context) error {
-	return nil
-}
+// Status methods moved to bottom of file to avoid duplicates
 
 // AttachVolume simulates attaching an EFS volume to an instance
 func (m *MockClient) AttachVolume(ctx context.Context, volumeName, instanceName string) error {
@@ -785,4 +810,283 @@ func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 // SetOptions sets client configuration options
 func (m *MockClient) SetOptions(options api.ClientOptions) {
 	// Mock client ignores options but implements the interface
+}
+
+// Idle detection operations - Mock implementations
+
+// GetIdleStatus returns mock idle detection status
+func (m *MockClient) GetIdleStatus(ctx context.Context) (*types.IdleStatusResponse, error) {
+	return &types.IdleStatusResponse{
+		Enabled:        true,
+		DefaultProfile: "default",
+		Profiles:       map[string]types.IdleProfile{
+			"default": {
+				Name:             "default",
+				CPUThreshold:     5.0,
+				MemoryThreshold:  10.0,
+				NetworkThreshold: 1.0,
+				DiskThreshold:    1.0,
+				IdleMinutes:      30,
+				Action:           "stop",
+			},
+		},
+		DomainMappings: map[string]string{},
+	}, nil
+}
+
+// EnableIdleDetection enables idle detection (mock)
+func (m *MockClient) EnableIdleDetection(ctx context.Context) error {
+	return nil
+}
+
+// DisableIdleDetection disables idle detection (mock)
+func (m *MockClient) DisableIdleDetection(ctx context.Context) error {
+	return nil
+}
+
+// GetIdleProfiles returns mock idle profiles
+func (m *MockClient) GetIdleProfiles(ctx context.Context) (map[string]types.IdleProfile, error) {
+	return map[string]types.IdleProfile{
+		"default": {
+			Name:             "default",
+			CPUThreshold:     5.0,
+			MemoryThreshold:  10.0,
+			NetworkThreshold: 1.0,
+			DiskThreshold:    1.0,
+			IdleMinutes:      30,
+			Action:           "stop",
+		},
+	}, nil
+}
+
+// AddIdleProfile adds an idle profile (mock)
+func (m *MockClient) AddIdleProfile(ctx context.Context, profile types.IdleProfile) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// GetIdlePendingActions returns mock pending idle actions
+func (m *MockClient) GetIdlePendingActions(ctx context.Context) ([]types.IdleState, error) {
+	return []types.IdleState{}, nil
+}
+
+// ExecuteIdleActions executes pending idle actions (mock)
+func (m *MockClient) ExecuteIdleActions(ctx context.Context) (*types.IdleExecutionResponse, error) {
+	return &types.IdleExecutionResponse{
+		Executed: 0,
+		Errors:   []string{},
+		Total:    0,
+	}, nil
+}
+
+// GetIdleHistory returns mock idle history
+func (m *MockClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistoryEntry, error) {
+	return []types.IdleHistoryEntry{}, nil
+}
+
+// Project management operations - Mock implementations
+
+// CreateProject creates a new project (mock)
+func (m *MockClient) CreateProject(ctx context.Context, req project.CreateProjectRequest) (*types.Project, error) {
+	// Convert budget request to budget type
+	var budget types.ProjectBudget
+	if req.Budget != nil {
+		budget.MonthlyLimit = req.Budget.MonthlyLimit
+		budget.AlertThresholds = req.Budget.AlertThresholds
+	}
+	
+	return &types.Project{
+		ID:          "mock-project-123",
+		Name:        req.Name,
+		Description: req.Description,
+		CreatedAt:   time.Now(),
+		Budget:      budget,
+		Owner:       "mock-user",
+	}, nil
+}
+
+// ListProjects lists projects (mock)
+func (m *MockClient) ListProjects(ctx context.Context, filter *project.ProjectFilter) (*project.ProjectListResponse, error) {
+	return &project.ProjectListResponse{
+		Projects: []types.Project{
+			{
+				ID:          "mock-project-123",
+				Name:        "Mock Research Project",
+				Description: "A sample project for testing",
+				CreatedAt:   time.Now().Add(-24 * time.Hour),
+				Budget:      types.ProjectBudget{MonthlyLimit: 500.0},
+				Owner:       "mock-user",
+			},
+		},
+		Total: 1,
+	}, nil
+}
+
+// GetProject gets a project by ID (mock)
+func (m *MockClient) GetProject(ctx context.Context, projectID string) (*types.Project, error) {
+	return &types.Project{
+		ID:          projectID,
+		Name:        "Mock Research Project",
+		Description: "A sample project for testing",
+		CreatedAt:   time.Now().Add(-24 * time.Hour),
+		Budget:      types.ProjectBudget{MonthlyLimit: 500.0},
+		Owner:       "mock-user",
+	}, nil
+}
+
+// UpdateProject updates a project (mock)
+func (m *MockClient) UpdateProject(ctx context.Context, projectID string, req project.UpdateProjectRequest) (*types.Project, error) {
+	// Convert budget request to budget type
+	var budget types.ProjectBudget
+	if req.Budget != nil {
+		budget.MonthlyLimit = req.Budget.MonthlyLimit
+		budget.AlertThresholds = req.Budget.AlertThresholds
+	}
+	
+	return &types.Project{
+		ID:          projectID,
+		Name:        req.Name,
+		Description: req.Description,
+		CreatedAt:   time.Now().Add(-24 * time.Hour),
+		Budget:      budget,
+		Owner:       "mock-user",
+	}, nil
+}
+
+// DeleteProject deletes a project (mock)
+func (m *MockClient) DeleteProject(ctx context.Context, projectID string) error {
+	return nil
+}
+
+// AddProjectMember adds a member to a project (mock)
+func (m *MockClient) AddProjectMember(ctx context.Context, projectID string, req project.AddMemberRequest) error {
+	return nil
+}
+
+// UpdateProjectMember updates a project member (mock)
+func (m *MockClient) UpdateProjectMember(ctx context.Context, projectID, userID string, req project.UpdateMemberRequest) error {
+	return nil
+}
+
+// RemoveProjectMember removes a member from a project (mock)
+func (m *MockClient) RemoveProjectMember(ctx context.Context, projectID, userID string) error {
+	return nil
+}
+
+// GetProjectMembers gets project members (mock)
+func (m *MockClient) GetProjectMembers(ctx context.Context, projectID string) ([]types.ProjectMember, error) {
+	return []types.ProjectMember{
+		{
+			UserID:    "mock-user",
+			Role:      "owner",
+			AddedAt:   time.Now().Add(-24 * time.Hour),
+		},
+	}, nil
+}
+
+// GetProjectBudgetStatus gets project budget status (mock)
+func (m *MockClient) GetProjectBudgetStatus(ctx context.Context, projectID string) (*project.BudgetStatus, error) {
+	return &project.BudgetStatus{
+		Budget:         types.ProjectBudget{MonthlyLimit: 500.0},
+		CurrentSpend:   150.25,
+		ProjectedSpend: 280.50,
+		AlertsTriggered: []project.BudgetAlert{},
+	}, nil
+}
+
+// GetProjectCostBreakdown gets project cost breakdown (mock)
+func (m *MockClient) GetProjectCostBreakdown(ctx context.Context, projectID string, start, end time.Time) (*types.ProjectCostBreakdown, error) {
+	return &types.ProjectCostBreakdown{
+		ProjectID:    projectID,
+		TotalCost:    150.25,
+		InstanceCost: 120.00,
+		StorageCost:  30.25,
+		Period:       types.Period{Start: start, End: end},
+	}, nil
+}
+
+// GetProjectResourceUsage gets project resource usage (mock)
+func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID string, duration time.Duration) (*types.ProjectResourceUsage, error) {
+	return &types.ProjectResourceUsage{
+		ProjectID:     projectID,
+		InstanceHours: 48.5,
+		StorageGB:     100,
+		Period:        duration,
+	}, nil
+}
+
+// Status operations - Mock implementations
+
+// GetStatus returns daemon status (mock)
+func (m *MockClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error) {
+	return &types.DaemonStatus{
+		Version:   "0.4.1",
+		Status:    "running",
+		Uptime:    "2h30m",
+		Region:    "us-west-2",
+		Profile:   "default",
+	}, nil
+}
+
+// Ping pings the daemon (mock)
+func (m *MockClient) Ping(ctx context.Context) error {
+	return nil
+}
+
+// Shutdown shuts down the daemon (mock)
+func (m *MockClient) Shutdown(ctx context.Context) error {
+	return nil
+}
+
+// MakeRequest makes a generic API request (mock)
+func (m *MockClient) MakeRequest(method, path string, body interface{}) ([]byte, error) {
+	return []byte(`{"status": "mock response"}`), nil
+}
+
+// Template application operations - Mock implementations
+
+// ApplyTemplate applies a template to an instance (mock)
+func (m *MockClient) ApplyTemplate(ctx context.Context, req templates.ApplyRequest) (*templates.ApplyResponse, error) {
+	return &templates.ApplyResponse{
+		Success:            true,
+		Message:            "Template applied successfully (mock)",
+		PackagesInstalled:  5,
+		ServicesConfigured: 2,
+		UsersCreated:       1,
+		RollbackCheckpoint: "checkpoint-1",
+		Warnings:           []string{},
+		ExecutionTime:      30 * time.Second,
+	}, nil
+}
+
+// DiffTemplate shows differences between template and instance state (mock)
+func (m *MockClient) DiffTemplate(ctx context.Context, req templates.DiffRequest) (*templates.TemplateDiff, error) {
+	return &templates.TemplateDiff{
+		PackagesToInstall:   []templates.PackageDiff{},
+		PackagesToRemove:    []templates.PackageDiff{},
+		ServicesToConfigure: []templates.ServiceDiff{},
+		ServicesToStop:      []templates.ServiceDiff{},
+		UsersToCreate:       []templates.UserDiff{},
+		UsersToModify:       []templates.UserDiff{},
+		PortsToOpen:         []int{},
+		ConflictsFound:      []templates.ConflictDiff{},
+	}, nil
+}
+
+// GetInstanceLayers gets applied template layers for an instance (mock)
+func (m *MockClient) GetInstanceLayers(ctx context.Context, instanceID string) ([]templates.AppliedTemplate, error) {
+	return []templates.AppliedTemplate{
+		{
+			TemplateID:  "base-ubuntu",
+			AppliedAt:   time.Now().Add(-1 * time.Hour),
+			Status:      "active",
+			Version:     "1.0.0",
+		},
+	}, nil
+}
+
+// RollbackInstance rolls back template changes (mock)
+func (m *MockClient) RollbackInstance(ctx context.Context, req types.RollbackRequest) error {
+	// Mock implementation - just return success
+	return nil
 }

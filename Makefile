@@ -12,9 +12,9 @@ LDFLAGS := -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Versio
 .PHONY: all
 all: build
 
-# Build core binaries (Phase 1 complete, GUI in Phase 2)
+# Build all binaries (CLI, daemon, GUI, TUI integrated)
 .PHONY: build
-build: build-daemon build-cli
+build: build-daemon build-cli build-gui
 
 # Build daemon binary
 .PHONY: build-daemon
@@ -28,11 +28,11 @@ build-cli:
 	@echo "Building CloudWorkstation CLI..."
 	@go build $(LDFLAGS) -o bin/cws ./cmd/cws
 
-# Build GUI binary (Phase 2 - currently disabled due to profile system migration)
+# Build GUI binary
 .PHONY: build-gui
 build-gui:
-	@echo "GUI build disabled - planned for Phase 2 after profile system stabilization"
-	@echo "Use 'make build-gui-force' to attempt build (may fail during profile system transition)"
+	@echo "Building CloudWorkstation GUI..."
+	@go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
 
 # Force GUI build (for development/testing only)
 .PHONY: build-gui-force

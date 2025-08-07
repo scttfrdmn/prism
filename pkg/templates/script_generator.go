@@ -87,13 +87,8 @@ func (sg *ScriptGenerator) selectPackagesForManager(tmpl *Template, pm PackageMa
 	case PackageManagerDnf:
 		return tmpl.Packages.System
 	case PackageManagerConda:
-		packages := make([]string, 0)
-		packages = append(packages, tmpl.Packages.Conda...)
-		// Include pip packages if specified
-		if len(tmpl.Packages.Pip) > 0 {
-			packages = append(packages, tmpl.Packages.Pip...)
-		}
-		return packages
+		// Only return conda packages, pip packages are handled separately in the template
+		return tmpl.Packages.Conda
 	case PackageManagerSpack:
 		return tmpl.Packages.Spack
 	default:
@@ -160,7 +155,7 @@ apt-get install -y{{range .Packages}} {{.}}{{end}}
 {{range .Users}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
-useradd -m -s {{.Shell}} {{.Name}} || true
+{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
@@ -240,7 +235,7 @@ apt-get install -y{{range .Packages}} {{.}}{{end}}
 {{range .Users}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
-useradd -m -s {{.Shell}} {{.Name}} || true
+{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
@@ -338,19 +333,19 @@ export PATH="/opt/miniforge/bin:$PATH"
 # Install template packages
 echo "Installing conda packages..."
 /opt/miniforge/bin/conda install -y{{range .Packages}} {{.}}{{end}}
+{{end}}
 
-# Install pip packages if any were specified in conda package list
-PIP_PACKAGES=({{range .Template.Packages.Pip}}"{{.}}"{{end}})
+# Install pip packages if any were specified
+PIP_PACKAGES=({{range .Template.Packages.Pip}}"{{.}}" {{end}})
 if [ ${#PIP_PACKAGES[@]} -gt 0 ]; then
     echo "Installing pip packages..."
     /opt/miniforge/bin/pip install "${PIP_PACKAGES[@]}"
 fi
-{{end}}
 
 {{range .Users}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
-useradd -m -s {{.Shell}} {{.Name}} || true
+{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
@@ -463,7 +458,7 @@ spack install
 {{range .Users}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
-useradd -m -s {{.Shell}} {{.Name}} || true
+{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
@@ -474,7 +469,7 @@ echo "{{.Name}}:{{.Password}}" | chpasswd
 echo 'export SPACK_ROOT=/opt/spack' >> /home/{{.Name}}/.bashrc
 echo 'export PATH="$SPACK_ROOT/bin:$PATH"' >> /home/{{.Name}}/.bashrc
 echo '. $SPACK_ROOT/share/spack/setup-env.sh' >> /home/{{.Name}}/.bashrc
-{{if .Packages}}
+{{if $.Packages}}
 echo 'spack env activate default' >> /home/{{.Name}}/.bashrc
 {{end}}
 chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
@@ -540,7 +535,7 @@ echo "Running custom AMI user data script..."
 {{range .Users}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
-useradd -m -s {{.Shell}} {{.Name}} || true
+{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
 echo "{{.Name}}:{{.Password}}" | chpasswd
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
