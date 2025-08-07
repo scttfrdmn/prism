@@ -27,6 +27,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -208,11 +210,17 @@ func (g *CloudWorkstationGUI) initialize() error {
 			"No active profile selected. Please create or select a profile in Settings.")
 	}
 	
-	// Check daemon connectivity with retry logic
-	if err := g.checkDaemonConnection(context.Background()); err != nil {
-		g.showNotification("error", "Cannot connect to CloudWorkstation daemon", 
-			"Make sure the daemon is running with 'cwsd'. GUI will retry automatically.")
-		// Continue anyway - daemon might start later
+	// Automatically start daemon if needed (like CLI does)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	if err := g.startDaemon(ctx); err != nil {
+		log.Printf("Failed to start daemon automatically: %v", err)
+		g.showNotification("warning", "Daemon Startup Issue", 
+			"Could not start daemon automatically. GUI will retry periodically.")
+		// Continue anyway - daemon might be started later or manually
+	} else {
+		log.Println("✅ Daemon is ready for GUI operations")
 	}
 
 	// Setup system tray if supported
@@ -2017,9 +2025,12 @@ func (g *CloudWorkstationGUI) handleAdvancedLaunchInstance() {
 		return
 	}
 	
-	// Check daemon connection before launching
-	if err := g.apiClient.Ping(context.Background()); err != nil {
-		g.showNotification("error", "Connection Error", "Cannot connect to daemon. Please ensure cwsd is running.")
+	// Ensure daemon is running before launching (auto-start if needed)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	if err := g.startDaemon(ctx); err != nil {
+		g.showNotification("error", "Connection Error", fmt.Sprintf("Cannot connect to daemon: %v", err))
 		return
 	}
 
@@ -2822,13 +2833,17 @@ func (g *CloudWorkstationGUI) showStartDaemonDialog() {
 			g.showNotification("info", "Starting Daemon", "Attempting to start CloudWorkstation daemon...")
 			
 			go func() {
-				// Note: In a real implementation, this would use a proper daemon start method
-				// For now, we'll just show a notification about manual start
-				time.Sleep(1 * time.Second)
-				g.showNotification("info", "Manual Start Required", "Please start the daemon manually: cws daemon start")
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
 				
-				// Refresh status after a short delay
-				time.Sleep(2 * time.Second)
+				if err := g.startDaemon(ctx); err != nil {
+					g.showNotification("error", "Daemon Start Failed", fmt.Sprintf("Failed to start daemon: %v", err))
+				} else {
+					g.showNotification("success", "Daemon Started", "CloudWorkstation daemon is now running")
+				}
+				
+				// Refresh status after operation
+				time.Sleep(1 * time.Second)
 				g.refreshDaemonStatus()
 			}()
 		}
@@ -2984,6 +2999,92 @@ func (g *CloudWorkstationGUI) checkDaemonConnection(ctx context.Context) error {
 	}
 	
 	return fmt.Errorf("daemon unreachable after %d attempts", maxRetries)
+}
+
+// startDaemon automatically starts the CloudWorkstation daemon if not running
+// This provides the same automatic startup behavior as the CLI
+func (g *CloudWorkstationGUI) startDaemon(ctx context.Context) error {
+	// Check if daemon is already running
+	if err := g.apiClient.Ping(ctx); err == nil {
+		// Daemon is running, check version compatibility like CLI does
+		status, err := g.apiClient.GetStatus(ctx)
+		if err != nil {
+			log.Printf("⚠️  Daemon is running but version check failed: %v", err)
+			log.Println("🔄 Restarting daemon to ensure version compatibility...")
+			if err := g.stopDaemon(ctx); err != nil {
+				return fmt.Errorf("failed to stop outdated daemon: %w", err)
+			}
+			// Continue to start new daemon below
+		} else if status.Version != version.GetVersion() {
+			log.Printf("🔄 Daemon version mismatch (running: %s, GUI: %s)", status.Version, version.GetVersion())
+			log.Println("🔄 Restarting daemon with matching version...")
+			if err := g.stopDaemon(ctx); err != nil {
+				return fmt.Errorf("failed to stop outdated daemon: %w", err)
+			}
+			// Continue to start new daemon below
+		} else {
+			log.Println("✅ Daemon is already running (version match)")
+			return nil
+		}
+	}
+
+	log.Println("🚀 Starting CloudWorkstation daemon...")
+
+	// Find daemon executable (same logic as TUI)
+	cwsdPath, _ := exec.LookPath("cwsd")
+	if cwsdPath == "" {
+		// Try in bin directory
+		cwsdPath = "./bin/cwsd"
+		if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
+			cwsdPath = "../bin/cwsd"
+			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
+				return fmt.Errorf("daemon executable not found in PATH or bin directory")
+			}
+		}
+	}
+
+	// Start daemon in the background
+	cmd := exec.Command(cwsdPath)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start daemon: %w", err)
+	}
+
+	log.Printf("✅ Daemon started (PID %d)", cmd.Process.Pid)
+
+	// Wait for daemon to fully initialize (longer wait for keychain initialization)
+	log.Println("⏳ Waiting for daemon to initialize...")
+	time.Sleep(5 * time.Second)
+	
+	// Verify daemon is responding with more retries
+	maxRetries := 5
+	retryDelay := time.Second
+	
+	for i := 0; i < maxRetries; i++ {
+		if err := g.apiClient.Ping(ctx); err == nil {
+			log.Println("✅ Daemon is ready for GUI operations")
+			return nil
+		}
+		
+		if i < maxRetries-1 {
+			log.Printf("🔄 Daemon not ready yet, retrying in %v (attempt %d/%d)", retryDelay, i+1, maxRetries)
+			time.Sleep(retryDelay)
+		}
+	}
+	
+	return fmt.Errorf("daemon started but not responding after %d attempts", maxRetries)
+
+	return nil
+}
+
+// stopDaemon stops the CloudWorkstation daemon
+func (g *CloudWorkstationGUI) stopDaemon(ctx context.Context) error {
+	if err := g.apiClient.Shutdown(ctx); err != nil {
+		return fmt.Errorf("failed to shutdown daemon: %w", err)
+	}
+	
+	// Wait for daemon to shutdown
+	time.Sleep(1 * time.Second)
+	return nil
 }
 
 func (g *CloudWorkstationGUI) refreshData() {
