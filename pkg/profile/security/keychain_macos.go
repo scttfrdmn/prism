@@ -192,7 +192,8 @@ type MacOSKeychainNative struct {
 // NewMacOSKeychainNative creates a new native macOS keychain provider
 func NewMacOSKeychainNative() (*MacOSKeychainNative, error) {
 	return &MacOSKeychainNative{
-		serviceName: "com.cloudworkstation.profiles",
+		// IMPROVED UX: Use user-friendly service name in keychain dialogs
+		serviceName: "CloudWorkstation",
 	}, nil
 }
 
