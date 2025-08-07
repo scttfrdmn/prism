@@ -1,0 +1,19 @@
+2025/08/07 15:33:49 CloudWorkstation Daemon v0.4.1 starting...
+2025/08/07 15:33:49 Starting CloudWorkstation daemon on port 8947
+2025/08/07 15:33:49 Security manager started successfully
+2025/08/07 15:34:15 GET /api/v1/ping
+2025/08/07 15:34:15 Operation 1 (Ping) started: GET /api/v1/ping
+2025/08/07 15:34:15 Operation 1 (Ping) completed in 410.167µs
+
+🚨 SECURITY ALERT [CRITICAL] - File Tampering Detected
+📅 Time: 2025-08-07T15:34:19-07:00
+📝 Description: Detected 5 tamper attempts
+📊 Event Count: 5
+🔧 Recommended Actions:
+   • Investigate tampered files immediately
+   • Run full system integrity check
+   • Consider reinstalling affected components
+   • Check for malware or unauthorized modifications
+─────────────────────────────────────
+2025/08/07 15:34:29 Shutting down daemon...
+2025/08/07 15:34:29 Server failed: http: Server closed
