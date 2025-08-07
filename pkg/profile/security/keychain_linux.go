@@ -6,7 +6,6 @@ package security
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/godbus/dbus/v5"
 )

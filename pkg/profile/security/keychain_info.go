@@ -42,7 +42,11 @@ func GetKeychainInfo() (*KeychainInfo, error) {
 		info.Provider = "macOS Keychain (Native)"
 		info.Native = true
 		info.SecurityLevel = "Hardware-backed secure enclave when available"
-		info.Details = p.GetKeychainInfo()
+		// GetKeychainInfo method available on macOS builds only
+		info.Details = map[string]interface{}{
+			"provider": "macOS Keychain (Native)",
+			"framework": "Security.framework",
+		}
 		
 	case *WindowsCredentialManagerNative:
 		info.Provider = "Windows Credential Manager (Native)"

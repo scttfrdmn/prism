@@ -151,9 +151,12 @@ func (g *CloudWorkstationGUI) initialize() error {
 	metadata.Name = "CloudWorkstation"
 	metadata.Version = version.GetVersion()
 
-	// Create main window
+	// Create main window with proper sizing
 	g.window = g.app.NewWindow("CloudWorkstation")
-	g.window.Resize(fyne.NewSize(1200, 800))
+	
+	// FIXED: Better window sizing and minimum size constraint
+	g.window.Resize(fyne.NewSize(1400, 900))  // Wider for better readability
+	g.window.SetFixedSize(true) // Prevent user from making it too small
 	g.window.SetMaster()
 
 	// Setup containers first (needed for notifications)
@@ -219,15 +222,13 @@ g.systemTray = systray.NewSystemTrayHandler(desk, g.window, g.apiClient)
 
 // Set status change callback
 g.systemTray.SetOnStatusChange(func(connected bool) {
-	g.app.Driver().StartAnimation(&fyne.Animation{
-		Duration: 100 * time.Millisecond,
-		Tick: func(_ float32) {
-			// Update status in UI based on connection state
-			if !connected && g.notification != nil {
-				g.showNotification("warning", "Lost Connection", 
-					"Unable to connect to CloudWorkstation daemon. Is cwsd running?")
-			}
-		},
+	// Update UI on main thread using proper Fyne threading
+	fyne.Do(func() {
+		// Update status in UI based on connection state
+		if !connected && g.notification != nil {
+			g.showNotification("warning", "Lost Connection", 
+				"Unable to connect to CloudWorkstation daemon. Is cwsd running?")
+		}
 	})
 })
 
@@ -453,7 +454,10 @@ func (g *CloudWorkstationGUI) navigateToSection(section NavigationSection) {
 		g.content.Add(g.createSettingsView())
 	}
 
-	g.content.Refresh()
+	// FIXED: Ensure refresh happens on main thread
+	fyne.DoAndWait(func() {
+		g.content.Refresh()
+	})
 }
 
 // loadProfiles loads all profiles from the profile manager
@@ -694,21 +698,25 @@ func (g *CloudWorkstationGUI) loadAvailableVolumes() {
 		defer cancel()
 		
 		volumes, err := g.apiClient.ListVolumes(ctx)
-		if err == nil {
-			var volumeNames []string
-			for _, volume := range volumes {
-				volumeNames = append(volumeNames, volume.Name)
+		
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err == nil {
+				var volumeNames []string
+				for _, volume := range volumes {
+					volumeNames = append(volumeNames, volume.Name)
+				}
+				g.launchForm.availableVolumes = volumeNames
+				
+				// Update the select widget if it exists
+				if g.launchForm.volumesSelect != nil {
+					g.launchForm.volumesSelect.Options = volumeNames
+					g.launchForm.volumesSelect.Refresh()
+				}
+			} else {
+				g.launchForm.availableVolumes = []string{}
 			}
-			g.launchForm.availableVolumes = volumeNames
-			
-			// Update the select widget if it exists
-			if g.launchForm.volumesSelect != nil {
-				g.launchForm.volumesSelect.Options = volumeNames
-				g.launchForm.volumesSelect.Refresh()
-			}
-		} else {
-			g.launchForm.availableVolumes = []string{}
-		}
+		})
 	}()
 
 	// Load EBS volumes
@@ -717,23 +725,27 @@ func (g *CloudWorkstationGUI) loadAvailableVolumes() {
 		defer cancel()
 		
 		volumes, err := g.apiClient.ListStorage(ctx)
-		if err == nil {
-			var volumeNames []string
-			for _, volume := range volumes {
-				if volume.State == "available" { // Only show available volumes
-					volumeNames = append(volumeNames, volume.Name)
+		
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err == nil {
+				var volumeNames []string
+				for _, volume := range volumes {
+					if volume.State == "available" { // Only show available volumes
+						volumeNames = append(volumeNames, volume.Name)
+					}
 				}
+				g.launchForm.availableEBSVolumes = volumeNames
+				
+				// Update the select widget if it exists
+				if g.launchForm.ebsVolumesSelect != nil {
+					g.launchForm.ebsVolumesSelect.Options = volumeNames
+					g.launchForm.ebsVolumesSelect.Refresh()
+				}
+			} else {
+				g.launchForm.availableEBSVolumes = []string{}
 			}
-			g.launchForm.availableEBSVolumes = volumeNames
-			
-			// Update the select widget if it exists
-			if g.launchForm.ebsVolumesSelect != nil {
-				g.launchForm.ebsVolumesSelect.Options = volumeNames
-				g.launchForm.ebsVolumesSelect.Refresh()
-			}
-		} else {
-			g.launchForm.availableEBSVolumes = []string{}
-		}
+		})
 	}()
 }
 
@@ -856,25 +868,17 @@ func (g *CloudWorkstationGUI) refreshInstances() {
 		defer cancel()
 		
 		response, err := g.apiClient.ListInstances(ctx)
-		if err != nil {
-			// Update UI on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					g.instancesContainer.RemoveAll()
-					g.instancesContainer.Add(widget.NewLabel("❌ Failed to load instances: " + err.Error()))
-					g.instancesContainer.Refresh()
-				},
-			})
-			return
-		}
 		
-		// Update UI on main thread
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,
-			Tick: func(_ float32) {
-				g.displayInstances(response.Instances)
-			},
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err != nil {
+				g.instancesContainer.RemoveAll()
+				g.instancesContainer.Add(widget.NewLabel("❌ Failed to load instances: " + err.Error()))
+				g.instancesContainer.Refresh()
+				return
+			}
+			
+			g.displayInstances(response.Instances)
 		})
 	}()
 }
@@ -1104,25 +1108,19 @@ func (g *CloudWorkstationGUI) refreshTemplates() {
 		defer cancel()
 		
 		templates, err := g.apiClient.ListTemplates(ctx)
+		
+		// PROPER THREADING: Use fyne.DoAndWait to update UI from goroutine
 		if err != nil {
-			// Update UI on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					g.templatesContainer.RemoveAll()
-					g.templatesContainer.Add(widget.NewLabel("❌ Failed to load templates: " + err.Error()))
-					g.templatesContainer.Refresh()
-				},
+			fyne.DoAndWait(func() {
+				g.templatesContainer.RemoveAll()
+				g.templatesContainer.Add(widget.NewLabel("❌ Failed to load templates: " + err.Error()))
+				g.templatesContainer.Refresh()
 			})
 			return
 		}
 		
-		// Update UI on main thread
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,  
-			Tick: func(_ float32) {
-				g.displayTemplates(templates)
-			},
+		fyne.DoAndWait(func() {
+			g.displayTemplates(templates)
 		})
 	}()
 }
@@ -1284,24 +1282,16 @@ func (g *CloudWorkstationGUI) launchInstance(templateID, instanceName, instanceS
 		
 		// Launch via API
 		response, err := g.apiClient.LaunchInstance(ctx, request)
-		if err != nil {
-			// Show error on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					g.showNotification("error", "Launch Failed", fmt.Sprintf("Failed to launch %s: %v", instanceName, err))
-				},
-			})
-			return
-		}
 		
-		// Show success on main thread and refresh data
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,
-			Tick: func(_ float32) {
-				g.showNotification("success", "Instance Launched", fmt.Sprintf("%s launched successfully! Instance ID: %s", instanceName, response.Instance.ID))
-				g.refreshData() // Refresh dashboard data
-			},
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err != nil {
+				g.showNotification("error", "Launch Failed", fmt.Sprintf("Failed to launch %s: %v", instanceName, err))
+				return
+			}
+			
+			g.showNotification("success", "Instance Launched", fmt.Sprintf("%s launched successfully! Instance ID: %s", instanceName, response.Instance.ID))
+			g.refreshData() // Refresh dashboard data
 		})
 	}()
 }
@@ -1424,25 +1414,17 @@ func (g *CloudWorkstationGUI) refreshEFSVolumes() {
 		defer cancel()
 		
 		volumes, err := g.apiClient.ListVolumes(ctx)
-		if err != nil {
-			// Update UI on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					g.efsContainer.RemoveAll()
-					g.efsContainer.Add(widget.NewLabel("❌ Failed to load EFS volumes: " + err.Error()))
-					g.efsContainer.Refresh()
-				},
-			})
-			return
-		}
 		
-		// Update UI on main thread
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,
-			Tick: func(_ float32) {
-				g.displayEFSVolumes(volumes)
-			},
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err != nil {
+				g.efsContainer.RemoveAll()
+				g.efsContainer.Add(widget.NewLabel("❌ Failed to load EFS volumes: " + err.Error()))
+				g.efsContainer.Refresh()
+				return
+			}
+			
+			g.displayEFSVolumes(volumes)
 		})
 	}()
 }
@@ -1467,25 +1449,17 @@ func (g *CloudWorkstationGUI) refreshEBSStorage() {
 		defer cancel()
 		
 		volumes, err := g.apiClient.ListStorage(ctx)
-		if err != nil {
-			// Update UI on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					g.ebsContainer.RemoveAll()
-					g.ebsContainer.Add(widget.NewLabel("❌ Failed to load EBS volumes: " + err.Error()))
-					g.ebsContainer.Refresh()
-				},
-			})
-			return
-		}
 		
-		// Update UI on main thread
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,
-			Tick: func(_ float32) {
-				g.displayEBSStorage(volumes)
-			},
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err != nil {
+				g.ebsContainer.RemoveAll()
+				g.ebsContainer.Add(widget.NewLabel("❌ Failed to load EBS volumes: " + err.Error()))
+				g.ebsContainer.Refresh()
+				return
+			}
+			
+			g.displayEBSStorage(volumes)
 		})
 	}()
 }
@@ -2069,28 +2043,26 @@ func (g *CloudWorkstationGUI) handleAdvancedLaunchInstance() {
 		// Launch instance with timeout context
 		response, err := g.apiClient.LaunchInstance(ctx, req)
 		
-		// Reset button state
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,
-			Tick: func(_ float32) {
-				g.launchForm.launchBtn.SetText("🚀 Launch Environment")
-				g.launchForm.launchBtn.Enable()
-			},
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			// Reset button state
+			g.launchForm.launchBtn.SetText("🚀 Launch Environment")
+			g.launchForm.launchBtn.Enable()
+			
+			if err != nil {
+				g.showNotification("error", "Launch Failed", err.Error())
+				return
+			}
+			
+			// Handle dry run vs actual launch
+			if req.DryRun {
+				g.showDryRunResults(response)
+			} else {
+				g.showNotification("success", "Instance Launched", response.Message)
+				g.launchForm.nameEntry.SetText("") // Clear form
+				g.refreshData() // Refresh instance list
+			}
 		})
-		
-		if err != nil {
-			g.showNotification("error", "Launch Failed", err.Error())
-			return
-		}
-		
-		// Handle dry run vs actual launch
-		if req.DryRun {
-			g.showDryRunResults(response)
-		} else {
-			g.showNotification("success", "Instance Launched", response.Message)
-			g.launchForm.nameEntry.SetText("") // Clear form
-			g.refreshData() // Refresh instance list
-		}
 	}()
 }
 
@@ -2658,26 +2630,18 @@ func (g *CloudWorkstationGUI) refreshDaemonStatus() {
 		defer cancel()
 		
 		status, err := g.apiClient.GetStatus(ctx)
-		if err != nil {
-			// Update UI on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					g.daemonStatusContainer.RemoveAll()
-					g.displayDaemonOffline(err.Error())
-					g.daemonStatusContainer.Refresh()
-				},
-			})
-			return
-		}
 		
-		// Update UI on main thread
-		g.app.Driver().StartAnimation(&fyne.Animation{
-			Duration: 100 * time.Millisecond,
-			Tick: func(_ float32) {
-				g.displayDaemonStatus(status)
+		// Update UI on main thread using proper Fyne threading
+		fyne.Do(func() {
+			if err != nil {
+				g.daemonStatusContainer.RemoveAll()
+				g.displayDaemonOffline(err.Error())
 				g.daemonStatusContainer.Refresh()
-			},
+				return
+			}
+			
+			g.displayDaemonStatus(status)
+			g.daemonStatusContainer.Refresh()
 		})
 	}()
 }
@@ -3686,71 +3650,68 @@ func (g *CloudWorkstationGUI) showDeviceManagementDialog() {
 				}
 			}
 			
-			// Update UI on main thread
-			g.app.Driver().StartAnimation(&fyne.Animation{
-				Duration: 100 * time.Millisecond,
-				Tick: func(_ float32) {
-					// Clear container
-					container.RemoveAll()
-					
-					// Add local device info
-					if localDeviceInfo != "" {
-						container.Add(widget.NewCard("This Device", "",
-							widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**", localDeviceInfo))))
-					}
-					
-					// Add header for registered devices
-					container.Add(widget.NewLabelWithStyle("Registered Devices", 
-						fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
-					
-					// Show devices or message if none
-					if len(devices) == 0 {
-						container.Add(widget.NewLabelWithStyle(
-							"No other devices registered with this invitation",
-							fyne.TextAlignCenter, fyne.TextStyle{Italic: true}))
-					} else {
-						// Add each device
-						for i, device := range devices {
-							// Extract device info
-							deviceID, _ := device["device_id"].(string)
-							hostname, _ := device["hostname"].(string)
-							username, _ := device["username"].(string)
-							timestamp, _ := device["timestamp"].(string)
-							
-							if deviceID == "" {
-								deviceID = fmt.Sprintf("Unknown device %d", i+1)
-							}
-							
-							// Create device card
-							deviceInfo := fmt.Sprintf("Device ID: %s\n", deviceID)
-							if hostname != "" {
-								deviceInfo += fmt.Sprintf("Hostname: %s\n", hostname)
-							}
-							if username != "" {
-								deviceInfo += fmt.Sprintf("Username: %s\n", username)
-							}
-							if timestamp != "" {
-								deviceInfo += fmt.Sprintf("Registered: %s\n", timestamp)
-							}
-							
-							deviceCard := widget.NewCard(deviceID, "",
-								fynecontainer.NewVBox(
-									widget.NewLabel(deviceInfo),
-									widget.NewButton("Revoke Device", func() {
-										g.revokeDevice(profile.InvitationToken, deviceID)
-									}),
-								))
-							
-							container.Add(deviceCard)
+			// Update UI on main thread using proper Fyne threading
+			fyne.Do(func() {
+				// Clear container
+				container.RemoveAll()
+				
+				// Add local device info
+				if localDeviceInfo != "" {
+					container.Add(widget.NewCard("This Device", "",
+						widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**", localDeviceInfo))))
+				}
+				
+				// Add header for registered devices
+				container.Add(widget.NewLabelWithStyle("Registered Devices", 
+					fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
+				
+				// Show devices or message if none
+				if len(devices) == 0 {
+					container.Add(widget.NewLabelWithStyle(
+						"No other devices registered with this invitation",
+						fyne.TextAlignCenter, fyne.TextStyle{Italic: true}))
+				} else {
+					// Add each device
+					for i, device := range devices {
+						// Extract device info
+						deviceID, _ := device["device_id"].(string)
+						hostname, _ := device["hostname"].(string)
+						username, _ := device["username"].(string)
+						timestamp, _ := device["timestamp"].(string)
+						
+						if deviceID == "" {
+							deviceID = fmt.Sprintf("Unknown device %d", i+1)
 						}
+						
+						// Create device card
+						deviceInfo := fmt.Sprintf("Device ID: %s\n", deviceID)
+						if hostname != "" {
+							deviceInfo += fmt.Sprintf("Hostname: %s\n", hostname)
+						}
+						if username != "" {
+							deviceInfo += fmt.Sprintf("Username: %s\n", username)
+						}
+						if timestamp != "" {
+							deviceInfo += fmt.Sprintf("Registered: %s\n", timestamp)
+						}
+						
+						deviceCard := widget.NewCard(deviceID, "",
+							fynecontainer.NewVBox(
+								widget.NewLabel(deviceInfo),
+								widget.NewButton("Revoke Device", func() {
+									g.revokeDevice(profile.InvitationToken, deviceID)
+								}),
+							))
+						
+						container.Add(deviceCard)
 					}
-					
-					// Add revoke all button
-					container.Add(widget.NewSeparator())
-					container.Add(widget.NewButton("Revoke All Devices", func() {
-						g.revokeAllDevices(profile.InvitationToken)
-					}))
-				},
+				}
+				
+				// Add revoke all button
+				container.Add(widget.NewSeparator())
+				container.Add(widget.NewButton("Revoke All Devices", func() {
+					g.revokeAllDevices(profile.InvitationToken)
+				}))
 			})
 		}(p, profileTab)
 	}
