@@ -48,6 +48,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
 // App represents the CLI application
@@ -1193,8 +1194,26 @@ func (a *App) Daemon(args []string) error {
 func (a *App) daemonStart() error {
 	// Check if daemon is already running
 	if err := a.apiClient.Ping(a.ctx); err == nil {
-		fmt.Println("✅ Daemon is already running")
-		return nil
+		// Daemon is running, but check if it's the right version
+		daemonVersion, err := a.getDaemonVersion()
+		if err != nil {
+			fmt.Printf("⚠️  Daemon is running but version check failed: %v\n", err)
+			fmt.Println("🔄 Restarting daemon to ensure version compatibility...")
+			if err := a.daemonStop(); err != nil {
+				return fmt.Errorf("failed to stop outdated daemon: %w", err)
+			}
+			// Continue to start new daemon below
+		} else if daemonVersion != version.Version {
+			fmt.Printf("🔄 Daemon version mismatch (running: %s, CLI: %s)\n", daemonVersion, version.Version)
+			fmt.Println("🔄 Restarting daemon with matching version...")
+			if err := a.daemonStop(); err != nil {
+				return fmt.Errorf("failed to stop outdated daemon: %w", err)
+			}
+			// Continue to start new daemon below
+		} else {
+			fmt.Println("✅ Daemon is already running (version match)")
+			return nil
+		}
 	}
 
 	fmt.Println("🚀 Starting CloudWorkstation daemon...")
@@ -1209,6 +1228,17 @@ func (a *App) daemonStart() error {
 	fmt.Printf("✅ Daemon started (PID %d)\n", cmd.Process.Pid)
 
 	return nil
+}
+
+// getDaemonVersion retrieves the version from the running daemon
+func (a *App) getDaemonVersion() (string, error) {
+	// Get daemon status which includes version information
+	status, err := a.apiClient.GetStatus(a.ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get daemon status: %w", err)
+	}
+	
+	return status.Version, nil
 }
 
 func (a *App) daemonStop() error {
