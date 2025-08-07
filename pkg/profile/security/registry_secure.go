@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -357,35 +358,51 @@ type SignedPayload struct {
 	Signature string          `json:"signature"`
 }
 
+// Global signing key cache to prevent repeated keychain access
+var (
+	cachedSigningKey []byte
+	signingKeyError  error
+	signingKeyOnce   sync.Once
+)
+
 // getOrCreateSigningKey retrieves or creates a signing key for request authentication
+// Uses global caching to prevent keychain prompts on every daemon start
 func getOrCreateSigningKey() ([]byte, error) {
-	// Try to get key from keychain
-	keychain, err := NewKeychainProvider()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create keychain provider: %w", err)
-	}
+	signingKeyOnce.Do(func() {
+		// Try to get key from keychain
+		keychain, err := NewKeychainProvider()
+		if err != nil {
+			signingKeyError = fmt.Errorf("failed to create keychain provider: %w", err)
+			return
+		}
 
-	// IMPROVED UX: Use consistent service name to avoid multiple keychain prompts
-	keyName := "CloudWorkstation.registry.signing-key"
+		// IMPROVED UX: Use consistent service name to avoid multiple keychain prompts
+		keyName := "CloudWorkstation.registry.signing-key"
+		
+		// Try to retrieve existing key
+		existingKey, err := keychain.Retrieve(keyName)
+		if err == nil {
+			cachedSigningKey = existingKey
+			return
+		}
+
+		// Generate new key
+		key := make([]byte, 32) // 256-bit key
+		if _, err := rand.Read(key); err != nil {
+			signingKeyError = fmt.Errorf("failed to generate signing key: %w", err)
+			return
+		}
+
+		// Store key in keychain
+		if err := keychain.Store(keyName, key); err != nil {
+			signingKeyError = fmt.Errorf("failed to store signing key: %w", err)
+			return
+		}
+
+		cachedSigningKey = key
+	})
 	
-	// Try to retrieve existing key
-	existingKey, err := keychain.Retrieve(keyName)
-	if err == nil {
-		return existingKey, nil
-	}
-
-	// Generate new key
-	key := make([]byte, 32) // 256-bit key
-	if _, err := rand.Read(key); err != nil {
-		return nil, fmt.Errorf("failed to generate signing key: %w", err)
-	}
-
-	// Store key in keychain
-	if err := keychain.Store(keyName, key); err != nil {
-		return nil, fmt.Errorf("failed to store signing key: %w", err)
-	}
-
-	return key, nil
+	return cachedSigningKey, signingKeyError
 }
 
 // generateSecureDeviceFingerprint creates a secure device fingerprint for registration
