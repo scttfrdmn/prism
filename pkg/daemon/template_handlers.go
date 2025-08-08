@@ -57,9 +57,12 @@ func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
 	
 	// Get package manager override from query params
 	packageManager := r.URL.Query().Get("package_manager")
+	
+	// Get size for instance type scaling from query params
+	size := r.URL.Query().Get("size")
 
-	// Use the new unified template system with package manager support
-	template, err := templates.GetTemplateWithPackageManager(templateName, region, architecture, packageManager)
+	// Use the new unified template system with package manager and size support
+	template, err := templates.GetTemplateWithPackageManager(templateName, region, architecture, packageManager, size)
 	if err != nil {
 		s.writeError(w, http.StatusNotFound, "Template not found: "+err.Error())
 		return

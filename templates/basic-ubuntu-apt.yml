@@ -1,4 +1,5 @@
 name: "Basic Ubuntu (APT)"
+slug: "ubuntu"
 description: "Minimal Ubuntu environment with essential development tools using APT package manager"
 base: "ubuntu-22.04"
 

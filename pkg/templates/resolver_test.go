@@ -94,12 +94,12 @@ func TestTemplateResolver_ResolveTemplateWithOptions(t *testing.T) {
 	}
 	
 	// Test without override
-	runtime1, err := resolver.ResolveTemplateWithOptions(template, "us-east-1", "x86_64", "")
+	runtime1, err := resolver.ResolveTemplateWithOptions(template, "us-east-1", "x86_64", "", "")
 	require.NoError(t, err)
 	assert.Contains(t, runtime1.UserData, "apt-get") // Should use APT script
 	
 	// Test with conda override
-	runtime2, err := resolver.ResolveTemplateWithOptions(template, "us-east-1", "x86_64", "conda")
+	runtime2, err := resolver.ResolveTemplateWithOptions(template, "us-east-1", "x86_64", "conda", "")
 	require.NoError(t, err)
 	assert.Contains(t, runtime2.UserData, "conda") // Should use conda script
 	assert.Contains(t, runtime2.UserData, "miniforge") // Conda uses miniforge

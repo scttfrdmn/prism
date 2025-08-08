@@ -16,11 +16,11 @@ func NewTemplateResolver() *TemplateResolver {
 
 // ResolveTemplate converts a unified template to a runtime template
 func (r *TemplateResolver) ResolveTemplate(template *Template, region, architecture string) (*RuntimeTemplate, error) {
-	return r.ResolveTemplateWithOptions(template, region, architecture, "")
+	return r.ResolveTemplateWithOptions(template, region, architecture, "", "")
 }
 
-// ResolveTemplateWithOptions converts a unified template to a runtime template with package manager override
-func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region, architecture, packageManagerOverride string) (*RuntimeTemplate, error) {
+// ResolveTemplateWithOptions converts a unified template to a runtime template with package manager override and size scaling
+func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region, architecture, packageManagerOverride, size string) (*RuntimeTemplate, error) {
 	// Select package manager (use override if provided)
 	var packageManager PackageManagerType
 	if packageManagerOverride != "" {
@@ -50,7 +50,7 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 	}
 	
 	// Get instance type mapping
-	instanceTypeMapping := r.getInstanceTypeMapping(template, architecture)
+	instanceTypeMapping := r.getInstanceTypeMapping(template, architecture, size)
 	
 	// Get port mapping
 	ports := r.getPortMapping(template)
@@ -123,8 +123,8 @@ func (r *TemplateResolver) getAMIMapping(template *Template, region, architectur
 	return baseAMIs, nil
 }
 
-// getInstanceTypeMapping generates instance type mapping based on template requirements
-func (r *TemplateResolver) getInstanceTypeMapping(template *Template, architecture string) map[string]string {
+// getInstanceTypeMapping generates instance type mapping based on template requirements and size
+func (r *TemplateResolver) getInstanceTypeMapping(template *Template, architecture, size string) map[string]string {
 	// For AMI-based templates, use the AMI instance type configuration
 	if template.PackageManager == "ami" && template.AMIConfig.InstanceTypes != nil {
 		return template.AMIConfig.InstanceTypes
@@ -138,45 +138,36 @@ func (r *TemplateResolver) getInstanceTypeMapping(template *Template, architectu
 		}
 	}
 	
-	// Smart defaults based on template characteristics
-	instanceTypes := r.selectOptimalInstanceTypes(template)
+	// Smart defaults based on template characteristics and user-requested size
+	instanceTypes := r.selectOptimalInstanceTypes(template, size)
 	
 	return instanceTypes
 }
 
-// selectOptimalInstanceTypes selects optimal instance types based on template characteristics
-func (r *TemplateResolver) selectOptimalInstanceTypes(template *Template) map[string]string {
+// selectOptimalInstanceTypes selects optimal instance types based on template characteristics and size
+func (r *TemplateResolver) selectOptimalInstanceTypes(template *Template, size string) map[string]string {
 	// Analyze template to determine resource requirements
 	requiresGPU := r.templateRequiresGPU(template)
 	requiresHighMemory := r.templateRequiresHighMemory(template)
 	requiresHighCPU := r.templateRequiresHighCPU(template)
 	
+	// Handle GPU workloads with size scaling
 	if requiresGPU {
-		return map[string]string{
-			"x86_64": "g4dn.xlarge",  // NVIDIA T4 GPU
-			"arm64":  "g5g.xlarge",  // ARM GPU instance
-		}
+		return r.selectGPUInstancesBySize(size)
 	}
 	
+	// Handle high-memory workloads with size scaling  
 	if requiresHighMemory {
-		return map[string]string{
-			"x86_64": "r5.large",    // Memory optimized
-			"arm64":  "r6g.large",  // ARM memory optimized
-		}
+		return r.selectMemoryInstancesBySize(size)
 	}
 	
+	// Handle compute-intensive workloads with size scaling
 	if requiresHighCPU {
-		return map[string]string{
-			"x86_64": "c5.large",    // Compute optimized
-			"arm64":  "c6g.large",  // ARM compute optimized
-		}
+		return r.selectComputeInstancesBySize(size)
 	}
 	
-	// Default: general purpose
-	return map[string]string{
-		"x86_64": "t3.medium",   // General purpose
-		"arm64":  "t4g.medium", // ARM general purpose (cheaper)
-	}
+	// General purpose workloads with size scaling
+	return r.selectGeneralPurposeInstancesBySize(size)
 }
 
 // templateRequiresGPU analyzes if template needs GPU instances
@@ -202,8 +193,9 @@ func (r *TemplateResolver) templateRequiresHighMemory(template *Template) bool {
 // templateRequiresHighCPU analyzes if template needs compute-optimized instances
 func (r *TemplateResolver) templateRequiresHighCPU(template *Template) bool {
 	cpuIndicators := []string{
-		"gcc", "gfortran", "openmpi", "mpich", "openmp",
-		"fftw", "blas", "lapack", "compiler", "build-essential",
+		"openmpi", "mpich", "openmp", "mpi4py",
+		"fftw", "blas", "lapack", "atlas", "mkl",
+		"gfortran", "fortran", "hpc", "parallel",
 	}
 	
 	return r.hasPackageIndicators(template, cpuIndicators)
@@ -258,8 +250,8 @@ func (r *TemplateResolver) getCostMapping(template *Template, architecture strin
 		return template.InstanceDefaults.EstimatedCostPerHour
 	}
 	
-	// Generate estimates based on selected instance types
-	instanceTypes := r.selectOptimalInstanceTypes(template)
+	// Generate estimates based on selected instance types (using default size)
+	instanceTypes := r.selectOptimalInstanceTypes(template, "")
 	
 	costs := make(map[string]float64)
 	
@@ -296,6 +288,132 @@ func (r *TemplateResolver) getCostMapping(template *Template, architecture strin
 // getDefaultAMIRegistry returns the default AMI registry (empty for now)
 func getDefaultAMIRegistry() map[string]map[string]map[string]string {
 	return make(map[string]map[string]map[string]string)
+}
+
+// Size-based instance selection functions
+
+// selectGeneralPurposeInstancesBySize selects general purpose instances based on size
+func (r *TemplateResolver) selectGeneralPurposeInstancesBySize(size string) map[string]string {
+	switch size {
+	case "XS", "xs":
+		return map[string]string{
+			"x86_64": "t3.small",   // 1 vCPU, 2GB RAM
+			"arm64":  "t4g.small",  // 1 vCPU, 2GB RAM (ARM, cheaper)
+		}
+	case "S", "s":
+		return map[string]string{
+			"x86_64": "t3.medium",  // 2 vCPU, 4GB RAM
+			"arm64":  "t4g.medium", // 2 vCPU, 4GB RAM (ARM, cheaper)
+		}
+	case "L", "l":
+		return map[string]string{
+			"x86_64": "t3.xlarge",  // 4 vCPU, 16GB RAM
+			"arm64":  "t4g.xlarge", // 4 vCPU, 16GB RAM (ARM, cheaper)
+		}
+	case "XL", "xl":
+		return map[string]string{
+			"x86_64": "t3.2xlarge",  // 8 vCPU, 32GB RAM
+			"arm64":  "t4g.2xlarge", // 8 vCPU, 32GB RAM (ARM, cheaper)
+		}
+	default: // "M" or empty/unspecified
+		return map[string]string{
+			"x86_64": "t3.large",   // 2 vCPU, 8GB RAM (balanced default)
+			"arm64":  "t4g.large",  // 2 vCPU, 8GB RAM (ARM, cheaper)
+		}
+	}
+}
+
+// selectComputeInstancesBySize selects compute-optimized instances based on size
+func (r *TemplateResolver) selectComputeInstancesBySize(size string) map[string]string {
+	switch size {
+	case "XS", "xs":
+		return map[string]string{
+			"x86_64": "c5.large",   // 2 vCPU, 4GB RAM
+			"arm64":  "c6g.large",  // 2 vCPU, 4GB RAM (ARM)
+		}
+	case "S", "s":
+		return map[string]string{
+			"x86_64": "c5.xlarge",  // 4 vCPU, 8GB RAM
+			"arm64":  "c6g.xlarge", // 4 vCPU, 8GB RAM (ARM)
+		}
+	case "L", "l":
+		return map[string]string{
+			"x86_64": "c5.4xlarge",  // 16 vCPU, 32GB RAM
+			"arm64":  "c6g.4xlarge", // 16 vCPU, 32GB RAM (ARM)
+		}
+	case "XL", "xl":
+		return map[string]string{
+			"x86_64": "c5.9xlarge",  // 36 vCPU, 72GB RAM
+			"arm64":  "c6g.8xlarge", // 32 vCPU, 64GB RAM (ARM)
+		}
+	default: // "M" or empty/unspecified
+		return map[string]string{
+			"x86_64": "c5.2xlarge",  // 8 vCPU, 16GB RAM (balanced default)
+			"arm64":  "c6g.2xlarge", // 8 vCPU, 16GB RAM (ARM)
+		}
+	}
+}
+
+// selectMemoryInstancesBySize selects memory-optimized instances based on size
+func (r *TemplateResolver) selectMemoryInstancesBySize(size string) map[string]string {
+	switch size {
+	case "XS", "xs":
+		return map[string]string{
+			"x86_64": "r5.large",   // 2 vCPU, 16GB RAM
+			"arm64":  "r6g.large",  // 2 vCPU, 16GB RAM (ARM)
+		}
+	case "S", "s":
+		return map[string]string{
+			"x86_64": "r5.xlarge",  // 4 vCPU, 32GB RAM
+			"arm64":  "r6g.xlarge", // 4 vCPU, 32GB RAM (ARM)
+		}
+	case "L", "l":
+		return map[string]string{
+			"x86_64": "r5.4xlarge",  // 16 vCPU, 128GB RAM
+			"arm64":  "r6g.4xlarge", // 16 vCPU, 128GB RAM (ARM)
+		}
+	case "XL", "xl":
+		return map[string]string{
+			"x86_64": "r5.8xlarge",  // 32 vCPU, 256GB RAM
+			"arm64":  "r6g.8xlarge", // 32 vCPU, 256GB RAM (ARM)
+		}
+	default: // "M" or empty/unspecified
+		return map[string]string{
+			"x86_64": "r5.2xlarge",  // 8 vCPU, 64GB RAM (balanced default)
+			"arm64":  "r6g.2xlarge", // 8 vCPU, 64GB RAM (ARM)
+		}
+	}
+}
+
+// selectGPUInstancesBySize selects GPU instances based on size
+func (r *TemplateResolver) selectGPUInstancesBySize(size string) map[string]string {
+	switch size {
+	case "XS", "xs":
+		return map[string]string{
+			"x86_64": "g4dn.large",   // 2 vCPU, 8GB RAM, 1x T4 GPU
+			"arm64":  "g5g.large",    // 2 vCPU, 8GB RAM, 1x ARM GPU (if available)
+		}
+	case "S", "s":
+		return map[string]string{
+			"x86_64": "g4dn.xlarge",  // 4 vCPU, 16GB RAM, 1x T4 GPU
+			"arm64":  "g5g.xlarge",   // 4 vCPU, 16GB RAM, 1x ARM GPU
+		}
+	case "L", "l":
+		return map[string]string{
+			"x86_64": "g4dn.4xlarge", // 16 vCPU, 64GB RAM, 1x T4 GPU
+			"arm64":  "g5g.4xlarge",  // 16 vCPU, 64GB RAM, 1x ARM GPU
+		}
+	case "XL", "xl":
+		return map[string]string{
+			"x86_64": "g4dn.8xlarge", // 32 vCPU, 128GB RAM, 1x T4 GPU
+			"arm64":  "g5g.8xlarge",  // 32 vCPU, 128GB RAM, 1x ARM GPU
+		}
+	default: // "M" or empty/unspecified
+		return map[string]string{
+			"x86_64": "g4dn.2xlarge", // 8 vCPU, 32GB RAM, 1x T4 GPU (balanced default)
+			"arm64":  "g5g.2xlarge",  // 8 vCPU, 32GB RAM, 1x ARM GPU
+		}
+	}
 }
 
 // Utility functions

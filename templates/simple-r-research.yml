@@ -1,4 +1,5 @@
 name: "R Research Environment (Simplified)"
+slug: "r-research"
 description: "R + RStudio Server + tidyverse packages using simplified template system"
 base: "ubuntu-22.04"
 

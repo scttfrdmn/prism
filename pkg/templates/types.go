@@ -13,6 +13,7 @@ import (
 type Template struct {
 	// Basic metadata
 	Name        string `yaml:"name" json:"name"`
+	Slug        string `yaml:"slug,omitempty" json:"slug,omitempty"` // Short dash-separated name for CLI
 	Description string `yaml:"description" json:"description"`
 	Base        string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.) or parent template
 	
@@ -196,8 +197,11 @@ type TemplateRegistry struct {
 	// Template directories to scan
 	TemplateDirs []string
 	
-	// Cached templates
+	// Cached templates (indexed by name)
 	Templates map[string]*Template
+	
+	// Slug index for fast lookup (slug -> template name)
+	SlugIndex map[string]string
 	
 	// Last scan time
 	LastScan time.Time

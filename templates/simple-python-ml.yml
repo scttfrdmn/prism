@@ -1,4 +1,5 @@
 name: "Python Machine Learning (Simplified)"
+slug: "python-ml"
 description: "Python + Jupyter + ML packages using simplified template system"
 base: "ubuntu-22.04"
 

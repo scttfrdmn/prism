@@ -77,13 +77,13 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 
 // GetTemplate returns a single template for the legacy API
 func GetTemplate(name, region, architecture string) (*types.RuntimeTemplate, error) {
-	return GetTemplateWithPackageManager(name, region, architecture, "")
+	return GetTemplateWithPackageManager(name, region, architecture, "", "")
 }
 
-// GetTemplateWithPackageManager returns a single template with package manager override
-func GetTemplateWithPackageManager(name, region, architecture, packageManager string) (*types.RuntimeTemplate, error) {
+// GetTemplateWithPackageManager returns a single template with package manager override and size scaling
+func GetTemplateWithPackageManager(name, region, architecture, packageManager, size string) (*types.RuntimeTemplate, error) {
 	manager := NewCompatibilityManager(DefaultTemplateDirs())
-	return manager.GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager)
+	return manager.GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager, size)
 }
 
 // ValidateTemplate validates a template file

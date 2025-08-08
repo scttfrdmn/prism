@@ -1,4 +1,5 @@
 name: "Web Development (APT)" 
+slug: "web-dev"
 description: "Full-stack web development environment with Node.js, Docker, and essential tools using APT"
 base: "ubuntu-22.04"
 
