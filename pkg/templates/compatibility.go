@@ -118,10 +118,9 @@ func (cm *CompatibilityManager) MigrateTemplateToYAML(legacyTemplate types.Runti
 		// Default user setup
 		Users: []UserConfig{
 			{
-				Name:     "ubuntu",
-				Password: "auto-generated",
-				Groups:   []string{"sudo"},
-				Shell:    "/bin/bash",
+				Name:   "ubuntu",
+				Groups: []string{"sudo"},
+				Shell:  "/bin/bash",
 			},
 		},
 		

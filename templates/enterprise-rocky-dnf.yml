@@ -35,7 +35,6 @@ packages:
 
 users:
   - name: "admin"
-    password: "auto-generated"
     groups: ["wheel", "docker"]
 
 services:

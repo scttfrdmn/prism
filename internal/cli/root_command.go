@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -22,15 +24,41 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 	}
 
 	// Launch command
-	rootCmd.AddCommand(&cobra.Command{
+	launchCmd := &cobra.Command{
 		Use:   "launch <template> <name>",
 		Short: "Launch a new cloud workstation",
 		Long:  `Launch a new cloud workstation from a template with smart defaults.`,
 		Args:  cobra.MinimumNArgs(2),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Get flags and add them to args for compatibility with existing Launch function
+			if hibernation, _ := cmd.Flags().GetBool("hibernation"); hibernation {
+				args = append(args, "--hibernation")
+			}
+			if spot, _ := cmd.Flags().GetBool("spot"); spot {
+				args = append(args, "--spot")
+			}
+			if size, _ := cmd.Flags().GetString("size"); size != "" {
+				args = append(args, "--size", size)
+			}
+			if subnet, _ := cmd.Flags().GetString("subnet"); subnet != "" {
+				args = append(args, "--subnet", subnet)
+			}
+			if vpc, _ := cmd.Flags().GetString("vpc"); vpc != "" {
+				args = append(args, "--vpc", vpc)
+			}
+			if project, _ := cmd.Flags().GetString("project"); project != "" {
+				args = append(args, "--project", project)
+			}
 			return a.Launch(args)
 		},
-	})
+	}
+	launchCmd.Flags().Bool("hibernation", false, "Enable hibernation support")
+	launchCmd.Flags().Bool("spot", false, "Use spot instances") 
+	launchCmd.Flags().String("size", "", "Instance size (XS, S, M, L, XL)")
+	launchCmd.Flags().String("subnet", "", "Specify subnet ID")
+	launchCmd.Flags().String("vpc", "", "Specify VPC ID")
+	launchCmd.Flags().String("project", "", "Associate with project")
+	rootCmd.AddCommand(launchCmd)
 
 	// List command
 	rootCmd.AddCommand(&cobra.Command{
@@ -223,7 +251,7 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 			switch action {
 			case "show":
 				return a.configShow()
-			case "profile":
+			case "profile", "set-aws-profile":
 				if len(configArgs) != 1 {
 					return fmt.Errorf("usage: cws config profile <aws-profile>")
 				}
@@ -263,10 +291,42 @@ func (a *App) Run(args []string) error {
 // Config command implementations
 
 func (a *App) configShow() error {
-	fmt.Println("CloudWorkstation Configuration:")
+	fmt.Printf("📋 CloudWorkstation Configuration\n\n")
+	
+	// Show current effective configuration
+	fmt.Printf("🔧 Current Configuration:\n")
 	fmt.Printf("   Daemon URL: %s\n", a.config.Daemon.URL)
 	fmt.Printf("   AWS Profile: %s\n", valueOrEmpty(a.config.AWS.Profile))
 	fmt.Printf("   AWS Region: %s\n", valueOrEmpty(a.config.AWS.Region))
+	
+	// Show environment variable overrides
+	fmt.Printf("\n🌍 Environment Variables:\n")
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		fmt.Printf("   AWS_PROFILE: %s (overrides config file)\n", profile)
+	} else {
+		fmt.Printf("   AWS_PROFILE: (not set)\n")
+	}
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		fmt.Printf("   AWS_REGION: %s (overrides config file)\n", region)
+	} else if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
+		fmt.Printf("   AWS_DEFAULT_REGION: %s (overrides config file)\n", region)
+	} else {
+		fmt.Printf("   AWS_REGION/AWS_DEFAULT_REGION: (not set)\n")
+	}
+	
+	// Show config file location
+	homeDir, _ := os.UserHomeDir()
+	configFile := filepath.Join(homeDir, ".cloudworkstation", "config.json")
+	fmt.Printf("\n📁 Config File: %s\n", configFile)
+	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+		fmt.Printf("   (file does not exist - using defaults)\n")
+	}
+	
+	fmt.Printf("\n💡 Usage:\n")
+	fmt.Printf("   cws config profile <aws-profile>  # Set default AWS profile\n")
+	fmt.Printf("   cws config region <aws-region>    # Set default AWS region\n")
+	fmt.Printf("   export AWS_PROFILE=profile        # Override profile for session\n")
+	
 	return nil
 }
 

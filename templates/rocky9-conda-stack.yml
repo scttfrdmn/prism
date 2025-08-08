@@ -24,7 +24,6 @@ packages:
 # Add additional user (combines with rocky user from base)
 users:
   - name: "datascientist"
-    password: "auto-generated"
     groups: ["sudo"]
 
 # Add services on top of base

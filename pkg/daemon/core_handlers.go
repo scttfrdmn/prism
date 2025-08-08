@@ -139,7 +139,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	currentProfile := getAWSProfile(r.Context())
 
 	// Use status tracker to get current daemon status
-	status := s.statusTracker.GetStatus(version.GetVersion(), awsRegion)
+	status := s.statusTracker.GetStatus(version.GetVersion(), awsRegion, currentProfile)
 	status.CurrentProfile = currentProfile
 
 	json.NewEncoder(w).Encode(status)

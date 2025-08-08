@@ -23,7 +23,6 @@ packages:
 
 users:
   - name: "ubuntu"
-    password: "auto-generated"
     groups: ["sudo"]
 
 services: []

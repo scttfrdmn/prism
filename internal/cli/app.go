@@ -139,7 +139,7 @@ func (a *App) TUI(_ []string) error {
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --dry-run")
+		return fmt.Errorf("usage: cws launch <template> <name> [options]\n  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --hibernation --dry-run --subnet <subnet-id> --vpc <vpc-id>")
 	}
 
 	template := args[0]
@@ -178,6 +178,8 @@ func (a *App) Launch(args []string) error {
 			i++
 		case arg == "--spot":
 			req.Spot = true
+		case arg == "--hibernation":
+			req.Hibernation = true
 		case arg == "--dry-run":
 			req.DryRun = true
 		case arg == "--with" && i+1 < len(args):
@@ -364,10 +366,21 @@ func (a *App) List(args []string) error {
 // Connect handles the connect command
 func (a *App) Connect(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws connect <n>")
+		return fmt.Errorf("usage: cws connect <instance-name> [--verbose]")
 	}
 
 	name := args[0]
+	verbose := false
+	
+	// Parse flags
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--verbose", "-v":
+			verbose = true
+		default:
+			return fmt.Errorf("unknown flag: %s", args[i])
+		}
+	}
 
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
@@ -379,9 +392,35 @@ func (a *App) Connect(args []string) error {
 		return fmt.Errorf("failed to get connection info: %w", err)
 	}
 
-	fmt.Printf("🔗 Connection info for %s:\n", name)
-	fmt.Printf("%s\n", connectionInfo)
+	if verbose {
+		fmt.Printf("🔗 SSH command for %s:\n", name)
+		fmt.Printf("%s\n", connectionInfo)
+		return nil
+	}
 
+	// Execute SSH command directly
+	return a.executeSSHCommand(connectionInfo, name)
+}
+
+// executeSSHCommand executes the SSH command and transfers control to the SSH process
+func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
+	fmt.Printf("🔗 Connecting to %s...\n", instanceName)
+	
+	// Use shell to execute the SSH command to handle quotes properly
+	cmd := exec.Command("sh", "-c", connectionInfo)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	
+	err := cmd.Run()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			// SSH exited with non-zero status - this is normal for SSH disconnections
+			os.Exit(exitErr.ExitCode())
+		}
+		return fmt.Errorf("failed to execute SSH command: %w", err)
+	}
+	
 	return nil
 }
 
@@ -407,7 +446,7 @@ func (a *App) Stop(args []string) error {
 	return nil
 }
 
-// Start handles the start command
+// Start handles the start command with intelligent state management
 func (a *App) Start(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("usage: cws start <n>")
@@ -420,7 +459,50 @@ func (a *App) Start(args []string) error {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
-	err := a.apiClient.StartInstance(a.ctx, name)
+	// First, get current instance status
+	listResponse, err := a.apiClient.ListInstances(a.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get instance status: %w", err)
+	}
+
+	var targetInstance *types.Instance
+	for _, instance := range listResponse.Instances {
+		if instance.Name == name {
+			targetInstance = &instance
+			break
+		}
+	}
+
+	if targetInstance == nil {
+		return fmt.Errorf("instance '%s' not found", name)
+	}
+
+	// Check current state and handle appropriately
+	switch strings.ToLower(targetInstance.State) {
+	case "running":
+		fmt.Printf("✅ Instance %s is already running\n", name)
+		return nil
+		
+	case "stopped":
+		// Ready to start - proceed normally
+		
+	case "stopping":
+		fmt.Printf("⏳ Instance %s is currently stopping. Please wait and try again in a few moments.\n", name)
+		return nil
+		
+	case "starting", "pending":
+		fmt.Printf("⏳ Instance %s is already starting. Check status with 'cws list'.\n", name)
+		return nil
+		
+	case "shutting-down", "terminated":
+		return fmt.Errorf("❌ Cannot start instance '%s' - it is %s", name, targetInstance.State)
+		
+	default:
+		return fmt.Errorf("❌ Cannot start instance '%s' - unknown state: %s", name, targetInstance.State)
+	}
+
+	// Attempt to start the instance
+	err = a.apiClient.StartInstance(a.ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to start instance: %w", err)
 	}
@@ -428,6 +510,7 @@ func (a *App) Start(args []string) error {
 	fmt.Printf("▶️ Starting instance %s...\n", name)
 	return nil
 }
+
 
 // Delete handles the delete command
 func (a *App) Delete(args []string) error {
@@ -1170,6 +1253,8 @@ func (a *App) Profiles(args []string) error {
 	return profilesCmd.Execute()
 }
 
+
+
 // Daemon handles daemon management commands
 func (a *App) Daemon(args []string) error {
 	if len(args) < 1 {
@@ -1313,6 +1398,9 @@ func (a *App) daemonStatus() error {
 	fmt.Printf("   Status: %s\n", status.Status)
 	fmt.Printf("   Start Time: %s\n", status.StartTime.Format("2006-01-02 15:04:05"))
 	fmt.Printf("   AWS Region: %s\n", status.AWSRegion)
+	if status.AWSProfile != "" {
+		fmt.Printf("   AWS Profile: %s\n", status.AWSProfile)
+	}
 	fmt.Printf("   Active Operations: %d\n", status.ActiveOps)
 	fmt.Printf("   Total Requests: %d\n", status.TotalRequests)
 

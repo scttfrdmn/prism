@@ -15,11 +15,30 @@ import (
 
 // DefaultTemplateDirs returns the default template directories to scan
 func DefaultTemplateDirs() []string {
-	dirs := []string{
-		"templates",
-		filepath.Join(os.Getenv("HOME"), ".cloudworkstation", "templates"),
-		"/etc/cloudworkstation/templates",
+	dirs := []string{}
+	
+	// Add project templates directory for development
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		
+		// Development: binary is in bin/, templates are in ../templates
+		devTemplatesPath := filepath.Join(exeDir, "..", "templates")
+		if _, err := os.Stat(devTemplatesPath); err == nil {
+			dirs = append(dirs, devTemplatesPath)
+		}
+		
+		// Homebrew installation: binary is in bin/, templates are in ../share/templates
+		homebrewTemplatesPath := filepath.Join(exeDir, "..", "share", "templates")
+		if _, err := os.Stat(homebrewTemplatesPath); err == nil {
+			dirs = append(dirs, homebrewTemplatesPath)
+		}
 	}
+	
+	// User templates directory
+	dirs = append(dirs, filepath.Join(os.Getenv("HOME"), ".cloudworkstation", "templates"))
+	
+	// System templates directory
+	dirs = append(dirs, "/etc/cloudworkstation/templates")
 	
 	// Add Homebrew installation paths
 	if homebrewPrefix := os.Getenv("HOMEBREW_PREFIX"); homebrewPrefix != "" {
@@ -162,10 +181,9 @@ func CreateExampleTemplate(filename string) error {
 		
 		Users: []UserConfig{
 			{
-				Name:     "researcher",
-				Password: "auto-generated",
-				Groups:   []string{"sudo"},
-				Shell:    "/bin/bash",
+				Name:   "researcher",
+				Groups: []string{"sudo"},
+				Shell:  "/bin/bash",
 			},
 		},
 		

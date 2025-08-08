@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -21,19 +22,24 @@ func (s *Server) handleInstances(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleListInstances lists all instances
+// handleListInstances lists all instances with real-time AWS status
 func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
-	state, err := s.stateManager.LoadState()
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+	var instances []types.Instance
+	totalCost := 0.0
+	
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		instances, err = awsManager.ListInstances()
+		return err
+	})
+	
+	// If AWS call failed, the withAWSManager already wrote the error response
+	if instances == nil {
 		return
 	}
 
-	instances := make([]types.Instance, 0, len(state.Instances))
-	totalCost := 0.0
-
-	for _, instance := range state.Instances {
-		instances = append(instances, instance)
+	// Calculate total cost for running instances
+	for _, instance := range instances {
 		if instance.State == "running" {
 			totalCost += instance.EstimatedDailyCost
 		}
@@ -55,9 +61,24 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Handle SSH key management if not provided in request
+	if req.SSHKeyName == "" {
+		if err := s.setupSSHKeyForLaunch(&req); err != nil {
+			s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("SSH key setup failed: %v", err))
+			return
+		}
+	}
+	
 	// Use AWS manager from request and handle launch
 	var instance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		// Ensure SSH key exists in AWS if specified
+		if req.SSHKeyName != "" {
+			if err := s.ensureSSHKeyInAWS(awsManager, &req); err != nil {
+				return fmt.Errorf("failed to ensure SSH key in AWS: %w", err)
+			}
+		}
+		
 		// Delegate to AWS manager
 		var err error
 		instance, err = awsManager.LaunchInstance(req)
@@ -269,4 +290,75 @@ func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, n
 		"connection_info": connectionInfo,
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+// setupSSHKeyForLaunch sets up SSH key configuration for a launch request
+func (s *Server) setupSSHKeyForLaunch(req *types.LaunchRequest) error {
+	// Get current profile (this would be extracted from request context in production)
+	profileManager, err := profile.NewManagerEnhanced()
+	if err != nil {
+		return fmt.Errorf("failed to create profile manager: %w", err)
+	}
+	
+	currentProfile, err := profileManager.GetCurrentProfile()
+	if err != nil {
+		return fmt.Errorf("failed to get current profile: %w", err)
+	}
+	
+	// Create SSH key manager
+	sshKeyManager, err := profile.NewSSHKeyManager()
+	if err != nil {
+		return fmt.Errorf("failed to create SSH key manager: %w", err)
+	}
+	
+	// Get SSH key configuration for current profile
+	_, keyName, err := sshKeyManager.GetSSHKeyForProfile(currentProfile)
+	if err != nil {
+		return fmt.Errorf("failed to get SSH key for profile: %w", err)
+	}
+	
+	// Set SSH key in launch request
+	req.SSHKeyName = keyName
+	
+	return nil
+}
+
+// ensureSSHKeyInAWS ensures the SSH key exists in AWS
+func (s *Server) ensureSSHKeyInAWS(awsManager *aws.Manager, req *types.LaunchRequest) error {
+	// Get current profile
+	profileManager, err := profile.NewManagerEnhanced()
+	if err != nil {
+		return fmt.Errorf("failed to create profile manager: %w", err)
+	}
+	
+	currentProfile, err := profileManager.GetCurrentProfile()
+	if err != nil {
+		return fmt.Errorf("failed to get current profile: %w", err)
+	}
+	
+	// Create SSH key manager
+	sshKeyManager, err := profile.NewSSHKeyManager()
+	if err != nil {
+		return fmt.Errorf("failed to create SSH key manager: %w", err)
+	}
+	
+	// Get SSH key configuration
+	keyPath, keyName, err := sshKeyManager.GetSSHKeyForProfile(currentProfile)
+	if err != nil {
+		return fmt.Errorf("failed to get SSH key for profile: %w", err)
+	}
+	
+	// Get public key content
+	publicKeyPath := keyPath + ".pub"
+	publicKeyContent, err := sshKeyManager.GetPublicKeyContent(publicKeyPath)
+	if err != nil {
+		return fmt.Errorf("failed to get public key content: %w", err)
+	}
+	
+	// Ensure key exists in AWS
+	if err := awsManager.EnsureKeyPairExists(keyName, publicKeyContent); err != nil {
+		return fmt.Errorf("failed to ensure key pair exists in AWS: %w", err)
+	}
+	
+	return nil
 }
