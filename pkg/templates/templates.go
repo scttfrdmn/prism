@@ -15,11 +15,30 @@ import (
 
 // DefaultTemplateDirs returns the default template directories to scan
 func DefaultTemplateDirs() []string {
-	return []string{
+	dirs := []string{
 		"templates",
 		filepath.Join(os.Getenv("HOME"), ".cloudworkstation", "templates"),
 		"/etc/cloudworkstation/templates",
 	}
+	
+	// Add Homebrew installation paths
+	if homebrewPrefix := os.Getenv("HOMEBREW_PREFIX"); homebrewPrefix != "" {
+		dirs = append(dirs, filepath.Join(homebrewPrefix, "opt", "cloudworkstation", "share", "templates"))
+	}
+	
+	// Fallback for common Homebrew installations
+	commonHomebrewPaths := []string{
+		"/opt/homebrew/opt/cloudworkstation/share/templates", // Apple Silicon
+		"/usr/local/opt/cloudworkstation/share/templates",    // Intel
+	}
+	
+	for _, path := range commonHomebrewPaths {
+		if _, err := os.Stat(path); err == nil {
+			dirs = append(dirs, path)
+		}
+	}
+	
+	return dirs
 }
 
 // GetTemplatesForRegion returns all templates formatted for the legacy API
