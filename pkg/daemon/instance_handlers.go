@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
@@ -38,15 +39,43 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Calculate total cost for running instances
+	// Filter out terminated instances older than 5 minutes (if we have deletion time)
+	filteredInstances := make([]types.Instance, 0)
 	for _, instance := range instances {
+		// Include non-terminated instances
+		if instance.State != "terminated" {
+			filteredInstances = append(filteredInstances, instance)
+			continue
+		}
+		
+		// For terminated instances, check deletion time
+		if instance.DeletionTime != nil {
+			// Include if less than 5 minutes since deletion was initiated
+			if time.Since(*instance.DeletionTime) < 5*time.Minute {
+				filteredInstances = append(filteredInstances, instance)
+			}
+			// Otherwise, exclude (older than 5 minutes)
+		} else {
+			// No deletion time recorded - assume terminated instances older than 5 minutes should be cleaned up
+			// Use a conservative approach: if terminated for more than 5 minutes based on launch time + reasonable startup time
+			// This handles legacy instances without deletion timestamps
+			timeSinceLaunch := time.Since(instance.LaunchTime)
+			if timeSinceLaunch < 10*time.Minute { // Conservative: assume startup + 5min retention
+				filteredInstances = append(filteredInstances, instance)
+			}
+			// Otherwise, exclude old terminated instances without deletion timestamps
+		}
+	}
+
+	// Calculate total cost for running instances
+	for _, instance := range filteredInstances {
 		if instance.State == "running" {
 			totalCost += instance.EstimatedDailyCost
 		}
 	}
 
 	response := types.ListResponse{
-		Instances: instances,
+		Instances: filteredInstances,
 		TotalCost: totalCost,
 	}
 
@@ -200,15 +229,26 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, name 
 
 // handleDeleteInstance deletes a specific instance
 func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, name string) {
+	// Mark deletion timestamp before initiating AWS deletion
+	now := time.Now()
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+		return
+	}
+	
+	if instance, exists := state.Instances[name]; exists {
+		instance.DeletionTime = &now
+		if err := s.stateManager.SaveInstance(instance); err != nil {
+			s.writeError(w, http.StatusInternalServerError, "Failed to update instance state")
+			return
+		}
+	}
+
+	// Initiate AWS deletion
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		return awsManager.DeleteInstance(name)
 	})
-
-	// Remove from state - only if we didn't error out above
-	if err := s.stateManager.RemoveInstance(name); err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
-		return
-	}
 
 	w.WriteHeader(http.StatusNoContent)
 }

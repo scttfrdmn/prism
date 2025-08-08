@@ -912,6 +912,17 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 
 // ListInstances returns all CloudWorkstation instances with real-time AWS status
 func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
+	// Load local state to merge deletion timestamps
+	stateManager, err := state.NewManager()
+	if err != nil {
+		// Continue without state merging if unavailable
+		stateManager = nil
+	}
+	
+	var localState *ctypes.State
+	if stateManager != nil {
+		localState, _ = stateManager.LoadState()
+	}
 	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
 			{
@@ -920,7 +931,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 			},
 			{
 				Name:   aws.String("instance-state-name"),
-				Values: []string{"pending", "running", "shutting-down", "stopping", "stopped"},
+				Values: []string{"pending", "running", "shutting-down", "stopping", "stopped", "terminating", "terminated"},
 			},
 		},
 	})
@@ -992,6 +1003,13 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 				InstanceLifecycle:   instanceLifecycle,
 				LaunchTime:          *ec2Instance.LaunchTime, // Dereference the pointer
 				EstimatedDailyCost:  0.0, // TODO: Calculate based on instance type
+			}
+			
+			// Merge deletion time from local state if available
+			if localState != nil {
+				if localInstance, exists := localState.Instances[name]; exists {
+					instance.DeletionTime = localInstance.DeletionTime
+				}
 			}
 
 			instances = append(instances, instance)
