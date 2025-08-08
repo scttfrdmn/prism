@@ -31,10 +31,14 @@
 
 ### 🎨 User Experience Improvements  
 - [ ] **Template Slug Names for CLI**
-  - Add slug versions of template names with dashes (e.g., `r-research-env`)
-  - Allow both display names and slugs for launch commands
-  - Update `cws list` to show both display name and slug
-  - Example: `cws launch r-research-env my-project` instead of `cws launch "R Research Environment" my-project`
+  - Add slug versions of template names with dashes (e.g., `r-research-env`) as **alternatives**
+  - Support both display names and slugs for launch commands (user choice)
+  - Update `cws list` to show both display name and slug for reference
+  - Examples (both work):
+    - `cws launch "R Research Environment" my-project` (existing)
+    - `cws launch r-research-env my-project` (new slug alternative)
+    - `cws launch "Idle Detection Test" my-test` (existing)  
+    - `cws launch idle-detection-test my-test` (new slug alternative)
 
 - [ ] **Enhanced Template Information**
   - Implement `cws templates info <name>` command for detailed template information
