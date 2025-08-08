@@ -1,0 +1,300 @@
+name: "Idle Detection Test"
+description: "Template for testing idle detection with proper UserData deployment"
+base: "ubuntu-22.04"
+package_manager: "apt"
+
+packages:
+  system:
+    - "build-essential"
+    - "curl"
+    - "wget"
+    - "git"
+    - "bc"
+    - "awscli"
+
+users:
+  - name: "ubuntu"
+    groups: ["sudo"]
+
+# Idle detection configuration
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 5
+  hibernate_threshold_minutes: 10
+  check_interval_minutes: 2
+
+user_data: |
+  #!/bin/bash
+  
+  # Update system
+  apt-get update -y
+  
+  # Install dependencies
+  apt-get install -y curl unzip bc
+  
+  # Install AWS CLI v2
+  CPU_ARCH=$(uname -m)
+  if [ "$CPU_ARCH" = "x86_64" ]; then
+      AWSCLI_ARCH="x86_64"
+  elif [ "$CPU_ARCH" = "aarch64" ]; then
+      AWSCLI_ARCH="aarch64"
+  else
+      AWSCLI_ARCH="x86_64"  # fallback
+  fi
+  
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-${AWSCLI_ARCH}.zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  ./aws/install
+  rm -rf awscliv2.zip aws/
+  
+  # Install CloudWorkstation Idle Detection Agent
+  cat > /usr/local/bin/cloudworkstation-idle-check.sh << 'EOF'
+  #!/bin/bash
+  # CloudWorkstation Idle Detection Agent
+  # Version: 1.0.0
+  # Last Updated: 2025-08-08
+  # Description: Autonomous idle detection with hibernation/stop capabilities using IMDSv2 and AWS CLI v2
+  
+  set -euo pipefail
+  
+  # Agent version and metadata
+  AGENT_VERSION="1.0.0"
+  AGENT_BUILD_DATE="2025-08-08"
+  MIN_AWS_CLI_VERSION="2.0.0"
+  
+  # Configuration 
+  IDLE_THRESHOLD_MINUTES={{IDLE_THRESHOLD_MINUTES}}
+  HIBERNATE_THRESHOLD_MINUTES={{HIBERNATE_THRESHOLD_MINUTES}}
+  LOG_FILE="/var/log/cloudworkstation-idle.log"
+  
+  # Logging function
+  log() {
+      echo "$(date '+%Y-%m-%d %H:%M:%S') [IDLE-AGENT v$AGENT_VERSION] $*" | tee -a "$LOG_FILE"
+  }
+  
+  # Version and update checking functions
+  check_agent_version() {
+      log "CloudWorkstation Idle Detection Agent v$AGENT_VERSION (built $AGENT_BUILD_DATE)"
+  }
+  
+  check_aws_cli_version() {
+      local aws_version=$(aws --version 2>&1 | cut -d/ -f2 | cut -d' ' -f1 || echo "unknown")
+      log "AWS CLI version: $aws_version"
+      
+      # TODO: Add version comparison logic and update capabilities
+      # Future: Compare against MIN_AWS_CLI_VERSION and update if needed
+  }
+  
+  # Get instance metadata using IMDSv2
+  get_instance_metadata() {
+      # Get IMDSv2 token
+      TOKEN=$(curl -s --max-time 5 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+      
+      if [[ -z "$TOKEN" ]]; then
+          log "ERROR: Failed to get IMDSv2 token"
+          return 1
+      fi
+      
+      INSTANCE_ID=$(curl -s --max-time 5 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+      REGION=$(curl -s --max-time 5 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || \
+               curl -s --max-time 5 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/.$//')
+      
+      if [[ -z "$REGION" ]]; then
+          REGION="us-west-2"
+          log "Warning: Could not detect region, defaulting to us-west-2"
+      fi
+      
+      if [[ -z "$INSTANCE_ID" ]]; then
+          log "ERROR: Could not get instance ID"
+          return 1
+      fi
+      
+      log "Instance ID: $INSTANCE_ID, Region: $REGION"
+  }
+  
+  # Get idle duration in minutes
+  get_idle_duration() {
+      local idle_since_tag=$(get_instance_tag "CloudWorkstation:IdleSince")
+      
+      if [[ -z "$idle_since_tag" || "$idle_since_tag" == "None" ]]; then
+          echo "0"
+          return
+      fi
+      
+      local idle_since_epoch=$(date -d "$idle_since_tag" +%s 2>/dev/null || echo "0")
+      local current_epoch=$(date +%s)
+      local duration_seconds=$((current_epoch - idle_since_epoch))
+      local duration_minutes=$((duration_seconds / 60))
+      
+      echo "$duration_minutes"
+  }
+  
+  # Check if instance supports hibernation
+  check_hibernation_support() {
+      # Check if instance was launched with hibernation enabled
+      local hibernation_enabled=$(aws ec2 describe-instances --region "$REGION" --instance-ids "$INSTANCE_ID" \
+          --query 'Reservations[0].Instances[0].HibernationOptions.Configured' --output text 2>/dev/null || echo "false")
+      
+      if [[ "$hibernation_enabled" == "true" ]]; then
+          return 0  # Supports hibernation
+      else
+          return 1  # Does not support hibernation
+      fi
+  }
+  
+  # Hibernate instance
+  hibernate_instance() {
+      log "🛌 HIBERNATING instance after prolonged idle period"
+      
+      # Set hibernating tag
+      set_instance_tag "CloudWorkstation:IdleAction" "hibernating"
+      
+      # Attempt hibernation
+      if aws ec2 stop-instances --region "$REGION" --instance-ids "$INSTANCE_ID" --hibernate 2>/dev/null; then
+          log "✅ Hibernation initiated successfully"
+          set_instance_tag "CloudWorkstation:IdleAction" "hibernated"
+      else
+          log "❌ Hibernation failed, falling back to regular stop"
+          stop_instance
+      fi
+  }
+  
+  # Stop instance
+  stop_instance() {
+      log "🛑 STOPPING instance after prolonged idle period"
+      
+      # Set stopping tag
+      set_instance_tag "CloudWorkstation:IdleAction" "stopping"
+      
+      # Stop instance
+      if aws ec2 stop-instances --region "$REGION" --instance-ids "$INSTANCE_ID" 2>/dev/null; then
+          log "✅ Stop initiated successfully"
+          set_instance_tag "CloudWorkstation:IdleAction" "stopped"
+      else
+          log "❌ Failed to stop instance"
+          set_instance_tag "CloudWorkstation:IdleAction" "stop_failed"
+      fi
+  }
+  
+  # Check system activity
+  check_system_activity() {
+      # CPU load (1-minute average)
+      CPU_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
+      log "CPU load: $CPU_LOAD"
+      
+      # Active users (excluding system users)
+      USERS_LOGGED_IN=$(who | grep -v '^root' | wc -l)
+      log "Users logged in: $USERS_LOGGED_IN"
+      
+      # Check if system is busy
+      if (( $(echo "$CPU_LOAD > 0.5" | bc -l) )) || [[ "$USERS_LOGGED_IN" -gt 0 ]]; then
+          return 1  # System is busy
+      else
+          return 0  # System is idle
+      fi
+  }
+  
+  # Set AWS instance tag
+  set_instance_tag() {
+      local key="$1"
+      local value="$2"
+      
+      log "Setting tag $key=$value"
+      aws ec2 create-tags --region "$REGION" --resources "$INSTANCE_ID" --tags "Key=$key,Value=$value" || {
+          log "ERROR: Failed to set tag $key=$value"
+          return 1
+      }
+  }
+  
+  # Get AWS instance tag
+  get_instance_tag() {
+      local key="$1"
+      
+      aws ec2 describe-tags --region "$REGION" --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=$key" \
+          --query 'Tags[0].Value' --output text 2>/dev/null || echo ""
+  }
+  
+  # Main function
+  main() {
+      log "=== Starting idle check ==="
+      
+      # Version checking and logging
+      check_agent_version
+      check_aws_cli_version
+      
+      # Get metadata
+      get_instance_metadata
+      
+      # Check system activity
+      if check_system_activity; then
+          log "System is IDLE"
+          
+          # Check if this is the first time we're detecting idle
+          current_idle_status=$(get_instance_tag "CloudWorkstation:IdleStatus")
+          if [[ "$current_idle_status" != "idle" ]]; then
+              # First time idle - set timestamp
+              set_instance_tag "CloudWorkstation:IdleStatus" "idle"
+              set_instance_tag "CloudWorkstation:IdleSince" "$(date -Iseconds)"
+              log "Tagged instance as idle (first detection)"
+          else
+              # Already idle - check duration and take action if needed
+              idle_duration=$(get_idle_duration)
+              log "Instance has been idle for $idle_duration minutes"
+              
+              if [[ $idle_duration -ge $HIBERNATE_THRESHOLD_MINUTES ]]; then
+                  log "Idle duration ($idle_duration min) exceeds hibernation threshold ($HIBERNATE_THRESHOLD_MINUTES min)"
+                  
+                  # Check hibernation support and take appropriate action
+                  if check_hibernation_support; then
+                      log "Instance supports hibernation - hibernating now"
+                      hibernate_instance
+                  else
+                      log "Instance does not support hibernation - stopping instead"
+                      stop_instance
+                  fi
+              elif [[ $idle_duration -ge $IDLE_THRESHOLD_MINUTES ]]; then
+                  log "Idle duration ($idle_duration min) exceeds idle threshold ($IDLE_THRESHOLD_MINUTES min) but not hibernation threshold"
+                  log "Continuing to monitor..."
+              fi
+          fi
+      else
+          log "System is ACTIVE"
+          
+          # Clear idle status
+          set_instance_tag "CloudWorkstation:IdleStatus" "active"
+          set_instance_tag "CloudWorkstation:IdleSince" ""
+          set_instance_tag "CloudWorkstation:IdleAction" ""
+      fi
+      
+      log "=== Check complete ==="
+  }
+  
+  # Run main function
+  main "$@"
+  EOF
+  
+  # Make script executable
+  chmod +x /usr/local/bin/cloudworkstation-idle-check.sh
+  
+  # Create log directory
+  touch /var/log/cloudworkstation-idle.log
+  chown ubuntu:ubuntu /var/log/cloudworkstation-idle.log
+  
+  # Install cron job to run every {{CHECK_INTERVAL_MINUTES}} minutes
+  cat > /etc/cron.d/cloudworkstation-idle << EOF
+  # CloudWorkstation Idle Detection - runs every {{CHECK_INTERVAL_MINUTES}} minutes
+  */{{CHECK_INTERVAL_MINUTES}} * * * * root /usr/local/bin/cloudworkstation-idle-check.sh >> /var/log/cloudworkstation-idle.log 2>&1
+  EOF
+  
+  # Initial run after 2 minutes to let system settle
+  (sleep 120 && /usr/local/bin/cloudworkstation-idle-check.sh) &
+  
+  echo "Idle detection agent installed successfully" >> /var/log/cws-setup.log
+
+instance_defaults:
+  ports: [22]
+
+version: "1.0"
+tags:
+  type: "idle-test"
+  purpose: "testing"

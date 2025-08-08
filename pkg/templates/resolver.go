@@ -30,9 +30,17 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 	}
 	
 	// Generate installation script
-	userDataScript, err := r.ScriptGen.GenerateScript(template, packageManager)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate installation script: %w", err)
+	var userDataScript string
+	if template.UserData != "" {
+		// Use the UserData script from the template directly
+		userDataScript = template.UserData
+	} else {
+		// Generate script using package manager strategy
+		generatedScript, err := r.ScriptGen.GenerateScript(template, packageManager)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate installation script: %w", err)
+		}
+		userDataScript = generatedScript
 	}
 	
 	// Get AMI mapping for this template
@@ -50,6 +58,17 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 	// Get cost estimates
 	costMapping := r.getCostMapping(template, architecture)
 	
+	// Convert idle detection config if present
+	var idleDetectionConfig *IdleDetectionConfig
+	if template.IdleDetection != nil {
+		idleDetectionConfig = &IdleDetectionConfig{
+			Enabled:                  template.IdleDetection.Enabled,
+			IdleThresholdMinutes:     template.IdleDetection.IdleThresholdMinutes,
+			HibernateThresholdMinutes: template.IdleDetection.HibernateThresholdMinutes,
+			CheckIntervalMinutes:     template.IdleDetection.CheckIntervalMinutes,
+		}
+	}
+
 	// Create runtime template
 	runtimeTemplate := &RuntimeTemplate{
 		Name:         template.Name,
@@ -59,6 +78,7 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 		UserData:     userDataScript,
 		Ports:        ports,
 		EstimatedCostPerHour: costMapping,
+		IdleDetection: idleDetectionConfig,
 		Source:       template,
 		Generated:    time.Now(),
 	}

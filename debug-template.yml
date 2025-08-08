@@ -1,0 +1,22 @@
+name: "Debug Template"
+description: "Simple template for debugging UserData"
+base: "ubuntu-22.04"
+package_manager: "apt"
+
+packages:
+  system:
+    - "curl"
+
+users:
+  - name: "ubuntu"
+    groups: ["sudo"]
+
+user_data: |
+  #!/bin/bash
+  echo "DEBUG: Custom UserData script is running!" > /tmp/debug-userdata.txt
+  curl -s "https://httpbin.org/post" -d "data=debug-test" || true
+
+instance_defaults:
+  ports: [22]
+
+version: "1.0"
