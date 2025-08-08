@@ -310,7 +310,8 @@ bash /tmp/miniforge.sh -b -p /opt/miniforge
 rm /tmp/miniforge.sh
 
 # Add conda to PATH
-echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /etc/environment
+# Update /etc/environment with conda path prepended
+sed -i 's|^PATH="|PATH="/opt/miniforge/bin:|' /etc/environment
 export PATH="/opt/miniforge/bin:$PATH"
 
 # Initialize conda for all users

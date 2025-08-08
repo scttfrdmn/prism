@@ -14,10 +14,10 @@ packages:
     - matplotlib
     - seaborn
     - scikit-learn
-    - tensorflow
     - pytorch
   
   pip:
+    - tensorflow
     - jupyterlab-git
     - plotly
 
