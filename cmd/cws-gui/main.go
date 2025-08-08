@@ -664,9 +664,16 @@ func (g *CloudWorkstationGUI) initializeAdvancedLaunchForm() {
 	g.launchForm.nameEntry = widget.NewEntry()
 	g.launchForm.nameEntry.SetPlaceHolder("my-workspace")
 
-	// Size selection with GPU options
-	g.launchForm.sizeSelect = widget.NewSelect([]string{"XS", "S", "M", "L", "XL", "GPU-S", "GPU-M", "GPU-L"}, nil)
-	g.launchForm.sizeSelect.SetSelected("M")
+	// Size selection with detailed specifications
+	sizeOptions := []string{
+		"XS - 1 vCPU, 2GB RAM + 100GB storage",
+		"S - 2 vCPU, 4GB RAM + 500GB storage", 
+		"M - 2 vCPU, 8GB RAM + 1TB storage [default]",
+		"L - 4 vCPU, 16GB RAM + 2TB storage",
+		"XL - 8 vCPU, 32GB RAM + 4TB storage",
+	}
+	g.launchForm.sizeSelect = widget.NewSelect(sizeOptions, nil)
+	g.launchForm.sizeSelect.SetSelected("M - 2 vCPU, 8GB RAM + 1TB storage [default]")
 
 	// Package manager selection
 	g.launchForm.packageMgrSelect = widget.NewSelect([]string{"Default", "conda", "apt", "dnf", "spack", "ami"}, nil)
@@ -2159,10 +2166,19 @@ func (g *CloudWorkstationGUI) handleLaunchInstance() {
 
 // buildAdvancedLaunchRequest builds the launch request with all advanced options
 func (g *CloudWorkstationGUI) buildAdvancedLaunchRequest() types.LaunchRequest {
+	// Extract size code from descriptive text (e.g., "M - 2 vCPU, 8GB RAM + 1TB storage [default]" -> "M")
+	sizeCode := ""
+	if g.launchForm.sizeSelect.Selected != "" {
+		parts := strings.Split(g.launchForm.sizeSelect.Selected, " ")
+		if len(parts) > 0 {
+			sizeCode = parts[0] // Take first part before the " -"
+		}
+	}
+	
 	req := types.LaunchRequest{
 		Template: g.launchForm.templateSelect.Selected,
 		Name:     g.launchForm.nameEntry.Text,
-		Size:     g.launchForm.sizeSelect.Selected,
+		Size:     sizeCode,
 		DryRun:   g.launchForm.dryRunCheck.Checked,
 	}
 	
