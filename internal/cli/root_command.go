@@ -54,7 +54,7 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 	}
 	launchCmd.Flags().Bool("hibernation", false, "Enable hibernation support")
 	launchCmd.Flags().Bool("spot", false, "Use spot instances") 
-	launchCmd.Flags().String("size", "", "Instance size (XS, S, M, L, XL)")
+	launchCmd.Flags().String("size", "", "Instance size: XS=1vCPU,2GB+100GB | S=2vCPU,4GB+500GB | M=2vCPU,8GB+1TB | L=4vCPU,16GB+2TB | XL=8vCPU,32GB+4TB")
 	launchCmd.Flags().String("subnet", "", "Specify subnet ID")
 	launchCmd.Flags().String("vpc", "", "Specify VPC ID")
 	launchCmd.Flags().String("project", "", "Associate with project")

@@ -191,7 +191,11 @@ func printUsage() {
 	fmt.Println("  cws pricing install university_pricing.json  # Install institutional discounts")
 	fmt.Println("  cws pricing calculate c5.large 0.096 us-west-2  # Calculate discounted pricing")
 	fmt.Println()
-	fmt.Println("Template sizes: XS, S, M, L, XL, GPU-S, GPU-M, GPU-L")
-	fmt.Println("Storage sizes: XS (100GB), S (500GB), M (1TB), L (2TB), XL (4TB)")
+	fmt.Println("T-shirt sizes (compute + storage):")
+	fmt.Println("  XS: 1 vCPU, 2GB RAM + 100GB     S: 2 vCPU, 4GB RAM + 500GB")
+	fmt.Println("  M:  2 vCPU, 8GB RAM + 1TB       L: 4 vCPU, 16GB RAM + 2TB")
+	fmt.Println("  XL: 8 vCPU, 32GB RAM + 4TB")
+	fmt.Println()
+	fmt.Println("Smart scaling: GPU workloads → g4dn/g5g family, Memory → r5/r6g, Compute → c5/c6g")
 }
 
