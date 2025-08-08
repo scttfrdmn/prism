@@ -1054,41 +1054,251 @@ func (a *App) templatesInfo(args []string) error {
 	}
 
 	templateName := args[0]
-	fmt.Printf("📋 Template Information: %s\n\n", templateName)
-
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
-	}
-
-	template, err := a.apiClient.GetTemplate(a.ctx, templateName)
+	
+	// Get raw template information directly from templates package
+	rawTemplate, err := templates.GetTemplateInfo(templateName)
 	if err != nil {
 		return fmt.Errorf("failed to get template info: %w", err)
 	}
 
-	fmt.Printf("🏗️  Name: %s\n", templateName)
-	fmt.Printf("📝 Description: %s\n", template.Description)
-	fmt.Printf("💰 Cost: $%.2f/hour (x86_64), $%.2f/hour (arm64)\n",
-		template.EstimatedCostPerHour["x86_64"],
-		template.EstimatedCostPerHour["arm64"])
+	// Also get runtime template for cost and instance type information
+	region := "us-west-2" // Default region for cost calculations
+	runtimeTemplate, runtimeErr := templates.GetTemplate(templateName, region, "x86_64")
 	
-	if len(template.Ports) > 0 {
-		fmt.Printf("🌐 Exposed Ports: %v\n", template.Ports)
+	fmt.Printf("📋 Detailed Template Information\n")
+	fmt.Printf("═══════════════════════════════════════════════════════════════════\n\n")
+
+	// Basic Information
+	fmt.Printf("🏗️  **Name**: %s\n", rawTemplate.Name)
+	if rawTemplate.Slug != "" {
+		fmt.Printf("🔗 **Slug**: %s (for CLI: `cws launch %s <name>`)\n", rawTemplate.Slug, rawTemplate.Slug)
 	}
+	fmt.Printf("📝 **Description**: %s\n", rawTemplate.Description)
+	fmt.Printf("🖥️  **Base OS**: %s\n", rawTemplate.Base)
+	fmt.Printf("📦 **Package Manager**: %s\n", rawTemplate.PackageManager)
+	fmt.Println()
+
+	// Template Inheritance
+	if len(rawTemplate.Inherits) > 0 {
+		fmt.Printf("🔗 **Inherits From**:\n")
+		for _, parent := range rawTemplate.Inherits {
+			fmt.Printf("   • %s\n", parent)
+		}
+		fmt.Println()
+	}
+
+	// Cost and Instance Information (from runtime template)
+	if runtimeErr == nil {
+		fmt.Printf("💰 **Estimated Costs** (default M size):\n")
+		if cost, exists := runtimeTemplate.EstimatedCostPerHour["x86_64"]; exists {
+			fmt.Printf("   • x86_64: $%.3f/hour ($%.2f/day)\n", cost, cost*24)
+		}
+		if cost, exists := runtimeTemplate.EstimatedCostPerHour["arm64"]; exists {
+			fmt.Printf("   • arm64:  $%.3f/hour ($%.2f/day)\n", cost, cost*24)
+		}
+		
+		fmt.Printf("\n🖥️  **Instance Types** (default M size):\n")
+		if instanceType, exists := runtimeTemplate.InstanceType["x86_64"]; exists {
+			fmt.Printf("   • x86_64: %s\n", instanceType)
+		}
+		if instanceType, exists := runtimeTemplate.InstanceType["arm64"]; exists {
+			fmt.Printf("   • arm64:  %s\n", instanceType)
+		}
+		fmt.Println()
+	}
+
+	// Size Scaling Information
+	fmt.Printf("📏 **T-Shirt Size Scaling**:\n")
+	fmt.Printf("   • XS: 1 vCPU, 2GB RAM + 100GB storage\n")
+	fmt.Printf("   • S:  2 vCPU, 4GB RAM + 500GB storage\n") 
+	fmt.Printf("   • M:  2 vCPU, 8GB RAM + 1TB storage [default]\n")
+	fmt.Printf("   • L:  4 vCPU, 16GB RAM + 2TB storage\n")
+	fmt.Printf("   • XL: 8 vCPU, 32GB RAM + 4TB storage\n")
 	
-	// Show AMI information if available
-	if len(template.AMI) > 0 {
-		fmt.Printf("💿 AMI IDs:\n")
-		for region, arches := range template.AMI {
-			for arch, amiID := range arches {
-				fmt.Printf("   %s (%s): %s\n", region, arch, amiID)
+	// Smart scaling analysis
+	requiresGPU := containsGPUPackages(rawTemplate)
+	requiresHighMemory := containsMemoryPackages(rawTemplate) 
+	requiresHighCPU := containsComputePackages(rawTemplate)
+	
+	if requiresGPU || requiresHighMemory || requiresHighCPU {
+		fmt.Printf("\n🧠 **Smart Scaling**: This template will use optimized instance types:\n")
+		if requiresGPU {
+			fmt.Printf("   • GPU workloads → g4dn/g5g instance families\n")
+		}
+		if requiresHighMemory {
+			fmt.Printf("   • Memory-intensive → r5/r6g instance families\n")
+		}
+		if requiresHighCPU {
+			fmt.Printf("   • Compute-intensive → c5/c6g instance families\n")
+		}
+	}
+	fmt.Println()
+
+	// Packages
+	if hasPackages(rawTemplate) {
+		fmt.Printf("📦 **Installed Packages**:\n")
+		if len(rawTemplate.Packages.System) > 0 {
+			fmt.Printf("   • **System** (%s): %s\n", rawTemplate.PackageManager, strings.Join(rawTemplate.Packages.System, ", "))
+		}
+		if len(rawTemplate.Packages.Conda) > 0 {
+			fmt.Printf("   • **Conda**: %s\n", strings.Join(rawTemplate.Packages.Conda, ", "))
+		}
+		if len(rawTemplate.Packages.Pip) > 0 {
+			fmt.Printf("   • **Pip**: %s\n", strings.Join(rawTemplate.Packages.Pip, ", "))
+		}
+		if len(rawTemplate.Packages.Spack) > 0 {
+			fmt.Printf("   • **Spack**: %s\n", strings.Join(rawTemplate.Packages.Spack, ", "))
+		}
+		fmt.Println()
+	}
+
+	// Users
+	if len(rawTemplate.Users) > 0 {
+		fmt.Printf("👤 **User Accounts**:\n")
+		for _, user := range rawTemplate.Users {
+			groups := "-"
+			if len(user.Groups) > 0 {
+				groups = strings.Join(user.Groups, ", ")
+			}
+			shell := user.Shell
+			if shell == "" {
+				shell = "/bin/bash"
+			}
+			fmt.Printf("   • %s (groups: %s, shell: %s)\n", user.Name, groups, shell)
+		}
+		fmt.Println()
+	}
+
+	// Services
+	if len(rawTemplate.Services) > 0 {
+		fmt.Printf("🔧 **Services**:\n")
+		for _, service := range rawTemplate.Services {
+			status := "disabled"
+			if service.Enable {
+				status = "enabled"
+			}
+			port := ""
+			if service.Port > 0 {
+				port = fmt.Sprintf(", port: %d", service.Port)
+			}
+			fmt.Printf("   • %s (%s%s)\n", service.Name, status, port)
+		}
+		fmt.Println()
+	}
+
+	// Ports
+	if runtimeErr == nil && len(runtimeTemplate.Ports) > 0 {
+		fmt.Printf("🌐 **Network Ports**:\n")
+		for _, port := range runtimeTemplate.Ports {
+			service := getServiceForPort(port)
+			fmt.Printf("   • %d (%s)\n", port, service)
+		}
+		fmt.Println()
+	}
+
+	// Idle Detection Configuration
+	if rawTemplate.IdleDetection != nil && rawTemplate.IdleDetection.Enabled {
+		fmt.Printf("💤 **Idle Detection**:\n")
+		fmt.Printf("   • Enabled: %t\n", rawTemplate.IdleDetection.Enabled)
+		fmt.Printf("   • Idle threshold: %d minutes\n", rawTemplate.IdleDetection.IdleThresholdMinutes)
+		if rawTemplate.IdleDetection.HibernateThresholdMinutes > 0 {
+			fmt.Printf("   • Hibernate threshold: %d minutes\n", rawTemplate.IdleDetection.HibernateThresholdMinutes)
+		}
+		fmt.Printf("   • Check interval: %d minutes\n", rawTemplate.IdleDetection.CheckIntervalMinutes)
+		fmt.Println()
+	}
+
+	// Usage Examples
+	fmt.Printf("🚀 **Usage Examples**:\n")
+	launchName := rawTemplate.Slug
+	if launchName == "" {
+		launchName = fmt.Sprintf("\"%s\"", rawTemplate.Name)
+	}
+	fmt.Printf("   • Basic launch:        `cws launch %s my-workspace`\n", launchName)
+	fmt.Printf("   • Large instance:      `cws launch %s my-workspace --size L`\n", launchName)
+	fmt.Printf("   • With project:        `cws launch %s my-workspace --project my-research`\n", launchName)
+	fmt.Printf("   • Spot instance:       `cws launch %s my-workspace --spot`\n", launchName)
+	
+	return nil
+}
+
+// Helper functions for template analysis
+func hasPackages(template *templates.Template) bool {
+	return len(template.Packages.System) > 0 || 
+		   len(template.Packages.Conda) > 0 || 
+		   len(template.Packages.Pip) > 0 || 
+		   len(template.Packages.Spack) > 0
+}
+
+func containsGPUPackages(template *templates.Template) bool {
+	allPackages := append(template.Packages.System, template.Packages.Conda...)
+	allPackages = append(allPackages, template.Packages.Pip...)
+	allPackages = append(allPackages, template.Packages.Spack...)
+	
+	gpuIndicators := []string{"tensorflow-gpu", "pytorch", "cuda", "nvidia", "cupy", "numba", "rapids"}
+	for _, pkg := range allPackages {
+		for _, indicator := range gpuIndicators {
+			if strings.Contains(strings.ToLower(pkg), indicator) {
+				return true
 			}
 		}
 	}
+	return false
+}
 
-	fmt.Printf("\n🚀 Launch: cws launch %s <instance-name>\n", templateName)
+func containsMemoryPackages(template *templates.Template) bool {
+	allPackages := append(template.Packages.System, template.Packages.Conda...)
+	allPackages = append(allPackages, template.Packages.Pip...)
+	allPackages = append(allPackages, template.Packages.Spack...)
 	
-	return nil
+	memoryIndicators := []string{"spark", "hadoop", "r-base", "bioconductor", "genomics"}
+	for _, pkg := range allPackages {
+		for _, indicator := range memoryIndicators {
+			if strings.Contains(strings.ToLower(pkg), indicator) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func containsComputePackages(template *templates.Template) bool {
+	allPackages := append(template.Packages.System, template.Packages.Conda...)
+	allPackages = append(allPackages, template.Packages.Pip...)
+	allPackages = append(allPackages, template.Packages.Spack...)
+	
+	computeIndicators := []string{"openmpi", "mpich", "openmp", "fftw", "blas", "lapack", "atlas", "mkl"}
+	for _, pkg := range allPackages {
+		for _, indicator := range computeIndicators {
+			if strings.Contains(strings.ToLower(pkg), indicator) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func getServiceForPort(port int) string {
+	switch port {
+	case 22:
+		return "SSH"
+	case 80:
+		return "HTTP"
+	case 443:
+		return "HTTPS"
+	case 8787:
+		return "RStudio Server"
+	case 8888:
+		return "Jupyter Notebook"
+	case 3306:
+		return "MySQL"
+	case 5432:
+		return "PostgreSQL"
+	case 6379:
+		return "Redis"
+	default:
+		return "Application"
+	}
 }
 
 // templatesFeatured shows featured templates from repositories
