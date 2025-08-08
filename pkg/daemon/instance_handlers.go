@@ -61,6 +61,31 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Validate that instance name is unique
+	var nameExists bool
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		instances, err := awsManager.ListInstances()
+		if err != nil {
+			return fmt.Errorf("failed to check existing instances: %w", err)
+		}
+		
+		for _, existingInstance := range instances {
+			if existingInstance.Name == req.Name {
+				// Check if instance is in a terminal state (terminated/terminating)
+				if existingInstance.State != "terminated" && existingInstance.State != "terminating" {
+					nameExists = true
+					break
+				}
+			}
+		}
+		return nil
+	})
+	
+	if nameExists {
+		s.writeError(w, http.StatusConflict, fmt.Sprintf("Instance with name '%s' already exists. Please choose a different name.", req.Name))
+		return
+	}
+	
 	// Handle SSH key management if not provided in request
 	if req.SSHKeyName == "" {
 		if err := s.setupSSHKeyForLaunch(&req); err != nil {
