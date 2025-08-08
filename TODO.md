@@ -29,6 +29,42 @@
   - Push updates to running instances via daemon
   - Track CLI versions across fleet for security and compatibility
 
+### 🎨 User Experience Improvements  
+- [ ] **Template Slug Names for CLI**
+  - Add slug versions of template names with dashes (e.g., `r-research-env`)
+  - Allow both display names and slugs for launch commands
+  - Update `cws list` to show both display name and slug
+  - Example: `cws launch r-research-env my-project` instead of `cws launch "R Research Environment" my-project`
+
+- [ ] **Enhanced Template Information**
+  - Implement `cws templates info <name>` command for detailed template information
+  - Show packages included, services configured, ports exposed
+  - Display template inheritance chain and dependencies  
+  - Include cost estimates and instance type recommendations
+  - Show UserData preview and configuration options
+  - Example output:
+    ```
+    Template: R Research Environment (r-research-env)
+    Version: 1.2.0
+    Description: R + RStudio Server + tidyverse packages
+    
+    Inherits: ubuntu-22.04-base
+    Package Manager: apt + conda
+    
+    Packages:
+      System: r-base, r-base-dev, curl, wget, git
+      R: tidyverse, ggplot2, dplyr, shiny
+      
+    Services:
+      - RStudio Server (port 8787)
+      - SSH (port 22)
+      
+    Instance Types: t3.medium (x86_64), t4g.medium (arm64)  
+    Cost: $0.0464/hour (x86_64), $0.0368/hour (arm64)
+    
+    Idle Detection: 5min idle → 10min hibernate
+    ```
+
 ## Medium Priority - Feature Enhancements
 
 ### 🧠 Intelligent Idle Detection
