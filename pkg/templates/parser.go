@@ -272,8 +272,10 @@ func (r *TemplateRegistry) ScanTemplates() error {
 				return fmt.Errorf("failed to parse template %s: %w", path, err)
 			}
 			
-			// Store template by name
-			r.Templates[template.Name] = template
+			// Store template by name (first wins - skip duplicates)
+			if _, exists := r.Templates[template.Name]; !exists {
+				r.Templates[template.Name] = template
+			}
 			
 			return nil
 		})
