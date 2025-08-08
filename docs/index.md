@@ -74,19 +74,28 @@ You can also download the right version for your computer:
 - [Security and Invitations](SECURE_INVITATION_ARCHITECTURE.md)
 
 ### Feature Documentation
-- [Templates](TEMPLATE_FORMAT.md)
-- [Advanced Templates](TEMPLATE_FORMAT_ADVANCED.md)
-- [Simple Templates](TEMPLATE_FORMAT_SIMPLE.md)
-- [Repositories](REPOSITORIES.md)
-- [Idle Detection](IDLE_DETECTION.md)
-- [Multi-Region Support](MULTI_REGION_REGISTRY.md)
-- [Utilization Metrics](UTILIZATION_METRICS.md)
-- [Webhook Notifications](WEBHOOK_NOTIFICATIONS.md)
-- [OIDC Integration](OIDC_INTEGRATION.md)
+- [Templates](TEMPLATE_FORMAT.md) - Template creation guide
+- [Advanced Templates](TEMPLATE_FORMAT_ADVANCED.md) - Advanced template features  
+- [Template Inheritance](TEMPLATE_INHERITANCE.md) - Template inheritance system
+- [Repositories](REPOSITORIES.md) - Repository management
+- [Idle Detection](IDLE_DETECTION.md) - Hibernation and cost optimization
+- [Profile Export/Import](PROFILE_EXPORT_IMPORT.md) - Profile operations
 
-### Implementation Plans
-- [Implementation Plan v0.4.2](IMPLEMENTATION_PLAN_V0.4.2.md)
-- [Phase 1 API Improvements](PHASE1_API_IMPROVEMENTS.md)
+### Developer Documentation
+- [GUI Architecture](GUI_ARCHITECTURE.md) - GUI technical architecture
+- [API Authentication](API_AUTHENTICATION.md) - API security documentation
+- [Daemon API Integration](DAEMON_API_INTEGRATION.md) - API integration guide
+- [Testing Infrastructure](TESTING_INFRASTRUCTURE.md) - Testing framework
+- [Template System Implementation](TEMPLATE_SYSTEM_IMPLEMENTATION.md) - Implementation details
+
+### Distribution & Packaging
+- [Distribution Guide](DISTRIBUTION.md) - Package distribution
+- [Homebrew Tap](HOMEBREW_TAP.md) - macOS distribution
+- [Chocolatey Package](CHOCOLATEY_PACKAGE.md) - Windows distribution
+- [Conda Package](CONDA_PACKAGE.md) - Cross-platform distribution
+
+### Implementation Plans  
+- [Implementation Plan v0.4.2](IMPLEMENTATION_PLAN_V0.4.2.md) - Current development plan
 
 ## Features
 

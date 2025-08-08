@@ -1,81 +1,81 @@
 class Cloudworkstation < Formula
-  desc "Launch pre-configured research environments in the cloud in seconds"
+  desc "CLI tool for launching pre-configured cloud workstations for academic research"
   homepage "https://github.com/scttfrdmn/cloudworkstation"
-  version "0.4.1"
+  url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.4.1.tar.gz"
+  sha256 "3a747a4e0fd8fd85ee621699b443d288d4e254180acafa5dbaa5674e9e5ee922"
   license "MIT"
-
-  # Testing tap configuration
-  head do
-    url "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
-  end
-
-  if OS.mac?
-    if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v#{version}/cws-macos-arm64.tar.gz"
-      sha256 "49eec953771fff58c9369975d29a9f55e363be8825e9c98e1532e6ad3760ef8b"
-    else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v#{version}/cws-macos-amd64.tar.gz"
-      sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING"
-    end
-  elsif OS.linux?
-    if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v#{version}/cws-linux-arm64.tar.gz"
-      sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING"
-    else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v#{version}/cws-linux-amd64.tar.gz"
-      sha256 "REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING"
-    end
-  end
+  version "0.4.1"
 
   depends_on "go" => :build
 
   def install
-    # Binary is pre-built in the tarball, just copy it to bin
-    if OS.mac?
-      if Hardware::CPU.arm?
-        bin.install "cws-darwin-arm64" => "cws"
-        bin.install "cwsd-darwin-arm64" => "cwsd"
-        bin.install "cws-gui-darwin-arm64" => "cws-gui"
-      else
-        bin.install "cws-darwin-amd64" => "cws"
-        bin.install "cwsd-darwin-amd64" => "cwsd"
-        bin.install "cws-gui-darwin-amd64" => "cws-gui"
-      end
-    elsif OS.linux?
-      if Hardware::CPU.arm?
-        bin.install "cws-linux-arm64" => "cws"
-        bin.install "cwsd-linux-arm64" => "cwsd"
-        bin.install "cws-gui-linux-arm64" => "cws-gui"
-      else
-        bin.install "cws-linux-amd64" => "cws"
-        bin.install "cwsd-linux-amd64" => "cwsd"
-        bin.install "cws-gui-linux-amd64" => "cws-gui"
-      end
-    end
+    # Build all binaries
+    system "make", "build"
     
-    # Install bash completion
-    output = Utils.safe_popen_read(bin/"cws", "completion", "bash")
-    (bash_completion/"cws").write output
+    # Install binaries
+    bin.install "bin/cws"
+    bin.install "bin/cwsd" 
+    bin.install "bin/cws-gui"
     
-    # Install zsh completion
-    output = Utils.safe_popen_read(bin/"cws", "completion", "zsh")
-    (zsh_completion/"_cws").write output
+    # Install documentation
+    doc.install "README.md"
+    doc.install "CLAUDE.md"
+    doc.install "CHANGELOG.md"
+    
+    # Install templates
+    share.install "templates"
+    
+    # Install man pages if they exist
+    man1.install Dir["docs/man/*.1"] if Dir.exist?("docs/man")
   end
 
   def caveats
     <<~EOS
-      CloudWorkstation requires AWS credentials to function.
+      CloudWorkstation has been installed with three interfaces:
       
-      If you haven't set up AWS credentials yet, run:
+      Command Line Interface (CLI):
+        cws --help
+      
+      Terminal User Interface (TUI):
+        cws tui
+      
+      Graphical User Interface (GUI):
+        cws-gui
+      
+      To get started:
+        cws templates
+        cws launch <template-name> <instance-name>
+      
+      The daemon (cwsd) will start automatically when needed.
+      You can also start it manually or as a service.
+      
+      AWS credentials are required. Set them up with:
         aws configure
       
-      Or set up credentials directly with:
-        cws config profile your_profile_name
-        cws config region your_aws_region
+      For more information:
+        https://github.com/scttfrdmn/cloudworkstation
     EOS
   end
 
   test do
-    assert_match "CloudWorkstation v#{version}", shell_output("#{bin}/cws version")
+    # Test that binaries exist and are executable
+    assert_predicate bin/"cws", :exist?
+    assert_predicate bin/"cwsd", :exist?  
+    assert_predicate bin/"cws-gui", :exist?
+    
+    # Test version command
+    output = shell_output("#{bin}/cws version 2>&1", 0)
+    assert_match "CloudWorkstation v#{version}", output
+    
+    # Test templates command (should work without AWS credentials)
+    system "#{bin}/cws", "templates"
+  end
+
+  service do
+    run [opt_bin/"cwsd"]
+    keep_alive true
+    log_path var/"log/cloudworkstation/cwsd.log"
+    error_log_path var/"log/cloudworkstation/cwsd.log"
+    working_dir HOMEBREW_PREFIX
   end
 end

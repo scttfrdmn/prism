@@ -5,7 +5,37 @@ All notable changes to CloudWorkstation will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.1] - 2025-07-15
+## [0.4.1] - 2025-08-08
+
+### Critical Bug Fixes
+- **GUI Content Display**: Fixed blank white areas in Dashboard, Instances, Templates, and Storage sections
+- **Version Verification**: Fixed daemon version reporting (was hardcoded "0.1.0", now reports actual version)
+- **CLI Version Panic**: Fixed crash when GitCommit string shorter than 8 characters  
+- **Storage API Mismatch**: Fixed JSON unmarshaling errors in EFS/EBS volume endpoints
+- **GUI Threading**: Eliminated Fyne threading warnings and improved stability
+- **Daemon Version Checking**: Added proper version verification after daemon startup
+
+### User Experience Improvements
+- **System Tray Integration**: Enhanced window management and data refresh when shown from tray
+- **Navigation Highlighting**: Fixed sidebar navigation button highlighting without rebuilding
+- **Connection Status**: Improved daemon connection status detection with proper timeouts
+- **Error Messages**: More helpful and actionable error messages throughout the application
+
+### Documentation
+- **Major Cleanup**: Organized 50+ scattered documentation files into clean structure
+  - Root: 14 essential project files
+  - docs/: 41 current documentation files organized by category  
+  - docs/archive/: 42 historical files properly archived
+- **Updated Navigation**: Comprehensive documentation index with clear categorization
+- **User Guides**: Improved organization of user-facing documentation
+
+### Technical Improvements  
+- **API Consistency**: Storage and volume endpoints now return arrays instead of maps
+- **Version System**: Robust version verification across CLI and GUI interfaces
+- **Build System**: Clean compilation with zero errors across all platforms
+- **Homebrew Integration**: Complete end-to-end Homebrew installation validation
+
+## [0.4.0] - 2025-07-15
 
 ### Added
 - **Graphical User Interface (GUI)** - Point-and-click interface for easier use

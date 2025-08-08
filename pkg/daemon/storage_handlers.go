@@ -28,7 +28,13 @@ func (s *Server) handleListStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(state.EBSVolumes)
+	// Convert map to slice for API consistency
+	storage := make([]types.EBSVolume, 0, len(state.EBSVolumes))
+	for _, volume := range state.EBSVolumes {
+		storage = append(storage, volume)
+	}
+
+	json.NewEncoder(w).Encode(storage)
 }
 
 // handleCreateStorage creates a new storage volume
