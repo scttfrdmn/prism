@@ -17,7 +17,15 @@ import (
 func DefaultTemplateDirs() []string {
 	dirs := []string{}
 	
-	// Add project templates directory for development
+	// HIGHEST PRIORITY: Current working directory's templates/ (for development)
+	if wd, err := os.Getwd(); err == nil {
+		devTemplatesPath := filepath.Join(wd, "templates")
+		if _, err := os.Stat(devTemplatesPath); err == nil {
+			dirs = append(dirs, devTemplatesPath)
+		}
+	}
+	
+	// Add project templates directory for development (binary-relative)
 	if exe, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exe)
 		
@@ -212,15 +220,7 @@ func CreateExampleTemplate(filename string) error {
 
 // MigrateFromLegacy migrates existing hardcoded templates to YAML format
 func MigrateFromLegacy(outputDir string) error {
-	manager := NewCompatibilityManager(DefaultTemplateDirs())
-	legacyTemplates := getHardcodedLegacyTemplates()
-	
-	for name, template := range legacyTemplates {
-		if err := manager.MigrateTemplateToYAML(template, outputDir); err != nil {
-			return fmt.Errorf("failed to migrate template %s: %w", name, err)
-		}
-	}
-	
+	// No hardcoded templates to migrate - all templates are now YAML-based
 	return nil
 }
 
@@ -264,8 +264,8 @@ func ReplaceAWSTemplatesFunction() func() map[string]types.RuntimeTemplate {
 	return func() map[string]types.RuntimeTemplate {
 		templates, err := GetTemplatesForRegion("us-east-1", "x86_64")
 		if err != nil {
-			// Fallback to hardcoded templates if unified system fails
-			return getHardcodedLegacyTemplates()
+			// No fallback - return empty map if YAML templates fail
+			return make(map[string]types.RuntimeTemplate)
 		}
 		return templates
 	}
