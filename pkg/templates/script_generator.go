@@ -348,6 +348,33 @@ chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 {{range .Services}}
 # Configure service: {{.Name}}
 echo "Configuring service: {{.Name}}"
+{{if eq .Name "jupyter"}}
+# Special handling for Jupyter service
+cat > /etc/systemd/system/jupyter.service << 'JUPYTER_SERVICE_EOF'
+[Unit]
+Description=Jupyter Notebook Server
+After=network.target
+
+[Service]
+Type=simple
+User={{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}}
+Environment=PATH=/opt/miniforge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+WorkingDirectory={{range $.Users}}{{if eq .Name "researcher"}}/home/{{.Name}}{{end}}{{end}}
+ExecStart=/opt/miniforge/bin/jupyter lab --ip=0.0.0.0 --port={{.Port}} --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+JUPYTER_SERVICE_EOF
+
+systemctl daemon-reload
+{{if .Enable}}
+systemctl enable jupyter || true
+systemctl start jupyter || true
+{{end}}
+{{else}}
+# Standard service configuration
 {{if .Config}}
 mkdir -p /etc/{{.Name}}
 {{$service := .}}{{range .Config}}
@@ -357,6 +384,7 @@ echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
 {{if .Enable}}
 systemctl enable {{.Name}} || true
 systemctl start {{.Name}} || true
+{{end}}
 {{end}}
 {{end}}
 
