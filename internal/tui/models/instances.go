@@ -42,6 +42,7 @@ func NewInstancesModel(apiClient apiClient) InstancesModel {
 		{Title: "NAME", Width: 20},
 		{Title: "TEMPLATE", Width: 15},
 		{Title: "STATUS", Width: 12},
+		{Title: "TYPE", Width: 4},
 		{Title: "COST/DAY", Width: 10},
 		{Title: "PUBLIC IP", Width: 15},
 		{Title: "LAUNCH TIME", Width: 12},
@@ -237,10 +238,17 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				launchTime = instance.LaunchTime.Format("01/02 15:04")
 			}
 			
+			// Format spot/on-demand indicator
+			typeIndicator := "OD"
+			if instance.InstanceLifecycle == "spot" {
+				typeIndicator = "SP"
+			}
+			
 			rows = append(rows, table.Row{
 				instance.Name,
 				instance.Template,
 				status,
+				typeIndicator,
 				fmt.Sprintf("$%.2f", instance.EstimatedDailyCost),
 				instance.PublicIP,
 				launchTime,

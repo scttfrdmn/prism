@@ -56,6 +56,7 @@ type InstanceResponse struct {
 	EstimatedDailyCost float64   `json:"estimated_daily_cost"`
 	AttachedVolumes    []string  `json:"attached_volumes"`
 	AttachedEBSVolumes []string  `json:"attached_ebs_volumes"`
+	InstanceLifecycle  string    `json:"instance_lifecycle"`  // "spot" or "on-demand"
 	Ports              []int     `json:"ports"`
 }
 
@@ -167,6 +168,7 @@ func ToInstanceResponse(instance types.Instance) InstanceResponse {
 		EstimatedDailyCost: instance.EstimatedDailyCost,
 		AttachedVolumes:    instance.AttachedVolumes,
 		AttachedEBSVolumes: instance.AttachedEBSVolumes,
+		InstanceLifecycle:  instance.InstanceLifecycle,
 		Ports:              ports,
 	}
 }

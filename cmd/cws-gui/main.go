@@ -999,6 +999,14 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 	detailsContainer.Add(nameLabel)
 	detailsContainer.Add(widget.NewLabel("• Template: " + instance.Template))
 	detailsContainer.Add(widget.NewLabel("• Instance Type: " + instance.InstanceType))
+	
+	// Format spot/on-demand indicator
+	typeIndicator := "On-Demand"
+	if instance.InstanceLifecycle == "spot" {
+		typeIndicator = "Spot Instance"
+	}
+	detailsContainer.Add(widget.NewLabel("• Type: " + typeIndicator))
+	
 	detailsContainer.Add(widget.NewLabel("• Launched: " + instance.LaunchTime.Format("Jan 2, 2006 15:04")))
 	
 	// Network information
