@@ -29,12 +29,9 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/internal/cli"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
@@ -59,258 +56,15 @@ func main() {
 		return
 	}
 	
-	// Get remaining arguments after flag parsing
-	remaining := flag.Args()
-	if len(remaining) == 0 {
-		printUsage()
-		os.Exit(1)
-	}
 	
-	// First argument is the command
-	command := remaining[0]
-	args := remaining[1:]
-	
-	// Load configuration from config.json
-	configFile := "config.json"
-	configData, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		// Try to find config in same directory as binary
-		execPath, err := os.Executable()
-		if err == nil {
-			configPath := filepath.Join(filepath.Dir(execPath), "config.json")
-			configData, err = ioutil.ReadFile(configPath)
-		}
-	}
-	
-	// Define config structure
-	config := struct {
-		AWS struct {
-			Profile       string `json:"profile"`
-			Region        string `json:"region"`
-			VpcID         string `json:"vpc_id"`
-			SubnetID      string `json:"subnet_id"`
-			SecurityGroup string `json:"security_group_id"`
-		} `json:"aws"`
-		Daemon struct {
-			Port int    `json:"port"`
-			Host string `json:"host"`
-		} `json:"daemon"`
-	}{}
-	
-	// Set defaults
-	config.AWS.Profile = "aws"
-	config.AWS.Region = "us-west-2"
-	config.AWS.SubnetID = "subnet-06a8cff8a4457b4a7" // Fixed subnet
-	config.AWS.VpcID = "vpc-e7e2999f" // Fixed VPC
-	config.Daemon.Host = "localhost"
-	config.Daemon.Port = 8947
-	
-	// Parse config if found
-	if configData != nil {
-		if err := json.Unmarshal(configData, &config); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to parse config file: %v\n", err)
-		}
-	}
-
-	// Set AWS environment variables if not already set
-	if os.Getenv("AWS_PROFILE") == "" {
-		os.Setenv("AWS_PROFILE", config.AWS.Profile)
-	}
-	
-	if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
-		os.Setenv("AWS_REGION", config.AWS.Region)
-	}
-	
-	// Set environment variables for subnet and VPC
-	os.Setenv("CWS_SUBNET_ID", config.AWS.SubnetID)
-	os.Setenv("CWS_VPC_ID", config.AWS.VpcID)
-	
-	// Set daemon URL if not already set
-	if os.Getenv("CWSD_URL") == "" {
-		os.Setenv("CWSD_URL", fmt.Sprintf("http://%s:%d", config.Daemon.Host, config.Daemon.Port))
-	}
 	
 	// Create app
 	cliApp := cli.NewApp(version.GetVersion())
 
-	switch command {
-	case "tui":
-		err := cliApp.TUI(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "launch":
-		err := cliApp.Launch(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "list":
-		err := cliApp.List(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "connect":
-		err := cliApp.Connect(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "stop":
-		err := cliApp.Stop(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "start":
-		err := cliApp.Start(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "delete":
-		err := cliApp.Delete(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "hibernate":
-		err := cliApp.Hibernate(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "resume":
-		err := cliApp.Resume(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "volume":
-		err := cliApp.Volume(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "storage":
-		err := cliApp.Storage(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "templates":
-		err := cliApp.Templates(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "apply":
-		err := cliApp.Apply(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "diff":
-		err := cliApp.Diff(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "layers":
-		err := cliApp.Layers(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "rollback":
-		err := cliApp.Rollback(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "daemon":
-		err := cliApp.Daemon(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "ami":
-		err := cliApp.AMI(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "save":
-		// Route save command to ami save for now
-		saveArgs := append([]string{"save"}, args...)
-		err := cliApp.AMI(saveArgs)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "migrate":
-		err := cliApp.Migrate(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "profiles":
-		err := cliApp.Profiles(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "idle":
-		err := cliApp.Idle(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "project":
-		err := cliApp.Project(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "pricing":
-		err := cliApp.Pricing(args)
-		if err != nil {
-			// IMPROVED: Use friendly error messages with actionable guidance
-			fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
-			os.Exit(1)
-		}
-	case "version", "--version", "-v":
-		fmt.Println(version.GetVersionInfo())
-	case "help", "--help", "-h":
-		printUsage()
-	default:
-		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", command)
-		printUsage()
+	// Use the new Cobra-based system for all commands
+	err := cliApp.Run(os.Args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", cli.FormatErrorForCLI(err, "command execution"))
 		os.Exit(1)
 	}
 }
@@ -335,6 +89,8 @@ func printUsage() {
 	fmt.Println("    --spot                            Use spot instances")
 	fmt.Println("    --volume <name>                   Attach EFS volume")
 	fmt.Println("    --storage <size>                  Attach EBS storage")
+	fmt.Println("    --subnet <subnet-id>              Specify subnet for launch")
+	fmt.Println("    --vpc <vpc-id>                    Specify VPC for launch")
 	fmt.Println("  list [--project <name>]             List workstations (optionally by project)")
 	fmt.Println("  connect <name>                      Get connection info for workstation")
 	fmt.Println("  stop <name>                         Stop a workstation")
@@ -438,3 +194,4 @@ func printUsage() {
 	fmt.Println("Template sizes: XS, S, M, L, XL, GPU-S, GPU-M, GPU-L")
 	fmt.Println("Storage sizes: XS (100GB), S (500GB), M (1TB), L (2TB), XL (4TB)")
 }
+

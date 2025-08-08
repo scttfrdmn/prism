@@ -19,7 +19,6 @@ packages:
 # Rocky Linux style user
 users:
   - name: "rocky"
-    password: "auto-generated"
     groups: ["wheel", "sudo"]
 
 services: []

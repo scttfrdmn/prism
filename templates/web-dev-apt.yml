@@ -30,7 +30,6 @@ packages:
 
 users:
   - name: "developer"
-    password: "auto-generated"
     groups: ["sudo", "docker", "www-data"]
 
 services:

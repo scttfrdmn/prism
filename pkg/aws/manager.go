@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -12,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -169,19 +171,56 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 	// Encode user data
 	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
 	
+	// ===== NETWORKING CONFIGURATION =====
+	// Handle VPC and subnet discovery
+	var vpcID, subnetID, securityGroupID string
+	
+	if req.VpcID != "" {
+		// User specified VPC
+		vpcID = req.VpcID
+	} else {
+		// Discover default VPC
+		discoveredVPC, err := m.DiscoverDefaultVPC()
+		if err != nil {
+			return nil, fmt.Errorf("failed to discover VPC: %w\n\n🏗️  To fix this issue:\n  1. Create a default VPC: aws ec2 create-default-vpc\n  2. Or specify a VPC: cws launch %s %s --vpc vpc-xxxxxxxxx", req.Template, req.Name)
+		}
+		vpcID = discoveredVPC
+	}
+	
+	if req.SubnetID != "" {
+		// User specified subnet
+		subnetID = req.SubnetID
+	} else {
+		// Discover public subnet in the VPC
+		discoveredSubnet, err := m.DiscoverPublicSubnet(vpcID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to discover subnet: %w\n\n🏗️  To fix this issue:\n  1. Create a public subnet in your VPC\n  2. Or specify a subnet: cws launch %s %s --subnet subnet-xxxxxxxxx", req.Template, req.Name)
+		}
+		subnetID = discoveredSubnet
+	}
+	
+	// Get or create CloudWorkstation security group
+	discoveredSG, err := m.GetOrCreateCloudWorkstationSecurityGroup(vpcID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create security group: %w", err)
+	}
+	securityGroupID = discoveredSG
+	
 	// Launch EC2 instance
 	minCount := int32(1)
 	maxCount := int32(1)
 	runInput := &ec2.RunInstancesInput{
 		ImageId:      &ami,
-		InstanceType: types.InstanceType(instanceType),
+		InstanceType: ec2types.InstanceType(instanceType),
 		MinCount:     &minCount,
 		MaxCount:     &maxCount,
 		UserData:     &userDataEncoded,
-		TagSpecifications: []types.TagSpecification{
+		SubnetId:     aws.String(subnetID),
+		SecurityGroupIds: []string{securityGroupID},
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: types.ResourceTypeInstance,
-				Tags: []types.Tag{
+				ResourceType: ec2types.ResourceTypeInstance,
+				Tags: []ec2types.Tag{
 					{Key: aws.String("Name"), Value: &req.Name},
 					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
 					{Key: aws.String("Template"), Value: &req.Template},
@@ -189,6 +228,42 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 				},
 			},
 		},
+	}
+	
+	// Add SSH key pair if provided
+	if req.SSHKeyName != "" {
+		runInput.KeyName = aws.String(req.SSHKeyName)
+	}
+	
+	// Add hibernation support if requested
+	if req.Hibernation {
+		// Check if instance type supports hibernation
+		if !m.supportsHibernation(instanceType) {
+			return nil, fmt.Errorf("instance type %s does not support hibernation\n\n💡 Hibernation is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --hibernation flag or choose a different instance size", instanceType)
+		}
+		
+		runInput.HibernationOptions = &ec2types.HibernationOptionsRequest{
+			Configured: aws.Bool(true),
+		}
+		
+		// Enable EBS encryption for root volume (required for hibernation)
+		// Ubuntu AMIs typically use /dev/sda1, Amazon Linux uses /dev/xvda
+		rootDevice := "/dev/sda1"
+		if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
+			rootDevice = "/dev/xvda"
+		}
+		
+		runInput.BlockDeviceMappings = []ec2types.BlockDeviceMapping{
+			{
+				DeviceName: aws.String(rootDevice),
+				Ebs: &ec2types.EbsBlockDevice{
+					VolumeType:          ec2types.VolumeTypeGp3,
+					VolumeSize:          aws.Int32(20), // 20GB root volume
+					Encrypted:           aws.Bool(true), // Required for hibernation
+					DeleteOnTermination: aws.Bool(true),
+				},
+			},
+		}
 	}
 	
 	// Handle dry run
@@ -301,8 +376,15 @@ func (m *Manager) HibernateInstance(name string) error {
 	instance := result.Reservations[0].Instances[0]
 	
 	// Check if hibernation is enabled for this instance
-	if instance.HibernationOptions == nil || !*instance.HibernationOptions.Configured {
-		// Fall back to regular stop if hibernation is not supported
+	if instance.HibernationOptions == nil {
+		fmt.Printf("⚠️  Instance %s does not support hibernation (hibernation options not found)\n", name)
+		fmt.Printf("    Falling back to regular stop operation\n")
+		return m.StopInstance(name)
+	}
+	
+	if !*instance.HibernationOptions.Configured {
+		fmt.Printf("⚠️  Instance %s does not support hibernation (hibernation not configured)\n", name)
+		fmt.Printf("    Falling back to regular stop operation\n")
 		return m.StopInstance(name)
 	}
 
@@ -360,7 +442,7 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 	return hibernationSupported, isHibernated, nil
 }
 
-// GetConnectionInfo returns connection information for an instance
+// GetConnectionInfo returns connection information for an instance with SSH key path
 func (m *Manager) GetConnectionInfo(name string) (string, error) {
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
@@ -386,7 +468,16 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 		return "", fmt.Errorf("instance has no public IP address")
 	}
 
-	return fmt.Sprintf("ssh ubuntu@%s", *instance.PublicIpAddress), nil
+	// Get SSH key information
+	sshKeyInfo := ""
+	if instance.KeyName != nil {
+		keyPath, err := m.getSSHKeyPathFromKeyName(*instance.KeyName)
+		if err == nil {
+			sshKeyInfo = fmt.Sprintf(" -i \"%s\"", keyPath)
+		}
+	}
+
+	return fmt.Sprintf("ssh%s ubuntu@%s", sshKeyInfo, *instance.PublicIpAddress), nil
 }
 
 // CreateVolume creates a new EFS volume
@@ -543,12 +634,12 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVol
 	// Create EBS volume
 	input := &ec2.CreateVolumeInput{
 		Size:         aws.Int32(int32(sizeGB)),
-		VolumeType:   types.VolumeType(volumeType),
+		VolumeType:   ec2types.VolumeType(volumeType),
 		AvailabilityZone: aws.String(m.region + "a"), // Use first AZ
-		TagSpecifications: []types.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: types.ResourceTypeVolume,
-				Tags: []types.Tag{
+				ResourceType: ec2types.ResourceTypeVolume,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(req.Name),
@@ -729,7 +820,7 @@ chown -R ubuntu:ubuntu /mnt/%s
 // findInstanceByName finds an EC2 instance by its Name tag
 func (m *Manager) findInstanceByName(name string) (string, error) {
 	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
-		Filters: []types.Filter{
+		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:Name"),
 				Values: []string{name},
@@ -755,6 +846,80 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 	}
 
 	return "", fmt.Errorf("instance '%s' not found", name)
+}
+
+// ListInstances returns all CloudWorkstation instances with real-time AWS status
+func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
+	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
+			},
+			{
+				Name:   aws.String("instance-state-name"),
+				Values: []string{"pending", "running", "shutting-down", "stopping", "stopped"},
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe instances: %w", err)
+	}
+
+	var instances []ctypes.Instance
+	for _, reservation := range result.Reservations {
+		for _, ec2Instance := range reservation.Instances {
+			// Extract instance name from tags
+			name := ""
+			template := ""
+			project := ""
+			for _, tag := range ec2Instance.Tags {
+				if tag.Key != nil && tag.Value != nil {
+					switch *tag.Key {
+					case "Name":
+						name = *tag.Value
+					case "Template":
+						template = *tag.Value
+					case "Project":
+						project = *tag.Value
+					}
+				}
+			}
+
+			// Skip instances without names (shouldn't happen but be safe)
+			if name == "" {
+				continue
+			}
+
+			// Convert AWS state to CloudWorkstation state
+			state := "unknown"
+			if ec2Instance.State != nil {
+				state = string(ec2Instance.State.Name)
+			}
+
+			// Get public IP
+			publicIP := ""
+			if ec2Instance.PublicIpAddress != nil {
+				publicIP = *ec2Instance.PublicIpAddress
+			}
+
+			// Create CloudWorkstation Instance struct with real-time data
+			instance := ctypes.Instance{
+				ID:                  *ec2Instance.InstanceId,
+				Name:                name,
+				Template:            template,
+				State:               state,
+				PublicIP:            publicIP,
+				ProjectID:           project,
+				LaunchTime:          *ec2Instance.LaunchTime, // Dereference the pointer
+				EstimatedDailyCost:  0.0, // TODO: Calculate based on instance type
+			}
+
+			instances = append(instances, instance)
+		}
+	}
+
+	return instances, nil
 }
 
 // parseSizeToGB converts t-shirt sizes to GB
@@ -1190,7 +1355,7 @@ func (m *Manager) applyEFSDiscounts(basePrice float64) float64 {
 // findVolumeByName finds an EBS volume by its Name tag
 func (m *Manager) findVolumeByName(name string) (string, error) {
 	result, err := m.ec2.DescribeVolumes(context.TODO(), &ec2.DescribeVolumesInput{
-		Filters: []types.Filter{
+		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:Name"),
 				Values: []string{name},
@@ -1210,4 +1375,422 @@ func (m *Manager) findVolumeByName(name string) (string, error) {
 	}
 	
 	return *result.Volumes[0].VolumeId, nil
+}
+
+// EnsureKeyPairExists ensures the SSH key pair exists in AWS, creating it if necessary
+func (m *Manager) EnsureKeyPairExists(keyName, publicKeyContent string) error {
+	// Check if key pair already exists
+	_, err := m.ec2.DescribeKeyPairs(context.TODO(), &ec2.DescribeKeyPairsInput{
+		KeyNames: []string{keyName},
+	})
+	
+	if err == nil {
+		// Key pair already exists
+		return nil
+	}
+	
+	// Key pair doesn't exist, import it
+	_, err = m.ec2.ImportKeyPair(context.TODO(), &ec2.ImportKeyPairInput{
+		KeyName:           aws.String(keyName),
+		PublicKeyMaterial: []byte(publicKeyContent),
+		TagSpecifications: []ec2types.TagSpecification{
+			{
+				ResourceType: ec2types.ResourceTypeKeyPair,
+				Tags: []ec2types.Tag{
+					{
+						Key:   aws.String("CloudWorkstation"),
+						Value: aws.String("true"),
+					},
+					{
+						Key:   aws.String("ManagedBy"),
+						Value: aws.String("cws"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to import key pair: %w", err)
+	}
+	
+	return nil
+}
+
+// DeleteKeyPair deletes an SSH key pair from AWS
+func (m *Manager) DeleteKeyPair(keyName string) error {
+	_, err := m.ec2.DeleteKeyPair(context.TODO(), &ec2.DeleteKeyPairInput{
+		KeyName: aws.String(keyName),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete key pair: %w", err)
+	}
+	
+	return nil
+}
+
+// ListCloudWorkstationKeyPairs lists all SSH key pairs managed by CloudWorkstation
+func (m *Manager) ListCloudWorkstationKeyPairs() ([]string, error) {
+	result, err := m.ec2.DescribeKeyPairs(context.TODO(), &ec2.DescribeKeyPairsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
+			},
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe key pairs: %w", err)
+	}
+	
+	var keyNames []string
+	for _, keyPair := range result.KeyPairs {
+		if keyPair.KeyName != nil {
+			keyNames = append(keyNames, *keyPair.KeyName)
+		}
+	}
+	
+	return keyNames, nil
+}
+
+// getSSHKeyPathFromKeyName maps an AWS key pair name to local SSH key path
+func (m *Manager) getSSHKeyPathFromKeyName(keyName string) (string, error) {
+	// CloudWorkstation key naming pattern: cws-<profile>-key
+	if strings.HasPrefix(keyName, "cws-") && strings.HasSuffix(keyName, "-key") {
+		// Extract safe name from key name (it's already safe for filesystem) 
+		safeName := strings.TrimPrefix(keyName, "cws-")
+		safeName = strings.TrimSuffix(safeName, "-key")
+		
+		// Get home directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %w", err)
+		}
+		
+		// Construct key path using the same naming
+		keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("cws-%s-key", safeName))
+		
+		// Check if key exists
+		if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+			return "", fmt.Errorf("SSH key not found at %s", keyPath)
+		}
+		
+		return keyPath, nil
+	}
+	
+	// For non-CloudWorkstation keys, try to find default SSH keys
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	
+	// Check common SSH key locations
+	commonKeys := []string{"id_ed25519", "id_rsa", "id_ecdsa"}
+	for _, keyType := range commonKeys {
+		keyPath := filepath.Join(homeDir, ".ssh", keyType)
+		if _, err := os.Stat(keyPath); err == nil {
+			return keyPath, nil
+		}
+	}
+	
+	return "", fmt.Errorf("no SSH key found for key name: %s", keyName)
+}
+
+// ===== NETWORKING FUNCTIONS =====
+
+// DiscoverDefaultVPC finds the default VPC in the current region
+func (m *Manager) DiscoverDefaultVPC() (string, error) {
+	result, err := m.ec2.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("is-default"),
+				Values: []string{"true"},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe VPCs: %w", err)
+	}
+	
+	if len(result.Vpcs) == 0 {
+		return "", fmt.Errorf("no default VPC found in region %s - please create one or specify --vpc", m.region)
+	}
+	
+	return *result.Vpcs[0].VpcId, nil
+}
+
+// DiscoverPublicSubnet finds a public subnet in the specified VPC
+func (m *Manager) DiscoverPublicSubnet(vpcID string) (string, error) {
+	// Get all subnets in the VPC
+	result, err := m.ec2.DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []string{vpcID},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe subnets in VPC %s: %w", vpcID, err)
+	}
+	
+	if len(result.Subnets) == 0 {
+		return "", fmt.Errorf("no subnets found in VPC %s", vpcID)
+	}
+	
+	// Find a public subnet by checking route tables
+	for _, subnet := range result.Subnets {
+		isPublic, err := m.isSubnetPublic(*subnet.SubnetId)
+		if err != nil {
+			continue // Skip this subnet on error
+		}
+		if isPublic {
+			return *subnet.SubnetId, nil
+		}
+	}
+	
+	// If no clearly public subnet found, use the first available subnet
+	// (this handles cases where route table detection fails)
+	return *result.Subnets[0].SubnetId, nil
+}
+
+// isSubnetPublic checks if a subnet is public by examining its route table
+func (m *Manager) isSubnetPublic(subnetID string) (bool, error) {
+	// Get route tables for this subnet
+	result, err := m.ec2.DescribeRouteTables(context.TODO(), &ec2.DescribeRouteTablesInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: []string{subnetID},
+			},
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+	
+	// Check each route table for internet gateway routes
+	for _, routeTable := range result.RouteTables {
+		for _, route := range routeTable.Routes {
+			// Look for route to 0.0.0.0/0 via internet gateway
+			if route.DestinationCidrBlock != nil && *route.DestinationCidrBlock == "0.0.0.0/0" {
+				if route.GatewayId != nil && strings.HasPrefix(*route.GatewayId, "igw-") {
+					return true, nil
+				}
+			}
+		}
+	}
+	
+	return false, nil
+}
+
+// GetOrCreateCloudWorkstationSecurityGroup creates or finds the CloudWorkstation security group
+func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string, error) {
+	securityGroupName := "cloudworkstation-access"
+	
+	// Try to find existing security group
+	result, err := m.ec2.DescribeSecurityGroups(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("group-name"),
+				Values: []string{securityGroupName},
+			},
+			{
+				Name:   aws.String("vpc-id"), 
+				Values: []string{vpcID},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe security groups: %w", err)
+	}
+	
+	// Return existing security group if found
+	if len(result.SecurityGroups) > 0 {
+		return *result.SecurityGroups[0].GroupId, nil
+	}
+	
+	// Create new security group
+	createResult, err := m.ec2.CreateSecurityGroup(context.TODO(), &ec2.CreateSecurityGroupInput{
+		GroupName:   aws.String(securityGroupName),
+		Description: aws.String("CloudWorkstation SSH and web access"),
+		VpcId:       aws.String(vpcID),
+		TagSpecifications: []ec2types.TagSpecification{
+			{
+				ResourceType: ec2types.ResourceTypeSecurityGroup,
+				Tags: []ec2types.Tag{
+					{Key: aws.String("Name"), Value: aws.String(securityGroupName)},
+					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("Purpose"), Value: aws.String("Research workstation access")},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create security group: %w", err)
+	}
+	
+	securityGroupID := *createResult.GroupId
+	
+	// Add SSH rule (port 22)
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(securityGroupID),
+		IpPermissions: []ec2types.IpPermission{
+			{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int32(22),
+				ToPort:     aws.Int32(22),
+				IpRanges: []ec2types.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("SSH access"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to add SSH rule to security group: %w", err)
+	}
+	
+	// Add HTTP rule (port 80) for web interfaces
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(securityGroupID),
+		IpPermissions: []ec2types.IpPermission{
+			{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int32(80),
+				ToPort:     aws.Int32(80),
+				IpRanges: []ec2types.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("HTTP access for web interfaces"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to add HTTP rule to security group: %w", err)
+	}
+	
+	// Add HTTPS rule (port 443) for secure web interfaces
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(securityGroupID),
+		IpPermissions: []ec2types.IpPermission{
+			{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int32(443),
+				ToPort:     aws.Int32(443),
+				IpRanges: []ec2types.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("HTTPS access for secure web interfaces"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to add HTTPS rule to security group: %w", err)
+	}
+	
+	// Add Jupyter rule (port 8888) for notebook interfaces
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(securityGroupID),
+		IpPermissions: []ec2types.IpPermission{
+			{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int32(8888),
+				ToPort:     aws.Int32(8888),
+				IpRanges: []ec2types.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("Jupyter notebook access"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to add Jupyter rule to security group: %w", err)
+	}
+	
+	// Add RStudio rule (port 8787) for R interfaces
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(securityGroupID),
+		IpPermissions: []ec2types.IpPermission{
+			{
+				IpProtocol: aws.String("tcp"),
+				FromPort:   aws.Int32(8787),
+				ToPort:     aws.Int32(8787),
+				IpRanges: []ec2types.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("RStudio server access"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to add RStudio rule to security group: %w", err)
+	}
+	
+	// Add ICMP rule for ping
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+		GroupId: aws.String(securityGroupID),
+		IpPermissions: []ec2types.IpPermission{
+			{
+				IpProtocol: aws.String("icmp"),
+				FromPort:   aws.Int32(-1),
+				ToPort:     aws.Int32(-1),
+				IpRanges: []ec2types.IpRange{
+					{
+						CidrIp:      aws.String("0.0.0.0/0"),
+						Description: aws.String("ICMP ping access"),
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to add ICMP rule to security group: %w", err)
+	}
+	
+	return securityGroupID, nil
+}
+
+// supportsHibernation checks if an instance type supports hibernation
+func (m *Manager) supportsHibernation(instanceType string) bool {
+	// AWS hibernation support is based on instance families and generations
+	// Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/hibernating-instances.html
+	
+	supportedFamilies := map[string]bool{
+		// General Purpose
+		"t2": true, "t3": true, "t3a": true,
+		"m3": true, "m4": true, "m5": true, "m5a": true, "m5n": true, "m5zn": true,
+		"m6i": true, "m6a": true, "m6g": true, "m7i": true, "m7a": true, "m7g": true,
+		
+		// Compute Optimized  
+		"c3": true, "c4": true, "c5": true, "c5n": true,
+		"c6i": true, "c6a": true, "c6g": true, "c7i": true, "c7a": true, "c7g": true,
+		
+		// Memory Optimized
+		"r3": true, "r4": true, "r5": true, "r5a": true, "r5n": true,
+		"r6i": true, "r6a": true, "r6g": true, "r7i": true, "r7a": true, "r7g": true,
+		"x1": true, "x1e": true,
+		
+		// Accelerated Computing (GPU)
+		"g4dn": true, "g4ad": true, "g5": true, "g5g": true,
+	}
+	
+	// Extract instance family from instance type (e.g., "c6g.large" -> "c6g", "t3.micro" -> "t3")
+	dotIndex := strings.Index(instanceType, ".")
+	if dotIndex == -1 {
+		// No dot found, use entire string
+		return supportedFamilies[instanceType]
+	}
+	
+	family := instanceType[:dotIndex]
+	return supportedFamilies[family]
 }

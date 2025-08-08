@@ -67,6 +67,11 @@ type Profile struct {
 	
 	// BindingRef is a reference to device binding information
 	BindingRef string `json:"binding_ref,omitempty"`
+	
+	// SSH key configuration
+	SSHKeyName    string `json:"ssh_key_name,omitempty"`     // AWS key pair name
+	SSHKeyPath    string `json:"ssh_key_path,omitempty"`     // Local private key path
+	UseDefaultKey bool   `json:"use_default_key,omitempty"`  // Use default SSH key (~/.ssh/id_rsa)
 }
 
 // Profiles represents the collection of all profiles

@@ -44,6 +44,9 @@ type DaemonStatus struct {
 	// AWSRegion is the current AWS region being used
 	AWSRegion string `json:"aws_region"`
 	
+	// AWSProfile is the current AWS profile being used
+	AWSProfile string `json:"aws_profile,omitempty"`
+	
 	// CurrentProfile is the active profile ID (if applicable)
 	CurrentProfile string `json:"current_profile,omitempty"`
 }

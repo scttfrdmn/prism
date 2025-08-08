@@ -159,7 +159,7 @@ func (s *StatusTracker) GetRequestRate() float64 {
 }
 
 // GetStatus returns the current daemon status
-func (s *StatusTracker) GetStatus(version string, region string) types.DaemonStatus {
+func (s *StatusTracker) GetStatus(version string, region string, awsProfile string) types.DaemonStatus {
 	// Get active operations count
 	activeOps := int(atomic.LoadInt32(&s.activeOperations))
 	
@@ -185,5 +185,6 @@ func (s *StatusTracker) GetStatus(version string, region string) types.DaemonSta
 		TotalRequests:     atomic.LoadInt64(&s.totalRequests),
 		RequestsPerMinute: s.GetRequestRate(),
 		AWSRegion:         region,
+		AWSProfile:        awsProfile,
 	}
 }

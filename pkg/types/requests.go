@@ -12,7 +12,9 @@ type LaunchRequest struct {
 	SubnetID       string   `json:"subnet_id,omitempty"`
 	VpcID          string   `json:"vpc_id,omitempty"`
 	ProjectID      string   `json:"project_id,omitempty"`     // Project to associate instance with
+	SSHKeyName     string   `json:"ssh_key_name,omitempty"`   // AWS key pair name to use
 	Spot           bool     `json:"spot,omitempty"`
+	Hibernation    bool     `json:"hibernation,omitempty"`    // Enable hibernation support
 	DryRun         bool     `json:"dry_run,omitempty"`
 }
 

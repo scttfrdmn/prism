@@ -45,7 +45,6 @@ ami_config:
 
 users:
   - name: "researcher"
-    password: "auto-generated"
     groups: ["sudo"]
 
 services:

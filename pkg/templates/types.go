@@ -79,7 +79,6 @@ type ServiceConfig struct {
 // UserConfig defines a user to create
 type UserConfig struct {
 	Name     string   `yaml:"name" json:"name"`
-	Password string   `yaml:"password,omitempty" json:"password,omitempty"` // "auto-generated" for secure random
 	Groups   []string `yaml:"groups,omitempty" json:"groups,omitempty"`
 	Shell    string   `yaml:"shell,omitempty" json:"shell,omitempty"` // Default: /bin/bash
 }

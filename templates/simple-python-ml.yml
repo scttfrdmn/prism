@@ -28,7 +28,6 @@ services:
 
 users:
   - name: "researcher"
-    password: "auto-generated"
     groups: ["sudo"]
 
 # GPU instances recommended for ML workloads

@@ -2,7 +2,7 @@ class Cloudworkstation < Formula
   desc "CLI tool for launching pre-configured cloud workstations for academic research"
   homepage "https://github.com/scttfrdmn/cloudworkstation"
   url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.4.1.tar.gz"
-  sha256 "8bfac34f1addb99f9793b41d782e0bf5e93fab854e570975611ceacaf96f1be0"
+  sha256 "e4ac4cc646dcedf2df172877db473f091d9f694ffc28912a5a1dc8b738233545"
   license "MIT"
   version "0.4.1"
 

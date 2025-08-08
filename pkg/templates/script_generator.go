@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"text/template"
 	"bytes"
-	"crypto/rand"
-	"encoding/base64"
 )
 
 // NewScriptGenerator creates a new script generator
@@ -74,7 +72,6 @@ type ScriptData struct {
 // UserData contains processed user data for script generation
 type UserData struct {
 	Name     string
-	Password string
 	Groups   []string
 	Shell    string
 }
@@ -107,23 +104,13 @@ func (sg *ScriptGenerator) prepareUsers(users []UserConfig) []UserData {
 			Shell:  user.Shell,
 		}
 		
-		// Generate secure password if auto-generated
-		if user.Password == "auto-generated" || user.Password == "" {
-			userData[i].Password = generateSecurePassword()
-		} else {
-			userData[i].Password = user.Password
-		}
+		// SSH key authentication only - no passwords needed
 	}
 	
 	return userData
 }
 
-// generateSecurePassword generates a secure random password
-func generateSecurePassword() string {
-	bytes := make([]byte, 16)
-	rand.Read(bytes)
-	return base64.URLEncoding.EncodeToString(bytes)[:16] // 16 char password
-}
+// Password generation removed - using SSH key authentication only
 
 // Script templates for different package managers
 
@@ -156,7 +143,7 @@ apt-get install -y{{range .Packages}} {{.}}{{end}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-echo "{{.Name}}:{{.Password}}" | chpasswd
+# SSH key authentication configured - no password needed
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -193,7 +180,7 @@ echo "=== Setup Complete ==="
 echo "Template: {{.Template.Name}}"
 echo "Description: {{.Template.Description}}"
 {{range .Users}}
-echo "User created - Name: {{.Name}}, Password: {{.Password}}"
+echo "User created - Name: {{.Name}} (SSH key authentication)"
 {{end}}
 {{range .Services}}
 {{if .Port}}
@@ -236,7 +223,7 @@ apt-get install -y{{range .Packages}} {{.}}{{end}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-echo "{{.Name}}:{{.Password}}" | chpasswd
+# SSH key authentication configured - no password needed
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -273,7 +260,7 @@ echo "=== Setup Complete ==="
 echo "Template: {{.Template.Name}}"
 echo "Description: {{.Template.Description}}"
 {{range .Users}}
-echo "User created - Name: {{.Name}}, Password: {{.Password}}"
+echo "User created - Name: {{.Name}} (SSH key authentication)"
 {{end}}
 {{range .Services}}
 {{if .Port}}
@@ -346,7 +333,7 @@ fi
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-echo "{{.Name}}:{{.Password}}" | chpasswd
+# SSH key authentication configured - no password needed
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -384,7 +371,7 @@ echo "Template: {{.Template.Name}}"
 echo "Description: {{.Template.Description}}"
 echo "Conda environment: /opt/miniforge"
 {{range .Users}}
-echo "User created - Name: {{.Name}}, Password: {{.Password}}"
+echo "User created - Name: {{.Name}} (SSH key authentication)"
 {{end}}
 {{range .Services}}
 {{if .Port}}
@@ -459,7 +446,7 @@ spack install
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-echo "{{.Name}}:{{.Password}}" | chpasswd
+# SSH key authentication configured - no password needed
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -502,7 +489,7 @@ echo "Spack root: /opt/spack"
 echo "Default environment: spack env activate default"
 {{end}}
 {{range .Users}}
-echo "User created - Name: {{.Name}}, Password: {{.Password}}"
+echo "User created - Name: {{.Name}} (SSH key authentication)"
 {{end}}
 {{range .Services}}
 {{if .Port}}
@@ -536,7 +523,7 @@ echo "Running custom AMI user data script..."
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-echo "{{.Name}}:{{.Password}}" | chpasswd
+# SSH key authentication configured - no password needed
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -572,7 +559,7 @@ echo "AMI-based template - most software pre-installed"
 echo "SSH User: {{.Template.AMIConfig.SSHUser}}"
 {{end}}
 {{range .Users}}
-echo "Additional user created - Name: {{.Name}}, Password: {{.Password}}"
+echo "Additional user created - Name: {{.Name}} (SSH key authentication)"
 {{end}}
 {{range .Services}}
 {{if .Port}}

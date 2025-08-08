@@ -32,7 +32,6 @@ services:
 # User setup with auto-generated secure password
 users:
   - name: "researcher"
-    password: "auto-generated"
     groups: ["sudo"]
     shell: "/bin/bash"
 
