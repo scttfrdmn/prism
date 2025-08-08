@@ -139,7 +139,7 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		packageManager = "" // Let the template system use the template's specified package manager
 	}
 	
-	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager)
+	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}

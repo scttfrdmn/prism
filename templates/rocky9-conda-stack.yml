@@ -1,4 +1,5 @@
 name: "Rocky Linux 9 + Conda Stack"
+slug: "rocky-conda"
 description: "Rocky Linux 9 base with Conda data science stack - demonstrates template stacking"
 base: "ubuntu-22.04"
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -39,6 +40,11 @@ func (p *TemplateParser) ParseTemplate(content []byte) (*Template, error) {
 		if template.Users[i].Shell == "" {
 			template.Users[i].Shell = "/bin/bash"
 		}
+	}
+	
+	// Generate slug if not provided
+	if template.Slug == "" {
+		template.Slug = generateSlugFromName(template.Name)
 	}
 	
 	// Validate template
@@ -236,6 +242,7 @@ func NewTemplateRegistry(templateDirs []string) *TemplateRegistry {
 	return &TemplateRegistry{
 		TemplateDirs: templateDirs,
 		Templates:    make(map[string]*Template),
+		SlugIndex:    make(map[string]string),
 	}
 }
 
@@ -243,6 +250,7 @@ func NewTemplateRegistry(templateDirs []string) *TemplateRegistry {
 func (r *TemplateRegistry) ScanTemplates() error {
 	parser := NewTemplateParser()
 	r.Templates = make(map[string]*Template)
+	r.SlugIndex = make(map[string]string)
 	
 	for _, dir := range r.TemplateDirs {
 		// Skip directories that don't exist
@@ -275,6 +283,8 @@ func (r *TemplateRegistry) ScanTemplates() error {
 			// Store template by name (first wins - skip duplicates)
 			if _, exists := r.Templates[template.Name]; !exists {
 				r.Templates[template.Name] = template
+				// Build slug index for fast lookup
+				r.SlugIndex[template.Slug] = template.Name
 			}
 			
 			return nil
@@ -294,14 +304,19 @@ func (r *TemplateRegistry) ScanTemplates() error {
 	return nil
 }
 
-// GetTemplate retrieves a template by name
-func (r *TemplateRegistry) GetTemplate(name string) (*Template, error) {
-	template, exists := r.Templates[name]
-	if !exists {
-		return nil, fmt.Errorf("template not found: %s", name)
+// GetTemplate retrieves a template by name or slug
+func (r *TemplateRegistry) GetTemplate(nameOrSlug string) (*Template, error) {
+	// Try direct name lookup first
+	if template, exists := r.Templates[nameOrSlug]; exists {
+		return template, nil
 	}
 	
-	return template, nil
+	// Try slug lookup
+	if templateName, exists := r.SlugIndex[nameOrSlug]; exists {
+		return r.Templates[templateName], nil
+	}
+	
+	return nil, fmt.Errorf("template not found: %s", nameOrSlug)
 }
 
 // ListTemplates returns all available templates
@@ -510,4 +525,47 @@ func (p *TemplateParser) validatePackageConsistency(template *Template) error {
 	}
 	
 	return nil
+}
+
+// generateSlugFromName creates a URL-friendly slug from a template name
+func generateSlugFromName(name string) string {
+	// Convert to lowercase
+	slug := strings.ToLower(name)
+	
+	// Replace common template words with shorter alternatives
+	replacements := map[string]string{
+		"machine learning":  "ml",
+		"development":       "dev", 
+		"environment":       "env",
+		"simplified":        "",
+		"research":          "",
+		"(simplified)":      "",
+		"(apt)":            "",
+		"(dnf)":            "",
+		"(ami)":            "",
+		"basic":            "",
+		"+ conda stack":    "-conda",
+	}
+	
+	for old, new := range replacements {
+		slug = strings.ReplaceAll(slug, old, new)
+	}
+	
+	// Remove special characters and replace spaces/multiple dashes with single dash
+	reg := regexp.MustCompile(`[^a-z0-9\s-]+`)
+	slug = reg.ReplaceAllString(slug, "")
+	
+	// Replace spaces and multiple dashes with single dash
+	reg = regexp.MustCompile(`[\s-]+`)
+	slug = reg.ReplaceAllString(slug, "-")
+	
+	// Remove leading/trailing dashes
+	slug = strings.Trim(slug, "-")
+	
+	// Handle empty slug
+	if slug == "" {
+		slug = "template"
+	}
+	
+	return slug
 }

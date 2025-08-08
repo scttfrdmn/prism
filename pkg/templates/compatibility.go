@@ -76,23 +76,23 @@ func (cm *CompatibilityManager) GetLegacyTemplates(region, architecture string) 
 
 // GetLegacyTemplate returns a single template in legacy format
 func (cm *CompatibilityManager) GetLegacyTemplate(name, region, architecture string) (*types.RuntimeTemplate, error) {
-	return cm.GetLegacyTemplateWithPackageManager(name, region, architecture, "")
+	return cm.GetLegacyTemplateWithPackageManager(name, region, architecture, "", "")
 }
 
-// GetLegacyTemplateWithPackageManager returns a single template with package manager override
-func (cm *CompatibilityManager) GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager string) (*types.RuntimeTemplate, error) {
+// GetLegacyTemplateWithPackageManager returns a single template with package manager override and size scaling
+func (cm *CompatibilityManager) GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager, size string) (*types.RuntimeTemplate, error) {
 	// Scan for new templates
 	if err := cm.Registry.ScanTemplates(); err != nil {
 		return nil, fmt.Errorf("failed to scan templates: %w", err)
 	}
 	
-	template, exists := cm.Registry.Templates[name]
-	if !exists {
-		return nil, fmt.Errorf("template not found: %s", name)
+	template, err := cm.Registry.GetTemplate(name)
+	if err != nil {
+		return nil, err // GetTemplate already returns "template not found: %s" error
 	}
 	
-	// Resolve with package manager override
-	runtimeTemplate, err := cm.Resolver.ResolveTemplateWithOptions(template, region, architecture, packageManager)
+	// Resolve with package manager override and size scaling
+	runtimeTemplate, err := cm.Resolver.ResolveTemplateWithOptions(template, region, architecture, packageManager, size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve template %s: %w", name, err)
 	}
