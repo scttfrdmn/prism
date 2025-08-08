@@ -28,7 +28,13 @@ func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(state.Volumes)
+	// Convert map to slice for API consistency
+	volumes := make([]types.EFSVolume, 0, len(state.Volumes))
+	for _, volume := range state.Volumes {
+		volumes = append(volumes, volume)
+	}
+
+	json.NewEncoder(w).Encode(volumes)
 }
 
 // handleCreateVolume creates a new volume

@@ -1,141 +1,222 @@
 # Getting Started with CloudWorkstation
 
-Welcome to CloudWorkstation! This guide will help you create your very own powerful research computer in the cloud.
+## Quick Start (5 minutes)
 
-## What You'll Need
+CloudWorkstation launches pre-configured research environments in seconds. No complex setup required.
 
-- A computer with internet access
-- CloudWorkstation installed (ask your teacher or parent for help with this)
-- An AWS account (this is what lets you create cloud computers)
-
-## Step 1: Check That Everything Works
-
-First, let's make sure CloudWorkstation is installed correctly:
-
+### 1. Install CloudWorkstation
 ```bash
-cws version
+# Install via Homebrew (macOS/Linux)
+brew tap scttfrdmn/cloudworkstation
+brew install cloudworkstation
+
+# Or download directly
+curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cws-macos-arm64 -o cws
+chmod +x cws
 ```
 
-You should see something like "CloudWorkstation v0.4.0" appear.
-
-Now let's check if CloudWorkstation can talk to AWS:
+### 2. Configure AWS Credentials
+CloudWorkstation uses your existing AWS credentials. If you don't have them set up:
 
 ```bash
-cws test
+# Install AWS CLI if needed
+brew install awscli
+
+# Configure your credentials
+aws configure
 ```
 
-If everything is working, you'll see a happy success message!
+**Required AWS Permissions**: CloudWorkstation needs EC2, EFS, and Systems Manager access. See [AWS Setup Guide](docs/DEMO_TESTER_SETUP.md) for detailed IAM policies.
 
-## Step 2: See What Research Environments Are Available
-
-CloudWorkstation comes with pre-made research environments - like having different science labs ready to go!
-
+### 3. Start CloudWorkstation
 ```bash
+# Start the background service
+cws daemon start
+
+# Launch interactive interface
+cws tui
+```
+
+### 4. Launch Your First Environment
+```bash
+# See available templates
 cws templates
-```
 
-You'll see a list of available research environments like:
-- **python-research**: For coding in Python and data science
-- **r-research**: For statistics and data analysis
-- **neuroimaging**: For brain research
-- **bioinformatics**: For DNA and genetics research
-- And more!
+# Launch a Python ML environment
+cws launch python-ml my-first-project
 
-## Step 3: Launch Your Research Environment
-
-Let's create a cloud computer with the Python research environment:
-
-```bash
-cws launch python-research my-first-project
-```
-
-CloudWorkstation will:
-1. Find the best computer size for Python research
-2. Start a new cloud computer
-3. Set up all the Python tools automatically
-4. Show you how to connect when it's ready
-
-This might take about a minute - you'll see progress updates as it works.
-
-## Step 4: Connect to Your Cloud Computer
-
-Once your cloud computer is ready, you can connect to it:
-
-```bash
+# Get connection info
 cws connect my-first-project
 ```
 
-CloudWorkstation will automatically open a connection for you! You'll see:
+That's it! Your research environment is ready.
 
-- The command line of your cloud computer, OR
-- A web page with Jupyter Notebook or RStudio (depending on your environment)
+---
 
-## Step 5: Using Your Cloud Computer
+## Choose Your Interface
 
-Now you can use your cloud computer just like a normal computer, but with super powers!
+CloudWorkstation offers three ways to interact:
 
-- All the science tools you need are already installed
-- You can upload your data files
-- You can run complex calculations faster than on your regular computer
-- You can save your work for next time
-
-## Step 6: Turn Off Your Cloud Computer When You're Done
-
-Cloud computers cost money when they're running, so it's important to turn them off when you're done:
-
+### 🖥️ **GUI (Desktop App)**
+Perfect for visual management and one-click operations.
 ```bash
-cws stop my-first-project
+cws-gui
 ```
 
-Don't worry - your work will be saved and waiting for you next time!
-
-## Step 7: Turn Your Cloud Computer Back On Later
-
-When you want to work on your project again, just start it up:
-
-```bash
-cws start my-first-project
-```
-
-Then connect to it just like before:
-
-```bash
-cws connect my-first-project
-```
-
-## Cool Tip: Try the New TUI Interface!
-
-CloudWorkstation has a colorful screen-based interface you can use instead of typing commands:
-
+### 📱 **TUI (Terminal Interface)**  
+Keyboard-driven interface for remote work and SSH sessions.
 ```bash
 cws tui
 ```
 
-You can use arrow keys to move around and select options. Press "?" anytime to see keyboard shortcuts!
+### 💻 **CLI (Command Line)**
+Scriptable interface for automation and power users.
+```bash
+cws launch python-ml my-project --size L
+```
 
-## What If Something Goes Wrong?
+---
 
-If you have any problems, try these steps:
+## Essential Commands
 
-1. Check if CloudWorkstation is working:
-   ```bash
-   cws test
-   ```
+### Template Management
+```bash
+cws templates                    # List available environments
+cws templates info python-ml    # Get template details
+cws launch python-ml my-project # Launch environment
+```
 
-2. See if your cloud computer is running:
-   ```bash
-   cws list
-   ```
+### Instance Management
+```bash
+cws list                        # Show running instances
+cws connect my-project          # Get connection info
+cws stop my-project             # Stop when not in use
+cws start my-project            # Resume later
+cws delete my-project           # Remove completely
+```
 
-3. Ask for help (your teacher, parent, or researcher friend)
+### Cost Optimization
+```bash
+cws hibernate my-project        # Preserve RAM, reduce costs
+cws resume my-project           # Resume hibernated instance
+cws idle enable                 # Auto-hibernate idle instances
+```
+
+---
+
+## Common Research Workflows
+
+### Data Science Project
+```bash
+# Launch Jupyter environment
+cws launch python-ml data-analysis --size L
+
+# Create shared storage
+cws volume create shared-datasets
+
+# Connect and start working
+cws connect data-analysis
+# Opens: ssh user@ip-address -L 8888:localhost:8888
+# Jupyter: http://localhost:8888
+```
+
+### R Statistical Analysis
+```bash
+# Launch R + RStudio environment
+cws launch r-research stats-project
+
+# Get RStudio connection
+cws connect stats-project
+# Opens: http://ip-address:8787 (RStudio Server)
+```
+
+### Custom Environment
+```bash
+# Start with base template
+cws launch basic-ubuntu my-custom
+
+# Customize your setup
+cws connect my-custom
+# Install packages, configure tools
+
+# Save for reuse
+cws save my-custom custom-template
+```
+
+---
+
+## Troubleshooting
+
+### "Daemon not running"
+```bash
+# Check daemon status
+cws daemon status
+
+# Restart if needed
+cws daemon stop
+cws daemon start
+```
+
+### "AWS credentials not found"
+```bash
+# Verify AWS configuration
+aws sts get-caller-identity
+
+# Reconfigure if needed
+aws configure
+```
+
+### "Permission denied" errors
+Make sure your AWS user has the required permissions. See our [AWS Setup Guide](docs/DEMO_TESTER_SETUP.md) for complete IAM policies.
+
+### Instance launch fails
+```bash
+# Check AWS region and availability
+aws ec2 describe-availability-zones
+
+# Try different region
+cws launch python-ml my-project --region us-east-1
+```
+
+---
 
 ## Next Steps
 
-Once you're comfortable with the basics, you can:
+- **Browse Templates**: Explore research environments with `cws templates`
+- **Join Community**: Share templates and get help
+- **Read Guides**: Detailed documentation in `/docs` folder
+- **Cost Optimization**: Learn about hibernation and spot instances
+- **Team Collaboration**: Set up shared storage and project management
 
-- Try different research environments
-- Create larger cloud computers for bigger projects
-- Learn how to share your work with others
-- Explore advanced features in the user guide
+**Need Help?** Open an issue on [GitHub](https://github.com/scttfrdmn/cloudworkstation/issues) or check our documentation.
 
-Happy researching! 🔬🚀
+---
+
+## Advanced Features
+
+### Template Stacking
+```bash
+# Build on existing templates
+cws apply gpu-drivers my-project    # Add GPU support
+cws apply docker-tools my-project   # Add Docker
+```
+
+### Project Management
+```bash
+# Create research project
+cws project create brain-study --budget 500
+
+# Launch in project context
+cws launch neuroimaging analysis --project brain-study
+```
+
+### Custom AMIs
+```bash
+# Build optimized AMI from template
+cws ami build python-ml --region us-west-2
+
+# Save running instance as template
+cws ami save my-project custom-env
+```
+
+**🎯 Key Principle**: CloudWorkstation defaults to success. Most commands work without options, with smart defaults for research computing.
