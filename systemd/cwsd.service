@@ -1,0 +1,56 @@
+[Unit]
+Description=CloudWorkstation Daemon - Autonomous Research Instance Management
+Documentation=https://github.com/scttfrdmn/cloudworkstation
+After=network-online.target multi-user.target
+Wants=network-online.target
+ConditionPathExists=/usr/local/bin/cwsd
+
+[Service]
+Type=simple
+User=cloudworkstation
+Group=cloudworkstation
+ExecStart=/usr/local/bin/cwsd -autonomous
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+
+# Allow access to configuration and state directories
+ReadWritePaths=/var/lib/cloudworkstation
+ReadOnlyPaths=/etc/cloudworkstation
+
+# Environment
+Environment=HOME=/var/lib/cloudworkstation
+Environment=XDG_CONFIG_HOME=/var/lib/cloudworkstation/.config
+Environment=AWS_CONFIG_FILE=/etc/cloudworkstation/aws/config
+Environment=AWS_SHARED_CREDENTIALS_FILE=/etc/cloudworkstation/aws/credentials
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudworkstation
+
+# Startup timeout (allow time for AWS initialization)
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=multi-user.target

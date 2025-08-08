@@ -403,6 +403,31 @@ func (m *Manager) HibernateInstance(name string) error {
 		return m.StopInstance(name)
 	}
 
+	// Check if instance is in a state that can be hibernated
+	if instance.State == nil {
+		return fmt.Errorf("instance state unknown")
+	}
+	
+	instanceState := string(instance.State.Name)
+	if instanceState != "running" {
+		return fmt.Errorf("instance must be in 'running' state to hibernate (current state: %s)", instanceState)
+	}
+	
+	// Check if instance has been running long enough for hibernation agent to be ready
+	// AWS hibernation agent typically needs 2-3 minutes after launch to be ready
+	if instance.LaunchTime != nil {
+		timeSinceLaunch := time.Since(*instance.LaunchTime)
+		minReadyTime := 3 * time.Minute
+		
+		if timeSinceLaunch < minReadyTime {
+			remainingTime := minReadyTime - timeSinceLaunch
+			return fmt.Errorf("instance not ready for hibernation yet (launched %v ago, need %v). Wait %v more",
+				timeSinceLaunch.Round(time.Second),
+				minReadyTime,
+				remainingTime.Round(time.Second))
+		}
+	}
+
 	// Stop the instance with hibernation
 	_, err = m.ec2.StopInstances(context.TODO(), &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceID},
@@ -910,6 +935,16 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 			state := "unknown"
 			if ec2Instance.State != nil {
 				state = string(ec2Instance.State.Name)
+				
+				// Check if this is a hibernated instance (stopped + hibernation-enabled)
+				if state == "stopped" && ec2Instance.HibernationOptions != nil && 
+				   *ec2Instance.HibernationOptions.Configured {
+					state = "hibernated"
+				} else if state == "stopping" && ec2Instance.HibernationOptions != nil && 
+				         *ec2Instance.HibernationOptions.Configured {
+					// For instances that were hibernated, show "hibernating" during stop transition
+					state = "hibernating"
+				}
 			}
 
 			// Get public IP
