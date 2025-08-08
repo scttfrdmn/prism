@@ -45,6 +45,16 @@ func (cm *CompatibilityManager) GetLegacyTemplates(region, architecture string) 
 		}
 		
 		// Convert to legacy format
+		var idleDetectionConfig *types.IdleDetectionConfig
+		if runtimeTemplate.IdleDetection != nil {
+			idleDetectionConfig = &types.IdleDetectionConfig{
+				Enabled:                  runtimeTemplate.IdleDetection.Enabled,
+				IdleThresholdMinutes:     runtimeTemplate.IdleDetection.IdleThresholdMinutes,
+				HibernateThresholdMinutes: runtimeTemplate.IdleDetection.HibernateThresholdMinutes,
+				CheckIntervalMinutes:     runtimeTemplate.IdleDetection.CheckIntervalMinutes,
+			}
+		}
+		
 		legacyTemplate := types.RuntimeTemplate{
 			Name:         runtimeTemplate.Name,
 			Description:  runtimeTemplate.Description,
@@ -53,6 +63,7 @@ func (cm *CompatibilityManager) GetLegacyTemplates(region, architecture string) 
 			UserData:     runtimeTemplate.UserData,
 			Ports:        runtimeTemplate.Ports,
 			EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
+			IdleDetection: idleDetectionConfig,
 		}
 		
 		legacyTemplates[name] = legacyTemplate
@@ -87,6 +98,16 @@ func (cm *CompatibilityManager) GetLegacyTemplateWithPackageManager(name, region
 	}
 	
 	// Convert to legacy format
+	var idleDetectionConfig *types.IdleDetectionConfig
+	if runtimeTemplate.IdleDetection != nil {
+		idleDetectionConfig = &types.IdleDetectionConfig{
+			Enabled:                  runtimeTemplate.IdleDetection.Enabled,
+			IdleThresholdMinutes:     runtimeTemplate.IdleDetection.IdleThresholdMinutes,
+			HibernateThresholdMinutes: runtimeTemplate.IdleDetection.HibernateThresholdMinutes,
+			CheckIntervalMinutes:     runtimeTemplate.IdleDetection.CheckIntervalMinutes,
+		}
+	}
+	
 	legacyTemplate := types.RuntimeTemplate{
 		Name:         runtimeTemplate.Name,
 		Description:  runtimeTemplate.Description,
@@ -95,6 +116,7 @@ func (cm *CompatibilityManager) GetLegacyTemplateWithPackageManager(name, region
 		UserData:     runtimeTemplate.UserData,
 		Ports:        runtimeTemplate.Ports,
 		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
+		IdleDetection: idleDetectionConfig,
 	}
 	
 	return &legacyTemplate, nil

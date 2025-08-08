@@ -49,7 +49,7 @@ type AutonomousConfig struct {
 func DefaultAutonomousConfig() *AutonomousConfig {
 	return &AutonomousConfig{
 		AutoExecute:            false,               // Safe default
-		MonitorInterval:        10 * time.Second,   // Check every 10 seconds for testing
+		MonitorInterval:        60 * time.Second,   // Check every minute for efficiency
 		SSHUsername:           "ubuntu",            // Default Ubuntu user
 		SSHKeyPath:            "~/.ssh/cloudworkstation",
 		RequireTagConfirmation: true,               // Extra safety

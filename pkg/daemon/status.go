@@ -36,6 +36,12 @@ type StatusTracker struct {
 	
 	// operationTypesLock protects activeOperationTypes
 	operationTypesLock sync.Mutex
+	
+	// instanceActivity tracks recent activity per instance for smart idle detection
+	instanceActivity map[string]time.Time
+	
+	// instanceActivityLock protects instanceActivity
+	instanceActivityLock sync.Mutex
 }
 
 // NewStatusTracker creates a new status tracker
@@ -45,6 +51,7 @@ func NewStatusTracker() *StatusTracker {
 		requestTimes:        make([]time.Time, 0, 1000), // Pre-allocate for efficiency
 		requestTimeWindow:   1 * time.Minute,            // 1 minute sliding window
 		activeOperationTypes: make(map[string]int32),
+		instanceActivity:    make(map[string]time.Time),
 	}
 }
 
@@ -187,4 +194,40 @@ func (s *StatusTracker) GetStatus(version string, region string, awsProfile stri
 		AWSRegion:         region,
 		AWSProfile:        awsProfile,
 	}
+}
+
+// GetActiveOperationCount returns the current number of active operations
+func (s *StatusTracker) GetActiveOperationCount() int {
+	return int(atomic.LoadInt32(&s.activeOperations))
+}
+
+// RecordInstanceActivity records that an instance had recent activity
+func (s *StatusTracker) RecordInstanceActivity(instanceName string) {
+	s.instanceActivityLock.Lock()
+	defer s.instanceActivityLock.Unlock()
+	s.instanceActivity[instanceName] = time.Now()
+}
+
+// GetRecentlyActiveInstances returns instances that had activity within the specified duration
+func (s *StatusTracker) GetRecentlyActiveInstances(within time.Duration) []string {
+	s.instanceActivityLock.Lock()
+	defer s.instanceActivityLock.Unlock()
+	
+	cutoff := time.Now().Add(-within)
+	var activeInstances []string
+	
+	for instanceName, lastActivity := range s.instanceActivity {
+		if lastActivity.After(cutoff) {
+			activeInstances = append(activeInstances, instanceName)
+		}
+	}
+	
+	// Clean up old entries while we're here
+	for instanceName, lastActivity := range s.instanceActivity {
+		if lastActivity.Before(cutoff.Add(-24 * time.Hour)) { // Keep 24 hours of history
+			delete(s.instanceActivity, instanceName)
+		}
+	}
+	
+	return activeInstances
 }

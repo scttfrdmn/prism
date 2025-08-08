@@ -2,6 +2,9 @@ package idle
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -17,14 +20,32 @@ type MetricsCollector struct {
 
 // NewMetricsCollector creates a new metrics collector
 func NewMetricsCollector(keyPath string, username string, timeout time.Duration) (*MetricsCollector, error) {
-	// TODO: Load SSH private key from keyPath
-	// For now, we'll implement the basic structure
+	// Expand tilde in key path
+	if strings.HasPrefix(keyPath, "~/") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user home directory: %w", err)
+		}
+		keyPath = filepath.Join(homeDir, keyPath[2:])
+	}
+	
+	// Load SSH private key
+	keyBytes, err := ioutil.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read SSH private key %s: %w", keyPath, err)
+	}
+	
+	// Parse private key
+	signer, err := ssh.ParsePrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SSH private key: %w", err)
+	}
 	
 	config := &ssh.ClientConfig{
 		User:            username,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // TODO: Use proper host key verification
 		Timeout:         timeout,
-		// Auth methods will be added when we implement key loading
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signer)},
 	}
 
 	return &MetricsCollector{
@@ -383,4 +404,17 @@ func (mc *MetricsCollector) checkUserConnections(conn *ssh.Client) (bool, error)
 
 	// Active listening services might indicate user applications
 	return count > 5, nil
+}
+
+// CheckActiveConnections simple method to check if users are actively connected
+func (mc *MetricsCollector) CheckActiveConnections(instanceIP string) (bool, error) {
+	// Establish SSH connection
+	conn, err := ssh.Dial("tcp", instanceIP+":22", mc.sshConfig)
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to %s: %w", instanceIP, err)
+	}
+	defer conn.Close()
+
+	// Check for active users (simple version of detectUserActivity)
+	return mc.checkActiveUsers(conn)
 }

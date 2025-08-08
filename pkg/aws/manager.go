@@ -161,6 +161,9 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 	// Use generated UserData script
 	userData := template.UserData
 	
+	// Replace idle detection configuration placeholders
+	userData = m.processIdleDetectionConfig(userData, template)
+	
 	// Add EFS mount if volumes specified
 	if len(req.Volumes) > 0 {
 		for _, volumeName := range req.Volumes {
@@ -217,12 +220,16 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		UserData:     &userDataEncoded,
 		SubnetId:     aws.String(subnetID),
 		SecurityGroupIds: []string{securityGroupID},
+		IamInstanceProfile: &ec2types.IamInstanceProfileSpecification{
+			Name: aws.String("CloudWorkstation-Instance-Profile"),
+		},
 		TagSpecifications: []ec2types.TagSpecification{
 			{
 				ResourceType: ec2types.ResourceTypeInstance,
 				Tags: []ec2types.Tag{
 					{Key: aws.String("Name"), Value: &req.Name},
 					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("LaunchedBy"), Value: aws.String("CloudWorkstation")},
 					{Key: aws.String("Template"), Value: &req.Template},
 					{Key: aws.String("PackageManager"), Value: &req.PackageManager},
 				},
@@ -838,6 +845,21 @@ func (m *Manager) getTemplateForArchitecture(template ctypes.Template, arch, reg
 	}
 	
 	return ami, instanceType, costPerHour, nil
+}
+
+// processIdleDetectionConfig replaces idle detection configuration placeholders in UserData
+func (m *Manager) processIdleDetectionConfig(userData string, template *ctypes.RuntimeTemplate) string {
+	// Check if template has idle detection configuration
+	if template.IdleDetection == nil {
+		return userData
+	}
+	
+	// Replace configuration placeholders
+	userData = strings.ReplaceAll(userData, "{{IDLE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", template.IdleDetection.IdleThresholdMinutes))
+	userData = strings.ReplaceAll(userData, "{{HIBERNATE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", template.IdleDetection.HibernateThresholdMinutes))
+	userData = strings.ReplaceAll(userData, "{{CHECK_INTERVAL_MINUTES}}", fmt.Sprintf("%d", template.IdleDetection.CheckIntervalMinutes))
+	
+	return userData
 }
 
 // addEFSMountToUserData adds EFS mount commands to UserData script

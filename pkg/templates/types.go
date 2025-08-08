@@ -35,6 +35,12 @@ type Template struct {
 	// Post-install script
 	PostInstall string `yaml:"post_install,omitempty" json:"post_install,omitempty"`
 	
+	// User data script for instance initialization
+	UserData string `yaml:"user_data,omitempty" json:"user_data,omitempty"`
+	
+	// Idle detection configuration
+	IdleDetection *IdleDetectionConfig `yaml:"idle_detection,omitempty" json:"idle_detection,omitempty"`
+	
 	// Instance defaults
 	InstanceDefaults InstanceDefaults `yaml:"instance_defaults,omitempty" json:"instance_defaults,omitempty"`
 	
@@ -76,6 +82,14 @@ type ServiceConfig struct {
 	Enable bool     `yaml:"enable,omitempty" json:"enable,omitempty"` // Default: true
 }
 
+// IdleDetectionConfig represents idle detection configuration in templates
+type IdleDetectionConfig struct {
+	Enabled                  bool `yaml:"enabled" json:"enabled"`
+	IdleThresholdMinutes     int  `yaml:"idle_threshold_minutes" json:"idle_threshold_minutes"`
+	HibernateThresholdMinutes int  `yaml:"hibernate_threshold_minutes" json:"hibernate_threshold_minutes"`
+	CheckIntervalMinutes     int  `yaml:"check_interval_minutes" json:"check_interval_minutes"`
+}
+
 // UserConfig defines a user to create
 type UserConfig struct {
 	Name     string   `yaml:"name" json:"name"`
@@ -100,6 +114,7 @@ type RuntimeTemplate struct {
 	UserData     string                       // Generated installation script
 	Ports        []int
 	EstimatedCostPerHour map[string]float64 // arch -> cost per hour
+	IdleDetection *IdleDetectionConfig        // Idle detection configuration
 	
 	// Additional metadata from unified template
 	Source   *Template `json:"-"` // Reference to source template

@@ -12,6 +12,15 @@ type RuntimeTemplate struct {
 	UserData     string
 	Ports        []int
 	EstimatedCostPerHour map[string]float64 // arch -> cost per hour
+	IdleDetection *IdleDetectionConfig        // Idle detection configuration
+}
+
+// IdleDetectionConfig represents idle detection configuration in templates
+type IdleDetectionConfig struct {
+	Enabled                  bool `yaml:"enabled" json:"enabled"`
+	IdleThresholdMinutes     int  `yaml:"idle_threshold_minutes" json:"idle_threshold_minutes"`
+	HibernateThresholdMinutes int  `yaml:"hibernate_threshold_minutes" json:"hibernate_threshold_minutes"`
+	CheckIntervalMinutes     int  `yaml:"check_interval_minutes" json:"check_interval_minutes"`
 }
 
 // Instance represents a running cloud workstation
