@@ -26,6 +26,7 @@ type Server struct {
 	statusTracker   *StatusTracker
 	versionManager  *APIVersionManager
 	idleManager     *idle.Manager
+	idleMonitor     *idle.MonitorService
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
 }
@@ -60,6 +61,12 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize idle manager: %w", err)
 	}
 
+	// Initialize idle monitoring service (will be started later)
+	idleMonitor, err := idle.NewMonitorService(idleManager, nil, nil) // Will set instance provider later
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize idle monitor: %w", err)
+	}
+
 	// Initialize project manager
 	projectManager, err := project.NewManager()
 	if err != nil {
@@ -80,6 +87,7 @@ func NewServer(port string) (*Server, error) {
 		statusTracker:   statusTracker,
 		versionManager:  versionManager,
 		idleManager:     idleManager,
+		idleMonitor:     idleMonitor,
 		projectManager:  projectManager,
 		securityManager: securityManager,
 	}
@@ -134,6 +142,11 @@ func (s *Server) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return s.httpServer.Shutdown(ctx)
+}
+
+// GetIdleManager returns the idle manager for autonomous service integration
+func (s *Server) GetIdleManager() *idle.Manager {
+	return s.idleManager
 }
 
 // setupRoutes configures all HTTP routes
