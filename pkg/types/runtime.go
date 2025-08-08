@@ -27,6 +27,7 @@ type Instance struct {
 	AttachedVolumes    []string                `json:"attached_volumes"`     // EFS volume names
 	AttachedEBSVolumes []string                `json:"attached_ebs_volumes"` // EBS volume IDs
 	InstanceType       string                  `json:"instance_type"`
+	InstanceLifecycle  string                  `json:"instance_lifecycle"`  // "spot" or "on-demand"
 	Username           string                  `json:"username"`
 	WebPort            int                     `json:"web_port"`
 	HasWebInterface    bool                    `json:"has_web_interface"`

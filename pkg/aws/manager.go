@@ -235,6 +235,11 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		runInput.KeyName = aws.String(req.SSHKeyName)
 	}
 	
+	// Validate hibernation and spot combination
+	if req.Hibernation && req.Spot {
+		return nil, fmt.Errorf("hibernation and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Hibernation preserves instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --hibernation for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
+	}
+
 	// Add hibernation support if requested
 	if req.Hibernation {
 		// Check if instance type supports hibernation
@@ -262,6 +267,16 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 					Encrypted:           aws.Bool(true), // Required for hibernation
 					DeleteOnTermination: aws.Bool(true),
 				},
+			},
+		}
+	}
+	
+	// Add spot instance support if requested
+	if req.Spot {
+		runInput.InstanceMarketOptions = &ec2types.InstanceMarketOptionsRequest{
+			MarketType: ec2types.MarketTypeSpot,
+			SpotOptions: &ec2types.SpotMarketOptions{
+				SpotInstanceType: ec2types.SpotInstanceTypeOneTime,
 			},
 		}
 	}
@@ -903,6 +918,12 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 				publicIP = *ec2Instance.PublicIpAddress
 			}
 
+			// Determine instance lifecycle (spot vs on-demand)
+			instanceLifecycle := "on-demand"
+			if string(ec2Instance.InstanceLifecycle) == "spot" {
+				instanceLifecycle = "spot"
+			}
+
 			// Create CloudWorkstation Instance struct with real-time data
 			instance := ctypes.Instance{
 				ID:                  *ec2Instance.InstanceId,
@@ -911,6 +932,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 				State:               state,
 				PublicIP:            publicIP,
 				ProjectID:           project,
+				InstanceLifecycle:   instanceLifecycle,
 				LaunchTime:          *ec2Instance.LaunchTime, // Dereference the pointer
 				EstimatedDailyCost:  0.0, // TODO: Calculate based on instance type
 			}

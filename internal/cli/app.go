@@ -287,9 +287,9 @@ func (a *App) List(args []string) error {
 	
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 	if hasDiscounts {
-		fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tYOUR COST/DAY\tLIST COST/DAY\tPROJECT\tLAUNCHED")
+		fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tYOUR COST/DAY\tLIST COST/DAY\tPROJECT\tLAUNCHED")
 	} else {
-		fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tPROJECT\tLAUNCHED")
+		fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tCOST/DAY\tPROJECT\tLAUNCHED")
 	}
 
 	totalCost := 0.0
@@ -318,11 +318,18 @@ func (a *App) List(args []string) error {
 			}
 		}
 		
+		// Format spot/on-demand indicator
+		typeIndicator := "OD"
+		if instance.InstanceLifecycle == "spot" {
+			typeIndicator = "SP"
+		}
+		
 		if hasDiscounts {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t$%.2f\t%s\t%s\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t$%.2f\t$%.2f\t%s\t%s\n",
 				instance.Name,
 				instance.Template,
 				strings.ToUpper(instance.State),
+				typeIndicator,
 				instance.PublicIP,
 				dailyCost,
 				listDailyCost,
@@ -330,10 +337,11 @@ func (a *App) List(args []string) error {
 				instance.LaunchTime.Format("2006-01-02 15:04"),
 			)
 		} else {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\t%s\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t$%.2f\t%s\t%s\n",
 				instance.Name,
 				instance.Template,
 				strings.ToUpper(instance.State),
+				typeIndicator,
 				instance.PublicIP,
 				dailyCost,
 				projectInfo,
