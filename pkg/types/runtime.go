@@ -32,6 +32,7 @@ type Instance struct {
 	PrivateIP          string                  `json:"private_ip"`
 	State              string                  `json:"state"`
 	LaunchTime         time.Time               `json:"launch_time"`
+	DeletionTime       *time.Time              `json:"deletion_time,omitempty"` // When user initiated deletion
 	EstimatedDailyCost float64                 `json:"estimated_daily_cost"`
 	AttachedVolumes    []string                `json:"attached_volumes"`     // EFS volume names
 	AttachedEBSVolumes []string                `json:"attached_ebs_volumes"` // EBS volume IDs
