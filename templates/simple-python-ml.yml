@@ -36,6 +36,8 @@ instance_defaults:
   ports: [22, 8888]
 
 version: "1.0.0"
+maintainer: "CloudWorkstation Team"
+last_updated: "2024-08-08T17:00:00Z"
 tags:
   type: "research"
   language: "python"
