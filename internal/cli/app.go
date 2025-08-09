@@ -1104,6 +1104,8 @@ func (a *App) Templates(args []string) error {
 			return a.templatesDiscover(args[1:])
 		case "install":
 			return a.templatesInstall(args[1:])
+		case "version":
+			return a.templatesVersion(args[1:])
 		}
 	}
 	
@@ -1645,8 +1647,10 @@ func (a *App) Daemon(args []string) error {
 		return a.daemonStatus()
 	case "logs":
 		return a.daemonLogs()
+	case "config":
+		return a.daemonConfig(args[1:])
 	default:
-		return fmt.Errorf("unknown daemon action: %s", action)
+		return fmt.Errorf("unknown daemon action: %s\nAvailable actions: start, stop, status, logs, config", action)
 	}
 }
 
@@ -2421,6 +2425,457 @@ func getInstitutionalPricingPath() string {
 		return "institutional_pricing.json"
 	}
 	return filepath.Join(homeDir, ".cloudworkstation", "institutional_pricing.json")
+}
+
+// daemonConfig handles daemon configuration commands
+func (a *App) daemonConfig(args []string) error {
+	if len(args) == 0 {
+		return a.daemonConfigShow()
+	}
+
+	switch args[0] {
+	case "show":
+		return a.daemonConfigShow()
+	case "set":
+		return a.daemonConfigSet(args[1:])
+	case "reset":
+		return a.daemonConfigReset()
+	default:
+		return fmt.Errorf("unknown daemon config command: %s\nAvailable commands: show, set, reset", args[0])
+	}
+}
+
+// daemonConfigShow displays current daemon configuration
+func (a *App) daemonConfigShow() error {
+	// Load configuration from daemon config file
+	daemonConfig, err := loadDaemonConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load daemon configuration: %w", err)
+	}
+
+	fmt.Printf("🔧 CloudWorkstation Daemon Configuration\n\n")
+	fmt.Printf("Instance Retention:\n")
+	if daemonConfig.InstanceRetentionMinutes == 0 {
+		fmt.Printf("  • Retention Period: ♾️  Indefinite (until AWS removes instances)\n")
+		fmt.Printf("  • Description: Terminated instances stay visible until AWS cleanup\n")
+	} else {
+		fmt.Printf("  • Retention Period: %d minutes\n", daemonConfig.InstanceRetentionMinutes)
+		fmt.Printf("  • Description: Terminated instances cleaned up after %d minutes\n", daemonConfig.InstanceRetentionMinutes)
+	}
+
+	fmt.Printf("\nServer Settings:\n")
+	fmt.Printf("  • Port: %s\n", daemonConfig.Port)
+
+	fmt.Printf("\n💡 Configuration Commands:\n")
+	fmt.Printf("  cws daemon config set retention <minutes>  # Set retention period (0=indefinite)\n")
+	fmt.Printf("  cws daemon config reset                     # Reset to defaults (5 minutes)\n")
+	
+	return nil
+}
+
+// daemonConfigSet sets daemon configuration values
+func (a *App) daemonConfigSet(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: cws daemon config set <setting> <value>\nAvailable settings: retention")
+	}
+
+	setting := args[0]
+	value := args[1]
+
+	// Load current configuration
+	daemonConfig, err := loadDaemonConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load daemon configuration: %w", err)
+	}
+
+	switch setting {
+	case "retention":
+		var retentionMinutes int
+		if value == "indefinite" || value == "infinite" || value == "0" {
+			retentionMinutes = 0
+		} else {
+			_, err := fmt.Sscanf(value, "%d", &retentionMinutes)
+			if err != nil || retentionMinutes < 0 {
+				return fmt.Errorf("invalid retention value: %s\nUse: 0 (indefinite), or positive integer (minutes)", value)
+			}
+		}
+
+		daemonConfig.InstanceRetentionMinutes = retentionMinutes
+		
+		// Save configuration
+		if err := saveDaemonConfig(daemonConfig); err != nil {
+			return fmt.Errorf("failed to save daemon configuration: %w", err)
+		}
+
+		if retentionMinutes == 0 {
+			fmt.Printf("✅ Instance retention set to indefinite\n")
+			fmt.Printf("   Terminated instances will remain visible until AWS cleanup\n")
+		} else {
+			fmt.Printf("✅ Instance retention set to %d minutes\n", retentionMinutes)
+			fmt.Printf("   Terminated instances will be cleaned up after %d minutes\n", retentionMinutes)
+		}
+		
+		fmt.Printf("\n⚠️  Changes take effect after daemon restart: cws daemon stop && cws daemon start\n")
+
+	default:
+		return fmt.Errorf("unknown setting: %s\nAvailable settings: retention", setting)
+	}
+
+	return nil
+}
+
+// daemonConfigReset resets daemon configuration to defaults
+func (a *App) daemonConfigReset() error {
+	defaultConfig := getDefaultDaemonConfig()
+	
+	if err := saveDaemonConfig(defaultConfig); err != nil {
+		return fmt.Errorf("failed to save daemon configuration: %w", err)
+	}
+
+	fmt.Printf("✅ Daemon configuration reset to defaults\n")
+	fmt.Printf("   Instance retention: 5 minutes\n")
+	fmt.Printf("   Port: 8947\n")
+	fmt.Printf("\n⚠️  Changes take effect after daemon restart: cws daemon stop && cws daemon start\n")
+
+	return nil
+}
+
+// Helper functions for daemon configuration
+func loadDaemonConfig() (*DaemonConfig, error) {
+	// Load daemon configuration using the same config system the daemon uses
+	// We need to import the daemon package to use its config functions
+	return loadDaemonConfigFromFile()
+}
+
+func saveDaemonConfig(config *DaemonConfig) error {
+	return saveDaemonConfigToFile(config)
+}
+
+func getDefaultDaemonConfig() *DaemonConfig {
+	return &DaemonConfig{
+		InstanceRetentionMinutes: 5,
+		Port: "8947",
+	}
+}
+
+// DaemonConfig represents daemon configuration for CLI purposes
+type DaemonConfig struct {
+	InstanceRetentionMinutes int    `json:"instance_retention_minutes"`
+	Port                     string `json:"port"`
+}
+
+// loadDaemonConfigFromFile loads daemon config from the standard location
+func loadDaemonConfigFromFile() (*DaemonConfig, error) {
+	configPath := getDaemonConfigPath()
+	
+	// If config file doesn't exist, return default config
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return getDefaultDaemonConfig(), nil
+	}
+	
+	// Read config file
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read daemon config: %w", err)
+	}
+	
+	// Parse config
+	config := getDefaultDaemonConfig() // Start with defaults
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("failed to parse daemon config: %w", err)
+	}
+	
+	return config, nil
+}
+
+// saveDaemonConfigToFile saves daemon config to the standard location
+func saveDaemonConfigToFile(config *DaemonConfig) error {
+	configPath := getDaemonConfigPath()
+	
+	// Ensure config directory exists
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+	
+	// Marshal config to JSON
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal daemon config: %w", err)
+	}
+	
+	// Write config file
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write daemon config: %w", err)
+	}
+	
+	return nil
+}
+
+// getDaemonConfigPath returns the standard daemon configuration file path
+func getDaemonConfigPath() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "daemon_config.json" // Fallback
+	}
+	return filepath.Join(homeDir, ".cloudworkstation", "daemon_config.json")
+}
+
+// templatesVersion handles template version management commands
+func (a *App) templatesVersion(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf(`usage: cws templates version <subcommand> [options]
+
+Available subcommands:
+  list <template>           - List all versions of a template
+  get <template>           - Get current version of a template
+  set <template> <version> - Set version of a template
+  validate                 - Validate all template versions
+  upgrade                  - Check for template upgrades
+  history <template>       - Show version history of a template`)
+	}
+
+	subcommand := args[0]
+	subargs := args[1:]
+
+	switch subcommand {
+	case "list":
+		return a.templatesVersionList(subargs)
+	case "get":
+		return a.templatesVersionGet(subargs)
+	case "set":
+		return a.templatesVersionSet(subargs)
+	case "validate":
+		return a.templatesVersionValidate(subargs)
+	case "upgrade":
+		return a.templatesVersionUpgrade(subargs)
+	case "history":
+		return a.templatesVersionHistory(subargs)
+	default:
+		return fmt.Errorf("unknown version subcommand: %s\nRun 'cws templates version' for usage", subcommand)
+	}
+}
+
+// templatesVersionList lists all versions of templates
+func (a *App) templatesVersionList(args []string) error {
+	var templateName string
+	if len(args) > 0 {
+		templateName = args[0]
+	}
+
+	fmt.Printf("📋 Template Version Information\n")
+	fmt.Printf("═══════════════════════════════\n\n")
+
+	// Get template information through the templates package
+	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("failed to scan templates: %w", err)
+	}
+
+	if templateName != "" {
+		// Show version info for specific template
+		template, err := registry.GetTemplate(templateName)
+		if err != nil {
+			return fmt.Errorf("template not found: %s", templateName)
+		}
+
+		fmt.Printf("🏗️  **%s**\n", template.Name)
+		fmt.Printf("📝 Description: %s\n", template.Description)
+		fmt.Printf("🏷️  Current Version: %s\n", template.Version)
+		if template.Maintainer != "" {
+			fmt.Printf("👤 Maintainer: %s\n", template.Maintainer)
+		}
+		if !template.LastUpdated.IsZero() {
+			fmt.Printf("📅 Last Updated: %s\n", template.LastUpdated.Format("2006-01-02 15:04"))
+		}
+		if len(template.Tags) > 0 {
+			fmt.Printf("🏷️  Tags: ")
+			for key, value := range template.Tags {
+				fmt.Printf("%s=%s ", key, value)
+			}
+			fmt.Println()
+		}
+	} else {
+		// Show version info for all templates
+		for name, template := range registry.Templates {
+			fmt.Printf("🏗️  **%s** - v%s\n", name, template.Version)
+			if template.Maintainer != "" {
+				fmt.Printf("   👤 %s", template.Maintainer)
+			}
+			if !template.LastUpdated.IsZero() {
+				fmt.Printf(" 📅 %s", template.LastUpdated.Format("2006-01-02"))
+			}
+			fmt.Println()
+		}
+	}
+
+	return nil
+}
+
+// templatesVersionGet gets the current version of a template
+func (a *App) templatesVersionGet(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws templates version get <template-name>")
+	}
+
+	templateName := args[0]
+	fmt.Printf("🔍 Getting version for template '%s'\n", templateName)
+
+	template, err := templates.GetTemplateInfo(templateName)
+	if err != nil {
+		return fmt.Errorf("failed to get template info: %w", err)
+	}
+
+	fmt.Printf("✅ Template: %s\n", template.Name)
+	fmt.Printf("📦 Version: %s\n", template.Version)
+	
+	return nil
+}
+
+// templatesVersionSet sets the version of a template (for development)
+func (a *App) templatesVersionSet(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: cws templates version set <template-name> <version>")
+	}
+
+	templateName := args[0]
+	version := args[1]
+
+	fmt.Printf("⚠️  Setting template version is for development only!\n")
+	fmt.Printf("🏗️  Template: %s\n", templateName)
+	fmt.Printf("🏷️  New Version: %s\n", version)
+
+	// This would require write access to template files
+	// For now, show what would be done
+	fmt.Printf("\n📝 To manually update the template version:\n")
+	fmt.Printf("   1. Edit the template YAML file\n")
+	fmt.Printf("   2. Update the 'version: \"%s\"' field\n", version)
+	fmt.Printf("   3. Run 'cws templates version validate' to verify\n")
+
+	return nil
+}
+
+// templatesVersionValidate validates template versions for consistency
+func (a *App) templatesVersionValidate(args []string) error {
+	fmt.Printf("🔍 Validating Template Versions\n")
+	fmt.Printf("═══════════════════════════════\n\n")
+
+	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("failed to scan templates: %w", err)
+	}
+
+	validationIssues := 0
+	
+	for name, template := range registry.Templates {
+		fmt.Printf("🏗️  Checking %s...\n", name)
+		
+		// Check version format
+		if template.Version == "" {
+			fmt.Printf("   ❌ Missing version field\n")
+			validationIssues++
+		} else {
+			// Check if version follows semantic versioning
+			if isValidSemanticVersion(template.Version) {
+				fmt.Printf("   ✅ Version: %s (semantic)\n", template.Version)
+			} else {
+				fmt.Printf("   ⚠️  Version: %s (non-semantic)\n", template.Version)
+			}
+		}
+		
+		// Check other metadata
+		if template.Maintainer == "" {
+			fmt.Printf("   ℹ️  Missing maintainer field (optional)\n")
+		}
+		
+		if template.LastUpdated.IsZero() {
+			fmt.Printf("   ℹ️  Missing last_updated field (optional)\n")
+		}
+		
+		fmt.Println()
+	}
+
+	if validationIssues == 0 {
+		fmt.Printf("✅ All templates have valid version information\n")
+	} else {
+		fmt.Printf("❌ Found %d validation issues\n", validationIssues)
+	}
+
+	return nil
+}
+
+// templatesVersionUpgrade checks for available template upgrades
+func (a *App) templatesVersionUpgrade(args []string) error {
+	fmt.Printf("🔄 Checking for Template Upgrades\n")
+	fmt.Printf("═════════════════════════════════\n\n")
+
+	fmt.Printf("📦 Current template versions:\n")
+	
+	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("failed to scan templates: %w", err)
+	}
+
+	for name, template := range registry.Templates {
+		fmt.Printf("   🏗️  %s: v%s\n", name, template.Version)
+	}
+
+	fmt.Printf("\n💡 Template upgrade features:\n")
+	fmt.Printf("   • Automatic upgrade checking is planned for future releases\n")
+	fmt.Printf("   • Template repository integration will enable version tracking\n")
+	fmt.Printf("   • Use 'cws templates install <repo:template>' for repository templates\n")
+
+	return nil
+}
+
+// templatesVersionHistory shows version history for a template
+func (a *App) templatesVersionHistory(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws templates version history <template-name>")
+	}
+
+	templateName := args[0]
+	fmt.Printf("📜 Version History for '%s'\n", templateName)
+	fmt.Printf("═══════════════════════════════════\n\n")
+
+	template, err := templates.GetTemplateInfo(templateName)
+	if err != nil {
+		return fmt.Errorf("failed to get template info: %w", err)
+	}
+
+	fmt.Printf("🏗️  Current Version: %s\n", template.Version)
+	if !template.LastUpdated.IsZero() {
+		fmt.Printf("📅 Last Updated: %s\n", template.LastUpdated.Format("2006-01-02 15:04:05"))
+	}
+
+	fmt.Printf("\n💡 Template history features:\n")
+	fmt.Printf("   • Detailed version history tracking is planned\n")
+	fmt.Printf("   • Git integration will provide changelog information\n")
+	fmt.Printf("   • Use 'cws templates validate' to check current versions\n")
+
+	return nil
+}
+
+// Helper function to validate semantic version format
+func isValidSemanticVersion(version string) bool {
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 {
+		return false
+	}
+	
+	// Check if all parts are numeric
+	for _, part := range parts {
+		if part == "" {
+			return false
+		}
+		for _, r := range part {
+			if r < '0' || r > '9' {
+				return false
+			}
+		}
+	}
+	
+	return len(parts) >= 2 && len(parts) <= 3
 }
 
 // Note: AMI command is implemented in internal/cli/ami.go

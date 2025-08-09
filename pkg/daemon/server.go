@@ -20,6 +20,7 @@ import (
 
 // Server represents the CloudWorkstation daemon server
 type Server struct {
+	config          *Config
 	port            string
 	httpServer      *http.Server
 	stateManager    *state.Manager
@@ -37,8 +38,19 @@ type Server struct {
 
 // NewServer creates a new daemon server
 func NewServer(port string) (*Server, error) {
+	// Load daemon configuration
+	config, err := LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load daemon configuration: %w", err)
+	}
+	
+	// Use port from parameter or config, with fallback to default
 	if port == "" {
-		port = "8947" // CWS on phone keypad - more unique than 8080
+		if config.Port != "" {
+			port = config.Port
+		} else {
+			port = "8947" // CWS on phone keypad - more unique than 8080
+		}
 	}
 
 	// Initialize state manager
@@ -96,6 +108,7 @@ func NewServer(port string) (*Server, error) {
 	}
 
 	server := &Server{
+		config:          config,
 		port:            port,
 		stateManager:    stateManager,
 		userManager:     userManager,

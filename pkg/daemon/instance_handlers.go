@@ -39,8 +39,10 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Filter out terminated instances older than 5 minutes (if we have deletion time)
+	// Filter out terminated instances older than retention period (configurable)
+	retentionDuration := s.config.GetRetentionDuration()
 	filteredInstances := make([]types.Instance, 0)
+	
 	for _, instance := range instances {
 		// Include non-terminated instances
 		if instance.State != "terminated" {
@@ -48,20 +50,25 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		
-		// For terminated instances, check deletion time
+		// For terminated instances, check deletion time against retention period
 		if instance.DeletionTime != nil {
-			// Include if less than 5 minutes since deletion was initiated
-			if time.Since(*instance.DeletionTime) < 5*time.Minute {
+			// Include if less than retention period since deletion was initiated
+			if time.Since(*instance.DeletionTime) < retentionDuration {
 				filteredInstances = append(filteredInstances, instance)
 			}
-			// Otherwise, exclude (older than 5 minutes)
+			// Otherwise, exclude (older than retention period)
 		} else {
-			// No deletion time recorded - assume terminated instances older than 5 minutes should be cleaned up
-			// Use a conservative approach: if terminated for more than 5 minutes based on launch time + reasonable startup time
-			// This handles legacy instances without deletion timestamps
-			timeSinceLaunch := time.Since(instance.LaunchTime)
-			if timeSinceLaunch < 10*time.Minute { // Conservative: assume startup + 5min retention
+			// No deletion time recorded - use conservative approach for legacy instances
+			// If retention is 0 (indefinite), always include terminated instances
+			if s.config.InstanceRetentionMinutes == 0 {
 				filteredInstances = append(filteredInstances, instance)
+			} else {
+				// Use launch time + startup buffer + retention period for legacy instances
+				timeSinceLaunch := time.Since(instance.LaunchTime)
+				conservativeRetention := (5 * time.Minute) + retentionDuration // 5min startup buffer
+				if timeSinceLaunch < conservativeRetention {
+					filteredInstances = append(filteredInstances, instance)
+				}
 			}
 			// Otherwise, exclude old terminated instances without deletion timestamps
 		}
