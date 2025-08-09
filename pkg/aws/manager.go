@@ -696,7 +696,7 @@ func (m *Manager) MountVolume(volumeName, instanceName, mountPoint string) error
 
 	log.Printf("Mounting EFS volume '%s' (filesystem ID: %s) to instance '%s' at %s...", volumeName, fsId, instanceName, mountPoint)
 
-	// Create mount command script
+	// Create mount command script with shared group setup
 	mountScript := fmt.Sprintf(`#!/bin/bash
 set -e
 
@@ -712,19 +712,54 @@ if ! command -v mount.efs &> /dev/null; then
     fi
 fi
 
+# Create CloudWorkstation shared group if it doesn't exist
+if ! getent group cloudworkstation-shared >/dev/null 2>&1; then
+    sudo groupadd -g 3000 cloudworkstation-shared
+    echo "Created cloudworkstation-shared group (gid: 3000)"
+fi
+
+# Add current user to shared group if not already a member
+CURRENT_USER=$(whoami)
+if ! groups "$CURRENT_USER" | grep -q cloudworkstation-shared; then
+    sudo usermod -a -G cloudworkstation-shared "$CURRENT_USER"
+    echo "Added $CURRENT_USER to cloudworkstation-shared group"
+fi
+
 # Create mount directory
 sudo mkdir -p %s
 
-# Mount the EFS volume
-sudo mount -t efs %s:/ %s
+# Mount the EFS volume with shared group ownership
+sudo mount -t efs %s:/ %s -o tls,_netdev,gid=3000
 
-# Add to fstab for persistence
+# Set proper permissions for shared access
+sudo chmod 2775 %s  # Group sticky bit + group writable
+sudo chgrp cloudworkstation-shared %s
+
+# Create shared subdirectories with proper permissions
+sudo mkdir -p %s/shared %s/users
+sudo chmod 2775 %s/shared
+sudo chmod 2755 %s/users
+sudo chgrp cloudworkstation-shared %s/shared %s/users
+
+# Create user-specific directory if it doesn't exist
+sudo mkdir -p %s/users/$CURRENT_USER
+sudo chown $CURRENT_USER:cloudworkstation-shared %s/users/$CURRENT_USER
+sudo chmod 755 %s/users/$CURRENT_USER
+
+# Add to fstab for persistence with group mount option
 if ! grep -q "%s" /etc/fstab; then
-    echo "%s:/ %s efs tls,_netdev" | sudo tee -a /etc/fstab
+    echo "%s:/ %s efs tls,_netdev,gid=3000" | sudo tee -a /etc/fstab
 fi
 
-echo "EFS volume mounted successfully at %s"
-`, mountPoint, fsId, mountPoint, fsId, fsId, mountPoint, mountPoint)
+# Set default umask for group-friendly permissions
+echo "umask 002" | sudo tee -a /etc/bash.bashrc >/dev/null 2>&1 || true
+echo "umask 002" | sudo tee -a /etc/zsh/zshrc >/dev/null 2>&1 || true
+
+echo "EFS volume mounted successfully at %s with shared group access"
+echo "  - Shared files: %s/shared (all users)"
+echo "  - User files: %s/users/$CURRENT_USER (personal)" 
+echo "  - Group: cloudworkstation-shared (gid: 3000)"
+`, mountPoint, fsId, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, mountPoint, fsId, fsId, mountPoint, mountPoint, mountPoint, mountPoint)
 
 	// Execute mount script on the instance via SSM
 	err = m.executeScriptOnInstance(instance.ID, mountScript)
