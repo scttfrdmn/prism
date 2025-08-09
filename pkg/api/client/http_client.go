@@ -381,6 +381,27 @@ func (c *HTTPClient) DetachVolume(ctx context.Context, volumeName string) error 
 	return c.handleResponse(resp, nil)
 }
 
+func (c *HTTPClient) MountVolume(ctx context.Context, volumeName, instanceName, mountPoint string) error {
+	req := map[string]string{
+		"instance":    instanceName,
+		"mount_point": mountPoint,
+	}
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/volumes/%s/mount", volumeName), req)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
+func (c *HTTPClient) UnmountVolume(ctx context.Context, volumeName, instanceName string) error {
+	req := map[string]string{"instance": instanceName}
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/volumes/%s/unmount", volumeName), req)
+	if err != nil {
+		return err
+	}
+	return c.handleResponse(resp, nil)
+}
+
 // Storage operations
 
 func (c *HTTPClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {

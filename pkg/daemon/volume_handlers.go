@@ -68,15 +68,34 @@ func (s *Server) handleCreateVolume(w http.ResponseWriter, r *http.Request) {
 
 // handleVolumeOperations handles operations on specific volumes
 func (s *Server) handleVolumeOperations(w http.ResponseWriter, r *http.Request) {
-	volumeName := r.URL.Path[len("/api/v1/volumes/"):]
-	
-	switch r.Method {
-	case http.MethodGet:
-		s.handleGetVolume(w, r, volumeName)
-	case http.MethodDelete:
-		s.handleDeleteVolume(w, r, volumeName)
-	default:
-		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	path := r.URL.Path[len("/api/v1/volumes/"):]
+	parts := splitPath(path)
+	if len(parts) == 0 {
+		s.writeError(w, http.StatusBadRequest, "Missing volume name")
+		return
+	}
+
+	volumeName := parts[0]
+
+	if len(parts) == 1 {
+		switch r.Method {
+		case http.MethodGet:
+			s.handleGetVolume(w, r, volumeName)
+		case http.MethodDelete:
+			s.handleDeleteVolume(w, r, volumeName)
+		default:
+			s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		}
+	} else if len(parts) == 2 {
+		operation := parts[1]
+		switch operation {
+		case "mount":
+			s.handleMountVolume(w, r, volumeName)
+		case "unmount":
+			s.handleUnmountVolume(w, r, volumeName)
+		default:
+			s.writeError(w, http.StatusNotFound, "Unknown operation")
+		}
 	}
 }
 
@@ -114,6 +133,79 @@ func (s *Server) handleDeleteVolume(w http.ResponseWriter, r *http.Request, name
 	// Remove from state
 	if err := s.stateManager.RemoveVolume(name); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleMountVolume mounts an EFS volume to an instance
+func (s *Server) handleMountVolume(w http.ResponseWriter, r *http.Request, volumeName string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	instanceName, ok := req["instance"]
+	if !ok {
+		s.writeError(w, http.StatusBadRequest, "Missing instance name")
+		return
+	}
+
+	mountPoint, ok := req["mount_point"]
+	if !ok {
+		mountPoint = "/mnt/" + volumeName // Default mount point
+	}
+
+	awsManager, err := s.createAWSManagerFromRequest(r)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create AWS manager: %v", err))
+		return
+	}
+
+	err = awsManager.MountVolume(volumeName, instanceName, mountPoint)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to mount volume: %v", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleUnmountVolume unmounts an EFS volume from an instance
+func (s *Server) handleUnmountVolume(w http.ResponseWriter, r *http.Request, volumeName string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req map[string]string
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	instanceName, ok := req["instance"]
+	if !ok {
+		s.writeError(w, http.StatusBadRequest, "Missing instance name")
+		return
+	}
+
+	awsManager, err := s.createAWSManagerFromRequest(r)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create AWS manager: %v", err))
+		return
+	}
+
+	err = awsManager.UnmountVolume(volumeName, instanceName)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to unmount volume: %v", err))
 		return
 	}
 

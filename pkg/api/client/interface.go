@@ -63,6 +63,8 @@ type CloudWorkstationAPI interface {
 	DeleteVolume(context.Context, string) error
 	AttachVolume(context.Context, string, string) error
 	DetachVolume(context.Context, string) error
+	MountVolume(context.Context, string, string, string) error
+	UnmountVolume(context.Context, string, string) error
 
 	// Storage operations (EBS)
 	CreateStorage(context.Context, types.StorageCreateRequest) (*types.EBSVolume, error)

@@ -793,6 +793,10 @@ func (a *App) Volume(args []string) error {
 		return a.volumeInfo(volumeArgs)
 	case "delete":
 		return a.volumeDelete(volumeArgs)
+	case "mount":
+		return a.volumeMount(volumeArgs)
+	case "unmount":
+		return a.volumeUnmount(volumeArgs)
 	default:
 		return fmt.Errorf("unknown volume action: %s", action)
 	}
@@ -900,6 +904,46 @@ func (a *App) volumeDelete(args []string) error {
 	}
 
 	fmt.Printf("🗑️ Deleting EFS volume %s...\n", name)
+	return nil
+}
+
+func (a *App) volumeMount(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: cws volume mount <volume-name> <instance-name> [mount-point]")
+	}
+
+	volumeName := args[0]
+	instanceName := args[1]
+	
+	// Default mount point
+	mountPoint := "/mnt/" + volumeName
+	if len(args) >= 3 {
+		mountPoint = args[2]
+	}
+
+	err := a.apiClient.MountVolume(a.ctx, volumeName, instanceName, mountPoint)
+	if err != nil {
+		return fmt.Errorf("failed to mount volume: %w", err)
+	}
+
+	fmt.Printf("📁 Mounting EFS volume '%s' to '%s' at %s...\n", volumeName, instanceName, mountPoint)
+	return nil
+}
+
+func (a *App) volumeUnmount(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: cws volume unmount <volume-name> <instance-name>")
+	}
+
+	volumeName := args[0]
+	instanceName := args[1]
+
+	err := a.apiClient.UnmountVolume(a.ctx, volumeName, instanceName)
+	if err != nil {
+		return fmt.Errorf("failed to unmount volume: %w", err)
+	}
+
+	fmt.Printf("📤 Unmounting EFS volume '%s' from '%s'...\n", volumeName, instanceName)
 	return nil
 }
 
