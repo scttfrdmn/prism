@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# Cloud Workstation Platform - Claude Development Context
+# CloudWorkstation Platform - Claude Development Context
+
+![CloudWorkstation Logo](../assets/logo.md) - *"Helping to Get Research Done Since 2025"*
 
 ## Project Overview
 
