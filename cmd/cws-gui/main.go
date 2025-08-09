@@ -161,9 +161,10 @@ func (g *CloudWorkstationGUI) initialize() error {
 	// Create main window with proper sizing
 	g.window = g.app.NewWindow("CloudWorkstation")
 	
-	// FIXED: Better window sizing and minimum size constraint
-	g.window.Resize(fyne.NewSize(1400, 900))  // Wider for better readability
-	g.window.SetFixedSize(true) // Prevent user from making it too small
+	// Better window sizing with flexible resizing
+	g.window.Resize(fyne.NewSize(1200, 800))  // Good default size
+	g.window.SetFixedSize(false) // Allow resizing but set minimum
+	// Note: Minimum size is enforced by scroll containers with SetMinSize
 	g.window.SetMaster()
 
 	// Setup containers first (needed for notifications)
@@ -605,7 +606,11 @@ func (g *CloudWorkstationGUI) createDashboardView() fyne.CanvasObject {
 	)
 
 	log.Printf("🏠 Dashboard content created with %d children", len(content.Objects))
-	return content  // Remove scroll wrapper temporarily to test
+	
+	// Add scroll container for dashboard content
+	scrollContainer := fynecontainer.NewScroll(content)
+	scrollContainer.SetMinSize(fyne.NewSize(800, 500)) // Minimum size to prevent jumping
+	return scrollContainer
 }
 
 // createQuickLaunchForm creates the enhanced launch form
@@ -920,7 +925,10 @@ func (g *CloudWorkstationGUI) createInstancesView() fyne.CanvasObject {
 	// Load instances data
 	g.refreshInstances()
 
-	return content  // Remove scroll wrapper - was preventing display
+	// Add scroll container for instances content
+	scrollContainer := fynecontainer.NewScroll(content)
+	scrollContainer.SetMinSize(fyne.NewSize(800, 500)) // Minimum size to prevent jumping
+	return scrollContainer
 }
 
 // initializeInstancesContainer sets up the instances container
@@ -1179,7 +1187,10 @@ func (g *CloudWorkstationGUI) createTemplatesView() fyne.CanvasObject {
 		g.templatesContainer,
 	)
 
-	return content  // Remove scroll wrapper - was preventing display
+	// Add scroll container for templates content
+	scrollContainer := fynecontainer.NewScroll(content)
+	scrollContainer.SetMinSize(fyne.NewSize(800, 500)) // Minimum size to prevent jumping
+	return scrollContainer
 }
 
 // refreshTemplates loads templates from the API and updates the view
@@ -1449,7 +1460,10 @@ func (g *CloudWorkstationGUI) createEFSVolumesView() fyne.CanvasObject {
 		g.efsContainer,
 	)
 
-	return content  // Remove scroll wrapper - was preventing display
+	// Add scroll container for volumes content
+	scrollContainer := fynecontainer.NewScroll(content)
+	scrollContainer.SetMinSize(fyne.NewSize(800, 500)) // Minimum size to prevent jumping
+	return scrollContainer
 }
 
 // createEBSStorageView creates the EBS storage tab content
@@ -1475,7 +1489,10 @@ func (g *CloudWorkstationGUI) createEBSStorageView() fyne.CanvasObject {
 		g.ebsContainer,
 	)
 
-	return content  // Remove scroll wrapper - was preventing display
+	// Add scroll container for EBS storage content
+	scrollContainer := fynecontainer.NewScroll(content)
+	scrollContainer.SetMinSize(fyne.NewSize(800, 500)) // Minimum size to prevent jumping
+	return scrollContainer
 }
 
 // refreshStorage loads both EFS and EBS data from the API

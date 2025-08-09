@@ -6,6 +6,7 @@ package tui
 
 import (
 	"fmt"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
@@ -97,14 +98,18 @@ func (a *App) Run() error {
 		profilesModel: models.NewProfilesModel(a.apiClient),
 	}
 
-	// Create program with model
-	a.program = tea.NewProgram(
+	// Create program with explicit input/output streams for maximum compatibility
+	program := tea.NewProgram(
 		model,
-		tea.WithAltScreen(),       // Use the full terminal screen
+		tea.WithInput(os.Stdin),
+		tea.WithOutput(os.Stderr), // Use stderr to avoid conflicts with stdout
 	)
+	
+	// Store program reference
+	a.program = program
 
 	// Run the application
-	_, err := a.program.Run()
+	_, err := program.Run()
 	return err
 }
 
