@@ -7,7 +7,7 @@ import (
 // InstanceExtended adds monitoring information to Instance
 type InstanceExtended struct {
 	Instance
-	IdleDetection *IdleStatus `json:"idle_detection,omitempty"`
+	IdleDetection *InstanceIdleStatus `json:"idle_detection,omitempty"`
 }
 
 // InstanceIdleStatus represents idle detection status for an instance

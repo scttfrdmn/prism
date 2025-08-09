@@ -107,26 +107,9 @@ type HibernationStatus struct {
 	InstanceName        string `json:"instance_name"`
 }
 
-// IdleStatusResponse represents the response from GetIdleStatus
-type IdleStatusResponse struct {
-	Enabled        bool                    `json:"enabled"`
-	DefaultProfile string                  `json:"default_profile"`
-	Profiles       map[string]IdleProfile  `json:"profiles"`
-	DomainMappings map[string]string       `json:"domain_mappings"`
-}
+// Moved to idle_legacy.go - legacy idle system removed
 
-// IdleProfile represents an idle detection profile
-type IdleProfile struct {
-	Name             string  `json:"name"`
-	CPUThreshold     float64 `json:"cpu_threshold"`
-	MemoryThreshold  float64 `json:"memory_threshold"`
-	NetworkThreshold float64 `json:"network_threshold"`
-	DiskThreshold    float64 `json:"disk_threshold"`
-	GPUThreshold     float64 `json:"gpu_threshold"`
-	IdleMinutes      int     `json:"idle_minutes"`
-	Action           string  `json:"action"`
-	Notification     bool    `json:"notification"`
-}
+// Moved to idle_legacy.go - legacy idle profile removed
 
 // IdleState represents the idle state of an instance
 type IdleState struct {

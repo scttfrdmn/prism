@@ -2,6 +2,7 @@ package templates
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -43,6 +44,9 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 		userDataScript = generatedScript
 	}
 	
+	// Ensure idle detection is present (inject if missing)
+	userDataScript = r.ensureIdleDetection(userDataScript, template, packageManager)
+	
 	// Get AMI mapping for this template
 	amiMapping, err := r.getAMIMapping(template, region, architecture)
 	if err != nil {
@@ -58,16 +62,8 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 	// Get cost estimates
 	costMapping := r.getCostMapping(template, architecture)
 	
-	// Convert idle detection config if present
-	var idleDetectionConfig *IdleDetectionConfig
-	if template.IdleDetection != nil {
-		idleDetectionConfig = &IdleDetectionConfig{
-			Enabled:                  template.IdleDetection.Enabled,
-			IdleThresholdMinutes:     template.IdleDetection.IdleThresholdMinutes,
-			HibernateThresholdMinutes: template.IdleDetection.HibernateThresholdMinutes,
-			CheckIntervalMinutes:     template.IdleDetection.CheckIntervalMinutes,
-		}
-	}
+	// Always ensure idle detection config (with defaults if not specified)
+	idleDetectionConfig := r.ensureIdleDetectionConfig(template)
 
 	// Create runtime template
 	runtimeTemplate := &RuntimeTemplate{
@@ -445,4 +441,363 @@ func removeDuplicatePorts(ports []int) []int {
 	}
 	
 	return result
+}
+
+// ensureIdleDetectionConfig ensures idle detection configuration exists with sensible defaults
+func (r *TemplateResolver) ensureIdleDetectionConfig(template *Template) *IdleDetectionConfig {
+	// Use template config if present
+	if template.IdleDetection != nil {
+		return &IdleDetectionConfig{
+			Enabled:                  template.IdleDetection.Enabled,
+			IdleThresholdMinutes:     template.IdleDetection.IdleThresholdMinutes,
+			HibernateThresholdMinutes: template.IdleDetection.HibernateThresholdMinutes,
+			CheckIntervalMinutes:     template.IdleDetection.CheckIntervalMinutes,
+		}
+	}
+	
+	// Default idle detection configuration for all instances - DISABLED by default
+	// Scripts are installed but do nothing unless explicitly enabled
+	return &IdleDetectionConfig{
+		Enabled:                  false, // DISABLED by default - user must explicitly enable
+		IdleThresholdMinutes:     999999, // Effectively infinite - no automatic idle detection
+		HibernateThresholdMinutes: 999999, // Effectively infinite - no automatic hibernation
+		CheckIntervalMinutes:     60,     // Check once per hour (minimal overhead when disabled)
+	}
+}
+
+// ensureIdleDetection ensures idle detection script is present in UserData
+func (r *TemplateResolver) ensureIdleDetection(userDataScript string, template *Template, packageManager PackageManagerType) string {
+	// Check if idle detection script is already present
+	if strings.Contains(userDataScript, "cloudworkstation-idle-check.sh") {
+		return userDataScript // Already has idle detection
+	}
+	
+	// Get idle detection configuration (with proper defaults)
+	idleConfig := r.ensureIdleDetectionConfig(template)
+	
+	// Inject universal idle detection script based on package manager
+	idleScript := r.getIdleDetectionScript(packageManager)
+	
+	// Replace template placeholders with actual values
+	enabledStr := "false"
+	if idleConfig.Enabled {
+		enabledStr = "true"
+	}
+	idleScript = strings.ReplaceAll(idleScript, "{{ENABLED}}", enabledStr)
+	idleScript = strings.ReplaceAll(idleScript, "{{IDLE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", idleConfig.IdleThresholdMinutes))
+	idleScript = strings.ReplaceAll(idleScript, "{{HIBERNATE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", idleConfig.HibernateThresholdMinutes))
+	idleScript = strings.ReplaceAll(idleScript, "{{CHECK_INTERVAL_MINUTES}}", fmt.Sprintf("%d", idleConfig.CheckIntervalMinutes))
+	
+	// Append idle detection to existing script
+	return userDataScript + "\n\n# Universal CloudWorkstation Idle Detection\n" + idleScript
+}
+
+// getIdleDetectionScript returns the appropriate idle detection script for the package manager
+func (r *TemplateResolver) getIdleDetectionScript(packageManager PackageManagerType) string {
+	baseScript := `
+# Install CloudWorkstation Idle Detection Agent
+cat > /usr/local/bin/cloudworkstation-idle-check.sh << 'EOF'
+#!/bin/bash
+# CloudWorkstation Idle Detection Agent
+# Version: 1.1.0 (Universal)
+# Description: Autonomous idle detection with hibernation/stop capabilities
+
+set -euo pipefail
+
+# Configuration - read from config file or use defaults
+CONFIG_FILE="/etc/cloudworkstation/idle-config"
+LOG_FILE="/var/log/cloudworkstation-idle.log"
+
+# Read configuration with defaults
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+fi
+
+# Default values (used if config file doesn't exist or values not set)
+ENABLED=${ENABLED:-{{ENABLED}}}
+IDLE_THRESHOLD_MINUTES=${IDLE_THRESHOLD_MINUTES:-{{IDLE_THRESHOLD_MINUTES}}}
+HIBERNATE_THRESHOLD_MINUTES=${HIBERNATE_THRESHOLD_MINUTES:-{{HIBERNATE_THRESHOLD_MINUTES}}}
+CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-{{CHECK_INTERVAL_MINUTES}}}
+
+# Logging function
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') [IDLE-AGENT v1.1.0] $*" | tee -a "$LOG_FILE"
+}
+
+# Get instance metadata using IMDSv2
+get_instance_metadata() {
+    # Get IMDSv2 token
+    TOKEN=$(curl -s --max-time 5 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+    
+    if [[ -z "$TOKEN" ]]; then
+        log "ERROR: Failed to get IMDSv2 token"
+        return 1
+    fi
+    
+    INSTANCE_ID=$(curl -s --max-time 5 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+    REGION=$(curl -s --max-time 5 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || \
+             curl -s --max-time 5 -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/.$//')
+    
+    if [[ -z "$REGION" ]]; then
+        REGION="us-west-2"
+        log "Warning: Could not detect region, defaulting to us-west-2"
+    fi
+    
+    if [[ -z "$INSTANCE_ID" ]]; then
+        log "ERROR: Could not get instance ID"
+        return 1
+    fi
+    
+    log "Instance ID: $INSTANCE_ID, Region: $REGION"
+}
+
+# Check system activity
+check_system_activity() {
+    # CPU load (1-minute average)
+    CPU_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
+    log "CPU load: $CPU_LOAD"
+    
+    # Active users (excluding system users)
+    USERS_LOGGED_IN=$(who | grep -v '^root' | wc -l)
+    log "Users logged in: $USERS_LOGGED_IN"
+    
+    # GPU usage (if available)
+    GPU_USAGE="0"
+    if command -v nvidia-smi &> /dev/null; then
+        GPU_USAGE=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0")
+        log "GPU usage: ${GPU_USAGE}%"
+    fi
+    
+    # Check if system is busy
+    if command -v bc >/dev/null 2>&1; then
+        if (( $(echo "$CPU_LOAD > 0.5" | bc -l) )) || [[ "$USERS_LOGGED_IN" -gt 0 ]] || [[ "$GPU_USAGE" -gt 10 ]]; then
+            return 1  # System is busy
+        else
+            return 0  # System is idle
+        fi
+    else
+        # Fallback without bc
+        if [[ "$USERS_LOGGED_IN" -gt 0 ]]; then
+            return 1  # System is busy
+        else
+            return 0  # System is idle
+        fi
+    fi
+}
+
+# AWS instance tag operations
+set_instance_tag() {
+    local key="$1"
+    local value="$2"
+    
+    log "Setting tag $key=$value"
+    aws ec2 create-tags --region "$REGION" --resources "$INSTANCE_ID" --tags "Key=$key,Value=$value" || {
+        log "ERROR: Failed to set tag $key=$value"
+        return 1
+    }
+}
+
+get_instance_tag() {
+    local key="$1"
+    
+    aws ec2 describe-tags --region "$REGION" --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=$key" \
+        --query 'Tags[0].Value' --output text 2>/dev/null || echo ""
+}
+
+# Calculate idle duration in minutes
+get_idle_duration() {
+    local idle_since_tag=$(get_instance_tag "CloudWorkstation:IdleSince")
+    
+    if [[ -z "$idle_since_tag" || "$idle_since_tag" == "None" ]]; then
+        echo "0"
+        return
+    fi
+    
+    local idle_since_epoch=$(date -d "$idle_since_tag" +%s 2>/dev/null || echo "0")
+    local current_epoch=$(date +%s)
+    local duration_seconds=$((current_epoch - idle_since_epoch))
+    local duration_minutes=$((duration_seconds / 60))
+    
+    echo "$duration_minutes"
+}
+
+# Check hibernation support
+check_hibernation_support() {
+    local hibernation_enabled=$(aws ec2 describe-instances --region "$REGION" --instance-ids "$INSTANCE_ID" \
+        --query 'Reservations[0].Instances[0].HibernationOptions.Configured' --output text 2>/dev/null || echo "false")
+    
+    [[ "$hibernation_enabled" == "true" ]]
+}
+
+# Hibernate or stop instance
+hibernate_instance() {
+    log "🛌 HIBERNATING instance after prolonged idle period"
+    
+    set_instance_tag "CloudWorkstation:IdleAction" "hibernating"
+    
+    if aws ec2 stop-instances --region "$REGION" --instance-ids "$INSTANCE_ID" --hibernate 2>/dev/null; then
+        log "✅ Hibernation initiated successfully"
+        set_instance_tag "CloudWorkstation:IdleAction" "hibernated"
+    else
+        log "❌ Hibernation failed, falling back to regular stop"
+        if aws ec2 stop-instances --region "$REGION" --instance-ids "$INSTANCE_ID" 2>/dev/null; then
+            log "✅ Stop initiated successfully"
+            set_instance_tag "CloudWorkstation:IdleAction" "stopped"
+        else
+            log "❌ Failed to stop instance"
+            set_instance_tag "CloudWorkstation:IdleAction" "stop_failed"
+        fi
+    fi
+}
+
+# Main function
+main() {
+    log "=== Starting idle check ==="
+    
+    # Check if idle detection is enabled
+    if [[ "$ENABLED" != "true" ]]; then
+        log "Idle detection is disabled (ENABLED=$ENABLED). Exiting."
+        exit 0
+    fi
+    
+    # Get metadata
+    get_instance_metadata
+    
+    # Configure AWS CLI to use instance role
+    export AWS_DEFAULT_REGION="$REGION"
+    
+    # Check system activity
+    if check_system_activity; then
+        log "System is IDLE"
+        
+        # Check if this is the first time we're detecting idle
+        current_idle_status=$(get_instance_tag "CloudWorkstation:IdleStatus")
+        if [[ "$current_idle_status" != "idle" ]]; then
+            # First time idle - set timestamp
+            set_instance_tag "CloudWorkstation:IdleStatus" "idle"
+            set_instance_tag "CloudWorkstation:IdleSince" "$(date -Iseconds)"
+            log "Tagged instance as idle (first detection)"
+        else
+            # Already idle - check duration and take action if needed
+            idle_duration=$(get_idle_duration)
+            log "Instance has been idle for $idle_duration minutes"
+            
+            if [[ $idle_duration -ge $HIBERNATE_THRESHOLD_MINUTES ]]; then
+                log "Idle duration ($idle_duration min) exceeds hibernation threshold ($HIBERNATE_THRESHOLD_MINUTES min)"
+                
+                # Check hibernation support and take appropriate action
+                if check_hibernation_support; then
+                    log "Instance supports hibernation - hibernating now"
+                    hibernate_instance
+                else
+                    log "Instance does not support hibernation - stopping instead"
+                    hibernate_instance  # Function handles fallback to stop
+                fi
+            elif [[ $idle_duration -ge $IDLE_THRESHOLD_MINUTES ]]; then
+                log "Idle duration ($idle_duration min) exceeds idle threshold ($IDLE_THRESHOLD_MINUTES min) but not hibernation threshold"
+                log "Continuing to monitor..."
+            fi
+        fi
+    else
+        log "System is ACTIVE"
+        
+        # Clear idle status
+        set_instance_tag "CloudWorkstation:IdleStatus" "active"
+        set_instance_tag "CloudWorkstation:IdleSince" ""
+        set_instance_tag "CloudWorkstation:IdleAction" ""
+    fi
+    
+    log "=== Check complete ==="
+}
+
+# Run main function
+main "$@"
+EOF
+
+# Make script executable
+chmod +x /usr/local/bin/cloudworkstation-idle-check.sh
+
+# Create config directory and initial config file
+mkdir -p /etc/cloudworkstation
+cat > /etc/cloudworkstation/idle-config << EOF
+# CloudWorkstation Idle Detection Configuration
+# This file can be modified to change idle detection behavior at runtime
+ENABLED={{ENABLED}}
+IDLE_THRESHOLD_MINUTES={{IDLE_THRESHOLD_MINUTES}}
+HIBERNATE_THRESHOLD_MINUTES={{HIBERNATE_THRESHOLD_MINUTES}}
+CHECK_INTERVAL_MINUTES={{CHECK_INTERVAL_MINUTES}}
+EOF
+
+# Create log directory
+touch /var/log/cloudworkstation-idle.log
+chown -f ubuntu:ubuntu /var/log/cloudworkstation-idle.log 2>/dev/null || true
+
+# Create script to update cron job when interval changes
+cat > /usr/local/bin/cloudworkstation-update-cron.sh << 'EOF'
+#!/bin/bash
+# Update cron job based on current configuration
+source /etc/cloudworkstation/idle-config
+cat > /etc/cron.d/cloudworkstation-idle << CRONEOF
+# CloudWorkstation Idle Detection - runs every $CHECK_INTERVAL_MINUTES minutes
+*/$CHECK_INTERVAL_MINUTES * * * * root /usr/local/bin/cloudworkstation-idle-check.sh >> /var/log/cloudworkstation-idle.log 2>&1
+CRONEOF
+echo "Updated cron job to run every $CHECK_INTERVAL_MINUTES minutes"
+EOF
+
+chmod +x /usr/local/bin/cloudworkstation-update-cron.sh
+
+# Install initial cron job
+/usr/local/bin/cloudworkstation-update-cron.sh`
+
+	// Add package manager specific dependencies
+	switch packageManager {
+	case PackageManagerApt:
+		return baseScript + `
+
+# Install dependencies for idle detection
+apt-get update && apt-get install -y bc awscli curl
+
+# Initial run after 2 minutes to let system settle
+(sleep 120 && /usr/local/bin/cloudworkstation-idle-check.sh) &
+
+echo "Universal CloudWorkstation idle detection installed successfully" >> /var/log/cws-setup.log`
+	
+	case PackageManagerDnf:
+		return baseScript + `
+
+# Install dependencies for idle detection  
+dnf install -y bc awscli curl
+
+# Initial run after 2 minutes to let system settle
+(sleep 120 && /usr/local/bin/cloudworkstation-idle-check.sh) &
+
+echo "Universal CloudWorkstation idle detection installed successfully" >> /var/log/cws-setup.log`
+	
+	case PackageManagerConda:
+		return baseScript + `
+
+# Install dependencies for idle detection (conda environment should have AWS CLI)
+apt-get update && apt-get install -y bc curl
+pip install awscli
+
+# Initial run after 2 minutes to let system settle
+(sleep 120 && /usr/local/bin/cloudworkstation-idle-check.sh) &
+
+echo "Universal CloudWorkstation idle detection installed successfully" >> /var/log/cws-setup.log`
+	
+	default:
+		return baseScript + `
+
+# Install dependencies for idle detection (fallback)
+if command -v apt-get >/dev/null 2>&1; then
+    apt-get update && apt-get install -y bc awscli curl
+elif command -v dnf >/dev/null 2>&1; then
+    dnf install -y bc awscli curl
+fi
+
+# Initial run after 2 minutes to let system settle  
+(sleep 120 && /usr/local/bin/cloudworkstation-idle-check.sh) &
+
+echo "Universal CloudWorkstation idle detection installed successfully" >> /var/log/cws-setup.log`
+	}
 }
