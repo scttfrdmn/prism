@@ -350,6 +350,28 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 	}
 	rootCmd.AddCommand(scalingCmd)
 
+	// AMI command
+	amiCmd := &cobra.Command{
+		Use:                "ami <action>",
+		Short:              "AMI management operations",
+		Long:               `Build, manage, and deploy AMIs for fast instance launching.`,
+		DisableFlagParsing: true, // Allow AMI command to handle its own flags
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.AMI(args)
+		},
+	}
+	rootCmd.AddCommand(amiCmd)
+
+	// AMI Discover command (demonstrate auto-discovery)
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "ami-discover",
+		Short: "Demonstrate AMI auto-discovery functionality", 
+		Long:  `Show which templates have pre-built AMIs available for faster launching.`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.AMIDiscover(args)
+		},
+	})
+
 	return rootCmd
 }
 

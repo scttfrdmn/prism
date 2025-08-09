@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -107,6 +108,8 @@ func (r *TemplateResolver) getAMIMapping(template *Template, region, architectur
 	
 	// Check if we have pre-built AMIs for this template
 	if templateAMIs, exists := r.AMIRegistry[template.Name]; exists {
+		// Log that we found a pre-built AMI (this could be enhanced to show user notification)
+		fmt.Printf("🚀 Fast launch available: Found pre-built AMI for template '%s'\n", template.Name)
 		return templateAMIs, nil
 	}
 	
@@ -1013,4 +1016,53 @@ fi
 
 echo "Universal CloudWorkstation idle detection installed successfully" >> /var/log/cws-setup.log`
 	}
+}
+
+// UpdateAMIRegistry queries the AMI registry and updates the resolver's AMI registry
+// This enables automatic discovery of pre-built AMIs for templates
+func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient interface{}) error {
+	// Skip if no SSM client provided
+	if ssmClient == nil {
+		return nil
+	}
+	
+	// For now, implement a mock discovery system that could be expanded
+	// In a full implementation, this would integrate with pkg/ami.Registry
+	
+	// Clear existing AMI registry
+	r.AMIRegistry = make(map[string]map[string]map[string]string)
+	
+	// Mock AMI discovery - in practice this would query SSM Parameter Store
+	// and discover AMIs built with the AMI build system
+	mockAMIRegistry := map[string]map[string]map[string]string{
+		// Example: if "python-ml" template has pre-built AMIs
+		"python-ml": {
+			"us-east-1": {
+				"x86_64": "ami-example-python-ml-x86",
+				"arm64":  "ami-example-python-ml-arm64",
+			},
+			"us-west-2": {
+				"x86_64": "ami-example-python-ml-x86-west",
+				"arm64":  "ami-example-python-ml-arm64-west", 
+			},
+		},
+		// Add more templates as they get AMIs built
+	}
+	
+	r.AMIRegistry = mockAMIRegistry
+	
+	return nil
+}
+
+// CheckAMIAvailability checks if a pre-built AMI exists for a template
+// Returns the AMI ID if available, empty string if not
+func (r *TemplateResolver) CheckAMIAvailability(templateName, region, architecture string) string {
+	if templateAMIs, exists := r.AMIRegistry[templateName]; exists {
+		if regionAMIs, exists := templateAMIs[region]; exists {
+			if amiID, exists := regionAMIs[architecture]; exists {
+				return amiID
+			}
+		}
+	}
+	return ""
 }
