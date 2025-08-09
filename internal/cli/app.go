@@ -290,44 +290,12 @@ func (a *App) List(args []string) error {
 		fmt.Printf("Workstations in project '%s':\n\n", projectFilter)
 	}
 
-	// Load pricing configuration to show discounted costs
-	pricingConfig, _ := pricing.LoadInstitutionalPricing()
-	calculator := pricing.NewCalculator(pricingConfig)
-	
-	// Check if we have institutional discounts to show both list and discounted pricing
-	hasDiscounts := pricingConfig != nil && (pricingConfig.Institution != "Default")
-	
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	if hasDiscounts {
-		fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tYOUR COST/DAY\tLIST COST/DAY\tPROJECT\tLAUNCHED")
-	} else {
-		fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tCOST/DAY\tPROJECT\tLAUNCHED")
-	}
-
-	totalCost := 0.0
-	totalListCost := 0.0
+	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
 	for _, instance := range filteredInstances {
 		projectInfo := "-"
 		if instance.ProjectID != "" {
 			projectInfo = instance.ProjectID
-		}
-		
-		// Calculate discounted pricing if available
-		dailyCost := instance.EstimatedDailyCost
-		listDailyCost := dailyCost
-		
-		if hasDiscounts && instance.InstanceType != "" {
-			// Estimate list price from current cost (reverse engineering)
-			estimatedHourlyListPrice := dailyCost / 24.0
-			if dailyCost > 0 {
-				// Try to get more accurate pricing by applying discounts in reverse
-				result := calculator.CalculateInstanceCost(instance.InstanceType, estimatedHourlyListPrice, "us-west-2")
-				if result.TotalDiscount > 0 {
-					// Use the calculator's list price for more accuracy
-					listDailyCost = result.ListPrice * 24
-					dailyCost = result.DailyEstimate
-				}
-			}
 		}
 		
 		// Format spot/on-demand indicator
@@ -336,50 +304,218 @@ func (a *App) List(args []string) error {
 			typeIndicator = "SP"
 		}
 		
-		if hasDiscounts {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t$%.2f\t$%.2f\t%s\t%s\n",
-				instance.Name,
-				instance.Template,
-				strings.ToUpper(instance.State),
-				typeIndicator,
-				instance.PublicIP,
-				dailyCost,
-				listDailyCost,
-				projectInfo,
-				instance.LaunchTime.Format("2006-01-02 15:04"),
-			)
-		} else {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t$%.2f\t%s\t%s\n",
-				instance.Name,
-				instance.Template,
-				strings.ToUpper(instance.State),
-				typeIndicator,
-				instance.PublicIP,
-				dailyCost,
-				projectInfo,
-				instance.LaunchTime.Format("2006-01-02 15:04"),
-			)
-		}
-		
-		if instance.State == "running" {
-			totalCost += dailyCost
-			totalListCost += listDailyCost
-		}
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			instance.Name,
+			instance.Template,
+			strings.ToUpper(instance.State),
+			typeIndicator,
+			instance.PublicIP,
+			projectInfo,
+			instance.LaunchTime.Format("2006-01-02 15:04"),
+		)
 	}
 
-	if hasDiscounts {
-		totalSavings := totalListCost - totalCost
-		fmt.Fprintf(w, "\nYour daily cost (running instances): $%.2f\n", totalCost)
-		fmt.Fprintf(w, "List price daily cost: $%.2f\n", totalListCost)
-		if totalSavings > 0 {
-			savingsPercent := (totalSavings / totalListCost) * 100
-			fmt.Fprintf(w, "Daily savings (%s): $%.2f (%.1f%%)\n", pricingConfig.Institution, totalSavings, savingsPercent)
-		}
-	} else {
-		fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", totalCost)
-	}
 	w.Flush()
 
+	return nil
+}
+
+// ListCost handles the list cost command - shows detailed cost information
+func (a *App) ListCost(args []string) error {
+	// Parse project filter
+	var projectFilter string
+	for i, arg := range args {
+		switch {
+		case arg == "--project" && i+1 < len(args):
+			projectFilter = args[i+1]
+			i++
+		}
+	}
+	
+	// Check daemon is running
+	if err := a.apiClient.Ping(a.ctx); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	response, err := a.apiClient.ListInstances(a.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	// Filter instances by project if specified
+	var filteredInstances []types.Instance
+	if projectFilter != "" {
+		for _, instance := range response.Instances {
+			if instance.ProjectID == projectFilter {
+				filteredInstances = append(filteredInstances, instance)
+			}
+		}
+	} else {
+		filteredInstances = response.Instances
+	}
+
+	if len(filteredInstances) == 0 {
+		if projectFilter != "" {
+			fmt.Printf("No workstations found in project '%s'.\n", projectFilter)
+		} else {
+			fmt.Println("No workstations found.")
+		}
+		return nil
+	}
+
+	// Show header with project filter info
+	if projectFilter != "" {
+		fmt.Printf("💰 Cost Analysis for project '%s':\n\n", projectFilter)
+	} else {
+		fmt.Println("💰 CloudWorkstation Cost Analysis\n")
+	}
+
+	// Load pricing configuration for accurate cost calculation
+	pricingConfig, _ := pricing.LoadInstitutionalPricing()
+	calculator := pricing.NewCalculator(pricingConfig)
+	
+	// Check if we have institutional discounts
+	hasDiscounts := pricingConfig != nil && (pricingConfig.Institution != "Default")
+	
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	if hasDiscounts {
+		fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN\tLIST RATE\tSAVINGS")
+	} else {
+		fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN")
+	}
+
+	totalRunningCost := 0.0
+	totalListCost := 0.0
+	totalHistoricalSpend := 0.0
+	runningInstances := 0
+
+	for _, instance := range filteredInstances {
+		// Calculate total lifetime for this instance
+		var totalLifetime time.Duration
+		if !instance.LaunchTime.IsZero() {
+			if instance.DeletionTime != nil && !instance.DeletionTime.IsZero() {
+				// Terminated instance - use launch to deletion time
+				totalLifetime = instance.DeletionTime.Sub(instance.LaunchTime)
+			} else {
+				// Running or stopped instance - use launch to now
+				totalLifetime = time.Since(instance.LaunchTime)
+			}
+		}
+		
+		// Get base cost rates
+		dailyCost := instance.EstimatedDailyCost
+		listDailyCost := dailyCost
+		
+		if hasDiscounts && instance.InstanceType != "" {
+			// Get accurate pricing with discounts
+			estimatedHourlyListPrice := dailyCost / 24.0
+			if dailyCost > 0 {
+				result := calculator.CalculateInstanceCost(instance.InstanceType, estimatedHourlyListPrice, "us-west-2")
+				if result.TotalDiscount > 0 {
+					listDailyCost = result.ListPrice * 24
+					dailyCost = result.DailyEstimate
+				}
+			}
+		}
+		
+		// Calculate actual spend so far (total lifetime cost)
+		totalMinutes := totalLifetime.Minutes()
+		actualSpend := (dailyCost / (24.0 * 60.0)) * totalMinutes
+		
+		// Calculate current cost per minute (running vs stopped rates)
+		var currentCostPerMin, listCurrentCostPerMin float64
+		if instance.State == "running" {
+			// Running: full compute + storage cost
+			currentCostPerMin = dailyCost / (24.0 * 60.0)
+			listCurrentCostPerMin = listDailyCost / (24.0 * 60.0)
+			runningInstances++
+			totalRunningCost += dailyCost  // Add to daily running cost
+			totalListCost += listDailyCost
+		} else {
+			// Stopped: only EBS storage cost (estimate ~10% of full cost)
+			currentCostPerMin = (dailyCost * 0.1) / (24.0 * 60.0)
+			listCurrentCostPerMin = (listDailyCost * 0.1) / (24.0 * 60.0)
+		}
+		
+		totalHistoricalSpend += actualSpend
+		
+		// Format type indicator
+		typeIndicator := "OD"
+		if instance.InstanceLifecycle == "spot" {
+			typeIndicator = "SP"
+		}
+		
+		// Format running time as d:h:m:s
+		days := int(totalLifetime.Hours()) / 24
+		hours := int(totalLifetime.Hours()) % 24
+		minutes := int(totalLifetime.Minutes()) % 60
+		seconds := int(totalLifetime.Seconds()) % 60
+		
+		var runningTime string
+		if days > 0 {
+			runningTime = fmt.Sprintf("%d:%02d:%02d:%02d", days, hours, minutes, seconds)
+		} else {
+			runningTime = fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
+		}
+		
+		if hasDiscounts {
+			savings := listCurrentCostPerMin - currentCostPerMin
+			savingsPercent := 0.0
+			if listCurrentCostPerMin > 0 {
+				savingsPercent = (savings / listCurrentCostPerMin) * 100
+			}
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\t$%.6f\t$%.6f (%.1f%%)\n",
+				instance.Name,
+				strings.ToUpper(instance.State),
+				typeIndicator,
+				runningTime,
+				actualSpend,
+				currentCostPerMin,
+				listCurrentCostPerMin,
+				savings,
+				savingsPercent,
+			)
+		} else {
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\n",
+				instance.Name,
+				strings.ToUpper(instance.State),
+				typeIndicator,
+				runningTime,
+				actualSpend,
+				currentCostPerMin,
+			)
+		}
+	}
+
+	w.Flush()
+	
+	// Summary section
+	fmt.Println()
+	fmt.Printf("📊 Cost Summary:\n")
+	if hasDiscounts {
+		totalSavings := totalListCost - totalRunningCost
+		savingsPercent := 0.0
+		if totalListCost > 0 {
+			savingsPercent = (totalSavings / totalListCost) * 100
+		}
+		fmt.Printf("   Running instances: %d\n", runningInstances)
+		fmt.Printf("   Your daily cost:   $%.4f\n", totalRunningCost)
+		fmt.Printf("   Your monthly est:  $%.4f\n", totalRunningCost*30)
+		fmt.Printf("   List price daily:  $%.4f\n", totalListCost)
+		fmt.Printf("   Daily savings:     $%.4f (%.1f%%)\n", totalSavings, savingsPercent)
+		fmt.Printf("   Historical spend:  $%.4f\n", totalHistoricalSpend)
+		if pricingConfig.Institution != "" {
+			fmt.Printf("   Institution:       %s\n", pricingConfig.Institution)
+		}
+	} else {
+		fmt.Printf("   Running instances: %d\n", runningInstances)
+		fmt.Printf("   Daily cost:        $%.4f\n", totalRunningCost)
+		fmt.Printf("   Monthly estimate:  $%.4f\n", totalRunningCost*30)
+		fmt.Printf("   Historical spend:  $%.4f\n", totalHistoricalSpend)
+	}
+	
+	fmt.Printf("\n💡 Tip: Use 'cws list' for a clean instance overview without cost data\n")
+	
 	return nil
 }
 

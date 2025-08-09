@@ -60,15 +60,28 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 	launchCmd.Flags().String("project", "", "Associate with project")
 	rootCmd.AddCommand(launchCmd)
 
-	// List command
-	rootCmd.AddCommand(&cobra.Command{
+	// List command with subcommands
+	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List workstations",
 		Long:  `List all your cloud workstations and their status.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return a.List(args)
 		},
-	})
+	}
+	
+	// List cost subcommand
+	listCostCmd := &cobra.Command{
+		Use:   "cost",
+		Short: "Show detailed cost information",
+		Long:  `Show detailed cost information for all workstations with four decimal precision.`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.ListCost(args)
+		},
+	}
+	
+	listCmd.AddCommand(listCostCmd)
+	rootCmd.AddCommand(listCmd)
 
 	// Connect command
 	rootCmd.AddCommand(&cobra.Command{
@@ -277,6 +290,43 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 
 	// Add security command
 	rootCmd.AddCommand(a.SecurityCommand())
+
+	// Idle command
+	idleCmd := &cobra.Command{
+		Use:   "idle",
+		Short: "Configure idle detection on running instances",
+		Long:  "Configure runtime idle detection parameters on running CloudWorkstation instances.",
+	}
+	
+	// Idle configure subcommand
+	idleConfigureCmd := &cobra.Command{
+		Use:   "configure <instance-name>",
+		Short: "Configure idle thresholds on running instance",
+		Long:  "Configure runtime idle detection parameters on a running CloudWorkstation instance.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			instanceName := args[0]
+			
+			// Get flag values
+			enable, _ := cmd.Flags().GetBool("enable")
+			disable, _ := cmd.Flags().GetBool("disable")
+			idleMinutes, _ := cmd.Flags().GetInt("idle-minutes")
+			hibernateMinutes, _ := cmd.Flags().GetInt("hibernate-minutes") 
+			checkInterval, _ := cmd.Flags().GetInt("check-interval")
+			
+			return a.configureIdleDetection(instanceName, enable, disable, idleMinutes, hibernateMinutes, checkInterval)
+		},
+	}
+	
+	// Add flags to the configure command
+	idleConfigureCmd.Flags().Bool("enable", false, "Enable idle detection")
+	idleConfigureCmd.Flags().Bool("disable", false, "Disable idle detection")
+	idleConfigureCmd.Flags().Int("idle-minutes", 0, "Minutes before considered idle")
+	idleConfigureCmd.Flags().Int("hibernate-minutes", 0, "Minutes before hibernation/stop") 
+	idleConfigureCmd.Flags().Int("check-interval", 0, "Check interval in minutes")
+	
+	idleCmd.AddCommand(idleConfigureCmd)
+	rootCmd.AddCommand(idleCmd)
 
 	return rootCmd
 }
