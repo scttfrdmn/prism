@@ -112,22 +112,28 @@ func (t *CloudWorkstationTheme) Font(style fyne.TextStyle) fyne.Resource {
 
 // Size returns the size for the specified theme SizeName
 func (t *CloudWorkstationTheme) Size(name fyne.ThemeSizeName) float32 {
-	// You can adjust sizes here if needed
+	// Consistent sizing scheme for professional appearance
 	switch name {
 	case theme.SizeNameText:
-		return 14 // Base font size
+		return 13 // Base font size - slightly smaller for better density
 	case theme.SizeNameHeadingText:
-		return 24 // Heading size
+		return 18 // Heading size - more proportional
+	case theme.SizeNameSubText:
+		return 11 // Sub-text size - for secondary information
 	case theme.SizeNameCaptionText:
-		return 12 // Caption size
+		return 11 // Caption size - consistent with sub-text
 	case theme.SizeNameInlineIcon:
-		return 20 // Icon size
+		return 16 // Icon size - proportional to text
 	case theme.SizeNamePadding:
-		return 8 // Base padding unit
+		return 6 // Base padding unit - tighter for professional look
 	case theme.SizeNameScrollBar:
-		return 8 // Scroll bar width
+		return 12 // Scroll bar width - more visible
 	case theme.SizeNameScrollBarSmall:
-		return 4 // Small scroll bar width
+		return 6 // Small scroll bar width
+	case theme.SizeNameSeparatorThickness:
+		return 1 // Thin separators
+	case theme.SizeNameInputBorder:
+		return 1 // Consistent input borders
 	default:
 		return t.baseTheme.Size(name)
 	}
