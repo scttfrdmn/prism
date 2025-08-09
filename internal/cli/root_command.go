@@ -328,6 +328,28 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 	idleCmd.AddCommand(idleConfigureCmd)
 	rootCmd.AddCommand(idleCmd)
 
+	// Rightsizing command
+	rightsizingCmd := &cobra.Command{
+		Use:   "rightsizing <action>",
+		Short: "Analyze and optimize instance sizes",
+		Long:  `Analyze usage patterns and provide rightsizing recommendations for cost optimization.`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Rightsizing(args)
+		},
+	}
+	rootCmd.AddCommand(rightsizingCmd)
+
+	// Scaling command
+	scalingCmd := &cobra.Command{
+		Use:   "scaling <action>",
+		Short: "Dynamic instance scaling operations",
+		Long:  `Dynamically scale instances to different sizes based on usage patterns and requirements.`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			return a.Scaling(args)
+		},
+	}
+	rootCmd.AddCommand(scalingCmd)
+
 	return rootCmd
 }
 
