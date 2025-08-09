@@ -551,8 +551,211 @@ get_instance_metadata() {
     log "Instance ID: $INSTANCE_ID, Region: $REGION"
 }
 
-# Check system activity
+# Collect detailed usage analytics for rightsizing
+collect_usage_analytics() {
+    local analytics_file="/var/log/cloudworkstation-analytics.json"
+    local timestamp=$(date -Iseconds)
+    
+    # CPU metrics
+    CPU_LOAD_1MIN=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',' | xargs)
+    CPU_LOAD_5MIN=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $2}' | tr -d ',' | xargs)
+    CPU_LOAD_15MIN=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $3}' | tr -d ',' | xargs)
+    CPU_COUNT=$(nproc)
+    
+    # Memory metrics (in MB)
+    MEMORY_TOTAL=$(free -m | grep '^Mem:' | awk '{print $2}')
+    MEMORY_USED=$(free -m | grep '^Mem:' | awk '{print $3}')
+    MEMORY_FREE=$(free -m | grep '^Mem:' | awk '{print $4}')
+    MEMORY_AVAILABLE=$(free -m | grep '^Mem:' | awk '{print $7}')
+    MEMORY_PERCENT=$(( (MEMORY_USED * 100) / MEMORY_TOTAL ))
+    
+    # Disk metrics
+    DISK_TOTAL=$(df -BG / | tail -1 | awk '{print $2}' | tr -d 'G')
+    DISK_USED=$(df -BG / | tail -1 | awk '{print $3}' | tr -d 'G')
+    DISK_AVAILABLE=$(df -BG / | tail -1 | awk '{print $4}' | tr -d 'G')
+    DISK_PERCENT=$(df / | tail -1 | awk '{print $5}' | tr -d '%')
+    
+    # Network metrics (bytes per second - approximate)
+    NETWORK_RX_BYTES=$(cat /proc/net/dev | grep -E "eth0|ens" | head -1 | awk '{print $2}' || echo "0")
+    NETWORK_TX_BYTES=$(cat /proc/net/dev | grep -E "eth0|ens" | head -1 | awk '{print $10}' || echo "0")
+    
+    # Process count
+    PROCESS_COUNT=$(ps aux | wc -l)
+    
+    # Active users
+    USERS_LOGGED_IN=$(who | grep -v '^root' | wc -l)
+    
+    # GPU metrics (if available)
+    GPU_USAGE="0"
+    GPU_MEMORY_USED="0"
+    GPU_MEMORY_TOTAL="0"
+    GPU_TEMPERATURE="0"
+    GPU_POWER="0"
+    GPU_COUNT="0"
+    
+    if command -v nvidia-smi &> /dev/null; then
+        GPU_COUNT=$(nvidia-smi --list-gpus | wc -l 2>/dev/null || echo "0")
+        if [[ "$GPU_COUNT" -gt 0 ]]; then
+            GPU_USAGE=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0")
+            GPU_MEMORY_USED=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0")
+            GPU_MEMORY_TOTAL=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0")
+            GPU_TEMPERATURE=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0")
+            GPU_POWER=$(nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits 2>/dev/null | head -1 | cut -d'.' -f1 || echo "0")
+        fi
+    fi
+    
+    # Create analytics JSON entry
+    cat >> "$analytics_file" << EOF
+{
+  "timestamp": "$timestamp",
+  "cpu": {
+    "load_1min": $CPU_LOAD_1MIN,
+    "load_5min": $CPU_LOAD_5MIN,
+    "load_15min": $CPU_LOAD_15MIN,
+    "core_count": $CPU_COUNT,
+    "utilization_percent": $(echo "scale=2; ($CPU_LOAD_1MIN / $CPU_COUNT) * 100" | bc -l 2>/dev/null || echo "0")
+  },
+  "memory": {
+    "total_mb": $MEMORY_TOTAL,
+    "used_mb": $MEMORY_USED,
+    "free_mb": $MEMORY_FREE,
+    "available_mb": $MEMORY_AVAILABLE,
+    "utilization_percent": $MEMORY_PERCENT
+  },
+  "disk": {
+    "total_gb": $DISK_TOTAL,
+    "used_gb": $DISK_USED,
+    "available_gb": $DISK_AVAILABLE,
+    "utilization_percent": $DISK_PERCENT
+  },
+  "network": {
+    "rx_bytes": $NETWORK_RX_BYTES,
+    "tx_bytes": $NETWORK_TX_BYTES
+  },
+  "gpu": {
+    "count": $GPU_COUNT,
+    "utilization_percent": $GPU_USAGE,
+    "memory_used_mb": $GPU_MEMORY_USED,
+    "memory_total_mb": $GPU_MEMORY_TOTAL,
+    "temperature_celsius": $GPU_TEMPERATURE,
+    "power_draw_watts": $GPU_POWER
+  },
+  "system": {
+    "process_count": $PROCESS_COUNT,
+    "users_logged_in": $USERS_LOGGED_IN,
+    "uptime_seconds": $(cat /proc/uptime | cut -d' ' -f1 | cut -d'.' -f1)
+  }
+}
+EOF
+    
+    # Keep only last 1000 analytics entries to prevent log bloat
+    if [[ -f "$analytics_file" ]]; then
+        tail -1000 "$analytics_file" > "$analytics_file.tmp" && mv "$analytics_file.tmp" "$analytics_file"
+        chown ubuntu:ubuntu "$analytics_file" 2>/dev/null || true
+    fi
+}
+
+# Analyze usage patterns and provide rightsizing recommendations
+analyze_usage_patterns() {
+    local analytics_file="/var/log/cloudworkstation-analytics.json"
+    local recommendations_file="/var/log/cloudworkstation-rightsizing.json"
+    
+    # Skip analysis if no analytics data
+    if [[ ! -f "$analytics_file" ]] || [[ ! -s "$analytics_file" ]]; then
+        return 0
+    fi
+    
+    # Analyze last 24 hours of data (assuming 2-minute intervals = ~720 samples)
+    local sample_count=$(wc -l < "$analytics_file" | head -720)
+    
+    # Calculate averages and peaks using simple bash/awk
+    local avg_cpu=$(grep '"utilization_percent"' "$analytics_file" | tail -720 | awk -F: '{sum+=$2} END {printf "%.1f", sum/NR}' 2>/dev/null || echo "0")
+    local max_cpu=$(grep '"utilization_percent"' "$analytics_file" | tail -720 | awk -F: '{if($2>max) max=$2} END {printf "%.1f", max}' 2>/dev/null || echo "0")
+    
+    local avg_memory=$(grep '"utilization_percent":' "$analytics_file" | tail -720 | awk -F: '{sum+=$2} END {printf "%.1f", sum/NR}' 2>/dev/null || echo "0")
+    local max_memory=$(grep '"utilization_percent":' "$analytics_file" | tail -720 | awk -F: '{if($2>max) max=$2} END {printf "%.1f", max}' 2>/dev/null || echo "0")
+    
+    local avg_gpu=$(grep '"utilization_percent":' "$analytics_file" | grep -A1 '"gpu":' | grep '"utilization_percent"' | tail -720 | awk -F: '{sum+=$2} END {printf "%.1f", sum/NR}' 2>/dev/null || echo "0")
+    local max_gpu=$(grep '"utilization_percent":' "$analytics_file" | grep -A1 '"gpu":' | grep '"utilization_percent"' | tail -720 | awk -F: '{if($2>max) max=$2} END {printf "%.1f", max}' 2>/dev/null || echo "0")
+    
+    # Generate rightsizing recommendations
+    local recommendation="optimal"
+    local reason=""
+    local suggested_size=""
+    
+    # CPU-based recommendations
+    if command -v bc >/dev/null 2>&1; then
+        if (( $(echo "$avg_cpu < 10" | bc -l) )); then
+            recommendation="downsize"
+            reason="Low average CPU utilization ($avg_cpu%)"
+            suggested_size="S or XS"
+        elif (( $(echo "$avg_cpu > 80" | bc -l) )); then
+            recommendation="upsize"
+            reason="High average CPU utilization ($avg_cpu%)"
+            suggested_size="L or XL"
+        elif (( $(echo "$max_cpu > 95" | bc -l) )); then
+            recommendation="upsize"
+            reason="CPU peaks at $max_cpu% indicating occasional bottlenecks"
+            suggested_size="L"
+        fi
+        
+        # Memory-based recommendations (override CPU if memory is the constraint)
+        if (( $(echo "$avg_memory > 85" | bc -l) )); then
+            recommendation="upsize_memory"
+            reason="High average memory utilization ($avg_memory%)"
+            suggested_size="memory-optimized (r5/r6g)"
+        elif (( $(echo "$max_memory > 95" | bc -l) )); then
+            recommendation="upsize_memory"
+            reason="Memory peaks at $max_memory% indicating memory pressure"
+            suggested_size="memory-optimized (r5/r6g)"
+        fi
+        
+        # GPU-based recommendations
+        if (( $(echo "$avg_gpu > 50" | bc -l) )); then
+            recommendation="gpu_intensive"
+            reason="High average GPU utilization ($avg_gpu%)"
+            suggested_size="GPU-optimized (g4dn/g5g)"
+        fi
+    fi
+    
+    # Write recommendations
+    cat > "$recommendations_file" << EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "analysis_period_samples": $sample_count,
+  "metrics": {
+    "cpu": {
+      "average_utilization": $avg_cpu,
+      "peak_utilization": $max_cpu
+    },
+    "memory": {
+      "average_utilization": $avg_memory,
+      "peak_utilization": $max_memory
+    },
+    "gpu": {
+      "average_utilization": $avg_gpu,
+      "peak_utilization": $max_gpu
+    }
+  },
+  "recommendation": {
+    "action": "$recommendation",
+    "reason": "$reason",
+    "suggested_size": "$suggested_size",
+    "confidence": "medium"
+  }
+}
+EOF
+    
+    # Log the recommendation
+    log "RIGHTSIZING: $recommendation - $reason (suggested: $suggested_size)"
+    chown ubuntu:ubuntu "$recommendations_file" 2>/dev/null || true
+}
+
+# Check system activity (enhanced with analytics)
 check_system_activity() {
+    # Collect usage analytics for rightsizing (always collect when active)
+    collect_usage_analytics
+    
     # CPU load (1-minute average)
     CPU_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | tr -d ',')
     log "CPU load: $CPU_LOAD"
@@ -566,6 +769,16 @@ check_system_activity() {
     if command -v nvidia-smi &> /dev/null; then
         GPU_USAGE=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 || echo "0")
         log "GPU usage: ${GPU_USAGE}%"
+    fi
+    
+    # Run rightsizing analysis every hour (when check count is divisible by 30, assuming 2-min intervals)
+    local check_count=$(get_instance_tag "CloudWorkstation:CheckCount" || echo "0")
+    check_count=$((check_count + 1))
+    set_instance_tag "CloudWorkstation:CheckCount" "$check_count"
+    
+    if (( check_count % 30 == 0 )); then
+        log "Running periodic rightsizing analysis..."
+        analyze_usage_patterns
     fi
     
     # Check if system is busy
