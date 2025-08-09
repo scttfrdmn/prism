@@ -4036,4 +4036,41 @@ func (a *App) getSizeSpecs(size string) SizeSpecs {
 	return SizeSpecs{"Unknown", "Unknown", "Unknown"}
 }
 
+// AMIDiscover demonstrates AMI auto-discovery functionality
+func (a *App) AMIDiscover(args []string) error {
+	fmt.Printf("🔍 CloudWorkstation AMI Auto-Discovery\n\n")
+	
+	// This would normally get the template resolver from the daemon
+	// For demo purposes, create a resolver and populate it with mock AMI data
+	resolver := templates.NewTemplateResolver()
+	
+	// Simulate AMI registry update (in practice this would connect to AWS SSM)
+	err := resolver.UpdateAMIRegistry(context.TODO(), "mock-ssm-client")
+	if err != nil {
+		return fmt.Errorf("failed to update AMI registry: %w", err)
+	}
+	
+	// Show current template list with AMI availability
+	fmt.Printf("📋 Template Analysis:\n\n")
+	
+	templateNames := []string{"python-ml", "r-research", "simple-python-ml", "simple-r-research"}
+	region := "us-east-1"
+	architecture := "x86_64"
+	
+	for _, templateName := range templateNames {
+		amiID := resolver.CheckAMIAvailability(templateName, region, architecture)
+		if amiID != "" {
+			fmt.Printf("✅ %s: AMI available (%s) - Fast launch ready!\n", templateName, amiID)
+		} else {
+			fmt.Printf("⏱️  %s: No pre-built AMI - Will build from scratch\n", templateName)
+		}
+	}
+	
+	fmt.Printf("\n💡 Templates with ✅ can launch in seconds using pre-built AMIs\n")
+	fmt.Printf("💡 Templates with ⏱️ will take several minutes to install packages\n")
+	fmt.Printf("\n🛠️  To build AMIs: cws ami build <template-name>\n")
+	
+	return nil
+}
+
 // Note: AMI command is implemented in internal/cli/ami.go
