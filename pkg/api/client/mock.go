@@ -158,6 +158,14 @@ func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error 
 	return nil // Mock implementation
 }
 
+func (m *MockClient) MountVolume(ctx context.Context, volumeName, instanceName, mountPoint string) error {
+	return nil // Mock implementation
+}
+
+func (m *MockClient) UnmountVolume(ctx context.Context, volumeName, instanceName string) error {
+	return nil // Mock implementation
+}
+
 // Storage operations
 func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
 	volume := types.EBSVolume{

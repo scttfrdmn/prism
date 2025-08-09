@@ -17,6 +17,7 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -29,6 +30,7 @@ type Manager struct {
 	cfg         aws.Config
 	ec2         EC2ClientInterface
 	efs         EFSClientInterface
+	ssm         SSMClientInterface
 	sts         STSClientInterface
 	region      string
 	templates   map[string]ctypes.Template
@@ -78,6 +80,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	// Create clients
 	ec2Client := ec2.NewFromConfig(cfg)
 	efsClient := efs.NewFromConfig(cfg)
+	ssmClient := ssm.NewFromConfig(cfg)
 	stsClient := sts.NewFromConfig(cfg)
 	
 	// Use specified region or fallback to config region
@@ -90,6 +93,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		cfg:         cfg,
 		ec2:         ec2Client,
 		efs:         efsClient,
+		ssm:         ssmClient,
 		sts:         stsClient,
 		region:      region,
 		templates:   getTemplates(),
@@ -659,6 +663,199 @@ func (m *Manager) DeleteVolume(name string) error {
 
 	// 4. Remove from state
 	return m.stateManager.RemoveVolume(name)
+}
+
+// MountVolume mounts an EFS volume to an instance
+func (m *Manager) MountVolume(volumeName, instanceName, mountPoint string) error {
+	// Get volume state to find the FileSystemId
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return fmt.Errorf("failed to load state: %w", err)
+	}
+
+	volume, exists := state.Volumes[volumeName]
+	if !exists {
+		return fmt.Errorf("volume '%s' not found in state", volumeName)
+	}
+
+	// Get instance information
+	instance, exists := state.Instances[instanceName]
+	if !exists {
+		return fmt.Errorf("instance '%s' not found in state", instanceName)
+	}
+
+	// Check if instance is running
+	if instance.State != "running" {
+		return fmt.Errorf("instance '%s' is not running (state: %s)", instanceName, instance.State)
+	}
+
+	fsId := volume.FileSystemId
+	if fsId == "" {
+		return fmt.Errorf("no filesystem ID found for volume '%s'", volumeName)
+	}
+
+	log.Printf("Mounting EFS volume '%s' (filesystem ID: %s) to instance '%s' at %s...", volumeName, fsId, instanceName, mountPoint)
+
+	// Create mount command script
+	mountScript := fmt.Sprintf(`#!/bin/bash
+set -e
+
+# Install EFS utils if not already installed
+if ! command -v mount.efs &> /dev/null; then
+    if command -v yum &> /dev/null; then
+        sudo yum install -y amazon-efs-utils
+    elif command -v apt &> /dev/null; then
+        sudo apt-get update && sudo apt-get install -y amazon-efs-utils
+    else
+        echo "Unsupported package manager"
+        exit 1
+    fi
+fi
+
+# Create mount directory
+sudo mkdir -p %s
+
+# Mount the EFS volume
+sudo mount -t efs %s:/ %s
+
+# Add to fstab for persistence
+if ! grep -q "%s" /etc/fstab; then
+    echo "%s:/ %s efs tls,_netdev" | sudo tee -a /etc/fstab
+fi
+
+echo "EFS volume mounted successfully at %s"
+`, mountPoint, fsId, mountPoint, fsId, fsId, mountPoint, mountPoint)
+
+	// Execute mount script on the instance via SSM
+	err = m.executeScriptOnInstance(instance.ID, mountScript)
+	if err != nil {
+		return fmt.Errorf("failed to mount EFS volume: %w", err)
+	}
+
+	log.Printf("Successfully mounted EFS volume '%s' to instance '%s' at %s", volumeName, instanceName, mountPoint)
+	return nil
+}
+
+// UnmountVolume unmounts an EFS volume from an instance
+func (m *Manager) UnmountVolume(volumeName, instanceName string) error {
+	// Get volume and instance state
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return fmt.Errorf("failed to load state: %w", err)
+	}
+
+	volume, exists := state.Volumes[volumeName]
+	if !exists {
+		return fmt.Errorf("volume '%s' not found in state", volumeName)
+	}
+
+	instance, exists := state.Instances[instanceName]
+	if !exists {
+		return fmt.Errorf("instance '%s' not found in state", instanceName)
+	}
+
+	fsId := volume.FileSystemId
+	if fsId == "" {
+		return fmt.Errorf("no filesystem ID found for volume '%s'", volumeName)
+	}
+
+	log.Printf("Unmounting EFS volume '%s' (filesystem ID: %s) from instance '%s'...", volumeName, fsId, instanceName)
+
+	// Create unmount command script
+	unmountScript := fmt.Sprintf(`#!/bin/bash
+set -e
+
+# Find mount points for this EFS volume
+MOUNT_POINTS=$(mount | grep %s | awk '{print $3}' || true)
+
+if [ -z "$MOUNT_POINTS" ]; then
+    echo "No mount points found for EFS volume %s"
+    exit 0
+fi
+
+# Unmount each mount point
+for MOUNT_POINT in $MOUNT_POINTS; do
+    echo "Unmounting $MOUNT_POINT..."
+    sudo umount "$MOUNT_POINT" || true
+    
+    # Remove from fstab
+    sudo sed -i "\|%s:/|d" /etc/fstab || true
+    
+    echo "Successfully unmounted $MOUNT_POINT"
+done
+
+echo "EFS volume unmounted successfully"
+`, fsId, fsId, fsId)
+
+	// Execute unmount script on the instance via SSM
+	err = m.executeScriptOnInstance(instance.ID, unmountScript)
+	if err != nil {
+		return fmt.Errorf("failed to unmount EFS volume: %w", err)
+	}
+
+	log.Printf("Successfully unmounted EFS volume '%s' from instance '%s'", volumeName, instanceName)
+	return nil
+}
+
+// executeScriptOnInstance executes a shell script on an instance using SSM
+func (m *Manager) executeScriptOnInstance(instanceID, script string) error {
+	// Send command via SSM
+	output, err := m.ssm.SendCommand(context.TODO(), &ssm.SendCommandInput{
+		InstanceIds:  []string{instanceID},
+		DocumentName: aws.String("AWS-RunShellScript"),
+		Parameters: map[string][]string{
+			"commands": {script},
+		},
+		Comment: aws.String("CloudWorkstation EFS mount/unmount operation"),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send SSM command: %w", err)
+	}
+
+	commandID := *output.Command.CommandId
+	log.Printf("Sent SSM command %s to instance %s", commandID, instanceID)
+
+	// Wait for command completion with timeout
+	maxAttempts := 30 // Wait up to 5 minutes (30 * 10 seconds)
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// Get command invocation status
+		invocation, err := m.ssm.GetCommandInvocation(context.TODO(), &ssm.GetCommandInvocationInput{
+			CommandId:  aws.String(commandID),
+			InstanceId: aws.String(instanceID),
+		})
+		if err != nil {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		status := string(invocation.Status)
+		switch status {
+		case "Success":
+			log.Printf("SSM command %s completed successfully", commandID)
+			if invocation.StandardOutputContent != nil {
+				log.Printf("Command output: %s", *invocation.StandardOutputContent)
+			}
+			return nil
+		case "Failed":
+			errorMsg := "Unknown error"
+			if invocation.StandardErrorContent != nil {
+				errorMsg = *invocation.StandardErrorContent
+			}
+			return fmt.Errorf("SSM command failed: %s", errorMsg)
+		case "Cancelled", "TimedOut":
+			return fmt.Errorf("SSM command %s: %s", status, commandID)
+		case "InProgress", "Pending", "Delayed":
+			// Continue waiting
+			time.Sleep(10 * time.Second)
+			continue
+		default:
+			log.Printf("Unknown SSM command status: %s", status)
+			time.Sleep(10 * time.Second)
+			continue
+		}
+	}
+
+	return fmt.Errorf("SSM command %s timed out after waiting 5 minutes", commandID)
 }
 
 // CreateStorage creates a new EBS volume
