@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -48,12 +49,46 @@ var (
 	initOnce       sync.Once
 )
 
+// isDevelopmentMode detects if we're running in development/test mode
+// to reduce keychain password prompts during development
+func isDevelopmentMode() bool {
+	// Check for explicit development environment indicators
+	if os.Getenv("GO_ENV") == "test" || os.Getenv("CLOUDWORKSTATION_DEV") == "true" {
+		return true
+	}
+	
+	// Check for testing context
+	if os.Getenv("TESTING") == "1" {
+		return true
+	}
+	
+	// Check if running from test or temporary directories
+	if executable, err := os.Executable(); err == nil {
+		execPath := executable
+		if strings.Contains(execPath, "/tmp/") || 
+		   strings.Contains(execPath, "test") ||
+		   strings.Contains(execPath, "___go_build_") ||
+		   strings.HasSuffix(execPath, ".test") {
+			return true
+		}
+	}
+	
+	return false
+}
+
 // initializeGlobalProvider initializes the keychain provider once
 func initializeGlobalProvider() {
 	initOnce.Do(func() {
 		switch runtime.GOOS {
 		case "darwin":
-			// Create native provider directly without test (to eliminate first prompt)
+			// In development mode, skip keychain to avoid frequent password prompts
+			if isDevelopmentMode() {
+				fmt.Fprintf(os.Stderr, "Development mode detected - using secure file storage to avoid keychain prompts\n")
+				globalProvider, initError = NewFileSecureStorage()
+				return
+			}
+			
+			// Production mode - use native keychain
 			native, err := NewMacOSKeychainNative()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native macOS Keychain, using secure file storage: %v\n", err)

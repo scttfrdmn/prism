@@ -71,9 +71,10 @@ clean:
 .PHONY: test test-unit test-integration test-e2e test-coverage test-all
 
 # Run all unit tests (excluding GUI/TUI packages planned for Phase 2)
+# Uses development mode to avoid keychain password prompts
 test-unit:
 	@echo "🧪 Running unit tests..."
-	@go test -race -short $$(go list ./... | grep -v -E "(cmd/cws-gui|internal/gui|internal/tui)") -coverprofile=unit-coverage.out
+	@CLOUDWORKSTATION_DEV=true GO_ENV=test go test -race -short $$(go list ./... | grep -v -E "(cmd/cws-gui|internal/gui|internal/tui)") -coverprofile=unit-coverage.out
 
 # Run integration tests with LocalStack
 test-integration:
@@ -81,8 +82,8 @@ test-integration:
 	@docker-compose -f docker-compose.test.yml up -d localstack
 	@echo "⏳ Waiting for LocalStack to be ready..."
 	@sleep 10
-	@INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=aws-integration-coverage.out
-	@INTEGRATION_TESTS=1 go test -tags=integration ./pkg/ami -v -coverprofile=ami-integration-coverage.out
+	@CLOUDWORKSTATION_DEV=true INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=aws-integration-coverage.out
+	@CLOUDWORKSTATION_DEV=true INTEGRATION_TESTS=1 go test -tags=integration ./pkg/ami -v -coverprofile=ami-integration-coverage.out
 	@docker-compose -f docker-compose.test.yml down
 	@echo "📊 Integration test coverage:"
 	@go tool cover -func=aws-integration-coverage.out | grep "total"
