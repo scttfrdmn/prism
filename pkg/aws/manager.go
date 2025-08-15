@@ -189,7 +189,7 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		// Discover default VPC
 		discoveredVPC, err := m.DiscoverDefaultVPC()
 		if err != nil {
-			return nil, fmt.Errorf("failed to discover VPC: %w\n\n🏗️  To fix this issue:\n  1. Create a default VPC: aws ec2 create-default-vpc\n  2. Or specify a VPC: cws launch %s %s --vpc vpc-xxxxxxxxx", req.Template, req.Name)
+			return nil, fmt.Errorf("failed to discover VPC: %w\n\n🏗️  To fix this issue:\n  1. Create a default VPC: aws ec2 create-default-vpc\n  2. Or specify a VPC: cws launch %s %s --vpc vpc-xxxxxxxxx", err, req.Template, req.Name)
 		}
 		vpcID = discoveredVPC
 	}
@@ -201,7 +201,7 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		// Discover public subnet in the VPC
 		discoveredSubnet, err := m.DiscoverPublicSubnet(vpcID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to discover subnet: %w\n\n🏗️  To fix this issue:\n  1. Create a public subnet in your VPC\n  2. Or specify a subnet: cws launch %s %s --subnet subnet-xxxxxxxxx", req.Template, req.Name)
+			return nil, fmt.Errorf("failed to discover subnet: %w\n\n🏗️  To fix this issue:\n  1. Create a public subnet in your VPC\n  2. Or specify a subnet: cws launch %s %s --subnet subnet-xxxxxxxxx", err, req.Template, req.Name)
 		}
 		subnetID = discoveredSubnet
 	}
