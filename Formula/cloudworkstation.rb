@@ -37,7 +37,11 @@ class Cloudworkstation < Formula
     
     bin.install "cws-#{platform_suffix}" => "cws"
     bin.install "cwsd-#{platform_suffix}" => "cwsd"
-    bin.install "cws-gui-#{platform_suffix}" => "cws-gui" if File.exist?("cws-gui-#{platform_suffix}")
+    
+    # GUI is only available for macOS (Linux cross-compilation not supported for GUI components)
+    if OS.mac? && File.exist?("cws-gui-#{platform_suffix}")
+      bin.install "cws-gui-#{platform_suffix}" => "cws-gui"
+    end
 
     # Install completion scripts
     bash_completion.install "completions/cws.bash" => "cws" if File.exist?("completions/cws.bash")
