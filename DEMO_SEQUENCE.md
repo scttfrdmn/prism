@@ -24,23 +24,31 @@ cws --version
 cwsd --version
 
 # Configure AWS credentials (required for cloud operations)
-# Use your preferred profile name (e.g., 'aws' instead of 'default')
-aws configure --profile aws
+aws configure --profile aws  # Use your preferred profile name
 
-# Point CloudWorkstation to your profile
-export AWS_PROFILE=aws
-export AWS_REGION=us-west-2
+# Start daemon for profile management
+cws daemon start
+
+# Create CloudWorkstation profile (RECOMMENDED METHOD)
+cws profiles add personal my-research --aws-profile aws --region us-west-2
+
+# Activate your profile
+cws profiles switch aws
+
+# Verify profile is active
+cws profiles current
 
 # Set development mode (optional - avoids keychain prompts)
 export CLOUDWORKSTATION_DEV=true
 ```
 
-**AWS Setup Note:** For detailed AWS configuration including permissions, regions, and troubleshooting, see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
+**AWS Setup Note:** This demo uses CloudWorkstation's built-in profile system (recommended). For alternative methods and detailed setup, see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
 
 **Demo Points:**
 - Professional package management via Homebrew
 - Multiple installation options for different needs
-- Simple setup process
+- CloudWorkstation profiles eliminate need for environment variables
+- Simple setup process with persistent configuration
 
 ## Phase 2: First Workstation Launch (3 minutes)
 
@@ -256,14 +264,21 @@ cws doctor
 cws daemon status --detailed
 
 # Profile management
-cws profile current
-cws profile list
+cws profiles current
+cws profiles list
+
+# Profile switching demonstration
+cws profiles add personal demo-profile --aws-profile aws --region us-east-1
+cws profiles switch demo-profile
+cws profiles current
+cws profiles switch aws  # Switch back to main profile
 ```
 
 **Demo Points:**
 - Persistent shared storage between workstations
 - System health monitoring
-- Profile-based AWS credential management
+- CloudWorkstation profile management with easy switching
+- No environment variables needed for AWS configuration
 
 ## Phase 8: Cleanup and Next Steps (1 minute)
 
@@ -338,10 +353,11 @@ cws daemon stop
 ## Demo Environment Requirements:
 - **System**: macOS/Linux with Homebrew installed
 - **CloudWorkstation**: v0.4.2 binaries available
-- **AWS**: Credentials configured with your preferred profile (see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md))
+- **AWS**: Credentials configured using CloudWorkstation profiles (see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md))
   ```bash
-  aws configure --profile aws  # or your preferred profile name
-  export AWS_PROFILE=aws       # point CloudWorkstation to your profile
+  aws configure --profile aws  # Configure AWS CLI
+  cws profiles add personal my-research --aws-profile aws --region us-west-2
+  cws profiles switch aws      # Activate CloudWorkstation profile
   ```
 - **Development Mode**: `export CLOUDWORKSTATION_DEV=true` for smooth keychain experience
 - **Network**: Internet access for AWS API calls and package downloads

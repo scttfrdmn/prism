@@ -45,6 +45,14 @@ $CWS_CMD --version
 $CWSD_CMD --version
 echo ""
 
+# AWS Configuration
+echo "✅ AWS Configuration (CloudWorkstation Profiles - RECOMMENDED):"
+echo "   1. aws configure --profile aws"
+echo "   2. cws profiles add personal my-research --aws-profile aws --region us-west-2"
+echo "   3. cws profiles switch aws"
+echo "   4. cws profiles current  # Verify active profile"
+echo ""
+
 echo "Phase 2: First Workstation Launch"
 echo "---------------------------------"
 
@@ -100,6 +108,12 @@ echo ""
 
 echo "✅ TUI Interface Available:"
 echo "   cws tui  # Navigate: 1=Dashboard, 2=Instances, 3=Templates, 4=Storage"
+echo ""
+
+echo "✅ Profile Management:"
+echo "   cws profiles list     # Show all profiles"
+echo "   cws profiles current  # Show active profile"
+echo "   cws profiles switch <profile>  # Switch profiles"
 echo ""
 
 echo "Phase 5: Cost Optimization"
@@ -160,12 +174,14 @@ echo "• Cost Savings: Hibernation preserves work state while reducing costs"
 echo "• Collaboration: Project-based organization with budget management"
 echo "• Integration: REST API and multi-modal access for any workflow"
 echo ""
-echo "🚀 Next Steps (with AWS credentials configured):"
-echo "1. aws configure                                    # Set up AWS access"
-echo "2. cws launch 'Python Machine Learning' my-project # Launch workstation"
-echo "3. cws connect my-project                          # SSH to workstation"
-echo "4. [Inside workstation] jupyter lab --ip=0.0.0.0   # Start research tools"
-echo "5. cws hibernate my-project                        # Save costs when done"
+echo "🚀 Next Steps (complete setup):"
+echo "1. aws configure --profile aws                                  # Configure AWS CLI"
+echo "2. cws profiles add personal research --aws-profile aws --region us-west-2"
+echo "3. cws profiles switch aws                                      # Activate profile"
+echo "4. cws launch 'Python Machine Learning' my-project             # Launch workstation"
+echo "5. cws connect my-project                                       # SSH to workstation"
+echo "6. [Inside workstation] jupyter lab --ip=0.0.0.0               # Start research tools"
+echo "7. cws hibernate my-project                                     # Save costs when done"
 echo ""
 echo "📚 Documentation:"
 echo "• Installation Guide: INSTALL.md"
