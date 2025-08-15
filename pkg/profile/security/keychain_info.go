@@ -37,18 +37,14 @@ func GetKeychainInfo() (*KeychainInfo, error) {
 	}
 
 	// Try to determine provider type based on what we got
-	switch p := provider.(type) {
-	case *MacOSKeychainNative:
+	if isMacOS, macOSInfo := checkMacOSKeychainType(provider); isMacOS {
 		info.Provider = "macOS Keychain (Native)"
 		info.Native = true
 		info.SecurityLevel = "Hardware-backed secure enclave when available"
-		// GetKeychainInfo method available on macOS builds only
-		info.Details = map[string]interface{}{
-			"provider": "macOS Keychain (Native)",
-			"framework": "Security.framework",
-		}
-		
-	case *WindowsCredentialManagerNative:
+		info.Details = macOSInfo
+	} else {
+		switch p := provider.(type) {
+		case *WindowsCredentialManagerNative:
 		info.Provider = "Windows Credential Manager (Native)"
 		info.Native = true
 		info.SecurityLevel = "Windows DPAPI encryption"
@@ -72,11 +68,12 @@ func GetKeychainInfo() (*KeychainInfo, error) {
 		}
 		info.FallbackReason = "Native keychain not available or failed initialization"
 		
-	default:
-		info.Provider = "Unknown"
-		info.Native = false
-		info.SecurityLevel = "Unknown"
-		info.Details = map[string]interface{}{}
+		default:
+			info.Provider = "Unknown"
+			info.Native = false
+			info.SecurityLevel = "Unknown"
+			info.Details = map[string]interface{}{}
+		}
 	}
 
 	return info, nil
@@ -179,16 +176,6 @@ type KeychainDiagnostics struct {
 	Recommendations []string         `json:"recommendations"`
 }
 
-func diagnoseMacOSKeychain(diagnostics *KeychainDiagnostics) {
-	// Test if we can create native macOS keychain
-	_, err := NewMacOSKeychainNative()
-	if err != nil {
-		diagnostics.Issues = append(diagnostics.Issues, fmt.Sprintf("macOS Keychain unavailable: %v", err))
-		diagnostics.Recommendations = append(diagnostics.Recommendations, "Ensure Security framework is available and keychain is unlocked")
-	} else {
-		diagnostics.Recommendations = append(diagnostics.Recommendations, "macOS Keychain provides hardware-backed security when available")
-	}
-}
 
 func diagnoseWindowsCredentialManager(diagnostics *KeychainDiagnostics) {
 	// Test if we can create native Windows credential manager
