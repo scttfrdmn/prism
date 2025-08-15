@@ -81,21 +81,7 @@ func initializeGlobalProvider() {
 	initOnce.Do(func() {
 		switch runtime.GOOS {
 		case "darwin":
-			// In development mode, skip keychain to avoid frequent password prompts
-			if isDevelopmentMode() {
-				fmt.Fprintf(os.Stderr, "Development mode detected - using secure file storage to avoid keychain prompts\n")
-				globalProvider, initError = NewFileSecureStorage()
-				return
-			}
-			
-			// Production mode - use native keychain
-			native, err := NewMacOSKeychainNative()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native macOS Keychain, using secure file storage: %v\n", err)
-				globalProvider, initError = NewFileSecureStorage()
-			} else {
-				globalProvider, initError = native, nil
-			}
+			globalProvider, initError = initializeMacOSKeychain()
 		case "windows":
 			native, err := NewWindowsCredentialManagerNative()
 			if err != nil {
