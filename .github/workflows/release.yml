@@ -44,15 +44,13 @@ jobs:
         run: |
           GOOS=linux GOARCH=amd64 go build -o bin/cws-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=linux GOARCH=amd64 go build -o bin/cwsd-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          GOOS=linux GOARCH=amd64 go build -o bin/cws-gui-linux-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
-          cd bin && tar -czf cws-linux-amd64.tar.gz cws-linux-amd64 cwsd-linux-amd64 cws-gui-linux-amd64 && cd ..
+          cd bin && tar -czf cws-linux-amd64.tar.gz cws-linux-amd64 cwsd-linux-amd64 && cd ..
 
       - name: Build for Linux arm64
         run: |
           GOOS=linux GOARCH=arm64 go build -o bin/cws-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=linux GOARCH=arm64 go build -o bin/cwsd-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          GOOS=linux GOARCH=arm64 go build -o bin/cws-gui-linux-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
-          cd bin && tar -czf cws-linux-arm64.tar.gz cws-linux-arm64 cwsd-linux-arm64 cws-gui-linux-arm64 && cd ..
+          cd bin && tar -czf cws-linux-arm64.tar.gz cws-linux-arm64 cwsd-linux-arm64 && cd ..
 
       - name: Build for macOS amd64
         run: |
