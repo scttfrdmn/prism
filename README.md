@@ -54,6 +54,18 @@ brew install cloudworkstation
 cws --version
 ```
 
+### AWS Setup (Required)
+
+Before launching workstations, you need to configure AWS credentials:
+
+```bash
+# Quick setup with your preferred AWS profile
+aws configure --profile aws  # or any profile name you prefer
+export AWS_PROFILE=aws       # point CloudWorkstation to your profile
+```
+
+**→ For complete AWS setup guide:** [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
+
 ### Your First Workstation
 
 ```bash
@@ -216,8 +228,9 @@ cws idle history                                # View hibernation audit trail
 
 ## 📖 Documentation
 
+- **[AWS Setup Guide](AWS_SETUP_GUIDE.md)**: Complete AWS account and profile configuration
 - **[Installation Guide](INSTALL.md)**: Comprehensive installation instructions
-- **[Demo Sequence](DEMO_SEQUENCE.md)**: 12-minute comprehensive demo script
+- **[Demo Sequence](DEMO_SEQUENCE.md)**: 15-minute comprehensive demo script
 - **[Demo Script](demo.sh)**: Quick 5-minute executable demo
 - **[Demo Results](DEMO_RESULTS.md)**: Testing results and replication guide
 
@@ -293,6 +306,7 @@ CloudWorkstation is released under the [MIT License](LICENSE).
 
 ## 🆘 Support
 
+- **AWS Setup**: [AWS Setup Guide](AWS_SETUP_GUIDE.md) for account and profile configuration
 - **Documentation**: [Installation Guide](INSTALL.md), [Demo Guide](DEMO_SEQUENCE.md)
 - **Issues**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)  
 - **Quick Demo**: Run `./demo.sh` in the repository

@@ -77,14 +77,28 @@ export CLOUDWORKSTATION_DEV=true
 ```
 
 ### AWS Credentials
-```bash
-# Configure AWS credentials
-aws configure
 
-# Or use environment variables
-export AWS_PROFILE=my-profile
+CloudWorkstation requires AWS credentials to launch cloud workstations. See the **[AWS Setup Guide](AWS_SETUP_GUIDE.md)** for complete configuration instructions.
+
+**Quick setup:**
+```bash
+# Configure with your preferred AWS profile name
+aws configure --profile aws  # or any name you prefer
+
+# Point CloudWorkstation to your profile
+export AWS_PROFILE=aws
 export AWS_REGION=us-west-2
+
+# Make permanent by adding to ~/.bashrc or ~/.zshrc
+echo 'export AWS_PROFILE=aws' >> ~/.zshrc
 ```
+
+**Need help?** The [AWS Setup Guide](AWS_SETUP_GUIDE.md) covers:
+- AWS account setup and permissions
+- Using non-default profiles (like 'aws' instead of 'default')
+- Regional configuration
+- CloudWorkstation profile management
+- Troubleshooting common issues
 
 ## Getting Help
 
