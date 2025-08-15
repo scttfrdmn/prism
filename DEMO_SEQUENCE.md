@@ -1,44 +1,57 @@
 # CloudWorkstation v0.4.2 Demo Sequence
 
-This demo showcases the key features of CloudWorkstation v0.4.2, highlighting the enterprise research management platform capabilities while demonstrating the simplicity that researchers love.
+This demo showcases CloudWorkstation v0.4.2 from installation to actual usage, demonstrating the complete workflow that researchers experience from setup to connecting to their workstation.
 
-## Pre-Demo Setup
+## Phase 1: Installation (2 minutes)
 
-### 1. Environment Preparation
+### 1.1 Installation Options
 ```bash
-# Ensure development mode is enabled (avoids keychain prompts)
-export CLOUDWORKSTATION_DEV=true
+# Option 1: Homebrew Tap (Recommended)
+brew tap scttfrdmn/cloudworkstation
+brew install cloudworkstation
 
-# Verify binaries are available
-which cws cwsd cws-gui
+# Option 2: GitHub Releases (Alternative)
+# Download from https://github.com/scttfrdmn/cloudworkstation/releases
 
-# Check versions
+# Option 3: Source Build (Full Features including GUI)
+# git clone && make build
+```
+
+### 1.2 Initial Setup
+```bash
+# Verify installation
 cws --version
 cwsd --version
+
+# Configure AWS credentials (required for cloud operations)
+aws configure
+
+# Set development mode (optional - avoids keychain prompts)
+export CLOUDWORKSTATION_DEV=true
 ```
 
-### 2. Clean State (Optional)
-```bash
-# Stop any running daemon
-cws daemon stop || true
+**Demo Points:**
+- Professional package management via Homebrew
+- Multiple installation options for different needs
+- Simple setup process
 
-# Clean previous state (optional - for fresh demo)
-rm -rf ~/.cloudworkstation/state.json
-```
+## Phase 2: First Workstation Launch (3 minutes)
 
-## Demo Sequence: "From Researcher to Enterprise"
-
-### Phase 1: Individual Researcher Experience (3 minutes)
-
-#### 1.1 Quick Start - Launch First Workstation
+### 2.1 Daemon and Templates
 ```bash
 # Start the daemon
 cws daemon start
 
 # Show available templates
-cws templates
+cws templates list
 
-# Launch a Python ML workstation (demonstrates default-to-success)
+# Show template details with cost estimation
+cws templates info "Python Machine Learning (Simplified)"
+```
+
+### 2.2 Launch and Connect
+```bash
+# Launch a Python ML workstation
 cws launch "Python Machine Learning (Simplified)" ml-research
 
 # Show running instances
@@ -46,32 +59,59 @@ cws list
 
 # Get connection details
 cws info ml-research
+
+# Connect to your workstation (KEY STEP)
+cws connect ml-research
+
+# Inside workstation: show environment
+whoami
+ls -la
+conda list | head -10
+jupyter --version
+
+# Exit from workstation
+exit
 ```
 
 **Demo Points:**
 - Zero configuration required
 - Templates work out-of-the-box
-- Smart instance sizing and regional fallbacks
-- Clear connection information
+- Direct SSH connection to workstation
+- Pre-configured research environment ready to use
 
-#### 1.2 Template Inheritance Demo
+## Phase 3: Template Inheritance Demo (2 minutes)
+
+### 3.1 Stacked Templates
 ```bash
-# Show template details and inheritance
-cws templates describe "Rocky Linux 9 + Conda Stack"
+# Show template inheritance
+cws templates info "Rocky Linux 9 + Conda Stack"
 
 # Launch inherited template workstation
 cws launch "Rocky Linux 9 + Conda Stack" data-analysis
 
 # Compare with base template
-cws templates describe "Rocky Linux 9 Base"
+cws templates info "Rocky Linux 9 Base"
+
+# Connect to new workstation
+cws connect data-analysis
+
+# Inside workstation: show inherited environment
+whoami  # shows rocky user (from base)
+su - datascientist  # shows datascientist user (from stack)
+conda --version  # shows conda (from stack)
+exit
+exit
 ```
 
 **Demo Points:**
 - Template stacking architecture
 - Inheritance merging (users, packages, services)
 - Composition over duplication
+- Multiple users and environments in single workstation
 
-#### 1.3 Multi-Modal Access
+## Phase 4: Multi-Modal Access (2 minutes)
+
+### 4.1 Different Interfaces
 ```bash
 # CLI interface (already shown)
 cws list
@@ -82,24 +122,28 @@ cws tui
 # Show real-time updates and keyboard navigation
 # Exit TUI
 
-# Launch GUI (if available)
+# Launch GUI (if available from source build)
 cws-gui &
 # Show system tray integration, tabbed interface, visual management
+
+# API access
+curl -s http://localhost:8947/api/v1/instances | jq '.[] | .name'
 ```
 
 **Demo Points:**
 - Same functionality across interfaces
 - Real-time synchronization
 - Professional user experience
+- RESTful API for integration
 
-### Phase 2: Cost Optimization Features (2 minutes)
+## Phase 5: Cost Optimization Features (2 minutes)
 
-#### 2.1 Manual Hibernation
+### 5.1 Manual Hibernation
 ```bash
 # Show hibernation capabilities
 cws hibernation-status ml-research
 
-# Hibernate instance to save costs
+# Hibernate instance to save costs (preserves state)
 cws hibernate ml-research
 
 # Show state preservation
@@ -107,9 +151,14 @@ cws list
 
 # Resume when needed
 cws resume ml-research
+
+# Reconnect after resume
+cws connect ml-research
+# Environment is preserved exactly as left
+exit
 ```
 
-#### 2.2 Automated Hibernation Policies
+### 5.2 Automated Hibernation Policies
 ```bash
 # Show available hibernation policies
 cws idle profile list
@@ -126,13 +175,13 @@ cws idle history
 
 **Demo Points:**
 - Manual control for immediate savings
+- Session preservation through hibernation (work state maintained)
 - Automated policies for hands-off optimization
-- Session preservation through hibernation
 - Cost transparency and audit trail
 
-### Phase 3: Enterprise Features (4 minutes)
+## Phase 6: Enterprise Features (3 minutes)
 
-#### 3.1 Project-Based Organization
+### 6.1 Project-Based Organization
 ```bash
 # Create a research project
 cws project create "machine-learning-research" \
@@ -147,52 +196,33 @@ cws project assign machine-learning-research ml-research
 cws project assign machine-learning-research data-analysis
 ```
 
-#### 3.2 Budget Management
+### 6.2 Budget Management & Collaboration
 ```bash
 # Set up budget tracking
 cws project budget machine-learning-research set \
   --monthly-limit 500.00 \
   --alert-threshold 0.8
 
-# Show real-time cost tracking
-cws project cost machine-learning-research
-
-# Show cost analytics
-cws project cost machine-learning-research --breakdown
-```
-
-#### 3.3 Multi-User Collaboration
-```bash
 # Add team members (simulated)
 cws project member add machine-learning-research \
   researcher@university.edu --role member
 
-cws project member add machine-learning-research \
-  advisor@university.edu --role admin
+# Show real-time cost tracking
+cws project cost machine-learning-research --breakdown
 
 # Show project team
 cws project members machine-learning-research
-```
-
-#### 3.4 Enterprise API Access
-```bash
-# Start daemon API (already running)
-cws daemon status
-
-# Show API capabilities (curl examples)
-curl -s http://localhost:8947/api/v1/projects | jq .
-curl -s http://localhost:8947/api/v1/instances | jq .
 ```
 
 **Demo Points:**
 - Grant-funded budget management
 - Real-time cost tracking and alerts
 - Role-based access control
-- RESTful API for integration
+- Project-based resource organization
 
-### Phase 4: Advanced Features (2 minutes)
+## Phase 7: Storage & Advanced Features (2 minutes)
 
-#### 4.1 Storage Management
+### 7.1 Storage Management
 ```bash
 # Show storage options
 cws storage list
@@ -202,108 +232,132 @@ cws storage create shared-data --size 100GB --type efs
 
 # Attach to instances
 cws storage attach shared-data ml-research /mnt/shared
+
+# Connect and verify storage
+cws connect ml-research
+df -h | grep /mnt/shared  # Show mounted storage
+echo "test data" > /mnt/shared/test.txt
+exit
 ```
 
-#### 4.2 Profile Management
+### 7.2 System Health and Diagnostics
 ```bash
-# Show current profile
-cws profile current
-
-# List available profiles
-cws profile list
-
-# Show profile details
-cws profile show research-profile
-```
-
-#### 4.3 System Health and Diagnostics
-```bash
-# Show system status
-cws daemon status --detailed
-
 # Health check
 cws doctor
 
-# Show comprehensive diagnostics
-cws doctor --verbose
+# Show system status
+cws daemon status --detailed
+
+# Profile management
+cws profile current
+cws profile list
 ```
 
-### Phase 5: Cleanup and Next Steps (1 minute)
+**Demo Points:**
+- Persistent shared storage between workstations
+- System health monitoring
+- Profile-based AWS credential management
 
-#### 5.1 Resource Management
+## Phase 8: Cleanup and Next Steps (1 minute)
+
+### 8.1 Resource Management
 ```bash
-# Stop instances (hibernation preserves state)
+# Show final project cost summary
+cws project cost machine-learning-research --savings
+
+# Hibernate instances (preserves state for next session)
 cws hibernate ml-research
 cws hibernate data-analysis
 
-# Show cost savings
-cws project cost machine-learning-research --savings
+# Final status check
+cws list
 
 # Clean shutdown
 cws daemon stop
 ```
 
-#### 5.2 Installation Options
-```bash
-# Show installation methods
-echo "Installation Options:"
-echo "1. Homebrew Tap:"
-echo "   brew tap scttfrdmn/cloudworkstation"
-echo "   brew install cloudworkstation"
-echo "2. GitHub Releases: Direct binary download"
-echo "3. Source Build: Full GUI functionality"
-```
+**Demo Points:**
+- Cost savings through hibernation
+- State preservation for future work sessions
+- Clean resource management
 
-## Demo Script Summary (12 minutes total)
+## Demo Summary: Complete Workflow (15 minutes total)
 
-### Key Messages:
-1. **Simple for Individuals**: Zero-config templates, smart defaults, intuitive commands
-2. **Powerful for Teams**: Project organization, budget management, collaboration
-3. **Cost-Effective**: Hibernation, automated policies, transparent tracking
-4. **Enterprise-Ready**: Role-based access, API integration, audit trails
-5. **Multi-Modal**: CLI efficiency, TUI interactivity, GUI convenience
+### Complete User Journey:
+1. **Installation** → Professional Homebrew tap installation
+2. **Launch** → Zero-config template selection and workstation creation
+3. **Connect** → Direct SSH access to pre-configured research environment
+4. **Work** → Full research environment with conda, jupyter, tools ready to use
+5. **Collaborate** → Template inheritance, shared storage, project organization
+6. **Optimize** → Hibernation for cost savings while preserving work state
+7. **Scale** → Enterprise features for team collaboration and budget management
+8. **Integrate** → Multi-modal access and REST API for workflow integration
 
-### Technical Highlights:
-- Template inheritance system
-- Cross-platform compatibility
-- Real-time cost optimization
-- Professional package management
-- Comprehensive testing and reliability
+### Key Technical Demonstrations:
+- **Template Inheritance**: Rocky Linux 9 Base → Rocky Linux 9 + Conda Stack
+- **Connection Workflow**: `cws launch` → `cws connect` → research environment ready
+- **State Preservation**: Hibernation maintains exact work environment for resume
+- **Multi-Modal Access**: Same functionality across CLI, TUI, GUI, and API
+- **Enterprise Features**: Project budgets, team collaboration, cost tracking
 
-### Business Value:
-- Reduces research environment setup from hours to seconds
-- Optimizes cloud costs through intelligent hibernation
-- Scales from individual researchers to institutional deployments
-- Maintains compliance through project budgets and audit trails
+### Business Value Demonstrated:
+- **Setup Time**: From hours to seconds for research environments
+- **Cost Optimization**: Hibernation policies with session state preservation
+- **Scalability**: Individual researchers to institutional deployments
+- **Compliance**: Project budgets, audit trails, role-based access control
 
 ## Audience-Specific Variations:
 
-### For Researchers:
-Focus on Phase 1-2: Quick setup, templates, hibernation savings
+### For Researchers (Focus: Phases 1-3, 5):
+- Installation and first connection experience
+- Template inheritance for custom environments  
+- Cost optimization through hibernation
 
-### For IT/System Administrators:
-Focus on Phase 3-4: Enterprise features, API integration, management
+### For IT/System Administrators (Focus: Phases 4, 6-7):
+- Multi-modal access and API integration
+- Enterprise project management and user roles
+- Storage management and system diagnostics
 
-### For Budget/Finance Teams:
-Focus on cost analytics, budget controls, hibernation savings
+### For Budget/Finance Teams (Focus: Phases 5-6):
+- Cost optimization features and hibernation savings
+- Project budget management and real-time tracking
+- Cost analytics and audit trails
 
-### For Technical Decision Makers:
-Full sequence emphasizing scalability, integration, and ROI
+### For Technical Decision Makers (Full Sequence):
+- Complete workflow demonstrating scalability
+- Enterprise integration capabilities
+- ROI through setup time reduction and cost optimization
 
 ## Demo Environment Requirements:
-- macOS/Linux system with Homebrew
-- CloudWorkstation v0.4.2 installed
-- AWS credentials configured (for actual cloud operations)
-- CLOUDWORKSTATION_DEV=true (for smooth demo experience)
+- **System**: macOS/Linux with Homebrew installed
+- **CloudWorkstation**: v0.4.2 binaries available
+- **AWS**: Credentials configured (`aws configure`) for actual cloud operations
+- **Development Mode**: `export CLOUDWORKSTATION_DEV=true` for smooth keychain experience
+- **Network**: Internet access for AWS API calls and package downloads
 
 ## Recovery Commands (if demo issues arise):
 ```bash
 # Reset daemon
 cws daemon stop && sleep 2 && cws daemon start
 
-# Clear stuck operations
+# Clear stuck operations  
 cws project delete machine-learning-research --force
 
 # Fresh state
 rm ~/.cloudworkstation/state.json && cws daemon restart
+
+# Emergency cleanup
+cws list  # identify running instances
+cws hibernate <instance-name>  # hibernate all instances
 ```
+
+## Quick Demo Checklist:
+- [ ] Installation via Homebrew tap
+- [ ] Template selection and launch
+- [ ] **Connect to workstation** (KEY STEP)
+- [ ] Template inheritance demonstration
+- [ ] Hibernation with state preservation
+- [ ] Project and budget management
+- [ ] Multi-modal access (CLI, TUI, API)
+- [ ] Storage attachment and verification
+- [ ] Clean resource management
