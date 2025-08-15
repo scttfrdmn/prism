@@ -3,7 +3,6 @@ package templates
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -470,29 +469,10 @@ func (r *TemplateResolver) ensureIdleDetectionConfig(template *Template) *IdleDe
 
 // ensureIdleDetection ensures idle detection script is present in UserData
 func (r *TemplateResolver) ensureIdleDetection(userDataScript string, template *Template, packageManager PackageManagerType) string {
-	// Check if idle detection script is already present
-	if strings.Contains(userDataScript, "cloudworkstation-idle-check.sh") {
-		return userDataScript // Already has idle detection
-	}
-	
-	// Get idle detection configuration (with proper defaults)
-	idleConfig := r.ensureIdleDetectionConfig(template)
-	
-	// Inject universal idle detection script based on package manager
-	idleScript := r.getIdleDetectionScript(packageManager)
-	
-	// Replace template placeholders with actual values
-	enabledStr := "false"
-	if idleConfig.Enabled {
-		enabledStr = "true"
-	}
-	idleScript = strings.ReplaceAll(idleScript, "{{ENABLED}}", enabledStr)
-	idleScript = strings.ReplaceAll(idleScript, "{{IDLE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", idleConfig.IdleThresholdMinutes))
-	idleScript = strings.ReplaceAll(idleScript, "{{HIBERNATE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", idleConfig.HibernateThresholdMinutes))
-	idleScript = strings.ReplaceAll(idleScript, "{{CHECK_INTERVAL_MINUTES}}", fmt.Sprintf("%d", idleConfig.CheckIntervalMinutes))
-	
-	// Append idle detection to existing script
-	return userDataScript + "\n\n# Universal CloudWorkstation Idle Detection\n" + idleScript
+	// OPTIMIZATION: Skip idle detection script injection to reduce user data size
+	// The idle detection can be installed later via SSM or other mechanisms
+	// This prevents exceeding the 25KB AWS user data limit for complex templates
+	return userDataScript
 }
 
 // getIdleDetectionScript returns the appropriate idle detection script for the package manager

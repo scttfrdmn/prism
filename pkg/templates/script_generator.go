@@ -276,142 +276,43 @@ echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
 
 const condaScriptTemplate = `#!/bin/bash
 set -euo pipefail
-
-# CloudWorkstation Template: {{.Template.Name}}
-# Generated script using conda package manager
-# Generated at: $(date)
-
-echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
-echo "Using package manager: {{.PackageManager}}"
-
-# System update
-echo "Updating system packages..."
-apt-get update -y
-apt-get upgrade -y
-
-# Install base requirements
-echo "Installing base requirements..."
-apt-get install -y curl wget bzip2 ca-certificates
-
-# Install Miniforge (conda alternative)
-echo "Installing Miniforge..."
+apt-get update -y && apt-get install -y curl wget bzip2 ca-certificates
 ARCH=$(uname -m)
-if [ "$ARCH" = "x86_64" ]; then
-    MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
-elif [ "$ARCH" = "aarch64" ]; then
-    MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh"
-else
-    echo "Unsupported architecture: $ARCH"
-    exit 1
-fi
-
-wget -O /tmp/miniforge.sh "$MINIFORGE_URL"
-bash /tmp/miniforge.sh -b -p /opt/miniforge
-rm /tmp/miniforge.sh
-
-# Add conda to PATH
-# Update /etc/environment with conda path prepended
-sed -i 's|^PATH="|PATH="/opt/miniforge/bin:|' /etc/environment
+MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-${ARCH}.sh"
+wget -O /tmp/mf.sh "$MINIFORGE_URL" && bash /tmp/mf.sh -b -p /opt/miniforge && rm /tmp/mf.sh
 export PATH="/opt/miniforge/bin:$PATH"
-
-# Initialize conda for all users
+echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /etc/environment
 /opt/miniforge/bin/conda init bash
 
-{{if .Packages}}
-# Install template packages
-echo "Installing conda packages..."
-/opt/miniforge/bin/conda install -y{{range .Packages}} {{.}}{{end}}
-{{end}}
+{{if .Packages}}/opt/miniforge/bin/conda install -y{{range .Packages}} {{.}}{{end}}{{end}}
+{{if .Template.Packages.Pip}}/opt/miniforge/bin/pip install{{range .Template.Packages.Pip}} {{.}}{{end}}{{end}}
 
-# Install pip packages if any were specified
-PIP_PACKAGES=({{range .Template.Packages.Pip}}"{{.}}" {{end}})
-if [ ${#PIP_PACKAGES[@]} -gt 0 ]; then
-    echo "Installing pip packages..."
-    /opt/miniforge/bin/pip install "${PIP_PACKAGES[@]}"
-fi
-
-{{range .Users}}
-# Create user: {{.Name}}
-echo "Creating user: {{.Name}}"
-{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-# SSH key authentication configured - no password needed
-{{if .Groups}}
-{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
-{{end}}
-{{end}}
-
-# Setup conda for user
+{{range .Users}}useradd -m -s /bin/bash {{.Name}} || true
+{{if .Groups}}{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}{{end}}{{end}}
 sudo -u {{.Name}} /opt/miniforge/bin/conda init bash
 echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /home/{{.Name}}/.bashrc
 chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 {{end}}
 
-{{range .Services}}
-# Configure service: {{.Name}}
-echo "Configuring service: {{.Name}}"
-{{if eq .Name "jupyter"}}
-# Special handling for Jupyter service
-cat > /etc/systemd/system/jupyter.service << 'JUPYTER_SERVICE_EOF'
+{{range .Services}}{{if eq .Name "jupyter"}}cat > /etc/systemd/system/jupyter.service << 'EOF'
 [Unit]
-Description=Jupyter Notebook Server
+Description=Jupyter Lab
 After=network.target
-
 [Service]
 Type=simple
 User={{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}}
 Environment=PATH=/opt/miniforge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WorkingDirectory={{range $.Users}}{{if eq .Name "researcher"}}/home/{{.Name}}{{end}}{{end}}
-ExecStart=/opt/miniforge/bin/jupyter lab --ip=0.0.0.0 --port={{.Port}} --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
+ExecStart=/opt/miniforge/bin/jupyter lab --ip=0.0.0.0 --port={{.Port}} --no-browser --NotebookApp.token='' --NotebookApp.password=''
 Restart=always
-RestartSec=3
-
 [Install]
 WantedBy=multi-user.target
-JUPYTER_SERVICE_EOF
-
+EOF
 systemctl daemon-reload
-{{if .Enable}}
-systemctl enable jupyter || true
-systemctl start jupyter || true
-{{end}}
-{{else}}
-# Standard service configuration
-{{if .Config}}
-mkdir -p /etc/{{.Name}}
-{{$service := .}}{{range .Config}}
-echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
-{{end}}
-{{end}}
-{{if .Enable}}
-systemctl enable {{.Name}} || true
-systemctl start {{.Name}} || true
-{{end}}
-{{end}}
-{{end}}
+{{if .Enable}}systemctl enable jupyter && systemctl start jupyter{{end}}{{end}}{{end}}
 
-# Cleanup
-echo "Cleaning up..."
-/opt/miniforge/bin/conda clean -a -y
-apt-get autoremove -y
-apt-get autoclean
-
-echo "=== Setup Complete ==="
-echo "Template: {{.Template.Name}}"
-echo "Description: {{.Template.Description}}"
-echo "Conda environment: /opt/miniforge"
-{{range .Users}}
-echo "User created - Name: {{.Name}} (SSH key authentication)"
-{{end}}
-{{range .Services}}
-{{if .Port}}
-echo "Service available - {{.Name}} on port {{.Port}}"
-{{end}}
-{{end}}
-echo "Setup log: /var/log/cws-setup.log"
-
-# Write completion marker
+/opt/miniforge/bin/conda clean -a -y && apt-get autoremove -y && apt-get autoclean
 date > /var/log/cws-setup.log
-echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
 `
 
 const spackScriptTemplate = `#!/bin/bash
