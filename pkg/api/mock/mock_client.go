@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -31,7 +31,7 @@ type MockClient struct {
 }
 
 // Ensure MockClient implements CloudWorkstationAPI
-var _ api.CloudWorkstationAPI = (*MockClient)(nil)
+var _ client.CloudWorkstationAPI = (*MockClient)(nil)
 
 // NewClient creates a new mock client with pre-populated data
 func NewClient() *MockClient {
@@ -738,8 +738,8 @@ func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error 
 }
 
 // GetRegistryStatus returns the status of the AMI registry
-func (m *MockClient) GetRegistryStatus(ctx context.Context) (*api.RegistryStatusResponse, error) {
-	return &api.RegistryStatusResponse{
+func (m *MockClient) GetRegistryStatus(ctx context.Context) (*client.RegistryStatusResponse, error) {
+	return &client.RegistryStatusResponse{
 		Active: true,
 		TemplateCount: 5,
 		AMICount: 15,
@@ -754,7 +754,7 @@ func (m *MockClient) SetRegistryStatus(ctx context.Context, enabled bool) error 
 }
 
 // LookupAMI finds an AMI for a specific template in a region
-func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch string) (*api.AMIReferenceResponse, error) {
+func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch string) (*client.AMIReferenceResponse, error) {
 	template, exists := m.Templates[templateName]
 	if !exists {
 		return nil, fmt.Errorf("template not found: %s", templateName)
@@ -770,7 +770,7 @@ func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch s
 		return nil, fmt.Errorf("template not available for architecture %s in region %s", arch, region)
 	}
 	
-	return &api.AMIReferenceResponse{
+	return &client.AMIReferenceResponse{
 		AMIID:        amiID,
 		Region:       region,
 		Architecture: arch,
@@ -782,17 +782,17 @@ func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch s
 }
 
 // ListTemplateAMIs lists all AMIs available for a template across regions
-func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) ([]api.AMIReferenceResponse, error) {
+func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) ([]client.AMIReferenceResponse, error) {
 	template, exists := m.Templates[templateName]
 	if !exists {
 		return nil, fmt.Errorf("template not found: %s", templateName)
 	}
 	
-	var result []api.AMIReferenceResponse
+	var result []client.AMIReferenceResponse
 	
 	for region, archMap := range template.AMI {
 		for arch, amiID := range archMap {
-			result = append(result, api.AMIReferenceResponse{
+			result = append(result, client.AMIReferenceResponse{
 				AMIID:        amiID,
 				Region:       region,
 				Architecture: arch,
@@ -808,7 +808,7 @@ func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 }
 
 // SetOptions sets client configuration options
-func (m *MockClient) SetOptions(options api.ClientOptions) {
+func (m *MockClient) SetOptions(options client.Options) {
 	// Mock client ignores options but implements the interface
 }
 
@@ -900,7 +900,7 @@ func (m *MockClient) CreateProject(ctx context.Context, req project.CreateProjec
 		Name:        req.Name,
 		Description: req.Description,
 		CreatedAt:   time.Now(),
-		Budget:      budget,
+		Budget:      &budget,
 		Owner:       "mock-user",
 	}, nil
 }
@@ -908,17 +908,21 @@ func (m *MockClient) CreateProject(ctx context.Context, req project.CreateProjec
 // ListProjects lists projects (mock)
 func (m *MockClient) ListProjects(ctx context.Context, filter *project.ProjectFilter) (*project.ProjectListResponse, error) {
 	return &project.ProjectListResponse{
-		Projects: []types.Project{
+		Projects: []project.ProjectSummary{
 			{
-				ID:          "mock-project-123",
-				Name:        "Mock Research Project",
-				Description: "A sample project for testing",
-				CreatedAt:   time.Now().Add(-24 * time.Hour),
-				Budget:      types.ProjectBudget{MonthlyLimit: 500.0},
-				Owner:       "mock-user",
+				ID:              "mock-project-123",
+				Name:            "Mock Research Project",
+				Owner:           "mock-user",
+				Status:          "active",
+				MemberCount:     1,
+				ActiveInstances: 2,
+				TotalCost:       150.25,
+				CreatedAt:       time.Now().Add(-24 * time.Hour),
+				LastActivity:    time.Now().Add(-1 * time.Hour),
 			},
 		},
-		Total: 1,
+		TotalCount:    1,
+		FilteredCount: 1,
 	}, nil
 }
 
@@ -929,26 +933,29 @@ func (m *MockClient) GetProject(ctx context.Context, projectID string) (*types.P
 		Name:        "Mock Research Project",
 		Description: "A sample project for testing",
 		CreatedAt:   time.Now().Add(-24 * time.Hour),
-		Budget:      types.ProjectBudget{MonthlyLimit: 500.0},
+		Budget:      &types.ProjectBudget{MonthlyLimit: &[]float64{500.0}[0]},
 		Owner:       "mock-user",
 	}, nil
 }
 
 // UpdateProject updates a project (mock)
 func (m *MockClient) UpdateProject(ctx context.Context, projectID string, req project.UpdateProjectRequest) (*types.Project, error) {
-	// Convert budget request to budget type
-	var budget types.ProjectBudget
-	if req.Budget != nil {
-		budget.MonthlyLimit = req.Budget.MonthlyLimit
-		budget.AlertThresholds = req.Budget.AlertThresholds
+	name := "Mock Research Project"
+	description := "A sample project for testing"
+	
+	if req.Name != nil {
+		name = *req.Name
+	}
+	if req.Description != nil {
+		description = *req.Description
 	}
 	
 	return &types.Project{
 		ID:          projectID,
-		Name:        req.Name,
-		Description: req.Description,
+		Name:        name,
+		Description: description,
 		CreatedAt:   time.Now().Add(-24 * time.Hour),
-		Budget:      budget,
+		Budget:      &types.ProjectBudget{MonthlyLimit: &[]float64{500.0}[0]},
 		Owner:       "mock-user",
 	}, nil
 }
@@ -987,31 +994,42 @@ func (m *MockClient) GetProjectMembers(ctx context.Context, projectID string) ([
 // GetProjectBudgetStatus gets project budget status (mock)
 func (m *MockClient) GetProjectBudgetStatus(ctx context.Context, projectID string) (*project.BudgetStatus, error) {
 	return &project.BudgetStatus{
-		Budget:         types.ProjectBudget{MonthlyLimit: 500.0},
-		CurrentSpend:   150.25,
-		ProjectedSpend: 280.50,
-		AlertsTriggered: []project.BudgetAlert{},
+		ProjectID:                projectID,
+		BudgetEnabled:           true,
+		TotalBudget:             1000.0,
+		SpentAmount:             150.25,
+		RemainingBudget:         849.75,
+		SpentPercentage:         0.15,
+		ProjectedMonthlySpend:   280.50,
+		ActiveAlerts:            []string{},
+		TriggeredActions:        []string{},
+		LastUpdated:            time.Now(),
 	}, nil
 }
 
 // GetProjectCostBreakdown gets project cost breakdown (mock)
 func (m *MockClient) GetProjectCostBreakdown(ctx context.Context, projectID string, start, end time.Time) (*types.ProjectCostBreakdown, error) {
 	return &types.ProjectCostBreakdown{
-		ProjectID:    projectID,
-		TotalCost:    150.25,
-		InstanceCost: 120.00,
-		StorageCost:  30.25,
-		Period:       types.Period{Start: start, End: end},
+		ProjectID:     projectID,
+		TotalCost:     150.25,
+		InstanceCosts: []types.InstanceCost{},
+		StorageCosts:  []types.StorageCost{},
+		PeriodStart:   start,
+		PeriodEnd:     end,
+		GeneratedAt:   time.Now(),
 	}, nil
 }
 
 // GetProjectResourceUsage gets project resource usage (mock)
 func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID string, duration time.Duration) (*types.ProjectResourceUsage, error) {
 	return &types.ProjectResourceUsage{
-		ProjectID:     projectID,
-		InstanceHours: 48.5,
-		StorageGB:     100,
-		Period:        duration,
+		ProjectID:           projectID,
+		ActiveInstances:     2,
+		TotalInstances:      5,
+		TotalStorage:        100.0,
+		ComputeHours:        48.5,
+		HibernationSavings:  25.50,
+		MeasurementPeriod:   duration,
 	}, nil
 }
 
@@ -1022,9 +1040,7 @@ func (m *MockClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error)
 	return &types.DaemonStatus{
 		Version:   "0.4.1",
 		Status:    "running",
-		Uptime:    "2h30m",
-		Region:    "us-west-2",
-		Profile:   "default",
+		StartTime: time.Now().Add(-2*time.Hour - 30*time.Minute),
 	}, nil
 }
 
@@ -1077,16 +1093,31 @@ func (m *MockClient) DiffTemplate(ctx context.Context, req templates.DiffRequest
 func (m *MockClient) GetInstanceLayers(ctx context.Context, instanceID string) ([]templates.AppliedTemplate, error) {
 	return []templates.AppliedTemplate{
 		{
-			TemplateID:  "base-ubuntu",
-			AppliedAt:   time.Now().Add(-1 * time.Hour),
-			Status:      "active",
-			Version:     "1.0.0",
+			Name:               "base-ubuntu",
+			AppliedAt:          time.Now().Add(-1 * time.Hour),
+			PackageManager:     "apt",
+			PackagesInstalled:  []string{"curl", "wget", "git"},
+			ServicesConfigured: []string{"ssh"},
+			UsersCreated:       []string{"ubuntu"},
+			RollbackCheckpoint: "checkpoint-1",
 		},
 	}, nil
 }
 
 // RollbackInstance rolls back template changes (mock)
 func (m *MockClient) RollbackInstance(ctx context.Context, req types.RollbackRequest) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// MountVolume mounts a volume to an instance (mock)
+func (m *MockClient) MountVolume(ctx context.Context, instanceID, volumeID, mountPoint string) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// UnmountVolume unmounts a volume from an instance (mock)
+func (m *MockClient) UnmountVolume(ctx context.Context, instanceID, mountPoint string) error {
 	// Mock implementation - just return success
 	return nil
 }
