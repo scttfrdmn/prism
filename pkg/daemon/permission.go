@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
 )
 
@@ -14,13 +14,13 @@ type PermissionLevel int
 const (
 	// PermissionNone represents no access
 	PermissionNone PermissionLevel = iota
-	
+
 	// PermissionRead represents read access
 	PermissionRead
-	
+
 	// PermissionWrite represents write access (includes read)
 	PermissionWrite
-	
+
 	// PermissionAdmin represents administrative access (includes read and write)
 	PermissionAdmin
 )
@@ -31,22 +31,22 @@ type Resource string
 const (
 	// ResourceInstance represents an instance resource
 	ResourceInstance Resource = "instance"
-	
+
 	// ResourceTemplate represents a template resource
 	ResourceTemplate Resource = "template"
-	
+
 	// ResourceVolume represents a volume resource
 	ResourceVolume Resource = "volume"
-	
+
 	// ResourceStorage represents a storage resource
 	ResourceStorage Resource = "storage"
-	
+
 	// ResourceUser represents a user resource
 	ResourceUser Resource = "user"
-	
+
 	// ResourceGroup represents a group resource
 	ResourceGroup Resource = "group"
-	
+
 	// ResourceSystem represents system-level resources
 	ResourceSystem Resource = "system"
 )
@@ -57,19 +57,19 @@ type Operation string
 const (
 	// OperationCreate represents a create operation
 	OperationCreate Operation = "create"
-	
+
 	// OperationRead represents a read operation
 	OperationRead Operation = "read"
-	
+
 	// OperationUpdate represents an update operation
 	OperationUpdate Operation = "update"
-	
+
 	// OperationDelete represents a delete operation
 	OperationDelete Operation = "delete"
-	
+
 	// OperationList represents a list operation
 	OperationList Operation = "list"
-	
+
 	// OperationManage represents a management operation
 	OperationManage Operation = "manage"
 )
@@ -78,10 +78,10 @@ const (
 type Permission struct {
 	// Resource is the resource type
 	Resource Resource
-	
+
 	// Operation is the operation type
 	Operation Operation
-	
+
 	// MinimumLevel is the minimum permission level required
 	MinimumLevel PermissionLevel
 }
@@ -96,7 +96,7 @@ func (s *Server) permissionMiddleware(permission Permission) func(http.HandlerFu
 				next(w, r)
 				return
 			}
-			
+
 			// Get user from context (set by auth middleware)
 			userID := getUserID(r.Context())
 			if userID == "" {
@@ -104,19 +104,19 @@ func (s *Server) permissionMiddleware(permission Permission) func(http.HandlerFu
 				s.writeError(w, http.StatusUnauthorized, "Authentication required")
 				return
 			}
-			
+
 			// Check permission
 			hasPermission, err := s.checkPermission(r.Context(), userID, permission)
 			if err != nil {
 				s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Error checking permission: %v", err))
 				return
 			}
-			
+
 			if !hasPermission {
 				s.writeError(w, http.StatusForbidden, "Permission denied")
 				return
 			}
-			
+
 			// User has permission, continue
 			next(w, r)
 		}
@@ -130,22 +130,22 @@ func (s *Server) checkPermission(ctx context.Context, userID string, permission 
 	if err != nil {
 		return false, err
 	}
-	
+
 	// Check if user is enabled
 	if !user.Enabled {
 		return false, nil
 	}
-	
+
 	// Check if user has admin role (admins can do anything)
 	for _, role := range user.Roles {
 		if role == usermgmt.UserRoleAdmin {
 			return true, nil
 		}
 	}
-	
+
 	// Check specific permissions based on roles
 	permissionLevel := s.getRolePermissionLevel(user.Roles, permission.Resource)
-	
+
 	// Check if user has sufficient permission level
 	return permissionLevel >= permission.MinimumLevel, nil
 }
@@ -154,16 +154,16 @@ func (s *Server) checkPermission(ctx context.Context, userID string, permission 
 func (s *Server) getRolePermissionLevel(roles []usermgmt.UserRole, resource Resource) PermissionLevel {
 	// Start with no permission
 	level := PermissionNone
-	
+
 	// Check each role and use the highest permission level
 	for _, role := range roles {
 		roleLevel := PermissionNone
-		
+
 		switch role {
 		case usermgmt.UserRoleAdmin:
 			// Admins have admin access to everything
 			roleLevel = PermissionAdmin
-			
+
 		case usermgmt.UserRolePowerUser:
 			// Power users have write access to most resources, admin access to some
 			switch resource {
@@ -174,7 +174,7 @@ func (s *Server) getRolePermissionLevel(roles []usermgmt.UserRole, resource Reso
 			case ResourceSystem:
 				roleLevel = PermissionRead
 			}
-			
+
 		case usermgmt.UserRoleUser:
 			// Regular users have write access to instances, volumes, storage,
 			// read access to templates, and no access to users, groups, or system
@@ -186,7 +186,7 @@ func (s *Server) getRolePermissionLevel(roles []usermgmt.UserRole, resource Reso
 			case ResourceUser, ResourceGroup, ResourceSystem:
 				roleLevel = PermissionNone
 			}
-			
+
 		case usermgmt.UserRoleReadOnly:
 			// Read-only users have read access to most resources
 			switch resource {
@@ -196,13 +196,13 @@ func (s *Server) getRolePermissionLevel(roles []usermgmt.UserRole, resource Reso
 				roleLevel = PermissionNone
 			}
 		}
-		
+
 		// Use the highest permission level from all roles
 		if roleLevel > level {
 			level = roleLevel
 		}
 	}
-	
+
 	return level
 }
 

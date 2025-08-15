@@ -30,7 +30,7 @@ type Server struct {
 	awsManager      *aws.Manager
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
-	
+
 	// Integrated autonomous monitoring
 	monitoringCancel context.CancelFunc
 	monitoringTicker *time.Ticker
@@ -43,7 +43,7 @@ func NewServer(port string) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load daemon configuration: %w", err)
 	}
-	
+
 	// Use port from parameter or config, with fallback to default
 	if port == "" {
 		if config.Port != "" {
@@ -153,15 +153,15 @@ func (s *Server) Start() error {
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		<-c
 		log.Println("Shutting down daemon...")
-		
+
 		// Stop integrated monitoring
 		s.stopIntegratedMonitoring()
-		
+
 		// Stop security manager
 		if err := s.securityManager.Stop(); err != nil {
 			log.Printf("Warning: Failed to stop security manager: %v", err)
 		}
-		
+
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		s.httpServer.Shutdown(ctx)
@@ -191,28 +191,28 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 			handler(w, r)
 		}
 	}
-	
+
 	// Operation tracking middleware
 	operationTrackingMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// Determine operation type from path
 			opType := extractOperationType(r.URL.Path)
-			
+
 			// Start tracking this operation with type information
 			opID := s.statusTracker.StartOperationWithType(opType)
-			
+
 			// Enhance logging
 			log.Printf("Operation %d (%s) started: %s %s", opID, opType, r.Method, r.URL.Path)
-			
+
 			// Record start time for duration tracking
 			startTime := time.Now()
-			
+
 			// Ensure operation is always marked as completed
 			defer func() {
 				s.statusTracker.EndOperationWithType(opType)
 				log.Printf("Operation %d (%s) completed in %v", opID, opType, time.Since(startTime))
 			}()
-			
+
 			// Call the handler
 			handler(w, r)
 		}
@@ -226,21 +226,21 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 			if requestedVersion == "" {
 				requestedVersion = s.versionManager.GetDefaultVersion()
 			}
-			
+
 			// Add version headers to response
 			w.Header().Set("X-API-Version", requestedVersion)
 			w.Header().Set("X-API-Latest-Version", s.versionManager.GetLatestVersion())
 			w.Header().Set("X-API-Stable-Version", s.versionManager.GetStableVersion())
-			
+
 			// Add version to request context for handlers to use
 			ctx := r.Context()
 			ctx = setAPIVersion(ctx, requestedVersion)
 			r = r.WithContext(ctx)
-			
+
 			handler(w, r)
 		}
 	}
-	
+
 	// Combine all middleware
 	applyMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
 		return s.combineMiddleware(
@@ -255,10 +255,10 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 
 	// API version information endpoint
 	mux.HandleFunc("/api/versions", applyMiddleware(s.handleAPIVersions))
-	
+
 	// Register v1 endpoints
 	s.registerV1Routes(mux, applyMiddleware)
-	
+
 	// API path matcher to handle any valid API request
 	// This allows proper versioning of new paths that may be added in the future
 	mux.HandleFunc("/api/", applyMiddleware(s.handleUnknownAPI))
@@ -273,7 +273,7 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 
 	// Authentication
 	mux.HandleFunc("/api/v1/auth", applyMiddleware(s.handleAuth))
-	
+
 	// User authentication
 	mux.HandleFunc("/api/v1/authenticate", applyMiddleware(s.handleAuthenticate))
 
@@ -353,40 +353,40 @@ func splitPath(path string) []string {
 // Example: /api/v1/instances/create -> "InstanceCreate"
 func extractOperationType(path string) string {
 	parts := splitPath(path)
-	
+
 	if len(parts) < 3 {
 		return "Unknown"
 	}
-	
+
 	// Skip the /api/v1 prefix
 	if parts[0] == "" && parts[1] == "api" && parts[2] == "v1" {
 		parts = parts[3:]
 	} else if parts[0] == "api" && parts[1] == "v1" {
 		parts = parts[2:]
 	}
-	
+
 	if len(parts) == 0 {
 		return "Root"
 	}
-	
+
 	// Extract resource type (first part)
 	resourceType := strings.Title(parts[0])
 	if len(resourceType) > 0 && resourceType[len(resourceType)-1] == 's' {
 		// Convert plural to singular (instances -> instance)
 		resourceType = resourceType[:len(resourceType)-1]
 	}
-	
+
 	// If there's an ID and operation, use those
 	if len(parts) >= 3 {
 		operation := strings.Title(parts[2])
 		return resourceType + operation
 	}
-	
+
 	// If there's just an ID, determine operation based on HTTP method
 	if len(parts) == 2 {
 		return resourceType + "Operation"
 	}
-	
+
 	// Otherwise just return the resource type
 	return resourceType
 }

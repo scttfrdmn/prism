@@ -19,7 +19,7 @@ func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
 	if region == "" {
 		region = "us-east-1" // Default region
 	}
-	
+
 	architecture := r.URL.Query().Get("architecture")
 	if architecture == "" {
 		architecture = "x86_64" // Default architecture
@@ -43,21 +43,21 @@ func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateName := r.URL.Path[len("/api/v1/templates/"):]
-	
+
 	// Get region and architecture from query params or headers
 	region := r.URL.Query().Get("region")
 	if region == "" {
 		region = "us-east-1" // Default region
 	}
-	
+
 	architecture := r.URL.Query().Get("architecture")
 	if architecture == "" {
 		architecture = "x86_64" // Default architecture
 	}
-	
+
 	// Get package manager override from query params
 	packageManager := r.URL.Query().Get("package_manager")
-	
+
 	// Get size for instance type scaling from query params
 	size := r.URL.Query().Get("size")
 

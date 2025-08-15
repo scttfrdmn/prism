@@ -206,7 +206,7 @@ func TestErrorCodeFromStatusCode(t *testing.T) {
 		{429, ErrRateLimited},
 		{500, ErrServerError},
 		{502, ErrServerError},
-		{418, ErrUnknown}, // I'm a teapot
+		{418, ErrInvalidParameters}, // I'm a teapot
 	}
 	
 	for _, test := range tests {

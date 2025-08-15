@@ -36,25 +36,25 @@ func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusInternalServerError, "Failed to generate secure API key")
 		return
 	}
-	
+
 	// Convert to hex string for easier handling
 	apiKey := hex.EncodeToString(apiKeyBytes)
-	
+
 	// Save the API key
 	if err := s.stateManager.SaveAPIKey(apiKey); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to save API key")
 		return
 	}
-	
+
 	log.Printf("Generated new API key")
-	
+
 	// Return the API key in the response
 	response := types.AuthResponse{
 		APIKey:    apiKey,
 		CreatedAt: time.Now(),
 		Message:   "API key generated successfully. This key will not be shown again.",
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -65,18 +65,18 @@ func (s *Server) handleGetAuthStatus(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusInternalServerError, "Failed to retrieve authentication status")
 		return
 	}
-	
+
 	// Don't return the actual API key, just whether it exists
 	response := map[string]interface{}{
 		"auth_enabled": apiKey != "",
 		"created_at":   createdAt,
 	}
-	
+
 	// If the request is authenticated, include more information
 	if isAuthenticated(r.Context()) {
 		response["authenticated"] = true
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -87,14 +87,14 @@ func (s *Server) handleRevokeAPIKey(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusUnauthorized, "Authentication required to revoke API key")
 		return
 	}
-	
+
 	// Clear the API key
 	if err := s.stateManager.ClearAPIKey(); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to revoke API key")
 		return
 	}
-	
+
 	log.Printf("API key revoked")
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }

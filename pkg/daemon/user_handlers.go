@@ -68,70 +68,70 @@ func (s *Server) handleUserOperations(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for filter
 	filter := &usermgmt.UserFilter{}
-	
+
 	if username := r.URL.Query().Get("username"); username != "" {
 		filter.Username = username
 	}
-	
+
 	if email := r.URL.Query().Get("email"); email != "" {
 		filter.Email = email
 	}
-	
+
 	if role := r.URL.Query().Get("role"); role != "" {
 		filter.Role = usermgmt.UserRole(role)
 	}
-	
+
 	if group := r.URL.Query().Get("group"); group != "" {
 		filter.Group = group
 	}
-	
+
 	if provider := r.URL.Query().Get("provider"); provider != "" {
 		filter.Provider = usermgmt.Provider(provider)
 	}
-	
+
 	if r.URL.Query().Get("enabled_only") == "true" {
 		filter.EnabledOnly = true
 	}
-	
+
 	if r.URL.Query().Get("disabled_only") == "true" {
 		filter.DisabledOnly = true
 	}
-	
+
 	// Parse pagination parameters
 	pagination := &usermgmt.PaginationOptions{
-		Page: 1,
+		Page:     1,
 		PageSize: 10,
 	}
-	
+
 	if page := r.URL.Query().Get("page"); page != "" {
 		if _, err := fmt.Sscanf(page, "%d", &pagination.Page); err != nil {
 			s.writeError(w, http.StatusBadRequest, "Invalid page parameter")
 			return
 		}
 	}
-	
+
 	if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
 		if _, err := fmt.Sscanf(pageSize, "%d", &pagination.PageSize); err != nil {
 			s.writeError(w, http.StatusBadRequest, "Invalid page_size parameter")
 			return
 		}
 	}
-	
+
 	if sortBy := r.URL.Query().Get("sort_by"); sortBy != "" {
 		pagination.SortBy = sortBy
 	}
-	
+
 	if sortOrder := r.URL.Query().Get("sort_order"); sortOrder != "" {
 		pagination.SortOrder = sortOrder
 	}
-	
+
 	// Get users
 	users, err := s.userManager.GetUsers(context.Background(), filter, pagination)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to list users: %v", err))
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(users)
 }
 
@@ -143,7 +143,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Create user
 	newUser, err := s.userManager.CreateUser(context.Background(), &user)
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newUser)
 }
@@ -171,7 +171,7 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request, id string
 		}
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -183,13 +183,13 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, id str
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Ensure ID in URL matches ID in body
 	if id != user.ID {
 		s.writeError(w, http.StatusBadRequest, "User ID in URL does not match ID in body")
 		return
 	}
-	
+
 	// Update user
 	updatedUser, err := s.userManager.UpdateUser(context.Background(), &user)
 	if err != nil {
@@ -202,7 +202,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, id str
 		}
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(updatedUser)
 }
 
@@ -218,7 +218,7 @@ func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request, id str
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -228,7 +228,7 @@ func (s *Server) handleEnableUser(w http.ResponseWriter, r *http.Request, id str
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Enable user
 	err := s.userManager.EnableUser(context.Background(), id)
 	if err != nil {
@@ -239,7 +239,7 @@ func (s *Server) handleEnableUser(w http.ResponseWriter, r *http.Request, id str
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -249,7 +249,7 @@ func (s *Server) handleDisableUser(w http.ResponseWriter, r *http.Request, id st
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Disable user
 	err := s.userManager.DisableUser(context.Background(), id)
 	if err != nil {
@@ -260,7 +260,7 @@ func (s *Server) handleDisableUser(w http.ResponseWriter, r *http.Request, id st
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -277,7 +277,7 @@ func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id str
 			}
 			return
 		}
-		
+
 		json.NewEncoder(w).Encode(groups)
 	} else if r.Method == http.MethodPut {
 		// Update user groups
@@ -286,7 +286,7 @@ func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id str
 			s.writeError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
-		
+
 		// Get user
 		user, err := s.userManager.GetUser(context.Background(), id)
 		if err != nil {
@@ -297,17 +297,17 @@ func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id str
 			}
 			return
 		}
-		
+
 		// Update user groups
 		user.Groups = groupNames
-		
+
 		// Update user
 		_, err = s.userManager.UpdateUser(context.Background(), user)
 		if err != nil {
 			s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update user groups: %v", err))
 			return
 		}
-		
+
 		w.WriteHeader(http.StatusNoContent)
 	} else {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -368,50 +368,50 @@ func (s *Server) handleGroupOperations(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for filter
 	filter := &usermgmt.GroupFilter{}
-	
+
 	if name := r.URL.Query().Get("name"); name != "" {
 		filter.Name = name
 	}
-	
+
 	if provider := r.URL.Query().Get("provider"); provider != "" {
 		filter.Provider = usermgmt.Provider(provider)
 	}
-	
+
 	// Parse pagination parameters
 	pagination := &usermgmt.PaginationOptions{
-		Page: 1,
+		Page:     1,
 		PageSize: 10,
 	}
-	
+
 	if page := r.URL.Query().Get("page"); page != "" {
 		if _, err := fmt.Sscanf(page, "%d", &pagination.Page); err != nil {
 			s.writeError(w, http.StatusBadRequest, "Invalid page parameter")
 			return
 		}
 	}
-	
+
 	if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
 		if _, err := fmt.Sscanf(pageSize, "%d", &pagination.PageSize); err != nil {
 			s.writeError(w, http.StatusBadRequest, "Invalid page_size parameter")
 			return
 		}
 	}
-	
+
 	if sortBy := r.URL.Query().Get("sort_by"); sortBy != "" {
 		pagination.SortBy = sortBy
 	}
-	
+
 	if sortOrder := r.URL.Query().Get("sort_order"); sortOrder != "" {
 		pagination.SortOrder = sortOrder
 	}
-	
+
 	// Get groups
 	groups, err := s.userManager.service.GetGroups()
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to list groups: %v", err))
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(groups)
 }
 
@@ -423,7 +423,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Create group
 	err := s.userManager.service.CreateGroup(&group)
 	if err != nil {
@@ -434,7 +434,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(group)
 }
@@ -451,7 +451,7 @@ func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request, id strin
 		}
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(group)
 }
 
@@ -463,13 +463,13 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request, id st
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Ensure ID in URL matches ID in body
 	if id != group.ID {
 		s.writeError(w, http.StatusBadRequest, "Group ID in URL does not match ID in body")
 		return
 	}
-	
+
 	// Update group
 	err := s.userManager.service.UpdateGroup(&group)
 	if err != nil {
@@ -482,7 +482,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request, id st
 		}
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(group)
 }
 
@@ -498,7 +498,7 @@ func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request, id st
 		}
 		return
 	}
-	
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -507,24 +507,24 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 	if r.Method == http.MethodGet {
 		// Parse pagination parameters
 		pagination := &usermgmt.PaginationOptions{
-			Page: 1,
+			Page:     1,
 			PageSize: 10,
 		}
-		
+
 		if page := r.URL.Query().Get("page"); page != "" {
 			if _, err := fmt.Sscanf(page, "%d", &pagination.Page); err != nil {
 				s.writeError(w, http.StatusBadRequest, "Invalid page parameter")
 				return
 			}
 		}
-		
+
 		if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
 			if _, err := fmt.Sscanf(pageSize, "%d", &pagination.PageSize); err != nil {
 				s.writeError(w, http.StatusBadRequest, "Invalid page_size parameter")
 				return
 			}
 		}
-		
+
 		// Get group users
 		users, err := s.userManager.service.GetGroupUsers(id)
 		if err != nil {
@@ -535,7 +535,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 			}
 			return
 		}
-		
+
 		json.NewEncoder(w).Encode(users)
 	} else if r.Method == http.MethodPut {
 		// Update group users
@@ -544,9 +544,9 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 			s.writeError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
-		
+
 		// Get current users in group
-		
+
 		currentUsers, err := s.userManager.service.GetGroupUsers(id)
 		if err != nil {
 			if err == usermgmt.ErrGroupNotFound {
@@ -556,18 +556,18 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 			}
 			return
 		}
-		
+
 		// Build maps for efficient lookup
 		currentUserMap := make(map[string]bool)
 		for _, user := range currentUsers {
 			currentUserMap[user.ID] = true
 		}
-		
+
 		newUserMap := make(map[string]bool)
 		for _, userID := range userIDs {
 			newUserMap[userID] = true
 		}
-		
+
 		// Remove users not in the new list
 		for _, user := range currentUsers {
 			if !newUserMap[user.ID] {
@@ -578,7 +578,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 				}
 			}
 		}
-		
+
 		// Add new users
 		for _, userID := range userIDs {
 			if !currentUserMap[userID] {
@@ -589,7 +589,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 				}
 			}
 		}
-		
+
 		w.WriteHeader(http.StatusNoContent)
 	} else {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -602,40 +602,40 @@ func (s *Server) handleAuthenticate(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Parse request
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Authenticate user
 	result, err := s.userManager.Authenticate(context.Background(), req.Username, req.Password)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Authentication error: %v", err))
 		return
 	}
-	
+
 	if !result.Success {
 		s.writeError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
-	
+
 	// Create token response
 	response := struct {
-		Token     string    `json:"token"`
+		Token     string         `json:"token"`
 		User      *usermgmt.User `json:"user"`
-		ExpiresAt *time.Time `json:"expires_at"`
+		ExpiresAt *time.Time     `json:"expires_at"`
 	}{
 		Token:     result.Token,
 		User:      result.User,
 		ExpiresAt: result.ExpiresAt,
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }

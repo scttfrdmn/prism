@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -12,34 +12,34 @@ import (
 type StatusTracker struct {
 	// startTime is when the daemon was started
 	startTime time.Time
-	
+
 	// activeOperations is the number of currently active operations
 	activeOperations int32
-	
+
 	// totalRequests is the total number of requests processed
 	totalRequests int64
-	
+
 	// requestTimes stores timestamps of recent requests for rate calculation
 	requestTimes []time.Time
-	
+
 	// requestTimesLock protects requestTimes
 	requestTimesLock sync.Mutex
-	
+
 	// requestTimeWindow is the time window for rate calculation (default: 1 minute)
 	requestTimeWindow time.Duration
-	
+
 	// operationCounter is used to generate unique operation IDs
 	operationCounter int64
-	
+
 	// activeOperationTypes tracks types of active operations (for debugging)
 	activeOperationTypes map[string]int32
-	
+
 	// operationTypesLock protects activeOperationTypes
 	operationTypesLock sync.Mutex
-	
+
 	// instanceActivity tracks recent activity per instance for smart idle detection
 	instanceActivity map[string]time.Time
-	
+
 	// instanceActivityLock protects instanceActivity
 	instanceActivityLock sync.Mutex
 }
@@ -47,11 +47,11 @@ type StatusTracker struct {
 // NewStatusTracker creates a new status tracker
 func NewStatusTracker() *StatusTracker {
 	return &StatusTracker{
-		startTime:           time.Now(),
-		requestTimes:        make([]time.Time, 0, 1000), // Pre-allocate for efficiency
-		requestTimeWindow:   1 * time.Minute,            // 1 minute sliding window
+		startTime:            time.Now(),
+		requestTimes:         make([]time.Time, 0, 1000), // Pre-allocate for efficiency
+		requestTimeWindow:    1 * time.Minute,            // 1 minute sliding window
 		activeOperationTypes: make(map[string]int32),
-		instanceActivity:    make(map[string]time.Time),
+		instanceActivity:     make(map[string]time.Time),
 	}
 }
 
@@ -60,10 +60,10 @@ func NewStatusTracker() *StatusTracker {
 func (s *StatusTracker) StartOperation() int64 {
 	// Generate a unique operation ID
 	opID := atomic.AddInt64(&s.operationCounter, 1)
-	
+
 	// Increment active operation counter
 	atomic.AddInt32(&s.activeOperations, 1)
-	
+
 	return opID
 }
 
@@ -72,17 +72,17 @@ func (s *StatusTracker) StartOperation() int64 {
 func (s *StatusTracker) StartOperationWithType(opType string) int64 {
 	// Generate a unique operation ID
 	opID := atomic.AddInt64(&s.operationCounter, 1)
-	
+
 	// Increment active operation counter
 	atomic.AddInt32(&s.activeOperations, 1)
-	
+
 	// Track operation type
 	if opType != "" {
 		s.operationTypesLock.Lock()
 		s.activeOperationTypes[opType]++
 		s.operationTypesLock.Unlock()
 	}
-	
+
 	return opID
 }
 
@@ -95,7 +95,7 @@ func (s *StatusTracker) EndOperation() {
 func (s *StatusTracker) EndOperationWithType(opType string) {
 	// Decrement active operation counter
 	atomic.AddInt32(&s.activeOperations, -1)
-	
+
 	// Untrack operation type
 	if opType != "" {
 		s.operationTypesLock.Lock()
@@ -110,20 +110,20 @@ func (s *StatusTracker) EndOperationWithType(opType string) {
 func (s *StatusTracker) RecordRequest() {
 	// Increment request counter
 	atomic.AddInt64(&s.totalRequests, 1)
-	
+
 	// Add timestamp to the sliding window
 	now := time.Now()
-	
+
 	s.requestTimesLock.Lock()
 	defer s.requestTimesLock.Unlock()
-	
+
 	// Add current timestamp
 	s.requestTimes = append(s.requestTimes, now)
-	
+
 	// Remove timestamps older than the window
 	cutoff := now.Add(-s.requestTimeWindow)
 	newStart := 0
-	
+
 	// Find first timestamp that's within the window
 	for i, t := range s.requestTimes {
 		if t.After(cutoff) {
@@ -131,7 +131,7 @@ func (s *StatusTracker) RecordRequest() {
 			break
 		}
 	}
-	
+
 	// If all timestamps are within window, don't bother slicing
 	if newStart > 0 {
 		s.requestTimes = s.requestTimes[newStart:]
@@ -142,26 +142,26 @@ func (s *StatusTracker) RecordRequest() {
 func (s *StatusTracker) GetRequestRate() float64 {
 	s.requestTimesLock.Lock()
 	defer s.requestTimesLock.Unlock()
-	
+
 	// If no requests or just one, return 0 or low rate
 	if len(s.requestTimes) <= 1 {
 		return 0
 	}
-	
+
 	// Calculate time span of the window
 	oldest := s.requestTimes[0]
 	newest := s.requestTimes[len(s.requestTimes)-1]
 	duration := newest.Sub(oldest)
-	
+
 	// Avoid division by zero
 	if duration == 0 {
 		return 0
 	}
-	
+
 	// Calculate rate per minute
 	count := float64(len(s.requestTimes))
 	rate := count / duration.Minutes()
-	
+
 	return rate
 }
 
@@ -169,7 +169,7 @@ func (s *StatusTracker) GetRequestRate() float64 {
 func (s *StatusTracker) GetStatus(version string, region string, awsProfile string) types.DaemonStatus {
 	// Get active operations count
 	activeOps := int(atomic.LoadInt32(&s.activeOperations))
-	
+
 	// Get operation type breakdown for detailed monitoring
 	var operationDetails map[string]int
 	s.operationTypesLock.Lock()
@@ -182,7 +182,7 @@ func (s *StatusTracker) GetStatus(version string, region string, awsProfile stri
 		}
 	}
 	s.operationTypesLock.Unlock()
-	
+
 	return types.DaemonStatus{
 		Version:           version,
 		Status:            "running",
@@ -212,22 +212,22 @@ func (s *StatusTracker) RecordInstanceActivity(instanceName string) {
 func (s *StatusTracker) GetRecentlyActiveInstances(within time.Duration) []string {
 	s.instanceActivityLock.Lock()
 	defer s.instanceActivityLock.Unlock()
-	
+
 	cutoff := time.Now().Add(-within)
 	var activeInstances []string
-	
+
 	for instanceName, lastActivity := range s.instanceActivity {
 		if lastActivity.After(cutoff) {
 			activeInstances = append(activeInstances, instanceName)
 		}
 	}
-	
+
 	// Clean up old entries while we're here
 	for instanceName, lastActivity := range s.instanceActivity {
 		if lastActivity.Before(cutoff.Add(-24 * time.Hour)) { // Keep 24 hours of history
 			delete(s.instanceActivity, instanceName)
 		}
 	}
-	
+
 	return activeInstances
 }

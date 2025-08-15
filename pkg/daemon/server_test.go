@@ -43,21 +43,21 @@ func TestSplitPath(t *testing.T) {
 
 func TestHandlePing(t *testing.T) {
 	server := &Server{} // Simple server without dependencies for ping test
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/ping", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handlePing(w, req)
-	
+
 	if w.Code != http.StatusOK {
 		t.Errorf("handlePing() status = %d, want %d", w.Code, http.StatusOK)
 	}
-	
+
 	var response map[string]string
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Errorf("Failed to decode response: %v", err)
 	}
-	
+
 	if response["status"] != "ok" {
 		t.Errorf("handlePing() status = %s, want ok", response["status"])
 	}
@@ -65,12 +65,12 @@ func TestHandlePing(t *testing.T) {
 
 func TestHandleStatusMethodNotAllowed(t *testing.T) {
 	server := &Server{} // Simple server without dependencies
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/status", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleStatus(w, req)
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleStatus() POST status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -78,13 +78,13 @@ func TestHandleStatusMethodNotAllowed(t *testing.T) {
 
 func TestHandleInvalidJSON(t *testing.T) {
 	server := &Server{}
-	
+
 	// Test invalid JSON handling for launch instance
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances", strings.NewReader("invalid json"))
 	w := httptest.NewRecorder()
-	
+
 	server.handleLaunchInstance(w, req)
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("handleLaunchInstance() with invalid JSON status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -92,12 +92,12 @@ func TestHandleInvalidJSON(t *testing.T) {
 
 func TestHandleTemplatesMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/templates", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleTemplates(w, req)
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleTemplates() POST status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -105,12 +105,12 @@ func TestHandleTemplatesMethodNotAllowed(t *testing.T) {
 
 func TestHandleTemplateInfoMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/templates/test", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleTemplateInfo(w, req)
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleTemplateInfo() POST status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -118,12 +118,12 @@ func TestHandleTemplateInfoMethodNotAllowed(t *testing.T) {
 
 func TestHandleCreateVolumeInvalidJSON(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/volumes", strings.NewReader("invalid json"))
 	w := httptest.NewRecorder()
-	
+
 	server.handleCreateVolume(w, req)
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("handleCreateVolume() with invalid JSON status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -131,23 +131,23 @@ func TestHandleCreateVolumeInvalidJSON(t *testing.T) {
 
 func TestWriteError(t *testing.T) {
 	server := &Server{}
-	
+
 	w := httptest.NewRecorder()
 	server.writeError(w, http.StatusBadRequest, "Test error message")
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("writeError() status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
-	
+
 	var apiError types.APIError
 	if err := json.NewDecoder(w.Body).Decode(&apiError); err != nil {
 		t.Errorf("Failed to decode error response: %v", err)
 	}
-	
+
 	if apiError.Code != http.StatusBadRequest {
 		t.Errorf("APIError code = %d, want %d", apiError.Code, http.StatusBadRequest)
 	}
-	
+
 	if apiError.Message != "Test error message" {
 		t.Errorf("APIError message = %s, want 'Test error message'", apiError.Message)
 	}
@@ -155,12 +155,12 @@ func TestWriteError(t *testing.T) {
 
 func TestHandleInstanceOperationsMissingName(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleInstanceOperations(w, req)
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Missing instance name status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -168,12 +168,12 @@ func TestHandleInstanceOperationsMissingName(t *testing.T) {
 
 func TestHandleInstanceOperationsUnknownOperation(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances/test-instance/unknown", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleInstanceOperations(w, req)
-	
+
 	if w.Code != http.StatusNotFound {
 		t.Errorf("Unknown operation status = %d, want %d", w.Code, http.StatusNotFound)
 	}
@@ -186,7 +186,7 @@ func TestServerPortHandling(t *testing.T) {
 			t.Errorf("Custom port = %s, want 9090", server.port)
 		}
 	})
-	
+
 	t.Run("Empty port", func(t *testing.T) {
 		server := &Server{port: ""}
 		if server.port != "" {
@@ -197,12 +197,12 @@ func TestServerPortHandling(t *testing.T) {
 
 func TestHandleStartInstanceMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/test/start", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleStartInstance(w, req, "test")
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleStartInstance() GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -210,12 +210,12 @@ func TestHandleStartInstanceMethodNotAllowed(t *testing.T) {
 
 func TestHandleStopInstanceMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/test/stop", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleStopInstance(w, req, "test")
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleStopInstance() GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -223,12 +223,12 @@ func TestHandleStopInstanceMethodNotAllowed(t *testing.T) {
 
 func TestHandleConnectInstanceMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/instances/test/connect", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleConnectInstance(w, req, "test")
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleConnectInstance() POST status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -238,12 +238,12 @@ func TestHandleConnectInstanceMethodNotAllowed(t *testing.T) {
 
 func TestHandleVolumesMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/volumes", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleVolumes(w, req)
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleVolumes() PUT status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -251,12 +251,12 @@ func TestHandleVolumesMethodNotAllowed(t *testing.T) {
 
 func TestHandleVolumeOperationsMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/volumes/test-volume", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleVolumeOperations(w, req)
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleVolumeOperations() PUT status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -264,12 +264,12 @@ func TestHandleVolumeOperationsMethodNotAllowed(t *testing.T) {
 
 func TestHandleStorageMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/storage", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleStorage(w, req)
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleStorage() PUT status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -277,12 +277,12 @@ func TestHandleStorageMethodNotAllowed(t *testing.T) {
 
 func TestHandleStorageOperationsMissingName(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/storage/", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleStorageOperations(w, req)
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("Missing storage name status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -290,12 +290,12 @@ func TestHandleStorageOperationsMissingName(t *testing.T) {
 
 func TestHandleStorageOperationsUnknownOperation(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/storage/test-storage/unknown", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleStorageOperations(w, req)
-	
+
 	if w.Code != http.StatusNotFound {
 		t.Errorf("Unknown storage operation status = %d, want %d", w.Code, http.StatusNotFound)
 	}
@@ -303,12 +303,12 @@ func TestHandleStorageOperationsUnknownOperation(t *testing.T) {
 
 func TestHandleAttachStorageMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/storage/test/attach", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleAttachStorage(w, req, "test")
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleAttachStorage() GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -316,12 +316,12 @@ func TestHandleAttachStorageMethodNotAllowed(t *testing.T) {
 
 func TestHandleDetachStorageMethodNotAllowed(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/storage/test/detach", nil)
 	w := httptest.NewRecorder()
-	
+
 	server.handleDetachStorage(w, req, "test")
-	
+
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("handleDetachStorage() GET status = %d, want %d", w.Code, http.StatusMethodNotAllowed)
 	}
@@ -329,12 +329,12 @@ func TestHandleDetachStorageMethodNotAllowed(t *testing.T) {
 
 func TestHandleAttachStorageInvalidJSON(t *testing.T) {
 	server := &Server{}
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/storage/test/attach", strings.NewReader("invalid json"))
 	w := httptest.NewRecorder()
-	
+
 	server.handleAttachStorage(w, req, "test")
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("handleAttachStorage() with invalid JSON status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -342,13 +342,13 @@ func TestHandleAttachStorageInvalidJSON(t *testing.T) {
 
 func TestHandleAttachStorageMissingInstance(t *testing.T) {
 	server := &Server{}
-	
+
 	reqBody := `{"other_field": "value"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/storage/test/attach", strings.NewReader(reqBody))
 	w := httptest.NewRecorder()
-	
+
 	server.handleAttachStorage(w, req, "test")
-	
+
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("handleAttachStorage() missing instance name status = %d, want %d", w.Code, http.StatusBadRequest)
 	}
@@ -366,7 +366,7 @@ func TestSplitPathEdgeCases(t *testing.T) {
 		{"trailing/slash/", []string{"trailing", "slash"}, "trailing slash removal"},
 		{"no-slash", []string{"no-slash"}, "no slash"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := splitPath(tt.input)
@@ -389,15 +389,15 @@ func TestServerInitialization(t *testing.T) {
 		server := &Server{
 			port: "9090",
 		}
-		
+
 		if server.port != "9090" {
 			t.Errorf("Server port = %s, want 9090", server.port)
 		}
 	})
-	
+
 	t.Run("Empty server", func(t *testing.T) {
 		server := &Server{}
-		
+
 		if server.port != "" {
 			t.Errorf("Empty server port should be empty, got %s", server.port)
 		}
@@ -407,16 +407,16 @@ func TestServerInitialization(t *testing.T) {
 func TestJSONMiddleware(t *testing.T) {
 	// Test that writeError produces valid JSON
 	server := &Server{}
-	
+
 	w := httptest.NewRecorder()
 	server.writeError(w, http.StatusBadRequest, "test error")
-	
+
 	// Check that response body is valid JSON
 	var apiError types.APIError
 	if err := json.NewDecoder(w.Body).Decode(&apiError); err != nil {
 		t.Errorf("writeError should produce valid JSON: %v", err)
 	}
-	
+
 	if apiError.Message != "test error" {
 		t.Errorf("APIError message = %s, want 'test error'", apiError.Message)
 	}
@@ -424,7 +424,7 @@ func TestJSONMiddleware(t *testing.T) {
 
 func TestWriteErrorVariations(t *testing.T) {
 	server := &Server{}
-	
+
 	tests := []struct {
 		code    int
 		message string
@@ -435,21 +435,21 @@ func TestWriteErrorVariations(t *testing.T) {
 		{http.StatusUnauthorized, "Unauthorized", "401 error"},
 		{http.StatusForbidden, "Forbidden", "403 error"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			server.writeError(w, tt.code, tt.message)
-			
+
 			if w.Code != tt.code {
 				t.Errorf("writeError() status = %d, want %d", w.Code, tt.code)
 			}
-			
+
 			var apiError types.APIError
 			if err := json.NewDecoder(w.Body).Decode(&apiError); err != nil {
 				t.Errorf("Failed to decode error response: %v", err)
 			}
-			
+
 			if apiError.Message != tt.message {
 				t.Errorf("APIError message = %s, want %s", apiError.Message, tt.message)
 			}
