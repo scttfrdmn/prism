@@ -4,218 +4,209 @@
 
 Strategic roadmap for CloudWorkstation development between the next minor release (v0.4.2) and the major multi-user architecture release (v0.5.0). This phase focuses on desktop integration, cross-platform support, and distribution channel expansion.
 
-## Post-v0.4.2 Development Priorities
+## Post-v0.4.2 Sub-Release Roadmap
 
-### 🖥️ **Priority 1: Desktop Versions with Remote NICE DCV Connectivity**
+### **v0.4.3: Foundation & Research (4-6 weeks)**
+**Focus**: Research, prototyping, and foundation work for all major features
 
-**Objective**: Transform CloudWorkstation from CLI-focused tool into comprehensive desktop research platform with seamless remote GUI access.
+#### 🔬 **Research & Prototyping**
+- **NICE DCV Integration Research**: Licensing, client libraries, embedding options
+- **Windows Cross-Compilation**: Verify Go builds, service integration, installation frameworks
+- **Conda Packaging Evaluation**: Feasibility study, community fit assessment, technical requirements
+- **Wireguard Architecture Design**: Mole project integration, bastion host planning
+- **Directory Sync Prototyping**: File monitoring libraries, conflict resolution algorithms
 
-**Key Features**:
-- **NICE DCV Integration**: Native DCV client integration for high-performance remote desktop
-- **Automatic Connection Management**: One-click desktop access to running instances
-- **Smart Reconnection**: Automatic reconnection with session persistence
-- **Idle Detection & Restart**: Monitor connection health and restart when needed
-- **Multi-Display Support**: Handle multiple monitors and resolution changes
+#### 🏗️ **Infrastructure Foundations**
+- **Enhanced Template System**: Desktop environment templates preparation
+- **Connection Management Framework**: Base architecture for remote connections
+- **Cross-Platform Build Pipeline**: Automated builds for Windows, enhanced CI/CD
+- **Security Framework**: Tunnel infrastructure planning and authentication design
 
-**Technical Implementation**:
+**Deliverables**: Research reports, proof-of-concepts, architectural designs, build system enhancements
+
+---
+
+### **v0.4.4: Desktop Connectivity (6-8 weeks)** 
+**Focus**: Remote desktop access with NICE DCV integration
+
+#### 🖥️ **Core Desktop Features**
+- **NICE DCV Client Integration**: Embedded DCV client in CloudWorkstation GUI
+- **One-Click Desktop Access**: `cws desktop connect my-workstation`
+- **Connection Health Monitoring**: Automatic reconnection and session persistence
+- **Desktop Template System**: Templates with pre-configured desktop environments
+
+#### 🖥️ **New Commands & Templates**
 ```bash
-# Enhanced desktop connectivity commands
+# Desktop connectivity commands
 cws desktop connect my-ml-workstation    # Launch DCV session automatically
-cws desktop reconnect my-ml-workstation  # Restore dropped connections
+cws desktop reconnect my-ml-workstation  # Restore dropped connections  
 cws desktop status                       # Show active desktop sessions
 
-# Template integration for desktop environments
-cws launch ubuntu-desktop my-workstation --desktop
-# ↳ Auto-installs desktop environment + DCV server
-# ↳ Launches with desktop connectivity ready
+# Enhanced template launching
+cws launch "Ubuntu Desktop + ML Tools" my-workstation --desktop
+cws launch "Rocky Desktop + HPC" hpc-workstation --desktop
 ```
 
-**Architecture Components**:
-- **DCV Server Templates**: Enhanced templates with desktop environments and DCV server
-- **Native DCV Client**: Embedded DCV client in GUI application
-- **Connection Monitoring**: Background service for connection health and auto-restart
-- **Session Management**: Persistent desktop sessions with state preservation
+#### 🖥️ **Desktop Templates**
+- **Ubuntu Desktop + ML Tools**: XFCE + Jupyter + ML/AI research stack
+- **Rocky Desktop + HPC**: GNOME + HPC tools + scientific computing
+- **Lightweight Desktop**: Minimal desktop for basic GUI needs
 
-**Desktop Template Examples**:
-- `Ubuntu Desktop + ML Tools`: Full Ubuntu desktop with ML/AI research stack
-- `Rocky Linux Desktop + HPC`: CentOS-style desktop for HPC research workflows
-- `Windows Server Desktop`: Windows-based research environments (future)
+**Deliverables**: Desktop connectivity, DCV integration, desktop templates, connection management
 
-### 🪟 **Priority 2: Windows 11 Client Support & Distribution**
+---
 
-**Objective**: Bring CloudWorkstation's full functionality to Windows 11 with native installation experience.
+### **v0.4.5: Windows 11 Support (6-8 weeks)**
+**Focus**: Native Windows 11 client with full feature parity
 
-**Research Areas**:
-- **Go Cross-Compilation**: Verify Windows builds for daemon, CLI, and GUI
-- **Windows Service Integration**: Native Windows service for daemon
-- **Installation Strategy**: Choose between MSI, NSIS, or Windows Package Manager
-- **GUI Framework**: Validate Fyne cross-platform compatibility on Windows 11
-- **Path & Registry**: Windows-specific configuration and AWS profile integration
+#### 🪟 **Core Windows Features**
+- **Native Windows Service**: CloudWorkstation daemon as Windows service
+- **Windows Package Manager**: Distribution via `winget install cloudworkstation`
+- **Feature Parity**: Full CLI, TUI, and GUI functionality on Windows 11
+- **Registry Integration**: Windows-specific configuration and AWS profile handling
 
-**Distribution Options to Evaluate**:
+#### 🪟 **Installation Methods**
+```powershell
+# Windows Package Manager (Primary)
+winget install CloudWorkstation.CLI
 
-1. **Windows Package Manager (winget)**:
-   ```powershell
-   winget install CloudWorkstation.CLI
-   winget install CloudWorkstation.Desktop
-   ```
-   - Pros: Native Windows 11 integration, automatic updates
-   - Cons: Package submission process, Microsoft certification
+# Chocolatey (Alternative)
+choco install cloudworkstation
 
-2. **Chocolatey Package**:
-   ```powershell
-   choco install cloudworkstation
-   ```
-   - Pros: Popular in developer community, easy distribution
-   - Cons: Third-party dependency, less corporate-friendly
-
-3. **MSI Installer with Auto-Updates**:
-   ```
-   CloudWorkstation-0.4.2-x64.msi
-   ```
-   - Pros: Enterprise-friendly, Group Policy support
-   - Cons: Complex build pipeline, code signing requirements
-
-4. **Scoop Package**:
-   ```powershell
-   scoop bucket add cloudworkstation https://github.com/org/scoop-bucket
-   scoop install cloudworkstation
-   ```
-   - Pros: Developer-focused, JSON-based configuration
-   - Cons: Smaller user base than winget/chocolatey
-
-**Implementation Plan**:
-- **Phase 1**: Cross-compile and test all components on Windows 11
-- **Phase 2**: Research installation frameworks and choose optimal approach
-- **Phase 3**: Implement Windows-specific daemon service and GUI integration
-- **Phase 4**: Create automated build pipeline for Windows releases
-
-### 📦 **Priority 3: Conda Distribution Channel Research**
-
-**Objective**: Evaluate conda as alternative distribution method for CloudWorkstation, especially for data science and research communities.
-
-**Research Questions**:
-
-1. **Target Audience Alignment**:
-   - Does conda align with CloudWorkstation's research computing focus?
-   - Would researchers prefer `conda install cloudworkstation` over other methods?
-   - How does conda fit with AWS CLI and research workflow integration?
-
-2. **Technical Feasibility**:
-   - Can Go binaries be effectively packaged in conda environments?
-   - How would conda handle daemon service management across platforms?
-   - What dependencies would be required (AWS CLI, docker, etc.)?
-
-3. **Distribution Strategy**:
-   - **conda-forge**: Community-driven, high trust, broad reach
-   - **Private channel**: Organization-controlled, custom metadata
-   - **Anaconda.com**: Commercial platform, potential licensing considerations
-
-**Conda Package Structure Research**:
-```yaml
-# Potential conda package structure
-package:
-  name: cloudworkstation
-  version: "0.4.2"
-
-requirements:
-  build:
-    - go >=1.19
-  run:
-    - aws-cli >=2.0
-    - ca-certificates
-
-about:
-  home: https://github.com/org/cloudworkstation
-  summary: "Launch pre-configured cloud workstations for research computing"
-  description: "Command-line tool for academic researchers to launch..."
-  license: MIT
+# MSI Installer (Enterprise)
+CloudWorkstation-0.4.5-x64.msi
 ```
 
-**Evaluation Criteria**:
-- **User Experience**: Is `conda install cloudworkstation` intuitive for researchers?
-- **Maintenance Overhead**: How much additional work is conda packaging?
-- **Platform Coverage**: Does conda cover all target platforms effectively?
-- **Update Mechanisms**: How do conda updates integrate with CloudWorkstation's versioning?
-- **Dependency Management**: Can conda handle AWS CLI and other system dependencies?
+#### 🪟 **Windows-Specific Features**
+- **Windows Service Management**: Automatic daemon startup and service control
+- **Registry Configuration**: Windows-specific settings and AWS profile storage
+- **Windows Defender Integration**: Code signing and security compliance
+- **PowerShell Integration**: Native PowerShell command completion
 
-**Research Methodology**:
-1. **Survey existing Go packages** in conda-forge for patterns and best practices
-2. **Prototype basic conda package** for CloudWorkstation CLI
-3. **Test cross-platform builds** through conda-build system
-4. **Evaluate user workflows** with conda vs. current installation methods
-5. **Assess maintenance burden** for ongoing conda package updates
+**Deliverables**: Windows 11 client, service integration, package manager distribution, enterprise MSI
 
-### 🔒 **Priority 4: Secure Tunnel Infrastructure (Wireguard + Bastion)**
+---
 
-**Objective**: Create secure, persistent network tunnel between user laptop and AWS private subnet using Wireguard VPN with NAT-enabled bastion host.
+### **v0.4.6: Enhanced Distribution (4-6 weeks)**
+**Focus**: Expanded package managers and distribution channels
 
-**Key Features**:
-- **Wireguard VPN Tunnel**: High-performance, secure connection to AWS private subnet
-- **Bastion Host Integration**: Small EC2 instance acting as VPN endpoint and NAT gateway
-- **Private Subnet Workstations**: Launch CloudWorkstations in private subnet for enhanced security
-- **Mole Project Integration**: Leverage existing Mole project for tunnel management
-- **Automatic Routing**: Seamless access to private CloudWorkstation instances
+#### 📦 **Conda Integration** 
+- **conda-forge Package**: `conda install -c conda-forge cloudworkstation`
+- **Data Science Integration**: Seamless integration with Jupyter, pandas, R environments
+- **Dependency Management**: Automatic AWS CLI and research tool dependencies
 
-**Technical Architecture**:
+#### 📦 **Additional Package Managers**
 ```bash
-# Enhanced private networking commands
+# Linux package managers
+sudo apt install cloudworkstation      # Debian/Ubuntu APT
+sudo dnf install cloudworkstation      # Fedora/RHEL DNF
+sudo pacman -S cloudworkstation        # Arch Linux
+
+# macOS additional
+port install cloudworkstation          # MacPorts
+brew install cloudworkstation          # Homebrew (existing)
+```
+
+#### 📦 **Research Community Distribution**
+- **Anaconda.com Integration**: Official Anaconda platform presence
+- **Docker Hub**: Container-based distribution for containerized workflows  
+- **Snap Package**: `snap install cloudworkstation` for Linux
+- **Flatpak**: Universal Linux application packaging
+
+**Deliverables**: conda-forge package, APT/DNF packages, research community integration
+
+---
+
+### **v0.4.7: Secure Networking (8-10 weeks)**
+**Focus**: Wireguard VPN tunnels and private subnet support  
+
+#### 🔒 **Core Security Features**
+- **Wireguard VPN Tunnels**: High-performance encrypted connections to private AWS subnets
+- **Bastion Host Management**: Automated deployment and management of VPN endpoints
+- **Private Subnet Workstations**: Zero public IP exposure for enhanced security
+- **Mole Project Integration**: Leveraging existing tunnel management infrastructure
+
+#### 🔒 **New Networking Commands**
+```bash
+# Secure tunnel management
 cws tunnel create research-network --region us-west-2    # Deploy bastion + VPN
 cws tunnel connect research-network                      # Connect via Wireguard
-cws launch python-ml my-workstation --private          # Launch in private subnet
+cws tunnel status                                       # Show tunnel health
+cws tunnel disconnect research-network                   # Disconnect tunnel
 
-# Automatic routing to private instances
-cws connect my-workstation  # Works seamlessly through tunnel
+# Private instance launching
+cws launch python-ml my-workstation --private          # Launch in private subnet
+cws connect my-workstation                             # Seamless private access
 ```
 
-**Security Benefits**:
-- **No Public IP Exposure**: CloudWorkstations remain completely private
-- **Encrypted Transit**: All traffic encrypted through Wireguard tunnel
-- **Network Isolation**: Dedicated private subnet per research project
-- **Access Control**: Tunnel-based authentication and authorization
-- **Audit Trail**: Complete network access logging
+#### 🔒 **Security Architecture**
+- **Network Isolation**: Dedicated private subnets per research project
+- **Zero Trust Access**: Tunnel-based authentication and authorization
+- **Audit Logging**: Complete network access and security event logging
+- **Key Management**: Automated Wireguard key rotation and distribution
 
-**Mole Project Integration**:
-- Utilize existing Mole codebase for tunnel establishment and management
-- Integrate Wireguard configuration and key management
-- Leverage Mole's connection monitoring and auto-reconnect capabilities
-- Extend Mole's bastion host deployment automation
+**Deliverables**: Wireguard integration, bastion host automation, private networking, Mole integration
 
-### 📁 **Priority 5: Local Directory Synchronization**
+---
 
-**Objective**: Implement bidirectional directory sync between user laptop and CloudWorkstation instances, similar to Google Drive/Dropbox but optimized for research workflows.
+### **v0.4.8: Directory Synchronization (6-8 weeks)**
+**Focus**: Real-time bidirectional file sync between laptop and CloudWorkstations
 
-**Key Features**:
-- **Real-time Sync**: Automatic synchronization of file changes
-- **Selective Sync**: Choose specific directories for synchronization
-- **Conflict Resolution**: Intelligent handling of concurrent modifications
-- **Bandwidth Optimization**: Delta sync and compression for large datasets
-- **Cross-Platform Support**: Works on macOS, Linux, and Windows laptops
+#### 📁 **Core Sync Features**
+- **Real-time Bidirectional Sync**: Automatic synchronization between laptop and CloudWorkstations
+- **Selective Directory Sync**: Choose specific folders for synchronization
+- **Intelligent Conflict Resolution**: Automated handling of concurrent modifications
+- **Research Workflow Optimization**: Specialized handling for datasets, notebooks, and code
 
-**Technical Implementation**:
+#### 📁 **Sync Commands & Workflow**
 ```bash
-# Local directory sync commands
+# Directory sync setup and management
 cws sync setup ~/research/project-alpha my-workstation:/home/ubuntu/project-alpha
 cws sync status                          # Show sync status and conflicts
 cws sync resolve conflicts               # Interactive conflict resolution
 cws sync pause/resume project-alpha      # Control sync behavior
 
-# Multi-instance sync (research collaboration)
+# Multi-instance collaboration
 cws sync add-instance project-alpha other-workstation  # Sync to multiple instances
+cws sync remove-instance project-alpha other-workstation
 ```
 
-**Sync Architecture**:
-- **Client-Side Agent**: Background service on user laptop for file monitoring
-- **Server-Side Agent**: Lightweight sync agent on CloudWorkstation instances
-- **Delta Synchronization**: Only transfer changed file portions
-- **Conflict Detection**: Timestamp and checksum-based conflict identification
-- **Metadata Preservation**: Maintain file permissions, timestamps, and attributes
+#### 📁 **Research-Optimized Features**
+- **Large Dataset Handling**: Delta sync and compression for multi-GB datasets
+- **Jupyter Notebook Sync**: Real-time notebook sync with checkpoint preservation
+- **Git Integration**: Respects .gitignore patterns and repository boundaries
+- **Bandwidth Optimization**: Intelligent file prioritization and compression
 
-**Research Workflow Optimization**:
-- **Large File Handling**: Efficient sync of datasets and model files
-- **Jupyter Notebook Sync**: Real-time notebook synchronization with checkpoint preservation
-- **Code Repository Integration**: Git-aware sync that respects .gitignore patterns
-- **Backup Integration**: Optional local backup before sync operations
+**Deliverables**: Real-time sync system, conflict resolution, research workflow optimization
+
+---
+
+### **v0.5.0: Multi-User Architecture (12-16 weeks)**
+**Focus**: Comprehensive multi-user research platform with centralized identity management
+
+#### 👥 **Multi-User Core Features**
+- **Centralized User Registry**: Single source of truth for user identity across all CloudWorkstations
+- **Role-Based Access Control**: Fine-grained permissions for projects, templates, and resources
+- **Team Collaboration**: Shared workspaces, resource pools, and collaborative research environments  
+- **Enterprise Authentication**: SSO integration with institutional identity providers
+
+#### 👥 **New Multi-User Commands**
+```bash
+# User management
+cws users register researcher@university.edu    # Register new user
+cws users invite project-alpha researcher@university.edu --role member
+cws users list --project project-alpha         # Show project team members
+
+# Shared resource management
+cws shared create workspace team-ml-lab        # Create shared workspace
+cws shared grant workspace team-ml-lab researcher@university.edu --permission read-write
+```
+
+**Deliverables**: Complete multi-user architecture, centralized identity, team collaboration, enterprise integration
+
+---
+
+## **Post-v0.5.0: Advanced Features**
 
 ## Post-v0.5.0 Advanced Features
 
@@ -304,38 +295,55 @@ cws storage policy apply cost-optimized research-datasets
 - **Access Control**: Fine-grained IAM integration for S3 permissions
 - **Performance Optimization**: Multipart uploads and intelligent prefetching
 
-## Timeline & Prioritization
+## Release Timeline & Development Schedule
 
-### **Phase A: Research & Prototyping (6-8 weeks)**
-- Research Windows 11 installation frameworks and cross-compilation
-- Prototype NICE DCV integration with existing GUI framework
-- Evaluate conda packaging feasibility and community fit
-- Research Wireguard + bastion architecture and Mole project integration
-- Prototype local directory sync mechanisms and conflict resolution
-- Create proof-of-concept implementations for each priority
+### **Total Development Time: ~54-66 weeks (12-15 months to v0.5.0)**
 
-### **Phase B: Implementation Planning (3-4 weeks)**
-- Choose Windows distribution strategy based on research
-- Design DCV integration architecture and connection management
-- Decide on conda distribution approach (if viable)
-- Plan Wireguard tunnel infrastructure and Mole integration
-- Design local sync architecture and conflict resolution strategies
-- Create detailed implementation specifications for all priorities
+| Release | Duration | Focus | Key Deliverables |
+|---------|----------|-------|------------------|
+| **v0.4.3** | 4-6 weeks | Foundation & Research | Research reports, prototypes, enhanced build pipeline |
+| **v0.4.4** | 6-8 weeks | Desktop Connectivity | NICE DCV integration, desktop templates |
+| **v0.4.5** | 6-8 weeks | Windows 11 Support | Windows client, service integration, package managers |
+| **v0.4.6** | 4-6 weeks | Enhanced Distribution | conda-forge, APT/DNF packages, research community integration |
+| **v0.4.7** | 8-10 weeks | Secure Networking | Wireguard VPN, bastion hosts, private subnets |
+| **v0.4.8** | 6-8 weeks | Directory Synchronization | Real-time bidirectional sync, conflict resolution |
+| **v0.5.0** | 12-16 weeks | Multi-User Architecture | Centralized identity, team collaboration, enterprise integration |
 
-### **Phase C: Development & Testing (10-14 weeks)**
-- Implement chosen Windows 11 client and installation method
-- Build desktop connectivity with DCV integration
-- Create conda packages (if proceeding)
-- Implement Wireguard tunnel infrastructure with Mole integration
-- Build local directory synchronization system
-- Comprehensive cross-platform testing for all components
+### **Development Approach**
+- **Parallel Development**: Some releases can be developed concurrently (e.g., v0.4.5 Windows + v0.4.6 Distribution)
+- **Early User Feedback**: Each sub-release gets user testing and feedback before next release
+- **Incremental Value**: Each version delivers immediate value to users
+- **Risk Mitigation**: Complex features (networking, sync) get dedicated releases for thorough testing
 
-### **Phase D: Documentation & Release (3-4 weeks)**
-- Update documentation for new platforms and features
-- Create installation guides for Windows and desktop connectivity
-- Document secure tunnel setup and local sync workflows
-- Prepare v0.4.2 release with new capabilities
-- Community outreach and feedback collection
+### **Release Cadence Options**
+
+#### **Option A: Sequential Release (54-66 weeks total)**
+- **Pros**: Thorough testing, focused development, lower risk
+- **Cons**: Longer time to full feature set, delayed user feedback
+
+#### **Option B: Parallel Development (36-44 weeks total)**
+- **Pros**: Faster delivery, early user adoption, concurrent feedback
+- **Cons**: Higher complexity, increased testing burden, resource requirements
+
+#### **Option C: MVP + Iteration (24-32 weeks to functional v0.5.0)**
+- Focus on core features first (v0.4.4, v0.4.5, v0.5.0), defer enhancements
+- **Pros**: Fastest path to multi-user platform, early market validation
+- **Cons**: Missing some advanced features initially
+
+### **🎯 Recommended Approach: Option B (Parallel Development)**
+
+**Rationale**:
+- **User Impact**: Desktop connectivity (v0.4.4) and Windows support (v0.4.5) can be developed concurrently for maximum user base expansion
+- **Risk Management**: Research phase (v0.4.3) informs all subsequent development, reducing technical risk
+- **Market Positioning**: Enhanced distribution (v0.4.6) supports growing user base from desktop/Windows releases
+- **Strategic Value**: Security features (v0.4.7) and sync (v0.4.8) provide competitive differentiation before multi-user launch
+
+**Parallel Development Streams**:
+1. **Stream A**: Desktop & Windows (v0.4.4 + v0.4.5) - 8-10 weeks parallel
+2. **Stream B**: Distribution & Networking (v0.4.6 + v0.4.7) - 10-12 weeks parallel  
+3. **Stream C**: Sync & Multi-User (v0.4.8 + v0.5.0) - 16-20 weeks sequential
+
+**Total Timeline**: 36-44 weeks (8-10 months to v0.5.0)
 
 ## Success Metrics
 
