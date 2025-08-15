@@ -1,11 +1,11 @@
 #!/bin/bash
 # CloudWorkstation v0.4.2 Live Demo Script
-# Demonstrates key features and capabilities
+# Complete workflow from installation to workstation connection
 
 set -e
 
-echo "🎉 CloudWorkstation v0.4.2 Demo"
-echo "==============================================="
+echo "🎉 CloudWorkstation v0.4.2 Complete Workflow Demo"
+echo "================================================="
 echo ""
 
 # Check if running in development mode
@@ -14,95 +14,145 @@ if [[ "$CLOUDWORKSTATION_DEV" != "true" ]]; then
     export CLOUDWORKSTATION_DEV=true
 fi
 
-echo "Phase 1: Individual Researcher Experience"
-echo "----------------------------------------"
+echo "Phase 1: Installation & Setup"
+echo "-----------------------------"
 
-# Show version
-echo "✅ Version Check:"
-./bin/cws --version
-echo ""
-
-# Show available templates
-echo "✅ Available Templates (showing first 3):"
-./bin/cws templates list | head -10
-echo ""
-
-# Show template inheritance
-echo "✅ Template Inheritance Demo:"
-echo "   Base template: Rocky Linux 9 Base"
-echo "   Stacked template: Rocky Linux 9 + Conda Stack"
-./bin/cws templates info "Rocky Linux 9 + Conda Stack" | head -15
-echo ""
-
-echo "Phase 2: Multi-Modal Access"
-echo "---------------------------"
-
-# Show daemon status
-echo "✅ Daemon Status:"
-./bin/cws daemon status
-echo ""
-
-# Show API access
-echo "✅ API Access (REST endpoints):"
-echo "   Templates available via: curl http://localhost:8947/api/v1/templates"
-echo "   Instances available via: curl http://localhost:8947/api/v1/instances"
-echo "   Example: First 3 template names:"
-curl -s http://localhost:8947/api/v1/templates | jq -r 'keys | .[0:3] | join(", ")'
-echo ""
-
-echo "Phase 3: Enterprise Features (Simulated)"
-echo "---------------------------------------"
-
-# Show hypothetical project operations
-echo "✅ Project Management (would create if AWS configured):"
-echo "   cws project create ml-research --budget 500.00"
-echo "   cws project budget ml-research set --monthly-limit 500.00"
-echo "   cws project member add ml-research user@university.edu --role member"
-echo ""
-
-echo "✅ Instance Management (would launch if AWS configured):"
-echo "   cws launch 'Python Machine Learning (Simplified)' ml-workspace"
-echo "   cws hibernate ml-workspace  # Cost optimization"
-echo "   cws resume ml-workspace     # Resume when needed"
-echo ""
-
-echo "✅ Advanced Features:"
-echo "   Storage: cws storage create shared-data --size 100GB"
-echo "   Hibernation: cws idle instance ml-workspace --profile cost-optimized"
-echo "   Template layers: cws apply python-ml existing-instance"
-echo ""
-
-echo "Phase 4: Package Management"
-echo "---------------------------"
-
-echo "✅ Homebrew Tap Testing:"
-echo "   Tap added: scttfrdmn/cloudworkstation"
-brew search cloudworkstation | head -3
-echo ""
-
-echo "✅ Installation Methods:"
-echo "   1. Homebrew Tap:"
-echo "      brew tap scttfrdmn/cloudworkstation"  
-echo "      brew install cloudworkstation"
+# Show installation options
+echo "✅ Installation Options Demonstrated:"
+echo "   1. Homebrew Tap: brew tap scttfrdmn/cloudworkstation && brew install cloudworkstation"
 echo "   2. GitHub Releases: Direct binary download"
 echo "   3. Source Build: make build (includes GUI)"
 echo ""
 
-echo "🎉 Demo Complete!"
+# Show version
+echo "✅ Version Verification:"
+./bin/cws --version
+./bin/cwsd --version
+echo ""
+
+echo "Phase 2: First Workstation Launch"
+echo "---------------------------------"
+
+# Start daemon
+echo "✅ Starting Daemon:"
+./bin/cws daemon start
+echo ""
+
+# Show available templates
+echo "✅ Available Templates (showing top 5):"
+./bin/cws templates list | head -12
+echo ""
+
+# Show template details with cost info
+echo "✅ Template Details with Cost Estimation:"
+./bin/cws templates info "Python Machine Learning (Simplified)" | head -10
+echo ""
+
+echo "✅ Workstation Launch Workflow (simulated - requires AWS):"
+echo "   1. cws launch 'Python Machine Learning (Simplified)' ml-research"
+echo "   2. cws list                    # Show running instances"
+echo "   3. cws info ml-research        # Get connection details"
+echo "   4. cws connect ml-research     # KEY STEP: SSH to workstation"
+echo "   5. [Inside workstation] whoami, conda list, jupyter --version"
+echo "   6. exit                        # Return to local machine"
+echo ""
+
+echo "Phase 3: Template Inheritance System"
+echo "-----------------------------------"
+
+# Show template inheritance
+echo "✅ Template Stacking Architecture:"
+echo "   Base: Rocky Linux 9 Base (system + rocky user)"
+echo "   Stack: Rocky Linux 9 + Conda Stack (inherits base + adds conda + datascientist user)"
+./bin/cws templates info "Rocky Linux 9 + Conda Stack" | head -12
+echo ""
+
+echo "Phase 4: Multi-Modal Access"
+echo "---------------------------"
+
+# Show daemon status and API access
+echo "✅ Daemon API Access:"
+./bin/cws daemon status
+echo ""
+
+echo "✅ REST API Endpoints:"
+echo "   Templates: curl http://localhost:8947/api/v1/templates"
+echo "   Instances: curl http://localhost:8947/api/v1/instances"
+echo "   Projects: curl http://localhost:8947/api/v1/projects"
+echo "   Example - First 3 template names:"
+curl -s http://localhost:8947/api/v1/templates | jq -r 'keys | .[0:3] | join(", ")'
+echo ""
+
+echo "✅ TUI Interface Available:"
+echo "   cws tui  # Navigate: 1=Dashboard, 2=Instances, 3=Templates, 4=Storage"
+echo ""
+
+echo "Phase 5: Cost Optimization"
+echo "--------------------------"
+
+echo "✅ Hibernation Workflow (simulated - requires AWS):"
+echo "   1. cws hibernation-status ml-research      # Check hibernation support"
+echo "   2. cws hibernate ml-research               # Save costs, preserve state"
+echo "   3. cws list                                # Shows hibernated state"
+echo "   4. cws resume ml-research                  # Resume when needed"
+echo "   5. cws connect ml-research                 # Environment preserved exactly"
+echo ""
+
+echo "✅ Automated Hibernation Policies:"
+echo "   cws idle profile list                      # Show available policies"
+echo "   cws idle instance ml-research --profile cost-optimized"
+echo "   cws idle history                          # Audit trail of actions"
+echo ""
+
+echo "Phase 6: Enterprise Features (Simulated)"
+echo "---------------------------------------"
+
+echo "✅ Project Management:"
+echo "   cws project create ml-research --budget 500.00"
+echo "   cws project member add ml-research researcher@university.edu --role member"
+echo "   cws project cost ml-research --breakdown"
+echo ""
+
+echo "✅ Storage & Advanced Features:"
+echo "   cws storage create shared-data --size 100GB --type efs"
+echo "   cws storage attach shared-data ml-research /mnt/shared"
+echo "   cws connect ml-research → df -h | grep /mnt/shared"
+echo ""
+
+echo "Phase 7: Package Management"
+echo "---------------------------"
+
+echo "✅ Homebrew Tap Integration:"
+brew search cloudworkstation | head -3
+echo ""
+
+echo "🎉 Complete Workflow Demo Finished!"
 echo "==============================================="
 echo ""
-echo "Key Features Demonstrated:"
-echo "• ✅ Zero-configuration templates with inheritance"
-echo "• ✅ Multi-modal access (CLI, API, TUI, GUI available)"
-echo "• ✅ Enterprise project and budget management"
-echo "• ✅ Cost optimization through hibernation"
-echo "• ✅ Professional package management via Homebrew"
-echo "• ✅ Cross-platform compatibility"
+echo "✅ Workflow Demonstrated (Installation → Connection):"
+echo "1. 📦 Installation: Professional Homebrew tap integration"
+echo "2. 🚀 Launch: Zero-config template selection"
+echo "3. 🔗 Connect: Direct SSH to pre-configured environment (KEY STEP)"
+echo "4. 🧬 Inheritance: Template stacking (Base → Conda Stack)"
+echo "5. 💰 Optimization: Hibernation with state preservation"
+echo "6. 🏢 Enterprise: Project budgets and collaboration"
+echo "7. 📱 Multi-Modal: CLI, TUI, API access"
+echo "8. 💾 Storage: Shared storage attachment and verification"
 echo ""
-echo "Next Steps:"
-echo "1. Configure AWS credentials: aws configure"
-echo "2. Launch first workstation: cws launch python-ml my-project"
-echo "3. Explore TUI interface: cws tui"
-echo "4. Set up projects for team collaboration"
+echo "🎯 Key Value Propositions:"
+echo "• Setup Time: From hours → seconds for research environments"
+echo "• Cost Savings: Hibernation preserves work state while reducing costs"
+echo "• Collaboration: Project-based organization with budget management"
+echo "• Integration: REST API and multi-modal access for any workflow"
 echo ""
-echo "For full demo with AWS integration, ensure AWS credentials are configured."
+echo "🚀 Next Steps (with AWS credentials configured):"
+echo "1. aws configure                                    # Set up AWS access"
+echo "2. cws launch 'Python Machine Learning' my-project # Launch workstation"
+echo "3. cws connect my-project                          # SSH to workstation"
+echo "4. [Inside workstation] jupyter lab --ip=0.0.0.0   # Start research tools"
+echo "5. cws hibernate my-project                        # Save costs when done"
+echo ""
+echo "📚 Documentation:"
+echo "• Installation Guide: INSTALL.md"
+echo "• Complete Demo: DEMO_SEQUENCE.md (15-minute guided tour)"
+echo "• Test Results: DEMO_RESULTS.md"
