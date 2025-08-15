@@ -1,5 +1,5 @@
-//go:build darwin
-// +build darwin
+//go:build darwin && !crosscompile
+// +build darwin,!crosscompile
 
 package security
 
@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// initializeMacOSKeychain initializes the macOS-specific keychain provider
+// initializeMacOSKeychain initializes the macOS-specific keychain provider (native build only)
 func initializeMacOSKeychain() (KeychainProvider, error) {
 	if isDevelopmentMode() {
 		fmt.Fprintf(os.Stderr, "Development mode detected - using secure file storage to avoid keychain prompts\n")
@@ -24,7 +24,7 @@ func initializeMacOSKeychain() (KeychainProvider, error) {
 	return native, nil
 }
 
-// checkMacOSKeychainType checks if provider is macOS native keychain
+// checkMacOSKeychainType checks if provider is macOS native keychain (native build only)
 func checkMacOSKeychainType(provider KeychainProvider) (isMacOSNative bool, info map[string]interface{}) {
 	if p, ok := provider.(*MacOSKeychainNative); ok {
 		return true, map[string]interface{}{
@@ -36,7 +36,7 @@ func checkMacOSKeychainType(provider KeychainProvider) (isMacOSNative bool, info
 	return false, nil
 }
 
-// diagnoseMacOSKeychain performs macOS-specific keychain diagnostics
+// diagnoseMacOSKeychain performs macOS-specific keychain diagnostics (native build only)
 func diagnoseMacOSKeychain(diagnostics *KeychainDiagnostics) {
 	// Test if we can create native macOS keychain
 	_, err := NewMacOSKeychainNative()
