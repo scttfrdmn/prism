@@ -59,9 +59,15 @@ cws --version
 Before launching workstations, you need to configure AWS credentials:
 
 ```bash
-# Quick setup with your preferred AWS profile
-aws configure --profile aws  # or any profile name you prefer
-export AWS_PROFILE=aws       # point CloudWorkstation to your profile
+# Method 1: CloudWorkstation Profiles (Recommended)
+aws configure --profile aws                    # Configure AWS CLI
+cws profiles add personal my-research \
+  --aws-profile aws --region us-west-2         # Create CWS profile
+cws profiles switch aws                        # Activate profile
+
+# Method 2: Environment Variables  
+aws configure --profile aws
+export AWS_PROFILE=aws                         # Point to your profile
 ```
 
 **→ For complete AWS setup guide:** [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
