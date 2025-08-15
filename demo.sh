@@ -1,8 +1,23 @@
 #!/bin/bash
 # CloudWorkstation v0.4.2 Live Demo Script
 # Complete workflow from installation to workstation connection
+#
+# Usage:
+#   For Homebrew installation: ./demo.sh
+#   For source build: ./demo.sh (will work with both 'cws' in PATH and './bin/cws')
 
 set -e
+
+# Check if we're in a source build environment
+if [[ -x "./bin/cws" && -x "./bin/cwsd" && ! $(which cws 2>/dev/null) ]]; then
+    echo "🔧 Source build detected - using ./bin/ binaries"
+    CWS_CMD="./bin/cws"
+    CWSD_CMD="./bin/cwsd"
+else
+    echo "📦 Using system installation (Homebrew/PATH)"
+    CWS_CMD="cws"
+    CWSD_CMD="cwsd"
+fi
 
 echo "🎉 CloudWorkstation v0.4.2 Complete Workflow Demo"
 echo "================================================="
@@ -26,8 +41,8 @@ echo ""
 
 # Show version
 echo "✅ Version Verification:"
-./bin/cws --version
-./bin/cwsd --version
+$CWS_CMD --version
+$CWSD_CMD --version
 echo ""
 
 echo "Phase 2: First Workstation Launch"
@@ -35,17 +50,17 @@ echo "---------------------------------"
 
 # Start daemon
 echo "✅ Starting Daemon:"
-./bin/cws daemon start
+$CWS_CMD daemon start
 echo ""
 
 # Show available templates
 echo "✅ Available Templates (showing top 5):"
-./bin/cws templates list | head -12
+$CWS_CMD templates list | head -12
 echo ""
 
 # Show template details with cost info
 echo "✅ Template Details with Cost Estimation:"
-./bin/cws templates info "Python Machine Learning (Simplified)" | head -10
+$CWS_CMD templates info "Python Machine Learning (Simplified)" | head -10
 echo ""
 
 echo "✅ Workstation Launch Workflow (simulated - requires AWS):"
@@ -64,7 +79,7 @@ echo "-----------------------------------"
 echo "✅ Template Stacking Architecture:"
 echo "   Base: Rocky Linux 9 Base (system + rocky user)"
 echo "   Stack: Rocky Linux 9 + Conda Stack (inherits base + adds conda + datascientist user)"
-./bin/cws templates info "Rocky Linux 9 + Conda Stack" | head -12
+$CWS_CMD templates info "Rocky Linux 9 + Conda Stack" | head -12
 echo ""
 
 echo "Phase 4: Multi-Modal Access"
@@ -72,7 +87,7 @@ echo "---------------------------"
 
 # Show daemon status and API access
 echo "✅ Daemon API Access:"
-./bin/cws daemon status
+$CWS_CMD daemon status
 echo ""
 
 echo "✅ REST API Endpoints:"
