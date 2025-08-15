@@ -56,15 +56,13 @@ jobs:
         run: |
           GOOS=darwin GOARCH=amd64 go build -tags crosscompile -o bin/cws-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=darwin GOARCH=amd64 go build -tags crosscompile -o bin/cwsd-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          GOOS=darwin GOARCH=amd64 go build -tags crosscompile -o bin/cws-gui-macos-amd64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
-          cd bin && tar -czf cws-macos-amd64.tar.gz cws-macos-amd64 cwsd-macos-amd64 cws-gui-macos-amd64 && cd ..
+          cd bin && tar -czf cws-macos-amd64.tar.gz cws-macos-amd64 cwsd-macos-amd64 && cd ..
 
       - name: Build for macOS arm64
         run: |
           GOOS=darwin GOARCH=arm64 go build -tags crosscompile -o bin/cws-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=darwin GOARCH=arm64 go build -tags crosscompile -o bin/cwsd-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          GOOS=darwin GOARCH=arm64 go build -tags crosscompile -o bin/cws-gui-macos-arm64 -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
-          cd bin && tar -czf cws-macos-arm64.tar.gz cws-macos-arm64 cwsd-macos-arm64 cws-gui-macos-arm64 && cd ..
+          cd bin && tar -czf cws-macos-arm64.tar.gz cws-macos-arm64 cwsd-macos-arm64 && cd ..
 
       - name: Build for Windows amd64
         run: |
