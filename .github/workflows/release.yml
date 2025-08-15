@@ -9,7 +9,7 @@ on:
       version:
         description: 'Version to release (without v prefix)'
         required: true
-        default: '0.4.1'
+        default: '0.4.2'
       prerelease:
         description: 'Is this a pre-release?'
         type: boolean
