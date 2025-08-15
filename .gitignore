@@ -17,7 +17,7 @@ cwsd.exe
 *.prof
 
 # Go modules
-go.sum
+# go.sum should be committed for release builds
 
 # IDE files
 .vscode/
