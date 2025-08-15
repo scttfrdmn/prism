@@ -67,7 +67,7 @@ jobs:
         shell: bash -el {0}
         
       - name: Upload changes as PR
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update Conda package for ${{ env.VERSION }}
