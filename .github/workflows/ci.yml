@@ -122,7 +122,7 @@ jobs:
         run: ./scripts/check-docs.sh
 
       - name: Validate markdown
-        uses: DavidAnson/markdownlint-cli2-action@v14
+        uses: DavidAnson/markdownlint-cli2-action@v20
         with:
           globs: "**/*.md"
           config: ".markdownlint.json"
