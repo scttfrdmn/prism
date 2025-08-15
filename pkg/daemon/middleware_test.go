@@ -208,6 +208,6 @@ func TestCombinedMiddleware(t *testing.T) {
 
 	// Check status code
 	assert.Equal(t, http.StatusOK, rec.Code)
-	
+
 	// Note: Cannot check headers since they're set on the request which isn't accessible after execution
 }

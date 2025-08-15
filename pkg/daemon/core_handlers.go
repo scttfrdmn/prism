@@ -18,9 +18,9 @@ func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	apiVersions := s.versionManager.GetSupportedVersions()
-	
+
 	// Convert internal APIVersion to public APIVersionInfo
 	versionInfos := make([]types.APIVersionInfo, 0, len(apiVersions))
 	for _, v := range apiVersions {
@@ -34,7 +34,7 @@ func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
 			DocsURL:         v.DocsURL,
 		})
 	}
-	
+
 	response := types.APIVersionResponse{
 		Versions:       versionInfos,
 		DefaultVersion: s.versionManager.GetDefaultVersion(),
@@ -42,7 +42,7 @@ func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
 		LatestVersion:  s.versionManager.GetLatestVersion(),
 		DocsBaseURL:    "https://docs.cloudworkstation.dev/api",
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -50,10 +50,10 @@ func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 	// Generate request ID for tracking
 	requestID := fmt.Sprintf("req_%d", time.Now().UnixNano())
-	
+
 	// Extract API version from path
 	version := s.versionManager.ExtractVersionFromPath(r.URL.Path)
-	
+
 	// Check if version exists but endpoint doesn't
 	if version != "" {
 		// Valid version but unknown endpoint
@@ -66,12 +66,12 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 			APIVersion: version,
 			DocsURL:    fmt.Sprintf("https://docs.cloudworkstation.dev/api/%s", version),
 		}
-		
+
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(errorResponse)
 		return
 	}
-	
+
 	// No version specified, convert supported versions to APIVersionInfo
 	apiVersions := s.versionManager.GetSupportedVersions()
 	versionInfos := make([]types.APIVersionInfo, 0, len(apiVersions))
@@ -86,7 +86,7 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 			DocsURL:         v.DocsURL,
 		})
 	}
-	
+
 	// Create error response with available versions
 	errorResponse := types.APIErrorResponse{
 		Code:      "version_required",
@@ -96,17 +96,17 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 		RequestID: requestID,
 		DocsURL:   "https://docs.cloudworkstation.dev/api",
 	}
-	
+
 	w.WriteHeader(http.StatusBadRequest)
-	
+
 	// Include version information in response body
 	responseBody := map[string]interface{}{
-		"error":             errorResponse,
+		"error":              errorResponse,
 		"available_versions": versionInfos,
 		"default_version":    s.versionManager.GetDefaultVersion(),
 		"stable_version":     s.versionManager.GetStableVersion(),
 	}
-	
+
 	json.NewEncoder(w).Encode(responseBody)
 }
 
@@ -122,7 +122,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Get region from context or create AWS manager to get default
 	awsRegion := getAWSRegion(r.Context())
 	if awsRegion == "" {
@@ -151,14 +151,14 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Respond immediately before shutting down
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
-		"status": "shutting_down", 
+		"status":  "shutting_down",
 		"message": "Daemon shutdown initiated",
 	})
-	
+
 	// Shutdown in a goroutine to allow response to be sent
 	go func() {
 		time.Sleep(100 * time.Millisecond) // Allow response to be sent

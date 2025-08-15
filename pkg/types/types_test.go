@@ -150,8 +150,9 @@ func TestAPIErrorImplementsError(t *testing.T) {
 
 	// Test that APIError implements error interface
 	var err error = apiErr
-	if err.Error() != "Instance not found" {
-		t.Errorf("Error() mismatch: got %s, want %s", err.Error(), "Instance not found")
+	expected := "404: Instance not found (The specified instance does not exist)"
+	if err.Error() != expected {
+		t.Errorf("Error() mismatch: got %s, want %s", err.Error(), expected)
 	}
 }
 

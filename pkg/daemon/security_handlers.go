@@ -22,7 +22,7 @@ func (s *Server) handleSecurityStatus(w http.ResponseWriter, r *http.Request) {
 
 		// Log security status request
 		s.securityManager.LogSecurityEvent("security_status_requested", true, "", map[string]interface{}{
-			"client_ip": r.RemoteAddr,
+			"client_ip":  r.RemoteAddr,
 			"user_agent": r.UserAgent(),
 		})
 
@@ -35,7 +35,7 @@ func (s *Server) handleSecurityStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleSecurityHealth handles GET/POST requests to /api/v1/security/health  
+// handleSecurityHealth handles GET/POST requests to /api/v1/security/health
 func (s *Server) handleSecurityHealth(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -47,9 +47,9 @@ func (s *Server) handleSecurityHealth(w http.ResponseWriter, r *http.Request) {
 		}
 
 		healthResponse := map[string]interface{}{
-			"system_health": status.SystemHealth,
-			"keychain_info": status.KeychainInfo,
-			"last_check": status.LastHealthCheck,
+			"system_health":    status.SystemHealth,
+			"keychain_info":    status.KeychainInfo,
+			"last_check":       status.LastHealthCheck,
 			"security_enabled": status.Enabled,
 		}
 
@@ -61,7 +61,7 @@ func (s *Server) handleSecurityHealth(w http.ResponseWriter, r *http.Request) {
 		// Trigger health check
 		if err := s.securityManager.PerformHealthCheck(); err != nil {
 			s.securityManager.LogSecurityEvent("health_check_triggered", false, "", map[string]interface{}{
-				"error": err.Error(),
+				"error":     err.Error(),
 				"client_ip": r.RemoteAddr,
 			})
 			http.Error(w, fmt.Sprintf("Health check failed: %v", err), http.StatusInternalServerError)
@@ -73,7 +73,7 @@ func (s *Server) handleSecurityHealth(w http.ResponseWriter, r *http.Request) {
 		})
 
 		response := map[string]interface{}{
-			"status": "Health check completed successfully",
+			"status":    "Health check completed successfully",
 			"timestamp": "now",
 		}
 
@@ -102,7 +102,7 @@ func (s *Server) handleSecurityDashboard(w http.ResponseWriter, r *http.Request)
 		}
 
 		s.securityManager.LogSecurityEvent("security_dashboard_accessed", true, "", map[string]interface{}{
-			"client_ip": r.RemoteAddr,
+			"client_ip":  r.RemoteAddr,
 			"user_agent": r.UserAgent(),
 		})
 
@@ -126,13 +126,13 @@ func (s *Server) handleSecurityCorrelations(w http.ResponseWriter, r *http.Reque
 		}
 
 		correlationResponse := map[string]interface{}{
-			"correlations": status.Correlations,
-			"correlation_count": len(status.Correlations),
+			"correlations":        status.Correlations,
+			"correlation_count":   len(status.Correlations),
 			"correlation_enabled": status.Configuration.CorrelationEnabled,
 		}
 
 		s.securityManager.LogSecurityEvent("security_correlations_accessed", true, "", map[string]interface{}{
-			"client_ip": r.RemoteAddr,
+			"client_ip":         r.RemoteAddr,
 			"correlation_count": len(status.Correlations),
 		})
 
@@ -160,14 +160,14 @@ func (s *Server) handleSecurityKeychain(w http.ResponseWriter, r *http.Request) 
 		diagnostics := security.DiagnoseKeychainIssues()
 
 		keychainResponse := map[string]interface{}{
-			"info": keychainInfo,
+			"info":        keychainInfo,
 			"diagnostics": diagnostics,
 		}
 
 		s.securityManager.LogSecurityEvent("keychain_info_accessed", true, "", map[string]interface{}{
 			"client_ip": r.RemoteAddr,
-			"provider": keychainInfo.Provider,
-			"native": keychainInfo.Native,
+			"provider":  keychainInfo.Provider,
+			"native":    keychainInfo.Native,
 		})
 
 		if err := json.NewEncoder(w).Encode(keychainResponse); err != nil {
@@ -178,7 +178,7 @@ func (s *Server) handleSecurityKeychain(w http.ResponseWriter, r *http.Request) 
 		// Validate keychain provider
 		if err := security.ValidateKeychainProvider(); err != nil {
 			s.securityManager.LogSecurityEvent("keychain_validation_failed", false, "", map[string]interface{}{
-				"error": err.Error(),
+				"error":     err.Error(),
 				"client_ip": r.RemoteAddr,
 			})
 			http.Error(w, fmt.Sprintf("Keychain validation failed: %v", err), http.StatusInternalServerError)
@@ -190,7 +190,7 @@ func (s *Server) handleSecurityKeychain(w http.ResponseWriter, r *http.Request) 
 		})
 
 		response := map[string]interface{}{
-			"status": "Keychain validation successful",
+			"status":    "Keychain validation successful",
 			"timestamp": "now",
 		}
 
@@ -216,8 +216,8 @@ func (s *Server) handleSecurityConfig(w http.ResponseWriter, r *http.Request) {
 
 		configResponse := map[string]interface{}{
 			"configuration": status.Configuration,
-			"enabled": status.Enabled,
-			"running": status.Running,
+			"enabled":       status.Enabled,
+			"running":       status.Running,
 		}
 
 		s.securityManager.LogSecurityEvent("security_config_accessed", true, "", map[string]interface{}{
@@ -232,7 +232,7 @@ func (s *Server) handleSecurityConfig(w http.ResponseWriter, r *http.Request) {
 		// Update security configuration (placeholder for future implementation)
 		s.securityManager.LogSecurityEvent("security_config_update_attempted", false, "", map[string]interface{}{
 			"client_ip": r.RemoteAddr,
-			"reason": "not_implemented",
+			"reason":    "not_implemented",
 		})
 
 		http.Error(w, "Security configuration updates not yet implemented", http.StatusNotImplemented)
@@ -268,10 +268,10 @@ func (s *Server) handleSecureDeviceRegistration(w http.ResponseWriter, r *http.R
 	// Register device using security manager
 	if err := s.securityManager.RegisterDevice(registrationRequest.InvitationToken, registrationRequest.DeviceID); err != nil {
 		s.securityManager.LogDeviceRegistration(registrationRequest.DeviceID, registrationRequest.InvitationToken, false, "registration_failed", map[string]interface{}{
-			"error": err.Error(),
+			"error":     err.Error(),
 			"client_ip": r.RemoteAddr,
 		})
-		
+
 		// Check if it's a security-related error
 		if strings.Contains(err.Error(), "device binding") || strings.Contains(err.Error(), "tamper") {
 			http.Error(w, "Device registration failed: security violation", http.StatusForbidden)
@@ -286,7 +286,7 @@ func (s *Server) handleSecureDeviceRegistration(w http.ResponseWriter, r *http.R
 	})
 
 	response := map[string]interface{}{
-		"status": "Device registered successfully",
+		"status":    "Device registered successfully",
 		"device_id": registrationRequest.DeviceID,
 		"timestamp": "now",
 	}
@@ -301,9 +301,9 @@ func (s *Server) securityMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Log access attempt
 		s.securityManager.LogSecurityEvent("api_access_attempt", true, "", map[string]interface{}{
-			"endpoint": r.URL.Path,
-			"method": r.Method,
-			"client_ip": r.RemoteAddr,
+			"endpoint":   r.URL.Path,
+			"method":     r.Method,
+			"client_ip":  r.RemoteAddr,
 			"user_agent": r.UserAgent(),
 		})
 

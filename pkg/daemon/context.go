@@ -42,15 +42,15 @@ func getAWSRegion(ctx context.Context) string {
 // getAWSOptions creates AWS options from the context
 func getAWSOptions(ctx context.Context) map[string]string {
 	options := make(map[string]string)
-	
+
 	if profile := getAWSProfile(ctx); profile != "" {
 		options["profile"] = profile
 	}
-	
+
 	if region := getAWSRegion(ctx); region != "" {
 		options["region"] = region
 	}
-	
+
 	return options
 }
 

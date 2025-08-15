@@ -14,13 +14,13 @@ var ErrUserManagerNotInitialized = errors.New("user manager not initialized")
 type UserManager struct {
 	// service is the user management service
 	service usermgmt.UserManagementService
-	
+
 	// storage is the user storage
 	storage usermgmt.UserStorage
-	
+
 	// initialized tracks if the user manager has been initialized
 	initialized bool
-	
+
 	// mutex protects concurrent access
 	mutex sync.RWMutex
 }
@@ -36,22 +36,22 @@ func NewUserManager() *UserManager {
 func (m *UserManager) Initialize() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if m.initialized {
 		return nil
 	}
-	
+
 	// Create in-memory storage for now
 	// In a production environment, this would use persistent storage
 	storage := usermgmt.NewMemoryUserStorage()
-	
+
 	// Create user management service
 	service := usermgmt.NewUserManagementService(storage)
-	
+
 	m.storage = storage
 	m.service = service
 	m.initialized = true
-	
+
 	return nil
 }
 
@@ -59,11 +59,11 @@ func (m *UserManager) Initialize() error {
 func (m *UserManager) RegisterProvider(provider usermgmt.UserManagementProvider) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if !m.initialized {
 		return ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.RegisterProvider(provider)
 }
 
@@ -71,11 +71,11 @@ func (m *UserManager) RegisterProvider(provider usermgmt.UserManagementProvider)
 func (m *UserManager) UnregisterProvider(providerType usermgmt.Provider) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if !m.initialized {
 		return ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.UnregisterProvider(providerType)
 }
 
@@ -83,11 +83,11 @@ func (m *UserManager) UnregisterProvider(providerType usermgmt.Provider) error {
 func (m *UserManager) Authenticate(ctx context.Context, username, password string) (*usermgmt.AuthenticationResult, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.Authenticate(username, password)
 }
 
@@ -95,11 +95,11 @@ func (m *UserManager) Authenticate(ctx context.Context, username, password strin
 func (m *UserManager) GetUser(ctx context.Context, id string) (*usermgmt.User, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.GetUser(id)
 }
 
@@ -107,11 +107,11 @@ func (m *UserManager) GetUser(ctx context.Context, id string) (*usermgmt.User, e
 func (m *UserManager) GetUserByUsername(ctx context.Context, username string) (*usermgmt.User, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.GetUserByUsername(username)
 }
 
@@ -119,11 +119,11 @@ func (m *UserManager) GetUserByUsername(ctx context.Context, username string) (*
 func (m *UserManager) GetUsers(ctx context.Context, filter *usermgmt.UserFilter, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedUsers, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.ListUsers(filter, pagination)
 }
 
@@ -131,11 +131,11 @@ func (m *UserManager) GetUsers(ctx context.Context, filter *usermgmt.UserFilter,
 func (m *UserManager) CreateUser(ctx context.Context, user *usermgmt.User) (*usermgmt.User, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	err := m.service.CreateUser(user)
 	return user, err
 }
@@ -144,11 +144,11 @@ func (m *UserManager) CreateUser(ctx context.Context, user *usermgmt.User) (*use
 func (m *UserManager) UpdateUser(ctx context.Context, user *usermgmt.User) (*usermgmt.User, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	err := m.service.UpdateUser(user)
 	return user, err
 }
@@ -157,11 +157,11 @@ func (m *UserManager) UpdateUser(ctx context.Context, user *usermgmt.User) (*use
 func (m *UserManager) DeleteUser(ctx context.Context, id string) error {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.DeleteUser(id)
 }
 
@@ -169,11 +169,11 @@ func (m *UserManager) DeleteUser(ctx context.Context, id string) error {
 func (m *UserManager) EnableUser(ctx context.Context, id string) error {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.EnableUser(id)
 }
 
@@ -181,11 +181,11 @@ func (m *UserManager) EnableUser(ctx context.Context, id string) error {
 func (m *UserManager) DisableUser(ctx context.Context, id string) error {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.DisableUser(id)
 }
 
@@ -193,11 +193,11 @@ func (m *UserManager) DisableUser(ctx context.Context, id string) error {
 func (m *UserManager) SynchronizeUsers(ctx context.Context, options *usermgmt.SyncOptions) (*usermgmt.SyncResult, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.SynchronizeUsers(options)
 }
 
@@ -205,11 +205,11 @@ func (m *UserManager) SynchronizeUsers(ctx context.Context, options *usermgmt.Sy
 func (m *UserManager) SetDefaultProvisionOptions(options *usermgmt.UserProvisionOptions) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if !m.initialized {
 		return ErrUserManagerNotInitialized
 	}
-	
+
 	m.service.SetDefaultProvisionOptions(options)
 	return nil
 }
@@ -218,11 +218,11 @@ func (m *UserManager) SetDefaultProvisionOptions(options *usermgmt.UserProvision
 func (m *UserManager) GetDefaultProvisionOptions() (*usermgmt.UserProvisionOptions, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return nil, ErrUserManagerNotInitialized
 	}
-	
+
 	return m.service.GetDefaultProvisionOptions()
 }
 
@@ -230,24 +230,24 @@ func (m *UserManager) GetDefaultProvisionOptions() (*usermgmt.UserProvisionOptio
 func (m *UserManager) IsUserInRole(ctx context.Context, userID string, role usermgmt.UserRole) (bool, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	if !m.initialized {
 		return false, ErrUserManagerNotInitialized
 	}
-	
+
 	// Get user
 	user, err := m.service.GetUser(userID)
 	if err != nil {
 		return false, err
 	}
-	
+
 	// Check if user has role
 	for _, userRole := range user.Roles {
 		if userRole == role {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -255,15 +255,15 @@ func (m *UserManager) IsUserInRole(ctx context.Context, userID string, role user
 func (m *UserManager) Close() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if !m.initialized {
 		return nil
 	}
-	
+
 	if err := m.service.Close(); err != nil {
 		return err
 	}
-	
+
 	m.initialized = false
 	return nil
 }

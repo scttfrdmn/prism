@@ -13,8 +13,8 @@ func (s *Server) writeError(w http.ResponseWriter, statusCode int, message strin
 	// Create standardized error response
 	errorCode := types.GetErrorCodeFromStatusCode(statusCode)
 	apiError := types.APIError{
-		Code:      errorCode,
-		Message:   message,
+		Code:       errorCode,
+		Message:    message,
 		StatusCode: statusCode,
 	}
 
@@ -89,10 +89,10 @@ func (s *Server) errorResponseMiddleware(next http.HandlerFunc) http.HandlerFunc
 func (s *Server) convertAWSError(err error, operation string) types.APIError {
 	// TODO: Implement AWS error mapping for better client error handling
 	// This would detect specific AWS error types and convert them to appropriate API errors
-	
+
 	// For now, just return a generic AWS error
-	return types.NewAPIError(types.ErrAWSError, 
-		"AWS operation failed", 
+	return types.NewAPIError(types.ErrAWSError,
+		"AWS operation failed",
 		err,
 	).WithOperation(operation)
 }

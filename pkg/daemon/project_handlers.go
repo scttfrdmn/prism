@@ -76,7 +76,7 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 
 	// Parse query parameters for filtering
 	filter := &project.ProjectFilter{}
-	
+
 	if owner := r.URL.Query().Get("owner"); owner != "" {
 		filter.Owner = owner
 	}

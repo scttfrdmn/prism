@@ -48,7 +48,7 @@ func (s *Server) handleAWSComplianceValidate(w http.ResponseWriter, r *http.Requ
 	// Create AWS compliance validator
 	validator, err := security.NewAWSComplianceValidator("aws", s.getAWSRegion())
 	if err != nil {
-		s.securityManager.LogSecurityEvent("aws_compliance_validator_error", false, 
+		s.securityManager.LogSecurityEvent("aws_compliance_validator_error", false,
 			fmt.Sprintf("Failed to create validator: %v", err), map[string]interface{}{
 				"framework": framework,
 				"error":     err.Error(),
@@ -75,9 +75,9 @@ func (s *Server) handleAWSComplianceValidate(w http.ResponseWriter, r *http.Requ
 	// Log successful validation
 	s.securityManager.LogSecurityEvent("aws_compliance_validated", true,
 		fmt.Sprintf("Successfully validated %s compliance", framework), map[string]interface{}{
-			"framework":      framework,
-			"aws_compliant":  complianceStatus.AWSCompliant,
-			"gap_count":      len(complianceStatus.GapAnalysis),
+			"framework":       framework,
+			"aws_compliant":   complianceStatus.AWSCompliant,
+			"gap_count":       len(complianceStatus.GapAnalysis),
 			"recommendations": len(complianceStatus.RecommendedActions),
 		})
 
@@ -145,7 +145,7 @@ func (s *Server) handleAWSComplianceReport(w http.ResponseWriter, r *http.Reques
 	s.securityManager.LogSecurityEvent("aws_compliance_report_generated", true,
 		fmt.Sprintf("Generated %s compliance report", framework), map[string]interface{}{
 			"framework":        framework,
-			"aws_compliant":   complianceStatus.AWSCompliant,
+			"aws_compliant":    complianceStatus.AWSCompliant,
 			"compliance_score": report["compliance_score"],
 		})
 
@@ -218,10 +218,10 @@ func (s *Server) handleAWSComplianceSCP(w http.ResponseWriter, r *http.Request) 
 	// Log SCP validation
 	s.securityManager.LogSecurityEvent("aws_scp_validation", true,
 		fmt.Sprintf("Validated SCPs for %s compliance", framework), map[string]interface{}{
-			"framework":       framework,
-			"required_scps":   len(complianceStatus.RequiredSCPs),
+			"framework":        framework,
+			"required_scps":    len(complianceStatus.RequiredSCPs),
 			"implemented_scps": len(complianceStatus.ImplementedSCPs),
-			"gaps":           len(s.filterSCPGaps(complianceStatus.GapAnalysis)),
+			"gaps":             len(s.filterSCPGaps(complianceStatus.GapAnalysis)),
 		})
 
 	// Return SCP status
@@ -238,34 +238,34 @@ func (s *Server) generateComplianceReport(framework security.ComplianceFramework
 	complianceScore := s.calculateComplianceScore(status)
 
 	report := map[string]interface{}{
-		"framework":        framework,
-		"aws_compliant":    status.AWSCompliant,
-		"compliance_score": complianceScore,
-		"last_updated":     status.LastUpdated,
+		"framework":          framework,
+		"aws_compliant":      status.AWSCompliant,
+		"compliance_score":   complianceScore,
+		"last_updated":       status.LastUpdated,
 		"artifact_report_id": status.ArtifactReportID,
 		"sections": []map[string]interface{}{
 			{
-				"title": "Executive Summary",
+				"title":   "Executive Summary",
 				"content": s.generateExecutiveSummary(framework, status, complianceScore),
 			},
 			{
-				"title": "AWS Service Compliance",
+				"title":   "AWS Service Compliance",
 				"content": s.generateServiceComplianceSection(status.AWSServices),
 			},
 			{
-				"title": "Gap Analysis",
+				"title":   "Gap Analysis",
 				"content": s.generateGapAnalysisSection(status.GapAnalysis),
 			},
 			{
-				"title": "Service Control Policies",
+				"title":   "Service Control Policies",
 				"content": s.generateSCPSection(status.RequiredSCPs, status.ImplementedSCPs),
 			},
 			{
-				"title": "Recommended Actions",
+				"title":   "Recommended Actions",
 				"content": s.generateRecommendationsSection(status.RecommendedActions),
 			},
 			{
-				"title": "Compliance Roadmap",
+				"title":   "Compliance Roadmap",
 				"content": s.generateComplianceRoadmap(framework, status),
 			},
 		},
@@ -354,12 +354,12 @@ func (s *Server) generateServiceComplianceSection(services []security.AWSService
 		}
 
 		content += fmt.Sprintf("%s %s: %s\n", statusIcon, service.ServiceName, service.ComplianceStatus)
-		
+
 		if len(service.CertifiedRegions) > 0 {
 			if len(service.CertifiedRegions) <= 3 {
 				content += fmt.Sprintf("   Regions: %s\n", strings.Join(service.CertifiedRegions, ", "))
 			} else {
-				content += fmt.Sprintf("   Regions: %s... (%d total)\n", 
+				content += fmt.Sprintf("   Regions: %s... (%d total)\n",
 					strings.Join(service.CertifiedRegions[:3], ", "), len(service.CertifiedRegions))
 			}
 		}
@@ -380,10 +380,10 @@ func (s *Server) generateGapAnalysisSection(gaps []security.ComplianceGap) strin
 	}
 
 	content := "Identified Compliance Gaps:\n\n"
-	
+
 	criticalGaps := 0
 	highGaps := 0
-	
+
 	for _, gap := range gaps {
 		severityIcon := "💡"
 		switch gap.Severity {
@@ -515,14 +515,14 @@ func (s *Server) generateComplianceRoadmap(framework security.ComplianceFramewor
 // filterSCPGaps filters gaps related to Service Control Policies
 func (s *Server) filterSCPGaps(gaps []security.ComplianceGap) []security.ComplianceGap {
 	var scpGaps []security.ComplianceGap
-	
+
 	for _, gap := range gaps {
-		if strings.Contains(strings.ToUpper(gap.Control), "SCP") || 
-		   strings.Contains(strings.ToUpper(gap.Remediation), "SERVICE CONTROL POLICY") {
+		if strings.Contains(strings.ToUpper(gap.Control), "SCP") ||
+			strings.Contains(strings.ToUpper(gap.Remediation), "SERVICE CONTROL POLICY") {
 			scpGaps = append(scpGaps, gap)
 		}
 	}
-	
+
 	return scpGaps
 }
 

@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 )
 
 func TestProfileManager(t *testing.T) {
@@ -16,12 +18,9 @@ func TestProfileManager(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a test manager
-	manager := &Manager{
-		configPath: filepath.Join(tempDir, "profiles.json"),
-		profiles: &Profiles{
-			Profiles:       make(map[string]Profile),
-			CurrentProfile: "",
-		},
+	manager, err := core.NewManager()
+	if err != nil {
+		t.Fatalf("Failed to create manager: %v", err)
 	}
 
 	// Test adding profiles
@@ -152,7 +151,7 @@ func TestProfileManager(t *testing.T) {
 	}
 
 	// Create a new manager that loads the saved state
-	newManager := &Manager{
+	newManager := &core.Manager{
 		configPath: filepath.Join(tempDir, "profiles.json"),
 	}
 

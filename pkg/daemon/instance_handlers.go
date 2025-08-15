@@ -27,13 +27,13 @@ func (s *Server) handleInstances(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 	var instances []types.Instance
 	totalCost := 0.0
-	
+
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
 		instances, err = awsManager.ListInstances()
 		return err
 	})
-	
+
 	// If AWS call failed, the withAWSManager already wrote the error response
 	if instances == nil {
 		return
@@ -42,14 +42,14 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 	// Filter out terminated instances older than retention period (configurable)
 	retentionDuration := s.config.GetRetentionDuration()
 	filteredInstances := make([]types.Instance, 0)
-	
+
 	for _, instance := range instances {
 		// Include non-terminated instances
 		if instance.State != "terminated" {
 			filteredInstances = append(filteredInstances, instance)
 			continue
 		}
-		
+
 		// For terminated instances, check deletion time against retention period
 		if instance.DeletionTime != nil {
 			// Include if less than retention period since deletion was initiated
@@ -96,7 +96,7 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	// Validate that instance name is unique
 	var nameExists bool
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
@@ -104,7 +104,7 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return fmt.Errorf("failed to check existing instances: %w", err)
 		}
-		
+
 		for _, existingInstance := range instances {
 			if existingInstance.Name == req.Name {
 				// Check if instance is in a terminal state (terminated/terminating)
@@ -116,12 +116,12 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	})
-	
+
 	if nameExists {
 		s.writeError(w, http.StatusConflict, fmt.Sprintf("Instance with name '%s' already exists. Please choose a different name.", req.Name))
 		return
 	}
-	
+
 	// Handle SSH key management if not provided in request
 	if req.SSHKeyName == "" {
 		if err := s.setupSSHKeyForLaunch(&req); err != nil {
@@ -129,7 +129,7 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	// Use AWS manager from request and handle launch
 	var instance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
@@ -139,13 +139,13 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 				return fmt.Errorf("failed to ensure SSH key in AWS: %w", err)
 			}
 		}
-		
+
 		// Delegate to AWS manager
 		var err error
 		instance, err = awsManager.LaunchInstance(req)
 		return err
 	})
-	
+
 	// If instance is nil, withAWSManager already wrote an error response
 	if instance == nil {
 		return
@@ -243,7 +243,7 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, na
 		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
 		return
 	}
-	
+
 	if instance, exists := state.Instances[name]; exists {
 		instance.DeletionTime = &now
 		if err := s.stateManager.SaveInstance(instance); err != nil {
@@ -332,10 +332,10 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 
 	response := map[string]interface{}{
 		"hibernation_supported": hibernationSupported,
-		"is_hibernated":        isHibernated,
-		"instance_name":        name,
+		"is_hibernated":         isHibernated,
+		"instance_name":         name,
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -371,27 +371,27 @@ func (s *Server) setupSSHKeyForLaunch(req *types.LaunchRequest) error {
 	if err != nil {
 		return fmt.Errorf("failed to create profile manager: %w", err)
 	}
-	
+
 	currentProfile, err := profileManager.GetCurrentProfile()
 	if err != nil {
 		return fmt.Errorf("failed to get current profile: %w", err)
 	}
-	
+
 	// Create SSH key manager
 	sshKeyManager, err := profile.NewSSHKeyManager()
 	if err != nil {
 		return fmt.Errorf("failed to create SSH key manager: %w", err)
 	}
-	
+
 	// Get SSH key configuration for current profile
 	_, keyName, err := sshKeyManager.GetSSHKeyForProfile(currentProfile)
 	if err != nil {
 		return fmt.Errorf("failed to get SSH key for profile: %w", err)
 	}
-	
+
 	// Set SSH key in launch request
 	req.SSHKeyName = keyName
-	
+
 	return nil
 }
 
@@ -402,35 +402,35 @@ func (s *Server) ensureSSHKeyInAWS(awsManager *aws.Manager, req *types.LaunchReq
 	if err != nil {
 		return fmt.Errorf("failed to create profile manager: %w", err)
 	}
-	
+
 	currentProfile, err := profileManager.GetCurrentProfile()
 	if err != nil {
 		return fmt.Errorf("failed to get current profile: %w", err)
 	}
-	
+
 	// Create SSH key manager
 	sshKeyManager, err := profile.NewSSHKeyManager()
 	if err != nil {
 		return fmt.Errorf("failed to create SSH key manager: %w", err)
 	}
-	
+
 	// Get SSH key configuration
 	keyPath, keyName, err := sshKeyManager.GetSSHKeyForProfile(currentProfile)
 	if err != nil {
 		return fmt.Errorf("failed to get SSH key for profile: %w", err)
 	}
-	
+
 	// Get public key content
 	publicKeyPath := keyPath + ".pub"
 	publicKeyContent, err := sshKeyManager.GetPublicKeyContent(publicKeyPath)
 	if err != nil {
 		return fmt.Errorf("failed to get public key content: %w", err)
 	}
-	
+
 	// Ensure key exists in AWS
 	if err := awsManager.EnsureKeyPairExists(keyName, publicKeyContent); err != nil {
 		return fmt.Errorf("failed to ensure key pair exists in AWS: %w", err)
 	}
-	
+
 	return nil
 }

@@ -180,7 +180,7 @@ func (s *Server) handleInstanceLayers(w http.ResponseWriter, r *http.Request) {
 
 	// Get applied templates from instance state
 	appliedTemplates := []templates.AppliedTemplate{}
-	
+
 	// Check if instance has applied templates field
 	if len(instance.AppliedTemplates) > 0 {
 		for _, applied := range instance.AppliedTemplates {
@@ -278,12 +278,12 @@ func (s *Server) createRemoteExecutor(instance types.Instance) (templates.Remote
 		// Use SSH for instances with public IPs
 		keyPath := s.getSSHKeyPath()
 		username := s.getSSHUsername(instance)
-		
+
 		return templates.NewSSHRemoteExecutor(keyPath, username), nil
 	} else {
 		// Use Systems Manager for private instances
 		region := s.getAWSRegion()
-		
+
 		return templates.NewSystemsManagerExecutor(region), nil
 	}
 }
@@ -294,7 +294,7 @@ func (s *Server) getSSHKeyPath() string {
 	// 1. Check for key in CloudWorkstation config
 	// 2. Look for default AWS key pairs
 	// 3. Handle per-instance key management
-	
+
 	// For now, return a placeholder that would be configured
 	return "~/.ssh/cloudworkstation-key.pem"
 }
@@ -303,7 +303,7 @@ func (s *Server) getSSHKeyPath() string {
 func (s *Server) getSSHUsername(instance types.Instance) string {
 	// Determine username based on instance template/AMI
 	// Common usernames: ubuntu, ec2-user, centos, admin
-	
+
 	// For now, use ubuntu as default (most common for research workstations)
 	return "ubuntu"
 }
@@ -325,7 +325,7 @@ func (s *Server) recordTemplateApplication(instanceName string, template *templa
 	// Create applied template record
 	appliedTemplate := types.AppliedTemplateRecord{
 		TemplateName:       template.Name,
-		AppliedAt:         time.Now(),
+		AppliedAt:          time.Now(),
 		PackageManager:     template.PackageManager,
 		PackagesInstalled:  getPackageNames(template),
 		ServicesConfigured: getServiceNames(template),
@@ -399,4 +399,3 @@ func getUserNames(template *templates.Template) []string {
 	}
 	return users
 }
-
