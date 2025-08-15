@@ -69,26 +69,29 @@ brew search cloudworkstation
 
 ### Quick Start (Homebrew Installation)
 1. **Install**: `brew tap scttfrdmn/cloudworkstation && brew install cloudworkstation`
-2. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
-3. **Run Demo**: `./demo.sh`
+2. **AWS Setup**: `aws configure --profile aws && cws profiles add personal research --aws-profile aws --region us-west-2`
+3. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
+4. **Run Demo**: `./demo.sh`
 
 ### Alternative (Source Build)
 1. **Clone Repository**: `git clone https://github.com/scttfrdmn/cloudworkstation`
-2. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
-3. **Build Locally**: `make build`
-4. **Run Demo**: `./demo.sh` (auto-detects source vs system installation)
+2. **AWS Setup**: `aws configure --profile aws && ./bin/cws profiles add personal research --aws-profile aws --region us-west-2`
+3. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
+4. **Build Locally**: `make build`
+5. **Run Demo**: `./demo.sh` (auto-detects source vs system installation)
 
 ### Full Demo Sequence (15 minutes)
-1. **Installation & Setup (2 min)**: Homebrew tap, AWS credentials, versions
+1. **Installation & Setup (2 min)**: Homebrew tap, CloudWorkstation profiles, versions
 2. **First Workstation (3 min)**: Launch, connect (SSH), environment verification
 3. **Template Inheritance (2 min)**: Stacking, multi-user environments
-4. **Multi-Modal Access (2 min)**: CLI, TUI, GUI, REST API
+4. **Multi-Modal Access (2 min)**: CLI, TUI, GUI, REST API, profile management
 5. **Cost Optimization (2 min)**: Hibernation with state preservation
 6. **Enterprise Features (3 min)**: Projects, budgets, collaboration, storage
 7. **Cleanup & Next Steps (1 min)**: Resource management, documentation
 
 ### Prerequisites for Full AWS Demo
-- AWS credentials configured (`aws configure`)
+- AWS credentials configured (`aws configure --profile aws`)
+- CloudWorkstation profile created (`cws profiles add personal research --aws-profile aws --region us-west-2`)
 - CloudWorkstation daemon running (`cws daemon start`)
 - Active AWS account with EC2 permissions
 
