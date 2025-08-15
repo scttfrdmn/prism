@@ -23,43 +23,76 @@ Strategic roadmap for CloudWorkstation development between the next minor releas
 - **Cross-Platform Build Pipeline**: Automated builds for Windows, enhanced CI/CD
 - **Security Framework**: Tunnel infrastructure planning and authentication design
 
-#### 🖥️ **GUI Framework Research**
-- **Wails 3.x Evaluation**: Modern web-based GUI framework assessment
-- **Feature Parity Analysis**: Compare Wails 3.x vs current Fyne implementation
-- **Prototype Development**: Build proof-of-concept GUI with Wails 3.x
-- **Migration Path Planning**: Strategy for transitioning from Fyne to Wails if viable
+#### 🖥️ **GUI Framework Research (Enhanced Vision)**
+- **Wails 3.x Evaluation**: Modern web-based GUI framework assessment for comprehensive dashboard
+- **DCV Integration Prototype**: Embedded Amazon DCV Web Client SDK within Wails interface
+- **Research Dashboard Prototype**: Integrated cost monitoring, data transfer metrics, resource utilization
+- **Advanced UI Capabilities**: Data visualization, real-time charts, terminal embedding, multi-panel layouts
+- **Feature Parity Analysis**: Compare Wails 3.x vs current Fyne for enhanced dashboard features
+- **Migration Path Planning**: Strategy for transitioning to comprehensive research management dashboard
 
 **Deliverables**: Research reports, proof-of-concepts, architectural designs, build system enhancements, Wails 3.x prototype
 
 ---
 
-### **v0.4.4: Desktop Connectivity (6-8 weeks)** 
-**Focus**: Remote desktop access with NICE DCV integration
+### **v0.4.4: Research Management Dashboard with Desktop Connectivity (6-8 weeks)** 
+**Focus**: Comprehensive research dashboard with embedded DCV and advanced monitoring
 
-#### 🖥️ **Core Desktop Features**
-- **NICE DCV Client Integration**: Embedded DCV client in CloudWorkstation GUI
-- **One-Click Desktop Access**: `cws desktop connect my-workstation`
-- **Connection Health Monitoring**: Automatic reconnection and session persistence
-- **Desktop Template System**: Templates with pre-configured desktop environments
+#### 🖥️ **Comprehensive Research Dashboard (Wails 3.x Based)**
+- **Embedded DCV Desktop**: Amazon DCV Web Client SDK integration for seamless remote desktop access
+- **Real-Time Cost Monitoring**: Live AWS cost tracking, budget alerts, spending forecasts
+- **Resource Utilization Dashboard**: CPU, Memory, GPU, storage usage with historical charts
+- **Data Transfer Analytics**: Network usage, EFS throughput, S3 transfer monitoring
+- **Multi-Panel Layout**: Configurable dashboard with resizable panels and saved layouts
 
-#### 🖥️ **New Commands & Templates**
+#### 🖥️ **Integrated Management Features**
+- **Terminal Embedding**: Native terminal access within dashboard for quick commands
+- **Instance Lifecycle**: Visual start/stop/hibernate controls with status monitoring
+- **Project Budget Overview**: Real-time project cost tracking and team collaboration metrics
+- **Template Gallery**: Visual template selection with cost estimates and resource requirements
+
+#### 🖥️ **Enhanced Desktop Connectivity**
 ```bash
-# Desktop connectivity commands
-cws desktop connect my-ml-workstation    # Launch DCV session automatically
-cws desktop reconnect my-ml-workstation  # Restore dropped connections  
-cws desktop status                       # Show active desktop sessions
+# Desktop connectivity commands (CLI integration)
+cws desktop connect my-ml-workstation    # Launch embedded DCV session in dashboard
+cws desktop reconnect my-ml-workstation  # Restore dropped connections automatically
+cws desktop status                       # Show active sessions with performance metrics
 
-# Enhanced template launching
-cws launch "Ubuntu Desktop + ML Tools" my-workstation --desktop
-cws launch "Rocky Desktop + HPC" hpc-workstation --desktop
+# Enhanced template launching with cost estimation
+cws launch "Ubuntu Desktop + ML Tools" my-workstation --desktop --cost-estimate
+cws launch "Rocky Desktop + HPC" hpc-workstation --desktop --monitor-usage
 ```
 
-#### 🖥️ **Desktop Templates**
-- **Ubuntu Desktop + ML Tools**: XFCE + Jupyter + ML/AI research stack
-- **Rocky Desktop + HPC**: GNOME + HPC tools + scientific computing
-- **Lightweight Desktop**: Minimal desktop for basic GUI needs
+#### 🖥️ **Desktop Templates with Monitoring**
+- **Ubuntu Desktop + ML Tools**: XFCE + Jupyter + ML/AI stack with GPU monitoring
+- **Rocky Desktop + HPC**: GNOME + HPC tools with cluster integration and resource tracking  
+- **Data Science Workbench**: RStudio + Python + R with dataset transfer monitoring
+- **Development Environment**: VS Code + Docker + Git with performance optimization
 
-**Deliverables**: Desktop connectivity, DCV integration, desktop templates, connection management
+#### 🖥️ **Dashboard Components**
+```
+Research Management Dashboard Layout:
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ CloudWorkstation Research Dashboard                                            │
+├──────────────────────┬──────────────────────┬────────────────────────────────┤
+│ 🖥️ DCV Desktop        │ 💰 Cost Monitor       │ 🔧 Instance Management         │
+│ • Embedded viewer     │ • Real-time spending  │ • Start/Stop/Hibernate         │
+│ • Multi-resolution    │ • Budget alerts       │ • Performance metrics          │
+│ • Session persistence │ • Forecast projections│ • Template deployment          │
+├──────────────────────┼──────────────────────┼────────────────────────────────┤
+│ 📊 Data Transfer      │ 📈 Resource Usage     │ 💻 Terminal Access             │
+│ • Network monitoring  │ • CPU/Memory/GPU      │ • Embedded terminal            │
+│ • EFS throughput     │ • Historical charts   │ • Multi-instance tabs          │
+│ • S3 transfer rates  │ • Alerting thresholds │ • Command history              │
+├──────────────────────┴──────────────────────┴────────────────────────────────┤
+│ 👥 Team Collaboration    │ 📋 Project Management    │ 🎛️ Template Gallery        │
+│ • Shared resources       │ • Budget allocation       │ • Visual selection          │
+│ • Member activity        │ • Usage analytics         │ • Cost estimates            │
+│ • Access permissions     │ • Audit trails            │ • Performance profiles      │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Deliverables**: Comprehensive research dashboard, embedded DCV integration, real-time monitoring, desktop templates, advanced analytics
 
 ---
 
@@ -374,19 +407,41 @@ cws storage policy apply cost-optimized research-datasets
 
 ## **Key Decision Points & Evaluation Criteria**
 
-### **🖥️ Wails 3.x GUI Migration Decision (v0.4.3)**
+### **🖥️ Wails 3.x GUI Migration Decision (v0.4.3) - Enhanced Dashboard Vision**
 
 **Evaluation Criteria**:
 - **Performance**: Wails 3.x vs Fyne rendering performance and resource usage
-- **Developer Experience**: Ease of UI development with web technologies vs Go widgets
-- **Feature Richness**: Advanced UI capabilities for research workflows (data visualization, terminal integration)
+- **Developer Experience**: Ease of UI development with web technologies vs Go widgets  
+- **Dashboard Capabilities**: Advanced research management dashboard with integrated DCV, cost monitoring, data visualization
+- **DCV Integration**: Seamless Amazon DCV Web Client SDK embedding
+- **Real-Time Data**: Live cost tracking, resource utilization, data transfer monitoring
+- **Research Workflows**: Terminal embedding, multi-panel layouts, data visualization charts
 - **Cross-Platform Consistency**: Windows, macOS, and Linux visual and functional parity
 - **Bundle Size**: Application size and distribution considerations
 - **Maintenance Overhead**: Long-term maintenance burden and community support
 
-**Decision Factors**:
-- **Proceed with Wails 3.x** if: Significantly better UX, modern web UI capabilities, active development
-- **Continue with Fyne** if: Performance concerns, migration complexity, or Fyne meets requirements
+**Enhanced Decision Factors**:
+- **Strong Proceed with Wails 3.x** if: 
+  - Superior dashboard development capabilities with web technologies
+  - Seamless DCV Web Client SDK integration
+  - Advanced data visualization and real-time monitoring capabilities
+  - Modern web UI framework for comprehensive research management interface
+- **Continue with Fyne** if: Critical performance concerns or fundamental technical blockers
+
+**Vision: Comprehensive Research Management Dashboard**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ CloudWorkstation Research Dashboard (Wails 3.x + Web Tech)     │
+├─────────────────┬─────────────────┬─────────────────────────────┤
+│ DCV Desktop     │ Cost Monitor    │ Instance Management         │
+│ (Embedded)      │ Real-time $$$   │ Start/Stop/Hibernate        │
+├─────────────────┼─────────────────┼─────────────────────────────┤
+│ Data Transfer   │ Resource Usage  │ Terminal Access             │
+│ Monitoring      │ CPU/Memory/GPU  │ (Embedded)                  │
+├─────────────────┴─────────────────┴─────────────────────────────┤
+│ Project Budgets │ Team Collaboration │ Template Management     │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### **📦 Homebrew Core Inclusion Criteria (v0.5.0)**
 

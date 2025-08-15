@@ -28,14 +28,17 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 	var instances []types.Instance
 	totalCost := 0.0
 
+	var awsErr error
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
 		instances, err = awsManager.ListInstances()
+		awsErr = err
 		return err
 	})
 
 	// If AWS call failed, the withAWSManager already wrote the error response
-	if instances == nil {
+	// Note: instances will be an empty slice when no instances exist, not nil
+	if awsErr != nil {
 		return
 	}
 
