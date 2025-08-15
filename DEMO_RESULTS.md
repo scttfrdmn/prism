@@ -67,18 +67,25 @@ brew search cloudworkstation
 
 ## 📋 Demo Replication Instructions
 
-### Quick Start
+### Quick Start (Homebrew Installation)
+1. **Install**: `brew tap scttfrdmn/cloudworkstation && brew install cloudworkstation`
+2. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
+3. **Run Demo**: `./demo.sh`
+
+### Alternative (Source Build)
 1. **Clone Repository**: `git clone https://github.com/scttfrdmn/cloudworkstation`
 2. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
 3. **Build Locally**: `make build`
-4. **Run Demo**: `./demo.sh`
+4. **Run Demo**: `./demo.sh` (auto-detects source vs system installation)
 
-### Full Demo Sequence (12 minutes)
-1. **Individual Researcher (3 min)**: Templates, inheritance, quick launch
-2. **Cost Optimization (2 min)**: Hibernation policies, savings
-3. **Enterprise Features (4 min)**: Projects, budgets, collaboration
-4. **Advanced Features (2 min)**: Storage, profiles, diagnostics
-5. **Installation Options (1 min)**: Homebrew, releases, source build
+### Full Demo Sequence (15 minutes)
+1. **Installation & Setup (2 min)**: Homebrew tap, AWS credentials, versions
+2. **First Workstation (3 min)**: Launch, connect (SSH), environment verification
+3. **Template Inheritance (2 min)**: Stacking, multi-user environments
+4. **Multi-Modal Access (2 min)**: CLI, TUI, GUI, REST API
+5. **Cost Optimization (2 min)**: Hibernation with state preservation
+6. **Enterprise Features (3 min)**: Projects, budgets, collaboration, storage
+7. **Cleanup & Next Steps (1 min)**: Resource management, documentation
 
 ### Prerequisites for Full AWS Demo
 - AWS credentials configured (`aws configure`)
