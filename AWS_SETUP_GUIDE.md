@@ -117,7 +117,25 @@ output = json
 
 ## 3. CloudWorkstation Configuration
 
-### Method 1: Environment Variables (Recommended)
+### Method 1: CloudWorkstation Profiles (Recommended)
+
+CloudWorkstation has its own profile system for managing different AWS accounts and configurations:
+
+```bash
+# Create a CloudWorkstation profile using your 'aws' AWS profile
+cws profiles add personal my-research --aws-profile aws --region us-west-2
+
+# Switch to your new profile
+cws profiles switch aws  # Use the AWS profile name as the profile ID
+
+# Verify it's active
+cws profiles current
+cws profiles list
+```
+
+**This is the cleanest method** - CloudWorkstation remembers your settings and you don't need environment variables.
+
+### Method 2: Environment Variables
 
 Set these in your shell profile (`~/.bashrc`, `~/.zshrc`, etc.):
 
@@ -131,21 +149,6 @@ export CLOUDWORKSTATION_DEV=true
 ```
 
 Then restart your terminal or run `source ~/.zshrc`.
-
-### Method 2: CloudWorkstation Profiles
-
-CloudWorkstation has its own profile system that can reference AWS profiles:
-
-```bash
-# Create a CloudWorkstation profile using your 'aws' AWS profile
-cws profile create my-research --aws-profile aws --region us-west-2
-
-# Set it as your current profile
-cws profile use my-research
-
-# Verify it's working
-cws profile current
-```
 
 ### Method 3: Command-Line Override
 
@@ -306,33 +309,50 @@ cws profile create gpu-experiments --aws-profile aws --region us-west-2
 
 ## 8. Example Complete Setup
 
-Here's a complete example for your specific case:
+Here's a complete example for your specific case using CloudWorkstation profiles:
 
 ```bash
 # 1. Configure AWS CLI with 'aws' profile
 aws configure --profile aws
 # Enter your credentials when prompted
 
-# 2. Set environment variables  
+# 2. Create CloudWorkstation profile (RECOMMENDED METHOD)
+cws daemon start
+cws profiles add personal my-research --aws-profile aws --region us-west-2
+cws profiles switch aws  # Switch to use your 'aws' profile
+
+# 3. Verify configuration
+cws profiles current
+cws doctor
+
+# 4. Launch your first workstation
+cws launch "Python Machine Learning (Simplified)" my-research
+
+# 5. Connect and start working
+cws connect my-research
+```
+
+### Alternative Setup (Environment Variables)
+
+If you prefer environment variables:
+
+```bash
+# 1. Configure AWS CLI with 'aws' profile  
+aws configure --profile aws
+
+# 2. Set environment variables
 export AWS_PROFILE=aws
 export AWS_REGION=us-west-2
 export CLOUDWORKSTATION_DEV=true
 
-# 3. Add to your shell profile to make permanent
+# 3. Make permanent
 echo 'export AWS_PROFILE=aws' >> ~/.zshrc
-echo 'export AWS_REGION=us-west-2' >> ~/.zshrc  
-echo 'export CLOUDWORKSTATION_DEV=true' >> ~/.zshrc
+echo 'export AWS_REGION=us-west-2' >> ~/.zshrc
 
-# 4. Test CloudWorkstation
+# 4. Test and launch
 cws daemon start
 cws templates list
-cws doctor
-
-# 5. Launch your first workstation
-cws launch "Python Machine Learning (Simplified)" my-research
-
-# 6. Connect and start working
-cws connect my-research
+cws launch "Python ML" my-research
 ```
 
 ## Need Help?
