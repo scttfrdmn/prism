@@ -68,8 +68,7 @@ jobs:
         run: |
           GOOS=windows GOARCH=amd64 go build -o bin/cws-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cws
           GOOS=windows GOARCH=amd64 go build -o bin/cwsd-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cwsd
-          GOOS=windows GOARCH=amd64 go build -o bin/cws-gui-windows-amd64.exe -ldflags "-X main.Version=${VERSION}" ./cmd/cws-gui
-          cd bin && zip -r cws-windows-amd64.zip cws-windows-amd64.exe cwsd-windows-amd64.exe cws-gui-windows-amd64.exe && cd ..
+          cd bin && zip -r cws-windows-amd64.zip cws-windows-amd64.exe cwsd-windows-amd64.exe && cd ..
 
       - name: Generate checksums
         run: |
