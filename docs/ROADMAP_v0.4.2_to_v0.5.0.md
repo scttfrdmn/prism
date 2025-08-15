@@ -15,6 +15,7 @@ Strategic roadmap for CloudWorkstation development between the next minor releas
 - **Conda Packaging Evaluation**: Feasibility study, community fit assessment, technical requirements
 - **Wireguard Architecture Design**: Mole project integration, bastion host planning
 - **Directory Sync Prototyping**: File monitoring libraries, conflict resolution algorithms
+- **Wails 3.x GUI Exploration**: Alternative GUI framework evaluation and prototype development
 
 #### 🏗️ **Infrastructure Foundations**
 - **Enhanced Template System**: Desktop environment templates preparation
@@ -22,7 +23,13 @@ Strategic roadmap for CloudWorkstation development between the next minor releas
 - **Cross-Platform Build Pipeline**: Automated builds for Windows, enhanced CI/CD
 - **Security Framework**: Tunnel infrastructure planning and authentication design
 
-**Deliverables**: Research reports, proof-of-concepts, architectural designs, build system enhancements
+#### 🖥️ **GUI Framework Research**
+- **Wails 3.x Evaluation**: Modern web-based GUI framework assessment
+- **Feature Parity Analysis**: Compare Wails 3.x vs current Fyne implementation
+- **Prototype Development**: Build proof-of-concept GUI with Wails 3.x
+- **Migration Path Planning**: Strategy for transitioning from Fyne to Wails if viable
+
+**Deliverables**: Research reports, proof-of-concepts, architectural designs, build system enhancements, Wails 3.x prototype
 
 ---
 
@@ -104,8 +111,14 @@ sudo pacman -S cloudworkstation        # Arch Linux
 
 # macOS additional
 port install cloudworkstation          # MacPorts
-brew install cloudworkstation          # Homebrew (existing)
+brew install cloudworkstation          # Homebrew tap (current)
 ```
+
+#### 📦 **Homebrew Core Preparation**
+- **Stability Assessment**: Track reliability metrics for Homebrew Core readiness
+- **Formula Requirements**: Meet Homebrew Core standards (notable software, stable API, sustained popularity)
+- **Community Adoption**: Monitor user base growth and GitHub stars
+- **Documentation**: Prepare for Homebrew Core review process
 
 #### 📦 **Research Community Distribution**
 - **Anaconda.com Integration**: Official Anaconda platform presence
@@ -113,7 +126,7 @@ brew install cloudworkstation          # Homebrew (existing)
 - **Snap Package**: `snap install cloudworkstation` for Linux
 - **Flatpak**: Universal Linux application packaging
 
-**Deliverables**: conda-forge package, APT/DNF packages, research community integration
+**Deliverables**: conda-forge package, APT/DNF packages, Homebrew Core preparation, research community integration
 
 ---
 
@@ -202,7 +215,19 @@ cws shared create workspace team-ml-lab        # Create shared workspace
 cws shared grant workspace team-ml-lab researcher@university.edu --permission read-write
 ```
 
-**Deliverables**: Complete multi-user architecture, centralized identity, team collaboration, enterprise integration
+#### 🖥️ **GUI Framework Decision Point**
+- **Wails 3.x Integration**: Implement Wails 3.x GUI if v0.4.3 research proves favorable
+- **Modern Web UI**: Leverage web technologies for richer desktop experience
+- **Feature Enhancement**: Advanced UI capabilities for multi-user collaboration features
+- **Cross-Platform Consistency**: Unified GUI experience across macOS, Windows, and Linux
+
+#### 📦 **Homebrew Core Readiness Assessment**
+- **Stability Evaluation**: Assess CloudWorkstation stability for official Homebrew Core inclusion
+- **Community Metrics**: Evaluate user base, GitHub stars, and community adoption
+- **Formula Submission**: Prepare and submit Homebrew Core formula if criteria met
+- **Official Distribution**: Transition from tap to `brew install cloudworkstation` (no tap required)
+
+**Deliverables**: Complete multi-user architecture, centralized identity, team collaboration, enterprise integration, potential Wails 3.x GUI, Homebrew Core evaluation
 
 ---
 
@@ -344,6 +369,45 @@ cws storage policy apply cost-optimized research-datasets
 3. **Stream C**: Sync & Multi-User (v0.4.8 + v0.5.0) - 16-20 weeks sequential
 
 **Total Timeline**: 36-44 weeks (8-10 months to v0.5.0)
+
+---
+
+## **Key Decision Points & Evaluation Criteria**
+
+### **🖥️ Wails 3.x GUI Migration Decision (v0.4.3)**
+
+**Evaluation Criteria**:
+- **Performance**: Wails 3.x vs Fyne rendering performance and resource usage
+- **Developer Experience**: Ease of UI development with web technologies vs Go widgets
+- **Feature Richness**: Advanced UI capabilities for research workflows (data visualization, terminal integration)
+- **Cross-Platform Consistency**: Windows, macOS, and Linux visual and functional parity
+- **Bundle Size**: Application size and distribution considerations
+- **Maintenance Overhead**: Long-term maintenance burden and community support
+
+**Decision Factors**:
+- **Proceed with Wails 3.x** if: Significantly better UX, modern web UI capabilities, active development
+- **Continue with Fyne** if: Performance concerns, migration complexity, or Fyne meets requirements
+
+### **📦 Homebrew Core Inclusion Criteria (v0.5.0)**
+
+**Homebrew Core Requirements**:
+- **Notable Software**: Sustained user interest and community adoption
+- **Stable API**: Consistent command-line interface and behavior
+- **Active Maintenance**: Regular updates and responsive issue resolution
+- **No Vendored Dependencies**: Clean dependency management
+- **CI/CD Pipeline**: Reliable automated testing and release process
+
+**Readiness Metrics**:
+- **GitHub Stars**: Target >1,000 stars for community validation
+- **User Base**: Active user community across academic institutions
+- **Reliability**: <1% failure rate in Homebrew tap installations
+- **Documentation**: Comprehensive guides and community support resources
+- **Release Stability**: 6+ months of stable v0.4.x releases
+
+**Timeline**:
+- **v0.4.6**: Begin Homebrew Core preparation and metric tracking
+- **v0.5.0**: Evaluate readiness and submit formula if criteria met
+- **Post-v0.5.0**: Official Homebrew Core inclusion (target)
 
 ## Success Metrics
 
