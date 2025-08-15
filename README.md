@@ -1,10 +1,10 @@
-# Cloud Workstation 
+# CloudWorkstation
 
 <p align="center">
   <img src="docs/images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
-<p align="center"><strong>Research computers in the cloud - ready in seconds!</strong></p>
+<p align="center"><strong>Enterprise Research Management Platform - Launch cloud research environments in seconds!</strong></p>
 
 <p align="center">
   <a href="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/dependency-scan.yml">
@@ -26,151 +26,278 @@
 
 ## What is CloudWorkstation?
 
-CloudWorkstation helps you create powerful computers in the cloud for your research projects! It's like having a supercomputer you can turn on and off whenever you need it.
+CloudWorkstation is an **enterprise research management platform** that allows academic researchers to launch pre-configured cloud research environments in **seconds** rather than spending **hours** setting up research computing infrastructure.
 
-No more waiting hours to set up software - CloudWorkstation comes with everything you need already installed!
+From individual researchers to institutional deployments, CloudWorkstation scales seamlessly while maintaining the simplicity that makes research computing accessible to everyone.
 
-## Cool Things You Can Do
+## 🎯 Core Design Principles
 
-- **Launch a Python computer** with all the science tools already installed
-- **Create an R statistics workstation** with RStudio ready to go
-- **Set up a powerful computer for brain research** with all the special tools scientists use
-- **Start and stop your cloud computer** whenever you want
-- **Pay only for what you use** - turn it off when you're not using it!
-- **Use multiple AWS accounts** - switch between your personal account and class accounts
+- **🎯 Default to Success**: Every template works out of the box in every supported region
+- **⚡ Optimize by Default**: Smart instance sizing and cost-performance optimization  
+- **🔍 Transparent Fallbacks**: Clear communication when configurations change
+- **💡 Helpful Warnings**: Gentle guidance for optimal choices
+- **🚫 Zero Surprises**: Users always know what they're getting
+- **📈 Progressive Disclosure**: Simple by default, detailed when needed
 
-## Getting Started in 3 Easy Steps
+## 🚀 Quick Start
 
-### Step 1: Install CloudWorkstation
-
-#### With Package Managers (Coming in v0.4.1)
+### Installation (Recommended: Homebrew)
 
 ```bash
-# macOS and Linux
-brew install scttfrdmn/cloudworkstation/cloudworkstation
+# Add the CloudWorkstation tap
+brew tap scttfrdmn/cloudworkstation
 
-# Windows
-choco install cloudworkstation
+# Install CloudWorkstation
+brew install cloudworkstation
 
-# Via Conda (all platforms)
-conda install cloudworkstation -c scttfrdmn
+# Verify installation
+cws --version
 ```
 
-#### Manual Installation
+### Your First Workstation
 
 ```bash
-# Download and install
-git clone https://github.com/scttfrdmn/cloudworkstation
-cd cloudworkstation
-go build -o cws
+# Start the daemon
+cws daemon start
 
-# Move it so you can use it from anywhere
-sudo mv cws /usr/local/bin/
+# Launch a Python ML workstation  
+cws launch "Python Machine Learning (Simplified)" my-research
+
+# Connect to your workstation
+cws connect my-research
+
+# When done, hibernate to save costs (preserves state)
+cws hibernate my-research
 ```
 
-### Step 2: Launch Your First Cloud Computer
+**That's it!** CloudWorkstation handles everything else automatically.
 
+## 🌟 Key Features (v0.4.2)
+
+### 🏢 Enterprise Research Management
+- **Project-Based Organization**: Complete project lifecycle management with role-based access control
+- **Advanced Budget Management**: Project-specific budgets with real-time tracking and automated controls
+- **Cost Analytics**: Detailed cost breakdowns, hibernation savings, and resource utilization metrics
+- **Multi-User Collaboration**: Project member management with granular permissions
+- **Enterprise API**: Full REST API for project management, budget monitoring, and cost analysis
+
+### 💰 Intelligent Cost Optimization
+- **Complete Hibernation Ecosystem**: Manual hibernation controls + automated hibernation policies
+- **Session Preservation**: Full work environment state maintained through hibernation
+- **Smart Policies**: Domain-specific hibernation profiles (batch jobs, GPU instances, cost-optimized)
+- **Cost Transparency**: Clear audit trail of hibernation actions and cost savings
+
+### 🏗️ Template System with Inheritance
+- **Stackable Templates**: Build complex environments through template composition
+- **Smart Inheritance**: Intelligent merging of packages, users, services, and configurations
+- **Battle-Tested Defaults**: Templates include optimized configurations for their use cases
+- **Regional Fallbacks**: Transparent handling of regional/architecture limitations
+
+### 📱 Multi-Modal Access
+- **CLI**: Power users, automation, scripting - maximum efficiency
+- **TUI**: Interactive terminal interface with keyboard-first navigation  
+- **GUI**: Desktop application with system tray integration (when built from source)
+- **REST API**: Complete HTTP API on port 8947 for integrations
+
+## 📦 Available Templates
+
+### Core Research Environments
+| Template | Description | Use Cases |
+|----------|-------------|-----------|
+| **Python Machine Learning (Simplified)** | Python + Jupyter + ML packages | Data science, AI research |
+| **R Research Environment (Simplified)** | R + RStudio + tidyverse | Statistical analysis, bioinformatics |
+| **Rocky Linux 9 + Conda Stack** | Enterprise Linux + data science stack | HPC environments, institutional research |
+| **AWS Deep Learning AMI** | Pre-built GPU-optimized ML environment | Deep learning, neural networks |
+
+### Enterprise & Development
+| Template | Description | Use Cases |
+|----------|-------------|-----------|
+| **Enterprise Server (DNF)** | Full enterprise stack with Docker | Server development, DevOps |
+| **Web Development (APT)** | Node.js + Docker + development tools | Full-stack development |
+| **Basic Ubuntu (APT)** | Minimal development environment | General computing, testing |
+
+### Template Inheritance Example
 ```bash
-# Launch a Python research computer named "my-project"
-cws launch python-research my-project
+# Base template provides foundation
+"Rocky Linux 9 Base" → System tools + rocky user
+
+# Stacked template inherits and extends
+"Rocky Linux 9 + Conda Stack" → Inherits base + adds conda + datascientist user + jupyter
+
+# Result: Combined environment with both users, all packages, merged services
+cws launch "Rocky Linux 9 + Conda Stack" my-analysis
 ```
 
-That's it! CloudWorkstation handles everything else automatically.
-
-### Step 3: Connect and Start Working!
-
-```bash
-# See your running computer
-cws list
-
-# Connect to your computer
-cws connect my-project
-
-# When you're done, turn it off to save money
-cws stop my-project
-```
-
-## Ways to Use CloudWorkstation
+## 🎛️ Interface Options
 
 ### Command Line Interface (CLI)
-Simple commands you can type to control everything:
 ```bash
-cws launch python-research my-project  # Create a new computer
-cws list                               # See all your computers
-cws connect my-project                 # Connect to your computer
-cws stop my-project                    # Turn off your computer
-cws delete my-project                  # Delete your computer when done
+cws launch "Python Machine Learning (Simplified)" ml-project --size L
+cws list                    # Show all instances
+cws hibernate ml-project    # Save costs while preserving state
+cws resume ml-project       # Resume when needed
+cws project create brain-study --budget 1000  # Enterprise features
 ```
 
-### Terminal User Interface (TUI) - NEW!
-A colorful screen-based interface you can navigate with arrow keys:
+### Terminal User Interface (TUI)
 ```bash
 cws tui
+# Navigate: 1=Dashboard, 2=Instances, 3=Templates, 4=Storage, 5=Settings
 ```
 
-<p align="center">
-  <img src="https://via.placeholder.com/800x400?text=CloudWorkstation+TUI" alt="TUI Screenshot" width="600">
-</p>
-
-### GUI Coming Soon!
-A point-and-click interface is coming in the next version!
-
-## Cool Science Environments Available
-
-Pick the perfect computer for your research:
-
-| Environment | What's Included | Great For |
-|-------------|----------------|-----------|
-| **python-research** | Python, Jupyter, pandas, numpy, scikit-learn | Data analysis, machine learning |
-| **r-research** | R, RStudio, tidyverse, ggplot2 | Statistics, data visualization |
-| **neuroimaging** | FSL, AFNI, ANTs | Brain research |
-| **bioinformatics** | BWA, GATK, Samtools | DNA/RNA analysis |
-| **gis-research** | QGIS, GRASS, PostGIS | Map making, geography |
-| **desktop-research** | Full Ubuntu desktop | General research with GUI |
-
-## Security
-
-CloudWorkstation takes security seriously:
-
-- All templates are regularly scanned for vulnerabilities
-- Dependencies are automatically monitored and updated
-- Releases include signed binaries with checksums
-- We follow secure coding practices and conduct regular reviews
-- All builds undergo automated security scanning
-
-## Need Help?
-
-Try these commands:
+### Desktop GUI (when built from source)
 ```bash
-# Learn how to use CloudWorkstation
-cws help
-
-# Test if everything is working correctly
-cws test
-
-# See detailed information about available templates
-cws templates
+cws-gui  # Launch desktop application with system tray
 ```
 
-## New in Version 0.4.0!
+### REST API Integration
+```bash
+# Templates
+curl http://localhost:8947/api/v1/templates
 
-- **Terminal User Interface (TUI)** - Colorful, interactive screens
-- **Dashboard** - See all your computers and costs at a glance
-- **Smart templates** - CloudWorkstation picks the best settings automatically
-- **Keyboard shortcuts** - Work faster with quick commands
-- **Tab navigation** - Easily switch between different sections
+# Instances  
+curl http://localhost:8947/api/v1/instances
 
-## New in Version 0.4.1!
+# Projects
+curl http://localhost:8947/api/v1/projects
+```
 
-- **Graphical User Interface (GUI)** - Point-and-click interface for easier use
-- **System tray integration** - Monitor your cloud computers right from your desktop
-- **Visual dashboard** - See costs and status at a glance
-- **Package manager distribution** - Easy installation with Homebrew, Chocolatey, and Conda
-- **Multi-architecture support** - Works on both Intel and ARM processors
+## 🏢 Enterprise Features
 
-## Coming in Version 0.4.2!
+### Project-Based Research Organization
+```bash
+# Create research project with budget
+cws project create "machine-learning-research" --budget 500.00
 
-- **Multi-profile support** - Use your own AWS account and accounts others invite you to use
-- **Invitation system** - Let others use your AWS account with restrictions you control
-- **Template restrictions** - Control which templates invited users can access
-- **Group-based access** - Create groups for classes or team projects
+# Add team members with roles
+cws project member add machine-learning-research researcher@university.edu --role member
+cws project member add machine-learning-research advisor@university.edu --role admin
+
+# Launch instances within project
+cws launch "Python Machine Learning (Simplified)" analysis --project machine-learning-research
+
+# Track costs in real-time
+cws project cost machine-learning-research --breakdown
+```
+
+### Budget Management & Cost Control
+```bash
+# Set budget limits and alerts
+cws project budget machine-learning-research set --monthly-limit 500.00 --alert-threshold 0.8
+
+# View cost analytics
+cws project cost machine-learning-research --savings
+
+# Automated budget actions (hibernation when limits approached)
+```
+
+### Hibernation & Cost Optimization
+```bash
+# Manual hibernation (preserves RAM state)
+cws hibernate my-instance
+cws resume my-instance
+
+# Automated hibernation policies
+cws idle profile list                           # Show available policies
+cws idle instance my-gpu-workstation --profile gpu  # Apply GPU-optimized policy
+cws idle history                                # View hibernation audit trail
+```
+
+## 🌍 Platform Support
+
+### Distributed Binaries (Homebrew/GitHub Releases)
+- **macOS (Intel/ARM)**: CLI + TUI + daemon + native keychain integration
+- **Linux (x64/ARM64)**: CLI + TUI + daemon with secure file storage  
+- **Windows (x64)**: CLI + daemon (TUI support planned)
+
+### Development Builds (Source)
+- **Full GUI Support**: Available when building from source on all platforms
+- **Native Features**: Complete keychain integration, hardware acceleration
+
+## 📖 Documentation
+
+- **[Installation Guide](INSTALL.md)**: Comprehensive installation instructions
+- **[Demo Sequence](DEMO_SEQUENCE.md)**: 12-minute comprehensive demo script
+- **[Demo Script](demo.sh)**: Quick 5-minute executable demo
+- **[Demo Results](DEMO_RESULTS.md)**: Testing results and replication guide
+
+### Quick Help
+```bash
+cws --help              # Show all commands
+cws templates           # List available templates  
+cws templates info <template>  # Detailed template information
+cws doctor              # System health check
+cws daemon status       # Check daemon status
+```
+
+## 🔐 Security & Reliability
+
+- **66 comprehensive test files** ensuring production reliability
+- **Automated security scanning** of all dependencies and builds
+- **Signed releases** with checksums for verification
+- **Platform-specific implementations** with proper build constraints
+- **Development mode** with keychain optimization (`CLOUDWORKSTATION_DEV=true`)
+
+## 🗓️ Version History
+
+### v0.4.2 (Current) - Enterprise Research Management Platform
+**🎉 PHASE 4 COMPLETE**: Full enterprise research platform with:
+- ✅ Project-based organization with role-based access control
+- ✅ Advanced budget management with real-time tracking
+- ✅ Complete hibernation ecosystem with automated policies  
+- ✅ Template inheritance system with intelligent merging
+- ✅ Multi-modal access (CLI, TUI, GUI, API) with feature parity
+- ✅ Professional package management via Homebrew tap
+
+### Previous Versions
+- **v0.4.1**: Multi-modal access with GUI and package management
+- **v0.4.0**: Terminal User Interface (TUI) and enhanced templates
+- **v0.3.x**: Core CLI functionality and template system
+
+## 🚀 Future Roadmap
+
+### Phase 5: AWS-Native Research Ecosystem Expansion
+- **Template Marketplace**: Community-contributed research environments
+- **Advanced Storage**: OpenZFS/FSx integration for specialized workloads
+- **Research Workflows**: Integration with research data management and CI/CD
+- **Enhanced Networking**: Private VPC networking and data transfer optimization
+- **AWS Research Services**: Deep integration with ParallelCluster, Batch, SageMaker
+
+## 🤝 Contributing
+
+CloudWorkstation is open source! We welcome contributions:
+
+1. **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+2. **Pull Requests**: Submit improvements via GitHub
+3. **Templates**: Contribute new research environment templates
+4. **Documentation**: Help improve guides and documentation
+
+### Development Setup
+```bash
+git clone https://github.com/scttfrdmn/cloudworkstation.git
+cd cloudworkstation
+
+# Set development mode (avoids keychain prompts)
+cp .env.example .env
+
+# Build all components
+make build
+
+# Run tests
+make test
+```
+
+## 📄 License
+
+CloudWorkstation is released under the [MIT License](LICENSE).
+
+## 🆘 Support
+
+- **Documentation**: [Installation Guide](INSTALL.md), [Demo Guide](DEMO_SEQUENCE.md)
+- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)  
+- **Quick Demo**: Run `./demo.sh` in the repository
+- **System Check**: `cws doctor`
+
+---
+
+**CloudWorkstation v0.4.2** - From individual researchers to institutional deployments, research computing made simple, scalable, and cost-effective.
