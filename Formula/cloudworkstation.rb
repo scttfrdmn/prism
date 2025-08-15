@@ -38,10 +38,8 @@ class Cloudworkstation < Formula
     bin.install "cws-#{platform_suffix}" => "cws"
     bin.install "cwsd-#{platform_suffix}" => "cwsd"
     
-    # GUI is only available for macOS (Linux cross-compilation not supported for GUI components)
-    if OS.mac? && File.exist?("cws-gui-#{platform_suffix}")
-      bin.install "cws-gui-#{platform_suffix}" => "cws-gui"
-    end
+    # Note: GUI component not available in distributed binaries due to cross-compilation constraints
+    # GUI functionality available when building from source on macOS
 
     # Install completion scripts
     bash_completion.install "completions/cws.bash" => "cws" if File.exist?("completions/cws.bash")
@@ -61,7 +59,8 @@ class Cloudworkstation < Formula
     <<~EOS
       CloudWorkstation #{version} has been installed!
       
-      This version includes GUI functionality with system tray integration.
+      This distributed version includes CLI, TUI, and daemon functionality.
+      Note: GUI functionality requires building from source on macOS.
       
       To start the CloudWorkstation daemon:
         cwsd start
