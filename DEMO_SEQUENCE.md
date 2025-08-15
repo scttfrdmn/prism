@@ -24,11 +24,18 @@ cws --version
 cwsd --version
 
 # Configure AWS credentials (required for cloud operations)
-aws configure
+# Use your preferred profile name (e.g., 'aws' instead of 'default')
+aws configure --profile aws
+
+# Point CloudWorkstation to your profile
+export AWS_PROFILE=aws
+export AWS_REGION=us-west-2
 
 # Set development mode (optional - avoids keychain prompts)
 export CLOUDWORKSTATION_DEV=true
 ```
+
+**AWS Setup Note:** For detailed AWS configuration including permissions, regions, and troubleshooting, see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
 
 **Demo Points:**
 - Professional package management via Homebrew
@@ -331,7 +338,11 @@ cws daemon stop
 ## Demo Environment Requirements:
 - **System**: macOS/Linux with Homebrew installed
 - **CloudWorkstation**: v0.4.2 binaries available
-- **AWS**: Credentials configured (`aws configure`) for actual cloud operations
+- **AWS**: Credentials configured with your preferred profile (see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md))
+  ```bash
+  aws configure --profile aws  # or your preferred profile name
+  export AWS_PROFILE=aws       # point CloudWorkstation to your profile
+  ```
 - **Development Mode**: `export CLOUDWORKSTATION_DEV=true` for smooth keychain experience
 - **Network**: Internet access for AWS API calls and package downloads
 
