@@ -26,6 +26,12 @@ cwsd --version
 # Configure AWS credentials (required for cloud operations)
 aws configure --profile aws  # Use your preferred profile name
 
+# AWS Setup Note: This demo uses CloudWorkstation's built-in profile system (recommended).
+# For alternative methods and detailed setup, see AWS_SETUP_GUIDE.md
+
+# Set development mode BEFORE starting daemon (avoids keychain prompts)
+export CLOUDWORKSTATION_DEV=true
+
 # Start daemon for profile management
 cws daemon start
 
@@ -37,12 +43,7 @@ cws profiles switch aws
 
 # Verify profile is active
 cws profiles current
-
-# Set development mode (optional - avoids keychain prompts)
-export CLOUDWORKSTATION_DEV=true
 ```
-
-**AWS Setup Note:** This demo uses CloudWorkstation's built-in profile system (recommended). For alternative methods and detailed setup, see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
 
 **Demo Points:**
 - Professional package management via Homebrew
@@ -52,12 +53,9 @@ export CLOUDWORKSTATION_DEV=true
 
 ## Phase 2: First Workstation Launch (3 minutes)
 
-### 2.1 Daemon and Templates
+### 2.1 Templates
 ```bash
-# Start the daemon
-cws daemon start
-
-# Show available templates
+# Show available templates (daemon already running from setup)
 cws templates list
 
 # Show template details with cost estimation
