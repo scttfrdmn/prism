@@ -1382,73 +1382,107 @@ func (a *App) templatesInfo(args []string) error {
 
 	templateName := args[0]
 
-	// Get raw template information directly from templates package
+	// Get template information
 	rawTemplate, err := templates.GetTemplateInfo(templateName)
 	if err != nil {
 		return fmt.Errorf("failed to get template info: %w", err)
 	}
 
-	// Also get runtime template for cost and instance type information
-	region := "us-west-2" // Default region for cost calculations
-	runtimeTemplate, runtimeErr := templates.GetTemplate(templateName, region, "x86_64")
+	runtimeTemplate, runtimeErr := templates.GetTemplate(templateName, "us-west-2", "x86_64")
 
+	// Display template information
+	a.displayTemplateHeader()
+	a.displayBasicInfo(rawTemplate)
+	a.displayInheritanceInfo(rawTemplate)
+	a.displayCostInfo(runtimeTemplate, runtimeErr)
+	a.displayInstanceInfo(runtimeTemplate, runtimeErr)
+	a.displaySizeScaling()
+	a.displaySmartScaling(rawTemplate)
+	a.displayPackageInfo(rawTemplate)
+	a.displayUserInfo(rawTemplate)
+	a.displayServiceInfo(rawTemplate)
+	a.displayNetworkInfo(runtimeTemplate, runtimeErr)
+	a.displayIdleDetectionInfo(rawTemplate)
+	a.displayUsageExamples(rawTemplate)
+
+	return nil
+}
+
+// Helper methods for templatesInfo to reduce complexity
+
+func (a *App) displayTemplateHeader() {
 	fmt.Printf("📋 Detailed Template Information\n")
 	fmt.Printf("═══════════════════════════════════════════════════════════════════\n\n")
+}
 
-	// Basic Information
-	fmt.Printf("🏗️  **Name**: %s\n", rawTemplate.Name)
-	if rawTemplate.Slug != "" {
-		fmt.Printf("🔗 **Slug**: %s (for CLI: `cws launch %s <name>`)\n", rawTemplate.Slug, rawTemplate.Slug)
+func (a *App) displayBasicInfo(template *templates.Template) {
+	fmt.Printf("🏗️  **Name**: %s\n", template.Name)
+	if template.Slug != "" {
+		fmt.Printf("🔗 **Slug**: %s (for CLI: `cws launch %s <name>`)\n", template.Slug, template.Slug)
 	}
-	fmt.Printf("📝 **Description**: %s\n", rawTemplate.Description)
-	fmt.Printf("🖥️  **Base OS**: %s\n", rawTemplate.Base)
-	fmt.Printf("📦 **Package Manager**: %s\n", rawTemplate.PackageManager)
+	fmt.Printf("📝 **Description**: %s\n", template.Description)
+	fmt.Printf("🖥️  **Base OS**: %s\n", template.Base)
+	fmt.Printf("📦 **Package Manager**: %s\n", template.PackageManager)
 	fmt.Println()
+}
 
-	// Template Inheritance
-	if len(rawTemplate.Inherits) > 0 {
+func (a *App) displayInheritanceInfo(template *templates.Template) {
+	if len(template.Inherits) > 0 {
 		fmt.Printf("🔗 **Inherits From**:\n")
-		for _, parent := range rawTemplate.Inherits {
+		for _, parent := range template.Inherits {
 			fmt.Printf("   • %s\n", parent)
 		}
 		fmt.Println()
 	}
+}
 
-	// Cost and Instance Information (from runtime template)
-	if runtimeErr == nil {
-		fmt.Printf("💰 **Estimated Costs** (default M size):\n")
-		if cost, exists := runtimeTemplate.EstimatedCostPerHour["x86_64"]; exists {
-			fmt.Printf("   • x86_64: $%.3f/hour ($%.2f/day)\n", cost, cost*24)
-		}
-		if cost, exists := runtimeTemplate.EstimatedCostPerHour["arm64"]; exists {
-			fmt.Printf("   • arm64:  $%.3f/hour ($%.2f/day)\n", cost, cost*24)
-		}
-
-		fmt.Printf("\n🖥️  **Instance Types** (default M size):\n")
-		if instanceType, exists := runtimeTemplate.InstanceType["x86_64"]; exists {
-			fmt.Printf("   • x86_64: %s\n", instanceType)
-		}
-		if instanceType, exists := runtimeTemplate.InstanceType["arm64"]; exists {
-			fmt.Printf("   • arm64:  %s\n", instanceType)
-		}
-		fmt.Println()
+func (a *App) displayCostInfo(template *types.RuntimeTemplate, err error) {
+	if err != nil {
+		return
 	}
+	
+	fmt.Printf("💰 **Estimated Costs** (default M size):\n")
+	if cost, exists := template.EstimatedCostPerHour["x86_64"]; exists {
+		fmt.Printf("   • x86_64: $%.3f/hour ($%.2f/day)\n", cost, cost*24)
+	}
+	if cost, exists := template.EstimatedCostPerHour["arm64"]; exists {
+		fmt.Printf("   • arm64:  $%.3f/hour ($%.2f/day)\n", cost, cost*24)
+	}
+	fmt.Println()
+}
 
-	// Size Scaling Information
+func (a *App) displayInstanceInfo(template *types.RuntimeTemplate, err error) {
+	if err != nil {
+		return
+	}
+	
+	fmt.Printf("🖥️  **Instance Types** (default M size):\n")
+	if instanceType, exists := template.InstanceType["x86_64"]; exists {
+		fmt.Printf("   • x86_64: %s\n", instanceType)
+	}
+	if instanceType, exists := template.InstanceType["arm64"]; exists {
+		fmt.Printf("   • arm64:  %s\n", instanceType)
+	}
+	fmt.Println()
+}
+
+func (a *App) displaySizeScaling() {
 	fmt.Printf("📏 **T-Shirt Size Scaling**:\n")
 	fmt.Printf("   • XS: 1 vCPU, 2GB RAM + 100GB storage\n")
 	fmt.Printf("   • S:  2 vCPU, 4GB RAM + 500GB storage\n")
 	fmt.Printf("   • M:  2 vCPU, 8GB RAM + 1TB storage [default]\n")
 	fmt.Printf("   • L:  4 vCPU, 16GB RAM + 2TB storage\n")
 	fmt.Printf("   • XL: 8 vCPU, 32GB RAM + 4TB storage\n")
+	fmt.Println()
+}
 
-	// Smart scaling analysis
-	requiresGPU := containsGPUPackages(rawTemplate)
-	requiresHighMemory := containsMemoryPackages(rawTemplate)
-	requiresHighCPU := containsComputePackages(rawTemplate)
+func (a *App) displaySmartScaling(template *templates.Template) {
+	requiresGPU := containsGPUPackages(template)
+	requiresHighMemory := containsMemoryPackages(template)
+	requiresHighCPU := containsComputePackages(template)
 
 	if requiresGPU || requiresHighMemory || requiresHighCPU {
-		fmt.Printf("\n🧠 **Smart Scaling**: This template will use optimized instance types:\n")
+		fmt.Printf("🧠 **Smart Scaling**: This template will use optimized instance types:\n")
 		if requiresGPU {
 			fmt.Printf("   • GPU workloads → g4dn/g5g instance families\n")
 		}
@@ -1458,95 +1492,109 @@ func (a *App) templatesInfo(args []string) error {
 		if requiresHighCPU {
 			fmt.Printf("   • Compute-intensive → c5/c6g instance families\n")
 		}
+		fmt.Println()
+	}
+}
+
+func (a *App) displayPackageInfo(template *templates.Template) {
+	if !hasPackages(template) {
+		return
+	}
+	
+	fmt.Printf("📦 **Installed Packages**:\n")
+	if len(template.Packages.System) > 0 {
+		fmt.Printf("   • **System** (%s): %s\n", template.PackageManager, strings.Join(template.Packages.System, ", "))
+	}
+	if len(template.Packages.Conda) > 0 {
+		fmt.Printf("   • **Conda**: %s\n", strings.Join(template.Packages.Conda, ", "))
+	}
+	if len(template.Packages.Pip) > 0 {
+		fmt.Printf("   • **Pip**: %s\n", strings.Join(template.Packages.Pip, ", "))
+	}
+	if len(template.Packages.Spack) > 0 {
+		fmt.Printf("   • **Spack**: %s\n", strings.Join(template.Packages.Spack, ", "))
 	}
 	fmt.Println()
+}
 
-	// Packages
-	if hasPackages(rawTemplate) {
-		fmt.Printf("📦 **Installed Packages**:\n")
-		if len(rawTemplate.Packages.System) > 0 {
-			fmt.Printf("   • **System** (%s): %s\n", rawTemplate.PackageManager, strings.Join(rawTemplate.Packages.System, ", "))
-		}
-		if len(rawTemplate.Packages.Conda) > 0 {
-			fmt.Printf("   • **Conda**: %s\n", strings.Join(rawTemplate.Packages.Conda, ", "))
-		}
-		if len(rawTemplate.Packages.Pip) > 0 {
-			fmt.Printf("   • **Pip**: %s\n", strings.Join(rawTemplate.Packages.Pip, ", "))
-		}
-		if len(rawTemplate.Packages.Spack) > 0 {
-			fmt.Printf("   • **Spack**: %s\n", strings.Join(rawTemplate.Packages.Spack, ", "))
-		}
-		fmt.Println()
+func (a *App) displayUserInfo(template *templates.Template) {
+	if len(template.Users) == 0 {
+		return
 	}
-
-	// Users
-	if len(rawTemplate.Users) > 0 {
-		fmt.Printf("👤 **User Accounts**:\n")
-		for _, user := range rawTemplate.Users {
-			groups := "-"
-			if len(user.Groups) > 0 {
-				groups = strings.Join(user.Groups, ", ")
-			}
-			shell := user.Shell
-			if shell == "" {
-				shell = "/bin/bash"
-			}
-			fmt.Printf("   • %s (groups: %s, shell: %s)\n", user.Name, groups, shell)
+	
+	fmt.Printf("👤 **User Accounts**:\n")
+	for _, user := range template.Users {
+		groups := "-"
+		if len(user.Groups) > 0 {
+			groups = strings.Join(user.Groups, ", ")
 		}
-		fmt.Println()
-	}
-
-	// Services
-	if len(rawTemplate.Services) > 0 {
-		fmt.Printf("🔧 **Services**:\n")
-		for _, service := range rawTemplate.Services {
-			status := "disabled"
-			if service.Enable {
-				status = "enabled"
-			}
-			port := ""
-			if service.Port > 0 {
-				port = fmt.Sprintf(", port: %d", service.Port)
-			}
-			fmt.Printf("   • %s (%s%s)\n", service.Name, status, port)
+		shell := user.Shell
+		if shell == "" {
+			shell = "/bin/bash"
 		}
-		fmt.Println()
+		fmt.Printf("   • %s (groups: %s, shell: %s)\n", user.Name, groups, shell)
 	}
+	fmt.Println()
+}
 
-	// Ports
-	if runtimeErr == nil && len(runtimeTemplate.Ports) > 0 {
-		fmt.Printf("🌐 **Network Ports**:\n")
-		for _, port := range runtimeTemplate.Ports {
-			service := getServiceForPort(port)
-			fmt.Printf("   • %d (%s)\n", port, service)
+func (a *App) displayServiceInfo(template *templates.Template) {
+	if len(template.Services) == 0 {
+		return
+	}
+	
+	fmt.Printf("🔧 **Services**:\n")
+	for _, service := range template.Services {
+		status := "disabled"
+		if service.Enable {
+			status = "enabled"
 		}
-		fmt.Println()
-	}
-
-	// Idle Detection Configuration
-	if rawTemplate.IdleDetection != nil && rawTemplate.IdleDetection.Enabled {
-		fmt.Printf("💤 **Idle Detection**:\n")
-		fmt.Printf("   • Enabled: %t\n", rawTemplate.IdleDetection.Enabled)
-		fmt.Printf("   • Idle threshold: %d minutes\n", rawTemplate.IdleDetection.IdleThresholdMinutes)
-		if rawTemplate.IdleDetection.HibernateThresholdMinutes > 0 {
-			fmt.Printf("   • Hibernate threshold: %d minutes\n", rawTemplate.IdleDetection.HibernateThresholdMinutes)
+		port := ""
+		if service.Port > 0 {
+			port = fmt.Sprintf(", port: %d", service.Port)
 		}
-		fmt.Printf("   • Check interval: %d minutes\n", rawTemplate.IdleDetection.CheckIntervalMinutes)
-		fmt.Println()
+		fmt.Printf("   • %s (%s%s)\n", service.Name, status, port)
 	}
+	fmt.Println()
+}
 
-	// Usage Examples
+func (a *App) displayNetworkInfo(template *types.RuntimeTemplate, err error) {
+	if err != nil || len(template.Ports) == 0 {
+		return
+	}
+	
+	fmt.Printf("🌐 **Network Ports**:\n")
+	for _, port := range template.Ports {
+		service := getServiceForPort(port)
+		fmt.Printf("   • %d (%s)\n", port, service)
+	}
+	fmt.Println()
+}
+
+func (a *App) displayIdleDetectionInfo(template *templates.Template) {
+	if template.IdleDetection == nil || !template.IdleDetection.Enabled {
+		return
+	}
+	
+	fmt.Printf("💤 **Idle Detection**:\n")
+	fmt.Printf("   • Enabled: %t\n", template.IdleDetection.Enabled)
+	fmt.Printf("   • Idle threshold: %d minutes\n", template.IdleDetection.IdleThresholdMinutes)
+	if template.IdleDetection.HibernateThresholdMinutes > 0 {
+		fmt.Printf("   • Hibernate threshold: %d minutes\n", template.IdleDetection.HibernateThresholdMinutes)
+	}
+	fmt.Printf("   • Check interval: %d minutes\n", template.IdleDetection.CheckIntervalMinutes)
+	fmt.Println()
+}
+
+func (a *App) displayUsageExamples(template *templates.Template) {
 	fmt.Printf("🚀 **Usage Examples**:\n")
-	launchName := rawTemplate.Slug
+	launchName := template.Slug
 	if launchName == "" {
-		launchName = fmt.Sprintf("\"%s\"", rawTemplate.Name)
+		launchName = fmt.Sprintf("\"%s\"", template.Name)
 	}
 	fmt.Printf("   • Basic launch:        `cws launch %s my-workspace`\n", launchName)
 	fmt.Printf("   • Large instance:      `cws launch %s my-workspace --size L`\n", launchName)
 	fmt.Printf("   • With project:        `cws launch %s my-workspace --project my-research`\n", launchName)
 	fmt.Printf("   • Spot instance:       `cws launch %s my-workspace --spot`\n", launchName)
-
-	return nil
 }
 
 // Helper functions for template analysis
@@ -3747,10 +3795,11 @@ func (a *App) rightsizingSummary(args []string) error {
 
 	fmt.Printf("📊 **Fleet Overview**:\n")
 	for _, instance := range response.Instances {
-		if instance.State == "running" {
+		switch instance.State {
+		case "running":
 			runningInstances++
 			totalDailyCost += instance.EstimatedDailyCost
-		} else if instance.State == "stopped" {
+		case "stopped":
 			stoppedInstances++
 		}
 
