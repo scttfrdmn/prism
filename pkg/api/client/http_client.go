@@ -20,15 +20,15 @@ import (
 type HTTPClient struct {
 	baseURL    string
 	httpClient *http.Client
-	
+
 	// Configuration
 	awsProfile      string
 	awsRegion       string
 	invitationToken string
 	ownerAccount    string
 	s3ConfigPath    string
-	apiKey          string  // API key for authentication
-	lastOperation   string  // Last operation performed for error context
+	apiKey          string // API key for authentication
+	lastOperation   string // Last operation performed for error context
 }
 
 // NewClient creates a new HTTP API client
@@ -80,7 +80,7 @@ func (c *HTTPClient) makeRequest(ctx context.Context, method, path string, body 
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	if c.awsProfile != "" {
 		req.Header.Set("X-AWS-Profile", c.awsProfile)
 	}
@@ -97,7 +97,11 @@ func (c *HTTPClient) makeRequest(ctx context.Context, method, path string, body 
 
 // handleResponse processes the HTTP response and unmarshals JSON if successful
 func (c *HTTPClient) handleResponse(resp *http.Response, result interface{}) error {
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log but don't fail on cleanup error
+		}
+	}()
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
@@ -152,13 +156,17 @@ func (c *HTTPClient) MakeRequest(method, path string, body interface{}) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-	
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log but don't fail on cleanup error
+		}
+	}()
+
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API error %d for %s %s: %s", resp.StatusCode, method, path, string(body))
 	}
-	
+
 	return io.ReadAll(resp.Body)
 }
 
@@ -497,7 +505,7 @@ func (c *HTTPClient) SetRegistryStatus(ctx context.Context, active bool) error {
 }
 
 func (c *HTTPClient) LookupAMI(ctx context.Context, templateName, region, architecture string) (*AMIReferenceResponse, error) {
-	path := fmt.Sprintf("/api/v1/registry/ami?template=%s&region=%s&architecture=%s", 
+	path := fmt.Sprintf("/api/v1/registry/ami?template=%s&region=%s&architecture=%s",
 		templateName, region, architecture)
 	resp, err := c.makeRequest(ctx, "GET", path, nil)
 	if err != nil {

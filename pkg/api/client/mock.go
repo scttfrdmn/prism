@@ -15,11 +15,11 @@ type MockClient struct {
 	templates map[string]types.Template
 	volumes   []types.EFSVolume
 	storage   []types.EBSVolume
-	
+
 	// Mock responses
 	pingError    error
 	statusResult *types.DaemonStatus
-	
+
 	// Configuration
 	options Options
 }
@@ -53,7 +53,7 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 		State:    "running",
 	}
 	m.instances[req.Name] = instance
-	
+
 	return &types.LaunchResponse{
 		Instance: *instance,
 		Message:  "Mock instance launched",
@@ -65,7 +65,7 @@ func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, er
 	for _, instance := range m.instances {
 		instances = append(instances, *instance)
 	}
-	
+
 	return &types.ListResponse{
 		Instances: instances,
 		TotalCost: 0.0,
