@@ -212,101 +212,119 @@ func (m *Manager) GetUsers(ctx context.Context, filter *usermgmt.UserFilter, pag
 	return result, nil
 }
 
-// userMatchesFilter checks if a user matches the filter
+// userMatchesFilter checks if a user matches the filter (SOLID: Single Responsibility)
 func (m *Manager) userMatchesFilter(state *UserState, user *usermgmt.User, filter *usermgmt.UserFilter) bool {
 	if filter == nil {
 		return true
 	}
 
-	// Username filter
+	return m.matchesBasicFilters(user, filter) &&
+		m.matchesRoleFilter(user, filter) &&
+		m.matchesGroupFilter(state, user, filter) &&
+		m.matchesStatusFilters(user, filter) &&
+		m.matchesTimeFilters(user, filter)
+}
+
+// matchesBasicFilters checks username, email, and provider filters
+func (m *Manager) matchesBasicFilters(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
 	if filter.Username != "" && user.Username != filter.Username {
 		return false
 	}
-
-	// Email filter
 	if filter.Email != "" && user.Email != filter.Email {
 		return false
 	}
-
-	// Role filter
-	if filter.Role != "" {
-		hasRole := false
-		for _, role := range user.Roles {
-			if role == filter.Role {
-				hasRole = true
-				break
-			}
-		}
-
-		if !hasRole {
-			return false
-		}
-	}
-
-	// Group filter
-	if filter.Group != "" {
-		groupID, exists := state.GroupsByName[filter.Group]
-		if !exists {
-			return false
-		}
-
-		userGroups, exists := state.UserGroups[user.ID]
-		if !exists {
-			return false
-		}
-
-		isInGroup := false
-		for _, g := range userGroups {
-			if g == groupID {
-				isInGroup = true
-				break
-			}
-		}
-
-		if !isInGroup {
-			return false
-		}
-	}
-
-	// Provider filter
 	if filter.Provider != "" && user.Provider != filter.Provider {
 		return false
 	}
+	return true
+}
 
-	// Enabled filters
+// matchesRoleFilter checks if user has the required role
+func (m *Manager) matchesRoleFilter(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
+	if filter.Role == "" {
+		return true
+	}
+
+	for _, role := range user.Roles {
+		if role == filter.Role {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesGroupFilter checks if user belongs to the required group
+func (m *Manager) matchesGroupFilter(state *UserState, user *usermgmt.User, filter *usermgmt.UserFilter) bool {
+	if filter.Group == "" {
+		return true
+	}
+
+	groupID, exists := state.GroupsByName[filter.Group]
+	if !exists {
+		return false
+	}
+
+	userGroups, exists := state.UserGroups[user.ID]
+	if !exists {
+		return false
+	}
+
+	for _, g := range userGroups {
+		if g == groupID {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesStatusFilters checks enabled/disabled status filters
+func (m *Manager) matchesStatusFilters(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
 	if filter.EnabledOnly && !user.Enabled {
 		return false
 	}
-
 	if filter.DisabledOnly && user.Enabled {
 		return false
 	}
+	return true
+}
 
-	// Time filters
+// matchesTimeFilters checks all time-based filters
+func (m *Manager) matchesTimeFilters(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
+	return m.matchesCreatedTimeFilters(user, filter) &&
+		m.matchesUpdatedTimeFilters(user, filter) &&
+		m.matchesLastLoginFilters(user, filter)
+}
+
+// matchesCreatedTimeFilters checks creation time filters
+func (m *Manager) matchesCreatedTimeFilters(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
 	if filter.CreatedAfter != nil && user.CreatedAt.Before(*filter.CreatedAfter) {
 		return false
 	}
-
 	if filter.CreatedBefore != nil && user.CreatedAt.After(*filter.CreatedBefore) {
 		return false
 	}
+	return true
+}
 
+// matchesUpdatedTimeFilters checks update time filters
+func (m *Manager) matchesUpdatedTimeFilters(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
 	if filter.UpdatedAfter != nil && user.UpdatedAt.Before(*filter.UpdatedAfter) {
 		return false
 	}
-
 	if filter.UpdatedBefore != nil && user.UpdatedAt.After(*filter.UpdatedBefore) {
 		return false
 	}
+	return true
+}
 
+// matchesLastLoginFilters checks last login time filters
+func (m *Manager) matchesLastLoginFilters(user *usermgmt.User, filter *usermgmt.UserFilter) bool {
 	if filter.LastLoginAfter != nil && (user.LastLogin == nil || user.LastLogin.Before(*filter.LastLoginAfter)) {
 		return false
 	}
-
 	if filter.LastLoginBefore != nil && (user.LastLogin == nil || user.LastLogin.After(*filter.LastLoginBefore)) {
 		return false
 	}
-
 	return true
 }
 
