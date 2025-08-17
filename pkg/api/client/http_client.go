@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
@@ -21,7 +22,8 @@ type HTTPClient struct {
 	baseURL    string
 	httpClient *http.Client
 
-	// Configuration
+	// Configuration (protected by mutex for thread safety)
+	mu              sync.RWMutex
 	awsProfile      string
 	awsRegion       string
 	invitationToken string
@@ -55,6 +57,8 @@ func NewClientWithOptions(baseURL string, opts Options) CloudWorkstationAPI {
 
 // SetOptions configures the client with the provided options
 func (c *HTTPClient) SetOptions(opts Options) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.awsProfile = opts.AWSProfile
 	c.awsRegion = opts.AWSRegion
 	c.invitationToken = opts.InvitationToken
@@ -78,9 +82,10 @@ func (c *HTTPClient) makeRequest(ctx context.Context, method, path string, body 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
+	// Set headers (thread-safe read)
 	req.Header.Set("Content-Type", "application/json")
 
+	c.mu.RLock()
 	if c.awsProfile != "" {
 		req.Header.Set("X-AWS-Profile", c.awsProfile)
 	}
@@ -90,8 +95,12 @@ func (c *HTTPClient) makeRequest(ctx context.Context, method, path string, body 
 	if c.apiKey != "" {
 		req.Header.Set("X-API-Key", c.apiKey)
 	}
-
+	
+	// Update lastOperation while holding lock
+	c.mu.RUnlock()
+	c.mu.Lock()
 	c.lastOperation = fmt.Sprintf("%s %s", method, path)
+	c.mu.Unlock()
 	return c.httpClient.Do(req)
 }
 
@@ -99,7 +108,8 @@ func (c *HTTPClient) makeRequest(ctx context.Context, method, path string, body 
 func (c *HTTPClient) handleResponse(resp *http.Response, result interface{}) error {
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			// Log but don't fail on cleanup error
+			// Log but don't fail on cleanup error - response body cleanup is not critical
+			_ = err // Explicitly ignore error
 		}
 	}()
 
@@ -158,7 +168,8 @@ func (c *HTTPClient) MakeRequest(method, path string, body interface{}) ([]byte,
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			// Log but don't fail on cleanup error
+			// Log but don't fail on cleanup error - response body cleanup is not critical
+			_ = err // Explicitly ignore error
 		}
 	}()
 
