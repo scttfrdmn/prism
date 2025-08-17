@@ -14,7 +14,7 @@ func initializeMacOSKeychain() (KeychainProvider, error) {
 		fmt.Fprintf(os.Stderr, "Development mode detected - using secure file storage to avoid keychain prompts\n")
 		return NewFileSecureStorage()
 	}
-	
+
 	// Production mode - use native keychain
 	native, err := NewMacOSKeychainNative()
 	if err != nil {
@@ -28,9 +28,9 @@ func initializeMacOSKeychain() (KeychainProvider, error) {
 func checkMacOSKeychainType(provider KeychainProvider) (isMacOSNative bool, info map[string]interface{}) {
 	if p, ok := provider.(*MacOSKeychainNative); ok {
 		return true, map[string]interface{}{
-			"provider": "macOS Keychain (Native)",
+			"provider":  "macOS Keychain (Native)",
 			"framework": "Security.framework",
-			"instance": p,
+			"instance":  p,
 		}
 	}
 	return false, nil

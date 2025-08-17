@@ -39,30 +39,7 @@ func getAWSRegion(ctx context.Context) string {
 	return ""
 }
 
-// getAWSOptions creates AWS options from the context
-func getAWSOptions(ctx context.Context) map[string]string {
-	options := make(map[string]string)
-
-	if profile := getAWSProfile(ctx); profile != "" {
-		options["profile"] = profile
-	}
-
-	if region := getAWSRegion(ctx); region != "" {
-		options["region"] = region
-	}
-
-	return options
-}
-
 // setAPIVersion adds the API version to the context
 func setAPIVersion(ctx context.Context, version string) context.Context {
 	return context.WithValue(ctx, apiVersionKey, version)
-}
-
-// getAPIVersion gets the API version from the context, or empty string if not set
-func getAPIVersion(ctx context.Context) string {
-	if version, ok := ctx.Value(apiVersionKey).(string); ok {
-		return version
-	}
-	return ""
 }

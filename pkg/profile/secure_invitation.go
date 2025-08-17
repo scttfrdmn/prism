@@ -135,8 +135,8 @@ func (m *SecureInvitationManager) SecureAddToProfile(encoded string, profileName
 		Region:          "", // Use default region
 		CreatedAt:       time.Now(),
 		// Security properties
-		DeviceBound:     invitation.DeviceBound,
-		Transferable:    invitation.Transferable,
+		DeviceBound:  invitation.DeviceBound,
+		Transferable: invitation.Transferable,
 	}
 
 	// Create device binding if required

@@ -3,8 +3,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
@@ -45,51 +43,51 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 			// Display configuration
 			fmt.Println("Batch Invitation Configuration:")
 			fmt.Println()
-			
+
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-			
+
 			// General settings
-			fmt.Fprintln(w, "General Settings:")
-			fmt.Fprintf(w, "  Default Concurrency:\t%d\n", config.DefaultConcurrency)
-			fmt.Fprintf(w, "  Default Valid Days:\t%d\n", config.DefaultValidDays)
-			fmt.Fprintln(w)
-			
+			_, _ = fmt.Fprintln(w, "General Settings:")
+			_, _ = fmt.Fprintf(w, "  Default Concurrency:\t%d\n", config.DefaultConcurrency)
+			_, _ = fmt.Fprintf(w, "  Default Valid Days:\t%d\n", config.DefaultValidDays)
+			_, _ = fmt.Fprintln(w)
+
 			// Security settings
-			fmt.Fprintln(w, "Security Settings:")
-			fmt.Fprintf(w, "  Default Device Bound:\t%t\n", config.DefaultDeviceBound)
-			fmt.Fprintf(w, "  Default Max Devices:\t%d\n", config.DefaultMaxDevices)
-			fmt.Fprintf(w, "  Default Can Invite:\t%t\n", config.DefaultCanInvite)
-			fmt.Fprintf(w, "  Default Transferable:\t%t\n", config.DefaultTransferable)
-			fmt.Fprintln(w)
-			
+			_, _ = fmt.Fprintln(w, "Security Settings:")
+			_, _ = fmt.Fprintf(w, "  Default Device Bound:\t%t\n", config.DefaultDeviceBound)
+			_, _ = fmt.Fprintf(w, "  Default Max Devices:\t%d\n", config.DefaultMaxDevices)
+			_, _ = fmt.Fprintf(w, "  Default Can Invite:\t%t\n", config.DefaultCanInvite)
+			_, _ = fmt.Fprintf(w, "  Default Transferable:\t%t\n", config.DefaultTransferable)
+			_, _ = fmt.Fprintln(w)
+
 			// CSV settings
-			fmt.Fprintln(w, "CSV Settings:")
-			fmt.Fprintf(w, "  Default Has Header:\t%t\n", config.DefaultHasHeader)
-			fmt.Fprintf(w, "  Default Delimiter:\t%s\n", config.DefaultDelimiter)
-			fmt.Fprintf(w, "  Include Encoded Data:\t%t\n", config.IncludeEncodedData)
-			fmt.Fprintf(w, "  Default Output Directory:\t%s\n", valueOrEmpty(config.DefaultOutputDirectory))
-			fmt.Fprintln(w)
-			
+			_, _ = fmt.Fprintln(w, "CSV Settings:")
+			_, _ = fmt.Fprintf(w, "  Default Has Header:\t%t\n", config.DefaultHasHeader)
+			_, _ = fmt.Fprintf(w, "  Default Delimiter:\t%s\n", config.DefaultDelimiter)
+			_, _ = fmt.Fprintf(w, "  Include Encoded Data:\t%t\n", config.IncludeEncodedData)
+			_, _ = fmt.Fprintf(w, "  Default Output Directory:\t%s\n", valueOrEmpty(config.DefaultOutputDirectory))
+			_, _ = fmt.Fprintln(w)
+
 			// Admin settings
-			fmt.Fprintln(w, "Admin Settings:")
-			fmt.Fprintf(w, "  Require Admin Auth:\t%t\n", config.RequireAdminAuth)
-			fmt.Fprintf(w, "  Admin Invitation Token:\t%s\n", maskIfNotEmpty(config.AdminInvitationToken))
-			fmt.Fprintf(w, "  Notification Webhook:\t%s\n", maskIfNotEmpty(config.NotificationWebhook))
-			fmt.Fprintf(w, "  Audit Logging Enabled:\t%t\n", config.AuditLoggingEnabled)
-			fmt.Fprintf(w, "  Log Directory:\t%s\n", valueOrEmpty(config.LogDirectory))
-			fmt.Fprintln(w)
-			
+			_, _ = fmt.Fprintln(w, "Admin Settings:")
+			_, _ = fmt.Fprintf(w, "  Require Admin Auth:\t%t\n", config.RequireAdminAuth)
+			_, _ = fmt.Fprintf(w, "  Admin Invitation Token:\t%s\n", maskIfNotEmpty(config.AdminInvitationToken))
+			_, _ = fmt.Fprintf(w, "  Notification Webhook:\t%s\n", maskIfNotEmpty(config.NotificationWebhook))
+			_, _ = fmt.Fprintf(w, "  Audit Logging Enabled:\t%t\n", config.AuditLoggingEnabled)
+			_, _ = fmt.Fprintf(w, "  Log Directory:\t%s\n", valueOrEmpty(config.LogDirectory))
+			_, _ = fmt.Fprintln(w)
+
 			// Performance settings
-			fmt.Fprintln(w, "Performance Settings:")
-			fmt.Fprintf(w, "  Batch Size Limit:\t%d\n", config.BatchSizeLimit)
-			fmt.Fprintf(w, "  Enable Rate Limiting:\t%t\n", config.EnableRateLimiting)
-			fmt.Fprintf(w, "  Max Operations Per Hour:\t%d\n", config.MaxOperationsPerHour)
-			fmt.Fprintln(w)
-			
+			_, _ = fmt.Fprintln(w, "Performance Settings:")
+			_, _ = fmt.Fprintf(w, "  Batch Size Limit:\t%d\n", config.BatchSizeLimit)
+			_, _ = fmt.Fprintf(w, "  Enable Rate Limiting:\t%t\n", config.EnableRateLimiting)
+			_, _ = fmt.Fprintf(w, "  Max Operations Per Hour:\t%d\n", config.MaxOperationsPerHour)
+			_, _ = fmt.Fprintln(w)
+
 			// Last updated
-			fmt.Fprintf(w, "Last Updated:\t%s\n", config.LastUpdated.Format("2006-01-02 15:04:05"))
-			
-			w.Flush()
+			_, _ = fmt.Fprintf(w, "Last Updated:\t%s\n", config.LastUpdated.Format("2006-01-02 15:04:05"))
+
+			_ = w.Flush()
 		},
 	})
 
@@ -104,7 +102,7 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 			fmt.Println("⚠️  Batch configuration commands temporarily disabled during Phase 1.")
 			fmt.Println("Core profile commands are available:")
 			fmt.Println("  cws profiles list    # List available profiles")
-			fmt.Println("  cws profiles create  # Create new profile") 
+			fmt.Println("  cws profiles create  # Create new profile")
 			fmt.Println("  cws profiles set     # Set current profile")
 			fmt.Println("")
 			fmt.Println("Advanced batch features will return in Phase 2.")
@@ -155,173 +153,3 @@ func maskIfNotEmpty(value string) string {
 	return "********"
 }
 
-// updateConfigSetting updates a specific configuration setting
-func updateConfigSetting(config *profile.BatchInvitationConfig, setting, value string) (string, error) {
-	switch setting {
-	// General settings
-	case "defaultConcurrency":
-		val, err := parseInt(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultConcurrency: %w", err)
-		}
-		if val <= 0 {
-			return "", fmt.Errorf("defaultConcurrency must be greater than 0")
-		}
-		config.DefaultConcurrency = val
-		return fmt.Sprintf("%d", val), nil
-
-	case "defaultValidDays":
-		val, err := parseInt(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultValidDays: %w", err)
-		}
-		if val <= 0 {
-			return "", fmt.Errorf("defaultValidDays must be greater than 0")
-		}
-		config.DefaultValidDays = val
-		return fmt.Sprintf("%d", val), nil
-
-	// Security settings
-	case "defaultDeviceBound":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultDeviceBound: %w", err)
-		}
-		config.DefaultDeviceBound = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "defaultMaxDevices":
-		val, err := parseInt(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultMaxDevices: %w", err)
-		}
-		if val <= 0 {
-			return "", fmt.Errorf("defaultMaxDevices must be greater than 0")
-		}
-		config.DefaultMaxDevices = val
-		return fmt.Sprintf("%d", val), nil
-
-	case "defaultCanInvite":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultCanInvite: %w", err)
-		}
-		config.DefaultCanInvite = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "defaultTransferable":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultTransferable: %w", err)
-		}
-		config.DefaultTransferable = val
-		return fmt.Sprintf("%t", val), nil
-
-	// CSV settings
-	case "defaultHasHeader":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for defaultHasHeader: %w", err)
-		}
-		config.DefaultHasHeader = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "defaultDelimiter":
-		if value != "," && value != ";" && value != "\t" {
-			return "", fmt.Errorf("defaultDelimiter must be one of: ',', ';', '\\t'")
-		}
-		config.DefaultDelimiter = value
-		return value, nil
-
-	case "includeEncodedData":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for includeEncodedData: %w", err)
-		}
-		config.IncludeEncodedData = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "defaultOutputDirectory":
-		config.DefaultOutputDirectory = value
-		return value, nil
-
-	// Admin settings
-	case "requireAdminAuth":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for requireAdminAuth: %w", err)
-		}
-		config.RequireAdminAuth = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "adminInvitationToken":
-		config.AdminInvitationToken = value
-		return "********", nil
-
-	case "notificationWebhook":
-		config.NotificationWebhook = value
-		return "********", nil
-
-	case "auditLoggingEnabled":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for auditLoggingEnabled: %w", err)
-		}
-		config.AuditLoggingEnabled = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "logDirectory":
-		config.LogDirectory = value
-		return value, nil
-
-	// Performance settings
-	case "batchSizeLimit":
-		val, err := parseInt(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for batchSizeLimit: %w", err)
-		}
-		if val <= 0 {
-			return "", fmt.Errorf("batchSizeLimit must be greater than 0")
-		}
-		config.BatchSizeLimit = val
-		return fmt.Sprintf("%d", val), nil
-
-	case "enableRateLimiting":
-		val, err := parseBool(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for enableRateLimiting: %w", err)
-		}
-		config.EnableRateLimiting = val
-		return fmt.Sprintf("%t", val), nil
-
-	case "maxOperationsPerHour":
-		val, err := parseInt(value)
-		if err != nil {
-			return "", fmt.Errorf("invalid value for maxOperationsPerHour: %w", err)
-		}
-		if val <= 0 {
-			return "", fmt.Errorf("maxOperationsPerHour must be greater than 0")
-		}
-		config.MaxOperationsPerHour = val
-		return fmt.Sprintf("%d", val), nil
-
-	default:
-		return "", fmt.Errorf("unknown configuration setting: %s", setting)
-	}
-}
-
-// parseInt parses a string to an integer
-func parseInt(value string) (int, error) {
-	return strconv.Atoi(value)
-}
-
-// parseBool parses a string to a boolean
-func parseBool(value string) (bool, error) {
-	value = strings.ToLower(value)
-	if value == "true" || value == "yes" || value == "y" || value == "1" || value == "t" {
-		return true, nil
-	} else if value == "false" || value == "no" || value == "n" || value == "0" || value == "f" {
-		return false, nil
-	}
-	return false, fmt.Errorf("invalid boolean value: %s", value)
-}

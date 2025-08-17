@@ -28,15 +28,15 @@ var CloudWorkstationColors = struct {
 	White      color.NRGBA
 
 	// State Colors - Light Theme
-	RunningLight   color.NRGBA
-	StoppedLight   color.NRGBA
-	PendingLight   color.NRGBA
+	RunningLight    color.NRGBA
+	StoppedLight    color.NRGBA
+	PendingLight    color.NRGBA
 	TerminatedLight color.NRGBA
 
 	// State Colors - Dark Theme
-	RunningDark   color.NRGBA
-	StoppedDark   color.NRGBA
-	PendingDark   color.NRGBA
+	RunningDark    color.NRGBA
+	StoppedDark    color.NRGBA
+	PendingDark    color.NRGBA
 	TerminatedDark color.NRGBA
 }{
 	// Primary Colors
@@ -53,10 +53,10 @@ var CloudWorkstationColors = struct {
 	White:      color.NRGBA{R: 255, G: 255, B: 255, A: 255}, // #FFFFFF
 
 	// State Colors - Light Theme
-	RunningLight:    color.NRGBA{R: 76, G: 175, B: 80, A: 255},  // #4CAF50
-	StoppedLight:    color.NRGBA{R: 255, G: 193, B: 7, A: 255},  // #FFC107
-	PendingLight:    color.NRGBA{R: 255, G: 152, B: 0, A: 255},  // #FF9800
-	TerminatedLight: color.NRGBA{R: 244, G: 67, B: 54, A: 255},  // #F44336
+	RunningLight:    color.NRGBA{R: 76, G: 175, B: 80, A: 255}, // #4CAF50
+	StoppedLight:    color.NRGBA{R: 255, G: 193, B: 7, A: 255}, // #FFC107
+	PendingLight:    color.NRGBA{R: 255, G: 152, B: 0, A: 255}, // #FF9800
+	TerminatedLight: color.NRGBA{R: 244, G: 67, B: 54, A: 255}, // #F44336
 
 	// State Colors - Dark Theme
 	RunningDark:    color.NRGBA{R: 102, G: 187, B: 106, A: 255}, // #66BB6A
@@ -67,15 +67,8 @@ var CloudWorkstationColors = struct {
 
 // NewCloudWorkstationTheme creates a new CloudWorkstation theme
 func NewCloudWorkstationTheme(isDarkMode bool) fyne.Theme {
-	baseTheme := theme.DefaultTheme()
-	if isDarkMode {
-		baseTheme = theme.DarkTheme()
-	} else {
-		baseTheme = theme.LightTheme()
-	}
-	
 	return &CloudWorkstationTheme{
-		baseTheme: baseTheme,
+		baseTheme: theme.DefaultTheme(),
 	}
 }
 
@@ -118,10 +111,8 @@ func (t *CloudWorkstationTheme) Size(name fyne.ThemeSizeName) float32 {
 		return 13 // Base font size - slightly smaller for better density
 	case theme.SizeNameHeadingText:
 		return 18 // Heading size - more proportional
-	case theme.SizeNameSubText:
-		return 11 // Sub-text size - for secondary information
 	case theme.SizeNameCaptionText:
-		return 11 // Caption size - consistent with sub-text
+		return 11 // Caption size - for secondary information
 	case theme.SizeNameInlineIcon:
 		return 16 // Icon size - proportional to text
 	case theme.SizeNamePadding:

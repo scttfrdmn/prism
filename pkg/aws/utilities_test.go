@@ -521,9 +521,11 @@ func TestApplyEC2DiscountsEdgeCases(t *testing.T) {
 			
 			// Use a small tolerance for floating point comparison
 			tolerance := 0.01
-			if abs := result - tt.expectedPrice; abs < 0 {
+			abs := result - tt.expectedPrice
+			if abs < 0 {
 				abs = -abs
-			} else if abs > tolerance {
+			}
+			if abs > tolerance {
 				t.Errorf("applyEC2Discounts() = %f, want %f (tolerance: %f)", result, tt.expectedPrice, tolerance)
 			}
 		})

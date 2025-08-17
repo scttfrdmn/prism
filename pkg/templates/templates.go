@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // DefaultTemplateDirs returns the default template directories to scan
 func DefaultTemplateDirs() []string {
 	dirs := []string{}
-	
+
 	// HIGHEST PRIORITY: Current working directory's templates/ (for development)
 	if wd, err := os.Getwd(); err == nil {
 		devTemplatesPath := filepath.Join(wd, "templates")
@@ -24,47 +24,47 @@ func DefaultTemplateDirs() []string {
 			dirs = append(dirs, devTemplatesPath)
 		}
 	}
-	
+
 	// Add project templates directory for development (binary-relative)
 	if exe, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exe)
-		
+
 		// Development: binary is in bin/, templates are in ../templates
 		devTemplatesPath := filepath.Join(exeDir, "..", "templates")
 		if _, err := os.Stat(devTemplatesPath); err == nil {
 			dirs = append(dirs, devTemplatesPath)
 		}
-		
+
 		// Homebrew installation: binary is in bin/, templates are in ../share/templates
 		homebrewTemplatesPath := filepath.Join(exeDir, "..", "share", "templates")
 		if _, err := os.Stat(homebrewTemplatesPath); err == nil {
 			dirs = append(dirs, homebrewTemplatesPath)
 		}
 	}
-	
+
 	// User templates directory
 	dirs = append(dirs, filepath.Join(os.Getenv("HOME"), ".cloudworkstation", "templates"))
-	
+
 	// System templates directory
 	dirs = append(dirs, "/etc/cloudworkstation/templates")
-	
+
 	// Add Homebrew installation paths
 	if homebrewPrefix := os.Getenv("HOMEBREW_PREFIX"); homebrewPrefix != "" {
 		dirs = append(dirs, filepath.Join(homebrewPrefix, "opt", "cloudworkstation", "share", "templates"))
 	}
-	
+
 	// Fallback for common Homebrew installations
 	commonHomebrewPaths := []string{
 		"/opt/homebrew/opt/cloudworkstation/share/templates", // Apple Silicon
 		"/usr/local/opt/cloudworkstation/share/templates",    // Intel
 	}
-	
+
 	for _, path := range commonHomebrewPaths {
 		if _, err := os.Stat(path); err == nil {
 			dirs = append(dirs, path)
 		}
 	}
-	
+
 	return dirs
 }
 
@@ -96,30 +96,30 @@ func ValidateTemplate(filename string) error {
 // ValidateTemplateWithRegistry validates a template with inheritance resolution
 func ValidateTemplateWithRegistry(templateDirs []string, templateName string) error {
 	registry := NewTemplateRegistry(templateDirs)
-	
+
 	// Scan templates to load all templates and resolve inheritance
 	if err := registry.ScanTemplates(); err != nil {
 		return fmt.Errorf("failed to scan templates: %w", err)
 	}
-	
+
 	// Check if template exists
 	_, err := registry.GetTemplate(templateName)
 	if err != nil {
 		return fmt.Errorf("template validation failed: %w", err)
 	}
-	
+
 	return nil
 }
 
 // ValidateAllTemplates validates all templates in the given directories
 func ValidateAllTemplates(templateDirs []string) error {
 	registry := NewTemplateRegistry(templateDirs)
-	
+
 	// Scan templates - this will validate all templates and resolve inheritance
 	if err := registry.ScanTemplates(); err != nil {
 		return fmt.Errorf("template validation failed: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -129,12 +129,12 @@ func ListAvailableTemplates() ([]string, error) {
 	if err := registry.ScanTemplates(); err != nil {
 		return nil, err
 	}
-	
+
 	names := make([]string, 0, len(registry.Templates))
 	for name := range registry.Templates {
 		names = append(names, name)
 	}
-	
+
 	return names, nil
 }
 
@@ -144,7 +144,7 @@ func GetTemplateInfo(name string) (*Template, error) {
 	if err := registry.ScanTemplates(); err != nil {
 		return nil, err
 	}
-	
+
 	return registry.GetTemplate(name)
 }
 
@@ -154,12 +154,12 @@ func GenerateScript(templateName, packageManager string) (string, error) {
 	if err := registry.ScanTemplates(); err != nil {
 		return "", err
 	}
-	
+
 	template, err := registry.GetTemplate(templateName)
 	if err != nil {
 		return "", err
 	}
-	
+
 	generator := NewScriptGenerator()
 	return generator.GenerateScript(template, PackageManagerType(packageManager))
 }
@@ -169,16 +169,16 @@ func GenerateScript(templateName, packageManager string) (string, error) {
 // CreateExampleTemplate creates an example template file
 func CreateExampleTemplate(filename string) error {
 	_ = &Template{
-		Name:        "Example Research Environment",
-		Description: "An example template showing the simplified template system",
-		Base:        "ubuntu-22.04",
+		Name:           "Example Research Environment",
+		Description:    "An example template showing the simplified template system",
+		Base:           "ubuntu-22.04",
 		PackageManager: "auto",
-		
+
 		Packages: PackageDefinitions{
 			System: []string{"build-essential", "curl", "wget"},
 			Conda:  []string{"python=3.11", "jupyter", "numpy", "pandas"},
 		},
-		
+
 		Services: []ServiceConfig{
 			{
 				Name:   "jupyter",
@@ -186,7 +186,7 @@ func CreateExampleTemplate(filename string) error {
 				Enable: true,
 			},
 		},
-		
+
 		Users: []UserConfig{
 			{
 				Name:   "researcher",
@@ -194,7 +194,7 @@ func CreateExampleTemplate(filename string) error {
 				Shell:  "/bin/bash",
 			},
 		},
-		
+
 		InstanceDefaults: InstanceDefaults{
 			Type:  "t3.medium",
 			Ports: []int{22, 8888},
@@ -203,7 +203,7 @@ func CreateExampleTemplate(filename string) error {
 				"arm64":  0.0368,
 			},
 		},
-		
+
 		Version: "1.0.0",
 		Tags: map[string]string{
 			"type":     "research",
@@ -212,7 +212,7 @@ func CreateExampleTemplate(filename string) error {
 		},
 		Maintainer: "CloudWorkstation Team",
 	}
-	
+
 	// In a real implementation, this would marshal to YAML
 	// For now, just create a placeholder
 	return fmt.Errorf("YAML marshaling not implemented in this example")
@@ -230,14 +230,14 @@ func MigrateFromLegacy(outputDir string) error {
 type TemplateConfig struct {
 	// Template directories to scan
 	TemplateDirs []string `json:"template_dirs"`
-	
+
 	// Default package manager preference
 	DefaultPackageManager string `json:"default_package_manager"`
-	
+
 	// Cache settings
-	CacheEnabled     bool `json:"cache_enabled"`
-	CacheTTLMinutes  int  `json:"cache_ttl_minutes"`
-	
+	CacheEnabled    bool `json:"cache_enabled"`
+	CacheTTLMinutes int  `json:"cache_ttl_minutes"`
+
 	// Package manager paths
 	PackageManagerPaths map[string]string `json:"package_manager_paths"`
 }
@@ -245,10 +245,10 @@ type TemplateConfig struct {
 // DefaultTemplateConfig returns the default template configuration
 func DefaultTemplateConfig() *TemplateConfig {
 	return &TemplateConfig{
-		TemplateDirs:      DefaultTemplateDirs(),
+		TemplateDirs:          DefaultTemplateDirs(),
 		DefaultPackageManager: "auto",
-		CacheEnabled:      true,
-		CacheTTLMinutes:   30,
+		CacheEnabled:          true,
+		CacheTTLMinutes:       30,
 		PackageManagerPaths: map[string]string{
 			"apt":   "/usr/bin/apt-get",
 			"conda": "/opt/miniforge/bin/conda",

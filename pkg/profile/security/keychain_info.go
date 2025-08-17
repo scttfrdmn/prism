@@ -8,13 +8,13 @@ import (
 
 // KeychainInfo provides information about the keychain provider in use
 type KeychainInfo struct {
-	Provider        string                 `json:"provider"`
-	Platform        string                 `json:"platform"`
-	Native          bool                   `json:"native"`
-	Available       bool                   `json:"available"`
-	SecurityLevel   string                 `json:"security_level"`
-	Details         map[string]interface{} `json:"details"`
-	FallbackReason  string                 `json:"fallback_reason,omitempty"`
+	Provider       string                 `json:"provider"`
+	Platform       string                 `json:"platform"`
+	Native         bool                   `json:"native"`
+	Available      bool                   `json:"available"`
+	SecurityLevel  string                 `json:"security_level"`
+	Details        map[string]interface{} `json:"details"`
+	FallbackReason string                 `json:"fallback_reason,omitempty"`
 }
 
 // GetKeychainInfo returns detailed information about the current keychain provider
@@ -45,29 +45,29 @@ func GetKeychainInfo() (*KeychainInfo, error) {
 	} else {
 		switch p := provider.(type) {
 		case *WindowsCredentialManagerNative:
-		info.Provider = "Windows Credential Manager (Native)"
-		info.Native = true
-		info.SecurityLevel = "Windows DPAPI encryption"
-		info.Details = p.GetKeychainInfo()
-		
-	case *LinuxSecretServiceNative:
-		info.Provider = "Linux Secret Service (Native)"
-		info.Native = true
-		info.SecurityLevel = "Desktop environment keyring"
-		info.Details = p.GetKeychainInfo()
-		
-	case *FileSecureStorage:
-		info.Provider = "File-based Secure Storage (Fallback)"
-		info.Native = false
-		info.SecurityLevel = "AES-256-GCM with device-specific key derivation"
-		info.Details = map[string]interface{}{
-			"encryption":    "AES-256-GCM",
-			"key_derivation": "PBKDF2 with device-specific entropy",
-			"file_permissions": "0600 (owner read/write only)",
-			"tamper_protection": "SHA-256 checksums",
-		}
-		info.FallbackReason = "Native keychain not available or failed initialization"
-		
+			info.Provider = "Windows Credential Manager (Native)"
+			info.Native = true
+			info.SecurityLevel = "Windows DPAPI encryption"
+			info.Details = p.GetKeychainInfo()
+
+		case *LinuxSecretServiceNative:
+			info.Provider = "Linux Secret Service (Native)"
+			info.Native = true
+			info.SecurityLevel = "Desktop environment keyring"
+			info.Details = p.GetKeychainInfo()
+
+		case *FileSecureStorage:
+			info.Provider = "File-based Secure Storage (Fallback)"
+			info.Native = false
+			info.SecurityLevel = "AES-256-GCM with device-specific key derivation"
+			info.Details = map[string]interface{}{
+				"encryption":        "AES-256-GCM",
+				"key_derivation":    "PBKDF2 with device-specific entropy",
+				"file_permissions":  "0600 (owner read/write only)",
+				"tamper_protection": "SHA-256 checksums",
+			}
+			info.FallbackReason = "Native keychain not available or failed initialization"
+
 		default:
 			info.Provider = "Unknown"
 			info.Native = false
@@ -104,13 +104,13 @@ func ValidateKeychainProvider() error {
 	retrievedData, err := provider.Retrieve(testKey)
 	if err != nil {
 		// Clean up before returning error
-		provider.Delete(testKey)
+		_ = provider.Delete(testKey)
 		return fmt.Errorf("keychain Retrieve operation failed: %w", err)
 	}
 
 	if string(retrievedData) != string(testData) {
 		// Clean up before returning error
-		provider.Delete(testKey)
+		_ = provider.Delete(testKey)
 		return fmt.Errorf("keychain Retrieve operation failed: data mismatch")
 	}
 
@@ -130,9 +130,9 @@ func ValidateKeychainProvider() error {
 // DiagnoseKeychainIssues provides diagnostic information for keychain problems
 func DiagnoseKeychainIssues() *KeychainDiagnostics {
 	diagnostics := &KeychainDiagnostics{
-		Platform: runtime.GOOS,
-		Issues:   []string{},
-		Warnings: []string{},
+		Platform:        runtime.GOOS,
+		Issues:          []string{},
+		Warnings:        []string{},
 		Recommendations: []string{},
 	}
 
@@ -169,13 +169,12 @@ func DiagnoseKeychainIssues() *KeychainDiagnostics {
 
 // KeychainDiagnostics provides diagnostic information about keychain status
 type KeychainDiagnostics struct {
-	Platform        string           `json:"platform"`
-	Info            *KeychainInfo    `json:"info,omitempty"`
-	Issues          []string         `json:"issues"`
-	Warnings        []string         `json:"warnings"`
-	Recommendations []string         `json:"recommendations"`
+	Platform        string        `json:"platform"`
+	Info            *KeychainInfo `json:"info,omitempty"`
+	Issues          []string      `json:"issues"`
+	Warnings        []string      `json:"warnings"`
+	Recommendations []string      `json:"recommendations"`
 }
-
 
 func diagnoseWindowsCredentialManager(diagnostics *KeychainDiagnostics) {
 	// Test if we can create native Windows credential manager
@@ -193,10 +192,10 @@ func diagnoseLinuxSecretService(diagnostics *KeychainDiagnostics) {
 	native, err := NewLinuxSecretServiceNative()
 	if err != nil {
 		diagnostics.Issues = append(diagnostics.Issues, fmt.Sprintf("Linux Secret Service unavailable: %v", err))
-		diagnostics.Recommendations = append(diagnostics.Recommendations, 
+		diagnostics.Recommendations = append(diagnostics.Recommendations,
 			"Install and configure a Secret Service provider (GNOME Keyring, KDE Wallet, etc.)")
 	} else {
-		native.Close()
+		_ = native.Close()
 		diagnostics.Recommendations = append(diagnostics.Recommendations, "Linux Secret Service provides desktop keyring integration")
 	}
 }

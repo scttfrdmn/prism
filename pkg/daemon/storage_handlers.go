@@ -34,7 +34,7 @@ func (s *Server) handleListStorage(w http.ResponseWriter, r *http.Request) {
 		storage = append(storage, volume)
 	}
 
-	json.NewEncoder(w).Encode(storage)
+	_ = json.NewEncoder(w).Encode(storage)
 }
 
 // handleCreateStorage creates a new storage volume
@@ -63,7 +63,7 @@ func (s *Server) handleCreateStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(volume)
+	_ = json.NewEncoder(w).Encode(volume)
 }
 
 // handleStorageOperations handles operations on specific storage volumes
@@ -113,7 +113,7 @@ func (s *Server) handleGetStorage(w http.ResponseWriter, r *http.Request, name s
 		return
 	}
 
-	json.NewEncoder(w).Encode(storage)
+	_ = json.NewEncoder(w).Encode(storage)
 }
 
 // handleDeleteStorage deletes a specific storage volume

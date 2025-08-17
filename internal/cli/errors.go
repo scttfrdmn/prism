@@ -13,7 +13,7 @@ func UserFriendlyError(err error, context string) error {
 	}
 
 	errorMsg := err.Error()
-	
+
 	// Transform common error patterns into helpful messages
 	switch {
 	case strings.Contains(errorMsg, "daemon not running"):
@@ -153,7 +153,7 @@ Need help?
 
 4. Open an issue: https://github.com/scttfrdmn/cloudworkstation/issues`, context, err)
 		}
-		
+
 		return err
 	}
 }
@@ -163,7 +163,7 @@ func FormatErrorForCLI(err error, operation string) string {
 	if err == nil {
 		return ""
 	}
-	
+
 	friendlyErr := UserFriendlyError(err, operation)
 	return friendlyErr.Error()
 }

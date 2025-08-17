@@ -12,40 +12,40 @@ type ErrorType string
 const (
 	// ErrorTypeValidation indicates a validation error (template, parameters, etc.)
 	ErrorTypeValidation ErrorType = "validation"
-	
+
 	// ErrorTypeInstance indicates an error with EC2 instance operations
 	ErrorTypeInstance ErrorType = "instance"
-	
+
 	// ErrorTypeCommand indicates an error executing commands via SSM
 	ErrorTypeCommand ErrorType = "command"
-	
+
 	// ErrorTypeImageCreation indicates an error creating or copying AMIs
 	ErrorTypeImageCreation ErrorType = "image_creation"
-	
+
 	// ErrorTypeSSM indicates an error with the AWS SSM service
 	ErrorTypeSSM ErrorType = "ssm"
-	
+
 	// ErrorTypeNetwork indicates a network configuration error
 	ErrorTypeNetwork ErrorType = "network"
-	
+
 	// ErrorTypeConfiguration indicates a configuration error
 	ErrorTypeConfiguration ErrorType = "configuration"
-	
+
 	// ErrorTypeRegistry indicates an error with the AMI registry
 	ErrorTypeRegistry ErrorType = "registry"
-	
+
 	// ErrorTypeInternal indicates an unexpected internal error
 	ErrorTypeInternal ErrorType = "internal"
-	
+
 	// ErrorTypeTemplateImport indicates a template import error
 	ErrorTypeTemplateImport ErrorType = "template_import"
-	
+
 	// ErrorTypeTemplateExport indicates a template export error
 	ErrorTypeTemplateExport ErrorType = "template_export"
-	
+
 	// ErrorTypeTemplateManagement indicates a template management error
 	ErrorTypeTemplateManagement ErrorType = "template_management"
-	
+
 	// ErrorTypeDependency indicates a template dependency error
 	ErrorTypeDependency ErrorType = "dependency"
 )
@@ -89,69 +89,69 @@ func (e *BuildError) IsRetryable() bool {
 // FormatErrorDetails returns a formatted string with error details.
 func (e *BuildError) FormatErrorDetails() string {
 	var details strings.Builder
-	
+
 	details.WriteString(fmt.Sprintf("Error Type: %s\n", e.Type))
 	details.WriteString(fmt.Sprintf("Error Message: %s\n", e.Message))
-	
+
 	if e.Cause != nil {
 		details.WriteString(fmt.Sprintf("Underlying Error: %v\n", e.Cause))
 	}
-	
+
 	if len(e.Context) > 0 {
 		details.WriteString("\nAdditional Context:\n")
 		for k, v := range e.Context {
 			details.WriteString(fmt.Sprintf("  %s: %s\n", k, v))
 		}
 	}
-	
+
 	details.WriteString(fmt.Sprintf("\nRetryable: %t\n", e.Retryable))
-	
+
 	details.WriteString("\nTroubleshooting:\n")
 	switch e.Type {
 	case ErrorTypeValidation:
 		details.WriteString("  - Verify template YAML format is correct\n")
 		details.WriteString("  - Check that all required fields are provided\n")
 		details.WriteString("  - Ensure specified regions are supported\n")
-		
+
 	case ErrorTypeInstance:
 		details.WriteString("  - Check EC2 service limits/quotas\n")
 		details.WriteString("  - Verify VPC/subnet configuration\n")
 		details.WriteString("  - Ensure security groups allow required traffic\n")
-		
+
 	case ErrorTypeCommand:
 		details.WriteString("  - Verify command syntax is correct\n")
 		details.WriteString("  - Check if command requires elevated privileges\n")
 		details.WriteString("  - Verify packages mentioned in commands are available\n")
-		
+
 	case ErrorTypeImageCreation:
 		details.WriteString("  - Check EC2 permissions for CreateImage API\n")
 		details.WriteString("  - Ensure instance is in 'running' state when creating AMI\n")
 		details.WriteString("  - Verify region has sufficient capacity for copying AMIs\n")
-		
+
 	case ErrorTypeSSM:
 		details.WriteString("  - Verify SSM agent is installed and running on instance\n")
 		details.WriteString("  - Check IAM permissions for SSM operations\n")
 		details.WriteString("  - Ensure network connectivity between SSM and instance\n")
-		
+
 	case ErrorTypeNetwork:
 		details.WriteString("  - Check VPC/subnet configuration\n")
 		details.WriteString("  - Verify security group rules\n")
 		details.WriteString("  - Ensure network interfaces are correctly configured\n")
-		
+
 	case ErrorTypeConfiguration:
 		details.WriteString("  - Verify VPC, subnet, and security group values\n")
 		details.WriteString("  - Check region and architecture compatibility\n")
 		details.WriteString("  - Ensure correct AWS credentials are being used\n")
-		
+
 	case ErrorTypeRegistry:
 		details.WriteString("  - Verify SSM parameter store permissions\n")
 		details.WriteString("  - Check parameter path prefix configuration\n")
-		
+
 	case ErrorTypeInternal:
 		details.WriteString("  - This appears to be a bug in the AMI builder\n")
 		details.WriteString("  - Please report this issue with the full error details\n")
 	}
-	
+
 	return details.String()
 }
 

@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 // setupTestEnvironment sets up the test environment
 func setupTestEnvironment() {
 	// Set any environment variables needed for tests
-	os.Setenv("TERM", "xterm-256color") // Ensure terminal supports colors
+	_ = os.Setenv("TERM", "xterm-256color") // Ensure terminal supports colors
 }
 
 // cleanupTestEnvironment cleans up the test environment

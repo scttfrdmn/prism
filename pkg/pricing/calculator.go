@@ -17,11 +17,11 @@ func NewCalculator(config *InstitutionalPricingConfig) *Calculator {
 
 // InstanceCostResult represents the result of instance cost calculation
 type InstanceCostResult struct {
-	ListPrice       float64 `json:"list_price"`       // AWS list price per hour
-	DiscountedPrice float64 `json:"discounted_price"` // Price after discounts
-	TotalDiscount   float64 `json:"total_discount"`   // Total discount percentage
-	DailyEstimate   float64 `json:"daily_estimate"`   // Estimated daily cost
-	MonthlyEstimate float64 `json:"monthly_estimate"` // Estimated monthly cost
+	ListPrice        float64           `json:"list_price"`        // AWS list price per hour
+	DiscountedPrice  float64           `json:"discounted_price"`  // Price after discounts
+	TotalDiscount    float64           `json:"total_discount"`    // Total discount percentage
+	DailyEstimate    float64           `json:"daily_estimate"`    // Estimated daily cost
+	MonthlyEstimate  float64           `json:"monthly_estimate"`  // Estimated monthly cost
 	AppliedDiscounts []DiscountApplied `json:"applied_discounts"` // List of applied discounts
 }
 
@@ -54,7 +54,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 		discount := c.config.GlobalDiscounts.EC2Discount
 		savings := discountedPrice * discount
 		discountedPrice = discountedPrice * (1 - discount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "global_ec2",
 			Description: fmt.Sprintf("Global EC2 discount (%s)", c.config.Institution),
@@ -68,7 +68,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 	if familyDiscount, exists := c.config.InstanceFamilyDiscounts[instanceFamily]; exists && familyDiscount > 0 {
 		savings := discountedPrice * familyDiscount
 		discountedPrice = discountedPrice * (1 - familyDiscount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "instance_family",
 			Description: fmt.Sprintf("%s instance family discount", instanceFamily),
@@ -82,7 +82,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 		discount := c.config.Programs.EducationalDiscount
 		savings := discountedPrice * discount
 		discountedPrice = discountedPrice * (1 - discount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "educational",
 			Description: "Educational institution discount",
@@ -96,7 +96,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 		discount := c.config.Enterprise.EDPDiscount
 		savings := discountedPrice * discount
 		discountedPrice = discountedPrice * (1 - discount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "enterprise_edp",
 			Description: "Enterprise Discount Program",
@@ -110,7 +110,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 		discount := regionalConfig.AdditionalDiscount
 		savings := discountedPrice * discount
 		discountedPrice = discountedPrice * (1 - discount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "regional",
 			Description: fmt.Sprintf("Regional discount for %s", region),
@@ -125,7 +125,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 		riDiscount := 0.40 * c.config.CommitmentPrograms.ReservedInstanceCoverage // Assume 40% RI discount
 		savings := discountedPrice * riDiscount
 		discountedPrice = discountedPrice * (1 - riDiscount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "reserved_instance",
 			Description: fmt.Sprintf("Reserved Instance modeling (%.0f%% coverage)", c.config.CommitmentPrograms.ReservedInstanceCoverage*100),
@@ -140,7 +140,7 @@ func (c *Calculator) CalculateInstanceCost(instanceType string, listPricePerHour
 		spDiscount := 0.15 * c.config.CommitmentPrograms.SavingsPlanCoverage // Additional 15% from Savings Plans
 		savings := discountedPrice * spDiscount
 		discountedPrice = discountedPrice * (1 - spDiscount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "savings_plan",
 			Description: fmt.Sprintf("Savings Plan modeling (%.0f%% coverage)", c.config.CommitmentPrograms.SavingsPlanCoverage*100),
@@ -203,7 +203,7 @@ func (c *Calculator) CalculateStorageCost(storageType string, sizeGB int, priceP
 	if discount > 0 {
 		savings := discountedPrice * discount
 		discountedPrice = discountedPrice * (1 - discount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        discountType,
 			Description: description,
@@ -217,7 +217,7 @@ func (c *Calculator) CalculateStorageCost(storageType string, sizeGB int, priceP
 		volumeDiscount := c.config.Enterprise.VolumeDiscount
 		savings := discountedPrice * volumeDiscount
 		discountedPrice = discountedPrice * (1 - volumeDiscount)
-		
+
 		appliedDiscounts = append(appliedDiscounts, DiscountApplied{
 			Type:        "volume",
 			Description: "Volume discount for large storage",
@@ -246,13 +246,13 @@ func (c *Calculator) GetSpotInstanceDiscount() float64 {
 	if c.config == nil {
 		return 0.70 // Default spot discount (70%)
 	}
-	
+
 	// Use preference as a proxy for expected spot savings
 	preference := c.config.CommitmentPrograms.SpotInstancePreference
 	if preference > 0 {
 		return 0.70 * preference // Scale spot discount by preference
 	}
-	
+
 	return 0.70 // Default spot discount
 }
 
@@ -270,18 +270,18 @@ func extractInstanceFamily(instanceType string) string {
 func (c *Calculator) GetPricingInfo() map[string]interface{} {
 	if c.config == nil {
 		return map[string]interface{}{
-			"institution": "None",
+			"institution":         "None",
 			"discounts_available": false,
-			"pricing_model": "list_price",
+			"pricing_model":       "list_price",
 		}
 	}
 
 	info := map[string]interface{}{
-		"institution": c.config.Institution,
+		"institution":         c.config.Institution,
 		"discounts_available": true,
-		"version": c.config.Version,
-		"contact": c.config.Contact,
-		"valid_until": c.config.ValidUntil,
+		"version":             c.config.Version,
+		"contact":             c.config.Contact,
+		"valid_until":         c.config.ValidUntil,
 	}
 
 	// Add discount summary

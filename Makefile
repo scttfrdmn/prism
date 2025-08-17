@@ -32,13 +32,13 @@ build-cli:
 .PHONY: build-gui
 build-gui:
 	@echo "Building CloudWorkstation GUI..."
-	@go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
+	@CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
 
 # Force GUI build (for development/testing only)
 .PHONY: build-gui-force
 build-gui-force:
 	@echo "⚠️  Force building CloudWorkstation GUI (may fail)..."
-	@go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
+	@CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
 
 # Install binaries to system
 .PHONY: install
@@ -179,26 +179,29 @@ release: clean
 	@mkdir -p bin/release
 	
 	# Linux amd64 (GUI excluded due to cross-compile OpenGL issues)
-	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cwsd ./cmd/cwsd
-	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o bin/release/linux-amd64-cws ./cmd/cws
+	@mkdir -p bin/release/linux-amd64
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/cwsd ./cmd/cwsd
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/cws ./cmd/cws
 	
 	# Linux arm64 (GUI excluded due to cross-compile OpenGL issues)
-	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cwsd ./cmd/cwsd
-	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o bin/release/linux-arm64-cws ./cmd/cws
+	@mkdir -p bin/release/linux-arm64
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/cwsd ./cmd/cwsd
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/cws ./cmd/cws
 	
 	# macOS amd64
-	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cwsd ./cmd/cwsd
-	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cws ./cmd/cws
-	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o bin/release/darwin-amd64-cws-gui ./cmd/cws-gui
+	@mkdir -p bin/release/darwin-amd64
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/cwsd ./cmd/cwsd
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/cws ./cmd/cws
 	
 	# macOS arm64 (Apple Silicon)
-	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cwsd ./cmd/cwsd
-	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cws ./cmd/cws
-	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o bin/release/darwin-arm64-cws-gui ./cmd/cws-gui
+	@mkdir -p bin/release/darwin-arm64
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/cwsd ./cmd/cwsd
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/cws ./cmd/cws
 	
 	# Windows amd64 (GUI excluded due to cross-compile OpenGL issues)
-	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cwsd.exe ./cmd/cwsd
-	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/release/windows-amd64-cws.exe ./cmd/cws
+	@mkdir -p bin/release/windows-amd64
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/cwsd.exe ./cmd/cwsd
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/cws.exe ./cmd/cws
 	
 	@echo "✅ Release binaries built in bin/release/"
 

@@ -16,7 +16,7 @@ func NewCompatibilityManager() (*CompatibilityManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core manager: %w", err)
 	}
-	
+
 	return &CompatibilityManager{
 		coreManager: core,
 	}, nil
@@ -61,11 +61,11 @@ func (cm *CompatibilityManager) ConvertToLegacyProfile(profile *Profile) LegacyP
 		Default:    profile.Default,
 		CreatedAt:  profile.CreatedAt,
 		LastUsed:   profile.LastUsed,
-		
+
 		// Legacy fields set to defaults
 		UpdatedAt:       time.Now(),
-		ExpiresAt:       nil,  // No expiration for simplified profiles
-		InvitationID:    "", 
+		ExpiresAt:       nil, // No expiration for simplified profiles
+		InvitationID:    "",
 		OrganizationID:  "",
 		InvitationToken: "",
 		OwnerAccount:    "",
@@ -74,7 +74,7 @@ func (cm *CompatibilityManager) ConvertToLegacyProfile(profile *Profile) LegacyP
 		Transferable:    false,
 		BindingRef:      "",
 	}
-	
+
 	return legacyProfile
 }
 
@@ -88,7 +88,7 @@ func (cm *CompatibilityManager) ConvertFromLegacyProfile(legacyProfile LegacyPro
 		CreatedAt:  legacyProfile.CreatedAt,
 		LastUsed:   legacyProfile.LastUsed,
 	}
-	
+
 	return profile
 }
 
@@ -99,11 +99,11 @@ func (cm *CompatibilityManager) ConvertFromLegacyProfile(legacyProfile LegacyPro
 func (cm *CompatibilityManager) ListProfiles() ([]LegacyProfile, error) {
 	coreProfiles := cm.coreManager.List()
 	legacyProfiles := make([]LegacyProfile, len(coreProfiles))
-	
+
 	for i, profile := range coreProfiles {
 		legacyProfiles[i] = cm.ConvertToLegacyProfile(profile)
 	}
-	
+
 	return legacyProfiles, nil
 }
 
@@ -119,7 +119,7 @@ func (cm *CompatibilityManager) GetCurrentProfile() (*LegacyProfile, error) {
 			return nil, err
 		}
 	}
-	
+
 	legacyProfile := cm.ConvertToLegacyProfile(coreProfile)
 	return &legacyProfile, nil
 }
@@ -136,7 +136,7 @@ func (cm *CompatibilityManager) GetProfile(name string) (*LegacyProfile, error) 
 			return nil, err
 		}
 	}
-	
+
 	legacyProfile := cm.ConvertToLegacyProfile(coreProfile)
 	return &legacyProfile, nil
 }
@@ -163,13 +163,13 @@ func (cm *CompatibilityManager) DeleteProfile(name string) error {
 func (cm *CompatibilityManager) ConvertToLegacyProfiles() (*LegacyProfiles, error) {
 	coreProfiles := cm.coreManager.List()
 	currentName := cm.coreManager.GetCurrentName()
-	
+
 	legacyProfileMap := make(map[string]LegacyProfile)
 	for _, coreProfile := range coreProfiles {
 		legacyProfile := cm.ConvertToLegacyProfile(coreProfile)
 		legacyProfileMap[coreProfile.Name] = legacyProfile
 	}
-	
+
 	return &LegacyProfiles{
 		Profiles:       legacyProfileMap,
 		CurrentProfile: currentName,

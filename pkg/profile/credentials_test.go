@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 // Define error for missing credentials
@@ -18,7 +16,7 @@ func TestAWSCredentialsProvider(t *testing.T) {
 	// Store test credentials
 	testProfile := "test-profile"
 	expiry := time.Now().Add(1 * time.Hour)
-	mockProvider.StoreCredentials(testProfile, &Credentials{
+	_ = mockProvider.StoreCredentials(testProfile, &Credentials{
 		AccessKeyID:     "test-access-key",
 		SecretAccessKey: "test-secret-key",
 		SessionToken:    "test-session-token",
@@ -62,7 +60,7 @@ func TestAWSCredentialsProvider(t *testing.T) {
 	}
 
 	// Test credentials without expiration
-	mockProvider.StoreCredentials("no-expiry", &Credentials{
+	_ = mockProvider.StoreCredentials("no-expiry", &Credentials{
 		AccessKeyID:     "test-access-key-2",
 		SecretAccessKey: "test-secret-key-2",
 		SessionToken:    "test-session-token-2",

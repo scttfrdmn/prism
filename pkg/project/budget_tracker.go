@@ -13,40 +13,39 @@ import (
 
 // BudgetTracker handles budget tracking and cost analysis for projects
 type BudgetTracker struct {
-	budgetPath   string
-	mutex        sync.RWMutex
-	budgetData   map[string]*ProjectBudgetData
+	budgetPath     string
+	mutex          sync.RWMutex
+	budgetData     map[string]*ProjectBudgetData
 	costCalculator *CostCalculator
 }
 
 // ProjectBudgetData stores budget tracking data for a project
 type ProjectBudgetData struct {
-	ProjectID    string                       `json:"project_id"`
-	Budget       *types.ProjectBudget         `json:"budget"`
-	CostHistory  []CostDataPoint              `json:"cost_history"`
-	AlertHistory []AlertEvent                 `json:"alert_history"`
-	LastUpdated  time.Time                    `json:"last_updated"`
+	ProjectID    string               `json:"project_id"`
+	Budget       *types.ProjectBudget `json:"budget"`
+	CostHistory  []CostDataPoint      `json:"cost_history"`
+	AlertHistory []AlertEvent         `json:"alert_history"`
+	LastUpdated  time.Time            `json:"last_updated"`
 }
 
 // CostDataPoint represents a point-in-time cost measurement
 type CostDataPoint struct {
-	Timestamp    time.Time           `json:"timestamp"`
-	TotalCost    float64             `json:"total_cost"`
+	Timestamp     time.Time            `json:"timestamp"`
+	TotalCost     float64              `json:"total_cost"`
 	InstanceCosts []types.InstanceCost `json:"instance_costs"`
 	StorageCosts  []types.StorageCost  `json:"storage_costs"`
-	DailyCost    float64             `json:"daily_cost"`
+	DailyCost     float64              `json:"daily_cost"`
 }
 
 // AlertEvent represents a budget alert event
 type AlertEvent struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	AlertType   types.BudgetAlertType  `json:"alert_type"`
-	Threshold   float64                `json:"threshold"`
-	SpentAmount float64                `json:"spent_amount"`
-	Message     string                 `json:"message"`
-	Resolved    bool                   `json:"resolved"`
+	Timestamp   time.Time             `json:"timestamp"`
+	AlertType   types.BudgetAlertType `json:"alert_type"`
+	Threshold   float64               `json:"threshold"`
+	SpentAmount float64               `json:"spent_amount"`
+	Message     string                `json:"message"`
+	Resolved    bool                  `json:"resolved"`
 }
-
 
 // NewBudgetTracker creates a new budget tracker
 func NewBudgetTracker() (*BudgetTracker, error) {
@@ -113,7 +112,7 @@ func (bt *BudgetTracker) UpdateProjectCosts(projectID string, instances []types.
 	// Calculate current costs
 	instanceCosts, totalInstanceCost := bt.costCalculator.CalculateInstanceCosts(instances)
 	storageCosts, totalStorageCost := bt.costCalculator.CalculateStorageCosts(volumes, ebsVolumes)
-	
+
 	totalCost := totalInstanceCost + totalStorageCost
 
 	// Create cost data point
@@ -127,7 +126,7 @@ func (bt *BudgetTracker) UpdateProjectCosts(projectID string, instances []types.
 
 	// Add to history
 	budgetData.CostHistory = append(budgetData.CostHistory, costPoint)
-	
+
 	// Keep only last 90 days of history
 	cutoffTime := time.Now().AddDate(0, 0, -90)
 	bt.trimCostHistory(budgetData, cutoffTime)
@@ -205,7 +204,7 @@ func (bt *BudgetTracker) GetResourceUsage(projectID string, period time.Duration
 
 	// Calculate metrics from cost history
 	startTime := time.Now().Add(-period)
-	
+
 	var totalComputeHours float64
 	var totalStorage float64
 	var hibernationSavings float64
@@ -260,17 +259,17 @@ func (bt *BudgetTracker) UpdateProjectSpending(projectID string, instanceCosts [
 
 	// Calculate total costs
 	var totalInstanceCost, totalStorageCost float64
-	
+
 	for _, instanceCost := range instanceCosts {
 		totalInstanceCost += instanceCost.TotalCost
 	}
-	
+
 	for _, storageCost := range storageCosts {
 		totalStorageCost += storageCost.Cost
 	}
-	
+
 	dailyTotalCost := totalInstanceCost + totalStorageCost
-	
+
 	// Add to previous spending (cumulative)
 	previousSpent := budgetData.Budget.SpentAmount
 	newTotalSpent := previousSpent + dailyTotalCost
@@ -286,7 +285,7 @@ func (bt *BudgetTracker) UpdateProjectSpending(projectID string, instanceCosts [
 
 	// Add to history
 	budgetData.CostHistory = append(budgetData.CostHistory, costPoint)
-	
+
 	// Keep only last 90 days of history
 	cutoffTime := time.Now().AddDate(0, 0, -90)
 	bt.trimCostHistory(budgetData, cutoffTime)
@@ -351,17 +350,17 @@ func (bt *BudgetTracker) CheckBudgetStatus(projectID string) (*BudgetStatus, err
 	triggeredActions := bt.getTriggeredActions(budgetData)
 
 	return &BudgetStatus{
-		ProjectID:                    projectID,
-		BudgetEnabled:                true,
-		TotalBudget:                  budget.TotalBudget,
-		SpentAmount:                  budget.SpentAmount,
-		RemainingBudget:              remainingBudget,
-		SpentPercentage:              spentPercentage,
-		ProjectedMonthlySpend:        projectedMonthlySpend,
-		DaysUntilBudgetExhausted:     daysUntilExhausted,
-		ActiveAlerts:                 activeAlerts,
-		TriggeredActions:             triggeredActions,
-		LastUpdated:                  time.Now(),
+		ProjectID:                projectID,
+		BudgetEnabled:            true,
+		TotalBudget:              budget.TotalBudget,
+		SpentAmount:              budget.SpentAmount,
+		RemainingBudget:          remainingBudget,
+		SpentPercentage:          spentPercentage,
+		ProjectedMonthlySpend:    projectedMonthlySpend,
+		DaysUntilBudgetExhausted: daysUntilExhausted,
+		ActiveAlerts:             activeAlerts,
+		TriggeredActions:         triggeredActions,
+		LastUpdated:              time.Now(),
 	}, nil
 }
 
@@ -393,7 +392,7 @@ func (bt *BudgetTracker) calculateProjectedMonthlySpend(costHistory []CostDataPo
 	// Calculate average daily spend over last 7 days
 	weekAgo := time.Now().AddDate(0, 0, -7)
 	var recentPoints []CostDataPoint
-	
+
 	for _, point := range costHistory {
 		if point.Timestamp.After(weekAgo) {
 			recentPoints = append(recentPoints, point)
@@ -407,7 +406,7 @@ func (bt *BudgetTracker) calculateProjectedMonthlySpend(costHistory []CostDataPo
 	// Calculate daily average
 	totalDailyCost := 0.0
 	validPoints := 0
-	
+
 	for _, point := range recentPoints {
 		if point.DailyCost > 0 {
 			totalDailyCost += point.DailyCost
@@ -468,7 +467,7 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 					break
 				}
 			}
-			
+
 			if !alreadyTriggered {
 				alertEvent := AlertEvent{
 					Timestamp:   time.Now(),
@@ -480,7 +479,7 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 				}
 
 				budgetData.AlertHistory = append(budgetData.AlertHistory, alertEvent)
-				
+
 				// TODO: Actually send the alert (email, slack, webhook)
 				// This would be implemented based on the alert type
 			}
@@ -499,11 +498,11 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 					break
 				}
 			}
-			
+
 			if !alreadyTriggered {
 				// TODO: Execute the auto action
 				// This would integrate with the hibernation/stop functionality
-				
+
 				// For testing, add to alert history as a triggered action
 				actionEvent := AlertEvent{
 					Timestamp:   time.Now(),
@@ -521,38 +520,13 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 	return nil
 }
 
-func (bt *BudgetTracker) shouldSendAlert(budgetData *ProjectBudgetData, threshold float64) bool {
-	// Don't send the same alert more than once per day
-	dayAgo := time.Now().AddDate(0, 0, -1)
-	
-	for _, event := range budgetData.AlertHistory {
-		if event.Threshold == threshold && event.Timestamp.After(dayAgo) {
-			return false
-		}
-	}
-	
-	return true
-}
-
-func (bt *BudgetTracker) shouldTriggerAction(budgetData *ProjectBudgetData, threshold float64) bool {
-	// Don't trigger the same action more than once per hour
-	hourAgo := time.Now().Add(-time.Hour)
-	
-	for _, event := range budgetData.AlertHistory {
-		if event.Threshold == threshold && event.Timestamp.After(hourAgo) {
-			return false
-		}
-	}
-	
-	return true
-}
 
 func (bt *BudgetTracker) getActiveAlerts(budgetData *ProjectBudgetData) []string {
 	var activeAlerts []string
-	
+
 	// Get alerts from last 24 hours - only actual alerts, not actions
 	dayAgo := time.Now().AddDate(0, 0, -1)
-	
+
 	for _, event := range budgetData.AlertHistory {
 		if event.Timestamp.After(dayAgo) && !event.Resolved {
 			// Only include actual alert types (email, slack, webhook), not actions
@@ -561,16 +535,16 @@ func (bt *BudgetTracker) getActiveAlerts(budgetData *ProjectBudgetData) []string
 			}
 		}
 	}
-	
+
 	return activeAlerts
 }
 
 func (bt *BudgetTracker) getTriggeredActions(budgetData *ProjectBudgetData) []string {
 	var triggeredActions []string
-	
+
 	// Get actions from last 24 hours
 	dayAgo := time.Now().AddDate(0, 0, -1)
-	
+
 	for _, event := range budgetData.AlertHistory {
 		if event.Timestamp.After(dayAgo) && !event.Resolved {
 			// Check if this is an action event (not a regular alert)
@@ -579,7 +553,7 @@ func (bt *BudgetTracker) getTriggeredActions(budgetData *ProjectBudgetData) []st
 			}
 		}
 	}
-	
+
 	return triggeredActions
 }
 

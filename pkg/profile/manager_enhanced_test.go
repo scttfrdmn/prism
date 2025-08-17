@@ -43,7 +43,7 @@ func TestManagerEnhanced(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create a mock credential provider
 	mockCredProvider := NewMockCredentialProvider()
@@ -94,7 +94,7 @@ func TestManagerEnhanced(t *testing.T) {
 		AccessKeyID:     "test-access-key",
 		SecretAccessKey: "test-secret-key",
 		SessionToken:    "test-session-token",
-		Expiration:      time.Now().Add(1 * time.Hour),
+		Expiration:      func() *time.Time { t := time.Now().Add(1 * time.Hour); return &t }(),
 	}
 
 	err = manager.StoreProfileCredentials("test-aws-profile", testCreds)
@@ -181,10 +181,10 @@ func TestManagerEnhanced(t *testing.T) {
 
 	// Add another profile to be able to switch
 	anotherProfile := Profile{
-		Type:      ProfileTypePersonal,
-		Name:      "Another Profile",
+		Type:       ProfileTypePersonal,
+		Name:       "Another Profile",
 		AWSProfile: "another-profile",
-		Region:    "eu-west-1",
+		Region:     "eu-west-1",
 	}
 	err = manager.AddProfile(anotherProfile)
 	if err != nil {

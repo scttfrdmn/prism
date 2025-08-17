@@ -1,53 +1,26 @@
 class Cloudworkstation < Formula
-  desc "Launch cloud research environments in seconds"
+  desc "Enterprise research management platform - Launch cloud research environments in seconds"
   homepage "https://github.com/scttfrdmn/cloudworkstation"
   license "MIT"
   head "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
+  
+  version "0.4.2"
 
-  # This stanza checks the latest release from GitHub
-  if OS.mac?
+  # Use prebuilt binaries for faster installation  
+  on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cws-macos-arm64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_DARWIN_ARM64" # Will be updated during release process
+      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cloudworkstation-darwin-arm64.tar.gz"
+      sha256 "831792e74d5d80325e14d3ad0d73600074958170d5deadf3159e332a6cd789f7"
     else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cws-macos-amd64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_DARWIN_AMD64" # Will be updated during release process
-    end
-  elsif OS.linux?
-    if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cws-linux-arm64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_LINUX_ARM64" # Will be updated during release process
-    else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cws-linux-amd64.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_LINUX_AMD64" # Will be updated during release process
+      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cloudworkstation-darwin-amd64.tar.gz"
+      sha256 "ef8be5312ba9c4b9848b6e223a7fead762449249f5db0315e888adbb2d1685ba"
     end
   end
 
-  version "0.4.2"
-
-  depends_on "go" => :build
-
   def install
-    # Install binaries from the archive (with platform-specific names)
-    platform_suffix = if OS.mac?
-                        Hardware::CPU.arm? ? "macos-arm64" : "macos-amd64"
-                      else
-                        Hardware::CPU.arm? ? "linux-arm64" : "linux-amd64"
-                      end
-    
-    bin.install "cws-#{platform_suffix}" => "cws"
-    bin.install "cwsd-#{platform_suffix}" => "cwsd"
-    
-    # Note: GUI component not available in distributed binaries due to cross-compilation constraints
-    # GUI functionality available when building from source on macOS
-
-    # Install completion scripts
-    bash_completion.install "completions/cws.bash" => "cws" if File.exist?("completions/cws.bash")
-    zsh_completion.install "completions/cws.zsh" => "_cws" if File.exist?("completions/cws.zsh")
-    fish_completion.install "completions/cws.fish" if File.exist?("completions/cws.fish")
-
-    # Install man pages if available
-    man1.install "man/cws.1" if File.exist?("man/cws.1")
+    # Install prebuilt binaries directly from working directory
+    bin.install "cws"
+    bin.install "cwsd"
   end
 
   def post_install
@@ -56,26 +29,56 @@ class Cloudworkstation < Formula
   end
 
   def caveats
-    <<~EOS
-      CloudWorkstation #{version} has been installed!
+    s = <<~EOS
+      CloudWorkstation #{version} has been installed with full functionality!
       
-      This distributed version includes CLI, TUI, and daemon functionality.
-      Note: GUI functionality requires building from source on macOS.
+      📦 Installed Components:
+        • CLI (cws) - Command-line interface with all latest features
+        • TUI (cws tui) - Terminal user interface
+        • Daemon (cwsd) - Background service
+    EOS
+    
+    if OS.mac?
+      s += <<~EOS
+        • GUI (cws-gui) - Desktop application with system tray
+      EOS
+    end
+    
+    s += <<~EOS
       
-      To start the CloudWorkstation daemon:
-        cwsd start
+      🚀 Quick Start:
+        cws profiles add personal research --aws-profile aws --region us-west-2
+        cws profiles switch personal
+        cws launch "Python Machine Learning (Simplified)" my-project
         
-      To launch your first cloud workstation:
-        cws launch python-research my-project
+      📚 Documentation:
+        cws help                    # Full command reference (Cobra CLI)
+        cws templates               # List available templates
+        cws daemon status           # Check daemon status
         
-      For full documentation:
-        cws help
+      🔧 Service Management:
+        brew services start cloudworkstation   # Auto-start daemon
+        brew services stop cloudworkstation    # Stop daemon service
+      
+      Note: Version 0.4.2 includes enterprise research features with prebuilt binaries for fast installation.
     EOS
   end
 
   test do
-    # Check if binaries can run and report version
-    assert_match "CloudWorkstation v#{version}", shell_output("#{bin}/cws --version")
-    assert_match "CloudWorkstation Daemon v#{version}", shell_output("#{bin}/cwsd --version")
+    # Test that binaries exist and are executable
+    assert_predicate bin/"cws", :exist?
+    assert_predicate bin/"cwsd", :exist?
+    
+    # Test version command
+    assert_match "CloudWorkstation v", shell_output("#{bin}/cws --version")
+    assert_match "CloudWorkstation v", shell_output("#{bin}/cwsd --version")
+  end
+
+  service do
+    run [opt_bin/"cwsd"]
+    keep_alive true
+    log_path var/"log/cloudworkstation/cwsd.log"
+    error_log_path var/"log/cloudworkstation/cwsd.log"
+    working_dir HOMEBREW_PREFIX
   end
 end

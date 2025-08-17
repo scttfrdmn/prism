@@ -47,13 +47,13 @@ func NewInstancesModel(apiClient apiClient) InstancesModel {
 		{Title: "PUBLIC IP", Width: 15},
 		{Title: "LAUNCH TIME", Width: 12},
 	}
-	
+
 	instancesTable := components.NewTable(columns, []table.Row{}, 80, 10, true)
-	
+
 	// Create status bar and spinner
 	statusBar := components.NewStatusBar("CloudWorkstation Instances", "")
 	spinner := components.NewSpinner("Loading instances...")
-	
+
 	return InstancesModel{
 		apiClient:      apiClient,
 		instancesTable: instancesTable,
@@ -96,9 +96,9 @@ func (m InstancesModel) performAction(action string) tea.Cmd {
 	if len(m.instances) == 0 || m.selected >= len(m.instances) {
 		return nil
 	}
-	
+
 	instance := m.instances[m.selected]
-	
+
 	return func() tea.Msg {
 		var err error
 		switch action {
@@ -109,7 +109,7 @@ func (m InstancesModel) performAction(action string) tea.Cmd {
 		case "delete":
 			err = m.apiClient.DeleteInstance(context.Background(), instance.Name)
 		}
-		
+
 		if err != nil {
 			return InstanceActionMsg{
 				Action:  action,
@@ -134,11 +134,11 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.statusBar.SetWidth(msg.Width)
-		
+
 		// Update table dimensions
 		tableHeight := m.height - 6 // Account for title, help, and status
 		m.instancesTable.SetSize(m.width-4, tableHeight)
-		
+
 		return m, nil
 
 	case tea.KeyMsg:
@@ -165,13 +165,13 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.loading = true
 				m.error = ""
 				return m, m.fetchInstances
-				
+
 			case "a":
 				if len(m.instances) > 0 {
 					m.showingActions = true
 					return m, nil
 				}
-				
+
 			case "c":
 				// Show connection info for selected instance
 				if len(m.instances) > 0 && m.selected < len(m.instances) {
@@ -179,18 +179,18 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.actionMessage = fmt.Sprintf("SSH: ssh %s@%s", "ubuntu", instance.PublicIP)
 					return m, nil
 				}
-				
+
 			case "q", "esc":
 				return m, tea.Quit
 			}
-			
+
 			// Handle table navigation when not loading
 			if !m.loading && len(m.instances) > 0 {
 				var cmd tea.Cmd
 				m.instancesTable, cmd = m.instancesTable.Update(msg)
 				cmds = append(cmds, cmd)
-				
-				// Update selected index based on table selection  
+
+				// Update selected index based on table selection
 				selectedRow := m.instancesTable.SelectedRow()
 				if len(selectedRow) > 0 {
 					// Find the index of the selected instance by name
@@ -228,7 +228,7 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case *api.ListInstancesResponse:
 		m.loading = false
 		m.instances = msg.Instances
-		
+
 		// Update instances table
 		rows := []table.Row{}
 		for _, instance := range m.instances {
@@ -237,13 +237,13 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if !instance.LaunchTime.IsZero() {
 				launchTime = instance.LaunchTime.Format("01/02 15:04")
 			}
-			
+
 			// Format spot/on-demand indicator
 			typeIndicator := "OD"
 			if instance.InstanceLifecycle == "spot" {
 				typeIndicator = "SP"
 			}
-			
+
 			rows = append(rows, table.Row{
 				instance.Name,
 				instance.Template,
@@ -254,10 +254,10 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				launchTime,
 			})
 		}
-		
+
 		m.instancesTable.SetRows(rows)
 		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d instances", len(m.instances)), components.StatusSuccess)
-		
+
 		// Schedule next refresh
 		cmds = append(cmds, m.refreshTicker())
 	}
@@ -275,50 +275,50 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the instances view
 func (m InstancesModel) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Title section
 	title := theme.Title.Render("CloudWorkstation Instances")
-	
+
 	// Content area
 	var content string
 	if m.loading {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4). // Account for title and status bar
+			Height(m.height-4). // Account for title and status bar
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(m.spinner.View())
 	} else if m.error != "" {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4).
+			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(theme.StatusError.Render("Error: " + m.error))
 	} else if len(m.instances) == 0 {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4).
+			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render("No instances found. Use 'cws launch' to create one.")
 	} else {
 		// Main instances table
 		content = m.instancesTable.View()
-		
+
 		// Show action menu if requested
 		if m.showingActions && m.selected < len(m.instances) {
 			instance := m.instances[m.selected]
-			actionMenu := theme.Panel.Copy().
+			actionMenu := theme.Panel.
 				Width(40).
 				Render(lipgloss.JoinVertical(
 					lipgloss.Left,
 					theme.PanelHeader.Render(fmt.Sprintf("Actions for %s", instance.Name)),
 					"",
 					"s - Start instance",
-					"p - Stop instance", 
+					"p - Stop instance",
 					"d - Delete instance",
 					"",
 					"esc - Cancel",
 				))
-			
+
 			// Overlay action menu
 			content = lipgloss.Place(
 				m.width, m.height-4,
@@ -327,18 +327,18 @@ func (m InstancesModel) View() string {
 				lipgloss.WithWhitespaceChars(""),
 			)
 		}
-		
+
 		// Show action message if present
 		if m.actionMessage != "" {
-			messageBox := theme.Panel.Copy().
+			messageBox := theme.Panel.
 				Width(min(len(m.actionMessage)+4, m.width-4)).
 				Render(m.actionMessage)
-			
+
 			content += "\n" + messageBox
 			m.actionMessage = "" // Clear after showing
 		}
 	}
-	
+
 	// Help text
 	var help string
 	if m.showingActions {
@@ -346,7 +346,7 @@ func (m InstancesModel) View() string {
 	} else {
 		help = theme.Help.Render("r: refresh • a: actions • c: connect info • q: quit • ↑/↓: navigate")
 	}
-	
+
 	// Join everything together
 	return lipgloss.JoinVertical(
 		lipgloss.Left,

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,10 +33,10 @@ func TestWithProfile(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	
+
 	// Create base client
 	client := NewClient(server.URL)
-	
+
 	// Create profile manager mock
 	profiles := map[string]profile.Profile{
 		"personal-id": {
@@ -54,51 +54,51 @@ func TestWithProfile(t *testing.T) {
 			S3ConfigPath:    "s3://config/path",
 		},
 	}
-	
+
 	mockProfileManager := &mockProfileManager{
 		profiles: profiles,
 	}
-	
+
 	t.Run("WithPersonalProfile", func(t *testing.T) {
 		// Get client with personal profile
 		profileClient, err := client.WithProfile(mockProfileManager, "personal-id")
 		require.NoError(t, err)
-		
+
 		// Make request
 		req, err := http.NewRequest("GET", server.URL+"/personal", nil)
 		require.NoError(t, err)
-		
+
 		profileClient.addRequestHeaders(req)
-		
+
 		// Send request
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		// Check response
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
-	
+
 	t.Run("WithInvitationProfile", func(t *testing.T) {
 		// Get client with invitation profile
 		profileClient, err := client.WithProfile(mockProfileManager, "invitation-id")
 		require.NoError(t, err)
-		
+
 		// Make request
 		req, err := http.NewRequest("GET", server.URL+"/invitation", nil)
 		require.NoError(t, err)
-		
+
 		profileClient.addRequestHeaders(req)
-		
+
 		// Send request
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		// Check response
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
-	
+
 	t.Run("WithNonExistentProfile", func(t *testing.T) {
 		// Get client with non-existent profile
 		_, err := client.WithProfile(mockProfileManager, "non-existent")
@@ -119,15 +119,15 @@ func TestContextClient_WithProfile(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	
+
 	// Create base client
 	baseClient := NewClient(server.URL)
-	
+
 	// Create context client
 	client := &ContextClient{
 		client: baseClient,
 	}
-	
+
 	// Create profile manager mock
 	profiles := map[string]profile.Profile{
 		"profile-id": {
@@ -137,28 +137,28 @@ func TestContextClient_WithProfile(t *testing.T) {
 			Region:     "us-west-2",
 		},
 	}
-	
+
 	mockProfileManager := &mockProfileManager{
 		profiles: profiles,
 	}
-	
+
 	// Get client with profile
 	contextClient, err := client.WithProfile(mockProfileManager, "profile-id")
 	require.NoError(t, err)
-	
+
 	// Test that the context client works with the profile
 	ctx := context.Background()
 	req, _ := http.NewRequestWithContext(ctx, "GET", server.URL+"/api/test", nil)
-	
+
 	// Get the underlying client and add headers
 	baseClient = contextClient.client
 	baseClient.addRequestHeaders(req)
-	
+
 	// Send request
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	
+
 	// Check response
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
@@ -171,18 +171,18 @@ func TestWithProfileContext(t *testing.T) {
 		AWSProfile: "test-profile",
 		Region:     "us-west-2",
 	}
-	
+
 	// Create context with profile
 	ctx := context.Background()
 	ctxWithProfile := WithProfileContext(ctx, prof)
-	
+
 	// Get profile from context
 	retrievedProf, ok := GetProfileFromContext(ctxWithProfile)
-	
+
 	// Check that profile was retrieved correctly
 	assert.True(t, ok)
 	assert.Equal(t, prof, retrievedProf)
-	
+
 	// Try getting profile from a context without one
 	emptyCtx := context.Background()
 	emptyProf, ok := GetProfileFromContext(emptyCtx)

@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -55,11 +55,11 @@ func (c *Client) AddRepositoryLegacy(repo types.TemplateRepositoryUpdate) error 
 	if err != nil {
 		return fmt.Errorf("failed to add repository: %w", err)
 	}
-	
+
 	if !resp.Success {
 		return fmt.Errorf("API error: %s", resp.Message)
 	}
-	
+
 	return nil
 }
 
@@ -75,11 +75,11 @@ func (c *Client) UpdateRepositoryLegacy(repo types.TemplateRepositoryUpdate) err
 	if err != nil {
 		return fmt.Errorf("failed to update repository: %w", err)
 	}
-	
+
 	if !resp.Success {
 		return fmt.Errorf("API error: %s", resp.Message)
 	}
-	
+
 	return nil
 }
 
@@ -94,7 +94,7 @@ func (c *Client) RemoveRepositoryLegacy(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to remove repository: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -110,11 +110,11 @@ func (c *Client) SyncRepositoriesLegacy() error {
 	if err != nil {
 		return fmt.Errorf("failed to sync repositories: %w", err)
 	}
-	
+
 	if !resp.Success {
 		return fmt.Errorf("API error: %s", resp.Message)
 	}
-	
+
 	return nil
 }
 

@@ -58,29 +58,31 @@ func (a *App) handleAMIBuild(args []string) error {
 	dryRun := cmdArgs["dry-run"] != ""
 	subnetID := cmdArgs["subnet"]
 	vpcID := cmdArgs["vpc"]
-	
+
+	ctx := context.Background()
+
 	// Auto-discover VPC and subnet if not provided (much better UX)
 	if !dryRun {
 		if vpcID == "" || subnetID == "" {
 			fmt.Printf("🔍 Auto-discovering default VPC and subnet...\n")
-			
+
 			// Initialize AWS clients for discovery
-			cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+			cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 			if err != nil {
 				return fmt.Errorf("failed to load AWS config: %w", err)
 			}
 			discoveryClient := ec2.NewFromConfig(cfg)
-			
+
 			if vpcID == "" {
-				vpcID, err = discoverDefaultVPC(context.TODO(), discoveryClient)
+				vpcID, err = discoverDefaultVPC(ctx, discoveryClient)
 				if err != nil {
 					return fmt.Errorf("failed to discover default VPC (you can specify with --vpc): %w", err)
 				}
 				fmt.Printf("   ✅ Using default VPC: %s\n", vpcID)
 			}
-			
+
 			if subnetID == "" {
-				subnetID, err = discoverPublicSubnet(context.TODO(), discoveryClient, vpcID)
+				subnetID, err = discoverPublicSubnet(ctx, discoveryClient, vpcID)
 				if err != nil {
 					return fmt.Errorf("failed to discover public subnet in VPC %s (you can specify with --subnet): %w", vpcID, err)
 				}
@@ -101,7 +103,7 @@ func (a *App) handleAMIBuild(args []string) error {
 	}
 
 	// Initialize AWS clients
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -169,8 +171,8 @@ func (a *App) handleAMIBuild(args []string) error {
 	} else {
 		fmt.Println("Starting dry run build... simulating steps without creating resources")
 	}
-	
-	result, err := builder.BuildAMI(context.TODO(), buildRequest)
+
+	result, err := builder.BuildAMI(ctx, buildRequest)
 	if err != nil {
 		return fmt.Errorf("AMI build failed: %w", err)
 	}
@@ -216,7 +218,8 @@ func (a *App) handleAMIList(args []string) error {
 	}
 
 	// Initialize AWS clients
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -228,7 +231,7 @@ func (a *App) handleAMIList(args []string) error {
 
 	if templateName != "" {
 		// List AMIs for specific template
-		amis, err := registry.ListTemplateAMIs(context.TODO(), templateName)
+		amis, err := registry.ListTemplateAMIs(ctx, templateName)
 		if err != nil {
 			return fmt.Errorf("failed to list AMIs: %w", err)
 		}
@@ -244,7 +247,7 @@ func (a *App) handleAMIList(args []string) error {
 		}
 	} else {
 		// List all templates
-		templates, err := registry.ListTemplates(context.TODO())
+		templates, err := registry.ListTemplates(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to list templates: %w", err)
 		}
@@ -352,7 +355,8 @@ func (a *App) handleAMIPublish(args []string) error {
 	}
 
 	// Initialize AWS clients
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -364,17 +368,17 @@ func (a *App) handleAMIPublish(args []string) error {
 
 	// Create a build result to publish
 	result := &ami.BuildResult{
-		TemplateID:    fmt.Sprintf("%s-%d", templateName, time.Now().Unix()),
-		TemplateName:  templateName,
-		Region:        region,
-		Architecture:  architecture,
-		AMIID:         amiID,
-		Status:        "manual",
-		BuildTime:     time.Now(),
+		TemplateID:   fmt.Sprintf("%s-%d", templateName, time.Now().Unix()),
+		TemplateName: templateName,
+		Region:       region,
+		Architecture: architecture,
+		AMIID:        amiID,
+		Status:       "manual",
+		BuildTime:    time.Now(),
 	}
 
 	// Publish to registry
-	err = registry.PublishAMI(context.TODO(), result)
+	err = registry.PublishAMI(ctx, result)
 	if err != nil {
 		return fmt.Errorf("failed to publish AMI: %w", err)
 	}
@@ -414,12 +418,13 @@ func (a *App) handleAMISave(args []string) error {
 	}
 
 	// Check daemon is running
-	if err := a.apiClient.Ping(context.TODO()); err != nil {
+	ctx := context.Background()
+	if err := a.apiClient.Ping(ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
 	}
 
 	// Get instance information from daemon API
-	instances, err := a.apiClient.ListInstances(context.TODO())
+	instances, err := a.apiClient.ListInstances(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get instance list: %w", err)
 	}
@@ -441,7 +446,7 @@ func (a *App) handleAMISave(args []string) error {
 	}
 
 	// Initialize AWS clients
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -476,9 +481,9 @@ func (a *App) handleAMISave(args []string) error {
 		ProjectID:     projectID,
 		Public:        public,
 		Tags: map[string]string{
-			"Name":                        templateName,
-			"CloudWorkstationTemplate":    templateName,
-			"CloudWorkstationSavedFrom":   instanceName,
+			"Name":                             templateName,
+			"CloudWorkstationTemplate":         templateName,
+			"CloudWorkstationSavedFrom":        instanceName,
 			"CloudWorkstationOriginalTemplate": instance.Template,
 		},
 	}
@@ -491,14 +496,14 @@ func (a *App) handleAMISave(args []string) error {
 	// Confirm before proceeding
 	fmt.Printf("Continue? (y/N): ")
 	var response string
-	fmt.Scanln(&response)
+	_, _ = fmt.Scanln(&response)
 	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 		fmt.Println("Operation cancelled")
 		return nil
 	}
 
 	// Create AMI from instance
-	result, err := builder.CreateAMIFromInstance(context.TODO(), saveRequest)
+	result, err := builder.CreateAMIFromInstance(ctx, saveRequest)
 	if err != nil {
 		return fmt.Errorf("failed to save instance as AMI: %w", err)
 	}
@@ -507,7 +512,7 @@ func (a *App) handleAMISave(args []string) error {
 	fmt.Printf("\n🎉 Successfully saved instance as AMI!\n")
 	fmt.Printf("📸 AMI ID: %s\n", result.AMIID)
 	fmt.Printf("🕒 Build time: %s\n", result.BuildDuration)
-	
+
 	if len(result.CopiedAMIs) > 0 {
 		fmt.Printf("\n🌍 AMI copied to additional regions:\n")
 		for region, amiID := range result.CopiedAMIs {
@@ -534,11 +539,11 @@ func discoverDefaultVPC(ctx context.Context, client *ec2.Client) (string, error)
 	if err != nil {
 		return "", fmt.Errorf("failed to describe VPCs: %w", err)
 	}
-	
+
 	if len(result.Vpcs) == 0 {
 		return "", fmt.Errorf("no default VPC found - please create one or specify --vpc")
 	}
-	
+
 	return *result.Vpcs[0].VpcId, nil
 }
 
@@ -556,11 +561,11 @@ func discoverPublicSubnet(ctx context.Context, client *ec2.Client, vpcID string)
 	if err != nil {
 		return "", fmt.Errorf("failed to describe subnets: %w", err)
 	}
-	
+
 	if len(result.Subnets) == 0 {
 		return "", fmt.Errorf("no subnets found in VPC %s", vpcID)
 	}
-	
+
 	// Find a public subnet by checking route tables
 	for _, subnet := range result.Subnets {
 		isPublic, err := isSubnetPublic(ctx, client, *subnet.SubnetId)
@@ -571,7 +576,7 @@ func discoverPublicSubnet(ctx context.Context, client *ec2.Client, vpcID string)
 			return *subnet.SubnetId, nil
 		}
 	}
-	
+
 	// If no clearly public subnet found, use the first available subnet
 	// (this handles cases where route table detection fails)
 	return *result.Subnets[0].SubnetId, nil
@@ -591,7 +596,7 @@ func isSubnetPublic(ctx context.Context, client *ec2.Client, subnetID string) (b
 	if err != nil {
 		return false, err
 	}
-	
+
 	// Check each route table for internet gateway routes
 	for _, routeTable := range result.RouteTables {
 		for _, route := range routeTable.Routes {
@@ -603,7 +608,7 @@ func isSubnetPublic(ctx context.Context, client *ec2.Client, subnetID string) (b
 			}
 		}
 	}
-	
+
 	return false, nil
 }
 

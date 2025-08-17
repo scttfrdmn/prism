@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package aws
@@ -26,7 +27,8 @@ func setupLocalStackManager(t *testing.T) *Manager {
 		t.Skip("Skipping integration test - set INTEGRATION_TESTS=1 to run")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
 		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(

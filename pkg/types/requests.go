@@ -4,18 +4,19 @@ package types
 type LaunchRequest struct {
 	Template       string   `json:"template"`
 	Name           string   `json:"name"`
-	Size           string   `json:"size,omitempty"`           // XS, S, M, L, XL, GPU-S, etc.
+	Size           string   `json:"size,omitempty"`            // XS, S, M, L, XL, GPU-S, etc.
 	PackageManager string   `json:"package_manager,omitempty"` // auto, conda, spack, apt
-	Volumes        []string `json:"volumes,omitempty"`        // EFS volume names to attach
-	EBSVolumes     []string `json:"ebs_volumes,omitempty"`    // EBS volume IDs to attach
+	Volumes        []string `json:"volumes,omitempty"`         // EFS volume names to attach
+	EBSVolumes     []string `json:"ebs_volumes,omitempty"`     // EBS volume IDs to attach
 	Region         string   `json:"region,omitempty"`
 	SubnetID       string   `json:"subnet_id,omitempty"`
 	VpcID          string   `json:"vpc_id,omitempty"`
-	ProjectID      string   `json:"project_id,omitempty"`     // Project to associate instance with
-	SSHKeyName     string   `json:"ssh_key_name,omitempty"`   // AWS key pair name to use
+	ProjectID      string   `json:"project_id,omitempty"`   // Project to associate instance with
+	SSHKeyName     string   `json:"ssh_key_name,omitempty"` // AWS key pair name to use
 	Spot           bool     `json:"spot,omitempty"`
-	Hibernation    bool     `json:"hibernation,omitempty"`    // Enable hibernation support
+	Hibernation    bool     `json:"hibernation,omitempty"` // Enable hibernation support
 	DryRun         bool     `json:"dry_run,omitempty"`
+	Wait           bool     `json:"wait,omitempty"` // Wait and show launch progress
 }
 
 // LaunchResponse represents a successful launch response

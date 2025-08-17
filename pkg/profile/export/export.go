@@ -15,10 +15,10 @@ import (
 
 // ExportFormat defines the format version of exported profiles
 type ExportFormat struct {
-	Version    string             `json:"version"`
-	ExportedAt time.Time          `json:"exported_at"`
-	Profiles   []profile.Profile  `json:"profiles"`
-	Metadata   map[string]string  `json:"metadata"`
+	Version    string            `json:"version"`
+	ExportedAt time.Time         `json:"exported_at"`
+	Profiles   []profile.Profile `json:"profiles"`
+	Metadata   map[string]string `json:"metadata"`
 }
 
 // ExportOptions defines options for profile export
@@ -57,7 +57,7 @@ func ExportProfiles(profileManager *profile.ManagerEnhanced, profiles []profile.
 	if err != nil {
 		return fmt.Errorf("failed to create temporary directory: %w", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create profiles JSON file
 	profilesJSON, err := json.MarshalIndent(exportData, "", "  ")
@@ -123,7 +123,7 @@ func ExportProfiles(profileManager *profile.ManagerEnhanced, profiles []profile.
 // ImportProfiles imports profiles from a file
 func ImportProfiles(profileManager *profile.ManagerEnhanced, inputPath string, options ImportOptions) (*ImportResult, error) {
 	result := &ImportResult{
-		Success:         true,
+		Success:          true,
 		ProfilesImported: 0,
 		FailedProfiles:   make(map[string]string),
 	}
@@ -133,7 +133,7 @@ func ImportProfiles(profileManager *profile.ManagerEnhanced, inputPath string, o
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Extract zip if the input is a zip file
 	if filepath.Ext(inputPath) == ".zip" {
@@ -248,10 +248,10 @@ func DefaultImportOptions() ImportOptions {
 
 // ImportResult contains the results of a profile import operation
 type ImportResult struct {
-	Success         bool
+	Success          bool
 	ProfilesImported int
 	FailedProfiles   map[string]string
-	Error           string
+	Error            string
 }
 
 // Helper functions
@@ -280,11 +280,11 @@ func createZipArchive(sourceDir, outputPath, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer outFile.Close()
+	defer func() { _ = outFile.Close() }()
 
 	// Create zip writer
 	zipWriter := zip.NewWriter(outFile)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 
 	// Walk through the source directory
 	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
@@ -314,7 +314,7 @@ func createZipArchive(sourceDir, outputPath, password string) error {
 		if err != nil {
 			return fmt.Errorf("failed to open source file: %w", err)
 		}
-		defer srcFile.Close()
+		defer func() { _ = srcFile.Close() }()
 
 		// Copy file content
 		_, err = io.Copy(zipFile, srcFile)
@@ -333,7 +333,7 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open zip file: %w", err)
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	// Extract files
 	for _, file := range reader.File {
@@ -359,14 +359,14 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 		// Create output file
 		outFile, err := os.Create(outPath)
 		if err != nil {
-			srcFile.Close()
+			_ = srcFile.Close()
 			return fmt.Errorf("failed to create output file: %w", err)
 		}
 
 		// Copy content
 		_, err = io.Copy(outFile, srcFile)
-		srcFile.Close()
-		outFile.Close()
+		_ = srcFile.Close()
+		_ = outFile.Close()
 
 		if err != nil {
 			return fmt.Errorf("failed to copy file content: %w", err)
@@ -383,14 +383,14 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	// Create destination file
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	// Copy content
 	_, err = io.Copy(dstFile, srcFile)

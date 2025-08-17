@@ -41,23 +41,21 @@ func main() {
 	// Define flags
 	versionFlag := flag.Bool("version", false, "Show version information")
 	helpFlag := flag.Bool("help", false, "Show help information")
-	
+
 	// Parse flags but keep command and arguments separate
-	flag.CommandLine.Parse(os.Args[1:])
-	
+	_ = flag.CommandLine.Parse(os.Args[1:])
+
 	// Handle version and help flags
 	if *versionFlag {
 		fmt.Println(version.GetVersionInfo())
 		return
 	}
-	
+
 	if *helpFlag {
 		printUsage()
 		return
 	}
-	
-	
-	
+
 	// Create app
 	cliApp := cli.NewApp(version.GetVersion())
 
@@ -75,7 +73,7 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Usage:")
 	fmt.Println("  cws [options] <command> [arguments]")
-	
+
 	fmt.Println()
 	fmt.Println("Options:")
 	fmt.Println("  --version        Show version information")
@@ -84,7 +82,7 @@ func printUsage() {
 	fmt.Println("Commands:")
 	fmt.Println("  tui                                 Launch terminal UI")
 	fmt.Println("  launch <template> <name> [options]  Launch a new workstation")
-	fmt.Println("    --project <name>                  Associate with project")  
+	fmt.Println("    --project <name>                  Associate with project")
 	fmt.Println("    --size <XS|S|M|L|XL>              Instance size")
 	fmt.Println("    --spot                            Use spot instances")
 	fmt.Println("    --volume <name>                   Attach EFS volume")
@@ -109,7 +107,7 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("  apply <template> <instance>         Apply template to running instance")
 	fmt.Println("  diff <template> <instance>          Show template differences")
-	fmt.Println("  layers <instance>                   List applied template layers")  
+	fmt.Println("  layers <instance>                   List applied template layers")
 	fmt.Println("  rollback <instance>                 Rollback template applications")
 	fmt.Println()
 	fmt.Println("  volume <action> [args]              Manage EFS volumes")
@@ -156,11 +154,33 @@ func printUsage() {
 	fmt.Println("    example [filename]                Create example pricing config")
 	fmt.Println("    calculate <type> <price> [region] Calculate discounted pricing")
 	fmt.Println()
-	fmt.Println("  idle <action> [args]                Configure runtime idle detection on instances")
-	fmt.Println("    configure <instance> [options]    Configure idle thresholds on running instance")
-	fmt.Println("      --idle-minutes <N>              Minutes before considered idle")
-	fmt.Println("      --hibernate-minutes <N>         Minutes before hibernation/stop")
-	fmt.Println("      --check-interval <N>            Check interval in minutes")
+	fmt.Println("  idle <action> [args]                Manage idle detection and hibernation policies")
+	fmt.Println("    status [instance]                 Show idle detection status")
+	fmt.Println("    enable                            Enable idle detection")
+	fmt.Println("    disable                           Disable idle detection")
+	fmt.Println("    profile list                      List idle detection profiles")
+	fmt.Println("    profile create <name> [options]   Create new idle profile")
+	fmt.Println("    instance <name> [options]         Set instance-specific idle settings")
+	fmt.Println("    history [instance]                Show idle action history")
+	fmt.Println()
+	fmt.Println("  profiles <action> [args]            Manage CloudWorkstation profiles")
+	fmt.Println("    list                              List all profiles")
+	fmt.Println("    current                           Show current active profile")
+	fmt.Println("    add <name> <display> [options]    Add new profile")
+	fmt.Println("      --aws-profile <name>            AWS CLI profile to use")
+	fmt.Println("      --region <region>               AWS region")
+	fmt.Println("    switch <name>                     Switch to profile")
+	fmt.Println("    remove <name>                     Remove profile")
+	fmt.Println("    export                            Export profiles to file")
+	fmt.Println("    import <file>                     Import profiles from file")
+	fmt.Println()
+	fmt.Println("  security <action> [args]            Security management and compliance")
+	fmt.Println("    status                            Show security configuration")
+	fmt.Println("    health                            Perform security health check")
+	fmt.Println("    compliance <framework>            Compliance operations")
+	fmt.Println("      validate <framework>            Validate against compliance framework")
+	fmt.Println("      report <framework>              Generate compliance report")
+	fmt.Println("      scp <framework>                 Generate Service Control Policies")
 	fmt.Println()
 	fmt.Println("  version                             Show version")
 	fmt.Println("  help                                Show this help")
@@ -187,6 +207,10 @@ func printUsage() {
 	fmt.Println("  cws pricing show                            # Show institutional pricing config")
 	fmt.Println("  cws pricing install university_pricing.json  # Install institutional discounts")
 	fmt.Println("  cws pricing calculate c5.large 0.096 us-west-2  # Calculate discounted pricing")
+	fmt.Println("  cws profiles add personal research --aws-profile aws --region us-west-2  # Add profile")
+	fmt.Println("  cws profiles switch personal                # Switch to profile")
+	fmt.Println("  cws security health                         # Check security status")
+	fmt.Println("  cws idle profile list                       # Show hibernation policies")
 	fmt.Println()
 	fmt.Println("T-shirt sizes (compute + storage):")
 	fmt.Println("  XS: 1 vCPU, 2GB RAM + 100GB     S: 2 vCPU, 4GB RAM + 500GB")
@@ -195,4 +219,3 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Smart scaling: GPU workloads → g4dn/g5g family, Memory → r5/r6g, Compute → c5/c6g")
 }
-

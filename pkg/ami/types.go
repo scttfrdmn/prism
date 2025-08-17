@@ -62,10 +62,10 @@ type BuildRequest struct {
 	Template      Template
 	Region        string
 	Architecture  string
-	Version       string    // Semantic version in format major.minor.patch
+	Version       string // Semantic version in format major.minor.patch
 	DryRun        bool
 	BuildID       string
-	BuildType     string   // "scheduled", "manual", "ci"
+	BuildType     string // "scheduled", "manual", "ci"
 	VpcID         string
 	SubnetID      string
 	SecurityGroup string
@@ -75,14 +75,14 @@ type BuildRequest struct {
 
 // InstanceSaveRequest contains parameters for saving a running instance as an AMI
 type InstanceSaveRequest struct {
-	InstanceID     string            // EC2 instance ID to save
-	InstanceName   string            // CloudWorkstation instance name
-	TemplateName   string            // Name for the new template
-	Description    string            // Template description
-	CopyToRegions  []string          // Regions to copy AMI
-	Tags           map[string]string // Custom tags
-	ProjectID      string            // Associated project (Phase 4)
-	Public         bool              // Allow public sharing
+	InstanceID    string            // EC2 instance ID to save
+	InstanceName  string            // CloudWorkstation instance name
+	TemplateName  string            // Name for the new template
+	Description   string            // Template description
+	CopyToRegions []string          // Regions to copy AMI
+	Tags          map[string]string // Custom tags
+	ProjectID     string            // Associated project (Phase 4)
+	Public        bool              // Allow public sharing
 }
 
 // BuildResult contains the outcome of an AMI build
@@ -167,7 +167,7 @@ type Validator struct {
 // NewValidator creates a new AMI validator
 func NewValidator(ssmClient *ssm.Client, options ValidatorOptions) *Validator {
 	return &Validator{
-		SSMClient: ssmClient, 
+		SSMClient: ssmClient,
 		Options:   options,
 	}
 }
@@ -177,21 +177,21 @@ func (v *Validator) ValidateAMI(instanceID string, template *Template) (*Validat
 	result := &ValidationResult{
 		Details: make(map[string]string),
 	}
-	
+
 	for i, validation := range template.Validation {
 		if v.Options.LogProgress {
 			fmt.Printf("Running validation %d: %s\n", i+1, validation.Name)
 		}
-		
+
 		// TODO: Implement actual validation logic via SSM
 		// For now, assume all validations pass
 		result.SuccessfulTests++
 		result.Details[validation.Name] = "PASS"
 	}
-	
+
 	result.TotalTests = len(template.Validation)
 	result.Successful = result.SuccessfulTests == result.TotalTests
-	
+
 	return result, nil
 }
 
@@ -200,9 +200,9 @@ func (v *Validator) FormatValidationResult(result *ValidationResult) string {
 	if result.Successful {
 		return fmt.Sprintf("✅ All %d validations passed", result.TotalTests)
 	} else {
-		return fmt.Sprintf("❌ %d/%d validations failed: %v", 
-			result.TotalTests-result.SuccessfulTests, 
-			result.TotalTests, 
+		return fmt.Sprintf("❌ %d/%d validations failed: %v",
+			result.TotalTests-result.SuccessfulTests,
+			result.TotalTests,
 			result.FailedChecks)
 	}
 }

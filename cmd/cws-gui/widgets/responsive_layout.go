@@ -38,7 +38,7 @@ func (l *ResponsiveLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 func (l *ResponsiveLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	wideMin := l.wideLayout.MinSize()
 	narrowMin := l.narrowLayout.MinSize()
-	
+
 	// Use the larger of the two minimum widths and heights
 	return fyne.NewSize(
 		fyne.Max(wideMin.Width, narrowMin.Width),

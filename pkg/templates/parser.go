@@ -25,33 +25,33 @@ func (p *TemplateParser) ParseTemplate(content []byte) (*Template, error) {
 	if err := yaml.Unmarshal(content, &template); err != nil {
 		return nil, fmt.Errorf("failed to parse template YAML: %w", err)
 	}
-	
+
 	// Templates must specify their package manager explicitly
-	
+
 	// Set default service enable state
 	for i := range template.Services {
-		if template.Services[i].Enable == false && template.Services[i].Port > 0 {
+		if !template.Services[i].Enable && template.Services[i].Port > 0 {
 			template.Services[i].Enable = true // Default to enabled if port specified
 		}
 	}
-	
+
 	// Set default user shell
 	for i := range template.Users {
 		if template.Users[i].Shell == "" {
 			template.Users[i].Shell = "/bin/bash"
 		}
 	}
-	
+
 	// Generate slug if not provided
 	if template.Slug == "" {
 		template.Slug = generateSlugFromName(template.Name)
 	}
-	
+
 	// Validate template
 	if err := p.ValidateTemplate(&template); err != nil {
 		return nil, err
 	}
-	
+
 	return &template, nil
 }
 
@@ -61,18 +61,18 @@ func (p *TemplateParser) ParseTemplateFile(filename string) (*Template, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file %s: %w", filename, err)
 	}
-	
+
 	template, err := p.ParseTemplate(content)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template file %s: %w", filename, err)
 	}
-	
+
 	// Set template name from filename if not specified
 	if template.Name == "" {
 		baseName := filepath.Base(filename)
 		template.Name = strings.TrimSuffix(baseName, filepath.Ext(baseName))
 	}
-	
+
 	return template, nil
 }
 
@@ -82,15 +82,15 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 	if template.Name == "" {
 		return &TemplateValidationError{Field: "name", Message: "template name is required"}
 	}
-	
+
 	if template.Description == "" {
 		return &TemplateValidationError{Field: "description", Message: "template description is required"}
 	}
-	
+
 	if template.Base == "" {
 		return &TemplateValidationError{Field: "base", Message: "base OS is required"}
 	}
-	
+
 	// Validate base OS is supported (skip for AMI-based templates)
 	if template.Base != "ami-based" {
 		if _, exists := p.BaseAMIs[template.Base]; !exists {
@@ -100,7 +100,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
-	
+
 	// Validate package manager
 	validPMs := []string{"apt", "dnf", "conda", "spack", "ami"}
 	if template.PackageManager != "" {
@@ -118,7 +118,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
-	
+
 	// Validate services
 	for i, service := range template.Services {
 		if service.Name == "" {
@@ -127,7 +127,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 				Message: "service name is required",
 			}
 		}
-		
+
 		if service.Port < 0 || service.Port > 65535 {
 			return &TemplateValidationError{
 				Field:   fmt.Sprintf("services[%d].port", i),
@@ -135,7 +135,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
-	
+
 	// Validate users
 	for i, user := range template.Users {
 		if user.Name == "" {
@@ -144,7 +144,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 				Message: "user name is required",
 			}
 		}
-		
+
 		// Validate user name format (basic check)
 		if strings.Contains(user.Name, " ") || strings.Contains(user.Name, ":") {
 			return &TemplateValidationError{
@@ -153,7 +153,7 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
-	
+
 	// Validate ports
 	for i, port := range template.InstanceDefaults.Ports {
 		if port < 1 || port > 65535 {
@@ -163,17 +163,17 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
-	
+
 	// Validate inheritance (basic check - full validation happens during resolution)
 	if err := p.validateInheritance(template); err != nil {
 		return err
 	}
-	
+
 	// Validate package consistency
 	if err := p.validatePackageConsistency(template); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -251,55 +251,55 @@ func (r *TemplateRegistry) ScanTemplates() error {
 	parser := NewTemplateParser()
 	r.Templates = make(map[string]*Template)
 	r.SlugIndex = make(map[string]string)
-	
+
 	for _, dir := range r.TemplateDirs {
 		// Skip directories that don't exist
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			continue
 		}
-		
+
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
-			
+
 			// Skip directories
 			if info.IsDir() {
 				return nil
 			}
-			
+
 			// Only process YAML files
 			ext := strings.ToLower(filepath.Ext(path))
 			if ext != ".yml" && ext != ".yaml" {
 				return nil
 			}
-			
+
 			// Parse template
 			template, err := parser.ParseTemplateFile(path)
 			if err != nil {
 				return fmt.Errorf("failed to parse template %s: %w", path, err)
 			}
-			
+
 			// Store template by name (first wins - skip duplicates)
 			if _, exists := r.Templates[template.Name]; !exists {
 				r.Templates[template.Name] = template
 				// Build slug index for fast lookup
 				r.SlugIndex[template.Slug] = template.Name
 			}
-			
+
 			return nil
 		})
-		
+
 		if err != nil {
 			return fmt.Errorf("failed to scan template directory %s: %w", dir, err)
 		}
 	}
-	
+
 	// After loading all templates, resolve inheritance
 	if err := r.ResolveInheritance(); err != nil {
 		return fmt.Errorf("failed to resolve template inheritance: %w", err)
 	}
-	
+
 	r.LastScan = time.Now()
 	return nil
 }
@@ -310,12 +310,12 @@ func (r *TemplateRegistry) GetTemplate(nameOrSlug string) (*Template, error) {
 	if template, exists := r.Templates[nameOrSlug]; exists {
 		return template, nil
 	}
-	
+
 	// Try slug lookup
 	if templateName, exists := r.SlugIndex[nameOrSlug]; exists {
 		return r.Templates[templateName], nil
 	}
-	
+
 	return nil, fmt.Errorf("template not found: %s", nameOrSlug)
 }
 
@@ -323,6 +323,7 @@ func (r *TemplateRegistry) GetTemplate(nameOrSlug string) (*Template, error) {
 func (r *TemplateRegistry) ListTemplates() map[string]*Template {
 	return r.Templates
 }
+
 // ResolveInheritance resolves template inheritance by merging parent templates
 func (r *TemplateRegistry) ResolveInheritance() error {
 	// First pass: collect all templates that need inheritance resolution
@@ -332,18 +333,18 @@ func (r *TemplateRegistry) ResolveInheritance() error {
 			templatesWithInheritance = append(templatesWithInheritance, template)
 		}
 	}
-	
+
 	// Second pass: resolve inheritance for each template
 	for _, template := range templatesWithInheritance {
 		resolved, err := r.resolveTemplateInheritance(template)
 		if err != nil {
 			return fmt.Errorf("failed to resolve inheritance for template %s: %w", template.Name, err)
 		}
-		
+
 		// Replace original template with resolved one
 		r.Templates[template.Name] = resolved
 	}
-	
+
 	return nil
 }
 
@@ -351,29 +352,29 @@ func (r *TemplateRegistry) ResolveInheritance() error {
 func (r *TemplateRegistry) resolveTemplateInheritance(template *Template) (*Template, error) {
 	// Create a new template to merge into
 	merged := &Template{
-		Name:           template.Name,
-		Description:    template.Description,
-		Base:          template.Base,
-		Version:        template.Version,
-		Maintainer:     template.Maintainer,
-		LastUpdated:    template.LastUpdated,
-		Tags:           make(map[string]string),
-		Packages:       PackageDefinitions{},
-		Users:          []UserConfig{},
-		Services:       []ServiceConfig{},
+		Name:        template.Name,
+		Description: template.Description,
+		Base:        template.Base,
+		Version:     template.Version,
+		Maintainer:  template.Maintainer,
+		LastUpdated: template.LastUpdated,
+		Tags:        make(map[string]string),
+		Packages:    PackageDefinitions{},
+		Users:       []UserConfig{},
+		Services:    []ServiceConfig{},
 		InstanceDefaults: InstanceDefaults{
-			Ports: []int{},
+			Ports:                []int{},
 			EstimatedCostPerHour: make(map[string]float64),
 		},
 	}
-	
+
 	// Process inheritance chain (parents first, then child)
 	for _, parentName := range template.Inherits {
 		parent, exists := r.Templates[parentName]
 		if !exists {
 			return nil, fmt.Errorf("parent template not found: %s", parentName)
 		}
-		
+
 		// Recursively resolve parent if it has inheritance
 		if len(parent.Inherits) > 0 {
 			resolvedParent, err := r.resolveTemplateInheritance(parent)
@@ -382,14 +383,14 @@ func (r *TemplateRegistry) resolveTemplateInheritance(template *Template) (*Temp
 			}
 			parent = resolvedParent
 		}
-		
+
 		// Merge parent into merged template
 		r.mergeTemplate(merged, parent)
 	}
-	
+
 	// Finally merge the current template (child overrides parent)
 	r.mergeTemplate(merged, template)
-	
+
 	return merged, nil
 }
 
@@ -399,19 +400,19 @@ func (r *TemplateRegistry) mergeTemplate(target, source *Template) {
 	if source.PackageManager != "" {
 		target.PackageManager = source.PackageManager
 	}
-	
+
 	// Merge packages (append, don't override)
 	target.Packages.System = append(target.Packages.System, source.Packages.System...)
 	target.Packages.Conda = append(target.Packages.Conda, source.Packages.Conda...)
 	target.Packages.Spack = append(target.Packages.Spack, source.Packages.Spack...)
 	target.Packages.Pip = append(target.Packages.Pip, source.Packages.Pip...)
-	
+
 	// Merge users (append)
 	target.Users = append(target.Users, source.Users...)
-	
+
 	// Merge services (append)
 	target.Services = append(target.Services, source.Services...)
-	
+
 	// Merge tags (child overrides parent)
 	if target.Tags == nil {
 		target.Tags = make(map[string]string)
@@ -419,12 +420,12 @@ func (r *TemplateRegistry) mergeTemplate(target, source *Template) {
 	for k, v := range source.Tags {
 		target.Tags[k] = v
 	}
-	
+
 	// Merge AMI config (child overrides parent)
 	if source.AMIConfig.AMIs != nil {
 		target.AMIConfig = source.AMIConfig
 	}
-	
+
 	// Merge post-install script (append)
 	if source.PostInstall != "" {
 		if target.PostInstall != "" {
@@ -433,12 +434,12 @@ func (r *TemplateRegistry) mergeTemplate(target, source *Template) {
 			target.PostInstall = source.PostInstall
 		}
 	}
-	
+
 	// Merge instance defaults
 	if source.InstanceDefaults.Type != "" {
 		target.InstanceDefaults.Type = source.InstanceDefaults.Type
 	}
-	
+
 	// Merge ports (append and deduplicate)
 	portMap := make(map[int]bool)
 	for _, port := range target.InstanceDefaults.Ports {
@@ -450,7 +451,7 @@ func (r *TemplateRegistry) mergeTemplate(target, source *Template) {
 			portMap[port] = true
 		}
 	}
-	
+
 	// Merge cost estimates (child overrides parent)
 	if target.InstanceDefaults.EstimatedCostPerHour == nil {
 		target.InstanceDefaults.EstimatedCostPerHour = make(map[string]float64)
@@ -471,7 +472,7 @@ func (p *TemplateParser) validateInheritance(template *Template) error {
 			}
 		}
 	}
-	
+
 	// Check for empty parent names
 	for i, parent := range template.Inherits {
 		if strings.TrimSpace(parent) == "" {
@@ -481,19 +482,19 @@ func (p *TemplateParser) validateInheritance(template *Template) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // validatePackageConsistency validates package definitions are consistent with package manager
 func (p *TemplateParser) validatePackageConsistency(template *Template) error {
 	pm := template.PackageManager
-	
+
 	// If no package manager specified, we can't validate consistency
 	if pm == "" {
 		return nil
 	}
-	
+
 	// Check for packages that don't match the package manager
 	switch pm {
 	case "apt":
@@ -523,7 +524,7 @@ func (p *TemplateParser) validatePackageConsistency(template *Template) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -531,41 +532,41 @@ func (p *TemplateParser) validatePackageConsistency(template *Template) error {
 func generateSlugFromName(name string) string {
 	// Convert to lowercase
 	slug := strings.ToLower(name)
-	
+
 	// Replace common template words with shorter alternatives
 	replacements := map[string]string{
-		"machine learning":  "ml",
-		"development":       "dev", 
-		"environment":       "env",
-		"simplified":        "",
-		"research":          "",
-		"(simplified)":      "",
+		"machine learning": "ml",
+		"development":      "dev",
+		"environment":      "env",
+		"simplified":       "",
+		"research":         "",
+		"(simplified)":     "",
 		"(apt)":            "",
 		"(dnf)":            "",
 		"(ami)":            "",
 		"basic":            "",
 		"+ conda stack":    "-conda",
 	}
-	
+
 	for old, new := range replacements {
 		slug = strings.ReplaceAll(slug, old, new)
 	}
-	
+
 	// Remove special characters and replace spaces/multiple dashes with single dash
 	reg := regexp.MustCompile(`[^a-z0-9\s-]+`)
 	slug = reg.ReplaceAllString(slug, "")
-	
+
 	// Replace spaces and multiple dashes with single dash
 	reg = regexp.MustCompile(`[\s-]+`)
 	slug = reg.ReplaceAllString(slug, "-")
-	
+
 	// Remove leading/trailing dashes
 	slug = strings.Trim(slug, "-")
-	
+
 	// Handle empty slug
 	if slug == "" {
 		slug = "template"
 	}
-	
+
 	return slug
 }

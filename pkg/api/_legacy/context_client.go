@@ -11,7 +11,7 @@ import (
 // ContextClient wraps the legacy client to implement the context-aware CloudWorkstationAPI interface
 // and supports profile-aware operations through ProfileAwareAPI
 type ContextClient struct {
-	client *Client
+	client         *Client
 	profileManager *profile.ManagerEnhanced
 }
 
@@ -36,10 +36,10 @@ func (c *ContextClient) WithProfileOverride(profileManager *profile.ManagerEnhan
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create a new context client with the configured base client
 	return &ContextClient{
-		client: baseClient,
+		client:         baseClient,
 		profileManager: profileManager,
 	}, nil
 }
@@ -52,12 +52,12 @@ func (c *ContextClient) SetOptions(options ClientOptions) {
 		if options.AWSProfile != "" {
 			c.client.SetAWSProfile(options.AWSProfile)
 		}
-		
+
 		// Set AWS region
 		if options.AWSRegion != "" {
 			c.client.SetAWSRegion(options.AWSRegion)
 		}
-		
+
 		// Set invitation details
 		if options.InvitationToken != "" {
 			c.client.SetInvitationToken(options.InvitationToken, options.OwnerAccount, options.S3ConfigPath)
@@ -130,13 +130,13 @@ func (c *ContextClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, err
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert map to slice
 	var result []types.EFSVolume
 	for _, volume := range volumes {
 		result = append(result, volume)
 	}
-	
+
 	return result, nil
 }
 
@@ -175,13 +175,13 @@ func (c *ContextClient) ListStorage(ctx context.Context) ([]types.EBSVolume, err
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert map to slice
 	var result []types.EBSVolume
 	for _, volume := range storage {
 		result = append(result, volume)
 	}
-	
+
 	return result, nil
 }
 

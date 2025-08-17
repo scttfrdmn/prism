@@ -5,19 +5,19 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/internal/gui/components"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // BatchInvitationPage represents the batch invitation management page
 type BatchInvitationPage struct {
-	ctx            context.Context
-	batchManager   *components.BatchInvitationManager
-	secureManager  *profile.SecureInvitationManager
-	assets         embed.FS
+	ctx           context.Context
+	batchManager  *components.BatchInvitationManager
+	secureManager *profile.SecureInvitationManager
+	assets        embed.FS
 }
 
 // NewBatchInvitationPage creates a new batch invitation page
@@ -46,7 +46,7 @@ func (p *BatchInvitationPage) PreviewCSVFile(filePath string, hasHeader bool) st
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.jsonResponse(rows)
 }
 
@@ -56,7 +56,7 @@ func (p *BatchInvitationPage) CreateInvitations(filePath, s3ConfigPath, parentTo
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.jsonResponse(result)
 }
 
@@ -66,7 +66,7 @@ func (p *BatchInvitationPage) ExportAllInvitations(outputFile string) string {
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.jsonResponse(result)
 }
 
@@ -76,32 +76,29 @@ func (p *BatchInvitationPage) AcceptInvitations(filePath, namePrefix string, has
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.jsonResponse(result)
 }
 
 // GenerateCSVTemplate creates an empty CSV template for invitations
 func (p *BatchInvitationPage) GenerateCSVTemplate() string {
 	// Create temp file path
-	tempDir, err := runtime.TempDir()
-	if err != nil {
-		return p.errorResponse(err.Error())
-	}
-	
+	tempDir := os.TempDir()
+
 	fileName := "invitation_template.csv"
 	filePath := filepath.Join(tempDir, fileName)
-	
-	err = p.batchManager.GenerateEmptyCSVTemplate(filePath)
+
+	err := p.batchManager.GenerateEmptyCSVTemplate(filePath)
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	// Open the file with the default application
 	err = p.batchManager.ShowCSVFile(filePath)
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.successResponse(fmt.Sprintf("Template created and opened: %s", filePath))
 }
 
@@ -111,7 +108,7 @@ func (p *BatchInvitationPage) OpenCSVFile(filePath string) string {
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.successResponse("File opened successfully")
 }
 
@@ -121,7 +118,7 @@ func (p *BatchInvitationPage) OpenCSVFolder(filePath string) string {
 	if err != nil {
 		return p.errorResponse(err.Error())
 	}
-	
+
 	return p.successResponse("Folder opened successfully")
 }
 
@@ -131,29 +128,29 @@ func (p *BatchInvitationPage) GetLastOperationResult() string {
 	if result == nil {
 		return p.errorResponse("No operation has been performed yet")
 	}
-	
+
 	return p.jsonResponse(result)
 }
 
 // GetAllInvitations returns all current invitations
 func (p *BatchInvitationPage) GetAllInvitations() string {
 	invitations := p.secureManager.ListInvitations()
-	
+
 	// Convert to simplified format
 	type InvitationInfo struct {
-		Name       string `json:"name"`
-		Type       string `json:"type"`
-		Token      string `json:"token"`
-		ExpiresIn  string `json:"expiresIn"`
+		Name        string `json:"name"`
+		Type        string `json:"type"`
+		Token       string `json:"token"`
+		ExpiresIn   string `json:"expiresIn"`
 		DeviceBound bool   `json:"deviceBound"`
-		MaxDevices int    `json:"maxDevices"`
+		MaxDevices  int    `json:"maxDevices"`
 	}
-	
+
 	result := make([]InvitationInfo, len(invitations))
 	for i, inv := range invitations {
 		expiresIn := inv.GetExpirationDuration()
 		expiresText := "Expired"
-		
+
 		if expiresIn.Hours() > 0 {
 			days := int(expiresIn.Hours() / 24)
 			if days > 0 {
@@ -162,17 +159,17 @@ func (p *BatchInvitationPage) GetAllInvitations() string {
 				expiresText = fmt.Sprintf("%d hours", int(expiresIn.Hours()))
 			}
 		}
-		
+
 		result[i] = InvitationInfo{
-			Name:       inv.Name,
-			Type:       string(inv.Type),
-			Token:      inv.Token,
-			ExpiresIn:  expiresText,
+			Name:        inv.Name,
+			Type:        string(inv.Type),
+			Token:       inv.Token,
+			ExpiresIn:   expiresText,
 			DeviceBound: inv.DeviceBound,
-			MaxDevices: inv.MaxDevices,
+			MaxDevices:  inv.MaxDevices,
 		}
 	}
-	
+
 	return p.jsonResponse(result)
 }
 

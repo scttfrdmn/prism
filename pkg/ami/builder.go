@@ -53,7 +53,7 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 	if err := b.validateRegion(request.Region); err != nil {
 		return nil, err
 	}
-	
+
 	// Validate target regions for copying if specified
 	for _, region := range request.CopyToRegions {
 		if err := b.validateRegion(region); err != nil {
@@ -83,7 +83,7 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 		return result, err
 	}
 	result.SourceAMI = baseAMI
-	
+
 	// 1. Launch a builder instance
 	instanceID, err := b.launchBuilderInstance(ctx, request)
 	if err != nil {
@@ -209,12 +209,12 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 				buildLog.WriteString("AMI registered in template registry\n")
 			}
 		}
-		
+
 		// 7. Copy AMI to other regions if requested
 		if len(request.CopyToRegions) > 0 {
 			fmt.Printf("\n📋 You have requested to copy the AMI to %d additional regions.\n", len(request.CopyToRegions))
 			fmt.Printf("⚠️  Warning: This will incur additional storage costs for each region.\n")
-			
+
 			// Get AMI name and description for copying
 			image, err := b.EC2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 				ImageIds: []string{amiID},
@@ -224,18 +224,18 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 				fmt.Printf("⚠️ Unable to copy AMI to other regions: %v\n", err)
 			} else {
 				amiDetails := image.Images[0]
-				
+
 				// Copy AMI to target regions
-				copiedAMIs, err := b.copyAMIToRegions(ctx, amiID, *amiDetails.Name, 
+				copiedAMIs, err := b.copyAMIToRegions(ctx, amiID, *amiDetails.Name,
 					*amiDetails.Description, request.CopyToRegions)
-				
+
 				if err != nil {
 					buildLog.WriteString(fmt.Sprintf("Some AMI copies failed: %v\n", err))
 					fmt.Printf("⚠️ Some AMI copies failed: %v\n", err)
 				} else if len(copiedAMIs) > 0 {
 					result.CopiedAMIs = copiedAMIs
 					buildLog.WriteString("AMI copied to additional regions successfully\n")
-					
+
 					// Register copied AMIs in the registry
 					if b.RegistryClient != nil {
 						for region, copiedID := range copiedAMIs {
@@ -243,9 +243,9 @@ func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildRes
 							copiedResult := *result
 							copiedResult.AMIID = copiedID
 							copiedResult.Region = region
-							
+
 							if err := b.RegistryClient.PublishAMI(ctx, &copiedResult); err != nil {
-								buildLog.WriteString(fmt.Sprintf("Failed to register copied AMI in region %s: %v\n", 
+								buildLog.WriteString(fmt.Sprintf("Failed to register copied AMI in region %s: %v\n",
 									region, err))
 							}
 						}
@@ -391,7 +391,7 @@ func (b *Builder) getBaseAMI(baseName, region, architecture string) (string, err
 	regionAMIs, ok := b.BaseAMIs[region]
 	if !ok {
 		return "", ValidationError(
-			fmt.Sprintf("no AMIs defined for region %s. Supported regions: %s", region, b.getSupportedRegions()), 
+			fmt.Sprintf("no AMIs defined for region %s. Supported regions: %s", region, b.getSupportedRegions()),
 			nil,
 		).WithContext("region", region)
 	}
@@ -612,10 +612,10 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, request Buil
 func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSaveRequest) (*BuildResult, error) {
 	// Generate a unique build ID
 	buildID := fmt.Sprintf("save-%s-%d", request.InstanceName, time.Now().Unix())
-	
+
 	// Start timing
 	buildStart := time.Now()
-	
+
 	// Get instance details to determine architecture and region
 	instanceDetails, err := b.EC2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{request.InstanceID},
@@ -623,29 +623,29 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe instance: %w", err)
 	}
-	
+
 	if len(instanceDetails.Reservations) == 0 || len(instanceDetails.Reservations[0].Instances) == 0 {
 		return nil, fmt.Errorf("instance %s not found", request.InstanceID)
 	}
-	
+
 	instance := instanceDetails.Reservations[0].Instances[0]
 	architecture := string(instance.Architecture)
 	region := string(b.EC2Client.Options().Region)
-	
+
 	// Initialize result
 	result := &BuildResult{
-		TemplateID:    buildID,
-		TemplateName:  request.TemplateName,
-		Region:        region,
-		Architecture:  architecture,
-		Status:        "in_progress",
-		BuilderID:     request.InstanceID,
-		CopiedAMIs:    make(map[string]string),
+		TemplateID:   buildID,
+		TemplateName: request.TemplateName,
+		Region:       region,
+		Architecture: architecture,
+		Status:       "in_progress",
+		BuilderID:    request.InstanceID,
+		CopiedAMIs:   make(map[string]string),
 	}
-	
+
 	fmt.Printf("📋 Creating AMI from instance %s\n", request.InstanceID)
 	fmt.Printf("🔧 Architecture: %s | Region: %s\n", architecture, region)
-	
+
 	// Step 1: Stop the instance for consistent AMI creation
 	fmt.Printf("\n🛑 Stopping instance for consistent AMI creation...\n")
 	_, err = b.EC2Client.StopInstances(ctx, &ec2.StopInstancesInput{
@@ -656,7 +656,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 		result.ErrorMessage = fmt.Sprintf("failed to stop instance: %v", err)
 		return result, fmt.Errorf("failed to stop instance: %w", err)
 	}
-	
+
 	// Wait for instance to be stopped
 	waiter := ec2.NewInstanceStoppedWaiter(b.EC2Client)
 	if err := waiter.Wait(ctx, &ec2.DescribeInstancesInput{
@@ -664,18 +664,18 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 	}, 5*time.Minute); err != nil {
 		// Try to restart the instance if stopping failed
 		b.restartInstanceBestEffort(ctx, request.InstanceID)
-		result.Status = "failed" 
+		result.Status = "failed"
 		result.ErrorMessage = fmt.Sprintf("timeout waiting for instance to stop: %v", err)
 		return result, fmt.Errorf("timeout waiting for instance to stop: %w", err)
 	}
 	fmt.Printf("✅ Instance stopped\n")
-	
+
 	// Ensure instance restart on exit (best effort)
 	defer func() {
 		b.restartInstanceBestEffort(ctx, request.InstanceID)
 	}()
-	
-	// Step 2: Create AMI from stopped instance  
+
+	// Step 2: Create AMI from stopped instance
 	fmt.Printf("\n📸 Creating AMI...\n")
 	timestamp := time.Now().Format("20060102-150405")
 	amiName := fmt.Sprintf("%s-%s-%s-%s",
@@ -683,7 +683,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 		architecture,
 		region,
 		timestamp)
-	
+
 	// Create AMI with proper tagging
 	tags := []types.TagSpecification{
 		{
@@ -698,7 +698,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 					Value: aws.String(request.TemplateName),
 				},
 				{
-					Key:   aws.String("CloudWorkstationSource"), 
+					Key:   aws.String("CloudWorkstationSource"),
 					Value: aws.String("saved-instance"),
 				},
 				{
@@ -712,7 +712,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 			},
 		},
 	}
-	
+
 	// Add custom tags from request
 	for key, value := range request.Tags {
 		tags[0].Tags = append(tags[0].Tags, types.Tag{
@@ -720,7 +720,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 			Value: aws.String(value),
 		})
 	}
-	
+
 	createImageResult, err := b.EC2Client.CreateImage(ctx, &ec2.CreateImageInput{
 		InstanceId:        aws.String(request.InstanceID),
 		Name:              aws.String(amiName),
@@ -732,11 +732,11 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 		result.ErrorMessage = fmt.Sprintf("failed to create AMI: %v", err)
 		return result, fmt.Errorf("failed to create AMI: %w", err)
 	}
-	
+
 	amiID := *createImageResult.ImageId
 	result.AMIID = amiID
 	fmt.Printf("✅ AMI creation started: %s\n", amiID)
-	
+
 	// Step 3: Wait for AMI to be available
 	fmt.Printf("\n⏳ Waiting for AMI to be available (this may take several minutes)...\n")
 	amiWaiter := ec2.NewImageAvailableWaiter(b.EC2Client)
@@ -748,7 +748,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 		return result, fmt.Errorf("timeout waiting for AMI to be available: %w", err)
 	}
 	fmt.Printf("✅ AMI is now available\n")
-	
+
 	// Step 4: Register AMI with registry
 	if b.RegistryClient != nil {
 		fmt.Printf("\n📝 Registering AMI in template registry...\n")
@@ -759,11 +759,11 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 			fmt.Printf("✅ AMI registered in template registry\n")
 		}
 	}
-	
+
 	// Step 5: Copy AMI to other regions if requested
 	if len(request.CopyToRegions) > 0 {
 		fmt.Printf("\n🌍 Copying AMI to additional regions...\n")
-		
+
 		// Get AMI details for copying
 		image, err := b.EC2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 			ImageIds: []string{amiID},
@@ -772,16 +772,16 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 			fmt.Printf("⚠️ Unable to copy AMI to other regions: %v\n", err)
 		} else {
 			amiDetails := image.Images[0]
-			
+
 			// Copy AMI to target regions
 			copiedAMIs, err := b.copyAMIToRegions(ctx, amiID, *amiDetails.Name,
 				*amiDetails.Description, request.CopyToRegions)
-			
+
 			if err != nil {
 				fmt.Printf("⚠️ Some AMI copies failed: %v\n", err)
 			} else if len(copiedAMIs) > 0 {
 				result.CopiedAMIs = copiedAMIs
-				
+
 				// Register copied AMIs in the registry
 				if b.RegistryClient != nil {
 					for copyRegion, copiedID := range copiedAMIs {
@@ -789,7 +789,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 						copiedResult := *result
 						copiedResult.AMIID = copiedID
 						copiedResult.Region = copyRegion
-						
+
 						if err := b.RegistryClient.PublishAMI(ctx, &copiedResult); err != nil {
 							fmt.Printf("⚠️ Failed to register copied AMI in region %s: %v\n",
 								copyRegion, err)
@@ -799,7 +799,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 			}
 		}
 	}
-	
+
 	// Create and save template definition file
 	fmt.Printf("\n📄 Creating template definition...\n")
 	if err := b.createTemplateDefinition(request, result); err != nil {
@@ -807,23 +807,23 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 	} else {
 		fmt.Printf("✅ Template definition created\n")
 	}
-	
+
 	// Finalize result
 	buildDuration := time.Since(buildStart)
 	result.Status = "success"
 	result.BuildDuration = buildDuration
 	result.BuildTime = time.Now()
-	
+
 	fmt.Printf("\n🎉 Instance saved as AMI successfully!\n")
 	fmt.Printf("🕒 Total time: %s\n", buildDuration)
-	
+
 	return result, nil
 }
 
 // restartInstanceBestEffort attempts to restart an instance (best effort, ignores errors)
 func (b *Builder) restartInstanceBestEffort(ctx context.Context, instanceID string) {
 	fmt.Printf("🔄 Restarting instance %s...\n", instanceID)
-	
+
 	_, err := b.EC2Client.StartInstances(ctx, &ec2.StartInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
@@ -831,7 +831,7 @@ func (b *Builder) restartInstanceBestEffort(ctx context.Context, instanceID stri
 		fmt.Printf("⚠️ Warning: Failed to restart instance: %v\n", err)
 		return
 	}
-	
+
 	// Wait for instance to be running (with timeout)
 	waiter := ec2.NewInstanceRunningWaiter(b.EC2Client)
 	if err := waiter.Wait(ctx, &ec2.DescribeInstancesInput{
@@ -851,9 +851,9 @@ func (b *Builder) createTemplateDefinition(request InstanceSaveRequest, result *
 			return fmt.Errorf("failed to create templates directory: %w", err)
 		}
 	}
-	
+
 	templateFile := filepath.Join(templateDir, request.TemplateName+".yaml")
-	
+
 	// Create basic template structure
 	templateContent := fmt.Sprintf(`name: "%s"
 description: "%s"
@@ -892,7 +892,7 @@ tags:
 		result.AMIID,
 		result.Architecture,
 		request.TemplateName)
-	
+
 	// Add copied AMIs to template
 	if len(result.CopiedAMIs) > 0 {
 		for region, amiID := range result.CopiedAMIs {
@@ -901,7 +901,7 @@ tags:
 `, region, result.Architecture, amiID)
 		}
 	}
-	
+
 	return os.WriteFile(templateFile, []byte(templateContent), 0644)
 }
 
@@ -911,13 +911,13 @@ func (b *Builder) copyAMIToRegions(ctx context.Context, sourceAMIID, sourceName,
 	if len(targetRegions) == 0 {
 		return nil, nil
 	}
-	
+
 	// Initialize result map (region -> AMI ID)
 	result := make(map[string]string)
-	
+
 	// Source region (where original AMI was created)
 	sourceRegion := string(b.EC2Client.Options().Region)
-	
+
 	// Skip regions that match source region
 	var regions []string
 	for _, r := range targetRegions {
@@ -925,22 +925,22 @@ func (b *Builder) copyAMIToRegions(ctx context.Context, sourceAMIID, sourceName,
 			regions = append(regions, r)
 		}
 	}
-	
+
 	if len(regions) == 0 {
 		// No valid target regions
 		return result, nil
 	}
-	
+
 	fmt.Printf("\n🌎 Copying AMI to %d additional regions...\n", len(regions))
-	
+
 	// Copy to each region in parallel using goroutines
 	var wg sync.WaitGroup
 	ch := make(chan struct {
 		region string
-		amiID string
-		err   error
+		amiID  string
+		err    error
 	}, len(regions))
-	
+
 	for _, targetRegion := range regions {
 		wg.Add(1)
 		go func(region string) {
@@ -948,18 +948,18 @@ func (b *Builder) copyAMIToRegions(ctx context.Context, sourceAMIID, sourceName,
 			amiID, err := b.copyAMIToRegion(ctx, sourceAMIID, sourceName, sourceDescription, sourceRegion, region)
 			ch <- struct {
 				region string
-				amiID string
-				err   error
+				amiID  string
+				err    error
 			}{region, amiID, err}
 		}(targetRegion)
 	}
-	
+
 	// Close channel when all goroutines are done
 	go func() {
 		wg.Wait()
 		close(ch)
 	}()
-	
+
 	// Collect results
 	var copyErrors []string
 	for res := range ch {
@@ -971,7 +971,7 @@ func (b *Builder) copyAMIToRegions(ctx context.Context, sourceAMIID, sourceName,
 			result[res.region] = res.amiID
 		}
 	}
-	
+
 	// Return error if any copies failed
 	if len(copyErrors) > 0 {
 		return result, ImageCreationError(
@@ -979,7 +979,7 @@ func (b *Builder) copyAMIToRegions(ctx context.Context, sourceAMIID, sourceName,
 			nil,
 		)
 	}
-	
+
 	return result, nil
 }
 
@@ -994,27 +994,27 @@ func (b *Builder) copyAMIToRegion(ctx context.Context, sourceAMIID, sourceName, 
 		).WithContext("region", targetRegion)
 	}
 	targetClient := ec2.NewFromConfig(cfg)
-	
+
 	// Copy the AMI
 	copyInput := &ec2.CopyImageInput{
-		SourceRegion:       aws.String(sourceRegion),
-		SourceImageId:      aws.String(sourceAMIID),
-		Name:               aws.String(sourceName + "-copied"),
-		Description:        aws.String(sourceDescription + " (copied from " + sourceRegion + ")"),
-		Encrypted:          aws.Bool(false), // Not encrypting for simplicity
-		CopyImageTags:      aws.Bool(true),
+		SourceRegion:  aws.String(sourceRegion),
+		SourceImageId: aws.String(sourceAMIID),
+		Name:          aws.String(sourceName + "-copied"),
+		Description:   aws.String(sourceDescription + " (copied from " + sourceRegion + ")"),
+		Encrypted:     aws.Bool(false), // Not encrypting for simplicity
+		CopyImageTags: aws.Bool(true),
 	}
-	
+
 	result, err := targetClient.CopyImage(ctx, copyInput)
 	if err != nil {
 		return "", ImageCreationError(
 			fmt.Sprintf("failed to copy AMI to region %s", targetRegion),
 			err,
 		).WithContext("sourceAMI", sourceAMIID).
-		WithContext("sourceRegion", sourceRegion).
-		WithContext("targetRegion", targetRegion)
+			WithContext("sourceRegion", sourceRegion).
+			WithContext("targetRegion", targetRegion)
 	}
-	
+
 	// Wait for the AMI to be available in the target region
 	waiter := ec2.NewImageAvailableWaiter(targetClient)
 	if err := waiter.Wait(ctx, &ec2.DescribeImagesInput{
@@ -1025,9 +1025,9 @@ func (b *Builder) copyAMIToRegion(ctx context.Context, sourceAMIID, sourceName, 
 			fmt.Sprintf("timeout waiting for AMI to be available in region %s", targetRegion),
 			err,
 		).WithContext("amiID", *result.ImageId).
-		WithContext("region", targetRegion)
+			WithContext("region", targetRegion)
 	}
-	
+
 	return *result.ImageId, nil
 }
 
@@ -1048,7 +1048,7 @@ func (b *Builder) getSupportedRegions() string {
 	if len(b.BaseAMIs) == 0 {
 		b.initializeBaseAMIs()
 	}
-	
+
 	regions := make([]string, 0, len(b.BaseAMIs))
 	for region := range b.BaseAMIs {
 		regions = append(regions, region)
@@ -1100,7 +1100,7 @@ func (b *Builder) validateRegion(region string) error {
 	if len(b.BaseAMIs) == 0 {
 		b.initializeBaseAMIs()
 	}
-	
+
 	if _, ok := b.BaseAMIs[region]; !ok {
 		return ValidationError(
 			fmt.Sprintf("region %s is not supported. Supported regions: %s", region, b.getSupportedRegions()),
@@ -1132,7 +1132,7 @@ func (b *Builder) getDefaultSecurityGroup(ctx context.Context, vpcID string) (st
 
 	if len(result.SecurityGroups) == 0 {
 		return "", NetworkError(
-			fmt.Sprintf("no default security group found for VPC %s", vpcID), 
+			fmt.Sprintf("no default security group found for VPC %s", vpcID),
 			nil,
 		).WithContext("vpcID", vpcID)
 	}

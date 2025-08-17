@@ -16,35 +16,35 @@ type Template struct {
 	Slug        string `yaml:"slug,omitempty" json:"slug,omitempty"` // Short dash-separated name for CLI
 	Description string `yaml:"description" json:"description"`
 	Base        string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.) or parent template
-	
+
 	// Template inheritance
 	Inherits []string `yaml:"inherits,omitempty" json:"inherits,omitempty"` // Parent templates to inherit from
-	
+
 	// Package management strategy
 	PackageManager string             `yaml:"package_manager,omitempty" json:"package_manager,omitempty"` // "auto", "apt", "dnf", "conda", "spack", "ami"
 	Packages       PackageDefinitions `yaml:"packages,omitempty" json:"packages,omitempty"`
-	
+
 	// AMI configuration (for pre-built images)
 	AMIConfig AMIConfig `yaml:"ami_config,omitempty" json:"ami_config,omitempty"`
-	
+
 	// Service configuration
 	Services []ServiceConfig `yaml:"services,omitempty" json:"services,omitempty"`
-	
+
 	// User setup
 	Users []UserConfig `yaml:"users,omitempty" json:"users,omitempty"`
-	
+
 	// Post-install script
 	PostInstall string `yaml:"post_install,omitempty" json:"post_install,omitempty"`
-	
+
 	// User data script for instance initialization
 	UserData string `yaml:"user_data,omitempty" json:"user_data,omitempty"`
-	
+
 	// Idle detection configuration
 	IdleDetection *IdleDetectionConfig `yaml:"idle_detection,omitempty" json:"idle_detection,omitempty"`
-	
+
 	// Instance defaults
 	InstanceDefaults InstanceDefaults `yaml:"instance_defaults,omitempty" json:"instance_defaults,omitempty"`
-	
+
 	// Template metadata
 	Version     string            `yaml:"version,omitempty" json:"version,omitempty"`
 	Tags        map[string]string `yaml:"tags,omitempty" json:"tags,omitempty"`
@@ -64,13 +64,13 @@ type PackageDefinitions struct {
 type AMIConfig struct {
 	// AMI IDs for different regions and architectures
 	AMIs map[string]map[string]string `yaml:"amis" json:"amis"` // region -> arch -> AMI ID
-	
+
 	// Instance type overrides for different architectures
 	InstanceTypes map[string]string `yaml:"instance_types,omitempty" json:"instance_types,omitempty"` // arch -> instance type
-	
+
 	// Optional user data script for AMI customization
 	UserDataScript string `yaml:"user_data_script,omitempty" json:"user_data_script,omitempty"`
-	
+
 	// SSH username for the AMI (varies by image)
 	SSHUser string `yaml:"ssh_user,omitempty" json:"ssh_user,omitempty"`
 }
@@ -85,17 +85,17 @@ type ServiceConfig struct {
 
 // IdleDetectionConfig represents idle detection configuration in templates
 type IdleDetectionConfig struct {
-	Enabled                  bool `yaml:"enabled" json:"enabled"`
-	IdleThresholdMinutes     int  `yaml:"idle_threshold_minutes" json:"idle_threshold_minutes"`
+	Enabled                   bool `yaml:"enabled" json:"enabled"`
+	IdleThresholdMinutes      int  `yaml:"idle_threshold_minutes" json:"idle_threshold_minutes"`
 	HibernateThresholdMinutes int  `yaml:"hibernate_threshold_minutes" json:"hibernate_threshold_minutes"`
-	CheckIntervalMinutes     int  `yaml:"check_interval_minutes" json:"check_interval_minutes"`
+	CheckIntervalMinutes      int  `yaml:"check_interval_minutes" json:"check_interval_minutes"`
 }
 
 // UserConfig defines a user to create
 type UserConfig struct {
-	Name     string   `yaml:"name" json:"name"`
-	Groups   []string `yaml:"groups,omitempty" json:"groups,omitempty"`
-	Shell    string   `yaml:"shell,omitempty" json:"shell,omitempty"` // Default: /bin/bash
+	Name   string   `yaml:"name" json:"name"`
+	Groups []string `yaml:"groups,omitempty" json:"groups,omitempty"`
+	Shell  string   `yaml:"shell,omitempty" json:"shell,omitempty"` // Default: /bin/bash
 }
 
 // InstanceDefaults defines default instance configuration
@@ -108,17 +108,18 @@ type InstanceDefaults struct {
 // RuntimeTemplate represents a resolved template ready for instance launch
 // This maintains compatibility with existing types.RuntimeTemplate
 type RuntimeTemplate struct {
-	Name         string
-	Description  string
-	AMI          map[string]map[string]string // region -> arch -> AMI ID  
-	InstanceType map[string]string            // arch -> instance type
-	UserData     string                       // Generated installation script
-	Ports        []int
-	EstimatedCostPerHour map[string]float64 // arch -> cost per hour
-	IdleDetection *IdleDetectionConfig        // Idle detection configuration
-	
+	Name                 string
+	Slug                 string // CLI identifier for template (e.g., "python-ml")
+	Description          string
+	AMI                  map[string]map[string]string // region -> arch -> AMI ID
+	InstanceType         map[string]string            // arch -> instance type
+	UserData             string                       // Generated installation script
+	Ports                []int
+	EstimatedCostPerHour map[string]float64   // arch -> cost per hour
+	IdleDetection        *IdleDetectionConfig // Idle detection configuration
+
 	// Additional metadata from unified template
-	Source   *Template `json:"-"` // Reference to source template
+	Source    *Template `json:"-"` // Reference to source template
 	Generated time.Time // When this runtime template was generated
 }
 
@@ -136,7 +137,7 @@ const (
 // PackageManagerStrategy handles package manager selection logic
 type PackageManagerStrategy struct {
 	Template *Template
-	
+
 	// Selection rules for "auto" mode
 	Rules PackageManagerRules
 }
@@ -145,13 +146,13 @@ type PackageManagerStrategy struct {
 type PackageManagerRules struct {
 	// If template has HPC/scientific computing packages -> spack
 	HPCIndicators []string
-	
-	// If template has Python data science packages -> conda  
+
+	// If template has Python data science packages -> conda
 	PythonDataScienceIndicators []string
-	
+
 	// If template has R packages -> conda (better R ecosystem)
 	RIndicators []string
-	
+
 	// Default fallback -> apt (system packages)
 	DefaultManager PackageManagerType
 }
@@ -160,7 +161,7 @@ type PackageManagerRules struct {
 type TemplateParser struct {
 	// Base AMI mappings for validation
 	BaseAMIs map[string]map[string]map[string]string // base -> region -> arch -> AMI
-	
+
 	// Package manager strategy
 	Strategy *PackageManagerStrategy
 }
@@ -196,13 +197,13 @@ func (e *TemplateValidationError) Error() string {
 type TemplateRegistry struct {
 	// Template directories to scan
 	TemplateDirs []string
-	
+
 	// Cached templates (indexed by name)
 	Templates map[string]*Template
-	
+
 	// Slug index for fast lookup (slug -> template name)
 	SlugIndex map[string]string
-	
+
 	// Last scan time
 	LastScan time.Time
 }

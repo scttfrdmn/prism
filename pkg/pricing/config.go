@@ -20,11 +20,11 @@ type InstitutionalPricingConfig struct {
 
 	// Global Discounts (applied to all services)
 	GlobalDiscounts struct {
-		EC2Discount      float64 `json:"ec2_discount"`      // Percentage discount (0.0-1.0)
-		EBSDiscount      float64 `json:"ebs_discount"`      // EBS storage discount  
-		EFSDiscount      float64 `json:"efs_discount"`      // EFS storage discount
-		DataTransfer     float64 `json:"data_transfer"`     // Data transfer discount
-		GeneralDiscount  float64 `json:"general_discount"`  // Catch-all discount
+		EC2Discount     float64 `json:"ec2_discount"`     // Percentage discount (0.0-1.0)
+		EBSDiscount     float64 `json:"ebs_discount"`     // EBS storage discount
+		EFSDiscount     float64 `json:"efs_discount"`     // EFS storage discount
+		DataTransfer    float64 `json:"data_transfer"`    // Data transfer discount
+		GeneralDiscount float64 `json:"general_discount"` // Catch-all discount
 	} `json:"global_discounts"`
 
 	// Instance Family Specific Discounts
@@ -33,24 +33,24 @@ type InstitutionalPricingConfig struct {
 	// Commitment-Based Discounts
 	CommitmentPrograms struct {
 		ReservedInstanceCoverage float64 `json:"reserved_instance_coverage"` // Percentage of usage covered
-		SavingsPlanCoverage     float64 `json:"savings_plan_coverage"`      // Additional coverage
-		SpotInstancePreference  float64 `json:"spot_instance_preference"`   // Preferred spot usage %
+		SavingsPlanCoverage      float64 `json:"savings_plan_coverage"`      // Additional coverage
+		SpotInstancePreference   float64 `json:"spot_instance_preference"`   // Preferred spot usage %
 	} `json:"commitment_programs"`
 
 	// Program-Specific Discounts
 	Programs struct {
 		EducationalDiscount float64 `json:"educational_discount"` // Academic institution discount
-		StartupCredits     float64 `json:"startup_credits"`      // AWS Activate credits
-		ResearchCredits    float64 `json:"research_credits"`     // AWS research credit program
-		NonProfitDiscount  float64 `json:"nonprofit_discount"`   // Non-profit organization discount
+		StartupCredits      float64 `json:"startup_credits"`      // AWS Activate credits
+		ResearchCredits     float64 `json:"research_credits"`     // AWS research credit program
+		NonProfitDiscount   float64 `json:"nonprofit_discount"`   // Non-profit organization discount
 	} `json:"programs"`
 
 	// Enterprise Agreements
 	Enterprise struct {
-		EDPDiscount       float64 `json:"edp_discount"`       // Enterprise Discount Program
-		VolumeDiscount    float64 `json:"volume_discount"`    // Volume-based discount tiers
-		CommittedSpend    float64 `json:"committed_spend"`    // Annual committed spend
-		CustomNegotiated  float64 `json:"custom_negotiated"`  // Custom negotiated rates
+		EDPDiscount      float64 `json:"edp_discount"`      // Enterprise Discount Program
+		VolumeDiscount   float64 `json:"volume_discount"`   // Volume-based discount tiers
+		CommittedSpend   float64 `json:"committed_spend"`   // Annual committed spend
+		CustomNegotiated float64 `json:"custom_negotiated"` // Custom negotiated rates
 	} `json:"enterprise"`
 
 	// Regional Variations
@@ -61,9 +61,9 @@ type InstitutionalPricingConfig struct {
 
 	// Budget and Cost Management
 	CostManagement struct {
-		BudgetAlerts     bool    `json:"budget_alerts"`      // Enable budget alerts
-		CostOptimization bool    `json:"cost_optimization"`  // Enable cost optimization suggestions
-		SpendingLimit    float64 `json:"spending_limit"`     // Monthly spending limit
+		BudgetAlerts     bool    `json:"budget_alerts"`     // Enable budget alerts
+		CostOptimization bool    `json:"cost_optimization"` // Enable cost optimization suggestions
+		SpendingLimit    float64 `json:"spending_limit"`    // Monthly spending limit
 	} `json:"cost_management"`
 }
 
@@ -188,10 +188,10 @@ func SaveExampleConfig(path string) error {
 	}
 
 	// Example academic discounts
-	config.GlobalDiscounts.EC2Discount = 0.30      // 30% discount on EC2
-	config.GlobalDiscounts.EBSDiscount = 0.20      // 20% discount on EBS
-	config.GlobalDiscounts.EFSDiscount = 0.15      // 15% discount on EFS
-	config.GlobalDiscounts.DataTransfer = 0.25     // 25% discount on data transfer
+	config.GlobalDiscounts.EC2Discount = 0.30  // 30% discount on EC2
+	config.GlobalDiscounts.EBSDiscount = 0.20  // 20% discount on EBS
+	config.GlobalDiscounts.EFSDiscount = 0.15  // 15% discount on EFS
+	config.GlobalDiscounts.DataTransfer = 0.25 // 25% discount on data transfer
 
 	// Instance family discounts
 	config.InstanceFamilyDiscounts = map[string]float64{

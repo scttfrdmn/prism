@@ -2,7 +2,7 @@ package components
 
 import (
 	"strings"
-	
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -19,7 +19,7 @@ func NewSearch() *Search {
 	ti := textinput.New()
 	ti.Placeholder = "Search..."
 	ti.CharLimit = 100
-	
+
 	return &Search{
 		textInput: ti,
 		active:    false,
@@ -74,16 +74,16 @@ func (s *Search) Filter(items []string) []string {
 	if s.query == "" {
 		return items
 	}
-	
+
 	var filtered []string
 	query := strings.ToLower(s.query)
-	
+
 	for _, item := range items {
 		if strings.Contains(strings.ToLower(item), query) {
 			filtered = append(filtered, item)
 		}
 	}
-	
+
 	return filtered
 }
 

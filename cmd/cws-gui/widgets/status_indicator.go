@@ -8,7 +8,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/scttfrdmn/cloudworkstation/cmd/cws-gui/theme"
+	cwstheme "github.com/scttfrdmn/cloudworkstation/cmd/cws-gui/theme"
 )
 
 // StatusIndicator displays the status of an instance with a colored indicator
@@ -40,7 +40,7 @@ func (i *StatusIndicator) CreateRenderer() fyne.WidgetRenderer {
 	// Create the label if needed
 	var objects []fyne.CanvasObject
 	var label *widget.Label
-	
+
 	if i.showText {
 		label = widget.NewLabel(i.State)
 		objects = []fyne.CanvasObject{circle, label}
@@ -67,16 +67,16 @@ type statusIndicatorRenderer struct {
 // Layout positions the components of the status indicator
 func (r *statusIndicatorRenderer) Layout(size fyne.Size) {
 	// Size the circle
-	circleSize := size.Height
+	var circleSize float32
 	if r.label == nil {
 		circleSize = fyne.Min(size.Width, size.Height)
 	} else {
 		circleSize = fyne.Min(size.Height, theme.Padding()*2)
 	}
-	
+
 	r.circle.Resize(fyne.NewSize(circleSize, circleSize))
 	r.circle.Move(fyne.NewPos(0, (size.Height-circleSize)/2))
-	
+
 	// Position the label if present
 	if r.label != nil {
 		labelPos := fyne.NewPos(circleSize+theme.Padding(), 0)
@@ -90,7 +90,7 @@ func (r *statusIndicatorRenderer) Layout(size fyne.Size) {
 func (r *statusIndicatorRenderer) MinSize() fyne.Size {
 	minHeight := theme.Padding() * 2
 	minWidth := minHeight
-	
+
 	// Add space for label if needed
 	if r.label != nil {
 		labelMin := r.label.MinSize()
@@ -99,7 +99,7 @@ func (r *statusIndicatorRenderer) MinSize() fyne.Size {
 			minHeight = labelMin.Height
 		}
 	}
-	
+
 	return fyne.NewSize(minWidth, minHeight)
 }
 
@@ -107,13 +107,13 @@ func (r *statusIndicatorRenderer) MinSize() fyne.Size {
 func (r *statusIndicatorRenderer) Refresh() {
 	// Update color based on current state
 	r.circle.FillColor = cwstheme.GetStateColor(r.indicator.State, fyne.CurrentApp().Settings().ThemeVariant())
-	
+
 	// Update label if present
 	if r.label != nil {
 		r.label.SetText(r.indicator.State)
 		r.label.Refresh()
 	}
-	
+
 	r.circle.Refresh()
 }
 

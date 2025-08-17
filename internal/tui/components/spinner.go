@@ -19,7 +19,7 @@ func NewSpinner(message string) Spinner {
 	s := spinner.New()
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(styles.CurrentTheme.PrimaryColor)
-	
+
 	return Spinner{
 		spinner: s,
 		message: message,
@@ -42,7 +42,7 @@ func (s *Spinner) Update(msg tea.Msg) (Spinner, tea.Cmd) {
 	if !s.active {
 		return *s, nil
 	}
-	
+
 	var cmd tea.Cmd
 	s.spinner, cmd = s.spinner.Update(msg)
 	return *s, cmd
@@ -53,7 +53,7 @@ func (s *Spinner) View() string {
 	if !s.active {
 		return ""
 	}
-	
+
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		s.spinner.View(),

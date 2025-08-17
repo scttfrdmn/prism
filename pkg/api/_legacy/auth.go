@@ -26,7 +26,7 @@ func (c *Client) GenerateAPIKey() (*types.AuthResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate API key: %w", err)
 	}
-	
+
 	// Store the API key for future requests
 	c.SetAPIKey(resp.APIKey)
 	return &resp, nil
@@ -39,26 +39,26 @@ func (c *Client) GetAuthStatus() (*AuthStatusResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get authentication status: %w", err)
 	}
-	
+
 	status := &AuthStatusResponse{}
-	
+
 	// Extract auth_enabled
 	if enabled, ok := resp["auth_enabled"].(bool); ok {
 		status.AuthEnabled = enabled
 	}
-	
+
 	// Extract authenticated
 	if authenticated, ok := resp["authenticated"].(bool); ok {
 		status.Authenticated = authenticated
 	}
-	
+
 	// Extract created_at
 	if timeStr, ok := resp["created_at"].(string); ok {
 		if t, err := time.Parse(time.RFC3339, timeStr); err == nil {
 			status.CreatedAt = t
 		}
 	}
-	
+
 	return status, nil
 }
 
@@ -68,7 +68,7 @@ func (c *Client) RevokeAPIKey() error {
 	if err != nil {
 		return fmt.Errorf("failed to revoke API key: %w", err)
 	}
-	
+
 	// Clear the stored API key
 	c.apiKey = ""
 	return nil

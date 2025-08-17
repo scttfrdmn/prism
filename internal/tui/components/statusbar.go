@@ -3,7 +3,7 @@ package components
 import (
 	"strings"
 	"time"
-	
+
 	"github.com/charmbracelet/lipgloss"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
 )
@@ -91,11 +91,11 @@ func (s *StatusBar) SetWidth(width int) {
 // View renders the status bar
 func (s *StatusBar) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Status indicator
 	var statusStyle lipgloss.Style
 	var statusIndicator string
-	
+
 	switch s.statusType {
 	case StatusSuccess:
 		statusStyle = theme.StatusOK
@@ -110,32 +110,32 @@ func (s *StatusBar) View() string {
 		statusStyle = lipgloss.NewStyle().Foreground(theme.TextColor)
 		statusIndicator = "*"
 	}
-	
+
 	// Build the left part (status)
 	left := statusStyle.Render(statusIndicator + " " + s.status)
-	
+
 	// Build the right part (region, connections, version)
 	rightElements := []string{
 		"Region: " + s.region,
 	}
-	
+
 	if s.connections > 0 {
 		rightElements = append(rightElements, "Connections: "+strings.Repeat("•", s.connections))
 	}
-	
+
 	rightElements = append(rightElements, "v"+s.version)
-	
+
 	right := lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		lipgloss.NewStyle().Foreground(theme.MutedColor).Render(strings.Join(rightElements, " | ")),
 	)
-	
+
 	// Calculate padding to push the right side to the edge
 	padding := s.width - lipgloss.Width(left) - lipgloss.Width(right)
 	if padding < 1 {
 		padding = 1
 	}
-	
+
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
 		left,

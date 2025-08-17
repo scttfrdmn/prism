@@ -12,11 +12,11 @@ import (
 
 func TestNewTemplateParser(t *testing.T) {
 	parser := NewTemplateParser()
-	
+
 	assert.NotNil(t, parser)
 	assert.NotNil(t, parser.BaseAMIs)
 	assert.NotNil(t, parser.Strategy)
-	
+
 	// Verify default base AMIs are loaded
 	assert.Contains(t, parser.BaseAMIs, "ubuntu-22.04")
 	assert.Contains(t, parser.BaseAMIs["ubuntu-22.04"], "us-east-1")
@@ -25,7 +25,7 @@ func TestNewTemplateParser(t *testing.T) {
 
 func TestTemplateParser_ParseTemplate(t *testing.T) {
 	parser := NewTemplateParser()
-	
+
 	tests := []struct {
 		name        string
 		yamlContent string
@@ -181,11 +181,11 @@ users:
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			template, err := parser.ParseTemplate([]byte(tt.yamlContent))
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, template)
@@ -202,12 +202,12 @@ users:
 
 func TestTemplateParser_ParseTemplateFile(t *testing.T) {
 	parser := NewTemplateParser()
-	
+
 	// Create temporary template file
 	tempDir, err := os.MkdirTemp("", "template-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
-	
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
 	templateContent := `
 name: "File Template"
 description: "Template loaded from file"
@@ -216,18 +216,18 @@ package_manager: "apt"
 packages:
   system: ["vim", "git"]
 `
-	
+
 	templateFile := filepath.Join(tempDir, "test-template.yaml")
 	err = os.WriteFile(templateFile, []byte(templateContent), 0644)
 	require.NoError(t, err)
-	
+
 	// Test successful parsing
 	template, err := parser.ParseTemplateFile(templateFile)
 	assert.NoError(t, err)
 	assert.NotNil(t, template)
 	assert.Equal(t, "File Template", template.Name)
 	assert.Equal(t, []string{"vim", "git"}, template.Packages.System)
-	
+
 	// Test with valid template having explicit name
 	templateValid := `
 name: "Valid File Template"
@@ -240,12 +240,12 @@ packages:
 	templateFile2 := filepath.Join(tempDir, "valid-template.yml")
 	err = os.WriteFile(templateFile2, []byte(templateValid), 0644)
 	require.NoError(t, err)
-	
+
 	template2, err := parser.ParseTemplateFile(templateFile2)
 	assert.NoError(t, err)
 	assert.Equal(t, "Valid File Template", template2.Name)
 	assert.Equal(t, []string{"git", "curl"}, template2.Packages.System)
-	
+
 	// Test non-existent file
 	_, err = parser.ParseTemplateFile("/nonexistent/file.yaml")
 	assert.Error(t, err)
@@ -254,11 +254,11 @@ packages:
 
 func TestTemplateParser_ValidateTemplate(t *testing.T) {
 	parser := NewTemplateParser()
-	
+
 	validTemplate := &Template{
 		Name:           "Valid Template",
 		Description:    "A valid template",
-		Base:          "ubuntu-22.04",
+		Base:           "ubuntu-22.04",
 		PackageManager: "apt",
 		Packages: PackageDefinitions{
 			System: []string{"git", "curl"},
@@ -273,15 +273,15 @@ func TestTemplateParser_ValidateTemplate(t *testing.T) {
 			Ports: []int{22, 80},
 		},
 	}
-	
+
 	// Test valid template
 	err := parser.ValidateTemplate(validTemplate)
 	assert.NoError(t, err)
-	
+
 	// Test validation errors
 	tests := []struct {
-		name         string
-		modifyFunc   func(*Template)
+		name          string
+		modifyFunc    func(*Template)
 		expectedError string
 	}{
 		{
@@ -376,14 +376,14 @@ func TestTemplateParser_ValidateTemplate(t *testing.T) {
 			expectedError: "parent template name cannot be empty",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a copy of the valid template
 			testTemplate := *validTemplate
 			// Apply modification
 			tt.modifyFunc(&testTemplate)
-			
+
 			err := parser.ValidateTemplate(&testTemplate)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedError)
@@ -393,19 +393,19 @@ func TestTemplateParser_ValidateTemplate(t *testing.T) {
 
 func TestTemplateParser_ValidatePackageConsistency(t *testing.T) {
 	parser := NewTemplateParser()
-	
+
 	tests := []struct {
-		name      string
-		template  *Template
-		wantErr   bool
-		errMsg    string
+		name     string
+		template *Template
+		wantErr  bool
+		errMsg   string
 	}{
 		{
 			name: "apt with system packages - valid",
 			template: &Template{
 				Name: "APT Template", Description: "Test", Base: "ubuntu-22.04",
 				PackageManager: "apt",
-				Packages: PackageDefinitions{System: []string{"git"}},
+				Packages:       PackageDefinitions{System: []string{"git"}},
 			},
 			wantErr: false,
 		},
@@ -439,7 +439,7 @@ func TestTemplateParser_ValidatePackageConsistency(t *testing.T) {
 			template: &Template{
 				Name: "AMI Template", Description: "Test", Base: "ami-based",
 				PackageManager: "ami",
-				Packages: PackageDefinitions{System: []string{"git"}},
+				Packages:       PackageDefinitions{System: []string{"git"}},
 			},
 			wantErr: true,
 			errMsg:  "AMI-based templates should not define packages",
@@ -453,11 +453,11 @@ func TestTemplateParser_ValidatePackageConsistency(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := parser.validatePackageConsistency(tt.template)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
@@ -470,39 +470,39 @@ func TestTemplateParser_ValidatePackageConsistency(t *testing.T) {
 
 func TestPackageManagerStrategy_SelectPackageManager(t *testing.T) {
 	strategy := NewPackageManagerStrategy()
-	
+
 	tests := []struct {
-		name               string
-		template          *Template
-		expectedManager   PackageManagerType
+		name            string
+		template        *Template
+		expectedManager PackageManagerType
 	}{
 		{
-			name: "explicit apt",
-			template: &Template{PackageManager: "apt"},
+			name:            "explicit apt",
+			template:        &Template{PackageManager: "apt"},
 			expectedManager: PackageManagerApt,
 		},
 		{
-			name: "explicit conda",
-			template: &Template{PackageManager: "conda"},
+			name:            "explicit conda",
+			template:        &Template{PackageManager: "conda"},
 			expectedManager: PackageManagerConda,
 		},
 		{
-			name: "explicit spack",
-			template: &Template{PackageManager: "spack"},
+			name:            "explicit spack",
+			template:        &Template{PackageManager: "spack"},
 			expectedManager: PackageManagerSpack,
 		},
 		{
-			name: "explicit ami",
-			template: &Template{PackageManager: "ami"},
+			name:            "explicit ami",
+			template:        &Template{PackageManager: "ami"},
 			expectedManager: PackageManagerAMI,
 		},
 		{
-			name: "explicit dnf",
-			template: &Template{PackageManager: "dnf"},
+			name:            "explicit dnf",
+			template:        &Template{PackageManager: "dnf"},
 			expectedManager: PackageManagerDnf,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := strategy.SelectPackageManager(tt.template)
@@ -516,7 +516,7 @@ func TestTemplateValidationError(t *testing.T) {
 		Field:   "test_field",
 		Message: "test message",
 	}
-	
+
 	expected := "template validation error in test_field: test message"
 	assert.Equal(t, expected, err.Error())
 }
@@ -524,7 +524,7 @@ func TestTemplateValidationError(t *testing.T) {
 func TestNewTemplateRegistry(t *testing.T) {
 	dirs := []string{"/tmp/templates", "/opt/templates"}
 	registry := NewTemplateRegistry(dirs)
-	
+
 	assert.NotNil(t, registry)
 	assert.Equal(t, dirs, registry.TemplateDirs)
 	assert.NotNil(t, registry.Templates)
@@ -535,8 +535,8 @@ func TestTemplateRegistry_ScanTemplates(t *testing.T) {
 	// Create temporary template directory
 	tempDir, err := os.MkdirTemp("", "template-registry-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
-	
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
 	// Create test templates
 	template1 := `
 name: "Template 1"
@@ -563,7 +563,7 @@ package_manager: "apt"
 packages:
   system: ["curl"]
 `
-	
+
 	// Write template files
 	err = os.WriteFile(filepath.Join(tempDir, "template1.yaml"), []byte(template1), 0644)
 	require.NoError(t, err)
@@ -571,16 +571,16 @@ packages:
 	require.NoError(t, err)
 	err = os.WriteFile(filepath.Join(tempDir, "child.yaml"), []byte(childTemplate), 0644)
 	require.NoError(t, err)
-	
+
 	// Create non-template file (should be ignored)
 	err = os.WriteFile(filepath.Join(tempDir, "readme.txt"), []byte("not a template"), 0644)
 	require.NoError(t, err)
-	
+
 	// Create subdirectory with template
 	subDir := filepath.Join(tempDir, "subdir")
 	err = os.MkdirAll(subDir, 0755)
 	require.NoError(t, err)
-	
+
 	template3 := `
 name: "Subdirectory Template"
 description: "Template in subdirectory"
@@ -591,29 +591,29 @@ packages:
 `
 	err = os.WriteFile(filepath.Join(subDir, "template3.yaml"), []byte(template3), 0644)
 	require.NoError(t, err)
-	
+
 	// Test registry scanning
 	registry := NewTemplateRegistry([]string{tempDir})
 	err = registry.ScanTemplates()
 	assert.NoError(t, err)
-	
+
 	// Verify templates were loaded
 	assert.Len(t, registry.Templates, 4)
 	assert.Contains(t, registry.Templates, "Template 1")
 	assert.Contains(t, registry.Templates, "Template 2")
 	assert.Contains(t, registry.Templates, "Child Template")
 	assert.Contains(t, registry.Templates, "Subdirectory Template")
-	
+
 	// Verify inheritance was resolved
 	childTemp, exists := registry.Templates["Child Template"]
 	assert.True(t, exists)
 	// Child should have both parent and own packages
 	expectedPackages := []string{"git", "vim", "curl"}
 	assert.Equal(t, expectedPackages, childTemp.Packages.System)
-	
+
 	// Verify last scan time was set
 	assert.True(t, registry.LastScan.After(time.Now().Add(-time.Minute)))
-	
+
 	// Test with non-existent directory
 	registry2 := NewTemplateRegistry([]string{"/nonexistent/dir"})
 	err = registry2.ScanTemplates()
@@ -623,7 +623,7 @@ packages:
 
 func TestTemplateRegistry_GetTemplate(t *testing.T) {
 	registry := NewTemplateRegistry([]string{})
-	
+
 	// Add test template
 	testTemplate := &Template{
 		Name:        "Test Template",
@@ -631,13 +631,13 @@ func TestTemplateRegistry_GetTemplate(t *testing.T) {
 		Base:        "ubuntu-22.04",
 	}
 	registry.Templates["Test Template"] = testTemplate
-	
+
 	// Test successful retrieval
 	template, err := registry.GetTemplate("Test Template")
 	assert.NoError(t, err)
 	assert.NotNil(t, template)
 	assert.Equal(t, "Test Template", template.Name)
-	
+
 	// Test non-existent template
 	_, err = registry.GetTemplate("Nonexistent Template")
 	assert.Error(t, err)
@@ -646,13 +646,13 @@ func TestTemplateRegistry_GetTemplate(t *testing.T) {
 
 func TestTemplateRegistry_ListTemplates(t *testing.T) {
 	registry := NewTemplateRegistry([]string{})
-	
+
 	// Add test templates
 	template1 := &Template{Name: "Template 1"}
 	template2 := &Template{Name: "Template 2"}
 	registry.Templates["Template 1"] = template1
 	registry.Templates["Template 2"] = template2
-	
+
 	templates := registry.ListTemplates()
 	assert.Len(t, templates, 2)
 	assert.Contains(t, templates, "Template 1")
@@ -661,7 +661,7 @@ func TestTemplateRegistry_ListTemplates(t *testing.T) {
 
 func TestTemplateRegistry_ResolveInheritance(t *testing.T) {
 	registry := NewTemplateRegistry([]string{})
-	
+
 	// Create parent template
 	parent := &Template{
 		Name:           "Parent",
@@ -678,18 +678,18 @@ func TestTemplateRegistry_ResolveInheritance(t *testing.T) {
 			{Name: "ssh", Port: 22, Enable: true},
 		},
 		InstanceDefaults: InstanceDefaults{
-			Ports: []int{22},
+			Ports:                []int{22},
 			EstimatedCostPerHour: map[string]float64{"x86_64": 0.10},
 		},
 		Tags: map[string]string{"type": "parent"},
 	}
-	
+
 	// Create child template
 	child := &Template{
-		Name:        "Child",
-		Description: "Child template",
-		Base:        "ubuntu-22.04",
-		Inherits:    []string{"Parent"},
+		Name:           "Child",
+		Description:    "Child template",
+		Base:           "ubuntu-22.04",
+		Inherits:       []string{"Parent"},
 		PackageManager: "conda", // Override parent
 		Packages: PackageDefinitions{
 			Conda: []string{"numpy"}, // Add conda packages
@@ -701,28 +701,28 @@ func TestTemplateRegistry_ResolveInheritance(t *testing.T) {
 			{Name: "jupyter", Port: 8888, Enable: true},
 		},
 		InstanceDefaults: InstanceDefaults{
-			Ports: []int{8888}, // Will be merged with parent's ports
+			Ports:                []int{8888}, // Will be merged with parent's ports
 			EstimatedCostPerHour: map[string]float64{"arm64": 0.08},
 		},
 		Tags: map[string]string{"type": "child", "env": "test"}, // Override + add
 	}
-	
+
 	registry.Templates["Parent"] = parent
 	registry.Templates["Child"] = child
-	
+
 	err := registry.ResolveInheritance()
 	assert.NoError(t, err)
-	
+
 	// Verify child template was merged correctly
 	resolvedChild := registry.Templates["Child"]
-	
+
 	// Package manager should be overridden
 	assert.Equal(t, "conda", resolvedChild.PackageManager)
-	
+
 	// Packages should be merged
 	assert.Equal(t, []string{"git", "vim"}, resolvedChild.Packages.System)
 	assert.Equal(t, []string{"numpy"}, resolvedChild.Packages.Conda)
-	
+
 	// Users should be merged (both parent and child users)
 	assert.Len(t, resolvedChild.Users, 2)
 	userNames := make([]string, len(resolvedChild.Users))
@@ -731,7 +731,7 @@ func TestTemplateRegistry_ResolveInheritance(t *testing.T) {
 	}
 	assert.Contains(t, userNames, "parent-user")
 	assert.Contains(t, userNames, "child-user")
-	
+
 	// Services should be merged
 	assert.Len(t, resolvedChild.Services, 2)
 	serviceNames := make([]string, len(resolvedChild.Services))
@@ -740,15 +740,15 @@ func TestTemplateRegistry_ResolveInheritance(t *testing.T) {
 	}
 	assert.Contains(t, serviceNames, "ssh")
 	assert.Contains(t, serviceNames, "jupyter")
-	
+
 	// Ports should be merged and deduplicated
 	assert.Contains(t, resolvedChild.InstanceDefaults.Ports, 22)
 	assert.Contains(t, resolvedChild.InstanceDefaults.Ports, 8888)
-	
+
 	// Cost estimates should be merged
 	assert.Equal(t, 0.10, resolvedChild.InstanceDefaults.EstimatedCostPerHour["x86_64"])
 	assert.Equal(t, 0.08, resolvedChild.InstanceDefaults.EstimatedCostPerHour["arm64"])
-	
+
 	// Tags should be merged (child overrides + adds)
 	assert.Equal(t, "child", resolvedChild.Tags["type"])
 	assert.Equal(t, "test", resolvedChild.Tags["env"])
@@ -756,7 +756,7 @@ func TestTemplateRegistry_ResolveInheritance(t *testing.T) {
 
 func TestTemplateRegistry_ResolveInheritance_Errors(t *testing.T) {
 	registry := NewTemplateRegistry([]string{})
-	
+
 	// Test missing parent template
 	child := &Template{
 		Name:        "Child",
@@ -765,21 +765,8 @@ func TestTemplateRegistry_ResolveInheritance_Errors(t *testing.T) {
 		Inherits:    []string{"NonexistentParent"},
 	}
 	registry.Templates["Child"] = child
-	
+
 	err := registry.ResolveInheritance()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "parent template not found: NonexistentParent")
-}
-
-// Helper function to create valid template for testing
-func createValidTemplate(name string) *Template {
-	return &Template{
-		Name:           name,
-		Description:    "A test template",
-		Base:           "ubuntu-22.04",
-		PackageManager: "apt",
-		Packages: PackageDefinitions{
-			System: []string{"git"},
-		},
-	}
 }

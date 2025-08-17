@@ -91,7 +91,7 @@ func (a *App) SecurityCommand() *cobra.Command {
 	awsComplianceCmd.AddCommand(&cobra.Command{
 		Use:   "validate <framework>",
 		Short: "Validate compliance framework",
-		Long:  `Validate CloudWorkstation against specific compliance framework using AWS Artifact reports.
+		Long: `Validate CloudWorkstation against specific compliance framework using AWS Artifact reports.
 		
 Available frameworks:
   nist-800-171    NIST 800-171 (CUI Protection)
@@ -170,34 +170,34 @@ func (a *App) SecurityStatus() error {
 
 	// Display security status in user-friendly format
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintf(w, "Status:\t%v\n", getStatusValue(status, "enabled"))
-	fmt.Fprintf(w, "Running:\t%v\n", getStatusValue(status, "running"))
-	
+	_, _ = fmt.Fprintf(w, "Status:\t%v\n", getStatusValue(status, "enabled"))
+	_, _ = fmt.Fprintf(w, "Running:\t%v\n", getStatusValue(status, "running"))
+
 	if lastCheck, ok := status["last_health_check"].(string); ok && lastCheck != "" {
 		if t, err := time.Parse(time.RFC3339, lastCheck); err == nil {
-			fmt.Fprintf(w, "Last Health Check:\t%s\n", t.Format("2006-01-02 15:04:05"))
+			_, _ = fmt.Fprintf(w, "Last Health Check:\t%s\n", t.Format("2006-01-02 15:04:05"))
 		}
 	}
 
 	// Show configuration
 	if config, ok := status["configuration"].(map[string]interface{}); ok {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Configuration:")
-		fmt.Fprintf(w, "  Audit Logging:\t%v\n", config["audit_log_enabled"])
-		fmt.Fprintf(w, "  Monitoring:\t%v\n", config["monitoring_enabled"])
-		fmt.Fprintf(w, "  Correlation Analysis:\t%v\n", config["correlation_enabled"])
-		fmt.Fprintf(w, "  Registry Security:\t%v\n", config["registry_security_enabled"])
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Configuration:")
+		_, _ = fmt.Fprintf(w, "  Audit Logging:\t%v\n", config["audit_log_enabled"])
+		_, _ = fmt.Fprintf(w, "  Monitoring:\t%v\n", config["monitoring_enabled"])
+		_, _ = fmt.Fprintf(w, "  Correlation Analysis:\t%v\n", config["correlation_enabled"])
+		_, _ = fmt.Fprintf(w, "  Registry Security:\t%v\n", config["registry_security_enabled"])
 	}
 
 	// Show keychain info if available
 	if keychain, ok := status["keychain_info"].(map[string]interface{}); ok {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Keychain:")
-		fmt.Fprintf(w, "  Provider:\t%s\n", keychain["provider"])
-		fmt.Fprintf(w, "  Native:\t%v\n", keychain["native"])
-		fmt.Fprintf(w, "  Security Level:\t%s\n", keychain["security_level"])
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Keychain:")
+		_, _ = fmt.Fprintf(w, "  Provider:\t%s\n", keychain["provider"])
+		_, _ = fmt.Fprintf(w, "  Native:\t%v\n", keychain["native"])
+		_, _ = fmt.Fprintf(w, "  Security Level:\t%s\n", keychain["security_level"])
 	}
 
 	return nil
@@ -226,18 +226,18 @@ func (a *App) SecurityHealth() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintln(w, "Component\tStatus\tDetails")
-	fmt.Fprintln(w, "─────────\t──────\t───────")
+	_, _ = fmt.Fprintln(w, "Component\tStatus\tDetails")
+	_, _ = fmt.Fprintln(w, "─────────\t──────\t───────")
 
 	// Display system health
 	if systemHealth, ok := health["system_health"].(map[string]interface{}); ok {
-		fmt.Fprintf(w, "Keychain\t%s\t\n", getHealthStatus(systemHealth["keychain_status"]))
-		fmt.Fprintf(w, "Encryption\t%s\t\n", getHealthStatus(systemHealth["encryption_status"]))
-		fmt.Fprintf(w, "File Integrity\t%s\t\n", getHealthStatus(systemHealth["file_integrity"]))
-		fmt.Fprintf(w, "Device Binding\t%s\t\n", getHealthStatus(systemHealth["device_binding"]))
-		fmt.Fprintf(w, "Audit Logging\t%s\t\n", getHealthStatus(systemHealth["audit_logging"]))
+		_, _ = fmt.Fprintf(w, "Keychain\t%s\t\n", getHealthStatus(systemHealth["keychain_status"]))
+		_, _ = fmt.Fprintf(w, "Encryption\t%s\t\n", getHealthStatus(systemHealth["encryption_status"]))
+		_, _ = fmt.Fprintf(w, "File Integrity\t%s\t\n", getHealthStatus(systemHealth["file_integrity"]))
+		_, _ = fmt.Fprintf(w, "Device Binding\t%s\t\n", getHealthStatus(systemHealth["device_binding"]))
+		_, _ = fmt.Fprintf(w, "Audit Logging\t%s\t\n", getHealthStatus(systemHealth["audit_logging"]))
 	}
 
 	fmt.Println("\n✅ Health check completed")
@@ -260,34 +260,34 @@ func (a *App) SecurityDashboard() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
 	// Overall status
-	fmt.Fprintf(w, "Status:\t%s\n", dashboard["status"])
-	fmt.Fprintf(w, "Threat Level:\t%s\n", dashboard["threat_level"])
-	fmt.Fprintf(w, "Security Score:\t%v/100\n", dashboard["security_score"])
+	_, _ = fmt.Fprintf(w, "Status:\t%s\n", dashboard["status"])
+	_, _ = fmt.Fprintf(w, "Threat Level:\t%s\n", dashboard["threat_level"])
+	_, _ = fmt.Fprintf(w, "Security Score:\t%v/100\n", dashboard["security_score"])
 
 	// Active alerts
 	if alerts, ok := dashboard["active_alerts"].([]interface{}); ok {
-		fmt.Fprintf(w, "Active Alerts:\t%d\n", len(alerts))
+		_, _ = fmt.Fprintf(w, "Active Alerts:\t%d\n", len(alerts))
 	}
 
 	// Metrics
 	if metrics, ok := dashboard["metrics"].(map[string]interface{}); ok {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Metrics:")
-		fmt.Fprintf(w, "  Total Events:\t%v\n", metrics["total_events"])
-		fmt.Fprintf(w, "  Failed Attempts:\t%v\n", metrics["failed_attempts"])
-		fmt.Fprintf(w, "  Successful Operations:\t%v\n", metrics["successful_operations"])
-		fmt.Fprintf(w, "  Tamper Attempts:\t%v\n", metrics["tamper_attempts"])
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Metrics:")
+		_, _ = fmt.Fprintf(w, "  Total Events:\t%v\n", metrics["total_events"])
+		_, _ = fmt.Fprintf(w, "  Failed Attempts:\t%v\n", metrics["failed_attempts"])
+		_, _ = fmt.Fprintf(w, "  Successful Operations:\t%v\n", metrics["successful_operations"])
+		_, _ = fmt.Fprintf(w, "  Tamper Attempts:\t%v\n", metrics["tamper_attempts"])
 	}
 
 	// Recommendations
 	if recs, ok := dashboard["recommendations"].([]interface{}); ok && len(recs) > 0 {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Recommendations:")
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Recommendations:")
 		for _, rec := range recs {
-			fmt.Fprintf(w, "  • %s\n", rec)
+			_, _ = fmt.Fprintf(w, "  • %s\n", rec)
 		}
 	}
 
@@ -321,21 +321,21 @@ func (a *App) SecurityCorrelations() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintln(w, "Pattern\tType\tRisk Score\tEvents\tTimestamp")
-	fmt.Fprintln(w, "───────\t────\t──────────\t──────\t─────────")
+	_, _ = fmt.Fprintln(w, "Pattern\tType\tRisk Score\tEvents\tTimestamp")
+	_, _ = fmt.Fprintln(w, "───────\t────\t──────────\t──────\t─────────")
 
 	for _, corr := range correlations {
 		if correlation, ok := corr.(map[string]interface{}); ok {
 			pattern := getStringValue(correlation, "pattern")
-			corrType := getStringValue(correlation, "correlation_type") 
+			corrType := getStringValue(correlation, "correlation_type")
 			riskScore := getIntValue(correlation, "risk_score")
 			eventCount := 0
 			if events, ok := correlation["events"].([]interface{}); ok {
 				eventCount = len(events)
 			}
-			
+
 			timestamp := ""
 			if ts, ok := correlation["timestamp"].(string); ok {
 				if t, err := time.Parse(time.RFC3339, ts); err == nil {
@@ -343,7 +343,7 @@ func (a *App) SecurityCorrelations() error {
 				}
 			}
 
-			fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%s\n", 
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%d\t%d\t%s\n",
 				pattern, corrType, riskScore, eventCount, timestamp)
 		}
 	}
@@ -367,45 +367,45 @@ func (a *App) SecurityKeychain() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
 	// Display keychain info
 	if info, ok := keychainData["info"].(map[string]interface{}); ok {
-		fmt.Fprintln(w, "Provider Information:")
-		fmt.Fprintf(w, "  Provider:\t%s\n", info["provider"])
-		fmt.Fprintf(w, "  Platform:\t%s\n", info["platform"])
-		fmt.Fprintf(w, "  Native:\t%v\n", info["native"])
-		fmt.Fprintf(w, "  Available:\t%v\n", info["available"])
-		fmt.Fprintf(w, "  Security Level:\t%s\n", info["security_level"])
-		
+		_, _ = fmt.Fprintln(w, "Provider Information:")
+		_, _ = fmt.Fprintf(w, "  Provider:\t%s\n", info["provider"])
+		_, _ = fmt.Fprintf(w, "  Platform:\t%s\n", info["platform"])
+		_, _ = fmt.Fprintf(w, "  Native:\t%v\n", info["native"])
+		_, _ = fmt.Fprintf(w, "  Available:\t%v\n", info["available"])
+		_, _ = fmt.Fprintf(w, "  Security Level:\t%s\n", info["security_level"])
+
 		if fallback, ok := info["fallback_reason"].(string); ok && fallback != "" {
-			fmt.Fprintf(w, "  Fallback Reason:\t%s\n", fallback)
+			_, _ = fmt.Fprintf(w, "  Fallback Reason:\t%s\n", fallback)
 		}
 	}
 
 	// Display diagnostics
 	if diagnostics, ok := keychainData["diagnostics"].(map[string]interface{}); ok {
 		if issues, ok := diagnostics["issues"].([]interface{}); ok && len(issues) > 0 {
-			fmt.Fprintln(w, "")
-			fmt.Fprintln(w, "Issues:")
+			_, _ = fmt.Fprintln(w, "")
+			_, _ = fmt.Fprintln(w, "Issues:")
 			for _, issue := range issues {
-				fmt.Fprintf(w, "  ⚠️ %s\n", issue)
+				_, _ = fmt.Fprintf(w, "  ⚠️ %s\n", issue)
 			}
 		}
 
 		if warnings, ok := diagnostics["warnings"].([]interface{}); ok && len(warnings) > 0 {
-			fmt.Fprintln(w, "")
-			fmt.Fprintln(w, "Warnings:")
+			_, _ = fmt.Fprintln(w, "")
+			_, _ = fmt.Fprintln(w, "Warnings:")
 			for _, warning := range warnings {
-				fmt.Fprintf(w, "  ⚠️ %s\n", warning)
+				_, _ = fmt.Fprintf(w, "  ⚠️ %s\n", warning)
 			}
 		}
 
 		if recommendations, ok := diagnostics["recommendations"].([]interface{}); ok && len(recommendations) > 0 {
-			fmt.Fprintln(w, "")
-			fmt.Fprintln(w, "Recommendations:")
+			_, _ = fmt.Fprintln(w, "")
+			_, _ = fmt.Fprintln(w, "Recommendations:")
 			for _, rec := range recommendations {
-				fmt.Fprintf(w, "  💡 %s\n", rec)
+				_, _ = fmt.Fprintf(w, "  💡 %s\n", rec)
 			}
 		}
 	}
@@ -429,30 +429,30 @@ func (a *App) SecurityConfig() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintf(w, "Security Enabled:\t%v\n", configData["enabled"])
-	fmt.Fprintf(w, "Security Running:\t%v\n", configData["running"])
-	
+	_, _ = fmt.Fprintf(w, "Security Enabled:\t%v\n", configData["enabled"])
+	_, _ = fmt.Fprintf(w, "Security Running:\t%v\n", configData["running"])
+
 	if config, ok := configData["configuration"].(map[string]interface{}); ok {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Component Configuration:")
-		fmt.Fprintf(w, "  Audit Logging:\t%v\n", config["audit_log_enabled"])
-		fmt.Fprintf(w, "  Monitoring:\t%v\n", config["monitoring_enabled"])
-		fmt.Fprintf(w, "  Correlation Analysis:\t%v\n", config["correlation_enabled"])
-		fmt.Fprintf(w, "  Registry Security:\t%v\n", config["registry_security_enabled"])
-		fmt.Fprintf(w, "  Health Checks:\t%v\n", config["health_check_enabled"])
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Component Configuration:")
+		_, _ = fmt.Fprintf(w, "  Audit Logging:\t%v\n", config["audit_log_enabled"])
+		_, _ = fmt.Fprintf(w, "  Monitoring:\t%v\n", config["monitoring_enabled"])
+		_, _ = fmt.Fprintf(w, "  Correlation Analysis:\t%v\n", config["correlation_enabled"])
+		_, _ = fmt.Fprintf(w, "  Registry Security:\t%v\n", config["registry_security_enabled"])
+		_, _ = fmt.Fprintf(w, "  Health Checks:\t%v\n", config["health_check_enabled"])
 
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Timing Configuration:")
-		fmt.Fprintf(w, "  Monitor Interval:\t%s\n", config["monitor_interval"])
-		fmt.Fprintf(w, "  Analysis Interval:\t%s\n", config["analysis_interval"])
-		fmt.Fprintf(w, "  Health Check Interval:\t%s\n", config["health_check_interval"])
-		
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Alert Configuration:")
-		fmt.Fprintf(w, "  Alert Threshold:\t%s\n", config["alert_threshold"])
-		fmt.Fprintf(w, "  Log Retention Days:\t%v\n", config["log_retention_days"])
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Timing Configuration:")
+		_, _ = fmt.Fprintf(w, "  Monitor Interval:\t%s\n", config["monitor_interval"])
+		_, _ = fmt.Fprintf(w, "  Analysis Interval:\t%s\n", config["analysis_interval"])
+		_, _ = fmt.Fprintf(w, "  Health Check Interval:\t%s\n", config["health_check_interval"])
+
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Alert Configuration:")
+		_, _ = fmt.Fprintf(w, "  Alert Threshold:\t%s\n", config["alert_threshold"])
+		_, _ = fmt.Fprintf(w, "  Log Retention Days:\t%v\n", config["log_retention_days"])
 	}
 
 	return nil
@@ -519,29 +519,29 @@ func (a *App) ValidateAWSCompliance(framework string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
 	// Display compliance overview
-	fmt.Fprintf(w, "Framework:\t%s\n", complianceStatus["framework"])
-	fmt.Fprintf(w, "AWS Compliant:\t%v\n", complianceStatus["aws_compliant"])
-	
+	_, _ = fmt.Fprintf(w, "Framework:\t%s\n", complianceStatus["framework"])
+	_, _ = fmt.Fprintf(w, "AWS Compliant:\t%v\n", complianceStatus["aws_compliant"])
+
 	if reportID, ok := complianceStatus["artifact_report_id"].(string); ok && reportID != "" {
-		fmt.Fprintf(w, "AWS Artifact Report:\t%s\n", reportID)
+		_, _ = fmt.Fprintf(w, "AWS Artifact Report:\t%s\n", reportID)
 	}
 
 	if lastUpdated, ok := complianceStatus["last_updated"].(string); ok {
 		if t, err := time.Parse(time.RFC3339, lastUpdated); err == nil {
-			fmt.Fprintf(w, "Last Updated:\t%s\n", t.Format("2006-01-02 15:04:05"))
+			_, _ = fmt.Fprintf(w, "Last Updated:\t%s\n", t.Format("2006-01-02 15:04:05"))
 		}
 	}
 
 	// Display AWS services compliance
 	if services, ok := complianceStatus["aws_services"].([]interface{}); ok && len(services) > 0 {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "AWS Service Compliance:")
-		fmt.Fprintln(w, "Service\tStatus\tRegions")
-		fmt.Fprintln(w, "───────\t──────\t───────")
-		
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "AWS Service Compliance:")
+		_, _ = fmt.Fprintln(w, "Service\tStatus\tRegions")
+		_, _ = fmt.Fprintln(w, "───────\t──────\t───────")
+
 		for _, svc := range services {
 			if service, ok := svc.(map[string]interface{}); ok {
 				serviceName := getStringValue(service, "service_name")
@@ -558,48 +558,48 @@ func (a *App) ValidateAWSCompliance(framework string) error {
 						regions = strings.Join(regionStrings, ", ")
 					}
 				}
-				
+
 				statusIcon := getComplianceStatusIcon(status)
-				fmt.Fprintf(w, "%s\t%s %s\t%s\n", serviceName, statusIcon, status, regions)
+				_, _ = fmt.Fprintf(w, "%s\t%s %s\t%s\n", serviceName, statusIcon, status, regions)
 			}
 		}
 	}
 
 	// Display gap analysis
 	if gaps, ok := complianceStatus["gap_analysis"].([]interface{}); ok && len(gaps) > 0 {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Gap Analysis:")
-		fmt.Fprintln(w, "Control\tSeverity\tRemediation")
-		fmt.Fprintln(w, "───────\t────────\t───────────")
-		
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Gap Analysis:")
+		_, _ = fmt.Fprintln(w, "Control\tSeverity\tRemediation")
+		_, _ = fmt.Fprintln(w, "───────\t────────\t───────────")
+
 		for _, gap := range gaps {
 			if gapData, ok := gap.(map[string]interface{}); ok {
 				control := getStringValue(gapData, "control")
 				severity := getStringValue(gapData, "severity")
 				remediation := getStringValue(gapData, "remediation")
-				
+
 				severityIcon := getSeverityIcon(severity)
-				fmt.Fprintf(w, "%s\t%s %s\t%s\n", control, severityIcon, severity, remediation)
+				_, _ = fmt.Fprintf(w, "%s\t%s %s\t%s\n", control, severityIcon, severity, remediation)
 			}
 		}
 	}
 
 	// Display recommendations
 	if recs, ok := complianceStatus["recommended_actions"].([]interface{}); ok && len(recs) > 0 {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Recommended Actions:")
-		
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Recommended Actions:")
+
 		for _, rec := range recs {
 			if recommendation, ok := rec.(map[string]interface{}); ok {
 				priority := getStringValue(recommendation, "priority")
 				action := getStringValue(recommendation, "action")
 				awsService := getStringValue(recommendation, "aws_service")
-				
+
 				priorityIcon := getPriorityIcon(priority)
 				if awsService != "" {
-					fmt.Fprintf(w, "%s %s [%s]:\t%s\n", priorityIcon, priority, awsService, action)
+					_, _ = fmt.Fprintf(w, "%s %s [%s]:\t%s\n", priorityIcon, priority, awsService, action)
 				} else {
-					fmt.Fprintf(w, "%s %s:\t%s\n", priorityIcon, priority, action)
+					_, _ = fmt.Fprintf(w, "%s %s:\t%s\n", priorityIcon, priority, action)
 				}
 			}
 		}
@@ -662,14 +662,14 @@ func (a *App) ValidateSCPs(framework string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
 	// Display required SCPs
 	if requiredSCPs, ok := scpStatus["required_scps"].([]interface{}); ok && len(requiredSCPs) > 0 {
-		fmt.Fprintln(w, "Required SCPs:")
-		fmt.Fprintln(w, "Policy\tStatus\tDescription")
-		fmt.Fprintln(w, "──────\t──────\t───────────")
-		
+		_, _ = fmt.Fprintln(w, "Required SCPs:")
+		_, _ = fmt.Fprintln(w, "Policy\tStatus\tDescription")
+		_, _ = fmt.Fprintln(w, "──────\t──────\t───────────")
+
 		implementedSCPs := make(map[string]bool)
 		if implemented, ok := scpStatus["implemented_scps"].([]interface{}); ok {
 			for _, scp := range implemented {
@@ -685,20 +685,20 @@ func (a *App) ValidateSCPs(framework string) error {
 				if implementedSCPs[scpName] {
 					status = "✅ Implemented"
 				}
-				
+
 				description := getSCPDescription(scpName)
-				fmt.Fprintf(w, "%s\t%s\t%s\n", scpName, status, description)
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", scpName, status, description)
 			}
 		}
 	}
 
 	// Display implementation recommendations
 	if gaps, ok := scpStatus["gaps"].([]interface{}); ok && len(gaps) > 0 {
-		fmt.Fprintln(w, "")
-		fmt.Fprintln(w, "Implementation Recommendations:")
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Implementation Recommendations:")
 		for _, gap := range gaps {
 			if gapData, ok := gap.(map[string]interface{}); ok {
-				fmt.Fprintf(w, "• %s\n", gapData["remediation"])
+				_, _ = fmt.Fprintf(w, "• %s\n", gapData["remediation"])
 			}
 		}
 	}
@@ -737,13 +737,13 @@ func (a *App) ListComplianceFrameworks() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 
-	fmt.Fprintln(w, "Framework\tName\tScope")
-	fmt.Fprintln(w, "─────────\t────\t─────")
+	_, _ = fmt.Fprintln(w, "Framework\tName\tScope")
+	_, _ = fmt.Fprintln(w, "─────────\t────\t─────")
 
 	for _, f := range frameworks {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", f.Key, f.Name, f.Scope)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", f.Key, f.Name, f.Scope)
 	}
 
 	fmt.Println("\nUsage:")
@@ -801,18 +801,18 @@ func getPriorityIcon(priority string) string {
 
 func getSCPDescription(scpName string) string {
 	descriptions := map[string]string{
-		"DenyRootUserAccess":         "Prevents root user console access",
-		"RequireMFAForConsoleAccess": "Enforces MFA for AWS console login", 
-		"EnforceSSLOnlyRequests":     "Requires HTTPS/TLS for all requests",
-		"RestrictRegionAccess":       "Limits access to approved AWS regions",
-		"DenyUnencryptedStorage":     "Prevents unencrypted storage resources",
-		"DenyPublicS3Buckets":        "Blocks public S3 bucket creation",
-		"EnforceVPCEndpoints":        "Requires VPC endpoints for AWS services",
-		"RequireMFAForAllAccess":     "Enforces MFA for all AWS access",
-		"DenyNonGovCloudRegions":     "Restricts access to GovCloud regions only",
-		"EnforceFIPS140-2":           "Requires FIPS 140-2 compliant encryption",
-		"RequireCloudTrailEncryption":"Mandates encrypted CloudTrail logs",
-		"DenyPublicAMISharing":       "Prevents public AMI sharing",
+		"DenyRootUserAccess":          "Prevents root user console access",
+		"RequireMFAForConsoleAccess":  "Enforces MFA for AWS console login",
+		"EnforceSSLOnlyRequests":      "Requires HTTPS/TLS for all requests",
+		"RestrictRegionAccess":        "Limits access to approved AWS regions",
+		"DenyUnencryptedStorage":      "Prevents unencrypted storage resources",
+		"DenyPublicS3Buckets":         "Blocks public S3 bucket creation",
+		"EnforceVPCEndpoints":         "Requires VPC endpoints for AWS services",
+		"RequireMFAForAllAccess":      "Enforces MFA for all AWS access",
+		"DenyNonGovCloudRegions":      "Restricts access to GovCloud regions only",
+		"EnforceFIPS140-2":            "Requires FIPS 140-2 compliant encryption",
+		"RequireCloudTrailEncryption": "Mandates encrypted CloudTrail logs",
+		"DenyPublicAMISharing":        "Prevents public AMI sharing",
 	}
 
 	if desc, exists := descriptions[scpName]; exists {

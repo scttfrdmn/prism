@@ -13,37 +13,37 @@ import (
 
 // SecurityValidationResult represents the result of security configuration validation
 type SecurityValidationResult struct {
-	Valid         bool                      `json:"valid"`
-	Score         int                       `json:"score"` // 0-100 security score
-	Level         SecurityLevel             `json:"level"`
-	Issues        []ValidationIssue         `json:"issues"`
-	Warnings      []ValidationWarning       `json:"warnings"`
+	Valid           bool                       `json:"valid"`
+	Score           int                        `json:"score"` // 0-100 security score
+	Level           SecurityLevel              `json:"level"`
+	Issues          []ValidationIssue          `json:"issues"`
+	Warnings        []ValidationWarning        `json:"warnings"`
 	Recommendations []ValidationRecommendation `json:"recommendations"`
-	Summary       string                    `json:"summary"`
+	Summary         string                     `json:"summary"`
 }
 
 // ValidationIssue represents a security configuration issue that must be fixed
 type ValidationIssue struct {
-	Component   string `json:"component"`
-	Issue       string `json:"issue"`
-	Severity    string `json:"severity"`
-	Impact      string `json:"impact"`
-	Resolution  string `json:"resolution"`
+	Component  string `json:"component"`
+	Issue      string `json:"issue"`
+	Severity   string `json:"severity"`
+	Impact     string `json:"impact"`
+	Resolution string `json:"resolution"`
 }
 
 // ValidationWarning represents a security configuration warning
 type ValidationWarning struct {
-	Component   string `json:"component"`
-	Warning     string `json:"warning"`
+	Component      string `json:"component"`
+	Warning        string `json:"warning"`
 	Recommendation string `json:"recommendation"`
 }
 
 // ValidationRecommendation represents a security improvement recommendation
 type ValidationRecommendation struct {
-	Component   string `json:"component"`
+	Component      string `json:"component"`
 	Recommendation string `json:"recommendation"`
-	Priority    string `json:"priority"`
-	Benefit     string `json:"benefit"`
+	Priority       string `json:"priority"`
+	Benefit        string `json:"benefit"`
 }
 
 // SecurityLevel represents the overall security level
@@ -505,7 +505,7 @@ func (v *SecurityConfigValidator) determineSecurityLevel(score int) SecurityLeve
 func (v *SecurityConfigValidator) generateSummary(result *SecurityValidationResult) string {
 	criticalIssues := 0
 	highIssues := 0
-	
+
 	for _, issue := range result.Issues {
 		switch issue.Severity {
 		case "CRITICAL":
@@ -534,7 +534,7 @@ func (v *SecurityConfigValidator) generateSummary(result *SecurityValidationResu
 func ValidateCurrentConfiguration() (*SecurityValidationResult, error) {
 	// Get default configuration for validation
 	config := GetDefaultSecurityConfig()
-	
+
 	validator := NewSecurityConfigValidator(config)
 	return validator.ValidateSecurityConfiguration()
 }

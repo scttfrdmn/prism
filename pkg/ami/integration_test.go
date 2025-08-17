@@ -27,7 +27,8 @@ func setupLocalstackClients(t *testing.T) (*ec2.Client, *ssm.Client) {
 		t.Skip("Skipping integration test - set INTEGRATION_TESTS=1 to run")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
 		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
@@ -61,13 +62,13 @@ func setupLocalstackBuilder(t *testing.T) *Builder {
 	// Create base AMIs map for testing
 	baseAMIs := map[string]map[string]string{
 		"us-east-1": {
-			"x86_64": "ami-test-x86-east1",
-			"arm64":  "ami-test-arm-east1",
+			"x86_64":                  "ami-test-x86-east1",
+			"arm64":                   "ami-test-arm-east1",
 			"ubuntu-22.04-server-lts": "ami-test-ubuntu-east1",
 		},
 		"us-west-2": {
-			"x86_64": "ami-test-x86-west2",
-			"arm64":  "ami-test-arm-west2",
+			"x86_64":                  "ami-test-x86-west2",
+			"arm64":                   "ami-test-arm-west2",
 			"ubuntu-22.04-server-lts": "ami-test-ubuntu-west2",
 		},
 	}
@@ -113,7 +114,7 @@ func TestGetDefaultSecurityGroup(t *testing.T) {
 		Description: aws.String("Default security group"),
 		VpcId:       aws.String("vpc-test123"),
 	}
-	createSgOutput, err := ec2Client.CreateSecurityGroup(context.TODO(), createSgInput)
+	createSgOutput, err := ec2Client.CreateSecurityGroup(ctx, createSgInput)
 	if err != nil {
 		t.Logf("Warning: Failed to create security group in LocalStack: %v", err)
 		// Continue anyway as this may just be a limitation in LocalStack
@@ -147,7 +148,7 @@ func TestGetDefaultSecurityGroup(t *testing.T) {
 // TestInitializeBaseAMIs tests base AMI initialization
 func TestInitializeBaseAMIs(t *testing.T) {
 	builder := setupLocalstackBuilder(t)
-	
+
 	// Clear the base AMIs to test initialization
 	builder.BaseAMIs = nil
 

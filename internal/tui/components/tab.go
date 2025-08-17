@@ -19,17 +19,17 @@ type Tab struct {
 
 // TabBar is a simple tab bar component
 type TabBar struct {
-	tabs              []Tab
-	activeTabIndex    int
-	activeBorderColor lipgloss.Color
+	tabs                []Tab
+	activeTabIndex      int
+	activeBorderColor   lipgloss.Color
 	inactiveBorderColor lipgloss.Color
-	width             int
+	width               int
 }
 
 // NewTabBar creates a new tab bar with the given tab titles
 func NewTabBar(tabs []string, activeIndex int) TabBar {
 	theme := styles.CurrentTheme
-	
+
 	// Create tab objects
 	tabItems := make([]Tab, len(tabs))
 	for i, title := range tabs {
@@ -41,13 +41,13 @@ func NewTabBar(tabs []string, activeIndex int) TabBar {
 				Padding(0, 2),
 		}
 	}
-	
+
 	return TabBar{
-		tabs:              tabItems,
-		activeTabIndex:    activeIndex,
-		activeBorderColor: theme.PrimaryColor,
+		tabs:                tabItems,
+		activeTabIndex:      activeIndex,
+		activeBorderColor:   theme.PrimaryColor,
 		inactiveBorderColor: theme.MutedColor,
-		width:             80,
+		width:               80,
 	}
 }
 
@@ -88,29 +88,29 @@ func (t *TabBar) SetWidth(width int) {
 // View renders the tab bar
 func (t TabBar) View() string {
 	var renderedTabs []string
-	
+
 	// Calculate approximate width for each tab
 	tabWidth := (t.width / len(t.tabs)) - 4 // Account for borders and spacing
-	
+
 	for i, tab := range t.tabs {
 		// Set border color based on active status
 		borderColor := t.inactiveBorderColor
 		if i == t.activeTabIndex {
 			borderColor = t.activeBorderColor
 		}
-		
+
 		// Set tab style
-		style := tab.style.Copy().
+		style := tab.style.
 			BorderForeground(borderColor).
 			Width(tabWidth)
-			
+
 		if i == t.activeTabIndex {
 			style = style.Bold(true)
 		}
-		
+
 		// Render tab
 		renderedTabs = append(renderedTabs, style.Render(tab.title))
 	}
-	
+
 	return lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
 }

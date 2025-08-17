@@ -85,7 +85,7 @@ func (a *App) Apply(args []string) error {
 		// Note: This is incomplete - we'd need the daemon to provide
 		// the full unified template information for application
 	}
-	
+
 	// Set template in request
 	req.Template = template
 
@@ -100,14 +100,14 @@ func (a *App) Apply(args []string) error {
 		fmt.Printf("📦 Would install %d packages\n", response.PackagesInstalled)
 		fmt.Printf("🔧 Would configure %d services\n", response.ServicesConfigured)
 		fmt.Printf("👤 Would create %d users\n", response.UsersCreated)
-		
+
 		if len(response.Warnings) > 0 {
 			fmt.Println("\n⚠️  Warnings:")
 			for _, warning := range response.Warnings {
 				fmt.Printf("   - %s\n", warning)
 			}
 		}
-		
+
 		fmt.Printf("\n⏱️  Estimated execution time: %v\n", response.ExecutionTime)
 		fmt.Printf("\n💡 Run without --dry-run to apply these changes\n")
 	} else {
@@ -116,18 +116,18 @@ func (a *App) Apply(args []string) error {
 		fmt.Printf("   📦 Packages installed: %d\n", response.PackagesInstalled)
 		fmt.Printf("   🔧 Services configured: %d\n", response.ServicesConfigured)
 		fmt.Printf("   👤 Users created: %d\n", response.UsersCreated)
-		
+
 		if response.RollbackCheckpoint != "" {
 			fmt.Printf("   📸 Rollback checkpoint: %s\n", response.RollbackCheckpoint)
 		}
-		
+
 		if len(response.Warnings) > 0 {
 			fmt.Println("\n⚠️  Warnings:")
 			for _, warning := range response.Warnings {
 				fmt.Printf("   - %s\n", warning)
 			}
 		}
-		
+
 		fmt.Printf("\n⏱️  Execution time: %v\n", response.ExecutionTime)
 		fmt.Printf("\n💡 Use 'cws layers %s' to see all applied templates\n", instanceName)
 		fmt.Printf("💡 Use 'cws rollback %s' to undo these changes if needed\n", instanceName)
@@ -294,10 +294,10 @@ func (a *App) Layers(args []string) error {
 	fmt.Printf("📋 Applied templates for instance '%s':\n\n", instanceName)
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "LAYER\tTEMPLATE\tAPPLIED\tPACKAGE MANAGER\tPACKAGES\tSERVICES\tUSERS\tCHECKPOINT")
+	_, _ = fmt.Fprintln(w, "LAYER\tTEMPLATE\tAPPLIED\tPACKAGE MANAGER\tPACKAGES\tSERVICES\tUSERS\tCHECKPOINT")
 
 	for i, layer := range layers {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%s\n",
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%d\t%d\t%d\t%s\n",
 			i+1,
 			layer.Name,
 			layer.AppliedAt.Format("2006-01-02 15:04"),
@@ -309,7 +309,7 @@ func (a *App) Layers(args []string) error {
 		)
 	}
 
-	w.Flush()
+	_ = w.Flush()
 
 	fmt.Printf("\n💡 Use 'cws rollback %s --to-checkpoint=<checkpoint>' to rollback to a specific layer\n", instanceName)
 	fmt.Printf("💡 Use 'cws rollback %s' to rollback to the previous checkpoint\n", instanceName)

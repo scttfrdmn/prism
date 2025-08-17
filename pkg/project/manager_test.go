@@ -29,12 +29,12 @@ func TestNewManager(t *testing.T) {
 			// Create temporary directory for testing
 			tempDir, err := os.MkdirTemp("", "cws-project-test-*")
 			require.NoError(t, err)
-			defer os.RemoveAll(tempDir)
+			defer func() { _ = os.RemoveAll(tempDir) }()
 
 			// Mock home directory
 			originalHome := os.Getenv("HOME")
-			defer os.Setenv("HOME", originalHome)
-			os.Setenv("HOME", tempDir)
+			defer func() { _ = os.Setenv("HOME", originalHome) }()
+			_ = os.Setenv("HOME", tempDir)
 
 			manager, err := NewManager()
 
@@ -46,7 +46,7 @@ func TestNewManager(t *testing.T) {
 				assert.NotNil(t, manager)
 				assert.NotNil(t, manager.budgetTracker)
 				assert.NotNil(t, manager.projects)
-				
+
 				// Verify state directory was created
 				stateDir := filepath.Join(tempDir, ".cloudworkstation")
 				assert.DirExists(t, stateDir)
@@ -91,8 +91,8 @@ func TestManager_CreateProject(t *testing.T) {
 					BudgetPeriod: types.BudgetPeriodMonthly,
 					AlertThresholds: []types.BudgetAlert{
 						{
-							Threshold: 0.8,
-							Type:      types.BudgetAlertEmail,
+							Threshold:  0.8,
+							Type:       types.BudgetAlertEmail,
 							Recipients: []string{"admin@example.com"},
 						},
 					},
@@ -208,14 +208,14 @@ func TestManager_CreateProject_DuplicateName(t *testing.T) {
 	defer teardownTestManager(manager)
 
 	ctx := context.Background()
-	
+
 	// Create first project
 	req := &CreateProjectRequest{
 		Name:        "Duplicate Test",
 		Description: "First project",
 		Owner:       "user1",
 	}
-	
+
 	project1, err := manager.CreateProject(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, project1)
@@ -226,7 +226,7 @@ func TestManager_CreateProject_DuplicateName(t *testing.T) {
 		Description: "Second project",
 		Owner:       "user2",
 	}
-	
+
 	project2, err := manager.CreateProject(ctx, req2)
 	assert.Error(t, err)
 	assert.Nil(t, project2)
@@ -238,7 +238,7 @@ func TestManager_GetProject(t *testing.T) {
 	defer teardownTestManager(manager)
 
 	ctx := context.Background()
-	
+
 	// Create test project
 	req := &CreateProjectRequest{
 		Name:        "Test Project",
@@ -248,7 +248,7 @@ func TestManager_GetProject(t *testing.T) {
 			"type": "test",
 		},
 	}
-	
+
 	createdProject, err := manager.CreateProject(ctx, req)
 	require.NoError(t, err)
 
@@ -288,7 +288,7 @@ func TestManager_GetProject(t *testing.T) {
 				assert.NotNil(t, project)
 				assert.Equal(t, tt.wantName, project.Name)
 				assert.Equal(t, tt.projectID, project.ID)
-				
+
 				// Verify it's a copy (changes don't affect original)
 				project.Name = "Modified"
 				retrievedAgain, err := manager.GetProject(ctx, tt.projectID)
@@ -304,23 +304,23 @@ func TestManager_GetProjectByName(t *testing.T) {
 	defer teardownTestManager(manager)
 
 	ctx := context.Background()
-	
+
 	// Create test projects
 	req1 := &CreateProjectRequest{
 		Name:        "Project Alpha",
 		Description: "First test project",
 		Owner:       "user1",
 	}
-	
+
 	req2 := &CreateProjectRequest{
 		Name:        "Project Beta",
-		Description: "Second test project", 
+		Description: "Second test project",
 		Owner:       "user2",
 	}
-	
+
 	project1, err := manager.CreateProject(ctx, req1)
 	require.NoError(t, err)
-	
+
 	project2, err := manager.CreateProject(ctx, req2)
 	require.NoError(t, err)
 
@@ -376,7 +376,7 @@ func TestManager_ListProjects(t *testing.T) {
 	defer teardownTestManager(manager)
 
 	ctx := context.Background()
-	
+
 	// Create test projects
 	projects := []*CreateProjectRequest{
 		{
@@ -423,10 +423,10 @@ func TestManager_ListProjects(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name        string
-		filter      *ProjectFilter
-		wantCount   int
-		wantNames   []string
+		name      string
+		filter    *ProjectFilter
+		wantCount int
+		wantNames []string
 	}{
 		{
 			name:      "list all projects",
@@ -512,7 +512,7 @@ func TestManager_UpdateProject(t *testing.T) {
 	defer teardownTestManager(manager)
 
 	ctx := context.Background()
-	
+
 	// Create test project
 	req := &CreateProjectRequest{
 		Name:        "Original Project",
@@ -522,7 +522,7 @@ func TestManager_UpdateProject(t *testing.T) {
 			"version": "1.0",
 		},
 	}
-	
+
 	project, err := manager.CreateProject(ctx, req)
 	require.NoError(t, err)
 
@@ -592,7 +592,7 @@ func TestManager_UpdateProject(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, updatedProject)
-				
+
 				// Verify updates
 				if tt.updateReq.Name != nil {
 					assert.Equal(t, *tt.updateReq.Name, updatedProject.Name)
@@ -619,23 +619,23 @@ func TestManager_DeleteProject(t *testing.T) {
 	defer teardownTestManager(manager)
 
 	ctx := context.Background()
-	
+
 	// Create test projects
 	req1 := &CreateProjectRequest{
 		Name:        "Project to Delete",
 		Description: "This project will be deleted",
 		Owner:       "test-user",
 	}
-	
+
 	req2 := &CreateProjectRequest{
 		Name:        "Project to Keep",
 		Description: "This project will remain",
 		Owner:       "test-user",
 	}
-	
+
 	projectToDelete, err := manager.CreateProject(ctx, req1)
 	require.NoError(t, err)
-	
+
 	projectToKeep, err := manager.CreateProject(ctx, req2)
 	require.NoError(t, err)
 
@@ -664,7 +664,7 @@ func TestManager_DeleteProject(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify project is deleted
 				_, err := manager.GetProject(ctx, tt.projectID)
 				assert.Error(t, err)
@@ -683,31 +683,31 @@ func TestManager_DeleteProject(t *testing.T) {
 // Helper functions
 func setupTestManager(t *testing.T) *Manager {
 	t.Helper()
-	
+
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "cws-project-test-*")
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	})
 
 	// Mock home directory
 	originalHome := os.Getenv("HOME")
 	t.Cleanup(func() {
-		os.Setenv("HOME", originalHome)
+		_ = os.Setenv("HOME", originalHome)
 	})
-	os.Setenv("HOME", tempDir)
+	_ = os.Setenv("HOME", tempDir)
 
 	manager, err := NewManager()
 	require.NoError(t, err)
 	require.NotNil(t, manager)
-	
+
 	return manager
 }
 
 func teardownTestManager(manager *Manager) {
 	if manager != nil {
-		manager.Close()
+		_ = manager.Close()
 	}
 }
 

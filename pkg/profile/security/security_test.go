@@ -1,7 +1,6 @@
 package security_test
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -257,18 +256,3 @@ func TestRegistry(t *testing.T) {
 	}
 }
 
-// Helper function for creating a temporary test directory
-func createTempDir(t *testing.T) string {
-	tempDir, err := os.MkdirTemp("", "cws-security-test")
-	if err != nil {
-		t.Fatalf("Failed to create temporary directory: %v", err)
-	}
-	return tempDir
-}
-
-// Cleanup helper function
-func cleanup(t *testing.T, path string) {
-	if err := os.RemoveAll(path); err != nil {
-		t.Logf("Warning: failed to cleanup test directory: %v", err)
-	}
-}

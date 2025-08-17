@@ -34,7 +34,7 @@ func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 		volumes = append(volumes, volume)
 	}
 
-	json.NewEncoder(w).Encode(volumes)
+	_ = json.NewEncoder(w).Encode(volumes)
 }
 
 // handleCreateVolume creates a new volume
@@ -63,7 +63,7 @@ func (s *Server) handleCreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(volume)
+	_ = json.NewEncoder(w).Encode(volume)
 }
 
 // handleVolumeOperations handles operations on specific volumes
@@ -113,7 +113,7 @@ func (s *Server) handleGetVolume(w http.ResponseWriter, r *http.Request, name st
 		return
 	}
 
-	json.NewEncoder(w).Encode(volume)
+	_ = json.NewEncoder(w).Encode(volume)
 }
 
 // handleDeleteVolume deletes a specific volume

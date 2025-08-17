@@ -231,14 +231,14 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 	if _, exists := m.Templates[req.Template]; !exists {
 		return nil, fmt.Errorf("template not found: %s", req.Template)
 	}
-	
+
 	// Create a unique instance ID
 	instanceID := fmt.Sprintf("i-%s-%d", req.Name, time.Now().Unix())
 	publicIP := "54.84.123.45" // Mock IP
-	
+
 	// Select default cost based on template
-var costPerHour float64
-	
+	var costPerHour float64
+
 	template := m.Templates[req.Template]
 	if template.InstanceType["arm64"] != "" {
 		// Prefer ARM for cost savings
@@ -246,7 +246,7 @@ var costPerHour float64
 	} else {
 		costPerHour = template.EstimatedCostPerHour["x86_64"]
 	}
-	
+
 	// Apply size adjustments if specified
 	if req.Size != "" {
 		switch req.Size {
@@ -268,15 +268,15 @@ var costPerHour float64
 			costPerHour = 3.0
 		}
 	}
-	
+
 	// Apply spot discount if requested
 	if req.Spot {
 		costPerHour *= 0.3 // 70% discount for spot
 	}
-	
+
 	// Calculate daily cost
 	dailyCost := costPerHour * 24
-	
+
 	// Create instance
 	instance := types.Instance{
 		ID:                 instanceID,
@@ -288,22 +288,22 @@ var costPerHour float64
 		PrivateIP:          "172.31.16." + fmt.Sprint(time.Now().Second()),
 		EstimatedDailyCost: dailyCost,
 	}
-	
+
 	// Add volumes if specified
 	if len(req.Volumes) > 0 {
 		instance.AttachedVolumes = req.Volumes
 	}
-	
+
 	// Add EBS volumes if specified
 	if len(req.EBSVolumes) > 0 {
 		instance.AttachedEBSVolumes = req.EBSVolumes
 	}
-	
+
 	// Store instance if not dry run
 	if !req.DryRun {
 		m.Instances[req.Name] = instance
 	}
-	
+
 	// Create connection info based on template
 	var connectionInfo string
 	switch req.Template {
@@ -316,7 +316,7 @@ var costPerHour float64
 	default:
 		connectionInfo = fmt.Sprintf("ssh ubuntu@%s", publicIP)
 	}
-	
+
 	// Build response
 	resp := &types.LaunchResponse{
 		Instance:       instance,
@@ -324,10 +324,10 @@ var costPerHour float64
 		EstimatedCost:  fmt.Sprintf("$%.2f/day", dailyCost),
 		ConnectionInfo: connectionInfo,
 	}
-	
+
 	// Simulate delay for more realistic response
 	time.Sleep(500 * time.Millisecond)
-	
+
 	return resp, nil
 }
 
@@ -335,14 +335,14 @@ var costPerHour float64
 func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
 	instances := make([]types.Instance, 0, len(m.Instances))
 	totalCost := 0.0
-	
+
 	for _, instance := range m.Instances {
 		instances = append(instances, instance)
 		if instance.State == "running" {
 			totalCost += instance.EstimatedDailyCost
 		}
 	}
-	
+
 	return &types.ListResponse{
 		Instances: instances,
 		TotalCost: totalCost,
@@ -362,7 +362,7 @@ func (m *MockClient) DeleteInstance(ctx context.Context, name string) error {
 	if _, exists := m.Instances[name]; !exists {
 		return fmt.Errorf("instance not found: %s", name)
 	}
-	
+
 	delete(m.Instances, name)
 	return nil
 }
@@ -393,7 +393,7 @@ func (m *MockClient) HibernateInstance(ctx context.Context, name string) error {
 	if !exists {
 		return fmt.Errorf("instance not found: %s", name)
 	}
-	
+
 	instance.State = "hibernated"
 	m.Instances[name] = instance
 	return nil
@@ -405,7 +405,7 @@ func (m *MockClient) ResumeInstance(ctx context.Context, name string) error {
 	if !exists {
 		return fmt.Errorf("instance not found: %s", name)
 	}
-	
+
 	instance.State = "running"
 	m.Instances[name] = instance
 	return nil
@@ -417,11 +417,11 @@ func (m *MockClient) GetInstanceHibernationStatus(ctx context.Context, name stri
 	if !exists {
 		return nil, fmt.Errorf("instance not found: %s", name)
 	}
-	
+
 	return &types.HibernationStatus{
 		HibernationSupported: true,
-		IsHibernated:        instance.State == "hibernated",
-		InstanceName:        name,
+		IsHibernated:         instance.State == "hibernated",
+		InstanceName:         name,
 	}, nil
 }
 
@@ -460,7 +460,7 @@ func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateReq
 	if _, exists := m.Volumes[req.Name]; exists {
 		return nil, fmt.Errorf("volume already exists: %s", req.Name)
 	}
-	
+
 	// Create mock volume with realistic values
 	volume := types.EFSVolume{
 		Name:            req.Name,
@@ -474,26 +474,26 @@ func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateReq
 		EstimatedCostGB: 0.30, // $0.30/GB is typical EFS cost
 		SizeBytes:       0,    // New volume starts empty
 	}
-	
+
 	// Use defaults if not specified
 	if volume.PerformanceMode == "" {
 		volume.PerformanceMode = "generalPurpose"
 	}
-	
+
 	if volume.ThroughputMode == "" {
 		volume.ThroughputMode = "bursting"
 	}
-	
+
 	if volume.Region == "" {
 		volume.Region = "us-east-1"
 	}
-	
+
 	// Store volume
 	m.Volumes[req.Name] = volume
-	
+
 	// Simulate delay
 	time.Sleep(300 * time.Millisecond)
-	
+
 	return &volume, nil
 }
 
@@ -519,7 +519,7 @@ func (m *MockClient) DeleteVolume(ctx context.Context, name string) error {
 	if _, exists := m.Volumes[name]; !exists {
 		return fmt.Errorf("volume not found: %s", name)
 	}
-	
+
 	delete(m.Volumes, name)
 	return nil
 }
@@ -529,10 +529,10 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 	if _, exists := m.Storage[req.Name]; exists {
 		return nil, fmt.Errorf("storage volume already exists: %s", req.Name)
 	}
-	
+
 	// Determine size based on t-shirt sizing
 	sizeGB := int32(100) // default XS
-	
+
 	switch req.Size {
 	case "XS":
 		sizeGB = 100
@@ -553,16 +553,16 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 			sizeGB = int32(size)
 		}
 	}
-	
+
 	// Set defaults for volume type
 	volumeType := req.VolumeType
 	if volumeType == "" {
 		volumeType = "gp3"
 	}
-	
+
 	// Set IOPS and throughput based on volume type
 	var iops, throughput int32
-	
+
 	switch volumeType {
 	case "gp3":
 		iops = 3000 // Default for gp3
@@ -571,10 +571,10 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 		iops = 16000
 		throughput = 500
 	}
-	
+
 	// Calculate cost based on volume type and size
 	var costPerGB float64
-	
+
 	switch volumeType {
 	case "gp3":
 		costPerGB = 0.08
@@ -583,7 +583,7 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 	default:
 		costPerGB = 0.10
 	}
-	
+
 	// Create storage volume
 	volume := types.EBSVolume{
 		Name:            req.Name,
@@ -597,17 +597,17 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 		Throughput:      throughput,
 		EstimatedCostGB: costPerGB,
 	}
-	
+
 	if volume.Region == "" {
 		volume.Region = "us-east-1"
 	}
-	
+
 	// Store volume
 	m.Storage[req.Name] = volume
-	
+
 	// Simulate delay
 	time.Sleep(500 * time.Millisecond)
-	
+
 	return &volume, nil
 }
 
@@ -633,7 +633,7 @@ func (m *MockClient) DeleteStorage(ctx context.Context, name string) error {
 	if _, exists := m.Storage[name]; !exists {
 		return fmt.Errorf("storage volume not found: %s", name)
 	}
-	
+
 	delete(m.Storage, name)
 	return nil
 }
@@ -644,21 +644,21 @@ func (m *MockClient) AttachStorage(ctx context.Context, volumeName, instanceName
 	if !exists {
 		return fmt.Errorf("storage volume not found: %s", volumeName)
 	}
-	
+
 	if _, exists := m.Instances[instanceName]; !exists {
 		return fmt.Errorf("instance not found: %s", instanceName)
 	}
-	
+
 	// Update volume attachment
 	volume.AttachedTo = instanceName
 	volume.State = "in-use"
 	m.Storage[volumeName] = volume
-	
+
 	// Update instance
 	instance := m.Instances[instanceName]
 	instance.AttachedEBSVolumes = append(instance.AttachedEBSVolumes, volumeName)
 	m.Instances[instanceName] = instance
-	
+
 	return nil
 }
 
@@ -668,12 +668,12 @@ func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error
 	if !exists {
 		return fmt.Errorf("storage volume not found: %s", volumeName)
 	}
-	
+
 	// Skip if not attached
 	if volume.AttachedTo == "" {
 		return nil
 	}
-	
+
 	// Update instance if it exists
 	if instance, exists := m.Instances[volume.AttachedTo]; exists {
 		// Remove volume from instance
@@ -686,12 +686,12 @@ func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error
 		instance.AttachedEBSVolumes = updatedVolumes
 		m.Instances[volume.AttachedTo] = instance
 	}
-	
+
 	// Update volume
 	volume.AttachedTo = ""
 	volume.State = "available"
 	m.Storage[volumeName] = volume
-	
+
 	return nil
 }
 
@@ -703,16 +703,16 @@ func (m *MockClient) AttachVolume(ctx context.Context, volumeName, instanceName 
 	if !exists {
 		return fmt.Errorf("volume not found: %s", volumeName)
 	}
-	
+
 	if _, exists := m.Instances[instanceName]; !exists {
 		return fmt.Errorf("instance not found: %s", instanceName)
 	}
-	
+
 	// Update instance
 	instance := m.Instances[instanceName]
 	instance.AttachedVolumes = append(instance.AttachedVolumes, volumeName)
 	m.Instances[instanceName] = instance
-	
+
 	return nil
 }
 
@@ -721,7 +721,7 @@ func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error 
 	if _, exists := m.Volumes[volumeName]; !exists {
 		return fmt.Errorf("volume not found: %s", volumeName)
 	}
-	
+
 	// Update instances that have this volume attached
 	for instName, instance := range m.Instances {
 		updatedVolumes := []string{}
@@ -733,17 +733,17 @@ func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error 
 		instance.AttachedVolumes = updatedVolumes
 		m.Instances[instName] = instance
 	}
-	
+
 	return nil
 }
 
 // GetRegistryStatus returns the status of the AMI registry
 func (m *MockClient) GetRegistryStatus(ctx context.Context) (*client.RegistryStatusResponse, error) {
 	return &client.RegistryStatusResponse{
-		Active: true,
+		Active:        true,
 		TemplateCount: 5,
-		AMICount: 15,
-		Status: "operational",
+		AMICount:      15,
+		Status:        "operational",
 	}, nil
 }
 
@@ -759,17 +759,17 @@ func (m *MockClient) LookupAMI(ctx context.Context, templateName, region, arch s
 	if !exists {
 		return nil, fmt.Errorf("template not found: %s", templateName)
 	}
-	
+
 	regionAMIs, exists := template.AMI[region]
 	if !exists {
 		return nil, fmt.Errorf("template not available in region %s", region)
 	}
-	
+
 	amiID, exists := regionAMIs[arch]
 	if !exists {
 		return nil, fmt.Errorf("template not available for architecture %s in region %s", arch, region)
 	}
-	
+
 	return &client.AMIReferenceResponse{
 		AMIID:        amiID,
 		Region:       region,
@@ -787,9 +787,9 @@ func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 	if !exists {
 		return nil, fmt.Errorf("template not found: %s", templateName)
 	}
-	
+
 	var result []client.AMIReferenceResponse
-	
+
 	for region, archMap := range template.AMI {
 		for arch, amiID := range archMap {
 			result = append(result, client.AMIReferenceResponse{
@@ -803,7 +803,7 @@ func (m *MockClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 			})
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -819,7 +819,7 @@ func (m *MockClient) GetIdleStatus(ctx context.Context) (*types.IdleStatusRespon
 	return &types.IdleStatusResponse{
 		Enabled:        true,
 		DefaultProfile: "default",
-		Profiles:       map[string]types.IdleProfile{
+		Profiles: map[string]types.IdleProfile{
 			"default": {
 				Name:             "default",
 				CPUThreshold:     5.0,
@@ -894,7 +894,7 @@ func (m *MockClient) CreateProject(ctx context.Context, req project.CreateProjec
 		budget.MonthlyLimit = req.Budget.MonthlyLimit
 		budget.AlertThresholds = req.Budget.AlertThresholds
 	}
-	
+
 	return &types.Project{
 		ID:          "mock-project-123",
 		Name:        req.Name,
@@ -942,14 +942,14 @@ func (m *MockClient) GetProject(ctx context.Context, projectID string) (*types.P
 func (m *MockClient) UpdateProject(ctx context.Context, projectID string, req project.UpdateProjectRequest) (*types.Project, error) {
 	name := "Mock Research Project"
 	description := "A sample project for testing"
-	
+
 	if req.Name != nil {
 		name = *req.Name
 	}
 	if req.Description != nil {
 		description = *req.Description
 	}
-	
+
 	return &types.Project{
 		ID:          projectID,
 		Name:        name,
@@ -984,9 +984,9 @@ func (m *MockClient) RemoveProjectMember(ctx context.Context, projectID, userID 
 func (m *MockClient) GetProjectMembers(ctx context.Context, projectID string) ([]types.ProjectMember, error) {
 	return []types.ProjectMember{
 		{
-			UserID:    "mock-user",
-			Role:      "owner",
-			AddedAt:   time.Now().Add(-24 * time.Hour),
+			UserID:  "mock-user",
+			Role:    "owner",
+			AddedAt: time.Now().Add(-24 * time.Hour),
 		},
 	}, nil
 }
@@ -994,16 +994,16 @@ func (m *MockClient) GetProjectMembers(ctx context.Context, projectID string) ([
 // GetProjectBudgetStatus gets project budget status (mock)
 func (m *MockClient) GetProjectBudgetStatus(ctx context.Context, projectID string) (*project.BudgetStatus, error) {
 	return &project.BudgetStatus{
-		ProjectID:                projectID,
-		BudgetEnabled:           true,
-		TotalBudget:             1000.0,
-		SpentAmount:             150.25,
-		RemainingBudget:         849.75,
-		SpentPercentage:         0.15,
-		ProjectedMonthlySpend:   280.50,
-		ActiveAlerts:            []string{},
-		TriggeredActions:        []string{},
-		LastUpdated:            time.Now(),
+		ProjectID:             projectID,
+		BudgetEnabled:         true,
+		TotalBudget:           1000.0,
+		SpentAmount:           150.25,
+		RemainingBudget:       849.75,
+		SpentPercentage:       0.15,
+		ProjectedMonthlySpend: 280.50,
+		ActiveAlerts:          []string{},
+		TriggeredActions:      []string{},
+		LastUpdated:           time.Now(),
 	}, nil
 }
 
@@ -1023,13 +1023,13 @@ func (m *MockClient) GetProjectCostBreakdown(ctx context.Context, projectID stri
 // GetProjectResourceUsage gets project resource usage (mock)
 func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID string, duration time.Duration) (*types.ProjectResourceUsage, error) {
 	return &types.ProjectResourceUsage{
-		ProjectID:           projectID,
-		ActiveInstances:     2,
-		TotalInstances:      5,
-		TotalStorage:        100.0,
-		ComputeHours:        48.5,
-		HibernationSavings:  25.50,
-		MeasurementPeriod:   duration,
+		ProjectID:          projectID,
+		ActiveInstances:    2,
+		TotalInstances:     5,
+		TotalStorage:       100.0,
+		ComputeHours:       48.5,
+		HibernationSavings: 25.50,
+		MeasurementPeriod:  duration,
 	}, nil
 }
 

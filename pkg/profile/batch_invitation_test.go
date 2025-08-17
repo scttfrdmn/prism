@@ -16,7 +16,7 @@ func TestBatchInvitationImportExport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create config directory
 	configDir := filepath.Join(tempDir, ".cloudworkstation")
@@ -26,8 +26,8 @@ func TestBatchInvitationImportExport(t *testing.T) {
 
 	// Override home directory for testing
 	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
+	_ = os.Setenv("HOME", tempDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
 
 	// Create a profile manager for testing
 	profileManager, err := profile.NewManagerEnhanced()
@@ -179,7 +179,7 @@ func TestBatchInvitationEdgeCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create config directory
 	configDir := filepath.Join(tempDir, ".cloudworkstation")
@@ -189,8 +189,8 @@ func TestBatchInvitationEdgeCases(t *testing.T) {
 
 	// Override home directory for testing
 	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
+	_ = os.Setenv("HOME", tempDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
 
 	// Create a profile manager for testing
 	profileManager, err := profile.NewManagerEnhanced()

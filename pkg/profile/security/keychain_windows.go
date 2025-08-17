@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	advapi32                = windows.NewLazySystemDLL("advapi32.dll")
-	procCredWriteW          = advapi32.NewProc("CredWriteW")
-	procCredReadW           = advapi32.NewProc("CredReadW")
-	procCredDeleteW         = advapi32.NewProc("CredDeleteW")
-	procCredFree            = advapi32.NewProc("CredFree")
+	advapi32        = windows.NewLazySystemDLL("advapi32.dll")
+	procCredWriteW  = advapi32.NewProc("CredWriteW")
+	procCredReadW   = advapi32.NewProc("CredReadW")
+	procCredDeleteW = advapi32.NewProc("CredDeleteW")
+	procCredFree    = advapi32.NewProc("CredFree")
 )
 
 // CREDENTIAL structure for Windows Credential Manager
@@ -37,11 +37,11 @@ type CREDENTIAL struct {
 }
 
 const (
-	CRED_TYPE_GENERIC                = 1
-	CRED_PERSIST_LOCAL_MACHINE       = 2
-	CRED_PERSIST_ENTERPRISE          = 3
-	CRED_MAX_STRING_LENGTH           = 256
-	CRED_MAX_USERNAME_LENGTH         = 513
+	CRED_TYPE_GENERIC                   = 1
+	CRED_PERSIST_LOCAL_MACHINE          = 2
+	CRED_PERSIST_ENTERPRISE             = 3
+	CRED_MAX_STRING_LENGTH              = 256
+	CRED_MAX_USERNAME_LENGTH            = 513
 	CRED_MAX_GENERIC_TARGET_NAME_LENGTH = 32767
 )
 
@@ -60,7 +60,7 @@ func NewWindowsCredentialManagerNative() (*WindowsCredentialManagerNative, error
 // Store implements KeychainProvider.Store for Windows using Credential Manager API
 func (w *WindowsCredentialManagerNative) Store(key string, data []byte) error {
 	targetName := fmt.Sprintf("%s\\%s", w.targetPrefix, key)
-	
+
 	// Convert target name to UTF-16
 	targetNamePtr, err := syscall.UTF16PtrFromString(targetName)
 	if err != nil {
@@ -92,7 +92,7 @@ func (w *WindowsCredentialManagerNative) Store(key string, data []byte) error {
 // Retrieve implements KeychainProvider.Retrieve for Windows using Credential Manager API
 func (w *WindowsCredentialManagerNative) Retrieve(key string) ([]byte, error) {
 	targetName := fmt.Sprintf("%s\\%s", w.targetPrefix, key)
-	
+
 	// Convert target name to UTF-16
 	targetNamePtr, err := syscall.UTF16PtrFromString(targetName)
 	if err != nil {
@@ -123,7 +123,7 @@ func (w *WindowsCredentialManagerNative) Retrieve(key string) ([]byte, error) {
 
 	// Convert pointer to CREDENTIAL structure
 	cred := (*CREDENTIAL)(unsafe.Pointer(credPtr))
-	
+
 	// Copy credential blob data
 	data := make([]byte, cred.CredentialBlobSize)
 	if cred.CredentialBlobSize > 0 && cred.CredentialBlob != nil {
@@ -139,7 +139,7 @@ func (w *WindowsCredentialManagerNative) Retrieve(key string) ([]byte, error) {
 // Exists implements KeychainProvider.Exists for Windows using Credential Manager API
 func (w *WindowsCredentialManagerNative) Exists(key string) bool {
 	targetName := fmt.Sprintf("%s\\%s", w.targetPrefix, key)
-	
+
 	// Convert target name to UTF-16
 	targetNamePtr, err := syscall.UTF16PtrFromString(targetName)
 	if err != nil {
@@ -168,7 +168,7 @@ func (w *WindowsCredentialManagerNative) Exists(key string) bool {
 // Delete implements KeychainProvider.Delete for Windows using Credential Manager API
 func (w *WindowsCredentialManagerNative) Delete(key string) error {
 	targetName := fmt.Sprintf("%s\\%s", w.targetPrefix, key)
-	
+
 	// Convert target name to UTF-16
 	targetNamePtr, err := syscall.UTF16PtrFromString(targetName)
 	if err != nil {
@@ -197,10 +197,10 @@ func (w *WindowsCredentialManagerNative) Delete(key string) error {
 // GetKeychainInfo returns information about the Windows Credential Manager integration
 func (w *WindowsCredentialManagerNative) GetKeychainInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"provider":      "Windows Credential Manager (Native)",
-		"target_prefix": w.targetPrefix,
-		"api":          "advapi32.dll",
-		"persistence":  "CRED_PERSIST_LOCAL_MACHINE",
+		"provider":       "Windows Credential Manager (Native)",
+		"target_prefix":  w.targetPrefix,
+		"api":            "advapi32.dll",
+		"persistence":    "CRED_PERSIST_LOCAL_MACHINE",
 		"security_level": "Windows DPAPI encryption",
 	}
 }

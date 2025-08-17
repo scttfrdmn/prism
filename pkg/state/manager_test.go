@@ -32,7 +32,7 @@ func TestLoadStateEmptyFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -65,7 +65,7 @@ func TestSaveAndLoadState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -164,7 +164,7 @@ func TestSaveInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -205,7 +205,7 @@ func TestRemoveInstance(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -247,7 +247,7 @@ func TestSaveAndRemoveVolume(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -299,7 +299,7 @@ func TestSaveAndRemoveEBSVolume(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -352,7 +352,7 @@ func TestUpdateConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),
@@ -385,7 +385,7 @@ func TestConcurrentAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	manager := &Manager{
 		statePath: filepath.Join(tempDir, "state.json"),

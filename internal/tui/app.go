@@ -9,12 +9,12 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/models"
 	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
@@ -44,16 +44,16 @@ const (
 
 // AppModel represents the main application model
 type AppModel struct {
-	apiClient     *api.TUIClient
-	currentPage   PageID
+	apiClient      *api.TUIClient
+	currentPage    PageID
 	dashboardModel models.DashboardModel
 	instancesModel models.InstancesModel
 	templatesModel models.TemplatesModel
 	storageModel   models.StorageModel
 	settingsModel  models.SettingsModel
-	profilesModel models.ProfilesModel
-	width         int
-	height        int
+	profilesModel  models.ProfilesModel
+	width          int
+	height         int
 }
 
 // NewApp creates a new TUI application
@@ -68,16 +68,16 @@ func NewApp() *App {
 			Region:     "",
 		}
 	}
-	
+
 	// Create API client with modern Options pattern
 	apiClient := pkgapi.NewClientWithOptions("http://localhost:8947", client.Options{
 		AWSProfile: currentProfile.AWSProfile,
 		AWSRegion:  currentProfile.Region,
 	})
-	
+
 	// Wrap with TUI client
 	tuiClient := api.NewTUIClient(apiClient)
-	
+
 	return &App{
 		apiClient: tuiClient,
 		program:   nil,
@@ -88,14 +88,14 @@ func NewApp() *App {
 func (a *App) Run() error {
 	// Create initial model
 	model := AppModel{
-		apiClient:     a.apiClient,
-		currentPage:   DashboardPage,
+		apiClient:      a.apiClient,
+		currentPage:    DashboardPage,
 		dashboardModel: models.NewDashboardModel(a.apiClient),
 		instancesModel: models.NewInstancesModel(a.apiClient),
 		templatesModel: models.NewTemplatesModel(a.apiClient),
 		storageModel:   models.NewStorageModel(a.apiClient),
 		settingsModel:  models.NewSettingsModel(a.apiClient),
-		profilesModel: models.NewProfilesModel(a.apiClient),
+		profilesModel:  models.NewProfilesModel(a.apiClient),
 	}
 
 	// Create program with explicit input/output streams for maximum compatibility
@@ -104,7 +104,7 @@ func (a *App) Run() error {
 		tea.WithInput(os.Stdin),
 		tea.WithOutput(os.Stderr), // Use stderr to avoid conflicts with stdout
 	)
-	
+
 	// Store program reference
 	a.program = program
 
@@ -137,7 +137,7 @@ func (m AppModel) Init() tea.Cmd {
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
-	
+
 	// Handle global messages
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:

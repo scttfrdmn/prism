@@ -13,20 +13,20 @@ import (
 
 // TamperProtection provides file integrity monitoring and tamper detection
 type TamperProtection struct {
-	checksums map[string]string // File path -> SHA-256 checksum
+	checksums map[string]string        // File path -> SHA-256 checksum
 	metadata  map[string]*FileMetadata // File path -> metadata
-	mutex     sync.RWMutex // Thread-safe access
+	mutex     sync.RWMutex             // Thread-safe access
 }
 
 // FileMetadata stores file integrity information
 type FileMetadata struct {
-	Path         string    `json:"path"`
-	Checksum     string    `json:"checksum"`
-	Size         int64     `json:"size"`
-	ModTime      time.Time `json:"mod_time"`
-	Protected    bool      `json:"protected"`
-	CreatedAt    time.Time `json:"created_at"`
-	LastChecked  time.Time `json:"last_checked"`
+	Path        string    `json:"path"`
+	Checksum    string    `json:"checksum"`
+	Size        int64     `json:"size"`
+	ModTime     time.Time `json:"mod_time"`
+	Protected   bool      `json:"protected"`
+	CreatedAt   time.Time `json:"created_at"`
+	LastChecked time.Time `json:"last_checked"`
 }
 
 // NewTamperProtection creates a new tamper protection instance
@@ -214,7 +214,7 @@ func (t *TamperProtection) calculateFileMetadata(filePath string) (*FileMetadata
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Calculate SHA-256 checksum
 	hasher := sha256.New()
@@ -258,7 +258,7 @@ func (e *TamperDetectionError) Unwrap() error {
 
 // Common tamper detection errors
 var (
-	ErrFileNotProtected = &TamperDetectionError{Operation: "protection_check", Err: fmt.Errorf("file not under protection")}
+	ErrFileNotProtected   = &TamperDetectionError{Operation: "protection_check", Err: fmt.Errorf("file not under protection")}
 	ErrIntegrityViolation = &TamperDetectionError{Operation: "integrity_check", Err: fmt.Errorf("file integrity violation")}
 )
 

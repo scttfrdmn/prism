@@ -26,8 +26,8 @@ func (t Table) Focusable() bool {
 }
 
 // NewTable creates a new table component
-func NewTable(columns []table.Column, rows []table.Row, 
-	          width, height int, focusable bool) Table {
+func NewTable(columns []table.Column, rows []table.Row,
+	width, height int, focusable bool) Table {
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
@@ -40,7 +40,7 @@ func NewTable(columns []table.Column, rows []table.Row,
 	theme := styles.CurrentTheme
 	t.SetStyles(table.Styles{
 		Header: theme.TableHeader,
-		Selected: theme.TableRow.Copy().
+		Selected: theme.TableRow.
 			Foreground(theme.TextColor).
 			Background(theme.PrimaryColor),
 		Cell: theme.TableRow,
@@ -93,7 +93,7 @@ func (t *Table) Update(msg tea.Msg) (Table, tea.Cmd) {
 
 	var cmd tea.Cmd
 	t.table, cmd = t.table.Update(msg)
-	
+
 	// Save the selected item for later reference
 	if len(t.table.Rows()) > 0 {
 		selectedRow := t.table.SelectedRow()
@@ -101,7 +101,7 @@ func (t *Table) Update(msg tea.Msg) (Table, tea.Cmd) {
 			t.selectedItem = selectedRow[0] // Assuming first column is the ID/name
 		}
 	}
-	
+
 	return *t, cmd
 }
 

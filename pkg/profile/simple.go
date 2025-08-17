@@ -11,7 +11,7 @@ package profile
 
 import (
 	"fmt"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 )
 
@@ -37,7 +37,7 @@ func ListProfiles() ([]*core.Profile, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return manager.List(), nil
 }
 
@@ -47,7 +47,7 @@ func GetCurrentProfile() (*core.Profile, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return manager.GetCurrent()
 }
 
@@ -57,7 +57,7 @@ func SetCurrentProfile(name string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return manager.SetCurrent(name)
 }
 
@@ -67,14 +67,14 @@ func CreateProfile(name, awsProfile, region string, makeDefault bool) error {
 	if err != nil {
 		return err
 	}
-	
+
 	profile := &core.Profile{
 		Name:       name,
 		AWSProfile: awsProfile,
 		Region:     region,
 		Default:    makeDefault,
 	}
-	
+
 	return manager.Set(name, profile)
 }
 
@@ -84,7 +84,7 @@ func DeleteProfile(name string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return manager.Delete(name)
 }
 
@@ -94,7 +94,7 @@ func EnsureDefaultProfile(awsProfile, region string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return manager.CreateDefault(awsProfile, region)
 }
 
@@ -104,7 +104,7 @@ func EnsureDefaultProfile(awsProfile, region string) error {
 func MigrateFromLegacy() error {
 	// This function will help migrate from the complex ManagerEnhanced
 	// to the simplified core.Manager
-	
+
 	// For now, return not implemented - we'll implement this as needed
 	return fmt.Errorf("legacy migration not yet implemented - use GetCompatibilityManager() for gradual migration")
 }
@@ -115,7 +115,7 @@ func GetProfileStats() (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return manager.Stats(), nil
 }
 
@@ -125,13 +125,13 @@ func ValidateProfileConfig(name, awsProfile, region string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	profile := &core.Profile{
 		Name:       name,
 		AWSProfile: awsProfile,
 		Region:     region,
 	}
-	
+
 	// Attempt to set the profile (this will validate it)
 	// We use a temp name to avoid conflicts
 	tempName := "__validation_temp__"
@@ -139,9 +139,9 @@ func ValidateProfileConfig(name, awsProfile, region string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Clean up the temp profile
-	manager.Delete(tempName)
+	_ = manager.Delete(tempName)
 	return nil
 }
 
@@ -153,20 +153,20 @@ func ExportProfiles() (*core.ProfileConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	profiles := manager.List()
 	currentName := manager.GetCurrentName()
-	
+
 	config := &core.ProfileConfig{
-		Profiles:  make(map[string]*core.Profile),
-		Current:   currentName,
-		Version:   1,
+		Profiles: make(map[string]*core.Profile),
+		Current:  currentName,
+		Version:  1,
 	}
-	
+
 	for _, profile := range profiles {
 		config.Profiles[profile.Name] = profile
 	}
-	
+
 	return config, nil
 }
 
@@ -176,20 +176,20 @@ func ImportProfiles(config *core.ProfileConfig) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Import all profiles
 	for name, profile := range config.Profiles {
 		if err := manager.Set(name, profile); err != nil {
 			return fmt.Errorf("failed to import profile %s: %w", name, err)
 		}
 	}
-	
+
 	// Set current profile if specified
 	if config.Current != "" {
 		if err := manager.SetCurrent(config.Current); err != nil {
 			return fmt.Errorf("failed to set current profile %s: %w", config.Current, err)
 		}
 	}
-	
+
 	return nil
 }

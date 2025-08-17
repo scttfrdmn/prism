@@ -62,7 +62,7 @@ type TemplateManager struct {
 	HTTPClient        *http.Client
 	SchemaValidator   *SchemaValidator
 	PublicDirectory   string // Directory for publicly shared templates
-	clock             Clock   // Clock for time operations
+	clock             Clock  // Clock for time operations
 }
 
 // TemplateBuilder is a builder for creating and modifying templates
@@ -232,7 +232,7 @@ func (m *TemplateManager) ImportFromURL(url string, options *TemplateManagerImpo
 		return nil, TemplateImportError("failed to download template", err).
 			WithContext("url", url)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, TemplateImportError(
@@ -366,7 +366,11 @@ func (m *TemplateManager) ExportToFile(templateName, filePath string, options *T
 		return TemplateExportError("failed to create export file", err).
 			WithContext("file_path", filePath)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			// Log but don't fail on cleanup error
+		}
+	}()
 
 	// Export based on format
 	switch options.Format {
@@ -663,17 +667,17 @@ func (m *TemplateManager) ShareTemplate(templateName string, ctx context.Context
 	if m.Registry != nil {
 		// Get metadata for the template
 		metadata := map[string]string{
-			"description":   template.Description,
+			"description":  template.Description,
 			"version":      "1.0.0", // Default version
 			"publisher":    "CloudWorkstation",
 			"architecture": template.Architecture,
 		}
-		
+
 		// Add tags if available
 		for k, v := range template.Tags {
 			metadata[k] = v
 		}
-		
+
 		// Publish template to registry
 		err = m.Registry.PublishTemplate(ctx, templateName, buf.String(), "yaml", metadata)
 		if err != nil {

@@ -43,14 +43,14 @@ type TemplateRegistryEntry struct {
 func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateData, format string, metadata map[string]string) error {
 	// Create registry entry
 	entry := TemplateRegistryEntry{
-		Name:        templateName,
-		Version:     "1.0.0", // Default version
-		PublishedAt: time.Now(),
-		Format:      format,
+		Name:         templateName,
+		Version:      "1.0.0", // Default version
+		PublishedAt:  time.Now(),
+		Format:       format,
 		TemplateData: templateData,
-		Tags:        make(map[string]string),
+		Tags:         make(map[string]string),
 	}
-	
+
 	// Add metadata if provided
 	if metadata != nil {
 		if desc, ok := metadata["description"]; ok {
@@ -65,7 +65,7 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 		if arch, ok := metadata["architecture"]; ok {
 			entry.Architecture = arch
 		}
-		
+
 		// Add all other metadata as tags
 		for k, v := range metadata {
 			if k != "description" && k != "version" && k != "publisher" && k != "architecture" {
@@ -73,17 +73,17 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 			}
 		}
 	}
-	
+
 	// Serialize registry entry
 	entryData, err := json.Marshal(entry)
 	if err != nil {
 		return RegistryError("failed to marshal template registry entry", err).
 			WithContext("template_name", templateName)
 	}
-	
+
 	// Parameter name format: /prefix/templates/template-name/latest
 	paramName := fmt.Sprintf("%s/templates/%s/latest", r.ParameterPrefix, templateName)
-	
+
 	// Store in SSM Parameter Store
 	_, err = r.SSMClient.PutParameter(ctx, &ssm.PutParameterInput{
 		Name:      aws.String(paramName),
@@ -105,13 +105,13 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 			},
 		},
 	})
-	
+
 	if err != nil {
 		return RegistryError("failed to publish template to registry", err).
 			WithContext("template_name", templateName).
 			WithContext("parameter_name", paramName)
 	}
-	
+
 	// Also store versioned copy
 	paramVersioned := fmt.Sprintf("%s/templates/%s/%s", r.ParameterPrefix, templateName, entry.Version)
 	_, err = r.SSMClient.PutParameter(ctx, &ssm.PutParameterInput{
@@ -133,13 +133,13 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 			},
 		},
 	})
-	
+
 	if err != nil {
 		return RegistryError("failed to publish versioned template to registry", err).
 			WithContext("template_name", templateName).
 			WithContext("parameter_name", paramVersioned)
 	}
-	
+
 	return nil
 }
 
@@ -155,46 +155,46 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 //   - error: Any listing errors
 func (r *Registry) ListSharedTemplates(ctx context.Context) (map[string]*TemplateRegistryEntry, error) {
 	result := make(map[string]*TemplateRegistryEntry)
-	
+
 	// Parameter path for templates: /prefix/templates/
 	path := fmt.Sprintf("%s/templates/", r.ParameterPrefix)
-	
+
 	// Get parameters by path
 	input := &ssm.GetParametersByPathInput{
 		Path:           aws.String(path),
 		Recursive:      aws.Bool(true),
 		WithDecryption: aws.Bool(false),
 	}
-	
+
 	paginator := ssm.NewGetParametersByPathPaginator(r.SSMClient, input)
-	
+
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			return result, RegistryError("failed to list shared templates", err).
 				WithContext("parameter_path", path)
 		}
-		
+
 		for _, param := range page.Parameters {
 			// Only process latest versions
 			if strings.Contains(*param.Name, "/latest") {
 				// Extract template name from path
 				namePath := strings.TrimPrefix(*param.Name, path)
 				templateName := strings.Split(namePath, "/")[0]
-				
+
 				// Parse registry entry
 				var entry TemplateRegistryEntry
 				if err := json.Unmarshal([]byte(*param.Value), &entry); err != nil {
 					fmt.Printf("Warning: Failed to parse registry entry for %s: %v\n", templateName, err)
 					continue
 				}
-				
+
 				// Add to result
 				result[templateName] = &entry
 			}
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -216,21 +216,21 @@ func (r *Registry) GetSharedTemplate(ctx context.Context, templateName, version 
 	if version != "" {
 		paramSuffix = version
 	}
-	
+
 	paramName := fmt.Sprintf("%s/templates/%s/%s", r.ParameterPrefix, templateName, paramSuffix)
-	
+
 	// Get parameter
 	param, err := r.SSMClient.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           aws.String(paramName),
 		WithDecryption: aws.Bool(false),
 	})
-	
+
 	if err != nil {
 		return nil, RegistryError(fmt.Sprintf("template '%s' not found in registry", templateName), err).
 			WithContext("template_name", templateName).
 			WithContext("parameter_name", paramName)
 	}
-	
+
 	// Parse registry entry
 	var entry TemplateRegistryEntry
 	if err := json.Unmarshal([]byte(*param.Parameter.Value), &entry); err != nil {
@@ -238,7 +238,7 @@ func (r *Registry) GetSharedTemplate(ctx context.Context, templateName, version 
 			WithContext("template_name", templateName).
 			WithContext("parameter_name", paramName)
 	}
-	
+
 	return &entry, nil
 }
 
@@ -255,18 +255,18 @@ func (r *Registry) GetSharedTemplate(ctx context.Context, templateName, version 
 //   - error: Any listing errors
 func (r *Registry) ListSharedTemplateVersions(ctx context.Context, templateName string) ([]string, error) {
 	result := []string{}
-	
+
 	// Parameter path for template versions: /prefix/templates/template-name/
 	paramPath := fmt.Sprintf("%s/templates/%s/", r.ParameterPrefix, templateName)
-	
+
 	// Get parameters by path
 	input := &ssm.GetParametersByPathInput{
 		Path:      aws.String(paramPath),
 		Recursive: aws.Bool(true),
 	}
-	
+
 	paginator := ssm.NewGetParametersByPathPaginator(r.SSMClient, input)
-	
+
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -274,21 +274,21 @@ func (r *Registry) ListSharedTemplateVersions(ctx context.Context, templateName 
 				WithContext("template_name", templateName).
 				WithContext("parameter_path", paramPath)
 		}
-		
+
 		for _, param := range page.Parameters {
 			// Extract version from path
 			pathParts := strings.Split(*param.Name, "/")
 			version := pathParts[len(pathParts)-1]
-			
+
 			// Skip "latest" as it's not a real version
 			if version != "latest" {
 				result = append(result, version)
 			}
 		}
 	}
-	
+
 	// Sort versions (TODO: use semantic versioning for proper sorting)
-	
+
 	return result, nil
 }
 
@@ -306,16 +306,16 @@ func (r *Registry) ListSharedTemplateVersions(ctx context.Context, templateName 
 func (r *Registry) DeleteSharedTemplate(ctx context.Context, templateName, version string) error {
 	// Parameter path for template: /prefix/templates/template-name
 	paramPath := fmt.Sprintf("%s/templates/%s", r.ParameterPrefix, templateName)
-	
+
 	if version == "" {
 		// Delete all versions - list parameters by path
 		input := &ssm.GetParametersByPathInput{
 			Path:      aws.String(paramPath),
 			Recursive: aws.Bool(true),
 		}
-		
+
 		paginator := ssm.NewGetParametersByPathPaginator(r.SSMClient, input)
-		
+
 		var paramNames []string
 		for paginator.HasMorePages() {
 			page, err := paginator.NextPage(ctx)
@@ -324,12 +324,12 @@ func (r *Registry) DeleteSharedTemplate(ctx context.Context, templateName, versi
 					WithContext("template_name", templateName).
 					WithContext("parameter_path", paramPath)
 			}
-			
+
 			for _, param := range page.Parameters {
 				paramNames = append(paramNames, *param.Name)
 			}
 		}
-		
+
 		// Delete all parameters
 		for _, name := range paramNames {
 			_, err := r.SSMClient.DeleteParameter(ctx, &ssm.DeleteParameterInput{
@@ -353,6 +353,6 @@ func (r *Registry) DeleteSharedTemplate(ctx context.Context, templateName, versi
 				WithContext("parameter_name", paramName)
 		}
 	}
-	
+
 	return nil
 }

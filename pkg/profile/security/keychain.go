@@ -31,13 +31,13 @@ type BindingMaterial struct {
 type KeychainProvider interface {
 	// Store saves data in the secure storage
 	Store(key string, data []byte) error
-	
+
 	// Retrieve gets data from the secure storage
 	Retrieve(key string) ([]byte, error)
-	
+
 	// Exists checks if a key exists in the secure storage
 	Exists(key string) bool
-	
+
 	// Delete removes data from the secure storage
 	Delete(key string) error
 }
@@ -56,23 +56,23 @@ func isDevelopmentMode() bool {
 	if os.Getenv("GO_ENV") == "test" || os.Getenv("CLOUDWORKSTATION_DEV") == "true" {
 		return true
 	}
-	
+
 	// Check for testing context
 	if os.Getenv("TESTING") == "1" {
 		return true
 	}
-	
+
 	// Check if running from test or temporary directories
 	if executable, err := os.Executable(); err == nil {
 		execPath := executable
-		if strings.Contains(execPath, "/tmp/") || 
-		   strings.Contains(execPath, "test") ||
-		   strings.Contains(execPath, "___go_build_") ||
-		   strings.HasSuffix(execPath, ".test") {
+		if strings.Contains(execPath, "/tmp/") ||
+			strings.Contains(execPath, "test") ||
+			strings.Contains(execPath, "___go_build_") ||
+			strings.HasSuffix(execPath, ".test") {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -116,7 +116,6 @@ func NewKeychainProvider() (KeychainProvider, error) {
 // MacOSKeychain implements KeychainProvider for macOS
 type MacOSKeychain struct {
 	// Fields needed for macOS keychain operations
-	serviceName string
 }
 
 // NewMacOSKeychain creates a new macOS keychain provider (deprecated - use NewKeychainProvider)
@@ -127,7 +126,6 @@ func NewMacOSKeychain() (KeychainProvider, error) {
 // WindowsCredentialManager implements KeychainProvider for Windows
 type WindowsCredentialManager struct {
 	// Fields needed for Windows credential operations
-	targetName string
 }
 
 // NewWindowsCredentialManager creates a new Windows credential manager provider (deprecated - use NewKeychainProvider)
@@ -138,7 +136,6 @@ func NewWindowsCredentialManager() (KeychainProvider, error) {
 // LinuxSecretService implements KeychainProvider for Linux
 type LinuxSecretService struct {
 	// Fields needed for Secret Service operations
-	collection string
 }
 
 // NewLinuxSecretService creates a new Linux Secret Service provider (deprecated - use NewKeychainProvider)
@@ -163,23 +160,23 @@ func NewFileSecureStorage() (*FileSecureStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
-	
+
 	baseDir := fmt.Sprintf("%s/.cloudworkstation/secure", homeDir)
-	
+
 	// Create directory if it doesn't exist with restrictive permissions
-	if err := os.MkdirAll(baseDir, 0700); err != nil {  // Owner only
+	if err := os.MkdirAll(baseDir, 0700); err != nil { // Owner only
 		return nil, fmt.Errorf("failed to create secure storage directory: %w", err)
 	}
-	
+
 	// Initialize crypto provider
 	crypto, err := NewCryptoProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize crypto provider: %w", err)
 	}
-	
+
 	// Initialize tamper protection
 	tamperProtection := NewTamperProtection()
-	
+
 	return &FileSecureStorage{
 		baseDir:          baseDir,
 		crypto:           crypto,
@@ -194,48 +191,48 @@ func (f *FileSecureStorage) Store(key string, data []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to encrypt data: %w", err)
 	}
-	
+
 	// Write to file with restrictive permissions
 	filePath := f.getFilePath(key)
-	if err := os.WriteFile(filePath, encryptedData, 0600); err != nil {  // Owner read/write only
+	if err := os.WriteFile(filePath, encryptedData, 0600); err != nil { // Owner read/write only
 		return fmt.Errorf("failed to write encrypted file: %w", err)
 	}
-	
+
 	// Add tamper protection to the newly created file
 	if err := f.tamperProtection.ProtectFile(filePath); err != nil {
 		// Non-fatal error, log but continue
 		fmt.Fprintf(os.Stderr, "Warning: Failed to add tamper protection to %s: %v\n", filePath, err)
 	}
-	
+
 	return nil
 }
 
 // Retrieve implements KeychainProvider.Retrieve for file-based storage
 func (f *FileSecureStorage) Retrieve(key string) ([]byte, error) {
 	filePath := f.getFilePath(key)
-	
+
 	// Check if file exists
 	if !f.Exists(key) {
 		return nil, ErrKeychainNotFound
 	}
-	
+
 	// Validate file integrity before reading
 	if err := f.tamperProtection.ValidateIntegrity(filePath); err != nil {
 		return nil, fmt.Errorf("file integrity violation detected: %w", err)
 	}
-	
+
 	// Read encrypted data
 	encryptedData, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read secure file: %w", err)
 	}
-	
+
 	// Decrypt data using AES-256-GCM
 	plaintext, err := f.crypto.Decrypt(encryptedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decrypt data: %w", err)
 	}
-	
+
 	return plaintext, nil
 }
 
@@ -249,18 +246,18 @@ func (f *FileSecureStorage) Exists(key string) bool {
 // Delete implements KeychainProvider.Delete for file-based storage
 func (f *FileSecureStorage) Delete(key string) error {
 	filePath := f.getFilePath(key)
-	
+
 	// Check if file exists
 	if !f.Exists(key) {
 		return nil
 	}
-	
+
 	// Remove tamper protection before deleting
 	if err := f.tamperProtection.RemoveProtection(filePath); err != nil {
 		// Non-fatal error, log but continue
 		fmt.Fprintf(os.Stderr, "Warning: Failed to remove tamper protection from %s: %v\n", filePath, err)
 	}
-	
+
 	return os.Remove(filePath)
 }
 

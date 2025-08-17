@@ -14,10 +14,10 @@ type NotificationType int
 const (
 	// NotificationInfo is for informational messages
 	NotificationInfo NotificationType = iota
-	
+
 	// NotificationWarning is for warning messages
 	NotificationWarning
-	
+
 	// NotificationError is for error messages
 	NotificationError
 )
@@ -26,19 +26,19 @@ const (
 type NotificationOptions struct {
 	// Title is the notification title
 	Title string
-	
+
 	// Message is the notification body
 	Message string
-	
+
 	// Type is the notification severity level
 	Type NotificationType
-	
+
 	// Icon is an optional path to an icon image
 	Icon string
-	
+
 	// Timeout is how long the notification should remain visible (in seconds)
 	Timeout int
-	
+
 	// Actions are optional notification actions (only supported on some platforms)
 	Actions []string
 }
@@ -56,10 +56,10 @@ func DefaultOptions() NotificationOptions {
 type NotificationManager struct {
 	// DefaultOptions contains default settings for notifications
 	DefaultOptions NotificationOptions
-	
+
 	// MonitorEvents determines if the manager should show notifications for monitor events
 	MonitorEvents bool
-	
+
 	// MinSeverity filters notifications below this severity level
 	MinSeverity NotificationType
 }
@@ -79,16 +79,16 @@ func (n *NotificationManager) Notify(options NotificationOptions) error {
 		// Skip notifications below minimum severity
 		return nil
 	}
-	
+
 	// Merge with default options
 	if options.Title == "" {
 		options.Title = n.DefaultOptions.Title
 	}
-	
+
 	if options.Timeout == 0 {
 		options.Timeout = n.DefaultOptions.Timeout
 	}
-	
+
 	// Choose notification method based on platform
 	switch runtime.GOOS {
 	case "darwin":
@@ -107,7 +107,7 @@ func (n *NotificationManager) NotifyFromEvent(event InstanceEvent) error {
 	if !n.MonitorEvents {
 		return nil
 	}
-	
+
 	// Convert event level to notification type
 	var notifType NotificationType
 	switch event.Level {
@@ -120,12 +120,12 @@ func (n *NotificationManager) NotifyFromEvent(event InstanceEvent) error {
 	default:
 		notifType = NotificationInfo
 	}
-	
+
 	// Skip if below minimum severity
 	if notifType < n.MinSeverity {
 		return nil
 	}
-	
+
 	// Create notification options
 	options := NotificationOptions{
 		Title:   "CloudWorkstation",
@@ -133,24 +133,24 @@ func (n *NotificationManager) NotifyFromEvent(event InstanceEvent) error {
 		Type:    notifType,
 		Timeout: 5,
 	}
-	
+
 	// Customize based on event type
 	switch event.Type {
 	case EventTypeStateChange:
 		options.Title = fmt.Sprintf("Instance State: %s", event.Instance)
-		
+
 	case EventTypeIdleWarning:
 		options.Title = fmt.Sprintf("Idle Warning: %s", event.Instance)
 		options.Timeout = 10 // Longer timeout for important warnings
-		
+
 	case EventTypeCostAlert:
 		options.Title = "Cost Alert"
 		options.Timeout = 10 // Longer timeout for important alerts
-		
+
 	case EventTypeError:
 		options.Title = "CloudWorkstation Error"
 	}
-	
+
 	return n.Notify(options)
 }
 
@@ -159,23 +159,23 @@ func (n *NotificationManager) notifyMacOS(options NotificationOptions) error {
 	// Escape double quotes in title and message
 	title := strings.ReplaceAll(options.Title, "\"", "\\\"")
 	message := strings.ReplaceAll(options.Message, "\"", "\\\"")
-	
+
 	script := fmt.Sprintf(`display notification "%s" with title "%s"`, message, title)
-	
+
 	// Add subtitle if needed
 	if options.Type == NotificationWarning {
 		script += ` subtitle "Warning"`
 	} else if options.Type == NotificationError {
 		script += ` subtitle "Error"`
 	}
-	
+
 	// Add sound based on severity
 	if options.Type == NotificationWarning {
 		script += " sound name \"Basso\""
 	} else if options.Type == NotificationError {
 		script += " sound name \"Sosumi\""
 	}
-	
+
 	cmd := exec.Command("osascript", "-e", script)
 	return cmd.Run()
 }
@@ -186,13 +186,13 @@ func (n *NotificationManager) notifyLinux(options NotificationOptions) error {
 	if _, err := exec.LookPath("notify-send"); err != nil {
 		return fmt.Errorf("notify-send not found: %w", err)
 	}
-	
+
 	// Build command arguments
 	args := []string{
 		"--app-name=CloudWorkstation",
 		fmt.Sprintf("--expire-time=%d", options.Timeout*1000),
 	}
-	
+
 	// Add urgency based on notification type
 	switch options.Type {
 	case NotificationInfo:
@@ -202,7 +202,7 @@ func (n *NotificationManager) notifyLinux(options NotificationOptions) error {
 	case NotificationError:
 		args = append(args, "--urgency=critical")
 	}
-	
+
 	// Add icon if specified
 	if options.Icon != "" {
 		args = append(args, fmt.Sprintf("--icon=%s", options.Icon))
@@ -217,10 +217,10 @@ func (n *NotificationManager) notifyLinux(options NotificationOptions) error {
 			args = append(args, "--icon=dialog-information")
 		}
 	}
-	
+
 	// Add title and message
 	args = append(args, options.Title, options.Message)
-	
+
 	cmd := exec.Command("notify-send", args...)
 	return cmd.Run()
 }
@@ -249,26 +249,32 @@ $xml.LoadXml($template)
 $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast)
 `
-	
+
 	// Escape any characters that might cause issues
 	title := strings.ReplaceAll(options.Title, "\"", "'")
 	message := strings.ReplaceAll(options.Message, "\"", "'")
-	
+
 	// Fill in the template
 	script = fmt.Sprintf(script, title, message)
-	
+
 	// Create a temporary file for the PowerShell script
 	tmpFile, err := os.CreateTemp("", "cwsnotify-*.ps1")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
-	defer os.Remove(tmpFile.Name())
-	
+	defer func() {
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			// Log but don't fail on cleanup error
+		}
+	}()
+
 	if _, err := tmpFile.WriteString(script); err != nil {
 		return fmt.Errorf("failed to write script file: %w", err)
 	}
-	tmpFile.Close()
-	
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close script file: %w", err)
+	}
+
 	// Execute the PowerShell script
 	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", tmpFile.Name())
 	return cmd.Run()
@@ -278,7 +284,7 @@ $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
 func (n *NotificationManager) MonitorAndNotify(monitor *InstanceMonitor) func() {
 	// Subscribe to monitor events
 	events, unsubscribe := monitor.Subscribe()
-	
+
 	// Start goroutine to handle events
 	stopCh := make(chan struct{})
 	go func() {
@@ -288,19 +294,19 @@ func (n *NotificationManager) MonitorAndNotify(monitor *InstanceMonitor) func() 
 				if !ok {
 					return
 				}
-				
+
 				// Convert event to notification
 				err := n.NotifyFromEvent(event)
 				if err != nil {
 					fmt.Printf("Failed to show notification: %v\n", err)
 				}
-				
+
 			case <-stopCh:
 				return
 			}
 		}
 	}()
-	
+
 	// Return function to stop monitoring
 	return func() {
 		close(stopCh)

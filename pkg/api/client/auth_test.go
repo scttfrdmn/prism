@@ -21,7 +21,7 @@ func TestHTTPClientAuthHeaders(t *testing.T) {
 		receivedHeaders = r.Header.Clone()
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status": "running"}`)
+		_, _ = fmt.Fprint(w, `{"status": "running"}`)
 	}))
 	defer server.Close()
 
@@ -53,7 +53,7 @@ func TestHTTPClientAuthHeadersPartial(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status": "running"}`)
+		_, _ = fmt.Fprint(w, `{"status": "running"}`)
 	}))
 	defer server.Close()
 
@@ -80,7 +80,7 @@ func TestHTTPClientNoAuthHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status": "running"}`)
+		_, _ = fmt.Fprint(w, `{"status": "running"}`)
 	}))
 	defer server.Close()
 
@@ -103,7 +103,7 @@ func TestHTTPClientAPIKeyAuth(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status": "running"}`)
+		_, _ = fmt.Fprint(w, `{"status": "running"}`)
 	}))
 	defer server.Close()
 
@@ -173,7 +173,7 @@ func TestHTTPClientAuthenticationErrorHandling(t *testing.T) {
 			name: "401 Unauthorized",
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusUnauthorized)
-				fmt.Fprint(w, `{"error": "invalid credentials"}`)
+				_, _ = fmt.Fprint(w, `{"error": "invalid credentials"}`)
 			},
 			expectedError: "API error 401",
 		},
@@ -181,7 +181,7 @@ func TestHTTPClientAuthenticationErrorHandling(t *testing.T) {
 			name: "403 Forbidden",
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusForbidden)
-				fmt.Fprint(w, `{"error": "insufficient permissions"}`)
+				_, _ = fmt.Fprint(w, `{"error": "insufficient permissions"}`)
 			},
 			expectedError: "API error 403",
 		},
@@ -190,11 +190,11 @@ func TestHTTPClientAuthenticationErrorHandling(t *testing.T) {
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				if r.Header.Get("X-AWS-Profile") == "" {
 					w.WriteHeader(http.StatusBadRequest)
-					fmt.Fprint(w, `{"error": "missing AWS profile"}`)
+					_, _ = fmt.Fprint(w, `{"error": "missing AWS profile"}`)
 					return
 				}
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{"status": "running"}`)
+				_, _ = fmt.Fprint(w, `{"status": "running"}`)
 			},
 			expectedError: "API error 400",
 		},
@@ -222,7 +222,7 @@ func TestHTTPClientUserAgentHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status": "running"}`)
+		_, _ = fmt.Fprint(w, `{"status": "running"}`)
 	}))
 	defer server.Close()
 
@@ -246,7 +246,7 @@ func TestHTTPClientMakeRequestMethod(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"result": "success"}`)
+		_, _ = fmt.Fprint(w, `{"result": "success"}`)
 	}))
 	defer server.Close()
 
@@ -263,7 +263,7 @@ func TestHTTPClientMakeRequestMethod(t *testing.T) {
 func TestHTTPClientMakeRequestErrorHandling(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"error": "internal server error"}`)
+		_, _ = fmt.Fprint(w, `{"error": "internal server error"}`)
 	}))
 	defer server.Close()
 
@@ -285,7 +285,7 @@ func TestHTTPClientLaunchInstanceWithAuth(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, `{"name": "test-instance", "instance_id": "i-123"}`)
+		_, _ = fmt.Fprint(w, `{"name": "test-instance", "instance_id": "i-123"}`)
 	}))
 	defer server.Close()
 

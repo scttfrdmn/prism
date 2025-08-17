@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	
+
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -37,8 +37,6 @@ type DashboardModel struct {
 	loading        bool
 	error          string
 	instances      []api.InstanceResponse
-	storage        []api.StorageResponse
-	volumes        []api.VolumeResponse
 	costData       CostData
 	activeTab      string
 	refreshTicker  tea.Cmd
@@ -49,7 +47,7 @@ type DashboardRefreshMsg struct{}
 
 // NewDashboardModel creates a new dashboard model
 func NewDashboardModel(apiClient apiClient) DashboardModel {
-	
+
 	// Create instances table
 	columns := []table.Column{
 		{Title: "NAME", Width: 20},
@@ -57,30 +55,30 @@ func NewDashboardModel(apiClient apiClient) DashboardModel {
 		{Title: "STATUS", Width: 10},
 		{Title: "COST/DAY", Width: 10},
 	}
-	
+
 	instancesTable := components.NewTable(columns, []table.Row{}, 60, 5, true)
-	
+
 	// Create tabs
 	tabs := components.NewTabBar(
 		[]string{"Overview", "Instances", "Storage", "Costs"},
 		0,
 	)
-	
+
 	// Create status bar and spinner
 	statusBar := components.NewStatusBar("CloudWorkstation Dashboard", version.GetVersion())
 	spinner := components.NewSpinner("Loading dashboard data...")
-	
+
 	return DashboardModel{
-		apiClient:     apiClient,
+		apiClient:      apiClient,
 		instancesTable: instancesTable,
-		statusBar:     statusBar,
-		spinner:       spinner,
-		tabs:          tabs,
-		width:         80,
-		height:        24,
-		loading:       true,
-		activeTab:     "Overview",
-		refreshTicker: refreshRoutine(30 * time.Second),
+		statusBar:      statusBar,
+		spinner:        spinner,
+		tabs:           tabs,
+		width:          80,
+		height:         24,
+		loading:        true,
+		activeTab:      "Overview",
+		refreshTicker:  refreshRoutine(30 * time.Second),
 		costData: CostData{
 			ByTemplate: make(map[string]float64),
 			ByInstance: make(map[string]float64),
@@ -123,7 +121,7 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loading = true
 			m.error = ""
 			return m, m.fetchDashboardData
-			
+
 		case "q", "esc":
 			return m, tea.Quit
 		}
@@ -137,7 +135,7 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.error = msg.Error()
 		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
-		
+
 	case *api.ListInstancesResponse:
 		m.loading = false
 		m.instances = msg.Instances
@@ -180,27 +178,27 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the dashboard
 func (m DashboardModel) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Title section
 	title := theme.Title.Render("CloudWorkstation Dashboard")
-	
+
 	// Content area
 	var content string
 	if m.loading {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4). // Account for title and status bar
+			Height(m.height-4). // Account for title and status bar
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(m.spinner.View())
 	} else if m.error != "" {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4).
+			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(theme.StatusError.Render("Error: " + m.error))
 	} else {
 		// System status panel
-		systemPanel := theme.Panel.Copy().Width(m.width - 4).Render(
+		systemPanel := theme.Panel.Width(m.width - 4).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				theme.PanelHeader.Render("System Status"),
@@ -208,18 +206,18 @@ func (m DashboardModel) View() string {
 				fmt.Sprintf("Daemon: %s", "Running"),   // TODO: Get from API
 			),
 		)
-		
+
 		// Build instances panel
-		instancesPanel := theme.Panel.Copy().Width(m.width / 2 - 4).Render(
+		instancesPanel := theme.Panel.Width(m.width/2 - 4).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				theme.PanelHeader.Render("Running Instances"),
 				m.instancesTable.View(),
 			),
 		)
-		
+
 		// Build cost panel
-		costPanel := theme.Panel.Copy().Width(m.width / 2 - 4).Render(
+		costPanel := theme.Panel.Width(m.width/2 - 4).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				theme.PanelHeader.Render("Cost Overview"),
@@ -227,29 +225,29 @@ func (m DashboardModel) View() string {
 				fmt.Sprintf("Monthly Estimate: $%.2f", m.costData.DailyCost*30),
 			),
 		)
-		
+
 		// Quick actions
 		actions := []string{
 			theme.Button.Render("Launch"),
 			theme.Button.Render("Templates"),
 			theme.Button.Render("Storage"),
 		}
-		
-		quickActions := theme.Panel.Copy().Width(m.width - 4).Render(
+
+		quickActions := theme.Panel.Width(m.width - 4).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				theme.PanelHeader.Render("Quick Actions"),
 				lipgloss.JoinHorizontal(lipgloss.Center, actions...),
 			),
 		)
-		
+
 		// Join all panels
 		middleSection := lipgloss.JoinHorizontal(
 			lipgloss.Top,
 			instancesPanel,
 			costPanel,
 		)
-		
+
 		content = lipgloss.JoinVertical(
 			lipgloss.Left,
 			systemPanel,
@@ -257,10 +255,10 @@ func (m DashboardModel) View() string {
 			quickActions,
 		)
 	}
-	
+
 	// Help text
 	help := theme.Help.Render("r: refresh • q: quit")
-	
+
 	// Join everything together
 	return lipgloss.JoinVertical(
 		lipgloss.Left,

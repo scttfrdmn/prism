@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -13,13 +14,12 @@ func (a *App) NewRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "cws",
 		Short: "CloudWorkstation - Launch research environments in seconds",
-		Long: `CloudWorkstation helps researchers quickly launch cloud environments
-for scientific computing without configuration hassles.
+		Long: fmt.Sprintf(`%s
 
-Default to Success: Every template works out of the box
-Optimize by Default: Templates choose the best instance types
-Smart Fallbacks:     Graceful degradation when necessary
-Progressive Disclosure: Simple by default, detailed when needed`,
+CloudWorkstation helps researchers quickly launch cloud environments
+for research computing without configuration hassles.
+
+`, version.GetVersionInfo()),
 		Version: a.version,
 	}
 
@@ -49,15 +49,23 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 			if project, _ := cmd.Flags().GetString("project"); project != "" {
 				args = append(args, "--project", project)
 			}
+			if wait, _ := cmd.Flags().GetBool("wait"); wait {
+				args = append(args, "--wait")
+			}
+			if dryRun, _ := cmd.Flags().GetBool("dry-run"); dryRun {
+				args = append(args, "--dry-run")
+			}
 			return a.Launch(args)
 		},
 	}
 	launchCmd.Flags().Bool("hibernation", false, "Enable hibernation support")
-	launchCmd.Flags().Bool("spot", false, "Use spot instances") 
+	launchCmd.Flags().Bool("spot", false, "Use spot instances")
 	launchCmd.Flags().String("size", "", "Instance size: XS=1vCPU,2GB+100GB | S=2vCPU,4GB+500GB | M=2vCPU,8GB+1TB | L=4vCPU,16GB+2TB | XL=8vCPU,32GB+4TB")
 	launchCmd.Flags().String("subnet", "", "Specify subnet ID")
 	launchCmd.Flags().String("vpc", "", "Specify VPC ID")
 	launchCmd.Flags().String("project", "", "Associate with project")
+	launchCmd.Flags().Bool("wait", false, "Wait and display launch progress in real-time")
+	launchCmd.Flags().Bool("dry-run", false, "Validate configuration without launching")
 	rootCmd.AddCommand(launchCmd)
 
 	// List command with subcommands
@@ -69,7 +77,7 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 			return a.List(args)
 		},
 	}
-	
+
 	// List cost subcommand
 	listCostCmd := &cobra.Command{
 		Use:   "cost",
@@ -79,7 +87,7 @@ Progressive Disclosure: Simple by default, detailed when needed`,
 			return a.ListCost(args)
 		},
 	}
-	
+
 	listCmd.AddCommand(listCostCmd)
 	rootCmd.AddCommand(listCmd)
 
@@ -297,7 +305,7 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 		Short: "Configure idle detection on running instances",
 		Long:  "Configure runtime idle detection parameters on running CloudWorkstation instances.",
 	}
-	
+
 	// Idle configure subcommand
 	idleConfigureCmd := &cobra.Command{
 		Use:   "configure <instance-name>",
@@ -306,25 +314,25 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceName := args[0]
-			
+
 			// Get flag values
 			enable, _ := cmd.Flags().GetBool("enable")
 			disable, _ := cmd.Flags().GetBool("disable")
 			idleMinutes, _ := cmd.Flags().GetInt("idle-minutes")
-			hibernateMinutes, _ := cmd.Flags().GetInt("hibernate-minutes") 
+			hibernateMinutes, _ := cmd.Flags().GetInt("hibernate-minutes")
 			checkInterval, _ := cmd.Flags().GetInt("check-interval")
-			
+
 			return a.configureIdleDetection(instanceName, enable, disable, idleMinutes, hibernateMinutes, checkInterval)
 		},
 	}
-	
+
 	// Add flags to the configure command
 	idleConfigureCmd.Flags().Bool("enable", false, "Enable idle detection")
 	idleConfigureCmd.Flags().Bool("disable", false, "Disable idle detection")
 	idleConfigureCmd.Flags().Int("idle-minutes", 0, "Minutes before considered idle")
-	idleConfigureCmd.Flags().Int("hibernate-minutes", 0, "Minutes before hibernation/stop") 
+	idleConfigureCmd.Flags().Int("hibernate-minutes", 0, "Minutes before hibernation/stop")
 	idleConfigureCmd.Flags().Int("check-interval", 0, "Check interval in minutes")
-	
+
 	idleCmd.AddCommand(idleConfigureCmd)
 	rootCmd.AddCommand(idleCmd)
 
@@ -365,7 +373,7 @@ Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 	// AMI Discover command (demonstrate auto-discovery)
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "ami-discover",
-		Short: "Demonstrate AMI auto-discovery functionality", 
+		Short: "Demonstrate AMI auto-discovery functionality",
 		Long:  `Show which templates have pre-built AMIs available for faster launching.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return a.AMIDiscover(args)
@@ -386,13 +394,13 @@ func (a *App) Run(args []string) error {
 
 func (a *App) configShow() error {
 	fmt.Printf("📋 CloudWorkstation Configuration\n\n")
-	
+
 	// Show current effective configuration
 	fmt.Printf("🔧 Current Configuration:\n")
 	fmt.Printf("   Daemon URL: %s\n", a.config.Daemon.URL)
 	fmt.Printf("   AWS Profile: %s\n", valueOrEmpty(a.config.AWS.Profile))
 	fmt.Printf("   AWS Region: %s\n", valueOrEmpty(a.config.AWS.Region))
-	
+
 	// Show environment variable overrides
 	fmt.Printf("\n🌍 Environment Variables:\n")
 	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
@@ -407,7 +415,7 @@ func (a *App) configShow() error {
 	} else {
 		fmt.Printf("   AWS_REGION/AWS_DEFAULT_REGION: (not set)\n")
 	}
-	
+
 	// Show config file location
 	homeDir, _ := os.UserHomeDir()
 	configFile := filepath.Join(homeDir, ".cloudworkstation", "config.json")
@@ -415,12 +423,12 @@ func (a *App) configShow() error {
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
 		fmt.Printf("   (file does not exist - using defaults)\n")
 	}
-	
+
 	fmt.Printf("\n💡 Usage:\n")
 	fmt.Printf("   cws config profile <aws-profile>  # Set default AWS profile\n")
 	fmt.Printf("   cws config region <aws-region>    # Set default AWS region\n")
 	fmt.Printf("   export AWS_PROFILE=profile        # Override profile for session\n")
-	
+
 	return nil
 }
 

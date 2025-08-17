@@ -10,7 +10,7 @@ import (
 // e.g., "/api/v1/instances/my-instance/start" -> "StartInstance"
 func ExtractOperationFromPath(path string) string {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) < 2 {
+	if len(parts) < 1 || (len(parts) == 1 && parts[0] == "") {
 		return "Unknown"
 	}
 
@@ -34,7 +34,12 @@ func ExtractOperationFromPath(path string) string {
 		operation = "List"
 	} else if len(parts) == start+2 {
 		// /api/v1/instances/my-instance -> Get
-		operation = "Get"
+		// /volumes/create -> Create
+		if parts[start+1] == "create" {
+			operation = "Create"
+		} else {
+			operation = "Get"
+		}
 	} else if len(parts) == start+3 {
 		// /api/v1/instances/my-instance/start -> Start
 		operation = strings.ToUpper(string(parts[start+2][0])) + parts[start+2][1:]
@@ -53,8 +58,8 @@ func ExtractOperationFromPath(path string) string {
 // FromNetworkError creates an APIError from a network error
 func FromNetworkError(err error, operation string) types.APIError {
 	return types.NewAPIError(
-		types.ErrNetworkError, 
-		"Network connection failed", 
+		types.ErrNetworkError,
+		"Network connection failed",
 		err,
 	).WithOperation(operation)
 }
@@ -63,7 +68,7 @@ func FromNetworkError(err error, operation string) types.APIError {
 func FromTimeout(err error, operation string, resource string) types.APIError {
 	return types.NewAPIError(
 		types.ErrTimeout,
-		"Operation timed out", 
+		"Operation timed out",
 		err,
 	).WithOperation(operation).WithResource(resource, "")
 }
@@ -74,10 +79,10 @@ func FromAuthError(err error, detail string) types.APIError {
 	if detail != "" {
 		message += ": " + detail
 	}
-	
+
 	return types.NewAPIError(
-		types.ErrUnauthorized, 
-		message, 
+		types.ErrUnauthorized,
+		message,
 		err,
 	)
 }
@@ -86,7 +91,7 @@ func FromAuthError(err error, detail string) types.APIError {
 func FromAWSError(err error, operation string, resource string) types.APIError {
 	return types.NewAPIError(
 		types.ErrAWSError,
-		"AWS operation failed", 
+		"AWS operation failed",
 		err,
 	).WithOperation(operation).WithResource(resource, "")
 }
@@ -96,7 +101,7 @@ func FromValidationErrors(validationErrors map[string]string, message string) ty
 	if message == "" {
 		message = "Validation failed"
 	}
-	
+
 	return types.NewAPIError(
 		types.ErrValidationFailed,
 		message,
@@ -108,7 +113,7 @@ func FromValidationErrors(validationErrors map[string]string, message string) ty
 func FromPermissionDenied(operation string, resource string) types.APIError {
 	return types.NewAPIError(
 		types.ErrPermissionDenied,
-		"Permission denied", 
+		"Permission denied",
 		nil,
 	).WithOperation(operation).WithResource(resource, "")
 }
@@ -117,7 +122,7 @@ func FromPermissionDenied(operation string, resource string) types.APIError {
 func FromRequestError(err error, operation string) types.APIError {
 	return types.NewAPIError(
 		types.ErrInvalidParameters,
-		"Invalid request parameters", 
+		"Invalid request parameters",
 		err,
 	).WithOperation(operation)
 }

@@ -11,10 +11,10 @@ import (
 
 // SecurityMonitor provides real-time security monitoring and alerting
 type SecurityMonitor struct {
-	auditLogger    *SecurityAuditLogger
+	auditLogger     *SecurityAuditLogger
 	alertThresholds AlertThresholds
-	alertHandler   AlertHandler
-	metrics        *SecurityMetrics
+	alertHandler    AlertHandler
+	metrics         *SecurityMetrics
 }
 
 // AlertThresholds defines thresholds for security alerts
@@ -57,42 +57,42 @@ const (
 
 // SecurityMetrics tracks security-related metrics
 type SecurityMetrics struct {
-	TotalEvents           int                         `json:"total_events"`
-	FailedAttempts        int                         `json:"failed_attempts"`
-	SuccessfulOperations  int                         `json:"successful_operations"`
-	TamperAttempts        int                         `json:"tamper_attempts"`
-	DeviceRegistrations   int                         `json:"device_registrations"`
-	AlertsGenerated       int                         `json:"alerts_generated"`
-	EventTypeBreakdown    map[string]int              `json:"event_type_breakdown"`
-	DeviceActivity        map[string]int              `json:"device_activity"`
-	HourlyActivity        map[int]int                 `json:"hourly_activity"`
-	LastUpdated           time.Time                   `json:"last_updated"`
-	SecurityScore         int                         `json:"security_score"`
-	ThreatLevel           string                      `json:"threat_level"`
-	RecentCriticalEvents  []SecurityEvent             `json:"recent_critical_events"`
-	KeychainProviderStats map[string]int              `json:"keychain_provider_stats"`
+	TotalEvents           int             `json:"total_events"`
+	FailedAttempts        int             `json:"failed_attempts"`
+	SuccessfulOperations  int             `json:"successful_operations"`
+	TamperAttempts        int             `json:"tamper_attempts"`
+	DeviceRegistrations   int             `json:"device_registrations"`
+	AlertsGenerated       int             `json:"alerts_generated"`
+	EventTypeBreakdown    map[string]int  `json:"event_type_breakdown"`
+	DeviceActivity        map[string]int  `json:"device_activity"`
+	HourlyActivity        map[int]int     `json:"hourly_activity"`
+	LastUpdated           time.Time       `json:"last_updated"`
+	SecurityScore         int             `json:"security_score"`
+	ThreatLevel           string          `json:"threat_level"`
+	RecentCriticalEvents  []SecurityEvent `json:"recent_critical_events"`
+	KeychainProviderStats map[string]int  `json:"keychain_provider_stats"`
 }
 
 // SecurityDashboard provides consolidated security status
 type SecurityDashboard struct {
-	Status           string             `json:"status"`
-	ThreatLevel      string             `json:"threat_level"`
-	SecurityScore    int                `json:"security_score"`
-	ActiveAlerts     []SecurityAlert    `json:"active_alerts"`
-	Metrics          *SecurityMetrics   `json:"metrics"`
-	Recommendations  []string           `json:"recommendations"`
-	LastUpdate       time.Time          `json:"last_update"`
-	SystemHealth     SystemHealthStatus `json:"system_health"`
+	Status          string             `json:"status"`
+	ThreatLevel     string             `json:"threat_level"`
+	SecurityScore   int                `json:"security_score"`
+	ActiveAlerts    []SecurityAlert    `json:"active_alerts"`
+	Metrics         *SecurityMetrics   `json:"metrics"`
+	Recommendations []string           `json:"recommendations"`
+	LastUpdate      time.Time          `json:"last_update"`
+	SystemHealth    SystemHealthStatus `json:"system_health"`
 }
 
 // SystemHealthStatus provides system security health information
 type SystemHealthStatus struct {
-	KeychainStatus    string    `json:"keychain_status"`
-	EncryptionStatus  string    `json:"encryption_status"`
-	FileIntegrity     string    `json:"file_integrity"`
-	DeviceBinding     string    `json:"device_binding"`
-	AuditLogging      string    `json:"audit_logging"`
-	LastHealthCheck   time.Time `json:"last_health_check"`
+	KeychainStatus   string    `json:"keychain_status"`
+	EncryptionStatus string    `json:"encryption_status"`
+	FileIntegrity    string    `json:"file_integrity"`
+	DeviceBinding    string    `json:"device_binding"`
+	AuditLogging     string    `json:"audit_logging"`
+	LastHealthCheck  time.Time `json:"last_health_check"`
 }
 
 // NewSecurityMonitor creates a new security monitor
@@ -115,7 +115,7 @@ func NewSecurityMonitor() (*SecurityMonitor, error) {
 		auditLogger:     auditLogger,
 		alertThresholds: thresholds,
 		alertHandler:    &ConsoleAlertHandler{},
-		metrics:         &SecurityMetrics{
+		metrics: &SecurityMetrics{
 			EventTypeBreakdown:    make(map[string]int),
 			DeviceActivity:        make(map[string]int),
 			HourlyActivity:        make(map[int]int),
@@ -190,7 +190,7 @@ func (m *SecurityMonitor) GetSecurityDashboard() (*SecurityDashboard, error) {
 // loadRecentEvents loads recent security events from audit logs
 func (m *SecurityMonitor) loadRecentEvents() ([]SecurityEvent, error) {
 	logPath := m.auditLogger.GetAuditLogPath()
-	
+
 	content, err := os.ReadFile(logPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -231,7 +231,7 @@ func (m *SecurityMonitor) updateMetrics(events []SecurityEvent) {
 	m.metrics.SuccessfulOperations = 0
 	m.metrics.TamperAttempts = 0
 	m.metrics.DeviceRegistrations = 0
-	
+
 	// Clear maps
 	for k := range m.metrics.EventTypeBreakdown {
 		delete(m.metrics.EventTypeBreakdown, k)
@@ -361,7 +361,7 @@ func (m *SecurityMonitor) analyzeSecurityThreats(events []SecurityEvent) []Secur
 			Description: fmt.Sprintf("Device %s showing unusual activity patterns", deviceID),
 			DeviceID:    deviceID,
 			Details: map[string]interface{}{
-				"device_id": deviceID,
+				"device_id":      deviceID,
 				"activity_count": m.metrics.DeviceActivity[deviceID],
 			},
 			Actions: []string{
@@ -463,9 +463,9 @@ func (m *SecurityMonitor) calculateSecurityScore() int {
 	score := 100
 
 	// Deduct points for security issues
-	score -= m.metrics.TamperAttempts * 20      // -20 per tamper attempt
+	score -= m.metrics.TamperAttempts * 20       // -20 per tamper attempt
 	score -= (m.metrics.FailedAttempts / 10) * 5 // -5 per 10 failed attempts
-	
+
 	// Bonus points for successful operations
 	if m.metrics.SuccessfulOperations > m.metrics.FailedAttempts {
 		score += 5
@@ -552,7 +552,7 @@ func (h *ConsoleAlertHandler) SendAlert(alert SecurityAlert) error {
 	fmt.Printf("\n🚨 SECURITY ALERT [%s] - %s\n", alert.Severity, alert.Title)
 	fmt.Printf("📅 Time: %s\n", alert.Timestamp.Format(time.RFC3339))
 	fmt.Printf("📝 Description: %s\n", alert.Description)
-	
+
 	if alert.DeviceID != "" {
 		fmt.Printf("📱 Device: %s\n", alert.DeviceID)
 	}
@@ -567,7 +567,7 @@ func (h *ConsoleAlertHandler) SendAlert(alert SecurityAlert) error {
 			fmt.Printf("   • %s\n", action)
 		}
 	}
-	
+
 	fmt.Println("─────────────────────────────────────")
 	return nil
 }
