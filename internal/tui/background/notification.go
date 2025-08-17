@@ -264,7 +264,8 @@ $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
 	}
 	defer func() {
 		if err := os.Remove(tmpFile.Name()); err != nil {
-			// Log but don't fail on cleanup error
+			// Log but don't fail on cleanup error - temporary file cleanup is not critical
+			_ = err // Explicitly ignore error
 		}
 	}()
 

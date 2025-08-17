@@ -16,7 +16,7 @@ import (
 func TestHTTPClientAuthHeaders(t *testing.T) {
 	// Track headers received by server
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.Header().Set("Content-Type", "application/json")
@@ -28,17 +28,17 @@ func TestHTTPClientAuthHeaders(t *testing.T) {
 	// Create client with auth options
 	options := Options{
 		AWSProfile:      "test-profile",
-		AWSRegion:       "us-east-1", 
+		AWSRegion:       "us-east-1",
 		InvitationToken: "test-token",
 		OwnerAccount:    "123456789012",
 		S3ConfigPath:    "/tmp/config",
 	}
-	
+
 	client := NewClientWithOptions(server.URL, options)
-	
+
 	// Make request to verify headers
 	_, err := client.GetStatus(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "test-profile", receivedHeaders.Get("X-AWS-Profile"))
 	assert.Equal(t, "us-east-1", receivedHeaders.Get("X-AWS-Region"))
@@ -49,7 +49,7 @@ func TestHTTPClientAuthHeaders(t *testing.T) {
 // TestHTTPClientAuthHeadersPartial tests partial authentication headers
 func TestHTTPClientAuthHeadersPartial(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
@@ -62,11 +62,11 @@ func TestHTTPClientAuthHeadersPartial(t *testing.T) {
 		AWSProfile: "partial-profile",
 		// No AWSRegion, InvitationToken, etc.
 	}
-	
+
 	client := NewClientWithOptions(server.URL, options)
-	
+
 	_, err := client.GetStatus(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "partial-profile", receivedHeaders.Get("X-AWS-Profile"))
 	assert.Empty(t, receivedHeaders.Get("X-AWS-Region"))
@@ -76,7 +76,7 @@ func TestHTTPClientAuthHeadersPartial(t *testing.T) {
 // TestHTTPClientNoAuthHeaders tests request without authentication
 func TestHTTPClientNoAuthHeaders(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
@@ -86,9 +86,9 @@ func TestHTTPClientNoAuthHeaders(t *testing.T) {
 
 	// Create client without auth options
 	client := NewClient(server.URL)
-	
+
 	_, err := client.GetStatus(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.Empty(t, receivedHeaders.Get("X-AWS-Profile"))
 	assert.Empty(t, receivedHeaders.Get("X-AWS-Region"))
@@ -99,7 +99,7 @@ func TestHTTPClientNoAuthHeaders(t *testing.T) {
 // TestHTTPClientAPIKeyAuth tests API key authentication
 func TestHTTPClientAPIKeyAuth(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
@@ -108,12 +108,12 @@ func TestHTTPClientAPIKeyAuth(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL).(*HTTPClient)
-	
+
 	// Set API key directly (simulating internal auth setup)
 	client.apiKey = "test-api-key-123"
-	
+
 	_, err := client.GetStatus(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "test-api-key-123", receivedHeaders.Get("X-API-Key"))
 }
@@ -133,7 +133,7 @@ func TestHTTPClientAuthOptionsUpdate(t *testing.T) {
 		AWSRegion:  "us-east-1",
 	}
 	client.SetOptions(options1)
-	
+
 	assert.Equal(t, "profile1", client.awsProfile)
 	assert.Equal(t, "us-east-1", client.awsRegion)
 	assert.Empty(t, client.invitationToken)
@@ -146,7 +146,7 @@ func TestHTTPClientAuthOptionsUpdate(t *testing.T) {
 		OwnerAccount:    "987654321098",
 	}
 	client.SetOptions(options2)
-	
+
 	assert.Equal(t, "profile2", client.awsProfile)
 	assert.Equal(t, "us-west-2", client.awsRegion)
 	assert.Equal(t, "token456", client.invitationToken)
@@ -155,7 +155,7 @@ func TestHTTPClientAuthOptionsUpdate(t *testing.T) {
 	// Clear auth options
 	options3 := Options{}
 	client.SetOptions(options3)
-	
+
 	assert.Empty(t, client.awsProfile)
 	assert.Empty(t, client.awsRegion)
 	assert.Empty(t, client.invitationToken)
@@ -206,9 +206,9 @@ func TestHTTPClientAuthenticationErrorHandling(t *testing.T) {
 			defer server.Close()
 
 			client := NewClient(server.URL)
-			
+
 			_, err := client.GetStatus(context.Background())
-			
+
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedError)
 		})
@@ -218,7 +218,7 @@ func TestHTTPClientAuthenticationErrorHandling(t *testing.T) {
 // TestHTTPClientUserAgentHeader tests User-Agent header is set
 func TestHTTPClientUserAgentHeader(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
@@ -227,11 +227,11 @@ func TestHTTPClientUserAgentHeader(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL)
-	
+
 	_, err := client.GetStatus(context.Background())
-	
+
 	assert.NoError(t, err)
-	
+
 	userAgent := receivedHeaders.Get("User-Agent")
 	assert.NotEmpty(t, userAgent)
 	// User-Agent should be set by Go's HTTP client
@@ -243,7 +243,7 @@ func TestHTTPClientMakeRequestMethod(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/custom/endpoint", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"result": "success"}`)
@@ -251,10 +251,10 @@ func TestHTTPClientMakeRequestMethod(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL)
-	
+
 	requestData := map[string]string{"key": "value"}
 	responseData, err := client.MakeRequest("POST", "/custom/endpoint", requestData)
-	
+
 	assert.NoError(t, err)
 	assert.Contains(t, string(responseData), "success")
 }
@@ -268,9 +268,9 @@ func TestHTTPClientMakeRequestErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL)
-	
+
 	_, err := client.MakeRequest("GET", "/error", nil)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "API error 500")
 	assert.Contains(t, err.Error(), "GET /error")
@@ -279,10 +279,10 @@ func TestHTTPClientMakeRequestErrorHandling(t *testing.T) {
 // TestHTTPClientLaunchInstanceWithAuth tests authenticated launch request
 func TestHTTPClientLaunchInstanceWithAuth(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprint(w, `{"name": "test-instance", "instance_id": "i-123"}`)
@@ -294,14 +294,14 @@ func TestHTTPClientLaunchInstanceWithAuth(t *testing.T) {
 		AWSRegion:  "eu-west-1",
 	}
 	client := NewClientWithOptions(server.URL, options)
-	
+
 	req := types.LaunchRequest{
 		Name:     "test-instance",
 		Template: "python-ml",
 	}
-	
+
 	_, err := client.LaunchInstance(context.Background(), req)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "auth-profile", receivedHeaders.Get("X-AWS-Profile"))
 	assert.Equal(t, "eu-west-1", receivedHeaders.Get("X-AWS-Region"))

@@ -266,7 +266,8 @@ func (s *Server) handleDisableUser(w http.ResponseWriter, r *http.Request, id st
 
 // handleUserGroups handles user group operations
 func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id string) {
-	if r.Method == http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
 		// Get user groups
 		groups, err := s.userManager.service.GetUserGroups(id)
 		if err != nil {
@@ -279,7 +280,7 @@ func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id str
 		}
 
 		_ = json.NewEncoder(w).Encode(groups)
-	} else if r.Method == http.MethodPut {
+	case http.MethodPut:
 		// Update user groups
 		var groupNames []string
 		if err := json.NewDecoder(r.Body).Decode(&groupNames); err != nil {
@@ -309,7 +310,7 @@ func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id str
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-	} else {
+	default:
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }
@@ -504,7 +505,8 @@ func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request, id st
 
 // handleGroupUsers handles group user operations
 func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id string) {
-	if r.Method == http.MethodGet {
+	switch r.Method {
+	case http.MethodGet:
 		// Parse pagination parameters
 		pagination := &usermgmt.PaginationOptions{
 			Page:     1,
@@ -537,7 +539,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		}
 
 		_ = json.NewEncoder(w).Encode(users)
-	} else if r.Method == http.MethodPut {
+	case http.MethodPut:
 		// Update group users
 		var userIDs []string
 		if err := json.NewDecoder(r.Body).Decode(&userIDs); err != nil {
@@ -591,7 +593,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-	} else {
+	default:
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
 }

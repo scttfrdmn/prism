@@ -228,4 +228,3 @@ func (cm *CompatibilityManager) writeTemplateYAML(template *Template, filename s
 	// Implementation left as placeholder - would use gopkg.in/yaml.v3
 	return fmt.Errorf("YAML writing not implemented in this example")
 }
-

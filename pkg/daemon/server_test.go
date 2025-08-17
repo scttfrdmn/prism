@@ -19,25 +19,25 @@ import (
 func createTestServer(t *testing.T) *Server {
 	// Create temporary directory for testing
 	tempDir := t.TempDir()
-	
+
 	// Override home directory for testing
 	originalHome := os.Getenv("HOME")
 	t.Cleanup(func() {
 		_ = os.Setenv("HOME", originalHome)
 	})
 	_ = os.Setenv("HOME", tempDir)
-	
+
 	server, err := NewServer("8948") // Use different port for testing
 	require.NoError(t, err)
 	require.NotNil(t, server)
-	
+
 	return server
 }
 
 // TestNewServer tests server creation
 func TestNewServer(t *testing.T) {
 	server := createTestServer(t)
-	
+
 	assert.NotNil(t, server.config)
 	assert.Equal(t, "8948", server.port)
 	assert.NotNil(t, server.stateManager)
@@ -49,7 +49,7 @@ func TestNewServer(t *testing.T) {
 // TestServerHTTPHandler tests HTTP request routing
 func TestServerHTTPHandler(t *testing.T) {
 	server := createTestServer(t)
-	
+
 	tests := []struct {
 		name           string
 		method         string
@@ -68,7 +68,7 @@ func TestServerHTTPHandler(t *testing.T) {
 		},
 		{
 			name:           "version endpoint",
-			method:         "GET", 
+			method:         "GET",
 			path:           "/api/v1/version",
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, body []byte) {
@@ -100,22 +100,22 @@ func TestServerHTTPHandler(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create HTTP request
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 			w := httptest.NewRecorder()
-			
+
 			// Create HTTP handler
 			handler := server.createHTTPHandler()
-			
+
 			// Execute request
 			handler.ServeHTTP(w, req)
-			
+
 			// Check status code
 			assert.Equal(t, tt.expectedStatus, w.Code)
-			
+
 			// Check response body if specified
 			if tt.checkResponse != nil {
 				tt.checkResponse(t, w.Body.Bytes())
@@ -127,27 +127,27 @@ func TestServerHTTPHandler(t *testing.T) {
 // TestServerStartStop tests server lifecycle
 func TestServerStartStop(t *testing.T) {
 	server := createTestServer(t)
-	
+
 	// Start server in background
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- server.Start()
 	}()
-	
+
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Test that server is responding
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%s/api/v1/ping", server.port))
 	if err == nil {
 		_ = resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	}
-	
+
 	// Stop server
 	stopErr := server.Stop()
 	assert.NoError(t, stopErr)
-	
+
 	// Wait for server to stop
 	select {
 	case err := <-errChan:
@@ -162,18 +162,18 @@ func TestServerStartStop(t *testing.T) {
 func TestServerErrorHandling(t *testing.T) {
 	server := createTestServer(t)
 	handler := server.createHTTPHandler()
-	
+
 	// Test invalid JSON in request body
 	invalidJSON := `{"invalid": json}`
 	req := httptest.NewRequest("POST", "/api/v1/instances", strings.NewReader(invalidJSON))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
-	
+
 	handler.ServeHTTP(w, req)
-	
+
 	// Should return error response
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	
+
 	var response types.APIError
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
@@ -185,13 +185,13 @@ func TestServerErrorHandling(t *testing.T) {
 func TestServerHeaders(t *testing.T) {
 	server := createTestServer(t)
 	handler := server.createHTTPHandler()
-	
+
 	// Test JSON headers are set
 	req := httptest.NewRequest("GET", "/api/v1/status", nil)
 	w := httptest.NewRecorder()
-	
+
 	handler.ServeHTTP(w, req)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Header().Get("Content-Type"), "application/json")
 	assert.Equal(t, "v1", w.Header().Get("X-API-Version"))
@@ -201,7 +201,7 @@ func TestServerHeaders(t *testing.T) {
 func TestServerAPIVersioning(t *testing.T) {
 	server := createTestServer(t)
 	handler := server.createHTTPHandler()
-	
+
 	tests := []struct {
 		name           string
 		path           string
@@ -214,7 +214,7 @@ func TestServerAPIVersioning(t *testing.T) {
 		},
 		{
 			name:           "unversioned endpoint gets version required error",
-			path:           "/api/instances", 
+			path:           "/api/instances",
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -223,12 +223,12 @@ func TestServerAPIVersioning(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", tt.path, nil)
 			w := httptest.NewRecorder()
-			
+
 			handler.ServeHTTP(w, req)
 			assert.Equal(t, tt.expectedStatus, w.Code)
 		})
@@ -239,11 +239,11 @@ func TestServerAPIVersioning(t *testing.T) {
 func TestServerConcurrency(t *testing.T) {
 	server := createTestServer(t)
 	handler := server.createHTTPHandler()
-	
+
 	// Make multiple concurrent requests
 	const numRequests = 10
 	responses := make(chan int, numRequests)
-	
+
 	for i := 0; i < numRequests; i++ {
 		go func() {
 			req := httptest.NewRequest("GET", "/api/v1/ping", nil)
@@ -252,7 +252,7 @@ func TestServerConcurrency(t *testing.T) {
 			responses <- w.Code
 		}()
 	}
-	
+
 	// Collect all responses
 	for i := 0; i < numRequests; i++ {
 		select {
@@ -269,14 +269,14 @@ func TestServerConfiguration(t *testing.T) {
 	// Test with explicit port parameter
 	server, err := NewServer("9999")
 	require.NoError(t, err)
-	
+
 	// Should use provided port parameter
 	assert.Equal(t, "9999", server.port)
-	
+
 	// Test with default port (empty parameter, default config)
 	server2, err := NewServer("")
 	require.NoError(t, err)
-	
+
 	// Should use default port
 	assert.Equal(t, "8947", server2.port)
 }
@@ -284,24 +284,24 @@ func TestServerConfiguration(t *testing.T) {
 // TestServerStatusTracking tests status tracking functionality
 func TestServerStatusTracking(t *testing.T) {
 	server := createTestServer(t)
-	
+
 	// Test status tracker is initialized
 	assert.NotNil(t, server.statusTracker)
-	
+
 	// Test request recording
 	server.statusTracker.RecordRequest()
 	server.statusTracker.RecordRequest()
-	
+
 	// Test operation tracking
 	opID := server.statusTracker.StartOperationWithType("TestOp")
 	assert.Greater(t, opID, int64(0))
-	
+
 	// Verify status retrieval
 	status := server.statusTracker.GetStatus("test-version", "us-west-2", "test-profile")
 	assert.Equal(t, "test-version", status.Version)
 	assert.True(t, status.TotalRequests >= 2)
 	assert.True(t, status.ActiveOps >= 1)
-	
+
 	// Clean up
 	server.statusTracker.EndOperationWithType("TestOp")
 }
@@ -309,19 +309,19 @@ func TestServerStatusTracking(t *testing.T) {
 // TestServerGracefulShutdown tests graceful shutdown behavior
 func TestServerGracefulShutdown(t *testing.T) {
 	server := createTestServer(t)
-	
+
 	// Start server
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- server.Start()
 	}()
-	
+
 	// Give server time to start
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Stop server gracefully
 	_ = server.Stop()
-	
+
 	// Server should shut down gracefully within timeout
 	select {
 	case err := <-errChan:

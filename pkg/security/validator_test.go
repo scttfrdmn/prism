@@ -12,9 +12,9 @@ import (
 // TestNewSecurityConfigValidator tests validator creation
 func TestNewSecurityConfigValidator(t *testing.T) {
 	config := GetDefaultSecurityConfig()
-	
+
 	validator := NewSecurityConfigValidator(config)
-	
+
 	assert.NotNil(t, validator)
 	assert.Equal(t, config, validator.config)
 }
@@ -23,9 +23,9 @@ func TestNewSecurityConfigValidator(t *testing.T) {
 func TestValidateSecurityConfiguration(t *testing.T) {
 	config := GetDefaultSecurityConfig()
 	validator := NewSecurityConfigValidator(config)
-	
+
 	result, err := validator.ValidateSecurityConfiguration()
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.True(t, result.Score >= 0 && result.Score <= 100)
@@ -39,14 +39,14 @@ func TestValidateSecurityConfigurationCriticalIssues(t *testing.T) {
 		AuditLogEnabled:   false, // This should cause critical issue
 		MonitoringEnabled: false, // This should cause critical issue
 	}
-	
+
 	validator := NewSecurityConfigValidator(config)
 	result, err := validator.ValidateSecurityConfiguration()
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.False(t, result.Valid) // Should be invalid due to critical issues
-	
+
 	// Check for critical issues
 	foundCriticalIssue := false
 	for _, issue := range result.Issues {
@@ -93,7 +93,7 @@ func TestValidateAuditLogging(t *testing.T) {
 			expectWarning: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -101,15 +101,15 @@ func TestValidateAuditLogging(t *testing.T) {
 				Issues:   make([]ValidationIssue, 0),
 				Warnings: make([]ValidationWarning, 0),
 			}
-			
+
 			validator.validateAuditLogging(result)
-			
+
 			if tt.expectIssue {
 				assert.NotEmpty(t, result.Issues)
 			} else {
 				assert.Empty(t, result.Issues)
 			}
-			
+
 			if tt.expectWarning {
 				assert.NotEmpty(t, result.Warnings)
 			} else {
@@ -166,7 +166,7 @@ func TestValidateMonitoring(t *testing.T) {
 			expectWarning: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -174,15 +174,15 @@ func TestValidateMonitoring(t *testing.T) {
 				Issues:   make([]ValidationIssue, 0),
 				Warnings: make([]ValidationWarning, 0),
 			}
-			
+
 			validator.validateMonitoring(result)
-			
+
 			if tt.expectIssue {
 				assert.NotEmpty(t, result.Issues)
 			} else {
 				assert.Empty(t, result.Issues)
 			}
-			
+
 			if tt.expectWarning {
 				assert.NotEmpty(t, result.Warnings)
 			} else {
@@ -195,10 +195,10 @@ func TestValidateMonitoring(t *testing.T) {
 // TestValidateCorrelationAnalysis tests correlation analysis validation
 func TestValidateCorrelationAnalysis(t *testing.T) {
 	tests := []struct {
-		name               string
-		config             SecurityConfig
+		name                 string
+		config               SecurityConfig
 		expectRecommendation bool
-		expectWarning      bool
+		expectWarning        bool
 	}{
 		{
 			name: "Correlation enabled with good interval",
@@ -207,7 +207,7 @@ func TestValidateCorrelationAnalysis(t *testing.T) {
 				AnalysisInterval:   5 * time.Minute,
 			},
 			expectRecommendation: false,
-			expectWarning:       false,
+			expectWarning:        false,
 		},
 		{
 			name: "Correlation disabled",
@@ -215,7 +215,7 @@ func TestValidateCorrelationAnalysis(t *testing.T) {
 				CorrelationEnabled: false,
 			},
 			expectRecommendation: true,
-			expectWarning:       false,
+			expectWarning:        false,
 		},
 		{
 			name: "Correlation enabled with long interval",
@@ -224,10 +224,10 @@ func TestValidateCorrelationAnalysis(t *testing.T) {
 				AnalysisInterval:   20 * time.Minute, // Longer than 15 minutes
 			},
 			expectRecommendation: false,
-			expectWarning:       true,
+			expectWarning:        true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -235,15 +235,15 @@ func TestValidateCorrelationAnalysis(t *testing.T) {
 				Recommendations: make([]ValidationRecommendation, 0),
 				Warnings:        make([]ValidationWarning, 0),
 			}
-			
+
 			validator.validateCorrelationAnalysis(result)
-			
+
 			if tt.expectRecommendation {
 				assert.NotEmpty(t, result.Recommendations)
 			} else {
 				assert.Empty(t, result.Recommendations)
 			}
-			
+
 			if tt.expectWarning {
 				assert.NotEmpty(t, result.Warnings)
 			} else {
@@ -288,7 +288,7 @@ func TestValidateRegistrySecurity(t *testing.T) {
 			expectWarning: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -296,15 +296,15 @@ func TestValidateRegistrySecurity(t *testing.T) {
 				Issues:   make([]ValidationIssue, 0),
 				Warnings: make([]ValidationWarning, 0),
 			}
-			
+
 			validator.validateRegistrySecurity(result)
-			
+
 			if tt.expectIssue {
 				assert.NotEmpty(t, result.Issues)
 			} else {
 				assert.Empty(t, result.Issues)
 			}
-			
+
 			if tt.expectWarning {
 				assert.NotEmpty(t, result.Warnings)
 			} else {
@@ -367,16 +367,16 @@ func TestValidateTimeConfiguration(t *testing.T) {
 			expectIssue: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
 			result := &SecurityValidationResult{
 				Issues: make([]ValidationIssue, 0),
 			}
-			
+
 			validator.validateTimeConfiguration(result)
-			
+
 			if tt.expectIssue {
 				assert.NotEmpty(t, result.Issues)
 				for _, issue := range result.Issues {
@@ -432,7 +432,7 @@ func TestValidateProductionReadiness(t *testing.T) {
 			issueCount:  4, // All production requirements fail
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -440,16 +440,16 @@ func TestValidateProductionReadiness(t *testing.T) {
 				Issues:          make([]ValidationIssue, 0),
 				Recommendations: make([]ValidationRecommendation, 0),
 			}
-			
+
 			validator.validateProductionReadiness(result)
-			
+
 			productionIssues := 0
 			for _, issue := range result.Issues {
 				if issue.Component == "production_readiness" {
 					productionIssues++
 				}
 			}
-			
+
 			assert.Equal(t, tt.issueCount, productionIssues)
 		})
 	}
@@ -458,10 +458,10 @@ func TestValidateProductionReadiness(t *testing.T) {
 // TestValidateNIST800171Compliance tests NIST 800-171 compliance validation
 func TestValidateNIST800171Compliance(t *testing.T) {
 	tests := []struct {
-		name            string
-		config          SecurityConfig
-		expectCritical  int
-		expectWarnings  int
+		name           string
+		config         SecurityConfig
+		expectCritical int
+		expectWarnings int
 	}{
 		{
 			name: "NIST 800-171 compliant configuration",
@@ -513,7 +513,7 @@ func TestValidateNIST800171Compliance(t *testing.T) {
 			expectWarnings: 1, // Short retention
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -522,31 +522,31 @@ func TestValidateNIST800171Compliance(t *testing.T) {
 				Warnings:        make([]ValidationWarning, 0),
 				Recommendations: make([]ValidationRecommendation, 0),
 			}
-			
+
 			validator.validateNIST800171Compliance(result)
-			
+
 			criticalIssues := 0
 			nistWarnings := 0
 			nistRecommendations := 0
-			
+
 			for _, issue := range result.Issues {
 				if issue.Component == "nist_800_171" && issue.Severity == "CRITICAL" {
 					criticalIssues++
 				}
 			}
-			
+
 			for _, warning := range result.Warnings {
 				if warning.Component == "nist_800_171" {
 					nistWarnings++
 				}
 			}
-			
+
 			for _, rec := range result.Recommendations {
 				if rec.Component == "nist_800_171" {
 					nistRecommendations++
 				}
 			}
-			
+
 			assert.Equal(t, tt.expectCritical, criticalIssues)
 			assert.Equal(t, tt.expectWarnings, nistWarnings)
 			assert.Equal(t, 3, nistRecommendations) // Should always have 3 NIST recommendations
@@ -557,13 +557,13 @@ func TestValidateNIST800171Compliance(t *testing.T) {
 // TestCalculateSecurityScore tests security score calculation
 func TestCalculateSecurityScore(t *testing.T) {
 	validator := NewSecurityConfigValidator(SecurityConfig{})
-	
+
 	tests := []struct {
-		name           string
-		issues         []ValidationIssue
-		warnings       []ValidationWarning
-		config         SecurityConfig
-		expectedScore  int
+		name          string
+		issues        []ValidationIssue
+		warnings      []ValidationWarning
+		config        SecurityConfig
+		expectedScore int
 	}{
 		{
 			name:     "Perfect configuration",
@@ -597,13 +597,13 @@ func TestCalculateSecurityScore(t *testing.T) {
 				{Severity: "MEDIUM"},
 				{Severity: "LOW"},
 			},
-			warnings: []ValidationWarning{{}, {}}, // 2 warnings
-			config:   SecurityConfig{},
+			warnings:      []ValidationWarning{{}, {}}, // 2 warnings
+			config:        SecurityConfig{},
 			expectedScore: 39, // 100 - 25 - 15 - 10 - 5 - 6 = 39
 		},
 		{
-			name: "All features enabled",
-			issues: []ValidationIssue{},
+			name:     "All features enabled",
+			issues:   []ValidationIssue{},
 			warnings: []ValidationWarning{},
 			config: SecurityConfig{
 				AuditLogEnabled:         true,
@@ -615,7 +615,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 			expectedScore: 100, // 100 + 10 = 110, capped at 100
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator.config = tt.config
@@ -623,9 +623,9 @@ func TestCalculateSecurityScore(t *testing.T) {
 				Issues:   tt.issues,
 				Warnings: tt.warnings,
 			}
-			
+
 			score := validator.calculateSecurityScore(result)
-			
+
 			assert.Equal(t, tt.expectedScore, score)
 		})
 	}
@@ -634,7 +634,7 @@ func TestCalculateSecurityScore(t *testing.T) {
 // TestDetermineSecurityLevel tests security level determination
 func TestDetermineSecurityLevel(t *testing.T) {
 	validator := NewSecurityConfigValidator(SecurityConfig{})
-	
+
 	tests := []struct {
 		score         int
 		expectedLevel SecurityLevel
@@ -652,7 +652,7 @@ func TestDetermineSecurityLevel(t *testing.T) {
 		{25, SecurityLevelBasic},
 		{0, SecurityLevelBasic},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("Score_%d", tt.score), func(t *testing.T) {
 			level := validator.determineSecurityLevel(tt.score)
@@ -664,11 +664,11 @@ func TestDetermineSecurityLevel(t *testing.T) {
 // TestGenerateSummary tests summary generation
 func TestGenerateSummary(t *testing.T) {
 	validator := NewSecurityConfigValidator(SecurityConfig{})
-	
+
 	tests := []struct {
-		name            string
-		issues          []ValidationIssue
-		warnings        []ValidationWarning
+		name             string
+		issues           []ValidationIssue
+		warnings         []ValidationWarning
 		expectedContains string
 	}{
 		{
@@ -689,9 +689,9 @@ func TestGenerateSummary(t *testing.T) {
 			expectedContains: "1 high-priority issues",
 		},
 		{
-			name:     "Only warnings",
-			issues:   []ValidationIssue{},
-			warnings: []ValidationWarning{{}, {}},
+			name:             "Only warnings",
+			issues:           []ValidationIssue{},
+			warnings:         []ValidationWarning{{}, {}},
 			expectedContains: "2 warnings",
 		},
 		{
@@ -701,16 +701,16 @@ func TestGenerateSummary(t *testing.T) {
 			expectedContains: "meets production standards",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := &SecurityValidationResult{
 				Issues:   tt.issues,
 				Warnings: tt.warnings,
 			}
-			
+
 			summary := validator.generateSummary(result)
-			
+
 			assert.Contains(t, summary, tt.expectedContains)
 		})
 	}
@@ -719,7 +719,7 @@ func TestGenerateSummary(t *testing.T) {
 // TestValidateCurrentConfiguration tests current configuration validation
 func TestValidateCurrentConfiguration(t *testing.T) {
 	result, err := ValidateCurrentConfiguration()
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.True(t, result.Score >= 0 && result.Score <= 100)
@@ -735,11 +735,11 @@ func TestSecurityLevelConstants(t *testing.T) {
 		SecurityLevelHardened,
 		SecurityLevelEnterprise,
 	}
-	
+
 	for _, level := range levels {
 		assert.NotEmpty(t, string(level))
 	}
-	
+
 	assert.Equal(t, "BASIC", string(SecurityLevelBasic))
 	assert.Equal(t, "STANDARD", string(SecurityLevelStandard))
 	assert.Equal(t, "HARDENED", string(SecurityLevelHardened))
@@ -756,20 +756,20 @@ func TestValidationStructs(t *testing.T) {
 		Impact:     "Security compromise possible",
 		Resolution: "Apply security patch",
 	}
-	
+
 	assert.Equal(t, "test_component", issue.Component)
 	assert.Equal(t, "HIGH", issue.Severity)
-	
+
 	// Test ValidationWarning
 	warning := ValidationWarning{
 		Component:      "test_component",
 		Warning:        "Configuration suboptimal",
 		Recommendation: "Consider upgrading",
 	}
-	
+
 	assert.Equal(t, "test_component", warning.Component)
 	assert.NotEmpty(t, warning.Recommendation)
-	
+
 	// Test ValidationRecommendation
 	recommendation := ValidationRecommendation{
 		Component:      "test_component",
@@ -777,7 +777,7 @@ func TestValidationStructs(t *testing.T) {
 		Priority:       "MEDIUM",
 		Benefit:        "Improved security posture",
 	}
-	
+
 	assert.Equal(t, "MEDIUM", recommendation.Priority)
 	assert.NotEmpty(t, recommendation.Benefit)
 }
@@ -785,10 +785,10 @@ func TestValidationStructs(t *testing.T) {
 // TestValidateHealthChecks tests health check validation
 func TestValidateHealthChecks(t *testing.T) {
 	tests := []struct {
-		name               string
-		config             SecurityConfig
+		name                 string
+		config               SecurityConfig
 		expectRecommendation bool
-		expectWarning      bool
+		expectWarning        bool
 	}{
 		{
 			name: "Health checks enabled with good interval",
@@ -797,7 +797,7 @@ func TestValidateHealthChecks(t *testing.T) {
 				HealthCheckInterval: 15 * time.Minute,
 			},
 			expectRecommendation: false,
-			expectWarning:       false,
+			expectWarning:        false,
 		},
 		{
 			name: "Health checks disabled",
@@ -805,7 +805,7 @@ func TestValidateHealthChecks(t *testing.T) {
 				HealthCheckEnabled: false,
 			},
 			expectRecommendation: true,
-			expectWarning:       false,
+			expectWarning:        false,
 		},
 		{
 			name: "Health checks enabled with long interval",
@@ -814,10 +814,10 @@ func TestValidateHealthChecks(t *testing.T) {
 				HealthCheckInterval: 45 * time.Minute, // Longer than 30 minutes
 			},
 			expectRecommendation: false,
-			expectWarning:       true,
+			expectWarning:        true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
@@ -825,9 +825,9 @@ func TestValidateHealthChecks(t *testing.T) {
 				Recommendations: make([]ValidationRecommendation, 0),
 				Warnings:        make([]ValidationWarning, 0),
 			}
-			
+
 			validator.validateHealthChecks(result)
-			
+
 			if tt.expectRecommendation {
 				assert.NotEmpty(t, result.Recommendations)
 				for _, rec := range result.Recommendations {
@@ -836,7 +836,7 @@ func TestValidateHealthChecks(t *testing.T) {
 					}
 				}
 			}
-			
+
 			if tt.expectWarning {
 				assert.NotEmpty(t, result.Warnings)
 				for _, warning := range result.Warnings {
@@ -857,9 +857,9 @@ func TestValidateKeychainProvider(t *testing.T) {
 		Warnings:        make([]ValidationWarning, 0),
 		Recommendations: make([]ValidationRecommendation, 0),
 	}
-	
+
 	validator.validateKeychainProvider(result)
-	
+
 	// Keychain validation may fail in test environment, but should not panic
 	// The important thing is that it handles errors gracefully
 	assert.True(t, len(result.Issues) >= 0) // May have issues due to test environment
@@ -897,7 +897,7 @@ func TestSecurityValidationResultJSONSerialization(t *testing.T) {
 		},
 		Summary: "Test summary",
 	}
-	
+
 	// Test that all fields are properly set
 	assert.True(t, result.Valid)
 	assert.Equal(t, 85, result.Score)
@@ -945,21 +945,21 @@ func TestComprehensiveValidationWorkflow(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range configs {
 		t.Run(tt.name, func(t *testing.T) {
 			validator := NewSecurityConfigValidator(tt.config)
-			
+
 			result, err := validator.ValidateSecurityConfiguration()
-			
+
 			assert.NoError(t, err)
 			assert.NotNil(t, result)
-			
+
 			// All results should have valid scores and levels
 			assert.True(t, result.Score >= 0 && result.Score <= 100)
 			assert.NotEmpty(t, result.Level)
 			assert.NotEmpty(t, result.Summary)
-			
+
 			// Enterprise config should score higher
 			if tt.name == "Enterprise configuration" {
 				assert.True(t, result.Score >= 80, "Enterprise config should score highly")
@@ -980,12 +980,12 @@ func TestValidationIssueComponents(t *testing.T) {
 		AnalysisInterval:        0,
 		HealthCheckInterval:     0,
 	}
-	
+
 	validator := NewSecurityConfigValidator(config)
 	result, err := validator.ValidateSecurityConfiguration()
-	
+
 	require.NoError(t, err)
-	
+
 	// Should have issues/warnings for all major components
 	components := make(map[string]bool)
 	for _, issue := range result.Issues {
@@ -997,17 +997,17 @@ func TestValidationIssueComponents(t *testing.T) {
 	for _, rec := range result.Recommendations {
 		components[rec.Component] = true
 	}
-	
+
 	// Should cover core security components
 	expectedComponents := []string{
 		"audit_logging",
-		"security_monitoring", 
+		"security_monitoring",
 		"registry_security",
 		"production_readiness",
 		"timing_configuration",
 		"nist_800_171",
 	}
-	
+
 	for _, expected := range expectedComponents {
 		assert.True(t, components[expected], "Should validate component: %s", expected)
 	}

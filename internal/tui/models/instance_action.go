@@ -224,7 +224,8 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		state := strings.ToLower(msg.State)
 
 		// Add actions based on instance state
-		if state == "running" {
+		switch state {
+		case "running":
 			items = append(items, ActionItem{
 				name:        "Stop Instance",
 				description: "Stops the instance but preserves data (can be restarted)",
@@ -247,7 +248,7 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					dangerous:   false,
 				})
 			}
-		} else if state == "stopped" {
+		case "stopped":
 			items = append(items, ActionItem{
 				name:        "Start Instance",
 				description: "Starts the stopped instance",

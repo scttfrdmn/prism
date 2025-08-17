@@ -811,4 +811,3 @@ func updateAcceptInvitationCommand(profilesCmd *cobra.Command, config *Config) {
 		fmt.Printf("Accepted invitation and created profile '%s'\n", name)
 	}
 }
-

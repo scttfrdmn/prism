@@ -134,8 +134,6 @@ func (p *Parser) validateEnhancedTemplate(template *Template) error {
 	return nil
 }
 
-
-
 // ValidateTemplateFile validates a template file against the enhanced schema.
 func (p *Parser) ValidateTemplateFile(templatePath string) error {
 	// Parse template

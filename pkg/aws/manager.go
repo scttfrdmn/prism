@@ -490,12 +490,7 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 	hibernationSupported := instance.HibernationOptions != nil && *instance.HibernationOptions.Configured
 
 	// Check if currently hibernated (stopped with hibernation)
-	isHibernated := false
-	if hibernationSupported && instance.State != nil && string(instance.State.Name) == "stopped" {
-		// Additional check might be needed to distinguish between hibernated and regular stop
-		// For now, assume stopped + hibernation-enabled = hibernated
-		isHibernated = true
-	}
+	isHibernated := hibernationSupported && instance.State != nil && string(instance.State.Name) == "stopped"
 
 	return hibernationSupported, isHibernated, nil
 }

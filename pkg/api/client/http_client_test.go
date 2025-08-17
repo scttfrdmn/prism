@@ -18,7 +18,7 @@ import (
 func TestNewClient(t *testing.T) {
 	baseURL := "http://localhost:8947"
 	client := NewClient(baseURL).(*HTTPClient)
-	
+
 	assert.NotNil(t, client)
 	assert.Equal(t, baseURL, client.baseURL)
 	assert.NotNil(t, client.httpClient)
@@ -32,9 +32,9 @@ func TestNewClientWithOptions(t *testing.T) {
 		AWSProfile: "test-profile",
 		AWSRegion:  "us-east-1",
 	}
-	
+
 	client := NewClientWithOptions(baseURL, options).(*HTTPClient)
-	
+
 	assert.NotNil(t, client)
 	assert.Equal(t, baseURL, client.baseURL)
 	assert.Equal(t, "test-profile", client.awsProfile)
@@ -44,7 +44,7 @@ func TestNewClientWithOptions(t *testing.T) {
 // TestNewClientEmptyURL tests client creation with empty URL
 func TestNewClientEmptyURL(t *testing.T) {
 	client := NewClient("").(*HTTPClient)
-	
+
 	assert.NotNil(t, client)
 	assert.Equal(t, "http://localhost:8080", client.baseURL)
 }
@@ -57,10 +57,10 @@ func TestPing(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	err := client.Ping(context.Background())
-	
+
 	assert.NoError(t, err)
 }
 
@@ -69,16 +69,16 @@ func TestGetStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/status", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"status": "running", "version": "1.0.0"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	status, err := client.GetStatus(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
 	assert.Equal(t, "running", status.Status)
@@ -90,21 +90,21 @@ func TestLaunchInstance(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/api/v1/instances", r.URL.Path)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprint(w, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	req := types.LaunchRequest{
 		Name:     "test-instance",
 		Template: "python-ml",
 	}
-	
+
 	resp, err := client.LaunchInstance(context.Background(), req)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, "test-instance", resp.Instance.Name)
@@ -115,16 +115,16 @@ func TestListInstances(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/instances", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	resp, err := client.ListInstances(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Len(t, resp.Instances, 1)
@@ -135,16 +135,16 @@ func TestGetInstance(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/instances/test-instance", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"id": "i-123", "name": "test-instance", "state": "running"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	instance, err := client.GetInstance(context.Background(), "test-instance")
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, instance)
 	assert.Equal(t, "test-instance", instance.Name)
@@ -154,7 +154,7 @@ func TestGetInstance(t *testing.T) {
 func TestInstanceControlOperations(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
-		
+
 		switch {
 		case strings.Contains(r.URL.Path, "/start"):
 			assert.Equal(t, "/api/v1/instances/test-instance/start", r.URL.Path)
@@ -165,24 +165,24 @@ func TestInstanceControlOperations(t *testing.T) {
 		case strings.Contains(r.URL.Path, "/resume"):
 			assert.Equal(t, "/api/v1/instances/test-instance/resume", r.URL.Path)
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	ctx := context.Background()
-	
+
 	// Test all control operations
 	err := client.StartInstance(ctx, "test-instance")
 	assert.NoError(t, err)
-	
+
 	err = client.StopInstance(ctx, "test-instance")
 	assert.NoError(t, err)
-	
+
 	err = client.HibernateInstance(ctx, "test-instance")
 	assert.NoError(t, err)
-	
+
 	err = client.ResumeInstance(ctx, "test-instance")
 	assert.NoError(t, err)
 }
@@ -192,16 +192,16 @@ func TestGetInstanceHibernationStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/instances/test-instance/hibernation-status", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	status, err := client.GetInstanceHibernationStatus(context.Background(), "test-instance")
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
 	assert.True(t, status.HibernationSupported)
@@ -216,10 +216,10 @@ func TestDeleteInstance(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	err := client.DeleteInstance(context.Background(), "test-instance")
-	
+
 	assert.NoError(t, err)
 }
 
@@ -228,16 +228,16 @@ func TestConnectInstance(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/instances/test-instance/connect", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"connection_info": "ssh user@1.2.3.4"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	connInfo, err := client.ConnectInstance(context.Background(), "test-instance")
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "ssh user@1.2.3.4", connInfo)
 }
@@ -247,16 +247,16 @@ func TestListTemplates(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/templates", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"python-ml": {"name": "python-ml", "description": "Python ML"}}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	templates, err := client.ListTemplates(context.Background())
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, templates)
 	assert.Contains(t, templates, "python-ml")
@@ -267,16 +267,16 @@ func TestGetTemplate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "/api/v1/templates/python-ml", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"name": "python-ml", "description": "Python ML environment"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	template, err := client.GetTemplate(context.Background(), "python-ml")
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, template)
 	assert.Equal(t, "python-ml", template.Name)
@@ -289,11 +289,11 @@ func TestHTTPClientErrorHandling(t *testing.T) {
 		_, _ = fmt.Fprint(w, `{"error": "invalid request"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
-	
+
 	err := client.Ping(context.Background())
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "API error 400")
 }
@@ -305,13 +305,13 @@ func TestHTTPClientTimeout(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	// Create client and set very short timeout
 	client := NewClient(server.URL).(*HTTPClient)
 	client.httpClient.Timeout = 10 * time.Millisecond
-	
+
 	err := client.Ping(context.Background())
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "timeout")
 }
@@ -323,18 +323,18 @@ func TestHTTPClientContextCancellation(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
-	
+
 	// Create context that cancels quickly
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		time.Sleep(10 * time.Millisecond)
 		cancel()
 	}()
-	
+
 	err := client.Ping(ctx)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, strings.ToLower(err.Error()), "cancel")
 }
@@ -347,11 +347,11 @@ func TestHTTPClientInvalidJSON(t *testing.T) {
 		_, _ = fmt.Fprint(w, `{"invalid": json}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
-	
+
 	_, err := client.GetStatus(context.Background())
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decode response")
 }
@@ -362,39 +362,39 @@ func TestHTTPClientNoContent(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	err := client.Ping(context.Background())
-	
+
 	assert.NoError(t, err)
 }
 
 // TestHTTPClientHeaders tests request headers
 func TestHTTPClientHeaders(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_, _ = fmt.Fprint(w, `{"name": "test-instance"}`)
 	}))
 	defer server.Close()
-	
+
 	options := Options{
 		AWSProfile: "test-profile",
 		AWSRegion:  "us-east-1",
 	}
 	client := NewClientWithOptions(server.URL, options)
-	
+
 	req := types.LaunchRequest{
 		Name:     "test-instance",
 		Template: "python-ml",
 	}
-	
+
 	_, err := client.LaunchInstance(context.Background(), req)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "application/json", receivedHeaders.Get("Content-Type"))
 	assert.Equal(t, "test-profile", receivedHeaders.Get("X-AWS-Profile"))
@@ -410,10 +410,10 @@ func TestShutdown(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
 	err := client.Shutdown(context.Background())
-	
+
 	assert.NoError(t, err)
 }
 
@@ -422,18 +422,18 @@ func TestMakeRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Equal(t, "/custom/endpoint", r.URL.Path)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprint(w, `{"result": "success"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
-	
+
 	requestData := map[string]string{"key": "value"}
 	responseData, err := client.MakeRequest("POST", "/custom/endpoint", requestData)
-	
+
 	assert.NoError(t, err)
 	assert.Contains(t, string(responseData), "success")
 }
@@ -445,11 +445,11 @@ func TestMakeRequestErrorHandling(t *testing.T) {
 		_, _ = fmt.Fprint(w, `{"error": "internal server error"}`)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
-	
+
 	_, err := client.MakeRequest("GET", "/error", nil)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "API error 500")
 	assert.Contains(t, err.Error(), "GET /error")
@@ -458,11 +458,11 @@ func TestMakeRequestErrorHandling(t *testing.T) {
 // TestSetOptions tests options configuration
 func TestSetOptions(t *testing.T) {
 	client := NewClient("http://localhost:8947").(*HTTPClient)
-	
+
 	// Initially empty
 	assert.Empty(t, client.awsProfile)
 	assert.Empty(t, client.awsRegion)
-	
+
 	options := Options{
 		AWSProfile:      "test-profile",
 		AWSRegion:       "us-west-2",
@@ -470,9 +470,9 @@ func TestSetOptions(t *testing.T) {
 		OwnerAccount:    "123456789012",
 		S3ConfigPath:    "/tmp/config",
 	}
-	
+
 	client.SetOptions(options)
-	
+
 	assert.Equal(t, "test-profile", client.awsProfile)
 	assert.Equal(t, "us-west-2", client.awsRegion)
 	assert.Equal(t, "token123", client.invitationToken)
@@ -484,9 +484,9 @@ func TestSetOptions(t *testing.T) {
 func TestServerDown(t *testing.T) {
 	// Use invalid URL that will fail to connect
 	client := NewClient("http://localhost:99999")
-	
+
 	err := client.Ping(context.Background())
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "dial tcp")
 }
@@ -499,7 +499,7 @@ func TestMalformedURL(t *testing.T) {
 		"http://",
 		"https://valid-host.com:8947",
 	}
-	
+
 	for _, url := range tests {
 		client := NewClient(url)
 		assert.NotNil(t, client)
@@ -512,9 +512,9 @@ func TestHTTPClientThreadSafety(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
-	
+
 	client := NewClient(server.URL)
-	
+
 	// Run multiple concurrent requests
 	done := make(chan bool, 10)
 	for i := 0; i < 10; i++ {
@@ -524,7 +524,7 @@ func TestHTTPClientThreadSafety(t *testing.T) {
 			done <- true
 		}()
 	}
-	
+
 	// Wait for all goroutines to complete
 	for i := 0; i < 10; i++ {
 		<-done

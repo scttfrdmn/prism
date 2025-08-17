@@ -482,7 +482,6 @@ func (r *TemplateResolver) ensureIdleDetection(userDataScript string, template *
 	return userDataScript
 }
 
-
 // UpdateAMIRegistry queries the AMI registry and updates the resolver's AMI registry
 // This enables automatic discovery of pre-built AMIs for templates
 func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient interface{}) error {

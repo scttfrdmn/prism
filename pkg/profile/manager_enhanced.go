@@ -124,7 +124,8 @@ func (m *ManagerEnhanced) GetCurrentProfile() (*Profile, error) {
 
 	// Check for expired invitation
 	if profile.Type == ProfileTypeInvitation {
-		// TODO: Check expiration from credentials
+		// TODO: Check expiration from credentials - implement invitation expiration check
+		_ = profile // Placeholder for future implementation
 	}
 
 	return &profile, nil
@@ -158,7 +159,8 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 
 	// Check for expired invitation
 	if profile.Type == ProfileTypeInvitation {
-		// TODO: Check expiration from credentials
+		// TODO: Check expiration from credentials - implement invitation expiration check
+		_ = profile // Placeholder for future implementation
 	}
 
 	// SECURITY: Enforce device binding validation for device-bound profiles

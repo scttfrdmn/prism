@@ -515,6 +515,7 @@ func (p *TemplateParser) validatePackageConsistency(template *Template) error {
 		if len(template.Packages.System) > 0 {
 			// This is actually OK - conda templates can have system packages for base dependencies
 			// Just issue a warning-level validation (could be enhanced in future)
+			_ = template.Packages.System // Placeholder for future warning implementation
 		}
 	case "ami":
 		if len(template.Packages.System) > 0 || len(template.Packages.Conda) > 0 || len(template.Packages.Spack) > 0 {

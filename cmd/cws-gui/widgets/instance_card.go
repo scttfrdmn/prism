@@ -71,7 +71,8 @@ func (c *InstanceCard) updateContent() {
 	actions := container.NewVBox()
 
 	// Add appropriate action buttons based on instance state
-	if c.Instance.State == "running" {
+	switch c.Instance.State {
+	case "running":
 		connectBtn := widget.NewButton("Connect", func() {
 			if c.OnConnect != nil {
 				c.OnConnect(c.Instance.Name)
@@ -86,7 +87,7 @@ func (c *InstanceCard) updateContent() {
 
 		actions.Add(connectBtn)
 		actions.Add(stopBtn)
-	} else if c.Instance.State == "stopped" {
+	case "stopped":
 		startBtn := widget.NewButton("Start", func() {
 			if c.OnStart != nil {
 				c.OnStart(c.Instance.Name)
