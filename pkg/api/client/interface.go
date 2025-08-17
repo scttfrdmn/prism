@@ -23,7 +23,7 @@ type Options struct {
 type CloudWorkstationAPI interface {
 	// Configuration
 	SetOptions(Options)
-	
+
 	// Instance operations
 	LaunchInstance(context.Context, types.LaunchRequest) (*types.LaunchResponse, error)
 	ListInstances(context.Context) (*types.ListResponse, error)
@@ -92,10 +92,10 @@ type CloudWorkstationAPI interface {
 	GetStatus(context.Context) (*types.DaemonStatus, error)
 	Ping(context.Context) error
 	Shutdown(context.Context) error
-	
+
 	// Raw API request method for generic endpoint access
 	MakeRequest(method, path string, body interface{}) ([]byte, error)
-	
+
 	// Registry operations
 	GetRegistryStatus(context.Context) (*RegistryStatusResponse, error)
 	SetRegistryStatus(context.Context, bool) error
@@ -109,16 +109,16 @@ type CloudWorkstationAPI interface {
 type RegistryStatusResponse struct {
 	// Active indicates if the registry is active
 	Active bool `json:"active"`
-	
+
 	// LastSync is when the registry was last synchronized
 	LastSync *time.Time `json:"last_sync,omitempty"`
-	
+
 	// TemplateCount is the number of templates in the registry
 	TemplateCount int `json:"template_count"`
-	
+
 	// AMICount is the total number of AMIs in the registry
 	AMICount int `json:"ami_count"`
-	
+
 	// Status provides additional status information
 	Status string `json:"status"`
 }
@@ -127,25 +127,25 @@ type RegistryStatusResponse struct {
 type AMIReferenceResponse struct {
 	// AMIID is the AMI identifier
 	AMIID string `json:"ami_id"`
-	
+
 	// Region is the AWS region where the AMI is located
 	Region string `json:"region"`
-	
+
 	// Architecture is the AMI architecture (x86_64 or arm64)
 	Architecture string `json:"architecture"`
-	
+
 	// TemplateName is the name of the template this AMI was built from
 	TemplateName string `json:"template_name"`
-	
+
 	// Version is the semantic version of the template
 	Version string `json:"version"`
-	
+
 	// BuildDate is when the AMI was built
 	BuildDate time.Time `json:"build_date"`
-	
+
 	// Status is the current status of the AMI
 	Status string `json:"status"`
-	
+
 	// Tags contains metadata tags for the AMI
 	Tags map[string]string `json:"tags,omitempty"`
 }

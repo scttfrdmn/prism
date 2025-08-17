@@ -38,7 +38,7 @@ func (c *HTTPClient) GenerateAPIKey(ctx context.Context) (*types.AuthResponse, e
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
-	
+
 	// Store the API key for future requests
 	c.SetAPIKey(result.APIKey)
 	return &result, nil
@@ -55,26 +55,26 @@ func (c *HTTPClient) GetAuthStatus(ctx context.Context) (*AuthStatusResponse, er
 	if err := c.handleResponse(resp, &rawResp); err != nil {
 		return nil, err
 	}
-	
+
 	status := &AuthStatusResponse{}
-	
+
 	// Extract auth_enabled
 	if enabled, ok := rawResp["auth_enabled"].(bool); ok {
 		status.AuthEnabled = enabled
 	}
-	
+
 	// Extract authenticated
 	if authenticated, ok := rawResp["authenticated"].(bool); ok {
 		status.Authenticated = authenticated
 	}
-	
+
 	// Extract created_at
 	if timeStr, ok := rawResp["created_at"].(string); ok {
 		if t, err := time.Parse(time.RFC3339, timeStr); err == nil {
 			status.CreatedAt = t
 		}
 	}
-	
+
 	return status, nil
 }
 
@@ -88,7 +88,7 @@ func (c *HTTPClient) RevokeAPIKey(ctx context.Context) error {
 	if err := c.handleResponse(resp, nil); err != nil {
 		return err
 	}
-	
+
 	// Clear the stored API key
 	c.apiKey = ""
 	return nil

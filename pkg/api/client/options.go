@@ -15,35 +15,35 @@ var ProfileContextKey = profileContextKey{}
 // ExtendedOptions extends the basic Options with additional fields
 type ExtendedOptions struct {
 	// AWS configuration
-	AWSProfile      string
-	AWSRegion       string
-	
+	AWSProfile string
+	AWSRegion  string
+
 	// Invitation details
 	InvitationToken string
 	OwnerAccount    string
 	S3ConfigPath    string
-	
+
 	// Profile information
-	ProfileID       string
+	ProfileID string
 }
 
 // PerformanceOptions represents HTTP client performance configuration
 type PerformanceOptions struct {
-	Timeout         time.Duration
-	MaxConnections  int
-	KeepAlive       time.Duration
-	RequestRetries  int
-	MaxIdleConns    int
+	Timeout        time.Duration
+	MaxConnections int
+	KeepAlive      time.Duration
+	RequestRetries int
+	MaxIdleConns   int
 }
 
 // DefaultPerformanceOptions returns sensible defaults for HTTP client performance
 func DefaultPerformanceOptions() PerformanceOptions {
 	return PerformanceOptions{
-		Timeout:         30 * time.Second,
-		MaxConnections:  10,
-		KeepAlive:       30 * time.Second,
-		RequestRetries:  3,
-		MaxIdleConns:    100,
+		Timeout:        30 * time.Second,
+		MaxConnections: 10,
+		KeepAlive:      30 * time.Second,
+		RequestRetries: 3,
+		MaxIdleConns:   100,
 	}
 }
 
@@ -64,7 +64,7 @@ func ApplyExtendedClientOptions(client CloudWorkstationAPI, options ExtendedOpti
 		OwnerAccount:    options.OwnerAccount,
 		S3ConfigPath:    options.S3ConfigPath,
 	}
-	
+
 	client.SetOptions(basicOptions)
 	return client
 }
