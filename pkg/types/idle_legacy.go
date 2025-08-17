@@ -5,10 +5,10 @@ type IdleStatus = InstanceIdleStatus
 
 // IdleStatusResponse represents the response from GetIdleStatus
 type IdleStatusResponse struct {
-	Enabled        bool                    `json:"enabled"`
-	DefaultProfile string                  `json:"default_profile"`
-	Profiles       map[string]IdleProfile  `json:"profiles"`
-	DomainMappings map[string]string       `json:"domain_mappings"`
+	Enabled        bool                   `json:"enabled"`
+	DefaultProfile string                 `json:"default_profile"`
+	Profiles       map[string]IdleProfile `json:"profiles"`
+	DomainMappings map[string]string      `json:"domain_mappings"`
 }
 
 // IdleProfile represents an idle detection profile

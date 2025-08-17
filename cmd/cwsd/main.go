@@ -43,7 +43,6 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
-
 func main() {
 	var (
 		port    = flag.String("port", "8947", "Port to listen on (default: 8947 - CWS on phone keypad)")
@@ -88,15 +87,15 @@ func main() {
 		log.Fatalf("Server failed: %v", err)
 	case sig := <-sigChan:
 		log.Printf("🔔 Received signal: %v", sig)
-		
+
 		switch sig {
 		case syscall.SIGHUP:
 			log.Printf("🔄 Configuration reload requested")
 			// Integrated monitoring will automatically restart if idle detection is re-enabled
-			
+
 		case syscall.SIGINT, syscall.SIGTERM:
 			log.Printf("🛑 Graceful shutdown requested")
-			
+
 			// Stop main server (which includes integrated monitoring)
 			log.Printf("Stopping daemon server...")
 			if err := server.Stop(); err != nil {
@@ -104,7 +103,7 @@ func main() {
 			} else {
 				log.Printf("✅ Daemon server stopped")
 			}
-			
+
 			log.Printf("✅ CloudWorkstation daemon shutdown complete")
 			os.Exit(0)
 		}

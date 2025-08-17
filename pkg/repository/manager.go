@@ -3,7 +3,6 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -115,7 +114,7 @@ func (m *Manager) loadConfig() error {
 	}
 
 	// Read config file
-	data, err := ioutil.ReadFile(m.configPath)
+	data, err := os.ReadFile(m.configPath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -137,7 +136,7 @@ func (m *Manager) saveConfig() error {
 	}
 
 	// Write config file
-	if err := ioutil.WriteFile(m.configPath, data, 0644); err != nil {
+	if err := os.WriteFile(m.configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -157,7 +156,7 @@ func (m *Manager) loadCache() error {
 	}
 
 	// Read cache file
-	data, err := ioutil.ReadFile(m.cacheFilePath)
+	data, err := os.ReadFile(m.cacheFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read cache file: %w", err)
 	}
@@ -179,7 +178,7 @@ func (m *Manager) saveCache() error {
 	}
 
 	// Write cache file
-	if err := ioutil.WriteFile(m.cacheFilePath, data, 0644); err != nil {
+	if err := os.WriteFile(m.cacheFilePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 
@@ -268,15 +267,15 @@ func (m *Manager) RemoveRepository(name string) error {
 
 	// Remove repository from configuration
 	m.config.Repositories = append(m.config.Repositories[:index], m.config.Repositories[index+1:]...)
-	
+
 	// Remove from cache if exists
 	delete(m.cache.Repositories, name)
-	
+
 	// Save config and cache
 	if err := m.saveConfig(); err != nil {
 		return err
 	}
-	
+
 	return m.saveCache()
 }
 
@@ -470,7 +469,7 @@ func (m *Manager) updateLocalCache(repo *Repository) error {
 		return fmt.Errorf("repository.yaml not found in %q", repo.Path)
 	}
 
-	data, err := ioutil.ReadFile(repoFilePath)
+	data, err := os.ReadFile(repoFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read repository.yaml: %w", err)
 	}

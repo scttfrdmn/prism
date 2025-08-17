@@ -301,7 +301,7 @@ func (m *TemplateManager) CreateTemplateVersion(templateName, component string) 
 		template:    &newTemplate,
 		hasModified: true, // Treat as modified to force overwrite
 	}
-	
+
 	// Set version in metadata
 	metadata := TemplateMetadata{
 		LastModified: m.clock.Now(),

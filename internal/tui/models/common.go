@@ -4,7 +4,7 @@ package models
 import (
 	"context"
 	"time"
-	
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
 )
@@ -28,15 +28,15 @@ type apiClient interface {
 	StartInstance(ctx context.Context, name string) error
 	StopInstance(ctx context.Context, name string) error
 	DeleteInstance(ctx context.Context, name string) error
-	
+
 	// Template operations
 	ListTemplates(ctx context.Context) (*api.ListTemplatesResponse, error)
 	GetTemplate(ctx context.Context, name string) (*api.TemplateResponse, error)
-	
+
 	// Storage operations
 	ListVolumes(ctx context.Context) (*api.ListVolumesResponse, error)
 	ListStorage(ctx context.Context) (*api.ListStorageResponse, error)
-	
+
 	// Idle detection operations
 	ListIdlePolicies(ctx context.Context) (*api.ListIdlePoliciesResponse, error)
 	UpdateIdlePolicy(ctx context.Context, req api.IdlePolicyUpdateRequest) error

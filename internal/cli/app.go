@@ -41,7 +41,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/pricing"
@@ -50,6 +49,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/spf13/cobra"
 )
 
 // App represents the CLI application
@@ -68,29 +68,29 @@ func NewApp(version string) *App {
 	config, err := LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
-		config = &Config{} // Use empty config
+		config = &Config{}                          // Use empty config
 		config.Daemon.URL = "http://localhost:8947" // Default URL (CWS on phone keypad)
 	}
-	
+
 	// Initialize profile manager
 	profileManager, err := profile.NewManagerEnhanced()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize profile manager: %v\n", err)
 		// Continue without profile manager
 	}
-	
+
 	// Initialize API client
 	apiURL := config.Daemon.URL
 	if envURL := os.Getenv("CWSD_URL"); envURL != "" {
 		apiURL = envURL
 	}
-	
+
 	// Create API client with configuration
 	baseClient := api.NewClientWithOptions(apiURL, client.Options{
 		AWSProfile: config.AWS.Profile,
 		AWSRegion:  config.AWS.Region,
 	})
-	
+
 	// Create app
 	app := &App{
 		version:        version,
@@ -99,10 +99,10 @@ func NewApp(version string) *App {
 		config:         config,
 		profileManager: profileManager,
 	}
-	
+
 	// Initialize TUI command
 	app.tuiCommand = NewTUICommand()
-	
+
 	return app
 }
 
@@ -114,14 +114,14 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
 		config = &Config{} // Use empty config
 	}
-	
+
 	// Initialize profile manager
 	profileManager, err := profile.NewManagerEnhanced()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize profile manager: %v\n", err)
 		// Continue without profile manager
 	}
-	
+
 	return &App{
 		version:        version,
 		apiClient:      client,
@@ -140,7 +140,7 @@ func (a *App) TUI(_ []string) error {
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("usage: cws launch <template> <name> [options]\n" +
-			"  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --hibernation --dry-run --subnet <subnet-id> --vpc <vpc-id>\n" +
+			"  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --hibernation --dry-run --wait --subnet <subnet-id> --vpc <vpc-id>\n" +
 			"\n" +
 			"  T-shirt sizes (compute + storage):\n" +
 			"    XS: 1 vCPU, 2GB RAM + 100GB storage  (t3.small/t4g.small)\n" +
@@ -194,6 +194,8 @@ func (a *App) Launch(args []string) error {
 			req.Hibernation = true
 		case arg == "--dry-run":
 			req.DryRun = true
+		case arg == "--wait":
+			req.Wait = true
 		case arg == "--with" && i+1 < len(args):
 			packageManager := args[i+1]
 			// Validate supported package managers
@@ -208,9 +210,9 @@ func (a *App) Launch(args []string) error {
 			if !supported {
 				return fmt.Errorf("unsupported package manager: %s (supported: conda, apt, dnf, ami)", packageManager)
 			}
-			
+
 			// All package managers now supported
-			
+
 			req.PackageManager = packageManager
 			i++
 		default:
@@ -231,13 +233,141 @@ func (a *App) Launch(args []string) error {
 	fmt.Printf("🚀 %s\n", response.Message)
 	fmt.Printf("💰 Estimated cost: %s\n", response.EstimatedCost)
 	fmt.Printf("🔗 Connect with: %s\n", response.ConnectionInfo)
-	
+
 	// Show project information if launched in a project
 	if req.ProjectID != "" {
 		fmt.Printf("📁 Project: %s\n", req.ProjectID)
 		fmt.Printf("🏷️  Instance will be tracked under project budget\n")
 	}
 
+	// If --wait is specified, monitor launch progress
+	if req.Wait {
+		fmt.Println()
+		return a.monitorLaunchProgress(req.Name, req.Template)
+	}
+
+	return nil
+}
+
+// monitorLaunchProgress monitors and displays real-time launch progress
+func (a *App) monitorLaunchProgress(instanceName, templateName string) error {
+	fmt.Printf("⏳ Monitoring launch progress for '%s'...\n", instanceName)
+
+	// Get template information to determine progress type
+	template, err := a.apiClient.GetTemplate(a.ctx, templateName)
+	if err != nil {
+		fmt.Printf("⚠️  Could not get template info, showing basic progress\n")
+	}
+
+	// Determine if this is an AMI-based or package-based template
+	// Check if template uses AMI package manager or contains "AMI" in name
+	isAMI := template != nil && (strings.Contains(templateName, "AMI") || strings.Contains(strings.ToLower(templateName), "ami"))
+
+	if isAMI {
+		return a.monitorAMILaunchProgress(instanceName)
+	} else {
+		return a.monitorPackageLaunchProgress(instanceName, templateName)
+	}
+}
+
+// monitorAMILaunchProgress shows simple progress for AMI-based launches
+func (a *App) monitorAMILaunchProgress(instanceName string) error {
+	fmt.Printf("📦 AMI-based launch - showing instance status...\n\n")
+
+	for i := 0; i < 60; i++ { // Monitor for up to 5 minutes
+		instance, err := a.apiClient.GetInstance(a.ctx, instanceName)
+		if err != nil {
+			if i == 0 {
+				fmt.Printf("⏳ Instance initializing...\n")
+			}
+		} else {
+			switch instance.State {
+			case "pending":
+				fmt.Printf("🔄 Instance starting... (%ds)\n", i*5)
+			case "running":
+				fmt.Printf("✅ Instance running! Ready to connect.\n")
+				fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
+				return nil
+			case "stopping", "stopped":
+				return fmt.Errorf("❌ Instance stopped unexpectedly")
+			case "terminated":
+				return fmt.Errorf("❌ Instance terminated during launch")
+			case "dry-run":
+				fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+				return nil
+			default:
+				fmt.Printf("📊 Status: %s (%ds)\n", instance.State, i*5)
+			}
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+
+	fmt.Printf("⚠️  Timeout waiting for instance to start (5 min). Check status with: cws list\n")
+	return nil
+}
+
+// monitorPackageLaunchProgress shows detailed progress for package-based launches
+func (a *App) monitorPackageLaunchProgress(instanceName, templateName string) error {
+	fmt.Printf("📦 Package-based launch - monitoring setup progress...\n")
+	fmt.Printf("💡 Setup time varies: APT/DNF ~2-3 min, conda ~5-10 min\n\n")
+
+	setupComplete := false
+
+	for i := 0; i < 240; i++ { // Monitor for up to 20 minutes
+		instance, err := a.apiClient.GetInstance(a.ctx, instanceName)
+		if err != nil {
+			if i == 0 {
+				fmt.Printf("⏳ Instance initializing...\n")
+			}
+		} else {
+			switch instance.State {
+			case "pending":
+				fmt.Printf("🔄 Instance starting... (%ds)\n", i*5)
+			case "running":
+				if !setupComplete {
+					// Instance is running, now monitor setup progress
+					if i*5 < 30 {
+						fmt.Printf("🔧 Instance running, beginning setup... (%ds)\n", i*5)
+					} else if i*5 < 120 {
+						fmt.Printf("📥 Installing packages... (%ds)\n", i*5)
+					} else if i*5 < 300 {
+						fmt.Printf("⚙️  Configuring services... (%ds)\n", i*5)
+					} else {
+						fmt.Printf("🔧 Final setup steps... (%ds)\n", i*5)
+					}
+
+					// Check if setup is complete by attempting connection
+					if i*5 > 60 && i%6 == 0 { // Check every 30 seconds after 1 minute
+						_, connErr := a.apiClient.ConnectInstance(a.ctx, instanceName)
+						if connErr == nil {
+							fmt.Printf("✅ Setup complete! Instance ready.\n")
+							fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
+							return nil
+						}
+					}
+				} else {
+					fmt.Printf("✅ Instance ready!\n")
+					return nil
+				}
+			case "stopping", "stopped":
+				return fmt.Errorf("❌ Instance stopped during setup")
+			case "terminated":
+				return fmt.Errorf("❌ Instance terminated during launch")
+			case "dry-run":
+				fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+				return nil
+			default:
+				fmt.Printf("📊 Status: %s (%ds)\n", instance.State, i*5)
+			}
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+
+	fmt.Printf("⚠️  Setup monitoring timeout (20 min). Instance may still be setting up.\n")
+	fmt.Printf("💡 Check status with: cws list\n")
+	fmt.Printf("💡 Try connecting: cws connect %s\n", instanceName)
 	return nil
 }
 
@@ -253,7 +383,7 @@ func (a *App) List(args []string) error {
 			i++
 		}
 	}
-	
+
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -291,20 +421,20 @@ func (a *App) List(args []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
+	_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
 	for _, instance := range filteredInstances {
 		projectInfo := "-"
 		if instance.ProjectID != "" {
 			projectInfo = instance.ProjectID
 		}
-		
+
 		// Format spot/on-demand indicator
 		typeIndicator := "OD"
 		if instance.InstanceLifecycle == "spot" {
 			typeIndicator = "SP"
 		}
-		
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			instance.Name,
 			instance.Template,
 			strings.ToUpper(instance.State),
@@ -315,7 +445,7 @@ func (a *App) List(args []string) error {
 		)
 	}
 
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }
@@ -324,14 +454,13 @@ func (a *App) List(args []string) error {
 func (a *App) ListCost(args []string) error {
 	// Parse project filter
 	var projectFilter string
-	for i, arg := range args {
-		switch {
-		case arg == "--project" && i+1 < len(args):
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--project" && i+1 < len(args) {
 			projectFilter = args[i+1]
-			i++
+			i++ // Skip the next argument since we consumed it
 		}
 	}
-	
+
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
 		return fmt.Errorf("daemon not running. Start with: cws daemon start")
@@ -367,21 +496,21 @@ func (a *App) ListCost(args []string) error {
 	if projectFilter != "" {
 		fmt.Printf("💰 Cost Analysis for project '%s':\n\n", projectFilter)
 	} else {
-		fmt.Println("💰 CloudWorkstation Cost Analysis\n")
+		fmt.Println("💰 CloudWorkstation Cost Analysis")
 	}
 
 	// Load pricing configuration for accurate cost calculation
 	pricingConfig, _ := pricing.LoadInstitutionalPricing()
 	calculator := pricing.NewCalculator(pricingConfig)
-	
+
 	// Check if we have institutional discounts
 	hasDiscounts := pricingConfig != nil && (pricingConfig.Institution != "Default")
-	
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 	if hasDiscounts {
-		fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN\tLIST RATE\tSAVINGS")
+		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN\tLIST RATE\tSAVINGS")
 	} else {
-		fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN")
+		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN")
 	}
 
 	totalRunningCost := 0.0
@@ -401,11 +530,11 @@ func (a *App) ListCost(args []string) error {
 				totalLifetime = time.Since(instance.LaunchTime)
 			}
 		}
-		
+
 		// Get base cost rates
 		dailyCost := instance.EstimatedDailyCost
 		listDailyCost := dailyCost
-		
+
 		if hasDiscounts && instance.InstanceType != "" {
 			// Get accurate pricing with discounts
 			estimatedHourlyListPrice := dailyCost / 24.0
@@ -417,11 +546,11 @@ func (a *App) ListCost(args []string) error {
 				}
 			}
 		}
-		
+
 		// Calculate actual spend so far (total lifetime cost)
 		totalMinutes := totalLifetime.Minutes()
 		actualSpend := (dailyCost / (24.0 * 60.0)) * totalMinutes
-		
+
 		// Calculate current cost per minute (running vs stopped rates)
 		var currentCostPerMin, listCurrentCostPerMin float64
 		if instance.State == "running" {
@@ -429,42 +558,42 @@ func (a *App) ListCost(args []string) error {
 			currentCostPerMin = dailyCost / (24.0 * 60.0)
 			listCurrentCostPerMin = listDailyCost / (24.0 * 60.0)
 			runningInstances++
-			totalRunningCost += dailyCost  // Add to daily running cost
+			totalRunningCost += dailyCost // Add to daily running cost
 			totalListCost += listDailyCost
 		} else {
 			// Stopped: only EBS storage cost (estimate ~10% of full cost)
 			currentCostPerMin = (dailyCost * 0.1) / (24.0 * 60.0)
 			listCurrentCostPerMin = (listDailyCost * 0.1) / (24.0 * 60.0)
 		}
-		
+
 		totalHistoricalSpend += actualSpend
-		
+
 		// Format type indicator
 		typeIndicator := "OD"
 		if instance.InstanceLifecycle == "spot" {
 			typeIndicator = "SP"
 		}
-		
+
 		// Format running time as d:h:m:s
 		days := int(totalLifetime.Hours()) / 24
 		hours := int(totalLifetime.Hours()) % 24
 		minutes := int(totalLifetime.Minutes()) % 60
 		seconds := int(totalLifetime.Seconds()) % 60
-		
+
 		var runningTime string
 		if days > 0 {
 			runningTime = fmt.Sprintf("%d:%02d:%02d:%02d", days, hours, minutes, seconds)
 		} else {
 			runningTime = fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
 		}
-		
+
 		if hasDiscounts {
 			savings := listCurrentCostPerMin - currentCostPerMin
 			savingsPercent := 0.0
 			if listCurrentCostPerMin > 0 {
 				savingsPercent = (savings / listCurrentCostPerMin) * 100
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\t$%.6f\t$%.6f (%.1f%%)\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\t$%.6f\t$%.6f (%.1f%%)\n",
 				instance.Name,
 				strings.ToUpper(instance.State),
 				typeIndicator,
@@ -476,7 +605,7 @@ func (a *App) ListCost(args []string) error {
 				savingsPercent,
 			)
 		} else {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\n",
 				instance.Name,
 				strings.ToUpper(instance.State),
 				typeIndicator,
@@ -487,8 +616,8 @@ func (a *App) ListCost(args []string) error {
 		}
 	}
 
-	w.Flush()
-	
+	_ = w.Flush()
+
 	// Summary section
 	fmt.Println()
 	fmt.Printf("📊 Cost Summary:\n")
@@ -513,9 +642,9 @@ func (a *App) ListCost(args []string) error {
 		fmt.Printf("   Monthly estimate:  $%.4f\n", totalRunningCost*30)
 		fmt.Printf("   Historical spend:  $%.4f\n", totalHistoricalSpend)
 	}
-	
+
 	fmt.Printf("\n💡 Tip: Use 'cws list' for a clean instance overview without cost data\n")
-	
+
 	return nil
 }
 
@@ -527,7 +656,7 @@ func (a *App) Connect(args []string) error {
 
 	name := args[0]
 	verbose := false
-	
+
 	// Parse flags
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
@@ -561,13 +690,13 @@ func (a *App) Connect(args []string) error {
 // executeSSHCommand executes the SSH command and transfers control to the SSH process
 func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
 	fmt.Printf("🔗 Connecting to %s...\n", instanceName)
-	
+
 	// Use shell to execute the SSH command to handle quotes properly
 	cmd := exec.Command("sh", "-c", connectionInfo)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -576,7 +705,7 @@ func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
 		}
 		return fmt.Errorf("failed to execute SSH command: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -638,21 +767,21 @@ func (a *App) Start(args []string) error {
 	case "running":
 		fmt.Printf("✅ Instance %s is already running\n", name)
 		return nil
-		
+
 	case "stopped":
 		// Ready to start - proceed normally
-		
+
 	case "stopping":
 		fmt.Printf("⏳ Instance %s is currently stopping. Please wait and try again in a few moments.\n", name)
 		return nil
-		
+
 	case "starting", "pending":
 		fmt.Printf("⏳ Instance %s is already starting. Check status with 'cws list'.\n", name)
 		return nil
-		
+
 	case "shutting-down", "terminated":
 		return fmt.Errorf("❌ Cannot start instance '%s' - it is %s", name, targetInstance.State)
-		
+
 	default:
 		return fmt.Errorf("❌ Cannot start instance '%s' - unknown state: %s", name, targetInstance.State)
 	}
@@ -666,7 +795,6 @@ func (a *App) Start(args []string) error {
 	fmt.Printf("▶️ Starting instance %s...\n", name)
 	return nil
 }
-
 
 // Delete handles the delete command
 func (a *App) Delete(args []string) error {
@@ -769,7 +897,6 @@ func (a *App) Resume(args []string) error {
 	return nil
 }
 
-
 // Volume handles volume commands
 func (a *App) Volume(args []string) error {
 	if len(args) < 1 {
@@ -850,12 +977,12 @@ func (a *App) volumeList(_ []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tFILESYSTEM ID\tSTATE\tSIZE\tCOST/MONTH")
+	_, _ = fmt.Fprintln(w, "NAME\tFILESYSTEM ID\tSTATE\tSIZE\tCOST/MONTH")
 
 	for _, volume := range volumes {
 		sizeGB := float64(volume.SizeBytes) / (1024 * 1024 * 1024)
 		costMonth := sizeGB * volume.EstimatedCostGB
-		fmt.Fprintf(w, "%s\t%s\t%s\t%.1f GB\t$%.2f\n",
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%.1f GB\t$%.2f\n",
 			volume.Name,
 			volume.FileSystemId,
 			strings.ToUpper(volume.State),
@@ -863,7 +990,7 @@ func (a *App) volumeList(_ []string) error {
 			costMonth,
 		)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }
@@ -914,7 +1041,7 @@ func (a *App) volumeMount(args []string) error {
 
 	volumeName := args[0]
 	instanceName := args[1]
-	
+
 	// Default mount point
 	mountPoint := "/mnt/" + volumeName
 	if len(args) >= 3 {
@@ -1028,7 +1155,7 @@ func (a *App) storageList(_ []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tVOLUME ID\tSTATE\tSIZE\tTYPE\tATTACHED TO\tCOST/MONTH")
+	_, _ = fmt.Fprintln(w, "NAME\tVOLUME ID\tSTATE\tSIZE\tTYPE\tATTACHED TO\tCOST/MONTH")
 
 	for _, volume := range volumes {
 		costMonth := float64(volume.SizeGB) * volume.EstimatedCostGB
@@ -1036,7 +1163,7 @@ func (a *App) storageList(_ []string) error {
 		if attachedTo == "" {
 			attachedTo = "-"
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%d GB\t%s\t%s\t$%.2f\n",
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d GB\t%s\t%s\t$%.2f\n",
 			volume.Name,
 			volume.VolumeID,
 			strings.ToUpper(volume.State),
@@ -1046,7 +1173,7 @@ func (a *App) storageList(_ []string) error {
 			costMonth,
 		)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }
@@ -1154,7 +1281,7 @@ func (a *App) Templates(args []string) error {
 			return a.templatesSnapshot(args[1:])
 		}
 	}
-	
+
 	// Default: list all templates
 	return a.templatesList(args)
 }
@@ -1171,19 +1298,35 @@ func (a *App) templatesList(args []string) error {
 		return fmt.Errorf("failed to list templates: %w", err)
 	}
 
-	fmt.Println("Available templates:")
-	fmt.Println()
+	fmt.Printf("📋 Available Templates (%d):\n\n", len(templates))
 
 	for name, template := range templates {
-		fmt.Printf("🏗️  %s\n", name)
+		if template.Slug != "" {
+			fmt.Printf("🏗️  %s\n", name)
+			fmt.Printf("   Slug: %s (for quick launch)\n", template.Slug)
+		} else {
+			fmt.Printf("🏗️  %s\n", name)
+		}
 		fmt.Printf("   %s\n", template.Description)
 		fmt.Printf("   Cost: $%.2f/hour (x86_64), $%.2f/hour (arm64)\n",
 			template.EstimatedCostPerHour["x86_64"],
 			template.EstimatedCostPerHour["arm64"])
 		fmt.Println()
 	}
-	
-	fmt.Println("💡 Size Information:")
+
+	fmt.Println("🚀 How to Launch:")
+	fmt.Println("   Using slug:        cws launch python-ml my-project")
+	fmt.Println("   Using full name:   cws launch \"Python Machine Learning (Simplified)\" my-project")
+	fmt.Println()
+
+	fmt.Println("📦 Package Manager Types:")
+	fmt.Println("   (AMI)   = Pre-built image, instant launch")
+	fmt.Println("   (APT)   = Ubuntu packages, ~2-3 min setup")
+	fmt.Println("   (DNF)   = Rocky/RHEL packages, ~2-3 min setup")
+	fmt.Println("   (conda) = Scientific packages, ~5-10 min setup")
+	fmt.Println()
+
+	fmt.Println("💡 Size Options:")
 	fmt.Println("   Launch with --size XS|S|M|L|XL to specify compute and storage resources")
 	fmt.Println("   XS: 1 vCPU, 2GB RAM + 100GB    S: 2 vCPU, 4GB RAM + 500GB    M: 2 vCPU, 8GB RAM + 1TB [default]")
 	fmt.Println("   L: 4 vCPU, 16GB RAM + 2TB       XL: 8 vCPU, 32GB RAM + 4TB")
@@ -1205,14 +1348,14 @@ func (a *App) templatesSearch(args []string) error {
 	// Use existing repository manager to search across repositories
 	// This would integrate with the GitHub repository system
 	fmt.Printf("📍 Search results from CloudWorkstation Template Repositories:\n\n")
-	
+
 	// Placeholder implementation - in real system would search GitHub repos
 	matchedTemplates := []struct {
-		name       string
-		repo       string
+		name        string
+		repo        string
 		description string
-		downloads  int
-		rating     float64
+		downloads   int
+		rating      float64
 	}{
 		{"python-ml-advanced", "community", "Advanced Python ML environment with GPU optimization", 1247, 4.8},
 		{"r-bioconductor", "bioinformatics", "R environment with Bioconductor packages", 892, 4.6},
@@ -1238,7 +1381,7 @@ func (a *App) templatesInfo(args []string) error {
 	}
 
 	templateName := args[0]
-	
+
 	// Get raw template information directly from templates package
 	rawTemplate, err := templates.GetTemplateInfo(templateName)
 	if err != nil {
@@ -1248,7 +1391,7 @@ func (a *App) templatesInfo(args []string) error {
 	// Also get runtime template for cost and instance type information
 	region := "us-west-2" // Default region for cost calculations
 	runtimeTemplate, runtimeErr := templates.GetTemplate(templateName, region, "x86_64")
-	
+
 	fmt.Printf("📋 Detailed Template Information\n")
 	fmt.Printf("═══════════════════════════════════════════════════════════════════\n\n")
 
@@ -1280,7 +1423,7 @@ func (a *App) templatesInfo(args []string) error {
 		if cost, exists := runtimeTemplate.EstimatedCostPerHour["arm64"]; exists {
 			fmt.Printf("   • arm64:  $%.3f/hour ($%.2f/day)\n", cost, cost*24)
 		}
-		
+
 		fmt.Printf("\n🖥️  **Instance Types** (default M size):\n")
 		if instanceType, exists := runtimeTemplate.InstanceType["x86_64"]; exists {
 			fmt.Printf("   • x86_64: %s\n", instanceType)
@@ -1294,16 +1437,16 @@ func (a *App) templatesInfo(args []string) error {
 	// Size Scaling Information
 	fmt.Printf("📏 **T-Shirt Size Scaling**:\n")
 	fmt.Printf("   • XS: 1 vCPU, 2GB RAM + 100GB storage\n")
-	fmt.Printf("   • S:  2 vCPU, 4GB RAM + 500GB storage\n") 
+	fmt.Printf("   • S:  2 vCPU, 4GB RAM + 500GB storage\n")
 	fmt.Printf("   • M:  2 vCPU, 8GB RAM + 1TB storage [default]\n")
 	fmt.Printf("   • L:  4 vCPU, 16GB RAM + 2TB storage\n")
 	fmt.Printf("   • XL: 8 vCPU, 32GB RAM + 4TB storage\n")
-	
+
 	// Smart scaling analysis
 	requiresGPU := containsGPUPackages(rawTemplate)
-	requiresHighMemory := containsMemoryPackages(rawTemplate) 
+	requiresHighMemory := containsMemoryPackages(rawTemplate)
 	requiresHighCPU := containsComputePackages(rawTemplate)
-	
+
 	if requiresGPU || requiresHighMemory || requiresHighCPU {
 		fmt.Printf("\n🧠 **Smart Scaling**: This template will use optimized instance types:\n")
 		if requiresGPU {
@@ -1402,23 +1545,23 @@ func (a *App) templatesInfo(args []string) error {
 	fmt.Printf("   • Large instance:      `cws launch %s my-workspace --size L`\n", launchName)
 	fmt.Printf("   • With project:        `cws launch %s my-workspace --project my-research`\n", launchName)
 	fmt.Printf("   • Spot instance:       `cws launch %s my-workspace --spot`\n", launchName)
-	
+
 	return nil
 }
 
 // Helper functions for template analysis
 func hasPackages(template *templates.Template) bool {
-	return len(template.Packages.System) > 0 || 
-		   len(template.Packages.Conda) > 0 || 
-		   len(template.Packages.Pip) > 0 || 
-		   len(template.Packages.Spack) > 0
+	return len(template.Packages.System) > 0 ||
+		len(template.Packages.Conda) > 0 ||
+		len(template.Packages.Pip) > 0 ||
+		len(template.Packages.Spack) > 0
 }
 
 func containsGPUPackages(template *templates.Template) bool {
 	allPackages := append(template.Packages.System, template.Packages.Conda...)
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
-	
+
 	gpuIndicators := []string{"tensorflow-gpu", "pytorch", "cuda", "nvidia", "cupy", "numba", "rapids"}
 	for _, pkg := range allPackages {
 		for _, indicator := range gpuIndicators {
@@ -1434,7 +1577,7 @@ func containsMemoryPackages(template *templates.Template) bool {
 	allPackages := append(template.Packages.System, template.Packages.Conda...)
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
-	
+
 	memoryIndicators := []string{"spark", "hadoop", "r-base", "bioconductor", "genomics"}
 	for _, pkg := range allPackages {
 		for _, indicator := range memoryIndicators {
@@ -1450,7 +1593,7 @@ func containsComputePackages(template *templates.Template) bool {
 	allPackages := append(template.Packages.System, template.Packages.Conda...)
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
-	
+
 	computeIndicators := []string{"openmpi", "mpich", "openmp", "fftw", "blas", "lapack", "atlas", "mkl"}
 	for _, pkg := range allPackages {
 		for _, indicator := range computeIndicators {
@@ -1487,7 +1630,7 @@ func getServiceForPort(port int) string {
 
 // templatesFeatured shows featured templates from repositories
 func (a *App) templatesFeatured(args []string) error {
-	fmt.Println("⭐ Featured Templates from CloudWorkstation Repositories\n")
+	fmt.Println("⭐ Featured Templates from CloudWorkstation Repositories")
 
 	// Featured templates curated by CloudWorkstation team
 	featuredTemplates := []struct {
@@ -1514,13 +1657,13 @@ func (a *App) templatesFeatured(args []string) error {
 
 	fmt.Printf("💡 Discover more templates: cws templates discover\n")
 	fmt.Printf("🔍 Search templates: cws templates search <query>\n")
-	
+
 	return nil
 }
 
 // templatesDiscover helps users discover templates by category
 func (a *App) templatesDiscover(args []string) error {
-	fmt.Println("🔍 Discover CloudWorkstation Templates by Category\n")
+	fmt.Println("🔍 Discover CloudWorkstation Templates by Category")
 
 	categories := map[string][]string{
 		"🧬 Life Sciences": {
@@ -1597,7 +1740,7 @@ func (a *App) templatesInstall(args []string) error {
 	fmt.Printf("✅ Template metadata downloaded\n")
 	fmt.Printf("📥 Installing template dependencies...\n")
 	fmt.Printf("✅ Template '%s' installed successfully\n", templateName)
-	
+
 	fmt.Printf("\n🚀 Launch with: cws launch %s <instance-name>\n", templateName)
 	fmt.Printf("📋 Get details: cws templates info %s\n", templateName)
 
@@ -1606,48 +1749,48 @@ func (a *App) templatesInstall(args []string) error {
 
 // validateTemplates handles template validation commands
 func (a *App) validateTemplates(args []string) error {
-	// Import templates package 
+	// Import templates package
 	// Note: We need to add the import at the top of the file
-	
+
 	if len(args) == 0 {
 		// Validate all templates
 		fmt.Println("🔍 Validating all templates...")
-		
+
 		templateDirs := []string{"./templates"}
 		if err := templates.ValidateAllTemplates(templateDirs); err != nil {
 			fmt.Println("❌ Template validation failed")
 			return err
 		}
-		
+
 		fmt.Println("✅ All templates are valid")
 		return nil
 	}
-	
+
 	// Validate specific template or file
 	templateName := args[0]
-	
+
 	// Check if it's a file path
 	if strings.HasSuffix(templateName, ".yml") || strings.HasSuffix(templateName, ".yaml") {
 		fmt.Printf("🔍 Validating template file: %s\n", templateName)
-		
+
 		if err := templates.ValidateTemplate(templateName); err != nil {
 			fmt.Println("❌ Template validation failed")
 			return err
 		}
-		
+
 		fmt.Printf("✅ Template file '%s' is valid\n", templateName)
 		return nil
 	}
-	
+
 	// Treat as template name
 	fmt.Printf("🔍 Validating template: %s\n", templateName)
-	
+
 	templateDirs := []string{"./templates"}
 	if err := templates.ValidateTemplateWithRegistry(templateDirs, templateName); err != nil {
 		fmt.Println("❌ Template validation failed")
 		return err
 	}
-	
+
 	fmt.Printf("✅ Template '%s' is valid\n", templateName)
 	return nil
 }
@@ -1657,7 +1800,7 @@ func (a *App) Migrate(args []string) error {
 	// Create migrate command
 	migrateCmd := &cobra.Command{}
 	AddMigrateCommand(migrateCmd, a.config)
-	
+
 	// Execute the first subcommand
 	migrateCmd.SetArgs(args)
 	return migrateCmd.Execute()
@@ -1668,13 +1811,11 @@ func (a *App) Profiles(args []string) error {
 	// Create profiles command
 	profilesCmd := &cobra.Command{}
 	AddProfileCommands(profilesCmd, a.config)
-	
+
 	// Execute the first subcommand
 	profilesCmd.SetArgs(args)
 	return profilesCmd.Execute()
 }
-
-
 
 // Daemon handles daemon management commands
 func (a *App) Daemon(args []string) error {
@@ -1735,12 +1876,12 @@ func (a *App) daemonStart() error {
 
 	fmt.Printf("✅ Daemon started (PID %d)\n", cmd.Process.Pid)
 	fmt.Println("⏳ Waiting for daemon to initialize...")
-	
+
 	// Wait for daemon to be ready and verify version matches
 	if err := a.waitForDaemonAndVerifyVersion(); err != nil {
 		return fmt.Errorf("daemon startup verification failed: %w", err)
 	}
-	
+
 	fmt.Println("✅ Daemon is ready and version verified")
 	return nil
 }
@@ -1752,7 +1893,7 @@ func (a *App) getDaemonVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get daemon status: %w", err)
 	}
-	
+
 	return status.Version, nil
 }
 
@@ -1768,22 +1909,22 @@ func (a *App) waitForDaemonAndVerifyVersion() error {
 			if err != nil {
 				return fmt.Errorf("daemon is running but version check failed: %w", err)
 			}
-			
+
 			if daemonVersion != version.Version {
 				return fmt.Errorf("daemon version mismatch after restart (expected: %s, got: %s)", version.Version, daemonVersion)
 			}
-			
+
 			// Success - daemon is running with correct version
 			return nil
 		}
-		
+
 		// Daemon not ready yet, wait and retry
 		if attempt < maxAttempts {
 			fmt.Printf("🔄 Daemon not ready yet, retrying in 0.5s (attempt %d/%d)\n", attempt, maxAttempts)
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
-	
+
 	return fmt.Errorf("daemon failed to start within 10 seconds")
 }
 
@@ -1879,7 +2020,7 @@ func (a *App) projectCreate(args []string) error {
 	}
 
 	name := args[0]
-	
+
 	// Parse options
 	req := project.CreateProjectRequest{
 		Name: name,
@@ -1940,7 +2081,7 @@ func (a *App) projectList(_ []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tID\tOWNER\tBUDGET\tSPENT\tINSTANCES\tCREATED")
+	_, _ = fmt.Fprintln(w, "NAME\tID\tOWNER\tBUDGET\tSPENT\tINSTANCES\tCREATED")
 
 	for _, proj := range projectResponse.Projects {
 		instanceCount := proj.ActiveInstances
@@ -1955,7 +2096,7 @@ func (a *App) projectList(_ []string) error {
 			budgetStr = fmt.Sprintf("$%.2f", budget)
 		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%d\t%s\n",
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%d\t%s\n",
 			proj.Name,
 			proj.ID,
 			proj.Owner,
@@ -1965,7 +2106,7 @@ func (a *App) projectList(_ []string) error {
 			proj.CreatedAt.Format("2006-01-02"),
 		)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }
@@ -1989,13 +2130,13 @@ func (a *App) projectInfo(args []string) error {
 	fmt.Printf("   Owner: %s\n", project.Owner)
 	fmt.Printf("   Status: %s\n", strings.ToUpper(string(project.Status)))
 	fmt.Printf("   Created: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
-	
+
 	// Budget information
 	fmt.Printf("\n💰 Budget Information:\n")
 	if project.Budget != nil && project.Budget.TotalBudget > 0 {
 		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
-		fmt.Printf("   Spent: $%.2f (%.1f%%)\n", 
-			project.Budget.SpentAmount, 
+		fmt.Printf("   Spent: $%.2f (%.1f%%)\n",
+			project.Budget.SpentAmount,
 			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
 		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
 	} else {
@@ -2027,7 +2168,7 @@ func (a *App) projectBudget(args []string) error {
 	}
 
 	name := args[0]
-	
+
 	// Show budget status (for now, just get project info and show budget)
 	project, err := a.apiClient.GetProject(a.ctx, name)
 	if err != nil {
@@ -2037,8 +2178,8 @@ func (a *App) projectBudget(args []string) error {
 	fmt.Printf("💰 Budget Status for '%s':\n", name)
 	if project.Budget != nil && project.Budget.TotalBudget > 0 {
 		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
-		fmt.Printf("   Spent: $%.2f (%.1f%%)\n", 
-			project.Budget.SpentAmount, 
+		fmt.Printf("   Spent: $%.2f (%.1f%%)\n",
+			project.Budget.SpentAmount,
 			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
 		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
 	} else {
@@ -2059,7 +2200,7 @@ func (a *App) projectInstances(args []string) error {
 	}
 
 	projectName := args[0]
-	
+
 	// Get all instances and filter by project
 	instanceResponse, err := a.apiClient.ListInstances(a.ctx)
 	if err != nil {
@@ -2082,11 +2223,11 @@ func (a *App) projectInstances(args []string) error {
 
 	fmt.Printf("🖥️ Instances in project '%s':\n", projectName)
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tLAUNCHED")
+	_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tLAUNCHED")
 
 	totalCost := 0.0
 	for _, instance := range projectInstances {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\n",
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\n",
 			instance.Name,
 			instance.Template,
 			strings.ToUpper(instance.State),
@@ -2099,8 +2240,8 @@ func (a *App) projectInstances(args []string) error {
 		}
 	}
 
-	fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", totalCost)
-	w.Flush()
+	_, _ = fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", totalCost)
+	_ = w.Flush()
 
 	return nil
 }
@@ -2111,7 +2252,7 @@ func (a *App) projectTemplates(args []string) error {
 	}
 
 	name := args[0]
-	
+
 	// For now, show a placeholder since project templates integration is complex
 	fmt.Printf("🏗️ Custom templates in project '%s':\n", name)
 	fmt.Printf("(Project template integration is being developed)\n")
@@ -2126,7 +2267,7 @@ func (a *App) projectMembers(args []string) error {
 	}
 
 	name := args[0]
-	
+
 	// Handle member management actions
 	if len(args) >= 2 {
 		action := args[1]
@@ -2137,32 +2278,32 @@ func (a *App) projectMembers(args []string) error {
 			}
 			email := args[2]
 			role := args[3]
-			
+
 			req := project.AddMemberRequest{
-				UserID: email,
-				Role:  types.ProjectRole(role),
+				UserID:  email,
+				Role:    types.ProjectRole(role),
 				AddedBy: "current-user", // TODO: Get from auth context
 			}
-			
+
 			err := a.apiClient.AddProjectMember(a.ctx, name, req)
 			if err != nil {
 				return fmt.Errorf("failed to add member: %w", err)
 			}
-			
+
 			fmt.Printf("👥 Added %s to project '%s' as %s\n", email, name, role)
 			return nil
-			
+
 		case "remove":
 			if len(args) < 3 {
 				return fmt.Errorf("usage: cws project members <name> remove <email>")
 			}
 			email := args[2]
-			
+
 			err := a.apiClient.RemoveProjectMember(a.ctx, name, email)
 			if err != nil {
 				return fmt.Errorf("failed to remove member: %w", err)
 			}
-			
+
 			fmt.Printf("👥 Removed %s from project '%s'\n", email, name)
 			return nil
 		}
@@ -2182,20 +2323,20 @@ func (a *App) projectMembers(args []string) error {
 
 	fmt.Printf("👥 Members of project '%s':\n", name)
 	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintln(w, "EMAIL\tROLE\tJOINED\tLAST ACTIVE")
+	_, _ = fmt.Fprintln(w, "EMAIL\tROLE\tJOINED\tLAST ACTIVE")
 
 	for _, member := range members {
 		lastActive := "never"
 		// Note: LastActive not available in current ProjectMember type
-		
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
 			member.UserID,
 			member.Role,
 			member.AddedAt.Format("2006-01-02"),
 			lastActive,
 		)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	fmt.Printf("\nRoles: owner, admin, member, viewer\n")
 	fmt.Printf("Add member: cws project members %s add <email> <role>\n", name)
@@ -2210,16 +2351,16 @@ func (a *App) projectDelete(args []string) error {
 	}
 
 	name := args[0]
-	
+
 	// Confirmation prompt
 	fmt.Printf("⚠️  WARNING: This will permanently delete project '%s' and all associated data.\n", name)
 	fmt.Printf("   This includes project templates, member associations, and budget history.\n")
 	fmt.Printf("   Running instances will NOT be deleted but will be moved to your personal account.\n\n")
 	fmt.Printf("Type the project name to confirm deletion: ")
-	
+
 	var confirmation string
-	fmt.Scanln(&confirmation)
-	
+	_, _ = fmt.Scanln(&confirmation)
+
 	if confirmation != name {
 		fmt.Println("❌ Project name doesn't match. Deletion cancelled.")
 		return nil
@@ -2329,7 +2470,7 @@ func (a *App) pricingInstall(args []string) error {
 
 	// Copy to standard location
 	targetPath := getInstitutionalPricingPath()
-	
+
 	// Create directory if needed
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
@@ -2344,7 +2485,7 @@ func (a *App) pricingInstall(args []string) error {
 	fmt.Printf("   Institution: %s\n", newConfig.Institution)
 	fmt.Printf("   Version: %s\n", newConfig.Version)
 	fmt.Printf("   Installed to: %s\n", targetPath)
-	
+
 	if newConfig.Contact != "" {
 		fmt.Printf("   Contact: %s\n", newConfig.Contact)
 	}
@@ -2380,7 +2521,7 @@ func (a *App) pricingValidate(args []string) error {
 	fmt.Println("✅ Pricing configuration is valid")
 	fmt.Printf("   Institution: %s\n", config.Institution)
 	fmt.Printf("   Version: %s\n", config.Version)
-	
+
 	if !config.ValidUntil.IsZero() {
 		fmt.Printf("   Valid until: %s\n", config.ValidUntil.Format("2006-01-02"))
 	}
@@ -2420,7 +2561,7 @@ func (a *App) pricingCalculate(args []string) error {
 	}
 
 	instanceType := args[0]
-	
+
 	listPrice, err := strconv.ParseFloat(args[1], 64)
 	if err != nil {
 		return fmt.Errorf("invalid list price: %w", err)
@@ -2456,7 +2597,7 @@ func (a *App) pricingCalculate(args []string) error {
 		fmt.Println()
 		fmt.Println("Applied Discounts:")
 		for _, discount := range result.AppliedDiscounts {
-			fmt.Printf("  • %s: %.1f%% (saves $%.4f/hour)\n", 
+			fmt.Printf("  • %s: %.1f%% (saves $%.4f/hour)\n",
 				discount.Description, discount.Percentage*100, discount.Savings)
 		}
 	}
@@ -2515,7 +2656,7 @@ func (a *App) daemonConfigShow() error {
 	fmt.Printf("\n💡 Configuration Commands:\n")
 	fmt.Printf("  cws daemon config set retention <minutes>  # Set retention period (0=indefinite)\n")
 	fmt.Printf("  cws daemon config reset                     # Reset to defaults (5 minutes)\n")
-	
+
 	return nil
 }
 
@@ -2547,7 +2688,7 @@ func (a *App) daemonConfigSet(args []string) error {
 		}
 
 		daemonConfig.InstanceRetentionMinutes = retentionMinutes
-		
+
 		// Save configuration
 		if err := saveDaemonConfig(daemonConfig); err != nil {
 			return fmt.Errorf("failed to save daemon configuration: %w", err)
@@ -2560,7 +2701,7 @@ func (a *App) daemonConfigSet(args []string) error {
 			fmt.Printf("✅ Instance retention set to %d minutes\n", retentionMinutes)
 			fmt.Printf("   Terminated instances will be cleaned up after %d minutes\n", retentionMinutes)
 		}
-		
+
 		fmt.Printf("\n⚠️  Changes take effect after daemon restart: cws daemon stop && cws daemon start\n")
 
 	default:
@@ -2573,7 +2714,7 @@ func (a *App) daemonConfigSet(args []string) error {
 // daemonConfigReset resets daemon configuration to defaults
 func (a *App) daemonConfigReset() error {
 	defaultConfig := getDefaultDaemonConfig()
-	
+
 	if err := saveDaemonConfig(defaultConfig); err != nil {
 		return fmt.Errorf("failed to save daemon configuration: %w", err)
 	}
@@ -2600,7 +2741,7 @@ func saveDaemonConfig(config *DaemonConfig) error {
 func getDefaultDaemonConfig() *DaemonConfig {
 	return &DaemonConfig{
 		InstanceRetentionMinutes: 5,
-		Port: "8947",
+		Port:                     "8947",
 	}
 }
 
@@ -2613,48 +2754,48 @@ type DaemonConfig struct {
 // loadDaemonConfigFromFile loads daemon config from the standard location
 func loadDaemonConfigFromFile() (*DaemonConfig, error) {
 	configPath := getDaemonConfigPath()
-	
+
 	// If config file doesn't exist, return default config
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return getDefaultDaemonConfig(), nil
 	}
-	
+
 	// Read config file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read daemon config: %w", err)
 	}
-	
+
 	// Parse config
 	config := getDefaultDaemonConfig() // Start with defaults
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, fmt.Errorf("failed to parse daemon config: %w", err)
 	}
-	
+
 	return config, nil
 }
 
 // saveDaemonConfigToFile saves daemon config to the standard location
 func saveDaemonConfigToFile(config *DaemonConfig) error {
 	configPath := getDaemonConfigPath()
-	
+
 	// Ensure config directory exists
 	configDir := filepath.Dir(configPath)
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	// Marshal config to JSON
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal daemon config: %w", err)
 	}
-	
+
 	// Write config file
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write daemon config: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -2774,7 +2915,7 @@ func (a *App) templatesVersionGet(args []string) error {
 
 	fmt.Printf("✅ Template: %s\n", template.Name)
 	fmt.Printf("📦 Version: %s\n", template.Version)
-	
+
 	return nil
 }
 
@@ -2812,10 +2953,10 @@ func (a *App) templatesVersionValidate(args []string) error {
 	}
 
 	validationIssues := 0
-	
+
 	for name, template := range registry.Templates {
 		fmt.Printf("🏗️  Checking %s...\n", name)
-		
+
 		// Check version format
 		if template.Version == "" {
 			fmt.Printf("   ❌ Missing version field\n")
@@ -2828,16 +2969,16 @@ func (a *App) templatesVersionValidate(args []string) error {
 				fmt.Printf("   ⚠️  Version: %s (non-semantic)\n", template.Version)
 			}
 		}
-		
+
 		// Check other metadata
 		if template.Maintainer == "" {
 			fmt.Printf("   ℹ️  Missing maintainer field (optional)\n")
 		}
-		
+
 		if template.LastUpdated.IsZero() {
 			fmt.Printf("   ℹ️  Missing last_updated field (optional)\n")
 		}
-		
+
 		fmt.Println()
 	}
 
@@ -2856,7 +2997,7 @@ func (a *App) templatesVersionUpgrade(args []string) error {
 	fmt.Printf("═════════════════════════════════\n\n")
 
 	fmt.Printf("📦 Current template versions:\n")
-	
+
 	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 	if err := registry.ScanTemplates(); err != nil {
 		return fmt.Errorf("failed to scan templates: %w", err)
@@ -2908,7 +3049,7 @@ func isValidSemanticVersion(version string) bool {
 	if len(parts) < 2 {
 		return false
 	}
-	
+
 	// Check if all parts are numeric
 	for _, part := range parts {
 		if part == "" {
@@ -2920,7 +3061,7 @@ func isValidSemanticVersion(version string) bool {
 			}
 		}
 	}
-	
+
 	return len(parts) >= 2 && len(parts) <= 3
 }
 
@@ -2951,7 +3092,7 @@ Examples:
 	var description string
 	var baseTemplate string
 	var dryRun bool
-	
+
 	// Filter out option arguments and get clean arguments
 	var cleanArgs []string
 	for i := 0; i < len(args); i++ {
@@ -2979,7 +3120,7 @@ Examples:
 	if len(cleanArgs) < 2 {
 		return fmt.Errorf("missing required arguments: instance-name and template-name")
 	}
-	
+
 	instanceName = cleanArgs[0]
 	templateName = cleanArgs[1]
 
@@ -2992,12 +3133,12 @@ Examples:
 	}
 
 	var instance *types.Instance
-	
+
 	if dryRun {
 		// For dry-run, create a mock instance
 		instance = &types.Instance{
 			Name:         instanceName,
-			InstanceType: "t3.medium", 
+			InstanceType: "t3.medium",
 			State:        "running",
 			LaunchTime:   time.Now().Add(-2 * time.Hour),
 		}
@@ -3060,10 +3201,10 @@ Examples:
 	if dryRun {
 		fmt.Printf("   ✅ Configuration discovery completed\n")
 		fmt.Printf("   ✅ Template generation simulated\n\n")
-		
+
 		fmt.Printf("📄 **Generated Template Preview**:\n")
 		fmt.Printf("```yaml\n%s```\n\n", template)
-		
+
 		fmt.Printf("💡 **Next Steps**:\n")
 		fmt.Printf("   Run without dry-run to save template:\n")
 		fmt.Printf("   cws templates snapshot %s %s", instanceName, templateName)
@@ -3083,11 +3224,11 @@ Examples:
 
 		fmt.Printf("   ✅ Configuration discovery completed\n")
 		fmt.Printf("   ✅ Template generated and saved\n\n")
-		
+
 		fmt.Printf("✅ **Template Created Successfully**:\n")
 		fmt.Printf("   Template saved as: %s\n", templateName)
 		fmt.Printf("   Location: templates/%s.yml\n\n", templateName)
-		
+
 		fmt.Printf("🚀 **Usage**:\n")
 		fmt.Printf("   Launch new instance: cws launch \"%s\" new-instance\n", templateName)
 		fmt.Printf("   View template info: cws templates info \"%s\"\n", templateName)
@@ -3109,7 +3250,7 @@ func (a *App) discoverInstanceConfiguration(instance *types.Instance) (*Instance
 
 	// Mock configuration for now
 	config := &InstanceConfiguration{
-		BaseOS: "ubuntu-22.04",
+		BaseOS:         "ubuntu-22.04",
 		PackageManager: "apt",
 		Packages: PackageSet{
 			System: []string{"curl", "wget", "git", "build-essential", "python3", "python3-pip"},
@@ -3158,7 +3299,7 @@ version: "1.0"
 tags:
   type: "snapshot"
   created: "%s"
-`, 
+`,
 		name,
 		description,
 		config.BaseOS,
@@ -3173,7 +3314,7 @@ tags:
 
 	if baseTemplate != "" {
 		// Add inheritance if base template specified
-		template = strings.Replace(template, fmt.Sprintf(`base: "%s"`, config.BaseOS), 
+		template = strings.Replace(template, fmt.Sprintf(`base: "%s"`, config.BaseOS),
 			fmt.Sprintf(`inherits: ["%s"]
 base: "%s"`, baseTemplate, config.BaseOS), 1)
 	}
@@ -3404,7 +3545,7 @@ func (a *App) rightsizingRecommendations(args []string) error {
 	fmt.Printf("📋 **How Rightsizing Works**:\n")
 	fmt.Printf("   1. **Data Collection**: Every 2 minutes, detailed metrics are captured\n")
 	fmt.Printf("      • CPU utilization (1min, 5min, 15min averages)\n")
-	fmt.Printf("      • Memory usage (total, used, available)\n") 
+	fmt.Printf("      • Memory usage (total, used, available)\n")
 	fmt.Printf("      • Disk I/O and utilization\n")
 	fmt.Printf("      • GPU metrics (if available)\n")
 	fmt.Printf("      • Network traffic patterns\n\n")
@@ -3612,13 +3753,13 @@ func (a *App) rightsizingSummary(args []string) error {
 		} else if instance.State == "stopped" {
 			stoppedInstances++
 		}
-		
+
 		status := "🟢"
 		if instance.State != "running" {
 			status = "⏸️ "
 		}
-		
-		fmt.Printf("   %s %-20s %s ($%.2f/day)\n", 
+
+		fmt.Printf("   %s %-20s %s ($%.2f/day)\n",
 			status, instance.Name, instance.InstanceType, instance.EstimatedDailyCost)
 	}
 
@@ -3634,7 +3775,7 @@ func (a *App) rightsizingSummary(args []string) error {
 		fmt.Printf("   Analytics Active: %d instances\n", runningInstances)
 		fmt.Printf("   Data Collection: Every 2 minutes\n")
 		fmt.Printf("   Analysis Updates: Every hour\n")
-		
+
 		estimatedSavings := totalDailyCost * 0.25 // Assume 25% average savings potential
 		fmt.Printf("   Estimated Savings Potential: $%.2f/day (25%%)\n", estimatedSavings)
 		fmt.Printf("   Annual Savings Potential: $%.2f\n", estimatedSavings*365)
@@ -3682,7 +3823,7 @@ Examples:
 	case "analyze":
 		return a.scalingAnalyze(subargs)
 	case "scale":
-		return a.scalingScale(subargs)  
+		return a.scalingScale(subargs)
 	case "preview":
 		return a.scalingPreview(subargs)
 	case "history":
@@ -3754,7 +3895,7 @@ func (a *App) scalingAnalyze(args []string) error {
 
 	fmt.Printf("💡 **Available Sizes**:\n")
 	fmt.Printf("   XS: 1vCPU, 2GB RAM, 100GB storage ($0.50/day)\n")
-	fmt.Printf("   S:  2vCPU, 4GB RAM, 500GB storage ($1.00/day)\n") 
+	fmt.Printf("   S:  2vCPU, 4GB RAM, 500GB storage ($1.00/day)\n")
 	fmt.Printf("   M:  2vCPU, 8GB RAM, 1TB storage ($2.00/day)\n")
 	fmt.Printf("   L:  4vCPU, 16GB RAM, 2TB storage ($4.00/day)\n")
 	fmt.Printf("   XL: 8vCPU, 32GB RAM, 4TB storage ($8.00/day)\n\n")
@@ -3809,7 +3950,7 @@ func (a *App) scalingScale(args []string) error {
 	}
 
 	currentSize := a.parseInstanceSize(instance.InstanceType)
-	
+
 	fmt.Printf("🔄 **Scaling Operation**:\n")
 	fmt.Printf("   Instance: %s\n", instance.Name)
 	fmt.Printf("   Current Size: %s (%s)\n", currentSize, instance.InstanceType)
@@ -3828,11 +3969,11 @@ func (a *App) scalingScale(args []string) error {
 	// Show cost comparison
 	currentCost := instance.EstimatedDailyCost
 	newCost := a.estimateCostForSize(newSize)
-	
+
 	fmt.Printf("💰 **Cost Impact**:\n")
 	fmt.Printf("   Current Cost: $%.2f/day\n", currentCost)
 	fmt.Printf("   New Cost: $%.2f/day\n", newCost)
-	
+
 	if newCost > currentCost {
 		fmt.Printf("   Impact: +$%.2f/day (+%.0f%%)\n\n", newCost-currentCost, ((newCost-currentCost)/currentCost)*100)
 	} else if newCost < currentCost {
@@ -3852,7 +3993,7 @@ func (a *App) scalingScale(args []string) error {
 
 	fmt.Printf("🚧 **Implementation Status**: Preview Mode\n")
 	fmt.Printf("   Full dynamic scaling will be implemented in future release.\n")
-	
+
 	return nil
 }
 
@@ -3898,7 +4039,7 @@ func (a *App) scalingPreview(args []string) error {
 	}
 
 	currentSize := a.parseInstanceSize(instance.InstanceType)
-	
+
 	fmt.Printf("📋 **Preview: %s → %s**\n", currentSize, newSize)
 	fmt.Printf("   Instance: %s\n", instance.Name)
 	fmt.Printf("   Current Type: %s\n", instance.InstanceType)
@@ -3908,19 +4049,19 @@ func (a *App) scalingPreview(args []string) error {
 	fmt.Printf("🔄 **Resource Changes**:\n")
 	currentSpecs := a.getSizeSpecs(currentSize)
 	newSpecs := a.getSizeSpecs(newSize)
-	
+
 	fmt.Printf("   CPU: %s → %s\n", currentSpecs.CPU, newSpecs.CPU)
-	fmt.Printf("   Memory: %s → %s\n", currentSpecs.Memory, newSpecs.Memory) 
+	fmt.Printf("   Memory: %s → %s\n", currentSpecs.Memory, newSpecs.Memory)
 	fmt.Printf("   Storage: %s → %s\n\n", currentSpecs.Storage, newSpecs.Storage)
 
 	// Cost comparison
 	currentCost := instance.EstimatedDailyCost
 	newCost := a.estimateCostForSize(newSize)
-	
+
 	fmt.Printf("💰 **Cost Impact**:\n")
 	fmt.Printf("   Current: $%.2f/day\n", currentCost)
 	fmt.Printf("   New: $%.2f/day\n", newCost)
-	
+
 	if newCost > currentCost {
 		fmt.Printf("   Change: +$%.2f/day (+%.0f%%)\n", newCost-currentCost, ((newCost-currentCost)/currentCost)*100)
 		fmt.Printf("   Monthly: +$%.2f\n", (newCost-currentCost)*30)
@@ -3934,7 +4075,7 @@ func (a *App) scalingPreview(args []string) error {
 	fmt.Printf("\n⚡ **Scaling Process**:\n")
 	if instance.State == "running" {
 		fmt.Printf("   1. Stop instance (preserves data)\n")
-		fmt.Printf("   2. Modify instance type\n") 
+		fmt.Printf("   2. Modify instance type\n")
 		fmt.Printf("   3. Start with new configuration\n")
 		fmt.Printf("   4. Validate functionality\n")
 		fmt.Printf("   Estimated downtime: 2-5 minutes\n")
@@ -3990,10 +4131,10 @@ func (a *App) scalingHistory(args []string) error {
 	fmt.Printf("   Launch Time: %s\n\n", instance.LaunchTime)
 
 	fmt.Printf("📈 **Scaling History**:\n")
-	fmt.Printf("   Launch: %s (Size: %s)\n", 
-		instance.LaunchTime, 
+	fmt.Printf("   Launch: %s (Size: %s)\n",
+		instance.LaunchTime,
 		a.parseInstanceSize(instance.InstanceType))
-	
+
 	fmt.Printf("\n💡 **Note**: Comprehensive scaling history tracking will be\n")
 	fmt.Printf("   implemented in future release with AWS CloudTrail integration.\n")
 
@@ -4006,7 +4147,7 @@ func (a *App) parseInstanceSize(instanceType string) string {
 	// Map instance types back to t-shirt sizes
 	sizeMap := map[string]string{
 		"t3.nano":     "XS",
-		"t3.micro":    "XS", 
+		"t3.micro":    "XS",
 		"t3.small":    "S",
 		"t3.medium":   "M",
 		"t3.large":    "L",
@@ -4014,7 +4155,7 @@ func (a *App) parseInstanceSize(instanceType string) string {
 		"t3.2xlarge":  "XL",
 		"t3a.nano":    "XS",
 		"t3a.micro":   "XS",
-		"t3a.small":   "S", 
+		"t3a.small":   "S",
 		"t3a.medium":  "M",
 		"t3a.large":   "L",
 		"t3a.xlarge":  "XL",
@@ -4031,7 +4172,7 @@ func (a *App) getInstanceTypeForSize(size string) string {
 	// Map sizes to preferred instance types (using ARM-optimized when available)
 	sizeTypeMap := map[string]string{
 		"XS": "t4g.nano",
-		"S":  "t4g.small", 
+		"S":  "t4g.small",
 		"M":  "t4g.medium",
 		"L":  "t4g.large",
 		"XL": "t4g.xlarge",
@@ -4048,7 +4189,7 @@ func (a *App) estimateCostForSize(size string) float64 {
 	costMap := map[string]float64{
 		"XS": 0.50,
 		"S":  1.00,
-		"M":  2.00, 
+		"M":  2.00,
 		"L":  4.00,
 		"XL": 8.00,
 	}
@@ -4069,7 +4210,7 @@ func (a *App) getSizeSpecs(size string) SizeSpecs {
 	specMap := map[string]SizeSpecs{
 		"XS": {"1vCPU", "2GB", "100GB"},
 		"S":  {"2vCPU", "4GB", "500GB"},
-		"M":  {"2vCPU", "8GB", "1TB"}, 
+		"M":  {"2vCPU", "8GB", "1TB"},
 		"L":  {"4vCPU", "16GB", "2TB"},
 		"XL": {"8vCPU", "32GB", "4TB"},
 	}
@@ -4083,24 +4224,25 @@ func (a *App) getSizeSpecs(size string) SizeSpecs {
 // AMIDiscover demonstrates AMI auto-discovery functionality
 func (a *App) AMIDiscover(args []string) error {
 	fmt.Printf("🔍 CloudWorkstation AMI Auto-Discovery\n\n")
-	
+
 	// This would normally get the template resolver from the daemon
 	// For demo purposes, create a resolver and populate it with mock AMI data
 	resolver := templates.NewTemplateResolver()
-	
+
 	// Simulate AMI registry update (in practice this would connect to AWS SSM)
-	err := resolver.UpdateAMIRegistry(context.TODO(), "mock-ssm-client")
+	ctx := context.Background()
+	err := resolver.UpdateAMIRegistry(ctx, "mock-ssm-client")
 	if err != nil {
 		return fmt.Errorf("failed to update AMI registry: %w", err)
 	}
-	
+
 	// Show current template list with AMI availability
 	fmt.Printf("📋 Template Analysis:\n\n")
-	
+
 	templateNames := []string{"python-ml", "r-research", "simple-python-ml", "simple-r-research"}
 	region := "us-east-1"
 	architecture := "x86_64"
-	
+
 	for _, templateName := range templateNames {
 		amiID := resolver.CheckAMIAvailability(templateName, region, architecture)
 		if amiID != "" {
@@ -4109,11 +4251,11 @@ func (a *App) AMIDiscover(args []string) error {
 			fmt.Printf("⏱️  %s: No pre-built AMI - Will build from scratch\n", templateName)
 		}
 	}
-	
+
 	fmt.Printf("\n💡 Templates with ✅ can launch in seconds using pre-built AMIs\n")
 	fmt.Printf("💡 Templates with ⏱️ will take several minutes to install packages\n")
 	fmt.Printf("\n🛠️  To build AMIs: cws ami build <template-name>\n")
-	
+
 	return nil
 }
 

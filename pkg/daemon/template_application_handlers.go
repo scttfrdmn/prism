@@ -77,7 +77,7 @@ func (s *Server) handleTemplateApply(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleTemplateDiff handles calculating template differences
@@ -146,7 +146,7 @@ func (s *Server) handleTemplateDiff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(diff)
+	_ = json.NewEncoder(w).Encode(diff)
 }
 
 // handleInstanceLayers handles listing applied template layers for an instance
@@ -196,7 +196,7 @@ func (s *Server) handleInstanceLayers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	json.NewEncoder(w).Encode(appliedTemplates)
+	_ = json.NewEncoder(w).Encode(appliedTemplates)
 }
 
 // handleInstanceRollback handles rolling back template applications
@@ -268,7 +268,7 @@ func (s *Server) handleInstanceRollback(w http.ResponseWriter, r *http.Request) 
 		"success": true,
 		"message": fmt.Sprintf("Successfully rolled back instance '%s' to checkpoint '%s'", req.InstanceName, req.CheckpointID),
 	}
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // createRemoteExecutor creates an appropriate remote executor for the instance

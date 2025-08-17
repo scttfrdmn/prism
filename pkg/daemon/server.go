@@ -31,9 +31,6 @@ type Server struct {
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
 
-	// Integrated autonomous monitoring
-	monitoringCancel context.CancelFunc
-	monitoringTicker *time.Ticker
 }
 
 // NewServer creates a new daemon server
@@ -164,7 +161,7 @@ func (s *Server) Start() error {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		s.httpServer.Shutdown(ctx)
+		_ = s.httpServer.Shutdown(ctx)
 	}()
 
 	return s.httpServer.ListenAndServe()
@@ -370,7 +367,7 @@ func extractOperationType(path string) string {
 	}
 
 	// Extract resource type (first part)
-	resourceType := strings.Title(parts[0])
+	resourceType := strings.ToUpper(parts[0][:1]) + parts[0][1:]
 	if len(resourceType) > 0 && resourceType[len(resourceType)-1] == 's' {
 		// Convert plural to singular (instances -> instance)
 		resourceType = resourceType[:len(resourceType)-1]
@@ -378,7 +375,7 @@ func extractOperationType(path string) string {
 
 	// If there's an ID and operation, use those
 	if len(parts) >= 3 {
-		operation := strings.Title(parts[2])
+		operation := strings.ToUpper(parts[2][:1]) + parts[2][1:]
 		return resourceType + operation
 	}
 
@@ -401,9 +398,12 @@ func (s *Server) stopIntegratedMonitoring() {
 	log.Printf("Legacy monitoring removed - using universal idle detection")
 }
 
-// performIntegratedMonitoringCycle removed - using universal idle detection
-func (s *Server) performIntegratedMonitoringCycle(ctx context.Context) error {
-	return nil
+
+// createHTTPHandler creates and configures the HTTP handler for testing
+func (s *Server) createHTTPHandler() http.Handler {
+	mux := http.NewServeMux()
+	s.setupRoutes(mux)
+	return mux
 }
 
 // Auth handlers are implemented in auth.go

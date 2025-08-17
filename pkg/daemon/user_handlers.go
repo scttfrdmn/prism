@@ -132,7 +132,7 @@ func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(users)
+	_ = json.NewEncoder(w).Encode(users)
 }
 
 // handleCreateUser handles creating a new user
@@ -156,7 +156,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newUser)
+	_ = json.NewEncoder(w).Encode(newUser)
 }
 
 // handleGetUser handles getting a user
@@ -172,7 +172,7 @@ func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request, id string
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(user)
 }
 
 // handleUpdateUser handles updating a user
@@ -203,7 +203,7 @@ func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request, id str
 		return
 	}
 
-	json.NewEncoder(w).Encode(updatedUser)
+	_ = json.NewEncoder(w).Encode(updatedUser)
 }
 
 // handleDeleteUser handles deleting a user
@@ -278,7 +278,7 @@ func (s *Server) handleUserGroups(w http.ResponseWriter, r *http.Request, id str
 			return
 		}
 
-		json.NewEncoder(w).Encode(groups)
+		_ = json.NewEncoder(w).Encode(groups)
 	} else if r.Method == http.MethodPut {
 		// Update user groups
 		var groupNames []string
@@ -412,7 +412,7 @@ func (s *Server) handleListGroups(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(groups)
+	_ = json.NewEncoder(w).Encode(groups)
 }
 
 // handleCreateGroup handles creating a new group
@@ -436,7 +436,7 @@ func (s *Server) handleCreateGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(group)
+	_ = json.NewEncoder(w).Encode(group)
 }
 
 // handleGetGroup handles getting a group
@@ -452,7 +452,7 @@ func (s *Server) handleGetGroup(w http.ResponseWriter, r *http.Request, id strin
 		return
 	}
 
-	json.NewEncoder(w).Encode(group)
+	_ = json.NewEncoder(w).Encode(group)
 }
 
 // handleUpdateGroup handles updating a group
@@ -483,7 +483,7 @@ func (s *Server) handleUpdateGroup(w http.ResponseWriter, r *http.Request, id st
 		return
 	}
 
-	json.NewEncoder(w).Encode(group)
+	_ = json.NewEncoder(w).Encode(group)
 }
 
 // handleDeleteGroup handles deleting a group
@@ -536,7 +536,7 @@ func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id str
 			return
 		}
 
-		json.NewEncoder(w).Encode(users)
+		_ = json.NewEncoder(w).Encode(users)
 	} else if r.Method == http.MethodPut {
 		// Update group users
 		var userIDs []string
@@ -637,5 +637,5 @@ func (s *Server) handleAuthenticate(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: result.ExpiresAt,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }

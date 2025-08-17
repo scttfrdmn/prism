@@ -9,8 +9,8 @@ import (
 
 func TestAddRequestHeaders(t *testing.T) {
 	tests := []struct {
-		name           string
-		clientConfig   Client
+		name            string
+		clientConfig    Client
 		expectedHeaders map[string]string
 	}{
 		{
@@ -77,8 +77,8 @@ func TestAddRequestHeaders(t *testing.T) {
 			},
 		},
 		{
-			name:           "No headers",
-			clientConfig:   Client{},
+			name:            "No headers",
+			clientConfig:    Client{},
 			expectedHeaders: map[string]string{},
 		},
 	}
@@ -87,15 +87,15 @@ func TestAddRequestHeaders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req, _ := http.NewRequest("GET", "http://example.com", nil)
 			client := tt.clientConfig
-			
+
 			// Call the method to test
 			client.addRequestHeaders(req)
-			
+
 			// Check headers
 			for key, value := range tt.expectedHeaders {
 				assert.Equal(t, value, req.Header.Get(key), "Header %s should be %s", key, value)
 			}
-			
+
 			// Check no unexpected headers
 			assert.Equal(t, len(tt.expectedHeaders), len(req.Header), "Should not have unexpected headers")
 		})

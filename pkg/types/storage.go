@@ -4,8 +4,8 @@ import "time"
 
 // EFSVolume represents a persistent EFS file system
 type EFSVolume struct {
-	Name            string    `json:"name"`              // User-friendly name
-	FileSystemId    string    `json:"filesystem_id"`     // AWS EFS ID
+	Name            string    `json:"name"`          // User-friendly name
+	FileSystemId    string    `json:"filesystem_id"` // AWS EFS ID
 	Region          string    `json:"region"`
 	CreationTime    time.Time `json:"creation_time"`
 	MountTargets    []string  `json:"mount_targets"`     // Mount target IDs
@@ -18,8 +18,8 @@ type EFSVolume struct {
 
 // EBSVolume represents a secondary EBS volume for high-performance storage
 type EBSVolume struct {
-	Name            string    `json:"name"`              // User-friendly name
-	VolumeID        string    `json:"volume_id"`         // AWS EBS volume ID
+	Name            string    `json:"name"`      // User-friendly name
+	VolumeID        string    `json:"volume_id"` // AWS EBS volume ID
 	Region          string    `json:"region"`
 	CreationTime    time.Time `json:"creation_time"`
 	State           string    `json:"state"`             // available, creating, in-use, deleting

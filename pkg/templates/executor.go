@@ -26,13 +26,13 @@ func NewSSHRemoteExecutor(keyPath, user string) *SSHRemoteExecutor {
 // Execute executes a single command on the remote instance via SSH
 func (e *SSHRemoteExecutor) Execute(ctx context.Context, instanceName string, command string) (*ExecutionResult, error) {
 	startTime := time.Now()
-	
+
 	// Get instance IP (this would integrate with existing instance management)
 	instanceIP, err := e.getInstanceIP(instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance IP: %w", err)
 	}
-	
+
 	// Build SSH command
 	sshArgs := []string{
 		"-i", e.keyPath,
@@ -42,17 +42,17 @@ func (e *SSHRemoteExecutor) Execute(ctx context.Context, instanceName string, co
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
 	}
-	
+
 	// Execute command with context
 	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
-	
+
 	// Capture output
 	stdout, err := cmd.Output()
 	result := &ExecutionResult{
 		Duration: time.Since(startTime),
 		Stdout:   strings.TrimSpace(string(stdout)),
 	}
-	
+
 	if err != nil {
 		// Handle exit code errors
 		if exitError, ok := err.(*exec.ExitError); ok {
@@ -64,23 +64,23 @@ func (e *SSHRemoteExecutor) Execute(ctx context.Context, instanceName string, co
 	} else {
 		result.ExitCode = 0
 	}
-	
+
 	return result, nil
 }
 
 // ExecuteScript executes a script on the remote instance via SSH
 func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName string, script string) (*ExecutionResult, error) {
 	startTime := time.Now()
-	
+
 	// Get instance IP
 	instanceIP, err := e.getInstanceIP(instanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instance IP: %w", err)
 	}
-	
+
 	// Create temporary script file and execute it
 	command := fmt.Sprintf("cat > /tmp/cloudworkstation-script.sh << 'EOF'\n%s\nEOF\nchmod +x /tmp/cloudworkstation-script.sh\n/tmp/cloudworkstation-script.sh\nrm -f /tmp/cloudworkstation-script.sh", script)
-	
+
 	// Build SSH command
 	sshArgs := []string{
 		"-i", e.keyPath,
@@ -90,17 +90,17 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
 	}
-	
+
 	// Execute script with context
 	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
-	
+
 	// Capture output
 	stdout, err := cmd.Output()
 	result := &ExecutionResult{
 		Duration: time.Since(startTime),
 		Stdout:   strings.TrimSpace(string(stdout)),
 	}
-	
+
 	if err != nil {
 		// Handle exit code errors
 		if exitError, ok := err.(*exec.ExitError); ok {
@@ -112,7 +112,7 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 	} else {
 		result.ExitCode = 0
 	}
-	
+
 	return result, nil
 }
 
@@ -123,7 +123,7 @@ func (e *SSHRemoteExecutor) CopyFile(ctx context.Context, instanceName string, l
 	if err != nil {
 		return fmt.Errorf("failed to get instance IP: %w", err)
 	}
-	
+
 	// Build SCP command
 	scpArgs := []string{
 		"-i", e.keyPath,
@@ -133,14 +133,14 @@ func (e *SSHRemoteExecutor) CopyFile(ctx context.Context, instanceName string, l
 		localPath,
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 	}
-	
+
 	// Execute SCP with context
 	cmd := exec.CommandContext(ctx, "scp", scpArgs...)
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("SCP copy failed: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -151,7 +151,7 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 	if err != nil {
 		return fmt.Errorf("failed to get instance IP: %w", err)
 	}
-	
+
 	// Build SCP command
 	scpArgs := []string{
 		"-i", e.keyPath,
@@ -161,14 +161,14 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 		localPath,
 	}
-	
+
 	// Execute SCP with context
 	cmd := exec.CommandContext(ctx, "scp", scpArgs...)
-	
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("SCP download failed: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -177,20 +177,20 @@ func (e *SSHRemoteExecutor) getInstanceIP(instanceName string) (string, error) {
 	// This would integrate with the existing CloudWorkstation state management
 	// to get the instance IP address from the state file or AWS API
 	// For now, this is a placeholder that would need to be implemented
-	
+
 	// Example integration:
 	// state, err := loadState()
 	// if err != nil {
 	//     return "", err
 	// }
-	// 
+	//
 	// instance, exists := state.Instances[instanceName]
 	// if !exists {
 	//     return "", fmt.Errorf("instance %s not found", instanceName)
 	// }
-	// 
+	//
 	// return instance.PublicIP, nil
-	
+
 	return "", fmt.Errorf("instance IP lookup not implemented (placeholder)")
 }
 
@@ -211,19 +211,19 @@ func (e *SystemsManagerExecutor) Execute(ctx context.Context, instanceName strin
 	// This would integrate with AWS Systems Manager to execute commands
 	// without requiring SSH access. This is particularly useful for
 	// instances in private subnets or with restricted security groups.
-	
+
 	// Example implementation using AWS SDK:
 	// instanceID, err := e.getInstanceID(instanceName)
 	// if err != nil {
 	//     return nil, err
 	// }
-	// 
+	//
 	// sess := session.Must(session.NewSession(&aws.Config{
 	//     Region: aws.String(e.region),
 	// }))
-	// 
+	//
 	// ssmClient := ssm.New(sess)
-	// 
+	//
 	// input := &ssm.SendCommandInput{
 	//     DocumentName: aws.String("AWS-RunShellScript"),
 	//     InstanceIds: []*string{aws.String(instanceID)},
@@ -231,17 +231,17 @@ func (e *SystemsManagerExecutor) Execute(ctx context.Context, instanceName strin
 	//         "commands": {aws.String(command)},
 	//     },
 	// }
-	// 
+	//
 	// result, err := ssmClient.SendCommandWithContext(ctx, input)
 	// if err != nil {
 	//     return nil, err
 	// }
-	// 
+	//
 	// // Wait for command to complete and get output
 	// commandID := *result.Command.CommandId
 	// return e.waitForCommandCompletion(ctx, ssmClient, commandID, instanceID)
-	
-	return nil, fmt.Errorf("Systems Manager executor not implemented (placeholder)")
+
+	return nil, fmt.Errorf("systems Manager executor not implemented (placeholder)")
 }
 
 // ExecuteScript executes a script via AWS Systems Manager
@@ -256,8 +256,8 @@ func (e *SystemsManagerExecutor) CopyFile(ctx context.Context, instanceName stri
 	// 1. Upload file to S3
 	// 2. Use Systems Manager to download from S3 to instance
 	// 3. Clean up S3 object
-	
-	return fmt.Errorf("Systems Manager file copy not implemented (placeholder)")
+
+	return fmt.Errorf("systems Manager file copy not implemented (placeholder)")
 }
 
 // GetFile gets a file using S3 as intermediate storage for Systems Manager
@@ -266,8 +266,8 @@ func (e *SystemsManagerExecutor) GetFile(ctx context.Context, instanceName strin
 	// 1. Use Systems Manager to upload file from instance to S3
 	// 2. Download file from S3 to local
 	// 3. Clean up S3 object
-	
-	return fmt.Errorf("Systems Manager file download not implemented (placeholder)")
+
+	return fmt.Errorf("systems Manager file download not implemented (placeholder)")
 }
 
 // MockRemoteExecutor implements RemoteExecutor for testing
@@ -292,11 +292,11 @@ func (e *MockRemoteExecutor) SetResult(command string, result *ExecutionResult) 
 // Execute records the command and returns a predefined result
 func (e *MockRemoteExecutor) Execute(ctx context.Context, instanceName string, command string) (*ExecutionResult, error) {
 	e.commands = append(e.commands, command)
-	
+
 	if result, exists := e.results[command]; exists {
 		return result, nil
 	}
-	
+
 	// Default success result
 	return &ExecutionResult{
 		ExitCode: 0,

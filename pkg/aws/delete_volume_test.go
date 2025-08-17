@@ -1,3 +1,4 @@
+//go:build delete_volume
 // +build delete_volume
 
 package aws_test
@@ -16,11 +17,11 @@ import (
 func TestDeleteVolumeImplementation(t *testing.T) {
 	// This is a simple check to ensure the file compiles
 	// Real tests are in volume_test.go
-	
+
 	// Just creating some objects to ensure the imports are used
 	_ = &efs.DescribeMountTargetsInput{
 		FileSystemId: aws.String("fs-12345"),
 	}
-	
+
 	_ = context.Background()
 }

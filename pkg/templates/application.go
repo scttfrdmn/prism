@@ -13,21 +13,21 @@ import (
 
 // TemplateApplicationEngine handles applying templates to running instances
 type TemplateApplicationEngine struct {
-	stateInspector   *InstanceStateInspector
-	diffCalculator   *TemplateDiffCalculator
-	applyEngine      *IncrementalApplyEngine
-	rollbackManager  *TemplateRollbackManager
-	remoteExecutor   RemoteExecutor
+	stateInspector  *InstanceStateInspector
+	diffCalculator  *TemplateDiffCalculator
+	applyEngine     *IncrementalApplyEngine
+	rollbackManager *TemplateRollbackManager
+	remoteExecutor  RemoteExecutor
 }
 
 // NewTemplateApplicationEngine creates a new template application engine
 func NewTemplateApplicationEngine(executor RemoteExecutor) *TemplateApplicationEngine {
 	return &TemplateApplicationEngine{
-		stateInspector:   NewInstanceStateInspector(executor),
-		diffCalculator:   NewTemplateDiffCalculator(),
-		applyEngine:      NewIncrementalApplyEngine(executor),
-		rollbackManager:  NewTemplateRollbackManager(executor),
-		remoteExecutor:   executor,
+		stateInspector:  NewInstanceStateInspector(executor),
+		diffCalculator:  NewTemplateDiffCalculator(),
+		applyEngine:     NewIncrementalApplyEngine(executor),
+		rollbackManager: NewTemplateRollbackManager(executor),
+		remoteExecutor:  executor,
 	}
 }
 
@@ -48,25 +48,25 @@ type DiffRequest struct {
 
 // ApplyResponse represents the result of applying a template
 type ApplyResponse struct {
-	Success            bool     `json:"success"`
-	Message            string   `json:"message"`
-	PackagesInstalled  int      `json:"packages_installed"`
-	ServicesConfigured int      `json:"services_configured"`
-	UsersCreated       int      `json:"users_created"`
-	RollbackCheckpoint string   `json:"rollback_checkpoint"`
-	Warnings           []string `json:"warnings"`
+	Success            bool          `json:"success"`
+	Message            string        `json:"message"`
+	PackagesInstalled  int           `json:"packages_installed"`
+	ServicesConfigured int           `json:"services_configured"`
+	UsersCreated       int           `json:"users_created"`
+	RollbackCheckpoint string        `json:"rollback_checkpoint"`
+	Warnings           []string      `json:"warnings"`
 	ExecutionTime      time.Duration `json:"execution_time"`
 }
 
 // InstanceState represents the current state of a running instance
 type InstanceState struct {
-	Packages          []InstalledPackage    `json:"packages"`
-	Services          []RunningService      `json:"services"`
-	Users            []ExistingUser        `json:"users"`
-	Ports            []int                 `json:"ports"`
-	PackageManager   string                `json:"package_manager"`
-	AppliedTemplates []AppliedTemplate     `json:"applied_templates"`
-	LastInspected    time.Time             `json:"last_inspected"`
+	Packages         []InstalledPackage `json:"packages"`
+	Services         []RunningService   `json:"services"`
+	Users            []ExistingUser     `json:"users"`
+	Ports            []int              `json:"ports"`
+	PackageManager   string             `json:"package_manager"`
+	AppliedTemplates []AppliedTemplate  `json:"applied_templates"`
+	LastInspected    time.Time          `json:"last_inspected"`
 }
 
 // InstalledPackage represents a package installed on the instance
@@ -107,14 +107,14 @@ type AppliedTemplate struct {
 
 // TemplateDiff represents the difference between current state and desired template
 type TemplateDiff struct {
-	PackagesToInstall    []PackageDiff  `json:"packages_to_install"`
-	PackagesToRemove     []PackageDiff  `json:"packages_to_remove"`
-	ServicesToConfigure  []ServiceDiff  `json:"services_to_configure"`
-	ServicesToStop       []ServiceDiff  `json:"services_to_stop"`
-	UsersToCreate        []UserDiff     `json:"users_to_create"`
-	UsersToModify        []UserDiff     `json:"users_to_modify"`
-	PortsToOpen          []int          `json:"ports_to_open"`
-	ConflictsFound       []ConflictDiff `json:"conflicts_found"`
+	PackagesToInstall   []PackageDiff  `json:"packages_to_install"`
+	PackagesToRemove    []PackageDiff  `json:"packages_to_remove"`
+	ServicesToConfigure []ServiceDiff  `json:"services_to_configure"`
+	ServicesToStop      []ServiceDiff  `json:"services_to_stop"`
+	UsersToCreate       []UserDiff     `json:"users_to_create"`
+	UsersToModify       []UserDiff     `json:"users_to_modify"`
+	PortsToOpen         []int          `json:"ports_to_open"`
+	ConflictsFound      []ConflictDiff `json:"conflicts_found"`
 }
 
 // PackageDiff represents a package change
@@ -145,9 +145,9 @@ type UserDiff struct {
 
 // ConflictDiff represents a conflict that needs resolution
 type ConflictDiff struct {
-	Type        string `json:"type"`        // "package", "service", "user", "port"
+	Type        string `json:"type"` // "package", "service", "user", "port"
 	Description string `json:"description"`
-	Resolution  string `json:"resolution"`  // "skip", "force", "merge"
+	Resolution  string `json:"resolution"` // "skip", "force", "merge"
 }
 
 // RemoteExecutor interface for executing commands on remote instances
@@ -160,50 +160,50 @@ type RemoteExecutor interface {
 
 // ExecutionResult represents the result of remote command execution
 type ExecutionResult struct {
-	ExitCode int    `json:"exit_code"`
-	Stdout   string `json:"stdout"`
-	Stderr   string `json:"stderr"`
+	ExitCode int           `json:"exit_code"`
+	Stdout   string        `json:"stdout"`
+	Stderr   string        `json:"stderr"`
 	Duration time.Duration `json:"duration"`
 }
 
 // ApplyTemplate applies a template to a running instance
 func (e *TemplateApplicationEngine) ApplyTemplate(ctx context.Context, req ApplyRequest) (*ApplyResponse, error) {
 	startTime := time.Now()
-	
+
 	// 1. Validate request
 	if err := e.validateApplyRequest(req); err != nil {
 		return nil, fmt.Errorf("invalid apply request: %w", err)
 	}
-	
+
 	// 2. Inspect current instance state
 	currentState, err := e.stateInspector.InspectInstance(ctx, req.InstanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inspect instance state: %w", err)
 	}
-	
+
 	// 3. Calculate template differences
 	diff, err := e.diffCalculator.CalculateDiff(currentState, req.Template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate template diff: %w", err)
 	}
-	
+
 	// 4. Handle dry run
 	if req.DryRun {
 		return e.buildDryRunResponse(diff, time.Since(startTime)), nil
 	}
-	
+
 	// 5. Check for conflicts
 	if len(diff.ConflictsFound) > 0 && !req.Force {
-		return nil, fmt.Errorf("template conflicts found (use --force to override): %s", 
+		return nil, fmt.Errorf("template conflicts found (use --force to override): %s",
 			e.formatConflicts(diff.ConflictsFound))
 	}
-	
+
 	// 6. Create rollback checkpoint
 	checkpoint, err := e.rollbackManager.CreateCheckpoint(ctx, req.InstanceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rollback checkpoint: %w", err)
 	}
-	
+
 	// 7. Apply template changes
 	applyResult, err := e.applyEngine.ApplyChanges(ctx, req.InstanceName, diff, req.Template)
 	if err != nil {
@@ -213,13 +213,13 @@ func (e *TemplateApplicationEngine) ApplyTemplate(ctx context.Context, req Apply
 		}
 		return nil, fmt.Errorf("template application failed (rolled back): %w", err)
 	}
-	
+
 	// 8. Record successful application
 	if err := e.recordTemplateApplication(ctx, req.InstanceName, req.Template, checkpoint, applyResult); err != nil {
 		// Log warning but don't fail the operation
 		fmt.Printf("Warning: failed to record template application: %v\n", err)
 	}
-	
+
 	return &ApplyResponse{
 		Success:            true,
 		Message:            fmt.Sprintf("Successfully applied template '%s' to instance '%s'", req.Template.Name, req.InstanceName),
@@ -237,29 +237,29 @@ func (e *TemplateApplicationEngine) validateApplyRequest(req ApplyRequest) error
 	if req.InstanceName == "" {
 		return fmt.Errorf("instance name is required")
 	}
-	
+
 	if req.Template == nil {
 		return fmt.Errorf("template is required")
 	}
-	
+
 	if req.Template.Name == "" {
 		return fmt.Errorf("template name is required")
 	}
-	
+
 	return nil
 }
 
 // buildDryRunResponse builds a response for dry run requests
 func (e *TemplateApplicationEngine) buildDryRunResponse(diff *TemplateDiff, duration time.Duration) *ApplyResponse {
 	var warnings []string
-	
+
 	if len(diff.ConflictsFound) > 0 {
 		warnings = append(warnings, fmt.Sprintf("%d conflicts found", len(diff.ConflictsFound)))
 	}
-	
+
 	message := fmt.Sprintf("Dry run complete: would install %d packages, configure %d services, create %d users",
 		len(diff.PackagesToInstall), len(diff.ServicesToConfigure), len(diff.UsersToCreate))
-	
+
 	return &ApplyResponse{
 		Success:            true,
 		Message:            message,
@@ -276,13 +276,13 @@ func (e *TemplateApplicationEngine) formatConflicts(conflicts []ConflictDiff) st
 	if len(conflicts) == 0 {
 		return "no conflicts"
 	}
-	
+
 	var descriptions []string
 	for _, conflict := range conflicts {
 		descriptions = append(descriptions, conflict.Description)
 	}
-	
-	return fmt.Sprintf("%d conflicts: %s", len(conflicts), 
+
+	return fmt.Sprintf("%d conflicts: %s", len(conflicts),
 		fmt.Sprintf("%v", descriptions))
 }
 

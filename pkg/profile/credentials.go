@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
-	
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
@@ -23,10 +23,10 @@ type Credentials struct {
 type CredentialProvider interface {
 	// GetCredentials retrieves credentials for a profile
 	GetCredentials(profileName string) (*Credentials, error)
-	
+
 	// StoreCredentials stores credentials for a profile
 	StoreCredentials(profileName string, creds *Credentials) error
-	
+
 	// ClearCredentials removes credentials for a profile
 	ClearCredentials(profileName string) error
 }
@@ -44,18 +44,18 @@ func NewCredentialProvider() (CredentialProvider, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
-	
+
 	// Create CloudWorkstation directory if it doesn't exist
 	cwsDir := filepath.Join(homeDir, ".cloudworkstation", "credentials")
 	if err := os.MkdirAll(cwsDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create credentials directory: %w", err)
 	}
-	
+
 	provider := &SecureCredentialProvider{
 		service:    "CloudWorkstation",
 		configPath: cwsDir,
 	}
-	
+
 	return provider, nil
 }
 
@@ -66,7 +66,7 @@ func (p *SecureCredentialProvider) GetCredentials(profileName string) (*Credenti
 	if err == nil {
 		return creds, nil
 	}
-	
+
 	// Fall back to local file if secure storage is not available
 	return p.getFromFile(profileName)
 }
@@ -78,7 +78,7 @@ func (p *SecureCredentialProvider) StoreCredentials(profileName string, creds *C
 	if err == nil {
 		return nil
 	}
-	
+
 	// Fall back to local file if secure storage is not available
 	return p.storeInFile(profileName, creds)
 }
@@ -90,7 +90,7 @@ func (p *SecureCredentialProvider) ClearCredentials(profileName string) error {
 	if err == nil {
 		return nil
 	}
-	
+
 	// Fall back to removing local file
 	return p.removeFromFile(profileName)
 }
@@ -226,13 +226,13 @@ func (p *AWSCredentialsProvider) Retrieve(ctx interface{}) (aws.Credentials, err
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	
+
 	p.lastRefreshed = time.Now()
-	
+
 	var expiry time.Time
 	if creds.Expiration != nil {
 		expiry = *creds.Expiration
-		
+
 		// Set up expiration notification
 		go func() {
 			timer := time.NewTimer(time.Until(expiry) - 5*time.Minute)
@@ -245,7 +245,7 @@ func (p *AWSCredentialsProvider) Retrieve(ctx interface{}) (aws.Credentials, err
 			}
 		}()
 	}
-	
+
 	return aws.Credentials{
 		AccessKeyID:     creds.AccessKeyID,
 		SecretAccessKey: creds.SecretAccessKey,

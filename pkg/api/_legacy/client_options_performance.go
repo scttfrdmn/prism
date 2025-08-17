@@ -107,7 +107,7 @@ func (c *Client) SetPerformanceOptions(options ClientPerformanceOptions) {
 func (c *Client) WithPerformanceOptions(options ClientPerformanceOptions) *Client {
 	client := NewClient(c.baseURL)
 	client.SetPerformanceOptions(options)
-	
+
 	// Copy current configuration
 	client.awsProfile = c.awsProfile
 	client.awsRegion = c.awsRegion
@@ -115,6 +115,6 @@ func (c *Client) WithPerformanceOptions(options ClientPerformanceOptions) *Clien
 	client.ownerAccount = c.ownerAccount
 	client.s3ConfigPath = c.s3ConfigPath
 	client.profileID = c.profileID
-	
+
 	return client
 }

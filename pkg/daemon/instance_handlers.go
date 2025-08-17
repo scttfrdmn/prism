@@ -89,7 +89,7 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 		TotalCost: totalCost,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleLaunchInstance launches a new instance
@@ -167,7 +167,7 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		ConnectionInfo: fmt.Sprintf("ssh ubuntu@%s", instance.PublicIP),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleInstanceOperations handles operations on specific instances
@@ -234,7 +234,7 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, name 
 		return
 	}
 
-	json.NewEncoder(w).Encode(instance)
+	_ = json.NewEncoder(w).Encode(instance)
 }
 
 // handleDeleteInstance deletes a specific instance
@@ -339,7 +339,7 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 		"instance_name":         name,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleConnectInstance gets connection information for an instance
@@ -364,7 +364,7 @@ func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, n
 	response := map[string]string{
 		"connection_info": connectionInfo,
 	}
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // setupSSHKeyForLaunch sets up SSH key configuration for a launch request

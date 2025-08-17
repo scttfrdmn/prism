@@ -13,7 +13,7 @@ func (a *App) configureIdleDetection(instanceName string, enable, disable bool, 
 	if enable && disable {
 		return fmt.Errorf("cannot specify both --enable and --disable flags")
 	}
-	
+
 	// If no parameters provided, just show current config
 	if !enable && !disable && idleMinutes == 0 && hibernateMinutes == 0 && checkInterval == 0 {
 		return a.idleConfigShow(instanceName)
@@ -65,7 +65,7 @@ func (a *App) configureIdleDetection(instanceName string, enable, disable bool, 
 	// Convert to pointers for updateIdleConfig
 	var enablePtr *bool
 	var idlePtr, hibernatePtr, intervalPtr *int
-	
+
 	if enable || disable {
 		enablePtr = &enable // enable=true means enable, enable=false with disable=true means disable
 		if disable {
@@ -89,7 +89,7 @@ func (a *App) configureIdleDetection(instanceName string, enable, disable bool, 
 	}
 
 	fmt.Printf("✅ Successfully updated idle detection configuration for %q\n", instanceName)
-	
+
 	// Show updated configuration
 	return a.idleConfigShow(instanceName)
 }
@@ -139,7 +139,7 @@ func (a *App) idleConfigShow(instanceName string) error {
 	}
 
 	fmt.Printf("🔧 Idle Detection Configuration for %q:\n", instanceName)
-	
+
 	if config.Enabled {
 		fmt.Printf("   Status:              ✅ ENABLED\n")
 		fmt.Printf("   Idle threshold:      %d minutes\n", config.IdleMinutes)
@@ -167,14 +167,14 @@ type IdleConfig struct {
 // updateIdleConfig updates the idle configuration on a running instance
 func (a *App) updateIdleConfig(publicIP string, enabled *bool, idleMinutes, hibernateMinutes, checkInterval *int) error {
 	sshKey := a.getSSHKeyPath()
-	
+
 	// Create a comprehensive update script that handles permissions properly
 	var scriptLines []string
-	
+
 	// First, get current config and create updated version
 	scriptLines = append(scriptLines, "# Read current config")
 	scriptLines = append(scriptLines, "source /etc/cloudworkstation/idle-config 2>/dev/null || true")
-	
+
 	// Update variables with new values if provided
 	if enabled != nil {
 		if *enabled {
@@ -202,7 +202,7 @@ func (a *App) updateIdleConfig(publicIP string, enabled *bool, idleMinutes, hibe
 	if checkInterval != nil {
 		scriptLines = append(scriptLines, fmt.Sprintf("CHECK_INTERVAL_MINUTES=%d", *checkInterval))
 	}
-	
+
 	// Create new config file content
 	scriptLines = append(scriptLines, "# Write updated config")
 	scriptLines = append(scriptLines, "cat > /tmp/idle-config-new << 'EOF'")
@@ -213,20 +213,20 @@ func (a *App) updateIdleConfig(publicIP string, enabled *bool, idleMinutes, hibe
 	scriptLines = append(scriptLines, "HIBERNATE_THRESHOLD_MINUTES=${HIBERNATE_THRESHOLD_MINUTES:-999999}")
 	scriptLines = append(scriptLines, "CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-60}")
 	scriptLines = append(scriptLines, "EOF")
-	
+
 	// Move the new config to the proper location with sudo
 	scriptLines = append(scriptLines, "sudo mv /tmp/idle-config-new /etc/cloudworkstation/idle-config")
 	scriptLines = append(scriptLines, "sudo chmod 644 /etc/cloudworkstation/idle-config")
-	
+
 	// Update cron job if check interval changed
 	if checkInterval != nil {
 		scriptLines = append(scriptLines, "sudo /usr/local/bin/cloudworkstation-update-cron.sh")
 	}
-	
+
 	updateScript := strings.Join(scriptLines, "; ")
-	
+
 	// Execute the update via SSH
-	cmd := exec.Command("ssh", 
+	cmd := exec.Command("ssh",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=ERROR",
 		"-i", sshKey,
@@ -245,10 +245,10 @@ func (a *App) updateIdleConfig(publicIP string, enabled *bool, idleMinutes, hibe
 // getIdleConfig retrieves the current idle configuration from a running instance
 func (a *App) getIdleConfig(publicIP string) (*IdleConfig, error) {
 	sshKey := a.getSSHKeyPath()
-	
+
 	// Get configuration via SSH
 	cmd := exec.Command("ssh",
-		"-o", "StrictHostKeyChecking=no", 
+		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=ERROR",
 		"-i", sshKey,
 		fmt.Sprintf("ubuntu@%s", publicIP),

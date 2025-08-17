@@ -18,27 +18,27 @@ import (
 // DeviceFingerprint represents a comprehensive device identifier
 type DeviceFingerprint struct {
 	// System identifiers
-	Hostname     string    `json:"hostname"`
-	SystemUUID   string    `json:"system_uuid,omitempty"`
-	MachineID    string    `json:"machine_id,omitempty"`
-	OSVersion    string    `json:"os_version"`
-	Architecture string    `json:"architecture"`
-	
+	Hostname     string `json:"hostname"`
+	SystemUUID   string `json:"system_uuid,omitempty"`
+	MachineID    string `json:"machine_id,omitempty"`
+	OSVersion    string `json:"os_version"`
+	Architecture string `json:"architecture"`
+
 	// Network identifiers
-	MACAddresses []string  `json:"mac_addresses"`
-	PrimaryMAC   string    `json:"primary_mac"`
-	
+	MACAddresses []string `json:"mac_addresses"`
+	PrimaryMAC   string   `json:"primary_mac"`
+
 	// User context
-	UserID       string    `json:"user_id"`
-	Username     string    `json:"username"`
-	HomeDir      string    `json:"home_dir"`
-	
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	HomeDir  string `json:"home_dir"`
+
 	// Temporal context
-	Created      time.Time `json:"created"`
-	InstallTime  time.Time `json:"install_time"`
-	
+	Created     time.Time `json:"created"`
+	InstallTime time.Time `json:"install_time"`
+
 	// Computed fingerprint hash
-	Hash         string    `json:"hash"`
+	Hash string `json:"hash"`
 }
 
 // GenerateDeviceFingerprint creates a comprehensive device fingerprint
@@ -126,12 +126,12 @@ func (fp *DeviceFingerprint) Matches(other *DeviceFingerprint) bool {
 	if fp == nil || other == nil {
 		return false
 	}
-	
+
 	// Primary comparison: hash equality
 	if fp.Hash != "" && other.Hash != "" {
 		return fp.Hash == other.Hash
 	}
-	
+
 	// Fallback comparison: individual components
 	return fp.matchesComponents(other)
 }
@@ -142,25 +142,25 @@ func (fp *DeviceFingerprint) matchesComponents(other *DeviceFingerprint) bool {
 	if fp.Hostname != other.Hostname {
 		return false
 	}
-	
+
 	if fp.UserID != other.UserID || fp.Username != other.Username {
 		return false
 	}
-	
+
 	// System identifiers (if available)
 	if fp.SystemUUID != "" && other.SystemUUID != "" && fp.SystemUUID != other.SystemUUID {
 		return false
 	}
-	
+
 	if fp.MachineID != "" && other.MachineID != "" && fp.MachineID != other.MachineID {
 		return false
 	}
-	
+
 	// MAC address comparison (at least one must match)
 	if !fp.HasMatchingMAC(other) {
 		return false
 	}
-	
+
 	// Installation time must be close (within 1 hour to account for clock drift)
 	if !fp.InstallTime.IsZero() && !other.InstallTime.IsZero() {
 		diff := fp.InstallTime.Sub(other.InstallTime)
@@ -171,7 +171,7 @@ func (fp *DeviceFingerprint) matchesComponents(other *DeviceFingerprint) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -192,23 +192,23 @@ func (fp *DeviceFingerprint) GetRiskLevel(other *DeviceFingerprint) RiskLevel {
 	if fp.Matches(other) {
 		return RiskLevelLow
 	}
-	
+
 	// High risk: Different user or hostname
 	if fp.Username != other.Username || fp.Hostname != other.Hostname {
 		return RiskLevelHigh
 	}
-	
+
 	// Medium risk: Different system identifiers
 	if (fp.SystemUUID != "" && other.SystemUUID != "" && fp.SystemUUID != other.SystemUUID) ||
-	   (fp.MachineID != "" && other.MachineID != "" && fp.MachineID != other.MachineID) {
+		(fp.MachineID != "" && other.MachineID != "" && fp.MachineID != other.MachineID) {
 		return RiskLevelMedium
 	}
-	
+
 	// Medium risk: No matching MAC addresses
 	if !fp.HasMatchingMAC(other) {
 		return RiskLevelMedium
 	}
-	
+
 	return RiskLevelLow
 }
 
@@ -247,29 +247,29 @@ func (r RiskLevel) String() string {
 
 func getMACAddresses() ([]string, error) {
 	var addresses []string
-	
+
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network interfaces: %w", err)
 	}
-	
+
 	for _, iface := range interfaces {
 		// Skip loopback interfaces
 		if iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
-		
+
 		// Skip interfaces without hardware address
 		if len(iface.HardwareAddr) == 0 {
 			continue
 		}
-		
+
 		addresses = append(addresses, iface.HardwareAddr.String())
 	}
-	
+
 	// Sort for consistent ordering
 	sort.Strings(addresses)
-	
+
 	return addresses, nil
 }
 
@@ -320,6 +320,6 @@ func (e *DeviceFingerprintError) Unwrap() error {
 
 // Common fingerprinting errors
 var (
-	ErrFingerprintMismatch = &DeviceFingerprintError{Operation: "validation", Err: fmt.Errorf("device fingerprint mismatch")}
+	ErrFingerprintMismatch   = &DeviceFingerprintError{Operation: "validation", Err: fmt.Errorf("device fingerprint mismatch")}
 	ErrFingerprintGeneration = &DeviceFingerprintError{Operation: "generation", Err: fmt.Errorf("fingerprint generation failed")}
 )

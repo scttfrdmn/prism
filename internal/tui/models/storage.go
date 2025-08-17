@@ -13,15 +13,15 @@ import (
 
 // StorageModel represents the storage management view
 type StorageModel struct {
-	apiClient  apiClient
-	statusBar  components.StatusBar
-	spinner    components.Spinner
-	width      int
-	height     int
-	loading    bool
-	error      string
-	volumes    map[string]api.VolumeResponse
-	storage    map[string]api.StorageResponse
+	apiClient apiClient
+	statusBar components.StatusBar
+	spinner   components.Spinner
+	width     int
+	height    int
+	loading   bool
+	error     string
+	volumes   map[string]api.VolumeResponse
+	storage   map[string]api.StorageResponse
 }
 
 // NewStorageModel creates a new storage model
@@ -29,7 +29,7 @@ func NewStorageModel(apiClient apiClient) StorageModel {
 	// Create status bar and spinner
 	statusBar := components.NewStatusBar("CloudWorkstation Storage", "")
 	spinner := components.NewSpinner("Loading storage information...")
-	
+
 	return StorageModel{
 		apiClient: apiClient,
 		statusBar: statusBar,
@@ -57,12 +57,12 @@ func (m StorageModel) fetchStorage() tea.Msg {
 	if err != nil {
 		return fmt.Errorf("failed to list EFS volumes: %w", err)
 	}
-	
+
 	storageResp, err := m.apiClient.ListStorage(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to list EBS storage: %w", err)
 	}
-	
+
 	return StorageDataMsg{
 		Volumes: volumesResp.Volumes,
 		Storage: storageResp.Storage,
@@ -92,7 +92,7 @@ func (m StorageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loading = true
 			m.error = ""
 			return m, m.fetchStorage
-			
+
 		case "q", "esc":
 			return m, tea.Quit
 		}
@@ -111,7 +111,7 @@ func (m StorageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.volumes = msg.Volumes
 		m.storage = msg.Storage
-		
+
 		volumeCount := len(m.volumes)
 		storageCount := len(m.storage)
 		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d EFS volumes and %d EBS volumes", volumeCount, storageCount), components.StatusSuccess)
@@ -130,22 +130,22 @@ func (m StorageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the storage view
 func (m StorageModel) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Title section
 	title := theme.Title.Render("CloudWorkstation Storage")
-	
+
 	// Content area
 	var content string
 	if m.loading {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4). // Account for title and status bar
+			Height(m.height-4). // Account for title and status bar
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(m.spinner.View())
 	} else if m.error != "" {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4).
+			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(theme.StatusError.Render("Error: " + m.error))
 	} else {
@@ -155,11 +155,11 @@ func (m StorageModel) View() string {
 			efsContent += "  No EFS volumes found\n"
 		} else {
 			for name, volume := range m.volumes {
-				efsContent += fmt.Sprintf("  %s - %s (%.2f GB, $%.4f/GB/month)\n", 
+				efsContent += fmt.Sprintf("  %s - %s (%.2f GB, $%.4f/GB/month)\n",
 					name, volume.State, float64(volume.SizeBytes)/(1024*1024*1024), volume.EstimatedCostGB)
 			}
 		}
-		
+
 		// EBS Storage section
 		ebsContent := fmt.Sprintf("\nEBS Volumes (%d):\n", len(m.storage))
 		if len(m.storage) == 0 {
@@ -170,11 +170,11 @@ func (m StorageModel) View() string {
 				if storage.AttachedTo != "" {
 					attached = fmt.Sprintf("attached to %s", storage.AttachedTo)
 				}
-				ebsContent += fmt.Sprintf("  %s - %s (%d GB %s, %s, $%.4f/GB/month)\n", 
+				ebsContent += fmt.Sprintf("  %s - %s (%d GB %s, %s, $%.4f/GB/month)\n",
 					name, storage.State, storage.SizeGB, storage.VolumeType, attached, storage.EstimatedCostGB)
 			}
 		}
-		
+
 		// Commands help
 		commandsContent := "\nAvailable Commands:\n"
 		commandsContent += "  Create volumes and manage storage using CLI:\n"
@@ -182,19 +182,19 @@ func (m StorageModel) View() string {
 		commandsContent += "  cws ebs-volumes create <name>    # Create EBS volume\n"
 		commandsContent += "  cws volumes delete <name>        # Delete volume\n"
 		commandsContent += "  cws ebs-volumes delete <name>    # Delete EBS volume\n"
-		
+
 		// Combine content
 		fullContent := efsContent + ebsContent + commandsContent
-		
+
 		content = lipgloss.NewStyle().
-			Width(m.width - 4).
+			Width(m.width-4).
 			Padding(1, 2).
 			Render(fullContent)
 	}
-	
+
 	// Help text
 	help := theme.Help.Render("r: refresh • q: quit")
-	
+
 	// Join everything together
 	return lipgloss.JoinVertical(
 		lipgloss.Left,

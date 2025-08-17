@@ -1,5 +1,5 @@
-//go:build darwin
-// +build darwin
+//go:build darwin && !crosscompile
+// +build darwin,!crosscompile
 
 // Package security provides macOS Keychain integration using the Security framework
 package security
@@ -12,38 +12,38 @@ package security
 #include <stdio.h>
 
 // Helper function to store data in macOS Keychain
-OSStatus storeInKeychain(const char* serviceName, const char* accountName, 
+OSStatus storeInKeychain(const char* serviceName, const char* accountName,
                         const void* data, UInt32 dataLength, Boolean updateExisting) {
     CFStringRef service = CFStringCreateWithCString(NULL, serviceName, kCFStringEncodingUTF8);
     CFStringRef account = CFStringCreateWithCString(NULL, accountName, kCFStringEncodingUTF8);
-    
+
     if (!service || !account) {
         if (service) CFRelease(service);
         if (account) CFRelease(account);
         return errSecParam;
     }
-    
+
     OSStatus status;
-    
+
     if (updateExisting) {
         // Try to update existing item first
-        CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0, 
+        CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0,
             &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
         CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
         CFDictionarySetValue(query, kSecAttrService, service);
         CFDictionarySetValue(query, kSecAttrAccount, account);
-        
+
         CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 0,
             &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
         CFDataRef valueData = CFDataCreate(NULL, (const UInt8*)data, dataLength);
         CFDictionarySetValue(attributes, kSecValueData, valueData);
-        
+
         status = SecItemUpdate(query, attributes);
-        
+
         CFRelease(query);
         CFRelease(attributes);
         CFRelease(valueData);
-        
+
         if (status == errSecSuccess) {
             CFRelease(service);
             CFRelease(account);
@@ -51,26 +51,26 @@ OSStatus storeInKeychain(const char* serviceName, const char* accountName,
         }
         // Fall through to create new item if update failed
     }
-    
+
     // Create new keychain item
     CFMutableDictionaryRef attributes = CFDictionaryCreateMutable(NULL, 0,
         &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    
+
     CFDataRef valueData = CFDataCreate(NULL, (const UInt8*)data, dataLength);
-    
+
     CFDictionarySetValue(attributes, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(attributes, kSecAttrService, service);
     CFDictionarySetValue(attributes, kSecAttrAccount, account);
     CFDictionarySetValue(attributes, kSecValueData, valueData);
     CFDictionarySetValue(attributes, kSecAttrAccessible, kSecAttrAccessibleWhenUnlockedThisDeviceOnly);
-    
+
     status = SecItemAdd(attributes, NULL);
-    
+
     CFRelease(service);
     CFRelease(account);
     CFRelease(attributes);
     CFRelease(valueData);
-    
+
     return status;
 }
 
@@ -79,29 +79,29 @@ OSStatus retrieveFromKeychain(const char* serviceName, const char* accountName,
                              void** data, UInt32* dataLength) {
     CFStringRef service = CFStringCreateWithCString(NULL, serviceName, kCFStringEncodingUTF8);
     CFStringRef account = CFStringCreateWithCString(NULL, accountName, kCFStringEncodingUTF8);
-    
+
     if (!service || !account) {
         if (service) CFRelease(service);
         if (account) CFRelease(account);
         return errSecParam;
     }
-    
+
     CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0,
         &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    
+
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(query, kSecAttrService, service);
     CFDictionarySetValue(query, kSecAttrAccount, account);
     CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue);
     CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne);
-    
+
     CFDataRef result = NULL;
     OSStatus status = SecItemCopyMatching(query, (CFTypeRef*)&result);
-    
+
     CFRelease(service);
     CFRelease(account);
     CFRelease(query);
-    
+
     if (status == errSecSuccess && result) {
         CFIndex length = CFDataGetLength(result);
         *dataLength = (UInt32)length;
@@ -113,7 +113,7 @@ OSStatus retrieveFromKeychain(const char* serviceName, const char* accountName,
         }
         CFRelease(result);
     }
-    
+
     return status;
 }
 
@@ -121,33 +121,33 @@ OSStatus retrieveFromKeychain(const char* serviceName, const char* accountName,
 OSStatus existsInKeychain(const char* serviceName, const char* accountName) {
     CFStringRef service = CFStringCreateWithCString(NULL, serviceName, kCFStringEncodingUTF8);
     CFStringRef account = CFStringCreateWithCString(NULL, accountName, kCFStringEncodingUTF8);
-    
+
     if (!service || !account) {
         if (service) CFRelease(service);
         if (account) CFRelease(account);
         return errSecParam;
     }
-    
+
     CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0,
         &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    
+
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(query, kSecAttrService, service);
     CFDictionarySetValue(query, kSecAttrAccount, account);
     CFDictionarySetValue(query, kSecReturnAttributes, kCFBooleanTrue);
     CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne);
-    
+
     CFDictionaryRef result = NULL;
     OSStatus status = SecItemCopyMatching(query, (CFTypeRef*)&result);
-    
+
     CFRelease(service);
     CFRelease(account);
     CFRelease(query);
-    
+
     if (result) {
         CFRelease(result);
     }
-    
+
     return status;
 }
 
@@ -155,26 +155,26 @@ OSStatus existsInKeychain(const char* serviceName, const char* accountName) {
 OSStatus deleteFromKeychain(const char* serviceName, const char* accountName) {
     CFStringRef service = CFStringCreateWithCString(NULL, serviceName, kCFStringEncodingUTF8);
     CFStringRef account = CFStringCreateWithCString(NULL, accountName, kCFStringEncodingUTF8);
-    
+
     if (!service || !account) {
         if (service) CFRelease(service);
         if (account) CFRelease(account);
         return errSecParam;
     }
-    
+
     CFMutableDictionaryRef query = CFDictionaryCreateMutable(NULL, 0,
         &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    
+
     CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword);
     CFDictionarySetValue(query, kSecAttrService, service);
     CFDictionarySetValue(query, kSecAttrAccount, account);
-    
+
     OSStatus status = SecItemDelete(query);
-    
+
     CFRelease(service);
     CFRelease(account);
     CFRelease(query);
-    
+
     return status;
 }
 */
@@ -204,7 +204,7 @@ func (k *MacOSKeychainNative) Store(key string, data []byte) error {
 	defer C.free(unsafe.Pointer(cService))
 	defer C.free(unsafe.Pointer(cAccount))
 
-	status := C.storeInKeychain(cService, cAccount, 
+	status := C.storeInKeychain(cService, cAccount,
 		unsafe.Pointer(&data[0]), C.UInt32(len(data)), C.Boolean(1))
 
 	if status != C.errSecSuccess {
@@ -280,10 +280,10 @@ func (k *MacOSKeychainNative) Delete(key string) error {
 // GetKeychainInfo returns information about the macOS Keychain integration
 func (k *MacOSKeychainNative) GetKeychainInfo() map[string]interface{} {
 	return map[string]interface{}{
-		"provider":     "macOS Keychain (Native)",
-		"service_name": k.serviceName,
-		"framework":   "Security.framework",
-		"accessibility": "kSecAttrAccessibleWhenUnlockedThisDeviceOnly",
+		"provider":       "macOS Keychain (Native)",
+		"service_name":   k.serviceName,
+		"framework":      "Security.framework",
+		"accessibility":  "kSecAttrAccessibleWhenUnlockedThisDeviceOnly",
 		"security_level": "Hardware-backed secure enclave when available",
 	}
 }

@@ -11,20 +11,20 @@ import (
 )
 
 const (
-	secretServiceName      = "org.freedesktop.secrets"
-	secretServicePath      = "/org/freedesktop/secrets"
-	secretServiceInterface = "org.freedesktop.Secret.Service"
+	secretServiceName         = "org.freedesktop.secrets"
+	secretServicePath         = "/org/freedesktop/secrets"
+	secretServiceInterface    = "org.freedesktop.Secret.Service"
 	secretCollectionInterface = "org.freedesktop.Secret.Collection"
-	secretItemInterface    = "org.freedesktop.Secret.Item"
+	secretItemInterface       = "org.freedesktop.Secret.Item"
 )
 
 // LinuxSecretServiceNative implements native Linux Secret Service storage
 type LinuxSecretServiceNative struct {
-	conn         *dbus.Conn
-	service      dbus.BusObject
-	collection   dbus.BusObject
+	conn           *dbus.Conn
+	service        dbus.BusObject
+	collection     dbus.BusObject
 	collectionPath dbus.ObjectPath
-	sessionPath  dbus.ObjectPath
+	sessionPath    dbus.ObjectPath
 }
 
 // Secret represents a secret value in the Secret Service
@@ -221,7 +221,7 @@ func (l *LinuxSecretServiceNative) Delete(key string) error {
 	// Delete all matching items
 	for _, itemPath := range items {
 		item := l.conn.Object(secretServiceName, itemPath)
-		
+
 		var promptPath dbus.ObjectPath
 		err = item.Call(secretItemInterface+".Delete", 0).Store(&promptPath)
 		if err != nil {

@@ -4,7 +4,7 @@ import (
 	"context"
 	// "fmt" - commented out due to unused import
 	// "net/http" - commented out due to unused import
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 )
 
@@ -17,16 +17,16 @@ var ProfileContextKey = profileContextKey{}
 // ExtendedClientOptions extends the basic ClientOptions with additional fields
 type ExtendedClientOptions struct {
 	// AWS configuration
-	AWSProfile      string
-	AWSRegion       string
-	
+	AWSProfile string
+	AWSRegion  string
+
 	// Invitation details
 	InvitationToken string
 	OwnerAccount    string
 	S3ConfigPath    string
-	
+
 	// Profile information
-	ProfileID       string
+	ProfileID string
 }
 
 // These methods are commented out because they duplicate methods in client.go
@@ -57,19 +57,19 @@ func (c *Client) SetOptions(options ExtendedClientOptions) {
 	if options.AWSProfile != "" {
 		c.awsProfile = options.AWSProfile
 	}
-	
+
 	// Set AWS region
 	if options.AWSRegion != "" {
 		c.awsRegion = options.AWSRegion
 	}
-	
+
 	// Set invitation details
 	if options.InvitationToken != "" {
 		c.invitationToken = options.InvitationToken
 		c.ownerAccount = options.OwnerAccount
 		c.s3ConfigPath = options.S3ConfigPath
 	}
-	
+
 	// Set profile ID
 	if options.ProfileID != "" {
 		c.profileID = options.ProfileID
@@ -84,12 +84,12 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 	if c.awsProfile != "" {
 		req.Header.Set("X-AWS-Profile", c.awsProfile)
 	}
-	
+
 	// Add region header if configured
 	if c.awsRegion != "" {
 		req.Header.Set("X-AWS-Region", c.awsRegion)
 	}
-	
+
 	// Add invitation headers if configured
 	if c.invitationToken != "" {
 		req.Header.Set("X-Invitation-Token", c.invitationToken)
@@ -98,7 +98,7 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
 		}
 	}
-	
+
 	// Add profile ID header if configured
 	if c.profileID != "" {
 		req.Header.Set("X-Profile-ID", c.profileID)
@@ -113,10 +113,10 @@ func (c *Client) WithProfile(profileManager *profile.ManagerEnhanced, profileID 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create a new client with the same base URL
 	client := NewClient(c.baseURL)
-	
+
 	// Configure the client based on profile type
 	if prof.Type == profile.ProfileTypePersonal {
 		client.SetAWSProfile(prof.AWSProfile)
@@ -125,10 +125,10 @@ func (c *Client) WithProfile(profileManager *profile.ManagerEnhanced, profileID 
 		client.SetInvitationToken(prof.InvitationToken, prof.OwnerAccount, prof.S3ConfigPath)
 		client.SetAWSRegion(prof.Region)
 	}
-	
+
 	// Set the profile ID
 	client.SetProfileID(profileID)
-	
+
 	return client, nil
 }
 
@@ -152,7 +152,7 @@ func (c *ContextClient) WithProfile(profileManager *profile.ManagerEnhanced, pro
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create a new context client wrapping the base client
 	return &ContextClient{
 		client: client,
@@ -169,7 +169,7 @@ func (c *ContextClient) SetProfile(prof *profile.Profile) {
 		c.client.SetInvitationToken(prof.InvitationToken, prof.OwnerAccount, prof.S3ConfigPath)
 		c.client.SetAWSRegion(prof.Region)
 	}
-	
+
 	// Set the profile ID
 	c.client.SetProfileID(prof.AWSProfile)
 }

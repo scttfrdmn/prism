@@ -14,10 +14,10 @@ import (
 type MonitorConfig struct {
 	// RefreshInterval is how frequently instance statuses are polled
 	RefreshInterval time.Duration
-	
+
 	// IdleNotifyThreshold is how close to idle action threshold to notify (in minutes)
 	IdleNotifyThreshold int
-	
+
 	// CostAlertThreshold is the daily cost threshold for alerts ($)
 	CostAlertThreshold float64
 }
@@ -25,8 +25,8 @@ type MonitorConfig struct {
 // DefaultMonitorConfig returns the default monitor configuration
 func DefaultMonitorConfig() MonitorConfig {
 	return MonitorConfig{
-		RefreshInterval:    1 * time.Minute,
-		IdleNotifyThreshold: 5, // Notify 5 minutes before action
+		RefreshInterval:     1 * time.Minute,
+		IdleNotifyThreshold: 5,    // Notify 5 minutes before action
 		CostAlertThreshold:  10.0, // $10/day
 	}
 }
@@ -35,19 +35,19 @@ func DefaultMonitorConfig() MonitorConfig {
 type InstanceEvent struct {
 	// Type is the event type
 	Type string
-	
+
 	// Instance is the instance name
 	Instance string
-	
+
 	// Message is the event description
 	Message string
-	
+
 	// Timestamp is when the event occurred
 	Timestamp time.Time
-	
+
 	// Level is the event severity (info, warning, error)
 	Level string
-	
+
 	// Data contains additional event-specific data
 	Data map[string]interface{}
 }
@@ -71,15 +71,15 @@ const (
 type InstanceMonitor struct {
 	apiClient api.CloudWorkstationAPI
 	config    MonitorConfig
-	
+
 	// Instance state tracking
 	instanceStates map[string]string
 	idleStates     map[string]*types.IdleStatus
-	
+
 	// Event handling
 	eventCh     chan InstanceEvent
 	subscribers []chan<- InstanceEvent
-	
+
 	// Control
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -91,7 +91,7 @@ type InstanceMonitor struct {
 // NewInstanceMonitor creates a new instance monitor
 func NewInstanceMonitor(apiClient api.CloudWorkstationAPI, config MonitorConfig) *InstanceMonitor {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &InstanceMonitor{
 		apiClient:      apiClient,
 		config:         config,
@@ -107,24 +107,24 @@ func NewInstanceMonitor(apiClient api.CloudWorkstationAPI, config MonitorConfig)
 func (m *InstanceMonitor) Start() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if m.running {
 		return fmt.Errorf("monitor is already running")
 	}
-	
+
 	// Initialize current state
 	if err := m.refreshInstances(); err != nil {
 		return fmt.Errorf("failed to initialize instance states: %w", err)
 	}
-	
+
 	// Start event dispatcher
 	m.wg.Add(1)
 	go m.dispatchEvents()
-	
+
 	// Start monitoring loop
 	m.wg.Add(1)
 	go m.monitorLoop()
-	
+
 	m.running = true
 	return nil
 }
@@ -133,17 +133,17 @@ func (m *InstanceMonitor) Start() error {
 func (m *InstanceMonitor) Stop() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	if !m.running {
 		return
 	}
-	
+
 	m.cancelFunc()
 	m.wg.Wait()
-	
+
 	// Close event channel after all publishers are done
 	close(m.eventCh)
-	
+
 	m.running = false
 }
 
@@ -151,14 +151,14 @@ func (m *InstanceMonitor) Stop() {
 func (m *InstanceMonitor) Subscribe() (<-chan InstanceEvent, func()) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	ch := make(chan InstanceEvent, 10)
 	m.subscribers = append(m.subscribers, ch)
-	
+
 	unsubscribe := func() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
-		
+
 		// Find and remove the subscriber
 		for i, sub := range m.subscribers {
 			if sub == ch {
@@ -166,10 +166,10 @@ func (m *InstanceMonitor) Subscribe() (<-chan InstanceEvent, func()) {
 				break
 			}
 		}
-		
+
 		close(ch)
 	}
-	
+
 	return ch, unsubscribe
 }
 
@@ -177,23 +177,23 @@ func (m *InstanceMonitor) Subscribe() (<-chan InstanceEvent, func()) {
 func (m *InstanceMonitor) refreshInstances() error {
 	ctx, cancel := context.WithTimeout(m.ctx, 30*time.Second)
 	defer cancel()
-	
+
 	response, err := m.apiClient.ListInstances(ctx)
 	if err != nil {
 		return err
 	}
-	
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	// Track which instances we've seen
 	currentInstances := make(map[string]bool)
 	totalCost := 0.0
-	
+
 	for _, instance := range response.Instances {
 		currentInstances[instance.Name] = true
 		totalCost += instance.EstimatedDailyCost
-		
+
 		// Check for state changes
 		oldState, exists := m.instanceStates[instance.Name]
 		if exists && oldState != instance.State {
@@ -210,44 +210,43 @@ func (m *InstanceMonitor) refreshInstances() error {
 				},
 			})
 		}
-		
+
 		// Update state
 		m.instanceStates[instance.Name] = instance.State
-		
+
 		// Check if instance has idle detection information
 		instanceExt, ok := interface{}(instance).(types.InstanceExtended)
 		if ok && instanceExt.IdleDetection != nil && instanceExt.IdleDetection.Enabled {
 			oldIdle, hasOldIdle := m.idleStates[instance.Name]
-			
+
 			// Check for approaching idle action
 			if instanceExt.IdleDetection.ActionPending {
 				timeUntilAction := time.Until(instanceExt.IdleDetection.ActionSchedule)
 				minutesUntilAction := int(timeUntilAction.Minutes())
-				
+
 				// Only warn if we're within the notification threshold and haven't warned before
 				if minutesUntilAction <= m.config.IdleNotifyThreshold &&
 					(!hasOldIdle || !oldIdle.ActionPending) {
-					
+
 					m.queueEvent(InstanceEvent{
-						Type:      EventTypeIdleWarning,
-						Instance:  instance.Name,
-						Message:   fmt.Sprintf("Instance will %s in %d minutes due to inactivity", 
+						Type:     EventTypeIdleWarning,
+						Instance: instance.Name,
+						Message: fmt.Sprintf("Instance will %s in %d minutes due to inactivity",
 							instanceExt.IdleDetection.Policy, minutesUntilAction),
 						Timestamp: time.Now(),
 						Level:     EventLevelWarning,
 						Data: map[string]interface{}{
-							"idle_time":   instanceExt.IdleDetection.IdleTime,
-							"threshold":   instanceExt.IdleDetection.Policy,
-							"action":      instanceExt.IdleDetection.Policy,
+							"idle_time":    instanceExt.IdleDetection.IdleTime,
+							"threshold":    instanceExt.IdleDetection.Policy,
+							"action":       instanceExt.IdleDetection.Policy,
 							"minutes_left": minutesUntilAction,
 						},
 					})
 				}
 			}
-			
+
 			// Store current idle state
 			m.idleStates[instance.Name] = &types.IdleStatus{
-				Instance:       instance.Name,
 				Enabled:        instanceExt.IdleDetection.Enabled,
 				Policy:         instanceExt.IdleDetection.Policy,
 				IdleTime:       instanceExt.IdleDetection.IdleTime,
@@ -259,7 +258,7 @@ func (m *InstanceMonitor) refreshInstances() error {
 			delete(m.idleStates, instance.Name)
 		}
 	}
-	
+
 	// Check for deleted instances
 	for name := range m.instanceStates {
 		if !currentInstances[name] {
@@ -268,39 +267,39 @@ func (m *InstanceMonitor) refreshInstances() error {
 			delete(m.idleStates, name)
 		}
 	}
-	
+
 	// Check total cost threshold
 	if totalCost > m.config.CostAlertThreshold {
 		m.queueEvent(InstanceEvent{
-			Type:      EventTypeCostAlert,
-			Instance:  "",
-			Message:   fmt.Sprintf("Daily cost ($%.2f) exceeds threshold ($%.2f)", 
+			Type:     EventTypeCostAlert,
+			Instance: "",
+			Message: fmt.Sprintf("Daily cost ($%.2f) exceeds threshold ($%.2f)",
 				totalCost, m.config.CostAlertThreshold),
 			Timestamp: time.Now(),
 			Level:     EventLevelWarning,
 			Data: map[string]interface{}{
-				"total_cost":  totalCost,
-				"threshold":   m.config.CostAlertThreshold,
+				"total_cost":     totalCost,
+				"threshold":      m.config.CostAlertThreshold,
 				"instance_count": len(currentInstances),
 			},
 		})
 	}
-	
+
 	return nil
 }
 
 // monitorLoop periodically checks instance statuses
 func (m *InstanceMonitor) monitorLoop() {
 	defer m.wg.Done()
-	
+
 	ticker := time.NewTicker(m.config.RefreshInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-m.ctx.Done():
 			return
-			
+
 		case <-ticker.C:
 			if err := m.refreshInstances(); err != nil {
 				m.queueEvent(InstanceEvent{
@@ -321,17 +320,17 @@ func (m *InstanceMonitor) monitorLoop() {
 // dispatchEvents dispatches events to subscribers
 func (m *InstanceMonitor) dispatchEvents() {
 	defer m.wg.Done()
-	
+
 	for {
 		select {
 		case <-m.ctx.Done():
 			return
-			
+
 		case event, ok := <-m.eventCh:
 			if !ok {
 				return
 			}
-			
+
 			// Deliver to all subscribers
 			m.mutex.RLock()
 			for _, subscriber := range m.subscribers {

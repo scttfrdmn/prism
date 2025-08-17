@@ -11,19 +11,19 @@ import (
 
 // SecurityCorrelationEngine provides advanced security event analysis and correlation
 type SecurityCorrelationEngine struct {
-	auditLogger   *SecurityAuditLogger
-	ruleEngine    *CorrelationRuleEngine
-	eventBuffer   []SecurityEvent
-	correlations  []SecurityCorrelation
-	patterns      map[string]*AttackPattern
+	auditLogger  *SecurityAuditLogger
+	ruleEngine   *CorrelationRuleEngine
+	eventBuffer  []SecurityEvent
+	correlations []SecurityCorrelation
+	patterns     map[string]*AttackPattern
 }
 
 // CorrelationRuleEngine manages correlation rules and pattern detection
 type CorrelationRuleEngine struct {
-	rules            []CorrelationRule
-	attackPatterns   map[string]*AttackPattern
-	deviceProfiles   map[string]*DeviceProfile
-	baselineMetrics  *BaselineMetrics
+	rules           []CorrelationRule
+	attackPatterns  map[string]*AttackPattern
+	deviceProfiles  map[string]*DeviceProfile
+	baselineMetrics *BaselineMetrics
 }
 
 // CorrelationRule defines rules for correlating security events
@@ -34,67 +34,67 @@ type CorrelationRule struct {
 	EventTypes  []string               `json:"event_types"`
 	TimeWindow  time.Duration          `json:"time_window"`
 	Threshold   int                    `json:"threshold"`
-	Severity    AlertSeverity         `json:"severity"`
+	Severity    AlertSeverity          `json:"severity"`
 	Conditions  map[string]interface{} `json:"conditions"`
 	Actions     []string               `json:"actions"`
 }
 
 // SecurityCorrelation represents a correlation between multiple security events
 type SecurityCorrelation struct {
-	ID            string                 `json:"id"`
-	Timestamp     time.Time              `json:"timestamp"`
-	CorrelationType string               `json:"correlation_type"`
-	Events        []SecurityEvent        `json:"events"`
-	Pattern       string                 `json:"pattern"`
-	RiskScore     int                    `json:"risk_score"`
-	Confidence    float64                `json:"confidence"`
-	Description   string                 `json:"description"`
-	Recommendations []string             `json:"recommendations"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	ID              string                 `json:"id"`
+	Timestamp       time.Time              `json:"timestamp"`
+	CorrelationType string                 `json:"correlation_type"`
+	Events          []SecurityEvent        `json:"events"`
+	Pattern         string                 `json:"pattern"`
+	RiskScore       int                    `json:"risk_score"`
+	Confidence      float64                `json:"confidence"`
+	Description     string                 `json:"description"`
+	Recommendations []string               `json:"recommendations"`
+	Metadata        map[string]interface{} `json:"metadata"`
 }
 
 // AttackPattern represents a known attack pattern for detection
 type AttackPattern struct {
-	Name           string                 `json:"name"`
-	Description    string                 `json:"description"`
-	EventSequence  []string               `json:"event_sequence"`
-	TimeWindow     time.Duration          `json:"time_window"`
-	RiskScore      int                    `json:"risk_score"`
-	Indicators     []string               `json:"indicators"`
-	Countermeasures []string              `json:"countermeasures"`
-	Metadata       map[string]interface{} `json:"metadata"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description"`
+	EventSequence   []string               `json:"event_sequence"`
+	TimeWindow      time.Duration          `json:"time_window"`
+	RiskScore       int                    `json:"risk_score"`
+	Indicators      []string               `json:"indicators"`
+	Countermeasures []string               `json:"countermeasures"`
+	Metadata        map[string]interface{} `json:"metadata"`
 }
 
 // DeviceProfile tracks normal behavior patterns for devices
 type DeviceProfile struct {
-	DeviceID           string            `json:"device_id"`
-	FirstSeen          time.Time         `json:"first_seen"`
-	LastSeen           time.Time         `json:"last_seen"`
-	NormalOperations   map[string]int    `json:"normal_operations"`
-	TypicalHours       []int             `json:"typical_hours"`
-	AverageFrequency   float64           `json:"average_frequency"`
-	SuspiciousActivity bool              `json:"suspicious_activity"`
-	TrustScore         int               `json:"trust_score"` // 0-100
+	DeviceID           string         `json:"device_id"`
+	FirstSeen          time.Time      `json:"first_seen"`
+	LastSeen           time.Time      `json:"last_seen"`
+	NormalOperations   map[string]int `json:"normal_operations"`
+	TypicalHours       []int          `json:"typical_hours"`
+	AverageFrequency   float64        `json:"average_frequency"`
+	SuspiciousActivity bool           `json:"suspicious_activity"`
+	TrustScore         int            `json:"trust_score"` // 0-100
 }
 
 // BaselineMetrics tracks normal system behavior
 type BaselineMetrics struct {
-	StartTime                time.Time         `json:"start_time"`
-	TotalEvents              int               `json:"total_events"`
-	AverageEventsPerHour     float64           `json:"average_events_per_hour"`
-	CommonEventTypes         map[string]int    `json:"common_event_types"`
-	PeakActivityHours        []int             `json:"peak_activity_hours"`
-	TypicalFailureRate       float64           `json:"typical_failure_rate"`
-	NormalDeviceCount        int               `json:"normal_device_count"`
-	LastUpdated              time.Time         `json:"last_updated"`
+	StartTime            time.Time      `json:"start_time"`
+	TotalEvents          int            `json:"total_events"`
+	AverageEventsPerHour float64        `json:"average_events_per_hour"`
+	CommonEventTypes     map[string]int `json:"common_event_types"`
+	PeakActivityHours    []int          `json:"peak_activity_hours"`
+	TypicalFailureRate   float64        `json:"typical_failure_rate"`
+	NormalDeviceCount    int            `json:"normal_device_count"`
+	LastUpdated          time.Time      `json:"last_updated"`
 }
 
 // ThreatIntelligence provides context for security correlations
 type ThreatIntelligence struct {
-	KnownAttackVectors    []string               `json:"known_attack_vectors"`
-	CompromisedIndicators []string               `json:"compromised_indicators"`
-	ThreatActorTTPs       map[string][]string    `json:"threat_actor_ttps"`
-	IOCs                  []string               `json:"iocs"` // Indicators of Compromise
+	KnownAttackVectors    []string            `json:"known_attack_vectors"`
+	CompromisedIndicators []string            `json:"compromised_indicators"`
+	ThreatActorTTPs       map[string][]string `json:"threat_actor_ttps"`
+	IOCs                  []string            `json:"iocs"` // Indicators of Compromise
 }
 
 // NewSecurityCorrelationEngine creates a new correlation engine
@@ -105,9 +105,9 @@ func NewSecurityCorrelationEngine() (*SecurityCorrelationEngine, error) {
 	}
 
 	ruleEngine := &CorrelationRuleEngine{
-		rules:           getDefaultCorrelationRules(),
-		attackPatterns:  getKnownAttackPatterns(),
-		deviceProfiles:  make(map[string]*DeviceProfile),
+		rules:          getDefaultCorrelationRules(),
+		attackPatterns: getKnownAttackPatterns(),
+		deviceProfiles: make(map[string]*DeviceProfile),
 		baselineMetrics: &BaselineMetrics{
 			StartTime:         time.Now(),
 			CommonEventTypes:  make(map[string]int),
@@ -176,8 +176,8 @@ func (e *SecurityCorrelationEngine) performCorrelationAnalysis(events []Security
 				Description:     fmt.Sprintf("Correlation rule '%s' triggered with %d events", rule.Name, len(matches)),
 				Recommendations: rule.Actions,
 				Metadata: map[string]interface{}{
-					"rule_id":    rule.ID,
-					"threshold":  rule.Threshold,
+					"rule_id":     rule.ID,
+					"threshold":   rule.Threshold,
 					"time_window": rule.TimeWindow.String(),
 				},
 			}
@@ -265,9 +265,9 @@ func (e *SecurityCorrelationEngine) detectDeviceBehaviorAnomalies(events []Secur
 					"Check for compromise indicators",
 				},
 				Metadata: map[string]interface{}{
-					"device_id":    deviceID,
-					"trust_score":  profile.TrustScore,
-					"normal_ops":   len(profile.NormalOperations),
+					"device_id":   deviceID,
+					"trust_score": profile.TrustScore,
+					"normal_ops":  len(profile.NormalOperations),
 				},
 			}
 			correlations = append(correlations, correlation)
@@ -511,7 +511,7 @@ func (e *SecurityCorrelationEngine) findPatternMatches(pattern *AttackPattern, e
 
 func (e *SecurityCorrelationEngine) calculateRiskScore(events []SecurityEvent, rule CorrelationRule) int {
 	baseScore := 50
-	
+
 	// Increase score for failed events
 	failedCount := 0
 	for _, event := range events {
@@ -519,7 +519,7 @@ func (e *SecurityCorrelationEngine) calculateRiskScore(events []SecurityEvent, r
 			failedCount++
 		}
 	}
-	
+
 	riskMultiplier := 1 + (float64(failedCount) / float64(len(events)))
 	return int(float64(baseScore) * riskMultiplier)
 }
@@ -528,11 +528,11 @@ func (e *SecurityCorrelationEngine) calculateConfidence(events []SecurityEvent, 
 	// Base confidence on event count vs threshold
 	ratio := float64(len(events)) / float64(rule.Threshold)
 	confidence := 0.5 + (ratio * 0.3) // Base 0.5, increase with more events
-	
+
 	if confidence > 1.0 {
 		confidence = 1.0
 	}
-	
+
 	return confidence
 }
 
@@ -589,13 +589,13 @@ func (e *SecurityCorrelationEngine) filterEventsByType(events []SecurityEvent, e
 func (e *SecurityCorrelationEngine) pruneOldCorrelations() {
 	cutoff := time.Now().Add(-7 * 24 * time.Hour)
 	pruned := make([]SecurityCorrelation, 0)
-	
+
 	for _, correlation := range e.correlations {
 		if correlation.Timestamp.After(cutoff) {
 			pruned = append(pruned, correlation)
 		}
 	}
-	
+
 	e.correlations = pruned
 }
 

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
 )
@@ -242,77 +241,3 @@ func (s *Server) handleSecurityConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Additional security handler for device registration (integrated with existing invitation system)
-func (s *Server) handleSecureDeviceRegistration(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var registrationRequest struct {
-		InvitationToken string `json:"invitation_token"`
-		DeviceID        string `json:"device_id"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&registrationRequest); err != nil {
-		http.Error(w, fmt.Sprintf("Invalid request body: %v", err), http.StatusBadRequest)
-		return
-	}
-
-	// Validate required fields
-	if registrationRequest.InvitationToken == "" || registrationRequest.DeviceID == "" {
-		http.Error(w, "Missing required fields: invitation_token and device_id", http.StatusBadRequest)
-		return
-	}
-
-	// Register device using security manager
-	if err := s.securityManager.RegisterDevice(registrationRequest.InvitationToken, registrationRequest.DeviceID); err != nil {
-		s.securityManager.LogDeviceRegistration(registrationRequest.DeviceID, registrationRequest.InvitationToken, false, "registration_failed", map[string]interface{}{
-			"error":     err.Error(),
-			"client_ip": r.RemoteAddr,
-		})
-
-		// Check if it's a security-related error
-		if strings.Contains(err.Error(), "device binding") || strings.Contains(err.Error(), "tamper") {
-			http.Error(w, "Device registration failed: security violation", http.StatusForbidden)
-		} else {
-			http.Error(w, fmt.Sprintf("Device registration failed: %v", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	s.securityManager.LogDeviceRegistration(registrationRequest.DeviceID, registrationRequest.InvitationToken, true, "", map[string]interface{}{
-		"client_ip": r.RemoteAddr,
-	})
-
-	response := map[string]interface{}{
-		"status":    "Device registered successfully",
-		"device_id": registrationRequest.DeviceID,
-		"timestamp": "now",
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode response: %v", err), http.StatusInternalServerError)
-	}
-}
-
-// Security middleware for sensitive endpoints
-func (s *Server) securityMiddleware(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Log access attempt
-		s.securityManager.LogSecurityEvent("api_access_attempt", true, "", map[string]interface{}{
-			"endpoint":   r.URL.Path,
-			"method":     r.Method,
-			"client_ip":  r.RemoteAddr,
-			"user_agent": r.UserAgent(),
-		})
-
-		// Add security headers
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-
-		// Call the handler
-		handler(w, r)
-	}
-}

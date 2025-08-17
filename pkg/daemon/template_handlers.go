@@ -32,7 +32,7 @@ func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(templates)
+	_ = json.NewEncoder(w).Encode(templates)
 }
 
 // handleTemplateInfo handles operations on specific templates
@@ -68,5 +68,5 @@ func (s *Server) handleTemplateInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(template)
+	_ = json.NewEncoder(w).Encode(template)
 }

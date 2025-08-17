@@ -10,7 +10,7 @@ import (
 
 func TestNewTemplateResolver(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	assert.NotNil(t, resolver)
 	assert.NotNil(t, resolver.Parser)
 	assert.NotNil(t, resolver.ScriptGen)
@@ -19,7 +19,7 @@ func TestNewTemplateResolver(t *testing.T) {
 
 func TestTemplateResolver_ResolveTemplate(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	// Create test template
 	template := &Template{
 		Name:           "Test Template",
@@ -30,7 +30,7 @@ func TestTemplateResolver_ResolveTemplate(t *testing.T) {
 			System: []string{"git", "vim", "curl"},
 		},
 		Users: []UserConfig{
-			{Name: "testuser", Password: "auto-generated", Groups: []string{"sudo"}},
+			{Name: "testuser", Groups: []string{"sudo"}},
 		},
 		Services: []ServiceConfig{
 			{Name: "nginx", Port: 80, Enable: true},
@@ -45,43 +45,43 @@ func TestTemplateResolver_ResolveTemplate(t *testing.T) {
 			},
 		},
 	}
-	
+
 	// Resolve template
 	runtime, err := resolver.ResolveTemplate(template, "us-east-1", "x86_64")
 	require.NoError(t, err)
 	require.NotNil(t, runtime)
-	
+
 	// Verify basic fields
 	assert.Equal(t, "Test Template", runtime.Name)
 	assert.Equal(t, "A test template for resolution", runtime.Description)
 	assert.NotEmpty(t, runtime.UserData)
 	assert.True(t, runtime.Generated.After(time.Now().Add(-time.Minute)))
-	
+
 	// Verify AMI mapping
 	assert.NotNil(t, runtime.AMI)
 	assert.Contains(t, runtime.AMI, "us-east-1")
 	assert.Contains(t, runtime.AMI["us-east-1"], "x86_64")
-	
+
 	// Verify instance type mapping
 	assert.NotNil(t, runtime.InstanceType)
 	assert.Contains(t, runtime.InstanceType, "x86_64")
-	
+
 	// Verify ports (should include SSH + service ports + default ports)
-	assert.Contains(t, runtime.Ports, 22)  // SSH
-	assert.Contains(t, runtime.Ports, 80)  // nginx service
+	assert.Contains(t, runtime.Ports, 22)   // SSH
+	assert.Contains(t, runtime.Ports, 80)   // nginx service
 	assert.Contains(t, runtime.Ports, 8080) // explicit port
-	
+
 	// Verify cost estimates
 	assert.NotEmpty(t, runtime.EstimatedCostPerHour)
 	assert.Equal(t, 0.05, runtime.EstimatedCostPerHour["x86_64"])
-	
+
 	// Verify source reference
 	assert.Equal(t, template, runtime.Source)
 }
 
 func TestTemplateResolver_ResolveTemplateWithOptions(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	template := &Template{
 		Name:           "Override Test",
 		Description:    "Template for testing package manager override",
@@ -92,22 +92,22 @@ func TestTemplateResolver_ResolveTemplateWithOptions(t *testing.T) {
 			Conda:  []string{"numpy"}, // These should be used when overridden to conda
 		},
 	}
-	
+
 	// Test without override
 	runtime1, err := resolver.ResolveTemplateWithOptions(template, "us-east-1", "x86_64", "", "")
 	require.NoError(t, err)
 	assert.Contains(t, runtime1.UserData, "apt-get") // Should use APT script
-	
+
 	// Test with conda override
 	runtime2, err := resolver.ResolveTemplateWithOptions(template, "us-east-1", "x86_64", "conda", "")
 	require.NoError(t, err)
-	assert.Contains(t, runtime2.UserData, "conda") // Should use conda script
+	assert.Contains(t, runtime2.UserData, "conda")     // Should use conda script
 	assert.Contains(t, runtime2.UserData, "miniforge") // Conda uses miniforge
 }
 
 func TestTemplateResolver_ResolveAllTemplates(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	// Create registry with test templates
 	registry := NewTemplateRegistry([]string{})
 	registry.Templates["Template1"] = &Template{
@@ -118,15 +118,15 @@ func TestTemplateResolver_ResolveAllTemplates(t *testing.T) {
 		Name: "Template2", Description: "Second template", Base: "ubuntu-22.04",
 		PackageManager: "conda",
 	}
-	
+
 	// Resolve all templates
 	runtimeTemplates, err := resolver.ResolveAllTemplates(registry, "us-east-1", "x86_64")
 	require.NoError(t, err)
-	
+
 	assert.Len(t, runtimeTemplates, 2)
 	assert.Contains(t, runtimeTemplates, "Template1")
 	assert.Contains(t, runtimeTemplates, "Template2")
-	
+
 	// Verify each runtime template
 	assert.Equal(t, "Template1", runtimeTemplates["Template1"].Name)
 	assert.Equal(t, "Template2", runtimeTemplates["Template2"].Name)
@@ -134,7 +134,7 @@ func TestTemplateResolver_ResolveAllTemplates(t *testing.T) {
 
 func TestTemplateResolver_getAMIMapping(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	tests := []struct {
 		name         string
 		template     *Template
@@ -185,11 +185,11 @@ func TestTemplateResolver_getAMIMapping(t *testing.T) {
 			expectError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mapping, err := resolver.getAMIMapping(tt.template, "us-east-1", "x86_64")
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -204,7 +204,7 @@ func TestTemplateResolver_getAMIMapping(t *testing.T) {
 
 func TestTemplateResolver_getInstanceTypeMapping(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	tests := []struct {
 		name     string
 		template *Template
@@ -247,8 +247,8 @@ func TestTemplateResolver_getInstanceTypeMapping(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				"x86_64": "g4dn.xlarge",
-				"arm64":  "g5g.xlarge",
+				"x86_64": "g4dn.2xlarge",
+				"arm64":  "g5g.2xlarge",
 			},
 		},
 		{
@@ -259,8 +259,8 @@ func TestTemplateResolver_getInstanceTypeMapping(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				"x86_64": "r5.large",
-				"arm64":  "r6g.large",
+				"x86_64": "r5.2xlarge",
+				"arm64":  "r6g.2xlarge",
 			},
 		},
 		{
@@ -271,8 +271,8 @@ func TestTemplateResolver_getInstanceTypeMapping(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				"x86_64": "c5.large",
-				"arm64":  "c6g.large",
+				"x86_64": "c5.2xlarge",
+				"arm64":  "c6g.2xlarge",
 			},
 		},
 		{
@@ -283,15 +283,15 @@ func TestTemplateResolver_getInstanceTypeMapping(t *testing.T) {
 				},
 			},
 			expected: map[string]string{
-				"x86_64": "t3.medium",
-				"arm64":  "t4g.medium",
+				"x86_64": "t3.large",
+				"arm64":  "t4g.large",
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := resolver.getInstanceTypeMapping(tt.template, tt.arch)
+			result := resolver.getInstanceTypeMapping(tt.template, tt.arch, "M")
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -299,7 +299,7 @@ func TestTemplateResolver_getInstanceTypeMapping(t *testing.T) {
 
 func TestTemplateResolver_templateRequiresGPU(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	tests := []struct {
 		name     string
 		template *Template
@@ -333,7 +333,7 @@ func TestTemplateResolver_templateRequiresGPU(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := resolver.templateRequiresGPU(tt.template)
@@ -344,7 +344,7 @@ func TestTemplateResolver_templateRequiresGPU(t *testing.T) {
 
 func TestTemplateResolver_templateRequiresHighMemory(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	tests := []struct {
 		name     string
 		template *Template
@@ -378,7 +378,7 @@ func TestTemplateResolver_templateRequiresHighMemory(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := resolver.templateRequiresHighMemory(tt.template)
@@ -389,7 +389,7 @@ func TestTemplateResolver_templateRequiresHighMemory(t *testing.T) {
 
 func TestTemplateResolver_templateRequiresHighCPU(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	tests := []struct {
 		name     string
 		template *Template
@@ -423,7 +423,7 @@ func TestTemplateResolver_templateRequiresHighCPU(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := resolver.templateRequiresHighCPU(tt.template)
@@ -434,7 +434,7 @@ func TestTemplateResolver_templateRequiresHighCPU(t *testing.T) {
 
 func TestTemplateResolver_hasPackageIndicators(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	template := &Template{
 		Packages: PackageDefinitions{
 			System: []string{"git", "build-essential", "vim"},
@@ -443,17 +443,17 @@ func TestTemplateResolver_hasPackageIndicators(t *testing.T) {
 			Pip:    []string{"requests", "flask"},
 		},
 	}
-	
+
 	// Test various indicators
 	assert.True(t, resolver.hasPackageIndicators(template, []string{"tensorflow-gpu"}))
 	assert.True(t, resolver.hasPackageIndicators(template, []string{"build-essential"}))
 	assert.True(t, resolver.hasPackageIndicators(template, []string{"openmpi"}))
 	assert.True(t, resolver.hasPackageIndicators(template, []string{"flask"}))
-	
+
 	// Test partial matches (contains logic)
 	assert.True(t, resolver.hasPackageIndicators(template, []string{"tensorflow"})) // matches tensorflow-gpu
 	assert.True(t, resolver.hasPackageIndicators(template, []string{"build"}))      // matches build-essential
-	
+
 	// Test non-existent indicators
 	assert.False(t, resolver.hasPackageIndicators(template, []string{"nonexistent"}))
 	assert.False(t, resolver.hasPackageIndicators(template, []string{"cuda"})) // not in packages
@@ -461,7 +461,7 @@ func TestTemplateResolver_hasPackageIndicators(t *testing.T) {
 
 func TestTemplateResolver_getPortMapping(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	template := &Template{
 		Services: []ServiceConfig{
 			{Name: "nginx", Port: 80, Enable: true},
@@ -472,21 +472,21 @@ func TestTemplateResolver_getPortMapping(t *testing.T) {
 			Ports: []int{8080, 9000, 22}, // 22 should be deduplicated
 		},
 	}
-	
+
 	ports := resolver.getPortMapping(template)
-	
+
 	// Should always include SSH
 	assert.Contains(t, ports, 22)
-	
+
 	// Should include service ports (but not port 0)
 	assert.Contains(t, ports, 80)
 	assert.Contains(t, ports, 3306)
 	assert.NotContains(t, ports, 0)
-	
+
 	// Should include explicit ports
 	assert.Contains(t, ports, 8080)
 	assert.Contains(t, ports, 9000)
-	
+
 	// Should deduplicate port 22
 	count22 := 0
 	for _, port := range ports {
@@ -499,11 +499,11 @@ func TestTemplateResolver_getPortMapping(t *testing.T) {
 
 func TestTemplateResolver_getCostMapping(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	tests := []struct {
-		name     string
-		template *Template
-		arch     string
+		name      string
+		template  *Template
+		arch      string
 		checkFunc func(t *testing.T, costs map[string]float64)
 	}{
 		{
@@ -548,7 +548,7 @@ func TestTemplateResolver_getCostMapping(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			costs := resolver.getCostMapping(tt.template, tt.arch)
@@ -567,7 +567,7 @@ func TestTemplateResolver_UtilityFunctions(t *testing.T) {
 	assert.True(t, contains("exact-match", "exact-match"))
 	assert.False(t, contains("short", "longer"))
 	assert.False(t, contains("nomatch", "xyz"))
-	
+
 	// Test removeDuplicatePorts
 	ports := []int{22, 80, 22, 443, 80, 8080}
 	unique := removeDuplicatePorts(ports)
@@ -576,7 +576,7 @@ func TestTemplateResolver_UtilityFunctions(t *testing.T) {
 	assert.Contains(t, unique, 80)
 	assert.Contains(t, unique, 443)
 	assert.Contains(t, unique, 8080)
-	
+
 	// Verify no duplicates
 	seen := make(map[int]bool)
 	for _, port := range unique {
@@ -587,7 +587,7 @@ func TestTemplateResolver_UtilityFunctions(t *testing.T) {
 
 func TestTemplateResolver_EdgeCases(t *testing.T) {
 	resolver := NewTemplateResolver()
-	
+
 	// Test empty template
 	emptyTemplate := &Template{
 		Name:           "Empty Template",
@@ -595,13 +595,13 @@ func TestTemplateResolver_EdgeCases(t *testing.T) {
 		Base:           "ubuntu-22.04",
 		PackageManager: "apt",
 	}
-	
+
 	runtime, err := resolver.ResolveTemplate(emptyTemplate, "us-east-1", "x86_64")
 	require.NoError(t, err)
 	assert.NotNil(t, runtime)
 	assert.Equal(t, "Empty Template", runtime.Name)
 	assert.Contains(t, runtime.Ports, 22) // Should always have SSH
-	
+
 	// Test template with unknown instance types in cost calculation
 	unknownInstanceTemplate := &Template{
 		Name:           "Unknown Instance",
@@ -612,7 +612,7 @@ func TestTemplateResolver_EdgeCases(t *testing.T) {
 			Type: "unknown.instance.type",
 		},
 	}
-	
+
 	runtime2, err := resolver.ResolveTemplate(unknownInstanceTemplate, "us-east-1", "x86_64")
 	require.NoError(t, err)
 	assert.NotNil(t, runtime2.EstimatedCostPerHour)

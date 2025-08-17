@@ -43,7 +43,7 @@ func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
 		DocsBaseURL:    "https://docs.cloudworkstation.dev/api",
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleUnknownAPI handles requests to unknown API endpoints
@@ -68,7 +68,7 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(errorResponse)
+		_ = json.NewEncoder(w).Encode(errorResponse)
 		return
 	}
 
@@ -107,13 +107,13 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 		"stable_version":     s.versionManager.GetStableVersion(),
 	}
 
-	json.NewEncoder(w).Encode(responseBody)
+	_ = json.NewEncoder(w).Encode(responseBody)
 }
 
 // handlePing handles health check requests
 func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 // handleStatus handles status requests
@@ -142,7 +142,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	status := s.statusTracker.GetStatus(version.GetVersion(), awsRegion, currentProfile)
 	status.CurrentProfile = currentProfile
 
-	json.NewEncoder(w).Encode(status)
+	_ = json.NewEncoder(w).Encode(status)
 }
 
 // handleShutdown handles daemon shutdown requests
@@ -154,7 +154,7 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 
 	// Respond immediately before shutting down
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":  "shutting_down",
 		"message": "Daemon shutdown initiated",
 	})

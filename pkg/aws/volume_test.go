@@ -106,7 +106,7 @@ func (m *mockStateManagerForVolume) UpdateConfig(config types.Config) error {
 
 // Make sure mocks implement the interfaces
 var (
-	_ EFSClientInterface   = (*mockEFSClientForVolume)(nil)
+	_ EFSClientInterface    = (*mockEFSClientForVolume)(nil)
 	_ StateManagerInterface = (*mockStateManagerForVolume)(nil)
 )
 
@@ -115,10 +115,10 @@ func TestVolumeDeletion(t *testing.T) {
 		// Setup mock EFS client
 		mockEfs := new(mockEFSClientForVolume)
 		mockState := new(mockStateManagerForVolume)
-		
+
 		// Create manager with mocks
 		manager := &Manager{
-			efs:         mockEfs,
+			efs:          mockEfs,
 			stateManager: mockState,
 		}
 
@@ -132,7 +132,7 @@ func TestVolumeDeletion(t *testing.T) {
 				"test-volume": testVolume,
 			},
 		}, nil)
-		
+
 		// Setup mock responses
 		mockEfs.On("DescribeMountTargets", mock.Anything, &efs.DescribeMountTargetsInput{
 			FileSystemId: aws.String("fs-12345678"),
@@ -172,7 +172,7 @@ func TestVolumeDeletion(t *testing.T) {
 
 		// Call the function under test
 		err := manager.DeleteVolume("test-volume")
-		
+
 		// Verify results
 		require.NoError(t, err)
 		mockEfs.AssertExpectations(t)
@@ -193,7 +193,7 @@ func TestVolumeDeletion(t *testing.T) {
 
 		// Call the function under test
 		err := manager.DeleteVolume("non-existent-volume")
-		
+
 		// Verify results
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not found in state")
@@ -212,7 +212,7 @@ func TestVolumeDeletion(t *testing.T) {
 
 		// Call the function under test
 		err := manager.DeleteVolume("test-volume")
-		
+
 		// Verify results
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to load state")
@@ -223,10 +223,10 @@ func TestVolumeDeletion(t *testing.T) {
 		// Setup mocks
 		mockEfs := new(mockEFSClientForVolume)
 		mockState := new(mockStateManagerForVolume)
-		
+
 		// Create manager with mocks
 		manager := &Manager{
-			efs:         mockEfs,
+			efs:          mockEfs,
 			stateManager: mockState,
 		}
 
@@ -240,14 +240,14 @@ func TestVolumeDeletion(t *testing.T) {
 				"test-volume": testVolume,
 			},
 		}, nil)
-		
+
 		// Setup mock error response
 		mockEfs.On("DescribeMountTargets", mock.Anything, mock.Anything, mock.Anything).
 			Return(nil, errors.New("describe mount targets error"))
 
 		// Call the function under test
 		err := manager.DeleteVolume("test-volume")
-		
+
 		// Verify results
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to list mount targets")
@@ -259,10 +259,10 @@ func TestVolumeDeletion(t *testing.T) {
 		// Setup mocks
 		mockEfs := new(mockEFSClientForVolume)
 		mockState := new(mockStateManagerForVolume)
-		
+
 		// Create manager with mocks
 		manager := &Manager{
-			efs:         mockEfs,
+			efs:          mockEfs,
 			stateManager: mockState,
 		}
 
@@ -276,7 +276,7 @@ func TestVolumeDeletion(t *testing.T) {
 				"test-volume": testVolume,
 			},
 		}, nil)
-		
+
 		// Setup mock responses
 		mockEfs.On("DescribeMountTargets", mock.Anything, mock.Anything, mock.Anything).
 			Return(&efs.DescribeMountTargetsOutput{
@@ -293,7 +293,7 @@ func TestVolumeDeletion(t *testing.T) {
 
 		// Call the function under test
 		err := manager.DeleteVolume("test-volume")
-		
+
 		// Verify results
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete mount target")
@@ -305,10 +305,10 @@ func TestVolumeDeletion(t *testing.T) {
 		// Setup mocks
 		mockEfs := new(mockEFSClientForVolume)
 		mockState := new(mockStateManagerForVolume)
-		
+
 		// Create manager with mocks
 		manager := &Manager{
-			efs:         mockEfs,
+			efs:          mockEfs,
 			stateManager: mockState,
 		}
 
@@ -322,7 +322,7 @@ func TestVolumeDeletion(t *testing.T) {
 				"test-volume": testVolume,
 			},
 		}, nil)
-		
+
 		// Setup mock responses - no mount targets
 		mockEfs.On("DescribeMountTargets", mock.Anything, mock.Anything, mock.Anything).
 			Return(&efs.DescribeMountTargetsOutput{
@@ -335,7 +335,7 @@ func TestVolumeDeletion(t *testing.T) {
 
 		// Call the function under test
 		err := manager.DeleteVolume("test-volume")
-		
+
 		// Verify results
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete file system")

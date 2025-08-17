@@ -277,6 +277,6 @@ func extractVersionNumber(version string) float64 {
 
 	// Parse as float
 	var val float64
-	fmt.Sscanf(version, "%f", &val)
+	_, _ = fmt.Sscanf(version, "%f", &val)
 	return val
 }

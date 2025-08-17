@@ -15,9 +15,9 @@ import (
 
 // IdlePolicyResponse represents an idle detection policy
 type IdlePolicyResponse struct {
-	Name      string  `json:"name"`
-	Threshold int     `json:"threshold"` // Minutes
-	Action    string  `json:"action"`    // stop, terminate, etc.
+	Name      string `json:"name"`
+	Threshold int    `json:"threshold"` // Minutes
+	Action    string `json:"action"`    // stop, terminate, etc.
 }
 
 // ListIdlePoliciesResponse represents a list of idle detection policies
@@ -56,45 +56,45 @@ type InstanceResponse struct {
 	EstimatedDailyCost float64   `json:"estimated_daily_cost"`
 	AttachedVolumes    []string  `json:"attached_volumes"`
 	AttachedEBSVolumes []string  `json:"attached_ebs_volumes"`
-	InstanceLifecycle  string    `json:"instance_lifecycle"`  // "spot" or "on-demand"
+	InstanceLifecycle  string    `json:"instance_lifecycle"` // "spot" or "on-demand"
 	Ports              []int     `json:"ports"`
 }
 
 // ListInstancesResponse represents a list of instances returned from the API
 type ListInstancesResponse struct {
 	Instances []InstanceResponse `json:"instances"`
-	TotalCost float64           `json:"total_cost"`
+	TotalCost float64            `json:"total_cost"`
 }
 
 // LaunchInstanceRequest represents a request to launch an instance
 type LaunchInstanceRequest struct {
-	Template    string   `json:"template"`
-	Name        string   `json:"name"`
-	Size        string   `json:"size,omitempty"`
-	Volumes     []string `json:"volumes,omitempty"`
-	EBSVolumes  []string `json:"ebs_volumes,omitempty"`
-	Region      string   `json:"region,omitempty"`
-	Spot        bool     `json:"spot,omitempty"`
-	DryRun      bool     `json:"dry_run,omitempty"`
+	Template   string   `json:"template"`
+	Name       string   `json:"name"`
+	Size       string   `json:"size,omitempty"`
+	Volumes    []string `json:"volumes,omitempty"`
+	EBSVolumes []string `json:"ebs_volumes,omitempty"`
+	Region     string   `json:"region,omitempty"`
+	Spot       bool     `json:"spot,omitempty"`
+	DryRun     bool     `json:"dry_run,omitempty"`
 }
 
 // LaunchInstanceResponse represents a successful launch response
 type LaunchInstanceResponse struct {
 	Instance       InstanceResponse `json:"instance"`
-	Message        string          `json:"message"`
-	EstimatedCost  string          `json:"estimated_cost"`
-	ConnectionInfo string          `json:"connection_info"`
+	Message        string           `json:"message"`
+	EstimatedCost  string           `json:"estimated_cost"`
+	ConnectionInfo string           `json:"connection_info"`
 }
 
 // TemplateResponse represents a template returned from the API
 type TemplateResponse struct {
-	Name         string                `json:"name"`
-	Description  string                `json:"description"`
-	AMI          map[string]string     `json:"ami"` // Simplified from original structure
-	InstanceType map[string]string     `json:"instance_type"`
-	UserData     string                `json:"user_data"`
-	Ports        []int                 `json:"ports"`
-	EstimatedCost map[string]float64   `json:"estimated_cost"`
+	Name          string             `json:"name"`
+	Description   string             `json:"description"`
+	AMI           map[string]string  `json:"ami"` // Simplified from original structure
+	InstanceType  map[string]string  `json:"instance_type"`
+	UserData      string             `json:"user_data"`
+	Ports         []int              `json:"ports"`
+	EstimatedCost map[string]float64 `json:"estimated_cost"`
 }
 
 // ListTemplatesResponse represents a list of templates returned from the API
@@ -178,11 +178,11 @@ func ToListInstancesResponse(resp *types.ListResponse) *ListInstancesResponse {
 	result := &ListInstancesResponse{
 		TotalCost: resp.TotalCost,
 	}
-	
+
 	for _, instance := range resp.Instances {
 		result.Instances = append(result.Instances, ToInstanceResponse(instance))
 	}
-	
+
 	return result
 }
 
@@ -196,14 +196,14 @@ func ToTemplateResponse(name string, template types.Template) TemplateResponse {
 			amiMap[key] = ami
 		}
 	}
-	
+
 	return TemplateResponse{
-		Name:         name,
-		Description:  template.Description,
-		AMI:          amiMap,
-		InstanceType: template.InstanceType,
-		UserData:     template.UserData,
-		Ports:        template.Ports,
+		Name:          name,
+		Description:   template.Description,
+		AMI:           amiMap,
+		InstanceType:  template.InstanceType,
+		UserData:      template.UserData,
+		Ports:         template.Ports,
 		EstimatedCost: template.EstimatedCostPerHour,
 	}
 }
@@ -213,11 +213,11 @@ func ToListTemplatesResponse(templates map[string]types.Template) *ListTemplates
 	result := &ListTemplatesResponse{
 		Templates: make(map[string]TemplateResponse),
 	}
-	
+
 	for name, template := range templates {
 		result.Templates[name] = ToTemplateResponse(name, template)
 	}
-	
+
 	return result
 }
 
@@ -241,11 +241,11 @@ func ToListVolumesResponse(volumes []types.EFSVolume) *ListVolumesResponse {
 	result := &ListVolumesResponse{
 		Volumes: make(map[string]VolumeResponse),
 	}
-	
+
 	for _, volume := range volumes {
 		result.Volumes[volume.Name] = ToVolumeResponse(volume)
 	}
-	
+
 	return result
 }
 
@@ -271,10 +271,10 @@ func ToListStorageResponse(storage []types.EBSVolume) *ListStorageResponse {
 	result := &ListStorageResponse{
 		Storage: make(map[string]StorageResponse),
 	}
-	
+
 	for _, volume := range storage {
 		result.Storage[volume.Name] = ToStorageResponse(volume)
 	}
-	
+
 	return result
 }

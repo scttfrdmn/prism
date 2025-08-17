@@ -12,44 +12,44 @@ func TestAPIError(t *testing.T) {
 		Code:    ErrNotFound,
 		Message: "Resource not found",
 	}
-	
+
 	if err.Error() != "not_found: Resource not found" {
 		t.Errorf("Unexpected error message: %s", err.Error())
 	}
-	
+
 	// Test with details
 	err = APIError{
 		Code:    ErrUnauthorized,
 		Message: "Unauthorized",
 		Details: "Invalid credentials",
 	}
-	
+
 	if !strings.Contains(err.Error(), "Invalid credentials") {
 		t.Errorf("Error message missing details: %s", err.Error())
 	}
-	
+
 	// Test with operation
 	err = APIError{
 		Code:      ErrInvalidParameters,
 		Message:   "Invalid parameters",
 		Operation: "LaunchInstance",
 	}
-	
+
 	if !strings.Contains(err.Error(), "operation LaunchInstance") {
 		t.Errorf("Error message missing operation: %s", err.Error())
 	}
-	
+
 	// Test with request ID
 	err = APIError{
 		Code:      ErrServerError,
 		Message:   "Server error",
 		RequestID: "req-12345",
 	}
-	
+
 	if !strings.Contains(err.Error(), "req-12345") {
 		t.Errorf("Error message missing request ID: %s", err.Error())
 	}
-	
+
 	// Test with underlying error
 	originalErr := errors.New("original error")
 	err = APIError{
@@ -57,7 +57,7 @@ func TestAPIError(t *testing.T) {
 		Message: "Network error",
 		cause:   originalErr,
 	}
-	
+
 	if errors.Unwrap(err) != originalErr {
 		t.Errorf("Unwrap did not return original error")
 	}
@@ -67,15 +67,15 @@ func TestNewAPIError(t *testing.T) {
 	// Test creating new error
 	originalErr := errors.New("underlying error")
 	err := NewAPIError(ErrTimeout, "Operation timed out", originalErr)
-	
+
 	if err.Code != ErrTimeout {
 		t.Errorf("Expected code %s, got %s", ErrTimeout, err.Code)
 	}
-	
+
 	if err.Message != "Operation timed out" {
 		t.Errorf("Expected message 'Operation timed out', got '%s'", err.Message)
 	}
-	
+
 	if errors.Unwrap(err) != originalErr {
 		t.Errorf("Unwrap did not return original error")
 	}
@@ -87,7 +87,7 @@ func TestAPIErrorChaining(t *testing.T) {
 		WithDetails("The specified instance does not exist").
 		WithOperation("GetInstance").
 		WithRequestID("req-12345")
-	
+
 	expectedSubstrings := []string{
 		"not_found",
 		"Resource not found",
@@ -95,7 +95,7 @@ func TestAPIErrorChaining(t *testing.T) {
 		"operation GetInstance",
 		"req-12345",
 	}
-	
+
 	errorMsg := err.Error()
 	for _, substr := range expectedSubstrings {
 		if !strings.Contains(errorMsg, substr) {
@@ -156,7 +156,7 @@ func TestErrorTypeChecking(t *testing.T) {
 	_ = NewAwsError(errors.New("AWS API error"), "DescribeInstances")
 	_ = NewPermissionError("Volume", "attach")
 	standardErr := errors.New("standard error")
-	
+
 	// Test IsErrorCode
 	if !IsErrorCode(notFoundErr, ErrNotFound) {
 		t.Error("Expected IsErrorCode to return true for not found error")
@@ -167,7 +167,7 @@ func TestErrorTypeChecking(t *testing.T) {
 	if IsErrorCode(standardErr, ErrNotFound) {
 		t.Error("Expected IsErrorCode to return false for standard error")
 	}
-	
+
 	// Test specialized type checking
 	if !IsNotFoundErr(notFoundErr) {
 		t.Error("Expected IsNotFoundErr to return true for not found error")
@@ -175,18 +175,18 @@ func TestErrorTypeChecking(t *testing.T) {
 	if IsNotFoundErr(validationErr) {
 		t.Error("Expected IsNotFoundErr to return false for validation error")
 	}
-	
+
 	// Test validation error extraction
 	validationWithDetails := NewValidationError("", map[string]string{
 		"name": "Name is required",
-		"age": "Age must be positive",
+		"age":  "Age must be positive",
 	})
-	
+
 	validationMap := ExtractValidationErrors(validationWithDetails)
 	if len(validationMap) != 2 {
 		t.Errorf("Expected 2 validation errors, got %d", len(validationMap))
 	}
-	
+
 	// Test non-validation error returns nil
 	if ExtractValidationErrors(notFoundErr) != nil {
 		t.Error("Expected ExtractValidationErrors to return nil for non-validation error")
@@ -200,7 +200,7 @@ func TestErrorCodeFromStatusCode(t *testing.T) {
 	}{
 		{404, ErrNotFound},
 		{401, ErrUnauthorized},
-		{403, ErrForbidden},  // Updated to match new mapping
+		{403, ErrForbidden}, // Updated to match new mapping
 		{400, ErrInvalidParameters},
 		{409, ErrConflict},
 		{429, ErrRateLimited},
@@ -208,11 +208,11 @@ func TestErrorCodeFromStatusCode(t *testing.T) {
 		{502, ErrServerError},
 		{418, ErrInvalidParameters}, // I'm a teapot
 	}
-	
+
 	for _, test := range tests {
 		code := GetErrorCodeFromStatusCode(test.statusCode)
 		if code != test.expected {
-			t.Errorf("For status code %d, expected error code %s, got %s", 
+			t.Errorf("For status code %d, expected error code %s, got %s",
 				test.statusCode, test.expected, code)
 		}
 	}

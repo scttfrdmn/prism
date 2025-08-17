@@ -2,7 +2,7 @@ package state
 
 import (
 	"fmt"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 )
 
@@ -17,7 +17,7 @@ func NewCoreProfileProvider() (*CoreProfileProvider, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create profile manager: %w", err)
 	}
-	
+
 	return &CoreProfileProvider{
 		profileManager: manager,
 	}, nil
@@ -35,7 +35,7 @@ func (cpp *CoreProfileProvider) GetCurrentProfile() (string, error) {
 			return "", err
 		}
 	}
-	
+
 	return profile.AWSProfile, nil
 }
 
@@ -50,7 +50,7 @@ func NewUnifiedManagerWithCoreProfiles() (*UnifiedManager, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return NewUnifiedManagerWithProfiles(provider)
 }
 

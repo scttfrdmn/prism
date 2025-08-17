@@ -56,7 +56,7 @@ func (a *App) repoList(args []string) error {
 
 	// Print repositories
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "NAME\tTYPE\tURL/PATH\tPRIORITY")
+	_, _ = fmt.Fprintln(w, "NAME\tTYPE\tURL/PATH\tPRIORITY")
 	for _, repo := range repos {
 		var location string
 		switch repo.Type {
@@ -67,7 +67,7 @@ func (a *App) repoList(args []string) error {
 		case "s3":
 			location = fmt.Sprintf("s3://%s/%s", repo.Bucket, repo.Prefix)
 		}
-		fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", repo.Name, repo.Type, location, repo.Priority)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", repo.Name, repo.Type, location, repo.Priority)
 	}
 	return w.Flush()
 }
@@ -283,14 +283,14 @@ func (a *App) repoTemplates(args []string) error {
 
 		// Print templates
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintf(w, "Templates in repository %q:\n\n", repoName)
-		fmt.Fprintln(w, "NAME\tPATH\tVERSIONS")
+		_, _ = fmt.Fprintf(w, "Templates in repository %q:\n\n", repoName)
+		_, _ = fmt.Fprintln(w, "NAME\tPATH\tVERSIONS")
 		for _, template := range metadata.Templates {
 			versions := []string{}
 			for _, v := range template.Versions {
 				versions = append(versions, v.Version)
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\n", template.Name, template.Path, strings.Join(versions, ", "))
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", template.Name, template.Path, strings.Join(versions, ", "))
 		}
 		return w.Flush()
 	}
@@ -298,8 +298,8 @@ func (a *App) repoTemplates(args []string) error {
 	// List templates from all repositories
 	repos := repoManager.GetRepositories()
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "REPOSITORY\tTEMPLATE\tPATH\tVERSIONS")
-	
+	_, _ = fmt.Fprintln(w, "REPOSITORY\tTEMPLATE\tPATH\tVERSIONS")
+
 	for _, repo := range repos {
 		metadata, err := repoManager.GetRepositoryMetadata(repo.Name)
 		if err != nil {
@@ -312,10 +312,10 @@ func (a *App) repoTemplates(args []string) error {
 			for _, v := range template.Versions {
 				versions = append(versions, v.Version)
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", repo.Name, template.Name, template.Path, strings.Join(versions, ", "))
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", repo.Name, template.Name, template.Path, strings.Join(versions, ", "))
 		}
 	}
-	
+
 	return w.Flush()
 }
 
@@ -336,11 +336,11 @@ func (a *App) repoSearch(args []string) error {
 	// Search all repositories
 	repos := repoManager.GetRepositories()
 	found := false
-	
+
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "Search results for %q:\n\n", query)
-	fmt.Fprintln(w, "REPOSITORY\tTEMPLATE\tPATH\tVERSIONS")
-	
+	_, _ = fmt.Fprintf(w, "Search results for %q:\n\n", query)
+	_, _ = fmt.Fprintln(w, "REPOSITORY\tTEMPLATE\tPATH\tVERSIONS")
+
 	for _, repo := range repos {
 		metadata, err := repoManager.GetRepositoryMetadata(repo.Name)
 		if err != nil {
@@ -354,16 +354,16 @@ func (a *App) repoSearch(args []string) error {
 				for _, v := range template.Versions {
 					versions = append(versions, v.Version)
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", repo.Name, template.Name, template.Path, strings.Join(versions, ", "))
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", repo.Name, template.Name, template.Path, strings.Join(versions, ", "))
 				found = true
 			}
 		}
 	}
-	
+
 	if !found {
-		fmt.Fprintf(w, "No templates found matching %q\n", query)
+		_, _ = fmt.Fprintf(w, "No templates found matching %q\n", query)
 	}
-	
+
 	return w.Flush()
 }
 
@@ -395,10 +395,10 @@ func (a *App) repoPull(args []string) error {
 
 	fmt.Printf("Found template %q in repository %q\n", ref.Template, repo.Name)
 	fmt.Printf("Path: %s\n", template.Path)
-	
+
 	// TODO: Implement template downloading
 	fmt.Println("Template pull not fully implemented yet")
-	
+
 	return nil
 }
 
@@ -433,9 +433,9 @@ func (a *App) repoPush(args []string) error {
 	}
 
 	fmt.Printf("Pushing template %q to repository %q\n", templateFile, repoName)
-	
+
 	// TODO: Implement template uploading
 	fmt.Println("Template push not fully implemented yet")
-	
+
 	return nil
 }

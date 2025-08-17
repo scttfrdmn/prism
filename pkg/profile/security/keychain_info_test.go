@@ -35,7 +35,7 @@ func TestGetKeychainInfo(t *testing.T) {
 	t.Logf("  Platform: %s", info.Platform)
 	t.Logf("  Native: %v", info.Native)
 	t.Logf("  Security Level: %s", info.SecurityLevel)
-	
+
 	if info.FallbackReason != "" {
 		t.Logf("  Fallback Reason: %s", info.FallbackReason)
 	}

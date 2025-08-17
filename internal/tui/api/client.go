@@ -3,7 +3,7 @@ package api
 
 import (
 	"context"
-	
+
 	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -46,22 +46,22 @@ func (c *TUIClient) GetInstance(ctx context.Context, name string) (*InstanceResp
 func (c *TUIClient) LaunchInstance(ctx context.Context, req LaunchInstanceRequest) (*LaunchInstanceResponse, error) {
 	// Convert request
 	launchReq := types.LaunchRequest{
-		Template:    req.Template,
-		Name:        req.Name,
-		Size:        req.Size,
-		Volumes:     req.Volumes,
-		EBSVolumes:  req.EBSVolumes,
-		Region:      req.Region,
-		Spot:        req.Spot,
-		DryRun:      req.DryRun,
+		Template:   req.Template,
+		Name:       req.Name,
+		Size:       req.Size,
+		Volumes:    req.Volumes,
+		EBSVolumes: req.EBSVolumes,
+		Region:     req.Region,
+		Spot:       req.Spot,
+		DryRun:     req.DryRun,
 	}
-	
+
 	// Make API call
 	resp, err := c.client.LaunchInstance(ctx, launchReq)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert response
 	return &LaunchInstanceResponse{
 		Instance:       ToInstanceResponse(resp.Instance),
@@ -145,17 +145,17 @@ func (c *TUIClient) ListIdlePolicies(ctx context.Context) (*ListIdlePoliciesResp
 		Policies: map[string]IdlePolicyResponse{
 			"default": {
 				Name:      "default",
-				Threshold: 30,   // 30 minutes
+				Threshold: 30, // 30 minutes
 				Action:    "stop",
 			},
 			"aggressive": {
 				Name:      "aggressive",
-				Threshold: 15,   // 15 minutes
+				Threshold: 15, // 15 minutes
 				Action:    "stop",
 			},
 			"conservative": {
 				Name:      "conservative",
-				Threshold: 60,   // 60 minutes
+				Threshold: 60, // 60 minutes
 				Action:    "stop",
 			},
 		},
@@ -174,8 +174,8 @@ func (c *TUIClient) GetInstanceIdleStatus(ctx context.Context, name string) (*Id
 	return &IdleDetectionResponse{
 		Enabled:       true,
 		Policy:        "default",
-		IdleTime:      5,    // 5 minutes
-		Threshold:     30,   // 30 minutes
+		IdleTime:      5,  // 5 minutes
+		Threshold:     30, // 30 minutes
 		ActionPending: false,
 	}, nil
 }

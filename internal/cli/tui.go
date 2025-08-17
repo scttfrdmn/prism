@@ -5,9 +5,9 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/spf13/cobra"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/spf13/cobra"
 )
 
 // NewTUICommand creates a new tui command
@@ -33,13 +33,13 @@ func runTUI() {
 	if err := checkDaemonForTUI(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		fmt.Println("Attempting to start daemon...")
-		
+
 		if err := startDaemonForTUI(); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to start daemon: %v\n", err)
 			fmt.Println("Please start the daemon manually with: cws daemon start")
 			os.Exit(1)
 		}
-		
+
 		fmt.Println("Daemon started successfully.")
 	}
 
@@ -68,11 +68,11 @@ func checkDaemonForTUI() error {
 			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
 				cwsdPath = "../bin/cwsd"
 			}
-			
+
 			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
 				return fmt.Errorf("daemon executable not found in PATH or bin directory")
 			}
-			
+
 			cmd = exec.Command(cwsdPath, "status")
 			output, err = cmd.CombinedOutput()
 			if err != nil {
@@ -105,24 +105,24 @@ func startDaemonForTUI() error {
 			}
 		}
 	}
-	
+
 	// Start daemon
 	cmd := exec.Command(cwsdPath)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
-	
+
 	// Start in background
 	err := cmd.Start()
 	if err != nil {
 		return fmt.Errorf("failed to start daemon: %v", err)
 	}
-	
+
 	// If successful, detach
-	cmd.Process.Release()
-	
+	_ = cmd.Process.Release()
+
 	// Wait a moment for daemon to initialize
 	waitCmd := exec.Command("sleep", "2")
-	waitCmd.Run()
+	_ = waitCmd.Run()
 
 	return nil
 }

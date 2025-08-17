@@ -6,7 +6,7 @@ package state
 
 import (
 	"fmt"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -14,7 +14,7 @@ import (
 // This replaces both the base Manager and the ProfileAwareStateManager wrapper.
 type UnifiedManager struct {
 	*Manager // Embed the base manager for all core functionality
-	
+
 	// Profile integration (optional)
 	profileProvider ProfileProvider
 }
@@ -30,7 +30,7 @@ func NewUnifiedManager() (*UnifiedManager, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create base manager: %w", err)
 	}
-	
+
 	return &UnifiedManager{
 		Manager:         baseManager,
 		profileProvider: nil, // No profile integration by default
@@ -43,7 +43,7 @@ func NewUnifiedManagerWithProfiles(provider ProfileProvider) (*UnifiedManager, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to create base manager: %w", err)
 	}
-	
+
 	return &UnifiedManager{
 		Manager:         baseManager,
 		profileProvider: provider,
@@ -55,7 +55,7 @@ func (um *UnifiedManager) GetCurrentProfile() (string, error) {
 	if um.profileProvider == nil {
 		return "", fmt.Errorf("no profile provider configured")
 	}
-	
+
 	return um.profileProvider.GetCurrentProfile()
 }
 
@@ -65,7 +65,7 @@ func (um *UnifiedManager) LoadStateForProfile() (*types.State, error) {
 	if um.profileProvider == nil {
 		return um.Manager.LoadState()
 	}
-	
+
 	// With profile provider, we could extend this for profile-specific state
 	// For now, use global state (matches current behavior)
 	return um.Manager.LoadState()
@@ -77,7 +77,7 @@ func (um *UnifiedManager) SaveStateForProfile(state *types.State) error {
 	if um.profileProvider == nil {
 		return um.Manager.SaveState(state)
 	}
-	
+
 	// With profile provider, we could extend this for profile-specific state
 	// For now, use global state (matches current behavior)
 	return um.Manager.SaveState(state)

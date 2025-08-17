@@ -27,42 +27,42 @@ type ComplianceFramework string
 
 const (
 	// Primary research compliance frameworks
-	ComplianceNIST800171    ComplianceFramework = "NIST-800-171"
-	ComplianceNIST80053     ComplianceFramework = "NIST-800-53"
-	ComplianceSOC2          ComplianceFramework = "SOC-2"
-	ComplianceHIPAA         ComplianceFramework = "HIPAA"
-	ComplianceGDPR          ComplianceFramework = "GDPR"
-	ComplianceFedRAMP       ComplianceFramework = "FedRAMP"
-	ComplianceISO27001      ComplianceFramework = "ISO-27001"
-	CompliancePCIDSS        ComplianceFramework = "PCI-DSS"
-	
+	ComplianceNIST800171 ComplianceFramework = "NIST-800-171"
+	ComplianceNIST80053  ComplianceFramework = "NIST-800-53"
+	ComplianceSOC2       ComplianceFramework = "SOC-2"
+	ComplianceHIPAA      ComplianceFramework = "HIPAA"
+	ComplianceGDPR       ComplianceFramework = "GDPR"
+	ComplianceFedRAMP    ComplianceFramework = "FedRAMP"
+	ComplianceISO27001   ComplianceFramework = "ISO-27001"
+	CompliancePCIDSS     ComplianceFramework = "PCI-DSS"
+
 	// Export control and defense frameworks
-	ComplianceITAR          ComplianceFramework = "ITAR"
-	ComplianceEAR           ComplianceFramework = "EAR"
-	ComplianceCSA           ComplianceFramework = "CSA-STAR"
-	ComplianceFISMA         ComplianceFramework = "FISMA"
-	ComplianceDFARS         ComplianceFramework = "DFARS"
-	ComplianceCMMC          ComplianceFramework = "CMMC"
-	ComplianceCMMCL1        ComplianceFramework = "CMMC-L1"
-	ComplianceCMMCL2        ComplianceFramework = "CMMC-L2"
-	ComplianceCMMCL3        ComplianceFramework = "CMMC-L3"
-	ComplianceENISA         ComplianceFramework = "ENISA"
-	ComplianceC5            ComplianceFramework = "C5"
-	ComplianceFERPA         ComplianceFramework = "FERPA"
+	ComplianceITAR   ComplianceFramework = "ITAR"
+	ComplianceEAR    ComplianceFramework = "EAR"
+	ComplianceCSA    ComplianceFramework = "CSA-STAR"
+	ComplianceFISMA  ComplianceFramework = "FISMA"
+	ComplianceDFARS  ComplianceFramework = "DFARS"
+	ComplianceCMMC   ComplianceFramework = "CMMC"
+	ComplianceCMMCL1 ComplianceFramework = "CMMC-L1"
+	ComplianceCMMCL2 ComplianceFramework = "CMMC-L2"
+	ComplianceCMMCL3 ComplianceFramework = "CMMC-L3"
+	ComplianceENISA  ComplianceFramework = "ENISA"
+	ComplianceC5     ComplianceFramework = "C5"
+	ComplianceFERPA  ComplianceFramework = "FERPA"
 )
 
 // AWSComplianceStatus represents the compliance status against AWS Artifact reports
 type AWSComplianceStatus struct {
-	Framework           ComplianceFramework        `json:"framework"`
-	AWSCompliant        bool                       `json:"aws_compliant"`
-	ArtifactReportID    string                     `json:"artifact_report_id,omitempty"`
-	LastUpdated         time.Time                  `json:"last_updated"`
-	ComplianceScope     []string                   `json:"compliance_scope"`
-	RequiredSCPs        []string                   `json:"required_scps"`
-	ImplementedSCPs     []string                   `json:"implemented_scps"`
-	GapAnalysis         []ComplianceGap            `json:"gap_analysis"`
-	AWSServices         []AWSServiceCompliance     `json:"aws_services"`
-	RecommendedActions  []ComplianceRecommendation `json:"recommended_actions"`
+	Framework          ComplianceFramework        `json:"framework"`
+	AWSCompliant       bool                       `json:"aws_compliant"`
+	ArtifactReportID   string                     `json:"artifact_report_id,omitempty"`
+	LastUpdated        time.Time                  `json:"last_updated"`
+	ComplianceScope    []string                   `json:"compliance_scope"`
+	RequiredSCPs       []string                   `json:"required_scps"`
+	ImplementedSCPs    []string                   `json:"implemented_scps"`
+	GapAnalysis        []ComplianceGap            `json:"gap_analysis"`
+	AWSServices        []AWSServiceCompliance     `json:"aws_services"`
+	RecommendedActions []ComplianceRecommendation `json:"recommended_actions"`
 }
 
 // ComplianceGap represents gaps between CloudWorkstation and AWS compliance posture
@@ -85,17 +85,18 @@ type AWSServiceCompliance struct {
 
 // ComplianceRecommendation provides specific actions to improve compliance alignment
 type ComplianceRecommendation struct {
-	Priority        string `json:"priority"`
-	Action          string `json:"action"`
-	AWSService      string `json:"aws_service,omitempty"`
-	SCPRequired     string `json:"scp_required,omitempty"`
-	Impact          string `json:"impact"`
-	Implementation  string `json:"implementation"`
+	Priority       string `json:"priority"`
+	Action         string `json:"action"`
+	AWSService     string `json:"aws_service,omitempty"`
+	SCPRequired    string `json:"scp_required,omitempty"`
+	Impact         string `json:"impact"`
+	Implementation string `json:"implementation"`
 }
 
 // NewAWSComplianceValidator creates a new AWS compliance validator
 func NewAWSComplianceValidator(awsProfile, region string) (*AWSComplianceValidator, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile(awsProfile),
 		config.WithRegion(region),
 	)
@@ -202,7 +203,7 @@ func (v *AWSComplianceValidator) getArtifactReport(ctx context.Context, framewor
 func (v *AWSComplianceValidator) validateAWSServices(ctx context.Context, framework ComplianceFramework, status *AWSComplianceStatus) error {
 	// CloudWorkstation core AWS services
 	coreServices := []string{"EC2", "VPC", "IAM", "CloudTrail", "EFS", "EBS", "Systems Manager"}
-	
+
 	for _, serviceName := range coreServices {
 		serviceCompliance := v.getServiceComplianceStatus(serviceName, framework)
 		status.AWSServices = append(status.AWSServices, serviceCompliance)
@@ -344,7 +345,7 @@ func (v *AWSComplianceValidator) validateSCPs(ctx context.Context, framework Com
 	policies, err := v.organizationsClient.ListPolicies(ctx, &organizations.ListPoliciesInput{
 		Filter: "SERVICE_CONTROL_POLICY",
 	})
-	
+
 	if err != nil {
 		// Organization features may not be available
 		status.ImplementedSCPs = []string{"ORGANIZATION_CHECK_REQUIRED"}
@@ -642,7 +643,7 @@ func (v *AWSComplianceValidator) analyzeISO27001Gaps(status *AWSComplianceStatus
 	status.GapAnalysis = append(status.GapAnalysis, gaps...)
 }
 
-// analyzePCIDSSGaps performs PCI DSS specific gap analysis  
+// analyzePCIDSSGaps performs PCI DSS specific gap analysis
 func (v *AWSComplianceValidator) analyzePCIDSSGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
@@ -668,7 +669,7 @@ func (v *AWSComplianceValidator) generateRecommendations(framework ComplianceFra
 			Implementation: "cws aws config enable --compliance-rules " + string(framework),
 		},
 		{
-			Priority:       "HIGH", 
+			Priority:       "HIGH",
 			Action:         "Integrate CloudWorkstation audit logs with CloudWatch",
 			AWSService:     "CloudWatch Logs",
 			Impact:         "Centralized logging and compliance reporting",
@@ -742,7 +743,7 @@ func (v *AWSComplianceValidator) analyzeCMMCL1Gaps(status *AWSComplianceStatus) 
 	status.GapAnalysis = append(status.GapAnalysis, gaps...)
 }
 
-// analyzeCMMCL2Gaps performs CMMC Level 2 gap analysis  
+// analyzeCMMCL2Gaps performs CMMC Level 2 gap analysis
 func (v *AWSComplianceValidator) analyzeCMMCL2Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{

@@ -16,7 +16,7 @@ import (
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
-	
+
 	// Configuration
 	awsProfile      string
 	awsRegion       string
@@ -24,8 +24,8 @@ type Client struct {
 	ownerAccount    string
 	s3ConfigPath    string
 	profileID       string
-	apiKey          string  // API key for authentication
-	lastOperation   string  // Last operation performed for error context
+	apiKey          string // API key for authentication
+	lastOperation   string // Last operation performed for error context
 }
 
 // NewClient creates a new API client
@@ -270,26 +270,26 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 	if c.awsProfile != "" {
 		req.Header.Set("X-AWS-Profile", c.awsProfile)
 	}
-	
+
 	if c.awsRegion != "" {
 		req.Header.Set("X-AWS-Region", c.awsRegion)
 	}
-	
+
 	// Add invitation headers if configured
 	if c.invitationToken != "" {
 		req.Header.Set("X-Invitation-Token", c.invitationToken)
 		req.Header.Set("X-Owner-Account", c.ownerAccount)
-		
+
 		if c.s3ConfigPath != "" {
 			req.Header.Set("X-S3-Config-Path", c.s3ConfigPath)
 		}
 	}
-	
+
 	// Add profile ID header if configured
 	if c.profileID != "" {
 		req.Header.Set("X-Profile-ID", c.profileID)
 	}
-	
+
 	// Add API key if configured
 	if c.apiKey != "" {
 		req.Header.Set("X-API-Key", c.apiKey)
@@ -300,15 +300,15 @@ func (c *Client) addRequestHeaders(req *http.Request) {
 func (c *Client) get(path string, result interface{}) error {
 	// Extract operation name from path for error context
 	c.lastOperation = errors.ExtractOperationFromPath(path)
-	
+
 	req, err := http.NewRequest("GET", c.baseURL+path, nil)
 	if err != nil {
 		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
-	
+
 	// Add headers
 	c.addRequestHeaders(req)
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return types.NewAPIError(types.ErrNetworkError, "Request failed", err).WithOperation(c.lastOperation)
@@ -322,7 +322,7 @@ func (c *Client) get(path string, result interface{}) error {
 func (c *Client) post(path string, body interface{}, result interface{}) error {
 	// Extract operation name from path for error context
 	c.lastOperation = errors.ExtractOperationFromPath(path)
-	
+
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -336,15 +336,15 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 	if err != nil {
 		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
-	
+
 	// Set content type
 	if reqBody != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	
+
 	// Add headers
 	c.addRequestHeaders(req)
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return types.NewAPIError(types.ErrNetworkError, "Request failed", err).WithOperation(c.lastOperation)
@@ -358,7 +358,7 @@ func (c *Client) post(path string, body interface{}, result interface{}) error {
 func (c *Client) put(path string, body interface{}, result interface{}) error {
 	// Extract operation name from path for error context
 	c.lastOperation = errors.ExtractOperationFromPath(path)
-	
+
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -393,12 +393,12 @@ func (c *Client) put(path string, body interface{}, result interface{}) error {
 func (c *Client) delete(path string) error {
 	// Extract operation name from path for error context
 	c.lastOperation = errors.ExtractOperationFromPath(path)
-	
+
 	req, err := http.NewRequest("DELETE", c.baseURL+path, nil)
 	if err != nil {
 		return types.NewAPIError(types.ErrInvalidParameters, "Failed to create request", err).WithOperation(c.lastOperation)
 	}
-	
+
 	// Add headers
 	c.addRequestHeaders(req)
 
@@ -420,17 +420,17 @@ func (c *Client) handleResponse(resp *http.Response, result interface{}) error {
 			code := types.GetErrorCodeFromStatusCode(resp.StatusCode)
 			return types.NewAPIError(code, resp.Status, err).WithStatusCode(resp.StatusCode)
 		}
-		
+
 		// Set the status code if not already set
 		if apiErr.StatusCode == 0 {
 			apiErr.StatusCode = resp.StatusCode
 		}
-		
+
 		// Set operation if applicable
 		if c.lastOperation != "" && apiErr.Operation == "" {
 			apiErr.Operation = c.lastOperation
 		}
-		
+
 		return apiErr
 	}
 
@@ -438,7 +438,7 @@ func (c *Client) handleResponse(resp *http.Response, result interface{}) error {
 		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
 			return types.NewAPIError(
 				types.ErrInvalidFormat,
-				"Failed to decode response", 
+				"Failed to decode response",
 				err,
 			).WithOperation(c.lastOperation)
 		}

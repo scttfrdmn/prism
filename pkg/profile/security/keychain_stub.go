@@ -24,4 +24,4 @@ func NewLinuxSecretServiceNative() (*LinuxSecretServiceNative, error) {
 // Stub types for unsupported platforms
 type MacOSKeychainNative struct{}
 type WindowsCredentialManagerNative struct{}
-type LinuxSecretServiceNative struct {}
+type LinuxSecretServiceNative struct{}

@@ -72,7 +72,7 @@ func TestGetStatus(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"status": "running", "version": "1.0.0"}`)
+		_, _ = fmt.Fprint(w, `{"status": "running", "version": "1.0.0"}`)
 	}))
 	defer server.Close()
 	
@@ -93,7 +93,7 @@ func TestLaunchInstance(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`)
+		_, _ = fmt.Fprint(w, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`)
 	}))
 	defer server.Close()
 	
@@ -118,7 +118,7 @@ func TestListInstances(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`)
+		_, _ = fmt.Fprint(w, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`)
 	}))
 	defer server.Close()
 	
@@ -138,7 +138,7 @@ func TestGetInstance(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"id": "i-123", "name": "test-instance", "state": "running"}`)
+		_, _ = fmt.Fprint(w, `{"id": "i-123", "name": "test-instance", "state": "running"}`)
 	}))
 	defer server.Close()
 	
@@ -195,7 +195,7 @@ func TestGetInstanceHibernationStatus(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`)
+		_, _ = fmt.Fprint(w, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`)
 	}))
 	defer server.Close()
 	
@@ -231,7 +231,7 @@ func TestConnectInstance(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"connection_info": "ssh user@1.2.3.4"}`)
+		_, _ = fmt.Fprint(w, `{"connection_info": "ssh user@1.2.3.4"}`)
 	}))
 	defer server.Close()
 	
@@ -250,7 +250,7 @@ func TestListTemplates(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"python-ml": {"name": "python-ml", "description": "Python ML"}}`)
+		_, _ = fmt.Fprint(w, `{"python-ml": {"name": "python-ml", "description": "Python ML"}}`)
 	}))
 	defer server.Close()
 	
@@ -270,7 +270,7 @@ func TestGetTemplate(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"name": "python-ml", "description": "Python ML environment"}`)
+		_, _ = fmt.Fprint(w, `{"name": "python-ml", "description": "Python ML environment"}`)
 	}))
 	defer server.Close()
 	
@@ -286,7 +286,7 @@ func TestGetTemplate(t *testing.T) {
 func TestHTTPClientErrorHandling(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, `{"error": "invalid request"}`)
+		_, _ = fmt.Fprint(w, `{"error": "invalid request"}`)
 	}))
 	defer server.Close()
 	
@@ -344,7 +344,7 @@ func TestHTTPClientInvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"invalid": json}`)
+		_, _ = fmt.Fprint(w, `{"invalid": json}`)
 	}))
 	defer server.Close()
 	
@@ -378,7 +378,7 @@ func TestHTTPClientHeaders(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, `{"name": "test-instance"}`)
+		_, _ = fmt.Fprint(w, `{"name": "test-instance"}`)
 	}))
 	defer server.Close()
 	
@@ -425,7 +425,7 @@ func TestMakeRequest(t *testing.T) {
 		
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, `{"result": "success"}`)
+		_, _ = fmt.Fprint(w, `{"result": "success"}`)
 	}))
 	defer server.Close()
 	
@@ -442,7 +442,7 @@ func TestMakeRequest(t *testing.T) {
 func TestMakeRequestErrorHandling(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, `{"error": "internal server error"}`)
+		_, _ = fmt.Fprint(w, `{"error": "internal server error"}`)
 	}))
 	defer server.Close()
 	

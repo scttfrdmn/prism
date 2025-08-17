@@ -9,67 +9,62 @@ type ErrorCode string
 
 const (
 	// Generic error codes
-	ErrUnknown          ErrorCode = "unknown_error"      // Unknown or unclassified error
-	
+	ErrUnknown ErrorCode = "unknown_error" // Unknown or unclassified error
+
 	// HTTP-like status errors
-	ErrNotFound         ErrorCode = "not_found"          // Resource not found (404)
-	ErrUnauthorized     ErrorCode = "unauthorized"       // Authentication required (401)
-	ErrForbidden        ErrorCode = "forbidden"          // Permission denied (403)
+	ErrNotFound          ErrorCode = "not_found"          // Resource not found (404)
+	ErrUnauthorized      ErrorCode = "unauthorized"       // Authentication required (401)
+	ErrForbidden         ErrorCode = "forbidden"          // Permission denied (403)
 	ErrInvalidParameters ErrorCode = "invalid_parameters" // Bad request parameters (400)
-	ErrConflict         ErrorCode = "conflict"           // Resource conflict (409)
-	ErrServerError      ErrorCode = "server_error"       // Internal server error (500)
-	
+	ErrConflict          ErrorCode = "conflict"           // Resource conflict (409)
+	ErrServerError       ErrorCode = "server_error"       // Internal server error (500)
+
 	// Operation errors
-	ErrTimeout          ErrorCode = "timeout"            // Operation timed out
-	ErrCanceled         ErrorCode = "canceled"           // Operation was canceled
-	ErrRateLimited      ErrorCode = "rate_limited"       // Too many requests
-	ErrNetworkError     ErrorCode = "network_error"      // Network communication error
-	
+	ErrTimeout      ErrorCode = "timeout"       // Operation timed out
+	ErrCanceled     ErrorCode = "canceled"      // Operation was canceled
+	ErrRateLimited  ErrorCode = "rate_limited"  // Too many requests
+	ErrNetworkError ErrorCode = "network_error" // Network communication error
+
 	// Resource errors
-	ErrResourceExists   ErrorCode = "resource_exists"    // Resource already exists
-	ErrResourceInUse    ErrorCode = "resource_in_use"    // Resource is in use
-	ErrResourceLocked   ErrorCode = "resource_locked"    // Resource is locked
-	ErrQuotaExceeded    ErrorCode = "quota_exceeded"    // Account quota exceeded
-	
+	ErrResourceExists ErrorCode = "resource_exists" // Resource already exists
+	ErrResourceInUse  ErrorCode = "resource_in_use" // Resource is in use
+	ErrResourceLocked ErrorCode = "resource_locked" // Resource is locked
+	ErrQuotaExceeded  ErrorCode = "quota_exceeded"  // Account quota exceeded
+
 	// Authentication/authorization errors
 	ErrInvalidCredentials ErrorCode = "invalid_credentials" // Invalid login credentials
 	ErrAccountDisabled    ErrorCode = "account_disabled"    // User account is disabled
 	ErrPermissionDenied   ErrorCode = "permission_denied"   // User lacks permission
 	ErrSessionExpired     ErrorCode = "session_expired"     // Session has expired
-	
+
 	// Validation errors
-	ErrValidationFailed   ErrorCode = "validation_failed"   // Input validation failed
-	ErrInvalidFormat      ErrorCode = "invalid_format"      // Input in wrong format
-	ErrMissingRequired    ErrorCode = "missing_required"    // Required field missing
-	
+	ErrValidationFailed ErrorCode = "validation_failed" // Input validation failed
+	ErrInvalidFormat    ErrorCode = "invalid_format"    // Input in wrong format
+	ErrMissingRequired  ErrorCode = "missing_required"  // Required field missing
+
 	// AWS specific errors
-	ErrAWSError           ErrorCode = "aws_error"           // AWS API error
-	ErrAWSNotConfigured   ErrorCode = "aws_not_configured"  // AWS credentials not configured
+	ErrAWSError            ErrorCode = "aws_error"             // AWS API error
+	ErrAWSNotConfigured    ErrorCode = "aws_not_configured"    // AWS credentials not configured
 	ErrRegionNotConfigured ErrorCode = "region_not_configured" // AWS region not configured
 )
 
 // APIError represents an API error with additional context
 type APIError struct {
-	Code        ErrorCode            `json:"code"`
-	Message     string               `json:"message"`
-	Details     string               `json:"details,omitempty"`
-	RequestID   string               `json:"request_id,omitempty"`
-	Operation   string               `json:"operation,omitempty"`
-	Resource    string               `json:"resource,omitempty"`      // Resource type (instance, volume, etc.)
-	ResourceID  string               `json:"resource_id,omitempty"`   // Specific resource ID (if applicable)
-	Field       string               `json:"field,omitempty"`         // Field name for validation errors
-	Validation  map[string]string    `json:"validation,omitempty"`    // Field validation errors
-	StatusCode  int                  `json:"status_code,omitempty"`   // HTTP status code
-	Retryable   bool                 `json:"retryable,omitempty"`     // Whether operation can be retried
-	Suggestions []string             `json:"suggestions,omitempty"`   // Suggested actions to resolve
-	cause       error                // Not serialized - underlying error
+	Code        ErrorCode         `json:"code"`
+	Message     string            `json:"message"`
+	Details     string            `json:"details,omitempty"`
+	RequestID   string            `json:"request_id,omitempty"`
+	Operation   string            `json:"operation,omitempty"`
+	Resource    string            `json:"resource,omitempty"`    // Resource type (instance, volume, etc.)
+	ResourceID  string            `json:"resource_id,omitempty"` // Specific resource ID (if applicable)
+	Field       string            `json:"field,omitempty"`       // Field name for validation errors
+	Validation  map[string]string `json:"validation,omitempty"`  // Field validation errors
+	StatusCode  int               `json:"status_code,omitempty"` // HTTP status code
+	Retryable   bool              `json:"retryable,omitempty"`   // Whether operation can be retried
+	Suggestions []string          `json:"suggestions,omitempty"` // Suggested actions to resolve
+	cause       error             // Not serialized - underlying error
 }
 
-// getErrorCodeFromStatusCode converts HTTP status codes to appropriate error codes
-// This is kept for backwards compatibility with tests
-func getErrorCodeFromStatusCode(statusCode int) ErrorCode {
-	return GetErrorCodeFromStatusCode(statusCode)
-}
 
 // GetErrorCodeFromStatusCode converts HTTP status codes to appropriate error codes
 func GetErrorCodeFromStatusCode(statusCode int) ErrorCode {
@@ -194,9 +189,9 @@ func (e APIError) IsNotFound() bool {
 
 // IsAuthError returns whether this is an authentication or authorization error
 func (e APIError) IsAuthError() bool {
-	return e.Code == ErrUnauthorized || e.Code == ErrForbidden || 
-	       e.Code == ErrInvalidCredentials || e.Code == ErrPermissionDenied || 
-	       e.Code == ErrSessionExpired
+	return e.Code == ErrUnauthorized || e.Code == ErrForbidden ||
+		e.Code == ErrInvalidCredentials || e.Code == ErrPermissionDenied ||
+		e.Code == ErrSessionExpired
 }
 
 // NewNotFoundError creates a standard not found error for a resource
@@ -205,7 +200,7 @@ func NewNotFoundError(resource, resourceID string) APIError {
 	if resourceID != "" {
 		message = fmt.Sprintf("%s with ID '%s' not found", resource, resourceID)
 	}
-	
+
 	return NewAPIError(ErrNotFound, message, nil).WithResource(resource, resourceID)
 }
 
@@ -214,7 +209,7 @@ func NewValidationError(message string, validationErrors map[string]string) APIE
 	if message == "" {
 		message = "Validation failed"
 	}
-	
+
 	return NewAPIError(ErrValidationFailed, message, nil).WithValidation(validationErrors)
 }
 
@@ -279,19 +274,19 @@ func ExtractValidationErrors(err error) map[string]string {
 func FormatErrorForDisplay(err error) string {
 	if apiErr, ok := err.(APIError); ok {
 		msg := apiErr.Message
-		
+
 		// Add field information for validation errors
 		if apiErr.Code == ErrValidationFailed && apiErr.Field != "" {
 			msg = fmt.Sprintf("%s: %s", apiErr.Field, msg)
 		}
-		
+
 		// Add helpful suggestions if available
 		if len(apiErr.Suggestions) > 0 {
 			msg = fmt.Sprintf("%s\nSuggested action: %s", msg, apiErr.Suggestions[0])
 		}
-		
+
 		return msg
 	}
-	
+
 	return err.Error()
 }

@@ -261,30 +261,30 @@ func (m *TemplateManager) GetDependencyGraph(templateName string) ([]string, err
 	visited := make(map[string]bool)
 	graph := make(map[string][]string)
 	sorted := []string{}
-	
+
 	// Build dependency graph
 	if err := m.buildDependencyGraph(templateName, graph, visited); err != nil {
 		return nil, err
 	}
-	
+
 	// Check for cycles
 	visitedInCurrentPath := make(map[string]bool)
 	if m.hasCycle(templateName, graph, visited, visitedInCurrentPath) {
 		return nil, DependencyError("circular dependency detected", nil).
 			WithContext("template_name", templateName)
 	}
-	
+
 	// Topologically sort the graph
 	visited = make(map[string]bool)
 	if err := m.topologicalSort(templateName, graph, visited, &sorted); err != nil {
 		return nil, err
 	}
-	
+
 	// Reverse the result to get build order
 	for i, j := 0, len(sorted)-1; i < j; i, j = i+1, j-1 {
 		sorted[i], sorted[j] = sorted[j], sorted[i]
 	}
-	
+
 	return sorted, nil
 }
 
@@ -293,25 +293,25 @@ func (m *TemplateManager) buildDependencyGraph(templateName string, graph map[st
 	if visited[templateName] {
 		return nil
 	}
-	
+
 	visited[templateName] = true
 	graph[templateName] = []string{}
-	
+
 	template, err := m.GetTemplate(templateName)
 	if err != nil {
 		return err
 	}
-	
+
 	for _, dep := range template.Dependencies {
 		graph[templateName] = append(graph[templateName], dep.Name)
-		
+
 		if !visited[dep.Name] {
 			if err := m.buildDependencyGraph(dep.Name, graph, visited); err != nil {
 				return err
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -319,7 +319,7 @@ func (m *TemplateManager) buildDependencyGraph(templateName string, graph map[st
 func (m *TemplateManager) hasCycle(templateName string, graph map[string][]string, visited, visitedInCurrentPath map[string]bool) bool {
 	visited[templateName] = true
 	visitedInCurrentPath[templateName] = true
-	
+
 	for _, dep := range graph[templateName] {
 		if !visited[dep] {
 			if m.hasCycle(dep, graph, visited, visitedInCurrentPath) {
@@ -329,7 +329,7 @@ func (m *TemplateManager) hasCycle(templateName string, graph map[string][]strin
 			return true
 		}
 	}
-	
+
 	visitedInCurrentPath[templateName] = false
 	return false
 }
@@ -339,9 +339,9 @@ func (m *TemplateManager) topologicalSort(templateName string, graph map[string]
 	if visited[templateName] {
 		return nil
 	}
-	
+
 	visited[templateName] = true
-	
+
 	for _, dep := range graph[templateName] {
 		if !visited[dep] {
 			if err := m.topologicalSort(dep, graph, visited, sorted); err != nil {
@@ -349,7 +349,7 @@ func (m *TemplateManager) topologicalSort(templateName string, graph map[string]
 			}
 		}
 	}
-	
+
 	*sorted = append(*sorted, templateName)
 	return nil
 }

@@ -1,9 +1,9 @@
 package templates
 
 import (
+	"bytes"
 	"fmt"
 	"text/template"
-	"bytes"
 )
 
 // NewScriptGenerator creates a new script generator
@@ -27,7 +27,7 @@ func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager Package
 		Users:          sg.prepareUsers(tmpl.Users),
 		Services:       tmpl.Services,
 	}
-	
+
 	// Select appropriate template
 	var scriptTemplate string
 	switch packageManager {
@@ -45,18 +45,18 @@ func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager Package
 	default:
 		return "", fmt.Errorf("unsupported package manager: %s", packageManager)
 	}
-	
+
 	// Parse and execute template
 	tmplObj, err := template.New("script").Parse(scriptTemplate)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse script template: %w", err)
 	}
-	
+
 	var buf bytes.Buffer
 	if err := tmplObj.Execute(&buf, scriptData); err != nil {
 		return "", fmt.Errorf("failed to execute script template: %w", err)
 	}
-	
+
 	return buf.String(), nil
 }
 
@@ -71,9 +71,9 @@ type ScriptData struct {
 
 // UserData contains processed user data for script generation
 type UserData struct {
-	Name     string
-	Groups   []string
-	Shell    string
+	Name   string
+	Groups []string
+	Shell  string
 }
 
 // selectPackagesForManager selects appropriate packages for the given package manager
@@ -96,17 +96,13 @@ func (sg *ScriptGenerator) selectPackagesForManager(tmpl *Template, pm PackageMa
 // prepareUsers processes user configurations and generates passwords
 func (sg *ScriptGenerator) prepareUsers(users []UserConfig) []UserData {
 	userData := make([]UserData, len(users))
-	
+
 	for i, user := range users {
-		userData[i] = UserData{
-			Name:   user.Name,
-			Groups: user.Groups,
-			Shell:  user.Shell,
-		}
-		
+		userData[i] = UserData(user)
+
 		// SSH key authentication only - no passwords needed
 	}
-	
+
 	return userData
 }
 

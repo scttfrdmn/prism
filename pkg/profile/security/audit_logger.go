@@ -13,27 +13,27 @@ import (
 
 // SecurityAuditLogger provides comprehensive audit logging for security events
 type SecurityAuditLogger struct {
-	logFile     *os.File
-	logger      *log.Logger
-	logPath     string
-	mutex       sync.Mutex
-	buffer      []SecurityEvent
-	maxBuffer   int
-	flushTimer  *time.Timer
+	logFile    *os.File
+	logger     *log.Logger
+	logPath    string
+	mutex      sync.Mutex
+	buffer     []SecurityEvent
+	maxBuffer  int
+	flushTimer *time.Timer
 }
 
 // SecurityEvent represents a security-related event to be logged
 type SecurityEvent struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	EventType   string                 `json:"event_type"`
-	DeviceID    string                 `json:"device_id,omitempty"`
-	Success     bool                   `json:"success"`
-	ErrorCode   string                 `json:"error_code,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
-	Severity    string                 `json:"severity"`
-	Source      string                 `json:"source"`
-	UserAgent   string                 `json:"user_agent,omitempty"`
-	RemoteIP    string                 `json:"remote_ip,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	EventType string                 `json:"event_type"`
+	DeviceID  string                 `json:"device_id,omitempty"`
+	Success   bool                   `json:"success"`
+	ErrorCode string                 `json:"error_code,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	Severity  string                 `json:"severity"`
+	Source    string                 `json:"source"`
+	UserAgent string                 `json:"user_agent,omitempty"`
+	RemoteIP  string                 `json:"remote_ip,omitempty"`
 }
 
 // NewSecurityAuditLogger creates a new security audit logger
@@ -307,4 +307,3 @@ func maskKey(key string) string {
 	}
 	return key[:4] + "***" + key[len(key)-4:]
 }
-

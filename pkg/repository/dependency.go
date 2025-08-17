@@ -75,12 +75,12 @@ func getTemplatePath(template *TemplateMetadata, repo *Repository, cache *Reposi
 	if repo.Type == "local" {
 		return fmt.Sprintf("%s/%s", repo.Path, template.Path)
 	}
-	
+
 	// Use cached path
 	if entry, ok := cache.Repositories[repo.Name]; ok {
 		return fmt.Sprintf("%s/%s", entry.Path, template.Path)
 	}
-	
+
 	return template.Path
 }
 

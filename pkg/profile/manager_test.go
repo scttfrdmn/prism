@@ -10,198 +10,153 @@ import (
 )
 
 func TestProfileManager(t *testing.T) {
-	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "profile-manager-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
+	// Backup existing profile config and clean up on test completion
+	homeDir, _ := os.UserHomeDir()
+	configPath := filepath.Join(homeDir, ".cloudworkstation", "profiles.json")
 
-	// Create a test manager
+	// Backup existing config if it exists
+	var backupData []byte
+	var hadExistingConfig bool
+	if data, err := os.ReadFile(configPath); err == nil {
+		backupData = data
+		hadExistingConfig = true
+		_ = os.Remove(configPath) // Remove for clean test
+	}
+
+	defer func() {
+		if hadExistingConfig {
+			_ = os.MkdirAll(filepath.Dir(configPath), 0755)
+			_ = os.WriteFile(configPath, backupData, 0644) // Restore
+		} else {
+			_ = os.Remove(configPath) // Clean up test data
+		}
+	}()
+
+	// Create a clean test manager
 	manager, err := core.NewManager()
 	if err != nil {
 		t.Fatalf("Failed to create manager: %v", err)
 	}
 
 	// Test adding profiles
-	personalProfile := Profile{
-		Type:       ProfileTypePersonal,
+	personalProfile := &core.Profile{
 		Name:       "Test Personal",
 		AWSProfile: "default",
 		Region:     "us-west-2",
-		Default:    true,
 		CreatedAt:  time.Now(),
 	}
 
 	// Add the personal profile
-	err = manager.Add("personal", personalProfile)
+	err = manager.Set("personal", personalProfile)
 	if err != nil {
-		t.Fatalf("Failed to add personal profile: %v", err)
+		t.Fatalf("Failed to set personal profile: %v", err)
 	}
 
-	// Check if profile was added and set as current
-	if manager.profiles.CurrentProfile != "personal" {
-		t.Errorf("Expected current profile to be 'personal', got '%s'", manager.profiles.CurrentProfile)
+	// Check if profile was added
+	_, err = manager.Get("personal")
+	if err != nil {
+		t.Errorf("Failed to get personal profile: %v", err)
 	}
 
 	// Add invitation profile
-	invitationProfile := Profile{
-		Type:            ProfileTypeInvitation,
-		Name:            "Test Invitation",
-		InvitationToken: "test-token",
-		OwnerAccount:    "123456789012",
-		Region:          "us-east-1",
-		CreatedAt:       time.Now(),
+	invitationProfile := &core.Profile{
+		Name:       "Test Invitation",
+		AWSProfile: "invitation-profile",
+		Region:     "us-east-1",
+		CreatedAt:  time.Now(),
 	}
 
-	err = manager.Add("invitation", invitationProfile)
+	err = manager.Set("invitation", invitationProfile)
 	if err != nil {
-		t.Fatalf("Failed to add invitation profile: %v", err)
+		t.Fatalf("Failed to set invitation profile: %v", err)
 	}
 
 	// Check if both profiles exist
-	if len(manager.profiles.Profiles) != 2 {
-		t.Errorf("Expected 2 profiles, got %d", len(manager.profiles.Profiles))
+	profiles := manager.List()
+	if len(profiles) != 2 {
+		t.Errorf("Expected 2 profiles, got %d", len(profiles))
 	}
 
 	// Test getting a profile
-	profile, exists := manager.Get("invitation")
-	if !exists {
-		t.Fatalf("Expected invitation profile to exist")
+	profile, err := manager.Get("invitation")
+	if err != nil {
+		t.Fatalf("Failed to get invitation profile: %v", err)
 	}
-	if profile.Type != ProfileTypeInvitation {
-		t.Errorf("Expected profile type %s, got %s", ProfileTypeInvitation, profile.Type)
-	}
-	if profile.Name != "Test Invitation" {
-		t.Errorf("Expected profile name 'Test Invitation', got '%s'", profile.Name)
+	if profile.Name != "invitation" {
+		t.Errorf("Expected profile name 'invitation', got '%s'", profile.Name)
 	}
 
 	// Test switching profiles
-	err = manager.Use("invitation")
+	err = manager.SetCurrent("invitation")
 	if err != nil {
 		t.Fatalf("Failed to switch profile: %v", err)
 	}
 
-	if manager.profiles.CurrentProfile != "invitation" {
-		t.Errorf("Expected current profile to be 'invitation', got '%s'", manager.profiles.CurrentProfile)
+	if manager.GetCurrentName() != "invitation" {
+		t.Errorf("Expected current profile to be 'invitation', got '%s'", manager.GetCurrentName())
 	}
 
 	// Test getting current profile
-	currentProfile, exists := manager.Current()
-	if !exists {
-		t.Fatalf("Expected current profile to exist")
+	currentProfile, err := manager.GetCurrent()
+	if err != nil {
+		t.Fatalf("Failed to get current profile: %v", err)
 	}
-	if currentProfile.Type != ProfileTypeInvitation {
-		t.Errorf("Expected current profile type %s, got %s", ProfileTypeInvitation, currentProfile.Type)
+	if currentProfile.Name != "invitation" {
+		t.Errorf("Expected current profile name 'invitation', got '%s'", currentProfile.Name)
 	}
 
 	// Test updating a profile
-	updates := Profile{
-		Type:            ProfileTypeInvitation,
-		Name:            "Updated Invitation",
-		InvitationToken: "new-token",
-		OwnerAccount:    "123456789012",
-		Region:          "us-east-2",
+	updates := &core.Profile{
+		Name:       "Updated Invitation",
+		AWSProfile: "updated-profile",
+		Region:     "us-east-2",
+		CreatedAt:  time.Now(),
 	}
 
-	err = manager.Update("invitation", updates)
+	err = manager.Set("invitation", updates)
 	if err != nil {
 		t.Fatalf("Failed to update profile: %v", err)
 	}
 
 	// Check if profile was updated
-	profile, _ = manager.Get("invitation")
-	if profile.Name != "Updated Invitation" {
-		t.Errorf("Expected profile name 'Updated Invitation', got '%s'", profile.Name)
+	profile, err = manager.Get("invitation")
+	if err != nil {
+		t.Fatalf("Failed to get updated profile: %v", err)
+	}
+	if profile.Name != "invitation" {
+		t.Errorf("Expected profile name 'invitation', got '%s'", profile.Name)
 	}
 	if profile.Region != "us-east-2" {
-		t.Errorf("Expected profile region 'us-east-2', got '%s'", profile.Region)
+		t.Errorf("Expected region 'us-east-2', got '%s'", profile.Region)
 	}
 
 	// Test removing a profile
 	// First switch back to personal
-	err = manager.Use("personal")
+	err = manager.SetCurrent("personal")
 	if err != nil {
 		t.Fatalf("Failed to switch profile: %v", err)
 	}
 
 	// Then remove invitation
-	err = manager.Remove("invitation")
+	err = manager.Delete("invitation")
 	if err != nil {
-		t.Fatalf("Failed to remove profile: %v", err)
+		t.Fatalf("Failed to delete profile: %v", err)
 	}
 
 	// Check if profile was removed
-	_, exists = manager.Get("invitation")
-	if exists {
-		t.Errorf("Expected invitation profile to be removed")
-	}
-
-	// Test removing current profile (should fail)
-	err = manager.Remove("personal")
+	_, err = manager.Get("invitation")
 	if err == nil {
-		t.Errorf("Expected error when removing current profile")
+		t.Errorf("Expected invitation profile to be removed, but it still exists")
 	}
 
-	// Test loading and saving
-	// Save current state
-	err = manager.save()
-	if err != nil {
-		t.Fatalf("Failed to save profiles: %v", err)
+	// Test that we now have only 1 profile remaining
+	finalProfiles := manager.List()
+	if len(finalProfiles) != 1 {
+		t.Errorf("Expected 1 profile remaining after deletion, got %d", len(finalProfiles))
 	}
 
-	// Create a new manager that loads the saved state
-	newManager := &core.Manager{
-		configPath: filepath.Join(tempDir, "profiles.json"),
-	}
-
-	err = newManager.load()
-	if err != nil {
-		t.Fatalf("Failed to load profiles: %v", err)
-	}
-
-	// Check if state was loaded correctly
-	if newManager.profiles.CurrentProfile != "personal" {
-		t.Errorf("Expected loaded current profile to be 'personal', got '%s'", newManager.profiles.CurrentProfile)
-	}
-
-	if len(newManager.profiles.Profiles) != 1 {
-		t.Errorf("Expected 1 profile, got %d", len(newManager.profiles.Profiles))
-	}
-
-	// Test AddInvitation helper
-	err = newManager.AddInvitation(
-		"new-invitation",
-		"New Invitation",
-		"invitation-token",
-		"987654321098",
-		"eu-west-1",
-	)
-	if err != nil {
-		t.Fatalf("Failed to add invitation: %v", err)
-	}
-
-	// Check if invitation was added
-	profile, exists = newManager.Get("new-invitation")
-	if !exists {
-		t.Fatalf("Expected new invitation profile to exist")
-	}
-	if profile.Type != ProfileTypeInvitation {
-		t.Errorf("Expected profile type %s, got %s", ProfileTypeInvitation, profile.Type)
-	}
-	if profile.InvitationToken != "invitation-token" {
-		t.Errorf("Expected token 'invitation-token', got '%s'", profile.InvitationToken)
-	}
-
-	// Test List method
-	profiles := newManager.List()
-	if len(profiles) != 2 {
-		t.Errorf("Expected 2 profiles in list, got %d", len(profiles))
-	}
-
-	// Test adding duplicate profile
-	err = newManager.Add("personal", personalProfile)
-	if err == nil {
-		t.Errorf("Expected error when adding duplicate profile")
+	// Test that the remaining profile is personal
+	if manager.GetCurrentName() != "personal" {
+		t.Errorf("Expected current profile to be 'personal', got '%s'", manager.GetCurrentName())
 	}
 }

@@ -13,21 +13,21 @@ type TabBarItem struct {
 
 // AdvancedTabBar represents an advanced tab bar component
 type AdvancedTabBar struct {
-	tabs        []TabBarItem
-	activeTab   string
-	width       int
-	showBorder  bool
-	tabWidth    int // if 0, tabs are sized automatically
-	height      int // typically 1 or 3 (for borders)
+	tabs       []TabBarItem
+	activeTab  string
+	width      int
+	showBorder bool
+	tabWidth   int // if 0, tabs are sized automatically
+	height     int // typically 1 or 3 (for borders)
 }
 
 // NewAdvancedTabBar creates a new advanced tab bar with the specified tabs
 func NewAdvancedTabBar(tabs []TabBarItem, activeTab string) AdvancedTabBar {
 	return AdvancedTabBar{
-		tabs:      tabs,
-		activeTab: activeTab,
-		width:     80,
-		height:    3,
+		tabs:       tabs,
+		activeTab:  activeTab,
+		width:      80,
+		height:     3,
 		showBorder: true,
 	}
 }
@@ -65,7 +65,7 @@ func (t *AdvancedTabBar) SetShowBorder(show bool) {
 // ClickTab handles a tab click at the given x position
 func (t *AdvancedTabBar) ClickTab(x int) (clicked bool) {
 	tabWidth := t.calculateTabWidth()
-	
+
 	// Calculate which tab was clicked
 	pos := 0
 	for _, tab := range t.tabs {
@@ -86,7 +86,7 @@ func (t *AdvancedTabBar) calculateTabWidth() int {
 	if t.tabWidth > 0 {
 		return t.tabWidth
 	}
-	
+
 	// Divide available space evenly among tabs
 	tabCount := len(t.tabs)
 	if tabCount == 0 {
@@ -98,10 +98,10 @@ func (t *AdvancedTabBar) calculateTabWidth() int {
 // View renders the advanced tab bar
 func (t *AdvancedTabBar) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Calculate tab width
 	tabWidth := t.calculateTabWidth()
-	
+
 	// Create tab styles
 	activeTabStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
@@ -112,7 +112,7 @@ func (t *AdvancedTabBar) View() string {
 		Foreground(theme.TextColor).
 		Bold(true).
 		Width(tabWidth - 2) // account for borders
-		
+
 	inactiveTabStyle := lipgloss.NewStyle().
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(theme.BorderColor).
@@ -120,7 +120,7 @@ func (t *AdvancedTabBar) View() string {
 		Padding(0, 1).
 		Foreground(theme.MutedColor).
 		Width(tabWidth - 2) // account for borders
-	
+
 	// Set to simple style if not showing borders
 	if !t.showBorder {
 		activeTabStyle = lipgloss.NewStyle().
@@ -129,16 +129,16 @@ func (t *AdvancedTabBar) View() string {
 			Bold(true).
 			Padding(0, 1).
 			Width(tabWidth - 2)
-			
+
 		inactiveTabStyle = lipgloss.NewStyle().
 			Foreground(theme.MutedColor).
 			Padding(0, 1).
 			Width(tabWidth - 2)
 	}
-	
+
 	// Build tab string
 	var renderedTabs []string
-	
+
 	for _, tab := range t.tabs {
 		if tab.ID == t.activeTab {
 			renderedTabs = append(renderedTabs, activeTabStyle.Render(tab.Title))
@@ -146,10 +146,10 @@ func (t *AdvancedTabBar) View() string {
 			renderedTabs = append(renderedTabs, inactiveTabStyle.Render(tab.Title))
 		}
 	}
-	
+
 	// Join tabs together
 	tabs := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
-	
+
 	// If showing borders, create a bottom line that spans the entire row
 	if t.showBorder {
 		bottom := lipgloss.NewStyle().
@@ -161,9 +161,9 @@ func (t *AdvancedTabBar) View() string {
 			BorderForeground(theme.AccentColor).
 			Width(t.width - 2).
 			Render("")
-			
+
 		return lipgloss.JoinVertical(lipgloss.Left, tabs, bottom)
 	}
-	
+
 	return tabs
 }

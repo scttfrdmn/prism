@@ -107,13 +107,13 @@ func deriveDeviceKey() ([32]byte, error) {
 
 	// Combine all entropy sources
 	combined := strings.Join(entropy, "|")
-	
+
 	// Use PBKDF2 to derive key from combined entropy
-	// Salt is derived from hostname and user to be consistent across invocations 
+	// Salt is derived from hostname and user to be consistent across invocations
 	// but unique per device/user combination
 	salt := deriveSalt()
 	derived := pbkdf2.Key([]byte(combined), salt, 100000, 32, sha256.New)
-	
+
 	copy(key[:], derived)
 	return key, nil
 }
@@ -224,44 +224,44 @@ func getLinuxMachineID() string {
 	if data, err := os.ReadFile("/etc/machine-id"); err == nil {
 		return strings.TrimSpace(string(data))
 	}
-	
+
 	// Fallback to /var/lib/dbus/machine-id
 	if data, err := os.ReadFile("/var/lib/dbus/machine-id"); err == nil {
 		return strings.TrimSpace(string(data))
 	}
-	
+
 	return "linux-machine-id-unavailable"
 }
 
 // getPrimaryMACAddresses gets MAC addresses from primary network interfaces
 func getPrimaryMACAddresses() []string {
 	var addresses []string
-	
+
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return addresses
 	}
-	
+
 	for _, iface := range interfaces {
 		// Skip loopback interfaces
 		if iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
-		
+
 		// Skip interfaces that are down
 		if iface.Flags&net.FlagUp == 0 {
 			continue
 		}
-		
+
 		// Skip interfaces without a hardware address
 		if len(iface.HardwareAddr) == 0 {
 			continue
 		}
-		
+
 		// Add the MAC address
 		addresses = append(addresses, iface.HardwareAddr.String())
 	}
-	
+
 	return addresses
 }
 

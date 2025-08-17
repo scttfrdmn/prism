@@ -171,7 +171,7 @@ func (v *SchemaValidator) Validate(template *Template) error {
 
 		return ValidationError(
 			fmt.Sprintf("template schema validation failed with %d errors", len(result.Errors())),
-			fmt.Errorf(strings.Join(errMsgs, "\n")),
+			fmt.Errorf("%s", strings.Join(errMsgs, "\n")),
 		).WithContext("template_name", template.Name)
 	}
 

@@ -1,0 +1,516 @@
+#!/bin/bash
+# CloudWorkstation Daemon Control (Production Version)
+# Prevents multiple daemon instances, provides seamless management, and integrates with package managers
+#
+# Usage:
+#   cws-daemon {start|stop|restart|status|health|logs|clean}
+#
+# Installation Integration:
+#   - Homebrew: brew services start/stop/restart cloudworkstation
+#   - Direct: cws-daemon start/stop/restart/status  
+#   - Source: ./scripts/cws-daemon start (with auto-detection)
+
+set -e
+
+# Configuration
+DAEMON_NAME="cwsd"
+API_PORT="8947"
+API_URL="http://localhost:$API_PORT"
+CONFIG_DIR="$HOME/.cloudworkstation"
+PID_FILE="$CONFIG_DIR/daemon.pid"
+LOG_FILE="$CONFIG_DIR/daemon.log"
+LOCK_FILE="$CONFIG_DIR/daemon.lock"
+
+# Create configuration directory
+mkdir -p "$CONFIG_DIR"
+
+# Installation type detection
+INSTALL_TYPE="unknown"
+DAEMON_CMD=""
+
+if command -v brew >/dev/null 2>&1 && brew list cloudworkstation >/dev/null 2>&1; then
+    INSTALL_TYPE="homebrew"
+    DAEMON_CMD="cwsd"
+    LOG_FILE="$(brew --prefix)/var/log/cloudworkstation.log"
+elif command -v cwsd >/dev/null 2>&1; then
+    INSTALL_TYPE="system"
+    DAEMON_CMD="cwsd"
+elif [[ -x "./bin/cwsd" ]]; then
+    INSTALL_TYPE="source"
+    DAEMON_CMD="./bin/cwsd"
+elif [[ -x "$(dirname "$0")/../bin/cwsd" ]]; then
+    INSTALL_TYPE="source"
+    DAEMON_CMD="$(dirname "$0")/../bin/cwsd"
+else
+    echo "❌ CloudWorkstation daemon (cwsd) not found"
+    echo "   Install via: brew install scttfrdmn/cloudworkstation/cloudworkstation"
+    echo "   Or build from source: make build"
+    exit 1
+fi
+
+# Environment detection and setup
+setup_environment() {
+    # Auto-detect development mode
+    if [[ -f .env ]] && grep -q "CLOUDWORKSTATION_DEV=true" .env; then
+        export CLOUDWORKSTATION_DEV=true
+        echo "🔧 Development mode detected (no keychain prompts)"
+    elif [[ "$CLOUDWORKSTATION_DEV" == "true" ]]; then
+        echo "🔧 Development mode enabled via environment"
+    fi
+
+    # Set log level for debugging if requested
+    if [[ "$DEBUG" == "true" || "$1" == "--debug" ]]; then
+        export CLOUDWORKSTATION_LOG_LEVEL=debug
+        echo "🐛 Debug logging enabled"
+    fi
+}
+
+# Locking mechanism to prevent concurrent operations
+acquire_lock() {
+    local timeout=30
+    local count=0
+    
+    while [[ -f "$LOCK_FILE" && $count -lt $timeout ]]; do
+        if [[ $count -eq 0 ]]; then
+            echo "⏳ Another daemon operation in progress, waiting..."
+        fi
+        sleep 1
+        ((count++))
+    done
+    
+    if [[ $count -ge $timeout ]]; then
+        echo "⚠️  Lock timeout reached, removing stale lock"
+        rm -f "$LOCK_FILE"
+    fi
+    
+    echo $$ > "$LOCK_FILE"
+}
+
+release_lock() {
+    rm -f "$LOCK_FILE"
+}
+
+# Comprehensive daemon process detection
+get_daemon_pids() {
+    pgrep -f "cwsd" 2>/dev/null || true
+}
+
+is_daemon_running() {
+    local pids
+    pids=$(get_daemon_pids)
+    [[ -n "$pids" ]]
+}
+
+# API health check with timeout
+check_api_health() {
+    local timeout=10
+    if timeout $timeout curl -s -f "$API_URL/api/v1/ping" >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Enhanced status reporting
+show_status() {
+    echo "📊 CloudWorkstation Daemon Status"
+    echo "=================================="
+    echo ""
+    
+    # Installation information
+    echo "📦 Installation: $INSTALL_TYPE"
+    echo "🔧 Daemon command: $DAEMON_CMD"
+    echo "📁 Config directory: $CONFIG_DIR"
+    echo "📄 Log file: $LOG_FILE"
+    echo ""
+    
+    # Process status
+    local pids
+    pids=$(get_daemon_pids)
+    
+    if [[ -n "$pids" ]]; then
+        echo "✅ Daemon Status: RUNNING"
+        echo "🔢 Process IDs: $pids"
+        
+        # Show process details
+        echo ""
+        echo "Process Details:"
+        ps aux | grep cwsd | grep -v grep | head -5 | while read -r line; do
+            echo "  $line"
+        done
+        
+        # API health check
+        echo ""
+        echo "🔗 API Health Check:"
+        if check_api_health; then
+            local response
+            response=$(curl -s "$API_URL/api/v1/ping" 2>/dev/null || echo '{"status":"unknown"}')
+            echo "  ✅ API responding: $response"
+        else
+            echo "  ⚠️  API not responding (daemon may be starting)"
+        fi
+        
+        # Resource usage
+        if command -v ps >/dev/null 2>&1; then
+            echo ""
+            echo "💾 Resource Usage:"
+            ps -o pid,pcpu,pmem,comm -p $pids 2>/dev/null | tail -n +2 | while read -r line; do
+                echo "  $line"
+            done
+        fi
+    else
+        echo "❌ Daemon Status: NOT RUNNING"
+        
+        # Check if service should be running (Homebrew)
+        if [[ "$INSTALL_TYPE" == "homebrew" ]]; then
+            echo ""
+            echo "🍺 Homebrew Service Status:"
+            if brew services list 2>/dev/null | grep -q cloudworkstation; then
+                brew services list | grep cloudworkstation | sed 's/^/  /'
+            else
+                echo "  Service not registered"
+            fi
+        fi
+    fi
+    
+    # Environment information
+    echo ""
+    echo "🌍 Environment:"
+    echo "  Development mode: ${CLOUDWORKSTATION_DEV:-false}"
+    echo "  API port: $API_PORT"
+    echo "  Log level: ${CLOUDWORKSTATION_LOG_LEVEL:-info}"
+}
+
+# Safe daemon startup
+start_daemon() {
+    echo "🚀 Starting CloudWorkstation daemon..."
+    
+    # Check if already running
+    if is_daemon_running; then
+        echo "⚠️  Daemon already running, checking health..."
+        if check_api_health; then
+            echo "✅ Daemon is healthy and responding"
+            return 0
+        else
+            echo "🔧 Daemon running but unhealthy, restarting..."
+            stop_daemon
+            sleep 2
+        fi
+    fi
+    
+    # Clean up stale processes
+    local pids
+    pids=$(get_daemon_pids)
+    if [[ -n "$pids" ]]; then
+        echo "🧹 Cleaning up stale daemon processes..."
+        for pid in $pids; do
+            if kill -0 "$pid" 2>/dev/null; then
+                kill "$pid" 2>/dev/null || true
+            fi
+        done
+        sleep 2
+    fi
+    
+    # Start daemon with proper logging
+    echo "▶️  Launching daemon: $DAEMON_CMD"
+    
+    if [[ "$INSTALL_TYPE" == "homebrew" ]]; then
+        # Use brew services for Homebrew installations
+        if brew services list 2>/dev/null | grep -q cloudworkstation; then
+            brew services start cloudworkstation
+            echo "✅ Started via Homebrew services"
+        else
+            # Fallback to direct start
+            nohup $DAEMON_CMD >> "$LOG_FILE" 2>&1 &
+            echo $! > "$PID_FILE"
+            echo "✅ Started directly (PID: $(cat "$PID_FILE"))"
+        fi
+    else
+        # Direct daemon start for other installations
+        nohup $DAEMON_CMD >> "$LOG_FILE" 2>&1 &
+        local pid=$!
+        echo $pid > "$PID_FILE"
+        echo "✅ Daemon started (PID: $pid)"
+    fi
+    
+    # Verify startup
+    echo "⏳ Verifying daemon startup..."
+    local attempts=0
+    local max_attempts=30
+    
+    while [[ $attempts -lt $max_attempts ]]; do
+        if check_api_health; then
+            echo "✅ Daemon started successfully and API is responding"
+            echo "🔗 API available at: $API_URL"
+            return 0
+        fi
+        
+        sleep 1
+        ((attempts++))
+        
+        if [[ $((attempts % 5)) -eq 0 ]]; then
+            echo "   Still waiting... (${attempts}s)"
+        fi
+    done
+    
+    echo "⚠️  Daemon started but API health check failed"
+    echo "   Check logs: cws-daemon logs"
+    return 1
+}
+
+# Safe daemon shutdown
+stop_daemon() {
+    echo "🛑 Stopping CloudWorkstation daemon..."
+    
+    # Use brew services if available
+    if [[ "$INSTALL_TYPE" == "homebrew" ]] && brew services list 2>/dev/null | grep -q cloudworkstation; then
+        brew services stop cloudworkstation
+        echo "✅ Stopped via Homebrew services"
+    fi
+    
+    # Find and stop all daemon processes
+    local pids
+    pids=$(get_daemon_pids)
+    
+    if [[ -z "$pids" ]]; then
+        echo "✅ No daemon processes found"
+        rm -f "$PID_FILE"
+        return 0
+    fi
+    
+    echo "🔢 Found daemon processes: $pids"
+    
+    # Graceful shutdown attempt
+    echo "📤 Attempting graceful shutdown..."
+    for pid in $pids; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill -TERM "$pid" 2>/dev/null && echo "  Sent TERM to PID $pid"
+        fi
+    done
+    
+    # Wait for graceful shutdown
+    local attempts=0
+    local max_attempts=15
+    
+    while [[ $attempts -lt $max_attempts ]]; do
+        pids=$(get_daemon_pids)
+        if [[ -z "$pids" ]]; then
+            echo "✅ All daemon processes stopped gracefully"
+            rm -f "$PID_FILE"
+            return 0
+        fi
+        
+        sleep 1
+        ((attempts++))
+    done
+    
+    # Force kill if necessary
+    echo "⚠️  Graceful shutdown timeout, forcing termination..."
+    pids=$(get_daemon_pids)
+    for pid in $pids; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill -KILL "$pid" 2>/dev/null && echo "  Force killed PID $pid"
+        fi
+    done
+    
+    # Final verification
+    sleep 2
+    pids=$(get_daemon_pids)
+    if [[ -z "$pids" ]]; then
+        echo "✅ All daemon processes terminated"
+        rm -f "$PID_FILE"
+    else
+        echo "❌ Some processes may still be running: $pids"
+        return 1
+    fi
+}
+
+# Complete cleanup
+clean_daemon() {
+    echo "🧹 Performing complete cleanup..."
+    
+    # Stop daemon first
+    stop_daemon
+    
+    # Clean up files
+    echo "📁 Cleaning up daemon files..."
+    rm -f "$PID_FILE" "$LOCK_FILE"
+    
+    # Optional: Clean logs (with confirmation)
+    if [[ -f "$LOG_FILE" ]]; then
+        read -p "🗑️  Remove log file ($LOG_FILE)? [y/N]: " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            rm -f "$LOG_FILE"
+            echo "✅ Log file removed"
+        else
+            echo "📄 Log file preserved"
+        fi
+    fi
+    
+    echo "✅ Cleanup complete"
+}
+
+# Show recent logs
+show_logs() {
+    echo "📄 CloudWorkstation Daemon Logs"
+    echo "==============================="
+    
+    if [[ -f "$LOG_FILE" ]]; then
+        echo "📁 Log file: $LOG_FILE"
+        echo ""
+        
+        # Show recent logs with timestamps
+        if command -v tail >/dev/null 2>&1; then
+            echo "Recent entries:"
+            tail -n 50 "$LOG_FILE" | sed 's/^/  /'
+        else
+            echo "Last 20 lines:"
+            cat "$LOG_FILE" | tail -n 20 | sed 's/^/  /'
+        fi
+    else
+        echo "❌ No log file found at: $LOG_FILE"
+        echo ""
+        echo "Daemon may not have been started yet, or logs may be in system location:"
+        
+        if [[ "$INSTALL_TYPE" == "homebrew" ]]; then
+            local brew_log
+            brew_log="$(brew --prefix)/var/log/cloudworkstation.log"
+            if [[ -f "$brew_log" ]]; then
+                echo "🍺 Homebrew log: $brew_log"
+                tail -n 20 "$brew_log" | sed 's/^/  /'
+            fi
+        fi
+    fi
+}
+
+# Health check with detailed output
+health_check() {
+    echo "🏥 CloudWorkstation Health Check"
+    echo "================================"
+    echo ""
+    
+    # Daemon process check
+    if is_daemon_running; then
+        echo "✅ Daemon Process: RUNNING"
+    else
+        echo "❌ Daemon Process: NOT RUNNING"
+        return 1
+    fi
+    
+    # API connectivity
+    echo "🔗 API Connectivity Test:"
+    if check_api_health; then
+        local response
+        response=$(curl -s "$API_URL/api/v1/ping" 2>/dev/null || echo 'failed')
+        echo "  ✅ API Health: OK ($response)"
+    else
+        echo "  ❌ API Health: FAILED"
+        return 1
+    fi
+    
+    # Resource availability
+    echo "💾 Resource Check:"
+    if command -v df >/dev/null 2>&1; then
+        local disk_usage
+        disk_usage=$(df -h "$CONFIG_DIR" 2>/dev/null | tail -1 | awk '{print $5}' || echo "unknown")
+        echo "  📁 Config directory space: $disk_usage used"
+    fi
+    
+    # Port availability
+    echo "🌐 Network Check:"
+    if command -v lsof >/dev/null 2>&1; then
+        local port_info
+        port_info=$(lsof -i ":$API_PORT" -t 2>/dev/null | head -1)
+        if [[ -n "$port_info" ]]; then
+            echo "  ✅ Port $API_PORT: In use by daemon"
+        else
+            echo "  ⚠️  Port $API_PORT: Not in use (daemon may be starting)"
+        fi
+    else
+        echo "  🔍 Port check: lsof not available"
+    fi
+    
+    echo ""
+    echo "✅ Health check completed"
+}
+
+# Main command handling
+main() {
+    # Setup environment
+    setup_environment "$@"
+    
+    # Acquire lock for operations that modify daemon state
+    case "${1:-status}" in
+        start|stop|restart|clean)
+            trap release_lock EXIT
+            acquire_lock
+            ;;
+    esac
+    
+    case "${1:-status}" in
+        start)
+            start_daemon
+            ;;
+        stop)
+            stop_daemon
+            ;;
+        restart)
+            echo "🔄 Restarting CloudWorkstation daemon..."
+            stop_daemon
+            sleep 2
+            start_daemon
+            ;;
+        status)
+            show_status
+            ;;
+        health)
+            health_check
+            ;;
+        logs)
+            show_logs
+            ;;
+        clean)
+            clean_daemon
+            ;;
+        --debug)
+            export DEBUG=true
+            shift
+            main "$@"
+            ;;
+        --help|help|-h)
+            echo "CloudWorkstation Daemon Control"
+            echo ""
+            echo "Usage: $0 [OPTIONS] COMMAND"
+            echo ""
+            echo "Commands:"
+            echo "  start     Start the daemon (stops existing ones first)"
+            echo "  stop      Stop all daemon processes gracefully"
+            echo "  restart   Stop and start the daemon"
+            echo "  status    Show daemon status and system information"
+            echo "  health    Perform comprehensive health check"
+            echo "  logs      Show recent daemon logs"
+            echo "  clean     Complete cleanup of processes and files"
+            echo ""
+            echo "Options:"
+            echo "  --debug   Enable debug logging"
+            echo "  --help    Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  $0 start                    # Start daemon"
+            echo "  $0 status                   # Check status"
+            echo "  $0 restart --debug          # Restart with debug logging"
+            echo "  brew services start cloudworkstation  # Homebrew service"
+            ;;
+        *)
+            echo "❌ Unknown command: $1"
+            echo ""
+            echo "Available commands: start, stop, restart, status, health, logs, clean"
+            echo "Use '$0 --help' for detailed usage information"
+            exit 1
+            ;;
+    esac
+}
+
+# Execute main function with all arguments
+main "$@"

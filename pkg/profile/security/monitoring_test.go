@@ -12,7 +12,7 @@ func TestNewSecurityMonitor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	if monitor.auditLogger == nil {
 		t.Error("Audit logger should not be nil")
@@ -44,7 +44,7 @@ func TestSecurityMetricsUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	// Create test events
 	events := []SecurityEvent{
@@ -149,7 +149,7 @@ func TestSecurityThreatAnalysis(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	// Create events that should trigger alerts
 	events := make([]SecurityEvent, 0)
@@ -222,7 +222,7 @@ func TestSystemHealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	health, err := monitor.checkSystemHealth()
 	if err != nil {
@@ -270,7 +270,7 @@ func TestSecurityDashboard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	// Generate some test events first
 	testEvents := []SecurityEvent{
@@ -341,14 +341,14 @@ func TestAlertSeverityLevels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	// Test different types of events and their alert severity
 	testCases := []struct {
-		events          []SecurityEvent
-		expectedAlerts  int
-		expectedMaxSev  AlertSeverity
-		description     string
+		events         []SecurityEvent
+		expectedAlerts int
+		expectedMaxSev AlertSeverity
+		description    string
 	}{
 		{
 			events: []SecurityEvent{
@@ -440,7 +440,7 @@ func TestSecurityScoreCalculation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer monitor.auditLogger.Close()
+	defer func() { _ = monitor.auditLogger.Close() }()
 
 	testCases := []struct {
 		tamperAttempts       int
@@ -481,7 +481,7 @@ func TestSecurityScoreCalculation(t *testing.T) {
 			score := monitor.calculateSecurityScore()
 
 			if score < tc.expectedRange[0] || score > tc.expectedRange[1] {
-				t.Errorf("Security score %d not in expected range [%d, %d]", 
+				t.Errorf("Security score %d not in expected range [%d, %d]",
 					score, tc.expectedRange[0], tc.expectedRange[1])
 			}
 
@@ -489,7 +489,7 @@ func TestSecurityScoreCalculation(t *testing.T) {
 				t.Errorf("Security score %d out of valid range [0, 100]", score)
 			}
 
-			t.Logf("Score: %d (tamper: %d, failed: %d, success: %d)", 
+			t.Logf("Score: %d (tamper: %d, failed: %d, success: %d)",
 				score, tc.tamperAttempts, tc.failedAttempts, tc.successfulOperations)
 		})
 	}

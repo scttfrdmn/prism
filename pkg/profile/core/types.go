@@ -16,19 +16,19 @@ import (
 type Profile struct {
 	// Name is the unique identifier for this profile
 	Name string `json:"name"`
-	
+
 	// AWSProfile is the AWS CLI profile name to use
 	AWSProfile string `json:"aws_profile"`
-	
+
 	// Region is the default AWS region for this profile
 	Region string `json:"region"`
-	
+
 	// Default indicates if this is the default profile
 	Default bool `json:"default"`
-	
+
 	// CreatedAt is when the profile was created
 	CreatedAt time.Time `json:"created_at"`
-	
+
 	// LastUsed is when the profile was last used (optional)
 	LastUsed *time.Time `json:"last_used,omitempty"`
 }
@@ -37,13 +37,13 @@ type Profile struct {
 type ProfileConfig struct {
 	// Profiles maps profile names to profile configurations
 	Profiles map[string]*Profile `json:"profiles"`
-	
+
 	// Current is the name of the currently active profile
 	Current string `json:"current"`
-	
+
 	// Version is the config file format version
 	Version int `json:"version"`
-	
+
 	// UpdatedAt is when the config was last updated
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -85,10 +85,10 @@ func (e *NoCurrentProfileError) Error() string {
 const (
 	// DefaultConfigVersion is the current config file format version
 	DefaultConfigVersion = 1
-	
+
 	// DefaultProfileName is the name used for the first profile
 	DefaultProfileName = "default"
-	
+
 	// ConfigFileName is the name of the profile configuration file
 	ConfigFileName = "profiles.json"
 )

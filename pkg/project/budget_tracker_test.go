@@ -16,12 +16,12 @@ func TestNewBudgetTracker(t *testing.T) {
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "cws-budget-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Mock home directory
 	originalHome := os.Getenv("HOME")
-	defer os.Setenv("HOME", originalHome)
-	os.Setenv("HOME", tempDir)
+	defer func() { _ = os.Setenv("HOME", originalHome) }()
+	_ = os.Setenv("HOME", tempDir)
 
 	tracker, err := NewBudgetTracker()
 	assert.NoError(t, err)
@@ -32,14 +32,14 @@ func TestNewBudgetTracker(t *testing.T) {
 
 func TestBudgetTracker_InitializeProject(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
-		TotalBudget:      1000.0,
-		SpentAmount:      0.0,
-		MonthlyLimit:     floatPtr(300.0),
-		DailyLimit:       floatPtr(50.0),
+		TotalBudget:  1000.0,
+		SpentAmount:  0.0,
+		MonthlyLimit: floatPtr(300.0),
+		DailyLimit:   floatPtr(50.0),
 		AlertThresholds: []types.BudgetAlert{
 			{
 				Threshold:  0.8,
@@ -78,7 +78,7 @@ func TestBudgetTracker_InitializeProject(t *testing.T) {
 
 func TestBudgetTracker_RemoveProject(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -112,7 +112,7 @@ func TestBudgetTracker_RemoveProject(t *testing.T) {
 
 func TestBudgetTracker_CheckBudgetStatus(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -191,7 +191,7 @@ func TestBudgetTracker_CheckBudgetStatus(t *testing.T) {
 
 func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -214,11 +214,11 @@ func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 
 	// Test spending updates
 	tests := []struct {
-		name           string
-		instanceCosts  []types.InstanceCost
-		storageCosts   []types.StorageCost
-		expectedTotal  float64
-		expectedDaily  float64
+		name          string
+		instanceCosts []types.InstanceCost
+		storageCosts  []types.StorageCost
+		expectedTotal float64
+		expectedDaily float64
 	}{
 		{
 			name: "update with instance costs only",
@@ -253,11 +253,11 @@ func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 			instanceCosts: []types.InstanceCost{},
 			storageCosts: []types.StorageCost{
 				{
-					VolumeName:  "data-volume",
-					VolumeType:  "gp3",
-					SizeGB:      1000,
-					Cost:        5.0,
-					CostPerGB:   0.005,
+					VolumeName: "data-volume",
+					VolumeType: "gp3",
+					SizeGB:     1000,
+					Cost:       5.0,
+					CostPerGB:  0.005,
 				},
 			},
 			expectedTotal: 230.0, // Previous total + 5
@@ -279,11 +279,11 @@ func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 			},
 			storageCosts: []types.StorageCost{
 				{
-					VolumeName:  "mixed-volume",
-					VolumeType:  "io2",
-					SizeGB:      500,
-					Cost:        10.0,
-					CostPerGB:   0.02,
+					VolumeName: "mixed-volume",
+					VolumeType: "io2",
+					SizeGB:     500,
+					Cost:       10.0,
+					CostPerGB:  0.02,
 				},
 			},
 			expectedTotal: 290.0, // Previous total + 50 + 10
@@ -317,7 +317,7 @@ func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 
 func TestBudgetTracker_GetCostBreakdown(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -344,14 +344,14 @@ func TestBudgetTracker_GetCostBreakdown(t *testing.T) {
 			StoppedHours:    0.0,
 		},
 	}
-	
+
 	storageCosts := []types.StorageCost{
 		{
-			VolumeName:  "data-volume",
-			VolumeType:  "gp3",
-			SizeGB:      1000,
-			Cost:        5.0,
-			CostPerGB:   0.005,
+			VolumeName: "data-volume",
+			VolumeType: "gp3",
+			SizeGB:     1000,
+			Cost:       5.0,
+			CostPerGB:  0.005,
 		},
 	}
 
@@ -381,7 +381,7 @@ func TestBudgetTracker_GetCostBreakdown(t *testing.T) {
 
 func TestBudgetTracker_GetResourceUsage(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -416,7 +416,7 @@ func TestBudgetTracker_GetResourceUsage(t *testing.T) {
 
 func TestBudgetTracker_AlertTriggering(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer tracker.Close()
+	defer func() { _ = tracker.Close() }()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -484,14 +484,14 @@ func TestBudgetTracker_AlertTriggering(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset budget data for this test by reinitializing the project
 			testTracker := setupTestBudgetTracker(t)
-			
+
 			// Create a fresh budget with zero spending for isolated testing
 			freshBudget := *budget
 			freshBudget.SpentAmount = 0.0
-			
+
 			err := testTracker.InitializeProject(projectID, &freshBudget)
 			require.NoError(t, err)
-			
+
 			// Update spending to target amount
 			instanceCosts := []types.InstanceCost{
 				{
@@ -701,12 +701,12 @@ func TestProjectFilter_Matches(t *testing.T) {
 // Helper functions
 func setupTestBudgetTracker(t *testing.T) *BudgetTracker {
 	t.Helper()
-	
+
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "cws-budget-test-*")
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	})
 
 	// Create the .cloudworkstation directory
@@ -717,14 +717,14 @@ func setupTestBudgetTracker(t *testing.T) *BudgetTracker {
 	// Mock home directory
 	originalHome := os.Getenv("HOME")
 	t.Cleanup(func() {
-		os.Setenv("HOME", originalHome)
+		_ = os.Setenv("HOME", originalHome)
 	})
-	os.Setenv("HOME", tempDir)
+	_ = os.Setenv("HOME", tempDir)
 
 	tracker, err := NewBudgetTracker()
 	require.NoError(t, err)
 	require.NotNil(t, tracker)
-	
+
 	return tracker
 }
 
@@ -735,4 +735,3 @@ func timePtr(t time.Time) *time.Time {
 func boolPtr(b bool) *bool {
 	return &b
 }
-

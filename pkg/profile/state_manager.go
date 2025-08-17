@@ -9,7 +9,7 @@ import (
 
 // ProfileAwareStateManager is a state manager that works with profiles
 type ProfileAwareStateManager struct {
-	profileManager *ManagerEnhanced
+	profileManager   *ManagerEnhanced
 	baseStateManager *state.Manager
 }
 
@@ -21,7 +21,7 @@ func NewProfileAwareStateManager(profileManager *ManagerEnhanced) (*ProfileAware
 	}
 
 	return &ProfileAwareStateManager{
-		profileManager: profileManager,
+		profileManager:   profileManager,
 		baseStateManager: baseManager,
 	}, nil
 }
@@ -33,7 +33,7 @@ func (psm *ProfileAwareStateManager) LoadState() (*types.State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current profile: %w", err)
 	}
-	
+
 	return psm.LoadStateForProfile(currentProfile.AWSProfile)
 }
 
@@ -51,7 +51,7 @@ func (psm *ProfileAwareStateManager) SaveState(state *types.State) error {
 	if err != nil {
 		return fmt.Errorf("failed to get current profile: %w", err)
 	}
-	
+
 	return psm.SaveStateForProfile(currentProfile.AWSProfile, state)
 }
 

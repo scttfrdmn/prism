@@ -20,9 +20,9 @@ import (
 
 // Manager handles project lifecycle, budget tracking, and cost controls
 type Manager struct {
-	projectsPath string
-	mutex        sync.RWMutex
-	projects     map[string]*types.Project
+	projectsPath  string
+	mutex         sync.RWMutex
+	projects      map[string]*types.Project
 	budgetTracker *BudgetTracker
 }
 
@@ -39,7 +39,7 @@ func NewManager() (*Manager, error) {
 	}
 
 	projectsPath := filepath.Join(stateDir, "projects.json")
-	
+
 	budgetTracker, err := NewBudgetTracker()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create budget tracker: %w", err)
@@ -102,16 +102,16 @@ func (m *Manager) CreateProject(ctx context.Context, req *CreateProjectRequest) 
 	// Create budget if specified
 	if req.Budget != nil {
 		budget := &types.ProjectBudget{
-			TotalBudget:      req.Budget.TotalBudget,
-			SpentAmount:      0.0,
-			MonthlyLimit:     req.Budget.MonthlyLimit,
-			DailyLimit:       req.Budget.DailyLimit,
-			AlertThresholds:  req.Budget.AlertThresholds,
-			AutoActions:      req.Budget.AutoActions,
-			BudgetPeriod:     req.Budget.BudgetPeriod,
-			StartDate:        time.Now(),
-			EndDate:          req.Budget.EndDate,
-			LastUpdated:      time.Now(),
+			TotalBudget:     req.Budget.TotalBudget,
+			SpentAmount:     0.0,
+			MonthlyLimit:    req.Budget.MonthlyLimit,
+			DailyLimit:      req.Budget.DailyLimit,
+			AlertThresholds: req.Budget.AlertThresholds,
+			AutoActions:     req.Budget.AutoActions,
+			BudgetPeriod:    req.Budget.BudgetPeriod,
+			StartDate:       time.Now(),
+			EndDate:         req.Budget.EndDate,
+			LastUpdated:     time.Now(),
 		}
 		project.Budget = budget
 

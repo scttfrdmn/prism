@@ -176,7 +176,7 @@ func TestPerformHealthCheck(t *testing.T) {
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
 	
-	err = manager.PerformHealthCheck()
+	_ = manager.PerformHealthCheck()
 	
 	// Health check may fail due to keychain provider, but should not panic
 	// The important thing is that it updates lastHealthCheck
@@ -495,7 +495,7 @@ func TestSecurityManagerStatusWhileRunning(t *testing.T) {
 	// Start manager
 	err = manager.Start()
 	require.NoError(t, err)
-	defer manager.Stop()
+	defer func() { _ = manager.Stop() }()
 	
 	// Get status while running
 	status, err := manager.GetSecurityStatus()
@@ -517,7 +517,7 @@ func TestSecurityManagerHealthCheckTimeout(t *testing.T) {
 	// Perform health check (may fail due to keychain, but should not hang)
 	done := make(chan bool, 1)
 	go func() {
-		manager.PerformHealthCheck()
+		_ = manager.PerformHealthCheck()
 		done <- true
 	}()
 	

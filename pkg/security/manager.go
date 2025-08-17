@@ -12,19 +12,19 @@ import (
 // SecurityManager coordinates all security components for CloudWorkstation
 type SecurityManager struct {
 	auditLogger       *security.SecurityAuditLogger
-	monitor          *security.SecurityMonitor
+	monitor           *security.SecurityMonitor
 	correlationEngine *security.SecurityCorrelationEngine
-	registryClient   *security.SecureRegistryClient
-	
+	registryClient    *security.SecureRegistryClient
+
 	// Configuration
 	config SecurityConfig
-	
+
 	// Runtime state
-	mutex       sync.RWMutex
-	isEnabled   bool
-	isRunning   bool
+	mutex           sync.RWMutex
+	isEnabled       bool
+	isRunning       bool
 	lastHealthCheck time.Time
-	
+
 	// Background monitoring
 	stopChan    chan struct{}
 	monitorDone chan struct{}
@@ -33,37 +33,37 @@ type SecurityManager struct {
 // SecurityConfig provides configuration for the security manager
 type SecurityConfig struct {
 	// Audit logging configuration
-	AuditLogEnabled    bool          `json:"audit_log_enabled"`
-	LogRetentionDays   int           `json:"log_retention_days"`
-	
+	AuditLogEnabled  bool `json:"audit_log_enabled"`
+	LogRetentionDays int  `json:"log_retention_days"`
+
 	// Monitoring configuration
-	MonitoringEnabled  bool          `json:"monitoring_enabled"`
-	MonitorInterval    time.Duration `json:"monitor_interval"`
-	AlertThreshold     string        `json:"alert_threshold"` // LOW, MEDIUM, HIGH, CRITICAL
-	
+	MonitoringEnabled bool          `json:"monitoring_enabled"`
+	MonitorInterval   time.Duration `json:"monitor_interval"`
+	AlertThreshold    string        `json:"alert_threshold"` // LOW, MEDIUM, HIGH, CRITICAL
+
 	// Registry security configuration
 	RegistrySecurityEnabled bool   `json:"registry_security_enabled"`
-	RegistryURL            string `json:"registry_url"`
-	
+	RegistryURL             string `json:"registry_url"`
+
 	// Correlation analysis configuration
-	CorrelationEnabled     bool          `json:"correlation_enabled"`
-	AnalysisInterval      time.Duration `json:"analysis_interval"`
-	
+	CorrelationEnabled bool          `json:"correlation_enabled"`
+	AnalysisInterval   time.Duration `json:"analysis_interval"`
+
 	// Health check configuration
-	HealthCheckEnabled    bool          `json:"health_check_enabled"`
-	HealthCheckInterval   time.Duration `json:"health_check_interval"`
+	HealthCheckEnabled  bool          `json:"health_check_enabled"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
 }
 
 // SecurityStatus provides comprehensive security status information
 type SecurityStatus struct {
-	Enabled          bool                             `json:"enabled"`
-	Running          bool                             `json:"running"`
-	LastHealthCheck  time.Time                       `json:"last_health_check"`
-	Dashboard        *security.SecurityDashboard     `json:"dashboard,omitempty"`
-	Correlations     []security.SecurityCorrelation  `json:"recent_correlations,omitempty"`
-	SystemHealth     *security.SystemHealthStatus    `json:"system_health,omitempty"`
-	KeychainInfo     *security.KeychainInfo          `json:"keychain_info,omitempty"`
-	Configuration    SecurityConfig                   `json:"configuration"`
+	Enabled         bool                           `json:"enabled"`
+	Running         bool                           `json:"running"`
+	LastHealthCheck time.Time                      `json:"last_health_check"`
+	Dashboard       *security.SecurityDashboard    `json:"dashboard,omitempty"`
+	Correlations    []security.SecurityCorrelation `json:"recent_correlations,omitempty"`
+	SystemHealth    *security.SystemHealthStatus   `json:"system_health,omitempty"`
+	KeychainInfo    *security.KeychainInfo         `json:"keychain_info,omitempty"`
+	Configuration   SecurityConfig                 `json:"configuration"`
 }
 
 // NewSecurityManager creates and initializes a new security manager
@@ -105,7 +105,7 @@ func (m *SecurityManager) Start() error {
 	go m.monitoringLoop()
 
 	m.isRunning = true
-	
+
 	// Log security manager startup
 	if m.auditLogger != nil {
 		m.auditLogger.LogSecurityEvent(security.SecurityEvent{
@@ -134,7 +134,7 @@ func (m *SecurityManager) Stop() error {
 
 	// Stop monitoring loop
 	close(m.stopChan)
-	
+
 	// Wait for monitoring to stop
 	select {
 	case <-m.monitorDone:
@@ -144,9 +144,9 @@ func (m *SecurityManager) Stop() error {
 
 	// Close components
 	if m.correlationEngine != nil {
-		m.correlationEngine.Close()
+		_ = m.correlationEngine.Close()
 	}
-	
+
 	if m.auditLogger != nil {
 		// Log security manager shutdown
 		m.auditLogger.LogSecurityEvent(security.SecurityEvent{
@@ -156,8 +156,8 @@ func (m *SecurityManager) Stop() error {
 				"shutdown_reason": "graceful_stop",
 			},
 		})
-		
-		m.auditLogger.Close()
+
+		_ = m.auditLogger.Close()
 	}
 
 	m.isRunning = false
@@ -314,7 +314,7 @@ func (m *SecurityManager) PerformHealthCheck() error {
 
 	m.LogSecurityEvent("health_check_completed", true, "", map[string]interface{}{
 		"components_checked": m.getEnabledComponents(),
-		"timestamp":         time.Now(),
+		"timestamp":          time.Now(),
 	})
 
 	return nil
@@ -362,7 +362,7 @@ func (m *SecurityManager) initializeComponents() error {
 	if m.config.RegistrySecurityEnabled {
 		registryConfig := security.S3RegistryConfig{
 			BucketName: "cloudworkstation-registry", // Default bucket name
-			Region:     "us-west-2",                  // Default region
+			Region:     "us-west-2",                 // Default region
 			Enabled:    true,
 		}
 
@@ -424,7 +424,7 @@ func (m *SecurityManager) monitoringLoop() {
 
 func (m *SecurityManager) getEnabledComponents() []string {
 	components := make([]string, 0)
-	
+
 	if m.config.AuditLogEnabled {
 		components = append(components, "audit_logger")
 	}
@@ -437,7 +437,7 @@ func (m *SecurityManager) getEnabledComponents() []string {
 	if m.config.RegistrySecurityEnabled {
 		components = append(components, "secure_registry")
 	}
-	
+
 	return components
 }
 
@@ -447,15 +447,15 @@ func validateSecurityConfig(config SecurityConfig) error {
 	if config.MonitorInterval <= 0 {
 		config.MonitorInterval = 30 * time.Second
 	}
-	
+
 	if config.AnalysisInterval <= 0 {
 		config.AnalysisInterval = 5 * time.Minute
 	}
-	
+
 	if config.HealthCheckInterval <= 0 {
 		config.HealthCheckInterval = 15 * time.Minute
 	}
-	
+
 	if config.LogRetentionDays <= 0 {
 		config.LogRetentionDays = 30
 	}
@@ -463,7 +463,7 @@ func validateSecurityConfig(config SecurityConfig) error {
 	validThresholds := map[string]bool{
 		"LOW": true, "MEDIUM": true, "HIGH": true, "CRITICAL": true,
 	}
-	
+
 	if config.AlertThreshold != "" && !validThresholds[config.AlertThreshold] {
 		return fmt.Errorf("invalid alert threshold: %s", config.AlertThreshold)
 	}

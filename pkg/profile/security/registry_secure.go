@@ -21,13 +21,13 @@ import (
 
 // SecureRegistryClient provides secure communication with the invitation registry
 type SecureRegistryClient struct {
-	config        S3RegistryConfig
-	httpClient    *http.Client
-	localMode     bool
-	signer        *RequestSigner
-	validator     *ResponseValidator
-	certPinner    *CertificatePinner
-	auditLogger   *SecurityAuditLogger
+	config      S3RegistryConfig
+	httpClient  *http.Client
+	localMode   bool
+	signer      *RequestSigner
+	validator   *ResponseValidator
+	certPinner  *CertificatePinner
+	auditLogger *SecurityAuditLogger
 }
 
 // RequestSigner handles HMAC-SHA256 request signing
@@ -54,10 +54,10 @@ func NewSecureRegistryClient(config S3RegistryConfig) (*SecureRegistryClient, er
 		if err != nil {
 			return nil, fmt.Errorf("failed to get home directory: %w", err)
 		}
-		
+
 		config.LocalCache = filepath.Join(homeDir, ".cloudworkstation", "registry-cache")
 	}
-	
+
 	if err := os.MkdirAll(config.LocalCache, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create registry cache directory: %w", err)
 	}
@@ -91,7 +91,7 @@ func NewSecureRegistryClient(config S3RegistryConfig) (*SecureRegistryClient, er
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
+				MinVersion:            tls.VersionTLS12,
 				VerifyPeerCertificate: certPinner.VerifyPeerCertificate,
 			},
 		},
@@ -153,7 +153,7 @@ func (c *SecureRegistryClient) RegisterDevice(invitationToken, deviceID string) 
 		DeviceID:  deviceID,
 		Details: map[string]interface{}{
 			"invitation_token": maskToken(invitationToken),
-			"device_id":       deviceID,
+			"device_id":        deviceID,
 		},
 	}
 
@@ -202,10 +202,10 @@ func (c *SecureRegistryClient) RegisterDevice(invitationToken, deviceID string) 
 		event.ErrorCode = "request_failed"
 		c.auditLogger.LogSecurityEvent(event)
 		// Fall back to local registration
-		c.saveLocalRegistration(invitationToken, deviceID, payload)
+		_ = c.saveLocalRegistration(invitationToken, deviceID, payload)
 		return fmt.Errorf("secure registration request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Validate response
 	if err := c.validator.ValidateResponse(resp); err != nil {
@@ -378,7 +378,7 @@ func getOrCreateSigningKey() ([]byte, error) {
 
 		// IMPROVED UX: Use consistent service name to avoid multiple keychain prompts
 		keyName := "CloudWorkstation.registry.signing-key"
-		
+
 		// Try to retrieve existing key
 		existingKey, err := keychain.Retrieve(keyName)
 		if err == nil {
@@ -401,7 +401,7 @@ func getOrCreateSigningKey() ([]byte, error) {
 
 		cachedSigningKey = key
 	})
-	
+
 	return cachedSigningKey, signingKeyError
 }
 
@@ -427,7 +427,7 @@ func generateSecureDeviceFingerprint() map[string]interface{} {
 // generateRequestID creates a unique request ID for tracking
 func generateRequestID() string {
 	requestID := make([]byte, 16)
-	rand.Read(requestID)
+	_, _ = rand.Read(requestID)
 	return hex.EncodeToString(requestID)
 }
 

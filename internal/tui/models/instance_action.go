@@ -26,11 +26,11 @@ type ActionItem struct {
 func (a ActionItem) FilterValue() string { return a.name }
 
 // Title returns the name of the action
-func (a ActionItem) Title() string { 
+func (a ActionItem) Title() string {
 	if a.dangerous {
 		return a.name + " (!)"
 	}
-	return a.name 
+	return a.name
 }
 
 // Description returns a short description of the action
@@ -53,18 +53,18 @@ type InstanceActionModel struct {
 // NewInstanceActionModel creates a new instance action model
 func NewInstanceActionModel(apiClient apiClient, instance string) InstanceActionModel {
 	theme := styles.CurrentTheme
-	
+
 	// Set up action list
 	actionList := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	actionList.Title = "Instance Actions"
 	actionList.Styles.Title = theme.Title
 	actionList.Styles.PaginationStyle = theme.Pagination
 	actionList.Styles.HelpStyle = theme.Help
-	
+
 	// Create status bar and spinner
 	statusBar := components.NewStatusBar("Instance Actions", "")
 	spinner := components.NewSpinner("Loading instance information...")
-	
+
 	// Create the model
 	model := InstanceActionModel{
 		apiClient:   apiClient,
@@ -77,7 +77,7 @@ func NewInstanceActionModel(apiClient apiClient, instance string) InstanceAction
 		instance:    instance,
 		confirmStep: false,
 	}
-	
+
 	return model
 }
 
@@ -103,7 +103,7 @@ func (m InstanceActionModel) performAction(action string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
 		var err error
-		
+
 		switch action {
 		case "start":
 			err = m.apiClient.StartInstance(ctx, m.instance)
@@ -115,7 +115,7 @@ func (m InstanceActionModel) performAction(action string) tea.Cmd {
 				Success: true,
 				Message: fmt.Sprintf("Started instance %s", m.instance),
 			}
-			
+
 		case "stop":
 			err = m.apiClient.StopInstance(ctx, m.instance)
 			if err != nil {
@@ -126,7 +126,7 @@ func (m InstanceActionModel) performAction(action string) tea.Cmd {
 				Success: true,
 				Message: fmt.Sprintf("Stopped instance %s", m.instance),
 			}
-			
+
 		case "delete":
 			err = m.apiClient.DeleteInstance(ctx, m.instance)
 			if err != nil {
@@ -137,7 +137,7 @@ func (m InstanceActionModel) performAction(action string) tea.Cmd {
 				Success: true,
 				Message: fmt.Sprintf("Deleted instance %s", m.instance),
 			}
-			
+
 		default:
 			return fmt.Errorf("unknown action: %s", action)
 		}
@@ -154,13 +154,13 @@ type InstanceActionMsg struct {
 // Update handles messages and updates the model
 func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
-	
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		m.statusBar.SetWidth(msg.Width)
-		
+
 		// Update list dimensions
 		listHeight := m.height - 10 // Account for title, status bar, help
 		if listHeight < 3 {
@@ -168,9 +168,9 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.actionList.SetHeight(listHeight)
 		m.actionList.SetWidth(m.width - 4)
-		
+
 		return m, nil
-		
+
 	case tea.KeyMsg:
 		// Handle key presses
 		if m.confirmStep {
@@ -195,34 +195,34 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.confirmStep = true
 						return m, nil
 					}
-					
+
 					// Non-dangerous actions can be performed immediately
 					m.loading = true
 					m.statusBar.SetStatus(fmt.Sprintf("Performing action: %s", i.name), components.StatusWarning)
 					return m, m.performAction(i.action)
 				}
-				
+
 			case "q", "esc":
 				return m, tea.Quit
 			}
 		}
-		
+
 		// If not loading, process list navigation
 		if !m.loading {
 			var cmd tea.Cmd
 			m.actionList, cmd = m.actionList.Update(msg)
 			cmds = append(cmds, cmd)
 		}
-		
+
 	case *types.Instance:
 		m.loading = false
-		
+
 		// Build list of actions based on instance state
 		var items []list.Item
-		
+
 		// Format state for display
 		state := strings.ToLower(msg.State)
-		
+
 		// Add actions based on instance state
 		if state == "running" {
 			items = append(items, ActionItem{
@@ -231,14 +231,14 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				action:      "stop",
 				dangerous:   false,
 			})
-			
+
 			items = append(items, ActionItem{
 				name:        "Connect via SSH",
 				description: fmt.Sprintf("SSH to instance: ssh %s@%s", msg.Username, msg.PublicIP),
 				action:      "ssh",
 				dangerous:   false,
 			})
-			
+
 			if msg.HasWebInterface {
 				items = append(items, ActionItem{
 					name:        "Open Web Interface",
@@ -255,7 +255,7 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				dangerous:   false,
 			})
 		}
-		
+
 		// These actions are available regardless of state
 		items = append(items, ActionItem{
 			name:        "Delete Instance",
@@ -263,10 +263,10 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			action:      "delete",
 			dangerous:   true,
 		})
-		
+
 		m.actionList.SetItems(items)
 		m.statusBar.SetStatus("Select an action to perform", components.StatusSuccess)
-		
+
 	case InstanceActionMsg:
 		m.loading = false
 		if msg.Success {
@@ -274,7 +274,7 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.statusBar.SetStatus(fmt.Sprintf("Error: %s", msg.Message), components.StatusError)
 		}
-		
+
 		// Add a delay and then quit
 		return m, tea.Sequence(
 			tea.Tick(2*time.Second, func(time.Time) tea.Msg {
@@ -284,43 +284,43 @@ func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return tea.Quit()
 			},
 		)
-		
+
 	case error:
 		m.loading = false
 		m.error = msg.Error()
 		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
 	}
-	
+
 	// Update spinner when loading
 	if m.loading {
 		var spinnerCmd tea.Cmd
 		m.spinner, spinnerCmd = m.spinner.Update(msg)
 		cmds = append(cmds, spinnerCmd)
 	}
-	
+
 	return m, tea.Batch(cmds...)
 }
 
 // View renders the instance action view
 func (m InstanceActionModel) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Title section
 	title := theme.Title.Render(fmt.Sprintf("Instance Actions: %s", m.instance))
-	
+
 	// Content area
 	var content string
-	
+
 	if m.loading {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 8). // Account for title, status bar, help
+			Height(m.height-8). // Account for title, status bar, help
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(m.spinner.View())
 	} else if m.error != "" {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 8).
+			Height(m.height-8).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(theme.StatusError.Render("Error: " + m.error))
 	} else {
@@ -330,8 +330,8 @@ func (m InstanceActionModel) View() string {
 			if !ok {
 				selected = ActionItem{name: "Unknown Action"}
 			}
-			
-			confirmPanel := theme.Panel.Copy().Width(m.width - 10).Render(
+
+			confirmPanel := theme.Panel.Width(m.width - 10).Render(
 				lipgloss.JoinVertical(
 					lipgloss.Left,
 					theme.PanelHeader.Render("Confirm Action"),
@@ -343,15 +343,15 @@ func (m InstanceActionModel) View() string {
 					"Press Y to confirm, N to cancel",
 				),
 			)
-			
+
 			content = lipgloss.NewStyle().
 				Width(m.width).
-				Height(m.height - 8).
+				Height(m.height-8).
 				Align(lipgloss.Center, lipgloss.Center).
 				Render(confirmPanel)
 		} else {
 			// Normal action list
-			content = theme.Panel.Copy().Width(m.width - 4).Render(
+			content = theme.Panel.Width(m.width - 4).Render(
 				lipgloss.JoinVertical(
 					lipgloss.Left,
 					m.actionList.View(),
@@ -359,7 +359,7 @@ func (m InstanceActionModel) View() string {
 			)
 		}
 	}
-	
+
 	// Help text
 	var help string
 	if m.confirmStep {
@@ -367,7 +367,7 @@ func (m InstanceActionModel) View() string {
 	} else {
 		help = theme.Help.Render("↑/↓: navigate • enter: select • q: quit")
 	}
-	
+
 	// Join everything together
 	return lipgloss.JoinVertical(
 		lipgloss.Left,

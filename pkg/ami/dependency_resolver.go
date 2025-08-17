@@ -133,13 +133,13 @@ func (r *DependencyResolver) resolveDependency(templateName string, dep Template
 
 	// Version doesn't satisfy constraint
 	return &ResolvedDependency{
-		Name:         dep.Name,
-		OriginalName: dep.Name,
-		Version:      metadata.Version,
-		IsOptional:   dep.Optional,
-		Status:       "version-mismatch",
-	}, fmt.Errorf("dependent template '%s' version %s doesn't satisfy constraint %s %s", 
-		dep.Name, metadata.Version, dep.VersionOperator, dep.Version)
+			Name:         dep.Name,
+			OriginalName: dep.Name,
+			Version:      metadata.Version,
+			IsOptional:   dep.Optional,
+			Status:       "version-mismatch",
+		}, fmt.Errorf("dependent template '%s' version %s doesn't satisfy constraint %s %s",
+			dep.Name, metadata.Version, dep.VersionOperator, dep.Version)
 }
 
 // checkVersionConstraint checks if a version satisfies a constraint
@@ -250,128 +250,227 @@ func (r *DependencyResolver) ResolveDependencyConflicts(conflicts map[string][]T
 
 	for template, deps := range conflicts {
 		// Group constraints by operator
-		constraints := make(map[string][]string)
-		for _, dep := range deps {
-			operator := dep.VersionOperator
-			if operator == "" {
-				operator = ">="
-			}
-			constraints[operator] = append(constraints[operator], dep.Version)
-		}
+		constraints := r.groupConstraintsByOperator(deps)
 
 		// Get the most restrictive version for each operator type
-		var eqVersion, gtVersion, ltVersion string
-		for op, versions := range constraints {
-			// Sort versions
-			sort.Slice(versions, func(i, j int) bool {
-				v1, err1 := NewVersionInfo(versions[i])
-				v2, err2 := NewVersionInfo(versions[j])
-				if err1 != nil || err2 != nil {
-					return versions[i] < versions[j]
-				}
-				return v1.IsGreaterThan(v2)
-			})
-
-			// Get most restrictive version
-			if op == "=" || op == "==" {
-				// For equality, all versions must be the same
-				if eqVersion == "" {
-					eqVersion = versions[0]
-				} else if eqVersion != versions[0] {
-					return nil, fmt.Errorf("conflicting exact version requirements for %s: %s vs %s", 
-						template, eqVersion, versions[0])
-				}
-			} else if op == ">=" || op == ">" {
-				// For greater than, take the highest lower bound
-				highest := versions[0]
-				for _, v := range versions[1:] {
-					v1, err1 := NewVersionInfo(highest)
-					v2, err2 := NewVersionInfo(v)
-					if err1 != nil || err2 != nil {
-						continue
-					}
-					if v2.IsGreaterThan(v1) {
-						highest = v
-					}
-				}
-				gtVersion = highest
-			} else if op == "<=" || op == "<" {
-				// For less than, take the lowest upper bound
-				lowest := versions[0]
-				for _, v := range versions[1:] {
-					v1, err1 := NewVersionInfo(lowest)
-					v2, err2 := NewVersionInfo(v)
-					if err1 != nil || err2 != nil {
-						continue
-					}
-					if !v2.IsGreaterThan(v1) {
-						lowest = v
-					}
-				}
-				ltVersion = lowest
-			}
+		resolvedVersions, err := r.findMostRestrictiveVersions(constraints, template)
+		if err != nil {
+			return nil, err
 		}
 
-		// Resolve conflicts
-		if eqVersion != "" {
-			// If there's an equality constraint, check if it satisfies other constraints
-			if gtVersion != "" {
-				gtv, _ := NewVersionInfo(gtVersion)
-				eqv, _ := NewVersionInfo(eqVersion)
-				if !eqv.IsGreaterThan(gtv) && !(eqv.Major == gtv.Major && eqv.Minor == gtv.Minor && eqv.Patch == gtv.Patch) {
-					return nil, fmt.Errorf("conflicting version requirements for %s: equal to %s but must be >= %s", 
-						template, eqVersion, gtVersion)
-				}
-			}
-			if ltVersion != "" {
-				ltv, _ := NewVersionInfo(ltVersion)
-				eqv, _ := NewVersionInfo(eqVersion)
-				if eqv.IsGreaterThan(ltv) {
-					return nil, fmt.Errorf("conflicting version requirements for %s: equal to %s but must be <= %s", 
-						template, eqVersion, ltVersion)
-				}
-			}
-			result[template] = eqVersion
-		} else if gtVersion != "" && ltVersion != "" {
-			// Check if there's a version that satisfies both bounds
-			gtv, _ := NewVersionInfo(gtVersion)
-			ltv, _ := NewVersionInfo(ltVersion)
-			if gtv.IsGreaterThan(ltv) {
-				return nil, fmt.Errorf("conflicting version requirements for %s: >= %s and <= %s", 
-					template, gtVersion, ltVersion)
-			}
-			
-			// Find a version that satisfies both bounds
-			compatibleVersions, err := r.FindCompatibleVersions(template, gtVersion, ">=")
-			if err != nil || len(compatibleVersions) == 0 {
-				// If no compatible versions found, use the lower bound
-				result[template] = gtVersion
-				continue
-			}
-			
-			// Filter versions that also satisfy the upper bound
-			for _, v := range compatibleVersions {
-				compatible, _ := r.checkVersionConstraint(v, ltVersion, "<=")
-				if compatible {
-					result[template] = v
-					break
-				}
-			}
-			
-			// If no version satisfies both bounds, use the lower bound
-			if _, ok := result[template]; !ok {
-				result[template] = gtVersion
-			}
-		} else if gtVersion != "" {
-			// Only lower bound
-			result[template] = gtVersion
-		} else if ltVersion != "" {
-			// Only upper bound, use the exact upper bound
-			result[template] = ltVersion
+		// Validate version compatibility and find final version
+		finalVersion, err := r.validateAndResolveVersions(template, resolvedVersions)
+		if err != nil {
+			return nil, err
+		}
+
+		if finalVersion != "" {
+			result[template] = finalVersion
 		}
 	}
 
 	return result, nil
+}
+
+// groupConstraintsByOperator groups version constraints by their operators
+func (r *DependencyResolver) groupConstraintsByOperator(deps []TemplateDependency) map[string][]string {
+	constraints := make(map[string][]string)
+	for _, dep := range deps {
+		operator := dep.VersionOperator
+		if operator == "" {
+			operator = ">="
+		}
+		constraints[operator] = append(constraints[operator], dep.Version)
+	}
+	return constraints
+}
+
+// RestrictiveVersions holds the most restrictive versions for each operator type
+type RestrictiveVersions struct {
+	EqVersion string
+	GtVersion string
+	LtVersion string
+}
+
+// findMostRestrictiveVersions finds the most restrictive version for each operator type
+func (r *DependencyResolver) findMostRestrictiveVersions(constraints map[string][]string, template string) (*RestrictiveVersions, error) {
+	result := &RestrictiveVersions{}
+
+	for op, versions := range constraints {
+		// Sort versions in descending order
+		sortedVersions := r.sortVersionsDescending(versions)
+
+		switch {
+		case op == "=" || op == "==":
+			eqVersion, err := r.processEqualityConstraints(sortedVersions, template, result.EqVersion)
+			if err != nil {
+				return nil, err
+			}
+			result.EqVersion = eqVersion
+
+		case op == ">=" || op == ">":
+			result.GtVersion = r.findHighestVersion(sortedVersions)
+
+		case op == "<=" || op == "<":
+			result.LtVersion = r.findLowestVersion(sortedVersions)
+		}
+	}
+
+	return result, nil
+}
+
+// sortVersionsDescending sorts version strings in descending order
+func (r *DependencyResolver) sortVersionsDescending(versions []string) []string {
+	sorted := make([]string, len(versions))
+	copy(sorted, versions)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		v1, err1 := NewVersionInfo(sorted[i])
+		v2, err2 := NewVersionInfo(sorted[j])
+		if err1 != nil || err2 != nil {
+			return sorted[i] < sorted[j]
+		}
+		return v1.IsGreaterThan(v2)
+	})
+
+	return sorted
+}
+
+// processEqualityConstraints processes equality constraints and ensures all versions are the same
+func (r *DependencyResolver) processEqualityConstraints(versions []string, template, currentEqVersion string) (string, error) {
+	if len(versions) == 0 {
+		return currentEqVersion, nil
+	}
+
+	newEqVersion := versions[0]
+	if currentEqVersion == "" {
+		return newEqVersion, nil
+	}
+
+	if currentEqVersion != newEqVersion {
+		return "", fmt.Errorf("conflicting exact version requirements for %s: %s vs %s",
+			template, currentEqVersion, newEqVersion)
+	}
+
+	return currentEqVersion, nil
+}
+
+// findHighestVersion finds the highest version from a list of versions
+func (r *DependencyResolver) findHighestVersion(versions []string) string {
+	if len(versions) == 0 {
+		return ""
+	}
+
+	highest := versions[0]
+	for _, v := range versions[1:] {
+		v1, err1 := NewVersionInfo(highest)
+		v2, err2 := NewVersionInfo(v)
+		if err1 != nil || err2 != nil {
+			continue
+		}
+		if v2.IsGreaterThan(v1) {
+			highest = v
+		}
+	}
+	return highest
+}
+
+// findLowestVersion finds the lowest version from a list of versions
+func (r *DependencyResolver) findLowestVersion(versions []string) string {
+	if len(versions) == 0 {
+		return ""
+	}
+
+	lowest := versions[0]
+	for _, v := range versions[1:] {
+		v1, err1 := NewVersionInfo(lowest)
+		v2, err2 := NewVersionInfo(v)
+		if err1 != nil || err2 != nil {
+			continue
+		}
+		if !v2.IsGreaterThan(v1) {
+			lowest = v
+		}
+	}
+	return lowest
+}
+
+// validateAndResolveVersions validates version compatibility and finds the final resolved version
+func (r *DependencyResolver) validateAndResolveVersions(template string, versions *RestrictiveVersions) (string, error) {
+	// If there's an equality constraint, validate it against other constraints
+	if versions.EqVersion != "" {
+		return r.validateEqualityConstraint(template, versions)
+	}
+
+	// Handle range constraints (both lower and upper bounds)
+	if versions.GtVersion != "" && versions.LtVersion != "" {
+		return r.resolveRangeConstraints(template, versions.GtVersion, versions.LtVersion)
+	}
+
+	// Handle single-bound constraints
+	if versions.GtVersion != "" {
+		return versions.GtVersion, nil
+	}
+	if versions.LtVersion != "" {
+		return versions.LtVersion, nil
+	}
+
+	return "", nil
+}
+
+// validateEqualityConstraint validates that an equality constraint satisfies other constraints
+func (r *DependencyResolver) validateEqualityConstraint(template string, versions *RestrictiveVersions) (string, error) {
+	eqVersion := versions.EqVersion
+	eqv, _ := NewVersionInfo(eqVersion)
+
+	// Check against lower bound
+	if versions.GtVersion != "" {
+		gtv, _ := NewVersionInfo(versions.GtVersion)
+		if !eqv.IsGreaterThan(gtv) && !(eqv.Major == gtv.Major && eqv.Minor == gtv.Minor && eqv.Patch == gtv.Patch) {
+			return "", fmt.Errorf("conflicting version requirements for %s: equal to %s but must be >= %s",
+				template, eqVersion, versions.GtVersion)
+		}
+	}
+
+	// Check against upper bound
+	if versions.LtVersion != "" {
+		ltv, _ := NewVersionInfo(versions.LtVersion)
+		if eqv.IsGreaterThan(ltv) {
+			return "", fmt.Errorf("conflicting version requirements for %s: equal to %s but must be <= %s",
+				template, eqVersion, versions.LtVersion)
+		}
+	}
+
+	return eqVersion, nil
+}
+
+// resolveRangeConstraints resolves version constraints with both lower and upper bounds
+func (r *DependencyResolver) resolveRangeConstraints(template, gtVersion, ltVersion string) (string, error) {
+	// Check if there's a valid range
+	gtv, _ := NewVersionInfo(gtVersion)
+	ltv, _ := NewVersionInfo(ltVersion)
+	if gtv.IsGreaterThan(ltv) {
+		return "", fmt.Errorf("conflicting version requirements for %s: >= %s and <= %s",
+			template, gtVersion, ltVersion)
+	}
+
+	// Try to find a version that satisfies both bounds
+	compatibleVersions, err := r.FindCompatibleVersions(template, gtVersion, ">=")
+	if err != nil || len(compatibleVersions) == 0 {
+		// If no compatible versions found, use the lower bound
+		return gtVersion, nil
+	}
+
+	// Filter versions that also satisfy the upper bound
+	for _, v := range compatibleVersions {
+		compatible, _ := r.checkVersionConstraint(v, ltVersion, "<=")
+		if compatible {
+			return v, nil
+		}
+	}
+
+	// If no version satisfies both bounds, use the lower bound
+	return gtVersion, nil
 }
 
 // ResolveAndFetchDependencies resolves dependencies and fetches missing templates
@@ -393,19 +492,19 @@ func (r *DependencyResolver) ResolveAndFetchDependencies(templateName string, fe
 	if err != nil && !strings.Contains(err.Error(), "missing") {
 		return resolved, nil, err
 	}
-	
+
 	if !fetchMissing {
 		return resolved, nil, err
 	}
-	
+
 	// Check registry availability
 	if r.Manager.Registry == nil {
 		return resolved, nil, fmt.Errorf("registry not configured, cannot fetch missing dependencies")
 	}
-	
+
 	// List of templates that were fetched
 	fetched := []string{}
-	
+
 	// Try to fetch missing dependencies
 	for name, dep := range resolved {
 		if dep.Status == "missing" {
@@ -415,24 +514,24 @@ func (r *DependencyResolver) ResolveAndFetchDependencies(templateName string, fe
 			if err != nil {
 				continue
 			}
-			
+
 			if entry, ok := entries[name]; ok {
 				// Found in registry, fetch it
 				templateData := entry.TemplateData
 				if templateData == "" {
 					continue
 				}
-				
+
 				// For now we'll use a simple mock approach
 				template := &Template{
-					Name: name,
+					Name:        name,
 					Description: "Imported from registry",
 				}
 				// TODO: Implement proper template parsing from string
-				
+
 				// Add template directly instead of importing
 				r.Manager.Templates[name] = template
-				
+
 				// Add metadata
 				r.Manager.TemplateMetadata[name] = TemplateMetadata{
 					Version:      entry.Version,
@@ -446,6 +545,6 @@ func (r *DependencyResolver) ResolveAndFetchDependencies(templateName string, fe
 			}
 		}
 	}
-	
+
 	return resolved, fetched, nil
 }

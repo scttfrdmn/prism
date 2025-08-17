@@ -1,0 +1,15 @@
+./internal/tui/components/tests
+./pkg/ami
+./pkg/api/_legacy
+./pkg/api/errors
+./pkg/aws
+./pkg/daemon
+./pkg/pricing
+./pkg/profile
+./pkg/profile/core
+./pkg/profile/security
+./pkg/project
+./pkg/repository
+./pkg/state
+./pkg/templates
+./pkg/types

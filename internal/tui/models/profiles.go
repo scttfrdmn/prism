@@ -27,7 +27,7 @@ type ProfileInitMsg struct{}
 // NewProfilesModel creates a new simplified profiles model
 func NewProfilesModel(apiClient apiClient) ProfilesModel {
 	statusBar := components.NewStatusBar("CloudWorkstation Profiles", "")
-	
+
 	return ProfilesModel{
 		apiClient: apiClient,
 		statusBar: statusBar,
@@ -73,7 +73,7 @@ func (m ProfilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "r":
 			return m, func() tea.Msg { return ProfileInitMsg{} }
-			
+
 		case "q", "esc":
 			return m, tea.Quit
 		}
@@ -85,22 +85,22 @@ func (m ProfilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the profiles view
 func (m ProfilesModel) View() string {
 	theme := styles.CurrentTheme
-	
+
 	// Title section
 	title := theme.Title.Render("CloudWorkstation Profiles")
-	
+
 	// Content
 	var content string
 	if m.error != "" {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4).
+			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render(theme.StatusError.Render("Error: " + m.error))
 	} else if m.currentProfile == nil {
 		content = lipgloss.NewStyle().
 			Width(m.width).
-			Height(m.height - 4).
+			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
 			Render("Loading profile information...")
 	} else {
@@ -109,23 +109,23 @@ func (m ProfilesModel) View() string {
 		profileInfo += fmt.Sprintf("  Name: %s\n", m.currentProfile.Name)
 		profileInfo += fmt.Sprintf("  AWS Profile: %s\n", m.currentProfile.AWSProfile)
 		profileInfo += fmt.Sprintf("  Region: %s\n", m.currentProfile.Region)
-		
+
 		// Profile management commands
 		profileInfo += "\nProfile Management:\n"
 		profileInfo += "  Use CLI commands to manage profiles:\n"
 		profileInfo += "  cws config profile <name>     # Set AWS profile\n"
 		profileInfo += "  cws config region <region>    # Set AWS region\n"
 		profileInfo += "  cws config show               # Show current config\n"
-		
+
 		content = lipgloss.NewStyle().
-			Width(m.width - 4).
+			Width(m.width-4).
 			Padding(1, 2).
 			Render(profileInfo)
 	}
-	
+
 	// Help text
 	help := theme.Help.Render("r: refresh • q: quit")
-	
+
 	// Join everything together
 	return lipgloss.JoinVertical(
 		lipgloss.Left,

@@ -65,7 +65,7 @@ func TestNewSecureRegistryClient(t *testing.T) {
 		t.Error("Certificate verification should be configured")
 	}
 
-	client.auditLogger.Close()
+	_ = client.auditLogger.Close()
 	t.Log("✅ Secure registry client created successfully")
 }
 
@@ -122,7 +122,7 @@ func TestRequestSigning(t *testing.T) {
 // TestResponseValidation validates response signature validation
 func TestResponseValidation(t *testing.T) {
 	secretKey := make([]byte, 32)
-	rand.Read(secretKey)
+	_, _ = rand.Read(secretKey)
 
 	validator, err := NewResponseValidator(secretKey)
 	if err != nil {
@@ -226,7 +226,7 @@ func TestDeviceRegistrationLocal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create secure registry client: %v", err)
 	}
-	defer client.auditLogger.Close()
+	defer func() { _ = client.auditLogger.Close() }()
 
 	// Test local device registration
 	invitationToken := "test-invitation-123"
@@ -256,7 +256,7 @@ func TestSecureRegistryErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create secure registry client: %v", err)
 	}
-	defer client.auditLogger.Close()
+	defer func() { _ = client.auditLogger.Close() }()
 
 	// Test with invalid server (should fallback to local)
 	err = client.RegisterDevice("test-token", "test-device")
@@ -279,7 +279,7 @@ func TestSecureHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create secure registry client: %v", err)
 	}
-	defer client.auditLogger.Close()
+	defer func() { _ = client.auditLogger.Close() }()
 
 	// Verify HTTP client configuration
 	if client.httpClient.Timeout != 30*time.Second {
@@ -329,11 +329,11 @@ func TestTokenMasking(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{"short", "***"},                            // <= 8 chars
-		{"medium12", "***"},                         // <= 8 chars (8 chars exactly)
-		{"very-long-token-123456", "very***3456"},   // > 8 chars: first 4 + *** + last 4
-		{"", "***"},                                 // empty string
-		{"123456789", "1234***6789"},               // 9 chars: first 4 + *** + last 4
+		{"short", "***"},                          // <= 8 chars
+		{"medium12", "***"},                       // <= 8 chars (8 chars exactly)
+		{"very-long-token-123456", "very***3456"}, // > 8 chars: first 4 + *** + last 4
+		{"", "***"},                               // empty string
+		{"123456789", "1234***6789"},              // 9 chars: first 4 + *** + last 4
 	}
 
 	for _, tc := range testCases {
@@ -360,11 +360,11 @@ func createTestCertificate(t *testing.T) *x509.Certificate {
 		Subject: pkix.Name{
 			Organization: []string{"Test Org"},
 		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1)},
+		NotBefore:   time.Now(),
+		NotAfter:    time.Now().Add(time.Hour),
+		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1)},
 	}
 
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)

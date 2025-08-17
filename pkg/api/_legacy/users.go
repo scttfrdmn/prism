@@ -13,63 +13,63 @@ import (
 // ListUsers lists users with optional filtering
 func (c *Client) ListUsers(filter *usermgmt.UserFilter, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedUsers, error) {
 	var result usermgmt.PaginatedUsers
-	
+
 	// Build query parameters
 	query := url.Values{}
-	
+
 	if filter != nil {
 		if filter.Username != "" {
 			query.Set("username", filter.Username)
 		}
-		
+
 		if filter.Email != "" {
 			query.Set("email", filter.Email)
 		}
-		
+
 		if filter.Role != "" {
 			query.Set("role", string(filter.Role))
 		}
-		
+
 		if filter.Group != "" {
 			query.Set("group", filter.Group)
 		}
-		
+
 		if filter.Provider != "" {
 			query.Set("provider", string(filter.Provider))
 		}
-		
+
 		if filter.EnabledOnly {
 			query.Set("enabled_only", "true")
 		}
-		
+
 		if filter.DisabledOnly {
 			query.Set("disabled_only", "true")
 		}
 	}
-	
+
 	if pagination != nil {
 		if pagination.Page > 0 {
 			query.Set("page", strconv.Itoa(pagination.Page))
 		}
-		
+
 		if pagination.PageSize > 0 {
 			query.Set("page_size", strconv.Itoa(pagination.PageSize))
 		}
-		
+
 		if pagination.SortBy != "" {
 			query.Set("sort_by", pagination.SortBy)
 		}
-		
+
 		if pagination.SortOrder != "" {
 			query.Set("sort_order", pagination.SortOrder)
 		}
 	}
-	
+
 	path := "/api/v1/users"
 	if len(query) > 0 {
 		path = path + "?" + query.Encode()
 	}
-	
+
 	err := c.get(path, &result)
 	return &result, err
 }
@@ -87,16 +87,16 @@ func (c *Client) GetUserByUsername(username string) (*usermgmt.User, error) {
 	filter := &usermgmt.UserFilter{
 		Username: username,
 	}
-	
+
 	users, err := c.ListUsers(filter, nil)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(users.Users) == 0 {
 		return nil, fmt.Errorf("user not found")
 	}
-	
+
 	return users.Users[0], nil
 }
 
@@ -144,43 +144,43 @@ func (c *Client) UpdateUserGroups(id string, groupNames []string) error {
 // ListGroups lists groups with optional filtering
 func (c *Client) ListGroups(filter *usermgmt.GroupFilter, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedGroups, error) {
 	var result usermgmt.PaginatedGroups
-	
+
 	// Build query parameters
 	query := url.Values{}
-	
+
 	if filter != nil {
 		if filter.Name != "" {
 			query.Set("name", filter.Name)
 		}
-		
+
 		if filter.Provider != "" {
 			query.Set("provider", string(filter.Provider))
 		}
 	}
-	
+
 	if pagination != nil {
 		if pagination.Page > 0 {
 			query.Set("page", strconv.Itoa(pagination.Page))
 		}
-		
+
 		if pagination.PageSize > 0 {
 			query.Set("page_size", strconv.Itoa(pagination.PageSize))
 		}
-		
+
 		if pagination.SortBy != "" {
 			query.Set("sort_by", pagination.SortBy)
 		}
-		
+
 		if pagination.SortOrder != "" {
 			query.Set("sort_order", pagination.SortOrder)
 		}
 	}
-	
+
 	path := "/api/v1/groups"
 	if len(query) > 0 {
 		path = path + "?" + query.Encode()
 	}
-	
+
 	err := c.get(path, &result)
 	return &result, err
 }
@@ -198,16 +198,16 @@ func (c *Client) GetGroupByName(name string) (*usermgmt.Group, error) {
 	filter := &usermgmt.GroupFilter{
 		Name: name,
 	}
-	
+
 	groups, err := c.ListGroups(filter, nil)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(groups.Groups) == 0 {
 		return nil, fmt.Errorf("group not found")
 	}
-	
+
 	return groups.Groups[0], nil
 }
 
@@ -233,25 +233,25 @@ func (c *Client) DeleteGroup(id string) error {
 // GetGroupUsers gets the users in a group
 func (c *Client) GetGroupUsers(id string, pagination *usermgmt.PaginationOptions) (*usermgmt.PaginatedUsers, error) {
 	var result usermgmt.PaginatedUsers
-	
+
 	// Build query parameters
 	query := url.Values{}
-	
+
 	if pagination != nil {
 		if pagination.Page > 0 {
 			query.Set("page", strconv.Itoa(pagination.Page))
 		}
-		
+
 		if pagination.PageSize > 0 {
 			query.Set("page_size", strconv.Itoa(pagination.PageSize))
 		}
 	}
-	
+
 	path := fmt.Sprintf("/api/v1/groups/%s/users", id)
 	if len(query) > 0 {
 		path = path + "?" + query.Encode()
 	}
-	
+
 	err := c.get(path, &result)
 	return &result, err
 }
@@ -270,7 +270,7 @@ func (c *Client) Authenticate(username, password string) (*AuthenticationResult,
 		Username: username,
 		Password: password,
 	}
-	
+
 	var result AuthenticationResult
 	err := c.post("/api/v1/authenticate", req, &result)
 	return &result, err

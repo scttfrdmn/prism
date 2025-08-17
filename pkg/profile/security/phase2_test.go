@@ -9,32 +9,32 @@ import (
 // TestPhase2PlatformIntegration validates platform-native keychain integration
 func TestPhase2PlatformIntegration(t *testing.T) {
 	t.Log("=== Phase 2 Platform-Native Integration Test ===")
-	
+
 	// Create keychain provider (should use platform-specific implementation)
 	keychain, err := NewKeychainProvider()
 	if err != nil {
 		t.Fatalf("❌ Failed to create keychain provider: %v", err)
 	}
-	
+
 	// Determine expected provider type
 	var expectedProviderType string
 	switch runtime.GOOS {
 	case "darwin":
 		expectedProviderType = "macOS native"
 	case "windows":
-		expectedProviderType = "Windows native" 
+		expectedProviderType = "Windows native"
 	case "linux":
 		expectedProviderType = "Linux native"
 	default:
 		expectedProviderType = "file-based fallback"
 	}
-	
+
 	t.Logf("Platform: %s, Expected provider: %s", runtime.GOOS, expectedProviderType)
 
 	// Test keychain operations
 	testKey := "phase2-integration-test"
 	testData := []byte("Phase 2 platform-native keychain test data")
-	
+
 	// Test Store operation
 	err = keychain.Store(testKey, testData)
 	if err != nil {
@@ -104,10 +104,10 @@ func TestKeychainProviderSelection(t *testing.T) {
 	testData := []byte("test")
 
 	// All providers should support these operations without panicking
-	provider.Store(testKey, testData)
+	_ = provider.Store(testKey, testData)
 	provider.Exists(testKey)
-	provider.Retrieve(testKey)
-	provider.Delete(testKey)
+	_, _ = provider.Retrieve(testKey)
+	_ = provider.Delete(testKey)
 
 	t.Log("✅ Keychain provider interface compliance verified")
 }
@@ -115,10 +115,10 @@ func TestKeychainProviderSelection(t *testing.T) {
 // TestGracefulFallback validates fallback behavior when native keychains fail
 func TestGracefulFallback(t *testing.T) {
 	t.Log("=== Testing Graceful Fallback Behavior ===")
-	
+
 	// This test validates that if native keychain fails, the system falls back gracefully
 	// The actual fallback is tested by the main integration flow
-	
+
 	provider, err := NewKeychainProvider()
 	if err != nil {
 		t.Fatalf("Keychain provider creation should not fail even with fallback: %v", err)
@@ -149,7 +149,7 @@ func TestGracefulFallback(t *testing.T) {
 	}
 
 	// Cleanup
-	provider.Delete(testKey)
+	_ = provider.Delete(testKey)
 
 	t.Log("✅ Graceful fallback behavior validated")
 }
@@ -166,18 +166,18 @@ func BenchmarkKeychainOperations(b *testing.B) {
 	b.Run("Store", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			key := "benchmark-store-" + string(rune(i))
-			provider.Store(key, testData)
+			_ = provider.Store(key, testData)
 		}
 	})
 
 	// Store some test data for other benchmarks
-	provider.Store("benchmark-retrieve", testData)
-	provider.Store("benchmark-exists", testData)
-	provider.Store("benchmark-delete", testData)
+	_ = provider.Store("benchmark-retrieve", testData)
+	_ = provider.Store("benchmark-exists", testData)
+	_ = provider.Store("benchmark-delete", testData)
 
 	b.Run("Retrieve", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			provider.Retrieve("benchmark-retrieve")
+			_, _ = provider.Retrieve("benchmark-retrieve")
 		}
 	})
 
@@ -190,8 +190,8 @@ func BenchmarkKeychainOperations(b *testing.B) {
 	b.Run("Delete", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			key := "benchmark-delete-" + string(rune(i))
-			provider.Store(key, testData) // Store first
-			provider.Delete(key)          // Then delete
+			_ = provider.Store(key, testData) // Store first
+			_ = provider.Delete(key)          // Then delete
 		}
 	})
 }
@@ -241,7 +241,7 @@ func testMacOSFeatures(t *testing.T) {
 		t.Log("✅ macOS keychain retrieve successful")
 	}
 
-	native.Delete(testKey)
+	_ = native.Delete(testKey)
 	t.Log("✅ macOS-specific features tested")
 }
 
@@ -272,7 +272,7 @@ func testWindowsFeatures(t *testing.T) {
 		t.Log("✅ Windows credential manager retrieve successful")
 	}
 
-	native.Delete(testKey)
+	_ = native.Delete(testKey)
 	t.Log("✅ Windows-specific features tested")
 }
 
@@ -292,7 +292,7 @@ func testLinuxFeatures(t *testing.T) {
 	if err != nil {
 		t.Logf("Linux Store failed: %v", err)
 		// Clean up connection
-		native.Close()
+		_ = native.Close()
 		return
 	}
 
@@ -305,8 +305,8 @@ func testLinuxFeatures(t *testing.T) {
 		t.Log("✅ Linux Secret Service retrieve successful")
 	}
 
-	native.Delete(testKey)
-	native.Close()
+	_ = native.Delete(testKey)
+	_ = native.Close()
 	t.Log("✅ Linux-specific features tested")
 }
 
@@ -334,6 +334,6 @@ func testFallbackFeatures(t *testing.T) {
 		t.Log("✅ Fallback storage retrieve successful")
 	}
 
-	fs.Delete(testKey)
+	_ = fs.Delete(testKey)
 	t.Log("✅ Fallback storage features tested")
 }

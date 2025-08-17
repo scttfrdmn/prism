@@ -37,26 +37,26 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
-	
+
 	// Create CloudWorkstation directory if it doesn't exist
 	cwsDir := filepath.Join(homeDir, ".cloudworkstation")
 	if err := os.MkdirAll(cwsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
-	
+
 	configPath := filepath.Join(cwsDir, "profiles.json")
-	
+
 	// Create credential provider
 	credProvider, err := NewCredentialProvider()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credential provider: %w", err)
 	}
-	
+
 	manager := &ManagerEnhanced{
 		configPath:         configPath,
 		credentialProvider: credProvider,
 	}
-	
+
 	// Load or create profiles
 	if err := manager.load(); err != nil {
 		// If file doesn't exist, create default profile
@@ -65,19 +65,19 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 				Profiles:       make(map[string]Profile),
 				CurrentProfile: "personal",
 			}
-			
+
 			// Create default personal profile
 			defaultProfile := Profile{
 				Type:       ProfileTypePersonal,
 				Name:       "My Account",
 				AWSProfile: "default",
-				Region:     "",  // Use AWS SDK default
+				Region:     "", // Use AWS SDK default
 				Default:    true,
 				CreatedAt:  time.Now(),
 			}
-			
+
 			manager.profiles.Profiles["personal"] = defaultProfile
-			
+
 			if err := manager.save(); err != nil {
 				return nil, fmt.Errorf("failed to create initial profiles: %w", err)
 			}
@@ -85,7 +85,7 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 			return nil, fmt.Errorf("failed to load profiles: %w", err)
 		}
 	}
-	
+
 	return manager, nil
 }
 
@@ -95,12 +95,12 @@ func (m *ManagerEnhanced) load() error {
 	if err != nil {
 		return err
 	}
-	
+
 	var profiles Profiles
 	if err := json.Unmarshal(data, &profiles); err != nil {
 		return fmt.Errorf("invalid profile data: %w", err)
 	}
-	
+
 	m.profiles = &profiles
 	return nil
 }
@@ -111,7 +111,7 @@ func (m *ManagerEnhanced) save() error {
 	if err != nil {
 		return err
 	}
-	
+
 	return os.WriteFile(m.configPath, data, 0644)
 }
 
@@ -121,12 +121,12 @@ func (m *ManagerEnhanced) GetCurrentProfile() (*Profile, error) {
 	if !exists {
 		return nil, ErrProfileNotFound
 	}
-	
+
 	// Check for expired invitation
 	if profile.Type == ProfileTypeInvitation {
 		// TODO: Check expiration from credentials
 	}
-	
+
 	return &profile, nil
 }
 
@@ -136,7 +136,7 @@ func (m *ManagerEnhanced) GetProfile(id string) (*Profile, error) {
 	if !exists {
 		return nil, ErrProfileNotFound
 	}
-	
+
 	return &profile, nil
 }
 
@@ -155,12 +155,12 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 	if !exists {
 		return ErrProfileNotFound
 	}
-	
+
 	// Check for expired invitation
 	if profile.Type == ProfileTypeInvitation {
 		// TODO: Check expiration from credentials
 	}
-	
+
 	// SECURITY: Enforce device binding validation for device-bound profiles
 	if profile.DeviceBound && profile.BindingRef != "" {
 		valid, err := security.ValidateDeviceBinding(profile.BindingRef)
@@ -171,15 +171,15 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 			return fmt.Errorf("profile '%s' is not authorized for use on this device - device binding violation detected", profile.Name)
 		}
 	}
-	
+
 	// Update last used timestamp
 	now := time.Now()
 	profile.LastUsed = &now
 	m.profiles.Profiles[id] = profile
-	
+
 	// Set as current
 	m.profiles.CurrentProfile = id
-	
+
 	return m.save()
 }
 
@@ -189,35 +189,35 @@ func (m *ManagerEnhanced) AddProfile(profile Profile) error {
 	if profile.Name == "" {
 		return fmt.Errorf("profile name cannot be empty")
 	}
-	
+
 	if profile.Type != ProfileTypePersonal && profile.Type != ProfileTypeInvitation {
 		return fmt.Errorf("invalid profile type: %s", profile.Type)
 	}
-	
+
 	// Generate a unique ID based on name if not provided
 	id := profile.AWSProfile
 	if id == "" {
 		id = createProfileID(profile.Name)
 	}
-	
+
 	// Check for duplicate
 	if _, exists := m.profiles.Profiles[id]; exists {
 		return fmt.Errorf("profile '%s' already exists", id)
 	}
-	
+
 	// Initialize created time
 	if profile.CreatedAt.IsZero() {
 		profile.CreatedAt = time.Now()
 	}
-	
+
 	// Add profile
 	m.profiles.Profiles[id] = profile
-	
+
 	// If this is the first profile, make it default
 	if len(m.profiles.Profiles) == 1 {
 		m.profiles.CurrentProfile = id
 	}
-	
+
 	return m.save()
 }
 
@@ -227,14 +227,14 @@ func (m *ManagerEnhanced) UpdateProfile(id string, updates Profile) error {
 	if !exists {
 		return ErrProfileNotFound
 	}
-	
+
 	// Apply updates, maintaining created time and type
 	createdAt := profile.CreatedAt
 	profileType := profile.Type
 	profile = updates
 	profile.CreatedAt = createdAt
 	profile.Type = profileType
-	
+
 	m.profiles.Profiles[id] = profile
 	return m.save()
 }
@@ -244,15 +244,15 @@ func (m *ManagerEnhanced) RemoveProfile(id string) error {
 	if _, exists := m.profiles.Profiles[id]; !exists {
 		return ErrProfileNotFound
 	}
-	
+
 	// Don't allow removing the current profile
 	if id == m.profiles.CurrentProfile {
 		return fmt.Errorf("cannot remove the active profile, switch to another profile first")
 	}
-	
+
 	// Clear credentials
 	_ = m.credentialProvider.ClearCredentials(id) // Best effort, don't fail if this fails
-	
+
 	// Remove profile
 	delete(m.profiles.Profiles, id)
 	return m.save()
@@ -269,7 +269,7 @@ func (m *ManagerEnhanced) StoreProfileCredentials(profileID string, creds *Crede
 	if _, exists := m.profiles.Profiles[profileID]; !exists {
 		return ErrProfileNotFound
 	}
-	
+
 	return m.credentialProvider.StoreCredentials(profileID, creds)
 }
 
@@ -278,7 +278,7 @@ func (m *ManagerEnhanced) GetProfileCredentials(profileID string) (*Credentials,
 	if _, exists := m.profiles.Profiles[profileID]; !exists {
 		return nil, ErrProfileNotFound
 	}
-	
+
 	return m.credentialProvider.GetCredentials(profileID)
 }
 
@@ -288,7 +288,7 @@ func (m *ManagerEnhanced) WithProfile(ctx context.Context, profileID string) (co
 	if err != nil {
 		return ctx, err
 	}
-	
+
 	return context.WithValue(ctx, ProfileContextKey, profile), nil
 }
 

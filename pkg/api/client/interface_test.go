@@ -31,13 +31,13 @@ func TestHTTPClientImplementsAllMethods(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		case r.URL.Path == "/api/v1/status":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"status": "running", "version": "test"}`)
+			_, _ = fmt.Fprint(w, `{"status": "running", "version": "test"}`)
 		case r.URL.Path == "/api/v1/instances":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"instances": []}`)
+			_, _ = fmt.Fprint(w, `{"instances": []}`)
 		case r.URL.Path == "/api/v1/templates":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{}`)
+			_, _ = fmt.Fprint(w, `{}`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -322,15 +322,15 @@ func TestCriticalAPIMethodsIntegration(t *testing.T) {
 		case r.URL.Path == "/api/v1/instances" && r.Method == "POST":
 			// Launch instance
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprint(w, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`)
+			_, _ = fmt.Fprint(w, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`)
 		case r.URL.Path == "/api/v1/instances" && r.Method == "GET":
 			// List instances
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`)
+			_, _ = fmt.Fprint(w, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`)
 		case r.URL.Path == "/api/v1/instances/test-instance" && r.Method == "GET":
 			// Get instance
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"id": "i-123", "name": "test-instance", "state": "running"}`)
+			_, _ = fmt.Fprint(w, `{"id": "i-123", "name": "test-instance", "state": "running"}`)
 		case r.URL.Path == "/api/v1/instances/test-instance/start" && r.Method == "POST":
 			// Start instance
 			w.WriteHeader(http.StatusOK)
@@ -346,14 +346,14 @@ func TestCriticalAPIMethodsIntegration(t *testing.T) {
 		case r.URL.Path == "/api/v1/instances/test-instance/hibernation-status" && r.Method == "GET":
 			// Get hibernation status
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`)
+			_, _ = fmt.Fprint(w, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`)
 		case r.URL.Path == "/api/v1/instances/test-instance" && r.Method == "DELETE":
 			// Delete instance
 			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/api/v1/instances/test-instance/connect" && r.Method == "GET":
 			// Connect instance
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"connection_info": "ssh user@1.2.3.4"}`)
+			_, _ = fmt.Fprint(w, `{"connection_info": "ssh user@1.2.3.4"}`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -412,10 +412,10 @@ func TestTemplateOperationsIntegration(t *testing.T) {
 		switch {
 		case r.URL.Path == "/api/v1/templates" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"python-ml": {"name": "python-ml", "description": "Python ML environment"}}`)
+			_, _ = fmt.Fprint(w, `{"python-ml": {"name": "python-ml", "description": "Python ML environment"}}`)
 		case r.URL.Path == "/api/v1/templates/python-ml" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"name": "python-ml", "description": "Python ML environment"}`)
+			_, _ = fmt.Fprint(w, `{"name": "python-ml", "description": "Python ML environment"}`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -443,25 +443,25 @@ func TestIdleDetectionOperationsIntegration(t *testing.T) {
 		switch {
 		case r.URL.Path == "/api/v1/idle/status" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"enabled": true, "active_profiles": 2}`)
+			_, _ = fmt.Fprint(w, `{"enabled": true, "active_profiles": 2}`)
 		case r.URL.Path == "/api/v1/idle/enable" && r.Method == "POST":
 			w.WriteHeader(http.StatusOK)
 		case r.URL.Path == "/api/v1/idle/disable" && r.Method == "POST":
 			w.WriteHeader(http.StatusOK)
 		case r.URL.Path == "/api/v1/idle/profiles" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"batch": {"name": "batch", "idle_minutes": 60}}`)
+			_, _ = fmt.Fprint(w, `{"batch": {"name": "batch", "idle_minutes": 60}}`)
 		case r.URL.Path == "/api/v1/idle/profiles" && r.Method == "POST":
 			w.WriteHeader(http.StatusCreated)
 		case r.URL.Path == "/api/v1/idle/pending-actions" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate"}]`)
+			_, _ = fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate"}]`)
 		case r.URL.Path == "/api/v1/idle/execute-actions" && r.Method == "POST":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"executed": 1, "errors": [], "total": 1}`)
+			_, _ = fmt.Fprint(w, `{"executed": 1, "errors": [], "total": 1}`)
 		case r.URL.Path == "/api/v1/idle/history" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate", "timestamp": "2024-01-01T00:00:00Z"}]`)
+			_, _ = fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate", "timestamp": "2024-01-01T00:00:00Z"}]`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -515,16 +515,16 @@ func TestProjectManagementIntegration(t *testing.T) {
 		switch {
 		case r.URL.Path == "/api/v1/projects" && r.Method == "POST":
 			w.WriteHeader(http.StatusCreated)
-			fmt.Fprint(w, `{"id": "proj-123", "name": "test-project", "status": "active"}`)
+			_, _ = fmt.Fprint(w, `{"id": "proj-123", "name": "test-project", "status": "active"}`)
 		case r.URL.Path == "/api/v1/projects" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"projects": [{"id": "proj-123", "name": "test-project"}], "total": 1}`)
+			_, _ = fmt.Fprint(w, `{"projects": [{"id": "proj-123", "name": "test-project"}], "total": 1}`)
 		case r.URL.Path == "/api/v1/projects/proj-123" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"id": "proj-123", "name": "test-project", "status": "active"}`)
+			_, _ = fmt.Fprint(w, `{"id": "proj-123", "name": "test-project", "status": "active"}`)
 		case r.URL.Path == "/api/v1/projects/proj-123" && r.Method == "PUT":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"id": "proj-123", "name": "updated-project", "status": "active"}`)
+			_, _ = fmt.Fprint(w, `{"id": "proj-123", "name": "updated-project", "status": "active"}`)
 		case r.URL.Path == "/api/v1/projects/proj-123" && r.Method == "DELETE":
 			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/api/v1/projects/proj-123/members" && r.Method == "POST":
@@ -535,10 +535,10 @@ func TestProjectManagementIntegration(t *testing.T) {
 			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/api/v1/projects/proj-123/members" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `[{"user_id": "user-456", "role": "member"}]`)
+			_, _ = fmt.Fprint(w, `[{"user_id": "user-456", "role": "member"}]`)
 		case r.URL.Path == "/api/v1/projects/proj-123/budget" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"total_budget": 1000, "used_budget": 250}`)
+			_, _ = fmt.Fprint(w, `{"total_budget": 1000, "used_budget": 250}`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}

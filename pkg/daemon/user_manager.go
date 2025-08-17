@@ -210,7 +210,7 @@ func (m *UserManager) SetDefaultProvisionOptions(options *usermgmt.UserProvision
 		return ErrUserManagerNotInitialized
 	}
 
-	m.service.SetDefaultProvisionOptions(options)
+	_ = m.service.SetDefaultProvisionOptions(options)
 	return nil
 }
 

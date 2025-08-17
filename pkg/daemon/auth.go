@@ -55,7 +55,7 @@ func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 		Message:   "API key generated successfully. This key will not be shown again.",
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleGetAuthStatus gets the current authentication status
@@ -77,7 +77,7 @@ func (s *Server) handleGetAuthStatus(w http.ResponseWriter, r *http.Request) {
 		response["authenticated"] = true
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleRevokeAPIKey revokes the current API key

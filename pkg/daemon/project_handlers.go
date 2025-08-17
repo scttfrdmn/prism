@@ -144,7 +144,7 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 		FilteredCount: len(summaries),
 	}
 
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handleCreateProject creates a new project
@@ -168,7 +168,7 @@ func (s *Server) handleCreateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(proj)
+	_ = json.NewEncoder(w).Encode(proj)
 }
 
 // handleGetProject retrieves a specific project
@@ -180,7 +180,7 @@ func (s *Server) handleGetProject(w http.ResponseWriter, r *http.Request, projec
 		return
 	}
 
-	json.NewEncoder(w).Encode(proj)
+	_ = json.NewEncoder(w).Encode(proj)
 }
 
 // handleUpdateProject updates a project
@@ -198,7 +198,7 @@ func (s *Server) handleUpdateProject(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	json.NewEncoder(w).Encode(proj)
+	_ = json.NewEncoder(w).Encode(proj)
 }
 
 // handleDeleteProject deletes a project
@@ -251,7 +251,7 @@ func (s *Server) handleGetProjectMembers(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	json.NewEncoder(w).Encode(proj.Members)
+	_ = json.NewEncoder(w).Encode(proj.Members)
 }
 
 // handleAddProjectMember adds a member to a project
@@ -280,7 +280,7 @@ func (s *Server) handleAddProjectMember(w http.ResponseWriter, r *http.Request, 
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(member)
+	_ = json.NewEncoder(w).Encode(member)
 }
 
 // handleUpdateProjectMember updates a project member's role
@@ -335,7 +335,7 @@ func (s *Server) handleGetProjectBudgetStatus(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	json.NewEncoder(w).Encode(budgetStatus)
+	_ = json.NewEncoder(w).Encode(budgetStatus)
 }
 
 // handleProjectCosts manages project cost analysis
@@ -368,7 +368,7 @@ func (s *Server) handleProjectCosts(w http.ResponseWriter, r *http.Request, proj
 		return
 	}
 
-	json.NewEncoder(w).Encode(costBreakdown)
+	_ = json.NewEncoder(w).Encode(costBreakdown)
 }
 
 // handleProjectUsage manages project resource usage metrics
@@ -394,5 +394,5 @@ func (s *Server) handleProjectUsage(w http.ResponseWriter, r *http.Request, proj
 		return
 	}
 
-	json.NewEncoder(w).Encode(usage)
+	_ = json.NewEncoder(w).Encode(usage)
 }

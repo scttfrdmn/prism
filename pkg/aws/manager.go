@@ -20,24 +20,24 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
+	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // Manager handles all AWS operations
 type Manager struct {
-	cfg         aws.Config
-	ec2         EC2ClientInterface
-	efs         EFSClientInterface
-	ssm         SSMClientInterface
-	sts         STSClientInterface
-	region      string
-	templates   map[string]ctypes.Template
-	pricingCache map[string]float64
+	cfg             aws.Config
+	ec2             EC2ClientInterface
+	efs             EFSClientInterface
+	ssm             SSMClientInterface
+	sts             STSClientInterface
+	region          string
+	templates       map[string]ctypes.Template
+	pricingCache    map[string]float64
 	lastPriceUpdate time.Time
-	discountConfig ctypes.DiscountConfig
-	stateManager StateManagerInterface
+	discountConfig  ctypes.DiscountConfig
+	stateManager    StateManagerInterface
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager
@@ -52,21 +52,22 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
-	
+
 	// Load AWS configuration with optional profile and region
 	cfgOpts := []func(*config.LoadOptions) error{}
-	
+
 	// Set profile if specified
 	if opt.Profile != "" {
 		cfgOpts = append(cfgOpts, config.WithSharedConfigProfile(opt.Profile))
 	}
-	
+
 	// Set region if specified
 	if opt.Region != "" {
 		cfgOpts = append(cfgOpts, config.WithRegion(opt.Region))
 	}
-	
-	cfg, err := config.LoadDefaultConfig(context.TODO(), cfgOpts...)
+
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, cfgOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -82,7 +83,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	efsClient := efs.NewFromConfig(cfg)
 	ssmClient := ssm.NewFromConfig(cfg)
 	stsClient := sts.NewFromConfig(cfg)
-	
+
 	// Use specified region or fallback to config region
 	region := opt.Region
 	if region == "" {
@@ -90,17 +91,17 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	}
 
 	manager := &Manager{
-		cfg:         cfg,
-		ec2:         ec2Client,
-		efs:         efsClient,
-		ssm:         ssmClient,
-		sts:         stsClient,
-		region:      region,
-		templates:   getTemplates(),
-		pricingCache: make(map[string]float64),
+		cfg:             cfg,
+		ec2:             ec2Client,
+		efs:             efsClient,
+		ssm:             ssmClient,
+		sts:             stsClient,
+		region:          region,
+		templates:       getTemplates(),
+		pricingCache:    make(map[string]float64),
 		lastPriceUpdate: time.Time{},
-		discountConfig: ctypes.DiscountConfig{}, // No discounts by default
-		stateManager: stateManager,
+		discountConfig:  ctypes.DiscountConfig{}, // No discounts by default
+		stateManager:    stateManager,
 	}
 
 	return manager, nil
@@ -129,7 +130,7 @@ func (m *Manager) GetTemplate(name string) (*ctypes.Template, error) {
 func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, error) {
 	// Detect architecture (use local for now, could be part of request)
 	arch := m.getLocalArchitecture()
-	
+
 	// Always use unified template system with inheritance support
 	return m.launchWithUnifiedTemplateSystem(req, arch)
 }
@@ -142,46 +143,46 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 	if packageManager == "" {
 		packageManager = "" // Let the template system use the template's specified package manager
 	}
-	
+
 	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
-	
+
 	// Extract configuration from unified template
 	ami, exists := template.AMI[m.region][arch]
 	if !exists {
 		return nil, fmt.Errorf("AMI not available for region %s and architecture %s", m.region, arch)
 	}
-	
+
 	instanceType, exists := template.InstanceType[arch]
 	if !exists {
 		return nil, fmt.Errorf("instance type not available for architecture %s", arch)
 	}
-	
+
 	// Get cost estimate
 	dailyCost := template.EstimatedCostPerHour[arch] * 24
-	
+
 	// Use generated UserData script
 	userData := template.UserData
-	
+
 	// Replace idle detection configuration placeholders
 	userData = m.processIdleDetectionConfig(userData, template)
-	
+
 	// Add EFS mount if volumes specified
 	if len(req.Volumes) > 0 {
 		for _, volumeName := range req.Volumes {
 			userData = m.addEFSMountToUserData(userData, volumeName, m.region)
 		}
 	}
-	
+
 	// Encode user data
 	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
-	
+
 	// ===== NETWORKING CONFIGURATION =====
 	// Handle VPC and subnet discovery
 	var vpcID, subnetID, securityGroupID string
-	
+
 	if req.VpcID != "" {
 		// User specified VPC
 		vpcID = req.VpcID
@@ -193,7 +194,7 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		}
 		vpcID = discoveredVPC
 	}
-	
+
 	if req.SubnetID != "" {
 		// User specified subnet
 		subnetID = req.SubnetID
@@ -205,24 +206,24 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		}
 		subnetID = discoveredSubnet
 	}
-	
+
 	// Get or create CloudWorkstation security group
 	discoveredSG, err := m.GetOrCreateCloudWorkstationSecurityGroup(vpcID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create security group: %w", err)
 	}
 	securityGroupID = discoveredSG
-	
+
 	// Launch EC2 instance
 	minCount := int32(1)
 	maxCount := int32(1)
 	runInput := &ec2.RunInstancesInput{
-		ImageId:      &ami,
-		InstanceType: ec2types.InstanceType(instanceType),
-		MinCount:     &minCount,
-		MaxCount:     &maxCount,
-		UserData:     &userDataEncoded,
-		SubnetId:     aws.String(subnetID),
+		ImageId:          &ami,
+		InstanceType:     ec2types.InstanceType(instanceType),
+		MinCount:         &minCount,
+		MaxCount:         &maxCount,
+		UserData:         &userDataEncoded,
+		SubnetId:         aws.String(subnetID),
 		SecurityGroupIds: []string{securityGroupID},
 		IamInstanceProfile: &ec2types.IamInstanceProfileSpecification{
 			Name: aws.String("CloudWorkstation-Instance-Profile"),
@@ -240,12 +241,12 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 			},
 		},
 	}
-	
+
 	// Add SSH key pair if provided
 	if req.SSHKeyName != "" {
 		runInput.KeyName = aws.String(req.SSHKeyName)
 	}
-	
+
 	// Validate hibernation and spot combination
 	if req.Hibernation && req.Spot {
 		return nil, fmt.Errorf("hibernation and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Hibernation preserves instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --hibernation for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
@@ -257,31 +258,31 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		if !m.supportsHibernation(instanceType) {
 			return nil, fmt.Errorf("instance type %s does not support hibernation\n\n💡 Hibernation is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --hibernation flag or choose a different instance size", instanceType)
 		}
-		
+
 		runInput.HibernationOptions = &ec2types.HibernationOptionsRequest{
 			Configured: aws.Bool(true),
 		}
-		
+
 		// Enable EBS encryption for root volume (required for hibernation)
 		// Ubuntu AMIs typically use /dev/sda1, Amazon Linux uses /dev/xvda
 		rootDevice := "/dev/sda1"
 		if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
 			rootDevice = "/dev/xvda"
 		}
-		
+
 		runInput.BlockDeviceMappings = []ec2types.BlockDeviceMapping{
 			{
 				DeviceName: aws.String(rootDevice),
 				Ebs: &ec2types.EbsBlockDevice{
 					VolumeType:          ec2types.VolumeTypeGp3,
-					VolumeSize:          aws.Int32(20), // 20GB root volume
+					VolumeSize:          aws.Int32(20),  // 20GB root volume
 					Encrypted:           aws.Bool(true), // Required for hibernation
 					DeleteOnTermination: aws.Bool(true),
 				},
 			},
 		}
 	}
-	
+
 	// Add spot instance support if requested
 	if req.Spot {
 		runInput.InstanceMarketOptions = &ec2types.InstanceMarketOptionsRequest{
@@ -291,7 +292,7 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 			},
 		}
 	}
-	
+
 	// Handle dry run
 	if req.DryRun {
 		return &ctypes.Instance{
@@ -301,15 +302,16 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 			EstimatedDailyCost: dailyCost,
 		}, nil
 	}
-	
+
 	// Launch instance
-	result, err := m.ec2.RunInstances(context.TODO(), runInput)
+	ctx := context.Background()
+	result, err := m.ec2.RunInstances(ctx, runInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch instance: %w", err)
 	}
-	
+
 	instance := result.Instances[0]
-	
+
 	return &ctypes.Instance{
 		ID:                 *instance.InstanceId,
 		Name:               req.Name,
@@ -330,7 +332,8 @@ func (m *Manager) DeleteInstance(name string) error {
 	}
 
 	// Terminate the instance
-	_, err = m.ec2.TerminateInstances(context.TODO(), &ec2.TerminateInstancesInput{
+	ctx := context.Background()
+	_, err = m.ec2.TerminateInstances(ctx, &ec2.TerminateInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -349,7 +352,8 @@ func (m *Manager) StartInstance(name string) error {
 	}
 
 	// Start the instance
-	_, err = m.ec2.StartInstances(context.TODO(), &ec2.StartInstancesInput{
+	ctx := context.Background()
+	_, err = m.ec2.StartInstances(ctx, &ec2.StartInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -367,8 +371,9 @@ func (m *Manager) StopInstance(name string) error {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	ctx := context.Background()
 	// Stop the instance
-	_, err = m.ec2.StopInstances(context.TODO(), &ec2.StopInstancesInput{
+	_, err = m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -387,8 +392,9 @@ func (m *Manager) HibernateInstance(name string) error {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	ctx := context.Background()
 	// Check if instance supports hibernation
-	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -400,14 +406,14 @@ func (m *Manager) HibernateInstance(name string) error {
 	}
 
 	instance := result.Reservations[0].Instances[0]
-	
+
 	// Check if hibernation is enabled for this instance
 	if instance.HibernationOptions == nil {
 		fmt.Printf("⚠️  Instance %s does not support hibernation (hibernation options not found)\n", name)
 		fmt.Printf("    Falling back to regular stop operation\n")
 		return m.StopInstance(name)
 	}
-	
+
 	if !*instance.HibernationOptions.Configured {
 		fmt.Printf("⚠️  Instance %s does not support hibernation (hibernation not configured)\n", name)
 		fmt.Printf("    Falling back to regular stop operation\n")
@@ -418,18 +424,18 @@ func (m *Manager) HibernateInstance(name string) error {
 	if instance.State == nil {
 		return fmt.Errorf("instance state unknown")
 	}
-	
+
 	instanceState := string(instance.State.Name)
 	if instanceState != "running" {
 		return fmt.Errorf("instance must be in 'running' state to hibernate (current state: %s)", instanceState)
 	}
-	
+
 	// Check if instance has been running long enough for hibernation agent to be ready
 	// AWS hibernation agent typically needs 2-3 minutes after launch to be ready
 	if instance.LaunchTime != nil {
 		timeSinceLaunch := time.Since(*instance.LaunchTime)
 		minReadyTime := 3 * time.Minute
-		
+
 		if timeSinceLaunch < minReadyTime {
 			remainingTime := minReadyTime - timeSinceLaunch
 			return fmt.Errorf("instance not ready for hibernation yet (launched %v ago, need %v). Wait %v more",
@@ -440,7 +446,7 @@ func (m *Manager) HibernateInstance(name string) error {
 	}
 
 	// Stop the instance with hibernation
-	_, err = m.ec2.StopInstances(context.TODO(), &ec2.StopInstancesInput{
+	_, err = m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceID},
 		Hibernate:   aws.Bool(true), // This enables hibernation
 	})
@@ -465,8 +471,9 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 		return false, false, fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	ctx := context.Background()
 	// Get instance details
-	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -478,10 +485,10 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 	}
 
 	instance := result.Reservations[0].Instances[0]
-	
+
 	// Check hibernation configuration
 	hibernationSupported := instance.HibernationOptions != nil && *instance.HibernationOptions.Configured
-	
+
 	// Check if currently hibernated (stopped with hibernation)
 	isHibernated := false
 	if hibernationSupported && instance.State != nil && string(instance.State.Name) == "stopped" {
@@ -489,7 +496,7 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 		// For now, assume stopped + hibernation-enabled = hibernated
 		isHibernated = true
 	}
-	
+
 	return hibernationSupported, isHibernated, nil
 }
 
@@ -501,8 +508,9 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 		return "", fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	ctx := context.Background()
 	// Get instance details
-	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -514,7 +522,7 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 	}
 
 	instance := result.Reservations[0].Instances[0]
-	
+
 	if instance.PublicIpAddress == nil {
 		return "", fmt.Errorf("instance has no public IP address")
 	}
@@ -538,7 +546,7 @@ func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.EFSVolum
 	if req.PerformanceMode != "" {
 		performanceMode = req.PerformanceMode
 	}
-	
+
 	throughputMode := "bursting"
 	if req.ThroughputMode != "" {
 		throughputMode = req.ThroughputMode
@@ -560,7 +568,8 @@ func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.EFSVolum
 		},
 	}
 
-	result, err := m.efs.CreateFileSystem(context.TODO(), input)
+	ctx := context.Background()
+	result, err := m.efs.CreateFileSystem(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create EFS file system: %w", err)
 	}
@@ -574,7 +583,7 @@ func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.EFSVolum
 		PerformanceMode: performanceMode,
 		ThroughputMode:  throughputMode,
 		EstimatedCostGB: m.getRegionalEFSPrice(), // Regional EFS pricing
-		SizeBytes:       0,     // Will be updated as files are added
+		SizeBytes:       0,                       // Will be updated as files are added
 	}
 
 	return volume, nil
@@ -601,9 +610,10 @@ func (m *Manager) DeleteVolume(name string) error {
 
 	log.Printf("Deleting EFS volume '%s' (filesystem ID: %s)...", name, fsId)
 
+	ctx := context.Background()
 	// 1. Delete all mount targets first
 	// List mount targets for the file system
-	mtResp, err := m.efs.DescribeMountTargets(context.TODO(), &efs.DescribeMountTargetsInput{
+	mtResp, err := m.efs.DescribeMountTargets(ctx, &efs.DescribeMountTargetsInput{
 		FileSystemId: aws.String(fsId),
 	})
 	if err != nil {
@@ -615,7 +625,7 @@ func (m *Manager) DeleteVolume(name string) error {
 		mountTargetId := *mt.MountTargetId
 		log.Printf("Deleting mount target %s...", mountTargetId)
 
-		_, err := m.efs.DeleteMountTarget(context.TODO(), &efs.DeleteMountTargetInput{
+		_, err := m.efs.DeleteMountTarget(ctx, &efs.DeleteMountTargetInput{
 			MountTargetId: aws.String(mountTargetId),
 		})
 		if err != nil {
@@ -631,7 +641,7 @@ func (m *Manager) DeleteVolume(name string) error {
 		// Poll until all mount targets are gone
 		for i := 0; i < 30; i++ { // Try for up to 5 minutes (30 * 10 seconds)
 			// Check if mount targets still exist
-			mtCheck, err := m.efs.DescribeMountTargets(context.TODO(), &efs.DescribeMountTargetsInput{
+			mtCheck, err := m.efs.DescribeMountTargets(ctx, &efs.DescribeMountTargetsInput{
 				FileSystemId: aws.String(fsId),
 			})
 			if err != nil {
@@ -654,7 +664,7 @@ func (m *Manager) DeleteVolume(name string) error {
 
 	// 3. Delete the file system
 	log.Printf("Deleting EFS file system %s...", fsId)
-	_, err = m.efs.DeleteFileSystem(context.TODO(), &efs.DeleteFileSystemInput{
+	_, err = m.efs.DeleteFileSystem(ctx, &efs.DeleteFileSystemInput{
 		FileSystemId: aws.String(fsId),
 	})
 	if err != nil {
@@ -834,8 +844,9 @@ echo "EFS volume unmounted successfully"
 
 // executeScriptOnInstance executes a shell script on an instance using SSM
 func (m *Manager) executeScriptOnInstance(instanceID, script string) error {
+	ctx := context.Background()
 	// Send command via SSM
-	output, err := m.ssm.SendCommand(context.TODO(), &ssm.SendCommandInput{
+	output, err := m.ssm.SendCommand(ctx, &ssm.SendCommandInput{
 		InstanceIds:  []string{instanceID},
 		DocumentName: aws.String("AWS-RunShellScript"),
 		Parameters: map[string][]string{
@@ -854,7 +865,7 @@ func (m *Manager) executeScriptOnInstance(instanceID, script string) error {
 	maxAttempts := 30 // Wait up to 5 minutes (30 * 10 seconds)
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		// Get command invocation status
-		invocation, err := m.ssm.GetCommandInvocation(context.TODO(), &ssm.GetCommandInvocationInput{
+		invocation, err := m.ssm.GetCommandInvocation(ctx, &ssm.GetCommandInvocationInput{
 			CommandId:  aws.String(commandID),
 			InstanceId: aws.String(instanceID),
 		})
@@ -900,20 +911,20 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVol
 	if err != nil {
 		return nil, fmt.Errorf("invalid size: %w", err)
 	}
-	
+
 	// Set defaults
 	volumeType := "gp3"
 	if req.VolumeType != "" {
 		volumeType = req.VolumeType
 	}
-	
+
 	// Calculate IOPS and throughput for gp3 volumes
 	iops, throughput := m.calculatePerformanceParams(volumeType, sizeGB)
-	
+
 	// Create EBS volume
 	input := &ec2.CreateVolumeInput{
-		Size:         aws.Int32(int32(sizeGB)),
-		VolumeType:   ec2types.VolumeType(volumeType),
+		Size:             aws.Int32(int32(sizeGB)),
+		VolumeType:       ec2types.VolumeType(volumeType),
 		AvailabilityZone: aws.String(m.region + "a"), // Use first AZ
 		TagSpecifications: []ec2types.TagSpecification{
 			{
@@ -931,25 +942,26 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVol
 			},
 		},
 	}
-	
+
 	// Set IOPS for io2 and gp3 volumes
 	if volumeType == "io2" || volumeType == "gp3" {
 		input.Iops = aws.Int32(int32(iops))
 	}
-	
+
 	// Set throughput for gp3 volumes
 	if volumeType == "gp3" {
 		input.Throughput = aws.Int32(int32(throughput))
 	}
-	
-	result, err := m.ec2.CreateVolume(context.TODO(), input)
+
+	ctx := context.Background()
+	result, err := m.ec2.CreateVolume(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create EBS volume: %w", err)
 	}
-	
+
 	// Calculate cost per GB per month
 	costPerGB := m.getEBSCostPerGB(volumeType)
-	
+
 	volume := &ctypes.EBSVolume{
 		Name:            req.Name,
 		VolumeID:        *result.VolumeId,
@@ -963,7 +975,7 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVol
 		EstimatedCostGB: costPerGB,
 		AttachedTo:      "", // Not attached initially
 	}
-	
+
 	return volume, nil
 }
 
@@ -974,15 +986,16 @@ func (m *Manager) DeleteStorage(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find volume: %w", err)
 	}
-	
+
+	ctx := context.Background()
 	// Delete the volume
-	_, err = m.ec2.DeleteVolume(context.TODO(), &ec2.DeleteVolumeInput{
+	_, err = m.ec2.DeleteVolume(ctx, &ec2.DeleteVolumeInput{
 		VolumeId: aws.String(volumeID),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete volume: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -993,18 +1006,19 @@ func (m *Manager) AttachStorage(volumeName, instanceName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find volume: %w", err)
 	}
-	
+
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(instanceName)
 	if err != nil {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
-	
+
 	// Find next available device name (start with /dev/sdf)
 	deviceName := "/dev/sdf"
-	
+
+	ctx := context.Background()
 	// Attach volume to instance
-	_, err = m.ec2.AttachVolume(context.TODO(), &ec2.AttachVolumeInput{
+	_, err = m.ec2.AttachVolume(ctx, &ec2.AttachVolumeInput{
 		VolumeId:   aws.String(volumeID),
 		InstanceId: aws.String(instanceID),
 		Device:     aws.String(deviceName),
@@ -1012,7 +1026,7 @@ func (m *Manager) AttachStorage(volumeName, instanceName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to attach volume: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -1023,15 +1037,16 @@ func (m *Manager) DetachStorage(volumeName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find volume: %w", err)
 	}
-	
+
+	ctx := context.Background()
 	// Detach the volume
-	_, err = m.ec2.DetachVolume(context.TODO(), &ec2.DetachVolumeInput{
+	_, err = m.ec2.DetachVolume(ctx, &ec2.DetachVolumeInput{
 		VolumeId: aws.String(volumeID),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to detach volume: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -1057,25 +1072,25 @@ func (m *Manager) getTemplateForArchitecture(template ctypes.Template, arch, reg
 	if !regionExists {
 		return "", "", 0, fmt.Errorf("template '%s' does not support region '%s'", template.Name, region)
 	}
-	
+
 	// Check if template supports the architecture in this region
 	ami, archExists := regionAmis[arch]
 	if !archExists {
 		return "", "", 0, fmt.Errorf("template '%s' does not support architecture '%s' in region '%s'", template.Name, arch, region)
 	}
-	
+
 	// Get instance type for architecture
 	instanceType, typeExists := template.InstanceType[arch]
 	if !typeExists {
 		return "", "", 0, fmt.Errorf("template '%s' does not have instance type for architecture '%s'", template.Name, arch)
 	}
-	
+
 	// Get cost for architecture
 	costPerHour, costExists := template.EstimatedCostPerHour[arch]
 	if !costExists {
 		return "", "", 0, fmt.Errorf("template '%s' does not have cost information for architecture '%s'", template.Name, arch)
 	}
-	
+
 	return ami, instanceType, costPerHour, nil
 }
 
@@ -1085,12 +1100,12 @@ func (m *Manager) processIdleDetectionConfig(userData string, template *ctypes.R
 	if template.IdleDetection == nil {
 		return userData
 	}
-	
+
 	// Replace configuration placeholders
 	userData = strings.ReplaceAll(userData, "{{IDLE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", template.IdleDetection.IdleThresholdMinutes))
 	userData = strings.ReplaceAll(userData, "{{HIBERNATE_THRESHOLD_MINUTES}}", fmt.Sprintf("%d", template.IdleDetection.HibernateThresholdMinutes))
 	userData = strings.ReplaceAll(userData, "{{CHECK_INTERVAL_MINUTES}}", fmt.Sprintf("%d", template.IdleDetection.CheckIntervalMinutes))
-	
+
 	return userData
 }
 
@@ -1107,13 +1122,14 @@ mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,intr,timeo=600 %s.
 echo "%s.efs.%s.amazonaws.com:/ /mnt/%s nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,intr,timeo=600,_netdev 0 0" >> /etc/fstab
 chown -R ubuntu:ubuntu /mnt/%s
 `, volumeName, volumeName, volumeName, region, volumeName, volumeName, region, volumeName, volumeName)
-	
+
 	return originalUserData + efsMount
 }
 
 // findInstanceByName finds an EC2 instance by its Name tag
 func (m *Manager) findInstanceByName(name string) (string, error) {
-	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+	ctx := context.Background()
+	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:Name"),
@@ -1150,12 +1166,13 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		// Continue without state merging if unavailable
 		stateManager = nil
 	}
-	
+
 	var localState *ctypes.State
 	if stateManager != nil {
 		localState, _ = stateManager.LoadState()
 	}
-	result, err := m.ec2.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+	ctx := context.Background()
+	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:CloudWorkstation"),
@@ -1200,13 +1217,13 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 			state := "unknown"
 			if ec2Instance.State != nil {
 				state = string(ec2Instance.State.Name)
-				
+
 				// Check if this is a hibernated instance (stopped + hibernation-enabled)
-				if state == "stopped" && ec2Instance.HibernationOptions != nil && 
-				   *ec2Instance.HibernationOptions.Configured {
+				if state == "stopped" && ec2Instance.HibernationOptions != nil &&
+					*ec2Instance.HibernationOptions.Configured {
 					state = "hibernated"
-				} else if state == "stopping" && ec2Instance.HibernationOptions != nil && 
-				         *ec2Instance.HibernationOptions.Configured {
+				} else if state == "stopping" && ec2Instance.HibernationOptions != nil &&
+					*ec2Instance.HibernationOptions.Configured {
 					// For instances that were hibernated, show "hibernating" during stop transition
 					state = "hibernating"
 				}
@@ -1226,17 +1243,17 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 
 			// Create CloudWorkstation Instance struct with real-time data
 			instance := ctypes.Instance{
-				ID:                  *ec2Instance.InstanceId,
-				Name:                name,
-				Template:            template,
-				State:               state,
-				PublicIP:            publicIP,
-				ProjectID:           project,
-				InstanceLifecycle:   instanceLifecycle,
-				LaunchTime:          *ec2Instance.LaunchTime, // Dereference the pointer
-				EstimatedDailyCost:  0.0, // TODO: Calculate based on instance type
+				ID:                 *ec2Instance.InstanceId,
+				Name:               name,
+				Template:           template,
+				State:              state,
+				PublicIP:           publicIP,
+				ProjectID:          project,
+				InstanceLifecycle:  instanceLifecycle,
+				LaunchTime:         *ec2Instance.LaunchTime, // Dereference the pointer
+				EstimatedDailyCost: 0.0,                     // TODO: Calculate based on instance type
 			}
-			
+
 			// Merge deletion time from local state if available
 			if localState != nil {
 				if localInstance, exists := localState.Instances[name]; exists {
@@ -1287,7 +1304,7 @@ func (m *Manager) calculatePerformanceParams(volumeType string, sizeGB int) (int
 		if iops < 3000 {
 			iops = 3000 // Minimum for gp3
 		}
-		
+
 		throughput := sizeGB / 4 // Rough approximation
 		if throughput > 1000 {
 			throughput = 1000
@@ -1295,9 +1312,9 @@ func (m *Manager) calculatePerformanceParams(volumeType string, sizeGB int) (int
 		if throughput < 125 {
 			throughput = 125
 		}
-		
+
 		return iops, throughput
-		
+
 	case "io2":
 		// io2: Up to 500 IOPS per GB, max 64,000 IOPS
 		iops := sizeGB * 10 // Conservative for cost
@@ -1308,7 +1325,7 @@ func (m *Manager) calculatePerformanceParams(volumeType string, sizeGB int) (int
 			iops = 100
 		}
 		return iops, 0 // throughput not applicable for io2
-		
+
 	default:
 		return 0, 0 // No IOPS/throughput configuration for other types
 	}
@@ -1329,10 +1346,10 @@ func (m *Manager) getRegionalEBSPrice(volumeType string) float64 {
 			return cachedPrice
 		}
 	}
-	
+
 	// Get regional pricing multiplier
 	regionMultiplier := m.getRegionPricingMultiplier()
-	
+
 	// Base US East 1 pricing (most accurate)
 	var basePrice float64
 	switch volumeType {
@@ -1349,13 +1366,13 @@ func (m *Manager) getRegionalEBSPrice(volumeType string) float64 {
 	default:
 		basePrice = 0.10 // Default to gp2 pricing
 	}
-	
+
 	regionalPrice := basePrice * regionMultiplier
-	
+
 	// Cache the result
 	m.pricingCache[cacheKey] = regionalPrice
 	m.lastPriceUpdate = time.Now()
-	
+
 	return regionalPrice
 }
 
@@ -1405,10 +1422,10 @@ func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
 			return cachedPrice
 		}
 	}
-	
+
 	// Get regional pricing multiplier
 	regionMultiplier := m.getRegionPricingMultiplier()
-	
+
 	// Base US East 1 pricing for common instance types
 	var basePrice float64
 	switch instanceType {
@@ -1425,7 +1442,7 @@ func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
 		basePrice = 0.1664 // $0.1664 per hour
 	case "t3.2xlarge":
 		basePrice = 0.3328 // $0.3328 per hour
-	
+
 	// Compute Optimized
 	case "c5.large":
 		basePrice = 0.085 // $0.085 per hour
@@ -1435,7 +1452,7 @@ func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
 		basePrice = 0.34 // $0.34 per hour
 	case "c5.4xlarge":
 		basePrice = 0.68 // $0.68 per hour
-	
+
 	// Memory Optimized
 	case "r5.large":
 		basePrice = 0.126 // $0.126 per hour
@@ -1445,7 +1462,7 @@ func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
 		basePrice = 0.504 // $0.504 per hour
 	case "r5.4xlarge":
 		basePrice = 1.008 // $1.008 per hour
-	
+
 	// GPU Instances
 	case "g4dn.xlarge":
 		basePrice = 0.526 // $0.526 per hour
@@ -1453,21 +1470,21 @@ func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
 		basePrice = 0.752 // $0.752 per hour
 	case "g4dn.4xlarge":
 		basePrice = 1.204 // $1.204 per hour
-		
+
 	default:
 		// Estimate based on instance family and size
 		basePrice = m.estimateInstancePrice(instanceType)
 	}
-	
+
 	regionalPrice := basePrice * regionMultiplier
-	
+
 	// Apply discounts
 	finalPrice := m.applyEC2Discounts(regionalPrice)
-	
+
 	// Cache the result
 	m.pricingCache[cacheKey] = finalPrice
 	m.lastPriceUpdate = time.Now()
-	
+
 	return finalPrice
 }
 
@@ -1478,10 +1495,10 @@ func (m *Manager) estimateInstancePrice(instanceType string) float64 {
 	if len(parts) != 2 {
 		return 0.10 // Conservative fallback
 	}
-	
+
 	family := parts[0]
 	size := parts[1]
-	
+
 	// Base pricing by family (rough estimates)
 	var familyBase float64
 	switch {
@@ -1498,7 +1515,7 @@ func (m *Manager) estimateInstancePrice(instanceType string) float64 {
 	default:
 		familyBase = 0.05 // Conservative default
 	}
-	
+
 	// Size multiplier
 	var sizeMultiplier float64
 	switch size {
@@ -1529,7 +1546,7 @@ func (m *Manager) estimateInstancePrice(instanceType string) float64 {
 	default:
 		sizeMultiplier = 4.0 // Default to large
 	}
-	
+
 	return familyBase * sizeMultiplier
 }
 
@@ -1542,21 +1559,21 @@ func (m *Manager) getRegionalEFSPrice() float64 {
 			return cachedPrice
 		}
 	}
-	
+
 	// Get regional pricing multiplier
 	regionMultiplier := m.getRegionPricingMultiplier()
-	
+
 	// Base US East 1 EFS pricing: $0.30 per GB per month for Standard storage
 	basePrice := 0.30
 	regionalPrice := basePrice * regionMultiplier
-	
+
 	// Apply discounts
 	finalPrice := m.applyEFSDiscounts(regionalPrice)
-	
+
 	// Cache the result
 	m.pricingCache[cacheKey] = finalPrice
 	m.lastPriceUpdate = time.Now()
-	
+
 	return finalPrice
 }
 
@@ -1564,7 +1581,7 @@ func (m *Manager) getRegionalEFSPrice() float64 {
 func (m *Manager) GetBillingInfo() (*ctypes.BillingInfo, error) {
 	// Note: AWS doesn't provide direct credit APIs, so this is a simplified approach
 	// In practice, this would require parsing billing reports or using Cost Explorer
-	
+
 	info := &ctypes.BillingInfo{
 		MonthToDateSpend: 0.0, // Would need Cost Explorer API
 		ForecastedSpend:  0.0, // Would need Cost Explorer API
@@ -1572,24 +1589,24 @@ func (m *Manager) GetBillingInfo() (*ctypes.BillingInfo, error) {
 		BillingPeriod:    time.Now().Format("2006-01"),
 		LastUpdated:      time.Now(),
 	}
-	
+
 	// Check for common credit scenarios based on account type
 	credits := m.detectPotentialCredits()
 	info.Credits = credits
-	
+
 	return info, nil
 }
 
 // detectPotentialCredits attempts to detect potential credit allocations
 func (m *Manager) detectPotentialCredits() []ctypes.CreditInfo {
 	var credits []ctypes.CreditInfo
-	
+
 	// Check account alias or organization info for common credit programs
 	// This is a simplified approach - real implementation would need billing API access
-	
+
 	// Example: Check if account is part of AWS Educate
 	// (In practice, this would require additional AWS APIs)
-	
+
 	// Mock credit for educational/startup accounts
 	credits = append(credits, ctypes.CreditInfo{
 		TotalCredits:     0.0,
@@ -1598,7 +1615,7 @@ func (m *Manager) detectPotentialCredits() []ctypes.CreditInfo {
 		CreditType:       "AWS Credits",
 		Description:      "Credit information requires AWS billing API access",
 	})
-	
+
 	return credits
 }
 
@@ -1618,72 +1635,73 @@ func (m *Manager) GetDiscountConfig() ctypes.DiscountConfig {
 // applyEC2Discounts applies all applicable discounts to EC2 pricing
 func (m *Manager) applyEC2Discounts(basePrice float64) float64 {
 	price := basePrice
-	
+
 	// Apply individual discounts sequentially
 	if m.discountConfig.EC2Discount > 0 {
 		price *= (1.0 - m.discountConfig.EC2Discount)
 	}
-	
+
 	if m.discountConfig.SavingsPlansDiscount > 0 {
 		price *= (1.0 - m.discountConfig.SavingsPlansDiscount)
 	}
-	
+
 	if m.discountConfig.ReservedInstanceDiscount > 0 {
 		price *= (1.0 - m.discountConfig.ReservedInstanceDiscount)
 	}
-	
+
 	if m.discountConfig.EducationalDiscount > 0 {
 		price *= (1.0 - m.discountConfig.EducationalDiscount)
 	}
-	
+
 	if m.discountConfig.StartupDiscount > 0 {
 		price *= (1.0 - m.discountConfig.StartupDiscount)
 	}
-	
+
 	if m.discountConfig.EnterpriseDiscount > 0 {
 		price *= (1.0 - m.discountConfig.EnterpriseDiscount)
 	}
-	
+
 	return price
 }
 
 // applyEBSDiscounts applies all applicable discounts to EBS pricing
 func (m *Manager) applyEBSDiscounts(basePrice float64) float64 {
 	price := basePrice
-	
+
 	if m.discountConfig.EBSDiscount > 0 {
 		price *= (1.0 - m.discountConfig.EBSDiscount)
 	}
-	
+
 	if m.discountConfig.VolumeDiscount > 0 {
 		price *= (1.0 - m.discountConfig.VolumeDiscount)
 	}
-	
+
 	if m.discountConfig.EnterpriseDiscount > 0 {
 		price *= (1.0 - m.discountConfig.EnterpriseDiscount)
 	}
-	
+
 	return price
 }
 
 // applyEFSDiscounts applies all applicable discounts to EFS pricing
 func (m *Manager) applyEFSDiscounts(basePrice float64) float64 {
 	price := basePrice
-	
+
 	if m.discountConfig.EFSDiscount > 0 {
 		price *= (1.0 - m.discountConfig.EFSDiscount)
 	}
-	
+
 	if m.discountConfig.EnterpriseDiscount > 0 {
 		price *= (1.0 - m.discountConfig.EnterpriseDiscount)
 	}
-	
+
 	return price
 }
 
 // findVolumeByName finds an EBS volume by its Name tag
 func (m *Manager) findVolumeByName(name string) (string, error) {
-	result, err := m.ec2.DescribeVolumes(context.TODO(), &ec2.DescribeVolumesInput{
+	ctx := context.Background()
+	result, err := m.ec2.DescribeVolumes(ctx, &ec2.DescribeVolumesInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:Name"),
@@ -1698,28 +1716,29 @@ func (m *Manager) findVolumeByName(name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to describe volumes: %w", err)
 	}
-	
+
 	if len(result.Volumes) == 0 {
 		return "", fmt.Errorf("volume '%s' not found", name)
 	}
-	
+
 	return *result.Volumes[0].VolumeId, nil
 }
 
 // EnsureKeyPairExists ensures the SSH key pair exists in AWS, creating it if necessary
 func (m *Manager) EnsureKeyPairExists(keyName, publicKeyContent string) error {
+	ctx := context.Background()
 	// Check if key pair already exists
-	_, err := m.ec2.DescribeKeyPairs(context.TODO(), &ec2.DescribeKeyPairsInput{
+	_, err := m.ec2.DescribeKeyPairs(ctx, &ec2.DescribeKeyPairsInput{
 		KeyNames: []string{keyName},
 	})
-	
+
 	if err == nil {
 		// Key pair already exists
 		return nil
 	}
-	
+
 	// Key pair doesn't exist, import it
-	_, err = m.ec2.ImportKeyPair(context.TODO(), &ec2.ImportKeyPairInput{
+	_, err = m.ec2.ImportKeyPair(ctx, &ec2.ImportKeyPairInput{
 		KeyName:           aws.String(keyName),
 		PublicKeyMaterial: []byte(publicKeyContent),
 		TagSpecifications: []ec2types.TagSpecification{
@@ -1741,25 +1760,27 @@ func (m *Manager) EnsureKeyPairExists(keyName, publicKeyContent string) error {
 	if err != nil {
 		return fmt.Errorf("failed to import key pair: %w", err)
 	}
-	
+
 	return nil
 }
 
 // DeleteKeyPair deletes an SSH key pair from AWS
 func (m *Manager) DeleteKeyPair(keyName string) error {
-	_, err := m.ec2.DeleteKeyPair(context.TODO(), &ec2.DeleteKeyPairInput{
+	ctx := context.Background()
+	_, err := m.ec2.DeleteKeyPair(ctx, &ec2.DeleteKeyPairInput{
 		KeyName: aws.String(keyName),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete key pair: %w", err)
 	}
-	
+
 	return nil
 }
 
 // ListCloudWorkstationKeyPairs lists all SSH key pairs managed by CloudWorkstation
 func (m *Manager) ListCloudWorkstationKeyPairs() ([]string, error) {
-	result, err := m.ec2.DescribeKeyPairs(context.TODO(), &ec2.DescribeKeyPairsInput{
+	ctx := context.Background()
+	result, err := m.ec2.DescribeKeyPairs(ctx, &ec2.DescribeKeyPairsInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:CloudWorkstation"),
@@ -1770,14 +1791,14 @@ func (m *Manager) ListCloudWorkstationKeyPairs() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe key pairs: %w", err)
 	}
-	
+
 	var keyNames []string
 	for _, keyPair := range result.KeyPairs {
 		if keyPair.KeyName != nil {
 			keyNames = append(keyNames, *keyPair.KeyName)
 		}
 	}
-	
+
 	return keyNames, nil
 }
 
@@ -1785,33 +1806,33 @@ func (m *Manager) ListCloudWorkstationKeyPairs() ([]string, error) {
 func (m *Manager) getSSHKeyPathFromKeyName(keyName string) (string, error) {
 	// CloudWorkstation key naming pattern: cws-<profile>-key
 	if strings.HasPrefix(keyName, "cws-") && strings.HasSuffix(keyName, "-key") {
-		// Extract safe name from key name (it's already safe for filesystem) 
+		// Extract safe name from key name (it's already safe for filesystem)
 		safeName := strings.TrimPrefix(keyName, "cws-")
 		safeName = strings.TrimSuffix(safeName, "-key")
-		
+
 		// Get home directory
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return "", fmt.Errorf("failed to get home directory: %w", err)
 		}
-		
+
 		// Construct key path using the same naming
 		keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("cws-%s-key", safeName))
-		
+
 		// Check if key exists
 		if _, err := os.Stat(keyPath); os.IsNotExist(err) {
 			return "", fmt.Errorf("SSH key not found at %s", keyPath)
 		}
-		
+
 		return keyPath, nil
 	}
-	
+
 	// For non-CloudWorkstation keys, try to find default SSH keys
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
-	
+
 	// Check common SSH key locations
 	commonKeys := []string{"id_ed25519", "id_rsa", "id_ecdsa"}
 	for _, keyType := range commonKeys {
@@ -1820,7 +1841,7 @@ func (m *Manager) getSSHKeyPathFromKeyName(keyName string) (string, error) {
 			return keyPath, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("no SSH key found for key name: %s", keyName)
 }
 
@@ -1828,7 +1849,8 @@ func (m *Manager) getSSHKeyPathFromKeyName(keyName string) (string, error) {
 
 // DiscoverDefaultVPC finds the default VPC in the current region
 func (m *Manager) DiscoverDefaultVPC() (string, error) {
-	result, err := m.ec2.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
+	ctx := context.Background()
+	result, err := m.ec2.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("is-default"),
@@ -1839,18 +1861,19 @@ func (m *Manager) DiscoverDefaultVPC() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to describe VPCs: %w", err)
 	}
-	
+
 	if len(result.Vpcs) == 0 {
 		return "", fmt.Errorf("no default VPC found in region %s - please create one or specify --vpc", m.region)
 	}
-	
+
 	return *result.Vpcs[0].VpcId, nil
 }
 
 // DiscoverPublicSubnet finds a public subnet in the specified VPC
 func (m *Manager) DiscoverPublicSubnet(vpcID string) (string, error) {
+	ctx := context.Background()
 	// Get all subnets in the VPC
-	result, err := m.ec2.DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+	result, err := m.ec2.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("vpc-id"),
@@ -1861,11 +1884,11 @@ func (m *Manager) DiscoverPublicSubnet(vpcID string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to describe subnets in VPC %s: %w", vpcID, err)
 	}
-	
+
 	if len(result.Subnets) == 0 {
 		return "", fmt.Errorf("no subnets found in VPC %s", vpcID)
 	}
-	
+
 	// Find a public subnet by checking route tables
 	for _, subnet := range result.Subnets {
 		isPublic, err := m.isSubnetPublic(*subnet.SubnetId)
@@ -1876,7 +1899,7 @@ func (m *Manager) DiscoverPublicSubnet(vpcID string) (string, error) {
 			return *subnet.SubnetId, nil
 		}
 	}
-	
+
 	// If no clearly public subnet found, use the first available subnet
 	// (this handles cases where route table detection fails)
 	return *result.Subnets[0].SubnetId, nil
@@ -1884,8 +1907,9 @@ func (m *Manager) DiscoverPublicSubnet(vpcID string) (string, error) {
 
 // isSubnetPublic checks if a subnet is public by examining its route table
 func (m *Manager) isSubnetPublic(subnetID string) (bool, error) {
+	ctx := context.Background()
 	// Get route tables for this subnet
-	result, err := m.ec2.DescribeRouteTables(context.TODO(), &ec2.DescribeRouteTablesInput{
+	result, err := m.ec2.DescribeRouteTables(ctx, &ec2.DescribeRouteTablesInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("association.subnet-id"),
@@ -1896,7 +1920,7 @@ func (m *Manager) isSubnetPublic(subnetID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
+
 	// Check each route table for internet gateway routes
 	for _, routeTable := range result.RouteTables {
 		for _, route := range routeTable.Routes {
@@ -1908,23 +1932,24 @@ func (m *Manager) isSubnetPublic(subnetID string) (bool, error) {
 			}
 		}
 	}
-	
+
 	return false, nil
 }
 
 // GetOrCreateCloudWorkstationSecurityGroup creates or finds the CloudWorkstation security group
 func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string, error) {
 	securityGroupName := "cloudworkstation-access"
-	
+
+	ctx := context.Background()
 	// Try to find existing security group
-	result, err := m.ec2.DescribeSecurityGroups(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+	result, err := m.ec2.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("group-name"),
 				Values: []string{securityGroupName},
 			},
 			{
-				Name:   aws.String("vpc-id"), 
+				Name:   aws.String("vpc-id"),
 				Values: []string{vpcID},
 			},
 		},
@@ -1932,14 +1957,14 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to describe security groups: %w", err)
 	}
-	
+
 	// Return existing security group if found
 	if len(result.SecurityGroups) > 0 {
 		return *result.SecurityGroups[0].GroupId, nil
 	}
-	
+
 	// Create new security group
-	createResult, err := m.ec2.CreateSecurityGroup(context.TODO(), &ec2.CreateSecurityGroupInput{
+	createResult, err := m.ec2.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
 		GroupName:   aws.String(securityGroupName),
 		Description: aws.String("CloudWorkstation SSH and web access"),
 		VpcId:       aws.String(vpcID),
@@ -1957,11 +1982,11 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to create security group: %w", err)
 	}
-	
+
 	securityGroupID := *createResult.GroupId
-	
+
 	// Add SSH rule (port 22)
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(securityGroupID),
 		IpPermissions: []ec2types.IpPermission{
 			{
@@ -1980,9 +2005,9 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to add SSH rule to security group: %w", err)
 	}
-	
+
 	// Add HTTP rule (port 80) for web interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(securityGroupID),
 		IpPermissions: []ec2types.IpPermission{
 			{
@@ -2001,9 +2026,9 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to add HTTP rule to security group: %w", err)
 	}
-	
+
 	// Add HTTPS rule (port 443) for secure web interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(securityGroupID),
 		IpPermissions: []ec2types.IpPermission{
 			{
@@ -2022,9 +2047,9 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to add HTTPS rule to security group: %w", err)
 	}
-	
+
 	// Add Jupyter rule (port 8888) for notebook interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(securityGroupID),
 		IpPermissions: []ec2types.IpPermission{
 			{
@@ -2043,9 +2068,9 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to add Jupyter rule to security group: %w", err)
 	}
-	
+
 	// Add RStudio rule (port 8787) for R interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(securityGroupID),
 		IpPermissions: []ec2types.IpPermission{
 			{
@@ -2064,9 +2089,9 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to add RStudio rule to security group: %w", err)
 	}
-	
+
 	// Add ICMP rule for ping
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(context.TODO(), &ec2.AuthorizeSecurityGroupIngressInput{
+	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(securityGroupID),
 		IpPermissions: []ec2types.IpPermission{
 			{
@@ -2085,7 +2110,7 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	if err != nil {
 		return "", fmt.Errorf("failed to add ICMP rule to security group: %w", err)
 	}
-	
+
 	return securityGroupID, nil
 }
 
@@ -2093,33 +2118,33 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 func (m *Manager) supportsHibernation(instanceType string) bool {
 	// AWS hibernation support is based on instance families and generations
 	// Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/hibernating-instances.html
-	
+
 	supportedFamilies := map[string]bool{
 		// General Purpose
 		"t2": true, "t3": true, "t3a": true,
 		"m3": true, "m4": true, "m5": true, "m5a": true, "m5n": true, "m5zn": true,
 		"m6i": true, "m6a": true, "m6g": true, "m7i": true, "m7a": true, "m7g": true,
-		
-		// Compute Optimized  
+
+		// Compute Optimized
 		"c3": true, "c4": true, "c5": true, "c5n": true,
 		"c6i": true, "c6a": true, "c6g": true, "c7i": true, "c7a": true, "c7g": true,
-		
+
 		// Memory Optimized
 		"r3": true, "r4": true, "r5": true, "r5a": true, "r5n": true,
 		"r6i": true, "r6a": true, "r6g": true, "r7i": true, "r7a": true, "r7g": true,
 		"x1": true, "x1e": true,
-		
+
 		// Accelerated Computing (GPU)
 		"g4dn": true, "g4ad": true, "g5": true, "g5g": true,
 	}
-	
+
 	// Extract instance family from instance type (e.g., "c6g.large" -> "c6g", "t3.micro" -> "t3")
 	dotIndex := strings.Index(instanceType, ".")
 	if dotIndex == -1 {
 		// No dot found, use entire string
 		return supportedFamilies[instanceType]
 	}
-	
+
 	family := instanceType[:dotIndex]
 	return supportedFamilies[family]
 }

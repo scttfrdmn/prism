@@ -2,12 +2,10 @@ package widgets
 
 import (
 	"fmt"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -32,16 +30,16 @@ func NewInstanceCard(instance types.Instance, responsive bool) *InstanceCard {
 		Instance:   instance,
 		Responsive: responsive,
 	}
-	
+
 	// Create status indicator
 	card.StatusDisplay = NewStatusIndicator(instance.State, true)
-	
+
 	// Create cost badge
 	card.CostDisplay = NewCostBadge(instance.EstimatedDailyCost, false, false)
-	
+
 	// Set up the content
 	card.updateContent()
-	
+
 	return card
 }
 
@@ -56,22 +54,22 @@ func (c *InstanceCard) updateContent() {
 			c.CostDisplay,
 		),
 	)
-	
+
 	// Add launch time if available
 	if !c.Instance.LaunchTime.IsZero() {
 		details.Add(widget.NewLabel(fmt.Sprintf("Launched: %s", c.Instance.LaunchTime.Format("Jan 2, 2006 15:04"))))
 	}
-	
+
 	// Create status display
 	status := container.NewVBox(
 		container.NewHBox(
 			c.StatusDisplay,
 		),
 	)
-	
+
 	// Create action buttons
 	actions := container.NewVBox()
-	
+
 	// Add appropriate action buttons based on instance state
 	if c.Instance.State == "running" {
 		connectBtn := widget.NewButton("Connect", func() {
@@ -85,7 +83,7 @@ func (c *InstanceCard) updateContent() {
 			}
 		})
 		stopBtn.Importance = widget.WarningImportance
-		
+
 		actions.Add(connectBtn)
 		actions.Add(stopBtn)
 	} else if c.Instance.State == "stopped" {
@@ -96,7 +94,7 @@ func (c *InstanceCard) updateContent() {
 		})
 		actions.Add(startBtn)
 	}
-	
+
 	// Always add delete button
 	deleteBtn := widget.NewButton("Delete", func() {
 		if c.OnDelete != nil {
@@ -105,38 +103,11 @@ func (c *InstanceCard) updateContent() {
 	})
 	deleteBtn.Importance = widget.DangerImportance
 	actions.Add(deleteBtn)
-	
+
 	// Lay out the card based on responsive setting
 	var content fyne.CanvasObject
 	if c.Responsive {
 		// Responsive layout that will adjust based on width
-		content = container.NewResponsiveLayout(
-			// Main layout (horizontal for wide screens)
-			container.NewHBox(
-				details,
-				layout.NewSpacer(),
-				status,
-				layout.NewSpacer(),
-				actions,
-			),
-			// Compact layout (vertical for narrow screens)
-			container.NewVBox(
-				container.NewHBox(
-					c.StatusDisplay,
-					widget.NewLabelWithStyle(c.Instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-					layout.NewSpacer(),
-					c.CostDisplay,
-				),
-				widget.NewLabel(fmt.Sprintf("Template: %s", c.Instance.Template)),
-				container.NewHBox(
-					layout.NewSpacer(),
-					actions,
-				),
-			),
-			600, // Breakpoint width
-		)
-	} else {
-		// Fixed layout (always horizontal)
 		content = container.NewHBox(
 			details,
 			layout.NewSpacer(),
@@ -144,8 +115,23 @@ func (c *InstanceCard) updateContent() {
 			layout.NewSpacer(),
 			actions,
 		)
+	} else {
+		// Compact layout (vertical for narrow screens)
+		content = container.NewVBox(
+			container.NewHBox(
+				c.StatusDisplay,
+				widget.NewLabelWithStyle(c.Instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+				layout.NewSpacer(),
+				c.CostDisplay,
+			),
+			widget.NewLabel(fmt.Sprintf("Template: %s", c.Instance.Template)),
+			container.NewHBox(
+				layout.NewSpacer(),
+				actions,
+			),
+		)
 	}
-	
+
 	// Set the card content
 	c.SetContent(content)
 }
