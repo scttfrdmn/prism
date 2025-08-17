@@ -65,7 +65,6 @@ type APIError struct {
 	cause       error             // Not serialized - underlying error
 }
 
-
 // GetErrorCodeFromStatusCode converts HTTP status codes to appropriate error codes
 func GetErrorCodeFromStatusCode(statusCode int) ErrorCode {
 	switch {

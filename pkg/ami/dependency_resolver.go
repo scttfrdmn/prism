@@ -171,7 +171,7 @@ func (r *DependencyResolver) checkVersionConstraint(version, constraint, operato
 	case "<=":
 		return !v.IsGreaterThan(cv) || (v.Major == cv.Major && v.Minor == cv.Minor && v.Patch == cv.Patch), nil
 	case "<":
-		return !v.IsGreaterThan(cv) && !(v.Major == cv.Major && v.Minor == cv.Minor && v.Patch == cv.Patch), nil
+		return cv.IsGreaterThan(v), nil
 	case "~>":
 		// Compatible version: same major version, greater than or equal to specified minor version
 		return v.Major == cv.Major && (v.Minor > cv.Minor || (v.Minor == cv.Minor && v.Patch >= cv.Patch)), nil
@@ -300,18 +300,18 @@ func (r *DependencyResolver) findMostRestrictiveVersions(constraints map[string]
 		// Sort versions in descending order
 		sortedVersions := r.sortVersionsDescending(versions)
 
-		switch {
-		case op == "=" || op == "==":
+		switch op {
+		case "=", "==":
 			eqVersion, err := r.processEqualityConstraints(sortedVersions, template, result.EqVersion)
 			if err != nil {
 				return nil, err
 			}
 			result.EqVersion = eqVersion
 
-		case op == ">=" || op == ">":
+		case ">=", ">":
 			result.GtVersion = r.findHighestVersion(sortedVersions)
 
-		case op == "<=" || op == "<":
+		case "<=", "<":
 			result.LtVersion = r.findLowestVersion(sortedVersions)
 		}
 	}
@@ -426,7 +426,7 @@ func (r *DependencyResolver) validateEqualityConstraint(template string, version
 	// Check against lower bound
 	if versions.GtVersion != "" {
 		gtv, _ := NewVersionInfo(versions.GtVersion)
-		if !eqv.IsGreaterThan(gtv) && !(eqv.Major == gtv.Major && eqv.Minor == gtv.Minor && eqv.Patch == gtv.Patch) {
+		if gtv.IsGreaterThan(eqv) {
 			return "", fmt.Errorf("conflicting version requirements for %s: equal to %s but must be >= %s",
 				template, eqVersion, versions.GtVersion)
 		}

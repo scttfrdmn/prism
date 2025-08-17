@@ -30,7 +30,6 @@ type Server struct {
 	awsManager      *aws.Manager
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
-
 }
 
 // NewServer creates a new daemon server
@@ -367,6 +366,9 @@ func extractOperationType(path string) string {
 	}
 
 	// Extract resource type (first part)
+	if len(parts[0]) == 0 {
+		return "Root"
+	}
 	resourceType := strings.ToUpper(parts[0][:1]) + parts[0][1:]
 	if len(resourceType) > 0 && resourceType[len(resourceType)-1] == 's' {
 		// Convert plural to singular (instances -> instance)
@@ -374,7 +376,7 @@ func extractOperationType(path string) string {
 	}
 
 	// If there's an ID and operation, use those
-	if len(parts) >= 3 {
+	if len(parts) >= 3 && len(parts[2]) > 0 {
 		operation := strings.ToUpper(parts[2][:1]) + parts[2][1:]
 		return resourceType + operation
 	}
@@ -397,7 +399,6 @@ func (s *Server) startIntegratedMonitoring() {
 func (s *Server) stopIntegratedMonitoring() {
 	log.Printf("Legacy monitoring removed - using universal idle detection")
 }
-
 
 // createHTTPHandler creates and configures the HTTP handler for testing
 func (s *Server) createHTTPHandler() http.Handler {

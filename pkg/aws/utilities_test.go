@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestSupportsHibernationExtended tests hibernation support with more cases
 func TestSupportsHibernationExtended(t *testing.T) {
 	manager := &Manager{}
-	
+
 	tests := []struct {
 		instanceType string
 		expected     bool
@@ -26,7 +26,7 @@ func TestSupportsHibernationExtended(t *testing.T) {
 		{"", false},             // Empty string
 		{"invalid-type", false}, // Unknown type
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.instanceType, func(t *testing.T) {
 			result := manager.supportsHibernation(tt.instanceType)
@@ -141,11 +141,11 @@ func TestGetTemplateFromRealTemplates(t *testing.T) {
 	manager := &Manager{
 		templates: getTemplates(), // Use actual templates
 	}
-	
+
 	// Test that we can get real templates
 	templates := manager.GetTemplates()
 	assert.NotEmpty(t, templates)
-	
+
 	// Test specific known templates exist
 	expectedTemplates := []string{"r-research", "python-research"}
 	for _, name := range expectedTemplates {
@@ -160,15 +160,15 @@ func TestGetTemplateFromRealTemplates(t *testing.T) {
 // TestGetTemplateForArchitectureBasic tests architecture template mapping
 func TestGetTemplateForArchitectureBasic(t *testing.T) {
 	manager := &Manager{
-		templates:    getTemplates(),
-		pricingCache: make(map[string]float64),
+		templates:      getTemplates(),
+		pricingCache:   make(map[string]float64),
 		discountConfig: types.DiscountConfig{},
 	}
-	
+
 	// Get a real template for testing
 	template, err := manager.GetTemplate("r-research")
 	assert.NoError(t, err)
-	
+
 	tests := []struct {
 		architecture string
 		region       string
@@ -180,11 +180,11 @@ func TestGetTemplateForArchitectureBasic(t *testing.T) {
 		{"invalid-arch", "us-east-1", true, "Invalid architecture"},
 		{"x86_64", "invalid-region", true, "Invalid region"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ami, instanceType, cost, err := manager.getTemplateForArchitecture(*template, tt.architecture, tt.region)
-			
+
 			if tt.shouldError {
 				assert.Error(t, err)
 			} else {
@@ -202,13 +202,13 @@ func TestErrorMessages(t *testing.T) {
 	manager := &Manager{
 		templates: getTemplates(),
 	}
-	
+
 	// Test template not found error
 	_, err := manager.GetTemplate("nonexistent-template")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "template nonexistent-template not found")
-	
-	// Test invalid size parsing error  
+
+	// Test invalid size parsing error
 	_, err = manager.parseSizeToGB("invalid-size-xyz")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid size")
@@ -219,21 +219,21 @@ func TestDiscountConfigOperations(t *testing.T) {
 	manager := &Manager{
 		pricingCache: make(map[string]float64),
 	}
-	
+
 	// Test setting and getting discount config
 	config := types.DiscountConfig{
 		EC2Discount:         0.15,
 		EducationalDiscount: 0.10,
 		EBSDiscount:         0.05,
 	}
-	
+
 	manager.SetDiscountConfig(config)
-	
+
 	result := manager.GetDiscountConfig()
 	assert.Equal(t, 0.15, result.EC2Discount)
 	assert.Equal(t, 0.10, result.EducationalDiscount)
 	assert.Equal(t, 0.05, result.EBSDiscount)
-	
+
 	// Test that cache was cleared
 	assert.Empty(t, manager.pricingCache)
 }
@@ -241,7 +241,7 @@ func TestDiscountConfigOperations(t *testing.T) {
 // TestProcessIdleDetectionConfig tests idle detection configuration processing
 func TestProcessIdleDetectionConfig(t *testing.T) {
 	manager := &Manager{}
-	
+
 	tests := []struct {
 		name             string
 		userData         string
@@ -255,15 +255,15 @@ func TestProcessIdleDetectionConfig(t *testing.T) {
 				IdleDetection: &types.IdleDetectionConfig{
 					Enabled:                   true,
 					CheckIntervalMinutes:      1,
-					IdleThresholdMinutes:     5,
+					IdleThresholdMinutes:      5,
 					HibernateThresholdMinutes: 10,
 				},
 			},
 			expectedContains: []string{
 				"start",
 				"end",
-				"1", // CHECK_INTERVAL_MINUTES replacement
-				"5", // IDLE_THRESHOLD_MINUTES replacement
+				"1",  // CHECK_INTERVAL_MINUTES replacement
+				"5",  // IDLE_THRESHOLD_MINUTES replacement
 				"10", // HIBERNATE_THRESHOLD_MINUTES replacement
 			},
 		},
@@ -282,7 +282,7 @@ func TestProcessIdleDetectionConfig(t *testing.T) {
 			userData: "#!/bin/bash\necho 'no placeholder'",
 			template: &types.RuntimeTemplate{
 				IdleDetection: &types.IdleDetectionConfig{
-					Enabled: true,
+					Enabled:              true,
 					CheckIntervalMinutes: 5,
 				},
 			},
@@ -291,11 +291,11 @@ func TestProcessIdleDetectionConfig(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := manager.processIdleDetectionConfig(tt.userData, tt.template)
-			
+
 			for _, expected := range tt.expectedContains {
 				assert.Contains(t, result, expected, "Result should contain: %s", expected)
 			}
@@ -306,9 +306,9 @@ func TestProcessIdleDetectionConfig(t *testing.T) {
 // TestLocalArchitectureDetection tests local architecture detection
 func TestLocalArchitectureDetection(t *testing.T) {
 	manager := &Manager{}
-	
+
 	arch := manager.getLocalArchitecture()
-	
+
 	// Should return either x86_64 or arm64
 	assert.True(t, arch == "x86_64" || arch == "arm64", "Architecture should be x86_64 or arm64, got: %s", arch)
 	assert.NotEmpty(t, arch)
@@ -317,17 +317,17 @@ func TestLocalArchitectureDetection(t *testing.T) {
 // TestGetBillingInfoStructure tests billing info structure
 func TestGetBillingInfoStructure(t *testing.T) {
 	manager := &Manager{}
-	
+
 	info, err := manager.GetBillingInfo()
 	assert.NoError(t, err)
 	assert.NotNil(t, info)
-	
+
 	// Check required fields
 	assert.NotEmpty(t, info.BillingPeriod)
 	assert.False(t, info.LastUpdated.IsZero())
 	assert.NotNil(t, info.Credits)
 	assert.NotEmpty(t, info.Credits)
-	
+
 	// Check first credit entry
 	credit := info.Credits[0]
 	assert.NotEmpty(t, credit.CreditType)
@@ -337,19 +337,19 @@ func TestGetBillingInfoStructure(t *testing.T) {
 // TestDetectPotentialCreditsExtended tests credit detection with detailed validation
 func TestDetectPotentialCreditsExtended(t *testing.T) {
 	manager := &Manager{}
-	
+
 	credits := manager.detectPotentialCredits()
 	assert.NotEmpty(t, credits)
-	
+
 	// Should have at least one mock credit
 	assert.GreaterOrEqual(t, len(credits), 1)
-	
+
 	// Check credit structure
 	for _, credit := range credits {
 		assert.NotEmpty(t, credit.CreditType)
 		assert.NotEmpty(t, credit.Description)
 	}
-	
+
 	// Check that we have the expected AWS Credits entry
 	found := false
 	for _, credit := range credits {
@@ -364,7 +364,7 @@ func TestDetectPotentialCreditsExtended(t *testing.T) {
 // TestHibernationSupport tests hibernation support detection
 func TestHibernationSupport(t *testing.T) {
 	manager := &Manager{}
-	
+
 	tests := []struct {
 		instanceType string
 		expected     bool
@@ -383,7 +383,7 @@ func TestHibernationSupport(t *testing.T) {
 		{"x1.16xlarge", true, "X1 high memory"},
 		{"x1e.xlarge", true, "X1e enhanced"},
 		{"g4dn.xlarge", true, "G4dn GPU (supported)"},
-		
+
 		// Non-hibernation instances (unsupported families)
 		{"a1.medium", false, "A1 ARM family (not in supported list)"},
 		{"i3.large", false, "I3 storage optimized (not supported)"},
@@ -395,7 +395,7 @@ func TestHibernationSupport(t *testing.T) {
 		{"invalid-type", false, "Unknown instance type"},
 		{"no-dot-type", false, "Type without dot separator"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := manager.supportsHibernation(tt.instanceType)
@@ -407,7 +407,7 @@ func TestHibernationSupport(t *testing.T) {
 // TestEstimateInstancePriceExtended tests instance price estimation edge cases
 func TestEstimateInstancePriceExtended(t *testing.T) {
 	manager := &Manager{}
-	
+
 	tests := []struct {
 		instanceType string
 		minPrice     float64 // Minimum expected price
@@ -415,7 +415,7 @@ func TestEstimateInstancePriceExtended(t *testing.T) {
 	}{
 		// Test various instance families for positive pricing
 		{"t2.nano", 0.001, "t2.nano pricing"},
-		{"t2.micro", 0.001, "t2.micro pricing"}, 
+		{"t2.micro", 0.001, "t2.micro pricing"},
 		{"t2.small", 0.001, "t2.small pricing"},
 		{"t2.medium", 0.001, "t2.medium pricing"},
 		{"t2.large", 0.001, "t2.large pricing"},
@@ -429,7 +429,7 @@ func TestEstimateInstancePriceExtended(t *testing.T) {
 		{"p2.xlarge", 0.001, "p2.xlarge pricing"},
 		{"unknown.type", 0.001, "unknown type fallback"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := manager.estimateInstancePrice(tt.instanceType)
@@ -446,7 +446,7 @@ func TestGetRegionalEC2PriceEdgeCases(t *testing.T) {
 		lastPriceUpdate: time.Time{},
 		discountConfig:  types.DiscountConfig{},
 	}
-	
+
 	tests := []struct {
 		instanceType string
 		region       string
@@ -459,12 +459,12 @@ func TestGetRegionalEC2PriceEdgeCases(t *testing.T) {
 		{"r5.xlarge", "ca-central-1", "Canada pricing"},
 		{"unknown.type", "us-east-1", "Unknown instance fallback"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			manager.region = tt.region
 			manager.pricingCache = make(map[string]float64) // Clear cache
-			
+
 			price := manager.getRegionalEC2Price(tt.instanceType)
 			assert.Greater(t, price, 0.0, "Price should be positive for %s in %s", tt.instanceType, tt.region)
 		})
@@ -475,7 +475,7 @@ func TestGetRegionalEC2PriceEdgeCases(t *testing.T) {
 func TestApplyEC2DiscountsEdgeCases(t *testing.T) {
 	manager := &Manager{}
 	basePrice := 100.0
-	
+
 	tests := []struct {
 		name           string
 		discountConfig types.DiscountConfig
@@ -513,12 +513,12 @@ func TestApplyEC2DiscountsEdgeCases(t *testing.T) {
 			expectedPrice: 70.0,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			manager.discountConfig = tt.discountConfig
 			result := manager.applyEC2Discounts(basePrice)
-			
+
 			// Use a small tolerance for floating point comparison
 			tolerance := 0.01
 			abs := result - tt.expectedPrice
@@ -535,12 +535,12 @@ func TestApplyEC2DiscountsEdgeCases(t *testing.T) {
 // TestGetRegionPricingMultiplierComplete tests region pricing logic
 func TestGetRegionPricingMultiplierComplete(t *testing.T) {
 	manager := &Manager{}
-	
+
 	tests := []struct {
-		region      string
-		minPrice    float64
-		maxPrice    float64
-		name        string
+		region   string
+		minPrice float64
+		maxPrice float64
+		name     string
 	}{
 		// Test key regions with expected ranges
 		{"us-east-1", 1.0, 1.0, "US East 1 base"},
@@ -548,7 +548,7 @@ func TestGetRegionPricingMultiplierComplete(t *testing.T) {
 		{"us-west-1", 1.05, 1.05, "US West 1"},
 		{"us-west-2", 1.05, 1.05, "US West 2"},
 		{"eu-west-1", 1.10, 1.10, "EU Ireland"},
-		{"eu-west-2", 1.12, 1.12, "EU London"}, 
+		{"eu-west-2", 1.12, 1.12, "EU London"},
 		{"eu-west-3", 1.15, 1.15, "EU Paris"},
 		{"eu-central-1", 1.18, 1.18, "EU Frankfurt"},
 		{"ap-southeast-1", 1.20, 1.20, "Asia Singapore"},
@@ -560,7 +560,7 @@ func TestGetRegionPricingMultiplierComplete(t *testing.T) {
 		{"sa-east-1", 1.30, 1.30, "South America"},
 		{"unknown-region-xyz", 1.15, 1.15, "Unknown region fallback"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			manager.region = tt.region
@@ -579,36 +579,36 @@ func TestCacheExpirationLogic(t *testing.T) {
 		lastPriceUpdate: time.Time{},
 		discountConfig:  types.DiscountConfig{},
 	}
-	
+
 	t.Run("Fresh cache behavior", func(t *testing.T) {
 		// Set fresh cache
 		manager.lastPriceUpdate = time.Now()
 		manager.pricingCache["test-key"] = 1.23
-		
+
 		// Verify cache is considered fresh
 		assert.True(t, time.Since(manager.lastPriceUpdate) < 24*time.Hour)
 	})
-	
+
 	t.Run("Expired cache behavior", func(t *testing.T) {
-		// Set expired cache  
+		// Set expired cache
 		manager.lastPriceUpdate = time.Now().Add(-25 * time.Hour)
-		
+
 		// Verify cache is considered expired
 		assert.True(t, time.Since(manager.lastPriceUpdate) > 24*time.Hour)
 	})
-	
+
 	t.Run("Cache operations with regional pricing", func(t *testing.T) {
 		manager.pricingCache = make(map[string]float64)
 		manager.lastPriceUpdate = time.Time{}
-		
+
 		// First call should populate cache
 		price1 := manager.getRegionalEC2Price("t3.medium")
 		assert.Greater(t, price1, 0.0)
-		
+
 		// Cache should be populated
 		assert.NotEmpty(t, manager.pricingCache)
 		assert.False(t, manager.lastPriceUpdate.IsZero())
-		
+
 		// Second call should use cache (same result)
 		price2 := manager.getRegionalEC2Price("t3.medium")
 		assert.Equal(t, price1, price2)
@@ -622,15 +622,15 @@ func TestEBSVolumeTypeHandling(t *testing.T) {
 		pricingCache:   make(map[string]float64),
 		discountConfig: types.DiscountConfig{},
 	}
-	
+
 	volumeTypes := []string{"gp3", "gp2", "io2", "st1", "sc1", "unknown-type"}
-	
+
 	for _, volumeType := range volumeTypes {
 		t.Run(fmt.Sprintf("Volume type %s", volumeType), func(t *testing.T) {
 			// Test regional EBS pricing
 			regionalPrice := manager.getRegionalEBSPrice(volumeType)
 			assert.Greater(t, regionalPrice, 0.0, "Regional EBS price should be positive for %s", volumeType)
-			
+
 			// Test cost per GB calculation
 			costPerGB := manager.getEBSCostPerGB(volumeType)
 			assert.Greater(t, costPerGB, 0.0, "Cost per GB should be positive for %s", volumeType)

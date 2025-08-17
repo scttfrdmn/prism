@@ -12,7 +12,7 @@ import (
 func TestNewAWSComplianceValidator(t *testing.T) {
 	// Test with valid AWS profile and region
 	validator, err := NewAWSComplianceValidator("default", "us-east-1")
-	
+
 	if err != nil {
 		// May fail if AWS credentials not configured, which is expected in test environment
 		assert.Contains(t, err.Error(), "failed to load AWS config")
@@ -26,7 +26,7 @@ func TestNewAWSComplianceValidator(t *testing.T) {
 // TestNewAWSComplianceValidatorInvalidProfile tests validator creation with invalid profile
 func TestNewAWSComplianceValidatorInvalidProfile(t *testing.T) {
 	validator, err := NewAWSComplianceValidator("non-existent-profile", "us-east-1")
-	
+
 	// Should fail with AWS config error
 	assert.Error(t, err)
 	assert.Nil(t, validator)
@@ -57,12 +57,12 @@ func TestComplianceFrameworkConstants(t *testing.T) {
 		ComplianceC5,
 		ComplianceFERPA,
 	}
-	
+
 	// Verify framework constants are properly defined
 	for _, framework := range frameworks {
 		assert.NotEmpty(t, string(framework))
 	}
-	
+
 	// Test specific framework values
 	assert.Equal(t, "NIST-800-171", string(ComplianceNIST800171))
 	assert.Equal(t, "SOC-2", string(ComplianceSOC2))
@@ -74,20 +74,20 @@ func TestComplianceFrameworkConstants(t *testing.T) {
 // TestAWSComplianceStatus struct validation
 func TestAWSComplianceStatus(t *testing.T) {
 	now := time.Now()
-	
+
 	status := AWSComplianceStatus{
-		Framework:        ComplianceSOC2,
-		AWSCompliant:     true,
-		ArtifactReportID: "report-123",
-		LastUpdated:      now,
-		ComplianceScope:  []string{"compute", "storage", "networking"},
-		RequiredSCPs:     []string{"DenyRootUserAccess", "RequireMFAForConsoleAccess"},
-		ImplementedSCPs:  []string{"DenyRootUserAccess"},
-		GapAnalysis:      []ComplianceGap{},
-		AWSServices:      []AWSServiceCompliance{},
+		Framework:          ComplianceSOC2,
+		AWSCompliant:       true,
+		ArtifactReportID:   "report-123",
+		LastUpdated:        now,
+		ComplianceScope:    []string{"compute", "storage", "networking"},
+		RequiredSCPs:       []string{"DenyRootUserAccess", "RequireMFAForConsoleAccess"},
+		ImplementedSCPs:    []string{"DenyRootUserAccess"},
+		GapAnalysis:        []ComplianceGap{},
+		AWSServices:        []AWSServiceCompliance{},
 		RecommendedActions: []ComplianceRecommendation{},
 	}
-	
+
 	assert.Equal(t, ComplianceSOC2, status.Framework)
 	assert.True(t, status.AWSCompliant)
 	assert.Equal(t, "report-123", status.ArtifactReportID)
@@ -106,7 +106,7 @@ func TestComplianceGap(t *testing.T) {
 		Severity:            "HIGH",
 		Remediation:         "Integrate with AWS SSO",
 	}
-	
+
 	assert.Equal(t, "AC-2 Account Management", gap.Control)
 	assert.Equal(t, "HIGH", gap.Severity)
 	assert.NotEmpty(t, gap.Remediation)
@@ -124,7 +124,7 @@ func TestAWSServiceCompliance(t *testing.T) {
 			"metadata":   "v2",
 		},
 	}
-	
+
 	assert.Equal(t, "Amazon EC2", serviceCompliance.ServiceName)
 	assert.Equal(t, "CERTIFIED", serviceCompliance.ComplianceStatus)
 	assert.Len(t, serviceCompliance.CertifiedRegions, 2)
@@ -142,7 +142,7 @@ func TestComplianceRecommendation(t *testing.T) {
 		Impact:         "Provides continuous compliance monitoring",
 		Implementation: "cws aws config enable --compliance-rules SOC2",
 	}
-	
+
 	assert.Equal(t, "HIGH", recommendation.Priority)
 	assert.Equal(t, "AWS Config", recommendation.AWSService)
 	assert.NotEmpty(t, recommendation.Action)
@@ -154,25 +154,25 @@ func TestGetServiceComplianceStatus(t *testing.T) {
 	validator := &AWSComplianceValidator{
 		region: "us-east-1",
 	}
-	
+
 	// Test known service with SOC2
 	ec2Compliance := validator.getServiceComplianceStatus("EC2", ComplianceSOC2)
-	
+
 	assert.Equal(t, "Amazon EC2", ec2Compliance.ServiceName)
 	assert.Equal(t, "CERTIFIED", ec2Compliance.ComplianceStatus)
 	assert.Contains(t, ec2Compliance.CertifiedRegions, "us-east-1")
 	assert.Contains(t, ec2Compliance.RequiredFeatures, "Instance Metadata Service v2")
-	
+
 	// Test known service with HIPAA
 	ec2HIPAACompliance := validator.getServiceComplianceStatus("EC2", ComplianceHIPAA)
-	
+
 	assert.Equal(t, "Amazon EC2", ec2HIPAACompliance.ServiceName)
 	assert.Equal(t, "ELIGIBLE", ec2HIPAACompliance.ComplianceStatus)
 	assert.Contains(t, ec2HIPAACompliance.RequiredFeatures, "Dedicated Tenancy")
-	
+
 	// Test unknown service
 	unknownCompliance := validator.getServiceComplianceStatus("UnknownService", ComplianceSOC2)
-	
+
 	assert.Equal(t, "UnknownService", unknownCompliance.ServiceName)
 	assert.Equal(t, "REVIEW_REQUIRED", unknownCompliance.ComplianceStatus)
 	assert.Contains(t, unknownCompliance.CertifiedRegions, "us-east-1")
@@ -182,15 +182,15 @@ func TestGetServiceComplianceStatus(t *testing.T) {
 func TestAnalyzeSOC2Gaps(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeSOC2Gaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Check for expected SOC2 controls
 	foundLogicalAccess := false
 	foundDataTransmission := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "CC6.1 - Logical Access Controls" {
 			foundLogicalAccess = true
@@ -199,7 +199,7 @@ func TestAnalyzeSOC2Gaps(t *testing.T) {
 			foundDataTransmission = true
 		}
 	}
-	
+
 	assert.True(t, foundLogicalAccess)
 	assert.True(t, foundDataTransmission)
 }
@@ -208,15 +208,15 @@ func TestAnalyzeSOC2Gaps(t *testing.T) {
 func TestAnalyzeHIPAAGaps(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeHIPAAGaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Check for HIPAA specific controls
 	foundAccessControl := false
 	foundTransmissionSecurity := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "§164.312(a)(1) - Access Control" {
 			foundAccessControl = true
@@ -225,7 +225,7 @@ func TestAnalyzeHIPAAGaps(t *testing.T) {
 			foundTransmissionSecurity = true
 		}
 	}
-	
+
 	assert.True(t, foundAccessControl)
 	assert.True(t, foundTransmissionSecurity)
 }
@@ -236,15 +236,15 @@ func TestAnalyzeITARGaps(t *testing.T) {
 		region: "us-east-1", // Commercial region
 	}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeITARGaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Check for ITAR-specific critical gaps
 	foundPhysicalSafeguards := false
 	foundRegionalCompliance := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "ITAR 120.17 - Physical and Technical Safeguards" {
 			foundPhysicalSafeguards = true
@@ -256,7 +256,7 @@ func TestAnalyzeITARGaps(t *testing.T) {
 			assert.Contains(t, gap.CloudWorkstationGap, "us-east-1")
 		}
 	}
-	
+
 	assert.True(t, foundPhysicalSafeguards)
 	assert.True(t, foundRegionalCompliance)
 }
@@ -267,18 +267,18 @@ func TestAnalyzeITARGapsGovCloud(t *testing.T) {
 		region: "us-gov-east-1", // GovCloud region
 	}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeITARGaps(status)
-	
+
 	// Should still have gaps, but no regional compliance gap
 	foundRegionalCompliance := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "ITAR Regional Compliance" {
 			foundRegionalCompliance = true
 		}
 	}
-	
+
 	assert.False(t, foundRegionalCompliance, "GovCloud region should not trigger regional compliance gap")
 }
 
@@ -286,21 +286,21 @@ func TestAnalyzeITARGapsGovCloud(t *testing.T) {
 func TestAnalyzeCMMCGaps(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeCMMCGaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Check for CMMC maturity processes
 	foundMaturityProcess := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "CMMC Maturity Processes" {
 			foundMaturityProcess = true
 			assert.Contains(t, gap.Remediation, "processes")
 		}
 	}
-	
+
 	assert.True(t, foundMaturityProcess)
 }
 
@@ -308,11 +308,11 @@ func TestAnalyzeCMMCGaps(t *testing.T) {
 func TestAnalyzeCMMCL1Gaps(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeCMMCL1Gaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// CMMC Level 1 should show compliance or low-severity gaps
 	for _, gap := range status.GapAnalysis {
 		assert.Equal(t, "LOW", gap.Severity, "CMMC Level 1 should have only low-severity gaps")
@@ -323,16 +323,16 @@ func TestAnalyzeCMMCL1Gaps(t *testing.T) {
 func TestAnalyzeCMMCL2Gaps(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeCMMCL2Gaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Check for specific CMMC L2 controls
 	foundInfoFlow := false
 	foundAuditGen := false
 	foundKeyMgmt := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "AC.L2-3.1.3 - Control Information Flow" {
 			foundInfoFlow = true
@@ -344,7 +344,7 @@ func TestAnalyzeCMMCL2Gaps(t *testing.T) {
 			foundKeyMgmt = true
 		}
 	}
-	
+
 	assert.True(t, foundInfoFlow)
 	assert.True(t, foundAuditGen)
 	assert.True(t, foundKeyMgmt)
@@ -354,16 +354,16 @@ func TestAnalyzeCMMCL2Gaps(t *testing.T) {
 func TestAnalyzeFERPAGaps(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.analyzeFERPAGaps(status)
-	
+
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Check for FERPA-specific controls
 	foundDisclosure := false
 	foundRecordKeeping := false
 	foundDataSecurity := false
-	
+
 	for _, gap := range status.GapAnalysis {
 		if gap.Control == "FERPA §99.31 - Disclosure without Consent" {
 			foundDisclosure = true
@@ -375,7 +375,7 @@ func TestAnalyzeFERPAGaps(t *testing.T) {
 			foundDataSecurity = true
 		}
 	}
-	
+
 	assert.True(t, foundDisclosure)
 	assert.True(t, foundRecordKeeping)
 	assert.True(t, foundDataSecurity)
@@ -384,16 +384,16 @@ func TestAnalyzeFERPAGaps(t *testing.T) {
 // TestGetSupportedFrameworks tests supported frameworks list
 func TestGetSupportedFrameworks(t *testing.T) {
 	validator := &AWSComplianceValidator{}
-	
+
 	frameworks := validator.GetSupportedFrameworks()
-	
+
 	assert.NotEmpty(t, frameworks)
 	assert.Contains(t, frameworks, ComplianceNIST800171)
 	assert.Contains(t, frameworks, ComplianceSOC2)
 	assert.Contains(t, frameworks, ComplianceHIPAA)
 	assert.Contains(t, frameworks, ComplianceFedRAMP)
 	assert.Contains(t, frameworks, ComplianceCMMC)
-	
+
 	// Should contain major compliance frameworks for research institutions
 	assert.Len(t, frameworks, 11) // Update if more frameworks added
 }
@@ -402,18 +402,18 @@ func TestGetSupportedFrameworks(t *testing.T) {
 func TestValidateAWSServices(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	err := validator.validateAWSServices(context.Background(), ComplianceSOC2, status)
-	
+
 	assert.NoError(t, err)
 	assert.NotEmpty(t, status.AWSServices)
-	
+
 	// Check that core CloudWorkstation services are covered
 	serviceNames := make([]string, len(status.AWSServices))
 	for i, service := range status.AWSServices {
 		serviceNames[i] = service.ServiceName
 	}
-	
+
 	assert.Contains(t, serviceNames, "Amazon EC2")
 	assert.Contains(t, serviceNames, "Amazon VPC")
 	assert.Contains(t, serviceNames, "AWS IAM")
@@ -423,7 +423,7 @@ func TestValidateAWSServices(t *testing.T) {
 // TestPerformGapAnalysis tests gap analysis for different frameworks
 func TestPerformGapAnalysis(t *testing.T) {
 	validator := &AWSComplianceValidator{}
-	
+
 	frameworks := []ComplianceFramework{
 		ComplianceSOC2,
 		ComplianceHIPAA,
@@ -442,13 +442,13 @@ func TestPerformGapAnalysis(t *testing.T) {
 		ComplianceDFARS,
 		ComplianceFERPA,
 	}
-	
+
 	for _, framework := range frameworks {
 		t.Run(string(framework), func(t *testing.T) {
 			status := &AWSComplianceStatus{}
-			
+
 			err := validator.performGapAnalysis(framework, status)
-			
+
 			assert.NoError(t, err)
 			// Gap analysis should produce results for supported frameworks
 			if framework != ComplianceGDPR && framework != ComplianceCSA && framework != ComplianceENISA && framework != ComplianceC5 {
@@ -462,15 +462,15 @@ func TestPerformGapAnalysis(t *testing.T) {
 func TestGenerateRecommendations(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.generateRecommendations(ComplianceSOC2, status)
-	
+
 	assert.NotEmpty(t, status.RecommendedActions)
-	
+
 	// Check for base recommendations
 	foundConfigRecommendation := false
 	foundLoggingRecommendation := false
-	
+
 	for _, rec := range status.RecommendedActions {
 		if rec.AWSService == "AWS Config" {
 			foundConfigRecommendation = true
@@ -479,7 +479,7 @@ func TestGenerateRecommendations(t *testing.T) {
 			foundLoggingRecommendation = true
 		}
 	}
-	
+
 	assert.True(t, foundConfigRecommendation)
 	assert.True(t, foundLoggingRecommendation)
 }
@@ -488,20 +488,20 @@ func TestGenerateRecommendations(t *testing.T) {
 func TestGenerateRecommendationsHIPAA(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.generateRecommendations(ComplianceHIPAA, status)
-	
+
 	assert.NotEmpty(t, status.RecommendedActions)
-	
+
 	// Check for HIPAA-specific BAA recommendation
 	foundBAARecommendation := false
-	
+
 	for _, rec := range status.RecommendedActions {
 		if rec.Priority == "CRITICAL" && rec.Action == "Sign AWS Business Associate Agreement (BAA)" {
 			foundBAARecommendation = true
 		}
 	}
-	
+
 	assert.True(t, foundBAARecommendation)
 }
 
@@ -509,20 +509,20 @@ func TestGenerateRecommendationsHIPAA(t *testing.T) {
 func TestGenerateRecommendationsFedRAMP(t *testing.T) {
 	validator := &AWSComplianceValidator{}
 	status := &AWSComplianceStatus{}
-	
+
 	validator.generateRecommendations(ComplianceFedRAMP, status)
-	
+
 	assert.NotEmpty(t, status.RecommendedActions)
-	
+
 	// Check for FedRAMP-specific GovCloud recommendation
 	foundGovCloudRecommendation := false
-	
+
 	for _, rec := range status.RecommendedActions {
 		if rec.Priority == "CRITICAL" && rec.AWSService == "AWS GovCloud" {
 			foundGovCloudRecommendation = true
 		}
 	}
-	
+
 	assert.True(t, foundGovCloudRecommendation)
 }
 
@@ -532,23 +532,23 @@ func TestValidateComplianceWithoutAWS(t *testing.T) {
 	validator := &AWSComplianceValidator{
 		region: "us-east-1",
 	}
-	
+
 	// Test that validation methods can handle context and return structured results
 	ctx := context.Background()
-	
+
 	// Test individual analysis methods
 	status := &AWSComplianceStatus{}
-	
+
 	// These should not require AWS API calls
 	validator.analyzeSOC2Gaps(status)
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Reset for next test
 	status.GapAnalysis = nil
-	
+
 	validator.analyzeHIPAAGaps(status)
 	assert.NotEmpty(t, status.GapAnalysis)
-	
+
 	// Test service compliance (no AWS API calls required)
 	err := validator.validateAWSServices(ctx, ComplianceSOC2, status)
 	assert.NoError(t, err)
@@ -558,7 +558,7 @@ func TestValidateComplianceWithoutAWS(t *testing.T) {
 // TestComplianceFrameworkCoverage tests that all defined frameworks have analysis
 func TestComplianceFrameworkCoverage(t *testing.T) {
 	validator := &AWSComplianceValidator{}
-	
+
 	// Test that performGapAnalysis handles all defined frameworks
 	frameworks := []ComplianceFramework{
 		ComplianceSOC2,
@@ -578,11 +578,11 @@ func TestComplianceFrameworkCoverage(t *testing.T) {
 		ComplianceDFARS,
 		ComplianceFERPA,
 	}
-	
+
 	for _, framework := range frameworks {
 		t.Run(string(framework), func(t *testing.T) {
 			status := &AWSComplianceStatus{}
-			
+
 			// Should not panic for any framework
 			err := validator.performGapAnalysis(framework, status)
 			assert.NoError(t, err)
@@ -595,13 +595,13 @@ func TestComplianceValidationErrorHandling(t *testing.T) {
 	validator := &AWSComplianceValidator{
 		region: "us-east-1",
 	}
-	
+
 	// Test with unsupported framework
 	status := &AWSComplianceStatus{}
-	
+
 	// Test getArtifactReport with unsupported framework
 	err := validator.getArtifactReport(context.Background(), ComplianceFramework("UNSUPPORTED"), status)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported compliance framework")
 }
@@ -611,21 +611,21 @@ func TestCMMCLevelProgression(t *testing.T) {
 	validator := &AWSComplianceValidator{
 		region: "us-east-1",
 	}
-	
+
 	// Test CMMC Level progression - each level should build on previous
 	levels := []ComplianceFramework{
 		ComplianceCMMCL1,
 		ComplianceCMMCL2,
 		ComplianceCMMCL3,
 	}
-	
+
 	for _, level := range levels {
 		t.Run(string(level), func(t *testing.T) {
 			status := &AWSComplianceStatus{}
-			
+
 			err := validator.performGapAnalysis(level, status)
 			assert.NoError(t, err)
-			
+
 			// Higher levels should have more stringent requirements
 			if level == ComplianceCMMCL3 {
 				foundHighSeverity := false
@@ -644,7 +644,7 @@ func TestCMMCLevelProgression(t *testing.T) {
 // TestRegionalComplianceValidation tests region-specific compliance validation
 func TestRegionalComplianceValidation(t *testing.T) {
 	regions := []struct {
-		region   string
+		region     string
 		isGovCloud bool
 	}{
 		{"us-east-1", false},
@@ -653,18 +653,18 @@ func TestRegionalComplianceValidation(t *testing.T) {
 		{"us-gov-east-1", true},
 		{"us-gov-west-1", true},
 	}
-	
+
 	for _, r := range regions {
 		t.Run(r.region, func(t *testing.T) {
 			validator := &AWSComplianceValidator{
 				region: r.region,
 			}
-			
+
 			status := &AWSComplianceStatus{}
-			
+
 			// Test ITAR gap analysis - should identify region compliance
 			validator.analyzeITARGaps(status)
-			
+
 			foundRegionalGap := false
 			for _, gap := range status.GapAnalysis {
 				if gap.Control == "ITAR Regional Compliance" {
@@ -672,9 +672,9 @@ func TestRegionalComplianceValidation(t *testing.T) {
 					break
 				}
 			}
-			
+
 			// Commercial regions should have regional gap, GovCloud should not
-			assert.Equal(t, !r.isGovCloud, foundRegionalGap, 
+			assert.Equal(t, !r.isGovCloud, foundRegionalGap,
 				"Region %s GovCloud=%v should have regional gap=%v", r.region, r.isGovCloud, !r.isGovCloud)
 		})
 	}

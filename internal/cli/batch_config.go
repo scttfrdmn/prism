@@ -152,4 +152,3 @@ func maskIfNotEmpty(value string) string {
 	}
 	return "********"
 }
-

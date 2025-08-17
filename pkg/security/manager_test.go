@@ -12,9 +12,9 @@ import (
 // TestNewSecurityManager tests security manager creation
 func TestNewSecurityManager(t *testing.T) {
 	config := GetDefaultSecurityConfig()
-	
+
 	manager, err := NewSecurityManager(config)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, manager)
 	assert.True(t, manager.isEnabled)
@@ -27,9 +27,9 @@ func TestNewSecurityManagerInvalidConfig(t *testing.T) {
 	config := SecurityConfig{
 		AlertThreshold: "INVALID_THRESHOLD",
 	}
-	
+
 	_, err := NewSecurityManager(config)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid security configuration")
 }
@@ -42,9 +42,9 @@ func TestNewSecurityManagerDisabled(t *testing.T) {
 		CorrelationEnabled:      false,
 		RegistrySecurityEnabled: false,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, manager)
 	assert.False(t, manager.isEnabled)
@@ -60,25 +60,25 @@ func TestSecurityManagerStartStop(t *testing.T) {
 		HealthCheckInterval: 300 * time.Millisecond,
 		HealthCheckEnabled:  true,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Test start
 	err = manager.Start()
 	assert.NoError(t, err)
 	assert.True(t, manager.isRunning)
-	
+
 	// Test double start
 	err = manager.Start()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "already running")
-	
+
 	// Test stop
 	err = manager.Stop()
 	assert.NoError(t, err)
 	assert.False(t, manager.isRunning)
-	
+
 	// Test double stop
 	err = manager.Stop()
 	assert.NoError(t, err) // Should not error
@@ -90,10 +90,10 @@ func TestSecurityManagerStartDisabled(t *testing.T) {
 		AuditLogEnabled:   false,
 		MonitoringEnabled: false,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	err = manager.Start()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "security manager is disabled")
@@ -102,12 +102,12 @@ func TestSecurityManagerStartDisabled(t *testing.T) {
 // TestGetSecurityStatus tests security status retrieval
 func TestGetSecurityStatus(t *testing.T) {
 	config := GetDefaultSecurityConfig()
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	status, err := manager.GetSecurityStatus()
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
 	assert.True(t, status.Enabled)
@@ -120,28 +120,28 @@ func TestSecurityManagerLogMethods(t *testing.T) {
 	config := SecurityConfig{
 		AuditLogEnabled: true,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Test security event logging (should not panic)
 	manager.LogSecurityEvent("test_event", true, "device-123", map[string]interface{}{
 		"test": "data",
 	})
-	
+
 	// Test device registration logging
 	manager.LogDeviceRegistration("device-123", "token-456", true, "", map[string]interface{}{
 		"method": "invitation",
 	})
-	
+
 	// Test access attempt logging
 	manager.LogAccessAttempt("device-123", true, "valid_credentials", map[string]interface{}{
 		"auth_method": "device_binding",
 	})
-	
+
 	// Test tamper attempt logging
 	manager.LogTamperAttempt("device-123", "/path/to/file", "expected-hash", "actual-hash")
-	
+
 	// Should complete without errors
 	assert.True(t, true)
 }
@@ -151,16 +151,16 @@ func TestSecurityManagerLogMethodsDisabled(t *testing.T) {
 	config := SecurityConfig{
 		AuditLogEnabled: false,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// All logging methods should handle nil audit logger gracefully
 	manager.LogSecurityEvent("test_event", true, "device-123", nil)
 	manager.LogDeviceRegistration("device-123", "token-456", false, "error", nil)
 	manager.LogAccessAttempt("device-123", false, "invalid", nil)
 	manager.LogTamperAttempt("device-123", "/file", "hash1", "hash2")
-	
+
 	// Should complete without panics
 	assert.True(t, true)
 }
@@ -172,12 +172,12 @@ func TestPerformHealthCheck(t *testing.T) {
 		MonitoringEnabled:  false, // Disable to avoid complex mock setup
 		HealthCheckEnabled: true,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	_ = manager.PerformHealthCheck()
-	
+
 	// Health check may fail due to keychain provider, but should not panic
 	// The important thing is that it updates lastHealthCheck
 	status, _ := manager.GetSecurityStatus()
@@ -189,12 +189,12 @@ func TestRegisterDevice(t *testing.T) {
 	config := SecurityConfig{
 		RegistrySecurityEnabled: false, // Disable to avoid complex setup
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	err = manager.RegisterDevice("token-123", "device-456")
-	
+
 	// Should fail because registry client is not available
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "registry client not available")
@@ -237,11 +237,11 @@ func TestValidateSecurityConfig(t *testing.T) {
 			expectErr: false, // Should be corrected by validation
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateSecurityConfig(tt.config)
-			
+
 			if tt.expectErr {
 				assert.Error(t, err)
 			} else {
@@ -254,7 +254,7 @@ func TestValidateSecurityConfig(t *testing.T) {
 // TestGetDefaultSecurityConfig tests default configuration
 func TestGetDefaultSecurityConfig(t *testing.T) {
 	config := GetDefaultSecurityConfig()
-	
+
 	assert.True(t, config.AuditLogEnabled)
 	assert.True(t, config.MonitoringEnabled)
 	assert.True(t, config.CorrelationEnabled)
@@ -270,10 +270,10 @@ func TestGetDefaultSecurityConfig(t *testing.T) {
 // TestSecurityManagerEnabledComponents tests component enablement logic
 func TestSecurityManagerEnabledComponents(t *testing.T) {
 	tests := []struct {
-		name                string
-		config              SecurityConfig
-		expectedComponents  []string
-		expectedEnabled     bool
+		name               string
+		config             SecurityConfig
+		expectedComponents []string
+		expectedEnabled    bool
 	}{
 		{
 			name: "All components enabled",
@@ -309,14 +309,14 @@ func TestSecurityManagerEnabledComponents(t *testing.T) {
 			expectedEnabled:    false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			manager, err := NewSecurityManager(tt.config)
 			require.NoError(t, err)
-			
+
 			assert.Equal(t, tt.expectedEnabled, manager.isEnabled)
-			
+
 			components := manager.getEnabledComponents()
 			assert.ElementsMatch(t, tt.expectedComponents, components)
 		})
@@ -329,29 +329,29 @@ func TestSecurityManagerConcurrency(t *testing.T) {
 		AuditLogEnabled:   true,
 		MonitoringEnabled: false, // Disable to reduce complexity
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Start multiple goroutines accessing the manager
 	done := make(chan bool, 10)
-	
+
 	for i := 0; i < 10; i++ {
 		go func(id int) {
 			// Test concurrent status checks
 			status, err := manager.GetSecurityStatus()
 			assert.NoError(t, err)
 			assert.NotNil(t, status)
-			
+
 			// Test concurrent logging
 			manager.LogSecurityEvent("concurrent_test", true, "device", map[string]interface{}{
 				"goroutine_id": id,
 			})
-			
+
 			done <- true
 		}(i)
 	}
-	
+
 	// Wait for all goroutines to complete
 	for i := 0; i < 10; i++ {
 		<-done
@@ -403,11 +403,11 @@ func TestSecurityManagerConfigValidation(t *testing.T) {
 			expectedErrMsg: "invalid alert threshold",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewSecurityManager(tt.config)
-			
+
 			if tt.expectedValid {
 				assert.NoError(t, err)
 			} else {
@@ -423,17 +423,17 @@ func TestSecurityManagerValidateDeviceBinding(t *testing.T) {
 	config := SecurityConfig{
 		AuditLogEnabled: true,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Test device binding validation (will likely fail due to missing fingerprint setup)
 	expectedFingerprint := map[string]interface{}{
 		"hash": "test-hash-123",
 	}
-	
+
 	err = manager.ValidateDeviceBinding("device-123", expectedFingerprint)
-	
+
 	// Should fail gracefully and log the attempt
 	assert.Error(t, err)
 	// The error indicates device binding validation was attempted
@@ -444,10 +444,10 @@ func TestSecurityManagerValidateDeviceBinding(t *testing.T) {
 func TestSecurityConfigDefaults(t *testing.T) {
 	// Test that validation applies defaults
 	config := SecurityConfig{} // Empty config
-	
+
 	err := validateSecurityConfig(config)
 	assert.NoError(t, err)
-	
+
 	// Verify defaults were applied (note: validation modifies in-place, but struct is passed by value)
 	// So we test the validation logic works without panicking
 }
@@ -460,21 +460,21 @@ func TestSecurityManagerStartStopRace(t *testing.T) {
 		AnalysisInterval:    200 * time.Millisecond, // Positive interval
 		HealthCheckInterval: 300 * time.Millisecond, // Positive interval
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Start manager
 	err = manager.Start()
 	require.NoError(t, err)
-	
+
 	// Let it run briefly
 	time.Sleep(50 * time.Millisecond)
-	
+
 	// Stop manager
 	err = manager.Stop()
 	assert.NoError(t, err)
-	
+
 	// Verify it stopped
 	assert.False(t, manager.isRunning)
 }
@@ -483,20 +483,20 @@ func TestSecurityManagerStartStopRace(t *testing.T) {
 func TestSecurityManagerStatusWhileRunning(t *testing.T) {
 	config := SecurityConfig{
 		AuditLogEnabled:     true,
-		MonitoringEnabled:   false, // Disable complex monitoring
+		MonitoringEnabled:   false,                  // Disable complex monitoring
 		MonitorInterval:     100 * time.Millisecond, // Positive interval
 		AnalysisInterval:    200 * time.Millisecond, // Positive interval
 		HealthCheckInterval: 300 * time.Millisecond, // Positive interval
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Start manager
 	err = manager.Start()
 	require.NoError(t, err)
 	defer func() { _ = manager.Stop() }()
-	
+
 	// Get status while running
 	status, err := manager.GetSecurityStatus()
 	assert.NoError(t, err)
@@ -510,17 +510,17 @@ func TestSecurityManagerHealthCheckTimeout(t *testing.T) {
 		AuditLogEnabled:    true,
 		HealthCheckEnabled: true,
 	}
-	
+
 	manager, err := NewSecurityManager(config)
 	require.NoError(t, err)
-	
+
 	// Perform health check (may fail due to keychain, but should not hang)
 	done := make(chan bool, 1)
 	go func() {
 		_ = manager.PerformHealthCheck()
 		done <- true
 	}()
-	
+
 	select {
 	case <-done:
 		// Health check completed
@@ -545,7 +545,7 @@ func TestSecurityConfig(t *testing.T) {
 		HealthCheckEnabled:      true,
 		HealthCheckInterval:     15 * time.Minute,
 	}
-	
+
 	// Test that all fields are properly set
 	assert.True(t, config.AuditLogEnabled)
 	assert.Equal(t, 90, config.LogRetentionDays)
@@ -563,7 +563,7 @@ func TestSecurityConfig(t *testing.T) {
 // TestSecurityStatus struct validation
 func TestSecurityStatus(t *testing.T) {
 	now := time.Now()
-	
+
 	status := SecurityStatus{
 		Enabled:         true,
 		Running:         true,
@@ -572,7 +572,7 @@ func TestSecurityStatus(t *testing.T) {
 			AuditLogEnabled: true,
 		},
 	}
-	
+
 	assert.True(t, status.Enabled)
 	assert.True(t, status.Running)
 	assert.Equal(t, now, status.LastHealthCheck)
@@ -589,9 +589,9 @@ func TestSecurityManagerInitializationFailure(t *testing.T) {
 		RegistrySecurityEnabled: true,
 		RegistryURL:             "", // Empty URL might cause issues
 	}
-	
+
 	manager, err := NewSecurityManager(config)
-	
+
 	// Should handle initialization gracefully
 	if err != nil {
 		assert.Contains(t, err.Error(), "failed to initialize")

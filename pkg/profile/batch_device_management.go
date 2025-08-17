@@ -376,7 +376,8 @@ func (m *BatchDeviceManager) ExportDeviceInfoToCSVFile(
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			// Log but don't fail on cleanup error
+			// Log but don't fail on cleanup error - file handle cleanup is not critical
+			_ = err // Explicitly ignore error
 		}
 	}()
 
@@ -464,7 +465,8 @@ func (m *BatchDeviceManager) ImportDevicesFromCSVFile(
 	}
 	defer func() {
 		if err := file.Close(); err != nil {
-			// Log but don't fail on cleanup error
+			// Log but don't fail on cleanup error - file handle cleanup is not critical
+			_ = err // Explicitly ignore error
 		}
 	}()
 

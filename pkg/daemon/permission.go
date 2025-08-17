@@ -82,7 +82,6 @@ type Permission struct {
 	MinimumLevel PermissionLevel
 }
 
-
 // Context key for user ID
 type userIDContextKey int
 
@@ -94,4 +93,3 @@ const (
 func setUserID(ctx context.Context, userID string) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
 }
-

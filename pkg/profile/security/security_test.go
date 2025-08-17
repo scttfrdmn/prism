@@ -255,4 +255,3 @@ func TestRegistry(t *testing.T) {
 		t.Errorf("Device should not be valid after revoking invitation")
 	}
 }
-

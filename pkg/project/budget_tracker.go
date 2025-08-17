@@ -520,7 +520,6 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 	return nil
 }
 
-
 func (bt *BudgetTracker) getActiveAlerts(budgetData *ProjectBudgetData) []string {
 	var activeAlerts []string
 

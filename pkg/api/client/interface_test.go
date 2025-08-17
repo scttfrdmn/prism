@@ -25,17 +25,17 @@ func TestCloudWorkstationAPIInterface(t *testing.T) {
 func TestHTTPClientImplementsAllMethods(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
-		switch {
-		case r.URL.Path == "/api/v1/ping":
+
+		switch r.URL.Path {
+		case "/api/v1/ping":
 			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/status":
+		case "/api/v1/status":
 			w.WriteHeader(http.StatusOK)
 			_, _ = fmt.Fprint(w, `{"status": "running", "version": "test"}`)
-		case r.URL.Path == "/api/v1/instances":
+		case "/api/v1/instances":
 			w.WriteHeader(http.StatusOK)
 			_, _ = fmt.Fprint(w, `{"instances": []}`)
-		case r.URL.Path == "/api/v1/templates":
+		case "/api/v1/templates":
 			w.WriteHeader(http.StatusOK)
 			_, _ = fmt.Fprint(w, `{}`)
 		default:
@@ -67,7 +67,7 @@ func TestHTTPClientImplementsAllMethods(t *testing.T) {
 // TestRegistryStatusResponse tests RegistryStatusResponse JSON serialization
 func TestRegistryStatusResponse(t *testing.T) {
 	now := time.Now()
-	
+
 	response := RegistryStatusResponse{
 		Active:        true,
 		LastSync:      &now,
@@ -120,7 +120,7 @@ func TestRegistryStatusResponseWithNilLastSync(t *testing.T) {
 // TestAMIReferenceResponse tests AMIReferenceResponse JSON serialization
 func TestAMIReferenceResponse(t *testing.T) {
 	buildDate := time.Now()
-	
+
 	response := AMIReferenceResponse{
 		AMIID:        "ami-12345678",
 		Region:       "us-east-1",
@@ -175,7 +175,7 @@ func TestAMIReferenceResponseWithEmptyTags(t *testing.T) {
 	var jsonMap map[string]interface{}
 	err = json.Unmarshal(data, &jsonMap)
 	require.NoError(t, err)
-	
+
 	_, tagsExist := jsonMap["tags"]
 	assert.False(t, tagsExist, "Empty tags should be omitted from JSON")
 
@@ -187,7 +187,6 @@ func TestAMIReferenceResponseWithEmptyTags(t *testing.T) {
 	assert.Equal(t, response.AMIID, unmarshaled.AMIID)
 	assert.Nil(t, unmarshaled.Tags)
 }
-
 
 // TestOptionsStructValidation tests Options struct field validation
 func TestOptionsStructValidation(t *testing.T) {
@@ -227,7 +226,7 @@ func TestOptionsStructValidation(t *testing.T) {
 			// Options should always be valid for basic usage
 			client := NewClient("http://localhost:8947")
 			client.SetOptions(tt.options)
-			
+
 			// Basic validation - no panics, client created successfully
 			assert.NotNil(t, client)
 		})
@@ -250,7 +249,7 @@ func TestExtendedOptionsConversion(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.Equal(t, client, result)
-	
+
 	// Verify basic options were applied (ProfileID is not part of basic Options)
 	httpClient := result.(*HTTPClient)
 	assert.Equal(t, extended.AWSProfile, httpClient.awsProfile)
@@ -296,7 +295,7 @@ func TestSetOptionsMultipleCalls(t *testing.T) {
 		AWSRegion:  "us-east-1",
 	}
 	client.SetOptions(options1)
-	
+
 	assert.Equal(t, "profile1", httpClient.awsProfile)
 	assert.Equal(t, "us-east-1", httpClient.awsRegion)
 
@@ -307,7 +306,7 @@ func TestSetOptionsMultipleCalls(t *testing.T) {
 		InvitationToken: "token123",
 	}
 	client.SetOptions(options2)
-	
+
 	assert.Equal(t, "profile2", httpClient.awsProfile)
 	assert.Equal(t, "us-west-2", httpClient.awsRegion)
 	assert.Equal(t, "token123", httpClient.invitationToken)
@@ -317,7 +316,7 @@ func TestSetOptionsMultipleCalls(t *testing.T) {
 func TestCriticalAPIMethodsIntegration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		switch {
 		case r.URL.Path == "/api/v1/instances" && r.Method == "POST":
 			// Launch instance
@@ -408,7 +407,7 @@ func TestCriticalAPIMethodsIntegration(t *testing.T) {
 func TestTemplateOperationsIntegration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		switch {
 		case r.URL.Path == "/api/v1/templates" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
@@ -439,7 +438,7 @@ func TestTemplateOperationsIntegration(t *testing.T) {
 func TestIdleDetectionOperationsIntegration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		switch {
 		case r.URL.Path == "/api/v1/idle/status" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
@@ -511,7 +510,7 @@ func TestIdleDetectionOperationsIntegration(t *testing.T) {
 func TestProjectManagementIntegration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		switch {
 		case r.URL.Path == "/api/v1/projects" && r.Method == "POST":
 			w.WriteHeader(http.StatusCreated)

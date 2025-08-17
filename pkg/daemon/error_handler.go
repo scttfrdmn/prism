@@ -27,6 +27,3 @@ func (s *Server) writeError(w http.ResponseWriter, statusCode int, message strin
 		log.Printf("Error encoding error response: %v", err)
 	}
 }
-
-
-

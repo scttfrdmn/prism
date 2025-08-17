@@ -321,7 +321,7 @@ func (g *CloudWorkstationGUI) setupSidebar() {
 	// Profile indicator
 	profileText := "No profile selected"
 	profileType := "Personal"
-	var profileIcon fyne.Resource = theme.AccountIcon()
+	profileIcon := theme.AccountIcon()
 	var securityText string
 
 	// Check if active profile exists
@@ -1095,7 +1095,8 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 	actionsContainer := fynecontainer.NewVBox()
 
 	// Primary action buttons based on state
-	if instance.State == "running" {
+	switch instance.State {
+	case "running":
 		connectBtn := widget.NewButton("Connect", func() {
 			g.showConnectionDialog(instance)
 		})
@@ -1111,7 +1112,7 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 			g.showHibernateConfirmation(instance)
 		})
 		actionsContainer.Add(hibernateBtn)
-	} else if instance.State == "stopped" {
+	case "stopped":
 		startBtn := widget.NewButton("Start", func() {
 			g.showStartConfirmation(instance.Name)
 		})
@@ -1127,7 +1128,8 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 	}
 
 	// Secondary action buttons
-	if instance.State == "running" {
+	switch instance.State {
+	case "running":
 		applyTemplateBtn := widget.NewButton("Apply Template", func() {
 			g.showApplyTemplateDialog(instance)
 		})
