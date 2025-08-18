@@ -93,7 +93,7 @@ func (s *SystemCommands) daemonStart() error {
 		}
 	}
 
-	fmt.Println("🚀 Starting CloudWorkstation daemon...")
+	// Message already printed by auto-start caller
 
 	// Start daemon in the background
 	cmd := exec.Command("cwsd")

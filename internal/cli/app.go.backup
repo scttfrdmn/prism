@@ -197,8 +197,6 @@ func (a *App) Launch(args []string) error {
 	}
 
 	fmt.Printf("🚀 %s\n", response.Message)
-	fmt.Printf("💰 Estimated cost: %s\n", response.EstimatedCost)
-	fmt.Printf("🔗 Connect with: %s\n", response.ConnectionInfo)
 
 	// Show project information if launched in a project
 	if req.ProjectID != "" {
