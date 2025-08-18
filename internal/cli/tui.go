@@ -54,45 +54,30 @@ func runTUI() {
 	}
 }
 
-// checkDaemonForTUI verifies if the daemon is running
+// checkDaemonForTUI verifies if the daemon is running by checking the API endpoint
 func checkDaemonForTUI() error {
-	// Use the daemon status command to check if daemon is running
-	cmd := exec.Command("cwsd", "status")
-	output, err := cmd.CombinedOutput()
+	// Check if daemon is responding on port 8947 using HTTP ping
+	cmd := exec.Command("curl", "-s", "-f", "http://localhost:8947/api/v1/ping")
+	output, err := cmd.Output()
 	if err != nil {
-		// Try to find cwsd binary
-		cwsdPath, _ := exec.LookPath("cwsd")
-		if cwsdPath == "" {
-			// Try in bin directory
-			cwsdPath = "./bin/cwsd"
-			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
-				cwsdPath = "../bin/cwsd"
-			}
-
-			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
-				return fmt.Errorf("daemon executable not found in PATH or bin directory")
-			}
-
-			cmd = exec.Command(cwsdPath, "status")
-			output, err = cmd.CombinedOutput()
-			if err != nil {
-				return fmt.Errorf("daemon not running: %v", err)
-			}
-		} else {
-			return fmt.Errorf("daemon not running: %v", err)
-		}
+		return fmt.Errorf("daemon not responding on port 8947")
 	}
 
-	// Check output for running status (simplified check)
-	if string(output) == "" {
-		return fmt.Errorf("daemon is not running")
+	// If we get any response, daemon is running
+	if len(output) > 0 {
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("daemon API not responding")
 }
 
-// startDaemonForTUI attempts to start the daemon
+// startDaemonForTUI attempts to start the daemon if not already running
 func startDaemonForTUI() error {
+	// Double-check daemon isn't running (avoid port conflicts)
+	if checkDaemonForTUI() == nil {
+		return nil // Already running
+	}
+
 	// First, try to find cwsd binary
 	cwsdPath, _ := exec.LookPath("cwsd")
 	if cwsdPath == "" {
@@ -121,8 +106,13 @@ func startDaemonForTUI() error {
 	_ = cmd.Process.Release()
 
 	// Wait a moment for daemon to initialize
-	waitCmd := exec.Command("sleep", "2")
+	waitCmd := exec.Command("sleep", "3")
 	_ = waitCmd.Run()
+
+	// Final check that daemon started successfully
+	if err := checkDaemonForTUI(); err != nil {
+		return fmt.Errorf("daemon started but not responding: %v", err)
+	}
 
 	return nil
 }

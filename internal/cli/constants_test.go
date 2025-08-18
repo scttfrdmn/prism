@@ -143,7 +143,8 @@ func TestTSizeSpecifications(t *testing.T) {
 		// Test format consistency
 		assert.Contains(t, spec.CPU, "vCPU", "CPU spec should contain 'vCPU' for size %s", size)
 		assert.Contains(t, spec.Memory, "GB", "Memory spec should contain 'GB' for size %s", size)
-		assert.Contains(t, spec.Storage, "GB", "Storage spec should contain 'GB' for size %s", size)
+		// Storage can be GB or TB depending on size
+		assert.True(t, strings.Contains(spec.Storage, "GB") || strings.Contains(spec.Storage, "TB"), "Storage spec should contain 'GB' or 'TB' for size %s", size)
 	}
 
 	// Test that costs increase with size
@@ -349,8 +350,8 @@ func TestTimeConstants(t *testing.T) {
 	assert.Greater(t, DaemonStartupMaxAttempts, 0)
 	assert.Less(t, DaemonStartupMaxAttempts, 100)
 
-	assert.Greater(t, DaemonStartupRetryInterval.Milliseconds(), 0)
-	assert.Less(t, DaemonStartupRetryInterval.Milliseconds(), 10000)
+	assert.Greater(t, DaemonStartupRetryInterval.Milliseconds(), int64(0))
+	assert.Less(t, DaemonStartupRetryInterval.Milliseconds(), int64(10000))
 
 	assert.Greater(t, AMILaunchMonitorTimeout, 0)
 	assert.Greater(t, PackageLaunchMonitorTimeout, AMILaunchMonitorTimeout)
@@ -427,8 +428,8 @@ func TestStringConstants(t *testing.T) {
 			}
 		}
 
-		// Test URL format
-		if strings.Contains(name, "URL") {
+		// Test URL format - but skip environment variable names
+		if strings.Contains(name, "URL") && !strings.Contains(name, "EnvVar") {
 			assert.True(t, strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://"),
 				"URL constant %s should start with http:// or https://", name)
 		}
