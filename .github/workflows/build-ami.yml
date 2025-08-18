@@ -38,7 +38,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -116,7 +116,7 @@ jobs:
       fail-fast: false  # Continue with other matrix jobs even if one fails
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       
       - name: Set up Go
         uses: actions/setup-go@v4
