@@ -1,0 +1,57 @@
+Source: cloudworkstation
+Section: admin
+Priority: optional
+Maintainer: CloudWorkstation Team <team@cloudworkstation.dev>
+Build-Depends: debhelper-compat (= 13),
+               golang-go (>= 2:1.20~),
+               dh-systemd,
+               dh-golang
+Standards-Version: 4.6.2
+Homepage: https://github.com/scttfrdmn/cloudworkstation
+Vcs-Git: https://github.com/scttfrdmn/cloudworkstation.git
+Vcs-Browser: https://github.com/scttfrdmn/cloudworkstation
+Rules-Requires-Root: no
+
+Package: cloudworkstation
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         systemd,
+         awscli
+Recommends: openssh-client,
+            curl,
+            jq
+Suggests: docker.io,
+          aws-shell
+Description: Autonomous Research Instance Management Platform
+ CloudWorkstation is a command-line tool that allows academic researchers
+ to launch pre-configured cloud workstations in seconds rather than spending
+ hours setting up research environments.
+ .
+ Key features include:
+  * Pre-configured templates for Python ML, R research, and more
+  * Automated cost optimization with hibernation support
+  * Multi-modal access: CLI, TUI, and GUI interfaces
+  * Project-based budget management with real-time tracking
+  * Enterprise-grade security and compliance features
+  * Template inheritance and customization system
+  * Comprehensive cost analytics with hibernation savings
+ .
+ This package provides both the command-line interface (cws) and the
+ backend daemon (cwsd) with systemd integration for autonomous operation.
+
+Package: cloudworkstation-dev
+Architecture: amd64 arm64
+Depends: cloudworkstation (= ${binary:Version}),
+         ${shlibs:Depends},
+         ${misc:Depends}
+Recommends: golang-go (>= 2:1.20~),
+            build-essential,
+            git
+Description: Development tools for CloudWorkstation
+ This package contains development tools and utilities for CloudWorkstation,
+ including template development tools, debugging utilities, and development
+ server configurations.
+ .
+ This package is intended for developers who want to create custom templates
+ or contribute to the CloudWorkstation project.

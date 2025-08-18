@@ -1,0 +1,23 @@
+# CloudWorkstation Debian Installation Rules
+# This file specifies which files to install and where
+
+# Main binaries
+build/cws usr/bin
+build/cwsd usr/bin
+
+# Systemd service file
+systemd/cwsd.service lib/systemd/system/cloudworkstation.service
+
+# Configuration templates
+debian/daemon.conf etc/cloudworkstation
+debian/aws-config.template etc/cloudworkstation/aws/config.template
+debian/aws-credentials.template etc/cloudworkstation/aws/credentials.template
+
+# Documentation
+README.md usr/share/doc/cloudworkstation
+CHANGELOG.md usr/share/doc/cloudworkstation
+LICENSE usr/share/doc/cloudworkstation
+
+# Man pages
+debian/cws.1 usr/share/man/man1
+debian/cwsd.1 usr/share/man/man1

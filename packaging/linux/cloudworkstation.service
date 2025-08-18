@@ -1,0 +1,91 @@
+[Unit]
+Description=CloudWorkstation Daemon - Autonomous Research Instance Management
+Documentation=https://github.com/scttfrdmn/cloudworkstation
+Documentation=man:cwsd(1)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/usr/bin/cwsd
+StartLimitIntervalSec=60s
+StartLimitBurst=3
+
+[Service]
+# Service configuration
+Type=notify
+User=cloudworkstation
+Group=cloudworkstation
+ExecStart=/usr/bin/cwsd --autonomous
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -TERM $MAINPID
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+RestartSec=5s
+Restart=always
+
+# Environment variables
+Environment=HOME=/var/lib/cloudworkstation
+Environment=XDG_CONFIG_HOME=/var/lib/cloudworkstation/.config
+Environment=CLOUDWORKSTATION_CONFIG_DIR=/etc/cloudworkstation
+Environment=PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+# AWS configuration paths
+Environment=AWS_CONFIG_FILE=/etc/cloudworkstation/aws/config
+Environment=AWS_SHARED_CREDENTIALS_FILE=/etc/cloudworkstation/aws/credentials
+
+# Logging configuration
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudworkstation
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+LimitCORE=0
+
+# Security hardening - Enhanced for enterprise environments
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@debug @mount @cpu-emulation @obsolete @privileged @resources
+
+# File system access - Minimal required permissions
+ReadWritePaths=/var/lib/cloudworkstation
+ReadWritePaths=/var/log/cloudworkstation
+ReadWritePaths=/tmp
+ReadOnlyPaths=/etc/cloudworkstation
+ReadOnlyPaths=/usr/bin/cwsd
+
+# Network security
+IPAddressDeny=any
+IPAddressAllow=localhost
+IPAddressAllow=link-local
+IPAddressAllow=multicast
+
+# Additional security
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+KeyringMode=private
+
+[Install]
+WantedBy=multi-user.target
+Also=cloudworkstation-health.timer
+
+# Optional health check timer configuration
+# Create /etc/systemd/system/cloudworkstation-health.timer for periodic health checks

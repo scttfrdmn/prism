@@ -68,7 +68,35 @@ brew install cloudworkstation
 cws --version
 ```
 
-### Linux/Other Platforms
+### Linux Enterprise Distributions
+
+**🐧 Native Package Installation (Recommended for Servers)**
+
+**Ubuntu/Debian:**
+```bash
+# Download and install DEB package
+wget https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation_0.4.2-1_amd64.deb
+sudo dpkg -i cloudworkstation_0.4.2-1_amd64.deb
+sudo apt-get install -f  # Fix any dependency issues
+
+# Start service
+sudo systemctl enable --now cloudworkstation
+```
+
+**RHEL/CentOS/Fedora:**
+```bash
+# Download and install RPM package  
+wget https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-0.4.2-1.x86_64.rpm
+sudo dnf install cloudworkstation-0.4.2-1.x86_64.rpm
+
+# Start service
+sudo systemctl enable --now cloudworkstation
+```
+
+**Features:** Native systemd service, automatic startup, enterprise-grade security, comprehensive logging
+**Guide:** [Linux Installation Guide](docs/LINUX_INSTALLATION.md)
+
+### Linux/Other Platforms (Manual)
 
 ```bash
 # Download binary for your platform

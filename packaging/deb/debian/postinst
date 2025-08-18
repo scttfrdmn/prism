@@ -1,0 +1,144 @@
+#!/bin/sh
+# CloudWorkstation post-installation script
+# This script is run after the package is installed
+
+set -e
+
+# Source debconf library for configuration management
+. /usr/share/debconf/confmodule
+
+# Package name
+PACKAGE="cloudworkstation"
+USER="cloudworkstation"
+GROUP="cloudworkstation"
+HOME_DIR="/var/lib/cloudworkstation"
+LOG_DIR="/var/log/cloudworkstation"
+CONFIG_DIR="/etc/cloudworkstation"
+
+case "$1" in
+    configure)
+        # Create cloudworkstation system user and group if they don't exist
+        if ! getent group "$GROUP" >/dev/null 2>&1; then
+            addgroup --system "$GROUP"
+        fi
+        
+        if ! getent passwd "$USER" >/dev/null 2>&1; then
+            adduser --system --ingroup "$GROUP" --home "$HOME_DIR" \
+                    --no-create-home --disabled-login \
+                    --shell /usr/sbin/nologin \
+                    --gecos "CloudWorkstation System User" "$USER"
+        fi
+        
+        # Create and set ownership of directories
+        mkdir -p "$HOME_DIR" "$LOG_DIR" "$CONFIG_DIR/aws"
+        
+        # Set proper ownership
+        chown "$USER:$GROUP" "$HOME_DIR"
+        chown "$USER:$GROUP" "$LOG_DIR"
+        chown root:"$GROUP" "$CONFIG_DIR"
+        chown root:"$GROUP" "$CONFIG_DIR/aws"
+        
+        # Set proper permissions
+        chmod 755 "$HOME_DIR"
+        chmod 750 "$LOG_DIR"
+        chmod 750 "$CONFIG_DIR"
+        chmod 750 "$CONFIG_DIR/aws"
+        
+        # Set permissions on config files
+        if [ -f "$CONFIG_DIR/daemon.conf" ]; then
+            chown root:"$GROUP" "$CONFIG_DIR/daemon.conf"
+            chmod 640 "$CONFIG_DIR/daemon.conf"
+        fi
+        
+        if [ -f "$CONFIG_DIR/aws/config.template" ]; then
+            chown root:"$GROUP" "$CONFIG_DIR/aws/config.template"
+            chmod 640 "$CONFIG_DIR/aws/config.template"
+        fi
+        
+        if [ -f "$CONFIG_DIR/aws/credentials.template" ]; then
+            chown root:"$GROUP" "$CONFIG_DIR/aws/credentials.template"
+            chmod 640 "$CONFIG_DIR/aws/credentials.template"
+        fi
+        
+        # Enable systemd service
+        if [ -d /run/systemd/system ]; then
+            systemctl --system daemon-reload >/dev/null || true
+            if ! systemctl is-enabled cloudworkstation.service >/dev/null 2>&1; then
+                systemctl enable cloudworkstation.service >/dev/null || true
+            fi
+            
+            # Create systemd drop-in directory for local overrides
+            mkdir -p /etc/systemd/system/cloudworkstation.service.d
+        fi
+        
+        # Display installation success message
+        cat << 'EOF'
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                   CloudWorkstation Successfully Installed                    ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  🎉 CloudWorkstation v0.4.2 has been installed successfully!                ║
+║                                                                              ║
+║  📋 What's installed:                                                        ║
+║     ✅ Core binaries: cws, cwsd                                              ║
+║     ✅ Systemd service: cloudworkstation.service                             ║
+║     ✅ Configuration: /etc/cloudworkstation/                                 ║
+║     ✅ User account: cloudworkstation (system user)                          ║
+║                                                                              ║
+║  🚀 Next steps:                                                              ║
+║                                                                              ║
+║     1. Configure AWS credentials:                                            ║
+║        sudo cp /etc/cloudworkstation/aws/credentials.template \             ║
+║               /etc/cloudworkstation/aws/credentials                          ║
+║        sudo cp /etc/cloudworkstation/aws/config.template \                  ║
+║               /etc/cloudworkstation/aws/config                               ║
+║        sudo nano /etc/cloudworkstation/aws/credentials                      ║
+║                                                                              ║
+║     2. Start the service:                                                    ║
+║        sudo systemctl start cloudworkstation                                ║
+║                                                                              ║
+║     3. Test the installation:                                                ║
+║        cws --version                                                         ║
+║        cws templates                                                         ║
+║                                                                              ║
+║  📚 Documentation: https://github.com/scttfrdmn/cloudworkstation            ║
+║  🐛 Issues: https://github.com/scttfrdmn/cloudworkstation/issues            ║
+║                                                                              ║
+║  💡 Quick start guide:                                                       ║
+║     Run 'man cws' for detailed usage instructions                           ║
+║     Run 'man cwsd' for daemon configuration help                            ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+EOF
+        ;;
+        
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+# Automatically added by dh_systemd_enable/11.1.6ubuntu2
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+    # This will only remove masks created by d-s-h on package removal.
+    deb-systemd-helper unmask 'cloudworkstation.service' >/dev/null || true
+
+    # was-enabled defaults to true, so new installations run enable.
+    if deb-systemd-helper --quiet was-enabled 'cloudworkstation.service'; then
+        # Enables the unit on first installation, creates new
+        # symlinks on upgrades if the unit file has changed.
+        deb-systemd-helper enable 'cloudworkstation.service' >/dev/null || true
+    else
+        # Update the statefile to add new symlinks (if any), which need to be
+        # cleaned up on purge. Also remove old symlinks.
+        deb-systemd-helper update-state 'cloudworkstation.service' >/dev/null || true
+    fi
+fi
+# End automatically added section
+
+exit 0

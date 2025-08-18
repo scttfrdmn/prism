@@ -1,0 +1,385 @@
+.TH CWSD 1 "December 2024" "CloudWorkstation 0.4.2" "System Commands"
+.SH NAME
+cwsd \- CloudWorkstation daemon
+.SH SYNOPSIS
+.B cwsd
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+The CloudWorkstation daemon (\fBcwsd\fR) provides the backend API for managing research instances, handling AWS operations, and coordinating between multiple client interfaces (CLI, TUI, GUI).
+
+The daemon runs as a system service and provides a REST API on port 8947 for all CloudWorkstation operations including instance management, template processing, cost optimization, and project administration.
+
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Show help message and exit
+.TP
+.B \-v, \-\-version
+Show version information and exit
+.TP
+.B \-\-config \fIPATH\fR
+Path to configuration file (default: /etc/cloudworkstation/daemon.conf)
+.TP
+.B \-\-listen-address \fIADDR\fR
+Listen address and port (default: 127.0.0.1:8947)
+.TP
+.B \-\-log-level \fILEVEL\fR
+Set log level: debug, info, warn, error (default: info)
+.TP
+.B \-\-log-file \fIPATH\fR
+Path to log file (default: /var/log/cloudworkstation/daemon.log)
+.TP
+.B \-\-data-dir \fIPATH\fR
+Path to data directory (default: /var/lib/cloudworkstation)
+.TP
+.B \-\-autonomous
+Run in autonomous mode suitable for systemd service
+.TP
+.B \-\-debug
+Enable debug logging and additional diagnostics
+.TP
+.B \-\-foreground
+Run in foreground instead of daemonizing (useful for debugging)
+
+.SH CONFIGURATION
+The daemon reads its configuration from \fI/etc/cloudworkstation/daemon.conf\fR by default. The configuration file uses a simple key=value format with comments supported using #.
+
+.SS Configuration Options
+.TP
+.B listen_address
+Address and port to bind the API server (default: 127.0.0.1:8947)
+.TP
+.B log_level
+Logging level: debug, info, warn, error (default: info)
+.TP
+.B log_file
+Path to log file (default: /var/log/cloudworkstation/daemon.log)
+.TP
+.B aws_region
+Default AWS region for operations
+.TP
+.B aws_profile
+Default AWS profile for credentials
+.TP
+.B max_concurrent_operations
+Maximum number of concurrent AWS operations (default: 10)
+.TP
+.B operation_timeout
+Timeout for AWS operations (default: 30m)
+.TP
+.B health_check_interval
+Interval for health checks (default: 30s)
+.TP
+.B enable_hibernation_policies
+Enable automated hibernation policies (default: true)
+.TP
+.B default_idle_threshold
+Default idle threshold for hibernation (default: 15m)
+.TP
+.B cost_alert_threshold
+Cost alert threshold in USD (default: 50.0)
+.TP
+.B template_validation
+Enable template validation (default: true)
+.TP
+.B allow_custom_templates
+Allow custom user templates (default: true)
+.TP
+.B template_cache_ttl
+Template cache time-to-live (default: 1h)
+.TP
+.B enable_project_management
+Enable enterprise project features (default: true)
+.TP
+.B enable_budget_tracking
+Enable budget tracking and alerts (default: true)
+.TP
+.B budget_alert_threshold
+Budget alert threshold percentage (default: 80.0)
+
+.SH API ENDPOINTS
+The daemon provides a REST API with the following endpoint categories:
+
+.SS Instance Management
+.TP
+.B GET /api/v1/instances
+List all instances
+.TP
+.B POST /api/v1/instances
+Launch new instance
+.TP
+.B GET /api/v1/instances/{id}
+Get instance details
+.TP
+.B DELETE /api/v1/instances/{id}
+Terminate instance
+.TP
+.B POST /api/v1/instances/{id}/start
+Start stopped instance
+.TP
+.B POST /api/v1/instances/{id}/stop
+Stop running instance
+.TP
+.B POST /api/v1/instances/{id}/hibernate
+Hibernate instance
+.TP
+.B POST /api/v1/instances/{id}/resume
+Resume hibernated instance
+
+.SS Template Management
+.TP
+.B GET /api/v1/templates
+List available templates
+.TP
+.B GET /api/v1/templates/{id}
+Get template details
+.TP
+.B POST /api/v1/templates/{id}/validate
+Validate template configuration
+.TP
+.B POST /api/v1/templates/{id}/apply
+Apply template to instance
+
+.SS Storage Management
+.TP
+.B GET /api/v1/storage/volumes
+List EBS volumes
+.TP
+.B POST /api/v1/storage/volumes
+Create new volume
+.TP
+.B POST /api/v1/storage/volumes/{id}/attach
+Attach volume to instance
+.TP
+.B POST /api/v1/storage/volumes/{id}/detach
+Detach volume from instance
+.TP
+.B GET /api/v1/storage/efs
+List EFS filesystems
+.TP
+.B POST /api/v1/storage/efs
+Create new EFS filesystem
+
+.SS Project Management
+.TP
+.B GET /api/v1/projects
+List all projects
+.TP
+.B POST /api/v1/projects
+Create new project
+.TP
+.B GET /api/v1/projects/{id}
+Get project details
+.TP
+.B PUT /api/v1/projects/{id}/budget
+Update project budget
+.TP
+.B GET /api/v1/projects/{id}/members
+List project members
+.TP
+.B POST /api/v1/projects/{id}/members
+Add project member
+
+.SS System Management
+.TP
+.B GET /api/v1/health
+Health check endpoint
+.TP
+.B GET /api/v1/status
+System status and metrics
+.TP
+.B GET /api/v1/version
+Version information
+.TP
+.B POST /api/v1/profiles/switch
+Switch AWS profile
+
+.SH SECURITY
+The daemon implements several security measures:
+
+.TP
+.B Process Security
+Runs as dedicated system user 'cloudworkstation' with restricted permissions
+.TP
+.B Network Security
+Binds only to localhost (127.0.0.1) by default to prevent external access
+.TP
+.B File System Security
+Restricted access to configuration files and state directories
+.TP
+.B AWS Security
+Uses AWS IAM credentials with principle of least privilege
+.TP
+.B Audit Logging
+Comprehensive logging of all operations for security auditing
+.TP
+.B Resource Limits
+Systemd resource limits prevent resource exhaustion attacks
+
+.SH SYSTEMD INTEGRATION
+The daemon is designed to run as a systemd service with the following features:
+
+.TP
+.B Service Management
+Standard systemd service commands (start, stop, restart, status)
+.TP
+.B Auto-restart
+Automatic restart on failure with backoff and rate limiting
+.TP
+.B Health Monitoring
+Built-in health checks and status reporting
+.TP
+.B Log Integration
+Logs sent to systemd journal with proper identification
+.TP
+.B Security Hardening
+Systemd security features enabled (ProtectSystem, PrivateTmp, etc.)
+
+.SH FILES
+.TP
+.I /etc/cloudworkstation/daemon.conf
+Main configuration file
+.TP
+.I /etc/cloudworkstation/aws/config
+AWS configuration file
+.TP
+.I /etc/cloudworkstation/aws/credentials
+AWS credentials file
+.TP
+.I /var/lib/cloudworkstation/
+State and data directory
+.TP
+.I /var/lib/cloudworkstation/templates/
+Template cache directory
+.TP
+.I /var/lib/cloudworkstation/state.json
+Instance state file
+.TP
+.I /var/log/cloudworkstation/daemon.log
+Main log file
+.TP
+.I /lib/systemd/system/cloudworkstation.service
+Systemd service file
+.TP
+.I /etc/systemd/system/cloudworkstation.service.d/
+Local systemd service overrides
+
+.SH ENVIRONMENT
+.TP
+.B AWS_PROFILE
+AWS profile for credentials
+.TP
+.B AWS_DEFAULT_REGION
+Default AWS region
+.TP
+.B AWS_CONFIG_FILE
+Path to AWS config file
+.TP
+.B AWS_SHARED_CREDENTIALS_FILE
+Path to AWS credentials file
+.TP
+.B CLOUDWORKSTATION_CONFIG
+Path to daemon configuration file
+.TP
+.B CLOUDWORKSTATION_DEBUG
+Enable debug logging when set to "true"
+.TP
+.B HOME
+Home directory for cloudworkstation user
+
+.SH SIGNALS
+.TP
+.B SIGTERM
+Graceful shutdown (preferred method)
+.TP
+.B SIGINT
+Interrupt and shutdown
+.TP
+.B SIGHUP
+Reload configuration file
+.TP
+.B SIGUSR1
+Reopen log files (useful for log rotation)
+.TP
+.B SIGUSR2
+Toggle debug logging
+
+.SH EXIT STATUS
+.TP
+.B 0
+Normal shutdown
+.TP
+.B 1
+General error during startup or operation
+.TP
+.B 2
+Configuration error
+.TP
+.B 3
+AWS authentication error
+.TP
+.B 4
+Network binding error
+.TP
+.B 5
+Permission or file system error
+
+.SH EXAMPLES
+.SS Manual Startup
+Start daemon manually in foreground for debugging:
+.B cwsd --foreground --debug --log-level debug
+
+.SS Custom Configuration
+Start daemon with custom configuration:
+.B cwsd --config /path/to/custom.conf --data-dir /custom/data
+
+.SS Service Management
+Use systemd for production deployment:
+.br
+.B systemctl start cloudworkstation
+.br
+.B systemctl enable cloudworkstation
+.br
+.B systemctl status cloudworkstation
+
+.SS Health Check
+Check daemon health via API:
+.B curl http://127.0.0.1:8947/api/v1/health
+
+.SS Log Monitoring
+Monitor daemon logs:
+.B journalctl -u cloudworkstation -f
+
+.SH TROUBLESHOOTING
+.SS Common Issues
+.TP
+.B Port already in use
+Another process is using port 8947. Use \fB--listen-address\fR to specify different port.
+.TP
+.B Permission denied
+Ensure daemon runs as cloudworkstation user with proper permissions.
+.TP
+.B AWS authentication failed
+Verify AWS credentials are properly configured in /etc/cloudworkstation/aws/.
+.TP
+.B Service won't start
+Check systemd logs: \fBjournalctl -u cloudworkstation\fR
+
+.SS Debug Mode
+Enable debug logging to troubleshoot issues:
+.br
+.B cwsd --debug --log-level debug --foreground
+
+.SH BUGS
+Report bugs at: https://github.com/scttfrdmn/cloudworkstation/issues
+
+.SH SEE ALSO
+.B cws(1), systemctl(1), journalctl(1), aws(1)
+
+Online documentation: https://github.com/scttfrdmn/cloudworkstation
+
+.SH AUTHOR
+CloudWorkstation Team
+
+.SH COPYRIGHT
+Copyright 2024 CloudWorkstation Project. Licensed under the MIT License.

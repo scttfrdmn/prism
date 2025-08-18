@@ -1,0 +1,305 @@
+.TH CWS 1 "December 2024" "CloudWorkstation 0.4.2" "User Commands"
+.SH NAME
+cws \- CloudWorkstation command line interface
+.SH SYNOPSIS
+.B cws
+[\fIGLOBAL_OPTIONS\fR] \fICOMMAND\fR [\fICOMMAND_OPTIONS\fR]
+.SH DESCRIPTION
+CloudWorkstation allows academic researchers to launch pre-configured cloud workstations in seconds rather than spending hours setting up research environments.
+
+The \fBcws\fR command provides a comprehensive interface for managing cloud research instances, templates, storage, and projects with enterprise-grade features including cost optimization, budget management, and multi-modal access.
+
+.SH GLOBAL OPTIONS
+.TP
+.B \-h, \-\-help
+Show help message and exit
+.TP
+.B \-v, \-\-version
+Show version information and exit
+.TP
+.B \-\-profile \fIPROFILE\fR
+Use specific AWS profile (overrides current profile)
+.TP
+.B \-\-region \fIREGION\fR
+Use specific AWS region (overrides profile region)
+.TP
+.B \-\-debug
+Enable debug logging
+.TP
+.B \-\-json
+Output results in JSON format
+.TP
+.B \-\-quiet
+Suppress non-essential output
+
+.SH COMMANDS
+.SS Instance Management
+.TP
+.B templates
+List available research templates with filtering and search
+.TP
+.B launch \fITEMPLATE\fR \fINAME\fR [\fIOPTIONS\fR]
+Launch a new research instance from a template
+.TP
+.B list [\fIFILTER\fR]
+List running instances with status and cost information
+.TP
+.B connect \fINAME\fR
+Connect to an instance via SSH with automatic key management
+.TP
+.B stop \fINAME\fR
+Stop an instance (preserves data, stops billing compute costs)
+.TP
+.B start \fINAME\fR
+Start a stopped instance
+.TP
+.B terminate \fINAME\fR
+Terminate an instance (destroys instance, preserves attached storage)
+.TP
+.B hibernate \fINAME\fR
+Hibernate an instance to save costs while preserving session state
+.TP
+.B resume \fINAME\fR
+Resume a hibernated instance and restore session state
+.TP
+.B status \fINAME\fR
+Show detailed status information for an instance
+
+.SS Storage Management
+.TP
+.B storage list
+List all storage volumes and their attachment status
+.TP
+.B storage create \fINAME\fR \fISIZE\fR
+Create a new EBS storage volume
+.TP
+.B storage attach \fIVOLUME\fR \fIINSTANCE\fR
+Attach storage volume to an instance
+.TP
+.B storage detach \fIVOLUME\fR
+Detach storage volume from instance
+.TP
+.B storage delete \fIVOLUME\fR
+Delete a storage volume (data will be lost)
+.TP
+.B efs create \fINAME\fR
+Create a new EFS shared filesystem
+.TP
+.B efs delete \fINAME\fR
+Delete an EFS filesystem
+
+.SS Template Management
+.TP
+.B templates list [\fIFILTER\fR]
+List available templates with filtering options
+.TP
+.B templates show \fITEMPLATE\fR
+Show detailed information about a template
+.TP
+.B templates validate \fITEMPLATE\fR
+Validate template configuration and dependencies
+.TP
+.B templates apply \fITEMPLATE\fR \fIINSTANCE\fR
+Apply template to a running instance
+
+.SS Project Management (Enterprise Features)
+.TP
+.B project create \fINAME\fR [\fIOPTIONS\fR]
+Create a new research project with budget tracking
+.TP
+.B project list
+List all projects with budget and member information
+.TP
+.B project show \fIPROJECT\fR
+Show detailed project information and analytics
+.TP
+.B project budget \fIPROJECT\fR [\fIAMOUNT\fR]
+Set or view project budget limits
+.TP
+.B project members \fIPROJECT\fR [\fIOPTIONS\fR]
+Manage project members and permissions
+
+.SS Cost Optimization
+.TP
+.B cost analyze [\fIINSTANCE\fR]
+Analyze costs and provide optimization recommendations
+.TP
+.B hibernation policies
+Manage automated hibernation policies for cost optimization
+.TP
+.B idle configure
+Configure idle detection thresholds and actions
+
+.SS Profile Management
+.TP
+.B profile list
+List available AWS profiles
+.TP
+.B profile current
+Show current active profile
+.TP
+.B profile set \fIPROFILE\fR
+Switch to a different AWS profile
+.TP
+.B profile create \fINAME\fR [\fIOPTIONS\fR]
+Create a new CloudWorkstation profile
+
+.SS System Management
+.TP
+.B daemon status
+Show daemon status and connectivity
+.TP
+.B daemon start
+Start the CloudWorkstation daemon
+.TP
+.B daemon stop
+Stop the CloudWorkstation daemon
+.TP
+.B daemon restart
+Restart the CloudWorkstation daemon
+.TP
+.B daemon logs
+Show daemon logs
+.TP
+.B tui
+Launch terminal user interface for interactive management
+.TP
+.B gui
+Launch graphical user interface (if available)
+
+.SH EXAMPLES
+.SS Basic Usage
+.TP
+List available templates:
+.B cws templates
+.TP
+Launch a Python ML environment:
+.B cws launch "Python Machine Learning" my-research-project
+.TP
+Connect to an instance:
+.B cws connect my-research-project
+.TP
+Stop an instance to save costs:
+.B cws stop my-research-project
+.TP
+Resume a stopped instance:
+.B cws start my-research-project
+
+.SS Cost Optimization
+.TP
+Hibernate instance for maximum cost savings:
+.B cws hibernate my-gpu-workstation
+.TP
+Resume hibernated instance:
+.B cws resume my-gpu-workstation
+.TP
+Analyze costs and get recommendations:
+.B cws cost analyze my-research-project
+.TP
+Configure automated hibernation after 15 minutes idle:
+.B cws idle configure my-instance --idle-minutes 15 --action hibernate
+
+.SS Storage Management
+.TP
+Create persistent storage volume:
+.B cws storage create my-data-volume 100GB
+.TP
+Attach storage to instance:
+.B cws storage attach my-data-volume my-instance
+.TP
+Create shared EFS filesystem:
+.B cws efs create shared-research-data
+
+.SS Advanced Usage
+.TP
+Launch with custom instance type:
+.B cws launch "Python ML" my-project --instance-type p3.2xlarge --spot
+.TP
+Launch with storage pre-attached:
+.B cws launch "R Research" my-project --storage my-data-volume
+.TP
+Apply template to running instance:
+.B cws templates apply "Additional ML Libraries" my-instance
+
+.SH FILES
+.TP
+.I ~/.cloudworkstation/
+User configuration directory
+.TP
+.I ~/.cloudworkstation/profiles/
+User profile configurations
+.TP
+.I ~/.cloudworkstation/cache/
+Template and metadata cache
+.TP
+.I /etc/cloudworkstation/
+System configuration directory
+.TP
+.I /etc/cloudworkstation/daemon.conf
+Daemon configuration file
+.TP
+.I /etc/cloudworkstation/aws/
+AWS configuration directory
+.TP
+.I /var/lib/cloudworkstation/
+System state and data directory
+.TP
+.I /var/log/cloudworkstation/
+Log files directory
+
+.SH ENVIRONMENT
+.TP
+.B CLOUDWORKSTATION_PROFILE
+Default AWS profile to use
+.TP
+.B CLOUDWORKSTATION_REGION
+Default AWS region to use
+.TP
+.B CLOUDWORKSTATION_DEBUG
+Enable debug logging when set to "true"
+.TP
+.B CLOUDWORKSTATION_CONFIG_DIR
+Override configuration directory location
+.TP
+.B AWS_PROFILE
+AWS profile for credentials (fallback if CLOUDWORKSTATION_PROFILE not set)
+.TP
+.B AWS_DEFAULT_REGION
+AWS region (fallback if CLOUDWORKSTATION_REGION not set)
+
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+General error
+.TP
+.B 2
+Misuse of shell command (invalid arguments)
+.TP
+.B 3
+AWS authentication error
+.TP
+.B 4
+AWS service error (insufficient permissions, limits exceeded, etc.)
+.TP
+.B 5
+Network connectivity error
+.TP
+.B 6
+Daemon connectivity error
+
+.SH BUGS
+Report bugs at: https://github.com/scttfrdmn/cloudworkstation/issues
+
+.SH SEE ALSO
+.B cwsd(1), systemctl(1), aws(1)
+
+Online documentation: https://github.com/scttfrdmn/cloudworkstation
+
+.SH AUTHOR
+CloudWorkstation Team
+
+.SH COPYRIGHT
+Copyright 2024 CloudWorkstation Project. Licensed under the MIT License.

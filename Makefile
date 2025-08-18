@@ -449,10 +449,10 @@ windows-installer-dev:
 
 # Show help
 # Package manager distribution targets
-.PHONY: package package-homebrew package-chocolatey package-conda package-test
+.PHONY: package package-homebrew package-chocolatey package-conda package-linux package-rpm package-deb package-test
 
 # Create all package distribution files
-package: package-homebrew package-chocolatey package-conda
+package: package-homebrew package-chocolatey package-conda package-linux
 
 # Create test packages with dummy files for testing distribution
 package-test:
@@ -524,6 +524,111 @@ package-conda: release
 	@openssl sha256 dist/conda/cloudworkstation-darwin-arm64.tar.gz | awk '{print $$2}' > dist/conda/darwin-arm64.sha256
 	@openssl sha256 dist/conda/cloudworkstation-windows-amd64.zip | awk '{print $$2}' > dist/conda/windows-amd64.sha256
 	@echo "✅ Conda package created in dist/conda"
+
+# Linux packaging targets (RPM and DEB)
+.PHONY: package-linux package-rpm package-deb package-rpm-test package-deb-test linux-packages-clean
+
+# Create all Linux packages (RPM and DEB)
+package-linux: package-rpm package-deb
+
+# Create RPM package for RHEL/CentOS/Fedora/SUSE
+package-rpm: build
+	@echo "🐧 Building RPM package for enterprise Linux distributions..."
+	@./scripts/build-rpm.sh
+	@echo "✅ RPM package created in dist/rpm/"
+
+# Create DEB package for Ubuntu/Debian/Mint  
+package-deb: build
+	@echo "🐧 Building DEB package for Ubuntu/Debian distributions..."
+	@./scripts/build-deb.sh
+	@echo "✅ DEB package created in dist/deb/"
+
+# Build RPM package with specific version and architecture
+package-rpm-custom:
+	@echo "🐧 Building custom RPM package..."
+	@if [ -z "$(VERSION)" ] || [ -z "$(ARCH)" ]; then \
+		echo "❌ Usage: make package-rpm-custom VERSION=x.y.z ARCH=x86_64|aarch64"; \
+		exit 1; \
+	fi
+	@./scripts/build-rpm.sh --version $(VERSION) --arch $(ARCH)
+	@echo "✅ Custom RPM package created in dist/rpm/"
+
+# Build DEB package with specific version and architecture
+package-deb-custom:
+	@echo "🐧 Building custom DEB package..."
+	@if [ -z "$(VERSION)" ] || [ -z "$(ARCH)" ]; then \
+		echo "❌ Usage: make package-deb-custom VERSION=x.y.z ARCH=amd64|arm64"; \
+		exit 1; \
+	fi
+	@./scripts/build-deb.sh --version $(VERSION) --arch $(ARCH)
+	@echo "✅ Custom DEB package created in dist/deb/"
+
+# Test RPM package installation (requires Docker)
+package-rpm-test:
+	@echo "🧪 Testing RPM package installation..."
+	@./scripts/test-linux-packages.sh --rpm
+	@echo "✅ RPM package installation test completed"
+
+# Test DEB package installation (requires Docker)
+package-deb-test:
+	@echo "🧪 Testing DEB package installation..."
+	@./scripts/test-linux-packages.sh --deb
+	@echo "✅ DEB package installation test completed"
+
+# Test both RPM and DEB packages
+package-linux-test: package-rpm-test package-deb-test
+
+# Build packages for all Linux architectures
+package-linux-all:
+	@echo "🐧 Building Linux packages for all architectures..."
+	@$(MAKE) package-rpm-custom VERSION=$(VERSION) ARCH=x86_64
+	@$(MAKE) package-rpm-custom VERSION=$(VERSION) ARCH=aarch64
+	@$(MAKE) package-deb-custom VERSION=$(VERSION) ARCH=amd64
+	@$(MAKE) package-deb-custom VERSION=$(VERSION) ARCH=arm64
+	@echo "✅ All Linux packages created"
+
+# Clean Linux packaging artifacts
+linux-packages-clean:
+	@echo "🧹 Cleaning Linux packaging artifacts..."
+	@rm -rf dist/rpm/ dist/deb/
+	@rm -rf packaging/rpm/{BUILD,RPMS,SRPMS,sources,tmp}/*
+	@echo "✅ Linux packaging artifacts cleaned"
+
+# Validate Linux packages with linting tools
+package-linux-validate:
+	@echo "🔍 Validating Linux packages..."
+	@if [ -f "dist/rpm/cloudworkstation-$(VERSION)-1.x86_64.rpm" ]; then \
+		echo "📋 Validating RPM package..."; \
+		rpm -qip "dist/rpm/cloudworkstation-$(VERSION)-1.x86_64.rpm"; \
+		command -v rpmlint >/dev/null 2>&1 && rpmlint "dist/rpm/cloudworkstation-$(VERSION)-1.x86_64.rpm" || echo "⚠️ rpmlint not available"; \
+	fi
+	@if [ -f "dist/deb/cloudworkstation_$(VERSION)-1_amd64.deb" ]; then \
+		echo "📋 Validating DEB package..."; \
+		dpkg-deb -I "dist/deb/cloudworkstation_$(VERSION)-1_amd64.deb"; \
+		command -v lintian >/dev/null 2>&1 && lintian "dist/deb/cloudworkstation_$(VERSION)-1_amd64.deb" || echo "⚠️ lintian not available"; \
+	fi
+	@echo "✅ Linux package validation completed"
+
+# Create signed Linux packages (requires GPG setup)
+package-linux-signed: package-linux
+	@echo "🔐 Signing Linux packages..."
+	@if command -v rpm >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1; then \
+		echo "📝 Signing RPM packages..."; \
+		for rpm in dist/rpm/*.rpm; do \
+			if [ -f "$$rpm" ]; then \
+				rpm --addsign "$$rpm" || echo "⚠️ Failed to sign $$rpm"; \
+			fi; \
+		done; \
+	fi
+	@if command -v dpkg-sig >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1; then \
+		echo "📝 Signing DEB packages..."; \
+		for deb in dist/deb/*.deb; do \
+			if [ -f "$$deb" ]; then \
+				dpkg-sig --sign builder "$$deb" || echo "⚠️ Failed to sign $$deb"; \
+			fi; \
+		done; \
+	fi
+	@echo "✅ Linux package signing completed"
 
 # macOS DMG distribution targets
 .PHONY: dmg dmg-dev dmg-universal dmg-signed dmg-notarized dmg-clean dmg-all
@@ -637,6 +742,18 @@ help:
 	@echo "  package-homebrew Create Homebrew formula and packages"
 	@echo "  package-chocolatey Create Chocolatey package"
 	@echo "  package-conda Create Conda package"
+	@echo "  package-linux Create all Linux packages (RPM and DEB)"
+	@echo "  package-rpm  Create RPM package for RHEL/CentOS/Fedora/SUSE"
+	@echo "  package-deb  Create DEB package for Ubuntu/Debian/Mint"
+	@echo ""
+	@echo "Linux Enterprise Distribution:"
+	@echo "  package-rpm-custom Create custom RPM (VERSION=x.y.z ARCH=x86_64|aarch64)"
+	@echo "  package-deb-custom Create custom DEB (VERSION=x.y.z ARCH=amd64|arm64)"
+	@echo "  package-linux-all  Create packages for all Linux architectures"
+	@echo "  package-linux-test Test RPM and DEB package installation"
+	@echo "  package-linux-validate Validate packages with lintian/rpmlint"
+	@echo "  package-linux-signed Create signed packages (requires GPG)"
+	@echo "  linux-packages-clean Clean Linux packaging artifacts"
 	@echo ""
 	@echo "Windows MSI Distribution:"
 	@echo "  windows-installer Create Windows MSI installer (requires Windows + WiX Toolset)"

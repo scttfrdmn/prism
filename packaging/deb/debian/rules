@@ -1,0 +1,114 @@
+#!/usr/bin/make -f
+# CloudWorkstation Debian Build Rules
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE = 1
+
+# Enable Go module support
+export GO111MODULE = on
+export GOPROXY = https://proxy.golang.org,direct
+export GOSUMDB = sum.golang.org
+
+# Set Go environment for cross-compilation
+export GOOS = linux
+export CGO_ENABLED = 0
+
+# Determine architecture
+DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+ifeq ($(DEB_HOST_ARCH),amd64)
+    export GOARCH = amd64
+else ifeq ($(DEB_HOST_ARCH),arm64)
+    export GOARCH = arm64
+else
+    $(error Unsupported architecture: $(DEB_HOST_ARCH))
+endif
+
+# Version information
+PACKAGE_VERSION := $(shell dpkg-parsechangelog -SVersion | cut -d- -f1)
+BUILD_DATE := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+GIT_COMMIT := deb-build
+
+# Build flags with version information
+export LDFLAGS = -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$(PACKAGE_VERSION) \
+                          -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$(BUILD_DATE) \
+                          -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=$(GIT_COMMIT) \
+                          -w -s"
+
+%:
+	dh $@ --buildsystem=golang --with=golang,systemd
+
+override_dh_auto_configure:
+	# Download dependencies
+	go mod download
+	go mod verify
+
+override_dh_auto_build:
+	# Build core binaries
+	go build $(LDFLAGS) -o build/cws ./cmd/cws
+	go build $(LDFLAGS) -o build/cwsd ./cmd/cwsd
+
+override_dh_auto_test:
+	# Run unit tests (excluding GUI/TUI components that require display)
+	CLOUDWORKSTATION_DEV=true GO_ENV=test go test -short -race ./pkg/... ./internal/cli/... || true
+
+override_dh_auto_install:
+	# Install binaries
+	install -D -m 755 build/cws debian/cloudworkstation/usr/bin/cws
+	install -D -m 755 build/cwsd debian/cloudworkstation/usr/bin/cwsd
+	
+	# Install systemd service file
+	install -D -m 644 systemd/cwsd.service debian/cloudworkstation/lib/systemd/system/cloudworkstation.service
+	
+	# Install configuration directory structure
+	install -d -m 750 debian/cloudworkstation/etc/cloudworkstation
+	install -d -m 750 debian/cloudworkstation/etc/cloudworkstation/aws
+	install -d -m 755 debian/cloudworkstation/var/lib/cloudworkstation
+	install -d -m 750 debian/cloudworkstation/var/log/cloudworkstation
+	
+	# Install default configuration files
+	install -D -m 640 debian/daemon.conf debian/cloudworkstation/etc/cloudworkstation/daemon.conf
+	install -D -m 640 debian/aws-config.template debian/cloudworkstation/etc/cloudworkstation/aws/config.template
+	install -D -m 640 debian/aws-credentials.template debian/cloudworkstation/etc/cloudworkstation/aws/credentials.template
+	
+	# Install documentation
+	install -D -m 644 README.md debian/cloudworkstation/usr/share/doc/cloudworkstation/README.md
+	install -D -m 644 CHANGELOG.md debian/cloudworkstation/usr/share/doc/cloudworkstation/CHANGELOG.md
+	
+	# Install man pages
+	install -D -m 644 debian/cws.1 debian/cloudworkstation/usr/share/man/man1/cws.1
+	install -D -m 644 debian/cwsd.1 debian/cloudworkstation/usr/share/man/man1/cwsd.1
+
+override_dh_systemd_enable:
+	dh_systemd_enable --name=cloudworkstation
+
+override_dh_systemd_start:
+	dh_systemd_start --name=cloudworkstation --no-start
+
+override_dh_installdeb:
+	dh_installdeb
+
+# Skip dh_auto_clean to avoid removing source files
+override_dh_auto_clean:
+	rm -rf build/
+
+# Build architecture-independent files
+binary-indep:
+
+# Build architecture-dependent files  
+binary-arch: build
+	dh binary-arch
+
+# Build all files
+binary: binary-indep binary-arch
+
+# Ensure proper permissions
+override_dh_fixperms:
+	dh_fixperms
+	# Fix ownership and permissions for security-sensitive directories
+	chmod 750 debian/cloudworkstation/etc/cloudworkstation || true
+	chmod 750 debian/cloudworkstation/etc/cloudworkstation/aws || true
+	chmod 750 debian/cloudworkstation/var/log/cloudworkstation || true
+
+.PHONY: build binary binary-arch binary-indep clean

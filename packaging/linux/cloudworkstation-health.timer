@@ -1,0 +1,16 @@
+[Unit]
+Description=CloudWorkstation Health Check Timer
+Documentation=https://github.com/scttfrdmn/cloudworkstation
+Requires=cloudworkstation.service
+
+[Timer]
+# Run health check every 5 minutes
+OnCalendar=*:0/5
+Persistent=true
+RandomizedDelaySec=30s
+
+# Ensure health check runs only when main service is active
+ConditionPathExists=/run/systemd/system/cloudworkstation.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,25 @@
+# AWS Configuration Template for CloudWorkstation
+# Copy this file to 'config' and customize for your environment
+
+[default]
+region = us-west-2
+output = json
+
+# Example profile for research projects
+[profile research]
+region = us-west-2
+output = json
+
+# Example profile for production workloads
+[profile production]
+region = us-east-1
+output = json
+
+# Example profile for development
+[profile development]
+region = us-west-1
+output = json
+
+# Add your AWS profiles here
+# Each profile can specify different regions and settings
+# Use 'cws profile set <profile-name>' to switch between profiles

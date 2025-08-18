@@ -1,0 +1,138 @@
+cloudworkstation (0.4.2-1) unstable; urgency=medium
+
+  * Phase 4 Complete: Enterprise Research Management Platform
+    - Project-based organization with role-based access control
+    - Advanced budget management with real-time tracking and alerts
+    - Cost analytics with detailed hibernation savings analysis
+    - Multi-user collaboration with granular permissions (Owner/Admin/Member/Viewer)
+    - Enterprise API for project management and budget monitoring
+    - Budget automation with configurable alerts and automated actions
+  * Template System Enhancements
+    - Complete template inheritance system with validation
+    - Template stacking and composition support
+    - Comprehensive validation suite with clear error messages
+  * Hibernation Ecosystem Complete
+    - Manual hibernation controls with intelligent fallback
+    - Automated hibernation policies with configurable thresholds
+    - Domain-specific hibernation optimization
+    - Complete audit trail of cost-saving actions
+  * Multi-Modal Access Achievement
+    - Cross-platform GUI with system tray integration
+    - Enhanced TUI interface with professional styling
+    - Feature parity across CLI, TUI, and GUI interfaces
+    - Unified daemon architecture with REST API
+  * Security and Compliance
+    - Enhanced security hardening with comprehensive audit logging
+    - NIST 800-171 compliance framework implementation
+    - Advanced keychain integration and tamper detection
+    - Secure profile management with encryption
+
+ -- CloudWorkstation Team <team@cloudworkstation.dev>  Mon, 16 Dec 2024 10:00:00 +0000
+
+cloudworkstation (0.4.1-1) unstable; urgency=medium
+
+  * Template System Enhancements
+    - Template inheritance support with multi-level stacking
+    - Improved template validation and error handling
+    - Enhanced template documentation and examples
+  * Cost Optimization Improvements
+    - Advanced hibernation policies with domain mapping
+    - Improved cost calculation accuracy
+    - Enhanced idle detection with configurable thresholds
+  * Security Hardening
+    - Enhanced keychain integration for secure credential storage
+    - Improved audit logging and tamper detection
+    - Advanced security compliance features
+  * Bug Fixes and Performance
+    - Fixed memory leaks in long-running daemon operations
+    - Improved error handling and user feedback
+    - Performance optimizations for large-scale deployments
+
+ -- CloudWorkstation Team <team@cloudworkstation.dev>  Fri, 15 Nov 2024 14:30:00 +0000
+
+cloudworkstation (0.4.0-1) unstable; urgency=medium
+
+  * Major Release: Multi-Modal Access Implementation
+    - New cross-platform GUI interface with Fyne framework
+    - Enhanced TUI interface with BubbleTea framework
+    - Unified daemon architecture providing REST API
+    - Complete feature parity across CLI, TUI, and GUI
+  * Advanced Hibernation System
+    - Intelligent hibernation with automatic fallback to stop
+    - Cost optimization through session-preserving hibernation
+    - Automated hibernation policies for hands-off operation
+  * Template Application Engine
+    - Dynamic template application to running instances
+    - Incremental updates with rollback support
+    - Template difference analysis and preview
+  * Profile System Integration
+    - Seamless AWS credential and region management
+    - Profile switching across all interfaces
+    - Enhanced security with keychain integration
+
+ -- CloudWorkstation Team <team@cloudworkstation.dev>  Mon, 28 Oct 2024 16:45:00 +0000
+
+cloudworkstation (0.3.0-1) unstable; urgency=medium
+
+  * Advanced Research Features Implementation
+    - Multi-package manager support (DNF, APT, Conda, Spack)
+    - Hibernation system with intelligent cost optimization
+    - Enhanced storage management with EFS and EBS integration
+    - Template system improvements with validation
+  * State Management Enhancements
+    - Unified state management across all components
+    - Real-time synchronization between interfaces
+    - Enhanced profile integration with AWS credentials
+  * Security and Compliance
+    - Advanced security hardening with resource limits
+    - Comprehensive audit logging and monitoring
+    - Enhanced error handling and graceful degradation
+  * Performance Optimizations
+    - Reduced memory usage in daemon operations
+    - Faster template processing and validation
+    - Improved AWS API integration efficiency
+
+ -- CloudWorkstation Team <team@cloudworkstation.dev>  Wed, 25 Sep 2024 11:20:00 +0000
+
+cloudworkstation (0.2.0-1) unstable; urgency=medium
+
+  * Distributed Architecture Implementation
+    - Daemon + CLI client architecture for better scalability
+    - REST API for inter-component communication
+    - Enhanced AWS integration with improved error handling
+  * Template System Improvements
+    - Comprehensive template validation with schema support
+    - Enhanced template inheritance and composition
+    - Better error messages and user guidance
+  * Storage Management
+    - EFS (Elastic File System) support for shared storage
+    - EBS (Elastic Block Store) integration for persistent volumes
+    - Automated storage lifecycle management
+  * Security Enhancements
+    - Advanced audit logging and security monitoring
+    - Enhanced credential management and encryption
+    - Improved access control and permission handling
+
+ -- CloudWorkstation Team <team@cloudworkstation.dev>  Tue, 20 Aug 2024 09:15:00 +0000
+
+cloudworkstation (0.1.0-1) unstable; urgency=medium
+
+  * Initial Debian package release
+  * Core functionality for research instance management
+    - Launch, manage, and terminate cloud instances
+    - Pre-configured templates for common research environments
+    - AWS integration with cost estimation and optimization
+  * Command-line interface with comprehensive commands
+    - Instance lifecycle management (launch, stop, terminate, connect)
+    - Template management and customization
+    - Storage and network configuration
+  * Basic template system
+    - Python Machine Learning environment
+    - R Research environment with RStudio
+    - Basic Ubuntu and Rocky Linux templates
+  * AWS integration
+    - Automated instance provisioning and configuration
+    - Cost estimation and budget management
+    - Region and availability zone optimization
+
+ -- CloudWorkstation Team <team@cloudworkstation.dev>  Mon, 15 Jul 2024 13:45:00 +0000

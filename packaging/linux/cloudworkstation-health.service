@@ -1,0 +1,42 @@
+[Unit]
+Description=CloudWorkstation Health Check
+Documentation=https://github.com/scttfrdmn/cloudworkstation
+Requires=cloudworkstation.service
+After=cloudworkstation.service
+
+[Service]
+Type=oneshot
+User=cloudworkstation
+Group=cloudworkstation
+ExecStart=/usr/bin/curl -f -s http://127.0.0.1:8947/api/v1/health
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloudworkstation-health
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@debug @mount @cpu-emulation @obsolete @privileged @resources
+
+# Network access for health check
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target
