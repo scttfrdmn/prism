@@ -239,143 +239,11 @@ func (a *App) handleAMIPublish(args []string) error {
 	return nil
 }
 
-// handleAMISave saves a running instance as a new AMI template
+// handleAMISave saves a running instance as a new AMI template using Command Pattern (SOLID: Single Responsibility)
 func (a *App) handleAMISave(args []string) error {
-	if len(args) < 2 {
-		return fmt.Errorf("usage: cws ami save <instance-name> <template-name> [options]")
-	}
-
-	instanceName := args[0]
-	templateName := args[1]
-	cmdArgs := parseCmdArgs(args[2:])
-
-	// Parse command line arguments
-	description := cmdArgs["description"]
-	if description == "" {
-		description = fmt.Sprintf("Custom template saved from instance %s", instanceName)
-	}
-	region := cmdArgs["region"]
-	projectID := cmdArgs["project"]
-	public := cmdArgs["public"] != ""
-	copyToRegions := []string{}
-	if regions := cmdArgs["copy-to-regions"]; regions != "" {
-		copyToRegions = strings.Split(regions, ",")
-	}
-
-	if region == "" {
-		region = os.Getenv("AWS_REGION")
-		if region == "" {
-			region = "us-east-1" // Default
-		}
-	}
-
-	// Check daemon is running
-	ctx := context.Background()
-	if err := a.apiClient.Ping(ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
-	}
-
-	// Get instance information from daemon API
-	instances, err := a.apiClient.ListInstances(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get instance list: %w", err)
-	}
-
-	var instance *types.Instance
-	for _, inst := range instances.Instances {
-		if inst.Name == instanceName {
-			instance = &inst
-			break
-		}
-	}
-
-	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
-	}
-
-	if instance.State != "running" {
-		return fmt.Errorf("instance '%s' must be running to save as AMI (current state: %s)", instanceName, instance.State)
-	}
-
-	// Initialize AWS clients
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-	if err != nil {
-		return fmt.Errorf("failed to load AWS config: %w", err)
-	}
-
-	ec2Client := ec2.NewFromConfig(cfg)
-	ssmClient := ssm.NewFromConfig(cfg)
-
-	// Create AMI registry
-	registry := ami.NewRegistry(ssmClient, "")
-
-	// Create AMI builder
-	builderConfig := map[string]string{}
-	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create AMI builder: %w", err)
-	}
-
-	fmt.Printf("💾 Saving instance '%s' as template '%s'\n", instanceName, templateName)
-	fmt.Printf("📍 Instance ID: %s\n", instance.ID)
-	fmt.Printf("🏷️  Description: %s\n", description)
-	if len(copyToRegions) > 0 {
-		fmt.Printf("🌍 Will copy to regions: %s\n", strings.Join(copyToRegions, ", "))
-	}
-
-	// Create save request
-	saveRequest := ami.InstanceSaveRequest{
-		InstanceID:    instance.ID,
-		InstanceName:  instanceName,
-		TemplateName:  templateName,
-		Description:   description,
-		CopyToRegions: copyToRegions,
-		ProjectID:     projectID,
-		Public:        public,
-		Tags: map[string]string{
-			"Name":                             templateName,
-			"CloudWorkstationTemplate":         templateName,
-			"CloudWorkstationSavedFrom":        instanceName,
-			"CloudWorkstationOriginalTemplate": instance.Template,
-		},
-	}
-
-	// Warning about temporary stop
-	fmt.Printf("\n⚠️  WARNING: Instance will be temporarily stopped to create a consistent AMI\n")
-	fmt.Printf("   This ensures the AMI captures a clean state of the filesystem.\n")
-	fmt.Printf("   The instance will be automatically restarted after AMI creation.\n\n")
-
-	// Confirm before proceeding
-	fmt.Printf("Continue? (y/N): ")
-	var response string
-	_, _ = fmt.Scanln(&response)
-	if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
-		fmt.Println("Operation cancelled")
-		return nil
-	}
-
-	// Create AMI from instance
-	result, err := builder.CreateAMIFromInstance(ctx, saveRequest)
-	if err != nil {
-		return fmt.Errorf("failed to save instance as AMI: %w", err)
-	}
-
-	// Print results
-	fmt.Printf("\n🎉 Successfully saved instance as AMI!\n")
-	fmt.Printf("📸 AMI ID: %s\n", result.AMIID)
-	fmt.Printf("🕒 Build time: %s\n", result.BuildDuration)
-
-	if len(result.CopiedAMIs) > 0 {
-		fmt.Printf("\n🌍 AMI copied to additional regions:\n")
-		for region, amiID := range result.CopiedAMIs {
-			fmt.Printf("   %s: %s\n", region, amiID)
-		}
-	}
-
-	fmt.Printf("\n✨ Template '%s' is now available for launching new instances:\n", templateName)
-	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
-
-	return nil
+	// Create and execute AMI save command
+	saveCmd := NewAMISaveCommand(a.apiClient)
+	return saveCmd.Execute(args)
 }
 
 // discoverDefaultVPC finds the default VPC in the current region
@@ -732,6 +600,294 @@ func (s *AMIBuilderService) handleBuildResult(result *ami.BuildResult) error {
 			fmt.Printf("Full build logs saved to %s\n", logFile)
 		}
 	}
+
+	return nil
+}
+
+// AMI Save Command Pattern Implementation
+
+// AMISaveCommand handles AMI save operations using Command Pattern (SOLID: Single Responsibility)
+type AMISaveCommand struct {
+	argParser         *AMISaveArgParser
+	instanceService   *InstanceValidationService
+	builderService    *AMISaveBuilderService
+	confirmationService *AMISaveConfirmationService
+	apiClient         interface{} // API client for instance lookups
+}
+
+// NewAMISaveCommand creates a new AMI save command
+func NewAMISaveCommand(apiClient interface{}) *AMISaveCommand {
+	return &AMISaveCommand{
+		argParser:         NewAMISaveArgParser(),
+		instanceService:   NewInstanceValidationService(apiClient),
+		builderService:    NewAMISaveBuilderService(),
+		confirmationService: NewAMISaveConfirmationService(),
+		apiClient:         apiClient,
+	}
+}
+
+// Execute executes the AMI save command (Command Pattern)
+func (c *AMISaveCommand) Execute(args []string) error {
+	// Parse arguments
+	saveConfig, err := c.argParser.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	// Validate instance
+	instance, err := c.instanceService.ValidateInstance(saveConfig)
+	if err != nil {
+		return err
+	}
+
+	// Display confirmation and get user approval
+	if !c.confirmationService.ConfirmSave(saveConfig, instance) {
+		fmt.Println("Operation cancelled")
+		return nil
+	}
+
+	// Execute the save
+	return c.builderService.SaveInstanceAsAMI(saveConfig, instance)
+}
+
+// AMISaveConfig represents AMI save configuration (Single Responsibility)
+type AMISaveConfig struct {
+	InstanceName  string
+	TemplateName  string
+	Description   string
+	Region        string
+	ProjectID     string
+	Public        bool
+	CopyToRegions []string
+}
+
+// AMISaveArgParser parses AMI save arguments using Strategy Pattern (SOLID: Single Responsibility)
+type AMISaveArgParser struct{}
+
+// NewAMISaveArgParser creates a new AMI save argument parser
+func NewAMISaveArgParser() *AMISaveArgParser {
+	return &AMISaveArgParser{}
+}
+
+// Parse parses command line arguments into save configuration (Single Responsibility)
+func (p *AMISaveArgParser) Parse(args []string) (*AMISaveConfig, error) {
+	if len(args) < 2 {
+		return nil, fmt.Errorf("usage: cws ami save <instance-name> <template-name> [options]")
+	}
+
+	instanceName := args[0]
+	templateName := args[1]
+	cmdArgs := parseCmdArgs(args[2:])
+
+	// Parse arguments using helper methods
+	config := &AMISaveConfig{
+		InstanceName: instanceName,
+		TemplateName: templateName,
+		Description:  p.parseDescription(cmdArgs, instanceName),
+		Region:       p.parseRegion(cmdArgs),
+		ProjectID:    cmdArgs["project"],
+		Public:       cmdArgs["public"] != "",
+		CopyToRegions: p.parseCopyToRegions(cmdArgs),
+	}
+
+	return config, nil
+}
+
+// parseDescription parses description with fallback (Single Responsibility)
+func (p *AMISaveArgParser) parseDescription(cmdArgs map[string]string, instanceName string) string {
+	if description := cmdArgs["description"]; description != "" {
+		return description
+	}
+	return fmt.Sprintf("Custom template saved from instance %s", instanceName)
+}
+
+// parseRegion parses region with fallback (Single Responsibility)
+func (p *AMISaveArgParser) parseRegion(cmdArgs map[string]string) string {
+	if region := cmdArgs["region"]; region != "" {
+		return region
+	}
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		return region
+	}
+	return "us-east-1" // Default
+}
+
+// parseCopyToRegions parses copy-to-regions list (Single Responsibility)
+func (p *AMISaveArgParser) parseCopyToRegions(cmdArgs map[string]string) []string {
+	if regions := cmdArgs["copy-to-regions"]; regions != "" {
+		return strings.Split(regions, ",")
+	}
+	return []string{}
+}
+
+// InstanceValidationService handles instance validation using Strategy Pattern (SOLID: Single Responsibility)
+type InstanceValidationService struct {
+	apiClient interface{} // API client for instance lookups
+}
+
+// NewInstanceValidationService creates a new instance validation service
+func NewInstanceValidationService(apiClient interface{}) *InstanceValidationService {
+	return &InstanceValidationService{
+		apiClient: apiClient,
+	}
+}
+
+// ValidateInstance validates the instance exists and is in running state (Single Responsibility)
+func (s *InstanceValidationService) ValidateInstance(saveConfig *AMISaveConfig) (*types.Instance, error) {
+	ctx := context.Background()
+	
+	// Check daemon is running
+	if pingable, ok := s.apiClient.(interface{ Ping(context.Context) error }); ok {
+		if err := pingable.Ping(ctx); err != nil {
+			return nil, fmt.Errorf("daemon not running. Start with: cws daemon start")
+		}
+	}
+
+	// Get instance information from daemon API
+	if lister, ok := s.apiClient.(interface{ ListInstances(context.Context) (*types.ListResponse, error) }); ok {
+		instances, err := lister.ListInstances(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get instance list: %w", err)
+		}
+
+		// Find the instance
+		for _, inst := range instances.Instances {
+			if inst.Name == saveConfig.InstanceName {
+				// Validate instance state
+				if inst.State != "running" {
+					return nil, fmt.Errorf("instance '%s' must be running to save as AMI (current state: %s)", saveConfig.InstanceName, inst.State)
+				}
+				return &inst, nil
+			}
+		}
+		
+		return nil, fmt.Errorf("instance '%s' not found", saveConfig.InstanceName)
+	}
+	
+	return nil, fmt.Errorf("API client does not support instance listing")
+}
+
+// AMISaveConfirmationService handles user confirmation using Strategy Pattern (SOLID: Single Responsibility)
+type AMISaveConfirmationService struct{}
+
+// NewAMISaveConfirmationService creates a new confirmation service
+func NewAMISaveConfirmationService() *AMISaveConfirmationService {
+	return &AMISaveConfirmationService{}
+}
+
+// ConfirmSave displays save details and gets user confirmation (Single Responsibility)
+func (s *AMISaveConfirmationService) ConfirmSave(saveConfig *AMISaveConfig, instance *types.Instance) bool {
+	// Display save information
+	fmt.Printf("💾 Saving instance '%s' as template '%s'\n", saveConfig.InstanceName, saveConfig.TemplateName)
+	fmt.Printf("📍 Instance ID: %s\n", instance.ID)
+	fmt.Printf("🏷️  Description: %s\n", saveConfig.Description)
+	if len(saveConfig.CopyToRegions) > 0 {
+		fmt.Printf("🌍 Will copy to regions: %s\n", strings.Join(saveConfig.CopyToRegions, ", "))
+	}
+
+	// Warning about temporary stop
+	fmt.Printf("\n⚠️  WARNING: Instance will be temporarily stopped to create a consistent AMI\n")
+	fmt.Printf("   This ensures the AMI captures a clean state of the filesystem.\n")
+	fmt.Printf("   The instance will be automatically restarted after AMI creation.\n\n")
+
+	// Get user confirmation
+	fmt.Printf("Continue? (y/N): ")
+	var response string
+	_, _ = fmt.Scanln(&response)
+	return strings.ToLower(response) == "y" || strings.ToLower(response) == "yes"
+}
+
+// AMISaveBuilderService handles AMI save operations using Strategy Pattern (SOLID: Single Responsibility)
+type AMISaveBuilderService struct{}
+
+// NewAMISaveBuilderService creates a new AMI save builder service
+func NewAMISaveBuilderService() *AMISaveBuilderService {
+	return &AMISaveBuilderService{}
+}
+
+// SaveInstanceAsAMI saves the instance as an AMI using the configuration (Single Responsibility)
+func (s *AMISaveBuilderService) SaveInstanceAsAMI(saveConfig *AMISaveConfig, instance *types.Instance) error {
+	ctx := context.Background()
+
+	// Create AMI builder
+	builder, err := s.createBuilder(ctx, saveConfig)
+	if err != nil {
+		return err
+	}
+
+	// Create save request
+	saveRequest := s.createSaveRequest(saveConfig, instance)
+
+	// Execute save and handle results
+	return s.executeSaveAndDisplayResults(ctx, builder, saveRequest, saveConfig.TemplateName)
+}
+
+// createBuilder creates the AMI builder (Single Responsibility)
+func (s *AMISaveBuilderService) createBuilder(ctx context.Context, saveConfig *AMISaveConfig) (*ami.Builder, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(saveConfig.Region))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	ec2Client := ec2.NewFromConfig(cfg)
+	ssmClient := ssm.NewFromConfig(cfg)
+	registry := ami.NewRegistry(ssmClient, "")
+
+	builderConfig := map[string]string{}
+	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AMI builder: %w", err)
+	}
+
+	return builder, nil
+}
+
+// createSaveRequest creates the AMI save request (Single Responsibility)
+func (s *AMISaveBuilderService) createSaveRequest(saveConfig *AMISaveConfig, instance *types.Instance) ami.InstanceSaveRequest {
+	return ami.InstanceSaveRequest{
+		InstanceID:    instance.ID,
+		InstanceName:  saveConfig.InstanceName,
+		TemplateName:  saveConfig.TemplateName,
+		Description:   saveConfig.Description,
+		CopyToRegions: saveConfig.CopyToRegions,
+		ProjectID:     saveConfig.ProjectID,
+		Public:        saveConfig.Public,
+		Tags: map[string]string{
+			"Name":                             saveConfig.TemplateName,
+			"CloudWorkstationTemplate":         saveConfig.TemplateName,
+			"CloudWorkstationSavedFrom":        saveConfig.InstanceName,
+			"CloudWorkstationOriginalTemplate": instance.Template,
+		},
+	}
+}
+
+// executeSaveAndDisplayResults executes the save and displays results (Single Responsibility)
+func (s *AMISaveBuilderService) executeSaveAndDisplayResults(ctx context.Context, builder *ami.Builder, saveRequest ami.InstanceSaveRequest, templateName string) error {
+	// Create AMI from instance
+	result, err := builder.CreateAMIFromInstance(ctx, saveRequest)
+	if err != nil {
+		return fmt.Errorf("failed to save instance as AMI: %w", err)
+	}
+
+	// Display results
+	return s.displaySaveResults(result, templateName)
+}
+
+// displaySaveResults displays the save operation results (Single Responsibility)
+func (s *AMISaveBuilderService) displaySaveResults(result *ami.BuildResult, templateName string) error {
+	fmt.Printf("\n🎉 Successfully saved instance as AMI!\n")
+	fmt.Printf("📸 AMI ID: %s\n", result.AMIID)
+	fmt.Printf("🕒 Build time: %s\n", result.BuildDuration)
+
+	if len(result.CopiedAMIs) > 0 {
+		fmt.Printf("\n🌍 AMI copied to additional regions:\n")
+		for region, amiID := range result.CopiedAMIs {
+			fmt.Printf("   %s: %s\n", region, amiID)
+		}
+	}
+
+	fmt.Printf("\n✨ Template '%s' is now available for launching new instances:\n", templateName)
+	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
 
 	return nil
 }
