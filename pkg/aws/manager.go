@@ -135,88 +135,95 @@ func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, er
 	return m.launchWithUnifiedTemplateSystem(req, arch)
 }
 
-// launchWithUnifiedTemplateSystem launches instance using the unified template system with package manager override
-func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch string) (*ctypes.Instance, error) {
-	// Get template using unified template system with package manager override
-	// If no package manager specified, use the template's default
-	packageManager := req.PackageManager
-	if packageManager == "" {
-		packageManager = "" // Let the template system use the template's specified package manager
-	}
+// TemplateConfigExtractor extracts configuration from unified template (Single Responsibility - SOLID)
+type TemplateConfigExtractor struct {
+	region string
+}
 
-	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get template: %w", err)
-	}
-
-	// Extract configuration from unified template
-	ami, exists := template.AMI[m.region][arch]
+// ExtractConfig extracts AMI, instance type, and cost from template
+func (e *TemplateConfigExtractor) ExtractConfig(template *ctypes.RuntimeTemplate, arch string) (string, string, float64, error) {
+	ami, exists := template.AMI[e.region][arch]
 	if !exists {
-		return nil, fmt.Errorf("AMI not available for region %s and architecture %s", m.region, arch)
+		return "", "", 0, fmt.Errorf("AMI not available for region %s and architecture %s", e.region, arch)
 	}
 
 	instanceType, exists := template.InstanceType[arch]
 	if !exists {
-		return nil, fmt.Errorf("instance type not available for architecture %s", arch)
+		return "", "", 0, fmt.Errorf("instance type not available for architecture %s", arch)
 	}
 
-	// Get cost estimate
 	dailyCost := template.EstimatedCostPerHour[arch] * 24
+	return ami, instanceType, dailyCost, nil
+}
 
-	// Use generated UserData script
+// UserDataProcessor processes and configures user data (Single Responsibility - SOLID)
+type UserDataProcessor struct {
+	manager *Manager
+	region  string
+}
+
+// ProcessUserData configures and encodes user data for instance launch
+func (p *UserDataProcessor) ProcessUserData(template *ctypes.RuntimeTemplate, req ctypes.LaunchRequest) string {
 	userData := template.UserData
-
-	// Replace idle detection configuration placeholders
-	userData = m.processIdleDetectionConfig(userData, template)
-
+	userData = p.manager.processIdleDetectionConfig(userData, template)
+	
 	// Add EFS mount if volumes specified
 	if len(req.Volumes) > 0 {
 		for _, volumeName := range req.Volumes {
-			userData = m.addEFSMountToUserData(userData, volumeName, m.region)
+			userData = p.manager.addEFSMountToUserData(userData, volumeName, p.region)
 		}
 	}
 
-	// Encode user data
-	userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
+	return base64.StdEncoding.EncodeToString([]byte(userData))
+}
 
-	// ===== NETWORKING CONFIGURATION =====
-	// Handle VPC and subnet discovery
-	var vpcID, subnetID, securityGroupID string
+// NetworkingResolver resolves VPC, subnet, and security group (Single Responsibility - SOLID)
+type NetworkingResolver struct {
+	manager *Manager
+}
+
+// ResolveNetworking determines VPC, subnet, and security group for launch
+func (n *NetworkingResolver) ResolveNetworking(req ctypes.LaunchRequest) (string, string, string, error) {
+	var vpcID, subnetID string
 
 	if req.VpcID != "" {
-		// User specified VPC
 		vpcID = req.VpcID
 	} else {
-		// Discover default VPC
-		discoveredVPC, err := m.DiscoverDefaultVPC()
+		discoveredVPC, err := n.manager.DiscoverDefaultVPC()
 		if err != nil {
-			return nil, fmt.Errorf("failed to discover VPC: %w\n\n🏗️  To fix this issue:\n  1. Create a default VPC: aws ec2 create-default-vpc\n  2. Or specify a VPC: cws launch %s %s --vpc vpc-xxxxxxxxx", err, req.Template, req.Name)
+			return "", "", "", fmt.Errorf("failed to discover VPC: %w\n\n🏗️  To fix this issue:\n  1. Create a default VPC: aws ec2 create-default-vpc\n  2. Or specify a VPC: cws launch %s %s --vpc vpc-xxxxxxxxx", err, req.Template, req.Name)
 		}
 		vpcID = discoveredVPC
 	}
 
 	if req.SubnetID != "" {
-		// User specified subnet
 		subnetID = req.SubnetID
 	} else {
-		// Discover public subnet in the VPC
-		discoveredSubnet, err := m.DiscoverPublicSubnet(vpcID)
+		discoveredSubnet, err := n.manager.DiscoverPublicSubnet(vpcID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to discover subnet: %w\n\n🏗️  To fix this issue:\n  1. Create a public subnet in your VPC\n  2. Or specify a subnet: cws launch %s %s --subnet subnet-xxxxxxxxx", err, req.Template, req.Name)
+			return "", "", "", fmt.Errorf("failed to discover subnet: %w\n\n🏗️  To fix this issue:\n  1. Create a public subnet in your VPC\n  2. Or specify a subnet: cws launch %s %s --subnet subnet-xxxxxxxxx", err, req.Template, req.Name)
 		}
 		subnetID = discoveredSubnet
 	}
 
-	// Get or create CloudWorkstation security group
-	discoveredSG, err := m.GetOrCreateCloudWorkstationSecurityGroup(vpcID)
+	securityGroupID, err := n.manager.GetOrCreateCloudWorkstationSecurityGroup(vpcID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create security group: %w", err)
+		return "", "", "", fmt.Errorf("failed to create security group: %w", err)
 	}
-	securityGroupID = discoveredSG
 
-	// Launch EC2 instance
+	return vpcID, subnetID, securityGroupID, nil
+}
+
+// InstanceConfigBuilder builds EC2 RunInstances configuration (Builder Pattern - SOLID)
+type InstanceConfigBuilder struct {
+	manager *Manager
+}
+
+// BuildRunInstancesInput creates configured RunInstancesInput
+func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest, ami, instanceType, userDataEncoded, subnetID, securityGroupID string) (*ec2.RunInstancesInput, error) {
 	minCount := int32(1)
 	maxCount := int32(1)
+	
 	runInput := &ec2.RunInstancesInput{
 		ImageId:          &ami,
 		InstanceType:     ec2types.InstanceType(instanceType),
@@ -247,16 +254,25 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		runInput.KeyName = aws.String(req.SSHKeyName)
 	}
 
+	return runInput, nil
+}
+
+// LaunchOptionsProcessor processes hibernation and spot options (Strategy Pattern - SOLID)
+type LaunchOptionsProcessor struct {
+	manager *Manager
+}
+
+// ProcessOptions validates and applies hibernation/spot options
+func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string) error {
 	// Validate hibernation and spot combination
 	if req.Hibernation && req.Spot {
-		return nil, fmt.Errorf("hibernation and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Hibernation preserves instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --hibernation for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
+		return fmt.Errorf("hibernation and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Hibernation preserves instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --hibernation for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
 	}
 
 	// Add hibernation support if requested
 	if req.Hibernation {
-		// Check if instance type supports hibernation
-		if !m.supportsHibernation(instanceType) {
-			return nil, fmt.Errorf("instance type %s does not support hibernation\n\n💡 Hibernation is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --hibernation flag or choose a different instance size", instanceType)
+		if !p.manager.supportsHibernation(instanceType) {
+			return fmt.Errorf("instance type %s does not support hibernation\n\n💡 Hibernation is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --hibernation flag or choose a different instance size", instanceType)
 		}
 
 		runInput.HibernationOptions = &ec2types.HibernationOptionsRequest{
@@ -264,7 +280,6 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		}
 
 		// Enable EBS encryption for root volume (required for hibernation)
-		// Ubuntu AMIs typically use /dev/sda1, Amazon Linux uses /dev/xvda
 		rootDevice := "/dev/sda1"
 		if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
 			rootDevice = "/dev/xvda"
@@ -275,8 +290,8 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 				DeviceName: aws.String(rootDevice),
 				Ebs: &ec2types.EbsBlockDevice{
 					VolumeType:          ec2types.VolumeTypeGp3,
-					VolumeSize:          aws.Int32(20),  // 20GB root volume
-					Encrypted:           aws.Bool(true), // Required for hibernation
+					VolumeSize:          aws.Int32(20),
+					Encrypted:           aws.Bool(true),
 					DeleteOnTermination: aws.Bool(true),
 				},
 			},
@@ -293,6 +308,16 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		}
 	}
 
+	return nil
+}
+
+// InstanceLauncher executes the actual instance launch (Single Responsibility - SOLID)
+type InstanceLauncher struct {
+	manager *Manager
+}
+
+// LaunchInstance executes EC2 instance launch and returns result
+func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, dailyCost float64) (*ctypes.Instance, error) {
 	// Handle dry run
 	if req.DryRun {
 		return &ctypes.Instance{
@@ -305,13 +330,12 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 
 	// Launch instance
 	ctx := context.Background()
-	result, err := m.ec2.RunInstances(ctx, runInput)
+	result, err := l.manager.ec2.RunInstances(ctx, runInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch instance: %w", err)
 	}
 
 	instance := result.Instances[0]
-
 	return &ctypes.Instance{
 		ID:                 *instance.InstanceId,
 		Name:               req.Name,
@@ -321,6 +345,78 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		EstimatedDailyCost: dailyCost,
 		AttachedVolumes:    req.Volumes,
 	}, nil
+}
+
+// LaunchOrchestrator coordinates instance launch using SOLID principles (Strategy Pattern - SOLID)
+type LaunchOrchestrator struct {
+	configExtractor     *TemplateConfigExtractor
+	userDataProcessor   *UserDataProcessor
+	networkingResolver  *NetworkingResolver
+	configBuilder       *InstanceConfigBuilder
+	optionsProcessor    *LaunchOptionsProcessor
+	instanceLauncher    *InstanceLauncher
+}
+
+// NewLaunchOrchestrator creates launch orchestrator
+func NewLaunchOrchestrator(manager *Manager, region string) *LaunchOrchestrator {
+	return &LaunchOrchestrator{
+		configExtractor:    &TemplateConfigExtractor{region: region},
+		userDataProcessor:  &UserDataProcessor{manager: manager, region: region},
+		networkingResolver: &NetworkingResolver{manager: manager},
+		configBuilder:      &InstanceConfigBuilder{manager: manager},
+		optionsProcessor:   &LaunchOptionsProcessor{manager: manager},
+		instanceLauncher:   &InstanceLauncher{manager: manager},
+	}
+}
+
+// ExecuteLaunch performs complete instance launch using SOLID strategy pattern
+func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *ctypes.RuntimeTemplate, arch string) (*ctypes.Instance, error) {
+	// Extract template configuration
+	ami, instanceType, dailyCost, err := o.configExtractor.ExtractConfig(template, arch)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process user data
+	userDataEncoded := o.userDataProcessor.ProcessUserData(template, req)
+
+	// Resolve networking
+	_, subnetID, securityGroupID, err := o.networkingResolver.ResolveNetworking(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build run configuration
+	runInput, err := o.configBuilder.BuildRunInstancesInput(req, ami, instanceType, userDataEncoded, subnetID, securityGroupID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process launch options
+	if err := o.optionsProcessor.ProcessOptions(req, runInput, ami, instanceType); err != nil {
+		return nil, err
+	}
+
+	// Execute launch
+	return o.instanceLauncher.LaunchInstance(req, runInput, dailyCost)
+}
+
+// launchWithUnifiedTemplateSystem launches instance using unified template system with SOLID orchestration (SOLID: Single Responsibility)
+func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch string) (*ctypes.Instance, error) {
+	// Get template using unified template system
+	packageManager := req.PackageManager
+	if packageManager == "" {
+		packageManager = ""
+	}
+
+	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template: %w", err)
+	}
+
+	// Create orchestrator and execute launch
+	orchestrator := NewLaunchOrchestrator(m, m.region)
+	return orchestrator.ExecuteLaunch(req, template, arch)
 }
 
 // DeleteInstance terminates an EC2 instance
@@ -1153,19 +1249,161 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 	return "", fmt.Errorf("instance '%s' not found", name)
 }
 
-// ListInstances returns all CloudWorkstation instances with real-time AWS status
-func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
-	// Load local state to merge deletion timestamps
+// StateLoader loads local state for instance merging (Single Responsibility - SOLID)
+type StateLoader struct{}
+
+// LoadLocalState attempts to load local state for deletion timestamp merging
+func (l *StateLoader) LoadLocalState() *ctypes.State {
 	stateManager, err := state.NewManager()
 	if err != nil {
-		// Continue without state merging if unavailable
-		stateManager = nil
+		return nil // Continue without state merging if unavailable
 	}
 
-	var localState *ctypes.State
-	if stateManager != nil {
-		localState, _ = stateManager.LoadState()
+	localState, _ := stateManager.LoadState()
+	return localState
+}
+
+// InstanceTagExtractor extracts tags from EC2 instances (Single Responsibility - SOLID)
+type InstanceTagExtractor struct{}
+
+// ExtractTags extracts CloudWorkstation-specific tags from EC2 instance
+func (e *InstanceTagExtractor) ExtractTags(ec2Instance ec2types.Instance) (name, template, project string) {
+	for _, tag := range ec2Instance.Tags {
+		if tag.Key != nil && tag.Value != nil {
+			switch *tag.Key {
+			case "Name":
+				name = *tag.Value
+			case "Template":
+				template = *tag.Value
+			case "Project":
+				project = *tag.Value
+			}
+		}
 	}
+	return name, template, project
+}
+
+// InstanceStateConverter converts AWS states to CloudWorkstation states (Single Responsibility - SOLID)
+type InstanceStateConverter struct{}
+
+// ConvertState converts EC2 instance state to CloudWorkstation state
+func (c *InstanceStateConverter) ConvertState(ec2Instance ec2types.Instance) string {
+	if ec2Instance.State == nil {
+		return "unknown"
+	}
+
+	awsState := string(ec2Instance.State.Name)
+
+	// Check for hibernation states
+	if c.isHibernationConfigured(ec2Instance) {
+		if awsState == "stopped" {
+			return "hibernated"
+		} else if awsState == "stopping" {
+			return "hibernating"
+		}
+	}
+
+	return awsState
+}
+
+func (c *InstanceStateConverter) isHibernationConfigured(ec2Instance ec2types.Instance) bool {
+	return ec2Instance.HibernationOptions != nil && *ec2Instance.HibernationOptions.Configured
+}
+
+// InstanceBuilder builds CloudWorkstation instance objects (Builder Pattern - SOLID)
+type InstanceBuilder struct {
+	tagExtractor    *InstanceTagExtractor
+	stateConverter  *InstanceStateConverter
+}
+
+// NewInstanceBuilder creates instance builder
+func NewInstanceBuilder() *InstanceBuilder {
+	return &InstanceBuilder{
+		tagExtractor:   &InstanceTagExtractor{},
+		stateConverter: &InstanceStateConverter{},
+	}
+}
+
+// BuildInstance creates CloudWorkstation instance from EC2 instance
+func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localState *ctypes.State) *ctypes.Instance {
+	// Extract tags
+	name, template, project := b.tagExtractor.ExtractTags(ec2Instance)
+
+	// Skip instances without names
+	if name == "" {
+		return nil
+	}
+
+	// Convert state
+	state := b.stateConverter.ConvertState(ec2Instance)
+
+	// Get public IP
+	publicIP := ""
+	if ec2Instance.PublicIpAddress != nil {
+		publicIP = *ec2Instance.PublicIpAddress
+	}
+
+	// Determine instance lifecycle
+	instanceLifecycle := "on-demand"
+	if string(ec2Instance.InstanceLifecycle) == "spot" {
+		instanceLifecycle = "spot"
+	}
+
+	// Create instance
+	instance := &ctypes.Instance{
+		ID:                 *ec2Instance.InstanceId,
+		Name:               name,
+		Template:           template,
+		State:              state,
+		PublicIP:           publicIP,
+		ProjectID:          project,
+		InstanceLifecycle:  instanceLifecycle,
+		LaunchTime:         *ec2Instance.LaunchTime,
+		EstimatedDailyCost: 0.0, // TODO: Calculate based on instance type
+	}
+
+	// Merge deletion time from local state if available
+	if localState != nil {
+		if localInstance, exists := localState.Instances[name]; exists {
+			instance.DeletionTime = localInstance.DeletionTime
+		}
+	}
+
+	return instance
+}
+
+// InstanceListProcessor processes EC2 reservations into CloudWorkstation instances (Strategy Pattern - SOLID)
+type InstanceListProcessor struct {
+	stateLoader     *StateLoader
+	instanceBuilder *InstanceBuilder
+}
+
+// NewInstanceListProcessor creates instance list processor
+func NewInstanceListProcessor() *InstanceListProcessor {
+	return &InstanceListProcessor{
+		stateLoader:     &StateLoader{},
+		instanceBuilder: NewInstanceBuilder(),
+	}
+}
+
+// ProcessReservations converts EC2 reservations to CloudWorkstation instances
+func (p *InstanceListProcessor) ProcessReservations(reservations []ec2types.Reservation) []ctypes.Instance {
+	localState := p.stateLoader.LoadLocalState()
+	var instances []ctypes.Instance
+
+	for _, reservation := range reservations {
+		for _, ec2Instance := range reservation.Instances {
+			if instance := p.instanceBuilder.BuildInstance(ec2Instance, localState); instance != nil {
+				instances = append(instances, *instance)
+			}
+		}
+	}
+
+	return instances
+}
+
+// ListInstances returns all CloudWorkstation instances using Strategy Pattern (SOLID: Single Responsibility)
+func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 	ctx := context.Background()
 	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
@@ -1183,84 +1421,8 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		return nil, fmt.Errorf("failed to describe instances: %w", err)
 	}
 
-	var instances []ctypes.Instance
-	for _, reservation := range result.Reservations {
-		for _, ec2Instance := range reservation.Instances {
-			// Extract instance name from tags
-			name := ""
-			template := ""
-			project := ""
-			for _, tag := range ec2Instance.Tags {
-				if tag.Key != nil && tag.Value != nil {
-					switch *tag.Key {
-					case "Name":
-						name = *tag.Value
-					case "Template":
-						template = *tag.Value
-					case "Project":
-						project = *tag.Value
-					}
-				}
-			}
-
-			// Skip instances without names (shouldn't happen but be safe)
-			if name == "" {
-				continue
-			}
-
-			// Convert AWS state to CloudWorkstation state
-			state := "unknown"
-			if ec2Instance.State != nil {
-				state = string(ec2Instance.State.Name)
-
-				// Check if this is a hibernated instance (stopped + hibernation-enabled)
-				if state == "stopped" && ec2Instance.HibernationOptions != nil &&
-					*ec2Instance.HibernationOptions.Configured {
-					state = "hibernated"
-				} else if state == "stopping" && ec2Instance.HibernationOptions != nil &&
-					*ec2Instance.HibernationOptions.Configured {
-					// For instances that were hibernated, show "hibernating" during stop transition
-					state = "hibernating"
-				}
-			}
-
-			// Get public IP
-			publicIP := ""
-			if ec2Instance.PublicIpAddress != nil {
-				publicIP = *ec2Instance.PublicIpAddress
-			}
-
-			// Determine instance lifecycle (spot vs on-demand)
-			instanceLifecycle := "on-demand"
-			if string(ec2Instance.InstanceLifecycle) == "spot" {
-				instanceLifecycle = "spot"
-			}
-
-			// Create CloudWorkstation Instance struct with real-time data
-			instance := ctypes.Instance{
-				ID:                 *ec2Instance.InstanceId,
-				Name:               name,
-				Template:           template,
-				State:              state,
-				PublicIP:           publicIP,
-				ProjectID:          project,
-				InstanceLifecycle:  instanceLifecycle,
-				LaunchTime:         *ec2Instance.LaunchTime, // Dereference the pointer
-				EstimatedDailyCost: 0.0,                     // TODO: Calculate based on instance type
-			}
-
-			// Merge deletion time from local state if available
-			if localState != nil {
-				if localInstance, exists := localState.Instances[name]; exists {
-					instance.DeletionTime = localInstance.DeletionTime
-				}
-			}
-
-			instances = append(instances, instance)
-		}
-	}
-
-	return instances, nil
+	processor := NewInstanceListProcessor()
+	return processor.ProcessReservations(result.Reservations), nil
 }
 
 // parseSizeToGB converts t-shirt sizes to GB

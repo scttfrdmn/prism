@@ -407,49 +407,145 @@ func (m *Manager) CreateUser(ctx context.Context, user *usermgmt.User) (*usermgm
 	return copyUser(newUser), nil
 }
 
-// UpdateUser updates an existing user
-func (m *Manager) UpdateUser(ctx context.Context, user *usermgmt.User) (*usermgmt.User, error) {
-	state, err := m.LoadUserState()
-	if err != nil {
-		return nil, err
-	}
+// UserUpdateValidator validates user update operations (Single Responsibility - SOLID)
+type UserUpdateValidator struct{}
 
+// ValidateUpdate performs all validation checks for user updates
+func (v *UserUpdateValidator) ValidateUpdate(state *UserState, user *usermgmt.User) error {
 	// Check if user exists
 	if _, exists := state.Users[user.ID]; !exists {
-		return nil, usermgmt.ErrUserNotFound
+		return usermgmt.ErrUserNotFound
 	}
 
 	// Check for duplicate username
 	if currentID, exists := state.UsersByUsername[user.Username]; exists && currentID != user.ID {
-		return nil, usermgmt.ErrDuplicateUsername
+		return usermgmt.ErrDuplicateUsername
 	}
 
 	// Check for duplicate email
 	if user.Email != "" {
 		if currentID, exists := state.UsersByEmail[user.Email]; exists && currentID != user.ID {
-			return nil, usermgmt.ErrDuplicateEmail
+			return usermgmt.ErrDuplicateEmail
 		}
 	}
 
-	// Get old user
-	oldUser := state.Users[user.ID]
+	return nil
+}
 
+// UserMappingUpdater updates username and email mappings (Single Responsibility - SOLID)
+type UserMappingUpdater struct{}
+
+// UpdateMappings updates username and email mappings in state
+func (u *UserMappingUpdater) UpdateMappings(state *UserState, oldUser, newUser *usermgmt.User) {
 	// Update username mapping
-	if oldUser.Username != user.Username {
+	if oldUser.Username != newUser.Username {
 		delete(state.UsersByUsername, oldUser.Username)
-		state.UsersByUsername[user.Username] = user.ID
+		state.UsersByUsername[newUser.Username] = newUser.ID
 	}
 
 	// Update email mapping
-	if oldUser.Email != user.Email {
+	if oldUser.Email != newUser.Email {
 		if oldUser.Email != "" {
 			delete(state.UsersByEmail, oldUser.Email)
 		}
 
-		if user.Email != "" {
-			state.UsersByEmail[user.Email] = user.ID
+		if newUser.Email != "" {
+			state.UsersByEmail[newUser.Email] = newUser.ID
 		}
 	}
+}
+
+// UserGroupMembershipManager manages user group relationships (Single Responsibility - SOLID)
+type UserGroupMembershipManager struct {
+	manager *Manager
+}
+
+// UpdateGroupMembership synchronizes user group memberships
+func (g *UserGroupMembershipManager) UpdateGroupMembership(ctx context.Context, state *UserState, user *usermgmt.User) error {
+	if len(user.Groups) == 0 {
+		return nil
+	}
+
+	// Get current groups
+	currentGroups, _ := g.manager.GetUserGroups(ctx, user.ID)
+	currentGroupMap := make(map[string]bool)
+
+	for _, group := range currentGroups {
+		currentGroupMap[group.Name] = true
+	}
+
+	// Add to new groups
+	for _, groupName := range user.Groups {
+		if !currentGroupMap[groupName] {
+			if err := g.addUserToGroup(ctx, state, user, groupName); err != nil {
+				return err
+			}
+		}
+		// Mark as processed
+		delete(currentGroupMap, groupName)
+	}
+
+	// Remove from groups not in new list
+	for _, group := range currentGroups {
+		if currentGroupMap[group.Name] {
+			if err := g.manager.RemoveUserFromGroup(ctx, user.ID, group.ID); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (g *UserGroupMembershipManager) addUserToGroup(ctx context.Context, state *UserState, user *usermgmt.User, groupName string) error {
+	groupID, exists := state.GroupsByName[groupName]
+	if !exists {
+		// Group doesn't exist, create it
+		group := &usermgmt.Group{
+			ID:          generateID(),
+			Name:        groupName,
+			Description: "Auto-created group",
+			Provider:    user.Provider,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		if _, err := g.manager.CreateGroup(ctx, group); err != nil {
+			return err
+		}
+
+		groupID = group.ID
+	}
+
+	// Add user to group
+	return g.manager.AddUserToGroup(ctx, user.ID, groupID)
+}
+
+// UserUpdateOrchestrator coordinates user update operations (Strategy Pattern - SOLID)
+type UserUpdateOrchestrator struct {
+	validator       *UserUpdateValidator
+	mappingUpdater  *UserMappingUpdater
+	groupManager    *UserGroupMembershipManager
+}
+
+// NewUserUpdateOrchestrator creates user update orchestrator
+func NewUserUpdateOrchestrator(manager *Manager) *UserUpdateOrchestrator {
+	return &UserUpdateOrchestrator{
+		validator:      &UserUpdateValidator{},
+		mappingUpdater: &UserMappingUpdater{},
+		groupManager:   &UserGroupMembershipManager{manager: manager},
+	}
+}
+
+// ExecuteUpdate performs complete user update using SOLID strategy pattern
+func (o *UserUpdateOrchestrator) ExecuteUpdate(ctx context.Context, state *UserState, user *usermgmt.User, manager *Manager) (*usermgmt.User, error) {
+	// Validate update
+	if err := o.validator.ValidateUpdate(state, user); err != nil {
+		return nil, err
+	}
+
+	// Get old user for mapping updates
+	oldUser := state.Users[user.ID]
 
 	// Copy user to prevent modification
 	updatedUser := copyUser(user)
@@ -459,67 +555,34 @@ func (m *Manager) UpdateUser(ctx context.Context, user *usermgmt.User) (*usermgm
 		updatedUser.UpdatedAt = time.Now()
 	}
 
+	// Update mappings
+	o.mappingUpdater.UpdateMappings(state, oldUser, updatedUser)
+
 	// Store updated user
 	state.Users[updatedUser.ID] = updatedUser
 
 	// Update group membership
-	if len(updatedUser.Groups) > 0 {
-		// Get current groups
-		currentGroups, _ := m.GetUserGroups(ctx, updatedUser.ID)
-		currentGroupMap := make(map[string]bool)
-
-		for _, group := range currentGroups {
-			currentGroupMap[group.Name] = true
-		}
-
-		// Add to new groups
-		for _, groupName := range updatedUser.Groups {
-			if !currentGroupMap[groupName] {
-				groupID, exists := state.GroupsByName[groupName]
-				if !exists {
-					// Group doesn't exist, create it
-					group := &usermgmt.Group{
-						ID:          generateID(),
-						Name:        groupName,
-						Description: "Auto-created group",
-						Provider:    updatedUser.Provider,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
-					}
-
-					if _, err := m.CreateGroup(ctx, group); err != nil {
-						return nil, err
-					}
-
-					groupID = group.ID
-				}
-
-				// Add user to group
-				if err := m.AddUserToGroup(ctx, updatedUser.ID, groupID); err != nil {
-					return nil, err
-				}
-			}
-
-			// Mark as processed
-			delete(currentGroupMap, groupName)
-		}
-
-		// Remove from groups not in new list
-		for _, group := range currentGroups {
-			if currentGroupMap[group.Name] {
-				if err := m.RemoveUserFromGroup(ctx, updatedUser.ID, group.ID); err != nil {
-					return nil, err
-				}
-			}
-		}
+	if err := o.groupManager.UpdateGroupMembership(ctx, state, updatedUser); err != nil {
+		return nil, err
 	}
 
 	// Save state
-	if err := m.SaveUserState(state); err != nil {
+	if err := manager.SaveUserState(state); err != nil {
 		return nil, err
 	}
 
 	return copyUser(updatedUser), nil
+}
+
+// UpdateUser updates an existing user using Strategy Pattern (SOLID: Single Responsibility)
+func (m *Manager) UpdateUser(ctx context.Context, user *usermgmt.User) (*usermgmt.User, error) {
+	state, err := m.LoadUserState()
+	if err != nil {
+		return nil, err
+	}
+
+	orchestrator := NewUserUpdateOrchestrator(m)
+	return orchestrator.ExecuteUpdate(ctx, state, user, m)
 }
 
 // DeleteUser deletes a user
