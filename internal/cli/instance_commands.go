@@ -37,7 +37,7 @@ func (ic *InstanceCommands) Connect(args []string) error {
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
@@ -65,7 +65,7 @@ func (ic *InstanceCommands) Stop(args []string) error {
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	err := ic.app.apiClient.StopInstance(ic.app.ctx, name)
@@ -87,7 +87,7 @@ func (ic *InstanceCommands) Start(args []string) error {
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// First, get current instance status
@@ -142,7 +142,7 @@ func (ic *InstanceCommands) Delete(args []string) error {
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	err := ic.app.apiClient.DeleteInstance(ic.app.ctx, name)
@@ -164,7 +164,7 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Check hibernation status first
@@ -205,7 +205,7 @@ func (ic *InstanceCommands) Resume(args []string) error {
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Check hibernation status first

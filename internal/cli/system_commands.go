@@ -121,7 +121,7 @@ func (s *SystemCommands) getDaemonVersion() (string, error) {
 // waitForDaemonAndVerifyVersion waits for daemon to be ready and verifies version matches
 func (s *SystemCommands) waitForDaemonAndVerifyVersion() error {
 	// Wait for daemon to be responsive (up to 10 seconds)
-	maxAttempts := 20
+	maxAttempts := DaemonStartupMaxAttempts
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		// Try to ping the daemon
 		if err := s.app.apiClient.Ping(s.app.ctx); err == nil {
@@ -142,11 +142,11 @@ func (s *SystemCommands) waitForDaemonAndVerifyVersion() error {
 		// Daemon not ready yet, wait and retry
 		if attempt < maxAttempts {
 			fmt.Printf("🔄 Daemon not ready yet, retrying in 0.5s (attempt %d/%d)\n", attempt, maxAttempts)
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(DaemonStartupRetryInterval)
 		}
 	}
 
-	return fmt.Errorf("daemon failed to start within 10 seconds")
+	return fmt.Errorf("daemon failed to start within %v", DaemonStartupTimeout)
 }
 
 func (s *SystemCommands) daemonStop() error {
@@ -181,7 +181,7 @@ func (s *SystemCommands) daemonStatus() error {
 	fmt.Printf("✅ Daemon Status\n")
 	fmt.Printf("   Version: %s\n", status.Version)
 	fmt.Printf("   Status: %s\n", status.Status)
-	fmt.Printf("   Start Time: %s\n", status.StartTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("   Start Time: %s\n", status.StartTime.Format(StandardDateFormat))
 	fmt.Printf("   AWS Region: %s\n", status.AWSRegion)
 	if status.AWSProfile != "" {
 		fmt.Printf("   AWS Profile: %s\n", status.AWSProfile)
@@ -325,8 +325,8 @@ func (s *SystemCommands) saveDaemonConfig(config *DaemonConfig) error {
 
 func (s *SystemCommands) getDefaultDaemonConfig() *DaemonConfig {
 	return &DaemonConfig{
-		InstanceRetentionMinutes: 5,
-		Port:                     "8947",
+		InstanceRetentionMinutes: DefaultInstanceRetentionMinutes,
+		Port:                     DefaultDaemonPort,
 	}
 }
 
@@ -366,7 +366,7 @@ func (s *SystemCommands) saveDaemonConfigToFile(config *DaemonConfig) error {
 
 	// Ensure config directory exists
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, DefaultDirPermissions); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -377,7 +377,7 @@ func (s *SystemCommands) saveDaemonConfigToFile(config *DaemonConfig) error {
 	}
 
 	// Write config file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, DefaultFilePermissions); err != nil {
 		return fmt.Errorf("failed to write daemon config: %w", err)
 	}
 
@@ -390,5 +390,5 @@ func (s *SystemCommands) getDaemonConfigPath() string {
 	if err != nil {
 		return "daemon_config.json" // Fallback
 	}
-	return filepath.Join(homeDir, ".cloudworkstation", "daemon_config.json")
+	return filepath.Join(homeDir, DefaultConfigDir, DefaultConfigFile)
 }

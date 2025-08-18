@@ -70,7 +70,7 @@ func NewApp(version string) *App {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
 		config = &Config{}                          // Use empty config
-		config.Daemon.URL = "http://localhost:8947" // Default URL (CWS on phone keypad)
+		config.Daemon.URL = DefaultDaemonURL // Default URL (CWS on phone keypad)
 	}
 
 	// Initialize profile manager
@@ -82,7 +82,7 @@ func NewApp(version string) *App {
 
 	// Initialize API client
 	apiURL := config.Daemon.URL
-	if envURL := os.Getenv("CWSD_URL"); envURL != "" {
+	if envURL := os.Getenv(DaemonURLEnvVar); envURL != "" {
 		apiURL = envURL
 	}
 
@@ -218,7 +218,7 @@ func (a *App) Launch(args []string) error {
 
 // displayCostTable displays the cost analysis table (Single Responsibility)
 func (a *App) displayCostTable(analyzer *CostAnalyzer, instances []types.Instance, analyses []CostAnalysis) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
 	
 	// Print headers
 	headers := analyzer.GetHeaders()
@@ -245,7 +245,7 @@ func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricing
 		}
 		fmt.Printf("   Running instances: %d\n", summary.RunningInstances)
 		fmt.Printf("   Your daily cost:   $%.4f\n", summary.TotalRunningCost)
-		fmt.Printf("   Your monthly est:  $%.4f\n", summary.TotalRunningCost*30)
+		fmt.Printf("   Your monthly est:  $%.4f\n", summary.TotalRunningCost*DaysToMonthEstimate)
 		fmt.Printf("   List price daily:  $%.4f\n", summary.TotalListCost)
 		fmt.Printf("   Daily savings:     $%.4f (%.1f%%)\n", totalSavings, savingsPercent)
 		fmt.Printf("   Historical spend:  $%.4f\n", summary.TotalHistoricalSpend)
@@ -255,7 +255,7 @@ func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricing
 	} else {
 		fmt.Printf("   Running instances: %d\n", summary.RunningInstances)
 		fmt.Printf("   Daily cost:        $%.4f\n", summary.TotalRunningCost)
-		fmt.Printf("   Monthly estimate:  $%.4f\n", summary.TotalRunningCost*30)
+		fmt.Printf("   Monthly estimate:  $%.4f\n", summary.TotalRunningCost*DaysToMonthEstimate)
 		fmt.Printf("   Historical spend:  $%.4f\n", summary.TotalHistoricalSpend)
 	}
 }
@@ -283,13 +283,13 @@ func (a *App) monitorLaunchProgress(instanceName, templateName string) error {
 
 // monitorAMILaunchProgress shows simple progress for AMI-based launches
 func (a *App) monitorAMILaunchProgress(instanceName string) error {
-	fmt.Printf("📦 AMI-based launch - showing instance status...\n\n")
+	fmt.Printf(LaunchProgressAMIMessage + "\n\n")
 
 	for i := 0; i < 60; i++ { // Monitor for up to 5 minutes
 		instance, err := a.apiClient.GetInstance(a.ctx, instanceName)
 		if err != nil {
 			if i == 0 {
-				fmt.Printf("⏳ Instance initializing...\n")
+				fmt.Printf(StateMessageInitializing + "\n")
 			}
 		} else {
 			switch instance.State {
@@ -443,7 +443,7 @@ func (m *LaunchProgressMonitor) Monitor(instanceName string) error {
 		instance, err := m.apiClient.GetInstance(m.ctx, instanceName)
 		if err != nil {
 			if i == 0 {
-				fmt.Printf("⏳ Instance initializing...\n")
+				fmt.Printf(StateMessageInitializing + "\n")
 			}
 		} else {
 			shouldContinue, stateErr := m.handleInstanceState(instance.State, i*5, instanceName)
@@ -458,9 +458,9 @@ func (m *LaunchProgressMonitor) Monitor(instanceName string) error {
 		time.Sleep(5 * time.Second)
 	}
 
-	fmt.Printf("⚠️  Setup monitoring timeout (20 min). Instance may still be setting up.\n")
-	fmt.Printf("💡 Check status with: cws list\n")
-	fmt.Printf("💡 Try connecting: cws connect %s\n", instanceName)
+	fmt.Printf(SetupTimeoutMessage + "\n")
+	fmt.Printf(SetupTimeoutHelpMessage + "\n")
+	fmt.Printf(SetupTimeoutConnectMessage+"\n", instanceName)
 	return nil
 }
 
@@ -475,8 +475,8 @@ func (m *LaunchProgressMonitor) handleInstanceState(state string, elapsed int, i
 
 // monitorPackageLaunchProgress shows detailed progress using Strategy Pattern (SOLID: Single Responsibility)
 func (a *App) monitorPackageLaunchProgress(instanceName, templateName string) error {
-	fmt.Printf("📦 Package-based launch - monitoring setup progress...\n")
-	fmt.Printf("💡 Setup time varies: APT/DNF ~2-3 min, conda ~5-10 min\n\n")
+	fmt.Printf(LaunchProgressPackageMessage + "\n")
+	fmt.Printf(LaunchProgressPackageTiming + "\n\n")
 
 	monitor := NewLaunchProgressMonitor(a.apiClient, a.ctx)
 	return monitor.Monitor(instanceName)
@@ -519,9 +519,9 @@ func (a *App) List(args []string) error {
 
 	if len(filteredInstances) == 0 {
 		if projectFilter != "" {
-			fmt.Printf("No workstations found in project '%s'. Launch one with: cws launch <template> <name> --project %s\n", projectFilter, projectFilter)
+			fmt.Printf(NoInstancesFoundProjectMessage+"\n", projectFilter, projectFilter)
 		} else {
-			fmt.Println("No workstations found. Launch one with: cws launch <template> <name>")
+			fmt.Println(NoInstancesFoundMessage)
 		}
 		return nil
 	}
@@ -531,7 +531,7 @@ func (a *App) List(args []string) error {
 		fmt.Printf("Workstations in project '%s':\n\n", projectFilter)
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
 	_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
 	for _, instance := range filteredInstances {
 		projectInfo := "-"
@@ -552,7 +552,7 @@ func (a *App) List(args []string) error {
 			typeIndicator,
 			instance.PublicIP,
 			projectInfo,
-			instance.LaunchTime.Format("2006-01-02 15:04"),
+			instance.LaunchTime.Format(ShortDateFormat),
 		)
 	}
 

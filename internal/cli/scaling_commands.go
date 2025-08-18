@@ -74,7 +74,7 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -107,7 +107,7 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 	fmt.Printf("   Launch Time: %s\n", instance.LaunchTime.Format("2006-01-02 15:04:05"))
 
 	fmt.Printf("\n📈 **Usage Analytics Collection**:\n")
-	fmt.Printf("   Analytics are automatically collected every 2 minutes when the instance is active.\n")
+	fmt.Printf("   Analytics are automatically collected every %s when the instance is active.\n", AnalyticsCollectionInterval)
 	fmt.Printf("   Data includes: CPU utilization, memory usage, disk I/O, network traffic, and GPU metrics.\n")
 	fmt.Printf("   Rightsizing recommendations are generated hourly based on 24-hour usage patterns.\n")
 
@@ -118,8 +118,8 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 
 	fmt.Printf("\n🔄 **Analysis Status**:\n")
 	fmt.Printf("   ✅ Analytics collection is active\n")
-	fmt.Printf("   📊 Usage data is being stored in /var/log/cloudworkstation-analytics.json\n")
-	fmt.Printf("   🎯 Recommendations available in /var/log/cloudworkstation-rightsizing.json\n")
+	fmt.Printf("   📊 Usage data is being stored in %s\n", AnalyticsLogFile)
+	fmt.Printf("   🎯 Recommendations available in %s\n", RightsizingLogFile)
 	fmt.Printf("   ⏱️  Analysis runs automatically every hour\n")
 
 	return nil
@@ -132,7 +132,7 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	response, err := s.app.apiClient.ListInstances(s.app.ctx)
@@ -185,8 +185,8 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 	fmt.Printf("      • GPU-optimized: High GPU usage → g4dn/g5g families\n\n")
 
 	fmt.Printf("💰 **Cost Optimization Impact**:\n")
-	fmt.Printf("   • Typical savings: 20-40%% through rightsizing\n")
-	fmt.Printf("   • Over-provisioned instances waste ~30%% of costs\n")
+	fmt.Printf("   • Typical savings: %d-%d%% through rightsizing\n", TypicalRightsizingSavingsMin, TypicalRightsizingSavingsMax)
+	fmt.Printf("   • Over-provisioned instances waste ~%d%% of costs\n", OverProvisioningWastePercent)
 	fmt.Printf("   • Under-provisioned instances hurt productivity\n")
 
 	return nil
@@ -204,7 +204,7 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -237,8 +237,8 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 	}
 
 	fmt.Printf("\n📈 **Live Usage Data** (updated every 2 minutes):\n")
-	fmt.Printf("   Analytics File: /var/log/cloudworkstation-analytics.json\n")
-	fmt.Printf("   Recommendations File: /var/log/cloudworkstation-rightsizing.json\n\n")
+	fmt.Printf("   Analytics File: %s\n", AnalyticsLogFile)
+	fmt.Printf("   Recommendations File: %s\n\n", RightsizingLogFile)
 
 	fmt.Printf("📊 **Data Points Collected**:\n")
 	fmt.Printf("   • CPU: Load averages, core count, utilization percentage\n")
@@ -250,7 +250,7 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 
 	fmt.Printf("🎯 **Rightsizing Analysis**:\n")
 	fmt.Printf("   • Analysis Period: Rolling 24-hour window\n")
-	fmt.Printf("   • Sample Frequency: Every 2 minutes\n")
+	fmt.Printf("   • Sample Frequency: Every %s\n", AnalyticsCollectionInterval)
 	fmt.Printf("   • Recommendation Updates: Every hour\n")
 	fmt.Printf("   • Confidence Level: Based on data volume and patterns\n\n")
 
@@ -273,7 +273,7 @@ func (s *ScalingCommands) rightsizingExport(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -299,12 +299,12 @@ func (s *ScalingCommands) rightsizingExport(args []string) error {
 	fmt.Printf("Export Format: JSON\n\n")
 
 	fmt.Printf("📁 **Available Data Files**:\n")
-	fmt.Printf("   Analytics Data: /var/log/cloudworkstation-analytics.json\n")
+	fmt.Printf("   Analytics Data: %s\n", AnalyticsLogFile)
 	fmt.Printf("      • Detailed metrics collected every 2 minutes\n")
-	fmt.Printf("      • Rolling window of last 1000 samples (~33 hours)\n")
+	fmt.Printf("      • Rolling window of last %d samples (~%d hours)\n", DefaultAnalyticsSampleCount, DefaultAnalyticsSampleHours)
 	fmt.Printf("      • CPU, memory, disk, network, GPU, and system metrics\n\n")
 
-	fmt.Printf("   Rightsizing Recommendations: /var/log/cloudworkstation-rightsizing.json\n")
+	fmt.Printf("   Rightsizing Recommendations: %s\n", RightsizingLogFile)
 	fmt.Printf("      • Analysis results updated hourly\n")
 	fmt.Printf("      • Recommendations with confidence levels\n")
 	fmt.Printf("      • Cost optimization suggestions\n\n")
@@ -314,8 +314,8 @@ func (s *ScalingCommands) rightsizingExport(args []string) error {
 	fmt.Printf("   cws connect %s\n", instanceName)
 	fmt.Printf("   \n")
 	fmt.Printf("   # Then on the instance:\n")
-	fmt.Printf("   sudo cat /var/log/cloudworkstation-analytics.json | jq .\n")
-	fmt.Printf("   sudo cat /var/log/cloudworkstation-rightsizing.json | jq .\n\n")
+	fmt.Printf("   sudo cat %s | jq .\n", AnalyticsLogFile)
+	fmt.Printf("   sudo cat %s | jq .\n\n", RightsizingLogFile)
 
 	fmt.Printf("📈 **Data Structure Example**:\n")
 	fmt.Printf(`   {
@@ -350,7 +350,7 @@ func (s *ScalingCommands) rightsizingSummary(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	response, err := s.app.apiClient.ListInstances(s.app.ctx)
@@ -397,12 +397,12 @@ func (s *ScalingCommands) rightsizingSummary(args []string) error {
 	if runningInstances > 0 {
 		fmt.Printf("\n📈 **Rightsizing Potential**:\n")
 		fmt.Printf("   Analytics Active: %d instances\n", runningInstances)
-		fmt.Printf("   Data Collection: Every 2 minutes\n")
+		fmt.Printf("   Data Collection: Every %s\n", AnalyticsCollectionInterval)
 		fmt.Printf("   Analysis Updates: Every hour\n")
 
-		estimatedSavings := totalDailyCost * 0.25 // Assume 25% average savings potential
-		fmt.Printf("   Estimated Savings Potential: $%.2f/day (25%%)\n", estimatedSavings)
-		fmt.Printf("   Annual Savings Potential: $%.2f\n", estimatedSavings*365)
+		estimatedSavings := totalDailyCost * DefaultSavingsEstimate // Assume 25% average savings potential
+		fmt.Printf("   Estimated Savings Potential: $%.2f/day (%.0f%%)\n", estimatedSavings, DefaultSavingsEstimate*100)
+		fmt.Printf("   Annual Savings Potential: $%.2f\n", estimatedSavings*DaysToYearEstimate)
 	}
 
 	fmt.Printf("\n🎯 **Optimization Recommendations**:\n")
@@ -470,7 +470,7 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -510,8 +510,8 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 
 	fmt.Printf("\n📈 **Usage Analysis**:\n")
 	fmt.Printf("   Analytics Collection: Active (every 2 minutes)\n")
-	fmt.Printf("   Data Location: /var/log/cloudworkstation-analytics.json\n")
-	fmt.Printf("   Recommendations: /var/log/cloudworkstation-rightsizing.json\n\n")
+	fmt.Printf("   Data Location: %s\n", AnalyticsLogFile)
+	fmt.Printf("   Recommendations: %s\n\n", RightsizingLogFile)
 
 	fmt.Printf("🎯 **Scaling Recommendations**:\n")
 	fmt.Printf("   Current size appears suitable for general workloads.\n")
@@ -542,8 +542,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 	newSize := strings.ToUpper(args[1])
 
 	// Validate size
-	validSizes := map[string]bool{"XS": true, "S": true, "M": true, "L": true, "XL": true}
-	if !validSizes[newSize] {
+	if !ValidTSizes[newSize] {
 		return fmt.Errorf("invalid size '%s'. Valid sizes: XS, S, M, L, XL", newSize)
 	}
 
@@ -552,7 +551,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -631,8 +630,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 	newSize := strings.ToUpper(args[1])
 
 	// Validate size
-	validSizes := map[string]bool{"XS": true, "S": true, "M": true, "L": true, "XL": true}
-	if !validSizes[newSize] {
+	if !ValidTSizes[newSize] {
 		return fmt.Errorf("invalid size '%s'. Valid sizes: XS, S, M, L, XL", newSize)
 	}
 
@@ -641,7 +639,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -728,7 +726,7 @@ func (s *ScalingCommands) scalingHistory(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -768,58 +766,22 @@ func (s *ScalingCommands) scalingHistory(args []string) error {
 // Helper functions for scaling
 
 func (s *ScalingCommands) parseInstanceSize(instanceType string) string {
-	// Map instance types back to t-shirt sizes
-	sizeMap := map[string]string{
-		"t3.nano":     "XS",
-		"t3.micro":    "XS",
-		"t3.small":    "S",
-		"t3.medium":   "M",
-		"t3.large":    "L",
-		"t3.xlarge":   "XL",
-		"t3.2xlarge":  "XL",
-		"t3a.nano":    "XS",
-		"t3a.micro":   "XS",
-		"t3a.small":   "S",
-		"t3a.medium":  "M",
-		"t3a.large":   "L",
-		"t3a.xlarge":  "XL",
-		"t3a.2xlarge": "XL",
-	}
-
-	if size, exists := sizeMap[instanceType]; exists {
+	if size, exists := InstanceTypeSizeMapping[instanceType]; exists {
 		return size
 	}
 	return "Unknown"
 }
 
 func (s *ScalingCommands) getInstanceTypeForSize(size string) string {
-	// Map sizes to preferred instance types (using ARM-optimized when available)
-	sizeTypeMap := map[string]string{
-		"XS": "t4g.nano",
-		"S":  "t4g.small",
-		"M":  "t4g.medium",
-		"L":  "t4g.large",
-		"XL": "t4g.xlarge",
-	}
-
-	if instanceType, exists := sizeTypeMap[size]; exists {
+	if instanceType, exists := SizeInstanceTypeMapping[size]; exists {
 		return instanceType
 	}
 	return "unknown"
 }
 
 func (s *ScalingCommands) estimateCostForSize(size string) float64 {
-	// Estimated daily costs for different sizes
-	costMap := map[string]float64{
-		"XS": 0.50,
-		"S":  1.00,
-		"M":  2.00,
-		"L":  4.00,
-		"XL": 8.00,
-	}
-
-	if cost, exists := costMap[size]; exists {
-		return cost
+	if specs, exists := TSizeSpecifications[size]; exists {
+		return specs.Cost
 	}
 	return 0.0
 }
@@ -831,16 +793,12 @@ type SizeSpecs struct {
 }
 
 func (s *ScalingCommands) getSizeSpecs(size string) SizeSpecs {
-	specMap := map[string]SizeSpecs{
-		"XS": {"1vCPU", "2GB", "100GB"},
-		"S":  {"2vCPU", "4GB", "500GB"},
-		"M":  {"2vCPU", "8GB", "1TB"},
-		"L":  {"4vCPU", "16GB", "2TB"},
-		"XL": {"8vCPU", "32GB", "4TB"},
-	}
-
-	if specs, exists := specMap[size]; exists {
-		return specs
+	if specs, exists := TSizeSpecifications[size]; exists {
+		return SizeSpecs{
+			CPU:     specs.CPU,
+			Memory:  specs.Memory,
+			Storage: specs.Storage,
+		}
 	}
 	return SizeSpecs{"Unknown", "Unknown", "Unknown"}
 }
