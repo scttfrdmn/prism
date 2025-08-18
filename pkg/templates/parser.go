@@ -76,50 +76,62 @@ func (p *TemplateParser) ParseTemplateFile(filename string) (*Template, error) {
 	return template, nil
 }
 
-// ValidateTemplate validates a template for correctness
-func (p *TemplateParser) ValidateTemplate(template *Template) error {
-	// Required fields
+// TemplateValidator interface for different validation strategies (Strategy Pattern - SOLID)
+type TemplateValidator interface {
+	Validate(template *Template) error
+}
+
+// RequiredFieldValidator validates required template fields
+type RequiredFieldValidator struct {
+	parser *TemplateParser
+}
+
+func (v *RequiredFieldValidator) Validate(template *Template) error {
 	if template.Name == "" {
 		return &TemplateValidationError{Field: "name", Message: "template name is required"}
 	}
-
 	if template.Description == "" {
 		return &TemplateValidationError{Field: "description", Message: "template description is required"}
 	}
-
 	if template.Base == "" {
 		return &TemplateValidationError{Field: "base", Message: "base OS is required"}
 	}
 
 	// Validate base OS is supported (skip for AMI-based templates)
 	if template.Base != "ami-based" {
-		if _, exists := p.BaseAMIs[template.Base]; !exists {
+		if _, exists := v.parser.BaseAMIs[template.Base]; !exists {
 			return &TemplateValidationError{
 				Field:   "base",
 				Message: fmt.Sprintf("unsupported base OS: %s", template.Base),
 			}
 		}
 	}
+	return nil
+}
 
-	// Validate package manager
+// PackageManagerValidator validates package manager configuration
+type PackageManagerValidator struct{}
+
+func (v *PackageManagerValidator) Validate(template *Template) error {
 	validPMs := []string{"apt", "dnf", "conda", "spack", "ami"}
 	if template.PackageManager != "" {
-		valid := false
 		for _, pm := range validPMs {
 			if template.PackageManager == pm {
-				valid = true
-				break
+				return nil
 			}
 		}
-		if !valid {
-			return &TemplateValidationError{
-				Field:   "package_manager",
-				Message: fmt.Sprintf("unsupported package manager: %s (valid: %v)", template.PackageManager, validPMs),
-			}
+		return &TemplateValidationError{
+			Field:   "package_manager",
+			Message: fmt.Sprintf("unsupported package manager: %s (valid: %v)", template.PackageManager, validPMs),
 		}
 	}
+	return nil
+}
 
-	// Validate services
+// ServiceValidator validates service configurations
+type ServiceValidator struct{}
+
+func (v *ServiceValidator) Validate(template *Template) error {
 	for i, service := range template.Services {
 		if service.Name == "" {
 			return &TemplateValidationError{
@@ -127,7 +139,6 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 				Message: "service name is required",
 			}
 		}
-
 		if service.Port < 0 || service.Port > 65535 {
 			return &TemplateValidationError{
 				Field:   fmt.Sprintf("services[%d].port", i),
@@ -135,8 +146,13 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
+	return nil
+}
 
-	// Validate users
+// UserValidator validates user configurations
+type UserValidator struct{}
+
+func (v *UserValidator) Validate(template *Template) error {
 	for i, user := range template.Users {
 		if user.Name == "" {
 			return &TemplateValidationError{
@@ -144,7 +160,6 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 				Message: "user name is required",
 			}
 		}
-
 		// Validate user name format (basic check)
 		if strings.Contains(user.Name, " ") || strings.Contains(user.Name, ":") {
 			return &TemplateValidationError{
@@ -153,8 +168,13 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
+	return nil
+}
 
-	// Validate ports
+// PortValidator validates port configurations
+type PortValidator struct{}
+
+func (v *PortValidator) Validate(template *Template) error {
 	for i, port := range template.InstanceDefaults.Ports {
 		if port < 1 || port > 65535 {
 			return &TemplateValidationError{
@@ -163,18 +183,61 @@ func (p *TemplateParser) ValidateTemplate(template *Template) error {
 			}
 		}
 	}
-
-	// Validate inheritance (basic check - full validation happens during resolution)
-	if err := p.validateInheritance(template); err != nil {
-		return err
-	}
-
-	// Validate package consistency
-	if err := p.validatePackageConsistency(template); err != nil {
-		return err
-	}
-
 	return nil
+}
+
+// InheritanceValidator validates inheritance configuration
+type InheritanceValidator struct {
+	parser *TemplateParser
+}
+
+func (v *InheritanceValidator) Validate(template *Template) error {
+	return v.parser.validateInheritance(template)
+}
+
+// PackageConsistencyValidator validates package consistency
+type PackageConsistencyValidator struct {
+	parser *TemplateParser
+}
+
+func (v *PackageConsistencyValidator) Validate(template *Template) error {
+	return v.parser.validatePackageConsistency(template)
+}
+
+// TemplateValidationOrchestrator coordinates validation using Strategy Pattern (SOLID: Single Responsibility)
+type TemplateValidationOrchestrator struct {
+	validators []TemplateValidator
+}
+
+// NewTemplateValidationOrchestrator creates template validation orchestrator
+func NewTemplateValidationOrchestrator(parser *TemplateParser) *TemplateValidationOrchestrator {
+	return &TemplateValidationOrchestrator{
+		validators: []TemplateValidator{
+			&RequiredFieldValidator{parser: parser},
+			&PackageManagerValidator{},
+			&ServiceValidator{},
+			&UserValidator{},
+			&PortValidator{},
+			&InheritanceValidator{parser: parser},
+			&PackageConsistencyValidator{parser: parser},
+		},
+	}
+}
+
+// ValidateAll runs all validation strategies
+func (o *TemplateValidationOrchestrator) ValidateAll(template *Template) error {
+	for _, validator := range o.validators {
+		if err := validator.Validate(template); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ValidateTemplate validates a template for correctness using Strategy Pattern (SOLID: Single Responsibility)
+func (p *TemplateParser) ValidateTemplate(template *Template) error {
+	orchestrator := NewTemplateValidationOrchestrator(p)
+	return orchestrator.ValidateAll(template)
 }
 
 // NewPackageManagerStrategy creates a new package manager strategy

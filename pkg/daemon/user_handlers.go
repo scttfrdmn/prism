@@ -503,99 +503,165 @@ func (s *Server) handleDeleteGroup(w http.ResponseWriter, r *http.Request, id st
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleGroupUsers handles group user operations
-func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id string) {
-	switch r.Method {
-	case http.MethodGet:
-		// Parse pagination parameters
-		pagination := &usermgmt.PaginationOptions{
-			Page:     1,
-			PageSize: 10,
-		}
+// GroupUsersHandler interface for different HTTP methods (Strategy Pattern - SOLID)
+type GroupUsersHandler interface {
+	CanHandle(method string) bool
+	Handle(w http.ResponseWriter, r *http.Request, id string, server *Server) error
+}
 
-		if page := r.URL.Query().Get("page"); page != "" {
-			if _, err := fmt.Sscanf(page, "%d", &pagination.Page); err != nil {
-				s.writeError(w, http.StatusBadRequest, "Invalid page parameter")
-				return
-			}
-		}
+// GetGroupUsersHandler handles GET requests for group users
+type GetGroupUsersHandler struct{}
 
-		if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
-			if _, err := fmt.Sscanf(pageSize, "%d", &pagination.PageSize); err != nil {
-				s.writeError(w, http.StatusBadRequest, "Invalid page_size parameter")
-				return
-			}
-		}
+func (h *GetGroupUsersHandler) CanHandle(method string) bool {
+	return method == http.MethodGet
+}
 
-		// Get group users
-		users, err := s.userManager.service.GetGroupUsers(id)
-		if err != nil {
-			if err == usermgmt.ErrGroupNotFound {
-				s.writeError(w, http.StatusNotFound, "Group not found")
-			} else {
-				s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get group users: %v", err))
-			}
-			return
-		}
-
-		_ = json.NewEncoder(w).Encode(users)
-	case http.MethodPut:
-		// Update group users
-		var userIDs []string
-		if err := json.NewDecoder(r.Body).Decode(&userIDs); err != nil {
-			s.writeError(w, http.StatusBadRequest, "Invalid request body")
-			return
-		}
-
-		// Get current users in group
-
-		currentUsers, err := s.userManager.service.GetGroupUsers(id)
-		if err != nil {
-			if err == usermgmt.ErrGroupNotFound {
-				s.writeError(w, http.StatusNotFound, "Group not found")
-			} else {
-				s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get current group users: %v", err))
-			}
-			return
-		}
-
-		// Build maps for efficient lookup
-		currentUserMap := make(map[string]bool)
-		for _, user := range currentUsers {
-			currentUserMap[user.ID] = true
-		}
-
-		newUserMap := make(map[string]bool)
-		for _, userID := range userIDs {
-			newUserMap[userID] = true
-		}
-
-		// Remove users not in the new list
-		for _, user := range currentUsers {
-			if !newUserMap[user.ID] {
-				err := s.userManager.service.RemoveUserFromGroup(user.ID, id)
-				if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
-					s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to remove user from group: %v", err))
-					return
-				}
-			}
-		}
-
-		// Add new users
-		for _, userID := range userIDs {
-			if !currentUserMap[userID] {
-				err := s.userManager.service.AddUserToGroup(userID, id)
-				if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
-					s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to add user to group: %v", err))
-					return
-				}
-			}
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	default:
-		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+func (h *GetGroupUsersHandler) Handle(w http.ResponseWriter, r *http.Request, id string, server *Server) error {
+	// Parse pagination parameters
+	pagination := &usermgmt.PaginationOptions{
+		Page:     1,
+		PageSize: 10,
 	}
+
+	if err := h.parsePaginationParams(r, pagination); err != nil {
+		server.writeError(w, http.StatusBadRequest, err.Error())
+		return err
+	}
+
+	// Get group users
+	users, err := server.userManager.service.GetGroupUsers(id)
+	if err != nil {
+		if err == usermgmt.ErrGroupNotFound {
+			server.writeError(w, http.StatusNotFound, "Group not found")
+		} else {
+			server.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get group users: %v", err))
+		}
+		return err
+	}
+
+	return json.NewEncoder(w).Encode(users)
+}
+
+func (h *GetGroupUsersHandler) parsePaginationParams(r *http.Request, pagination *usermgmt.PaginationOptions) error {
+	if page := r.URL.Query().Get("page"); page != "" {
+		if _, err := fmt.Sscanf(page, "%d", &pagination.Page); err != nil {
+			return fmt.Errorf("Invalid page parameter")
+		}
+	}
+
+	if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
+		if _, err := fmt.Sscanf(pageSize, "%d", &pagination.PageSize); err != nil {
+			return fmt.Errorf("Invalid page_size parameter")
+		}
+	}
+
+	return nil
+}
+
+// PutGroupUsersHandler handles PUT requests for updating group users
+type PutGroupUsersHandler struct{}
+
+func (h *PutGroupUsersHandler) CanHandle(method string) bool {
+	return method == http.MethodPut
+}
+
+func (h *PutGroupUsersHandler) Handle(w http.ResponseWriter, r *http.Request, id string, server *Server) error {
+	// Parse request body
+	var userIDs []string
+	if err := json.NewDecoder(r.Body).Decode(&userIDs); err != nil {
+		server.writeError(w, http.StatusBadRequest, "Invalid request body")
+		return err
+	}
+
+	// Get current users in group
+	currentUsers, err := server.userManager.service.GetGroupUsers(id)
+	if err != nil {
+		if err == usermgmt.ErrGroupNotFound {
+			server.writeError(w, http.StatusNotFound, "Group not found")
+		} else {
+			server.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get current group users: %v", err))
+		}
+		return err
+	}
+
+	// Update group membership
+	if err := h.updateGroupMembership(currentUsers, userIDs, id, server); err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+func (h *PutGroupUsersHandler) updateGroupMembership(currentUsers []*usermgmt.User, userIDs []string, groupID string, server *Server) error {
+	// Build maps for efficient lookup
+	currentUserMap := make(map[string]bool)
+	for _, user := range currentUsers {
+		currentUserMap[user.ID] = true
+	}
+
+	newUserMap := make(map[string]bool)
+	for _, userID := range userIDs {
+		newUserMap[userID] = true
+	}
+
+	// Remove users not in the new list
+	for _, user := range currentUsers {
+		if !newUserMap[user.ID] {
+			err := server.userManager.service.RemoveUserFromGroup(user.ID, groupID)
+			if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
+				return fmt.Errorf("Failed to remove user from group: %v", err)
+			}
+		}
+	}
+
+	// Add new users
+	for _, userID := range userIDs {
+		if !currentUserMap[userID] {
+			err := server.userManager.service.AddUserToGroup(userID, groupID)
+			if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
+				return fmt.Errorf("Failed to add user to group: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// GroupUsersMethodDispatcher manages HTTP method handlers (Strategy Pattern - SOLID)
+type GroupUsersMethodDispatcher struct {
+	handlers []GroupUsersHandler
+}
+
+// NewGroupUsersMethodDispatcher creates group users method dispatcher
+func NewGroupUsersMethodDispatcher() *GroupUsersMethodDispatcher {
+	return &GroupUsersMethodDispatcher{
+		handlers: []GroupUsersHandler{
+			&GetGroupUsersHandler{},
+			&PutGroupUsersHandler{},
+		},
+	}
+}
+
+// Dispatch handles request using appropriate handler
+func (d *GroupUsersMethodDispatcher) Dispatch(w http.ResponseWriter, r *http.Request, id string, server *Server) {
+	for _, handler := range d.handlers {
+		if handler.CanHandle(r.Method) {
+			if err := handler.Handle(w, r, id, server); err != nil {
+				return // Error already handled by handler
+			}
+			return
+		}
+	}
+
+	// Method not allowed
+	server.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+}
+
+// handleGroupUsers handles group user operations using Strategy Pattern (SOLID: Single Responsibility)
+func (s *Server) handleGroupUsers(w http.ResponseWriter, r *http.Request, id string) {
+	dispatcher := NewGroupUsersMethodDispatcher()
+	dispatcher.Dispatch(w, r, id, s)
 }
 
 // handleAuthenticate handles user authentication
