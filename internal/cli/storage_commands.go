@@ -30,7 +30,7 @@ func (sc *StorageCommands) Volume(args []string) error {
 
 	// Check daemon is running
 	if err := sc.app.apiClient.Ping(sc.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	switch action {
@@ -94,15 +94,15 @@ func (sc *StorageCommands) volumeList(_ []string) error {
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println("No EFS volumes found. Create one with: cws volume create <name>")
+		fmt.Println(NoEFSVolumesFoundMessage)
 		return nil
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
 	_, _ = fmt.Fprintln(w, "NAME\tFILESYSTEM ID\tSTATE\tSIZE\tCOST/MONTH")
 
 	for _, volume := range volumes {
-		sizeGB := float64(volume.SizeBytes) / (1024 * 1024 * 1024)
+		sizeGB := float64(volume.SizeBytes) / BytesToGB
 		costMonth := sizeGB * volume.EstimatedCostGB
 		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%.1f GB\t$%.2f\n",
 			volume.Name,
@@ -134,9 +134,9 @@ func (sc *StorageCommands) volumeInfo(args []string) error {
 	fmt.Printf("   Region: %s\n", volume.Region)
 	fmt.Printf("   Performance Mode: %s\n", volume.PerformanceMode)
 	fmt.Printf("   Throughput Mode: %s\n", volume.ThroughputMode)
-	fmt.Printf("   Size: %.1f GB\n", float64(volume.SizeBytes)/(1024*1024*1024))
-	fmt.Printf("   Cost: $%.2f/month\n", float64(volume.SizeBytes)/(1024*1024*1024)*volume.EstimatedCostGB)
-	fmt.Printf("   Created: %s\n", volume.CreationTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("   Size: %.1f GB\n", float64(volume.SizeBytes)/BytesToGB)
+	fmt.Printf("   Cost: $%.2f/month\n", float64(volume.SizeBytes)/BytesToGB*volume.EstimatedCostGB)
+	fmt.Printf("   Created: %s\n", volume.CreationTime.Format(StandardDateFormat))
 
 	return nil
 }
@@ -165,7 +165,7 @@ func (sc *StorageCommands) volumeMount(args []string) error {
 	instanceName := args[1]
 
 	// Default mount point
-	mountPoint := "/mnt/" + volumeName
+	mountPoint := DefaultMountPointPrefix + volumeName
 	if len(args) >= 3 {
 		mountPoint = args[2]
 	}
@@ -207,7 +207,7 @@ func (sc *StorageCommands) Storage(args []string) error {
 
 	// Check daemon is running
 	if err := sc.app.apiClient.Ping(sc.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	switch action {
@@ -236,7 +236,7 @@ func (sc *StorageCommands) storageCreate(args []string) error {
 	req := types.StorageCreateRequest{
 		Name:       args[0],
 		Size:       args[1],
-		VolumeType: "gp3", // default
+		VolumeType: DefaultVolumeType, // default
 	}
 
 	if len(args) > 2 {
@@ -272,11 +272,11 @@ func (sc *StorageCommands) storageList(_ []string) error {
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println("No EBS volumes found. Create one with: cws storage create <name> <size>")
+		fmt.Println(NoEBSVolumesFoundMessage)
 		return nil
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
 	_, _ = fmt.Fprintln(w, "NAME\tVOLUME ID\tSTATE\tSIZE\tTYPE\tATTACHED TO\tCOST/MONTH")
 
 	for _, volume := range volumes {
@@ -327,7 +327,7 @@ func (sc *StorageCommands) storageInfo(args []string) error {
 		fmt.Printf("   Attached to: %s\n", volume.AttachedTo)
 	}
 	fmt.Printf("   Cost: $%.2f/month\n", float64(volume.SizeGB)*volume.EstimatedCostGB)
-	fmt.Printf("   Created: %s\n", volume.CreationTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("   Created: %s\n", volume.CreationTime.Format(StandardDateFormat))
 
 	return nil
 }

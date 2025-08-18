@@ -51,7 +51,7 @@ func (tc *TemplateCommands) Templates(args []string) error {
 func (tc *TemplateCommands) templatesList(args []string) error {
 	// Check daemon is running
 	if err := tc.app.apiClient.Ping(tc.app.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf(DaemonNotRunningMessage)
 	}
 
 	templates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
@@ -482,7 +482,7 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 		// Validate all templates
 		fmt.Println("🔍 Validating all templates...")
 
-		templateDirs := []string{"./templates"}
+		templateDirs := []string{DefaultTemplateDir}
 		if err := templates.ValidateAllTemplates(templateDirs); err != nil {
 			fmt.Println("❌ Template validation failed")
 			return err
@@ -496,7 +496,7 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 	templateName := args[0]
 
 	// Check if it's a file path
-	if strings.HasSuffix(templateName, ".yml") || strings.HasSuffix(templateName, ".yaml") {
+	if strings.HasSuffix(templateName, TemplateFileExtensionYML) || strings.HasSuffix(templateName, TemplateFileExtensionYAML) {
 		fmt.Printf("🔍 Validating template file: %s\n", templateName)
 
 		if err := templates.ValidateTemplate(templateName); err != nil {
@@ -511,7 +511,7 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 	// Treat as template name
 	fmt.Printf("🔍 Validating template: %s\n", templateName)
 
-	templateDirs := []string{"./templates"}
+	templateDirs := []string{DefaultTemplateDir}
 	if err := templates.ValidateTemplateWithRegistry(templateDirs, templateName); err != nil {
 		fmt.Println("❌ Template validation failed")
 		return err
@@ -586,7 +586,7 @@ func (tc *TemplateCommands) templatesVersionList(args []string) error {
 			fmt.Printf("👤 Maintainer: %s\n", template.Maintainer)
 		}
 		if !template.LastUpdated.IsZero() {
-			fmt.Printf("📅 Last Updated: %s\n", template.LastUpdated.Format("2006-01-02 15:04"))
+			fmt.Printf("📅 Last Updated: %s\n", template.LastUpdated.Format(ShortDateFormat))
 		}
 		if len(template.Tags) > 0 {
 			fmt.Printf("🏷️  Tags: ")
@@ -603,7 +603,7 @@ func (tc *TemplateCommands) templatesVersionList(args []string) error {
 				fmt.Printf("   👤 %s", template.Maintainer)
 			}
 			if !template.LastUpdated.IsZero() {
-				fmt.Printf(" 📅 %s", template.LastUpdated.Format("2006-01-02"))
+				fmt.Printf(" 📅 %s", template.LastUpdated.Format(CompactDateFormat))
 			}
 			fmt.Println()
 		}
@@ -745,7 +745,7 @@ func (tc *TemplateCommands) templatesVersionHistory(args []string) error {
 
 	fmt.Printf("🏗️  Current Version: %s\n", template.Version)
 	if !template.LastUpdated.IsZero() {
-		fmt.Printf("📅 Last Updated: %s\n", template.LastUpdated.Format("2006-01-02 15:04:05"))
+		fmt.Printf("📅 Last Updated: %s\n", template.LastUpdated.Format(StandardDateFormat))
 	}
 
 	fmt.Printf("\n💡 Template history features:\n")
@@ -797,7 +797,7 @@ func (tc *TemplateCommands) discoverInstanceConfiguration(instance *types.Instan
 // generateTemplateFromConfig creates a template YAML from discovered configuration
 func (tc *TemplateCommands) generateTemplateFromConfig(name, description, baseTemplate string, config *InstanceConfiguration) (string, error) {
 	if description == "" {
-		description = fmt.Sprintf("Template created from instance snapshot on %s", time.Now().Format("2006-01-02"))
+		description = fmt.Sprintf("Template created from instance snapshot on %s", time.Now().Format(CompactDateFormat))
 	}
 
 	template := fmt.Sprintf(`name: "%s"
@@ -834,7 +834,7 @@ tags:
 		formatUsers(config.Users),
 		formatServices(config.Services),
 		formatPorts(config.Ports),
-		time.Now().Format("2006-01-02T15:04:05Z"),
+		time.Now().Format(ISO8601DateFormat),
 	)
 
 	if baseTemplate != "" {
@@ -894,9 +894,8 @@ func containsGPUPackages(template *templates.Template) bool {
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
 
-	gpuIndicators := []string{"tensorflow-gpu", "pytorch", "cuda", "nvidia", "cupy", "numba", "rapids"}
 	for _, pkg := range allPackages {
-		for _, indicator := range gpuIndicators {
+		for _, indicator := range GPUPackageIndicators {
 			if strings.Contains(strings.ToLower(pkg), indicator) {
 				return true
 			}
@@ -910,9 +909,8 @@ func containsMemoryPackages(template *templates.Template) bool {
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
 
-	memoryIndicators := []string{"spark", "hadoop", "r-base", "bioconductor", "genomics"}
 	for _, pkg := range allPackages {
-		for _, indicator := range memoryIndicators {
+		for _, indicator := range MemoryPackageIndicators {
 			if strings.Contains(strings.ToLower(pkg), indicator) {
 				return true
 			}
@@ -926,9 +924,8 @@ func containsComputePackages(template *templates.Template) bool {
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
 
-	computeIndicators := []string{"openmpi", "mpich", "openmp", "fftw", "blas", "lapack", "atlas", "mkl"}
 	for _, pkg := range allPackages {
-		for _, indicator := range computeIndicators {
+		for _, indicator := range ComputePackageIndicators {
 			if strings.Contains(strings.ToLower(pkg), indicator) {
 				return true
 			}
@@ -938,26 +935,10 @@ func containsComputePackages(template *templates.Template) bool {
 }
 
 func getServiceForPort(port int) string {
-	switch port {
-	case 22:
-		return "SSH"
-	case 80:
-		return "HTTP"
-	case 443:
-		return "HTTPS"
-	case 8787:
-		return "RStudio Server"
-	case 8888:
-		return "Jupyter Notebook"
-	case 3306:
-		return "MySQL"
-	case 5432:
-		return "PostgreSQL"
-	case 6379:
-		return "Redis"
-	default:
-		return "Application"
+	if service, exists := ServicePortMappings[port]; exists {
+		return service
 	}
+	return "Application"
 }
 
 // Helper function to validate semantic version format
