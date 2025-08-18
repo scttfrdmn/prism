@@ -502,110 +502,11 @@ func getIntValue(m map[string]interface{}, key string) int {
 
 // AWS Compliance Methods
 
-// ValidateAWSCompliance validates CloudWorkstation against AWS compliance framework
+// ValidateAWSCompliance validates CloudWorkstation against AWS compliance framework using Strategy Pattern (SOLID: Single Responsibility)
 func (a *App) ValidateAWSCompliance(framework string) error {
-	fmt.Printf("🔍 Validating AWS Compliance: %s\n", strings.ToUpper(framework))
-	fmt.Println("═══════════════════════════════════════")
-
-	// Make API request for AWS compliance validation
-	resp, err := a.apiClient.MakeRequest("POST", fmt.Sprintf("/api/v1/security/compliance/validate/%s", framework), nil)
-	if err != nil {
-		return fmt.Errorf("failed to validate AWS compliance: %w", err)
-	}
-
-	var complianceStatus map[string]interface{}
-	if err := json.Unmarshal(resp, &complianceStatus); err != nil {
-		return fmt.Errorf("failed to parse compliance status: %w", err)
-	}
-
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
-
-	// Display compliance overview
-	_, _ = fmt.Fprintf(w, "Framework:\t%s\n", complianceStatus["framework"])
-	_, _ = fmt.Fprintf(w, "AWS Compliant:\t%v\n", complianceStatus["aws_compliant"])
-
-	if reportID, ok := complianceStatus["artifact_report_id"].(string); ok && reportID != "" {
-		_, _ = fmt.Fprintf(w, "AWS Artifact Report:\t%s\n", reportID)
-	}
-
-	if lastUpdated, ok := complianceStatus["last_updated"].(string); ok {
-		if t, err := time.Parse(time.RFC3339, lastUpdated); err == nil {
-			_, _ = fmt.Fprintf(w, "Last Updated:\t%s\n", t.Format("2006-01-02 15:04:05"))
-		}
-	}
-
-	// Display AWS services compliance
-	if services, ok := complianceStatus["aws_services"].([]interface{}); ok && len(services) > 0 {
-		_, _ = fmt.Fprintln(w, "")
-		_, _ = fmt.Fprintln(w, "AWS Service Compliance:")
-		_, _ = fmt.Fprintln(w, "Service\tStatus\tRegions")
-		_, _ = fmt.Fprintln(w, "───────\t──────\t───────")
-
-		for _, svc := range services {
-			if service, ok := svc.(map[string]interface{}); ok {
-				serviceName := getStringValue(service, "service_name")
-				status := getStringValue(service, "compliance_status")
-				regions := ""
-				if regionList, ok := service["certified_regions"].([]interface{}); ok {
-					regionStrings := make([]string, len(regionList))
-					for i, r := range regionList {
-						regionStrings[i] = fmt.Sprintf("%v", r)
-					}
-					if len(regionStrings) > 3 {
-						regions = fmt.Sprintf("%s... (%d total)", strings.Join(regionStrings[:3], ", "), len(regionStrings))
-					} else {
-						regions = strings.Join(regionStrings, ", ")
-					}
-				}
-
-				statusIcon := getComplianceStatusIcon(status)
-				_, _ = fmt.Fprintf(w, "%s\t%s %s\t%s\n", serviceName, statusIcon, status, regions)
-			}
-		}
-	}
-
-	// Display gap analysis
-	if gaps, ok := complianceStatus["gap_analysis"].([]interface{}); ok && len(gaps) > 0 {
-		_, _ = fmt.Fprintln(w, "")
-		_, _ = fmt.Fprintln(w, "Gap Analysis:")
-		_, _ = fmt.Fprintln(w, "Control\tSeverity\tRemediation")
-		_, _ = fmt.Fprintln(w, "───────\t────────\t───────────")
-
-		for _, gap := range gaps {
-			if gapData, ok := gap.(map[string]interface{}); ok {
-				control := getStringValue(gapData, "control")
-				severity := getStringValue(gapData, "severity")
-				remediation := getStringValue(gapData, "remediation")
-
-				severityIcon := getSeverityIcon(severity)
-				_, _ = fmt.Fprintf(w, "%s\t%s %s\t%s\n", control, severityIcon, severity, remediation)
-			}
-		}
-	}
-
-	// Display recommendations
-	if recs, ok := complianceStatus["recommended_actions"].([]interface{}); ok && len(recs) > 0 {
-		_, _ = fmt.Fprintln(w, "")
-		_, _ = fmt.Fprintln(w, "Recommended Actions:")
-
-		for _, rec := range recs {
-			if recommendation, ok := rec.(map[string]interface{}); ok {
-				priority := getStringValue(recommendation, "priority")
-				action := getStringValue(recommendation, "action")
-				awsService := getStringValue(recommendation, "aws_service")
-
-				priorityIcon := getPriorityIcon(priority)
-				if awsService != "" {
-					_, _ = fmt.Fprintf(w, "%s %s [%s]:\t%s\n", priorityIcon, priority, awsService, action)
-				} else {
-					_, _ = fmt.Fprintf(w, "%s %s:\t%s\n", priorityIcon, priority, action)
-				}
-			}
-		}
-	}
-
-	return nil
+	// Create and execute compliance validation command
+	validator := NewComplianceValidator(a.apiClient)
+	return validator.Validate(framework)
 }
 
 // GenerateComplianceReport generates detailed compliance report
@@ -819,4 +720,236 @@ func getSCPDescription(scpName string) string {
 		return desc
 	}
 	return "Security control policy"
+}
+
+// Compliance Validation Strategy Pattern Implementation (SOLID: Single Responsibility + Open/Closed)
+
+// ComplianceValidator handles AWS compliance validation using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceValidator struct {
+	apiClient        interface{}
+	headerService    *ComplianceHeaderService
+	dataService      *ComplianceDataService
+	overviewRenderer *ComplianceOverviewRenderer
+	servicesRenderer *ComplianceServicesRenderer
+	gapRenderer      *ComplianceGapRenderer
+	actionsRenderer  *ComplianceActionsRenderer
+}
+
+// NewComplianceValidator creates a new compliance validator
+func NewComplianceValidator(apiClient interface{}) *ComplianceValidator {
+	return &ComplianceValidator{
+		apiClient:        apiClient,
+		headerService:    NewComplianceHeaderService(),
+		dataService:      NewComplianceDataService(apiClient),
+		overviewRenderer: NewComplianceOverviewRenderer(),
+		servicesRenderer: NewComplianceServicesRenderer(),
+		gapRenderer:      NewComplianceGapRenderer(),
+		actionsRenderer:  NewComplianceActionsRenderer(),
+	}
+}
+
+// Validate validates compliance for the given framework using Strategy Pattern
+func (v *ComplianceValidator) Validate(framework string) error {
+	// Display header
+	v.headerService.DisplayHeader(framework)
+
+	// Retrieve compliance data
+	complianceStatus, err := v.dataService.GetComplianceData(framework)
+	if err != nil {
+		return err
+	}
+
+	// Create tabwriter for formatted output
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	defer func() { _ = w.Flush() }()
+
+	// Render different sections using Strategy Pattern
+	v.overviewRenderer.Render(w, complianceStatus)
+	v.servicesRenderer.Render(w, complianceStatus)
+	v.gapRenderer.Render(w, complianceStatus)
+	v.actionsRenderer.Render(w, complianceStatus)
+
+	return nil
+}
+
+// ComplianceHeaderService handles header display using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceHeaderService struct{}
+
+func NewComplianceHeaderService() *ComplianceHeaderService {
+	return &ComplianceHeaderService{}
+}
+
+func (s *ComplianceHeaderService) DisplayHeader(framework string) {
+	fmt.Printf("🔍 Validating AWS Compliance: %s\n", strings.ToUpper(framework))
+	fmt.Println("═══════════════════════════════════════")
+}
+
+// ComplianceDataService handles data retrieval using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceDataService struct {
+	apiClient interface{}
+}
+
+func NewComplianceDataService(apiClient interface{}) *ComplianceDataService {
+	return &ComplianceDataService{apiClient: apiClient}
+}
+
+func (s *ComplianceDataService) GetComplianceData(framework string) (map[string]interface{}, error) {
+	// Make API request for AWS compliance validation
+	if requester, ok := s.apiClient.(interface{ MakeRequest(string, string, interface{}) ([]byte, error) }); ok {
+		resp, err := requester.MakeRequest("POST", fmt.Sprintf("/api/v1/security/compliance/validate/%s", framework), nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to validate AWS compliance: %w", err)
+		}
+
+		var complianceStatus map[string]interface{}
+		if err := json.Unmarshal(resp, &complianceStatus); err != nil {
+			return nil, fmt.Errorf("failed to parse compliance status: %w", err)
+		}
+
+		return complianceStatus, nil
+	}
+
+	return nil, fmt.Errorf("API client does not support MakeRequest")
+}
+
+// ComplianceOverviewRenderer renders overview section using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceOverviewRenderer struct{}
+
+func NewComplianceOverviewRenderer() *ComplianceOverviewRenderer {
+	return &ComplianceOverviewRenderer{}
+}
+
+func (r *ComplianceOverviewRenderer) Render(w *tabwriter.Writer, complianceStatus map[string]interface{}) {
+	// Display compliance overview
+	_, _ = fmt.Fprintf(w, "Framework:\t%s\n", complianceStatus["framework"])
+	_, _ = fmt.Fprintf(w, "AWS Compliant:\t%v\n", complianceStatus["aws_compliant"])
+
+	if reportID, ok := complianceStatus["artifact_report_id"].(string); ok && reportID != "" {
+		_, _ = fmt.Fprintf(w, "AWS Artifact Report:\t%s\n", reportID)
+	}
+
+	if lastUpdated, ok := complianceStatus["last_updated"].(string); ok {
+		if t, err := time.Parse(time.RFC3339, lastUpdated); err == nil {
+			_, _ = fmt.Fprintf(w, "Last Updated:\t%s\n", t.Format("2006-01-02 15:04:05"))
+		}
+	}
+}
+
+// ComplianceServicesRenderer renders AWS services section using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceServicesRenderer struct{}
+
+func NewComplianceServicesRenderer() *ComplianceServicesRenderer {
+	return &ComplianceServicesRenderer{}
+}
+
+func (r *ComplianceServicesRenderer) Render(w *tabwriter.Writer, complianceStatus map[string]interface{}) {
+	services, ok := complianceStatus["aws_services"].([]interface{})
+	if !ok || len(services) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintln(w, "")
+	_, _ = fmt.Fprintln(w, "AWS Service Compliance:")
+	_, _ = fmt.Fprintln(w, "Service\tStatus\tRegions")
+	_, _ = fmt.Fprintln(w, "───────\t──────\t───────")
+
+	for _, svc := range services {
+		if service, ok := svc.(map[string]interface{}); ok {
+			r.renderServiceRow(w, service)
+		}
+	}
+}
+
+func (r *ComplianceServicesRenderer) renderServiceRow(w *tabwriter.Writer, service map[string]interface{}) {
+	serviceName := getStringValue(service, "service_name")
+	status := getStringValue(service, "compliance_status")
+	regions := r.formatRegions(service)
+	statusIcon := getComplianceStatusIcon(status)
+	_, _ = fmt.Fprintf(w, "%s\t%s %s\t%s\n", serviceName, statusIcon, status, regions)
+}
+
+func (r *ComplianceServicesRenderer) formatRegions(service map[string]interface{}) string {
+	regionList, ok := service["certified_regions"].([]interface{})
+	if !ok {
+		return ""
+	}
+
+	regionStrings := make([]string, len(regionList))
+	for i, r := range regionList {
+		regionStrings[i] = fmt.Sprintf("%v", r)
+	}
+
+	if len(regionStrings) > 3 {
+		return fmt.Sprintf("%s... (%d total)", strings.Join(regionStrings[:3], ", "), len(regionStrings))
+	}
+	return strings.Join(regionStrings, ", ")
+}
+
+// ComplianceGapRenderer renders gap analysis section using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceGapRenderer struct{}
+
+func NewComplianceGapRenderer() *ComplianceGapRenderer {
+	return &ComplianceGapRenderer{}
+}
+
+func (r *ComplianceGapRenderer) Render(w *tabwriter.Writer, complianceStatus map[string]interface{}) {
+	gaps, ok := complianceStatus["gap_analysis"].([]interface{})
+	if !ok || len(gaps) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintln(w, "")
+	_, _ = fmt.Fprintln(w, "Gap Analysis:")
+	_, _ = fmt.Fprintln(w, "Control\tSeverity\tRemediation")
+	_, _ = fmt.Fprintln(w, "───────\t────────\t───────────")
+
+	for _, gap := range gaps {
+		if gapData, ok := gap.(map[string]interface{}); ok {
+			r.renderGapRow(w, gapData)
+		}
+	}
+}
+
+func (r *ComplianceGapRenderer) renderGapRow(w *tabwriter.Writer, gapData map[string]interface{}) {
+	control := getStringValue(gapData, "control")
+	severity := getStringValue(gapData, "severity")
+	remediation := getStringValue(gapData, "remediation")
+	severityIcon := getSeverityIcon(severity)
+	_, _ = fmt.Fprintf(w, "%s\t%s %s\t%s\n", control, severityIcon, severity, remediation)
+}
+
+// ComplianceActionsRenderer renders recommended actions section using Strategy Pattern (SOLID: Single Responsibility)
+type ComplianceActionsRenderer struct{}
+
+func NewComplianceActionsRenderer() *ComplianceActionsRenderer {
+	return &ComplianceActionsRenderer{}
+}
+
+func (r *ComplianceActionsRenderer) Render(w *tabwriter.Writer, complianceStatus map[string]interface{}) {
+	recs, ok := complianceStatus["recommended_actions"].([]interface{})
+	if !ok || len(recs) == 0 {
+		return
+	}
+
+	_, _ = fmt.Fprintln(w, "")
+	_, _ = fmt.Fprintln(w, "Recommended Actions:")
+
+	for _, rec := range recs {
+		if recommendation, ok := rec.(map[string]interface{}); ok {
+			r.renderRecommendationRow(w, recommendation)
+		}
+	}
+}
+
+func (r *ComplianceActionsRenderer) renderRecommendationRow(w *tabwriter.Writer, recommendation map[string]interface{}) {
+	priority := getStringValue(recommendation, "priority")
+	action := getStringValue(recommendation, "action")
+	awsService := getStringValue(recommendation, "aws_service")
+	priorityIcon := getPriorityIcon(priority)
+
+	if awsService != "" {
+		_, _ = fmt.Fprintf(w, "%s %s [%s]:\t%s\n", priorityIcon, priority, awsService, action)
+	} else {
+		_, _ = fmt.Fprintf(w, "%s %s:\t%s\n", priorityIcon, priority, action)
+	}
 }

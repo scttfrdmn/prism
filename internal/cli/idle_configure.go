@@ -7,137 +7,361 @@ import (
 	"strings"
 )
 
-// configureIdleDetection handles runtime idle detection configuration with proper types
+// configureIdleDetection handles runtime idle detection configuration using Strategy Pattern (SOLID: Single Responsibility)
 func (a *App) configureIdleDetection(instanceName string, enable, disable bool, idleMinutes, hibernateMinutes, checkInterval int) error {
-	// Validate enable/disable flags
-	if enable && disable {
-		return fmt.Errorf("cannot specify both --enable and --disable flags")
+	// Create and execute idle configuration command
+	configCmd := NewIdleConfigurationCommand(a.apiClient)
+	return configCmd.Configure(instanceName, enable, disable, idleMinutes, hibernateMinutes, checkInterval)
+}
+
+// idleConfigShow displays the current idle configuration for an instance using Strategy Pattern (SOLID: Single Responsibility)
+func (a *App) idleConfigShow(instanceName string) error {
+	// Create display service and show configuration
+	instanceService := NewIdleInstanceService(a.apiClient)
+	displayService := NewIdleDisplayService()
+	return displayService.ShowConfiguration(instanceName, instanceService)
+}
+
+// IdleConfig represents the idle detection configuration
+type IdleConfig struct {
+	Enabled          bool
+	IdleMinutes      int
+	HibernateMinutes int
+	CheckInterval    int
+}
+
+// getSSHKeyPath returns the path to the SSH key to use for connections
+func (a *App) getSSHKeyPath() string {
+	// Use the standard CloudWorkstation key
+	return "~/.ssh/cws-my-account-key"
+}
+
+// Idle Configuration Strategy Pattern Implementation (SOLID: Single Responsibility + Open/Closed)
+
+// IdleConfigurationCommand handles idle detection configuration using Strategy Pattern (SOLID: Single Responsibility)
+type IdleConfigurationCommand struct {
+	apiClient           interface{}
+	validationService   *IdleValidationService
+	instanceService     *IdleInstanceService
+	parameterService    *IdleParameterService
+	updateService       *IdleUpdateService
+	displayService      *IdleDisplayService
+}
+
+// NewIdleConfigurationCommand creates a new idle configuration command
+func NewIdleConfigurationCommand(apiClient interface{}) *IdleConfigurationCommand {
+	return &IdleConfigurationCommand{
+		apiClient:         apiClient,
+		validationService: NewIdleValidationService(),
+		instanceService:   NewIdleInstanceService(apiClient),
+		parameterService:  NewIdleParameterService(),
+		updateService:     NewIdleUpdateService(),
+		displayService:    NewIdleDisplayService(),
+	}
+}
+
+// Configure configures idle detection using Strategy Pattern
+func (c *IdleConfigurationCommand) Configure(instanceName string, enable, disable bool, idleMinutes, hibernateMinutes, checkInterval int) error {
+	// Validate input parameters
+	if err := c.validationService.ValidateFlags(enable, disable); err != nil {
+		return err
 	}
 
-	// If no parameters provided, just show current config
-	if !enable && !disable && idleMinutes == 0 && hibernateMinutes == 0 && checkInterval == 0 {
-		return a.idleConfigShow(instanceName)
+	// Check if showing configuration only
+	if c.validationService.ShouldShowConfig(enable, disable, idleMinutes, hibernateMinutes, checkInterval) {
+		return c.displayService.ShowConfiguration(instanceName, c.instanceService)
 	}
 
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
-	}
-
-	response, err := a.apiClient.ListInstances(a.ctx)
+	// Find and validate target instance
+	targetInstance, err := c.instanceService.FindAndValidateInstance(instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return err
 	}
 
-	var targetInstance *struct {
-		Name     string `json:"name"`
-		PublicIP string `json:"public_ip"`
-		State    string `json:"state"`
-	}
-
-	for _, instance := range response.Instances {
-		if instance.Name == instanceName {
-			targetInstance = &struct {
-				Name     string `json:"name"`
-				PublicIP string `json:"public_ip"`
-				State    string `json:"state"`
-			}{
-				Name:     instance.Name,
-				PublicIP: instance.PublicIP,
-				State:    instance.State,
-			}
-			break
-		}
-	}
-
-	if targetInstance == nil {
-		return fmt.Errorf("instance %q not found", instanceName)
-	}
-
-	if targetInstance.State != "running" {
-		return fmt.Errorf("instance %q is not running (current state: %s)", instanceName, targetInstance.State)
-	}
-
-	if targetInstance.PublicIP == "" {
-		return fmt.Errorf("instance %q has no public IP address", instanceName)
-	}
-
-	// Convert to pointers for updateIdleConfig
-	var enablePtr *bool
-	var idlePtr, hibernatePtr, intervalPtr *int
-
-	if enable || disable {
-		enablePtr = &enable // enable=true means enable, enable=false with disable=true means disable
-		if disable {
-			enableVal := false
-			enablePtr = &enableVal
-		}
-	}
-	if idleMinutes > 0 {
-		idlePtr = &idleMinutes
-	}
-	if hibernateMinutes > 0 {
-		hibernatePtr = &hibernateMinutes
-	}
-	if checkInterval > 0 {
-		intervalPtr = &checkInterval
-	}
+	// Convert parameters to configuration
+	configParams := c.parameterService.ConvertToConfigParams(enable, disable, idleMinutes, hibernateMinutes, checkInterval)
 
 	// Update configuration on the instance
-	if err := a.updateIdleConfig(targetInstance.PublicIP, enablePtr, idlePtr, hibernatePtr, intervalPtr); err != nil {
+	if err := c.updateService.UpdateConfiguration(targetInstance.PublicIP, configParams); err != nil {
 		return fmt.Errorf("failed to update idle configuration: %w", err)
 	}
 
 	fmt.Printf("✅ Successfully updated idle detection configuration for %q\n", instanceName)
 
 	// Show updated configuration
-	return a.idleConfigShow(instanceName)
+	return c.displayService.ShowConfiguration(instanceName, c.instanceService)
 }
 
-// idleConfigShow displays the current idle configuration for an instance
-func (a *App) idleConfigShow(instanceName string) error {
+// IdleValidationService handles parameter validation using Strategy Pattern (SOLID: Single Responsibility)
+type IdleValidationService struct{}
+
+func NewIdleValidationService() *IdleValidationService {
+	return &IdleValidationService{}
+}
+
+func (s *IdleValidationService) ValidateFlags(enable, disable bool) error {
+	if enable && disable {
+		return fmt.Errorf("cannot specify both --enable and --disable flags")
+	}
+	return nil
+}
+
+func (s *IdleValidationService) ShouldShowConfig(enable, disable bool, idleMinutes, hibernateMinutes, checkInterval int) bool {
+	return !enable && !disable && idleMinutes == 0 && hibernateMinutes == 0 && checkInterval == 0
+}
+
+// IdleInstanceService handles instance operations using Strategy Pattern (SOLID: Single Responsibility)
+type IdleInstanceService struct {
+	apiClient interface{}
+}
+
+type IdleInstanceInfo struct {
+	Name     string
+	PublicIP string
+	State    string
+}
+
+func NewIdleInstanceService(apiClient interface{}) *IdleInstanceService {
+	return &IdleInstanceService{apiClient: apiClient}
+}
+
+func (s *IdleInstanceService) FindAndValidateInstance(instanceName string) (*IdleInstanceInfo, error) {
 	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
-	}
-
-	response, err := a.apiClient.ListInstances(a.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
-	}
-
-	var publicIP string
-	var state string
-	found := false
-
-	for _, instance := range response.Instances {
-		if instance.Name == instanceName {
-			publicIP = instance.PublicIP
-			state = instance.State
-			found = true
-			break
+	if pingable, ok := s.apiClient.(interface{ Ping(interface{}) error }); ok {
+		if err := pingable.Ping(nil); err != nil {
+			return nil, fmt.Errorf("daemon not running. Start with: cws daemon start")
 		}
 	}
 
-	if !found {
-		return fmt.Errorf("instance %q not found", instanceName)
+	// Get instance list
+	if lister, ok := s.apiClient.(interface{ ListInstances(interface{}) (interface{}, error) }); ok {
+		response, err := lister.ListInstances(nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list instances: %w", err)
+		}
+
+		// Find target instance
+		if respData, ok := response.(interface{ Instances() []interface{} }); ok {
+			for _, instance := range respData.Instances() {
+				if instData, ok := instance.(interface{
+					Name() string
+					PublicIP() string
+					State() string
+				}); ok && instData.Name() == instanceName {
+					return s.validateInstanceState(&IdleInstanceInfo{
+						Name:     instData.Name(),
+						PublicIP: instData.PublicIP(),
+						State:    instData.State(),
+					})
+				}
+			}
+		}
 	}
 
-	if state != "running" {
-		fmt.Printf("Instance %q is not running (state: %s). Cannot retrieve idle configuration.\n", instanceName, state)
-		return nil
+	return nil, fmt.Errorf("instance %q not found", instanceName)
+}
+
+func (s *IdleInstanceService) validateInstanceState(instance *IdleInstanceInfo) (*IdleInstanceInfo, error) {
+	if instance.State != "running" {
+		return nil, fmt.Errorf("instance %q is not running (current state: %s)", instance.Name, instance.State)
 	}
 
-	if publicIP == "" {
-		return fmt.Errorf("instance %q has no public IP address", instanceName)
+	if instance.PublicIP == "" {
+		return nil, fmt.Errorf("instance %q has no public IP address", instance.Name)
 	}
 
-	// Get current configuration
-	config, err := a.getIdleConfig(publicIP)
+	return instance, nil
+}
+
+// IdleParameterService handles parameter conversion using Strategy Pattern (SOLID: Single Responsibility)
+type IdleParameterService struct{}
+
+type IdleConfigParams struct {
+	EnablePtr    *bool
+	IdlePtr      *int
+	HibernatePtr *int
+	IntervalPtr  *int
+}
+
+func NewIdleParameterService() *IdleParameterService {
+	return &IdleParameterService{}
+}
+
+func (s *IdleParameterService) ConvertToConfigParams(enable, disable bool, idleMinutes, hibernateMinutes, checkInterval int) *IdleConfigParams {
+	params := &IdleConfigParams{}
+
+	// Handle enable/disable flags
+	if enable || disable {
+		enableVal := enable && !disable
+		params.EnablePtr = &enableVal
+	}
+
+	// Handle numeric parameters
+	if idleMinutes > 0 {
+		params.IdlePtr = &idleMinutes
+	}
+	if hibernateMinutes > 0 {
+		params.HibernatePtr = &hibernateMinutes
+	}
+	if checkInterval > 0 {
+		params.IntervalPtr = &checkInterval
+	}
+
+	return params
+}
+
+// IdleUpdateService handles configuration updates using Strategy Pattern (SOLID: Single Responsibility)
+type IdleUpdateService struct{}
+
+func NewIdleUpdateService() *IdleUpdateService {
+	return &IdleUpdateService{}
+}
+
+func (s *IdleUpdateService) UpdateConfiguration(publicIP string, params *IdleConfigParams) error {
+	sshKey := "~/.ssh/cws-my-account-key"
+
+	// Build update script
+	scriptBuilder := NewIdleScriptBuilder()
+	updateScript := scriptBuilder.BuildUpdateScript(params)
+
+	// Execute via SSH
+	return s.executeSSHCommand(publicIP, sshKey, updateScript)
+}
+
+func (s *IdleUpdateService) executeSSHCommand(publicIP, sshKey, script string) error {
+	cmd := exec.Command("ssh",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "LogLevel=ERROR",
+		"-i", sshKey,
+		fmt.Sprintf("ubuntu@%s", publicIP),
+		script,
+	)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("SSH command failed: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
+}
+
+// IdleScriptBuilder builds update scripts using Builder Pattern (SOLID: Single Responsibility)
+type IdleScriptBuilder struct{}
+
+func NewIdleScriptBuilder() *IdleScriptBuilder {
+	return &IdleScriptBuilder{}
+}
+
+func (b *IdleScriptBuilder) BuildUpdateScript(params *IdleConfigParams) string {
+	var scriptLines []string
+
+	// Read current config
+	scriptLines = append(scriptLines, "# Read current config")
+	scriptLines = append(scriptLines, "source /etc/cloudworkstation/idle-config 2>/dev/null || true")
+
+	// Update variables
+	scriptLines = append(scriptLines, b.buildVariableUpdates(params)...)
+
+	// Create new config file
+	scriptLines = append(scriptLines, b.buildConfigFileCreation()...)
+
+	// Move and set permissions
+	scriptLines = append(scriptLines, b.buildFileOperations()...)
+
+	// Update cron if needed
+	if params.IntervalPtr != nil {
+		scriptLines = append(scriptLines, "sudo /usr/local/bin/cloudworkstation-update-cron.sh")
+	}
+
+	return strings.Join(scriptLines, "; ")
+}
+
+func (b *IdleScriptBuilder) buildVariableUpdates(params *IdleConfigParams) []string {
+	var lines []string
+
+	if params.EnablePtr != nil {
+		if *params.EnablePtr {
+			lines = append(lines, "ENABLED=true")
+			// Set defaults when enabling
+			if params.IdlePtr == nil {
+				lines = append(lines, "IDLE_THRESHOLD_MINUTES=5")
+			}
+			if params.HibernatePtr == nil {
+				lines = append(lines, "HIBERNATE_THRESHOLD_MINUTES=10")
+			}
+			if params.IntervalPtr == nil {
+				lines = append(lines, "CHECK_INTERVAL_MINUTES=2")
+			}
+		} else {
+			lines = append(lines, "ENABLED=false")
+		}
+	}
+
+	if params.IdlePtr != nil {
+		lines = append(lines, fmt.Sprintf("IDLE_THRESHOLD_MINUTES=%d", *params.IdlePtr))
+	}
+	if params.HibernatePtr != nil {
+		lines = append(lines, fmt.Sprintf("HIBERNATE_THRESHOLD_MINUTES=%d", *params.HibernatePtr))
+	}
+	if params.IntervalPtr != nil {
+		lines = append(lines, fmt.Sprintf("CHECK_INTERVAL_MINUTES=%d", *params.IntervalPtr))
+	}
+
+	return lines
+}
+
+func (b *IdleScriptBuilder) buildConfigFileCreation() []string {
+	return []string{
+		"# Write updated config",
+		"cat > /tmp/idle-config-new << 'EOF'",
+		"# CloudWorkstation Idle Detection Configuration",
+		"# This file is automatically updated by runtime configuration",
+		"ENABLED=${ENABLED:-false}",
+		"IDLE_THRESHOLD_MINUTES=${IDLE_THRESHOLD_MINUTES:-999999}",
+		"HIBERNATE_THRESHOLD_MINUTES=${HIBERNATE_THRESHOLD_MINUTES:-999999}",
+		"CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-60}",
+		"EOF",
+	}
+}
+
+func (b *IdleScriptBuilder) buildFileOperations() []string {
+	return []string{
+		"sudo mv /tmp/idle-config-new /etc/cloudworkstation/idle-config",
+		"sudo chmod 644 /etc/cloudworkstation/idle-config",
+	}
+}
+
+// IdleDisplayService handles configuration display using Strategy Pattern (SOLID: Single Responsibility)
+type IdleDisplayService struct{}
+
+func NewIdleDisplayService() *IdleDisplayService {
+	return &IdleDisplayService{}
+}
+
+func (s *IdleDisplayService) ShowConfiguration(instanceName string, instanceService *IdleInstanceService) error {
+	// Find instance for display
+	targetInstance, err := instanceService.FindAndValidateInstance(instanceName)
+	if err != nil {
+		// Handle non-running instances gracefully
+		if strings.Contains(err.Error(), "not running") {
+			fmt.Printf("Instance %q is not running. Cannot retrieve idle configuration.\n", instanceName)
+			return nil
+		}
+		return err
+	}
+
+	// Get and display current configuration
+	configRetriever := NewIdleConfigRetriever()
+	config, err := configRetriever.GetConfiguration(targetInstance.PublicIP)
 	if err != nil {
 		return fmt.Errorf("failed to get idle configuration: %w", err)
 	}
 
+	s.displayConfigurationStatus(instanceName, config)
+	return nil
+}
+
+func (s *IdleDisplayService) displayConfigurationStatus(instanceName string, config *IdleConfig) {
 	fmt.Printf("🔧 Idle Detection Configuration for %q:\n", instanceName)
 
 	if config.Enabled {
@@ -152,99 +376,17 @@ func (a *App) idleConfigShow(instanceName string) error {
 		fmt.Printf("   Check interval:      %d minutes (minimal overhead)\n", config.CheckInterval)
 		fmt.Printf("   💡 Enable with: cws idle configure %s --enable\n", instanceName)
 	}
-
-	return nil
 }
 
-// IdleConfig represents the idle detection configuration
-type IdleConfig struct {
-	Enabled          bool
-	IdleMinutes      int
-	HibernateMinutes int
-	CheckInterval    int
+// IdleConfigRetriever handles configuration retrieval using Strategy Pattern (SOLID: Single Responsibility)
+type IdleConfigRetriever struct{}
+
+func NewIdleConfigRetriever() *IdleConfigRetriever {
+	return &IdleConfigRetriever{}
 }
 
-// updateIdleConfig updates the idle configuration on a running instance
-func (a *App) updateIdleConfig(publicIP string, enabled *bool, idleMinutes, hibernateMinutes, checkInterval *int) error {
-	sshKey := a.getSSHKeyPath()
-
-	// Create a comprehensive update script that handles permissions properly
-	var scriptLines []string
-
-	// First, get current config and create updated version
-	scriptLines = append(scriptLines, "# Read current config")
-	scriptLines = append(scriptLines, "source /etc/cloudworkstation/idle-config 2>/dev/null || true")
-
-	// Update variables with new values if provided
-	if enabled != nil {
-		if *enabled {
-			scriptLines = append(scriptLines, "ENABLED=true")
-			// When enabling, set reasonable defaults if no specific values provided
-			if idleMinutes == nil {
-				scriptLines = append(scriptLines, "IDLE_THRESHOLD_MINUTES=5")
-			}
-			if hibernateMinutes == nil {
-				scriptLines = append(scriptLines, "HIBERNATE_THRESHOLD_MINUTES=10")
-			}
-			if checkInterval == nil {
-				scriptLines = append(scriptLines, "CHECK_INTERVAL_MINUTES=2")
-			}
-		} else {
-			scriptLines = append(scriptLines, "ENABLED=false")
-		}
-	}
-	if idleMinutes != nil {
-		scriptLines = append(scriptLines, fmt.Sprintf("IDLE_THRESHOLD_MINUTES=%d", *idleMinutes))
-	}
-	if hibernateMinutes != nil {
-		scriptLines = append(scriptLines, fmt.Sprintf("HIBERNATE_THRESHOLD_MINUTES=%d", *hibernateMinutes))
-	}
-	if checkInterval != nil {
-		scriptLines = append(scriptLines, fmt.Sprintf("CHECK_INTERVAL_MINUTES=%d", *checkInterval))
-	}
-
-	// Create new config file content
-	scriptLines = append(scriptLines, "# Write updated config")
-	scriptLines = append(scriptLines, "cat > /tmp/idle-config-new << 'EOF'")
-	scriptLines = append(scriptLines, "# CloudWorkstation Idle Detection Configuration")
-	scriptLines = append(scriptLines, "# This file is automatically updated by runtime configuration")
-	scriptLines = append(scriptLines, "ENABLED=${ENABLED:-false}")
-	scriptLines = append(scriptLines, "IDLE_THRESHOLD_MINUTES=${IDLE_THRESHOLD_MINUTES:-999999}")
-	scriptLines = append(scriptLines, "HIBERNATE_THRESHOLD_MINUTES=${HIBERNATE_THRESHOLD_MINUTES:-999999}")
-	scriptLines = append(scriptLines, "CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-60}")
-	scriptLines = append(scriptLines, "EOF")
-
-	// Move the new config to the proper location with sudo
-	scriptLines = append(scriptLines, "sudo mv /tmp/idle-config-new /etc/cloudworkstation/idle-config")
-	scriptLines = append(scriptLines, "sudo chmod 644 /etc/cloudworkstation/idle-config")
-
-	// Update cron job if check interval changed
-	if checkInterval != nil {
-		scriptLines = append(scriptLines, "sudo /usr/local/bin/cloudworkstation-update-cron.sh")
-	}
-
-	updateScript := strings.Join(scriptLines, "; ")
-
-	// Execute the update via SSH
-	cmd := exec.Command("ssh",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "LogLevel=ERROR",
-		"-i", sshKey,
-		fmt.Sprintf("ubuntu@%s", publicIP),
-		updateScript,
-	)
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("SSH command failed: %w\nOutput: %s", err, string(output))
-	}
-
-	return nil
-}
-
-// getIdleConfig retrieves the current idle configuration from a running instance
-func (a *App) getIdleConfig(publicIP string) (*IdleConfig, error) {
-	sshKey := a.getSSHKeyPath()
+func (r *IdleConfigRetriever) GetConfiguration(publicIP string) (*IdleConfig, error) {
+	sshKey := "~/.ssh/cws-my-account-key"
 
 	// Get configuration via SSH
 	cmd := exec.Command("ssh",
@@ -260,9 +402,13 @@ func (a *App) getIdleConfig(publicIP string) (*IdleConfig, error) {
 		return nil, fmt.Errorf("SSH command failed: %w\nOutput: %s", err, string(output))
 	}
 
-	parts := strings.Fields(strings.TrimSpace(string(output)))
+	return r.parseConfigOutput(string(output))
+}
+
+func (r *IdleConfigRetriever) parseConfigOutput(output string) (*IdleConfig, error) {
+	parts := strings.Fields(strings.TrimSpace(output))
 	if len(parts) != 4 {
-		return nil, fmt.Errorf("unexpected configuration format: %s", string(output))
+		return nil, fmt.Errorf("unexpected configuration format: %s", output)
 	}
 
 	enabled := parts[0] == "true"
@@ -288,10 +434,4 @@ func (a *App) getIdleConfig(publicIP string) (*IdleConfig, error) {
 		HibernateMinutes: hibernateMinutes,
 		CheckInterval:    checkInterval,
 	}, nil
-}
-
-// getSSHKeyPath returns the path to the SSH key to use for connections
-func (a *App) getSSHKeyPath() string {
-	// Use the standard CloudWorkstation key
-	return "~/.ssh/cws-my-account-key"
 }
