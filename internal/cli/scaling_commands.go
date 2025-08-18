@@ -74,7 +74,7 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -204,7 +204,7 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -273,7 +273,7 @@ func (s *ScalingCommands) rightsizingExport(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -470,7 +470,7 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -551,7 +551,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -639,7 +639,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
@@ -726,7 +726,7 @@ func (s *ScalingCommands) scalingHistory(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return fmt.Errorf("%s", DaemonNotRunningMessage)
 	}
 
 	// Get instance info
