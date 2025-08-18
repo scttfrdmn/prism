@@ -1092,3 +1092,343 @@ func (s *TemplateApplyDisplayService) displaySuccessResults(config *TemplateAppl
 
 	return nil
 }
+
+// Template Diff Command Pattern Implementation
+
+// TemplateDiffCommand handles template diff operations using Command Pattern (SOLID: Single Responsibility)
+type TemplateDiffCommand struct {
+	argParser         *TemplateDiffArgParser
+	validationService *TemplateDiffValidationService
+	diffService       *TemplateDiffService
+	displayService    *TemplateDiffDisplayService
+	apiClient         interface{} // API client for diff operations
+}
+
+// NewTemplateDiffCommand creates a new template diff command
+func NewTemplateDiffCommand(apiClient interface{}) *TemplateDiffCommand {
+	return &TemplateDiffCommand{
+		argParser:         NewTemplateDiffArgParser(),
+		validationService: NewTemplateDiffValidationService(apiClient),
+		diffService:       NewTemplateDiffService(apiClient),
+		displayService:    NewTemplateDiffDisplayService(),
+		apiClient:         apiClient,
+	}
+}
+
+// Execute executes the template diff command (Command Pattern)
+func (c *TemplateDiffCommand) Execute(args []string) error {
+	// Parse arguments
+	diffConfig, err := c.argParser.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	// Validate template and daemon
+	template, err := c.validationService.ValidateTemplateAndDaemon(diffConfig)
+	if err != nil {
+		return err
+	}
+
+	// Calculate diff
+	diff, err := c.diffService.CalculateDiff(diffConfig, template)
+	if err != nil {
+		return err
+	}
+
+	// Display results
+	return c.displayService.DisplayDiff(diffConfig, diff)
+}
+
+// TemplateDiffConfig represents template diff configuration (Single Responsibility)
+type TemplateDiffConfig struct {
+	TemplateName string
+	InstanceName string
+}
+
+// TemplateDiffArgParser parses template diff arguments (SOLID: Single Responsibility)
+type TemplateDiffArgParser struct{}
+
+// NewTemplateDiffArgParser creates a new argument parser
+func NewTemplateDiffArgParser() *TemplateDiffArgParser {
+	return &TemplateDiffArgParser{}
+}
+
+// Parse parses command line arguments into diff configuration (Single Responsibility)
+func (p *TemplateDiffArgParser) Parse(args []string) (*TemplateDiffConfig, error) {
+	if len(args) < 2 {
+		return nil, fmt.Errorf("usage: cws diff <template> <instance-name>")
+	}
+
+	return &TemplateDiffConfig{
+		TemplateName: args[0],
+		InstanceName: args[1],
+	}, nil
+}
+
+// TemplateDiffValidationService handles template validation for diff (SOLID: Single Responsibility)
+type TemplateDiffValidationService struct {
+	apiClient interface{}
+}
+
+// NewTemplateDiffValidationService creates a new validation service
+func NewTemplateDiffValidationService(apiClient interface{}) *TemplateDiffValidationService {
+	return &TemplateDiffValidationService{
+		apiClient: apiClient,
+	}
+}
+
+// ValidateTemplateAndDaemon validates daemon is running and template exists (Single Responsibility)
+func (s *TemplateDiffValidationService) ValidateTemplateAndDaemon(config *TemplateDiffConfig) (interface{}, error) {
+	// Check daemon is running
+	if pingable, ok := s.apiClient.(interface{ Ping(context.Context) error }); ok {
+		if err := pingable.Ping(context.Background()); err != nil {
+			return nil, fmt.Errorf("daemon not running. Start with: cws daemon start")
+		}
+	}
+
+	// Get template from API
+	if lister, ok := s.apiClient.(interface{ ListTemplates(context.Context) (map[string]interface{}, error) }); ok {
+		runtimeTemplates, err := lister.ListTemplates(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to list templates: %w", err)
+		}
+
+		template, exists := runtimeTemplates[config.TemplateName]
+		if !exists {
+			return nil, fmt.Errorf("template '%s' not found", config.TemplateName)
+		}
+
+		return template, nil
+	}
+
+	return nil, fmt.Errorf("API client does not support template listing")
+}
+
+// TemplateDiffService handles diff calculation operations (SOLID: Single Responsibility)
+type TemplateDiffService struct {
+	apiClient interface{}
+}
+
+// NewTemplateDiffService creates a new diff service
+func NewTemplateDiffService(apiClient interface{}) *TemplateDiffService {
+	return &TemplateDiffService{
+		apiClient: apiClient,
+	}
+}
+
+// TemplateDiff represents template diff results
+type TemplateDiff struct {
+	PackagesToInstall   []PackageDiff
+	ServicesToConfigure []ServiceDiff
+	UsersToCreate       []UserDiff
+	UsersToModify       []UserDiff
+	PortsToOpen         []int
+	ConflictsFound      []ConflictDiff
+}
+
+// PackageDiff represents a package difference
+type PackageDiff struct {
+	Name           string
+	Action         string
+	CurrentVersion string
+	TargetVersion  string
+	PackageManager string
+}
+
+// ServiceDiff represents a service difference
+type ServiceDiff struct {
+	Name   string
+	Action string
+	Port   int
+}
+
+// UserDiff represents a user difference
+type UserDiff struct {
+	Name         string
+	TargetGroups []string
+}
+
+// ConflictDiff represents a configuration conflict
+type ConflictDiff struct {
+	Type        string
+	Description string
+	Resolution  string
+}
+
+// HasChanges returns true if diff contains any changes
+func (d *TemplateDiff) HasChanges() bool {
+	return len(d.PackagesToInstall) > 0 || len(d.ServicesToConfigure) > 0 || 
+		   len(d.UsersToCreate) > 0 || len(d.UsersToModify) > 0 || len(d.PortsToOpen) > 0
+}
+
+// Summary returns a summary of changes
+func (d *TemplateDiff) Summary() string {
+	changes := []string{}
+	if len(d.PackagesToInstall) > 0 {
+		changes = append(changes, fmt.Sprintf("%d packages", len(d.PackagesToInstall)))
+	}
+	if len(d.ServicesToConfigure) > 0 {
+		changes = append(changes, fmt.Sprintf("%d services", len(d.ServicesToConfigure)))
+	}
+	if len(d.UsersToCreate) > 0 || len(d.UsersToModify) > 0 {
+		changes = append(changes, fmt.Sprintf("%d users", len(d.UsersToCreate)+len(d.UsersToModify)))
+	}
+	if len(d.PortsToOpen) > 0 {
+		changes = append(changes, fmt.Sprintf("%d ports", len(d.PortsToOpen)))
+	}
+	
+	return strings.Join(changes, ", ")
+}
+
+// CalculateDiff calculates the diff between template and instance (Single Responsibility)
+func (s *TemplateDiffService) CalculateDiff(config *TemplateDiffConfig, template interface{}) (*TemplateDiff, error) {
+	// Convert runtime template to unified template for diff
+	unifiedTemplate := s.convertToUnifiedTemplate(template)
+
+	// Create diff request
+	req := s.createDiffRequest(config, unifiedTemplate)
+
+	// Calculate diff via API
+	if differ, ok := s.apiClient.(interface{ DiffTemplate(context.Context, interface{}) (*TemplateDiff, error) }); ok {
+		return differ.DiffTemplate(context.Background(), req)
+	}
+
+	return nil, fmt.Errorf("API client does not support template diff")
+}
+
+// convertToUnifiedTemplate converts runtime template to unified template (Single Responsibility)
+func (s *TemplateDiffService) convertToUnifiedTemplate(template interface{}) interface{} {
+	// This is a placeholder - in practice, we'd need the daemon to provide
+	// the full unified template information for diff calculation
+	return template
+}
+
+// createDiffRequest creates the diff request (Single Responsibility)
+func (s *TemplateDiffService) createDiffRequest(config *TemplateDiffConfig, template interface{}) interface{} {
+	// Create a request object that matches the expected API structure
+	return map[string]interface{}{
+		"instance_name": config.InstanceName,
+		"template":      template,
+	}
+}
+
+// TemplateDiffDisplayService handles diff result display (SOLID: Single Responsibility)
+type TemplateDiffDisplayService struct{}
+
+// NewTemplateDiffDisplayService creates a new display service
+func NewTemplateDiffDisplayService() *TemplateDiffDisplayService {
+	return &TemplateDiffDisplayService{}
+}
+
+// DisplayDiff displays template diff results (Single Responsibility)
+func (s *TemplateDiffDisplayService) DisplayDiff(config *TemplateDiffConfig, diff *TemplateDiff) error {
+	fmt.Printf("📋 Template diff for '%s' → '%s':\n\n", config.TemplateName, config.InstanceName)
+
+	// Display each type of change using helper methods
+	s.displayPackageChanges(diff.PackagesToInstall)
+	s.displayServiceChanges(diff.ServicesToConfigure)
+	s.displayUserChanges(diff.UsersToCreate, diff.UsersToModify)
+	s.displayPortChanges(diff.PortsToOpen)
+	s.displayConflicts(diff.ConflictsFound)
+
+	// Display summary
+	return s.displaySummary(config, diff)
+}
+
+// displayPackageChanges displays package installation changes (Single Responsibility)
+func (s *TemplateDiffDisplayService) displayPackageChanges(packages []PackageDiff) {
+	if len(packages) > 0 {
+		fmt.Println("📦 Packages to install:")
+		for _, pkg := range packages {
+			if pkg.Action == "upgrade" {
+				fmt.Printf("   ⬆️  %s (%s → %s) via %s\n", pkg.Name, pkg.CurrentVersion, pkg.TargetVersion, pkg.PackageManager)
+			} else {
+				fmt.Printf("   ➕ %s", pkg.Name)
+				if pkg.TargetVersion != "" {
+					fmt.Printf(" (%s)", pkg.TargetVersion)
+				}
+				fmt.Printf(" via %s\n", pkg.PackageManager)
+			}
+		}
+		fmt.Println()
+	}
+}
+
+// displayServiceChanges displays service configuration changes (Single Responsibility)
+func (s *TemplateDiffDisplayService) displayServiceChanges(services []ServiceDiff) {
+	if len(services) > 0 {
+		fmt.Println("🔧 Services to configure:")
+		for _, svc := range services {
+			switch svc.Action {
+			case "configure":
+				fmt.Printf("   ➕ %s (port %d)\n", svc.Name, svc.Port)
+			case "start":
+				fmt.Printf("   ▶️  %s (start service)\n", svc.Name)
+			case "restart":
+				fmt.Printf("   🔄 %s (restart service)\n", svc.Name)
+			}
+		}
+		fmt.Println()
+	}
+}
+
+// displayUserChanges displays user creation and modification changes (Single Responsibility)
+func (s *TemplateDiffDisplayService) displayUserChanges(usersToCreate, usersToModify []UserDiff) {
+	// Show users to create
+	if len(usersToCreate) > 0 {
+		fmt.Println("👤 Users to create:")
+		for _, user := range usersToCreate {
+			fmt.Printf("   ➕ %s", user.Name)
+			if len(user.TargetGroups) > 0 {
+				fmt.Printf(" (groups: %s)", strings.Join(user.TargetGroups, ", "))
+			}
+			fmt.Println()
+		}
+		fmt.Println()
+	}
+
+	// Show users to modify
+	if len(usersToModify) > 0 {
+		fmt.Println("👤 Users to modify:")
+		for _, user := range usersToModify {
+			fmt.Printf("   🔄 %s (add to groups: %s)\n", user.Name, strings.Join(user.TargetGroups, ", "))
+		}
+		fmt.Println()
+	}
+}
+
+// displayPortChanges displays port opening changes (Single Responsibility)
+func (s *TemplateDiffDisplayService) displayPortChanges(ports []int) {
+	if len(ports) > 0 {
+		fmt.Println("🔌 Ports to open:")
+		for _, port := range ports {
+			fmt.Printf("   ➕ %d\n", port)
+		}
+		fmt.Println()
+	}
+}
+
+// displayConflicts displays configuration conflicts (Single Responsibility)
+func (s *TemplateDiffDisplayService) displayConflicts(conflicts []ConflictDiff) {
+	if len(conflicts) > 0 {
+		fmt.Println("⚠️  Conflicts detected:")
+		for _, conflict := range conflicts {
+			fmt.Printf("   ⛔ %s: %s (resolution: %s)\n", conflict.Type, conflict.Description, conflict.Resolution)
+		}
+		fmt.Println()
+		fmt.Println("💡 Use --force to override conflicts")
+	}
+}
+
+// displaySummary displays diff summary and next steps (Single Responsibility)
+func (s *TemplateDiffDisplayService) displaySummary(config *TemplateDiffConfig, diff *TemplateDiff) error {
+	if !diff.HasChanges() {
+		fmt.Println("✅ No changes needed - instance already matches template")
+	} else {
+		fmt.Printf("📊 Summary: %s\n", diff.Summary())
+		fmt.Printf("\n💡 Use 'cws apply %s %s' to apply these changes\n", config.TemplateName, config.InstanceName)
+		fmt.Printf("💡 Use 'cws apply %s %s --dry-run' to preview the application\n", config.TemplateName, config.InstanceName)
+	}
+	
+	return nil
+}
