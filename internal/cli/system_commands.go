@@ -41,7 +41,7 @@ func NewSystemCommands(app *App) *SystemCommands {
 // Daemon handles daemon management commands
 func (s *SystemCommands) Daemon(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws daemon <action>")
+		return NewUsageError("cws daemon <action>", "cws daemon start")
 	}
 
 	action := args[0]
@@ -58,7 +58,7 @@ func (s *SystemCommands) Daemon(args []string) error {
 	case "config":
 		return s.daemonConfig(args[1:])
 	default:
-		return fmt.Errorf("unknown daemon action: %s\nAvailable actions: start, stop, status, logs, config", action)
+		return NewValidationError("daemon action", action, "start, stop, status, logs, config")
 	}
 }
 
@@ -71,14 +71,14 @@ func (s *SystemCommands) daemonStart() error {
 			fmt.Printf("⚠️  Daemon is running but version check failed: %v\n", err)
 			fmt.Println("🔄 Restarting daemon to ensure version compatibility...")
 			if err := s.daemonStop(); err != nil {
-				return fmt.Errorf("failed to stop outdated daemon: %w", err)
+				return WrapAPIError("stop outdated daemon", err)
 			}
 			// Continue to start new daemon below
 		} else if daemonVersion != version.Version {
 			fmt.Printf("🔄 Daemon version mismatch (running: %s, CLI: %s)\n", daemonVersion, version.Version)
 			fmt.Println("🔄 Restarting daemon with matching version...")
 			if err := s.daemonStop(); err != nil {
-				return fmt.Errorf("failed to stop outdated daemon: %w", err)
+				return WrapAPIError("stop outdated daemon", err)
 			}
 			// Continue to start new daemon below
 		} else {
@@ -92,7 +92,7 @@ func (s *SystemCommands) daemonStart() error {
 	// Start daemon in the background
 	cmd := exec.Command("cwsd")
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start daemon: %w", err)
+		return WrapAPIError("start daemon process", err)
 	}
 
 	fmt.Printf("✅ Daemon started (PID %d)\n", cmd.Process.Pid)
@@ -100,7 +100,7 @@ func (s *SystemCommands) daemonStart() error {
 
 	// Wait for daemon to be ready and verify version matches
 	if err := s.waitForDaemonAndVerifyVersion(); err != nil {
-		return fmt.Errorf("daemon startup verification failed: %w", err)
+		return WrapAPIError("verify daemon startup", err)
 	}
 
 	fmt.Println("✅ Daemon is ready and version verified")
@@ -112,7 +112,7 @@ func (s *SystemCommands) getDaemonVersion() (string, error) {
 	// Get daemon status which includes version information
 	status, err := s.app.apiClient.GetStatus(s.app.ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to get daemon status: %w", err)
+		return "", WrapAPIError("get daemon status", err)
 	}
 
 	return status.Version, nil
@@ -146,7 +146,7 @@ func (s *SystemCommands) waitForDaemonAndVerifyVersion() error {
 		}
 	}
 
-	return fmt.Errorf("daemon failed to start within %v", DaemonStartupTimeout)
+	return NewStateError("daemon", "startup", "timeout", "running within timeout")
 }
 
 func (s *SystemCommands) daemonStop() error {

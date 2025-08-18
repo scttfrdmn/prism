@@ -51,12 +51,12 @@ func (tc *TemplateCommands) Templates(args []string) error {
 func (tc *TemplateCommands) templatesList(args []string) error {
 	// Check daemon is running
 	if err := tc.app.apiClient.Ping(tc.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	templates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list templates: %w", err)
+		return WrapAPIError("list templates", err)
 	}
 
 	fmt.Printf("📋 Available Templates (%d):\n\n", len(templates))
@@ -100,7 +100,7 @@ func (tc *TemplateCommands) templatesList(args []string) error {
 // templatesSearch searches for templates across repositories
 func (tc *TemplateCommands) templatesSearch(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws templates search <query>")
+		return NewUsageError("cws templates search <query>", "cws templates search python")
 	}
 
 	query := args[0]
@@ -138,7 +138,7 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 // templatesInfo shows detailed information about a specific template
 func (tc *TemplateCommands) templatesInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws templates info <template-name>")
+		return NewUsageError("cws templates info <template-name>", "cws templates info python-ml")
 	}
 
 	templateName := args[0]
@@ -146,7 +146,7 @@ func (tc *TemplateCommands) templatesInfo(args []string) error {
 	// Get template information
 	rawTemplate, err := templates.GetTemplateInfo(templateName)
 	if err != nil {
-		return fmt.Errorf("failed to get template info: %w", err)
+		return WrapAPIError("get template info for "+templateName, err)
 	}
 
 	runtimeTemplate, runtimeErr := templates.GetTemplate(templateName, "us-west-2", "x86_64")
@@ -445,7 +445,7 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 // templatesInstall installs templates from repositories
 func (tc *TemplateCommands) templatesInstall(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws templates install <repo:template> or <template>")
+		return NewUsageError("cws templates install <repo:template> or <template>", "cws templates install community:advanced-python-ml")
 	}
 
 	templateRef := args[0]
@@ -484,11 +484,11 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 
 		templateDirs := []string{DefaultTemplateDir}
 		if err := templates.ValidateAllTemplates(templateDirs); err != nil {
-			fmt.Println("❌ Template validation failed")
+			fmt.Printf("%s\n", FormatErrorMessage("Template validation", "One or more templates failed validation"))
 			return err
 		}
 
-		fmt.Println("✅ All templates are valid")
+		fmt.Printf("%s\n", FormatSuccessMessage("Template validation", "All templates are valid", ""))
 		return nil
 	}
 
