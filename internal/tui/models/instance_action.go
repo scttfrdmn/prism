@@ -48,6 +48,7 @@ type InstanceActionModel struct {
 	error       string
 	instance    string
 	confirmStep bool
+	dispatcher  *CommandDispatcher // Command Pattern for message handling
 }
 
 // NewInstanceActionModel creates a new instance action model
@@ -65,6 +66,14 @@ func NewInstanceActionModel(apiClient apiClient, instance string) InstanceAction
 	statusBar := components.NewStatusBar("Instance Actions", "")
 	spinner := components.NewSpinner("Loading instance information...")
 
+	// Create command dispatcher for message handling
+	dispatcher := NewCommandDispatcher()
+	dispatcher.RegisterCommand(&InstanceActionWindowSizeCommand{})
+	dispatcher.RegisterCommand(&InstanceActionKeyCommand{})
+	dispatcher.RegisterCommand(&InstanceActionInstanceCommand{})
+	dispatcher.RegisterCommand(&InstanceActionResultCommand{})
+	dispatcher.RegisterCommand(&InstanceActionErrorCommand{})
+
 	// Create the model
 	model := InstanceActionModel{
 		apiClient:   apiClient,
@@ -76,6 +85,7 @@ func NewInstanceActionModel(apiClient apiClient, instance string) InstanceAction
 		loading:     true,
 		instance:    instance,
 		confirmStep: false,
+		dispatcher:  dispatcher,
 	}
 
 	return model
@@ -151,155 +161,18 @@ type InstanceActionMsg struct {
 	Message string
 }
 
-// Update handles messages and updates the model
+// Update handles messages and updates the model using Command Pattern (SOLID: Single Responsibility)
 func (m InstanceActionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.statusBar.SetWidth(msg.Width)
-
-		// Update list dimensions
-		listHeight := m.height - 10 // Account for title, status bar, help
-		if listHeight < 3 {
-			listHeight = 3
+	// Try to dispatch using Command Pattern (same as RepositoriesModel)
+	if m.dispatcher != nil {
+		newModel, cmd := m.dispatcher.Dispatch(msg, m)
+		if cmd != nil {
+			return newModel, cmd
 		}
-		m.actionList.SetHeight(listHeight)
-		m.actionList.SetWidth(m.width - 4)
-
-		return m, nil
-
-	case tea.KeyMsg:
-		// Handle key presses
-		if m.confirmStep {
-			switch msg.String() {
-			case "y", "Y":
-				// Get the selected action
-				if i, ok := m.actionList.SelectedItem().(ActionItem); ok {
-					m.loading = true
-					m.statusBar.SetStatus(fmt.Sprintf("Performing action: %s", i.name), components.StatusWarning)
-					return m, m.performAction(i.action)
-				}
-			case "n", "N", "esc", "q":
-				m.confirmStep = false
-				return m, nil
-			}
-		} else {
-			switch msg.String() {
-			case "enter":
-				// Get the selected action
-				if i, ok := m.actionList.SelectedItem().(ActionItem); ok {
-					if i.dangerous {
-						m.confirmStep = true
-						return m, nil
-					}
-
-					// Non-dangerous actions can be performed immediately
-					m.loading = true
-					m.statusBar.SetStatus(fmt.Sprintf("Performing action: %s", i.name), components.StatusWarning)
-					return m, m.performAction(i.action)
-				}
-
-			case "q", "esc":
-				return m, tea.Quit
-			}
-		}
-
-		// If not loading, process list navigation
-		if !m.loading {
-			var cmd tea.Cmd
-			m.actionList, cmd = m.actionList.Update(msg)
-			cmds = append(cmds, cmd)
-		}
-
-	case *types.Instance:
-		m.loading = false
-
-		// Build list of actions based on instance state
-		var items []list.Item
-
-		// Format state for display
-		state := strings.ToLower(msg.State)
-
-		// Add actions based on instance state
-		switch state {
-		case "running":
-			items = append(items, ActionItem{
-				name:        "Stop Instance",
-				description: "Stops the instance but preserves data (can be restarted)",
-				action:      "stop",
-				dangerous:   false,
-			})
-
-			items = append(items, ActionItem{
-				name:        "Connect via SSH",
-				description: fmt.Sprintf("SSH to instance: ssh %s@%s", msg.Username, msg.PublicIP),
-				action:      "ssh",
-				dangerous:   false,
-			})
-
-			if msg.HasWebInterface {
-				items = append(items, ActionItem{
-					name:        "Open Web Interface",
-					description: fmt.Sprintf("Open web interface at: http://%s:%d", msg.PublicIP, msg.WebPort),
-					action:      "web",
-					dangerous:   false,
-				})
-			}
-		case "stopped":
-			items = append(items, ActionItem{
-				name:        "Start Instance",
-				description: "Starts the stopped instance",
-				action:      "start",
-				dangerous:   false,
-			})
-		}
-
-		// These actions are available regardless of state
-		items = append(items, ActionItem{
-			name:        "Delete Instance",
-			description: "Permanently deletes the instance and all data (cannot be undone)",
-			action:      "delete",
-			dangerous:   true,
-		})
-
-		m.actionList.SetItems(items)
-		m.statusBar.SetStatus("Select an action to perform", components.StatusSuccess)
-
-	case InstanceActionMsg:
-		m.loading = false
-		if msg.Success {
-			m.statusBar.SetStatus(msg.Message, components.StatusSuccess)
-		} else {
-			m.statusBar.SetStatus(fmt.Sprintf("Error: %s", msg.Message), components.StatusError)
-		}
-
-		// Add a delay and then quit
-		return m, tea.Sequence(
-			tea.Tick(2*time.Second, func(time.Time) tea.Msg {
-				return nil
-			}),
-			func() tea.Msg {
-				return tea.Quit()
-			},
-		)
-
-	case error:
-		m.loading = false
-		m.error = msg.Error()
-		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
 	}
 
-	// Update spinner when loading
-	if m.loading {
-		var spinnerCmd tea.Cmd
-		m.spinner, spinnerCmd = m.spinner.Update(msg)
-		cmds = append(cmds, spinnerCmd)
-	}
-
-	return m, tea.Batch(cmds...)
+	// Handle remaining message types
+	return m.handleDefaultMessages(msg)
 }
 
 // View renders the instance action view
@@ -379,4 +252,245 @@ func (m InstanceActionModel) View() string {
 		m.statusBar.View(),
 		help,
 	)
+}
+
+// handleDefaultMessages handles messages not processed by commands (Single Responsibility)
+func (m InstanceActionModel) handleDefaultMessages(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	// Update spinner when loading
+	if m.loading {
+		var spinnerCmd tea.Cmd
+		m.spinner, spinnerCmd = m.spinner.Update(msg)
+		cmds = append(cmds, spinnerCmd)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+// Instance Action Commands (Command Pattern - SOLID: Single Responsibility + Open/Closed)
+
+// InstanceActionWindowSizeCommand handles window resize messages
+type InstanceActionWindowSizeCommand struct{}
+
+func (c *InstanceActionWindowSizeCommand) CanExecute(msg tea.Msg) bool {
+	_, ok := msg.(tea.WindowSizeMsg)
+	return ok
+}
+
+func (c *InstanceActionWindowSizeCommand) Execute(model tea.Model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	m := model.(InstanceActionModel)
+	windowMsg := msg.(tea.WindowSizeMsg)
+
+	m.width = windowMsg.Width
+	m.height = windowMsg.Height
+	m.statusBar.SetWidth(windowMsg.Width)
+
+	// Update list dimensions
+	listHeight := m.height - 10 // Account for title, status bar, help
+	if listHeight < 3 {
+		listHeight = 3
+	}
+	m.actionList.SetHeight(listHeight)
+	m.actionList.SetWidth(m.width - 4)
+
+	return m, nil
+}
+
+// InstanceActionKeyCommand handles keyboard input messages
+type InstanceActionKeyCommand struct{}
+
+func (c *InstanceActionKeyCommand) CanExecute(msg tea.Msg) bool {
+	_, ok := msg.(tea.KeyMsg)
+	return ok
+}
+
+func (c *InstanceActionKeyCommand) Execute(model tea.Model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	m := model.(InstanceActionModel)
+	keyMsg := msg.(tea.KeyMsg)
+
+	if m.confirmStep {
+		return c.handleConfirmationKeys(m, keyMsg)
+	}
+	return c.handleActionKeys(m, keyMsg)
+}
+
+func (c *InstanceActionKeyCommand) handleConfirmationKeys(m InstanceActionModel, keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch keyMsg.String() {
+	case "y", "Y":
+		if i, ok := m.actionList.SelectedItem().(ActionItem); ok {
+			m.loading = true
+			m.statusBar.SetStatus(fmt.Sprintf("Performing action: %s", i.name), components.StatusWarning)
+			return m, m.performAction(i.action)
+		}
+	case "n", "N", "esc", "q":
+		m.confirmStep = false
+		return m, nil
+	}
+	return m, nil
+}
+
+func (c *InstanceActionKeyCommand) handleActionKeys(m InstanceActionModel, keyMsg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	switch keyMsg.String() {
+	case "enter":
+		if i, ok := m.actionList.SelectedItem().(ActionItem); ok {
+			if i.dangerous {
+				m.confirmStep = true
+				return m, nil
+			}
+
+			m.loading = true
+			m.statusBar.SetStatus(fmt.Sprintf("Performing action: %s", i.name), components.StatusWarning)
+			return m, m.performAction(i.action)
+		}
+	case "q", "esc":
+		return m, tea.Quit
+	}
+
+	// Process list navigation if not loading
+	if !m.loading {
+		var cmd tea.Cmd
+		m.actionList, cmd = m.actionList.Update(keyMsg)
+		cmds = append(cmds, cmd)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+// InstanceActionInstanceCommand handles instance detail messages
+type InstanceActionInstanceCommand struct{}
+
+func (c *InstanceActionInstanceCommand) CanExecute(msg tea.Msg) bool {
+	_, ok := msg.(*types.Instance)
+	return ok
+}
+
+func (c *InstanceActionInstanceCommand) Execute(model tea.Model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	m := model.(InstanceActionModel)
+	instance := msg.(*types.Instance)
+
+	m.loading = false
+
+	// Build action items using helper
+	items := c.buildActionItems(instance)
+	m.actionList.SetItems(items)
+	m.statusBar.SetStatus("Select an action to perform", components.StatusSuccess)
+
+	return m, nil
+}
+
+func (c *InstanceActionInstanceCommand) buildActionItems(instance *types.Instance) []list.Item {
+	var items []list.Item
+	state := strings.ToLower(instance.State)
+
+	// Add state-specific actions
+	switch state {
+	case "running":
+		items = append(items, c.createRunningInstanceActions(instance)...)
+	case "stopped":
+		items = append(items, c.createStoppedInstanceActions()...)
+	}
+
+	// Add universal actions
+	items = append(items, c.createUniversalActions()...)
+
+	return items
+}
+
+func (c *InstanceActionInstanceCommand) createRunningInstanceActions(instance *types.Instance) []list.Item {
+	items := []list.Item{
+		ActionItem{
+			name:        "Stop Instance",
+			description: "Stops the instance but preserves data (can be restarted)",
+			action:      "stop",
+			dangerous:   false,
+		},
+		ActionItem{
+			name:        "Connect via SSH",
+			description: fmt.Sprintf("SSH to instance: ssh %s@%s", instance.Username, instance.PublicIP),
+			action:      "ssh",
+			dangerous:   false,
+		},
+	}
+
+	if instance.HasWebInterface {
+		items = append(items, ActionItem{
+			name:        "Open Web Interface",
+			description: fmt.Sprintf("Open web interface at: http://%s:%d", instance.PublicIP, instance.WebPort),
+			action:      "web",
+			dangerous:   false,
+		})
+	}
+
+	return items
+}
+
+func (c *InstanceActionInstanceCommand) createStoppedInstanceActions() []list.Item {
+	return []list.Item{
+		ActionItem{
+			name:        "Start Instance",
+			description: "Starts the stopped instance",
+			action:      "start",
+			dangerous:   false,
+		},
+	}
+}
+
+func (c *InstanceActionInstanceCommand) createUniversalActions() []list.Item {
+	return []list.Item{
+		ActionItem{
+			name:        "Delete Instance",
+			description: "Permanently deletes the instance and all data (cannot be undone)",
+			action:      "delete",
+			dangerous:   true,
+		},
+	}
+}
+
+// InstanceActionResultCommand handles action result messages
+type InstanceActionResultCommand struct{}
+
+func (c *InstanceActionResultCommand) CanExecute(msg tea.Msg) bool {
+	_, ok := msg.(InstanceActionMsg)
+	return ok
+}
+
+func (c *InstanceActionResultCommand) Execute(model tea.Model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	m := model.(InstanceActionModel)
+	actionMsg := msg.(InstanceActionMsg)
+
+	m.loading = false
+
+	if actionMsg.Success {
+		m.statusBar.SetStatus(actionMsg.Message, components.StatusSuccess)
+	} else {
+		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", actionMsg.Message), components.StatusError)
+	}
+
+	// Add delay and quit
+	return m, tea.Sequence(
+		tea.Tick(2*time.Second, func(time.Time) tea.Msg { return nil }),
+		func() tea.Msg { return tea.Quit() },
+	)
+}
+
+// InstanceActionErrorCommand handles error messages
+type InstanceActionErrorCommand struct{}
+
+func (c *InstanceActionErrorCommand) CanExecute(msg tea.Msg) bool {
+	_, ok := msg.(error)
+	return ok
+}
+
+func (c *InstanceActionErrorCommand) Execute(model tea.Model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	m := model.(InstanceActionModel)
+	err := msg.(error)
+
+	m.loading = false
+	m.error = err.Error()
+	m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
+
+	return m, nil
 }
