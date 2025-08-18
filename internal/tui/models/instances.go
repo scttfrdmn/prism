@@ -28,7 +28,7 @@ type InstancesModel struct {
 	selected       int
 	showingActions bool
 	actionMessage  string
-	
+
 	// Command dispatcher for SOLID architecture
 	dispatcher *CommandDispatcher
 }

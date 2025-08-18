@@ -388,13 +388,13 @@ func NewCSVInvitationParser(reader io.Reader, hasHeader bool) *CSVInvitationPars
 
 // CSVRecord represents a parsed CSV record
 type CSVRecord struct {
-	Name        string
-	Type        string
-	ValidDays   string
-	CanInvite   string
+	Name         string
+	Type         string
+	ValidDays    string
+	CanInvite    string
 	Transferable string
-	DeviceBound string
-	MaxDevices  string
+	DeviceBound  string
+	MaxDevices   string
 }
 
 // ParseRecords parses all CSV records (Single Responsibility)
@@ -465,7 +465,7 @@ func (p *CSVInvitationParser) parseCSVRow(row []string) (*CSVRecord, error) {
 
 // BatchInvitationFactory creates batch invitations using Factory Pattern (SOLID: Single Responsibility + Open/Closed)
 type BatchInvitationFactory struct {
-	typeParser TypeParser
+	typeParser  TypeParser
 	fieldParser FieldParser
 }
 
@@ -489,9 +489,9 @@ func (f *BatchInvitationFactory) CreateInvitation(record *CSVRecord) (*BatchInvi
 	invitation := &BatchInvitation{
 		Name:        record.Name,
 		Type:        invType,
-		ValidDays:   30,   // default
-		DeviceBound: true, // default
-		MaxDevices:  1,    // default
+		ValidDays:   30,                             // default
+		DeviceBound: true,                           // default
+		MaxDevices:  1,                              // default
 		CanInvite:   invType == InvitationTypeAdmin, // default based on type
 	}
 

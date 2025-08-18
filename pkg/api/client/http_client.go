@@ -95,7 +95,7 @@ func (c *HTTPClient) makeRequest(ctx context.Context, method, path string, body 
 	if c.apiKey != "" {
 		req.Header.Set("X-API-Key", c.apiKey)
 	}
-	
+
 	// Update lastOperation while holding lock
 	c.mu.RUnlock()
 	c.mu.Lock()

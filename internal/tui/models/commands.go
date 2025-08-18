@@ -3,10 +3,10 @@ package models
 import (
 	"fmt"
 	"strings"
-	
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -41,7 +41,7 @@ func (cd *CommandDispatcher) Dispatch(msg tea.Msg, model tea.Model) (tea.Model, 
 			return cmd.Execute(model, msg)
 		}
 	}
-	
+
 	// Default: return model unchanged
 	return model, nil
 }
@@ -149,7 +149,7 @@ func (r RepositoryEditCommand) Execute(model tea.Model, msg tea.Msg) (tea.Model,
 	return model, nil
 }
 
-// RepositoryDeleteCommand handles deleting repositories  
+// RepositoryDeleteCommand handles deleting repositories
 type RepositoryDeleteCommand struct{}
 
 func (r RepositoryDeleteCommand) CanExecute(msg tea.Msg) bool {
@@ -163,7 +163,7 @@ func (r RepositoryDeleteCommand) Execute(model tea.Model, msg tea.Msg) (tea.Mode
 	if repoModel, ok := model.(RepositoriesModel); ok && repoModel.mode == "view" {
 		if repoModel.repoList.SelectedItem() != nil {
 			item := repoModel.repoList.SelectedItem().(RepositoryItem)
-			
+
 			var updatedRepos []types.TemplateRepository
 			for _, repo := range repoModel.repos {
 				if repo.Name != item.Name {
@@ -266,7 +266,7 @@ func (f FormSubmitCommand) executeFormSubmit(m RepositoriesModel) (tea.Model, te
 		Priority: 50,
 		Enabled:  true,
 	}
-	
+
 	// Parse priority if provided
 	if m.priorityInput.Value() != "" {
 		var priority int
@@ -275,12 +275,12 @@ func (f FormSubmitCommand) executeFormSubmit(m RepositoriesModel) (tea.Model, te
 			newRepo.Priority = priority
 		}
 	}
-	
+
 	// Parse enabled if provided
 	if strings.ToLower(m.enabledInput.Value()) == "false" {
 		newRepo.Enabled = false
 	}
-	
+
 	if m.mode == "add" {
 		m.repos = append(m.repos, newRepo)
 		m.statusBar.SetStatus("Repository added: "+newRepo.Name, components.StatusSuccess)
@@ -293,7 +293,7 @@ func (f FormSubmitCommand) executeFormSubmit(m RepositoriesModel) (tea.Model, te
 		}
 		m.statusBar.SetStatus("Repository updated: "+newRepo.Name, components.StatusSuccess)
 	}
-	
+
 	m.refreshRepositoryList()
 	m.mode = "view"
 	m.statusBar.SetStatus("↑/↓: Navigate • Enter: Select • a: Add • e: Edit • r: Refresh • d: Delete", components.StatusInfo)
@@ -326,14 +326,14 @@ func (f FormNavigationCommand) executeNavigation(m RepositoriesModel, keyMsg tea
 		m.priorityInput,
 		m.enabledInput,
 	}
-	
+
 	// Determine direction
 	if keyMsg.String() == "tab" {
 		m.focusIndex = (m.focusIndex + 1) % len(inputs)
 	} else {
 		m.focusIndex = (m.focusIndex - 1 + len(inputs)) % len(inputs)
 	}
-	
+
 	// Update focus
 	for i := 0; i < len(inputs); i++ {
 		if i == m.focusIndex {
@@ -342,12 +342,12 @@ func (f FormNavigationCommand) executeNavigation(m RepositoriesModel, keyMsg tea
 			inputs[i].Blur()
 		}
 	}
-	
+
 	m.nameInput = inputs[0]
 	m.urlInput = inputs[1]
 	m.priorityInput = inputs[2]
 	m.enabledInput = inputs[3]
-	
+
 	return m, nil
 }
 
@@ -399,11 +399,11 @@ func (i InstanceWindowResizeCommand) Execute(model tea.Model, msg tea.Msg) (tea.
 			instanceModel.width = resizeMsg.Width
 			instanceModel.height = resizeMsg.Height
 			instanceModel.statusBar.SetWidth(resizeMsg.Width)
-			
+
 			// Update table dimensions
 			tableHeight := instanceModel.height - 6 // Account for title, help, and status
 			instanceModel.instancesTable.SetSize(instanceModel.width-4, tableHeight)
-			
+
 			return instanceModel, nil
 		}
 	}
@@ -486,7 +486,7 @@ func (i InstanceActionExecuteCommand) Execute(model tea.Model, msg tea.Msg) (tea
 			case "s":
 				return instanceModel, instanceModel.performAction("start")
 			case "p":
-				return instanceModel, instanceModel.performAction("stop") 
+				return instanceModel, instanceModel.performAction("stop")
 			case "d":
 				return instanceModel, instanceModel.performAction("delete")
 			}

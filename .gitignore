@@ -33,5 +33,21 @@ Thumbs.db
 .env
 *.local
 
+# Coverage and build artifacts
+*.out
+*.log
+*.tar.gz
+*.zip
+*.pkg
+*.dmg
+
+# Build output directories
+dist/
+build/
+
+# Debug files
+debug-*.yml
+golint-results.json
+
 # State files (for testing)
 test-state.json

@@ -49,9 +49,9 @@ func (tc *TemplateCommands) Templates(args []string) error {
 
 // templatesList lists available templates (default behavior)
 func (tc *TemplateCommands) templatesList(args []string) error {
-	// Check daemon is running
-	if err := tc.app.apiClient.Ping(tc.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := tc.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	templates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
@@ -201,7 +201,7 @@ func (tc *TemplateCommands) displayCostInfo(template *types.RuntimeTemplate, err
 	if err != nil {
 		return
 	}
-	
+
 	fmt.Printf("💰 **Estimated Costs** (default M size):\n")
 	if cost, exists := template.EstimatedCostPerHour["x86_64"]; exists {
 		fmt.Printf("   • x86_64: $%.3f/hour ($%.2f/day)\n", cost, cost*24)
@@ -216,7 +216,7 @@ func (tc *TemplateCommands) displayInstanceInfo(template *types.RuntimeTemplate,
 	if err != nil {
 		return
 	}
-	
+
 	fmt.Printf("🖥️  **Instance Types** (default M size):\n")
 	if instanceType, exists := template.InstanceType["x86_64"]; exists {
 		fmt.Printf("   • x86_64: %s\n", instanceType)
@@ -261,7 +261,7 @@ func (tc *TemplateCommands) displayPackageInfo(template *templates.Template) {
 	if !hasPackages(template) {
 		return
 	}
-	
+
 	fmt.Printf("📦 **Installed Packages**:\n")
 	if len(template.Packages.System) > 0 {
 		fmt.Printf("   • **System** (%s): %s\n", template.PackageManager, strings.Join(template.Packages.System, ", "))
@@ -282,7 +282,7 @@ func (tc *TemplateCommands) displayUserInfo(template *templates.Template) {
 	if len(template.Users) == 0 {
 		return
 	}
-	
+
 	fmt.Printf("👤 **User Accounts**:\n")
 	for _, user := range template.Users {
 		groups := "-"
@@ -302,7 +302,7 @@ func (tc *TemplateCommands) displayServiceInfo(template *templates.Template) {
 	if len(template.Services) == 0 {
 		return
 	}
-	
+
 	fmt.Printf("🔧 **Services**:\n")
 	for _, service := range template.Services {
 		status := "disabled"
@@ -322,7 +322,7 @@ func (tc *TemplateCommands) displayNetworkInfo(template *types.RuntimeTemplate, 
 	if err != nil || len(template.Ports) == 0 {
 		return
 	}
-	
+
 	fmt.Printf("🌐 **Network Ports**:\n")
 	for _, port := range template.Ports {
 		service := getServiceForPort(port)
@@ -335,7 +335,7 @@ func (tc *TemplateCommands) displayIdleDetectionInfo(template *templates.Templat
 	if template.IdleDetection == nil || !template.IdleDetection.Enabled {
 		return
 	}
-	
+
 	fmt.Printf("💤 **Idle Detection**:\n")
 	fmt.Printf("   • Enabled: %t\n", template.IdleDetection.Enabled)
 	fmt.Printf("   • Idle threshold: %d minutes\n", template.IdleDetection.IdleThresholdMinutes)

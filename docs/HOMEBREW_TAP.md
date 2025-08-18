@@ -26,7 +26,7 @@ mkdir -p Formula
 Copy the CloudWorkstation formula to the repository:
 
 ```bash
-cp scripts/homebrew/cloudworkstation.rb Formula/
+cp packaging/homebrew/cloudworkstation.rb Formula/
 ```
 
 ### 3. Configure Automated Updates
@@ -54,7 +54,7 @@ To test the formula locally before releasing:
 
 ```bash
 # Install from the local formula file
-brew install --build-from-source ./scripts/homebrew/cloudworkstation.rb
+brew install --build-from-source ./packaging/homebrew/cloudworkstation.rb
 
 # Test installation from the tap
 brew install scttfrdmn/cloudworkstation/cloudworkstation
@@ -76,7 +76,7 @@ The formula is updated automatically on release, but you can manually update it:
 
 3. Commit and push the updated formula to the tap repository:
    ```bash
-   cp scripts/homebrew/cloudworkstation.rb /path/to/homebrew-cloudworkstation/Formula/
+   cp packaging/homebrew/cloudworkstation.rb /path/to/homebrew-cloudworkstation/Formula/
    cd /path/to/homebrew-cloudworkstation
    git add Formula/cloudworkstation.rb
    git commit -m "Update formula for v0.4.2"
@@ -113,5 +113,5 @@ Common issues:
 
 For audit failures, use:
 ```bash
-brew audit --strict --online scripts/homebrew/cloudworkstation.rb
+brew audit --strict --online packaging/homebrew/cloudworkstation.rb
 ```

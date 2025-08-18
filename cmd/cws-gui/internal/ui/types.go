@@ -27,18 +27,18 @@ type CloudWorkstationGUI struct {
 	app       fyne.App
 	window    fyne.Window
 	apiClient api.CloudWorkstationAPI
-	
+
 	// Navigation
 	currentSection NavigationSection
 	sidebar        *fyne.Container
 	content        *fyne.Container
 	notification   *fyne.Container
-	
+
 	// Data
 	instances  []types.Instance
 	totalCost  float64
 	lastUpdate time.Time
-	
+
 	// Profile Management
 	profileManager *profile.ManagerEnhanced
 	stateManager   *profile.ProfileAwareStateManager
@@ -49,10 +49,10 @@ type CloudWorkstationGUI struct {
 type Section interface {
 	// CreateView creates the section's main view
 	CreateView() fyne.CanvasObject
-	
+
 	// UpdateView refreshes the section's data and view
 	UpdateView() error
-	
+
 	// GetTitle returns the section's display title
 	GetTitle() string
 }
@@ -87,11 +87,11 @@ func (sm *SectionManager) NavigateToSection(nav NavigationSection) error {
 	if section == nil {
 		return fmt.Errorf("section not found: %d", nav)
 	}
-	
+
 	// Update the content
 	sm.gui.content.Objects = []fyne.CanvasObject{section.CreateView()}
 	sm.gui.content.Refresh()
 	sm.gui.currentSection = nav
-	
+
 	return section.UpdateView()
 }

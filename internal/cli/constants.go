@@ -18,11 +18,14 @@ const (
 	// DefaultDaemonURL is the default URL for the CloudWorkstation daemon
 	DefaultDaemonURL = "http://localhost:8947"
 
-	// DefaultDaemonPort is the default port for the CloudWorkstation daemon  
+	// DefaultDaemonPort is the default port for the CloudWorkstation daemon
 	DefaultDaemonPort = "8947"
 
 	// DaemonURLEnvVar is the environment variable for daemon URL override
 	DaemonURLEnvVar = "CWSD_URL"
+
+	// AutoStartDisableEnvVar is the environment variable to disable auto-daemon startup
+	AutoStartDisableEnvVar = "CWS_NO_AUTO_START"
 )
 
 // =============================================================================
@@ -42,7 +45,7 @@ const (
 	// DefaultConfigDir is the default configuration directory name
 	DefaultConfigDir = ".cloudworkstation"
 
-	// DefaultConfigFile is the default daemon configuration file name  
+	// DefaultConfigFile is the default daemon configuration file name
 	DefaultConfigFile = "daemon_config.json"
 )
 
@@ -86,6 +89,15 @@ const (
 const (
 	// DaemonNotRunningMessage is the standard message when daemon is not running
 	DaemonNotRunningMessage = "daemon not running. Start with: cws daemon start"
+
+	// DaemonAutoStartMessage is displayed when auto-starting the daemon
+	DaemonAutoStartMessage = "🚀 Starting CloudWorkstation daemon..."
+
+	// DaemonAutoStartSuccessMessage is displayed when auto-start succeeds
+	DaemonAutoStartSuccessMessage = "✅ Daemon ready"
+
+	// DaemonAutoStartFailedMessage is displayed when auto-start fails
+	DaemonAutoStartFailedMessage = "❌ Failed to auto-start daemon. Please start manually with: cws daemon start"
 
 	// UsageLaunchCommand provides the usage string for the launch command
 	UsageLaunchCommand = `usage: cws launch <template> <name> [options]
@@ -186,7 +198,7 @@ const (
 	// LaunchProgressAMIMessage is displayed for AMI-based launches
 	LaunchProgressAMIMessage = "📦 AMI-based launch - showing instance status..."
 
-	// LaunchProgressPackageMessage is displayed for package-based launches  
+	// LaunchProgressPackageMessage is displayed for package-based launches
 	LaunchProgressPackageMessage = "📦 Package-based launch - monitoring setup progress..."
 
 	// LaunchProgressPackageTiming provides timing information for package setups
@@ -285,7 +297,7 @@ const (
 	// PackageManagerAMI represents AMI-based templates
 	PackageManagerAMI = "AMI"
 
-	// PackageManagerAPT represents APT-based templates  
+	// PackageManagerAPT represents APT-based templates
 	PackageManagerAPT = "APT"
 
 	// PackageManagerDNF represents DNF-based templates
@@ -318,7 +330,7 @@ var ServicePortMappings = map[int]string{
 // InstanceTypeSizeMapping maps instance types to t-shirt sizes
 var InstanceTypeSizeMapping = map[string]string{
 	"t3.nano":     "XS",
-	"t3.micro":    "XS", 
+	"t3.micro":    "XS",
 	"t3.small":    "S",
 	"t3.medium":   "M",
 	"t3.large":    "L",
@@ -344,7 +356,7 @@ var InstanceTypeSizeMapping = map[string]string{
 var SizeInstanceTypeMapping = map[string]string{
 	"XS": "t4g.nano",
 	"S":  "t4g.small",
-	"M":  "t4g.medium", 
+	"M":  "t4g.medium",
 	"L":  "t4g.large",
 	"XL": "t4g.xlarge",
 }
@@ -463,7 +475,7 @@ func FormatProgressMessage(action, status string) string {
 	return fmt.Sprintf("🔄 %s %s...", action, status)
 }
 
-// FormatWarningMessage formats warning messages with consistent structure  
+// FormatWarningMessage formats warning messages with consistent structure
 func FormatWarningMessage(context, message string) string {
 	return fmt.Sprintf("⚠️  %s: %s", context, message)
 }

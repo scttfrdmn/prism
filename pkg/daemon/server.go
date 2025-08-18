@@ -30,6 +30,7 @@ type Server struct {
 	awsManager      *aws.Manager
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
+	processManager  ProcessManager
 }
 
 // NewServer creates a new daemon server
@@ -103,6 +104,9 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize security manager: %w", err)
 	}
 
+	// Initialize process manager
+	processManager := NewProcessManager()
+
 	server := &Server{
 		config:          config,
 		port:            port,
@@ -113,6 +117,7 @@ func NewServer(port string) (*Server, error) {
 		awsManager:      awsManager,
 		projectManager:  projectManager,
 		securityManager: securityManager,
+		processManager:  processManager,
 	}
 
 	// Setup HTTP routes
@@ -133,6 +138,13 @@ func NewServer(port string) (*Server, error) {
 func (s *Server) Start() error {
 	log.Printf("Starting CloudWorkstation daemon on port %s", s.port)
 
+	// Register this daemon instance
+	pid := os.Getpid()
+	configPath := fmt.Sprintf("%s/.cloudworkstation", os.Getenv("HOME"))
+	if err := s.processManager.RegisterDaemon(pid, configPath, ""); err != nil {
+		log.Printf("Warning: Failed to register daemon: %v", err)
+	}
+
 	// Start security manager
 	if err := s.securityManager.Start(); err != nil {
 		log.Printf("Warning: Failed to start security manager: %v", err)
@@ -150,6 +162,12 @@ func (s *Server) Start() error {
 		<-c
 		log.Println("Shutting down daemon...")
 
+		// Unregister this daemon instance
+		pid := os.Getpid()
+		if err := s.processManager.UnregisterDaemon(pid); err != nil {
+			log.Printf("Warning: Failed to unregister daemon: %v", err)
+		}
+
 		// Stop integrated monitoring
 		s.stopIntegratedMonitoring()
 
@@ -166,11 +184,52 @@ func (s *Server) Start() error {
 	return s.httpServer.ListenAndServe()
 }
 
-// Stop stops the daemon server
+// Stop stops the daemon server gracefully
 func (s *Server) Stop() error {
+	log.Printf("Gracefully stopping daemon server...")
+
+	// Unregister this daemon instance
+	pid := os.Getpid()
+	if err := s.processManager.UnregisterDaemon(pid); err != nil {
+		log.Printf("Warning: Failed to unregister daemon: %v", err)
+	}
+
+	// Stop security manager
+	if err := s.securityManager.Stop(); err != nil {
+		log.Printf("Warning: Failed to stop security manager: %v", err)
+	}
+
+	// Stop integrated monitoring
+	s.stopIntegratedMonitoring()
+
+	// Shutdown HTTP server with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	return s.httpServer.Shutdown(ctx)
+
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("daemon server shutdown failed: %w", err)
+	}
+
+	log.Printf("Daemon server stopped successfully")
+	return nil
+}
+
+// Cleanup performs comprehensive cleanup for uninstallation
+func (s *Server) Cleanup() error {
+	log.Printf("Performing comprehensive daemon cleanup...")
+
+	// First stop the server if running
+	if err := s.Stop(); err != nil {
+		log.Printf("Warning: Server stop failed during cleanup: %v", err)
+	}
+
+	// Clean up all daemon processes
+	if err := s.processManager.CleanupProcesses(); err != nil {
+		return fmt.Errorf("failed to cleanup daemon processes: %w", err)
+	}
+
+	log.Printf("Daemon cleanup completed successfully")
+	return nil
 }
 
 // Legacy idle management removed
@@ -302,6 +361,10 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
 
 	// Legacy idle detection removed - using universal idle detection via template resolver
+
+	// Process management operations
+	mux.HandleFunc("/api/v1/daemon/processes", applyMiddleware(s.handleDaemonProcesses))
+	mux.HandleFunc("/api/v1/daemon/cleanup", applyMiddleware(s.handleDaemonCleanup))
 
 	// Project management operations
 	mux.HandleFunc("/api/v1/projects", applyMiddleware(s.handleProjectOperations))

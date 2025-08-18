@@ -40,12 +40,12 @@ func (a *App) getSSHKeyPath() string {
 
 // IdleConfigurationCommand handles idle detection configuration using Strategy Pattern (SOLID: Single Responsibility)
 type IdleConfigurationCommand struct {
-	apiClient           interface{}
-	validationService   *IdleValidationService
-	instanceService     *IdleInstanceService
-	parameterService    *IdleParameterService
-	updateService       *IdleUpdateService
-	displayService      *IdleDisplayService
+	apiClient         interface{}
+	validationService *IdleValidationService
+	instanceService   *IdleInstanceService
+	parameterService  *IdleParameterService
+	updateService     *IdleUpdateService
+	displayService    *IdleDisplayService
 }
 
 // NewIdleConfigurationCommand creates a new idle configuration command
@@ -134,7 +134,9 @@ func (s *IdleInstanceService) FindAndValidateInstance(instanceName string) (*Idl
 	}
 
 	// Get instance list
-	if lister, ok := s.apiClient.(interface{ ListInstances(interface{}) (interface{}, error) }); ok {
+	if lister, ok := s.apiClient.(interface {
+		ListInstances(interface{}) (interface{}, error)
+	}); ok {
 		response, err := lister.ListInstances(nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list instances: %w", err)
@@ -143,7 +145,7 @@ func (s *IdleInstanceService) FindAndValidateInstance(instanceName string) (*Idl
 		// Find target instance
 		if respData, ok := response.(interface{ Instances() []interface{} }); ok {
 			for _, instance := range respData.Instances() {
-				if instData, ok := instance.(interface{
+				if instData, ok := instance.(interface {
 					Name() string
 					PublicIP() string
 					State() string

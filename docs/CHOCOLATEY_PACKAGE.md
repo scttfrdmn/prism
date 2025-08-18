@@ -11,7 +11,7 @@ This document describes how to set up and maintain the Chocolatey package for Cl
 The CloudWorkstation Chocolatey package is structured as follows:
 
 ```
-scripts/chocolatey/
+packaging/chocolatey/
 ├── cloudworkstation.nuspec      # Package metadata
 └── tools/
     ├── chocolateyinstall.ps1    # Installation script
@@ -72,7 +72,7 @@ To test the package locally:
 
 ```powershell
 # Create the package
-choco pack .\scripts\chocolatey\cloudworkstation.nuspec
+choco pack .\packaging\chocolatey\cloudworkstation.nuspec
 
 # Install the package locally
 choco install cloudworkstation -s . -y

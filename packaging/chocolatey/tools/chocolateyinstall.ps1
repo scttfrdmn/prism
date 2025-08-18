@@ -39,8 +39,46 @@ if (Test-Path $targetPath) {
 
 # Add to PATH
 $binPath = Join-Path $toolsDir 'cws.exe'
+$daemonPath = Join-Path $toolsDir 'cwsd.exe'
 Install-BinFile -Name 'cws' -Path $binPath
+Install-BinFile -Name 'cwsd' -Path $daemonPath
 
-Write-Host "CloudWorkstation v$version has been installed."
-Write-Host "To get started, open Command Prompt or PowerShell and run:"
-Write-Host "cws test"
+# Install Windows service for auto-startup
+$serviceWrapperPath = Join-Path $toolsDir 'cloudworkstation-service.exe'
+if (Test-Path $serviceWrapperPath) {
+    Write-Host "Installing CloudWorkstation Windows service..."
+    try {
+        Start-Process -FilePath $serviceWrapperPath -ArgumentList 'install' -Wait -Verb RunAs
+        Write-Host "✅ CloudWorkstation service installed successfully"
+        Write-Host "   Service will start automatically on system boot"
+    }
+    catch {
+        Write-Warning "⚠️  Failed to install Windows service: $_"
+        Write-Host "   You can manually install the service later with:"
+        Write-Host "   $serviceWrapperPath install"
+    }
+} else {
+    Write-Warning "⚠️  Windows service wrapper not found. Service auto-startup not configured."
+}
+
+Write-Host ""
+Write-Host "🎉 CloudWorkstation v$version has been installed!"
+Write-Host ""
+Write-Host "📦 Installed Components:"
+Write-Host "  • CLI (cws) - Available in PATH"
+Write-Host "  • Daemon (cwsd) - Available in PATH"
+if (Test-Path $targetPath) {
+    Write-Host "  • GUI - Available in Start Menu"
+}
+if (Test-Path $serviceWrapperPath) {
+    Write-Host "  • Windows Service - Auto-starts on boot"
+}
+Write-Host ""
+Write-Host "🚀 Quick Start:"
+Write-Host "  cws --help                    # Show CLI help"
+Write-Host "  cws daemon status             # Check daemon status"
+Write-Host ""
+Write-Host "🔧 Service Management:"
+Write-Host "  sc query CloudWorkstationDaemon        # Check service status"
+Write-Host "  sc start CloudWorkstationDaemon        # Start service manually"
+Write-Host "  sc stop CloudWorkstationDaemon         # Stop service"

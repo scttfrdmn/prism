@@ -46,7 +46,7 @@ func NewBuilder(ec2Client *ec2.Client, ssmClient *ssm.Client, registry *Registry
 func (b *Builder) BuildAMI(ctx context.Context, request BuildRequest) (*BuildResult, error) {
 	// Create build pipeline
 	pipeline := NewBuildPipeline(b, request)
-	
+
 	// Ensure instance cleanup
 	defer func() {
 		if pipeline.result.BuilderID != "" {
@@ -398,7 +398,7 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, request Buil
 func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSaveRequest) (*BuildResult, error) {
 	// Create instance save pipeline
 	pipeline := NewInstanceSavePipeline(b, request)
-	
+
 	// Execute the save pipeline
 	return pipeline.Execute(ctx)
 }

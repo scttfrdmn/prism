@@ -81,20 +81,20 @@ jobs:
           mkdir -p dist/{homebrew,chocolatey,conda}
           
           # Prepare Homebrew
-          cp scripts/homebrew/cloudworkstation.rb dist/homebrew/
+          cp packaging/homebrew/cloudworkstation.rb dist/homebrew/
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_AMD64/$(sha256sum bin/cws-macos-amd64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_ARM64/$(sha256sum bin/cws-macos-arm64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_AMD64/$(sha256sum bin/cws-linux-amd64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_ARM64/$(sha256sum bin/cws-linux-arm64.tar.gz | cut -d' ' -f1)/g" dist/homebrew/cloudworkstation.rb
           
           # Prepare Chocolatey
-          cp -r scripts/chocolatey/* dist/chocolatey/
+          cp -r packaging/chocolatey/* dist/chocolatey/
           mkdir -p dist/chocolatey/tools
           cp bin/cws-windows-amd64.zip dist/chocolatey/tools/
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM/$(sha256sum bin/cws-windows-amd64.zip | cut -d' ' -f1)/g" dist/chocolatey/tools/chocolateyinstall.ps1
           
           # Prepare Conda
-          cp -r scripts/conda/* dist/conda/
+          cp -r packaging/conda/* dist/conda/
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_AMD64/$(sha256sum bin/cws-linux-amd64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_LINUX_ARM64/$(sha256sum bin/cws-linux-arm64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml
           sed -i "s/REPLACE_WITH_ACTUAL_CHECKSUM_DARWIN_AMD64/$(sha256sum bin/cws-macos-amd64.tar.gz | cut -d' ' -f1)/g" dist/conda/meta.yaml

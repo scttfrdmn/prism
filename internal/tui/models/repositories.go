@@ -34,7 +34,7 @@ type RepositoriesModel struct {
 	enabledInput  textinput.Model
 	mode          string // "view", "add", "edit"
 	focusIndex    int
-	
+
 	// Command dispatcher for SOLID architecture
 	dispatcher *CommandDispatcher
 }
@@ -239,7 +239,7 @@ func (m RepositoriesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.repoList, cmd = m.repoList.Update(msg)
 			cmds = append(cmds, cmd)
 		}
-		
+
 		// Handle spinner updates
 		var spinnerCmd tea.Cmd
 		m.spinner, spinnerCmd = m.spinner.Update(msg)

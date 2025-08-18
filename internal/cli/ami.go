@@ -608,21 +608,21 @@ func (s *AMIBuilderService) handleBuildResult(result *ami.BuildResult) error {
 
 // AMISaveCommand handles AMI save operations using Command Pattern (SOLID: Single Responsibility)
 type AMISaveCommand struct {
-	argParser         *AMISaveArgParser
-	instanceService   *InstanceValidationService
-	builderService    *AMISaveBuilderService
+	argParser           *AMISaveArgParser
+	instanceService     *InstanceValidationService
+	builderService      *AMISaveBuilderService
 	confirmationService *AMISaveConfirmationService
-	apiClient         interface{} // API client for instance lookups
+	apiClient           interface{} // API client for instance lookups
 }
 
 // NewAMISaveCommand creates a new AMI save command
 func NewAMISaveCommand(apiClient interface{}) *AMISaveCommand {
 	return &AMISaveCommand{
-		argParser:         NewAMISaveArgParser(),
-		instanceService:   NewInstanceValidationService(apiClient),
-		builderService:    NewAMISaveBuilderService(),
+		argParser:           NewAMISaveArgParser(),
+		instanceService:     NewInstanceValidationService(apiClient),
+		builderService:      NewAMISaveBuilderService(),
 		confirmationService: NewAMISaveConfirmationService(),
-		apiClient:         apiClient,
+		apiClient:           apiClient,
 	}
 }
 
@@ -681,12 +681,12 @@ func (p *AMISaveArgParser) Parse(args []string) (*AMISaveConfig, error) {
 
 	// Parse arguments using helper methods
 	config := &AMISaveConfig{
-		InstanceName: instanceName,
-		TemplateName: templateName,
-		Description:  p.parseDescription(cmdArgs, instanceName),
-		Region:       p.parseRegion(cmdArgs),
-		ProjectID:    cmdArgs["project"],
-		Public:       cmdArgs["public"] != "",
+		InstanceName:  instanceName,
+		TemplateName:  templateName,
+		Description:   p.parseDescription(cmdArgs, instanceName),
+		Region:        p.parseRegion(cmdArgs),
+		ProjectID:     cmdArgs["project"],
+		Public:        cmdArgs["public"] != "",
 		CopyToRegions: p.parseCopyToRegions(cmdArgs),
 	}
 
@@ -735,7 +735,7 @@ func NewInstanceValidationService(apiClient interface{}) *InstanceValidationServ
 // ValidateInstance validates the instance exists and is in running state (Single Responsibility)
 func (s *InstanceValidationService) ValidateInstance(saveConfig *AMISaveConfig) (*types.Instance, error) {
 	ctx := context.Background()
-	
+
 	// Check daemon is running
 	if pingable, ok := s.apiClient.(interface{ Ping(context.Context) error }); ok {
 		if err := pingable.Ping(ctx); err != nil {
@@ -744,7 +744,9 @@ func (s *InstanceValidationService) ValidateInstance(saveConfig *AMISaveConfig) 
 	}
 
 	// Get instance information from daemon API
-	if lister, ok := s.apiClient.(interface{ ListInstances(context.Context) (*types.ListResponse, error) }); ok {
+	if lister, ok := s.apiClient.(interface {
+		ListInstances(context.Context) (*types.ListResponse, error)
+	}); ok {
 		instances, err := lister.ListInstances(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get instance list: %w", err)
@@ -760,10 +762,10 @@ func (s *InstanceValidationService) ValidateInstance(saveConfig *AMISaveConfig) 
 				return &inst, nil
 			}
 		}
-		
+
 		return nil, fmt.Errorf("instance '%s' not found", saveConfig.InstanceName)
 	}
-	
+
 	return nil, fmt.Errorf("API client does not support instance listing")
 }
 

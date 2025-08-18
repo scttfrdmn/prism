@@ -35,9 +35,9 @@ func (ic *InstanceCommands) Connect(args []string) error {
 		}
 	}
 
-	// Check daemon is running
-	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
@@ -63,9 +63,9 @@ func (ic *InstanceCommands) Stop(args []string) error {
 
 	name := args[0]
 
-	// Check daemon is running
-	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	err := ic.app.apiClient.StopInstance(ic.app.ctx, name)
@@ -85,9 +85,9 @@ func (ic *InstanceCommands) Start(args []string) error {
 
 	name := args[0]
 
-	// Check daemon is running
-	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	// First, get current instance status
@@ -140,9 +140,9 @@ func (ic *InstanceCommands) Delete(args []string) error {
 
 	name := args[0]
 
-	// Check daemon is running
-	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	err := ic.app.apiClient.DeleteInstance(ic.app.ctx, name)
@@ -162,9 +162,9 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 
 	name := args[0]
 
-	// Check daemon is running
-	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	// Check hibernation status first
@@ -203,9 +203,9 @@ func (ic *InstanceCommands) Resume(args []string) error {
 
 	name := args[0]
 
-	// Check daemon is running
-	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	// Check hibernation status first

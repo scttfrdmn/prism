@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
@@ -280,6 +281,7 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 
 	// System commands
 	rootCmd.AddCommand(r.createDaemonCommand())
+	rootCmd.AddCommand(r.createUninstallCommand())
 	rootCmd.AddCommand(r.app.tuiCommand)
 	rootCmd.AddCommand(r.createConfigCommand())
 
@@ -352,6 +354,131 @@ func (r *CommandFactoryRegistry) createDaemonCommand() *cobra.Command {
 			return r.app.Daemon(args)
 		},
 	}
+}
+
+func (r *CommandFactoryRegistry) createUninstallCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "uninstall",
+		Short: "Uninstall CloudWorkstation completely",
+		Long: `Completely uninstall CloudWorkstation from your system.
+		
+This command performs comprehensive cleanup including:
+• Stop all running daemon processes
+• Remove all configuration files and data
+• Clean up log files and temporary data
+• Remove service files and system integrations
+
+Use with caution - this will remove ALL CloudWorkstation data.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return r.handleUninstallCommand(cmd, args)
+		},
+	}
+}
+
+func (r *CommandFactoryRegistry) handleUninstallCommand(cmd *cobra.Command, args []string) error {
+	fmt.Println("🗑️  CloudWorkstation Uninstaller")
+	fmt.Println("=================================")
+	fmt.Println()
+	fmt.Println("⚠️  This will completely remove CloudWorkstation from your system!")
+	fmt.Println()
+	fmt.Println("The following will be removed:")
+	fmt.Println("  • All daemon processes")
+	fmt.Println("  • Configuration files (~/.cloudworkstation)")
+	fmt.Println("  • Log files and temporary data")
+	fmt.Println("  • Service files and system integrations")
+	fmt.Println()
+	fmt.Println("🔒 AWS credentials and profiles will remain unchanged")
+	fmt.Println()
+
+	// Confirmation
+	fmt.Print("Are you sure you want to completely uninstall CloudWorkstation? [y/N]: ")
+	var response string
+	fmt.Scanln(&response)
+
+	if response != "y" && response != "Y" && response != "yes" {
+		fmt.Println("❌ Uninstallation cancelled")
+		return nil
+	}
+
+	fmt.Println()
+	fmt.Println("🚀 Starting uninstallation...")
+
+	// Find script path
+	scriptPath, err := r.findUninstallScript()
+	if err != nil {
+		fmt.Printf("⚠️  Uninstall script not found: %v\n", err)
+		fmt.Println("🔧 Falling back to manual cleanup...")
+		return r.performManualCleanup()
+	}
+
+	// Execute uninstall script
+	fmt.Printf("📜 Executing uninstall script: %s\n", scriptPath)
+	execCmd := exec.Command("bash", scriptPath, "--force")
+	execCmd.Stdout = os.Stdout
+	execCmd.Stderr = os.Stderr
+
+	if err := execCmd.Run(); err != nil {
+		fmt.Printf("⚠️  Uninstall script failed: %v\n", err)
+		fmt.Println("🔧 Falling back to manual cleanup...")
+		return r.performManualCleanup()
+	}
+
+	fmt.Println()
+	fmt.Println("✅ CloudWorkstation has been successfully uninstalled!")
+	fmt.Println("   Thank you for using CloudWorkstation! 👋")
+
+	return nil
+}
+
+func (r *CommandFactoryRegistry) findUninstallScript() (string, error) {
+	// Try to find the uninstall script in various locations
+	candidates := []string{
+		"./scripts/uninstall-manager.sh",
+		"../scripts/uninstall-manager.sh",
+		"/usr/local/share/cloudworkstation/uninstall-manager.sh",
+		"/opt/homebrew/share/cloudworkstation/uninstall-manager.sh",
+	}
+
+	for _, path := range candidates {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", fmt.Errorf("uninstall script not found")
+}
+
+func (r *CommandFactoryRegistry) performManualCleanup() error {
+	fmt.Println("🧹 Performing manual cleanup...")
+
+	// Stop daemon processes
+	fmt.Println("🛑 Stopping daemon processes...")
+	if err := r.app.systemCommands.daemonCleanup([]string{"--yes", "--force"}); err != nil {
+		fmt.Printf("⚠️  Daemon cleanup failed: %v\n", err)
+	}
+
+	// Remove configuration directory
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		configDir := filepath.Join(homeDir, ".cloudworkstation")
+		if _, err := os.Stat(configDir); err == nil {
+			fmt.Printf("🗂️  Removing configuration directory: %s\n", configDir)
+			if err := os.RemoveAll(configDir); err != nil {
+				fmt.Printf("⚠️  Failed to remove config directory: %v\n", err)
+			} else {
+				fmt.Println("✅ Configuration directory removed")
+			}
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("✅ Manual cleanup completed")
+	fmt.Println("💡 You may need to manually remove:")
+	fmt.Println("   • Binary files (cws, cwsd) from your PATH")
+	fmt.Println("   • System service files")
+	fmt.Println("   • Homebrew package: brew uninstall cloudworkstation")
+
+	return nil
 }
 
 func (r *CommandFactoryRegistry) createConfigCommand() *cobra.Command {

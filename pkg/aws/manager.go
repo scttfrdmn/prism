@@ -166,7 +166,7 @@ type UserDataProcessor struct {
 func (p *UserDataProcessor) ProcessUserData(template *ctypes.RuntimeTemplate, req ctypes.LaunchRequest) string {
 	userData := template.UserData
 	userData = p.manager.processIdleDetectionConfig(userData, template)
-	
+
 	// Add EFS mount if volumes specified
 	if len(req.Volumes) > 0 {
 		for _, volumeName := range req.Volumes {
@@ -223,7 +223,7 @@ type InstanceConfigBuilder struct {
 func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest, ami, instanceType, userDataEncoded, subnetID, securityGroupID string) (*ec2.RunInstancesInput, error) {
 	minCount := int32(1)
 	maxCount := int32(1)
-	
+
 	runInput := &ec2.RunInstancesInput{
 		ImageId:          &ami,
 		InstanceType:     ec2types.InstanceType(instanceType),
@@ -349,12 +349,12 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 
 // LaunchOrchestrator coordinates instance launch using SOLID principles (Strategy Pattern - SOLID)
 type LaunchOrchestrator struct {
-	configExtractor     *TemplateConfigExtractor
-	userDataProcessor   *UserDataProcessor
-	networkingResolver  *NetworkingResolver
-	configBuilder       *InstanceConfigBuilder
-	optionsProcessor    *LaunchOptionsProcessor
-	instanceLauncher    *InstanceLauncher
+	configExtractor    *TemplateConfigExtractor
+	userDataProcessor  *UserDataProcessor
+	networkingResolver *NetworkingResolver
+	configBuilder      *InstanceConfigBuilder
+	optionsProcessor   *LaunchOptionsProcessor
+	instanceLauncher   *InstanceLauncher
 }
 
 // NewLaunchOrchestrator creates launch orchestrator
@@ -1312,8 +1312,8 @@ func (c *InstanceStateConverter) isHibernationConfigured(ec2Instance ec2types.In
 
 // InstanceBuilder builds CloudWorkstation instance objects (Builder Pattern - SOLID)
 type InstanceBuilder struct {
-	tagExtractor    *InstanceTagExtractor
-	stateConverter  *InstanceStateConverter
+	tagExtractor   *InstanceTagExtractor
+	stateConverter *InstanceStateConverter
 }
 
 // NewInstanceBuilder creates instance builder

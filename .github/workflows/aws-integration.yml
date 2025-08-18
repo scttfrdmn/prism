@@ -1,0 +1,157 @@
+name: AWS Integration Tests
+
+# AWS integration tests run against real AWS resources
+# Triggered manually or on specific branches to control costs
+on:
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Test scope to run'
+        required: true
+        default: 'quick'
+        type: choice
+        options:
+        - quick
+        - full
+        - specific
+      specific_test:
+        description: 'Specific test pattern (if scope=specific)'
+        required: false
+        default: 'TestAWSTemplate'
+      aws_region:
+        description: 'AWS region for testing'
+        required: false
+        default: 'us-east-1'
+  push:
+    branches:
+      - aws-integration-testing
+    paths:
+      - 'internal/cli/**'
+      - 'pkg/aws/**'
+      - 'pkg/api/**'
+
+env:
+  GO_VERSION: '1.21'
+  AWS_PROFILE: aws
+  AWS_TEST_REGION: ${{ github.event.inputs.aws_region || 'us-east-1' }}
+  AWS_TEST_TIMEOUT: 15
+  AWS_TEST_MAX_INSTANCES: 3
+  AWS_TEST_MAX_VOLUMES: 2
+  AWS_TEST_MAX_HOURLY_COST: 3.0
+  RUN_AWS_TESTS: true
+  CLOUDWORKSTATION_DEV: true
+
+jobs:
+  aws-integration:
+    name: AWS Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    # Only run on specific repository to prevent accidental runs
+    if: github.repository == 'scttfrdmn/cloudworkstation'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_TEST_REGION }}
+        
+    - name: Validate AWS setup
+      run: |
+        aws sts get-caller-identity
+        aws ec2 describe-regions --region ${{ env.AWS_TEST_REGION }}
+        
+    - name: Build CloudWorkstation
+      run: make build
+      
+    - name: Start CloudWorkstation daemon
+      run: |
+        ./bin/cwsd &
+        sleep 5
+        curl -f http://localhost:8947/api/v1/ping || exit 1
+        
+    - name: Run AWS integration tests - Quick
+      if: github.event.inputs.test_scope == 'quick' || github.event.inputs.test_scope == ''
+      run: |
+        echo "🚀 Running quick AWS integration tests..."
+        go test -v -tags=aws_integration ./internal/cli/ -run "TestAWSTemplate|TestAWSDaemon|TestAWSError" -timeout=10m
+        
+    - name: Run AWS integration tests - Full
+      if: github.event.inputs.test_scope == 'full'
+      run: |
+        echo "🚀 Running full AWS integration tests..."
+        go test -v -tags=aws_integration ./internal/cli/ -run TestAWS -timeout=25m
+        
+    - name: Run AWS integration tests - Specific
+      if: github.event.inputs.test_scope == 'specific'
+      run: |
+        echo "🚀 Running specific AWS integration test: ${{ github.event.inputs.specific_test }}"
+        go test -v -tags=aws_integration ./internal/cli/ -run "${{ github.event.inputs.specific_test }}" -timeout=15m
+        
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## AWS Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Test Scope:** ${{ github.event.inputs.test_scope || 'quick' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**AWS Region:** ${{ env.AWS_TEST_REGION }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Max Cost:** \$${{ env.AWS_TEST_MAX_HOURLY_COST }}/hour" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ All tests passed successfully" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Some tests failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Cleanup AWS resources
+      if: always()
+      run: |
+        echo "🧹 Cleaning up any remaining test resources..."
+        # Force cleanup of any test resources that might be left behind
+        aws ec2 describe-instances \
+          --filters "Name=tag:CreatedBy,Values=CloudWorkstationIntegrationTest" "Name=instance-state-name,Values=running,pending,stopped" \
+          --query 'Reservations[].Instances[].InstanceId' \
+          --output text | xargs -r aws ec2 terminate-instances --instance-ids
+        
+        # Cleanup test EFS volumes
+        aws efs describe-file-systems \
+          --query 'FileSystems[?Tags[?Key==`CreatedBy` && Value==`CloudWorkstationIntegrationTest`]].FileSystemId' \
+          --output text | xargs -r -I {} aws efs delete-file-system --file-system-id {}
+          
+    - name: Stop daemon
+      if: always()
+      run: |
+        pkill -f cwsd || true
+        
+  cost-notification:
+    name: Cost Notification
+    needs: aws-integration
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Notify about AWS usage
+      run: |
+        echo "💰 AWS Integration Tests completed"
+        echo "Please monitor AWS costs in the test account"
+        echo "Estimated maximum cost for this run: \$${{ env.AWS_TEST_MAX_HOURLY_COST }}"

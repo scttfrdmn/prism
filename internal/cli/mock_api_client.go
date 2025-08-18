@@ -15,34 +15,34 @@ import (
 // MockAPIClient implements the CloudWorkstationAPI interface for testing
 type MockAPIClient struct {
 	// Response configuration
-	ShouldReturnError    bool
-	ErrorMessage         string
-	PingError            error
-	
+	ShouldReturnError bool
+	ErrorMessage      string
+	PingError         error
+
 	// Mock data
-	Instances            []types.Instance
-	Templates            map[string]types.Template
-	Volumes              []types.EFSVolume
-	StorageVolumes       []types.EBSVolume
-	Projects             []types.Project
-	IdleProfiles         map[string]types.IdleProfile
-	DaemonStatus         *types.DaemonStatus
-	HibernationStatus    *types.HibernationStatus
-	
+	Instances         []types.Instance
+	Templates         map[string]types.Template
+	Volumes           []types.EFSVolume
+	StorageVolumes    []types.EBSVolume
+	Projects          []types.Project
+	IdleProfiles      map[string]types.IdleProfile
+	DaemonStatus      *types.DaemonStatus
+	HibernationStatus *types.HibernationStatus
+
 	// Call tracking
-	LaunchCalls          []types.LaunchRequest
-	StartCalls           []string
-	StopCalls            []string
-	DeleteCalls          []string
-	HibernateCalls       []string
-	ResumeCalls          []string
-	ConnectCalls         []string
-	GetInstanceCalls     []string
-	CreateVolumeCalls    []types.VolumeCreateRequest
-	CreateStorageCalls   []types.StorageCreateRequest
-	
+	LaunchCalls        []types.LaunchRequest
+	StartCalls         []string
+	StopCalls          []string
+	DeleteCalls        []string
+	HibernateCalls     []string
+	ResumeCalls        []string
+	ConnectCalls       []string
+	GetInstanceCalls   []string
+	CreateVolumeCalls  []types.VolumeCreateRequest
+	CreateStorageCalls []types.StorageCreateRequest
+
 	// Configuration
-	Options              client.Options
+	Options client.Options
 }
 
 // NewMockAPIClient creates a new mock API client with default test data
@@ -50,22 +50,22 @@ func NewMockAPIClient() *MockAPIClient {
 	return &MockAPIClient{
 		Instances: []types.Instance{
 			{
-				ID:        "i-1234567890abcdef0",
-				Name:      "test-instance",
-				Template:  "python-ml",
-				State:     "running",
-				PublicIP:  "54.123.45.67",
-				LaunchTime: time.Now().Add(-1 * time.Hour),
-				ProjectID: "test-project",
+				ID:                "i-1234567890abcdef0",
+				Name:              "test-instance",
+				Template:          "python-ml",
+				State:             "running",
+				PublicIP:          "54.123.45.67",
+				LaunchTime:        time.Now().Add(-1 * time.Hour),
+				ProjectID:         "test-project",
 				InstanceLifecycle: "on-demand",
 			},
 			{
-				ID:        "i-0987654321fedcba0",
-				Name:      "stopped-instance",
-				Template:  "r-research",
-				State:     "stopped",
-				PublicIP:  "",
-				LaunchTime: time.Now().Add(-2 * time.Hour),
+				ID:                "i-0987654321fedcba0",
+				Name:              "stopped-instance",
+				Template:          "r-research",
+				State:             "stopped",
+				PublicIP:          "",
+				LaunchTime:        time.Now().Add(-2 * time.Hour),
 				InstanceLifecycle: "spot",
 			},
 		},
@@ -153,27 +153,27 @@ func (m *MockAPIClient) SetOptions(opts client.Options) {
 // Instance operations
 func (m *MockAPIClient) LaunchInstance(ctx context.Context, req types.LaunchRequest) (*types.LaunchResponse, error) {
 	m.LaunchCalls = append(m.LaunchCalls, req)
-	
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	instance := types.Instance{
-		ID:        fmt.Sprintf("i-%d", time.Now().Unix()),
-		Name:      req.Name,
-		Template:  req.Template,
-		State:     "pending",
+		ID:         fmt.Sprintf("i-%d", time.Now().Unix()),
+		Name:       req.Name,
+		Template:   req.Template,
+		State:      "pending",
 		LaunchTime: time.Now(),
-		ProjectID: req.ProjectID,
+		ProjectID:  req.ProjectID,
 	}
-	
+
 	// Add to mock instances
 	m.Instances = append(m.Instances, instance)
-	
+
 	return &types.LaunchResponse{
-		Instance: instance,
-		Message:  fmt.Sprintf("Instance %s launched successfully", req.Name),
-		EstimatedCost: "$2.40/day",
+		Instance:       instance,
+		Message:        fmt.Sprintf("Instance %s launched successfully", req.Name),
+		EstimatedCost:  "$2.40/day",
 		ConnectionInfo: fmt.Sprintf("cws connect %s", req.Name),
 	}, nil
 }
@@ -182,7 +182,7 @@ func (m *MockAPIClient) ListInstances(ctx context.Context) (*types.ListResponse,
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &types.ListResponse{
 		Instances: m.Instances,
 	}, nil
@@ -190,27 +190,27 @@ func (m *MockAPIClient) ListInstances(ctx context.Context) (*types.ListResponse,
 
 func (m *MockAPIClient) GetInstance(ctx context.Context, name string) (*types.Instance, error) {
 	m.GetInstanceCalls = append(m.GetInstanceCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for _, instance := range m.Instances {
 		if instance.Name == name {
 			return &instance, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("instance %s not found", name)
 }
 
 func (m *MockAPIClient) StartInstance(ctx context.Context, name string) error {
 	m.StartCalls = append(m.StartCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Update instance state
 	for i := range m.Instances {
 		if m.Instances[i].Name == name {
@@ -218,17 +218,17 @@ func (m *MockAPIClient) StartInstance(ctx context.Context, name string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("instance %s not found", name)
 }
 
 func (m *MockAPIClient) StopInstance(ctx context.Context, name string) error {
 	m.StopCalls = append(m.StopCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Update instance state
 	for i := range m.Instances {
 		if m.Instances[i].Name == name {
@@ -236,17 +236,17 @@ func (m *MockAPIClient) StopInstance(ctx context.Context, name string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("instance %s not found", name)
 }
 
 func (m *MockAPIClient) HibernateInstance(ctx context.Context, name string) error {
 	m.HibernateCalls = append(m.HibernateCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Update instance state
 	for i := range m.Instances {
 		if m.Instances[i].Name == name {
@@ -254,17 +254,17 @@ func (m *MockAPIClient) HibernateInstance(ctx context.Context, name string) erro
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("instance %s not found", name)
 }
 
 func (m *MockAPIClient) ResumeInstance(ctx context.Context, name string) error {
 	m.ResumeCalls = append(m.ResumeCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Update instance state
 	for i := range m.Instances {
 		if m.Instances[i].Name == name {
@@ -272,7 +272,7 @@ func (m *MockAPIClient) ResumeInstance(ctx context.Context, name string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("instance %s not found", name)
 }
 
@@ -280,10 +280,10 @@ func (m *MockAPIClient) GetInstanceHibernationStatus(ctx context.Context, name s
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	status := *m.HibernationStatus
 	status.InstanceName = name
-	
+
 	// Check if instance exists and is hibernated
 	for _, instance := range m.Instances {
 		if instance.Name == name {
@@ -291,17 +291,17 @@ func (m *MockAPIClient) GetInstanceHibernationStatus(ctx context.Context, name s
 			break
 		}
 	}
-	
+
 	return &status, nil
 }
 
 func (m *MockAPIClient) DeleteInstance(ctx context.Context, name string) error {
 	m.DeleteCalls = append(m.DeleteCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Remove instance from mock data
 	for i, instance := range m.Instances {
 		if instance.Name == name {
@@ -309,17 +309,17 @@ func (m *MockAPIClient) DeleteInstance(ctx context.Context, name string) error {
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("instance %s not found", name)
 }
 
 func (m *MockAPIClient) ConnectInstance(ctx context.Context, name string) (string, error) {
 	m.ConnectCalls = append(m.ConnectCalls, name)
-	
+
 	if m.ShouldReturnError {
 		return "", fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Find instance and return SSH command
 	for _, instance := range m.Instances {
 		if instance.Name == name {
@@ -329,7 +329,7 @@ func (m *MockAPIClient) ConnectInstance(ctx context.Context, name string) (strin
 			return fmt.Sprintf("ssh user@%s", instance.PublicIP), nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("instance %s not found", name)
 }
 
@@ -338,7 +338,7 @@ func (m *MockAPIClient) ListTemplates(ctx context.Context) (map[string]types.Tem
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return m.Templates, nil
 }
 
@@ -346,11 +346,11 @@ func (m *MockAPIClient) GetTemplate(ctx context.Context, name string) (*types.Te
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	if template, exists := m.Templates[name]; exists {
 		return &template, nil
 	}
-	
+
 	return nil, fmt.Errorf("template %s not found", name)
 }
 
@@ -359,7 +359,7 @@ func (m *MockAPIClient) ApplyTemplate(ctx context.Context, req templates.ApplyRe
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &templates.ApplyResponse{
 		Success: true,
 		Message: "Template applied successfully",
@@ -370,7 +370,7 @@ func (m *MockAPIClient) DiffTemplate(ctx context.Context, req templates.DiffRequ
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &templates.TemplateDiff{
 		PackagesToInstall: []templates.PackageDiff{
 			{Name: "test-package", TargetVersion: "latest"},
@@ -382,7 +382,7 @@ func (m *MockAPIClient) GetInstanceLayers(ctx context.Context, name string) ([]t
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return []templates.AppliedTemplate{
 		{
 			Name:      "base-template",
@@ -395,7 +395,7 @@ func (m *MockAPIClient) RollbackInstance(ctx context.Context, req types.Rollback
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return nil
 }
 
@@ -404,7 +404,7 @@ func (m *MockAPIClient) GetIdleStatus(ctx context.Context) (*types.IdleStatusRes
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &types.IdleStatusResponse{
 		Enabled:  true,
 		Profiles: m.IdleProfiles,
@@ -479,18 +479,18 @@ func (m *MockAPIClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistory
 // Volume operations (EFS)
 func (m *MockAPIClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.EFSVolume, error) {
 	m.CreateVolumeCalls = append(m.CreateVolumeCalls, req)
-	
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	volume := types.EFSVolume{
 		Name:         req.Name,
 		FileSystemId: fmt.Sprintf("fs-%d", time.Now().Unix()),
 		State:        "creating",
 		CreationTime: time.Now(),
 	}
-	
+
 	m.Volumes = append(m.Volumes, volume)
 	return &volume, nil
 }
@@ -506,13 +506,13 @@ func (m *MockAPIClient) GetVolume(ctx context.Context, name string) (*types.EFSV
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for _, volume := range m.Volumes {
 		if volume.Name == name {
 			return &volume, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("volume %s not found", name)
 }
 
@@ -520,14 +520,14 @@ func (m *MockAPIClient) DeleteVolume(ctx context.Context, name string) error {
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for i, volume := range m.Volumes {
 		if volume.Name == name {
 			m.Volumes = append(m.Volumes[:i], m.Volumes[i+1:]...)
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("volume %s not found", name)
 }
 
@@ -562,11 +562,11 @@ func (m *MockAPIClient) UnmountVolume(ctx context.Context, volumeName, instanceN
 // Storage operations (EBS)
 func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
 	m.CreateStorageCalls = append(m.CreateStorageCalls, req)
-	
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Parse size if it's a preset size (XS, S, M, L, XL)
 	sizeGB := int32(100) // default
 	switch req.Size {
@@ -581,7 +581,7 @@ func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCrea
 	case "XL":
 		sizeGB = 1000
 	}
-	
+
 	volume := types.EBSVolume{
 		Name:         req.Name,
 		VolumeID:     fmt.Sprintf("vol-%d", time.Now().Unix()),
@@ -590,7 +590,7 @@ func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCrea
 		VolumeType:   req.VolumeType,
 		CreationTime: time.Now(),
 	}
-	
+
 	m.StorageVolumes = append(m.StorageVolumes, volume)
 	return &volume, nil
 }
@@ -606,13 +606,13 @@ func (m *MockAPIClient) GetStorage(ctx context.Context, name string) (*types.EBS
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for _, volume := range m.StorageVolumes {
 		if volume.Name == name {
 			return &volume, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("storage %s not found", name)
 }
 
@@ -620,14 +620,14 @@ func (m *MockAPIClient) DeleteStorage(ctx context.Context, name string) error {
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for i, volume := range m.StorageVolumes {
 		if volume.Name == name {
 			m.StorageVolumes = append(m.StorageVolumes[:i], m.StorageVolumes[i+1:]...)
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("storage %s not found", name)
 }
 
@@ -650,7 +650,7 @@ func (m *MockAPIClient) CreateProject(ctx context.Context, req project.CreatePro
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	proj := types.Project{
 		ID:          fmt.Sprintf("proj-%d", time.Now().Unix()),
 		Name:        req.Name,
@@ -658,7 +658,7 @@ func (m *MockAPIClient) CreateProject(ctx context.Context, req project.CreatePro
 		Status:      "active",
 		CreatedAt:   time.Now(),
 	}
-	
+
 	m.Projects = append(m.Projects, proj)
 	return &proj, nil
 }
@@ -667,7 +667,7 @@ func (m *MockAPIClient) ListProjects(ctx context.Context, filter *project.Projec
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	// Convert Project to ProjectSummary
 	summaries := make([]project.ProjectSummary, len(m.Projects))
 	for i, proj := range m.Projects {
@@ -679,7 +679,7 @@ func (m *MockAPIClient) ListProjects(ctx context.Context, filter *project.Projec
 			CreatedAt: proj.CreatedAt,
 		}
 	}
-	
+
 	return &project.ProjectListResponse{
 		Projects:   summaries,
 		TotalCount: len(m.Projects),
@@ -690,13 +690,13 @@ func (m *MockAPIClient) GetProject(ctx context.Context, id string) (*types.Proje
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for _, proj := range m.Projects {
 		if proj.ID == id {
 			return &proj, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("project %s not found", id)
 }
 
@@ -704,7 +704,7 @@ func (m *MockAPIClient) UpdateProject(ctx context.Context, id string, req projec
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for i, proj := range m.Projects {
 		if proj.ID == id {
 			if req.Name != nil {
@@ -717,7 +717,7 @@ func (m *MockAPIClient) UpdateProject(ctx context.Context, id string, req projec
 			return &proj, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("project %s not found", id)
 }
 
@@ -725,14 +725,14 @@ func (m *MockAPIClient) DeleteProject(ctx context.Context, id string) error {
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	for i, proj := range m.Projects {
 		if proj.ID == id {
 			m.Projects = append(m.Projects[:i], m.Projects[i+1:]...)
 			return nil
 		}
 	}
-	
+
 	return fmt.Errorf("project %s not found", id)
 }
 
@@ -761,7 +761,7 @@ func (m *MockAPIClient) GetProjectMembers(ctx context.Context, projectID string)
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return []types.ProjectMember{
 		{
 			UserID:  "user-123",
@@ -775,7 +775,7 @@ func (m *MockAPIClient) GetProjectBudgetStatus(ctx context.Context, projectID st
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &project.BudgetStatus{
 		TotalBudget: 1000.0,
 		SpentAmount: 250.0,
@@ -786,13 +786,13 @@ func (m *MockAPIClient) GetProjectCostBreakdown(ctx context.Context, projectID s
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &types.ProjectCostBreakdown{
-		ProjectID:    projectID,
-		TotalCost:    100.0,
-		PeriodStart:  startTime,
-		PeriodEnd:    endTime,
-		GeneratedAt:  time.Now(),
+		ProjectID:   projectID,
+		TotalCost:   100.0,
+		PeriodStart: startTime,
+		PeriodEnd:   endTime,
+		GeneratedAt: time.Now(),
 	}, nil
 }
 
@@ -800,7 +800,7 @@ func (m *MockAPIClient) GetProjectResourceUsage(ctx context.Context, projectID s
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &types.ProjectResourceUsage{
 		ProjectID:       projectID,
 		ActiveInstances: 2,
@@ -846,7 +846,7 @@ func (m *MockAPIClient) GetRegistryStatus(ctx context.Context) (*client.Registry
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	lastSync := time.Now().Add(-1 * time.Hour)
 	return &client.RegistryStatusResponse{
 		Active:        true,
@@ -868,7 +868,7 @@ func (m *MockAPIClient) LookupAMI(ctx context.Context, templateName, region, arc
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return &client.AMIReferenceResponse{
 		AMIID:        "ami-12345678",
 		Region:       region,
@@ -884,7 +884,7 @@ func (m *MockAPIClient) ListTemplateAMIs(ctx context.Context, templateName strin
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	
+
 	return []client.AMIReferenceResponse{
 		{
 			AMIID:        "ami-12345678",
@@ -916,8 +916,8 @@ func (m *MockAPIClient) ResetCallTracking() {
 
 // GetCallCount returns the total number of API calls made
 func (m *MockAPIClient) GetCallCount() int {
-	return len(m.LaunchCalls) + len(m.StartCalls) + len(m.StopCalls) + 
-		   len(m.DeleteCalls) + len(m.HibernateCalls) + len(m.ResumeCalls) + 
-		   len(m.ConnectCalls) + len(m.GetInstanceCalls) + 
-		   len(m.CreateVolumeCalls) + len(m.CreateStorageCalls)
+	return len(m.LaunchCalls) + len(m.StartCalls) + len(m.StopCalls) +
+		len(m.DeleteCalls) + len(m.HibernateCalls) + len(m.ResumeCalls) +
+		len(m.ConnectCalls) + len(m.GetInstanceCalls) +
+		len(m.CreateVolumeCalls) + len(m.CreateStorageCalls)
 }

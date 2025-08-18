@@ -47,7 +47,7 @@ jobs:
           
       - name: Update formula in tap repository
         run: |
-          cp scripts/homebrew/cloudworkstation.rb homebrew-cloudworkstation/Formula/
+          cp packaging/homebrew/cloudworkstation.rb homebrew-cloudworkstation/Formula/
           cd homebrew-cloudworkstation
           git add Formula/cloudworkstation.rb
           git commit -m "Update formula for ${{ env.VERSION }}"

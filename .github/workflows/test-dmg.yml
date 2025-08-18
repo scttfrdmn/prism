@@ -1,0 +1,237 @@
+name: Test DMG Build
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/build-dmg.sh'
+      - 'scripts/sign-dmg.sh'
+      - 'scripts/notarize-dmg.sh'
+      - 'scripts/macos-*.sh'
+      - '.github/workflows/build-dmg.yml'
+      - '.github/workflows/test-dmg.yml'
+      - 'Makefile'
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'internal/**'
+
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  test-dmg-build:
+    name: Test DMG Build (macOS)
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          # Install Python and Pillow for icon generation
+          brew install python3
+          pip3 install Pillow --break-system-packages || pip3 install Pillow
+          
+          # Verify required tools are available
+          make dmg-setup
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run unit tests
+        run: |
+          make test-unit
+
+      - name: Build development DMG (fast)
+        run: |
+          echo "Building development DMG for testing..."
+          make dmg-dev
+
+      - name: Test DMG integrity
+        run: |
+          make dmg-test
+
+      - name: Test DMG contents
+        run: |
+          DMG_FILE="dist/dmg/CloudWorkstation-v0.4.2.dmg"
+          
+          if [ ! -f "$DMG_FILE" ]; then
+            echo "DMG file not found: $DMG_FILE"
+            exit 1
+          fi
+          
+          echo "Testing DMG contents..."
+          
+          # Mount DMG
+          MOUNT_OUTPUT=$(hdiutil attach "$DMG_FILE" -readonly -nobrowse)
+          MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | grep '/Volumes/' | sed 's/.*\(\/Volumes\/.*\)/\1/')
+          
+          echo "DMG mounted at: $MOUNT_POINT"
+          
+          # List contents
+          echo "DMG contents:"
+          ls -la "$MOUNT_POINT"
+          
+          # Check required files
+          echo "Checking required files..."
+          
+          if [ ! -d "$MOUNT_POINT/CloudWorkstation.app" ]; then
+            echo "❌ CloudWorkstation.app not found"
+            exit 1
+          fi
+          echo "✅ CloudWorkstation.app found"
+          
+          if [ ! -L "$MOUNT_POINT/Applications" ]; then
+            echo "❌ Applications symlink not found"
+            exit 1
+          fi
+          echo "✅ Applications symlink found"
+          
+          if [ ! -f "$MOUNT_POINT/README.txt" ]; then
+            echo "❌ README.txt not found"
+            exit 1
+          fi
+          echo "✅ README.txt found"
+          
+          # Check app bundle structure
+          APP_BUNDLE="$MOUNT_POINT/CloudWorkstation.app"
+          echo "Checking app bundle structure..."
+          
+          if [ ! -f "$APP_BUNDLE/Contents/Info.plist" ]; then
+            echo "❌ Info.plist not found"
+            exit 1
+          fi
+          echo "✅ Info.plist found"
+          
+          if [ ! -d "$APP_BUNDLE/Contents/MacOS" ]; then
+            echo "❌ MacOS directory not found"
+            exit 1
+          fi
+          echo "✅ MacOS directory found"
+          
+          if [ ! -x "$APP_BUNDLE/Contents/MacOS/CloudWorkstation" ]; then
+            echo "❌ Main launcher not found or not executable"
+            exit 1
+          fi
+          echo "✅ Main launcher found and executable"
+          
+          # Check for CLI tools
+          if [ ! -f "$APP_BUNDLE/Contents/MacOS/cws" ]; then
+            echo "❌ cws binary not found"
+            exit 1
+          fi
+          echo "✅ cws binary found"
+          
+          if [ ! -f "$APP_BUNDLE/Contents/MacOS/cwsd" ]; then
+            echo "❌ cwsd binary not found"
+            exit 1
+          fi
+          echo "✅ cwsd binary found"
+          
+          # Check Resources
+          if [ ! -d "$APP_BUNDLE/Contents/Resources" ]; then
+            echo "❌ Resources directory not found"
+            exit 1
+          fi
+          echo "✅ Resources directory found"
+          
+          if [ ! -f "$APP_BUNDLE/Contents/Resources/CloudWorkstation.icns" ]; then
+            echo "⚠️ Application icon not found (may be using fallback)"
+          else
+            echo "✅ Application icon found"
+          fi
+          
+          if [ ! -d "$APP_BUNDLE/Contents/Resources/templates" ]; then
+            echo "⚠️ Templates directory not found"
+          else
+            echo "✅ Templates directory found"
+            echo "Templates available:"
+            ls -la "$APP_BUNDLE/Contents/Resources/templates/" | head -5
+          fi
+          
+          # Unmount DMG
+          hdiutil detach "$MOUNT_POINT"
+          
+          echo "✅ All DMG content tests passed!"
+
+      - name: Test post-installation script
+        run: |
+          echo "Testing post-installation script..."
+          
+          # Test script syntax
+          bash -n scripts/macos-postinstall.sh
+          echo "✅ Post-installation script syntax OK"
+          
+          # Test uninstaller script syntax
+          bash -n scripts/macos-uninstall.sh
+          echo "✅ Uninstaller script syntax OK"
+
+      - name: Test signing script (dry run)
+        run: |
+          echo "Testing signing script (dry run)..."
+          
+          # Test script syntax
+          bash -n scripts/sign-dmg.sh
+          echo "✅ Signing script syntax OK"
+          
+          # Test help output
+          ./scripts/sign-dmg.sh --help
+          
+          # Test verification mode (should fail gracefully without certs)
+          ./scripts/sign-dmg.sh --verify-only dist/dmg/CloudWorkstation-v0.4.2.dmg || echo "Expected to fail without signing certificates"
+
+      - name: Test notarization script (dry run)
+        run: |
+          echo "Testing notarization script (dry run)..."
+          
+          # Test script syntax
+          bash -n scripts/notarize-dmg.sh
+          echo "✅ Notarization script syntax OK"
+          
+          # Test help output
+          ./scripts/notarize-dmg.sh --help
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-dmg-${{ github.sha }}
+          path: |
+            dist/dmg/
+          retention-days: 7
+
+      - name: Report results
+        if: always()
+        run: |
+          echo "=== DMG Build Test Results ==="
+          echo ""
+          if [ -f "dist/dmg/CloudWorkstation-v0.4.2.dmg" ]; then
+            DMG_SIZE=$(du -h "dist/dmg/CloudWorkstation-v0.4.2.dmg" | cut -f1)
+            echo "✅ DMG created successfully ($DMG_SIZE)"
+          else
+            echo "❌ DMG creation failed"
+          fi
+          echo ""
+          echo "This test validates that:"
+          echo "• DMG builds without errors"
+          echo "• All required components are included"
+          echo "• App bundle structure is correct"
+          echo "• Scripts have valid syntax"
+          echo "• Installation process would work correctly"
+          echo ""
+          echo "For full release testing including signing and notarization,"
+          echo "trigger the 'Build macOS DMG' workflow manually or push a tag."

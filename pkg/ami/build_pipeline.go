@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -14,11 +14,11 @@ import (
 
 // BuildPipeline represents the AMI build pipeline using Builder Pattern (SOLID)
 type BuildPipeline struct {
-	builder     *Builder
-	request     BuildRequest
-	result      *BuildResult
-	buildLog    strings.Builder
-	buildStart  time.Time
+	builder    *Builder
+	request    BuildRequest
+	result     *BuildResult
+	buildLog   strings.Builder
+	buildStart time.Time
 }
 
 // PipelineStep represents a single step in the build pipeline
@@ -58,7 +58,7 @@ func NewBuildPipeline(builder *Builder, request BuildRequest) *BuildPipeline {
 		result:     result,
 		buildStart: time.Now(),
 	}
-	
+
 	// Initialize build log
 	pipeline.buildLog.WriteString(fmt.Sprintf("Build started at %s\n", pipeline.buildStart.Format(time.RFC3339)))
 	pipeline.buildLog.WriteString(fmt.Sprintf("Template: %s\n", request.TemplateName))
@@ -85,7 +85,7 @@ func (p *BuildPipeline) Execute(ctx context.Context) (*BuildResult, error) {
 	// Execute each step
 	for _, step := range steps {
 		fmt.Printf("\n🔄 %s\n", step.GetName())
-		
+
 		if err := step.Execute(ctx, p); err != nil {
 			p.result.Status = "failed"
 			p.result.ErrorMessage = err.Error()
@@ -99,7 +99,7 @@ func (p *BuildPipeline) Execute(ctx context.Context) (*BuildResult, error) {
 	p.result.Status = "completed"
 	p.result.BuildDuration = buildDuration
 	p.result.Logs = p.buildLog.String()
-	
+
 	fmt.Printf("\n🎉 Build completed successfully in %s\n", buildDuration)
 	return p.result, nil
 }
@@ -115,18 +115,18 @@ func (p *BuildPipeline) LogStep(stepName string, success bool, duration time.Dur
 
 // InstanceSavePipeline represents the instance save pipeline using Builder Pattern (SOLID)
 type InstanceSavePipeline struct {
-	builder     *Builder
-	request     InstanceSaveRequest
-	result      *BuildResult
-	saveLog     strings.Builder
-	saveStart   time.Time
+	builder         *Builder
+	request         InstanceSaveRequest
+	result          *BuildResult
+	saveLog         strings.Builder
+	saveStart       time.Time
 	instanceDetails *ec2.DescribeInstancesOutput
 }
 
 // NewInstanceSavePipeline creates a new instance save pipeline
 func NewInstanceSavePipeline(builder *Builder, request InstanceSaveRequest) *InstanceSavePipeline {
 	buildID := fmt.Sprintf("save-%s-%d", request.InstanceName, time.Now().Unix())
-	
+
 	result := &BuildResult{
 		TemplateID:   buildID,
 		TemplateName: request.TemplateName,
@@ -141,7 +141,7 @@ func NewInstanceSavePipeline(builder *Builder, request InstanceSaveRequest) *Ins
 		result:    result,
 		saveStart: time.Now(),
 	}
-	
+
 	// Initialize save log
 	pipeline.saveLog.WriteString(fmt.Sprintf("Instance save started at %s\n", pipeline.saveStart.Format(time.RFC3339)))
 	pipeline.saveLog.WriteString(fmt.Sprintf("Instance: %s\n", request.InstanceName))
@@ -170,7 +170,7 @@ func (p *InstanceSavePipeline) Execute(ctx context.Context) (*BuildResult, error
 	// Execute each step
 	for _, step := range steps {
 		fmt.Printf("\n🔄 %s\n", step.GetName())
-		
+
 		if err := step.Execute(ctx, p); err != nil {
 			p.result.Status = "failed"
 			p.result.ErrorMessage = err.Error()
@@ -185,7 +185,7 @@ func (p *InstanceSavePipeline) Execute(ctx context.Context) (*BuildResult, error
 	p.result.BuildDuration = saveDuration
 	p.result.BuildTime = time.Now()
 	p.result.Logs = p.saveLog.String()
-	
+
 	fmt.Printf("\n🎉 Instance saved as AMI successfully in %s\n", saveDuration)
 	return p.result, nil
 }
@@ -220,7 +220,7 @@ func (v *ValidationStep) Execute(ctx context.Context, pipeline *BuildPipeline) e
 			return ValidationError("invalid target region for copying", err).WithContext("region", region)
 		}
 	}
-	
+
 	fmt.Printf("✅ Request validation completed\n")
 	return nil
 }
@@ -234,14 +234,14 @@ func (b *BaseAMIStep) GetName() string {
 
 func (b *BaseAMIStep) Execute(ctx context.Context, pipeline *BuildPipeline) error {
 	baseAMI, err := pipeline.builder.getBaseAMI(
-		pipeline.request.Template.Base, 
-		pipeline.request.Region, 
+		pipeline.request.Template.Base,
+		pipeline.request.Region,
 		pipeline.request.Architecture,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to get base AMI: %w", err)
 	}
-	
+
 	pipeline.result.SourceAMI = baseAMI
 	fmt.Printf("✅ Base AMI: %s\n", baseAMI)
 	return nil
@@ -259,15 +259,15 @@ func (b *BuilderInstanceStep) Execute(ctx context.Context, pipeline *BuildPipeli
 	if err != nil {
 		return fmt.Errorf("failed to launch builder instance: %w", err)
 	}
-	
+
 	pipeline.result.BuilderID = instanceID
 	fmt.Printf("✅ Builder instance: %s\n", instanceID)
-	
+
 	// Wait for instance to be ready
 	if err := pipeline.builder.waitForInstanceReady(ctx, instanceID); err != nil {
 		return fmt.Errorf("instance failed to become ready: %w", err)
 	}
-	
+
 	fmt.Printf("✅ Instance ready for build\n")
 	return nil
 }
@@ -281,26 +281,26 @@ func (b *BuildExecutionStep) GetName() string {
 
 func (b *BuildExecutionStep) Execute(ctx context.Context, pipeline *BuildPipeline) error {
 	fmt.Printf("📋 Executing %d build steps\n", len(pipeline.request.Template.BuildSteps))
-	
+
 	for i, step := range pipeline.request.Template.BuildSteps {
 		stepStart := time.Now()
 		pipeline.buildLog.WriteString(fmt.Sprintf("Step %d: %s\n", i+1, step.Name))
-		
+
 		fmt.Printf("  🔄 Step %d/%d: %s\n", i+1, len(pipeline.request.Template.BuildSteps), step.Name)
-		
+
 		output, err := pipeline.builder.executeStep(ctx, pipeline.result.BuilderID, step)
 		stepDuration := time.Since(stepStart)
-		
+
 		if err != nil {
 			fmt.Printf("  ❌ Failed: %v\n", err)
 			pipeline.LogStep(step.Name, false, stepDuration, output, err)
 			return fmt.Errorf("build step '%s' failed: %w", step.Name, err)
 		}
-		
+
 		fmt.Printf("  ✅ Completed in %s\n", stepDuration)
 		pipeline.LogStep(step.Name, true, stepDuration, output, nil)
 	}
-	
+
 	return nil
 }
 
@@ -313,7 +313,7 @@ func (v *ValidationExecutionStep) GetName() string {
 
 func (v *ValidationExecutionStep) Execute(ctx context.Context, pipeline *BuildPipeline) error {
 	pipeline.buildLog.WriteString("Validation:\n")
-	
+
 	if len(pipeline.request.Template.Validation) == 0 {
 		pipeline.buildLog.WriteString("No validation tests specified\n\n")
 		fmt.Printf("⚠️  No validation tests specified\n")
@@ -346,7 +346,7 @@ func (v *ValidationExecutionStep) Execute(ctx context.Context, pipeline *BuildPi
 	pipeline.buildLog.WriteString(fmt.Sprintf("SUCCESS: %d/%d tests passed\n\n",
 		validationResult.SuccessfulTests, validationResult.TotalTests))
 	pipeline.result.ValidationLog = validator.FormatValidationResult(validationResult)
-	
+
 	return nil
 }
 
@@ -387,7 +387,7 @@ func (a *AMICopyStep) Execute(ctx context.Context, pipeline *BuildPipeline) erro
 	}
 
 	fmt.Printf("🔄 Copying AMI to %d regions...\n", len(pipeline.request.CopyToRegions))
-	
+
 	// Get AMI details for copying
 	amiDetails, err := pipeline.builder.EC2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 		ImageIds: []string{pipeline.result.AMIID},
@@ -398,25 +398,25 @@ func (a *AMICopyStep) Execute(ctx context.Context, pipeline *BuildPipeline) erro
 	if len(amiDetails.Images) == 0 {
 		return fmt.Errorf("AMI %s not found for copying", pipeline.result.AMIID)
 	}
-	
+
 	sourceAMI := amiDetails.Images[0]
 	sourceRegion := pipeline.request.Region
-	
+
 	for _, targetRegion := range pipeline.request.CopyToRegions {
-		copiedAMI, err := pipeline.builder.copyAMIToRegion(ctx, 
-			pipeline.result.AMIID, 
-			*sourceAMI.Name, 
-			*sourceAMI.Description, 
-			sourceRegion, 
+		copiedAMI, err := pipeline.builder.copyAMIToRegion(ctx,
+			pipeline.result.AMIID,
+			*sourceAMI.Name,
+			*sourceAMI.Description,
+			sourceRegion,
 			targetRegion)
 		if err != nil {
 			return fmt.Errorf("failed to copy AMI to %s: %w", targetRegion, err)
 		}
-		
+
 		pipeline.result.CopiedAMIs[targetRegion] = copiedAMI
 		fmt.Printf("✅ Copied to %s: %s\n", targetRegion, copiedAMI)
 	}
-	
+
 	return nil
 }
 
@@ -445,7 +445,7 @@ func (i *InstanceDetailsStep) GetName() string {
 
 func (i *InstanceDetailsStep) Execute(ctx context.Context, pipeline *InstanceSavePipeline) error {
 	p := pipeline
-	
+
 	instanceDetails, err := p.builder.EC2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{p.request.InstanceID},
 	})
@@ -461,8 +461,8 @@ func (i *InstanceDetailsStep) Execute(ctx context.Context, pipeline *InstanceSav
 	instance := instanceDetails.Reservations[0].Instances[0]
 	p.result.Architecture = string(instance.Architecture)
 	p.result.Region = string(p.builder.EC2Client.Options().Region)
-	
-	fmt.Printf("✅ Instance: %s | Architecture: %s | Region: %s\n", 
+
+	fmt.Printf("✅ Instance: %s | Architecture: %s | Region: %s\n",
 		p.request.InstanceID, p.result.Architecture, p.result.Region)
 	return nil
 }
@@ -476,7 +476,7 @@ func (i *InstanceStopStep) GetName() string {
 
 func (i *InstanceStopStep) Execute(ctx context.Context, pipeline *InstanceSavePipeline) error {
 	p := pipeline
-	
+
 	_, err := p.builder.EC2Client.StopInstances(ctx, &ec2.StopInstancesInput{
 		InstanceIds: []string{p.request.InstanceID},
 	})
@@ -491,7 +491,7 @@ func (i *InstanceStopStep) Execute(ctx context.Context, pipeline *InstanceSavePi
 	}, 5*time.Minute); err != nil {
 		return fmt.Errorf("timeout waiting for instance to stop: %w", err)
 	}
-	
+
 	fmt.Printf("✅ Instance stopped\n")
 	return nil
 }
@@ -505,7 +505,7 @@ func (i *InstanceAMICreationStep) GetName() string {
 
 func (i *InstanceAMICreationStep) Execute(ctx context.Context, pipeline *InstanceSavePipeline) error {
 	p := pipeline
-	
+
 	timestamp := time.Now().Format("20060102-150405")
 	amiName := fmt.Sprintf("%s-%s-%s-%s",
 		p.request.TemplateName,
@@ -538,7 +538,7 @@ func (i *InstanceAMICreationStep) Execute(ctx context.Context, pipeline *Instanc
 	}, 30*time.Minute); err != nil {
 		return fmt.Errorf("timeout waiting for AMI to be available: %w", err)
 	}
-	
+
 	fmt.Printf("✅ AMI is now available\n")
 	return nil
 }
@@ -550,7 +550,7 @@ func (i *InstanceAMICreationStep) buildInstanceSaveTags(request InstanceSaveRequ
 	savedFromKey := "CloudWorkstationSavedFrom"
 	savedDateKey := "CloudWorkstationSavedDate"
 	sourceValue := "saved-instance"
-	
+
 	tags := []types.Tag{
 		{Key: aws.String(nameKey), Value: aws.String(amiName)},
 		{Key: aws.String(templateKey), Value: aws.String(request.TemplateName)},
@@ -584,7 +584,7 @@ func (i *InstanceAMICopyStep) GetName() string {
 
 func (i *InstanceAMICopyStep) Execute(ctx context.Context, pipeline *InstanceSavePipeline) error {
 	p := pipeline
-	
+
 	if len(p.request.CopyToRegions) == 0 {
 		return nil // Skip if no target regions
 	}
@@ -598,12 +598,12 @@ func (i *InstanceAMICopyStep) Execute(ctx context.Context, pipeline *InstanceSav
 	if err != nil || len(image.Images) == 0 {
 		return fmt.Errorf("unable to get AMI details for copying: %w", err)
 	}
-	
+
 	amiDetails := image.Images[0]
-	copiedAMIs, err := p.builder.copyAMIToRegions(ctx, 
-		p.result.AMIID, 
+	copiedAMIs, err := p.builder.copyAMIToRegions(ctx,
+		p.result.AMIID,
 		*amiDetails.Name,
-		*amiDetails.Description, 
+		*amiDetails.Description,
 		p.request.CopyToRegions)
 
 	if err != nil {
@@ -612,7 +612,7 @@ func (i *InstanceAMICopyStep) Execute(ctx context.Context, pipeline *InstanceSav
 		p.result.CopiedAMIs = copiedAMIs
 		fmt.Printf("✅ AMI copied to %d regions\n", len(copiedAMIs))
 	}
-	
+
 	return nil
 }
 
@@ -625,7 +625,7 @@ func (t *TemplateDefinitionStep) GetName() string {
 
 func (t *TemplateDefinitionStep) Execute(ctx context.Context, pipeline *InstanceSavePipeline) error {
 	p := pipeline
-	
+
 	if err := p.builder.createTemplateDefinition(p.request, p.result); err != nil {
 		fmt.Printf("⚠️ Warning: Failed to create template definition: %v\n", err)
 	} else {
@@ -643,7 +643,7 @@ func (r *RegistryPublishStep) GetName() string {
 
 func (r *RegistryPublishStep) Execute(ctx context.Context, pipeline *InstanceSavePipeline) error {
 	p := pipeline
-	
+
 	if p.builder.RegistryClient == nil {
 		return nil // Skip if no registry
 	}
@@ -664,6 +664,6 @@ func (r *RegistryPublishStep) Execute(ctx context.Context, pipeline *InstanceSav
 			fmt.Printf("⚠️ Failed to register copied AMI in region %s: %v\n", copyRegion, err)
 		}
 	}
-	
+
 	return nil
 }

@@ -867,7 +867,9 @@ func NewComplianceDataService(apiClient interface{}) *ComplianceDataService {
 
 func (s *ComplianceDataService) GetComplianceData(framework string) (map[string]interface{}, error) {
 	// Make API request for AWS compliance validation
-	if requester, ok := s.apiClient.(interface{ MakeRequest(string, string, interface{}) ([]byte, error) }); ok {
+	if requester, ok := s.apiClient.(interface {
+		MakeRequest(string, string, interface{}) ([]byte, error)
+	}); ok {
 		resp, err := requester.MakeRequest("POST", fmt.Sprintf("/api/v1/security/compliance/validate/%s", framework), nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to validate AWS compliance: %w", err)

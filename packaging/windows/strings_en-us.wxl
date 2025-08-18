@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-us" Language="1033" xmlns="http://schemas.microsoft.com/wix/2006/localization">
+  
+  <!-- Language identifier -->
+  <String Id="LANG">1033</String>
+  
+  <!-- Product information strings -->
+  <String Id="ProductName">CloudWorkstation</String>
+  <String Id="ProductVersion">0.4.2</String>
+  <String Id="Manufacturer">CloudWorkstation Project</String>
+  <String Id="ProductDescription">Enterprise research management platform for launching cloud research environments</String>
+  
+  <!-- Installation strings -->
+  <String Id="InstallDirDlgTitle">Select Installation Directory</String>
+  <String Id="InstallDirDlgDescription">Select the directory where you want to install CloudWorkstation</String>
+  <String Id="InstallDirDlgBannerText">Destination Folder</String>
+  <String Id="InstallDirDlgInstallDirLabel">Install CloudWorkstation to:</String>
+  
+  <!-- Feature strings -->
+  <String Id="CoreFeatureTitle">CloudWorkstation Core</String>
+  <String Id="CoreFeatureDescription">Core CloudWorkstation binaries and daemon service (required)</String>
+  
+  <String Id="ServiceFeatureTitle">Windows Service</String>
+  <String Id="ServiceFeatureDescription">Install CloudWorkstation daemon as a Windows service with automatic startup</String>
+  
+  <String Id="TemplatesFeatureTitle">Research Templates</String>
+  <String Id="TemplatesFeatureDescription">Built-in research environment templates for Python, R, machine learning, and data analysis</String>
+  
+  <String Id="DocumentationFeatureTitle">Documentation</String>
+  <String Id="DocumentationFeatureDescription">User guides, getting started documentation, and troubleshooting guides</String>
+  
+  <String Id="StartMenuFeatureTitle">Start Menu Integration</String>
+  <String Id="StartMenuFeatureDescription">Start Menu shortcuts for easy access to CloudWorkstation tools</String>
+  
+  <String Id="DesktopShortcutFeatureTitle">Desktop Shortcut</String>
+  <String Id="DesktopShortcutFeatureDescription">Desktop shortcut for quick access to CloudWorkstation GUI</String>
+  
+  <String Id="PowerShellFeatureTitle">PowerShell Integration</String>
+  <String Id="PowerShellFeatureDescription">PowerShell module for advanced scripting and automation</String>
+  
+  <!-- Dialog strings -->
+  <String Id="WelcomeDlgTitle">Welcome to CloudWorkstation Setup</String>
+  <String Id="WelcomeDlgDescription">CloudWorkstation helps researchers launch cloud environments in seconds rather than spending hours on setup.</String>
+  <String Id="WelcomeDlgBannerText">Welcome</String>
+  
+  <String Id="LicenseAgreementDlgTitle">End-User License Agreement</String>
+  <String Id="LicenseAgreementDlgDescription">Please read the following license agreement carefully.</String>
+  <String Id="LicenseAgreementDlgBannerText">License Agreement</String>
+  <String Id="LicenseText">CloudWorkstation is released under the MIT License.
+
+Copyright (c) 2024 CloudWorkstation Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</String>
+  
+  <String Id="CustomizeDlgTitle">Custom Setup</String>
+  <String Id="CustomizeDlgDescription">Select the features you want to install</String>
+  <String Id="CustomizeDlgBannerText">Custom Setup</String>
+  <String Id="CustomizeDlgFeatureLabel">Feature</String>
+  <String Id="CustomizeDlgDescriptionLabel">Description</String>
+  <String Id="CustomizeDlgSizeLabel">Size</String>
+  
+  <String Id="ReadyToInstallDlgTitle">Ready to Install</String>
+  <String Id="ReadyToInstallDlgDescription">CloudWorkstation is ready to be installed on your computer</String>
+  <String Id="ReadyToInstallDlgBannerText">Ready to Install</String>
+  <String Id="ReadyToInstallText">Click Install to begin the installation. If you want to review or change any of your installation settings, click Back. Click Cancel to exit the wizard.</String>
+  
+  <String Id="InstallationProgressDlgTitle">Installing CloudWorkstation</String>
+  <String Id="InstallationProgressDlgDescription">Please wait while CloudWorkstation is being installed</String>
+  <String Id="InstallationProgressDlgBannerText">Installing</String>
+  <String Id="InstallationProgressText">Installing CloudWorkstation. This may take several minutes.</String>
+  
+  <String Id="InstallationCompleteDlgTitle">Installation Complete</String>
+  <String Id="InstallationCompleteDlgDescription">CloudWorkstation has been successfully installed</String>
+  <String Id="InstallationCompleteDlgBannerText">Installation Complete</String>
+  <String Id="InstallationCompleteText">CloudWorkstation has been installed successfully. 
+
+The CloudWorkstation daemon service has been installed and started automatically.
+
+You can now use:
+• Command Line: Open Command Prompt and type 'cws --help'
+• Terminal Interface: Type 'cws tui' for interactive terminal interface
+• Graphical Interface: Launch 'CloudWorkstation GUI' from the Start Menu
+
+For help getting started, see the documentation in the Start Menu or visit:
+https://github.com/scttfrdmn/cloudworkstation</String>
+  
+  <!-- Error and warning messages -->
+  <String Id="ErrorDlgTitle">Error</String>
+  <String Id="WarningDlgTitle">Warning</String>
+  <String Id="InformationDlgTitle">Information</String>
+  
+  <String Id="InsufficientPrivilegesError">CloudWorkstation requires administrator privileges for installation. Please run the installer as administrator.</String>
+  <String Id="UnsupportedOSError">CloudWorkstation requires Windows 10 version 1903 or later.</String>
+  <String Id="InsufficientDiskSpaceError">Insufficient disk space for installation. Please free up disk space and try again.</String>
+  <String Id="ServiceInstallationWarning">The CloudWorkstation service could not be configured properly. You may need to start the service manually after installation.</String>
+  
+  <!-- Button strings -->
+  <String Id="NextButton">&amp;Next &gt;</String>
+  <String Id="BackButton">&lt; &amp;Back</String>
+  <String Id="CancelButton">Cancel</String>
+  <String Id="FinishButton">&amp;Finish</String>
+  <String Id="InstallButton">&amp;Install</String>
+  <String Id="YesButton">&amp;Yes</String>
+  <String Id="NoButton">&amp;No</String>
+  
+  <!-- Progress strings -->
+  <String Id="ProgressTextInstalling">Installing: [1]</String>
+  <String Id="ProgressTextRemoved">Removed: [1]</String>
+  <String Id="ProgressTextRollingBack">Rolling back: [1]</String>
+  
+  <!-- Action strings -->
+  <String Id="ActionInstallFiles">Copying new files</String>
+  <String Id="ActionInstallServices">Installing services</String>
+  <String Id="ActionConfigureServices">Configuring services</String>
+  <String Id="ActionRegisterComponents">Registering components</String>
+  <String Id="ActionConfigureEnvironment">Configuring environment</String>
+  <String Id="ActionCreateShortcuts">Creating shortcuts</String>
+  <String Id="ActionRunningCustomActions">Performing configuration tasks</String>
+  
+  <!-- Maintenance mode strings -->
+  <String Id="MaintenanceWelcomeDlgTitle">Welcome to CloudWorkstation Maintenance</String>
+  <String Id="MaintenanceWelcomeDlgDescription">The CloudWorkstation installer will help you modify, repair, or remove CloudWorkstation.</String>
+  <String Id="MaintenanceTypeDlgTitle">Change, repair or remove installation</String>
+  <String Id="MaintenanceTypeDlgDescription">Select the maintenance operation you want to perform.</String>
+  <String Id="MaintenanceTypeDlgModifyButton">&amp;Modify</String>
+  <String Id="MaintenanceTypeDlgModifyText">Add or remove features</String>
+  <String Id="MaintenanceTypeDlgRepairButton">&amp;Repair</String>
+  <String Id="MaintenanceTypeDlgRepairText">Repair installation</String>
+  <String Id="MaintenanceTypeDlgRemoveButton">&amp;Remove</String>
+  <String Id="MaintenanceTypeDlgRemoveText">Remove CloudWorkstation</String>
+  
+</WixLocalization>

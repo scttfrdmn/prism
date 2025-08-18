@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	
+
 	"github.com/scttfrdmn/cloudworkstation/pkg/pricing"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -24,7 +24,7 @@ type LaunchCommandDispatcher struct {
 // NewLaunchCommandDispatcher creates a new launch command dispatcher
 func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher := &LaunchCommandDispatcher{}
-	
+
 	// Register all launch commands
 	dispatcher.RegisterCommand(&SizeCommand{})
 	dispatcher.RegisterCommand(&VolumeCommand{})
@@ -38,7 +38,7 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&HibernationCommand{})
 	dispatcher.RegisterCommand(&DryRunCommand{})
 	dispatcher.RegisterCommand(&WaitCommand{})
-	
+
 	return dispatcher
 }
 
@@ -52,7 +52,7 @@ func (d *LaunchCommandDispatcher) ParseFlags(req *types.LaunchRequest, args []st
 	for i := 2; i < len(args); i++ {
 		arg := args[i]
 		handled := false
-		
+
 		for _, cmd := range d.commands {
 			if cmd.CanHandle(arg) {
 				newIndex, err := cmd.Execute(req, args, i)
@@ -64,7 +64,7 @@ func (d *LaunchCommandDispatcher) ParseFlags(req *types.LaunchRequest, args []st
 				break
 			}
 		}
-		
+
 		if !handled {
 			return fmt.Errorf("unknown option: %s", arg)
 		}
@@ -188,10 +188,10 @@ func (p *PackageManagerCommand) Execute(req *types.LaunchRequest, args []string,
 	if index+1 >= len(args) {
 		return index, fmt.Errorf("--with requires a package manager")
 	}
-	
+
 	packageManager := args[index+1]
 	supportedManagers := []string{"conda", "apt", "dnf", "ami"}
-	
+
 	supported := false
 	for _, mgr := range supportedManagers {
 		if packageManager == mgr {
@@ -199,12 +199,12 @@ func (p *PackageManagerCommand) Execute(req *types.LaunchRequest, args []string,
 			break
 		}
 	}
-	
+
 	if !supported {
-		return index, fmt.Errorf("unsupported package manager: %s (supported: %s)", 
+		return index, fmt.Errorf("unsupported package manager: %s (supported: %s)",
 			packageManager, strings.Join(supportedManagers, ", "))
 	}
-	
+
 	req.PackageManager = packageManager
 	return index + 1, nil
 }
@@ -358,18 +358,18 @@ func (i *InstitutionalCostStrategy) CalculateInstanceCost(instance types.Instanc
 	if instance.InstanceType != "" && basic.DailyCost > 0 {
 		estimatedHourlyListPrice := basic.DailyCost / 24.0
 		result := calculator.CalculateInstanceCost(instance.InstanceType, estimatedHourlyListPrice, "us-west-2")
-		
+
 		if result.TotalDiscount > 0 {
 			basic.ListDailyCost = result.ListPrice * 24
 			basic.DailyCost = result.DailyEstimate
 			basic.ListCostPerMin = basic.ListDailyCost / (24.0 * 60.0)
-			
+
 			if instance.State == "running" {
 				basic.CurrentCostPerMin = basic.DailyCost / (24.0 * 60.0)
 			} else {
 				basic.CurrentCostPerMin = (basic.DailyCost * 0.1) / (24.0 * 60.0)
 			}
-			
+
 			basic.Savings = basic.ListCostPerMin - basic.CurrentCostPerMin
 			if basic.ListCostPerMin > 0 {
 				basic.SavingsPercent = (basic.Savings / basic.ListCostPerMin) * 100
@@ -411,7 +411,7 @@ func NewCostAnalyzer(hasDiscounts bool, calculator *pricing.Calculator) *CostAna
 	} else {
 		strategy = &BasicCostStrategy{}
 	}
-	
+
 	return &CostAnalyzer{
 		strategy:   strategy,
 		calculator: calculator,
@@ -422,11 +422,11 @@ func NewCostAnalyzer(hasDiscounts bool, calculator *pricing.Calculator) *CostAna
 func (ca *CostAnalyzer) AnalyzeInstances(instances []types.Instance) ([]CostAnalysis, CostSummary) {
 	var analyses []CostAnalysis
 	summary := CostSummary{}
-	
+
 	for _, instance := range instances {
 		analysis := ca.strategy.CalculateInstanceCost(instance, ca.calculator)
 		analyses = append(analyses, analysis)
-		
+
 		// Update summary
 		summary.TotalHistoricalSpend += analysis.ActualSpend
 		if instance.State == "running" {
@@ -435,7 +435,7 @@ func (ca *CostAnalyzer) AnalyzeInstances(instances []types.Instance) ([]CostAnal
 			summary.RunningInstances++
 		}
 	}
-	
+
 	return analyses, summary
 }
 
@@ -461,23 +461,23 @@ type CostSummary struct {
 
 // TemplateSnapshotCommand handles template snapshot operations using Command Pattern (SOLID: Single Responsibility)
 type TemplateSnapshotCommand struct {
-	argParser          *TemplateSnapshotArgParser
-	validationService  *TemplateSnapshotValidationService
-	discoveryService   *ConfigurationDiscoveryService
-	generationService  *TemplateGenerationService
-	saveService        *TemplateSnapshotSaveService
-	apiClient          interface{} // API client for instance operations
+	argParser         *TemplateSnapshotArgParser
+	validationService *TemplateSnapshotValidationService
+	discoveryService  *ConfigurationDiscoveryService
+	generationService *TemplateGenerationService
+	saveService       *TemplateSnapshotSaveService
+	apiClient         interface{} // API client for instance operations
 }
 
 // NewTemplateSnapshotCommand creates a new template snapshot command
 func NewTemplateSnapshotCommand(apiClient interface{}) *TemplateSnapshotCommand {
 	return &TemplateSnapshotCommand{
-		argParser:          NewTemplateSnapshotArgParser(),
-		validationService:  NewTemplateSnapshotValidationService(apiClient),
-		discoveryService:   NewConfigurationDiscoveryService(),
-		generationService:  NewTemplateGenerationService(),
-		saveService:        NewTemplateSnapshotSaveService(),
-		apiClient:          apiClient,
+		argParser:         NewTemplateSnapshotArgParser(),
+		validationService: NewTemplateSnapshotValidationService(apiClient),
+		discoveryService:  NewConfigurationDiscoveryService(),
+		generationService: NewTemplateGenerationService(),
+		saveService:       NewTemplateSnapshotSaveService(),
+		apiClient:         apiClient,
 	}
 }
 
@@ -669,7 +669,9 @@ func (s *TemplateSnapshotValidationService) ValidateInstance(config *TemplateSna
 	}
 
 	// For real execution, verify instance exists and is running
-	if lister, ok := s.apiClient.(interface{ ListInstances(context.Context) (*types.ListResponse, error) }); ok {
+	if lister, ok := s.apiClient.(interface {
+		ListInstances(context.Context) (*types.ListResponse, error)
+	}); ok {
 		response, err := lister.ListInstances(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("failed to list instances: %w", err)
@@ -686,7 +688,7 @@ func (s *TemplateSnapshotValidationService) ValidateInstance(config *TemplateSna
 		}
 		return nil, fmt.Errorf("instance '%s' not found", config.InstanceName)
 	}
-	
+
 	return nil, fmt.Errorf("API client does not support instance listing")
 }
 
@@ -823,21 +825,21 @@ func (s *TemplateSnapshotSaveService) saveTemplateAndDisplayResults(config *Temp
 
 // TemplateApplyCommand handles template application operations using Command Pattern (SOLID: Single Responsibility)
 type TemplateApplyCommand struct {
-	argParser         *TemplateApplyArgParser
-	validationService *TemplateApplyValidationService
+	argParser          *TemplateApplyArgParser
+	validationService  *TemplateApplyValidationService
 	applicationService *TemplateApplicationService
-	displayService    *TemplateApplyDisplayService
-	apiClient         interface{} // API client for template operations
+	displayService     *TemplateApplyDisplayService
+	apiClient          interface{} // API client for template operations
 }
 
 // NewTemplateApplyCommand creates a new template apply command
 func NewTemplateApplyCommand(apiClient interface{}) *TemplateApplyCommand {
 	return &TemplateApplyCommand{
-		argParser:         NewTemplateApplyArgParser(),
-		validationService: NewTemplateApplyValidationService(apiClient),
+		argParser:          NewTemplateApplyArgParser(),
+		validationService:  NewTemplateApplyValidationService(apiClient),
 		applicationService: NewTemplateApplicationService(apiClient),
-		displayService:    NewTemplateApplyDisplayService(),
-		apiClient:         apiClient,
+		displayService:     NewTemplateApplyDisplayService(),
+		apiClient:          apiClient,
 	}
 }
 
@@ -956,7 +958,9 @@ func (s *TemplateApplyValidationService) ValidateTemplateAndDaemon(config *Templ
 	}
 
 	// Get template from API
-	if lister, ok := s.apiClient.(interface{ ListTemplates(context.Context) (map[string]interface{}, error) }); ok {
+	if lister, ok := s.apiClient.(interface {
+		ListTemplates(context.Context) (map[string]interface{}, error)
+	}); ok {
 		runtimeTemplates, err := lister.ListTemplates(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("failed to list templates: %w", err)
@@ -987,13 +991,13 @@ func NewTemplateApplicationService(apiClient interface{}) *TemplateApplicationSe
 
 // TemplateApplyResponse represents template application results
 type TemplateApplyResponse struct {
-	Message              string
-	PackagesInstalled    int
-	ServicesConfigured   int
-	UsersCreated         int
-	RollbackCheckpoint   string
-	Warnings             []string
-	ExecutionTime        time.Duration
+	Message            string
+	PackagesInstalled  int
+	ServicesConfigured int
+	UsersCreated       int
+	RollbackCheckpoint string
+	Warnings           []string
+	ExecutionTime      time.Duration
 }
 
 // ApplyTemplate applies the template using the configuration (Single Responsibility)
@@ -1005,7 +1009,9 @@ func (s *TemplateApplicationService) ApplyTemplate(config *TemplateApplyConfig, 
 	req := s.createApplyRequest(config, unifiedTemplate)
 
 	// Apply template via API
-	if applier, ok := s.apiClient.(interface{ ApplyTemplate(context.Context, interface{}) (*TemplateApplyResponse, error) }); ok {
+	if applier, ok := s.apiClient.(interface {
+		ApplyTemplate(context.Context, interface{}) (*TemplateApplyResponse, error)
+	}); ok {
 		return applier.ApplyTemplate(context.Background(), req)
 	}
 
@@ -1023,11 +1029,11 @@ func (s *TemplateApplicationService) convertToUnifiedTemplate(template interface
 func (s *TemplateApplicationService) createApplyRequest(config *TemplateApplyConfig, template interface{}) interface{} {
 	// Create a request object that matches the expected API structure
 	return map[string]interface{}{
-		"instance_name":    config.InstanceName,
-		"dry_run":          config.DryRun,
-		"force":            config.Force,
-		"package_manager":  config.PackageManager,
-		"template":         template,
+		"instance_name":   config.InstanceName,
+		"dry_run":         config.DryRun,
+		"force":           config.Force,
+		"package_manager": config.PackageManager,
+		"template":        template,
 	}
 }
 
@@ -1187,7 +1193,9 @@ func (s *TemplateDiffValidationService) ValidateTemplateAndDaemon(config *Templa
 	}
 
 	// Get template from API
-	if lister, ok := s.apiClient.(interface{ ListTemplates(context.Context) (map[string]interface{}, error) }); ok {
+	if lister, ok := s.apiClient.(interface {
+		ListTemplates(context.Context) (map[string]interface{}, error)
+	}); ok {
 		runtimeTemplates, err := lister.ListTemplates(context.Background())
 		if err != nil {
 			return nil, fmt.Errorf("failed to list templates: %w", err)
@@ -1257,8 +1265,8 @@ type ConflictDiff struct {
 
 // HasChanges returns true if diff contains any changes
 func (d *TemplateDiff) HasChanges() bool {
-	return len(d.PackagesToInstall) > 0 || len(d.ServicesToConfigure) > 0 || 
-		   len(d.UsersToCreate) > 0 || len(d.UsersToModify) > 0 || len(d.PortsToOpen) > 0
+	return len(d.PackagesToInstall) > 0 || len(d.ServicesToConfigure) > 0 ||
+		len(d.UsersToCreate) > 0 || len(d.UsersToModify) > 0 || len(d.PortsToOpen) > 0
 }
 
 // Summary returns a summary of changes
@@ -1276,7 +1284,7 @@ func (d *TemplateDiff) Summary() string {
 	if len(d.PortsToOpen) > 0 {
 		changes = append(changes, fmt.Sprintf("%d ports", len(d.PortsToOpen)))
 	}
-	
+
 	return strings.Join(changes, ", ")
 }
 
@@ -1289,7 +1297,9 @@ func (s *TemplateDiffService) CalculateDiff(config *TemplateDiffConfig, template
 	req := s.createDiffRequest(config, unifiedTemplate)
 
 	// Calculate diff via API
-	if differ, ok := s.apiClient.(interface{ DiffTemplate(context.Context, interface{}) (*TemplateDiff, error) }); ok {
+	if differ, ok := s.apiClient.(interface {
+		DiffTemplate(context.Context, interface{}) (*TemplateDiff, error)
+	}); ok {
 		return differ.DiffTemplate(context.Background(), req)
 	}
 
@@ -1429,6 +1439,6 @@ func (s *TemplateDiffDisplayService) displaySummary(config *TemplateDiffConfig, 
 		fmt.Printf("\n💡 Use 'cws apply %s %s' to apply these changes\n", config.TemplateName, config.InstanceName)
 		fmt.Printf("💡 Use 'cws apply %s %s --dry-run' to preview the application\n", config.TemplateName, config.InstanceName)
 	}
-	
+
 	return nil
 }

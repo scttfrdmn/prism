@@ -19,7 +19,7 @@ type Dashboard struct {
 	instances  []types.Instance
 	totalCost  float64
 	lastUpdate time.Time
-	
+
 	// UI components
 	costLabel      *widget.Label
 	instancesLabel *widget.Label
@@ -35,9 +35,9 @@ func NewDashboard(apiClient api.CloudWorkstationAPI) *Dashboard {
 		instancesLabel: widget.NewLabel("Instances: Loading..."),
 		statusLabel:    widget.NewLabel("Status: Connecting..."),
 	}
-	
+
 	d.refreshButton = widget.NewButton("Refresh", d.refresh)
-	
+
 	return d
 }
 
@@ -47,16 +47,16 @@ func (d *Dashboard) CreateView() fyne.CanvasObject {
 	costCard := d.createCostSummaryCard()
 	instanceCard := d.createInstanceSummaryCard()
 	statusCard := d.createStatusCard()
-	
+
 	// Layout dashboard components
 	topRow := fynecontainer.NewGridWithColumns(3, costCard, instanceCard, statusCard)
-	
+
 	// Recent activity section
 	activityCard := d.createRecentActivityCard()
-	
+
 	// Quick actions
 	actionsCard := d.createQuickActionsCard()
-	
+
 	// Combine all sections
 	dashboard := fynecontainer.NewVBox(
 		widget.NewLabel("Dashboard"),
@@ -65,7 +65,7 @@ func (d *Dashboard) CreateView() fyne.CanvasObject {
 		actionsCard,
 		d.refreshButton,
 	)
-	
+
 	return fynecontainer.NewScroll(dashboard)
 }
 
@@ -73,21 +73,21 @@ func (d *Dashboard) CreateView() fyne.CanvasObject {
 func (d *Dashboard) UpdateView() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	// Fetch instances
 	resp, err := d.apiClient.ListInstances(ctx)
 	if err != nil {
 		d.statusLabel.SetText("Status: Error connecting to daemon")
 		return fmt.Errorf("failed to fetch instances: %w", err)
 	}
-	
+
 	d.instances = resp.Instances
 	d.calculateTotalCost()
 	d.lastUpdate = time.Now()
-	
+
 	// Update UI labels
 	d.updateLabels()
-	
+
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (d *Dashboard) createCostSummaryCard() fyne.CanvasObject {
 		d.costLabel,
 		widget.NewLabel("(per hour)"),
 	)
-	
+
 	return fynecontainer.NewBorder(nil, nil, nil, nil, card)
 }
 
@@ -114,7 +114,7 @@ func (d *Dashboard) createInstanceSummaryCard() fyne.CanvasObject {
 		d.instancesLabel,
 		widget.NewLabel("(active)"),
 	)
-	
+
 	return fynecontainer.NewBorder(nil, nil, nil, nil, card)
 }
 
@@ -125,7 +125,7 @@ func (d *Dashboard) createStatusCard() fyne.CanvasObject {
 		d.statusLabel,
 		widget.NewLabel(fmt.Sprintf("Updated: %s", d.lastUpdate.Format("15:04:05"))),
 	)
-	
+
 	return fynecontainer.NewBorder(nil, nil, nil, nil, card)
 }
 
@@ -144,7 +144,7 @@ func (d *Dashboard) createRecentActivityCard() fyne.CanvasObject {
 			}
 		},
 	)
-	
+
 	return fynecontainer.NewVBox(
 		widget.NewLabel("📊 Recent Activity"),
 		activityList,
@@ -156,13 +156,13 @@ func (d *Dashboard) createQuickActionsCard() fyne.CanvasObject {
 	launchBtn := widget.NewButton("🚀 Quick Launch", func() {
 		// TODO: Implement quick launch dialog
 	})
-	
+
 	connectBtn := widget.NewButton("🔗 Quick Connect", func() {
 		// TODO: Implement quick connect
 	})
-	
+
 	actions := fynecontainer.NewGridWithColumns(2, launchBtn, connectBtn)
-	
+
 	return fynecontainer.NewVBox(
 		widget.NewLabel("⚡ Quick Actions"),
 		actions,
@@ -187,7 +187,7 @@ func (d *Dashboard) updateLabels() {
 			runningCount++
 		}
 	}
-	
+
 	d.costLabel.SetText(fmt.Sprintf("$%.3f/hour", d.totalCost))
 	d.instancesLabel.SetText(fmt.Sprintf("%d running", runningCount))
 	d.statusLabel.SetText("Status: Connected")

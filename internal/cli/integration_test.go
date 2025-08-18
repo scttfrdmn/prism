@@ -1,4 +1,7 @@
 // Package cli integration tests for CloudWorkstation CLI
+//
+// This file contains mock-based integration tests that run by default.
+// For AWS integration tests against real resources, see integration_aws_test.go
 package cli
 
 import (

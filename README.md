@@ -41,17 +41,42 @@ From individual researchers to institutional deployments, CloudWorkstation scale
 
 ## 🚀 Quick Start
 
-### Installation (Recommended: Homebrew)
+### macOS Installation
+
+**🍎 DMG Installer (Recommended for Desktop Users)**
+
+```bash
+# Download and install via DMG
+curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.2.dmg
+open CloudWorkstation-v0.4.2.dmg
+# Drag CloudWorkstation.app to Applications folder
+```
+
+**Features:** Native macOS app, GUI + CLI, automatic PATH setup, daemon auto-start
+**Guide:** [macOS DMG Installation Guide](docs/MACOS_DMG_INSTALLATION.md)
+
+**📦 Homebrew (Traditional)**
 
 ```bash
 # Add the CloudWorkstation tap
 brew tap scttfrdmn/cloudworkstation
 
-# Install CloudWorkstation
+# Install CloudWorkstation  
 brew install cloudworkstation
 
 # Verify installation
 cws --version
+```
+
+### Linux/Other Platforms
+
+```bash
+# Download binary for your platform
+curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-linux-$(uname -m).tar.gz | tar xz
+
+# Make executable and add to PATH
+chmod +x cws cwsd
+sudo mv cws cwsd /usr/local/bin/
 ```
 
 ### AWS Setup (Required)

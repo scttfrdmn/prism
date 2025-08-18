@@ -131,8 +131,8 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 	fmt.Printf("═══════════════════════════════\n\n")
 
 	// Check daemon is running
-	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	if err := s.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	response, err := s.app.apiClient.ListInstances(s.app.ctx)
@@ -349,8 +349,8 @@ func (s *ScalingCommands) rightsizingSummary(args []string) error {
 	fmt.Printf("════════════════════════════════════\n\n")
 
 	// Check daemon is running
-	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	if err := s.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	response, err := s.app.apiClient.ListInstances(s.app.ctx)

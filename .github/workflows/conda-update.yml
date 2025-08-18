@@ -57,7 +57,7 @@ jobs:
       - name: Build conda package
         if: github.event_name == 'release'
         run: |
-          conda build scripts/conda --output-folder ./conda-build
+          conda build packaging/conda --output-folder ./conda-build
         shell: bash -el {0}
 
       - name: Upload to Anaconda Cloud

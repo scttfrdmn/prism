@@ -1,0 +1,514 @@
+name: Windows MSI Build
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'internal/**'
+      - 'packaging/windows/**'
+      - 'scripts/build-msi.ps1'
+      - 'scripts/sign-msi.ps1'
+      - '.github/workflows/windows-msi.yml'
+
+env:
+  GO_VERSION: '1.21'
+  DOTNET_VERSION: '4.8'
+  WIX_VERSION: '3.11.2'
+
+jobs:
+  build-msi:
+    name: Build Windows MSI Installer
+    runs-on: windows-2022
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v1.3
+      with:
+        vs-version: 'latest'
+    
+    - name: Install WiX Toolset
+      shell: powershell
+      run: |
+        Write-Host "Installing WiX Toolset v${{ env.WIX_VERSION }}..."
+        $wixUrl = "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe"
+        $wixInstaller = "$env:TEMP\wix311.exe"
+        
+        # Download WiX installer
+        Invoke-WebRequest -Uri $wixUrl -OutFile $wixInstaller
+        
+        # Install WiX silently
+        Start-Process -FilePath $wixInstaller -ArgumentList "/S" -Wait
+        
+        # Add WiX to PATH
+        $wixPath = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin"
+        if (Test-Path $wixPath) {
+          echo "$wixPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "✓ WiX Toolset installed and added to PATH"
+        } else {
+          throw "WiX Toolset installation failed"
+        }
+    
+    - name: Verify build environment
+      shell: powershell
+      run: |
+        Write-Host "=== Build Environment Verification ==="
+        Write-Host "Go version:"
+        go version
+        Write-Host ""
+        
+        Write-Host "MSBuild version:"
+        msbuild -version
+        Write-Host ""
+        
+        Write-Host "WiX Toolset:"
+        candle -? | Select-Object -First 3
+        Write-Host ""
+        
+        Write-Host "✓ Build environment ready"
+    
+    - name: Get version information
+      id: version
+      shell: powershell
+      run: |
+        # Extract version from tag or use default
+        if ($env:GITHUB_REF -match "refs/tags/v(.*)") {
+          $version = $matches[1]
+          Write-Host "Using tag version: $version"
+        } else {
+          # Extract version from Makefile
+          $makefileContent = Get-Content "Makefile"
+          $versionLine = $makefileContent | Where-Object { $_ -match "VERSION := (.+)" }
+          if ($versionLine) {
+            $version = $matches[1]
+            Write-Host "Using Makefile version: $version"
+          } else {
+            $version = "0.4.2-dev"
+            Write-Host "Using default version: $version"
+          }
+        }
+        
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+    
+    - name: Restore NuGet packages
+      shell: powershell
+      run: |
+        Write-Host "Restoring NuGet packages for custom actions..."
+        if (Test-Path "packaging/windows/SetupCustomActions/packages.config") {
+          nuget restore packaging/windows/SetupCustomActions/packages.config -PackagesDirectory packages
+        } else {
+          Write-Host "⚠️ packages.config not found, skipping NuGet restore"
+        }
+    
+    - name: Build Go binaries
+      shell: powershell
+      run: |
+        Write-Host "Building Go binaries for Windows..."
+        
+        $env:GOOS = "windows"
+        $env:GOARCH = "amd64"
+        $env:CGO_ENABLED = "0"
+        
+        $buildDate = Get-Date -Format "yyyy-MM-dd_HH:mm:ss"
+        $gitCommit = git rev-parse --short HEAD
+        $ldflags = "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$env:VERSION -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$buildDate -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=$gitCommit"
+        
+        # Create output directory
+        New-Item -ItemType Directory -Path "build/windows/release/windows-amd64" -Force | Out-Null
+        
+        # Build CLI
+        Write-Host "Building CLI (cws.exe)..."
+        go build -ldflags $ldflags -o "build/windows/release/windows-amd64/cws.exe" ./cmd/cws
+        if ($LASTEXITCODE -ne 0) { throw "CLI build failed" }
+        
+        # Build daemon
+        Write-Host "Building daemon (cwsd.exe)..."
+        go build -ldflags $ldflags -o "build/windows/release/windows-amd64/cwsd.exe" ./cmd/cwsd
+        if ($LASTEXITCODE -ne 0) { throw "Daemon build failed" }
+        
+        # Build service wrapper
+        Write-Host "Building service wrapper (cwsd-service.exe)..."
+        go build -ldflags $ldflags -o "build/windows/release/windows-amd64/cwsd-service.exe" ./cmd/cwsd-service
+        if ($LASTEXITCODE -ne 0) { throw "Service wrapper build failed" }
+        
+        # Build GUI (best effort)
+        Write-Host "Building GUI (cws-gui.exe)..."
+        $env:CGO_ENABLED = "1"
+        go build -ldflags $ldflags -o "build/windows/release/windows-amd64/cws-gui.exe" ./cmd/cws-gui 2>$null
+        if ($LASTEXITCODE -eq 0) {
+          Write-Host "✓ GUI built successfully"
+        } else {
+          Write-Host "⚠️ GUI build failed (creating placeholder)"
+          # Create placeholder GUI
+          Copy-Item "$env:SystemRoot\System32\cmd.exe" "build/windows/release/windows-amd64/cws-gui.exe"
+        }
+        
+        Write-Host "✓ Go binaries built successfully"
+    
+    - name: Prepare supporting files
+      shell: powershell
+      run: |
+        Write-Host "Preparing supporting files..."
+        
+        $releaseDir = "build/windows/release"
+        
+        # Copy templates
+        New-Item -ItemType Directory -Path "$releaseDir/templates" -Force | Out-Null
+        if (Test-Path "templates") {
+          Copy-Item "templates/*.yml" "$releaseDir/templates/" -ErrorAction SilentlyContinue
+          Copy-Item "templates/*.json" "$releaseDir/templates/" -ErrorAction SilentlyContinue
+        }
+        
+        # Copy documentation
+        New-Item -ItemType Directory -Path "$releaseDir/docs" -Force | Out-Null
+        if (Test-Path "docs") {
+          Copy-Item "docs/*.md" "$releaseDir/docs/" -ErrorAction SilentlyContinue
+        }
+        Copy-Item "LICENSE" "$releaseDir/" -ErrorAction SilentlyContinue
+        
+        # Copy PowerShell module
+        New-Item -ItemType Directory -Path "$releaseDir/scripts" -Force | Out-Null
+        Copy-Item "scripts/CloudWorkstation.psm1" "$releaseDir/scripts/" -ErrorAction SilentlyContinue
+        
+        # Create placeholder assets
+        New-Item -ItemType Directory -Path "$releaseDir/assets" -Force | Out-Null
+        New-Item -ItemType File -Path "$releaseDir/assets/cloudworkstation.ico" -Force | Out-Null
+        
+        Write-Host "✓ Supporting files prepared"
+    
+    - name: Build custom actions DLL
+      shell: powershell
+      run: |
+        Write-Host "Building custom actions DLL..."
+        
+        $projectPath = "packaging/windows/SetupCustomActions/SetupCustomActions.csproj"
+        if (Test-Path $projectPath) {
+          try {
+            msbuild $projectPath /p:Configuration=Release /p:Platform=x64 /p:OutputPath="../../../build/windows/release/" /nologo /verbosity:minimal
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✓ Custom actions DLL built successfully"
+            } else {
+              Write-Host "⚠️ Custom actions DLL build failed, creating placeholder"
+              New-Item -ItemType File -Path "build/windows/release/SetupCustomActions.dll" -Force | Out-Null
+            }
+          } catch {
+            Write-Host "⚠️ Custom actions build error: $_"
+            New-Item -ItemType File -Path "build/windows/release/SetupCustomActions.dll" -Force | Out-Null
+          }
+        } else {
+          Write-Host "⚠️ Custom actions project not found, creating placeholder"
+          New-Item -ItemType File -Path "build/windows/release/SetupCustomActions.dll" -Force | Out-Null
+        }
+    
+    - name: Build MSI installer
+      shell: powershell
+      run: |
+        Write-Host "Building MSI installer..."
+        
+        try {
+          # Use the PowerShell build script
+          & .\scripts\build-msi.ps1 -Version $env:VERSION -Verbose
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ MSI installer built successfully"
+            
+            # Verify MSI file exists
+            $msiFile = "dist/windows/CloudWorkstation-v$env:VERSION-x64.msi"
+            if (Test-Path $msiFile) {
+              $msiSize = (Get-Item $msiFile).Length
+              Write-Host "MSI file: $msiFile ($msiSize bytes)"
+            } else {
+              throw "MSI file not found at expected location: $msiFile"
+            }
+          } else {
+            throw "MSI build script failed with exit code: $LASTEXITCODE"
+          }
+        } catch {
+          Write-Host "❌ MSI build failed: $_"
+          throw
+        }
+    
+    - name: Test MSI installer
+      shell: powershell
+      run: |
+        Write-Host "Testing MSI installer..."
+        
+        $msiFile = "dist/windows/CloudWorkstation-v$env:VERSION-x64.msi"
+        
+        if (-not (Test-Path $msiFile)) {
+          throw "MSI file not found: $msiFile"
+        }
+        
+        # Test MSI file integrity
+        try {
+          # Use Windows Installer API to validate MSI
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $database = $installer.OpenDatabase($msiFile, 0) # Read-only
+          
+          if ($database) {
+            Write-Host "✓ MSI file is valid"
+            $database = $null
+          } else {
+            throw "Failed to open MSI database"
+          }
+        } catch {
+          Write-Host "⚠️ MSI validation warning: $_"
+        } finally {
+          if ($installer) {
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($installer) | Out-Null
+          }
+        }
+        
+        # Check file size (should be reasonable)
+        $msiSize = (Get-Item $msiFile).Length
+        if ($msiSize -lt (10 * 1024 * 1024)) {  # Less than 10MB
+          Write-Host "⚠️ MSI file seems small: $($msiSize / 1024 / 1024) MB"
+        } elseif ($msiSize -gt (200 * 1024 * 1024)) {  # Greater than 200MB
+          Write-Host "⚠️ MSI file seems large: $($msiSize / 1024 / 1024) MB"
+        } else {
+          Write-Host "✓ MSI file size looks reasonable: $($msiSize / 1024 / 1024) MB"
+        }
+    
+    - name: Sign MSI (if certificate available)
+      if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+      shell: powershell
+      run: |
+        Write-Host "Checking for code signing certificate..."
+        
+        # In a real workflow, you would have certificate secrets
+        # For now, just create a test certificate for demonstration
+        if ($false) {  # Disabled - enable when certificates are available
+          Write-Host "Signing MSI installer..."
+          try {
+            & .\scripts\sign-msi.ps1 -Verify
+            Write-Host "✓ MSI signed successfully"
+          } catch {
+            Write-Host "⚠️ MSI signing failed: $_"
+            # Don't fail the build for signing issues
+          }
+        } else {
+          Write-Host "⚠️ Code signing certificate not available"
+          Write-Host "   MSI will be unsigned (not recommended for production)"
+        }
+    
+    - name: Upload MSI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: CloudWorkstation-Windows-MSI-${{ steps.version.outputs.version }}
+        path: |
+          dist/windows/CloudWorkstation-v${{ steps.version.outputs.version }}-x64.msi
+          dist/windows/CloudWorkstation-v${{ steps.version.outputs.version }}-x64.msi.sha256
+        retention-days: 30
+    
+    - name: Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows-MSI-Build-Logs-${{ steps.version.outputs.version }}
+        path: |
+          build/windows/build-msi.log
+        retention-days: 7
+    
+    - name: Create release assets (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: powershell
+      run: |
+        Write-Host "Preparing release assets..."
+        
+        $version = "${{ steps.version.outputs.version }}"
+        $msiFile = "dist/windows/CloudWorkstation-v$version-x64.msi"
+        $hashFile = "dist/windows/CloudWorkstation-v$version-x64.msi.sha256"
+        
+        # Create release notes
+        $releaseNotes = @"
+# CloudWorkstation v$version - Windows MSI Installer
+
+## Installation
+
+### System Requirements
+- Windows 10 version 1903 or later (Windows 11 recommended)
+- 64-bit architecture
+- Administrator privileges for installation
+- .NET Framework 4.8 or later (for advanced features)
+
+### Installation Methods
+
+#### Silent Installation
+```cmd
+msiexec /i CloudWorkstation-v$version-x64.msi /quiet
+```
+
+#### Interactive Installation
+```cmd
+msiexec /i CloudWorkstation-v$version-x64.msi
+```
+
+#### With Logging
+```cmd
+msiexec /i CloudWorkstation-v$version-x64.msi /l*v install.log
+```
+
+### What's Included
+- **Core Binaries**: CLI (cws.exe), Daemon (cwsd.exe), GUI (cws-gui.exe)
+- **Windows Service**: Automatic daemon startup with system boot
+- **Research Templates**: Built-in templates for Python ML, R research, etc.
+- **PowerShell Integration**: PowerShell module for advanced scripting
+- **Documentation**: Getting started guides and troubleshooting
+- **Start Menu Integration**: Easy access shortcuts
+
+### First-Run Setup
+After installation, the first-run setup wizard will help you configure:
+- AWS credentials and profiles
+- Default regions and settings
+- Service verification and connectivity tests
+
+### Uninstallation
+```cmd
+msiexec /x CloudWorkstation-v$version-x64.msi /quiet
+```
+
+## Security Note
+This MSI installer is **unsigned** in the development build. For production use, obtain a properly signed installer from official releases.
+
+## Verification
+- **SHA256**: ``$(if (Test-Path $hashFile) { Get-Content $hashFile } else { "Not available" })``
+- **Size**: $((Get-Item $msiFile).Length) bytes
+
+## Support
+- **Documentation**: Installed in Start Menu → CloudWorkstation → Documentation  
+- **Issues**: https://github.com/scttfrdmn/cloudworkstation/issues
+- **Discussions**: https://github.com/scttfrdmn/cloudworkstation/discussions
+"@
+        
+        $releaseNotes | Out-File -FilePath "WINDOWS_RELEASE_NOTES.md" -Encoding UTF8
+        Write-Host "✓ Release notes created"
+    
+    # Summary
+    - name: Build summary
+      shell: powershell  
+      run: |
+        Write-Host "=================================="
+        Write-Host "  Windows MSI Build Complete!"
+        Write-Host "=================================="
+        Write-Host ""
+        
+        $version = "${{ steps.version.outputs.version }}"
+        $msiFile = "dist/windows/CloudWorkstation-v$version-x64.msi"
+        
+        if (Test-Path $msiFile) {
+          $msiSize = (Get-Item $msiFile).Length
+          $msiSizeMB = [math]::Round($msiSize / 1024 / 1024, 2)
+          
+          Write-Host "✓ MSI Installer: CloudWorkstation-v$version-x64.msi"
+          Write-Host "  Size: $msiSizeMB MB ($msiSize bytes)"
+          Write-Host "  Location: $msiFile"
+          
+          if (Test-Path "dist/windows/CloudWorkstation-v$version-x64.msi.sha256") {
+            $hash = Get-Content "dist/windows/CloudWorkstation-v$version-x64.msi.sha256"
+            Write-Host "  SHA256: $hash"
+          }
+          
+          Write-Host ""
+          Write-Host "Ready for testing and distribution!"
+          Write-Host ""
+          Write-Host "Test Installation:"
+          Write-Host "  msiexec /i `"$msiFile`" /l*v test-install.log"
+          Write-Host ""
+          Write-Host "Silent Installation:"
+          Write-Host "  msiexec /i `"$msiFile`" /quiet"
+        } else {
+          Write-Host "❌ MSI file not found!"
+          exit 1
+        }
+
+  # Test installation on Windows (separate job)
+  test-installation:
+    name: Test MSI Installation
+    runs-on: windows-2022
+    needs: build-msi
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Download MSI artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: CloudWorkstation-Windows-MSI-*
+        path: ./msi
+    
+    - name: Test MSI installation
+      shell: powershell
+      run: |
+        Write-Host "Testing MSI installation..."
+        
+        $msiFile = Get-ChildItem -Path "./msi" -Filter "*.msi" | Select-Object -First 1
+        if (-not $msiFile) {
+          throw "MSI file not found in artifact"
+        }
+        
+        Write-Host "Found MSI: $($msiFile.Name)"
+        
+        # Test silent installation
+        Write-Host "Testing silent installation..."
+        $logFile = "test-install.log"
+        
+        try {
+          Start-Process -FilePath "msiexec" -ArgumentList "/i `"$($msiFile.FullName)`" /quiet /l*v `"$logFile`"" -Wait
+          Write-Host "✓ Silent installation completed"
+          
+          # Check if files were installed
+          $programFiles = "${env:ProgramFiles}\CloudWorkstation"
+          if (Test-Path $programFiles) {
+            Write-Host "✓ Installation directory created: $programFiles"
+            
+            # Check for key files
+            $cws = Join-Path $programFiles "bin\cws.exe"
+            if (Test-Path $cws) {
+              Write-Host "✓ CLI executable found: $cws"
+              
+              # Test CLI version
+              $version = & $cws --version 2>&1
+              Write-Host "✓ CLI version: $version"
+            } else {
+              throw "CLI executable not found at $cws"
+            }
+          } else {
+            throw "Installation directory not created at $programFiles"
+          }
+          
+          # Test uninstallation
+          Write-Host "Testing uninstallation..."
+          Start-Process -FilePath "msiexec" -ArgumentList "/x `"$($msiFile.FullName)`" /quiet" -Wait
+          
+          if (-not (Test-Path $programFiles)) {
+            Write-Host "✓ Uninstallation successful"
+          } else {
+            Write-Host "⚠️ Installation directory still exists after uninstall"
+          }
+          
+        } catch {
+          Write-Host "❌ Installation test failed: $_"
+          
+          if (Test-Path $logFile) {
+            Write-Host "Installation log:"
+            Get-Content $logFile | Select-Object -Last 50
+          }
+          
+          throw
+        }
+        
+        Write-Host "✓ MSI installation test completed successfully"

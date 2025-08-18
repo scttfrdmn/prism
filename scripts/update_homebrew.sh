@@ -46,7 +46,7 @@ SHA_LINUX_AMD64=$(shasum -a 256 "$RELEASE_DIR/$LINUX_AMD64" | awk '{print $1}')
 SHA_LINUX_ARM64=$(shasum -a 256 "$RELEASE_DIR/$LINUX_ARM64" | awk '{print $1}')
 
 # Update the formula
-FORMULA_PATH="scripts/homebrew/cloudworkstation.rb"
+FORMULA_PATH="packaging/homebrew/cloudworkstation.rb"
 
 # Backup original formula
 cp "$FORMULA_PATH" "$FORMULA_PATH.bak"

@@ -11,7 +11,7 @@ This document describes how to set up and maintain the Conda package for CloudWo
 The CloudWorkstation Conda package is structured as follows:
 
 ```
-scripts/conda/
+packaging/conda/
 ├── meta.yaml    # Package metadata and build instructions
 ├── build.sh     # Unix/macOS build script
 └── bld.bat      # Windows build script
@@ -56,7 +56,7 @@ To manually update the package:
 python scripts/update_conda.py v0.4.2 ./dist/v0.4.2
 
 # Build the package
-conda build scripts/conda
+conda build packaging/conda
 ```
 
 ## Testing the Package Locally
@@ -65,7 +65,7 @@ To test the Conda package locally:
 
 ```bash
 # Build the package
-conda build scripts/conda
+conda build packaging/conda
 
 # Install from local build
 conda install --use-local cloudworkstation

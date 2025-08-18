@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  
+  <!-- Product Definition -->
+  <Product Id="*" 
+           Name="CloudWorkstation" 
+           Language="1033" 
+           Version="0.4.2" 
+           Manufacturer="CloudWorkstation Project"
+           UpgradeCode="{12345678-1234-5678-9ABC-123456789012}">
+    
+    <!-- Package Configuration -->
+    <Package InstallerVersion="405" 
+             Compressed="yes" 
+             InstallScope="perMachine"
+             Platform="x64"
+             InstallPrivileges="elevated"
+             Description="CloudWorkstation: Enterprise Research Management Platform"
+             Comments="Launch cloud research environments in seconds"
+             Keywords="Cloud, Research, AWS, Academic"
+             Manufacturer="CloudWorkstation Project" />
+    
+    <!-- Installation Media -->
+    <Media Id="1" Cabinet="CloudWorkstation.cab" EmbedCab="yes" />
+    
+    <!-- Major Upgrade Configuration -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of CloudWorkstation is already installed."
+                  AllowDowngrades="no"
+                  AllowSameVersionUpgrades="yes"
+                  Schedule="afterInstallInitialize" />
+    
+    <!-- Installation Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="CloudWorkstation">
+          <Directory Id="BinFolder" Name="bin" />
+          <Directory Id="TemplatesFolder" Name="templates" />
+          <Directory Id="DocsFolder" Name="docs" />
+        </Directory>
+      </Directory>
+      
+      <!-- Program Data Directory (for configuration and logs) -->
+      <Directory Id="ProgramDataFolder">
+        <Directory Id="CONFIGFOLDER" Name="CloudWorkstation">
+          <Directory Id="LogsFolder" Name="Logs" />
+        </Directory>
+      </Directory>
+      
+      <!-- Start Menu -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="StartMenuFolder" Name="CloudWorkstation" />
+      </Directory>
+      
+      <!-- Desktop -->
+      <Directory Id="DesktopFolder" />
+    </Directory>
+    
+    <!-- Core Binaries Component -->
+    <Component Id="BinariesComponent" Guid="{11111111-2222-3333-4444-555555555555}" Directory="BinFolder">
+      <File Id="CWSCLIExecutable" 
+            Source="$(var.SourceDir)\windows-amd64\cws.exe" 
+            KeyPath="yes"
+            Name="cws.exe" />
+      <File Id="CWSDDaemonExecutable" 
+            Source="$(var.SourceDir)\windows-amd64\cwsd.exe"
+            Name="cwsd.exe" />
+      <File Id="CWSServiceWrapper" 
+            Source="$(var.SourceDir)\windows-amd64\cwsd-service.exe"
+            Name="cwsd-service.exe" />
+      <File Id="CWSGUIExecutable" 
+            Source="$(var.SourceDir)\windows-amd64\cws-gui.exe"
+            Name="cws-gui.exe" />
+      
+      <!-- Environment Variable (PATH) -->
+      <Environment Id="PATH" Name="PATH" Value="[BinFolder]" Permanent="no" Part="last" Action="set" System="yes" />
+    </Component>
+    
+    <!-- Templates Component -->
+    <Component Id="TemplatesComponent" Guid="{22222222-3333-4444-5555-666666666666}" Directory="TemplatesFolder">
+      <File Id="BaseRocky9Template"
+            Source="$(var.SourceDir)\templates\base-rocky9.yml" />
+      <File Id="Rocky9CondaStackTemplate"
+            Source="$(var.SourceDir)\templates\rocky9-conda-stack.yml" />
+      <File Id="PythonMLTemplate"
+            Source="$(var.SourceDir)\templates\simple-python-ml.yml" />
+      <File Id="RResearchTemplate"
+            Source="$(var.SourceDir)\templates\simple-r-research.yml" />
+      <File Id="BasicUbuntuTemplate"
+            Source="$(var.SourceDir)\templates\basic-ubuntu-apt.yml" />
+      <File Id="WebDevTemplate"
+            Source="$(var.SourceDir)\templates\web-dev-apt.yml" />
+      <File Id="TemplateSchema"
+            Source="$(var.SourceDir)\templates\template.schema.json" />
+    </Component>
+    
+    <!-- Documentation Component -->
+    <Component Id="DocsComponent" Guid="{33333333-4444-5555-6666-777777777777}" Directory="DocsFolder">
+      <File Id="GettingStartedDoc"
+            Source="$(var.SourceDir)\docs\GETTING_STARTED.md" />
+      <File Id="UserGuideDoc"
+            Source="$(var.SourceDir)\docs\GUI_USER_GUIDE.md" />
+      <File Id="TUIGuideDoc"
+            Source="$(var.SourceDir)\docs\TUI_USER_GUIDE.md" />
+      <File Id="TroubleshootingDoc"
+            Source="$(var.SourceDir)\docs\TROUBLESHOOTING.md" />
+      <File Id="LicenseFile"
+            Source="$(var.SourceDir)\LICENSE" />
+    </Component>
+    
+    <!-- Windows Service Component -->
+    <Component Id="ServiceComponent" Guid="{44444444-5555-6666-7777-888888888888}" Directory="BinFolder">
+      <ServiceInstall Id="CWSService"
+                      DisplayName="CloudWorkstation Daemon Service"
+                      Name="CloudWorkstationDaemon" 
+                      Type="ownProcess"
+                      Start="auto"
+                      Account="LocalSystem"
+                      ErrorControl="normal"
+                      Description="CloudWorkstation research environment management service"
+                      Interactive="no"
+                      Arguments="--service">
+        <!-- Service Dependencies -->
+        <ServiceDependency Id="Tcpip" />
+        <ServiceDependency Id="Dhcp" />
+      </ServiceInstall>
+      
+      <ServiceControl Id="CWSServiceControl"
+                      Name="CloudWorkstationDaemon"
+                      Start="install"
+                      Stop="both"
+                      Remove="uninstall"
+                      Wait="yes" />
+      
+      <!-- Service Recovery Configuration -->
+      <util:ServiceConfig ServiceName="CloudWorkstationDaemon"
+                          FirstFailureActionType="restart"
+                          SecondFailureActionType="restart"
+                          ThirdFailureActionType="restart"
+                          RestartServiceDelayInSeconds="5"
+                          ResetPeriodInDays="1" />
+    </Component>
+    
+    <!-- Configuration Directories Component -->
+    <Component Id="ConfigDirectoriesComponent" Guid="{55555555-6666-7777-8888-999999999999}" Directory="CONFIGFOLDER">
+      <CreateFolder />
+      <!-- Set proper permissions for configuration directory -->
+      <util:PermissionEx User="Everyone" GenericRead="yes" GenericExecute="yes" />
+      <util:PermissionEx User="Administrators" GenericAll="yes" />
+      <util:PermissionEx User="SYSTEM" GenericAll="yes" />
+      
+      <RegistryValue Root="HKLM" 
+                     Key="SOFTWARE\CloudWorkstation" 
+                     Name="ConfigPath" 
+                     Type="string" 
+                     Value="[CONFIGFOLDER]"
+                     KeyPath="yes" />
+    </Component>
+    
+    <!-- Log Directory Component -->
+    <Component Id="LogDirectoryComponent" Guid="{66666666-7777-8888-9999-AAAAAAAAAAAA}" Directory="LogsFolder">
+      <CreateFolder />
+      <!-- Set proper permissions for log directory -->
+      <util:PermissionEx User="Everyone" GenericRead="yes" GenericWrite="yes" GenericExecute="yes" />
+      <util:PermissionEx User="Administrators" GenericAll="yes" />
+      <util:PermissionEx User="SYSTEM" GenericAll="yes" />
+    </Component>
+    
+    <!-- Start Menu Shortcuts Component -->
+    <Component Id="StartMenuComponent" Guid="{77777777-8888-9999-AAAA-BBBBBBBBBBBB}" Directory="StartMenuFolder">
+      <Shortcut Id="StartMenuCLI"
+                Name="CloudWorkstation CLI"
+                Target="[BinFolder]cws.exe"
+                Arguments=""
+                Description="Launch CloudWorkstation command line interface"
+                Icon="CloudWorkstationIcon"
+                WorkingDirectory="BinFolder" />
+      
+      <Shortcut Id="StartMenuGUI" 
+                Name="CloudWorkstation GUI"
+                Target="[BinFolder]cws-gui.exe"
+                Description="Launch CloudWorkstation graphical interface"
+                Icon="CloudWorkstationIcon"
+                WorkingDirectory="BinFolder" />
+      
+      <Shortcut Id="StartMenuDocumentation"
+                Name="CloudWorkstation Documentation"
+                Target="[DocsFolder]GETTING_STARTED.md"
+                Description="CloudWorkstation documentation and help"
+                Icon="CloudWorkstationIcon" />
+      
+      <RemoveFolder Id="RemoveStartMenuFolder" Directory="StartMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" 
+                     Key="Software\CloudWorkstation\StartMenu" 
+                     Name="installed" 
+                     Type="integer" 
+                     Value="1" 
+                     KeyPath="yes" />
+    </Component>
+    
+    <!-- Desktop Shortcut Component (Optional) -->
+    <Component Id="DesktopShortcutComponent" Guid="{88888888-9999-AAAA-BBBB-CCCCCCCCCCCC}" Directory="DesktopFolder">
+      <Shortcut Id="DesktopGUI"
+                Name="CloudWorkstation"
+                Target="[BinFolder]cws-gui.exe"
+                Description="CloudWorkstation: Launch cloud research environments"
+                Icon="CloudWorkstationIcon"
+                WorkingDirectory="BinFolder" />
+      
+      <RegistryValue Root="HKCU" 
+                     Key="Software\CloudWorkstation\Desktop" 
+                     Name="installed" 
+                     Type="integer" 
+                     Value="1" 
+                     KeyPath="yes" />
+    </Component>
+    
+    <!-- Registry Configuration Component -->
+    <Component Id="RegistryComponent" Guid="{99999999-AAAA-BBBB-CCCC-DDDDDDDDDDDD}" Directory="INSTALLFOLDER">
+      <!-- Application Registry Settings -->
+      <RegistryKey Root="HKLM" Key="SOFTWARE\CloudWorkstation">
+        <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" />
+        <RegistryValue Name="Version" Type="string" Value="0.4.2" />
+        <RegistryValue Name="ServiceEnabled" Type="integer" Value="1" />
+        <RegistryValue Name="BinPath" Type="string" Value="[BinFolder]" />
+        <RegistryValue Name="TemplatesPath" Type="string" Value="[TemplatesFolder]" />
+        <RegistryValue Name="DocsPath" Type="string" Value="[DocsFolder]" />
+      </RegistryKey>
+      
+      <!-- Uninstall Information -->
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\CloudWorkstation">
+        <RegistryValue Name="DisplayName" Type="string" Value="CloudWorkstation v0.4.2" />
+        <RegistryValue Name="DisplayVersion" Type="string" Value="0.4.2" />
+        <RegistryValue Name="Publisher" Type="string" Value="CloudWorkstation Project" />
+        <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
+        <RegistryValue Name="UninstallString" Type="string" Value="msiexec /x [ProductCode]" />
+        <RegistryValue Name="QuietUninstallString" Type="string" Value="msiexec /x [ProductCode] /quiet" />
+        <RegistryValue Name="EstimatedSize" Type="integer" Value="51200" />
+        <RegistryValue Name="NoModify" Type="integer" Value="1" />
+        <RegistryValue Name="NoRepair" Type="integer" Value="1" />
+        <RegistryValue Name="HelpLink" Type="string" Value="https://github.com/scttfrdmn/cloudworkstation" />
+        <RegistryValue Name="URLInfoAbout" Type="string" Value="https://github.com/scttfrdmn/cloudworkstation" />
+        <RegistryValue Name="Contact" Type="string" Value="CloudWorkstation Project" />
+        <RegistryValue Name="InstallDate" Type="string" Value="[Date]" />
+      </RegistryKey>
+      
+      <RegistryValue Root="HKLM" 
+                     Key="SOFTWARE\CloudWorkstation" 
+                     Name="installed" 
+                     Type="integer" 
+                     Value="1" 
+                     KeyPath="yes" />
+    </Component>
+    
+    <!-- PowerShell Module Registration Component -->
+    <Component Id="PowerShellComponent" Guid="{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}" Directory="BinFolder">
+      <File Id="PowerShellModule"
+            Source="$(var.SourceDir)\scripts\CloudWorkstation.psm1"
+            Name="CloudWorkstation.psm1" />
+      
+      <!-- Register PowerShell module in Windows PowerShell -->
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\PowerShell\1\Modules\CloudWorkstation">
+        <RegistryValue Name="ModuleBase" Type="string" Value="[BinFolder]" />
+        <RegistryValue Name="Version" Type="string" Value="0.4.2" />
+      </RegistryKey>
+    </Component>
+    
+    <!-- Icon Definition -->
+    <Icon Id="CloudWorkstationIcon" SourceFile="$(var.SourceDir)\assets\cloudworkstation.ico" />
+    <Property Id="ARPPRODUCTICON" Value="CloudWorkstationIcon" />
+    
+    <!-- Installation Features -->
+    <Feature Id="CoreFeature" 
+             Title="CloudWorkstation Core" 
+             Level="1" 
+             Absent="disallow"
+             Description="Core CloudWorkstation binaries and daemon service">
+      <ComponentRef Id="BinariesComponent" />
+      <ComponentRef Id="ConfigDirectoriesComponent" />
+      <ComponentRef Id="LogDirectoryComponent" />
+      <ComponentRef Id="RegistryComponent" />
+    </Feature>
+    
+    <Feature Id="ServiceFeature" 
+             Title="Windows Service" 
+             Level="1"
+             Description="Install CloudWorkstation daemon as a Windows service (auto-start on boot)">
+      <ComponentRef Id="ServiceComponent" />
+    </Feature>
+    
+    <Feature Id="TemplatesFeature" 
+             Title="Research Templates" 
+             Level="1"
+             Description="Built-in research environment templates">
+      <ComponentRef Id="TemplatesComponent" />
+    </Feature>
+    
+    <Feature Id="DocumentationFeature" 
+             Title="Documentation" 
+             Level="1"
+             Description="User guides and documentation">
+      <ComponentRef Id="DocsComponent" />
+    </Feature>
+    
+    <Feature Id="StartMenuFeature" 
+             Title="Start Menu Integration" 
+             Level="1"
+             Description="Start Menu shortcuts for easy access">
+      <ComponentRef Id="StartMenuComponent" />
+    </Feature>
+    
+    <Feature Id="DesktopShortcutFeature" 
+             Title="Desktop Shortcut" 
+             Level="2"
+             Description="Desktop shortcut for CloudWorkstation GUI">
+      <ComponentRef Id="DesktopShortcutComponent" />
+    </Feature>
+    
+    <Feature Id="PowerShellFeature" 
+             Title="PowerShell Integration" 
+             Level="1"
+             Description="PowerShell module for advanced scripting">
+      <ComponentRef Id="PowerShellComponent" />
+    </Feature>
+    
+    <!-- Custom Actions -->
+    <Binary Id="SetupCustomActions" SourceFile="$(var.SourceDir)\SetupCustomActions.dll" />
+    
+    <CustomAction Id="CheckPrerequisites" 
+                  BinaryKey="SetupCustomActions" 
+                  DllEntry="CheckSystemRequirements" 
+                  Execute="immediate" 
+                  Return="check" />
+    
+    <CustomAction Id="ConfigureService" 
+                  BinaryKey="SetupCustomActions" 
+                  DllEntry="ConfigureWindowsService" 
+                  Execute="deferred" 
+                  Impersonate="no" 
+                  Return="check" />
+    
+    <CustomAction Id="FirstRunSetup" 
+                  BinaryKey="SetupCustomActions" 
+                  DllEntry="LaunchFirstRunWizard" 
+                  Execute="immediate" 
+                  Return="asyncNoWait" />
+    
+    <CustomAction Id="CheckDaemonHealth"
+                  BinaryKey="SetupCustomActions"
+                  DllEntry="VerifyDaemonStartup"
+                  Execute="immediate"
+                  Return="check" />
+    
+    <!-- Installation Sequence -->
+    <InstallExecuteSequence>
+      <Custom Action="CheckPrerequisites" Before="LaunchConditions">NOT Installed</Custom>
+      <Custom Action="ConfigureService" After="StartServices">$ServiceFeature=3</Custom>
+      <Custom Action="CheckDaemonHealth" After="ConfigureService">$ServiceFeature=3</Custom>
+      <Custom Action="FirstRunSetup" After="InstallFinalize">NOT Installed AND UILevel &lt;&gt; 2</Custom>
+    </InstallExecuteSequence>
+    
+    <!-- UI Sequence -->
+    <InstallUISequence>
+      <Custom Action="CheckPrerequisites" After="LaunchConditions">NOT Installed</Custom>
+    </InstallUISequence>
+    
+    <!-- Launch Conditions -->
+    <Condition Message="CloudWorkstation requires Windows 10 version 1903 or later.">
+      <![CDATA[Installed OR (VersionNT >= 1000)]]>
+    </Condition>
+    
+    <Condition Message="CloudWorkstation requires a 64-bit operating system.">
+      <![CDATA[Installed OR VersionNT64]]>
+    </Condition>
+    
+    <Condition Message="CloudWorkstation requires administrator privileges for installation.">
+      <![CDATA[Installed OR Privileged]]>
+    </Condition>
+    
+    <!-- Properties for Configuration -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    
+    <!-- Installation Properties -->
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/scttfrdmn/cloudworkstation" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/scttfrdmn/cloudworkstation/issues" />
+    <Property Id="ARPCOMMENTS" Value="Launch cloud research environments in seconds" />
+    
+    <!-- Feature Properties -->
+    <Property Id="SERVICEFEATURE_DEFAULT" Value="3" />
+    <Property Id="TEMPLATESFEATURE_DEFAULT" Value="3" />
+    <Property Id="STARTMENUFEATURE_DEFAULT" Value="3" />
+    
+    <!-- WiX UI Reference -->
+    <UIRef Id="WixUI_FeatureTree" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+    
+  </Product>
+</Wix>

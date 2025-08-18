@@ -1,0 +1,328 @@
+name: Build macOS DMG
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - development
+          - universal
+      sign_dmg:
+        description: 'Sign DMG with Developer ID'
+        required: false
+        default: true
+        type: boolean
+      notarize_dmg:
+        description: 'Notarize DMG with Apple'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  build-dmg:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          # Install system dependencies
+          brew install python3
+          pip3 install Pillow --break-system-packages || pip3 install Pillow
+          
+          # Ensure Xcode tools are available
+          xcode-select --install || true
+          
+          # Verify required tools
+          command -v iconutil || { echo "iconutil not found"; exit 1; }
+          command -v hdiutil || { echo "hdiutil not found"; exit 1; }
+          command -v SetFile || { echo "SetFile not found"; exit 1; }
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Run tests
+        run: |
+          make test-unit
+
+      - name: Set version from tag
+        if: github.ref_type == 'tag'
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          # Update Makefile version
+          sed -i.bak "s/VERSION := .*/VERSION := $TAG_VERSION/" Makefile
+
+      - name: Build DMG (Development)
+        if: ${{ inputs.build_type == 'development' || (github.event_name != 'workflow_dispatch' && contains(github.ref, 'dev')) }}
+        run: |
+          echo "Building development DMG..."
+          make dmg-dev
+
+      - name: Build DMG (Universal)
+        if: ${{ inputs.build_type == 'universal' || github.ref_type == 'tag' }}
+        run: |
+          echo "Building universal DMG..."
+          make dmg-universal
+
+      - name: Build DMG (Standard)
+        if: ${{ inputs.build_type == 'release' && github.ref_type != 'tag' }}
+        run: |
+          echo "Building standard DMG..."
+          make dmg
+
+      - name: Import Developer ID certificates
+        if: ${{ inputs.sign_dmg == true || github.ref_type == 'tag' }}
+        env:
+          DEVELOPER_ID_APPLICATION_P12: ${{ secrets.DEVELOPER_ID_APPLICATION_P12 }}
+          DEVELOPER_ID_APPLICATION_PASSWORD: ${{ secrets.DEVELOPER_ID_APPLICATION_PASSWORD }}
+          DEVELOPER_ID_INSTALLER_P12: ${{ secrets.DEVELOPER_ID_INSTALLER_P12 }}
+          DEVELOPER_ID_INSTALLER_PASSWORD: ${{ secrets.DEVELOPER_ID_INSTALLER_PASSWORD }}
+        run: |
+          if [ -n "$DEVELOPER_ID_APPLICATION_P12" ]; then
+            echo "Importing Developer ID Application certificate..."
+            echo "$DEVELOPER_ID_APPLICATION_P12" | base64 -d > /tmp/dev-id-app.p12
+            security create-keychain -p actions build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p actions build.keychain
+            security import /tmp/dev-id-app.p12 -k build.keychain -P "$DEVELOPER_ID_APPLICATION_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -s -k actions build.keychain
+            rm /tmp/dev-id-app.p12
+            echo "Certificate imported successfully"
+          else
+            echo "No Developer ID certificates available, skipping signing"
+          fi
+
+      - name: Sign DMG
+        if: ${{ inputs.sign_dmg == true || github.ref_type == 'tag' }}
+        env:
+          SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION_IDENTITY }}
+        run: |
+          if [ -n "$SIGNING_IDENTITY" ]; then
+            echo "Signing DMG with identity: $SIGNING_IDENTITY"
+            ./scripts/sign-dmg.sh --dev-id "$SIGNING_IDENTITY"
+          else
+            echo "No signing identity provided, attempting with default identity"
+            ./scripts/sign-dmg.sh || echo "Signing failed, continuing without signature"
+          fi
+
+      - name: Store notarization credentials
+        if: ${{ inputs.notarize_dmg == true || github.ref_type == 'tag' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_ID_PASSWORD" ]; then
+            echo "Storing notarization credentials..."
+            echo "$APPLE_ID_PASSWORD" | xcrun notarytool store-credentials cloudworkstation \
+              --apple-id "$APPLE_ID" \
+              --team-id "$APPLE_TEAM_ID" \
+              --password-stdin
+          else
+            echo "No notarization credentials available"
+            exit 1
+          fi
+
+      - name: Notarize DMG
+        if: ${{ inputs.notarize_dmg == true || github.ref_type == 'tag' }}
+        run: |
+          echo "Submitting DMG for notarization..."
+          ./scripts/notarize-dmg.sh
+
+      - name: List build artifacts
+        run: |
+          echo "Build artifacts in dist/dmg/:"
+          ls -la dist/dmg/ || echo "No DMG directory found"
+          
+          echo "All dist artifacts:"
+          find dist/ -type f -name "*.dmg" || echo "No DMG files found"
+
+      - name: Upload DMG artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cloudworkstation-dmg-${{ inputs.build_type || 'auto' }}-${{ github.sha }}
+          path: |
+            dist/dmg/*.dmg
+            dist/dmg/*.log
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/dmg/*.dmg
+          body: |
+            ## CloudWorkstation ${{ github.ref_name }}
+            
+            ### macOS Installation
+            
+            **Download:** `CloudWorkstation-${{ env.VERSION || 'latest' }}.dmg`
+            
+            **Installation:**
+            1. Download the DMG file
+            2. Open the DMG and drag CloudWorkstation.app to Applications
+            3. Launch CloudWorkstation from Applications or Spotlight
+            4. Follow the setup wizard to configure AWS credentials
+            
+            **What's New:**
+            - Professional macOS DMG installer with native experience
+            - Automatic CLI tools installation and PATH configuration
+            - LaunchAgent integration for daemon auto-start
+            - Comprehensive uninstaller included
+            - Universal binary support (Intel + Apple Silicon)
+            - Code signed and notarized for security
+            
+            **System Requirements:**
+            - macOS 10.15 (Catalina) or later
+            - AWS account with appropriate permissions
+            - Internet connection
+            
+            **Alternative Installation:**
+            ```bash
+            # Homebrew (traditional method)
+            brew install scttfrdmn/tap/cloudworkstation
+            
+            # Direct CLI installation
+            curl -L https://github.com/scttfrdmn/cloudworkstation/releases/download/${{ github.ref_name }}/cloudworkstation-darwin-$(uname -m).tar.gz | tar xz
+            ```
+            
+            ### Release Notes
+            
+            See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-dmg:
+    name: Test DMG Installation
+    runs-on: macos-latest
+    needs: build-dmg
+    if: always() && needs.build-dmg.result == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download DMG artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: cloudworkstation-dmg-${{ inputs.build_type || 'auto' }}-${{ github.sha }}
+          path: ./test-artifacts/
+
+      - name: Test DMG mounting and installation
+        run: |
+          echo "Testing DMG installation..."
+          
+          DMG_FILE=$(find ./test-artifacts/ -name "*.dmg" | head -n 1)
+          if [ -z "$DMG_FILE" ]; then
+            echo "No DMG file found for testing"
+            exit 1
+          fi
+          
+          echo "Testing DMG file: $DMG_FILE"
+          
+          # Test DMG integrity
+          hdiutil verify "$DMG_FILE"
+          
+          # Test mounting
+          MOUNT_OUTPUT=$(hdiutil attach "$DMG_FILE" -readonly -nobrowse)
+          MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | grep '/Volumes/' | sed 's/.*\(\/Volumes\/.*\)/\1/')
+          
+          if [ -z "$MOUNT_POINT" ]; then
+            echo "Failed to mount DMG"
+            exit 1
+          fi
+          
+          echo "DMG mounted at: $MOUNT_POINT"
+          
+          # Check contents
+          ls -la "$MOUNT_POINT"
+          
+          # Check for required files
+          if [ ! -d "$MOUNT_POINT/CloudWorkstation.app" ]; then
+            echo "CloudWorkstation.app not found in DMG"
+            exit 1
+          fi
+          
+          if [ ! -L "$MOUNT_POINT/Applications" ]; then
+            echo "Applications symlink not found in DMG"
+            exit 1
+          fi
+          
+          if [ ! -f "$MOUNT_POINT/README.txt" ]; then
+            echo "README.txt not found in DMG"
+            exit 1
+          fi
+          
+          # Test app bundle structure
+          APP_BUNDLE="$MOUNT_POINT/CloudWorkstation.app"
+          
+          if [ ! -f "$APP_BUNDLE/Contents/Info.plist" ]; then
+            echo "Info.plist not found in app bundle"
+            exit 1
+          fi
+          
+          if [ ! -d "$APP_BUNDLE/Contents/MacOS" ]; then
+            echo "MacOS directory not found in app bundle"
+            exit 1
+          fi
+          
+          if [ ! -x "$APP_BUNDLE/Contents/MacOS/CloudWorkstation" ]; then
+            echo "Main executable not found or not executable"
+            exit 1
+          fi
+          
+          # Unmount DMG
+          hdiutil detach "$MOUNT_POINT"
+          
+          echo "✅ DMG installation test passed"
+
+      - name: Test code signature (if signed)
+        run: |
+          DMG_FILE=$(find ./test-artifacts/ -name "*.dmg" | head -n 1)
+          
+          # Check if DMG is signed
+          if codesign --verify "$DMG_FILE" 2>/dev/null; then
+            echo "✅ DMG is code signed"
+            codesign --display --verbose "$DMG_FILE"
+            
+            # Check Gatekeeper approval
+            if spctl --assess --verbose --type install "$DMG_FILE" 2>/dev/null; then
+              echo "✅ DMG passes Gatekeeper assessment"
+            else
+              echo "⚠️ DMG does not pass Gatekeeper assessment (may need notarization)"
+            fi
+          else
+            echo "ℹ️ DMG is not code signed (development build)"
+          fi

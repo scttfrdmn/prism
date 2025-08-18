@@ -35,9 +35,9 @@ func (a *App) Layers(args []string) error {
 
 	instanceName := args[0]
 
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	// Ensure daemon is running (auto-start if needed)
+	if err := a.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	// Get applied templates via API
@@ -97,9 +97,9 @@ func (a *App) Rollback(args []string) error {
 		}
 	}
 
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	// Ensure daemon is running (auto-start if needed)
+	if err := a.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	// If no checkpoint specified, get the latest one

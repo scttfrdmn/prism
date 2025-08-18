@@ -49,18 +49,18 @@ import (
 
 // App represents the CLI application
 type App struct {
-	version           string
-	apiClient         api.CloudWorkstationAPI
-	ctx               context.Context // Context for AWS operations
-	tuiCommand        *cobra.Command
-	config            *Config
-	profileManager    *profile.ManagerEnhanced
-	launchDispatcher  *LaunchCommandDispatcher // Command Pattern for launch flags
-	instanceCommands  *InstanceCommands        // Instance management commands
-	storageCommands   *StorageCommands         // Storage management commands
-	templateCommands  *TemplateCommands        // Template management commands
-	systemCommands    *SystemCommands          // System and daemon management commands
-	scalingCommands   *ScalingCommands         // Scaling and rightsizing commands
+	version          string
+	apiClient        api.CloudWorkstationAPI
+	ctx              context.Context // Context for AWS operations
+	tuiCommand       *cobra.Command
+	config           *Config
+	profileManager   *profile.ManagerEnhanced
+	launchDispatcher *LaunchCommandDispatcher // Command Pattern for launch flags
+	instanceCommands *InstanceCommands        // Instance management commands
+	storageCommands  *StorageCommands         // Storage management commands
+	templateCommands *TemplateCommands        // Template management commands
+	systemCommands   *SystemCommands          // System and daemon management commands
+	scalingCommands  *ScalingCommands         // Scaling and rightsizing commands
 }
 
 // NewApp creates a new CLI application
@@ -69,7 +69,7 @@ func NewApp(version string) *App {
 	config, err := LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to load config: %v\n", err)
-		config = &Config{}                          // Use empty config
+		config = &Config{}                   // Use empty config
 		config.Daemon.URL = DefaultDaemonURL // Default URL (CWS on phone keypad)
 	}
 
@@ -113,6 +113,41 @@ func NewApp(version string) *App {
 	app.tuiCommand = NewTUICommand()
 
 	return app
+}
+
+// ensureDaemonRunning checks if the daemon is running and auto-starts it if needed
+func (a *App) ensureDaemonRunning() error {
+	// Check if auto-start is disabled via environment variable
+	if os.Getenv(AutoStartDisableEnvVar) != "" {
+		// Auto-start disabled, just check if daemon is running
+		if err := a.apiClient.Ping(a.ctx); err != nil {
+			return fmt.Errorf("%s\n\n💡 Tip: Auto-start is disabled via %s environment variable",
+				DaemonNotRunningMessage, AutoStartDisableEnvVar)
+		}
+		return nil
+	}
+
+	// Check if daemon is already running
+	if err := a.apiClient.Ping(a.ctx); err == nil {
+		return nil // Already running
+	}
+
+	// Auto-start daemon with user feedback
+	fmt.Println(DaemonAutoStartMessage)
+	fmt.Printf("⏳ Please wait while the daemon initializes (typically 2-3 seconds)...\n")
+
+	// Use the systemCommands to start the daemon
+	if err := a.systemCommands.Daemon([]string{"start"}); err != nil {
+		fmt.Println(DaemonAutoStartFailedMessage)
+		fmt.Printf("\n💡 Troubleshooting:\n")
+		fmt.Printf("   • Check if 'cwsd' binary is in your PATH\n")
+		fmt.Printf("   • Try manual start: cws daemon start\n")
+		fmt.Printf("   • Check daemon logs for errors\n")
+		return WrapAPIError("auto-start daemon", err)
+	}
+
+	fmt.Println(DaemonAutoStartSuccessMessage)
+	return nil
 }
 
 // NewAppWithClient creates a new CLI application with a custom API client
@@ -175,9 +210,9 @@ func (a *App) Launch(args []string) error {
 		return err
 	}
 
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := a.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	response, err := a.apiClient.LaunchInstance(a.ctx, req)
@@ -207,16 +242,16 @@ func (a *App) Launch(args []string) error {
 // displayCostTable displays the cost analysis table (Single Responsibility)
 func (a *App) displayCostTable(analyzer *CostAnalyzer, instances []types.Instance, analyses []CostAnalysis) {
 	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
-	
+
 	// Print headers
 	headers := analyzer.GetHeaders()
 	_, _ = fmt.Fprintln(w, strings.Join(headers, "\t"))
-	
+
 	// Print instance rows
 	for i, instance := range instances {
 		_, _ = fmt.Fprint(w, analyzer.FormatRow(instance, analyses[i]))
 	}
-	
+
 	_ = w.Flush()
 }
 
@@ -224,7 +259,7 @@ func (a *App) displayCostTable(analyzer *CostAnalyzer, instances []types.Instanc
 func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricingConfig *pricing.InstitutionalPricingConfig) {
 	fmt.Println()
 	fmt.Printf("📊 Cost Summary:\n")
-	
+
 	if hasDiscounts {
 		totalSavings := summary.TotalListCost - summary.TotalRunningCost
 		savingsPercent := 0.0
@@ -483,9 +518,9 @@ func (a *App) List(args []string) error {
 		}
 	}
 
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := a.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	response, err := a.apiClient.ListInstances(a.ctx)
@@ -560,9 +595,9 @@ func (a *App) ListCost(args []string) error {
 		}
 	}
 
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := a.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	response, err := a.apiClient.ListInstances(a.ctx)
@@ -602,7 +637,7 @@ func (a *App) ListCost(args []string) error {
 	pricingConfig, _ := pricing.LoadInstitutionalPricing()
 	calculator := pricing.NewCalculator(pricingConfig)
 	hasDiscounts := pricingConfig != nil && (pricingConfig.Institution != "Default")
-	
+
 	costAnalyzer := NewCostAnalyzer(hasDiscounts, calculator)
 	analyses, summary := costAnalyzer.AnalyzeInstances(filteredInstances)
 

@@ -46,15 +46,20 @@ install: build
 	@echo "Installing CloudWorkstation..."
 	@sudo cp bin/cwsd /usr/local/bin/
 	@sudo cp bin/cws /usr/local/bin/
-	@echo "✅ CloudWorkStation core binaries installed successfully"
+	@echo "✅ CloudWorkstation core binaries installed successfully"
 	@echo "Start daemon with: cwsd"
 	@echo "Use CLI with: cws --help"
-	@echo "Note: GUI installation available in Phase 2"
+	@echo ""
+	@echo "🔧 Service Management:"
+	@echo "  Install service: make service-install"
+	@echo "  Service status:  make service-status"
+	@echo "  Service help:    make service-help"
 
 # Uninstall binaries from system
 .PHONY: uninstall
 uninstall:
 	@echo "Uninstalling CloudWorkstation..."
+	@./scripts/service-manager.sh uninstall 2>/dev/null || echo "Service not installed or already removed"
 	@sudo rm -f /usr/local/bin/cwsd
 	@sudo rm -f /usr/local/bin/cws
 	@sudo rm -f /usr/local/bin/cws-gui
@@ -68,7 +73,7 @@ clean:
 	@go clean
 
 # Test targets
-.PHONY: test test-unit test-integration test-e2e test-coverage test-all
+.PHONY: test test-unit test-integration test-e2e test-coverage test-all test-aws test-aws-quick test-aws-setup
 
 # Run all unit tests (excluding GUI/TUI packages planned for Phase 2)
 # Uses development mode to avoid keychain password prompts
@@ -107,8 +112,36 @@ test-coverage:
 	@go tool cover -func=coverage.out | grep total
 	@echo "📋 Coverage report generated: coverage.html"
 
-# Run all tests (unit + integration + e2e)
+# Run AWS integration tests against real AWS account
+test-aws: build
+	@echo "☁️  Running AWS integration tests..."
+	@echo "⚠️  This will create real AWS resources and may incur costs!"
+	@echo "📋 Ensure you have:"
+	@echo "  - AWS profile 'aws' configured"
+	@echo "  - CloudWorkstation daemon running (./bin/cwsd)"
+	@echo "  - Appropriate AWS permissions"
+	@echo ""
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@echo ""
+	@RUN_AWS_TESTS=true AWS_PROFILE=aws go test -v -tags=aws_integration ./internal/cli/ -run TestAWS -timeout=20m
+
+# Quick AWS integration tests (subset for faster feedback)
+test-aws-quick: build
+	@echo "⚡ Running quick AWS integration tests..."
+	@echo "📋 Testing: templates, daemon connectivity, basic operations"
+	@RUN_AWS_TESTS=true AWS_PROFILE=aws go test -v -tags=aws_integration ./internal/cli/ -run "TestAWSTemplate|TestAWSDaemon" -timeout=5m
+
+# Setup and validate AWS integration test environment
+test-aws-setup:
+	@echo "🔧 Validating AWS integration test setup..."
+	@./scripts/validate-aws-setup.sh
+
+# Run all tests (unit + integration + e2e + AWS if configured)
 test-all: test-unit test-integration test-e2e test-coverage
+	@if [ "$$RUN_AWS_TESTS" = "true" ]; then \
+		echo "☁️  Including AWS integration tests..."; \
+		$(MAKE) test-aws; \
+	fi
 
 # Legacy test target for backwards compatibility
 test: test-unit
@@ -293,6 +326,127 @@ bump-patch:
 	@echo "Don't forget to update the CHANGELOG.md!"
 	@rm -f Makefile.bak pkg/version/version.go.bak
 
+# Service management targets
+.PHONY: service-install service-uninstall service-start service-stop service-restart service-status service-logs service-follow service-validate service-help service-info
+
+# Install system service (auto-start on boot)
+service-install: build
+	@echo "🔧 Installing CloudWorkstation system service..."
+	@./scripts/service-manager.sh install
+
+# Uninstall system service
+service-uninstall:
+	@echo "🔧 Uninstalling CloudWorkstation system service..."
+	@./scripts/service-manager.sh uninstall
+
+# Start service
+service-start:
+	@echo "▶️  Starting CloudWorkstation service..."
+	@./scripts/service-manager.sh start
+
+# Stop service
+service-stop:
+	@echo "⏹️  Stopping CloudWorkstation service..."
+	@./scripts/service-manager.sh stop
+
+# Restart service
+service-restart:
+	@echo "🔄 Restarting CloudWorkstation service..."
+	@./scripts/service-manager.sh restart
+
+# Show service status
+service-status:
+	@./scripts/service-manager.sh status
+
+# Show service logs
+service-logs:
+	@./scripts/service-manager.sh logs
+
+# Follow service logs in real-time
+service-follow:
+	@./scripts/service-manager.sh follow
+
+# Validate service configuration
+service-validate:
+	@./scripts/service-manager.sh validate
+
+# Show service help
+service-help:
+	@./scripts/service-manager.sh help
+
+# Show system information for service management
+service-info:
+	@./scripts/service-manager.sh info
+
+# Complete installation with service setup
+.PHONY: install-complete
+install-complete: install service-install
+	@echo ""
+	@echo "🎉 CloudWorkstation installation complete!"
+	@echo ""
+	@echo "📋 What's installed:"
+	@echo "  ✅ Core binaries (cws, cwsd) in /usr/local/bin/"
+	@echo "  ✅ System service configured for auto-start"
+	@echo ""
+	@echo "🚀 Quick start:"
+	@echo "  cws --help                    # CLI help"
+	@echo "  make service-status           # Check service status"
+	@echo "  make service-logs             # View service logs"
+	@echo ""
+
+# Windows installer targets
+.PHONY: windows-installer windows-service windows-sign-msi windows-build-custom-actions windows-installer-dev
+
+# Build Windows MSI installer
+windows-installer:
+	@echo "🪟 Building Windows MSI installer..."
+	@if [ "$(shell uname)" = "Darwin" ] || [ "$(shell uname | grep -i linux)" ]; then \
+		echo "⚠️  Windows installer must be built on Windows with WiX Toolset"; \
+		echo "   Available as: scripts/build-msi.ps1 or scripts/build-msi.bat"; \
+		echo "   On Windows: powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1"; \
+		exit 1; \
+	fi
+	@powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1 -Version $(VERSION)
+
+# Build Windows service wrapper only
+windows-service: bin
+	@echo "🪟 Building Windows service wrapper..."
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/cwsd-service.exe ./cmd/cwsd-service
+	@echo "✅ Windows service wrapper built: bin/cwsd-service.exe"
+
+# Sign Windows MSI (requires certificate)
+windows-sign-msi:
+	@echo "🪟 Signing Windows MSI installer..."
+	@if [ "$(shell uname)" = "Darwin" ] || [ "$(shell uname | grep -i linux)" ]; then \
+		echo "⚠️  MSI signing must be done on Windows with SignTool"; \
+		echo "   Available as: scripts/sign-msi.ps1"; \
+		echo "   On Windows: powershell -ExecutionPolicy Bypass -File scripts/sign-msi.ps1"; \
+		exit 1; \
+	fi
+	@powershell -ExecutionPolicy Bypass -File scripts/sign-msi.ps1
+
+# Build custom actions DLL (requires Visual Studio/MSBuild)
+windows-build-custom-actions:
+	@echo "🪟 Building Windows installer custom actions..."
+	@if [ "$(shell uname)" = "Darwin" ] || [ "$(shell uname | grep -i linux)" ]; then \
+		echo "⚠️  Custom actions DLL must be built on Windows with MSBuild"; \
+		echo "   Project: packaging/windows/SetupCustomActions/SetupCustomActions.csproj"; \
+		echo "   On Windows: msbuild packaging/windows/SetupCustomActions/SetupCustomActions.csproj /p:Configuration=Release"; \
+		exit 1; \
+	fi
+	@msbuild packaging/windows/SetupCustomActions/SetupCustomActions.csproj /p:Configuration=Release /p:Platform=x64
+
+# Development Windows installer (faster build, minimal features)
+windows-installer-dev:
+	@echo "🪟 Building development Windows MSI installer..."
+	@if [ "$(shell uname)" = "Darwin" ] || [ "$(shell uname | grep -i linux)" ]; then \
+		echo "⚠️  Windows installer must be built on Windows with WiX Toolset"; \
+		echo "   Available as: scripts/build-msi.ps1"; \
+		echo "   On Windows: powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1 -SkipCustomActions"; \
+		exit 1; \
+	fi
+	@powershell -ExecutionPolicy Bypass -File scripts/build-msi.ps1 -Version $(VERSION) -SkipCustomActions
+
 # Show help
 # Package manager distribution targets
 .PHONY: package package-homebrew package-chocolatey package-conda package-test
@@ -314,11 +468,11 @@ package-test:
 	
 	# Create test archives
 	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
-	@cp scripts/chocolatey/cloudworkstation.nuspec dist/chocolatey/
-	@cp scripts/chocolatey/tools/chocolateyinstall.ps1 dist/chocolatey/tools/
-	@cp scripts/chocolatey/tools/chocolateyuninstall.ps1 dist/chocolatey/tools/
+	@cp packaging/chocolatey/cloudworkstation.nuspec dist/chocolatey/
+	@cp packaging/chocolatey/tools/chocolateyinstall.ps1 dist/chocolatey/tools/
+	@cp packaging/chocolatey/tools/chocolateyuninstall.ps1 dist/chocolatey/tools/
 	@cd bin/release && zip -j ../../dist/chocolatey/tools/cloudworkstation-windows-amd64.zip darwin-amd64-*
-	@cp scripts/conda/meta.yaml dist/conda/
+	@cp packaging/conda/meta.yaml dist/conda/
 	
 	# Generate test checksums
 	@openssl sha256 dist/homebrew/cloudworkstation-darwin-amd64.tar.gz > dist/homebrew/darwin-amd64.sha256
@@ -330,7 +484,7 @@ package-test:
 package-homebrew: release
 	@echo "Creating Homebrew package..."
 	@mkdir -p dist/homebrew
-	@cp scripts/homebrew/cloudworkstation.rb dist/homebrew/
+	@cp packaging/homebrew/cloudworkstation.rb dist/homebrew/
 	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
 	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-arm64.tar.gz darwin-arm64-*
 	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-linux-amd64.tar.gz linux-amd64-*
@@ -345,9 +499,9 @@ package-homebrew: release
 package-chocolatey: release
 	@echo "Creating Chocolatey package..."
 	@mkdir -p dist/chocolatey/tools
-	@cp scripts/chocolatey/cloudworkstation.nuspec dist/chocolatey/
-	@cp scripts/chocolatey/tools/chocolateyinstall.ps1 dist/chocolatey/tools/
-	@cp scripts/chocolatey/tools/chocolateyuninstall.ps1 dist/chocolatey/tools/
+	@cp packaging/chocolatey/cloudworkstation.nuspec dist/chocolatey/
+	@cp packaging/chocolatey/tools/chocolateyinstall.ps1 dist/chocolatey/tools/
+	@cp packaging/chocolatey/tools/chocolateyuninstall.ps1 dist/chocolatey/tools/
 	@cd bin/release && zip -j ../../dist/chocolatey/tools/cloudworkstation-windows-amd64.zip windows-amd64-*
 	@openssl sha256 dist/chocolatey/tools/cloudworkstation-windows-amd64.zip | awk '{print $$2}' > dist/chocolatey/windows-amd64.sha256
 	@echo "✅ Chocolatey package created in dist/chocolatey"
@@ -356,9 +510,9 @@ package-chocolatey: release
 package-conda: release
 	@echo "Creating Conda package..."
 	@mkdir -p dist/conda
-	@cp scripts/conda/meta.yaml dist/conda/
-	@cp scripts/conda/build.sh dist/conda/
-	@cp scripts/conda/bld.bat dist/conda/
+	@cp packaging/conda/meta.yaml dist/conda/
+	@cp packaging/conda/build.sh dist/conda/
+	@cp packaging/conda/bld.bat dist/conda/
 	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-linux-amd64.tar.gz linux-amd64-*
 	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-linux-arm64.tar.gz linux-arm64-*
 	@cd bin/release && tar -czf ../../dist/conda/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
@@ -371,6 +525,86 @@ package-conda: release
 	@openssl sha256 dist/conda/cloudworkstation-windows-amd64.zip | awk '{print $$2}' > dist/conda/windows-amd64.sha256
 	@echo "✅ Conda package created in dist/conda"
 
+# macOS DMG distribution targets
+.PHONY: dmg dmg-dev dmg-universal dmg-signed dmg-notarized dmg-clean dmg-all
+
+# Create standard DMG (current architecture)
+dmg: build
+	@echo "🍎 Creating macOS DMG package..."
+	@./scripts/build-dmg.sh
+	@echo "✅ DMG created in dist/dmg/"
+
+# Create development DMG (without GUI, faster build)
+dmg-dev: build-cli build-daemon
+	@echo "🍎 Creating development DMG package..."
+	@./scripts/build-dmg.sh --dev
+	@echo "✅ Development DMG created in dist/dmg/"
+
+# Create universal DMG (Intel + Apple Silicon)
+dmg-universal: clean
+	@echo "🍎 Creating universal macOS DMG package..."
+	@./scripts/build-dmg.sh --universal
+	@echo "✅ Universal DMG created in dist/dmg/"
+
+# Sign DMG with Developer ID
+dmg-signed: dmg
+	@echo "🔐 Signing DMG package..."
+	@./scripts/sign-dmg.sh
+	@echo "✅ DMG signed successfully"
+
+# Create signed universal DMG
+dmg-universal-signed: dmg-universal
+	@echo "🔐 Signing universal DMG package..."
+	@./scripts/sign-dmg.sh
+	@echo "✅ Universal DMG signed successfully"
+
+# Notarize signed DMG with Apple
+dmg-notarized:
+	@echo "🍎 Notarizing DMG with Apple..."
+	@./scripts/notarize-dmg.sh
+	@echo "✅ DMG notarized and ready for distribution"
+
+# Create complete notarized DMG (build → sign → notarize)
+dmg-all: dmg-universal-signed dmg-notarized
+	@echo "🎉 Complete DMG build process finished!"
+	@echo "Final DMG ready for distribution in dist/dmg/"
+
+# Clean DMG build artifacts
+dmg-clean:
+	@echo "🧹 Cleaning DMG build artifacts..."
+	@rm -rf dist/dmg/
+	@echo "✅ DMG build artifacts cleaned"
+
+# Test DMG integrity
+dmg-test:
+	@echo "🧪 Testing DMG integrity..."
+	@if [ -f "dist/dmg/CloudWorkstation-v$(VERSION).dmg" ]; then \
+		hdiutil verify "dist/dmg/CloudWorkstation-v$(VERSION).dmg"; \
+		echo "✅ DMG integrity test passed"; \
+	else \
+		echo "❌ No DMG file found to test"; \
+		exit 1; \
+	fi
+
+# Install DMG creation prerequisites
+dmg-setup:
+	@echo "🔧 Setting up DMG creation prerequisites..."
+	@if [ "$(shell uname)" != "Darwin" ]; then \
+		echo "❌ DMG creation requires macOS"; \
+		exit 1; \
+	fi
+	@command -v iconutil >/dev/null 2>&1 || { echo "❌ iconutil not found. Install Xcode command line tools."; exit 1; }
+	@command -v hdiutil >/dev/null 2>&1 || { echo "❌ hdiutil not found."; exit 1; }
+	@command -v SetFile >/dev/null 2>&1 || { echo "❌ SetFile not found. Install Xcode command line tools."; exit 1; }
+	@if command -v python3 >/dev/null 2>&1; then \
+		python3 -c "import PIL" 2>/dev/null || { \
+			echo "Installing Pillow for icon generation..."; \
+			pip3 install Pillow || echo "⚠️ Failed to install Pillow. Icon generation may use fallback method."; \
+		}; \
+	fi
+	@chmod +x scripts/build-dmg.sh scripts/sign-dmg.sh scripts/notarize-dmg.sh
+	@echo "✅ DMG creation prerequisites ready"
+
 .PHONY: help
 help:
 	@echo "CloudWorkstation Build System"
@@ -381,6 +615,7 @@ help:
 	@echo "  build-cli    Build CLI binary (cws)"
 	@echo "  build-gui    Build GUI binary (cws-gui)"
 	@echo "  install      Install binaries to /usr/local/bin"
+	@echo "  install-complete Install binaries and setup system service"
 	@echo "  uninstall    Remove binaries from /usr/local/bin"
 	@echo "  clean        Remove build artifacts"
 	@echo "  test         Run unit tests (legacy)"
@@ -402,6 +637,25 @@ help:
 	@echo "  package-homebrew Create Homebrew formula and packages"
 	@echo "  package-chocolatey Create Chocolatey package"
 	@echo "  package-conda Create Conda package"
+	@echo ""
+	@echo "Windows MSI Distribution:"
+	@echo "  windows-installer Create Windows MSI installer (requires Windows + WiX Toolset)"
+	@echo "  windows-installer-dev Create development MSI installer (minimal features)"
+	@echo "  windows-service Build Windows service wrapper only"
+	@echo "  windows-sign-msi Sign MSI with digital certificate (requires Windows + SignTool)"
+	@echo "  windows-build-custom-actions Build custom actions DLL (requires MSBuild)"
+	@echo ""
+	@echo "macOS DMG Distribution:"
+	@echo "  dmg          Create macOS DMG package"
+	@echo "  dmg-dev      Create development DMG (CLI/daemon only)"
+	@echo "  dmg-universal Create universal DMG (Intel + Apple Silicon)"
+	@echo "  dmg-signed   Create and sign DMG with Developer ID"
+	@echo "  dmg-universal-signed Create and sign universal DMG"
+	@echo "  dmg-notarized Notarize signed DMG with Apple"
+	@echo "  dmg-all      Complete DMG build process (build → sign → notarize)"
+	@echo "  dmg-setup    Install DMG creation prerequisites"
+	@echo "  dmg-test     Test DMG integrity"
+	@echo "  dmg-clean    Clean DMG build artifacts"
 	@echo "  dev-daemon   Build and run daemon for development"
 	@echo "  dev-cli      Build and test CLI"
 	@echo "  dev-gui      Build and test GUI"
@@ -409,4 +663,17 @@ help:
 	@echo "  bump-major   Bump major version (X.y.z)"
 	@echo "  bump-minor   Bump minor version (x.Y.z)"
 	@echo "  bump-patch   Bump patch version (x.y.Z)"
+	@echo ""
+	@echo "Service Management:"
+	@echo "  service-install   Install system service (auto-start on boot)"
+	@echo "  service-uninstall Uninstall system service"
+	@echo "  service-start     Start the service"
+	@echo "  service-stop      Stop the service"
+	@echo "  service-restart   Restart the service"
+	@echo "  service-status    Show service status"
+	@echo "  service-logs      Show service logs"
+	@echo "  service-follow    Follow service logs in real-time"
+	@echo "  service-validate  Validate service configuration"
+	@echo "  service-help      Show service management help"
+	@echo "  service-info      Show system information for service management"
 	@echo "  help         Show this help"

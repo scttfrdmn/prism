@@ -523,9 +523,9 @@ func (g *UserGroupMembershipManager) addUserToGroup(ctx context.Context, state *
 
 // UserUpdateOrchestrator coordinates user update operations (Strategy Pattern - SOLID)
 type UserUpdateOrchestrator struct {
-	validator       *UserUpdateValidator
-	mappingUpdater  *UserMappingUpdater
-	groupManager    *UserGroupMembershipManager
+	validator      *UserUpdateValidator
+	mappingUpdater *UserMappingUpdater
+	groupManager   *UserGroupMembershipManager
 }
 
 // NewUserUpdateOrchestrator creates user update orchestrator

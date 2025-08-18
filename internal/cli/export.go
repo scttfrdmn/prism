@@ -15,7 +15,7 @@ import (
 func AddExportCommands(profilesCmd *cobra.Command, config *Config) {
 	// Create command factory
 	commandFactory := NewExportCommandFactory(config)
-	
+
 	// Add export and import commands
 	profilesCmd.AddCommand(commandFactory.CreateExportCommand())
 	profilesCmd.AddCommand(commandFactory.CreateImportCommand())
@@ -345,12 +345,12 @@ func (s *ExportExecutionService) ExecuteExport(profileManager *profile.ManagerEn
 // Import Strategy Services (SOLID: Single Responsibility + Open/Closed)
 
 type ImportFlags struct {
-	ModeFlag             string
-	ProfilesFlag         string
+	ModeFlag              string
+	ProfilesFlag          string
 	ImportCredentialsFlag bool
-	PasswordFlag         string
-	ImportMode           export.ImportMode
-	ProfileFilter        []string
+	PasswordFlag          string
+	ImportMode            export.ImportMode
+	ProfileFilter         []string
 }
 
 type ImportFlagService struct{}
@@ -378,12 +378,12 @@ func (s *ImportFlagService) ParseImportFlags(cmd *cobra.Command) (*ImportFlags, 
 	}
 
 	return &ImportFlags{
-		ModeFlag:             modeFlag,
-		ProfilesFlag:         profilesFlag,
+		ModeFlag:              modeFlag,
+		ProfilesFlag:          profilesFlag,
 		ImportCredentialsFlag: importCredentialsFlag,
-		PasswordFlag:         passwordFlag,
-		ImportMode:           importMode,
-		ProfileFilter:        profileFilter,
+		PasswordFlag:          passwordFlag,
+		ImportMode:            importMode,
+		ProfileFilter:         profileFilter,
 	}, nil
 }
 
@@ -464,4 +464,3 @@ func (s *ImportResultService) DisplayResults(result *export.ImportResult) error 
 
 	return nil
 }
-

@@ -48,7 +48,7 @@ def update_meta_yaml(version, release_dir):
             print(f"Warning: {file_path} not found, skipping checksum calculation")
 
     # Update meta.yaml
-    meta_yaml_path = "scripts/conda/meta.yaml"
+    meta_yaml_path = "packaging/conda/meta.yaml"
     with open(meta_yaml_path, "r") as file:
         content = file.read()
 

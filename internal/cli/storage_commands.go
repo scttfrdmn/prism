@@ -28,9 +28,9 @@ func (sc *StorageCommands) Volume(args []string) error {
 	action := args[0]
 	volumeArgs := args[1:]
 
-	// Check daemon is running
-	if err := sc.app.apiClient.Ping(sc.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := sc.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	switch action {
@@ -205,9 +205,9 @@ func (sc *StorageCommands) Storage(args []string) error {
 	action := args[0]
 	storageArgs := args[1:]
 
-	// Check daemon is running
-	if err := sc.app.apiClient.Ping(sc.app.ctx); err != nil {
-		return WrapDaemonError(err)
+	// Ensure daemon is running (auto-start if needed)
+	if err := sc.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
 
 	switch action {
