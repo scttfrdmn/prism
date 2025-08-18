@@ -6,18 +6,21 @@ import (
 	"strings"
 )
 
-// UserFriendlyError wraps errors with helpful guidance for common issues
-func UserFriendlyError(err error, context string) error {
-	if err == nil {
-		return nil
-	}
+// ErrorHandler interface for different error types (Strategy Pattern - SOLID)
+type ErrorHandler interface {
+	CanHandle(errorMsg string) bool
+	Handle(err error, context string) error
+}
 
-	errorMsg := err.Error()
+// DaemonErrorHandler handles daemon-related errors
+type DaemonErrorHandler struct{}
 
-	// Transform common error patterns into helpful messages
-	switch {
-	case strings.Contains(errorMsg, "daemon not running"):
-		return fmt.Errorf(`daemon not running
+func (h *DaemonErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "daemon not running")
+}
+
+func (h *DaemonErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`daemon not running
 
 The CloudWorkstation background service is not running. To fix this:
 
@@ -31,9 +34,17 @@ The CloudWorkstation background service is not running. To fix this:
    cws daemon stop && cws daemon start
 
 Need help? Check: https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBLESHOOTING.md`)
+}
 
-	case strings.Contains(errorMsg, "connection refused") || strings.Contains(errorMsg, "connect: connection refused"):
-		return fmt.Errorf(`connection refused - daemon may not be running
+// ConnectionErrorHandler handles connection-related errors
+type ConnectionErrorHandler struct{}
+
+func (h *ConnectionErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "connection refused") || strings.Contains(errorMsg, "connect: connection refused")
+}
+
+func (h *ConnectionErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`connection refused - daemon may not be running
 
 CloudWorkstation can't connect to the background service. To fix this:
 
@@ -47,9 +58,17 @@ CloudWorkstation can't connect to the background service. To fix this:
    lsof -i :8947
 
 Original error: %v`, err)
+}
 
-	case strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "lookup failed"):
-		return fmt.Errorf(`network connectivity issue
+// NetworkErrorHandler handles network connectivity errors
+type NetworkErrorHandler struct{}
+
+func (h *NetworkErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "no such host") || strings.Contains(errorMsg, "lookup failed")
+}
+
+func (h *NetworkErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`network connectivity issue
 
 CloudWorkstation can't reach AWS services. To fix this:
 
@@ -59,9 +78,17 @@ CloudWorkstation can't reach AWS services. To fix this:
 3. Check firewall/proxy settings
 
 Original error: %v`, err)
+}
 
-	case strings.Contains(errorMsg, "credentials not found") || strings.Contains(errorMsg, "UnauthorizedOperation"):
-		return fmt.Errorf(`AWS credentials issue
+// CredentialsErrorHandler handles AWS credential errors
+type CredentialsErrorHandler struct{}
+
+func (h *CredentialsErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "credentials not found") || strings.Contains(errorMsg, "UnauthorizedOperation")
+}
+
+func (h *CredentialsErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`AWS credentials issue
 
 CloudWorkstation can't access your AWS account. To fix this:
 
@@ -75,9 +102,17 @@ CloudWorkstation can't access your AWS account. To fix this:
    https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/DEMO_TESTER_SETUP.md
 
 Original error: %v`, err)
+}
 
-	case strings.Contains(errorMsg, "VPC not found") || strings.Contains(errorMsg, "subnet not found"):
-		return fmt.Errorf(`AWS network configuration issue
+// NetworkConfigErrorHandler handles VPC/subnet errors
+type NetworkConfigErrorHandler struct{}
+
+func (h *NetworkConfigErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "VPC not found") || strings.Contains(errorMsg, "subnet not found")
+}
+
+func (h *NetworkConfigErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`AWS network configuration issue
 
 CloudWorkstation can't find your VPC or subnet. To fix this:
 
@@ -91,9 +126,17 @@ CloudWorkstation can't find your VPC or subnet. To fix this:
    cws ami build template-name --vpc vpc-12345 --subnet subnet-67890
 
 Original error: %v`, err)
+}
 
-	case strings.Contains(errorMsg, "insufficient capacity") || strings.Contains(errorMsg, "not available"):
-		return fmt.Errorf(`AWS capacity issue
+// CapacityErrorHandler handles AWS capacity errors
+type CapacityErrorHandler struct{}
+
+func (h *CapacityErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "insufficient capacity") || strings.Contains(errorMsg, "not available")
+}
+
+func (h *CapacityErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`AWS capacity issue
 
 The requested instance type is not available. To fix this:
 
@@ -106,9 +149,17 @@ The requested instance type is not available. To fix this:
 3. Try again later (capacity changes frequently)
 
 Original error: %v`, err)
+}
 
-	case strings.Contains(errorMsg, "template not found"):
-		return fmt.Errorf(`template not found
+// TemplateErrorHandler handles template-related errors
+type TemplateErrorHandler struct{}
+
+func (h *TemplateErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "template not found")
+}
+
+func (h *TemplateErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`template not found
 
 The specified template doesn't exist. To fix this:
 
@@ -120,9 +171,17 @@ The specified template doesn't exist. To fix this:
    rm -rf ~/.cloudworkstation/templates && cws templates
 
 Original error: %v`, err)
+}
 
-	case strings.Contains(errorMsg, "validation failed"):
-		return fmt.Errorf(`validation failed
+// ValidationErrorHandler handles validation errors
+type ValidationErrorHandler struct{}
+
+func (h *ValidationErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "validation failed")
+}
+
+func (h *ValidationErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`validation failed
 
 The operation failed validation checks. To fix this:
 
@@ -133,11 +192,18 @@ The operation failed validation checks. To fix this:
 Need help? Check: https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBLESHOOTING.md
 
 Original error: %v`, err)
+}
 
-	default:
-		// For unknown errors, provide general guidance
-		if context != "" {
-			return fmt.Errorf(`%s failed
+// DefaultErrorHandler handles unknown errors
+type DefaultErrorHandler struct{}
+
+func (h *DefaultErrorHandler) CanHandle(errorMsg string) bool {
+	return true // Always can handle as fallback
+}
+
+func (h *DefaultErrorHandler) Handle(err error, context string) error {
+	if context != "" {
+		return fmt.Errorf(`%s failed
 
 %v
 
@@ -152,10 +218,53 @@ Need help?
    aws sts get-caller-identity
 
 4. Open an issue: https://github.com/scttfrdmn/cloudworkstation/issues`, context, err)
-		}
-
-		return err
 	}
+	return err
+}
+
+// ErrorHandlerRegistry manages error handlers (Strategy Pattern - SOLID)
+type ErrorHandlerRegistry struct {
+	handlers []ErrorHandler
+}
+
+// NewErrorHandlerRegistry creates error handler registry
+func NewErrorHandlerRegistry() *ErrorHandlerRegistry {
+	return &ErrorHandlerRegistry{
+		handlers: []ErrorHandler{
+			&DaemonErrorHandler{},
+			&ConnectionErrorHandler{},
+			&NetworkErrorHandler{},
+			&CredentialsErrorHandler{},
+			&NetworkConfigErrorHandler{},
+			&CapacityErrorHandler{},
+			&TemplateErrorHandler{},
+			&ValidationErrorHandler{},
+			&DefaultErrorHandler{}, // Must be last as fallback
+		},
+	}
+}
+
+// Handle processes error using appropriate handler
+func (r *ErrorHandlerRegistry) Handle(err error, context string) error {
+	if err == nil {
+		return nil
+	}
+
+	errorMsg := err.Error()
+	for _, handler := range r.handlers {
+		if handler.CanHandle(errorMsg) {
+			return handler.Handle(err, context)
+		}
+	}
+
+	// Fallback (should never reach here due to DefaultErrorHandler)
+	return err
+}
+
+// UserFriendlyError wraps errors with helpful guidance using Strategy Pattern (SOLID: Single Responsibility)
+func UserFriendlyError(err error, context string) error {
+	registry := NewErrorHandlerRegistry()
+	return registry.Handle(err, context)
 }
 
 // FormatErrorForCLI formats an error for command-line output with helpful guidance

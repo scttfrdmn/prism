@@ -72,73 +72,122 @@ func (a *App) repoList(args []string) error {
 	return w.Flush()
 }
 
-// repoAdd adds a new repository.
-func (a *App) repoAdd(args []string) error {
+// RepositoryAddRequest represents repository creation parameters (Factory Pattern - SOLID)
+type RepositoryAddRequest struct {
+	Name     string
+	Location string
+	Type     string
+	Priority int
+	Branch   string
+}
+
+// RepositoryConfigParser parses CLI arguments for repository addition (Single Responsibility)
+type RepositoryConfigParser struct{}
+
+// Parse extracts repository configuration from CLI arguments
+func (p *RepositoryConfigParser) Parse(args []string) (*RepositoryAddRequest, error) {
 	if len(args) < 2 {
-		return fmt.Errorf("repo add requires name and URL/path arguments")
+		return nil, fmt.Errorf("repo add requires name and URL/path arguments")
 	}
 
-	name := args[0]
-	location := args[1]
-	repoType := "github"
-	priority := 10 // Default medium priority
-	branch := "main"
+	req := &RepositoryAddRequest{
+		Name:     args[0],
+		Location: args[1],
+		Type:     "github",
+		Priority: 10, // Default medium priority
+		Branch:   "main",
+	}
 
-	// Parse flags
-	for i := 2; i < len(args); i++ {
+	return p.parseFlags(req, args[2:])
+}
+
+func (p *RepositoryConfigParser) parseFlags(req *RepositoryAddRequest, flagArgs []string) (*RepositoryAddRequest, error) {
+	for i := 0; i < len(flagArgs); i++ {
 		switch {
-		case args[i] == "--type" && i+1 < len(args):
-			repoType = args[i+1]
+		case flagArgs[i] == "--type" && i+1 < len(flagArgs):
+			req.Type = flagArgs[i+1]
 			i++
-		case args[i] == "--priority" && i+1 < len(args):
-			p, err := strconv.Atoi(args[i+1])
+		case flagArgs[i] == "--priority" && i+1 < len(flagArgs):
+			p, err := strconv.Atoi(flagArgs[i+1])
 			if err != nil {
-				return fmt.Errorf("invalid priority: %s", args[i+1])
+				return nil, fmt.Errorf("invalid priority: %s", flagArgs[i+1])
 			}
-			priority = p
+			req.Priority = p
 			i++
-		case args[i] == "--branch" && i+1 < len(args):
-			branch = args[i+1]
+		case flagArgs[i] == "--branch" && i+1 < len(flagArgs):
+			req.Branch = flagArgs[i+1]
 			i++
 		}
 	}
+	return req, nil
+}
 
-	// Create repository manager
+// RepositoryFactory creates repository objects based on type (Factory Pattern - SOLID)
+type RepositoryFactory struct{}
+
+// CreateRepository creates repository object from request
+func (f *RepositoryFactory) CreateRepository(req *RepositoryAddRequest) (*repository.Repository, error) {
+	repo := &repository.Repository{
+		Name:     req.Name,
+		Type:     req.Type,
+		Priority: req.Priority,
+	}
+
+	return f.configureRepositoryType(repo, req)
+}
+
+func (f *RepositoryFactory) configureRepositoryType(repo *repository.Repository, req *RepositoryAddRequest) (*repository.Repository, error) {
+	switch req.Type {
+	case "github":
+		repo.URL = req.Location
+		repo.Branch = req.Branch
+	case "local":
+		repo.Path = req.Location
+	case "s3":
+		return f.configureS3Repository(repo, req.Location)
+	default:
+		return nil, fmt.Errorf("unsupported repository type: %s", req.Type)
+	}
+	return repo, nil
+}
+
+func (f *RepositoryFactory) configureS3Repository(repo *repository.Repository, location string) (*repository.Repository, error) {
+	parts := strings.SplitN(strings.TrimPrefix(location, "s3://"), "/", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid S3 URL: %s", location)
+	}
+	repo.Bucket = parts[0]
+	repo.Prefix = parts[1]
+	return repo, nil
+}
+
+// repoAdd adds a new repository using Factory Pattern (SOLID: Single Responsibility)
+func (a *App) repoAdd(args []string) error {
+	// Parse request
+	parser := &RepositoryConfigParser{}
+	req, err := parser.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	// Create repository
+	factory := &RepositoryFactory{}
+	repo, err := factory.CreateRepository(req)
+	if err != nil {
+		return err
+	}
+
+	// Add to manager
 	repoManager, err := repository.NewManager()
 	if err != nil {
 		return fmt.Errorf("failed to initialize repository manager: %w", err)
 	}
 
-	// Create repository
-	repo := repository.Repository{
-		Name:     name,
-		Type:     repoType,
-		Priority: priority,
-	}
-
-	switch repoType {
-	case "github":
-		repo.URL = location
-		repo.Branch = branch
-	case "local":
-		repo.Path = location
-	case "s3":
-		parts := strings.SplitN(strings.TrimPrefix(location, "s3://"), "/", 2)
-		if len(parts) != 2 {
-			return fmt.Errorf("invalid S3 URL: %s", location)
-		}
-		repo.Bucket = parts[0]
-		repo.Prefix = parts[1]
-	default:
-		return fmt.Errorf("unsupported repository type: %s", repoType)
-	}
-
-	// Add repository
-	if err := repoManager.AddRepository(repo); err != nil {
+	if err := repoManager.AddRepository(*repo); err != nil {
 		return fmt.Errorf("failed to add repository: %w", err)
 	}
 
-	fmt.Printf("Added repository %q with priority %d\n", name, priority)
+	fmt.Printf("Added repository %q with priority %d\n", req.Name, req.Priority)
 	return nil
 }
 

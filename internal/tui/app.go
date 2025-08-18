@@ -133,89 +133,160 @@ func (m AppModel) Init() tea.Cmd {
 	}
 }
 
-// Update handles messages and updates the model
-func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+// AppMessageHandler interface for handling different app messages (Command Pattern - SOLID)
+type AppMessageHandler interface {
+	CanHandle(msg tea.Msg) bool
+	Handle(m AppModel, msg tea.Msg) (AppModel, []tea.Cmd)
+}
+
+// WindowSizeHandler handles window size messages
+type WindowSizeHandler struct{}
+
+func (h *WindowSizeHandler) CanHandle(msg tea.Msg) bool {
+	_, ok := msg.(tea.WindowSizeMsg)
+	return ok
+}
+
+func (h *WindowSizeHandler) Handle(m AppModel, msg tea.Msg) (AppModel, []tea.Cmd) {
+	windowMsg := msg.(tea.WindowSizeMsg)
+	m.width = windowMsg.Width
+	m.height = windowMsg.Height
+	return m, nil
+}
+
+// QuitKeyHandler handles quit key messages
+type QuitKeyHandler struct{}
+
+func (h *QuitKeyHandler) CanHandle(msg tea.Msg) bool {
+	keyMsg, ok := msg.(tea.KeyMsg)
+	return ok && (keyMsg.String() == "ctrl+c" || keyMsg.String() == "q")
+}
+
+func (h *QuitKeyHandler) Handle(m AppModel, msg tea.Msg) (AppModel, []tea.Cmd) {
+	return m, []tea.Cmd{tea.Quit}
+}
+
+// PageNavigationHandler handles page navigation keys
+type PageNavigationHandler struct{}
+
+func (h *PageNavigationHandler) CanHandle(msg tea.Msg) bool {
+	keyMsg, ok := msg.(tea.KeyMsg)
+	if !ok {
+		return false
+	}
+	key := keyMsg.String()
+	return key == "1" || key == "2" || key == "3" || key == "4" || key == "5" || key == "6"
+}
+
+func (h *PageNavigationHandler) Handle(m AppModel, msg tea.Msg) (AppModel, []tea.Cmd) {
+	keyMsg := msg.(tea.KeyMsg)
 	var cmds []tea.Cmd
 
-	// Handle global messages
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			// Quit application
-			return m, tea.Quit
-		case "1":
-			// Switch to dashboard
-			m.currentPage = DashboardPage
-		case "2":
-			// Switch to instances page
-			m.currentPage = InstancesPage
-			{
-				cmds = append(cmds, m.instancesModel.Init())
-			}
-		case "3":
-			// Switch to templates page
-			m.currentPage = TemplatesPage
-			{
-				cmds = append(cmds, m.templatesModel.Init())
-			}
-		case "4":
-			// Switch to storage page
-			m.currentPage = StoragePage
-			{
-				cmds = append(cmds, m.storageModel.Init())
-			}
-		case "5":
-			// Switch to settings page
-			m.currentPage = SettingsPage
-			{
-				cmds = append(cmds, m.settingsModel.Init())
-			}
-		case "6":
-			// Switch to profiles page
-			m.currentPage = ProfilesPage
-			{
-				// Initialize profiles page
-				m.profilesModel.SetSize(m.width, m.height)
-				cmds = append(cmds, func() tea.Msg { return models.ProfileInitMsg{} })
-			}
-		}
+	switch keyMsg.String() {
+	case "1":
+		m.currentPage = DashboardPage
+	case "2":
+		m.currentPage = InstancesPage
+		cmds = append(cmds, m.instancesModel.Init())
+	case "3":
+		m.currentPage = TemplatesPage
+		cmds = append(cmds, m.templatesModel.Init())
+	case "4":
+		m.currentPage = StoragePage
+		cmds = append(cmds, m.storageModel.Init())
+	case "5":
+		m.currentPage = SettingsPage
+		cmds = append(cmds, m.settingsModel.Init())
+	case "6":
+		m.currentPage = ProfilesPage
+		m.profilesModel.SetSize(m.width, m.height)
+		cmds = append(cmds, func() tea.Msg { return models.ProfileInitMsg{} })
 	}
 
-	// Update current page model based on active page
+	return m, cmds
+}
+
+// PageModelUpdater handles updating the current page model
+type PageModelUpdater struct{}
+
+func (u *PageModelUpdater) UpdateCurrentPage(m AppModel, msg tea.Msg) (AppModel, tea.Cmd) {
 	switch m.currentPage {
 	case DashboardPage:
 		newModel, newCmd := m.dashboardModel.Update(msg)
 		m.dashboardModel = newModel.(models.DashboardModel)
-		cmd = newCmd
+		return m, newCmd
 	case InstancesPage:
 		newModel, newCmd := m.instancesModel.Update(msg)
 		m.instancesModel = newModel.(models.InstancesModel)
-		cmd = newCmd
+		return m, newCmd
 	case TemplatesPage:
 		newModel, newCmd := m.templatesModel.Update(msg)
 		m.templatesModel = newModel.(models.TemplatesModel)
-		cmd = newCmd
+		return m, newCmd
 	case StoragePage:
 		newModel, newCmd := m.storageModel.Update(msg)
 		m.storageModel = newModel.(models.StorageModel)
-		cmd = newCmd
+		return m, newCmd
 	case SettingsPage:
 		newModel, newCmd := m.settingsModel.Update(msg)
 		m.settingsModel = newModel.(models.SettingsModel)
-		cmd = newCmd
+		return m, newCmd
 	case ProfilesPage:
 		newModel, newCmd := m.profilesModel.Update(msg)
 		m.profilesModel = newModel.(models.ProfilesModel)
-		cmd = newCmd
+		return m, newCmd
+	}
+	return m, nil
+}
+
+// AppMessageDispatcher manages app message handlers (Command Pattern - SOLID)
+type AppMessageDispatcher struct {
+	handlers []AppMessageHandler
+	updater  *PageModelUpdater
+}
+
+// NewAppMessageDispatcher creates app message dispatcher
+func NewAppMessageDispatcher() *AppMessageDispatcher {
+	return &AppMessageDispatcher{
+		handlers: []AppMessageHandler{
+			&WindowSizeHandler{},
+			&QuitKeyHandler{},
+			&PageNavigationHandler{},
+		},
+		updater: &PageModelUpdater{},
+	}
+}
+
+// Dispatch processes message using appropriate handler
+func (d *AppMessageDispatcher) Dispatch(m AppModel, msg tea.Msg) (AppModel, tea.Cmd) {
+	var allCmds []tea.Cmd
+
+	// Try global handlers first
+	for _, handler := range d.handlers {
+		if handler.CanHandle(msg) {
+			newModel, cmds := handler.Handle(m, msg)
+			if cmds != nil {
+				allCmds = append(allCmds, cmds...)
+			}
+			m = newModel
+			break
+		}
 	}
 
-	cmds = append(cmds, cmd)
-	return m, tea.Batch(cmds...)
+	// Update current page model
+	newModel, pageCmd := d.updater.UpdateCurrentPage(m, msg)
+	if pageCmd != nil {
+		allCmds = append(allCmds, pageCmd)
+	}
+
+	return newModel, tea.Batch(allCmds...)
+}
+
+// Update handles messages using Command Pattern (SOLID: Single Responsibility)
+func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	dispatcher := NewAppMessageDispatcher()
+	newModel, cmd := dispatcher.Dispatch(m, msg)
+	return newModel, cmd
 }
 
 // View renders the application
