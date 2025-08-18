@@ -302,58 +302,140 @@ func (a *App) monitorAMILaunchProgress(instanceName string) error {
 	return nil
 }
 
-// monitorPackageLaunchProgress shows detailed progress for package-based launches
-func (a *App) monitorPackageLaunchProgress(instanceName, templateName string) error {
-	fmt.Printf("📦 Package-based launch - monitoring setup progress...\n")
-	fmt.Printf("💡 Setup time varies: APT/DNF ~2-3 min, conda ~5-10 min\n\n")
+// InstanceStateHandler interface for handling different instance states (Strategy Pattern - SOLID)
+type InstanceStateHandler interface {
+	CanHandle(state string) bool
+	Handle(state string, elapsed int, instanceName string) (bool, error) // returns (shouldContinue, error)
+}
 
-	setupComplete := false
+// PendingStateHandler handles pending instance state
+type PendingStateHandler struct{}
 
+func (h *PendingStateHandler) CanHandle(state string) bool {
+	return state == "pending"
+}
+
+func (h *PendingStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
+	fmt.Printf("🔄 Instance starting... (%ds)\n", elapsed)
+	return true, nil
+}
+
+// RunningStateHandler handles running instance state with setup monitoring
+type RunningStateHandler struct {
+	apiClient api.CloudWorkstationAPI
+	ctx       context.Context
+}
+
+func (h *RunningStateHandler) CanHandle(state string) bool {
+	return state == "running"
+}
+
+func (h *RunningStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
+	// Display setup progress messages
+	h.displaySetupProgress(elapsed)
+
+	// Check if setup is complete
+	if elapsed > 60 && elapsed%30 == 0 { // Check every 30 seconds after 1 minute
+		_, connErr := h.apiClient.ConnectInstance(h.ctx, instanceName)
+		if connErr == nil {
+			fmt.Printf("✅ Setup complete! Instance ready.\n")
+			fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (h *RunningStateHandler) displaySetupProgress(elapsed int) {
+	if elapsed < 30 {
+		fmt.Printf("🔧 Instance running, beginning setup... (%ds)\n", elapsed)
+	} else if elapsed < 120 {
+		fmt.Printf("📥 Installing packages... (%ds)\n", elapsed)
+	} else if elapsed < 300 {
+		fmt.Printf("⚙️  Configuring services... (%ds)\n", elapsed)
+	} else {
+		fmt.Printf("🔧 Final setup steps... (%ds)\n", elapsed)
+	}
+}
+
+// ErrorStateHandler handles error states (stopped, terminated)
+type ErrorStateHandler struct{}
+
+func (h *ErrorStateHandler) CanHandle(state string) bool {
+	return state == "stopping" || state == "stopped" || state == "terminated"
+}
+
+func (h *ErrorStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
+	switch state {
+	case "stopping", "stopped":
+		return false, fmt.Errorf("❌ Instance stopped during setup")
+	case "terminated":
+		return false, fmt.Errorf("❌ Instance terminated during launch")
+	}
+	return false, nil
+}
+
+// DryRunStateHandler handles dry-run state
+type DryRunStateHandler struct{}
+
+func (h *DryRunStateHandler) CanHandle(state string) bool {
+	return state == "dry-run"
+}
+
+func (h *DryRunStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
+	fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+	return false, nil
+}
+
+// DefaultStateHandler handles unknown states
+type DefaultStateHandler struct{}
+
+func (h *DefaultStateHandler) CanHandle(state string) bool {
+	return true // Always can handle as fallback
+}
+
+func (h *DefaultStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
+	fmt.Printf("📊 Status: %s (%ds)\n", state, elapsed)
+	return true, nil
+}
+
+// LaunchProgressMonitor manages package launch monitoring (Strategy Pattern - SOLID)
+type LaunchProgressMonitor struct {
+	handlers  []InstanceStateHandler
+	apiClient api.CloudWorkstationAPI
+	ctx       context.Context
+}
+
+// NewLaunchProgressMonitor creates launch progress monitor
+func NewLaunchProgressMonitor(apiClient api.CloudWorkstationAPI, ctx context.Context) *LaunchProgressMonitor {
+	return &LaunchProgressMonitor{
+		handlers: []InstanceStateHandler{
+			&PendingStateHandler{},
+			&RunningStateHandler{apiClient: apiClient, ctx: ctx},
+			&ErrorStateHandler{},
+			&DryRunStateHandler{},
+			&DefaultStateHandler{}, // Must be last as fallback
+		},
+		apiClient: apiClient,
+		ctx:       ctx,
+	}
+}
+
+// Monitor handles instance state monitoring using strategies
+func (m *LaunchProgressMonitor) Monitor(instanceName string) error {
 	for i := 0; i < 240; i++ { // Monitor for up to 20 minutes
-		instance, err := a.apiClient.GetInstance(a.ctx, instanceName)
+		instance, err := m.apiClient.GetInstance(m.ctx, instanceName)
 		if err != nil {
 			if i == 0 {
 				fmt.Printf("⏳ Instance initializing...\n")
 			}
 		} else {
-			switch instance.State {
-			case "pending":
-				fmt.Printf("🔄 Instance starting... (%ds)\n", i*5)
-			case "running":
-				if !setupComplete {
-					// Instance is running, now monitor setup progress
-					if i*5 < 30 {
-						fmt.Printf("🔧 Instance running, beginning setup... (%ds)\n", i*5)
-					} else if i*5 < 120 {
-						fmt.Printf("📥 Installing packages... (%ds)\n", i*5)
-					} else if i*5 < 300 {
-						fmt.Printf("⚙️  Configuring services... (%ds)\n", i*5)
-					} else {
-						fmt.Printf("🔧 Final setup steps... (%ds)\n", i*5)
-					}
-
-					// Check if setup is complete by attempting connection
-					if i*5 > 60 && i%6 == 0 { // Check every 30 seconds after 1 minute
-						_, connErr := a.apiClient.ConnectInstance(a.ctx, instanceName)
-						if connErr == nil {
-							fmt.Printf("✅ Setup complete! Instance ready.\n")
-							fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
-							return nil
-						}
-					}
-				} else {
-					fmt.Printf("✅ Instance ready!\n")
-					return nil
-				}
-			case "stopping", "stopped":
-				return fmt.Errorf("❌ Instance stopped during setup")
-			case "terminated":
-				return fmt.Errorf("❌ Instance terminated during launch")
-			case "dry-run":
-				fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+			shouldContinue, stateErr := m.handleInstanceState(instance.State, i*5, instanceName)
+			if stateErr != nil {
+				return stateErr
+			}
+			if !shouldContinue {
 				return nil
-			default:
-				fmt.Printf("📊 Status: %s (%ds)\n", instance.State, i*5)
 			}
 		}
 
@@ -364,6 +446,24 @@ func (a *App) monitorPackageLaunchProgress(instanceName, templateName string) er
 	fmt.Printf("💡 Check status with: cws list\n")
 	fmt.Printf("💡 Try connecting: cws connect %s\n", instanceName)
 	return nil
+}
+
+func (m *LaunchProgressMonitor) handleInstanceState(state string, elapsed int, instanceName string) (bool, error) {
+	for _, handler := range m.handlers {
+		if handler.CanHandle(state) {
+			return handler.Handle(state, elapsed, instanceName)
+		}
+	}
+	return true, nil // Continue monitoring by default
+}
+
+// monitorPackageLaunchProgress shows detailed progress using Strategy Pattern (SOLID: Single Responsibility)
+func (a *App) monitorPackageLaunchProgress(instanceName, templateName string) error {
+	fmt.Printf("📦 Package-based launch - monitoring setup progress...\n")
+	fmt.Printf("💡 Setup time varies: APT/DNF ~2-3 min, conda ~5-10 min\n\n")
+
+	monitor := NewLaunchProgressMonitor(a.apiClient, a.ctx)
+	return monitor.Monitor(instanceName)
 }
 
 // List handles the list command with optional project filtering
