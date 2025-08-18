@@ -43,159 +43,11 @@ func (a *App) AMI(args []string) error {
 }
 
 // handleAMIBuild builds a new AMI from a template
+// handleAMIBuild handles AMI build commands using Command Pattern (SOLID: Single Responsibility)
 func (a *App) handleAMIBuild(args []string) error {
-	if len(args) == 0 {
-		return fmt.Errorf("missing template name")
-	}
-
-	templateName := args[0]
-	cmdArgs := parseCmdArgs(args[1:])
-	fmt.Printf("DEBUG: Command args parsed: %+v\n", cmdArgs)
-
-	// Parse command line arguments
-	region := cmdArgs["region"]
-	architecture := cmdArgs["arch"]
-	dryRun := cmdArgs["dry-run"] != ""
-	subnetID := cmdArgs["subnet"]
-	vpcID := cmdArgs["vpc"]
-
-	ctx := context.Background()
-
-	// Auto-discover VPC and subnet if not provided (much better UX)
-	if !dryRun {
-		if vpcID == "" || subnetID == "" {
-			fmt.Printf("🔍 Auto-discovering default VPC and subnet...\n")
-
-			// Initialize AWS clients for discovery
-			cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-			if err != nil {
-				return fmt.Errorf("failed to load AWS config: %w", err)
-			}
-			discoveryClient := ec2.NewFromConfig(cfg)
-
-			if vpcID == "" {
-				vpcID, err = discoverDefaultVPC(ctx, discoveryClient)
-				if err != nil {
-					return fmt.Errorf("failed to discover default VPC (you can specify with --vpc): %w", err)
-				}
-				fmt.Printf("   ✅ Using default VPC: %s\n", vpcID)
-			}
-
-			if subnetID == "" {
-				subnetID, err = discoverPublicSubnet(ctx, discoveryClient, vpcID)
-				if err != nil {
-					return fmt.Errorf("failed to discover public subnet in VPC %s (you can specify with --subnet): %w", vpcID, err)
-				}
-				fmt.Printf("   ✅ Using public subnet: %s\n", subnetID)
-			}
-		}
-	}
-
-	if region == "" {
-		region = os.Getenv("AWS_REGION")
-		if region == "" {
-			region = "us-east-1" // Default
-		}
-	}
-
-	if architecture == "" {
-		architecture = "x86_64" // Default
-	}
-
-	// Initialize AWS clients
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-	if err != nil {
-		return fmt.Errorf("failed to load AWS config: %w", err)
-	}
-
-	ec2Client := ec2.NewFromConfig(cfg)
-	ssmClient := ssm.NewFromConfig(cfg)
-
-	// Create AMI registry
-	registry := ami.NewRegistry(ssmClient, "")
-
-	// Create AMI builder with configuration
-	builderConfig := map[string]string{}
-	if subnetID != "" {
-		builderConfig["subnet_id"] = subnetID
-	}
-	if vpcID != "" {
-		builderConfig["vpc_id"] = vpcID
-	}
-	builder, err := ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create AMI builder: %w", err)
-	}
-	fmt.Printf("DEBUG: Builder config: %+v\n", builderConfig)
-
-	// Create template parser
-	parser := ami.NewParser()
-
-	// Find template file
-	templateFile := filepath.Join("templates", templateName+".yml")
-	if _, err := os.Stat(templateFile); os.IsNotExist(err) {
-		// Try with .yaml extension
-		templateFile = filepath.Join("templates", templateName+".yaml")
-		if _, err := os.Stat(templateFile); os.IsNotExist(err) {
-			return fmt.Errorf("template '%s' not found", templateName)
-		}
-	}
-
-	// Parse template
-	template, err := parser.ParseTemplateFile(templateFile)
-	if err != nil {
-		return fmt.Errorf("failed to parse template: %w", err)
-	}
-
-	// Create build request
-	buildRequest := ami.BuildRequest{
-		TemplateName: templateName,
-		Template:     *template,
-		Region:       region,
-		Architecture: architecture,
-		DryRun:       dryRun,
-		BuildID:      fmt.Sprintf("%s-%d", templateName, time.Now().Unix()),
-		BuildType:    "manual",
-		VpcID:        vpcID,
-		SubnetID:     subnetID,
-	}
-
-	fmt.Printf("Building AMI for template '%s' in region %s (%s)\n", templateName, region, architecture)
-	if dryRun {
-		fmt.Println("Running in DRY RUN mode - no AMI will be created")
-	}
-
-	// Build the AMI
-	if !dryRun {
-		fmt.Println("Starting build... this may take several minutes")
-	} else {
-		fmt.Println("Starting dry run build... simulating steps without creating resources")
-	}
-
-	result, err := builder.BuildAMI(ctx, buildRequest)
-	if err != nil {
-		return fmt.Errorf("AMI build failed: %w", err)
-	}
-
-	// Print build result summary
-	if result.Status == "success" {
-		// No need for additional output - detailed progress is already shown during build
-	} else {
-		fmt.Println("\n❌ AMI build failed!")
-		fmt.Printf("Error: %s\n", result.ErrorMessage)
-	}
-
-	// Print build logs if available
-	if result.Logs != "" {
-		logFile := fmt.Sprintf("%s-build.log", result.TemplateName)
-		if err := os.WriteFile(logFile, []byte(result.Logs), 0644); err != nil {
-			fmt.Printf("Warning: Failed to write build logs to %s: %v\n", logFile, err)
-		} else {
-			fmt.Printf("Full build logs saved to %s\n", logFile)
-		}
-	}
-
-	return nil
+	// Create and execute AMI build command
+	buildCmd := NewAMIBuildCommand()
+	return buildCmd.Execute(args)
 }
 
 // handleAMIList lists available AMIs
@@ -636,4 +488,250 @@ func parseCmdArgs(args []string) map[string]string {
 		}
 	}
 	return result
+}
+
+// AMIBuildCommand handles AMI build operations using Command Pattern (SOLID: Single Responsibility)
+type AMIBuildCommand struct {
+	argParser      *AMIBuildArgParser
+	networkService *NetworkDiscoveryService
+	builderService *AMIBuilderService
+}
+
+// NewAMIBuildCommand creates a new AMI build command
+func NewAMIBuildCommand() *AMIBuildCommand {
+	return &AMIBuildCommand{
+		argParser:      NewAMIBuildArgParser(),
+		networkService: NewNetworkDiscoveryService(),
+		builderService: NewAMIBuilderService(),
+	}
+}
+
+// Execute executes the AMI build command (Command Pattern)
+func (c *AMIBuildCommand) Execute(args []string) error {
+	// Parse arguments
+	config, err := c.argParser.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	// Auto-discover network resources if needed
+	if err := c.networkService.DiscoverResources(config); err != nil {
+		return err
+	}
+
+	// Execute the build
+	return c.builderService.BuildAMI(config)
+}
+
+// AMIBuildConfig represents AMI build configuration (Single Responsibility)
+type AMIBuildConfig struct {
+	TemplateName string
+	Region       string
+	Architecture string
+	DryRun       bool
+	SubnetID     string
+	VpcID        string
+}
+
+// AMIBuildArgParser parses AMI build arguments using Strategy Pattern (SOLID: Single Responsibility)
+type AMIBuildArgParser struct{}
+
+// NewAMIBuildArgParser creates a new argument parser
+func NewAMIBuildArgParser() *AMIBuildArgParser {
+	return &AMIBuildArgParser{}
+}
+
+// Parse parses command line arguments into configuration (Single Responsibility)
+func (p *AMIBuildArgParser) Parse(args []string) (*AMIBuildConfig, error) {
+	if len(args) == 0 {
+		return nil, fmt.Errorf("missing template name")
+	}
+
+	templateName := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Apply defaults and parse arguments
+	config := &AMIBuildConfig{
+		TemplateName: templateName,
+		Region:       p.parseRegion(cmdArgs),
+		Architecture: p.parseArchitecture(cmdArgs),
+		DryRun:       cmdArgs["dry-run"] != "",
+		SubnetID:     cmdArgs["subnet"],
+		VpcID:        cmdArgs["vpc"],
+	}
+
+	return config, nil
+}
+
+// parseRegion parses region with fallback (Single Responsibility)
+func (p *AMIBuildArgParser) parseRegion(cmdArgs map[string]string) string {
+	if region := cmdArgs["region"]; region != "" {
+		return region
+	}
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		return region
+	}
+	return "us-east-1" // Default
+}
+
+// parseArchitecture parses architecture with default (Single Responsibility)
+func (p *AMIBuildArgParser) parseArchitecture(cmdArgs map[string]string) string {
+	if arch := cmdArgs["arch"]; arch != "" {
+		return arch
+	}
+	return "x86_64" // Default
+}
+
+// NetworkDiscoveryService handles VPC/subnet discovery using Strategy Pattern (SOLID: Single Responsibility)
+type NetworkDiscoveryService struct{}
+
+// NewNetworkDiscoveryService creates a new network discovery service
+func NewNetworkDiscoveryService() *NetworkDiscoveryService {
+	return &NetworkDiscoveryService{}
+}
+
+// DiscoverResources auto-discovers VPC and subnet if needed (Single Responsibility)
+func (s *NetworkDiscoveryService) DiscoverResources(buildConfig *AMIBuildConfig) error {
+	if buildConfig.DryRun || (buildConfig.VpcID != "" && buildConfig.SubnetID != "") {
+		return nil // Skip discovery if dry run or already configured
+	}
+
+	fmt.Printf("🔍 Auto-discovering default VPC and subnet...\n")
+
+	// Initialize AWS client for discovery
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(buildConfig.Region))
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+	discoveryClient := ec2.NewFromConfig(cfg)
+
+	// Discover VPC if needed
+	if buildConfig.VpcID == "" {
+		if buildConfig.VpcID, err = discoverDefaultVPC(ctx, discoveryClient); err != nil {
+			return fmt.Errorf("failed to discover default VPC (you can specify with --vpc): %w", err)
+		}
+		fmt.Printf("   ✅ Using default VPC: %s\n", buildConfig.VpcID)
+	}
+
+	// Discover subnet if needed
+	if buildConfig.SubnetID == "" {
+		if buildConfig.SubnetID, err = discoverPublicSubnet(ctx, discoveryClient, buildConfig.VpcID); err != nil {
+			return fmt.Errorf("failed to discover public subnet in VPC %s (you can specify with --subnet): %w", buildConfig.VpcID, err)
+		}
+		fmt.Printf("   ✅ Using public subnet: %s\n", buildConfig.SubnetID)
+	}
+
+	return nil
+}
+
+// AMIBuilderService handles AMI building operations using Strategy Pattern (SOLID: Single Responsibility)
+type AMIBuilderService struct{}
+
+// NewAMIBuilderService creates a new AMI builder service
+func NewAMIBuilderService() *AMIBuilderService {
+	return &AMIBuilderService{}
+}
+
+// BuildAMI builds the AMI using the configuration (Single Responsibility)
+func (s *AMIBuilderService) BuildAMI(buildConfig *AMIBuildConfig) error {
+	ctx := context.Background()
+
+	// Setup AWS clients and builder
+	builder, err := s.createBuilder(ctx, buildConfig)
+	if err != nil {
+		return err
+	}
+
+	// Parse template
+	template, err := s.parseTemplate(buildConfig.TemplateName)
+	if err != nil {
+		return err
+	}
+
+	// Create and execute build request
+	buildRequest := s.createBuildRequest(buildConfig, template)
+	return s.executeBuild(ctx, builder, buildRequest)
+}
+
+// createBuilder creates the AMI builder (Single Responsibility)
+func (s *AMIBuilderService) createBuilder(ctx context.Context, buildConfig *AMIBuildConfig) (*ami.Builder, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(buildConfig.Region))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	ec2Client := ec2.NewFromConfig(cfg)
+	ssmClient := ssm.NewFromConfig(cfg)
+	registry := ami.NewRegistry(ssmClient, "")
+
+	builderConfig := map[string]string{
+		"subnet_id": buildConfig.SubnetID,
+		"vpc_id":    buildConfig.VpcID,
+	}
+
+	return ami.NewBuilder(ec2Client, ssmClient, registry, builderConfig)
+}
+
+// parseTemplate parses the template file (Single Responsibility)
+func (s *AMIBuilderService) parseTemplate(templateName string) (*ami.Template, error) {
+	parser := ami.NewParser()
+
+	// Find template file
+	templateFile := filepath.Join("templates", templateName+".yml")
+	if _, err := os.Stat(templateFile); os.IsNotExist(err) {
+		templateFile = filepath.Join("templates", templateName+".yaml")
+		if _, err := os.Stat(templateFile); os.IsNotExist(err) {
+			return nil, fmt.Errorf("template '%s' not found", templateName)
+		}
+	}
+
+	return parser.ParseTemplateFile(templateFile)
+}
+
+// createBuildRequest creates the build request (Single Responsibility)
+func (s *AMIBuilderService) createBuildRequest(buildConfig *AMIBuildConfig, template *ami.Template) ami.BuildRequest {
+	return ami.BuildRequest{
+		TemplateName: buildConfig.TemplateName,
+		Template:     *template,
+		Region:       buildConfig.Region,
+		Architecture: buildConfig.Architecture,
+		DryRun:       buildConfig.DryRun,
+		BuildID:      fmt.Sprintf("%s-%d", buildConfig.TemplateName, time.Now().Unix()),
+		BuildType:    "manual",
+		VpcID:        buildConfig.VpcID,
+		SubnetID:     buildConfig.SubnetID,
+	}
+}
+
+// executeBuild executes the build and handles results (Single Responsibility)
+func (s *AMIBuilderService) executeBuild(ctx context.Context, builder *ami.Builder, buildRequest ami.BuildRequest) error {
+	// Execute build
+	result, err := builder.BuildAMI(ctx, buildRequest)
+	if err != nil {
+		return fmt.Errorf("AMI build failed: %w", err)
+	}
+
+	// Handle results
+	return s.handleBuildResult(result)
+}
+
+// handleBuildResult processes and logs build results (Single Responsibility)
+func (s *AMIBuilderService) handleBuildResult(result *ami.BuildResult) error {
+	if result.Status != "success" {
+		fmt.Println("\n❌ AMI build failed!")
+		fmt.Printf("Error: %s\n", result.ErrorMessage)
+	}
+
+	// Save build logs if available
+	if result.Logs != "" {
+		logFile := fmt.Sprintf("%s-build.log", result.TemplateName)
+		if err := os.WriteFile(logFile, []byte(result.Logs), 0644); err != nil {
+			fmt.Printf("Warning: Failed to write build logs to %s: %v\n", logFile, err)
+		} else {
+			fmt.Printf("Full build logs saved to %s\n", logFile)
+		}
+	}
+
+	return nil
 }
