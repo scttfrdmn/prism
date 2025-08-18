@@ -351,7 +351,118 @@ func (a *App) SecurityCorrelations() error {
 	return nil
 }
 
-// SecurityKeychain displays keychain information and diagnostics
+// KeychainDisplayStrategy interface for different display sections (Strategy Pattern - SOLID)
+type KeychainDisplayStrategy interface {
+	Display(w *tabwriter.Writer, data map[string]interface{}) error
+}
+
+// ProviderInfoDisplayStrategy displays provider information
+type ProviderInfoDisplayStrategy struct{}
+
+func (s *ProviderInfoDisplayStrategy) Display(w *tabwriter.Writer, data map[string]interface{}) error {
+	info, ok := data["info"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	_, _ = fmt.Fprintln(w, "Provider Information:")
+	_, _ = fmt.Fprintf(w, "  Provider:\t%s\n", info["provider"])
+	_, _ = fmt.Fprintf(w, "  Platform:\t%s\n", info["platform"])
+	_, _ = fmt.Fprintf(w, "  Native:\t%v\n", info["native"])
+	_, _ = fmt.Fprintf(w, "  Available:\t%v\n", info["available"])
+	_, _ = fmt.Fprintf(w, "  Security Level:\t%s\n", info["security_level"])
+
+	if fallback, ok := info["fallback_reason"].(string); ok && fallback != "" {
+		_, _ = fmt.Fprintf(w, "  Fallback Reason:\t%s\n", fallback)
+	}
+	return nil
+}
+
+// IssuesDisplayStrategy displays keychain issues
+type IssuesDisplayStrategy struct{}
+
+func (s *IssuesDisplayStrategy) Display(w *tabwriter.Writer, data map[string]interface{}) error {
+	diagnostics, ok := data["diagnostics"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	if issues, ok := diagnostics["issues"].([]interface{}); ok && len(issues) > 0 {
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Issues:")
+		for _, issue := range issues {
+			_, _ = fmt.Fprintf(w, "  ⚠️ %s\n", issue)
+		}
+	}
+	return nil
+}
+
+// WarningsDisplayStrategy displays keychain warnings
+type WarningsDisplayStrategy struct{}
+
+func (s *WarningsDisplayStrategy) Display(w *tabwriter.Writer, data map[string]interface{}) error {
+	diagnostics, ok := data["diagnostics"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	if warnings, ok := diagnostics["warnings"].([]interface{}); ok && len(warnings) > 0 {
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Warnings:")
+		for _, warning := range warnings {
+			_, _ = fmt.Fprintf(w, "  ⚠️ %s\n", warning)
+		}
+	}
+	return nil
+}
+
+// RecommendationsDisplayStrategy displays keychain recommendations
+type RecommendationsDisplayStrategy struct{}
+
+func (s *RecommendationsDisplayStrategy) Display(w *tabwriter.Writer, data map[string]interface{}) error {
+	diagnostics, ok := data["diagnostics"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	if recommendations, ok := diagnostics["recommendations"].([]interface{}); ok && len(recommendations) > 0 {
+		_, _ = fmt.Fprintln(w, "")
+		_, _ = fmt.Fprintln(w, "Recommendations:")
+		for _, rec := range recommendations {
+			_, _ = fmt.Fprintf(w, "  💡 %s\n", rec)
+		}
+	}
+	return nil
+}
+
+// KeychainDisplayManager manages keychain display strategies (Strategy Pattern - SOLID)
+type KeychainDisplayManager struct {
+	strategies []KeychainDisplayStrategy
+}
+
+// NewKeychainDisplayManager creates keychain display manager
+func NewKeychainDisplayManager() *KeychainDisplayManager {
+	return &KeychainDisplayManager{
+		strategies: []KeychainDisplayStrategy{
+			&ProviderInfoDisplayStrategy{},
+			&IssuesDisplayStrategy{},
+			&WarningsDisplayStrategy{},
+			&RecommendationsDisplayStrategy{},
+		},
+	}
+}
+
+// DisplayAll renders all keychain information using strategies
+func (m *KeychainDisplayManager) DisplayAll(w *tabwriter.Writer, data map[string]interface{}) error {
+	for _, strategy := range m.strategies {
+		if err := strategy.Display(w, data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// SecurityKeychain displays keychain information using Strategy Pattern (SOLID: Single Responsibility)
 func (a *App) SecurityKeychain() error {
 	fmt.Println("🔐 Keychain Information")
 	fmt.Println("══════════════════════")
@@ -369,48 +480,9 @@ func (a *App) SecurityKeychain() error {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer func() { _ = w.Flush() }()
 
-	// Display keychain info
-	if info, ok := keychainData["info"].(map[string]interface{}); ok {
-		_, _ = fmt.Fprintln(w, "Provider Information:")
-		_, _ = fmt.Fprintf(w, "  Provider:\t%s\n", info["provider"])
-		_, _ = fmt.Fprintf(w, "  Platform:\t%s\n", info["platform"])
-		_, _ = fmt.Fprintf(w, "  Native:\t%v\n", info["native"])
-		_, _ = fmt.Fprintf(w, "  Available:\t%v\n", info["available"])
-		_, _ = fmt.Fprintf(w, "  Security Level:\t%s\n", info["security_level"])
-
-		if fallback, ok := info["fallback_reason"].(string); ok && fallback != "" {
-			_, _ = fmt.Fprintf(w, "  Fallback Reason:\t%s\n", fallback)
-		}
-	}
-
-	// Display diagnostics
-	if diagnostics, ok := keychainData["diagnostics"].(map[string]interface{}); ok {
-		if issues, ok := diagnostics["issues"].([]interface{}); ok && len(issues) > 0 {
-			_, _ = fmt.Fprintln(w, "")
-			_, _ = fmt.Fprintln(w, "Issues:")
-			for _, issue := range issues {
-				_, _ = fmt.Fprintf(w, "  ⚠️ %s\n", issue)
-			}
-		}
-
-		if warnings, ok := diagnostics["warnings"].([]interface{}); ok && len(warnings) > 0 {
-			_, _ = fmt.Fprintln(w, "")
-			_, _ = fmt.Fprintln(w, "Warnings:")
-			for _, warning := range warnings {
-				_, _ = fmt.Fprintf(w, "  ⚠️ %s\n", warning)
-			}
-		}
-
-		if recommendations, ok := diagnostics["recommendations"].([]interface{}); ok && len(recommendations) > 0 {
-			_, _ = fmt.Fprintln(w, "")
-			_, _ = fmt.Fprintln(w, "Recommendations:")
-			for _, rec := range recommendations {
-				_, _ = fmt.Fprintf(w, "  💡 %s\n", rec)
-			}
-		}
-	}
-
-	return nil
+	// Display using strategy pattern
+	displayManager := NewKeychainDisplayManager()
+	return displayManager.DisplayAll(w, keychainData)
 }
 
 // SecurityConfig displays security configuration
