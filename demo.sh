@@ -1,5 +1,5 @@
 #!/bin/bash
-# CloudWorkstation v0.4.2 Live Demo Script
+# CloudWorkstation v0.4.2-1 Live Demo Script
 # Complete workflow from installation to workstation connection
 #
 # Usage:
@@ -19,7 +19,7 @@ else
     CWSD_CMD="cwsd"
 fi
 
-echo "🎉 CloudWorkstation v0.4.2 Complete Workflow Demo"
+echo "🎉 CloudWorkstation v0.4.2-1 Complete Workflow Demo"
 echo "================================================="
 echo ""
 

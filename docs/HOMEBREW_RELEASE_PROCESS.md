@@ -10,47 +10,49 @@ This document provides a step-by-step process for deploying CloudWorkstation rel
 
 ## Step-by-Step Release Process
 
-### 1. Build and Prepare Binaries
+### 1. Update Version and Build Release Binaries
 
 ```bash
-# Ensure clean build
+# Update version in all deployment assets
 cd /Users/scttfrdmn/src/cloudworkstation
-make clean
-make build
 
-# Verify binaries exist and are proper size
-ls -la bin/
-# Should show:
-# cws    (~55MB)
-# cwsd   (~62MB) 
-# cws-gui (~32MB) - optional for Homebrew
+# Update version files
+# - pkg/version/version.go: Version = "X.Y.Z-N"
+# - Makefile: VERSION := X.Y.Z-N  
+# - Formula/cloudworkstation.rb: version "X.Y.Z-N"
+# - INSTALL.md, demo.sh, DEMO_SEQUENCE.md: Update version references
+
+# Build release binaries for all platforms
+make clean
+make release
+
+# Verify release binaries exist and have correct versions
+ls -la bin/release/
+./bin/release/darwin-arm64/cws --version
+./bin/release/darwin-arm64/cwsd --version
+# Should show: CloudWorkstation CLI vX.Y.Z-N and CloudWorkstation Daemon vX.Y.Z-N
 ```
 
 ### 2. Create Release Archives
 
 ```bash
-# Create temporary directory for archives
-cd /tmp && rm -rf release-archives
-mkdir -p release-archives/darwin-arm64 release-archives/darwin-amd64
+# Create archives from release binaries (make release already built cross-platform)
+cd bin/release
 
-# Copy binaries for both architectures
-# Note: For cross-compilation, use make cross-compile instead
-cp /Users/scttfrdmn/src/cloudworkstation/bin/cws /tmp/release-archives/darwin-arm64/
-cp /Users/scttfrdmn/src/cloudworkstation/bin/cwsd /tmp/release-archives/darwin-arm64/
-cp /Users/scttfrdmn/src/cloudworkstation/bin/cws /tmp/release-archives/darwin-amd64/
-cp /Users/scttfrdmn/src/cloudworkstation/bin/cwsd /tmp/release-archives/darwin-amd64/
+# Create tar.gz archives with correct structure for Homebrew
+tar -czf cloudworkstation-darwin-arm64.tar.gz -C darwin-arm64 cws cwsd
+tar -czf cloudworkstation-darwin-amd64.tar.gz -C darwin-amd64 cws cwsd
 
-# Create tar.gz archives
-cd /tmp/release-archives
-tar -czf cloudworkstation-darwin-arm64.tar.gz darwin-arm64/
-tar -czf cloudworkstation-darwin-amd64.tar.gz darwin-amd64/
-
-# Verify archive contents
+# Verify archive contents (should show binaries in root, not subdirectories)
 tar -tzf cloudworkstation-darwin-arm64.tar.gz
 # Should show:
-# darwin-arm64/
-# darwin-arm64/cws
-# darwin-arm64/cwsd
+# cws
+# cwsd
+
+# Verify binary functionality from archives
+tar -xzf cloudworkstation-darwin-arm64.tar.gz -C /tmp/test-extract/
+/tmp/test-extract/cws --version
+# Should show: CloudWorkstation CLI vX.Y.Z-N
 ```
 
 ### 3. Calculate SHA256 Checksums

@@ -4,16 +4,16 @@ class Cloudworkstation < Formula
   license "MIT"
   head "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
   
-  version "0.4.2"
+  version "0.4.2-1"
 
   # Use prebuilt binaries for faster installation  
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cloudworkstation-darwin-arm64.tar.gz"
-      sha256 "831792e74d5d80325e14d3ad0d73600074958170d5deadf3159e332a6cd789f7"
+      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2-1/cloudworkstation-darwin-arm64.tar.gz"
+      sha256 "0c8bef5b589d4e92c7aa1bd4ffb7858847a987fff2bdc769e223358dcfff4755"
     else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2/cloudworkstation-darwin-amd64.tar.gz"
-      sha256 "ef8be5312ba9c4b9848b6e223a7fead762449249f5db0315e888adbb2d1685ba"
+      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.2-1/cloudworkstation-darwin-amd64.tar.gz"
+      sha256 "4867dcc52e37788975dde2219ffe06bcc7f60cb347d2d571207640541bd376ce"
     end
   end
 
@@ -73,7 +73,7 @@ class Cloudworkstation < Formula
         #{HOMEBREW_PREFIX}/share/cloudworkstation/macos-service-manager.sh status    # Check status
         #{HOMEBREW_PREFIX}/share/cloudworkstation/macos-service-manager.sh logs      # View logs
       
-      Note: Version 0.4.2 includes enterprise research features with prebuilt binaries for fast installation.
+      Note: Version 0.4.2-1 includes enterprise research features with prebuilt binaries for fast installation.
     EOS
   end
 

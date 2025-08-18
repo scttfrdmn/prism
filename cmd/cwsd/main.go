@@ -57,7 +57,7 @@ func main() {
 	}
 
 	if *showVer {
-		fmt.Println(version.GetVersionInfo())
+		fmt.Println(version.GetDaemonVersionInfo())
 		return
 	}
 

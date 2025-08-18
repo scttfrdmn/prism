@@ -15,7 +15,7 @@ import (
 var (
 	// Version is the current version of CloudWorkstation.
 	// Should be in the format MAJOR.MINOR.PATCH.
-	Version = "0.4.2"
+	Version = "0.4.2-1"
 
 	// GitCommit is the git commit hash of the build.
 	GitCommit = ""
@@ -55,6 +55,46 @@ func init() {
 // GetVersionInfo returns a formatted string with version information.
 func GetVersionInfo() string {
 	result := fmt.Sprintf("CloudWorkstation v%s", Version)
+	if GitCommit != "" {
+		commitLen := len(GitCommit)
+		if commitLen > 8 {
+			commitLen = 8
+		}
+		result += fmt.Sprintf(" (commit: %s", GitCommit[:commitLen])
+		if BuildDate != "" {
+			result += fmt.Sprintf(", built: %s", BuildDate)
+		}
+		result += ")"
+	}
+	if GoVersion != "" {
+		result += fmt.Sprintf(" [%s]", GoVersion)
+	}
+	return result
+}
+
+// GetCLIVersionInfo returns version info specifically for the CLI component.
+func GetCLIVersionInfo() string {
+	result := fmt.Sprintf("CloudWorkstation CLI v%s", Version)
+	if GitCommit != "" {
+		commitLen := len(GitCommit)
+		if commitLen > 8 {
+			commitLen = 8
+		}
+		result += fmt.Sprintf(" (commit: %s", GitCommit[:commitLen])
+		if BuildDate != "" {
+			result += fmt.Sprintf(", built: %s", BuildDate)
+		}
+		result += ")"
+	}
+	if GoVersion != "" {
+		result += fmt.Sprintf(" [%s]", GoVersion)
+	}
+	return result
+}
+
+// GetDaemonVersionInfo returns version info specifically for the daemon component.
+func GetDaemonVersionInfo() string {
+	result := fmt.Sprintf("CloudWorkstation Daemon v%s", Version)
 	if GitCommit != "" {
 		commitLen := len(GitCommit)
 		if commitLen > 8 {

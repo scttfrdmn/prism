@@ -47,7 +47,7 @@ func main() {
 
 	// Handle version and help flags
 	if *versionFlag {
-		fmt.Println(version.GetVersionInfo())
+		fmt.Println(version.GetCLIVersionInfo())
 		return
 	}
 
