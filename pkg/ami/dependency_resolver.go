@@ -143,40 +143,60 @@ func (r *DependencyResolver) resolveDependency(templateName string, dep Template
 }
 
 // checkVersionConstraint checks if a version satisfies a constraint
+// checkVersionConstraint validates version constraints using Strategy Pattern (SOLID: Single Responsibility)
 func (r *DependencyResolver) checkVersionConstraint(version, constraint, operator string) (bool, error) {
 	// Parse versions
-	v, err := NewVersionInfo(version)
+	depVersion, reqVersion, err := r.parseVersionConstraintInputs(version, constraint)
 	if err != nil {
 		return false, err
+	}
+
+	// Use Strategy Pattern for version checking
+	checker := r.getVersionChecker(operator)
+	if checker == nil {
+		return false, fmt.Errorf("unsupported version operator: %s", operator)
+	}
+
+	return checker.Check(depVersion, reqVersion), nil
+}
+
+// parseVersionConstraintInputs parses version strings for constraint checking (Single Responsibility)
+func (r *DependencyResolver) parseVersionConstraintInputs(version, constraint string) (*VersionInfo, *VersionInfo, error) {
+	v, err := NewVersionInfo(version)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	cv, err := NewVersionInfo(constraint)
 	if err != nil {
-		return false, err
+		return nil, nil, err
 	}
 
+	return v, cv, nil
+}
+
+// getVersionChecker returns the appropriate version checker using Strategy Pattern (SOLID: Open/Closed)
+func (r *DependencyResolver) getVersionChecker(operator string) VersionChecker {
 	// Default operator is >=
 	if operator == "" {
 		operator = ">="
 	}
 
-	// Check constraint
 	switch operator {
 	case "=", "==":
-		return v.Major == cv.Major && v.Minor == cv.Minor && v.Patch == cv.Patch, nil
+		return &ExactVersionChecker{}
 	case ">=":
-		return v.IsGreaterThan(cv) || (v.Major == cv.Major && v.Minor == cv.Minor && v.Patch == cv.Patch), nil
+		return &GreaterThanOrEqualChecker{}
 	case ">":
-		return v.IsGreaterThan(cv), nil
+		return &GreaterThanChecker{}
 	case "<=":
-		return !v.IsGreaterThan(cv) || (v.Major == cv.Major && v.Minor == cv.Minor && v.Patch == cv.Patch), nil
+		return &LessThanOrEqualChecker{}
 	case "<":
-		return cv.IsGreaterThan(v), nil
+		return &LessThanChecker{}
 	case "~>":
-		// Compatible version: same major version, greater than or equal to specified minor version
-		return v.Major == cv.Major && (v.Minor > cv.Minor || (v.Minor == cv.Minor && v.Patch >= cv.Patch)), nil
+		return &CompatibleVersionChecker{}
 	default:
-		return false, fmt.Errorf("unsupported version operator: %s", operator)
+		return nil
 	}
 }
 
@@ -547,4 +567,52 @@ func (r *DependencyResolver) ResolveAndFetchDependencies(templateName string, fe
 	}
 
 	return resolved, fetched, nil
+}
+
+// VersionChecker defines the interface for version constraint checking using Strategy Pattern (SOLID: Open/Closed)
+type VersionChecker interface {
+	Check(version *VersionInfo, constraint *VersionInfo) bool
+}
+
+// ExactVersionChecker validates exact version matches (Strategy Pattern)
+type ExactVersionChecker struct{}
+
+func (c *ExactVersionChecker) Check(version *VersionInfo, constraint *VersionInfo) bool {
+	return version.Major == constraint.Major && version.Minor == constraint.Minor && version.Patch == constraint.Patch
+}
+
+// GreaterThanOrEqualChecker validates >= version constraints (Strategy Pattern)
+type GreaterThanOrEqualChecker struct{}
+
+func (c *GreaterThanOrEqualChecker) Check(version *VersionInfo, constraint *VersionInfo) bool {
+	return version.IsGreaterThan(constraint) || version.Equals(constraint)
+}
+
+// GreaterThanChecker validates > version constraints (Strategy Pattern)
+type GreaterThanChecker struct{}
+
+func (c *GreaterThanChecker) Check(version *VersionInfo, constraint *VersionInfo) bool {
+	return version.IsGreaterThan(constraint)
+}
+
+// LessThanOrEqualChecker validates <= version constraints (Strategy Pattern)
+type LessThanOrEqualChecker struct{}
+
+func (c *LessThanOrEqualChecker) Check(version *VersionInfo, constraint *VersionInfo) bool {
+	return !version.IsGreaterThan(constraint) || version.Equals(constraint)
+}
+
+// LessThanChecker validates < version constraints (Strategy Pattern)
+type LessThanChecker struct{}
+
+func (c *LessThanChecker) Check(version *VersionInfo, constraint *VersionInfo) bool {
+	return constraint.IsGreaterThan(version)
+}
+
+// CompatibleVersionChecker validates ~> version constraints (Strategy Pattern)
+type CompatibleVersionChecker struct{}
+
+func (c *CompatibleVersionChecker) Check(version *VersionInfo, constraint *VersionInfo) bool {
+	// Compatible version: same major version, greater than or equal to specified minor version
+	return version.Major == constraint.Major && (version.Minor > constraint.Minor || (version.Minor == constraint.Minor && version.Patch >= constraint.Patch))
 }

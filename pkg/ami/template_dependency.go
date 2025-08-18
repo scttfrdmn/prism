@@ -48,8 +48,23 @@ func (m *TemplateManager) ValidateTemplateDependencies(templateName string, depe
 }
 
 // validateDependency validates a single dependency
+// validateDependency validates a single template dependency using Strategy Pattern (SOLID: Single Responsibility)
 func (m *TemplateManager) validateDependency(templateName string, dep TemplateDependency) error {
 	// Check if dependency exists
+	if err := m.validateDependencyExists(dep); err != nil {
+		return err
+	}
+
+	// Validate version constraints if specified
+	if dep.Version != "" {
+		return m.validateDependencyVersion(dep)
+	}
+
+	return nil
+}
+
+// validateDependencyExists checks if the dependency template exists (Single Responsibility)
+func (m *TemplateManager) validateDependencyExists(dep TemplateDependency) error {
 	_, err := m.GetTemplate(dep.Name)
 	if err != nil {
 		return DependencyError(
@@ -57,108 +72,25 @@ func (m *TemplateManager) validateDependency(templateName string, dep TemplateDe
 			err,
 		).WithContext("dependency_name", dep.Name)
 	}
+	return nil
+}
 
-	// If no version constraint, we're done
-	if dep.Version == "" {
-		return nil
-	}
-
-	// Get dependency version
-	metadata, ok := m.TemplateMetadata[dep.Name]
-	if !ok || metadata.Version == "" {
-		if dep.Optional {
-			return nil
-		}
-		return DependencyError(
-			fmt.Sprintf("dependent template '%s' has no version information", dep.Name),
-			nil,
-		).WithContext("dependency_name", dep.Name)
-	}
-
-	// Parse versions
-	depVersion, err := NewVersionInfo(metadata.Version)
+// validateDependencyVersion validates dependency version constraints using Strategy Pattern (SOLID: Open/Closed)
+func (m *TemplateManager) validateDependencyVersion(dep TemplateDependency) error {
+	// Get dependency version information
+	depVersion, reqVersion, err := m.parseDependencyVersions(dep)
 	if err != nil {
-		return DependencyError(
-			fmt.Sprintf("dependent template '%s' has invalid version: %s", dep.Name, metadata.Version),
-			err,
-		).WithContext("dependency_name", dep.Name).
-			WithContext("dependency_version", metadata.Version)
+		return err
 	}
 
-	reqVersion, err := NewVersionInfo(dep.Version)
-	if err != nil {
-		return DependencyError(
-			fmt.Sprintf("invalid version requirement: %s", dep.Version),
-			err,
-		).WithContext("dependency_name", dep.Name).
-			WithContext("required_version", dep.Version)
-	}
-
-	// Check version constraints
+	// Use Strategy Pattern for version validation
 	operator := dep.VersionOperator
 	if operator == "" {
 		operator = ">=" // Default is greater than or equal
 	}
 
-	switch operator {
-	case "=", "==":
-		if depVersion.Major != reqVersion.Major ||
-			depVersion.Minor != reqVersion.Minor ||
-			depVersion.Patch != reqVersion.Patch {
-			return DependencyError(
-				fmt.Sprintf("dependent template '%s' version %s doesn't match required version %s",
-					dep.Name, depVersion.String(), reqVersion.String()),
-				nil,
-			).WithContext("dependency_name", dep.Name).
-				WithContext("dependency_version", depVersion.String()).
-				WithContext("required_version", reqVersion.String()).
-				WithContext("operator", operator)
-		}
-	case ">=":
-		if !depVersion.IsGreaterThan(reqVersion) && !depVersion.Equals(reqVersion) {
-			return DependencyError(
-				fmt.Sprintf("dependent template '%s' version %s is less than required version %s",
-					dep.Name, depVersion.String(), reqVersion.String()),
-				nil,
-			).WithContext("dependency_name", dep.Name).
-				WithContext("dependency_version", depVersion.String()).
-				WithContext("required_version", reqVersion.String()).
-				WithContext("operator", operator)
-		}
-	case ">":
-		if !depVersion.IsGreaterThan(reqVersion) {
-			return DependencyError(
-				fmt.Sprintf("dependent template '%s' version %s is not greater than required version %s",
-					dep.Name, depVersion.String(), reqVersion.String()),
-				nil,
-			).WithContext("dependency_name", dep.Name).
-				WithContext("dependency_version", depVersion.String()).
-				WithContext("required_version", reqVersion.String()).
-				WithContext("operator", operator)
-		}
-	case "<":
-		if depVersion.IsGreaterThan(reqVersion) || depVersion.Equals(reqVersion) {
-			return DependencyError(
-				fmt.Sprintf("dependent template '%s' version %s is not less than required version %s",
-					dep.Name, depVersion.String(), reqVersion.String()),
-				nil,
-			).WithContext("dependency_name", dep.Name).
-				WithContext("dependency_version", depVersion.String()).
-				WithContext("required_version", reqVersion.String()).
-				WithContext("operator", operator)
-		}
-	case "<=":
-		if depVersion.IsGreaterThan(reqVersion) {
-			return DependencyError(
-				fmt.Sprintf("dependent template '%s' version %s is greater than required version %s",
-					dep.Name, depVersion.String(), reqVersion.String()),
-				nil,
-			).WithContext("dependency_name", dep.Name).
-				WithContext("dependency_version", depVersion.String()).
-				WithContext("required_version", reqVersion.String()).
-				WithContext("operator", operator)
-		}
-	default:
+	validator := m.getVersionValidator(operator)
+	if validator == nil {
 		return DependencyError(
 			fmt.Sprintf("invalid version operator: %s", operator),
 			nil,
@@ -167,7 +99,62 @@ func (m *TemplateManager) validateDependency(templateName string, dep TemplateDe
 			WithContext("valid_operators", "=, ==, >, >=, <, <=")
 	}
 
-	return nil
+	return validator.Validate(dep, depVersion, reqVersion)
+}
+
+// parseDependencyVersions parses and validates version information (Single Responsibility)
+func (m *TemplateManager) parseDependencyVersions(dep TemplateDependency) (*VersionInfo, *VersionInfo, error) {
+	// Get dependency version
+	metadata, ok := m.TemplateMetadata[dep.Name]
+	if !ok || metadata.Version == "" {
+		if dep.Optional {
+			return nil, nil, nil
+		}
+		return nil, nil, DependencyError(
+			fmt.Sprintf("dependent template '%s' has no version information", dep.Name),
+			nil,
+		).WithContext("dependency_name", dep.Name)
+	}
+
+	// Parse dependency version
+	depVersion, err := NewVersionInfo(metadata.Version)
+	if err != nil {
+		return nil, nil, DependencyError(
+			fmt.Sprintf("dependent template '%s' has invalid version: %s", dep.Name, metadata.Version),
+			err,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("dependency_version", metadata.Version)
+	}
+
+	// Parse required version
+	reqVersion, err := NewVersionInfo(dep.Version)
+	if err != nil {
+		return nil, nil, DependencyError(
+			fmt.Sprintf("invalid version requirement: %s", dep.Version),
+			err,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("required_version", dep.Version)
+	}
+
+	return depVersion, reqVersion, nil
+}
+
+// getVersionValidator returns the appropriate version validator using Strategy Pattern (SOLID: Open/Closed)
+func (m *TemplateManager) getVersionValidator(operator string) VersionValidator {
+	switch operator {
+	case "=", "==":
+		return &ExactVersionValidator{}
+	case ">=":
+		return &GreaterThanOrEqualValidator{}
+	case ">":
+		return &GreaterThanValidator{}
+	case "<":
+		return &LessThanValidator{}
+	case "<=":
+		return &LessThanOrEqualValidator{}
+	default:
+		return nil
+	}
 }
 
 // AddDependency adds a dependency to a template
@@ -359,4 +346,94 @@ func (v *VersionInfo) Equals(other *VersionInfo) bool {
 	return v.Major == other.Major &&
 		v.Minor == other.Minor &&
 		v.Patch == other.Patch
+}
+
+// VersionValidator defines the interface for version constraint validation using Strategy Pattern (SOLID: Open/Closed)
+type VersionValidator interface {
+	Validate(dep TemplateDependency, depVersion *VersionInfo, reqVersion *VersionInfo) error
+}
+
+// ExactVersionValidator validates exact version matches (Strategy Pattern)
+type ExactVersionValidator struct{}
+
+func (v *ExactVersionValidator) Validate(dep TemplateDependency, depVersion *VersionInfo, reqVersion *VersionInfo) error {
+	if !depVersion.Equals(reqVersion) {
+		return DependencyError(
+			fmt.Sprintf("dependent template '%s' version %s doesn't match required version %s",
+				dep.Name, depVersion.String(), reqVersion.String()),
+			nil,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("dependency_version", depVersion.String()).
+			WithContext("required_version", reqVersion.String()).
+			WithContext("operator", "=")
+	}
+	return nil
+}
+
+// GreaterThanOrEqualValidator validates >= version constraints (Strategy Pattern)
+type GreaterThanOrEqualValidator struct{}
+
+func (v *GreaterThanOrEqualValidator) Validate(dep TemplateDependency, depVersion *VersionInfo, reqVersion *VersionInfo) error {
+	if !depVersion.IsGreaterThan(reqVersion) && !depVersion.Equals(reqVersion) {
+		return DependencyError(
+			fmt.Sprintf("dependent template '%s' version %s is less than required version %s",
+				dep.Name, depVersion.String(), reqVersion.String()),
+			nil,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("dependency_version", depVersion.String()).
+			WithContext("required_version", reqVersion.String()).
+			WithContext("operator", ">=")
+	}
+	return nil
+}
+
+// GreaterThanValidator validates > version constraints (Strategy Pattern)
+type GreaterThanValidator struct{}
+
+func (v *GreaterThanValidator) Validate(dep TemplateDependency, depVersion *VersionInfo, reqVersion *VersionInfo) error {
+	if !depVersion.IsGreaterThan(reqVersion) {
+		return DependencyError(
+			fmt.Sprintf("dependent template '%s' version %s is not greater than required version %s",
+				dep.Name, depVersion.String(), reqVersion.String()),
+			nil,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("dependency_version", depVersion.String()).
+			WithContext("required_version", reqVersion.String()).
+			WithContext("operator", ">")
+	}
+	return nil
+}
+
+// LessThanValidator validates < version constraints (Strategy Pattern)
+type LessThanValidator struct{}
+
+func (v *LessThanValidator) Validate(dep TemplateDependency, depVersion *VersionInfo, reqVersion *VersionInfo) error {
+	if depVersion.IsGreaterThan(reqVersion) || depVersion.Equals(reqVersion) {
+		return DependencyError(
+			fmt.Sprintf("dependent template '%s' version %s is not less than required version %s",
+				dep.Name, depVersion.String(), reqVersion.String()),
+			nil,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("dependency_version", depVersion.String()).
+			WithContext("required_version", reqVersion.String()).
+			WithContext("operator", "<")
+	}
+	return nil
+}
+
+// LessThanOrEqualValidator validates <= version constraints (Strategy Pattern)
+type LessThanOrEqualValidator struct{}
+
+func (v *LessThanOrEqualValidator) Validate(dep TemplateDependency, depVersion *VersionInfo, reqVersion *VersionInfo) error {
+	if depVersion.IsGreaterThan(reqVersion) {
+		return DependencyError(
+			fmt.Sprintf("dependent template '%s' version %s is greater than required version %s",
+				dep.Name, depVersion.String(), reqVersion.String()),
+			nil,
+		).WithContext("dependency_name", dep.Name).
+			WithContext("dependency_version", depVersion.String()).
+			WithContext("required_version", reqVersion.String()).
+			WithContext("operator", "<=")
+	}
+	return nil
 }

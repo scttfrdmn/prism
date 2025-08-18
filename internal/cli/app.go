@@ -54,12 +54,13 @@ import (
 
 // App represents the CLI application
 type App struct {
-	version        string
-	apiClient      api.CloudWorkstationAPI
-	ctx            context.Context // Context for AWS operations
-	tuiCommand     *cobra.Command
-	config         *Config
-	profileManager *profile.ManagerEnhanced
+	version           string
+	apiClient         api.CloudWorkstationAPI
+	ctx               context.Context // Context for AWS operations
+	tuiCommand        *cobra.Command
+	config            *Config
+	profileManager    *profile.ManagerEnhanced
+	launchDispatcher  *LaunchCommandDispatcher // Command Pattern for launch flags
 }
 
 // NewApp creates a new CLI application
@@ -93,11 +94,12 @@ func NewApp(version string) *App {
 
 	// Create app
 	app := &App{
-		version:        version,
-		apiClient:      baseClient,
-		ctx:            context.Background(),
-		config:         config,
-		profileManager: profileManager,
+		version:          version,
+		apiClient:        baseClient,
+		ctx:              context.Background(),
+		config:           config,
+		profileManager:   profileManager,
+		launchDispatcher: NewLaunchCommandDispatcher(),
 	}
 
 	// Initialize TUI command
@@ -123,11 +125,12 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 	}
 
 	return &App{
-		version:        version,
-		apiClient:      client,
-		ctx:            context.Background(),
-		config:         config,
-		profileManager: profileManager,
+		version:          version,
+		apiClient:        client,
+		ctx:              context.Background(),
+		config:           config,
+		profileManager:   profileManager,
+		launchDispatcher: NewLaunchCommandDispatcher(),
 	}
 }
 
@@ -157,67 +160,15 @@ func (a *App) Launch(args []string) error {
 	template := args[0]
 	name := args[1]
 
-	// Parse options
+	// Parse options using Command Pattern (SOLID: Single Responsibility)
 	req := types.LaunchRequest{
 		Template: template,
 		Name:     name,
 	}
 
-	// Parse additional flags
-	for i := 2; i < len(args); i++ {
-		arg := args[i]
-		switch {
-		case arg == "--size" && i+1 < len(args):
-			req.Size = args[i+1]
-			i++
-		case arg == "--volume" && i+1 < len(args):
-			req.Volumes = append(req.Volumes, args[i+1])
-			i++
-		case arg == "--storage" && i+1 < len(args):
-			req.EBSVolumes = append(req.EBSVolumes, args[i+1])
-			i++
-		case arg == "--region" && i+1 < len(args):
-			req.Region = args[i+1]
-			i++
-		case arg == "--subnet" && i+1 < len(args):
-			req.SubnetID = args[i+1]
-			i++
-		case arg == "--vpc" && i+1 < len(args):
-			req.VpcID = args[i+1]
-			i++
-		case arg == "--project" && i+1 < len(args):
-			req.ProjectID = args[i+1]
-			i++
-		case arg == "--spot":
-			req.Spot = true
-		case arg == "--hibernation":
-			req.Hibernation = true
-		case arg == "--dry-run":
-			req.DryRun = true
-		case arg == "--wait":
-			req.Wait = true
-		case arg == "--with" && i+1 < len(args):
-			packageManager := args[i+1]
-			// Validate supported package managers
-			supportedManagers := []string{"conda", "apt", "dnf", "ami"}
-			supported := false
-			for _, mgr := range supportedManagers {
-				if packageManager == mgr {
-					supported = true
-					break
-				}
-			}
-			if !supported {
-				return fmt.Errorf("unsupported package manager: %s (supported: conda, apt, dnf, ami)", packageManager)
-			}
-
-			// All package managers now supported
-
-			req.PackageManager = packageManager
-			i++
-		default:
-			return fmt.Errorf("unknown option: %s", arg)
-		}
+	// Parse additional flags using dispatcher
+	if err := a.launchDispatcher.ParseFlags(&req, args); err != nil {
+		return err
 	}
 
 	// Check daemon is running
@@ -247,6 +198,50 @@ func (a *App) Launch(args []string) error {
 	}
 
 	return nil
+}
+
+// displayCostTable displays the cost analysis table (Single Responsibility)
+func (a *App) displayCostTable(analyzer *CostAnalyzer, instances []types.Instance, analyses []CostAnalysis) {
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	
+	// Print headers
+	headers := analyzer.GetHeaders()
+	_, _ = fmt.Fprintln(w, strings.Join(headers, "\t"))
+	
+	// Print instance rows
+	for i, instance := range instances {
+		_, _ = fmt.Fprint(w, analyzer.FormatRow(instance, analyses[i]))
+	}
+	
+	_ = w.Flush()
+}
+
+// displayCostSummary displays the cost summary section (Single Responsibility)
+func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricingConfig *pricing.InstitutionalPricingConfig) {
+	fmt.Println()
+	fmt.Printf("📊 Cost Summary:\n")
+	
+	if hasDiscounts {
+		totalSavings := summary.TotalListCost - summary.TotalRunningCost
+		savingsPercent := 0.0
+		if summary.TotalListCost > 0 {
+			savingsPercent = (totalSavings / summary.TotalListCost) * 100
+		}
+		fmt.Printf("   Running instances: %d\n", summary.RunningInstances)
+		fmt.Printf("   Your daily cost:   $%.4f\n", summary.TotalRunningCost)
+		fmt.Printf("   Your monthly est:  $%.4f\n", summary.TotalRunningCost*30)
+		fmt.Printf("   List price daily:  $%.4f\n", summary.TotalListCost)
+		fmt.Printf("   Daily savings:     $%.4f (%.1f%%)\n", totalSavings, savingsPercent)
+		fmt.Printf("   Historical spend:  $%.4f\n", summary.TotalHistoricalSpend)
+		if pricingConfig.Institution != "" {
+			fmt.Printf("   Institution:       %s\n", pricingConfig.Institution)
+		}
+	} else {
+		fmt.Printf("   Running instances: %d\n", summary.RunningInstances)
+		fmt.Printf("   Daily cost:        $%.4f\n", summary.TotalRunningCost)
+		fmt.Printf("   Monthly estimate:  $%.4f\n", summary.TotalRunningCost*30)
+		fmt.Printf("   Historical spend:  $%.4f\n", summary.TotalHistoricalSpend)
+	}
 }
 
 // monitorLaunchProgress monitors and displays real-time launch progress
@@ -499,149 +494,19 @@ func (a *App) ListCost(args []string) error {
 		fmt.Println("💰 CloudWorkstation Cost Analysis")
 	}
 
-	// Load pricing configuration for accurate cost calculation
+	// Use Strategy Pattern for cost analysis (SOLID: Open/Closed Principle)
 	pricingConfig, _ := pricing.LoadInstitutionalPricing()
 	calculator := pricing.NewCalculator(pricingConfig)
-
-	// Check if we have institutional discounts
 	hasDiscounts := pricingConfig != nil && (pricingConfig.Institution != "Default")
+	
+	costAnalyzer := NewCostAnalyzer(hasDiscounts, calculator)
+	analyses, summary := costAnalyzer.AnalyzeInstances(filteredInstances)
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	if hasDiscounts {
-		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN\tLIST RATE\tSAVINGS")
-	} else {
-		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tTYPE\tRUNNING\tTOTAL SPEND\tCOST/MIN")
-	}
+	// Display cost table
+	a.displayCostTable(costAnalyzer, filteredInstances, analyses)
 
-	totalRunningCost := 0.0
-	totalListCost := 0.0
-	totalHistoricalSpend := 0.0
-	runningInstances := 0
-
-	for _, instance := range filteredInstances {
-		// Calculate total lifetime for this instance
-		var totalLifetime time.Duration
-		if !instance.LaunchTime.IsZero() {
-			if instance.DeletionTime != nil && !instance.DeletionTime.IsZero() {
-				// Terminated instance - use launch to deletion time
-				totalLifetime = instance.DeletionTime.Sub(instance.LaunchTime)
-			} else {
-				// Running or stopped instance - use launch to now
-				totalLifetime = time.Since(instance.LaunchTime)
-			}
-		}
-
-		// Get base cost rates
-		dailyCost := instance.EstimatedDailyCost
-		listDailyCost := dailyCost
-
-		if hasDiscounts && instance.InstanceType != "" {
-			// Get accurate pricing with discounts
-			estimatedHourlyListPrice := dailyCost / 24.0
-			if dailyCost > 0 {
-				result := calculator.CalculateInstanceCost(instance.InstanceType, estimatedHourlyListPrice, "us-west-2")
-				if result.TotalDiscount > 0 {
-					listDailyCost = result.ListPrice * 24
-					dailyCost = result.DailyEstimate
-				}
-			}
-		}
-
-		// Calculate actual spend so far (total lifetime cost)
-		totalMinutes := totalLifetime.Minutes()
-		actualSpend := (dailyCost / (24.0 * 60.0)) * totalMinutes
-
-		// Calculate current cost per minute (running vs stopped rates)
-		var currentCostPerMin, listCurrentCostPerMin float64
-		if instance.State == "running" {
-			// Running: full compute + storage cost
-			currentCostPerMin = dailyCost / (24.0 * 60.0)
-			listCurrentCostPerMin = listDailyCost / (24.0 * 60.0)
-			runningInstances++
-			totalRunningCost += dailyCost // Add to daily running cost
-			totalListCost += listDailyCost
-		} else {
-			// Stopped: only EBS storage cost (estimate ~10% of full cost)
-			currentCostPerMin = (dailyCost * 0.1) / (24.0 * 60.0)
-			listCurrentCostPerMin = (listDailyCost * 0.1) / (24.0 * 60.0)
-		}
-
-		totalHistoricalSpend += actualSpend
-
-		// Format type indicator
-		typeIndicator := "OD"
-		if instance.InstanceLifecycle == "spot" {
-			typeIndicator = "SP"
-		}
-
-		// Format running time as d:h:m:s
-		days := int(totalLifetime.Hours()) / 24
-		hours := int(totalLifetime.Hours()) % 24
-		minutes := int(totalLifetime.Minutes()) % 60
-		seconds := int(totalLifetime.Seconds()) % 60
-
-		var runningTime string
-		if days > 0 {
-			runningTime = fmt.Sprintf("%d:%02d:%02d:%02d", days, hours, minutes, seconds)
-		} else {
-			runningTime = fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
-		}
-
-		if hasDiscounts {
-			savings := listCurrentCostPerMin - currentCostPerMin
-			savingsPercent := 0.0
-			if listCurrentCostPerMin > 0 {
-				savingsPercent = (savings / listCurrentCostPerMin) * 100
-			}
-			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\t$%.6f\t$%.6f (%.1f%%)\n",
-				instance.Name,
-				strings.ToUpper(instance.State),
-				typeIndicator,
-				runningTime,
-				actualSpend,
-				currentCostPerMin,
-				listCurrentCostPerMin,
-				savings,
-				savingsPercent,
-			)
-		} else {
-			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t$%.6f\n",
-				instance.Name,
-				strings.ToUpper(instance.State),
-				typeIndicator,
-				runningTime,
-				actualSpend,
-				currentCostPerMin,
-			)
-		}
-	}
-
-	_ = w.Flush()
-
-	// Summary section
-	fmt.Println()
-	fmt.Printf("📊 Cost Summary:\n")
-	if hasDiscounts {
-		totalSavings := totalListCost - totalRunningCost
-		savingsPercent := 0.0
-		if totalListCost > 0 {
-			savingsPercent = (totalSavings / totalListCost) * 100
-		}
-		fmt.Printf("   Running instances: %d\n", runningInstances)
-		fmt.Printf("   Your daily cost:   $%.4f\n", totalRunningCost)
-		fmt.Printf("   Your monthly est:  $%.4f\n", totalRunningCost*30)
-		fmt.Printf("   List price daily:  $%.4f\n", totalListCost)
-		fmt.Printf("   Daily savings:     $%.4f (%.1f%%)\n", totalSavings, savingsPercent)
-		fmt.Printf("   Historical spend:  $%.4f\n", totalHistoricalSpend)
-		if pricingConfig.Institution != "" {
-			fmt.Printf("   Institution:       %s\n", pricingConfig.Institution)
-		}
-	} else {
-		fmt.Printf("   Running instances: %d\n", runningInstances)
-		fmt.Printf("   Daily cost:        $%.4f\n", totalRunningCost)
-		fmt.Printf("   Monthly estimate:  $%.4f\n", totalRunningCost*30)
-		fmt.Printf("   Historical spend:  $%.4f\n", totalHistoricalSpend)
-	}
+	// Display cost summary
+	a.displayCostSummary(summary, hasDiscounts, pricingConfig)
 
 	fmt.Printf("\n💡 Tip: Use 'cws list' for a clean instance overview without cost data\n")
 
