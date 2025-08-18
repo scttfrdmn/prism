@@ -200,98 +200,28 @@ func (m *BatchInvitationManager) CreateBatchInvitations(
 }
 
 // ImportBatchInvitationsFromCSV imports batch invitations from a CSV file
+// ImportBatchInvitationsFromCSV imports batch invitations using Factory Pattern (SOLID: Single Responsibility)
 func (m *BatchInvitationManager) ImportBatchInvitationsFromCSV(
 	reader io.Reader,
 	hasHeader bool,
 ) ([]*BatchInvitation, error) {
-	csvReader := csv.NewReader(reader)
+	// Initialize CSV parser and factory
+	parser := NewCSVInvitationParser(reader, hasHeader)
+	factory := NewBatchInvitationFactory()
 
-	// Read header if present
-	if hasHeader {
-		_, err := csvReader.Read()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read CSV header: %w", err)
-		}
+	// Parse CSV records
+	records, err := parser.ParseRecords()
+	if err != nil {
+		return nil, err
 	}
 
-	// Read rows
+	// Convert records to invitations using Factory Pattern
 	var invitations []*BatchInvitation
-
-	for {
-		record, err := csvReader.Read()
-		if err == io.EOF {
-			break
-		}
+	for _, record := range records {
+		invitation, err := factory.CreateInvitation(record)
 		if err != nil {
-			return nil, fmt.Errorf("error reading CSV: %w", err)
+			return nil, err
 		}
-
-		// Validate row length
-		if len(record) < 2 {
-			return nil, fmt.Errorf("invalid CSV format: row must have at least name and type columns")
-		}
-
-		// Parse required fields
-		name := strings.TrimSpace(record[0])
-		typeStr := strings.TrimSpace(record[1])
-
-		if name == "" {
-			return nil, fmt.Errorf("name cannot be empty")
-		}
-
-		// Parse invitation type
-		var invType InvitationType
-		switch strings.ToLower(typeStr) {
-		case "read_only", "readonly", "ro":
-			invType = InvitationTypeReadOnly
-		case "read_write", "readwrite", "rw":
-			invType = InvitationTypeReadWrite
-		case "admin", "administrator":
-			invType = InvitationTypeAdmin
-		default:
-			return nil, fmt.Errorf("invalid invitation type: %s", typeStr)
-		}
-
-		// Create invitation with required fields
-		invitation := &BatchInvitation{
-			Name:        name,
-			Type:        invType,
-			ValidDays:   30,   // default
-			DeviceBound: true, // default
-			MaxDevices:  1,    // default
-		}
-
-		// Parse optional fields if present
-		if len(record) >= 3 && record[2] != "" {
-			if validDays, err := strconv.Atoi(strings.TrimSpace(record[2])); err == nil && validDays > 0 {
-				invitation.ValidDays = validDays
-			}
-		}
-
-		if len(record) >= 4 && record[3] != "" {
-			canInvite := parseBoolString(strings.TrimSpace(record[3]))
-			invitation.CanInvite = canInvite
-		} else {
-			// Default canInvite to true for admin type
-			invitation.CanInvite = invType == InvitationTypeAdmin
-		}
-
-		if len(record) >= 5 && record[4] != "" {
-			transferable := parseBoolString(strings.TrimSpace(record[4]))
-			invitation.Transferable = transferable
-		}
-
-		if len(record) >= 6 && record[5] != "" {
-			deviceBound := parseBoolString(strings.TrimSpace(record[5]))
-			invitation.DeviceBound = deviceBound
-		}
-
-		if len(record) >= 7 && record[6] != "" {
-			if maxDevices, err := strconv.Atoi(strings.TrimSpace(record[6])); err == nil && maxDevices > 0 {
-				invitation.MaxDevices = maxDevices
-			}
-		}
-
 		invitations = append(invitations, invitation)
 	}
 
@@ -440,4 +370,193 @@ func boolToString(b bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+// CSVInvitationParser handles CSV parsing using Strategy Pattern (SOLID: Single Responsibility)
+type CSVInvitationParser struct {
+	reader    io.Reader
+	hasHeader bool
+}
+
+// NewCSVInvitationParser creates a new CSV parser
+func NewCSVInvitationParser(reader io.Reader, hasHeader bool) *CSVInvitationParser {
+	return &CSVInvitationParser{
+		reader:    reader,
+		hasHeader: hasHeader,
+	}
+}
+
+// CSVRecord represents a parsed CSV record
+type CSVRecord struct {
+	Name        string
+	Type        string
+	ValidDays   string
+	CanInvite   string
+	Transferable string
+	DeviceBound string
+	MaxDevices  string
+}
+
+// ParseRecords parses all CSV records (Single Responsibility)
+func (p *CSVInvitationParser) ParseRecords() ([]*CSVRecord, error) {
+	csvReader := csv.NewReader(p.reader)
+
+	// Skip header if present
+	if p.hasHeader {
+		if _, err := csvReader.Read(); err != nil {
+			return nil, fmt.Errorf("failed to read CSV header: %w", err)
+		}
+	}
+
+	var records []*CSVRecord
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error reading CSV: %w", err)
+		}
+
+		record, err := p.parseCSVRow(row)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+
+	return records, nil
+}
+
+// parseCSVRow parses a single CSV row into a CSVRecord (Single Responsibility)
+func (p *CSVInvitationParser) parseCSVRow(row []string) (*CSVRecord, error) {
+	if len(row) < 2 {
+		return nil, fmt.Errorf("invalid CSV format: row must have at least name and type columns")
+	}
+
+	record := &CSVRecord{
+		Name: strings.TrimSpace(row[0]),
+		Type: strings.TrimSpace(row[1]),
+	}
+
+	if record.Name == "" {
+		return nil, fmt.Errorf("name cannot be empty")
+	}
+
+	// Parse optional fields
+	if len(row) >= 3 {
+		record.ValidDays = strings.TrimSpace(row[2])
+	}
+	if len(row) >= 4 {
+		record.CanInvite = strings.TrimSpace(row[3])
+	}
+	if len(row) >= 5 {
+		record.Transferable = strings.TrimSpace(row[4])
+	}
+	if len(row) >= 6 {
+		record.DeviceBound = strings.TrimSpace(row[5])
+	}
+	if len(row) >= 7 {
+		record.MaxDevices = strings.TrimSpace(row[6])
+	}
+
+	return record, nil
+}
+
+// BatchInvitationFactory creates batch invitations using Factory Pattern (SOLID: Single Responsibility + Open/Closed)
+type BatchInvitationFactory struct {
+	typeParser TypeParser
+	fieldParser FieldParser
+}
+
+// NewBatchInvitationFactory creates a new invitation factory
+func NewBatchInvitationFactory() *BatchInvitationFactory {
+	return &BatchInvitationFactory{
+		typeParser:  &StandardTypeParser{},
+		fieldParser: &StandardFieldParser{},
+	}
+}
+
+// CreateInvitation creates a batch invitation from CSV record using Factory Pattern (SOLID: Single Responsibility)
+func (f *BatchInvitationFactory) CreateInvitation(record *CSVRecord) (*BatchInvitation, error) {
+	// Parse invitation type
+	invType, err := f.typeParser.ParseType(record.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create invitation with defaults
+	invitation := &BatchInvitation{
+		Name:        record.Name,
+		Type:        invType,
+		ValidDays:   30,   // default
+		DeviceBound: true, // default
+		MaxDevices:  1,    // default
+		CanInvite:   invType == InvitationTypeAdmin, // default based on type
+	}
+
+	// Apply field parsing using Strategy Pattern
+	return f.fieldParser.ParseFields(invitation, record)
+}
+
+// TypeParser defines the interface for parsing invitation types using Strategy Pattern (SOLID: Open/Closed)
+type TypeParser interface {
+	ParseType(typeStr string) (InvitationType, error)
+}
+
+// StandardTypeParser implements standard type parsing logic (Strategy Pattern)
+type StandardTypeParser struct{}
+
+func (p *StandardTypeParser) ParseType(typeStr string) (InvitationType, error) {
+	switch strings.ToLower(typeStr) {
+	case "read_only", "readonly", "ro":
+		return InvitationTypeReadOnly, nil
+	case "read_write", "readwrite", "rw":
+		return InvitationTypeReadWrite, nil
+	case "admin", "administrator":
+		return InvitationTypeAdmin, nil
+	default:
+		return "", fmt.Errorf("invalid invitation type: %s", typeStr)
+	}
+}
+
+// FieldParser defines the interface for parsing optional fields using Strategy Pattern (SOLID: Open/Closed)
+type FieldParser interface {
+	ParseFields(invitation *BatchInvitation, record *CSVRecord) (*BatchInvitation, error)
+}
+
+// StandardFieldParser implements standard field parsing logic (Strategy Pattern)
+type StandardFieldParser struct{}
+
+func (p *StandardFieldParser) ParseFields(invitation *BatchInvitation, record *CSVRecord) (*BatchInvitation, error) {
+	// Parse ValidDays
+	if record.ValidDays != "" {
+		if validDays, err := strconv.Atoi(record.ValidDays); err == nil && validDays > 0 {
+			invitation.ValidDays = validDays
+		}
+	}
+
+	// Parse CanInvite
+	if record.CanInvite != "" {
+		invitation.CanInvite = parseBoolString(record.CanInvite)
+	}
+
+	// Parse Transferable
+	if record.Transferable != "" {
+		invitation.Transferable = parseBoolString(record.Transferable)
+	}
+
+	// Parse DeviceBound
+	if record.DeviceBound != "" {
+		invitation.DeviceBound = parseBoolString(record.DeviceBound)
+	}
+
+	// Parse MaxDevices
+	if record.MaxDevices != "" {
+		if maxDevices, err := strconv.Atoi(record.MaxDevices); err == nil && maxDevices > 0 {
+			invitation.MaxDevices = maxDevices
+		}
+	}
+
+	return invitation, nil
 }
