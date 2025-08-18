@@ -10,7 +10,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -21,134 +20,11 @@ func (a *App) Apply(args []string) error {
 	return applyCmd.Execute(args)
 }
 
-// Diff handles the diff command
+// Diff handles the diff command using Command Pattern (SOLID: Single Responsibility)
 func (a *App) Diff(args []string) error {
-	if len(args) < 2 {
-		return fmt.Errorf("usage: cws diff <template> <instance-name>")
-	}
-
-	templateName := args[0]
-	instanceName := args[1]
-
-	// Check daemon is running
-	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
-	}
-
-	// Get template from API
-	runtimeTemplates, err := a.apiClient.ListTemplates(a.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to list templates: %w", err)
-	}
-
-	runtimeTemplate, exists := runtimeTemplates[templateName]
-	if !exists {
-		return fmt.Errorf("template '%s' not found", templateName)
-	}
-
-	// Convert runtime template to unified template for diff
-	template := &templates.Template{
-		Name:        runtimeTemplate.Name,
-		Description: runtimeTemplate.Description,
-		// Note: This is incomplete - we'd need the daemon to provide
-		// the full unified template information for diff calculation
-	}
-
-	// Get diff via API
-	diff, err := a.apiClient.DiffTemplate(a.ctx, templates.DiffRequest{
-		InstanceName: instanceName,
-		Template:     template,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to calculate template diff: %w", err)
-	}
-
-	fmt.Printf("📋 Template diff for '%s' → '%s':\n\n", templateName, instanceName)
-
-	// Show packages to install
-	if len(diff.PackagesToInstall) > 0 {
-		fmt.Println("📦 Packages to install:")
-		for _, pkg := range diff.PackagesToInstall {
-			if pkg.Action == "upgrade" {
-				fmt.Printf("   ⬆️  %s (%s → %s) via %s\n", pkg.Name, pkg.CurrentVersion, pkg.TargetVersion, pkg.PackageManager)
-			} else {
-				fmt.Printf("   ➕ %s", pkg.Name)
-				if pkg.TargetVersion != "" {
-					fmt.Printf(" (%s)", pkg.TargetVersion)
-				}
-				fmt.Printf(" via %s\n", pkg.PackageManager)
-			}
-		}
-		fmt.Println()
-	}
-
-	// Show services to configure
-	if len(diff.ServicesToConfigure) > 0 {
-		fmt.Println("🔧 Services to configure:")
-		for _, svc := range diff.ServicesToConfigure {
-			switch svc.Action {
-			case "configure":
-				fmt.Printf("   ➕ %s (port %d)\n", svc.Name, svc.Port)
-			case "start":
-				fmt.Printf("   ▶️  %s (start service)\n", svc.Name)
-			case "restart":
-				fmt.Printf("   🔄 %s (restart service)\n", svc.Name)
-			}
-		}
-		fmt.Println()
-	}
-
-	// Show users to create
-	if len(diff.UsersToCreate) > 0 {
-		fmt.Println("👤 Users to create:")
-		for _, user := range diff.UsersToCreate {
-			fmt.Printf("   ➕ %s", user.Name)
-			if len(user.TargetGroups) > 0 {
-				fmt.Printf(" (groups: %s)", strings.Join(user.TargetGroups, ", "))
-			}
-			fmt.Println()
-		}
-		fmt.Println()
-	}
-
-	// Show users to modify
-	if len(diff.UsersToModify) > 0 {
-		fmt.Println("👤 Users to modify:")
-		for _, user := range diff.UsersToModify {
-			fmt.Printf("   🔄 %s (add to groups: %s)\n", user.Name, strings.Join(user.TargetGroups, ", "))
-		}
-		fmt.Println()
-	}
-
-	// Show ports to open
-	if len(diff.PortsToOpen) > 0 {
-		fmt.Println("🔌 Ports to open:")
-		for _, port := range diff.PortsToOpen {
-			fmt.Printf("   ➕ %d\n", port)
-		}
-		fmt.Println()
-	}
-
-	// Show conflicts
-	if len(diff.ConflictsFound) > 0 {
-		fmt.Println("⚠️  Conflicts detected:")
-		for _, conflict := range diff.ConflictsFound {
-			fmt.Printf("   ⛔ %s: %s (resolution: %s)\n", conflict.Type, conflict.Description, conflict.Resolution)
-		}
-		fmt.Println()
-		fmt.Println("💡 Use --force to override conflicts")
-	}
-
-	// Show summary
-	if !diff.HasChanges() {
-		fmt.Println("✅ No changes needed - instance already matches template")
-	} else {
-		fmt.Printf("📊 Summary: %s\n", diff.Summary())
-		fmt.Printf("\n💡 Use 'cws apply %s %s' to apply these changes\n", templateName, instanceName)
-		fmt.Printf("💡 Use 'cws apply %s %s --dry-run' to preview the application\n", templateName, instanceName)
-	}
-
-	return nil
+	// Create and execute template diff command
+	diffCmd := NewTemplateDiffCommand(a.apiClient)
+	return diffCmd.Execute(args)
 }
 
 // Layers handles the layers command
