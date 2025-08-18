@@ -65,7 +65,7 @@ Available subcommands:
 // rightsizingAnalyze analyzes usage patterns for a specific instance
 func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws rightsizing analyze <instance-name>")
+		return NewUsageError("cws rightsizing analyze <instance-name>", "cws rightsizing analyze my-workstation")
 	}
 
 	instanceName := args[0]
@@ -91,11 +91,11 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	if instance.State != "running" {
-		return fmt.Errorf("instance '%s' is not running (current state: %s)\nRightsizing analysis requires a running instance", instanceName, instance.State)
+		return NewStateError("instance", instanceName, instance.State, "running")
 	}
 
 	// Display current instance configuration
@@ -132,12 +132,12 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	response, err := s.app.apiClient.ListInstances(s.app.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return WrapAPIError("list instances", err)
 	}
 
 	if len(response.Instances) == 0 {
@@ -195,7 +195,7 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 // rightsizingStats shows detailed usage statistics for an instance
 func (s *ScalingCommands) rightsizingStats(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws rightsizing stats <instance-name>")
+		return NewUsageError("cws rightsizing stats <instance-name>", "cws rightsizing stats my-workstation")
 	}
 
 	instanceName := args[0]
@@ -221,7 +221,7 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	fmt.Printf("🖥️  **Instance Information**:\n")
@@ -264,7 +264,7 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 // rightsizingExport exports usage data as JSON
 func (s *ScalingCommands) rightsizingExport(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws rightsizing export <instance-name>")
+		return NewUsageError("cws rightsizing export <instance-name>", "cws rightsizing export my-workstation")
 	}
 
 	instanceName := args[0]
@@ -291,7 +291,7 @@ func (s *ScalingCommands) rightsizingExport(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	fmt.Printf("📊 **Usage Analytics Export**\n")
@@ -350,12 +350,12 @@ func (s *ScalingCommands) rightsizingSummary(args []string) error {
 
 	// Check daemon is running
 	if err := s.app.apiClient.Ping(s.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	response, err := s.app.apiClient.ListInstances(s.app.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return WrapAPIError("list instances", err)
 	}
 
 	if len(response.Instances) == 0 {
@@ -460,7 +460,7 @@ Examples:
 // scalingAnalyze analyzes an instance and recommends optimal size
 func (s *ScalingCommands) scalingAnalyze(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws scaling analyze <instance-name>")
+		return NewUsageError("cws scaling analyze <instance-name>", "cws scaling analyze my-workstation")
 	}
 
 	instanceName := args[0]
@@ -488,7 +488,7 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	fmt.Printf("📊 **Current Instance Configuration**:\n")
@@ -535,7 +535,7 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 // scalingScale scales an instance to a new size
 func (s *ScalingCommands) scalingScale(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws scaling scale <instance-name> <size>\nSizes: XS, S, M, L, XL")
+		return NewUsageError("cws scaling scale <instance-name> <size>", "cws scaling scale my-workstation L")
 	}
 
 	instanceName := args[0]
@@ -543,7 +543,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 
 	// Validate size
 	if !ValidTSizes[newSize] {
-		return fmt.Errorf("invalid size '%s'. Valid sizes: XS, S, M, L, XL", newSize)
+		return NewValidationError("size", newSize, "XS, S, M, L, XL")
 	}
 
 	fmt.Printf("⚡ Dynamic Instance Scaling\n")
@@ -569,7 +569,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	currentSize := s.parseInstanceSize(instance.InstanceType)
@@ -586,7 +586,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 	}
 
 	if instance.State != "running" && instance.State != "stopped" {
-		return fmt.Errorf("instance must be running or stopped to scale (current state: %s)", instance.State)
+		return NewStateError("instance", instanceName, instance.State, "running or stopped")
 	}
 
 	// Show cost comparison
@@ -623,7 +623,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 // scalingPreview shows what a scaling operation would do
 func (s *ScalingCommands) scalingPreview(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws scaling preview <instance-name> <size>\nSizes: XS, S, M, L, XL")
+		return NewUsageError("cws scaling preview <instance-name> <size>", "cws scaling preview my-workstation L")
 	}
 
 	instanceName := args[0]
@@ -631,7 +631,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 
 	// Validate size
 	if !ValidTSizes[newSize] {
-		return fmt.Errorf("invalid size '%s'. Valid sizes: XS, S, M, L, XL", newSize)
+		return NewValidationError("size", newSize, "XS, S, M, L, XL")
 	}
 
 	fmt.Printf("👁️  Scaling Preview\n")
@@ -657,7 +657,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	currentSize := s.parseInstanceSize(instance.InstanceType)
@@ -716,7 +716,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 // scalingHistory shows scaling history for an instance
 func (s *ScalingCommands) scalingHistory(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws scaling history <instance-name>")
+		return NewUsageError("cws scaling history <instance-name>", "cws scaling history my-workstation")
 	}
 
 	instanceName := args[0]
@@ -744,7 +744,7 @@ func (s *ScalingCommands) scalingHistory(args []string) error {
 		}
 	}
 	if instance == nil {
-		return fmt.Errorf("instance '%s' not found", instanceName)
+		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
 	}
 
 	fmt.Printf("🏷️  **Instance**: %s\n", instance.Name)

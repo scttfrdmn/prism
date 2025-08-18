@@ -19,7 +19,7 @@ func NewInstanceCommands(app *App) *InstanceCommands {
 // Connect handles the connect command
 func (ic *InstanceCommands) Connect(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws connect <instance-name> [--verbose]")
+		return NewUsageError("cws connect <instance-name> [--verbose]", "cws connect my-workstation")
 	}
 
 	name := args[0]
@@ -31,18 +31,18 @@ func (ic *InstanceCommands) Connect(args []string) error {
 		case "--verbose", "-v":
 			verbose = true
 		default:
-			return fmt.Errorf("unknown flag: %s", args[i])
+			return NewValidationError("flag", args[i], "--verbose or -v")
 		}
 	}
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to get connection info: %w", err)
+		return WrapAPIError("get connection info for "+name, err)
 	}
 
 	if verbose {
@@ -58,42 +58,42 @@ func (ic *InstanceCommands) Connect(args []string) error {
 // Stop handles the stop command
 func (ic *InstanceCommands) Stop(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws stop <name>")
+		return NewUsageError("cws stop <name>", "cws stop my-workstation")
 	}
 
 	name := args[0]
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	err := ic.app.apiClient.StopInstance(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to stop instance: %w", err)
+		return WrapAPIError("stop instance "+name, err)
 	}
 
-	fmt.Printf("⏹️ Stopping instance %s...\n", name)
+	fmt.Printf("%s\n", FormatProgressMessage("Stopping instance", name))
 	return nil
 }
 
 // Start handles the start command with intelligent state management
 func (ic *InstanceCommands) Start(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws start <name>")
+		return NewUsageError("cws start <name>", "cws start my-workstation")
 	}
 
 	name := args[0]
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	// First, get current instance status
 	listResponse, err := ic.app.apiClient.ListInstances(ic.app.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get instance status: %w", err)
+		return WrapAPIError("get instance status", err)
 	}
 
 	var targetInstance *types.Instance
@@ -105,7 +105,7 @@ func (ic *InstanceCommands) Start(args []string) error {
 	}
 
 	if targetInstance == nil {
-		return fmt.Errorf("instance '%s' not found", name)
+		return NewNotFoundError("instance", name, "Use 'cws list' to see available instances")
 	}
 
 	// Check current state and handle appropriately
@@ -125,52 +125,52 @@ func (ic *InstanceCommands) Start(args []string) error {
 
 	err = ic.app.apiClient.StartInstance(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to start instance: %w", err)
+		return WrapAPIError("start instance "+name, err)
 	}
 
-	fmt.Printf("▶️ Starting instance %s...\n", name)
+	fmt.Printf("%s\n", FormatProgressMessage("Starting instance", name))
 	return nil
 }
 
 // Delete handles the delete command
 func (ic *InstanceCommands) Delete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws delete <name>")
+		return NewUsageError("cws delete <name>", "cws delete my-workstation")
 	}
 
 	name := args[0]
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	err := ic.app.apiClient.DeleteInstance(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to delete instance: %w", err)
+		return WrapAPIError("delete instance "+name, err)
 	}
 
-	fmt.Printf("🗑️ Deleting instance %s...\n", name)
+	fmt.Printf("%s\n", FormatProgressMessage("Deleting instance", name))
 	return nil
 }
 
 // Hibernate handles the hibernate command
 func (ic *InstanceCommands) Hibernate(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws hibernate <name>")
+		return NewUsageError("cws hibernate <name>", "cws hibernate my-workstation")
 	}
 
 	name := args[0]
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	// Check hibernation status first
 	status, err := ic.app.apiClient.GetInstanceHibernationStatus(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to check hibernation status: %w", err)
+		return WrapAPIError("check hibernation status for "+name, err)
 	}
 
 	if !status.HibernationSupported {
@@ -180,16 +180,16 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 
 	err = ic.app.apiClient.HibernateInstance(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to hibernate instance: %w", err)
+		return WrapAPIError("hibernate instance "+name, err)
 	}
 
 	if status.HibernationSupported {
-		fmt.Printf("🛌 Hibernating instance %s...\n", name)
-		fmt.Printf("   💡 RAM state preserved for instant resume\n")
+		fmt.Printf("%s\n", FormatProgressMessage("Hibernating instance", name))
+		fmt.Printf("   %s\n", FormatInfoMessage("RAM state preserved for instant resume"))
 		fmt.Printf("   💰 Compute billing stopped, storage billing continues\n")
 	} else {
-		fmt.Printf("⏹️ Stopping instance %s...\n", name)
-		fmt.Printf("   💡 Consider using hibernation-capable instance types for RAM preservation\n")
+		fmt.Printf("%s\n", FormatProgressMessage("Stopping instance", name))
+		fmt.Printf("   %s\n", FormatInfoMessage("Consider using hibernation-capable instance types for RAM preservation"))
 	}
 
 	return nil
@@ -198,37 +198,37 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 // Resume handles the resume command
 func (ic *InstanceCommands) Resume(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws resume <name>")
+		return NewUsageError("cws resume <name>", "cws resume my-workstation")
 	}
 
 	name := args[0]
 
 	// Check daemon is running
 	if err := ic.app.apiClient.Ping(ic.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	// Check hibernation status first
 	status, err := ic.app.apiClient.GetInstanceHibernationStatus(ic.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to check hibernation status: %w", err)
+		return WrapAPIError("check hibernation status for "+name, err)
 	}
 
 	if status.IsHibernated {
 		err = ic.app.apiClient.ResumeInstance(ic.app.ctx, name)
 		if err != nil {
-			return fmt.Errorf("failed to resume instance: %w", err)
+			return WrapAPIError("resume instance "+name, err)
 		}
-		fmt.Printf("⏰ Resuming hibernated instance %s...\n", name)
+		fmt.Printf("%s\n", FormatProgressMessage("Resuming hibernated instance", name))
 		fmt.Printf("   🚀 Instant startup from preserved RAM state\n")
 	} else {
 		// Fall back to regular start
 		err = ic.app.apiClient.StartInstance(ic.app.ctx, name)
 		if err != nil {
-			return fmt.Errorf("failed to start instance: %w", err)
+			return WrapAPIError("start instance "+name, err)
 		}
-		fmt.Printf("▶️ Starting instance %s...\n", name)
-		fmt.Printf("   💡 Instance was not hibernated - performing regular start\n")
+		fmt.Printf("%s\n", FormatProgressMessage("Starting instance", name))
+		fmt.Printf("   %s\n", FormatInfoMessage("Instance was not hibernated - performing regular start"))
 	}
 
 	return nil

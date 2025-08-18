@@ -158,19 +158,7 @@ func (a *App) TUI(_ []string) error {
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws launch <template> <name> [options]\n" +
-			"  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --hibernation --dry-run --wait --subnet <subnet-id> --vpc <vpc-id>\n" +
-			"\n" +
-			"  T-shirt sizes (compute + storage):\n" +
-			"    XS: 1 vCPU, 2GB RAM + 100GB storage  (t3.small/t4g.small)\n" +
-			"    S:  2 vCPU, 4GB RAM + 500GB storage  (t3.medium/t4g.medium)\n" +
-			"    M:  2 vCPU, 8GB RAM + 1TB storage    (t3.large/t4g.large) [default]\n" +
-			"    L:  4 vCPU, 16GB RAM + 2TB storage   (t3.xlarge/t4g.xlarge)\n" +
-			"    XL: 8 vCPU, 32GB RAM + 4TB storage   (t3.2xlarge/t4g.2xlarge)\n" +
-			"\n" +
-			"  GPU workloads automatically scale to GPU instances (g4dn/g5g family)\n" +
-			"  Memory-intensive workloads use r5/r6g instances with more RAM\n" +
-			"  Compute-intensive workloads use c5/c6g instances for better CPU performance")
+		return NewUsageError(UsageLaunchCommand, "cws launch python-ml my-project --size L")
 	}
 
 	template := args[0]
@@ -189,12 +177,12 @@ func (a *App) Launch(args []string) error {
 
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return WrapDaemonError(err)
 	}
 
 	response, err := a.apiClient.LaunchInstance(a.ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to launch instance: %w", err)
+		return WrapAPIError("launch instance "+req.Name, err)
 	}
 
 	fmt.Printf("🚀 %s\n", response.Message)
@@ -267,7 +255,7 @@ func (a *App) monitorLaunchProgress(instanceName, templateName string) error {
 	// Get template information to determine progress type
 	template, err := a.apiClient.GetTemplate(a.ctx, templateName)
 	if err != nil {
-		fmt.Printf("⚠️  Could not get template info, showing basic progress\n")
+		fmt.Printf("%s\n", FormatWarningMessage("Template info", "Could not get template info, showing basic progress"))
 	}
 
 	// Determine if this is an AMI-based or package-based template
@@ -497,12 +485,12 @@ func (a *App) List(args []string) error {
 
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return WrapDaemonError(err)
 	}
 
 	response, err := a.apiClient.ListInstances(a.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return WrapAPIError("list instances", err)
 	}
 
 	// Filter instances by project if specified
@@ -574,12 +562,12 @@ func (a *App) ListCost(args []string) error {
 
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return WrapDaemonError(err)
 	}
 
 	response, err := a.apiClient.ListInstances(a.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return WrapAPIError("list instances for cost analysis", err)
 	}
 
 	// Filter instances by project if specified
@@ -649,7 +637,7 @@ func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
 			// SSH exited with non-zero status - this is normal for SSH disconnections
 			os.Exit(exitErr.ExitCode())
 		}
-		return fmt.Errorf("failed to execute SSH command: %w", err)
+		return WrapAPIError("execute SSH command", err)
 	}
 
 	return nil
@@ -720,7 +708,7 @@ func (a *App) AMIDiscover(args []string) error {
 	ctx := context.Background()
 	err := resolver.UpdateAMIRegistry(ctx, "mock-ssm-client")
 	if err != nil {
-		return fmt.Errorf("failed to update AMI registry: %w", err)
+		return WrapAPIError("update AMI registry", err)
 	}
 
 	// Show current template list with AMI availability

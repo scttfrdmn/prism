@@ -22,7 +22,7 @@ func NewStorageCommands(app *App) *StorageCommands {
 // Volume handles volume commands
 func (sc *StorageCommands) Volume(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume <action> [args]")
+		return NewUsageError("cws volume <action> [args]", "cws volume create my-shared-data")
 	}
 
 	action := args[0]
@@ -30,7 +30,7 @@ func (sc *StorageCommands) Volume(args []string) error {
 
 	// Check daemon is running
 	if err := sc.app.apiClient.Ping(sc.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	switch action {
@@ -47,13 +47,13 @@ func (sc *StorageCommands) Volume(args []string) error {
 	case "unmount":
 		return sc.volumeUnmount(volumeArgs)
 	default:
-		return fmt.Errorf("unknown volume action: %s", action)
+		return NewValidationError("volume action", action, "create, list, info, delete, mount, unmount")
 	}
 }
 
 func (sc *StorageCommands) volumeCreate(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume create <name> [options]")
+		return NewUsageError("cws volume create <name> [options]", "cws volume create my-shared-data --performance generalPurpose")
 	}
 
 	req := types.VolumeCreateRequest{
@@ -74,23 +74,23 @@ func (sc *StorageCommands) volumeCreate(args []string) error {
 			req.Region = args[i+1]
 			i++
 		default:
-			return fmt.Errorf("unknown option: %s", arg)
+			return NewValidationError("volume option", arg, "--performance, --throughput, --region")
 		}
 	}
 
 	volume, err := sc.app.apiClient.CreateVolume(sc.app.ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to create volume: %w", err)
+		return WrapAPIError("create EFS volume "+req.Name, err)
 	}
 
-	fmt.Printf("📁 Created EFS volume %s (%s)\n", volume.Name, volume.FileSystemId)
+	fmt.Printf("%s\n", FormatSuccessMessage("Created EFS volume", volume.Name, fmt.Sprintf("(%s)", volume.FileSystemId)))
 	return nil
 }
 
 func (sc *StorageCommands) volumeList(_ []string) error {
 	volumes, err := sc.app.apiClient.ListVolumes(sc.app.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list volumes: %w", err)
+		return WrapAPIError("list EFS volumes", err)
 	}
 
 	if len(volumes) == 0 {
@@ -119,13 +119,13 @@ func (sc *StorageCommands) volumeList(_ []string) error {
 
 func (sc *StorageCommands) volumeInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume info <name>")
+		return NewUsageError("cws volume info <name>", "cws volume info my-shared-data")
 	}
 
 	name := args[0]
 	volume, err := sc.app.apiClient.GetVolume(sc.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to get volume info: %w", err)
+		return WrapAPIError("get volume info for "+name, err)
 	}
 
 	fmt.Printf("📁 EFS Volume: %s\n", volume.Name)
@@ -143,22 +143,22 @@ func (sc *StorageCommands) volumeInfo(args []string) error {
 
 func (sc *StorageCommands) volumeDelete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws volume delete <name>")
+		return NewUsageError("cws volume delete <name>", "cws volume delete my-shared-data")
 	}
 
 	name := args[0]
 	err := sc.app.apiClient.DeleteVolume(sc.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to delete volume: %w", err)
+		return WrapAPIError("delete EFS volume "+name, err)
 	}
 
-	fmt.Printf("🗑️ Deleting EFS volume %s...\n", name)
+	fmt.Printf("%s\n", FormatProgressMessage("Deleting EFS volume", name))
 	return nil
 }
 
 func (sc *StorageCommands) volumeMount(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws volume mount <volume-name> <instance-name> [mount-point]")
+		return NewUsageError("cws volume mount <volume-name> <instance-name> [mount-point]", "cws volume mount my-shared-data my-workstation")
 	}
 
 	volumeName := args[0]
@@ -172,16 +172,16 @@ func (sc *StorageCommands) volumeMount(args []string) error {
 
 	err := sc.app.apiClient.MountVolume(sc.app.ctx, volumeName, instanceName, mountPoint)
 	if err != nil {
-		return fmt.Errorf("failed to mount volume: %w", err)
+		return WrapAPIError("mount volume "+volumeName+" to "+instanceName, err)
 	}
 
-	fmt.Printf("📁 Mounting EFS volume '%s' to '%s' at %s...\n", volumeName, instanceName, mountPoint)
+	fmt.Printf("%s\n", FormatProgressMessage("Mounting EFS volume", fmt.Sprintf("'%s' to '%s' at %s", volumeName, instanceName, mountPoint)))
 	return nil
 }
 
 func (sc *StorageCommands) volumeUnmount(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws volume unmount <volume-name> <instance-name>")
+		return NewUsageError("cws volume unmount <volume-name> <instance-name>", "cws volume unmount my-shared-data my-workstation")
 	}
 
 	volumeName := args[0]
@@ -189,17 +189,17 @@ func (sc *StorageCommands) volumeUnmount(args []string) error {
 
 	err := sc.app.apiClient.UnmountVolume(sc.app.ctx, volumeName, instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to unmount volume: %w", err)
+		return WrapAPIError("unmount volume "+volumeName+" from "+instanceName, err)
 	}
 
-	fmt.Printf("📤 Unmounting EFS volume '%s' from '%s'...\n", volumeName, instanceName)
+	fmt.Printf("%s\n", FormatProgressMessage("Unmounting EFS volume", fmt.Sprintf("'%s' from '%s'", volumeName, instanceName)))
 	return nil
 }
 
 // Storage handles storage commands
 func (sc *StorageCommands) Storage(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws storage <action> [args]")
+		return NewUsageError("cws storage <action> [args]", "cws storage create my-data 100GB")
 	}
 
 	action := args[0]
@@ -207,7 +207,7 @@ func (sc *StorageCommands) Storage(args []string) error {
 
 	// Check daemon is running
 	if err := sc.app.apiClient.Ping(sc.app.ctx); err != nil {
-		return fmt.Errorf(DaemonNotRunningMessage)
+		return WrapDaemonError(err)
 	}
 
 	switch action {
@@ -224,13 +224,13 @@ func (sc *StorageCommands) Storage(args []string) error {
 	case "delete":
 		return sc.storageDelete(storageArgs)
 	default:
-		return fmt.Errorf("unknown storage action: %s", action)
+		return NewValidationError("storage action", action, "create, list, info, attach, detach, delete")
 	}
 }
 
 func (sc *StorageCommands) storageCreate(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws storage create <name> <size> [type]")
+		return NewUsageError("cws storage create <name> <size> [type]", "cws storage create my-data 100GB gp3")
 	}
 
 	req := types.StorageCreateRequest{
@@ -251,24 +251,23 @@ func (sc *StorageCommands) storageCreate(args []string) error {
 			req.Region = args[i+1]
 			i++
 		default:
-			return fmt.Errorf("unknown option: %s", arg)
+			return NewValidationError("storage option", arg, "--region")
 		}
 	}
 
 	volume, err := sc.app.apiClient.CreateStorage(sc.app.ctx, req)
 	if err != nil {
-		return fmt.Errorf("failed to create storage: %w", err)
+		return WrapAPIError("create EBS volume "+req.Name, err)
 	}
 
-	fmt.Printf("💾 Created EBS volume %s (%s) - %d GB %s\n",
-		volume.Name, volume.VolumeID, volume.SizeGB, volume.VolumeType)
+	fmt.Printf("%s\n", FormatSuccessMessage("Created EBS volume", volume.Name, fmt.Sprintf("(%s) - %d GB %s", volume.VolumeID, volume.SizeGB, volume.VolumeType)))
 	return nil
 }
 
 func (sc *StorageCommands) storageList(_ []string) error {
 	volumes, err := sc.app.apiClient.ListStorage(sc.app.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list storage: %w", err)
+		return WrapAPIError("list EBS volumes", err)
 	}
 
 	if len(volumes) == 0 {
@@ -302,13 +301,13 @@ func (sc *StorageCommands) storageList(_ []string) error {
 
 func (sc *StorageCommands) storageInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws storage info <name>")
+		return NewUsageError("cws storage info <name>", "cws storage info my-data")
 	}
 
 	name := args[0]
 	volume, err := sc.app.apiClient.GetStorage(sc.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to get storage info: %w", err)
+		return WrapAPIError("get storage info for "+name, err)
 	}
 
 	fmt.Printf("💾 EBS Volume: %s\n", volume.Name)
@@ -334,7 +333,7 @@ func (sc *StorageCommands) storageInfo(args []string) error {
 
 func (sc *StorageCommands) storageAttach(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws storage attach <volume> <instance>")
+		return NewUsageError("cws storage attach <volume> <instance>", "cws storage attach my-data my-workstation")
 	}
 
 	volumeName := args[0]
@@ -342,40 +341,40 @@ func (sc *StorageCommands) storageAttach(args []string) error {
 
 	err := sc.app.apiClient.AttachStorage(sc.app.ctx, volumeName, instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to attach storage: %w", err)
+		return WrapAPIError("attach storage "+volumeName+" to "+instanceName, err)
 	}
 
-	fmt.Printf("🔗 Attaching volume %s to instance %s...\n", volumeName, instanceName)
+	fmt.Printf("%s\n", FormatProgressMessage("Attaching volume", fmt.Sprintf("%s to instance %s", volumeName, instanceName)))
 	return nil
 }
 
 func (sc *StorageCommands) storageDetach(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws storage detach <volume>")
+		return NewUsageError("cws storage detach <volume>", "cws storage detach my-data")
 	}
 
 	volumeName := args[0]
 
 	err := sc.app.apiClient.DetachStorage(sc.app.ctx, volumeName)
 	if err != nil {
-		return fmt.Errorf("failed to detach storage: %w", err)
+		return WrapAPIError("detach storage "+volumeName, err)
 	}
 
-	fmt.Printf("🔓 Detaching volume %s...\n", volumeName)
+	fmt.Printf("%s\n", FormatProgressMessage("Detaching volume", volumeName))
 	return nil
 }
 
 func (sc *StorageCommands) storageDelete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws storage delete <name>")
+		return NewUsageError("cws storage delete <name>", "cws storage delete my-data")
 	}
 
 	name := args[0]
 	err := sc.app.apiClient.DeleteStorage(sc.app.ctx, name)
 	if err != nil {
-		return fmt.Errorf("failed to delete storage: %w", err)
+		return WrapAPIError("delete EBS volume "+name, err)
 	}
 
-	fmt.Printf("🗑️ Deleting EBS volume %s...\n", name)
+	fmt.Printf("%s\n", FormatProgressMessage("Deleting EBS volume", name))
 	return nil
 }

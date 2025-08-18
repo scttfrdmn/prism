@@ -5,7 +5,10 @@
 // into logical groups with clear documentation.
 package cli
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // =============================================================================
 // Network and API Constants
@@ -400,3 +403,77 @@ const (
 	// OverProvisioningWastePercent is the typical waste from over-provisioning
 	OverProvisioningWastePercent = 30 // 30%
 )
+
+// =============================================================================
+// Standardized Error Helper Functions
+// =============================================================================
+
+// WrapAPIError wraps API errors with consistent context and formatting
+func WrapAPIError(action string, err error) error {
+	return fmt.Errorf("failed to %s: %w", action, err)
+}
+
+// WrapDaemonError wraps daemon connection errors with standard recovery message
+func WrapDaemonError(err error) error {
+	return fmt.Errorf("%s", DaemonNotRunningMessage)
+}
+
+// NewUsageError creates a consistent usage error with command and example
+func NewUsageError(command, example string) error {
+	if example != "" {
+		return fmt.Errorf("usage: %s\n\nExample: %s", command, example)
+	}
+	return fmt.Errorf("usage: %s", command)
+}
+
+// NewValidationError creates a validation error with field context
+func NewValidationError(field, value, expected string) error {
+	if expected != "" {
+		return fmt.Errorf("invalid %s '%s': expected %s", field, value, expected)
+	}
+	return fmt.Errorf("invalid %s '%s'", field, value)
+}
+
+// NewNotFoundError creates a resource not found error with suggestions
+func NewNotFoundError(resourceType, name, suggestion string) error {
+	if suggestion != "" {
+		return fmt.Errorf("%s '%s' not found. %s", resourceType, name, suggestion)
+	}
+	return fmt.Errorf("%s '%s' not found", resourceType, name)
+}
+
+// NewStateError creates an error for invalid resource states
+func NewStateError(resourceType, name, currentState, expectedState string) error {
+	if expectedState != "" {
+		return fmt.Errorf("%s '%s' is in state '%s', expected '%s'", resourceType, name, currentState, expectedState)
+	}
+	return fmt.Errorf("%s '%s' is in invalid state '%s'", resourceType, name, currentState)
+}
+
+// FormatSuccessMessage formats success messages with consistent emoji and structure
+func FormatSuccessMessage(action, resource, details string) string {
+	if details != "" {
+		return fmt.Sprintf("✅ %s %s %s", action, resource, details)
+	}
+	return fmt.Sprintf("✅ %s %s", action, resource)
+}
+
+// FormatProgressMessage formats progress messages with consistent structure
+func FormatProgressMessage(action, status string) string {
+	return fmt.Sprintf("🔄 %s %s...", action, status)
+}
+
+// FormatWarningMessage formats warning messages with consistent structure  
+func FormatWarningMessage(context, message string) string {
+	return fmt.Sprintf("⚠️  %s: %s", context, message)
+}
+
+// FormatErrorMessage formats user-facing error messages without technical details
+func FormatErrorMessage(context, message string) string {
+	return fmt.Sprintf("❌ %s: %s", context, message)
+}
+
+// FormatInfoMessage formats informational messages with helpful tips
+func FormatInfoMessage(tip string) string {
+	return fmt.Sprintf("💡 %s", tip)
+}
