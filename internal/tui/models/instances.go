@@ -28,6 +28,9 @@ type InstancesModel struct {
 	selected       int
 	showingActions bool
 	actionMessage  string
+	
+	// Command dispatcher for SOLID architecture
+	dispatcher *CommandDispatcher
 }
 
 // InstanceRefreshMsg is sent when instance data should be refreshed
@@ -54,6 +57,16 @@ func NewInstancesModel(apiClient apiClient) InstancesModel {
 	statusBar := components.NewStatusBar("CloudWorkstation Instances", "")
 	spinner := components.NewSpinner("Loading instances...")
 
+	// Initialize command dispatcher with instance commands
+	dispatcher := NewCommandDispatcher()
+	dispatcher.RegisterCommand(InstanceWindowResizeCommand{})
+	dispatcher.RegisterCommand(InstanceRefreshCommand{})
+	dispatcher.RegisterCommand(InstanceActionsCommand{})
+	dispatcher.RegisterCommand(InstanceConnectionCommand{})
+	dispatcher.RegisterCommand(InstanceActionExecuteCommand{})
+	dispatcher.RegisterCommand(InstanceActionCancelCommand{})
+	dispatcher.RegisterCommand(InstanceTableNavigationCommand{})
+
 	return InstancesModel{
 		apiClient:      apiClient,
 		instancesTable: instancesTable,
@@ -63,6 +76,7 @@ func NewInstancesModel(apiClient apiClient) InstancesModel {
 		height:         24,
 		loading:        true,
 		selected:       0,
+		dispatcher:     dispatcher,
 	}
 }
 
@@ -125,85 +139,27 @@ func (m InstancesModel) performAction(action string) tea.Cmd {
 	}
 }
 
-// Update handles messages and updates the model
+// Update handles messages and updates the model using Command Pattern (SOLID)
 func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	// Handle global quit command
+	if keyMsg, ok := msg.(tea.KeyMsg); ok && keyMsg.String() == "q" && !m.showingActions {
+		return m, tea.Quit
+	}
+
+	// Try to dispatch command using Command Pattern
+	newModel, cmd := m.dispatcher.Dispatch(msg, m)
+	if cmd != nil {
+		return newModel, cmd
+	}
+	// Check if model was updated
+	if newInstanceModel, ok := newModel.(InstancesModel); ok && (newInstanceModel.loading != m.loading || newInstanceModel.showingActions != m.showingActions) {
+		return newModel, cmd
+	}
+
+	// Handle non-command messages
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.statusBar.SetWidth(msg.Width)
-
-		// Update table dimensions
-		tableHeight := m.height - 6 // Account for title, help, and status
-		m.instancesTable.SetSize(m.width-4, tableHeight)
-
-		return m, nil
-
-	case tea.KeyMsg:
-		if m.showingActions {
-			// Handle action selection
-			switch msg.String() {
-			case "s":
-				m.showingActions = false
-				return m, m.performAction("start")
-			case "p": // stop
-				m.showingActions = false
-				return m, m.performAction("stop")
-			case "d":
-				m.showingActions = false
-				return m, m.performAction("delete")
-			case "esc", "q":
-				m.showingActions = false
-				return m, nil
-			}
-		} else {
-			// Handle normal navigation
-			switch msg.String() {
-			case "r":
-				m.loading = true
-				m.error = ""
-				return m, m.fetchInstances
-
-			case "a":
-				if len(m.instances) > 0 {
-					m.showingActions = true
-					return m, nil
-				}
-
-			case "c":
-				// Show connection info for selected instance
-				if len(m.instances) > 0 && m.selected < len(m.instances) {
-					instance := m.instances[m.selected]
-					m.actionMessage = fmt.Sprintf("SSH: ssh %s@%s", "ubuntu", instance.PublicIP)
-					return m, nil
-				}
-
-			case "q", "esc":
-				return m, tea.Quit
-			}
-
-			// Handle table navigation when not loading
-			if !m.loading && len(m.instances) > 0 {
-				var cmd tea.Cmd
-				m.instancesTable, cmd = m.instancesTable.Update(msg)
-				cmds = append(cmds, cmd)
-
-				// Update selected index based on table selection
-				selectedRow := m.instancesTable.SelectedRow()
-				if len(selectedRow) > 0 {
-					// Find the index of the selected instance by name
-					for i, instance := range m.instances {
-						if instance.Name == selectedRow[0] {
-							m.selected = i
-							break
-						}
-					}
-				}
-			}
-		}
-
 	case InstanceRefreshMsg:
 		if !m.loading {
 			return m, m.fetchInstances
@@ -216,7 +172,6 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusBar.SetStatus(m.error, components.StatusError)
 		} else {
 			m.statusBar.SetStatus(msg.Message, components.StatusSuccess)
-			// Refresh instances after action
 			return m, m.fetchInstances
 		}
 
@@ -228,48 +183,63 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case *api.ListInstancesResponse:
 		m.loading = false
 		m.instances = msg.Instances
-
-		// Update instances table
-		rows := []table.Row{}
-		for _, instance := range m.instances {
-			status := strings.ToUpper(instance.State)
-			launchTime := "N/A"
-			if !instance.LaunchTime.IsZero() {
-				launchTime = instance.LaunchTime.Format("01/02 15:04")
-			}
-
-			// Format spot/on-demand indicator
-			typeIndicator := "OD"
-			if instance.InstanceLifecycle == "spot" {
-				typeIndicator = "SP"
-			}
-
-			rows = append(rows, table.Row{
-				instance.Name,
-				instance.Template,
-				status,
-				typeIndicator,
-				fmt.Sprintf("$%.2f", instance.EstimatedDailyCost),
-				instance.PublicIP,
-				launchTime,
-			})
-		}
-
-		m.instancesTable.SetRows(rows)
+		m.updateInstancesTable()
 		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d instances", len(m.instances)), components.StatusSuccess)
-
-		// Schedule next refresh
 		cmds = append(cmds, m.refreshTicker())
-	}
 
-	// Update components
-	if m.loading {
-		var spinnerCmd tea.Cmd
-		m.spinner, spinnerCmd = m.spinner.Update(msg)
-		cmds = append(cmds, spinnerCmd)
+	default:
+		// Handle spinner updates
+		if m.loading {
+			var spinnerCmd tea.Cmd
+			m.spinner, spinnerCmd = m.spinner.Update(msg)
+			cmds = append(cmds, spinnerCmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+// updateInstancesTable updates the instances table with current data (Single Responsibility)
+func (m *InstancesModel) updateInstancesTable() {
+	rows := []table.Row{}
+	for _, instance := range m.instances {
+		status := strings.ToUpper(instance.State)
+		launchTime := "N/A"
+		if !instance.LaunchTime.IsZero() {
+			launchTime = instance.LaunchTime.Format("01/02 15:04")
+		}
+
+		// Format spot/on-demand indicator
+		typeIndicator := "OD"
+		if instance.InstanceLifecycle == "spot" {
+			typeIndicator = "SP"
+		}
+
+		rows = append(rows, table.Row{
+			instance.Name,
+			instance.Template,
+			status,
+			typeIndicator,
+			fmt.Sprintf("$%.2f", instance.EstimatedDailyCost),
+			instance.PublicIP,
+			launchTime,
+		})
+	}
+	m.instancesTable.SetRows(rows)
+}
+
+// updateSelectedIndex updates the selected index based on table selection (Single Responsibility)
+func (m *InstancesModel) updateSelectedIndex() {
+	selectedRow := m.instancesTable.SelectedRow()
+	if len(selectedRow) > 0 {
+		// Find the index of the selected instance by name
+		for i, instance := range m.instances {
+			if instance.Name == selectedRow[0] {
+				m.selected = i
+				break
+			}
+		}
+	}
 }
 
 // View renders the instances view
