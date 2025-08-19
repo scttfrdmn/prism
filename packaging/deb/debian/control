@@ -1,7 +1,7 @@
 Source: cloudworkstation
 Section: admin
 Priority: optional
-Maintainer: CloudWorkstation Team <team@cloudworkstation.dev>
+Maintainer: CloudWorkstation Team <team@cloudworkstation.io>
 Build-Depends: debhelper-compat (= 13),
                golang-go (>= 2:1.20~),
                dh-systemd,

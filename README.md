@@ -47,8 +47,8 @@ From individual researchers to institutional deployments, CloudWorkstation scale
 
 ```bash
 # Download and install via DMG
-curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.2.dmg
-open CloudWorkstation-v0.4.2.dmg
+curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.3.dmg
+open CloudWorkstation-v0.4.3.dmg
 # Drag CloudWorkstation.app to Applications folder
 ```
 

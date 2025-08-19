@@ -257,7 +257,7 @@ The validation system checks for:
 - `base`: Base OS must be specified
 
 #### **Package Manager Validation**
-- Only supported package managers: `apt`, `dnf`, `conda`, `spack`, `ami`
+- Only supported package managers: `apt`, `dnf`, `conda`, `spack`, `ami`, `pip`
 - Package consistency: APT/DNF templates shouldn't have conda/spack packages
 - AMI templates shouldn't define packages (use pre-built AMI instead)
 
@@ -338,7 +338,7 @@ The validation system provides clear, actionable error messages:
 
 ```
 ❌ template validation error in package_manager: 
-   unsupported package manager: invalid-manager (valid: [apt dnf conda spack ami])
+   unsupported package manager: invalid-manager (valid: [apt dnf conda spack ami pip])
 
 ❌ template validation error in inherits: 
    template cannot inherit from itself: My Template

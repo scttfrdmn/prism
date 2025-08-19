@@ -862,7 +862,7 @@ func TestAWSProfileIntegration(t *testing.T) {
 		profileManager, err := profile.GetDefaultManager()
 		require.NoError(t, err, "Failed to create profile manager")
 
-		// Create profile with AWS profile  
+		// Create profile with AWS profile
 		testProfile := &core.Profile{
 			Name:       "test-integration-profile",
 			AWSProfile: getAWSTestProfile(),

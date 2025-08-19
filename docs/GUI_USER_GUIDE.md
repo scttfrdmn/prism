@@ -21,16 +21,20 @@ The GUI is perfect for visual learners and anyone who prefers using a mouse over
 ## Main Features of the GUI
 
 ### Main Dashboard
-![Dashboard](https://via.placeholder.com/600x300?text=Dashboard)
 
-The Dashboard will show you:
+The Dashboard shows you:
 - All your running and stopped cloud computers
-- How much they cost per day
-- Quick launch buttons for common tasks
-- Status updates and notifications
+- Real-time cost information per instance
+- Quick launch buttons for common templates
+- System status and notifications
+- Profile and AWS region information
+
+**Key Features:**
+- **Instance Overview**: See all your instances at a glance with status indicators
+- **Cost Monitoring**: Real-time cost tracking with daily estimates
+- **Quick Actions**: Launch, stop, hibernate, and connect with one click
 
 ### Template Gallery
-![Templates](https://via.placeholder.com/600x300?text=Template+Gallery)
 
 Browse research environments with pictures and descriptions:
 - Visual cards for each template
@@ -39,7 +43,6 @@ Browse research environments with pictures and descriptions:
 - Size selection sliders (XS to XL)
 
 ### Instance Manager
-![Instances](https://via.placeholder.com/600x300?text=Instance+Manager)
 
 Manage all your cloud computers in one place:
 - Start and stop with a single click
@@ -48,7 +51,6 @@ Manage all your cloud computers in one place:
 - Detailed cost and usage information
 
 ### Storage Manager
-![Storage](https://via.placeholder.com/600x300?text=Storage+Manager)
 
 Manage your data storage visually:
 - Create new storage volumes with size sliders

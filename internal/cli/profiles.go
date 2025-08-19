@@ -584,7 +584,7 @@ func createInvitationCreateCommand(config *Config) *cobra.Command {
 	cmd.Flags().String("type", "read_only", "Type of access (read_only, read_write, or admin)")
 	cmd.Flags().Int("valid-days", 30, "Number of days the invitation is valid")
 	cmd.Flags().String("s3-config", "", "Optional S3 path to configuration")
-	
+
 	// Basic policy restriction flags (open source feature)
 	cmd.Flags().StringSlice("template-whitelist", []string{}, "Allowed templates (comma-separated)")
 	cmd.Flags().StringSlice("template-blacklist", []string{}, "Forbidden templates (comma-separated)")
@@ -592,7 +592,7 @@ func createInvitationCreateCommand(config *Config) *cobra.Command {
 	cmd.Flags().StringSlice("forbidden-regions", []string{}, "Forbidden AWS regions (comma-separated)")
 	cmd.Flags().Float64("max-hourly-cost", 0, "Maximum hourly cost limit (0 = no limit)")
 	cmd.Flags().Float64("max-daily-budget", 0, "Maximum daily budget limit (0 = no limit)")
-	
+
 	return cmd
 }
 
@@ -639,8 +639,8 @@ func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string)
 	}
 
 	// Add policy restrictions if specified
-	if len(templateWhitelist) > 0 || len(templateBlacklist) > 0 || len(maxInstanceTypes) > 0 || 
-	   len(forbiddenRegions) > 0 || maxHourlyCost > 0 || maxDailyBudget > 0 {
+	if len(templateWhitelist) > 0 || len(templateBlacklist) > 0 || len(maxInstanceTypes) > 0 ||
+		len(forbiddenRegions) > 0 || maxHourlyCost > 0 || maxDailyBudget > 0 {
 		invitation.PolicyRestrictions = &profile.BasicPolicyRestrictions{
 			TemplateWhitelist: templateWhitelist,
 			TemplateBlacklist: templateBlacklist,
@@ -649,7 +649,7 @@ func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string)
 			MaxHourlyCost:     maxHourlyCost,
 			MaxDailyBudget:    maxDailyBudget,
 		}
-		
+
 		fmt.Println(color.YellowString("Policy restrictions applied:"))
 		if len(templateWhitelist) > 0 {
 			fmt.Printf("  - Allowed templates: %v\n", templateWhitelist)

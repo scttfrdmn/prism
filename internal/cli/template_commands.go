@@ -1020,11 +1020,11 @@ func formatPorts(ports []int) string {
 // displayDependencyChains shows template inheritance and dependency relationships
 func (tc *TemplateCommands) displayDependencyChains(template *templates.Template) {
 	fmt.Printf("🔗 **Dependency Chains**:\n")
-	
+
 	// Show inheritance chain
 	if len(template.Inherits) > 0 {
 		fmt.Printf("   • **Inherits From**: %s\n", strings.Join(template.Inherits, " → "))
-		
+
 		// Show what this template inherits
 		for _, parent := range template.Inherits {
 			parentTemplate, err := templates.GetTemplateInfo(parent)
@@ -1035,7 +1035,7 @@ func (tc *TemplateCommands) displayDependencyChains(template *templates.Template
 	} else {
 		fmt.Printf("   • **Base Template**: No inheritance dependencies\n")
 	}
-	
+
 	// Show what inherits from this template
 	templateNames, err := templates.ListAvailableTemplates()
 	if err == nil {
@@ -1051,37 +1051,37 @@ func (tc *TemplateCommands) displayDependencyChains(template *templates.Template
 				}
 			}
 		}
-		
+
 		if len(children) > 0 {
 			fmt.Printf("   • **Child Templates**: %s\n", strings.Join(children, ", "))
 		} else {
 			fmt.Printf("   • **Child Templates**: None (leaf template)\n")
 		}
 	}
-	
+
 	fmt.Println()
 }
 
 // displayValidationStatus shows template validation results and health
 func (tc *TemplateCommands) displayValidationStatus(template *templates.Template) {
 	fmt.Printf("✅ **Validation Status**:\n")
-	
+
 	// Basic template validation
 	validationResults := []string{}
-	
+
 	// Check required fields
 	if template.Name != "" {
 		validationResults = append(validationResults, "✅ Template name valid")
 	} else {
 		validationResults = append(validationResults, "❌ Template name missing")
 	}
-	
+
 	if template.Description != "" {
 		validationResults = append(validationResults, "✅ Description provided")
 	} else {
 		validationResults = append(validationResults, "⚠️ Description missing")
 	}
-	
+
 	// Package manager validation
 	validPackageManagers := []string{"apt", "dnf", "conda", "yum", "apk"}
 	packageManagerValid := false
@@ -1091,13 +1091,13 @@ func (tc *TemplateCommands) displayValidationStatus(template *templates.Template
 			break
 		}
 	}
-	
+
 	if packageManagerValid {
 		validationResults = append(validationResults, "✅ Package manager supported")
 	} else {
 		validationResults = append(validationResults, "❌ Package manager unsupported")
 	}
-	
+
 	// Inheritance validation
 	if len(template.Inherits) > 0 {
 		inheritanceValid := true
@@ -1108,26 +1108,26 @@ func (tc *TemplateCommands) displayValidationStatus(template *templates.Template
 				break
 			}
 		}
-		
+
 		if inheritanceValid {
 			validationResults = append(validationResults, "✅ Inheritance chain valid")
 		} else {
 			validationResults = append(validationResults, "❌ Inheritance chain broken")
 		}
 	}
-	
+
 	// User validation
 	if len(template.Users) > 0 {
 		validationResults = append(validationResults, "✅ User accounts configured")
 	} else {
 		validationResults = append(validationResults, "⚠️ No user accounts defined")
 	}
-	
+
 	// Display results
 	for _, result := range validationResults {
 		fmt.Printf("   • %s\n", result)
 	}
-	
+
 	// Deployment readiness assessment
 	errorCount := 0
 	warningCount := 0
@@ -1138,7 +1138,7 @@ func (tc *TemplateCommands) displayValidationStatus(template *templates.Template
 			warningCount++
 		}
 	}
-	
+
 	if errorCount == 0 && warningCount == 0 {
 		fmt.Printf("   • 🎉 **Deployment Status**: Ready for production\n")
 	} else if errorCount == 0 {
@@ -1146,14 +1146,14 @@ func (tc *TemplateCommands) displayValidationStatus(template *templates.Template
 	} else {
 		fmt.Printf("   • ❌ **Deployment Status**: Not ready (%d errors, %d warnings)\n", errorCount, warningCount)
 	}
-	
+
 	fmt.Println()
 }
 
 // displayTroubleshootingInfo provides template-specific troubleshooting guidance
 func (tc *TemplateCommands) displayTroubleshootingInfo(template *templates.Template) {
 	fmt.Printf("🔧 **Troubleshooting Guide**:\n")
-	
+
 	// Package manager specific troubleshooting
 	switch template.PackageManager {
 	case "conda":
@@ -1161,20 +1161,20 @@ func (tc *TemplateCommands) displayTroubleshootingInfo(template *templates.Templ
 		fmt.Printf("     - Long setup times (~5-10 min) are normal for conda environments\n")
 		fmt.Printf("     - If conda commands fail: check internet connectivity and conda forge access\n")
 		fmt.Printf("     - Package conflicts: use 'conda list' to verify installed packages\n")
-		
+
 	case "apt":
 		fmt.Printf("   • **APT Issues**: \n")
 		fmt.Printf("     - Package update failures: run 'sudo apt update' manually\n")
 		fmt.Printf("     - Missing packages: verify Ubuntu package names are correct\n")
 		fmt.Printf("     - Permission errors: ensure user has sudo access\n")
-		
+
 	case "dnf":
 		fmt.Printf("   • **DNF Issues**: \n")
 		fmt.Printf("     - Note: DNF on Ubuntu requires special configuration\n")
 		fmt.Printf("     - If DNF fails: check if EPEL repositories are accessible\n")
 		fmt.Printf("     - Package naming: DNF package names may differ from APT\n")
 	}
-	
+
 	// Template-specific troubleshooting
 	if strings.Contains(strings.ToLower(template.Name), "gpu") || strings.Contains(strings.ToLower(template.Name), "ml") {
 		fmt.Printf("   • **GPU/ML Troubleshooting**: \n")
@@ -1182,14 +1182,14 @@ func (tc *TemplateCommands) displayTroubleshootingInfo(template *templates.Templ
 		fmt.Printf("     - CUDA errors: check NVIDIA driver installation in post_install script\n")
 		fmt.Printf("     - Jupyter not accessible: ensure port 8888 is open in security group\n")
 	}
-	
+
 	if strings.Contains(strings.ToLower(template.Name), "rocky") || strings.Contains(strings.ToLower(template.Name), "rhel") {
 		fmt.Printf("   • **Rocky/RHEL Troubleshooting**: \n")
 		fmt.Printf("     - SELinux issues: check SELinux contexts for mounted volumes\n")
 		fmt.Printf("     - Firewall problems: verify firewalld rules allow required ports\n")
 		fmt.Printf("     - Package repositories: ensure EPEL and PowerTools repos are enabled\n")
 	}
-	
+
 	// Inheritance specific troubleshooting
 	if len(template.Inherits) > 0 {
 		fmt.Printf("   • **Inheritance Troubleshooting**: \n")
@@ -1197,13 +1197,13 @@ func (tc *TemplateCommands) displayTroubleshootingInfo(template *templates.Templ
 		fmt.Printf("     - Package conflicts: check that parent and child package managers are compatible\n")
 		fmt.Printf("     - Service conflicts: verify inherited services don't conflict on same ports\n")
 	}
-	
+
 	// General troubleshooting
 	fmt.Printf("   • **General Troubleshooting**: \n")
 	fmt.Printf("     - Launch failures: run with --dry-run first to check configuration\n")
 	fmt.Printf("     - Connection issues: verify security group allows SSH (port 22)\n")
 	fmt.Printf("     - Cost concerns: use hibernation policies for automatic cost optimization\n")
 	fmt.Printf("     - Instance not starting: check template validation with 'cws templates validate'\n")
-	
+
 	fmt.Println()
 }

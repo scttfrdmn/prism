@@ -71,7 +71,7 @@ The formula is updated automatically on release, but you can manually update it:
 
 2. Run the update script:
    ```bash
-   ./scripts/update_homebrew.sh v0.4.2 ./dist/v0.4.2
+   ./scripts/update_homebrew.sh v0.4.3 ./dist/v0.4.3
    ```
 
 3. Commit and push the updated formula to the tap repository:
@@ -79,7 +79,7 @@ The formula is updated automatically on release, but you can manually update it:
    cp packaging/homebrew/cloudworkstation.rb /path/to/homebrew-cloudworkstation/Formula/
    cd /path/to/homebrew-cloudworkstation
    git add Formula/cloudworkstation.rb
-   git commit -m "Update formula for v0.4.2"
+   git commit -m "Update formula for v0.4.3"
    git push
    ```
 

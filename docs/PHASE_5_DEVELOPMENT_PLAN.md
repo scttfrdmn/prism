@@ -1,8 +1,8 @@
-# Phase 5 Development Plan: AWS-Native Research Ecosystem
+# CloudWorkstation Development Plan: AWS-Native Research Ecosystem & Extensibility
 
 ## Overview
 
-Phase 5 transforms CloudWorkstation from an EC2 launcher into a unified **Research Portal for AWS**, providing seamless access to the full AWS research ecosystem while maintaining enterprise-grade governance and cost control.
+This comprehensive development plan transforms CloudWorkstation from an EC2 launcher into a unified **Research Portal for AWS** with full extensibility capabilities, providing seamless access to the complete AWS research ecosystem while maintaining enterprise-grade governance and cost control.
 
 ## Release Structure
 
@@ -17,6 +17,10 @@ Phase 5 transforms CloudWorkstation from an EC2 launcher into a unified **Resear
 ### **Phase 5C: Enterprise Research Ecosystem** (v0.6.0 - Q3 2025)
 **Duration**: 10-12 weeks  
 **Focus**: Template marketplace and enterprise features
+
+### **Phase 6: Extensibility & Ecosystem** (v0.7.0 - Q4 2025)
+**Duration**: 12-14 weeks  
+**Focus**: Plugin architecture, auto-AMI system, GUI skinning, and web services integration
 
 ---
 
@@ -299,4 +303,190 @@ Phase 5 transforms CloudWorkstation from an EC2 launcher into a unified **Resear
 - **Policy Consistency**: Ensure policy framework scales across all service types
 - **User Experience**: Maintain CLI/TUI/GUI parity throughout development
 
-This development plan transforms CloudWorkstation from an EC2 launcher into the comprehensive "Research Portal for AWS" while maintaining the simplicity and enterprise governance that makes it valuable for academic institutions.
+---
+
+## Phase 6: Extensibility & Ecosystem (v0.7.0)
+
+### **Epic 10: Auto-AMI Compilation System**
+
+#### **Task 10.1: Auto-AMI Core Engine**
+- [ ] Create `AutoAMIManager` with intelligent compilation scheduling
+- [ ] Implement `BaseImageMonitor` for OS security update tracking
+- [ ] Add `CompilationScheduler` with cost optimization and off-peak building
+- [ ] Create `TemplateUsageTracker` for popularity-driven compilation triggers
+- [ ] Implement `SecurityUpdateManager` for critical vulnerability response
+
+**Files to create**: `pkg/ami/auto_manager.go`, `pkg/ami/base_monitor.go`, `pkg/ami/scheduler.go`
+
+#### **Task 10.2: Template Compilation Integration**
+- [ ] Extend template system with `compile_to_ami` configuration
+- [ ] Add AMI metadata embedding with policy information
+- [ ] Implement compilation cost estimation and budget controls
+- [ ] Create compilation progress tracking and notification system
+- [ ] Add template validation for compilable templates
+
+**Files to modify**: `pkg/templates/types.go`, `pkg/templates/compiler.go` (new)
+
+#### **Task 10.3: CLI Integration for Auto-AMI**
+- [ ] Add `cws templates auto-ami` command group
+- [ ] Implement compilation status monitoring and control commands
+- [ ] Create security update notification and management interface
+- [ ] Add emergency compilation capabilities for critical updates
+- [ ] Implement user preference management for auto-compilation
+
+**Files to modify**: `internal/cli/templates.go`, `internal/cli/auto_ami.go` (new)
+
+### **Epic 11: Unified Plugin Architecture**
+
+#### **Task 11.1: Plugin Framework Foundation**
+- [ ] Create `Plugin` interface with unified CLI/daemon capabilities
+- [ ] Implement `PluginManager` with lifecycle management
+- [ ] Add `PluginSandbox` with security and resource limits
+- [ ] Create plugin loading system for Go plugins and executables
+- [ ] Implement plugin validation and signature verification
+
+**Files to create**: `pkg/plugin/interface.go`, `pkg/plugin/manager.go`, `pkg/plugin/sandbox.go`
+
+#### **Task 11.2: CLI Extension System**
+- [ ] Create `CLIExtensionRegistry` for plugin command registration
+- [ ] Implement sandboxed plugin command execution
+- [ ] Add plugin flag and argument handling
+- [ ] Create plugin command help and documentation integration
+- [ ] Implement plugin command error handling and recovery
+
+**Files to create**: `pkg/plugin/cli_extensions.go`, `internal/cli/plugin_loader.go`
+
+#### **Task 11.3: Daemon API Extension System**
+- [ ] Create `APIExtensionRegistry` for plugin endpoint registration
+- [ ] Implement plugin HTTP handler with authentication and rate limiting
+- [ ] Add plugin event system and handler registration
+- [ ] Create plugin API documentation generation
+- [ ] Implement plugin health monitoring and metrics
+
+**Files to create**: `pkg/plugin/api_extensions.go`, `pkg/daemon/plugin_handlers.go`
+
+#### **Task 11.4: Plugin Distribution System**
+- [ ] Create plugin package format (.cwsplugin files)
+- [ ] Implement plugin installation and removal system
+- [ ] Add plugin repository and discovery mechanism
+- [ ] Create plugin security scanning and approval workflow
+- [ ] Implement plugin update and version management
+
+**Files to create**: `pkg/plugin/distribution.go`, `internal/cli/plugin_manager.go`
+
+### **Epic 12: GUI Skinning & Theming Architecture**
+
+#### **Task 12.1: Theme System Foundation**
+- [ ] Create `ThemeManager` with theme loading and application
+- [ ] Implement `Theme` struct with colors, typography, and layout
+- [ ] Add institutional branding support with logo and asset management
+- [ ] Create theme validation and compatibility checking
+- [ ] Implement theme hot-reloading for development
+
+**Files to create**: `pkg/gui/theme/manager.go`, `pkg/gui/theme/types.go`
+
+#### **Task 12.2: Component Theming System**
+- [ ] Create themed component factory with style application
+- [ ] Implement component override system for custom implementations
+- [ ] Add accessibility theme support with high contrast and large fonts
+- [ ] Create research workflow-optimized layouts and arrangements
+- [ ] Implement theme-aware cost and status displays
+
+**Files to modify**: `cmd/cws-gui/components/`, `cmd/cws-gui/theme/` (new directory)
+
+#### **Task 12.3: Theme Distribution and Management**
+- [ ] Create theme package format (.cwstheme files)
+- [ ] Implement theme installation and selection system
+- [ ] Add automatic institutional theme detection
+- [ ] Create theme customization and export capabilities
+- [ ] Implement theme sharing and repository system
+
+**Files to create**: `internal/cli/theme_manager.go`, `pkg/gui/theme/distribution.go`
+
+### **Epic 13: Web Services Integration Framework**
+
+#### **Task 13.1: Web Service Template Engine**
+- [ ] Extend template system with `connection_type: web` support
+- [ ] Create `WebServiceConfig` for service-specific parameters
+- [ ] Implement web service health checking and monitoring
+- [ ] Add web service URL generation and access management
+- [ ] Create web service lifecycle management (start/stop/restart)
+
+**Files to modify**: `pkg/templates/types.go`, `pkg/templates/web_services.go` (new)
+
+#### **Task 13.2: Third-Party Integration Patterns**
+- [ ] Create Docker-based service integration templates
+- [ ] Implement direct web service integration patterns
+- [ ] Add API-driven service integration examples
+- [ ] Create OAuth/OIDC authentication integration
+- [ ] Implement EFS sharing integration for web services
+
+**Templates to create**: `templates/jupyterhub-custom.yml`, `templates/rstudio-server.yml`, `templates/mlflow-tracking.yml`
+
+#### **Task 13.3: Web Service CLI Integration**
+- [ ] Add web service launch and management commands
+- [ ] Implement `cws connect` command for browser launching
+- [ ] Create web service status and health monitoring
+- [ ] Add web service logs and debugging capabilities
+- [ ] Implement unified listing for EC2 and web services
+
+**Files to modify**: `internal/cli/instances.go`, `internal/cli/connect.go` (new)
+
+### **Epic 14: Integration Testing & Documentation**
+
+#### **Task 14.1: Extensibility Integration Testing**
+- [ ] Create plugin development and testing framework
+- [ ] Implement theme compatibility testing across platforms
+- [ ] Add auto-AMI compilation integration tests
+- [ ] Create web service integration test suite
+- [ ] Implement end-to-end extensibility workflow tests
+
+**Files to create**: `test/plugin/`, `test/theme/`, `test/auto_ami/`, `test/web_services/`
+
+#### **Task 14.2: Developer Documentation**
+- [ ] Create plugin development guide with examples
+- [ ] Write theme development and customization guide
+- [ ] Document web service integration patterns and best practices
+- [ ] Create institutional deployment guide for extensibility features
+- [ ] Write troubleshooting guide for plugin and theme issues
+
+**Documentation to create**: `docs/PLUGIN_DEVELOPMENT_GUIDE.md`, `docs/THEME_DEVELOPMENT_GUIDE.md`
+
+### **Phase 6 Success Criteria**
+- [ ] Plugin system supporting CLI commands, API endpoints, and event handlers
+- [ ] Auto-AMI system providing 30-second launches with security automation
+- [ ] GUI theming system with institutional branding and accessibility support
+- [ ] Web service integration framework with third-party tool examples
+- [ ] Complete extensibility documentation and developer guides
+- [ ] Institutional deployment examples demonstrating customization capabilities
+
+---
+
+## Implementation Dependencies and Timeline
+
+### **Critical Path Analysis**
+1. **Phase 5A** → **Phase 5B**: Research user identity required for SageMaker integration
+2. **Phase 5B** → **Phase 5C**: Web service framework needed for advanced service integration  
+3. **Phase 5C** → **Phase 6**: Enterprise features provide foundation for extensibility
+4. **Phase 6 Internal**: Plugin architecture must be completed before theme and auto-AMI systems
+
+### **Phase 6 Dependencies**
+- **Auto-AMI System** depends on template compilation framework (Phase 5C)
+- **Plugin Architecture** depends on stable daemon API (Phase 5B)
+- **GUI Theming** depends on mature GUI system (Phase 5C)
+- **Web Services** depends on service management framework (Phase 5B)
+
+### **Resource Requirements**
+- **Backend Development**: Go expertise for plugin architecture and auto-AMI systems
+- **Frontend Development**: GUI theming and web service integration
+- **DevOps**: Auto-AMI compilation and security monitoring systems
+- **Documentation**: Comprehensive developer guides and integration examples
+- **Testing**: Extensibility framework testing and validation
+
+### **Risk Mitigation**
+- **Plugin Security**: Implement comprehensive sandboxing before public plugin support
+- **Auto-AMI Costs**: Implement strict budget controls and monitoring from day one
+- **Theme Complexity**: Start with simple institutional branding before advanced customization
+- **Integration Complexity**: Focus on popular web services (Jupyter, RStudio) first
+
+This development plan transforms CloudWorkstation from an EC2 launcher into the comprehensive "Research Portal for AWS" with full extensibility capabilities while maintaining the simplicity and enterprise governance that makes it valuable for academic institutions.

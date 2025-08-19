@@ -73,7 +73,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build system for cross-platform package generation
 - Documentation to reflect current features and installation methods
 
-## [Unreleased] - 0.4.3 Secure Profiles
+## [0.4.3] - 2025-08-19
+
+### Added
+- Template inheritance system with multi-level stacking support
+- Comprehensive template validation with 8+ validation rules
+- Enhanced build system with cross-compilation fixes
+- Complete hibernation ecosystem with cost optimization
+- Idle detection system with automated hibernation policies
+- Professional GUI interface with system tray integration
+- CLI version output consistency with daemon formatting
+- EFS multi-instance sharing with cross-template collaboration
+
+### Enhanced
+- Version synchronization across all components (CLI, daemon, GUI)
+- Cross-compilation support using existing crosscompile build tags
+- Template system with stackable inheritance (e.g., Rocky9 + Conda)
+- Hibernation policies with intelligent fallback to stop when unsupported
+- Cost optimization with session-preserving hibernation capabilities
+- GitHub release workflow with automated distribution packages
+- Homebrew tap with complete installation testing cycle
+
+### Fixed
+- CLI version display format to match daemon professional output
+- Cross-compilation keychain errors using platform-specific alternatives
+- Template validation preventing invalid package managers and self-reference
+- Mock API client version consistency in tests
+- Version variable synchronization between Makefile and runtime
+- Distribution package checksums and binary verification
+
+### Documentation
+- Updated all version references from 0.4.2 to 0.4.3
+- Template inheritance and validation technical guides
+- Hibernation ecosystem implementation documentation
+- Complete release preparation and distribution strategy
+- Homebrew tap setup and maintenance procedures
+- Windows MSI installer comprehensive documentation
+
+## [Unreleased] - 0.5.0 Multi-User System
 
 ### Added
 - Secure invitation system with device binding

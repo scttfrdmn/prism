@@ -708,20 +708,20 @@ func TestCostAnalysis(t *testing.T) {
 	// Create instances with cost data
 	mockClient.Instances = []types.Instance{
 		{
-			Name:               "expensive-instance",
-			Template:           "gpu-ml",
-			State:              "running",
-			InstanceLifecycle:  "on-demand",
-			HourlyRate:         0.4375,
-			CurrentSpend:       10.50,
+			Name:              "expensive-instance",
+			Template:          "gpu-ml",
+			State:             "running",
+			InstanceLifecycle: "on-demand",
+			HourlyRate:        0.4375,
+			CurrentSpend:      10.50,
 		},
 		{
-			Name:               "cheap-instance",
-			Template:           "basic-compute",
-			State:              "stopped",
-			InstanceLifecycle:  "spot",
-			HourlyRate:         0.052,
-			CurrentSpend:       1.25,
+			Name:              "cheap-instance",
+			Template:          "basic-compute",
+			State:             "stopped",
+			InstanceLifecycle: "spot",
+			HourlyRate:        0.052,
+			CurrentSpend:      1.25,
 		},
 	}
 

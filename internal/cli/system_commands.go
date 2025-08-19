@@ -571,7 +571,7 @@ func (s *SystemCommands) daemonCleanup(args []string) error {
 		fmt.Print("\nContinue with cleanup? [y/N]: ")
 
 		var response string
-		fmt.Scanln(&response)
+		_, _ = fmt.Scanln(&response) // Error ignored - user input validation happens below
 		if response != "y" && response != "Y" && response != "yes" {
 			fmt.Println("❌ Cleanup cancelled")
 			return nil
@@ -704,7 +704,7 @@ func (s *SystemCommands) performDirectCleanup(forceKill bool) error {
 				fmt.Printf("🔨 Force killing %d remaining process(es)\n", len(remainingPids))
 				for _, pidStr := range remainingPids {
 					cmd = exec.Command("kill", "-KILL", pidStr)
-					cmd.Run()
+					_ = cmd.Run() // Error ignored - force kill may fail for already dead processes
 				}
 			}
 		}

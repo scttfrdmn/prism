@@ -57,7 +57,7 @@ type InvitationToken struct {
 
 	// Parentage tracking for invitation chains
 	ParentToken string `json:"parent_token,omitempty"`
-	
+
 	// Basic policy restrictions (open source feature)
 	PolicyRestrictions *BasicPolicyRestrictions `json:"policy_restrictions,omitempty"`
 }
@@ -65,16 +65,16 @@ type InvitationToken struct {
 // BasicPolicyRestrictions defines basic policy controls included in open source
 type BasicPolicyRestrictions struct {
 	// Template restrictions
-	TemplateWhitelist    []string `json:"template_whitelist,omitempty"`    // Allowed templates
-	TemplateBlacklist    []string `json:"template_blacklist,omitempty"`    // Forbidden templates
-	
-	// Instance constraints  
-	MaxInstanceTypes     []string `json:"max_instance_types,omitempty"`    // Max instance size
-	ForbiddenRegions     []string `json:"forbidden_regions,omitempty"`     // Regional restrictions
-	
+	TemplateWhitelist []string `json:"template_whitelist,omitempty"` // Allowed templates
+	TemplateBlacklist []string `json:"template_blacklist,omitempty"` // Forbidden templates
+
+	// Instance constraints
+	MaxInstanceTypes []string `json:"max_instance_types,omitempty"` // Max instance size
+	ForbiddenRegions []string `json:"forbidden_regions,omitempty"`  // Regional restrictions
+
 	// Basic budget controls
-	MaxHourlyCost        float64  `json:"max_hourly_cost,omitempty"`       // Cost ceiling
-	MaxDailyBudget       float64  `json:"max_daily_budget,omitempty"`      // Daily limit
+	MaxHourlyCost  float64 `json:"max_hourly_cost,omitempty"`  // Cost ceiling
+	MaxDailyBudget float64 `json:"max_daily_budget,omitempty"` // Daily limit
 }
 
 // GenerateInvitationToken creates a new secure invitation token

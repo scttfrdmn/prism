@@ -10,6 +10,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
 // MockAPIClient implements the CloudWorkstationAPI interface for testing
@@ -120,7 +121,7 @@ func NewMockAPIClient() *MockAPIClient {
 		},
 		DaemonStatus: &types.DaemonStatus{
 			Status:  "running",
-			Version: "test-version",
+			Version: version.GetVersion(),
 		},
 		HibernationStatus: &types.HibernationStatus{
 			HibernationSupported: true,

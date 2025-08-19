@@ -60,42 +60,53 @@ You can also download the right version for your computer:
 
 ## Documentation Index
 
-### User Guides
+### 🚀 User Guides
 
-- [Quick Start Guide](GETTING_STARTED.md)
-- [Terminal User Interface Guide](TUI_USER_GUIDE.md)
-- [Graphical User Interface Guide](GUI_USER_GUIDE.md)
-- [Multiple AWS Accounts Guide](MULTI_PROFILE_GUIDE.md)
-- [Research Templates Guide](TEMPLATE_FORMAT.md)
+- [Quick Start Guide](GETTING_STARTED.md) - Get up and running fast
+- [Terminal Interface Guide](TUI_USER_GUIDE.md) - Command-line power users  
+- [Desktop Interface Guide](GUI_USER_GUIDE.md) - Point-and-click interface
+- [Multiple AWS Accounts](MULTI_PROFILE_GUIDE.md) - Work with different AWS accounts
+- [Template System](TEMPLATE_INHERITANCE.md) - Understanding research templates
 
-### Administrator Documentation
-- [Administrator Guide](ADMINISTRATOR_GUIDE.md)
-- [Batch Administration](ADMINISTRATOR_GUIDE_BATCH.md)
-- [Security and Invitations](SECURE_INVITATION_ARCHITECTURE.md)
+### 🔧 Administrator Documentation
 
-### Feature Documentation
-- [Templates](TEMPLATE_FORMAT.md) - Template creation guide
-- [Advanced Templates](TEMPLATE_FORMAT_ADVANCED.md) - Advanced template features  
-- [Template Inheritance](TEMPLATE_INHERITANCE.md) - Template inheritance system
-- [Repositories](REPOSITORIES.md) - Repository management
-- [Idle Detection](IDLE_DETECTION.md) - Hibernation and cost optimization
-- [Profile Export/Import](PROFILE_EXPORT_IMPORT.md) - Profile operations
+- [Administrator Guide](ADMINISTRATOR_GUIDE.md) - Managing CloudWorkstation
+- [Security & Invitations](SECURE_INVITATION_ARCHITECTURE.md) - User access control
+- [Batch Management](BATCH_INVITATION_GUIDE.md) - Managing multiple users
+- [Security Hardening](SECURITY_HARDENING_GUIDE.md) - Enterprise security
 
-### Developer Documentation
-- [GUI Architecture](GUI_ARCHITECTURE.md) - GUI technical architecture
-- [API Authentication](API_AUTHENTICATION.md) - API security documentation
-- [Daemon API Integration](DAEMON_API_INTEGRATION.md) - API integration guide
-- [Testing Infrastructure](TESTING_INFRASTRUCTURE.md) - Testing framework
-- [Template System Implementation](TEMPLATE_SYSTEM_IMPLEMENTATION.md) - Implementation details
+### 📦 Installation & Distribution
 
-### Distribution & Packaging
-- [Distribution Guide](DISTRIBUTION.md) - Package distribution
-- [Homebrew Tap](HOMEBREW_TAP.md) - macOS distribution
-- [Chocolatey Package](CHOCOLATEY_PACKAGE.md) - Windows distribution
-- [Conda Package](CONDA_PACKAGE.md) - Cross-platform distribution
+- [Linux Installation](LINUX_INSTALLATION.md) - Linux-specific setup
+- [macOS DMG Installation](MACOS_DMG_INSTALLATION.md) - macOS installer
+- [Homebrew Tap](HOMEBREW_TAP.md) - macOS/Linux package management
+- [Chocolatey Package](CHOCOLATEY_PACKAGE.md) - Windows package management
+- [Windows MSI Installer](../packaging/windows/README.md) - Enterprise Windows install
 
-### Implementation Plans  
-- [Implementation Plan v0.4.2](IMPLEMENTATION_PLAN_V0.4.2.md) - Current development plan
+### 🛠️ Advanced Features
+
+- [Template Format](TEMPLATE_FORMAT.md) - Creating custom templates
+- [Advanced Templates](TEMPLATE_FORMAT_ADVANCED.md) - Complex template features
+- [EFS File Sharing](EFS_SHARING_IMPLEMENTATION.md) - Multi-instance collaboration
+- [Cost Optimization](IDLE_DETECTION.md) - Hibernation and idle detection
+- [Profile Management](PROFILE_EXPORT_IMPORT.md) - Importing/exporting profiles
+
+### 🏗️ Developer Documentation
+
+- [GUI Architecture](GUI_ARCHITECTURE.md) - Desktop application design
+- [Plugin Architecture](PLUGIN_ARCHITECTURE.md) - Extensibility system
+- [API Reference](DAEMON_API_REFERENCE.md) - REST API documentation
+- [Template Implementation](TEMPLATE_SYSTEM_IMPLEMENTATION.md) - How templates work
+
+### 🔮 Future Planning
+
+- [Phase 5 Development](PHASE_5_DEVELOPMENT_PLAN.md) - Roadmap for v0.5.0
+- [Multi-User Planning](MULTI_USER_PLANNING_v0.5.0.md) - Collaborative features
+- [Research Architecture](RESEARCH_USER_ARCHITECTURE.md) - Academic integration
+
+### 📚 Archive
+
+Historical documentation and completed implementation details are archived in [docs/archive/](archive/README.md).
 
 ## Features
 
@@ -112,9 +123,9 @@ CloudWorkstation lets you:
 
 If you need help:
 
-- [Read our documentation](https://docs.cloudworkstation.org)
-- [Join our community forum](https://community.cloudworkstation.org)
+- [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
 - [Report issues on GitHub](https://github.com/scttfrdmn/cloudworkstation/issues)
+- [Read the documentation](https://cloudworkstation.io/docs)
 
 ## Security
 

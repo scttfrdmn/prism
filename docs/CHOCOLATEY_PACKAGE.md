@@ -63,7 +63,7 @@ To manually update the package:
 
 ```powershell
 # From the project root
-.\scripts\update_chocolatey.ps1 -Version "v0.4.2" -ReleaseDir ".\dist\v0.4.2"
+.\scripts\update_chocolatey.ps1 -Version "v0.4.3" -ReleaseDir ".\dist\v0.4.3"
 ```
 
 ## Testing the Package Locally
@@ -93,7 +93,7 @@ Once tested, the package can be published to [Chocolatey.org](https://chocolatey
 choco apikey -k <your-api-key> -s https://push.chocolatey.org/
 
 # Push the package
-choco push cloudworkstation.0.4.2.nupkg -s https://push.chocolatey.org/
+choco push cloudworkstation.0.4.3.nupkg -s https://push.chocolatey.org/
 ```
 
 Note: The first submission to Chocolatey.org requires manual approval, which may take 1-2 days. Subsequent updates are usually approved much faster.

@@ -99,7 +99,6 @@ const (
 	// DaemonAutoStartFailedMessage is displayed when auto-start fails
 	DaemonAutoStartFailedMessage = "❌ Failed to auto-start daemon. Please start manually with: cws daemon start"
 
-
 	// NoInstancesFoundMessage is displayed when no instances are found
 	NoInstancesFoundMessage = "No workstations found. Launch one with: cws launch <template> <name>"
 

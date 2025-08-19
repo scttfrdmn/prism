@@ -1,4 +1,4 @@
-# CloudWorkstation v0.4.2-1 Installation Guide
+# CloudWorkstation v0.4.3 Installation Guide
 
 ## Quick Start (Homebrew - Recommended)
 

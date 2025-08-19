@@ -113,7 +113,7 @@ func (v *RequiredFieldValidator) Validate(template *Template) error {
 type PackageManagerValidator struct{}
 
 func (v *PackageManagerValidator) Validate(template *Template) error {
-	validPMs := []string{"apt", "dnf", "conda", "spack", "ami"}
+	validPMs := []string{"apt", "dnf", "conda", "spack", "ami", "pip"}
 	if template.PackageManager != "" {
 		for _, pm := range validPMs {
 			if template.PackageManager == pm {

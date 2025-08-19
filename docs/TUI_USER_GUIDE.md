@@ -1,6 +1,6 @@
 # CloudWorkstation TUI Guide
 
-![TUI Screenshot](https://via.placeholder.com/800x400?text=CloudWorkstation+TUI)
+*Interactive terminal interface with keyboard navigation*
 
 ## What is the TUI?
 
@@ -20,7 +20,7 @@ That's it! You'll see a colorful screen with tabs at the top.
 
 The TUI has several different screens (called "views") that you can switch between:
 
-![TUI Navigation](https://via.placeholder.com/600x100?text=Dashboard+|+Instances+|+Templates+|+Storage+|+Settings)
+**Navigation Tabs**: Dashboard | Instances | Templates | Storage | Settings | Profiles
 
 ### How to Move Between Views
 
@@ -30,7 +30,7 @@ The TUI has several different screens (called "views") that you can switch betwe
 
 ## The Dashboard View
 
-![Dashboard](https://via.placeholder.com/600x300?text=Dashboard+View)
+**Dashboard Overview**
 
 The Dashboard shows you:
 - How many cloud computers you have running
@@ -44,7 +44,7 @@ The Dashboard shows you:
 
 ## The Instances View
 
-![Instances](https://via.placeholder.com/600x300?text=Instances+View)
+**Instance Management**
 
 This is where you can see and manage all your cloud computers.
 
@@ -67,7 +67,7 @@ For each instance, you'll see:
 
 ## The Templates View
 
-![Templates](https://via.placeholder.com/600x300?text=Templates+View)
+**Template Selection**
 
 This is where you can see all the available research environments and launch new cloud computers.
 
@@ -88,7 +88,7 @@ When you press **l** to launch a template, you'll see a form where you can:
 
 ## The Storage View
 
-![Storage](https://via.placeholder.com/600x300?text=Storage+View)
+**Storage Management**
 
 This is where you can manage your storage volumes (places to save your files).
 
@@ -118,7 +118,7 @@ These are storage volumes attached to a specific cloud computer.
 
 ## The Settings View
 
-![Settings](https://via.placeholder.com/600x300?text=Settings+View)
+**Settings Configuration**
 
 Here you can change how CloudWorkstation works.
 

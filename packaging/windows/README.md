@@ -59,10 +59,10 @@ Professional Windows installer for CloudWorkstation using WiX Toolset, providing
    .\scripts\build-msi.ps1 -SkipCustomActions
    
    # Full production build
-   .\scripts\build-msi.ps1 -Version 0.4.2
+   .\scripts\build-msi.ps1 -Version 0.4.3
    
    # Build with signing
-   .\scripts\build-msi.ps1 -Version 0.4.2
+   .\scripts\build-msi.ps1 -Version 0.4.3
    .\scripts\sign-msi.ps1
    ```
 
@@ -82,22 +82,22 @@ Professional Windows installer for CloudWorkstation using WiX Toolset, providing
 
 1. **Interactive Installation**:
    ```cmd
-   CloudWorkstation-v0.4.2-x64.msi
+   CloudWorkstation-v0.4.3-x64.msi
    ```
 
 2. **Silent Installation**:
    ```cmd
-   msiexec /i CloudWorkstation-v0.4.2-x64.msi /quiet
+   msiexec /i CloudWorkstation-v0.4.3-x64.msi /quiet
    ```
 
 3. **Installation with Logging**:
    ```cmd
-   msiexec /i CloudWorkstation-v0.4.2-x64.msi /l*v install.log
+   msiexec /i CloudWorkstation-v0.4.3-x64.msi /l*v install.log
    ```
 
 4. **Custom Installation Directory**:
    ```cmd
-   msiexec /i CloudWorkstation-v0.4.2-x64.msi INSTALLFOLDER="C:\Tools\CloudWorkstation"
+   msiexec /i CloudWorkstation-v0.4.3-x64.msi INSTALLFOLDER="C:\Tools\CloudWorkstation"
    ```
 
 ## 📁 Installer Architecture
@@ -264,10 +264,10 @@ msiexec /a CloudWorkstation.msi TARGETDIR="\\server\share\CloudWorkstation"
 ### **Verification**
 ```powershell
 # Verify signature
-signtool verify /pa /v CloudWorkstation-v0.4.2-x64.msi
+signtool verify /pa /v CloudWorkstation-v0.4.3-x64.msi
 
 # Check certificate details
-Get-AuthenticodeSignature CloudWorkstation-v0.4.2-x64.msi
+Get-AuthenticodeSignature CloudWorkstation-v0.4.3-x64.msi
 ```
 
 ## 🚨 Troubleshooting

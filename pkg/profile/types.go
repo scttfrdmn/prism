@@ -73,25 +73,9 @@ type Profile struct {
 	SSHKeyName    string `json:"ssh_key_name,omitempty"`    // AWS key pair name
 	SSHKeyPath    string `json:"ssh_key_path,omitempty"`    // Local private key path
 	UseDefaultKey bool   `json:"use_default_key,omitempty"` // Use default SSH key (~/.ssh/id_rsa)
-	
+
 	// Basic policy restrictions inherited from invitation (open source feature)
 	PolicyRestrictions *BasicPolicyRestrictions `json:"policy_restrictions,omitempty"`
-}
-
-// BasicPolicyRestrictions defines basic policy controls included in open source
-// This type is duplicated from invitation.go to avoid circular imports
-type BasicPolicyRestrictions struct {
-	// Template restrictions
-	TemplateWhitelist    []string `json:"template_whitelist,omitempty"`    // Allowed templates
-	TemplateBlacklist    []string `json:"template_blacklist,omitempty"`    // Forbidden templates
-	
-	// Instance constraints  
-	MaxInstanceTypes     []string `json:"max_instance_types,omitempty"`    // Max instance size
-	ForbiddenRegions     []string `json:"forbidden_regions,omitempty"`     // Regional restrictions
-	
-	// Basic budget controls
-	MaxHourlyCost        float64  `json:"max_hourly_cost,omitempty"`       // Cost ceiling
-	MaxDailyBudget       float64  `json:"max_daily_budget,omitempty"`      // Daily limit
 }
 
 // Profiles represents the collection of all profiles
@@ -113,14 +97,14 @@ func (p *BasicPolicyRestrictions) IsTemplateAllowed(templateName string) bool {
 	if p == nil {
 		return true // No restrictions
 	}
-	
+
 	// Check blacklist first
 	for _, blacklisted := range p.TemplateBlacklist {
 		if blacklisted == templateName {
 			return false
 		}
 	}
-	
+
 	// If whitelist is specified, template must be in it
 	if len(p.TemplateWhitelist) > 0 {
 		for _, whitelisted := range p.TemplateWhitelist {
@@ -130,7 +114,7 @@ func (p *BasicPolicyRestrictions) IsTemplateAllowed(templateName string) bool {
 		}
 		return false // Not in whitelist
 	}
-	
+
 	return true // No restrictions or passed blacklist
 }
 
@@ -139,7 +123,7 @@ func (p *BasicPolicyRestrictions) IsInstanceTypeAllowed(instanceType string) boo
 	if p == nil {
 		return true // No restrictions
 	}
-	
+
 	// If max instance types specified, check against list
 	if len(p.MaxInstanceTypes) > 0 {
 		for _, allowedType := range p.MaxInstanceTypes {
@@ -149,7 +133,7 @@ func (p *BasicPolicyRestrictions) IsInstanceTypeAllowed(instanceType string) boo
 		}
 		return false // Not in allowed list
 	}
-	
+
 	return true // No restrictions
 }
 
@@ -158,14 +142,14 @@ func (p *BasicPolicyRestrictions) IsRegionAllowed(region string) bool {
 	if p == nil {
 		return true // No restrictions
 	}
-	
+
 	// Check forbidden regions
 	for _, forbiddenRegion := range p.ForbiddenRegions {
 		if forbiddenRegion == region {
 			return false
 		}
 	}
-	
+
 	return true // Not in forbidden list
 }
 
@@ -174,19 +158,19 @@ func (p *BasicPolicyRestrictions) IsCostAllowed(hourlyCost float64) bool {
 	if p == nil {
 		return true // No restrictions
 	}
-	
+
 	// Check hourly cost limit
 	if p.MaxHourlyCost > 0 && hourlyCost > p.MaxHourlyCost {
 		return false
 	}
-	
+
 	return true
 }
 
 // GetPolicyViolations returns a list of policy violations for launch parameters
 func (p *BasicPolicyRestrictions) GetPolicyViolations(templateName, instanceType, region string, hourlyCost float64) []string {
 	var violations []string
-	
+
 	if !p.IsTemplateAllowed(templateName) {
 		if len(p.TemplateWhitelist) > 0 {
 			violations = append(violations, fmt.Sprintf("Template '%s' not in allowed list: %v", templateName, p.TemplateWhitelist))
@@ -194,18 +178,18 @@ func (p *BasicPolicyRestrictions) GetPolicyViolations(templateName, instanceType
 			violations = append(violations, fmt.Sprintf("Template '%s' is blacklisted", templateName))
 		}
 	}
-	
+
 	if !p.IsInstanceTypeAllowed(instanceType) {
 		violations = append(violations, fmt.Sprintf("Instance type '%s' not allowed. Maximum allowed: %v", instanceType, p.MaxInstanceTypes))
 	}
-	
+
 	if !p.IsRegionAllowed(region) {
 		violations = append(violations, fmt.Sprintf("Region '%s' is forbidden", region))
 	}
-	
+
 	if !p.IsCostAllowed(hourlyCost) {
 		violations = append(violations, fmt.Sprintf("Hourly cost $%.2f exceeds maximum allowed $%.2f", hourlyCost, p.MaxHourlyCost))
 	}
-	
+
 	return violations
 }

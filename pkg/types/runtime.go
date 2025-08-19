@@ -34,11 +34,11 @@ type Instance struct {
 	State              string                  `json:"state"`
 	LaunchTime         time.Time               `json:"launch_time"`
 	DeletionTime       *time.Time              `json:"deletion_time,omitempty"` // When user initiated deletion
-	HourlyRate         float64                 `json:"hourly_rate"`         // AWS list price per hour
-	CurrentSpend       float64                 `json:"current_spend"`       // Actual accumulated cost since launch
-	EffectiveRate      float64                 `json:"effective_rate"`      // Current spend ÷ hours since launch
-	AttachedVolumes    []string                `json:"attached_volumes"`     // EFS volume names
-	AttachedEBSVolumes []string                `json:"attached_ebs_volumes"` // EBS volume IDs
+	HourlyRate         float64                 `json:"hourly_rate"`             // AWS list price per hour
+	CurrentSpend       float64                 `json:"current_spend"`           // Actual accumulated cost since launch
+	EffectiveRate      float64                 `json:"effective_rate"`          // Current spend ÷ hours since launch
+	AttachedVolumes    []string                `json:"attached_volumes"`        // EFS volume names
+	AttachedEBSVolumes []string                `json:"attached_ebs_volumes"`    // EBS volume IDs
 	InstanceType       string                  `json:"instance_type"`
 	InstanceLifecycle  string                  `json:"instance_lifecycle"` // "spot" or "on-demand"
 	Username           string                  `json:"username"`

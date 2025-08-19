@@ -5,14 +5,31 @@
 CloudWorkstation launches pre-configured research environments in seconds. No complex setup required.
 
 ### 1. Install CloudWorkstation
+
+**macOS (Recommended)**
 ```bash
-# Install via Homebrew (macOS/Linux)
+# Install via Homebrew
 brew tap scttfrdmn/cloudworkstation
 brew install cloudworkstation
+```
 
-# Or download directly
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cws-macos-arm64 -o cws
-chmod +x cws
+**Linux**
+```bash
+# Install via Homebrew
+brew tap scttfrdmn/cloudworkstation
+brew install cloudworkstation
+```
+
+**Windows**
+```bash
+# Install via Chocolatey
+choco install cloudworkstation
+```
+
+**Direct Download**
+```bash
+# Download for your platform from GitHub releases
+curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-arm64.tar.gz
 ```
 
 ### 2. Configure AWS Credentials
@@ -20,13 +37,13 @@ CloudWorkstation uses your existing AWS credentials. If you don't have them set 
 
 ```bash
 # Install AWS CLI if needed
-brew install awscli
+brew install awscli   # or: pip install awscli
 
 # Configure your credentials
 aws configure
 ```
 
-**Required AWS Permissions**: CloudWorkstation needs EC2, EFS, and Systems Manager access. See [AWS Setup Guide](docs/DEMO_TESTER_SETUP.md) for detailed IAM policies.
+**Required AWS Permissions**: CloudWorkstation needs EC2, EFS, EBS, and Systems Manager access. See [AWS Setup Guide](../AWS_SETUP_GUIDE.md) for detailed IAM policies.
 
 ### 3. Start CloudWorkstation
 ```bash

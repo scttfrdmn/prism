@@ -4,7 +4,7 @@
   <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
-> **New in v0.4.2**: Enhanced profile management with context support, secure credential storage, and full API integration.
+> **Current v0.4.3**: Enhanced profile management with context support, secure credential storage, and full API integration.
 
 ## What are Profiles?
 
@@ -111,7 +111,7 @@ Remember: The profile name shown in the sidebar tells you which account you're c
 
 ## Technical Reference for Developers
 
-CloudWorkstation v0.4.2 introduces a comprehensive API for multi-profile management that can be used by developers building extensions or integrating with the platform.
+CloudWorkstation v0.4.3 includes a comprehensive API for multi-profile management that can be used by developers building extensions or integrating with the platform.
 
 ### Core Components
 

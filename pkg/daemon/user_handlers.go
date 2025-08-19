@@ -545,13 +545,13 @@ func (h *GetGroupUsersHandler) Handle(w http.ResponseWriter, r *http.Request, id
 func (h *GetGroupUsersHandler) parsePaginationParams(r *http.Request, pagination *usermgmt.PaginationOptions) error {
 	if page := r.URL.Query().Get("page"); page != "" {
 		if _, err := fmt.Sscanf(page, "%d", &pagination.Page); err != nil {
-			return fmt.Errorf("Invalid page parameter")
+			return fmt.Errorf("invalid page parameter")
 		}
 	}
 
 	if pageSize := r.URL.Query().Get("page_size"); pageSize != "" {
 		if _, err := fmt.Sscanf(pageSize, "%d", &pagination.PageSize); err != nil {
-			return fmt.Errorf("Invalid page_size parameter")
+			return fmt.Errorf("invalid page_size parameter")
 		}
 	}
 
@@ -610,7 +610,7 @@ func (h *PutGroupUsersHandler) updateGroupMembership(currentUsers []*usermgmt.Us
 		if !newUserMap[user.ID] {
 			err := server.userManager.service.RemoveUserFromGroup(user.ID, groupID)
 			if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
-				return fmt.Errorf("Failed to remove user from group: %v", err)
+				return fmt.Errorf("failed to remove user from group: %v", err)
 			}
 		}
 	}

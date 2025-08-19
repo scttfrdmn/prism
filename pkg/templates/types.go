@@ -16,7 +16,7 @@ type Template struct {
 	Slug            string `yaml:"slug,omitempty" json:"slug,omitempty"` // Short dash-separated name for CLI
 	Description     string `yaml:"description" json:"description"`
 	LongDescription string `yaml:"long_description,omitempty" json:"long_description,omitempty"` // Detailed description for GUI
-	Base            string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.) or parent template
+	Base            string `yaml:"base" json:"base"`                                             // Base OS (ubuntu-22.04, etc.) or parent template
 
 	// Template inheritance
 	Inherits []string `yaml:"inherits,omitempty" json:"inherits,omitempty"` // Parent templates to inherit from
@@ -24,7 +24,7 @@ type Template struct {
 	// Complexity and categorization
 	Complexity TemplateComplexity `yaml:"complexity,omitempty" json:"complexity,omitempty"` // simple, moderate, advanced, complex
 	Category   string             `yaml:"category,omitempty" json:"category,omitempty"`     // "Machine Learning", "Data Science", etc.
-	Domain     string             `yaml:"domain,omitempty" json:"domain,omitempty"`        // "ml", "datascience", "bio", "web", "base"
+	Domain     string             `yaml:"domain,omitempty" json:"domain,omitempty"`         // "ml", "datascience", "bio", "web", "base"
 
 	// Visual presentation
 	Icon     string `yaml:"icon,omitempty" json:"icon,omitempty"`         // Unicode emoji or icon identifier
@@ -66,11 +66,11 @@ type Template struct {
 	LearningResources   []string `yaml:"learning_resources,omitempty" json:"learning_resources,omitempty"`       // Documentation links
 
 	// Template metadata
-	Version          string              `yaml:"version,omitempty" json:"version,omitempty"`
-	ValidationStatus ValidationStatus    `yaml:"validation_status,omitempty" json:"validation_status,omitempty"` // validated, testing, experimental
-	Tags             map[string]string   `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Maintainer       string              `yaml:"maintainer,omitempty" json:"maintainer,omitempty"`
-	LastUpdated      time.Time           `yaml:"last_updated,omitempty" json:"last_updated,omitempty"`
+	Version          string            `yaml:"version,omitempty" json:"version,omitempty"`
+	ValidationStatus ValidationStatus  `yaml:"validation_status,omitempty" json:"validation_status,omitempty"` // validated, testing, experimental
+	Tags             map[string]string `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Maintainer       string            `yaml:"maintainer,omitempty" json:"maintainer,omitempty"`
+	LastUpdated      time.Time         `yaml:"last_updated,omitempty" json:"last_updated,omitempty"`
 }
 
 // PackageDefinitions defines packages for different package managers
@@ -132,7 +132,7 @@ type RuntimeTemplate struct {
 	Name                 string
 	Slug                 string // CLI identifier for template (e.g., "python-ml")
 	Description          string
-	LongDescription      string // Detailed description for GUI
+	LongDescription      string                       // Detailed description for GUI
 	AMI                  map[string]map[string]string // region -> arch -> AMI ID
 	InstanceType         map[string]string            // arch -> instance type
 	UserData             string                       // Generated installation script
@@ -178,6 +178,7 @@ const (
 	PackageManagerConda PackageManagerType = "conda"
 	PackageManagerSpack PackageManagerType = "spack"
 	PackageManagerAMI   PackageManagerType = "ami"
+	PackageManagerPip   PackageManagerType = "pip"
 )
 
 // TemplateComplexity represents the complexity level of a template
@@ -194,9 +195,9 @@ const (
 type ValidationStatus string
 
 const (
-	ValidationValidated     ValidationStatus = "validated"     // Fully tested and verified
-	ValidationTesting       ValidationStatus = "testing"       // Currently under testing
-	ValidationExperimental  ValidationStatus = "experimental"  // Experimental, use with caution
+	ValidationValidated    ValidationStatus = "validated"    // Fully tested and verified
+	ValidationTesting      ValidationStatus = "testing"      // Currently under testing
+	ValidationExperimental ValidationStatus = "experimental" // Experimental, use with caution
 )
 
 // ConnectionType represents the connection interface type for instances
@@ -337,6 +338,7 @@ type ScriptGenerator struct {
 	CondaTemplate string
 	SpackTemplate string
 	AMITemplate   string
+	PipTemplate   string
 }
 
 // TemplateValidationError represents template validation errors

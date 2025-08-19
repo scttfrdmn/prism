@@ -14,6 +14,7 @@ func NewScriptGenerator() *ScriptGenerator {
 		CondaTemplate: condaScriptTemplate,
 		SpackTemplate: spackScriptTemplate,
 		AMITemplate:   amiScriptTemplate,
+		PipTemplate:   pipScriptTemplate,
 	}
 }
 
@@ -42,6 +43,8 @@ func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager Package
 	case PackageManagerAMI:
 		// AMI templates use minimal user data (AMI is already configured)
 		scriptTemplate = sg.AMITemplate
+	case PackageManagerPip:
+		scriptTemplate = sg.PipTemplate
 	default:
 		return "", fmt.Errorf("unsupported package manager: %s", packageManager)
 	}
@@ -88,6 +91,8 @@ func (sg *ScriptGenerator) selectPackagesForManager(tmpl *Template, pm PackageMa
 		return tmpl.Packages.Conda
 	case PackageManagerSpack:
 		return tmpl.Packages.Spack
+	case PackageManagerPip:
+		return tmpl.Packages.Pip
 	default:
 		return tmpl.Packages.System
 	}
@@ -497,4 +502,84 @@ echo "Setup log: /var/log/cws-setup.log"
 # Write completion marker
 date > /var/log/cws-setup.log
 echo "CloudWorkstation AMI setup completed successfully" >> /var/log/cws-setup.log
+`
+
+const pipScriptTemplate = `#!/bin/bash
+set -euo pipefail
+
+# CloudWorkstation Template: {{.Template.Name}}
+# Generated script using pip package manager
+# Generated at: $(date)
+
+echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "Using package manager: {{.PackageManager}}"
+
+# System update (assumes Ubuntu/Debian for system packages)
+echo "Updating system packages..."
+apt-get update -y
+apt-get upgrade -y
+
+# Install base requirements including Python and pip
+echo "Installing base requirements..."
+apt-get install -y curl wget software-properties-common build-essential python3 python3-pip python3-venv
+
+# Install system packages if defined
+{{if .Template.Packages.System}}
+echo "Installing system packages..."
+apt-get install -y{{range .Template.Packages.System}} {{.}}{{end}}
+{{end}}
+
+{{if .Packages}}
+# Install pip packages
+echo "Installing pip packages..."
+pip3 install{{range .Packages}} {{.}}{{end}}
+{{end}}
+
+{{range .Users}}
+# Create user: {{.Name}}
+echo "Creating user: {{.Name}}"
+{{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
+# SSH key authentication configured - no password needed
+{{if .Groups}}
+{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
+{{end}}
+{{end}}
+{{end}}
+
+{{range .Services}}
+# Configure service: {{.Name}}
+echo "Configuring service: {{.Name}}"
+{{if .Config}}
+mkdir -p /etc/{{.Name}}
+{{$service := .}}{{range .Config}}
+echo "{{.}}" >> /etc/{{$service.Name}}/{{$service.Name}}.conf
+{{end}}
+{{end}}
+{{if .Enable}}
+systemctl enable {{.Name}} || true
+systemctl start {{.Name}} || true
+{{end}}
+{{end}}
+
+# Final cleanup
+apt-get autoremove -y
+apt-get autoclean
+
+echo "=== CloudWorkstation Setup Complete ==="
+echo "Template: {{.Template.Name}}"
+echo "Description: {{.Template.Description}}"
+echo "Pip packages installed"
+{{range .Users}}
+echo "User created - Name: {{.Name}} (SSH key authentication)"
+{{end}}
+{{range .Services}}
+{{if .Port}}
+echo "Service available - {{.Name}} on port {{.Port}}"
+{{end}}
+{{end}}
+echo "Setup log: /var/log/cws-setup.log"
+
+# Write completion marker
+date > /var/log/cws-setup.log
+echo "CloudWorkstation pip setup completed successfully" >> /var/log/cws-setup.log
 `

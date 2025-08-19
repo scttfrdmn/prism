@@ -192,7 +192,7 @@ func (m *InstanceMonitor) refreshInstances() error {
 
 	for _, instance := range response.Instances {
 		currentInstances[instance.Name] = true
-		totalCost += instance.EstimatedDailyCost
+		totalCost += instance.HourlyRate * 24 // Convert hourly to daily estimate
 
 		// Check for state changes
 		oldState, exists := m.instanceStates[instance.Name]

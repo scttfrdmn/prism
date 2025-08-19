@@ -139,16 +139,16 @@ func loadMockTemplates() map[string]types.Template {
 func loadMockInstances() map[string]types.Instance {
 	return map[string]types.Instance{
 		"my-analysis": {
-			ID:                 "i-0123456789abcdef0",
-			Name:               "my-analysis",
-			Template:           "r-research",
-			PublicIP:           "54.84.123.45",
-			PrivateIP:          "172.31.16.25",
-			State:              "running",
-			LaunchTime:         time.Now().Add(-24 * time.Hour),
-			HourlyRate:         0.126,
-			CurrentSpend:       3.024,
-			AttachedVolumes:    []string{"shared-data"},
+			ID:              "i-0123456789abcdef0",
+			Name:            "my-analysis",
+			Template:        "r-research",
+			PublicIP:        "54.84.123.45",
+			PrivateIP:       "172.31.16.25",
+			State:           "running",
+			LaunchTime:      time.Now().Add(-24 * time.Hour),
+			HourlyRate:      0.126,
+			CurrentSpend:    3.024,
+			AttachedVolumes: []string{"shared-data"},
 		},
 		"ml-training": {
 			ID:                 "i-0abcdef0123456789",
@@ -281,15 +281,15 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 
 	// Create instance
 	instance := types.Instance{
-		ID:                 instanceID,
-		Name:               req.Name,
-		Template:           req.Template,
-		State:              "running",
-		LaunchTime:         time.Now(),
-		PublicIP:           publicIP,
-		PrivateIP:          "172.31.16." + fmt.Sprint(time.Now().Second()),
-		HourlyRate:         dailyCost / 24.0,
-		CurrentSpend:       dailyCost,
+		ID:           instanceID,
+		Name:         req.Name,
+		Template:     req.Template,
+		State:        "running",
+		LaunchTime:   time.Now(),
+		PublicIP:     publicIP,
+		PrivateIP:    "172.31.16." + fmt.Sprint(time.Now().Second()),
+		HourlyRate:   dailyCost / 24.0,
+		CurrentSpend: dailyCost,
 	}
 
 	// Add volumes if specified

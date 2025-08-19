@@ -393,7 +393,7 @@ func (r *CommandFactoryRegistry) handleUninstallCommand(cmd *cobra.Command, args
 	// Confirmation
 	fmt.Print("Are you sure you want to completely uninstall CloudWorkstation? [y/N]: ")
 	var response string
-	fmt.Scanln(&response)
+	_, _ = fmt.Scanln(&response) // Error ignored - user input validation happens below
 
 	if response != "y" && response != "Y" && response != "yes" {
 		fmt.Println("❌ Uninstallation cancelled")
@@ -614,7 +614,7 @@ CloudWorkstation provides researchers with pre-configured cloud computing
 environments for data analysis, machine learning, and research computing.
 
 `, version.GetVersionInfo()),
-		Version: a.version,
+		Version: version.GetCLIVersionInfo(),
 	}
 
 	// Register all commands using factory pattern
