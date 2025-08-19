@@ -29,7 +29,7 @@ type CachedTemplate struct {
 
 // CachedAMIMapping represents a cached AMI mapping
 type CachedAMIMapping struct {
-	Mapping   *AMIMapping
+	Mapping   map[string]map[string]string // region -> arch -> AMI ID
 	CachedAt  time.Time
 	Region    string
 	Arch      string
@@ -64,13 +64,13 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 		err    error
 	}
 	type amiResult struct {
-		mapping *AMIMapping
+		mapping map[string]map[string]string
 		err     error
 	}
 	type mappingResult struct {
-		instanceType *InstanceTypeMapping
+		instanceType map[string]string
 		ports        []int
-		cost         *CostMapping
+		cost         map[string]float64
 		idleConfig   *IdleDetectionConfig
 	}
 	
@@ -90,10 +90,10 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 	}()
 	
 	go func() {
-		instanceType := r.getInstanceTypeMapping(template, architecture, size)
-		ports := r.getPortMapping(template)
-		cost := r.getCostMapping(template, architecture)
-		idleConfig := r.ensureIdleDetectionConfig(template)
+		instanceType := r.TemplateResolver.getInstanceTypeMapping(template, architecture, size)
+		ports := r.TemplateResolver.getPortMapping(template)
+		cost := r.TemplateResolver.getCostMapping(template, architecture)
+		idleConfig := r.TemplateResolver.ensureIdleDetectionConfig(template)
 		
 		mappingChan <- mappingResult{
 			instanceType: instanceType,
@@ -105,10 +105,10 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 	
 	// Collect results
 	var userDataScript string
-	var amiMapping *AMIMapping
-	var instanceTypeMapping *InstanceTypeMapping
+	var amiMapping map[string]map[string]string
+	var instanceTypeMapping map[string]string
 	var ports []int
-	var costMapping *CostMapping
+	var costMapping map[string]float64
 	var idleDetectionConfig *IdleDetectionConfig
 	
 	for i := 0; i < 3; i++ {
@@ -189,7 +189,7 @@ func (r *OptimizedResolver) generateScriptAsync(template *Template, packageManag
 }
 
 // getAMIMappingAsync gets AMI mapping asynchronously with caching
-func (r *OptimizedResolver) getAMIMappingAsync(ctx context.Context, template *Template, region, architecture string) (*AMIMapping, error) {
+func (r *OptimizedResolver) getAMIMappingAsync(ctx context.Context, template *Template, region, architecture string) (map[string]map[string]string, error) {
 	// Check cache first
 	cacheKey := fmt.Sprintf("ami_%s_%s_%s", template.Base, region, architecture)
 	if cached, ok := r.amiCache.Load(cacheKey); ok {
@@ -200,7 +200,7 @@ func (r *OptimizedResolver) getAMIMappingAsync(ctx context.Context, template *Te
 	}
 	
 	// Get AMI mapping
-	amiMapping, err := r.getAMIMapping(template, region, architecture)
+	amiMapping, err := r.TemplateResolver.getAMIMapping(template, region, architecture)
 	if err != nil {
 		return nil, err
 	}

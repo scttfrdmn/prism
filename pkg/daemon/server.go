@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
+	"github.com/scttfrdmn/cloudworkstation/pkg/connection"
+	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/security"
@@ -31,6 +33,12 @@ type Server struct {
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
 	processManager  ProcessManager
+	
+	// Connection reliability components
+	performanceMonitor *monitoring.PerformanceMonitor
+	connManager       *connection.ConnectionManager
+	reliabilityManager *connection.ReliabilityManager
+	launchManager     *LaunchManager
 }
 
 // NewServer creates a new daemon server
