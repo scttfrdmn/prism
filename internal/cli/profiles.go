@@ -584,6 +584,15 @@ func createInvitationCreateCommand(config *Config) *cobra.Command {
 	cmd.Flags().String("type", "read_only", "Type of access (read_only, read_write, or admin)")
 	cmd.Flags().Int("valid-days", 30, "Number of days the invitation is valid")
 	cmd.Flags().String("s3-config", "", "Optional S3 path to configuration")
+	
+	// Basic policy restriction flags (open source feature)
+	cmd.Flags().StringSlice("template-whitelist", []string{}, "Allowed templates (comma-separated)")
+	cmd.Flags().StringSlice("template-blacklist", []string{}, "Forbidden templates (comma-separated)")
+	cmd.Flags().StringSlice("max-instance-types", []string{}, "Maximum allowed instance types (comma-separated)")
+	cmd.Flags().StringSlice("forbidden-regions", []string{}, "Forbidden AWS regions (comma-separated)")
+	cmd.Flags().Float64("max-hourly-cost", 0, "Maximum hourly cost limit (0 = no limit)")
+	cmd.Flags().Float64("max-daily-budget", 0, "Maximum daily budget limit (0 = no limit)")
+	
 	return cmd
 }
 
@@ -592,6 +601,14 @@ func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string)
 	invType, _ := cmd.Flags().GetString("type")
 	validDays, _ := cmd.Flags().GetInt("valid-days")
 	s3ConfigPath, _ := cmd.Flags().GetString("s3-config")
+
+	// Parse policy restriction flags
+	templateWhitelist, _ := cmd.Flags().GetStringSlice("template-whitelist")
+	templateBlacklist, _ := cmd.Flags().GetStringSlice("template-blacklist")
+	maxInstanceTypes, _ := cmd.Flags().GetStringSlice("max-instance-types")
+	forbiddenRegions, _ := cmd.Flags().GetStringSlice("forbidden-regions")
+	maxHourlyCost, _ := cmd.Flags().GetFloat64("max-hourly-cost")
+	maxDailyBudget, _ := cmd.Flags().GetFloat64("max-daily-budget")
 
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
@@ -619,6 +636,40 @@ func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating invitation: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Add policy restrictions if specified
+	if len(templateWhitelist) > 0 || len(templateBlacklist) > 0 || len(maxInstanceTypes) > 0 || 
+	   len(forbiddenRegions) > 0 || maxHourlyCost > 0 || maxDailyBudget > 0 {
+		invitation.PolicyRestrictions = &profile.BasicPolicyRestrictions{
+			TemplateWhitelist: templateWhitelist,
+			TemplateBlacklist: templateBlacklist,
+			MaxInstanceTypes:  maxInstanceTypes,
+			ForbiddenRegions:  forbiddenRegions,
+			MaxHourlyCost:     maxHourlyCost,
+			MaxDailyBudget:    maxDailyBudget,
+		}
+		
+		fmt.Println(color.YellowString("Policy restrictions applied:"))
+		if len(templateWhitelist) > 0 {
+			fmt.Printf("  - Allowed templates: %v\n", templateWhitelist)
+		}
+		if len(templateBlacklist) > 0 {
+			fmt.Printf("  - Forbidden templates: %v\n", templateBlacklist)
+		}
+		if len(maxInstanceTypes) > 0 {
+			fmt.Printf("  - Max instance types: %v\n", maxInstanceTypes)
+		}
+		if len(forbiddenRegions) > 0 {
+			fmt.Printf("  - Forbidden regions: %v\n", forbiddenRegions)
+		}
+		if maxHourlyCost > 0 {
+			fmt.Printf("  - Max hourly cost: $%.2f\n", maxHourlyCost)
+		}
+		if maxDailyBudget > 0 {
+			fmt.Printf("  - Max daily budget: $%.2f\n", maxDailyBudget)
+		}
+		fmt.Println()
 	}
 
 	// Print invitation details

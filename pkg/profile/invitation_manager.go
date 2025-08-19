@@ -217,14 +217,15 @@ func (m *InvitationManager) AddToProfile(encoded string, profileName string) err
 
 	// Create profile from invitation
 	profile := Profile{
-		Type:            ProfileTypeInvitation,
-		Name:            profileName,
-		AWSProfile:      profileName,
-		InvitationToken: invitation.Token,
-		OwnerAccount:    invitation.OwnerAccount,
-		S3ConfigPath:    invitation.S3ConfigPath,
-		Region:          "", // Use default region
-		CreatedAt:       time.Now(),
+		Type:               ProfileTypeInvitation,
+		Name:               profileName,
+		AWSProfile:         profileName,
+		InvitationToken:    invitation.Token,
+		OwnerAccount:       invitation.OwnerAccount,
+		S3ConfigPath:       invitation.S3ConfigPath,
+		Region:             "", // Use default region
+		CreatedAt:          time.Now(),
+		PolicyRestrictions: invitation.PolicyRestrictions, // Inherit policy restrictions
 	}
 
 	// Add the profile
