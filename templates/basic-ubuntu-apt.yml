@@ -3,6 +3,19 @@ slug: "ubuntu"
 description: "Minimal Ubuntu environment with essential development tools using APT package manager"
 base: "ubuntu-22.04"
 
+# EXPLICIT CONNECTION TYPE - SSH only (headless server)
+connection_type: "ssh"  # Command-line only, no GUI or web interfaces
+
+# Complexity and categorization
+complexity: "simple"
+category: "Base Systems"
+domain: "base"
+
+# Visual presentation
+icon: "🐧"
+color: "#e95420"
+popular: true
+
 # Use APT package manager
 package_manager: "apt"
 

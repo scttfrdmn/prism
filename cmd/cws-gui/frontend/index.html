@@ -38,9 +38,46 @@
                     <p class="section-subtitle">Choose a template and launch your research environment</p>
                 </div>
 
+                <!-- Template Filters -->
+                <div class="template-filters" id="template-filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Complexity Level</label>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-complexity="all">All</button>
+                            <button class="filter-btn" data-complexity="simple">🟢 Simple</button>
+                            <button class="filter-btn" data-complexity="moderate">🟡 Moderate</button>
+                            <button class="filter-btn" data-complexity="advanced">🟠 Advanced</button>
+                            <button class="filter-btn" data-complexity="complex">🔴 Complex</button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">Research Domain</label>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-category="all">All Domains</button>
+                            <button class="filter-btn" data-category="ml">🤖 ML</button>
+                            <button class="filter-btn" data-category="datascience">📊 Data</button>
+                            <button class="filter-btn" data-category="bio">🧬 Bio</button>
+                            <button class="filter-btn" data-category="web">🌐 Web</button>
+                            <button class="filter-btn" data-category="base">🖥️ Base</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="filter-label">Sort By</label>
+                        <select class="sort-select" id="sort-select">
+                            <option value="popularity">Most Popular</option>
+                            <option value="complexity">Complexity (Simple → Complex)</option>
+                            <option value="category">Research Domain</option>
+                            <option value="cost">Cost (Low → High)</option>
+                            <option value="launch-time">Launch Time (Fast → Slow)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Template Selection -->
-                <div class="template-grid" id="template-grid">
-                    <div class="template-card loading">
+                <div class="template-tiles-grid" id="template-grid">
+                    <div class="template-tile loading">
                         <div class="loading-spinner"></div>
                         <p>Loading templates...</p>
                     </div>
@@ -94,6 +131,134 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Remote Desktop Section -->
+            <section id="remote-desktop" class="section">
+                <div class="section-header">
+                    <h2>Remote Desktop</h2>
+                    <p class="section-subtitle">Connect directly to your research environments</p>
+                </div>
+
+                <!-- DCV Sessions Management Panel -->
+                <div class="dcv-sessions-panel">
+                    <div class="panel-header">
+                        <h3>Active Sessions</h3>
+                        <div class="panel-actions">
+                            <button class="btn-text" onclick="refreshDCVSessions()">🔄 Refresh</button>
+                            <button class="btn-text" onclick="disconnectAllDCVSessions()">Disconnect All</button>
+                        </div>
+                    </div>
+                    
+                    <div class="session-list" id="dcv-session-list">
+                        <!-- DCV sessions will be populated here -->
+                        <div class="session-item placeholder">
+                            <div class="session-info">
+                                <div class="session-name">No active sessions</div>
+                                <div class="session-status">Connect to an instance to start a remote desktop session</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DCV Display Area -->
+                <div class="dcv-display-container" id="dcv-display-container">
+                    <div class="dcv-session-header" id="dcv-session-header">
+                        <div class="session-info">
+                            <span class="instance-name" id="dcv-instance-name">No Session</span>
+                            <span class="session-quality" id="dcv-session-quality">⚪ Disconnected</span>
+                            <span class="session-latency" id="dcv-session-latency"></span>
+                        </div>
+                        
+                        <div class="session-controls">
+                            <button class="btn-icon" onclick="toggleDCVFullscreen()" title="Fullscreen" id="dcv-fullscreen-btn">⛶</button>
+                            <button class="btn-icon" onclick="showDCVKeyboardShortcuts()" title="Keyboard Shortcuts">⌨️</button>
+                            <button class="btn-icon" onclick="adjustDCVQuality()" title="Quality Settings">🎛️</button>
+                            <button class="btn-icon disconnect-btn" onclick="disconnectDCVSession()" title="Disconnect">✕</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Connection Display Area - DCV or SSH Terminal -->
+                    <div id="connection-display" class="connection-display-area">
+                        <!-- DCV Remote Desktop Display -->
+                        <div id="dcv-display" class="dcv-display-area hidden">
+                            <div class="dcv-placeholder">
+                                <div class="placeholder-content">
+                                    <h3>🖥️ Remote Desktop</h3>
+                                    <p>NICE DCV remote desktop will appear here for graphical instances.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SSH Terminal Display -->
+                        <div id="ssh-display" class="ssh-display-area hidden">
+                            <div class="ssh-terminal" id="ssh-terminal">
+                                <div class="terminal-header">
+                                    <div class="terminal-controls">
+                                        <span class="terminal-button close" onclick="disconnectSSHSession()"></span>
+                                        <span class="terminal-button minimize"></span>
+                                        <span class="terminal-button maximize" onclick="toggleSSHFullscreen()"></span>
+                                    </div>
+                                    <div class="terminal-title" id="ssh-terminal-title">Terminal</div>
+                                </div>
+                                <div class="terminal-content" id="ssh-terminal-content">
+                                    <!-- SSH terminal content will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connection Placeholder -->
+                        <div id="connection-placeholder" class="connection-placeholder">
+                            <div class="placeholder-content">
+                                <h3>🔌 Remote Connection</h3>
+                                <p>Select an instance from "My Instances" and click "Connect" to start a remote session.</p>
+                                <div class="placeholder-features">
+                                    <div class="feature-item">
+                                        <span class="feature-icon">🖥️</span>
+                                        <span>Remote Desktop (DCV) for GUI instances</span>
+                                    </div>
+                                    <div class="feature-item">
+                                        <span class="feature-icon">💻</span>
+                                        <span>SSH Terminal for headless instances</span>
+                                    </div>
+                                    <div class="feature-item">
+                                        <span class="feature-icon">⚡</span>
+                                        <span>Automatic detection of instance type</span>
+                                    </div>
+                                    <div class="feature-item">
+                                        <span class="feature-icon">🔒</span>
+                                        <span>Secure encrypted connections</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="connection-session-footer" id="connection-session-footer">
+                        <div class="connection-type">🔗 <span id="connection-type-info">Not connected</span></div>
+                        <div class="session-duration">⏱️ Connected: <span id="connection-duration">0m</span></div>
+                        <div class="connection-stats">📊 <span id="connection-stats">--</span></div>
+                    </div>
+                </div>
+
+                <!-- Window Management Controls -->
+                <div class="window-management" id="window-management">
+                    <div class="window-tabs" id="dcv-window-tabs">
+                        <!-- Tabs for multiple sessions will be added here -->
+                    </div>
+                    
+                    <div class="view-mode-selector">
+                        <button class="mode-btn active" onclick="setViewMode('tabbed')" data-mode="tabbed">
+                            📋 Tabbed
+                        </button>
+                        <button class="mode-btn" onclick="setViewMode('split')" data-mode="split">
+                            ⚞⚟ Split View
+                        </button>
+                        <button class="mode-btn" onclick="setViewMode('fullscreen')" data-mode="fullscreen">
+                            ⛶ Fullscreen
+                        </button>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- Bottom Navigation -->
@@ -105,6 +270,10 @@
             <button class="nav-item" onclick="showSection('my-instances')">
                 <span class="nav-icon">💻</span>
                 <span class="nav-label">My Instances</span>
+            </button>
+            <button class="nav-item" onclick="showSection('remote-desktop')">
+                <span class="nav-icon">🖥️</span>
+                <span class="nav-label">Remote Desktop</span>
             </button>
         </nav>
 

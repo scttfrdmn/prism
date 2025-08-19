@@ -1,0 +1,88 @@
+# Ubuntu Data Science Workstation - Supports Both Connections
+name: "Ubuntu Data Science Workstation"
+slug: "ubuntu-datascience"
+description: "Complete data science environment with both GUI and headless capabilities"
+long_description: "Full-featured data science workstation with Jupyter, RStudio, Python, R, and desktop environment. Use via remote desktop for GUI work or SSH terminal for headless automation."
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - Supports both interfaces
+connection_type: "both"  # Users can choose DCV (desktop) OR SSH (terminal) based on their workflow
+
+# Complexity and categorization
+complexity: "moderate"
+category: "Data Science"
+domain: "datascience"
+
+# Visual presentation
+icon: "📊"
+color: "#e95420"
+popular: true
+
+# Multi-purpose packages - both CLI and GUI tools
+package_manager: "conda"
+packages:
+  system:
+    - ubuntu-desktop-minimal  # Desktop environment
+    - firefox
+    - code
+    - git
+    - curl
+    - build-essential
+  conda:
+    - python=3.11
+    - jupyter
+    - jupyterlab
+    - pandas
+    - numpy
+    - scikit-learn
+    - matplotlib
+    - seaborn
+    - plotly
+  pip:
+    - streamlit
+    - dash
+
+# Services - Support both GUI and headless workflows
+services:
+  - name: gdm
+    enable: true  # Desktop environment
+  - name: jupyter
+    port: 8888
+    config:
+      - "c.NotebookApp.ip = '0.0.0.0'"
+      - "c.NotebookApp.allow_root = True"
+      - "c.NotebookApp.token = ''"
+    enable: true
+
+# Users
+users:
+  - name: datascientist
+    groups: ["sudo", "docker"]
+    shell: "/bin/bash"
+
+# Instance defaults optimized for both GUI and CLI work
+instance_defaults:
+  type: "t3.large"  # Balanced resources for both desktop and compute
+  ports: [22, 8888]  # SSH + Jupyter
+  estimated_cost_per_hour:
+    x86_64: 0.0928
+    arm64: 0.0736
+
+# User guidance
+estimated_launch_time: 10
+prerequisites:
+  - "Python programming experience"
+  - "Data science workflow familiarity"  
+  - "Optional: Remote desktop experience for GUI mode"
+learning_resources:
+  - "https://jupyter.org/documentation"
+  - "https://pandas.pydata.org/getting_started.html"
+
+# Template metadata
+version: "1.0.0"
+validation_status: "validated"
+maintainer: "CloudWorkstation Team"
+tags:
+  desktop: "gnome"
+  gui: "true"
+  development: "true"

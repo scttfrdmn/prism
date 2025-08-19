@@ -1,0 +1,352 @@
+name: GUI Tests
+
+on:
+  push:
+    branches: [ main, wails3x-gui-redesign ]
+    paths:
+      - 'cmd/cws-gui/**'
+      - '.github/workflows/gui-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'cmd/cws-gui/**'
+      - '.github/workflows/gui-tests.yml'
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: cmd/cws-gui/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cmd/cws-gui/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run unit tests
+        run: npm run test:unit
+      
+      - name: Generate test coverage
+        run: npm run test:coverage
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./cmd/cws-gui/frontend/coverage
+          flags: gui-frontend
+          name: gui-frontend-coverage
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: cmd/cws-gui/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cmd/cws-gui/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Build frontend for testing
+        run: npm run build
+      
+      - name: Run E2E tests
+        run: npm run test:e2e
+      
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: cmd/cws-gui/frontend/playwright-report/
+          retention-days: 7
+      
+      - name: Upload test videos
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-videos
+          path: cmd/cws-gui/frontend/test-results/
+          retention-days: 7
+
+  visual-tests:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    defaults:
+      run:
+        working-directory: cmd/cws-gui/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cmd/cws-gui/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Build frontend for visual testing
+        run: npm run build
+      
+      - name: Run visual regression tests
+        run: npm run test:visual
+        env:
+          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+          PERCY_BRANCH: ${{ github.head_ref }}
+          PERCY_TARGET_BRANCH: ${{ github.base_ref }}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      # Mock CloudWorkstation daemon for integration testing
+      daemon-mock:
+        image: nginx:alpine
+        ports:
+          - 8947:80
+        options: >-
+          --health-cmd "curl -f http://localhost:80/health || exit 1"
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 3
+    
+    defaults:
+      run:
+        working-directory: cmd/cws-gui/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cmd/cws-gui/frontend/package-lock.json
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      
+      # Setup mock daemon API responses
+      - name: Configure mock daemon
+        run: |
+          # Create nginx config for mock API responses
+          cat > /tmp/daemon-mock.conf << 'EOF'
+          server {
+            listen 80;
+            
+            location /api/v1/templates {
+              add_header Content-Type application/json;
+              return 200 '[{"name":"Python ML","description":"Test template","category":"ML","icon":"🐍"}]';
+            }
+            
+            location /api/v1/instances {
+              add_header Content-Type application/json;
+              return 200 '[{"name":"test-instance","state":"running","public_ip":"1.2.3.4"}]';
+            }
+            
+            location /health {
+              add_header Content-Type text/plain;
+              return 200 'OK';
+            }
+          }
+          EOF
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build GUI backend
+        working-directory: cmd/cws-gui
+        run: go build -o cws-gui .
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Run integration tests with real daemon
+        run: |
+          # Start GUI backend in background
+          cd ../
+          ./cws-gui &
+          GUI_PID=$!
+          
+          # Wait for GUI to start
+          sleep 5
+          
+          # Run integration tests
+          cd frontend
+          npm run test:e2e -- --config=playwright.integration.config.js
+          
+          # Clean up
+          kill $GUI_PID || true
+
+  accessibility-tests:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: cmd/cws-gui/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cmd/cws-gui/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install axe-playwright
+        run: npm install --save-dev @axe-core/playwright
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Run accessibility tests
+        run: |
+          # Create accessibility test
+          cat > accessibility.spec.js << 'EOF'
+          import { test, expect } from '@playwright/test';
+          import AxeBuilder from '@axe-core/playwright';
+          
+          test.describe('Accessibility Tests', () => {
+            test('Quick Start section passes axe accessibility tests', async ({ page }) => {
+              await page.goto('/');
+              const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+              expect(accessibilityScanResults.violations).toEqual([]);
+            });
+            
+            test('My Instances section passes axe accessibility tests', async ({ page }) => {
+              await page.goto('/');
+              await page.click('.nav-item:has-text("My Instances")');
+              const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+              expect(accessibilityScanResults.violations).toEqual([]);
+            });
+          });
+          EOF
+          
+          npx playwright test accessibility.spec.js
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: cmd/cws-gui/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cmd/cws-gui/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Run Lighthouse performance tests
+        run: |
+          # Install lighthouse
+          npm install --save-dev lighthouse
+          
+          # Create performance test
+          cat > performance.spec.js << 'EOF'
+          import { test } from '@playwright/test';
+          import { playAudit } from 'playwright-lighthouse';
+          
+          test.describe('Performance Tests', () => {
+            test('GUI meets performance benchmarks', async ({ page }) => {
+              await page.goto('/');
+              
+              await playAudit({
+                page,
+                thresholds: {
+                  performance: 90,
+                  accessibility: 95,
+                  'best-practices': 90,
+                  seo: 80,
+                  pwa: 70
+                },
+                port: 9222
+              });
+            });
+          });
+          EOF
+          
+          # Run with Chromium in lighthouse mode
+          npx playwright test performance.spec.js --project=chromium
+
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests, visual-tests, integration-tests, accessibility-tests, performance-tests]
+    if: always()
+    
+    steps:
+      - name: Test Summary
+        run: |
+          echo "## 🧪 GUI Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Visual Tests | ${{ needs.visual-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Accessibility Tests | ${{ needs.accessibility-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.unit-tests.result }}" == "success" && "${{ needs.e2e-tests.result }}" == "success" ]]; then
+            echo "✅ **All critical tests passed!** GUI is ready for deployment." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some tests failed.** Please review the results before merging." >> $GITHUB_STEP_SUMMARY
+          fi

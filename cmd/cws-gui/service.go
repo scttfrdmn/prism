@@ -17,19 +17,22 @@ type CloudWorkstationService struct {
 
 // Template represents a CloudWorkstation template
 type Template struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Category    string `json:"category,omitempty"`
-	Icon        string `json:"icon,omitempty"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	Category       string `json:"category,omitempty"`
+	Icon           string `json:"icon,omitempty"`
+	ConnectionType string `json:"connection_type,omitempty"` // "dcv", "ssh", "auto"
 }
 
 // Instance represents a running CloudWorkstation instance
 type Instance struct {
-	Name   string  `json:"name"`
-	State  string  `json:"state"`
-	IP     string  `json:"ip,omitempty"`
-	Cost   float64 `json:"hourly_rate,omitempty"`
-	Region string  `json:"region,omitempty"`
+	Name     string  `json:"name"`
+	State    string  `json:"state"`
+	IP       string  `json:"ip,omitempty"`
+	Cost     float64 `json:"hourly_rate,omitempty"`
+	Region   string  `json:"region,omitempty"`
+	Template string  `json:"template,omitempty"` // Template used to launch instance
+	Ports    []int   `json:"ports,omitempty"`   // Open ports
 }
 
 // LaunchRequest represents a simple launch configuration
@@ -37,6 +40,25 @@ type LaunchRequest struct {
 	Template string `json:"template"`
 	Name     string `json:"name"`
 	Size     string `json:"size,omitempty"`
+}
+
+// ConnectionInfo represents connection information for an instance
+type ConnectionInfo struct {
+	InstanceName string   `json:"instanceName"`
+	HasDesktop   bool     `json:"hasDesktop"`
+	HasDisplay   bool     `json:"hasDisplay"`
+	TemplateType string   `json:"templateType"`
+	Services     []string `json:"services"`
+	Ports        []int    `json:"ports"`
+	Template     *Template `json:"template,omitempty"`
+}
+
+// SSHConnectionInfo represents SSH connection details
+type SSHConnectionInfo struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	KeyPath  string `json:"keyPath,omitempty"`
 }
 
 func NewCloudWorkstationService() *CloudWorkstationService {
@@ -161,4 +183,151 @@ func getTemplateCategory(name string) string {
 	default:
 		return "General"
 	}
+}
+
+// GetInstanceConnectionInfo gets connection information for intelligent detection
+func (s *CloudWorkstationService) GetInstanceConnectionInfo(ctx context.Context, instanceName string) (*ConnectionInfo, error) {
+	// Try to get detailed instance info from daemon first
+	url := fmt.Sprintf("%s/api/v1/instances/%s/connection-info", s.daemonURL, instanceName)
+	resp, err := s.client.Get(url)
+	if err == nil && resp.StatusCode == 200 {
+		defer resp.Body.Close()
+		
+		var connectionInfo ConnectionInfo
+		if err := json.NewDecoder(resp.Body).Decode(&connectionInfo); err == nil {
+			return &connectionInfo, nil
+		}
+	}
+	
+	// Fallback: analyze based on available instance and template information
+	instances, err := s.GetInstances(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instances: %w", err)
+	}
+	
+	var targetInstance *Instance
+	for i := range instances {
+		if instances[i].Name == instanceName {
+			targetInstance = &instances[i]
+			break
+		}
+	}
+	
+	if targetInstance == nil {
+		return nil, fmt.Errorf("instance %s not found", instanceName)
+	}
+	
+	// Get templates for analysis
+	templates, err := s.GetTemplates(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get templates: %w", err)
+	}
+	
+	var template *Template
+	for i := range templates {
+		if templates[i].Name == targetInstance.Template {
+			template = &templates[i]
+			break
+		}
+	}
+	
+	// Analyze template to determine connection characteristics
+	hasDesktop := s.templateHasDesktop(template)
+	hasDisplay := s.templateHasDisplay(template)
+	templateType := ""
+	if template != nil {
+		templateType = template.Category
+	}
+	
+	connectionInfo := &ConnectionInfo{
+		InstanceName: instanceName,
+		HasDesktop:   hasDesktop,
+		HasDisplay:   hasDisplay,
+		TemplateType: templateType,
+		Services:     []string{}, // Would be populated from daemon in full implementation
+		Ports:        []int{22},  // SSH always available
+		Template:     template,
+	}
+	
+	return connectionInfo, nil
+}
+
+// GetSSHConnectionInfo gets SSH connection details for an instance
+func (s *CloudWorkstationService) GetSSHConnectionInfo(ctx context.Context, instanceName string) (*SSHConnectionInfo, error) {
+	// Try to get SSH info from daemon first
+	url := fmt.Sprintf("%s/api/v1/instances/%s/ssh-info", s.daemonURL, instanceName)
+	resp, err := s.client.Get(url)
+	if err == nil && resp.StatusCode == 200 {
+		defer resp.Body.Close()
+		
+		var sshInfo SSHConnectionInfo
+		if err := json.NewDecoder(resp.Body).Decode(&sshInfo); err == nil {
+			return &sshInfo, nil
+		}
+	}
+	
+	// Fallback: use instance IP if available
+	instances, err := s.GetInstances(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instances: %w", err)
+	}
+	
+	for _, instance := range instances {
+		if instance.Name == instanceName {
+			if instance.IP == "" {
+				return nil, fmt.Errorf("instance %s has no IP address", instanceName)
+			}
+			
+			return &SSHConnectionInfo{
+				Host:     instance.IP,
+				Port:     22,
+				Username: s.getDefaultUsername(instanceName),
+				KeyPath:  "", // Would use SSH agent or prompt for password
+			}, nil
+		}
+	}
+	
+	return nil, fmt.Errorf("instance %s not found", instanceName)
+}
+
+// Helper functions for connection detection
+
+func (s *CloudWorkstationService) templateHasDesktop(template *Template) bool {
+	if template == nil {
+		return false
+	}
+	
+	text := strings.ToLower(template.Name + " " + template.Description)
+	desktopKeywords := []string{"desktop", "workstation", "gui", "gnome", "kde", "xfce", "mate"}
+	
+	for _, keyword := range desktopKeywords {
+		if strings.Contains(text, keyword) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+func (s *CloudWorkstationService) templateHasDisplay(template *Template) bool {
+	if template == nil {
+		return false
+	}
+	
+	text := strings.ToLower(template.Name + " " + template.Description)
+	displayKeywords := []string{"vnc", "x11", "display", "rdp", "visualization", "viz"}
+	
+	for _, keyword := range displayKeywords {
+		if strings.Contains(text, keyword) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+func (s *CloudWorkstationService) getDefaultUsername(instanceName string) string {
+	// In a full implementation, this would be based on the template or AMI
+	// For now, return common defaults
+	return "ubuntu" // Most common default for AWS instances
 }

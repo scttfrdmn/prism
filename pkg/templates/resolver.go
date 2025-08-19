@@ -70,14 +70,40 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 		Name:                 template.Name,
 		Slug:                 template.Slug,
 		Description:          template.Description,
+		LongDescription:      template.LongDescription,
 		AMI:                  amiMapping,
 		InstanceType:         instanceTypeMapping,
 		UserData:             userDataScript,
 		Ports:                ports,
 		EstimatedCostPerHour: costMapping,
 		IdleDetection:        idleDetectionConfig,
-		Source:               template,
-		Generated:            time.Now(),
+
+		// Copy complexity and categorization for GUI
+		Complexity: template.Complexity,
+		Category:   template.Category,
+		Domain:     template.Domain,
+
+		// Copy visual presentation for GUI
+		Icon:     template.Icon,
+		Color:    template.Color,
+		Popular:  template.Popular,
+		Featured: template.Featured,
+
+		// Copy user guidance for GUI
+		EstimatedLaunchTime: template.EstimatedLaunchTime,
+		Prerequisites:       template.Prerequisites,
+		LearningResources:   template.LearningResources,
+
+		// Copy template metadata for GUI
+		ValidationStatus: template.ValidationStatus,
+		Tags:             template.Tags,
+		Maintainer:       template.Maintainer,
+
+		// Copy connection configuration
+		ConnectionType: template.ConnectionType,
+
+		Source:    template,
+		Generated: time.Now(),
 	}
 
 	return runtimeTemplate, nil

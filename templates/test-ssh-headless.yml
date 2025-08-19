@@ -1,0 +1,45 @@
+# Test Template - SSH Terminal Only
+name: "Test Headless Server (SSH)"
+slug: "test-ssh"
+description: "Simple headless template for testing SSH terminal connections"
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - SSH only
+connection_type: "ssh"  # Terminal only
+
+# Complexity and categorization
+complexity: "simple"
+category: "Testing"
+domain: "base"
+
+# Visual presentation
+icon: "💻"
+color: "#10b981"
+
+# Minimal packages
+package_manager: "apt"
+packages:
+  system:
+    - curl
+    - git
+    - vim
+    - htop
+
+# No GUI services
+services: []
+
+# Users
+users:
+  - name: testuser
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults
+instance_defaults:
+  type: "t3.micro"
+  ports: [22]
+
+# Template metadata
+version: "1.0.0"
+validation_status: "testing"
+maintainer: "CloudWorkstation Team"

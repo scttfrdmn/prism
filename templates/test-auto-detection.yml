@@ -1,0 +1,51 @@
+# Test Template - Auto Detection  
+name: "Test Auto-Detection"
+slug: "test-auto"
+description: "Template without explicit connection type for testing auto-detection"
+base: "ubuntu-22.04"
+
+# NO EXPLICIT CONNECTION TYPE - Tests auto-detection
+# connection_type: "auto"  # Should be auto-detected based on packages/services
+
+# Complexity and categorization
+complexity: "simple"
+category: "Testing"
+domain: "base"
+
+# Visual presentation
+icon: "🔍"
+color: "#6b7280"
+
+# Mixed packages that could indicate SSH or Web
+package_manager: "conda"
+packages:
+  system:
+    - git
+    - curl
+    - vim
+  conda:
+    - python=3.11
+    - jupyter
+    - pandas
+
+# Jupyter service should trigger web detection
+services:
+  - name: jupyter
+    port: 8888
+    enable: true
+
+# Users
+users:
+  - name: testuser
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults
+instance_defaults:
+  type: "t3.small"
+  ports: [22, 8888]
+
+# Template metadata
+version: "1.0.0"
+validation_status: "testing"
+maintainer: "CloudWorkstation Team"

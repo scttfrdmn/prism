@@ -1,0 +1,69 @@
+# Ubuntu Desktop - GUI Only (DCV)
+name: "Ubuntu Desktop (GUI Only)"
+slug: "ubuntu-desktop-gui"
+description: "Full Ubuntu desktop environment for graphical applications"
+long_description: "Traditional Ubuntu desktop with GNOME, perfect for users who primarily work with GUI applications like IDEs, browsers, and graphical tools."
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - DCV only
+connection_type: "dcv"  # Desktop-only, optimized for GUI workflows
+
+# Complexity and categorization
+complexity: "simple"
+category: "Desktop Environment"  
+domain: "desktop"
+
+# Visual presentation
+icon: "🖥️"
+color: "#e95420"
+popular: false
+
+# Desktop-focused packages
+package_manager: "apt"
+packages:
+  system:
+    - ubuntu-desktop
+    - firefox
+    - libreoffice
+    - gimp
+    - inkscape
+    - vlc
+    - code
+    - git
+    - gnome-tweaks
+
+# Services - desktop focused
+services:
+  - name: gdm
+    enable: true
+
+# Users
+users:
+  - name: user
+    groups: ["sudo", "adm"]
+    shell: "/bin/bash"
+
+# Instance defaults optimized for desktop
+instance_defaults:
+  type: "t3.large"  # Good balance for desktop applications
+  ports: [22]  # SSH for administration only
+  estimated_cost_per_hour:
+    x86_64: 0.0928
+    arm64: 0.0736
+
+# User guidance
+estimated_launch_time: 8
+prerequisites:
+  - "Basic Linux desktop experience"
+  - "Remote desktop familiarity"
+learning_resources:
+  - "https://ubuntu.com/desktop"
+  - "https://help.gnome.org/"
+
+# Template metadata
+version: "1.0.0"
+validation_status: "validated"
+maintainer: "CloudWorkstation Team"
+tags:
+  desktop: "gnome"
+  gui_only: "true"

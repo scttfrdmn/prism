@@ -1,0 +1,100 @@
+# Jupyter Data Science - Web Interface
+name: "Jupyter Data Science Lab"
+slug: "jupyter-datascience"
+description: "Complete data science environment with Jupyter web interface"
+long_description: "Professional data science workstation with JupyterLab web interface, Python, R, Julia kernels, and comprehensive ML libraries. Access through your browser - no additional software needed."
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - Web interface (Jupyter)
+connection_type: "web"  # Primary interface is JupyterLab in browser
+
+# Complexity and categorization
+complexity: "simple"
+category: "Data Science"
+domain: "datascience"
+
+# Visual presentation  
+icon: "📊"
+color: "#f37626"
+popular: true
+featured: true
+
+# Web-focused packages
+package_manager: "conda"
+packages:
+  system:
+    - git
+    - curl
+    - vim
+    - nodejs  # For JupyterLab extensions
+  conda:
+    - python=3.11
+    - r-base=4.3
+    - julia=1.9
+    - jupyterlab=4.0
+    - jupyter-server-proxy
+    - pandas
+    - numpy
+    - scikit-learn
+    - matplotlib
+    - seaborn
+    - plotly
+    - r-irkernel
+    - r-tidyverse
+    - r-ggplot2
+  pip:
+    - streamlit
+    - dash
+    - gradio
+    - bokeh
+
+# Web services configuration
+services:
+  - name: jupyterlab
+    port: 8888
+    config:
+      - "c.ServerApp.ip = '0.0.0.0'"
+      - "c.ServerApp.allow_root = True"
+      - "c.ServerApp.token = 'cloudworkstation'"
+      - "c.ServerApp.password = ''"
+      - "c.ServerApp.base_url = '/jupyter/'"
+      - "c.ServerApp.allow_remote_access = True"
+    enable: true
+  - name: streamlit-demo
+    port: 8501
+    config:
+      - "streamlit hello"
+    enable: false  # Can be enabled by user
+
+# Users
+users:
+  - name: scientist
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults optimized for web workloads
+instance_defaults:
+  type: "t3.medium"  # Good balance for web interfaces
+  ports: [22, 8888, 8501, 8050]  # SSH, Jupyter, Streamlit, Dash
+  estimated_cost_per_hour:
+    x86_64: 0.0464
+    arm64: 0.0368
+
+# User guidance
+estimated_launch_time: 6
+prerequisites:
+  - "Basic Python or R knowledge"
+  - "Web browser (Chrome, Firefox, Safari)"
+learning_resources:
+  - "https://jupyterlab.readthedocs.io/"
+  - "https://streamlit.io/docs"
+
+# Template metadata
+version: "1.0.0"
+validation_status: "validated"
+maintainer: "CloudWorkstation Team"
+tags:
+  jupyter: "true"
+  web_interface: "true" 
+  browser_based: "true"
+  multi_language: "true"

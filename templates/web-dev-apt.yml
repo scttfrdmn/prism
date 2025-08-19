@@ -3,6 +3,19 @@ slug: "web-dev"
 description: "Full-stack web development environment with Node.js, Docker, and essential tools using APT"
 base: "ubuntu-22.04"
 
+# EXPLICIT CONNECTION TYPE - SSH primary, but supports web for dev servers
+connection_type: "ssh"  # Command-line focused development
+
+# Complexity and categorization
+complexity: "moderate"
+category: "Web Development"
+domain: "web"
+
+# Visual presentation
+icon: "🌐"
+color: "#61dafb"
+popular: true
+
 # Use APT package manager
 package_manager: "apt"
 

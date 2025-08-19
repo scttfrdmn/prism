@@ -1,0 +1,54 @@
+# Test Template - Web Interface Only  
+name: "Test Streamlit App (Web)"
+slug: "test-web"
+description: "Simple web app template for testing web interface connections"
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - Web only
+connection_type: "web"  # Web interface only
+
+# Complexity and categorization
+complexity: "simple"
+category: "Testing"
+domain: "web"
+
+# Visual presentation
+icon: "🌊"
+color: "#ff4b4b"
+
+# Web app packages
+package_manager: "pip"
+packages:
+  system:
+    - python3
+    - python3-pip
+    - git
+  pip:
+    - streamlit
+    - pandas
+    - numpy
+    - plotly
+
+# Web services
+services:
+  - name: streamlit-app
+    port: 8501
+    config:
+      - "streamlit hello"
+    enable: true
+
+# Users
+users:
+  - name: testuser
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults
+instance_defaults:
+  type: "t3.micro"
+  ports: [22, 8501]
+
+# Template metadata
+version: "1.0.0"
+validation_status: "testing"
+maintainer: "CloudWorkstation Team"

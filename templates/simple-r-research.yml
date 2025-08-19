@@ -3,6 +3,19 @@ slug: "r-research"
 description: "R + RStudio Server + tidyverse packages using simplified template system"
 base: "ubuntu-22.04"
 
+# EXPLICIT CONNECTION TYPE - Web interface (RStudio Server)
+connection_type: "web"  # Primary interface is RStudio Server in browser
+
+# Complexity and categorization
+complexity: "simple"
+category: "Data Science"
+domain: "datascience"
+
+# Visual presentation
+icon: "📈"
+color: "#75aadb"
+popular: true
+
 # Use conda for R packages (better package management)
 package_manager: "conda"
 

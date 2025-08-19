@@ -12,13 +12,28 @@ import (
 // Template represents a unified CloudWorkstation template
 type Template struct {
 	// Basic metadata
-	Name        string `yaml:"name" json:"name"`
-	Slug        string `yaml:"slug,omitempty" json:"slug,omitempty"` // Short dash-separated name for CLI
-	Description string `yaml:"description" json:"description"`
-	Base        string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.) or parent template
+	Name            string `yaml:"name" json:"name"`
+	Slug            string `yaml:"slug,omitempty" json:"slug,omitempty"` // Short dash-separated name for CLI
+	Description     string `yaml:"description" json:"description"`
+	LongDescription string `yaml:"long_description,omitempty" json:"long_description,omitempty"` // Detailed description for GUI
+	Base            string `yaml:"base" json:"base"` // Base OS (ubuntu-22.04, etc.) or parent template
 
 	// Template inheritance
 	Inherits []string `yaml:"inherits,omitempty" json:"inherits,omitempty"` // Parent templates to inherit from
+
+	// Complexity and categorization
+	Complexity TemplateComplexity `yaml:"complexity,omitempty" json:"complexity,omitempty"` // simple, moderate, advanced, complex
+	Category   string             `yaml:"category,omitempty" json:"category,omitempty"`     // "Machine Learning", "Data Science", etc.
+	Domain     string             `yaml:"domain,omitempty" json:"domain,omitempty"`        // "ml", "datascience", "bio", "web", "base"
+
+	// Visual presentation
+	Icon     string `yaml:"icon,omitempty" json:"icon,omitempty"`         // Unicode emoji or icon identifier
+	Color    string `yaml:"color,omitempty" json:"color,omitempty"`       // Hex color for category theming
+	Popular  bool   `yaml:"popular,omitempty" json:"popular,omitempty"`   // Popular badge display
+	Featured bool   `yaml:"featured,omitempty" json:"featured,omitempty"` // Featured template (always visible)
+
+	// Connection configuration
+	ConnectionType ConnectionType `yaml:"connection_type,omitempty" json:"connection_type,omitempty"` // Explicit connection type (dcv, ssh, auto)
 
 	// Package management strategy
 	PackageManager string             `yaml:"package_manager,omitempty" json:"package_manager,omitempty"` // "auto", "apt", "dnf", "conda", "spack", "ami"
@@ -45,11 +60,17 @@ type Template struct {
 	// Instance defaults
 	InstanceDefaults InstanceDefaults `yaml:"instance_defaults,omitempty" json:"instance_defaults,omitempty"`
 
+	// User guidance
+	EstimatedLaunchTime int      `yaml:"estimated_launch_time,omitempty" json:"estimated_launch_time,omitempty"` // Launch time in minutes
+	Prerequisites       []string `yaml:"prerequisites,omitempty" json:"prerequisites,omitempty"`                 // Required knowledge/skills
+	LearningResources   []string `yaml:"learning_resources,omitempty" json:"learning_resources,omitempty"`       // Documentation links
+
 	// Template metadata
-	Version     string            `yaml:"version,omitempty" json:"version,omitempty"`
-	Tags        map[string]string `yaml:"tags,omitempty" json:"tags,omitempty"`
-	Maintainer  string            `yaml:"maintainer,omitempty" json:"maintainer,omitempty"`
-	LastUpdated time.Time         `yaml:"last_updated,omitempty" json:"last_updated,omitempty"`
+	Version          string              `yaml:"version,omitempty" json:"version,omitempty"`
+	ValidationStatus ValidationStatus    `yaml:"validation_status,omitempty" json:"validation_status,omitempty"` // validated, testing, experimental
+	Tags             map[string]string   `yaml:"tags,omitempty" json:"tags,omitempty"`
+	Maintainer       string              `yaml:"maintainer,omitempty" json:"maintainer,omitempty"`
+	LastUpdated      time.Time           `yaml:"last_updated,omitempty" json:"last_updated,omitempty"`
 }
 
 // PackageDefinitions defines packages for different package managers
@@ -111,12 +132,37 @@ type RuntimeTemplate struct {
 	Name                 string
 	Slug                 string // CLI identifier for template (e.g., "python-ml")
 	Description          string
+	LongDescription      string // Detailed description for GUI
 	AMI                  map[string]map[string]string // region -> arch -> AMI ID
 	InstanceType         map[string]string            // arch -> instance type
 	UserData             string                       // Generated installation script
 	Ports                []int
 	EstimatedCostPerHour map[string]float64   // arch -> cost per hour
 	IdleDetection        *IdleDetectionConfig // Idle detection configuration
+
+	// Complexity and categorization for GUI
+	Complexity TemplateComplexity `json:"complexity,omitempty"`
+	Category   string             `json:"category,omitempty"`
+	Domain     string             `json:"domain,omitempty"`
+
+	// Visual presentation for GUI
+	Icon     string `json:"icon,omitempty"`
+	Color    string `json:"color,omitempty"`
+	Popular  bool   `json:"popular,omitempty"`
+	Featured bool   `json:"featured,omitempty"`
+
+	// User guidance for GUI
+	EstimatedLaunchTime int      `json:"estimated_launch_time,omitempty"`
+	Prerequisites       []string `json:"prerequisites,omitempty"`
+	LearningResources   []string `json:"learning_resources,omitempty"`
+
+	// Template metadata for GUI
+	ValidationStatus ValidationStatus  `json:"validation_status,omitempty"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	Maintainer       string            `json:"maintainer,omitempty"`
+
+	// Connection configuration
+	ConnectionType ConnectionType `json:"connection_type,omitempty"`
 
 	// Additional metadata from unified template
 	Source    *Template `json:"-"` // Reference to source template
@@ -133,6 +179,116 @@ const (
 	PackageManagerSpack PackageManagerType = "spack"
 	PackageManagerAMI   PackageManagerType = "ami"
 )
+
+// TemplateComplexity represents the complexity level of a template
+type TemplateComplexity string
+
+const (
+	ComplexitySimple   TemplateComplexity = "simple"   // Ready to use, perfect for getting started
+	ComplexityModerate TemplateComplexity = "moderate" // Some customization available, good for regular users
+	ComplexityAdvanced TemplateComplexity = "advanced" // Highly configurable, for experienced users
+	ComplexityComplex  TemplateComplexity = "complex"  // Maximum flexibility, requires technical knowledge
+)
+
+// ValidationStatus represents the validation state of a template
+type ValidationStatus string
+
+const (
+	ValidationValidated     ValidationStatus = "validated"     // Fully tested and verified
+	ValidationTesting       ValidationStatus = "testing"       // Currently under testing
+	ValidationExperimental  ValidationStatus = "experimental"  // Experimental, use with caution
+)
+
+// ConnectionType represents the connection interface type for instances
+type ConnectionType string
+
+const (
+	ConnectionTypeAuto ConnectionType = "auto" // Automatic detection based on template analysis (default)
+	ConnectionTypeDCV  ConnectionType = "dcv"  // NICE DCV remote desktop for GUI instances
+	ConnectionTypeSSH  ConnectionType = "ssh"  // SSH terminal for headless instances
+	ConnectionTypeWeb  ConnectionType = "web"  // Web interface (Jupyter, RStudio, Streamlit, etc.)
+	ConnectionTypeAll  ConnectionType = "all"  // Supports DCV + SSH + Web - user can choose
+)
+
+// ComplexityLevel returns the numeric level for sorting (1=simple, 4=complex)
+func (c TemplateComplexity) Level() int {
+	switch c {
+	case ComplexitySimple:
+		return 1
+	case ComplexityModerate:
+		return 2
+	case ComplexityAdvanced:
+		return 3
+	case ComplexityComplex:
+		return 4
+	default:
+		return 1 // Default to simple
+	}
+}
+
+// Label returns the human-readable label for the complexity level
+func (c TemplateComplexity) Label() string {
+	switch c {
+	case ComplexitySimple:
+		return "Simple"
+	case ComplexityModerate:
+		return "Moderate"
+	case ComplexityAdvanced:
+		return "Advanced"
+	case ComplexityComplex:
+		return "Complex"
+	default:
+		return "Simple"
+	}
+}
+
+// Badge returns the badge text for GUI display
+func (c TemplateComplexity) Badge() string {
+	switch c {
+	case ComplexitySimple:
+		return "Ready to Use"
+	case ComplexityModerate:
+		return "Some Options"
+	case ComplexityAdvanced:
+		return "Many Options"
+	case ComplexityComplex:
+		return "Full Control"
+	default:
+		return "Ready to Use"
+	}
+}
+
+// Icon returns the emoji icon for the complexity level
+func (c TemplateComplexity) Icon() string {
+	switch c {
+	case ComplexitySimple:
+		return "🟢"
+	case ComplexityModerate:
+		return "🟡"
+	case ComplexityAdvanced:
+		return "🟠"
+	case ComplexityComplex:
+		return "🔴"
+	default:
+		return "🟢"
+	}
+}
+
+// Color returns the hex color for the complexity level
+func (c TemplateComplexity) Color() string {
+	switch c {
+	case ComplexitySimple:
+		return "#059669"
+	case ComplexityModerate:
+		return "#d97706"
+	case ComplexityAdvanced:
+		return "#ea580c"
+	case ComplexityComplex:
+		return "#dc2626"
+	default:
+		return "#059669"
+	}
+}
 
 // PackageManagerStrategy handles package manager selection logic
 type PackageManagerStrategy struct {

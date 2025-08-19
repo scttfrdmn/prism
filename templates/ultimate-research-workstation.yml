@@ -1,0 +1,133 @@
+# Ultimate Research Workstation - All Connection Types
+name: "Ultimate Research Workstation"
+slug: "ultimate-workstation"
+description: "Complete research environment supporting all connection methods"
+long_description: "The ultimate research workstation with desktop environment (DCV), web interfaces (Jupyter, RStudio, Streamlit), and SSH terminal. Choose your preferred interface or use multiple simultaneously."
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - Supports everything
+connection_type: "all"  # DCV + SSH + Web - ultimate flexibility
+
+# Complexity and categorization
+complexity: "advanced"
+category: "Multi-Purpose"
+domain: "research"
+
+# Visual presentation
+icon: "🚀"
+color: "#6366f1"
+popular: true
+featured: true
+
+# Comprehensive packages for all interfaces
+package_manager: "conda"
+packages:
+  system:
+    - ubuntu-desktop-minimal  # For DCV
+    - firefox
+    - code
+    - git
+    - curl
+    - vim
+    - htop
+    - r-base
+    - nodejs
+    - pandoc
+    - texlive-latex-base
+  conda:
+    - python=3.11
+    - r-base=4.3
+    - julia=1.9
+    - jupyterlab=4.0
+    - jupyter-server-proxy
+    - rstudio
+    - pandas
+    - numpy
+    - scikit-learn
+    - matplotlib
+    - seaborn
+    - plotly
+    - r-irkernel
+    - r-tidyverse
+    - r-ggplot2
+  pip:
+    - streamlit
+    - dash
+    - gradio
+    - bokeh
+    - wandb
+    - mlflow
+
+# Multi-interface services
+services:
+  - name: gdm  # Desktop environment
+    enable: true
+  - name: jupyterlab  # Web interface 1
+    port: 8888
+    config:
+      - "c.ServerApp.ip = '0.0.0.0'"
+      - "c.ServerApp.allow_root = True"
+      - "c.ServerApp.token = 'research'"
+      - "c.ServerApp.base_url = '/jupyter/'"
+    enable: true
+  - name: rstudio-server  # Web interface 2
+    port: 8787
+    enable: true
+  - name: streamlit-dashboard  # Web interface 3
+    port: 8501
+    enable: false  # User can enable
+  - name: mlflow-ui  # Web interface 4
+    port: 5000
+    enable: false  # User can enable
+
+# Users with different access patterns
+users:
+  - name: researcher
+    groups: ["sudo", "docker"]
+    shell: "/bin/bash"
+
+# Post-install script for multi-interface setup
+post_install: |
+  #!/bin/bash
+  # Setup RStudio Server
+  wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2024.04.2-764-amd64.deb
+  sudo gdebi --non-interactive rstudio-server-*-amd64.deb
+  
+  # Configure services for external access
+  sudo echo "www-port=8787" >> /etc/rstudio/rserver.conf
+  sudo echo "www-address=0.0.0.0" >> /etc/rstudio/rserver.conf
+  
+  # Setup user passwords for web interfaces
+  echo "researcher:research123" | sudo chpasswd
+
+# Instance defaults for high-performance workstation
+instance_defaults:
+  type: "r5.xlarge"  # High memory + CPU for all workloads
+  ports: [22, 8888, 8787, 8501, 5000]  # All interfaces
+  estimated_cost_per_hour:
+    x86_64: 0.288
+    arm64: 0.2304
+
+# User guidance for multi-modal setup
+estimated_launch_time: 12
+prerequisites:
+  - "Research computing experience"
+  - "Familiarity with multiple tools (Python, R, terminal)"
+  - "Understanding of different interface types"
+learning_resources:
+  - "https://docs.cloudworkstation.org/multi-modal"
+  - "https://jupyterlab.readthedocs.io/"
+  - "https://rstudio.com/resources/"
+
+# Template metadata
+version: "1.0.0" 
+validation_status: "testing"  # Complex template under validation
+maintainer: "CloudWorkstation Team"
+tags:
+  multi_modal: "true"
+  desktop: "true"
+  web_interface: "true"
+  terminal: "true"
+  jupyter: "true"
+  rstudio: "true"
+  premium: "true"

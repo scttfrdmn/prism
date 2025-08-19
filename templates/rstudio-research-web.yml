@@ -1,0 +1,93 @@
+# RStudio Research - Web Interface
+name: "RStudio Server Research Environment"
+slug: "rstudio-research"
+description: "Complete R research environment with RStudio Server web interface"
+long_description: "Professional R research workstation with RStudio Server, comprehensive R packages for statistics, bioinformatics, and data visualization. Full IDE experience in your browser."
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - Web interface (RStudio Server)
+connection_type: "web"  # Primary interface is RStudio Server in browser
+
+# Complexity and categorization
+complexity: "simple"
+category: "Data Science"
+domain: "datascience"
+
+# Visual presentation
+icon: "📈"
+color: "#75aadb"
+popular: true
+
+# R-focused web packages
+package_manager: "apt"
+packages:
+  system:
+    - r-base
+    - r-base-dev
+    - gdebi-core
+    - wget
+    - curl
+    - git
+    - pandoc
+    - pandoc-citeproc
+    - texlive-latex-base
+    - texlive-fonts-recommended
+
+# Post-install script for RStudio Server
+post_install: |
+  #!/bin/bash
+  # Install RStudio Server
+  wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2024.04.2-764-amd64.deb
+  sudo gdebi --non-interactive rstudio-server-*-amd64.deb
+  
+  # Install R packages
+  sudo R -e "install.packages(c('tidyverse', 'ggplot2', 'dplyr', 'plotly', 'shiny', 'rmarkdown', 'devtools', 'BiocManager', 'IRkernel'), repos='https://cran.rstudio.com/')"
+  
+  # Configure RStudio Server
+  sudo echo "www-port=8787" >> /etc/rstudio/rserver.conf
+  sudo echo "www-address=0.0.0.0" >> /etc/rstudio/rserver.conf
+  
+  # Create user
+  sudo useradd -m researcher
+  echo "researcher:cloudworkstation" | sudo chpasswd
+  sudo usermod -aG sudo researcher
+
+# Web services configuration  
+services:
+  - name: rstudio-server
+    port: 8787
+    enable: true
+
+# Users
+users:
+  - name: researcher
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults optimized for R workloads
+instance_defaults:
+  type: "r5.large"  # Memory-optimized for R
+  ports: [22, 8787]  # SSH + RStudio Server
+  estimated_cost_per_hour:
+    x86_64: 0.144
+    arm64: 0.1152
+
+# User guidance
+estimated_launch_time: 8
+prerequisites:
+  - "R programming knowledge"
+  - "Statistical analysis experience"
+  - "Web browser"
+learning_resources:
+  - "https://rstudio.com/resources/"
+  - "https://r4ds.had.co.nz/"
+
+# Template metadata
+version: "1.0.0"
+validation_status: "validated"
+maintainer: "CloudWorkstation Team"
+tags:
+  rstudio: "true"
+  web_interface: "true"
+  browser_based: "true"
+  statistics: "true"

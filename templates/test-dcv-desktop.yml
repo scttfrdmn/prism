@@ -1,0 +1,45 @@
+# Test Template - DCV Desktop Only
+name: "Test Desktop Environment (DCV)"
+slug: "test-dcv"
+description: "Simple desktop template for testing NICE DCV connections"
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - DCV only
+connection_type: "dcv"  # Desktop only
+
+# Complexity and categorization
+complexity: "simple"
+category: "Testing"
+domain: "desktop"
+
+# Visual presentation
+icon: "🖥️"
+color: "#4f46e5"
+
+# Desktop packages
+package_manager: "apt"
+packages:
+  system:
+    - ubuntu-desktop-minimal
+    - firefox
+
+# Desktop service
+services:
+  - name: gdm
+    enable: true
+
+# Users
+users:
+  - name: testuser
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults
+instance_defaults:
+  type: "t3.large"
+  ports: [22]
+
+# Template metadata
+version: "1.0.0"
+validation_status: "testing"
+maintainer: "CloudWorkstation Team"
