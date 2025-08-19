@@ -883,7 +883,7 @@ func (g *CloudWorkstationGUI) createRecentInstancesList() *fyne.Container {
 			widget.NewLabel(statusIcon),
 			fynecontainer.NewVBox(
 				widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-				widget.NewLabel(fmt.Sprintf("%s • $%.2f/day", instance.Template, instance.EstimatedDailyCost)),
+				widget.NewLabel(fmt.Sprintf("%s • $%.2f/day", instance.Template, instance.HourlyRate)),
 			),
 			layout.NewSpacer(),
 			widget.NewButton("Manage", func() {
@@ -1049,7 +1049,7 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 	statusContainer.Add(statusRow)
 
 	// Cost information
-	costLabel := widget.NewLabelWithStyle(fmt.Sprintf("$%.2f/day", instance.EstimatedDailyCost), fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+	costLabel := widget.NewLabelWithStyle(fmt.Sprintf("$%.2f/day", instance.HourlyRate), fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
 	statusContainer.Add(costLabel)
 
 	// Idle detection status if enabled
@@ -2437,9 +2437,9 @@ func (g *CloudWorkstationGUI) showInstanceDetails(instance types.Instance) {
 
 	// Cost information
 	contentContainer.Add(widget.NewLabelWithStyle("Cost Information", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}))
-	contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Daily Cost: $%.2f", instance.EstimatedDailyCost)))
+	contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Daily Cost: $%.2f", instance.HourlyRate)))
 	uptime := time.Since(instance.LaunchTime)
-	dailyCostSoFar := instance.EstimatedDailyCost * (uptime.Hours() / 24.0)
+	dailyCostSoFar := instance.HourlyRate * (uptime.Hours() / 24.0)
 	contentContainer.Add(widget.NewLabel(fmt.Sprintf("• Cost So Far: $%.2f", dailyCostSoFar)))
 	contentContainer.Add(widget.NewSeparator())
 

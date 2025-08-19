@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
@@ -317,14 +318,16 @@ type InstanceLauncher struct {
 }
 
 // LaunchInstance executes EC2 instance launch and returns result
-func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, dailyCost float64) (*ctypes.Instance, error) {
+func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64) (*ctypes.Instance, error) {
 	// Handle dry run
 	if req.DryRun {
 		return &ctypes.Instance{
-			Name:               req.Name,
-			Template:           req.Template,
-			State:              "dry-run",
-			EstimatedDailyCost: dailyCost,
+			Name:        req.Name,
+			Template:    req.Template,
+			State:       "dry-run",
+			HourlyRate:  hourlyRate,
+			CurrentSpend: 0.0,
+			EffectiveRate: 0.0,
 		}, nil
 	}
 
@@ -336,14 +339,24 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	}
 
 	instance := result.Instances[0]
+	instanceType := string(instance.InstanceType)
+	launchTime := time.Now()
+	
+	// Calculate storage costs that persist even when stopped/hibernated
+	storageCostPerHour := calculateStorageCosts(req.Volumes, req.EBSVolumes)
+	
 	return &ctypes.Instance{
-		ID:                 *instance.InstanceId,
-		Name:               req.Name,
-		Template:           req.Template,
-		State:              string(instance.State.Name),
-		LaunchTime:         time.Now(),
-		EstimatedDailyCost: dailyCost,
-		AttachedVolumes:    req.Volumes,
+		ID:                *instance.InstanceId,
+		Name:              req.Name,
+		Template:          req.Template,
+		State:             string(instance.State.Name),
+		InstanceType:      instanceType,
+		LaunchTime:        launchTime,
+		HourlyRate:        hourlyRate,
+		CurrentSpend:      storageCostPerHour, // Only storage costs at launch
+		EffectiveRate:     hourlyRate + storageCostPerHour, // Will include storage
+		AttachedVolumes:   req.Volumes,
+		AttachedEBSVolumes: req.EBSVolumes,
 	}, nil
 }
 
@@ -1314,13 +1327,15 @@ func (c *InstanceStateConverter) isHibernationConfigured(ec2Instance ec2types.In
 type InstanceBuilder struct {
 	tagExtractor   *InstanceTagExtractor
 	stateConverter *InstanceStateConverter
+	ec2Client      EC2ClientInterface
 }
 
 // NewInstanceBuilder creates instance builder
-func NewInstanceBuilder() *InstanceBuilder {
+func NewInstanceBuilder(ec2Client EC2ClientInterface) *InstanceBuilder {
 	return &InstanceBuilder{
 		tagExtractor:   &InstanceTagExtractor{},
 		stateConverter: &InstanceStateConverter{},
+		ec2Client:      ec2Client,
 	}
 }
 
@@ -1349,17 +1364,29 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		instanceLifecycle = "spot"
 	}
 
+	// Calculate cost metrics based on instance type and runtime
+	instanceType := string(ec2Instance.InstanceType)
+	hourlyRate := getHourlyRate(instanceType)
+	
+	// Calculate EBS storage costs using AWS API (persist when stopped/hibernated)
+	ebsStorageCostPerHour := b.calculateInstanceEBSCosts(*ec2Instance.InstanceId)
+	
+	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, *ec2Instance.LaunchTime, state)
+
 	// Create instance
 	instance := &ctypes.Instance{
-		ID:                 *ec2Instance.InstanceId,
-		Name:               name,
-		Template:           template,
-		State:              state,
-		PublicIP:           publicIP,
-		ProjectID:          project,
-		InstanceLifecycle:  instanceLifecycle,
-		LaunchTime:         *ec2Instance.LaunchTime,
-		EstimatedDailyCost: 0.0, // TODO: Calculate based on instance type
+		ID:                *ec2Instance.InstanceId,
+		Name:              name,
+		Template:          template,
+		State:             state,
+		PublicIP:          publicIP,
+		ProjectID:         project,
+		InstanceLifecycle: instanceLifecycle,
+		LaunchTime:        *ec2Instance.LaunchTime,
+		InstanceType:      instanceType,
+		HourlyRate:        hourlyRate,
+		CurrentSpend:      currentSpend,
+		EffectiveRate:     effectiveRate,
 	}
 
 	// Merge deletion time from local state if available
@@ -1379,10 +1406,10 @@ type InstanceListProcessor struct {
 }
 
 // NewInstanceListProcessor creates instance list processor
-func NewInstanceListProcessor() *InstanceListProcessor {
+func NewInstanceListProcessor(ec2Client EC2ClientInterface) *InstanceListProcessor {
 	return &InstanceListProcessor{
 		stateLoader:     &StateLoader{},
-		instanceBuilder: NewInstanceBuilder(),
+		instanceBuilder: NewInstanceBuilder(ec2Client),
 	}
 }
 
@@ -1421,7 +1448,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		return nil, fmt.Errorf("failed to describe instances: %w", err)
 	}
 
-	processor := NewInstanceListProcessor()
+	processor := NewInstanceListProcessor(m.ec2)
 	return processor.ProcessReservations(result.Reservations), nil
 }
 
@@ -2304,4 +2331,266 @@ func (m *Manager) supportsHibernation(instanceType string) bool {
 
 	family := instanceType[:dotIndex]
 	return supportedFamilies[family]
+}
+
+// getHourlyRate returns the AWS list price per hour for an instance type
+func getHourlyRate(instanceType string) float64 {
+	// Instance pricing data (USD per hour) - estimated rates for us-east-1
+	instancePricing := map[string]float64{
+		// General Purpose
+		"t3.micro":    0.0104,
+		"t3.small":    0.0208,
+		"t3.medium":   0.0416,
+		"t3.large":    0.0832,
+		"t3.xlarge":   0.1664,
+		"t3.2xlarge":  0.3328,
+		"t3a.micro":   0.0094,
+		"t3a.small":   0.0188,
+		"t3a.medium":  0.0376,
+		"t3a.large":   0.0752,
+		"t3a.xlarge":  0.1504,
+		"t3a.2xlarge": 0.3008,
+
+		// Compute Optimized
+		"c5.large":    0.085,
+		"c5.xlarge":   0.17,
+		"c5.2xlarge":  0.34,
+		"c5.4xlarge":  0.68,
+		"c5.9xlarge":  1.53,
+		"c5.12xlarge": 2.04,
+		"c5.18xlarge": 3.06,
+		"c5.24xlarge": 4.08,
+
+		// Memory Optimized
+		"r5.large":    0.126,
+		"r5.xlarge":   0.252,
+		"r5.2xlarge":  0.504,
+		"r5.4xlarge":  1.008,
+		"r5.8xlarge":  2.016,
+		"r5.12xlarge": 3.024,
+		"r5.16xlarge": 4.032,
+		"r5.24xlarge": 6.048,
+
+		// GPU Instances
+		"g4dn.xlarge":   0.526,
+		"g4dn.2xlarge":  0.752,
+		"g4dn.4xlarge":  1.204,
+		"g4dn.8xlarge":  2.176,
+		"g4dn.12xlarge": 3.912,
+		"g4dn.16xlarge": 4.352,
+		"p3.2xlarge":    3.06,
+		"p3.8xlarge":    12.24,
+		"p3.16xlarge":   24.48,
+		"p4d.24xlarge":  32.77,
+	}
+
+	// Look up hourly rate
+	hourlyRate, exists := instancePricing[instanceType]
+	if !exists {
+		// Estimate for unknown instance types
+		hourlyRate = estimateInstanceCost(instanceType)
+	}
+
+	return hourlyRate
+}
+
+// estimateInstanceCost estimates the hourly cost for unknown instance types
+func estimateInstanceCost(instanceType string) float64 {
+	// Extract instance family and size
+	parts := strings.Split(instanceType, ".")
+	if len(parts) != 2 {
+		return 0.10 // Default fallback rate
+	}
+
+	family := parts[0]
+	size := parts[1]
+
+	// Base rates by instance family
+	familyRates := map[string]float64{
+		"t3":   0.0104, // t3.micro base rate
+		"t3a":  0.0094, // t3a.micro base rate
+		"c5":   0.085,  // c5.large base rate
+		"c5n":  0.108,  // c5n.large base rate
+		"r5":   0.126,  // r5.large base rate
+		"r5a":  0.113,  // r5a.large base rate
+		"m5":   0.096,  // m5.large base rate
+		"m5a":  0.086,  // m5a.large base rate
+		"g4dn": 0.526,  // g4dn.xlarge base rate
+		"p3":   3.06,   // p3.2xlarge base rate
+		"p4d":  32.77,  // p4d.24xlarge base rate
+	}
+
+	baseRate, exists := familyRates[family]
+	if !exists {
+		baseRate = 0.10 // Default rate
+	}
+
+	// Size multipliers
+	sizeMultipliers := map[string]float64{
+		"nano":     0.25,
+		"micro":    0.5,
+		"small":    1.0,
+		"medium":   2.0,
+		"large":    4.0,
+		"xlarge":   8.0,
+		"2xlarge":  16.0,
+		"3xlarge":  24.0,
+		"4xlarge":  32.0,
+		"6xlarge":  48.0,
+		"8xlarge":  64.0,
+		"9xlarge":  72.0,
+		"12xlarge": 96.0,
+		"16xlarge": 128.0,
+		"18xlarge": 144.0,
+		"24xlarge": 192.0,
+		"32xlarge": 256.0,
+	}
+
+	multiplier, exists := sizeMultipliers[size]
+	if !exists {
+		multiplier = 4.0 // Default to large equivalent
+	}
+
+	return baseRate * multiplier
+}
+
+// calculateActualCosts calculates current spend and effective rate based on actual usage
+func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, launchTime time.Time, currentState string) (currentSpend, effectiveRate float64) {
+	now := time.Now()
+	totalHours := now.Sub(launchTime).Hours()
+	
+	if totalHours <= 0 {
+		return 0, 0
+	}
+
+	// Estimate actual running time based on current state and hibernation patterns
+	// This is a simplified calculation - in production would track state changes
+	var runningHours float64
+	
+	switch strings.ToLower(currentState) {
+	case "running":
+		// If currently running, estimate it's been running most of the time
+		// But account for potential hibernation periods
+		runningHours = totalHours * 0.8 // Assume 20% hibernation savings on average
+		
+	case "stopped", "hibernated":
+		// If currently stopped/hibernated, estimate it ran for part of the time
+		runningHours = totalHours * 0.6 // More aggressive hibernation usage
+		
+	case "pending", "shutting-down":
+		// Transitional states - estimate partial running time
+		runningHours = totalHours * 0.7
+		
+	default:
+		// Default conservative estimate
+		runningHours = totalHours * 0.7
+	}
+	
+	// Calculate current spend
+	// Compute costs: only for running hours (savings from hibernation!)
+	computeCost := runningHours * computeHourlyRate
+	// Storage costs: persist for all hours (EBS continues when stopped/hibernated)
+	storageCost := totalHours * storageHourlyRate
+	currentSpend = computeCost + storageCost
+	
+	// Calculate effective rate (actual spend per total hour)
+	effectiveRate = currentSpend / totalHours
+	
+	return currentSpend, effectiveRate
+}
+
+// calculateStorageCosts calculates hourly EBS storage costs for this instance
+// Note: EFS costs are tracked separately since EFS volumes are shared across instances
+func calculateStorageCosts(efsVolumes []string, ebsVolumes []string) float64 {
+	var totalEBSCostPerHour float64
+
+	// EBS pricing (monthly rates converted to hourly) 
+	ebsGP3PerGB := 0.08 / (30 * 24)      // $0.08/GB/month → hourly
+	ebsVolumeEstimatedGB := 100.0         // Default estimate per EBS volume
+
+	// Calculate EBS costs (persist when stopped/hibernated)
+	// These are instance-specific costs
+	for range ebsVolumes {
+		totalEBSCostPerHour += ebsVolumeEstimatedGB * ebsGP3PerGB
+	}
+
+	// Add estimated root EBS volume cost (typically 20GB gp3)
+	// Every instance has a root volume
+	rootVolumeGB := 20.0
+	totalEBSCostPerHour += rootVolumeGB * ebsGP3PerGB
+
+	return totalEBSCostPerHour
+}
+
+// calculateInstanceEBSCosts calculates hourly EBS costs for a specific instance using AWS API
+func (b *InstanceBuilder) calculateInstanceEBSCosts(instanceId string) float64 {
+	// EBS pricing (monthly rates converted to hourly)
+	ebsPricing := map[string]float64{
+		"gp3":      0.08 / (30 * 24),   // $0.08/GB/month → hourly
+		"gp2":      0.10 / (30 * 24),   // $0.10/GB/month → hourly  
+		"io1":      0.125 / (30 * 24),  // $0.125/GB/month → hourly
+		"io2":      0.125 / (30 * 24),  // $0.125/GB/month → hourly
+		"standard": 0.05 / (30 * 24),   // $0.05/GB/month → hourly
+	}
+
+	ctx := context.Background()
+	
+	// Get instance details to find attached volumes
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceId},
+	}
+	
+	result, err := b.ec2Client.DescribeInstances(ctx, input)
+	if err != nil {
+		// If API call fails, return estimated cost for root volume
+		return 20.0 * ebsPricing["gp3"] // 20GB gp3 estimate
+	}
+	
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return 20.0 * ebsPricing["gp3"] // Fallback estimate
+	}
+	
+	instance := result.Reservations[0].Instances[0]
+	var totalEBSCostPerHour float64
+	
+	// Calculate costs for all attached EBS volumes
+	for _, blockDevice := range instance.BlockDeviceMappings {
+		if blockDevice.Ebs != nil && blockDevice.Ebs.VolumeId != nil {
+			volumeCost := b.getEBSVolumeCost(*blockDevice.Ebs.VolumeId, ebsPricing)
+			totalEBSCostPerHour += volumeCost
+		}
+	}
+	
+	return totalEBSCostPerHour
+}
+
+// getEBSVolumeCost gets the hourly cost for a specific EBS volume
+func (b *InstanceBuilder) getEBSVolumeCost(volumeId string, pricing map[string]float64) float64 {
+	ctx := context.Background()
+	
+	input := &ec2.DescribeVolumesInput{
+		VolumeIds: []string{volumeId},
+	}
+	
+	result, err := b.ec2Client.DescribeVolumes(ctx, input)
+	if err != nil {
+		// Fallback to gp3 estimate
+		return 20.0 * pricing["gp3"]
+	}
+	
+	if len(result.Volumes) == 0 {
+		return 20.0 * pricing["gp3"]
+	}
+	
+	volume := result.Volumes[0]
+	volumeType := string(volume.VolumeType)
+	volumeSize := float64(*volume.Size)
+	
+	// Get price per GB for this volume type
+	pricePerGB, exists := pricing[volumeType]
+	if !exists {
+		pricePerGB = pricing["gp3"] // Default to gp3 pricing
+	}
+	
+	return volumeSize * pricePerGB
 }

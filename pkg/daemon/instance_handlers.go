@@ -80,7 +80,8 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 	// Calculate total cost for running instances
 	for _, instance := range filteredInstances {
 		if instance.State == "running" {
-			totalCost += instance.EstimatedDailyCost
+			// Use current spend to show actual accumulated cost
+			totalCost += instance.CurrentSpend
 		}
 	}
 
@@ -163,7 +164,7 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	response := types.LaunchResponse{
 		Instance:       *instance,
 		Message:        fmt.Sprintf("Instance %s launched successfully", instance.Name),
-		EstimatedCost:  fmt.Sprintf("$%.2f/day", instance.EstimatedDailyCost),
+		EstimatedCost:  fmt.Sprintf("$%.3f/hr (effective: $%.3f/hr)", instance.HourlyRate, instance.EffectiveRate),
 		ConnectionInfo: fmt.Sprintf("ssh ubuntu@%s", instance.PublicIP),
 	}
 

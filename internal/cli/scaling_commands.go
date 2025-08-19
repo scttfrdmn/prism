@@ -102,7 +102,7 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 	fmt.Printf("🖥️  **Current Configuration**:\n")
 	fmt.Printf("   Instance Type: %s\n", instance.InstanceType)
 	fmt.Printf("   Template: %s\n", instance.Template)
-	fmt.Printf("   Daily Cost: $%.2f\n", instance.EstimatedDailyCost)
+	fmt.Printf("   Daily Cost: $%.2f\n", instance.HourlyRate)
 	fmt.Printf("   State: %s\n", instance.State)
 	fmt.Printf("   Launch Time: %s\n", instance.LaunchTime.Format("2006-01-02 15:04:05"))
 
@@ -152,7 +152,7 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 			runningCount++
 			fmt.Printf("🖥️  **%s** (%s)\n", name, instance.InstanceType)
 			fmt.Printf("   Template: %s\n", instance.Template)
-			fmt.Printf("   Current Cost: $%.2f/day\n", instance.EstimatedDailyCost)
+			fmt.Printf("   Current Cost: $%.2f/day\n", instance.HourlyRate)
 			fmt.Printf("   Status: Analytics collection active\n")
 			fmt.Printf("   Recommendations: Available after 1+ hours of runtime\n\n")
 		} else {
@@ -229,7 +229,7 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 	fmt.Printf("   Type: %s\n", instance.InstanceType)
 	fmt.Printf("   State: %s\n", instance.State)
 	fmt.Printf("   Template: %s\n", instance.Template)
-	fmt.Printf("   Daily Cost: $%.2f\n", instance.EstimatedDailyCost)
+	fmt.Printf("   Daily Cost: $%.2f\n", instance.HourlyRate)
 
 	if instance.State != "running" {
 		fmt.Printf("\n⚠️  Instance is not running. Usage statistics are only collected for running instances.\n")
@@ -373,7 +373,7 @@ func (s *ScalingCommands) rightsizingSummary(args []string) error {
 		switch instance.State {
 		case "running":
 			runningInstances++
-			totalDailyCost += instance.EstimatedDailyCost
+			totalDailyCost += instance.HourlyRate
 		case "stopped":
 			stoppedInstances++
 		}
@@ -384,7 +384,7 @@ func (s *ScalingCommands) rightsizingSummary(args []string) error {
 		}
 
 		fmt.Printf("   %s %-20s %s ($%.2f/day)\n",
-			status, instance.Name, instance.InstanceType, instance.EstimatedDailyCost)
+			status, instance.Name, instance.InstanceType, instance.HourlyRate)
 	}
 
 	fmt.Printf("\n💰 **Cost Summary**:\n")
@@ -495,7 +495,7 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 	fmt.Printf("   Name: %s\n", instance.Name)
 	fmt.Printf("   Type: %s\n", instance.InstanceType)
 	fmt.Printf("   State: %s\n", instance.State)
-	fmt.Printf("   Current Cost: $%.2f/day\n\n", instance.EstimatedDailyCost)
+	fmt.Printf("   Current Cost: $%.2f/day\n\n", instance.HourlyRate)
 
 	// Parse current size from instance type
 	currentSize := s.parseInstanceSize(instance.InstanceType)
@@ -590,7 +590,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 	}
 
 	// Show cost comparison
-	currentCost := instance.EstimatedDailyCost
+	currentCost := instance.HourlyRate
 	newCost := s.estimateCostForSize(newSize)
 
 	fmt.Printf("💰 **Cost Impact**:\n")
@@ -677,7 +677,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 	fmt.Printf("   Storage: %s → %s\n\n", currentSpecs.Storage, newSpecs.Storage)
 
 	// Cost comparison
-	currentCost := instance.EstimatedDailyCost
+	currentCost := instance.HourlyRate
 	newCost := s.estimateCostForSize(newSize)
 
 	fmt.Printf("💰 **Cost Impact**:\n")

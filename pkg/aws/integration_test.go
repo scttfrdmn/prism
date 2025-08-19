@@ -88,8 +88,8 @@ func TestIntegrationLaunchInstance(t *testing.T) {
 		t.Error("Instance ID should not be empty")
 	}
 
-	if instance.EstimatedDailyCost <= 0 {
-		t.Error("Instance should have positive daily cost")
+	if instance.HourlyRate <= 0 {
+		t.Error("Instance should have positive hourly rate")
 	}
 
 	// Clean up

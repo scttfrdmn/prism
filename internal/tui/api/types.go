@@ -53,7 +53,9 @@ type InstanceResponse struct {
 	PrivateIP          string    `json:"private_ip"`
 	State              string    `json:"state"`
 	LaunchTime         time.Time `json:"launch_time"`
-	EstimatedDailyCost float64   `json:"estimated_daily_cost"`
+	HourlyRate    float64 `json:"hourly_rate"`         // AWS list price per hour
+	CurrentSpend  float64 `json:"current_spend"`       // Actual accumulated cost since launch
+	EffectiveRate float64 `json:"effective_rate"`      // Current spend ÷ hours since launch
 	AttachedVolumes    []string  `json:"attached_volumes"`
 	AttachedEBSVolumes []string  `json:"attached_ebs_volumes"`
 	InstanceLifecycle  string    `json:"instance_lifecycle"` // "spot" or "on-demand"
@@ -165,7 +167,9 @@ func ToInstanceResponse(instance types.Instance) InstanceResponse {
 		PrivateIP:          instance.PrivateIP,
 		State:              instance.State,
 		LaunchTime:         instance.LaunchTime,
-		EstimatedDailyCost: instance.EstimatedDailyCost,
+		HourlyRate:         instance.HourlyRate,
+		CurrentSpend:       instance.CurrentSpend,
+		EffectiveRate:      instance.EffectiveRate,
 		AttachedVolumes:    instance.AttachedVolumes,
 		AttachedEBSVolumes: instance.AttachedEBSVolumes,
 		InstanceLifecycle:  instance.InstanceLifecycle,

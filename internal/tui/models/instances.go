@@ -220,7 +220,7 @@ func (m *InstancesModel) updateInstancesTable() {
 			instance.Template,
 			status,
 			typeIndicator,
-			fmt.Sprintf("$%.2f", instance.EstimatedDailyCost),
+			fmt.Sprintf("$%.3f/hr", instance.HourlyRate),
 			instance.PublicIP,
 			launchTime,
 		})

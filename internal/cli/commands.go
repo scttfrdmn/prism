@@ -293,7 +293,7 @@ func (b *BasicCostStrategy) CalculateInstanceCost(instance types.Instance, calcu
 		}
 	}
 
-	dailyCost := instance.EstimatedDailyCost
+	dailyCost := instance.CurrentSpend
 	totalMinutes := totalLifetime.Minutes()
 	actualSpend := (dailyCost / (24.0 * 60.0)) * totalMinutes
 

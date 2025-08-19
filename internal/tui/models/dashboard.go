@@ -149,7 +149,7 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				instance.Name,
 				instance.Template,
 				status,
-				fmt.Sprintf("$%.2f", instance.EstimatedDailyCost),
+				fmt.Sprintf("$%.3f/hr eff:$%.3f", instance.HourlyRate, instance.EffectiveRate),
 			})
 		}
 		m.instancesTable.SetRows(rows)
