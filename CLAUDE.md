@@ -69,14 +69,47 @@ Simple by default, detailed when needed. Power users can access advanced feature
 
 CloudWorkstation is now a full **enterprise research platform** supporting collaborative projects, grant-funded budgets, and institutional research management while maintaining its core simplicity for individual researchers.
 
-**Phase 5 Planning**: AWS-Native Research Ecosystem Expansion
-- 🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing  
-- 🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads
-- 🎯 **Research Workflows**: Integration with research data management and CI/CD systems
-- 🎯 **Enhanced Networking**: Private VPC networking and research data transfer optimization
-- 🎯 **AWS Research Services**: Deep integration with AWS research-specific services (ParallelCluster, Batch, SageMaker)
-- 🎯 **Data Pipeline Integration**: Direct support for S3, AWS Data Exchange, and research data repositories
-- 🎯 **HPC Scheduling**: Integration with AWS batch processing and high-performance computing clusters
+**Phase 5: AWS-Native Research Ecosystem Expansion** (Restructured)
+
+### **Phase 5A: Multi-User Foundation** (v0.5.0 - Q1 2025)
+🎯 **Research User Architecture**: 
+- Per-profile research users with consistent UID/GID mapping
+- Optional Globus Auth integration for enhanced identity verification
+- EFS home directory integration for persistent research environments
+
+🎯 **Basic Policy Framework Integration**:
+- Template launch policy enforcement with violation handling
+- Enhanced profile management with policy display
+- Policy-filtered template listings and launch restrictions
+
+🎯 **Research User Provisioning**:
+- Template integration with dual-user model (system + research)
+- SSH key management for research users
+- Cross-template research user compatibility
+
+### **Phase 5B: AWS Research Services Integration** (v0.5.5 - Q2 2025)
+🎯 **SageMaker Studio Integration** (Priority 1):
+- SageMaker Studio Lab (free) for educational use cases
+- SageMaker Studio (managed) with unified cost tracking
+- Direct web access integration with CloudWorkstation profiles
+
+🎯 **Web Service Management Framework**:
+- Unified interface for EC2 + AWS research services
+- Service-specific template architecture (`connection_type: web`)
+- Cross-service cost tracking and budget management
+
+🎯 **Development & Analytics Services**:
+- AWS Cloud9 web-based IDE integration
+- QuickSight analytics dashboards
+- Athena SQL editor for data analysis
+- Glue DataBrew for data preparation
+
+### **Phase 5C: Enterprise Research Ecosystem** (v0.6.0 - Q3 2025)
+🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing
+🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads  
+🎯 **Enterprise Policy Engine**: Digital signatures and institutional governance controls
+🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and EMR Studio big data
+🎯 **Research Workflows**: Integration with research data management and CI/CD systems
 
 **Note**: Multi-cloud support (Azure, GCP) has been postponed indefinitely to focus on deep AWS-native research ecosystem integration.
 
