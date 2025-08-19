@@ -365,7 +365,7 @@ func TestRightsizingSummary(t *testing.T) {
 			setupMock: func(mock *MockAPIClient) {
 				for i := range mock.Instances {
 					mock.Instances[i].State = "running"
-					mock.Instances[i].EstimatedDailyCost = 2.5
+					mock.Instances[i].CurrentSpend = 2.5
 				}
 			},
 		},
@@ -626,7 +626,7 @@ func TestScalingPreview(t *testing.T) {
 			expectError: false,
 			setupMock: func(mock *MockAPIClient) {
 				mock.Instances[0].InstanceType = "t3.small"
-				mock.Instances[0].EstimatedDailyCost = 1.0
+				mock.Instances[0].CurrentSpend = 1.0
 			},
 		},
 		{
@@ -635,7 +635,7 @@ func TestScalingPreview(t *testing.T) {
 			expectError: false,
 			setupMock: func(mock *MockAPIClient) {
 				mock.Instances[0].InstanceType = "t3.large"
-				mock.Instances[0].EstimatedDailyCost = 4.0
+				mock.Instances[0].CurrentSpend = 4.0
 			},
 		},
 		{

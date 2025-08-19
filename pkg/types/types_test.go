@@ -15,7 +15,8 @@ func TestInstanceSerialization(t *testing.T) {
 		PrivateIP:          "10.0.1.100",
 		State:              "running",
 		LaunchTime:         time.Now().UTC().Truncate(time.Second),
-		EstimatedDailyCost: 2.40,
+		HourlyRate:         0.10,
+		CurrentSpend:       2.40,
 		AttachedVolumes:    []string{"vol-1", "vol-2"},
 		AttachedEBSVolumes: []string{"ebs-1", "ebs-2"},
 	}
@@ -55,8 +56,11 @@ func TestInstanceSerialization(t *testing.T) {
 	if !restored.LaunchTime.Equal(original.LaunchTime) {
 		t.Errorf("LaunchTime mismatch: got %v, want %v", restored.LaunchTime, original.LaunchTime)
 	}
-	if restored.EstimatedDailyCost != original.EstimatedDailyCost {
-		t.Errorf("EstimatedDailyCost mismatch: got %f, want %f", restored.EstimatedDailyCost, original.EstimatedDailyCost)
+	if restored.HourlyRate != original.HourlyRate {
+		t.Errorf("HourlyRate mismatch: got %f, want %f", restored.HourlyRate, original.HourlyRate)
+	}
+	if restored.CurrentSpend != original.CurrentSpend {
+		t.Errorf("CurrentSpend mismatch: got %f, want %f", restored.CurrentSpend, original.CurrentSpend)
 	}
 	if len(restored.AttachedVolumes) != len(original.AttachedVolumes) {
 		t.Errorf("AttachedVolumes length mismatch: got %d, want %d", len(restored.AttachedVolumes), len(original.AttachedVolumes))

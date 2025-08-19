@@ -157,7 +157,7 @@ func (h *AWSTestHelpers) VerifyInstanceProperties(t *testing.T, instance *types.
 		require.NotEmpty(t, instance.PublicIP, "Running instance should have public IP")
 	}
 
-	require.True(t, instance.EstimatedDailyCost > 0, "Instance should have positive estimated daily cost")
+	require.True(t, instance.HourlyRate > 0, "Instance should have positive hourly rate")
 	require.False(t, instance.LaunchTime.IsZero(), "Instance should have launch time")
 }
 

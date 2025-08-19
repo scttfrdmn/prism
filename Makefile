@@ -14,7 +14,7 @@ all: build
 
 # Build all binaries (CLI, daemon, GUI, TUI integrated)
 .PHONY: build
-build: build-daemon build-cli build-gui
+build: build-daemon build-cli
 
 # Build daemon binary
 .PHONY: build-daemon
@@ -31,8 +31,12 @@ build-cli:
 # Build GUI binary
 .PHONY: build-gui
 build-gui:
-	@echo "Building CloudWorkstation GUI..."
-	@CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
+	@echo "Building CloudWorkstation GUI (Wails 3.x)..."
+	@if ! command -v wails >/dev/null 2>&1; then \
+		echo "❌ Wails CLI not found. Install with: go install github.com/wailsapp/wails/v3/cmd/wails@latest"; \
+		exit 1; \
+	fi
+	@cd cmd/cws-gui && wails build
 
 # Force GUI build (for development/testing only)
 .PHONY: build-gui-force
@@ -79,7 +83,7 @@ clean:
 # Uses development mode to avoid keychain password prompts
 test-unit:
 	@echo "🧪 Running unit tests..."
-	@CLOUDWORKSTATION_DEV=true GO_ENV=test go test -race -short $$(go list ./... | grep -v -E "(cmd/cws-gui|internal/gui|internal/tui)") -coverprofile=unit-coverage.out
+	@CLOUDWORKSTATION_DEV=true GO_ENV=test go test -race -short $$(go list ./... | grep -v -E "(cmd/cws-gui|internal/tui)") -coverprofile=unit-coverage.out
 
 # Run integration tests with LocalStack
 test-integration:

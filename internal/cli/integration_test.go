@@ -712,14 +712,16 @@ func TestCostAnalysis(t *testing.T) {
 			Template:           "gpu-ml",
 			State:              "running",
 			InstanceLifecycle:  "on-demand",
-			EstimatedDailyCost: 10.50,
+			HourlyRate:         0.4375,
+			CurrentSpend:       10.50,
 		},
 		{
 			Name:               "cheap-instance",
 			Template:           "basic-compute",
 			State:              "stopped",
 			InstanceLifecycle:  "spot",
-			EstimatedDailyCost: 1.25,
+			HourlyRate:         0.052,
+			CurrentSpend:       1.25,
 		},
 	}
 

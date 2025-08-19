@@ -146,7 +146,8 @@ func loadMockInstances() map[string]types.Instance {
 			PrivateIP:          "172.31.16.25",
 			State:              "running",
 			LaunchTime:         time.Now().Add(-24 * time.Hour),
-			EstimatedDailyCost: 3.024,
+			HourlyRate:         0.126,
+			CurrentSpend:       3.024,
 			AttachedVolumes:    []string{"shared-data"},
 		},
 		"ml-training": {
@@ -157,7 +158,8 @@ func loadMockInstances() map[string]types.Instance {
 			PrivateIP:          "172.31.32.67",
 			State:              "stopped",
 			LaunchTime:         time.Now().Add(-72 * time.Hour),
-			EstimatedDailyCost: 12.624,
+			HourlyRate:         0.526,
+			CurrentSpend:       12.624,
 			AttachedEBSVolumes: []string{"training-data"},
 		},
 	}
@@ -286,7 +288,8 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 		LaunchTime:         time.Now(),
 		PublicIP:           publicIP,
 		PrivateIP:          "172.31.16." + fmt.Sprint(time.Now().Second()),
-		EstimatedDailyCost: dailyCost,
+		HourlyRate:         dailyCost / 24.0,
+		CurrentSpend:       dailyCost,
 	}
 
 	// Add volumes if specified
@@ -339,7 +342,7 @@ func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, er
 	for _, instance := range m.Instances {
 		instances = append(instances, instance)
 		if instance.State == "running" {
-			totalCost += instance.EstimatedDailyCost
+			totalCost += instance.CurrentSpend
 		}
 	}
 
