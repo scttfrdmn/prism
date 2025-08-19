@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>CloudWorkstation</title>
+    <link rel="stylesheet" href="/themes/core.css" id="theme-link"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <span class="logo">☁️</span>
+                    CloudWorkstation
+                </h1>
+                <div class="header-actions">
+                    <button class="btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+                        <span id="theme-icon">🌙</span>
+                    </button>
+                    <button class="btn-icon" onclick="showSettings()" title="Settings">
+                        ⚙️
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Quick Start Section (Primary View) -->
+            <section id="quick-start" class="section active">
+                <div class="section-header">
+                    <h2>Quick Start</h2>
+                    <p class="section-subtitle">Choose a template and launch your research environment</p>
+                </div>
+
+                <!-- Template Selection -->
+                <div class="template-grid" id="template-grid">
+                    <div class="template-card loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading templates...</p>
+                    </div>
+                </div>
+
+                <!-- Launch Form (Progressive Disclosure) -->
+                <div id="launch-form" class="launch-form hidden">
+                    <div class="form-header">
+                        <h3 id="selected-template-name">Selected Template</h3>
+                        <button class="btn-text" onclick="clearSelection()">Change Template</button>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="instance-name">Instance Name</label>
+                            <input type="text" id="instance-name" placeholder="my-research-project" class="form-input"/>
+                            <small class="form-hint">Choose a descriptive name for your research</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="instance-size">Size</label>
+                            <select id="instance-size" class="form-select">
+                                <option value="S">Small - 2 CPU, 4GB RAM (Best for testing)</option>
+                                <option value="M" selected>Medium - 2 CPU, 8GB RAM (Recommended)</option>
+                                <option value="L">Large - 4 CPU, 16GB RAM (Data analysis)</option>
+                                <option value="XL">Extra Large - 8 CPU, 32GB RAM (Heavy workloads)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn-primary" onclick="launchInstance()" id="launch-btn">
+                            <span class="btn-icon">🚀</span>
+                            Launch Research Environment
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Instances Section (Secondary View) -->
+            <section id="my-instances" class="section">
+                <div class="section-header">
+                    <h2>My Instances</h2>
+                    <p class="section-subtitle">Manage your running research environments</p>
+                </div>
+
+                <div class="instances-grid" id="instances-grid">
+                    <div class="instance-card loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading instances...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="showSection('quick-start')">
+                <span class="nav-icon">🚀</span>
+                <span class="nav-label">Quick Start</span>
+            </button>
+            <button class="nav-item" onclick="showSection('my-instances')">
+                <span class="nav-icon">💻</span>
+                <span class="nav-label">My Instances</span>
+            </button>
+        </nav>
+
+        <!-- Settings Modal (Progressive Disclosure) -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button class="btn-icon" onclick="hideSettings()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h4>Appearance</h4>
+                        <div class="setting-item">
+                            <label>Theme</label>
+                            <select id="theme-selector" onchange="applyTheme(this.value)">
+                                <option value="core">Core (Default)</option>
+                                <option value="academic">Academic</option>
+                                <option value="minimal">Minimal</option>
+                                <option value="dark">Dark</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h4>Advanced</h4>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="advanced-mode"/> 
+                                Show advanced options
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span id="connection-status" class="status-item">
+                <span class="status-dot connecting"></span>
+                Connecting to daemon...
+            </span>
+            <span class="status-spacer"></span>
+            <span class="status-item" id="current-time"></span>
+        </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
