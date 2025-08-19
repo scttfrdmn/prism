@@ -760,7 +760,7 @@ func (a *App) AMIDiscover(args []string) error {
 		}
 	}
 
-	fmt.Printf("\n💡 Templates with ✅ can launch in seconds using pre-built AMIs\n")
+	fmt.Printf("\n💡 Templates with ✅ use pre-built AMIs for faster deployment\n")
 	fmt.Printf("💡 Templates with ⏱️ will take several minutes to install packages\n")
 	fmt.Printf("\n🛠️  To build AMIs: cws ami build <template-name>\n")
 

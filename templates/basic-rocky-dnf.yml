@@ -1,12 +1,12 @@
-name: "Basic Enterprise (DNF)"
-description: "Ubuntu environment configured with DNF-style enterprise packages for RHEL compatibility testing"
+name: "Basic Research (DNF)"
+description: "Ubuntu environment configured with DNF-style packages for RHEL compatibility testing"
 base: "ubuntu-22.04"
 
 # Use DNF package manager
 package_manager: "dnf"
 
 packages:
-  system:  # Enterprise packages (APT equivalent)
+  system:  # Research packages (APT equivalent)
     - "build-essential"
     - "curl" 
     - "wget"

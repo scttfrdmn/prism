@@ -607,11 +607,11 @@ func (r *CommandFactoryRegistry) createAMIDiscoverCommand() *cobra.Command {
 func (a *App) NewRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "cws",
-		Short: "CloudWorkstation - Launch research environments in seconds",
+		Short: "CloudWorkstation - Launch research computing environments",
 		Long: fmt.Sprintf(`%s
 
-CloudWorkstation helps researchers quickly launch cloud environments
-for research computing without configuration hassles.
+CloudWorkstation provides researchers with pre-configured cloud computing
+environments for data analysis, machine learning, and research computing.
 
 `, version.GetVersionInfo()),
 		Version: a.version,

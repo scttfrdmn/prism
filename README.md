@@ -4,7 +4,7 @@
   <img src="docs/images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
-<p align="center"><strong>Enterprise Research Management Platform - Launch cloud research environments in seconds!</strong></p>
+<p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments for researchers</strong></p>
 
 <p align="center">
   <a href="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/dependency-scan.yml">
@@ -26,7 +26,7 @@
 
 ## What is CloudWorkstation?
 
-CloudWorkstation is an **enterprise research management platform** that allows academic researchers to launch pre-configured cloud research environments in **seconds** rather than spending **hours** setting up research computing infrastructure.
+CloudWorkstation is an **academic research computing platform** that provides researchers with pre-configured cloud environments for data analysis, machine learning, and computational research.
 
 From individual researchers to institutional deployments, CloudWorkstation scales seamlessly while maintaining the simplicity that makes research computing accessible to everyone.
 

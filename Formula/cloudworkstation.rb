@@ -1,5 +1,5 @@
 class Cloudworkstation < Formula
-  desc "Enterprise research management platform - Launch cloud research environments in seconds"
+  desc "Academic research computing platform - Launch cloud research environments"
   homepage "https://github.com/scttfrdmn/cloudworkstation"
   license "MIT"
   head "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
@@ -61,7 +61,7 @@ class Cloudworkstation < Formula
         brew services stop cloudworkstation    # Stop daemon service
         brew services restart cloudworkstation # Restart daemon service
       
-      Note: Version 0.4.2-3 includes enterprise research features with prebuilt binaries for fast installation.
+      Note: Version 0.4.2-3 includes research computing features with prebuilt binaries for fast installation.
     EOS
   end
 

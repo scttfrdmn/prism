@@ -1,12 +1,12 @@
-name: "Enterprise Server (DNF)"
-description: "Ubuntu environment configured with DNF for enterprise server development and testing"
+name: "Research Server (DNF)"
+description: "Ubuntu environment configured with DNF for research server development and testing"
 base: "ubuntu-22.04"
 
 # Use DNF package manager
 package_manager: "dnf"
 
 packages:
-  system:  # Enterprise packages (APT equivalent)
+  system:  # Research server packages (APT equivalent)
     - "build-essential"
     - "curl"
     - "wget"
@@ -22,7 +22,7 @@ packages:
     # Container runtime
     - "docker.io"
     - "docker-compose"
-    # Enterprise tools  
+    # System administration tools  
     - "rsyslog"
     - "chrony"
     - "ufw"
@@ -45,7 +45,7 @@ services:
   - name: "rsyslog"
     enable: true
 
-# Post-install script for enterprise setup
+# Post-install script for research server setup
 post_install: |
   # Configure UFW firewall for basic services
   ufw allow ssh
@@ -59,8 +59,8 @@ post_install: |
   # Configure Docker group
   usermod -aG docker admin
   
-  # Set up enterprise logging
-  echo "Setting up enterprise logging configuration..."
+  # Set up system logging
+  echo "Setting up system logging configuration..."
   echo "LogLevel INFO" >> /etc/ssh/sshd_config
 
 instance_defaults:
@@ -68,7 +68,7 @@ instance_defaults:
 
 version: "1.0"
 tags:
-  type: "enterprise"
+  type: "research-server"
   os: "rocky-linux"
   purpose: "server"
   security: "selinux"

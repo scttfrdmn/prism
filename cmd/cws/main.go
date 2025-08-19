@@ -1,4 +1,4 @@
-// CloudWorkstation CLI client (cws) - Launch research environments in seconds.
+// CloudWorkstation CLI client (cws) - Launch research computing environments.
 //
 // The cws command-line tool provides a simple interface for managing cloud
 // research workstations. It communicates with the CloudWorkstation daemon (cwsd)
@@ -69,7 +69,7 @@ func main() {
 
 func printUsage() {
 	fmt.Printf("CloudWorkstation CLI v%s\n\n", version.GetVersion())
-	fmt.Println("Launch pre-configured cloud workstations for research in seconds.")
+	fmt.Println("Launch pre-configured cloud computing environments for research.")
 	fmt.Println()
 	fmt.Println("Usage:")
 	fmt.Println("  cws [options] <command> [arguments]")
