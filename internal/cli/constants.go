@@ -99,20 +99,6 @@ const (
 	// DaemonAutoStartFailedMessage is displayed when auto-start fails
 	DaemonAutoStartFailedMessage = "❌ Failed to auto-start daemon. Please start manually with: cws daemon start"
 
-	// UsageLaunchCommand provides the usage string for the launch command
-	UsageLaunchCommand = `usage: cws launch <template> <name> [options]
-  options: --size XS|S|M|L|XL --volume <name> --storage <size> --project <name> --with conda|apt|dnf|ami --spot --hibernation --dry-run --wait --subnet <subnet-id> --vpc <vpc-id>
-
-  T-shirt sizes (compute + storage):
-    XS: 1 vCPU, 2GB RAM + 100GB storage  (t3.small/t4g.small)
-    S:  2 vCPU, 4GB RAM + 500GB storage  (t3.medium/t4g.medium)
-    M:  2 vCPU, 8GB RAM + 1TB storage    (t3.large/t4g.large) [default]
-    L:  4 vCPU, 16GB RAM + 2TB storage   (t3.xlarge/t4g.xlarge)
-    XL: 8 vCPU, 32GB RAM + 4TB storage   (t3.2xlarge/t4g.2xlarge)
-
-  GPU workloads automatically scale to GPU instances (g4dn/g5g family)
-  Memory-intensive workloads use r5/r6g instances with more RAM
-  Compute-intensive workloads use c5/c6g instances for better CPU performance`
 
 	// NoInstancesFoundMessage is displayed when no instances are found
 	NoInstancesFoundMessage = "No workstations found. Launch one with: cws launch <template> <name>"

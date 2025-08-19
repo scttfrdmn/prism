@@ -64,10 +64,6 @@ func TestUsageMessages(t *testing.T) {
 	assert.Contains(t, DaemonNotRunningMessage, "daemon not running")
 	assert.Contains(t, DaemonNotRunningMessage, "cws daemon start")
 
-	// Test launch usage
-	assert.Contains(t, UsageLaunchCommand, "cws launch")
-	assert.Contains(t, UsageLaunchCommand, "XS|S|M|L|XL")
-	assert.Contains(t, UsageLaunchCommand, "T-shirt sizes")
 
 	// Test no instances messages
 	assert.Contains(t, NoInstancesFoundMessage, "No workstations found")

@@ -192,10 +192,6 @@ func (a *App) TUI(_ []string) error {
 
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
-	if len(args) < 2 {
-		return NewUsageError(UsageLaunchCommand, "cws launch python-ml my-project --size L")
-	}
-
 	template := args[0]
 	name := args[1]
 
