@@ -111,6 +111,31 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and EMR Studio big data
 🎯 **Research Workflows**: Integration with research data management and CI/CD systems
 
+### **Phase 6: Extensibility & Ecosystem** (v0.7.0 - Q4 2025)
+🎯 **Plugin Architecture**: Unified CLI + daemon plugin system for custom functionality
+- Research analytics plugins (usage tracking, cost analysis, reporting)
+- HPC integration plugins (SLURM, PBS, LSF job submission)
+- Custom authentication providers (institutional SSO, LDAP, OAuth)
+- Third-party service integrations (specialized research tools)
+
+🎯 **Auto-AMI System**: Intelligent template compilation and security updates
+- Popularity-driven auto-compilation for faster launch times (30s vs 5-8 minutes)
+- Automated security rebuilds when base OS images are patched
+- Cost-optimized scheduling during off-peak hours
+- Institutional semester preparation automation
+
+🎯 **GUI Skinning & Theming**: Institutional branding and accessibility
+- University branding themes with logos, colors, and custom layouts
+- Accessibility themes (high contrast, large fonts, screen reader optimization)  
+- Research workflow-optimized layouts and component arrangements
+- Custom component development for specialized research interfaces
+
+🎯 **Web Services Integration Framework**: Third-party research tool integration
+- Template-based integration guide for custom research platforms
+- JupyterHub, RStudio Server, Galaxy, and specialized tool examples
+- OAuth/OIDC authentication integration with research user identity
+- EFS sharing integration for collaborative research environments
+
 **Note**: Multi-cloud support (Azure, GCP) has been postponed indefinitely to focus on deep AWS-native research ecosystem integration.
 
 **Multi-Modal Access Strategy**:
