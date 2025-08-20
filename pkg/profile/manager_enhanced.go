@@ -57,24 +57,25 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 
 	// Load or create profiles
 	if err := manager.load(); err != nil {
-		// If file doesn't exist, create default profile
+		// If file doesn't exist, create a useful default profile that uses AWS default profile
 		if os.IsNotExist(err) {
 			manager.profiles = &Profiles{
 				Profiles:       make(map[string]Profile),
-				CurrentProfile: "personal",
+				CurrentProfile: "default", // Use default profile
 			}
 
-			// Create default personal profile
+			// Create a default profile that maps to user's default AWS configuration
+			// This means most users need zero configuration - it just works
 			defaultProfile := Profile{
 				Type:       ProfileTypePersonal,
-				Name:       "My Account",
-				AWSProfile: "default",
-				Region:     "", // Use AWS SDK default
+				Name:       "AWS Default",
+				AWSProfile: "default", // Maps to default AWS profile in ~/.aws/credentials
+				Region:     "",        // Use AWS SDK default (from config or environment)
 				Default:    true,
 				CreatedAt:  time.Now(),
 			}
 
-			manager.profiles.Profiles["personal"] = defaultProfile
+			manager.profiles.Profiles["default"] = defaultProfile
 
 			if err := manager.save(); err != nil {
 				return nil, fmt.Errorf("failed to create initial profiles: %w", err)

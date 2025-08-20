@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -22,6 +24,9 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 		Use:   "profiles",
 		Short: "Manage CloudWorkstation profiles",
 		Long:  `Manage profiles for working with different AWS accounts and shared resources.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			runProfilesMainCommand(config)
+		},
 	}
 	rootCmd.AddCommand(profilesCmd)
 
@@ -29,6 +34,7 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 	profilesCmd.AddCommand(createListCommand(config))
 	profilesCmd.AddCommand(createCurrentCommand(config))
 	profilesCmd.AddCommand(createSwitchCommand(config))
+	profilesCmd.AddCommand(createSetupCommand(config)) // Interactive wizard
 
 	// Add profile management commands
 	addCmd := &cobra.Command{
@@ -505,6 +511,102 @@ func runAcceptInvitationCommand(config *Config, cmd *cobra.Command) {
 	}
 
 	fmt.Printf("Accepted invitation and created profile '%s'\n", name)
+}
+
+// createSetupCommand creates the interactive profile setup command
+func createSetupCommand(config *Config) *cobra.Command {
+	return &cobra.Command{
+		Use:   "setup",
+		Short: "Interactive profile setup wizard",
+		Long: `Launch an interactive wizard to easily create and configure profiles.
+
+This wizard guides you through:
+  • Choosing between personal and invitation profiles
+  • Setting up AWS credentials and regions
+  • Validating your configuration
+  • Switching to your new profile
+
+Perfect for first-time users or when adding new AWS accounts.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			runSetupCommand(config)
+		},
+	}
+}
+
+// runSetupCommand handles the interactive setup wizard
+func runSetupCommand(config *Config) {
+	wizard, err := NewProfileWizard(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile wizard"))
+		os.Exit(1)
+	}
+
+	if err := wizard.RunInteractiveSetup(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "run profile setup wizard"))
+		os.Exit(1)
+	}
+}
+
+// runProfilesMainCommand handles the main profiles command with smart defaults
+func runProfilesMainCommand(config *Config) {
+	// Check if user has profiles (other than default)
+	profileManager, err := createProfileManager(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
+		os.Exit(1)
+	}
+
+	profiles, err := profileManager.ListProfilesWithIDs()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "list profiles"))
+		os.Exit(1)
+	}
+
+	// Check if user only has the default profile (common case)
+	hasOnlyDefault := len(profiles) == 1 && profiles[0].Profile.Default && profiles[0].Profile.Name == "AWS Default"
+	
+	if hasOnlyDefault {
+		fmt.Printf("🚀 %s\n", color.CyanString("CloudWorkstation Profile Management"))
+		fmt.Println()
+		fmt.Println("You're using the default AWS profile - perfect! Most users don't need to change this.")
+		fmt.Printf("Current setup: AWS profile '%s'", profiles[0].Profile.AWSProfile)
+		if profiles[0].Profile.Region != "" {
+			fmt.Printf(" in region '%s'", profiles[0].Profile.Region)
+		}
+		fmt.Println()
+		fmt.Println()
+		fmt.Println("💡 Your CloudWorkstation is ready to use! Try:")
+		fmt.Println("   cws launch python-ml my-project")
+		fmt.Println()
+		
+		reader := bufio.NewReader(os.Stdin)
+		if promptYesNo(reader, "Would you like to add additional profiles for other AWS accounts or regions?", false) {
+			runSetupCommand(config)
+		} else {
+			fmt.Println("👍 Great! Your default profile is all set.")
+		}
+	} else {
+		// Show profile list when user has multiple profiles
+		runListCommand(config)
+	}
+}
+
+// promptYesNo prompts user for yes/no input
+func promptYesNo(reader *bufio.Reader, prompt string, defaultValue bool) bool {
+	defaultChar := "y/N"
+	if defaultValue {
+		defaultChar = "Y/n"
+	}
+
+	fmt.Printf("%s [%s]: ", prompt, defaultChar)
+	input, _ := reader.ReadString('\n')
+	input = strings.ToLower(strings.TrimSpace(input))
+
+	if input == "" {
+		return defaultValue
+	}
+
+	return input == "y" || input == "yes"
 }
 
 // createRenameCommand creates the rename profile command
