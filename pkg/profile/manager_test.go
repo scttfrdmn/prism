@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 )
 
 func TestProfileManager(t *testing.T) {

@@ -4,15 +4,15 @@ class Cloudworkstation < Formula
   license "MIT"
   head "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
   
-  version "0.4.3"
+  version "0.4.4"
 
   # Use prebuilt binaries for faster installation  
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.3/cloudworkstation-darwin-arm64.tar.gz"
+      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.4/cloudworkstation-darwin-arm64.tar.gz"
       sha256 "1bf41b76441f14c6cd05a51f6081d5e68f6d16609e1ac680f390aefc9be4d28b"
     else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.3/cloudworkstation-darwin-amd64.tar.gz"
+      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.4/cloudworkstation-darwin-amd64.tar.gz"
       sha256 "8fee1c699c715d81771f1c2ff82958d8af99debacccf7d2e038813e91fe83a8a"
     end
   end

@@ -1,7 +1,7 @@
 # CloudWorkstation Makefile
 # Builds both daemon and CLI client
 
-VERSION := 0.4.3
+VERSION := 0.4.4
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
