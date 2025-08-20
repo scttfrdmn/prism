@@ -62,7 +62,7 @@ func TestConstants(t *testing.T) {
 func TestUsageMessages(t *testing.T) {
 	// Test daemon message
 	assert.Contains(t, DaemonNotRunningMessage, "daemon not running")
-	assert.Contains(t, DaemonNotRunningMessage, "cws daemon start")
+	assert.Contains(t, DaemonNotRunningMessage, "cws daemon status")
 
 	// Test no instances messages
 	assert.Contains(t, NoInstancesFoundMessage, "No workstations found")
@@ -255,17 +255,23 @@ func TestPackageIndicators(t *testing.T) {
 
 // TestErrorHelperFunctions tests error helper functions
 func TestErrorHelperFunctions(t *testing.T) {
-	// Test WrapAPIError
+	// Test WrapAPIError - now uses enhanced error handling
 	originalErr := errors.New("connection failed")
 	wrappedErr := WrapAPIError("connect to service", originalErr)
 	assert.Error(t, wrappedErr)
-	assert.Contains(t, wrappedErr.Error(), "failed to connect to service")
+	// Enhanced error system produces comprehensive error messages
+	assert.Contains(t, wrappedErr.Error(), "connect to service failed")
 	assert.Contains(t, wrappedErr.Error(), "connection failed")
+	assert.Contains(t, wrappedErr.Error(), "Need help?")
+	assert.Contains(t, wrappedErr.Error(), "cws daemon status")
 
-	// Test WrapDaemonError
+	// Test WrapDaemonError - now uses enhanced error handling  
 	daemonErr := WrapDaemonError(originalErr)
 	assert.Error(t, daemonErr)
-	assert.Equal(t, DaemonNotRunningMessage, daemonErr.Error())
+	// Enhanced daemon error includes troubleshooting guidance
+	assert.Contains(t, daemonErr.Error(), "connect to daemon failed")
+	assert.Contains(t, daemonErr.Error(), "connection failed")
+	assert.Contains(t, daemonErr.Error(), "Need help?")
 
 	// Test NewUsageError
 	usageErr := NewUsageError("command <arg>", "command example")

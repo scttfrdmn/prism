@@ -17,7 +17,8 @@ func TestNewSecurityManager(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, manager)
-	assert.True(t, manager.isEnabled)
+	// With default config (all features disabled), manager should be disabled
+	assert.False(t, manager.isEnabled)
 	assert.False(t, manager.isRunning)
 	assert.Equal(t, config, manager.config)
 }
@@ -110,7 +111,7 @@ func TestGetSecurityStatus(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
-	assert.True(t, status.Enabled)
+	assert.False(t, status.Enabled) // Default config has all features disabled
 	assert.False(t, status.Running) // Not started yet
 	assert.Equal(t, config, status.Configuration)
 }
@@ -255,11 +256,15 @@ func TestValidateSecurityConfig(t *testing.T) {
 func TestGetDefaultSecurityConfig(t *testing.T) {
 	config := GetDefaultSecurityConfig()
 
-	assert.True(t, config.AuditLogEnabled)
-	assert.True(t, config.MonitoringEnabled)
-	assert.True(t, config.CorrelationEnabled)
-	assert.True(t, config.RegistrySecurityEnabled)
-	assert.True(t, config.HealthCheckEnabled)
+	// Security features are disabled by default to prevent keychain prompts
+	// This improves UX for basic profiles that don't need secure credential storage
+	assert.False(t, config.AuditLogEnabled)
+	assert.False(t, config.MonitoringEnabled)
+	assert.False(t, config.CorrelationEnabled)
+	assert.False(t, config.RegistrySecurityEnabled)
+	assert.False(t, config.HealthCheckEnabled)
+	
+	// Configuration values are still set even when disabled
 	assert.Equal(t, 30, config.LogRetentionDays)
 	assert.Equal(t, 30*time.Second, config.MonitorInterval)
 	assert.Equal(t, "MEDIUM", config.AlertThreshold)

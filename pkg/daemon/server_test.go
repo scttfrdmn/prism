@@ -325,8 +325,15 @@ func TestServerGracefulShutdown(t *testing.T) {
 	// Server should shut down gracefully within timeout
 	select {
 	case err := <-errChan:
-		// Should either be nil or context canceled
-		assert.True(t, err == nil || strings.Contains(err.Error(), "context canceled"))
+		// Show the actual error for debugging
+		if err != nil {
+			t.Logf("Server shutdown with error: %v", err)
+		}
+		// Should either be nil, context canceled, or http server closed (all are normal shutdown scenarios)
+		assert.True(t, err == nil || 
+			strings.Contains(err.Error(), "context canceled") ||
+			strings.Contains(err.Error(), "http: Server closed"), 
+			"Expected nil, 'context canceled', or 'http: Server closed', got: %v", err)
 	case <-time.After(3 * time.Second):
 		t.Fatal("Server did not shut down gracefully within timeout")
 	}
