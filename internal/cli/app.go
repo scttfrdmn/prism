@@ -277,24 +277,104 @@ func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricing
 	}
 }
 
-// monitorLaunchProgress monitors and displays real-time launch progress
+// monitorLaunchProgress monitors and displays enhanced real-time launch progress
 func (a *App) monitorLaunchProgress(instanceName, templateName string) error {
-	fmt.Printf("⏳ Monitoring launch progress for '%s'...\n", instanceName)
-
-	// Get template information to determine progress type
+	// Get template information for enhanced progress reporting
 	template, err := a.apiClient.GetTemplate(a.ctx, templateName)
 	if err != nil {
-		fmt.Printf("%s\n", FormatWarningMessage("Template info", "Could not get template info, showing basic progress"))
+		fmt.Printf("%s\n", FormatWarningMessage("Template info", "Could not get template info, using basic progress"))
 	}
 
-	// Determine if this is an AMI-based or package-based template
-	// Check if template uses AMI package manager or contains "AMI" in name
-	isAMI := template != nil && (strings.Contains(templateName, "AMI") || strings.Contains(strings.ToLower(templateName), "ami"))
+	// Create enhanced progress reporter
+	progressReporter := NewProgressReporter(instanceName, templateName, template)
+	progressReporter.ShowHeader()
 
-	if isAMI {
-		return a.monitorAMILaunchProgress(instanceName)
-	} else {
-		return a.monitorPackageLaunchProgress(instanceName, templateName)
+	// Monitor launch with enhanced progress reporting
+	return a.monitorLaunchWithEnhancedProgress(progressReporter, template)
+}
+
+// monitorLaunchWithEnhancedProgress monitors launch with enhanced progress reporting
+func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, template *types.Template) error {
+	startTime := time.Now()
+	maxDuration := 20 * time.Minute // Maximum monitoring time
+	
+	for {
+		elapsed := time.Since(startTime)
+		
+		// Check for timeout
+		if elapsed > maxDuration {
+			fmt.Printf("⚠️  Launch monitoring timeout (%s). Instance may still be setting up.\n", 
+				reporter.FormatDuration(maxDuration))
+			fmt.Printf("💡 Check status with: cws list\n")
+			fmt.Printf("💡 Try connecting: cws connect %s\n", reporter.instanceName)
+			return nil
+		}
+		
+		// Get current instance status
+		instance, err := a.apiClient.GetInstance(a.ctx, reporter.instanceName)
+		if err != nil {
+			// If we can't get instance info initially, show initializing
+			if elapsed < 30*time.Second {
+				fmt.Printf("⏳ Instance initializing...\n")
+			} else {
+				// After 30 seconds, show as potential issue
+				fmt.Printf("⚠️  Unable to get instance status after %s\n", reporter.FormatDuration(elapsed))
+				fmt.Printf("💡 Instance may still be launching. Check with: cws list\n")
+			}
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		
+		// Update progress display
+		reporter.UpdateProgress(instance, elapsed)
+		
+		// Check for completion or error states
+		switch instance.State {
+		case "running":
+			// For package-based templates, verify setup is complete
+			// Check if it's NOT an AMI-based template
+			isAMI := false
+			if template != nil {
+				isAMI = len(template.AMI) > 0
+			}
+			if !isAMI && !strings.Contains(strings.ToLower(reporter.templateName), "ami") {
+				// Check if setup is actually complete (simplified check)
+				if elapsed > 2*time.Minute { // Allow some setup time
+					// Try to connect to verify setup completion
+					_, connErr := a.apiClient.ConnectInstance(a.ctx, reporter.instanceName)
+					if connErr == nil {
+						reporter.ShowCompletion(instance)
+						return nil
+					}
+					// If connection fails but we've been running a while, consider it complete
+					if elapsed > 10*time.Minute {
+						reporter.ShowCompletion(instance)
+						return nil
+					}
+				}
+			} else {
+				// AMI-based template - instance running means ready
+				reporter.ShowCompletion(instance)
+				return nil
+			}
+			
+		case "stopped", "stopping":
+			err := fmt.Errorf("instance stopped during launch")
+			reporter.ShowError(err, instance)
+			return err
+			
+		case "terminated":
+			err := fmt.Errorf("instance terminated during launch")
+			reporter.ShowError(err, instance)
+			return err
+			
+		case "dry-run":
+			fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+			return nil
+		}
+		
+		// Wait before next check
+		time.Sleep(5 * time.Second)
 	}
 }
 
