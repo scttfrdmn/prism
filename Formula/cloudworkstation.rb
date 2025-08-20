@@ -10,10 +10,10 @@ class Cloudworkstation < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.4/cloudworkstation-darwin-arm64.tar.gz"
-      sha256 "1bf41b76441f14c6cd05a51f6081d5e68f6d16609e1ac680f390aefc9be4d28b"
+      sha256 "7e94989b8d09d26679a69e6a66705f25ffd09c29d42929e0abbf5ecf31bb14ba"
     else
       url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.4/cloudworkstation-darwin-amd64.tar.gz"
-      sha256 "8fee1c699c715d81771f1c2ff82958d8af99debacccf7d2e038813e91fe83a8a"
+      sha256 "3ee850857aa73feb2ffd98cd9c570902caf9addbf96fe77bad452bec9654d206"
     end
   end
 
@@ -61,7 +61,13 @@ class Cloudworkstation < Formula
         brew services stop cloudworkstation    # Stop daemon service
         brew services restart cloudworkstation # Restart daemon service
       
-      Note: Version 0.4.3 includes research computing features with prebuilt binaries for fast installation.
+      🛡️ Version 0.4.4 Security Update:
+        Web interfaces (Jupyter, RStudio) now require SSH port forwarding for security.
+        Example: ssh -L 8888:localhost:8888 user@instance
+        
+        This prevents internet exposure while maintaining full functionality.
+        
+      Note: Version 0.4.4 includes enhanced security and prebuilt binaries for fast installation.
     EOS
   end
 
@@ -150,8 +156,8 @@ class Cloudworkstation < Formula
     assert_predicate bin/"cwsd", :exist?
     
     # Test version command
-    assert_match "CloudWorkstation v", shell_output("#{bin}/cws --version")
-    assert_match "CloudWorkstation v", shell_output("#{bin}/cwsd --version")
+    assert_match "CloudWorkstation CLI v", shell_output("#{bin}/cws --version")
+    assert_match "CloudWorkstation Daemon v", shell_output("#{bin}/cwsd --version")
   end
 
   service do
