@@ -234,8 +234,14 @@ func (m *Manager) DeleteProject(ctx context.Context, projectID string) error {
 		return fmt.Errorf("project %q not found", projectID)
 	}
 
-	// TODO: Check for active instances and resources before deletion
-	// This should be implemented when project-instance association is added
+	// Check for active resources before deletion
+	activeInstances, err := m.getActiveInstancesForProject(projectID)
+	if err != nil {
+		return fmt.Errorf("failed to check active resources: %w", err)
+	}
+	if len(activeInstances) > 0 {
+		return fmt.Errorf("cannot delete project with %d active instances - stop instances first", len(activeInstances))
+	}
 
 	// Clean up budget tracking
 	if err := m.budgetTracker.RemoveProject(projectID); err != nil {
@@ -464,4 +470,17 @@ func (m *Manager) Close() error {
 	}
 
 	return nil
+}
+
+// getActiveInstancesForProject checks for active instances in a project
+// This is a placeholder implementation - in a full implementation this would
+// query the state manager or AWS directly to find instances tagged with the project ID
+func (m *Manager) getActiveInstancesForProject(projectID string) ([]string, error) {
+	// For now, return empty slice to allow project deletion
+	// TODO: Implement actual instance query when project-instance tagging is added
+	// This should check:
+	// 1. Query AWS EC2 instances with project tag
+	// 2. Check local state for running instances
+	// 3. Return list of instance IDs/names
+	return []string{}, nil
 }

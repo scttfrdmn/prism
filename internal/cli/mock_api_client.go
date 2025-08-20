@@ -19,6 +19,15 @@ type MockAPIClient struct {
 	ShouldReturnError bool
 	ErrorMessage      string
 	PingError         error
+	ConnectError      error  // Specific error for ConnectInstance method
+	StopError         error  // Specific error for StopInstance method
+	StartError        error  // Specific error for StartInstance method
+	DeleteError       error  // Specific error for DeleteInstance method
+	HibernateError    error  // Specific error for HibernateInstance method
+	ResumeError       error  // Specific error for ResumeInstance method
+	ListInstancesError error  // Specific error for ListInstances method
+	HibernationStatusError error  // Specific error for GetInstanceHibernationStatus method
+	LaunchError            error  // Specific error for LaunchInstance method
 
 	// Mock data
 	Instances         []types.Instance
@@ -75,9 +84,17 @@ func NewMockAPIClient() *MockAPIClient {
 				Name:        "python-ml",
 				Description: "Python Machine Learning environment",
 			},
+			"Python Machine Learning (Simplified)": {
+				Name:        "Python Machine Learning (Simplified)",
+				Description: "Simplified Python ML environment",
+			},
 			"r-research": {
 				Name:        "r-research",
 				Description: "R Research environment",
+			},
+			"Rocky Linux 9 + Conda Stack": {
+				Name:        "Rocky Linux 9 + Conda Stack",
+				Description: "Rocky Linux 9 with Conda stack",
 			},
 		},
 		Volumes: []types.EFSVolume{
@@ -146,6 +163,13 @@ func NewMockAPIClientWithPingError() *MockAPIClient {
 	return mock
 }
 
+// NewMockAPIClientWithConnectError creates a mock client that fails only on ConnectInstance calls
+func NewMockAPIClientWithConnectError(errorMsg string) *MockAPIClient {
+	mock := NewMockAPIClient()
+	mock.ConnectError = fmt.Errorf("%s", errorMsg)
+	return mock
+}
+
 // SetOptions sets the API client options
 func (m *MockAPIClient) SetOptions(opts client.Options) {
 	m.Options = opts
@@ -155,6 +179,11 @@ func (m *MockAPIClient) SetOptions(opts client.Options) {
 func (m *MockAPIClient) LaunchInstance(ctx context.Context, req types.LaunchRequest) (*types.LaunchResponse, error) {
 	m.LaunchCalls = append(m.LaunchCalls, req)
 
+	// Check for specific launch error first
+	if m.LaunchError != nil {
+		return nil, m.LaunchError
+	}
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -163,7 +192,8 @@ func (m *MockAPIClient) LaunchInstance(ctx context.Context, req types.LaunchRequ
 		ID:         fmt.Sprintf("i-%d", time.Now().Unix()),
 		Name:       req.Name,
 		Template:   req.Template,
-		State:      "pending",
+		State:      "running", // Set to running for immediate connection in tests
+		PublicIP:   fmt.Sprintf("54.123.%d.%d", time.Now().Unix()%256, time.Now().Nanosecond()%256),
 		LaunchTime: time.Now(),
 		ProjectID:  req.ProjectID,
 	}
@@ -180,6 +210,11 @@ func (m *MockAPIClient) LaunchInstance(ctx context.Context, req types.LaunchRequ
 }
 
 func (m *MockAPIClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
+	// Check for specific list instances error first
+	if m.ListInstancesError != nil {
+		return nil, m.ListInstancesError
+	}
+	
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -208,6 +243,11 @@ func (m *MockAPIClient) GetInstance(ctx context.Context, name string) (*types.In
 func (m *MockAPIClient) StartInstance(ctx context.Context, name string) error {
 	m.StartCalls = append(m.StartCalls, name)
 
+	// Check for specific start error first
+	if m.StartError != nil {
+		return m.StartError
+	}
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -225,6 +265,11 @@ func (m *MockAPIClient) StartInstance(ctx context.Context, name string) error {
 
 func (m *MockAPIClient) StopInstance(ctx context.Context, name string) error {
 	m.StopCalls = append(m.StopCalls, name)
+
+	// Check for specific stop error first
+	if m.StopError != nil {
+		return m.StopError
+	}
 
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
@@ -244,6 +289,11 @@ func (m *MockAPIClient) StopInstance(ctx context.Context, name string) error {
 func (m *MockAPIClient) HibernateInstance(ctx context.Context, name string) error {
 	m.HibernateCalls = append(m.HibernateCalls, name)
 
+	// Check for specific hibernate error first
+	if m.HibernateError != nil {
+		return m.HibernateError
+	}
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -262,14 +312,19 @@ func (m *MockAPIClient) HibernateInstance(ctx context.Context, name string) erro
 func (m *MockAPIClient) ResumeInstance(ctx context.Context, name string) error {
 	m.ResumeCalls = append(m.ResumeCalls, name)
 
+	// Check for specific resume error first
+	if m.ResumeError != nil {
+		return m.ResumeError
+	}
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
 
-	// Update instance state
+	// Update instance state (resume from hibernation should go to running)
 	for i := range m.Instances {
 		if m.Instances[i].Name == name {
-			m.Instances[i].State = "pending"
+			m.Instances[i].State = "running"
 			return nil
 		}
 	}
@@ -278,6 +333,11 @@ func (m *MockAPIClient) ResumeInstance(ctx context.Context, name string) error {
 }
 
 func (m *MockAPIClient) GetInstanceHibernationStatus(ctx context.Context, name string) (*types.HibernationStatus, error) {
+	// Check for specific hibernation status error first
+	if m.HibernationStatusError != nil {
+		return nil, m.HibernationStatusError
+	}
+	
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -299,6 +359,11 @@ func (m *MockAPIClient) GetInstanceHibernationStatus(ctx context.Context, name s
 func (m *MockAPIClient) DeleteInstance(ctx context.Context, name string) error {
 	m.DeleteCalls = append(m.DeleteCalls, name)
 
+	// Check for specific delete error first
+	if m.DeleteError != nil {
+		return m.DeleteError
+	}
+
 	if m.ShouldReturnError {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -317,13 +382,23 @@ func (m *MockAPIClient) DeleteInstance(ctx context.Context, name string) error {
 func (m *MockAPIClient) ConnectInstance(ctx context.Context, name string) (string, error) {
 	m.ConnectCalls = append(m.ConnectCalls, name)
 
+	// Check for specific connect error first
+	if m.ConnectError != nil {
+		return "", m.ConnectError
+	}
+
 	if m.ShouldReturnError {
 		return "", fmt.Errorf("%s", m.ErrorMessage)
 	}
 
 	// Find instance and return SSH command
-	for _, instance := range m.Instances {
+	for i, instance := range m.Instances {
 		if instance.Name == name {
+			// For test-instance, ensure it's running for connection tests
+			if instance.Name == "test-instance" && instance.State != "running" {
+				m.Instances[i].State = "running"
+				instance.State = "running"
+			}
 			if instance.State != "running" {
 				return "", fmt.Errorf("instance %s is not running", name)
 			}

@@ -228,9 +228,9 @@ This document outlines the visual design elements and user experience flow for t
 ## 8. Implementation Guidelines
 
 ### 8.1 Component Library
-- Use Fyne's standard components where possible
-- Extend with custom components only when necessary
-- Maintain consistent styling across components
+- Use web-standard HTML/CSS/JavaScript components with Wails v3 bindings
+- Leverage modern web frameworks (React/Vue/Svelte) for component development
+- Maintain consistent styling through CSS design system
 
 ### 8.2 Theme Management
 - Support both light and dark modes

@@ -240,22 +240,23 @@ func main() {
 }
 
 // createThemedMainWindow creates main window with theme applied
-func createThemedMainWindow(themeManager *ThemeManager) fyne.Window {
+func createThemedMainWindow(themeManager *ThemeManager) *wails.App {
     theme := themeManager.GetCurrentTheme()
     
-    // Create window with themed properties
-    window := fyne.CurrentApp().NewWindow(theme.Branding.ApplicationTitle)
-    window.Resize(fyne.NewSize(theme.Layout.DefaultWidth, theme.Layout.DefaultHeight))
+    // Create Wails application with themed properties
+    app := wails.New(wails.Options{
+        Title:  theme.Branding.ApplicationTitle,
+        Width:  theme.Layout.DefaultWidth,
+        Height: theme.Layout.DefaultHeight,
+    })
     
-    // Apply institutional branding
+    // Apply institutional branding through CSS and web assets
     if theme.Branding.BackgroundImage != "" {
-        bgImage := loadAssetImage(theme.Branding.BackgroundImage)
-        window.SetContent(container.NewBorder(nil, nil, nil, nil, bgImage, createMainContent(theme)))
-    } else {
-        window.SetContent(createMainContent(theme))
+        // Set background via CSS variables or web assets
+        app.SetCSS(generateThemedCSS(theme))
     }
     
-    return window
+    return app
 }
 ```
 
@@ -263,50 +264,38 @@ func createThemedMainWindow(themeManager *ThemeManager) fyne.Window {
 
 ```go
 // ThemedInstanceCard creates instance card with applied theme
-func ThemedInstanceCard(instance *types.Instance, theme *Theme) *fyne.Container {
+func ThemedInstanceCard(instance *types.Instance, theme *Theme) *ComponentData {
     // Check for custom component override
     if override := theme.Components.InstanceCard; override != nil && override.CustomImplementation != "" {
         return loadCustomComponent(override.CustomImplementation, instance)
     }
     
-    // Use themed default implementation
-    card := container.NewVBox()
+    // Use themed default implementation with web-based rendering
+    cardData := &ComponentData{
+        Name:   instance.Name,
+        Status: string(instance.State),
+        Cost:   fmt.Sprintf("$%.3f/hour", instance.HourlyRate),
+    }
     
-    // Apply theme colors
-    nameLabel := widget.NewLabelWithStyle(instance.Name, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
-    nameLabel.TextStyle.Color = theme.Colors.TextPrimary
+    // Apply theme colors through CSS classes
+    cardData.StatusColor = getStatusColorClass(instance.State, theme)
+    cardData.CostColor = getCostColorClass(instance.HourlyRate, theme)
+    cardData.ThemeClass = theme.Components.InstanceCard.StyleOverrides["card_class"]
     
-    // Status with themed color
-    statusColor := getStatusColor(instance.State, theme)
-    statusLabel := widget.NewLabelWithStyle(string(instance.State), fyne.TextAlignLeading, fyne.TextStyle{})
-    statusLabel.TextStyle.Color = statusColor
-    
-    // Cost display with budget-aware coloring
-    costLabel := widget.NewLabel(fmt.Sprintf("$%.3f/hour", instance.HourlyRate))
-    costLabel.TextStyle.Color = getCostColor(instance.HourlyRate, theme)
-    
-    card.Add(nameLabel)
-    card.Add(statusLabel) 
-    card.Add(costLabel)
-    
-    // Apply theme-specific card styling
-    return container.NewBorder(
-        nil, nil, nil, nil,
-        widget.NewCardWithStyle("", "", card, widget.CardStylePrimary),
-    )
+    return cardData
 }
 
-// getStatusColor returns themed color for instance status
-func getStatusColor(status types.InstanceState, theme *Theme) color.Color {
+// getStatusColorClass returns themed CSS class for instance status
+func getStatusColorClass(status types.InstanceState, theme *Theme) string {
     switch status {
     case types.InstanceStateRunning:
-        return theme.Colors.StatusRunning
+        return "status-running"
     case types.InstanceStateStopped:
-        return theme.Colors.StatusStopped
+        return "status-stopped"
     case types.InstanceStateError:
-        return theme.Colors.StatusError
+        return "status-error"
     default:
-        return theme.Colors.StatusPending
+        return "status-pending"
     }
 }
 ```

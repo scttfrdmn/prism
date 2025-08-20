@@ -140,7 +140,7 @@ func (bt *BudgetTracker) UpdateProjectCosts(projectID string, instances []types.
 	budgetData.LastUpdated = time.Now()
 
 	// Check for budget alerts
-	if err := bt.checkBudgetAlerts(budgetData); err != nil {
+	if err := bt.checkBudgetAlerts(projectID, budgetData); err != nil {
 		return fmt.Errorf("failed to check budget alerts: %w", err)
 	}
 
@@ -299,7 +299,7 @@ func (bt *BudgetTracker) UpdateProjectSpending(projectID string, instanceCosts [
 	budgetData.LastUpdated = time.Now()
 
 	// Check for budget alerts
-	if err := bt.checkBudgetAlerts(budgetData); err != nil {
+	if err := bt.checkBudgetAlerts(projectID, budgetData); err != nil {
 		return fmt.Errorf("failed to check budget alerts: %w", err)
 	}
 
@@ -445,7 +445,7 @@ func (bt *BudgetTracker) trimCostHistory(budgetData *ProjectBudgetData, cutoffTi
 	budgetData.CostHistory = trimmedHistory
 }
 
-func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error {
+func (bt *BudgetTracker) checkBudgetAlerts(projectID string, budgetData *ProjectBudgetData) error {
 	if budgetData.Budget == nil {
 		return nil
 	}
@@ -480,8 +480,12 @@ func (bt *BudgetTracker) checkBudgetAlerts(budgetData *ProjectBudgetData) error 
 
 				budgetData.AlertHistory = append(budgetData.AlertHistory, alertEvent)
 
-				// TODO: Actually send the alert (email, slack, webhook)
-				// This would be implemented based on the alert type
+				// Log alert for now - actual delivery would be implemented based on alert type
+				// TODO: Implement alert delivery system (email, slack, webhook)
+				if err := bt.logAlert(projectID, alertEvent); err != nil {
+					// Don't fail budget processing for alert logging errors
+					fmt.Printf("Failed to log budget alert: %v\n", err)
+				}
 			}
 		}
 	}
@@ -603,4 +607,21 @@ func (bt *BudgetTracker) Close() error {
 
 	// Save any pending data
 	return bt.saveBudgetData()
+}
+
+// logAlert logs a budget alert event
+// This is a placeholder for actual alert delivery system
+func (bt *BudgetTracker) logAlert(projectID string, alertEvent AlertEvent) error {
+	// For now, just log to stdout - in a full implementation this would:
+	// 1. Send email notifications
+	// 2. Post to Slack/Teams channels
+	// 3. Call webhook endpoints
+	// 4. Write to audit log
+	fmt.Printf("🚨 BUDGET ALERT [%s] Project: %s, Type: %s, Current: $%.2f, Threshold: $%.2f\n",
+		alertEvent.Timestamp.Format("2006-01-02 15:04:05"),
+		projectID,
+		alertEvent.AlertType,
+		alertEvent.SpentAmount,
+		alertEvent.Threshold)
+	return nil
 }

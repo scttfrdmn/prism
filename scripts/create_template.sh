@@ -49,7 +49,7 @@ build_steps:
     script: |
       # Create default researcher user
       useradd -m -s /bin/bash researcher
-      echo "researcher:password123" | chpasswd
+      # Password authentication disabled - use SSH key authentication only
       usermod -aG sudo researcher
       
       # Create projects directory

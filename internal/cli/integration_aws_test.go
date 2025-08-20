@@ -49,7 +49,6 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -863,11 +862,13 @@ func TestAWSProfileIntegration(t *testing.T) {
 		require.NoError(t, err, "Failed to create profile manager")
 
 		// Create profile with AWS profile
-		testProfile := &core.Profile{
+		testProfile := &profile.Profile{
+			Type:       profile.ProfileTypePersonal,
 			Name:       "test-integration-profile",
 			AWSProfile: getAWSTestProfile(),
 			Region:     manager.region,
 			Default:    false,
+			CreatedAt:  time.Now(),
 		}
 
 		profileErr := profileManager.Set("test-integration-profile", testProfile)

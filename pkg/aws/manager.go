@@ -2190,89 +2190,23 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 		return "", fmt.Errorf("failed to add SSH rule to security group: %w", err)
 	}
 
-	// Add HTTP rule (port 80) for web interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId: aws.String(securityGroupID),
-		IpPermissions: []ec2types.IpPermission{
-			{
-				IpProtocol: aws.String("tcp"),
-				FromPort:   aws.Int32(80),
-				ToPort:     aws.Int32(80),
-				IpRanges: []ec2types.IpRange{
-					{
-						CidrIp:      aws.String("0.0.0.0/0"),
-						Description: aws.String("HTTP access for web interfaces"),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to add HTTP rule to security group: %w", err)
-	}
+	// HTTP rule (port 80) - DISABLED for security
+	// Web interfaces now secured to localhost - use SSH port forwarding
+	// Example: ssh -L 80:localhost:80 user@instance
+	// TODO: Long-term enhancement - detect user's local IP and allow that specific IP
+	//       instead of requiring SSH tunneling for better UX while maintaining security
 
-	// Add HTTPS rule (port 443) for secure web interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId: aws.String(securityGroupID),
-		IpPermissions: []ec2types.IpPermission{
-			{
-				IpProtocol: aws.String("tcp"),
-				FromPort:   aws.Int32(443),
-				ToPort:     aws.Int32(443),
-				IpRanges: []ec2types.IpRange{
-					{
-						CidrIp:      aws.String("0.0.0.0/0"),
-						Description: aws.String("HTTPS access for secure web interfaces"),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to add HTTPS rule to security group: %w", err)
-	}
+	// HTTPS rule (port 443) - DISABLED for security
+	// Web interfaces now secured to localhost - use SSH port forwarding
+	// Example: ssh -L 443:localhost:443 user@instance
 
-	// Add Jupyter rule (port 8888) for notebook interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId: aws.String(securityGroupID),
-		IpPermissions: []ec2types.IpPermission{
-			{
-				IpProtocol: aws.String("tcp"),
-				FromPort:   aws.Int32(8888),
-				ToPort:     aws.Int32(8888),
-				IpRanges: []ec2types.IpRange{
-					{
-						CidrIp:      aws.String("0.0.0.0/0"),
-						Description: aws.String("Jupyter notebook access"),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to add Jupyter rule to security group: %w", err)
-	}
+	// Jupyter rule (port 8888) - DISABLED for security
+	// Jupyter now secured to localhost - use SSH port forwarding
+	// Example: ssh -L 8888:localhost:8888 user@instance
 
-	// Add RStudio rule (port 8787) for R interfaces
-	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
-		GroupId: aws.String(securityGroupID),
-		IpPermissions: []ec2types.IpPermission{
-			{
-				IpProtocol: aws.String("tcp"),
-				FromPort:   aws.Int32(8787),
-				ToPort:     aws.Int32(8787),
-				IpRanges: []ec2types.IpRange{
-					{
-						CidrIp:      aws.String("0.0.0.0/0"),
-						Description: aws.String("RStudio server access"),
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to add RStudio rule to security group: %w", err)
-	}
+	// RStudio rule (port 8787) - DISABLED for security
+	// RStudio now secured to localhost - use SSH port forwarding
+	// Example: ssh -L 8787:localhost:8787 user@instance
 
 	// Add ICMP rule for ping
 	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CloudWorkstation GUI is a modern, single-page application built with Go and Fyne that provides a clean, organized interface for managing cloud research environments. It follows contemporary design principles with no popup windows and a dashboard-centric approach.
+The CloudWorkstation GUI is a modern, single-page application built with Go and Wails v3 that provides a clean, organized interface for managing cloud research environments. It follows contemporary design principles with no popup windows and a dashboard-centric approach.
 
 ## Design Philosophy
 
@@ -16,7 +16,7 @@ The CloudWorkstation GUI is a modern, single-page application built with Go and 
 - **Card-based layouts** for organized information presentation
 - **Grid systems** for consistent spacing and alignment
 - **Typography hierarchy** with proper bold headers and text styling
-- **Icon integration** using Fyne's built-in theme system
+- **Icon integration** using web-based iconography and CSS styling
 - **Visual status indicators** with color-coded state icons
 
 ## Architecture Components
@@ -105,13 +105,13 @@ The CloudWorkstation GUI is a modern, single-page application built with Go and 
 
 ### API Client Architecture
 ```go
-type CloudWorkstationGUI struct {
+type CloudWorkstationService struct {
     apiClient api.CloudWorkstationAPI  // Interface to daemon
-    // ... UI components
+    // ... service methods exposed to frontend
 }
 
 // Daemon connection
-apiClient: api.NewClient("http://localhost:8080")
+apiClient: api.NewClient("http://localhost:8947")
 ```
 
 ### Real-time Data Flow
@@ -134,8 +134,8 @@ Response → GUI Update → Notification → Refresh
 
 ### Notification System
 ```go
-// Inline notifications replace all popup dialogs
-func (g *CloudWorkstationGUI) showNotification(type, title, message)
+// Web-based notifications through Wails frontend
+func (s *CloudWorkstationService) ShowNotification(notificationType, title, message string)
 - Success: Green with checkmark icon
 - Error: Red with error icon  
 - Info: Blue with info icon
@@ -145,15 +145,18 @@ func (g *CloudWorkstationGUI) showNotification(type, title, message)
 
 ### Loading States
 ```go
-// Non-blocking operations with visual feedback
-g.launchForm.launchBtn.SetText("Launching...")
-g.launchForm.launchBtn.Disable()
-
-// Background API calls with animations
-go func() {
-    response, err := g.apiClient.LaunchInstance(req)
-    // Update UI on main thread
-}()
+// Non-blocking operations with visual feedback via web UI
+func (s *CloudWorkstationService) LaunchInstance(req LaunchRequest) {
+    // Emit loading state to frontend
+    s.emitEvent("launch:loading", true)
+    
+    // Background API calls
+    go func() {
+        response, err := s.apiClient.LaunchInstance(req)
+        // Update frontend via events
+        s.emitEvent("launch:complete", response)
+    }()
+}
 ```
 
 ### Form Validation

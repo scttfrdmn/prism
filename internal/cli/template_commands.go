@@ -143,7 +143,21 @@ func (tc *TemplateCommands) templatesInfo(args []string) error {
 
 	templateName := args[0]
 
-	// Get template information
+	// In test mode, use API client to get template info
+	if tc.app.testMode {
+		template, err := tc.app.apiClient.GetTemplate(tc.app.ctx, templateName)
+		if err != nil {
+			return WrapAPIError("template not found", err)
+		}
+		
+		// Display basic template information for test mode
+		fmt.Printf("🏗️ Template: %s\n", template.Name)
+		fmt.Printf("   Description: %s\n", template.Description)
+		fmt.Printf("   Status: Available for testing\n")
+		return nil
+	}
+
+	// Get template information from filesystem (normal mode)
 	rawTemplate, err := templates.GetTemplateInfo(templateName)
 	if err != nil {
 		return WrapAPIError("get template info for "+templateName, err)

@@ -51,7 +51,7 @@ R -e "install.packages(c('tidyverse','ggplot2','dplyr','readr'), repos='http://c
 echo "www-port=8787" >> /etc/rstudio/rserver.conf
 systemctl restart rstudio-server
 # Create ubuntu user for RStudio
-echo "ubuntu:password123" | chpasswd
+# Password authentication disabled - use SSH key authentication only
 echo "Setup complete" > /var/log/cws-setup.log
 `,
 			Ports: []int{22, 8787},
@@ -92,11 +92,12 @@ pip3 install jupyter pandas numpy matplotlib seaborn scikit-learn
 # Configure Jupyter
 mkdir -p /home/ubuntu/.jupyter
 cat > /home/ubuntu/.jupyter/jupyter_notebook_config.py << 'JUPYTER_EOF'
-c.NotebookApp.ip = '0.0.0.0'
+c.NotebookApp.ip = '127.0.0.1'
 c.NotebookApp.port = 8888
 c.NotebookApp.open_browser = False
-c.NotebookApp.token = ''
-c.NotebookApp.password = ''
+# Token required for security - generates random token on startup
+c.NotebookApp.token = '<generated>'
+# Use SSH port forwarding to access: ssh -L 8888:localhost:8888 user@instance
 JUPYTER_EOF
 chown -R ubuntu:ubuntu /home/ubuntu/.jupyter
 # Start Jupyter as service

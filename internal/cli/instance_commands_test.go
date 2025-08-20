@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -76,10 +77,10 @@ func TestInstanceCommands_Connect(t *testing.T) {
 			name:        "API error",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "get connection info for test-instance failed",
 			setupMock: func(mock *MockAPIClient) {
-				mock.ShouldReturnError = true
-				mock.ErrorMessage = "connection failed"
+				// Use specific connect error to avoid affecting Ping method
+				mock.ConnectError = fmt.Errorf("connection failed")
 			},
 		},
 		{
@@ -95,6 +96,11 @@ func TestInstanceCommands_Connect(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Disable daemon auto-start for daemon-related error tests
+			if tt.name == "Daemon not running" || tt.name == "API error" {
+				t.Setenv("CWS_NO_AUTO_START", "1")
+			}
+			
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -151,16 +157,21 @@ func TestInstanceCommands_Stop(t *testing.T) {
 			name:        "API error",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "stop instance test-instance failed",
 			setupMock: func(mock *MockAPIClient) {
-				mock.ShouldReturnError = true
-				mock.ErrorMessage = "stop failed"
+				// Use specific stop error to avoid affecting Ping method
+				mock.StopError = fmt.Errorf("stop failed")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Disable daemon auto-start for daemon-related error tests
+			if tt.name == "Daemon not running" || tt.name == "API error" {
+				t.Setenv("CWS_NO_AUTO_START", "1")
+			}
+			
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -244,16 +255,21 @@ func TestInstanceCommands_Start(t *testing.T) {
 			name:        "API error on list",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "get instance status failed",
 			setupMock: func(mock *MockAPIClient) {
-				mock.ShouldReturnError = true
-				mock.ErrorMessage = "list failed"
+				// Start command first calls ListInstances, so we need to make that fail specifically
+				mock.ListInstancesError = fmt.Errorf("list failed")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Disable daemon auto-start for daemon-related error tests
+			if tt.name == "Daemon not running" || tt.name == "API error on list" {
+				t.Setenv("CWS_NO_AUTO_START", "1")
+			}
+			
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -310,16 +326,21 @@ func TestInstanceCommands_Delete(t *testing.T) {
 			name:        "API error",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "delete instance test-instance failed",
 			setupMock: func(mock *MockAPIClient) {
-				mock.ShouldReturnError = true
-				mock.ErrorMessage = "delete failed"
+				// Use specific delete error to avoid affecting Ping method
+				mock.DeleteError = fmt.Errorf("delete failed")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Disable daemon auto-start for daemon-related error tests
+			if tt.name == "Daemon not running" || tt.name == "API error" {
+				t.Setenv("CWS_NO_AUTO_START", "1")
+			}
+			
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -385,16 +406,21 @@ func TestInstanceCommands_Hibernate(t *testing.T) {
 			name:        "API error on hibernation status",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "check hibernation status for test-instance failed",
 			setupMock: func(mock *MockAPIClient) {
-				mock.ShouldReturnError = true
-				mock.ErrorMessage = "status check failed"
+				// Hibernate command first calls GetInstanceHibernationStatus
+				mock.HibernationStatusError = fmt.Errorf("status check failed")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Disable daemon auto-start for daemon-related error tests
+			if tt.name == "Daemon not running" || tt.name == "API error on hibernation status" {
+				t.Setenv("CWS_NO_AUTO_START", "1")
+			}
+			
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -451,16 +477,21 @@ func TestInstanceCommands_Resume(t *testing.T) {
 			name:        "API error",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "check hibernation status for test-instance failed",
 			setupMock: func(mock *MockAPIClient) {
-				mock.ShouldReturnError = true
-				mock.ErrorMessage = "resume failed"
+				// Resume command first calls GetInstanceHibernationStatus
+				mock.HibernationStatusError = fmt.Errorf("status check failed")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Disable daemon auto-start for daemon-related error tests
+			if tt.name == "Daemon not running" || tt.name == "API error" {
+				t.Setenv("CWS_NO_AUTO_START", "1")
+			}
+			
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -475,7 +506,23 @@ func TestInstanceCommands_Resume(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				if len(tt.args) > 0 {
-					assert.Contains(t, mockClient.ResumeCalls, tt.args[0])
+					// Resume should call ResumeInstance for hibernated instances or StartInstance for non-hibernated
+					found := false
+					for _, call := range mockClient.ResumeCalls {
+						if call == tt.args[0] {
+							found = true
+							break
+						}
+					}
+					if !found {
+						for _, call := range mockClient.StartCalls {
+							if call == tt.args[0] {
+								found = true
+								break
+							}
+						}
+					}
+					assert.True(t, found, "Expected resume to call either ResumeInstance or StartInstance for %s", tt.args[0])
 				}
 			}
 		})
@@ -577,7 +624,9 @@ func TestInstanceCommandsCallTracking(t *testing.T) {
 			command: ic.Resume,
 			args:    []string{"test-instance"},
 			checkFn: func(mock *MockAPIClient) bool {
-				return len(mock.ResumeCalls) > 0 && mock.ResumeCalls[0] == "test-instance"
+				// Resume should call ResumeInstance for hibernated instances or StartInstance for non-hibernated
+				return (len(mock.ResumeCalls) > 0 && mock.ResumeCalls[0] == "test-instance") ||
+					   (len(mock.StartCalls) > 0 && mock.StartCalls[0] == "test-instance")
 			},
 		},
 	}

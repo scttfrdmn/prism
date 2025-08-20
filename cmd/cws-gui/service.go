@@ -120,8 +120,36 @@ func (s *CloudWorkstationService) LaunchInstance(ctx context.Context, req Launch
 		req.Size = "M" // Default to medium size
 	}
 
-	// TODO: Call daemon API to launch instance
-	// For now, return success for UI development
+	// Call daemon API to launch instance
+	launchURL := fmt.Sprintf("%s/api/v1/instances", s.daemonURL)
+	
+	reqData := map[string]interface{}{
+		"template": req.Template,
+		"name":     req.Name,
+		"size":     req.Size,
+	}
+	
+	jsonData, err := json.Marshal(reqData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal launch request: %w", err)
+	}
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", launchURL, strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to call daemon API: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+	
 	return nil
 }
 
@@ -131,7 +159,24 @@ func (s *CloudWorkstationService) StopInstance(ctx context.Context, name string)
 		return fmt.Errorf("instance name is required")
 	}
 
-	// TODO: Call daemon API to stop instance
+	// Call daemon API to stop instance
+	stopURL := fmt.Sprintf("%s/api/v1/instances/%s/stop", s.daemonURL, name)
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", stopURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to call daemon API: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+	
 	return nil
 }
 
@@ -141,13 +186,30 @@ func (s *CloudWorkstationService) ConnectToInstance(ctx context.Context, name st
 		return nil, fmt.Errorf("instance name is required")
 	}
 
-	// TODO: Call daemon API to get connection info
-	// For now, return mock data for UI development
-	return map[string]interface{}{
-		"ssh":     fmt.Sprintf("ssh ec2-user@%s.compute.amazonaws.com", name),
-		"jupyter": fmt.Sprintf("http://%s.compute.amazonaws.com:8888", name),
-		"rstudio": fmt.Sprintf("http://%s.compute.amazonaws.com:8787", name),
-	}, nil
+	// Call daemon API to get connection info
+	connURL := fmt.Sprintf("%s/api/v1/instances/%s/connection", s.daemonURL, name)
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", connURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call daemon API: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+	
+	var connectionInfo map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&connectionInfo); err != nil {
+		return nil, fmt.Errorf("failed to decode connection info: %w", err)
+	}
+	
+	return connectionInfo, nil
 }
 
 // Helper functions for better UX

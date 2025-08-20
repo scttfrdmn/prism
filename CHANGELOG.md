@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Version Verification**: Fixed daemon version reporting (was hardcoded "0.1.0", now reports actual version)
 - **CLI Version Panic**: Fixed crash when GitCommit string shorter than 8 characters  
 - **Storage API Mismatch**: Fixed JSON unmarshaling errors in EFS/EBS volume endpoints
-- **GUI Threading**: Eliminated Fyne threading warnings and improved stability
+- **GUI Threading**: Eliminated threading warnings and improved stability
 - **Daemon Version Checking**: Added proper version verification after daemon startup
 
 ### User Experience Improvements

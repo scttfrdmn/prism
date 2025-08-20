@@ -18,6 +18,10 @@ func NewInstanceCommands(app *App) *InstanceCommands {
 
 // Connect handles the connect command
 func (ic *InstanceCommands) Connect(args []string) error {
+	if len(args) < 1 {
+		return NewUsageError("cws connect <instance-name>", "cws connect my-workstation")
+	}
+	
 	name := args[0]
 	verbose := false
 
@@ -75,6 +79,10 @@ func (ic *InstanceCommands) Stop(args []string) error {
 
 // Start handles the start command with intelligent state management
 func (ic *InstanceCommands) Start(args []string) error {
+	if len(args) < 1 {
+		return NewUsageError("cws start <name>", "cws start my-workstation")
+	}
+	
 	name := args[0]
 
 	// Ensure daemon is running (auto-start if needed)
@@ -126,6 +134,10 @@ func (ic *InstanceCommands) Start(args []string) error {
 
 // Delete handles the delete command
 func (ic *InstanceCommands) Delete(args []string) error {
+	if len(args) < 1 {
+		return NewUsageError("cws delete <name>", "cws delete my-workstation")
+	}
+	
 	name := args[0]
 
 	// Ensure daemon is running (auto-start if needed)
@@ -144,6 +156,10 @@ func (ic *InstanceCommands) Delete(args []string) error {
 
 // Hibernate handles the hibernate command
 func (ic *InstanceCommands) Hibernate(args []string) error {
+	if len(args) < 1 {
+		return NewUsageError("cws hibernate <name>", "cws hibernate my-workstation")
+	}
+	
 	name := args[0]
 
 	// Ensure daemon is running (auto-start if needed)
@@ -181,6 +197,10 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 
 // Resume handles the resume command
 func (ic *InstanceCommands) Resume(args []string) error {
+	if len(args) < 1 {
+		return NewUsageError("cws resume <name>", "cws resume my-workstation")
+	}
+	
 	name := args[0]
 
 	// Ensure daemon is running (auto-start if needed)

@@ -135,7 +135,7 @@ cws volume mount research-data rocky-instance     # rocky user
 ```
 cmd/
 ├── cws/          # CLI client binary
-├── cws-gui/      # GUI client binary (Fyne-based)
+├── cws-gui/      # GUI client binary (Wails v3-based)
 └── cwsd/         # Backend daemon binary
 
 pkg/
@@ -483,7 +483,7 @@ sudo mkdir -p %s/shared %s/users/$CURRENT_USER
 - Consistent error handling and user feedback
 
 ### GUI Specific (cmd/cws-gui/main.go)
-- **Fyne Framework**: Cross-platform native GUI
+- **Wails v3 Framework**: Cross-platform web-based native GUI
 - **System Tray**: Always-on monitoring and quick access
 - **Tabbed Interface**: Templates, Instances, Storage, Settings
 - **Professional Dialogs**: Connection info, confirmations, progress

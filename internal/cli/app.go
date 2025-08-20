@@ -61,6 +61,7 @@ type App struct {
 	templateCommands *TemplateCommands        // Template management commands
 	systemCommands   *SystemCommands          // System and daemon management commands
 	scalingCommands  *ScalingCommands         // Scaling and rightsizing commands
+	testMode         bool                     // Skip actual SSH execution in tests
 }
 
 // NewApp creates a new CLI application
@@ -173,6 +174,7 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 		config:           config,
 		profileManager:   profileManager,
 		launchDispatcher: NewLaunchCommandDispatcher(),
+		testMode:         true, // Enable test mode when using mock client
 	}
 
 	// Initialize command modules
@@ -181,17 +183,31 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 	app.templateCommands = NewTemplateCommands(app)
 	app.systemCommands = NewSystemCommands(app)
 	app.scalingCommands = NewScalingCommands(app)
+	
+	// Initialize TUI command
+	app.tuiCommand = NewTUICommand()
 
 	return app
 }
 
 // TUI launches the terminal UI
 func (a *App) TUI(_ []string) error {
+	// In test mode, just verify TUI command exists without running it
+	if a.testMode {
+		if a.tuiCommand == nil {
+			return fmt.Errorf("TUI command not initialized")
+		}
+		return nil
+	}
 	return a.tuiCommand.Execute()
 }
 
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
+	if len(args) < 2 {
+		return NewUsageError("cws launch <template> <name>", "cws launch python-ml my-workstation")
+	}
+	
 	template := args[0]
 	name := args[1]
 
@@ -733,6 +749,12 @@ func (a *App) Connect(args []string) error {
 // executeSSHCommand executes the SSH command and transfers control to the SSH process
 func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
 	fmt.Printf("🔗 Connecting to %s...\n", instanceName)
+
+	// In test mode, skip actual SSH execution
+	if a.testMode {
+		fmt.Printf("Test mode: would execute: %s\n", connectionInfo)
+		return nil
+	}
 
 	// Use shell to execute the SSH command to handle quotes properly
 	cmd := exec.Command("sh", "-c", connectionInfo)

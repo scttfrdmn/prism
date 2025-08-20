@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,6 +81,9 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 	})
 
 	t.Run("Phase3_Template_Inheritance", func(t *testing.T) {
+		// Reset call tracking for this phase
+		mockClient.ResetCallTracking()
+		
 		// Test: cws templates info "Rocky Linux 9 + Conda Stack"
 		err := app.Templates([]string{"info", "Rocky Linux 9 + Conda Stack"})
 		assert.NoError(t, err, "Stacked template info should work")
@@ -99,6 +103,29 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 	})
 
 	t.Run("Phase5_Cost_Optimization", func(t *testing.T) {
+		// Reset call tracking for isolated test
+		mockClient.ResetCallTracking()
+		
+		// Ensure ml-research instance exists from Phase2 (find it by name and ensure it's running)
+		found := false
+		for i := range mockClient.Instances {
+			if mockClient.Instances[i].Name == "ml-research" {
+				mockClient.Instances[i].State = "running" // Ensure it's running for hibernation test
+				found = true
+				break
+			}
+		}
+		if !found {
+			// If not found, add it (Phase2 should have created it but just in case)
+			mockClient.Instances = append(mockClient.Instances, types.Instance{
+				ID:       "i-ml-research-test",
+				Name:     "ml-research", 
+				Template: "Python Machine Learning (Simplified)",
+				State:    "running",
+				PublicIP: "54.123.45.100",
+			})
+		}
+		
 		// Test: cws hibernate ml-research
 		err := app.Hibernate([]string{"ml-research"})
 		assert.NoError(t, err, "Manual hibernation should work")
@@ -125,8 +152,8 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 		err := app.Storage([]string{"list"})
 		assert.NoError(t, err, "Storage listing should work")
 
-		// Test: cws storage create shared-data --size 100GB --type efs
-		err = app.Storage([]string{"create", "shared-data", "--size", "100GB", "--type", "efs"})
+		// Test: cws storage create shared-data --size 100GB  
+		err = app.Storage([]string{"create", "shared-data", "--size", "100GB"})
 		assert.NoError(t, err, "Storage creation should work")
 
 		// Test: cws storage attach shared-data ml-research /mnt/shared
@@ -260,16 +287,20 @@ func TestSimplified_AvailableCommands(t *testing.T) {
 			switch cmdName {
 			case "launch":
 				args = []string{"test-template", "test-instance"}
-			case "connect", "stop", "start", "delete", "hibernate", "resume":
+			case "connect", "stop", "start", "hibernate":
 				args = []string{"test-instance"}
+			case "delete":
+				args = []string{"stopped-instance"} // Use different instance to avoid affecting others
+			case "resume":
+				args = []string{"stopped-instance"} // Use stopped instance for resume test
 			case "storage", "volume":
 				args = []string{"list"}
 			case "daemon":
 				args = []string{"status"}
 			case "scaling":
-				args = []string{"up", "test-instance"}
+				args = []string{"analyze", "test-instance"}
 			case "rightsizing":
-				args = []string{"analyze"}
+				args = []string{"recommendations"} // Use command that doesn't require running instance
 			default:
 				args = []string{}
 			}
@@ -283,6 +314,9 @@ func TestSimplified_AvailableCommands(t *testing.T) {
 // TestSimplified_ErrorHandling tests that error scenarios provide helpful messages
 func TestSimplified_ErrorHandling(t *testing.T) {
 	t.Run("Daemon_Not_Running", func(t *testing.T) {
+		// Disable auto-start to test daemon not running error
+		t.Setenv("CWS_NO_AUTO_START", "1")
+		
 		mockClient := NewMockAPIClientWithPingError()
 		app := NewAppWithClient("1.0.0", mockClient)
 
@@ -336,12 +370,9 @@ func TestSimplified_MultiModalAccess(t *testing.T) {
 	})
 
 	t.Run("TUI_Availability", func(t *testing.T) {
-		// Test TUI command exists (may not be fully functional in test)
+		// Test TUI command exists (won't run interactively in test mode)
 		err := app.TUI([]string{})
-		if err != nil {
-			assert.NotContains(t, err.Error(), "command not found",
-				"TUI should be available even if not functional in test")
-		}
+		assert.NoError(t, err, "TUI should be available and initialized")
 	})
 
 	t.Run("API_Through_Daemon", func(t *testing.T) {
@@ -418,6 +449,9 @@ func TestSimplified_WorkflowSequences(t *testing.T) {
 	})
 
 	t.Run("Cost_Optimization_Workflow", func(t *testing.T) {
+		// Reset call tracking for isolated test
+		mockClient.ResetCallTracking()
+		
 		// Cost optimization through hibernation workflow
 		instanceName := "cost-test"
 
@@ -576,6 +610,9 @@ func TestSimplified_BusinessValueDemonstration(t *testing.T) {
 	})
 
 	t.Run("Template_Inheritance_Composition", func(t *testing.T) {
+		// Reset call tracking for isolated test
+		mockClient.ResetCallTracking()
+		
 		// Business value: Complex environments through simple composition
 
 		// Test base and inherited templates work

@@ -69,13 +69,13 @@ func TestServerHTTPHandler(t *testing.T) {
 		{
 			name:           "version endpoint",
 			method:         "GET",
-			path:           "/api/v1/version",
+			path:           "/api/versions",
 			expectedStatus: http.StatusOK,
 			checkResponse: func(t *testing.T, body []byte) {
 				var response map[string]interface{}
 				err := json.Unmarshal(body, &response)
 				assert.NoError(t, err)
-				assert.Contains(t, response, "version")
+				assert.Contains(t, response, "versions")
 			},
 		},
 		{
@@ -151,8 +151,11 @@ func TestServerStartStop(t *testing.T) {
 	// Wait for server to stop
 	select {
 	case err := <-errChan:
-		// Server should stop cleanly
-		assert.True(t, err == nil || strings.Contains(err.Error(), "context canceled"))
+		// Server should stop cleanly (accept normal shutdown errors)
+		assert.True(t, err == nil || 
+			strings.Contains(err.Error(), "context canceled") ||
+			strings.Contains(err.Error(), "http: Server closed"),
+			"Expected nil, 'context canceled', or 'http: Server closed', got: %v", err)
 	case <-time.After(5 * time.Second):
 		t.Fatal("Server did not stop within timeout")
 	}

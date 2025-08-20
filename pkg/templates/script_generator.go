@@ -304,7 +304,7 @@ Type=simple
 User={{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}}
 Environment=PATH=/opt/miniforge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WorkingDirectory={{range $.Users}}{{if eq .Name "researcher"}}/home/{{.Name}}{{end}}{{end}}
-ExecStart=/opt/miniforge/bin/jupyter lab --ip=0.0.0.0 --port={{.Port}} --no-browser --NotebookApp.token='' --NotebookApp.password=''
+ExecStart=/opt/miniforge/bin/jupyter lab --ip=127.0.0.1 --port={{.Port}} --no-browser --generate-config
 Restart=always
 [Install]
 WantedBy=multi-user.target
