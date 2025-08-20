@@ -6,6 +6,47 @@ import (
 	"strings"
 )
 
+// ErrorCategory represents the type of error for better categorization
+type ErrorCategory string
+
+const (
+	ErrorCategoryDaemon      ErrorCategory = "daemon"
+	ErrorCategoryNetwork     ErrorCategory = "network" 
+	ErrorCategoryCredentials ErrorCategory = "credentials"
+	ErrorCategoryProfile     ErrorCategory = "profile"
+	ErrorCategoryLaunch      ErrorCategory = "launch"
+	ErrorCategoryTemplate    ErrorCategory = "template"
+	ErrorCategoryValidation  ErrorCategory = "validation"
+	ErrorCategoryKeychain    ErrorCategory = "keychain"
+	ErrorCategoryCapacity    ErrorCategory = "capacity"
+	ErrorCategoryUnknown     ErrorCategory = "unknown"
+)
+
+// StructuredError provides categorized error information with context
+type StructuredError struct {
+	Category    ErrorCategory `json:"category"`
+	Operation   string        `json:"operation"`
+	Message     string        `json:"message"`
+	Suggestions []string      `json:"suggestions"`
+	OriginalErr error         `json:"original_error,omitempty"`
+}
+
+// Error implements the error interface
+func (e *StructuredError) Error() string {
+	return e.Message
+}
+
+// NewStructuredError creates a new structured error
+func NewStructuredError(category ErrorCategory, operation, message string, suggestions []string, originalErr error) *StructuredError {
+	return &StructuredError{
+		Category:    category,
+		Operation:   operation,
+		Message:     message,
+		Suggestions: suggestions,
+		OriginalErr: originalErr,
+	}
+}
+
 // ErrorHandler interface for different error types (Strategy Pattern - SOLID)
 type ErrorHandler interface {
 	CanHandle(errorMsg string) bool
@@ -22,18 +63,19 @@ func (h *DaemonErrorHandler) CanHandle(errorMsg string) bool {
 func (h *DaemonErrorHandler) Handle(err error, context string) error {
 	return fmt.Errorf(`daemon not running
 
-The CloudWorkstation background service is not running. To fix this:
+The CloudWorkstation background service is not responding. This is unusual since the daemon auto-starts.
 
-1. Start the daemon:
-   cws daemon start
+🔧 Quick fixes:
+1. Try your command again (daemon may be starting up)
+2. Check daemon status: cws daemon status
+3. If needed, restart daemon: cws daemon stop (next command will auto-start)
 
-2. Verify it's running:
-   cws daemon status
+🔍 If this persists:
+- Check for port conflicts: lsof -i :8947
+- Verify binary permissions: ls -la $(which cws) $(which cwsd)
+- Check logs: cws daemon logs
 
-3. If problems persist:
-   cws daemon stop && cws daemon start
-
-Need help? Check: https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBLESHOOTING.md`)
+Need help? https://github.com/scttfrdmn/cloudworkstation/issues`)
 }
 
 // ConnectionErrorHandler handles connection-related errors
@@ -44,18 +86,19 @@ func (h *ConnectionErrorHandler) CanHandle(errorMsg string) bool {
 }
 
 func (h *ConnectionErrorHandler) Handle(err error, context string) error {
-	return fmt.Errorf(`connection refused - daemon may not be running
+	return fmt.Errorf(`connection refused - daemon startup failed
 
-CloudWorkstation can't connect to the background service. To fix this:
+CloudWorkstation's auto-start couldn't connect to the background service.
 
-1. Check if daemon is running:
-   cws daemon status
+🔧 Quick fixes:
+1. Wait a moment and try again (daemon may still be starting)
+2. Check what's using port 8947: lsof -i :8947
+3. Manual restart: cws daemon stop && cws templates
 
-2. Start daemon if needed:
-   cws daemon start
-
-3. Check for port conflicts:
-   lsof -i :8947
+🔍 If this continues:
+- Check if another CloudWorkstation is running
+- Verify network permissions for localhost:8947
+- Look for firewall blocking local connections
 
 Original error: %v`, err)
 }
@@ -194,6 +237,91 @@ Need help? Check: https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBL
 Original error: %v`, err)
 }
 
+// ProfileErrorHandler handles profile-related errors
+type ProfileErrorHandler struct{}
+
+func (h *ProfileErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "profile not found") || 
+		   strings.Contains(errorMsg, "profile") && strings.Contains(errorMsg, "not exist") ||
+		   strings.Contains(errorMsg, "current profile")
+}
+
+func (h *ProfileErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`profile configuration issue
+
+CloudWorkstation can't find or use the specified profile.
+
+🔧 Quick fixes:
+1. List available profiles: cws profiles list
+2. Create a new profile: cws profiles add personal my-account --aws-profile default --region us-east-1
+3. Switch profiles: cws profiles switch <profile-id>
+
+🔍 Profile troubleshooting:
+- Verify AWS credentials: aws sts get-caller-identity
+- Check profile file: cat ~/.cloudworkstation/profiles.json
+- Reset to default: rm ~/.cloudworkstation/profiles.json && cws profiles list
+
+Original error: %v`, err)
+}
+
+// LaunchErrorHandler handles instance launch errors
+type LaunchErrorHandler struct{}
+
+func (h *LaunchErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "launch failed") ||
+		   strings.Contains(errorMsg, "instance failed") ||
+		   (strings.Contains(errorMsg, "UserData") && strings.Contains(errorMsg, "failed"))
+}
+
+func (h *LaunchErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`instance launch failed
+
+CloudWorkstation couldn't launch your research environment.
+
+🔧 Common solutions:
+1. Try different region: cws launch template-name instance-name --region us-west-2
+2. Use different size: cws launch template-name instance-name --size S
+3. Check template availability: cws templates
+
+🔍 Advanced troubleshooting:
+- Verify AWS quotas: aws service-quotas get-service-quota --service-code ec2 --quota-code L-1216C47A
+- Check template validation: cws templates validate
+- Try different instance type: cws launch template-name instance-name --instance-type t3.medium
+
+Need template help? Each template shows its requirements with 'cws templates'
+
+Original error: %v`, err)
+}
+
+// KeychainErrorHandler handles macOS keychain issues
+type KeychainErrorHandler struct{}
+
+func (h *KeychainErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "keychain") ||
+		   strings.Contains(errorMsg, "password") && strings.Contains(errorMsg, "required") ||
+		   strings.Contains(errorMsg, "security")
+}
+
+func (h *KeychainErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`keychain access issue
+
+CloudWorkstation is having trouble with macOS keychain access.
+
+🔧 Quick fixes:
+1. This shouldn't happen with basic profiles - try again
+2. Check profile type: cws profiles list
+3. Use AWS CLI credentials: aws configure
+
+🔍 If keychain prompts persist:
+- Basic profiles should NOT require keychain access
+- This may indicate a configuration issue
+- Please report this: https://github.com/scttfrdmn/cloudworkstation/issues
+
+Note: CloudWorkstation v0.4.4+ eliminates keychain prompts for normal usage.
+
+Original error: %v`, err)
+}
+
 // DefaultErrorHandler handles unknown errors
 type DefaultErrorHandler struct{}
 
@@ -231,15 +359,18 @@ type ErrorHandlerRegistry struct {
 func NewErrorHandlerRegistry() *ErrorHandlerRegistry {
 	return &ErrorHandlerRegistry{
 		handlers: []ErrorHandler{
-			&DaemonErrorHandler{},
-			&ConnectionErrorHandler{},
-			&NetworkErrorHandler{},
-			&CredentialsErrorHandler{},
-			&NetworkConfigErrorHandler{},
-			&CapacityErrorHandler{},
-			&TemplateErrorHandler{},
-			&ValidationErrorHandler{},
-			&DefaultErrorHandler{}, // Must be last as fallback
+			&KeychainErrorHandler{},    // Check keychain issues first
+			&ProfileErrorHandler{},     // Check profile issues early
+			&LaunchErrorHandler{},      // Check launch-specific issues
+			&DaemonErrorHandler{},      // Daemon connectivity issues
+			&ConnectionErrorHandler{},  // Network connection issues
+			&CredentialsErrorHandler{}, // AWS credential issues
+			&NetworkConfigErrorHandler{}, // AWS network config issues
+			&CapacityErrorHandler{},    // AWS capacity issues
+			&TemplateErrorHandler{},    // Template-related issues
+			&NetworkErrorHandler{},     // General network issues
+			&ValidationErrorHandler{},  // Validation errors
+			&DefaultErrorHandler{},     // Must be last as fallback
 		},
 	}
 }
@@ -275,4 +406,14 @@ func FormatErrorForCLI(err error, operation string) string {
 
 	friendlyErr := UserFriendlyError(err, operation)
 	return friendlyErr.Error()
+}
+
+// WrapError wraps an error with contextual information and suggestions
+func WrapError(err error, operation string) error {
+	if err == nil {
+		return nil
+	}
+	
+	// Use existing error handling system to get user-friendly message
+	return UserFriendlyError(err, operation)
 }

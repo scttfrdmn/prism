@@ -49,7 +49,7 @@ Examples:
 		Run: func(cmd *cobra.Command, args []string) {
 			handler := NewExportHandler(f.config)
 			if err := handler.HandleExport(cmd, args); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "export profiles"))
 				os.Exit(1)
 			}
 		},
@@ -76,7 +76,7 @@ Examples:
 		Run: func(cmd *cobra.Command, args []string) {
 			handler := NewImportHandler(f.config)
 			if err := handler.HandleImport(cmd, args); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "import profiles"))
 				os.Exit(1)
 			}
 		},

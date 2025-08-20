@@ -74,14 +74,14 @@ func runListCommand(config *Config) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// List profiles with their IDs
 	profilesWithIDs, err := profileManager.ListProfilesWithIDs()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error listing profiles: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "list profiles"))
 		os.Exit(1)
 	}
 
@@ -163,14 +163,14 @@ func runCurrentCommand(config *Config) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Get current profile
 	currentProfile, err := profileManager.GetCurrentProfile()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting current profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "get current profile"))
 		os.Exit(1)
 	}
 
@@ -215,21 +215,21 @@ func runSwitchCommand(config *Config, profileID string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Switch profile
 	err = profileManager.SwitchProfile(profileID)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error switching profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "switch profile"))
 		os.Exit(1)
 	}
 
 	// Get the profile
 	prof, err := profileManager.GetProfile(profileID)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "get profile for switch"))
 		os.Exit(1)
 	}
 
@@ -266,7 +266,7 @@ func runAddPersonalCommand(config *Config, cmd *cobra.Command, name string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
@@ -282,7 +282,7 @@ func runAddPersonalCommand(config *Config, cmd *cobra.Command, name string) {
 	// Add profile
 	err = profileManager.AddProfile(prof)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error adding profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "add personal profile"))
 		os.Exit(1)
 	}
 
@@ -319,7 +319,7 @@ func runAddInvitationCommand(config *Config, cmd *cobra.Command, name string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
@@ -337,7 +337,7 @@ func runAddInvitationCommand(config *Config, cmd *cobra.Command, name string) {
 	// Add profile
 	err = profileManager.AddProfile(prof)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error adding profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "add invitation profile"))
 		os.Exit(1)
 	}
 
@@ -362,21 +362,21 @@ func runRemoveCommand(config *Config, profileID string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Check if this is the current profile
 	currentProfile, _ := profileManager.GetCurrentProfile()
 	if currentProfile != nil && currentProfile.AWSProfile == profileID {
-		fmt.Fprintf(os.Stderr, "Error: Cannot remove the current profile. Switch to another profile first.\n")
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(fmt.Errorf("cannot remove the current profile"), "remove current profile"))
 		os.Exit(1)
 	}
 
 	// Remove profile
 	err = profileManager.RemoveProfile(profileID)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error removing profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "remove profile"))
 		os.Exit(1)
 	}
 
@@ -401,14 +401,14 @@ func runValidateCommand(config *Config, profileID string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Get the profile
 	prof, err := profileManager.GetProfile(profileID)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "get profile for validation"))
 		os.Exit(1)
 	}
 
@@ -422,7 +422,7 @@ func runValidateCommand(config *Config, profileID string) {
 	ctx := context.Background()
 	err = client.Ping(ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Profile validation failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "validate profile connection"))
 		os.Exit(1)
 	}
 
@@ -482,7 +482,7 @@ func runAcceptInvitationCommand(config *Config, cmd *cobra.Command) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
@@ -500,7 +500,7 @@ func runAcceptInvitationCommand(config *Config, cmd *cobra.Command) {
 	// Add profile
 	err = profileManager.AddProfile(prof)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error accepting invitation: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "accept invitation"))
 		os.Exit(1)
 	}
 
@@ -525,14 +525,14 @@ func runRenameCommand(config *Config, profileID, newName string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Get the profile
 	prof, err := profileManager.GetProfile(profileID)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "get profile for rename"))
 		os.Exit(1)
 	}
 
@@ -542,7 +542,7 @@ func runRenameCommand(config *Config, profileID, newName string) {
 
 	err = profileManager.UpdateProfile(profileID, updates)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error renaming profile: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "rename profile"))
 		os.Exit(1)
 	}
 
@@ -612,28 +612,28 @@ func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string)
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Create invitation manager
 	invitationManager, err := createInvitationManager(profileManager)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation manager"))
 		os.Exit(1)
 	}
 
 	// Validate invitation type
 	invitationType, err := parseInvitationType(invType)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "parse invitation type"))
 		os.Exit(1)
 	}
 
 	// Create the invitation
 	invitation, err := invitationManager.CreateInvitation(name, invitationType, validDays, s3ConfigPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating invitation: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation"))
 		os.Exit(1)
 	}
 
@@ -694,7 +694,7 @@ func printInvitationDetails(invitation *profile.InvitationToken) {
 	// Encode the invitation for sharing
 	encodedInvitation, err := invitation.EncodeToString()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error encoding invitation: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "encode invitation"))
 		os.Exit(1)
 	}
 
@@ -731,14 +731,14 @@ func runInvitationListCommand(config *Config) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Create invitation manager
 	invitationManager, err := createInvitationManager(profileManager)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation manager"))
 		os.Exit(1)
 	}
 
@@ -788,28 +788,28 @@ func runInvitationRevokeCommand(config *Config, token string) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
 		os.Exit(1)
 	}
 
 	// Create invitation manager
 	invitationManager, err := createInvitationManager(profileManager)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation manager"))
 		os.Exit(1)
 	}
 
 	// Get invitation details first
 	invitation, err := invitationManager.GetInvitation(token)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "get invitation details"))
 		os.Exit(1)
 	}
 
 	// Revoke the invitation
 	err = invitationManager.RevokeInvitation(token)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error revoking invitation: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "revoke invitation"))
 		os.Exit(1)
 	}
 
@@ -854,7 +854,7 @@ func updateAcceptInvitationCommand(profilesCmd *cobra.Command, config *Config) {
 
 		// Add the invitation to profiles
 		if err := invitationManager.AddToProfile(encoded, name); err != nil {
-			fmt.Fprintf(os.Stderr, "Error accepting invitation: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "accept encoded invitation"))
 			os.Exit(1)
 		}
 

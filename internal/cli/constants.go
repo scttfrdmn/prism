@@ -88,7 +88,7 @@ const (
 
 const (
 	// DaemonNotRunningMessage is the standard message when daemon is not running
-	DaemonNotRunningMessage = "daemon not running. Start with: cws daemon start"
+	DaemonNotRunningMessage = "daemon not running - this is unusual since daemon auto-starts. Try: cws daemon status"
 
 	// DaemonAutoStartMessage is displayed when auto-starting the daemon
 	DaemonAutoStartMessage = "🚀 Starting CloudWorkstation daemon..."
@@ -407,12 +407,17 @@ const (
 
 // WrapAPIError wraps API errors with consistent context and formatting
 func WrapAPIError(action string, err error) error {
-	return fmt.Errorf("failed to %s: %w", action, err)
+	if err == nil {
+		return nil
+	}
+	// Use enhanced error handling system for better user experience
+	return UserFriendlyError(err, action)
 }
 
 // WrapDaemonError wraps daemon connection errors with standard recovery message
 func WrapDaemonError(err error) error {
-	return fmt.Errorf("%s", DaemonNotRunningMessage)
+	// Use enhanced error handling for daemon issues
+	return UserFriendlyError(err, "connect to daemon")
 }
 
 // NewUsageError creates a consistent usage error with command and example

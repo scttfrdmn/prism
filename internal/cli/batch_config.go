@@ -33,7 +33,7 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 			// Create batch config manager
 			configManager, err := createBatchConfigManager()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create batch config manager"))
 				os.Exit(1)
 			}
 
@@ -119,7 +119,7 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 			// Create batch config manager
 			configManager, err := createBatchConfigManager()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create batch config manager"))
 				os.Exit(1)
 			}
 
@@ -133,7 +133,7 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 
 			// Reset configuration
 			if err := configManager.ResetToDefaults(); err != nil {
-				fmt.Fprintf(os.Stderr, "Error resetting configuration: %v\n", err)
+				fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "reset batch configuration"))
 				os.Exit(1)
 			}
 

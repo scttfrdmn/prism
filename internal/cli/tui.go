@@ -31,11 +31,11 @@ Press 'q' or 'Esc' at any time to exit the TUI.`,
 func runTUI() {
 	// Check if daemon is running
 	if err := checkDaemonForTUI(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "check daemon for TUI"))
 		fmt.Println("Attempting to start daemon...")
 
 		if err := startDaemonForTUI(); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to start daemon: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "start daemon for TUI"))
 			fmt.Println("Please start the daemon manually with: cws daemon start")
 			os.Exit(1)
 		}
