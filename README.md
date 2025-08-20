@@ -128,10 +128,7 @@ export AWS_PROFILE=aws                         # Point to your profile
 ### Your First Workstation
 
 ```bash
-# Start the daemon
-cws daemon start
-
-# Launch a Python ML workstation  
+# Launch a Python ML workstation (daemon auto-starts as needed)
 cws launch "Python Machine Learning (Simplified)" my-research
 
 # Connect to your workstation

@@ -45,12 +45,9 @@ aws configure
 
 **Required AWS Permissions**: CloudWorkstation needs EC2, EFS, EBS, and Systems Manager access. See [AWS Setup Guide](../AWS_SETUP_GUIDE.md) for detailed IAM policies.
 
-### 3. Start CloudWorkstation
+### 3. Start Using CloudWorkstation
 ```bash
-# Start the background service
-cws daemon start
-
-# Launch interactive interface
+# Launch interactive interface (daemon auto-starts as needed)
 cws tui
 ```
 
@@ -169,9 +166,10 @@ cws save my-custom custom-template
 # Check daemon status
 cws daemon status
 
-# Restart if needed
+# Restart daemon if troubleshooting (rarely needed - daemon auto-starts)
 cws daemon stop
-cws daemon start
+# Next command will auto-start fresh daemon
+cws templates
 ```
 
 ### "AWS credentials not found"

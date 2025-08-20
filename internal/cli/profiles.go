@@ -78,35 +78,34 @@ func runListCommand(config *Config) {
 		os.Exit(1)
 	}
 
-	// List profiles
-	profiles, err := profileManager.ListProfiles()
+	// List profiles with their IDs
+	profilesWithIDs, err := profileManager.ListProfilesWithIDs()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error listing profiles: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Get current profile
-	currentProfile, err := profileManager.GetCurrentProfile()
-	currentProfileID := ""
-	if err == nil {
-		currentProfileID = currentProfile.AWSProfile
+	// Get current profile ID
+	currentProfileID, err := profileManager.GetCurrentProfileID()
+	if err != nil {
+		currentProfileID = "" // No current profile
 	}
 
 	// Format and print profiles
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	_, _ = fmt.Fprintln(w, "PROFILE ID\tNAME\tTYPE\tAWS PROFILE\tREGION\tLAST USED")
 
-	for _, p := range profiles {
-		formatAndPrintProfile(w, p, currentProfileID)
+	for _, pw := range profilesWithIDs {
+		formatAndPrintProfileWithID(w, pw.ID, pw.Profile, currentProfileID)
 	}
 	_ = w.Flush()
 }
 
-// formatAndPrintProfile formats and prints a single profile
-func formatAndPrintProfile(w *tabwriter.Writer, p profile.Profile, currentProfileID string) {
+// formatAndPrintProfileWithID formats and prints a single profile with its ID
+func formatAndPrintProfileWithID(w *tabwriter.Writer, id string, p profile.Profile, currentProfileID string) {
 	// Add marker for current profile
 	marker := ""
-	if p.AWSProfile == currentProfileID {
+	if id == currentProfileID {
 		marker = "* "
 	}
 
@@ -120,7 +119,7 @@ func formatAndPrintProfile(w *tabwriter.Writer, p profile.Profile, currentProfil
 	lastUsed := formatLastUsedTime(p.LastUsed)
 
 	_, _ = fmt.Fprintf(w, "%s%s\t%s\t%s\t%s\t%s\t%s\n",
-		marker, p.AWSProfile,
+		marker, id,
 		p.Name,
 		profileType,
 		valueOrEmpty(p.AWSProfile),

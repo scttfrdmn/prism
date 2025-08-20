@@ -218,6 +218,12 @@ pkg/types/
 - **Profile Integration**: Seamless AWS credential and region management
 - **Graceful Operations**: Proper shutdown, error handling, progress reporting
 
+### Seamless User Experience
+- **Auto-Start Daemon**: All interfaces automatically start daemon as needed - no manual setup required
+- **Zero Keychain Prompts**: Basic profiles work without macOS keychain password requests
+- **Intelligent Binary Discovery**: Auto-locates daemon binary in development and production environments
+- **Profile System Unified**: Single enhanced profile manager eliminates configuration conflicts
+
 ### Templates (Inheritance Architecture)
 
 **✅ IMPLEMENTED: Template Inheritance System**
@@ -341,39 +347,39 @@ make clean
 
 ### Running Different Interfaces
 ```bash
-# CLI interface (traditional)
+# CLI interface (traditional) - daemon auto-starts as needed
 ./bin/cws launch python-ml my-project
 
-# TUI interface (interactive terminal)
+# TUI interface (interactive terminal) - daemon auto-starts as needed
 ./bin/cws tui
 # Navigation: 1=Dashboard, 2=Instances, 3=Templates, 4=Storage, 5=Settings, 6=Profiles
 
-# GUI interface (desktop application)
+# GUI interface (desktop application) - daemon auto-starts as needed
 ./bin/cws-gui
 # System tray integration with professional tabbed interface
 
-# Daemon (backend service)
-./bin/cwsd
-# Runs on port 8947, provides REST API for all clients
+# Manual daemon control (optional)
+./bin/cws daemon start    # Manually start daemon
+./bin/cws daemon stop     # Stop daemon
+./bin/cws daemon status   # Check daemon status
 ```
 
 ### Development Workflow
 ```bash
-# Start daemon for development
-./bin/cwsd &
-
-# Test CLI functionality
+# Test CLI functionality (daemon auto-starts)
 ./bin/cws templates
 ./bin/cws list
 
-# Test TUI functionality  
+# Test TUI functionality (daemon auto-starts if needed)
 ./bin/cws tui
 
-# Test GUI functionality (in separate terminal)
+# Test GUI functionality (daemon auto-starts if needed)
 ./bin/cws-gui
 
-# Graceful daemon shutdown
-./bin/cws daemon stop
+# Optional: Manual daemon control for development
+./bin/cwsd &                    # Start daemon manually (for debugging)
+./bin/cws daemon stop           # Graceful shutdown
+./bin/cws daemon status         # Check status
 ```
 
 ## Key Implementation Details

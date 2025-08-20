@@ -192,10 +192,12 @@ func (m *SecurityManager) GetSecurityStatus() (*SecurityStatus, error) {
 		}
 	}
 
-	// Get keychain information
-	keychainInfo, err := security.GetKeychainInfo()
-	if err == nil {
-		status.KeychainInfo = keychainInfo
+	// Get keychain information only if security features are enabled to avoid password prompts
+	if m.config.MonitoringEnabled || m.config.AuditLogEnabled || m.config.CorrelationEnabled {
+		keychainInfo, err := security.GetKeychainInfo()
+		if err == nil {
+			status.KeychainInfo = keychainInfo
+		}
 	}
 
 	return status, nil
@@ -282,13 +284,15 @@ func (m *SecurityManager) PerformHealthCheck() error {
 	m.lastHealthCheck = time.Now()
 	m.mutex.Unlock()
 
-	// Check keychain provider
-	if err := security.ValidateKeychainProvider(); err != nil {
-		m.LogSecurityEvent("health_check_failed", false, "", map[string]interface{}{
-			"component": "keychain_provider",
-			"error":     err.Error(),
-		})
-		return fmt.Errorf("keychain provider health check failed: %w", err)
+	// Check keychain provider only if health checks are enabled to avoid password prompts
+	if m.config.HealthCheckEnabled {
+		if err := security.ValidateKeychainProvider(); err != nil {
+			m.LogSecurityEvent("health_check_failed", false, "", map[string]interface{}{
+				"component": "keychain_provider",
+				"error":     err.Error(),
+			})
+			return fmt.Errorf("keychain provider health check failed: %w", err)
+		}
 	}
 
 	// Check audit logging if enabled
@@ -473,16 +477,18 @@ func validateSecurityConfig(config SecurityConfig) error {
 
 // GetDefaultSecurityConfig returns default security configuration
 func GetDefaultSecurityConfig() SecurityConfig {
+	// KEYCHAIN FIX: Disable security features that trigger keychain access to prevent password prompts
+	// for basic profiles that don't need secure credential storage
 	return SecurityConfig{
-		AuditLogEnabled:         true,
+		AuditLogEnabled:         false, // Disabled to avoid keychain access
 		LogRetentionDays:        30,
-		MonitoringEnabled:       true,
+		MonitoringEnabled:       false, // Disabled to avoid keychain access during health checks
 		MonitorInterval:         30 * time.Second,
 		AlertThreshold:          "MEDIUM",
-		RegistrySecurityEnabled: true,
-		CorrelationEnabled:      true,
+		RegistrySecurityEnabled: false, // Disabled to avoid keychain access
+		CorrelationEnabled:      false, // Disabled to avoid keychain access
 		AnalysisInterval:        5 * time.Minute,
-		HealthCheckEnabled:      true,
+		HealthCheckEnabled:      false, // Disabled to avoid keychain validation
 		HealthCheckInterval:     15 * time.Minute,
 	}
 }

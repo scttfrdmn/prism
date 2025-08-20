@@ -129,6 +129,17 @@ func (m *ManagerEnhanced) GetCurrentProfile() (*Profile, error) {
 	return &profile, nil
 }
 
+// GetCurrentProfileID returns the ID of the currently active profile
+func (m *ManagerEnhanced) GetCurrentProfileID() (string, error) {
+	if m.profiles.CurrentProfile == "" {
+		return "", ErrProfileNotFound
+	}
+	if _, exists := m.profiles.Profiles[m.profiles.CurrentProfile]; !exists {
+		return "", ErrProfileNotFound
+	}
+	return m.profiles.CurrentProfile, nil
+}
+
 // GetProfile returns a specific profile by ID
 func (m *ManagerEnhanced) GetProfile(id string) (*Profile, error) {
 	profile, exists := m.profiles.Profiles[id]
@@ -139,11 +150,29 @@ func (m *ManagerEnhanced) GetProfile(id string) (*Profile, error) {
 	return &profile, nil
 }
 
+// ProfileWithID represents a profile with its ID
+type ProfileWithID struct {
+	ID      string  `json:"id"`
+	Profile Profile `json:"profile"`
+}
+
 // ListProfiles returns all available profiles
 func (m *ManagerEnhanced) ListProfiles() ([]Profile, error) {
 	result := make([]Profile, 0, len(m.profiles.Profiles))
 	for _, profile := range m.profiles.Profiles {
 		result = append(result, profile)
+	}
+	return result, nil
+}
+
+// ListProfilesWithIDs returns all available profiles with their IDs
+func (m *ManagerEnhanced) ListProfilesWithIDs() ([]ProfileWithID, error) {
+	result := make([]ProfileWithID, 0, len(m.profiles.Profiles))
+	for id, profile := range m.profiles.Profiles {
+		result = append(result, ProfileWithID{
+			ID:      id,
+			Profile: profile,
+		})
 	}
 	return result, nil
 }
@@ -161,7 +190,8 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 		_ = profile // Placeholder for future implementation
 	}
 
-	// SECURITY: Enforce device binding validation for device-bound profiles
+	// SECURITY: Enforce device binding validation ONLY for profiles that explicitly have device binding enabled
+	// Skip keychain access entirely for basic profiles (those without DeviceBound=true and BindingRef)
 	if profile.DeviceBound && profile.BindingRef != "" {
 		valid, err := security.ValidateDeviceBinding(profile.BindingRef)
 		if err != nil {
@@ -171,6 +201,7 @@ func (m *ManagerEnhanced) SwitchProfile(id string) error {
 			return fmt.Errorf("profile '%s' is not authorized for use on this device - device binding violation detected", profile.Name)
 		}
 	}
+	// For basic profiles (DeviceBound=false or BindingRef=""), skip security validation entirely
 
 	// Update last used timestamp
 	now := time.Now()
@@ -247,8 +278,10 @@ func (m *ManagerEnhanced) RemoveProfile(id string) error {
 		return fmt.Errorf("cannot remove the active profile, switch to another profile first")
 	}
 
-	// Clear credentials
-	_ = m.credentialProvider.ClearCredentials(id) // Best effort, don't fail if this fails
+	// Clear credentials if credential provider is available
+	if m.credentialProvider != nil {
+		_ = m.credentialProvider.ClearCredentials(id) // Best effort, don't fail if this fails
+	}
 
 	// Remove profile
 	delete(m.profiles.Profiles, id)
@@ -267,6 +300,10 @@ func (m *ManagerEnhanced) StoreProfileCredentials(profileID string, creds *Crede
 		return ErrProfileNotFound
 	}
 
+	if m.credentialProvider == nil {
+		return fmt.Errorf("credential storage not available - use AWS CLI credentials instead")
+	}
+
 	return m.credentialProvider.StoreCredentials(profileID, creds)
 }
 
@@ -274,6 +311,10 @@ func (m *ManagerEnhanced) StoreProfileCredentials(profileID string, creds *Crede
 func (m *ManagerEnhanced) GetProfileCredentials(profileID string) (*Credentials, error) {
 	if _, exists := m.profiles.Profiles[profileID]; !exists {
 		return nil, ErrProfileNotFound
+	}
+
+	if m.credentialProvider == nil {
+		return nil, fmt.Errorf("credential storage not available - use AWS CLI credentials instead")
 	}
 
 	return m.credentialProvider.GetCredentials(profileID)
