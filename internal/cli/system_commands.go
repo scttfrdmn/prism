@@ -95,8 +95,11 @@ func (s *SystemCommands) daemonStart() error {
 
 	// Message already printed by auto-start caller
 
+	// Find cwsd binary - try same directory as cws first, then PATH
+	cwsdPath := findCwsdBinary()
+	
 	// Start daemon in the background
-	cmd := exec.Command("cwsd")
+	cmd := exec.Command(cwsdPath)
 	if err := cmd.Start(); err != nil {
 		return WrapAPIError("start daemon process", err)
 	}
@@ -745,4 +748,27 @@ func (s *SystemCommands) cleanupDaemonFiles() {
 	} else {
 		fmt.Println("   No daemon files found to remove")
 	}
+}
+
+// findCwsdBinary finds the cwsd binary, trying same directory as cws first, then PATH
+func findCwsdBinary() string {
+	// Get the path of the current executable (cws)
+	cwsPath, err := os.Executable()
+	if err == nil {
+		// Try cwsd in the same directory as cws
+		cwsDir := filepath.Dir(cwsPath)
+		cwsdInSameDir := filepath.Join(cwsDir, "cwsd")
+		if _, err := os.Stat(cwsdInSameDir); err == nil {
+			return cwsdInSameDir
+		}
+	}
+	
+	// Fall back to looking in PATH
+	cwsdPath, err := exec.LookPath("cwsd")
+	if err == nil {
+		return cwsdPath
+	}
+	
+	// If nothing found, return "cwsd" and let exec.Command handle the error
+	return "cwsd"
 }

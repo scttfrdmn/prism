@@ -46,11 +46,9 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 
 	configPath := filepath.Join(cwsDir, "profiles.json")
 
-	// Create credential provider
-	credProvider, err := NewCredentialProvider()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create credential provider: %w", err)
-	}
+	// Skip credential provider to avoid keychain prompts for basic profile usage
+	// Users with AWS profiles in ~/.aws/credentials don't need secure storage
+	var credProvider CredentialProvider = nil
 
 	manager := &ManagerEnhanced{
 		configPath:         configPath,
