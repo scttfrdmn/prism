@@ -8,7 +8,6 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 )
 
 // ProfilesModel represents a simplified profiles view
@@ -17,7 +16,7 @@ type ProfilesModel struct {
 	statusBar      components.StatusBar
 	width          int
 	height         int
-	currentProfile *core.Profile
+	currentProfile *profile.Profile
 	error          string
 }
 
@@ -58,14 +57,20 @@ func (m ProfilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case ProfileInitMsg:
-		// Load current profile
-		currentProfile, err := profile.GetCurrentProfile()
-		if err != nil {
-			m.error = err.Error()
-			m.statusBar.SetStatus("Failed to load profile", components.StatusError)
+		// Load current profile using ManagerEnhanced
+		profileManager, pmErr := profile.NewManagerEnhanced()
+		if pmErr != nil {
+			m.error = pmErr.Error()
+			m.statusBar.SetStatus("Failed to initialize profile manager", components.StatusError)
 		} else {
-			m.currentProfile = currentProfile
-			m.statusBar.SetStatus("Profile loaded", components.StatusSuccess)
+			currentProfile, err := profileManager.GetCurrentProfile()
+			if err != nil {
+				m.error = err.Error()
+				m.statusBar.SetStatus("Failed to load profile", components.StatusError)
+			} else {
+				m.currentProfile = currentProfile
+				m.statusBar.SetStatus("Profile loaded", components.StatusSuccess)
+			}
 		}
 		return m, nil
 

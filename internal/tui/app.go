@@ -14,7 +14,6 @@ import (
 	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/core"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 )
 
@@ -59,13 +58,26 @@ type AppModel struct {
 // NewApp creates a new TUI application
 func NewApp() *App {
 	// Get current profile for API client configuration
-	currentProfile, err := profile.GetCurrentProfile()
-	if err != nil {
-		// Use default profile if none exists
-		currentProfile = &core.Profile{
+	profileManager, pmErr := profile.NewManagerEnhanced()
+	var currentProfile *profile.Profile
+	if pmErr != nil {
+		// Use default profile if manager fails to initialize
+		currentProfile = &profile.Profile{
 			Name:       "default",
 			AWSProfile: "",
 			Region:     "",
+		}
+	} else {
+		prof, err := profileManager.GetCurrentProfile()
+		if err != nil {
+			// Use default profile if none exists
+			currentProfile = &profile.Profile{
+				Name:       "default",
+				AWSProfile: "",
+				Region:     "",
+			}
+		} else {
+			currentProfile = prof
 		}
 	}
 

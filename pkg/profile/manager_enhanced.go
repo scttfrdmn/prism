@@ -196,15 +196,12 @@ func (m *ManagerEnhanced) AddProfile(profile Profile) error {
 		return fmt.Errorf("invalid profile type: %s", profile.Type)
 	}
 
-	// Generate a unique ID based on name if not provided
-	id := profile.AWSProfile
-	if id == "" {
-		id = createProfileID(profile.Name)
-	}
+	// Generate a unique ID based on profile name (not AWS profile)
+	id := createProfileID(profile.Name)
 
-	// Check for duplicate
+	// Check for duplicate profile name
 	if _, exists := m.profiles.Profiles[id]; exists {
-		return fmt.Errorf("profile '%s' already exists", id)
+		return fmt.Errorf("CloudWorkstation profile named '%s' already exists. Choose a different name or use 'cws profiles list' to see existing profiles", profile.Name)
 	}
 
 	// Initialize created time

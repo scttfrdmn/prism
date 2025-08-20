@@ -288,7 +288,7 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	// Profile commands
 	if r.app.profileManager != nil {
 		AddProfileCommands(rootCmd, r.app.config)
-		AddMigrateCommand(rootCmd, r.app.config)
+		// Migration command removed - profile system unified
 	}
 
 	// Security and idle commands
