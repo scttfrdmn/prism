@@ -1,7 +1,6 @@
 package progress
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"

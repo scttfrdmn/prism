@@ -27,3 +27,13 @@ func (s *Server) writeError(w http.ResponseWriter, statusCode int, message strin
 		log.Printf("Error encoding error response: %v", err)
 	}
 }
+
+// writeJSON writes a JSON response to the response writer
+func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error encoding JSON response: %v", err)
+	}
+}
