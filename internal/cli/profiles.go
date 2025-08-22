@@ -564,7 +564,7 @@ func runProfilesMainCommand(config *Config) {
 
 	// Check if user only has the default profile (common case)
 	hasOnlyDefault := len(profiles) == 1 && profiles[0].Profile.Default && profiles[0].Profile.Name == "AWS Default"
-	
+
 	if hasOnlyDefault {
 		fmt.Printf("🚀 %s\n", color.CyanString("CloudWorkstation Profile Management"))
 		fmt.Println()
@@ -578,7 +578,7 @@ func runProfilesMainCommand(config *Config) {
 		fmt.Println("💡 Your CloudWorkstation is ready to use! Try:")
 		fmt.Println("   cws launch python-ml my-project")
 		fmt.Println()
-		
+
 		reader := bufio.NewReader(os.Stdin)
 		if promptYesNo(reader, "Would you like to add additional profiles for other AWS accounts or regions?", false) {
 			runSetupCommand(config)

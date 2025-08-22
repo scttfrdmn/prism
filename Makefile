@@ -157,16 +157,21 @@ validate:
 	@./scripts/validate.sh
 
 # Quality gates
-.PHONY: quality-check vet security check-docs
+.PHONY: quality-check vet security check-docs validate-templates
 
 # Run all quality checks
-quality-check: fmt vet lint security check-docs test-coverage
+quality-check: fmt vet lint security check-docs validate-templates test-coverage
 	@echo "✅ All quality checks passed!"
 
 # Check documentation standards
 check-docs:
 	@echo "📚 Checking documentation standards..."
 	@./scripts/check-docs.sh
+
+# Validate templates
+validate-templates: build-cli
+	@echo "🔍 Validating all templates..."
+	@./bin/cws templates validate
 
 # Enhanced linting
 .PHONY: lint

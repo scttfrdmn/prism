@@ -49,9 +49,9 @@ services:
   - name: jupyter
     port: 8888
     config:
-      - "c.NotebookApp.ip = '127.0.0.1'"
+      - "c.NotebookApp.ip = '{{.WebInterfaceBindIP}}'"
       - "c.NotebookApp.allow_root = True"
-      - "# Token required for security - use SSH port forwarding to access"
+      - "# Access: Direct from your IP if detected, otherwise SSH port forwarding required"
     enable: true
 
 # Users

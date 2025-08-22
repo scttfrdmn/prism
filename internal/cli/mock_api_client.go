@@ -16,18 +16,18 @@ import (
 // MockAPIClient implements the CloudWorkstationAPI interface for testing
 type MockAPIClient struct {
 	// Response configuration
-	ShouldReturnError bool
-	ErrorMessage      string
-	PingError         error
-	ConnectError      error  // Specific error for ConnectInstance method
-	StopError         error  // Specific error for StopInstance method
-	StartError        error  // Specific error for StartInstance method
-	DeleteError       error  // Specific error for DeleteInstance method
-	HibernateError    error  // Specific error for HibernateInstance method
-	ResumeError       error  // Specific error for ResumeInstance method
-	ListInstancesError error  // Specific error for ListInstances method
-	HibernationStatusError error  // Specific error for GetInstanceHibernationStatus method
-	LaunchError            error  // Specific error for LaunchInstance method
+	ShouldReturnError      bool
+	ErrorMessage           string
+	PingError              error
+	ConnectError           error // Specific error for ConnectInstance method
+	StopError              error // Specific error for StopInstance method
+	StartError             error // Specific error for StartInstance method
+	DeleteError            error // Specific error for DeleteInstance method
+	HibernateError         error // Specific error for HibernateInstance method
+	ResumeError            error // Specific error for ResumeInstance method
+	ListInstancesError     error // Specific error for ListInstances method
+	HibernationStatusError error // Specific error for GetInstanceHibernationStatus method
+	LaunchError            error // Specific error for LaunchInstance method
 
 	// Mock data
 	Instances         []types.Instance
@@ -214,7 +214,7 @@ func (m *MockAPIClient) ListInstances(ctx context.Context) (*types.ListResponse,
 	if m.ListInstancesError != nil {
 		return nil, m.ListInstancesError
 	}
-	
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
@@ -337,7 +337,7 @@ func (m *MockAPIClient) GetInstanceHibernationStatus(ctx context.Context, name s
 	if m.HibernationStatusError != nil {
 		return nil, m.HibernationStatusError
 	}
-	
+
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}

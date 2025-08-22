@@ -134,7 +134,7 @@ func TestLaunchCommand(t *testing.T) {
 			if tt.errorType == "daemon" || tt.errorType == "api" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -319,7 +319,7 @@ func TestStopCommandIntegration(t *testing.T) {
 // TestStartCommandIntegration tests the start command delegation
 func TestStartCommandIntegration(t *testing.T) {
 	mockClient := NewMockAPIClient()
-	
+
 	// Set test-instance to stopped state so start command will actually call StartInstance
 	for i := range mockClient.Instances {
 		if mockClient.Instances[i].Name == "test-instance" {
@@ -327,7 +327,7 @@ func TestStartCommandIntegration(t *testing.T) {
 			break
 		}
 	}
-	
+
 	app := NewAppWithClient("1.0.0", mockClient)
 
 	// Test delegation to instance commands
@@ -372,7 +372,7 @@ func TestHibernateCommandIntegration(t *testing.T) {
 // TestResumeCommandIntegration tests the resume command delegation
 func TestResumeCommandIntegration(t *testing.T) {
 	mockClient := NewMockAPIClient()
-	
+
 	// Set test-instance to hibernated state and configure hibernation status
 	for i := range mockClient.Instances {
 		if mockClient.Instances[i].Name == "test-instance" {
@@ -381,7 +381,7 @@ func TestResumeCommandIntegration(t *testing.T) {
 		}
 	}
 	mockClient.HibernationStatus.IsHibernated = true
-	
+
 	app := NewAppWithClient("1.0.0", mockClient)
 
 	// Test delegation to instance commands
@@ -393,7 +393,7 @@ func TestResumeCommandIntegration(t *testing.T) {
 	resumeCalls := len(mockClient.ResumeCalls)
 	startCalls := len(mockClient.StartCalls)
 	assert.True(t, resumeCalls > 0 || startCalls > 0, "Resume should call either ResumeInstance or StartInstance")
-	
+
 	if resumeCalls > 0 {
 		assert.Equal(t, "test-instance", mockClient.ResumeCalls[0])
 	} else if startCalls > 0 {

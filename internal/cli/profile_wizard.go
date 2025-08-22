@@ -101,7 +101,7 @@ func (pw *ProfileWizard) chooseProfileType() string {
 
 	for {
 		choice := pw.promptString("Choose profile type (1 for Personal, 2 for Invitation, or 'q' to quit)", "1")
-		
+
 		switch strings.ToLower(choice) {
 		case "1", "personal", "p":
 			return "personal"
@@ -265,7 +265,7 @@ func (pw *ProfileWizard) getProfileName() string {
 func (pw *ProfileWizard) getAWSProfile() string {
 	fmt.Printf("\n🔑 %s\n", color.BlueString("AWS Profile"))
 	fmt.Println("This should match a profile in your ~/.aws/credentials file.")
-	
+
 	// Try to detect available AWS profiles
 	awsProfiles := pw.detectAWSProfiles()
 	if len(awsProfiles) > 0 {
@@ -299,7 +299,7 @@ func (pw *ProfileWizard) getAWSRegion() string {
 	fmt.Println()
 
 	region := pw.promptString("AWS region (optional)", "")
-	
+
 	// Validate region format if provided
 	if region != "" && !pw.isValidRegion(region) {
 		fmt.Println("⚠️  Region format looks unusual, but proceeding anyway.")
@@ -366,12 +366,12 @@ func (pw *ProfileWizard) validateAWSCredentials(awsProfile, region string) bool 
 	if err != nil {
 		fmt.Printf("❌ AWS validation failed: %v\n", err)
 		fmt.Printf("Output: %s\n", string(output))
-		
+
 		fmt.Println("\n💡 To fix this:")
 		fmt.Println("   1. Install AWS CLI: https://aws.amazon.com/cli/")
 		fmt.Printf("   2. Configure credentials: aws configure --profile %s\n", awsProfile)
 		fmt.Println("   3. Verify access: aws sts get-caller-identity")
-		
+
 		return pw.promptYesNo("Continue anyway? (profile will be created but may not work)", false)
 	}
 
@@ -385,14 +385,14 @@ func (pw *ProfileWizard) showProfileCreated(newProfile profile.Profile) {
 	fmt.Println()
 	fmt.Printf("✅ Profile '%s' has been created\n", newProfile.Name)
 	fmt.Printf("📋 Type: %s\n", pw.getProfileTypeDisplay(newProfile.Type))
-	
+
 	if newProfile.Type == profile.ProfileTypePersonal {
 		fmt.Printf("🔑 AWS Profile: %s\n", newProfile.AWSProfile)
 		if newProfile.Region != "" {
 			fmt.Printf("🌍 Region: %s\n", newProfile.Region)
 		}
 	}
-	
+
 	fmt.Println()
 	fmt.Println("💡 What's next?")
 	fmt.Println("   • List all profiles: cws profiles list")

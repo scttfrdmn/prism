@@ -10,29 +10,29 @@ import (
 // OptimizedResolver provides parallel template processing for improved performance
 type OptimizedResolver struct {
 	*TemplateResolver
-	
+
 	// Caching for performance
 	templateCache sync.Map // map[string]*CachedTemplate
 	amiCache      sync.Map // map[string]*AMIMapping
-	
+
 	// Configuration
-	cacheTimeout    time.Duration
-	maxConcurrency  int
+	cacheTimeout   time.Duration
+	maxConcurrency int
 }
 
 // CachedTemplate represents a cached template with metadata
 type CachedTemplate struct {
-	Template  *Template
-	CachedAt  time.Time
-	Hash      string
+	Template *Template
+	CachedAt time.Time
+	Hash     string
 }
 
 // CachedAMIMapping represents a cached AMI mapping
 type CachedAMIMapping struct {
-	Mapping   map[string]map[string]string // region -> arch -> AMI ID
-	CachedAt  time.Time
-	Region    string
-	Arch      string
+	Mapping  map[string]map[string]string // region -> arch -> AMI ID
+	CachedAt time.Time
+	Region   string
+	Arch     string
 }
 
 // NewOptimizedResolver creates an optimized template resolver with caching
@@ -49,7 +49,7 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 	// Create context with timeout for the entire operation
 	resolveCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	
+
 	// Select package manager (use override if provided)
 	var packageManager PackageManagerType
 	if packageManagerOverride != "" {
@@ -57,7 +57,7 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 	} else {
 		packageManager = r.Parser.Strategy.SelectPackageManager(template)
 	}
-	
+
 	// Parallel processing channels
 	type scriptResult struct {
 		script string
@@ -73,28 +73,28 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 		cost         map[string]float64
 		idleConfig   *IdleDetectionConfig
 	}
-	
+
 	scriptChan := make(chan scriptResult, 1)
 	amiChan := make(chan amiResult, 1)
 	mappingChan := make(chan mappingResult, 1)
-	
+
 	// Start parallel goroutines
 	go func() {
 		script, err := r.generateScriptAsync(template, packageManager)
 		scriptChan <- scriptResult{script: script, err: err}
 	}()
-	
+
 	go func() {
 		mapping, err := r.getAMIMappingAsync(resolveCtx, template, region, architecture)
 		amiChan <- amiResult{mapping: mapping, err: err}
 	}()
-	
+
 	go func() {
 		instanceType := r.TemplateResolver.getInstanceTypeMapping(template, architecture, size)
 		ports := r.TemplateResolver.getPortMapping(template)
 		cost := r.TemplateResolver.getCostMapping(template, architecture)
 		idleConfig := r.TemplateResolver.ensureIdleDetectionConfig(template)
-		
+
 		mappingChan <- mappingResult{
 			instanceType: instanceType,
 			ports:        ports,
@@ -102,7 +102,7 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 			idleConfig:   idleConfig,
 		}
 	}()
-	
+
 	// Collect results
 	var userDataScript string
 	var amiMapping map[string]map[string]string
@@ -110,7 +110,7 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 	var ports []int
 	var costMapping map[string]float64
 	var idleDetectionConfig *IdleDetectionConfig
-	
+
 	for i := 0; i < 3; i++ {
 		select {
 		case result := <-scriptChan:
@@ -118,24 +118,24 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 				return nil, fmt.Errorf("failed to generate installation script: %w", result.err)
 			}
 			userDataScript = result.script
-			
+
 		case result := <-amiChan:
 			if result.err != nil {
 				return nil, fmt.Errorf("failed to get AMI mapping: %w", result.err)
 			}
 			amiMapping = result.mapping
-			
+
 		case result := <-mappingChan:
 			instanceTypeMapping = result.instanceType
 			ports = result.ports
 			costMapping = result.cost
 			idleDetectionConfig = result.idleConfig
-			
+
 		case <-resolveCtx.Done():
 			return nil, fmt.Errorf("template resolution timed out: %w", resolveCtx.Err())
 		}
 	}
-	
+
 	// Create runtime template
 	runtimeTemplate := &RuntimeTemplate{
 		Name:                 template.Name,
@@ -149,7 +149,7 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 		EstimatedCostPerHour: costMapping,
 		IdleDetection:        idleDetectionConfig,
 	}
-	
+
 	return runtimeTemplate, nil
 }
 
@@ -159,7 +159,7 @@ func (r *OptimizedResolver) generateScriptAsync(template *Template, packageManag
 	if template.UserData != "" {
 		return r.ensureIdleDetection(template.UserData, template, packageManager), nil
 	}
-	
+
 	// Check cache first
 	cacheKey := fmt.Sprintf("script_%s_%s", template.Slug, string(packageManager))
 	if cached, ok := r.templateCache.Load(cacheKey); ok {
@@ -168,23 +168,23 @@ func (r *OptimizedResolver) generateScriptAsync(template *Template, packageManag
 			return cachedTemplate.Template.UserData, nil
 		}
 	}
-	
+
 	// Generate script
 	generatedScript, err := r.ScriptGen.GenerateScript(template, packageManager)
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Ensure idle detection is present
 	userDataScript := r.ensureIdleDetection(generatedScript, template, packageManager)
-	
+
 	// Cache the result
 	r.templateCache.Store(cacheKey, &CachedTemplate{
 		Template: &Template{UserData: userDataScript},
 		CachedAt: time.Now(),
 		Hash:     r.hashTemplate(template),
 	})
-	
+
 	return userDataScript, nil
 }
 
@@ -198,13 +198,13 @@ func (r *OptimizedResolver) getAMIMappingAsync(ctx context.Context, template *Te
 			return cachedAMI.Mapping, nil
 		}
 	}
-	
+
 	// Get AMI mapping
 	amiMapping, err := r.TemplateResolver.getAMIMapping(template, region, architecture)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Cache the result
 	r.amiCache.Store(cacheKey, &CachedAMIMapping{
 		Mapping:  amiMapping,
@@ -212,7 +212,7 @@ func (r *OptimizedResolver) getAMIMappingAsync(ctx context.Context, template *Te
 		Region:   region,
 		Arch:     architecture,
 	})
-	
+
 	return amiMapping, nil
 }
 
@@ -238,7 +238,7 @@ func (r *OptimizedResolver) ClearCache() {
 func (r *OptimizedResolver) GetCacheStats() map[string]int {
 	templateCount := 0
 	amiCount := 0
-	
+
 	r.templateCache.Range(func(key, value interface{}) bool {
 		templateCount++
 		return true
@@ -247,7 +247,7 @@ func (r *OptimizedResolver) GetCacheStats() map[string]int {
 		amiCount++
 		return true
 	})
-	
+
 	return map[string]int{
 		"template_cache_size": templateCount,
 		"ami_cache_size":      amiCount,

@@ -183,7 +183,7 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 	app.templateCommands = NewTemplateCommands(app)
 	app.systemCommands = NewSystemCommands(app)
 	app.scalingCommands = NewScalingCommands(app)
-	
+
 	// Initialize TUI command
 	app.tuiCommand = NewTUICommand()
 
@@ -207,7 +207,7 @@ func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
 		return NewUsageError("cws launch <template> <name>", "cws launch python-ml my-workstation")
 	}
-	
+
 	template := args[0]
 	name := args[1]
 
@@ -313,19 +313,19 @@ func (a *App) monitorLaunchProgress(instanceName, templateName string) error {
 func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, template *types.Template) error {
 	startTime := time.Now()
 	maxDuration := 20 * time.Minute // Maximum monitoring time
-	
+
 	for {
 		elapsed := time.Since(startTime)
-		
+
 		// Check for timeout
 		if elapsed > maxDuration {
-			fmt.Printf("⚠️  Launch monitoring timeout (%s). Instance may still be setting up.\n", 
+			fmt.Printf("⚠️  Launch monitoring timeout (%s). Instance may still be setting up.\n",
 				reporter.FormatDuration(maxDuration))
 			fmt.Printf("💡 Check status with: cws list\n")
 			fmt.Printf("💡 Try connecting: cws connect %s\n", reporter.instanceName)
 			return nil
 		}
-		
+
 		// Get current instance status
 		instance, err := a.apiClient.GetInstance(a.ctx, reporter.instanceName)
 		if err != nil {
@@ -340,10 +340,10 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		
+
 		// Update progress display
 		reporter.UpdateProgress(instance, elapsed)
-		
+
 		// Check for completion or error states
 		switch instance.State {
 		case "running":
@@ -373,22 +373,22 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 				reporter.ShowCompletion(instance)
 				return nil
 			}
-			
+
 		case "stopped", "stopping":
 			err := fmt.Errorf("instance stopped during launch")
 			reporter.ShowError(err, instance)
 			return err
-			
+
 		case "terminated":
 			err := fmt.Errorf("instance terminated during launch")
 			reporter.ShowError(err, instance)
 			return err
-			
+
 		case "dry-run":
 			fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
 			return nil
 		}
-		
+
 		// Wait before next check
 		time.Sleep(5 * time.Second)
 	}

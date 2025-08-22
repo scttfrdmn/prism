@@ -149,7 +149,7 @@ func (tc *TemplateCommands) templatesInfo(args []string) error {
 		if err != nil {
 			return WrapAPIError("template not found", err)
 		}
-		
+
 		// Display basic template information for test mode
 		fmt.Printf("🏗️ Template: %s\n", template.Name)
 		fmt.Printf("   Description: %s\n", template.Description)

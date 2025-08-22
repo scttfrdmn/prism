@@ -265,7 +265,7 @@ func TestErrorHelperFunctions(t *testing.T) {
 	assert.Contains(t, wrappedErr.Error(), "Need help?")
 	assert.Contains(t, wrappedErr.Error(), "cws daemon status")
 
-	// Test WrapDaemonError - now uses enhanced error handling  
+	// Test WrapDaemonError - now uses enhanced error handling
 	daemonErr := WrapDaemonError(originalErr)
 	assert.Error(t, daemonErr)
 	// Enhanced daemon error includes troubleshooting guidance

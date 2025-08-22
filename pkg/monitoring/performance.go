@@ -18,11 +18,11 @@ type PerformanceMonitor struct {
 
 // Metric represents a performance metric
 type Metric struct {
-	Name     string    `json:"name"`
-	Value    float64   `json:"value"`
-	Unit     string    `json:"unit"`
-	LastUpdated time.Time `json:"last_updated"`
-	History  []DataPoint `json:"history,omitempty"`
+	Name        string      `json:"name"`
+	Value       float64     `json:"value"`
+	Unit        string      `json:"unit"`
+	LastUpdated time.Time   `json:"last_updated"`
+	History     []DataPoint `json:"history,omitempty"`
 }
 
 // DataPoint represents a point-in-time measurement
@@ -51,10 +51,10 @@ func NewPerformanceMonitor() *PerformanceMonitor {
 func (pm *PerformanceMonitor) Start(ctx context.Context) {
 	ticker := time.NewTicker(pm.interval)
 	defer ticker.Stop()
-	
+
 	// Initial metrics collection
 	pm.collectSystemMetrics()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -77,10 +77,10 @@ func (pm *PerformanceMonitor) StartOperation(operation string) *OperationTimer {
 // EndOperation completes timing an operation
 func (ot *OperationTimer) End() time.Duration {
 	duration := time.Since(ot.startTime)
-	
+
 	// Record the operation timing
 	ot.monitor.RecordTiming(ot.operation, duration)
-	
+
 	return duration
 }
 
@@ -88,7 +88,7 @@ func (ot *OperationTimer) End() time.Duration {
 func (pm *PerformanceMonitor) RecordTiming(operation string, duration time.Duration) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
-	
+
 	metricName := fmt.Sprintf("timing_%s", operation)
 	metric, exists := pm.metrics[metricName]
 	if !exists {
@@ -99,11 +99,11 @@ func (pm *PerformanceMonitor) RecordTiming(operation string, duration time.Durat
 		}
 		pm.metrics[metricName] = metric
 	}
-	
+
 	value := float64(duration.Nanoseconds()) / 1e6 // Convert to milliseconds
 	metric.Value = value
 	metric.LastUpdated = time.Now()
-	
+
 	// Add to history (keep last 100 points)
 	metric.History = append(metric.History, DataPoint{
 		Timestamp: time.Now(),
@@ -118,7 +118,7 @@ func (pm *PerformanceMonitor) RecordTiming(operation string, duration time.Durat
 func (pm *PerformanceMonitor) RecordValue(name string, value float64, unit string) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
-	
+
 	metric, exists := pm.metrics[name]
 	if !exists {
 		metric = &Metric{
@@ -128,10 +128,10 @@ func (pm *PerformanceMonitor) RecordValue(name string, value float64, unit strin
 		}
 		pm.metrics[name] = metric
 	}
-	
+
 	metric.Value = value
 	metric.LastUpdated = time.Now()
-	
+
 	// Add to history
 	metric.History = append(metric.History, DataPoint{
 		Timestamp: time.Now(),
@@ -146,7 +146,7 @@ func (pm *PerformanceMonitor) RecordValue(name string, value float64, unit strin
 func (pm *PerformanceMonitor) collectSystemMetrics() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	pm.RecordValue("memory_heap_alloc", float64(m.HeapAlloc)/1024/1024, "MB")
 	pm.RecordValue("memory_heap_sys", float64(m.HeapSys)/1024/1024, "MB")
 	pm.RecordValue("memory_heap_objects", float64(m.HeapObjects), "count")
@@ -158,13 +158,13 @@ func (pm *PerformanceMonitor) collectSystemMetrics() {
 func (pm *PerformanceMonitor) GetMetrics() map[string]*Metric {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	result := make(map[string]*Metric)
 	for k, v := range pm.metrics {
 		result[k] = v
 	}
-	
+
 	return result
 }
 
@@ -172,7 +172,7 @@ func (pm *PerformanceMonitor) GetMetrics() map[string]*Metric {
 func (pm *PerformanceMonitor) GetMetric(name string) (*Metric, bool) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	
+
 	metric, exists := pm.metrics[name]
 	return metric, exists
 }
@@ -181,19 +181,19 @@ func (pm *PerformanceMonitor) GetMetric(name string) (*Metric, bool) {
 func (pm *PerformanceMonitor) GetSummary() PerformanceSummary {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	
+
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	summary := PerformanceSummary{
-		Uptime:          time.Since(pm.started),
-		MemoryUsageMB:   float64(m.HeapAlloc) / 1024 / 1024,
-		Goroutines:      runtime.NumGoroutine(),
-		GCCycles:        m.NumGC,
-		LastGCPause:     time.Duration(m.PauseNs[(m.NumGC+255)%256]),
-		MetricCount:     len(pm.metrics),
+		Uptime:        time.Since(pm.started),
+		MemoryUsageMB: float64(m.HeapAlloc) / 1024 / 1024,
+		Goroutines:    runtime.NumGoroutine(),
+		GCCycles:      m.NumGC,
+		LastGCPause:   time.Duration(m.PauseNs[(m.NumGC+255)%256]),
+		MetricCount:   len(pm.metrics),
 	}
-	
+
 	// Calculate average operation timings
 	summary.OperationTimings = make(map[string]float64)
 	for name, metric := range pm.metrics {
@@ -208,19 +208,19 @@ func (pm *PerformanceMonitor) GetSummary() PerformanceSummary {
 			}
 		}
 	}
-	
+
 	return summary
 }
 
 // PerformanceSummary provides a high-level performance overview
 type PerformanceSummary struct {
-	Uptime           time.Duration          `json:"uptime"`
-	MemoryUsageMB    float64               `json:"memory_usage_mb"`
-	Goroutines       int                   `json:"goroutines"`
-	GCCycles         uint32                `json:"gc_cycles"`
-	LastGCPause      time.Duration         `json:"last_gc_pause"`
-	MetricCount      int                   `json:"metric_count"`
-	OperationTimings map[string]float64    `json:"operation_timings"`
+	Uptime           time.Duration      `json:"uptime"`
+	MemoryUsageMB    float64            `json:"memory_usage_mb"`
+	Goroutines       int                `json:"goroutines"`
+	GCCycles         uint32             `json:"gc_cycles"`
+	LastGCPause      time.Duration      `json:"last_gc_pause"`
+	MetricCount      int                `json:"metric_count"`
+	OperationTimings map[string]float64 `json:"operation_timings"`
 }
 
 // LaunchSpeedTracker specifically tracks launch performance improvements
@@ -247,12 +247,12 @@ func (lst *LaunchSpeedTracker) TrackTotalLaunchTime(duration time.Duration, temp
 // GetLaunchStats returns launch performance statistics
 func (lst *LaunchSpeedTracker) GetLaunchStats() LaunchStats {
 	metrics := lst.monitor.GetMetrics()
-	
+
 	stats := LaunchStats{
-		PhaseTimings: make(map[string]float64),
+		PhaseTimings:    make(map[string]float64),
 		TemplateTimings: make(map[string]float64),
 	}
-	
+
 	// Collect phase timings
 	for name, metric := range metrics {
 		if len(name) > 19 && name[:19] == "timing_launch_phase" {
@@ -270,7 +270,7 @@ func (lst *LaunchSpeedTracker) GetLaunchStats() LaunchStats {
 				stats.PhaseTimings[phase] = total / float64(len(recent))
 			}
 		}
-		
+
 		// Collect template timings
 		if len(name) > 23 && name[:23] == "timing_launch_template_" {
 			template := name[23:]
@@ -286,7 +286,7 @@ func (lst *LaunchSpeedTracker) GetLaunchStats() LaunchStats {
 				stats.TemplateTimings[template] = total / float64(len(recent))
 			}
 		}
-		
+
 		// Get total launch timing
 		if name == "timing_launch_total" && len(metric.History) > 0 {
 			recent := metric.History
@@ -300,7 +300,7 @@ func (lst *LaunchSpeedTracker) GetLaunchStats() LaunchStats {
 			stats.AverageTotalTime = total / float64(len(recent))
 		}
 	}
-	
+
 	return stats
 }
 

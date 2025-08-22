@@ -33,16 +33,16 @@ type Server struct {
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
 	processManager  ProcessManager
-	
+
 	// Connection reliability components
 	performanceMonitor *monitoring.PerformanceMonitor
-	connManager       *connection.ConnectionManager
+	connManager        *connection.ConnectionManager
 	reliabilityManager *connection.ReliabilityManager
-	
+
 	// Daemon stability components
-	stabilityManager   *StabilityManager
-	recoveryManager    *RecoveryManager
-	healthMonitor      *HealthMonitor
+	stabilityManager *StabilityManager
+	recoveryManager  *RecoveryManager
+	healthMonitor    *HealthMonitor
 }
 
 // NewServer creates a new daemon server
@@ -128,17 +128,17 @@ func NewServer(port string) (*Server, error) {
 
 	// Initialize process manager
 	processManager := NewProcessManager()
-	
+
 	// Initialize performance monitoring
 	performanceMonitor := monitoring.NewPerformanceMonitor()
-	
+
 	// Initialize connection reliability
 	connManager := connection.NewConnectionManager(performanceMonitor)
 	reliabilityManager := connection.NewReliabilityManager(connManager, performanceMonitor)
-	
+
 	// Initialize daemon stability
 	stabilityManager := NewStabilityManager(performanceMonitor)
-	
+
 	server := &Server{
 		config:             config,
 		port:               port,
@@ -155,11 +155,11 @@ func NewServer(port string) (*Server, error) {
 		reliabilityManager: reliabilityManager,
 		stabilityManager:   stabilityManager,
 	}
-	
+
 	// Initialize recovery and health monitoring (need server reference)
 	server.recoveryManager = NewRecoveryManager(stabilityManager, nil) // Will be set after server creation
 	server.healthMonitor = NewHealthMonitor(stateManager, stabilityManager, server.recoveryManager, performanceMonitor)
-	
+
 	// Initialize launch manager (if needed)
 	// server.launchManager = NewLaunchManager(server)
 
@@ -173,7 +173,7 @@ func NewServer(port string) (*Server, error) {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-	
+
 	// Set HTTP server reference in recovery manager
 	server.recoveryManager.HTTPServer = server.httpServer
 
@@ -194,13 +194,13 @@ func (s *Server) Start() error {
 	// Start daemon stability and monitoring systems
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	log.Printf("Starting stability management systems...")
 	go s.performanceMonitor.Start(ctx)
 	go s.reliabilityManager.Start(ctx)
 	go s.stabilityManager.Start(ctx)
 	go s.healthMonitor.Start(ctx)
-	
+
 	// Enable memory management
 	s.stabilityManager.EnableForceGC(true)
 	log.Printf("Daemon stability systems started")
@@ -227,7 +227,7 @@ func (s *Server) Start() error {
 		// Use recovery manager for graceful shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		
+
 		if err := s.recoveryManager.GracefulShutdown(ctx); err != nil {
 			log.Printf("Warning: Graceful shutdown had issues: %v", err)
 		}
@@ -447,7 +447,7 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/security/compliance/validate/{framework}", applyMiddleware(s.handleAWSComplianceValidate))
 	mux.HandleFunc("/api/v1/security/compliance/report/{framework}", applyMiddleware(s.handleAWSComplianceReport))
 	mux.HandleFunc("/api/v1/security/compliance/scp/{framework}", applyMiddleware(s.handleAWSComplianceSCP))
-	
+
 	// Daemon stability and health endpoints (Phase 1.3: Daemon Stability)
 	if s.healthMonitor != nil {
 		mux.HandleFunc("/api/v1/health", s.recoveryManager.RecoverHTTPHandler("health", s.healthMonitor.HandleHealthEndpoint))

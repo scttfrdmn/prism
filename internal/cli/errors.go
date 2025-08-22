@@ -11,7 +11,7 @@ type ErrorCategory string
 
 const (
 	ErrorCategoryDaemon      ErrorCategory = "daemon"
-	ErrorCategoryNetwork     ErrorCategory = "network" 
+	ErrorCategoryNetwork     ErrorCategory = "network"
 	ErrorCategoryCredentials ErrorCategory = "credentials"
 	ErrorCategoryProfile     ErrorCategory = "profile"
 	ErrorCategoryLaunch      ErrorCategory = "launch"
@@ -19,6 +19,8 @@ const (
 	ErrorCategoryValidation  ErrorCategory = "validation"
 	ErrorCategoryKeychain    ErrorCategory = "keychain"
 	ErrorCategoryCapacity    ErrorCategory = "capacity"
+	ErrorCategorySecurity    ErrorCategory = "security"
+	ErrorCategoryAccess      ErrorCategory = "access"
 	ErrorCategoryUnknown     ErrorCategory = "unknown"
 )
 
@@ -241,9 +243,9 @@ Original error: %v`, err)
 type ProfileErrorHandler struct{}
 
 func (h *ProfileErrorHandler) CanHandle(errorMsg string) bool {
-	return strings.Contains(errorMsg, "profile not found") || 
-		   strings.Contains(errorMsg, "profile") && strings.Contains(errorMsg, "not exist") ||
-		   strings.Contains(errorMsg, "current profile")
+	return strings.Contains(errorMsg, "profile not found") ||
+		strings.Contains(errorMsg, "profile") && strings.Contains(errorMsg, "not exist") ||
+		strings.Contains(errorMsg, "current profile")
 }
 
 func (h *ProfileErrorHandler) Handle(err error, context string) error {
@@ -269,8 +271,8 @@ type LaunchErrorHandler struct{}
 
 func (h *LaunchErrorHandler) CanHandle(errorMsg string) bool {
 	return strings.Contains(errorMsg, "launch failed") ||
-		   strings.Contains(errorMsg, "instance failed") ||
-		   (strings.Contains(errorMsg, "UserData") && strings.Contains(errorMsg, "failed"))
+		strings.Contains(errorMsg, "instance failed") ||
+		(strings.Contains(errorMsg, "UserData") && strings.Contains(errorMsg, "failed"))
 }
 
 func (h *LaunchErrorHandler) Handle(err error, context string) error {
@@ -298,8 +300,8 @@ type KeychainErrorHandler struct{}
 
 func (h *KeychainErrorHandler) CanHandle(errorMsg string) bool {
 	return strings.Contains(errorMsg, "keychain") ||
-		   strings.Contains(errorMsg, "password") && strings.Contains(errorMsg, "required") ||
-		   strings.Contains(errorMsg, "security")
+		(strings.Contains(errorMsg, "password") && strings.Contains(errorMsg, "required")) ||
+		(strings.Contains(errorMsg, "security") && !strings.Contains(errorMsg, "security group"))
 }
 
 func (h *KeychainErrorHandler) Handle(err error, context string) error {
@@ -350,6 +352,142 @@ Need help?
 	return err
 }
 
+// IPDetectionErrorHandler handles IP detection failures
+type IPDetectionErrorHandler struct{}
+
+func (h *IPDetectionErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "failed to detect external IP") || 
+		   strings.Contains(errorMsg, "IP detection failed")
+}
+
+func (h *IPDetectionErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`IP detection failed - web interfaces secured to SSH tunneling
+
+CloudWorkstation couldn't detect your external IP for secure direct web access.
+Your instances are still fully functional, but web interfaces require SSH tunneling.
+
+🔧 Web Interface Access:
+  Jupyter:  ssh -L 8888:localhost:8888 user@<instance-ip>
+  RStudio:  ssh -L 8787:localhost:8787 user@<instance-ip>
+  Then open: http://localhost:8888 or http://localhost:8787
+
+🌐 Alternative Solutions:
+1. Check internet connectivity and try again
+2. Use a VPN or different network
+3. Manual IP refresh: cws access refresh (when available)
+
+✅ This is secure by design - SSH tunneling provides encrypted access.
+
+Original error: %v`, err)
+}
+
+// SecurityGroupErrorHandler handles security group access errors
+type SecurityGroupErrorHandler struct{}
+
+func (h *SecurityGroupErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "security group") && 
+		   (strings.Contains(errorMsg, "UnauthorizedOperation") ||
+		    strings.Contains(errorMsg, "failed to add") ||
+		    strings.Contains(errorMsg, "access rules"))
+}
+
+func (h *SecurityGroupErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`security group configuration failed
+
+CloudWorkstation couldn't configure secure access rules. This may be due to:
+
+🔧 Possible Solutions:
+1. Check AWS IAM permissions for EC2 security groups:
+   - ec2:DescribeSecurityGroups
+   - ec2:AuthorizeSecurityGroupIngress
+   - ec2:RevokeSecurityGroupIngress
+
+2. Verify your AWS credentials have sufficient permissions:
+   aws sts get-caller-identity
+
+3. Check if you're in a restricted AWS environment
+
+💡 Fallback: Instances will use SSH-only access (secure by default)
+   Connect with: ssh -L 8888:localhost:8888 user@<instance-ip>
+
+Documentation: https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/DEMO_TESTER_SETUP.md
+
+Original error: %v`, err)
+}
+
+// TemplateValidationErrorHandler handles template validation errors
+type TemplateValidationErrorHandler struct{}
+
+func (h *TemplateValidationErrorHandler) CanHandle(errorMsg string) bool {
+	return strings.Contains(errorMsg, "template validation failed") || 
+		   strings.Contains(errorMsg, "invalid template")
+}
+
+func (h *TemplateValidationErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`template validation failed
+
+One or more templates have configuration issues.
+
+🔧 Troubleshooting:
+1. Check specific template: cws templates validate <template-name>
+2. List all templates: cws templates
+3. Check template syntax: look for YAML formatting issues
+
+🔍 Common Issues:
+- Missing required fields (name, description, base)
+- Invalid package manager (must be: apt, dnf, conda, yum, apk)
+- Broken inheritance chains
+- Invalid port numbers or user configurations
+
+📝 Fix Templates:
+- Edit YAML files in templates/ directory
+- Run validation after changes: make validate-templates
+- Check template examples for proper syntax
+
+Need help? Check the template documentation or file an issue.
+
+Original error: %v`, err)
+}
+
+// WebAccessErrorHandler handles web interface access issues
+type WebAccessErrorHandler struct{}
+
+func (h *WebAccessErrorHandler) CanHandle(errorMsg string) bool {
+	return (strings.Contains(errorMsg, "web interface") || 
+		   strings.Contains(errorMsg, "port 8888") ||
+		   strings.Contains(errorMsg, "jupyter") ||
+		   strings.Contains(errorMsg, "rstudio")) &&
+		   strings.Contains(errorMsg, "connection")
+}
+
+func (h *WebAccessErrorHandler) Handle(err error, context string) error {
+	return fmt.Errorf(`web interface access issue
+
+Having trouble accessing Jupyter, RStudio, or other web interfaces?
+
+🌐 Access Methods (in order of preference):
+1. Direct Access: http://<instance-ip>:8888
+   - Available if your IP was detected during launch
+   - Restricted to your specific IP for security
+
+2. SSH Tunneling (always works):
+   ssh -L 8888:localhost:8888 user@<instance-ip>
+   Then: http://localhost:8888
+
+🔍 Troubleshooting:
+- Check instance is running: cws list
+- Verify correct port (8888 for Jupyter, 8787 for RStudio)
+- Try SSH tunnel if direct access fails
+- Check your current IP: cws access status (when available)
+
+🔧 IP Changed? 
+If you moved networks or your IP changed:
+- Use SSH tunneling as immediate solution
+- Command available later: cws access refresh
+
+Original error: %v`, err)
+}
+
 // ErrorHandlerRegistry manages error handlers (Strategy Pattern - SOLID)
 type ErrorHandlerRegistry struct {
 	handlers []ErrorHandler
@@ -359,18 +497,22 @@ type ErrorHandlerRegistry struct {
 func NewErrorHandlerRegistry() *ErrorHandlerRegistry {
 	return &ErrorHandlerRegistry{
 		handlers: []ErrorHandler{
-			&KeychainErrorHandler{},    // Check keychain issues first
-			&ProfileErrorHandler{},     // Check profile issues early
-			&LaunchErrorHandler{},      // Check launch-specific issues
-			&DaemonErrorHandler{},      // Daemon connectivity issues
-			&ConnectionErrorHandler{},  // Network connection issues
-			&CredentialsErrorHandler{}, // AWS credential issues
-			&NetworkConfigErrorHandler{}, // AWS network config issues
-			&CapacityErrorHandler{},    // AWS capacity issues
-			&TemplateErrorHandler{},    // Template-related issues
-			&NetworkErrorHandler{},     // General network issues
-			&ValidationErrorHandler{},  // Validation errors
-			&DefaultErrorHandler{},     // Must be last as fallback
+			&KeychainErrorHandler{},            // Check keychain issues first
+			&ProfileErrorHandler{},             // Check profile issues early
+			&IPDetectionErrorHandler{},         // IP detection for web access
+			&SecurityGroupErrorHandler{},       // Security group configuration
+			&WebAccessErrorHandler{},           // Web interface access issues
+			&TemplateValidationErrorHandler{},  // Template validation errors
+			&LaunchErrorHandler{},              // Check launch-specific issues
+			&DaemonErrorHandler{},              // Daemon connectivity issues
+			&ConnectionErrorHandler{},          // Network connection issues
+			&CredentialsErrorHandler{},         // AWS credential issues
+			&NetworkConfigErrorHandler{},       // AWS network config issues
+			&CapacityErrorHandler{},            // AWS capacity issues
+			&TemplateErrorHandler{},            // Template-related issues
+			&NetworkErrorHandler{},             // General network issues
+			&ValidationErrorHandler{},          // Validation errors
+			&DefaultErrorHandler{},             // Must be last as fallback
 		},
 	}
 }
@@ -413,7 +555,7 @@ func WrapError(err error, operation string) error {
 	if err == nil {
 		return nil
 	}
-	
+
 	// Use existing error handling system to get user-friendly message
 	return UserFriendlyError(err, operation)
 }

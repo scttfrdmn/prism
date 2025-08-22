@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/security"
 )
 
 // NewScriptGenerator creates a new script generator
@@ -22,11 +24,12 @@ func NewScriptGenerator() *ScriptGenerator {
 func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager PackageManagerType) (string, error) {
 	// Prepare script data
 	scriptData := &ScriptData{
-		Template:       tmpl,
-		PackageManager: string(packageManager),
-		Packages:       sg.selectPackagesForManager(tmpl, packageManager),
-		Users:          sg.prepareUsers(tmpl.Users),
-		Services:       tmpl.Services,
+		Template:           tmpl,
+		PackageManager:     string(packageManager),
+		Packages:           sg.selectPackagesForManager(tmpl, packageManager),
+		Users:              sg.prepareUsers(tmpl.Users),
+		Services:           tmpl.Services,
+		WebInterfaceBindIP: security.GetWebInterfaceBindIP(),
 	}
 
 	// Select appropriate template
@@ -65,11 +68,12 @@ func (sg *ScriptGenerator) GenerateScript(tmpl *Template, packageManager Package
 
 // ScriptData contains data for script template execution
 type ScriptData struct {
-	Template       *Template
-	PackageManager string
-	Packages       []string
-	Users          []UserData
-	Services       []ServiceConfig
+	Template           *Template
+	PackageManager     string
+	Packages           []string
+	Users              []UserData
+	Services           []ServiceConfig
+	WebInterfaceBindIP string // Dynamic IP binding for web interfaces (0.0.0.0 or 127.0.0.1)
 }
 
 // UserData contains processed user data for script generation

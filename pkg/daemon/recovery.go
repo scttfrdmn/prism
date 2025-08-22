@@ -19,12 +19,12 @@ type HTTPServer interface {
 type RecoveryManager struct {
 	stabilityMgr *StabilityManager
 	HTTPServer   HTTPServer
-	
+
 	// Recovery settings
-	enablePanicRecovery bool
+	enablePanicRecovery    bool
 	enableGracefulShutdown bool
-	shutdownTimeout time.Duration
-	
+	shutdownTimeout        time.Duration
+
 	// Recovery strategies
 	recoveryStrategies map[string]RecoveryStrategy
 }
@@ -48,7 +48,7 @@ func NewRecoveryManager(stabilityMgr *StabilityManager, httpServer HTTPServer) *
 		shutdownTimeout:        30 * time.Second,
 		recoveryStrategies:     make(map[string]RecoveryStrategy),
 	}
-	
+
 	rm.setupDefaultStrategies()
 	return rm
 }
@@ -59,13 +59,13 @@ func (rm *RecoveryManager) RecoverFromPanic(component string) {
 		// Capture panic details
 		stack := debug.Stack()
 		panicMsg := fmt.Sprintf("Panic in %s: %v", component, r)
-		
+
 		// Log panic
 		log.Printf("PANIC RECOVERED: %s\nStack trace:\n%s", panicMsg, stack)
-		
+
 		// Record in stability manager
 		rm.stabilityMgr.RecordError(component, "panic", panicMsg, ErrorSeverityCritical)
-		
+
 		// Attempt recovery
 		if rm.enablePanicRecovery {
 			rm.attemptRecovery(component, fmt.Errorf("panic: %v", r))
@@ -82,18 +82,18 @@ func (rm *RecoveryManager) RecoverHTTPHandler(component string, handler http.Han
 				stack := debug.Stack()
 				panicMsg := fmt.Sprintf("HTTP panic in %s: %v", component, err)
 				log.Printf("HTTP PANIC RECOVERED: %s\nStack trace:\n%s", panicMsg, stack)
-				
+
 				// Record error
 				rm.stabilityMgr.RecordError(component, "http_panic", panicMsg, ErrorSeverityCritical)
-				
+
 				// Return 500 error
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
-				
+
 				// Attempt recovery
 				rm.attemptRecovery(component, fmt.Errorf("http panic: %v", err))
 			}
 		}()
-		
+
 		handler(w, r)
 	}
 }
@@ -111,14 +111,14 @@ func (rm *RecoveryManager) GracefulShutdown(ctx context.Context) error {
 	if !rm.enableGracefulShutdown {
 		return nil
 	}
-	
+
 	log.Printf("Starting graceful shutdown...")
 	rm.stabilityMgr.RecordError("daemon", "shutdown", "Graceful shutdown initiated", ErrorSeverityLow)
-	
+
 	// Create shutdown context with timeout
 	shutdownCtx, cancel := context.WithTimeout(ctx, rm.shutdownTimeout)
 	defer cancel()
-	
+
 	// Shutdown HTTP server
 	if rm.HTTPServer != nil {
 		log.Printf("Shutting down HTTP server...")
@@ -127,46 +127,46 @@ func (rm *RecoveryManager) GracefulShutdown(ctx context.Context) error {
 			return fmt.Errorf("HTTP server shutdown failed: %w", err)
 		}
 	}
-	
+
 	// Cleanup resources
 	log.Printf("Cleaning up resources...")
-	
+
 	// Force garbage collection
 	rm.stabilityMgr.ForceGarbageCollection()
-	
+
 	// Wait a moment for cleanup
 	time.Sleep(1 * time.Second)
-	
+
 	log.Printf("Graceful shutdown completed")
 	rm.stabilityMgr.RecordRecovery("daemon", "shutdown")
-	
+
 	return nil
 }
 
 // HandleMemoryPressure handles high memory usage situations
 func (rm *RecoveryManager) HandleMemoryPressure() error {
 	log.Printf("Memory pressure detected, attempting recovery...")
-	
+
 	// Get current memory stats
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	memBefore := m.HeapAlloc
-	
+
 	// Force garbage collection
 	rm.stabilityMgr.ForceGarbageCollection()
-	
+
 	// Check if memory was freed
 	runtime.ReadMemStats(&m)
 	memAfter := m.HeapAlloc
 	freed := memBefore - memAfter
-	
+
 	log.Printf("Memory recovery: freed %d bytes (%.2f MB)", freed, float64(freed)/1024/1024)
-	
+
 	if freed > 0 {
 		rm.stabilityMgr.RecordRecovery("daemon", "memory_pressure")
 		return nil
 	}
-	
+
 	return fmt.Errorf("memory recovery failed: no memory freed")
 }
 
@@ -174,16 +174,16 @@ func (rm *RecoveryManager) HandleMemoryPressure() error {
 func (rm *RecoveryManager) HandleGoroutineLeak() error {
 	goroutineCount := runtime.NumGoroutine()
 	log.Printf("Goroutine leak detected: %d goroutines", goroutineCount)
-	
+
 	// Log goroutine stack traces for debugging
 	buf := make([]byte, 1024*1024) // 1MB buffer
 	stackSize := runtime.Stack(buf, true)
 	log.Printf("Goroutine stack dump:\n%s", string(buf[:stackSize]))
-	
+
 	// Record error
-	rm.stabilityMgr.RecordError("daemon", "goroutine_leak", 
+	rm.stabilityMgr.RecordError("daemon", "goroutine_leak",
 		fmt.Sprintf("High goroutine count: %d", goroutineCount), ErrorSeverityHigh)
-	
+
 	// For now, we can only monitor and log
 	// In a production system, you might implement goroutine cancellation
 	return fmt.Errorf("goroutine leak detected: %d goroutines", goroutineCount)
@@ -192,29 +192,29 @@ func (rm *RecoveryManager) HandleGoroutineLeak() error {
 // RecoverFromError attempts to recover from a specific error
 func (rm *RecoveryManager) RecoverFromError(component string, err error) error {
 	errorType := getErrorType(err)
-	
+
 	// Try recovery strategy
 	if strategy, exists := rm.recoveryStrategies[errorType]; exists {
-		log.Printf("Attempting recovery for %s error in %s using strategy: %s", 
+		log.Printf("Attempting recovery for %s error in %s using strategy: %s",
 			errorType, component, strategy.Name)
-		
+
 		for attempt := 0; attempt < strategy.Retries; attempt++ {
 			if recoveryErr := strategy.Handler(err); recoveryErr == nil {
 				log.Printf("Recovery successful for %s error in %s", errorType, component)
 				rm.stabilityMgr.RecordRecovery(component, errorType)
 				return nil
 			}
-			
+
 			if attempt < strategy.Retries-1 {
 				log.Printf("Recovery attempt %d failed, retrying...", attempt+1)
 				time.Sleep(time.Second * time.Duration(attempt+1))
 			}
 		}
-		
+
 		log.Printf("All recovery attempts failed for %s error in %s", errorType, component)
 		return fmt.Errorf("recovery failed after %d attempts: %w", strategy.Retries, err)
 	}
-	
+
 	log.Printf("No recovery strategy found for %s error in %s", errorType, component)
 	return fmt.Errorf("no recovery strategy for error type %s: %w", errorType, err)
 }
@@ -227,12 +227,12 @@ func (rm *RecoveryManager) attemptRecovery(component string, err error) {
 			return
 		}
 	}
-	
+
 	// Check for goroutine leaks
 	if runtime.NumGoroutine() > 500 { // Threshold
 		rm.HandleGoroutineLeak()
 	}
-	
+
 	// Try specific error recovery
 	rm.RecoverFromError(component, err)
 }
@@ -252,7 +252,7 @@ func (rm *RecoveryManager) setupDefaultStrategies() {
 		Retries: 3,
 		Timeout: 10 * time.Second,
 	}
-	
+
 	// AWS connection recovery
 	rm.recoveryStrategies["aws_connection"] = RecoveryStrategy{
 		Name:        "AWS Connection Recovery",
@@ -266,7 +266,7 @@ func (rm *RecoveryManager) setupDefaultStrategies() {
 		Retries: 3,
 		Timeout: 15 * time.Second,
 	}
-	
+
 	// File system recovery
 	rm.recoveryStrategies["filesystem"] = RecoveryStrategy{
 		Name:        "File System Recovery",
@@ -279,7 +279,7 @@ func (rm *RecoveryManager) setupDefaultStrategies() {
 		Retries: 2,
 		Timeout: 5 * time.Second,
 	}
-	
+
 	// Memory recovery
 	rm.recoveryStrategies["memory"] = RecoveryStrategy{
 		Name:        "Memory Recovery",
@@ -312,24 +312,24 @@ func (rm *RecoveryManager) HealthCheck() error {
 	if !rm.stabilityMgr.IsHealthy() {
 		return fmt.Errorf("daemon is not healthy")
 	}
-	
+
 	// Check memory usage
 	if rm.stabilityMgr.CheckMemoryPressure() {
 		return fmt.Errorf("high memory pressure detected")
 	}
-	
+
 	// Check goroutine count
 	if runtime.NumGoroutine() > 500 {
 		return fmt.Errorf("high goroutine count: %d", runtime.NumGoroutine())
 	}
-	
+
 	return nil
 }
 
 // getErrorType extracts error type from error message
 func getErrorType(err error) string {
 	errorMsg := err.Error()
-	
+
 	// Simple error type classification
 	switch {
 	case contains(errorMsg, "connection", "timeout", "network"):
@@ -351,8 +351,8 @@ func getErrorType(err error) string {
 func contains(text string, substrings ...string) bool {
 	text = fmt.Sprintf("%s", text) // Convert to lowercase for comparison
 	for _, substring := range substrings {
-		if fmt.Sprintf("%s", substring) != "" && 
-		   len(text) > 0 && len(substring) > 0 {
+		if fmt.Sprintf("%s", substring) != "" &&
+			len(text) > 0 && len(substring) > 0 {
 			// Simple substring check
 			for i := 0; i <= len(text)-len(substring); i++ {
 				match := true

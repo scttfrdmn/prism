@@ -100,7 +100,7 @@ func TestInstanceCommands_Connect(t *testing.T) {
 			if tt.name == "Daemon not running" || tt.name == "API error" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -171,7 +171,7 @@ func TestInstanceCommands_Stop(t *testing.T) {
 			if tt.name == "Daemon not running" || tt.name == "API error" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -269,7 +269,7 @@ func TestInstanceCommands_Start(t *testing.T) {
 			if tt.name == "Daemon not running" || tt.name == "API error on list" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -340,7 +340,7 @@ func TestInstanceCommands_Delete(t *testing.T) {
 			if tt.name == "Daemon not running" || tt.name == "API error" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -420,7 +420,7 @@ func TestInstanceCommands_Hibernate(t *testing.T) {
 			if tt.name == "Daemon not running" || tt.name == "API error on hibernation status" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -491,7 +491,7 @@ func TestInstanceCommands_Resume(t *testing.T) {
 			if tt.name == "Daemon not running" || tt.name == "API error" {
 				t.Setenv("CWS_NO_AUTO_START", "1")
 			}
-			
+
 			mockClient := NewMockAPIClient()
 			tt.setupMock(mockClient)
 
@@ -626,7 +626,7 @@ func TestInstanceCommandsCallTracking(t *testing.T) {
 			checkFn: func(mock *MockAPIClient) bool {
 				// Resume should call ResumeInstance for hibernated instances or StartInstance for non-hibernated
 				return (len(mock.ResumeCalls) > 0 && mock.ResumeCalls[0] == "test-instance") ||
-					   (len(mock.StartCalls) > 0 && mock.StartCalls[0] == "test-instance")
+					(len(mock.StartCalls) > 0 && mock.StartCalls[0] == "test-instance")
 			},
 		},
 	}

@@ -97,7 +97,7 @@ func (s *SystemCommands) daemonStart() error {
 
 	// Find cwsd binary - try same directory as cws first, then PATH
 	cwsdPath := findCwsdBinary()
-	
+
 	// Start daemon in the background
 	cmd := exec.Command(cwsdPath)
 	if err := cmd.Start(); err != nil {
@@ -762,13 +762,13 @@ func findCwsdBinary() string {
 			return cwsdInSameDir
 		}
 	}
-	
+
 	// Fall back to looking in PATH
 	cwsdPath, err := exec.LookPath("cwsd")
 	if err == nil {
 		return cwsdPath
 	}
-	
+
 	// If nothing found, return "cwsd" and let exec.Command handle the error
 	return "cwsd"
 }

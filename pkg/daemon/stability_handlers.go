@@ -14,13 +14,13 @@ func (s *Server) handleStabilityMetrics(w http.ResponseWriter, r *http.Request) 
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Get stability metrics
 	stabilityMetrics := s.stabilityManager.GetStabilityMetrics()
-	
+
 	// Get health summary for additional context
 	healthSummary := s.healthMonitor.GetHealthSummary()
-	
+
 	response := struct {
 		StabilityMetrics interface{} `json:"stability_metrics"`
 		HealthSummary    interface{} `json:"health_summary"`
@@ -30,7 +30,7 @@ func (s *Server) handleStabilityMetrics(w http.ResponseWriter, r *http.Request) 
 		HealthSummary:    healthSummary,
 		Timestamp:        time.Now(),
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -40,13 +40,13 @@ func (s *Server) handleStabilityErrors(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	// Parse query parameters
 	query := r.URL.Query()
 	limitStr := query.Get("limit")
 	severityFilter := query.Get("severity")
 	componentFilter := query.Get("component")
-	
+
 	// Default limit
 	limit := 100
 	if limitStr != "" {
@@ -54,10 +54,10 @@ func (s *Server) handleStabilityErrors(w http.ResponseWriter, r *http.Request) {
 			limit = parsedLimit
 		}
 	}
-	
+
 	// Get error history
 	errorHistory := s.stabilityManager.GetErrorHistory()
-	
+
 	// Apply filters
 	var filteredErrors []ErrorRecord
 	for _, err := range errorHistory {
@@ -65,50 +65,50 @@ func (s *Server) handleStabilityErrors(w http.ResponseWriter, r *http.Request) {
 		if severityFilter != "" && string(err.Severity) != severityFilter {
 			continue
 		}
-		
+
 		// Apply component filter
 		if componentFilter != "" && err.Component != componentFilter {
 			continue
 		}
-		
+
 		filteredErrors = append(filteredErrors, err)
-		
+
 		// Apply limit
 		if len(filteredErrors) >= limit {
 			break
 		}
 	}
-	
+
 	// Calculate error statistics
 	errorStats := struct {
-		TotalErrors      int                    `json:"total_errors"`
-		FilteredErrors   int                    `json:"filtered_errors"`
-		BySeverity       map[ErrorSeverity]int  `json:"by_severity"`
-		ByComponent      map[string]int         `json:"by_component"`
-		RecentErrors     int                    `json:"recent_errors"` // Last hour
-		RecoveredErrors  int                    `json:"recovered_errors"`
+		TotalErrors     int                   `json:"total_errors"`
+		FilteredErrors  int                   `json:"filtered_errors"`
+		BySeverity      map[ErrorSeverity]int `json:"by_severity"`
+		ByComponent     map[string]int        `json:"by_component"`
+		RecentErrors    int                   `json:"recent_errors"` // Last hour
+		RecoveredErrors int                   `json:"recovered_errors"`
 	}{
 		TotalErrors:    len(errorHistory),
 		FilteredErrors: len(filteredErrors),
 		BySeverity:     make(map[ErrorSeverity]int),
 		ByComponent:    make(map[string]int),
 	}
-	
+
 	// Calculate statistics
 	recentCutoff := time.Now().Add(-1 * time.Hour)
 	for _, err := range errorHistory {
 		errorStats.BySeverity[err.Severity]++
 		errorStats.ByComponent[err.Component]++
-		
+
 		if err.Timestamp.After(recentCutoff) {
 			errorStats.RecentErrors++
 		}
-		
+
 		if err.Recovered {
 			errorStats.RecoveredErrors++
 		}
 	}
-	
+
 	response := struct {
 		Errors     []ErrorRecord `json:"errors"`
 		Statistics interface{}   `json:"statistics"`
@@ -124,7 +124,7 @@ func (s *Server) handleStabilityErrors(w http.ResponseWriter, r *http.Request) {
 		},
 		Timestamp: time.Now(),
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -143,15 +143,15 @@ func (s *Server) handleCircuitBreakers(w http.ResponseWriter, r *http.Request) {
 // handleGetCircuitBreakers returns all circuit breaker statuses
 func (s *Server) handleGetCircuitBreakers(w http.ResponseWriter, r *http.Request) {
 	circuitBreakers := s.stabilityManager.GetCircuitBreakerStatus()
-	
+
 	// Calculate summary statistics
 	summary := struct {
-		TotalBreakers int `json:"total_breakers"`
-		OpenBreakers  int `json:"open_breakers"`
+		TotalBreakers    int `json:"total_breakers"`
+		OpenBreakers     int `json:"open_breakers"`
 		HalfOpenBreakers int `json:"half_open_breakers"`
-		ClosedBreakers int `json:"closed_breakers"`
+		ClosedBreakers   int `json:"closed_breakers"`
 	}{}
-	
+
 	for _, cb := range circuitBreakers {
 		summary.TotalBreakers++
 		switch cb.State {
@@ -163,7 +163,7 @@ func (s *Server) handleGetCircuitBreakers(w http.ResponseWriter, r *http.Request
 			summary.ClosedBreakers++
 		}
 	}
-	
+
 	response := struct {
 		CircuitBreakers map[string]*CircuitBreaker `json:"circuit_breakers"`
 		Summary         interface{}                `json:"summary"`
@@ -173,7 +173,7 @@ func (s *Server) handleGetCircuitBreakers(w http.ResponseWriter, r *http.Request
 		Summary:         summary,
 		Timestamp:       time.Now(),
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -182,31 +182,31 @@ func (s *Server) handleResetCircuitBreaker(w http.ResponseWriter, r *http.Reques
 	var request struct {
 		Name string `json:"name"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	if request.Name == "" {
 		s.writeError(w, http.StatusBadRequest, "Circuit breaker name is required")
 		return
 	}
-	
+
 	// Get circuit breaker
 	cb := s.stabilityManager.GetCircuitBreaker(request.Name)
 	if cb == nil {
 		s.writeError(w, http.StatusNotFound, fmt.Sprintf("Circuit breaker '%s' not found", request.Name))
 		return
 	}
-	
+
 	// Reset circuit breaker
 	cb.State = CircuitBreakerClosed
 	cb.FailureCount = 0
-	
+
 	// Record the reset
 	s.stabilityManager.RecordRecovery("circuit_breaker", request.Name)
-	
+
 	response := struct {
 		Message   string    `json:"message"`
 		Name      string    `json:"name"`
@@ -218,7 +218,7 @@ func (s *Server) handleResetCircuitBreaker(w http.ResponseWriter, r *http.Reques
 		NewState:  string(CircuitBreakerClosed),
 		Timestamp: time.Now(),
 	}
-	
+
 	s.writeJSON(w, http.StatusOK, response)
 }
 
@@ -228,33 +228,33 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	
+
 	var request struct {
 		Operation string `json:"operation"`
 		Component string `json:"component,omitempty"`
 		Force     bool   `json:"force,omitempty"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	
+
 	if request.Operation == "" {
 		s.writeError(w, http.StatusBadRequest, "Recovery operation is required")
 		return
 	}
-	
+
 	var result string
 	var success bool
-	
+
 	switch request.Operation {
 	case "memory_cleanup":
 		// Force garbage collection
 		s.stabilityManager.ForceGarbageCollection()
 		result = "Memory cleanup completed"
 		success = true
-		
+
 	case "memory_pressure":
 		// Handle memory pressure
 		if err := s.recoveryManager.HandleMemoryPressure(); err != nil {
@@ -264,7 +264,7 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 			result = "Memory pressure recovery completed"
 			success = true
 		}
-		
+
 	case "goroutine_check":
 		// Check for goroutine leaks
 		if err := s.recoveryManager.HandleGoroutineLeak(); err != nil {
@@ -274,7 +274,7 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 			result = "No goroutine leaks detected"
 			success = true
 		}
-		
+
 	case "health_check":
 		// Trigger comprehensive health check
 		if err := s.recoveryManager.HealthCheck(); err != nil {
@@ -284,14 +284,14 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 			result = "Health check passed"
 			success = true
 		}
-		
+
 	case "error_recovery":
 		// Attempt error recovery for component
 		if request.Component == "" {
 			s.writeError(w, http.StatusBadRequest, "Component is required for error recovery")
 			return
 		}
-		
+
 		// Create a generic error for recovery attempt
 		err := fmt.Errorf("manual recovery trigger")
 		if recoveryErr := s.recoveryManager.RecoverFromError(request.Component, err); recoveryErr != nil {
@@ -301,24 +301,24 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 			result = fmt.Sprintf("Recovery completed for component '%s'", request.Component)
 			success = true
 		}
-		
+
 	default:
 		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Unknown recovery operation: %s", request.Operation))
 		return
 	}
-	
+
 	// Record the manual recovery attempt
 	if success {
 		s.stabilityManager.RecordRecovery("manual", request.Operation)
 	} else {
 		s.stabilityManager.RecordError("manual", request.Operation, result, ErrorSeverityMedium)
 	}
-	
+
 	statusCode := http.StatusOK
 	if !success {
 		statusCode = http.StatusInternalServerError
 	}
-	
+
 	response := struct {
 		Success   bool      `json:"success"`
 		Operation string    `json:"operation"`
@@ -332,6 +332,6 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 		Result:    result,
 		Timestamp: time.Now(),
 	}
-	
+
 	s.writeJSON(w, statusCode, response)
 }

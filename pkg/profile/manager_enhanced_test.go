@@ -83,7 +83,7 @@ func skipTestManagerEnhanced(t *testing.T) {
 		t.Fatalf("No profiles found after adding")
 	}
 
-	// Get the first profile ID  
+	// Get the first profile ID
 	profileID := profiles[0].ID
 
 	// Check if profile exists

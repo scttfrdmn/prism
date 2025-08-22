@@ -263,7 +263,7 @@ func TestGetDefaultSecurityConfig(t *testing.T) {
 	assert.False(t, config.CorrelationEnabled)
 	assert.False(t, config.RegistrySecurityEnabled)
 	assert.False(t, config.HealthCheckEnabled)
-	
+
 	// Configuration values are still set even when disabled
 	assert.Equal(t, 30, config.LogRetentionDays)
 	assert.Equal(t, 30*time.Second, config.MonitorInterval)

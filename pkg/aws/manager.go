@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/security"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -2190,23 +2191,79 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 		return "", fmt.Errorf("failed to add SSH rule to security group: %w", err)
 	}
 
-	// HTTP rule (port 80) - DISABLED for security
-	// Web interfaces now secured to localhost - use SSH port forwarding
-	// Example: ssh -L 80:localhost:80 user@instance
-	// TODO: Long-term enhancement - detect user's local IP and allow that specific IP
-	//       instead of requiring SSH tunneling for better UX while maintaining security
+	// Determine access strategy for web interfaces (handles dynamic IPs)
+	accessConfig := security.DetermineAccessStrategy()
+	log.Printf("🔐 Web access strategy: %s", accessConfig.Message)
 
-	// HTTPS rule (port 443) - DISABLED for security
-	// Web interfaces now secured to localhost - use SSH port forwarding
-	// Example: ssh -L 443:localhost:443 user@instance
+	// Configure web interface access based on strategy
+	webPorts := []struct {
+		port        int32
+		protocol    string
+		description string
+	}{
+		{80, "tcp", "HTTP web interfaces"},
+		{443, "tcp", "HTTPS web interfaces"},
+		{8888, "tcp", "Jupyter notebook access"},
+		{8787, "tcp", "RStudio Server access"},
+	}
 
-	// Jupyter rule (port 8888) - DISABLED for security
-	// Jupyter now secured to localhost - use SSH port forwarding
-	// Example: ssh -L 8888:localhost:8888 user@instance
+	switch accessConfig.Strategy {
+	case security.AccessDirect:
+		// Direct access from user's specific IP
+		for _, webPort := range webPorts {
+			_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
+				GroupId: aws.String(securityGroupID),
+				IpPermissions: []ec2types.IpPermission{
+					{
+						IpProtocol: aws.String(webPort.protocol),
+						FromPort:   aws.Int32(webPort.port),
+						ToPort:     aws.Int32(webPort.port),
+						IpRanges: []ec2types.IpRange{
+							{
+								CidrIp:      aws.String(fmt.Sprintf("%s/32", accessConfig.UserIP)),
+								Description: aws.String(fmt.Sprintf("Direct %s from %s", webPort.description, accessConfig.UserIP)),
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				return "", fmt.Errorf("failed to add direct access rule for port %d: %w", webPort.port, err)
+			}
+		}
+		log.Printf("✅ Direct web access configured for IP %s", accessConfig.UserIP)
 
-	// RStudio rule (port 8787) - DISABLED for security
-	// RStudio now secured to localhost - use SSH port forwarding
-	// Example: ssh -L 8787:localhost:8787 user@instance
+	case security.AccessSubnet:
+		// Subnet-based access (handles DHCP changes)
+		for _, webPort := range webPorts {
+			_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
+				GroupId: aws.String(securityGroupID),
+				IpPermissions: []ec2types.IpPermission{
+					{
+						IpProtocol: aws.String(webPort.protocol),
+						FromPort:   aws.Int32(webPort.port),
+						ToPort:     aws.Int32(webPort.port),
+						IpRanges: []ec2types.IpRange{
+							{
+								CidrIp:      aws.String(accessConfig.SubnetCIDR),
+								Description: aws.String(fmt.Sprintf("Subnet %s for %s", accessConfig.SubnetCIDR, webPort.description)),
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				return "", fmt.Errorf("failed to add subnet access rule for port %d: %w", webPort.port, err)
+			}
+		}
+		log.Printf("✅ Subnet web access configured for %s (handles DHCP changes)", accessConfig.SubnetCIDR)
+
+	case security.AccessTunneled:
+		// SSH tunneling required - no direct web access rules
+		log.Println("🔒 Web interfaces secured to localhost - SSH tunneling required")
+		log.Println("   Example: ssh -L 8888:localhost:8888 user@instance")
+		log.Println("   Then access: http://localhost:8888")
+	}
 
 	// Add ICMP rule for ping
 	_, err = m.ec2.AuthorizeSecurityGroupIngress(ctx, &ec2.AuthorizeSecurityGroupIngressInput{
