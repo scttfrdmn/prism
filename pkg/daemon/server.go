@@ -13,6 +13,7 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/connection"
+	"github.com/scttfrdmn/cloudworkstation/pkg/cost"
 	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
@@ -43,6 +44,10 @@ type Server struct {
 	stabilityManager *StabilityManager
 	recoveryManager  *RecoveryManager
 	healthMonitor    *HealthMonitor
+	
+	// Cost optimization components
+	budgetTracker *project.BudgetTracker
+	alertManager  *cost.AlertManager
 }
 
 // NewServer creates a new daemon server
@@ -118,6 +123,15 @@ func NewServer(port string) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize project manager: %w", err)
 	}
+	
+	// Initialize cost optimization components
+	budgetTracker, err := project.NewBudgetTracker()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize budget tracker: %w", err)
+	}
+	alertManager := cost.NewAlertManager()
+	alertManager.CreateDefaultRules()
+	alertManager.Start()
 
 	// Initialize security manager
 	securityConfig := security.GetDefaultSecurityConfig()
@@ -154,6 +168,8 @@ func NewServer(port string) (*Server, error) {
 		connManager:        connManager,
 		reliabilityManager: reliabilityManager,
 		stabilityManager:   stabilityManager,
+		budgetTracker:      budgetTracker,
+		alertManager:       alertManager,
 	}
 
 	// Initialize recovery and health monitoring (need server reference)
@@ -460,6 +476,9 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/stability/errors", applyMiddleware(s.handleStabilityErrors))
 	mux.HandleFunc("/api/v1/stability/circuit-breakers", applyMiddleware(s.handleCircuitBreakers))
 	mux.HandleFunc("/api/v1/stability/recovery", applyMiddleware(s.handleRecoveryTrigger))
+	
+	// Cost optimization and budget alert endpoints
+	s.RegisterCostHandlers(mux, applyMiddleware)
 }
 
 // HTTP handlers

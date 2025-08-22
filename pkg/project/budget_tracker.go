@@ -600,6 +600,83 @@ func (bt *BudgetTracker) saveBudgetData() error {
 	return nil
 }
 
+// GetCostTrends returns cost trends for a project over a specified period
+func (bt *BudgetTracker) GetCostTrends(projectID string, period string) (map[string]interface{}, error) {
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
+	
+	data, exists := bt.budgetData[projectID]
+	if !exists {
+		return nil, fmt.Errorf("project not found: %s", projectID)
+	}
+	
+	// Parse period (7d, 30d, 90d)
+	days := 30
+	switch period {
+	case "7d":
+		days = 7
+	case "90d":
+		days = 90
+	}
+	
+	// Filter cost history by period
+	cutoff := time.Now().AddDate(0, 0, -days)
+	trends := make([]CostDataPoint, 0)
+	
+	for _, point := range data.CostHistory {
+		if point.Timestamp.After(cutoff) {
+			trends = append(trends, point)
+		}
+	}
+	
+	return map[string]interface{}{
+		"project_id": projectID,
+		"period":     period,
+		"days":       days,
+		"trends":     trends,
+		"count":      len(trends),
+	}, nil
+}
+
+// GetBudgetStatus returns the current budget status for a project
+func (bt *BudgetTracker) GetBudgetStatus(projectID string) (map[string]interface{}, error) {
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
+	
+	data, exists := bt.budgetData[projectID]
+	if !exists {
+		return nil, fmt.Errorf("project not found: %s", projectID)
+	}
+	
+	// Calculate current spend
+	currentSpend := 0.0
+	if len(data.CostHistory) > 0 {
+		currentSpend = data.CostHistory[len(data.CostHistory)-1].TotalCost
+	}
+	
+	// Calculate budget usage
+	budgetLimit := 0.0
+	if data.Budget != nil && data.Budget.MonthlyLimit != nil {
+		budgetLimit = *data.Budget.MonthlyLimit
+	}
+	
+	usagePercent := 0.0
+	if budgetLimit > 0 {
+		usagePercent = (currentSpend / budgetLimit) * 100
+	}
+	
+	return map[string]interface{}{
+		"project_id":      projectID,
+		"budget_limit":    budgetLimit,
+		"current_spend":   currentSpend,
+		"usage_percent":   usagePercent,
+		"budget":          data.Budget,
+		"last_updated":    data.LastUpdated,
+		"alerts_enabled":  data.Budget != nil && len(data.Budget.AlertThresholds) > 0,
+		"recent_alerts":   len(data.AlertHistory),
+	}, nil
+}
+
 // Close cleanly shuts down the budget tracker
 func (bt *BudgetTracker) Close() error {
 	bt.mutex.Lock()

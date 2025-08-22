@@ -47,6 +47,19 @@ type Instance struct {
 	ProjectID          string                  `json:"project_id,omitempty"` // Associated project ID
 	IdleDetection      *IdleDetection          `json:"idle_detection,omitempty"`
 	AppliedTemplates   []AppliedTemplateRecord `json:"applied_templates,omitempty"` // Template application history
+	
+	// Cost optimization fields
+	EstimatedCost      float64                 `json:"estimated_cost,omitempty"`      // Daily cost estimate
+	HibernationEnabled bool                    `json:"hibernation_enabled,omitempty"`
+	SpotEligible       bool                    `json:"spot_eligible,omitempty"`
+	IsSpot             bool                    `json:"is_spot,omitempty"`
+	ARMCompatible      bool                    `json:"arm_compatible,omitempty"`
+	Architecture       string                  `json:"architecture,omitempty"`
+	AlwaysOn           bool                    `json:"always_on,omitempty"`
+	WorkloadType       string                  `json:"workload_type,omitempty"`
+	Runtime            float64                 `json:"runtime,omitempty"`       // Hours since launch
+	StorageGB          float64                 `json:"storage_gb,omitempty"`
+	StorageUsedGB      float64                 `json:"storage_used_gb,omitempty"`
 }
 
 // IdleDetection represents idle detection configuration for an instance
