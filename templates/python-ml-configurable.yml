@@ -14,9 +14,12 @@ category: "Machine Learning"
 domain: "ml"
 
 # Visual presentation
-icon: "🧬"
+icon: "🤖"
 color: "#3776ab"
 popular: true
+featured: true
+
+# Metadata will be added at the end of the file
 
 # Template parameters - user configurable
 parameters:
@@ -212,6 +215,10 @@ validation_status: "testing"
 maintainer: "CloudWorkstation Team"
 tags:
   configurable: "true"
+  framework: "pytorch/tensorflow"
+  language: "python"
+  interface: "jupyter"
+  gpu: "optional"
   ml_framework: "{{.ml_framework}}"
   python: "{{.python_version}}"
   gpu_ready: "{{.gpu_support}}"

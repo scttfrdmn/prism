@@ -40,6 +40,8 @@ func (tc *TemplateCommands) Templates(args []string) error {
 			return tc.templatesVersion(args[1:])
 		case "snapshot":
 			return tc.templatesSnapshot(args[1:])
+		case "stats", "usage":
+			return tc.templatesUsage(args[1:])
 		}
 	}
 
@@ -97,41 +99,144 @@ func (tc *TemplateCommands) templatesList(args []string) error {
 	return nil
 }
 
-// templatesSearch searches for templates across repositories
+// templatesSearch searches for templates with advanced filtering
 func (tc *TemplateCommands) templatesSearch(args []string) error {
-	if len(args) < 1 {
-		return NewUsageError("cws templates search <query>", "cws templates search python")
+	// Parse search options
+	var query string
+	var category string
+	var domain string
+	var complexity string
+	var popularOnly bool
+	var featuredOnly bool
+	
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--category" && i+1 < len(args):
+			category = args[i+1]
+			i++
+		case arg == "--domain" && i+1 < len(args):
+			domain = args[i+1]
+			i++
+		case arg == "--complexity" && i+1 < len(args):
+			complexity = args[i+1]
+			i++
+		case arg == "--popular":
+			popularOnly = true
+		case arg == "--featured":
+			featuredOnly = true
+		case !strings.HasPrefix(arg, "--"):
+			query = arg
+		}
 	}
-
-	query := args[0]
-	fmt.Printf("🔍 Searching for templates matching '%s'...\n\n", query)
-
-	// Use existing repository manager to search across repositories
-	// This would integrate with the GitHub repository system
-	fmt.Printf("📍 Search results from CloudWorkstation Template Repositories:\n\n")
-
-	// Placeholder implementation - in real system would search GitHub repos
-	matchedTemplates := []struct {
-		name        string
-		repo        string
-		description string
-		downloads   int
-		rating      float64
-	}{
-		{"python-ml-advanced", "community", "Advanced Python ML environment with GPU optimization", 1247, 4.8},
-		{"r-bioconductor", "bioinformatics", "R environment with Bioconductor packages", 892, 4.6},
-		{"neuroimaging-fsl", "neuroimaging", "FSL-based neuroimaging analysis environment", 567, 4.9},
+	
+	// Get all templates
+	if err := tc.app.ensureDaemonRunning(); err != nil {
+		return err
 	}
-
-	for _, tmpl := range matchedTemplates {
-		fmt.Printf("🏗️  %s:%s\n", tmpl.repo, tmpl.name)
-		fmt.Printf("   %s\n", tmpl.description)
-		fmt.Printf("   ⭐ %.1f stars • 📥 %d downloads\n", tmpl.rating, tmpl.downloads)
-		fmt.Printf("   Install: cws templates install %s:%s\n", tmpl.repo, tmpl.name)
+	
+	apiTemplates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
+	if err != nil {
+		return WrapAPIError("list templates", err)
+	}
+	
+	// Convert API templates to search format
+	searchTemplates := make(map[string]*templates.Template)
+	for name := range apiTemplates {
+		// Get full template info for metadata
+		rawTemplate, _ := templates.GetTemplateInfo(name)
+		if rawTemplate != nil {
+			searchTemplates[name] = rawTemplate
+		}
+	}
+	
+	// Build search options
+	searchOpts := templates.SearchOptions{
+		Query:      query,
+		Category:   category,
+		Domain:     domain,
+		Complexity: complexity,
+	}
+	if popularOnly {
+		searchOpts.Popular = &popularOnly
+	}
+	if featuredOnly {
+		searchOpts.Featured = &featuredOnly
+	}
+	
+	// Perform search
+	results := templates.SearchTemplates(searchTemplates, searchOpts)
+	
+	// Display results
+	if query != "" {
+		fmt.Printf("🔍 Searching for templates matching '%s'...\n\n", query)
+	} else {
+		fmt.Printf("🔍 Filtering templates...\n\n")
+	}
+	
+	if len(results) == 0 {
+		fmt.Println("No templates found matching your criteria.")
+		fmt.Println("\n💡 Try:")
+		fmt.Println("   • Broader search terms")
+		fmt.Println("   • Removing filters")
+		fmt.Println("   • cws templates list (to see all)")
+		return nil
+	}
+	
+	fmt.Printf("📋 Found %d matching templates:\n\n", len(results))
+	
+	for _, result := range results {
+		tmpl := result.Template
+		
+		// Display icon and name
+		icon := tmpl.Icon
+		if icon == "" {
+			icon = "🏗️"
+		}
+		fmt.Printf("%s  %s", icon, tmpl.Name)
+		
+		// Add badges
+		if tmpl.Featured {
+			fmt.Printf(" ⭐ Featured")
+		}
+		if tmpl.Popular {
+			fmt.Printf(" 🔥 Popular")
+		}
+		fmt.Println()
+		
+		// Display metadata
+		if tmpl.Slug != "" {
+			fmt.Printf("   Quick launch: cws launch %s <name>\n", tmpl.Slug)
+		}
+		fmt.Printf("   %s\n", tmpl.Description)
+		
+		if tmpl.Category != "" {
+			fmt.Printf("   Category: %s", tmpl.Category)
+		}
+		if tmpl.Domain != "" {
+			fmt.Printf(" | Domain: %s", tmpl.Domain)
+		}
+		if tmpl.Complexity != "" {
+			fmt.Printf(" | Complexity: %s", tmpl.Complexity)
+		}
+		fmt.Println()
+		
+		// Show what matched if searching
+		if len(result.Matches) > 0 && query != "" {
+			fmt.Printf("   Matched: %s\n", strings.Join(result.Matches, ", "))
+		}
+		
 		fmt.Println()
 	}
-
-	fmt.Printf("💡 Add more repositories with: cws repo add <name> <github-url>\n")
+	
+	// Show available filters
+	fmt.Println("🔧 Available Filters:")
+	fmt.Println("   --category <name>    Filter by category")
+	fmt.Println("   --domain <name>      Filter by domain") 
+	fmt.Println("   --complexity <level> Filter by complexity (simple/moderate/advanced)")
+	fmt.Println("   --popular            Show only popular templates")
+	fmt.Println("   --featured           Show only featured templates")
+	
 	return nil
 }
 
@@ -410,6 +515,125 @@ func (tc *TemplateCommands) templatesFeatured(args []string) error {
 
 // templatesDiscover helps users discover templates by category
 func (tc *TemplateCommands) templatesDiscover(args []string) error {
+	// Get all templates
+	if err := tc.app.ensureDaemonRunning(); err != nil {
+		return err
+	}
+	
+	apiTemplates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
+	if err != nil {
+		return WrapAPIError("list templates", err)
+	}
+	
+	// Convert to full templates for metadata
+	searchTemplates := make(map[string]*templates.Template)
+	for name := range apiTemplates {
+		rawTemplate, _ := templates.GetTemplateInfo(name)
+		if rawTemplate != nil {
+			searchTemplates[name] = rawTemplate
+		}
+	}
+	
+	// Get unique categories and domains
+	categories := templates.GetCategories(searchTemplates)
+	domains := templates.GetDomains(searchTemplates)
+	
+	fmt.Println("🔍 Discover CloudWorkstation Templates")
+	fmt.Println()
+	
+	// Show templates by category
+	if len(categories) > 0 {
+		fmt.Println("📂 Templates by Category:")
+		for _, category := range categories {
+			fmt.Printf("\n  📁 %s:\n", category)
+			
+			// Find templates in this category
+			for name, tmpl := range searchTemplates {
+				if tmpl.Category == category {
+					icon := tmpl.Icon
+					if icon == "" {
+						icon = "•"
+					}
+					fmt.Printf("     %s %s", icon, name)
+					if tmpl.Popular {
+						fmt.Printf(" 🔥")
+					}
+					if tmpl.Featured {
+						fmt.Printf(" ⭐")
+					}
+					fmt.Println()
+				}
+			}
+		}
+		fmt.Println()
+	}
+	
+	// Show templates by domain
+	if len(domains) > 0 {
+		fmt.Println("🔬 Templates by Research Domain:")
+		for _, domain := range domains {
+			// Map domain codes to friendly names
+			domainName := domain
+			switch domain {
+			case "ml":
+				domainName = "Machine Learning"
+			case "datascience":
+				domainName = "Data Science"
+			case "bio":
+				domainName = "Bioinformatics"
+			case "web":
+				domainName = "Web Development"
+			case "base":
+				domainName = "Base Systems"
+			}
+			
+			fmt.Printf("\n  🔬 %s:\n", domainName)
+			
+			// Find templates in this domain
+			for name, tmpl := range searchTemplates {
+				if tmpl.Domain == domain {
+					fmt.Printf("     • %s", name)
+					if tmpl.Complexity != "" {
+						fmt.Printf(" [%s]", tmpl.Complexity)
+					}
+					fmt.Println()
+				}
+			}
+		}
+		fmt.Println()
+	}
+	
+	// Show popular templates
+	fmt.Println("🔥 Popular Templates:")
+	popularCount := 0
+	for name, tmpl := range searchTemplates {
+		if tmpl.Popular {
+			icon := tmpl.Icon
+			if icon == "" {
+				icon = "•"
+			}
+			fmt.Printf("   %s %s - %s\n", icon, name, tmpl.Description)
+			popularCount++
+		}
+	}
+	if popularCount == 0 {
+		fmt.Println("   No templates marked as popular")
+	}
+	fmt.Println()
+	
+	// Show usage tips
+	fmt.Println("💡 Tips:")
+	fmt.Println("   • Search by keyword:    cws templates search <query>")
+	fmt.Println("   • Filter by category:   cws templates search --category \"Machine Learning\"")
+	fmt.Println("   • Filter by domain:     cws templates search --domain ml")
+	fmt.Println("   • Show popular only:    cws templates search --popular")
+	fmt.Println("   • Template details:     cws templates info <template-name>")
+	
+	return nil
+}
+
+// Original placeholder code continues below
+func (tc *TemplateCommands) templatesDiscoverPlaceholder(args []string) error {
 	fmt.Println("🔍 Discover CloudWorkstation Templates by Category")
 
 	categories := map[string][]string{
@@ -1221,3 +1445,72 @@ func (tc *TemplateCommands) displayTroubleshootingInfo(template *templates.Templ
 
 	fmt.Println()
 }
+
+// templatesUsage shows template usage statistics
+func (tc *TemplateCommands) templatesUsage(args []string) error {
+	stats := templates.GetUsageStats()
+	
+	fmt.Println("📊 Template Usage Statistics")
+	fmt.Println("═══════════════════════════════════════")
+	fmt.Println()
+	
+	// Show most popular templates
+	fmt.Println("🔥 Most Popular Templates:")
+	popular := stats.GetPopularTemplates(5)
+	if len(popular) == 0 {
+		fmt.Println("   No usage data available yet")
+	} else {
+		for i, usage := range popular {
+			fmt.Printf("   %d. %s - %d launches (%.0f%% success rate)\n", 
+				i+1, usage.TemplateName, usage.LaunchCount, usage.SuccessRate*100)
+			if usage.AverageLaunchTime > 0 {
+				fmt.Printf("      Average launch time: %d seconds\n", usage.AverageLaunchTime)
+			}
+		}
+	}
+	fmt.Println()
+	
+	// Show recently used templates
+	fmt.Println("⏰ Recently Used Templates:")
+	recent := stats.GetRecentlyUsedTemplates(5)
+	if len(recent) == 0 {
+		fmt.Println("   No usage data available yet")
+	} else {
+		for _, usage := range recent {
+			fmt.Printf("   • %s - Last used: %s\n", 
+				usage.TemplateName, usage.LastUsed.Format("Jan 2, 2006 3:04 PM"))
+		}
+	}
+	fmt.Println()
+	
+	// Show recommendations based on usage
+	if len(popular) > 0 {
+		fmt.Println("💡 Recommendations:")
+		
+		// Find domain from most popular template
+		if template, _ := templates.GetTemplateInfo(popular[0].TemplateName); template != nil && template.Domain != "" {
+			fmt.Printf("   Based on your usage, you might also like:\n")
+			
+			// Get all templates
+			registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+			registry.ScanTemplates()
+			
+			recommendations := templates.RecommendTemplates(registry.Templates, template.Domain, 3)
+			for _, rec := range recommendations {
+				if rec.Name != popular[0].TemplateName {
+					fmt.Printf("   • %s - %s\n", rec.Name, rec.Description)
+				}
+			}
+		}
+		fmt.Println()
+	}
+	
+	// Show tips
+	fmt.Println("💡 Tips:")
+	fmt.Println("   • Quick launch popular templates using their slug names")
+	fmt.Println("   • Use 'cws templates discover' to explore templates by category")
+	fmt.Println("   • Use 'cws templates search' to find specific templates")
+	
+	return nil
+}
+

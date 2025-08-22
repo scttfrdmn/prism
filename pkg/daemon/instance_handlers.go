@@ -8,6 +8,7 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -144,9 +145,17 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Track launch start time
+		launchStart := time.Now()
+		
 		// Delegate to AWS manager
 		var err error
 		instance, err = awsManager.LaunchInstance(req)
+		
+		// Record usage stats
+		launchDuration := int(time.Since(launchStart).Seconds())
+		templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
+		
 		return err
 	})
 
