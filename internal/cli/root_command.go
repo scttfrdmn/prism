@@ -185,14 +185,9 @@ func (f *TemplateCommandFactory) CreateCommands() []*cobra.Command {
 }
 
 func (f *TemplateCommandFactory) createTemplatesCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:   "templates",
-		Short: "List available templates",
-		Long:  `List all available templates with their descriptions and costs.`,
-		RunE: func(_ *cobra.Command, args []string) error {
-			return f.app.Templates(args)
-		},
-	}
+	// Use the new Cobra-based templates command with proper subcommands
+	templateCobra := NewTemplateCobraCommands(f.app)
+	return templateCobra.CreateTemplatesCommand()
 }
 
 func (f *TemplateCommandFactory) createApplyCommand() *cobra.Command {

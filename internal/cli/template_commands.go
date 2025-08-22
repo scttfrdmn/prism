@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -42,6 +43,8 @@ func (tc *TemplateCommands) Templates(args []string) error {
 			return tc.templatesSnapshot(args[1:])
 		case "stats", "usage":
 			return tc.templatesUsage(args[1:])
+		case "test":
+			return tc.templatesTest(args[1:])
 		}
 	}
 
@@ -719,47 +722,135 @@ func (tc *TemplateCommands) templatesInstall(args []string) error {
 
 // validateTemplates handles template validation commands
 func (tc *TemplateCommands) validateTemplates(args []string) error {
-	if len(args) == 0 {
+	// Parse validation options
+	var verbose bool
+	var strict bool
+	var templateName string
+	
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch arg {
+		case "--verbose", "-v":
+			verbose = true
+		case "--strict":
+			strict = true
+		default:
+			if !strings.HasPrefix(arg, "-") {
+				templateName = arg
+			}
+		}
+	}
+	
+	// Load template registry
+	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("failed to scan templates: %w", err)
+	}
+	
+	// Create validator
+	validator := templates.NewComprehensiveValidator(registry)
+	
+	// Validate specific template or all
+	if templateName != "" {
+		// Validate specific template
+		fmt.Printf("🔍 Validating template: %s\n\n", templateName)
+		
+		template, exists := registry.Templates[templateName]
+		if !exists {
+			return fmt.Errorf("template not found: %s", templateName)
+		}
+		
+		report := validator.ValidateTemplate(template)
+		tc.displayValidationReport(report, verbose, strict)
+		
+		if !report.Valid {
+			return fmt.Errorf("template validation failed")
+		}
+	} else {
 		// Validate all templates
 		fmt.Println("🔍 Validating all templates...")
-
-		templateDirs := []string{DefaultTemplateDir}
-		if err := templates.ValidateAllTemplates(templateDirs); err != nil {
-			fmt.Printf("%s\n", FormatErrorMessage("Template validation", "One or more templates failed validation"))
-			return err
+		fmt.Println()
+		
+		reports := validator.ValidateAll()
+		
+		totalErrors := 0
+		totalWarnings := 0
+		failedTemplates := []string{}
+		
+		for name, report := range reports {
+			if verbose || !report.Valid {
+				fmt.Printf("📋 %s:\n", name)
+				tc.displayValidationReport(report, verbose, strict)
+			}
+			
+			totalErrors += report.ErrorCount
+			totalWarnings += report.WarningCount
+			
+			if !report.Valid {
+				failedTemplates = append(failedTemplates, name)
+			}
 		}
-
-		fmt.Printf("%s\n", FormatSuccessMessage("Template validation", "All templates are valid", ""))
-		return nil
-	}
-
-	// Validate specific template or file
-	templateName := args[0]
-
-	// Check if it's a file path
-	if strings.HasSuffix(templateName, TemplateFileExtensionYML) || strings.HasSuffix(templateName, TemplateFileExtensionYAML) {
-		fmt.Printf("🔍 Validating template file: %s\n", templateName)
-
-		if err := templates.ValidateTemplate(templateName); err != nil {
-			fmt.Println("❌ Template validation failed")
-			return err
+		
+		// Summary
+		fmt.Println("═══════════════════════════════════════")
+		fmt.Printf("📊 Validation Summary:\n")
+		fmt.Printf("   Templates validated: %d\n", len(reports))
+		fmt.Printf("   Total errors: %d\n", totalErrors)
+		fmt.Printf("   Total warnings: %d\n", totalWarnings)
+		
+		if len(failedTemplates) > 0 {
+			fmt.Printf("\n❌ Failed templates:\n")
+			for _, name := range failedTemplates {
+				fmt.Printf("   • %s\n", name)
+			}
+			
+			if strict {
+				return fmt.Errorf("%d templates failed validation", len(failedTemplates))
+			}
+		} else {
+			fmt.Printf("\n✅ All templates are valid!\n")
 		}
-
-		fmt.Printf("✅ Template file '%s' is valid\n", templateName)
-		return nil
 	}
-
-	// Treat as template name
-	fmt.Printf("🔍 Validating template: %s\n", templateName)
-
-	templateDirs := []string{DefaultTemplateDir}
-	if err := templates.ValidateTemplateWithRegistry(templateDirs, templateName); err != nil {
-		fmt.Println("❌ Template validation failed")
-		return err
-	}
-
-	fmt.Printf("✅ Template '%s' is valid\n", templateName)
+	
 	return nil
+}
+
+// displayValidationReport shows validation results
+func (tc *TemplateCommands) displayValidationReport(report *templates.ValidationReport, verbose bool, strict bool) {
+	// Show errors (always)
+	errorCount := 0
+	for _, result := range report.Results {
+		if result.Level == templates.ValidationError {
+			fmt.Printf("   ❌ ERROR: %s - %s\n", result.Field, result.Message)
+			errorCount++
+		}
+	}
+	
+	// Show warnings (verbose or strict mode)
+	if verbose || strict {
+		for _, result := range report.Results {
+			if result.Level == templates.ValidationWarning {
+				fmt.Printf("   ⚠️  WARNING: %s - %s\n", result.Field, result.Message)
+			}
+		}
+	}
+	
+	// Show info (verbose only)
+	if verbose {
+		for _, result := range report.Results {
+			if result.Level == templates.ValidationInfo {
+				fmt.Printf("   ℹ️  INFO: %s - %s\n", result.Field, result.Message)
+			}
+		}
+	}
+	
+	// Summary for this template
+	if report.Valid {
+		fmt.Printf("   ✅ Valid (%d warnings, %d suggestions)\n", report.WarningCount, report.InfoCount)
+	} else {
+		fmt.Printf("   ❌ Invalid (%d errors)\n", report.ErrorCount)
+	}
+	fmt.Println()
 }
 
 // templatesVersion handles template version commands
@@ -1513,4 +1604,104 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 	
 	return nil
 }
+
+// templatesTest runs test suites against templates
+func (tc *TemplateCommands) templatesTest(args []string) error {
+	// Parse test options
+	var templateName string
+	var suiteName string
+	var verbose bool
+	
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--suite" && i+1 < len(args):
+			suiteName = args[i+1]
+			i++
+		case arg == "--verbose", arg == "-v":
+			verbose = true
+		case !strings.HasPrefix(arg, "-"):
+			templateName = arg
+		}
+	}
+	
+	// Load registry
+	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return fmt.Errorf("failed to scan templates: %w", err)
+	}
+	
+	// Create tester
+	tester := templates.NewTemplateTester(registry)
+	
+	fmt.Println("🧪 Running Template Tests")
+	fmt.Println("═══════════════════════════════════════")
+	fmt.Println()
+	
+	// Run tests
+	ctx := context.Background()
+	var reports map[string]*templates.TestReport
+	
+	if suiteName != "" {
+		// Run specific suite
+		fmt.Printf("Running test suite: %s\n\n", suiteName)
+		// This would need to be enhanced to support specific suite selection
+		reports = tester.RunAllTests(ctx)
+	} else {
+		// Run all tests
+		reports = tester.RunAllTests(ctx)
+	}
+	
+	// Display results
+	totalPassed := 0
+	totalFailed := 0
+	
+	for suiteName, report := range reports {
+		fmt.Printf("📦 Test Suite: %s\n", suiteName)
+		fmt.Printf("   Duration: %s\n", report.EndTime.Sub(report.StartTime))
+		fmt.Printf("   Tests: %d passed, %d failed\n", report.PassedTests, report.FailedTests)
+		
+		if verbose || report.FailedTests > 0 {
+			for testName, result := range report.TestResults {
+				if templateName != "" && !strings.Contains(testName, templateName) {
+					continue
+				}
+				
+				if result.Passed {
+					if verbose {
+						fmt.Printf("   ✅ %s: %s (%s)\n", testName, result.Message, result.Duration)
+					}
+				} else {
+					fmt.Printf("   ❌ %s: %s\n", testName, result.Message)
+					if len(result.Details) > 0 {
+						for _, detail := range result.Details {
+							fmt.Printf("      • %s\n", detail)
+						}
+					}
+				}
+			}
+		}
+		
+		totalPassed += report.PassedTests
+		totalFailed += report.FailedTests
+		fmt.Println()
+	}
+	
+	// Summary
+	fmt.Println("═══════════════════════════════════════")
+	fmt.Printf("📊 Test Summary:\n")
+	fmt.Printf("   Total tests: %d\n", totalPassed+totalFailed)
+	fmt.Printf("   Passed: %d\n", totalPassed)
+	fmt.Printf("   Failed: %d\n", totalFailed)
+	
+	if totalFailed > 0 {
+		fmt.Printf("\n❌ %d tests failed\n", totalFailed)
+		return fmt.Errorf("template tests failed")
+	} else {
+		fmt.Printf("\n✅ All tests passed!\n")
+	}
+	
+	return nil
+}
+
 

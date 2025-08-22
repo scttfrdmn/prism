@@ -436,6 +436,30 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
+	
+	// Validate template before launch (if not dry-run)
+	if !req.DryRun {
+		// Get raw template for validation
+		rawTemplate, _ := templates.GetTemplateInfo(req.Template)
+		if rawTemplate != nil {
+			registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+			registry.Templates[req.Template] = rawTemplate // Add to registry for validation
+			
+			validator := templates.NewComprehensiveValidator(registry)
+			report := validator.ValidateTemplate(rawTemplate)
+			
+			if !report.Valid {
+				// Build error message with details
+				var errors []string
+				for _, result := range report.Results {
+					if result.Level == templates.ValidationError {
+						errors = append(errors, fmt.Sprintf("%s: %s", result.Field, result.Message))
+					}
+				}
+				return nil, fmt.Errorf("template validation failed: %s", strings.Join(errors, "; "))
+			}
+		}
+	}
 
 	// Create orchestrator and execute launch
 	orchestrator := NewLaunchOrchestrator(m, m.region)
