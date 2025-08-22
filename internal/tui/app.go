@@ -11,7 +11,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/models"
-	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
@@ -82,7 +81,7 @@ func NewApp() *App {
 	}
 
 	// Create API client with modern Options pattern
-	apiClient := pkgapi.NewClientWithOptions("http://localhost:8947", client.Options{
+	apiClient := client.NewClientWithOptions("http://localhost:8947", client.Options{
 		AWSProfile: currentProfile.AWSProfile,
 		AWSRegion:  currentProfile.Region,
 	})

@@ -69,11 +69,52 @@ func DefaultTemplateDirs() []string {
 	return dirs
 }
 
-// GetTemplatesForRegion returns all templates formatted for the legacy API
-// This maintains backward compatibility with existing code
+// GetTemplatesForRegion returns all templates for the specified region and architecture
 func GetTemplatesForRegion(region, architecture string) (map[string]types.RuntimeTemplate, error) {
-	manager := NewCompatibilityManager(DefaultTemplateDirs())
-	return manager.GetLegacyTemplates(region, architecture)
+	registry := NewTemplateRegistry(DefaultTemplateDirs())
+	resolver := NewTemplateResolver()
+	
+	// Scan for templates
+	if err := registry.ScanTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
+	}
+	
+	// Convert to runtime format
+	templates := make(map[string]types.RuntimeTemplate)
+	
+	for name, template := range registry.Templates {
+		runtimeTemplate, err := resolver.ResolveTemplate(template, region, architecture)
+		if err != nil {
+			// Log the error but continue with other templates
+			fmt.Printf("Warning: Failed to resolve template %s: %v\n", name, err)
+			continue
+		}
+		
+		// Convert to runtime template format
+		var idleDetectionConfig *types.IdleDetectionConfig
+		if runtimeTemplate.IdleDetection != nil {
+			idleDetectionConfig = &types.IdleDetectionConfig{
+				Enabled:                   runtimeTemplate.IdleDetection.Enabled,
+				IdleThresholdMinutes:      runtimeTemplate.IdleDetection.IdleThresholdMinutes,
+				HibernateThresholdMinutes: runtimeTemplate.IdleDetection.HibernateThresholdMinutes,
+				CheckIntervalMinutes:      runtimeTemplate.IdleDetection.CheckIntervalMinutes,
+			}
+		}
+		
+		templates[name] = types.RuntimeTemplate{
+			Name:                 runtimeTemplate.Name,
+			Slug:                 runtimeTemplate.Slug,
+			Description:          runtimeTemplate.Description,
+			AMI:                  runtimeTemplate.AMI,
+			InstanceType:         runtimeTemplate.InstanceType,
+			UserData:             runtimeTemplate.UserData,
+			Ports:                runtimeTemplate.Ports,
+			EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
+			IdleDetection:        idleDetectionConfig,
+		}
+	}
+	
+	return templates, nil
 }
 
 // GetTemplate returns a single template for the legacy API
@@ -83,8 +124,49 @@ func GetTemplate(name, region, architecture string) (*types.RuntimeTemplate, err
 
 // GetTemplateWithPackageManager returns a single template with package manager override and size scaling
 func GetTemplateWithPackageManager(name, region, architecture, packageManager, size string) (*types.RuntimeTemplate, error) {
-	manager := NewCompatibilityManager(DefaultTemplateDirs())
-	return manager.GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager, size)
+	registry := NewTemplateRegistry(DefaultTemplateDirs())
+	resolver := NewTemplateResolver()
+	
+	// Scan for templates
+	if err := registry.ScanTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
+	}
+	
+	template, err := registry.GetTemplate(name)
+	if err != nil {
+		return nil, err
+	}
+	
+	// Resolve with options
+	runtimeTemplate, err := resolver.ResolveTemplateWithOptions(template, region, architecture, packageManager, size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve template %s: %w", name, err)
+	}
+	
+	// Convert to runtime template format
+	var idleDetectionConfig *types.IdleDetectionConfig
+	if runtimeTemplate.IdleDetection != nil {
+		idleDetectionConfig = &types.IdleDetectionConfig{
+			Enabled:                   runtimeTemplate.IdleDetection.Enabled,
+			IdleThresholdMinutes:      runtimeTemplate.IdleDetection.IdleThresholdMinutes,
+			HibernateThresholdMinutes: runtimeTemplate.IdleDetection.HibernateThresholdMinutes,
+			CheckIntervalMinutes:      runtimeTemplate.IdleDetection.CheckIntervalMinutes,
+		}
+	}
+	
+	legacyTemplate := &types.RuntimeTemplate{
+		Name:                 runtimeTemplate.Name,
+		Slug:                 runtimeTemplate.Slug,
+		Description:          runtimeTemplate.Description,
+		AMI:                  runtimeTemplate.AMI,
+		InstanceType:         runtimeTemplate.InstanceType,
+		UserData:             runtimeTemplate.UserData,
+		Ports:                runtimeTemplate.Ports,
+		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
+		IdleDetection:        idleDetectionConfig,
+	}
+	
+	return legacyTemplate, nil
 }
 
 // GetTemplateWithParameters returns a template with parameter processing applied
@@ -123,9 +205,9 @@ func GetTemplateWithParameters(name, region, architecture, packageManager, size 
 		processedTemplate = template
 	}
 
-	// Convert to runtime template using existing resolver
-	manager := NewCompatibilityManager(DefaultTemplateDirs())
-	runtimeTemplate, err := manager.Resolver.ResolveTemplateWithOptions(processedTemplate, region, architecture, packageManager, size)
+	// Convert to runtime template using resolver
+	resolver := NewTemplateResolver()
+	runtimeTemplate, err := resolver.ResolveTemplateWithOptions(processedTemplate, region, architecture, packageManager, size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve template: %w", err)
 	}

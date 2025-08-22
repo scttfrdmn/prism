@@ -4,7 +4,7 @@ package api
 import (
 	"context"
 
-	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api"
+	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 

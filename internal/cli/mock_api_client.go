@@ -35,7 +35,7 @@ type MockAPIClient struct {
 	Volumes           []types.EFSVolume
 	StorageVolumes    []types.EBSVolume
 	Projects          []types.Project
-	IdleProfiles      map[string]types.IdleProfile
+	// Legacy idle fields removed - using new hibernation policy system
 	DaemonStatus      *types.DaemonStatus
 	HibernationStatus *types.HibernationStatus
 
@@ -122,18 +122,6 @@ func NewMockAPIClient() *MockAPIClient {
 				Description: "Test project for CLI testing",
 				Status:      "active",
 				CreatedAt:   time.Now().Add(-48 * time.Hour),
-			},
-		},
-		IdleProfiles: map[string]types.IdleProfile{
-			"batch": {
-				Name:        "batch",
-				IdleMinutes: 60,
-				Action:      "hibernate",
-			},
-			"gpu": {
-				Name:        "gpu",
-				IdleMinutes: 15,
-				Action:      "stop",
 			},
 		},
 		DaemonStatus: &types.DaemonStatus{
@@ -475,46 +463,7 @@ func (m *MockAPIClient) RollbackInstance(ctx context.Context, req types.Rollback
 	return nil
 }
 
-// Idle detection operations
-func (m *MockAPIClient) GetIdleStatus(ctx context.Context) (*types.IdleStatusResponse, error) {
-	if m.ShouldReturnError {
-		return nil, fmt.Errorf("%s", m.ErrorMessage)
-	}
-
-	return &types.IdleStatusResponse{
-		Enabled:  true,
-		Profiles: m.IdleProfiles,
-	}, nil
-}
-
-func (m *MockAPIClient) EnableIdleDetection(ctx context.Context) error {
-	if m.ShouldReturnError {
-		return fmt.Errorf("%s", m.ErrorMessage)
-	}
-	return nil
-}
-
-func (m *MockAPIClient) DisableIdleDetection(ctx context.Context) error {
-	if m.ShouldReturnError {
-		return fmt.Errorf("%s", m.ErrorMessage)
-	}
-	return nil
-}
-
-func (m *MockAPIClient) GetIdleProfiles(ctx context.Context) (map[string]types.IdleProfile, error) {
-	if m.ShouldReturnError {
-		return nil, fmt.Errorf("%s", m.ErrorMessage)
-	}
-	return m.IdleProfiles, nil
-}
-
-func (m *MockAPIClient) AddIdleProfile(ctx context.Context, profile types.IdleProfile) error {
-	if m.ShouldReturnError {
-		return fmt.Errorf("%s", m.ErrorMessage)
-	}
-	m.IdleProfiles[profile.Name] = profile
-	return nil
-}
+// Legacy idle detection operations removed - using new hibernation policy system
 
 func (m *MockAPIClient) GetIdlePendingActions(ctx context.Context) ([]types.IdleState, error) {
 	if m.ShouldReturnError {

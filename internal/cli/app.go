@@ -38,7 +38,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/pricing"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
@@ -50,7 +49,7 @@ import (
 // App represents the CLI application
 type App struct {
 	version          string
-	apiClient        api.CloudWorkstationAPI
+	apiClient        client.CloudWorkstationAPI
 	ctx              context.Context // Context for AWS operations
 	tuiCommand       *cobra.Command
 	config           *Config
@@ -88,7 +87,7 @@ func NewApp(version string) *App {
 	}
 
 	// Create API client with configuration
-	baseClient := api.NewClientWithOptions(apiURL, client.Options{
+	baseClient := client.NewClientWithOptions(apiURL, client.Options{
 		AWSProfile: config.AWS.Profile,
 		AWSRegion:  config.AWS.Region,
 	})
@@ -152,7 +151,7 @@ func (a *App) ensureDaemonRunning() error {
 }
 
 // NewAppWithClient creates a new CLI application with a custom API client
-func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
+func NewAppWithClient(version string, apiClient client.CloudWorkstationAPI) *App {
 	// Load config
 	config, err := LoadConfig()
 	if err != nil {
@@ -169,7 +168,7 @@ func NewAppWithClient(version string, client api.CloudWorkstationAPI) *App {
 
 	app := &App{
 		version:          version,
-		apiClient:        client,
+		apiClient:        apiClient,
 		ctx:              context.Background(),
 		config:           config,
 		profileManager:   profileManager,
@@ -451,7 +450,7 @@ func (h *PendingStateHandler) Handle(state string, elapsed int, instanceName str
 
 // RunningStateHandler handles running instance state with setup monitoring
 type RunningStateHandler struct {
-	apiClient api.CloudWorkstationAPI
+	apiClient client.CloudWorkstationAPI
 	ctx       context.Context
 }
 
@@ -531,12 +530,12 @@ func (h *DefaultStateHandler) Handle(state string, elapsed int, instanceName str
 // LaunchProgressMonitor manages package launch monitoring (Strategy Pattern - SOLID)
 type LaunchProgressMonitor struct {
 	handlers  []InstanceStateHandler
-	apiClient api.CloudWorkstationAPI
+	apiClient client.CloudWorkstationAPI
 	ctx       context.Context
 }
 
 // NewLaunchProgressMonitor creates launch progress monitor
-func NewLaunchProgressMonitor(apiClient api.CloudWorkstationAPI, ctx context.Context) *LaunchProgressMonitor {
+func NewLaunchProgressMonitor(apiClient client.CloudWorkstationAPI, ctx context.Context) *LaunchProgressMonitor {
 	return &LaunchProgressMonitor{
 		handlers: []InstanceStateHandler{
 			&PendingStateHandler{},

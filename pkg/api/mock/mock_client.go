@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
+	"github.com/scttfrdmn/cloudworkstation/pkg/hibernation"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -817,56 +818,7 @@ func (m *MockClient) SetOptions(options client.Options) {
 
 // Idle detection operations - Mock implementations
 
-// GetIdleStatus returns mock idle detection status
-func (m *MockClient) GetIdleStatus(ctx context.Context) (*types.IdleStatusResponse, error) {
-	return &types.IdleStatusResponse{
-		Enabled:        true,
-		DefaultProfile: "default",
-		Profiles: map[string]types.IdleProfile{
-			"default": {
-				Name:             "default",
-				CPUThreshold:     5.0,
-				MemoryThreshold:  10.0,
-				NetworkThreshold: 1.0,
-				DiskThreshold:    1.0,
-				IdleMinutes:      30,
-				Action:           "stop",
-			},
-		},
-		DomainMappings: map[string]string{},
-	}, nil
-}
-
-// EnableIdleDetection enables idle detection (mock)
-func (m *MockClient) EnableIdleDetection(ctx context.Context) error {
-	return nil
-}
-
-// DisableIdleDetection disables idle detection (mock)
-func (m *MockClient) DisableIdleDetection(ctx context.Context) error {
-	return nil
-}
-
-// GetIdleProfiles returns mock idle profiles
-func (m *MockClient) GetIdleProfiles(ctx context.Context) (map[string]types.IdleProfile, error) {
-	return map[string]types.IdleProfile{
-		"default": {
-			Name:             "default",
-			CPUThreshold:     5.0,
-			MemoryThreshold:  10.0,
-			NetworkThreshold: 1.0,
-			DiskThreshold:    1.0,
-			IdleMinutes:      30,
-			Action:           "stop",
-		},
-	}, nil
-}
-
-// AddIdleProfile adds an idle profile (mock)
-func (m *MockClient) AddIdleProfile(ctx context.Context, profile types.IdleProfile) error {
-	// Mock implementation - just return success
-	return nil
-}
+// Legacy idle detection methods removed - using new hibernation policy system
 
 // GetIdlePendingActions returns mock pending idle actions
 func (m *MockClient) GetIdlePendingActions(ctx context.Context) ([]types.IdleState, error) {
@@ -1123,4 +1075,51 @@ func (m *MockClient) MountVolume(ctx context.Context, instanceID, volumeID, moun
 func (m *MockClient) UnmountVolume(ctx context.Context, instanceID, mountPoint string) error {
 	// Mock implementation - just return success
 	return nil
+}
+
+// Hibernation policy operations
+
+// ListHibernationPolicies returns available hibernation policies (mock)
+func (m *MockClient) ListHibernationPolicies(ctx context.Context) ([]*hibernation.PolicyTemplate, error) {
+	manager := hibernation.NewPolicyManager()
+	return manager.ListTemplates(), nil
+}
+
+// GetHibernationPolicy returns a specific hibernation policy (mock)
+func (m *MockClient) GetHibernationPolicy(ctx context.Context, name string) (*hibernation.PolicyTemplate, error) {
+	manager := hibernation.NewPolicyManager()
+	return manager.GetTemplate(name)
+}
+
+// ApplyHibernationPolicy applies a hibernation policy to an instance (mock)
+func (m *MockClient) ApplyHibernationPolicy(ctx context.Context, instanceID, policyName string) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// RemoveHibernationPolicy removes a hibernation policy from an instance (mock)
+func (m *MockClient) RemoveHibernationPolicy(ctx context.Context, instanceID, policyName string) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// GetInstanceHibernationPolicies returns policies applied to an instance (mock)
+func (m *MockClient) GetInstanceHibernationPolicies(ctx context.Context, instanceID string) ([]*hibernation.PolicyTemplate, error) {
+	// Return empty list for mock
+	return []*hibernation.PolicyTemplate{}, nil
+}
+
+// RecommendHibernationPolicy recommends a policy for an instance (mock)
+func (m *MockClient) RecommendHibernationPolicy(ctx context.Context, instanceID string) (*hibernation.PolicyTemplate, error) {
+	manager := hibernation.NewPolicyManager()
+	return manager.GetTemplate("balanced")
+}
+
+// GetHibernationSavingsReport returns hibernation savings report (mock)
+func (m *MockClient) GetHibernationSavingsReport(ctx context.Context, instanceID string) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"total_saved": 150.00,
+		"projected_monthly_savings": 450.00,
+		"hibernation_hours": 720,
+	}, nil
 }

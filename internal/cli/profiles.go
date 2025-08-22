@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/spf13/cobra"
@@ -419,7 +418,7 @@ func runValidateCommand(config *Config, profileID string) {
 	}
 
 	// Create client with configuration
-	client := api.NewClientWithOptions(config.Daemon.URL, client.Options{
+	client := client.NewClientWithOptions(config.Daemon.URL, client.Options{
 		AWSProfile: config.AWS.Profile,
 		AWSRegion:  config.AWS.Region,
 	})

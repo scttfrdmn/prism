@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -69,12 +69,12 @@ const (
 
 // InstanceMonitor monitors instance statuses and generates events
 type InstanceMonitor struct {
-	apiClient api.CloudWorkstationAPI
+	apiClient client.CloudWorkstationAPI
 	config    MonitorConfig
 
 	// Instance state tracking
 	instanceStates map[string]string
-	idleStates     map[string]*types.IdleStatus
+	idleStates     map[string]*types.IdleState
 
 	// Event handling
 	eventCh     chan InstanceEvent
@@ -89,14 +89,14 @@ type InstanceMonitor struct {
 }
 
 // NewInstanceMonitor creates a new instance monitor
-func NewInstanceMonitor(apiClient api.CloudWorkstationAPI, config MonitorConfig) *InstanceMonitor {
+func NewInstanceMonitor(apiClient client.CloudWorkstationAPI, config MonitorConfig) *InstanceMonitor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &InstanceMonitor{
 		apiClient:      apiClient,
 		config:         config,
 		instanceStates: make(map[string]string),
-		idleStates:     make(map[string]*types.IdleStatus),
+		idleStates:     make(map[string]*types.IdleState),
 		eventCh:        make(chan InstanceEvent, 100),
 		ctx:            ctx,
 		cancelFunc:     cancel,
@@ -226,7 +226,7 @@ func (m *InstanceMonitor) refreshInstances() error {
 
 				// Only warn if we're within the notification threshold and haven't warned before
 				if minutesUntilAction <= m.config.IdleNotifyThreshold &&
-					(!hasOldIdle || !oldIdle.ActionPending) {
+					(!hasOldIdle || !oldIdle.IsIdle) {
 
 					m.queueEvent(InstanceEvent{
 						Type:     EventTypeIdleWarning,
@@ -246,12 +246,12 @@ func (m *InstanceMonitor) refreshInstances() error {
 			}
 
 			// Store current idle state
-			m.idleStates[instance.Name] = &types.IdleStatus{
-				Enabled:        instanceExt.IdleDetection.Enabled,
-				Policy:         instanceExt.IdleDetection.Policy,
-				IdleTime:       instanceExt.IdleDetection.IdleTime,
-				ActionSchedule: instanceExt.IdleDetection.ActionSchedule,
-				ActionPending:  instanceExt.IdleDetection.ActionPending,
+			m.idleStates[instance.Name] = &types.IdleState{
+				InstanceID:   instance.ID,
+				InstanceName: instance.Name,
+				Profile:      instanceExt.IdleDetection.Policy,
+				IsIdle:       instanceExt.IdleDetection.ActionPending,
+				LastActivity: time.Now(),
 			}
 		} else {
 			// No idle detection or disabled
