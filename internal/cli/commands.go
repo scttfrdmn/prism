@@ -36,7 +36,7 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&ProjectCommand{})
 	dispatcher.RegisterCommand(&PackageManagerCommand{})
 	dispatcher.RegisterCommand(&SpotCommand{})
-	dispatcher.RegisterCommand(&HibernationCommand{})
+	dispatcher.RegisterCommand(&IdlePolicyCommand{})
 	dispatcher.RegisterCommand(&DryRunCommand{})
 	dispatcher.RegisterCommand(&WaitCommand{})
 	dispatcher.RegisterCommand(&ParameterCommand{})
@@ -223,15 +223,15 @@ func (s *SpotCommand) Execute(req *types.LaunchRequest, args []string, index int
 	return index, nil
 }
 
-// HibernationCommand handles --hibernation flag
-type HibernationCommand struct{}
+// IdlePolicyCommand handles --idle-policy flag (formerly --hibernation)
+type IdlePolicyCommand struct{}
 
-func (h *HibernationCommand) CanHandle(arg string) bool {
-	return arg == "--hibernation"
+func (h *IdlePolicyCommand) CanHandle(arg string) bool {
+	return arg == "--idle-policy" || arg == "--hibernation" // Support both for compatibility
 }
 
-func (h *HibernationCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
-	req.Hibernation = true
+func (h *IdlePolicyCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	req.IdlePolicy = true // Enable idle policy (hibernation-capable)
 	return index, nil
 }
 

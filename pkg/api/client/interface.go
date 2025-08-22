@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/hibernation"
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -84,13 +84,22 @@ type CloudWorkstationAPI interface {
 	GetProjectCostBreakdown(context.Context, string, time.Time, time.Time) (*types.ProjectCostBreakdown, error)
 	GetProjectResourceUsage(context.Context, string, time.Duration) (*types.ProjectResourceUsage, error)
 
-	// Hibernation policy operations
-	ListHibernationPolicies(context.Context) ([]*hibernation.PolicyTemplate, error)
-	GetHibernationPolicy(context.Context, string) (*hibernation.PolicyTemplate, error)
+	// Idle policy operations
+	ListIdlePolicies(context.Context) ([]*idle.PolicyTemplate, error)
+	GetIdlePolicy(context.Context, string) (*idle.PolicyTemplate, error)
+	ApplyIdlePolicy(context.Context, string, string) error
+	RemoveIdlePolicy(context.Context, string, string) error
+	GetInstanceIdlePolicies(context.Context, string) ([]*idle.PolicyTemplate, error)
+	RecommendIdlePolicy(context.Context, string) (*idle.PolicyTemplate, error)
+	GetIdleSavingsReport(context.Context, string) (map[string]interface{}, error)
+	
+	// Deprecated: Hibernation policy operations (use Idle policy operations instead)
+	ListHibernationPolicies(context.Context) ([]*idle.PolicyTemplate, error)
+	GetHibernationPolicy(context.Context, string) (*idle.PolicyTemplate, error)
 	ApplyHibernationPolicy(context.Context, string, string) error
 	RemoveHibernationPolicy(context.Context, string, string) error
-	GetInstanceHibernationPolicies(context.Context, string) ([]*hibernation.PolicyTemplate, error)
-	RecommendHibernationPolicy(context.Context, string) (*hibernation.PolicyTemplate, error)
+	GetInstanceHibernationPolicies(context.Context, string) ([]*idle.PolicyTemplate, error)
+	RecommendHibernationPolicy(context.Context, string) (*idle.PolicyTemplate, error)
 	GetHibernationSavingsReport(context.Context, string) (map[string]interface{}, error)
 
 	// Status operations

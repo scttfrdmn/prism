@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/hibernation"
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 )
 
 // RegisterHibernationPolicyRoutes registers all hibernation policy API routes

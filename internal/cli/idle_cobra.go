@@ -9,24 +9,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// HibernationCobraCommands handles hibernation-related commands with proper Cobra structure
-type HibernationCobraCommands struct {
+// IdleCobraCommands handles idle policy-related commands with proper Cobra structure
+type IdleCobraCommands struct {
 	app *App
 }
 
-// NewHibernationCobraCommands creates a new hibernation commands handler
-func NewHibernationCobraCommands(app *App) *HibernationCobraCommands {
-	return &HibernationCobraCommands{app: app}
+// NewIdleCobraCommands creates a new idle policy commands handler
+func NewIdleCobraCommands(app *App) *IdleCobraCommands {
+	return &IdleCobraCommands{app: app}
 }
 
-// CreateHibernationCommand creates the main hibernation command with subcommands
-func (hc *HibernationCobraCommands) CreateHibernationCommand() *cobra.Command {
+// CreateIdleCommand creates the main idle command with subcommands
+func (ic *IdleCobraCommands) CreateIdleCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "hibernation",
-		Short: "Manage hibernation policies and schedules",
-		Long: `Manage advanced hibernation policies and schedules for cost optimization.
+		Use:   "idle",
+		Short: "Manage idle policies and schedules",
+		Long: `Manage advanced idle policies and schedules for cost optimization.
 
-Hibernation policies allow you to automatically hibernate instances based on:
+Idle policies allow you to automatically hibernate or stop instances based on:
 - Time schedules (daily, weekly, work hours)
 - Idle detection (CPU, memory, network usage)
 - Custom rules and patterns
@@ -38,23 +38,23 @@ Available policy templates:
 - development: Aggressive for dev instances (75% estimated)
 - production: Safety-first for production (5% estimated)
 - research: Optimized for ML/research workloads (45% estimated)`,
-		Example: `  # List available hibernation policies
-  cws hibernation policy list
+		Example: `  # List available idle policies
+  cws idle policy list
 
   # Apply a policy to an instance
-  cws hibernation policy apply my-instance balanced
+  cws idle policy apply my-instance balanced
 
   # View policies applied to an instance
-  cws hibernation policy status my-instance
+  cws idle policy status my-instance
 
   # Get policy recommendation for an instance
-  cws hibernation policy recommend my-instance
+  cws idle policy recommend my-instance
 
-  # View hibernation schedules
-  cws hibernation schedule list
+  # View idle schedules
+  cws idle schedule list
 
   # Generate savings report
-  cws hibernation savings --period 30d`,
+  cws idle savings --period 30d`,
 	}
 
 	// Add subcommands
@@ -68,11 +68,11 @@ Available policy templates:
 }
 
 // createPolicyCommand creates the policy management command
-func (hc *HibernationCobraCommands) createPolicyCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createPolicyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "policy",
-		Short: "Manage hibernation policies",
-		Long:  "Manage hibernation policy templates and apply them to instances",
+		Short: "Manage idle policies",
+		Long:  "Manage idle policy templates and apply them to instances",
 	}
 
 	// Add policy subcommands
@@ -88,20 +88,20 @@ func (hc *HibernationCobraCommands) createPolicyCommand() *cobra.Command {
 	return cmd
 }
 
-// createPolicyListCommand lists available hibernation policies
-func (hc *HibernationCobraCommands) createPolicyListCommand() *cobra.Command {
+// createPolicyListCommand lists available idle policies
+func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List available hibernation policy templates",
-		Long:  "Display all available hibernation policy templates with their characteristics",
+		Short: "List available idle policy templates",
+		Long:  "Display all available idle policy templates with their characteristics",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			policies, err := hc.app.apiClient.ListHibernationPolicies(hc.app.ctx)
+			policies, err := hc.app.apiClient.ListIdlePolicies(hc.app.ctx)
 			if err != nil {
-				return fmt.Errorf("failed to list hibernation policies: %w", err)
+				return fmt.Errorf("failed to list idle policies: %w", err)
 			}
 
 			if len(policies) == 0 {
-				fmt.Println("No hibernation policies available")
+				fmt.Println("No idle policies available")
 				return nil
 			}
 
@@ -130,7 +130,7 @@ func (hc *HibernationCobraCommands) createPolicyListCommand() *cobra.Command {
 
 			w.Flush()
 			
-			fmt.Println("\n💡 Tip: Use 'cws hibernation policy details <policy-id>' to see full details")
+			fmt.Println("\n💡 Tip: Use 'cws idle policy details <policy-id>' to see full details")
 			fmt.Println("💰 Estimated savings are based on typical usage patterns")
 
 			return nil
@@ -139,29 +139,29 @@ func (hc *HibernationCobraCommands) createPolicyListCommand() *cobra.Command {
 }
 
 // createPolicyApplyCommand applies a policy to an instance
-func (hc *HibernationCobraCommands) createPolicyApplyCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createPolicyApplyCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "apply <instance-name> <policy-id>",
-		Short: "Apply a hibernation policy to an instance",
-		Long:  "Apply a hibernation policy template to an instance to enable automatic hibernation",
+		Short: "Apply a idle policy to an instance",
+		Long:  "Apply a idle policy template to an instance to enable automatic idle",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceName := args[0]
 			policyID := args[1]
 
 			// Get policy details for display
-			policy, err := hc.app.apiClient.GetHibernationPolicy(hc.app.ctx, policyID)
+			policy, err := hc.app.apiClient.GetIdlePolicy(hc.app.ctx, policyID)
 			if err != nil {
 				return fmt.Errorf("policy not found: %w", err)
 			}
 
-			fmt.Printf("🔄 Applying hibernation policy '%s' to instance '%s'...\n", policy.Name, instanceName)
+			fmt.Printf("🔄 Applying idle policy '%s' to instance '%s'...\n", policy.Name, instanceName)
 			
-			if err := hc.app.apiClient.ApplyHibernationPolicy(hc.app.ctx, instanceName, policyID); err != nil {
-				return fmt.Errorf("failed to apply hibernation policy: %w", err)
+			if err := hc.app.apiClient.ApplyIdlePolicy(hc.app.ctx, instanceName, policyID); err != nil {
+				return fmt.Errorf("failed to apply idle policy: %w", err)
 			}
 
-			fmt.Printf("✅ Successfully applied hibernation policy!\n\n")
+			fmt.Printf("✅ Successfully applied idle policy!\n\n")
 			fmt.Printf("📊 Policy Details:\n")
 			fmt.Printf("   Name: %s\n", policy.Name)
 			fmt.Printf("   Category: %s\n", policy.Category)
@@ -172,7 +172,7 @@ func (hc *HibernationCobraCommands) createPolicyApplyCommand() *cobra.Command {
 				fmt.Printf("   ⚡ Auto-apply enabled (high priority)\n")
 			}
 
-			fmt.Printf("\n💡 The hibernation schedules are now active and will automatically:\n")
+			fmt.Printf("\n💡 The idle schedules are now active and will automatically:\n")
 			fmt.Printf("   • Hibernate your instance during scheduled periods\n")
 			fmt.Printf("   • Resume when needed based on the policy\n")
 			fmt.Printf("   • Save costs while preserving your work environment\n")
@@ -183,24 +183,24 @@ func (hc *HibernationCobraCommands) createPolicyApplyCommand() *cobra.Command {
 }
 
 // createPolicyRemoveCommand removes a policy from an instance
-func (hc *HibernationCobraCommands) createPolicyRemoveCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createPolicyRemoveCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "remove <instance-name> <policy-id>",
-		Short: "Remove a hibernation policy from an instance",
-		Long:  "Remove a hibernation policy and its schedules from an instance",
+		Short: "Remove a idle policy from an instance",
+		Long:  "Remove a idle policy and its schedules from an instance",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceName := args[0]
 			policyID := args[1]
 
-			fmt.Printf("🔄 Removing hibernation policy '%s' from instance '%s'...\n", policyID, instanceName)
+			fmt.Printf("🔄 Removing idle policy '%s' from instance '%s'...\n", policyID, instanceName)
 			
-			if err := hc.app.apiClient.RemoveHibernationPolicy(hc.app.ctx, instanceName, policyID); err != nil {
-				return fmt.Errorf("failed to remove hibernation policy: %w", err)
+			if err := hc.app.apiClient.RemoveIdlePolicy(hc.app.ctx, instanceName, policyID); err != nil {
+				return fmt.Errorf("failed to remove idle policy: %w", err)
 			}
 
-			fmt.Printf("✅ Successfully removed hibernation policy!\n")
-			fmt.Printf("\n💡 The instance will no longer follow this policy's hibernation schedules.\n")
+			fmt.Printf("✅ Successfully removed idle policy!\n")
+			fmt.Printf("\n💡 The instance will no longer follow this policy's idle schedules.\n")
 
 			return nil
 		},
@@ -208,27 +208,27 @@ func (hc *HibernationCobraCommands) createPolicyRemoveCommand() *cobra.Command {
 }
 
 // createPolicyStatusCommand shows policies applied to an instance
-func (hc *HibernationCobraCommands) createPolicyStatusCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createPolicyStatusCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status <instance-name>",
-		Short: "Show hibernation policies applied to an instance",
-		Long:  "Display all hibernation policies currently applied to an instance",
+		Short: "Show idle policies applied to an instance",
+		Long:  "Display all idle policies currently applied to an instance",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceName := args[0]
 
-			policies, err := hc.app.apiClient.GetInstanceHibernationPolicies(hc.app.ctx, instanceName)
+			policies, err := hc.app.apiClient.GetInstanceIdlePolicies(hc.app.ctx, instanceName)
 			if err != nil {
 				return fmt.Errorf("failed to get instance policies: %w", err)
 			}
 
 			if len(policies) == 0 {
-				fmt.Printf("No hibernation policies applied to instance '%s'\n", instanceName)
-				fmt.Println("\n💡 Tip: Use 'cws hibernation policy apply' to add a policy")
+				fmt.Printf("No idle policies applied to instance '%s'\n", instanceName)
+				fmt.Println("\n💡 Tip: Use 'cws idle policy apply' to add a policy")
 				return nil
 			}
 
-			fmt.Printf("Hibernation policies for instance '%s':\n\n", instanceName)
+			fmt.Printf("Idle policies for instance '%s':\n\n", instanceName)
 
 			for _, policy := range policies {
 				fmt.Printf("📋 %s (%s)\n", policy.Name, policy.ID)
@@ -260,18 +260,18 @@ func (hc *HibernationCobraCommands) createPolicyStatusCommand() *cobra.Command {
 }
 
 // createPolicyRecommendCommand recommends a policy for an instance
-func (hc *HibernationCobraCommands) createPolicyRecommendCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createPolicyRecommendCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "recommend <instance-name>",
-		Short: "Get hibernation policy recommendation for an instance",
-		Long:  "Analyze instance characteristics and recommend the best hibernation policy",
+		Short: "Get idle policy recommendation for an instance",
+		Long:  "Analyze instance characteristics and recommend the best idle policy",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceName := args[0]
 
 			fmt.Printf("🔍 Analyzing instance '%s'...\n", instanceName)
 
-			policy, err := hc.app.apiClient.RecommendHibernationPolicy(hc.app.ctx, instanceName)
+			policy, err := hc.app.apiClient.RecommendIdlePolicy(hc.app.ctx, instanceName)
 			if err != nil {
 				return fmt.Errorf("failed to get recommendation: %w", err)
 			}
@@ -284,13 +284,13 @@ func (hc *HibernationCobraCommands) createPolicyRecommendCommand() *cobra.Comman
 			fmt.Printf("   Estimated Savings: %.0f%%\n", policy.EstimatedSavingsPercent)
 			fmt.Printf("   Suitable For: %v\n", policy.SuitableFor)
 
-			fmt.Printf("\n📅 Hibernation Schedules:\n")
+			fmt.Printf("\n📅 Idle Schedules:\n")
 			for _, schedule := range policy.Schedules {
 				fmt.Printf("   • %s\n", schedule.Name)
 			}
 
 			fmt.Printf("\n✨ To apply this policy, run:\n")
-			fmt.Printf("   cws hibernation policy apply %s %s\n", instanceName, policy.ID)
+			fmt.Printf("   cws idle policy apply %s %s\n", instanceName, policy.ID)
 
 			return nil
 		},
@@ -298,21 +298,21 @@ func (hc *HibernationCobraCommands) createPolicyRecommendCommand() *cobra.Comman
 }
 
 // createPolicyDetailsCommand shows detailed information about a policy
-func (hc *HibernationCobraCommands) createPolicyDetailsCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createPolicyDetailsCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "details <policy-id>",
-		Short: "Show detailed information about a hibernation policy",
-		Long:  "Display complete details about a hibernation policy template",
+		Short: "Show detailed information about a idle policy",
+		Long:  "Display complete details about a idle policy template",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			policyID := args[0]
 
-			policy, err := hc.app.apiClient.GetHibernationPolicy(hc.app.ctx, policyID)
+			policy, err := hc.app.apiClient.GetIdlePolicy(hc.app.ctx, policyID)
 			if err != nil {
 				return fmt.Errorf("policy not found: %w", err)
 			}
 
-			fmt.Printf("📋 Hibernation Policy: %s\n", policy.Name)
+			fmt.Printf("📋 Idle Policy: %s\n", policy.Name)
 			fmt.Printf("═══════════════════════════════════════════════\n\n")
 			
 			fmt.Printf("ID: %s\n", policy.ID)
@@ -330,7 +330,7 @@ func (hc *HibernationCobraCommands) createPolicyDetailsCommand() *cobra.Command 
 				fmt.Printf("Conflicts With: %v\n", policy.Conflicts)
 			}
 
-			fmt.Printf("\n📅 Hibernation Schedules (%d):\n", len(policy.Schedules))
+			fmt.Printf("\n📅 Idle Schedules (%d):\n", len(policy.Schedules))
 			fmt.Printf("───────────────────────────────\n")
 			
 			for i, schedule := range policy.Schedules {
@@ -378,11 +378,11 @@ func (hc *HibernationCobraCommands) createPolicyDetailsCommand() *cobra.Command 
 }
 
 // createScheduleCommand creates the schedule management command
-func (hc *HibernationCobraCommands) createScheduleCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createScheduleCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "schedule",
-		Short: "Manage hibernation schedules",
-		Long:  "View and manage active hibernation schedules",
+		Short: "Manage idle schedules",
+		Long:  "View and manage active idle schedules",
 	}
 
 	cmd.AddCommand(
@@ -392,15 +392,15 @@ func (hc *HibernationCobraCommands) createScheduleCommand() *cobra.Command {
 	return cmd
 }
 
-// createScheduleListCommand lists active hibernation schedules
-func (hc *HibernationCobraCommands) createScheduleListCommand() *cobra.Command {
+// createScheduleListCommand lists active idle schedules
+func (hc *IdleCobraCommands) createScheduleListCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List active hibernation schedules",
-		Long:  "Display all currently active hibernation schedules across instances",
+		Short: "List active idle schedules",
+		Long:  "Display all currently active idle schedules across instances",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// This would connect to the hibernation scheduler
-			fmt.Println("Active Hibernation Schedules:")
+			// This would connect to the idle scheduler
+			fmt.Println("Active Idle Schedules:")
 			fmt.Println("════════════════════════════")
 			fmt.Println("\n(Schedule listing will be populated from the scheduler)")
 			fmt.Println("\n💡 Schedules are automatically created when policies are applied to instances")
@@ -411,15 +411,15 @@ func (hc *HibernationCobraCommands) createScheduleListCommand() *cobra.Command {
 }
 
 // createSavingsCommand creates the savings report command
-func (hc *HibernationCobraCommands) createSavingsCommand() *cobra.Command {
+func (hc *IdleCobraCommands) createSavingsCommand() *cobra.Command {
 	var period string
 	
 	cmd := &cobra.Command{
 		Use:   "savings",
-		Short: "Generate hibernation cost savings report",
-		Long:  "Generate a detailed report of cost savings from hibernation",
+		Short: "Generate idle cost savings report",
+		Long:  "Generate a detailed report of cost savings from idle",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Printf("💰 Hibernation Cost Savings Report\n")
+			fmt.Printf("💰 Idle Cost Savings Report\n")
 			fmt.Printf("═══════════════════════════════════\n\n")
 			
 			// Parse period flag
@@ -435,14 +435,14 @@ func (hc *HibernationCobraCommands) createSavingsCommand() *cobra.Command {
 			// This would generate actual savings report
 			fmt.Println("📊 Summary:")
 			fmt.Printf("   Total Saved: $%.2f\n", 245.67)
-			fmt.Printf("   Hibernation Hours: %.1f\n", 1234.5)
+			fmt.Printf("   Idle Hours: %.1f\n", 1234.5)
 			fmt.Printf("   Active Hours: %.1f\n", 2345.6)
 			fmt.Printf("   Savings Percentage: %.1f%%\n", 34.5)
 			
 			fmt.Println("\n📈 Projected Monthly Savings: $320.00")
 			
 			fmt.Println("\n💡 Recommendations:")
-			fmt.Println("   • Enable hibernation on 2 more instances for additional $80/month savings")
+			fmt.Println("   • Enable idle on 2 more instances for additional $80/month savings")
 			fmt.Println("   • Consider 'aggressive-cost' policy for dev instances")
 			fmt.Println("   • Review idle thresholds for GPU instances")
 			

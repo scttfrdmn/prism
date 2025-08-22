@@ -14,7 +14,8 @@ type LaunchRequest struct {
 	ProjectID      string                 `json:"project_id,omitempty"`   // Project to associate instance with
 	SSHKeyName     string                 `json:"ssh_key_name,omitempty"` // AWS key pair name to use
 	Spot           bool                   `json:"spot,omitempty"`
-	Hibernation    bool                   `json:"hibernation,omitempty"` // Enable hibernation support
+	IdlePolicy     bool                   `json:"idle_policy,omitempty"`  // Enable idle policy (hibernation-capable)
+	Hibernation    bool                   `json:"hibernation,omitempty"` // Deprecated: Use IdlePolicy instead
 	DryRun         bool                   `json:"dry_run,omitempty"`
 	Wait           bool                   `json:"wait,omitempty"`      // Wait and show launch progress
 	Parameters     map[string]interface{} `json:"parameters,omitempty"` // Template parameters

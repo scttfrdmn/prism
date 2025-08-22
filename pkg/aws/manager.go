@@ -21,7 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/hibernation"
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 	"github.com/scttfrdmn/cloudworkstation/pkg/security"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
@@ -278,22 +278,25 @@ type LaunchOptionsProcessor struct {
 
 // ProcessOptions validates and applies hibernation/spot options
 func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string) error {
-	// Validate hibernation and spot combination
-	if req.Hibernation && req.Spot {
-		return fmt.Errorf("hibernation and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Hibernation preserves instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --hibernation for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
+	// Support both IdlePolicy and deprecated Hibernation flag
+	enableIdlePolicy := req.IdlePolicy || req.Hibernation
+	
+	// Validate idle policy and spot combination
+	if enableIdlePolicy && req.Spot {
+		return fmt.Errorf("idle policy (hibernation) and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Idle policies preserve instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --idle-policy for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
 	}
 
-	// Add hibernation support if requested
-	if req.Hibernation {
+	// Add idle policy support if requested
+	if enableIdlePolicy {
 		if !p.manager.supportsHibernation(instanceType) {
-			return fmt.Errorf("instance type %s does not support hibernation\n\n💡 Hibernation is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --hibernation flag or choose a different instance size", instanceType)
+			return fmt.Errorf("instance type %s does not support idle policy (hibernation)\n\n💡 Idle policy is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --idle-policy flag or choose a different instance size", instanceType)
 		}
 
 		runInput.HibernationOptions = &ec2types.HibernationOptionsRequest{
 			Configured: aws.Bool(true),
 		}
 
-		// Enable EBS encryption for root volume (required for hibernation)
+		// Enable EBS encryption for root volume (required for idle policy hibernation)
 		rootDevice := "/dev/sda1"
 		if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
 			rootDevice = "/dev/xvda"
