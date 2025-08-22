@@ -6,6 +6,7 @@
 package templates
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -64,6 +65,10 @@ type Template struct {
 	EstimatedLaunchTime int      `yaml:"estimated_launch_time,omitempty" json:"estimated_launch_time,omitempty"` // Launch time in minutes
 	Prerequisites       []string `yaml:"prerequisites,omitempty" json:"prerequisites,omitempty"`                 // Required knowledge/skills
 	LearningResources   []string `yaml:"learning_resources,omitempty" json:"learning_resources,omitempty"`       // Documentation links
+
+	// Template parameterization
+	Parameters map[string]TemplateParameter `yaml:"parameters,omitempty" json:"parameters,omitempty"` // User-configurable parameters
+	Variables  map[string]string            `yaml:"variables,omitempty" json:"variables,omitempty"`   // Template-level variables
 
 	// Template metadata
 	Version          string            `yaml:"version,omitempty" json:"version,omitempty"`
@@ -364,4 +369,151 @@ type TemplateRegistry struct {
 
 	// Last scan time
 	LastScan time.Time
+}
+
+// TemplateParameter defines a configurable parameter for templates
+type TemplateParameter struct {
+	// Basic parameter information
+	Name        string `yaml:"name" json:"name"`
+	Description string `yaml:"description" json:"description"`
+	Type        string `yaml:"type" json:"type"` // string, int, bool, choice
+
+	// Value constraints
+	Default     interface{}   `yaml:"default,omitempty" json:"default,omitempty"`
+	Choices     []interface{} `yaml:"choices,omitempty" json:"choices,omitempty"`     // For choice type
+	Min         interface{}   `yaml:"min,omitempty" json:"min,omitempty"`             // For int type
+	Max         interface{}   `yaml:"max,omitempty" json:"max,omitempty"`             // For int type
+	Pattern     string        `yaml:"pattern,omitempty" json:"pattern,omitempty"`     // For string type (regex)
+	Required    bool          `yaml:"required,omitempty" json:"required,omitempty"`   // Parameter is required
+
+	// UI presentation
+	DisplayName string `yaml:"display_name,omitempty" json:"display_name,omitempty"` // Human-readable name
+	Group       string `yaml:"group,omitempty" json:"group,omitempty"`               // Parameter group for UI organization
+	Order       int    `yaml:"order,omitempty" json:"order,omitempty"`               // Display order within group
+	Hidden      bool   `yaml:"hidden,omitempty" json:"hidden,omitempty"`             // Hide from UI (internal use)
+
+	// Advanced features
+	Conditional string `yaml:"conditional,omitempty" json:"conditional,omitempty"` // Show only if condition is met
+	Impact      string `yaml:"impact,omitempty" json:"impact,omitempty"`           // cost, performance, security
+}
+
+// TemplateParameterType defines the supported parameter types
+type TemplateParameterType string
+
+const (
+	ParameterTypeString TemplateParameterType = "string"
+	ParameterTypeInt    TemplateParameterType = "int"
+	ParameterTypeBool   TemplateParameterType = "bool"
+	ParameterTypeChoice TemplateParameterType = "choice"
+	ParameterTypeList   TemplateParameterType = "list"
+)
+
+// TemplateParameterValues holds user-provided parameter values
+type TemplateParameterValues map[string]interface{}
+
+// Validate checks if parameter values meet the template parameter constraints
+func (values TemplateParameterValues) Validate(parameters map[string]TemplateParameter) []TemplateValidationError {
+	var errors []TemplateValidationError
+
+	// Check required parameters
+	for name, param := range parameters {
+		if param.Required {
+			if _, exists := values[name]; !exists {
+				errors = append(errors, TemplateValidationError{
+					Field:   "parameters." + name,
+					Message: "required parameter missing",
+				})
+			}
+		}
+	}
+
+	// Validate provided values
+	for name, value := range values {
+		param, exists := parameters[name]
+		if !exists {
+			errors = append(errors, TemplateValidationError{
+				Field:   "parameters." + name,
+				Message: "unknown parameter",
+			})
+			continue
+		}
+
+		// Type-specific validation
+		if err := validateParameterValue(name, value, param); err != nil {
+			errors = append(errors, *err)
+		}
+	}
+
+	return errors
+}
+
+// validateParameterValue validates a single parameter value
+func validateParameterValue(name string, value interface{}, param TemplateParameter) *TemplateValidationError {
+	switch param.Type {
+	case "string":
+		str, ok := value.(string)
+		if !ok {
+			return &TemplateValidationError{
+				Field:   "parameters." + name,
+				Message: "must be a string",
+			}
+		}
+		if param.Pattern != "" {
+			// Pattern validation would go here (regex)
+			_ = str // Use the validated string
+		}
+
+	case "int":
+		// JSON unmarshaling converts numbers to float64 by default
+		// Accept both int and float64, validate they're whole numbers
+		switch v := value.(type) {
+		case int:
+			// Already an integer, valid
+		case float64:
+			// Check if it's a whole number
+			if v != float64(int64(v)) {
+				return &TemplateValidationError{
+					Field:   "parameters." + name,
+					Message: "must be an integer (whole number)",
+				}
+			}
+		default:
+			return &TemplateValidationError{
+				Field:   "parameters." + name,
+				Message: "must be an integer",
+			}
+		}
+		// Min/max validation would go here
+
+	case "bool":
+		_, ok := value.(bool)
+		if !ok {
+			return &TemplateValidationError{
+				Field:   "parameters." + name,
+				Message: "must be a boolean",
+			}
+		}
+
+	case "choice":
+		if len(param.Choices) > 0 {
+			found := false
+			// Convert value to string for comparison since choices are strings
+			valueStr := fmt.Sprintf("%v", value)
+			for _, choice := range param.Choices {
+				choiceStr := fmt.Sprintf("%v", choice)
+				if valueStr == choiceStr {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return &TemplateValidationError{
+					Field:   "parameters." + name,
+					Message: fmt.Sprintf("must be one of the allowed choices: %v", param.Choices),
+				}
+			}
+		}
+	}
+
+	return nil
 }

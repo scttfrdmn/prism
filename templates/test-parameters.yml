@@ -1,0 +1,83 @@
+# Simple Test Template with Parameters
+name: "Test Parameters"
+slug: "test-params"
+description: "Simple template to test parameter functionality"
+base: "ubuntu-22.04"
+
+# Explicit connection type
+connection_type: "ssh"
+
+# Complexity and categorization
+complexity: "simple"
+category: "Testing"
+domain: "test"
+
+# Visual presentation
+icon: "🧪"
+color: "#059669"
+
+# Template parameters
+parameters:
+  test_message:
+    name: "test_message"
+    display_name: "Test Message"
+    description: "A simple test message"
+    type: "string"
+    default: "Hello World"
+    group: "Basic"
+    order: 1
+
+  test_count:
+    name: "test_count" 
+    display_name: "Test Count"
+    description: "A test number"
+    type: "int"
+    default: 42
+    group: "Basic"
+    order: 2
+
+# Template-level variables
+variables:
+  TEST_VAR: "test-value"
+
+# Package management
+package_manager: "apt"
+packages:
+  system:
+    - curl
+    - git
+    - vim
+
+# Simple post-install script with parameters
+post_install: |
+  #!/bin/bash
+  echo "Test message: {{.test_message}}"
+  echo "Test count: {{.test_count}}"
+  echo "Test variable: {{.TEST_VAR}}"
+
+# Users
+users:
+  - name: "ubuntu"
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Instance defaults
+instance_defaults:
+  type: "t3.micro"
+  ports: [22]
+  estimated_cost_per_hour:
+    x86_64: 0.0104
+    arm64: 0.0083
+
+# User guidance
+estimated_launch_time: 2
+prerequisites:
+  - "None - for testing only"
+
+# Template metadata
+version: "1.0.0"
+validation_status: "testing"
+maintainer: "CloudWorkstation Team"
+tags:
+  test: "true"
+  parameters: "true"

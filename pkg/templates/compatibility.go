@@ -41,7 +41,9 @@ func (cm *CompatibilityManager) GetLegacyTemplates(region, architecture string) 
 	for name, template := range cm.Registry.Templates {
 		runtimeTemplate, err := cm.Resolver.ResolveTemplate(template, region, architecture)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve template %s: %w", name, err)
+			// Log the error but continue with other templates instead of failing completely
+			fmt.Printf("Warning: Failed to resolve template %s: %v\n", name, err)
+			continue
 		}
 
 		// Convert to legacy format

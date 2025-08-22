@@ -8,6 +8,7 @@ package templates
 import (
 	"fmt"
 	"os"
+	"strings"
 	"path/filepath"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -84,6 +85,75 @@ func GetTemplate(name, region, architecture string) (*types.RuntimeTemplate, err
 func GetTemplateWithPackageManager(name, region, architecture, packageManager, size string) (*types.RuntimeTemplate, error) {
 	manager := NewCompatibilityManager(DefaultTemplateDirs())
 	return manager.GetLegacyTemplateWithPackageManager(name, region, architecture, packageManager, size)
+}
+
+// GetTemplateWithParameters returns a template with parameter processing applied
+func GetTemplateWithParameters(name, region, architecture, packageManager, size string, parameters map[string]interface{}) (*types.RuntimeTemplate, error) {
+	// First, get the raw template
+	registry := NewTemplateRegistry(DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
+	}
+
+	template, err := registry.GetTemplate(name)
+	if err != nil {
+		return nil, fmt.Errorf("template not found: %w", err)
+	}
+
+	// Process parameters if the template has them
+	var processedTemplate *Template
+	if len(template.Parameters) > 0 && parameters != nil {
+		processor := NewParameterProcessor(template, parameters)
+		
+		// Validate parameters
+		if validationErrors := processor.ValidateParameters(); len(validationErrors) > 0 {
+			var errorMessages []string
+			for _, vErr := range validationErrors {
+				errorMessages = append(errorMessages, vErr.Error())
+			}
+			return nil, fmt.Errorf("parameter validation failed: %s", strings.Join(errorMessages, ", "))
+		}
+
+		// Process template with parameters
+		processedTemplate, err = processor.ProcessTemplate()
+		if err != nil {
+			return nil, fmt.Errorf("parameter processing failed: %w", err)
+		}
+	} else {
+		processedTemplate = template
+	}
+
+	// Convert to runtime template using existing resolver
+	manager := NewCompatibilityManager(DefaultTemplateDirs())
+	runtimeTemplate, err := manager.Resolver.ResolveTemplateWithOptions(processedTemplate, region, architecture, packageManager, size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve template: %w", err)
+	}
+
+	// Convert to legacy RuntimeTemplate format
+	var idleDetectionConfig *types.IdleDetectionConfig
+	if runtimeTemplate.IdleDetection != nil {
+		idleDetectionConfig = &types.IdleDetectionConfig{
+			Enabled:                   runtimeTemplate.IdleDetection.Enabled,
+			IdleThresholdMinutes:      runtimeTemplate.IdleDetection.IdleThresholdMinutes,
+			HibernateThresholdMinutes: runtimeTemplate.IdleDetection.HibernateThresholdMinutes,
+			CheckIntervalMinutes:      runtimeTemplate.IdleDetection.CheckIntervalMinutes,
+		}
+	}
+
+	legacyTemplate := &types.RuntimeTemplate{
+		Name:                 runtimeTemplate.Name,
+		Slug:                 runtimeTemplate.Slug,
+		Description:          runtimeTemplate.Description,
+		AMI:                  runtimeTemplate.AMI,
+		InstanceType:         runtimeTemplate.InstanceType,
+		UserData:             runtimeTemplate.UserData,
+		Ports:                runtimeTemplate.Ports,
+		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
+		IdleDetection:        idleDetectionConfig,
+	}
+
+	return legacyTemplate, nil
 }
 
 // ValidateTemplate validates a template file

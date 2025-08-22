@@ -423,7 +423,16 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		packageManager = ""
 	}
 
-	template, err := templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
+	var template *ctypes.RuntimeTemplate
+	var err error
+	
+	// Use parameter-aware template processing if parameters are provided
+	if req.Parameters != nil && len(req.Parameters) > 0 {
+		template, err = templates.GetTemplateWithParameters(req.Template, m.region, arch, packageManager, req.Size, req.Parameters)
+	} else {
+		template, err = templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
+	}
+	
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}

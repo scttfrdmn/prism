@@ -1,0 +1,217 @@
+# Configurable Python Machine Learning Environment
+name: "Configurable Python ML Environment"
+slug: "python-ml-config"
+description: "Python ML environment with configurable Python version, ML frameworks, and compute resources"
+long_description: "Advanced Python machine learning environment with user-configurable Python version, ML framework selection, and instance optimization. Perfect for researchers who need specific versions or frameworks for reproducibility."
+base: "ubuntu-22.04"
+
+# Explicit connection type
+connection_type: "web"
+
+# Complexity and categorization
+complexity: "moderate"
+category: "Machine Learning"
+domain: "ml"
+
+# Visual presentation
+icon: "🧬"
+color: "#3776ab"
+popular: true
+
+# Template parameters - user configurable
+parameters:
+  python_version:
+    name: "python_version"
+    display_name: "Python Version"
+    description: "Python version for the environment"
+    type: "choice"
+    choices: ["3.9", "3.10", "3.11", "3.12"]
+    default: "3.11"
+    group: "Runtime"
+    order: 1
+    impact: "compatibility"
+
+  ml_framework:
+    name: "ml_framework" 
+    display_name: "Primary ML Framework"
+    description: "Main machine learning framework to install"
+    type: "choice"
+    choices: ["pytorch", "tensorflow", "both", "none"]
+    default: "pytorch"
+    group: "ML Frameworks"
+    order: 1
+    impact: "performance"
+
+  jupyter_interface:
+    name: "jupyter_interface"
+    display_name: "Jupyter Interface"
+    description: "Jupyter interface type"
+    type: "choice"
+    choices: ["notebook", "lab", "both"]
+    default: "lab"
+    group: "Interface"
+    order: 1
+
+  gpu_support:
+    name: "gpu_support"
+    display_name: "GPU Support"
+    description: "Enable GPU support for ML frameworks"
+    type: "bool"
+    default: false
+    group: "Compute"
+    order: 1
+    impact: "cost"
+
+  extra_packages:
+    name: "extra_packages"
+    display_name: "Extra Packages"
+    description: "Additional Python packages to install (comma-separated)"
+    type: "string"
+    default: ""
+    group: "Packages"
+    order: 1
+
+  user_name:
+    name: "user_name" 
+    display_name: "Username"
+    description: "Primary user account name"
+    type: "string"
+    default: "researcher"
+    pattern: "^[a-z][a-z0-9_-]{2,31}$"
+    group: "User"
+    order: 1
+
+# Template-level variables
+variables:
+  CONDA_ENV_NAME: "ml-env"
+  JUPYTER_PORT: "8888"
+
+# Package management
+package_manager: "conda"
+packages:
+  system:
+    - git
+    - curl
+    - vim
+    - htop
+    - build-essential
+  conda:
+    - python={{.python_version}}
+    - pip
+    - numpy
+    - pandas
+    - matplotlib
+    - seaborn
+    - scikit-learn
+    - ipython
+    # Conditional packages based on parameters
+  pip: []
+
+# Services with parameter substitution
+services:
+  - name: jupyter-{{.jupyter_interface}}
+    port: 8888
+    config:
+      - "c.ServerApp.ip = '{{.WebInterfaceBindIP}}'"
+      - "c.ServerApp.allow_root = True"
+      - "c.ServerApp.token = '{{.user_name}}123'"
+      - "c.ServerApp.open_browser = False"
+    enable: true
+
+# Users with parameterized name
+users:
+  - name: "{{.user_name}}"
+    groups: ["sudo"]
+    shell: "/bin/bash"
+
+# Post-install script with parameter substitution
+post_install: |
+  #!/bin/bash
+  
+  # Create conda environment
+  echo "Creating {{.CONDA_ENV_NAME}} environment with Python {{.python_version}}..."
+  conda create -n {{.CONDA_ENV_NAME}} python={{.python_version}} -y
+  source /opt/conda/etc/profile.d/conda.sh
+  conda activate {{.CONDA_ENV_NAME}}
+  
+  # Install ML frameworks based on parameters
+  {{if eq .ml_framework "pytorch"}}
+  echo "Installing PyTorch..."
+  {{if eq .gpu_support "true"}}
+  conda install pytorch torchvision pytorch-cuda -c pytorch -c nvidia -y
+  {{else}}
+  conda install pytorch torchvision cpuonly -c pytorch -y  
+  {{end}}
+  {{end}}
+  
+  {{if eq .ml_framework "tensorflow"}}
+  echo "Installing TensorFlow..."
+  {{if eq .gpu_support "true"}}
+  pip install tensorflow[and-cuda]
+  {{else}}
+  pip install tensorflow
+  {{end}}
+  {{end}}
+  
+  {{if eq .ml_framework "both"}}
+  echo "Installing both PyTorch and TensorFlow..."
+  {{if eq .gpu_support "true"}}
+  conda install pytorch torchvision pytorch-cuda -c pytorch -c nvidia -y
+  pip install tensorflow[and-cuda]
+  {{else}}
+  conda install pytorch torchvision cpuonly -c pytorch -y
+  pip install tensorflow
+  {{end}}
+  {{end}}
+  
+  # Install Jupyter interface
+  {{if eq .jupyter_interface "notebook"}}
+  conda install notebook -y
+  {{else if eq .jupyter_interface "lab"}}
+  conda install jupyterlab -y
+  {{else if eq .jupyter_interface "both"}}
+  conda install notebook jupyterlab -y
+  {{end}}
+  
+  # Install extra packages if specified
+  {{if ne .extra_packages ""}}
+  echo "Installing extra packages: {{.extra_packages}}"
+  pip install {{.extra_packages}}
+  {{end}}
+  
+  # Setup user environment
+  echo "source /opt/conda/etc/profile.d/conda.sh" >> /home/{{.user_name}}/.bashrc
+  echo "conda activate {{.CONDA_ENV_NAME}}" >> /home/{{.user_name}}/.bashrc
+  
+  # Create Jupyter service
+  mkdir -p /home/{{.user_name}}/.jupyter
+  chown -R {{.user_name}}:{{.user_name}} /home/{{.user_name}}/.jupyter
+
+# Instance defaults with GPU conditional
+instance_defaults:
+  type: "c5.xlarge"  # Default to CPU instance (GPU templates need special handling)
+  ports: [22, 8888]
+  estimated_cost_per_hour:
+    x86_64: 0.192
+    arm64: 0.154
+
+# User guidance
+estimated_launch_time: 8
+prerequisites:
+  - "Python programming experience"
+  - "Understanding of {{.ml_framework}} framework"
+  - "Basic machine learning knowledge"
+learning_resources:
+  - "https://pytorch.org/tutorials/"
+  - "https://www.tensorflow.org/tutorials"
+  - "https://jupyterlab.readthedocs.io/"
+
+# Template metadata
+version: "1.0.0"
+validation_status: "testing"
+maintainer: "CloudWorkstation Team"
+tags:
+  configurable: "true"
+  ml_framework: "{{.ml_framework}}"
+  python: "{{.python_version}}"
+  gpu_ready: "{{.gpu_support}}"

@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,6 +39,7 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&HibernationCommand{})
 	dispatcher.RegisterCommand(&DryRunCommand{})
 	dispatcher.RegisterCommand(&WaitCommand{})
+	dispatcher.RegisterCommand(&ParameterCommand{})
 
 	return dispatcher
 }
@@ -255,6 +257,63 @@ func (w *WaitCommand) CanHandle(arg string) bool {
 func (w *WaitCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
 	req.Wait = true
 	return index, nil
+}
+
+// ParameterCommand handles --param flag for template parameters
+type ParameterCommand struct{}
+
+func (p *ParameterCommand) CanHandle(arg string) bool {
+	return arg == "--param"
+}
+
+func (p *ParameterCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--param requires a value in format name=value")
+	}
+
+	paramStr := args[index+1]
+	if !strings.Contains(paramStr, "=") {
+		return index, fmt.Errorf("parameter must be in format name=value, got: %s", paramStr)
+	}
+
+	parts := strings.SplitN(paramStr, "=", 2)
+	name := strings.TrimSpace(parts[0])
+	valueStr := strings.TrimSpace(parts[1])
+
+	// Initialize parameters map if needed
+	if req.Parameters == nil {
+		req.Parameters = make(map[string]interface{})
+	}
+
+	// Parse value to appropriate type
+	value := parseParameterValue(valueStr)
+	req.Parameters[name] = value
+
+	return index + 1, nil
+}
+
+// parseParameterValue attempts to parse a parameter value to the appropriate type
+func parseParameterValue(valueStr string) interface{} {
+	// Try boolean
+	if valueStr == "true" {
+		return true
+	}
+	if valueStr == "false" {
+		return false
+	}
+
+	// Try integer
+	if intVal, err := strconv.Atoi(valueStr); err == nil {
+		return intVal
+	}
+
+	// Try float
+	if floatVal, err := strconv.ParseFloat(valueStr, 64); err == nil {
+		return floatVal
+	}
+
+	// Default to string
+	return valueStr
 }
 
 // Cost Analysis Strategies (Strategy Pattern - SOLID)

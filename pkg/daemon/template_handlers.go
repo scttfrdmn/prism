@@ -2,7 +2,9 @@ package daemon
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 )
@@ -30,6 +32,13 @@ func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to load templates: "+err.Error())
 		return
+	}
+
+	fmt.Printf("DEBUG: Daemon serving %d templates\n", len(templates))
+	for name := range templates {
+		if strings.Contains(name, "Test Parameters") || strings.Contains(name, "Configurable") {
+			fmt.Printf("DEBUG: Found parameterized template: %s\n", name)
+		}
 	}
 
 	_ = json.NewEncoder(w).Encode(templates)

@@ -59,6 +59,11 @@ func (f *LaunchCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []string
 	if dryRun, _ := cmd.Flags().GetBool("dry-run"); dryRun {
 		args = append(args, "--dry-run")
 	}
+	if params, _ := cmd.Flags().GetStringArray("param"); len(params) > 0 {
+		for _, param := range params {
+			args = append(args, "--param", param)
+		}
+	}
 	return f.app.Launch(args)
 }
 
@@ -71,6 +76,7 @@ func (f *LaunchCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().String("project", "", "Associate with project")
 	cmd.Flags().Bool("wait", false, "Wait and display launch progress in real-time")
 	cmd.Flags().Bool("dry-run", false, "Validate configuration without launching")
+	cmd.Flags().StringArray("param", []string{}, "Template parameter in format name=value")
 }
 
 // InstanceCommandFactory creates instance management commands
