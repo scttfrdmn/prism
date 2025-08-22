@@ -39,7 +39,16 @@ From individual researchers to institutional deployments, CloudWorkstation scale
 - **🚫 Zero Surprises**: Users always know what they're getting
 - **📈 Progressive Disclosure**: Simple by default, detailed when needed
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Zero Setup Experience
+
+### ✨ The CloudWorkstation Promise
+
+**Zero setup, maximum productivity.** CloudWorkstation automatically handles:
+- 🚀 **Daemon auto-start**: No manual service management needed
+- 🔑 **Smart credential discovery**: Finds your AWS credentials automatically
+- 🌍 **Intelligent region selection**: Uses your default AWS region
+- 📦 **Template validation**: Ensures all templates work in your region
+- 🔧 **Automatic fallbacks**: Seamlessly handles unavailable resources
 
 ### macOS Installation
 
@@ -107,38 +116,51 @@ chmod +x cws cwsd
 sudo mv cws cwsd /usr/local/bin/
 ```
 
-### AWS Setup (Required)
+### AWS Credentials - Automatic Discovery
 
-Before launching workstations, you need to configure AWS credentials:
+CloudWorkstation automatically discovers your AWS credentials in this order:
+
+1. **Environment variables** (AWS_PROFILE, AWS_ACCESS_KEY_ID, etc.)
+2. **AWS CLI configuration** (~/.aws/credentials)
+3. **CloudWorkstation profiles** (for multi-account management)
 
 ```bash
-# Method 1: CloudWorkstation Profiles (Recommended)
-aws configure --profile aws                    # Configure AWS CLI
-cws profiles add personal my-research \
-  --aws-profile aws --region us-west-2         # Create CWS profile
-cws profiles switch aws                        # Activate profile
+# Option 1: Already have AWS CLI? You're done!
+# CloudWorkstation will use your existing credentials
 
-# Method 2: Environment Variables  
-aws configure --profile aws
-export AWS_PROFILE=aws                         # Point to your profile
+# Option 2: Need to set up AWS?
+aws configure  # Follow prompts for access key and region
+
+# Option 3: Multiple AWS accounts? Use profiles
+cws profiles add research --aws-profile research-account --region us-west-2
+cws profiles switch research
 ```
 
-**→ For complete AWS setup guide:** [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
+**→ Advanced setup options:** [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md)
 
-### Your First Workstation
+### Your First Workstation - Zero Configuration Required
 
 ```bash
-# Launch a Python ML workstation (daemon auto-starts as needed)
+# Launch a Python ML workstation - that's it!
 cws launch "Python Machine Learning (Simplified)" my-research
+
+# What happens automatically:
+# ✅ Daemon starts if not running
+# ✅ AWS credentials discovered from ~/.aws/credentials
+# ✅ Default region selected from AWS config
+# ✅ Optimal instance type chosen for ML workload
+# ✅ Template validated for your region
+# ✅ Security groups and networking configured
+# ✅ SSH keys generated and managed
 
 # Connect to your workstation
 cws connect my-research
 
-# When done, hibernate to save costs (preserves state)
-cws hibernate my-research
+# When done, use idle policy to save costs (preserves state)
+cws idle policy apply my-research balanced
 ```
 
-**That's it!** CloudWorkstation handles everything else automatically.
+**That's it!** No configuration files, no setup scripts, no manual steps.
 
 ## 🌟 Key Features (v0.4.2)
 
@@ -150,10 +172,10 @@ cws hibernate my-research
 - **Enterprise API**: Full REST API for project management, budget monitoring, and cost analysis
 
 ### 💰 Intelligent Cost Optimization
-- **Complete Hibernation Ecosystem**: Manual hibernation controls + automated hibernation policies
-- **Session Preservation**: Full work environment state maintained through hibernation
-- **Smart Policies**: Domain-specific hibernation profiles (batch jobs, GPU instances, cost-optimized)
-- **Cost Transparency**: Clear audit trail of hibernation actions and cost savings
+- **Complete Idle Policy Ecosystem**: Manual controls + automated idle detection policies
+- **Session Preservation**: Full work environment state maintained through idle actions (hibernate/stop)
+- **Smart Policies**: Domain-specific idle profiles (batch jobs, GPU instances, cost-optimized)
+- **Cost Transparency**: Clear audit trail of idle actions and cost savings
 
 ### 🏗️ Template System with Inheritance
 - **Stackable Templates**: Build complex environments through template composition
