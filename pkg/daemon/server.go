@@ -426,6 +426,9 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/storage", applyMiddleware(s.handleStorage))
 	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
 
+	// Hibernation policy operations
+	s.RegisterHibernationPolicyRoutes(mux, applyMiddleware)
+
 	// Legacy idle detection removed - using universal idle detection via template resolver
 
 	// Process management operations

@@ -21,6 +21,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/hibernation"
 	"github.com/scttfrdmn/cloudworkstation/pkg/security"
 	"github.com/scttfrdmn/cloudworkstation/pkg/state"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
@@ -29,17 +30,19 @@ import (
 
 // Manager handles all AWS operations
 type Manager struct {
-	cfg             aws.Config
-	ec2             EC2ClientInterface
-	efs             EFSClientInterface
-	ssm             SSMClientInterface
-	sts             STSClientInterface
-	region          string
-	templates       map[string]ctypes.Template
-	pricingCache    map[string]float64
-	lastPriceUpdate time.Time
-	discountConfig  ctypes.DiscountConfig
-	stateManager    StateManagerInterface
+	cfg                 aws.Config
+	ec2                 EC2ClientInterface
+	efs                 EFSClientInterface
+	ssm                 SSMClientInterface
+	sts                 STSClientInterface
+	region              string
+	templates           map[string]ctypes.Template
+	pricingCache        map[string]float64
+	lastPriceUpdate     time.Time
+	discountConfig      ctypes.DiscountConfig
+	stateManager        StateManagerInterface
+	hibernationScheduler *hibernation.Scheduler
+	policyManager       *hibernation.PolicyManager
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager
@@ -92,19 +95,28 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		region = cfg.Region
 	}
 
+	// Initialize hibernation components
+	hibernationScheduler := hibernation.NewScheduler()
+	policyManager := hibernation.NewPolicyManager()
+
 	manager := &Manager{
-		cfg:             cfg,
-		ec2:             ec2Client,
-		efs:             efsClient,
-		ssm:             ssmClient,
-		sts:             stsClient,
-		region:          region,
-		templates:       getTemplates(),
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  ctypes.DiscountConfig{}, // No discounts by default
-		stateManager:    stateManager,
+		cfg:                 cfg,
+		ec2:                 ec2Client,
+		efs:                 efsClient,
+		ssm:                 ssmClient,
+		sts:                 stsClient,
+		region:              region,
+		templates:           getTemplates(),
+		pricingCache:        make(map[string]float64),
+		lastPriceUpdate:     time.Time{},
+		discountConfig:      ctypes.DiscountConfig{}, // No discounts by default
+		stateManager:        stateManager,
+		hibernationScheduler: hibernationScheduler,
+		policyManager:       policyManager,
 	}
+
+	// Start the hibernation scheduler
+	hibernationScheduler.Start()
 
 	return manager, nil
 }
@@ -636,6 +648,125 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 	isHibernated := hibernationSupported && instance.State != nil && string(instance.State.Name) == "stopped"
 
 	return hibernationSupported, isHibernated, nil
+}
+
+// ApplyHibernationPolicy applies a hibernation policy template to an instance
+func (m *Manager) ApplyHibernationPolicy(instanceName string, policyID string) error {
+	// Get the instance ID
+	instanceID, err := m.findInstanceByName(instanceName)
+	if err != nil {
+		return fmt.Errorf("failed to find instance: %w", err)
+	}
+
+	// Apply the policy
+	if err := m.policyManager.ApplyTemplate(instanceID, policyID); err != nil {
+		return fmt.Errorf("failed to apply hibernation policy: %w", err)
+	}
+
+	// Add schedules to the scheduler
+	template, err := m.policyManager.GetTemplate(policyID)
+	if err != nil {
+		return fmt.Errorf("failed to get policy template: %w", err)
+	}
+
+	// Register each schedule with the instance
+	for _, schedule := range template.Schedules {
+		// Create a copy of the schedule with instance-specific ID
+		instanceSchedule := schedule
+		instanceSchedule.ID = fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
+		
+		if err := m.hibernationScheduler.AddSchedule(&instanceSchedule); err != nil {
+			return fmt.Errorf("failed to add schedule %s: %w", schedule.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// RemoveHibernationPolicy removes a hibernation policy from an instance
+func (m *Manager) RemoveHibernationPolicy(instanceName string, policyID string) error {
+	// Get the instance ID
+	instanceID, err := m.findInstanceByName(instanceName)
+	if err != nil {
+		return fmt.Errorf("failed to find instance: %w", err)
+	}
+
+	// Get the policy template to find schedules
+	template, err := m.policyManager.GetTemplate(policyID)
+	if err != nil {
+		return fmt.Errorf("failed to get policy template: %w", err)
+	}
+
+	// Remove schedules from the scheduler
+	for _, schedule := range template.Schedules {
+		scheduleID := fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
+		if err := m.hibernationScheduler.DeleteSchedule(scheduleID); err != nil {
+			// Log but don't fail if schedule doesn't exist
+			fmt.Printf("Warning: failed to delete schedule %s: %v\n", scheduleID, err)
+		}
+	}
+
+	// Remove the policy
+	if err := m.policyManager.RemoveTemplate(instanceID, policyID); err != nil {
+		return fmt.Errorf("failed to remove hibernation policy: %w", err)
+	}
+
+	return nil
+}
+
+// ListHibernationPolicies returns all available hibernation policy templates
+func (m *Manager) ListHibernationPolicies() []*hibernation.PolicyTemplate {
+	return m.policyManager.ListTemplates()
+}
+
+// GetHibernationPolicy gets a specific hibernation policy template
+func (m *Manager) GetHibernationPolicy(policyID string) (*hibernation.PolicyTemplate, error) {
+	return m.policyManager.GetTemplate(policyID)
+}
+
+// GetInstancePolicies returns the hibernation policies applied to an instance
+func (m *Manager) GetInstancePolicies(instanceName string) ([]*hibernation.PolicyTemplate, error) {
+	// Get the instance ID
+	instanceID, err := m.findInstanceByName(instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find instance: %w", err)
+	}
+
+	return m.policyManager.GetAppliedTemplates(instanceID)
+}
+
+// RecommendHibernationPolicy recommends a hibernation policy based on instance characteristics
+func (m *Manager) RecommendHibernationPolicy(instanceName string) (*hibernation.PolicyTemplate, error) {
+	// Get instance details
+	instanceID, err := m.findInstanceByName(instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find instance: %w", err)
+	}
+
+	ctx := context.Background()
+	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe instance: %w", err)
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return nil, fmt.Errorf("instance not found")
+	}
+
+	instance := result.Reservations[0].Instances[0]
+	
+	// Extract instance type and tags
+	instanceType := string(instance.InstanceType)
+	tags := make(map[string]string)
+	for _, tag := range instance.Tags {
+		if tag.Key != nil && tag.Value != nil {
+			tags[*tag.Key] = *tag.Value
+		}
+	}
+
+	return m.policyManager.RecommendTemplate(instanceType, tags)
 }
 
 // GetConnectionInfo returns connection information for an instance with SSH key path

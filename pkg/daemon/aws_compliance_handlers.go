@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/scttfrdmn/cloudworkstation/pkg/security"
 )
 
 // handleAWSComplianceValidate handles POST requests to /api/v1/security/compliance/validate/{framework}
 func (s *Server) handleAWSComplianceValidate(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	frameworkStr := vars["framework"]
+	// Extract framework from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/compliance/validate/")
+	frameworkStr := path
 
 	// Map CLI framework names to internal types
 	frameworkMapping := map[string]security.ComplianceFramework{
@@ -91,8 +91,9 @@ func (s *Server) handleAWSComplianceValidate(w http.ResponseWriter, r *http.Requ
 
 // handleAWSComplianceReport handles GET requests to /api/v1/security/compliance/report/{framework}
 func (s *Server) handleAWSComplianceReport(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	frameworkStr := vars["framework"]
+	// Extract framework from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/compliance/report/")
+	frameworkStr := path
 
 	// Map CLI framework names to internal types
 	frameworkMapping := map[string]security.ComplianceFramework{
@@ -159,8 +160,9 @@ func (s *Server) handleAWSComplianceReport(w http.ResponseWriter, r *http.Reques
 
 // handleAWSComplianceSCP handles GET requests to /api/v1/security/compliance/scp/{framework}
 func (s *Server) handleAWSComplianceSCP(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	frameworkStr := vars["framework"]
+	// Extract framework from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/security/compliance/scp/")
+	frameworkStr := path
 
 	// Map CLI framework names to internal types
 	frameworkMapping := map[string]security.ComplianceFramework{

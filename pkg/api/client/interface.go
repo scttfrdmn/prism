@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/hibernation"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -87,6 +88,15 @@ type CloudWorkstationAPI interface {
 	GetProjectBudgetStatus(context.Context, string) (*project.BudgetStatus, error)
 	GetProjectCostBreakdown(context.Context, string, time.Time, time.Time) (*types.ProjectCostBreakdown, error)
 	GetProjectResourceUsage(context.Context, string, time.Duration) (*types.ProjectResourceUsage, error)
+
+	// Hibernation policy operations
+	ListHibernationPolicies(context.Context) ([]*hibernation.PolicyTemplate, error)
+	GetHibernationPolicy(context.Context, string) (*hibernation.PolicyTemplate, error)
+	ApplyHibernationPolicy(context.Context, string, string) error
+	RemoveHibernationPolicy(context.Context, string, string) error
+	GetInstanceHibernationPolicies(context.Context, string) ([]*hibernation.PolicyTemplate, error)
+	RecommendHibernationPolicy(context.Context, string) (*hibernation.PolicyTemplate, error)
+	GetHibernationSavingsReport(context.Context, string) (map[string]interface{}, error)
 
 	// Status operations
 	GetStatus(context.Context) (*types.DaemonStatus, error)

@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"fmt"
+	
 	"github.com/spf13/cobra"
 )
 
@@ -166,14 +168,26 @@ func (dc *DaemonCobraCommands) createConfigCommand() *cobra.Command {
 			Short: "Get a daemon configuration value",
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return dc.systemCommands.daemonConfigGet(args)
+				// Daemon config get implementation
+				key := args[0]
+				switch key {
+				case "url":
+					fmt.Printf("%s\n", dc.app.config.Daemon.URL)
+				default:
+					return fmt.Errorf("unknown configuration key: %s", key)
+				}
+				return nil
 			},
 		},
 		&cobra.Command{
 			Use:   "reset",
 			Short: "Reset daemon configuration to defaults",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return dc.systemCommands.daemonConfigReset()
+				// Reset daemon configuration to defaults
+				fmt.Println("Resetting daemon configuration to defaults...")
+				dc.app.config.Daemon.URL = "http://localhost:8947"
+				fmt.Println("✅ Daemon configuration reset to defaults")
+				return nil
 			},
 		},
 	)

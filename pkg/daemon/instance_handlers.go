@@ -222,6 +222,20 @@ func (s *Server) handleInstanceOperations(w http.ResponseWriter, r *http.Request
 			s.handleInstanceLayers(w, r)
 		case "rollback":
 			s.handleInstanceRollback(w, r)
+		case "hibernation":
+			// Handle hibernation/policies subpath
+			if len(parts) >= 3 && parts[2] == "policies" {
+				if len(parts) == 3 {
+					// GET /instances/{name}/hibernation/policies
+					s.handleInstanceHibernationPolicies(w, r, instanceName)
+				} else if len(parts) == 4 {
+					// PUT/DELETE /instances/{name}/hibernation/policies/{policyId}
+					policyID := parts[3]
+					s.handleInstanceHibernationPolicy(w, r, instanceName, policyID)
+				}
+			} else {
+				s.writeError(w, http.StatusNotFound, "Unknown hibernation operation")
+			}
 		default:
 			s.writeError(w, http.StatusNotFound, "Unknown operation")
 		}

@@ -276,6 +276,10 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 		rootCmd.AddCommand(cmd)
 	}
 
+	// Hibernation commands (using new Cobra structure)
+	hibernationCobra := NewHibernationCobraCommands(r.app)
+	rootCmd.AddCommand(hibernationCobra.CreateHibernationCommand())
+
 	// Storage commands
 	rootCmd.AddCommand(r.createVolumeCommand())
 	rootCmd.AddCommand(r.createStorageCommand())
