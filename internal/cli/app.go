@@ -34,6 +34,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -41,6 +42,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/pricing"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/spf13/cobra"
@@ -865,3 +867,400 @@ func (a *App) AMIDiscover(args []string) error {
 }
 
 // Note: AMI command is implemented in internal/cli/ami.go
+
+// Project command implementation
+func (a *App) Project(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project <action> [args]")
+	}
+
+	action := args[0]
+	projectArgs := args[1:]
+
+	// Check daemon is running
+	if err := a.apiClient.Ping(a.ctx); err != nil {
+		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+	}
+
+	switch action {
+	case "create":
+		return a.projectCreate(projectArgs)
+	case "list":
+		return a.projectList(projectArgs)
+	case "info":
+		return a.projectInfo(projectArgs)
+	case "budget":
+		return a.projectBudget(projectArgs)
+	case "instances":
+		return a.projectInstances(projectArgs)
+	case "templates":
+		return a.projectTemplates(projectArgs)
+	case "members":
+		return a.projectMembers(projectArgs)
+	case "delete":
+		return a.projectDelete(projectArgs)
+	default:
+		return fmt.Errorf("unknown project action: %s", action)
+	}
+}
+
+func (a *App) projectCreate(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project create <name> [options]")
+	}
+
+	name := args[0]
+
+	// Parse options
+	req := project.CreateProjectRequest{
+		Name: name,
+	}
+
+	// Parse additional flags
+	for i := 1; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--budget" && i+1 < len(args):
+			budgetAmount, err := strconv.ParseFloat(args[i+1], 64)
+			if err != nil {
+				return fmt.Errorf("invalid budget amount: %s", args[i+1])
+			}
+			req.Budget = &project.CreateBudgetRequest{
+				TotalBudget: budgetAmount,
+			}
+			i++
+		case arg == "--description" && i+1 < len(args):
+			req.Description = args[i+1]
+			i++
+		case arg == "--owner" && i+1 < len(args):
+			req.Owner = args[i+1]
+			i++
+		default:
+			return fmt.Errorf("unknown option: %s", arg)
+		}
+	}
+
+	createdProject, err := a.apiClient.CreateProject(a.ctx, req)
+	if err != nil {
+		return fmt.Errorf("failed to create project: %w", err)
+	}
+
+	fmt.Printf("🏗️ Created project '%s'\n", createdProject.Name)
+	fmt.Printf("   ID: %s\n", createdProject.ID)
+	if createdProject.Description != "" {
+		fmt.Printf("   Description: %s\n", createdProject.Description)
+	}
+	if createdProject.Budget.TotalBudget > 0 {
+		fmt.Printf("   Budget: $%.2f\n", createdProject.Budget.TotalBudget)
+	}
+	fmt.Printf("   Owner: %s\n", createdProject.Owner)
+	fmt.Printf("   Created: %s\n", createdProject.CreatedAt.Format("2006-01-02 15:04:05"))
+
+	return nil
+}
+
+func (a *App) projectList(_ []string) error {
+	projectResponse, err := a.apiClient.ListProjects(a.ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	if len(projectResponse.Projects) == 0 {
+		fmt.Println("No projects found. Create one with: cws project create <name>")
+		return nil
+	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	_, _ = fmt.Fprintln(w, "NAME\tID\tOWNER\tBUDGET\tSPENT\tINSTANCES\tCREATED")
+
+	for _, proj := range projectResponse.Projects {
+		instanceCount := proj.ActiveInstances
+		spent := proj.TotalCost
+		budget := 0.0
+		if proj.BudgetStatus != nil {
+			budget = proj.BudgetStatus.TotalBudget
+			spent = proj.BudgetStatus.SpentAmount
+		}
+		budgetStr := "unlimited"
+		if budget > 0 {
+			budgetStr = fmt.Sprintf("$%.2f", budget)
+		}
+
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%d\t%s\n",
+			proj.Name,
+			proj.ID,
+			proj.Owner,
+			budgetStr,
+			spent,
+			instanceCount,
+			proj.CreatedAt.Format("2006-01-02"),
+		)
+	}
+	_ = w.Flush()
+
+	return nil
+}
+
+func (a *App) projectInfo(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project info <name>")
+	}
+
+	name := args[0]
+	project, err := a.apiClient.GetProject(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to get project info: %w", err)
+	}
+
+	fmt.Printf("🏗️ Project: %s\n", project.Name)
+	fmt.Printf("   ID: %s\n", project.ID)
+	if project.Description != "" {
+		fmt.Printf("   Description: %s\n", project.Description)
+	}
+	fmt.Printf("   Owner: %s\n", project.Owner)
+	fmt.Printf("   Status: %s\n", strings.ToUpper(string(project.Status)))
+	fmt.Printf("   Created: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
+
+	// Budget information
+	fmt.Printf("\n💰 Budget Information:\n")
+	if project.Budget != nil && project.Budget.TotalBudget > 0 {
+		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
+		fmt.Printf("   Spent: $%.2f (%.1f%%)\n",
+			project.Budget.SpentAmount,
+			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
+		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
+	} else {
+		fmt.Printf("   Budget: Unlimited\n")
+		if project.Budget != nil {
+			fmt.Printf("   Spent: $%.2f\n", project.Budget.SpentAmount)
+		} else {
+			fmt.Printf("   Spent: $0.00\n")
+		}
+	}
+
+	// Instance information (placeholder - would need API extension to get project instances)
+	fmt.Printf("\n🖥️ Instances: (Use 'cws project instances %s' for detailed list)\n", project.Name)
+
+	// Member information
+	fmt.Printf("\n👥 Members: %d\n", len(project.Members))
+	if len(project.Members) > 0 {
+		for _, member := range project.Members {
+			fmt.Printf("   %s (%s)\n", member.UserID, member.Role)
+		}
+	}
+
+	return nil
+}
+
+func (a *App) projectBudget(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project budget <name> [options]")
+	}
+
+	name := args[0]
+
+	// Show budget status (for now, just get project info and show budget)
+	project, err := a.apiClient.GetProject(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to get project: %w", err)
+	}
+
+	fmt.Printf("💰 Budget Status for '%s':\n", name)
+	if project.Budget != nil && project.Budget.TotalBudget > 0 {
+		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
+		fmt.Printf("   Spent: $%.2f (%.1f%%)\n",
+			project.Budget.SpentAmount,
+			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
+		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
+	} else {
+		fmt.Printf("   Budget: Unlimited\n")
+		if project.Budget != nil {
+			fmt.Printf("   Total Spent: $%.2f\n", project.Budget.SpentAmount)
+		} else {
+			fmt.Printf("   Total Spent: $0.00\n")
+		}
+	}
+
+	return nil
+}
+
+func (a *App) projectInstances(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project instances <name>")
+	}
+
+	projectName := args[0]
+
+	// Get all instances and filter by project
+	instanceResponse, err := a.apiClient.ListInstances(a.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	// Filter instances by project
+	var projectInstances []types.Instance
+	for _, instance := range instanceResponse.Instances {
+		if instance.ProjectID == projectName {
+			projectInstances = append(projectInstances, instance)
+		}
+	}
+
+	if len(projectInstances) == 0 {
+		fmt.Printf("No instances found in project '%s'\n", projectName)
+		fmt.Printf("Launch one with: cws launch <template> <instance-name> --project %s\n", projectName)
+		return nil
+	}
+
+	fmt.Printf("🖥️ Instances in project '%s':\n", projectName)
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tPUBLIC IP\tCOST/DAY\tLAUNCHED")
+
+	totalCost := 0.0
+	for _, instance := range projectInstances {
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.2f\t%s\n",
+			instance.Name,
+			instance.Template,
+			strings.ToUpper(instance.State),
+			instance.PublicIP,
+			instance.HourlyRate*24,
+			instance.LaunchTime.Format("2006-01-02 15:04"),
+		)
+		if instance.State == "running" {
+			totalCost += instance.HourlyRate * 24
+		}
+	}
+
+	_, _ = fmt.Fprintf(w, "\nTotal daily cost (running instances): $%.2f\n", totalCost)
+	_ = w.Flush()
+
+	return nil
+}
+
+func (a *App) projectTemplates(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project templates <name>")
+	}
+
+	name := args[0]
+
+	// For now, show a placeholder since project templates integration is complex
+	fmt.Printf("🏗️ Custom templates in project '%s':\n", name)
+	fmt.Printf("(Project template integration is being developed)\n")
+	fmt.Printf("Save an instance as template with: cws save <instance> <template> --project %s\n", name)
+
+	return nil
+}
+
+func (a *App) projectMembers(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project members <name> [action] [member-email] [role]")
+	}
+
+	name := args[0]
+
+	// Handle member management actions
+	if len(args) >= 2 {
+		action := args[1]
+		switch action {
+		case "add":
+			if len(args) < 4 {
+				return fmt.Errorf("usage: cws project members <name> add <email> <role>")
+			}
+			email := args[2]
+			role := args[3]
+
+			req := project.AddMemberRequest{
+				UserID:  email,
+				Role:    types.ProjectRole(role),
+				AddedBy: "current-user", // TODO: Get from auth context
+			}
+
+			err := a.apiClient.AddProjectMember(a.ctx, name, req)
+			if err != nil {
+				return fmt.Errorf("failed to add member: %w", err)
+			}
+
+			fmt.Printf("👥 Added %s to project '%s' as %s\n", email, name, role)
+			return nil
+
+		case "remove":
+			if len(args) < 3 {
+				return fmt.Errorf("usage: cws project members <name> remove <email>")
+			}
+			email := args[2]
+
+			err := a.apiClient.RemoveProjectMember(a.ctx, name, email)
+			if err != nil {
+				return fmt.Errorf("failed to remove member: %w", err)
+			}
+
+			fmt.Printf("👥 Removed %s from project '%s'\n", email, name)
+			return nil
+		}
+	}
+
+	// List members (default)
+	members, err := a.apiClient.GetProjectMembers(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to get project members: %w", err)
+	}
+
+	if len(members) == 0 {
+		fmt.Printf("No members found in project '%s'\n", name)
+		fmt.Printf("Add members with: cws project members %s add <email> <role>\n", name)
+		return nil
+	}
+
+	fmt.Printf("👥 Members of project '%s':\n", name)
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	_, _ = fmt.Fprintln(w, "EMAIL\tROLE\tJOINED\tLAST ACTIVE")
+
+	for _, member := range members {
+		lastActive := "never"
+		// Note: LastActive not available in current ProjectMember type
+
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+			member.UserID,
+			member.Role,
+			member.AddedAt.Format("2006-01-02"),
+			lastActive,
+		)
+	}
+	_ = w.Flush()
+
+	fmt.Printf("\nRoles: owner, admin, member, viewer\n")
+	fmt.Printf("Add member: cws project members %s add <email> <role>\n", name)
+	fmt.Printf("Remove member: cws project members %s remove <email>\n", name)
+
+	return nil
+}
+
+func (a *App) projectDelete(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project delete <name>")
+	}
+
+	name := args[0]
+
+	// Confirmation prompt
+	fmt.Printf("⚠️  WARNING: This will permanently delete project '%s' and all associated data.\n", name)
+	fmt.Printf("   This includes project templates, member associations, and budget history.\n")
+	fmt.Printf("   Running instances will NOT be deleted but will be moved to your personal account.\n\n")
+	fmt.Printf("Type the project name to confirm deletion: ")
+
+	var confirmation string
+	_, _ = fmt.Scanln(&confirmation)
+
+	if confirmation != name {
+		fmt.Println("❌ Project name doesn't match. Deletion cancelled.")
+		return nil
+	}
+
+	err := a.apiClient.DeleteProject(a.ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	fmt.Printf("🗑️ Project '%s' has been deleted\n", name)
+	return nil
+}

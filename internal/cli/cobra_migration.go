@@ -3,7 +3,7 @@
 package cli
 
 import (
-	// "fmt" // Uncomment when Project commands are implemented
+	"fmt"
 
 	"github.com/spf13/cobra"
 )
@@ -32,9 +32,9 @@ func (r *CobraCommandRegistry) RegisterAllCommands(root *cobra.Command) {
 	idleCobra := NewIdleCobraCommands(r.app)
 	root.AddCommand(idleCobra.CreateIdleCommand())
 
-	// Project commands (TODO - Project functionality not yet implemented)
-	// projectCobra := NewProjectCobraCommands(r.app)
-	// root.AddCommand(projectCobra.CreateProjectCommand())
+	// Project commands (COMPLETED)
+	projectCobra := NewProjectCobraCommands(r.app)
+	root.AddCommand(projectCobra.CreateProjectCommand())
 
 	// Storage commands (TODO)
 	storageCobra := NewStorageCobraCommands(r.app)
@@ -60,8 +60,6 @@ func NewProjectCobraCommands(app *App) *ProjectCobraCommands {
 }
 
 // CreateProjectCommand creates the project command with subcommands
-// TODO: Implement when Project functionality is added to App
-/*
 func (pc *ProjectCobraCommands) CreateProjectCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "project",
@@ -82,10 +80,7 @@ with team members.`,
 
 	return cmd
 }
-*/
 
-// TODO: Implement these methods when Project functionality is added to App
-/*
 // createListCommand creates the list subcommand
 func (pc *ProjectCobraCommands) createListCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -298,7 +293,6 @@ func (pc *ProjectCobraCommands) createBudgetCommand() *cobra.Command {
 
 	return cmd
 }
-*/
 
 // StorageCobraCommands handles storage/volume commands
 type StorageCobraCommands struct {

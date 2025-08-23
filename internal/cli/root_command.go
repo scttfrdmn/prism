@@ -280,6 +280,10 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	idleCobra := NewIdleCobraCommands(r.app)
 	rootCmd.AddCommand(idleCobra.CreateIdleCommand())
 
+	// Project commands (using new Cobra structure)
+	projectCobra := NewProjectCobraCommands(r.app)
+	rootCmd.AddCommand(projectCobra.CreateProjectCommand())
+
 	// Storage commands
 	rootCmd.AddCommand(r.createVolumeCommand())
 	rootCmd.AddCommand(r.createStorageCommand())
