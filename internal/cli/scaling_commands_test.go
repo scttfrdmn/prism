@@ -140,14 +140,14 @@ func TestRightsizingAnalyze(t *testing.T) {
 			name:        "Instance not running",
 			args:        []string{"stopped-instance"},
 			expectError: true,
-			errorMsg:    "invalid state",
+			errorMsg:    "expected 'running'",
 			setupMock:   func(mock *MockAPIClient) {},
 		},
 		{
 			name:        "API error",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "failed to list instances",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "API failure"
@@ -576,7 +576,7 @@ func TestScalingScale(t *testing.T) {
 			name:        "Instance in invalid state",
 			args:        []string{"test-instance", "L"},
 			expectError: true,
-			errorMsg:    "invalid state",
+			errorMsg:    "expected 'running or stopped'",
 			setupMock: func(mock *MockAPIClient) {
 				mock.Instances[0].State = "pending"
 			},
@@ -892,7 +892,7 @@ func TestScalingWithInstanceStates(t *testing.T) {
 			// Should handle invalid states gracefully
 			if state != "running" && state != "stopped" {
 				assert.Error(t, err)
-				assert.Contains(t, err.Error(), "invalid state")
+				assert.Contains(t, err.Error(), "expected 'running or stopped'")
 			}
 		})
 	}

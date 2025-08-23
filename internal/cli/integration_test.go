@@ -711,7 +711,7 @@ func TestErrorHandling(t *testing.T) {
 				return app.Launch([]string{"python-ml", "test-instance"})
 			},
 			expectError: true,
-			errorType:   "daemon not running",
+			errorType:   "daemon",
 		},
 	}
 

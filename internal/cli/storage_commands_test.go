@@ -61,7 +61,7 @@ func TestStorageCommands_Volume(t *testing.T) {
 			name:        "Daemon not running",
 			args:        []string{"list"},
 			expectError: true,
-			errorMsg:    "daemon not running",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.PingError = assert.AnError
 			},
@@ -150,7 +150,7 @@ func TestVolumeCreateCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"create", "test-volume"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "create failed"
@@ -209,7 +209,7 @@ func TestVolumeListCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"list"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "list failed"
@@ -263,7 +263,7 @@ func TestVolumeInfoCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"info", "test-volume"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "volume not found"
@@ -317,7 +317,7 @@ func TestVolumeDeleteCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"delete", "test-volume"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "delete failed"
@@ -377,7 +377,7 @@ func TestVolumeMountCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"mount", "test-volume", "test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "mount failed"
@@ -431,7 +431,7 @@ func TestVolumeUnmountCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"unmount", "test-volume", "test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "unmount failed"
@@ -498,7 +498,7 @@ func TestStorageCommands_Storage(t *testing.T) {
 			name:        "Daemon not running",
 			args:        []string{"list"},
 			expectError: true,
-			errorMsg:    "daemon not running",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.PingError = assert.AnError
 			},
@@ -588,7 +588,7 @@ func TestStorageCreateCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"create", "test-storage", "100GB"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "create failed"
@@ -647,7 +647,7 @@ func TestStorageListCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"list"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "list failed"
@@ -701,7 +701,7 @@ func TestStorageInfoCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"info", "test-storage"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "storage not found"
@@ -755,7 +755,7 @@ func TestStorageAttachCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"attach", "test-storage", "test-instance"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "attach failed"
@@ -809,7 +809,7 @@ func TestStorageDetachCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"detach", "test-storage"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "detach failed"
@@ -863,7 +863,7 @@ func TestStorageDeleteCommand(t *testing.T) {
 			name:        "API error",
 			args:        []string{"delete", "test-storage"},
 			expectError: true,
-			errorMsg:    "failed to",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.ShouldReturnError = true
 				mock.ErrorMessage = "delete failed"

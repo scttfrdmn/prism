@@ -239,12 +239,15 @@ func (sc *StorageCommands) storageCreate(args []string) error {
 		VolumeType: DefaultVolumeType, // default
 	}
 
-	if len(args) > 2 {
+	// Parse volume type and options
+	optionStartIndex := 2
+	if len(args) > 2 && !strings.HasPrefix(args[2], "--") {
 		req.VolumeType = args[2]
+		optionStartIndex = 3
 	}
 
 	// Parse additional options
-	for i := 3; i < len(args); i++ {
+	for i := optionStartIndex; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--region" && i+1 < len(args):
