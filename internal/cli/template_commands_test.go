@@ -617,7 +617,7 @@ func TestTemplateCommandsArgumentValidation(t *testing.T) {
 		"search_no_args": {
 			command: tc.templatesSearch,
 			args:    []string{},
-			valid:   false,
+			valid:   true, // search with no args shows all templates
 		},
 		"search_with_args": {
 			command: tc.templatesSearch,
