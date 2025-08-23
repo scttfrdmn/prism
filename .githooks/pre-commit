@@ -27,6 +27,23 @@ if git diff --cached --name-only | grep -q '\.go$'; then
     
     echo "✅ Go formatting check passed"
     
+    echo "🔍 Running Go linting..."
+    
+    # Run golangci-lint if available
+    if command -v golangci-lint &> /dev/null; then
+        # Run fast linters only for pre-commit
+        if ! golangci-lint run --fast --timeout 30s $(git diff --cached --name-only | grep '\.go$' | xargs dirname | sort -u | xargs) > /dev/null 2>&1; then
+            echo -e "${YELLOW}⚠️  Linting issues found${NC}"
+            echo "Run 'golangci-lint run --fast' to see issues"
+            # Don't fail on linting for now, just warn
+        else
+            echo "✅ Go linting passed"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  golangci-lint not installed, skipping lint check${NC}"
+        echo "Install with: brew install golangci-lint"
+    fi
+    
     echo "🔨 Building binaries..."
     
     # Quick build test (no cross-compilation)

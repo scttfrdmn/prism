@@ -1,0 +1,132 @@
+# CloudWorkstation golangci-lint configuration
+# Comprehensive linting for code quality and consistency
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+  
+  # Include test files
+  tests: true
+  
+  # Skip directories
+  skip-dirs:
+    - vendor
+    - node_modules
+    - .git
+    - cmd/cws-gui/frontend
+
+output:
+  # Format of output
+  format: colored-line-number
+  
+  # Print lines of code with issue
+  print-issued-lines: true
+  
+  # Print linter name in the end of issue text
+  print-linter-name: true
+
+linters:
+  enable:
+    # Default linters
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Go vet
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Static analysis
+    - unused        # Find unused code
+    
+    # Additional linters for code quality
+    - bodyclose     # Check HTTP response body is closed
+    - dogsled       # Check for too many blank identifiers
+    - dupl          # Find duplicate code
+    - exportloopref # Check loop variable exports
+    - gocognit      # Check cognitive complexity
+    - goconst       # Find repeated strings that could be constants
+    - gocritic      # Comprehensive code checker
+    - gocyclo       # Check cyclomatic complexity
+    - gofmt         # Check formatting
+    - goimports     # Check imports
+    - goprintffuncname # Check printf-like function names
+    - gosec         # Security checks
+    - misspell      # Check spelling
+    - nakedret      # Find naked returns
+    - nolintlint    # Check nolint directives
+    - prealloc      # Find slice preallocation opportunities
+    - revive        # Fast, configurable linter
+    - unconvert     # Find unnecessary type conversions
+    - unparam       # Find unused function parameters
+    - whitespace    # Check for trailing whitespace
+
+linters-settings:
+  errcheck:
+    # Check for errors in type assertions
+    check-type-assertions: true
+    
+  govet:
+    # Check shadowing
+    check-shadowing: true
+    
+  gocyclo:
+    # Maximum cyclomatic complexity
+    min-complexity: 15
+    
+  gocognit:
+    # Maximum cognitive complexity
+    min-complexity: 20
+    
+  goconst:
+    # Minimum length of string constant
+    min-len: 3
+    # Minimum occurrences count
+    min-occurrences: 3
+    
+  dupl:
+    # Minimum lines of duplicate code
+    threshold: 100
+    
+  misspell:
+    # Correct commonly misspelled English words
+    locale: US
+    
+  gosec:
+    # Include all security checks
+    excludes: []
+      
+  revive:
+    # Strict mode
+    confidence: 0.8
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 3
+  
+  # Exclude some linters from running on tests files
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - goconst
+        
+    # Exclude some linters from internal/cli (uses cobra patterns)
+    - path: internal/cli/
+      linters:
+        - dupl
+        - gocognit
+        
+    # Allow unused parameters in mock implementations
+    - path: mock_.*\.go
+      linters:
+        - unparam
+        - unused
+        
+    # Allow complex main functions
+    - path: cmd/.*/main\.go
+      linters:
+        - gocognit
+        - gocyclo
