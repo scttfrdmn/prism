@@ -123,7 +123,7 @@ func (dc *DaemonCobraCommands) createLogsCommand() *cobra.Command {
 				logsArgs = append(logsArgs, "--follow")
 			}
 			if tail > 0 {
-				logsArgs = append(logsArgs, "--tail", string(tail))
+				logsArgs = append(logsArgs, "--tail", fmt.Sprintf("%d", tail))
 			}
 			
 			return dc.systemCommands.daemonLogs()

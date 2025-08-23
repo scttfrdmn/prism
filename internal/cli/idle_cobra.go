@@ -59,9 +59,9 @@ Available policy templates:
 
 	// Add subcommands
 	cmd.AddCommand(
-		hc.createPolicyCommand(),
-		hc.createScheduleCommand(),
-		hc.createSavingsCommand(),
+		ic.createPolicyCommand(),
+		ic.createScheduleCommand(),
+		ic.createSavingsCommand(),
 	)
 
 	return cmd

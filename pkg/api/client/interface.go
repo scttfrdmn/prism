@@ -92,15 +92,6 @@ type CloudWorkstationAPI interface {
 	GetInstanceIdlePolicies(context.Context, string) ([]*idle.PolicyTemplate, error)
 	RecommendIdlePolicy(context.Context, string) (*idle.PolicyTemplate, error)
 	GetIdleSavingsReport(context.Context, string) (map[string]interface{}, error)
-	
-	// Deprecated: Hibernation policy operations (use Idle policy operations instead)
-	ListHibernationPolicies(context.Context) ([]*idle.PolicyTemplate, error)
-	GetHibernationPolicy(context.Context, string) (*idle.PolicyTemplate, error)
-	ApplyHibernationPolicy(context.Context, string, string) error
-	RemoveHibernationPolicy(context.Context, string, string) error
-	GetInstanceHibernationPolicies(context.Context, string) ([]*idle.PolicyTemplate, error)
-	RecommendHibernationPolicy(context.Context, string) (*idle.PolicyTemplate, error)
-	GetHibernationSavingsReport(context.Context, string) (map[string]interface{}, error)
 
 	// Status operations
 	GetStatus(context.Context) (*types.DaemonStatus, error)

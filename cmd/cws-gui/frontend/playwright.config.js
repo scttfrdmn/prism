@@ -23,10 +23,14 @@ export default defineConfig({
     process.env.CI ? ['github'] : ['list']
   ],
   
+  // Global setup and teardown
+  globalSetup: './tests/e2e/global-setup.js',
+  
   // Global test configuration
   use: {
-    // Base URL for tests
-    baseURL: 'http://localhost:3000',
+    // For Wails apps, we test against the served frontend
+    // The frontend will connect to the daemon API at localhost:8947
+    baseURL: 'http://localhost:3000', // Vite dev server
     
     // Browser context options
     viewport: { width: 1280, height: 720 },
@@ -73,11 +77,11 @@ export default defineConfig({
     }
   ],
 
-  // Run your local dev server before starting the tests
+  // Start the Vite dev server for the frontend
   webServer: {
     command: 'npm run dev',
     port: 3000,
     reuseExistingServer: !process.env.CI,
-    timeout: 60000
+    timeout: 120 * 1000,
   }
 })

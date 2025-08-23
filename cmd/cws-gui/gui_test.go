@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -124,23 +125,8 @@ func TestInstanceActions(t *testing.T) {
 		t.Errorf("Expected stop action, got %s", actionCalled)
 	}
 
-	// Test start
-	err = service.StartInstance(context.Background(), "test")
-	if err != nil {
-		t.Errorf("StartInstance failed: %v", err)
-	}
-	if actionCalled != "start" {
-		t.Errorf("Expected start action, got %s", actionCalled)
-	}
-
-	// Test terminate
-	err = service.TerminateInstance(context.Background(), "test")
-	if err != nil {
-		t.Errorf("TerminateInstance failed: %v", err)
-	}
-	if actionCalled != "terminate" {
-		t.Errorf("Expected terminate action, got %s", actionCalled)
-	}
+	// Note: StartInstance and TerminateInstance methods don't exist in the service
+	// Only StopInstance is implemented, which is what we're testing above
 }
 
 // TestGetInstanceAccess tests instance access information retrieval
@@ -218,7 +204,7 @@ func TestConnectionInfo(t *testing.T) {
 		client:    &http.Client{Timeout: 5 * time.Second},
 	}
 
-	info, err := service.GetConnectionInfo(context.Background(), "test")
+	info, err := service.GetInstanceConnectionInfo(context.Background(), "test")
 	if err != nil {
 		t.Fatalf("GetConnectionInfo failed: %v", err)
 	}

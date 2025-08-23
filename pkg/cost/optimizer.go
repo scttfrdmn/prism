@@ -125,7 +125,7 @@ func (co *CostOptimizer) checkHibernationOpportunity(instance *types.Instance) *
 	// Check if instance has idle periods
 	idleHoursPerDay := 16.0 // Mock: instance idle 16 hours per day
 
-	if idleHoursPerDay > 8 && !instance.HibernationEnabled {
+	if idleHoursPerDay > 8 && !instance.IdlePolicyEnabled {
 		dailyCost := instance.EstimatedCost
 		savingsPerDay := dailyCost * (idleHoursPerDay / 24)
 		monthlySavings := savingsPerDay * 30

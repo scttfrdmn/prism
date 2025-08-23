@@ -6,7 +6,7 @@
   
   <!-- Product information strings -->
   <String Id="ProductName">CloudWorkstation</String>
-  <String Id="ProductVersion">0.4.2</String>
+  <String Id="ProductVersion">0.4.5</String>
   <String Id="Manufacturer">CloudWorkstation Project</String>
   <String Id="ProductDescription">Enterprise research management platform for launching cloud research environments</String>
   

@@ -222,19 +222,19 @@ func (s *Server) handleInstanceOperations(w http.ResponseWriter, r *http.Request
 			s.handleInstanceLayers(w, r)
 		case "rollback":
 			s.handleInstanceRollback(w, r)
-		case "hibernation":
-			// Handle hibernation/policies subpath
+		case "idle":
+			// Handle idle/policies subpath
 			if len(parts) >= 3 && parts[2] == "policies" {
 				if len(parts) == 3 {
-					// GET /instances/{name}/hibernation/policies
-					s.handleInstanceHibernationPolicies(w, r, instanceName)
+					// GET /instances/{name}/idle/policies
+					s.handleInstanceIdlePolicies(w, r, instanceName)
 				} else if len(parts) == 4 {
-					// PUT/DELETE /instances/{name}/hibernation/policies/{policyId}
+					// PUT/DELETE /instances/{name}/idle/policies/{policyId}
 					policyID := parts[3]
-					s.handleInstanceHibernationPolicy(w, r, instanceName, policyID)
+					s.handleInstanceIdlePolicy(w, r, instanceName, policyID)
 				}
 			} else {
-				s.writeError(w, http.StatusNotFound, "Unknown hibernation operation")
+				s.writeError(w, http.StatusNotFound, "Unknown idle operation")
 			}
 		default:
 			s.writeError(w, http.StatusNotFound, "Unknown operation")
@@ -350,17 +350,23 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var hibernationSupported, isHibernated bool
+	var hibernationSupported bool
+	var instanceState string
+	var possiblyHibernated bool
+	
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
-		hibernationSupported, isHibernated, err = awsManager.GetInstanceHibernationStatus(name)
+		hibernationSupported, instanceState, possiblyHibernated, err = awsManager.GetInstanceHibernationStatus(name)
 		return err
 	})
 
 	response := map[string]interface{}{
 		"hibernation_supported": hibernationSupported,
-		"is_hibernated":         isHibernated,
+		"instance_state":        instanceState,
+		"possibly_hibernated":   possiblyHibernated,
 		"instance_name":         name,
+		"is_hibernated":         possiblyHibernated, // Deprecated field for backward compatibility
+		"note":                  "possibly_hibernated is true when instance is stopped and hibernation is supported",
 	}
 
 	_ = json.NewEncoder(w).Encode(response)

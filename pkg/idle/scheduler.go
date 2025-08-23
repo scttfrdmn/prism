@@ -1,5 +1,5 @@
-// Package hibernation provides advanced hibernation scheduling and policy management
-package hibernation
+// Package idle provides advanced idle detection and policy management
+package idle
 
 import (
 	"context"

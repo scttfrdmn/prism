@@ -167,14 +167,14 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 		return err
 	}
 
-	// Check hibernation status first
+	// Check EC2 hibernation support first
 	status, err := ic.app.apiClient.GetInstanceHibernationStatus(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("check hibernation status for "+name, err)
+		return WrapAPIError("check EC2 hibernation support for "+name, err)
 	}
 
 	if !status.HibernationSupported {
-		fmt.Printf("⚠️  Instance %s does not support hibernation\n", name)
+		fmt.Printf("⚠️  Instance %s does not support EC2 hibernation\n", name)
 		fmt.Printf("    Falling back to regular stop operation\n")
 	}
 
@@ -189,7 +189,7 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 		fmt.Printf("   💰 Compute billing stopped, storage billing continues\n")
 	} else {
 		fmt.Printf("%s\n", FormatProgressMessage("Stopping instance", name))
-		fmt.Printf("   %s\n", FormatInfoMessage("Consider using hibernation-capable instance types for RAM preservation"))
+		fmt.Printf("   %s\n", FormatInfoMessage("Consider using EC2 hibernation-capable instance types for RAM preservation"))
 	}
 
 	return nil
@@ -208,10 +208,10 @@ func (ic *InstanceCommands) Resume(args []string) error {
 		return err
 	}
 
-	// Check hibernation status first
+	// Check EC2 hibernation status first
 	status, err := ic.app.apiClient.GetInstanceHibernationStatus(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("check hibernation status for "+name, err)
+		return WrapAPIError("check EC2 hibernation status for "+name, err)
 	}
 
 	if status.IsHibernated {

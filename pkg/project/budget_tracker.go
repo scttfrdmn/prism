@@ -207,7 +207,7 @@ func (bt *BudgetTracker) GetResourceUsage(projectID string, period time.Duration
 
 	var totalComputeHours float64
 	var totalStorage float64
-	var hibernationSavings float64
+	var idleSavings float64
 	activeInstances := 0
 	totalInstances := 0
 
@@ -223,7 +223,7 @@ func (bt *BudgetTracker) GetResourceUsage(projectID string, period time.Duration
 	if latestPoint != nil {
 		for _, instanceCost := range latestPoint.InstanceCosts {
 			totalComputeHours += instanceCost.RunningHours
-			hibernationSavings += bt.calculateHibernationSavings(instanceCost)
+			idleSavings += bt.calculateIdleSavings(instanceCost)
 			totalInstances++
 			if instanceCost.RunningHours > 0 {
 				activeInstances++
@@ -241,7 +241,7 @@ func (bt *BudgetTracker) GetResourceUsage(projectID string, period time.Duration
 		TotalInstances:     totalInstances,
 		TotalStorage:       totalStorage,
 		ComputeHours:       totalComputeHours,
-		HibernationSavings: hibernationSavings,
+		IdleSavings: idleSavings,
 		MeasurementPeriod:  period,
 		LastUpdated:        time.Now(),
 	}, nil
@@ -422,7 +422,7 @@ func (bt *BudgetTracker) calculateProjectedMonthlySpend(costHistory []CostDataPo
 	return avgDailyCost * 30 // Project monthly spend
 }
 
-func (bt *BudgetTracker) calculateHibernationSavings(instanceCost types.InstanceCost) float64 {
+func (bt *BudgetTracker) calculateIdleSavings(instanceCost types.InstanceCost) float64 {
 	// Hibernation saves compute costs but not storage costs
 	// Estimate savings based on hibernated hours vs running hours
 	if instanceCost.HibernatedHours > 0 {

@@ -983,7 +983,7 @@ func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID stri
 		TotalInstances:     5,
 		TotalStorage:       100.0,
 		ComputeHours:       48.5,
-		HibernationSavings: 25.50,
+		IdleSavings: 25.50,
 		MeasurementPeriod:  duration,
 	}, nil
 }
@@ -1077,49 +1077,49 @@ func (m *MockClient) UnmountVolume(ctx context.Context, instanceID, mountPoint s
 	return nil
 }
 
-// Hibernation policy operations
+// Idle policy operations
 
-// ListHibernationPolicies returns available hibernation policies (mock)
-func (m *MockClient) ListHibernationPolicies(ctx context.Context) ([]*hibernation.PolicyTemplate, error) {
-	manager := hibernation.NewPolicyManager()
+// ListIdlePolicies returns available idle policies (mock)
+func (m *MockClient) ListIdlePolicies(ctx context.Context) ([]*idle.PolicyTemplate, error) {
+	manager := idle.NewPolicyManager()
 	return manager.ListTemplates(), nil
 }
 
-// GetHibernationPolicy returns a specific hibernation policy (mock)
-func (m *MockClient) GetHibernationPolicy(ctx context.Context, name string) (*hibernation.PolicyTemplate, error) {
-	manager := hibernation.NewPolicyManager()
+// GetIdlePolicy returns a specific idle policy (mock)
+func (m *MockClient) GetIdlePolicy(ctx context.Context, name string) (*idle.PolicyTemplate, error) {
+	manager := idle.NewPolicyManager()
 	return manager.GetTemplate(name)
 }
 
-// ApplyHibernationPolicy applies a hibernation policy to an instance (mock)
-func (m *MockClient) ApplyHibernationPolicy(ctx context.Context, instanceID, policyName string) error {
+// ApplyIdlePolicy applies an idle policy to an instance (mock)
+func (m *MockClient) ApplyIdlePolicy(ctx context.Context, instanceID, policyName string) error {
 	// Mock implementation - just return success
 	return nil
 }
 
-// RemoveHibernationPolicy removes a hibernation policy from an instance (mock)
-func (m *MockClient) RemoveHibernationPolicy(ctx context.Context, instanceID, policyName string) error {
+// RemoveIdlePolicy removes an idle policy from an instance (mock)
+func (m *MockClient) RemoveIdlePolicy(ctx context.Context, instanceID, policyName string) error {
 	// Mock implementation - just return success
 	return nil
 }
 
-// GetInstanceHibernationPolicies returns policies applied to an instance (mock)
-func (m *MockClient) GetInstanceHibernationPolicies(ctx context.Context, instanceID string) ([]*hibernation.PolicyTemplate, error) {
+// GetInstanceIdlePolicies returns policies applied to an instance (mock)
+func (m *MockClient) GetInstanceIdlePolicies(ctx context.Context, instanceID string) ([]*idle.PolicyTemplate, error) {
 	// Return empty list for mock
-	return []*hibernation.PolicyTemplate{}, nil
+	return []*idle.PolicyTemplate{}, nil
 }
 
-// RecommendHibernationPolicy recommends a policy for an instance (mock)
-func (m *MockClient) RecommendHibernationPolicy(ctx context.Context, instanceID string) (*hibernation.PolicyTemplate, error) {
-	manager := hibernation.NewPolicyManager()
+// RecommendIdlePolicy recommends a policy for an instance (mock)
+func (m *MockClient) RecommendIdlePolicy(ctx context.Context, instanceID string) (*idle.PolicyTemplate, error) {
+	manager := idle.NewPolicyManager()
 	return manager.GetTemplate("balanced")
 }
 
-// GetHibernationSavingsReport returns hibernation savings report (mock)
-func (m *MockClient) GetHibernationSavingsReport(ctx context.Context, instanceID string) (map[string]interface{}, error) {
+// GetIdleSavingsReport returns idle savings report (mock)
+func (m *MockClient) GetIdleSavingsReport(ctx context.Context, period string) (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"total_saved": 150.00,
 		"projected_monthly_savings": 450.00,
-		"hibernation_hours": 720,
+		"idle_hours": 720,
 	}, nil
 }

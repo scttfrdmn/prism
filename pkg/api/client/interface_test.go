@@ -470,28 +470,29 @@ func TestIdleDetectionOperationsIntegration(t *testing.T) {
 	client := NewClient(server.URL)
 	ctx := context.Background()
 
-	// Test idle detection operations
-	status, err := client.GetIdleStatus(ctx)
+	// Test idle policy operations
+	policies, err := client.ListIdlePolicies(ctx)
 	assert.NoError(t, err)
-	assert.True(t, status.Enabled)
+	assert.NotNil(t, policies)
+	assert.Greater(t, len(policies), 0)
 
-	err = client.EnableIdleDetection(ctx)
+	// Apply an idle policy
+	err = client.ApplyIdlePolicy(ctx, "test-instance", "batch")
 	assert.NoError(t, err)
 
-	err = client.DisableIdleDetection(ctx)
+	// Get idle policy for instance
+	policy, err := client.GetIdlePolicy(ctx, "test-instance")
+	assert.NoError(t, err)
+	assert.NotNil(t, policy)
+
+	// Remove idle policy
+	err = client.RemoveIdlePolicy(ctx, "test-instance", "batch")
 	assert.NoError(t, err)
 
-	profiles, err := client.GetIdleProfiles(ctx)
+	// Get idle savings report
+	report, err := client.GetIdleSavingsReport(ctx, "7d")
 	assert.NoError(t, err)
-	assert.Contains(t, profiles, "batch")
-
-	profile := types.IdleProfile{
-		Name:        "test-profile",
-		IdleMinutes: 30,
-		Action:      "hibernate",
-	}
-	err = client.AddIdleProfile(ctx, profile)
-	assert.NoError(t, err)
+	assert.NotNil(t, report)
 
 	pendingActions, err := client.GetIdlePendingActions(ctx)
 	assert.NoError(t, err)

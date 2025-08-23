@@ -50,7 +50,7 @@ type Instance struct {
 	
 	// Cost optimization fields
 	EstimatedCost      float64                 `json:"estimated_cost,omitempty"`      // Daily cost estimate
-	HibernationEnabled bool                    `json:"hibernation_enabled,omitempty"`
+	IdlePolicyEnabled  bool                    `json:"idle_policy_enabled,omitempty"`
 	SpotEligible       bool                    `json:"spot_eligible,omitempty"`
 	IsSpot             bool                    `json:"is_spot,omitempty"`
 	ARMCompatible      bool                    `json:"arm_compatible,omitempty"`
@@ -119,8 +119,13 @@ type AppliedTemplateRecord struct {
 // HibernationStatus represents the hibernation status of an instance
 type HibernationStatus struct {
 	HibernationSupported bool   `json:"hibernation_supported"`
-	IsHibernated         bool   `json:"is_hibernated"`
+	InstanceState        string `json:"instance_state"`        // Current AWS state: running, stopped, stopping, etc.
+	PossiblyHibernated   bool   `json:"possibly_hibernated"`   // True if stopped with hibernation support
 	InstanceName         string `json:"instance_name"`
+	Note                 string `json:"note,omitempty"`        // Explanatory note about the status
+	
+	// Deprecated: Use PossiblyHibernated instead
+	IsHibernated         bool   `json:"is_hibernated,omitempty"` // Kept for backward compatibility
 }
 
 // Moved to idle_legacy.go - legacy idle system removed

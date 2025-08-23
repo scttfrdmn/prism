@@ -6,7 +6,7 @@
   <Product Id="*" 
            Name="CloudWorkstation" 
            Language="1033" 
-           Version="0.4.2" 
+           Version="0.4.5" 
            Manufacturer="CloudWorkstation Project"
            UpgradeCode="{12345678-1234-5678-9ABC-123456789012}">
     
@@ -220,7 +220,7 @@
       <!-- Application Registry Settings -->
       <RegistryKey Root="HKLM" Key="SOFTWARE\CloudWorkstation">
         <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" />
-        <RegistryValue Name="Version" Type="string" Value="0.4.2" />
+        <RegistryValue Name="Version" Type="string" Value="0.4.5" />
         <RegistryValue Name="ServiceEnabled" Type="integer" Value="1" />
         <RegistryValue Name="BinPath" Type="string" Value="[BinFolder]" />
         <RegistryValue Name="TemplatesPath" Type="string" Value="[TemplatesFolder]" />
@@ -229,8 +229,8 @@
       
       <!-- Uninstall Information -->
       <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\CloudWorkstation">
-        <RegistryValue Name="DisplayName" Type="string" Value="CloudWorkstation v0.4.2" />
-        <RegistryValue Name="DisplayVersion" Type="string" Value="0.4.2" />
+        <RegistryValue Name="DisplayName" Type="string" Value="CloudWorkstation v0.4.5" />
+        <RegistryValue Name="DisplayVersion" Type="string" Value="0.4.5" />
         <RegistryValue Name="Publisher" Type="string" Value="CloudWorkstation Project" />
         <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
         <RegistryValue Name="UninstallString" Type="string" Value="msiexec /x [ProductCode]" />
@@ -261,7 +261,7 @@
       <!-- Register PowerShell module in Windows PowerShell -->
       <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\PowerShell\1\Modules\CloudWorkstation">
         <RegistryValue Name="ModuleBase" Type="string" Value="[BinFolder]" />
-        <RegistryValue Name="Version" Type="string" Value="0.4.2" />
+        <RegistryValue Name="Version" Type="string" Value="0.4.5" />
       </RegistryKey>
     </Component>
     

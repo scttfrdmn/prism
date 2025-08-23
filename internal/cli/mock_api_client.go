@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -945,4 +946,64 @@ func (m *MockAPIClient) GetCallCount() int {
 		len(m.DeleteCalls) + len(m.HibernateCalls) + len(m.ResumeCalls) +
 		len(m.ConnectCalls) + len(m.GetInstanceCalls) +
 		len(m.CreateVolumeCalls) + len(m.CreateStorageCalls)
+}
+
+// Idle policy operations
+
+func (m *MockAPIClient) ListIdlePolicies(ctx context.Context) ([]*idle.PolicyTemplate, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	// Return empty list for mock
+	return []*idle.PolicyTemplate{}, nil
+}
+
+func (m *MockAPIClient) GetIdlePolicy(ctx context.Context, policyID string) (*idle.PolicyTemplate, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &idle.PolicyTemplate{
+		ID:   policyID,
+		Name: "Test Policy",
+	}, nil
+}
+
+func (m *MockAPIClient) ApplyIdlePolicy(ctx context.Context, instanceName, policyID string) error {
+	if m.ShouldReturnError {
+		return fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return nil
+}
+
+func (m *MockAPIClient) RemoveIdlePolicy(ctx context.Context, instanceName, policyID string) error {
+	if m.ShouldReturnError {
+		return fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return nil
+}
+
+func (m *MockAPIClient) GetInstanceIdlePolicies(ctx context.Context, instanceName string) ([]*idle.PolicyTemplate, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return []*idle.PolicyTemplate{}, nil
+}
+
+func (m *MockAPIClient) RecommendIdlePolicy(ctx context.Context, instanceName string) (*idle.PolicyTemplate, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &idle.PolicyTemplate{
+		ID:   "balanced",
+		Name: "Balanced",
+	}, nil
+}
+
+func (m *MockAPIClient) GetIdleSavingsReport(ctx context.Context, period string) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"total_saved": 100.0,
+	}, nil
 }

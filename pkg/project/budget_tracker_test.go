@@ -411,7 +411,7 @@ func TestBudgetTracker_GetResourceUsage(t *testing.T) {
 	assert.GreaterOrEqual(t, usage.TotalInstances, 0)
 	assert.GreaterOrEqual(t, usage.TotalStorage, 0.0)
 	assert.GreaterOrEqual(t, usage.ComputeHours, 0.0)
-	assert.GreaterOrEqual(t, usage.HibernationSavings, 0.0)
+	assert.GreaterOrEqual(t, usage.IdleSavings, 0.0)
 }
 
 func TestBudgetTracker_AlertTriggering(t *testing.T) {

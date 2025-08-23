@@ -294,8 +294,8 @@ type ProjectResourceUsage struct {
 	// ComputeHours is the total compute hours used
 	ComputeHours float64 `json:"compute_hours"`
 
-	// HibernationSavings is the estimated cost savings from hibernation
-	HibernationSavings float64 `json:"hibernation_savings"`
+	// IdleSavings is the estimated cost savings from idle policies
+	IdleSavings float64 `json:"idle_savings"`
 
 	// MeasurementPeriod defines the period for these metrics
 	MeasurementPeriod time.Duration `json:"measurement_period"`

@@ -41,8 +41,8 @@ type Manager struct {
 	lastPriceUpdate     time.Time
 	discountConfig      ctypes.DiscountConfig
 	stateManager        StateManagerInterface
-	hibernationScheduler *hibernation.Scheduler
-	policyManager       *hibernation.PolicyManager
+	idleScheduler *idle.Scheduler
+	policyManager *idle.PolicyManager
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager
@@ -96,8 +96,8 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	}
 
 	// Initialize hibernation components
-	hibernationScheduler := hibernation.NewScheduler()
-	policyManager := hibernation.NewPolicyManager()
+	idleScheduler := idle.NewScheduler()
+	policyManager := idle.NewPolicyManager()
 
 	manager := &Manager{
 		cfg:                 cfg,
@@ -111,12 +111,12 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		lastPriceUpdate:     time.Time{},
 		discountConfig:      ctypes.DiscountConfig{}, // No discounts by default
 		stateManager:        stateManager,
-		hibernationScheduler: hibernationScheduler,
-		policyManager:       policyManager,
+		idleScheduler: idleScheduler,
+		policyManager: policyManager,
 	}
 
-	// Start the hibernation scheduler
-	hibernationScheduler.Start()
+	// Start the idle scheduler
+	idleScheduler.Start()
 
 	return manager, nil
 }
@@ -278,8 +278,8 @@ type LaunchOptionsProcessor struct {
 
 // ProcessOptions validates and applies hibernation/spot options
 func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string) error {
-	// Support both IdlePolicy and deprecated Hibernation flag
-	enableIdlePolicy := req.IdlePolicy || req.Hibernation
+	// Support IdlePolicy flag
+	enableIdlePolicy := req.IdlePolicy
 	
 	// Validate idle policy and spot combination
 	if enableIdlePolicy && req.Spot {
@@ -621,12 +621,12 @@ func (m *Manager) ResumeInstance(name string) error {
 	return m.StartInstance(name)
 }
 
-// GetInstanceHibernationStatus returns whether the instance supports and is configured for hibernation
-func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) {
+// GetInstanceHibernationStatus returns hibernation support, current state, and whether it might be hibernated
+func (m *Manager) GetInstanceHibernationStatus(name string) (bool, string, bool, error) {
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
-		return false, false, fmt.Errorf("failed to find instance: %w", err)
+		return false, "", false, fmt.Errorf("failed to find instance: %w", err)
 	}
 
 	ctx := context.Background()
@@ -635,22 +635,32 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, bool, error) 
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
-		return false, false, fmt.Errorf("failed to describe instance: %w", err)
+		return false, "", false, fmt.Errorf("failed to describe instance: %w", err)
 	}
 
 	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
-		return false, false, fmt.Errorf("instance not found")
+		return false, "", false, fmt.Errorf("instance not found")
 	}
 
 	instance := result.Reservations[0].Instances[0]
 
+	// Get current state
+	currentState := "unknown"
+	if instance.State != nil {
+		currentState = string(instance.State.Name)
+	}
+
 	// Check hibernation configuration
 	hibernationSupported := instance.HibernationOptions != nil && *instance.HibernationOptions.Configured
 
-	// Check if currently hibernated (stopped with hibernation)
-	isHibernated := hibernationSupported && instance.State != nil && string(instance.State.Name) == "stopped"
+	// We can only infer hibernation when:
+	// 1. Instance supports hibernation
+	// 2. Instance is in stopped state
+	// 3. (In a real scenario, we'd check StateTransitionReason, but AWS doesn't clearly distinguish)
+	// Note: This is a best-guess - AWS doesn't provide a definitive "was hibernated" flag
+	possiblyHibernated := hibernationSupported && currentState == "stopped"
 
-	return hibernationSupported, isHibernated, nil
+	return hibernationSupported, currentState, possiblyHibernated, nil
 }
 
 // ApplyHibernationPolicy applies a hibernation policy template to an instance
@@ -678,7 +688,7 @@ func (m *Manager) ApplyHibernationPolicy(instanceName string, policyID string) e
 		instanceSchedule := schedule
 		instanceSchedule.ID = fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
 		
-		if err := m.hibernationScheduler.AddSchedule(&instanceSchedule); err != nil {
+		if err := m.idleScheduler.AddSchedule(&instanceSchedule); err != nil {
 			return fmt.Errorf("failed to add schedule %s: %w", schedule.Name, err)
 		}
 	}
@@ -703,7 +713,7 @@ func (m *Manager) RemoveHibernationPolicy(instanceName string, policyID string) 
 	// Remove schedules from the scheduler
 	for _, schedule := range template.Schedules {
 		scheduleID := fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
-		if err := m.hibernationScheduler.DeleteSchedule(scheduleID); err != nil {
+		if err := m.idleScheduler.DeleteSchedule(scheduleID); err != nil {
 			// Log but don't fail if schedule doesn't exist
 			fmt.Printf("Warning: failed to delete schedule %s: %v\n", scheduleID, err)
 		}
@@ -718,17 +728,17 @@ func (m *Manager) RemoveHibernationPolicy(instanceName string, policyID string) 
 }
 
 // ListHibernationPolicies returns all available hibernation policy templates
-func (m *Manager) ListHibernationPolicies() []*hibernation.PolicyTemplate {
+func (m *Manager) ListIdlePolicies() []*idle.PolicyTemplate {
 	return m.policyManager.ListTemplates()
 }
 
-// GetHibernationPolicy gets a specific hibernation policy template
-func (m *Manager) GetHibernationPolicy(policyID string) (*hibernation.PolicyTemplate, error) {
+// GetIdlePolicy gets a specific idle policy template
+func (m *Manager) GetIdlePolicy(policyID string) (*idle.PolicyTemplate, error) {
 	return m.policyManager.GetTemplate(policyID)
 }
 
-// GetInstancePolicies returns the hibernation policies applied to an instance
-func (m *Manager) GetInstancePolicies(instanceName string) ([]*hibernation.PolicyTemplate, error) {
+// GetInstancePolicies returns the idle policies applied to an instance
+func (m *Manager) GetInstancePolicies(instanceName string) ([]*idle.PolicyTemplate, error) {
 	// Get the instance ID
 	instanceID, err := m.findInstanceByName(instanceName)
 	if err != nil {
@@ -738,8 +748,8 @@ func (m *Manager) GetInstancePolicies(instanceName string) ([]*hibernation.Polic
 	return m.policyManager.GetAppliedTemplates(instanceID)
 }
 
-// RecommendHibernationPolicy recommends a hibernation policy based on instance characteristics
-func (m *Manager) RecommendHibernationPolicy(instanceName string) (*hibernation.PolicyTemplate, error) {
+// RecommendIdlePolicy recommends an idle policy based on instance characteristics
+func (m *Manager) RecommendIdlePolicy(instanceName string) (*idle.PolicyTemplate, error) {
 	// Get instance details
 	instanceID, err := m.findInstanceByName(instanceName)
 	if err != nil {

@@ -406,7 +406,7 @@ func TestInstanceCommands_Hibernate(t *testing.T) {
 			name:        "API error on hibernation status",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "check hibernation status for test-instance failed",
+			errorMsg:    "check EC2 hibernation",
 			setupMock: func(mock *MockAPIClient) {
 				// Hibernate command first calls GetInstanceHibernationStatus
 				mock.HibernationStatusError = fmt.Errorf("status check failed")
@@ -477,7 +477,7 @@ func TestInstanceCommands_Resume(t *testing.T) {
 			name:        "API error",
 			args:        []string{"test-instance"},
 			expectError: true,
-			errorMsg:    "check hibernation status for test-instance failed",
+			errorMsg:    "check EC2 hibernation",
 			setupMock: func(mock *MockAPIClient) {
 				// Resume command first calls GetInstanceHibernationStatus
 				mock.HibernationStatusError = fmt.Errorf("status check failed")

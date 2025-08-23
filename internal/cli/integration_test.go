@@ -454,8 +454,20 @@ func TestRightsizingCommandIntegration(t *testing.T) {
 	mockClient := NewMockAPIClient()
 	app := NewAppWithClient("1.0.0", mockClient)
 
+	// Add test instance
+	mockClient.Instances = []types.Instance{
+		{
+			ID:           "i-1234567890abcdef0",
+			Name:         "test-instance",
+			State:        "running",
+			PublicIP:     "54.123.45.67",
+			Template:     "python-ml",
+			InstanceType: "t3.medium",
+		},
+	}
+
 	// Test delegation to scaling commands
-	args := []string{"analyze"}
+	args := []string{"analyze", "test-instance"}
 	err := app.Rightsizing(args)
 
 	assert.NoError(t, err)
@@ -466,8 +478,20 @@ func TestScalingCommandIntegration(t *testing.T) {
 	mockClient := NewMockAPIClient()
 	app := NewAppWithClient("1.0.0", mockClient)
 
+	// Add test instance
+	mockClient.Instances = []types.Instance{
+		{
+			ID:           "i-1234567890abcdef0",
+			Name:         "test-instance",
+			State:        "running",
+			PublicIP:     "54.123.45.67",
+			Template:     "python-ml",
+			InstanceType: "t3.medium",
+		},
+	}
+
 	// Test delegation to scaling commands
-	args := []string{"up", "test-instance"}
+	args := []string{"analyze", "test-instance"}
 	err := app.Scaling(args)
 
 	assert.NoError(t, err)

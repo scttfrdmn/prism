@@ -1,7 +1,7 @@
 # CloudWorkstation Makefile
 # Builds both daemon and CLI client
 
-VERSION := 0.4.4
+VERSION := 0.4.5
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
@@ -78,6 +78,17 @@ clean:
 
 # Test targets
 .PHONY: test test-unit test-integration test-e2e test-coverage test-all test-aws test-aws-quick test-aws-setup
+
+# Run automated test suite
+test-automated: build
+	@echo "🤖 Running automated test suite..."
+	@chmod +x test/automated/run-tests.sh
+	@./test/automated/run-tests.sh
+
+# Run GUI Playwright tests
+test-gui:
+	@echo "🎨 Running GUI tests..."
+	@cd cmd/cws-gui/frontend && npm install && npx playwright test
 
 # Run all unit tests (excluding GUI/TUI packages planned for Phase 2)
 # Uses development mode to avoid keychain password prompts
