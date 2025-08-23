@@ -371,12 +371,22 @@ cd cloudworkstation
 # Set development mode (avoids keychain prompts)
 cp .env.example .env
 
+# Configure git hooks for automated testing
+./scripts/setup-git-hooks.sh
+
 # Build all components
 make build
 
 # Run tests
 make test
 ```
+
+### Automated Testing
+CloudWorkstation uses git hooks to ensure code quality:
+- **Pre-commit**: Fast checks (formatting, build, unit tests)
+- **Pre-push**: Comprehensive validation (all tests, E2E, integration)
+
+To bypass hooks in emergencies: `git commit/push --no-verify`
 
 ## 📄 License
 
