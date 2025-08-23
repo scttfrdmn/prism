@@ -167,7 +167,7 @@ func (cm *ConnectionManager) TestPortAvailability(ctx context.Context, target st
 	}
 
 	// Close connection immediately
-	conn.Close()
+	_ = conn.Close()
 	cm.monitor.RecordValue("port_test_successes", 1, "count")
 	return nil
 }
@@ -288,7 +288,7 @@ func (cm *ConnectionManager) attemptConnection(ctx context.Context, address stri
 	}
 
 	// Close connection immediately - we just wanted to test connectivity
-	conn.Close()
+	_ = conn.Close()
 
 	return &ConnectionResult{
 		Address:   address,

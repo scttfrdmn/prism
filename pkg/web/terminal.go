@@ -74,7 +74,7 @@ func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// In a real implementation, you would upgrade to WebSocket here
 	// For now, we'll implement a simple REST API for terminal operations
-	
+
 	switch r.Method {
 	case http.MethodPost:
 		ts.handleConnect(w, r)
@@ -206,7 +206,7 @@ func (ts *TerminalServer) handleDisconnect(w http.ResponseWriter, r *http.Reques
 		session.Session.Close()
 	}
 	if session.SSHClient != nil {
-		session.SSHClient.Close()
+		_ = session.SSHClient.Close()
 	}
 	session.Connected = false
 	session.mu.Unlock()
@@ -228,26 +228,26 @@ type LocalTerminal struct {
 // NewLocalTerminal creates a new local terminal
 func NewLocalTerminal() (*LocalTerminal, error) {
 	cmd := exec.Command("/bin/bash")
-	
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	
+
 	return &LocalTerminal{
 		cmd:    cmd,
 		stdin:  stdin,

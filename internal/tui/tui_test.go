@@ -62,7 +62,7 @@ func TestAppModelStructure(t *testing.T) {
 	model := &AppModel{
 		currentPage: DashboardPage,
 	}
-	
+
 	if model.currentPage != DashboardPage {
 		t.Errorf("Expected current page to be DashboardPage, got %v", model.currentPage)
 	}

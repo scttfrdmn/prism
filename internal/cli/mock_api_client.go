@@ -31,11 +31,11 @@ type MockAPIClient struct {
 	LaunchError            error // Specific error for LaunchInstance method
 
 	// Mock data
-	Instances         []types.Instance
-	Templates         map[string]types.Template
-	Volumes           []types.EFSVolume
-	StorageVolumes    []types.EBSVolume
-	Projects          []types.Project
+	Instances      []types.Instance
+	Templates      map[string]types.Template
+	Volumes        []types.EFSVolume
+	StorageVolumes []types.EBSVolume
+	Projects       []types.Project
 	// Legacy idle fields removed - using new hibernation policy system
 	DaemonStatus      *types.DaemonStatus
 	HibernationStatus *types.HibernationStatus

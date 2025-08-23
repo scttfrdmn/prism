@@ -70,12 +70,12 @@ You can filter results using various flags.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Build args array with flags
 			var searchArgs []string
-			
+
 			// Add query if provided
 			if len(args) > 0 {
 				searchArgs = append(searchArgs, args[0])
 			}
-			
+
 			// Add flags
 			if category, _ := cmd.Flags().GetString("category"); category != "" {
 				searchArgs = append(searchArgs, "--category", category)
@@ -92,7 +92,7 @@ You can filter results using various flags.`,
 			if featured, _ := cmd.Flags().GetBool("featured"); featured {
 				searchArgs = append(searchArgs, "--featured")
 			}
-			
+
 			return tc.templateCommands.templatesSearch(searchArgs)
 		},
 	}
@@ -130,18 +130,18 @@ Without a template name, validates all templates.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Build args with flags
 			var validateArgs []string
-			
+
 			if len(args) > 0 {
 				validateArgs = append(validateArgs, args[0])
 			}
-			
+
 			if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
 				validateArgs = append(validateArgs, "--verbose")
 			}
 			if strict, _ := cmd.Flags().GetBool("strict"); strict {
 				validateArgs = append(validateArgs, "--strict")
 			}
-			
+
 			return tc.templateCommands.validateTemplates(validateArgs)
 		},
 	}
@@ -163,18 +163,18 @@ compatibility, performance, and security.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Build args with flags
 			var testArgs []string
-			
+
 			if len(args) > 0 {
 				testArgs = append(testArgs, args[0])
 			}
-			
+
 			if suite, _ := cmd.Flags().GetString("suite"); suite != "" {
 				testArgs = append(testArgs, "--suite", suite)
 			}
 			if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
 				testArgs = append(testArgs, "--verbose")
 			}
-			
+
 			return tc.templateCommands.templatesTest(testArgs)
 		},
 	}
@@ -221,14 +221,14 @@ func (tc *TemplateCobraCommands) createInstallCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Build args with flags
 			installArgs := []string{args[0]}
-			
+
 			if force, _ := cmd.Flags().GetBool("force"); force {
 				installArgs = append(installArgs, "--force")
 			}
 			if version, _ := cmd.Flags().GetString("version"); version != "" {
 				installArgs = append(installArgs, "--version", version)
 			}
-			
+
 			return tc.templateCommands.templatesInstall(installArgs)
 		},
 	}
@@ -289,7 +289,7 @@ including installed packages, services, and users.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Build args with flags
 			snapshotArgs := []string{args[0]}
-			
+
 			if name, _ := cmd.Flags().GetString("name"); name != "" {
 				snapshotArgs = append(snapshotArgs, "--name", name)
 			}
@@ -299,7 +299,7 @@ including installed packages, services, and users.`,
 			if save, _ := cmd.Flags().GetBool("save"); save {
 				snapshotArgs = append(snapshotArgs, "--save")
 			}
-			
+
 			return tc.templateCommands.templatesSnapshot(snapshotArgs)
 		},
 	}

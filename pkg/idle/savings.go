@@ -11,23 +11,23 @@ type SavingsReport struct {
 	ReportID    string    `json:"report_id"`
 	GeneratedAt time.Time `json:"generated_at"`
 	Period      Period    `json:"period"`
-	
+
 	// Overall savings
-	TotalSaved          float64 `json:"total_saved"`
-	ProjectedSavings    float64 `json:"projected_savings"`
-	HibernationHours    float64 `json:"hibernation_hours"`
-	ActiveHours         float64 `json:"active_hours"`
-	SavingsPercentage   float64 `json:"savings_percentage"`
-	
+	TotalSaved        float64 `json:"total_saved"`
+	ProjectedSavings  float64 `json:"projected_savings"`
+	HibernationHours  float64 `json:"hibernation_hours"`
+	ActiveHours       float64 `json:"active_hours"`
+	SavingsPercentage float64 `json:"savings_percentage"`
+
 	// Instance breakdown
 	InstanceSavings []InstanceSaving `json:"instance_savings"`
-	
+
 	// Schedule effectiveness
 	SchedulePerformance []SchedulePerformance `json:"schedule_performance"`
-	
+
 	// Recommendations
 	Recommendations []Recommendation `json:"recommendations"`
-	
+
 	// Trends
 	DailySavings   []DailySaving   `json:"daily_savings"`
 	WeeklySavings  []WeeklySaving  `json:"weekly_savings"`
@@ -51,7 +51,7 @@ type InstanceSaving struct {
 	ActiveHours      float64 `json:"active_hours"`
 	TotalSaved       float64 `json:"total_saved"`
 	SavingsPercent   float64 `json:"savings_percent"`
-	
+
 	// Hibernation events
 	HibernationEvents []HibernationEvent `json:"hibernation_events"`
 }
@@ -132,30 +132,30 @@ func (sc *SavingsCalculator) GenerateReport(period Period) (*SavingsReport, erro
 		GeneratedAt: time.Now(),
 		Period:      period,
 	}
-	
+
 	// Calculate overall savings
 	report.TotalSaved = sc.calculateTotalSavings(period)
 	report.HibernationHours = sc.calculateHibernationHours(period)
 	report.ActiveHours = sc.calculateActiveHours(period)
 	report.SavingsPercentage = (report.HibernationHours / (report.HibernationHours + report.ActiveHours)) * 100
-	
+
 	// Project future savings
 	report.ProjectedSavings = sc.projectFutureSavings(report.TotalSaved, period.Days)
-	
+
 	// Generate instance breakdown
 	report.InstanceSavings = sc.generateInstanceBreakdown(period)
-	
+
 	// Analyze schedule performance
 	report.SchedulePerformance = sc.analyzeSchedulePerformance(period)
-	
+
 	// Generate recommendations
 	report.Recommendations = sc.generateRecommendations(report)
-	
+
 	// Calculate trends
 	report.DailySavings = sc.calculateDailyTrends(period)
 	report.WeeklySavings = sc.calculateWeeklyTrends(period)
 	report.MonthlySavings = sc.calculateMonthlyTrends(period)
-	
+
 	return report, nil
 }
 
@@ -200,13 +200,13 @@ func (sc *SavingsCalculator) projectFutureSavings(currentSavings float64, days i
 // generateInstanceBreakdown generates savings breakdown by instance
 func (sc *SavingsCalculator) generateInstanceBreakdown(period Period) []InstanceSaving {
 	instanceMap := make(map[string]*InstanceSaving)
-	
+
 	// Group events by instance
 	for _, event := range sc.events {
 		if event.StartTime.After(period.Start) && event.StartTime.Before(period.End) {
 			// This is simplified - would need actual instance data
 			instanceID := "i-example"
-			
+
 			if _, exists := instanceMap[instanceID]; !exists {
 				instanceMap[instanceID] = &InstanceSaving{
 					InstanceID:        instanceID,
@@ -216,14 +216,14 @@ func (sc *SavingsCalculator) generateInstanceBreakdown(period Period) []Instance
 					HibernationEvents: []HibernationEvent{},
 				}
 			}
-			
+
 			saving := instanceMap[instanceID]
 			saving.HibernationHours += event.Duration
 			saving.TotalSaved += event.SavedAmount
 			saving.HibernationEvents = append(saving.HibernationEvents, event)
 		}
 	}
-	
+
 	// Convert map to slice
 	savings := make([]InstanceSaving, 0, len(instanceMap))
 	for _, saving := range instanceMap {
@@ -231,14 +231,14 @@ func (sc *SavingsCalculator) generateInstanceBreakdown(period Period) []Instance
 		saving.SavingsPercent = (saving.HibernationHours / (saving.HibernationHours + saving.ActiveHours)) * 100
 		savings = append(savings, *saving)
 	}
-	
+
 	return savings
 }
 
 // analyzeSchedulePerformance analyzes how well schedules are performing
 func (sc *SavingsCalculator) analyzeSchedulePerformance(period Period) []SchedulePerformance {
 	scheduleMap := make(map[string]*SchedulePerformance)
-	
+
 	for _, event := range sc.events {
 		if event.StartTime.After(period.Start) && event.StartTime.Before(period.End) {
 			if event.ScheduleName != "" {
@@ -247,14 +247,14 @@ func (sc *SavingsCalculator) analyzeSchedulePerformance(period Period) []Schedul
 						ScheduleName: event.ScheduleName,
 					}
 				}
-				
+
 				perf := scheduleMap[event.ScheduleName]
 				perf.ExecutionCount++
 				perf.TotalSaved += event.SavedAmount
 			}
 		}
 	}
-	
+
 	// Calculate averages and convert to slice
 	performances := make([]SchedulePerformance, 0, len(scheduleMap))
 	for _, perf := range scheduleMap {
@@ -264,14 +264,14 @@ func (sc *SavingsCalculator) analyzeSchedulePerformance(period Period) []Schedul
 		}
 		performances = append(performances, *perf)
 	}
-	
+
 	return performances
 }
 
 // generateRecommendations generates optimization recommendations
 func (sc *SavingsCalculator) generateRecommendations(report *SavingsReport) []Recommendation {
 	recommendations := []Recommendation{}
-	
+
 	// Check if hibernation percentage is low
 	if report.SavingsPercentage < 20 {
 		recommendations = append(recommendations, Recommendation{
@@ -282,7 +282,7 @@ func (sc *SavingsCalculator) generateRecommendations(report *SavingsReport) []Re
 			Action:      "Consider adding more aggressive hibernation schedules",
 		})
 	}
-	
+
 	// Check for instances with no hibernation
 	for _, instance := range report.InstanceSavings {
 		if instance.HibernationHours == 0 {
@@ -295,7 +295,7 @@ func (sc *SavingsCalculator) generateRecommendations(report *SavingsReport) []Re
 			})
 		}
 	}
-	
+
 	// Check for underperforming schedules
 	for _, perf := range report.SchedulePerformance {
 		if perf.SuccessRate < 80 {
@@ -308,37 +308,37 @@ func (sc *SavingsCalculator) generateRecommendations(report *SavingsReport) []Re
 			})
 		}
 	}
-	
+
 	return recommendations
 }
 
 // calculateDailyTrends calculates daily savings trends
 func (sc *SavingsCalculator) calculateDailyTrends(period Period) []DailySaving {
 	dailyMap := make(map[string]*DailySaving)
-	
+
 	for _, event := range sc.events {
 		if event.StartTime.After(period.Start) && event.StartTime.Before(period.End) {
 			dateKey := event.StartTime.Format("2006-01-02")
-			
+
 			if _, exists := dailyMap[dateKey]; !exists {
 				dailyMap[dateKey] = &DailySaving{
 					Date: event.StartTime.Truncate(24 * time.Hour),
 				}
 			}
-			
+
 			daily := dailyMap[dateKey]
 			daily.HibernationHours += event.Duration
 			daily.Saved += event.SavedAmount
 		}
 	}
-	
+
 	// Convert to slice and sort by date
 	dailySavings := make([]DailySaving, 0, len(dailyMap))
 	for _, daily := range dailyMap {
 		daily.ActiveHours = 24 - daily.HibernationHours
 		dailySavings = append(dailySavings, *daily)
 	}
-	
+
 	return dailySavings
 }
 

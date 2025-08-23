@@ -43,7 +43,7 @@ func (s *Server) handleIdlePolicyOperations(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Policy ID required", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Handle special routes
 	if path == "recommend" {
 		if r.Method == "POST" {
@@ -53,7 +53,7 @@ func (s *Server) handleIdlePolicyOperations(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	switch r.Method {
 	case "GET":
 		s.getIdlePolicy(w, r, path)
@@ -86,7 +86,7 @@ func (s *Server) handleIdleSavings(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listIdlePolicies(w http.ResponseWriter, r *http.Request) {
 	policyManager := idle.NewPolicyManager()
 	policies := policyManager.ListTemplates()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(policies); err != nil {
 		http.Error(w, "Failed to encode policies", http.StatusInternalServerError)
@@ -102,7 +102,7 @@ func (s *Server) getIdlePolicy(w http.ResponseWriter, r *http.Request, policyID 
 		http.Error(w, "Policy not found", http.StatusNotFound)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(policy); err != nil {
 		http.Error(w, "Failed to encode policy", http.StatusInternalServerError)
@@ -116,19 +116,19 @@ func (s *Server) recommendIdlePolicy(w http.ResponseWriter, r *http.Request) {
 		InstanceType string            `json:"instance_type"`
 		Tags         map[string]string `json:"tags"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	policyManager := idle.NewPolicyManager()
 	policy, err := policyManager.RecommendTemplate(req.InstanceType, req.Tags)
 	if err != nil {
 		http.Error(w, "Failed to recommend policy", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(policy); err != nil {
 		http.Error(w, "Failed to encode recommendation", http.StatusInternalServerError)
@@ -141,7 +141,7 @@ func (s *Server) listIdleSchedules(w http.ResponseWriter, r *http.Request) {
 	// TODO: Integrate with scheduler when available
 	// For now, return empty list
 	schedules := []idle.Schedule{}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(schedules); err != nil {
 		http.Error(w, "Failed to encode schedules", http.StatusInternalServerError)
@@ -174,7 +174,7 @@ func (s *Server) getIdleSavingsReport(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(report); err != nil {
 		http.Error(w, "Failed to encode report", http.StatusInternalServerError)
@@ -210,7 +210,7 @@ func (s *Server) handleInstanceIdlePolicy(w http.ResponseWriter, r *http.Request
 func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request, instanceName string) {
 	// TODO: Implement actual policy retrieval
 	policies := []idle.PolicyTemplate{}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(policies); err != nil {
 		http.Error(w, "Failed to encode policies", http.StatusInternalServerError)
@@ -226,7 +226,7 @@ func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Reques
 		"status":  "success",
 		"message": fmt.Sprintf("Successfully applied idle policy %s to instance %s", policyID, instanceName),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
@@ -242,7 +242,7 @@ func (s *Server) removeIdlePolicyFromInstance(w http.ResponseWriter, r *http.Req
 		"status":  "success",
 		"message": fmt.Sprintf("Successfully removed idle policy %s from instance %s", policyID, instanceName),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)

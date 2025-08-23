@@ -129,7 +129,7 @@ func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 			}
 
 			w.Flush()
-			
+
 			fmt.Println("\n💡 Tip: Use 'cws idle policy details <policy-id>' to see full details")
 			fmt.Println("💰 Estimated savings are based on typical usage patterns")
 
@@ -156,7 +156,7 @@ func (hc *IdleCobraCommands) createPolicyApplyCommand() *cobra.Command {
 			}
 
 			fmt.Printf("🔄 Applying idle policy '%s' to instance '%s'...\n", policy.Name, instanceName)
-			
+
 			if err := hc.app.apiClient.ApplyIdlePolicy(hc.app.ctx, instanceName, policyID); err != nil {
 				return fmt.Errorf("failed to apply idle policy: %w", err)
 			}
@@ -167,7 +167,7 @@ func (hc *IdleCobraCommands) createPolicyApplyCommand() *cobra.Command {
 			fmt.Printf("   Category: %s\n", policy.Category)
 			fmt.Printf("   Estimated Savings: %.0f%%\n", policy.EstimatedSavingsPercent)
 			fmt.Printf("   Schedules: %d configured\n", len(policy.Schedules))
-			
+
 			if policy.AutoApply {
 				fmt.Printf("   ⚡ Auto-apply enabled (high priority)\n")
 			}
@@ -194,7 +194,7 @@ func (hc *IdleCobraCommands) createPolicyRemoveCommand() *cobra.Command {
 			policyID := args[1]
 
 			fmt.Printf("🔄 Removing idle policy '%s' from instance '%s'...\n", policyID, instanceName)
-			
+
 			if err := hc.app.apiClient.RemoveIdlePolicy(hc.app.ctx, instanceName, policyID); err != nil {
 				return fmt.Errorf("failed to remove idle policy: %w", err)
 			}
@@ -235,7 +235,7 @@ func (hc *IdleCobraCommands) createPolicyStatusCommand() *cobra.Command {
 				fmt.Printf("   Category: %s\n", policy.Category)
 				fmt.Printf("   Estimated Savings: %.0f%%\n", policy.EstimatedSavingsPercent)
 				fmt.Printf("   Schedules:\n")
-				
+
 				for _, schedule := range policy.Schedules {
 					fmt.Printf("     • %s: ", schedule.Name)
 					switch schedule.Type {
@@ -314,30 +314,30 @@ func (hc *IdleCobraCommands) createPolicyDetailsCommand() *cobra.Command {
 
 			fmt.Printf("📋 Idle Policy: %s\n", policy.Name)
 			fmt.Printf("═══════════════════════════════════════════════\n\n")
-			
+
 			fmt.Printf("ID: %s\n", policy.ID)
 			fmt.Printf("Category: %s\n", policy.Category)
 			fmt.Printf("Description: %s\n", policy.Description)
 			fmt.Printf("Estimated Savings: %.0f%%\n", policy.EstimatedSavingsPercent)
 			fmt.Printf("Auto-apply: %v\n", policy.AutoApply)
 			fmt.Printf("Priority: %d\n", policy.Priority)
-			
+
 			if len(policy.SuitableFor) > 0 {
 				fmt.Printf("Suitable For: %v\n", policy.SuitableFor)
 			}
-			
+
 			if len(policy.Conflicts) > 0 {
 				fmt.Printf("Conflicts With: %v\n", policy.Conflicts)
 			}
 
 			fmt.Printf("\n📅 Idle Schedules (%d):\n", len(policy.Schedules))
 			fmt.Printf("───────────────────────────────\n")
-			
+
 			for i, schedule := range policy.Schedules {
 				fmt.Printf("\n%d. %s\n", i+1, schedule.Name)
 				fmt.Printf("   Type: %s\n", schedule.Type)
 				fmt.Printf("   Action: %s → %s\n", schedule.HibernateAction, schedule.WakeAction)
-				
+
 				switch schedule.Type {
 				case "daily":
 					fmt.Printf("   Time: %s - %s\n", schedule.StartTime, schedule.EndTime)
@@ -355,11 +355,11 @@ func (hc *IdleCobraCommands) createPolicyDetailsCommand() *cobra.Command {
 					fmt.Printf("   Schedule: Monday-Friday 9 AM - 6 PM\n")
 					fmt.Printf("   Hibernates: Nights and weekends\n")
 				}
-				
+
 				if schedule.GracePeriodMinutes > 0 {
 					fmt.Printf("   Grace Period: %d minutes\n", schedule.GracePeriodMinutes)
 				}
-				
+
 				if len(schedule.RequireTags) > 0 {
 					fmt.Printf("   Required Tags: %v\n", schedule.RequireTags)
 				}
@@ -404,7 +404,7 @@ func (hc *IdleCobraCommands) createScheduleListCommand() *cobra.Command {
 			fmt.Println("════════════════════════════")
 			fmt.Println("\n(Schedule listing will be populated from the scheduler)")
 			fmt.Println("\n💡 Schedules are automatically created when policies are applied to instances")
-			
+
 			return nil
 		},
 	}
@@ -413,7 +413,7 @@ func (hc *IdleCobraCommands) createScheduleListCommand() *cobra.Command {
 // createSavingsCommand creates the savings report command
 func (hc *IdleCobraCommands) createSavingsCommand() *cobra.Command {
 	var period string
-	
+
 	cmd := &cobra.Command{
 		Use:   "savings",
 		Short: "Generate idle cost savings report",
@@ -421,7 +421,7 @@ func (hc *IdleCobraCommands) createSavingsCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Printf("💰 Idle Cost Savings Report\n")
 			fmt.Printf("═══════════════════════════════════\n\n")
-			
+
 			// Parse period flag
 			days := 30 // Default
 			if period == "7d" {
@@ -429,28 +429,28 @@ func (hc *IdleCobraCommands) createSavingsCommand() *cobra.Command {
 			} else if period == "90d" {
 				days = 90
 			}
-			
+
 			fmt.Printf("Period: Last %d days\n\n", days)
-			
+
 			// This would generate actual savings report
 			fmt.Println("📊 Summary:")
 			fmt.Printf("   Total Saved: $%.2f\n", 245.67)
 			fmt.Printf("   Idle Hours: %.1f\n", 1234.5)
 			fmt.Printf("   Active Hours: %.1f\n", 2345.6)
 			fmt.Printf("   Savings Percentage: %.1f%%\n", 34.5)
-			
+
 			fmt.Println("\n📈 Projected Monthly Savings: $320.00")
-			
+
 			fmt.Println("\n💡 Recommendations:")
 			fmt.Println("   • Enable idle on 2 more instances for additional $80/month savings")
 			fmt.Println("   • Consider 'aggressive-cost' policy for dev instances")
 			fmt.Println("   • Review idle thresholds for GPU instances")
-			
+
 			return nil
 		},
 	}
-	
+
 	cmd.Flags().StringVarP(&period, "period", "p", "30d", "Report period (7d, 30d, 90d)")
-	
+
 	return cmd
 }

@@ -3,6 +3,8 @@
 package cli
 
 import (
+	// "fmt" // Uncomment when Project commands are implemented
+
 	"github.com/spf13/cobra"
 )
 
@@ -21,24 +23,24 @@ func (r *CobraCommandRegistry) RegisterAllCommands(root *cobra.Command) {
 	// Template commands (COMPLETED)
 	templateCobra := NewTemplateCobraCommands(r.app)
 	root.AddCommand(templateCobra.CreateTemplatesCommand())
-	
+
 	// Daemon commands (EXAMPLE PROVIDED)
 	daemonCobra := NewDaemonCobraCommands(r.app)
 	root.AddCommand(daemonCobra.CreateDaemonCommand())
-	
+
 	// Idle/Hibernation commands (TODO)
 	idleCobra := NewIdleCobraCommands(r.app)
 	root.AddCommand(idleCobra.CreateIdleCommand())
-	
-	// Project commands (TODO)
-	projectCobra := NewProjectCobraCommands(r.app)
-	root.AddCommand(projectCobra.CreateProjectCommand())
-	
+
+	// Project commands (TODO - Project functionality not yet implemented)
+	// projectCobra := NewProjectCobraCommands(r.app)
+	// root.AddCommand(projectCobra.CreateProjectCommand())
+
 	// Storage commands (TODO)
 	storageCobra := NewStorageCobraCommands(r.app)
 	root.AddCommand(storageCobra.CreateStorageCommand())
 	root.AddCommand(storageCobra.CreateVolumeCommand())
-	
+
 	// Repository commands (TODO)
 	repoCobra := NewRepoCobraCommands(r.app)
 	root.AddCommand(repoCobra.CreateRepoCommand())
@@ -47,6 +49,7 @@ func (r *CobraCommandRegistry) RegisterAllCommands(root *cobra.Command) {
 // IdleCobraCommands is defined in idle_cobra.go
 
 // ProjectCobraCommands handles project management commands
+// TODO: Implement when Project functionality is added to App
 type ProjectCobraCommands struct {
 	app *App
 }
@@ -57,6 +60,8 @@ func NewProjectCobraCommands(app *App) *ProjectCobraCommands {
 }
 
 // CreateProjectCommand creates the project command with subcommands
+// TODO: Implement when Project functionality is added to App
+/*
 func (pc *ProjectCobraCommands) CreateProjectCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "project",
@@ -64,7 +69,7 @@ func (pc *ProjectCobraCommands) CreateProjectCommand() *cobra.Command {
 		Long: `Manage projects for organizing instances, tracking budgets, and collaborating
 with team members.`,
 	}
-	
+
 	// Add subcommands
 	cmd.AddCommand(
 		pc.createListCommand(),
@@ -74,24 +79,35 @@ with team members.`,
 		pc.createMembersCommand(),
 		pc.createBudgetCommand(),
 	)
-	
+
 	return cmd
 }
+*/
 
+// TODO: Implement these methods when Project functionality is added to App
+/*
 // createListCommand creates the list subcommand
 func (pc *ProjectCobraCommands) createListCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all projects",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: Implement
-			return nil
+			all, _ := cmd.Flags().GetBool("all")
+			filter, _ := cmd.Flags().GetString("filter")
+			listArgs := []string{"list"}
+			if all {
+				listArgs = append(listArgs, "--all")
+			}
+			if filter != "" {
+				listArgs = append(listArgs, "--filter", filter)
+			}
+			return pc.app.Project(listArgs)
 		},
 	}
-	
+
 	cmd.Flags().Bool("all", false, "Show all projects including archived")
 	cmd.Flags().String("filter", "", "Filter projects by name or tag")
-	
+
 	return cmd
 }
 
@@ -104,17 +120,25 @@ func (pc *ProjectCobraCommands) createCreateCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			description, _ := cmd.Flags().GetString("description")
 			budget, _ := cmd.Flags().GetFloat64("budget")
-			// TODO: Call actual implementation
-			_ = description
-			_ = budget
-			return nil
+			tags, _ := cmd.Flags().GetStringSlice("tags")
+			createArgs := []string{"create", args[0]}
+			if description != "" {
+				createArgs = append(createArgs, "--description", description)
+			}
+			if budget > 0 {
+				createArgs = append(createArgs, "--budget", fmt.Sprintf("%.2f", budget))
+			}
+			for _, tag := range tags {
+				createArgs = append(createArgs, "--tag", tag)
+			}
+			return pc.app.Project(createArgs)
 		},
 	}
-	
+
 	cmd.Flags().String("description", "", "Project description")
 	cmd.Flags().Float64("budget", 0, "Monthly budget limit")
 	cmd.Flags().StringSlice("tags", []string{}, "Project tags")
-	
+
 	return cmd
 }
 
@@ -125,15 +149,27 @@ func (pc *ProjectCobraCommands) createUpdateCommand() *cobra.Command {
 		Short: "Update project settings",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: Implement
-			return nil
+			description, _ := cmd.Flags().GetString("description")
+			budget, _ := cmd.Flags().GetFloat64("budget")
+			archive, _ := cmd.Flags().GetBool("archive")
+			updateArgs := []string{"update", args[0]}
+			if description != "" {
+				updateArgs = append(updateArgs, "--description", description)
+			}
+			if budget > 0 {
+				updateArgs = append(updateArgs, "--budget", fmt.Sprintf("%.2f", budget))
+			}
+			if archive {
+				updateArgs = append(updateArgs, "--archive")
+			}
+			return pc.app.Project(updateArgs)
 		},
 	}
-	
+
 	cmd.Flags().String("description", "", "New description")
 	cmd.Flags().Float64("budget", 0, "New budget limit")
 	cmd.Flags().Bool("archive", false, "Archive the project")
-	
+
 	return cmd
 }
 
@@ -145,14 +181,16 @@ func (pc *ProjectCobraCommands) createDeleteCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			force, _ := cmd.Flags().GetBool("force")
-			// TODO: Call actual implementation
-			_ = force
-			return nil
+			deleteArgs := []string{"delete", args[0]}
+			if force {
+				deleteArgs = append(deleteArgs, "--force")
+			}
+			return pc.app.Project(deleteArgs)
 		},
 	}
-	
+
 	cmd.Flags().Bool("force", false, "Force delete without confirmation")
-	
+
 	return cmd
 }
 
@@ -162,7 +200,7 @@ func (pc *ProjectCobraCommands) createMembersCommand() *cobra.Command {
 		Use:   "members",
 		Short: "Manage project members",
 	}
-	
+
 	// Members subcommands
 	cmd.AddCommand(
 		&cobra.Command{
@@ -181,8 +219,7 @@ func (pc *ProjectCobraCommands) createMembersCommand() *cobra.Command {
 			Short: "Remove a member from project",
 			Args:  cobra.ExactArgs(2),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return pc.app.Project([]string{"members", "remove", args[0], args[1]})
 			},
 		},
 		&cobra.Command{
@@ -190,16 +227,15 @@ func (pc *ProjectCobraCommands) createMembersCommand() *cobra.Command {
 			Short: "List project members",
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return pc.app.Project([]string{"members", "list", args[0]})
 			},
 		},
 	)
-	
+
 	// Add flags to add command
 	addCmd := cmd.Commands()[0]
 	addCmd.Flags().String("role", "member", "Member role (owner/admin/member/viewer)")
-	
+
 	return cmd
 }
 
@@ -209,7 +245,7 @@ func (pc *ProjectCobraCommands) createBudgetCommand() *cobra.Command {
 		Use:   "budget",
 		Short: "Manage project budgets",
 	}
-	
+
 	// Budget subcommands
 	cmd.AddCommand(
 		&cobra.Command{
@@ -217,8 +253,7 @@ func (pc *ProjectCobraCommands) createBudgetCommand() *cobra.Command {
 			Short: "Show budget status",
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return pc.app.Project([]string{"budget", args[0]})
 			},
 		},
 		&cobra.Command{
@@ -227,9 +262,11 @@ func (pc *ProjectCobraCommands) createBudgetCommand() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				days, _ := cmd.Flags().GetInt("days")
-				// TODO: Call actual implementation
-				_ = days
-				return nil
+				historyArgs := []string{"budget", "history", args[0]}
+				if days > 0 {
+					historyArgs = append(historyArgs, "--days", fmt.Sprintf("%d", days))
+				}
+				return pc.app.Project(historyArgs)
 			},
 		},
 		&cobra.Command{
@@ -239,24 +276,29 @@ func (pc *ProjectCobraCommands) createBudgetCommand() *cobra.Command {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				threshold, _ := cmd.Flags().GetInt("threshold")
 				email, _ := cmd.Flags().GetString("email")
-				// TODO: Call actual implementation
-				_ = threshold
-				_ = email
-				return nil
+				alertArgs := []string{"budget", "alert", args[0]}
+				if threshold > 0 {
+					alertArgs = append(alertArgs, "--threshold", fmt.Sprintf("%d", threshold))
+				}
+				if email != "" {
+					alertArgs = append(alertArgs, "--email", email)
+				}
+				return pc.app.Project(alertArgs)
 			},
 		},
 	)
-	
+
 	// Add flags
 	historyCmd := cmd.Commands()[1]
 	historyCmd.Flags().Int("days", 30, "Number of days of history")
-	
+
 	alertCmd := cmd.Commands()[2]
 	alertCmd.Flags().Int("threshold", 80, "Alert threshold percentage")
 	alertCmd.Flags().String("email", "", "Email for alerts")
-	
+
 	return cmd
 }
+*/
 
 // StorageCobraCommands handles storage/volume commands
 type StorageCobraCommands struct {
@@ -275,7 +317,7 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 		Short: "Manage CloudWorkstation storage (EBS volumes)",
 		Long:  "Create, attach, detach, and manage EBS storage volumes.",
 	}
-	
+
 	// Add subcommands
 	cmd.AddCommand(
 		&cobra.Command{
@@ -285,10 +327,14 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				size, _ := cmd.Flags().GetString("size")
 				volumeType, _ := cmd.Flags().GetString("type")
-				// TODO: Call actual implementation
-				_ = size
-				_ = volumeType
-				return nil
+				createArgs := []string{"create", args[0]}
+				if size != "" {
+					createArgs = append(createArgs, "--size", size)
+				}
+				if volumeType != "" {
+					createArgs = append(createArgs, "--type", volumeType)
+				}
+				return sc.app.Storage(createArgs)
 			},
 		},
 		&cobra.Command{
@@ -296,8 +342,7 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 			Short: "Attach volume to instance",
 			Args:  cobra.ExactArgs(2),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return sc.app.Storage([]string{"attach", args[0], args[1]})
 			},
 		},
 		&cobra.Command{
@@ -305,8 +350,7 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 			Short: "Detach volume from instance",
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return sc.app.Storage([]string{"detach", args[0]})
 			},
 		},
 		&cobra.Command{
@@ -323,21 +367,23 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
 				force, _ := cmd.Flags().GetBool("force")
-				// TODO: Call actual implementation
-				_ = force
-				return nil
+				deleteArgs := []string{"delete", args[0]}
+				if force {
+					deleteArgs = append(deleteArgs, "--force")
+				}
+				return sc.app.Storage(deleteArgs)
 			},
 		},
 	)
-	
+
 	// Add flags
 	createCmd := cmd.Commands()[0]
 	createCmd.Flags().String("size", "L", "Volume size (S/M/L/XL or custom like 100GB)")
 	createCmd.Flags().String("type", "gp3", "Volume type (gp3/io2/st1)")
-	
+
 	deleteCmd := cmd.Commands()[4]
 	deleteCmd.Flags().Bool("force", false, "Force delete without confirmation")
-	
+
 	return cmd
 }
 
@@ -349,7 +395,7 @@ func (sc *StorageCobraCommands) CreateVolumeCommand() *cobra.Command {
 	cmd.Aliases = []string{"vol"}
 	cmd.Short = "Manage CloudWorkstation volumes (EFS shared storage)"
 	cmd.Long = "Create, attach, detach, and manage EFS shared storage volumes."
-	
+
 	return cmd
 }
 
@@ -370,15 +416,14 @@ func (rc *RepoCobraCommands) CreateRepoCommand() *cobra.Command {
 		Short: "Manage template repositories",
 		Long:  "Add, remove, and manage CloudWorkstation template repositories.",
 	}
-	
+
 	// Add subcommands
 	cmd.AddCommand(
 		&cobra.Command{
 			Use:   "list",
 			Short: "List all repositories",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return rc.app.Repo([]string{"list"})
 			},
 		},
 		&cobra.Command{
@@ -386,8 +431,7 @@ func (rc *RepoCobraCommands) CreateRepoCommand() *cobra.Command {
 			Short: "Add a new repository",
 			Args:  cobra.ExactArgs(2),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return rc.app.Repo([]string{"add", args[0], args[1]})
 			},
 		},
 		&cobra.Command{
@@ -395,8 +439,7 @@ func (rc *RepoCobraCommands) CreateRepoCommand() *cobra.Command {
 			Short: "Remove a repository",
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				// TODO: Implement
-				return nil
+				return rc.app.Repo([]string{"remove", args[0]})
 			},
 		},
 		&cobra.Command{
@@ -404,16 +447,21 @@ func (rc *RepoCobraCommands) CreateRepoCommand() *cobra.Command {
 			Short: "Sync repository templates",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				force, _ := cmd.Flags().GetBool("force")
-				// TODO: Call actual implementation
-				_ = force
-				return nil
+				syncArgs := []string{"sync"}
+				if len(args) > 0 {
+					syncArgs = append(syncArgs, args[0])
+				}
+				if force {
+					syncArgs = append(syncArgs, "--force")
+				}
+				return rc.app.Repo(syncArgs)
 			},
 		},
 	)
-	
+
 	// Add flags
 	syncCmd := cmd.Commands()[3]
 	syncCmd.Flags().Bool("force", false, "Force sync even if up to date")
-	
+
 	return cmd
 }

@@ -72,13 +72,13 @@ func (v *ComprehensiveValidator) ValidateTemplate(template *Template) *Validatio
 		Valid:        true,
 		Results:      []ValidationResult{},
 	}
-	
+
 	// Run all validation rules
 	for _, rule := range v.rules {
 		results := rule.Validate(template)
 		report.Results = append(report.Results, results...)
 	}
-	
+
 	// Count results by level
 	for _, result := range report.Results {
 		switch result.Level {
@@ -91,18 +91,18 @@ func (v *ComprehensiveValidator) ValidateTemplate(template *Template) *Validatio
 			report.InfoCount++
 		}
 	}
-	
+
 	return report
 }
 
 // ValidateAll validates all templates in the registry
 func (v *ComprehensiveValidator) ValidateAll() map[string]*ValidationReport {
 	reports := make(map[string]*ValidationReport)
-	
+
 	for name, template := range v.registry.Templates {
 		reports[name] = v.ValidateTemplate(template)
 	}
-	
+
 	return reports
 }
 
@@ -113,7 +113,7 @@ func (r *RequiredFieldsRule) Name() string { return "required_fields" }
 
 func (r *RequiredFieldsRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	if template.Name == "" {
 		results = append(results, ValidationResult{
 			Level:   ValidationError,
@@ -121,7 +121,7 @@ func (r *RequiredFieldsRule) Validate(template *Template) []ValidationResult {
 			Message: "Template name is required",
 		})
 	}
-	
+
 	if template.Description == "" {
 		results = append(results, ValidationResult{
 			Level:   ValidationError,
@@ -129,7 +129,7 @@ func (r *RequiredFieldsRule) Validate(template *Template) []ValidationResult {
 			Message: "Template description is required",
 		})
 	}
-	
+
 	if template.Base == "" && len(template.Inherits) == 0 {
 		results = append(results, ValidationResult{
 			Level:   ValidationError,
@@ -137,7 +137,7 @@ func (r *RequiredFieldsRule) Validate(template *Template) []ValidationResult {
 			Message: "Template must have a base OS or inherit from another template",
 		})
 	}
-	
+
 	return results
 }
 
@@ -148,13 +148,13 @@ func (r *PackageManagerRule) Name() string { return "package_manager" }
 
 func (r *PackageManagerRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	// Check package manager is valid
 	validManagers := map[string]bool{
-		"apt": true, "dnf": true, "conda": true, 
+		"apt": true, "dnf": true, "conda": true,
 		"spack": true, "ami": true, "pip": true,
 	}
-	
+
 	if template.PackageManager != "" && !validManagers[template.PackageManager] {
 		results = append(results, ValidationResult{
 			Level:   ValidationError,
@@ -162,7 +162,7 @@ func (r *PackageManagerRule) Validate(template *Template) []ValidationResult {
 			Message: fmt.Sprintf("Invalid package manager: %s", template.PackageManager),
 		})
 	}
-	
+
 	// Check package lists match package manager
 	if template.PackageManager == "conda" && len(template.Packages.System) > 0 {
 		results = append(results, ValidationResult{
@@ -171,7 +171,7 @@ func (r *PackageManagerRule) Validate(template *Template) []ValidationResult {
 			Message: "System packages specified but package manager is conda",
 		})
 	}
-	
+
 	return results
 }
 
@@ -182,22 +182,22 @@ func (r *ServicePortRule) Name() string { return "service_ports" }
 
 func (r *ServicePortRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	portMap := make(map[int]string)
-	
+
 	for _, service := range template.Services {
 		if service.Port > 0 {
 			if existing, ok := portMap[service.Port]; ok {
 				results = append(results, ValidationResult{
-					Level:   ValidationError,
-					Field:   "services",
-					Message: fmt.Sprintf("Port %d conflict between services %s and %s", 
+					Level: ValidationError,
+					Field: "services",
+					Message: fmt.Sprintf("Port %d conflict between services %s and %s",
 						service.Port, existing, service.Name),
 				})
 			} else {
 				portMap[service.Port] = service.Name
 			}
-			
+
 			// Check for well-known ports
 			if service.Port < 1024 {
 				results = append(results, ValidationResult{
@@ -208,7 +208,7 @@ func (r *ServicePortRule) Validate(template *Template) []ValidationResult {
 			}
 		}
 	}
-	
+
 	return results
 }
 
@@ -219,9 +219,9 @@ func (r *UserConfigRule) Name() string { return "user_config" }
 
 func (r *UserConfigRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	userMap := make(map[string]bool)
-	
+
 	for _, user := range template.Users {
 		if user.Name == "" {
 			results = append(results, ValidationResult{
@@ -237,7 +237,7 @@ func (r *UserConfigRule) Validate(template *Template) []ValidationResult {
 			})
 		} else {
 			userMap[user.Name] = true
-			
+
 			// Validate username format (skip if it contains template variables)
 			if !strings.Contains(user.Name, "{{") && !isValidUsername(user.Name) {
 				results = append(results, ValidationResult{
@@ -248,7 +248,7 @@ func (r *UserConfigRule) Validate(template *Template) []ValidationResult {
 			}
 		}
 	}
-	
+
 	return results
 }
 
@@ -261,7 +261,7 @@ func (r *InheritanceRule) Name() string { return "inheritance" }
 
 func (r *InheritanceRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	for _, parent := range template.Inherits {
 		if r.registry != nil {
 			if _, exists := r.registry.Templates[parent]; !exists {
@@ -273,7 +273,7 @@ func (r *InheritanceRule) Validate(template *Template) []ValidationResult {
 			}
 		}
 	}
-	
+
 	// Check for circular inheritance
 	if r.registry != nil && len(template.Inherits) > 0 {
 		if hasCircularInheritance(template.Name, template, r.registry, []string{}) {
@@ -284,7 +284,7 @@ func (r *InheritanceRule) Validate(template *Template) []ValidationResult {
 			})
 		}
 	}
-	
+
 	return results
 }
 
@@ -295,13 +295,13 @@ func (r *ParameterRule) Name() string { return "parameters" }
 
 func (r *ParameterRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	for name, param := range template.Parameters {
 		// Check parameter type
 		validTypes := map[string]bool{
 			"string": true, "int": true, "bool": true, "choice": true,
 		}
-		
+
 		if !validTypes[param.Type] {
 			results = append(results, ValidationResult{
 				Level:   ValidationError,
@@ -309,7 +309,7 @@ func (r *ParameterRule) Validate(template *Template) []ValidationResult {
 				Message: fmt.Sprintf("Invalid parameter type: %s", param.Type),
 			})
 		}
-		
+
 		// Check choice parameters have choices
 		if param.Type == "choice" && len(param.Choices) == 0 {
 			results = append(results, ValidationResult{
@@ -318,7 +318,7 @@ func (r *ParameterRule) Validate(template *Template) []ValidationResult {
 				Message: "Choice parameter must have choices defined",
 			})
 		}
-		
+
 		// Check default value matches type
 		if param.Default != nil {
 			if err := validateParameterValue(name, param.Default, param); err != nil {
@@ -330,7 +330,7 @@ func (r *ParameterRule) Validate(template *Template) []ValidationResult {
 			}
 		}
 	}
-	
+
 	return results
 }
 
@@ -341,17 +341,17 @@ func (r *SecurityRule) Name() string { return "security" }
 
 func (r *SecurityRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	// Check for hardcoded passwords
-	if strings.Contains(template.PostInstall, "password") || 
-	   strings.Contains(template.UserData, "password") {
+	if strings.Contains(template.PostInstall, "password") ||
+		strings.Contains(template.UserData, "password") {
 		results = append(results, ValidationResult{
 			Level:   ValidationWarning,
 			Field:   "scripts",
 			Message: "Possible hardcoded password detected",
 		})
 	}
-	
+
 	// Check for open ports
 	for _, service := range template.Services {
 		if service.Port == 3389 || service.Port == 5900 {
@@ -362,7 +362,7 @@ func (r *SecurityRule) Validate(template *Template) []ValidationResult {
 			})
 		}
 	}
-	
+
 	return results
 }
 
@@ -373,7 +373,7 @@ func (r *CostOptimizationRule) Name() string { return "cost_optimization" }
 
 func (r *CostOptimizationRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	// Check idle detection settings
 	if template.IdleDetection == nil || !template.IdleDetection.Enabled {
 		results = append(results, ValidationResult{
@@ -382,7 +382,7 @@ func (r *CostOptimizationRule) Validate(template *Template) []ValidationResult {
 			Message: "Consider enabling idle detection for cost optimization",
 		})
 	}
-	
+
 	// Check instance defaults
 	if strings.Contains(template.InstanceDefaults.Type, "xlarge") {
 		results = append(results, ValidationResult{
@@ -391,7 +391,7 @@ func (r *CostOptimizationRule) Validate(template *Template) []ValidationResult {
 			Message: "Default instance type is expensive, consider smaller defaults",
 		})
 	}
-	
+
 	return results
 }
 
@@ -402,11 +402,11 @@ func (r *PerformanceRule) Name() string { return "performance" }
 
 func (r *PerformanceRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	// Check for too many packages
-	totalPackages := len(template.Packages.System) + len(template.Packages.Conda) + 
-	                len(template.Packages.Pip) + len(template.Packages.Spack)
-	
+	totalPackages := len(template.Packages.System) + len(template.Packages.Conda) +
+		len(template.Packages.Pip) + len(template.Packages.Spack)
+
 	if totalPackages > 100 {
 		results = append(results, ValidationResult{
 			Level:   ValidationWarning,
@@ -414,7 +414,7 @@ func (r *PerformanceRule) Validate(template *Template) []ValidationResult {
 			Message: fmt.Sprintf("Large number of packages (%d) may slow launch time", totalPackages),
 		})
 	}
-	
+
 	// Check estimated launch time
 	if template.EstimatedLaunchTime > 10 {
 		results = append(results, ValidationResult{
@@ -423,7 +423,7 @@ func (r *PerformanceRule) Validate(template *Template) []ValidationResult {
 			Message: "Consider using AMI-based template for faster launches",
 		})
 	}
-	
+
 	return results
 }
 
@@ -434,7 +434,7 @@ func (r *BestPracticesRule) Name() string { return "best_practices" }
 
 func (r *BestPracticesRule) Validate(template *Template) []ValidationResult {
 	var results []ValidationResult
-	
+
 	// Check for metadata
 	if template.Version == "" {
 		results = append(results, ValidationResult{
@@ -443,7 +443,7 @@ func (r *BestPracticesRule) Validate(template *Template) []ValidationResult {
 			Message: "Consider adding version field for tracking",
 		})
 	}
-	
+
 	if template.Maintainer == "" {
 		results = append(results, ValidationResult{
 			Level:   ValidationInfo,
@@ -451,7 +451,7 @@ func (r *BestPracticesRule) Validate(template *Template) []ValidationResult {
 			Message: "Consider adding maintainer field for support",
 		})
 	}
-	
+
 	// Check for documentation
 	if template.LongDescription == "" {
 		results = append(results, ValidationResult{
@@ -460,7 +460,7 @@ func (r *BestPracticesRule) Validate(template *Template) []ValidationResult {
 			Message: "Consider adding detailed description for users",
 		})
 	}
-	
+
 	if len(template.LearningResources) == 0 {
 		results = append(results, ValidationResult{
 			Level:   ValidationInfo,
@@ -468,7 +468,7 @@ func (r *BestPracticesRule) Validate(template *Template) []ValidationResult {
 			Message: "Consider adding learning resources for users",
 		})
 	}
-	
+
 	return results
 }
 
@@ -488,20 +488,20 @@ func hasCircularInheritance(target string, current *Template, registry *Template
 			return true
 		}
 	}
-	
+
 	visited = append(visited, current.Name)
-	
+
 	for _, parent := range current.Inherits {
 		if parent == target {
 			return true
 		}
-		
+
 		if parentTemplate, exists := registry.Templates[parent]; exists {
 			if hasCircularInheritance(target, parentTemplate, registry, visited) {
 				return true
 			}
 		}
 	}
-	
+
 	return false
 }

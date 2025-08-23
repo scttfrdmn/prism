@@ -356,8 +356,8 @@ Need help?
 type IPDetectionErrorHandler struct{}
 
 func (h *IPDetectionErrorHandler) CanHandle(errorMsg string) bool {
-	return strings.Contains(errorMsg, "failed to detect external IP") || 
-		   strings.Contains(errorMsg, "IP detection failed")
+	return strings.Contains(errorMsg, "failed to detect external IP") ||
+		strings.Contains(errorMsg, "IP detection failed")
 }
 
 func (h *IPDetectionErrorHandler) Handle(err error, context string) error {
@@ -385,10 +385,10 @@ Original error: %v`, err)
 type SecurityGroupErrorHandler struct{}
 
 func (h *SecurityGroupErrorHandler) CanHandle(errorMsg string) bool {
-	return strings.Contains(errorMsg, "security group") && 
-		   (strings.Contains(errorMsg, "UnauthorizedOperation") ||
-		    strings.Contains(errorMsg, "failed to add") ||
-		    strings.Contains(errorMsg, "access rules"))
+	return strings.Contains(errorMsg, "security group") &&
+		(strings.Contains(errorMsg, "UnauthorizedOperation") ||
+			strings.Contains(errorMsg, "failed to add") ||
+			strings.Contains(errorMsg, "access rules"))
 }
 
 func (h *SecurityGroupErrorHandler) Handle(err error, context string) error {
@@ -419,8 +419,8 @@ Original error: %v`, err)
 type TemplateValidationErrorHandler struct{}
 
 func (h *TemplateValidationErrorHandler) CanHandle(errorMsg string) bool {
-	return strings.Contains(errorMsg, "template validation failed") || 
-		   strings.Contains(errorMsg, "invalid template")
+	return strings.Contains(errorMsg, "template validation failed") ||
+		strings.Contains(errorMsg, "invalid template")
 }
 
 func (h *TemplateValidationErrorHandler) Handle(err error, context string) error {
@@ -453,11 +453,11 @@ Original error: %v`, err)
 type WebAccessErrorHandler struct{}
 
 func (h *WebAccessErrorHandler) CanHandle(errorMsg string) bool {
-	return (strings.Contains(errorMsg, "web interface") || 
-		   strings.Contains(errorMsg, "port 8888") ||
-		   strings.Contains(errorMsg, "jupyter") ||
-		   strings.Contains(errorMsg, "rstudio")) &&
-		   strings.Contains(errorMsg, "connection")
+	return (strings.Contains(errorMsg, "web interface") ||
+		strings.Contains(errorMsg, "port 8888") ||
+		strings.Contains(errorMsg, "jupyter") ||
+		strings.Contains(errorMsg, "rstudio")) &&
+		strings.Contains(errorMsg, "connection")
 }
 
 func (h *WebAccessErrorHandler) Handle(err error, context string) error {
@@ -497,22 +497,22 @@ type ErrorHandlerRegistry struct {
 func NewErrorHandlerRegistry() *ErrorHandlerRegistry {
 	return &ErrorHandlerRegistry{
 		handlers: []ErrorHandler{
-			&KeychainErrorHandler{},            // Check keychain issues first
-			&ProfileErrorHandler{},             // Check profile issues early
-			&IPDetectionErrorHandler{},         // IP detection for web access
-			&SecurityGroupErrorHandler{},       // Security group configuration
-			&WebAccessErrorHandler{},           // Web interface access issues
-			&TemplateValidationErrorHandler{},  // Template validation errors
-			&LaunchErrorHandler{},              // Check launch-specific issues
-			&DaemonErrorHandler{},              // Daemon connectivity issues
-			&ConnectionErrorHandler{},          // Network connection issues
-			&CredentialsErrorHandler{},         // AWS credential issues
-			&NetworkConfigErrorHandler{},       // AWS network config issues
-			&CapacityErrorHandler{},            // AWS capacity issues
-			&TemplateErrorHandler{},            // Template-related issues
-			&NetworkErrorHandler{},             // General network issues
-			&ValidationErrorHandler{},          // Validation errors
-			&DefaultErrorHandler{},             // Must be last as fallback
+			&KeychainErrorHandler{},           // Check keychain issues first
+			&ProfileErrorHandler{},            // Check profile issues early
+			&IPDetectionErrorHandler{},        // IP detection for web access
+			&SecurityGroupErrorHandler{},      // Security group configuration
+			&WebAccessErrorHandler{},          // Web interface access issues
+			&TemplateValidationErrorHandler{}, // Template validation errors
+			&LaunchErrorHandler{},             // Check launch-specific issues
+			&DaemonErrorHandler{},             // Daemon connectivity issues
+			&ConnectionErrorHandler{},         // Network connection issues
+			&CredentialsErrorHandler{},        // AWS credential issues
+			&NetworkConfigErrorHandler{},      // AWS network config issues
+			&CapacityErrorHandler{},           // AWS capacity issues
+			&TemplateErrorHandler{},           // Template-related issues
+			&NetworkErrorHandler{},            // General network issues
+			&ValidationErrorHandler{},         // Validation errors
+			&DefaultErrorHandler{},            // Must be last as fallback
 		},
 	}
 }

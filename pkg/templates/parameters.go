@@ -2,12 +2,12 @@
 package templates
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
-	"bytes"
 )
 
 // ParameterProcessor handles template parameter substitution
@@ -65,7 +65,7 @@ func (pp *ParameterProcessor) ProcessTemplate() (*Template, error) {
 
 	// Process text fields that support variable substitution
 	var err error
-	
+
 	processedTemplate.Description, err = pp.processString(processedTemplate.Description)
 	if err != nil {
 		return nil, fmt.Errorf("processing description: %w", err)
@@ -124,7 +124,7 @@ func (pp *ParameterProcessor) simpleSubstitution(input string) string {
 	for name, value := range pp.variables {
 		placeholder := fmt.Sprintf("{{.%s}}", name)
 		result = strings.ReplaceAll(result, placeholder, value)
-		
+
 		// Also support {{variable}} format
 		simplePlaceholder := fmt.Sprintf("{{%s}}", name)
 		result = strings.ReplaceAll(result, simplePlaceholder, value)
@@ -181,7 +181,7 @@ func (pp *ParameterProcessor) processStringSlice(input []string) ([]string, erro
 func (pp *ParameterProcessor) processServices(services []ServiceConfig) error {
 	for i := range services {
 		service := &services[i]
-		
+
 		var err error
 		service.Name, err = pp.processString(service.Name)
 		if err != nil {
@@ -284,7 +284,7 @@ func (ph *ParameterHelper) GetParametersFromTemplate(tmpl *Template) []string {
 		if param.Required {
 			description += " [required]"
 		}
-		
+
 		params = append(params, fmt.Sprintf("  %s: %s", name, description))
 	}
 
@@ -308,12 +308,12 @@ var VariablePattern = regexp.MustCompile(`\{\{\.?(\w+)\}\}`)
 func FindVariables(input string) []string {
 	matches := VariablePattern.FindAllStringSubmatch(input, -1)
 	variables := make([]string, 0, len(matches))
-	
+
 	for _, match := range matches {
 		if len(match) > 1 {
 			variables = append(variables, match[1])
 		}
 	}
-	
+
 	return variables
 }

@@ -28,14 +28,14 @@ func TestConnectionManager_ConnectWithRetry(t *testing.T) {
 		{
 			name:        "Connect to invalid port",
 			target:      "127.0.0.1",
-			port:        99999, // Invalid port
+			port:        65535, // Valid but likely closed port
 			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
 			result, err := cm.ConnectWithRetry(ctx, tt.target, tt.port)
@@ -62,7 +62,9 @@ func TestConnectionManager_TestPortAvailability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to start test server: %v", err)
 	}
-	defer listener.Close()
+	defer func() {
+		_ = listener.Close()
+	}()
 
 	// Get the actual port
 	addr := listener.Addr().(*net.TCPAddr)
@@ -97,7 +99,9 @@ func TestConnectionManager_WaitForPortAvailability(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer listener.Close()
+		defer func() {
+			_ = listener.Close()
+		}()
 
 		// Keep server running for a while
 		time.Sleep(5 * time.Second)
@@ -127,7 +131,7 @@ func TestConnectionManager_GetConnectionStats(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	cm.ConnectWithRetry(ctx, "127.0.0.1", 99999) // This should fail
+	_, _ = cm.ConnectWithRetry(ctx, "127.0.0.1", 99999) // This should fail
 
 	stats = cm.GetConnectionStats()
 	if stats.TotalConnections == 0 {

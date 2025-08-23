@@ -40,28 +40,28 @@ type Schedule struct {
 	Description string       `json:"description"`
 	Type        ScheduleType `json:"type"`
 	Enabled     bool         `json:"enabled"`
-	
+
 	// Time-based scheduling
-	StartTime  string      `json:"start_time,omitempty"`  // HH:MM format
-	EndTime    string      `json:"end_time,omitempty"`    // HH:MM format
+	StartTime  string      `json:"start_time,omitempty"` // HH:MM format
+	EndTime    string      `json:"end_time,omitempty"`   // HH:MM format
 	DaysOfWeek []DayOfWeek `json:"days_of_week,omitempty"`
 	Timezone   string      `json:"timezone,omitempty"`
-	
+
 	// Idle-based scheduling
 	IdleMinutes      int     `json:"idle_minutes,omitempty"`
 	CPUThreshold     float64 `json:"cpu_threshold,omitempty"`
 	MemoryThreshold  float64 `json:"memory_threshold,omitempty"`
 	NetworkThreshold float64 `json:"network_threshold,omitempty"`
-	
+
 	// Actions
 	HibernateAction string `json:"hibernate_action"` // hibernate, stop, terminate
 	WakeAction      string `json:"wake_action"`      // resume, start, none
-	
+
 	// Advanced options
 	GracePeriodMinutes int      `json:"grace_period_minutes"`
 	IgnoreTags         []string `json:"ignore_tags"`
 	RequireTags        []string `json:"require_tags"`
-	
+
 	// Cost tracking
 	EstimatedMonthlySavings float64   `json:"estimated_monthly_savings"`
 	LastExecuted            time.Time `json:"last_executed"`
@@ -127,14 +127,14 @@ func (s *Scheduler) run() {
 func (s *Scheduler) checkSchedules() {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	now := time.Now()
-	
+
 	for _, schedule := range s.schedules {
 		if !schedule.Enabled {
 			continue
 		}
-		
+
 		if s.shouldExecute(schedule, now) {
 			go s.executeSchedule(schedule)
 		}
@@ -163,7 +163,7 @@ func (s *Scheduler) shouldExecute(schedule *Schedule, now time.Time) bool {
 func (s *Scheduler) shouldExecuteDaily(schedule *Schedule, now time.Time) bool {
 	// Parse start and end times
 	currentTime := now.Format("15:04")
-	
+
 	// Check if we're in the hibernation window
 	if schedule.StartTime <= currentTime && currentTime < schedule.EndTime {
 		// Check if already executing
@@ -172,7 +172,7 @@ func (s *Scheduler) shouldExecuteDaily(schedule *Schedule, now time.Time) bool {
 		}
 		return true
 	}
-	
+
 	return false
 }
 
@@ -180,14 +180,14 @@ func (s *Scheduler) shouldExecuteDaily(schedule *Schedule, now time.Time) bool {
 func (s *Scheduler) shouldExecuteWeekly(schedule *Schedule, now time.Time) bool {
 	// Get current day of week
 	currentDay := strings.ToLower(now.Weekday().String())
-	
+
 	// Check if today is in the schedule
 	for _, day := range schedule.DaysOfWeek {
 		if string(day) == currentDay {
 			return s.shouldExecuteDaily(schedule, now)
 		}
 	}
-	
+
 	return false
 }
 
@@ -196,16 +196,16 @@ func (s *Scheduler) shouldExecuteWorkHours(schedule *Schedule, now time.Time) bo
 	// Work hours: Monday-Friday, 9 AM - 6 PM
 	weekday := now.Weekday()
 	hour := now.Hour()
-	
+
 	// Outside work hours or weekend
 	if weekday == time.Saturday || weekday == time.Sunday {
 		return true // Hibernate on weekends
 	}
-	
+
 	if hour < 9 || hour >= 18 {
 		return true // Hibernate outside work hours
 	}
-	
+
 	return false
 }
 
@@ -231,10 +231,10 @@ func (s *Scheduler) executeSchedule(schedule *Schedule) {
 		IsActive:   true,
 	}
 	s.mu.Unlock()
-	
+
 	// TODO: Integrate with AWS manager to actually hibernate instances
 	fmt.Printf("Executing hibernation schedule: %s\n", schedule.Name)
-	
+
 	// Update last executed time
 	schedule.LastExecuted = time.Now()
 }
@@ -243,19 +243,19 @@ func (s *Scheduler) executeSchedule(schedule *Schedule) {
 func (s *Scheduler) AddSchedule(schedule *Schedule) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if schedule.ID == "" {
 		schedule.ID = generateScheduleID()
 	}
-	
+
 	// Validate schedule
 	if err := s.validateSchedule(schedule); err != nil {
 		return err
 	}
-	
+
 	// Calculate estimated savings
 	schedule.EstimatedMonthlySavings = s.calculateEstimatedSavings(schedule)
-	
+
 	s.schedules[schedule.ID] = schedule
 	return nil
 }
@@ -264,12 +264,12 @@ func (s *Scheduler) AddSchedule(schedule *Schedule) error {
 func (s *Scheduler) UpdateSchedule(id string, updates *Schedule) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	existing, exists := s.schedules[id]
 	if !exists {
 		return fmt.Errorf("schedule not found: %s", id)
 	}
-	
+
 	// Merge updates
 	if updates.Name != "" {
 		existing.Name = updates.Name
@@ -281,7 +281,7 @@ func (s *Scheduler) UpdateSchedule(id string, updates *Schedule) error {
 		existing.Type = updates.Type
 	}
 	existing.Enabled = updates.Enabled
-	
+
 	// Update time settings
 	if updates.StartTime != "" {
 		existing.StartTime = updates.StartTime
@@ -292,10 +292,10 @@ func (s *Scheduler) UpdateSchedule(id string, updates *Schedule) error {
 	if len(updates.DaysOfWeek) > 0 {
 		existing.DaysOfWeek = updates.DaysOfWeek
 	}
-	
+
 	// Recalculate savings
 	existing.EstimatedMonthlySavings = s.calculateEstimatedSavings(existing)
-	
+
 	return nil
 }
 
@@ -303,14 +303,14 @@ func (s *Scheduler) UpdateSchedule(id string, updates *Schedule) error {
 func (s *Scheduler) DeleteSchedule(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if _, exists := s.schedules[id]; !exists {
 		return fmt.Errorf("schedule not found: %s", id)
 	}
-	
+
 	delete(s.schedules, id)
 	delete(s.active, id)
-	
+
 	return nil
 }
 
@@ -318,12 +318,12 @@ func (s *Scheduler) DeleteSchedule(id string) error {
 func (s *Scheduler) GetSchedule(id string) (*Schedule, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	schedule, exists := s.schedules[id]
 	if !exists {
 		return nil, fmt.Errorf("schedule not found: %s", id)
 	}
-	
+
 	return schedule, nil
 }
 
@@ -331,12 +331,12 @@ func (s *Scheduler) GetSchedule(id string) (*Schedule, error) {
 func (s *Scheduler) ListSchedules() []*Schedule {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	schedules := make([]*Schedule, 0, len(s.schedules))
 	for _, schedule := range s.schedules {
 		schedules = append(schedules, schedule)
 	}
-	
+
 	return schedules
 }
 
@@ -345,7 +345,7 @@ func (s *Scheduler) validateSchedule(schedule *Schedule) error {
 	if schedule.Name == "" {
 		return fmt.Errorf("schedule name is required")
 	}
-	
+
 	switch schedule.Type {
 	case ScheduleTypeDaily, ScheduleTypeWeekly:
 		if schedule.StartTime == "" || schedule.EndTime == "" {
@@ -356,7 +356,7 @@ func (s *Scheduler) validateSchedule(schedule *Schedule) error {
 			return fmt.Errorf("idle minutes must be positive for idle schedule")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -365,7 +365,7 @@ func (s *Scheduler) calculateEstimatedSavings(schedule *Schedule) float64 {
 	// Base calculation on schedule type and frequency
 	hoursPerDay := 0.0
 	daysPerMonth := 30.0
-	
+
 	switch schedule.Type {
 	case ScheduleTypeDaily:
 		// Calculate hours between start and end time
@@ -382,12 +382,12 @@ func (s *Scheduler) calculateEstimatedSavings(schedule *Schedule) float64 {
 	default:
 		hoursPerDay = 8.0 // Default estimate
 	}
-	
+
 	// Assume average instance cost of $0.10 per hour
 	// This would be calculated based on actual instance types
 	avgHourlyCost := 0.10
 	monthlySavings := hoursPerDay * daysPerMonth * avgHourlyCost
-	
+
 	return monthlySavings
 }
 

@@ -179,7 +179,7 @@ func (pm *ProxyManager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	
+
 	if instanceID == "" {
 		pm.mu.RUnlock()
 		http.Error(w, "No proxy route found", http.StatusNotFound)
@@ -273,14 +273,16 @@ func NewWebSocketProxy(targetURL string) (*WebSocketProxy, error) {
 func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// This is a simplified WebSocket proxy
 	// In production, you'd use a proper WebSocket library like gorilla/websocket
-	
+
 	// Connect to backend
 	targetConn, err := net.Dial("tcp", wp.targetURL.Host)
 	if err != nil {
 		http.Error(w, "Cannot connect to backend", http.StatusBadGateway)
 		return
 	}
-	defer targetConn.Close()
+	defer func() {
+		_ = targetConn.Close()
+	}()
 
 	// Hijack the connection
 	hijacker, ok := w.(http.Hijacker)
@@ -294,9 +296,13 @@ func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer clientConn.Close()
+	defer func() {
+		_ = clientConn.Close()
+	}()
 
 	// Proxy the WebSocket handshake and data
-	go io.Copy(targetConn, clientConn)
-	io.Copy(clientConn, targetConn)
+	go func() {
+		_, _ = io.Copy(targetConn, clientConn)
+	}()
+	_, _ = io.Copy(clientConn, targetConn)
 }

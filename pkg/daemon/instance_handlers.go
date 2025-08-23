@@ -147,15 +147,15 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 
 		// Track launch start time
 		launchStart := time.Now()
-		
+
 		// Delegate to AWS manager
 		var err error
 		instance, err = awsManager.LaunchInstance(req)
-		
+
 		// Record usage stats
 		launchDuration := int(time.Since(launchStart).Seconds())
 		templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
-		
+
 		return err
 	})
 
@@ -353,7 +353,7 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 	var hibernationSupported bool
 	var instanceState string
 	var possiblyHibernated bool
-	
+
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
 		hibernationSupported, instanceState, possiblyHibernated, err = awsManager.GetInstanceHibernationStatus(name)

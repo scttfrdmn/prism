@@ -8,8 +8,8 @@ package templates
 import (
 	"fmt"
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -73,15 +73,15 @@ func DefaultTemplateDirs() []string {
 func GetTemplatesForRegion(region, architecture string) (map[string]types.RuntimeTemplate, error) {
 	registry := NewTemplateRegistry(DefaultTemplateDirs())
 	resolver := NewTemplateResolver()
-	
+
 	// Scan for templates
 	if err := registry.ScanTemplates(); err != nil {
 		return nil, fmt.Errorf("failed to scan templates: %w", err)
 	}
-	
+
 	// Convert to runtime format
 	templates := make(map[string]types.RuntimeTemplate)
-	
+
 	for name, template := range registry.Templates {
 		runtimeTemplate, err := resolver.ResolveTemplate(template, region, architecture)
 		if err != nil {
@@ -89,7 +89,7 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 			fmt.Printf("Warning: Failed to resolve template %s: %v\n", name, err)
 			continue
 		}
-		
+
 		// Convert to runtime template format
 		var idleDetectionConfig *types.IdleDetectionConfig
 		if runtimeTemplate.IdleDetection != nil {
@@ -100,7 +100,7 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 				CheckIntervalMinutes:      runtimeTemplate.IdleDetection.CheckIntervalMinutes,
 			}
 		}
-		
+
 		templates[name] = types.RuntimeTemplate{
 			Name:                 runtimeTemplate.Name,
 			Slug:                 runtimeTemplate.Slug,
@@ -113,7 +113,7 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 			IdleDetection:        idleDetectionConfig,
 		}
 	}
-	
+
 	return templates, nil
 }
 
@@ -126,23 +126,23 @@ func GetTemplate(name, region, architecture string) (*types.RuntimeTemplate, err
 func GetTemplateWithPackageManager(name, region, architecture, packageManager, size string) (*types.RuntimeTemplate, error) {
 	registry := NewTemplateRegistry(DefaultTemplateDirs())
 	resolver := NewTemplateResolver()
-	
+
 	// Scan for templates
 	if err := registry.ScanTemplates(); err != nil {
 		return nil, fmt.Errorf("failed to scan templates: %w", err)
 	}
-	
+
 	template, err := registry.GetTemplate(name)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Resolve with options
 	runtimeTemplate, err := resolver.ResolveTemplateWithOptions(template, region, architecture, packageManager, size)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve template %s: %w", name, err)
 	}
-	
+
 	// Convert to runtime template format
 	var idleDetectionConfig *types.IdleDetectionConfig
 	if runtimeTemplate.IdleDetection != nil {
@@ -153,7 +153,7 @@ func GetTemplateWithPackageManager(name, region, architecture, packageManager, s
 			CheckIntervalMinutes:      runtimeTemplate.IdleDetection.CheckIntervalMinutes,
 		}
 	}
-	
+
 	legacyTemplate := &types.RuntimeTemplate{
 		Name:                 runtimeTemplate.Name,
 		Slug:                 runtimeTemplate.Slug,
@@ -165,7 +165,7 @@ func GetTemplateWithPackageManager(name, region, architecture, packageManager, s
 		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
 		IdleDetection:        idleDetectionConfig,
 	}
-	
+
 	return legacyTemplate, nil
 }
 
@@ -186,7 +186,7 @@ func GetTemplateWithParameters(name, region, architecture, packageManager, size 
 	var processedTemplate *Template
 	if len(template.Parameters) > 0 && parameters != nil {
 		processor := NewParameterProcessor(template, parameters)
-		
+
 		// Validate parameters
 		if validationErrors := processor.ValidateParameters(); len(validationErrors) > 0 {
 			var errorMessages []string

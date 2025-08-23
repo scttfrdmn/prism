@@ -2,7 +2,7 @@ package cli
 
 import (
 	"fmt"
-	
+
 	"github.com/spf13/cobra"
 )
 
@@ -116,7 +116,7 @@ func (dc *DaemonCobraCommands) createLogsCommand() *cobra.Command {
 			// Get flags
 			follow, _ := cmd.Flags().GetBool("follow")
 			tail, _ := cmd.Flags().GetInt("tail")
-			
+
 			// Build args for the existing logs function
 			var logsArgs []string
 			if follow {
@@ -125,7 +125,7 @@ func (dc *DaemonCobraCommands) createLogsCommand() *cobra.Command {
 			if tail > 0 {
 				logsArgs = append(logsArgs, "--tail", fmt.Sprintf("%d", tail))
 			}
-			
+
 			return dc.systemCommands.daemonLogs()
 		},
 	}

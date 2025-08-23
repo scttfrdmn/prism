@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -447,11 +448,19 @@ func TestIdleDetectionOperationsIntegration(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		case r.URL.Path == "/api/v1/idle/disable" && r.Method == "POST":
 			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/idle/profiles" && r.Method == "GET":
+		case r.URL.Path == "/api/v1/idle/policies" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"batch": {"name": "batch", "idle_minutes": 60}}`)
-		case r.URL.Path == "/api/v1/idle/profiles" && r.Method == "POST":
-			w.WriteHeader(http.StatusCreated)
+			_, _ = fmt.Fprint(w, `[{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}]`)
+		case strings.HasPrefix(r.URL.Path, "/api/v1/idle/policies/") && r.Method == "GET":
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprint(w, `{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}`)
+		case r.URL.Path == "/api/v1/idle/policies/apply" && r.Method == "POST":
+			w.WriteHeader(http.StatusOK)
+		case r.URL.Path == "/api/v1/idle/policies/remove" && r.Method == "POST":
+			w.WriteHeader(http.StatusOK)
+		case strings.HasPrefix(r.URL.Path, "/api/v1/instances/") && strings.HasSuffix(r.URL.Path, "/idle-policies") && r.Method == "GET":
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprint(w, `[{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}]`)
 		case r.URL.Path == "/api/v1/idle/pending-actions" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
 			_, _ = fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate"}]`)
@@ -461,6 +470,9 @@ func TestIdleDetectionOperationsIntegration(t *testing.T) {
 		case r.URL.Path == "/api/v1/idle/history" && r.Method == "GET":
 			w.WriteHeader(http.StatusOK)
 			_, _ = fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate", "timestamp": "2024-01-01T00:00:00Z"}]`)
+		case strings.HasPrefix(r.URL.Path, "/api/v1/idle/savings") && r.Method == "GET":
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprint(w, `{"total_saved": 100.50, "period": "7d", "instances": 5}`)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -480,10 +492,15 @@ func TestIdleDetectionOperationsIntegration(t *testing.T) {
 	err = client.ApplyIdlePolicy(ctx, "test-instance", "batch")
 	assert.NoError(t, err)
 
-	// Get idle policy for instance
-	policy, err := client.GetIdlePolicy(ctx, "test-instance")
+	// Get idle policy by ID
+	policy, err := client.GetIdlePolicy(ctx, "batch")
 	assert.NoError(t, err)
 	assert.NotNil(t, policy)
+
+	// Get instance idle policies
+	instancePolicies, err := client.GetInstanceIdlePolicies(ctx, "test-instance")
+	assert.NoError(t, err)
+	assert.NotNil(t, instancePolicies)
 
 	// Remove idle policy
 	err = client.RemoveIdlePolicy(ctx, "test-instance", "batch")

@@ -90,7 +90,7 @@ func (ds *DashboardServer) serveInstances(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(instances)
+	_ = json.NewEncoder(w).Encode(instances)
 }
 
 // serveTemplates serves template data as JSON
@@ -102,14 +102,14 @@ func (ds *DashboardServer) serveTemplates(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(templates)
+	_ = json.NewEncoder(w).Encode(templates)
 }
 
 // serveProxyStats serves proxy statistics as JSON
 func (ds *DashboardServer) serveProxyStats(w http.ResponseWriter, r *http.Request) {
 	stats := ds.proxyManager.GetProxyStats()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	_ = json.NewEncoder(w).Encode(stats)
 }
 
 // serveStatic serves static content
@@ -122,7 +122,7 @@ func (ds *DashboardServer) serveStatic(w http.ResponseWriter, r *http.Request, n
 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	w.Write(content)
+	_, _ = w.Write(content)
 }
 
 // parseTemplates creates the HTML templates

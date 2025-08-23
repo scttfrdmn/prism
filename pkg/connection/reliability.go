@@ -352,7 +352,9 @@ func (hrc *HTTPReliabilityChecker) CheckHTTPEndpoint(ctx context.Context, url st
 			Duration:  time.Since(startTime),
 		}, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// Consider 2xx and 3xx as healthy
 	if resp.StatusCode >= 200 && resp.StatusCode < 400 {

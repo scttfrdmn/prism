@@ -36,13 +36,13 @@ type TestResult struct {
 
 // TestReport contains results for all tests in a suite
 type TestReport struct {
-	SuiteName    string
-	StartTime    time.Time
-	EndTime      time.Time
-	TotalTests   int
-	PassedTests  int
-	FailedTests  int
-	TestResults  map[string]TestResult
+	SuiteName   string
+	StartTime   time.Time
+	EndTime     time.Time
+	TotalTests  int
+	PassedTests int
+	FailedTests int
+	TestResults map[string]TestResult
 }
 
 // TemplateTester runs tests against templates
@@ -68,12 +68,12 @@ func NewTemplateTester(registry *TemplateRegistry) *TemplateTester {
 // RunAllTests runs all test suites against all templates
 func (t *TemplateTester) RunAllTests(ctx context.Context) map[string]*TestReport {
 	reports := make(map[string]*TestReport)
-	
+
 	for _, suite := range t.suites {
 		report := t.RunSuite(ctx, suite)
 		reports[suite.Name] = report
 	}
-	
+
 	return reports
 }
 
@@ -84,7 +84,7 @@ func (t *TemplateTester) RunSuite(ctx context.Context, suite TestSuite) *TestRep
 		StartTime:   time.Now(),
 		TestResults: make(map[string]TestResult),
 	}
-	
+
 	for _, test := range suite.Tests {
 		template, exists := t.registry.Templates[test.Template]
 		if !exists {
@@ -120,7 +120,7 @@ func (t *TemplateTester) RunSuite(ctx context.Context, suite TestSuite) *TestRep
 			}
 		}
 	}
-	
+
 	report.EndTime = time.Now()
 	return report
 }
@@ -128,15 +128,15 @@ func (t *TemplateTester) RunSuite(ctx context.Context, suite TestSuite) *TestRep
 // runTest executes a single test
 func (t *TemplateTester) runTest(ctx context.Context, test TemplateTest, template *Template) TestResult {
 	start := time.Now()
-	
+
 	// Run test with timeout
 	testCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	
+
 	// Execute test function
 	result := test.TestFunc(testCtx, template)
 	result.Duration = time.Since(start)
-	
+
 	return result
 }
 
@@ -271,7 +271,7 @@ func testValidYAML(ctx context.Context, template *Template) TestResult {
 
 func testRequiredFields(ctx context.Context, template *Template) TestResult {
 	var missing []string
-	
+
 	if template.Name == "" {
 		missing = append(missing, "name")
 	}
@@ -281,7 +281,7 @@ func testRequiredFields(ctx context.Context, template *Template) TestResult {
 	if template.Base == "" && len(template.Inherits) == 0 {
 		missing = append(missing, "base or inherits")
 	}
-	
+
 	if len(missing) > 0 {
 		return TestResult{
 			Passed:  false,
@@ -289,7 +289,7 @@ func testRequiredFields(ctx context.Context, template *Template) TestResult {
 			Details: missing,
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "All required fields present",
@@ -299,30 +299,30 @@ func testRequiredFields(ctx context.Context, template *Template) TestResult {
 func testValidReferences(ctx context.Context, template *Template) TestResult {
 	// Check variable references in template
 	var issues []string
-	
+
 	// Check variable usage in various fields
 	for varName := range template.Variables {
 		varRef := fmt.Sprintf("{{.%s}}", varName)
 		found := false
-		
+
 		// Check if variable is used anywhere
 		if strings.Contains(template.PostInstall, varRef) ||
-		   strings.Contains(template.UserData, varRef) {
+			strings.Contains(template.UserData, varRef) {
 			found = true
 		}
-		
+
 		for _, pkg := range template.Packages.Conda {
 			if strings.Contains(pkg, varRef) {
 				found = true
 				break
 			}
 		}
-		
+
 		if !found {
 			issues = append(issues, fmt.Sprintf("Unused variable: %s", varName))
 		}
 	}
-	
+
 	if len(issues) > 0 {
 		return TestResult{
 			Passed:  false,
@@ -330,7 +330,7 @@ func testValidReferences(ctx context.Context, template *Template) TestResult {
 			Details: issues,
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "All references valid",
@@ -339,20 +339,20 @@ func testValidReferences(ctx context.Context, template *Template) TestResult {
 
 func testOSCompatibility(ctx context.Context, template *Template) TestResult {
 	supportedOS := map[string]bool{
-		"ubuntu-20.04": true,
-		"ubuntu-22.04": true,
-		"ubuntu-24.04": true,
-		"rocky-9":      true,
+		"ubuntu-20.04":     true,
+		"ubuntu-22.04":     true,
+		"ubuntu-24.04":     true,
+		"rocky-9":          true,
 		"amazonlinux-2023": true,
 	}
-	
+
 	if template.Base != "" && !supportedOS[template.Base] {
 		return TestResult{
 			Passed:  false,
 			Message: fmt.Sprintf("Unsupported OS: %s", template.Base),
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "OS is supported",
@@ -364,7 +364,7 @@ func testArchitectureSupport(ctx context.Context, template *Template) TestResult
 	if template.AMIConfig.AMIs != nil {
 		hasX86 := false
 		hasARM := false
-		
+
 		for _, archMap := range template.AMIConfig.AMIs {
 			if _, ok := archMap["x86_64"]; ok {
 				hasX86 = true
@@ -373,7 +373,7 @@ func testArchitectureSupport(ctx context.Context, template *Template) TestResult
 				hasARM = true
 			}
 		}
-		
+
 		if hasX86 && !hasARM {
 			return TestResult{
 				Passed:  false,
@@ -381,7 +381,7 @@ func testArchitectureSupport(ctx context.Context, template *Template) TestResult
 			}
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "Architecture support is adequate",
@@ -392,15 +392,15 @@ func testPackageAvailability(ctx context.Context, template *Template) TestResult
 	// This would ideally check package repositories
 	// For now, just check for known problematic packages
 	problematic := []string{
-		"cuda-11-0", // Version specific packages
+		"cuda-11-0",        // Version specific packages
 		"tensorflow==1.15", // Old versions
 	}
-	
+
 	var issues []string
-	
+
 	allPackages := append(template.Packages.System, template.Packages.Conda...)
 	allPackages = append(allPackages, template.Packages.Pip...)
-	
+
 	for _, pkg := range allPackages {
 		for _, prob := range problematic {
 			if strings.Contains(pkg, prob) {
@@ -408,7 +408,7 @@ func testPackageAvailability(ctx context.Context, template *Template) TestResult
 			}
 		}
 	}
-	
+
 	if len(issues) > 0 {
 		return TestResult{
 			Passed:  false,
@@ -416,7 +416,7 @@ func testPackageAvailability(ctx context.Context, template *Template) TestResult
 			Details: issues,
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "Packages appear available",
@@ -430,7 +430,7 @@ func testLaunchTime(ctx context.Context, template *Template) TestResult {
 			Message: fmt.Sprintf("Launch time too long: %d minutes", template.EstimatedLaunchTime),
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: fmt.Sprintf("Launch time acceptable: %d minutes", template.EstimatedLaunchTime),
@@ -445,7 +445,7 @@ func testResourceUsage(ctx context.Context, template *Template) TestResult {
 			Message: "Default instance type is very large",
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "Resource requirements appropriate",
@@ -454,7 +454,7 @@ func testResourceUsage(ctx context.Context, template *Template) TestResult {
 
 func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult {
 	var issues []string
-	
+
 	// Check for common secret patterns
 	secretPatterns := []string{
 		"password=",
@@ -463,7 +463,7 @@ func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult 
 		"token=",
 		"aws_access_key",
 	}
-	
+
 	for _, pattern := range secretPatterns {
 		if strings.Contains(strings.ToLower(template.PostInstall), pattern) {
 			issues = append(issues, fmt.Sprintf("Potential secret in post_install: %s", pattern))
@@ -472,7 +472,7 @@ func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult 
 			issues = append(issues, fmt.Sprintf("Potential secret in user_data: %s", pattern))
 		}
 	}
-	
+
 	if len(issues) > 0 {
 		return TestResult{
 			Passed:  false,
@@ -480,7 +480,7 @@ func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult 
 			Details: issues,
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "No hardcoded secrets detected",
@@ -489,7 +489,7 @@ func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult 
 
 func testSecureDefaults(ctx context.Context, template *Template) TestResult {
 	var issues []string
-	
+
 	// Check for insecure service configurations
 	for _, service := range template.Services {
 		if service.Port == 23 { // Telnet
@@ -499,7 +499,7 @@ func testSecureDefaults(ctx context.Context, template *Template) TestResult {
 			issues = append(issues, "FTP service exposed (port 21)")
 		}
 	}
-	
+
 	if len(issues) > 0 {
 		return TestResult{
 			Passed:  false,
@@ -507,7 +507,7 @@ func testSecureDefaults(ctx context.Context, template *Template) TestResult {
 			Details: issues,
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "Secure default configuration",
@@ -522,7 +522,7 @@ func testHibernationSupport(ctx context.Context, template *Template) TestResult 
 			Message: "Hibernation support configured",
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  false,
 		Message: "Consider enabling idle detection for hibernation support",
@@ -536,19 +536,19 @@ func testParameterProcessing(ctx context.Context, template *Template) TestResult
 		for name := range template.Parameters {
 			paramRef := fmt.Sprintf("{{.%s}}", name)
 			found := false
-			
+
 			// Check various fields for parameter usage
 			if strings.Contains(template.Description, paramRef) ||
-			   strings.Contains(template.PostInstall, paramRef) ||
-			   strings.Contains(template.UserData, paramRef) {
+				strings.Contains(template.PostInstall, paramRef) ||
+				strings.Contains(template.UserData, paramRef) {
 				found = true
 			}
-			
+
 			if !found {
 				unused = append(unused, name)
 			}
 		}
-		
+
 		if len(unused) > 0 {
 			return TestResult{
 				Passed:  false,
@@ -557,7 +557,7 @@ func testParameterProcessing(ctx context.Context, template *Template) TestResult
 			}
 		}
 	}
-	
+
 	return TestResult{
 		Passed:  true,
 		Message: "Parameters correctly configured",

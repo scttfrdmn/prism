@@ -978,13 +978,13 @@ func (m *MockClient) GetProjectCostBreakdown(ctx context.Context, projectID stri
 // GetProjectResourceUsage gets project resource usage (mock)
 func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID string, duration time.Duration) (*types.ProjectResourceUsage, error) {
 	return &types.ProjectResourceUsage{
-		ProjectID:          projectID,
-		ActiveInstances:    2,
-		TotalInstances:     5,
-		TotalStorage:       100.0,
-		ComputeHours:       48.5,
-		IdleSavings: 25.50,
-		MeasurementPeriod:  duration,
+		ProjectID:         projectID,
+		ActiveInstances:   2,
+		TotalInstances:    5,
+		TotalStorage:      100.0,
+		ComputeHours:      48.5,
+		IdleSavings:       25.50,
+		MeasurementPeriod: duration,
 	}, nil
 }
 
@@ -1118,8 +1118,8 @@ func (m *MockClient) RecommendIdlePolicy(ctx context.Context, instanceID string)
 // GetIdleSavingsReport returns idle savings report (mock)
 func (m *MockClient) GetIdleSavingsReport(ctx context.Context, period string) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"total_saved": 150.00,
+		"total_saved":               150.00,
 		"projected_monthly_savings": 450.00,
-		"idle_hours": 720,
+		"idle_hours":                720,
 	}, nil
 }

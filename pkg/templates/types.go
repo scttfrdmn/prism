@@ -379,12 +379,12 @@ type TemplateParameter struct {
 	Type        string `yaml:"type" json:"type"` // string, int, bool, choice
 
 	// Value constraints
-	Default     interface{}   `yaml:"default,omitempty" json:"default,omitempty"`
-	Choices     []interface{} `yaml:"choices,omitempty" json:"choices,omitempty"`     // For choice type
-	Min         interface{}   `yaml:"min,omitempty" json:"min,omitempty"`             // For int type
-	Max         interface{}   `yaml:"max,omitempty" json:"max,omitempty"`             // For int type
-	Pattern     string        `yaml:"pattern,omitempty" json:"pattern,omitempty"`     // For string type (regex)
-	Required    bool          `yaml:"required,omitempty" json:"required,omitempty"`   // Parameter is required
+	Default  interface{}   `yaml:"default,omitempty" json:"default,omitempty"`
+	Choices  []interface{} `yaml:"choices,omitempty" json:"choices,omitempty"`   // For choice type
+	Min      interface{}   `yaml:"min,omitempty" json:"min,omitempty"`           // For int type
+	Max      interface{}   `yaml:"max,omitempty" json:"max,omitempty"`           // For int type
+	Pattern  string        `yaml:"pattern,omitempty" json:"pattern,omitempty"`   // For string type (regex)
+	Required bool          `yaml:"required,omitempty" json:"required,omitempty"` // Parameter is required
 
 	// UI presentation
 	DisplayName string `yaml:"display_name,omitempty" json:"display_name,omitempty"` // Human-readable name

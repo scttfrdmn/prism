@@ -12,10 +12,10 @@ import (
 type AlertType string
 
 const (
-	AlertTypeThreshold   AlertType = "threshold"    // Budget threshold exceeded
-	AlertTypeAnomaly     AlertType = "anomaly"      // Unusual spending pattern
-	AlertTypeProjection  AlertType = "projection"   // Projected to exceed budget
-	AlertTypeTrend       AlertType = "trend"        // Concerning cost trend
+	AlertTypeThreshold    AlertType = "threshold"    // Budget threshold exceeded
+	AlertTypeAnomaly      AlertType = "anomaly"      // Unusual spending pattern
+	AlertTypeProjection   AlertType = "projection"   // Projected to exceed budget
+	AlertTypeTrend        AlertType = "trend"        // Concerning cost trend
 	AlertTypeOptimization AlertType = "optimization" // Cost optimization opportunity
 )
 
@@ -30,64 +30,64 @@ const (
 
 // Alert represents a cost alert
 type Alert struct {
-	ID            string                 `json:"id"`
-	Type          AlertType              `json:"type"`
-	Severity      AlertSeverity          `json:"severity"`
-	ProjectID     string                 `json:"project_id"`
-	InstanceID    string                 `json:"instance_id,omitempty"`
-	Timestamp     time.Time              `json:"timestamp"`
-	Message       string                 `json:"message"`
-	Details       map[string]interface{} `json:"details"`
-	Acknowledged  bool                   `json:"acknowledged"`
-	AutoResolved  bool                   `json:"auto_resolved"`
-	ResolvedAt    *time.Time             `json:"resolved_at,omitempty"`
-	Actions       []AlertAction          `json:"actions"`
+	ID           string                 `json:"id"`
+	Type         AlertType              `json:"type"`
+	Severity     AlertSeverity          `json:"severity"`
+	ProjectID    string                 `json:"project_id"`
+	InstanceID   string                 `json:"instance_id,omitempty"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Message      string                 `json:"message"`
+	Details      map[string]interface{} `json:"details"`
+	Acknowledged bool                   `json:"acknowledged"`
+	AutoResolved bool                   `json:"auto_resolved"`
+	ResolvedAt   *time.Time             `json:"resolved_at,omitempty"`
+	Actions      []AlertAction          `json:"actions"`
 }
 
 // AlertAction represents an action that can be taken for an alert
 type AlertAction struct {
-	Type        string `json:"type"`        // hibernate, stop, terminate, notify
-	Description string `json:"description"`
-	Automated   bool   `json:"automated"`   // Whether action is taken automatically
+	Type        string     `json:"type"` // hibernate, stop, terminate, notify
+	Description string     `json:"description"`
+	Automated   bool       `json:"automated"` // Whether action is taken automatically
 	ExecutedAt  *time.Time `json:"executed_at,omitempty"`
 }
 
 // AlertRule defines a rule for generating alerts
 type AlertRule struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        AlertType              `json:"type"`
-	Enabled     bool                   `json:"enabled"`
-	Conditions  AlertConditions        `json:"conditions"`
-	Actions     []string               `json:"actions"` // Actions to take when triggered
-	Cooldown    time.Duration          `json:"cooldown"` // Minimum time between alerts
-	LastTriggered *time.Time           `json:"last_triggered,omitempty"`
+	ID            string          `json:"id"`
+	Name          string          `json:"name"`
+	Type          AlertType       `json:"type"`
+	Enabled       bool            `json:"enabled"`
+	Conditions    AlertConditions `json:"conditions"`
+	Actions       []string        `json:"actions"`  // Actions to take when triggered
+	Cooldown      time.Duration   `json:"cooldown"` // Minimum time between alerts
+	LastTriggered *time.Time      `json:"last_triggered,omitempty"`
 }
 
 // AlertConditions defines conditions for triggering an alert
 type AlertConditions struct {
 	// Threshold conditions
-	BudgetPercentage   *float64 `json:"budget_percentage,omitempty"`
-	DailyCostThreshold *float64 `json:"daily_cost_threshold,omitempty"`
+	BudgetPercentage    *float64 `json:"budget_percentage,omitempty"`
+	DailyCostThreshold  *float64 `json:"daily_cost_threshold,omitempty"`
 	HourlyCostThreshold *float64 `json:"hourly_cost_threshold,omitempty"`
-	
+
 	// Trend conditions
 	CostIncreasePercent *float64 `json:"cost_increase_percent,omitempty"`
 	TrendWindow         string   `json:"trend_window,omitempty"` // 1h, 24h, 7d, 30d
-	
+
 	// Anomaly conditions
-	StandardDeviations  *float64 `json:"standard_deviations,omitempty"`
-	BaselineWindow      string   `json:"baseline_window,omitempty"`
+	StandardDeviations *float64 `json:"standard_deviations,omitempty"`
+	BaselineWindow     string   `json:"baseline_window,omitempty"`
 }
 
 // AlertManager manages cost alerts
 type AlertManager struct {
-	mu           sync.RWMutex
-	alerts       map[string]*Alert
-	rules        map[string]*AlertRule
-	subscribers  []AlertSubscriber
-	ctx          context.Context
-	cancel       context.CancelFunc
+	mu          sync.RWMutex
+	alerts      map[string]*Alert
+	rules       map[string]*AlertRule
+	subscribers []AlertSubscriber
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
 // AlertSubscriber receives alert notifications
@@ -192,24 +192,24 @@ func (am *AlertManager) triggerAlert(rule *AlertRule) {
 // determineSeverity determines alert severity based on conditions
 func (am *AlertManager) determineSeverity(rule *AlertRule) AlertSeverity {
 	conditions := rule.Conditions
-	
+
 	// Critical if budget exceeded by 90% or more
 	if conditions.BudgetPercentage != nil && *conditions.BudgetPercentage >= 90 {
 		return AlertSeverityCritical
 	}
-	
+
 	// Warning if budget exceeded by 75% or more
 	if conditions.BudgetPercentage != nil && *conditions.BudgetPercentage >= 75 {
 		return AlertSeverityWarning
 	}
-	
+
 	return AlertSeverityInfo
 }
 
 // determineActions determines what actions to take for an alert
 func (am *AlertManager) determineActions(rule *AlertRule) []AlertAction {
 	actions := make([]AlertAction, 0)
-	
+
 	for _, actionType := range rule.Actions {
 		action := AlertAction{
 			Type:        actionType,
@@ -218,7 +218,7 @@ func (am *AlertManager) determineActions(rule *AlertRule) []AlertAction {
 		}
 		actions = append(actions, action)
 	}
-	
+
 	return actions
 }
 
@@ -228,7 +228,7 @@ func (am *AlertManager) executeAutomatedActions(alert *Alert) {
 		if action.Automated {
 			// Execute the action
 			am.executeAction(alert, &action)
-			
+
 			// Update execution time
 			now := time.Now()
 			alert.Actions[i].ExecutedAt = &now
@@ -270,11 +270,11 @@ func (am *AlertManager) Subscribe(subscriber AlertSubscriber) {
 func (am *AlertManager) AddRule(rule *AlertRule) error {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	if rule.ID == "" {
 		rule.ID = generateRuleID()
 	}
-	
+
 	am.rules[rule.ID] = rule
 	return nil
 }
@@ -283,7 +283,7 @@ func (am *AlertManager) AddRule(rule *AlertRule) error {
 func (am *AlertManager) GetAlerts() []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	alerts := make([]*Alert, 0, len(am.alerts))
 	for _, alert := range am.alerts {
 		alerts = append(alerts, alert)
@@ -295,7 +295,7 @@ func (am *AlertManager) GetAlerts() []*Alert {
 func (am *AlertManager) GetActiveAlerts() []*Alert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	alerts := make([]*Alert, 0)
 	for _, alert := range am.alerts {
 		if alert.ResolvedAt == nil {
@@ -309,12 +309,12 @@ func (am *AlertManager) GetActiveAlerts() []*Alert {
 func (am *AlertManager) AcknowledgeAlert(alertID string) error {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	alert, exists := am.alerts[alertID]
 	if !exists {
 		return fmt.Errorf("alert not found: %s", alertID)
 	}
-	
+
 	alert.Acknowledged = true
 	return nil
 }
@@ -323,12 +323,12 @@ func (am *AlertManager) AcknowledgeAlert(alertID string) error {
 func (am *AlertManager) ResolveAlert(alertID string) error {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	alert, exists := am.alerts[alertID]
 	if !exists {
 		return fmt.Errorf("alert not found: %s", alertID)
 	}
-	
+
 	now := time.Now()
 	alert.ResolvedAt = &now
 	return nil
@@ -347,7 +347,7 @@ func (am *AlertManager) CreateDefaultRules() {
 		Actions:  []string{"notify"},
 		Cooldown: 6 * time.Hour,
 	})
-	
+
 	am.AddRule(&AlertRule{
 		Name:    "Budget 90% Critical",
 		Type:    AlertTypeThreshold,
@@ -358,7 +358,7 @@ func (am *AlertManager) CreateDefaultRules() {
 		Actions:  []string{"notify", "hibernate"},
 		Cooldown: 1 * time.Hour,
 	})
-	
+
 	// Cost anomaly rule
 	am.AddRule(&AlertRule{
 		Name:    "Cost Anomaly Detection",
@@ -371,7 +371,7 @@ func (am *AlertManager) CreateDefaultRules() {
 		Actions:  []string{"notify"},
 		Cooldown: 24 * time.Hour,
 	})
-	
+
 	// Daily cost threshold
 	am.AddRule(&AlertRule{
 		Name:    "Daily Cost Threshold",

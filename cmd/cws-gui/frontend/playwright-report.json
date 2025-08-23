@@ -1,0 +1,2260 @@
+{
+  "config": {
+    "configFile": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/playwright.config.js",
+    "rootDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 6
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-report.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 6
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 6
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 6
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 6
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 6
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.2",
+    "workers": 6,
+    "webServer": {
+      "command": "npm run dev",
+      "port": 3000,
+      "reuseExistingServer": true,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "instance-management.spec.js",
+      "file": "instance-management.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Instance Management Operations",
+          "file": "instance-management.spec.js",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "displays instance information correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5694,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:31.512Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-9f4d6-tance-information-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-9f4d6-tance-information-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-9f4d6-tance-information-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-bca08bb85d46522a23dd",
+              "file": "instance-management.spec.js",
+              "line": 16,
+              "column": 3
+            },
+            {
+              "title": "shows appropriate action buttons based on instance state",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 5694,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:31.527Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-42df1-ons-based-on-instance-state-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-42df1-ons-based-on-instance-state-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-42df1-ons-based-on-instance-state-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-bb047f6458a8b367018f",
+              "file": "instance-management.spec.js",
+              "line": 35,
+              "column": 3
+            },
+            {
+              "title": "stop instance operation works correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 5694,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:31.514Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-78da5-e-operation-works-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-78da5-e-operation-works-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-78da5-e-operation-works-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-1984011ef242afbeeef3",
+              "file": "instance-management.spec.js",
+              "line": 49,
+              "column": 3
+            },
+            {
+              "title": "start instance operation works correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 5692,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:31.518Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-523cc-e-operation-works-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-523cc-e-operation-works-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-523cc-e-operation-works-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-a793f39616e21383d930",
+              "file": "instance-management.spec.js",
+              "line": 69,
+              "column": 3
+            },
+            {
+              "title": "connect to instance shows connection information",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 5693,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:31.513Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-08a65-hows-connection-information-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-08a65-hows-connection-information-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-08a65-hows-connection-information-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-3ad783fe923f2f2434a5",
+              "file": "instance-management.spec.js",
+              "line": 89,
+              "column": 3
+            },
+            {
+              "title": "handles instance operations with confirmation dialogs",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 5693,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:31.520Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-cdb00-s-with-confirmation-dialogs-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-cdb00-s-with-confirmation-dialogs-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-cdb00-s-with-confirmation-dialogs-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-00ebaeb83bc077d33ef8",
+              "file": "instance-management.spec.js",
+              "line": 104,
+              "column": 3
+            },
+            {
+              "title": "instance management persists across navigation",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 5419,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:37.914Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-76e34--persists-across-navigation-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-76e34--persists-across-navigation-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-76e34--persists-across-navigation-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-6968779299142ad31e81",
+              "file": "instance-management.spec.js",
+              "line": 128,
+              "column": 3
+            },
+            {
+              "title": "handles empty instance list gracefully",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 5417,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:37.911Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-d4e8a-ty-instance-list-gracefully-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-d4e8a-ty-instance-list-gracefully-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-d4e8a-ty-instance-list-gracefully-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-bf36c7dd52cd16853bea",
+              "file": "instance-management.spec.js",
+              "line": 148,
+              "column": 3
+            },
+            {
+              "title": "instance cards have proper visual styling",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 5431,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:37.916Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-01388--have-proper-visual-styling-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-01388--have-proper-visual-styling-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-01388--have-proper-visual-styling-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-4e4cd4b8a3f668be6f9c",
+              "file": "instance-management.spec.js",
+              "line": 157,
+              "column": 3
+            },
+            {
+              "title": "instance status badges have correct styling",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 5395,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:37.917Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-3ae19-badges-have-correct-styling-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-3ae19-badges-have-correct-styling-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-3ae19-badges-have-correct-styling-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-f6feaeb7635d62695672",
+              "file": "instance-management.spec.js",
+              "line": 171,
+              "column": 3
+            },
+            {
+              "title": "action buttons are properly styled and accessible",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5409,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:37.913Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-360e8-perly-styled-and-accessible-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-360e8-perly-styled-and-accessible-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-360e8-perly-styled-and-accessible-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-3af845c46a33108c8823",
+              "file": "instance-management.spec.js",
+              "line": 183,
+              "column": 3
+            },
+            {
+              "title": "hover effects work on instance cards",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 5426,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                          "column": 49,
+                          "line": 10
+                        },
+                        "snippet": "   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                            "column": 49,
+                            "line": 10
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n   8 |     // Navigate to My Instances section\n   9 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 10 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  11 |     \n  12 |     // Wait for instances to load\n  13 |     await expect(page.locator('.instance-card')).toHaveCount(2) // Mock returns 2 instances\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js:10:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:37.913Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-b152d-ects-work-on-instance-cards-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-b152d-ects-work-on-instance-cards-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/instance-management-Instan-b152d-ects-work-on-instance-cards-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/instance-management.spec.js",
+                        "column": 49,
+                        "line": 10
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "7508796ebad7a1ed2caa-97d4a95aabc891e4c867",
+              "file": "instance-management.spec.js",
+              "line": 198,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "launch-workflow.spec.js",
+      "file": "launch-workflow.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Instance Launch Workflow",
+          "file": "launch-workflow.spec.js",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "complete launch process from template selection to instance dashboard",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 12,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 5391,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('.template-card')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-card')\u001b[22m\n\u001b[2m    9 × locator resolved to 0 elements\u001b[22m\n\u001b[2m      - unexpected value \"0\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('.template-card')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-card')\u001b[22m\n\u001b[2m    9 × locator resolved to 0 elements\u001b[22m\n\u001b[2m      - unexpected value \"0\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:20:50",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                          "column": 50,
+                          "line": 20
+                        },
+                        "snippet": "  18 |     \n  19 |     // Step 2: Wait for templates to load\n> 20 |     await expect(page.locator('.template-card')).toHaveCount(3) // We have 3 mock templates\n     |                                                  ^\n  21 |     await expect(page.locator('text=Python Machine Learning')).toBeVisible()\n  22 |     await expect(page.locator('text=R Research Environment')).toBeVisible()\n  23 |     "
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                            "column": 50,
+                            "line": 20
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('.template-card')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-card')\u001b[22m\n\u001b[2m    9 × locator resolved to 0 elements\u001b[22m\n\u001b[2m      - unexpected value \"0\"\u001b[22m\n\n\n  18 |     \n  19 |     // Step 2: Wait for templates to load\n> 20 |     await expect(page.locator('.template-card')).toHaveCount(3) // We have 3 mock templates\n     |                                                  ^\n  21 |     await expect(page.locator('text=Python Machine Learning')).toBeVisible()\n  22 |     await expect(page.locator('text=R Research Environment')).toBeVisible()\n  23 |     \n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:20:50"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:43.788Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-f23db-ction-to-instance-dashboard-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-f23db-ction-to-instance-dashboard-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-f23db-ction-to-instance-dashboard-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                        "column": 50,
+                        "line": 20
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0536b2ba68716a7d65f-7d630f11a9d741aa6738",
+              "file": "launch-workflow.spec.js",
+              "line": 14,
+              "column": 3
+            },
+            {
+              "title": "form validation prevents invalid launches",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 13,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 10384,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:73:16",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                          "column": 16,
+                          "line": 73
+                        },
+                        "snippet": "  71 |   test('form validation prevents invalid launches', async ({ page }) => {\n  72 |     // Select template\n> 73 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n     |                ^\n  74 |     await expect(page.locator('#launch-form')).toBeVisible()\n  75 |     \n  76 |     // Try to launch with empty instance name"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                            "column": 16,
+                            "line": 73
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n\n  71 |   test('form validation prevents invalid launches', async ({ page }) => {\n  72 |     // Select template\n> 73 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n     |                ^\n  74 |     await expect(page.locator('#launch-form')).toBeVisible()\n  75 |     \n  76 |     // Try to launch with empty instance name\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:73:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:43.798Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-d612b-n-prevents-invalid-launches-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-d612b-n-prevents-invalid-launches-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-d612b-n-prevents-invalid-launches-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                        "column": 16,
+                        "line": 73
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0536b2ba68716a7d65f-f3df9b125091478c4c0f",
+              "file": "launch-workflow.spec.js",
+              "line": 71,
+              "column": 3
+            },
+            {
+              "title": "template switching updates launch form correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 14,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 10390,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:98:16",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                          "column": 16,
+                          "line": 98
+                        },
+                        "snippet": "   96 |   test('template switching updates launch form correctly', async ({ page }) => {\n   97 |     // Select first template\n>  98 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n   99 |     await expect(page.locator('#selected-template-name')).toHaveText('Python Machine Learning (Simplified)')\n  100 |     \n  101 |     // Switch to second template"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                            "column": 16,
+                            "line": 98
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n\n   96 |   test('template switching updates launch form correctly', async ({ page }) => {\n   97 |     // Select first template\n>  98 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n   99 |     await expect(page.locator('#selected-template-name')).toHaveText('Python Machine Learning (Simplified)')\n  100 |     \n  101 |     // Switch to second template\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:98:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:43.801Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-ecdaa-dates-launch-form-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-ecdaa-dates-launch-form-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-ecdaa-dates-launch-form-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                        "column": 16,
+                        "line": 98
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0536b2ba68716a7d65f-df406d66a65c0c512bd2",
+              "file": "launch-workflow.spec.js",
+              "line": 96,
+              "column": 3
+            },
+            {
+              "title": "clear selection hides launch form",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 15,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 10378,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:114:16",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                          "column": 16,
+                          "line": 114
+                        },
+                        "snippet": "  112 |   test('clear selection hides launch form', async ({ page }) => {\n  113 |     // Select template and verify form shows\n> 114 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n  115 |     await expect(page.locator('#launch-form')).toBeVisible()\n  116 |     \n  117 |     // Clear selection"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                            "column": 16,
+                            "line": 114
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n\n  112 |   test('clear selection hides launch form', async ({ page }) => {\n  113 |     // Select template and verify form shows\n> 114 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n  115 |     await expect(page.locator('#launch-form')).toBeVisible()\n  116 |     \n  117 |     // Clear selection\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:114:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:43.798Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-1301c-selection-hides-launch-form-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-1301c-selection-hides-launch-form-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-1301c-selection-hides-launch-form-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                        "column": 16,
+                        "line": 114
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0536b2ba68716a7d65f-faa986c4d1fac3328450",
+              "file": "launch-workflow.spec.js",
+              "line": 112,
+              "column": 3
+            },
+            {
+              "title": "auto-generated instance names are smart",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 16,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 10393,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:127:16",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                          "column": 16,
+                          "line": 127
+                        },
+                        "snippet": "  125 |   test('auto-generated instance names are smart', async ({ page }) => {\n  126 |     // Select template\n> 127 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n  128 |     \n  129 |     // Check that instance name is auto-generated\n  130 |     const instanceNameInput = page.locator('#instance-name')"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                            "column": 16,
+                            "line": 127
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n\n  125 |   test('auto-generated instance names are smart', async ({ page }) => {\n  126 |     // Select template\n> 127 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n  128 |     \n  129 |     // Check that instance name is auto-generated\n  130 |     const instanceNameInput = page.locator('#instance-name')\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:127:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:43.803Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-4d555-ed-instance-names-are-smart-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-4d555-ed-instance-names-are-smart-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-4d555-ed-instance-names-are-smart-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                        "column": 16,
+                        "line": 127
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0536b2ba68716a7d65f-855d326267162f566fbe",
+              "file": "launch-workflow.spec.js",
+              "line": 125,
+              "column": 3
+            },
+            {
+              "title": "instance size selection works correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 17,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 10396,
+                      "error": {
+                        "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n",
+                        "stack": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:139:16",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                          "column": 16,
+                          "line": 139
+                        },
+                        "snippet": "  137 |\n  138 |   test('instance size selection works correctly', async ({ page }) => {\n> 139 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n  140 |     \n  141 |     const sizeSelect = page.locator('#instance-size')\n  142 |     "
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                            "column": 16,
+                            "line": 139
+                          },
+                          "message": "TimeoutError: page.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.template-card:has-text(\"Python Machine Learning\")')\u001b[22m\n\n\n  137 |\n  138 |   test('instance size selection works correctly', async ({ page }) => {\n> 139 |     await page.click('.template-card:has-text(\"Python Machine Learning\")')\n      |                ^\n  140 |     \n  141 |     const sizeSelect = page.locator('#instance-size')\n  142 |     \n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js:139:16"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:43.801Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-b4c19-e-selection-works-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-b4c19-e-selection-works-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/launch-workflow-Instance-L-b4c19-e-selection-works-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/launch-workflow.spec.js",
+                        "column": 16,
+                        "line": 139
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "f0536b2ba68716a7d65f-2454aed880300d538f7d",
+              "file": "launch-workflow.spec.js",
+              "line": 138,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "navigation.spec.js",
+      "file": "navigation.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Navigation and User Interactions",
+          "file": "navigation.spec.js",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "bottom navigation switches between sections correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 18,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 5299,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:20:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 49,
+                          "line": 20
+                        },
+                        "snippet": "  18 |     \n  19 |     // Verify section switch\n> 20 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  21 |     await expect(page.locator('.nav-item:has-text(\"My Instances\")')).toHaveClass(/active/)\n  22 |     await expect(page.locator('#quick-start')).not.toHaveClass(/active/)\n  23 |     await expect(page.locator('.nav-item:has-text(\"Quick Start\")')).not.toHaveClass(/active/)"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 49,
+                            "line": 20
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#my-instances')\nExpected pattern: \u001b[32m/active/\u001b[39m\nReceived string:  \u001b[31m\"section\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#my-instances')\u001b[22m\n\u001b[2m    9 × locator resolved to <section class=\"section\" id=\"my-instances\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"section\"\u001b[22m\n\n\n  18 |     \n  19 |     // Verify section switch\n> 20 |     await expect(page.locator('#my-instances')).toHaveClass(/active/)\n     |                                                 ^\n  21 |     await expect(page.locator('.nav-item:has-text(\"My Instances\")')).toHaveClass(/active/)\n  22 |     await expect(page.locator('#quick-start')).not.toHaveClass(/active/)\n  23 |     await expect(page.locator('.nav-item:has-text(\"Quick Start\")')).not.toHaveClass(/active/)\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:20:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:49.657Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--42f9f--between-sections-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--42f9f--between-sections-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--42f9f--between-sections-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 49,
+                        "line": 20
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-11a57a54f637a8cf7aaf",
+              "file": "navigation.spec.js",
+              "line": 10,
+              "column": 3
+            },
+            {
+              "title": "header contains correct elements and functionality",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 254,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:54.684Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-826bfa67ed4ff8f74361",
+              "file": "navigation.spec.js",
+              "line": 38,
+              "column": 3
+            },
+            {
+              "title": "settings modal opens and closes correctly",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 20,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 5376,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#settings-modal')\nExpected pattern: not \u001b[32m/hidden/\u001b[39m\nReceived string: \u001b[31m\"modal \u001b[7mhidden\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"not toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#settings-modal')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"settings-modal\" class=\"modal hidden\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"modal hidden\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#settings-modal')\nExpected pattern: not \u001b[32m/hidden/\u001b[39m\nReceived string: \u001b[31m\"modal \u001b[7mhidden\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"not toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#settings-modal')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"settings-modal\" class=\"modal hidden\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"modal hidden\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:60:55",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 55,
+                          "line": 60
+                        },
+                        "snippet": "  58 |     \n  59 |     // Verify modal is visible\n> 60 |     await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/)\n     |                                                       ^\n  61 |     await expect(page.locator('#settings-modal')).toBeVisible()\n  62 |     await expect(page.locator('h3:has-text(\"Settings\")')).toBeVisible()\n  63 |     "
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 55,
+                            "line": 60
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('#settings-modal')\nExpected pattern: not \u001b[32m/hidden/\u001b[39m\nReceived string: \u001b[31m\"modal \u001b[7mhidden\u001b[27m\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"not toHaveClass\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#settings-modal')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"settings-modal\" class=\"modal hidden\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"modal hidden\"\u001b[22m\n\n\n  58 |     \n  59 |     // Verify modal is visible\n> 60 |     await expect(page.locator('#settings-modal')).not.toHaveClass(/hidden/)\n     |                                                       ^\n  61 |     await expect(page.locator('#settings-modal')).toBeVisible()\n  62 |     await expect(page.locator('h3:has-text(\"Settings\")')).toBeVisible()\n  63 |     \n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:60:55"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:54.679Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--3f6d9--opens-and-closes-correctly-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--3f6d9--opens-and-closes-correctly-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--3f6d9--opens-and-closes-correctly-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 55,
+                        "line": 60
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-38a6751865789fd512f2",
+              "file": "navigation.spec.js",
+              "line": 52,
+              "column": 3
+            },
+            {
+              "title": "theme toggle functionality works",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 21,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 5338,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('html')\nExpected string: \u001b[32m\"core\"\u001b[39m\nReceived string: \u001b[31m\"\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('html')\u001b[22m\n\u001b[2m    9 × locator resolved to <html lang=\"en\">…</html>\u001b[22m\n\u001b[2m      - unexpected value \"null\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('html')\nExpected string: \u001b[32m\"core\"\u001b[39m\nReceived string: \u001b[31m\"\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('html')\u001b[22m\n\u001b[2m    9 × locator resolved to <html lang=\"en\">…</html>\u001b[22m\n\u001b[2m      - unexpected value \"null\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:78:40",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 40,
+                          "line": 78
+                        },
+                        "snippet": "  76 |     // Initial state should be core theme (moon icon)\n  77 |     await expect(page.locator('#theme-icon')).toHaveText('🌙')\n> 78 |     await expect(page.locator('html')).toHaveAttribute('data-theme', 'core')\n     |                                        ^\n  79 |     \n  80 |     // Toggle theme\n  81 |     await page.click('button[title=\"Toggle Theme\"]')"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 40,
+                            "line": 78
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('html')\nExpected string: \u001b[32m\"core\"\u001b[39m\nReceived string: \u001b[31m\"\"\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('html')\u001b[22m\n\u001b[2m    9 × locator resolved to <html lang=\"en\">…</html>\u001b[22m\n\u001b[2m      - unexpected value \"null\"\u001b[22m\n\n\n  76 |     // Initial state should be core theme (moon icon)\n  77 |     await expect(page.locator('#theme-icon')).toHaveText('🌙')\n> 78 |     await expect(page.locator('html')).toHaveAttribute('data-theme', 'core')\n     |                                        ^\n  79 |     \n  80 |     // Toggle theme\n  81 |     await page.click('button[title=\"Toggle Theme\"]')\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:78:40"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:54.681Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--e830c--toggle-functionality-works-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--e830c--toggle-functionality-works-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--e830c--toggle-functionality-works-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 40,
+                        "line": 78
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-ff172a3e2c0d09d63ba1",
+              "file": "navigation.spec.js",
+              "line": 75,
+              "column": 3
+            },
+            {
+              "title": "status bar shows correct information",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 22,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 5322,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#current-time')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#current-time')\u001b[22m\n\u001b[2m    9 × locator resolved to <span id=\"current-time\" class=\"status-item\"></span>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#current-time')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#current-time')\u001b[22m\n\u001b[2m    9 × locator resolved to <span id=\"current-time\" class=\"status-item\"></span>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:99:49",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 49,
+                          "line": 99
+                        },
+                        "snippet": "   97 |     await expect(page.locator('.status-bar')).toBeVisible()\n   98 |     await expect(page.locator('#connection-status')).toBeVisible()\n>  99 |     await expect(page.locator('#current-time')).toBeVisible()\n      |                                                 ^\n  100 |     \n  101 |     // Check connection status (should show connected with our mock)\n  102 |     await expect(page.locator('#connection-status:has-text(\"Connected to daemon\")')).toBeVisible()"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 49,
+                            "line": 99
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#current-time')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#current-time')\u001b[22m\n\u001b[2m    9 × locator resolved to <span id=\"current-time\" class=\"status-item\"></span>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n\n   97 |     await expect(page.locator('.status-bar')).toBeVisible()\n   98 |     await expect(page.locator('#connection-status')).toBeVisible()\n>  99 |     await expect(page.locator('#current-time')).toBeVisible()\n      |                                                 ^\n  100 |     \n  101 |     // Check connection status (should show connected with our mock)\n  102 |     await expect(page.locator('#connection-status:has-text(\"Connected to daemon\")')).toBeVisible()\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:99:49"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:54.686Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--a1c36-r-shows-correct-information-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--a1c36-r-shows-correct-information-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--a1c36-r-shows-correct-information-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 49,
+                        "line": 99
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-404108adad651037721f",
+              "file": "navigation.spec.js",
+              "line": 95,
+              "column": 3
+            },
+            {
+              "title": "responsive navigation icons and labels are present",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 23,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 335,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:54.680Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-dbbfff93da22de5e2449",
+              "file": "navigation.spec.js",
+              "line": 112,
+              "column": 3
+            },
+            {
+              "title": "keyboard navigation works for basic interactions",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 24,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 5272,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#launch-form')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#launch-form')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"launch-form\" class=\"launch-form hidden\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#launch-form')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#launch-form')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"launch-form\" class=\"launch-form hidden\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:133:48",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 48,
+                          "line": 133
+                        },
+                        "snippet": "  131 |     \n  132 |     // Launch form should appear\n> 133 |     await expect(page.locator('#launch-form')).toBeVisible()\n      |                                                ^\n  134 |     \n  135 |     // Should be able to tab to form fields\n  136 |     await page.keyboard.press('Tab') // Go to instance name field"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 48,
+                            "line": 133
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#launch-form')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#launch-form')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"launch-form\" class=\"launch-form hidden\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n\n  131 |     \n  132 |     // Launch form should appear\n> 133 |     await expect(page.locator('#launch-form')).toBeVisible()\n      |                                                ^\n  134 |     \n  135 |     // Should be able to tab to form fields\n  136 |     await page.keyboard.press('Tab') // Go to instance name field\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:133:48"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:55.427Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--27c2c-orks-for-basic-interactions-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--27c2c-orks-for-basic-interactions-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--27c2c-orks-for-basic-interactions-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 48,
+                        "line": 133
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-6b440a151551eb1468df",
+              "file": "navigation.spec.js",
+              "line": 124,
+              "column": 3
+            },
+            {
+              "title": "loading states are shown appropriately",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 23,
+                      "parallelIndex": 5,
+                      "status": "failed",
+                      "duration": 5203,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('.template-card')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-card')\u001b[22m\n\u001b[2m    9 × locator resolved to 0 elements\u001b[22m\n\u001b[2m      - unexpected value \"0\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('.template-card')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-card')\u001b[22m\n\u001b[2m    9 × locator resolved to 0 elements\u001b[22m\n\u001b[2m      - unexpected value \"0\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:143:50",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 50,
+                          "line": 143
+                        },
+                        "snippet": "  141 |     // Templates should show loading initially, then actual content\n  142 |     // (In a real app, this would test the loading spinner)\n> 143 |     await expect(page.locator('.template-card')).toHaveCount(3) // Mock returns 3 templates\n      |                                                  ^\n  144 |     \n  145 |     // Instances section should also load properly\n  146 |     await page.click('.nav-item:has-text(\"My Instances\")')"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 50,
+                            "line": 143
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nLocator: locator('.template-card')\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m0\u001b[39m\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-card')\u001b[22m\n\u001b[2m    9 × locator resolved to 0 elements\u001b[22m\n\u001b[2m      - unexpected value \"0\"\u001b[22m\n\n\n  141 |     // Templates should show loading initially, then actual content\n  142 |     // (In a real app, this would test the loading spinner)\n> 143 |     await expect(page.locator('.template-card')).toHaveCount(3) // Mock returns 3 templates\n      |                                                  ^\n  144 |     \n  145 |     // Instances section should also load properly\n  146 |     await page.click('.nav-item:has-text(\"My Instances\")')\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:143:50"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:55.139Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--37c9e-tes-are-shown-appropriately-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--37c9e-tes-are-shown-appropriately-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--37c9e-tes-are-shown-appropriately-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 50,
+                        "line": 143
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-0509a8fe1ea50559f508",
+              "file": "navigation.spec.js",
+              "line": 140,
+              "column": 3
+            },
+            {
+              "title": "error states are handled gracefully",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 19,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 5264,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#instances-grid')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#instances-grid')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"instances-grid\" class=\"instances-grid\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#instances-grid')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#instances-grid')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"instances-grid\" class=\"instances-grid\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:157:51",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 51,
+                          "line": 157
+                        },
+                        "snippet": "  155 |     // Look for retry buttons in case of errors (would be shown by mock server)\n  156 |     // In a real test, we'd simulate daemon errors and verify graceful handling\n> 157 |     await expect(page.locator('#instances-grid')).toBeVisible()\n      |                                                   ^\n  158 |   })\n  159 |\n  160 |   test('progressive disclosure hides complexity initially', async ({ page }) => {"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 51,
+                            "line": 157
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('#instances-grid')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#instances-grid')\u001b[22m\n\u001b[2m    9 × locator resolved to <div id=\"instances-grid\" class=\"instances-grid\">…</div>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n\n  155 |     // Look for retry buttons in case of errors (would be shown by mock server)\n  156 |     // In a real test, we'd simulate daemon errors and verify graceful handling\n> 157 |     await expect(page.locator('#instances-grid')).toBeVisible()\n      |                                                   ^\n  158 |   })\n  159 |\n  160 |   test('progressive disclosure hides complexity initially', async ({ page }) => {\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:157:51"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T02:59:55.194Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--95475-ates-are-handled-gracefully-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--95475-ates-are-handled-gracefully-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--95475-ates-are-handled-gracefully-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 51,
+                        "line": 157
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-ca6397a1ade3d69279b7",
+              "file": "navigation.spec.js",
+              "line": 150,
+              "column": 3
+            },
+            {
+              "title": "progressive disclosure hides complexity initially",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 25,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 5234,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.template-grid')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-grid')\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.template-grid')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-grid')\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:163:50",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 50,
+                          "line": 163
+                        },
+                        "snippet": "  161 |     // Initially, only basic interface should be visible\n  162 |     await expect(page.locator('h2:has-text(\"Quick Start\")')).toBeVisible()\n> 163 |     await expect(page.locator('.template-grid')).toBeVisible()\n      |                                                  ^\n  164 |     \n  165 |     // Advanced form should be hidden\n  166 |     await expect(page.locator('#launch-form')).toHaveClass(/hidden/)"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 50,
+                            "line": 163
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.template-grid')\nExpected: visible\nReceived: <element(s) not found>\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.template-grid')\u001b[22m\n\n\n  161 |     // Initially, only basic interface should be visible\n  162 |     await expect(page.locator('h2:has-text(\"Quick Start\")')).toBeVisible()\n> 163 |     await expect(page.locator('.template-grid')).toBeVisible()\n      |                                                  ^\n  164 |     \n  165 |     // Advanced form should be hidden\n  166 |     await expect(page.locator('#launch-form')).toHaveClass(/hidden/)\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:163:50"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T03:00:00.436Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--032ec--hides-complexity-initially-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--032ec--hides-complexity-initially-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--032ec--hides-complexity-initially-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 50,
+                        "line": 163
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-3880c232bb89686414d8",
+              "file": "navigation.spec.js",
+              "line": 160,
+              "column": 3
+            },
+            {
+              "title": "section subtitles provide helpful guidance",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 26,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 5284,
+                      "error": {
+                        "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.section-subtitle:has-text(\"Manage your running research\")')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.section-subtitle:has-text(\"Manage your running research\")')\u001b[22m\n\u001b[2m    9 × locator resolved to <p class=\"section-subtitle\">Manage your running research environments</p>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n",
+                        "stack": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.section-subtitle:has-text(\"Manage your running research\")')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.section-subtitle:has-text(\"Manage your running research\")')\u001b[22m\n\u001b[2m    9 × locator resolved to <p class=\"section-subtitle\">Manage your running research environments</p>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:182:94",
+                        "location": {
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                          "column": 94,
+                          "line": 182
+                        },
+                        "snippet": "  180 |     // My Instances section guidance  \n  181 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 182 |     await expect(page.locator('.section-subtitle:has-text(\"Manage your running research\")')).toBeVisible()\n      |                                                                                              ^\n  183 |   })\n  184 | })"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                            "column": 94,
+                            "line": 182
+                          },
+                          "message": "Error: \u001b[31mTimed out 5000ms waiting for \u001b[39m\u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m()\u001b[22m\n\nLocator: locator('.section-subtitle:has-text(\"Manage your running research\")')\nExpected: visible\nReceived: hidden\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('.section-subtitle:has-text(\"Manage your running research\")')\u001b[22m\n\u001b[2m    9 × locator resolved to <p class=\"section-subtitle\">Manage your running research environments</p>\u001b[22m\n\u001b[2m      - unexpected value \"hidden\"\u001b[22m\n\n\n  180 |     // My Instances section guidance  \n  181 |     await page.click('.nav-item:has-text(\"My Instances\")')\n> 182 |     await expect(page.locator('.section-subtitle:has-text(\"Manage your running research\")')).toBeVisible()\n      |                                                                                              ^\n  183 |   })\n  184 | })\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js:182:94"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-08-23T03:00:00.444Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--8d7d6-es-provide-helpful-guidance-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--8d7d6-es-provide-helpful-guidance-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/navigation-Navigation-and--8d7d6-es-provide-helpful-guidance-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/navigation.spec.js",
+                        "column": 94,
+                        "line": 182
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "ce7c070a851ea64285fd-8d1d32699fd48fbe8735",
+              "file": "navigation.spec.js",
+              "line": 176,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-08-23T02:59:30.298Z",
+    "duration": 35542.094,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 27,
+    "flaky": 0
+  }
+}

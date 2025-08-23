@@ -47,19 +47,19 @@ type Instance struct {
 	ProjectID          string                  `json:"project_id,omitempty"` // Associated project ID
 	IdleDetection      *IdleDetection          `json:"idle_detection,omitempty"`
 	AppliedTemplates   []AppliedTemplateRecord `json:"applied_templates,omitempty"` // Template application history
-	
+
 	// Cost optimization fields
-	EstimatedCost      float64                 `json:"estimated_cost,omitempty"`      // Daily cost estimate
-	IdlePolicyEnabled  bool                    `json:"idle_policy_enabled,omitempty"`
-	SpotEligible       bool                    `json:"spot_eligible,omitempty"`
-	IsSpot             bool                    `json:"is_spot,omitempty"`
-	ARMCompatible      bool                    `json:"arm_compatible,omitempty"`
-	Architecture       string                  `json:"architecture,omitempty"`
-	AlwaysOn           bool                    `json:"always_on,omitempty"`
-	WorkloadType       string                  `json:"workload_type,omitempty"`
-	Runtime            float64                 `json:"runtime,omitempty"`       // Hours since launch
-	StorageGB          float64                 `json:"storage_gb,omitempty"`
-	StorageUsedGB      float64                 `json:"storage_used_gb,omitempty"`
+	EstimatedCost     float64 `json:"estimated_cost,omitempty"` // Daily cost estimate
+	IdlePolicyEnabled bool    `json:"idle_policy_enabled,omitempty"`
+	SpotEligible      bool    `json:"spot_eligible,omitempty"`
+	IsSpot            bool    `json:"is_spot,omitempty"`
+	ARMCompatible     bool    `json:"arm_compatible,omitempty"`
+	Architecture      string  `json:"architecture,omitempty"`
+	AlwaysOn          bool    `json:"always_on,omitempty"`
+	WorkloadType      string  `json:"workload_type,omitempty"`
+	Runtime           float64 `json:"runtime,omitempty"` // Hours since launch
+	StorageGB         float64 `json:"storage_gb,omitempty"`
+	StorageUsedGB     float64 `json:"storage_used_gb,omitempty"`
 }
 
 // IdleDetection represents idle detection configuration for an instance
@@ -119,13 +119,13 @@ type AppliedTemplateRecord struct {
 // HibernationStatus represents the hibernation status of an instance
 type HibernationStatus struct {
 	HibernationSupported bool   `json:"hibernation_supported"`
-	InstanceState        string `json:"instance_state"`        // Current AWS state: running, stopped, stopping, etc.
-	PossiblyHibernated   bool   `json:"possibly_hibernated"`   // True if stopped with hibernation support
+	InstanceState        string `json:"instance_state"`      // Current AWS state: running, stopped, stopping, etc.
+	PossiblyHibernated   bool   `json:"possibly_hibernated"` // True if stopped with hibernation support
 	InstanceName         string `json:"instance_name"`
-	Note                 string `json:"note,omitempty"`        // Explanatory note about the status
-	
+	Note                 string `json:"note,omitempty"` // Explanatory note about the status
+
 	// Deprecated: Use PossiblyHibernated instead
-	IsHibernated         bool   `json:"is_hibernated,omitempty"` // Kept for backward compatibility
+	IsHibernated bool `json:"is_hibernated,omitempty"` // Kept for backward compatibility
 }
 
 // Moved to idle_legacy.go - legacy idle system removed

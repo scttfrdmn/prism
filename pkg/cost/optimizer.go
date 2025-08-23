@@ -12,32 +12,32 @@ import (
 type OptimizationType string
 
 const (
-	OptimizationTypeRightSize     OptimizationType = "right_size"
-	OptimizationTypeSchedule      OptimizationType = "schedule"
-	OptimizationTypeSpot          OptimizationType = "spot"
-	OptimizationTypeReserved      OptimizationType = "reserved"
-	OptimizationTypeHibernation   OptimizationType = "hibernation"
-	OptimizationTypeStorage       OptimizationType = "storage"
-	OptimizationTypeArchitecture  OptimizationType = "architecture"
+	OptimizationTypeRightSize    OptimizationType = "right_size"
+	OptimizationTypeSchedule     OptimizationType = "schedule"
+	OptimizationTypeSpot         OptimizationType = "spot"
+	OptimizationTypeReserved     OptimizationType = "reserved"
+	OptimizationTypeHibernation  OptimizationType = "hibernation"
+	OptimizationTypeStorage      OptimizationType = "storage"
+	OptimizationTypeArchitecture OptimizationType = "architecture"
 )
 
 // Recommendation represents a cost optimization recommendation
 type Recommendation struct {
-	ID               string            `json:"id"`
-	Type             OptimizationType  `json:"type"`
-	Priority         string            `json:"priority"` // high, medium, low
-	Title            string            `json:"title"`
-	Description      string            `json:"description"`
-	EstimatedSavings float64           `json:"estimated_savings"` // Monthly savings in dollars
-	SavingsPercent   float64           `json:"savings_percent"`
-	Effort           string            `json:"effort"` // low, medium, high
-	Risk             string            `json:"risk"`   // low, medium, high
-	Implementation   string            `json:"implementation"`
-	InstanceID       string            `json:"instance_id,omitempty"`
-	ProjectID        string            `json:"project_id,omitempty"`
+	ID               string             `json:"id"`
+	Type             OptimizationType   `json:"type"`
+	Priority         string             `json:"priority"` // high, medium, low
+	Title            string             `json:"title"`
+	Description      string             `json:"description"`
+	EstimatedSavings float64            `json:"estimated_savings"` // Monthly savings in dollars
+	SavingsPercent   float64            `json:"savings_percent"`
+	Effort           string             `json:"effort"` // low, medium, high
+	Risk             string             `json:"risk"`   // low, medium, high
+	Implementation   string             `json:"implementation"`
+	InstanceID       string             `json:"instance_id,omitempty"`
+	ProjectID        string             `json:"project_id,omitempty"`
 	Metrics          map[string]float64 `json:"metrics,omitempty"`
-	CreatedAt        time.Time         `json:"created_at"`
-	ExpiresAt        time.Time         `json:"expires_at"`
+	CreatedAt        time.Time          `json:"created_at"`
+	ExpiresAt        time.Time          `json:"expires_at"`
 }
 
 // CostOptimizer analyzes usage patterns and provides optimization recommendations
@@ -332,8 +332,8 @@ func (co *CostOptimizer) checkProjectStorageOptimization(projectID string, insta
 			Implementation:   "Reduce storage allocation or use lifecycle policies for old data",
 			ProjectID:        projectID,
 			Metrics: map[string]float64{
-				"total_storage_gb":   totalStorageGB,
-				"used_storage_gb":    usedStorageGB,
+				"total_storage_gb":    totalStorageGB,
+				"used_storage_gb":     usedStorageGB,
 				"utilization_percent": utilizationPercent,
 			},
 			CreatedAt: time.Now(),
@@ -352,7 +352,7 @@ func (co *CostOptimizer) sortRecommendations(recommendations []*Recommendation) 
 		if priorityOrder[recommendations[i].Priority] != priorityOrder[recommendations[j].Priority] {
 			return priorityOrder[recommendations[i].Priority] > priorityOrder[recommendations[j].Priority]
 		}
-		
+
 		// Then by estimated savings
 		return recommendations[i].EstimatedSavings > recommendations[j].EstimatedSavings
 	})
@@ -378,7 +378,7 @@ func (co *CostOptimizer) CalculateTotalSavings(recommendations []*Recommendation
 // GenerateOptimizationReport generates a comprehensive optimization report
 func (co *CostOptimizer) GenerateOptimizationReport(projectID string, instances []*types.Instance) *OptimizationReport {
 	recommendations := co.AnalyzeProject(projectID, instances)
-	
+
 	return &OptimizationReport{
 		ProjectID:          projectID,
 		GeneratedAt:        time.Now(),

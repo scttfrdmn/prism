@@ -44,7 +44,7 @@ type Server struct {
 	stabilityManager *StabilityManager
 	recoveryManager  *RecoveryManager
 	healthMonitor    *HealthMonitor
-	
+
 	// Cost optimization components
 	budgetTracker *project.BudgetTracker
 	alertManager  *cost.AlertManager
@@ -123,7 +123,7 @@ func NewServer(port string) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize project manager: %w", err)
 	}
-	
+
 	// Initialize cost optimization components
 	budgetTracker, err := project.NewBudgetTracker()
 	if err != nil {
@@ -474,7 +474,7 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/stability/errors", applyMiddleware(s.handleStabilityErrors))
 	mux.HandleFunc("/api/v1/stability/circuit-breakers", applyMiddleware(s.handleCircuitBreakers))
 	mux.HandleFunc("/api/v1/stability/recovery", applyMiddleware(s.handleRecoveryTrigger))
-	
+
 	// Cost optimization and budget alert endpoints
 	s.RegisterCostHandlers(mux, applyMiddleware)
 }

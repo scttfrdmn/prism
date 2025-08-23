@@ -269,6 +269,21 @@ func TestServerConcurrency(t *testing.T) {
 
 // TestServerConfiguration tests server configuration loading
 func TestServerConfiguration(t *testing.T) {
+	// Save any existing config
+	configPath := GetConfigPath()
+	var existingConfig []byte
+	if data, err := os.ReadFile(configPath); err == nil {
+		existingConfig = data
+		// Remove config temporarily
+		_ = os.Remove(configPath)
+	}
+	// Restore config after test
+	defer func() {
+		if existingConfig != nil {
+			_ = os.WriteFile(configPath, existingConfig, 0644)
+		}
+	}()
+
 	// Test with explicit port parameter
 	server, err := NewServer("9999")
 	require.NoError(t, err)

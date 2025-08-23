@@ -31,7 +31,7 @@ func DefaultConfig() *Config {
 
 // LoadConfig loads daemon configuration from the standard location
 func LoadConfig() (*Config, error) {
-	configPath := getConfigPath()
+	configPath := GetConfigPath()
 
 	// If config file doesn't exist, return default config
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
@@ -55,7 +55,7 @@ func LoadConfig() (*Config, error) {
 
 // SaveConfig saves daemon configuration to the standard location
 func SaveConfig(config *Config) error {
-	configPath := getConfigPath()
+	configPath := GetConfigPath()
 
 	// Ensure config directory exists
 	configDir := filepath.Dir(configPath)
@@ -88,7 +88,8 @@ func (c *Config) GetRetentionDuration() time.Duration {
 }
 
 // getConfigPath returns the standard daemon configuration file path
-func getConfigPath() string {
+// GetConfigPath returns the path to the daemon configuration file
+func GetConfigPath() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "daemon_config.json" // Fallback

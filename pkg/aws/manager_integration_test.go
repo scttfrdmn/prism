@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package aws
@@ -25,17 +26,17 @@ func TestAWSManagerIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	
+
 	// Load AWS config
 	cfg, err := config.LoadDefaultConfig(ctx)
 	require.NoError(t, err, "Failed to load AWS config")
 
 	// Create manager
 	manager := &Manager{
-		ec2Client:    ec2.NewFromConfig(cfg),
-		efsClient:    nil, // Will be initialized as needed
-		region:       cfg.Region,
-		profileName:  "integration-test",
+		ec2Client:   ec2.NewFromConfig(cfg),
+		efsClient:   nil, // Will be initialized as needed
+		region:      cfg.Region,
+		profileName: "integration-test",
 	}
 
 	// Test VPC discovery
@@ -43,7 +44,7 @@ func TestAWSManagerIntegration(t *testing.T) {
 		vpcs, err := manager.DescribeVPCs(ctx)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, vpcs, "Should find at least one VPC")
-		
+
 		// Verify default VPC exists
 		hasDefault := false
 		for _, vpc := range vpcs {
@@ -60,7 +61,7 @@ func TestAWSManagerIntegration(t *testing.T) {
 		subnets, err := manager.DescribeSubnets(ctx)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, subnets, "Should find at least one subnet")
-		
+
 		// Verify subnets have required fields
 		for _, subnet := range subnets {
 			assert.NotNil(t, subnet.SubnetId)
@@ -101,7 +102,7 @@ func TestAWSManagerIntegration(t *testing.T) {
 		amiID, err := manager.GetLatestAMI(ctx, "ubuntu", "22.04", "amd64")
 		assert.NoError(t, err)
 		assert.NotEmpty(t, amiID, "Should find Ubuntu 22.04 AMI")
-		
+
 		// Verify AMI exists
 		describeInput := &ec2.DescribeImagesInput{
 			ImageIds: []string{amiID},
@@ -133,7 +134,7 @@ func TestAWSManagerIntegration(t *testing.T) {
 		azs, err := manager.GetAvailabilityZones(ctx)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, azs, "Should have at least one AZ")
-		
+
 		for _, az := range azs {
 			assert.NotEmpty(t, az.ZoneName)
 			assert.NotEmpty(t, az.State)
@@ -144,12 +145,12 @@ func TestAWSManagerIntegration(t *testing.T) {
 	// Test Key Pair operations
 	t.Run("Key Pair Operations", func(t *testing.T) {
 		keyName := "cws-test-" + time.Now().Format("20060102-150405")
-		
+
 		// Create key pair
 		keyMaterial, err := manager.CreateKeyPair(ctx, keyName)
 		require.NoError(t, err)
 		require.NotEmpty(t, keyMaterial, "Should return private key material")
-		
+
 		// Clean up
 		defer func() {
 			deleteInput := &ec2.DeleteKeyPairInput{
@@ -174,9 +175,9 @@ func TestAWSManagerIntegration(t *testing.T) {
 		azs, err := manager.GetAvailabilityZones(ctx)
 		require.NoError(t, err)
 		require.NotEmpty(t, azs)
-		
+
 		az := azs[0].ZoneName
-		
+
 		// Create test volume
 		volumeName := "cws-test-vol-" + time.Now().Format("20060102-150405")
 		volumeID, err := manager.CreateEBSVolume(ctx, volumeName, 10, "gp3", az)
@@ -197,7 +198,7 @@ func TestAWSManagerIntegration(t *testing.T) {
 		// Verify volume exists
 		volumes, err := manager.ListEBSVolumes(ctx)
 		assert.NoError(t, err)
-		
+
 		found := false
 		for _, vol := range volumes {
 			if vol.VolumeID == volumeID {
@@ -230,20 +231,20 @@ func TestInstanceLifecycleIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	
+
 	// Load AWS config
 	cfg, err := config.LoadDefaultConfig(ctx)
 	require.NoError(t, err)
 
 	manager := &Manager{
-		ec2Client:    ec2.NewFromConfig(cfg),
-		region:       cfg.Region,
-		profileName:  "integration-test",
+		ec2Client:   ec2.NewFromConfig(cfg),
+		region:      cfg.Region,
+		profileName: "integration-test",
 	}
 
 	// Create test instance
 	instanceName := "cws-test-" + time.Now().Format("20060102-150405")
-	
+
 	// Use minimal Ubuntu template for testing
 	template := &templates.RuntimeTemplate{
 		Name:           "test-ubuntu",
@@ -330,17 +331,17 @@ func TestInstanceLifecycleIntegration(t *testing.T) {
 	// Test tagging
 	t.Run("Instance Tagging", func(t *testing.T) {
 		tags := map[string]string{
-			"TestTag":    "TestValue",
+			"TestTag":     "TestValue",
 			"Integration": "true",
 		}
-		
+
 		err := manager.TagInstance(ctx, instanceID, tags)
 		assert.NoError(t, err)
 
 		// Verify tags
 		instance, err := manager.DescribeInstance(ctx, instanceID)
 		assert.NoError(t, err)
-		
+
 		// Check if tags are present in instance metadata
 		t.Logf("Instance tags applied successfully")
 	})
@@ -357,23 +358,23 @@ func TestEFSIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	
+
 	cfg, err := config.LoadDefaultConfig(ctx)
 	require.NoError(t, err)
 
 	manager := &Manager{
-		ec2Client:    ec2.NewFromConfig(cfg),
-		region:       cfg.Region,
-		profileName:  "integration-test",
+		ec2Client:   ec2.NewFromConfig(cfg),
+		region:      cfg.Region,
+		profileName: "integration-test",
 	}
-	
+
 	// Initialize EFS client
 	err = manager.initEFSClient(ctx)
 	require.NoError(t, err)
 
 	// Create EFS volume
 	volumeName := "cws-test-efs-" + time.Now().Format("20060102-150405")
-	
+
 	fsID, err := manager.CreateEFSVolume(ctx, volumeName)
 	require.NoError(t, err)
 	require.NotEmpty(t, fsID)
@@ -389,7 +390,7 @@ func TestEFSIntegration(t *testing.T) {
 	// List EFS volumes
 	volumes, err := manager.ListEFSVolumes(ctx)
 	assert.NoError(t, err)
-	
+
 	found := false
 	for _, vol := range volumes {
 		if vol.FileSystemID == fsID {
@@ -408,14 +409,14 @@ func TestCostCalculations(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	
+
 	cfg, err := config.LoadDefaultConfig(ctx)
 	require.NoError(t, err)
 
 	manager := &Manager{
-		ec2Client:    ec2.NewFromConfig(cfg),
-		region:       cfg.Region,
-		profileName:  "integration-test",
+		ec2Client:   ec2.NewFromConfig(cfg),
+		region:      cfg.Region,
+		profileName: "integration-test",
 	}
 
 	// Test on-demand pricing
@@ -431,7 +432,7 @@ func TestCostCalculations(t *testing.T) {
 		spotPrice, err := manager.GetInstancePrice(ctx, "t3.micro", true)
 		assert.NoError(t, err)
 		assert.Greater(t, spotPrice, 0.0, "Should return positive spot price")
-		
+
 		onDemandPrice, _ := manager.GetInstancePrice(ctx, "t3.micro", false)
 		assert.Less(t, spotPrice, onDemandPrice, "Spot price should be less than on-demand")
 	})

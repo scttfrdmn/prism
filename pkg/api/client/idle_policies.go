@@ -17,7 +17,9 @@ func (c *HTTPClient) ListIdlePolicies(ctx context.Context) ([]*idle.PolicyTempla
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to list idle policies: %s", resp.Status)
@@ -37,7 +39,9 @@ func (c *HTTPClient) GetIdlePolicy(ctx context.Context, policyID string) (*idle.
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get idle policy: %s", resp.Status)
@@ -67,7 +71,9 @@ func (c *HTTPClient) ApplyIdlePolicy(ctx context.Context, instanceName string, p
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to apply idle policy: %s", resp.Status)
@@ -92,7 +98,9 @@ func (c *HTTPClient) RemoveIdlePolicy(ctx context.Context, instanceName string, 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to remove idle policy: %s", resp.Status)
@@ -107,7 +115,9 @@ func (c *HTTPClient) GetInstanceIdlePolicies(ctx context.Context, instanceName s
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get instance idle policies: %s", resp.Status)
@@ -127,7 +137,9 @@ func (c *HTTPClient) RecommendIdlePolicy(ctx context.Context, instanceName strin
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get idle policy recommendation: %s", resp.Status)
@@ -147,7 +159,9 @@ func (c *HTTPClient) GetIdleSavingsReport(ctx context.Context, period string) (m
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("failed to get idle savings report: %s", resp.Status)

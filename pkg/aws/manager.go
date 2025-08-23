@@ -30,19 +30,19 @@ import (
 
 // Manager handles all AWS operations
 type Manager struct {
-	cfg                 aws.Config
-	ec2                 EC2ClientInterface
-	efs                 EFSClientInterface
-	ssm                 SSMClientInterface
-	sts                 STSClientInterface
-	region              string
-	templates           map[string]ctypes.Template
-	pricingCache        map[string]float64
-	lastPriceUpdate     time.Time
-	discountConfig      ctypes.DiscountConfig
-	stateManager        StateManagerInterface
-	idleScheduler *idle.Scheduler
-	policyManager *idle.PolicyManager
+	cfg             aws.Config
+	ec2             EC2ClientInterface
+	efs             EFSClientInterface
+	ssm             SSMClientInterface
+	sts             STSClientInterface
+	region          string
+	templates       map[string]ctypes.Template
+	pricingCache    map[string]float64
+	lastPriceUpdate time.Time
+	discountConfig  ctypes.DiscountConfig
+	stateManager    StateManagerInterface
+	idleScheduler   *idle.Scheduler
+	policyManager   *idle.PolicyManager
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager
@@ -100,19 +100,19 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	policyManager := idle.NewPolicyManager()
 
 	manager := &Manager{
-		cfg:                 cfg,
-		ec2:                 ec2Client,
-		efs:                 efsClient,
-		ssm:                 ssmClient,
-		sts:                 stsClient,
-		region:              region,
-		templates:           getTemplates(),
-		pricingCache:        make(map[string]float64),
-		lastPriceUpdate:     time.Time{},
-		discountConfig:      ctypes.DiscountConfig{}, // No discounts by default
-		stateManager:        stateManager,
-		idleScheduler: idleScheduler,
-		policyManager: policyManager,
+		cfg:             cfg,
+		ec2:             ec2Client,
+		efs:             efsClient,
+		ssm:             ssmClient,
+		sts:             stsClient,
+		region:          region,
+		templates:       getTemplates(),
+		pricingCache:    make(map[string]float64),
+		lastPriceUpdate: time.Time{},
+		discountConfig:  ctypes.DiscountConfig{}, // No discounts by default
+		stateManager:    stateManager,
+		idleScheduler:   idleScheduler,
+		policyManager:   policyManager,
 	}
 
 	// Start the idle scheduler
@@ -280,7 +280,7 @@ type LaunchOptionsProcessor struct {
 func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string) error {
 	// Support IdlePolicy flag
 	enableIdlePolicy := req.IdlePolicy
-	
+
 	// Validate idle policy and spot combination
 	if enableIdlePolicy && req.Spot {
 		return fmt.Errorf("idle policy (hibernation) and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Idle policies preserve instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --idle-policy for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
@@ -440,18 +440,18 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 
 	var template *ctypes.RuntimeTemplate
 	var err error
-	
+
 	// Use parameter-aware template processing if parameters are provided
 	if req.Parameters != nil && len(req.Parameters) > 0 {
 		template, err = templates.GetTemplateWithParameters(req.Template, m.region, arch, packageManager, req.Size, req.Parameters)
 	} else {
 		template, err = templates.GetTemplateWithPackageManager(req.Template, m.region, arch, packageManager, req.Size)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
-	
+
 	// Validate template before launch (if not dry-run)
 	if !req.DryRun {
 		// Get raw template for validation
@@ -459,10 +459,10 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		if rawTemplate != nil {
 			registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 			registry.Templates[req.Template] = rawTemplate // Add to registry for validation
-			
+
 			validator := templates.NewComprehensiveValidator(registry)
 			report := validator.ValidateTemplate(rawTemplate)
-			
+
 			if !report.Valid {
 				// Build error message with details
 				var errors []string
@@ -687,7 +687,7 @@ func (m *Manager) ApplyHibernationPolicy(instanceName string, policyID string) e
 		// Create a copy of the schedule with instance-specific ID
 		instanceSchedule := schedule
 		instanceSchedule.ID = fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
-		
+
 		if err := m.idleScheduler.AddSchedule(&instanceSchedule); err != nil {
 			return fmt.Errorf("failed to add schedule %s: %w", schedule.Name, err)
 		}
@@ -769,7 +769,7 @@ func (m *Manager) RecommendIdlePolicy(instanceName string) (*idle.PolicyTemplate
 	}
 
 	instance := result.Reservations[0].Instances[0]
-	
+
 	// Extract instance type and tags
 	instanceType := string(instance.InstanceType)
 	tags := make(map[string]string)

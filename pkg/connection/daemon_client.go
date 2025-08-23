@@ -108,7 +108,9 @@ func (dcm *DaemonConnectionManager) VerifyDaemonHealth(ctx context.Context) erro
 		dcm.updateHealthStatus(false)
 		return fmt.Errorf("daemon health check failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		dcm.updateHealthStatus(false)
@@ -203,14 +205,14 @@ func (dcm *DaemonConnectionManager) startHealthChecks(ctx context.Context) {
 	defer ticker.Stop()
 
 	// Initial health check
-	dcm.VerifyDaemonHealth(ctx)
+	_ = dcm.VerifyDaemonHealth(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			dcm.VerifyDaemonHealth(ctx)
+			_ = dcm.VerifyDaemonHealth(ctx)
 		}
 	}
 }

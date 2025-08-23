@@ -111,7 +111,7 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 	var complexity string
 	var popularOnly bool
 	var featuredOnly bool
-	
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
@@ -132,17 +132,17 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 			query = arg
 		}
 	}
-	
+
 	// Get all templates
 	if err := tc.app.ensureDaemonRunning(); err != nil {
 		return err
 	}
-	
+
 	apiTemplates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
 	if err != nil {
 		return WrapAPIError("list templates", err)
 	}
-	
+
 	// Convert API templates to search format
 	searchTemplates := make(map[string]*templates.Template)
 	for name := range apiTemplates {
@@ -152,7 +152,7 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 			searchTemplates[name] = rawTemplate
 		}
 	}
-	
+
 	// Build search options
 	searchOpts := templates.SearchOptions{
 		Query:      query,
@@ -166,17 +166,17 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 	if featuredOnly {
 		searchOpts.Featured = &featuredOnly
 	}
-	
+
 	// Perform search
 	results := templates.SearchTemplates(searchTemplates, searchOpts)
-	
+
 	// Display results
 	if query != "" {
 		fmt.Printf("🔍 Searching for templates matching '%s'...\n\n", query)
 	} else {
 		fmt.Printf("🔍 Filtering templates...\n\n")
 	}
-	
+
 	if len(results) == 0 {
 		fmt.Println("No templates found matching your criteria.")
 		fmt.Println("\n💡 Try:")
@@ -185,19 +185,19 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 		fmt.Println("   • cws templates list (to see all)")
 		return nil
 	}
-	
+
 	fmt.Printf("📋 Found %d matching templates:\n\n", len(results))
-	
+
 	for _, result := range results {
 		tmpl := result.Template
-		
+
 		// Display icon and name
 		icon := tmpl.Icon
 		if icon == "" {
 			icon = "🏗️"
 		}
 		fmt.Printf("%s  %s", icon, tmpl.Name)
-		
+
 		// Add badges
 		if tmpl.Featured {
 			fmt.Printf(" ⭐ Featured")
@@ -206,13 +206,13 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 			fmt.Printf(" 🔥 Popular")
 		}
 		fmt.Println()
-		
+
 		// Display metadata
 		if tmpl.Slug != "" {
 			fmt.Printf("   Quick launch: cws launch %s <name>\n", tmpl.Slug)
 		}
 		fmt.Printf("   %s\n", tmpl.Description)
-		
+
 		if tmpl.Category != "" {
 			fmt.Printf("   Category: %s", tmpl.Category)
 		}
@@ -223,23 +223,23 @@ func (tc *TemplateCommands) templatesSearch(args []string) error {
 			fmt.Printf(" | Complexity: %s", tmpl.Complexity)
 		}
 		fmt.Println()
-		
+
 		// Show what matched if searching
 		if len(result.Matches) > 0 && query != "" {
 			fmt.Printf("   Matched: %s\n", strings.Join(result.Matches, ", "))
 		}
-		
+
 		fmt.Println()
 	}
-	
+
 	// Show available filters
 	fmt.Println("🔧 Available Filters:")
 	fmt.Println("   --category <name>    Filter by category")
-	fmt.Println("   --domain <name>      Filter by domain") 
+	fmt.Println("   --domain <name>      Filter by domain")
 	fmt.Println("   --complexity <level> Filter by complexity (simple/moderate/advanced)")
 	fmt.Println("   --popular            Show only popular templates")
 	fmt.Println("   --featured           Show only featured templates")
-	
+
 	return nil
 }
 
@@ -522,12 +522,12 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 	if err := tc.app.ensureDaemonRunning(); err != nil {
 		return err
 	}
-	
+
 	apiTemplates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
 	if err != nil {
 		return WrapAPIError("list templates", err)
 	}
-	
+
 	// Convert to full templates for metadata
 	searchTemplates := make(map[string]*templates.Template)
 	for name := range apiTemplates {
@@ -536,20 +536,20 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 			searchTemplates[name] = rawTemplate
 		}
 	}
-	
+
 	// Get unique categories and domains
 	categories := templates.GetCategories(searchTemplates)
 	domains := templates.GetDomains(searchTemplates)
-	
+
 	fmt.Println("🔍 Discover CloudWorkstation Templates")
 	fmt.Println()
-	
+
 	// Show templates by category
 	if len(categories) > 0 {
 		fmt.Println("📂 Templates by Category:")
 		for _, category := range categories {
 			fmt.Printf("\n  📁 %s:\n", category)
-			
+
 			// Find templates in this category
 			for name, tmpl := range searchTemplates {
 				if tmpl.Category == category {
@@ -570,7 +570,7 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 		}
 		fmt.Println()
 	}
-	
+
 	// Show templates by domain
 	if len(domains) > 0 {
 		fmt.Println("🔬 Templates by Research Domain:")
@@ -589,9 +589,9 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 			case "base":
 				domainName = "Base Systems"
 			}
-			
+
 			fmt.Printf("\n  🔬 %s:\n", domainName)
-			
+
 			// Find templates in this domain
 			for name, tmpl := range searchTemplates {
 				if tmpl.Domain == domain {
@@ -605,7 +605,7 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 		}
 		fmt.Println()
 	}
-	
+
 	// Show popular templates
 	fmt.Println("🔥 Popular Templates:")
 	popularCount := 0
@@ -623,7 +623,7 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 		fmt.Println("   No templates marked as popular")
 	}
 	fmt.Println()
-	
+
 	// Show usage tips
 	fmt.Println("💡 Tips:")
 	fmt.Println("   • Search by keyword:    cws templates search <query>")
@@ -631,7 +631,7 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 	fmt.Println("   • Filter by domain:     cws templates search --domain ml")
 	fmt.Println("   • Show popular only:    cws templates search --popular")
 	fmt.Println("   • Template details:     cws templates info <template-name>")
-	
+
 	return nil
 }
 
@@ -726,7 +726,7 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 	var verbose bool
 	var strict bool
 	var templateName string
-	
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch arg {
@@ -740,29 +740,29 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 			}
 		}
 	}
-	
+
 	// Load template registry
 	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 	if err := registry.ScanTemplates(); err != nil {
 		return fmt.Errorf("failed to scan templates: %w", err)
 	}
-	
+
 	// Create validator
 	validator := templates.NewComprehensiveValidator(registry)
-	
+
 	// Validate specific template or all
 	if templateName != "" {
 		// Validate specific template
 		fmt.Printf("🔍 Validating template: %s\n\n", templateName)
-		
+
 		template, exists := registry.Templates[templateName]
 		if !exists {
 			return fmt.Errorf("template not found: %s", templateName)
 		}
-		
+
 		report := validator.ValidateTemplate(template)
 		tc.displayValidationReport(report, verbose, strict)
-		
+
 		if !report.Valid {
 			return fmt.Errorf("template validation failed")
 		}
@@ -770,40 +770,40 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 		// Validate all templates
 		fmt.Println("🔍 Validating all templates...")
 		fmt.Println()
-		
+
 		reports := validator.ValidateAll()
-		
+
 		totalErrors := 0
 		totalWarnings := 0
 		failedTemplates := []string{}
-		
+
 		for name, report := range reports {
 			if verbose || !report.Valid {
 				fmt.Printf("📋 %s:\n", name)
 				tc.displayValidationReport(report, verbose, strict)
 			}
-			
+
 			totalErrors += report.ErrorCount
 			totalWarnings += report.WarningCount
-			
+
 			if !report.Valid {
 				failedTemplates = append(failedTemplates, name)
 			}
 		}
-		
+
 		// Summary
 		fmt.Println("═══════════════════════════════════════")
 		fmt.Printf("📊 Validation Summary:\n")
 		fmt.Printf("   Templates validated: %d\n", len(reports))
 		fmt.Printf("   Total errors: %d\n", totalErrors)
 		fmt.Printf("   Total warnings: %d\n", totalWarnings)
-		
+
 		if len(failedTemplates) > 0 {
 			fmt.Printf("\n❌ Failed templates:\n")
 			for _, name := range failedTemplates {
 				fmt.Printf("   • %s\n", name)
 			}
-			
+
 			if strict {
 				return fmt.Errorf("%d templates failed validation", len(failedTemplates))
 			}
@@ -811,7 +811,7 @@ func (tc *TemplateCommands) validateTemplates(args []string) error {
 			fmt.Printf("\n✅ All templates are valid!\n")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -825,7 +825,7 @@ func (tc *TemplateCommands) displayValidationReport(report *templates.Validation
 			errorCount++
 		}
 	}
-	
+
 	// Show warnings (verbose or strict mode)
 	if verbose || strict {
 		for _, result := range report.Results {
@@ -834,7 +834,7 @@ func (tc *TemplateCommands) displayValidationReport(report *templates.Validation
 			}
 		}
 	}
-	
+
 	// Show info (verbose only)
 	if verbose {
 		for _, result := range report.Results {
@@ -843,7 +843,7 @@ func (tc *TemplateCommands) displayValidationReport(report *templates.Validation
 			}
 		}
 	}
-	
+
 	// Summary for this template
 	if report.Valid {
 		fmt.Printf("   ✅ Valid (%d warnings, %d suggestions)\n", report.WarningCount, report.InfoCount)
@@ -1540,11 +1540,11 @@ func (tc *TemplateCommands) displayTroubleshootingInfo(template *templates.Templ
 // templatesUsage shows template usage statistics
 func (tc *TemplateCommands) templatesUsage(args []string) error {
 	stats := templates.GetUsageStats()
-	
+
 	fmt.Println("📊 Template Usage Statistics")
 	fmt.Println("═══════════════════════════════════════")
 	fmt.Println()
-	
+
 	// Show most popular templates
 	fmt.Println("🔥 Most Popular Templates:")
 	popular := stats.GetPopularTemplates(5)
@@ -1552,7 +1552,7 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 		fmt.Println("   No usage data available yet")
 	} else {
 		for i, usage := range popular {
-			fmt.Printf("   %d. %s - %d launches (%.0f%% success rate)\n", 
+			fmt.Printf("   %d. %s - %d launches (%.0f%% success rate)\n",
 				i+1, usage.TemplateName, usage.LaunchCount, usage.SuccessRate*100)
 			if usage.AverageLaunchTime > 0 {
 				fmt.Printf("      Average launch time: %d seconds\n", usage.AverageLaunchTime)
@@ -1560,7 +1560,7 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 		}
 	}
 	fmt.Println()
-	
+
 	// Show recently used templates
 	fmt.Println("⏰ Recently Used Templates:")
 	recent := stats.GetRecentlyUsedTemplates(5)
@@ -1568,24 +1568,24 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 		fmt.Println("   No usage data available yet")
 	} else {
 		for _, usage := range recent {
-			fmt.Printf("   • %s - Last used: %s\n", 
+			fmt.Printf("   • %s - Last used: %s\n",
 				usage.TemplateName, usage.LastUsed.Format("Jan 2, 2006 3:04 PM"))
 		}
 	}
 	fmt.Println()
-	
+
 	// Show recommendations based on usage
 	if len(popular) > 0 {
 		fmt.Println("💡 Recommendations:")
-		
+
 		// Find domain from most popular template
 		if template, _ := templates.GetTemplateInfo(popular[0].TemplateName); template != nil && template.Domain != "" {
 			fmt.Printf("   Based on your usage, you might also like:\n")
-			
+
 			// Get all templates
 			registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 			registry.ScanTemplates()
-			
+
 			recommendations := templates.RecommendTemplates(registry.Templates, template.Domain, 3)
 			for _, rec := range recommendations {
 				if rec.Name != popular[0].TemplateName {
@@ -1595,13 +1595,13 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 		}
 		fmt.Println()
 	}
-	
+
 	// Show tips
 	fmt.Println("💡 Tips:")
 	fmt.Println("   • Quick launch popular templates using their slug names")
 	fmt.Println("   • Use 'cws templates discover' to explore templates by category")
 	fmt.Println("   • Use 'cws templates search' to find specific templates")
-	
+
 	return nil
 }
 
@@ -1611,7 +1611,7 @@ func (tc *TemplateCommands) templatesTest(args []string) error {
 	var templateName string
 	var suiteName string
 	var verbose bool
-	
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
@@ -1624,24 +1624,24 @@ func (tc *TemplateCommands) templatesTest(args []string) error {
 			templateName = arg
 		}
 	}
-	
+
 	// Load registry
 	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 	if err := registry.ScanTemplates(); err != nil {
 		return fmt.Errorf("failed to scan templates: %w", err)
 	}
-	
+
 	// Create tester
 	tester := templates.NewTemplateTester(registry)
-	
+
 	fmt.Println("🧪 Running Template Tests")
 	fmt.Println("═══════════════════════════════════════")
 	fmt.Println()
-	
+
 	// Run tests
 	ctx := context.Background()
 	var reports map[string]*templates.TestReport
-	
+
 	if suiteName != "" {
 		// Run specific suite
 		fmt.Printf("Running test suite: %s\n\n", suiteName)
@@ -1651,22 +1651,22 @@ func (tc *TemplateCommands) templatesTest(args []string) error {
 		// Run all tests
 		reports = tester.RunAllTests(ctx)
 	}
-	
+
 	// Display results
 	totalPassed := 0
 	totalFailed := 0
-	
+
 	for suiteName, report := range reports {
 		fmt.Printf("📦 Test Suite: %s\n", suiteName)
 		fmt.Printf("   Duration: %s\n", report.EndTime.Sub(report.StartTime))
 		fmt.Printf("   Tests: %d passed, %d failed\n", report.PassedTests, report.FailedTests)
-		
+
 		if verbose || report.FailedTests > 0 {
 			for testName, result := range report.TestResults {
 				if templateName != "" && !strings.Contains(testName, templateName) {
 					continue
 				}
-				
+
 				if result.Passed {
 					if verbose {
 						fmt.Printf("   ✅ %s: %s (%s)\n", testName, result.Message, result.Duration)
@@ -1681,27 +1681,25 @@ func (tc *TemplateCommands) templatesTest(args []string) error {
 				}
 			}
 		}
-		
+
 		totalPassed += report.PassedTests
 		totalFailed += report.FailedTests
 		fmt.Println()
 	}
-	
+
 	// Summary
 	fmt.Println("═══════════════════════════════════════")
 	fmt.Printf("📊 Test Summary:\n")
 	fmt.Printf("   Total tests: %d\n", totalPassed+totalFailed)
 	fmt.Printf("   Passed: %d\n", totalPassed)
 	fmt.Printf("   Failed: %d\n", totalFailed)
-	
+
 	if totalFailed > 0 {
 		fmt.Printf("\n❌ %d tests failed\n", totalFailed)
 		return fmt.Errorf("template tests failed")
 	} else {
 		fmt.Printf("\n✅ All tests passed!\n")
 	}
-	
+
 	return nil
 }
-
-
