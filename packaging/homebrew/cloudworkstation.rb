@@ -17,8 +17,12 @@ class Cloudworkstation < Formula
     
     # Install binaries
     bin.install "bin/cws"
-    bin.install "bin/cwsd" 
-    bin.install "bin/cws-gui"
+    bin.install "bin/cwsd"
+    
+    # Install GUI if available (optional)
+    if File.exist?("bin/cws-gui")
+      bin.install "bin/cws-gui"
+    end
     
     # Install documentation
     doc.install "README.md"
@@ -33,17 +37,39 @@ class Cloudworkstation < Formula
   end
 
   def caveats
-    <<~EOS
-      CloudWorkstation has been installed with three interfaces:
+    gui_available = (bin/"cws-gui").exist?
+    
+    caveat_text = <<~EOS
+      CloudWorkstation has been installed with multiple interfaces:
       
       Command Line Interface (CLI):
         cws --help
       
       Terminal User Interface (TUI):
         cws tui
+    EOS
+    
+    if gui_available
+      caveat_text += <<~EOS
       
       Graphical User Interface (GUI):
         cws-gui
+        
+      GUI Startup Options:
+        cws-gui -autostart        # Configure auto-start at login
+        cws-gui -remove-autostart # Remove auto-start
+        cws-gui -help            # Show GUI help
+      EOS
+    else
+      caveat_text += <<~EOS
+      
+      Note: GUI not available (requires Wails CLI for building)
+        Install GUI support: go install github.com/wailsapp/wails/v3/cmd/wails@latest
+        Then reinstall: brew reinstall cloudworkstation
+      EOS
+    end
+    
+    caveat_text += <<~EOS
       
       To get started:
         cws templates
@@ -58,13 +84,19 @@ class Cloudworkstation < Formula
       For more information:
         https://github.com/scttfrdmn/cloudworkstation
     EOS
+    
+    caveat_text
   end
 
   test do
     # Test that binaries exist and are executable
     assert_predicate bin/"cws", :exist?
-    assert_predicate bin/"cwsd", :exist?  
-    assert_predicate bin/"cws-gui", :exist?
+    assert_predicate bin/"cwsd", :exist?
+    
+    # Test GUI if available (optional)
+    if (bin/"cws-gui").exist?
+      assert_predicate bin/"cws-gui", :exist?
+    end
     
     # Test version command
     output = shell_output("#{bin}/cws version 2>&1", 0)

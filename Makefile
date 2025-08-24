@@ -14,7 +14,7 @@ all: build
 
 # Build all binaries (CLI, daemon, GUI, TUI integrated)
 .PHONY: build
-build: build-daemon build-cli
+build: build-daemon build-cli build-gui-optional
 
 # Build daemon binary
 .PHONY: build-daemon
@@ -37,6 +37,20 @@ build-gui:
 		exit 1; \
 	fi
 	@cd cmd/cws-gui && wails build
+
+# Build GUI binary (optional - won't fail if prerequisites missing)
+.PHONY: build-gui-optional
+build-gui-optional:
+	@echo "🎨 Building CloudWorkstation GUI (optional)..."
+	@if command -v wails >/dev/null 2>&1; then \
+		echo "✅ Wails CLI found, building GUI..."; \
+		cd cmd/cws-gui && wails build; \
+		echo "✅ GUI built successfully"; \
+	else \
+		echo "⚠️  Wails CLI not found - GUI build skipped"; \
+		echo "   To include GUI: go install github.com/wailsapp/wails/v3/cmd/wails@latest"; \
+		echo "   GUI can be built separately with: make build-gui"; \
+	fi
 
 # Force GUI build (for development/testing only)
 .PHONY: build-gui-force
