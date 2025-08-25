@@ -62,7 +62,7 @@ func main() {
 	})
 
 	// Create main window with professional styling
-	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
+	_ = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title: "CloudWorkstation",
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,

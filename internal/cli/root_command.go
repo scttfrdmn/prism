@@ -292,6 +292,7 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(r.createDaemonCommand())
 	rootCmd.AddCommand(r.createUninstallCommand())
 	rootCmd.AddCommand(r.app.tuiCommand)
+	rootCmd.AddCommand(NewGUICommand())
 	rootCmd.AddCommand(r.createConfigCommand())
 
 	// Profile commands

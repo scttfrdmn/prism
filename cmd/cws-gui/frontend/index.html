@@ -279,35 +279,255 @@
 
         <!-- Settings Modal (Progressive Disclosure) -->
         <div id="settings-modal" class="modal hidden">
-            <div class="modal-content">
+            <div class="modal-content settings-content">
                 <div class="modal-header">
-                    <h3>Settings</h3>
+                    <h3>⚙️ Configuration</h3>
                     <button class="btn-icon" onclick="hideSettings()">✕</button>
                 </div>
                 <div class="modal-body">
-                    <div class="settings-section">
-                        <h4>Appearance</h4>
-                        <div class="setting-item">
-                            <label>Theme</label>
-                            <select id="theme-selector" onchange="applyTheme(this.value)">
-                                <option value="core">Core (Default)</option>
-                                <option value="academic">Academic</option>
-                                <option value="minimal">Minimal</option>
-                                <option value="dark">Dark</option>
-                                <option value="custom">Custom</option>
-                            </select>
+                    <!-- Settings Navigation -->
+                    <div class="settings-nav">
+                        <button class="settings-nav-btn active" onclick="showSettingsSection('general')">
+                            <span class="nav-icon">🏠</span>
+                            General
+                        </button>
+                        <button class="settings-nav-btn" onclick="showSettingsSection('aws')">
+                            <span class="nav-icon">☁️</span>
+                            AWS
+                        </button>
+                        <button class="settings-nav-btn" onclick="showSettingsSection('daemon')">
+                            <span class="nav-icon">⚙️</span>
+                            Daemon
+                        </button>
+                        <button class="settings-nav-btn" onclick="showSettingsSection('appearance')">
+                            <span class="nav-icon">🎨</span>
+                            Appearance
+                        </button>
+                        <button class="settings-nav-btn" onclick="showSettingsSection('advanced')">
+                            <span class="nav-icon">🔧</span>
+                            Advanced
+                        </button>
+                    </div>
+
+                    <!-- Settings Content -->
+                    <div class="settings-content-area">
+                        <!-- General Settings -->
+                        <div id="settings-general" class="settings-section active">
+                            <h4>🏠 General Settings</h4>
+                            <p class="section-description">Basic application preferences and startup behavior.</p>
+
+                            <div class="setting-group">
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="autostart-gui" onchange="toggleAutoStart(this.checked)"/>
+                                        <span class="setting-title">Start automatically at login</span>
+                                        <span class="setting-description">Launch CloudWorkstation GUI when you log in</span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="minimize-startup"/>
+                                        <span class="setting-title">Start minimized to system tray</span>
+                                        <span class="setting-description">Start in background without showing window (when implemented)</span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="auto-refresh" checked/>
+                                        <span class="setting-title">Auto-refresh instance status</span>
+                                        <span class="setting-description">Automatically update instance information every 30 seconds</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <h5>Default Launch Settings</h5>
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Default instance size</label>
+                                    <select id="default-instance-size" class="setting-select">
+                                        <option value="S">Small - 2 CPU, 4GB RAM</option>
+                                        <option value="M" selected>Medium - 2 CPU, 8GB RAM</option>
+                                        <option value="L">Large - 4 CPU, 16GB RAM</option>
+                                        <option value="XL">Extra Large - 8 CPU, 32GB RAM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AWS Settings -->
+                        <div id="settings-aws" class="settings-section">
+                            <h4>☁️ AWS Configuration</h4>
+                            <p class="section-description">Configure your AWS credentials and default settings.</p>
+
+                            <div class="setting-group">
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">AWS Profile</label>
+                                    <select id="aws-profile" class="setting-select">
+                                        <option value="default">default</option>
+                                        <option value="research">research</option>
+                                        <option value="personal">personal</option>
+                                    </select>
+                                    <small class="setting-hint">Select the AWS profile to use for CloudWorkstation operations</small>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Default Region</label>
+                                    <select id="aws-region" class="setting-select">
+                                        <option value="us-east-1">US East (N. Virginia)</option>
+                                        <option value="us-west-2">US West (Oregon)</option>
+                                        <option value="us-west-1">US West (N. California)</option>
+                                        <option value="eu-west-1">Europe (Ireland)</option>
+                                        <option value="eu-central-1">Europe (Frankfurt)</option>
+                                        <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <h5>Cost Management</h5>
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="cost-warnings" checked/>
+                                        <span class="setting-title">Show cost warnings</span>
+                                        <span class="setting-description">Warn before launching expensive instances</span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Daily cost limit (USD)</label>
+                                    <input type="number" id="daily-cost-limit" class="setting-input" value="50" min="0" step="1"/>
+                                    <small class="setting-hint">Get notified when daily costs exceed this amount</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Daemon Settings -->
+                        <div id="settings-daemon" class="settings-section">
+                            <h4>⚙️ Daemon Configuration</h4>
+                            <p class="section-description">Configure connection to CloudWorkstation daemon service.</p>
+
+                            <div class="setting-group">
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Daemon URL</label>
+                                    <input type="text" id="daemon-url" class="setting-input" value="http://localhost:8947"/>
+                                    <small class="setting-hint">URL for the CloudWorkstation daemon API</small>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Connection timeout (seconds)</label>
+                                    <input type="number" id="connection-timeout" class="setting-input" value="10" min="1" max="60"/>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <h5>Auto-Start Daemon</h5>
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="auto-start-daemon" checked/>
+                                        <span class="setting-title">Start daemon automatically</span>
+                                        <span class="setting-description">Automatically start daemon when GUI launches</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <div class="setting-actions">
+                                    <button class="btn-secondary" onclick="testDaemonConnection()">Test Connection</button>
+                                    <button class="btn-secondary" onclick="restartDaemon()">Restart Daemon</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Appearance Settings -->
+                        <div id="settings-appearance" class="settings-section">
+                            <h4>🎨 Appearance</h4>
+                            <p class="section-description">Customize the visual appearance of CloudWorkstation.</p>
+
+                            <div class="setting-group">
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Theme</label>
+                                    <select id="theme-selector" class="setting-select" onchange="applyTheme(this.value)">
+                                        <option value="core">Core (Default)</option>
+                                        <option value="academic">Academic</option>
+                                        <option value="minimal">Minimal</option>
+                                        <option value="dark">Dark</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="animations-enabled" checked/>
+                                        <span class="setting-title">Enable animations</span>
+                                        <span class="setting-description">Smooth transitions and loading animations</span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="compact-mode"/>
+                                        <span class="setting-title">Compact interface</span>
+                                        <span class="setting-description">Reduce spacing for more information density</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Settings -->
+                        <div id="settings-advanced" class="settings-section">
+                            <h4>🔧 Advanced Settings</h4>
+                            <p class="section-description">Advanced configuration options for power users.</p>
+
+                            <div class="setting-group">
+                                <h5>Debug & Logging</h5>
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="debug-mode"/>
+                                        <span class="setting-title">Enable debug mode</span>
+                                        <span class="setting-description">Show detailed logging in browser console</span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <label class="setting-label-inline">Log level</label>
+                                    <select id="log-level" class="setting-select">
+                                        <option value="error">Error</option>
+                                        <option value="warn">Warning</option>
+                                        <option value="info" selected>Info</option>
+                                        <option value="debug">Debug</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="setting-group">
+                                <h5>Data & Privacy</h5>
+                                <div class="setting-item">
+                                    <label class="setting-label">
+                                        <input type="checkbox" id="usage-analytics"/>
+                                        <span class="setting-title">Anonymous usage analytics</span>
+                                        <span class="setting-description">Help improve CloudWorkstation by sharing anonymous usage data</span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="setting-actions">
+                                        <button class="btn-secondary" onclick="exportSettings()">Export Settings</button>
+                                        <button class="btn-secondary" onclick="importSettings()">Import Settings</button>
+                                        <button class="btn-danger" onclick="resetSettings()">Reset to Defaults</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="settings-section">
-                        <h4>Advanced</h4>
-                        <div class="setting-item">
-                            <label>
-                                <input type="checkbox" id="advanced-mode"/> 
-                                Show advanced options
-                            </label>
-                        </div>
-                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="resetCurrentSection()">Reset Section</button>
+                    <div class="footer-spacer"></div>
+                    <button class="btn-secondary" onclick="hideSettings()">Cancel</button>
+                    <button class="btn-primary" onclick="saveSettings()">Save Changes</button>
                 </div>
             </div>
         </div>

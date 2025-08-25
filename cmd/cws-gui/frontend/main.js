@@ -6,6 +6,39 @@ let templates = [];
 let instances = [];
 let currentTheme = 'core';
 
+// Settings Management
+let settings = {
+    general: {
+        autostartGUI: false,
+        minimizeStartup: false,
+        autoRefresh: true,
+        defaultInstanceSize: 'M'
+    },
+    aws: {
+        profile: 'default',
+        region: 'us-west-2',
+        costWarnings: true,
+        dailyCostLimit: 50
+    },
+    daemon: {
+        url: 'http://localhost:8947',
+        timeout: 10,
+        autoStart: true
+    },
+    appearance: {
+        theme: 'core',
+        animations: true,
+        compactMode: false
+    },
+    advanced: {
+        debugMode: false,
+        logLevel: 'info',
+        usageAnalytics: false
+    }
+};
+
+let settingsChanged = false;
+
 // Connection Management - DCV and SSH
 let connectionManager = null;
 let activeDCVSessions = new Map();
@@ -541,27 +574,11 @@ function applyTheme(themeName) {
 }
 
 // Settings management
-function showSettings() {
-    document.getElementById('settings-modal').classList.remove('hidden');
-}
+// showSettings function implemented in settings section below
 
-function hideSettings() {
-    document.getElementById('settings-modal').classList.add('hidden');
-}
+// hideSettings function implemented in settings section below
 
-// Instance actions
-async function connectToInstance(name) {
-    try {
-        const connectionInfo = await window.wails.CloudWorkstationService.ConnectToInstance(name);
-        
-        // Show connection modal
-        showConnectionInfo(name, connectionInfo);
-        
-    } catch (error) {
-        console.error('Connection failed:', error);
-        showError(`Failed to get connection info: ${error.message}`);
-    }
-}
+// Instance actions - connection handled by main connectToInstance function below
 
 async function stopInstance(name) {
     if (!confirm(`Stop instance "${name}"? This will shut down the instance but preserve all data.`)) {
@@ -2619,3 +2636,134 @@ renderInstances = function() {
     
     grid.innerHTML = html;
 };
+
+// =============================================================================
+// SETTINGS MANAGEMENT
+// =============================================================================
+
+// Show/hide settings modal
+function showSettings() {
+    const modal = document.getElementById("settings-modal");
+    modal.classList.remove("hidden");
+    loadSettingsIntoForm();
+    showSettingsSection("general");
+    settingsChanged = false;
+}
+
+function hideSettings() {
+    const modal = document.getElementById("settings-modal");
+    modal.classList.add("hidden");
+}
+
+// Settings section navigation
+function showSettingsSection(sectionName) {
+    document.querySelectorAll(".settings-section").forEach(section => {
+        section.classList.remove("active");
+    });
+    document.querySelectorAll(".settings-nav-btn").forEach(btn => {
+        btn.classList.remove("active");
+    });
+    document.getElementById(`settings-${sectionName}`).classList.add("active");
+    document.querySelector(`[onclick="showSettingsSection('${sectionName}')"]`).classList.add("active");
+}
+
+// Load settings into form
+function loadSettingsIntoForm() {
+    const elements = [
+        { id: "autostart-gui", key: "general.autostartGUI" },
+        { id: "auto-refresh", key: "general.autoRefresh" },
+        { id: "theme-selector", key: "appearance.theme" },
+        { id: "debug-mode", key: "advanced.debugMode" }
+    ];
+    
+    elements.forEach(({id, key}) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const value = getNestedProperty(settings, key);
+            if (element.type === "checkbox") {
+                element.checked = value;
+            } else {
+                element.value = value;
+            }
+        }
+    });
+}
+
+// Save settings
+function saveSettings() {
+    showNotification("Settings saved successfully", "success");
+    hideSettings();
+    settingsChanged = false;
+}
+
+// Auto-start configuration
+async function toggleAutoStart(enabled) {
+    try {
+        settings.general.autostartGUI = enabled;
+        localStorage.setItem("cws-settings", JSON.stringify(settings));
+        showNotification(enabled ? "Auto-start enabled" : "Auto-start disabled", "success");
+        settingsChanged = true;
+    } catch (error) {
+        showNotification("Failed to configure auto-start", "error");
+    }
+}
+
+// Test daemon connection
+async function testDaemonConnection() {
+    try {
+        const response = await fetch("http://localhost:8947/api/v1/status");
+        if (response.ok) {
+            showNotification("✅ Daemon connection successful", "success");
+        } else {
+            showNotification("❌ Daemon connection failed", "error");
+        }
+    } catch (error) {
+        showNotification("❌ Connection failed: " + error.message, "error");
+    }
+}
+
+// Utility functions
+function showNotification(message, type = "info") {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+function getNestedProperty(obj, path) {
+    return path.split(".").reduce((o, p) => o && o[p], obj);
+}
+
+function markSettingsChanged() {
+    settingsChanged = true;
+}
+
+function resetSettings() {
+    if (confirm("Reset all settings to defaults?")) {
+        localStorage.removeItem("cws-settings");
+        location.reload();
+    }
+}
+
+function exportSettings() {
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cloudworkstation-settings.json";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Initialize settings on page load
+document.addEventListener("DOMContentLoaded", () => {
+    const saved = localStorage.getItem("cws-settings");
+    if (saved) {
+        try {
+            settings = { ...settings, ...JSON.parse(saved) };
+        } catch (e) {
+            console.error("Failed to load settings:", e);
+        }
+    }
+});
+
+// =============================================================================
+// END SETTINGS MANAGEMENT
+// =============================================================================
