@@ -48,7 +48,7 @@ export default defineConfig({
     actionTimeout: 10000
   },
 
-  // Configure projects for major browsers
+  // Configure projects for major browsers (desktop only - CloudWorkstation is not mobile)
   projects: [
     {
       name: 'chromium',
@@ -63,17 +63,6 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-    },
-    
-    // Mobile viewports for responsive testing
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    
-    {
-      name: 'Mobile Safari', 
-      use: { ...devices['iPhone 12'] },
     }
   ],
 

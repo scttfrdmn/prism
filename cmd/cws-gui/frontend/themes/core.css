@@ -988,7 +988,6 @@ body {
 .web-interface-actions {
   margin-top: var(--spacing-xl);
 }
-}
 
 .terminal-command {
   color: var(--color-white);
