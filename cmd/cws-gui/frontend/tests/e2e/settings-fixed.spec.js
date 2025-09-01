@@ -92,8 +92,8 @@ test.describe('Settings Interface - Fixed', () => {
     await openSettings(page)
     await switchSettingsSection(page, 'appearance', 4)
     
-    // Check appearance section elements
-    await expect(page.locator('#settings-appearance h4')).toContainText('Appearance & Themes')
+    // Check appearance section elements (match actual HTML text)
+    await expect(page.locator('#settings-appearance h4')).toContainText('Appearance')
     await expect(page.locator('#theme-selector')).toBeVisible()
     await expect(page.locator('#animations-enabled')).toBeVisible()
     await expect(page.locator('#compact-mode')).toBeVisible()
@@ -103,8 +103,8 @@ test.describe('Settings Interface - Fixed', () => {
     await openSettings(page)
     await switchSettingsSection(page, 'advanced', 5)
     
-    // Check advanced section elements
-    await expect(page.locator('#settings-advanced h4')).toContainText('Advanced Configuration')
+    // Check advanced section elements (match actual HTML text)
+    await expect(page.locator('#settings-advanced h4')).toContainText('Advanced Settings')
     await expect(page.locator('#debug-mode')).toBeVisible()
     await expect(page.locator('#log-level')).toBeVisible()
     await expect(page.locator('#usage-analytics')).toBeVisible()

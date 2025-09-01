@@ -1,0 +1,62 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - heading "☁️ CloudWorkstation" [level=1]
+  - button "🌙"
+  - button "⚙️"
+- main:
+  - heading "Quick Start" [level=2]
+  - paragraph: Choose a template and launch your research environment
+  - text: Complexity Level
+  - button "All"
+  - button "🟢 Simple"
+  - button "🟡 Moderate"
+  - button "🟠 Advanced"
+  - button "🔴 Complex"
+  - text: Research Domain
+  - button "All Domains"
+  - button "🤖 ML"
+  - button "📊 Data"
+  - button "🧬 Bio"
+  - button "🌐 Web"
+  - button "🖥️ Base"
+  - text: Sort By
+  - combobox:
+    - option "Most Popular" [selected]
+    - option "Complexity (Simple → Complex)"
+    - option "Research Domain"
+    - option "Cost (Low → High)"
+    - option "Launch Time (Fast → Slow)"
+  - paragraph: Failed to load templates
+  - text: Please check if the daemon is running
+  - button "Retry"
+- navigation:
+  - button "🚀 Quick Start"
+  - button "💻 My Instances"
+  - button "🖥️ Remote Desktop"
+- heading "⚙️ Configuration" [level=3]
+- button "✕"
+- button "🏠 General"
+- button "☁️ AWS"
+- button "⚙️ Daemon"
+- button "🎨 Appearance"
+- button "🔧 Advanced"
+- heading "🎨 Appearance" [level=4]
+- paragraph: Customize the visual appearance of CloudWorkstation.
+- text: Theme
+- combobox:
+  - option "Core (Default)" [selected]
+  - option "Academic"
+  - option "Minimal"
+  - option "Dark"
+  - option "Custom"
+- checkbox "Enable animations Smooth transitions and loading animations" [checked]
+- text: Enable animations Smooth transitions and loading animations
+- checkbox "Compact interface Reduce spacing for more information density"
+- text: Compact interface Reduce spacing for more information density
+- button "Reset Section"
+- button "Cancel"
+- button "Save Changes"
+- text: Connected to daemon
+```

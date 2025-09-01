@@ -533,14 +533,21 @@ function showSection(sectionId) {
     });
     
     // Show target section
-    document.getElementById(sectionId).classList.add('active');
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
     
     // Update navigation
     document.querySelectorAll('.nav-item').forEach(nav => {
         nav.classList.remove('active');
     });
     
-    event.currentTarget.classList.add('active');
+    // Find and activate the corresponding nav item
+    const targetNav = document.querySelector(`.nav-item[onclick*="'${sectionId}'"]`);
+    if (targetNav) {
+        targetNav.classList.add('active');
+    }
 }
 
 // Theme management
