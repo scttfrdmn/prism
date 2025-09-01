@@ -62,12 +62,12 @@ test.describe('Basic Smoke Tests', () => {
     await expect(page.locator('h1.app-title')).toBeVisible()
     await expect(page.locator('.logo')).toBeVisible()
     
-    // Test that all main sections exist in the DOM
-    await expect(page.locator('#quick-start')).toBeVisible()
-    await expect(page.locator('#my-instances')).toBeVisible()
-    await expect(page.locator('#remote-desktop')).toBeVisible()
+    // Test that all main sections exist in the DOM (but may not be visible)
+    await expect(page.locator('#quick-start')).toBeVisible() // Active by default
+    await expect(page.locator('#my-instances')).toBeAttached() // Exists but hidden
+    await expect(page.locator('#remote-desktop')).toBeAttached() // Exists but hidden
     
-    // Test that settings modal exists
-    await expect(page.locator('#settings-modal')).toBeVisible()
+    // Test that settings modal exists (but is hidden by default)
+    await expect(page.locator('#settings-modal')).toBeAttached()
   })
 })
