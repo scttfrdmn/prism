@@ -56,8 +56,8 @@ From individual researchers to institutional deployments, CloudWorkstation scale
 
 ```bash
 # Download and install via DMG
-curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.3.dmg
-open CloudWorkstation-v0.4.3.dmg
+curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.5.dmg
+open CloudWorkstation-v0.4.5.dmg
 # Drag CloudWorkstation.app to Applications folder
 ```
 
@@ -84,8 +84,8 @@ cws --version
 **Ubuntu/Debian:**
 ```bash
 # Download and install DEB package
-wget https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation_0.4.2-1_amd64.deb
-sudo dpkg -i cloudworkstation_0.4.2-1_amd64.deb
+wget https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation_0.4.5-1_amd64.deb
+sudo dpkg -i cloudworkstation_0.4.5-1_amd64.deb
 sudo apt-get install -f  # Fix any dependency issues
 
 # Start service
@@ -95,8 +95,8 @@ sudo systemctl enable --now cloudworkstation
 **RHEL/CentOS/Fedora:**
 ```bash
 # Download and install RPM package  
-wget https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-0.4.2-1.x86_64.rpm
-sudo dnf install cloudworkstation-0.4.2-1.x86_64.rpm
+wget https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-0.4.5-1.x86_64.rpm
+sudo dnf install cloudworkstation-0.4.5-1.x86_64.rpm
 
 # Start service
 sudo systemctl enable --now cloudworkstation
@@ -162,7 +162,7 @@ cws idle policy apply my-research balanced
 
 **That's it!** No configuration files, no setup scripts, no manual steps.
 
-## 🌟 Key Features (v0.4.2)
+## 🌟 Key Features (v0.4.5)
 
 ### 🏢 Enterprise Research Management
 - **Project-Based Organization**: Complete project lifecycle management with role-based access control
@@ -331,7 +331,7 @@ cws daemon status       # Check daemon status
 
 ## 🗓️ Version History
 
-### v0.4.2 (Current) - Enterprise Research Management Platform
+### v0.4.5 (Current) - Enhanced Security and Testing Platform
 **🎉 PHASE 4 COMPLETE**: Full enterprise research platform with:
 - ✅ Project-based organization with role-based access control
 - ✅ Advanced budget management with real-time tracking
@@ -402,4 +402,4 @@ CloudWorkstation is released under the [MIT License](LICENSE).
 
 ---
 
-**CloudWorkstation v0.4.2** - From individual researchers to institutional deployments, research computing made simple, scalable, and cost-effective.
+**CloudWorkstation v0.4.5** - From individual researchers to institutional deployments, research computing made simple, scalable, and cost-effective.

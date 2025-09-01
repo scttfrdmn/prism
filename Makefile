@@ -32,23 +32,23 @@ build-cli:
 .PHONY: build-gui
 build-gui:
 	@echo "Building CloudWorkstation GUI (Wails 3.x)..."
-	@if ! command -v wails3 >/dev/null 2>&1; then \
-		echo "❌ Wails v3 CLI not found. Install with: go install github.com/wailsapp/wails/v2/cmd/wails@latest"; \
+	@if ! command -v wails3 >/dev/null 2>&1 && ! [ -f "$$HOME/go/bin/wails3" ]; then \
+		echo "❌ Wails v3 CLI not found. Install with: go install github.com/wailsapp/wails/v3/cmd/wails3@latest"; \
 		exit 1; \
 	fi
-	@cd cmd/cws-gui && wails3 task build
+	@cd cmd/cws-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build)
 
 # Build GUI binary (optional - won't fail if prerequisites missing)
 .PHONY: build-gui-optional
 build-gui-optional:
 	@echo "🎨 Building CloudWorkstation GUI (optional)..."
-	@if command -v wails3 >/dev/null 2>&1; then \
+	@if command -v wails3 >/dev/null 2>&1 || [ -f "$$HOME/go/bin/wails3" ]; then \
 		echo "✅ Wails CLI found, building GUI..."; \
-		cd cmd/cws-gui && wails3 task build; \
+		cd cmd/cws-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build); \
 		echo "✅ GUI built successfully"; \
 	else \
 		echo "⚠️  Wails v3 CLI not found - GUI build skipped"; \
-		echo "   To include GUI: go install github.com/wailsapp/wails/v2/cmd/wails@latest"; \
+		echo "   To include GUI: go install github.com/wailsapp/wails/v3/cmd/wails3@latest"; \
 		echo "   GUI can be built separately with: make build-gui"; \
 	fi
 
