@@ -1,6 +1,6 @@
-# CloudWorkstation v0.4.2-1 Demo Sequence
+# CloudWorkstation v0.4.5 Demo Sequence
 
-This demo showcases CloudWorkstation v0.4.2-1 from installation to actual usage, demonstrating the complete workflow that researchers experience from setup to connecting to their workstation.
+This demo showcases CloudWorkstation v0.4.5 from installation to actual usage, demonstrating the complete workflow that researchers experience from setup to connecting to their workstation.
 
 ## Phase 1: Installation (2 minutes)
 

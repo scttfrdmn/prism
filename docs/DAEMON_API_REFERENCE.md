@@ -1,6 +1,6 @@
 # CloudWorkstation Daemon API Reference
 
-## Version: v0.4.3  
+## Version: v0.4.5  
 **Port**: 8947 (CWS on phone keypad)  
 **Base URL**: `http://localhost:8947`  
 **Protocol**: REST API with JSON
