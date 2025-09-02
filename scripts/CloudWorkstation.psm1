@@ -2,7 +2,7 @@
 # Provides PowerShell integration and cmdlets for CloudWorkstation
 
 # Module information
-$ModuleVersion = "0.4.2"
+$ModuleVersion = "0.4.5"
 $ModuleDescription = "CloudWorkstation PowerShell integration module for enterprise research management"
 
 # Import required assemblies

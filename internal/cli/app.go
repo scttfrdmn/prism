@@ -395,43 +395,6 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 	}
 }
 
-// monitorAMILaunchProgress shows simple progress for AMI-based launches
-func (a *App) monitorAMILaunchProgress(instanceName string) error {
-	fmt.Printf(LaunchProgressAMIMessage + "\n\n")
-
-	for i := 0; i < 60; i++ { // Monitor for up to 5 minutes
-		instance, err := a.apiClient.GetInstance(a.ctx, instanceName)
-		if err != nil {
-			if i == 0 {
-				fmt.Printf(StateMessageInitializing + "\n")
-			}
-		} else {
-			switch instance.State {
-			case "pending":
-				fmt.Printf("🔄 Instance starting... (%ds)\n", i*5)
-			case "running":
-				fmt.Printf("✅ Instance running! Ready to connect.\n")
-				fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
-				return nil
-			case "stopping", "stopped":
-				return fmt.Errorf("❌ Instance stopped unexpectedly")
-			case "terminated":
-				return fmt.Errorf("❌ Instance terminated during launch")
-			case "dry-run":
-				fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
-				return nil
-			default:
-				fmt.Printf("📊 Status: %s (%ds)\n", instance.State, i*5)
-			}
-		}
-
-		time.Sleep(5 * time.Second)
-	}
-
-	fmt.Printf("⚠️  Timeout waiting for instance to start (5 min). Check status with: cws list\n")
-	return nil
-}
-
 // InstanceStateHandler interface for handling different instance states (Strategy Pattern - SOLID)
 type InstanceStateHandler interface {
 	CanHandle(state string) bool
@@ -585,15 +548,6 @@ func (m *LaunchProgressMonitor) handleInstanceState(state string, elapsed int, i
 		}
 	}
 	return true, nil // Continue monitoring by default
-}
-
-// monitorPackageLaunchProgress shows detailed progress using Strategy Pattern (SOLID: Single Responsibility)
-func (a *App) monitorPackageLaunchProgress(instanceName, templateName string) error {
-	fmt.Printf(LaunchProgressPackageMessage + "\n")
-	fmt.Printf(LaunchProgressPackageTiming + "\n\n")
-
-	monitor := NewLaunchProgressMonitor(a.apiClient, a.ctx)
-	return monitor.Monitor(instanceName)
 }
 
 // List handles the list command with optional project filtering

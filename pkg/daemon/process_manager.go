@@ -531,11 +531,7 @@ func (pm *DefaultProcessManager) IsProcessRunning(pid int) bool {
 
 	// On Unix, Signal(0) can be used to check if process exists
 	err = process.Signal(syscall.Signal(0))
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // WaitForShutdown waits for a process to shut down within timeout

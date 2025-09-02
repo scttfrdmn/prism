@@ -2,7 +2,7 @@
 # Builds a professional Windows installer using WiX Toolset
 
 param(
-    [string]$Version = "0.4.2",
+    [string]$Version = "0.4.5",
     [switch]$SkipBuild,
     [switch]$SkipCustomActions,
     [switch]$Verbose,

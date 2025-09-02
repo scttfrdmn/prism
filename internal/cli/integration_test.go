@@ -380,7 +380,7 @@ func TestResumeCommandIntegration(t *testing.T) {
 			break
 		}
 	}
-	mockClient.HibernationStatus.IsHibernated = true
+	mockClient.HibernationStatus.PossiblyHibernated = true
 
 	app := NewAppWithClient("1.0.0", mockClient)
 

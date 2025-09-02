@@ -9,7 +9,7 @@ set -euo pipefail
 # Configuration
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-readonly VERSION="0.4.2"
+readonly VERSION="0.4.5"
 readonly BUILD_DIR="$PROJECT_ROOT/dist/dmg"
 readonly VOLUME_NAME="CloudWorkstation-v$VERSION"
 readonly DMG_NAME="CloudWorkstation-v$VERSION.dmg"

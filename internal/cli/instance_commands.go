@@ -214,7 +214,7 @@ func (ic *InstanceCommands) Resume(args []string) error {
 		return WrapAPIError("check EC2 hibernation status for "+name, err)
 	}
 
-	if status.IsHibernated {
+	if status.PossiblyHibernated {
 		err = ic.app.apiClient.ResumeInstance(ic.app.ctx, name)
 		if err != nil {
 			return WrapAPIError("resume instance "+name, err)

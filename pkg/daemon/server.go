@@ -100,13 +100,13 @@ func NewServer(port string) (*Server, error) {
 		if err != nil {
 			log.Printf("Failed to get current profile, using AWS defaults: %v", err)
 			// Initialize AWS manager with AWS SDK defaults (no hardcoded values)
-			awsManager, err = aws.NewManager(aws.ManagerOptions{
+			awsManager, _ = aws.NewManager(aws.ManagerOptions{
 				Profile: "", // Use AWS SDK default profile resolution
 				Region:  "", // Use AWS SDK default region resolution
 			})
 		} else {
 			// Use profile values from current CloudWorkstation profile
-			awsManager, err = aws.NewManager(aws.ManagerOptions{
+			awsManager, _ = aws.NewManager(aws.ManagerOptions{
 				Profile: currentProfile.AWSProfile,
 				Region:  currentProfile.Region,
 			})

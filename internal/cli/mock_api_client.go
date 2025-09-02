@@ -337,7 +337,7 @@ func (m *MockAPIClient) GetInstanceHibernationStatus(ctx context.Context, name s
 	// Check if instance exists and is hibernated
 	for _, instance := range m.Instances {
 		if instance.Name == name {
-			status.IsHibernated = instance.State == "hibernated"
+			status.PossiblyHibernated = instance.State == "hibernated"
 			break
 		}
 	}

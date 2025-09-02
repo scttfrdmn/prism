@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>cloudworkstation</id>
-    <version>0.4.1</version>
+    <version>0.4.5</version>
     <title>CloudWorkstation</title>
     <authors>CloudWorkstation Team</authors>
     <projectUrl>https://github.com/scttfrdmn/cloudworkstation</projectUrl>

@@ -14,26 +14,12 @@ func (a *App) configureIdleDetection(instanceName string, enable, disable bool, 
 	return configCmd.Configure(instanceName, enable, disable, idleMinutes, hibernateMinutes, checkInterval)
 }
 
-// idleConfigShow displays the current idle configuration for an instance using Strategy Pattern (SOLID: Single Responsibility)
-func (a *App) idleConfigShow(instanceName string) error {
-	// Create display service and show configuration
-	instanceService := NewIdleInstanceService(a.apiClient)
-	displayService := NewIdleDisplayService()
-	return displayService.ShowConfiguration(instanceName, instanceService)
-}
-
 // IdleConfig represents the idle detection configuration
 type IdleConfig struct {
 	Enabled          bool
 	IdleMinutes      int
 	HibernateMinutes int
 	CheckInterval    int
-}
-
-// getSSHKeyPath returns the path to the SSH key to use for connections
-func (a *App) getSSHKeyPath() string {
-	// Use the standard CloudWorkstation key
-	return "~/.ssh/cws-my-account-key"
 }
 
 // Idle Configuration Strategy Pattern Implementation (SOLID: Single Responsibility + Open/Closed)

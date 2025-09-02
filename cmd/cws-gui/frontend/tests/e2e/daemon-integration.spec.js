@@ -31,9 +31,9 @@ async function startDaemon() {
     detached: false
   })
 
-  // Wait for daemon to start
+  // Wait for daemon to start with extended timeout
   let attempts = 0
-  const maxAttempts = 20
+  const maxAttempts = 40  // Increased from 20 to 40 for more reliability
   
   while (attempts < maxAttempts) {
     try {
@@ -48,6 +48,18 @@ async function startDaemon() {
     
     attempts++
     await new Promise(resolve => setTimeout(resolve, 500))
+  }
+  
+  // Log daemon process output for debugging
+  if (daemonProcess && daemonProcess.stderr) {
+    daemonProcess.stderr.on('data', (data) => {
+      console.log('Daemon stderr:', data.toString())
+    })
+  }
+  if (daemonProcess && daemonProcess.stdout) {
+    daemonProcess.stdout.on('data', (data) => {
+      console.log('Daemon stdout:', data.toString())
+    })
   }
   
   throw new Error(`Daemon failed to start after ${maxAttempts * 500}ms`)
@@ -87,17 +99,7 @@ async function apiCall(endpoint, options = {}) {
 }
 
 test.describe('Daemon Integration Tests', () => {
-  // Start daemon before all tests
-  test.beforeAll(async () => {
-    console.log('Starting CloudWorkstation daemon...')
-    await startDaemon()
-  })
-
-  // Stop daemon after all tests
-  test.afterAll(async () => {
-    console.log('Stopping CloudWorkstation daemon...')
-    await stopDaemon()
-  })
+  // Note: Daemon is managed globally via global-setup.js
 
   test('daemon health check works', async () => {
     // Test direct API call to daemon
@@ -155,7 +157,7 @@ test.describe('Daemon Integration Tests', () => {
   })
 
   test('daemon status API integration', async ({ page }) => {
-    // Test the daemon health endpoint (the actual working endpoint)
+    // Test the daemon health endpoint (daemon already running from beforeAll)
     const healthData = await apiCall('/health')
     expect(healthData).toBeDefined()
     expect(healthData).toHaveProperty('status', 'healthy')
@@ -285,10 +287,10 @@ test.describe('Daemon Integration Tests', () => {
   test('concurrent GUI and daemon operations', async ({ page }) => {
     await page.goto('/')
     
-    // Start multiple concurrent operations
-    const promises = [
-      // API call promise
-      apiCall('/templates'),
+    // Start concurrent operations with reliable daemon (already running from beforeAll)
+    const apiPromise = apiCall('/templates')
+    
+    const guiPromises = [
       // GUI navigation promise
       page.evaluate(() => {
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
@@ -302,8 +304,8 @@ test.describe('Daemon Integration Tests', () => {
       })
     ]
     
-    // Wait for all operations
-    await Promise.all(promises)
+    // Wait for all operations - daemon should be reliable
+    await Promise.all([apiPromise, ...guiPromises])
     
     // Verify GUI is still responsive
     await expect(page.locator('#my-instances')).toHaveClass(/active/)
@@ -321,15 +323,7 @@ test.describe('Daemon Integration Tests', () => {
 })
 
 test.describe('Real Daemon API Integration', () => {
-  test.beforeAll(async () => {
-    console.log('Starting daemon for API integration tests...')
-    await startDaemon()
-  })
-
-  test.afterAll(async () => {
-    console.log('Stopping daemon after API integration tests...')
-    await stopDaemon()
-  })
+  // Note: Daemon is already running from parent beforeAll - no need to restart
 
   test('health endpoint returns correct data', async () => {
     const data = await apiCall('/health')

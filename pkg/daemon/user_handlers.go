@@ -620,7 +620,7 @@ func (h *PutGroupUsersHandler) updateGroupMembership(currentUsers []*usermgmt.Us
 		if !currentUserMap[userID] {
 			err := server.userManager.service.AddUserToGroup(userID, groupID)
 			if err != nil && err != usermgmt.ErrUserNotFound && err != usermgmt.ErrGroupNotFound {
-				return fmt.Errorf("Failed to add user to group: %v", err)
+				return fmt.Errorf("failed to add user to group: %v", err)
 			}
 		}
 	}

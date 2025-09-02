@@ -51,9 +51,7 @@ func TestPageIDs(t *testing.T) {
 func TestAppStructure(t *testing.T) {
 	// Just verify the App struct can be created
 	app := &App{}
-	if app == nil {
-		t.Error("Failed to create App struct")
-	}
+	_ = app // Use the variable to avoid unused variable warning
 }
 
 // TestAppModelStructure tests the app model structure

@@ -205,7 +205,7 @@ func TestGetInstanceHibernationStatus(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
 	assert.True(t, status.HibernationSupported)
-	assert.False(t, status.IsHibernated)
+	assert.False(t, status.PossiblyHibernated)
 }
 
 // TestDeleteInstance tests the DeleteInstance method

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -635,57 +634,6 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 	return nil
 }
 
-// Original placeholder code continues below
-func (tc *TemplateCommands) templatesDiscoverPlaceholder(args []string) error {
-	fmt.Println("🔍 Discover CloudWorkstation Templates by Category")
-
-	categories := map[string][]string{
-		"🧬 Life Sciences": {
-			"bioinformatics - Genomics analysis tools (BWA, GATK, Samtools)",
-			"neuroimaging - Brain imaging analysis (FSL, AFNI, ANTs)",
-			"proteomics - Protein analysis and mass spectrometry tools",
-			"r-bioconductor - R with Bioconductor packages",
-		},
-		"🤖 Machine Learning": {
-			"python-ml - Python ML stack (PyTorch, TensorFlow, scikit-learn)",
-			"cuda-ml - GPU-accelerated ML environment",
-			"jupyter-gpu - Interactive GPU computing with Jupyter",
-			"tensorflow-research - TensorFlow research environment",
-		},
-		"📊 Data Science": {
-			"r-research - R statistical computing with RStudio",
-			"python-datascience - Python data analysis stack",
-			"stata - Stata statistical software environment",
-			"sas - SAS analytics platform",
-		},
-		"🌍 Geosciences": {
-			"gis - QGIS and GRASS GIS for spatial analysis",
-			"climate-modeling - Climate simulation tools",
-			"remote-sensing - Satellite data analysis tools",
-			"oceanography - Ocean data analysis environment",
-		},
-		"🔬 Physical Sciences": {
-			"matlab - MATLAB computational environment",
-			"mathematica - Wolfram Mathematica system",
-			"quantum-computing - Quantum simulation tools",
-			"astronomy - Astronomical data analysis tools",
-		},
-	}
-
-	for category, templates := range categories {
-		fmt.Printf("%s:\n", category)
-		for _, template := range templates {
-			fmt.Printf("  • %s\n", template)
-		}
-		fmt.Println()
-	}
-
-	fmt.Printf("🚀 Quick start: cws launch <template-name> <instance-name>\n")
-	fmt.Printf("📋 Template details: cws templates info <template-name>\n")
-	fmt.Printf("🔍 Search: cws templates search <research-area>\n")
-	return nil
-}
-
 // templatesInstall installs templates from repositories
 func (tc *TemplateCommands) templatesInstall(args []string) error {
 	if len(args) < 1 {
@@ -1093,98 +1041,6 @@ func (tc *TemplateCommands) templatesSnapshot(args []string) error {
 	// Create and execute template snapshot command
 	snapshotCmd := NewTemplateSnapshotCommand(tc.app.apiClient)
 	return snapshotCmd.Execute(args)
-}
-
-// discoverInstanceConfiguration connects to instance and discovers its configuration
-func (tc *TemplateCommands) discoverInstanceConfiguration(instance *types.Instance) (*InstanceConfiguration, error) {
-	// This would connect to the instance via SSH and discover configuration
-	// For now, return a mock configuration
-	fmt.Printf("   🔍 Connecting to instance %s...\n", instance.Name)
-	fmt.Printf("   📦 Discovering installed packages...\n")
-	fmt.Printf("   👥 Analyzing user accounts...\n")
-	fmt.Printf("   🔧 Checking system services...\n")
-	fmt.Printf("   🌐 Scanning network configuration...\n")
-
-	// Mock configuration for now
-	config := &InstanceConfiguration{
-		BaseOS:         "ubuntu-22.04",
-		PackageManager: "apt",
-		Packages: PackageSet{
-			System: []string{"curl", "wget", "git", "build-essential", "python3", "python3-pip"},
-			Python: []string{"numpy", "pandas", "matplotlib", "jupyter"},
-		},
-		Users: []User{
-			{Name: "ubuntu", Groups: []string{"sudo"}},
-			{Name: "researcher", Groups: []string{"users"}},
-		},
-		Services: []Service{
-			{Name: "jupyter", Command: "jupyter lab --no-browser --ip=0.0.0.0", Port: 8888},
-		},
-		Ports: []int{22, 8888},
-	}
-
-	return config, nil
-}
-
-// generateTemplateFromConfig creates a template YAML from discovered configuration
-func (tc *TemplateCommands) generateTemplateFromConfig(name, description, baseTemplate string, config *InstanceConfiguration) (string, error) {
-	if description == "" {
-		description = fmt.Sprintf("Template created from instance snapshot on %s", time.Now().Format(CompactDateFormat))
-	}
-
-	template := fmt.Sprintf(`name: "%s"
-description: "%s"
-base: "%s"
-package_manager: "%s"
-
-packages:
-  system:
-%s
-  python:
-%s
-
-users:
-%s
-
-services:
-%s
-
-instance_defaults:
-  ports: %s
-
-version: "1.0"
-tags:
-  type: "snapshot"
-  created: "%s"
-`,
-		name,
-		description,
-		config.BaseOS,
-		config.PackageManager,
-		formatPackageList(config.Packages.System),
-		formatPackageList(config.Packages.Python),
-		formatUsers(config.Users),
-		formatServices(config.Services),
-		formatPorts(config.Ports),
-		time.Now().Format(ISO8601DateFormat),
-	)
-
-	if baseTemplate != "" {
-		// Add inheritance if base template specified
-		template = strings.Replace(template, fmt.Sprintf(`base: "%s"`, config.BaseOS),
-			fmt.Sprintf(`inherits: ["%s"]
-base: "%s"`, baseTemplate, config.BaseOS), 1)
-	}
-
-	return template, nil
-}
-
-// saveTemplate saves the generated template to the templates directory
-func (tc *TemplateCommands) saveTemplate(name, templateContent string) error {
-	// In a real implementation, this would save to the templates directory
-	// For now, just simulate the save operation
-	fmt.Printf("   💾 Saving template to templates/%s.yml...\n", name)
-	return nil
 }
 
 // Helper types for configuration discovery

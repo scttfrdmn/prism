@@ -113,19 +113,6 @@ func (dc *DaemonCobraCommands) createLogsCommand() *cobra.Command {
 		Short: "View daemon logs",
 		Long:  "Display logs from the CloudWorkstation daemon.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Get flags
-			follow, _ := cmd.Flags().GetBool("follow")
-			tail, _ := cmd.Flags().GetInt("tail")
-
-			// Build args for the existing logs function
-			var logsArgs []string
-			if follow {
-				logsArgs = append(logsArgs, "--follow")
-			}
-			if tail > 0 {
-				logsArgs = append(logsArgs, "--tail", fmt.Sprintf("%d", tail))
-			}
-
 			return dc.systemCommands.daemonLogs()
 		},
 	}

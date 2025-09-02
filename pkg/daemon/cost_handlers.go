@@ -142,7 +142,7 @@ func (s *Server) handleGetRecommendations(w http.ResponseWriter, r *http.Request
 	projectID := r.URL.Query().Get("project_id")
 
 	optimizer := cost.NewCostOptimizer()
-	recommendations := make([]*cost.Recommendation, 0)
+	var recommendations []*cost.Recommendation
 
 	if instanceID != "" {
 		// Get recommendations for specific instance

@@ -349,9 +349,9 @@ func getErrorType(err error) string {
 
 // contains checks if any of the substrings exist in the text
 func contains(text string, substrings ...string) bool {
-	text = fmt.Sprintf("%s", text) // Convert to lowercase for comparison
+	// text is already a string, no need to convert
 	for _, substring := range substrings {
-		if fmt.Sprintf("%s", substring) != "" &&
+		if substring != "" &&
 			len(text) > 0 && len(substring) > 0 {
 			// Simple substring check
 			for i := 0; i <= len(text)-len(substring); i++ {
