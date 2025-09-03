@@ -10,20 +10,19 @@ class Cloudworkstation < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.5/cloudworkstation-darwin-arm64.tar.gz"
-      sha256 "PLACEHOLDER_ARM64_SHA256"
+      sha256 "ccf099630fbb5ee6a38ca2c0ddb62a07913d848f238fea4cf275e60020e6dda3"
     else
       url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.5/cloudworkstation-darwin-amd64.tar.gz"
-      sha256 "PLACEHOLDER_AMD64_SHA256"
+      sha256 "6e87142a691b3de372fec2c93289a7cf0744b8a8b65a92cc920bf0ffd9aa5db2"
     end
   end
 
   def install
-    # Install prebuilt binaries from bin/ directory  
-    bin.install "bin/cws"
-    bin.install "bin/cwsd"
+    # Install prebuilt binaries directly
+    bin.install "cws"
+    bin.install "cwsd"
     
-    # Install templates to share/ directory
-    share.install "share/templates"
+    # Note: Templates are bundled in the binaries for v0.4.5
   end
 
   def post_install
