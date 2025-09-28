@@ -22,7 +22,12 @@ import {
   Alert,
   Flashbar,
   Spinner,
-  Box
+  Box,
+  BreadcrumbGroup,
+  SplitPanel,
+  Tabs,
+  ProgressBar,
+  Link
 } from '@cloudscape-design/components';
 
 // Enhanced type definitions for CloudWorkstation
@@ -50,13 +55,26 @@ interface Instance {
   region: string;
 }
 
+interface Notification {
+  type: 'success' | 'error' | 'warning' | 'info';
+  header: string;
+  content: string;
+  dismissible?: boolean;
+  buttonText?: string;
+  onButtonClick?: () => void;
+  loading?: boolean;
+  id?: string;
+}
+
 interface CloudWorkstationState {
   activeView: 'templates' | 'instances' | 'desktop' | 'settings';
   templates: Template[];
   instances: Instance[];
   selectedTemplate: Template | null;
   loading: boolean;
-  notifications: any[];
+  notifications: Notification[];
+  splitPanelOpen: boolean;
+  splitPanelContent: 'instance-details' | 'template-details' | null;
 }
 
 // Declare wails API for TypeScript
@@ -80,7 +98,9 @@ export default function CloudWorkstationApp() {
     instances: [],
     selectedTemplate: null,
     loading: true,
-    notifications: []
+    notifications: [],
+    splitPanelOpen: false,
+    splitPanelContent: null
   });
 
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -90,6 +110,52 @@ export default function CloudWorkstationApp() {
   const [templateQuery, setTemplateQuery] = useState({ tokens: [], operation: 'and' as const });
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
   const [selectedInstances, setSelectedInstances] = useState<Instance[]>([]);
+  const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
+
+  // Breadcrumb navigation helper
+  const getBreadcrumbs = () => {
+    const items = [
+      { text: 'CloudWorkstation', href: '#/' }
+    ];
+
+    switch (state.activeView) {
+      case 'templates':
+        items.push({ text: 'Research Templates', href: '#/templates' });
+        break;
+      case 'instances':
+        items.push({ text: 'Instances', href: '#/instances' });
+        if (selectedInstance) {
+          items.push({ text: selectedInstance.name, href: `#/instances/${selectedInstance.id}` });
+        }
+        break;
+      case 'settings':
+        items.push({ text: 'Settings', href: '#/settings' });
+        break;
+      default:
+        break;
+    }
+
+    return items;
+  };
+
+  // Enhanced notification helper
+  const addNotification = (notification: Omit<Notification, 'id'>) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setState(prev => ({
+      ...prev,
+      notifications: [...prev.notifications, { ...notification, id }]
+    }));
+
+    // Auto-dismiss success notifications after 5 seconds
+    if (notification.type === 'success' && notification.dismissible !== false) {
+      setTimeout(() => {
+        setState(prev => ({
+          ...prev,
+          notifications: prev.notifications.filter(n => n.id !== id)
+        }));
+      }, 5000);
+    }
+  };
 
   // Load data on component mount
   useEffect(() => {
@@ -256,14 +322,17 @@ export default function CloudWorkstationApp() {
       console.error('Failed to load application data:', error);
       setState(prev => ({
         ...prev,
-        loading: false,
-        notifications: [{
-          type: 'error',
-          header: 'Failed to load data',
-          content: 'Unable to connect to CloudWorkstation daemon',
-          dismissible: true
-        }]
+        loading: false
       }));
+
+      addNotification({
+        type: 'error',
+        header: 'Failed to load data',
+        content: 'Unable to connect to CloudWorkstation daemon. Please ensure the daemon is running.',
+        dismissible: true,
+        buttonText: 'Retry',
+        onButtonClick: loadApplicationData
+      });
     }
   };
 
@@ -334,12 +403,12 @@ export default function CloudWorkstationApp() {
   // Handle template selection
   const handleTemplateSelection = ({ detail }: { detail: { selectedItems: Template[] } }) => {
     const selectedTemplate = detail.selectedItems[0] || null;
-    setState(prev => ({ ...prev, selectedTemplate }));
-
-    if (selectedTemplate) {
-      setInstanceName(`my-${selectedTemplate.Name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
-      setLaunchModalVisible(true);
-    }
+    setState(prev => ({
+      ...prev,
+      selectedTemplate,
+      splitPanelOpen: selectedTemplate ? true : false,
+      splitPanelContent: selectedTemplate ? 'template-details' : null
+    }));
   };
 
   // Handle instance launch
@@ -347,23 +416,35 @@ export default function CloudWorkstationApp() {
     if (!state.selectedTemplate || !instanceName.trim()) return;
 
     try {
+      // Show launching notification with progress
+      addNotification({
+        type: 'info',
+        header: 'Launching instance',
+        content: `Starting ${instanceName} with ${state.selectedTemplate.Name} template...`,
+        loading: true,
+        dismissible: false
+      });
+
       if (window.wails?.CloudWorkstationService?.LaunchInstance) {
         await window.wails.CloudWorkstationService.LaunchInstance(
           instanceName.trim(),
           state.selectedTemplate.Name,
           instanceSize
         );
-
-        setState(prev => ({
-          ...prev,
-          notifications: [{
-            type: 'success',
-            header: 'Instance launching',
-            content: `${instanceName} is being launched with ${state.selectedTemplate.Name} template`,
-            dismissible: true
-          }]
-        }));
       }
+
+      // Clear loading notification and show success
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading)
+      }));
+
+      addNotification({
+        type: 'success',
+        header: 'Instance launched successfully',
+        content: `${instanceName} is now starting up. You'll receive a connection notification when ready.`,
+        dismissible: true
+      });
 
       setLaunchModalVisible(false);
       setInstanceName('');
@@ -372,15 +453,20 @@ export default function CloudWorkstationApp() {
       // Refresh instances
       loadApplicationData();
     } catch (error) {
+      // Clear loading notification
       setState(prev => ({
         ...prev,
-        notifications: [{
-          type: 'error',
-          header: 'Launch failed',
-          content: `Failed to launch ${instanceName}: ${error}`,
-          dismissible: true
-        }]
+        notifications: prev.notifications.filter(n => !n.loading)
       }));
+
+      addNotification({
+        type: 'error',
+        header: 'Launch failed',
+        content: `Failed to launch ${instanceName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true,
+        buttonText: 'Try Again',
+        onButtonClick: () => setLaunchModalVisible(true)
+      });
     }
   };
 
@@ -455,41 +541,52 @@ export default function CloudWorkstationApp() {
     </Container>
   );
 
-  // Handle instance actions
+  // Handle instance actions with enhanced notifications
   const handleInstanceAction = async (action: string, instance: Instance) => {
-    setState(prev => ({
-      ...prev,
-      notifications: [{
-        type: 'info',
-        header: `${action} in progress`,
-        content: `${action} operation started for ${instance.name}`,
-        dismissible: true
-      }]
-    }));
+    // Show in-progress notification
+    addNotification({
+      type: 'info',
+      header: `${action} in progress`,
+      content: `${action} operation started for ${instance.name}`,
+      loading: true,
+      dismissible: false
+    });
 
     try {
       // TODO: Call actual API when available
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
+      // Clear loading notifications
       setState(prev => ({
         ...prev,
-        notifications: [{
-          type: 'success',
-          header: `${action} successful`,
-          content: `${instance.name} ${action.toLowerCase()} completed successfully`,
-          dismissible: true
-        }]
+        notifications: prev.notifications.filter(n => !n.loading)
       }));
+
+      // Show success notification
+      addNotification({
+        type: 'success',
+        header: `${action} successful`,
+        content: `${instance.name} ${action.toLowerCase()} completed successfully`,
+        dismissible: true
+      });
+
+      // Refresh data to show updated states
+      loadApplicationData();
     } catch (error) {
+      // Clear loading notifications
       setState(prev => ({
         ...prev,
-        notifications: [{
-          type: 'error',
-          header: `${action} failed`,
-          content: `Failed to ${action.toLowerCase()} ${instance.name}: ${error}`,
-          dismissible: true
-        }]
+        notifications: prev.notifications.filter(n => !n.loading)
       }));
+
+      addNotification({
+        type: 'error',
+        header: `${action} failed`,
+        content: `Failed to ${action.toLowerCase()} ${instance.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true,
+        buttonText: 'Retry',
+        onButtonClick: () => handleInstanceAction(action, instance)
+      });
     }
   };
 
@@ -636,6 +733,14 @@ export default function CloudWorkstationApp() {
           selectionType="multi"
           selectedItems={selectedInstances}
           onSelectionChange={({ detail }) => setSelectedInstances(detail.selectedItems)}
+          onRowClick={({ detail }) => {
+            setSelectedInstance(detail.item);
+            setState(prev => ({
+              ...prev,
+              splitPanelOpen: true,
+              splitPanelContent: 'instance-details'
+            }));
+          }}
           sortingDisabled={false}
           variant="borderless"
           stickyHeader={true}
@@ -694,6 +799,129 @@ export default function CloudWorkstationApp() {
     </Container>
   );
 
+  // Split panel content renderer
+  const renderSplitPanelContent = () => {
+    if (!state.splitPanelOpen || !state.splitPanelContent) return null;
+
+    switch (state.splitPanelContent) {
+      case 'instance-details':
+        if (!selectedInstance) return null;
+        return (
+          <SpaceBetween direction="vertical" size="l">
+            <Header variant="h2">{selectedInstance.name}</Header>
+            <SpaceBetween direction="vertical" size="s">
+              <Box>
+                <Box variant="awsui-key-label">Instance ID</Box>
+                <Box>{selectedInstance.id}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Template</Box>
+                <Box>{selectedInstance.template}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Status</Box>
+                <StatusIndicator type={
+                  selectedInstance.status === 'running' ? 'success' :
+                  selectedInstance.status === 'stopped' ? 'stopped' :
+                  selectedInstance.status === 'hibernated' ? 'pending' :
+                  'in-progress'
+                }>
+                  {selectedInstance.status.charAt(0).toUpperCase() + selectedInstance.status.slice(1)}
+                </StatusIndicator>
+              </Box>
+              {selectedInstance.public_ip && (
+                <Box>
+                  <Box variant="awsui-key-label">Public IP</Box>
+                  <Box>{selectedInstance.public_ip}</Box>
+                </Box>
+              )}
+              <Box>
+                <Box variant="awsui-key-label">Cost per Hour</Box>
+                <Box>${selectedInstance.cost_per_hour.toFixed(2)}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Launch Time</Box>
+                <Box>{new Date(selectedInstance.launch_time).toLocaleDateString()}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Region</Box>
+                <Box>{selectedInstance.region}</Box>
+              </Box>
+            </SpaceBetween>
+
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button
+                variant="primary"
+                disabled={selectedInstance.status !== 'running'}
+                onClick={() => handleInstanceAction('Connect', selectedInstance)}
+              >
+                Connect
+              </Button>
+              <Button
+                variant="normal"
+                onClick={() => {
+                  if (selectedInstance.status === 'running') {
+                    handleInstanceAction('Hibernate', selectedInstance);
+                  } else if (selectedInstance.status === 'hibernated') {
+                    handleInstanceAction('Resume', selectedInstance);
+                  } else if (selectedInstance.status === 'stopped') {
+                    handleInstanceAction('Start', selectedInstance);
+                  }
+                }}
+              >
+                {selectedInstance.status === 'running' ? 'Hibernate' :
+                 selectedInstance.status === 'hibernated' ? 'Resume' : 'Start'}
+              </Button>
+            </SpaceBetween>
+          </SpaceBetween>
+        );
+
+      case 'template-details':
+        if (!state.selectedTemplate) return null;
+        return (
+          <SpaceBetween direction="vertical" size="l">
+            <Header variant="h2">
+              <SpaceBetween direction="horizontal" size="xs">
+                <Box>{state.selectedTemplate.Icon || '🖥️'}</Box>
+                <Box>{state.selectedTemplate.Name}</Box>
+              </SpaceBetween>
+            </Header>
+            <Box>{state.selectedTemplate.Description}</Box>
+            <SpaceBetween direction="vertical" size="s">
+              <Box>
+                <Box variant="awsui-key-label">Category</Box>
+                <Badge>{state.selectedTemplate.Category}</Badge>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Complexity</Box>
+                <Badge color="blue">{state.selectedTemplate.Complexity}</Badge>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Estimated Launch Time</Box>
+                <Box>~{state.selectedTemplate.EstimatedLaunchTime || 3} minutes</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Estimated Cost</Box>
+                <Box>${(state.selectedTemplate.EstimatedCostPerHour?.['x86_64'] || 0.12).toFixed(2)}/hour</Box>
+              </Box>
+            </SpaceBetween>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setInstanceName(`my-${state.selectedTemplate!.Name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`);
+                setLaunchModalVisible(true);
+              }}
+            >
+              Launch Instance
+            </Button>
+          </SpaceBetween>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   // Main application layout
   return (
     <AppLayout
@@ -718,6 +946,33 @@ export default function CloudWorkstationApp() {
           }}
         />
       }
+      breadcrumbs={
+        <BreadcrumbGroup
+          items={getBreadcrumbs()}
+          ariaLabel="Breadcrumbs"
+        />
+      }
+      splitPanel={
+        state.splitPanelOpen ? (
+          <SplitPanel
+            header={
+              state.splitPanelContent === 'instance-details' ? 'Instance Details' :
+              state.splitPanelContent === 'template-details' ? 'Template Details' :
+              'Details'
+            }
+          >
+            {renderSplitPanelContent()}
+          </SplitPanel>
+        ) : undefined
+      }
+      splitPanelOpen={state.splitPanelOpen}
+      onSplitPanelToggle={({ detail }) => {
+        setState(prev => ({
+          ...prev,
+          splitPanelOpen: detail.open,
+          splitPanelContent: detail.open ? prev.splitPanelContent : null
+        }));
+      }}
       content={
         <SpaceBetween direction="vertical" size="l">
           {state.notifications.length > 0 && (

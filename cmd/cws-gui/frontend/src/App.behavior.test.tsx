@@ -108,7 +108,7 @@ describe('CloudWorkstation Behavioral Tests', () => {
 
       // First check that we can see the main templates section
       await waitFor(() => {
-        expect(screen.getByText('Research Templates')).toBeInTheDocument();
+        expect(screen.getAllByText('Research Templates')[0]).toBeInTheDocument();
       });
 
       // Wait for templates to load
@@ -296,11 +296,11 @@ describe('CloudWorkstation Behavioral Tests', () => {
       // Should show error state
       await waitFor(() => {
         expect(screen.getByText('Failed to load data')).toBeInTheDocument();
-        expect(screen.getByText('Unable to connect to CloudWorkstation daemon')).toBeInTheDocument();
+        expect(screen.getByText('Unable to connect to CloudWorkstation daemon. Please ensure the daemon is running.')).toBeInTheDocument();
       });
 
       // Should provide retry functionality
-      expect(screen.getByText('Retry')).toBeInTheDocument();
+      expect(screen.getAllByText('Retry')[0]).toBeInTheDocument();
     });
 
     it('should handle empty states appropriately', async () => {
@@ -380,7 +380,7 @@ describe('CloudWorkstation Behavioral Tests', () => {
 
       // Start on templates view
       await waitFor(() => {
-        expect(screen.getByText('Research Templates')).toBeInTheDocument();
+        expect(screen.getAllByText('Research Templates')[0]).toBeInTheDocument();
       });
 
       // Navigate to instances
