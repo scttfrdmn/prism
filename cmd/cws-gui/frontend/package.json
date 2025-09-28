@@ -33,5 +33,10 @@
     "research",
     "aws",
     "gui"
-  ]
+  ],
+  "dependencies": {
+    "@cloudscape-design/components": "^3.0.1099",
+    "@cloudscape-design/design-tokens": "^3.0.61",
+    "@cloudscape-design/global-styles": "^1.0.45"
+  }
 }

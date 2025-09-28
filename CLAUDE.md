@@ -71,27 +71,43 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 
 **Phase 5: AWS-Native Research Ecosystem Expansion** (Restructured)
 
-### **Phase 5A: Multi-User Foundation** (v0.5.0 - Q1 2025)
-🎯 **Research User Architecture**: 
-- Per-profile research users with consistent UID/GID mapping
-- Optional Globus Auth integration for enhanced identity verification
-- EFS home directory integration for persistent research environments
+### **Phase 4.6: Cloudscape GUI Migration** (v0.4.6 - November 2025)
+**CURRENT PRIORITY**: Professional AWS-native interface for immediate school deployments
+🎯 **Cloudscape Design System Migration**:
+- Replace custom CSS/JS with 60+ battle-tested AWS components
+- Professional template selection with Cards, PropertyFilter, and Badges
+- Enterprise-grade instance management with Table, StatusIndicator, and ButtonDropdown
+- Built-in accessibility (WCAG AA), responsive design, and mobile support
+- 8-10x faster development velocity for future features
 
-🎯 **Basic Policy Framework Integration**:
-- Template launch policy enforcement with violation handling
-- Enhanced profile management with policy display
-- Policy-filtered template listings and launch restrictions
+### **Phase 5A: Multi-User Foundation** (v0.5.0 - Q4 2025 - Q1 2026)
+**ENHANCED**: Building on professional Cloudscape foundation
+**TIMELINE BENEFIT**: Cloudscape migration accelerates all subsequent UI development
+🎯 **Research User Architecture** (Built on Cloudscape UI):
+- Per-profile research users with professional management interface
+- Optional Globus Auth integration with Cloudscape Form components
+- EFS home directory integration with enterprise-grade configuration panels
+- Cloudscape-powered user provisioning workflows with Wizard components
+
+🎯 **Policy Framework Integration** (Cloudscape-Enhanced):
+- Template launch policy enforcement with professional Alert components
+- Enhanced profile management using Cloudscape ExpandableSection and Form
+- Policy-filtered template listings with PropertyFilter and Select components
+- Professional policy violation handling with Modal and Flashbar notifications
 
 🎯 **Research User Provisioning**:
 - Template integration with dual-user model (system + research)
 - SSH key management for research users
 - Cross-template research user compatibility
 
-### **Phase 5B: AWS Research Services Integration** (v0.5.5 - Q2 2025)
-🎯 **SageMaker Studio Integration** (Priority 1):
-- SageMaker Studio Lab (free) for educational use cases
-- SageMaker Studio (managed) with unified cost tracking
-- Direct web access integration with CloudWorkstation profiles
+### **Phase 5B: AWS Research Services Integration** (v0.5.5 - Q2 2026)
+🎯 **AWS Research Services Integration** (Priority 1):
+- **EMR Studio** for big data analytics and Spark-based research
+- **SageMaker Studio Lab** (free) for educational ML use cases
+- **Amazon Braket** for quantum computing research and education
+- **AWS CloudShell** integration for web-based terminal access
+- **DEPRECATED SERVICES AVOIDED**: Cloud9 (deprecated July 2024), CodeCommit (deprecated)
+- **RISK ASSESSMENT**: Full SageMaker Studio integration pending AWS partnership feasibility study
 
 🎯 **Web Service Management Framework**:
 - Unified interface for EC2 + AWS research services
@@ -111,7 +127,14 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and EMR Studio big data
 🎯 **Research Workflows**: Integration with research data management and CI/CD systems
 
-### **Phase 6: Extensibility & Ecosystem** (v0.7.0 - Q4 2025)
+### ### **Phase 5C: Enterprise Research Ecosystem** (v0.6.0 - Q3 2025)
+🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing (MOVED UP from Phase 6)
+🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads
+🎯 **Enterprise Policy Engine**: Digital signatures and institutional governance controls
+🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and EMR Studio big data
+🎯 **Research Workflows**: Integration with research data management and CI/CD systems
+
+**Phase 6: Extensibility & Ecosystem** (v0.7.0 - Q4 2026)
 🎯 **Plugin Architecture**: Unified CLI + daemon plugin system for custom functionality
 - Research analytics plugins (usage tracking, cost analysis, reporting)
 - HPC integration plugins (SLURM, PBS, LSF job submission)
@@ -136,7 +159,13 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - OAuth/OIDC authentication integration with research user identity
 - EFS sharing integration for collaborative research environments
 
-**Note**: Multi-cloud support (Azure, GCP) has been postponed indefinitely to focus on deep AWS-native research ecosystem integration.
+**STRATEGIC FOCUS FOR SCHOOL PARTNERSHIPS**:
+- **Cloudscape Migration**: Professional AWS-quality interface using battle-tested design system
+- **Immediate UX Improvements**: 8-10x faster development with enterprise-grade components
+- **Institutional Deployment**: Professional interface increases school adoption confidence
+- Template marketplace moved to Phase 5C to enable community contributions
+- AWS partnership feasibility study to de-risk SageMaker integration
+- Multi-cloud support (Azure, GCP) postponed to maintain AWS-native focus
 
 **Multi-Modal Access Strategy**:
 ```
