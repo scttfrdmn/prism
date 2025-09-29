@@ -282,6 +282,7 @@ func (tc *TemplateCommands) templatesInfo(args []string) error {
 	tc.displaySmartScaling(rawTemplate)
 	tc.displayPackageInfo(rawTemplate)
 	tc.displayUserInfo(rawTemplate)
+	tc.displayResearchUserInfo(rawTemplate)
 	tc.displayServiceInfo(rawTemplate)
 	tc.displayNetworkInfo(runtimeTemplate, runtimeErr)
 	tc.displayIdleDetectionInfo(rawTemplate)
@@ -419,6 +420,61 @@ func (tc *TemplateCommands) displayUserInfo(template *templates.Template) {
 		}
 		fmt.Printf("   • %s (groups: %s, shell: %s)\n", user.Name, groups, shell)
 	}
+	fmt.Println()
+}
+
+func (tc *TemplateCommands) displayResearchUserInfo(template *templates.Template) {
+	if template.ResearchUser == nil {
+		return
+	}
+
+	fmt.Printf("🔬 **Research User Integration** (Phase 5A+):\n")
+
+	if template.ResearchUser.AutoCreate {
+		fmt.Printf("   • ✅ **Auto-creation enabled**: Research users created automatically during launch\n")
+	}
+
+	if template.ResearchUser.RequireEFS {
+		fmt.Printf("   • 💾 **EFS Integration**: Persistent home directories at %s\n", template.ResearchUser.EFSMountPoint)
+		if template.ResearchUser.EFSHomeSubdirectory != "" {
+			fmt.Printf("   • 📁 **Home Structure**: /efs/%s/<username>\n", template.ResearchUser.EFSHomeSubdirectory)
+		}
+	}
+
+	if template.ResearchUser.InstallSSHKeys {
+		fmt.Printf("   • 🔑 **SSH Keys**: Automatic generation and distribution enabled\n")
+	}
+
+	if template.ResearchUser.DefaultShell != "" {
+		fmt.Printf("   • 🐚 **Default Shell**: %s\n", template.ResearchUser.DefaultShell)
+	}
+
+	if len(template.ResearchUser.DefaultGroups) > 0 {
+		fmt.Printf("   • 👥 **Research Groups**: %s\n", strings.Join(template.ResearchUser.DefaultGroups, ", "))
+	}
+
+	integration := template.ResearchUser.UserIntegration
+	if integration.Strategy != "" {
+		if integration.Strategy == "dual_user" {
+			fmt.Printf("   • 🔄 **User Strategy**: Dual-user architecture (system + research users)\n")
+		} else {
+			fmt.Printf("   • 🔄 **User Strategy**: %s\n", integration.Strategy)
+		}
+	}
+	if integration.PrimaryUser != "" {
+		fmt.Printf("   • 👤 **Primary User**: %s\n", integration.PrimaryUser)
+	}
+	if len(integration.SharedDirectories) > 0 {
+		fmt.Printf("   • 📁 **Shared Directories**: %s\n", strings.Join(integration.SharedDirectories, ", "))
+	}
+
+	// Usage example
+	launchName := template.Slug
+	if launchName == "" {
+		launchName = fmt.Sprintf("\"%s\"", template.Name)
+	}
+	fmt.Printf("   • 🚀 **Usage**: `cws launch %s my-project --research-user alice`\n", launchName)
+
 	fmt.Println()
 }
 

@@ -64,6 +64,9 @@ func (f *LaunchCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []string
 			args = append(args, "--param", param)
 		}
 	}
+	if researchUser, _ := cmd.Flags().GetString("research-user"); researchUser != "" {
+		args = append(args, "--research-user", researchUser)
+	}
 	return f.app.Launch(args)
 }
 
@@ -77,6 +80,7 @@ func (f *LaunchCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("wait", false, "Wait and display launch progress in real-time")
 	cmd.Flags().Bool("dry-run", false, "Validate configuration without launching")
 	cmd.Flags().StringArray("param", []string{}, "Template parameter in format name=value")
+	cmd.Flags().String("research-user", "", "Automatically create and provision research user on instance")
 }
 
 // InstanceCommandFactory creates instance management commands

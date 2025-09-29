@@ -8,6 +8,8 @@ package templates
 import (
 	"fmt"
 	"time"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/research"
 )
 
 // Template represents a unified CloudWorkstation template
@@ -69,6 +71,9 @@ type Template struct {
 	// Template parameterization
 	Parameters map[string]TemplateParameter `yaml:"parameters,omitempty" json:"parameters,omitempty"` // User-configurable parameters
 	Variables  map[string]string            `yaml:"variables,omitempty" json:"variables,omitempty"`   // Template-level variables
+
+	// Research user integration (Phase 5A+)
+	ResearchUser *research.ResearchUserTemplate `yaml:"research_user,omitempty" json:"research_user,omitempty"`
 
 	// Template metadata
 	Version          string            `yaml:"version,omitempty" json:"version,omitempty"`

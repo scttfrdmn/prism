@@ -120,6 +120,42 @@ Validation tests check that everything is working:
 - The script should return success (exit code 0) if everything is OK
 - If any test fails, the template won't work
 
+## Research User Integration (Phase 5A+)
+
+🎉 **NEW**: Templates can now automatically create research users with persistent identities!
+
+### Research-Enabled Templates
+
+Some templates support automatic research user creation. These templates let you create persistent users that work across different instances:
+
+```bash
+# Launch with automatic research user creation
+cws launch python-ml-research my-project --research-user alice
+# ✅ Creates instance + research user 'alice' + SSH keys + EFS home directory
+```
+
+### Research User Template Configuration
+
+Research-enabled templates include a `research_user` section:
+
+```yaml
+name: "Python ML Research (Research User Enabled)"
+research_user:
+  auto_create: true                    # Create research user automatically
+  require_efs: true                    # Set up persistent home directory
+  efs_mount_point: "/efs"              # Where to mount EFS storage
+  install_ssh_keys: true              # Generate SSH keys automatically
+  default_shell: "/bin/bash"           # Default shell for research users
+  default_groups: ["research", "docker"]  # Groups for research users
+```
+
+### Benefits of Research User Templates
+
+- **Persistent Identity**: Same username and files across all instances
+- **Automatic Setup**: SSH keys and home directories created automatically
+- **Cross-Template Compatible**: Same research user works with any template
+- **Team Collaboration**: Multiple research users can share files
+
 ## Tips for Good Templates
 
 1. **Keep it simple**: Only include what you really need
@@ -127,6 +163,7 @@ Validation tests check that everything is working:
 3. **Add comments**: Explain what complex commands do
 4. **Set timeouts**: Some steps might take a long time
 5. **Clean up**: Remove temporary files to save space
+6. **Consider research users**: Add research user support for persistent identity
 
 ## Help with Templates
 

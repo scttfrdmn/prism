@@ -1,0 +1,118 @@
+name: "Python ML Research (Research User Enabled)"
+slug: "python-ml-research"
+description: "Python + Jupyter + ML packages with integrated research user management"
+long_description: |
+  Complete machine learning research environment with automatic research user provisioning.
+  Features persistent EFS home directories, SSH key management, and seamless collaboration support.
+base: "ubuntu-22.04"
+
+# EXPLICIT CONNECTION TYPE - Web interface (Jupyter)
+connection_type: "web"  # Primary interface is Jupyter in browser
+
+# Complexity and categorization
+complexity: "simple"
+category: "Machine Learning"
+domain: "ml"
+
+# Visual presentation
+icon: "🧪"
+color: "#ff6b6b"
+popular: true
+
+# Use conda for Python data science packages
+package_manager: "conda"
+
+packages:
+  conda:
+    - python=3.11
+    - jupyter
+    - jupyterlab
+    - numpy
+    - pandas
+    - matplotlib
+    - seaborn
+    - scikit-learn
+    - pytorch
+    - tensorflow-gpu
+    - ipywidgets
+    - plotly
+    - bokeh
+
+  pip:
+    - jupyterlab-git
+    - tensorboard
+    - wandb
+    - mlflow
+
+services:
+  - name: "jupyter"
+    port: 8888
+    enable: true
+  - name: "tensorboard"
+    port: 6006
+    enable: true
+
+users:
+  - name: "researcher"
+    groups: ["sudo", "docker"]
+
+# Research user integration (Phase 5A+)
+research_user:
+  auto_create: true
+  require_efs: true
+  efs_mount_point: "/efs"
+  efs_home_subdirectory: "research"
+  install_ssh_keys: true
+  default_shell: "/bin/bash"
+  default_groups: ["research", "efs-users", "docker"]
+  default_environment:
+    JUPYTER_ENABLE_LAB: "yes"
+    CUDA_VISIBLE_DEVICES: "0"
+    PYTHONPATH: "/efs/research/shared/lib:$PYTHONPATH"
+    RESEARCH_DATA: "/efs/research/shared/data"
+    RESEARCH_MODELS: "/efs/research/shared/models"
+    MLFLOW_TRACKING_URI: "file:///efs/research/shared/mlflow"
+  user_integration:
+    strategy: "dual_user"
+    primary_user: "research"
+    collaboration_enabled: true
+
+# GPU instances recommended for ML workloads
+instance_defaults:
+  ports: [22, 8888, 6006]
+  instance_type_preference: ["g4dn.xlarge", "g5.xlarge", "p3.2xlarge"]
+
+# Idle detection optimized for ML workloads
+idle_detection:
+  cpu_threshold: 10
+  memory_threshold: 15
+  gpu_threshold: 5  # ML workloads can have low GPU util during data loading
+  network_threshold: 1
+  disk_threshold: 5
+  check_interval: 300  # 5 minutes
+  idle_minutes: 30     # 30 minutes idle before action
+
+version: "2.0.0"
+maintainer: "CloudWorkstation Team"
+last_updated: "2025-09-29T17:00:00Z"
+tags:
+  type: "research"
+  language: "python"
+  purpose: "machine-learning"
+  requires: "gpu-recommended"
+  research_enabled: "true"
+  collaboration: "supported"
+
+# Learning resources for researchers
+learning_resources:
+  - "https://jupyter.org/documentation"
+  - "https://scikit-learn.org/stable/tutorial/"
+  - "https://pytorch.org/tutorials/"
+  - "https://www.tensorflow.org/tutorials"
+
+prerequisites:
+  - "Basic Python programming"
+  - "Familiarity with Jupyter notebooks"
+  - "Understanding of machine learning concepts"
+
+estimated_launch_time: 8  # minutes

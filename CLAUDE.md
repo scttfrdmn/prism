@@ -80,19 +80,22 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - Built-in accessibility (WCAG AA), responsive design, and mobile support
 - 8-10x faster development velocity for future features
 
-### **Phase 5A: Multi-User Foundation** (v0.5.0 - COMPLETE ✅)
-**STATUS**: Research User Architecture Implementation Complete (September 29, 2025)
-**IMPLEMENTATION**: Complete multi-modal research user management system with CLI/TUI/GUI integration
-**NEXT**: Template integration and policy framework (Phase 5A+)
+### **Phase 5A: Multi-User Foundation** (v0.5.0 - TEMPLATE INTEGRATION COMPLETE ✅)
+**STATUS**: Research User Architecture + Template Integration Complete (September 29, 2025)
+**IMPLEMENTATION**: Complete research user system + automatic template integration + CLI flag support
+**NEXT**: TUI/GUI integration and policy framework (Phase 5A.4+)
 
-🎉 **PHASE 5A FOUNDATION COMPLETE: Research User Architecture**
+🎉 **PHASE 5A FOUNDATION + TEMPLATE INTEGRATION COMPLETE: Research User Architecture**
 - ✅ **Dual User System**: Complete architecture separating system users (template-created) from research users (persistent identity)
 - ✅ **Consistent UID/GID Mapping**: Deterministic allocation ensuring same profile+username = same UID across all instances
 - ✅ **SSH Key Management**: Complete key generation, storage, and distribution system with Ed25519 and RSA support
 - ✅ **User Provisioning Pipeline**: Remote user creation via SSH with script generation and EFS integration
 - ✅ **EFS Home Directory Integration**: Persistent home directories with proper permissions and collaboration support
 - ✅ **Profile System Integration**: Seamless integration with existing CloudWorkstation profile architecture
-- ✅ **Comprehensive Documentation**: Technical architecture, user guides, and management documentation complete
+- ✅ **Template Integration System**: Extended template schema to support automatic research user creation and provisioning
+- ✅ **CLI Flag Integration**: Implemented `--research-user` flag with complete backend command pattern processing
+- ✅ **Template Info Enhancement**: Professional display of research user capabilities in template information
+- ✅ **Comprehensive Documentation**: Technical architecture, user guides, and template integration documentation complete
 
 **Technical Components Implemented**:
 - **pkg/research/types.go**: Core research user data structures and interfaces (330+ lines)
@@ -101,6 +104,11 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - **pkg/research/provisioner.go**: Remote provisioning via SSH (450+ lines)
 - **pkg/research/ssh_keys.go**: Complete SSH key management system (480+ lines)
 - **pkg/research/integration.go**: High-level service integration layer (420+ lines)
+- **pkg/templates/types.go**: Extended template schema with research user configuration (Phase 5A+ Template Integration)
+- **templates/python-ml-research.yml**: Complete research-enabled template example with auto-provisioning
+- **internal/cli/commands.go**: ResearchUserCommand implementation using command pattern for `--research-user` flag
+- **internal/cli/template_commands.go**: Enhanced template info display with research user capabilities
+- **pkg/types/requests.go**: Extended LaunchRequest with ResearchUser field for API integration
 
 **Documentation Delivered**:
 - **Technical Architecture**: [Phase 5A Research User Architecture](docs/PHASE_5A_RESEARCH_USER_ARCHITECTURE.md)
@@ -112,8 +120,13 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 ✅ **CLI Integration**: Complete `cws research-user` command suite for full user management (Phase 5A.1)
 ✅ **TUI Integration**: Research user management screens in terminal interface (Phase 5A.2)
 ✅ **REST API Integration**: Complete daemon API endpoints for research user operations (Phase 5A.3)
+✅ **Template Integration**: Automatic research user provisioning via template system (Phase 5A.3+)
   - 7 REST API endpoints: user CRUD, SSH key management, status monitoring
   - Service layer integration with automatic SSH key generation
+  - Template schema extension with research user configuration support
+  - CLI `--research-user` flag with complete backend processing
+  - Enhanced template info display with research user capabilities
+  - Example research-enabled template with complete integration
   - Profile-aware operations with comprehensive error handling
   - Full JSON request/response API compliance
 ✅ **Multi-Modal Foundation**: Full research user management across CLI, TUI, and API layers

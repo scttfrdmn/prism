@@ -40,6 +40,7 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&DryRunCommand{})
 	dispatcher.RegisterCommand(&WaitCommand{})
 	dispatcher.RegisterCommand(&ParameterCommand{})
+	dispatcher.RegisterCommand(&ResearchUserCommand{})
 
 	return dispatcher
 }
@@ -314,6 +315,21 @@ func parseParameterValue(valueStr string) interface{} {
 
 	// Default to string
 	return valueStr
+}
+
+// ResearchUserCommand handles --research-user flag (Phase 5A+)
+type ResearchUserCommand struct{}
+
+func (r *ResearchUserCommand) CanHandle(arg string) bool {
+	return arg == "--research-user"
+}
+
+func (r *ResearchUserCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--research-user requires a username")
+	}
+	req.ResearchUser = args[index+1]
+	return index + 1, nil
 }
 
 // Cost Analysis Strategies (Strategy Pattern - SOLID)
