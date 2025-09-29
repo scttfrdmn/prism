@@ -442,6 +442,10 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/storage", applyMiddleware(s.handleStorage))
 	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
 
+	// Research user operations (Phase 5A.3: REST API Integration)
+	mux.HandleFunc("/api/v1/research-users", applyMiddleware(s.handleResearchUsers))
+	mux.HandleFunc("/api/v1/research-users/", applyMiddleware(s.handleResearchUserOperations))
+
 	// Idle policy operations
 	s.RegisterIdleRoutes(mux, applyMiddleware)
 

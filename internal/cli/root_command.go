@@ -284,6 +284,12 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	projectCobra := NewProjectCobraCommands(r.app)
 	rootCmd.AddCommand(projectCobra.CreateProjectCommand())
 
+	// Research user commands (Phase 5A.2)
+	researchUserFactory := &ResearchUserCommandFactory{app: r.app}
+	for _, cmd := range researchUserFactory.CreateCommands() {
+		rootCmd.AddCommand(cmd)
+	}
+
 	// Storage commands
 	rootCmd.AddCommand(r.createVolumeCommand())
 	rootCmd.AddCommand(r.createStorageCommand())

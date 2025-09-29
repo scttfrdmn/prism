@@ -34,6 +34,8 @@ const (
 	TemplatesPage
 	// StoragePage shows storage management
 	StoragePage
+	// ResearchUsersPage shows research user management (Phase 5A.2)
+	ResearchUsersPage
 	// SettingsPage shows application settings
 	SettingsPage
 	// ProfilesPage shows profile management
@@ -42,16 +44,17 @@ const (
 
 // AppModel represents the main application model
 type AppModel struct {
-	apiClient      *api.TUIClient
-	currentPage    PageID
-	dashboardModel models.DashboardModel
-	instancesModel models.InstancesModel
-	templatesModel models.TemplatesModel
-	storageModel   models.StorageModel
-	settingsModel  models.SettingsModel
-	profilesModel  models.ProfilesModel
-	width          int
-	height         int
+	apiClient          *api.TUIClient
+	currentPage        PageID
+	dashboardModel     models.DashboardModel
+	instancesModel     models.InstancesModel
+	templatesModel     models.TemplatesModel
+	storageModel       models.StorageModel
+	researchUsersModel models.ResearchUsersModel
+	settingsModel      models.SettingsModel
+	profilesModel      models.ProfilesModel
+	width              int
+	height             int
 }
 
 // NewApp creates a new TUI application
@@ -99,14 +102,15 @@ func NewApp() *App {
 func (a *App) Run() error {
 	// Create initial model
 	model := AppModel{
-		apiClient:      a.apiClient,
-		currentPage:    DashboardPage,
-		dashboardModel: models.NewDashboardModel(a.apiClient),
-		instancesModel: models.NewInstancesModel(a.apiClient),
-		templatesModel: models.NewTemplatesModel(a.apiClient),
-		storageModel:   models.NewStorageModel(a.apiClient),
-		settingsModel:  models.NewSettingsModel(a.apiClient),
-		profilesModel:  models.NewProfilesModel(a.apiClient),
+		apiClient:          a.apiClient,
+		currentPage:        DashboardPage,
+		dashboardModel:     models.NewDashboardModel(a.apiClient),
+		instancesModel:     models.NewInstancesModel(a.apiClient),
+		templatesModel:     models.NewTemplatesModel(a.apiClient),
+		storageModel:       models.NewStorageModel(a.apiClient),
+		researchUsersModel: models.NewResearchUsersModel(a.apiClient),
+		settingsModel:      models.NewSettingsModel(a.apiClient),
+		profilesModel:      models.NewProfilesModel(a.apiClient),
 	}
 
 	// Create program with explicit input/output streams for maximum compatibility
@@ -135,6 +139,8 @@ func (m AppModel) Init() tea.Cmd {
 		return m.templatesModel.Init()
 	case StoragePage:
 		return m.storageModel.Init()
+	case ResearchUsersPage:
+		return m.researchUsersModel.Init()
 	case SettingsPage:
 		return m.settingsModel.Init()
 	case ProfilesPage:
@@ -206,9 +212,12 @@ func (h *PageNavigationHandler) Handle(m AppModel, msg tea.Msg) (AppModel, []tea
 		m.currentPage = StoragePage
 		cmds = append(cmds, m.storageModel.Init())
 	case "5":
+		m.currentPage = ResearchUsersPage
+		cmds = append(cmds, m.researchUsersModel.Init())
+	case "6":
 		m.currentPage = SettingsPage
 		cmds = append(cmds, m.settingsModel.Init())
-	case "6":
+	case "7":
 		m.currentPage = ProfilesPage
 		m.profilesModel.SetSize(m.width, m.height)
 		cmds = append(cmds, func() tea.Msg { return models.ProfileInitMsg{} })
@@ -237,6 +246,10 @@ func (u *PageModelUpdater) UpdateCurrentPage(m AppModel, msg tea.Msg) (AppModel,
 	case StoragePage:
 		newModel, newCmd := m.storageModel.Update(msg)
 		m.storageModel = newModel.(models.StorageModel)
+		return m, newCmd
+	case ResearchUsersPage:
+		newModel, newCmd := m.researchUsersModel.Update(msg)
+		m.researchUsersModel = newModel.(models.ResearchUsersModel)
 		return m, newCmd
 	case SettingsPage:
 		newModel, newCmd := m.settingsModel.Update(msg)
@@ -312,6 +325,8 @@ func (m AppModel) View() string {
 		return m.templatesModel.View()
 	case StoragePage:
 		return m.storageModel.View()
+	case ResearchUsersPage:
+		return m.researchUsersModel.View()
 	case SettingsPage:
 		return m.settingsModel.View()
 	case ProfilesPage:

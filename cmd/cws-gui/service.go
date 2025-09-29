@@ -61,6 +61,32 @@ type SSHConnectionInfo struct {
 	KeyPath  string `json:"keyPath,omitempty"`
 }
 
+// ResearchUser represents a research user with persistent identity
+type ResearchUser struct {
+	Username      string    `json:"username"`
+	FullName      string    `json:"full_name"`
+	Email         string    `json:"email"`
+	UID           uint32    `json:"uid"`
+	GID           uint32    `json:"gid"`
+	HomeDirectory string    `json:"home_directory"`
+	Shell         string    `json:"shell"`
+	SudoAccess    bool      `json:"sudo_access"`
+	DockerAccess  bool      `json:"docker_access"`
+	SSHPublicKeys []string  `json:"ssh_public_keys"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+// CreateResearchUserRequest represents a request to create a new research user
+type CreateResearchUserRequest struct {
+	Username string `json:"username"`
+}
+
+// ResearchUserSSHKeyRequest represents a request to manage SSH keys
+type ResearchUserSSHKeyRequest struct {
+	Username string `json:"username"`
+	KeyType  string `json:"key_type,omitempty"` // "ed25519" or "rsa"
+}
+
 func NewCloudWorkstationService() *CloudWorkstationService {
 	return &CloudWorkstationService{
 		daemonURL: "http://localhost:8947",
@@ -417,4 +443,139 @@ func (s *CloudWorkstationService) RestartDaemon(ctx context.Context) error {
 	// This would restart the daemon service
 	// For now, return a not implemented error
 	return fmt.Errorf("daemon restart functionality not yet implemented in GUI service")
+}
+
+// GetResearchUsers fetches all research users from daemon
+func (s *CloudWorkstationService) GetResearchUsers(ctx context.Context) ([]ResearchUser, error) {
+	resp, err := s.client.Get(s.daemonURL + "/api/v1/research-users")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch research users: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+
+	var users []ResearchUser
+	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
+		return nil, fmt.Errorf("failed to decode research users: %w", err)
+	}
+
+	return users, nil
+}
+
+// CreateResearchUser creates a new research user
+func (s *CloudWorkstationService) CreateResearchUser(ctx context.Context, req CreateResearchUserRequest) error {
+	if req.Username == "" {
+		return fmt.Errorf("username is required")
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal create request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", s.daemonURL+"/api/v1/research-users", strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to call daemon API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// DeleteResearchUser deletes a research user
+func (s *CloudWorkstationService) DeleteResearchUser(ctx context.Context, username string) error {
+	if username == "" {
+		return fmt.Errorf("username is required")
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", s.daemonURL+"/api/v1/research-users/"+username, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to call daemon API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// GenerateResearchUserSSHKey generates SSH key pair for research user
+func (s *CloudWorkstationService) GenerateResearchUserSSHKey(ctx context.Context, req ResearchUserSSHKeyRequest) error {
+	if req.Username == "" {
+		return fmt.Errorf("username is required")
+	}
+
+	// Set default key type if not specified
+	if req.KeyType == "" {
+		req.KeyType = "ed25519"
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal SSH key request: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/research-users/%s/ssh-key", s.daemonURL, req.Username)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(string(jsonData)))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to call daemon API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// GetResearchUserStatus gets detailed status for a research user
+func (s *CloudWorkstationService) GetResearchUserStatus(ctx context.Context, username string) (map[string]interface{}, error) {
+	if username == "" {
+		return nil, fmt.Errorf("username is required")
+	}
+
+	url := fmt.Sprintf("%s/api/v1/research-users/%s/status", s.daemonURL, username)
+	resp, err := s.client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch research user status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
+	}
+
+	var status map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return nil, fmt.Errorf("failed to decode research user status: %w", err)
+	}
+
+	return status, nil
 }

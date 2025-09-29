@@ -1,10 +1,10 @@
 class Cloudworkstation < Formula
   desc "CLI tool for launching pre-configured cloud workstations for academic research"
   homepage "https://github.com/scttfrdmn/cloudworkstation"
-  url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.4.5.tar.gz"
-  sha256 "PLACEHOLDER_SOURCE_SHA256"
+  url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.4.6.tar.gz"
+  sha256 "95671b7bda144219135de04ce1d2c22e14e4fba6cb31e83042c299962f341e2e"
   license "MIT"
-  version "0.4.5"
+  version "0.4.6"
 
   depends_on "go" => :build
 

@@ -66,6 +66,20 @@ interface Volume {
   region: string;
 }
 
+interface ResearchUser {
+  username: string;
+  full_name: string;
+  email: string;
+  uid: number;
+  gid: number;
+  home_directory: string;
+  shell: string;
+  sudo_access: boolean;
+  docker_access: boolean;
+  ssh_public_keys: string[];
+  created_at: string;
+}
+
 interface Notification {
   type: 'success' | 'error' | 'warning' | 'info';
   header: string;
@@ -78,16 +92,18 @@ interface Notification {
 }
 
 interface CloudWorkstationState {
-  activeView: 'templates' | 'instances' | 'volumes' | 'desktop' | 'settings';
+  activeView: 'templates' | 'instances' | 'volumes' | 'research-users' | 'desktop' | 'settings';
   templates: Template[];
   instances: Instance[];
   volumes: Volume[];
+  researchUsers: ResearchUser[];
   selectedTemplate: Template | null;
   selectedVolume: Volume | null;
+  selectedResearchUser: ResearchUser | null;
   loading: boolean;
   notifications: Notification[];
   splitPanelOpen: boolean;
-  splitPanelContent: 'instance-details' | 'template-details' | 'volume-details' | null;
+  splitPanelContent: 'instance-details' | 'template-details' | 'volume-details' | 'research-user-details' | null;
   showMountDialog: boolean;
   mountingVolume: Volume | null;
 }
@@ -115,8 +131,10 @@ export default function CloudWorkstationApp() {
     templates: [],
     instances: [],
     volumes: [],
+    researchUsers: [],
     selectedTemplate: null,
     selectedVolume: null,
+    selectedResearchUser: null,
     loading: true,
     notifications: [],
     splitPanelOpen: false,
@@ -127,6 +145,8 @@ export default function CloudWorkstationApp() {
 
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [launchModalVisible, setLaunchModalVisible] = useState(false);
+  const [createUserModalVisible, setCreateUserModalVisible] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
   const [instanceName, setInstanceName] = useState('');
   const [instanceSize, setInstanceSize] = useState('M');
   const [templateQuery, setTemplateQuery] = useState({ tokens: [], operation: 'and' as const });
@@ -155,6 +175,9 @@ export default function CloudWorkstationApp() {
         break;
       case 'volumes':
         items.push({ text: 'Storage Volumes', href: '#/volumes' });
+        break;
+      case 'research-users':
+        items.push({ text: 'Research Users', href: '#/research-users' });
         break;
       case 'settings':
         items.push({ text: 'Settings', href: '#/settings' });
@@ -378,11 +401,48 @@ export default function CloudWorkstationApp() {
         ];
       }
 
+      // Load research users
+      let researchUsers: ResearchUser[] = [];
+      if (window.go?.main?.CloudWorkstationService?.GetResearchUsers) {
+        researchUsers = await window.go.main.CloudWorkstationService.GetResearchUsers(window.go.context.Context());
+      } else {
+        // Mock data for development
+        researchUsers = [
+          {
+            username: 'alice-researcher',
+            full_name: 'Alice Johnson',
+            email: 'alice@university.edu',
+            uid: 5001,
+            gid: 5001,
+            home_directory: '/home/alice-researcher',
+            shell: '/bin/bash',
+            sudo_access: true,
+            docker_access: false,
+            ssh_public_keys: ['ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...'],
+            created_at: '2025-09-20T10:30:00Z'
+          },
+          {
+            username: 'bob-datascience',
+            full_name: 'Bob Smith',
+            email: 'bob@research.org',
+            uid: 5002,
+            gid: 5002,
+            home_directory: '/home/bob-datascience',
+            shell: '/bin/bash',
+            sudo_access: false,
+            docker_access: true,
+            ssh_public_keys: ['ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACA...', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...'],
+            created_at: '2025-09-25T14:15:00Z'
+          }
+        ];
+      }
+
       setState(prev => ({
         ...prev,
         templates,
         instances,
         volumes,
+        researchUsers,
         loading: false
       }));
 
@@ -771,6 +831,114 @@ export default function CloudWorkstationApp() {
         dismissible: true,
         buttonText: 'Retry',
         onButtonClick: () => handleInstanceAction(action, instance)
+      });
+    }
+  };
+
+  // Research Users Handlers
+  const handleCreateUser = async () => {
+    if (!newUsername.trim()) {
+      addNotification({
+        type: 'warning',
+        header: 'Invalid Input',
+        content: 'Username cannot be empty',
+        dismissible: true
+      });
+      return;
+    }
+
+    try {
+      await window.go.main.CloudWorkstationService.CreateResearchUser(window.go.context.Context(), {
+        username: newUsername.trim()
+      });
+
+      addNotification({
+        type: 'success',
+        header: 'User Created',
+        content: `Research user "${newUsername}" created successfully`,
+        dismissible: true
+      });
+
+      setCreateUserModalVisible(false);
+      setNewUsername('');
+      loadApplicationData(); // Refresh the list
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        header: 'Creation Failed',
+        content: `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true
+      });
+    }
+  };
+
+  const handleDeleteUser = async (username: string) => {
+    try {
+      await window.go.main.CloudWorkstationService.DeleteResearchUser(window.go.context.Context(), username);
+
+      addNotification({
+        type: 'success',
+        header: 'User Deleted',
+        content: `Research user "${username}" deleted successfully`,
+        dismissible: true
+      });
+
+      loadApplicationData(); // Refresh the list
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        header: 'Deletion Failed',
+        content: `Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true
+      });
+    }
+  };
+
+  const handleGenerateSSHKey = async (username: string) => {
+    try {
+      await window.go.main.CloudWorkstationService.GenerateResearchUserSSHKey(window.go.context.Context(), {
+        username: username,
+        key_type: 'ed25519'
+      });
+
+      addNotification({
+        type: 'success',
+        header: 'SSH Key Generated',
+        content: `SSH key generated for "${username}"`,
+        dismissible: true
+      });
+
+      loadApplicationData(); // Refresh to show updated key count
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        header: 'Key Generation Failed',
+        content: `Failed to generate SSH key: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true
+      });
+    }
+  };
+
+  const handleViewUserStatus = async (user: ResearchUser) => {
+    try {
+      const status = await window.go.main.CloudWorkstationService.GetResearchUserStatus(window.go.context.Context(), user.username);
+
+      setState(prev => ({
+        ...prev,
+        selectedResearchUser: user,
+        splitPanelOpen: true,
+        splitPanelContent: 'research-user-details'
+      }));
+
+      // Store status in user object for display
+      (user as any).status = status;
+
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        header: 'Status Failed',
+        content: `Failed to get user status: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true
       });
     }
   };
@@ -1170,6 +1338,158 @@ export default function CloudWorkstationApp() {
     </Container>
   );
 
+  // Render research users view
+  const renderResearchUsersView = () => (
+    <Container
+      header={
+        <Header
+          variant="h1"
+          counter={`(${state.researchUsers.length})`}
+          description="Manage research users with persistent identity across instances"
+          actions={
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button
+                variant="normal"
+                onClick={loadApplicationData}
+                iconName="refresh"
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => setCreateUserModalVisible(true)}
+              >
+                Create Research User
+              </Button>
+            </SpaceBetween>
+          }
+        >
+          Research Users
+        </Header>
+      }
+    >
+      <SpaceBetween direction="vertical" size="l">
+        <Table
+          columnDefinitions={[
+            {
+              id: 'username',
+              header: 'Username',
+              cell: (item: ResearchUser) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  <Box variant="span" fontWeight="bold">{item.username}</Box>
+                  <Box variant="small" color="text-body-secondary">UID: {item.uid}</Box>
+                </SpaceBetween>
+              ),
+              sortingField: 'username',
+              isRowHeader: true
+            },
+            {
+              id: 'identity',
+              header: 'Identity',
+              cell: (item: ResearchUser) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  <Box variant="span">{item.full_name}</Box>
+                  <Box variant="small" color="text-body-secondary">{item.email}</Box>
+                </SpaceBetween>
+              ),
+              sortingField: 'full_name'
+            },
+            {
+              id: 'access',
+              header: 'Access Level',
+              cell: (item: ResearchUser) => (
+                <SpaceBetween direction="horizontal" size="xs">
+                  {item.sudo_access && <Badge color="red">Sudo</Badge>}
+                  {item.docker_access && <Badge color="blue">Docker</Badge>}
+                  <Badge color="green">SSH ({item.ssh_public_keys.length} keys)</Badge>
+                </SpaceBetween>
+              )
+            },
+            {
+              id: 'home',
+              header: 'Home Directory',
+              cell: (item: ResearchUser) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  <Box variant="span">{item.home_directory}</Box>
+                  <Box variant="small" color="text-body-secondary">{item.shell}</Box>
+                </SpaceBetween>
+              )
+            },
+            {
+              id: 'created',
+              header: 'Created',
+              cell: (item: ResearchUser) => (
+                <Box variant="span">
+                  {new Date(item.created_at).toLocaleDateString()}
+                </Box>
+              ),
+              sortingField: 'created_at'
+            },
+            {
+              id: 'actions',
+              header: 'Actions',
+              cell: (item: ResearchUser) => (
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    variant="normal"
+                    iconName="key"
+                    onClick={() => handleGenerateSSHKey(item.username)}
+                  >
+                    SSH Key
+                  </Button>
+                  <Button
+                    variant="normal"
+                    iconName="status-info"
+                    onClick={() => handleViewUserStatus(item)}
+                  >
+                    Status
+                  </Button>
+                  <Button
+                    variant="normal"
+                    iconName="remove"
+                    onClick={() => handleDeleteUser(item.username)}
+                  >
+                    Delete
+                  </Button>
+                </SpaceBetween>
+              )
+            }
+          ]}
+          items={state.researchUsers}
+          loading={state.loading}
+          loadingText="Loading research users..."
+          empty={
+            <Box textAlign="center" color="inherit">
+              <Box variant="strong" textAlign="center" color="inherit">
+                No research users
+              </Box>
+              <Box variant="p" padding={{ bottom: 's' }} color="inherit">
+                Research users provide persistent identity and SSH access across all instances.
+              </Box>
+              <Button
+                variant="primary"
+                onClick={() => setCreateUserModalVisible(true)}
+              >
+                Create your first research user
+              </Button>
+            </Box>
+          }
+          onSelectionChange={({ detail }) => {
+            const selectedUser = detail.selectedItems[0];
+            setState(prev => ({
+              ...prev,
+              selectedResearchUser: selectedUser || null,
+              splitPanelOpen: !!selectedUser,
+              splitPanelContent: selectedUser ? 'research-user-details' : null
+            }));
+          }}
+          selectedItems={state.selectedResearchUser ? [state.selectedResearchUser] : []}
+          selectionType="single"
+        />
+      </SpaceBetween>
+    </Container>
+  );
+
   // Split panel content renderer
   const renderSplitPanelContent = () => {
     if (!state.splitPanelOpen || !state.splitPanelContent) return null;
@@ -1367,6 +1687,77 @@ export default function CloudWorkstationApp() {
           </SpaceBetween>
         );
 
+      case 'research-user-details':
+        if (!state.selectedResearchUser) return null;
+        return (
+          <SpaceBetween direction="vertical" size="l">
+            <Header variant="h2">{state.selectedResearchUser.username}</Header>
+            <SpaceBetween direction="vertical" size="s">
+              <Box>
+                <Box variant="awsui-key-label">Full Name</Box>
+                <Box>{state.selectedResearchUser.full_name}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Email</Box>
+                <Box>{state.selectedResearchUser.email}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">User ID (UID/GID)</Box>
+                <Box>{state.selectedResearchUser.uid}:{state.selectedResearchUser.gid}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Home Directory</Box>
+                <Box>{state.selectedResearchUser.home_directory}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Shell</Box>
+                <Box>{state.selectedResearchUser.shell}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Access Permissions</Box>
+                <SpaceBetween direction="horizontal" size="xs">
+                  {state.selectedResearchUser.sudo_access && (
+                    <Badge color="red">Sudo Access</Badge>
+                  )}
+                  {state.selectedResearchUser.docker_access && (
+                    <Badge color="blue">Docker Access</Badge>
+                  )}
+                  <Badge color="green">SSH Access</Badge>
+                </SpaceBetween>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">SSH Public Keys</Box>
+                <Box>{state.selectedResearchUser.ssh_public_keys.length} key(s) configured</Box>
+                {state.selectedResearchUser.ssh_public_keys.map((key, index) => (
+                  <Box key={index} variant="small" color="text-body-secondary">
+                    {key.substring(0, 50)}...
+                  </Box>
+                ))}
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Created</Box>
+                <Box>{new Date(state.selectedResearchUser.created_at).toLocaleString()}</Box>
+              </Box>
+            </SpaceBetween>
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button
+                variant="primary"
+                iconName="key"
+                onClick={() => handleGenerateSSHKey(state.selectedResearchUser!.username)}
+              >
+                Generate SSH Key
+              </Button>
+              <Button
+                variant="normal"
+                iconName="remove"
+                onClick={() => handleDeleteUser(state.selectedResearchUser!.username)}
+              >
+                Delete User
+              </Button>
+            </SpaceBetween>
+          </SpaceBetween>
+        );
+
       default:
         return null;
     }
@@ -1387,12 +1778,13 @@ export default function CloudWorkstationApp() {
             { type: 'link', text: 'Templates', href: '#/templates' },
             { type: 'link', text: 'Instances', href: '#/instances' },
             { type: 'link', text: 'Storage Volumes', href: '#/volumes' },
+            { type: 'link', text: 'Research Users', href: '#/research-users' },
             { type: 'divider' },
             { type: 'link', text: 'Settings', href: '#/settings' }
           ]}
           onFollow={(event) => {
             event.preventDefault();
-            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'settings';
+            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'research-users' | 'settings';
             setState(prev => ({ ...prev, activeView: view }));
           }}
         />
@@ -1442,6 +1834,7 @@ export default function CloudWorkstationApp() {
           {state.activeView === 'templates' && renderTemplatesView()}
           {state.activeView === 'instances' && renderInstancesView()}
           {state.activeView === 'volumes' && renderVolumesView()}
+          {state.activeView === 'research-users' && renderResearchUsersView()}
           {state.activeView === 'settings' && (
             <Container header={<Header variant="h1">Settings</Header>}>
               <Box>Settings interface coming soon...</Box>
@@ -1635,6 +2028,67 @@ export default function CloudWorkstationApp() {
                 </SpaceBetween>
               </Form>
             )}
+          </Modal>
+
+          {/* Create Research User Modal */}
+          <Modal
+            visible={createUserModalVisible}
+            onDismiss={() => {
+              setCreateUserModalVisible(false);
+              setNewUsername('');
+            }}
+            header="Create Research User"
+            size="medium"
+            footer={
+              <Box float="right">
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      setCreateUserModalVisible(false);
+                      setNewUsername('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleCreateUser}
+                    disabled={!newUsername.trim()}
+                  >
+                    Create User
+                  </Button>
+                </SpaceBetween>
+              </Box>
+            }
+          >
+            <Form>
+              <SpaceBetween direction="vertical" size="l">
+                <Alert type="info">
+                  Research users provide persistent identity and SSH access across all CloudWorkstation instances.
+                  The user will be automatically configured with EFS home directory and SSH key management.
+                </Alert>
+                <FormField
+                  label="Username"
+                  description="Choose a unique username (lowercase letters, numbers, hyphens only)"
+                >
+                  <Input
+                    value={newUsername}
+                    onChange={({ detail }) => setNewUsername(detail.value)}
+                    placeholder="researcher-name"
+                  />
+                </FormField>
+                <Box>
+                  <Box variant="awsui-key-label">What will be created:</Box>
+                  <SpaceBetween direction="vertical" size="xs">
+                    <Box>• Persistent user account with consistent UID/GID</Box>
+                    <Box>• EFS home directory at /home/{newUsername || '{username}'}</Box>
+                    <Box>• SSH key generation capability</Box>
+                    <Box>• Cross-instance identity preservation</Box>
+                  </SpaceBetween>
+                </Box>
+              </SpaceBetween>
+            </Form>
           </Modal>
         </SpaceBetween>
       }
