@@ -191,3 +191,15 @@ func (c *TUIClient) DisableIdleDetection(ctx context.Context, name string) error
 	// This is a stub implementation
 	return nil
 }
+
+// Volume mount/unmount operations
+
+// MountVolume mounts an EFS volume to an instance
+func (c *TUIClient) MountVolume(ctx context.Context, volumeName, instanceName, mountPoint string) error {
+	return c.client.MountVolume(ctx, volumeName, instanceName, mountPoint)
+}
+
+// UnmountVolume unmounts an EFS volume from an instance
+func (c *TUIClient) UnmountVolume(ctx context.Context, volumeName, instanceName string) error {
+	return c.client.UnmountVolume(ctx, volumeName, instanceName)
+}

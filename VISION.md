@@ -20,11 +20,25 @@ CloudWorkstation eliminates these barriers through an integrated platform that c
 
 ### Impact Vision
 
-By 2026, CloudWorkstation aims to be the standard research computing platform used by:
+By 2028, CloudWorkstation aims to be the standard research computing platform used by:
 - **50,000+ Individual Researchers** across academia and industry
 - **500+ Research Institutions** worldwide for centralized research computing
 - **Major Cloud Providers** as the preferred research interface
 - **Funding Agencies** for grant-compliant budget tracking and resource allocation
+
+**UPDATED TIMELINE FOR SCHOOL PARTNERSHIPS (October 2025)**:
+- **Phase 4.6 (November 2025)**: Cloudscape GUI migration for professional interface
+- **Phase 5A (Q4 2025-Q1 2026)**: Multi-user foundation built on Cloudscape components
+- **Phase 5B (Q2 2026)**: AWS research services integration with professional UI
+- **Phase 5C (Q3 2026)**: Template marketplace with enterprise-grade interface
+- **Q4 2025 Target**: Professional interface ready for school pilot programs
+- **Q2 2026 Target**: 10+ participating schools with active researcher communities
+
+**CLOUDSCAPE MIGRATION IMPACT**:
+- **Development Velocity**: 8-10x faster UI feature development
+- **Professional Quality**: AWS Console-grade interface increases school confidence
+- **Accessibility**: WCAG AA compliance built-in for institutional requirements
+- **Maintenance**: Reduced technical debt with battle-tested components
 
 ---
 

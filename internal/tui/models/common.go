@@ -36,6 +36,8 @@ type apiClient interface {
 	// Storage operations
 	ListVolumes(ctx context.Context) (*api.ListVolumesResponse, error)
 	ListStorage(ctx context.Context) (*api.ListStorageResponse, error)
+	MountVolume(ctx context.Context, volumeName, instanceName, mountPoint string) error
+	UnmountVolume(ctx context.Context, volumeName, instanceName string) error
 
 	// Idle detection operations
 	ListIdlePolicies(ctx context.Context) (*api.ListIdlePoliciesResponse, error)

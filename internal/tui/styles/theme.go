@@ -36,6 +36,12 @@ type Theme struct {
 	Warning       lipgloss.Style
 	Help          lipgloss.Style
 	Pagination    lipgloss.Style
+	Selection     lipgloss.Style
+	Border        lipgloss.Color
+	Tab           struct {
+		Active   lipgloss.Style
+		Inactive lipgloss.Style
+	}
 }
 
 // DefaultTheme returns the default CloudWorkstation theme
@@ -154,6 +160,32 @@ func DefaultTheme() Theme {
 
 		Pagination: lipgloss.NewStyle().
 			Foreground(mutedColor),
+
+		Selection: lipgloss.NewStyle().
+			Foreground(textColor).
+			Background(primaryColor).
+			Bold(true),
+
+		Border: borderColor,
+
+		Tab: struct {
+			Active   lipgloss.Style
+			Inactive lipgloss.Style
+		}{
+			Active: lipgloss.NewStyle().
+				Foreground(textColor).
+				Background(primaryColor).
+				Bold(true).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder(), true, true, false, true).
+				BorderForeground(primaryColor),
+
+			Inactive: lipgloss.NewStyle().
+				Foreground(mutedColor).
+				Padding(0, 2).
+				Border(lipgloss.RoundedBorder(), true, true, false, true).
+				BorderForeground(borderColor),
+		},
 	}
 
 	return t
