@@ -15,6 +15,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/connection"
 	"github.com/scttfrdmn/cloudworkstation/pkg/cost"
 	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+	"github.com/scttfrdmn/cloudworkstation/pkg/policy"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/security"
@@ -33,6 +34,7 @@ type Server struct {
 	awsManager      *aws.Manager
 	projectManager  *project.Manager
 	securityManager *security.SecurityManager
+	policyService   *policy.Service
 	processManager  ProcessManager
 
 	// Connection reliability components
@@ -140,6 +142,10 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize security manager: %w", err)
 	}
 
+	// Initialize policy service
+	policyService := policy.NewService()
+	log.Printf("Policy service initialized with framework foundation")
+
 	// Initialize process manager
 	processManager := NewProcessManager()
 
@@ -163,6 +169,7 @@ func NewServer(port string) (*Server, error) {
 		awsManager:         awsManager,
 		projectManager:     projectManager,
 		securityManager:    securityManager,
+		policyService:      policyService,
 		processManager:     processManager,
 		performanceMonitor: performanceMonitor,
 		connManager:        connManager,

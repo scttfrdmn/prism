@@ -101,6 +101,24 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 			}
 		}
 
+		// Convert research user configuration (Phase 5A+)
+		var researchUserConfig *types.ResearchUserTemplate
+		if template.ResearchUser != nil {
+			researchUserConfig = &types.ResearchUserTemplate{
+				AutoCreate:     template.ResearchUser.AutoCreate,
+				RequireEFS:     template.ResearchUser.RequireEFS,
+				EFSMountPoint:  template.ResearchUser.EFSMountPoint,
+				InstallSSHKeys: template.ResearchUser.InstallSSHKeys,
+				DefaultShell:   template.ResearchUser.DefaultShell,
+				DefaultGroups:  template.ResearchUser.DefaultGroups,
+				DualUserIntegration: &types.DualUserIntegration{
+					Strategy:             string(template.ResearchUser.UserIntegration.Strategy),
+					PrimaryUser:          template.ResearchUser.UserIntegration.PrimaryUser,
+					CollaborationEnabled: true, // Default enabled for research users
+				},
+			}
+		}
+
 		templates[name] = types.RuntimeTemplate{
 			Name:                 runtimeTemplate.Name,
 			Slug:                 runtimeTemplate.Slug,
@@ -111,6 +129,7 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 			Ports:                runtimeTemplate.Ports,
 			EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
 			IdleDetection:        idleDetectionConfig,
+			ResearchUser:         researchUserConfig,
 		}
 	}
 
@@ -154,6 +173,24 @@ func GetTemplateWithPackageManager(name, region, architecture, packageManager, s
 		}
 	}
 
+	// Convert research user configuration (Phase 5A+)
+	var researchUserConfig *types.ResearchUserTemplate
+	if template.ResearchUser != nil {
+		researchUserConfig = &types.ResearchUserTemplate{
+			AutoCreate:     template.ResearchUser.AutoCreate,
+			RequireEFS:     template.ResearchUser.RequireEFS,
+			EFSMountPoint:  template.ResearchUser.EFSMountPoint,
+			InstallSSHKeys: template.ResearchUser.InstallSSHKeys,
+			DefaultShell:   template.ResearchUser.DefaultShell,
+			DefaultGroups:  template.ResearchUser.DefaultGroups,
+			DualUserIntegration: &types.DualUserIntegration{
+				Strategy:             string(template.ResearchUser.UserIntegration.Strategy),
+				PrimaryUser:          template.ResearchUser.UserIntegration.PrimaryUser,
+				CollaborationEnabled: true, // Default to enabled for template integration
+			},
+		}
+	}
+
 	legacyTemplate := &types.RuntimeTemplate{
 		Name:                 runtimeTemplate.Name,
 		Slug:                 runtimeTemplate.Slug,
@@ -164,6 +201,7 @@ func GetTemplateWithPackageManager(name, region, architecture, packageManager, s
 		Ports:                runtimeTemplate.Ports,
 		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
 		IdleDetection:        idleDetectionConfig,
+		ResearchUser:         researchUserConfig,
 	}
 
 	return legacyTemplate, nil
@@ -223,6 +261,24 @@ func GetTemplateWithParameters(name, region, architecture, packageManager, size 
 		}
 	}
 
+	// Convert research user configuration (Phase 5A+)
+	var researchUserConfig *types.ResearchUserTemplate
+	if template.ResearchUser != nil {
+		researchUserConfig = &types.ResearchUserTemplate{
+			AutoCreate:     template.ResearchUser.AutoCreate,
+			RequireEFS:     template.ResearchUser.RequireEFS,
+			EFSMountPoint:  template.ResearchUser.EFSMountPoint,
+			InstallSSHKeys: template.ResearchUser.InstallSSHKeys,
+			DefaultShell:   template.ResearchUser.DefaultShell,
+			DefaultGroups:  template.ResearchUser.DefaultGroups,
+			DualUserIntegration: &types.DualUserIntegration{
+				Strategy:             string(template.ResearchUser.UserIntegration.Strategy),
+				PrimaryUser:          template.ResearchUser.UserIntegration.PrimaryUser,
+				CollaborationEnabled: true, // Default to enabled for template integration
+			},
+		}
+	}
+
 	legacyTemplate := &types.RuntimeTemplate{
 		Name:                 runtimeTemplate.Name,
 		Slug:                 runtimeTemplate.Slug,
@@ -233,6 +289,7 @@ func GetTemplateWithParameters(name, region, architecture, packageManager, size 
 		Ports:                runtimeTemplate.Ports,
 		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
 		IdleDetection:        idleDetectionConfig,
+		ResearchUser:         researchUserConfig,
 	}
 
 	return legacyTemplate, nil

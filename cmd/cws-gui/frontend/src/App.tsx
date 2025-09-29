@@ -42,6 +42,19 @@ interface Template {
   EstimatedLaunchTime?: number;
   EstimatedCostPerHour?: { [key: string]: number };
   ValidationStatus?: string;
+  ResearchUser?: {
+    AutoCreate?: boolean;
+    RequireEFS?: boolean;
+    EFSMountPoint?: string;
+    InstallSSHKeys?: boolean;
+    DefaultShell?: string;
+    DefaultGroups?: string[];
+    DualUserIntegration?: {
+      Strategy?: string;
+      PrimaryUser?: string;
+      CollaborationEnabled?: boolean;
+    };
+  };
 }
 
 interface Instance {
@@ -494,6 +507,7 @@ export default function CloudWorkstationApp() {
         <Box fontSize="heading-m">{item.Icon || '🖥️'}</Box>
         <Header variant="h3">{item.Name}</Header>
         {item.Popular && <Badge color="green">Popular</Badge>}
+        {item.ResearchUser?.AutoCreate && <Badge color="blue" iconName="user-profile">Research Users</Badge>}
       </SpaceBetween>
     ),
     sections: [
@@ -510,6 +524,31 @@ export default function CloudWorkstationApp() {
             {item.ValidationStatus === 'validated' && <Badge color="green">Pre-tested</Badge>}
           </SpaceBetween>
         )
+      },
+      {
+        id: 'research-user',
+        content: (item: Template) => {
+          if (!item.ResearchUser?.AutoCreate) return null;
+          return (
+            <SpaceBetween direction="vertical" size="xs">
+              <Box variant="awsui-key-label">Research User Support</Box>
+              <SpaceBetween direction="horizontal" size="xs">
+                {item.ResearchUser.AutoCreate && (
+                  <Badge color="blue" iconName="user-profile">Auto-creation</Badge>
+                )}
+                {item.ResearchUser.RequireEFS && (
+                  <Badge color="green" iconName="folder">Persistent home</Badge>
+                )}
+                {item.ResearchUser.InstallSSHKeys && (
+                  <Badge color="grey" iconName="key">SSH keys</Badge>
+                )}
+                {item.ResearchUser.DualUserIntegration?.CollaborationEnabled && (
+                  <Badge color="red" iconName="share">Collaboration</Badge>
+                )}
+              </SpaceBetween>
+            </SpaceBetween>
+          );
+        }
       },
       {
         id: 'metadata',
@@ -1595,6 +1634,28 @@ export default function CloudWorkstationApp() {
                 <Box variant="awsui-key-label">Estimated Cost</Box>
                 <Box>${(state.selectedTemplate.EstimatedCostPerHour?.['x86_64'] || 0.12).toFixed(2)}/hour</Box>
               </Box>
+              {state.selectedTemplate.ResearchUser?.AutoCreate && (
+                <Box>
+                  <Box variant="awsui-key-label">Research User Integration</Box>
+                  <SpaceBetween direction="vertical" size="xs">
+                    <SpaceBetween direction="horizontal" size="xs">
+                      <Badge color="blue" iconName="user-profile">Auto-creation enabled</Badge>
+                      {state.selectedTemplate.ResearchUser.RequireEFS && (
+                        <Badge color="green" iconName="folder">Persistent home directory</Badge>
+                      )}
+                      {state.selectedTemplate.ResearchUser.InstallSSHKeys && (
+                        <Badge color="grey" iconName="key">SSH key management</Badge>
+                      )}
+                      {state.selectedTemplate.ResearchUser.DualUserIntegration?.CollaborationEnabled && (
+                        <Badge color="red" iconName="share">Multi-user collaboration</Badge>
+                      )}
+                    </SpaceBetween>
+                    <Box variant="small">
+                      Launch with <code>--research-user alice</code> to automatically create and provision research users
+                    </Box>
+                  </SpaceBetween>
+                </Box>
+              )}
             </SpaceBetween>
             <Button
               variant="primary"

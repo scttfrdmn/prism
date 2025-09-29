@@ -1,6 +1,8 @@
 package types
 
-import "time"
+import (
+	"time"
+)
 
 // RuntimeTemplate defines a cloud workstation template for launching instances
 // This is distinct from AMI build templates (see pkg/ami package)
@@ -14,6 +16,27 @@ type RuntimeTemplate struct {
 	Ports                []int
 	EstimatedCostPerHour map[string]float64   // arch -> cost per hour
 	IdleDetection        *IdleDetectionConfig // Idle detection configuration
+
+	// Research user integration (Phase 5A+)
+	ResearchUser *ResearchUserTemplate `json:"research_user,omitempty"`
+}
+
+// ResearchUserTemplate represents research user integration configuration for templates
+type ResearchUserTemplate struct {
+	AutoCreate          bool                 `yaml:"auto_create" json:"auto_create"`
+	RequireEFS          bool                 `yaml:"require_efs" json:"require_efs"`
+	EFSMountPoint       string               `yaml:"efs_mount_point" json:"efs_mount_point"`
+	InstallSSHKeys      bool                 `yaml:"install_ssh_keys" json:"install_ssh_keys"`
+	DefaultShell        string               `yaml:"default_shell" json:"default_shell"`
+	DefaultGroups       []string             `yaml:"default_groups" json:"default_groups"`
+	DualUserIntegration *DualUserIntegration `yaml:"user_integration" json:"user_integration"`
+}
+
+// DualUserIntegration represents dual user system configuration
+type DualUserIntegration struct {
+	Strategy             string `yaml:"strategy" json:"strategy"`
+	PrimaryUser          string `yaml:"primary_user" json:"primary_user"`
+	CollaborationEnabled bool   `yaml:"collaboration_enabled" json:"collaboration_enabled"`
 }
 
 // IdleDetectionConfig represents idle detection configuration in templates

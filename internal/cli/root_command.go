@@ -294,6 +294,12 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 		rootCmd.AddCommand(cmd)
 	}
 
+	// Policy commands (Phase 5A+)
+	policyFactory := &PolicyCommandFactory{app: r.app}
+	for _, cmd := range policyFactory.CreateCommands() {
+		rootCmd.AddCommand(cmd)
+	}
+
 	// Storage commands
 	rootCmd.AddCommand(r.createVolumeCommand())
 	rootCmd.AddCommand(r.createStorageCommand())

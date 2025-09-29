@@ -224,10 +224,33 @@ func (m *TemplatesModel) updateDetailView() {
 		}
 		content.WriteString(strings.Join(portStrings, ", ") + "\n\n")
 
+		// Research User Integration (Phase 5A+)
+		if template.ResearchUser != nil {
+			content.WriteString(theme.SubTitle.Render("Research User Support:") + "\n")
+			if template.ResearchUser.AutoCreate {
+				content.WriteString("✅ Automatic research user creation during launch\n")
+			}
+			if template.ResearchUser.RequireEFS {
+				content.WriteString("✅ Persistent EFS home directories\n")
+			}
+			if template.ResearchUser.InstallSSHKeys {
+				content.WriteString("✅ Automatic SSH key generation and installation\n")
+			}
+			if template.ResearchUser.DualUserIntegration != nil && template.ResearchUser.DualUserIntegration.CollaborationEnabled {
+				content.WriteString("✅ Multi-user collaboration support\n")
+			}
+			content.WriteString("\n")
+		}
+
 		content.WriteString(theme.SubTitle.Render("Launch Command:") + "\n")
 		content.WriteString(fmt.Sprintf("cws launch %s instance-name\n", m.selected))
 		content.WriteString("cws launch " + m.selected + " instance-name --size L\n")
 		content.WriteString("cws launch " + m.selected + " instance-name --volume data-volume\n")
+
+		// Add research user launch example if supported
+		if template.ResearchUser != nil && template.ResearchUser.AutoCreate {
+			content.WriteString("cws launch " + m.selected + " instance-name --research-user alice\n")
+		}
 
 		m.detailView.SetContent(content.String())
 		m.detailView.GotoTop()
