@@ -55,6 +55,17 @@ interface Instance {
   region: string;
 }
 
+interface Volume {
+  name: string;
+  id: string;
+  state: 'available' | 'creating' | 'deleting';
+  size_gb: number;
+  mount_targets: string[];
+  cost_per_gb: number;
+  creation_time: string;
+  region: string;
+}
+
 interface Notification {
   type: 'success' | 'error' | 'warning' | 'info';
   header: string;
@@ -67,14 +78,18 @@ interface Notification {
 }
 
 interface CloudWorkstationState {
-  activeView: 'templates' | 'instances' | 'desktop' | 'settings';
+  activeView: 'templates' | 'instances' | 'volumes' | 'desktop' | 'settings';
   templates: Template[];
   instances: Instance[];
+  volumes: Volume[];
   selectedTemplate: Template | null;
+  selectedVolume: Volume | null;
   loading: boolean;
   notifications: Notification[];
   splitPanelOpen: boolean;
-  splitPanelContent: 'instance-details' | 'template-details' | null;
+  splitPanelContent: 'instance-details' | 'template-details' | 'volume-details' | null;
+  showMountDialog: boolean;
+  mountingVolume: Volume | null;
 }
 
 // Declare wails API for TypeScript
@@ -84,7 +99,10 @@ declare global {
       CloudWorkstationService: {
         GetTemplates: () => Promise<Template[]>;
         GetInstances: () => Promise<Instance[]>;
+        GetVolumes: () => Promise<Volume[]>;
         LaunchInstance: (name: string, templateName: string, size: string) => Promise<void>;
+        MountVolume: (volumeName: string, instanceName: string, mountPoint: string) => Promise<void>;
+        UnmountVolume: (volumeName: string, instanceName: string) => Promise<void>;
       };
     };
   }
@@ -96,11 +114,15 @@ export default function CloudWorkstationApp() {
     activeView: 'templates',
     templates: [],
     instances: [],
+    volumes: [],
     selectedTemplate: null,
+    selectedVolume: null,
     loading: true,
     notifications: [],
     splitPanelOpen: false,
-    splitPanelContent: null
+    splitPanelContent: null,
+    showMountDialog: false,
+    mountingVolume: null
   });
 
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -111,6 +133,9 @@ export default function CloudWorkstationApp() {
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
   const [selectedInstances, setSelectedInstances] = useState<Instance[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<Instance | null>(null);
+  const [selectedVolumes, setSelectedVolumes] = useState<Volume[]>([]);
+  const [mountInstanceName, setMountInstanceName] = useState('');
+  const [mountPoint, setMountPoint] = useState('/mnt/shared-volume');
 
   // Breadcrumb navigation helper
   const getBreadcrumbs = () => {
@@ -127,6 +152,9 @@ export default function CloudWorkstationApp() {
         if (selectedInstance) {
           items.push({ text: selectedInstance.name, href: `#/instances/${selectedInstance.id}` });
         }
+        break;
+      case 'volumes':
+        items.push({ text: 'Storage Volumes', href: '#/volumes' });
         break;
       case 'settings':
         items.push({ text: 'Settings', href: '#/settings' });
@@ -263,6 +291,46 @@ export default function CloudWorkstationApp() {
         ];
       }
 
+      // Load volumes
+      let volumes: Volume[] = [];
+      if (window.wails?.CloudWorkstationService?.GetVolumes) {
+        volumes = await window.wails.CloudWorkstationService.GetVolumes();
+      } else {
+        // Enhanced mock data for development
+        volumes = [
+          {
+            name: 'shared-research-data',
+            id: 'fs-1234567890abcdef0',
+            state: 'available',
+            size_gb: 100,
+            mount_targets: ['my-ml-research', 'data-analysis-project'],
+            cost_per_gb: 0.30,
+            creation_time: '2025-09-20T08:00:00Z',
+            region: 'us-west-2'
+          },
+          {
+            name: 'backup-storage',
+            id: 'fs-0987654321fedcba1',
+            state: 'available',
+            size_gb: 50,
+            mount_targets: [],
+            cost_per_gb: 0.30,
+            creation_time: '2025-09-25T12:30:00Z',
+            region: 'us-west-2'
+          },
+          {
+            name: 'project-archives',
+            id: 'fs-abcdef1234567890',
+            state: 'creating',
+            size_gb: 200,
+            mount_targets: [],
+            cost_per_gb: 0.30,
+            creation_time: '2025-09-28T10:45:00Z',
+            region: 'us-east-1'
+          }
+        ];
+      }
+
       // Load instances
       let instances: Instance[] = [];
       if (window.wails?.CloudWorkstationService?.GetInstances) {
@@ -314,6 +382,7 @@ export default function CloudWorkstationApp() {
         ...prev,
         templates,
         instances,
+        volumes,
         loading: false
       }));
 
@@ -541,6 +610,122 @@ export default function CloudWorkstationApp() {
     </Container>
   );
 
+  // Handle volume selection
+  const handleVolumeSelection = ({ detail }: { detail: { selectedItems: Volume[] } }) => {
+    const selectedVolume = detail.selectedItems[0] || null;
+    setState(prev => ({
+      ...prev,
+      selectedVolume,
+      splitPanelOpen: selectedVolume ? true : false,
+      splitPanelContent: selectedVolume ? 'volume-details' : null
+    }));
+  };
+
+  // Handle volume mount
+  const handleMountVolume = async () => {
+    const { mountingVolume } = state;
+    if (!mountingVolume || !mountInstanceName.trim()) return;
+
+    try {
+      addNotification({
+        type: 'info',
+        header: 'Mounting volume',
+        content: `Mounting ${mountingVolume.name} to ${mountInstanceName} at ${mountPoint}...`,
+        loading: true,
+        dismissible: false
+      });
+
+      if (window.wails?.CloudWorkstationService?.MountVolume) {
+        await window.wails.CloudWorkstationService.MountVolume(
+          mountingVolume.name,
+          mountInstanceName.trim(),
+          mountPoint
+        );
+      }
+
+      // Clear loading notification and show success
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading),
+        showMountDialog: false,
+        mountingVolume: null
+      }));
+
+      addNotification({
+        type: 'success',
+        header: 'Volume mounted successfully',
+        content: `${mountingVolume.name} is now accessible at ${mountPoint} on ${mountInstanceName}`,
+        dismissible: true
+      });
+
+      setMountInstanceName('');
+      setMountPoint('/mnt/shared-volume');
+      loadApplicationData();
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading)
+      }));
+
+      addNotification({
+        type: 'error',
+        header: 'Mount failed',
+        content: `Failed to mount ${mountingVolume!.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true,
+        buttonText: 'Try Again',
+        onButtonClick: handleMountVolume
+      });
+    }
+  };
+
+  // Handle volume unmount
+  const handleUnmountVolume = async (volume: Volume, instanceName: string) => {
+    try {
+      addNotification({
+        type: 'info',
+        header: 'Unmounting volume',
+        content: `Unmounting ${volume.name} from ${instanceName}...`,
+        loading: true,
+        dismissible: false
+      });
+
+      if (window.wails?.CloudWorkstationService?.UnmountVolume) {
+        await window.wails.CloudWorkstationService.UnmountVolume(
+          volume.name,
+          instanceName
+        );
+      }
+
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading)
+      }));
+
+      addNotification({
+        type: 'success',
+        header: 'Volume unmounted successfully',
+        content: `${volume.name} has been unmounted from ${instanceName}`,
+        dismissible: true
+      });
+
+      loadApplicationData();
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading)
+      }));
+
+      addNotification({
+        type: 'error',
+        header: 'Unmount failed',
+        content: `Failed to unmount ${volume.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true,
+        buttonText: 'Try Again',
+        onButtonClick: () => handleUnmountVolume(volume, instanceName)
+      });
+    }
+  };
+
   // Handle instance actions with enhanced notifications
   const handleInstanceAction = async (action: string, instance: Instance) => {
     // Show in-progress notification
@@ -589,6 +774,192 @@ export default function CloudWorkstationApp() {
       });
     }
   };
+
+  // Render volumes view with professional Table
+  const renderVolumesView = () => (
+    <Container
+      header={
+        <Header
+          variant="h1"
+          counter={`(${state.volumes.length})`}
+          description="Manage EFS storage volumes for multi-instance sharing"
+          actions={
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button
+                variant="normal"
+                onClick={loadApplicationData}
+                iconName="refresh"
+              >
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                disabled={selectedVolumes.length === 0 || selectedVolumes[0].state !== 'available'}
+                onClick={() => {
+                  setState(prev => ({
+                    ...prev,
+                    showMountDialog: true,
+                    mountingVolume: selectedVolumes[0]
+                  }));
+                  setMountInstanceName(state.instances.find(i => i.status === 'running')?.name || '');
+                }}
+              >
+                Mount Volume
+              </Button>
+            </SpaceBetween>
+          }
+        >
+          Storage Volumes
+        </Header>
+      }
+    >
+      <SpaceBetween direction="vertical" size="l">
+        <Table
+          columnDefinitions={[
+            {
+              id: 'name',
+              header: 'Volume Name',
+              cell: (item: Volume) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  <Box variant="span" fontWeight="bold">{item.name}</Box>
+                  <Box variant="small" color="text-body-secondary">{item.id}</Box>
+                </SpaceBetween>
+              ),
+              sortingField: 'name',
+              isRowHeader: true
+            },
+            {
+              id: 'status',
+              header: 'Status',
+              cell: (item: Volume) => (
+                <StatusIndicator type={
+                  item.state === 'available' ? 'success' :
+                  item.state === 'creating' ? 'in-progress' :
+                  'stopped'
+                }>
+                  {item.state === 'available' ? 'Available' :
+                   item.state === 'creating' ? 'Creating' :
+                   'Deleting'}
+                </StatusIndicator>
+              ),
+              sortingField: 'state'
+            },
+            {
+              id: 'size',
+              header: 'Size & Cost',
+              cell: (item: Volume) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  <Box variant="span">{item.size_gb} GB</Box>
+                  <Box variant="small" color="text-body-secondary">
+                    ${item.cost_per_gb.toFixed(2)}/GB/month
+                  </Box>
+                  <Box variant="small" fontWeight="bold">
+                    ${(item.size_gb * item.cost_per_gb).toFixed(2)}/month
+                  </Box>
+                </SpaceBetween>
+              ),
+              sortingField: 'size_gb'
+            },
+            {
+              id: 'mounts',
+              header: 'Mount Status',
+              cell: (item: Volume) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  {item.mount_targets.length > 0 ? (
+                    <>
+                      <Badge color="green">Mounted ({item.mount_targets.length})</Badge>
+                      {item.mount_targets.map(target => (
+                        <SpaceBetween key={target} direction="horizontal" size="xs">
+                          <Box variant="small">{target}</Box>
+                          <Button
+                            variant="inline-link"
+                            onClick={() => handleUnmountVolume(item, target)}
+                          >
+                            Unmount
+                          </Button>
+                        </SpaceBetween>
+                      ))}
+                    </>
+                  ) : (
+                    <Badge color="grey">Not mounted</Badge>
+                  )}
+                </SpaceBetween>
+              )
+            },
+            {
+              id: 'metadata',
+              header: 'Details',
+              cell: (item: Volume) => (
+                <SpaceBetween direction="vertical" size="xs">
+                  <Box variant="small">
+                    <Box variant="awsui-key-label">Region</Box>
+                    <Box>{item.region}</Box>
+                  </Box>
+                  <Box variant="small" color="text-body-secondary">
+                    Created: {new Date(item.creation_time).toLocaleDateString()}
+                  </Box>
+                </SpaceBetween>
+              )
+            }
+          ]}
+          items={state.volumes}
+          selectionType="multi"
+          selectedItems={selectedVolumes}
+          onSelectionChange={({ detail }) => setSelectedVolumes(detail.selectedItems)}
+          onRowClick={({ detail }) => {
+            handleVolumeSelection({ detail: { selectedItems: [detail.item] } });
+          }}
+          sortingDisabled={false}
+          variant="borderless"
+          stickyHeader={true}
+          header={
+            selectedVolumes.length > 0 ? (
+              <Header
+                counter={`(${selectedVolumes.length} selected)`}
+                actions={
+                  <SpaceBetween direction="horizontal" size="xs">
+                    <Button
+                      variant="normal"
+                      disabled={!selectedVolumes.some(v => v.state === 'available')}
+                      onClick={() => {
+                        const availableVolume = selectedVolumes.find(v => v.state === 'available');
+                        if (availableVolume) {
+                          setState(prev => ({
+                            ...prev,
+                            showMountDialog: true,
+                            mountingVolume: availableVolume
+                          }));
+                          setMountInstanceName(state.instances.find(i => i.status === 'running')?.name || '');
+                        }
+                      }}
+                    >
+                      Mount Selected
+                    </Button>
+                  </SpaceBetween>
+                }
+              >
+                Bulk Actions
+              </Header>
+            ) : undefined
+          }
+          empty={
+            <Box textAlign="center">
+              <SpaceBetween direction="vertical" size="xs">
+                <Box variant="strong">No storage volumes found</Box>
+                <Box variant="p" color="text-body-secondary">
+                  Create EFS volumes using the CLI to enable multi-instance file sharing
+                </Box>
+                <Box variant="small" color="text-body-secondary">
+                  Example: cws volumes create shared-data
+                </Box>
+              </SpaceBetween>
+            </Box>
+          }
+          loading={state.loading}
+        />
+      </SpaceBetween>
+    </Container>
+  );
 
   // Render instances view with professional Table
   const renderInstancesView = () => (
@@ -917,6 +1288,85 @@ export default function CloudWorkstationApp() {
           </SpaceBetween>
         );
 
+      case 'volume-details':
+        if (!state.selectedVolume) return null;
+        return (
+          <SpaceBetween direction="vertical" size="l">
+            <Header variant="h2">{state.selectedVolume.name}</Header>
+            <SpaceBetween direction="vertical" size="s">
+              <Box>
+                <Box variant="awsui-key-label">Volume ID</Box>
+                <Box>{state.selectedVolume.id}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Status</Box>
+                <StatusIndicator type={
+                  state.selectedVolume.state === 'available' ? 'success' :
+                  state.selectedVolume.state === 'creating' ? 'in-progress' :
+                  'stopped'
+                }>
+                  {state.selectedVolume.state.charAt(0).toUpperCase() + state.selectedVolume.state.slice(1)}
+                </StatusIndicator>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Size</Box>
+                <Box>{state.selectedVolume.size_gb} GB</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Monthly Cost</Box>
+                <Box>${(state.selectedVolume.size_gb * state.selectedVolume.cost_per_gb).toFixed(2)}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Cost per GB</Box>
+                <Box>${state.selectedVolume.cost_per_gb.toFixed(2)}/GB/month</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Region</Box>
+                <Box>{state.selectedVolume.region}</Box>
+              </Box>
+              <Box>
+                <Box variant="awsui-key-label">Created</Box>
+                <Box>{new Date(state.selectedVolume.creation_time).toLocaleDateString()}</Box>
+              </Box>
+              {state.selectedVolume.mount_targets.length > 0 && (
+                <Box>
+                  <Box variant="awsui-key-label">Mounted To</Box>
+                  <SpaceBetween direction="vertical" size="xs">
+                    {state.selectedVolume.mount_targets.map(target => (
+                      <SpaceBetween key={target} direction="horizontal" size="xs">
+                        <Box>{target}</Box>
+                        <Button
+                          variant="inline-link"
+                          onClick={() => handleUnmountVolume(state.selectedVolume!, target)}
+                        >
+                          Unmount
+                        </Button>
+                      </SpaceBetween>
+                    ))}
+                  </SpaceBetween>
+                </Box>
+              )}
+            </SpaceBetween>
+
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button
+                variant="primary"
+                disabled={state.selectedVolume.state !== 'available'}
+                onClick={() => {
+                  setState(prev => ({
+                    ...prev,
+                    showMountDialog: true,
+                    mountingVolume: state.selectedVolume
+                  }));
+                  setMountInstanceName(state.instances.find(i => i.status === 'running')?.name || '');
+                }}
+              >
+                Mount Volume
+              </Button>
+            </SpaceBetween>
+          </SpaceBetween>
+        );
+
       default:
         return null;
     }
@@ -936,12 +1386,13 @@ export default function CloudWorkstationApp() {
           items={[
             { type: 'link', text: 'Templates', href: '#/templates' },
             { type: 'link', text: 'Instances', href: '#/instances' },
+            { type: 'link', text: 'Storage Volumes', href: '#/volumes' },
             { type: 'divider' },
             { type: 'link', text: 'Settings', href: '#/settings' }
           ]}
           onFollow={(event) => {
             event.preventDefault();
-            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'settings';
+            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'settings';
             setState(prev => ({ ...prev, activeView: view }));
           }}
         />
@@ -958,6 +1409,7 @@ export default function CloudWorkstationApp() {
             header={
               state.splitPanelContent === 'instance-details' ? 'Instance Details' :
               state.splitPanelContent === 'template-details' ? 'Template Details' :
+              state.splitPanelContent === 'volume-details' ? 'Volume Details' :
               'Details'
             }
           >
@@ -989,6 +1441,7 @@ export default function CloudWorkstationApp() {
 
           {state.activeView === 'templates' && renderTemplatesView()}
           {state.activeView === 'instances' && renderInstancesView()}
+          {state.activeView === 'volumes' && renderVolumesView()}
           {state.activeView === 'settings' && (
             <Container header={<Header variant="h1">Settings</Header>}>
               <Box>Settings interface coming soon...</Box>
@@ -1062,6 +1515,122 @@ export default function CloudWorkstationApp() {
                       ${((state.selectedTemplate.EstimatedCostPerHour?.['x86_64'] || 0.12) *
                       (instanceSize === 'S' ? 1 : instanceSize === 'M' ? 2 : instanceSize === 'L' ? 4 : 8)).toFixed(2)}/hour
                     </Box>
+                  </Box>
+                </SpaceBetween>
+              </Form>
+            )}
+          </Modal>
+
+          {/* Mount Volume Modal */}
+          <Modal
+            visible={state.showMountDialog}
+            onDismiss={() => {
+              setState(prev => ({
+                ...prev,
+                showMountDialog: false,
+                mountingVolume: null
+              }));
+              setMountInstanceName('');
+              setMountPoint('/mnt/shared-volume');
+            }}
+            header="Mount EFS Volume"
+            size="medium"
+            footer={
+              <Box float="right">
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      setState(prev => ({
+                        ...prev,
+                        showMountDialog: false,
+                        mountingVolume: null
+                      }));
+                      setMountInstanceName('');
+                      setMountPoint('/mnt/shared-volume');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleMountVolume}
+                    disabled={!mountInstanceName.trim()}
+                  >
+                    Mount Volume
+                  </Button>
+                </SpaceBetween>
+              </Box>
+            }
+          >
+            {state.mountingVolume && (
+              <Form>
+                <SpaceBetween direction="vertical" size="l">
+                  <Alert type="info">
+                    Mounting <strong>{state.mountingVolume.name}</strong> ({state.mountingVolume.size_gb} GB)
+                    for multi-instance file sharing.
+                  </Alert>
+
+                  <FormField
+                    label="Target Instance"
+                    description="Select the running instance to mount the volume to"
+                  >
+                    <Select
+                      selectedOption={
+                        mountInstanceName ?
+                          { label: mountInstanceName, value: mountInstanceName } :
+                          { label: 'Select an instance...', value: '' }
+                      }
+                      onChange={({ detail }) => setMountInstanceName(detail.selectedOption.value || '')}
+                      options={[
+                        ...state.instances
+                          .filter(i => i.status === 'running')
+                          .map(i => ({ label: `${i.name} (${i.template})`, value: i.name })),
+                        ...state.instances
+                          .filter(i => i.status !== 'running')
+                          .map(i => ({
+                            label: `${i.name} (${i.status}) - Not Available`,
+                            value: i.name,
+                            disabled: true
+                          }))
+                      ]}
+                      placeholder="Select running instance..."
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="Mount Point"
+                    description="Directory path where the volume will be accessible"
+                  >
+                    <Input
+                      value={mountPoint}
+                      onChange={({ detail }) => setMountPoint(detail.value)}
+                      placeholder="/mnt/shared-volume"
+                    />
+                  </FormField>
+
+                  {state.instances.filter(i => i.status === 'running').length === 0 && (
+                    <Alert type="warning">
+                      No running instances found. Start an instance first to mount volumes.
+                    </Alert>
+                  )}
+
+                  <Box>
+                    <Box variant="awsui-key-label">Volume Details</Box>
+                    <SpaceBetween direction="horizontal" size="l">
+                      <Box>
+                        <Box variant="small" color="text-body-secondary">Size</Box>
+                        <Box>{state.mountingVolume.size_gb} GB</Box>
+                      </Box>
+                      <Box>
+                        <Box variant="small" color="text-body-secondary">Monthly Cost</Box>
+                        <Box>${(state.mountingVolume.size_gb * state.mountingVolume.cost_per_gb).toFixed(2)}</Box>
+                      </Box>
+                      <Box>
+                        <Box variant="small" color="text-body-secondary">Region</Box>
+                        <Box>{state.mountingVolume.region}</Box>
+                      </Box>
+                    </SpaceBetween>
                   </Box>
                 </SpaceBetween>
               </Form>
