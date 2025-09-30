@@ -93,6 +93,32 @@ interface ResearchUser {
   created_at: string;
 }
 
+// Enhanced connection types for tabbed embedded connections
+interface ConnectionConfig {
+  id: string;
+  type: 'ssh' | 'desktop' | 'web' | 'aws-service';
+  instanceName?: string;
+  awsService?: string;
+  region?: string;
+  proxyUrl: string;
+  authToken?: string;
+  embeddingMode: 'iframe' | 'websocket' | 'api';
+  title: string;
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+  metadata?: Record<string, any>;
+}
+
+interface ConnectionTab {
+  id: string;
+  title: string;
+  type: 'instance' | 'aws-service';
+  category: 'compute' | 'research' | 'analytics' | 'management';
+  config: ConnectionConfig;
+  active: boolean;
+  closeable: boolean;
+  status: 'connecting' | 'connected' | 'disconnected' | 'error';
+}
+
 interface Notification {
   type: 'success' | 'error' | 'warning' | 'info';
   header: string;
@@ -105,7 +131,7 @@ interface Notification {
 }
 
 interface CloudWorkstationState {
-  activeView: 'templates' | 'instances' | 'volumes' | 'research-users' | 'desktop' | 'settings';
+  activeView: 'templates' | 'instances' | 'volumes' | 'research-users' | 'connections' | 'settings';
   templates: Template[];
   instances: Instance[];
   volumes: Volume[];
@@ -119,19 +145,37 @@ interface CloudWorkstationState {
   splitPanelContent: 'instance-details' | 'template-details' | 'volume-details' | 'research-user-details' | null;
   showMountDialog: boolean;
   mountingVolume: Volume | null;
+
+  // Enhanced connection state
+  connectionTabs: ConnectionTab[];
+  activeConnectionTab: string | null;
+  showConnectionPanel: boolean;
 }
 
-// Declare wails API for TypeScript
+// Enhanced Wails API for TypeScript with embedded connections
 declare global {
   interface Window {
     wails: {
       CloudWorkstationService: {
+        // Existing API methods
         GetTemplates: () => Promise<Template[]>;
         GetInstances: () => Promise<Instance[]>;
         GetVolumes: () => Promise<Volume[]>;
         LaunchInstance: (name: string, templateName: string, size: string) => Promise<void>;
         MountVolume: (volumeName: string, instanceName: string, mountPoint: string) => Promise<void>;
         UnmountVolume: (volumeName: string, instanceName: string) => Promise<void>;
+
+        // Enhanced embedded connection methods
+        OpenEmbeddedTerminal: (instanceName: string) => Promise<ConnectionConfig>;
+        OpenEmbeddedDesktop: (instanceName: string) => Promise<ConnectionConfig>;
+        OpenEmbeddedWeb: (instanceName: string) => Promise<ConnectionConfig>;
+
+        // AWS service connection methods
+        OpenBraketConsole: (region: string) => Promise<ConnectionConfig>;
+        OpenSageMakerStudio: (region: string) => Promise<ConnectionConfig>;
+        OpenAWSConsole: (service: string, region: string) => Promise<ConnectionConfig>;
+        OpenCloudShell: (region: string) => Promise<ConnectionConfig>;
+        OpenAWSService: (service: string, region: string) => Promise<ConnectionConfig>;
       };
     };
   }
@@ -153,7 +197,12 @@ export default function CloudWorkstationApp() {
     splitPanelOpen: false,
     splitPanelContent: null,
     showMountDialog: false,
-    mountingVolume: null
+    mountingVolume: null,
+
+    // Enhanced connection state
+    connectionTabs: [],
+    activeConnectionTab: null,
+    showConnectionPanel: false
   });
 
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -191,6 +240,9 @@ export default function CloudWorkstationApp() {
         break;
       case 'research-users':
         items.push({ text: 'Research Users', href: '#/research-users' });
+        break;
+      case 'connections':
+        items.push({ text: 'Active Connections', href: '#/connections' });
         break;
       case 'settings':
         items.push({ text: 'Settings', href: '#/settings' });
@@ -825,53 +877,175 @@ export default function CloudWorkstationApp() {
     }
   };
 
-  // Handle instance actions with enhanced notifications
+  // Enhanced instance actions with real embedded connection support
   const handleInstanceAction = async (action: string, instance: Instance) => {
-    // Show in-progress notification
-    addNotification({
-      type: 'info',
-      header: `${action} in progress`,
-      content: `${action} operation started for ${instance.name}`,
-      loading: true,
-      dismissible: false
-    });
+    if (action === 'Connect') {
+      try {
+        // Determine the best connection type for the instance
+        const connectionType = determineConnectionType(instance);
+        let config: ConnectionConfig;
 
-    try {
-      // TODO: Call actual API when available
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+        switch (connectionType) {
+          case 'ssh':
+            config = await window.wails.CloudWorkstationService.OpenEmbeddedTerminal(instance.name);
+            break;
+          case 'desktop':
+            config = await window.wails.CloudWorkstationService.OpenEmbeddedDesktop(instance.name);
+            break;
+          case 'web':
+            config = await window.wails.CloudWorkstationService.OpenEmbeddedWeb(instance.name);
+            break;
+          default:
+            // Default to SSH if available
+            config = await window.wails.CloudWorkstationService.OpenEmbeddedTerminal(instance.name);
+        }
 
-      // Clear loading notifications
-      setState(prev => ({
-        ...prev,
-        notifications: prev.notifications.filter(n => !n.loading)
-      }));
+        // Create new connection tab
+        createConnectionTab(config);
 
-      // Show success notification
+        addNotification({
+          type: 'success',
+          header: 'Connection established',
+          content: `Connected to ${instance.name} via ${connectionType.toUpperCase()}`,
+          dismissible: true
+        });
+
+      } catch (error) {
+        addNotification({
+          type: 'error',
+          header: 'Connection failed',
+          content: `Failed to connect to ${instance.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          dismissible: true
+        });
+      }
+    } else {
+      // Handle other instance actions (Start, Stop, Hibernate, etc.)
+      // Show in-progress notification
       addNotification({
-        type: 'success',
-        header: `${action} successful`,
-        content: `${instance.name} ${action.toLowerCase()} completed successfully`,
-        dismissible: true
+        type: 'info',
+        header: `${action} in progress`,
+        content: `${action} operation started for ${instance.name}`,
+        loading: true,
+        dismissible: false
       });
 
-      // Refresh data to show updated states
-      loadApplicationData();
-    } catch (error) {
-      // Clear loading notifications
-      setState(prev => ({
-        ...prev,
-        notifications: prev.notifications.filter(n => !n.loading)
-      }));
+      try {
+        // TODO: Call actual API when available for other actions
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
 
-      addNotification({
-        type: 'error',
-        header: `${action} failed`,
-        content: `Failed to ${action.toLowerCase()} ${instance.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        dismissible: true,
-        buttonText: 'Retry',
-        onButtonClick: () => handleInstanceAction(action, instance)
-      });
+        // Clear loading notifications
+        setState(prev => ({
+          ...prev,
+          notifications: prev.notifications.filter(n => !n.loading)
+        }));
+
+        // Show success notification
+        addNotification({
+          type: 'success',
+          header: `${action} successful`,
+          content: `${instance.name} ${action.toLowerCase()} completed successfully`,
+          dismissible: true
+        });
+
+        // Refresh data to show updated states
+        loadApplicationData();
+      } catch (error) {
+        // Clear loading notifications
+        setState(prev => ({
+          ...prev,
+          notifications: prev.notifications.filter(n => !n.loading)
+        }));
+
+        addNotification({
+          type: 'error',
+          header: `${action} failed`,
+          content: `Failed to ${action.toLowerCase()} ${instance.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          dismissible: true,
+          buttonText: 'Retry',
+          onButtonClick: () => handleInstanceAction(action, instance)
+        });
+      }
     }
+  };
+
+  // Connection management functions
+  const determineConnectionType = (instance: Instance): 'ssh' | 'desktop' | 'web' => {
+    // Logic to determine the best connection type based on instance template and capabilities
+    // For now, default to SSH - this will be enhanced based on template metadata
+    const template = state.templates.find(t => t.Name === instance.template);
+
+    if (template?.Category === 'Machine Learning' || template?.Name.includes('Jupyter')) {
+      return 'web'; // ML templates likely have Jupyter
+    }
+
+    if (template?.Category === 'Desktop' || template?.Name.includes('Desktop')) {
+      return 'desktop'; // Desktop templates have GUI
+    }
+
+    return 'ssh'; // Default to SSH terminal
+  };
+
+  const createConnectionTab = (config: ConnectionConfig) => {
+    const tab: ConnectionTab = {
+      id: config.id,
+      title: config.title,
+      type: config.instanceName ? 'instance' : 'aws-service',
+      category: determineConnectionCategory(config),
+      config,
+      active: true,
+      closeable: true,
+      status: config.status as 'connecting' | 'connected' | 'disconnected' | 'error'
+    };
+
+    setState(prev => ({
+      ...prev,
+      connectionTabs: [...prev.connectionTabs, tab],
+      activeConnectionTab: tab.id,
+      showConnectionPanel: true,
+      activeView: 'connections'
+    }));
+  };
+
+  const determineConnectionCategory = (config: ConnectionConfig): 'compute' | 'research' | 'analytics' | 'management' => {
+    if (config.instanceName) return 'compute';
+
+    switch (config.awsService) {
+      case 'braket':
+      case 'sagemaker':
+        return 'research';
+      case 'athena':
+      case 'quicksight':
+        return 'analytics';
+      case 'console':
+      case 'cloudshell':
+        return 'management';
+      default:
+        return 'compute';
+    }
+  };
+
+  const closeConnectionTab = (tabId: string) => {
+    setState(prev => {
+      const tabs = prev.connectionTabs.filter(tab => tab.id !== tabId);
+      const activeTab = tabs.length > 0 ? tabs[tabs.length - 1].id : null;
+
+      return {
+        ...prev,
+        connectionTabs: tabs,
+        activeConnectionTab: activeTab,
+        showConnectionPanel: tabs.length > 0,
+        activeView: tabs.length > 0 ? 'connections' : 'instances'
+      };
+    });
+  };
+
+  const updateTabStatus = (tabId: string, status: 'connecting' | 'connected' | 'disconnected' | 'error') => {
+    setState(prev => ({
+      ...prev,
+      connectionTabs: prev.connectionTabs.map(tab =>
+        tab.id === tabId ? { ...tab, status } : tab
+      )
+    }));
   };
 
   // Research Users Handlers
@@ -1838,6 +2012,7 @@ export default function CloudWorkstationApp() {
           items={[
             { type: 'link', text: 'Templates', href: '#/templates' },
             { type: 'link', text: 'Instances', href: '#/instances' },
+            { type: 'link', text: 'Active Connections', href: '#/connections' },
             { type: 'link', text: 'Storage Volumes', href: '#/volumes' },
             { type: 'link', text: 'Research Users', href: '#/research-users' },
             { type: 'divider' },
@@ -1845,7 +2020,7 @@ export default function CloudWorkstationApp() {
           ]}
           onFollow={(event) => {
             event.preventDefault();
-            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'research-users' | 'settings';
+            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'research-users' | 'connections' | 'settings';
             setState(prev => ({ ...prev, activeView: view }));
           }}
         />
@@ -1896,6 +2071,98 @@ export default function CloudWorkstationApp() {
           {state.activeView === 'instances' && renderInstancesView()}
           {state.activeView === 'volumes' && renderVolumesView()}
           {state.activeView === 'research-users' && renderResearchUsersView()}
+          {state.activeView === 'connections' && (
+            <Container
+              header={
+                <Header
+                  variant="h1"
+                  counter={`(${state.connectionTabs.length} active)`}
+                  actions={
+                    <SpaceBetween direction="horizontal" size="xs">
+                      <Button
+                        variant="normal"
+                        onClick={() => handleAWSServiceConnection('braket')}
+                      >
+                        Launch Braket
+                      </Button>
+                      <Button
+                        variant="normal"
+                        onClick={() => handleAWSServiceConnection('sagemaker')}
+                      >
+                        Launch SageMaker
+                      </Button>
+                      <Button
+                        variant="normal"
+                        onClick={() => handleAWSServiceConnection('console')}
+                      >
+                        AWS Console
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+                      >
+                        Connect Instance
+                      </Button>
+                    </SpaceBetween>
+                  }
+                >
+                  Active Connections
+                </Header>
+              }
+            >
+              <SpaceBetween direction="vertical" size="l">
+                {state.connectionTabs.length > 0 ? (
+                  <div>
+                    <Header variant="h2">Connection Tabs</Header>
+                    {state.connectionTabs.map(tab => (
+                      <Container key={tab.id}>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold">{tab.title}</Box>
+                          <Badge color={
+                            tab.status === 'connected' ? 'green' :
+                            tab.status === 'connecting' ? 'blue' :
+                            'red'
+                          }>
+                            {tab.status}
+                          </Badge>
+                          <Button
+                            variant="link"
+                            onClick={() => closeConnectionTab(tab.id)}
+                          >
+                            Close
+                          </Button>
+                        </SpaceBetween>
+                        <Box variant="small" color="text-body-secondary">
+                          Type: {tab.type} | Category: {tab.category}
+                        </Box>
+                      </Container>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '4rem' }}>
+                    <SpaceBetween direction="vertical" size="l">
+                      <Header variant="h2">No active connections</Header>
+                      <Box variant="p">Connect to an instance or launch an AWS service to get started</Box>
+                      <SpaceBetween direction="horizontal" size="s">
+                        <Button
+                          variant="primary"
+                          onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+                        >
+                          Connect to Instance
+                        </Button>
+                        <Button
+                          variant="normal"
+                          onClick={() => handleAWSServiceConnection('braket')}
+                        >
+                          Launch AWS Service
+                        </Button>
+                      </SpaceBetween>
+                    </SpaceBetween>
+                  </div>
+                )}
+              </SpaceBetween>
+            </Container>
+          )}
           {state.activeView === 'settings' && (
             <Container header={<Header variant="h1">Settings</Header>}>
               <Box>Settings interface coming soon...</Box>

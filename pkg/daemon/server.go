@@ -486,6 +486,12 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/stability/circuit-breakers", applyMiddleware(s.handleCircuitBreakers))
 	mux.HandleFunc("/api/v1/stability/recovery", applyMiddleware(s.handleRecoveryTrigger))
 
+	// Policy management endpoints (Phase 5A.5)
+	s.RegisterPolicyRoutes(mux, applyMiddleware)
+
+	// Enhanced connection proxy endpoints (Phase 5A.5+)
+	s.RegisterConnectionProxyRoutes(mux, applyMiddleware)
+
 	// Cost optimization and budget alert endpoints
 	s.RegisterCostHandlers(mux, applyMiddleware)
 }
