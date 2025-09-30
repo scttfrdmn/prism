@@ -176,6 +176,13 @@ declare global {
         OpenAWSConsole: (service: string, region: string) => Promise<ConnectionConfig>;
         OpenCloudShell: (region: string) => Promise<ConnectionConfig>;
         OpenAWSService: (service: string, region: string) => Promise<ConnectionConfig>;
+
+        // Phase 2: Connection Management Methods
+        CreateConnection: (connectionType: string, target: string, options: Record<string, string>) => Promise<ConnectionConfig>;
+        GetActiveConnections: () => Promise<ConnectionConfig[]>;
+        GetConnection: (id: string) => Promise<ConnectionConfig>;
+        UpdateConnectionStatus: (id: string, status: string, message: string) => Promise<void>;
+        CloseConnection: (id: string) => Promise<void>;
       };
     };
   }

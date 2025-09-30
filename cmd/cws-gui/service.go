@@ -11,8 +11,9 @@ import (
 
 // CloudWorkstationService provides the API bridge between frontend and daemon
 type CloudWorkstationService struct {
-	daemonURL string
-	client    *http.Client
+	daemonURL         string
+	client            *http.Client
+	connectionManager *ConnectionManager
 }
 
 // Template represents a CloudWorkstation template
@@ -88,12 +89,17 @@ type ResearchUserSSHKeyRequest struct {
 }
 
 func NewCloudWorkstationService() *CloudWorkstationService {
-	return &CloudWorkstationService{
+	service := &CloudWorkstationService{
 		daemonURL: "http://localhost:8947",
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 	}
+
+	// Initialize connection manager
+	service.connectionManager = NewConnectionManager(service)
+
+	return service
 }
 
 // GetTemplates fetches available templates from daemon
@@ -578,4 +584,77 @@ func (s *CloudWorkstationService) GetResearchUserStatus(ctx context.Context, use
 	}
 
 	return status, nil
+}
+
+// Connection Management Methods (Phase 2: Tab Management System)
+
+// CreateConnection creates a new embedded connection
+func (s *CloudWorkstationService) CreateConnection(ctx context.Context, connectionType string, target string, options map[string]string) (*ConnectionConfig, error) {
+	if s.connectionManager == nil {
+		return nil, fmt.Errorf("connection manager not initialized")
+	}
+
+	var connType ConnectionType
+	switch connectionType {
+	case "ssh":
+		connType = ConnectionTypeSSH
+	case "desktop":
+		connType = ConnectionTypeDesktop
+	case "web":
+		connType = ConnectionTypeWeb
+	case "aws":
+		connType = ConnectionTypeAWS
+	default:
+		return nil, fmt.Errorf("unsupported connection type: %s", connectionType)
+	}
+
+	return s.connectionManager.CreateConnection(ctx, connType, target, options)
+}
+
+// GetActiveConnections returns all active connections
+func (s *CloudWorkstationService) GetActiveConnections() []*ConnectionConfig {
+	if s.connectionManager == nil {
+		return []*ConnectionConfig{}
+	}
+
+	return s.connectionManager.GetAllConnections()
+}
+
+// GetConnection retrieves a specific connection by ID
+func (s *CloudWorkstationService) GetConnection(id string) (*ConnectionConfig, error) {
+	if s.connectionManager == nil {
+		return nil, fmt.Errorf("connection manager not initialized")
+	}
+
+	config, exists := s.connectionManager.GetConnection(id)
+	if !exists {
+		return nil, fmt.Errorf("connection %s not found", id)
+	}
+
+	return config, nil
+}
+
+// UpdateConnectionStatus updates a connection's status
+func (s *CloudWorkstationService) UpdateConnectionStatus(id string, status string, message string) error {
+	if s.connectionManager == nil {
+		return fmt.Errorf("connection manager not initialized")
+	}
+
+	return s.connectionManager.UpdateConnection(id, status, message)
+}
+
+// CloseConnection closes a connection and cleans up resources
+func (s *CloudWorkstationService) CloseConnection(id string) error {
+	if s.connectionManager == nil {
+		return fmt.Errorf("connection manager not initialized")
+	}
+
+	return s.connectionManager.CloseConnection(id)
+}
+
+// RegisterConnectionCallback registers a callback for connection status changes
+func (s *CloudWorkstationService) RegisterConnectionCallback(id string, callback func(*ConnectionConfig)) {
+	if s.connectionManager != nil {
+		s.connectionManager.RegisterCallback(id, callback)
+	}
 }
