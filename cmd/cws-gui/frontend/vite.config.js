@@ -8,9 +8,18 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     assetsDir: 'assets',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       input: {
         main: './index.html'
+      },
+      output: {
+        manualChunks: {
+          // Split Cloudscape components into separate chunk for better caching
+          'cloudscape': ['@cloudscape-design/components', '@cloudscape-design/design-tokens', '@cloudscape-design/global-styles'],
+          // React core libs
+          'react-vendor': ['react', 'react-dom'],
+        }
       }
     }
   },

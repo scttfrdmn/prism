@@ -400,7 +400,7 @@ interface Notification {
 }
 
 interface CloudWorkstationState {
-  activeView: 'templates' | 'instances' | 'volumes' | 'research-users' | 'connections' | 'settings';
+  activeView: 'templates' | 'instances' | 'volumes' | 'users' | 'connections' | 'settings';
   templates: Template[];
   instances: Instance[];
   volumes: Volume[];
@@ -411,7 +411,7 @@ interface CloudWorkstationState {
   loading: boolean;
   notifications: Notification[];
   splitPanelOpen: boolean;
-  splitPanelContent: 'instance-details' | 'template-details' | 'volume-details' | 'research-user-details' | null;
+  splitPanelContent: 'instance-details' | 'template-details' | 'volume-details' | 'user-details' | null;
   showMountDialog: boolean;
   mountingVolume: Volume | null;
 
@@ -514,8 +514,8 @@ export default function CloudWorkstationApp() {
       case 'volumes':
         items.push({ text: 'Storage Volumes', href: '#/volumes' });
         break;
-      case 'research-users':
-        items.push({ text: 'Research Users', href: '#/research-users' });
+      case 'users':
+        items.push({ text: 'Users', href: '#/users' });
         break;
       case 'connections':
         items.push({ text: 'Active Connections', href: '#/connections' });
@@ -835,7 +835,7 @@ export default function CloudWorkstationApp() {
         <Box fontSize="heading-m">{item.Icon || '🖥️'}</Box>
         <Header variant="h3">{item.Name}</Header>
         {item.Popular && <Badge color="green">Popular</Badge>}
-        {item.ResearchUser?.AutoCreate && <Badge color="blue" iconName="user-profile">Research Users</Badge>}
+        {item.ResearchUser?.AutoCreate && <Badge color="blue" iconName="user-profile">Multi-User</Badge>}
       </SpaceBetween>
     ),
     sections: [
@@ -854,7 +854,7 @@ export default function CloudWorkstationApp() {
         )
       },
       {
-        id: 'research-user',
+        id: 'user',
         content: (item: Template) => {
           if (!item.ResearchUser?.AutoCreate) return null;
           return (
@@ -1483,7 +1483,7 @@ export default function CloudWorkstationApp() {
         ...prev,
         selectedResearchUser: user,
         splitPanelOpen: true,
-        splitPanelContent: 'research-user-details'
+        splitPanelContent: 'user-details'
       }));
 
       // Store status in user object for display
@@ -1901,7 +1901,7 @@ export default function CloudWorkstationApp() {
         <Header
           variant="h1"
           counter={`(${state.researchUsers.length})`}
-          description="Manage research users with persistent identity across instances"
+          description="Manage users with persistent identity across instances"
           actions={
             <SpaceBetween direction="horizontal" size="xs">
               <Button
@@ -1920,7 +1920,7 @@ export default function CloudWorkstationApp() {
             </SpaceBetween>
           }
         >
-          Research Users
+          Users
         </Header>
       }
     >
@@ -2036,7 +2036,7 @@ export default function CloudWorkstationApp() {
               ...prev,
               selectedResearchUser: selectedUser || null,
               splitPanelOpen: !!selectedUser,
-              splitPanelContent: selectedUser ? 'research-user-details' : null
+              splitPanelContent: selectedUser ? 'user-details' : null
             }));
           }}
           selectedItems={state.selectedResearchUser ? [state.selectedResearchUser] : []}
@@ -2168,7 +2168,7 @@ export default function CloudWorkstationApp() {
                       )}
                     </SpaceBetween>
                     <Box variant="small">
-                      Launch with <code>--research-user alice</code> to automatically create and provision research users
+                      Launch with <code>--research-user alice</code> to automatically create and provision users
                     </Box>
                   </SpaceBetween>
                 </Box>
@@ -2265,7 +2265,7 @@ export default function CloudWorkstationApp() {
           </SpaceBetween>
         );
 
-      case 'research-user-details':
+      case 'user-details':
         if (!state.selectedResearchUser) return null;
         return (
           <SpaceBetween direction="vertical" size="l">
@@ -2357,13 +2357,13 @@ export default function CloudWorkstationApp() {
             { type: 'link', text: 'Instances', href: '#/instances' },
             { type: 'link', text: 'Active Connections', href: '#/connections' },
             { type: 'link', text: 'Storage Volumes', href: '#/volumes' },
-            { type: 'link', text: 'Research Users', href: '#/research-users' },
+            { type: 'link', text: 'Users', href: '#/users' },
             { type: 'divider' },
             { type: 'link', text: 'Settings', href: '#/settings' }
           ]}
           onFollow={(event) => {
             event.preventDefault();
-            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'research-users' | 'connections' | 'settings';
+            const view = event.detail.href.split('/')[1] as 'templates' | 'instances' | 'volumes' | 'users' | 'connections' | 'settings';
             setState(prev => ({ ...prev, activeView: view }));
           }}
         />
@@ -2413,7 +2413,7 @@ export default function CloudWorkstationApp() {
           {state.activeView === 'templates' && renderTemplatesView()}
           {state.activeView === 'instances' && renderInstancesView()}
           {state.activeView === 'volumes' && renderVolumesView()}
-          {state.activeView === 'research-users' && renderResearchUsersView()}
+          {state.activeView === 'users' && renderResearchUsersView()}
           {state.activeView === 'connections' && (
             <Container
               header={
@@ -2710,7 +2710,7 @@ export default function CloudWorkstationApp() {
               setCreateUserModalVisible(false);
               setNewUsername('');
             }}
-            header="Create Research User"
+            header="Create User"
             size="medium"
             footer={
               <Box float="right">

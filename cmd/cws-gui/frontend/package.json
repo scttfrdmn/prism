@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "vite build --mode production",
     "preview": "vite preview",
     "test": "vitest",
     "test:unit": "vitest run",
@@ -13,7 +14,8 @@
     "test:e2e": "playwright test",
     "test:visual": "percy exec -- playwright test --config=playwright.visual.config.js",
     "test:all": "npm run test:unit && npm run test:e2e",
-    "playwright:install": "playwright install"
+    "playwright:install": "playwright install",
+    "analyze": "npm run build && npx vite-bundle-analyzer dist/stats.json"
   },
   "devDependencies": {
     "@percy/cli": "^1.30.1",
