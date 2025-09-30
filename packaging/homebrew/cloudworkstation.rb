@@ -1,10 +1,10 @@
 class Cloudworkstation < Formula
   desc "CLI tool for launching pre-configured cloud workstations for academic research"
   homepage "https://github.com/scttfrdmn/cloudworkstation"
-  url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.4.6.tar.gz"
-  sha256 "95671b7bda144219135de04ce1d2c22e14e4fba6cb31e83042c299962f341e2e"
+  url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.5.1.tar.gz"
+  sha256 "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
   license "MIT"
-  version "0.4.6"
+  version "0.5.1"
 
   depends_on "go" => :build
 
@@ -74,6 +74,11 @@ class Cloudworkstation < Formula
       To get started:
         cws templates
         cws launch <template-name> <instance-name>
+
+      New in v0.5.1 - Updated Commands:
+        cws user create <username>       # User management (was research-user)
+        cws admin daemon status          # System administration
+        cws user list                    # List all users
       
       The daemon (cwsd) will start automatically when needed.
       You can also start it manually or as a service.
@@ -99,8 +104,8 @@ class Cloudworkstation < Formula
     end
     
     # Test version command
-    output = shell_output("#{bin}/cws version 2>&1", 0)
-    assert_match "CloudWorkstation v#{version}", output
+    output = shell_output("#{bin}/cws --version 2>&1", 0)
+    assert_match "CloudWorkstation CLI v#{version}", output
     
     # Test templates command (should work without AWS credentials)
     system "#{bin}/cws", "templates"
