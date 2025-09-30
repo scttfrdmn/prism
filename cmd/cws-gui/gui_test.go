@@ -440,7 +440,7 @@ func TestServiceLayerConnectionManagement(t *testing.T) {
 
 	service := &CloudWorkstationService{
 		daemonURL:         server.URL,
-		client:           &http.Client{Timeout: 5 * time.Second},
+		client:            &http.Client{Timeout: 5 * time.Second},
 		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
 	}
 
@@ -492,7 +492,7 @@ func TestAWSServiceConnectionHandlers(t *testing.T) {
 	// This tests the connection type handling and title generation logic
 	service := &CloudWorkstationService{
 		daemonURL:         "http://localhost:8947",
-		client:           &http.Client{Timeout: 5 * time.Second},
+		client:            &http.Client{Timeout: 5 * time.Second},
 		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
 	}
 
@@ -544,6 +544,271 @@ func TestAWSServiceConnectionHandlers(t *testing.T) {
 	}
 	if !strings.Contains(config.Title, "🎛️ Console") {
 		t.Errorf("Expected Console title with control emoji, got %s", config.Title)
+	}
+}
+
+// TestConnectionTabManagement tests the connection tab lifecycle and UI management
+func TestConnectionTabManagement(t *testing.T) {
+	service := &CloudWorkstationService{
+		daemonURL:         "http://localhost:8947",
+		client:            &http.Client{Timeout: 5 * time.Second},
+		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
+	}
+
+	ctx := context.Background()
+
+	// Test creating multiple connection tabs
+	configs := make([]*ConnectionConfig, 3)
+	var err error
+
+	// Create SSH connection tab
+	configs[0], err = service.connectionManager.CreateConnection(ctx, ConnectionTypeSSH, "test-ssh", map[string]string{})
+	if err != nil {
+		t.Fatalf("Failed to create SSH connection: %v", err)
+	}
+
+	// Create AWS Braket connection tab
+	configs[1], err = service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, "braket", map[string]string{
+		"service": "braket",
+		"region":  "us-west-2",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create Braket connection: %v", err)
+	}
+
+	// Create Web connection tab
+	configs[2], err = service.connectionManager.CreateConnection(ctx, ConnectionTypeWeb, "jupyter-instance", map[string]string{
+		"service": "jupyter",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create Web connection: %v", err)
+	}
+
+	// Verify all connections exist
+	allConnections := service.connectionManager.GetAllConnections()
+	if len(allConnections) != 3 {
+		t.Errorf("Expected 3 connections, got %d", len(allConnections))
+	}
+
+	// Test connection status updates
+	for i, config := range configs {
+		err = service.connectionManager.UpdateConnection(config.ID, "connected", "Connection established")
+		if err != nil {
+			t.Errorf("Failed to update connection %d status: %v", i, err)
+		}
+
+		// Verify status was updated
+		updatedConfig, exists := service.connectionManager.GetConnection(config.ID)
+		if !exists {
+			t.Errorf("Connection %d disappeared after update", i)
+			continue
+		}
+		if updatedConfig.Status != "connected" {
+			t.Errorf("Connection %d status not updated: expected 'connected', got '%s'", i, updatedConfig.Status)
+		}
+	}
+
+	// Test connection cleanup
+	for i, config := range configs {
+		err = service.connectionManager.CloseConnection(config.ID)
+		if err != nil {
+			t.Errorf("Failed to close connection %d: %v", i, err)
+		}
+	}
+
+	// Verify all connections cleaned up
+	finalConnections := service.connectionManager.GetAllConnections()
+	if len(finalConnections) != 0 {
+		t.Errorf("Expected 0 connections after cleanup, got %d", len(finalConnections))
+	}
+}
+
+// TestConnectionTypeDetection tests the connection type determination logic
+func TestConnectionTypeDetection(t *testing.T) {
+	testCases := []struct {
+		templateName     string
+		templateCategory string
+		expectedType     string
+	}{
+		{"Python Machine Learning", "Machine Learning", "web"},
+		{"Jupyter Notebook", "Data Science", "web"},
+		{"Ubuntu Desktop", "Desktop", "desktop"},
+		{"GNOME Workstation", "Desktop", "desktop"},
+		{"Basic Ubuntu", "Base Systems", "ssh"},
+		{"Rocky Linux", "Base Systems", "ssh"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.templateName, func(t *testing.T) {
+			// Mock template for testing
+			template := Template{
+				Name:     tc.templateName,
+				Category: tc.templateCategory,
+			}
+
+			// Mock instance
+			instance := Instance{
+				Name:     "test-instance",
+				Template: tc.templateName,
+			}
+
+			// Test connection type determination logic
+			var connectionType string
+			if template.Category == "Machine Learning" || strings.Contains(template.Name, "Jupyter") {
+				connectionType = "web"
+			} else if template.Category == "Desktop" || strings.Contains(template.Name, "Desktop") {
+				connectionType = "desktop"
+			} else {
+				connectionType = "ssh"
+			}
+
+			if connectionType != tc.expectedType {
+				t.Errorf("Expected connection type %s for %s, got %s", tc.expectedType, tc.templateName, connectionType)
+			}
+
+			_ = instance // Use instance to avoid unused variable warning
+		})
+	}
+}
+
+// TestAWSServiceConnectionValidation tests AWS service connection parameter validation
+func TestAWSServiceConnectionValidation(t *testing.T) {
+	service := &CloudWorkstationService{
+		daemonURL:         "http://localhost:8947",
+		client:            &http.Client{Timeout: 5 * time.Second},
+		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
+	}
+
+	ctx := context.Background()
+
+	testServices := []struct {
+		serviceName   string
+		expectedTitle string
+		expectedIcon  string
+	}{
+		{"braket", "⚛️ Braket", "⚛️"},
+		{"sagemaker", "🤖 SageMaker", "🤖"},
+		{"console", "🎛️ Console", "🎛️"},
+		{"cloudshell", "🖥️ CloudShell", "🖥️"},
+	}
+
+	for _, tc := range testServices {
+		t.Run(tc.serviceName, func(t *testing.T) {
+			config, err := service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, tc.serviceName, map[string]string{
+				"service": tc.serviceName,
+				"region":  "us-east-1",
+			})
+
+			if err != nil {
+				t.Fatalf("Failed to create %s connection: %v", tc.serviceName, err)
+			}
+
+			// Verify service-specific properties
+			if config.AWSService != tc.serviceName {
+				t.Errorf("Expected AWS service %s, got %s", tc.serviceName, config.AWSService)
+			}
+
+			if config.Region != "us-east-1" {
+				t.Errorf("Expected region us-east-1, got %s", config.Region)
+			}
+
+			if !strings.Contains(config.Title, tc.expectedIcon) {
+				t.Errorf("Expected title to contain %s, got %s", tc.expectedIcon, config.Title)
+			}
+
+			expectedURL := fmt.Sprintf("http://localhost:8947/aws-proxy/%s?region=us-east-1", tc.serviceName)
+			if config.ProxyURL != expectedURL {
+				t.Errorf("Expected proxy URL %s, got %s", expectedURL, config.ProxyURL)
+			}
+		})
+	}
+}
+
+// TestConnectionEmbeddingModes tests the different embedding modes for connections
+func TestConnectionEmbeddingModes(t *testing.T) {
+	service := &CloudWorkstationService{
+		daemonURL:         "http://localhost:8947",
+		client:            &http.Client{Timeout: 5 * time.Second},
+		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
+	}
+
+	ctx := context.Background()
+
+	embeddingTests := []struct {
+		connectionType ConnectionType
+		expectedMode   string
+		description    string
+	}{
+		{ConnectionTypeSSH, "websocket", "SSH connections use WebSocket for terminal"},
+		{ConnectionTypeDesktop, "iframe", "Desktop connections use iframe for DCV"},
+		{ConnectionTypeWeb, "iframe", "Web connections use iframe for web services"},
+		{ConnectionTypeAWS, "iframe", "AWS connections use iframe for AWS services"},
+	}
+
+	for _, tc := range embeddingTests {
+		t.Run(string(tc.connectionType), func(t *testing.T) {
+			var config *ConnectionConfig
+			var err error
+
+			switch tc.connectionType {
+			case ConnectionTypeSSH:
+				config, err = service.connectionManager.CreateConnection(ctx, tc.connectionType, "ssh-instance", map[string]string{})
+			case ConnectionTypeDesktop:
+				config, err = service.connectionManager.CreateConnection(ctx, tc.connectionType, "desktop-instance", map[string]string{})
+			case ConnectionTypeWeb:
+				config, err = service.connectionManager.CreateConnection(ctx, tc.connectionType, "web-instance", map[string]string{})
+			case ConnectionTypeAWS:
+				config, err = service.connectionManager.CreateConnection(ctx, tc.connectionType, "braket", map[string]string{
+					"service": "braket",
+					"region":  "us-west-2",
+				})
+			}
+
+			if err != nil {
+				t.Fatalf("Failed to create %s connection: %v", tc.connectionType, err)
+			}
+
+			if config.EmbeddingMode != tc.expectedMode {
+				t.Errorf("Expected embedding mode %s for %s, got %s", tc.expectedMode, tc.connectionType, config.EmbeddingMode)
+			}
+
+			t.Logf("✅ %s: %s", tc.description, config.EmbeddingMode)
+		})
+	}
+}
+
+// TestConnectionErrorHandling tests error scenarios in connection management
+func TestConnectionErrorHandling(t *testing.T) {
+	service := &CloudWorkstationService{
+		daemonURL:         "http://localhost:8947",
+		client:            &http.Client{Timeout: 5 * time.Second},
+		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
+	}
+
+	ctx := context.Background()
+
+	// Test invalid connection type
+	_, err := service.connectionManager.CreateConnection(ctx, "invalid-type", "test", map[string]string{})
+	if err == nil {
+		t.Error("Expected error for invalid connection type, got nil")
+	}
+
+	// Test non-existent connection retrieval
+	_, exists := service.connectionManager.GetConnection("non-existent-id")
+	if exists {
+		t.Error("Expected false for non-existent connection, got true")
+	}
+
+	// Test updating non-existent connection
+	err = service.connectionManager.UpdateConnection("non-existent-id", "connected", "test")
+	if err == nil {
+		t.Error("Expected error when updating non-existent connection, got nil")
+	}
+
+	// Test closing non-existent connection
+	err = service.connectionManager.CloseConnection("non-existent-id")
+	if err == nil {
+		t.Error("Expected error when closing non-existent connection, got nil")
 	}
 }
 

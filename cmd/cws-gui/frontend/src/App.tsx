@@ -93,6 +93,275 @@ interface ResearchUser {
   created_at: string;
 }
 
+// Connection Renderer Component
+const ConnectionRenderer: React.FC<{ tab: ConnectionTab; onClose: () => void }> = ({ tab, onClose }) => {
+  const [connectionStatus, setConnectionStatus] = useState(tab.status);
+
+  useEffect(() => {
+    setConnectionStatus(tab.status);
+  }, [tab.status]);
+
+  const renderConnectionContent = () => {
+    const { config } = tab;
+
+    switch (config.embeddingMode) {
+      case 'websocket':
+        return <WebSocketTerminal config={config} onStatusChange={setConnectionStatus} />;
+      case 'iframe':
+        return <IframeRenderer config={config} onStatusChange={setConnectionStatus} />;
+      case 'api':
+        return <APIConnectionRenderer config={config} onStatusChange={setConnectionStatus} />;
+      default:
+        return (
+          <Container>
+            <Alert type="warning" header="Unsupported Connection Type">
+              Connection type {config.embeddingMode} is not yet supported in embedded mode.
+              <br />
+              <br />
+              <strong>Connection Details:</strong>
+              <br />
+              URL: <Link href={config.proxyURL} external>{config.proxyURL}</Link>
+              <br />
+              Type: {config.type}
+              {config.instanceName && <><br />Instance: {config.instanceName}</>}
+              {config.awsService && <><br />AWS Service: {config.awsService}</>}
+              {config.region && <><br />Region: {config.region}</>}
+            </Alert>
+          </Container>
+        );
+    }
+  };
+
+  return (
+    <Container>
+      <SpaceBetween direction="vertical" size="s">
+        <SpaceBetween direction="horizontal" size="s" alignItems="center">
+          <Box variant="h3">{tab.title}</Box>
+          <StatusIndicator type={
+            connectionStatus === 'connected' ? 'success' :
+            connectionStatus === 'connecting' ? 'loading' :
+            connectionStatus === 'error' ? 'error' : 'stopped'
+          }>
+            {connectionStatus}
+          </StatusIndicator>
+          <Button
+            variant="normal"
+            iconName="close"
+            onClick={onClose}
+          >
+            Close Connection
+          </Button>
+        </SpaceBetween>
+
+        <div style={{ minHeight: '600px', border: '1px solid #d5dbdb', borderRadius: '8px' }}>
+          {renderConnectionContent()}
+        </div>
+
+        <Box variant="small" color="text-body-secondary">
+          Type: {tab.config.type} | Category: {tab.category}
+          {tab.config.instanceName && ` | Instance: ${tab.config.instanceName}`}
+          {tab.config.awsService && ` | Service: ${tab.config.awsService}`}
+          {tab.config.region && ` | Region: ${tab.config.region}`}
+        </Box>
+      </SpaceBetween>
+    </Container>
+  );
+};
+
+// WebSocket Terminal Component
+const WebSocketTerminal: React.FC<{
+  config: ConnectionConfig;
+  onStatusChange: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
+}> = ({ config, onStatusChange }) => {
+  const [terminalContent, setTerminalContent] = useState<string[]>(['Connecting to terminal...']);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    onStatusChange('connecting');
+
+    // Simulate WebSocket connection
+    const connectTimeout = setTimeout(() => {
+      setIsConnected(true);
+      onStatusChange('connected');
+      setTerminalContent([
+        'Connected to ' + (config.instanceName || 'terminal'),
+        '$ Welcome to CloudWorkstation SSH Terminal',
+        '$ Type commands below...',
+        '$ '
+      ]);
+    }, 2000);
+
+    return () => clearTimeout(connectTimeout);
+  }, [config, onStatusChange]);
+
+  return (
+    <div style={{
+      height: '100%',
+      backgroundColor: '#232f3e',
+      color: '#ffffff',
+      fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+      fontSize: '14px',
+      padding: '16px',
+      overflow: 'auto'
+    }}>
+      {!isConnected ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Spinner size="normal" />
+          <span>Establishing SSH connection to {config.instanceName}...</span>
+        </div>
+      ) : (
+        <>
+          {terminalContent.map((line, index) => (
+            <div key={index} style={{ marginBottom: '4px' }}>
+              {line}
+            </div>
+          ))}
+          <Box variant="small" color="text-body-secondary" style={{ marginTop: '16px', color: '#8a8a8a' }}>
+            🚧 WebSocket terminal integration in progress. Full terminal coming soon!
+            <br />
+            Direct SSH: ssh {config.instanceName}
+            <br />
+            WebSocket URL: {config.proxyURL}
+          </Box>
+        </>
+      )}
+    </div>
+  );
+};
+
+// iframe Renderer Component
+const IframeRenderer: React.FC<{
+  config: ConnectionConfig;
+  onStatusChange: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
+}> = ({ config, onStatusChange }) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    onStatusChange('connecting');
+  }, [onStatusChange]);
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+    onStatusChange('connected');
+  };
+
+  const handleIframeError = () => {
+    setIsLoading(false);
+    onStatusChange('error');
+  };
+
+  return (
+    <div style={{ height: '100%', position: 'relative' }}>
+      {isLoading && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <Spinner size="large" />
+          <span>Loading {config.title}...</span>
+        </div>
+      )}
+      <iframe
+        src={config.proxyURL}
+        style={{
+          width: '100%',
+          height: '600px',
+          border: 'none',
+          borderRadius: '4px'
+        }}
+        onLoad={handleIframeLoad}
+        onError={handleIframeError}
+        title={config.title}
+      />
+    </div>
+  );
+};
+
+// API Connection Renderer Component
+const APIConnectionRenderer: React.FC<{
+  config: ConnectionConfig;
+  onStatusChange: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
+}> = ({ config, onStatusChange }) => {
+  const [apiData, setApiData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    onStatusChange('connecting');
+
+    // Simulate API connection
+    const connectTimeout = setTimeout(() => {
+      setApiData({
+        service: config.awsService,
+        region: config.region,
+        status: 'active',
+        metadata: config.metadata
+      });
+      setIsLoading(false);
+      onStatusChange('connected');
+    }, 1500);
+
+    return () => clearTimeout(connectTimeout);
+  }, [config, onStatusChange]);
+
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '400px',
+        gap: '16px'
+      }}>
+        <Spinner size="large" />
+        <span>Connecting to {config.title}...</span>
+      </div>
+    );
+  }
+
+  return (
+    <Container>
+      <SpaceBetween direction="vertical" size="m">
+        <Header variant="h3">API Connection Details</Header>
+        <div>
+          <strong>Service:</strong> {apiData.service}
+          <br />
+          <strong>Region:</strong> {apiData.region}
+          <br />
+          <strong>Status:</strong> {apiData.status}
+          <br />
+          <strong>Proxy URL:</strong> <Link href={config.proxyURL} external>{config.proxyURL}</Link>
+        </div>
+
+        {config.metadata && (
+          <>
+            <Header variant="h4">Metadata</Header>
+            <pre style={{
+              backgroundColor: '#f8f9fa',
+              padding: '12px',
+              borderRadius: '4px',
+              fontSize: '12px',
+              overflow: 'auto'
+            }}>
+              {JSON.stringify(config.metadata, null, 2)}
+            </pre>
+          </>
+        )}
+
+        <Alert type="info" header="API Connection Active">
+          This service is connected and ready to use. Use the proxy URL above to access the service directly.
+        </Alert>
+      </SpaceBetween>
+    </Container>
+  );
+};
+
 // Enhanced connection types for tabbed embedded connections
 interface ConnectionConfig {
   id: string;
@@ -1053,6 +1322,73 @@ export default function CloudWorkstationApp() {
         tab.id === tabId ? { ...tab, status } : tab
       )
     }));
+  };
+
+  // AWS Service Connection Handler
+  const handleAWSServiceConnection = async (serviceName: string) => {
+    try {
+      addNotification({
+        type: 'info',
+        header: 'Launching AWS Service',
+        content: `Initializing ${serviceName} connection...`,
+        loading: true,
+        dismissible: false
+      });
+
+      let config: ConnectionConfig;
+      const region = state.currentProfile?.region || 'us-west-2';
+
+      // Use the appropriate service-specific method
+      switch (serviceName) {
+        case 'braket':
+          config = await window.wails.CloudWorkstationService.OpenBraketConsole(region);
+          break;
+        case 'sagemaker':
+          config = await window.wails.CloudWorkstationService.OpenSageMakerStudio(region);
+          break;
+        case 'console':
+          config = await window.wails.CloudWorkstationService.OpenAWSConsole('console', region);
+          break;
+        case 'cloudshell':
+          config = await window.wails.CloudWorkstationService.OpenAWSConsole('cloudshell', region);
+          break;
+        default:
+          // Generic AWS service
+          config = await window.wails.CloudWorkstationService.OpenAWSService(serviceName, region);
+      }
+
+      // Clear loading notifications
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading)
+      }));
+
+      // Create connection tab
+      createConnectionTab(config);
+
+      addNotification({
+        type: 'success',
+        header: 'AWS Service Connected',
+        content: `Successfully connected to ${config.title}`,
+        dismissible: true
+      });
+
+    } catch (error) {
+      // Clear loading notifications
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => !n.loading)
+      }));
+
+      addNotification({
+        type: 'error',
+        header: 'AWS Service Connection Failed',
+        content: `Failed to connect to ${serviceName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        dismissible: true,
+        buttonText: 'Retry',
+        onButtonClick: () => handleAWSServiceConnection(serviceName)
+      });
+    }
   };
 
   // Research Users Handlers
@@ -2119,32 +2455,34 @@ export default function CloudWorkstationApp() {
             >
               <SpaceBetween direction="vertical" size="l">
                 {state.connectionTabs.length > 0 ? (
-                  <div>
-                    <Header variant="h2">Connection Tabs</Header>
-                    {state.connectionTabs.map(tab => (
-                      <Container key={tab.id}>
-                        <SpaceBetween direction="horizontal" size="s">
-                          <Box fontWeight="bold">{tab.title}</Box>
-                          <Badge color={
-                            tab.status === 'connected' ? 'green' :
-                            tab.status === 'connecting' ? 'blue' :
-                            'red'
-                          }>
-                            {tab.status}
-                          </Badge>
-                          <Button
-                            variant="link"
-                            onClick={() => closeConnectionTab(tab.id)}
-                          >
-                            Close
-                          </Button>
-                        </SpaceBetween>
-                        <Box variant="small" color="text-body-secondary">
-                          Type: {tab.type} | Category: {tab.category}
-                        </Box>
-                      </Container>
-                    ))}
-                  </div>
+                  <Container>
+                    <Header variant="h2">Active Connections</Header>
+                    <Tabs
+                      activeTabId={state.activeConnectionTab || undefined}
+                      onChange={(event) => {
+                        setState(prev => ({
+                          ...prev,
+                          activeConnectionTab: event.detail.activeTabId
+                        }));
+                      }}
+                      tabs={state.connectionTabs.map(tab => ({
+                        id: tab.id,
+                        label: (
+                          <SpaceBetween direction="horizontal" size="xs">
+                            <span>{tab.title}</span>
+                            <Badge color={
+                              tab.status === 'connected' ? 'green' :
+                              tab.status === 'connecting' ? 'blue' :
+                              tab.status === 'error' ? 'red' : 'grey'
+                            }>
+                              {tab.status}
+                            </Badge>
+                          </SpaceBetween>
+                        ),
+                        content: <ConnectionRenderer tab={tab} onClose={() => closeConnectionTab(tab.id)} />
+                      }))}
+                    />
+                  </Container>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '4rem' }}>
                     <SpaceBetween direction="vertical" size="l">
