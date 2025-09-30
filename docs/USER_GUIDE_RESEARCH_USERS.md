@@ -1,6 +1,8 @@
 # Research Users: Your Persistent Identity Across Cloud Environments
 
-**CloudWorkstation v0.5.0** introduces **Research Users** - your persistent identity that follows you across all your cloud research environments. No more worrying about different usernames, file permissions, or SSH keys when switching between Python, R, and other research templates.
+**CloudWorkstation v0.5.1** introduces **Research Users** - your persistent identity that follows you across all your cloud research environments. No more worrying about different usernames, file permissions, or SSH keys when switching between Python, R, and other research templates.
+
+> **🆕 v0.5.1 Command Update**: Research user commands are now available as `cws user` (simplified from `cws research-user`). All functionality remains the same with cleaner, more intuitive commands.
 
 ## Quick Start
 
@@ -69,10 +71,10 @@ Instance Setup:
 
 ```bash
 # Create your research user (coming in v0.5.0)
-cws research-user create alice
+cws user create alice
 
 # Generate SSH keys automatically
-cws research-user ssh-key generate alice ed25519
+cws user ssh-key generate alice ed25519
 ```
 
 ### 2. Launch Instances with Research Users
@@ -152,7 +154,7 @@ One set of SSH keys works everywhere:
 
 ```bash
 # Generate keys once
-cws research-user ssh-key generate alice ed25519
+cws user ssh-key generate alice ed25519
 
 # Use same key for all instances
 ssh alice@python-instance    # Works
@@ -197,27 +199,27 @@ ssh alice@rocky-instance     # Works
 
 ```bash
 # Generate Ed25519 key (recommended)
-cws research-user ssh-key generate alice ed25519
+cws user ssh-key generate alice ed25519
 
 # Or generate RSA key for compatibility
-cws research-user ssh-key generate alice rsa
+cws user ssh-key generate alice rsa
 ```
 
 ### Import Existing Keys
 
 ```bash
 # Import your existing public key
-cws research-user ssh-key import alice ~/.ssh/id_rsa.pub "My laptop key"
+cws user ssh-key import alice ~/.ssh/id_rsa.pub "My laptop key"
 ```
 
 ### List and Manage Keys
 
 ```bash
 # List all SSH keys
-cws research-user ssh-key list alice
+cws user ssh-key list alice
 
 # Delete a key
-cws research-user ssh-key delete alice key-id
+cws user ssh-key delete alice key-id
 ```
 
 ## Working with Templates
@@ -282,13 +284,13 @@ research_user:
 1. **Each team member creates their research user**:
    ```bash
    # Alice
-   cws research-user create alice
+   cws user create alice
 
    # Bob
-   cws research-user create bob
+   cws user create bob
 
    # Carol
-   cws research-user create carol
+   cws user create carol
    ```
 
 2. **Share EFS volumes across instances**:
@@ -374,10 +376,10 @@ tar -xzf my-research-backup.tar.gz
 
 ```bash
 # Import your existing SSH key
-cws research-user ssh-key import alice ~/.ssh/id_rsa.pub "Migrated key"
+cws user ssh-key import alice ~/.ssh/id_rsa.pub "Migrated key"
 
 # Or generate new keys and update GitHub/servers
-cws research-user ssh-key generate alice ed25519
+cws user ssh-key generate alice ed25519
 cat /efs/home/alice/.ssh/id_ed25519.pub  # Add to GitHub, servers
 ```
 
@@ -388,10 +390,10 @@ cat /efs/home/alice/.ssh/id_ed25519.pub  # Add to GitHub, servers
 **Q: I can't SSH into my instance with my research user**
 ```bash
 # Check SSH key is properly configured
-cws research-user ssh-key list alice
+cws user ssh-key list alice
 
 # Verify user was provisioned
-cws research-user status alice --instance my-instance
+cws user status alice --instance my-instance
 
 # Check SSH key permissions on instance
 ssh ubuntu@my-instance "ls -la /efs/home/alice/.ssh/"
@@ -423,10 +425,10 @@ ssh alice@my-instance "sudo chown -R alice:research /efs/home/alice"
 
 ```bash
 # Check research user status
-cws research-user status alice
+cws user status alice
 
 # List all research users
-cws research-user list
+cws user list
 
 # View detailed instance information
 cws instances describe my-instance --show-users
@@ -435,7 +437,7 @@ cws instances describe my-instance --show-users
 ## What's Coming Next
 
 **CloudWorkstation v0.5.0** will include:
-- **CLI Integration**: `cws research-user` command suite
+- **CLI Integration**: `cws user` command suite
 - **TUI Interface**: Visual research user management in terminal
 - **GUI Support**: Point-and-click research user management
 - **Template Enhancement**: Templates with built-in research user support

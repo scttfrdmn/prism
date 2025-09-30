@@ -117,7 +117,7 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - **Management Guide**: [Research User Management Guide](docs/RESEARCH_USER_MANAGEMENT_GUIDE.md)
 
 **Phase 5A Complete Implementation**:
-✅ **CLI Integration**: Complete `cws research-user` command suite for full user management (Phase 5A.1)
+✅ **CLI Integration**: Complete `cws user` command suite for full user management (Phase 5A.1)
 ✅ **TUI Integration**: Research user management screens in terminal interface (Phase 5A.2)
 ✅ **REST API Integration**: Complete daemon API endpoints for research user operations (Phase 5A.3)
 ✅ **Template Integration**: Automatic research user provisioning via template system (Phase 5A.3+)

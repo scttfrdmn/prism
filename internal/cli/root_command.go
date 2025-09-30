@@ -288,37 +288,29 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	projectCobra := NewProjectCobraCommands(r.app)
 	rootCmd.AddCommand(projectCobra.CreateProjectCommand())
 
-	// Research user commands (Phase 5A.2)
-	researchUserFactory := &ResearchUserCommandFactory{app: r.app}
-	for _, cmd := range researchUserFactory.CreateCommands() {
+	// User commands (Phase 5A.2)
+	userFactory := &UserCommandFactory{app: r.app}
+	for _, cmd := range userFactory.CreateCommands() {
 		rootCmd.AddCommand(cmd)
 	}
 
-	// Policy commands (Phase 5A+)
-	policyFactory := &PolicyCommandFactory{app: r.app}
-	for _, cmd := range policyFactory.CreateCommands() {
+	// Admin commands (system administration)
+	adminFactory := &AdminCommandFactory{app: r.app}
+	for _, cmd := range adminFactory.CreateCommands() {
 		rootCmd.AddCommand(cmd)
 	}
+
+	// Policy commands moved to admin
 
 	// Storage commands
 	rootCmd.AddCommand(r.createVolumeCommand())
 	rootCmd.AddCommand(r.createStorageCommand())
 
-	// System commands
-	rootCmd.AddCommand(r.createDaemonCommand())
-	rootCmd.AddCommand(r.createUninstallCommand())
+	// System commands (kept at root level)
 	rootCmd.AddCommand(r.app.tuiCommand)
 	rootCmd.AddCommand(NewGUICommand())
-	rootCmd.AddCommand(r.createConfigCommand())
 
-	// Profile commands
-	if r.app.profileManager != nil {
-		AddProfileCommands(rootCmd, r.app.config)
-		// Migration command removed - profile system unified
-	}
-
-	// Security and idle commands
-	rootCmd.AddCommand(r.app.SecurityCommand())
+	// Other commands (moved to admin or kept at root)
 	rootCmd.AddCommand(r.createIdleCommand())
 
 	// Advanced commands

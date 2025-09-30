@@ -1123,3 +1123,74 @@ func (m *MockClient) GetIdleSavingsReport(ctx context.Context, period string) (m
 		"idle_hours":                720,
 	}, nil
 }
+
+// AssignPolicySet assigns a policy set to the current user (mock)
+func (m *MockClient) AssignPolicySet(ctx context.Context, policySet string) (*client.PolicyAssignResponse, error) {
+	return &client.PolicyAssignResponse{
+		Success:           true,
+		Message:           "Policy set assigned successfully (mock)",
+		AssignedPolicySet: policySet,
+		EnforcementStatus: "active",
+	}, nil
+}
+
+// CheckTemplateAccess checks if a template is accessible under current policies (mock)
+func (m *MockClient) CheckTemplateAccess(ctx context.Context, templateName string) (*client.PolicyCheckResponse, error) {
+	return &client.PolicyCheckResponse{
+		Allowed:         true,
+		TemplateName:    templateName,
+		Reason:          "Template access allowed (mock)",
+		MatchedPolicies: []string{"default"},
+		Suggestions:     []string{},
+	}, nil
+}
+
+// GetPolicyStatus returns the current policy enforcement status (mock)
+func (m *MockClient) GetPolicyStatus(ctx context.Context) (*client.PolicyStatusResponse, error) {
+	return &client.PolicyStatusResponse{
+		Enabled:          true,
+		Status:           "active",
+		StatusIcon:       "✅",
+		AssignedPolicies: []string{"default", "basic-access"},
+		Message:          "Policy enforcement is active (mock)",
+	}, nil
+}
+
+// ListPolicySets returns available policy sets (mock)
+func (m *MockClient) ListPolicySets(ctx context.Context) (*client.PolicySetsResponse, error) {
+	return &client.PolicySetsResponse{
+		PolicySets: map[string]client.PolicySetInfo{
+			"default": {
+				ID:          "default",
+				Name:        "Default Policy Set",
+				Description: "Standard template and resource access policies",
+				Policies:    5,
+				Status:      "active",
+				Tags:        map[string]string{"environment": "development"},
+			},
+			"restricted": {
+				ID:          "restricted",
+				Name:        "Restricted Access",
+				Description: "Limited template access for basic users",
+				Policies:    3,
+				Status:      "available",
+				Tags:        map[string]string{"security": "high"},
+			},
+		},
+	}, nil
+}
+
+// SetPolicyEnforcement enables or disables policy enforcement (mock)
+func (m *MockClient) SetPolicyEnforcement(ctx context.Context, enabled bool) (*client.PolicyEnforcementResponse, error) {
+	status := "disabled"
+	if enabled {
+		status = "enabled"
+	}
+
+	return &client.PolicyEnforcementResponse{
+		Success: true,
+		Message: fmt.Sprintf("Policy enforcement %s successfully (mock)", status),
+		Enabled: enabled,
+		Status:  status,
+	}, nil
+}
