@@ -256,8 +256,9 @@ func (m DashboardModel) View() string {
 		)
 	}
 
-	// Help text
-	help := theme.Help.Render("r: refresh • q: quit")
+	// Help text with navigation
+	help := theme.Help.Render("Navigation: 1: Dashboard • 2: Instances • 3: Templates • 4: Storage • 5: Users • 6: Settings\n" +
+		"Actions: r: refresh • q: quit")
 
 	// Join everything together
 	return lipgloss.JoinVertical(
