@@ -439,8 +439,6 @@ func (sm *StabilityManager) performHealthCheck() {
 
 // calculateHealthScore calculates overall health score (0-1)
 func (sm *StabilityManager) calculateHealthScore(metrics StabilityMetrics) float64 {
-	score := 1.0
-
 	// Memory score (penalty for high memory usage)
 	memoryScore := 1.0 - (metrics.MemoryUsageMB / float64(sm.maxMemoryMB))
 	if memoryScore < 0 {
@@ -467,7 +465,7 @@ func (sm *StabilityManager) calculateHealthScore(metrics StabilityMetrics) float
 	}
 
 	// Weighted average
-	score = (memoryScore*0.3 + goroutineScore*0.2 + errorScore*0.3 + cbScore*0.2)
+	score := (memoryScore*0.3 + goroutineScore*0.2 + errorScore*0.3 + cbScore*0.2)
 
 	return score
 }

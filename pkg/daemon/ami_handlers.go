@@ -43,12 +43,6 @@ func (s *Server) handleAMIResolve(w http.ResponseWriter, r *http.Request) {
 
 	// Optional query parameters
 	showDetails := r.URL.Query().Get("details") == "true"
-	targetRegion := r.URL.Query().Get("region")
-
-	// Use current region if none specified
-	if targetRegion == "" {
-		targetRegion = s.awsManager.GetDefaultRegion()
-	}
 
 	// Resolve AMI for the template
 	result, err := s.awsManager.ResolveAMIForTemplate(templateName)

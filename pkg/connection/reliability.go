@@ -287,11 +287,6 @@ func (rm *ReliabilityManager) performSingleReliabilityCheck(ctx context.Context,
 
 	// Calculate success rate (last 100 checks)
 	if check.TotalChecks > 0 {
-		successCount := check.TotalChecks - check.ConsecutiveFailures
-		if successCount < 0 {
-			successCount = 0
-		}
-
 		// For simplicity, using current consecutive failures
 		// In production, you'd maintain a sliding window
 		recent := check.TotalChecks

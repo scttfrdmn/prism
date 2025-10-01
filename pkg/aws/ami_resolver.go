@@ -232,9 +232,6 @@ func (r *UniversalAMIResolver) tryMarketplaceSearch(ctx context.Context, templat
 
 	// Marketplace client not yet implemented
 	return nil, fmt.Errorf("marketplace client not yet implemented")
-
-	search := template.AMIConfig.MarketplaceSearch
-	return r.searchMarketplaceAMI(ctx, search, region)
 }
 
 // tryCrossRegionSearch searches for AMIs in other regions

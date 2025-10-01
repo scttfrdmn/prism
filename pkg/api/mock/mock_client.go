@@ -1335,3 +1335,107 @@ func (m *MockClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 		"storage_cost": 17.00,
 	}, nil
 }
+
+// Template Marketplace operations - Mock implementations (Phase 5.2)
+
+// SearchMarketplace searches the template marketplace (mock)
+func (m *MockClient) SearchMarketplace(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"templates": []map[string]interface{}{
+			{
+				"id":            "marketplace-template-1",
+				"name":          "Deep Learning GPU",
+				"description":   "Optimized deep learning environment with GPU support",
+				"category":      "Machine Learning",
+				"author":        "community-user",
+				"downloads":     1250,
+				"rating":        4.8,
+				"last_updated":  "2024-11-15",
+				"verified":      true,
+			},
+		},
+		"total_results": 1,
+		"query":         params,
+	}, nil
+}
+
+// GetMarketplaceTemplate gets a specific marketplace template (mock)
+func (m *MockClient) GetMarketplaceTemplate(ctx context.Context, templateID string) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"id":            templateID,
+		"name":          "Deep Learning GPU",
+		"description":   "Optimized deep learning environment with GPU support and PyTorch",
+		"category":      "Machine Learning",
+		"author":        "community-user",
+		"downloads":     1250,
+		"rating":        4.8,
+		"last_updated":  "2024-11-15",
+		"verified":      true,
+		"readme":        "# Deep Learning GPU Template\nThis template provides...",
+		"installation":  "Automated installation via CloudWorkstation marketplace",
+	}, nil
+}
+
+// PublishMarketplaceTemplate publishes a template to the marketplace (mock)
+func (m *MockClient) PublishMarketplaceTemplate(ctx context.Context, template map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success":     true,
+		"template_id": "marketplace-template-new-123",
+		"message":     "Template published successfully to marketplace",
+		"status":      "pending_review",
+	}, nil
+}
+
+// AddMarketplaceReview adds a review to a marketplace template (mock)
+func (m *MockClient) AddMarketplaceReview(ctx context.Context, templateID string, review map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success":   true,
+		"review_id": "review-123",
+		"message":   "Review added successfully",
+		"rating":    review["rating"],
+	}, nil
+}
+
+// ForkMarketplaceTemplate forks a marketplace template (mock)
+func (m *MockClient) ForkMarketplaceTemplate(ctx context.Context, templateID string, options map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success":           true,
+		"forked_template":   "forked-template-456",
+		"message":           "Template forked successfully",
+		"original_template": templateID,
+	}, nil
+}
+
+// GetMarketplaceFeatured gets featured marketplace templates (mock)
+func (m *MockClient) GetMarketplaceFeatured(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"featured_templates": []map[string]interface{}{
+			{
+				"id":          "featured-1",
+				"name":        "Data Science Complete",
+				"description": "Complete data science environment with R, Python, and Jupyter",
+				"rating":      4.9,
+				"downloads":   5000,
+				"featured":    true,
+			},
+		},
+		"total_count": 1,
+	}, nil
+}
+
+// GetMarketplaceTrending gets trending marketplace templates (mock)
+func (m *MockClient) GetMarketplaceTrending(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"trending_templates": []map[string]interface{}{
+			{
+				"id":             "trending-1",
+				"name":           "Quantum Computing",
+				"description":    "Quantum computing research environment with Qiskit",
+				"rating":         4.7,
+				"downloads":      750,
+				"weekly_growth":  45,
+			},
+		},
+		"total_count": 1,
+	}, nil
+}

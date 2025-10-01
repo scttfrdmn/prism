@@ -528,7 +528,7 @@ func (bt *BudgetTracker) checkBudgetAlerts(projectID string, budgetData *Project
 			if !alreadyTriggered {
 				// Execute the auto action if executor is available
 				var actionErr error
-				actionMessage := fmt.Sprintf("Auto action triggered: %s at %.1f%% budget", action.Action, action.Threshold*100)
+				var actionMessage string
 
 				if bt.actionExecutor != nil {
 					switch action.Action {

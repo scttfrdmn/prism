@@ -1007,3 +1007,301 @@ func (m *MockAPIClient) GetIdleSavingsReport(ctx context.Context, period string)
 		"total_saved": 100.0,
 	}, nil
 }
+
+// Template Marketplace operations - Mock implementations
+
+func (m *MockAPIClient) SearchMarketplace(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"templates":      []map[string]interface{}{},
+		"total_results":  0,
+		"query":          params,
+	}, nil
+}
+
+func (m *MockAPIClient) GetMarketplaceTemplate(ctx context.Context, templateID string) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"id":            templateID,
+		"name":          "Mock Template",
+		"description":   "Mock marketplace template",
+		"category":      "Testing",
+		"author":        "mock-user",
+		"downloads":     0,
+		"rating":        5.0,
+		"last_updated":  "2024-01-01",
+		"verified":      false,
+	}, nil
+}
+
+func (m *MockAPIClient) PublishMarketplaceTemplate(ctx context.Context, template map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success":     true,
+		"template_id": "mock-template-123",
+		"message":     "Template published successfully (mock)",
+		"status":      "pending_review",
+	}, nil
+}
+
+func (m *MockAPIClient) AddMarketplaceReview(ctx context.Context, templateID string, review map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success":   true,
+		"review_id": "mock-review-123",
+		"message":   "Review added successfully (mock)",
+		"rating":    review["rating"],
+	}, nil
+}
+
+func (m *MockAPIClient) ForkMarketplaceTemplate(ctx context.Context, templateID string, options map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success":           true,
+		"forked_template":   "mock-forked-template-456",
+		"message":           "Template forked successfully (mock)",
+		"original_template": templateID,
+	}, nil
+}
+
+func (m *MockAPIClient) GetMarketplaceFeatured(ctx context.Context) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"featured_templates": []map[string]interface{}{},
+		"total_count":        0,
+	}, nil
+}
+
+func (m *MockAPIClient) GetMarketplaceTrending(ctx context.Context) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"trending_templates": []map[string]interface{}{},
+		"total_count":        0,
+	}, nil
+}
+
+// Policy management operations - Mock implementations
+
+func (m *MockAPIClient) GetPolicyStatus(ctx context.Context) (*client.PolicyStatusResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &client.PolicyStatusResponse{
+		Enabled:          true,
+		Status:           "active",
+		StatusIcon:       "✅",
+		AssignedPolicies: []string{"default"},
+		Message:          "Policy enforcement active (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) ListPolicySets(ctx context.Context) (*client.PolicySetsResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &client.PolicySetsResponse{
+		PolicySets: map[string]client.PolicySetInfo{
+			"default": {
+				ID:          "default",
+				Name:        "Default Policy Set",
+				Description: "Mock default policy set",
+				Policies:    5,
+				Status:      "active",
+			},
+		},
+	}, nil
+}
+
+func (m *MockAPIClient) AssignPolicySet(ctx context.Context, policySet string) (*client.PolicyAssignResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &client.PolicyAssignResponse{
+		Success:           true,
+		Message:           "Policy set assigned successfully (mock)",
+		AssignedPolicySet: policySet,
+		EnforcementStatus: "active",
+	}, nil
+}
+
+func (m *MockAPIClient) SetPolicyEnforcement(ctx context.Context, enabled bool) (*client.PolicyEnforcementResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	status := "disabled"
+	if enabled {
+		status = "enabled"
+	}
+	return &client.PolicyEnforcementResponse{
+		Success: true,
+		Message: fmt.Sprintf("Policy enforcement %s (mock)", status),
+		Enabled: enabled,
+		Status:  status,
+	}, nil
+}
+
+func (m *MockAPIClient) CheckTemplateAccess(ctx context.Context, templateName string) (*client.PolicyCheckResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &client.PolicyCheckResponse{
+		Allowed:         true,
+		TemplateName:    templateName,
+		Reason:          "Template access allowed (mock)",
+		MatchedPolicies: []string{"default"},
+		Suggestions:     []string{},
+	}, nil
+}
+
+// Universal AMI System operations - Mock implementations
+
+func (m *MockAPIClient) ResolveAMI(ctx context.Context, templateName string, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"template_name":                templateName,
+		"target_region":                "us-east-1",
+		"resolution_method":            "fallback_script",
+		"ami_id":                       "",
+		"launch_time_estimate_seconds": 355,
+		"cost_savings":                 0.0,
+		"warning":                      "No AMI configuration found, using script provisioning (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) TestAMIAvailability(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	templateName := "mock-template"
+	if name, ok := request["template_name"].(string); ok {
+		templateName = name
+	}
+	return map[string]interface{}{
+		"template_name":     templateName,
+		"overall_status":    "passed",
+		"tested_at":         time.Now(),
+		"total_regions":     4,
+		"available_regions": 4,
+		"region_results": map[string]interface{}{
+			"us-east-1":  map[string]interface{}{"status": "passed"},
+			"us-west-2":  map[string]interface{}{"status": "passed"},
+			"eu-west-1":  map[string]interface{}{"status": "passed"},
+			"ap-south-1": map[string]interface{}{"status": "passed"},
+		},
+	}, nil
+}
+
+func (m *MockAPIClient) GetAMICosts(ctx context.Context, templateName string) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"template_name":      templateName,
+		"region":             "us-east-1",
+		"recommendation":     "neutral",
+		"reasoning":          "Both AMI and script provisioning have similar cost/benefit profiles (mock)",
+		"ami_launch_cost":    0.0336,
+		"ami_storage_cost":   0.8000,
+		"ami_setup_cost":     0.0003,
+		"script_launch_cost": 0.0336,
+		"script_setup_cost":  0.0033,
+		"script_setup_time":  5,
+		"break_even_point":   2.7,
+		"cost_savings_1h":    0.0000,
+		"cost_savings_8h":    0.0000,
+		"time_savings":       5,
+	}, nil
+}
+
+func (m *MockAPIClient) PreviewAMIResolution(ctx context.Context, templateName string) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"template_name":                templateName,
+		"target_region":                "us-east-1",
+		"resolution_method":            "fallback_script",
+		"launch_time_estimate_seconds": 355,
+		"fallback_chain":               []string{"no_ami_config", "script_fallback"},
+		"warning":                      "No AMI available, would use script provisioning (mock)",
+	}, nil
+}
+
+// AMI Creation operations - Mock implementations
+
+func (m *MockAPIClient) CreateAMI(ctx context.Context, request types.AMICreationRequest) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"creation_id":                  fmt.Sprintf("ami-creation-%s-mock", request.TemplateName),
+		"ami_id":                       "ami-mocktest123456789",
+		"template_name":                request.TemplateName,
+		"instance_id":                  request.InstanceID,
+		"target_regions":               request.MultiRegion,
+		"status":                       "pending",
+		"message":                      "AMI creation initiated successfully (mock)",
+		"estimated_completion_minutes": 12,
+		"storage_cost":                 8.50,
+		"creation_cost":                0.025,
+	}, nil
+}
+
+func (m *MockAPIClient) GetAMIStatus(ctx context.Context, creationID string) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"creation_id":                  creationID,
+		"ami_id":                       "ami-mocktest123456789",
+		"status":                       "in_progress",
+		"progress":                     75,
+		"message":                      "AMI creation in progress - creating snapshot (mock)",
+		"estimated_completion_minutes": 3,
+		"elapsed_time_minutes":         9,
+		"storage_cost":                 8.50,
+		"creation_cost":                0.025,
+	}, nil
+}
+
+func (m *MockAPIClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"user_amis": []map[string]interface{}{
+			{
+				"ami_id":        "ami-mocktest123456789",
+				"name":          "mock-custom-env",
+				"description":   "Mock custom environment",
+				"architecture":  "x86_64",
+				"owner":         "123456789012",
+				"creation_date": "2024-12-01T15:30:00Z",
+				"public":        false,
+				"tags": map[string]string{
+					"CloudWorkstation": "true",
+					"Template":         "mock-template",
+					"Creator":          "mock-user",
+				},
+			},
+		},
+		"total_count":  1,
+		"storage_cost": 8.50,
+	}, nil
+}
