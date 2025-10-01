@@ -83,6 +83,12 @@ type Instance struct {
 	Runtime           float64 `json:"runtime,omitempty"` // Hours since launch
 	StorageGB         float64 `json:"storage_gb,omitempty"`
 	StorageUsedGB     float64 `json:"storage_used_gb,omitempty"`
+
+	// Universal AMI System fields (Phase 5.1)
+	AMIResolutionMethod string        `json:"ami_resolution_method,omitempty"` // How AMI was resolved
+	AMIID               string        `json:"ami_id,omitempty"`                // AMI used for launch
+	CostSavings         float64       `json:"cost_savings,omitempty"`          // Cost savings vs script
+	BootTime            time.Duration `json:"boot_time,omitempty"`             // Time to boot from AMI
 }
 
 // IdleDetection represents idle detection configuration for an instance

@@ -840,3 +840,87 @@ func (c *HTTPClient) GetProjectResourceUsage(ctx context.Context, projectID stri
 
 	return &usage, nil
 }
+
+// Universal AMI System methods (Phase 5.1 Week 2)
+
+// ResolveAMI resolves AMI for a template
+func (c *HTTPClient) ResolveAMI(ctx context.Context, templateName string, params map[string]interface{}) (map[string]interface{}, error) {
+	var queryParams url.Values
+	if params != nil {
+		queryParams = url.Values{}
+		if details, ok := params["details"].(bool); ok && details {
+			queryParams.Set("details", "true")
+		}
+		if region, ok := params["region"].(string); ok && region != "" {
+			queryParams.Set("region", region)
+		}
+	}
+
+	path := fmt.Sprintf("/api/v1/ami/resolve/%s", templateName)
+	if queryParams != nil && len(queryParams) > 0 {
+		path += "?" + queryParams.Encode()
+	}
+
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// TestAMIAvailability tests AMI availability across regions
+func (c *HTTPClient) TestAMIAvailability(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	path := "/api/v1/ami/test"
+
+	resp, err := c.makeRequest(ctx, "POST", path, request)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetAMICosts provides cost analysis for AMI vs script deployment
+func (c *HTTPClient) GetAMICosts(ctx context.Context, templateName string) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/api/v1/ami/costs/%s", templateName)
+
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// PreviewAMIResolution shows what would happen during AMI resolution
+func (c *HTTPClient) PreviewAMIResolution(ctx context.Context, templateName string) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/api/v1/ami/preview/%s", templateName)
+
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

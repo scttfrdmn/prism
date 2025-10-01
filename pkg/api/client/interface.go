@@ -84,6 +84,13 @@ type CloudWorkstationAPI interface {
 	GetProjectCostBreakdown(context.Context, string, time.Time, time.Time) (*types.ProjectCostBreakdown, error)
 	GetProjectResourceUsage(context.Context, string, time.Duration) (*types.ProjectResourceUsage, error)
 
+	// Policy management operations (Phase 5A.5)
+	GetPolicyStatus(context.Context) (*PolicyStatusResponse, error)
+	ListPolicySets(context.Context) (*PolicySetsResponse, error)
+	AssignPolicySet(context.Context, string) (*PolicyAssignResponse, error)
+	SetPolicyEnforcement(context.Context, bool) (*PolicyEnforcementResponse, error)
+	CheckTemplateAccess(context.Context, string) (*PolicyCheckResponse, error)
+
 	// Idle policy operations
 	ListIdlePolicies(context.Context) ([]*idle.PolicyTemplate, error)
 	GetIdlePolicy(context.Context, string) (*idle.PolicyTemplate, error)
@@ -106,6 +113,12 @@ type CloudWorkstationAPI interface {
 	SetRegistryStatus(context.Context, bool) error
 	LookupAMI(context.Context, string, string, string) (*AMIReferenceResponse, error)
 	ListTemplateAMIs(context.Context, string) ([]AMIReferenceResponse, error)
+
+	// Universal AMI System operations (Phase 5.1 Week 2)
+	ResolveAMI(context.Context, string, map[string]interface{}) (map[string]interface{}, error)
+	TestAMIAvailability(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	GetAMICosts(context.Context, string) (map[string]interface{}, error)
+	PreviewAMIResolution(context.Context, string) (map[string]interface{}, error)
 }
 
 // Registry-specific response types for API operations
@@ -153,4 +166,55 @@ type AMIReferenceResponse struct {
 
 	// Tags contains metadata tags for the AMI
 	Tags map[string]string `json:"tags,omitempty"`
+}
+
+// Policy management response types (Phase 5A.5)
+
+// PolicyStatusResponse represents the policy enforcement status
+type PolicyStatusResponse struct {
+	Enabled          bool     `json:"enabled"`
+	Status           string   `json:"status"`
+	StatusIcon       string   `json:"status_icon"`
+	AssignedPolicies []string `json:"assigned_policies"`
+	Message          string   `json:"message,omitempty"`
+}
+
+// PolicySetsResponse represents available policy sets
+type PolicySetsResponse struct {
+	PolicySets map[string]PolicySetInfo `json:"policy_sets"`
+}
+
+// PolicySetInfo provides information about a policy set
+type PolicySetInfo struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Policies    int               `json:"policies"`
+	Status      string            `json:"status"`
+	Tags        map[string]string `json:"tags,omitempty"`
+}
+
+// PolicyAssignResponse represents the response to a policy assignment
+type PolicyAssignResponse struct {
+	Success           bool   `json:"success"`
+	Message           string `json:"message"`
+	AssignedPolicySet string `json:"assigned_policy_set"`
+	EnforcementStatus string `json:"enforcement_status"`
+}
+
+// PolicyEnforcementResponse represents the response to enforcement changes
+type PolicyEnforcementResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Enabled bool   `json:"enabled"`
+	Status  string `json:"status"`
+}
+
+// PolicyCheckResponse represents the result of a policy check
+type PolicyCheckResponse struct {
+	Allowed         bool     `json:"allowed"`
+	TemplateName    string   `json:"template_name"`
+	Reason          string   `json:"reason"`
+	MatchedPolicies []string `json:"matched_policies,omitempty"`
+	Suggestions     []string `json:"suggestions,omitempty"`
 }

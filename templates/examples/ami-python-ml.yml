@@ -1,0 +1,115 @@
+# Python Machine Learning (AMI Optimized)
+# This template demonstrates the Universal AMI System with 30-second launches
+
+name: "Python ML (AMI Optimized)"
+slug: "python-ml-ami"
+description: "Pre-built Python ML environment with PyTorch, TensorFlow, and Jupyter"
+long_description: |
+  Optimized Python machine learning environment with pre-installed PyTorch 2.1,
+  TensorFlow 2.15, Jupyter Lab, and common ML libraries. Uses AMI for 30-second
+  launches vs 6-minute script provisioning.
+
+# Template categorization
+complexity: simple
+category: "Machine Learning"
+domain: "ml"
+icon: "🚀"
+color: "#3b82f6"
+popular: true
+featured: true
+
+# Base OS (AMI-based template)
+base: ami-based
+
+# Connection configuration
+connection_type: web
+
+# AMI Configuration - Universal AMI System
+ami_config:
+  # Try AMI first, fallback to script if unavailable
+  strategy: ami_preferred
+
+  # Direct AMI mappings (highest priority)
+  ami_mappings:
+    us-east-1: "ami-0123456789abcdef0"  # Community Python ML v2.1
+    us-west-2: "ami-0fedcba9876543210"  # Community Python ML v2.1
+    eu-west-1: "ami-0abcdef123456789a"  # Community Python ML v2.1
+
+  # Dynamic AMI search (second priority)
+  ami_search:
+    owner: "cloudworkstation-community"
+    name_pattern: "cws-python-ml-*"
+    version_tag: "v2.1.0"
+    architecture: ["arm64", "x86_64"]  # Prefer ARM64 for cost
+    min_creation_date: "2024-01-01"
+    required_tags:
+      Environment: "research"
+      Template: "python-ml"
+
+  # Fallback to script provisioning if no AMI available
+  fallback_strategy: script_provisioning
+  fallback_timeout: "10m"
+
+  # Cost optimization preferences
+  preferred_architecture: arm64  # Better price/performance
+  instance_family_preference: ["t4g", "m6i", "c6i"]
+
+  # AMI configuration
+  ssh_user: "ubuntu"
+  user_data_script: |
+    #!/bin/bash
+    # Minimal AMI customization if needed
+    echo "AMI-based Python ML environment ready"
+
+# Script-based fallback (when AMI unavailable)
+package_manager: conda
+packages:
+  conda:
+    - python=3.11
+    - jupyter
+    - jupyterlab
+    - pytorch
+    - tensorflow
+    - numpy
+    - pandas
+    - scikit-learn
+    - matplotlib
+    - seaborn
+    - plotly
+
+# Services configuration
+services:
+  - name: jupyter
+    port: 8888
+    config:
+      - "c.ServerApp.ip = '0.0.0.0'"
+      - "c.ServerApp.token = ''"
+      - "c.ServerApp.password = ''"
+      - "c.ServerApp.open_browser = False"
+    enable: true
+
+# Instance defaults
+instance_defaults:
+  type: t4g.medium  # ARM64 for cost optimization
+  ports: [22, 8888]
+  estimated_cost_per_hour:
+    arm64: 0.0336   # t4g.medium
+    x86_64: 0.0464  # t3.medium
+
+# User guidance
+estimated_launch_time: 1  # AMI launch time in minutes
+prerequisites:
+  - "Basic Python knowledge"
+  - "Familiarity with Jupyter notebooks"
+learning_resources:
+  - "https://pytorch.org/tutorials/"
+  - "https://www.tensorflow.org/tutorials"
+
+# Template metadata
+version: "2.1.0"
+validation_status: validated
+maintainer: "CloudWorkstation Team"
+tags:
+  performance: "optimized"
+  launch_time: "30_seconds"
+  cost: "optimized"

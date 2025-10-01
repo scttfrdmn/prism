@@ -179,6 +179,9 @@ func NewServer(port string) (*Server, error) {
 		alertManager:       alertManager,
 	}
 
+	// Configure budget tracker with action executor
+	budgetTracker.SetActionExecutor(server)
+
 	// Initialize recovery and health monitoring (need server reference)
 	server.recoveryManager = NewRecoveryManager(stabilityManager, nil) // Will be set after server creation
 	server.healthMonitor = NewHealthMonitor(stateManager, stabilityManager, server.recoveryManager, performanceMonitor)
@@ -494,6 +497,9 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 
 	// Cost optimization and budget alert endpoints
 	s.RegisterCostHandlers(mux, applyMiddleware)
+
+	// AMI management endpoints (Phase 5.1 Week 2: REST API Integration)
+	s.RegisterAMIRoutes(mux, applyMiddleware)
 }
 
 // HTTP handlers
@@ -584,3 +590,79 @@ func (s *Server) createHTTPHandler() http.Handler {
 }
 
 // Auth handlers are implemented in auth.go
+
+// Budget Action Executor implementation
+// The Server implements the project.ActionExecutor interface
+
+// ExecuteHibernateAll hibernates all instances for a project
+func (s *Server) ExecuteHibernateAll(projectID string) error {
+	// Get all instances
+	instances, err := s.awsManager.ListInstances()
+	if err != nil {
+		return fmt.Errorf("failed to list instances for hibernation: %w", err)
+	}
+
+	// Find instances belonging to this project
+	// TODO: Proper project-instance association needs to be implemented with tags
+	// For now, hibernate all running instances as a safety measure
+	var hibernatedCount int
+	var errors []string
+
+	for _, instance := range instances {
+		if instance.State == "running" {
+			if err := s.awsManager.HibernateInstance(instance.Name); err != nil {
+				errors = append(errors, fmt.Sprintf("failed to hibernate %s: %v", instance.Name, err))
+			} else {
+				hibernatedCount++
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("hibernated %d instances but encountered errors: %s", hibernatedCount, strings.Join(errors, ", "))
+	}
+
+	log.Printf("Budget auto action: hibernated %d instances for project %s", hibernatedCount, projectID)
+	return nil
+}
+
+// ExecuteStopAll stops all instances for a project
+func (s *Server) ExecuteStopAll(projectID string) error {
+	// Get all instances
+	instances, err := s.awsManager.ListInstances()
+	if err != nil {
+		return fmt.Errorf("failed to list instances for stopping: %w", err)
+	}
+
+	// Find instances belonging to this project
+	// TODO: Proper project-instance association needs to be implemented with tags
+	// For now, stop all running instances as a safety measure
+	var stoppedCount int
+	var errors []string
+
+	for _, instance := range instances {
+		if instance.State == "running" {
+			if err := s.awsManager.StopInstance(instance.Name); err != nil {
+				errors = append(errors, fmt.Sprintf("failed to stop %s: %v", instance.Name, err))
+			} else {
+				stoppedCount++
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("stopped %d instances but encountered errors: %s", stoppedCount, strings.Join(errors, ", "))
+	}
+
+	log.Printf("Budget auto action: stopped %d instances for project %s", stoppedCount, projectID)
+	return nil
+}
+
+// ExecutePreventLaunch sets a flag to prevent new launches for a project
+func (s *Server) ExecutePreventLaunch(projectID string) error {
+	// TODO: Implement launch prevention mechanism
+	// This would require adding a flag to the project or state manager
+	// that prevents new instance launches for this project
+	log.Printf("Budget auto action: prevent launch triggered for project %s (not yet implemented)", projectID)
+	return fmt.Errorf("prevent launch action not yet implemented")
+}

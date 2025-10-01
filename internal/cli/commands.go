@@ -42,6 +42,11 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&ParameterCommand{})
 	dispatcher.RegisterCommand(&ResearchUserCommand{})
 
+	// Universal AMI System commands (Phase 5.1 Week 2)
+	dispatcher.RegisterCommand(&AMIStrategyCommand{})
+	dispatcher.RegisterCommand(&PreferScriptCommand{})
+	dispatcher.RegisterCommand(&ShowAMIResolutionCommand{})
+
 	return dispatcher
 }
 
@@ -1516,4 +1521,52 @@ func (s *TemplateDiffDisplayService) displaySummary(config *TemplateDiffConfig, 
 	}
 
 	return nil
+}
+
+// Universal AMI System Launch Commands (Phase 5.1 Week 2)
+
+// AMIStrategyCommand handles --ami-strategy flag
+type AMIStrategyCommand struct{}
+
+func (c *AMIStrategyCommand) CanHandle(arg string) bool {
+	return arg == "--ami-strategy"
+}
+
+func (c *AMIStrategyCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--ami-strategy requires a value (ami_preferred, ami_required, ami_fallback)")
+	}
+
+	strategy := args[index+1]
+	switch strategy {
+	case "ami_preferred", "ami_required", "ami_fallback":
+		req.AMIStrategy = strategy
+		return index + 1, nil
+	default:
+		return index, fmt.Errorf("invalid AMI strategy '%s'. Valid options: ami_preferred, ami_required, ami_fallback", strategy)
+	}
+}
+
+// PreferScriptCommand handles --prefer-script flag
+type PreferScriptCommand struct{}
+
+func (c *PreferScriptCommand) CanHandle(arg string) bool {
+	return arg == "--prefer-script"
+}
+
+func (c *PreferScriptCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	req.PreferScript = true
+	return index, nil
+}
+
+// ShowAMIResolutionCommand handles --show-ami-resolution flag
+type ShowAMIResolutionCommand struct{}
+
+func (c *ShowAMIResolutionCommand) CanHandle(arg string) bool {
+	return arg == "--show-ami-resolution"
+}
+
+func (c *ShowAMIResolutionCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	req.ShowAMIResolution = true
+	return index, nil
 }

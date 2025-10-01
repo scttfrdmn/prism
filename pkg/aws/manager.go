@@ -43,6 +43,9 @@ type Manager struct {
 	stateManager    StateManagerInterface
 	idleScheduler   *idle.Scheduler
 	policyManager   *idle.PolicyManager
+
+	// Universal AMI System components (Phase 5.1)
+	amiResolver     *UniversalAMIResolver
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager
@@ -99,6 +102,9 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	idleScheduler := idle.NewScheduler()
 	policyManager := idle.NewPolicyManager()
 
+	// Initialize Universal AMI System (Phase 5.1)
+	amiResolver := NewUniversalAMIResolver(ec2Client)
+
 	manager := &Manager{
 		cfg:             cfg,
 		ec2:             ec2Client,
@@ -113,6 +119,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		stateManager:    stateManager,
 		idleScheduler:   idleScheduler,
 		policyManager:   policyManager,
+		amiResolver:     amiResolver,
 	}
 
 	// Start the idle scheduler

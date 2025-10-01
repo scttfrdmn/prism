@@ -91,19 +91,59 @@ type PackageDefinitions struct {
 	Pip    []string `yaml:"pip,omitempty" json:"pip,omitempty"`       // pip packages (when conda used)
 }
 
-// AMIConfig defines AMI-based template configuration
+// AMIConfig defines AMI-based template configuration for Universal AMI System
 type AMIConfig struct {
-	// AMI IDs for different regions and architectures
-	AMIs map[string]map[string]string `yaml:"amis" json:"amis"` // region -> arch -> AMI ID
+	// AMI deployment strategy
+	Strategy AMIStrategy `yaml:"strategy,omitempty" json:"strategy,omitempty"` // ami_preferred, ami_required, ami_fallback
 
-	// Instance type overrides for different architectures
-	InstanceTypes map[string]string `yaml:"instance_types,omitempty" json:"instance_types,omitempty"` // arch -> instance type
+	// Direct AMI mappings (highest priority resolution)
+	AMIMappings map[string]string `yaml:"ami_mappings,omitempty" json:"ami_mappings,omitempty"` // region -> AMI ID
 
-	// Optional user data script for AMI customization
-	UserDataScript string `yaml:"user_data_script,omitempty" json:"user_data_script,omitempty"`
+	// Dynamic AMI search configuration (second priority)
+	AMISearch *AMISearchConfig `yaml:"ami_search,omitempty" json:"ami_search,omitempty"`
 
-	// SSH username for the AMI (varies by image)
-	SSHUser string `yaml:"ssh_user,omitempty" json:"ssh_user,omitempty"`
+	// AWS Marketplace search configuration (third priority)
+	MarketplaceSearch *MarketplaceSearchConfig `yaml:"marketplace_search,omitempty" json:"marketplace_search,omitempty"`
+
+	// Fallback behavior when no AMI available
+	FallbackStrategy string `yaml:"fallback_strategy,omitempty" json:"fallback_strategy,omitempty"` // script_provisioning, error, cross_region
+	FallbackTimeout  string `yaml:"fallback_timeout,omitempty" json:"fallback_timeout,omitempty"`   // Max time for AMI resolution (e.g. "10m")
+
+	// Cost and performance optimization
+	PreferredArchitecture     string   `yaml:"preferred_architecture,omitempty" json:"preferred_architecture,omitempty"`           // arm64, x86_64
+	InstanceFamilyPreference  []string `yaml:"instance_family_preference,omitempty" json:"instance_family_preference,omitempty"`   // ["t4g", "m6i", "c6i"]
+
+	// Legacy compatibility (maintains backwards compatibility)
+	AMIs               map[string]map[string]string `yaml:"amis,omitempty" json:"amis,omitempty"`                             // region -> arch -> AMI ID (legacy)
+	InstanceTypes      map[string]string            `yaml:"instance_types,omitempty" json:"instance_types,omitempty"`         // arch -> instance type (legacy)
+	UserDataScript     string                       `yaml:"user_data_script,omitempty" json:"user_data_script,omitempty"`     // Optional customization script
+	SSHUser            string                       `yaml:"ssh_user,omitempty" json:"ssh_user,omitempty"`                     // SSH username for AMI
+}
+
+// AMIStrategy defines how templates handle AMI resolution
+type AMIStrategy string
+
+const (
+	AMIStrategyPreferred AMIStrategy = "ami_preferred" // Try AMI first, fallback to script (recommended)
+	AMIStrategyRequired  AMIStrategy = "ami_required"  // AMI only, fail if unavailable
+	AMIStrategyFallback  AMIStrategy = "ami_fallback"  // Script first, AMI if script fails
+)
+
+// AMISearchConfig defines dynamic AMI discovery parameters
+type AMISearchConfig struct {
+	Owner            string   `yaml:"owner,omitempty" json:"owner,omitempty"`                         // AWS account ID or alias
+	NamePattern      string   `yaml:"name_pattern,omitempty" json:"name_pattern,omitempty"`           // AMI name pattern (e.g. "cws-python-ml-*")
+	VersionTag       string   `yaml:"version_tag,omitempty" json:"version_tag,omitempty"`             // Specific version tag
+	Architecture     []string `yaml:"architecture,omitempty" json:"architecture,omitempty"`           // ["x86_64", "arm64"]
+	MinCreationDate  string   `yaml:"min_creation_date,omitempty" json:"min_creation_date,omitempty"` // ISO date string
+	RequiredTags     map[string]string `yaml:"required_tags,omitempty" json:"required_tags,omitempty"`  // Tags that must be present
+}
+
+// MarketplaceSearchConfig defines AWS Marketplace AMI discovery
+type MarketplaceSearchConfig struct {
+	ProductCode       string `yaml:"product_code,omitempty" json:"product_code,omitempty"`             // Marketplace product code
+	VersionConstraint string `yaml:"version_constraint,omitempty" json:"version_constraint,omitempty"` // Version constraint (e.g. ">=2.0.0")
+	Publisher         string `yaml:"publisher,omitempty" json:"publisher,omitempty"`                   // Publisher filter
 }
 
 // ServiceConfig defines a service to configure and enable

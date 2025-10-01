@@ -20,7 +20,7 @@ import (
 // AMI processes AMI-related commands
 func (a *App) AMI(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing AMI command (build, list, validate, publish, save)")
+		return fmt.Errorf("missing AMI command (build, list, validate, publish, save, resolve, test, costs, preview)")
 	}
 
 	subcommand := args[0]
@@ -37,6 +37,15 @@ func (a *App) AMI(args []string) error {
 		return a.handleAMIPublish(subargs)
 	case "save":
 		return a.handleAMISave(subargs)
+	// Universal AMI System commands (Phase 5.1 Week 2)
+	case "resolve":
+		return a.handleAMIResolve(subargs)
+	case "test":
+		return a.handleAMITest(subargs)
+	case "costs":
+		return a.handleAMICosts(subargs)
+	case "preview":
+		return a.handleAMIPreview(subargs)
 	default:
 		return fmt.Errorf("unknown AMI command: %s", subcommand)
 	}
@@ -891,5 +900,299 @@ func (s *AMISaveBuilderService) displaySaveResults(result *ami.BuildResult, temp
 	fmt.Printf("\n✨ Template '%s' is now available for launching new instances:\n", templateName)
 	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
 
+	return nil
+}
+
+// Universal AMI System CLI handlers (Phase 5.1 Week 2)
+
+// handleAMIResolve resolves AMI for a template using the Universal AMI System
+func (a *App) handleAMIResolve(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami resolve <template-name> [--details] [--region <region>]")
+	}
+
+	templateName := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Prepare parameters
+	params := make(map[string]interface{})
+	if cmdArgs["details"] == "true" {
+		params["details"] = true
+	}
+	if region := cmdArgs["region"]; region != "" {
+		params["region"] = region
+	}
+
+	// Make API call
+	response, err := a.apiClient.ResolveAMI(a.ctx, templateName, params)
+	if err != nil {
+		return fmt.Errorf("failed to resolve AMI: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("🔍 AMI Resolution for template '%s'\n\n", templateName)
+	if region := cmdArgs["region"]; region != "" {
+		fmt.Printf("📍 Target region: %s\n", region)
+	}
+
+	fmt.Printf("🏗️  Resolution method: %s\n", getString(response, "resolution_method"))
+
+	if amiID := getString(response, "ami_id"); amiID != "" {
+		fmt.Printf("📀 AMI ID: %s\n", amiID)
+		fmt.Printf("🏷️  AMI Name: %s\n", getString(response, "ami_name"))
+		fmt.Printf("🏛️  Architecture: %s\n", getString(response, "ami_architecture"))
+
+		if cmdArgs["details"] == "true" {
+			if details := getMap(response, "ami_details"); details != nil {
+				fmt.Printf("\n📋 AMI Details:\n")
+				fmt.Printf("   Created: %s\n", getString(details, "creation_date"))
+				fmt.Printf("   Owner: %s\n", getString(details, "owner_id"))
+				fmt.Printf("   Platform: %s\n", getString(details, "platform"))
+				fmt.Printf("   Virtualization: %s\n", getString(details, "virtualization"))
+				fmt.Printf("   Root Device: %s\n", getString(details, "root_device"))
+
+				if cost := getFloat(details, "marketplace_cost"); cost > 0 {
+					fmt.Printf("   Marketplace Cost: $%.4f/hour\n", cost)
+				}
+			}
+		}
+	}
+
+	if estimate := getInt(response, "launch_time_estimate_seconds"); estimate > 0 {
+		fmt.Printf("⚡ Launch time estimate: %d seconds\n", estimate)
+	}
+
+	if savings := getFloat(response, "cost_savings"); savings != 0 {
+		if savings > 0 {
+			fmt.Printf("💰 Cost savings: $%.4f/hour\n", savings)
+		} else {
+			fmt.Printf("💸 Additional cost: $%.4f/hour\n", -savings)
+		}
+	}
+
+	if warning := getString(response, "warning"); warning != "" {
+		fmt.Printf("⚠️  Warning: %s\n", warning)
+	}
+
+	if cmdArgs["details"] == "true" {
+		if chain := getStringSlice(response, "fallback_chain"); len(chain) > 0 {
+			fmt.Printf("\n🔄 Fallback chain: %s\n", strings.Join(chain, " → "))
+		}
+	}
+
+	return nil
+}
+
+// handleAMITest tests AMI availability across regions for a template
+func (a *App) handleAMITest(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami test <template-name> [--regions <region1,region2,...>]")
+	}
+
+	templateName := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Prepare request body
+	request := map[string]interface{}{
+		"template_name": templateName,
+	}
+
+	if regions := cmdArgs["regions"]; regions != "" {
+		request["regions"] = strings.Split(regions, ",")
+	}
+
+	// Make API call
+	response, err := a.apiClient.TestAMIAvailability(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to test AMI availability: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("🧪 AMI Availability Test for template '%s'\n\n", templateName)
+
+	overallStatus := getString(response, "overall_status")
+	totalRegions := getInt(response, "total_regions")
+	availableRegions := getInt(response, "available_regions")
+
+	fmt.Printf("📊 Overall Status: %s\n", overallStatus)
+	fmt.Printf("🌍 Available in %d/%d regions\n\n", availableRegions, totalRegions)
+
+	// Display regional results
+	if regionResults := getMap(response, "region_results"); regionResults != nil {
+		fmt.Println("📍 Regional Results:")
+		for region, resultData := range regionResults {
+			if regionData := getMap(resultData, ""); regionData != nil {
+				status := getString(regionData, "status")
+				statusIcon := "❌"
+				if status == "passed" {
+					statusIcon = "✅"
+				}
+
+				fmt.Printf("   %s %s: %s", statusIcon, region, status)
+
+				if amiID := getString(regionData, "ami"); amiID != "" {
+					fmt.Printf(" (%s via %s)", amiID, getString(regionData, "resolution_method"))
+				}
+
+				if errorMsg := getString(regionData, "error"); errorMsg != "" {
+					fmt.Printf(" - %s", errorMsg)
+				}
+				fmt.Println()
+			}
+		}
+	}
+
+	return nil
+}
+
+// handleAMICosts provides cost analysis for AMI vs script deployment
+func (a *App) handleAMICosts(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami costs <template-name>")
+	}
+
+	templateName := args[0]
+
+	// Make API call
+	response, err := a.apiClient.GetAMICosts(a.ctx, templateName)
+	if err != nil {
+		return fmt.Errorf("failed to get cost analysis: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("💰 Cost Analysis for template '%s'\n\n", templateName)
+
+	recommendation := getString(response, "recommendation")
+	reasoning := getString(response, "reasoning")
+
+	fmt.Printf("🎯 Recommendation: %s\n", recommendation)
+	fmt.Printf("💡 Reasoning: %s\n\n", reasoning)
+
+	// AMI costs
+	fmt.Println("📀 AMI Deployment:")
+	fmt.Printf("   Setup cost: $%.4f\n", getFloat(response, "ami_setup_cost"))
+	fmt.Printf("   Storage cost: $%.4f/month\n", getFloat(response, "ami_storage_cost"))
+	fmt.Printf("   Launch cost: $%.4f/hour\n", getFloat(response, "ami_launch_cost"))
+
+	// Script costs
+	fmt.Println("\n📜 Script Deployment:")
+	fmt.Printf("   Setup cost: $%.4f\n", getFloat(response, "script_setup_cost"))
+	fmt.Printf("   Setup time: %d minutes\n", getInt(response, "script_setup_time"))
+	fmt.Printf("   Launch cost: $%.4f/hour\n", getFloat(response, "script_launch_cost"))
+
+	// Savings analysis
+	fmt.Println("\n📊 Savings Analysis:")
+	fmt.Printf("   1-hour session: $%.4f savings\n", getFloat(response, "cost_savings_1_hour"))
+	fmt.Printf("   8-hour session: $%.4f savings\n", getFloat(response, "cost_savings_8_hour"))
+	fmt.Printf("   Break-even point: %.1f hours\n", getFloat(response, "break_even_point"))
+	fmt.Printf("   Time savings: %d minutes\n", getInt(response, "time_savings"))
+
+	return nil
+}
+
+// handleAMIPreview shows what would happen during AMI resolution without executing
+func (a *App) handleAMIPreview(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami preview <template-name>")
+	}
+
+	templateName := args[0]
+
+	// Make API call
+	response, err := a.apiClient.PreviewAMIResolution(a.ctx, templateName)
+	if err != nil {
+		return fmt.Errorf("failed to preview AMI resolution: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("🔮 AMI Resolution Preview for template '%s'\n\n", templateName)
+
+	fmt.Printf("📍 Target region: %s\n", getString(response, "target_region"))
+	fmt.Printf("🏗️  Resolution method: %s\n", getString(response, "resolution_method"))
+
+	if estimate := getInt(response, "launch_time_estimate_seconds"); estimate > 0 {
+		fmt.Printf("⚡ Launch time estimate: %d seconds\n", estimate)
+	}
+
+	if chain := getStringSlice(response, "fallback_chain"); len(chain) > 0 {
+		fmt.Printf("🔄 Fallback chain: %s\n", strings.Join(chain, " → "))
+	}
+
+	if warning := getString(response, "warning"); warning != "" {
+		fmt.Printf("⚠️  Warning: %s\n", warning)
+	}
+
+	if errorMsg := getString(response, "error"); errorMsg != "" {
+		fmt.Printf("❌ Error: %s\n", errorMsg)
+	}
+
+	fmt.Println("\n💡 This is a dry-run preview. No actual AMI resolution was performed.")
+
+	return nil
+}
+
+// Helper functions for parsing API responses
+
+func getString(data interface{}, key string) string {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if str, ok := val.(string); ok {
+				return str
+			}
+		}
+	}
+	return ""
+}
+
+func getInt(data interface{}, key string) int {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if num, ok := val.(float64); ok {
+				return int(num)
+			}
+		}
+	}
+	return 0
+}
+
+func getFloat(data interface{}, key string) float64 {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if num, ok := val.(float64); ok {
+				return num
+			}
+		}
+	}
+	return 0.0
+}
+
+func getMap(data interface{}, key string) map[string]interface{} {
+	if m, ok := data.(map[string]interface{}); ok {
+		if key == "" {
+			return m
+		}
+		if val, exists := m[key]; exists {
+			if subMap, ok := val.(map[string]interface{}); ok {
+				return subMap
+			}
+		}
+	}
+	return nil
+}
+
+func getStringSlice(data interface{}, key string) []string {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if slice, ok := val.([]interface{}); ok {
+				result := make([]string, len(slice))
+				for i, item := range slice {
+					if str, ok := item.(string); ok {
+						result[i] = str
+					}
+				}
+				return result
+			}
+		}
+	}
 	return nil
 }
