@@ -464,123 +464,140 @@ func (bt *BudgetTracker) trimCostHistory(budgetData *ProjectBudgetData, cutoffTi
 	budgetData.CostHistory = trimmedHistory
 }
 
+// checkBudgetAlerts processes budget thresholds and triggers alerts/actions
 func (bt *BudgetTracker) checkBudgetAlerts(projectID string, budgetData *ProjectBudgetData) error {
 	if budgetData.Budget == nil {
 		return nil
 	}
 
-	budget := budgetData.Budget
-	spentPercentage := 0.0
-	if budget.TotalBudget > 0 {
-		spentPercentage = budget.SpentAmount / budget.TotalBudget
-	}
-
-	// Check alert thresholds - only trigger each threshold once
-	for _, alert := range budget.AlertThresholds {
-		if spentPercentage >= alert.Threshold {
-			// Check if we've already sent this specific alert threshold ever
-			alreadyTriggered := false
-			for _, event := range budgetData.AlertHistory {
-				if event.Threshold == alert.Threshold && event.AlertType == alert.Type {
-					alreadyTriggered = true
-					break
-				}
-			}
-
-			if !alreadyTriggered {
-				alertEvent := AlertEvent{
-					Timestamp:   time.Now(),
-					AlertType:   alert.Type,
-					Threshold:   alert.Threshold,
-					SpentAmount: budget.SpentAmount,
-					Message:     fmt.Sprintf("Budget alert: %.1f%% of budget spent", alert.Threshold*100),
-					Resolved:    false,
-				}
-
-				budgetData.AlertHistory = append(budgetData.AlertHistory, alertEvent)
-
-				// Deliver alert based on alert type
-				if err := bt.deliverAlert(projectID, alertEvent, alert.Recipients); err != nil {
-					// Don't fail budget processing for alert delivery errors
-					fmt.Printf("Failed to deliver budget alert: %v\n", err)
-					// Still log the alert even if delivery fails
-					if logErr := bt.logAlert(projectID, alertEvent); logErr != nil {
-						fmt.Printf("Failed to log budget alert after delivery failure: %v\n", logErr)
-					}
-				}
-			}
-		}
-	}
-
-	// Check auto actions - only trigger each action once
-	for _, action := range budget.AutoActions {
-		if spentPercentage >= action.Threshold {
-			// Check if we've already triggered this specific action threshold ever
-			alreadyTriggered := false
-			actionAlertType := types.BudgetAlertType(fmt.Sprintf("action_%s", action.Action))
-			for _, event := range budgetData.AlertHistory {
-				if event.Threshold == action.Threshold && event.AlertType == actionAlertType {
-					alreadyTriggered = true
-					break
-				}
-			}
-
-			if !alreadyTriggered {
-				// Execute the auto action if executor is available
-				var actionErr error
-				var actionMessage string
-
-				if bt.actionExecutor != nil {
-					switch action.Action {
-					case types.BudgetActionHibernateAll:
-						actionErr = bt.actionExecutor.ExecuteHibernateAll(projectID)
-						if actionErr != nil {
-							actionMessage = fmt.Sprintf("Auto action failed: hibernate_all at %.1f%% budget - %v", action.Threshold*100, actionErr)
-						} else {
-							actionMessage = fmt.Sprintf("Auto action executed: hibernated all instances at %.1f%% budget", action.Threshold*100)
-						}
-					case types.BudgetActionStopAll:
-						actionErr = bt.actionExecutor.ExecuteStopAll(projectID)
-						if actionErr != nil {
-							actionMessage = fmt.Sprintf("Auto action failed: stop_all at %.1f%% budget - %v", action.Threshold*100, actionErr)
-						} else {
-							actionMessage = fmt.Sprintf("Auto action executed: stopped all instances at %.1f%% budget", action.Threshold*100)
-						}
-					case types.BudgetActionPreventLaunch:
-						actionErr = bt.actionExecutor.ExecutePreventLaunch(projectID)
-						if actionErr != nil {
-							actionMessage = fmt.Sprintf("Auto action failed: prevent_launch at %.1f%% budget - %v", action.Threshold*100, actionErr)
-						} else {
-							actionMessage = fmt.Sprintf("Auto action executed: prevented new launches at %.1f%% budget", action.Threshold*100)
-						}
-					case types.BudgetActionNotifyOnly:
-						// No action to execute, just notification
-						actionMessage = fmt.Sprintf("Budget notification: %.1f%% budget reached", action.Threshold*100)
-					default:
-						actionErr = fmt.Errorf("unknown action type: %s", action.Action)
-						actionMessage = fmt.Sprintf("Auto action failed: unknown action %s at %.1f%% budget", action.Action, action.Threshold*100)
-					}
-				} else {
-					// No executor available - log warning but still record the event
-					fmt.Printf("Warning: Budget auto action executor not set, skipping action %s for project %s\n", action.Action, projectID)
-					actionMessage = fmt.Sprintf("Auto action skipped: %s at %.1f%% budget (no executor)", action.Action, action.Threshold*100)
-				}
-
-				// Record the action attempt in alert history
-				actionEvent := AlertEvent{
-					Timestamp:   time.Now(),
-					AlertType:   actionAlertType,
-					Threshold:   action.Threshold,
-					SpentAmount: budget.SpentAmount,
-					Message:     actionMessage,
-					Resolved:    actionErr == nil, // Mark resolved if action succeeded
-				}
-				budgetData.AlertHistory = append(budgetData.AlertHistory, actionEvent)
-			}
-		}
-	}
+	spentPercentage := bt.calculateSpentPercentage(budgetData.Budget)
+	bt.processAlertThresholds(projectID, budgetData, spentPercentage)
+	bt.processAutoActions(projectID, budgetData, spentPercentage)
 
 	return nil
+}
+
+// calculateSpentPercentage computes the percentage of budget spent
+func (bt *BudgetTracker) calculateSpentPercentage(budget *types.ProjectBudget) float64 {
+	if budget.TotalBudget <= 0 {
+		return 0.0
+	}
+	return budget.SpentAmount / budget.TotalBudget
+}
+
+// processAlertThresholds handles alert threshold processing
+func (bt *BudgetTracker) processAlertThresholds(projectID string, budgetData *ProjectBudgetData, spentPercentage float64) {
+	for _, alert := range budgetData.Budget.AlertThresholds {
+		if spentPercentage >= alert.Threshold {
+			if !bt.isAlertAlreadyTriggered(budgetData, alert.Threshold, alert.Type) {
+				bt.triggerAlert(projectID, budgetData, alert)
+			}
+		}
+	}
+}
+
+// processAutoActions handles automatic action processing
+func (bt *BudgetTracker) processAutoActions(projectID string, budgetData *ProjectBudgetData, spentPercentage float64) {
+	for _, action := range budgetData.Budget.AutoActions {
+		if spentPercentage >= action.Threshold {
+			actionAlertType := types.BudgetAlertType(fmt.Sprintf("action_%s", action.Action))
+			if !bt.isAlertAlreadyTriggered(budgetData, action.Threshold, actionAlertType) {
+				bt.executeAutoAction(projectID, budgetData, action, actionAlertType)
+			}
+		}
+	}
+}
+
+// isAlertAlreadyTriggered checks if an alert threshold has been triggered before
+func (bt *BudgetTracker) isAlertAlreadyTriggered(budgetData *ProjectBudgetData, threshold float64, alertType types.BudgetAlertType) bool {
+	for _, event := range budgetData.AlertHistory {
+		if event.Threshold == threshold && event.AlertType == alertType {
+			return true
+		}
+	}
+	return false
+}
+
+// triggerAlert creates and delivers an alert event
+func (bt *BudgetTracker) triggerAlert(projectID string, budgetData *ProjectBudgetData, alert types.BudgetAlert) {
+	alertEvent := AlertEvent{
+		Timestamp:   time.Now(),
+		AlertType:   alert.Type,
+		Threshold:   alert.Threshold,
+		SpentAmount: budgetData.Budget.SpentAmount,
+		Message:     fmt.Sprintf("Budget alert: %.1f%% of budget spent", alert.Threshold*100),
+		Resolved:    false,
+	}
+
+	budgetData.AlertHistory = append(budgetData.AlertHistory, alertEvent)
+
+	if err := bt.deliverAlert(projectID, alertEvent, alert.Recipients); err != nil {
+		fmt.Printf("Failed to deliver budget alert: %v\n", err)
+		if logErr := bt.logAlert(projectID, alertEvent); logErr != nil {
+			fmt.Printf("Failed to log budget alert after delivery failure: %v\n", logErr)
+		}
+	}
+}
+
+// executeAutoAction performs automatic budget actions
+func (bt *BudgetTracker) executeAutoAction(projectID string, budgetData *ProjectBudgetData, action types.BudgetAutoAction, actionAlertType types.BudgetAlertType) {
+	actionErr, actionMessage := bt.performActionExecution(projectID, action)
+
+	actionEvent := AlertEvent{
+		Timestamp:   time.Now(),
+		AlertType:   actionAlertType,
+		Threshold:   action.Threshold,
+		SpentAmount: budgetData.Budget.SpentAmount,
+		Message:     actionMessage,
+		Resolved:    actionErr == nil,
+	}
+	budgetData.AlertHistory = append(budgetData.AlertHistory, actionEvent)
+}
+
+// performActionExecution executes the specific action type
+func (bt *BudgetTracker) performActionExecution(projectID string, action types.BudgetAutoAction) (error, string) {
+	if bt.actionExecutor == nil {
+		fmt.Printf("Warning: Budget auto action executor not set, skipping action %s for project %s\n", action.Action, projectID)
+		return nil, fmt.Sprintf("Auto action skipped: %s at %.1f%% budget (no executor)", action.Action, action.Threshold*100)
+	}
+
+	switch action.Action {
+	case types.BudgetActionHibernateAll:
+		return bt.executeHibernateAllAction(projectID, action.Threshold)
+	case types.BudgetActionStopAll:
+		return bt.executeStopAllAction(projectID, action.Threshold)
+	case types.BudgetActionPreventLaunch:
+		return bt.executePreventLaunchAction(projectID, action.Threshold)
+	case types.BudgetActionNotifyOnly:
+		return nil, fmt.Sprintf("Budget notification: %.1f%% budget reached", action.Threshold*100)
+	default:
+		err := fmt.Errorf("unknown action type: %s", action.Action)
+		return err, fmt.Sprintf("Auto action failed: unknown action %s at %.1f%% budget", action.Action, action.Threshold*100)
+	}
+}
+
+// executeHibernateAllAction performs hibernate all instances action
+func (bt *BudgetTracker) executeHibernateAllAction(projectID string, threshold float64) (error, string) {
+	if err := bt.actionExecutor.ExecuteHibernateAll(projectID); err != nil {
+		return err, fmt.Sprintf("Auto action failed: hibernate_all at %.1f%% budget - %v", threshold*100, err)
+	}
+	return nil, fmt.Sprintf("Auto action executed: hibernated all instances at %.1f%% budget", threshold*100)
+}
+
+// executeStopAllAction performs stop all instances action
+func (bt *BudgetTracker) executeStopAllAction(projectID string, threshold float64) (error, string) {
+	if err := bt.actionExecutor.ExecuteStopAll(projectID); err != nil {
+		return err, fmt.Sprintf("Auto action failed: stop_all at %.1f%% budget - %v", threshold*100, err)
+	}
+	return nil, fmt.Sprintf("Auto action executed: stopped all instances at %.1f%% budget", threshold*100)
+}
+
+// executePreventLaunchAction performs prevent launch action
+func (bt *BudgetTracker) executePreventLaunchAction(projectID string, threshold float64) (error, string) {
+	if err := bt.actionExecutor.ExecutePreventLaunch(projectID); err != nil {
+		return err, fmt.Sprintf("Auto action failed: prevent_launch at %.1f%% budget - %v", threshold*100, err)
+	}
+	return nil, fmt.Sprintf("Auto action executed: prevented new launches at %.1f%% budget", threshold*100)
 }
 
 func (bt *BudgetTracker) getActiveAlerts(budgetData *ProjectBudgetData) []string {
