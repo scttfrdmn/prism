@@ -11,6 +11,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Pre-compiled regular expressions for better performance
+var (
+	// slugSpecialCharsRegex removes special characters from slugs
+	slugSpecialCharsRegex = regexp.MustCompile(`[^a-z0-9\s-]+`)
+	// slugSpaceDashRegex replaces spaces and multiple dashes with single dash
+	slugSpaceDashRegex = regexp.MustCompile(`[\s-]+`)
+)
+
 // NewTemplateParser creates a new template parser
 func NewTemplateParser() *TemplateParser {
 	return &TemplateParser{
@@ -617,12 +625,10 @@ func generateSlugFromName(name string) string {
 	}
 
 	// Remove special characters and replace spaces/multiple dashes with single dash
-	reg := regexp.MustCompile(`[^a-z0-9\s-]+`)
-	slug = reg.ReplaceAllString(slug, "")
+	slug = slugSpecialCharsRegex.ReplaceAllString(slug, "")
 
 	// Replace spaces and multiple dashes with single dash
-	reg = regexp.MustCompile(`[\s-]+`)
-	slug = reg.ReplaceAllString(slug, "-")
+	slug = slugSpaceDashRegex.ReplaceAllString(slug, "-")
 
 	// Remove leading/trailing dashes
 	slug = strings.Trim(slug, "-")

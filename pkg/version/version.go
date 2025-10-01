@@ -9,6 +9,7 @@ package version
 import (
 	"fmt"
 	"runtime/debug"
+	"strings"
 )
 
 // These variables are populated by the build system.
@@ -54,62 +55,51 @@ func init() {
 
 // GetVersionInfo returns a formatted string with version information.
 func GetVersionInfo() string {
-	result := fmt.Sprintf("CloudWorkstation v%s", Version)
-	if GitCommit != "" {
-		commitLen := len(GitCommit)
-		if commitLen > 8 {
-			commitLen = 8
-		}
-		result += fmt.Sprintf(" (commit: %s", GitCommit[:commitLen])
-		if BuildDate != "" {
-			result += fmt.Sprintf(", built: %s", BuildDate)
-		}
-		result += ")"
-	}
-	if GoVersion != "" {
-		result += fmt.Sprintf(" [%s]", GoVersion)
-	}
-	return result
+	return buildVersionString("CloudWorkstation")
 }
 
 // GetCLIVersionInfo returns version info specifically for the CLI component.
 func GetCLIVersionInfo() string {
-	result := fmt.Sprintf("CloudWorkstation CLI v%s", Version)
-	if GitCommit != "" {
-		commitLen := len(GitCommit)
-		if commitLen > 8 {
-			commitLen = 8
-		}
-		result += fmt.Sprintf(" (commit: %s", GitCommit[:commitLen])
-		if BuildDate != "" {
-			result += fmt.Sprintf(", built: %s", BuildDate)
-		}
-		result += ")"
-	}
-	if GoVersion != "" {
-		result += fmt.Sprintf(" [%s]", GoVersion)
-	}
-	return result
+	return buildVersionString("CloudWorkstation CLI")
 }
 
 // GetDaemonVersionInfo returns version info specifically for the daemon component.
 func GetDaemonVersionInfo() string {
-	result := fmt.Sprintf("CloudWorkstation Daemon v%s", Version)
+	return buildVersionString("CloudWorkstation Daemon")
+}
+
+// buildVersionString constructs optimized version string using strings.Builder
+func buildVersionString(component string) string {
+	var builder strings.Builder
+	// Pre-allocate capacity for typical version string length
+	builder.Grow(len(component) + len(Version) + 50)
+
+	builder.WriteString(component)
+	builder.WriteString(" v")
+	builder.WriteString(Version)
+
 	if GitCommit != "" {
+		builder.WriteString(" (commit: ")
 		commitLen := len(GitCommit)
 		if commitLen > 8 {
 			commitLen = 8
 		}
-		result += fmt.Sprintf(" (commit: %s", GitCommit[:commitLen])
+		builder.WriteString(GitCommit[:commitLen])
+
 		if BuildDate != "" {
-			result += fmt.Sprintf(", built: %s", BuildDate)
+			builder.WriteString(", built: ")
+			builder.WriteString(BuildDate)
 		}
-		result += ")"
+		builder.WriteByte(')')
 	}
+
 	if GoVersion != "" {
-		result += fmt.Sprintf(" [%s]", GoVersion)
+		builder.WriteString(" [")
+		builder.WriteString(GoVersion)
+		builder.WriteByte(']')
 	}
-	return result
+
+	return builder.String()
 }
 
 // GetVersion returns just the version number.
