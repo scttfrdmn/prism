@@ -7,9 +7,6 @@
 <p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments for researchers</strong></p>
 
 <p align="center">
-  <a href="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/dependency-scan.yml">
-    <img src="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/dependency-scan.yml/badge.svg" alt="Dependency Scan">
-  </a>
   <a href="https://github.com/scttfrdmn/cloudworkstation/releases/latest">
     <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/scttfrdmn/cloudworkstation">
   </a>
