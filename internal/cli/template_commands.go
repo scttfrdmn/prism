@@ -615,18 +615,36 @@ func (tc *TemplateCommands) templatesFeatured(args []string) error {
 }
 
 // templatesDiscover helps users discover templates by category
+// templatesDiscover shows organized template discovery interface
 func (tc *TemplateCommands) templatesDiscover(args []string) error {
-	// Get all templates
-	if err := tc.app.ensureDaemonRunning(); err != nil {
+	searchTemplates, err := tc.fetchTemplateDataForDiscovery()
+	if err != nil {
 		return err
+	}
+
+	categories := templates.GetCategories(searchTemplates)
+	domains := templates.GetDomains(searchTemplates)
+
+	tc.displayDiscoveryHeader()
+	tc.displayTemplatesByCategory(searchTemplates, categories)
+	tc.displayTemplatesByDomain(searchTemplates, domains)
+	tc.displayPopularTemplates(searchTemplates)
+	tc.displayDiscoveryTips()
+
+	return nil
+}
+
+// fetchTemplateDataForDiscovery retrieves and processes template data
+func (tc *TemplateCommands) fetchTemplateDataForDiscovery() (map[string]*templates.Template, error) {
+	if err := tc.app.ensureDaemonRunning(); err != nil {
+		return nil, err
 	}
 
 	apiTemplates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
 	if err != nil {
-		return WrapAPIError("list templates", err)
+		return nil, WrapAPIError("list templates", err)
 	}
 
-	// Convert to full templates for metadata
 	searchTemplates := make(map[string]*templates.Template)
 	for name := range apiTemplates {
 		rawTemplate, _ := templates.GetTemplateInfo(name)
@@ -635,102 +653,132 @@ func (tc *TemplateCommands) templatesDiscover(args []string) error {
 		}
 	}
 
-	// Get unique categories and domains
-	categories := templates.GetCategories(searchTemplates)
-	domains := templates.GetDomains(searchTemplates)
+	return searchTemplates, nil
+}
 
+// displayDiscoveryHeader shows the discovery page header
+func (tc *TemplateCommands) displayDiscoveryHeader() {
 	fmt.Println("🔍 Discover CloudWorkstation Templates")
 	fmt.Println()
+}
 
-	// Show templates by category
-	if len(categories) > 0 {
-		fmt.Println("📂 Templates by Category:")
-		for _, category := range categories {
-			fmt.Printf("\n  📁 %s:\n", category)
-
-			// Find templates in this category
-			for name, tmpl := range searchTemplates {
-				if tmpl.Category == category {
-					icon := tmpl.Icon
-					if icon == "" {
-						icon = "•"
-					}
-					fmt.Printf("     %s %s", icon, name)
-					if tmpl.Popular {
-						fmt.Printf(" 🔥")
-					}
-					if tmpl.Featured {
-						fmt.Printf(" ⭐")
-					}
-					fmt.Println()
-				}
-			}
-		}
-		fmt.Println()
+// displayTemplatesByCategory shows templates organized by category
+func (tc *TemplateCommands) displayTemplatesByCategory(searchTemplates map[string]*templates.Template, categories []string) {
+	if len(categories) == 0 {
+		return
 	}
 
-	// Show templates by domain
-	if len(domains) > 0 {
-		fmt.Println("🔬 Templates by Research Domain:")
-		for _, domain := range domains {
-			// Map domain codes to friendly names
-			domainName := domain
-			switch domain {
-			case "ml":
-				domainName = "Machine Learning"
-			case "datascience":
-				domainName = "Data Science"
-			case "bio":
-				domainName = "Bioinformatics"
-			case "web":
-				domainName = "Web Development"
-			case "base":
-				domainName = "Base Systems"
-			}
+	fmt.Println("📂 Templates by Category:")
+	for _, category := range categories {
+		fmt.Printf("\n  📁 %s:\n", category)
+		tc.displayTemplatesInCategory(searchTemplates, category)
+	}
+	fmt.Println()
+}
 
-			fmt.Printf("\n  🔬 %s:\n", domainName)
-
-			// Find templates in this domain
-			for name, tmpl := range searchTemplates {
-				if tmpl.Domain == domain {
-					fmt.Printf("     • %s", name)
-					if tmpl.Complexity != "" {
-						fmt.Printf(" [%s]", tmpl.Complexity)
-					}
-					fmt.Println()
-				}
-			}
+// displayTemplatesInCategory shows templates for a specific category
+func (tc *TemplateCommands) displayTemplatesInCategory(searchTemplates map[string]*templates.Template, category string) {
+	for name, tmpl := range searchTemplates {
+		if tmpl.Category == category {
+			icon := tc.getTemplateIcon(tmpl.Icon)
+			fmt.Printf("     %s %s", icon, name)
+			tc.displayTemplateBadges(tmpl)
+			fmt.Println()
 		}
-		fmt.Println()
+	}
+}
+
+// displayTemplatesByDomain shows templates organized by research domain
+func (tc *TemplateCommands) displayTemplatesByDomain(searchTemplates map[string]*templates.Template, domains []string) {
+	if len(domains) == 0 {
+		return
 	}
 
-	// Show popular templates
+	fmt.Println("🔬 Templates by Research Domain:")
+	for _, domain := range domains {
+		domainName := tc.getDomainFriendlyName(domain)
+		fmt.Printf("\n  🔬 %s:\n", domainName)
+		tc.displayTemplatesInDomain(searchTemplates, domain)
+	}
+	fmt.Println()
+}
+
+// displayTemplatesInDomain shows templates for a specific domain
+func (tc *TemplateCommands) displayTemplatesInDomain(searchTemplates map[string]*templates.Template, domain string) {
+	for name, tmpl := range searchTemplates {
+		if tmpl.Domain == domain {
+			fmt.Printf("     • %s", name)
+			if tmpl.Complexity != "" {
+				fmt.Printf(" [%s]", tmpl.Complexity)
+			}
+			fmt.Println()
+		}
+	}
+}
+
+// displayPopularTemplates shows popular templates section
+func (tc *TemplateCommands) displayPopularTemplates(searchTemplates map[string]*templates.Template) {
 	fmt.Println("🔥 Popular Templates:")
 	popularCount := 0
+
 	for name, tmpl := range searchTemplates {
 		if tmpl.Popular {
-			icon := tmpl.Icon
-			if icon == "" {
-				icon = "•"
-			}
+			icon := tc.getTemplateIcon(tmpl.Icon)
 			fmt.Printf("   %s %s - %s\n", icon, name, tmpl.Description)
 			popularCount++
 		}
 	}
+
 	if popularCount == 0 {
 		fmt.Println("   No templates marked as popular")
 	}
 	fmt.Println()
+}
 
-	// Show usage tips
+// displayDiscoveryTips shows usage tips and commands
+func (tc *TemplateCommands) displayDiscoveryTips() {
 	fmt.Println("💡 Tips:")
 	fmt.Println("   • Search by keyword:    cws templates search <query>")
 	fmt.Println("   • Filter by category:   cws templates search --category \"Machine Learning\"")
 	fmt.Println("   • Filter by domain:     cws templates search --domain ml")
 	fmt.Println("   • Show popular only:    cws templates search --popular")
 	fmt.Println("   • Template details:     cws templates info <template-name>")
+}
 
-	return nil
+// getTemplateIcon returns template icon or default
+func (tc *TemplateCommands) getTemplateIcon(icon string) string {
+	if icon == "" {
+		return "•"
+	}
+	return icon
+}
+
+// displayTemplateBadges shows popular/featured badges
+func (tc *TemplateCommands) displayTemplateBadges(tmpl *templates.Template) {
+	if tmpl.Popular {
+		fmt.Printf(" 🔥")
+	}
+	if tmpl.Featured {
+		fmt.Printf(" ⭐")
+	}
+}
+
+// getDomainFriendlyName maps domain codes to friendly names
+func (tc *TemplateCommands) getDomainFriendlyName(domain string) string {
+	switch domain {
+	case "ml":
+		return "Machine Learning"
+	case "datascience":
+		return "Data Science"
+	case "bio":
+		return "Bioinformatics"
+	case "web":
+		return "Web Development"
+	case "base":
+		return "Base Systems"
+	default:
+		return domain
+	}
 }
 
 // templatesInstall installs templates from repositories
