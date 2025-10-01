@@ -439,7 +439,7 @@ func (r *UniversalAMIResolver) CreateAMIFromInstance(ctx context.Context, reques
 		AMIID:        amiID,
 		Name:         amiName,
 		Status:       types.AMICreationInProgress,
-		CreationTime: 0, // Will be updated when complete
+		CreationTime: 0,                                                // Will be updated when complete
 		StorageCost:  r.costAnalyzer.getStorageCost("us-east-1") * 8.0, // Estimate 8GB
 		CreationCost: 0.05,                                             // Small instance cost during creation
 	}

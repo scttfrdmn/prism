@@ -20,6 +20,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,23 +34,29 @@ import (
 
 // UserCommands provides user management functionality
 type UserCommands struct {
-	app             *App
-	researchUserMgr *research.ResearchUserManager
+	app                 *App
+	researchUserService *research.ResearchUserService
 }
 
 // NewUserCommands creates a new user commands handler
 func NewUserCommands(app *App) *UserCommands {
-	// Initialize user manager
+	// Initialize user service with full functionality
 	homeDir, _ := os.UserHomeDir()
 	configDir := filepath.Join(homeDir, ".cloudworkstation")
 
 	// Create profile manager adapter
 	profileAdapter := &CLIProfileManagerAdapter{manager: app.profileManager}
-	researchUserMgr := research.NewResearchUserManager(profileAdapter, configDir)
+
+	// Create research user service with all components
+	serviceConfig := &research.ResearchUserServiceConfig{
+		ConfigDir:  configDir,
+		ProfileMgr: profileAdapter,
+	}
+	researchUserService := research.NewResearchUserService(serviceConfig)
 
 	return &UserCommands{
-		app:             app,
-		researchUserMgr: researchUserMgr,
+		app:                 app,
+		researchUserService: researchUserService,
 	}
 }
 
@@ -131,7 +138,7 @@ Examples:
 			fmt.Printf("🧑‍🔬 Creating user: %s\n", username)
 
 			// Create user
-			user, err := r.researchUserMgr.GetOrCreateResearchUser(username)
+			user, err := r.researchUserService.GetOrCreateResearchUser(username)
 			if err != nil {
 				return fmt.Errorf("failed to create user: %w", err)
 			}
@@ -156,7 +163,7 @@ Examples:
 				return fmt.Errorf("failed to get current profile: %w", err)
 			}
 
-			if err := r.researchUserMgr.UpdateResearchUser(currentProfile, user); err != nil {
+			if err := r.researchUserService.UpdateResearchUser(currentProfile, user); err != nil {
 				return fmt.Errorf("failed to update user: %w", err)
 			}
 
@@ -205,7 +212,7 @@ Shows username, UID, creation date, and SSH key status for each user.`,
 			}
 
 			// Get users
-			users, err := r.researchUserMgr.ListResearchUsers()
+			users, err := r.researchUserService.ListResearchUsers()
 			if err != nil {
 				return fmt.Errorf("failed to list users: %w", err)
 			}
@@ -261,7 +268,7 @@ home directories and provisioned users on instances are NOT automatically remove
 			}
 
 			// Delete user
-			if err := r.researchUserMgr.DeleteResearchUser(currentProfile, username); err != nil {
+			if err := r.researchUserService.DeleteResearchUser(currentProfile, username); err != nil {
 				return fmt.Errorf("failed to delete user: %w", err)
 			}
 
@@ -325,9 +332,22 @@ securely in the CloudWorkstation configuration directory.`,
 				fmt.Printf("   Size: %d bits\n", keySize)
 			}
 
-			// TODO: Implement SSH key generation using user system
+			// Generate SSH key pair using the research user service
+			sshKeyMgr := r.researchUserService.ManageSSHKeys()
+			keyConfig, privateKey, err := sshKeyMgr.GenerateKeyPair(username, keyType)
+			if err != nil {
+				return fmt.Errorf("failed to generate SSH key pair: %w", err)
+			}
+
 			fmt.Printf("✅ SSH key pair generated successfully!\n")
-			fmt.Printf("\n💡 Keys are stored in: ~/.cloudworkstation/ssh-keys/\n")
+			fmt.Printf("   Key ID: %s\n", keyConfig.KeyID)
+			fmt.Printf("   Fingerprint: %s\n", keyConfig.Fingerprint)
+			fmt.Printf("   Algorithm: %s\n", keyType)
+			if keyType == "rsa" {
+				fmt.Printf("   Size: %d bits\n", keySize)
+			}
+			fmt.Printf("   Private key length: %d bytes\n", len(privateKey))
+			fmt.Printf("\n💡 Keys are stored in: ~/.cloudworkstation/ssh-keys/%s/\n", username)
 
 			return nil
 		},
@@ -429,12 +449,7 @@ This will:
 			fmt.Printf("👤 Provisioning user: %s on instance: %s\n", username, instanceName)
 
 			// Get user
-			currentProfile, err := r.GetCurrentProfile()
-			if err != nil {
-				return fmt.Errorf("failed to get current profile: %w", err)
-			}
-
-			user, err := r.researchUserMgr.GetResearchUser(currentProfile, username)
+			user, err := r.researchUserService.GetResearchUser(username)
 			if err != nil {
 				return fmt.Errorf("user not found: %w", err)
 			}
@@ -459,7 +474,7 @@ This will:
 			}
 
 			// Generate provisioning script
-			script, err := r.researchUserMgr.GenerateUserProvisioningScript(req)
+			script, err := r.researchUserService.GenerateUserProvisioningScript(req)
 			if err != nil {
 				return fmt.Errorf("failed to generate provisioning script: %w", err)
 			}
@@ -473,8 +488,47 @@ This will:
 			fmt.Printf("📝 Generated provisioning script (%d lines)\n", len(strings.Split(script, "\n")))
 			fmt.Printf("🚀 Executing on instance...\n")
 
-			// TODO: Execute script on instance via API
-			fmt.Printf("✅ Research user provisioned successfully!\n")
+			// Execute provisioning on instance
+			provisionReq := &research.ProvisionInstanceRequest{
+				InstanceID:    instance.ID,
+				InstanceName:  instanceName,
+				PublicIP:      instance.PublicIP,
+				Username:      username,
+				EFSMountPoint: mountPoint,
+				SSHKeyPath:    "~/.ssh/id_rsa", // Default SSH key path
+				SSHUser:       "ubuntu",        // Default SSH user for EC2 instances
+			}
+
+			ctx := r.app.ctx
+			response, err := r.researchUserService.ProvisionUserOnInstance(ctx, provisionReq)
+			if err != nil {
+				return fmt.Errorf("failed to provision user on instance: %w", err)
+			}
+
+			if response != nil && response.Success {
+				fmt.Printf("✅ Research user provisioned successfully!\n")
+				if response.Message != "" {
+					fmt.Printf("   Message: %s\n", response.Message)
+				}
+				if len(response.CreatedUsers) > 0 {
+					fmt.Printf("   Created users: %v\n", response.CreatedUsers)
+				}
+				if response.ConfiguredEFS {
+					fmt.Printf("   EFS configured: ✅\n")
+				}
+				if response.SSHKeysInstalled {
+					fmt.Printf("   SSH keys installed: ✅\n")
+				}
+			} else {
+				fmt.Printf("❌ Failed to provision research user\n")
+				if response != nil && response.Message != "" {
+					fmt.Printf("   Error: %s\n", response.Message)
+				}
+				if response != nil && response.ErrorDetails != "" {
+					fmt.Printf("   Details: %s\n", response.ErrorDetails)
+				}
+				return fmt.Errorf("provisioning failed")
+			}
 			fmt.Printf("\n💡 User %s is now available on %s with UID %d\n", username, instanceName, user.UID)
 
 			return nil
@@ -507,12 +561,7 @@ Displays where the user is provisioned, SSH key status, and EFS mount informatio
 			fmt.Printf("📊 User status: %s\n", username)
 
 			// Get user
-			currentProfile, err := r.GetCurrentProfile()
-			if err != nil {
-				return fmt.Errorf("failed to get current profile: %w", err)
-			}
-
-			user, err := r.researchUserMgr.GetResearchUser(currentProfile, username)
+			user, err := r.researchUserService.GetResearchUser(username)
 			if err != nil {
 				return fmt.Errorf("user not found: %w", err)
 			}
@@ -538,8 +587,57 @@ Displays where the user is provisioned, SSH key status, and EFS mount informatio
 			}
 
 			fmt.Printf("\n🖥️  Instance Status:\n")
-			fmt.Printf("   (Checking instance provisioning status...)\n")
-			// TODO: Check which instances have this user provisioned
+
+			// Get all instances
+			instancesResp, err := r.app.apiClient.ListInstances(r.app.ctx)
+			if err != nil {
+				fmt.Printf("   ❌ Failed to list instances: %v\n", err)
+				return nil
+			}
+
+			if len(instancesResp.Instances) == 0 {
+				fmt.Printf("   No instances found\n")
+				return nil
+			}
+
+			provisionedCount := 0
+			for _, instance := range instancesResp.Instances {
+				if instance.State == "running" {
+					// Check if user is provisioned on this instance
+					status, err := r.researchUserService.GetResearchUserStatus(r.app.ctx, instance.PublicIP, username, "~/.ssh/id_rsa")
+					if err != nil {
+						fmt.Printf("   %s (%s): ❌ Unable to check (instance may not be accessible)\n", instance.Name, instance.State)
+					} else if status != nil && status.Username != "" {
+						fmt.Printf("   %s (%s): ✅ User provisioned\n", instance.Name, instance.State)
+						if status.HomeDirectoryPath != "" {
+							fmt.Printf("      Home directory: %s\n", status.HomeDirectoryPath)
+						}
+						if status.EFSMounted {
+							fmt.Printf("      EFS mounted: ✅\n")
+						}
+						if status.SSHAccessible {
+							fmt.Printf("      SSH accessible: ✅\n")
+						}
+						if status.LastLogin != nil {
+							fmt.Printf("      Last login: %s\n", status.LastLogin.Format("2006-01-02 15:04:05"))
+						}
+						if status.ActiveProcesses > 0 {
+							fmt.Printf("      Active processes: %d\n", status.ActiveProcesses)
+						}
+						provisionedCount++
+					} else {
+						fmt.Printf("   %s (%s): ⭕ Not provisioned\n", instance.Name, instance.State)
+					}
+				} else {
+					fmt.Printf("   %s (%s): ⏸️ Instance not running\n", instance.Name, instance.State)
+				}
+			}
+
+			if provisionedCount > 0 {
+				fmt.Printf("\n💡 User is provisioned on %d of %d running instances\n", provisionedCount, len(instancesResp.Instances))
+			} else {
+				fmt.Printf("\n💡 User is not provisioned on any instances\n")
+			}
 
 			return nil
 		},
@@ -581,8 +679,32 @@ func (r *UserCommands) outputUsersAsTable(users []*research.ResearchUserConfig) 
 }
 
 func (r *UserCommands) outputUsersAsJSON(users []*research.ResearchUserConfig) error {
-	// TODO: Implement JSON output
-	fmt.Printf("JSON output not yet implemented\n")
+	// Create a structured output format for JSON
+	type JSONUserOutput struct {
+		Users []research.ResearchUserConfig `json:"users"`
+		Count int                           `json:"count"`
+	}
+
+	// Prepare the data for JSON output
+	var usersData []research.ResearchUserConfig
+	for _, user := range users {
+		if user != nil {
+			usersData = append(usersData, *user)
+		}
+	}
+
+	output := JSONUserOutput{
+		Users: usersData,
+		Count: len(usersData),
+	}
+
+	// Marshal to JSON with proper formatting
+	jsonBytes, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal users to JSON: %w", err)
+	}
+
+	fmt.Println(string(jsonBytes))
 	return nil
 }
 

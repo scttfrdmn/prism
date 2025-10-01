@@ -10,14 +10,14 @@ import (
 // AMICostAnalyzer provides cost analysis for AMI vs script deployment strategies
 type AMICostAnalyzer struct {
 	// Pricing data (in production, this would come from AWS Pricing API)
-	instancePricing   map[string]map[string]float64 // instance_type -> region -> hourly_cost
-	storagePricing    map[string]float64             // region -> monthly_cost_per_gb
-	transferPricing   map[string]float64             // region -> cost_per_gb
+	instancePricing    map[string]map[string]float64 // instance_type -> region -> hourly_cost
+	storagePricing     map[string]float64            // region -> monthly_cost_per_gb
+	transferPricing    map[string]float64            // region -> cost_per_gb
 	marketplacePricing map[string]float64            // product_code -> hourly_cost
 
 	// Cost calculation parameters
-	averageAMISize     float64 // Average AMI size in GB
-	setupTimeOverhead  float64 // Additional overhead for setup in minutes
+	averageAMISize    float64 // Average AMI size in GB
+	setupTimeOverhead float64 // Additional overhead for setup in minutes
 }
 
 // NewAMICostAnalyzer creates a new AMI cost analyzer with default pricing data
@@ -27,8 +27,8 @@ func NewAMICostAnalyzer() *AMICostAnalyzer {
 		storagePricing:     make(map[string]float64),
 		transferPricing:    make(map[string]float64),
 		marketplacePricing: make(map[string]float64),
-		averageAMISize:     8.0,  // 8GB average AMI size
-		setupTimeOverhead:  0.5,  // 30 seconds overhead
+		averageAMISize:     8.0, // 8GB average AMI size
+		setupTimeOverhead:  0.5, // 30 seconds overhead
 	}
 
 	// Initialize with sample pricing data (production would load from AWS Pricing API)
@@ -66,7 +66,7 @@ func (a *AMICostAnalyzer) AnalyzeCosts(templateName, region string, amiInfo *typ
 	// AMI deployment costs
 	analysis.AMILaunchCost = baseInstanceCost
 	analysis.AMIStorageCost = a.getStorageCost(region) * a.averageAMISize // Monthly cost
-	analysis.AMISetupCost = baseInstanceCost * (30.0 / 3600.0) // 30 seconds setup time
+	analysis.AMISetupCost = baseInstanceCost * (30.0 / 3600.0)            // 30 seconds setup time
 
 	// Script deployment costs
 	analysis.ScriptLaunchCost = baseInstanceCost
@@ -96,7 +96,7 @@ func (a *AMICostAnalyzer) CompareDeploymentCosts(strategies []string, duration f
 		case "ami":
 			// AMI deployment cost
 			storageCost := a.getStorageCost(region) * a.averageAMISize / (24 * 30) // Hourly storage cost
-			setupCost := baseInstanceCost * (30.0 / 3600.0) // 30 seconds setup
+			setupCost := baseInstanceCost * (30.0 / 3600.0)                        // 30 seconds setup
 			runtimeCost := baseInstanceCost * duration
 			costs[strategy] = setupCost + runtimeCost + (storageCost * duration)
 
@@ -109,7 +109,7 @@ func (a *AMICostAnalyzer) CompareDeploymentCosts(strategies []string, duration f
 		case "marketplace":
 			// Marketplace AMI cost
 			marketplaceCost := a.marketplacePricing["default"] // Default marketplace cost
-			setupCost := baseInstanceCost * (45.0 / 3600.0) // 45 seconds setup
+			setupCost := baseInstanceCost * (45.0 / 3600.0)    // 45 seconds setup
 			runtimeCost := (baseInstanceCost + marketplaceCost) * duration
 			costs[strategy] = setupCost + runtimeCost
 		}
@@ -137,10 +137,10 @@ func (a *AMICostAnalyzer) EstimateCrossRegionCost(amiSize float64, sourceRegion,
 func (a *AMICostAnalyzer) GetOptimizedInstanceType(templateDomain string, region string) (string, float64) {
 	// Instance type recommendations based on template domain
 	recommendations := map[string][]string{
-		"ml":   {"t4g.medium", "m6i.large", "c6i.large"},
-		"data": {"r6i.large", "m6i.xlarge", "r5.large"},
-		"web":  {"t4g.small", "t4g.medium", "t3.medium"},
-		"hpc":  {"c6i.xlarge", "c5n.2xlarge", "m6i.2xlarge"},
+		"ml":      {"t4g.medium", "m6i.large", "c6i.large"},
+		"data":    {"r6i.large", "m6i.xlarge", "r5.large"},
+		"web":     {"t4g.small", "t4g.medium", "t3.medium"},
+		"hpc":     {"c6i.xlarge", "c5n.2xlarge", "m6i.2xlarge"},
 		"default": {"t4g.medium", "t3.medium", "m6i.large"},
 	}
 
@@ -170,39 +170,39 @@ func (a *AMICostAnalyzer) initializePricingData() {
 	// Initialize US regions pricing
 	usRegions := []string{"us-east-1", "us-east-2", "us-west-1", "us-west-2"}
 	for _, region := range usRegions {
-		a.storagePricing[region] = 0.10 // $0.10 per GB per month
+		a.storagePricing[region] = 0.10  // $0.10 per GB per month
 		a.transferPricing[region] = 0.02 // $0.02 per GB transfer
 	}
 
 	// Initialize EU regions pricing (slightly higher)
 	euRegions := []string{"eu-west-1", "eu-west-2", "eu-central-1"}
 	for _, region := range euRegions {
-		a.storagePricing[region] = 0.11 // $0.11 per GB per month
+		a.storagePricing[region] = 0.11  // $0.11 per GB per month
 		a.transferPricing[region] = 0.02 // $0.02 per GB transfer
 	}
 
 	// Initialize APAC regions pricing
 	apacRegions := []string{"ap-south-1", "ap-southeast-1", "ap-northeast-1"}
 	for _, region := range apacRegions {
-		a.storagePricing[region] = 0.12 // $0.12 per GB per month
+		a.storagePricing[region] = 0.12  // $0.12 per GB per month
 		a.transferPricing[region] = 0.03 // $0.03 per GB transfer
 	}
 
 	// Initialize instance type pricing for us-east-1
 	usEast1Pricing := map[string]float64{
-		"t4g.small":   0.0168,
-		"t4g.medium":  0.0336,
-		"t4g.large":   0.0672,
-		"t4g.xlarge":  0.1344,
-		"t3.small":    0.0208,
-		"t3.medium":   0.0416,
-		"t3.large":    0.0832,
-		"m6i.large":   0.0864,
-		"m6i.xlarge":  0.1728,
-		"c6i.large":   0.0765,
-		"c6i.xlarge":  0.1530,
-		"r6i.large":   0.1008,
-		"r6i.xlarge":  0.2016,
+		"t4g.small":  0.0168,
+		"t4g.medium": 0.0336,
+		"t4g.large":  0.0672,
+		"t4g.xlarge": 0.1344,
+		"t3.small":   0.0208,
+		"t3.medium":  0.0416,
+		"t3.large":   0.0832,
+		"m6i.large":  0.0864,
+		"m6i.xlarge": 0.1728,
+		"c6i.large":  0.0765,
+		"c6i.xlarge": 0.1530,
+		"r6i.large":  0.1008,
+		"r6i.xlarge": 0.2016,
 	}
 	a.instancePricing["us-east-1"] = usEast1Pricing
 

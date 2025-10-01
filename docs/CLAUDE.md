@@ -103,14 +103,36 @@ cws volume mount research-data rocky-instance     # rocky user
 # Files are immediately shared between instances via cloudworkstation-shared group
 ```
 
-**Phase 5 Planning**: AWS-Native Research Ecosystem Expansion
-- 🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing  
+**Phase 5: AWS-Native Research Ecosystem Expansion**
+
+### **Phase 5.1: Universal AMI System** (v0.5.2 - Q1 2026)
+- 🎯 **Universal AMI Reference**: Any template can use pre-built AMIs with intelligent multi-tier fallback strategies
+- 🎯 **AMI Creation & Sharing**: Generate and distribute optimized AMIs from successful template launches
+- 🎯 **Cross-Region Intelligence**: Automatic AMI discovery, copying, and cost-aware regional optimization
+- 🎯 **Performance Revolution**: 30-second launches vs 5-8 minute script provisioning
+
+### **Phase 5.2: Template Marketplace Integration** (v0.5.3 - Q1 2026)
+- 🎯 **Decentralized Repositories**: Community, institutional, and commercial template + AMI distribution
+- 🎯 **Repository Authentication**: SSH keys, tokens, OAuth for secure template and AMI access
+- 🎯 **AMI + Template Packages**: Combined optimized environments with community ratings and verification
+- 🎯 **Commercial Software**: BYOL licensing with marketplace AMI integration
+
+### **Phase 5.3: Configuration & Directory Sync** (v0.5.4 - Q2 2026)
+- 🎯 **Template-Based Config Sync**: Share RStudio, Jupyter, VS Code configurations as reusable templates
+- 🎯 **EFS Directory Sync**: Bidirectional file sync between local systems and cloud instances
+- 🎯 **Research-Optimized**: Handle large datasets, code, and notebooks with conflict resolution
+- 🎯 **Cross-Platform**: Seamless sync across macOS, Linux, and Windows
+
+### **Phase 5.4: AWS Research Services** (v0.5.5 - Q2 2026)
+- 🎯 **EMR Studio**: Big data analytics and Spark-based research integration
+- 🎯 **SageMaker Studio Lab**: Educational ML use cases with free tier support
+- 🎯 **Amazon Braket**: Quantum computing research and education access
+- 🎯 **Web Service Framework**: Unified EC2 + AWS research services management
+
+### **Phase 5.5: Advanced Research Infrastructure** (v0.5.6 - Q3 2026)
 - 🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads
-- 🎯 **Research Workflows**: Integration with research data management and CI/CD systems
+- 🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and distributed computing
 - 🎯 **Enhanced Networking**: Private VPC networking and research data transfer optimization
-- 🎯 **AWS Research Services**: Deep integration with AWS research-specific services (ParallelCluster, Batch, SageMaker)
-- 🎯 **Data Pipeline Integration**: Direct support for S3, AWS Data Exchange, and research data repositories
-- 🎯 **HPC Scheduling**: Integration with AWS batch processing and high-performance computing clusters
 - 🎯 **Multi-User System v0.5.0**: Comprehensive user identity management with centralized registry
 
 **Note**: Multi-cloud support (Azure, GCP) has been postponed indefinitely to focus on deep AWS-native research ecosystem integration.

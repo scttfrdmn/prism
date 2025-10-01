@@ -11,12 +11,23 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
+// ActionExecutor defines the interface for executing budget auto actions
+type ActionExecutor interface {
+	// ExecuteHibernateAll hibernates all instances for a project
+	ExecuteHibernateAll(projectID string) error
+	// ExecuteStopAll stops all instances for a project
+	ExecuteStopAll(projectID string) error
+	// ExecutePreventLaunch sets a flag to prevent new launches for a project
+	ExecutePreventLaunch(projectID string) error
+}
+
 // BudgetTracker handles budget tracking and cost analysis for projects
 type BudgetTracker struct {
 	budgetPath     string
 	mutex          sync.RWMutex
 	budgetData     map[string]*ProjectBudgetData
 	costCalculator *CostCalculator
+	actionExecutor ActionExecutor
 }
 
 // ProjectBudgetData stores budget tracking data for a project
@@ -63,6 +74,7 @@ func NewBudgetTracker() (*BudgetTracker, error) {
 		budgetPath:     budgetPath,
 		budgetData:     make(map[string]*ProjectBudgetData),
 		costCalculator: costCalculator,
+		actionExecutor: nil, // Will be set later by daemon
 	}
 
 	// Load existing budget data
@@ -71,6 +83,13 @@ func NewBudgetTracker() (*BudgetTracker, error) {
 	}
 
 	return tracker, nil
+}
+
+// SetActionExecutor sets the action executor for budget auto actions
+func (bt *BudgetTracker) SetActionExecutor(executor ActionExecutor) {
+	bt.mutex.Lock()
+	defer bt.mutex.Unlock()
+	bt.actionExecutor = executor
 }
 
 // InitializeProject initializes budget tracking for a new project
@@ -480,11 +499,14 @@ func (bt *BudgetTracker) checkBudgetAlerts(projectID string, budgetData *Project
 
 				budgetData.AlertHistory = append(budgetData.AlertHistory, alertEvent)
 
-				// Log alert for now - actual delivery would be implemented based on alert type
-				// TODO: Implement alert delivery system (email, slack, webhook)
-				if err := bt.logAlert(projectID, alertEvent); err != nil {
-					// Don't fail budget processing for alert logging errors
-					fmt.Printf("Failed to log budget alert: %v\n", err)
+				// Deliver alert based on alert type
+				if err := bt.deliverAlert(projectID, alertEvent, alert.Recipients); err != nil {
+					// Don't fail budget processing for alert delivery errors
+					fmt.Printf("Failed to deliver budget alert: %v\n", err)
+					// Still log the alert even if delivery fails
+					if logErr := bt.logAlert(projectID, alertEvent); logErr != nil {
+						fmt.Printf("Failed to log budget alert after delivery failure: %v\n", logErr)
+					}
 				}
 			}
 		}
@@ -504,17 +526,54 @@ func (bt *BudgetTracker) checkBudgetAlerts(projectID string, budgetData *Project
 			}
 
 			if !alreadyTriggered {
-				// TODO: Execute the auto action
-				// This would integrate with the hibernation/stop functionality
+				// Execute the auto action if executor is available
+				var actionErr error
+				actionMessage := fmt.Sprintf("Auto action triggered: %s at %.1f%% budget", action.Action, action.Threshold*100)
 
-				// For testing, add to alert history as a triggered action
+				if bt.actionExecutor != nil {
+					switch action.Action {
+					case types.BudgetActionHibernateAll:
+						actionErr = bt.actionExecutor.ExecuteHibernateAll(projectID)
+						if actionErr != nil {
+							actionMessage = fmt.Sprintf("Auto action failed: hibernate_all at %.1f%% budget - %v", action.Threshold*100, actionErr)
+						} else {
+							actionMessage = fmt.Sprintf("Auto action executed: hibernated all instances at %.1f%% budget", action.Threshold*100)
+						}
+					case types.BudgetActionStopAll:
+						actionErr = bt.actionExecutor.ExecuteStopAll(projectID)
+						if actionErr != nil {
+							actionMessage = fmt.Sprintf("Auto action failed: stop_all at %.1f%% budget - %v", action.Threshold*100, actionErr)
+						} else {
+							actionMessage = fmt.Sprintf("Auto action executed: stopped all instances at %.1f%% budget", action.Threshold*100)
+						}
+					case types.BudgetActionPreventLaunch:
+						actionErr = bt.actionExecutor.ExecutePreventLaunch(projectID)
+						if actionErr != nil {
+							actionMessage = fmt.Sprintf("Auto action failed: prevent_launch at %.1f%% budget - %v", action.Threshold*100, actionErr)
+						} else {
+							actionMessage = fmt.Sprintf("Auto action executed: prevented new launches at %.1f%% budget", action.Threshold*100)
+						}
+					case types.BudgetActionNotifyOnly:
+						// No action to execute, just notification
+						actionMessage = fmt.Sprintf("Budget notification: %.1f%% budget reached", action.Threshold*100)
+					default:
+						actionErr = fmt.Errorf("unknown action type: %s", action.Action)
+						actionMessage = fmt.Sprintf("Auto action failed: unknown action %s at %.1f%% budget", action.Action, action.Threshold*100)
+					}
+				} else {
+					// No executor available - log warning but still record the event
+					fmt.Printf("Warning: Budget auto action executor not set, skipping action %s for project %s\n", action.Action, projectID)
+					actionMessage = fmt.Sprintf("Auto action skipped: %s at %.1f%% budget (no executor)", action.Action, action.Threshold*100)
+				}
+
+				// Record the action attempt in alert history
 				actionEvent := AlertEvent{
 					Timestamp:   time.Now(),
 					AlertType:   actionAlertType,
 					Threshold:   action.Threshold,
 					SpentAmount: budget.SpentAmount,
-					Message:     fmt.Sprintf("Auto action triggered: %s at %.1f%% budget", action.Action, action.Threshold*100),
-					Resolved:    false,
+					Message:     actionMessage,
+					Resolved:    actionErr == nil, // Mark resolved if action succeeded
 				}
 				budgetData.AlertHistory = append(budgetData.AlertHistory, actionEvent)
 			}
@@ -686,19 +745,66 @@ func (bt *BudgetTracker) Close() error {
 	return bt.saveBudgetData()
 }
 
-// logAlert logs a budget alert event
-// This is a placeholder for actual alert delivery system
+// deliverAlert delivers budget alerts via configured delivery methods
+func (bt *BudgetTracker) deliverAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
+	switch alertEvent.AlertType {
+	case types.BudgetAlertEmail:
+		return bt.sendEmailAlert(projectID, alertEvent, recipients)
+	case types.BudgetAlertSlack:
+		return bt.sendSlackAlert(projectID, alertEvent, recipients)
+	case types.BudgetAlertWebhook:
+		return bt.sendWebhookAlert(projectID, alertEvent, recipients)
+	default:
+		// Fallback to logging for unknown alert types
+		return bt.logAlert(projectID, alertEvent)
+	}
+}
+
+// sendEmailAlert sends budget alert via email
+func (bt *BudgetTracker) sendEmailAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
+	// For production deployment, integrate with email service (AWS SES, SendGrid, etc.)
+	// For now, log the email that would be sent
+	fmt.Printf("📧 EMAIL ALERT to %v: [%s] Project %s budget alert - $%.2f spent (%.1f%% threshold)\n",
+		recipients,
+		alertEvent.Timestamp.Format("2006-01-02 15:04:05"),
+		projectID,
+		alertEvent.SpentAmount,
+		alertEvent.Threshold*100)
+	return nil
+}
+
+// sendSlackAlert sends budget alert to Slack
+func (bt *BudgetTracker) sendSlackAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
+	// For production deployment, integrate with Slack API
+	// For now, log the Slack message that would be sent
+	fmt.Printf("💬 SLACK ALERT to %v: 🚨 Budget Alert - Project %s has spent $%.2f (%.1f%% threshold reached)\n",
+		recipients,
+		projectID,
+		alertEvent.SpentAmount,
+		alertEvent.Threshold*100)
+	return nil
+}
+
+// sendWebhookAlert sends budget alert via webhook
+func (bt *BudgetTracker) sendWebhookAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
+	// For production deployment, send HTTP POST to webhook URLs in recipients
+	// For now, log the webhook payload that would be sent
+	fmt.Printf("🔗 WEBHOOK ALERT to %v: POST {\"project\": \"%s\", \"spent\": %.2f, \"threshold\": %.1f, \"timestamp\": \"%s\"}\n",
+		recipients,
+		projectID,
+		alertEvent.SpentAmount,
+		alertEvent.Threshold*100,
+		alertEvent.Timestamp.Format(time.RFC3339))
+	return nil
+}
+
+// logAlert logs a budget alert event (fallback method)
 func (bt *BudgetTracker) logAlert(projectID string, alertEvent AlertEvent) error {
-	// For now, just log to stdout - in a full implementation this would:
-	// 1. Send email notifications
-	// 2. Post to Slack/Teams channels
-	// 3. Call webhook endpoints
-	// 4. Write to audit log
-	fmt.Printf("🚨 BUDGET ALERT [%s] Project: %s, Type: %s, Current: $%.2f, Threshold: $%.2f\n",
+	fmt.Printf("🚨 BUDGET ALERT [%s] Project: %s, Type: %s, Current: $%.2f, Threshold: %.1f%%\n",
 		alertEvent.Timestamp.Format("2006-01-02 15:04:05"),
 		projectID,
 		alertEvent.AlertType,
 		alertEvent.SpentAmount,
-		alertEvent.Threshold)
+		alertEvent.Threshold*100)
 	return nil
 }

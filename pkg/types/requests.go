@@ -21,10 +21,10 @@ type LaunchRequest struct {
 	ResearchUser   string                 `json:"research_user,omitempty"` // Research user to create and provision (Phase 5A+)
 
 	// Universal AMI System fields (Phase 5.1)
-	AMIStrategy          string `json:"ami_strategy,omitempty"`            // Override template AMI strategy
-	PreferScript         bool   `json:"prefer_script,omitempty"`           // Prefer script over AMI
-	ShowAMIResolution    bool   `json:"show_ami_resolution,omitempty"`     // Show AMI resolution details
-	AMIResolutionResult  *AMIResolutionResult `json:"ami_resolution_result,omitempty"` // Internal: resolved AMI info
+	AMIStrategy         string               `json:"ami_strategy,omitempty"`          // Override template AMI strategy
+	PreferScript        bool                 `json:"prefer_script,omitempty"`         // Prefer script over AMI
+	ShowAMIResolution   bool                 `json:"show_ami_resolution,omitempty"`   // Show AMI resolution details
+	AMIResolutionResult *AMIResolutionResult `json:"ami_resolution_result,omitempty"` // Internal: resolved AMI info
 }
 
 // LaunchResponse represents a successful launch response

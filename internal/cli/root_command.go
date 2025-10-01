@@ -318,6 +318,7 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(r.createScalingCommand())
 	rootCmd.AddCommand(r.createAMICommand())
 	rootCmd.AddCommand(r.createAMIDiscoverCommand())
+	rootCmd.AddCommand(r.createMarketplaceCommand())
 }
 
 func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
@@ -617,6 +618,18 @@ func (r *CommandFactoryRegistry) createAMIDiscoverCommand() *cobra.Command {
 		Long:  `Show which templates have pre-built AMIs available for faster launching.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.AMIDiscover(args)
+		},
+	}
+}
+
+func (r *CommandFactoryRegistry) createMarketplaceCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:                "marketplace <action>",
+		Short:              "Template marketplace operations",
+		Long:               `Browse, publish, and manage community templates from the CloudWorkstation marketplace.`,
+		DisableFlagParsing: true, // Allow marketplace command to handle its own flags
+		RunE: func(_ *cobra.Command, args []string) error {
+			return r.app.Marketplace(args)
 		},
 	}
 }

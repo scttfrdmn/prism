@@ -124,6 +124,15 @@ type CloudWorkstationAPI interface {
 	CreateAMI(context.Context, types.AMICreationRequest) (map[string]interface{}, error)
 	GetAMIStatus(context.Context, string) (map[string]interface{}, error)
 	ListUserAMIs(context.Context) (map[string]interface{}, error)
+
+	// Template Marketplace operations (Phase 5.2)
+	SearchMarketplace(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	GetMarketplaceTemplate(context.Context, string) (map[string]interface{}, error)
+	PublishMarketplaceTemplate(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	AddMarketplaceReview(context.Context, string, map[string]interface{}) (map[string]interface{}, error)
+	ForkMarketplaceTemplate(context.Context, string, map[string]interface{}) (map[string]interface{}, error)
+	GetMarketplaceFeatured(context.Context) (map[string]interface{}, error)
+	GetMarketplaceTrending(context.Context) (map[string]interface{}, error)
 }
 
 // Registry-specific response types for API operations

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -122,10 +123,28 @@ func (p *PolicyCobraCommands) handlePolicyStatus() error {
 		return err
 	}
 
-	// Get policy service from daemon (this would need API endpoint)
-	fmt.Printf("🔍 Checking policy status via daemon...\n")
-	fmt.Printf("⚠️  Policy API integration pending - daemon endpoints needed\n")
-	fmt.Printf("💡 Tip: Policy framework foundation is implemented, API integration in progress\n")
+	// Get policy status from daemon
+	response, err := p.app.apiClient.GetPolicyStatus(p.app.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get policy status: %v", err)
+	}
+
+	// Display policy status
+	fmt.Printf("Policy Framework Status: %s\n", response.StatusIcon)
+	fmt.Printf("Enforcement: %s\n", response.Status)
+
+	if len(response.AssignedPolicies) > 0 {
+		fmt.Printf("Assigned Policy Sets: %s\n", strings.Join(response.AssignedPolicies, ", "))
+	} else {
+		fmt.Println("Assigned Policy Sets: None (default allow)")
+	}
+
+	if response.Message != "" {
+		fmt.Printf("\n%s\n", response.Message)
+	}
+
+	fmt.Println()
+	fmt.Println("💡 Tip: Use 'cws policy assign <policy-set>' to configure access controls")
 
 	return nil
 }
@@ -136,10 +155,34 @@ func (p *PolicyCobraCommands) handlePolicyList() error {
 		return err
 	}
 
-	// List policy sets via daemon API
-	fmt.Printf("📋 Listing available policy sets...\n")
-	fmt.Printf("⚠️  Policy API integration pending - daemon endpoints needed\n")
-	fmt.Printf("💡 Available policy sets: student (restricted), researcher (full access)\n")
+	// List policy sets from daemon
+	response, err := p.app.apiClient.ListPolicySets(p.app.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list policy sets: %v", err)
+	}
+
+	if len(response.PolicySets) == 0 {
+		fmt.Println("No policy sets available")
+		return nil
+	}
+
+	fmt.Println("Available Policy Sets:")
+	fmt.Println()
+
+	// Display policy sets in a table format
+	fmt.Printf("%-15s %-30s %-10s %s\n", "NAME", "DESCRIPTION", "POLICIES", "STATUS")
+	fmt.Printf("%-15s %-30s %-10s %s\n", "----", "-----------", "--------", "------")
+
+	for _, policySet := range response.PolicySets {
+		fmt.Printf("%-15s %-30s %-10d %s\n",
+			policySet.ID,
+			policySet.Description,
+			policySet.Policies,
+			policySet.Status)
+	}
+
+	fmt.Println()
+	fmt.Println("Use 'cws policy assign <policy-set>' to assign a policy set")
 
 	return nil
 }
@@ -151,9 +194,20 @@ func (p *PolicyCobraCommands) handlePolicyAssign(args []string) error {
 	}
 
 	policySet := args[0]
-	fmt.Printf("🎯 Assigning policy set '%s'...\n", policySet)
-	fmt.Printf("⚠️  Policy API integration pending - daemon endpoints needed\n")
-	fmt.Printf("💡 Supported policy sets: student, researcher\n")
+
+	// Assign policy set via daemon API
+	response, err := p.app.apiClient.AssignPolicySet(p.app.ctx, policySet)
+	if err != nil {
+		return fmt.Errorf("failed to assign policy set: %v", err)
+	}
+
+	if response.Success {
+		fmt.Printf("✅ %s\n", response.Message)
+		fmt.Println()
+		fmt.Printf("💡 Policy enforcement is %s. Use 'cws policy enable' to activate.\n", response.EnforcementStatus)
+	} else {
+		fmt.Printf("❌ Failed to assign policy set '%s'\n", policySet)
+	}
 
 	return nil
 }
@@ -164,9 +218,17 @@ func (p *PolicyCobraCommands) handlePolicyEnable() error {
 		return err
 	}
 
-	fmt.Printf("✅ Enabling policy enforcement...\n")
-	fmt.Printf("⚠️  Policy API integration pending - daemon endpoints needed\n")
-	fmt.Printf("💡 Policy framework ready, API endpoints in development\n")
+	// Enable policy enforcement via daemon API
+	response, err := p.app.apiClient.SetPolicyEnforcement(p.app.ctx, true)
+	if err != nil {
+		return fmt.Errorf("failed to enable policy enforcement: %v", err)
+	}
+
+	if response.Success {
+		fmt.Printf("%s\n", response.Message)
+	} else {
+		fmt.Printf("❌ Failed to enable policy enforcement\n")
+	}
 
 	return nil
 }
@@ -177,9 +239,18 @@ func (p *PolicyCobraCommands) handlePolicyDisable() error {
 		return err
 	}
 
-	fmt.Printf("⚠️  Disabling policy enforcement...\n")
-	fmt.Printf("⚠️  Policy API integration pending - daemon endpoints needed\n")
-	fmt.Printf("💡 All resources will be accessible when disabled\n")
+	// Disable policy enforcement via daemon API
+	response, err := p.app.apiClient.SetPolicyEnforcement(p.app.ctx, false)
+	if err != nil {
+		return fmt.Errorf("failed to disable policy enforcement: %v", err)
+	}
+
+	if response.Success {
+		fmt.Printf("%s\n", response.Message)
+		fmt.Printf("💡 All resources will be accessible when disabled\n")
+	} else {
+		fmt.Printf("❌ Failed to disable policy enforcement\n")
+	}
 
 	return nil
 }
@@ -192,8 +263,38 @@ func (p *PolicyCobraCommands) handlePolicyCheck(args []string) error {
 
 	templateName := args[0]
 	fmt.Printf("🔍 Checking access for template '%s'...\n", templateName)
-	fmt.Printf("⚠️  Policy API integration pending - daemon endpoints needed\n")
-	fmt.Printf("💡 Policy evaluation engine implemented, API integration needed\n")
+
+	// Check template access via daemon API
+	response, err := p.app.apiClient.CheckTemplateAccess(p.app.ctx, templateName)
+	if err != nil {
+		return fmt.Errorf("failed to check template access: %v", err)
+	}
+
+	// Display access result
+	if response.Allowed {
+		fmt.Printf("✅ Access GRANTED to template '%s'\n", response.TemplateName)
+		if response.Reason != "" {
+			fmt.Printf("📋 Reason: %s\n", response.Reason)
+		}
+	} else {
+		fmt.Printf("❌ Access DENIED to template '%s'\n", response.TemplateName)
+		if response.Reason != "" {
+			fmt.Printf("📋 Reason: %s\n", response.Reason)
+		}
+	}
+
+	// Show matched policies if any
+	if len(response.MatchedPolicies) > 0 {
+		fmt.Printf("📜 Matched Policies: %s\n", strings.Join(response.MatchedPolicies, ", "))
+	}
+
+	// Show suggestions if any
+	if len(response.Suggestions) > 0 {
+		fmt.Println("\n💡 Suggestions:")
+		for _, suggestion := range response.Suggestions {
+			fmt.Printf("  • %s\n", suggestion)
+		}
+	}
 
 	return nil
 }

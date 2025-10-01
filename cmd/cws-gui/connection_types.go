@@ -4,10 +4,10 @@ package main
 type ConnectionType string
 
 const (
-	ConnectionTypeSSH      ConnectionType = "ssh"
-	ConnectionTypeDesktop  ConnectionType = "desktop"
-	ConnectionTypeWeb      ConnectionType = "web"
-	ConnectionTypeAWS      ConnectionType = "aws-service"
+	ConnectionTypeSSH     ConnectionType = "ssh"
+	ConnectionTypeDesktop ConnectionType = "desktop"
+	ConnectionTypeWeb     ConnectionType = "web"
+	ConnectionTypeAWS     ConnectionType = "aws-service"
 )
 
 // ConnectionConfig represents configuration for embedded connections

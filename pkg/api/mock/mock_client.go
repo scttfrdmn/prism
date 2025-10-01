@@ -1200,13 +1200,13 @@ func (m *MockClient) SetPolicyEnforcement(ctx context.Context, enabled bool) (*c
 // ResolveAMI resolves AMI for a template (mock)
 func (m *MockClient) ResolveAMI(ctx context.Context, templateName string, params map[string]interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"template_name":     templateName,
-		"target_region":     "us-east-1",
-		"resolution_method": "fallback_script",
-		"ami_id":            "",
+		"template_name":                templateName,
+		"target_region":                "us-east-1",
+		"resolution_method":            "fallback_script",
+		"ami_id":                       "",
 		"launch_time_estimate_seconds": 355,
-		"cost_savings":      0.0,
-		"warning":           "No AMI configuration found, using script provisioning",
+		"cost_savings":                 0.0,
+		"warning":                      "No AMI configuration found, using script provisioning",
 	}, nil
 }
 
@@ -1214,15 +1214,15 @@ func (m *MockClient) ResolveAMI(ctx context.Context, templateName string, params
 func (m *MockClient) TestAMIAvailability(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
 	templateName := request["template_name"].(string)
 	return map[string]interface{}{
-		"template_name":      templateName,
-		"overall_status":     "passed",
+		"template_name":     templateName,
+		"overall_status":    "passed",
 		"tested_at":         time.Now(),
 		"total_regions":     4,
 		"available_regions": 4,
 		"region_results": map[string]interface{}{
-			"us-east-1": map[string]interface{}{"status": "passed"},
-			"us-west-2": map[string]interface{}{"status": "passed"},
-			"eu-west-1": map[string]interface{}{"status": "passed"},
+			"us-east-1":  map[string]interface{}{"status": "passed"},
+			"us-west-2":  map[string]interface{}{"status": "passed"},
+			"eu-west-1":  map[string]interface{}{"status": "passed"},
 			"ap-south-1": map[string]interface{}{"status": "passed"},
 		},
 	}, nil
@@ -1231,32 +1231,32 @@ func (m *MockClient) TestAMIAvailability(ctx context.Context, request map[string
 // GetAMICosts provides cost analysis for AMI vs script deployment (mock)
 func (m *MockClient) GetAMICosts(ctx context.Context, templateName string) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"template_name":          templateName,
-		"region":                "us-east-1",
-		"recommendation":        "neutral",
-		"reasoning":             "Both AMI and script provisioning have similar cost/benefit profiles",
-		"ami_launch_cost":       0.0336,
-		"ami_storage_cost":      0.8000,
-		"ami_setup_cost":        0.0003,
-		"script_launch_cost":    0.0336,
-		"script_setup_cost":     0.0033,
-		"script_setup_time":     5,
-		"break_even_point":      2.7,
-		"cost_savings_1h":       0.0000,
-		"cost_savings_8h":       0.0000,
-		"time_savings":          5,
+		"template_name":      templateName,
+		"region":             "us-east-1",
+		"recommendation":     "neutral",
+		"reasoning":          "Both AMI and script provisioning have similar cost/benefit profiles",
+		"ami_launch_cost":    0.0336,
+		"ami_storage_cost":   0.8000,
+		"ami_setup_cost":     0.0003,
+		"script_launch_cost": 0.0336,
+		"script_setup_cost":  0.0033,
+		"script_setup_time":  5,
+		"break_even_point":   2.7,
+		"cost_savings_1h":    0.0000,
+		"cost_savings_8h":    0.0000,
+		"time_savings":       5,
 	}, nil
 }
 
 // PreviewAMIResolution shows what would happen during AMI resolution (mock)
 func (m *MockClient) PreviewAMIResolution(ctx context.Context, templateName string) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"template_name":     templateName,
-		"target_region":     "us-east-1",
-		"resolution_method": "fallback_script",
+		"template_name":                templateName,
+		"target_region":                "us-east-1",
+		"resolution_method":            "fallback_script",
 		"launch_time_estimate_seconds": 355,
-		"fallback_chain":    []string{"no_ami_config", "script_fallback"},
-		"warning":           "No AMI available, would use script provisioning",
+		"fallback_chain":               []string{"no_ami_config", "script_fallback"},
+		"warning":                      "No AMI available, would use script provisioning",
 	}, nil
 }
 
@@ -1331,7 +1331,7 @@ func (m *MockClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 				},
 			},
 		},
-		"total_count":   2,
-		"storage_cost":  17.00,
+		"total_count":  2,
+		"storage_cost": 17.00,
 	}, nil
 }

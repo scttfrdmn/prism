@@ -473,14 +473,19 @@ func (m *Manager) Close() error {
 }
 
 // getActiveInstancesForProject checks for active instances in a project
-// This is a placeholder implementation - in a full implementation this would
-// query the state manager or AWS directly to find instances tagged with the project ID
+// Currently returns empty slice - project-instance association needs to be implemented
+// at the daemon level where both state manager and AWS manager are available
 func (m *Manager) getActiveInstancesForProject(projectID string) ([]string, error) {
-	// For now, return empty slice to allow project deletion
-	// TODO: Implement actual instance query when project-instance tagging is added
-	// This should check:
-	// 1. Query AWS EC2 instances with project tag
-	// 2. Check local state for running instances
-	// 3. Return list of instance IDs/names
+	// This method is called during project deletion to check if there are active instances
+	// For now, return empty slice to allow project operations to proceed
+	//
+	// Proper implementation would require:
+	// 1. Access to state manager or AWS manager (not available in project manager)
+	// 2. Standardized project tagging on EC2 instances
+	// 3. Query instances with Project tag = projectID and State = running
+	//
+	// The actual instance counting is now implemented in daemon/project_handlers.go
+	// where both awsManager and budgetTracker are available
+
 	return []string{}, nil
 }

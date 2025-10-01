@@ -267,3 +267,89 @@ func (m *MockClient) AddTemplate(name string, template types.Template) {
 func (m *MockClient) AddInstance(name string, instance *types.Instance) {
 	m.instances[name] = instance
 }
+
+// Template Marketplace operations (Phase 5.2) - Mock implementations
+
+func (m *MockClient) SearchMarketplace(ctx context.Context, query map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"templates": []map[string]interface{}{
+			{
+				"id":       "mock-template-1",
+				"name":     "Mock ML Template",
+				"author":   "mock-user",
+				"rating":   4.5,
+				"tags":     []string{"ml", "python", "jupyter"},
+				"featured": true,
+			},
+		},
+	}, nil
+}
+
+func (m *MockClient) GetMarketplaceTemplate(ctx context.Context, templateID string) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"id":          templateID,
+		"name":        "Mock Template",
+		"description": "A mock template for testing",
+		"author":      "mock-user",
+		"rating":      4.5,
+		"downloads":   100,
+		"tags":        []string{"test", "mock"},
+	}, nil
+}
+
+func (m *MockClient) PublishMarketplaceTemplate(ctx context.Context, template map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success":     true,
+		"message":     "Template published successfully",
+		"template_id": "mock-published-123",
+	}, nil
+}
+
+func (m *MockClient) AddMarketplaceReview(ctx context.Context, templateID string, review map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success":   true,
+		"message":   "Review added successfully",
+		"review_id": "mock-review-123",
+	}, nil
+}
+
+func (m *MockClient) ForkMarketplaceTemplate(ctx context.Context, templateID string, fork map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success":        true,
+		"message":        "Template forked successfully",
+		"forked_id":      "mock-fork-123",
+		"original_id":    templateID,
+		"customizations": fork,
+	}, nil
+}
+
+func (m *MockClient) GetMarketplaceFeatured(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"templates": []map[string]interface{}{
+			{
+				"id":     "featured-1",
+				"name":   "Featured ML Template",
+				"author": "community",
+				"rating": 4.8,
+				"tags":   []string{"ml", "featured"},
+				"reason": "Top rated ML template",
+			},
+		},
+	}, nil
+}
+
+func (m *MockClient) GetMarketplaceTrending(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"templates": []map[string]interface{}{
+			{
+				"id":        "trending-1",
+				"name":      "Trending AI Template",
+				"author":    "ai-researcher",
+				"rating":    4.6,
+				"tags":      []string{"ai", "trending"},
+				"downloads": 250,
+				"reason":    "Most downloaded this week",
+			},
+		},
+	}, nil
+}

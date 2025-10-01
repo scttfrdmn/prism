@@ -1254,11 +1254,11 @@ func (a *App) handleAMICreate(args []string) error {
 
 	// Prepare AMI creation request
 	request := types.AMICreationRequest{
-		InstanceID:   instanceName,
-		Name:         amiName,
-		Public:       cmdArgs["public"] == "true",
-		NoReboot:     cmdArgs["no-reboot"] == "true",
-		Tags:         make(map[string]string),
+		InstanceID: instanceName,
+		Name:       amiName,
+		Public:     cmdArgs["public"] == "true",
+		NoReboot:   cmdArgs["no-reboot"] == "true",
+		Tags:       make(map[string]string),
 	}
 
 	// Add template name if provided

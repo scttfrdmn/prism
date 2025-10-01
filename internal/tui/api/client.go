@@ -136,6 +136,15 @@ func (c *TUIClient) Ping(ctx context.Context) error {
 	return c.client.Ping(ctx)
 }
 
+// GetStatus returns the daemon status information
+func (c *TUIClient) GetStatus(ctx context.Context) (*SystemStatusResponse, error) {
+	status, err := c.client.GetStatus(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return ToSystemStatusResponse(status), nil
+}
+
 // Idle detection operations
 
 // ListIdlePolicies returns all idle detection policies

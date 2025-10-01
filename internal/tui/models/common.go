@@ -45,6 +45,9 @@ type apiClient interface {
 	GetInstanceIdleStatus(ctx context.Context, name string) (*api.IdleDetectionResponse, error)
 	EnableIdleDetection(ctx context.Context, name, policy string) error
 	DisableIdleDetection(ctx context.Context, name string) error
+
+	// Status operations
+	GetStatus(ctx context.Context) (*api.SystemStatusResponse, error)
 }
 
 // refreshRoutine schedules periodic refresh operations

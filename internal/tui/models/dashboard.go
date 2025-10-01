@@ -37,6 +37,7 @@ type DashboardModel struct {
 	loading        bool
 	error          string
 	instances      []api.InstanceResponse
+	systemStatus   *api.SystemStatusResponse
 	costData       CostData
 	activeTab      string
 	refreshTicker  tea.Cmd
@@ -44,6 +45,13 @@ type DashboardModel struct {
 
 // DashboardRefreshMsg is sent when dashboard data should be refreshed
 type DashboardRefreshMsg struct{}
+
+// DashboardDataMsg contains both instance and system status data
+type DashboardDataMsg struct {
+	Instances    *api.ListInstancesResponse
+	SystemStatus *api.SystemStatusResponse
+	Error        error
+}
 
 // NewDashboardModel creates a new dashboard model
 func NewDashboardModel(apiClient apiClient) DashboardModel {
@@ -95,13 +103,34 @@ func (m DashboardModel) Init() tea.Cmd {
 	)
 }
 
-// fetchDashboardData retrieves instance data from the API
+// fetchDashboardData retrieves instance and system status data from the API
 func (m DashboardModel) fetchDashboardData() tea.Msg {
-	response, err := m.apiClient.ListInstances(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+	ctx := context.Background()
+
+	// Fetch instances
+	instancesResp, instancesErr := m.apiClient.ListInstances(ctx)
+
+	// Fetch system status
+	statusResp, statusErr := m.apiClient.GetStatus(ctx)
+
+	// Return combined data
+	if instancesErr != nil {
+		return DashboardDataMsg{
+			Error: fmt.Errorf("failed to list instances: %w", instancesErr),
+		}
 	}
-	return response
+
+	if statusErr != nil {
+		return DashboardDataMsg{
+			Instances: instancesResp,
+			Error:     fmt.Errorf("failed to get system status: %w", statusErr),
+		}
+	}
+
+	return DashboardDataMsg{
+		Instances:    instancesResp,
+		SystemStatus: statusResp,
+	}
 }
 
 // Update handles messages and updates the model
@@ -136,23 +165,43 @@ func (m DashboardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.error = msg.Error()
 		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
 
-	case *api.ListInstancesResponse:
+	case DashboardDataMsg:
 		m.loading = false
-		m.instances = msg.Instances
-		m.costData.DailyCost = msg.TotalCost
 
-		// Update instances table
-		rows := []table.Row{}
-		for _, instance := range m.instances {
-			status := strings.ToUpper(instance.State)
-			rows = append(rows, table.Row{
-				instance.Name,
-				instance.Template,
-				status,
-				fmt.Sprintf("$%.3f/hr eff:$%.3f", instance.HourlyRate, instance.EffectiveRate),
+		// Handle any errors
+		if msg.Error != nil {
+			m.error = msg.Error.Error()
+			m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
+			// Schedule retry
+			return m, tea.Tick(30*time.Second, func(t time.Time) tea.Msg {
+				return DashboardRefreshMsg{}
 			})
 		}
-		m.instancesTable.SetRows(rows)
+
+		// Update instances if available
+		if msg.Instances != nil {
+			m.instances = msg.Instances.Instances
+			m.costData.DailyCost = msg.Instances.TotalCost
+
+			// Update instances table
+			rows := []table.Row{}
+			for _, instance := range m.instances {
+				status := strings.ToUpper(instance.State)
+				rows = append(rows, table.Row{
+					instance.Name,
+					instance.Template,
+					status,
+					fmt.Sprintf("$%.3f/hr eff:$%.3f", instance.HourlyRate, instance.EffectiveRate),
+				})
+			}
+			m.instancesTable.SetRows(rows)
+		}
+
+		// Update system status if available
+		if msg.SystemStatus != nil {
+			m.systemStatus = msg.SystemStatus
+		}
+
 		m.statusBar.SetStatus("Ready", components.StatusSuccess)
 
 		// Schedule next refresh
@@ -198,12 +247,19 @@ func (m DashboardModel) View() string {
 			Render(theme.StatusError.Render("Error: " + m.error))
 	} else {
 		// System status panel
+		region := "unknown"
+		daemonStatus := "unknown"
+		if m.systemStatus != nil {
+			region = m.systemStatus.AWSRegion
+			daemonStatus = m.systemStatus.Status
+		}
+
 		systemPanel := theme.Panel.Width(m.width - 4).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				theme.PanelHeader.Render("System Status"),
-				fmt.Sprintf("Region: %s", "us-west-2"), // TODO: Get from API
-				fmt.Sprintf("Daemon: %s", "Running"),   // TODO: Get from API
+				fmt.Sprintf("Region: %s", region),
+				fmt.Sprintf("Daemon: %s", daemonStatus),
 			),
 		)
 

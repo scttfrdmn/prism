@@ -966,3 +966,96 @@ func (c *HTTPClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 	}
 	return result, nil
 }
+
+// Template Marketplace operations (Phase 5.2)
+
+// SearchMarketplace searches the marketplace for templates
+func (c *HTTPClient) SearchMarketplace(ctx context.Context, query map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/marketplace/templates", query)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetMarketplaceTemplate gets a specific template from the marketplace
+func (c *HTTPClient) GetMarketplaceTemplate(ctx context.Context, templateID string) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/marketplace/templates/%s", templateID), nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// PublishMarketplaceTemplate publishes a template to the marketplace
+func (c *HTTPClient) PublishMarketplaceTemplate(ctx context.Context, template map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/marketplace/publish", template)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// AddMarketplaceReview adds a review for a marketplace template
+func (c *HTTPClient) AddMarketplaceReview(ctx context.Context, templateID string, review map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/marketplace/templates/%s/reviews", templateID), review)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ForkMarketplaceTemplate forks a marketplace template for customization
+func (c *HTTPClient) ForkMarketplaceTemplate(ctx context.Context, templateID string, fork map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/marketplace/templates/%s/fork", templateID), fork)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetMarketplaceFeatured gets featured templates from the marketplace
+func (c *HTTPClient) GetMarketplaceFeatured(ctx context.Context) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/marketplace/featured", nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetMarketplaceTrending gets trending templates from the marketplace
+func (c *HTTPClient) GetMarketplaceTrending(ctx context.Context) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/marketplace/trending", nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}

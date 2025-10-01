@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -255,25 +257,130 @@ func (cm *ConnectionManager) monitorConnection(id string) {
 
 // Status check methods for different connection types
 func (cm *ConnectionManager) checkSSHStatus(config *ConnectionConfig) string {
-	// TODO: Implement SSH connection health check
-	// This could ping the WebSocket endpoint or check if the terminal is responsive
-	return config.Status // Return current status for now
+	// Health check SSH connection via WebSocket proxy endpoint
+	if config.ProxyURL == "" {
+		return "error"
+	}
+
+	// Check if the WebSocket endpoint is reachable
+	// Convert WebSocket URL to HTTP for health check
+	healthURL := strings.Replace(config.ProxyURL, "ws://", "http://", 1)
+	healthURL = strings.Replace(healthURL, "wss://", "https://", 1)
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(healthURL)
+	if err != nil {
+		return "disconnected"
+	}
+	defer resp.Body.Close()
+
+	// Check if we get a reasonable response (could be upgrade required for WebSocket)
+	if resp.StatusCode < 500 {
+		return "connected"
+	}
+
+	return "disconnected"
 }
 
 func (cm *ConnectionManager) checkDesktopStatus(config *ConnectionConfig) string {
-	// TODO: Implement DCV desktop connection health check
-	// This could check if the DCV session is active
-	return config.Status // Return current status for now
+	// Health check DCV desktop connection
+	if config.ProxyURL == "" {
+		return "error"
+	}
+
+	// For DCV connections, check if the session endpoint is responding
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Allow redirects for DCV authentication flows
+			return nil
+		},
+	}
+
+	resp, err := client.Get(config.ProxyURL)
+	if err != nil {
+		return "disconnected"
+	}
+	defer resp.Body.Close()
+
+	// DCV sessions typically respond with 200 OK or redirect to login
+	if resp.StatusCode == 200 || resp.StatusCode == 302 || resp.StatusCode == 401 {
+		return "connected"
+	}
+
+	return "disconnected"
 }
 
 func (cm *ConnectionManager) checkWebStatus(config *ConnectionConfig) string {
-	// TODO: Implement web interface health check
-	// This could ping the proxied service endpoint
-	return config.Status // Return current status for now
+	// Health check web interface connection
+	if config.ProxyURL == "" {
+		return "error"
+	}
+
+	// For web interfaces (Jupyter, RStudio, etc.), check if the service is responding
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Allow redirects for authentication flows
+			return nil
+		},
+	}
+
+	resp, err := client.Get(config.ProxyURL)
+	if err != nil {
+		return "disconnected"
+	}
+	defer resp.Body.Close()
+
+	// Web services typically respond with 200 OK, or redirects for login/auth
+	if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+		return "connected"
+	}
+
+	return "disconnected"
 }
 
 func (cm *ConnectionManager) checkAWSStatus(config *ConnectionConfig) string {
-	// TODO: Implement AWS service connection health check
-	// This could verify the federation token is still valid
-	return config.Status // Return current status for now
+	// Health check AWS service connection
+	if config.ProxyURL == "" && config.AuthToken == "" {
+		return "error"
+	}
+
+	// For AWS service connections, we can check a few things:
+	// 1. If there's a ProxyURL, check if it's accessible
+	// 2. If there's an AuthToken, we assume it's a federation token and check basic AWS access
+
+	if config.ProxyURL != "" {
+		// Check proxied AWS service endpoint
+		client := &http.Client{
+			Timeout: 10 * time.Second, // AWS services might take longer to respond
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// AWS console redirects are common
+				return nil
+			},
+		}
+
+		resp, err := client.Get(config.ProxyURL)
+		if err != nil {
+			return "disconnected"
+		}
+		defer resp.Body.Close()
+
+		// AWS services typically respond with 200 OK or redirects for authentication
+		if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+			return "connected"
+		}
+
+		return "disconnected"
+	}
+
+	// If no ProxyURL but has AuthToken, assume it's a direct federation connection
+	if config.AuthToken != "" {
+		// For federation tokens, we assume they're valid if they exist
+		// A more sophisticated check would validate the token with AWS STS
+		return "connected"
+	}
+
+	// No way to verify connection
+	return "error"
 }

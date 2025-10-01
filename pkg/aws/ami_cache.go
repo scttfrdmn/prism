@@ -11,7 +11,7 @@ import (
 // AMICache provides in-memory caching for AMI information to improve performance
 type AMICache struct {
 	// Cache storage
-	cache      sync.Map // key -> *cachedAMIInfo
+	cache sync.Map // key -> *cachedAMIInfo
 
 	// Cache configuration
 	defaultTTL time.Duration
@@ -24,11 +24,11 @@ type AMICache struct {
 
 // cachedAMIInfo wraps AMI info with caching metadata
 type cachedAMIInfo struct {
-	ami       *types.AMIInfo
-	cachedAt  time.Time
-	ttl       time.Duration
+	ami         *types.AMIInfo
+	cachedAt    time.Time
+	ttl         time.Duration
 	accessCount int64
-	lastAccess time.Time
+	lastAccess  time.Time
 }
 
 // NewAMICache creates a new AMI cache with default configuration
@@ -299,8 +299,8 @@ type AMICacheStats struct {
 
 // AMICacheConfig represents cache configuration
 type AMICacheConfig struct {
-	DefaultTTL     time.Duration `json:"default_ttl"`     // Default time-to-live for cached entries
-	MaxSize        int           `json:"max_size"`        // Maximum number of cached entries
+	DefaultTTL      time.Duration `json:"default_ttl"`      // Default time-to-live for cached entries
+	MaxSize         int           `json:"max_size"`         // Maximum number of cached entries
 	CleanupInterval time.Duration `json:"cleanup_interval"` // How often to clean up expired entries
 }
 

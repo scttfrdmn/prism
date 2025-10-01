@@ -14,6 +14,7 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/connection"
 	"github.com/scttfrdmn/cloudworkstation/pkg/cost"
+	"github.com/scttfrdmn/cloudworkstation/pkg/marketplace"
 	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
 	"github.com/scttfrdmn/cloudworkstation/pkg/policy"
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
@@ -50,6 +51,9 @@ type Server struct {
 	// Cost optimization components
 	budgetTracker *project.BudgetTracker
 	alertManager  *cost.AlertManager
+
+	// Template marketplace components
+	marketplaceRegistry *marketplace.Registry
 }
 
 // NewServer creates a new daemon server
@@ -133,6 +137,24 @@ func NewServer(port string) (*Server, error) {
 	}
 	alertManager := cost.NewAlertManager()
 	alertManager.CreateDefaultRules()
+
+	// Initialize template marketplace registry
+	marketplaceConfig := &marketplace.MarketplaceConfig{
+		RegistryEndpoint:      "https://marketplace.cloudworkstation.org",
+		S3Bucket:              "cloudworkstation-marketplace",
+		DynamoDBTable:         "marketplace-templates",
+		CDNEndpoint:           "https://cdn.cloudworkstation.org",
+		AutoAMIGeneration:     true,
+		DefaultRegions:        []string{"us-east-1", "us-west-2", "eu-west-1"},
+		RequireModeration:     false,
+		MinRatingForFeatured:  4.0,
+		MinReviewsForFeatured: 5,
+		PublishRateLimit:      10,  // 10 publications per day
+		ReviewRateLimit:       20,  // 20 reviews per day
+		SearchRateLimit:       100, // 100 searches per minute
+	}
+	marketplaceRegistry := marketplace.NewRegistry(marketplaceConfig)
+	marketplaceRegistry.LoadSampleData() // Load sample data for development
 	alertManager.Start()
 
 	// Initialize security manager
@@ -160,23 +182,24 @@ func NewServer(port string) (*Server, error) {
 	stabilityManager := NewStabilityManager(performanceMonitor)
 
 	server := &Server{
-		config:             config,
-		port:               port,
-		stateManager:       stateManager,
-		userManager:        userManager,
-		statusTracker:      statusTracker,
-		versionManager:     versionManager,
-		awsManager:         awsManager,
-		projectManager:     projectManager,
-		securityManager:    securityManager,
-		policyService:      policyService,
-		processManager:     processManager,
-		performanceMonitor: performanceMonitor,
-		connManager:        connManager,
-		reliabilityManager: reliabilityManager,
-		stabilityManager:   stabilityManager,
-		budgetTracker:      budgetTracker,
-		alertManager:       alertManager,
+		config:              config,
+		port:                port,
+		stateManager:        stateManager,
+		userManager:         userManager,
+		statusTracker:       statusTracker,
+		versionManager:      versionManager,
+		awsManager:          awsManager,
+		projectManager:      projectManager,
+		securityManager:     securityManager,
+		policyService:       policyService,
+		processManager:      processManager,
+		performanceMonitor:  performanceMonitor,
+		connManager:         connManager,
+		reliabilityManager:  reliabilityManager,
+		stabilityManager:    stabilityManager,
+		budgetTracker:       budgetTracker,
+		alertManager:        alertManager,
+		marketplaceRegistry: marketplaceRegistry,
 	}
 
 	// Configure budget tracker with action executor
@@ -500,6 +523,9 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 
 	// AMI management endpoints (Phase 5.1 Week 2: REST API Integration)
 	s.RegisterAMIRoutes(mux, applyMiddleware)
+
+	// Template marketplace endpoints (Phase 5.1 Week 3: Marketplace Integration)
+	s.RegisterMarketplaceRoutes(mux, applyMiddleware)
 }
 
 // HTTP handlers

@@ -11,6 +11,22 @@ import (
 // for the TUI models to interact with the API client, regardless of
 // the actual API implementation.
 
+// System status types
+
+// SystemStatusResponse represents daemon status information
+type SystemStatusResponse struct {
+	Version           string    `json:"version"`
+	Status            string    `json:"status"`
+	StartTime         time.Time `json:"start_time"`
+	Uptime            string    `json:"uptime,omitempty"`
+	ActiveOps         int       `json:"active_ops"`
+	TotalRequests     int64     `json:"total_requests"`
+	RequestsPerMinute float64   `json:"requests_per_minute,omitempty"`
+	AWSRegion         string    `json:"aws_region"`
+	AWSProfile        string    `json:"aws_profile,omitempty"`
+	CurrentProfile    string    `json:"current_profile,omitempty"`
+}
+
 // Idle detection types
 
 // IdlePolicyResponse represents an idle detection policy
@@ -281,4 +297,20 @@ func ToListStorageResponse(storage []types.EBSVolume) *ListStorageResponse {
 	}
 
 	return result
+}
+
+// ToSystemStatusResponse converts daemon status to TUI response format
+func ToSystemStatusResponse(status *types.DaemonStatus) *SystemStatusResponse {
+	return &SystemStatusResponse{
+		Version:           status.Version,
+		Status:            status.Status,
+		StartTime:         status.StartTime,
+		Uptime:            status.Uptime,
+		ActiveOps:         status.ActiveOps,
+		TotalRequests:     status.TotalRequests,
+		RequestsPerMinute: status.RequestsPerMinute,
+		AWSRegion:         status.AWSRegion,
+		AWSProfile:        status.AWSProfile,
+		CurrentProfile:    status.CurrentProfile,
+	}
 }

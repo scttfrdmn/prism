@@ -45,7 +45,7 @@ type Manager struct {
 	policyManager   *idle.PolicyManager
 
 	// Universal AMI System components (Phase 5.1)
-	amiResolver     *UniversalAMIResolver
+	amiResolver *UniversalAMIResolver
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager

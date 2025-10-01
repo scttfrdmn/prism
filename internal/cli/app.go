@@ -822,6 +822,8 @@ func (a *App) AMIDiscover(args []string) error {
 
 // Note: AMI command is implemented in internal/cli/ami.go
 
+// Note: Marketplace command is implemented in internal/cli/marketplace.go
+
 // Project command implementation
 func (a *App) Project(args []string) error {
 	if len(args) < 1 {
@@ -1123,10 +1125,18 @@ func (a *App) projectMembers(args []string) error {
 			email := args[2]
 			role := args[3]
 
+			// Get current user from profile context
+			currentUser := "system"
+			if a.profileManager != nil {
+				if profile, err := a.profileManager.GetCurrentProfile(); err == nil {
+					currentUser = profile.Name
+				}
+			}
+
 			req := project.AddMemberRequest{
 				UserID:  email,
 				Role:    types.ProjectRole(role),
-				AddedBy: "current-user", // TODO: Get from auth context
+				AddedBy: currentUser,
 			}
 
 			err := a.apiClient.AddProjectMember(a.ctx, name, req)

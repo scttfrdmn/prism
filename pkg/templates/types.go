@@ -110,14 +110,14 @@ type AMIConfig struct {
 	FallbackTimeout  string `yaml:"fallback_timeout,omitempty" json:"fallback_timeout,omitempty"`   // Max time for AMI resolution (e.g. "10m")
 
 	// Cost and performance optimization
-	PreferredArchitecture     string   `yaml:"preferred_architecture,omitempty" json:"preferred_architecture,omitempty"`           // arm64, x86_64
-	InstanceFamilyPreference  []string `yaml:"instance_family_preference,omitempty" json:"instance_family_preference,omitempty"`   // ["t4g", "m6i", "c6i"]
+	PreferredArchitecture    string   `yaml:"preferred_architecture,omitempty" json:"preferred_architecture,omitempty"`         // arm64, x86_64
+	InstanceFamilyPreference []string `yaml:"instance_family_preference,omitempty" json:"instance_family_preference,omitempty"` // ["t4g", "m6i", "c6i"]
 
 	// Legacy compatibility (maintains backwards compatibility)
-	AMIs               map[string]map[string]string `yaml:"amis,omitempty" json:"amis,omitempty"`                             // region -> arch -> AMI ID (legacy)
-	InstanceTypes      map[string]string            `yaml:"instance_types,omitempty" json:"instance_types,omitempty"`         // arch -> instance type (legacy)
-	UserDataScript     string                       `yaml:"user_data_script,omitempty" json:"user_data_script,omitempty"`     // Optional customization script
-	SSHUser            string                       `yaml:"ssh_user,omitempty" json:"ssh_user,omitempty"`                     // SSH username for AMI
+	AMIs           map[string]map[string]string `yaml:"amis,omitempty" json:"amis,omitempty"`                         // region -> arch -> AMI ID (legacy)
+	InstanceTypes  map[string]string            `yaml:"instance_types,omitempty" json:"instance_types,omitempty"`     // arch -> instance type (legacy)
+	UserDataScript string                       `yaml:"user_data_script,omitempty" json:"user_data_script,omitempty"` // Optional customization script
+	SSHUser        string                       `yaml:"ssh_user,omitempty" json:"ssh_user,omitempty"`                 // SSH username for AMI
 }
 
 // AMIStrategy defines how templates handle AMI resolution
@@ -131,12 +131,12 @@ const (
 
 // AMISearchConfig defines dynamic AMI discovery parameters
 type AMISearchConfig struct {
-	Owner            string   `yaml:"owner,omitempty" json:"owner,omitempty"`                         // AWS account ID or alias
-	NamePattern      string   `yaml:"name_pattern,omitempty" json:"name_pattern,omitempty"`           // AMI name pattern (e.g. "cws-python-ml-*")
-	VersionTag       string   `yaml:"version_tag,omitempty" json:"version_tag,omitempty"`             // Specific version tag
-	Architecture     []string `yaml:"architecture,omitempty" json:"architecture,omitempty"`           // ["x86_64", "arm64"]
-	MinCreationDate  string   `yaml:"min_creation_date,omitempty" json:"min_creation_date,omitempty"` // ISO date string
-	RequiredTags     map[string]string `yaml:"required_tags,omitempty" json:"required_tags,omitempty"`  // Tags that must be present
+	Owner           string            `yaml:"owner,omitempty" json:"owner,omitempty"`                         // AWS account ID or alias
+	NamePattern     string            `yaml:"name_pattern,omitempty" json:"name_pattern,omitempty"`           // AMI name pattern (e.g. "cws-python-ml-*")
+	VersionTag      string            `yaml:"version_tag,omitempty" json:"version_tag,omitempty"`             // Specific version tag
+	Architecture    []string          `yaml:"architecture,omitempty" json:"architecture,omitempty"`           // ["x86_64", "arm64"]
+	MinCreationDate string            `yaml:"min_creation_date,omitempty" json:"min_creation_date,omitempty"` // ISO date string
+	RequiredTags    map[string]string `yaml:"required_tags,omitempty" json:"required_tags,omitempty"`         // Tags that must be present
 }
 
 // MarketplaceSearchConfig defines AWS Marketplace AMI discovery

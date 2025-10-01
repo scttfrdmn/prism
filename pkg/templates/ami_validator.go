@@ -45,11 +45,11 @@ func NewAMIConfigValidator() *AMIConfigValidator {
 
 	// Trusted AWS accounts (CloudWorkstation, major vendors, etc.)
 	trustedAccounts := map[string]string{
-		"099720109477": "Canonical (Ubuntu)",
-		"137112412989": "Amazon Web Services",
-		"309956199498": "Red Hat",
-		"679593333241": "MathWorks",
-		"aws-marketplace": "AWS Marketplace",
+		"099720109477":     "Canonical (Ubuntu)",
+		"137112412989":     "Amazon Web Services",
+		"309956199498":     "Red Hat",
+		"679593333241":     "MathWorks",
+		"aws-marketplace":  "AWS Marketplace",
 		"cloudworkstation": "CloudWorkstation Community",
 	}
 
@@ -336,9 +336,9 @@ func (v *AMIConfigValidator) ValidateTemplateAMIConfig(template *Template) []Tem
 
 	// If template has no AMI config, that's fine
 	if template.AMIConfig.Strategy == "" &&
-	   template.AMIConfig.AMIMappings == nil &&
-	   template.AMIConfig.AMISearch == nil &&
-	   template.AMIConfig.MarketplaceSearch == nil {
+		template.AMIConfig.AMIMappings == nil &&
+		template.AMIConfig.AMISearch == nil &&
+		template.AMIConfig.MarketplaceSearch == nil {
 		return errors
 	}
 
@@ -349,9 +349,9 @@ func (v *AMIConfigValidator) ValidateTemplateAMIConfig(template *Template) []Tem
 	if template.AMIConfig.Strategy == AMIStrategyRequired {
 		// If AMI is required, ensure at least one resolution method is provided
 		hasResolutionMethod := (template.AMIConfig.AMIMappings != nil && len(template.AMIConfig.AMIMappings) > 0) ||
-							  template.AMIConfig.AMISearch != nil ||
-							  template.AMIConfig.MarketplaceSearch != nil ||
-							  (template.AMIConfig.AMIs != nil && len(template.AMIConfig.AMIs) > 0)
+			template.AMIConfig.AMISearch != nil ||
+			template.AMIConfig.MarketplaceSearch != nil ||
+			(template.AMIConfig.AMIs != nil && len(template.AMIConfig.AMIs) > 0)
 
 		if !hasResolutionMethod {
 			errors = append(errors, TemplateValidationError{

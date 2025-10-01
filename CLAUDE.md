@@ -177,39 +177,58 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 🎯 **GUI Interface**: Professional Cloudscape-based research user management interface
 🎯 **API Integration**: Connect policy CLI commands to daemon service endpoints
 
-### **Phase 5B: AWS Research Services Integration** (v0.5.5 - Q2 2026)
-🎯 **AWS Research Services Integration** (Priority 1):
-- **EMR Studio** for big data analytics and Spark-based research
-- **SageMaker Studio Lab** (free) for educational ML use cases
-- **Amazon Braket** for quantum computing research and education
-- **AWS CloudShell** integration for web-based terminal access
-- **DEPRECATED SERVICES AVOIDED**: Cloud9 (deprecated July 2024), CodeCommit (deprecated)
-- **RISK ASSESSMENT**: Full SageMaker Studio integration pending AWS partnership feasibility study
+### **Phase 5B: Commercial Software & Configuration Sync** (v0.5.2-0.5.4 - Q1 2026)
 
-🎯 **Web Service Management Framework**:
-- Unified interface for EC2 + AWS research services
-- Service-specific template architecture (`connection_type: web`)
-- Cross-service cost tracking and budget management
+**🔧 PRIORITY: Partial Implementations First**
 
-🎯 **Development & Analytics Services**:
-- AWS Cloud9 web-based IDE integration
-- QuickSight analytics dashboards
-- Athena SQL editor for data analysis
-- Glue DataBrew for data preparation
+**v0.5.2: Commercial Software Templates** (HIGH IMPACT):
+- ✅ **Direct AMI Reference System**: Enable templates to specify AMI IDs directly for licensed software
+- ✅ **AMI Auto-Discovery**: Intelligent AMI resolution via AWS Marketplace and naming patterns
+- ✅ **BYOL License Integration**: Template-based license server configuration and validation
+- ✅ **Commercial Template Schema**: Extended template system for commercial software requirements
+- 🎯 **Initial Templates**: MATLAB R2024a, ArcGIS Desktop, Mathematica 14, Stata 18
 
-### **Phase 5C: Enterprise Research Ecosystem** (v0.6.0 - Q3 2025)
-🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing
-🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads  
-🎯 **Enterprise Policy Engine**: Digital signatures and institutional governance controls
-🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and EMR Studio big data
-🎯 **Research Workflows**: Integration with research data management and CI/CD systems
+**v0.5.3: Template-Based Configuration Sync** (MEDIUM IMPACT):
+- ✅ **Configuration Templates**: Template-based system for RStudio, Jupyter, VS Code, Git settings
+- ✅ **Local Config Capture**: Scan and template-ize local development environment configurations
+- ✅ **SSH-Based Sync**: Secure configuration deployment to CloudWorkstation instances
+- ✅ **Community Config Sharing**: Template-based configuration sharing and discovery
+- 🎯 **Applications**: RStudio (packages, themes), Jupyter (extensions, kernels), VS Code (settings, extensions)
 
-### ### **Phase 5C: Enterprise Research Ecosystem** (v0.6.0 - Q3 2025)
-🎯 **Template Marketplace**: Community-contributed research environments with discovery and sharing (MOVED UP from Phase 6)
+**v0.5.4: Template Marketplace Foundation** (MEDIUM-HIGH IMPACT):
+- ✅ **Decentralized Repository System**: Support multiple template repositories beyond core
+- ✅ **Repository Authentication**: SSH keys and token-based access for private/institutional repos
+- ✅ **Template Discovery**: Search and browse templates across multiple repositories
+- ✅ **Basic Security**: Optional authentication for private template collections
+- 🎯 **Repository Types**: Core, Community, Institutional, Private with appropriate access controls
+
+### **Phase 5C: Advanced Sync & Storage** (v0.5.5-0.5.6 - Q2 2026)
+
+**v0.5.5: Directory Sync System** (HIGH IMPACT):
+- ✅ **EFS-Backed Bidirectional Sync**: Real-time directory synchronization between local and cloud
+- ✅ **Research-Optimized Rules**: Smart file filtering for code, datasets, results, and outputs
+- ✅ **Conflict Resolution**: Intelligent handling of simultaneous edits with user control
+- ✅ **Multi-Instance Support**: Single sync directory accessible across multiple CloudWorkstation instances
+- 🎯 **Integration**: Google Drive/Dropbox-like experience optimized for research workflows
+
+**v0.5.6: AWS Research Services Integration** (STRATEGIC):
+- 🎯 **EMR Studio** for big data analytics and Spark-based research
+- 🎯 **SageMaker Studio Lab** (free) for educational ML use cases
+- 🎯 **Amazon Braket** for quantum computing research and education
+- 🎯 **AWS CloudShell** integration for web-based terminal access
+- 🎯 **Web Service Framework**: Unified interface for EC2 + AWS research services
+- ⚠️ **RISK ASSESSMENT**: Full SageMaker Studio integration pending AWS partnership feasibility
+
+### **Phase 5D: Enterprise Research Ecosystem** (v0.6.0 - Q3 2026)
 🎯 **Advanced Storage**: OpenZFS/FSx integration for specialized research workloads
 🎯 **Enterprise Policy Engine**: Digital signatures and institutional governance controls
 🎯 **HPC Integration**: ParallelCluster, Batch scheduling, and EMR Studio big data
 🎯 **Research Workflows**: Integration with research data management and CI/CD systems
+🎯 **Autonomous Idle Detection Enhancements** (from findings):
+   - GPU usage monitoring and optimization
+   - Research workload pattern recognition
+   - Cost optimization through intelligent hibernation
+   - Multi-instance coordinated idle detection
 
 **Phase 6: Extensibility & Ecosystem** (v0.7.0 - Q4 2026)
 🎯 **Plugin Architecture**: Unified CLI + daemon plugin system for custom functionality

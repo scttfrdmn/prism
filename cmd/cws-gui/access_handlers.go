@@ -187,7 +187,7 @@ func (s *CloudWorkstationService) GetInstanceAccess(ctx context.Context, instanc
 		InstanceName: getString(instance, "name"),
 		PublicIP:     getString(instance, "public_ip"),
 		Username:     getString(instance, "username", "ubuntu"),
-		SSHPort:      22, // Default SSH port
+		SSHPort:      22,                               // Default SSH port
 		AccessTypes:  []AccessType{AccessTypeTerminal}, // SSH is always available
 	}
 
