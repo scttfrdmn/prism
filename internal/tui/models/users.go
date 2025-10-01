@@ -99,96 +99,25 @@ type DeleteUserMsg struct {
 }
 
 // Update handles messages and updates the model
+// Update handles messages and updates the model
 func (m UsersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.statusBar.SetWidth(msg.Width)
-
+		return m.handleWindowResize(msg)
 	case tea.KeyMsg:
-		if m.showCreateDialog {
-			return m.handleCreateDialog(msg)
-		}
-		if m.showDeleteDialog {
-			return m.handleDeleteDialog(msg)
-		}
-
-		switch msg.String() {
-		case "r":
-			m.loading = true
-			m.error = ""
-			return m, m.fetchUsers
-
-		case "c":
-			// Show create user dialog
-			m.showCreateDialog = true
-			m.createUsername = ""
-
-		case "d":
-			// Show delete user dialog for selected user
-			if len(m.users) > 0 && m.selectedUser < len(m.users) {
-				m.showDeleteDialog = true
-				m.deleteUsername = m.users[m.selectedUser].Username
-			}
-
-		case "up", "k":
-			if m.selectedUser > 0 {
-				m.selectedUser--
-			}
-
-		case "down", "j":
-			if m.selectedUser < len(m.users)-1 {
-				m.selectedUser++
-			}
-
-		case "s":
-			// Show status for selected user
-			if len(m.users) > 0 && m.selectedUser < len(m.users) {
-				username := m.users[m.selectedUser].Username
-				m.statusBar.SetStatus(fmt.Sprintf("User: %s (UID: %d)", username, m.users[m.selectedUser].UID), components.StatusInfo)
-			}
-
-		case "q", "esc":
-			return m, tea.Quit
-		}
-
+		return m.handleKeyboardInput(msg)
 	case RefreshMsg:
-		m.loading = true
-		m.error = ""
-		return m, m.fetchUsers
-
+		return m.handleRefresh()
 	case error:
-		m.loading = false
-		m.error = msg.Error()
-		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
-
+		return m.handleError(msg)
 	case UsersDataMsg:
-		m.loading = false
-		m.users = msg.Users
-		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d users", len(m.users)), components.StatusSuccess)
-
+		return m.handleUsersData(msg)
 	case CreateUserMsg:
-		m.showCreateDialog = false
-		if msg.Success {
-			m.statusBar.SetStatus(fmt.Sprintf("Created user: %s", msg.Username), components.StatusSuccess)
-			// Refresh the list
-			return m, m.fetchUsers
-		} else {
-			m.statusBar.SetStatus(fmt.Sprintf("Failed to create user: %s", msg.Message), components.StatusError)
-		}
-
+		return m.handleCreateUserResult(msg)
 	case DeleteUserMsg:
-		m.showDeleteDialog = false
-		if msg.Success {
-			m.statusBar.SetStatus(fmt.Sprintf("Deleted user: %s", msg.Username), components.StatusSuccess)
-			// Refresh the list
-			return m, m.fetchUsers
-		} else {
-			m.statusBar.SetStatus(fmt.Sprintf("Failed to delete user: %s", msg.Message), components.StatusError)
-		}
+		return m.handleDeleteUserResult(msg)
 	}
 
 	// Update components
@@ -199,6 +128,140 @@ func (m UsersModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+// handleWindowResize processes window size changes
+func (m UsersModel) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.statusBar.SetWidth(msg.Width)
+	return m, nil
+}
+
+// handleKeyboardInput processes keyboard messages
+func (m UsersModel) handleKeyboardInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.showCreateDialog {
+		return m.handleCreateDialog(msg)
+	}
+	if m.showDeleteDialog {
+		return m.handleDeleteDialog(msg)
+	}
+
+	return m.handleMainKeyboardInput(msg)
+}
+
+// handleMainKeyboardInput processes main interface keyboard input
+func (m UsersModel) handleMainKeyboardInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "r":
+		return m.handleRefreshRequest()
+	case "c":
+		return m.handleCreateRequest()
+	case "d":
+		return m.handleDeleteRequest()
+	case "up", "k":
+		return m.handleNavigationUp()
+	case "down", "j":
+		return m.handleNavigationDown()
+	case "s":
+		return m.handleStatusRequest()
+	case "q", "esc":
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
+// handleRefreshRequest starts user data refresh
+func (m UsersModel) handleRefreshRequest() (tea.Model, tea.Cmd) {
+	m.loading = true
+	m.error = ""
+	return m, m.fetchUsers
+}
+
+// handleCreateRequest shows create user dialog
+func (m UsersModel) handleCreateRequest() (tea.Model, tea.Cmd) {
+	m.showCreateDialog = true
+	m.createUsername = ""
+	return m, nil
+}
+
+// handleDeleteRequest shows delete user dialog
+func (m UsersModel) handleDeleteRequest() (tea.Model, tea.Cmd) {
+	if len(m.users) > 0 && m.selectedUser < len(m.users) {
+		m.showDeleteDialog = true
+		m.deleteUsername = m.users[m.selectedUser].Username
+	}
+	return m, nil
+}
+
+// handleNavigationUp moves selection up
+func (m UsersModel) handleNavigationUp() (tea.Model, tea.Cmd) {
+	if m.selectedUser > 0 {
+		m.selectedUser--
+	}
+	return m, nil
+}
+
+// handleNavigationDown moves selection down
+func (m UsersModel) handleNavigationDown() (tea.Model, tea.Cmd) {
+	if m.selectedUser < len(m.users)-1 {
+		m.selectedUser++
+	}
+	return m, nil
+}
+
+// handleStatusRequest shows status for selected user
+func (m UsersModel) handleStatusRequest() (tea.Model, tea.Cmd) {
+	if len(m.users) > 0 && m.selectedUser < len(m.users) {
+		username := m.users[m.selectedUser].Username
+		m.statusBar.SetStatus(fmt.Sprintf("User: %s (UID: %d)", username, m.users[m.selectedUser].UID), components.StatusInfo)
+	}
+	return m, nil
+}
+
+// handleRefresh processes refresh message
+func (m UsersModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	m.error = ""
+	return m, m.fetchUsers
+}
+
+// handleError processes error messages
+func (m UsersModel) handleError(msg error) (tea.Model, tea.Cmd) {
+	m.loading = false
+	m.error = msg.Error()
+	m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
+	return m, nil
+}
+
+// handleUsersData processes loaded users data
+func (m UsersModel) handleUsersData(msg UsersDataMsg) (tea.Model, tea.Cmd) {
+	m.loading = false
+	m.users = msg.Users
+	m.statusBar.SetStatus(fmt.Sprintf("Loaded %d users", len(m.users)), components.StatusSuccess)
+	return m, nil
+}
+
+// handleCreateUserResult processes create user operation result
+func (m UsersModel) handleCreateUserResult(msg CreateUserMsg) (tea.Model, tea.Cmd) {
+	m.showCreateDialog = false
+	if msg.Success {
+		m.statusBar.SetStatus(fmt.Sprintf("Created user: %s", msg.Username), components.StatusSuccess)
+		return m, m.fetchUsers
+	}
+	m.statusBar.SetStatus(fmt.Sprintf("Failed to create user: %s", msg.Message), components.StatusError)
+	return m, nil
+}
+
+// handleDeleteUserResult processes delete user operation result
+func (m UsersModel) handleDeleteUserResult(msg DeleteUserMsg) (tea.Model, tea.Cmd) {
+	m.showDeleteDialog = false
+	if msg.Success {
+		m.statusBar.SetStatus(fmt.Sprintf("Deleted user: %s", msg.Username), components.StatusSuccess)
+		return m, m.fetchUsers
+	}
+	m.statusBar.SetStatus(fmt.Sprintf("Failed to delete user: %s", msg.Message), components.StatusError)
+	return m, nil
 }
 
 // handleCreateDialog handles input in the create user dialog
