@@ -20,7 +20,7 @@ import (
 // AMI processes AMI-related commands
 func (a *App) AMI(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing AMI command (build, list, validate, publish, save, resolve, test, costs, preview)")
+		return fmt.Errorf("missing AMI command (build, list, validate, publish, save, resolve, test, costs, preview, create, status)")
 	}
 
 	subcommand := args[0]
@@ -46,6 +46,11 @@ func (a *App) AMI(args []string) error {
 		return a.handleAMICosts(subargs)
 	case "preview":
 		return a.handleAMIPreview(subargs)
+	// AMI Creation commands (Phase 5.1 AMI Creation)
+	case "create":
+		return a.handleAMICreate(subargs)
+	case "status":
+		return a.handleAMIStatus(subargs)
 	default:
 		return fmt.Errorf("unknown AMI command: %s", subcommand)
 	}
@@ -1194,5 +1199,207 @@ func getStringSlice(data interface{}, key string) []string {
 			}
 		}
 	}
+	return nil
+}
+
+func getFloat64(data interface{}, key string) float64 {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if num, ok := val.(float64); ok {
+				return num
+			}
+		}
+	}
+	return 0
+}
+
+func getBool(data interface{}, key string) bool {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if b, ok := val.(bool); ok {
+				return b
+			}
+		}
+	}
+	return false
+}
+
+func getSlice(data interface{}, key string) []interface{} {
+	if m, ok := data.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists {
+			if slice, ok := val.([]interface{}); ok {
+				return slice
+			}
+		}
+	}
+	return nil
+}
+
+// AMI Creation Commands (Phase 5.1 Enhancement)
+
+// handleAMICreate creates an AMI from a running instance
+func (a *App) handleAMICreate(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami create <instance-name> --name <ami-name> [--description <description>] [--template <template>] [--public] [--no-reboot]")
+	}
+
+	instanceName := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Validate required parameters
+	amiName := cmdArgs["name"]
+	if amiName == "" {
+		return fmt.Errorf("AMI name is required (use --name <ami-name>)")
+	}
+
+	// Prepare AMI creation request
+	request := types.AMICreationRequest{
+		InstanceID:   instanceName,
+		Name:         amiName,
+		Public:       cmdArgs["public"] == "true",
+		NoReboot:     cmdArgs["no-reboot"] == "true",
+		Tags:         make(map[string]string),
+	}
+
+	// Add template name if provided
+	if template := cmdArgs["template"]; template != "" {
+		request.TemplateName = template
+	} else {
+		request.TemplateName = "custom"
+	}
+
+	// Add description with default
+	if description := cmdArgs["description"]; description != "" {
+		request.Description = description
+	} else {
+		request.Description = fmt.Sprintf("Custom AMI created from instance %s", instanceName)
+	}
+
+	// Add tags
+	if tags := cmdArgs["tags"]; tags != "" {
+		for _, tag := range strings.Split(tags, ",") {
+			parts := strings.Split(tag, "=")
+			if len(parts) == 2 {
+				request.Tags[parts[0]] = parts[1]
+			}
+		}
+	}
+
+	fmt.Printf("🚀 Creating AMI from instance '%s'...\n\n", instanceName)
+
+	// Make API call to create AMI
+	response, err := a.apiClient.CreateAMI(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to create AMI: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("✅ AMI creation initiated successfully!\n\n")
+	fmt.Printf("🆔 AMI ID: %s\n", getString(response, "ami_id"))
+	fmt.Printf("📝 Name: %s\n", getString(response, "name"))
+	fmt.Printf("🏷️  Template: %s\n", getString(response, "template_name"))
+	fmt.Printf("⚡ Status: %s\n", getString(response, "status"))
+	fmt.Printf("⏱️  Estimated completion: %d minutes\n", getInt(response, "estimated_completion_minutes"))
+	fmt.Printf("💰 Storage cost: $%.4f/month\n", getFloat64(response, "storage_cost"))
+
+	fmt.Printf("\n💡 Check status with: cws ami status %s\n", getString(response, "ami_id"))
+
+	return nil
+}
+
+// handleAMIStatus checks the status of AMI creation
+func (a *App) handleAMIStatus(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami status <creation-id|ami-id>")
+	}
+
+	creationID := args[0]
+
+	// Make API call to get status
+	response, err := a.apiClient.GetAMIStatus(a.ctx, creationID)
+	if err != nil {
+		return fmt.Errorf("failed to get AMI status: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("📊 AMI Creation Status\n\n")
+	fmt.Printf("🆔 AMI ID: %s\n", getString(response, "ami_id"))
+	fmt.Printf("⚡ Status: %s\n", getString(response, "status"))
+
+	progress := getInt(response, "progress")
+	fmt.Printf("📈 Progress: %d%%\n", progress)
+
+	// Show progress bar
+	barWidth := 30
+	filledWidth := int(float64(barWidth) * float64(progress) / 100.0)
+	fmt.Print("   [")
+	for i := 0; i < barWidth; i++ {
+		if i < filledWidth {
+			fmt.Print("█")
+		} else {
+			fmt.Print("░")
+		}
+	}
+	fmt.Printf("]\n\n")
+
+	fmt.Printf("⏱️  Elapsed time: %d minutes\n", getInt(response, "elapsed_time_minutes"))
+	fmt.Printf("⏰ Estimated completion: %d minutes remaining\n", getInt(response, "estimated_completion_minutes"))
+	fmt.Printf("💰 Storage cost: $%.4f/month\n", getFloat64(response, "storage_cost"))
+
+	// Show completion message if done
+	status := getString(response, "status")
+	if status == "completed" {
+		fmt.Printf("\n🎉 AMI creation completed successfully!\n")
+		fmt.Printf("   Use this AMI by creating a template or launching directly\n")
+	} else if status == "failed" {
+		fmt.Printf("\n❌ AMI creation failed\n")
+		if message := getString(response, "message"); message != "" {
+			fmt.Printf("   Error: %s\n", message)
+		}
+	} else {
+		fmt.Printf("\n⏳ AMI creation is still in progress...\n")
+		fmt.Printf("   Check again in a few minutes\n")
+	}
+
+	return nil
+}
+
+// handleAMIList lists user's AMIs
+func (a *App) handleAMIListUser(args []string) error {
+	// Make API call to list user AMIs
+	response, err := a.apiClient.ListUserAMIs(a.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list user AMIs: %w", err)
+	}
+
+	fmt.Printf("🖼️  Your Custom AMIs\n\n")
+
+	amis := getSlice(response, "amis")
+	if len(amis) == 0 {
+		fmt.Printf("No custom AMIs found.\n")
+		fmt.Printf("💡 Create one with: cws ami create <instance-name> --name <ami-name>\n")
+		return nil
+	}
+
+	for i, ami := range amis {
+		amiMap := ami.(map[string]interface{})
+		fmt.Printf("🖼️  AMI %d:\n", i+1)
+		fmt.Printf("   🆔 ID: %s\n", getString(amiMap, "ami_id"))
+		fmt.Printf("   📝 Name: %s\n", getString(amiMap, "name"))
+		fmt.Printf("   📖 Description: %s\n", getString(amiMap, "description"))
+		fmt.Printf("   🏗️  Architecture: %s\n", getString(amiMap, "architecture"))
+		fmt.Printf("   📅 Created: %s\n", getString(amiMap, "creation_date"))
+
+		if getBool(amiMap, "public") {
+			fmt.Printf("   🌍 Visibility: Public\n")
+		} else {
+			fmt.Printf("   🔒 Visibility: Private\n")
+		}
+
+		fmt.Printf("\n")
+	}
+
+	fmt.Printf("💡 Use an AMI by creating a template or referencing in launch commands\n")
+
 	return nil
 }

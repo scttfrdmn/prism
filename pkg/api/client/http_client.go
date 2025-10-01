@@ -924,3 +924,45 @@ func (c *HTTPClient) PreviewAMIResolution(ctx context.Context, templateName stri
 
 	return result, nil
 }
+
+// AMI Creation methods (Phase 5.1 AMI Creation)
+
+// CreateAMI creates an AMI from a running instance
+func (c *HTTPClient) CreateAMI(ctx context.Context, request types.AMICreationRequest) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/create", request)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetAMIStatus checks the status of AMI creation
+func (c *HTTPClient) GetAMIStatus(ctx context.Context, creationID string) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/api/v1/ami/status/%s", creationID)
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ListUserAMIs lists AMIs created by the user
+func (c *HTTPClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/ami/list", nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}

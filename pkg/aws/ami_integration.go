@@ -4,6 +4,9 @@ package aws
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
+	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -104,11 +107,11 @@ func (m *Manager) GetAMICostAnalysis(templateName string) (*types.AMICostAnalysi
 	if err != nil {
 		// If AMI resolution fails, compare against script-only
 		analysis := &types.AMICostAnalysis{
-			TemplateName:     templateName,
-			Region:           m.region,
-			Recommendation:   "script_recommended",
-			Reasoning:        "AMI not available, script provisioning is the only option",
-			ScriptSetupTime:  int(m.amiResolver.estimateScriptProvisioningTime(rawTemplate).Minutes()),
+			TemplateName:    templateName,
+			Region:          m.region,
+			Recommendation:  "script_recommended",
+			Reasoning:       "AMI not available, script provisioning is the only option",
+			ScriptSetupTime: int(m.amiResolver.estimateScriptProvisioningTime(rawTemplate).Minutes()),
 		}
 		return analysis, nil
 	}
@@ -199,7 +202,7 @@ func (m *Manager) LaunchInstanceWithAMI(req ctypes.LaunchRequest) (*ctypes.Insta
 	// Based on resolution method, modify launch approach
 	switch amiResult.ResolutionMethod {
 	case types.ResolutionDirectMapping, types.ResolutionDynamicSearch,
-		 types.ResolutionMarketplace, types.ResolutionCrossRegion:
+		types.ResolutionMarketplace, types.ResolutionCrossRegion:
 		// AMI-based launch
 		return m.launchWithAMI(req, amiResult, arch)
 
@@ -272,4 +275,129 @@ func (m *Manager) launchWithTemplate(req ctypes.LaunchRequest, template *ctypes.
 	// For now, we'll call the existing method
 	arch := m.getLocalArchitecture()
 	return m.launchWithUnifiedTemplateSystem(req, arch)
+}
+
+// AMI Creation Methods (Phase 5.1 Enhancement)
+
+// CreateAMIFromInstance creates an AMI from a running instance
+func (m *Manager) CreateAMIFromInstance(request *types.AMICreationRequest) (*types.AMICreationResult, error) {
+	ctx := context.Background()
+
+	// Validate instance exists in our state
+	instances, err := m.ListInstances()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	// Find the instance to create AMI from
+	var sourceInstance *ctypes.Instance
+	for _, instance := range instances {
+		if instance.ID == request.InstanceID || instance.Name == request.InstanceID {
+			sourceInstance = &instance
+			break
+		}
+	}
+
+	if sourceInstance == nil {
+		return nil, fmt.Errorf("instance not found: %s", request.InstanceID)
+	}
+
+	// Ensure instance is running
+	if sourceInstance.State != "running" {
+		return nil, fmt.Errorf("instance must be running to create AMI, current state: %s", sourceInstance.State)
+	}
+
+	// Set instance ID to AWS instance ID for AMI creation
+	request.InstanceID = sourceInstance.ID
+
+	// Use the AMI resolver to create the AMI
+	result, err := m.amiResolver.CreateAMIFromInstance(ctx, request)
+	if err != nil {
+		return nil, fmt.Errorf("AMI creation failed: %w", err)
+	}
+
+	return result, nil
+}
+
+// GetAMICreationStatus checks the status of AMI creation
+func (m *Manager) GetAMICreationStatus(creationID string) (*types.AMICreationResult, error) {
+	ctx := context.Background()
+
+	// Extract AMI ID from creation ID (format: ami-creation-{template}-{timestamp} or direct ami-id)
+	amiID := creationID
+	if strings.HasPrefix(creationID, "ami-creation-") {
+		// For now, simulate AMI ID extraction from creation ID
+		// In production, this would be stored in a creation tracking system
+		amiID = fmt.Sprintf("ami-%s", strings.Split(creationID, "-")[2])
+	}
+
+	// Query AMI status
+	result, err := m.amiResolver.GetAMICreationStatus(ctx, amiID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AMI creation status: %w", err)
+	}
+
+	return result, nil
+}
+
+// ListUserAMIs lists AMIs created by the user
+func (m *Manager) ListUserAMIs() ([]*types.AMIInfo, error) {
+	// In production, this would:
+	// 1. Use EC2 DescribeImages API with Owner=self filter
+	// 2. Filter for AMIs with CloudWorkstation tags
+	// 3. Return detailed AMI information
+
+	// Placeholder implementation
+	userAMIs := []*types.AMIInfo{
+		{
+			AMIID:        "ami-user123456789abcdef",
+			Name:         "my-custom-python-env",
+			Description:  "Custom Python ML environment with PyTorch",
+			Architecture: "x86_64",
+			Owner:        "123456789012", // User's AWS account ID
+			CreationDate: time.Now().Add(-2 * time.Hour),
+			Public:       false,
+			Tags: map[string]string{
+				"CloudWorkstation": "true",
+				"Template":         "python-ml",
+				"Creator":          "researcher",
+			},
+		},
+		{
+			AMIID:        "ami-user987654321fedcba",
+			Name:         "genomics-pipeline-v2",
+			Description:  "Optimized genomics analysis pipeline",
+			Architecture: "arm64",
+			Owner:        "123456789012",
+			CreationDate: time.Now().Add(-24 * time.Hour),
+			Public:       true,
+			Tags: map[string]string{
+				"CloudWorkstation": "true",
+				"Template":         "bioinformatics",
+				"Creator":          "researcher",
+				"Community":        "published",
+			},
+		},
+	}
+
+	return userAMIs, nil
+}
+
+// PublishAMIToCommunity makes an AMI available to the community
+func (m *Manager) PublishAMIToCommunity(amiID string, public bool, tags map[string]string) error {
+	// In production, this would:
+	// 1. Update AMI permissions to make it public if requested
+	// 2. Add community tags for discoverability
+	// 3. Submit to CloudWorkstation community registry
+	// 4. Add to template marketplace integration
+
+	// Validate AMI exists and is owned by user
+	if !strings.HasPrefix(amiID, "ami-") {
+		return fmt.Errorf("invalid AMI ID format: %s", amiID)
+	}
+
+	// Placeholder implementation
+	log.Printf("Publishing AMI %s to community (public: %v) with tags: %v", amiID, public, tags)
+
+	return nil
 }

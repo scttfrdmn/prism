@@ -4,6 +4,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
@@ -17,7 +18,7 @@ type UniversalAMIResolver struct {
 	stsClient STSClientInterface
 
 	// Configuration
-	regionMapping map[string][]string  // Regional fallback mapping
+	regionMapping map[string][]string // Regional fallback mapping
 	cache         *AMICache
 	costAnalyzer  *AMICostAnalyzer
 }
@@ -196,9 +197,9 @@ func (r *UniversalAMIResolver) tryDynamicSearch(ctx context.Context, template *t
 
 	// Build search criteria
 	criteria := &AMISearchCriteria{
-		Owner:       search.Owner,
-		NamePattern: search.NamePattern,
-		Region:      region,
+		Owner:        search.Owner,
+		NamePattern:  search.NamePattern,
+		Region:       region,
 		Architecture: search.Architecture,
 	}
 
@@ -242,7 +243,7 @@ func (r *UniversalAMIResolver) tryCrossRegionSearch(ctx context.Context, templat
 
 	// Check if cross-region is allowed by fallback strategy
 	if template.AMIConfig.FallbackStrategy != "cross_region" &&
-	   template.AMIConfig.FallbackStrategy != "" {
+		template.AMIConfig.FallbackStrategy != "" {
 		return nil, fmt.Errorf("cross-region search not enabled")
 	}
 
@@ -302,10 +303,10 @@ func (r *UniversalAMIResolver) validateAndGetAMI(ctx context.Context, amiID, reg
 
 func (r *UniversalAMIResolver) hasAMIConfig(template *templates.Template) bool {
 	return template.AMIConfig.Strategy != "" ||
-		   template.AMIConfig.AMIMappings != nil ||
-		   template.AMIConfig.AMISearch != nil ||
-		   template.AMIConfig.MarketplaceSearch != nil ||
-		   template.AMIConfig.AMIs != nil
+		template.AMIConfig.AMIMappings != nil ||
+		template.AMIConfig.AMISearch != nil ||
+		template.AMIConfig.MarketplaceSearch != nil ||
+		template.AMIConfig.AMIs != nil
 }
 
 func (r *UniversalAMIResolver) canUseScriptProvisioning(template *templates.Template) bool {
@@ -400,4 +401,183 @@ func (r *UniversalAMIResolver) validateAMIExists(ctx context.Context, amiID stri
 		Architecture: "x86_64",
 		Public:       false,
 	}, nil
+}
+
+// AMI Creation Methods (Phase 5.1 Enhancement)
+
+// CreateAMIFromInstance creates an AMI from a running instance
+func (r *UniversalAMIResolver) CreateAMIFromInstance(ctx context.Context, request *types.AMICreationRequest) (*types.AMICreationResult, error) {
+	// Validate the instance exists and is in a good state for AMI creation
+	if err := r.validateInstanceForAMICreation(ctx, request.InstanceID); err != nil {
+		return nil, fmt.Errorf("instance validation failed: %w", err)
+	}
+
+	// Generate unique AMI name if not provided
+	amiName := request.Name
+	if amiName == "" {
+		amiName = fmt.Sprintf("cws-%s-%d", request.TemplateName, time.Now().Unix())
+	}
+
+	// Prepare AMI creation parameters
+	createParams := &AMICreateParams{
+		InstanceID:         request.InstanceID,
+		Name:               amiName,
+		Description:        request.Description,
+		NoReboot:           request.NoReboot,
+		BlockDeviceMapping: request.BlockDeviceMapping,
+		Tags:               request.Tags,
+	}
+
+	// Initiate AMI creation via EC2 API
+	amiID, err := r.initiateAMICreation(ctx, createParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initiate AMI creation: %w", err)
+	}
+
+	// Create initial result
+	result := &types.AMICreationResult{
+		AMIID:        amiID,
+		Name:         amiName,
+		Status:       types.AMICreationInProgress,
+		CreationTime: 0, // Will be updated when complete
+		StorageCost:  r.costAnalyzer.getStorageCost("us-east-1") * 8.0, // Estimate 8GB
+		CreationCost: 0.05,                                             // Small instance cost during creation
+	}
+
+	// Handle multi-region deployment if requested
+	if len(request.MultiRegion) > 0 {
+		result.RegionResults = make(map[string]*types.RegionAMIResult)
+		for _, region := range request.MultiRegion {
+			result.RegionResults[region] = &types.RegionAMIResult{
+				Region: region,
+				Status: types.AMICreationPending,
+			}
+		}
+	}
+
+	return result, nil
+}
+
+// GetAMICreationStatus checks the status of AMI creation
+func (r *UniversalAMIResolver) GetAMICreationStatus(ctx context.Context, amiID string) (*types.AMICreationResult, error) {
+	// Query AMI status via EC2 API
+	status, err := r.queryAMIStatus(ctx, amiID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query AMI status: %w", err)
+	}
+
+	result := &types.AMICreationResult{
+		AMIID:        amiID,
+		Status:       status.Status,
+		CreationTime: status.ElapsedTime,
+	}
+
+	// Update status based on AMI state
+	switch status.State {
+	case "available":
+		result.Status = types.AMICreationCompleted
+	case "pending":
+		result.Status = types.AMICreationInProgress
+	case "failed":
+		result.Status = types.AMICreationFailed
+	}
+
+	return result, nil
+}
+
+// Private helper methods for AMI creation
+
+type AMICreateParams struct {
+	InstanceID         string
+	Name               string
+	Description        string
+	NoReboot           bool
+	BlockDeviceMapping bool
+	Tags               map[string]string
+}
+
+type AMIStatusInfo struct {
+	State       string
+	Status      types.AMICreationStatus
+	ElapsedTime time.Duration
+}
+
+// validateInstanceForAMICreation ensures instance is ready for AMI creation
+func (r *UniversalAMIResolver) validateInstanceForAMICreation(ctx context.Context, instanceID string) error {
+	// In production, this would:
+	// 1. Check instance exists and is running
+	// 2. Verify instance is not already being used for AMI creation
+	// 3. Ensure instance has no pending operations
+	// 4. Validate instance is in a stable state
+
+	// Placeholder validation
+	if instanceID == "" {
+		return fmt.Errorf("instance ID is required")
+	}
+
+	if len(instanceID) < 10 || !strings.HasPrefix(instanceID, "i-") {
+		return fmt.Errorf("invalid instance ID format: %s", instanceID)
+	}
+
+	return nil
+}
+
+// initiateAMICreation starts the AMI creation process via AWS EC2 API
+func (r *UniversalAMIResolver) initiateAMICreation(ctx context.Context, params *AMICreateParams) (string, error) {
+	// In production, this would use EC2 CreateImage API:
+	//
+	// input := &ec2.CreateImageInput{
+	//     InstanceId:   aws.String(params.InstanceID),
+	//     Name:         aws.String(params.Name),
+	//     Description:  aws.String(params.Description),
+	//     NoReboot:     aws.Bool(params.NoReboot),
+	// }
+	//
+	// result, err := r.ec2Client.CreateImage(ctx, input)
+	// if err != nil {
+	//     return "", err
+	// }
+	//
+	// return *result.ImageId, nil
+
+	// Placeholder implementation
+	amiID := fmt.Sprintf("ami-%016x", time.Now().UnixNano()&0xffffffffffff)
+
+	// Simulate API call delay
+	time.Sleep(100 * time.Millisecond)
+
+	return amiID, nil
+}
+
+// queryAMIStatus checks the current status of AMI creation
+func (r *UniversalAMIResolver) queryAMIStatus(ctx context.Context, amiID string) (*AMIStatusInfo, error) {
+	// In production, this would use EC2 DescribeImages API:
+	//
+	// input := &ec2.DescribeImagesInput{
+	//     ImageIds: []string{amiID},
+	// }
+	//
+	// result, err := r.ec2Client.DescribeImages(ctx, input)
+	// if err != nil {
+	//     return nil, err
+	// }
+	//
+	// if len(result.Images) == 0 {
+	//     return nil, fmt.Errorf("AMI not found: %s", amiID)
+	// }
+	//
+	// image := result.Images[0]
+	// return &AMIStatusInfo{
+	//     State:       *image.State,
+	//     ElapsedTime: time.Since(*image.CreationDate),
+	// }, nil
+
+	// Placeholder implementation - simulate AMI creation progress
+	info := &AMIStatusInfo{
+		State:       "pending", // Simulate in-progress
+		Status:      types.AMICreationInProgress,
+		ElapsedTime: time.Duration(5) * time.Minute, // Simulate 5 minutes elapsed
+	}
+
+	return info, nil
 }

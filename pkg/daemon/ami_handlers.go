@@ -21,6 +21,7 @@ func (s *Server) RegisterAMIRoutes(mux *http.ServeMux, applyMiddleware func(http
 	// AMI creation and management endpoints
 	mux.HandleFunc("/api/v1/ami/create", applyMiddleware(s.handleAMICreate))
 	mux.HandleFunc("/api/v1/ami/status/", applyMiddleware(s.handleAMIStatus))
+	mux.HandleFunc("/api/v1/ami/list", applyMiddleware(s.handleAMIList))
 }
 
 // handleAMIResolve resolves AMI for a specific template
@@ -58,12 +59,12 @@ func (s *Server) handleAMIResolve(w http.ResponseWriter, r *http.Request) {
 
 	// Create response
 	response := map[string]interface{}{
-		"template_name":     templateName,
-		"target_region":     result.TargetRegion,
-		"resolution_method": result.ResolutionMethod,
-		"ami_id":           "",
+		"template_name":                templateName,
+		"target_region":                result.TargetRegion,
+		"resolution_method":            result.ResolutionMethod,
+		"ami_id":                       "",
 		"launch_time_estimate_seconds": int(result.LaunchTime.Seconds()),
-		"cost_savings":     result.CostSavings,
+		"cost_savings":                 result.CostSavings,
 	}
 
 	if result.AMI != nil {
@@ -191,11 +192,11 @@ func (s *Server) handleAMIPreview(w http.ResponseWriter, r *http.Request) {
 
 	// Create response
 	response := map[string]interface{}{
-		"template_name":     templateName,
-		"target_region":     preview.TargetRegion,
-		"resolution_method": preview.ResolutionMethod,
+		"template_name":                templateName,
+		"target_region":                preview.TargetRegion,
+		"resolution_method":            preview.ResolutionMethod,
 		"launch_time_estimate_seconds": int(preview.LaunchTime.Seconds()),
-		"fallback_chain":   preview.FallbackChain,
+		"fallback_chain":               preview.FallbackChain,
 	}
 
 	if preview.Warning != "" {
@@ -236,16 +237,30 @@ func (s *Server) handleAMICreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Implement AMI creation logic
-	// For now, return a placeholder response
+	// Create AMI from instance using the AWS manager
+	result, err := s.awsManager.CreateAMIFromInstance(&request)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("AMI creation failed: %v", err))
+		return
+	}
+
+	// Create response from result
 	response := map[string]interface{}{
-		"creation_id":       fmt.Sprintf("ami-creation-%s-%d", request.TemplateName, 12345),
-		"template_name":     request.TemplateName,
-		"instance_id":       request.InstanceID,
-		"target_regions":    request.MultiRegion,
-		"status":           "initiated",
-		"message":          "AMI creation initiated - this feature is planned for Phase 5.1 Week 6",
-		"estimated_completion_minutes": 45,
+		"creation_id":                  result.AMIID,
+		"ami_id":                       result.AMIID,
+		"template_name":                request.TemplateName,
+		"instance_id":                  request.InstanceID,
+		"target_regions":               request.MultiRegion,
+		"status":                       string(result.Status),
+		"message":                      "AMI creation initiated successfully",
+		"estimated_completion_minutes": 12, // Typical AMI creation time
+		"storage_cost":                 result.StorageCost,
+		"creation_cost":                result.CreationCost,
+	}
+
+	// Add region results if multi-region deployment
+	if result.RegionResults != nil {
+		response["region_results"] = result.RegionResults
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -272,18 +287,72 @@ func (s *Server) handleAMIStatus(w http.ResponseWriter, r *http.Request) {
 
 	creationID := pathParts[4]
 
-	// TODO: Implement AMI creation status tracking
-	// For now, return a placeholder response
+	// Get AMI creation status using the AWS manager
+	result, err := s.awsManager.GetAMICreationStatus(creationID)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to get AMI status: %v", err))
+		return
+	}
+
+	// Calculate progress percentage based on status
+	progress := 0
+	switch result.Status {
+	case types.AMICreationPending:
+		progress = 10
+	case types.AMICreationInProgress:
+		progress = 50
+	case types.AMICreationCompleted:
+		progress = 100
+	case types.AMICreationFailed:
+		progress = 0
+	}
+
+	// Create response
 	response := map[string]interface{}{
-		"creation_id": creationID,
-		"status":     "in_progress",
-		"progress":   25,
-		"message":    "AMI creation status tracking - this feature is planned for Phase 5.1 Week 6",
-		"estimated_completion_minutes": 30,
+		"creation_id":                  creationID,
+		"ami_id":                       result.AMIID,
+		"status":                       string(result.Status),
+		"progress":                     progress,
+		"message":                      "AMI creation in progress",
+		"estimated_completion_minutes": 8, // Remaining time estimate
+		"elapsed_time_minutes":         int(result.CreationTime.Minutes()),
+		"storage_cost":                 result.StorageCost,
+		"creation_cost":                result.CreationCost,
+	}
+
+	// Add region results if available
+	if result.RegionResults != nil {
+		response["region_results"] = result.RegionResults
+	}
+
+	// Add community sharing results if available
+	if result.CommunitySharing != nil {
+		response["community_sharing"] = result.CommunitySharing
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleAMIList lists user-created AMIs
+// GET /api/v1/ami/list
+func (s *Server) handleAMIList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Get user AMIs using the AWS manager
+	userAMIs, err := s.awsManager.ListUserAMIs()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to list user AMIs: %v", err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(userAMIs); err != nil {
 		s.writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }

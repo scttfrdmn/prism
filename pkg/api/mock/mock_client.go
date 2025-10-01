@@ -1259,3 +1259,79 @@ func (m *MockClient) PreviewAMIResolution(ctx context.Context, templateName stri
 		"warning":           "No AMI available, would use script provisioning",
 	}, nil
 }
+
+// AMI Creation methods (mock)
+
+// CreateAMI creates an AMI from a running instance (mock)
+func (m *MockClient) CreateAMI(ctx context.Context, request types.AMICreationRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"creation_id":                  fmt.Sprintf("ami-creation-%s-12345", request.TemplateName),
+		"ami_id":                       "ami-mock12345678901234",
+		"template_name":                request.TemplateName,
+		"instance_id":                  request.InstanceID,
+		"target_regions":               request.MultiRegion,
+		"status":                       "pending",
+		"message":                      "AMI creation initiated successfully",
+		"estimated_completion_minutes": 12,
+		"storage_cost":                 8.50,
+		"creation_cost":                0.025,
+	}, nil
+}
+
+// GetAMIStatus checks the status of AMI creation (mock)
+func (m *MockClient) GetAMIStatus(ctx context.Context, creationID string) (map[string]interface{}, error) {
+	// Simulate different stages based on creation ID
+	progress := 75
+	status := "in_progress"
+
+	return map[string]interface{}{
+		"creation_id":                  creationID,
+		"ami_id":                       "ami-mock12345678901234",
+		"status":                       status,
+		"progress":                     progress,
+		"message":                      "AMI creation in progress - creating snapshot",
+		"estimated_completion_minutes": 3,
+		"elapsed_time_minutes":         9,
+		"storage_cost":                 8.50,
+		"creation_cost":                0.025,
+	}, nil
+}
+
+// ListUserAMIs lists AMIs created by the user (mock)
+func (m *MockClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"user_amis": []map[string]interface{}{
+			{
+				"ami_id":        "ami-mock12345678901234",
+				"name":          "my-custom-python-env",
+				"description":   "Custom Python ML environment with PyTorch",
+				"architecture":  "x86_64",
+				"owner":         "123456789012",
+				"creation_date": "2024-12-01T15:30:00Z",
+				"public":        false,
+				"tags": map[string]string{
+					"CloudWorkstation": "true",
+					"Template":         "python-ml",
+					"Creator":          "researcher",
+				},
+			},
+			{
+				"ami_id":        "ami-mock98765432109876",
+				"name":          "genomics-pipeline-v2",
+				"description":   "Optimized genomics analysis pipeline",
+				"architecture":  "arm64",
+				"owner":         "123456789012",
+				"creation_date": "2024-11-30T14:20:00Z",
+				"public":        true,
+				"tags": map[string]string{
+					"CloudWorkstation": "true",
+					"Template":         "bioinformatics",
+					"Creator":          "researcher",
+					"Community":        "published",
+				},
+			},
+		},
+		"total_count":   2,
+		"storage_cost":  17.00,
+	}, nil
+}

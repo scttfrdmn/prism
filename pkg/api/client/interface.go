@@ -119,6 +119,11 @@ type CloudWorkstationAPI interface {
 	TestAMIAvailability(context.Context, map[string]interface{}) (map[string]interface{}, error)
 	GetAMICosts(context.Context, string) (map[string]interface{}, error)
 	PreviewAMIResolution(context.Context, string) (map[string]interface{}, error)
+
+	// AMI Creation operations (Phase 5.1 AMI Creation)
+	CreateAMI(context.Context, types.AMICreationRequest) (map[string]interface{}, error)
+	GetAMIStatus(context.Context, string) (map[string]interface{}, error)
+	ListUserAMIs(context.Context) (map[string]interface{}, error)
 }
 
 // Registry-specific response types for API operations
