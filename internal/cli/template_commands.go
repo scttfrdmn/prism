@@ -102,144 +102,187 @@ func (tc *TemplateCommands) templatesList(args []string) error {
 }
 
 // templatesSearch searches for templates with advanced filtering
+// searchArgs holds parsed template search arguments
+type searchArgs struct {
+	query        string
+	category     string
+	domain       string
+	complexity   string
+	popularOnly  bool
+	featuredOnly bool
+}
+
+// templatesSearch handles template search command with advanced filtering
 func (tc *TemplateCommands) templatesSearch(args []string) error {
-	// Parse search options
-	var query string
-	var category string
-	var domain string
-	var complexity string
-	var popularOnly bool
-	var featuredOnly bool
+	searchArgs := tc.parseSearchArguments(args)
+	searchTemplates, err := tc.fetchTemplateData()
+	if err != nil {
+		return err
+	}
+
+	results := tc.executeTemplateSearch(searchTemplates, searchArgs)
+	tc.displaySearchResults(results, searchArgs.query)
+	tc.displaySearchHelp()
+
+	return nil
+}
+
+// parseSearchArguments extracts search criteria from command arguments
+func (tc *TemplateCommands) parseSearchArguments(args []string) searchArgs {
+	var parsed searchArgs
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--category" && i+1 < len(args):
-			category = args[i+1]
+			parsed.category = args[i+1]
 			i++
 		case arg == "--domain" && i+1 < len(args):
-			domain = args[i+1]
+			parsed.domain = args[i+1]
 			i++
 		case arg == "--complexity" && i+1 < len(args):
-			complexity = args[i+1]
+			parsed.complexity = args[i+1]
 			i++
 		case arg == "--popular":
-			popularOnly = true
+			parsed.popularOnly = true
 		case arg == "--featured":
-			featuredOnly = true
+			parsed.featuredOnly = true
 		case !strings.HasPrefix(arg, "--"):
-			query = arg
+			parsed.query = arg
 		}
 	}
 
-	// Get all templates
+	return parsed
+}
+
+// fetchTemplateData retrieves and processes template data for searching
+func (tc *TemplateCommands) fetchTemplateData() (map[string]*templates.Template, error) {
 	if err := tc.app.ensureDaemonRunning(); err != nil {
-		return err
+		return nil, err
 	}
 
 	apiTemplates, err := tc.app.apiClient.ListTemplates(tc.app.ctx)
 	if err != nil {
-		return WrapAPIError("list templates", err)
+		return nil, WrapAPIError("list templates", err)
 	}
 
-	// Convert API templates to search format
 	searchTemplates := make(map[string]*templates.Template)
 	for name := range apiTemplates {
-		// Get full template info for metadata
 		rawTemplate, _ := templates.GetTemplateInfo(name)
 		if rawTemplate != nil {
 			searchTemplates[name] = rawTemplate
 		}
 	}
 
-	// Build search options
+	return searchTemplates, nil
+}
+
+// executeTemplateSearch performs the actual search operation
+func (tc *TemplateCommands) executeTemplateSearch(searchTemplates map[string]*templates.Template, args searchArgs) []templates.SearchResult {
 	searchOpts := templates.SearchOptions{
-		Query:      query,
-		Category:   category,
-		Domain:     domain,
-		Complexity: complexity,
-	}
-	if popularOnly {
-		searchOpts.Popular = &popularOnly
-	}
-	if featuredOnly {
-		searchOpts.Featured = &featuredOnly
+		Query:      args.query,
+		Category:   args.category,
+		Domain:     args.domain,
+		Complexity: args.complexity,
 	}
 
-	// Perform search
-	results := templates.SearchTemplates(searchTemplates, searchOpts)
-
-	// Display results
-	if query != "" {
-		fmt.Printf("🔍 Searching for templates matching '%s'...\n\n", query)
-	} else {
-		fmt.Printf("🔍 Filtering templates...\n\n")
+	if args.popularOnly {
+		searchOpts.Popular = &args.popularOnly
 	}
+	if args.featuredOnly {
+		searchOpts.Featured = &args.featuredOnly
+	}
+
+	return templates.SearchTemplates(searchTemplates, searchOpts)
+}
+
+// displaySearchResults shows formatted search results to the user
+func (tc *TemplateCommands) displaySearchResults(results []templates.SearchResult, query string) {
+	tc.displaySearchHeader(query)
 
 	if len(results) == 0 {
-		fmt.Println("No templates found matching your criteria.")
-		fmt.Println("\n💡 Try:")
-		fmt.Println("   • Broader search terms")
-		fmt.Println("   • Removing filters")
-		fmt.Println("   • cws templates list (to see all)")
-		return nil
+		tc.displayNoResultsMessage()
+		return
 	}
 
 	fmt.Printf("📋 Found %d matching templates:\n\n", len(results))
 
 	for _, result := range results {
-		tmpl := result.Template
+		tc.displaySingleResult(result, query)
+	}
+}
 
-		// Display icon and name
-		icon := tmpl.Icon
-		if icon == "" {
-			icon = "🏗️"
-		}
-		fmt.Printf("%s  %s", icon, tmpl.Name)
+// displaySearchHeader shows the search operation header
+func (tc *TemplateCommands) displaySearchHeader(query string) {
+	if query != "" {
+		fmt.Printf("🔍 Searching for templates matching '%s'...\n\n", query)
+	} else {
+		fmt.Printf("🔍 Filtering templates...\n\n")
+	}
+}
 
-		// Add badges
-		if tmpl.Featured {
-			fmt.Printf(" ⭐ Featured")
-		}
-		if tmpl.Popular {
-			fmt.Printf(" 🔥 Popular")
-		}
-		fmt.Println()
+// displayNoResultsMessage shows helpful message when no results found
+func (tc *TemplateCommands) displayNoResultsMessage() {
+	fmt.Println("No templates found matching your criteria.")
+	fmt.Println("\n💡 Try:")
+	fmt.Println("   • Broader search terms")
+	fmt.Println("   • Removing filters")
+	fmt.Println("   • cws templates list (to see all)")
+}
 
-		// Display metadata
-		if tmpl.Slug != "" {
-			fmt.Printf("   Quick launch: cws launch %s <name>\n", tmpl.Slug)
-		}
-		fmt.Printf("   %s\n", tmpl.Description)
+// displaySingleResult formats and displays a single search result
+func (tc *TemplateCommands) displaySingleResult(result templates.SearchResult, query string) {
+	tmpl := result.Template
 
-		if tmpl.Category != "" {
-			fmt.Printf("   Category: %s", tmpl.Category)
-		}
-		if tmpl.Domain != "" {
-			fmt.Printf(" | Domain: %s", tmpl.Domain)
-		}
-		if tmpl.Complexity != "" {
-			fmt.Printf(" | Complexity: %s", tmpl.Complexity)
-		}
-		fmt.Println()
+	// Display icon and name with badges
+	icon := tmpl.Icon
+	if icon == "" {
+		icon = "🏗️"
+	}
+	fmt.Printf("%s  %s", icon, tmpl.Name)
 
-		// Show what matched if searching
-		if len(result.Matches) > 0 && query != "" {
-			fmt.Printf("   Matched: %s\n", strings.Join(result.Matches, ", "))
-		}
+	if tmpl.Featured {
+		fmt.Printf(" ⭐ Featured")
+	}
+	if tmpl.Popular {
+		fmt.Printf(" 🔥 Popular")
+	}
+	fmt.Println()
 
-		fmt.Println()
+	// Display metadata
+	if tmpl.Slug != "" {
+		fmt.Printf("   Quick launch: cws launch %s <name>\n", tmpl.Slug)
+	}
+	fmt.Printf("   %s\n", tmpl.Description)
+
+	// Display categorization info
+	if tmpl.Category != "" {
+		fmt.Printf("   Category: %s", tmpl.Category)
+	}
+	if tmpl.Domain != "" {
+		fmt.Printf(" | Domain: %s", tmpl.Domain)
+	}
+	if tmpl.Complexity != "" {
+		fmt.Printf(" | Complexity: %s", tmpl.Complexity)
+	}
+	fmt.Println()
+
+	// Show what matched if searching
+	if len(result.Matches) > 0 && query != "" {
+		fmt.Printf("   Matched: %s\n", strings.Join(result.Matches, ", "))
 	}
 
-	// Show available filters
+	fmt.Println()
+}
+
+// displaySearchHelp shows available search filter options
+func (tc *TemplateCommands) displaySearchHelp() {
 	fmt.Println("🔧 Available Filters:")
 	fmt.Println("   --category <name>    Filter by category")
 	fmt.Println("   --domain <name>      Filter by domain")
 	fmt.Println("   --complexity <level> Filter by complexity (simple/moderate/advanced)")
 	fmt.Println("   --popular            Show only popular templates")
 	fmt.Println("   --featured           Show only featured templates")
-
-	return nil
 }
 
 // templatesInfo shows detailed information about a specific template

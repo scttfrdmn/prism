@@ -1,0 +1,27 @@
+var _SharedReactContexts_registeredContexts;
+import { __classPrivateFieldGet } from "tslib";
+export class SharedReactContexts {
+    constructor() {
+        _SharedReactContexts_registeredContexts.set(this, new WeakMap());
+        this.createContext = (ReactInstance, contextName) => {
+            let contexts = __classPrivateFieldGet(this, _SharedReactContexts_registeredContexts, "f").get(ReactInstance);
+            if (!contexts) {
+                contexts = new Map();
+                __classPrivateFieldGet(this, _SharedReactContexts_registeredContexts, "f").set(ReactInstance, contexts);
+            }
+            let cachedContext = contexts.get(contextName);
+            if (!cachedContext) {
+                cachedContext = ReactInstance.createContext(undefined);
+                contexts.set(contextName, cachedContext);
+            }
+            return cachedContext;
+        };
+    }
+    installInternal(internalApi = {}) {
+        var _a;
+        (_a = internalApi.createContext) !== null && _a !== void 0 ? _a : (internalApi.createContext = this.createContext);
+        return internalApi;
+    }
+}
+_SharedReactContexts_registeredContexts = new WeakMap();
+//# sourceMappingURL=shared-react-contexts.js.map

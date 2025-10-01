@@ -1343,15 +1343,15 @@ func (m *MockClient) SearchMarketplace(ctx context.Context, params map[string]in
 	return map[string]interface{}{
 		"templates": []map[string]interface{}{
 			{
-				"id":            "marketplace-template-1",
-				"name":          "Deep Learning GPU",
-				"description":   "Optimized deep learning environment with GPU support",
-				"category":      "Machine Learning",
-				"author":        "community-user",
-				"downloads":     1250,
-				"rating":        4.8,
-				"last_updated":  "2024-11-15",
-				"verified":      true,
+				"id":           "marketplace-template-1",
+				"name":         "Deep Learning GPU",
+				"description":  "Optimized deep learning environment with GPU support",
+				"category":     "Machine Learning",
+				"author":       "community-user",
+				"downloads":    1250,
+				"rating":       4.8,
+				"last_updated": "2024-11-15",
+				"verified":     true,
 			},
 		},
 		"total_results": 1,
@@ -1362,17 +1362,17 @@ func (m *MockClient) SearchMarketplace(ctx context.Context, params map[string]in
 // GetMarketplaceTemplate gets a specific marketplace template (mock)
 func (m *MockClient) GetMarketplaceTemplate(ctx context.Context, templateID string) (map[string]interface{}, error) {
 	return map[string]interface{}{
-		"id":            templateID,
-		"name":          "Deep Learning GPU",
-		"description":   "Optimized deep learning environment with GPU support and PyTorch",
-		"category":      "Machine Learning",
-		"author":        "community-user",
-		"downloads":     1250,
-		"rating":        4.8,
-		"last_updated":  "2024-11-15",
-		"verified":      true,
-		"readme":        "# Deep Learning GPU Template\nThis template provides...",
-		"installation":  "Automated installation via CloudWorkstation marketplace",
+		"id":           templateID,
+		"name":         "Deep Learning GPU",
+		"description":  "Optimized deep learning environment with GPU support and PyTorch",
+		"category":     "Machine Learning",
+		"author":       "community-user",
+		"downloads":    1250,
+		"rating":       4.8,
+		"last_updated": "2024-11-15",
+		"verified":     true,
+		"readme":       "# Deep Learning GPU Template\nThis template provides...",
+		"installation": "Automated installation via CloudWorkstation marketplace",
 	}, nil
 }
 
@@ -1428,12 +1428,12 @@ func (m *MockClient) GetMarketplaceTrending(ctx context.Context) (map[string]int
 	return map[string]interface{}{
 		"trending_templates": []map[string]interface{}{
 			{
-				"id":             "trending-1",
-				"name":           "Quantum Computing",
-				"description":    "Quantum computing research environment with Qiskit",
-				"rating":         4.7,
-				"downloads":      750,
-				"weekly_growth":  45,
+				"id":            "trending-1",
+				"name":          "Quantum Computing",
+				"description":   "Quantum computing research environment with Qiskit",
+				"rating":        4.7,
+				"downloads":     750,
+				"weekly_growth": 45,
 			},
 		},
 		"total_count": 1,

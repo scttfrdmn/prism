@@ -397,55 +397,68 @@ func (r *Registry) GetUsageStats(templateID string, timeframe string) (*UsageSta
 
 // Helper methods
 
+// matchesQuery determines if a template satisfies all search criteria
 func (r *Registry) matchesQuery(template *CommunityTemplate, query SearchQuery) bool {
-	// Text search
-	if query.Query != "" {
-		searchText := strings.ToLower(query.Query)
-		if !strings.Contains(strings.ToLower(template.Name), searchText) &&
-			!strings.Contains(strings.ToLower(template.Description), searchText) {
-			return false
-		}
+	return r.matchesTextSearch(template, query) &&
+		r.matchesCategoryFilters(template, query) &&
+		r.matchesArchitectureFilter(template, query) &&
+		r.matchesRegionFilter(template, query) &&
+		r.matchesQualityFilters(template, query) &&
+		r.matchesAMIFilter(template, query)
+}
+
+// matchesTextSearch checks if template matches text query
+func (r *Registry) matchesTextSearch(template *CommunityTemplate, query SearchQuery) bool {
+	if query.Query == "" {
+		return true
 	}
 
-	// Category filter
+	searchText := strings.ToLower(query.Query)
+	return strings.Contains(strings.ToLower(template.Name), searchText) ||
+		strings.Contains(strings.ToLower(template.Description), searchText)
+}
+
+// matchesCategoryFilters checks if template matches category and author filters
+func (r *Registry) matchesCategoryFilters(template *CommunityTemplate, query SearchQuery) bool {
 	if query.Category != "" && template.Category != query.Category {
 		return false
 	}
-
-	// Author filter
 	if query.Author != "" && template.Author != query.Author {
 		return false
 	}
+	return true
+}
 
-	// Architecture filter
-	if query.Architecture != "" {
-		found := false
-		for _, arch := range template.Architecture {
-			if arch == query.Architecture {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+// matchesArchitectureFilter checks if template supports required architecture
+func (r *Registry) matchesArchitectureFilter(template *CommunityTemplate, query SearchQuery) bool {
+	if query.Architecture == "" {
+		return true
 	}
 
-	// Region filter
-	if query.Region != "" {
-		found := false
-		for _, region := range template.SupportedRegions {
-			if region == query.Region {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
+	for _, arch := range template.Architecture {
+		if arch == query.Architecture {
+			return true
 		}
 	}
+	return false
+}
 
-	// Quality filters
+// matchesRegionFilter checks if template supports required region
+func (r *Registry) matchesRegionFilter(template *CommunityTemplate, query SearchQuery) bool {
+	if query.Region == "" {
+		return true
+	}
+
+	for _, region := range template.SupportedRegions {
+		if region == query.Region {
+			return true
+		}
+	}
+	return false
+}
+
+// matchesQualityFilters checks if template meets quality requirements
+func (r *Registry) matchesQualityFilters(template *CommunityTemplate, query SearchQuery) bool {
 	if query.MinRating > 0 && template.Rating < query.MinRating {
 		return false
 	}
@@ -458,13 +471,15 @@ func (r *Registry) matchesQuery(template *CommunityTemplate, query SearchQuery) 
 	if query.MinDownloads > 0 && template.DownloadCount < query.MinDownloads {
 		return false
 	}
-
-	// AMI availability filter
-	if query.AMIAvailable && (template.AMIInfo == nil || !template.AMIInfo.Available) {
-		return false
-	}
-
 	return true
+}
+
+// matchesAMIFilter checks if template has available AMI when required
+func (r *Registry) matchesAMIFilter(template *CommunityTemplate, query SearchQuery) bool {
+	if !query.AMIAvailable {
+		return true
+	}
+	return template.AMIInfo != nil && template.AMIInfo.Available
 }
 
 func (r *Registry) sortResults(results []*CommunityTemplate, sortBy, sortOrder string) {

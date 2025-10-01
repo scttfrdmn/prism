@@ -109,111 +109,22 @@ func (m StorageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.statusBar.SetWidth(msg.Width)
-		return m, nil
+		return m.handleWindowResize(msg)
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "r":
-			m.loading = true
-			m.error = ""
-			return m, m.fetchStorage
-
-		case "tab":
-			if !m.showMountDialog {
-				m.selectedTab = (m.selectedTab + 1) % 2
-				m.selectedItem = 0
-			}
-
-		case "up", "k":
-			if !m.showMountDialog && m.selectedItem > 0 {
-				m.selectedItem--
-			}
-
-		case "down", "j":
-			if !m.showMountDialog {
-				maxItems := len(m.volumes)
-				if m.selectedTab == 1 {
-					maxItems = len(m.storage)
-				}
-				if m.selectedItem < maxItems-1 {
-					m.selectedItem++
-				}
-			}
-
-		case "m":
-			if !m.showMountDialog && m.selectedTab == 0 && len(m.volumes) > 0 {
-				// Start mount dialog for EFS volumes
-				volumeNames := make([]string, 0, len(m.volumes))
-				for name := range m.volumes {
-					volumeNames = append(volumeNames, name)
-				}
-				if m.selectedItem < len(volumeNames) {
-					m.mountVolumeName = volumeNames[m.selectedItem]
-					m.showMountDialog = true
-				}
-			}
-
-		case "u":
-			if !m.showMountDialog && m.selectedTab == 0 && len(m.volumes) > 0 {
-				// Start unmount for selected volume
-				volumeNames := make([]string, 0, len(m.volumes))
-				for name := range m.volumes {
-					volumeNames = append(volumeNames, name)
-				}
-				if m.selectedItem < len(volumeNames) {
-					volumeName := volumeNames[m.selectedItem]
-					return m, m.performUnmount(volumeName)
-				}
-			}
-
-		case "enter":
-			if m.showMountDialog && m.mountVolumeName != "" && m.mountInstanceName != "" {
-				m.showMountDialog = false
-				return m, m.performMount(m.mountVolumeName, m.mountInstanceName, m.mountPoint)
-			}
-
-		case "q", "esc":
-			if m.showMountDialog {
-				m.showMountDialog = false
-				m.mountVolumeName = ""
-				m.mountInstanceName = ""
-			} else {
-				return m, tea.Quit
-			}
-		}
+		return m.handleKeyboardInput(msg)
 
 	case RefreshMsg:
-		m.loading = true
-		m.error = ""
-		return m, m.fetchStorage
+		return m.handleRefresh()
 
 	case error:
-		m.loading = false
-		m.error = msg.Error()
-		m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
+		return m.handleError(msg)
 
 	case StorageDataMsg:
-		m.loading = false
-		m.volumes = msg.Volumes
-		m.storage = msg.Storage
-		m.instances = msg.Instances
-
-		volumeCount := len(m.volumes)
-		storageCount := len(m.storage)
-		instanceCount := len(m.instances)
-		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d EFS volumes, %d EBS volumes, and %d instances", volumeCount, storageCount, instanceCount), components.StatusSuccess)
+		return m.handleStorageData(msg)
 
 	case MountActionMsg:
-		if msg.Success {
-			m.statusBar.SetStatus(fmt.Sprintf("%s %s to %s successful", msg.Action, msg.Volume, msg.Instance), components.StatusSuccess)
-			// Refresh data to show updated mount status
-			return m, m.fetchStorage
-		} else {
-			m.statusBar.SetStatus(fmt.Sprintf("%s failed: %s", msg.Action, msg.Message), components.StatusError)
-		}
+		return m.handleMountAction(msg)
 	}
 
 	// Update components
@@ -224,6 +135,180 @@ func (m StorageModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+// handleWindowResize processes window resize messages
+func (m StorageModel) handleWindowResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.statusBar.SetWidth(msg.Width)
+	return m, nil
+}
+
+// handleKeyboardInput processes keyboard input messages
+func (m StorageModel) handleKeyboardInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "r":
+		return m.handleRefreshKey()
+
+	case "tab":
+		return m.handleTabKey()
+
+	case "up", "k":
+		return m.handleUpKey()
+
+	case "down", "j":
+		return m.handleDownKey()
+
+	case "m":
+		return m.handleMountKey()
+
+	case "u":
+		return m.handleUnmountKey()
+
+	case "enter":
+		return m.handleEnterKey()
+
+	case "q", "esc":
+		return m.handleQuitKey()
+	}
+
+	return m, nil
+}
+
+// handleRefreshKey processes refresh key ('r')
+func (m StorageModel) handleRefreshKey() (tea.Model, tea.Cmd) {
+	m.loading = true
+	m.error = ""
+	return m, m.fetchStorage
+}
+
+// handleTabKey processes tab key for switching between EFS/EBS tabs
+func (m StorageModel) handleTabKey() (tea.Model, tea.Cmd) {
+	if !m.showMountDialog {
+		m.selectedTab = (m.selectedTab + 1) % 2
+		m.selectedItem = 0
+	}
+	return m, nil
+}
+
+// handleUpKey processes up arrow/k key for navigation
+func (m StorageModel) handleUpKey() (tea.Model, tea.Cmd) {
+	if !m.showMountDialog && m.selectedItem > 0 {
+		m.selectedItem--
+	}
+	return m, nil
+}
+
+// handleDownKey processes down arrow/j key for navigation
+func (m StorageModel) handleDownKey() (tea.Model, tea.Cmd) {
+	if !m.showMountDialog {
+		maxItems := len(m.volumes)
+		if m.selectedTab == 1 {
+			maxItems = len(m.storage)
+		}
+		if m.selectedItem < maxItems-1 {
+			m.selectedItem++
+		}
+	}
+	return m, nil
+}
+
+// handleMountKey processes mount key ('m') for EFS volumes
+func (m StorageModel) handleMountKey() (tea.Model, tea.Cmd) {
+	if volumeName := m.getSelectedVolumeName(); volumeName != "" {
+		m.mountVolumeName = volumeName
+		m.showMountDialog = true
+	}
+	return m, nil
+}
+
+// handleUnmountKey processes unmount key ('u') for EFS volumes
+func (m StorageModel) handleUnmountKey() (tea.Model, tea.Cmd) {
+	if volumeName := m.getSelectedVolumeName(); volumeName != "" {
+		return m, m.performUnmount(volumeName)
+	}
+	return m, nil
+}
+
+// getSelectedVolumeName returns the currently selected volume name, or empty string if invalid
+func (m StorageModel) getSelectedVolumeName() string {
+	if m.showMountDialog || m.selectedTab != 0 || len(m.volumes) == 0 {
+		return ""
+	}
+
+	volumeNames := make([]string, 0, len(m.volumes))
+	for name := range m.volumes {
+		volumeNames = append(volumeNames, name)
+	}
+
+	if m.selectedItem >= len(volumeNames) {
+		return ""
+	}
+
+	return volumeNames[m.selectedItem]
+}
+
+// handleEnterKey processes enter key for confirming mount dialog
+func (m StorageModel) handleEnterKey() (tea.Model, tea.Cmd) {
+	if m.showMountDialog && m.mountVolumeName != "" && m.mountInstanceName != "" {
+		m.showMountDialog = false
+		return m, m.performMount(m.mountVolumeName, m.mountInstanceName, m.mountPoint)
+	}
+	return m, nil
+}
+
+// handleQuitKey processes quit keys ('q', 'esc')
+func (m StorageModel) handleQuitKey() (tea.Model, tea.Cmd) {
+	if m.showMountDialog {
+		m.showMountDialog = false
+		m.mountVolumeName = ""
+		m.mountInstanceName = ""
+	} else {
+		return m, tea.Quit
+	}
+	return m, nil
+}
+
+// handleRefresh processes refresh messages
+func (m StorageModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	m.error = ""
+	return m, m.fetchStorage
+}
+
+// handleError processes error messages
+func (m StorageModel) handleError(err error) (tea.Model, tea.Cmd) {
+	m.loading = false
+	m.error = err.Error()
+	m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
+	return m, nil
+}
+
+// handleStorageData processes storage data messages
+func (m StorageModel) handleStorageData(msg StorageDataMsg) (tea.Model, tea.Cmd) {
+	m.loading = false
+	m.volumes = msg.Volumes
+	m.storage = msg.Storage
+	m.instances = msg.Instances
+
+	volumeCount := len(m.volumes)
+	storageCount := len(m.storage)
+	instanceCount := len(m.instances)
+	m.statusBar.SetStatus(fmt.Sprintf("Loaded %d EFS volumes, %d EBS volumes, and %d instances", volumeCount, storageCount, instanceCount), components.StatusSuccess)
+	return m, nil
+}
+
+// handleMountAction processes mount/unmount action messages
+func (m StorageModel) handleMountAction(msg MountActionMsg) (tea.Model, tea.Cmd) {
+	if msg.Success {
+		m.statusBar.SetStatus(fmt.Sprintf("%s %s to %s successful", msg.Action, msg.Volume, msg.Instance), components.StatusSuccess)
+		// Refresh data to show updated mount status
+		return m, m.fetchStorage
+	} else {
+		m.statusBar.SetStatus(fmt.Sprintf("%s failed: %s", msg.Action, msg.Message), components.StatusError)
+	}
+	return m, nil
 }
 
 // View renders the storage view

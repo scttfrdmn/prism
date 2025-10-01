@@ -1015,9 +1015,9 @@ func (m *MockAPIClient) SearchMarketplace(ctx context.Context, params map[string
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
 	return map[string]interface{}{
-		"templates":      []map[string]interface{}{},
-		"total_results":  0,
-		"query":          params,
+		"templates":     []map[string]interface{}{},
+		"total_results": 0,
+		"query":         params,
 	}, nil
 }
 
@@ -1026,15 +1026,15 @@ func (m *MockAPIClient) GetMarketplaceTemplate(ctx context.Context, templateID s
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
 	return map[string]interface{}{
-		"id":            templateID,
-		"name":          "Mock Template",
-		"description":   "Mock marketplace template",
-		"category":      "Testing",
-		"author":        "mock-user",
-		"downloads":     0,
-		"rating":        5.0,
-		"last_updated":  "2024-01-01",
-		"verified":      false,
+		"id":           templateID,
+		"name":         "Mock Template",
+		"description":  "Mock marketplace template",
+		"category":     "Testing",
+		"author":       "mock-user",
+		"downloads":    0,
+		"rating":       5.0,
+		"last_updated": "2024-01-01",
+		"verified":     false,
 	}, nil
 }
 
