@@ -59,74 +59,16 @@ func SearchTemplates(templates map[string]*Template, options SearchOptions) []Se
 
 // evaluateTemplate checks if a template matches the search criteria
 func evaluateTemplate(template *Template, options SearchOptions) *SearchResult {
-	var score float64
-	var matches []string
-
 	// Apply filters first (these are binary - match or not)
 	if !passesFilters(template, options) {
 		return nil
 	}
 
-	// Text search scoring
-	if options.Query != "" {
-		queryLower := strings.ToLower(options.Query)
+	// Calculate search score and matches
+	score, matches := calculateSearchScore(template, options)
 
-		// Exact name match (highest score)
-		if strings.ToLower(template.Name) == queryLower {
-			score += 10.0
-			matches = append(matches, "exact name match")
-		} else if strings.Contains(strings.ToLower(template.Name), queryLower) {
-			score += 5.0
-			matches = append(matches, "name contains query")
-		}
-
-		// Description match
-		if strings.Contains(strings.ToLower(template.Description), queryLower) {
-			score += 3.0
-			matches = append(matches, "description contains query")
-		}
-
-		// Long description match
-		if strings.Contains(strings.ToLower(template.LongDescription), queryLower) {
-			score += 2.0
-			matches = append(matches, "long description contains query")
-		}
-
-		// Category/domain match
-		if strings.Contains(strings.ToLower(template.Category), queryLower) {
-			score += 2.0
-			matches = append(matches, "category contains query")
-		}
-		if strings.Contains(strings.ToLower(template.Domain), queryLower) {
-			score += 2.0
-			matches = append(matches, "domain contains query")
-		}
-
-		// Tag match
-		for tagKey, tagValue := range template.Tags {
-			if strings.Contains(strings.ToLower(tagKey), queryLower) ||
-				strings.Contains(strings.ToLower(tagValue), queryLower) {
-				score += 1.0
-				matches = append(matches, "tag match: "+tagKey)
-			}
-		}
-
-		// No text match at all - exclude
-		if score == 0 && options.Query != "" {
-			return nil
-		}
-	} else {
-		// No query - include all that pass filters with base score
-		score = 1.0
-	}
-
-	// Boost score for popular/featured templates
-	if template.Popular {
-		score *= 1.2
-	}
-	if template.Featured {
-		score *= 1.5
-	}
+	// Apply popularity boosts
+	score = applyPopularityBoosts(template, score)
 
 	return &SearchResult{
 		Template: template,
@@ -135,64 +77,196 @@ func evaluateTemplate(template *Template, options SearchOptions) *SearchResult {
 	}
 }
 
+// calculateSearchScore computes the base search score and matches for a template
+func calculateSearchScore(template *Template, options SearchOptions) (float64, []string) {
+	var score float64
+	var matches []string
+
+	// Handle text search scoring
+	if options.Query != "" {
+		score, matches = scoreTextMatches(template, options.Query)
+
+		// No text match at all - exclude
+		if score == 0 {
+			return 0, nil
+		}
+	} else {
+		// No query - include all that pass filters with base score
+		score = 1.0
+	}
+
+	return score, matches
+}
+
+// scoreTextMatches calculates score and matches for text-based searches
+func scoreTextMatches(template *Template, query string) (float64, []string) {
+	var score float64
+	var matches []string
+	queryLower := strings.ToLower(query)
+
+	// Score name matches
+	score, matches = scoreNameMatches(template, queryLower, score, matches)
+
+	// Score description matches
+	score, matches = scoreDescriptionMatches(template, queryLower, score, matches)
+
+	// Score category/domain matches
+	score, matches = scoreCategoryMatches(template, queryLower, score, matches)
+
+	// Score tag matches
+	score, matches = scoreTagMatches(template, queryLower, score, matches)
+
+	return score, matches
+}
+
+// scoreNameMatches calculates score for name-based matches
+func scoreNameMatches(template *Template, queryLower string, score float64, matches []string) (float64, []string) {
+	// Exact name match (highest score)
+	if strings.ToLower(template.Name) == queryLower {
+		score += 10.0
+		matches = append(matches, "exact name match")
+	} else if strings.Contains(strings.ToLower(template.Name), queryLower) {
+		score += 5.0
+		matches = append(matches, "name contains query")
+	}
+	return score, matches
+}
+
+// scoreDescriptionMatches calculates score for description-based matches
+func scoreDescriptionMatches(template *Template, queryLower string, score float64, matches []string) (float64, []string) {
+	// Description match
+	if strings.Contains(strings.ToLower(template.Description), queryLower) {
+		score += 3.0
+		matches = append(matches, "description contains query")
+	}
+
+	// Long description match
+	if strings.Contains(strings.ToLower(template.LongDescription), queryLower) {
+		score += 2.0
+		matches = append(matches, "long description contains query")
+	}
+
+	return score, matches
+}
+
+// scoreCategoryMatches calculates score for category/domain matches
+func scoreCategoryMatches(template *Template, queryLower string, score float64, matches []string) (float64, []string) {
+	// Category match
+	if strings.Contains(strings.ToLower(template.Category), queryLower) {
+		score += 2.0
+		matches = append(matches, "category contains query")
+	}
+
+	// Domain match
+	if strings.Contains(strings.ToLower(template.Domain), queryLower) {
+		score += 2.0
+		matches = append(matches, "domain contains query")
+	}
+
+	return score, matches
+}
+
+// scoreTagMatches calculates score for tag-based matches
+func scoreTagMatches(template *Template, queryLower string, score float64, matches []string) (float64, []string) {
+	// Tag match
+	for tagKey, tagValue := range template.Tags {
+		if strings.Contains(strings.ToLower(tagKey), queryLower) ||
+			strings.Contains(strings.ToLower(tagValue), queryLower) {
+			score += 1.0
+			matches = append(matches, "tag match: "+tagKey)
+		}
+	}
+
+	return score, matches
+}
+
+// applyPopularityBoosts applies popularity and featured boosts to the score
+func applyPopularityBoosts(template *Template, score float64) float64 {
+	// Boost score for popular/featured templates
+	if template.Popular {
+		score *= 1.2
+	}
+	if template.Featured {
+		score *= 1.5
+	}
+
+	return score
+}
+
 // passesFilters checks if template passes all specified filters
 func passesFilters(template *Template, options SearchOptions) bool {
-	// Category filter
+	return passesBasicFilters(template, options) &&
+		passesCapabilityFilters(template, options) &&
+		passesTagFilters(template, options)
+}
+
+// passesBasicFilters checks category, domain, and complexity filters
+func passesBasicFilters(template *Template, options SearchOptions) bool {
 	if options.Category != "" && !strings.EqualFold(template.Category, options.Category) {
 		return false
 	}
 
-	// Domain filter
 	if options.Domain != "" && !strings.EqualFold(template.Domain, options.Domain) {
 		return false
 	}
 
-	// Complexity filter
 	if options.Complexity != "" && string(template.Complexity) != options.Complexity {
 		return false
 	}
 
-	// Popular filter
+	return true
+}
+
+// passesCapabilityFilters checks popular, featured, launch time, and GPU filters
+func passesCapabilityFilters(template *Template, options SearchOptions) bool {
 	if options.Popular != nil && template.Popular != *options.Popular {
 		return false
 	}
 
-	// Featured filter
 	if options.Featured != nil && template.Featured != *options.Featured {
 		return false
 	}
 
-	// Launch time filter
 	if options.MaxLaunchTime > 0 && template.EstimatedLaunchTime > options.MaxLaunchTime {
 		return false
 	}
 
-	// GPU support filter (check instance defaults)
-	if options.HasGPU != nil {
-		hasGPU := strings.Contains(template.InstanceDefaults.Type, "g") ||
-			strings.Contains(template.InstanceDefaults.Type, "p")
-		if hasGPU != *options.HasGPU {
+	if options.HasGPU != nil && !templateHasGPU(template) == *options.HasGPU {
+		return false
+	}
+
+	return true
+}
+
+// passesTagFilters checks if template has all required tags
+func passesTagFilters(template *Template, options SearchOptions) bool {
+	if len(options.Tags) == 0 {
+		return true
+	}
+
+	for _, requiredTag := range options.Tags {
+		if !templateHasTag(template, requiredTag) {
 			return false
 		}
 	}
 
-	// Tag filters
-	if len(options.Tags) > 0 {
-		for _, requiredTag := range options.Tags {
-			found := false
-			for tagKey := range template.Tags {
-				if strings.EqualFold(tagKey, requiredTag) {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return false
-			}
+	return true
+}
+
+// templateHasGPU determines if template supports GPU instances
+func templateHasGPU(template *Template) bool {
+	instanceType := template.InstanceDefaults.Type
+	return strings.Contains(instanceType, "g") || strings.Contains(instanceType, "p")
+}
+
+// templateHasTag checks if template has a specific tag (case-insensitive)
+func templateHasTag(template *Template, requiredTag string) bool {
+	for tagKey := range template.Tags {
+		if strings.EqualFold(tagKey, requiredTag) {
+			return true
 		}
 	}
-
-	return true
+	return false
 }
 
 // GetCategories returns all unique categories from templates

@@ -482,8 +482,15 @@ func TestBudgetTracker_AlertTriggering(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Reset budget data for this test by reinitializing the project
-			testTracker := setupTestBudgetTracker(t)
+			var testTracker *BudgetTracker
+			var mockExecutor *MockActionExecutor
+
+			// For auto action test, use mock-aware setup
+			if tt.name == "spending triggers auto action" {
+				testTracker, mockExecutor = setupTestBudgetTrackerWithMock(t)
+			} else {
+				testTracker = setupTestBudgetTracker(t)
+			}
 
 			// Create a fresh budget with zero spending for isolated testing
 			freshBudget := *budget
@@ -517,6 +524,12 @@ func TestBudgetTracker_AlertTriggering(t *testing.T) {
 			// Verify alert and action counts
 			assert.Len(t, status.ActiveAlerts, tt.expectedAlertCount)
 			assert.Len(t, status.TriggeredActions, tt.expectedActionCount)
+
+			// For auto action test, verify the action was actually executed
+			if tt.name == "spending triggers auto action" && mockExecutor != nil {
+				assert.True(t, mockExecutor.hibernateAllCalled, "HibernateAll should have been called")
+				assert.Equal(t, projectID, mockExecutor.executedProjectID, "Action should have been called with correct project ID")
+			}
 
 			// Verify spending percentage
 			expectedPercentage := tt.spendingAmount / 1000.0
@@ -699,6 +712,33 @@ func TestProjectFilter_Matches(t *testing.T) {
 }
 
 // Helper functions
+// MockActionExecutor implements ActionExecutor for testing
+type MockActionExecutor struct {
+	hibernateAllCalled  bool
+	stopAllCalled       bool
+	preventLaunchCalled bool
+	executedProjectID   string
+	returnError         error
+}
+
+func (m *MockActionExecutor) ExecuteHibernateAll(projectID string) error {
+	m.hibernateAllCalled = true
+	m.executedProjectID = projectID
+	return m.returnError
+}
+
+func (m *MockActionExecutor) ExecuteStopAll(projectID string) error {
+	m.stopAllCalled = true
+	m.executedProjectID = projectID
+	return m.returnError
+}
+
+func (m *MockActionExecutor) ExecutePreventLaunch(projectID string) error {
+	m.preventLaunchCalled = true
+	m.executedProjectID = projectID
+	return m.returnError
+}
+
 func setupTestBudgetTracker(t *testing.T) *BudgetTracker {
 	t.Helper()
 
@@ -725,7 +765,45 @@ func setupTestBudgetTracker(t *testing.T) *BudgetTracker {
 	require.NoError(t, err)
 	require.NotNil(t, tracker)
 
+	// Set up mock action executor for testing
+	mockExecutor := &MockActionExecutor{}
+	tracker.SetActionExecutor(mockExecutor)
+
 	return tracker
+}
+
+// setupTestBudgetTrackerWithMock returns both the tracker and the mock executor for tests that need to verify actions
+func setupTestBudgetTrackerWithMock(t *testing.T) (*BudgetTracker, *MockActionExecutor) {
+	t.Helper()
+
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "cws-budget-test-*")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = os.RemoveAll(tempDir)
+	})
+
+	// Create the .cloudworkstation directory
+	stateDir := filepath.Join(tempDir, ".cloudworkstation")
+	err = os.MkdirAll(stateDir, 0755)
+	require.NoError(t, err)
+
+	// Mock home directory
+	originalHome := os.Getenv("HOME")
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", originalHome)
+	})
+	_ = os.Setenv("HOME", tempDir)
+
+	tracker, err := NewBudgetTracker()
+	require.NoError(t, err)
+	require.NotNil(t, tracker)
+
+	// Set up mock action executor for testing
+	mockExecutor := &MockActionExecutor{}
+	tracker.SetActionExecutor(mockExecutor)
+
+	return tracker, mockExecutor
 }
 
 func timePtr(t time.Time) *time.Time {

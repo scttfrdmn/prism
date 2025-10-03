@@ -312,18 +312,40 @@ func (r *TemplateRollbackManager) restoreServices(ctx context.Context, instanceN
 // removeAddedPackages attempts to remove packages that were added after the checkpoint
 func (r *TemplateRollbackManager) removeAddedPackages(ctx context.Context, instanceName string, checkpoint *RollbackCheckpoint) error {
 	// Get current package state
-	inspector := NewInstanceStateInspector(r.executor)
-	currentState, err := inspector.InspectInstance(ctx, instanceName)
+	currentState, err := r.inspectCurrentPackageState(ctx, instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to inspect current state: %w", err)
+		return err
 	}
 
 	// Find packages that were added after checkpoint
+	packagesToRemove := r.identifyPackagesToRemove(currentState, checkpoint)
+	if len(packagesToRemove) == 0 {
+		return nil
+	}
+
+	// Generate and execute removal script
+	return r.executePackageRemoval(ctx, instanceName, currentState.PackageManager, packagesToRemove)
+}
+
+// inspectCurrentPackageState gets the current state of packages on the instance
+func (r *TemplateRollbackManager) inspectCurrentPackageState(ctx context.Context, instanceName string) (*InstanceState, error) {
+	inspector := NewInstanceStateInspector(r.executor)
+	currentState, err := inspector.InspectInstance(ctx, instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inspect current state: %w", err)
+	}
+	return currentState, nil
+}
+
+// identifyPackagesToRemove compares current packages with checkpoint to find additions
+func (r *TemplateRollbackManager) identifyPackagesToRemove(currentState *InstanceState, checkpoint *RollbackCheckpoint) []string {
+	// Create lookup map for checkpoint packages
 	checkpointPackages := make(map[string]bool)
 	for _, pkg := range checkpoint.PackageSnapshot {
 		checkpointPackages[pkg.Name] = true
 	}
 
+	// Find packages that were added after checkpoint
 	var packagesToRemove []string
 	for _, pkg := range currentState.Packages {
 		if !checkpointPackages[pkg.Name] {
@@ -331,52 +353,89 @@ func (r *TemplateRollbackManager) removeAddedPackages(ctx context.Context, insta
 		}
 	}
 
-	if len(packagesToRemove) == 0 {
-		return nil
-	}
+	return packagesToRemove
+}
 
-	// Generate removal script based on detected package manager
-	packageManager := currentState.PackageManager
-	var script strings.Builder
+// executePackageRemoval generates and executes the package removal script
+func (r *TemplateRollbackManager) executePackageRemoval(ctx context.Context, instanceName, packageManager string, packagesToRemove []string) error {
+	// Generate removal script
+	script := r.generatePackageRemovalScript(packageManager, packagesToRemove)
 
-	script.WriteString("#!/bin/bash\n")
-	script.WriteString("# Package removal script\n")
-	script.WriteString("set +e  # Continue on errors\n\n")
-
-	switch packageManager {
-	case "apt":
-		for _, pkg := range packagesToRemove {
-			script.WriteString(fmt.Sprintf("apt-get remove -y %s 2>/dev/null || true\n", pkg))
-		}
-		script.WriteString("apt-get autoremove -y 2>/dev/null || true\n")
-
-	case "dnf":
-		for _, pkg := range packagesToRemove {
-			script.WriteString(fmt.Sprintf("dnf remove -y %s 2>/dev/null || true\n", pkg))
-		}
-
-	case "conda":
-		for _, pkg := range packagesToRemove {
-			script.WriteString(fmt.Sprintf("conda remove -y %s 2>/dev/null || true\n", pkg))
-		}
-
-	case "pip":
-		for _, pkg := range packagesToRemove {
-			script.WriteString(fmt.Sprintf("pip uninstall -y %s 2>/dev/null || true\n", pkg))
-		}
-	}
-
-	result, err := r.executor.ExecuteScript(ctx, instanceName, script.String())
+	// Execute removal script
+	result, err := r.executor.ExecuteScript(ctx, instanceName, script)
 	if err != nil {
 		return fmt.Errorf("failed to execute package removal script: %w", err)
 	}
 
+	// Handle execution results
+	r.handleRemovalResults(result)
+	return nil
+}
+
+// generatePackageRemovalScript creates the removal script based on package manager
+func (r *TemplateRollbackManager) generatePackageRemovalScript(packageManager string, packagesToRemove []string) string {
+	var script strings.Builder
+
+	// Script header
+	script.WriteString("#!/bin/bash\n")
+	script.WriteString("# Package removal script\n")
+	script.WriteString("set +e  # Continue on errors\n\n")
+
+	// Generate removal commands by package manager type
+	r.appendRemovalCommandsByManager(&script, packageManager, packagesToRemove)
+
+	return script.String()
+}
+
+// appendRemovalCommandsByManager adds package-manager-specific removal commands
+func (r *TemplateRollbackManager) appendRemovalCommandsByManager(script *strings.Builder, packageManager string, packagesToRemove []string) {
+	switch packageManager {
+	case "apt":
+		r.appendAptRemovalCommands(script, packagesToRemove)
+	case "dnf":
+		r.appendDnfRemovalCommands(script, packagesToRemove)
+	case "conda":
+		r.appendCondaRemovalCommands(script, packagesToRemove)
+	case "pip":
+		r.appendPipRemovalCommands(script, packagesToRemove)
+	}
+}
+
+// appendAptRemovalCommands adds APT-specific removal commands
+func (r *TemplateRollbackManager) appendAptRemovalCommands(script *strings.Builder, packagesToRemove []string) {
+	for _, pkg := range packagesToRemove {
+		script.WriteString(fmt.Sprintf("apt-get remove -y %s 2>/dev/null || true\n", pkg))
+	}
+	script.WriteString("apt-get autoremove -y 2>/dev/null || true\n")
+}
+
+// appendDnfRemovalCommands adds DNF-specific removal commands
+func (r *TemplateRollbackManager) appendDnfRemovalCommands(script *strings.Builder, packagesToRemove []string) {
+	for _, pkg := range packagesToRemove {
+		script.WriteString(fmt.Sprintf("dnf remove -y %s 2>/dev/null || true\n", pkg))
+	}
+}
+
+// appendCondaRemovalCommands adds Conda-specific removal commands
+func (r *TemplateRollbackManager) appendCondaRemovalCommands(script *strings.Builder, packagesToRemove []string) {
+	for _, pkg := range packagesToRemove {
+		script.WriteString(fmt.Sprintf("conda remove -y %s 2>/dev/null || true\n", pkg))
+	}
+}
+
+// appendPipRemovalCommands adds pip-specific removal commands
+func (r *TemplateRollbackManager) appendPipRemovalCommands(script *strings.Builder, packagesToRemove []string) {
+	for _, pkg := range packagesToRemove {
+		script.WriteString(fmt.Sprintf("pip uninstall -y %s 2>/dev/null || true\n", pkg))
+	}
+}
+
+// handleRemovalResults processes the results from package removal execution
+func (r *TemplateRollbackManager) handleRemovalResults(result *ExecutionResult) {
 	// Package removal is best-effort, so don't fail on non-zero exit codes
 	if result.ExitCode != 0 {
 		fmt.Printf("Warning: some packages could not be removed: %s\n", result.Stderr)
 	}
-
-	return nil
 }
 
 // restoreEnvironmentVariables restores environment variables

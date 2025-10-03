@@ -625,7 +625,7 @@ func (bt *BudgetTracker) getTriggeredActions(budgetData *ProjectBudgetData) []st
 	dayAgo := time.Now().AddDate(0, 0, -1)
 
 	for _, event := range budgetData.AlertHistory {
-		if event.Timestamp.After(dayAgo) && !event.Resolved {
+		if event.Timestamp.After(dayAgo) {
 			// Check if this is an action event (not a regular alert)
 			if event.AlertType != types.BudgetAlertEmail && event.AlertType != types.BudgetAlertSlack && event.AlertType != types.BudgetAlertWebhook {
 				triggeredActions = append(triggeredActions, event.Message)

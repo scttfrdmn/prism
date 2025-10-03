@@ -117,75 +117,122 @@ func (e *IncrementalApplyEngine) installPackagesWithManager(ctx context.Context,
 
 // generateInstallationScript generates package installation script for a specific package manager
 func (e *IncrementalApplyEngine) generateInstallationScript(manager string, packages []PackageDiff) (string, error) {
-	var script strings.Builder
+	// Validate package manager support
+	if err := e.validatePackageManagerSupport(manager); err != nil {
+		return "", err
+	}
 
+	// Build the installation script
+	var script strings.Builder
+	e.addScriptHeader(&script, manager, packages)
+	e.addPackageInstallationCommands(&script, manager, packages)
+	e.addScriptFooter(&script)
+
+	return script.String(), nil
+}
+
+// validatePackageManagerSupport checks if the package manager is supported
+func (e *IncrementalApplyEngine) validatePackageManagerSupport(manager string) error {
+	supportedManagers := []string{"apt", "dnf", "conda", "pip", "spack"}
+	for _, supported := range supportedManagers {
+		if manager == supported {
+			return nil
+		}
+	}
+	return fmt.Errorf("unsupported package manager: %s", manager)
+}
+
+// addScriptHeader adds the bash script header and metadata
+func (e *IncrementalApplyEngine) addScriptHeader(script *strings.Builder, manager string, packages []PackageDiff) {
 	script.WriteString("#!/bin/bash\n")
 	script.WriteString("set -e\n\n")
 	script.WriteString("# Package installation script\n")
 	script.WriteString(fmt.Sprintf("# Package manager: %s\n", manager))
 	script.WriteString(fmt.Sprintf("# Packages to install: %d\n\n", len(packages)))
+}
 
+// addPackageInstallationCommands adds package manager specific installation commands
+func (e *IncrementalApplyEngine) addPackageInstallationCommands(script *strings.Builder, manager string, packages []PackageDiff) {
 	switch manager {
 	case "apt":
-		script.WriteString("# Update package index\n")
-		script.WriteString("apt-get update -y\n\n")
-
-		script.WriteString("# Install packages\n")
-		for _, pkg := range packages {
-			if pkg.TargetVersion != "" {
-				script.WriteString(fmt.Sprintf("apt-get install -y %s=%s\n", pkg.Name, pkg.TargetVersion))
-			} else {
-				script.WriteString(fmt.Sprintf("apt-get install -y %s\n", pkg.Name))
-			}
-		}
-
+		e.addAptInstallationCommands(script, packages)
 	case "dnf":
-		script.WriteString("# Install packages\n")
-		for _, pkg := range packages {
-			if pkg.TargetVersion != "" {
-				script.WriteString(fmt.Sprintf("dnf install -y %s-%s\n", pkg.Name, pkg.TargetVersion))
-			} else {
-				script.WriteString(fmt.Sprintf("dnf install -y %s\n", pkg.Name))
-			}
-		}
-
+		e.addDnfInstallationCommands(script, packages)
 	case "conda":
-		script.WriteString("# Install conda packages\n")
-		for _, pkg := range packages {
-			if pkg.TargetVersion != "" {
-				script.WriteString(fmt.Sprintf("conda install -y %s=%s\n", pkg.Name, pkg.TargetVersion))
-			} else {
-				script.WriteString(fmt.Sprintf("conda install -y %s\n", pkg.Name))
-			}
-		}
-
+		e.addCondaInstallationCommands(script, packages)
 	case "pip":
-		script.WriteString("# Install pip packages\n")
-		for _, pkg := range packages {
-			if pkg.TargetVersion != "" {
-				script.WriteString(fmt.Sprintf("pip install %s==%s\n", pkg.Name, pkg.TargetVersion))
-			} else {
-				script.WriteString(fmt.Sprintf("pip install %s\n", pkg.Name))
-			}
-		}
-
+		e.addPipInstallationCommands(script, packages)
 	case "spack":
-		script.WriteString("# Install spack packages\n")
-		for _, pkg := range packages {
-			if pkg.TargetVersion != "" {
-				script.WriteString(fmt.Sprintf("spack install %s@%s\n", pkg.Name, pkg.TargetVersion))
-			} else {
-				script.WriteString(fmt.Sprintf("spack install %s\n", pkg.Name))
-			}
-		}
-
-	default:
-		return "", fmt.Errorf("unsupported package manager: %s", manager)
+		e.addSpackInstallationCommands(script, packages)
 	}
+}
 
+// addAptInstallationCommands adds APT-specific installation commands
+func (e *IncrementalApplyEngine) addAptInstallationCommands(script *strings.Builder, packages []PackageDiff) {
+	script.WriteString("# Update package index\n")
+	script.WriteString("apt-get update -y\n\n")
+
+	script.WriteString("# Install packages\n")
+	for _, pkg := range packages {
+		if pkg.TargetVersion != "" {
+			script.WriteString(fmt.Sprintf("apt-get install -y %s=%s\n", pkg.Name, pkg.TargetVersion))
+		} else {
+			script.WriteString(fmt.Sprintf("apt-get install -y %s\n", pkg.Name))
+		}
+	}
+}
+
+// addDnfInstallationCommands adds DNF-specific installation commands
+func (e *IncrementalApplyEngine) addDnfInstallationCommands(script *strings.Builder, packages []PackageDiff) {
+	script.WriteString("# Install packages\n")
+	for _, pkg := range packages {
+		if pkg.TargetVersion != "" {
+			script.WriteString(fmt.Sprintf("dnf install -y %s-%s\n", pkg.Name, pkg.TargetVersion))
+		} else {
+			script.WriteString(fmt.Sprintf("dnf install -y %s\n", pkg.Name))
+		}
+	}
+}
+
+// addCondaInstallationCommands adds Conda-specific installation commands
+func (e *IncrementalApplyEngine) addCondaInstallationCommands(script *strings.Builder, packages []PackageDiff) {
+	script.WriteString("# Install conda packages\n")
+	for _, pkg := range packages {
+		if pkg.TargetVersion != "" {
+			script.WriteString(fmt.Sprintf("conda install -y %s=%s\n", pkg.Name, pkg.TargetVersion))
+		} else {
+			script.WriteString(fmt.Sprintf("conda install -y %s\n", pkg.Name))
+		}
+	}
+}
+
+// addPipInstallationCommands adds pip-specific installation commands
+func (e *IncrementalApplyEngine) addPipInstallationCommands(script *strings.Builder, packages []PackageDiff) {
+	script.WriteString("# Install pip packages\n")
+	for _, pkg := range packages {
+		if pkg.TargetVersion != "" {
+			script.WriteString(fmt.Sprintf("pip install %s==%s\n", pkg.Name, pkg.TargetVersion))
+		} else {
+			script.WriteString(fmt.Sprintf("pip install %s\n", pkg.Name))
+		}
+	}
+}
+
+// addSpackInstallationCommands adds spack-specific installation commands
+func (e *IncrementalApplyEngine) addSpackInstallationCommands(script *strings.Builder, packages []PackageDiff) {
+	script.WriteString("# Install spack packages\n")
+	for _, pkg := range packages {
+		if pkg.TargetVersion != "" {
+			script.WriteString(fmt.Sprintf("spack install %s@%s\n", pkg.Name, pkg.TargetVersion))
+		} else {
+			script.WriteString(fmt.Sprintf("spack install %s\n", pkg.Name))
+		}
+	}
+}
+
+// addScriptFooter adds the completion message to the script
+func (e *IncrementalApplyEngine) addScriptFooter(script *strings.Builder) {
 	script.WriteString("\necho 'Package installation completed successfully'\n")
-
-	return script.String(), nil
 }
 
 // configureServices configures and starts the required services

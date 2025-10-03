@@ -110,48 +110,94 @@ func (rp *ResearchUserProvisioner) GetResearchUserStatus(ctx context.Context, in
 	}
 	defer client.Close()
 
-	// Check if research user exists
+	// Check if research user exists and get basic status
+	status, err := rp.checkUserExistence(client, username)
+	if err != nil {
+		return status, nil // Return non-existent user status
+	}
+
+	// Collect detailed user information
+	rp.populateUserDetails(client, username, status)
+
+	return status, nil
+}
+
+// checkUserExistence verifies if a research user exists on the instance
+func (rp *ResearchUserProvisioner) checkUserExistence(client *ssh.Client, username string) (*ResearchUserStatus, error) {
 	checkUserCmd := fmt.Sprintf("id %s", username)
 	output, err := rp.executeCommand(client, checkUserCmd)
 	if err != nil {
 		return &ResearchUserStatus{
 			Username:      username,
 			SSHAccessible: false,
-		}, nil
+		}, fmt.Errorf("user does not exist")
 	}
 
-	// Parse user info
+	// Create base status with user existence confirmed
 	status := &ResearchUserStatus{
 		Username:      username,
 		SSHAccessible: strings.Contains(output, fmt.Sprintf("uid=")),
 	}
 
-	// Get home directory
+	return status, nil
+}
+
+// populateUserDetails gathers comprehensive information about the research user
+func (rp *ResearchUserProvisioner) populateUserDetails(client *ssh.Client, username string, status *ResearchUserStatus) {
+	// Get home directory path
+	rp.populateHomeDirectory(client, username, status)
+
+	// Check EFS mount status
+	rp.populateEFSMountStatus(client, status)
+
+	// Get last login information
+	rp.populateLastLoginInfo(client, username, status)
+
+	// Get active process count
+	rp.populateActiveProcesses(client, username, status)
+
+	// Get disk usage information
+	rp.populateDiskUsage(client, status)
+}
+
+// populateHomeDirectory gets the user's home directory path
+func (rp *ResearchUserProvisioner) populateHomeDirectory(client *ssh.Client, username string, status *ResearchUserStatus) {
 	homeCmd := fmt.Sprintf("getent passwd %s | cut -d: -f6", username)
 	if homeOutput, err := rp.executeCommand(client, homeCmd); err == nil {
 		status.HomeDirectoryPath = strings.TrimSpace(homeOutput)
 	}
+}
 
-	// Check EFS mount status
+// populateEFSMountStatus checks if EFS is mounted on the instance
+func (rp *ResearchUserProvisioner) populateEFSMountStatus(client *ssh.Client, status *ResearchUserStatus) {
 	if status.HomeDirectoryPath != "" {
 		mountCmd := "mount | grep efs"
 		if mountOutput, err := rp.executeCommand(client, mountCmd); err == nil {
 			status.EFSMounted = strings.Contains(mountOutput, "efs")
 		}
 	}
+}
 
-	// Get last login info
+// populateLastLoginInfo gets the user's last login information
+func (rp *ResearchUserProvisioner) populateLastLoginInfo(client *ssh.Client, username string, status *ResearchUserStatus) {
 	lastLoginCmd := fmt.Sprintf("last -n 1 %s | head -1", username)
 	if lastOutput, err := rp.executeCommand(client, lastLoginCmd); err == nil {
 		// Parse last login (basic parsing)
-		if !strings.Contains(lastOutput, "wtmp begins") && !strings.Contains(lastOutput, "No such file") {
+		if rp.isValidLastLoginOutput(lastOutput) {
 			// Set a placeholder - more sophisticated parsing would be needed for actual time
 			now := time.Now()
 			status.LastLogin = &now
 		}
 	}
+}
 
-	// Get active processes
+// isValidLastLoginOutput checks if the last login output contains valid login data
+func (rp *ResearchUserProvisioner) isValidLastLoginOutput(output string) bool {
+	return !strings.Contains(output, "wtmp begins") && !strings.Contains(output, "No such file")
+}
+
+// populateActiveProcesses gets the count of active processes for the user
+func (rp *ResearchUserProvisioner) populateActiveProcesses(client *ssh.Client, username string, status *ResearchUserStatus) {
 	processCmd := fmt.Sprintf("ps -u %s --no-headers | wc -l", username)
 	if processOutput, err := rp.executeCommand(client, processCmd); err == nil {
 		if count := strings.TrimSpace(processOutput); count != "" {
@@ -160,8 +206,10 @@ func (rp *ResearchUserProvisioner) GetResearchUserStatus(ctx context.Context, in
 			}
 		}
 	}
+}
 
-	// Get disk usage (if home directory exists)
+// populateDiskUsage gets the disk usage for the user's home directory
+func (rp *ResearchUserProvisioner) populateDiskUsage(client *ssh.Client, status *ResearchUserStatus) {
 	if status.HomeDirectoryPath != "" {
 		duCmd := fmt.Sprintf("du -sb %s 2>/dev/null | cut -f1", status.HomeDirectoryPath)
 		if duOutput, err := rp.executeCommand(client, duCmd); err == nil {
@@ -172,8 +220,6 @@ func (rp *ResearchUserProvisioner) GetResearchUserStatus(ctx context.Context, in
 			}
 		}
 	}
-
-	return status, nil
 }
 
 // executeProvisioningScript executes the provisioning script on the instance

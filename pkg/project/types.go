@@ -141,38 +141,93 @@ type ProjectFilter struct {
 
 // Matches checks if a project matches the filter criteria
 func (f *ProjectFilter) Matches(project *types.Project) bool {
-	if f.Owner != "" && project.Owner != f.Owner {
+	// Check basic project attributes
+	if !f.matchesBasicAttributes(project) {
 		return false
 	}
 
-	if f.Status != nil && project.Status != *f.Status {
+	// Check date-based filters
+	if !f.matchesDateFilters(project) {
 		return false
 	}
 
-	if f.HasBudget != nil {
-		hasBudget := project.Budget != nil
-		if hasBudget != *f.HasBudget {
-			return false
-		}
+	// Check tag-based filters
+	if !f.matchesTagFilters(project) {
+		return false
 	}
 
+	return true
+}
+
+// matchesBasicAttributes checks owner, status, and budget filters
+func (f *ProjectFilter) matchesBasicAttributes(project *types.Project) bool {
+	// Check owner filter
+	if !f.matchesOwnerFilter(project) {
+		return false
+	}
+
+	// Check status filter
+	if !f.matchesStatusFilter(project) {
+		return false
+	}
+
+	// Check budget filter
+	if !f.matchesBudgetFilter(project) {
+		return false
+	}
+
+	return true
+}
+
+// matchesOwnerFilter checks if project matches the owner filter
+func (f *ProjectFilter) matchesOwnerFilter(project *types.Project) bool {
+	return f.Owner == "" || project.Owner == f.Owner
+}
+
+// matchesStatusFilter checks if project matches the status filter
+func (f *ProjectFilter) matchesStatusFilter(project *types.Project) bool {
+	return f.Status == nil || project.Status == *f.Status
+}
+
+// matchesBudgetFilter checks if project matches the budget filter
+func (f *ProjectFilter) matchesBudgetFilter(project *types.Project) bool {
+	if f.HasBudget == nil {
+		return true
+	}
+
+	hasBudget := project.Budget != nil
+	return hasBudget == *f.HasBudget
+}
+
+// matchesDateFilters checks creation date filters
+func (f *ProjectFilter) matchesDateFilters(project *types.Project) bool {
+	// Check created after filter
 	if f.CreatedAfter != nil && project.CreatedAt.Before(*f.CreatedAfter) {
 		return false
 	}
 
+	// Check created before filter
 	if f.CreatedBefore != nil && project.CreatedAt.After(*f.CreatedBefore) {
 		return false
 	}
 
-	// Check tags - all specified tags must match
-	if len(f.Tags) > 0 {
-		if project.Tags == nil {
+	return true
+}
+
+// matchesTagFilters checks if all specified tags match
+func (f *ProjectFilter) matchesTagFilters(project *types.Project) bool {
+	if len(f.Tags) == 0 {
+		return true
+	}
+
+	if project.Tags == nil {
+		return false
+	}
+
+	// All specified tags must match
+	for key, value := range f.Tags {
+		if projectValue, exists := project.Tags[key]; !exists || projectValue != value {
 			return false
-		}
-		for key, value := range f.Tags {
-			if projectValue, exists := project.Tags[key]; !exists || projectValue != value {
-				return false
-			}
 		}
 	}
 

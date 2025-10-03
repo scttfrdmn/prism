@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -74,92 +75,15 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse query parameters for filtering
-	filter := &project.ProjectFilter{}
+	filter := s.parseProjectFilter(r)
 
-	if owner := r.URL.Query().Get("owner"); owner != "" {
-		filter.Owner = owner
-	}
-
-	if status := r.URL.Query().Get("status"); status != "" {
-		projectStatus := types.ProjectStatus(status)
-		filter.Status = &projectStatus
-	}
-
-	if createdAfter := r.URL.Query().Get("created_after"); createdAfter != "" {
-		if t, err := time.Parse(time.RFC3339, createdAfter); err == nil {
-			filter.CreatedAfter = &t
-		}
-	}
-
-	if createdBefore := r.URL.Query().Get("created_before"); createdBefore != "" {
-		if t, err := time.Parse(time.RFC3339, createdBefore); err == nil {
-			filter.CreatedBefore = &t
-		}
-	}
-
-	if hasBudget := r.URL.Query().Get("has_budget"); hasBudget != "" {
-		if b, err := strconv.ParseBool(hasBudget); err == nil {
-			filter.HasBudget = &b
-		}
-	}
-
-	ctx := context.Background()
-	projects, err := s.projectManager.ListProjects(ctx, filter)
+	projects, err := s.projectManager.ListProjects(context.Background(), filter)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to list projects: %v", err))
 		return
 	}
 
-	// Convert to summary format
-	var summaries []project.ProjectSummary
-	for _, proj := range projects {
-		// Calculate active instances for this project
-		activeInstances := 0
-		if instances, err := s.awsManager.ListInstances(); err == nil {
-			for _, instance := range instances {
-				// Check if instance belongs to this project (assuming project tagging)
-				if instance.State == "running" {
-					// TODO: Implement proper project-instance association
-					// For now, we'll use a simple heuristic or skip detailed counting
-					activeInstances++
-				}
-			}
-		}
-
-		// Get cost information from budget tracker
-		totalCost := 0.0
-		if s.budgetTracker != nil {
-			if budgetStatus, err := s.budgetTracker.CheckBudgetStatus(proj.ID); err == nil {
-				if budgetStatus.BudgetEnabled {
-					totalCost = budgetStatus.SpentAmount
-				}
-			}
-		}
-
-		summary := project.ProjectSummary{
-			ID:              proj.ID,
-			Name:            proj.Name,
-			Owner:           proj.Owner,
-			Status:          proj.Status,
-			MemberCount:     len(proj.Members),
-			ActiveInstances: activeInstances,
-			TotalCost:       totalCost,
-			CreatedAt:       proj.CreatedAt,
-			LastActivity:    proj.UpdatedAt,
-		}
-
-		if proj.Budget != nil {
-			summary.BudgetStatus = &project.BudgetStatusSummary{
-				TotalBudget:     proj.Budget.TotalBudget,
-				SpentAmount:     proj.Budget.SpentAmount,
-				SpentPercentage: proj.Budget.SpentAmount / proj.Budget.TotalBudget,
-				AlertCount:      len(proj.Budget.AlertThresholds),
-			}
-		}
-
-		summaries = append(summaries, summary)
-	}
+	summaries := s.buildProjectSummaries(projects)
 
 	response := project.ProjectListResponse{
 		Projects:      summaries,
@@ -168,6 +92,113 @@ func (s *Server) handleListProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) parseProjectFilter(r *http.Request) *project.ProjectFilter {
+	filter := &project.ProjectFilter{}
+	query := r.URL.Query()
+
+	if owner := query.Get("owner"); owner != "" {
+		filter.Owner = owner
+	}
+
+	if status := query.Get("status"); status != "" {
+		projectStatus := types.ProjectStatus(status)
+		filter.Status = &projectStatus
+	}
+
+	s.parseTimeFilters(query, filter)
+
+	if hasBudget := query.Get("has_budget"); hasBudget != "" {
+		if b, err := strconv.ParseBool(hasBudget); err == nil {
+			filter.HasBudget = &b
+		}
+	}
+
+	return filter
+}
+
+func (s *Server) parseTimeFilters(query url.Values, filter *project.ProjectFilter) {
+	if createdAfter := query.Get("created_after"); createdAfter != "" {
+		if t, err := time.Parse(time.RFC3339, createdAfter); err == nil {
+			filter.CreatedAfter = &t
+		}
+	}
+
+	if createdBefore := query.Get("created_before"); createdBefore != "" {
+		if t, err := time.Parse(time.RFC3339, createdBefore); err == nil {
+			filter.CreatedBefore = &t
+		}
+	}
+}
+
+func (s *Server) buildProjectSummaries(projects []*types.Project) []project.ProjectSummary {
+	var summaries []project.ProjectSummary
+
+	for _, proj := range projects {
+		summary := s.buildProjectSummary(proj)
+		summaries = append(summaries, summary)
+	}
+
+	return summaries
+}
+
+func (s *Server) buildProjectSummary(proj *types.Project) project.ProjectSummary {
+	activeInstances := s.calculateActiveInstances()
+	totalCost := s.calculateProjectCost(proj.ID)
+
+	summary := project.ProjectSummary{
+		ID:              proj.ID,
+		Name:            proj.Name,
+		Owner:           proj.Owner,
+		Status:          proj.Status,
+		MemberCount:     len(proj.Members),
+		ActiveInstances: activeInstances,
+		TotalCost:       totalCost,
+		CreatedAt:       proj.CreatedAt,
+		LastActivity:    proj.UpdatedAt,
+	}
+
+	if proj.Budget != nil {
+		summary.BudgetStatus = s.buildBudgetStatusSummary(proj.Budget)
+	}
+
+	return summary
+}
+
+func (s *Server) calculateActiveInstances() int {
+	activeInstances := 0
+	if instances, err := s.awsManager.ListInstances(); err == nil {
+		for _, instance := range instances {
+			if instance.State == "running" {
+				// TODO: Implement proper project-instance association
+				activeInstances++
+			}
+		}
+	}
+	return activeInstances
+}
+
+func (s *Server) calculateProjectCost(projectID string) float64 {
+	if s.budgetTracker == nil {
+		return 0.0
+	}
+
+	budgetStatus, err := s.budgetTracker.CheckBudgetStatus(projectID)
+	if err != nil || !budgetStatus.BudgetEnabled {
+		return 0.0
+	}
+
+	return budgetStatus.SpentAmount
+}
+
+func (s *Server) buildBudgetStatusSummary(budget *types.ProjectBudget) *project.BudgetStatusSummary {
+	return &project.BudgetStatusSummary{
+		TotalBudget:     budget.TotalBudget,
+		SpentAmount:     budget.SpentAmount,
+		SpentPercentage: budget.SpentAmount / budget.TotalBudget,
+		AlertCount:      len(budget.AlertThresholds),
+	}
 }
 
 // handleCreateProject creates a new project

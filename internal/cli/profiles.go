@@ -698,11 +698,48 @@ func createInvitationCreateCommand(config *Config) *cobra.Command {
 
 // runInvitationCreateCommand handles the invitation create command logic
 func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string) {
+	// Parse command flags
+	flags := parseInvitationFlags(cmd)
+
+	// Initialize managers
+	invitationManager, err := initializeInvitationManager(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "initialize invitation manager"))
+		os.Exit(1)
+	}
+
+	// Create the invitation
+	invitation, err := createInvitationWithType(invitationManager, name, flags)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation"))
+		os.Exit(1)
+	}
+
+	// Apply and display policy restrictions
+	applyPolicyRestrictions(invitation, flags)
+
+	// Print invitation details
+	printInvitationDetails(invitation)
+}
+
+// invitationFlags holds parsed command line flags
+type invitationFlags struct {
+	invType           string
+	validDays         int
+	s3ConfigPath      string
+	templateWhitelist []string
+	templateBlacklist []string
+	maxInstanceTypes  []string
+	forbiddenRegions  []string
+	maxHourlyCost     float64
+	maxDailyBudget    float64
+}
+
+// parseInvitationFlags extracts all flags from the command
+func parseInvitationFlags(cmd *cobra.Command) *invitationFlags {
 	invType, _ := cmd.Flags().GetString("type")
 	validDays, _ := cmd.Flags().GetInt("valid-days")
 	s3ConfigPath, _ := cmd.Flags().GetString("s3-config")
-
-	// Parse policy restriction flags
 	templateWhitelist, _ := cmd.Flags().GetStringSlice("template-whitelist")
 	templateBlacklist, _ := cmd.Flags().GetStringSlice("template-blacklist")
 	maxInstanceTypes, _ := cmd.Flags().GetStringSlice("max-instance-types")
@@ -710,70 +747,104 @@ func runInvitationCreateCommand(config *Config, cmd *cobra.Command, name string)
 	maxHourlyCost, _ := cmd.Flags().GetFloat64("max-hourly-cost")
 	maxDailyBudget, _ := cmd.Flags().GetFloat64("max-daily-budget")
 
+	return &invitationFlags{
+		invType:           invType,
+		validDays:         validDays,
+		s3ConfigPath:      s3ConfigPath,
+		templateWhitelist: templateWhitelist,
+		templateBlacklist: templateBlacklist,
+		maxInstanceTypes:  maxInstanceTypes,
+		forbiddenRegions:  forbiddenRegions,
+		maxHourlyCost:     maxHourlyCost,
+		maxDailyBudget:    maxDailyBudget,
+	}
+}
+
+// initializeInvitationManager creates and initializes the invitation manager
+func initializeInvitationManager(config *Config) (*profile.InvitationManager, error) {
 	// Create profile manager
 	profileManager, err := createProfileManager(config)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
-		os.Exit(1)
+		return nil, fmt.Errorf("create profile manager: %w", err)
 	}
 
 	// Create invitation manager
 	invitationManager, err := createInvitationManager(profileManager)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation manager"))
-		os.Exit(1)
+		return nil, fmt.Errorf("create invitation manager: %w", err)
 	}
 
+	return invitationManager, nil
+}
+
+// createInvitationWithType creates an invitation with the specified type
+func createInvitationWithType(invitationManager *profile.InvitationManager, name string, flags *invitationFlags) (*profile.InvitationToken, error) {
 	// Validate invitation type
-	invitationType, err := parseInvitationType(invType)
+	invitationType, err := parseInvitationType(flags.invType)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "parse invitation type"))
-		os.Exit(1)
+		return nil, fmt.Errorf("parse invitation type: %w", err)
 	}
 
 	// Create the invitation
-	invitation, err := invitationManager.CreateInvitation(name, invitationType, validDays, s3ConfigPath)
+	invitation, err := invitationManager.CreateInvitation(name, invitationType, flags.validDays, flags.s3ConfigPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create invitation"))
-		os.Exit(1)
+		return nil, fmt.Errorf("create invitation: %w", err)
 	}
 
-	// Add policy restrictions if specified
-	if len(templateWhitelist) > 0 || len(templateBlacklist) > 0 || len(maxInstanceTypes) > 0 ||
-		len(forbiddenRegions) > 0 || maxHourlyCost > 0 || maxDailyBudget > 0 {
-		invitation.PolicyRestrictions = &profile.BasicPolicyRestrictions{
-			TemplateWhitelist: templateWhitelist,
-			TemplateBlacklist: templateBlacklist,
-			MaxInstanceTypes:  maxInstanceTypes,
-			ForbiddenRegions:  forbiddenRegions,
-			MaxHourlyCost:     maxHourlyCost,
-			MaxDailyBudget:    maxDailyBudget,
-		}
+	return invitation, nil
+}
 
-		fmt.Println(color.YellowString("Policy restrictions applied:"))
-		if len(templateWhitelist) > 0 {
-			fmt.Printf("  - Allowed templates: %v\n", templateWhitelist)
-		}
-		if len(templateBlacklist) > 0 {
-			fmt.Printf("  - Forbidden templates: %v\n", templateBlacklist)
-		}
-		if len(maxInstanceTypes) > 0 {
-			fmt.Printf("  - Max instance types: %v\n", maxInstanceTypes)
-		}
-		if len(forbiddenRegions) > 0 {
-			fmt.Printf("  - Forbidden regions: %v\n", forbiddenRegions)
-		}
-		if maxHourlyCost > 0 {
-			fmt.Printf("  - Max hourly cost: $%.2f\n", maxHourlyCost)
-		}
-		if maxDailyBudget > 0 {
-			fmt.Printf("  - Max daily budget: $%.2f\n", maxDailyBudget)
-		}
-		fmt.Println()
+// applyPolicyRestrictions applies and displays policy restrictions if any are specified
+func applyPolicyRestrictions(invitation *profile.InvitationToken, flags *invitationFlags) {
+	if !hasPolicyRestrictions(flags) {
+		return
 	}
 
-	// Print invitation details
-	printInvitationDetails(invitation)
+	// Apply policy restrictions
+	invitation.PolicyRestrictions = &profile.BasicPolicyRestrictions{
+		TemplateWhitelist: flags.templateWhitelist,
+		TemplateBlacklist: flags.templateBlacklist,
+		MaxInstanceTypes:  flags.maxInstanceTypes,
+		ForbiddenRegions:  flags.forbiddenRegions,
+		MaxHourlyCost:     flags.maxHourlyCost,
+		MaxDailyBudget:    flags.maxDailyBudget,
+	}
+
+	// Display applied restrictions
+	displayPolicyRestrictions(flags)
+}
+
+// hasPolicyRestrictions checks if any policy restrictions are specified
+func hasPolicyRestrictions(flags *invitationFlags) bool {
+	return len(flags.templateWhitelist) > 0 || len(flags.templateBlacklist) > 0 ||
+		len(flags.maxInstanceTypes) > 0 || len(flags.forbiddenRegions) > 0 ||
+		flags.maxHourlyCost > 0 || flags.maxDailyBudget > 0
+}
+
+// displayPolicyRestrictions shows the applied policy restrictions
+func displayPolicyRestrictions(flags *invitationFlags) {
+	fmt.Println(color.YellowString("Policy restrictions applied:"))
+
+	if len(flags.templateWhitelist) > 0 {
+		fmt.Printf("  - Allowed templates: %v\n", flags.templateWhitelist)
+	}
+	if len(flags.templateBlacklist) > 0 {
+		fmt.Printf("  - Forbidden templates: %v\n", flags.templateBlacklist)
+	}
+	if len(flags.maxInstanceTypes) > 0 {
+		fmt.Printf("  - Max instance types: %v\n", flags.maxInstanceTypes)
+	}
+	if len(flags.forbiddenRegions) > 0 {
+		fmt.Printf("  - Forbidden regions: %v\n", flags.forbiddenRegions)
+	}
+	if flags.maxHourlyCost > 0 {
+		fmt.Printf("  - Max hourly cost: $%.2f\n", flags.maxHourlyCost)
+	}
+	if flags.maxDailyBudget > 0 {
+		fmt.Printf("  - Max daily budget: $%.2f\n", flags.maxDailyBudget)
+	}
+
+	fmt.Println()
 }
 
 // parseInvitationType parses and validates invitation type

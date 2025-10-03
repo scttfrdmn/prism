@@ -113,7 +113,7 @@ func (cws *CloudWorkstationService) Execute(args []string, r <-chan svc.ChangeRe
 		default:
 			// Health check - verify daemon is still running
 			if daemonCmd.ProcessState != nil && daemonCmd.ProcessState.Exited() {
-				elog.Error(1, fmt.Sprintf("%s daemon process exited unexpectedly with code %d", 
+				elog.Error(1, fmt.Sprintf("%s daemon process exited unexpectedly with code %d",
 					displayName, daemonCmd.ProcessState.ExitCode()))
 				changes <- svc.Status{State: svc.Stopped}
 				return
@@ -162,7 +162,7 @@ func (cws *CloudWorkstationService) startDaemon() (*exec.Cmd, error) {
 
 	// Verify process is still running
 	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-		return nil, fmt.Errorf("daemon process exited immediately with code %d", 
+		return nil, fmt.Errorf("daemon process exited immediately with code %d",
 			cmd.ProcessState.ExitCode())
 	}
 
@@ -440,13 +440,13 @@ func serviceStatus() error {
 	fmt.Printf("  Service Name: %s\n", serviceName)
 	fmt.Printf("  Display Name: %s\n", displayName)
 	fmt.Printf("  State: %s\n", stateStr)
-	
+
 	if config.StartType == mgr.StartAutomatic {
 		fmt.Printf("  Start Type: Automatic\n")
 	} else {
 		fmt.Printf("  Start Type: %d\n", config.StartType)
 	}
-	
+
 	fmt.Printf("  Process ID: %d\n", status.ProcessId)
 	fmt.Printf("  Config Path: %s\n", getConfigPath())
 	fmt.Printf("  Log Path: %s\n", getLogPath())
@@ -475,11 +475,6 @@ func showUsage() {
 }
 
 func main() {
-	// Set up signal handling for graceful shutdown in console mode
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-	// Parse command line arguments
 	if len(os.Args) < 2 {
 		// No arguments provided - run as service
 		if err := runService(); err != nil {
@@ -489,67 +484,66 @@ func main() {
 	}
 
 	command := os.Args[1]
+	if err := executeCommand(command); err != nil {
+		log.Fatalf("Command failed: %v", err)
+	}
+}
+
+func executeCommand(command string) error {
+	commandHandlers := map[string]func() error{
+		"install":   installService,
+		"remove":    removeService,
+		"uninstall": removeService,
+		"start":     startService,
+		"stop":      stopService,
+		"restart":   handleRestart,
+		"status":    serviceStatus,
+		"debug":     handleDebugMode,
+	}
+
+	if handler, exists := commandHandlers[command]; exists {
+		return handler()
+	}
+
 	switch command {
-	case "install":
-		if err := installService(); err != nil {
-			log.Fatalf("Failed to install service: %v", err)
-		}
-
-	case "remove", "uninstall":
-		if err := removeService(); err != nil {
-			log.Fatalf("Failed to remove service: %v", err)
-		}
-
-	case "start":
-		if err := startService(); err != nil {
-			log.Fatalf("Failed to start service: %v", err)
-		}
-
-	case "stop":
-		if err := stopService(); err != nil {
-			log.Fatalf("Failed to stop service: %v", err)
-		}
-
-	case "restart":
-		fmt.Println("Stopping service...")
-		if err := stopService(); err != nil {
-			log.Printf("Warning: Failed to stop service: %v", err)
-		}
-		time.Sleep(2 * time.Second)
-		fmt.Println("Starting service...")
-		if err := startService(); err != nil {
-			log.Fatalf("Failed to start service: %v", err)
-		}
-
-	case "status":
-		if err := serviceStatus(); err != nil {
-			log.Fatalf("Failed to get service status: %v", err)
-		}
-
-	case "debug":
-		// Run in console mode for debugging
-		fmt.Println("Running CloudWorkstation service in console mode...")
-		fmt.Println("Press Ctrl+C to stop")
-		
-		service := &CloudWorkstationService{}
-		service.ctx, service.cancel = context.WithCancel(context.Background())
-		
-		go func() {
-			<-sigCh
-			fmt.Println("\nShutdown signal received, stopping...")
-			service.cancel()
-		}()
-		
-		if err := debug.Run(serviceName, service); err != nil {
-			log.Fatalf("Debug run failed: %v", err)
-		}
-
 	case "help", "--help", "-h":
 		showUsage()
-
+		return nil
 	default:
 		fmt.Printf("Unknown command: %s\n\n", command)
 		showUsage()
 		os.Exit(1)
+		return nil
 	}
+}
+
+func handleRestart() error {
+	fmt.Println("Stopping service...")
+	if err := stopService(); err != nil {
+		log.Printf("Warning: Failed to stop service: %v", err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	fmt.Println("Starting service...")
+	return startService()
+}
+
+func handleDebugMode() error {
+	fmt.Println("Running CloudWorkstation service in console mode...")
+	fmt.Println("Press Ctrl+C to stop")
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	service := &CloudWorkstationService{}
+	service.ctx, service.cancel = context.WithCancel(context.Background())
+
+	go func() {
+		<-sigCh
+		fmt.Println("\nShutdown signal received, stopping...")
+		service.cancel()
+	}()
+
+	return debug.Run(serviceName, service)
 }

@@ -40,14 +40,37 @@ func TestNewSecurityMonitor(t *testing.T) {
 
 // TestSecurityMetricsUpdate validates metrics updating
 func TestSecurityMetricsUpdate(t *testing.T) {
+	// Setup test monitor
+	monitor := setupSecurityMonitor(t)
+	defer func() { _ = monitor.auditLogger.Close() }()
+
+	// Create and process test events
+	events := createTestSecurityEvents()
+	monitor.updateMetrics(events)
+
+	// Validate all metrics categories
+	validateBasicMetrics(t, monitor)
+	validateEventTypeBreakdown(t, monitor)
+	validateDeviceActivity(t, monitor)
+	validateKeychainProviderStats(t, monitor)
+	validateCriticalEventTracking(t, monitor)
+	validateSecurityScoring(t, monitor)
+
+	t.Log("✅ Security metrics update validated")
+}
+
+// setupSecurityMonitor creates and configures a security monitor for testing
+func setupSecurityMonitor(t *testing.T) *SecurityMonitor {
 	monitor, err := NewSecurityMonitor()
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	return monitor
+}
 
-	// Create test events
-	events := []SecurityEvent{
+// createTestSecurityEvents generates a comprehensive set of test events
+func createTestSecurityEvents() []SecurityEvent {
+	return []SecurityEvent{
 		{
 			EventType: "device_registration",
 			Success:   true,
@@ -77,11 +100,10 @@ func TestSecurityMetricsUpdate(t *testing.T) {
 			},
 		},
 	}
+}
 
-	// Update metrics
-	monitor.updateMetrics(events)
-
-	// Validate metrics
+// validateBasicMetrics checks fundamental metric counters
+func validateBasicMetrics(t *testing.T, monitor *SecurityMonitor) {
 	if monitor.metrics.TotalEvents != 4 {
 		t.Errorf("Expected 4 total events, got %d", monitor.metrics.TotalEvents)
 	}
@@ -101,8 +123,10 @@ func TestSecurityMetricsUpdate(t *testing.T) {
 	if monitor.metrics.DeviceRegistrations != 1 {
 		t.Errorf("Expected 1 device registration, got %d", monitor.metrics.DeviceRegistrations)
 	}
+}
 
-	// Check event type breakdown
+// validateEventTypeBreakdown checks event type categorization
+func validateEventTypeBreakdown(t *testing.T, monitor *SecurityMonitor) {
 	if monitor.metrics.EventTypeBreakdown["device_registration"] != 1 {
 		t.Error("Event type breakdown should track device_registration")
 	}
@@ -110,8 +134,10 @@ func TestSecurityMetricsUpdate(t *testing.T) {
 	if monitor.metrics.EventTypeBreakdown["tamper_detected"] != 1 {
 		t.Error("Event type breakdown should track tamper_detected")
 	}
+}
 
-	// Check device activity
+// validateDeviceActivity checks per-device activity tracking
+func validateDeviceActivity(t *testing.T, monitor *SecurityMonitor) {
 	if monitor.metrics.DeviceActivity["device1"] != 2 {
 		t.Error("Device activity should track device1 activity")
 	}
@@ -119,28 +145,31 @@ func TestSecurityMetricsUpdate(t *testing.T) {
 	if monitor.metrics.DeviceActivity["device2"] != 1 {
 		t.Error("Device activity should track device2 activity")
 	}
+}
 
-	// Check keychain provider stats
+// validateKeychainProviderStats checks keychain provider statistics
+func validateKeychainProviderStats(t *testing.T, monitor *SecurityMonitor) {
 	if monitor.metrics.KeychainProviderStats["macOS Keychain"] != 1 {
 		t.Error("Keychain provider stats should track macOS Keychain usage")
 	}
+}
 
-	// Check recent critical events
+// validateCriticalEventTracking checks critical event monitoring
+func validateCriticalEventTracking(t *testing.T, monitor *SecurityMonitor) {
 	if len(monitor.metrics.RecentCriticalEvents) != 1 {
 		t.Error("Should track recent critical events")
 	}
+}
 
-	// Check security score
+// validateSecurityScoring checks security score and threat level calculation
+func validateSecurityScoring(t *testing.T, monitor *SecurityMonitor) {
 	if monitor.metrics.SecurityScore < 0 || monitor.metrics.SecurityScore > 100 {
 		t.Errorf("Security score should be 0-100, got %d", monitor.metrics.SecurityScore)
 	}
 
-	// Check threat level
 	if monitor.metrics.ThreatLevel == "" {
 		t.Error("Threat level should not be empty")
 	}
-
-	t.Log("✅ Security metrics update validated")
 }
 
 // TestSecurityThreatAnalysis validates threat analysis and alerting

@@ -11,12 +11,57 @@ import (
 )
 
 func TestBatchInvitationImportExport(t *testing.T) {
+	batchManager := setupBatchInvitationTest(t)
+
+	t.Run("csv_import_and_validation", func(t *testing.T) {
+		testCSVImport(t, batchManager)
+	})
+
+	t.Run("batch_creation_process", func(t *testing.T) {
+		invitations := createTestInvitations(t, batchManager)
+		testBatchCreation(t, batchManager, invitations)
+	})
+
+	t.Run("csv_export_functionality", func(t *testing.T) {
+		invitations := createTestInvitations(t, batchManager)
+		results := batchManager.CreateBatchInvitations(invitations, "", "", 2)
+		testCSVExport(t, batchManager, results)
+	})
+
+	t.Run("file_based_operations", func(t *testing.T) {
+		testFileOperations(t, batchManager)
+	})
+}
+
+func TestBatchInvitationEdgeCases(t *testing.T) {
+	batchManager := setupBatchInvitationTest(t)
+
+	t.Run("minimal_csv_with_defaults", func(t *testing.T) {
+		testMinimalCSVDefaults(t, batchManager)
+	})
+
+	t.Run("invalid_csv_format_handling", func(t *testing.T) {
+		testInvalidCSVFormats(t, batchManager)
+	})
+
+	t.Run("case_insensitive_type_parsing", func(t *testing.T) {
+		testCaseInsensitiveTypes(t, batchManager)
+	})
+
+	t.Run("boolean_field_parsing_variations", func(t *testing.T) {
+		testBooleanFieldParsing(t, batchManager)
+	})
+}
+
+// Helper functions for batch invitation testing
+
+func setupBatchInvitationTest(t *testing.T) *profile.BatchInvitationManager {
 	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "cws-batch-invitation-test")
 	if err != nil {
 		t.Fatalf("Failed to create temporary directory: %v", err)
 	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
 
 	// Create config directory
 	configDir := filepath.Join(tempDir, ".cloudworkstation")
@@ -27,89 +72,98 @@ func TestBatchInvitationImportExport(t *testing.T) {
 	// Override home directory for testing
 	originalHome := os.Getenv("HOME")
 	_ = os.Setenv("HOME", tempDir)
-	defer func() { _ = os.Setenv("HOME", originalHome) }()
+	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
 
-	// Create a profile manager for testing
+	// Create managers
 	profileManager, err := profile.NewManagerEnhanced()
 	if err != nil {
 		t.Fatalf("Failed to create profile manager: %v", err)
 	}
 
-	// Create a secure invitation manager
 	secureManager, err := profile.NewSecureInvitationManager(profileManager)
 	if err != nil {
 		t.Fatalf("Failed to create secure invitation manager: %v", err)
 	}
 
-	// Create a batch invitation manager
-	batchManager := profile.NewBatchInvitationManager(secureManager)
+	return profile.NewBatchInvitationManager(secureManager)
+}
 
-	// Test CSV import
-	csvData := `Name,Type,ValidDays,CanInvite,Transferable,DeviceBound,MaxDevices
+func getTestCSVData() string {
+	return `Name,Type,ValidDays,CanInvite,Transferable,DeviceBound,MaxDevices
 Test User 1,read_only,30,no,no,yes,1
 Test User 2,read_write,60,no,no,yes,2
 Test Admin,admin,90,yes,no,yes,3`
+}
 
-	// Parse CSV
-	invitations, err := batchManager.ImportBatchInvitationsFromCSV(strings.NewReader(csvData), true)
+func createTestInvitations(t *testing.T, batchManager *profile.BatchInvitationManager) []*profile.BatchInvitation {
+	invitations, err := batchManager.ImportBatchInvitationsFromCSV(strings.NewReader(getTestCSVData()), true)
 	if err != nil {
 		t.Fatalf("Failed to import invitations from CSV: %v", err)
 	}
+	return invitations
+}
+
+func testCSVImport(t *testing.T, batchManager *profile.BatchInvitationManager) {
+	invitations := createTestInvitations(t, batchManager)
 
 	// Check imported invitations
 	if len(invitations) != 3 {
 		t.Errorf("Expected 3 invitations, got %d", len(invitations))
 	}
 
-	// Verify first invitation
-	if invitations[0].Name != "Test User 1" {
-		t.Errorf("Expected name to be 'Test User 1', got '%s'", invitations[0].Name)
-	}
-	if invitations[0].Type != profile.InvitationTypeReadOnly {
-		t.Errorf("Expected type to be read_only, got '%s'", invitations[0].Type)
-	}
-	if invitations[0].ValidDays != 30 {
-		t.Errorf("Expected valid days to be 30, got %d", invitations[0].ValidDays)
-	}
-	if invitations[0].CanInvite {
-		t.Errorf("Expected canInvite to be false")
-	}
-	if invitations[0].Transferable {
-		t.Errorf("Expected transferable to be false")
-	}
-	if !invitations[0].DeviceBound {
-		t.Errorf("Expected deviceBound to be true")
-	}
-	if invitations[0].MaxDevices != 1 {
-		t.Errorf("Expected maxDevices to be 1, got %d", invitations[0].MaxDevices)
+	// Test cases for invitation validation
+	testCases := []struct {
+		index        int
+		name         string
+		invType      profile.InvitationType
+		validDays    int
+		canInvite    bool
+		transferable bool
+		deviceBound  bool
+		maxDevices   int
+	}{
+		{0, "Test User 1", profile.InvitationTypeReadOnly, 30, false, false, true, 1},
+		{2, "Test Admin", profile.InvitationTypeAdmin, 90, true, false, true, 3},
 	}
 
-	// Verify admin invitation
-	if invitations[2].Name != "Test Admin" {
-		t.Errorf("Expected name to be 'Test Admin', got '%s'", invitations[2].Name)
+	for _, tc := range testCases {
+		inv := invitations[tc.index]
+		if inv.Name != tc.name {
+			t.Errorf("Expected name to be '%s', got '%s'", tc.name, inv.Name)
+		}
+		if inv.Type != tc.invType {
+			t.Errorf("Expected type to be %s, got %s", tc.invType, inv.Type)
+		}
+		if inv.ValidDays != tc.validDays {
+			t.Errorf("Expected valid days to be %d, got %d", tc.validDays, inv.ValidDays)
+		}
+		if inv.CanInvite != tc.canInvite {
+			t.Errorf("Expected canInvite to be %v, got %v", tc.canInvite, inv.CanInvite)
+		}
+		if inv.MaxDevices != tc.maxDevices {
+			t.Errorf("Expected maxDevices to be %d, got %d", tc.maxDevices, inv.MaxDevices)
+		}
 	}
-	if invitations[2].Type != profile.InvitationTypeAdmin {
-		t.Errorf("Expected type to be admin, got '%s'", invitations[2].Type)
-	}
-	if !invitations[2].CanInvite {
-		t.Errorf("Expected canInvite to be true for admin")
-	}
-	if invitations[2].MaxDevices != 3 {
-		t.Errorf("Expected maxDevices to be 3, got %d", invitations[2].MaxDevices)
-	}
+}
 
-	// Test batch creation
+func testBatchCreation(t *testing.T, batchManager *profile.BatchInvitationManager, invitations []*profile.BatchInvitation) {
 	results := batchManager.CreateBatchInvitations(invitations, "", "", 2)
 
 	// Check results
-	if results.TotalProcessed != 3 {
-		t.Errorf("Expected 3 processed invitations, got %d", results.TotalProcessed)
+	expectedCounts := map[string]int{
+		"total":      3,
+		"successful": 3,
+		"failed":     0,
 	}
-	if results.TotalFailed != 0 {
-		t.Errorf("Expected 0 failed invitations, got %d", results.TotalFailed)
+
+	if results.TotalProcessed != expectedCounts["total"] {
+		t.Errorf("Expected %d processed invitations, got %d", expectedCounts["total"], results.TotalProcessed)
 	}
-	if results.TotalSuccessful != 3 {
-		t.Errorf("Expected 3 successful invitations, got %d", results.TotalSuccessful)
+	if results.TotalSuccessful != expectedCounts["successful"] {
+		t.Errorf("Expected %d successful invitations, got %d", expectedCounts["successful"], results.TotalSuccessful)
+	}
+	if results.TotalFailed != expectedCounts["failed"] {
+		t.Errorf("Expected %d failed invitations, got %d", expectedCounts["failed"], results.TotalFailed)
 	}
 
 	// Check successful invitations
@@ -121,32 +175,40 @@ Test Admin,admin,90,yes,no,yes,3`
 			t.Errorf("Expected encodedData to be set for successful invitation")
 		}
 	}
+}
 
-	// Test CSV export
+func testCSVExport(t *testing.T, batchManager *profile.BatchInvitationManager, results *profile.BatchInvitationResult) {
 	var buf bytes.Buffer
-	err = batchManager.ExportBatchInvitationsToCSV(&buf, results, false)
+	err := batchManager.ExportBatchInvitationsToCSV(&buf, results, false)
 	if err != nil {
 		t.Fatalf("Failed to export invitations to CSV: %v", err)
 	}
 
-	// Check exported CSV
 	csvOutput := buf.String()
-	if !strings.Contains(csvOutput, "Name,Type,Token,Valid Days,Can Invite,Transferable,Device Bound,Max Devices,Status,Error") {
-		t.Errorf("Expected CSV header in output")
+	expectedContent := []string{
+		"Name,Type,Token,Valid Days,Can Invite,Transferable,Device Bound,Max Devices,Status,Error",
+		"Test User 1,read_only,",
+		"Test Admin,admin,",
+		"Success",
 	}
-	if !strings.Contains(csvOutput, "Test User 1,read_only,") {
-		t.Errorf("Expected Test User 1 in CSV output")
+
+	for _, expected := range expectedContent {
+		if !strings.Contains(csvOutput, expected) {
+			t.Errorf("Expected '%s' in CSV output", expected)
+		}
 	}
-	if !strings.Contains(csvOutput, "Test Admin,admin,") {
-		t.Errorf("Expected Test Admin in CSV output")
+}
+
+func testFileOperations(t *testing.T, batchManager *profile.BatchInvitationManager) {
+	tempDir, err := os.MkdirTemp("", "cws-file-ops-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
 	}
-	if !strings.Contains(csvOutput, "Success") {
-		t.Errorf("Expected Success status in CSV output")
-	}
+	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
 
 	// Test file-based import/export
 	csvFilePath := filepath.Join(tempDir, "test-invitations.csv")
-	if err := os.WriteFile(csvFilePath, []byte(csvData), 0644); err != nil {
+	if err := os.WriteFile(csvFilePath, []byte(getTestCSVData()), 0644); err != nil {
 		t.Fatalf("Failed to write test CSV file: %v", err)
 	}
 
@@ -173,41 +235,7 @@ Test Admin,admin,90,yes,no,yes,3`
 	}
 }
 
-func TestBatchInvitationEdgeCases(t *testing.T) {
-	// Create a temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-batch-invitation-edge-test")
-	if err != nil {
-		t.Fatalf("Failed to create temporary directory: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	// Create config directory
-	configDir := filepath.Join(tempDir, ".cloudworkstation")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		t.Fatalf("Failed to create config directory: %v", err)
-	}
-
-	// Override home directory for testing
-	originalHome := os.Getenv("HOME")
-	_ = os.Setenv("HOME", tempDir)
-	defer func() { _ = os.Setenv("HOME", originalHome) }()
-
-	// Create a profile manager for testing
-	profileManager, err := profile.NewManagerEnhanced()
-	if err != nil {
-		t.Fatalf("Failed to create profile manager: %v", err)
-	}
-
-	// Create a secure invitation manager
-	secureManager, err := profile.NewSecureInvitationManager(profileManager)
-	if err != nil {
-		t.Fatalf("Failed to create secure invitation manager: %v", err)
-	}
-
-	// Create a batch invitation manager
-	batchManager := profile.NewBatchInvitationManager(secureManager)
-
-	// Test with minimal CSV (just name and type)
+func testMinimalCSVDefaults(t *testing.T, batchManager *profile.BatchInvitationManager) {
 	minimalCSV := `Test User 1,read_only
 Test User 2,read_write
 Test Admin,admin`
@@ -221,47 +249,57 @@ Test Admin,admin`
 		t.Errorf("Expected 3 invitations from minimal CSV, got %d", len(minimalInvitations))
 	}
 
-	// Check defaults are applied
-	if minimalInvitations[0].ValidDays != 30 {
-		t.Errorf("Expected default ValidDays to be 30, got %d", minimalInvitations[0].ValidDays)
-	}
-	if minimalInvitations[0].CanInvite {
-		t.Errorf("Expected default CanInvite for read_only to be false")
-	}
-	if !minimalInvitations[0].DeviceBound {
-		t.Errorf("Expected default DeviceBound to be true")
-	}
-	if minimalInvitations[0].MaxDevices != 1 {
-		t.Errorf("Expected default MaxDevices to be 1, got %d", minimalInvitations[0].MaxDevices)
+	// Test default values using table-driven approach
+	defaultTests := []struct {
+		index       int
+		validDays   int
+		canInvite   bool
+		deviceBound bool
+		maxDevices  int
+	}{
+		{0, 30, false, true, 1}, // read_only defaults
+		{2, 30, true, true, 1},  // admin defaults
 	}
 
-	// Check admin defaults
-	if !minimalInvitations[2].CanInvite {
-		t.Errorf("Expected default CanInvite for admin to be true")
+	for _, test := range defaultTests {
+		inv := minimalInvitations[test.index]
+		if inv.ValidDays != test.validDays {
+			t.Errorf("Expected ValidDays to be %d, got %d", test.validDays, inv.ValidDays)
+		}
+		if inv.CanInvite != test.canInvite {
+			t.Errorf("Expected CanInvite to be %v, got %v", test.canInvite, inv.CanInvite)
+		}
+		if inv.DeviceBound != test.deviceBound {
+			t.Errorf("Expected DeviceBound to be %v, got %v", test.deviceBound, inv.DeviceBound)
+		}
+		if inv.MaxDevices != test.maxDevices {
+			t.Errorf("Expected MaxDevices to be %d, got %d", test.maxDevices, inv.MaxDevices)
+		}
+	}
+}
+
+func testInvalidCSVFormats(t *testing.T, batchManager *profile.BatchInvitationManager) {
+	invalidTests := []struct {
+		name    string
+		csvData string
+		desc    string
+	}{
+		{"header_only", `Name`, "invalid CSV format"},
+		{"empty_name", `,read_only`, "empty name"},
+		{"invalid_type", `Test User,invalid_type`, "invalid invitation type"},
 	}
 
-	// Test invalid CSV format
-	invalidCSV := `Name`
-	_, err = batchManager.ImportBatchInvitationsFromCSV(strings.NewReader(invalidCSV), false)
-	if err == nil {
-		t.Errorf("Expected error for invalid CSV format")
+	for _, test := range invalidTests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := batchManager.ImportBatchInvitationsFromCSV(strings.NewReader(test.csvData), false)
+			if err == nil {
+				t.Errorf("Expected error for %s", test.desc)
+			}
+		})
 	}
+}
 
-	// Test empty name
-	emptyNameCSV := `,read_only`
-	_, err = batchManager.ImportBatchInvitationsFromCSV(strings.NewReader(emptyNameCSV), false)
-	if err == nil {
-		t.Errorf("Expected error for empty name")
-	}
-
-	// Test invalid type
-	invalidTypeCSV := `Test User,invalid_type`
-	_, err = batchManager.ImportBatchInvitationsFromCSV(strings.NewReader(invalidTypeCSV), false)
-	if err == nil {
-		t.Errorf("Expected error for invalid invitation type")
-	}
-
-	// Test case-insensitive type parsing
+func testCaseInsensitiveTypes(t *testing.T, batchManager *profile.BatchInvitationManager) {
 	caseInsensitiveCSV := `Test User 1,READ_ONLY
 Test User 2,ReadWrite
 Test Admin,Admin`
@@ -275,19 +313,21 @@ Test Admin,Admin`
 		t.Errorf("Expected 3 invitations from case-insensitive CSV, got %d", len(caseInvitations))
 	}
 
-	if caseInvitations[0].Type != profile.InvitationTypeReadOnly {
-		t.Errorf("Expected type to be read_only for case-insensitive 'READ_ONLY'")
+	// Test case-insensitive type mapping
+	expectedTypes := []profile.InvitationType{
+		profile.InvitationTypeReadOnly,
+		profile.InvitationTypeReadWrite,
+		profile.InvitationTypeAdmin,
 	}
 
-	if caseInvitations[1].Type != profile.InvitationTypeReadWrite {
-		t.Errorf("Expected type to be read_write for case-insensitive 'ReadWrite'")
+	for i, expectedType := range expectedTypes {
+		if caseInvitations[i].Type != expectedType {
+			t.Errorf("Expected type to be %s for index %d, got %s", expectedType, i, caseInvitations[i].Type)
+		}
 	}
+}
 
-	if caseInvitations[2].Type != profile.InvitationTypeAdmin {
-		t.Errorf("Expected type to be admin for case-insensitive 'Admin'")
-	}
-
-	// Test boolean field parsing
+func testBooleanFieldParsing(t *testing.T, batchManager *profile.BatchInvitationManager) {
 	boolCSV := `Test User 1,read_only,30,true,yes,y,1
 Test User 2,read_write,60,false,no,n,2
 Test User 3,read_only,90,0,1,True,3`
@@ -297,33 +337,28 @@ Test User 3,read_only,90,0,1,True,3`
 		t.Fatalf("Failed to import boolean invitations from CSV: %v", err)
 	}
 
-	if !boolInvitations[0].CanInvite {
-		t.Errorf("Expected CanInvite to be true for 'true'")
-	}
-	if !boolInvitations[0].Transferable {
-		t.Errorf("Expected Transferable to be true for 'yes'")
-	}
-	if !boolInvitations[0].DeviceBound {
-		t.Errorf("Expected DeviceBound to be true for 'y'")
-	}
-
-	if boolInvitations[1].CanInvite {
-		t.Errorf("Expected CanInvite to be false for 'false'")
-	}
-	if boolInvitations[1].Transferable {
-		t.Errorf("Expected Transferable to be false for 'no'")
-	}
-	if boolInvitations[1].DeviceBound {
-		t.Errorf("Expected DeviceBound to be false for 'n'")
+	// Test boolean parsing with table-driven tests
+	boolTests := []struct {
+		index        int
+		canInvite    bool
+		transferable bool
+		deviceBound  bool
+	}{
+		{0, true, true, true},    // true, yes, y
+		{1, false, false, false}, // false, no, n
+		{2, false, true, true},   // 0, 1, True
 	}
 
-	if boolInvitations[2].CanInvite {
-		t.Errorf("Expected CanInvite to be false for '0'")
-	}
-	if !boolInvitations[2].Transferable {
-		t.Errorf("Expected Transferable to be true for '1'")
-	}
-	if !boolInvitations[2].DeviceBound {
-		t.Errorf("Expected DeviceBound to be true for 'True'")
+	for _, test := range boolTests {
+		inv := boolInvitations[test.index]
+		if inv.CanInvite != test.canInvite {
+			t.Errorf("Expected CanInvite to be %v for index %d, got %v", test.canInvite, test.index, inv.CanInvite)
+		}
+		if inv.Transferable != test.transferable {
+			t.Errorf("Expected Transferable to be %v for index %d, got %v", test.transferable, test.index, inv.Transferable)
+		}
+		if inv.DeviceBound != test.deviceBound {
+			t.Errorf("Expected DeviceBound to be %v for index %d, got %v", test.deviceBound, test.index, inv.DeviceBound)
+		}
 	}
 }

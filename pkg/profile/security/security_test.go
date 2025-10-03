@@ -162,7 +162,19 @@ func TestKeychain(t *testing.T) {
 
 // TestRegistry tests the registry client with local mode
 func TestRegistry(t *testing.T) {
-	// Create a registry client in local mode
+	registry := setupRegistryClient(t)
+
+	invitationToken := "inv-test123"
+	deviceID := "device-test456"
+	deviceID2 := "device-test789"
+
+	testDeviceRegistrationAndValidation(t, registry, invitationToken, deviceID)
+	testDeviceListingAndRetrieval(t, registry, invitationToken, deviceID)
+	testDeviceRevocation(t, registry, invitationToken, deviceID)
+	testInvitationRevocation(t, registry, invitationToken, deviceID2)
+}
+
+func setupRegistryClient(t *testing.T) security.RegistryClient {
 	config := security.S3RegistryConfig{
 		BucketName: "test-bucket",
 		Region:     "us-west-2",
@@ -174,12 +186,12 @@ func TestRegistry(t *testing.T) {
 		t.Fatalf("Failed to create registry client: %v", err)
 	}
 
-	// Test data
-	invitationToken := "inv-test123"
-	deviceID := "device-test456"
+	return registry
+}
 
+func testDeviceRegistrationAndValidation(t *testing.T, registry security.RegistryClient, invitationToken, deviceID string) {
 	// Register a device
-	err = registry.RegisterDevice(invitationToken, deviceID)
+	err := registry.RegisterDevice(invitationToken, deviceID)
 	if err != nil {
 		t.Fatalf("Failed to register device: %v", err)
 	}
@@ -193,8 +205,9 @@ func TestRegistry(t *testing.T) {
 	if !valid {
 		t.Errorf("Device should be valid")
 	}
+}
 
-	// Get devices
+func testDeviceListingAndRetrieval(t *testing.T, registry security.RegistryClient, invitationToken, deviceID string) {
 	devices, err := registry.GetInvitationDevices(invitationToken)
 	if err != nil {
 		t.Fatalf("Failed to get invitation devices: %v", err)
@@ -204,26 +217,29 @@ func TestRegistry(t *testing.T) {
 		t.Errorf("Expected at least one device")
 	}
 
-	foundDevice := false
-	for _, device := range devices {
-		if id, ok := device["device_id"]; ok && id == deviceID {
-			foundDevice = true
-			break
-		}
-	}
-
-	if !foundDevice {
+	if !findDeviceInList(devices, deviceID) {
 		t.Errorf("Registered device not found in devices list")
 	}
+}
 
+func findDeviceInList(devices []map[string]interface{}, deviceID string) bool {
+	for _, device := range devices {
+		if id, ok := device["device_id"]; ok && id == deviceID {
+			return true
+		}
+	}
+	return false
+}
+
+func testDeviceRevocation(t *testing.T, registry security.RegistryClient, invitationToken, deviceID string) {
 	// Revoke device
-	err = registry.RevokeDevice(invitationToken, deviceID)
+	err := registry.RevokeDevice(invitationToken, deviceID)
 	if err != nil {
 		t.Fatalf("Failed to revoke device: %v", err)
 	}
 
 	// Validate revoked device
-	valid, err = registry.ValidateDevice(invitationToken, deviceID)
+	valid, err := registry.ValidateDevice(invitationToken, deviceID)
 	if err != nil {
 		t.Fatalf("Failed to validate revoked device: %v", err)
 	}
@@ -231,10 +247,11 @@ func TestRegistry(t *testing.T) {
 	if valid {
 		t.Errorf("Revoked device should not be valid")
 	}
+}
 
+func testInvitationRevocation(t *testing.T, registry security.RegistryClient, invitationToken, deviceID2 string) {
 	// Register another device
-	deviceID2 := "device-test789"
-	err = registry.RegisterDevice(invitationToken, deviceID2)
+	err := registry.RegisterDevice(invitationToken, deviceID2)
 	if err != nil {
 		t.Fatalf("Failed to register second device: %v", err)
 	}
@@ -246,7 +263,7 @@ func TestRegistry(t *testing.T) {
 	}
 
 	// Validate after revocation
-	valid, err = registry.ValidateDevice(invitationToken, deviceID2)
+	valid, err := registry.ValidateDevice(invitationToken, deviceID2)
 	if err != nil {
 		t.Fatalf("Failed to validate after revocation: %v", err)
 	}

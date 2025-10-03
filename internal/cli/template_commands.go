@@ -817,97 +817,173 @@ func (tc *TemplateCommands) templatesInstall(args []string) error {
 
 // validateTemplates handles template validation commands
 func (tc *TemplateCommands) validateTemplates(args []string) error {
-	// Parse validation options
-	var verbose bool
-	var strict bool
-	var templateName string
+	// Parse command line options
+	options := tc.parseValidationOptions(args)
+
+	// Setup validation infrastructure
+	validator, err := tc.setupTemplateValidator()
+	if err != nil {
+		return err
+	}
+
+	// Execute validation based on target scope
+	if options.TemplateName != "" {
+		return tc.validateSingleTemplate(validator, options)
+	}
+	return tc.validateAllTemplates(validator, options)
+}
+
+// validationOptions holds parsed command line options for template validation
+type validationOptions struct {
+	Verbose      bool
+	Strict       bool
+	TemplateName string
+}
+
+// parseValidationOptions parses command line arguments into validation options
+func (tc *TemplateCommands) parseValidationOptions(args []string) *validationOptions {
+	options := &validationOptions{}
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch arg {
 		case "--verbose", "-v":
-			verbose = true
+			options.Verbose = true
 		case "--strict":
-			strict = true
+			options.Strict = true
 		default:
 			if !strings.HasPrefix(arg, "-") {
-				templateName = arg
+				options.TemplateName = arg
 			}
 		}
 	}
 
-	// Load template registry
+	return options
+}
+
+// setupTemplateValidator initializes the template registry and validator
+func (tc *TemplateCommands) setupTemplateValidator() (*templates.ComprehensiveValidator, error) {
 	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 	if err := registry.ScanTemplates(); err != nil {
-		return fmt.Errorf("failed to scan templates: %w", err)
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
 	}
 
-	// Create validator
 	validator := templates.NewComprehensiveValidator(registry)
+	return validator, nil
+}
 
-	// Validate specific template or all
-	if templateName != "" {
-		// Validate specific template
-		fmt.Printf("🔍 Validating template: %s\n\n", templateName)
+// validateSingleTemplate validates a specific template by name
+func (tc *TemplateCommands) validateSingleTemplate(validator *templates.ComprehensiveValidator, options *validationOptions) error {
+	fmt.Printf("🔍 Validating template: %s\n\n", options.TemplateName)
 
-		template, exists := registry.Templates[templateName]
-		if !exists {
-			return fmt.Errorf("template not found: %s", templateName)
-		}
+	// Find and validate the template
+	template, err := tc.findTemplate(validator, options.TemplateName)
+	if err != nil {
+		return err
+	}
 
-		report := validator.ValidateTemplate(template)
-		tc.displayValidationReport(report, verbose, strict)
+	report := validator.ValidateTemplate(template)
+	tc.displayValidationReport(report, options.Verbose, options.Strict)
 
-		if !report.Valid {
-			return fmt.Errorf("template validation failed")
-		}
-	} else {
-		// Validate all templates
-		fmt.Println("🔍 Validating all templates...")
-		fmt.Println()
-
-		reports := validator.ValidateAll()
-
-		totalErrors := 0
-		totalWarnings := 0
-		failedTemplates := []string{}
-
-		for name, report := range reports {
-			if verbose || !report.Valid {
-				fmt.Printf("📋 %s:\n", name)
-				tc.displayValidationReport(report, verbose, strict)
-			}
-
-			totalErrors += report.ErrorCount
-			totalWarnings += report.WarningCount
-
-			if !report.Valid {
-				failedTemplates = append(failedTemplates, name)
-			}
-		}
-
-		// Summary
-		fmt.Println("═══════════════════════════════════════")
-		fmt.Printf("📊 Validation Summary:\n")
-		fmt.Printf("   Templates validated: %d\n", len(reports))
-		fmt.Printf("   Total errors: %d\n", totalErrors)
-		fmt.Printf("   Total warnings: %d\n", totalWarnings)
-
-		if len(failedTemplates) > 0 {
-			fmt.Printf("\n❌ Failed templates:\n")
-			for _, name := range failedTemplates {
-				fmt.Printf("   • %s\n", name)
-			}
-
-			if strict {
-				return fmt.Errorf("%d templates failed validation", len(failedTemplates))
-			}
-		} else {
-			fmt.Printf("\n✅ All templates are valid!\n")
-		}
+	if !report.Valid {
+		return fmt.Errorf("template validation failed")
 	}
 
 	return nil
+}
+
+// findTemplate locates a template in the registry by name
+func (tc *TemplateCommands) findTemplate(validator *templates.ComprehensiveValidator, templateName string) (*templates.Template, error) {
+	// Access registry through validator (assuming it has a GetRegistry method or similar)
+	// For now, we'll recreate the registry lookup
+	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
+	if err := registry.ScanTemplates(); err != nil {
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
+	}
+
+	template, exists := registry.Templates[templateName]
+	if !exists {
+		return nil, fmt.Errorf("template not found: %s", templateName)
+	}
+
+	return template, nil
+}
+
+// validateAllTemplates validates all templates in the registry
+func (tc *TemplateCommands) validateAllTemplates(validator *templates.ComprehensiveValidator, options *validationOptions) error {
+	fmt.Println("🔍 Validating all templates...")
+	fmt.Println()
+
+	reports := validator.ValidateAll()
+
+	// Process validation results
+	summary := tc.processValidationResults(reports, options)
+
+	// Display summary and handle failures
+	tc.displayValidationSummary(summary, options)
+
+	if len(summary.FailedTemplates) > 0 && options.Strict {
+		return fmt.Errorf("%d templates failed validation", len(summary.FailedTemplates))
+	}
+
+	return nil
+}
+
+// validationSummary holds aggregated validation results
+type validationSummary struct {
+	TotalTemplates  int
+	TotalErrors     int
+	TotalWarnings   int
+	FailedTemplates []string
+}
+
+// processValidationResults processes and aggregates validation reports
+func (tc *TemplateCommands) processValidationResults(reports map[string]*templates.ValidationReport, options *validationOptions) *validationSummary {
+	summary := &validationSummary{
+		TotalTemplates:  len(reports),
+		FailedTemplates: []string{},
+	}
+
+	for name, report := range reports {
+		// Display individual report if verbose or failed
+		if options.Verbose || !report.Valid {
+			fmt.Printf("📋 %s:\n", name)
+			tc.displayValidationReport(report, options.Verbose, options.Strict)
+		}
+
+		// Aggregate statistics
+		summary.TotalErrors += report.ErrorCount
+		summary.TotalWarnings += report.WarningCount
+
+		if !report.Valid {
+			summary.FailedTemplates = append(summary.FailedTemplates, name)
+		}
+	}
+
+	return summary
+}
+
+// displayValidationSummary shows the overall validation summary
+func (tc *TemplateCommands) displayValidationSummary(summary *validationSummary, options *validationOptions) {
+	fmt.Println("═══════════════════════════════════════")
+	fmt.Printf("📊 Validation Summary:\n")
+	fmt.Printf("   Templates validated: %d\n", summary.TotalTemplates)
+	fmt.Printf("   Total errors: %d\n", summary.TotalErrors)
+	fmt.Printf("   Total warnings: %d\n", summary.TotalWarnings)
+
+	if len(summary.FailedTemplates) > 0 {
+		tc.displayFailedTemplates(summary.FailedTemplates)
+	} else {
+		fmt.Printf("\n✅ All templates are valid!\n")
+	}
+}
+
+// displayFailedTemplates shows the list of failed templates
+func (tc *TemplateCommands) displayFailedTemplates(failedTemplates []string) {
+	fmt.Printf("\n❌ Failed templates:\n")
+	for _, name := range failedTemplates {
+		fmt.Printf("   • %s\n", name)
+	}
 }
 
 // displayValidationReport shows validation results
@@ -1398,39 +1474,75 @@ func (tc *TemplateCommands) displayDependencyChains(template *templates.Template
 func (tc *TemplateCommands) displayValidationStatus(template *templates.Template) {
 	fmt.Printf("✅ **Validation Status**:\n")
 
-	// Basic template validation
+	// Collect all validation results
+	validationResults := tc.collectValidationResults(template)
+
+	// Display results
+	for _, result := range validationResults {
+		fmt.Printf("   • %s\n", result)
+	}
+
+	// Display deployment readiness assessment
+	tc.displayDeploymentReadiness(validationResults)
+
+	fmt.Println()
+}
+
+// collectValidationResults performs all template validation checks
+func (tc *TemplateCommands) collectValidationResults(template *templates.Template) []string {
 	validationResults := []string{}
 
 	// Check required fields
+	validationResults = append(validationResults, tc.validateRequiredFields(template)...)
+
+	// Package manager validation
+	validationResults = append(validationResults, tc.validatePackageManager(template))
+
+	// Inheritance validation
+	validationResults = append(validationResults, tc.validateInheritance(template)...)
+
+	// User validation
+	validationResults = append(validationResults, tc.validateUsers(template))
+
+	return validationResults
+}
+
+// validateRequiredFields checks required template fields
+func (tc *TemplateCommands) validateRequiredFields(template *templates.Template) []string {
+	results := []string{}
+
 	if template.Name != "" {
-		validationResults = append(validationResults, "✅ Template name valid")
+		results = append(results, "✅ Template name valid")
 	} else {
-		validationResults = append(validationResults, "❌ Template name missing")
+		results = append(results, "❌ Template name missing")
 	}
 
 	if template.Description != "" {
-		validationResults = append(validationResults, "✅ Description provided")
+		results = append(results, "✅ Description provided")
 	} else {
-		validationResults = append(validationResults, "⚠️ Description missing")
+		results = append(results, "⚠️ Description missing")
 	}
 
-	// Package manager validation
+	return results
+}
+
+// validatePackageManager checks package manager validity
+func (tc *TemplateCommands) validatePackageManager(template *templates.Template) string {
 	validPackageManagers := []string{"apt", "dnf", "conda", "yum", "apk"}
-	packageManagerValid := false
+
 	for _, pm := range validPackageManagers {
 		if template.PackageManager == pm {
-			packageManagerValid = true
-			break
+			return "✅ Package manager supported"
 		}
 	}
 
-	if packageManagerValid {
-		validationResults = append(validationResults, "✅ Package manager supported")
-	} else {
-		validationResults = append(validationResults, "❌ Package manager unsupported")
-	}
+	return "❌ Package manager unsupported"
+}
 
-	// Inheritance validation
+// validateInheritance checks template inheritance chain
+func (tc *TemplateCommands) validateInheritance(template *templates.Template) []string {
+	results := []string{}
+
 	if len(template.Inherits) > 0 {
 		inheritanceValid := true
 		for _, parent := range template.Inherits {
@@ -1442,34 +1554,26 @@ func (tc *TemplateCommands) displayValidationStatus(template *templates.Template
 		}
 
 		if inheritanceValid {
-			validationResults = append(validationResults, "✅ Inheritance chain valid")
+			results = append(results, "✅ Inheritance chain valid")
 		} else {
-			validationResults = append(validationResults, "❌ Inheritance chain broken")
+			results = append(results, "❌ Inheritance chain broken")
 		}
 	}
 
-	// User validation
+	return results
+}
+
+// validateUsers checks user account configuration
+func (tc *TemplateCommands) validateUsers(template *templates.Template) string {
 	if len(template.Users) > 0 {
-		validationResults = append(validationResults, "✅ User accounts configured")
-	} else {
-		validationResults = append(validationResults, "⚠️ No user accounts defined")
+		return "✅ User accounts configured"
 	}
+	return "⚠️ No user accounts defined"
+}
 
-	// Display results
-	for _, result := range validationResults {
-		fmt.Printf("   • %s\n", result)
-	}
-
-	// Deployment readiness assessment
-	errorCount := 0
-	warningCount := 0
-	for _, result := range validationResults {
-		if strings.Contains(result, "❌") {
-			errorCount++
-		} else if strings.Contains(result, "⚠️") {
-			warningCount++
-		}
-	}
+// displayDeploymentReadiness shows deployment status based on validation results
+func (tc *TemplateCommands) displayDeploymentReadiness(validationResults []string) {
+	errorCount, warningCount := tc.countValidationIssues(validationResults)
 
 	if errorCount == 0 && warningCount == 0 {
 		fmt.Printf("   • 🎉 **Deployment Status**: Ready for production\n")
@@ -1478,8 +1582,22 @@ func (tc *TemplateCommands) displayValidationStatus(template *templates.Template
 	} else {
 		fmt.Printf("   • ❌ **Deployment Status**: Not ready (%d errors, %d warnings)\n", errorCount, warningCount)
 	}
+}
 
-	fmt.Println()
+// countValidationIssues counts errors and warnings in validation results
+func (tc *TemplateCommands) countValidationIssues(validationResults []string) (int, int) {
+	errorCount := 0
+	warningCount := 0
+
+	for _, result := range validationResults {
+		if strings.Contains(result, "❌") {
+			errorCount++
+		} else if strings.Contains(result, "⚠️") {
+			warningCount++
+		}
+	}
+
+	return errorCount, warningCount
 }
 
 // displayTroubleshootingInfo provides template-specific troubleshooting guidance
@@ -1610,79 +1728,83 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 
 // templatesTest runs test suites against templates
 func (tc *TemplateCommands) templatesTest(args []string) error {
-	// Parse test options
-	var templateName string
-	var suiteName string
-	var verbose bool
+	testOptions := tc.parseTestOptions(args)
+
+	registry, err := tc.loadTemplateRegistry()
+	if err != nil {
+		return err
+	}
+
+	tester := templates.NewTemplateTester(registry)
+
+	tc.printTestHeader()
+
+	reports := tc.runTestSuite(tester, testOptions.suiteName)
+	totalPassed, totalFailed := tc.processTestReports(reports, testOptions)
+
+	return tc.printTestSummary(totalPassed, totalFailed)
+}
+
+type testOptions struct {
+	templateName string
+	suiteName    string
+	verbose      bool
+}
+
+func (tc *TemplateCommands) parseTestOptions(args []string) testOptions {
+	var options testOptions
 
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--suite" && i+1 < len(args):
-			suiteName = args[i+1]
+			options.suiteName = args[i+1]
 			i++
 		case arg == "--verbose", arg == "-v":
-			verbose = true
+			options.verbose = true
 		case !strings.HasPrefix(arg, "-"):
-			templateName = arg
+			options.templateName = arg
 		}
 	}
 
-	// Load registry
+	return options
+}
+
+func (tc *TemplateCommands) loadTemplateRegistry() (*templates.TemplateRegistry, error) {
 	registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 	if err := registry.ScanTemplates(); err != nil {
-		return fmt.Errorf("failed to scan templates: %w", err)
+		return nil, fmt.Errorf("failed to scan templates: %w", err)
 	}
+	return registry, nil
+}
 
-	// Create tester
-	tester := templates.NewTemplateTester(registry)
-
+func (tc *TemplateCommands) printTestHeader() {
 	fmt.Println("🧪 Running Template Tests")
 	fmt.Println("═══════════════════════════════════════")
 	fmt.Println()
+}
 
-	// Run tests
+func (tc *TemplateCommands) runTestSuite(tester *templates.TemplateTester, suiteName string) map[string]*templates.TestReport {
 	ctx := context.Background()
-	var reports map[string]*templates.TestReport
 
 	if suiteName != "" {
-		// Run specific suite
 		fmt.Printf("Running test suite: %s\n\n", suiteName)
 		// This would need to be enhanced to support specific suite selection
-		reports = tester.RunAllTests(ctx)
-	} else {
-		// Run all tests
-		reports = tester.RunAllTests(ctx)
+		return tester.RunAllTests(ctx)
 	}
 
-	// Display results
+	return tester.RunAllTests(ctx)
+}
+
+func (tc *TemplateCommands) processTestReports(reports map[string]*templates.TestReport, options testOptions) (int, int) {
 	totalPassed := 0
 	totalFailed := 0
 
 	for suiteName, report := range reports {
-		fmt.Printf("📦 Test Suite: %s\n", suiteName)
-		fmt.Printf("   Duration: %s\n", report.EndTime.Sub(report.StartTime))
-		fmt.Printf("   Tests: %d passed, %d failed\n", report.PassedTests, report.FailedTests)
+		tc.displaySuiteResults(suiteName, report)
 
-		if verbose || report.FailedTests > 0 {
-			for testName, result := range report.TestResults {
-				if templateName != "" && !strings.Contains(testName, templateName) {
-					continue
-				}
-
-				if result.Passed {
-					if verbose {
-						fmt.Printf("   ✅ %s: %s (%s)\n", testName, result.Message, result.Duration)
-					}
-				} else {
-					fmt.Printf("   ❌ %s: %s\n", testName, result.Message)
-					if len(result.Details) > 0 {
-						for _, detail := range result.Details {
-							fmt.Printf("      • %s\n", detail)
-						}
-					}
-				}
-			}
+		if options.verbose || report.FailedTests > 0 {
+			tc.displayDetailedResults(report, options.templateName, options.verbose)
 		}
 
 		totalPassed += report.PassedTests
@@ -1690,7 +1812,39 @@ func (tc *TemplateCommands) templatesTest(args []string) error {
 		fmt.Println()
 	}
 
-	// Summary
+	return totalPassed, totalFailed
+}
+
+func (tc *TemplateCommands) displaySuiteResults(suiteName string, report *templates.TestReport) {
+	fmt.Printf("📦 Test Suite: %s\n", suiteName)
+	fmt.Printf("   Duration: %s\n", report.EndTime.Sub(report.StartTime))
+	fmt.Printf("   Tests: %d passed, %d failed\n", report.PassedTests, report.FailedTests)
+}
+
+func (tc *TemplateCommands) displayDetailedResults(report *templates.TestReport, templateName string, verbose bool) {
+	for testName, result := range report.TestResults {
+		if templateName != "" && !strings.Contains(testName, templateName) {
+			continue
+		}
+
+		tc.displayTestResult(testName, result, verbose)
+	}
+}
+
+func (tc *TemplateCommands) displayTestResult(testName string, result templates.TestResult, verbose bool) {
+	if result.Passed {
+		if verbose {
+			fmt.Printf("   ✅ %s: %s (%s)\n", testName, result.Message, result.Duration)
+		}
+	} else {
+		fmt.Printf("   ❌ %s: %s\n", testName, result.Message)
+		for _, detail := range result.Details {
+			fmt.Printf("      • %s\n", detail)
+		}
+	}
+}
+
+func (tc *TemplateCommands) printTestSummary(totalPassed, totalFailed int) error {
 	fmt.Println("═══════════════════════════════════════")
 	fmt.Printf("📊 Test Summary:\n")
 	fmt.Printf("   Total tests: %d\n", totalPassed+totalFailed)
@@ -1700,9 +1854,8 @@ func (tc *TemplateCommands) templatesTest(args []string) error {
 	if totalFailed > 0 {
 		fmt.Printf("\n❌ %d tests failed\n", totalFailed)
 		return fmt.Errorf("template tests failed")
-	} else {
-		fmt.Printf("\n✅ All tests passed!\n")
 	}
 
+	fmt.Printf("\n✅ All tests passed!\n")
 	return nil
 }

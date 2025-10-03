@@ -128,92 +128,126 @@ func ImportProfiles(profileManager *profile.ManagerEnhanced, inputPath string, o
 		FailedProfiles:   make(map[string]string),
 	}
 
-	// Create temporary directory for import files
-	tempDir, err := os.MkdirTemp("", "cws-profile-import")
+	tempDir, err := prepareImportDirectory(inputPath, options)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+		return nil, err
 	}
 	defer func() { _ = os.RemoveAll(tempDir) }()
 
-	// Extract zip if the input is a zip file
-	if filepath.Ext(inputPath) == ".zip" {
-		if err := extractZipArchive(inputPath, tempDir, options.Password); err != nil {
-			return nil, fmt.Errorf("failed to extract zip archive: %w", err)
-		}
-	} else {
-		// For JSON format, just copy the file to the temp directory
-		if err := copyFile(inputPath, filepath.Join(tempDir, "profiles.json")); err != nil {
-			return nil, fmt.Errorf("failed to copy profiles file: %w", err)
-		}
-	}
-
-	// Read profiles.json
-	profilesFile := filepath.Join(tempDir, "profiles.json")
-	profilesJSON, err := os.ReadFile(profilesFile)
+	exportData, err := loadExportData(tempDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read profiles file: %w", err)
+		return nil, err
 	}
 
-	// Parse export format
-	var exportData ExportFormat
-	if err := json.Unmarshal(profilesJSON, &exportData); err != nil {
-		return nil, fmt.Errorf("invalid profiles format: %w", err)
-	}
-
-	// Validate version
-	if exportData.Version != "1.0.0" {
-		result.Success = false
-		result.Error = fmt.Sprintf("unsupported export version: %s", exportData.Version)
+	if err := validateExportVersion(&exportData, result); err != nil {
 		return result, nil
 	}
 
-	// Import profiles
+	processProfiles(profileManager, &exportData, tempDir, options, result)
+
+	finalizeImportResult(result)
+
+	return result, nil
+}
+
+func prepareImportDirectory(inputPath string, options ImportOptions) (string, error) {
+	tempDir, err := os.MkdirTemp("", "cws-profile-import")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	if filepath.Ext(inputPath) == ".zip" {
+		if err := extractZipArchive(inputPath, tempDir, options.Password); err != nil {
+			return "", fmt.Errorf("failed to extract zip archive: %w", err)
+		}
+	} else {
+		if err := copyFile(inputPath, filepath.Join(tempDir, "profiles.json")); err != nil {
+			return "", fmt.Errorf("failed to copy profiles file: %w", err)
+		}
+	}
+
+	return tempDir, nil
+}
+
+func loadExportData(tempDir string) (ExportFormat, error) {
+	profilesFile := filepath.Join(tempDir, "profiles.json")
+	profilesJSON, err := os.ReadFile(profilesFile)
+	if err != nil {
+		return ExportFormat{}, fmt.Errorf("failed to read profiles file: %w", err)
+	}
+
+	var exportData ExportFormat
+	if err := json.Unmarshal(profilesJSON, &exportData); err != nil {
+		return ExportFormat{}, fmt.Errorf("invalid profiles format: %w", err)
+	}
+
+	return exportData, nil
+}
+
+func validateExportVersion(exportData *ExportFormat, result *ImportResult) error {
+	if exportData.Version != "1.0.0" {
+		result.Success = false
+		result.Error = fmt.Sprintf("unsupported export version: %s", exportData.Version)
+		return fmt.Errorf("unsupported version")
+	}
+	return nil
+}
+
+func processProfiles(profileManager *profile.ManagerEnhanced, exportData *ExportFormat, tempDir string, options ImportOptions, result *ImportResult) {
 	for _, prof := range exportData.Profiles {
-		// Skip profiles not selected for import
 		if !shouldImportProfile(&prof, options) {
 			continue
 		}
 
-		// Handle profile name conflicts
-		profileID := prof.AWSProfile
-		if options.ImportMode == ImportModeRename && profileManager.ProfileExists(profileID) {
-			// Rename profile
-			profileID = fmt.Sprintf("%s-imported-%d", profileID, time.Now().Unix())
-			prof.AWSProfile = profileID
-		}
+		profileID := handleProfileNameConflicts(&prof, profileManager, options)
+		importProfileCredentials(profileManager, prof.AWSProfile, profileID, tempDir, options)
 
-		// Import credentials if available
-		if options.ImportCredentials {
-			credsFile := filepath.Join(tempDir, "credentials", fmt.Sprintf("%s.json", prof.AWSProfile))
-			if _, err := os.Stat(credsFile); err == nil {
-				// Read credentials
-				credsJSON, err := os.ReadFile(credsFile)
-				if err == nil {
-					var creds profile.Credentials
-					if err := json.Unmarshal(credsJSON, &creds); err == nil {
-						// Store credentials
-						_ = profileManager.StoreProfileCredentials(profileID, &creds)
-					}
-				}
-			}
-		}
-
-		// Add profile
-		err = profileManager.AddProfile(prof)
-		if err != nil {
+		if err := profileManager.AddProfile(prof); err != nil {
 			result.FailedProfiles[prof.Name] = err.Error()
 			continue
 		}
 
 		result.ProfilesImported++
 	}
+}
 
+func handleProfileNameConflicts(prof *profile.Profile, profileManager *profile.ManagerEnhanced, options ImportOptions) string {
+	profileID := prof.AWSProfile
+	if options.ImportMode == ImportModeRename && profileManager.ProfileExists(profileID) {
+		profileID = fmt.Sprintf("%s-imported-%d", profileID, time.Now().Unix())
+		prof.AWSProfile = profileID
+	}
+	return profileID
+}
+
+func importProfileCredentials(profileManager *profile.ManagerEnhanced, originalProfileID, profileID, tempDir string, options ImportOptions) {
+	if !options.ImportCredentials {
+		return
+	}
+
+	credsFile := filepath.Join(tempDir, "credentials", fmt.Sprintf("%s.json", originalProfileID))
+	if _, err := os.Stat(credsFile); err != nil {
+		return
+	}
+
+	credsJSON, err := os.ReadFile(credsFile)
+	if err != nil {
+		return
+	}
+
+	var creds profile.Credentials
+	if err := json.Unmarshal(credsJSON, &creds); err != nil {
+		return
+	}
+
+	_ = profileManager.StoreProfileCredentials(profileID, &creds)
+}
+
+func finalizeImportResult(result *ImportResult) {
 	if result.ProfilesImported == 0 && len(result.FailedProfiles) > 0 {
 		result.Success = false
 		result.Error = "failed to import any profiles"
 	}
-
-	return result, nil
 }
 
 // ImportOptions defines options for profile import

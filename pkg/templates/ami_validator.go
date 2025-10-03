@@ -334,26 +334,34 @@ func (v *AMIConfigValidator) validateLegacyAMIs(amis map[string]map[string]strin
 func (v *AMIConfigValidator) ValidateTemplateAMIConfig(template *Template) []TemplateValidationError {
 	var errors []TemplateValidationError
 
-	// If template has no AMI config, that's fine
-	if template.AMIConfig.Strategy == "" &&
-		template.AMIConfig.AMIMappings == nil &&
-		template.AMIConfig.AMISearch == nil &&
-		template.AMIConfig.MarketplaceSearch == nil {
+	if !v.hasAMIConfig(template) {
 		return errors
 	}
 
-	// Validate the AMI configuration
+	// Validate the base AMI configuration
 	errors = append(errors, v.ValidateAMIConfig(&template.AMIConfig)...)
 
 	// Template-specific validations
-	if template.AMIConfig.Strategy == AMIStrategyRequired {
-		// If AMI is required, ensure at least one resolution method is provided
-		hasResolutionMethod := (template.AMIConfig.AMIMappings != nil && len(template.AMIConfig.AMIMappings) > 0) ||
-			template.AMIConfig.AMISearch != nil ||
-			template.AMIConfig.MarketplaceSearch != nil ||
-			(template.AMIConfig.AMIs != nil && len(template.AMIConfig.AMIs) > 0)
+	errors = append(errors, v.validateTemplateAMIStrategy(template)...)
+	errors = append(errors, v.validatePackageManagerCompatibility(template)...)
+	errors = append(errors, v.validateSSHUserRequirement(template)...)
 
-		if !hasResolutionMethod {
+	return errors
+}
+
+func (v *AMIConfigValidator) hasAMIConfig(template *Template) bool {
+	config := &template.AMIConfig
+	return config.Strategy != "" ||
+		config.AMIMappings != nil ||
+		config.AMISearch != nil ||
+		config.MarketplaceSearch != nil
+}
+
+func (v *AMIConfigValidator) validateTemplateAMIStrategy(template *Template) []TemplateValidationError {
+	var errors []TemplateValidationError
+
+	if template.AMIConfig.Strategy == AMIStrategyRequired {
+		if !v.hasResolutionMethod(&template.AMIConfig) {
 			errors = append(errors, TemplateValidationError{
 				Field:   "ami_config",
 				Message: "when strategy is 'ami_required', at least one AMI resolution method must be provided (ami_mappings, ami_search, marketplace_search, or legacy amis)",
@@ -361,27 +369,48 @@ func (v *AMIConfigValidator) ValidateTemplateAMIConfig(template *Template) []Tem
 		}
 	}
 
-	// If template has AMI config but also has script-based package manager, ensure compatibility
-	if template.PackageManager != "" && template.PackageManager != "ami" {
-		if template.AMIConfig.Strategy == AMIStrategyRequired {
-			errors = append(errors, TemplateValidationError{
-				Field:   "ami_config.strategy",
-				Message: "template cannot have both 'ami_required' strategy and script-based package manager, use 'ami_preferred' or 'ami_fallback'",
-			})
-		}
-	}
+	return errors
+}
 
-	// Validate SSH user is provided if AMI is used
-	if template.AMIConfig.AMIMappings != nil && len(template.AMIConfig.AMIMappings) > 0 {
-		if template.AMIConfig.SSHUser == "" {
-			errors = append(errors, TemplateValidationError{
-				Field:   "ami_config.ssh_user",
-				Message: "ssh_user must be specified when using AMI mappings",
-			})
-		}
+func (v *AMIConfigValidator) hasResolutionMethod(config *AMIConfig) bool {
+	return (config.AMIMappings != nil && len(config.AMIMappings) > 0) ||
+		config.AMISearch != nil ||
+		config.MarketplaceSearch != nil ||
+		(config.AMIs != nil && len(config.AMIs) > 0)
+}
+
+func (v *AMIConfigValidator) validatePackageManagerCompatibility(template *Template) []TemplateValidationError {
+	var errors []TemplateValidationError
+
+	if v.hasScriptBasedPackageManager(template) && template.AMIConfig.Strategy == AMIStrategyRequired {
+		errors = append(errors, TemplateValidationError{
+			Field:   "ami_config.strategy",
+			Message: "template cannot have both 'ami_required' strategy and script-based package manager, use 'ami_preferred' or 'ami_fallback'",
+		})
 	}
 
 	return errors
+}
+
+func (v *AMIConfigValidator) hasScriptBasedPackageManager(template *Template) bool {
+	return template.PackageManager != "" && template.PackageManager != "ami"
+}
+
+func (v *AMIConfigValidator) validateSSHUserRequirement(template *Template) []TemplateValidationError {
+	var errors []TemplateValidationError
+
+	if v.hasAMIMappings(&template.AMIConfig) && template.AMIConfig.SSHUser == "" {
+		errors = append(errors, TemplateValidationError{
+			Field:   "ami_config.ssh_user",
+			Message: "ssh_user must be specified when using AMI mappings",
+		})
+	}
+
+	return errors
+}
+
+func (v *AMIConfigValidator) hasAMIMappings(config *AMIConfig) bool {
+	return config.AMIMappings != nil && len(config.AMIMappings) > 0
 }
 
 // GetAMIConfigSummary returns a human-readable summary of AMI configuration

@@ -51,6 +51,14 @@ func (m *mockEFSClientForVolume) CreateFileSystem(ctx context.Context, params *e
 	return args.Get(0).(*efs.CreateFileSystemOutput), args.Error(1)
 }
 
+func (m *mockEFSClientForVolume) DescribeFileSystems(ctx context.Context, params *efs.DescribeFileSystemsInput, optFns ...func(*efs.Options)) (*efs.DescribeFileSystemsOutput, error) {
+	args := m.Called(ctx, params, optFns)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*efs.DescribeFileSystemsOutput), args.Error(1)
+}
+
 // Mock for state manager
 type mockStateManagerForVolume struct {
 	mock.Mock

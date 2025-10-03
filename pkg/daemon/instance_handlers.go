@@ -182,65 +182,90 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 
 // handleInstanceOperations handles operations on specific instances
 func (s *Server) handleInstanceOperations(w http.ResponseWriter, r *http.Request) {
-	// Parse instance name from path
-	path := r.URL.Path[len("/api/v1/instances/"):]
-	parts := splitPath(path)
-	if len(parts) == 0 {
-		s.writeError(w, http.StatusBadRequest, "Missing instance name")
+	instanceName, pathParts, err := s.parseInstancePath(r.URL.Path)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	instanceName := parts[0]
+	s.routeInstanceOperation(w, r, instanceName, pathParts)
+}
 
-	if len(parts) == 1 {
-		// Operations on the instance itself
-		switch r.Method {
-		case http.MethodGet:
-			s.handleGetInstance(w, r, instanceName)
-		case http.MethodDelete:
-			s.handleDeleteInstance(w, r, instanceName)
-		default:
-			s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+func (s *Server) parseInstancePath(urlPath string) (string, []string, error) {
+	path := urlPath[len("/api/v1/instances/"):]
+	parts := splitPath(path)
+
+	if len(parts) == 0 {
+		return "", nil, fmt.Errorf("missing instance name")
+	}
+
+	return parts[0], parts, nil
+}
+
+func (s *Server) routeInstanceOperation(w http.ResponseWriter, r *http.Request, instanceName string, parts []string) {
+	switch len(parts) {
+	case 1:
+		s.handleDirectInstanceOperation(w, r, instanceName)
+	case 2:
+		s.handleInstanceSubOperation(w, r, instanceName, parts[1])
+	case 3, 4:
+		if parts[1] == "idle" && parts[2] == "policies" {
+			s.handleIdlePolicyOperation(w, r, instanceName, parts)
+		} else {
+			s.writeError(w, http.StatusNotFound, "Invalid path")
 		}
-	} else if len(parts) == 2 {
-		// Sub-operations
-		operation := parts[1]
-		switch operation {
-		case "start":
-			s.handleStartInstance(w, r, instanceName)
-		case "stop":
-			s.handleStopInstance(w, r, instanceName)
-		case "hibernate":
-			s.handleHibernateInstance(w, r, instanceName)
-		case "resume":
-			s.handleResumeInstance(w, r, instanceName)
-		case "hibernation-status":
-			s.handleInstanceHibernationStatus(w, r, instanceName)
-		case "connect":
-			s.handleConnectInstance(w, r, instanceName)
-		case "layers":
-			s.handleInstanceLayers(w, r)
-		case "rollback":
-			s.handleInstanceRollback(w, r)
-		case "idle":
-			// Handle idle/policies subpath
-			if len(parts) >= 3 && parts[2] == "policies" {
-				if len(parts) == 3 {
-					// GET /instances/{name}/idle/policies
-					s.handleInstanceIdlePolicies(w, r, instanceName)
-				} else if len(parts) == 4 {
-					// PUT/DELETE /instances/{name}/idle/policies/{policyId}
-					policyID := parts[3]
-					s.handleInstanceIdlePolicy(w, r, instanceName, policyID)
-				}
-			} else {
-				s.writeError(w, http.StatusNotFound, "Unknown idle operation")
-			}
-		default:
-			s.writeError(w, http.StatusNotFound, "Unknown operation")
-		}
-	} else {
+	default:
 		s.writeError(w, http.StatusNotFound, "Invalid path")
+	}
+}
+
+func (s *Server) handleDirectInstanceOperation(w http.ResponseWriter, r *http.Request, instanceName string) {
+	switch r.Method {
+	case http.MethodGet:
+		s.handleGetInstance(w, r, instanceName)
+	case http.MethodDelete:
+		s.handleDeleteInstance(w, r, instanceName)
+	default:
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	}
+}
+
+func (s *Server) handleInstanceSubOperation(w http.ResponseWriter, r *http.Request, instanceName, operation string) {
+	operationHandlers := map[string]func(http.ResponseWriter, *http.Request, string){
+		"start":              s.handleStartInstance,
+		"stop":               s.handleStopInstance,
+		"hibernate":          s.handleHibernateInstance,
+		"resume":             s.handleResumeInstance,
+		"hibernation-status": s.handleInstanceHibernationStatus,
+		"connect":            s.handleConnectInstance,
+	}
+
+	if handler, exists := operationHandlers[operation]; exists {
+		handler(w, r, instanceName)
+		return
+	}
+
+	// Special case handlers that don't take instanceName
+	switch operation {
+	case "layers":
+		s.handleInstanceLayers(w, r)
+	case "rollback":
+		s.handleInstanceRollback(w, r)
+	default:
+		s.writeError(w, http.StatusNotFound, "Unknown operation")
+	}
+}
+
+func (s *Server) handleIdlePolicyOperation(w http.ResponseWriter, r *http.Request, instanceName string, parts []string) {
+	if len(parts) == 3 {
+		// GET /instances/{name}/idle/policies
+		s.handleInstanceIdlePolicies(w, r, instanceName)
+	} else if len(parts) == 4 {
+		// PUT/DELETE /instances/{name}/idle/policies/{policyId}
+		policyID := parts[3]
+		s.handleInstanceIdlePolicy(w, r, instanceName, policyID)
+	} else {
+		s.writeError(w, http.StatusNotFound, "Unknown idle operation")
 	}
 }
 

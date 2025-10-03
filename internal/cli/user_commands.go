@@ -29,6 +29,7 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 	"github.com/scttfrdmn/cloudworkstation/pkg/research"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -446,92 +447,7 @@ This will:
 				return err
 			}
 
-			fmt.Printf("👤 Provisioning user: %s on instance: %s\n", username, instanceName)
-
-			// Get user
-			user, err := r.researchUserService.GetResearchUser(username)
-			if err != nil {
-				return fmt.Errorf("user not found: %w", err)
-			}
-
-			// Get instance information
-			instance, err := r.app.apiClient.GetInstance(r.app.ctx, instanceName)
-			if err != nil {
-				return fmt.Errorf("failed to get instance information: %w", err)
-			}
-
-			if instance.State != "running" {
-				return fmt.Errorf("instance %s is not running (current state: %s)", instanceName, instance.State)
-			}
-
-			// Create provisioning request
-			req := &research.UserProvisioningRequest{
-				InstanceID:    instance.ID,
-				InstanceName:  instanceName,
-				PublicIP:      instance.PublicIP,
-				ResearchUser:  user,
-				EFSMountPoint: mountPoint,
-			}
-
-			// Generate provisioning script
-			script, err := r.researchUserService.GenerateUserProvisioningScript(req)
-			if err != nil {
-				return fmt.Errorf("failed to generate provisioning script: %w", err)
-			}
-
-			if dryRun {
-				fmt.Printf("🔍 Dry run - Provisioning script:\n\n")
-				fmt.Println(script)
-				return nil
-			}
-
-			fmt.Printf("📝 Generated provisioning script (%d lines)\n", len(strings.Split(script, "\n")))
-			fmt.Printf("🚀 Executing on instance...\n")
-
-			// Execute provisioning on instance
-			provisionReq := &research.ProvisionInstanceRequest{
-				InstanceID:    instance.ID,
-				InstanceName:  instanceName,
-				PublicIP:      instance.PublicIP,
-				Username:      username,
-				EFSMountPoint: mountPoint,
-				SSHKeyPath:    "~/.ssh/id_rsa", // Default SSH key path
-				SSHUser:       "ubuntu",        // Default SSH user for EC2 instances
-			}
-
-			ctx := r.app.ctx
-			response, err := r.researchUserService.ProvisionUserOnInstance(ctx, provisionReq)
-			if err != nil {
-				return fmt.Errorf("failed to provision user on instance: %w", err)
-			}
-
-			if response != nil && response.Success {
-				fmt.Printf("✅ Research user provisioned successfully!\n")
-				if response.Message != "" {
-					fmt.Printf("   Message: %s\n", response.Message)
-				}
-				if len(response.CreatedUsers) > 0 {
-					fmt.Printf("   Created users: %v\n", response.CreatedUsers)
-				}
-				if response.ConfiguredEFS {
-					fmt.Printf("   EFS configured: ✅\n")
-				}
-				if response.SSHKeysInstalled {
-					fmt.Printf("   SSH keys installed: ✅\n")
-				}
-			} else {
-				fmt.Printf("❌ Failed to provision research user\n")
-				if response != nil && response.Message != "" {
-					fmt.Printf("   Error: %s\n", response.Message)
-				}
-				if response != nil && response.ErrorDetails != "" {
-					fmt.Printf("   Details: %s\n", response.ErrorDetails)
-				}
-				return fmt.Errorf("provisioning failed")
-			}
-			fmt.Printf("\n💡 User %s is now available on %s with UID %d\n", username, instanceName, user.UID)
-
-			return nil
+			return r.executeUserProvisioning(username, instanceName, mountPoint, dryRun)
 		},
 	}
 
@@ -558,92 +474,137 @@ Displays where the user is provisioned, SSH key status, and EFS mount informatio
 				return err
 			}
 
-			fmt.Printf("📊 User status: %s\n", username)
-
-			// Get user
-			user, err := r.researchUserService.GetResearchUser(username)
-			if err != nil {
-				return fmt.Errorf("user not found: %w", err)
-			}
-
-			// Display user information
-			fmt.Printf("\n👤 User Information:\n")
-			fmt.Printf("   Username: %s (UID: %d)\n", user.Username, user.UID)
-			fmt.Printf("   Full Name: %s\n", user.FullName)
-			fmt.Printf("   Email: %s\n", user.Email)
-			fmt.Printf("   Created: %s\n", user.CreatedAt.Format("2006-01-02 15:04:05"))
-			if user.LastUsed != nil {
-				fmt.Printf("   Last Used: %s\n", user.LastUsed.Format("2006-01-02 15:04:05"))
-			}
-
-			fmt.Printf("\n🏠 Home Directory:\n")
-			fmt.Printf("   Path: %s\n", user.HomeDirectory)
-			fmt.Printf("   EFS Volume: %s\n", user.EFSVolumeID)
-
-			fmt.Printf("\n🔑 SSH Keys:\n")
-			fmt.Printf("   Total Keys: %d\n", len(user.SSHPublicKeys))
-			if user.SSHKeyFingerprint != "" {
-				fmt.Printf("   Primary Key: %s\n", user.SSHKeyFingerprint)
-			}
-
-			fmt.Printf("\n🖥️  Instance Status:\n")
-
-			// Get all instances
-			instancesResp, err := r.app.apiClient.ListInstances(r.app.ctx)
-			if err != nil {
-				fmt.Printf("   ❌ Failed to list instances: %v\n", err)
-				return nil
-			}
-
-			if len(instancesResp.Instances) == 0 {
-				fmt.Printf("   No instances found\n")
-				return nil
-			}
-
-			provisionedCount := 0
-			for _, instance := range instancesResp.Instances {
-				if instance.State == "running" {
-					// Check if user is provisioned on this instance
-					status, err := r.researchUserService.GetResearchUserStatus(r.app.ctx, instance.PublicIP, username, "~/.ssh/id_rsa")
-					if err != nil {
-						fmt.Printf("   %s (%s): ❌ Unable to check (instance may not be accessible)\n", instance.Name, instance.State)
-					} else if status != nil && status.Username != "" {
-						fmt.Printf("   %s (%s): ✅ User provisioned\n", instance.Name, instance.State)
-						if status.HomeDirectoryPath != "" {
-							fmt.Printf("      Home directory: %s\n", status.HomeDirectoryPath)
-						}
-						if status.EFSMounted {
-							fmt.Printf("      EFS mounted: ✅\n")
-						}
-						if status.SSHAccessible {
-							fmt.Printf("      SSH accessible: ✅\n")
-						}
-						if status.LastLogin != nil {
-							fmt.Printf("      Last login: %s\n", status.LastLogin.Format("2006-01-02 15:04:05"))
-						}
-						if status.ActiveProcesses > 0 {
-							fmt.Printf("      Active processes: %d\n", status.ActiveProcesses)
-						}
-						provisionedCount++
-					} else {
-						fmt.Printf("   %s (%s): ⭕ Not provisioned\n", instance.Name, instance.State)
-					}
-				} else {
-					fmt.Printf("   %s (%s): ⏸️ Instance not running\n", instance.Name, instance.State)
-				}
-			}
-
-			if provisionedCount > 0 {
-				fmt.Printf("\n💡 User is provisioned on %d of %d running instances\n", provisionedCount, len(instancesResp.Instances))
-			} else {
-				fmt.Printf("\n💡 User is not provisioned on any instances\n")
-			}
-
-			return nil
+			return r.executeUserStatus(username)
 		},
 	}
 
 	return cmd
+}
+
+// executeUserStatus handles the main user status logic
+func (r *UserCommands) executeUserStatus(username string) error {
+	fmt.Printf("📊 User status: %s\n", username)
+
+	// Get user
+	user, err := r.researchUserService.GetResearchUser(username)
+	if err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	// Display user information
+	r.displayUserInformation(user)
+
+	// Display instance status
+	return r.displayInstanceStatus(username)
+}
+
+// displayUserInformation shows basic user details
+func (r *UserCommands) displayUserInformation(user *research.ResearchUserConfig) {
+	fmt.Printf("\n👤 User Information:\n")
+	fmt.Printf("   Username: %s (UID: %d)\n", user.Username, user.UID)
+	fmt.Printf("   Full Name: %s\n", user.FullName)
+	fmt.Printf("   Email: %s\n", user.Email)
+	fmt.Printf("   Created: %s\n", user.CreatedAt.Format("2006-01-02 15:04:05"))
+	if user.LastUsed != nil {
+		fmt.Printf("   Last Used: %s\n", user.LastUsed.Format("2006-01-02 15:04:05"))
+	}
+
+	fmt.Printf("\n🏠 Home Directory:\n")
+	fmt.Printf("   Path: %s\n", user.HomeDirectory)
+	fmt.Printf("   EFS Volume: %s\n", user.EFSVolumeID)
+
+	fmt.Printf("\n🔑 SSH Keys:\n")
+	fmt.Printf("   Total Keys: %d\n", len(user.SSHPublicKeys))
+	if user.SSHKeyFingerprint != "" {
+		fmt.Printf("   Primary Key: %s\n", user.SSHKeyFingerprint)
+	}
+}
+
+// displayInstanceStatus shows user status across all instances
+func (r *UserCommands) displayInstanceStatus(username string) error {
+	fmt.Printf("\n🖥️  Instance Status:\n")
+
+	// Get all instances
+	instancesResp, err := r.app.apiClient.ListInstances(r.app.ctx)
+	if err != nil {
+		fmt.Printf("   ❌ Failed to list instances: %v\n", err)
+		return nil
+	}
+
+	if len(instancesResp.Instances) == 0 {
+		fmt.Printf("   No instances found\n")
+		return nil
+	}
+
+	provisionedCount := r.checkUserOnInstances(username, instancesResp.Instances)
+	r.displayProvisioningSummary(provisionedCount, len(instancesResp.Instances))
+
+	return nil
+}
+
+// checkUserOnInstances checks user provisioning status on all instances
+func (r *UserCommands) checkUserOnInstances(username string, instances []types.Instance) int {
+	provisionedCount := 0
+
+	for _, instance := range instances {
+		if instance.State == "running" {
+			if r.checkUserOnRunningInstance(username, instance) {
+				provisionedCount++
+			}
+		} else {
+			fmt.Printf("   %s (%s): ⏸️ Instance not running\n", instance.Name, instance.State)
+		}
+	}
+
+	return provisionedCount
+}
+
+// checkUserOnRunningInstance checks if user is provisioned on a running instance
+func (r *UserCommands) checkUserOnRunningInstance(username string, instance types.Instance) bool {
+	// Check if user is provisioned on this instance
+	status, err := r.researchUserService.GetResearchUserStatus(r.app.ctx, instance.PublicIP, username, "~/.ssh/id_rsa")
+	if err != nil {
+		fmt.Printf("   %s (%s): ❌ Unable to check (instance may not be accessible)\n", instance.Name, instance.State)
+		return false
+	}
+
+	if status != nil && status.Username != "" {
+		r.displayUserInstanceDetails(instance, status)
+		return true
+	}
+
+	fmt.Printf("   %s (%s): ⭕ Not provisioned\n", instance.Name, instance.State)
+	return false
+}
+
+// displayUserInstanceDetails shows detailed status for a provisioned user
+func (r *UserCommands) displayUserInstanceDetails(instance types.Instance, status *research.ResearchUserStatus) {
+	fmt.Printf("   %s (%s): ✅ User provisioned\n", instance.Name, instance.State)
+
+	if status.HomeDirectoryPath != "" {
+		fmt.Printf("      Home directory: %s\n", status.HomeDirectoryPath)
+	}
+	if status.EFSMounted {
+		fmt.Printf("      EFS mounted: ✅\n")
+	}
+	if status.SSHAccessible {
+		fmt.Printf("      SSH accessible: ✅\n")
+	}
+	if status.LastLogin != nil {
+		fmt.Printf("      Last login: %s\n", status.LastLogin.Format("2006-01-02 15:04:05"))
+	}
+	if status.ActiveProcesses > 0 {
+		fmt.Printf("      Active processes: %d\n", status.ActiveProcesses)
+	}
+}
+
+// displayProvisioningSummary shows the overall provisioning status
+func (r *UserCommands) displayProvisioningSummary(provisionedCount, totalInstances int) {
+	if provisionedCount > 0 {
+		fmt.Printf("\n💡 User is provisioned on %d of %d running instances\n", provisionedCount, totalInstances)
+	} else {
+		fmt.Printf("\n💡 User is not provisioned on any instances\n")
+	}
 }
 
 // Helper functions
@@ -756,4 +717,128 @@ func (c *CLIProfileManagerAdapter) UpdateProfileConfig(profileID string, config 
 
 	// For now, we don't need to update profiles in user management
 	return fmt.Errorf("profile updates not supported in user context")
+}
+
+// executeUserProvisioning handles the main user provisioning logic
+func (r *UserCommands) executeUserProvisioning(username, instanceName, mountPoint string, dryRun bool) error {
+	fmt.Printf("👤 Provisioning user: %s on instance: %s\n", username, instanceName)
+
+	// Get user and instance information
+	user, instance, err := r.getUserAndInstanceInfo(username, instanceName)
+	if err != nil {
+		return err
+	}
+
+	// Generate provisioning script
+	script, err := r.generateProvisioningScript(user, instance, instanceName, mountPoint)
+	if err != nil {
+		return err
+	}
+
+	// Handle dry run
+	if dryRun {
+		fmt.Printf("🔍 Dry run - Provisioning script:\n\n")
+		fmt.Println(script)
+		return nil
+	}
+
+	// Execute provisioning
+	return r.executeProvisioning(username, instanceName, mountPoint, instance, user)
+}
+
+// getUserAndInstanceInfo retrieves and validates user and instance data
+func (r *UserCommands) getUserAndInstanceInfo(username, instanceName string) (*research.ResearchUserConfig, *types.Instance, error) {
+	// Get user
+	user, err := r.researchUserService.GetResearchUser(username)
+	if err != nil {
+		return nil, nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	// Get instance information
+	instance, err := r.app.apiClient.GetInstance(r.app.ctx, instanceName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get instance information: %w", err)
+	}
+
+	if instance.State != "running" {
+		return nil, nil, fmt.Errorf("instance %s is not running (current state: %s)", instanceName, instance.State)
+	}
+
+	return user, instance, nil
+}
+
+// generateProvisioningScript creates the provisioning script
+func (r *UserCommands) generateProvisioningScript(user *research.ResearchUserConfig, instance *types.Instance, instanceName, mountPoint string) (string, error) {
+	// Create provisioning request
+	req := &research.UserProvisioningRequest{
+		InstanceID:    instance.ID,
+		InstanceName:  instanceName,
+		PublicIP:      instance.PublicIP,
+		ResearchUser:  user,
+		EFSMountPoint: mountPoint,
+	}
+
+	// Generate provisioning script
+	script, err := r.researchUserService.GenerateUserProvisioningScript(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate provisioning script: %w", err)
+	}
+
+	return script, nil
+}
+
+// executeProvisioning performs the actual user provisioning on the instance
+func (r *UserCommands) executeProvisioning(username, instanceName, mountPoint string, instance *types.Instance, user *research.ResearchUserConfig) error {
+	fmt.Printf("📝 Generated provisioning script\n")
+	fmt.Printf("🚀 Executing on instance...\n")
+
+	// Execute provisioning on instance
+	provisionReq := &research.ProvisionInstanceRequest{
+		InstanceID:    instance.ID,
+		InstanceName:  instanceName,
+		PublicIP:      instance.PublicIP,
+		Username:      username,
+		EFSMountPoint: mountPoint,
+		SSHKeyPath:    "~/.ssh/id_rsa", // Default SSH key path
+		SSHUser:       "ubuntu",        // Default SSH user for EC2 instances
+	}
+
+	ctx := r.app.ctx
+	response, err := r.researchUserService.ProvisionUserOnInstance(ctx, provisionReq)
+	if err != nil {
+		return fmt.Errorf("failed to provision user on instance: %w", err)
+	}
+
+	// Display results
+	return r.displayProvisioningResults(response, username, instanceName, user.UID)
+}
+
+// displayProvisioningResults shows the provisioning operation results
+func (r *UserCommands) displayProvisioningResults(response *research.UserProvisioningResponse, username, instanceName string, uid int) error {
+	if response != nil && response.Success {
+		fmt.Printf("✅ Research user provisioned successfully!\n")
+		if response.Message != "" {
+			fmt.Printf("   Message: %s\n", response.Message)
+		}
+		if len(response.CreatedUsers) > 0 {
+			fmt.Printf("   Created users: %v\n", response.CreatedUsers)
+		}
+		if response.ConfiguredEFS {
+			fmt.Printf("   EFS configured: ✅\n")
+		}
+		if response.SSHKeysInstalled {
+			fmt.Printf("   SSH keys installed: ✅\n")
+		}
+		fmt.Printf("\n💡 User %s is now available on %s with UID %d\n", username, instanceName, uid)
+		return nil
+	}
+
+	fmt.Printf("❌ Failed to provision research user\n")
+	if response != nil && response.Message != "" {
+		fmt.Printf("   Error: %s\n", response.Message)
+	}
+	if response != nil && response.ErrorDetails != "" {
+		fmt.Printf("   Details: %s\n", response.ErrorDetails)
+	}
+	return fmt.Errorf("provisioning failed")
 }

@@ -248,60 +248,95 @@ func (lst *LaunchSpeedTracker) TrackTotalLaunchTime(duration time.Duration, temp
 func (lst *LaunchSpeedTracker) GetLaunchStats() LaunchStats {
 	metrics := lst.monitor.GetMetrics()
 
-	stats := LaunchStats{
+	// Initialize stats structure
+	stats := lst.initializeLaunchStats()
+
+	// Process all metrics and extract timing data
+	lst.processMetricsForStats(metrics, &stats)
+
+	return stats
+}
+
+// initializeLaunchStats creates and initializes the LaunchStats structure
+func (lst *LaunchSpeedTracker) initializeLaunchStats() LaunchStats {
+	return LaunchStats{
 		PhaseTimings:    make(map[string]float64),
 		TemplateTimings: make(map[string]float64),
 	}
+}
 
-	// Collect phase timings
+// processMetricsForStats processes all metrics and extracts timing data
+func (lst *LaunchSpeedTracker) processMetricsForStats(metrics map[string]*Metric, stats *LaunchStats) {
 	for name, metric := range metrics {
-		if len(name) > 19 && name[:19] == "timing_launch_phase" {
-			phase := name[20:]
-			if len(metric.History) > 0 {
-				// Get average from recent history
-				recent := metric.History
-				if len(recent) > 10 {
-					recent = recent[len(recent)-10:]
-				}
-				total := 0.0
-				for _, point := range recent {
-					total += point.Value
-				}
-				stats.PhaseTimings[phase] = total / float64(len(recent))
-			}
-		}
+		lst.processPhaseTimingMetric(name, metric, stats)
+		lst.processTemplateTimingMetric(name, metric, stats)
+		lst.processTotalTimingMetric(name, metric, stats)
+	}
+}
 
-		// Collect template timings
-		if len(name) > 23 && name[:23] == "timing_launch_template_" {
-			template := name[23:]
-			if len(metric.History) > 0 {
-				recent := metric.History
-				if len(recent) > 10 {
-					recent = recent[len(recent)-10:]
-				}
-				total := 0.0
-				for _, point := range recent {
-					total += point.Value
-				}
-				stats.TemplateTimings[template] = total / float64(len(recent))
-			}
-		}
-
-		// Get total launch timing
-		if name == "timing_launch_total" && len(metric.History) > 0 {
-			recent := metric.History
-			if len(recent) > 10 {
-				recent = recent[len(recent)-10:]
-			}
-			total := 0.0
-			for _, point := range recent {
-				total += point.Value
-			}
-			stats.AverageTotalTime = total / float64(len(recent))
+// processPhaseTimingMetric extracts phase timing data from metrics
+func (lst *LaunchSpeedTracker) processPhaseTimingMetric(name string, metric *Metric, stats *LaunchStats) {
+	if lst.isPhaseTimingMetric(name) {
+		phase := name[20:] // Remove "timing_launch_phase_" prefix
+		if averageTime := lst.calculateRecentAverage(metric.History); averageTime > 0 {
+			stats.PhaseTimings[phase] = averageTime
 		}
 	}
+}
 
-	return stats
+// processTemplateTimingMetric extracts template timing data from metrics
+func (lst *LaunchSpeedTracker) processTemplateTimingMetric(name string, metric *Metric, stats *LaunchStats) {
+	if lst.isTemplateTimingMetric(name) {
+		template := name[23:] // Remove "timing_launch_template_" prefix
+		if averageTime := lst.calculateRecentAverage(metric.History); averageTime > 0 {
+			stats.TemplateTimings[template] = averageTime
+		}
+	}
+}
+
+// processTotalTimingMetric extracts total timing data from metrics
+func (lst *LaunchSpeedTracker) processTotalTimingMetric(name string, metric *Metric, stats *LaunchStats) {
+	if name == "timing_launch_total" {
+		if averageTime := lst.calculateRecentAverage(metric.History); averageTime > 0 {
+			stats.AverageTotalTime = averageTime
+		}
+	}
+}
+
+// isPhaseTimingMetric checks if a metric name represents phase timing data
+func (lst *LaunchSpeedTracker) isPhaseTimingMetric(name string) bool {
+	return len(name) > 19 && name[:19] == "timing_launch_phase"
+}
+
+// isTemplateTimingMetric checks if a metric name represents template timing data
+func (lst *LaunchSpeedTracker) isTemplateTimingMetric(name string) bool {
+	return len(name) > 23 && name[:23] == "timing_launch_template_"
+}
+
+// calculateRecentAverage calculates the average from recent metric history
+func (lst *LaunchSpeedTracker) calculateRecentAverage(history []DataPoint) float64 {
+	if len(history) == 0 {
+		return 0.0
+	}
+
+	// Use recent history (last 10 points maximum)
+	recent := lst.getRecentHistory(history)
+
+	// Calculate average
+	total := 0.0
+	for _, point := range recent {
+		total += point.Value
+	}
+
+	return total / float64(len(recent))
+}
+
+// getRecentHistory returns the most recent metric points (max 10)
+func (lst *LaunchSpeedTracker) getRecentHistory(history []DataPoint) []DataPoint {
+	if len(history) <= 10 {
+		return history
+	}
+	return history[len(history)-10:]
 }
 
 // LaunchStats contains launch performance statistics

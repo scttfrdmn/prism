@@ -1784,139 +1784,125 @@ func (m *Manager) getRegionPricingMultiplier() float64 {
 
 // getRegionalEC2Price returns region-aware EC2 pricing with smart caching
 func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
-	// Check cache first (24-hour TTL)
 	cacheKey := fmt.Sprintf("ec2-%s-%s", instanceType, m.region)
+
+	if cachedPrice := m.getCachedPrice(cacheKey); cachedPrice > 0 {
+		return cachedPrice
+	}
+
+	basePrice := m.getBaseInstancePrice(instanceType)
+	regionalPrice := basePrice * m.getRegionPricingMultiplier()
+	finalPrice := m.applyEC2Discounts(regionalPrice)
+
+	m.setCachedPrice(cacheKey, finalPrice)
+	return finalPrice
+}
+
+func (m *Manager) getCachedPrice(cacheKey string) float64 {
 	if cachedPrice, exists := m.pricingCache[cacheKey]; exists {
 		if time.Since(m.lastPriceUpdate) < 24*time.Hour {
 			return cachedPrice
 		}
 	}
+	return 0
+}
 
-	// Get regional pricing multiplier
-	regionMultiplier := m.getRegionPricingMultiplier()
+func (m *Manager) setCachedPrice(cacheKey string, price float64) {
+	m.pricingCache[cacheKey] = price
+	m.lastPriceUpdate = time.Now()
+}
 
-	// Base US East 1 pricing for common instance types
-	var basePrice float64
-	switch instanceType {
-	// General Purpose
-	case "t3.micro":
-		basePrice = 0.0104 // $0.0104 per hour
-	case "t3.small":
-		basePrice = 0.0208 // $0.0208 per hour
-	case "t3.medium":
-		basePrice = 0.0416 // $0.0416 per hour
-	case "t3.large":
-		basePrice = 0.0832 // $0.0832 per hour
-	case "t3.xlarge":
-		basePrice = 0.1664 // $0.1664 per hour
-	case "t3.2xlarge":
-		basePrice = 0.3328 // $0.3328 per hour
+func (m *Manager) getBaseInstancePrice(instanceType string) float64 {
+	basePrices := m.getInstanceBasePrices()
 
-	// Compute Optimized
-	case "c5.large":
-		basePrice = 0.085 // $0.085 per hour
-	case "c5.xlarge":
-		basePrice = 0.17 // $0.17 per hour
-	case "c5.2xlarge":
-		basePrice = 0.34 // $0.34 per hour
-	case "c5.4xlarge":
-		basePrice = 0.68 // $0.68 per hour
-
-	// Memory Optimized
-	case "r5.large":
-		basePrice = 0.126 // $0.126 per hour
-	case "r5.xlarge":
-		basePrice = 0.252 // $0.252 per hour
-	case "r5.2xlarge":
-		basePrice = 0.504 // $0.504 per hour
-	case "r5.4xlarge":
-		basePrice = 1.008 // $1.008 per hour
-
-	// GPU Instances
-	case "g4dn.xlarge":
-		basePrice = 0.526 // $0.526 per hour
-	case "g4dn.2xlarge":
-		basePrice = 0.752 // $0.752 per hour
-	case "g4dn.4xlarge":
-		basePrice = 1.204 // $1.204 per hour
-
-	default:
-		// Estimate based on instance family and size
-		basePrice = m.estimateInstancePrice(instanceType)
+	if price, exists := basePrices[instanceType]; exists {
+		return price
 	}
 
-	regionalPrice := basePrice * regionMultiplier
+	return m.estimateInstancePrice(instanceType)
+}
 
-	// Apply discounts
-	finalPrice := m.applyEC2Discounts(regionalPrice)
+func (m *Manager) getInstanceBasePrices() map[string]float64 {
+	return map[string]float64{
+		// General Purpose
+		"t3.micro":    0.0104,
+		"t3.small":    0.0208,
+		"t3.medium":   0.0416,
+		"t3.large":    0.0832,
+		"t3.xlarge":   0.1664,
+		"t3.2xlarge":  0.3328,
 
-	// Cache the result
-	m.pricingCache[cacheKey] = finalPrice
-	m.lastPriceUpdate = time.Now()
+		// Compute Optimized
+		"c5.large":    0.085,
+		"c5.xlarge":   0.17,
+		"c5.2xlarge":  0.34,
+		"c5.4xlarge":  0.68,
 
-	return finalPrice
+		// Memory Optimized
+		"r5.large":    0.126,
+		"r5.xlarge":   0.252,
+		"r5.2xlarge":  0.504,
+		"r5.4xlarge":  1.008,
+
+		// GPU Instances
+		"g4dn.xlarge":  0.526,
+		"g4dn.2xlarge": 0.752,
+		"g4dn.4xlarge": 1.204,
+	}
 }
 
 // estimateInstancePrice estimates pricing for unknown instance types
 func (m *Manager) estimateInstancePrice(instanceType string) float64 {
-	// Extract instance family and size
 	parts := strings.Split(instanceType, ".")
 	if len(parts) != 2 {
 		return 0.10 // Conservative fallback
 	}
 
-	family := parts[0]
-	size := parts[1]
-
-	// Base pricing by family (rough estimates)
-	var familyBase float64
-	switch {
-	case strings.HasPrefix(family, "t3"):
-		familyBase = 0.0104 // t3.micro base
-	case strings.HasPrefix(family, "t4g"):
-		familyBase = 0.0084 // ARM instances slightly cheaper
-	case strings.HasPrefix(family, "c5"):
-		familyBase = 0.085 // c5.large base
-	case strings.HasPrefix(family, "r5"):
-		familyBase = 0.126 // r5.large base
-	case strings.HasPrefix(family, "g4"):
-		familyBase = 0.526 // GPU base
-	default:
-		familyBase = 0.05 // Conservative default
-	}
-
-	// Size multiplier
-	var sizeMultiplier float64
-	switch size {
-	case "nano":
-		sizeMultiplier = 0.25
-	case "micro":
-		sizeMultiplier = 0.5
-	case "small":
-		sizeMultiplier = 1.0
-	case "medium":
-		sizeMultiplier = 2.0
-	case "large":
-		sizeMultiplier = 4.0
-	case "xlarge":
-		sizeMultiplier = 8.0
-	case "2xlarge":
-		sizeMultiplier = 16.0
-	case "4xlarge":
-		sizeMultiplier = 32.0
-	case "8xlarge":
-		sizeMultiplier = 64.0
-	case "12xlarge":
-		sizeMultiplier = 96.0
-	case "16xlarge":
-		sizeMultiplier = 128.0
-	case "24xlarge":
-		sizeMultiplier = 192.0
-	default:
-		sizeMultiplier = 4.0 // Default to large
-	}
+	familyBase := m.getInstanceFamilyBase(parts[0])
+	sizeMultiplier := m.getInstanceSizeMultiplier(parts[1])
 
 	return familyBase * sizeMultiplier
+}
+
+func (m *Manager) getInstanceFamilyBase(family string) float64 {
+	familyBasePrices := map[string]float64{
+		"t3":  0.0104, // t3.micro base
+		"t4g": 0.0084, // ARM instances slightly cheaper
+		"c5":  0.085,  // c5.large base
+		"r5":  0.126,  // r5.large base
+		"g4":  0.526,  // GPU base
+	}
+
+	for prefix, price := range familyBasePrices {
+		if strings.HasPrefix(family, prefix) {
+			return price
+		}
+	}
+
+	return 0.05 // Conservative default
+}
+
+func (m *Manager) getInstanceSizeMultiplier(size string) float64 {
+	sizeMultipliers := map[string]float64{
+		"nano":     0.25,
+		"micro":    0.5,
+		"small":    1.0,
+		"medium":   2.0,
+		"large":    4.0,
+		"xlarge":   8.0,
+		"2xlarge":  16.0,
+		"4xlarge":  32.0,
+		"8xlarge":  64.0,
+		"12xlarge": 96.0,
+		"16xlarge": 128.0,
+		"24xlarge": 192.0,
+	}
+
+	if multiplier, exists := sizeMultipliers[size]; exists {
+		return multiplier
+	}
+
+	return 4.0 // Default to large
 }
 
 // getRegionalEFSPrice returns region-aware EFS pricing with smart caching

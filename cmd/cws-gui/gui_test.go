@@ -391,62 +391,98 @@ func TestConcurrentRequests(t *testing.T) {
 
 // TestServiceLayerConnectionManagement tests connection management through service layer
 func TestServiceLayerConnectionManagement(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := setupTestHTTPServer()
+	defer server.Close()
+
+	service := createTestService(server.URL)
+	ctx := context.Background()
+
+	// Test CreateConnection
+	config := testCreateConnection(t, service, ctx)
+
+	// Test GetActiveConnections
+	testGetActiveConnections(t, service)
+
+	// Test GetConnection
+	testGetConnection(t, service, config)
+
+	// Test UpdateConnectionStatus
+	testUpdateConnectionStatus(t, service, config)
+
+	// Test CloseConnection
+	testCloseConnection(t, service, config)
+}
+
+// setupTestHTTPServer creates a mock HTTP server for connection management testing
+func setupTestHTTPServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.Contains(r.URL.Path, "/connections"):
-			if r.Method == "POST" {
-				// Simulate connection creation
-				config := map[string]interface{}{
-					"id":            "test-conn-123",
-					"type":          "ssh",
-					"instance_name": "test-instance",
-					"proxy_url":     "http://localhost:8947/ssh-proxy/test-instance",
-					"title":         "🖥️ SSH: test-instance",
-					"status":        "connecting",
-				}
-				json.NewEncoder(w).Encode(config)
-			} else if r.Method == "GET" {
-				// Simulate getting all connections
-				connections := []map[string]interface{}{
-					{
-						"id":     "test-conn-123",
-						"type":   "ssh",
-						"status": "connected",
-					},
-				}
-				json.NewEncoder(w).Encode(connections)
-			}
+			handleConnectionsEndpoint(w, r)
 		case strings.Contains(r.URL.Path, "/connection/"):
-			if r.Method == "GET" {
-				// Simulate getting single connection
-				config := map[string]interface{}{
-					"id":     "test-conn-123",
-					"type":   "ssh",
-					"status": "connected",
-				}
-				json.NewEncoder(w).Encode(config)
-			} else if r.Method == "PUT" {
-				// Simulate connection update
-				w.WriteHeader(http.StatusOK)
-			} else if r.Method == "DELETE" {
-				// Simulate connection close
-				w.WriteHeader(http.StatusOK)
-			}
+			handleSingleConnectionEndpoint(w, r)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
-	defer server.Close()
+}
 
-	service := &CloudWorkstationService{
-		daemonURL:         server.URL,
+// handleConnectionsEndpoint handles requests to /connections endpoint
+func handleConnectionsEndpoint(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		// Simulate connection creation
+		config := map[string]interface{}{
+			"id":            "test-conn-123",
+			"type":          "ssh",
+			"instance_name": "test-instance",
+			"proxy_url":     "http://localhost:8947/ssh-proxy/test-instance",
+			"title":         "🖥️ SSH: test-instance",
+			"status":        "connecting",
+		}
+		json.NewEncoder(w).Encode(config)
+	} else if r.Method == "GET" {
+		// Simulate getting all connections
+		connections := []map[string]interface{}{
+			{
+				"id":     "test-conn-123",
+				"type":   "ssh",
+				"status": "connected",
+			},
+		}
+		json.NewEncoder(w).Encode(connections)
+	}
+}
+
+// handleSingleConnectionEndpoint handles requests to /connection/{id} endpoint
+func handleSingleConnectionEndpoint(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		// Simulate getting single connection
+		config := map[string]interface{}{
+			"id":     "test-conn-123",
+			"type":   "ssh",
+			"status": "connected",
+		}
+		json.NewEncoder(w).Encode(config)
+	} else if r.Method == "PUT" {
+		// Simulate connection update
+		w.WriteHeader(http.StatusOK)
+	} else if r.Method == "DELETE" {
+		// Simulate connection close
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+// createTestService creates a CloudWorkstationService for testing
+func createTestService(serverURL string) *CloudWorkstationService {
+	return &CloudWorkstationService{
+		daemonURL:         serverURL,
 		client:            &http.Client{Timeout: 5 * time.Second},
 		connectionManager: NewConnectionManager(&CloudWorkstationService{}),
 	}
+}
 
-	ctx := context.Background()
-
-	// Test CreateConnection
+// testCreateConnection tests connection creation functionality
+func testCreateConnection(t *testing.T, service *CloudWorkstationService, ctx context.Context) *ConnectionConfig {
 	config, err := service.CreateConnection(ctx, "ssh", "test-instance", map[string]string{})
 	if err != nil {
 		t.Fatalf("CreateConnection failed: %v", err)
@@ -457,14 +493,19 @@ func TestServiceLayerConnectionManagement(t *testing.T) {
 	if config.Type != ConnectionTypeSSH {
 		t.Errorf("Expected SSH connection type, got %s", config.Type)
 	}
+	return config
+}
 
-	// Test GetActiveConnections
+// testGetActiveConnections tests getting all active connections
+func testGetActiveConnections(t *testing.T, service *CloudWorkstationService) {
 	connections := service.GetActiveConnections()
 	if len(connections) == 0 {
 		t.Error("Expected at least one connection")
 	}
+}
 
-	// Test GetConnection
+// testGetConnection tests retrieving a specific connection
+func testGetConnection(t *testing.T, service *CloudWorkstationService, config *ConnectionConfig) {
 	retrievedConfig, err := service.GetConnection(config.ID)
 	if err != nil {
 		t.Errorf("GetConnection failed: %v", err)
@@ -472,15 +513,19 @@ func TestServiceLayerConnectionManagement(t *testing.T) {
 	if retrievedConfig.ID != config.ID {
 		t.Errorf("Retrieved wrong connection: expected %s, got %s", config.ID, retrievedConfig.ID)
 	}
+}
 
-	// Test UpdateConnectionStatus
-	err = service.UpdateConnectionStatus(config.ID, "connected", "Test connection established")
+// testUpdateConnectionStatus tests updating connection status
+func testUpdateConnectionStatus(t *testing.T, service *CloudWorkstationService, config *ConnectionConfig) {
+	err := service.UpdateConnectionStatus(config.ID, "connected", "Test connection established")
 	if err != nil {
 		t.Errorf("UpdateConnectionStatus failed: %v", err)
 	}
+}
 
-	// Test CloseConnection
-	err = service.CloseConnection(config.ID)
+// testCloseConnection tests closing a connection
+func testCloseConnection(t *testing.T, service *CloudWorkstationService, config *ConnectionConfig) {
+	err := service.CloseConnection(config.ID)
 	if err != nil {
 		t.Errorf("CloseConnection failed: %v", err)
 	}

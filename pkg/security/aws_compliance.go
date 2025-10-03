@@ -390,28 +390,64 @@ func (v *AWSComplianceValidator) validateSCPs(ctx context.Context, framework Com
 func (v *AWSComplianceValidator) performGapAnalysis(framework ComplianceFramework, status *AWSComplianceStatus) error {
 	// Framework-specific gap analysis
 	switch framework {
+	case ComplianceSOC2, ComplianceISO27001, CompliancePCIDSS:
+		v.analyzeSingleFrameworkGaps(framework, status)
+	case ComplianceHIPAA, ComplianceFedRAMP:
+		v.analyzeNISTBasedFrameworkGaps(framework, status)
+	case ComplianceNIST80053, ComplianceFISMA:
+		v.analyzeNIST80053Gaps(status)
+	case ComplianceNIST800171, ComplianceDFARS:
+		v.analyzeNIST800171Gaps(status)
+	case ComplianceITAR, ComplianceEAR, ComplianceFERPA:
+		v.analyzeSpecializedFrameworkGaps(framework, status)
+	case ComplianceCMMC, ComplianceCMMCL1, ComplianceCMMCL2, ComplianceCMMCL3:
+		v.analyzeCMMCFrameworkGaps(framework, status)
+	}
+
+	return nil
+}
+
+// analyzeSingleFrameworkGaps handles frameworks with single analysis methods
+func (v *AWSComplianceValidator) analyzeSingleFrameworkGaps(framework ComplianceFramework, status *AWSComplianceStatus) {
+	switch framework {
 	case ComplianceSOC2:
 		v.analyzeSOC2Gaps(status)
+	case ComplianceISO27001:
+		v.analyzeISO27001Gaps(status)
+	case CompliancePCIDSS:
+		v.analyzePCIDSSGaps(status)
+	}
+}
+
+// analyzeNISTBasedFrameworkGaps handles frameworks that build on NIST standards
+func (v *AWSComplianceValidator) analyzeNISTBasedFrameworkGaps(framework ComplianceFramework, status *AWSComplianceStatus) {
+	switch framework {
 	case ComplianceHIPAA:
 		v.analyzeHIPAAGaps(status)
 		// HIPAA often uses NIST 800-53 as underlying framework
-		v.analyzeNIST80053Gaps(status)
-	case ComplianceNIST80053:
 		v.analyzeNIST80053Gaps(status)
 	case ComplianceFedRAMP:
 		v.analyzeFedRAMPGaps(status)
 		// FedRAMP is based on NIST 800-53
 		v.analyzeNIST80053Gaps(status)
-	case ComplianceNIST800171:
-		v.analyzeNIST800171Gaps(status)
+	}
+}
+
+// analyzeSpecializedFrameworkGaps handles specialized compliance frameworks
+func (v *AWSComplianceValidator) analyzeSpecializedFrameworkGaps(framework ComplianceFramework, status *AWSComplianceStatus) {
+	switch framework {
 	case ComplianceITAR:
 		v.analyzeITARGaps(status)
 	case ComplianceEAR:
 		v.analyzeEARGaps(status)
-	case ComplianceISO27001:
-		v.analyzeISO27001Gaps(status)
-	case CompliancePCIDSS:
-		v.analyzePCIDSSGaps(status)
+	case ComplianceFERPA:
+		v.analyzeFERPAGaps(status)
+	}
+}
+
+// analyzeCMMCFrameworkGaps handles CMMC framework variations
+func (v *AWSComplianceValidator) analyzeCMMCFrameworkGaps(framework ComplianceFramework, status *AWSComplianceStatus) {
+	switch framework {
 	case ComplianceCMMC:
 		// CMMC builds on NIST 800-171
 		v.analyzeNIST800171Gaps(status)
@@ -425,17 +461,7 @@ func (v *AWSComplianceValidator) performGapAnalysis(framework ComplianceFramewor
 		v.analyzeNIST800171Gaps(status)
 		v.analyzeNIST80053Gaps(status)
 		v.analyzeCMMCL3Gaps(status)
-	case ComplianceFISMA:
-		// FISMA uses NIST 800-53
-		v.analyzeNIST80053Gaps(status)
-	case ComplianceDFARS:
-		// DFARS references NIST 800-171
-		v.analyzeNIST800171Gaps(status)
-	case ComplianceFERPA:
-		v.analyzeFERPAGaps(status)
 	}
-
-	return nil
 }
 
 // analyzeSOC2Gaps performs SOC 2 specific gap analysis

@@ -44,110 +44,73 @@ func (a *App) Marketplace(args []string) error {
 // handleMarketplaceList lists community templates
 func (a *App) handleMarketplaceList(args []string) error {
 	cmdArgs := parseCmdArgs(args)
+	queryParams := a.buildMarketplaceQueryParams(cmdArgs)
 
-	// Build query parameters
-	queryParams := make(map[string]string)
+	templates, err := a.fetchMarketplaceTemplates(queryParams)
+	if err != nil {
+		return err
+	}
+
+	return a.displayMarketplaceTemplates(templates)
+}
+
+func (a *App) buildMarketplaceQueryParams(cmdArgs map[string]string) map[string]string {
+	queryParams := map[string]string{
+		"limit": "20",
+	}
+
 	if category := cmdArgs["category"]; category != "" {
 		queryParams["category"] = category
-	}
-	if architecture := cmdArgs["architecture"]; architecture != "" {
-		queryParams["architecture"] = architecture
 	}
 	if tags := cmdArgs["tags"]; tags != "" {
 		queryParams["tags"] = tags
 	}
-	if verified := cmdArgs["verified-only"]; verified == "true" {
-		queryParams["verified_only"] = "true"
+	if architecture := cmdArgs["architecture"]; architecture != "" {
+		queryParams["architecture"] = architecture
 	}
-	if featured := cmdArgs["featured-only"]; featured == "true" {
-		queryParams["featured_only"] = "true"
+	if minRating := cmdArgs["min-rating"]; minRating != "" {
+		queryParams["min_rating"] = minRating
 	}
-	if ami := cmdArgs["ami-available"]; ami == "true" {
-		queryParams["ami_available"] = "true"
+	if featured := cmdArgs["featured"]; featured == "true" {
+		queryParams["featured"] = "true"
 	}
-	if limit := cmdArgs["limit"]; limit != "" {
-		queryParams["limit"] = limit
-	} else {
-		queryParams["limit"] = "20" // Default limit
+	if verified := cmdArgs["verified"]; verified == "true" {
+		queryParams["verified"] = "true"
 	}
 
-	// Make API request
-	endpoint := "/api/v1/marketplace/templates"
-	if len(queryParams) > 0 {
-		endpoint += "?"
-		var params []string
-		for key, value := range queryParams {
-			params = append(params, fmt.Sprintf("%s=%s", key, value))
-		}
-		endpoint += strings.Join(params, "&")
+	return queryParams
+}
+
+func (a *App) fetchMarketplaceTemplates(queryParams map[string]string) ([]interface{}, error) {
+	endpoint := "/api/v1/marketplace/templates?"
+	var params []string
+	for key, value := range queryParams {
+		params = append(params, fmt.Sprintf("%s=%s", key, value))
 	}
+	endpoint += strings.Join(params, "&")
 
 	response, err := a.makeAPIRequest("GET", endpoint, nil)
 	if err != nil {
-		return fmt.Errorf("failed to list templates: %w", err)
+		return nil, fmt.Errorf("failed to list marketplace templates: %w", err)
 	}
 
-	// Parse response
 	templates, ok := response["templates"].([]interface{})
 	if !ok {
-		return fmt.Errorf("invalid response format")
+		return nil, fmt.Errorf("invalid response format from marketplace API")
 	}
 
+	return templates, nil
+}
+
+func (a *App) displayMarketplaceTemplates(templates []interface{}) error {
 	if len(templates) == 0 {
-		fmt.Printf("📋 No templates found matching the criteria\n\n")
-		fmt.Printf("💡 Try different filters or browse featured templates: cws marketplace featured\n")
+		fmt.Printf("📦 No templates found in marketplace\n\n")
+		fmt.Printf("💡 Try different filters or browse categories: cws marketplace categories\n")
 		return nil
 	}
 
-	// Display templates
-	fmt.Printf("🏪 Community Templates (%d results)\n\n", len(templates))
-
-	for i, tmpl := range templates {
-		template := tmpl.(map[string]interface{})
-		fmt.Printf("📦 %d. %s\n", i+1, getString(template, "name"))
-		fmt.Printf("   📝 %s\n", getString(template, "description"))
-		fmt.Printf("   👤 Author: %s\n", getString(template, "author_name"))
-		fmt.Printf("   🏷️  Category: %s | Version: %s\n",
-			getString(template, "category"), getString(template, "version"))
-
-		// Rating and stats
-		rating := getFloat64(template, "rating")
-		reviewCount := getInt(template, "review_count")
-		downloadCount := getInt(template, "download_count")
-
-		if rating > 0 {
-			stars := strings.Repeat("⭐", int(rating))
-			fmt.Printf("   %s %.1f (%d reviews) | 📥 %d downloads\n",
-				stars, rating, reviewCount, downloadCount)
-		} else {
-			fmt.Printf("   ⭐ No ratings yet | 📥 %d downloads\n", downloadCount)
-		}
-
-		// Verification badges
-		if getBool(template, "verified") {
-			fmt.Printf("   ✅ Verified")
-		}
-		if getBool(template, "featured") {
-			fmt.Printf("   🌟 Featured")
-		}
-		if ami, exists := template["ami_info"]; exists && ami != nil {
-			amiInfo := ami.(map[string]interface{})
-			if getBool(amiInfo, "available") {
-				fmt.Printf("   🚀 AMI Available")
-			}
-		}
-		fmt.Printf("\n")
-		fmt.Printf("   💻 Launch: cws launch marketplace:%s my-project\n",
-			getString(template, "template_id"))
-		fmt.Printf("\n")
-	}
-
-	// Show pagination info if there might be more results
-	if len(templates) == 20 { // Default limit
-		fmt.Printf("💡 Use --limit <number> to see more results or --offset <number> for pagination\n")
-	}
-
-	return nil
+	fmt.Printf("📦 Marketplace Templates (%d found)\n\n", len(templates))
+	return a.displayTemplateList(templates)
 }
 
 // handleMarketplaceSearch searches for templates

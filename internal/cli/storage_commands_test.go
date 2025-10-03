@@ -898,24 +898,19 @@ func TestStorageCommandArgumentParsing(t *testing.T) {
 	sc := NewStorageCommands(app)
 
 	// Test volume commands
+	testVolumeCommandsParsing(t, sc)
+
+	// Test storage commands
+	testStorageCommandsParsing(t, sc)
+}
+
+// testVolumeCommandsParsing tests volume command argument parsing
+func testVolumeCommandsParsing(t *testing.T, sc *StorageCommands) {
 	volumeCommands := []string{"create", "list", "info", "delete", "mount", "unmount"}
+
 	for _, cmd := range volumeCommands {
 		t.Run("volume_"+cmd, func(t *testing.T) {
-			var args []string
-
-			switch cmd {
-			case "create":
-				args = []string{"volume", cmd, "test-volume"}
-			case "info", "delete":
-				args = []string{"volume", cmd, "test-volume"}
-			case "mount":
-				args = []string{"volume", cmd, "test-volume", "test-instance"}
-			case "unmount":
-				args = []string{"volume", cmd, "test-volume", "test-instance"}
-			case "list":
-				args = []string{"volume", cmd}
-			}
-
+			args := buildVolumeCommandArgs(cmd)
 			err := sc.Volume(args[1:]) // Skip "volume" prefix
 
 			// Some commands may error, but should not be usage errors for valid args
@@ -924,24 +919,15 @@ func TestStorageCommandArgumentParsing(t *testing.T) {
 			}
 		})
 	}
+}
 
-	// Test storage commands
+// testStorageCommandsParsing tests storage command argument parsing
+func testStorageCommandsParsing(t *testing.T, sc *StorageCommands) {
 	storageCommands := []string{"create", "list", "info", "attach", "detach", "delete"}
+
 	for _, cmd := range storageCommands {
 		t.Run("storage_"+cmd, func(t *testing.T) {
-			var args []string
-
-			switch cmd {
-			case "create":
-				args = []string{"storage", cmd, "test-storage", "100GB"}
-			case "info", "delete", "detach":
-				args = []string{"storage", cmd, "test-storage"}
-			case "attach":
-				args = []string{"storage", cmd, "test-storage", "test-instance"}
-			case "list":
-				args = []string{"storage", cmd}
-			}
-
+			args := buildStorageCommandArgs(cmd)
 			err := sc.Storage(args[1:]) // Skip "storage" prefix
 
 			// Some commands may error, but should not be usage errors for valid args
@@ -949,6 +935,38 @@ func TestStorageCommandArgumentParsing(t *testing.T) {
 				t.Errorf("Unexpected usage error for valid args in command %s: %v", cmd, err)
 			}
 		})
+	}
+}
+
+// buildVolumeCommandArgs builds command arguments for volume commands
+func buildVolumeCommandArgs(cmd string) []string {
+	switch cmd {
+	case "create":
+		return []string{"volume", cmd, "test-volume"}
+	case "info", "delete":
+		return []string{"volume", cmd, "test-volume"}
+	case "mount", "unmount":
+		return []string{"volume", cmd, "test-volume", "test-instance"}
+	case "list":
+		return []string{"volume", cmd}
+	default:
+		return []string{"volume", cmd}
+	}
+}
+
+// buildStorageCommandArgs builds command arguments for storage commands
+func buildStorageCommandArgs(cmd string) []string {
+	switch cmd {
+	case "create":
+		return []string{"storage", cmd, "test-storage", "100GB"}
+	case "info", "delete", "detach":
+		return []string{"storage", cmd, "test-storage"}
+	case "attach":
+		return []string{"storage", cmd, "test-storage", "test-instance"}
+	case "list":
+		return []string{"storage", cmd}
+	default:
+		return []string{"storage", cmd}
 	}
 }
 

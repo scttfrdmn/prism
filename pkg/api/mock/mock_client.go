@@ -230,57 +230,80 @@ func loadMockStorage() map[string]types.EBSVolume {
 
 // LaunchInstance simulates launching a new instance
 func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest) (*types.LaunchResponse, error) {
-	// Validate template exists
-	if _, exists := m.Templates[req.Template]; !exists {
-		return nil, fmt.Errorf("template not found: %s", req.Template)
+	if err := m.validateLaunchRequest(req); err != nil {
+		return nil, err
 	}
 
-	// Create a unique instance ID
 	instanceID := fmt.Sprintf("i-%s-%d", req.Name, time.Now().Unix())
 	publicIP := "54.84.123.45" // Mock IP
 
-	// Select default cost based on template
-	var costPerHour float64
+	costPerHour := m.calculateInstanceCost(req)
+	instance := m.buildInstance(req, instanceID, publicIP, costPerHour)
 
+	if !req.DryRun {
+		m.Instances[req.Name] = instance
+	}
+
+	resp := m.buildLaunchResponse(instance, req, costPerHour, publicIP)
+
+	// Simulate delay for more realistic response
+	time.Sleep(500 * time.Millisecond)
+
+	return resp, nil
+}
+
+func (m *MockClient) validateLaunchRequest(req types.LaunchRequest) error {
+	if _, exists := m.Templates[req.Template]; !exists {
+		return fmt.Errorf("template not found: %s", req.Template)
+	}
+	return nil
+}
+
+func (m *MockClient) calculateInstanceCost(req types.LaunchRequest) float64 {
 	template := m.Templates[req.Template]
-	if template.InstanceType["arm64"] != "" {
-		// Prefer ARM for cost savings
-		costPerHour = template.EstimatedCostPerHour["arm64"]
-	} else {
-		costPerHour = template.EstimatedCostPerHour["x86_64"]
-	}
+	costPerHour := m.getBaseCost(template)
+	costPerHour = m.applySizeAdjustments(costPerHour, req.Size)
 
-	// Apply size adjustments if specified
-	if req.Size != "" {
-		switch req.Size {
-		case "XS":
-			costPerHour *= 0.5
-		case "S":
-			costPerHour *= 0.75
-		case "M":
-			// Base size, no adjustment
-		case "L":
-			costPerHour *= 2.0
-		case "XL":
-			costPerHour *= 4.0
-		case "GPU-S":
-			costPerHour = 0.75
-		case "GPU-M":
-			costPerHour = 1.5
-		case "GPU-L":
-			costPerHour = 3.0
-		}
-	}
-
-	// Apply spot discount if requested
 	if req.Spot {
 		costPerHour *= 0.3 // 70% discount for spot
 	}
 
-	// Calculate daily cost
+	return costPerHour
+}
+
+func (m *MockClient) getBaseCost(template types.Template) float64 {
+	if template.InstanceType["arm64"] != "" {
+		// Prefer ARM for cost savings
+		return template.EstimatedCostPerHour["arm64"]
+	}
+	return template.EstimatedCostPerHour["x86_64"]
+}
+
+func (m *MockClient) applySizeAdjustments(baseCost float64, size string) float64 {
+	sizeMultipliers := map[string]float64{
+		"XS":    0.5,
+		"S":     0.75,
+		"M":     1.0,  // Base size, no adjustment
+		"L":     2.0,
+		"XL":    4.0,
+		"GPU-S": 0.75, // Absolute cost for GPU instances
+		"GPU-M": 1.5,
+		"GPU-L": 3.0,
+	}
+
+	if multiplier, exists := sizeMultipliers[size]; exists {
+		if size == "GPU-S" || size == "GPU-M" || size == "GPU-L" {
+			return multiplier // Absolute cost for GPU
+		}
+		return baseCost * multiplier
+	}
+
+	return baseCost
+}
+
+func (m *MockClient) buildInstance(req types.LaunchRequest, instanceID, publicIP string, costPerHour float64) types.Instance {
 	dailyCost := costPerHour * 24
 
-	// Create instance
 	instance := types.Instance{
 		ID:           instanceID,
 		Name:         req.Name,
@@ -293,46 +316,41 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 		CurrentSpend: dailyCost,
 	}
 
-	// Add volumes if specified
 	if len(req.Volumes) > 0 {
 		instance.AttachedVolumes = req.Volumes
 	}
 
-	// Add EBS volumes if specified
 	if len(req.EBSVolumes) > 0 {
 		instance.AttachedEBSVolumes = req.EBSVolumes
 	}
 
-	// Store instance if not dry run
-	if !req.DryRun {
-		m.Instances[req.Name] = instance
-	}
+	return instance
+}
 
-	// Create connection info based on template
-	var connectionInfo string
-	switch req.Template {
-	case "r-research":
-		connectionInfo = fmt.Sprintf("RStudio Server: http://%s:8787", publicIP)
-	case "python-ml":
-		connectionInfo = fmt.Sprintf("JupyterLab: http://%s:8888", publicIP)
-	case "desktop-research":
-		connectionInfo = fmt.Sprintf("NICE DCV: https://%s:8443", publicIP)
-	default:
-		connectionInfo = fmt.Sprintf("ssh ubuntu@%s", publicIP)
-	}
+func (m *MockClient) buildLaunchResponse(instance types.Instance, req types.LaunchRequest, costPerHour float64, publicIP string) *types.LaunchResponse {
+	dailyCost := costPerHour * 24
+	connectionInfo := m.getConnectionInfo(req.Template, publicIP)
 
-	// Build response
-	resp := &types.LaunchResponse{
+	return &types.LaunchResponse{
 		Instance:       instance,
 		Message:        fmt.Sprintf("Successfully launched %s instance '%s'", req.Template, req.Name),
 		EstimatedCost:  fmt.Sprintf("$%.2f/day", dailyCost),
 		ConnectionInfo: connectionInfo,
 	}
+}
 
-	// Simulate delay for more realistic response
-	time.Sleep(500 * time.Millisecond)
+func (m *MockClient) getConnectionInfo(template, publicIP string) string {
+	connectionInfoMap := map[string]string{
+		"r-research":       fmt.Sprintf("RStudio Server: http://%s:8787", publicIP),
+		"python-ml":        fmt.Sprintf("JupyterLab: http://%s:8888", publicIP),
+		"desktop-research": fmt.Sprintf("NICE DCV: https://%s:8443", publicIP),
+	}
 
-	return resp, nil
+	if info, exists := connectionInfoMap[template]; exists {
+		return info
+	}
+
+	return fmt.Sprintf("ssh ubuntu@%s", publicIP)
 }
 
 // ListInstances returns mock instances

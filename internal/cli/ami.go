@@ -912,15 +912,43 @@ func (s *AMISaveBuilderService) displaySaveResults(result *ami.BuildResult, temp
 
 // handleAMIResolve resolves AMI for a template using the Universal AMI System
 func (a *App) handleAMIResolve(args []string) error {
+	// Validate arguments and parse command
+	templateName, cmdArgs, err := a.parseAMIResolveArgs(args)
+	if err != nil {
+		return err
+	}
+
+	// Prepare API parameters
+	params := a.buildAMIResolveParams(cmdArgs)
+
+	// Execute AMI resolution
+	response, err := a.executeAMIResolution(templateName, params)
+	if err != nil {
+		return err
+	}
+
+	// Display resolution results
+	a.displayAMIResolutionResults(templateName, cmdArgs, response)
+
+	return nil
+}
+
+// parseAMIResolveArgs validates and parses AMI resolve command arguments
+func (a *App) parseAMIResolveArgs(args []string) (string, map[string]string, error) {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami resolve <template-name> [--details] [--region <region>]")
+		return "", nil, fmt.Errorf("usage: cws ami resolve <template-name> [--details] [--region <region>]")
 	}
 
 	templateName := args[0]
 	cmdArgs := parseCmdArgs(args[1:])
 
-	// Prepare parameters
+	return templateName, cmdArgs, nil
+}
+
+// buildAMIResolveParams constructs API parameters from command arguments
+func (a *App) buildAMIResolveParams(cmdArgs map[string]string) map[string]interface{} {
 	params := make(map[string]interface{})
+
 	if cmdArgs["details"] == "true" {
 		params["details"] = true
 	}
@@ -928,64 +956,118 @@ func (a *App) handleAMIResolve(args []string) error {
 		params["region"] = region
 	}
 
-	// Make API call
+	return params
+}
+
+// executeAMIResolution makes the API call to resolve AMI
+func (a *App) executeAMIResolution(templateName string, params map[string]interface{}) (map[string]interface{}, error) {
 	response, err := a.apiClient.ResolveAMI(a.ctx, templateName, params)
 	if err != nil {
-		return fmt.Errorf("failed to resolve AMI: %w", err)
+		return nil, fmt.Errorf("failed to resolve AMI: %w", err)
 	}
 
-	// Display results
+	return response, nil
+}
+
+// displayAMIResolutionResults formats and displays the AMI resolution results
+func (a *App) displayAMIResolutionResults(templateName string, cmdArgs map[string]string, response map[string]interface{}) {
+	// Display header information
+	a.displayAMIHeader(templateName, cmdArgs, response)
+
+	// Display AMI details
+	a.displayAMIDetails(cmdArgs, response)
+
+	// Display performance and cost information
+	a.displayPerformanceAndCostInfo(response)
+
+	// Display warnings and additional details
+	a.displayWarningsAndExtras(cmdArgs, response)
+}
+
+// displayAMIHeader shows the header information for AMI resolution
+func (a *App) displayAMIHeader(templateName string, cmdArgs map[string]string, response map[string]interface{}) {
 	fmt.Printf("🔍 AMI Resolution for template '%s'\n\n", templateName)
 	if region := cmdArgs["region"]; region != "" {
 		fmt.Printf("📍 Target region: %s\n", region)
 	}
-
 	fmt.Printf("🏗️  Resolution method: %s\n", getString(response, "resolution_method"))
+}
 
-	if amiID := getString(response, "ami_id"); amiID != "" {
-		fmt.Printf("📀 AMI ID: %s\n", amiID)
-		fmt.Printf("🏷️  AMI Name: %s\n", getString(response, "ami_name"))
-		fmt.Printf("🏛️  Architecture: %s\n", getString(response, "ami_architecture"))
-
-		if cmdArgs["details"] == "true" {
-			if details := getMap(response, "ami_details"); details != nil {
-				fmt.Printf("\n📋 AMI Details:\n")
-				fmt.Printf("   Created: %s\n", getString(details, "creation_date"))
-				fmt.Printf("   Owner: %s\n", getString(details, "owner_id"))
-				fmt.Printf("   Platform: %s\n", getString(details, "platform"))
-				fmt.Printf("   Virtualization: %s\n", getString(details, "virtualization"))
-				fmt.Printf("   Root Device: %s\n", getString(details, "root_device"))
-
-				if cost := getFloat(details, "marketplace_cost"); cost > 0 {
-					fmt.Printf("   Marketplace Cost: $%.4f/hour\n", cost)
-				}
-			}
-		}
+// displayAMIDetails shows basic and detailed AMI information
+func (a *App) displayAMIDetails(cmdArgs map[string]string, response map[string]interface{}) {
+	amiID := getString(response, "ami_id")
+	if amiID == "" {
+		return
 	}
 
+	// Basic AMI information
+	fmt.Printf("📀 AMI ID: %s\n", amiID)
+	fmt.Printf("🏷️  AMI Name: %s\n", getString(response, "ami_name"))
+	fmt.Printf("🏛️  Architecture: %s\n", getString(response, "ami_architecture"))
+
+	// Detailed AMI information
+	if cmdArgs["details"] == "true" {
+		a.displayDetailedAMIInfo(response)
+	}
+}
+
+// displayDetailedAMIInfo shows comprehensive AMI details
+func (a *App) displayDetailedAMIInfo(response map[string]interface{}) {
+	details := getMap(response, "ami_details")
+	if details == nil {
+		return
+	}
+
+	fmt.Printf("\n📋 AMI Details:\n")
+	fmt.Printf("   Created: %s\n", getString(details, "creation_date"))
+	fmt.Printf("   Owner: %s\n", getString(details, "owner_id"))
+	fmt.Printf("   Platform: %s\n", getString(details, "platform"))
+	fmt.Printf("   Virtualization: %s\n", getString(details, "virtualization"))
+	fmt.Printf("   Root Device: %s\n", getString(details, "root_device"))
+
+	if cost := getFloat(details, "marketplace_cost"); cost > 0 {
+		fmt.Printf("   Marketplace Cost: $%.4f/hour\n", cost)
+	}
+}
+
+// displayPerformanceAndCostInfo shows launch time and cost information
+func (a *App) displayPerformanceAndCostInfo(response map[string]interface{}) {
+	// Launch time estimate
 	if estimate := getInt(response, "launch_time_estimate_seconds"); estimate > 0 {
 		fmt.Printf("⚡ Launch time estimate: %d seconds\n", estimate)
 	}
 
-	if savings := getFloat(response, "cost_savings"); savings != 0 {
-		if savings > 0 {
-			fmt.Printf("💰 Cost savings: $%.4f/hour\n", savings)
-		} else {
-			fmt.Printf("💸 Additional cost: $%.4f/hour\n", -savings)
-		}
+	// Cost savings information
+	a.displayCostSavingsInfo(response)
+}
+
+// displayCostSavingsInfo shows cost savings or additional costs
+func (a *App) displayCostSavingsInfo(response map[string]interface{}) {
+	savings := getFloat(response, "cost_savings")
+	if savings == 0 {
+		return
 	}
 
+	if savings > 0 {
+		fmt.Printf("💰 Cost savings: $%.4f/hour\n", savings)
+	} else {
+		fmt.Printf("💸 Additional cost: $%.4f/hour\n", -savings)
+	}
+}
+
+// displayWarningsAndExtras shows warnings and additional detailed information
+func (a *App) displayWarningsAndExtras(cmdArgs map[string]string, response map[string]interface{}) {
+	// Display warnings
 	if warning := getString(response, "warning"); warning != "" {
 		fmt.Printf("⚠️  Warning: %s\n", warning)
 	}
 
+	// Display fallback chain in details mode
 	if cmdArgs["details"] == "true" {
 		if chain := getStringSlice(response, "fallback_chain"); len(chain) > 0 {
 			fmt.Printf("\n🔄 Fallback chain: %s\n", strings.Join(chain, " → "))
 		}
 	}
-
-	return nil
 }
 
 // handleAMITest tests AMI availability across regions for a template

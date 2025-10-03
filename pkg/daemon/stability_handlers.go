@@ -224,89 +224,118 @@ func (s *Server) handleResetCircuitBreaker(w http.ResponseWriter, r *http.Reques
 
 // handleRecoveryTrigger triggers manual recovery operations
 func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	// Validate HTTP method
+	if !s.validateHTTPMethod(w, r, http.MethodPost) {
 		return
 	}
 
-	var request struct {
-		Operation string `json:"operation"`
-		Component string `json:"component,omitempty"`
-		Force     bool   `json:"force,omitempty"`
+	// Parse and validate request
+	request, err := s.parseRecoveryRequest(r)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
+
+	// Execute recovery operation
+	result, success := s.executeRecoveryOperation(w, request)
+	if result == "" {
+		return // Error already handled in executeRecoveryOperation
+	}
+
+	// Record recovery attempt and send response
+	s.recordAndRespondRecovery(w, request, result, success)
+}
+
+// validateHTTPMethod checks if the request uses the correct HTTP method
+func (s *Server) validateHTTPMethod(w http.ResponseWriter, r *http.Request, expectedMethod string) bool {
+	if r.Method != expectedMethod {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return false
+	}
+	return true
+}
+
+// parseRecoveryRequest parses and validates the recovery request
+func (s *Server) parseRecoveryRequest(r *http.Request) (*recoveryRequest, error) {
+	var request recoveryRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		s.writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+		return nil, fmt.Errorf("Invalid request body")
 	}
 
 	if request.Operation == "" {
-		s.writeError(w, http.StatusBadRequest, "Recovery operation is required")
-		return
+		return nil, fmt.Errorf("Recovery operation is required")
 	}
 
-	var result string
-	var success bool
+	return &request, nil
+}
 
+// executeRecoveryOperation executes the specified recovery operation
+func (s *Server) executeRecoveryOperation(w http.ResponseWriter, request *recoveryRequest) (string, bool) {
 	switch request.Operation {
 	case "memory_cleanup":
-		// Force garbage collection
-		s.stabilityManager.ForceGarbageCollection()
-		result = "Memory cleanup completed"
-		success = true
-
+		return s.handleMemoryCleanup()
 	case "memory_pressure":
-		// Handle memory pressure
-		if err := s.recoveryManager.HandleMemoryPressure(); err != nil {
-			result = fmt.Sprintf("Memory pressure recovery failed: %v", err)
-			success = false
-		} else {
-			result = "Memory pressure recovery completed"
-			success = true
-		}
-
+		return s.handleMemoryPressure()
 	case "goroutine_check":
-		// Check for goroutine leaks
-		if err := s.recoveryManager.HandleGoroutineLeak(); err != nil {
-			result = fmt.Sprintf("Goroutine leak detected: %v", err)
-			success = false
-		} else {
-			result = "No goroutine leaks detected"
-			success = true
-		}
-
+		return s.handleGoroutineCheck()
 	case "health_check":
-		// Trigger comprehensive health check
-		if err := s.recoveryManager.HealthCheck(); err != nil {
-			result = fmt.Sprintf("Health check failed: %v", err)
-			success = false
-		} else {
-			result = "Health check passed"
-			success = true
-		}
-
+		return s.handleHealthCheck()
 	case "error_recovery":
-		// Attempt error recovery for component
-		if request.Component == "" {
-			s.writeError(w, http.StatusBadRequest, "Component is required for error recovery")
-			return
-		}
-
-		// Create a generic error for recovery attempt
-		err := fmt.Errorf("manual recovery trigger")
-		if recoveryErr := s.recoveryManager.RecoverFromError(request.Component, err); recoveryErr != nil {
-			result = fmt.Sprintf("Recovery failed for component '%s': %v", request.Component, recoveryErr)
-			success = false
-		} else {
-			result = fmt.Sprintf("Recovery completed for component '%s'", request.Component)
-			success = true
-		}
-
+		return s.handleErrorRecovery(w, request)
 	default:
 		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Unknown recovery operation: %s", request.Operation))
-		return
+		return "", false
+	}
+}
+
+// handleMemoryCleanup performs memory cleanup operations
+func (s *Server) handleMemoryCleanup() (string, bool) {
+	s.stabilityManager.ForceGarbageCollection()
+	return "Memory cleanup completed", true
+}
+
+// handleMemoryPressure handles memory pressure recovery
+func (s *Server) handleMemoryPressure() (string, bool) {
+	if err := s.recoveryManager.HandleMemoryPressure(); err != nil {
+		return fmt.Sprintf("Memory pressure recovery failed: %v", err), false
+	}
+	return "Memory pressure recovery completed", true
+}
+
+// handleGoroutineCheck checks for goroutine leaks
+func (s *Server) handleGoroutineCheck() (string, bool) {
+	if err := s.recoveryManager.HandleGoroutineLeak(); err != nil {
+		return fmt.Sprintf("Goroutine leak detected: %v", err), false
+	}
+	return "No goroutine leaks detected", true
+}
+
+// handleHealthCheck performs comprehensive health check
+func (s *Server) handleHealthCheck() (string, bool) {
+	if err := s.recoveryManager.HealthCheck(); err != nil {
+		return fmt.Sprintf("Health check failed: %v", err), false
+	}
+	return "Health check passed", true
+}
+
+// handleErrorRecovery attempts error recovery for a specific component
+func (s *Server) handleErrorRecovery(w http.ResponseWriter, request *recoveryRequest) (string, bool) {
+	if request.Component == "" {
+		s.writeError(w, http.StatusBadRequest, "Component is required for error recovery")
+		return "", false
 	}
 
+	// Create a generic error for recovery attempt
+	err := fmt.Errorf("manual recovery trigger")
+	if recoveryErr := s.recoveryManager.RecoverFromError(request.Component, err); recoveryErr != nil {
+		return fmt.Sprintf("Recovery failed for component '%s': %v", request.Component, recoveryErr), false
+	}
+	return fmt.Sprintf("Recovery completed for component '%s'", request.Component), true
+}
+
+// recordAndRespondRecovery records the recovery attempt and sends the response
+func (s *Server) recordAndRespondRecovery(w http.ResponseWriter, request *recoveryRequest, result string, success bool) {
 	// Record the manual recovery attempt
 	if success {
 		s.stabilityManager.RecordRecovery("manual", request.Operation)
@@ -314,12 +343,20 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 		s.stabilityManager.RecordError("manual", request.Operation, result, ErrorSeverityMedium)
 	}
 
+	// Determine status code
 	statusCode := http.StatusOK
 	if !success {
 		statusCode = http.StatusInternalServerError
 	}
 
-	response := struct {
+	// Create and send response
+	response := s.createRecoveryResponse(request, result, success)
+	s.writeJSON(w, statusCode, response)
+}
+
+// createRecoveryResponse creates the response structure for recovery operations
+func (s *Server) createRecoveryResponse(request *recoveryRequest, result string, success bool) interface{} {
+	return struct {
 		Success   bool      `json:"success"`
 		Operation string    `json:"operation"`
 		Component string    `json:"component,omitempty"`
@@ -332,6 +369,11 @@ func (s *Server) handleRecoveryTrigger(w http.ResponseWriter, r *http.Request) {
 		Result:    result,
 		Timestamp: time.Now(),
 	}
+}
 
-	s.writeJSON(w, statusCode, response)
+// recoveryRequest represents the structure of a recovery operation request
+type recoveryRequest struct {
+	Operation string `json:"operation"`
+	Component string `json:"component,omitempty"`
+	Force     bool   `json:"force,omitempty"`
 }

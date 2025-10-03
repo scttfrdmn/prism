@@ -315,93 +315,23 @@ func TestSetOptionsMultipleCalls(t *testing.T) {
 
 // Integration test for critical API methods
 func TestCriticalAPIMethodsIntegration(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		switch {
-		case r.URL.Path == "/api/v1/instances" && r.Method == "POST":
-			// Launch instance
-			w.WriteHeader(http.StatusCreated)
-			_, _ = fmt.Fprint(w, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`)
-		case r.URL.Path == "/api/v1/instances" && r.Method == "GET":
-			// List instances
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`)
-		case r.URL.Path == "/api/v1/instances/test-instance" && r.Method == "GET":
-			// Get instance
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"id": "i-123", "name": "test-instance", "state": "running"}`)
-		case r.URL.Path == "/api/v1/instances/test-instance/start" && r.Method == "POST":
-			// Start instance
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/instances/test-instance/stop" && r.Method == "POST":
-			// Stop instance
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/instances/test-instance/hibernate" && r.Method == "POST":
-			// Hibernate instance
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/instances/test-instance/resume" && r.Method == "POST":
-			// Resume instance
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/instances/test-instance/hibernation-status" && r.Method == "GET":
-			// Get hibernation status
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`)
-		case r.URL.Path == "/api/v1/instances/test-instance" && r.Method == "DELETE":
-			// Delete instance
-			w.WriteHeader(http.StatusNoContent)
-		case r.URL.Path == "/api/v1/instances/test-instance/connect" && r.Method == "GET":
-			// Connect instance
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"connection_info": "ssh user@1.2.3.4"}`)
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
+	server := createInstanceAPITestServer()
 	defer server.Close()
 
 	client := NewClient(server.URL)
 	ctx := context.Background()
 
-	// Test instance operations
-	launchReq := types.LaunchRequest{
-		Name:     "test-instance",
-		Template: "python-ml",
-	}
-	launchResp, err := client.LaunchInstance(ctx, launchReq)
-	assert.NoError(t, err)
-	assert.Equal(t, "test-instance", launchResp.Instance.Name)
+	t.Run("instance_lifecycle_operations", func(t *testing.T) {
+		testInstanceLifecycleOperations(t, client, ctx)
+	})
 
-	listResp, err := client.ListInstances(ctx)
-	assert.NoError(t, err)
-	assert.NotNil(t, listResp)
+	t.Run("instance_power_management", func(t *testing.T) {
+		testInstancePowerManagement(t, client, ctx)
+	})
 
-	instance, err := client.GetInstance(ctx, "test-instance")
-	assert.NoError(t, err)
-	assert.Equal(t, "test-instance", instance.Name)
-
-	err = client.StartInstance(ctx, "test-instance")
-	assert.NoError(t, err)
-
-	err = client.StopInstance(ctx, "test-instance")
-	assert.NoError(t, err)
-
-	err = client.HibernateInstance(ctx, "test-instance")
-	assert.NoError(t, err)
-
-	err = client.ResumeInstance(ctx, "test-instance")
-	assert.NoError(t, err)
-
-	hibStatus, err := client.GetInstanceHibernationStatus(ctx, "test-instance")
-	assert.NoError(t, err)
-	assert.True(t, hibStatus.HibernationSupported)
-
-	connInfo, err := client.ConnectInstance(ctx, "test-instance")
-	assert.NoError(t, err)
-	assert.Equal(t, "ssh user@1.2.3.4", connInfo)
-
-	err = client.DeleteInstance(ctx, "test-instance")
-	assert.NoError(t, err)
+	t.Run("instance_hibernation_and_connection", func(t *testing.T) {
+		testInstanceHibernationAndConnection(t, client, ctx)
+	})
 }
 
 // TestTemplateOperationsIntegration tests template-related API methods
@@ -437,135 +367,196 @@ func TestTemplateOperationsIntegration(t *testing.T) {
 
 // TestIdleDetectionOperationsIntegration tests idle detection API methods
 func TestIdleDetectionOperationsIntegration(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		switch {
-		case r.URL.Path == "/api/v1/idle/status" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"enabled": true, "active_profiles": 2}`)
-		case r.URL.Path == "/api/v1/idle/enable" && r.Method == "POST":
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/idle/disable" && r.Method == "POST":
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/idle/policies" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `[{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}]`)
-		case strings.HasPrefix(r.URL.Path, "/api/v1/idle/policies/") && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}`)
-		case r.URL.Path == "/api/v1/idle/policies/apply" && r.Method == "POST":
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/idle/policies/remove" && r.Method == "POST":
-			w.WriteHeader(http.StatusOK)
-		case strings.HasPrefix(r.URL.Path, "/api/v1/instances/") && strings.HasSuffix(r.URL.Path, "/idle-policies") && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `[{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}]`)
-		case r.URL.Path == "/api/v1/idle/pending-actions" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate"}]`)
-		case r.URL.Path == "/api/v1/idle/execute-actions" && r.Method == "POST":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"executed": 1, "errors": [], "total": 1}`)
-		case r.URL.Path == "/api/v1/idle/history" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `[{"instance_name": "test", "action": "hibernate", "timestamp": "2024-01-01T00:00:00Z"}]`)
-		case strings.HasPrefix(r.URL.Path, "/api/v1/idle/savings") && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"total_saved": 100.50, "period": "7d", "instances": 5}`)
-		default:
-			w.WriteHeader(http.StatusNotFound)
-		}
-	}))
+	server := createIdleAPITestServer()
 	defer server.Close()
 
 	client := NewClient(server.URL)
 	ctx := context.Background()
 
-	// Test idle policy operations
+	t.Run("idle_policy_management", func(t *testing.T) {
+		testIdlePolicyManagement(t, client, ctx)
+	})
+
+	t.Run("idle_actions_execution", func(t *testing.T) {
+		testIdleActionsExecution(t, client, ctx)
+	})
+
+	t.Run("idle_reporting_and_history", func(t *testing.T) {
+		testIdleReportingAndHistory(t, client, ctx)
+	})
+}
+
+// TestProjectManagementIntegration tests project management API methods
+func TestProjectManagementIntegration(t *testing.T) {
+	server := createProjectAPITestServer()
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	ctx := context.Background()
+
+	t.Run("project_lifecycle_management", func(t *testing.T) {
+		testProjectLifecycleManagement(t, client, ctx)
+	})
+
+	t.Run("project_member_management", func(t *testing.T) {
+		testProjectMemberManagement(t, client, ctx)
+	})
+
+	t.Run("project_budget_operations", func(t *testing.T) {
+		testProjectBudgetOperations(t, client, ctx)
+	})
+}
+
+// Helper functions for idle detection testing
+
+func createIdleAPITestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		routes := getIdleAPIRoutes()
+		for _, route := range routes {
+			if route.matches(r) {
+				w.WriteHeader(route.status)
+				if route.response != "" {
+					_, _ = fmt.Fprint(w, route.response)
+				}
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+}
+
+type apiRoute struct {
+	method   string
+	path     string
+	pathFunc func(string) bool
+	status   int
+	response string
+}
+
+func (r apiRoute) matches(req *http.Request) bool {
+	if req.Method != r.method {
+		return false
+	}
+	if r.pathFunc != nil {
+		return r.pathFunc(req.URL.Path)
+	}
+	return req.URL.Path == r.path
+}
+
+func getIdleAPIRoutes() []apiRoute {
+	return []apiRoute{
+		{"GET", "/api/v1/idle/status", nil, http.StatusOK, `{"enabled": true, "active_profiles": 2}`},
+		{"POST", "/api/v1/idle/enable", nil, http.StatusOK, ""},
+		{"POST", "/api/v1/idle/disable", nil, http.StatusOK, ""},
+		{"GET", "/api/v1/idle/policies", nil, http.StatusOK, `[{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}]`},
+		{"GET", "", func(path string) bool { return strings.HasPrefix(path, "/api/v1/idle/policies/") }, http.StatusOK, `{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}`},
+		{"POST", "/api/v1/idle/policies/apply", nil, http.StatusOK, ""},
+		{"POST", "/api/v1/idle/policies/remove", nil, http.StatusOK, ""},
+		{"GET", "", func(path string) bool { return strings.HasPrefix(path, "/api/v1/instances/") && strings.HasSuffix(path, "/idle-policies") }, http.StatusOK, `[{"id": "batch", "name": "batch", "idle_minutes": 60, "action": "hibernate"}]`},
+		{"GET", "/api/v1/idle/pending-actions", nil, http.StatusOK, `[{"instance_name": "test", "action": "hibernate"}]`},
+		{"POST", "/api/v1/idle/execute-actions", nil, http.StatusOK, `{"executed": 1, "errors": [], "total": 1}`},
+		{"GET", "/api/v1/idle/history", nil, http.StatusOK, `[{"instance_name": "test", "action": "hibernate", "timestamp": "2024-01-01T00:00:00Z"}]`},
+		{"GET", "", func(path string) bool { return strings.HasPrefix(path, "/api/v1/idle/savings") }, http.StatusOK, `{"total_saved": 100.50, "period": "7d", "instances": 5}`},
+	}
+}
+
+func testIdlePolicyManagement(t *testing.T, client *Client, ctx context.Context) {
+	// Test list policies
 	policies, err := client.ListIdlePolicies(ctx)
 	assert.NoError(t, err)
 	assert.NotNil(t, policies)
 	assert.Greater(t, len(policies), 0)
 
-	// Apply an idle policy
-	err = client.ApplyIdlePolicy(ctx, "test-instance", "batch")
-	assert.NoError(t, err)
-
-	// Get idle policy by ID
+	// Test get policy by ID
 	policy, err := client.GetIdlePolicy(ctx, "batch")
 	assert.NoError(t, err)
 	assert.NotNil(t, policy)
 
-	// Get instance idle policies
+	// Test policy application and removal
+	policyTests := []struct {
+		action   string
+		testFunc func() error
+	}{
+		{"apply", func() error { return client.ApplyIdlePolicy(ctx, "test-instance", "batch") }},
+		{"remove", func() error { return client.RemoveIdlePolicy(ctx, "test-instance", "batch") }},
+	}
+
+	for _, test := range policyTests {
+		t.Run("policy_"+test.action, func(t *testing.T) {
+			err := test.testFunc()
+			assert.NoError(t, err)
+		})
+	}
+
+	// Test get instance policies
 	instancePolicies, err := client.GetInstanceIdlePolicies(ctx, "test-instance")
 	assert.NoError(t, err)
 	assert.NotNil(t, instancePolicies)
+}
 
-	// Remove idle policy
-	err = client.RemoveIdlePolicy(ctx, "test-instance", "batch")
-	assert.NoError(t, err)
-
-	// Get idle savings report
-	report, err := client.GetIdleSavingsReport(ctx, "7d")
-	assert.NoError(t, err)
-	assert.NotNil(t, report)
-
+func testIdleActionsExecution(t *testing.T, client *Client, ctx context.Context) {
+	// Test pending actions
 	pendingActions, err := client.GetIdlePendingActions(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, pendingActions, 1)
 
+	// Test action execution
 	execResp, err := client.ExecuteIdleActions(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, execResp.Executed)
+}
 
+func testIdleReportingAndHistory(t *testing.T, client *Client, ctx context.Context) {
+	// Test savings report
+	report, err := client.GetIdleSavingsReport(ctx, "7d")
+	assert.NoError(t, err)
+	assert.NotNil(t, report)
+
+	// Test action history
 	history, err := client.GetIdleHistory(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, history, 1)
 }
 
-// TestProjectManagementIntegration tests project management API methods
-func TestProjectManagementIntegration(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// Helper functions for project management testing
+
+func createProjectAPITestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		switch {
-		case r.URL.Path == "/api/v1/projects" && r.Method == "POST":
-			w.WriteHeader(http.StatusCreated)
-			_, _ = fmt.Fprint(w, `{"id": "proj-123", "name": "test-project", "status": "active"}`)
-		case r.URL.Path == "/api/v1/projects" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"projects": [{"id": "proj-123", "name": "test-project"}], "total": 1}`)
-		case r.URL.Path == "/api/v1/projects/proj-123" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"id": "proj-123", "name": "test-project", "status": "active"}`)
-		case r.URL.Path == "/api/v1/projects/proj-123" && r.Method == "PUT":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"id": "proj-123", "name": "updated-project", "status": "active"}`)
-		case r.URL.Path == "/api/v1/projects/proj-123" && r.Method == "DELETE":
-			w.WriteHeader(http.StatusNoContent)
-		case r.URL.Path == "/api/v1/projects/proj-123/members" && r.Method == "POST":
-			w.WriteHeader(http.StatusCreated)
-		case r.URL.Path == "/api/v1/projects/proj-123/members/user-456" && r.Method == "PUT":
-			w.WriteHeader(http.StatusOK)
-		case r.URL.Path == "/api/v1/projects/proj-123/members/user-456" && r.Method == "DELETE":
-			w.WriteHeader(http.StatusNoContent)
-		case r.URL.Path == "/api/v1/projects/proj-123/members" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `[{"user_id": "user-456", "role": "member"}]`)
-		case r.URL.Path == "/api/v1/projects/proj-123/budget" && r.Method == "GET":
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprint(w, `{"total_budget": 1000, "used_budget": 250}`)
-		default:
-			w.WriteHeader(http.StatusNotFound)
+		routes := getProjectAPIRoutes()
+		for _, route := range routes {
+			if route.matches(r) {
+				w.WriteHeader(route.status)
+				if route.response != "" {
+					_, _ = fmt.Fprint(w, route.response)
+				}
+				return
+			}
 		}
+		w.WriteHeader(http.StatusNotFound)
 	}))
-	defer server.Close()
+}
 
-	client := NewClient(server.URL)
-	ctx := context.Background()
+func getProjectAPIRoutes() []apiRoute {
+	return []apiRoute{
+		{"POST", "/api/v1/projects", nil, http.StatusCreated, `{"id": "proj-123", "name": "test-project", "status": "active"}`},
+		{"GET", "/api/v1/projects", nil, http.StatusOK, `{"projects": [{"id": "proj-123", "name": "test-project"}], "total": 1}`},
+		{"GET", "/api/v1/projects/proj-123", nil, http.StatusOK, `{"id": "proj-123", "name": "test-project", "status": "active"}`},
+		{"PUT", "/api/v1/projects/proj-123", nil, http.StatusOK, `{"id": "proj-123", "name": "updated-project", "status": "active"}`},
+		{"DELETE", "/api/v1/projects/proj-123", nil, http.StatusNoContent, ""},
+		{"POST", "/api/v1/projects/proj-123/members", nil, http.StatusCreated, ""},
+		{"PUT", "/api/v1/projects/proj-123/members/user-456", nil, http.StatusOK, ""},
+		{"DELETE", "/api/v1/projects/proj-123/members/user-456", nil, http.StatusNoContent, ""},
+		{"GET", "/api/v1/projects/proj-123/members", nil, http.StatusOK, `[{"user_id": "user-456", "role": "member"}]`},
+		{"GET", "/api/v1/projects/proj-123/budget", nil, http.StatusOK, `{"total_budget": 1000, "used_budget": 250}`},
+	}
+}
 
-	// Test project operations
+func testProjectLifecycleManagement(t *testing.T, client *Client, ctx context.Context) {
+	// Create project
 	createReq := project.CreateProjectRequest{
 		Name:        "test-project",
 		Description: "Test project",
@@ -574,14 +565,17 @@ func TestProjectManagementIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-project", proj.Name)
 
+	// List projects
 	projects, err := client.ListProjects(ctx, nil)
 	assert.NoError(t, err)
 	assert.Len(t, projects.Projects, 1)
 
+	// Get project
 	retrievedProj, err := client.GetProject(ctx, "proj-123")
 	assert.NoError(t, err)
 	assert.Equal(t, "proj-123", retrievedProj.ID)
 
+	// Update project
 	updateReq := project.UpdateProjectRequest{
 		Name: func() *string { s := "updated-project"; return &s }(),
 	}
@@ -589,31 +583,143 @@ func TestProjectManagementIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "updated-project", updatedProj.Name)
 
+	// Delete project
 	err = client.DeleteProject(ctx, "proj-123")
 	assert.NoError(t, err)
+}
 
-	// Test member operations
-	addMemberReq := project.AddMemberRequest{
-		UserID: "user-456",
-		Role:   "member",
+func testProjectMemberManagement(t *testing.T, client *Client, ctx context.Context) {
+	memberOperations := []struct {
+		name string
+		op   func() error
+	}{
+		{"add_member", func() error {
+			return client.AddProjectMember(ctx, "proj-123", project.AddMemberRequest{
+				UserID: "user-456",
+				Role:   "member",
+			})
+		}},
+		{"update_member", func() error {
+			return client.UpdateProjectMember(ctx, "proj-123", "user-456", project.UpdateMemberRequest{
+				Role: "admin",
+			})
+		}},
+		{"remove_member", func() error {
+			return client.RemoveProjectMember(ctx, "proj-123", "user-456")
+		}},
 	}
-	err = client.AddProjectMember(ctx, "proj-123", addMemberReq)
-	assert.NoError(t, err)
 
-	updateMemberReq := project.UpdateMemberRequest{
-		Role: "admin",
+	for _, op := range memberOperations {
+		t.Run(op.name, func(t *testing.T) {
+			err := op.op()
+			assert.NoError(t, err)
+		})
 	}
-	err = client.UpdateProjectMember(ctx, "proj-123", "user-456", updateMemberReq)
-	assert.NoError(t, err)
 
-	err = client.RemoveProjectMember(ctx, "proj-123", "user-456")
-	assert.NoError(t, err)
-
+	// Get members
 	members, err := client.GetProjectMembers(ctx, "proj-123")
 	assert.NoError(t, err)
 	assert.Len(t, members, 1)
+}
 
+func testProjectBudgetOperations(t *testing.T, client *Client, ctx context.Context) {
 	budgetStatus, err := client.GetProjectBudgetStatus(ctx, "proj-123")
 	assert.NoError(t, err)
 	assert.Equal(t, float64(1000), budgetStatus.TotalBudget)
+}
+
+// Helper functions for instance management testing
+
+func createInstanceAPITestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		routes := getInstanceAPIRoutes()
+		for _, route := range routes {
+			if route.matches(r) {
+				w.WriteHeader(route.status)
+				if route.response != "" {
+					_, _ = fmt.Fprint(w, route.response)
+				}
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+}
+
+func getInstanceAPIRoutes() []apiRoute {
+	return []apiRoute{
+		{"POST", "/api/v1/instances", nil, http.StatusCreated, `{"instance": {"name": "test-instance", "id": "i-123"}, "message": "Instance launched"}`},
+		{"GET", "/api/v1/instances", nil, http.StatusOK, `{"instances": [{"id": "i-123", "name": "test-instance", "state": "running"}]}`},
+		{"GET", "/api/v1/instances/test-instance", nil, http.StatusOK, `{"id": "i-123", "name": "test-instance", "state": "running"}`},
+		{"POST", "/api/v1/instances/test-instance/start", nil, http.StatusOK, ""},
+		{"POST", "/api/v1/instances/test-instance/stop", nil, http.StatusOK, ""},
+		{"POST", "/api/v1/instances/test-instance/hibernate", nil, http.StatusOK, ""},
+		{"POST", "/api/v1/instances/test-instance/resume", nil, http.StatusOK, ""},
+		{"GET", "/api/v1/instances/test-instance/hibernation-status", nil, http.StatusOK, `{"hibernation_supported": true, "is_hibernated": false, "instance_name": "test-instance"}`},
+		{"DELETE", "/api/v1/instances/test-instance", nil, http.StatusNoContent, ""},
+		{"GET", "/api/v1/instances/test-instance/connect", nil, http.StatusOK, `{"connection_info": "ssh user@1.2.3.4"}`},
+	}
+}
+
+func testInstanceLifecycleOperations(t *testing.T, client *Client, ctx context.Context) {
+	// Launch instance
+	launchReq := types.LaunchRequest{
+		Name:     "test-instance",
+		Template: "python-ml",
+	}
+	launchResp, err := client.LaunchInstance(ctx, launchReq)
+	assert.NoError(t, err)
+	assert.Equal(t, "test-instance", launchResp.Instance.Name)
+
+	// List instances
+	listResp, err := client.ListInstances(ctx)
+	assert.NoError(t, err)
+	assert.NotNil(t, listResp)
+
+	// Get instance
+	instance, err := client.GetInstance(ctx, "test-instance")
+	assert.NoError(t, err)
+	assert.Equal(t, "test-instance", instance.Name)
+
+	// Delete instance
+	err = client.DeleteInstance(ctx, "test-instance")
+	assert.NoError(t, err)
+}
+
+func testInstancePowerManagement(t *testing.T, client *Client, ctx context.Context) {
+	powerOperations := []struct {
+		name string
+		op   func() error
+	}{
+		{"start", func() error { return client.StartInstance(ctx, "test-instance") }},
+		{"stop", func() error { return client.StopInstance(ctx, "test-instance") }},
+	}
+
+	for _, op := range powerOperations {
+		t.Run(op.name, func(t *testing.T) {
+			err := op.op()
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func testInstanceHibernationAndConnection(t *testing.T, client *Client, ctx context.Context) {
+	// Test hibernation operations
+	err := client.HibernateInstance(ctx, "test-instance")
+	assert.NoError(t, err)
+
+	err = client.ResumeInstance(ctx, "test-instance")
+	assert.NoError(t, err)
+
+	// Test hibernation status
+	hibStatus, err := client.GetInstanceHibernationStatus(ctx, "test-instance")
+	assert.NoError(t, err)
+	assert.True(t, hibStatus.HibernationSupported)
+
+	// Test connection
+	connInfo, err := client.ConnectInstance(ctx, "test-instance")
+	assert.NoError(t, err)
+	assert.Equal(t, "ssh user@1.2.3.4", connInfo)
 }
