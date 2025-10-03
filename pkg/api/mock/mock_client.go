@@ -283,7 +283,7 @@ func (m *MockClient) applySizeAdjustments(baseCost float64, size string) float64
 	sizeMultipliers := map[string]float64{
 		"XS":    0.5,
 		"S":     0.75,
-		"M":     1.0,  // Base size, no adjustment
+		"M":     1.0, // Base size, no adjustment
 		"L":     2.0,
 		"XL":    4.0,
 		"GPU-S": 0.75, // Absolute cost for GPU instances

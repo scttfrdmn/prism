@@ -1825,24 +1825,24 @@ func (m *Manager) getBaseInstancePrice(instanceType string) float64 {
 func (m *Manager) getInstanceBasePrices() map[string]float64 {
 	return map[string]float64{
 		// General Purpose
-		"t3.micro":    0.0104,
-		"t3.small":    0.0208,
-		"t3.medium":   0.0416,
-		"t3.large":    0.0832,
-		"t3.xlarge":   0.1664,
-		"t3.2xlarge":  0.3328,
+		"t3.micro":   0.0104,
+		"t3.small":   0.0208,
+		"t3.medium":  0.0416,
+		"t3.large":   0.0832,
+		"t3.xlarge":  0.1664,
+		"t3.2xlarge": 0.3328,
 
 		// Compute Optimized
-		"c5.large":    0.085,
-		"c5.xlarge":   0.17,
-		"c5.2xlarge":  0.34,
-		"c5.4xlarge":  0.68,
+		"c5.large":   0.085,
+		"c5.xlarge":  0.17,
+		"c5.2xlarge": 0.34,
+		"c5.4xlarge": 0.68,
 
 		// Memory Optimized
-		"r5.large":    0.126,
-		"r5.xlarge":   0.252,
-		"r5.2xlarge":  0.504,
-		"r5.4xlarge":  1.008,
+		"r5.large":   0.126,
+		"r5.xlarge":  0.252,
+		"r5.2xlarge": 0.504,
+		"r5.4xlarge": 1.008,
 
 		// GPU Instances
 		"g4dn.xlarge":  0.526,
