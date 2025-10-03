@@ -10,6 +10,9 @@ afterEach(() => {
   cleanup();
 });
 
+// Global React act() warning handler for test environment
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
 // Mock window.matchMedia for Cloudscape components
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
