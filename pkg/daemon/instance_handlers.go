@@ -98,7 +98,18 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	var req types.LaunchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeError(w, http.StatusBadRequest, "Invalid request body")
+		s.writeError(w, http.StatusBadRequest, "Invalid JSON request body")
+		return
+	}
+
+	// Validate required fields
+	if req.Template == "" {
+		s.writeError(w, http.StatusBadRequest, "Missing required field: template")
+		return
+	}
+
+	if req.Name == "" {
+		s.writeError(w, http.StatusBadRequest, "Missing required field: name")
 		return
 	}
 
@@ -333,6 +344,18 @@ func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, name
 		return
 	}
 
+	// Validate instance exists before attempting AWS operation
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+		return
+	}
+
+	if _, exists := state.Instances[name]; !exists {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		return awsManager.StopInstance(name)
 	})
@@ -344,6 +367,18 @@ func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, name
 func (s *Server) handleHibernateInstance(w http.ResponseWriter, r *http.Request, name string) {
 	if r.Method != http.MethodPost {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// Validate instance exists before attempting AWS operation
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+		return
+	}
+
+	if _, exists := state.Instances[name]; !exists {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
 		return
 	}
 

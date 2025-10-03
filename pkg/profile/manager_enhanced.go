@@ -339,7 +339,7 @@ func GetProfileFromContext(ctx context.Context) (*Profile, bool) {
 
 // Helper function to create a valid profile ID from a name
 func createProfileID(name string) string {
-	// This would have more logic in a real implementation to create
-	// a valid identifier from the name (lowercase, replace spaces, etc.)
-	return "profile-" + fmt.Sprint(time.Now().UnixNano())
+	// Use the profile name directly as the ID for simplicity
+	// This allows retrieval by name as expected by the tests
+	return name
 }
