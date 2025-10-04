@@ -102,40 +102,14 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
-	if req.Template == "" {
-		s.writeError(w, http.StatusBadRequest, "Missing required field: template")
-		return
+	// Validate the launch request
+	if err := s.validateLaunchRequest(&req, w); err != nil {
+		return // Error response already written by validateLaunchRequest
 	}
 
-	if req.Name == "" {
-		s.writeError(w, http.StatusBadRequest, "Missing required field: name")
-		return
-	}
-
-	// Validate that instance name is unique
-	var nameExists bool
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		instances, err := awsManager.ListInstances()
-		if err != nil {
-			return fmt.Errorf("failed to check existing instances: %w", err)
-		}
-
-		for _, existingInstance := range instances {
-			if existingInstance.Name == req.Name {
-				// Check if instance is in a terminal state (terminated/terminating)
-				if existingInstance.State != "terminated" && existingInstance.State != "terminating" {
-					nameExists = true
-					break
-				}
-			}
-		}
-		return nil
-	})
-
-	if nameExists {
-		s.writeError(w, http.StatusConflict, fmt.Sprintf("Instance with name '%s' already exists. Please choose a different name.", req.Name))
-		return
+	// Check instance name uniqueness
+	if s.checkInstanceNameUniqueness(&req, w, r) {
+		return // Error response already written if name exists
 	}
 
 	// Handle SSH key management if not provided in request
@@ -281,7 +255,7 @@ func (s *Server) handleIdlePolicyOperation(w http.ResponseWriter, r *http.Reques
 }
 
 // handleGetInstance gets details of a specific instance
-func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleGetInstance(w http.ResponseWriter, _ *http.Request, name string) {
 	state, err := s.stateManager.LoadState()
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
@@ -489,7 +463,7 @@ func (s *Server) setupSSHKeyForLaunch(req *types.LaunchRequest) error {
 }
 
 // ensureSSHKeyInAWS ensures the SSH key exists in AWS
-func (s *Server) ensureSSHKeyInAWS(awsManager *aws.Manager, req *types.LaunchRequest) error {
+func (s *Server) ensureSSHKeyInAWS(awsManager *aws.Manager, _ *types.LaunchRequest) error {
 	// Get current profile
 	profileManager, err := profile.NewManagerEnhanced()
 	if err != nil {
@@ -526,4 +500,70 @@ func (s *Server) ensureSSHKeyInAWS(awsManager *aws.Manager, req *types.LaunchReq
 	}
 
 	return nil
+}
+
+// validateLaunchRequest validates the launch request and writes error response if needed
+// Returns nil if validation passes, error if validation fails (response already written)
+func (s *Server) validateLaunchRequest(req *types.LaunchRequest, w http.ResponseWriter) error {
+	// Validate required fields
+	if req.Template == "" {
+		s.writeError(w, http.StatusBadRequest, "Missing required field: template")
+		return fmt.Errorf("missing template")
+	}
+
+	if req.Name == "" {
+		s.writeError(w, http.StatusBadRequest, "Missing required field: name")
+		return fmt.Errorf("missing name")
+	}
+
+	// Validate instance size if provided
+	if req.Size != "" {
+		if err := s.validateInstanceSize(req.Size, w); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateInstanceSize validates the instance size parameter
+func (s *Server) validateInstanceSize(size string, w http.ResponseWriter) error {
+	validSizes := []string{"XS", "S", "M", "L", "XL", "GPU-S", "GPU-M", "GPU-L", "GPU-XL"}
+	for _, validSize := range validSizes {
+		if size == validSize {
+			return nil
+		}
+	}
+
+	s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid size '%s'. Valid sizes: %v", size, validSizes))
+	return fmt.Errorf("invalid size")
+}
+
+// checkInstanceNameUniqueness checks if the instance name is already taken
+// Returns true if name exists (not available), false if available
+func (s *Server) checkInstanceNameUniqueness(req *types.LaunchRequest, w http.ResponseWriter, r *http.Request) bool {
+	var nameExists bool
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		instances, err := awsManager.ListInstances()
+		if err != nil {
+			return fmt.Errorf("failed to check existing instances: %w", err)
+		}
+
+		for _, existingInstance := range instances {
+			if existingInstance.Name == req.Name {
+				// Check if instance is in a terminal state (terminated/terminating)
+				if existingInstance.State != "terminated" && existingInstance.State != "terminating" {
+					nameExists = true
+					break
+				}
+			}
+		}
+		return nil
+	})
+
+	if nameExists {
+		s.writeError(w, http.StatusConflict, fmt.Sprintf("Instance with name '%s' already exists. Please choose a different name.", req.Name))
+		return true
+	}
+	return false
 }

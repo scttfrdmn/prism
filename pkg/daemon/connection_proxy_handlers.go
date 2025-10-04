@@ -51,7 +51,9 @@ func (s *Server) handleSSHProxy(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusInternalServerError, "WebSocket upgrade failed: "+err.Error())
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	// TODO: Implement SSH connection multiplexing
 	// This is a placeholder - actual implementation will:
@@ -104,7 +106,7 @@ func (s *Server) handleDCVProxy(w http.ResponseWriter, r *http.Request) {
 
 	// Placeholder response
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `
+	_, _ = fmt.Fprintf(w, `
 		<html>
 			<head><title>DCV Proxy - %s</title></head>
 			<body>
@@ -203,7 +205,7 @@ func (s *Server) handleWebProxy(w http.ResponseWriter, r *http.Request) {
 
 	// Placeholder response
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `
+	_, _ = fmt.Fprintf(w, `
 		<html>
 			<head><title>Web Proxy - %s</title></head>
 			<body>

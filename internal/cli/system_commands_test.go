@@ -460,7 +460,7 @@ func TestDaemonConfigFileOperations(t *testing.T) {
 	// Create temporary directory for config testing
 	tempDir, err := os.MkdirTemp("", "cws-test-config-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	mockClient := NewMockAPIClient()
 	app := NewAppWithClient("1.0.0", mockClient)

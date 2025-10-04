@@ -314,11 +314,11 @@ func createZipArchive(sourceDir, outputPath, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer func() { _ = outFile.Close() }()
+	defer outFile.Close()
 
 	// Create zip writer
 	zipWriter := zip.NewWriter(outFile)
-	defer func() { _ = zipWriter.Close() }()
+	defer zipWriter.Close()
 
 	// Walk through the source directory
 	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
@@ -348,7 +348,7 @@ func createZipArchive(sourceDir, outputPath, password string) error {
 		if err != nil {
 			return fmt.Errorf("failed to open source file: %w", err)
 		}
-		defer func() { _ = srcFile.Close() }()
+		defer srcFile.Close()
 
 		// Copy file content
 		_, err = io.Copy(zipFile, srcFile)
@@ -367,7 +367,7 @@ func extractZipArchive(zipPath, outputDir, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open zip file: %w", err)
 	}
-	defer func() { _ = reader.Close() }()
+	defer reader.Close()
 
 	// Extract files
 	for _, file := range reader.File {
@@ -417,14 +417,14 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
 	}
-	defer func() { _ = srcFile.Close() }()
+	defer srcFile.Close()
 
 	// Create destination file
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer func() { _ = dstFile.Close() }()
+	defer dstFile.Close()
 
 	// Copy content
 	_, err = io.Copy(dstFile, srcFile)

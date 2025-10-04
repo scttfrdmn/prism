@@ -30,7 +30,7 @@ func (s *Server) handleGetCostAlerts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"alerts": alerts,
 		"count":  len(alerts),
 	})
@@ -41,7 +41,7 @@ func (s *Server) handleGetActiveAlerts(w http.ResponseWriter, r *http.Request) {
 	alerts := s.alertManager.GetActiveAlerts()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"alerts": alerts,
 		"count":  len(alerts),
 	})
@@ -64,7 +64,7 @@ func (s *Server) handleAcknowledgeAlert(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":   "success",
 		"alert_id": alertID,
 	})
@@ -87,7 +87,7 @@ func (s *Server) handleResolveAlert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":   "success",
 		"alert_id": alertID,
 	})
@@ -107,7 +107,7 @@ func (s *Server) handleAddAlertRule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status":  "success",
 		"rule_id": rule.ID,
 	})
@@ -133,7 +133,7 @@ func (s *Server) handleGetOptimizationReport(w http.ResponseWriter, r *http.Requ
 	report := optimizer.GenerateOptimizationReport(projectID, instances)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(report)
+	_ = json.NewEncoder(w).Encode(report)
 }
 
 // handleGetRecommendations returns optimization recommendations
@@ -168,7 +168,7 @@ func (s *Server) handleGetRecommendations(w http.ResponseWriter, r *http.Request
 	totalSavings := optimizer.CalculateTotalSavings(recommendations)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"recommendations": recommendations,
 		"count":           len(recommendations),
 		"total_savings":   totalSavings,
@@ -197,7 +197,7 @@ func (s *Server) handleGetCostTrends(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(trends)
+	_ = json.NewEncoder(w).Encode(trends)
 }
 
 // handleGetBudgetStatus returns current budget status for a project
@@ -215,7 +215,7 @@ func (s *Server) handleGetBudgetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	_ = json.NewEncoder(w).Encode(status)
 }
 
 // handleUpdateBudgetAlert updates budget alert settings
@@ -250,7 +250,7 @@ func (s *Server) handleUpdateBudgetAlert(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "success",
 	})
 }

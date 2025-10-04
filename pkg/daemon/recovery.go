@@ -230,11 +230,11 @@ func (rm *RecoveryManager) attemptRecovery(component string, err error) {
 
 	// Check for goroutine leaks
 	if runtime.NumGoroutine() > 500 { // Threshold
-		rm.HandleGoroutineLeak()
+		_ = rm.HandleGoroutineLeak()
 	}
 
 	// Try specific error recovery
-	rm.RecoverFromError(component, err)
+	_ = rm.RecoverFromError(component, err)
 }
 
 // setupDefaultStrategies sets up default recovery strategies

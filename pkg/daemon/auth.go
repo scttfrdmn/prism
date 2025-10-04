@@ -29,7 +29,7 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGenerateAPIKey generates a new API key
-func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, _ *http.Request) {
 	// Generate a secure random API key
 	apiKeyBytes := make([]byte, 32) // 256-bit key
 	if _, err := rand.Read(apiKeyBytes); err != nil {

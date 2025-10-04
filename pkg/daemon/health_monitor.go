@@ -222,7 +222,7 @@ func (hm *HealthMonitor) HandleHealthEndpoint(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	json.NewEncoder(w).Encode(summary)
+	_ = json.NewEncoder(w).Encode(summary)
 }
 
 // HandleDetailedHealthEndpoint handles detailed health endpoint
@@ -249,7 +249,7 @@ func (hm *HealthMonitor) HandleDetailedHealthEndpoint(w http.ResponseWriter, r *
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(detailed)
+	_ = json.NewEncoder(w).Encode(detailed)
 }
 
 // performHealthChecks runs all health checks

@@ -226,7 +226,7 @@ func installService() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to service manager: %w", err)
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 
 	// Check if service already exists
 	s, err := m.OpenService(serviceName)
@@ -279,7 +279,7 @@ func removeService() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to service manager: %w", err)
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 
 	s, err := m.OpenService(serviceName)
 	if err != nil {
@@ -339,7 +339,7 @@ func startService() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to service manager: %w", err)
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 
 	s, err := m.OpenService(serviceName)
 	if err != nil {
@@ -362,7 +362,7 @@ func stopService() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to service manager: %w", err)
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 
 	s, err := m.OpenService(serviceName)
 	if err != nil {
@@ -398,7 +398,7 @@ func serviceStatus() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to service manager: %w", err)
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 
 	s, err := m.OpenService(serviceName)
 	if err != nil {

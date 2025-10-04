@@ -38,6 +38,30 @@ func testEnhancedManagerCreation(t *testing.T, manager *ManagerEnhanced) {
 
 // testProfileOperations validates core profile operations
 func testProfileOperations(t *testing.T, manager *ManagerEnhanced) {
+	// Clean up any existing test profile from previous runs
+	if manager.ProfileExists("test-enhanced-profile") {
+		// Switch away from it if it's current
+		currentProfile, err := manager.GetCurrentProfile()
+		if err == nil && currentProfile.Name == "test-enhanced-profile" {
+			// Create a minimal cleanup profile to switch to
+			cleanupProfile := Profile{
+				Type:       ProfileTypePersonal,
+				Name:       "cleanup-profile",
+				AWSProfile: "default",
+				Region:     "us-west-2",
+				Default:    false,
+				CreatedAt:  time.Now(),
+			}
+			_ = manager.AddProfile(cleanupProfile)
+			_ = manager.SwitchProfile("cleanup-profile")
+		}
+		_ = manager.RemoveProfile("test-enhanced-profile")
+		// Clean up the cleanup profile
+		if manager.ProfileExists("cleanup-profile") {
+			_ = manager.RemoveProfile("cleanup-profile")
+		}
+	}
+
 	// Test adding a profile
 	testProfile := Profile{
 		Type:       ProfileTypePersonal,
@@ -123,7 +147,27 @@ func testProfileOperations(t *testing.T, manager *ManagerEnhanced) {
 		t.Errorf("Current profile not updated: expected test-enhanced-profile, got %s", currentProfile.Name)
 	}
 
-	// Test removing profile
+	// Switch away from the profile before removing it (cannot remove active profile)
+	err = manager.SwitchProfile("default")
+	if err != nil {
+		t.Logf("Could not switch to default profile, creating temporary profile: %v", err)
+		// Create a temporary profile to switch to
+		tempProfile := Profile{
+			Type:       ProfileTypePersonal,
+			Name:       "temp-profile",
+			AWSProfile: "default",
+			Region:     "us-west-2",
+			Default:    false,
+			CreatedAt:  time.Now(),
+		}
+		_ = manager.AddProfile(tempProfile)
+		err = manager.SwitchProfile("temp-profile")
+		if err != nil {
+			t.Errorf("Failed to switch to temporary profile: %v", err)
+		}
+	}
+
+	// Test removing profile (should work now that it's not active)
 	err = manager.RemoveProfile("test-enhanced-profile")
 	if err != nil {
 		t.Errorf("Failed to remove profile: %v", err)
@@ -133,6 +177,11 @@ func testProfileOperations(t *testing.T, manager *ManagerEnhanced) {
 	exists = manager.ProfileExists("test-enhanced-profile")
 	if exists {
 		t.Error("Profile should not exist after removal")
+	}
+
+	// Clean up temporary profile if created
+	if manager.ProfileExists("temp-profile") {
+		_ = manager.RemoveProfile("temp-profile")
 	}
 
 	t.Log("Profile operations validated")

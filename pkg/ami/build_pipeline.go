@@ -460,7 +460,7 @@ func (i *InstanceDetailsStep) Execute(ctx context.Context, pipeline *InstanceSav
 	p.instanceDetails = instanceDetails
 	instance := instanceDetails.Reservations[0].Instances[0]
 	p.result.Architecture = string(instance.Architecture)
-	p.result.Region = string(p.builder.EC2Client.Options().Region)
+	p.result.Region = p.builder.EC2Client.Options().Region
 
 	fmt.Printf("✅ Instance: %s | Architecture: %s | Region: %s\n",
 		p.request.InstanceID, p.result.Architecture, p.result.Region)

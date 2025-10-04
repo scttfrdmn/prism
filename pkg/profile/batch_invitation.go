@@ -326,7 +326,7 @@ func (m *BatchInvitationManager) CreateBatchInvitationsFromCSVFile(
 	if err != nil {
 		return nil, fmt.Errorf("failed to open CSV file: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	defer file.Close()
 
 	// Import invitations from CSV
 	invitations, err := m.ImportBatchInvitationsFromCSV(file, hasHeader)
@@ -350,7 +350,7 @@ func (m *BatchInvitationManager) ExportBatchInvitationsToCSVFile(
 	if err != nil {
 		return fmt.Errorf("failed to create CSV file: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	defer file.Close()
 
 	// Export invitations to CSV
 	return m.ExportBatchInvitationsToCSV(file, results, includeEncodedData)

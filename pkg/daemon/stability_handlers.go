@@ -141,7 +141,7 @@ func (s *Server) handleCircuitBreakers(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetCircuitBreakers returns all circuit breaker statuses
-func (s *Server) handleGetCircuitBreakers(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleGetCircuitBreakers(w http.ResponseWriter, _ *http.Request) {
 	circuitBreakers := s.stabilityManager.GetCircuitBreakerStatus()
 
 	// Calculate summary statistics
@@ -260,11 +260,11 @@ func (s *Server) parseRecoveryRequest(r *http.Request) (*recoveryRequest, error)
 	var request recoveryRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		return nil, fmt.Errorf("Invalid request body")
+		return nil, fmt.Errorf("invalid request body")
 	}
 
 	if request.Operation == "" {
-		return nil, fmt.Errorf("Recovery operation is required")
+		return nil, fmt.Errorf("recovery operation is required")
 	}
 
 	return &request, nil

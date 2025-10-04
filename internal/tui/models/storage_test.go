@@ -327,8 +327,7 @@ func TestStorageModelKeyboardNavigation(t *testing.T) {
 		assert.Equal(t, 0, model.selectedTab)
 
 		// Press tab to switch to storage
-		tabMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}, Alt: false}
-		tabMsg = tea.KeyMsg{Type: tea.KeyTab}
+		tabMsg := tea.KeyMsg{Type: tea.KeyTab}
 		newModel, _ := model.Update(tabMsg)
 		storageModel, ok := newModel.(StorageModel)
 		require.True(t, ok)
@@ -376,7 +375,7 @@ func TestStorageModelKeyboardNavigation(t *testing.T) {
 
 		// Test mount key (should show mount dialog if conditions are met)
 		mountMsg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}}
-		newModel, _ = model.Update(mountMsg)
+		_, _ = model.Update(mountMsg)
 		// Note: Mount dialog behavior depends on selection and state
 	})
 
@@ -591,7 +590,7 @@ func TestStorageMountOperations(t *testing.T) {
 		require.True(t, ok)
 
 		assert.False(t, storageModel.showMountDialog)
-		assert.Nil(t, cmd)
+		assert.NotNil(t, cmd) // Should refresh data after successful mount
 		// Status bar should reflect success (implementation detail)
 	})
 
@@ -628,7 +627,7 @@ func TestStorageMountOperations(t *testing.T) {
 		_, ok := newModel.(StorageModel)
 		require.True(t, ok)
 
-		assert.Nil(t, cmd)
+		assert.NotNil(t, cmd) // Should refresh data after successful unmount
 		// Should handle unmount success appropriately
 	})
 }

@@ -137,7 +137,7 @@ func TestAPIKeyGeneration(t *testing.T) {
 // TestAuthenticationMiddleware tests authentication context propagation
 func TestAuthenticationMiddleware(t *testing.T) {
 	tests := []struct {
-		name               string
+		name                string
 		setupAuthentication func(req *http.Request)
 		expectAuthenticated bool
 		description         string

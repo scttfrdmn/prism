@@ -5,7 +5,7 @@ $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
 
 # Test channel configuration - uncomment for test releases
 $preRelease = $env:CHOCOLATEY_PRERELEASE -eq 'true'
-$version = if ($preRelease) { '0.4.1-beta' } else { '0.4.1' }
+$version = if ($preRelease) { '0.5.1-beta' } else { '0.5.1' }
 $repoPath = if ($preRelease) { 'releases-dev' } else { 'releases' }
 
 $url = "https://github.com/scttfrdmn/cloudworkstation/$repoPath/download/v$version/cws-windows-amd64.zip"

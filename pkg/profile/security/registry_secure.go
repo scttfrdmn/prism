@@ -205,7 +205,7 @@ func (c *SecureRegistryClient) RegisterDevice(invitationToken, deviceID string) 
 		_ = c.saveLocalRegistration(invitationToken, deviceID, payload)
 		return fmt.Errorf("secure registration request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	// Validate response
 	if err := c.validator.ValidateResponse(resp); err != nil {

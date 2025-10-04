@@ -186,7 +186,7 @@ func setupRegistryClient(t *testing.T) security.RegistryClient {
 		t.Fatalf("Failed to create registry client: %v", err)
 	}
 
-	return registry
+	return *registry
 }
 
 func testDeviceRegistrationAndValidation(t *testing.T, registry security.RegistryClient, invitationToken, deviceID string) {

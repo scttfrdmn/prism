@@ -310,7 +310,7 @@ func TestVolumeManagementWorkflow(t *testing.T) {
 	assert.Error(t, err)
 
 	// Cleanup instance
-	client.DeleteInstance(ctx, launchResp.Instance.Name)
+	_ = client.DeleteInstance(ctx, launchResp.Instance.Name)
 }
 
 // TestStorageManagementWorkflow tests EBS storage operations
@@ -350,7 +350,7 @@ func TestStorageManagementWorkflow(t *testing.T) {
 			assert.Equal(t, "gp3", storage.VolumeType)
 
 			// Cleanup
-			client.DeleteStorage(ctx, testStorageName)
+			_ = client.DeleteStorage(ctx, testStorageName)
 		})
 	}
 }

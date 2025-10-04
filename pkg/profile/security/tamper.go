@@ -214,7 +214,7 @@ func (t *TamperProtection) calculateFileMetadata(filePath string) (*FileMetadata
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	defer file.Close()
 
 	// Calculate SHA-256 checksum
 	hasher := sha256.New()

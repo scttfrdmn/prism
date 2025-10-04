@@ -330,7 +330,7 @@ func TestSSHFileTransfer(t *testing.T) {
 	// Create temp directory for testing
 	tmpDir, err := os.MkdirTemp("", "cws-ssh-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create test file
 	testFile := filepath.Join(tmpDir, "test.txt")

@@ -97,7 +97,7 @@ func NewConnectionManagerWithPolicy(monitor *monitoring.PerformanceMonitor, poli
 // ConnectWithRetry attempts to connect with exponential backoff retry
 func (cm *ConnectionManager) ConnectWithRetry(ctx context.Context, target string, port int) (*ConnectionResult, error) {
 	timer := cm.monitor.StartOperation("connection_attempt")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	address := fmt.Sprintf("%s:%d", target, port)
 
@@ -150,7 +150,7 @@ func (cm *ConnectionManager) ConnectWithRetry(ctx context.Context, target string
 // TestPortAvailability tests if a port is available on the target
 func (cm *ConnectionManager) TestPortAvailability(ctx context.Context, target string, port int, timeout time.Duration) error {
 	timer := cm.monitor.StartOperation("port_test")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	address := fmt.Sprintf("%s:%d", target, port)
 
@@ -175,7 +175,7 @@ func (cm *ConnectionManager) TestPortAvailability(ctx context.Context, target st
 // WaitForPortAvailability waits for a port to become available
 func (cm *ConnectionManager) WaitForPortAvailability(ctx context.Context, target string, port int, maxWait time.Duration) error {
 	timer := cm.monitor.StartOperation("port_wait")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	timeout := time.NewTimer(maxWait)
 	defer timeout.Stop()
@@ -203,7 +203,7 @@ func (cm *ConnectionManager) WaitForPortAvailability(ctx context.Context, target
 // HealthCheckSSH performs an SSH health check
 func (cm *ConnectionManager) HealthCheckSSH(ctx context.Context, target string, port int) (*HealthResult, error) {
 	timer := cm.monitor.StartOperation("ssh_health_check")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	startTime := time.Now()
 
@@ -233,7 +233,7 @@ func (cm *ConnectionManager) HealthCheckSSH(ctx context.Context, target string, 
 // HealthCheckHTTP performs an HTTP health check
 func (cm *ConnectionManager) HealthCheckHTTP(ctx context.Context, target string, port int, path string) (*HealthResult, error) {
 	timer := cm.monitor.StartOperation("http_health_check")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	startTime := time.Now()
 

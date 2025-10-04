@@ -133,6 +133,7 @@ func (c *HTTPClient) Ping(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -142,6 +143,7 @@ func (c *HTTPClient) Shutdown(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -151,6 +153,7 @@ func (c *HTTPClient) GetStatus(ctx context.Context) (*types.DaemonStatus, error)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var status types.DaemonStatus
 	if err := c.handleResponse(resp, &status); err != nil {
@@ -187,6 +190,7 @@ func (c *HTTPClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.LaunchResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -202,6 +206,7 @@ func (c *HTTPClient) ListInstances(ctx context.Context) (*types.ListResponse, er
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.ListResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -217,6 +222,7 @@ func (c *HTTPClient) GetInstance(ctx context.Context, name string) (*types.Insta
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.Instance
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -229,6 +235,7 @@ func (c *HTTPClient) GetInstance(ctx context.Context, name string) (*types.Insta
 // StartInstance starts a stopped instance
 func (c *HTTPClient) StartInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/start", name), nil)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -238,6 +245,7 @@ func (c *HTTPClient) StartInstance(ctx context.Context, name string) error {
 // StopInstance stops a running instance
 func (c *HTTPClient) StopInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/stop", name), nil)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -247,6 +255,7 @@ func (c *HTTPClient) StopInstance(ctx context.Context, name string) error {
 // HibernateInstance hibernates a running instance
 func (c *HTTPClient) HibernateInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/hibernate", name), nil)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -256,6 +265,7 @@ func (c *HTTPClient) HibernateInstance(ctx context.Context, name string) error {
 // ResumeInstance resumes a hibernated instance
 func (c *HTTPClient) ResumeInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/resume", name), nil)
+	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}

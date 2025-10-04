@@ -226,7 +226,7 @@ func TestDeviceRegistrationLocal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create secure registry client: %v", err)
 	}
-	defer func() { _ = client.auditLogger.Close() }()
+	defer client.auditLogger.Close()
 
 	// Test local device registration
 	invitationToken := "test-invitation-123"
@@ -256,7 +256,7 @@ func TestSecureRegistryErrorHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create secure registry client: %v", err)
 	}
-	defer func() { _ = client.auditLogger.Close() }()
+	defer client.auditLogger.Close()
 
 	// Test with invalid server (should fallback to local)
 	err = client.RegisterDevice("test-token", "test-device")
@@ -279,7 +279,7 @@ func TestSecureHTTPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create secure registry client: %v", err)
 	}
-	defer func() { _ = client.auditLogger.Close() }()
+	defer client.auditLogger.Close()
 
 	// Verify HTTP client configuration
 	if client.httpClient.Timeout != 30*time.Second {

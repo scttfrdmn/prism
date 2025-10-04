@@ -33,6 +33,7 @@ func (c *HTTPClient) GenerateAPIKey(ctx context.Context) (*types.AuthResponse, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate API key: %w", err)
 	}
+	defer resp.Body.Close() // Explicit close for static analysis
 
 	var result types.AuthResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -50,6 +51,7 @@ func (c *HTTPClient) GetAuthStatus(ctx context.Context) (*AuthStatusResponse, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to get authentication status: %w", err)
 	}
+	defer resp.Body.Close() // Explicit close for static analysis
 
 	var rawResp map[string]interface{}
 	if err := c.handleResponse(resp, &rawResp); err != nil {
@@ -84,6 +86,7 @@ func (c *HTTPClient) RevokeAPIKey(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to revoke API key: %w", err)
 	}
+	defer resp.Body.Close() // Explicit close for static analysis
 
 	if err := c.handleResponse(resp, nil); err != nil {
 		return err

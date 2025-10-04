@@ -9,7 +9,6 @@ import (
 
 // TestAWSManagerCoreOperationsUnit tests core AWS manager operations using unit testing approach
 func TestAWSManagerCoreOperationsUnit(t *testing.T) {
-
 	// Test TemplateConfigExtractor functionality
 	t.Run("template_config_extraction_success", func(t *testing.T) {
 		extractor := &TemplateConfigExtractor{region: "us-west-2"}
@@ -180,7 +179,6 @@ func validateVolumeName(name string) bool {
 
 // TestManagerIntegrationPoints tests the integration points that are most critical for users
 func TestManagerIntegrationPoints(t *testing.T) {
-
 	t.Run("user_workflow_validation", func(t *testing.T) {
 		// This test documents the key user workflows and what should be tested
 		workflows := []struct {

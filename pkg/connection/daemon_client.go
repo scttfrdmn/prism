@@ -77,7 +77,7 @@ func (dcm *DaemonConnectionManager) Start(ctx context.Context) {
 // WaitForDaemon waits for the daemon to become available
 func (dcm *DaemonConnectionManager) WaitForDaemon(ctx context.Context, maxWait time.Duration) error {
 	timer := dcm.monitor.StartOperation("daemon_wait")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	fmt.Printf("Waiting for daemon at %s to become available...\n", dcm.daemonURL)
 
@@ -94,7 +94,7 @@ func (dcm *DaemonConnectionManager) WaitForDaemon(ctx context.Context, maxWait t
 // VerifyDaemonHealth verifies the daemon is healthy via HTTP
 func (dcm *DaemonConnectionManager) VerifyDaemonHealth(ctx context.Context) error {
 	timer := dcm.monitor.StartOperation("daemon_health_verify")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	healthURL := dcm.daemonURL + "/api/v1/health"
 
@@ -132,7 +132,7 @@ func (dcm *DaemonConnectionManager) IsHealthy() bool {
 // MakeRequestWithRetry makes an HTTP request with retry logic
 func (dcm *DaemonConnectionManager) MakeRequestWithRetry(ctx context.Context, req *http.Request) (*http.Response, error) {
 	timer := dcm.monitor.StartOperation("daemon_request_with_retry")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	// If daemon is known to be unhealthy, try to wait for recovery
 	if !dcm.IsHealthy() {
@@ -279,7 +279,7 @@ type RetryableHTTPClient struct {
 // Do executes an HTTP request with retry logic
 func (rhc *RetryableHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	timer := rhc.monitor.StartOperation("retryable_http_request")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	var lastErr error
 

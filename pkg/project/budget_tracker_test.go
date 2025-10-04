@@ -32,7 +32,7 @@ func TestNewBudgetTracker(t *testing.T) {
 
 func TestBudgetTracker_InitializeProject(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -78,7 +78,7 @@ func TestBudgetTracker_InitializeProject(t *testing.T) {
 
 func TestBudgetTracker_RemoveProject(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -112,7 +112,7 @@ func TestBudgetTracker_RemoveProject(t *testing.T) {
 
 func TestBudgetTracker_CheckBudgetStatus(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -191,7 +191,7 @@ func TestBudgetTracker_CheckBudgetStatus(t *testing.T) {
 
 func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -317,7 +317,7 @@ func TestBudgetTracker_UpdateProjectSpending(t *testing.T) {
 
 func TestBudgetTracker_GetCostBreakdown(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -381,7 +381,7 @@ func TestBudgetTracker_GetCostBreakdown(t *testing.T) {
 
 func TestBudgetTracker_GetResourceUsage(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{
@@ -416,7 +416,7 @@ func TestBudgetTracker_GetResourceUsage(t *testing.T) {
 
 func TestBudgetTracker_AlertTriggering(t *testing.T) {
 	tracker := setupTestBudgetTracker(t)
-	defer func() { _ = tracker.Close() }()
+	defer tracker.Close()
 
 	projectID := uuid.New().String()
 	budget := &types.ProjectBudget{

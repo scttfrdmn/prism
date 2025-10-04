@@ -744,21 +744,21 @@ func TestConfigurationLoading(t *testing.T) {
 	originalURL := os.Getenv(DaemonURLEnvVar)
 	defer func() {
 		if originalURL != "" {
-			os.Setenv(DaemonURLEnvVar, originalURL)
+			_ = os.Setenv(DaemonURLEnvVar, originalURL)
 		} else {
-			os.Unsetenv(DaemonURLEnvVar)
+			_ = os.Unsetenv(DaemonURLEnvVar)
 		}
 	}()
 
 	testURL := "http://test:9999"
-	os.Setenv(DaemonURLEnvVar, testURL)
+	_ = os.Setenv(DaemonURLEnvVar, testURL)
 
 	app := NewApp("1.0.0")
 	assert.NotNil(t, app)
 	assert.NotNil(t, app.config)
 
 	// Clean up
-	os.Unsetenv(DaemonURLEnvVar)
+	_ = os.Unsetenv(DaemonURLEnvVar)
 }
 
 // TestCostAnalysis tests cost analysis functionality

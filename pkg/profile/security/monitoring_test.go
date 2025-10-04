@@ -12,7 +12,7 @@ func TestNewSecurityMonitor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	if monitor.auditLogger == nil {
 		t.Error("Audit logger should not be nil")
@@ -42,7 +42,7 @@ func TestNewSecurityMonitor(t *testing.T) {
 func TestSecurityMetricsUpdate(t *testing.T) {
 	// Setup test monitor
 	monitor := setupSecurityMonitor(t)
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	// Create and process test events
 	events := createTestSecurityEvents()
@@ -178,7 +178,7 @@ func TestSecurityThreatAnalysis(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	// Create events that should trigger alerts
 	events := make([]SecurityEvent, 0)
@@ -251,7 +251,7 @@ func TestSystemHealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	health, err := monitor.checkSystemHealth()
 	if err != nil {
@@ -299,7 +299,7 @@ func TestSecurityDashboard(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	// Generate some test events first
 	testEvents := []SecurityEvent{
@@ -370,7 +370,7 @@ func TestAlertSeverityLevels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	// Test different types of events and their alert severity
 	testCases := []struct {
@@ -469,7 +469,7 @@ func TestSecurityScoreCalculation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create security monitor: %v", err)
 	}
-	defer func() { _ = monitor.auditLogger.Close() }()
+	defer monitor.auditLogger.Close()
 
 	testCases := []struct {
 		tamperAttempts       int

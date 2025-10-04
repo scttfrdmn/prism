@@ -170,7 +170,7 @@ func (a *App) SecurityStatus() error {
 
 	// Display security status in user-friendly format
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	_, _ = fmt.Fprintf(w, "Status:\t%v\n", getStatusValue(status, "enabled"))
 	_, _ = fmt.Fprintf(w, "Running:\t%v\n", getStatusValue(status, "running"))
@@ -226,7 +226,7 @@ func (a *App) SecurityHealth() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	_, _ = fmt.Fprintln(w, "Component\tStatus\tDetails")
 	_, _ = fmt.Fprintln(w, "─────────\t──────\t───────")
@@ -260,7 +260,7 @@ func (a *App) SecurityDashboard() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	// Overall status
 	_, _ = fmt.Fprintf(w, "Status:\t%s\n", dashboard["status"])
@@ -321,7 +321,7 @@ func (a *App) SecurityCorrelations() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	_, _ = fmt.Fprintln(w, "Pattern\tType\tRisk Score\tEvents\tTimestamp")
 	_, _ = fmt.Fprintln(w, "───────\t────\t──────────\t──────\t─────────")
@@ -478,7 +478,7 @@ func (a *App) SecurityKeychain() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	// Display using strategy pattern
 	displayManager := NewKeychainDisplayManager()
@@ -501,7 +501,7 @@ func (a *App) SecurityConfig() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	_, _ = fmt.Fprintf(w, "Security Enabled:\t%v\n", configData["enabled"])
 	_, _ = fmt.Fprintf(w, "Security Running:\t%v\n", configData["running"])
@@ -635,7 +635,7 @@ func (a *App) ValidateSCPs(framework string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	// Display required SCPs
 	if requiredSCPs, ok := scpStatus["required_scps"].([]interface{}); ok && len(requiredSCPs) > 0 {
@@ -710,7 +710,7 @@ func (a *App) ListComplianceFrameworks() error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	_, _ = fmt.Fprintln(w, "Framework\tName\tScope")
 	_, _ = fmt.Fprintln(w, "─────────\t────\t─────")
@@ -833,7 +833,7 @@ func (v *ComplianceValidator) Validate(framework string) error {
 
 	// Create tabwriter for formatted output
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer func() { _ = w.Flush() }()
+	defer w.Flush()
 
 	// Render different sections using Strategy Pattern
 	v.overviewRenderer.Render(w, complianceStatus)

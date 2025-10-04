@@ -28,7 +28,6 @@ func (s *Server) createAWSManagerFromRequest(r *http.Request) (*aws.Manager, err
 // and handles error cases, writing the error to the response
 func (s *Server) withAWSManager(w http.ResponseWriter, r *http.Request,
 	fn func(*aws.Manager) error) {
-
 	// Track this as an AWS operation specifically with operation name derived from URL
 	opType := "AWS-" + extractOperationType(r.URL.Path)
 	opID := s.statusTracker.StartOperationWithType(opType)

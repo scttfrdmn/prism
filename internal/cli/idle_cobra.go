@@ -107,8 +107,8 @@ func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 
 			// Create table writer
 			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-			fmt.Fprintln(w, "POLICY ID\tNAME\tCATEGORY\tSAVINGS\tSUITABLE FOR")
-			fmt.Fprintln(w, "─────────\t────\t────────\t───────\t────────────")
+			_, _ = fmt.Fprintln(w, "POLICY ID\tNAME\tCATEGORY\tSAVINGS\tSUITABLE FOR")
+			_, _ = fmt.Fprintln(w, "─────────\t────\t────────\t───────\t────────────")
 
 			for _, policy := range policies {
 				suitable := ""
@@ -119,7 +119,7 @@ func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 					}
 				}
 
-				fmt.Fprintf(w, "%s\t%s\t%s\t%.0f%%\t%s\n",
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%.0f%%\t%s\n",
 					policy.ID,
 					policy.Name,
 					policy.Category,
@@ -128,7 +128,7 @@ func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 				)
 			}
 
-			w.Flush()
+			_ = w.Flush()
 
 			fmt.Println("\n💡 Tip: Use 'cws idle policy details <policy-id>' to see full details")
 			fmt.Println("💰 Estimated savings are based on typical usage patterns")

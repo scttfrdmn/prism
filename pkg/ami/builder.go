@@ -499,7 +499,7 @@ func (b *Builder) copyAMIToRegions(ctx context.Context, sourceAMIID, sourceName,
 	result := make(map[string]string)
 
 	// Source region (where original AMI was created)
-	sourceRegion := string(b.EC2Client.Options().Region)
+	sourceRegion := b.EC2Client.Options().Region
 
 	// Skip regions that match source region
 	var regions []string

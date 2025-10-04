@@ -1705,7 +1705,7 @@ func (tc *TemplateCommands) templatesUsage(args []string) error {
 
 			// Get all templates
 			registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
-			registry.ScanTemplates()
+			_ = registry.ScanTemplates()
 
 			recommendations := templates.RecommendTemplates(registry.Templates, template.Domain, 3)
 			for _, rec := range recommendations {

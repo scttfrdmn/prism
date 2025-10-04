@@ -255,7 +255,7 @@ home directories and provisioned users on instances are NOT automatically remove
 			if !force {
 				fmt.Printf("⚠️  Are you sure you want to delete user '%s'? (y/N): ", username)
 				var response string
-				fmt.Scanln(&response)
+				_, _ = fmt.Scanln(&response)
 				if strings.ToLower(response) != "y" {
 					fmt.Println("❌ Deletion cancelled.")
 					return nil
@@ -613,14 +613,14 @@ func (r *UserCommands) outputUsersAsTable(users []*research.ResearchUserConfig) 
 	fmt.Printf("🧑‍🔬 Users (%d)\n\n", len(users))
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "USERNAME\tUID\tFULL NAME\tEMAIL\tSSH KEYS\tCREATED")
-	fmt.Fprintln(w, "--------\t---\t---------\t-----\t--------\t-------")
+	_, _ = fmt.Fprintln(w, "USERNAME\tUID\tFULL NAME\tEMAIL\tSSH KEYS\tCREATED")
+	_, _ = fmt.Fprintln(w, "--------\t---\t---------\t-----\t--------\t-------")
 
 	for _, user := range users {
 		sshKeyCount := len(user.SSHPublicKeys)
 		createdDate := user.CreatedAt.Format("2006-01-02")
 
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%d\t%s\n",
+		_, _ = fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%d\t%s\n",
 			user.Username,
 			user.UID,
 			user.FullName,
@@ -630,7 +630,7 @@ func (r *UserCommands) outputUsersAsTable(users []*research.ResearchUserConfig) 
 		)
 	}
 
-	w.Flush()
+	_ = w.Flush()
 
 	fmt.Printf("\n💡 Usage:\n")
 	fmt.Printf("   cws user status <username>     # Detailed user status\n")

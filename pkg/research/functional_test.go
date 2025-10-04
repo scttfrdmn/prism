@@ -165,7 +165,6 @@ func TestResearchUserFunctionalWorkflows(t *testing.T) {
 
 // TestResearchUserIntegrationScenarios tests integration with other systems
 func TestResearchUserIntegrationScenarios(t *testing.T) {
-
 	t.Run("efs_home_directory_path_generation", func(t *testing.T) {
 		// User scenario: Research users get consistent EFS home directory paths
 		profileMgr := &MockProfileManager{}

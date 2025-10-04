@@ -132,7 +132,7 @@ func (rm *ReliabilityManager) GetAllChecks() map[string]*ReliabilityCheck {
 // WaitForHealthy waits for a target to become healthy
 func (rm *ReliabilityManager) WaitForHealthy(ctx context.Context, target string, port int, maxWait time.Duration) error {
 	timer := rm.monitor.StartOperation("wait_for_healthy")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	timeout := time.NewTimer(maxWait)
 	defer timeout.Stop()
@@ -322,7 +322,7 @@ func NewHTTPReliabilityChecker(rm *ReliabilityManager) *HTTPReliabilityChecker {
 // CheckHTTPEndpoint checks an HTTP endpoint for reliability
 func (hrc *HTTPReliabilityChecker) CheckHTTPEndpoint(ctx context.Context, url string) (*HealthResult, error) {
 	timer := hrc.rm.monitor.StartOperation("http_endpoint_check")
-	defer timer.End()
+	defer func() { _ = timer.End() }()
 
 	startTime := time.Now()
 

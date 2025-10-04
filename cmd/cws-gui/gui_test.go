@@ -17,12 +17,12 @@ func TestCloudWorkstationService(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/templates":
-			json.NewEncoder(w).Encode([]Template{
+			_ = json.NewEncoder(w).Encode([]Template{
 				{Name: "python-ml", Description: "Python ML Environment"},
 				{Name: "r-research", Description: "R Research Environment"},
 			})
 		case "/api/v1/instances":
-			json.NewEncoder(w).Encode([]Instance{
+			_ = json.NewEncoder(w).Encode([]Instance{
 				{Name: "test-instance", State: "running", IP: "1.2.3.4"},
 			})
 		default:
@@ -71,7 +71,7 @@ func TestLaunchInstance(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 	}))
 	defer server.Close()
 
@@ -132,7 +132,7 @@ func TestInstanceActions(t *testing.T) {
 // TestGetInstanceAccess tests instance access information retrieval
 func TestGetInstanceAccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":                "i-123",
 			"name":              "test",
 			"public_ip":         "1.2.3.4",
@@ -189,7 +189,7 @@ func TestGetInstanceAccess(t *testing.T) {
 // TestConnectionInfo tests connection info retrieval
 func TestConnectionInfo(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(ConnectionInfo{
+		_ = json.NewEncoder(w).Encode(ConnectionInfo{
 			InstanceName: "test",
 			HasDesktop:   true,
 			HasDisplay:   true,
@@ -251,7 +251,7 @@ func TestTemplateHelpers(t *testing.T) {
 // TestEmbeddedWebView tests embedded web view configuration
 func TestEmbeddedWebView(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"name":              "test",
 			"has_web_interface": true,
 			"web_port":          8888,
@@ -282,7 +282,7 @@ func TestErrorHandling(t *testing.T) {
 	// Test server that always returns errors
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "test error"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "test error"})
 	}))
 	defer server.Close()
 
@@ -341,7 +341,7 @@ func BenchmarkGetTemplates(b *testing.B) {
 				Description: fmt.Sprintf("Description %d", i),
 			}
 		}
-		json.NewEncoder(w).Encode(templates)
+		_ = json.NewEncoder(w).Encode(templates)
 	}))
 	defer server.Close()
 
@@ -361,7 +361,7 @@ func TestConcurrentRequests(t *testing.T) {
 	requestCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestCount++
-		json.NewEncoder(w).Encode([]Template{})
+		_ = json.NewEncoder(w).Encode([]Template{})
 	}))
 	defer server.Close()
 
@@ -439,7 +439,7 @@ func handleConnectionsEndpoint(w http.ResponseWriter, r *http.Request) {
 			"title":         "🖥️ SSH: test-instance",
 			"status":        "connecting",
 		}
-		json.NewEncoder(w).Encode(config)
+		_ = json.NewEncoder(w).Encode(config)
 	} else if r.Method == "GET" {
 		// Simulate getting all connections
 		connections := []map[string]interface{}{
@@ -449,7 +449,7 @@ func handleConnectionsEndpoint(w http.ResponseWriter, r *http.Request) {
 				"status": "connected",
 			},
 		}
-		json.NewEncoder(w).Encode(connections)
+		_ = json.NewEncoder(w).Encode(connections)
 	}
 }
 
@@ -462,7 +462,7 @@ func handleSingleConnectionEndpoint(w http.ResponseWriter, r *http.Request) {
 			"type":   "ssh",
 			"status": "connected",
 		}
-		json.NewEncoder(w).Encode(config)
+		_ = json.NewEncoder(w).Encode(config)
 	} else if r.Method == "PUT" {
 		// Simulate connection update
 		w.WriteHeader(http.StatusOK)

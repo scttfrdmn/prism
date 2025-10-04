@@ -500,7 +500,7 @@ func TestSecurityManagerStatusWhileRunning(t *testing.T) {
 	// Start manager
 	err = manager.Start()
 	require.NoError(t, err)
-	defer func() { _ = manager.Stop() }()
+	defer manager.Stop()
 
 	// Get status while running
 	status, err := manager.GetSecurityStatus()

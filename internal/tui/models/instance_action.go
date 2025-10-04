@@ -258,11 +258,31 @@ func (m InstanceActionModel) View() string {
 func (m InstanceActionModel) handleDefaultMessages(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	// Update spinner when loading
-	if m.loading {
-		var spinnerCmd tea.Cmd
-		m.spinner, spinnerCmd = m.spinner.Update(msg)
-		cmds = append(cmds, spinnerCmd)
+	switch msg := msg.(type) {
+	case *types.Instance:
+		// Handle instance data received
+		m.loading = false
+		m.error = ""
+		// Update action list based on instance state
+		actions := m.getAvailableActions(msg.State)
+		items := make([]list.Item, len(actions))
+		for i, action := range actions {
+			items[i] = ActionItem{name: action, description: m.getActionDescription(action)}
+		}
+		m.actionList.SetItems(items)
+
+	case error:
+		// Handle error messages
+		m.loading = false
+		m.error = msg.Error()
+
+	default:
+		// Update spinner when loading
+		if m.loading {
+			var spinnerCmd tea.Cmd
+			m.spinner, spinnerCmd = m.spinner.Update(msg)
+			cmds = append(cmds, spinnerCmd)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
@@ -493,4 +513,40 @@ func (c *InstanceActionErrorCommand) Execute(model tea.Model, msg tea.Msg) (tea.
 	m.statusBar.SetStatus(fmt.Sprintf("Error: %s", m.error), components.StatusError)
 
 	return m, nil
+}
+
+// getAvailableActions returns actions available for the given instance state
+func (m InstanceActionModel) getAvailableActions(state string) []string {
+	switch state {
+	case "running":
+		return []string{"stop", "hibernate", "connect", "terminate"}
+	case "stopped":
+		return []string{"start", "terminate"}
+	case "hibernated":
+		return []string{"resume", "terminate"}
+	case "stopping", "starting", "hibernating":
+		return []string{} // No actions during transitions
+	default:
+		return []string{"start", "stop", "terminate"}
+	}
+}
+
+// getActionDescription returns a description for the given action
+func (m InstanceActionModel) getActionDescription(action string) string {
+	switch action {
+	case "start":
+		return "Start the instance"
+	case "stop":
+		return "Stop the instance"
+	case "hibernate":
+		return "Hibernate the instance (preserves RAM)"
+	case "resume":
+		return "Resume from hibernation"
+	case "connect":
+		return "Connect to the instance via SSH"
+	case "terminate":
+		return "Permanently delete the instance"
+	default:
+		return "Perform action on instance"
+	}
 }

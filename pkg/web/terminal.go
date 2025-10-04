@@ -174,7 +174,7 @@ func (ts *TerminalServer) handleConnect(w http.ResponseWriter, r *http.Request) 
 
 	// Return session ID
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"session_id": sessionID,
 		"status":     "connected",
 	})
@@ -212,7 +212,7 @@ func (ts *TerminalServer) handleDisconnect(w http.ResponseWriter, r *http.Reques
 	session.mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	_ = json.NewEncoder(w).Encode(map[string]string{
 		"status": "disconnected",
 	})
 }

@@ -28,6 +28,13 @@ import (
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
+// AWS instance state constants
+const (
+	instanceStateRunning = "running"
+	instanceStateStopped = "stopped"
+	volumeTypeIO2        = "io2"
+)
+
 // Manager handles all AWS operations
 type Manager struct {
 	cfg             aws.Config
@@ -591,7 +598,7 @@ func (m *Manager) HibernateInstance(name string) error {
 	}
 
 	instanceState := string(instance.State.Name)
-	if instanceState != "running" {
+	if instanceState != instanceStateRunning {
 		return fmt.Errorf("instance must be in 'running' state to hibernate (current state: %s)", instanceState)
 	}
 
@@ -665,7 +672,7 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, string, bool,
 	// 2. Instance is in stopped state
 	// 3. (In a real scenario, we'd check StateTransitionReason, but AWS doesn't clearly distinguish)
 	// Note: This is a best-guess - AWS doesn't provide a definitive "was hibernated" flag
-	possiblyHibernated := hibernationSupported && currentState == "stopped"
+	possiblyHibernated := hibernationSupported && currentState == instanceStateStopped
 
 	return hibernationSupported, currentState, possiblyHibernated, nil
 }
@@ -984,7 +991,7 @@ func (m *Manager) MountVolume(volumeName, instanceName, mountPoint string) error
 	}
 
 	// Check if instance is running
-	if instance.State != "running" {
+	if instance.State != instanceStateRunning {
 		return fmt.Errorf("instance '%s' is not running (state: %s)", instanceName, instance.State)
 	}
 
@@ -1233,7 +1240,7 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVol
 	}
 
 	// Set IOPS for io2 and gp3 volumes
-	if volumeType == "io2" || volumeType == "gp3" {
+	if volumeType == volumeTypeIO2 || volumeType == "gp3" {
 		input.Iops = aws.Int32(int32(iops))
 	}
 
@@ -1430,7 +1437,7 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 			},
 			{
 				Name:   aws.String("instance-state-name"),
-				Values: []string{"pending", "running", "shutting-down", "stopping", "stopped"},
+				Values: []string{"pending", instanceStateRunning, "shutting-down", "stopping", instanceStateStopped},
 			},
 		},
 	})
@@ -1494,7 +1501,7 @@ func (c *InstanceStateConverter) ConvertState(ec2Instance ec2types.Instance) str
 
 	// Check for hibernation states
 	if c.isHibernationConfigured(ec2Instance) {
-		if awsState == "stopped" {
+		if awsState == instanceStateStopped {
 			return "hibernated"
 		} else if awsState == "stopping" {
 			return "hibernating"
@@ -1625,7 +1632,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 			},
 			{
 				Name:   aws.String("instance-state-name"),
-				Values: []string{"pending", "running", "shutting-down", "stopping", "stopped", "terminating", "terminated"},
+				Values: []string{"pending", instanceStateRunning, "shutting-down", "stopping", instanceStateStopped, "terminating", "terminated"},
 			},
 		},
 	})
@@ -1684,7 +1691,7 @@ func (m *Manager) calculatePerformanceParams(volumeType string, sizeGB int) (int
 
 		return iops, throughput
 
-	case "io2":
+	case volumeTypeIO2:
 		// io2: Up to 500 IOPS per GB, max 64,000 IOPS
 		iops := sizeGB * 10 // Conservative for cost
 		if iops > 64000 {
@@ -1726,7 +1733,7 @@ func (m *Manager) getRegionalEBSPrice(volumeType string) float64 {
 		basePrice = 0.08 // $0.08 per GB per month in us-east-1
 	case "gp2":
 		basePrice = 0.10 // $0.10 per GB per month in us-east-1
-	case "io2":
+	case volumeTypeIO2:
 		basePrice = 0.125 // $0.125 per GB per month in us-east-1
 	case "st1":
 		basePrice = 0.045 // $0.045 per GB per month in us-east-1
@@ -2629,12 +2636,12 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 	var runningHours float64
 
 	switch strings.ToLower(currentState) {
-	case "running":
+	case instanceStateRunning:
 		// If currently running, estimate it's been running most of the time
 		// But account for potential hibernation periods
 		runningHours = totalHours * 0.8 // Assume 20% hibernation savings on average
 
-	case "stopped", "hibernated":
+	case instanceStateStopped, "hibernated":
 		// If currently stopped/hibernated, estimate it ran for part of the time
 		runningHours = totalHours * 0.6 // More aggressive hibernation usage
 
@@ -2687,11 +2694,11 @@ func calculateStorageCosts(efsVolumes []string, ebsVolumes []string) float64 {
 func (b *InstanceBuilder) calculateInstanceEBSCosts(instanceId string) float64 {
 	// EBS pricing (monthly rates converted to hourly)
 	ebsPricing := map[string]float64{
-		"gp3":      0.08 / (30 * 24),  // $0.08/GB/month → hourly
-		"gp2":      0.10 / (30 * 24),  // $0.10/GB/month → hourly
-		"io1":      0.125 / (30 * 24), // $0.125/GB/month → hourly
-		"io2":      0.125 / (30 * 24), // $0.125/GB/month → hourly
-		"standard": 0.05 / (30 * 24),  // $0.05/GB/month → hourly
+		"gp3":         0.08 / (30 * 24),  // $0.08/GB/month → hourly
+		"gp2":         0.10 / (30 * 24),  // $0.10/GB/month → hourly
+		"io1":         0.125 / (30 * 24), // $0.125/GB/month → hourly
+		volumeTypeIO2: 0.125 / (30 * 24), // $0.125/GB/month → hourly
+		"standard":    0.05 / (30 * 24),  // $0.05/GB/month → hourly
 	}
 
 	ctx := context.Background()

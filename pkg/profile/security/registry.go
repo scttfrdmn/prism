@@ -94,7 +94,7 @@ func (c *RegistryClient) RegisterDevice(invitationToken, deviceID string) error 
 		_ = c.saveLocalRegistration(invitationToken, deviceID, registration)
 		return fmt.Errorf("failed to register with API (using local cache): %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		// If API returns error, fall back to local cache
@@ -134,7 +134,7 @@ func (c *RegistryClient) ValidateDevice(invitationToken, deviceID string) (bool,
 		exists, _ := c.checkLocalRegistration(invitationToken, deviceID)
 		return exists, nil
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		// If API returns error, fall back to local validation
@@ -181,7 +181,7 @@ func (c *RegistryClient) GetInvitationDevices(invitationToken string) ([]map[str
 		devices, _ := c.getLocalDevices(invitationToken)
 		return devices, nil
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		// If API returns error, fall back to local data
@@ -228,7 +228,7 @@ func (c *RegistryClient) RevokeDevice(invitationToken, deviceID string) error {
 		_ = c.removeLocalRegistration(invitationToken, deviceID)
 		return fmt.Errorf("failed to revoke with API (using local cache): %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		// If API returns error, fall back to local revocation
@@ -266,7 +266,7 @@ func (c *RegistryClient) RevokeInvitation(invitationToken string) error {
 		_ = c.removeAllLocalRegistrations(invitationToken)
 		return fmt.Errorf("failed to revoke with API (using local cache): %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		// If API returns error, fall back to local revocation

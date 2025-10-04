@@ -416,7 +416,7 @@ func generateTestID() string {
 // TestAWSInstanceLifecycle tests the complete instance lifecycle
 func TestAWSInstanceLifecycle(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), manager.testTimeout)
 	defer cancel()
@@ -516,7 +516,7 @@ func TestAWSInstanceLifecycle(t *testing.T) {
 // TestAWSTemplateOperations tests template discovery and validation
 func TestAWSTemplateOperations(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -562,7 +562,7 @@ func TestAWSTemplateOperations(t *testing.T) {
 // TestAWSStorageOperations tests EFS and EBS storage operations
 func TestAWSStorageOperations(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), manager.testTimeout)
 	defer cancel()
@@ -650,7 +650,7 @@ func TestAWSStorageOperations(t *testing.T) {
 // TestAWSProjectManagement tests project creation and management
 func TestAWSProjectManagement(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -689,7 +689,7 @@ func TestAWSProjectManagement(t *testing.T) {
 // TestAWSIdleDetection tests idle detection and hibernation policies
 func TestAWSIdleDetection(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -729,7 +729,7 @@ func TestAWSIdleDetection(t *testing.T) {
 // TestAWSDaemonIntegration tests daemon status and operations
 func TestAWSDaemonIntegration(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
@@ -755,7 +755,7 @@ func TestAWSDaemonIntegration(t *testing.T) {
 // TestAWSNetworkOperations tests VPC and security group operations
 func TestAWSNetworkOperations(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -788,7 +788,7 @@ func TestAWSNetworkOperations(t *testing.T) {
 // TestAWSErrorHandling tests error scenarios and recovery
 func TestAWSErrorHandling(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	// Test invalid template
 	t.Run("InvalidTemplate", func(t *testing.T) {
@@ -826,7 +826,7 @@ func TestAWSErrorHandling(t *testing.T) {
 // TestAWSCostAnalysis tests cost tracking and analysis features
 func TestAWSCostAnalysis(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	// Test cost listing
 	t.Run("CostAnalysis", func(t *testing.T) {
@@ -853,7 +853,7 @@ func TestAWSCostAnalysis(t *testing.T) {
 // TestAWSProfileIntegration tests AWS profile integration
 func TestAWSProfileIntegration(t *testing.T) {
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	// Test profile operations
 	t.Run("ProfileOperations", func(t *testing.T) {
@@ -874,7 +874,7 @@ func TestAWSProfileIntegration(t *testing.T) {
 		profileErr := profileManager.Set("test-integration-profile", testProfile)
 		if profileErr == nil {
 			// If profile operations work, test profile-based operations
-			defer profileManager.Delete("test-integration-profile")
+			defer func() { _ = profileManager.Delete("test-integration-profile") }()
 
 			// Test profile listing
 			profiles := profileManager.List()
@@ -894,7 +894,7 @@ func BenchmarkAWSOperations(b *testing.B) {
 	// Convert testing.B to testing.T for manager creation
 	t := &testing.T{}
 	manager := NewAWSTestManager(t)
-	defer manager.Cleanup(t)
+	defer func() { _ = manager.Cleanup(t) }()
 
 	ctx := context.Background()
 

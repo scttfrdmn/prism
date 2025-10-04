@@ -122,7 +122,7 @@ func (s *Server) handlePolicyStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handlePolicySets returns available policy sets
@@ -164,7 +164,7 @@ func (s *Server) handlePolicySets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handlePolicyAssign assigns a policy set to a user
@@ -230,7 +230,7 @@ func (s *Server) handlePolicyAssign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handlePolicyEnforcement controls policy enforcement state
@@ -271,7 +271,7 @@ func (s *Server) handlePolicyEnforcement(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // handlePolicyCheck checks template access permissions
@@ -314,5 +314,5 @@ func (s *Server) handlePolicyCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }

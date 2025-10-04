@@ -142,7 +142,7 @@ func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) er
 	if err != nil {
 		return fmt.Errorf("failed to create private key file: %w", err)
 	}
-	defer func() { _ = privateFile.Close() }()
+	defer privateFile.Close()
 
 	if err := pem.Encode(privateFile, privateKeyPEM); err != nil {
 		return fmt.Errorf("failed to write private key: %w", err)
@@ -159,7 +159,7 @@ func (m *SSHKeyManager) generateKeyPair(privateKeyPath, publicKeyPath string) er
 	if err != nil {
 		return fmt.Errorf("failed to create public key file: %w", err)
 	}
-	defer func() { _ = publicFile.Close() }()
+	defer publicFile.Close()
 
 	publicKeyLine := fmt.Sprintf("%s cloudworkstation-generated\n",
 		strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey))))

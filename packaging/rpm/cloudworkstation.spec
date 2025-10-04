@@ -11,7 +11,7 @@
 
 # Package metadata
 Name:           cloudworkstation
-Version:        0.4.5
+Version:        0.5.1
 Release:        1%{?dist}
 Summary:        Autonomous Research Instance Management Platform
 License:        MIT

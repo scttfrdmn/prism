@@ -232,7 +232,7 @@ func (m *TemplateManager) ImportFromURL(url string, options *TemplateManagerImpo
 		return nil, TemplateImportError("failed to download template", err).
 			WithContext("url", url)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, TemplateImportError(

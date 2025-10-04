@@ -24,7 +24,7 @@ func DetectUserExternalIP() (string, error) {
 		if err != nil {
 			continue
 		}
-		defer func() { _ = resp.Body.Close() }()
+		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusOK {
 			body, err := io.ReadAll(resp.Body)

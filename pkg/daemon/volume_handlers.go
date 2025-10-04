@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -42,6 +44,12 @@ func (s *Server) handleCreateVolume(w http.ResponseWriter, r *http.Request) {
 	var req types.VolumeCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		s.writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate volume name
+	if err := s.validateVolumeName(req.Name); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid name: %v", err))
 		return
 	}
 
@@ -210,4 +218,29 @@ func (s *Server) handleUnmountVolume(w http.ResponseWriter, r *http.Request, vol
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// validateVolumeName validates volume name according to AWS EFS naming rules
+func (s *Server) validateVolumeName(name string) error {
+	if name == "" {
+		return fmt.Errorf("volume name cannot be empty")
+	}
+
+	// Check for spaces (not allowed in AWS resource names)
+	if strings.Contains(name, " ") {
+		return fmt.Errorf("volume name cannot contain spaces")
+	}
+
+	// Check length (AWS EFS names should be reasonable length)
+	if len(name) > 255 {
+		return fmt.Errorf("volume name too long (max 255 characters)")
+	}
+
+	// Check for invalid characters (basic validation)
+	validName := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+	if !validName.MatchString(name) {
+		return fmt.Errorf("volume name contains invalid characters (use only letters, numbers, dots, hyphens, and underscores)")
+	}
+
+	return nil
 }
