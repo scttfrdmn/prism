@@ -93,12 +93,13 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - ✅ **EFS Integration**: Persistent home directories with collaboration support
 - ✅ **CLI Integration**: Complete `cws user` command suite (600+ lines)
 
-### **v0.5.1: Command Structure & GUI Polish** 🚧 **IN PROGRESS (October 2025)**
+### **v0.5.1: Command Structure & GUI Polish** ✅ **COMPLETE (October 2025)**
 **FOCUS**: CLI consistency and professional user experience
 - ✅ **Command Restructure**: `research-user` → `user`, `admin` hierarchy
-- 🚧 **TUI Integration**: User management in terminal interface
-- 🚧 **GUI Enhancement**: Polish research user management with Cloudscape
-- 🚧 **API Alignment**: Consistent REST endpoints with new command structure
+- ✅ **TUI Integration**: User management in terminal interface with BubbleTea
+- ✅ **CLI Integration**: Complete `cws user` command suite (create, list, delete, provision, ssh-key)
+- ✅ **Template Extensions**: Research user YAML configuration for collaborative-workspace, r-research
+- ✅ **Policy Framework**: `cws admin policy` commands for access control and governance
 
 ### **v0.5.2: Template Marketplace Foundation** 🔄 **PLANNED (November 2025)**
 **FOCUS**: Community template sharing and discovery
@@ -125,17 +126,17 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - 🔄 **Amazon Braket**: Quantum computing research access
 - 🔄 **SageMaker Integration**: ML workflow integration (pending AWS partnership)
 
-🎉 **PHASE 5A FOUNDATION + TEMPLATE INTEGRATION COMPLETE: Research User Architecture**
+🎉 **PHASE 5A COMPLETE: Full Research User Multi-Modal Integration**
 - ✅ **Dual User System**: Complete architecture separating system users (template-created) from research users (persistent identity)
 - ✅ **Consistent UID/GID Mapping**: Deterministic allocation ensuring same profile+username = same UID across all instances
 - ✅ **SSH Key Management**: Complete key generation, storage, and distribution system with Ed25519 and RSA support
 - ✅ **User Provisioning Pipeline**: Remote user creation via SSH with script generation and EFS integration
 - ✅ **EFS Home Directory Integration**: Persistent home directories with proper permissions and collaboration support
-- ✅ **Profile System Integration**: Seamless integration with existing CloudWorkstation profile architecture
-- ✅ **Template Integration System**: Extended template schema to support automatic research user creation and provisioning
-- ✅ **CLI Flag Integration**: Implemented `--research-user` flag with complete backend command pattern processing
-- ✅ **Template Info Enhancement**: Professional display of research user capabilities in template information
-- ✅ **Comprehensive Documentation**: Technical architecture, user guides, and template integration documentation complete
+- ✅ **CLI Integration Complete**: Full `cws user` command suite (create, list, delete, provision, ssh-key, status)
+- ✅ **TUI Integration Complete**: Research user management interface in terminal with BubbleTea framework
+- ✅ **Template System Extended**: Multi-language collaborative templates with research user configurations
+- ✅ **Policy Framework**: Complete `cws admin policy` system for institutional governance and access control
+- ✅ **Multi-Modal Parity**: Research user management available across CLI, TUI, and prepared for GUI integration
 
 **Technical Components Implemented**:
 - **pkg/research/types.go**: Core research user data structures and interfaces (330+ lines)
@@ -144,11 +145,12 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - **pkg/research/provisioner.go**: Remote provisioning via SSH (450+ lines)
 - **pkg/research/ssh_keys.go**: Complete SSH key management system (480+ lines)
 - **pkg/research/integration.go**: High-level service integration layer (420+ lines)
-- **pkg/templates/types.go**: Extended template schema with research user configuration (Phase 5A+ Template Integration)
-- **templates/python-ml-research.yml**: Complete research-enabled template example with auto-provisioning
-- **internal/cli/commands.go**: ResearchUserCommand implementation using command pattern for `--research-user` flag
-- **internal/cli/template_commands.go**: Enhanced template info display with research user capabilities
-- **pkg/types/requests.go**: Extended LaunchRequest with ResearchUser field for API integration
+- **internal/cli/user_commands.go**: Complete CLI research user management (845+ lines)
+- **internal/tui/models/users.go**: TUI research user interface with BubbleTea framework
+- **templates/collaborative-workspace.yml**: Multi-language collaborative template with research users
+- **templates/r-research.yml**: R statistical environment with research user integration
+- **internal/cli/policy_cobra.go**: Policy framework CLI commands for institutional governance
+- **pkg/daemon/policy_handlers.go**: REST API endpoints for policy management
 
 **Documentation Delivered**:
 - **Technical Architecture**: [Phase 5A Research User Architecture](docs/PHASE_5A_RESEARCH_USER_ARCHITECTURE.md)

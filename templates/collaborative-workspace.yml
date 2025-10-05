@@ -1,0 +1,152 @@
+name: "Collaborative Research Workspace"
+slug: "collaborative-workspace"
+description: "Multi-language collaborative environment optimized for team research projects"
+long_description: |
+  A comprehensive collaborative workspace supporting Python, R, and Julia with integrated
+  research user management, shared EFS storage, and collaboration tools. Perfect for
+  interdisciplinary research teams requiring seamless data and code sharing.
+base: "ubuntu-22.04"
+
+# Multi-interface support (SSH + Web)
+connection_type: "ssh"  # Primary access via SSH, with web services available
+
+# Complexity and categorization
+complexity: "moderate"
+category: "Collaborative Research"
+domain: "collaboration"
+
+# Visual presentation
+icon: "👥"
+color: "#2E8B57"
+popular: true
+
+# Use conda for comprehensive package management
+package_manager: "conda"
+
+packages:
+  conda:
+    # Multi-language support
+    - python=3.11
+    - r-base=4.3
+    - julia=1.9
+
+    # Python data science
+    - jupyter
+    - jupyterlab
+    - numpy
+    - pandas
+    - matplotlib
+    - scikit-learn
+
+    # R essentials
+    - r-tidyverse
+    - r-shiny
+    - r-rmarkdown
+
+    # Collaboration tools
+    - git
+    - git-lfs
+    - jupyter-collaboration
+
+  system:
+    - "code-server"       # VS Code in browser
+    - "rstudio-server"
+    - "docker.io"
+    - "tmux"
+    - "screen"
+
+services:
+  - name: "jupyter"
+    port: 8888
+    enable: true
+  - name: "rstudio-server"
+    port: 8787
+    enable: true
+  - name: "code-server"
+    port: 8443
+    enable: true
+  - name: "julia-notebook"
+    port: 9999
+    enable: true
+
+users:
+  - name: "workspace"
+    groups: ["sudo", "docker", "rstudio-users"]
+
+# Advanced research user configuration for collaboration
+research_user:
+  auto_create: true
+  require_efs: true
+  efs_mount_point: "/efs"
+  efs_home_subdirectory: "collaborative"
+  install_ssh_keys: true
+  default_shell: "/bin/zsh"  # Enhanced shell for research workflows
+  default_groups: ["research", "efs-users", "docker", "rstudio-users", "collab"]
+  default_environment:
+    # Multi-language paths
+    PYTHONPATH: "/efs/collaborative/shared/python:/efs/collaborative/shared/libs"
+    R_LIBS_USER: "/efs/collaborative/shared/R/library"
+    JULIA_DEPOT_PATH: "/efs/collaborative/shared/julia"
+
+    # Shared resources
+    RESEARCH_DATA: "/efs/collaborative/shared/data"
+    RESEARCH_MODELS: "/efs/collaborative/shared/models"
+    RESEARCH_OUTPUT: "/efs/collaborative/shared/output"
+    SHARED_NOTEBOOKS: "/efs/collaborative/shared/notebooks"
+
+    # Collaboration settings
+    GIT_SHARED_REPOS: "/efs/collaborative/shared/repos"
+    JUPYTER_ENABLE_LAB: "yes"
+    JUPYTER_COLLABORATION: "true"
+
+    # Development environment
+    EDITOR: "code"
+    TERM: "xterm-256color"
+
+  user_integration:
+    strategy: "dual_user"
+    primary_user: "research"
+    collaboration_enabled: true
+    shared_workspace: "/efs/collaborative/workspace"
+    team_permissions: "group-write"
+
+# Balanced instances for multi-language workloads
+instance_defaults:
+  ports: [22, 8888, 8787, 8443, 9999]
+  instance_type_preference: ["m5.xlarge", "m5.2xlarge", "c5.2xlarge"]
+
+# Collaborative-optimized idle detection
+idle_detection:
+  cpu_threshold: 8   # Multiple languages may have different usage patterns
+  memory_threshold: 25  # Collaborative workspaces use more memory
+  gpu_threshold: 0   # No GPU required for basic collaboration
+  network_threshold: 2   # Higher network threshold for collaboration
+  disk_threshold: 10
+  check_interval: 600    # 10 minutes (longer for collaborative sessions)
+  idle_minutes: 120      # 2 hours idle (collaborative sessions can be longer)
+
+version: "2.0.0"
+maintainer: "CloudWorkstation Team"
+last_updated: "2025-10-04T23:30:00Z"
+tags:
+  type: "research"
+  language: "multi-language"
+  purpose: "collaboration"
+  requires: "memory-balanced"
+  research_enabled: "true"
+  collaboration: "optimized"
+  team_support: "true"
+
+# Learning resources for collaborative research
+learning_resources:
+  - "https://jupyter.org/collaboration"
+  - "https://github.com/features/codespaces"
+  - "https://code.visualstudio.com/docs/editor/port-forwarding"
+  - "https://docs.rstudio.com/ide/server-pro/collaboration/"
+
+prerequisites:
+  - "Team coordination and communication skills"
+  - "Basic understanding of Git collaboration workflows"
+  - "Familiarity with one or more: Python, R, or Julia"
+
+estimated_launch_time: 10  # minutes (comprehensive setup)

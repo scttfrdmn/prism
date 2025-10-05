@@ -1,0 +1,118 @@
+name: "R Research Environment (Research User Enabled)"
+slug: "r-research"
+description: "Complete R statistical analysis environment with research user management"
+long_description: |
+  Advanced R environment optimized for statistical research with automatic research user provisioning.
+  Includes RStudio Server, essential R packages, and persistent EFS home directories for seamless
+  collaboration and data management.
+base: "ubuntu-22.04"
+
+# Web interface through RStudio Server
+connection_type: "web"
+
+# Complexity and categorization
+complexity: "simple"
+category: "Statistical Analysis"
+domain: "statistics"
+
+# Visual presentation
+icon: "📊"
+color: "#276DC3"
+popular: true
+
+# Use conda for R data science environment
+package_manager: "conda"
+
+packages:
+  conda:
+    - r-base=4.3
+    - r-essentials
+    - r-rstudioapi
+    - r-tidyverse
+    - r-shiny
+    - r-rmarkdown
+    - r-plotly
+    - r-ggplot2
+    - r-dplyr
+    - r-caret
+    - r-randomforest
+    - r-e1071
+    - r-devtools
+
+  system:
+    - "rstudio-server"
+    - "pandoc"
+    - "texlive-latex-base"
+
+services:
+  - name: "rstudio-server"
+    port: 8787
+    enable: true
+  - name: "shiny-server"
+    port: 3838
+    enable: true
+
+users:
+  - name: "rstats"
+    groups: ["sudo", "rstudio-users"]
+
+# Research user integration (Phase 5A+)
+research_user:
+  auto_create: true
+  require_efs: true
+  efs_mount_point: "/efs"
+  efs_home_subdirectory: "research"
+  install_ssh_keys: true
+  default_shell: "/bin/bash"
+  default_groups: ["research", "efs-users", "rstudio-users"]
+  default_environment:
+    R_LIBS_USER: "/efs/research/shared/R/library"
+    R_PROFILE_USER: "/efs/research/.Rprofile"
+    RSTUDIO_WHICH_R: "/opt/conda/bin/R"
+    RESEARCH_DATA: "/efs/research/shared/data"
+    RESEARCH_OUTPUT: "/efs/research/shared/output"
+    SHINY_APPS: "/efs/research/shared/shiny-apps"
+  user_integration:
+    strategy: "dual_user"
+    primary_user: "research"
+    collaboration_enabled: true
+
+# Memory-optimized instances for R workloads
+instance_defaults:
+  ports: [22, 8787, 3838]
+  instance_type_preference: ["r5.xlarge", "r5.2xlarge", "m5.xlarge"]
+
+# Idle detection optimized for R statistical workloads
+idle_detection:
+  cpu_threshold: 5   # R can have bursts followed by quiet periods
+  memory_threshold: 20  # R keeps data in memory
+  gpu_threshold: 0   # No GPU typically used
+  network_threshold: 1
+  disk_threshold: 5
+  check_interval: 300  # 5 minutes
+  idle_minutes: 60     # 60 minutes idle before action (R analyses can be long)
+
+version: "2.0.0"
+maintainer: "CloudWorkstation Team"
+last_updated: "2025-10-04T23:00:00Z"
+tags:
+  type: "research"
+  language: "r"
+  purpose: "statistical-analysis"
+  requires: "memory-optimized"
+  research_enabled: "true"
+  collaboration: "supported"
+
+# Learning resources for R researchers
+learning_resources:
+  - "https://r4ds.had.co.nz/"
+  - "https://rstudio.com/resources/rstudio-essentials/"
+  - "https://shiny.rstudio.com/tutorial/"
+  - "https://rmarkdown.rstudio.com/lesson-1.html"
+
+prerequisites:
+  - "Basic R programming knowledge"
+  - "Understanding of statistical concepts"
+  - "Familiarity with RStudio interface"
+
+estimated_launch_time: 6  # minutes

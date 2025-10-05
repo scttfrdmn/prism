@@ -14,7 +14,7 @@ type ProgressReporter struct {
 	startTime time.Time
 	callbacks []ProgressCallback
 	operation string
-	metadata  map[string]interface{}
+	metadata  map[string]any
 }
 
 // Stage represents a step in a multi-stage operation
@@ -49,7 +49,7 @@ type ProgressUpdate struct {
 	ETA             *time.Duration         `json:"eta,omitempty"`
 	ElapsedTime     time.Duration          `json:"elapsed_time"`
 	Description     string                 `json:"description"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata        map[string]any `json:"metadata,omitempty"`
 	AllStages       []Stage                `json:"all_stages"`
 }
 
@@ -66,7 +66,7 @@ func NewProgressReporter(operation string, stages []Stage) *ProgressReporter {
 
 	if totalWeight > 0 {
 		for i := range stages {
-			stages[i].Weight = stages[i].Weight / totalWeight
+			stages[i].Weight /= totalWeight
 		}
 	} else {
 		// Equal weights if not specified
@@ -80,7 +80,7 @@ func NewProgressReporter(operation string, stages []Stage) *ProgressReporter {
 		stages:    stages,
 		operation: operation,
 		startTime: time.Now(),
-		metadata:  make(map[string]interface{}),
+		metadata:  make(map[string]any),
 	}
 }
 
@@ -138,7 +138,7 @@ func (pr *ProgressReporter) AddCallback(callback ProgressCallback) {
 }
 
 // SetMetadata sets metadata for the operation
-func (pr *ProgressReporter) SetMetadata(key string, value interface{}) {
+func (pr *ProgressReporter) SetMetadata(key string, value any) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	pr.metadata[key] = value

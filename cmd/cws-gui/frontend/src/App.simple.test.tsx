@@ -50,16 +50,20 @@ describe('CloudWorkstation App - Essential Tests', () => {
   });
 
   describe('Core Functionality', () => {
-    it('renders without crashing', () => {
-      render(<App />);
-      expect(screen.getByText('CloudWorkstation')).toBeInTheDocument();
+    it('renders without crashing', async () => {
+      await act(async () => {
+        render(<App />);
+      });
+      expect(screen.getByRole('link', { name: /cloudworkstation/i })).toBeInTheDocument();
     });
 
     it('loads and displays templates', async () => {
-      render(<App />);
+      await act(async () => {
+        render(<App />);
+      });
 
       await waitFor(() => {
-        expect(screen.getByText('Research Templates')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /research templates/i })).toBeInTheDocument();
       });
 
       await waitFor(() => {
@@ -69,22 +73,28 @@ describe('CloudWorkstation App - Essential Tests', () => {
       expect(mockWails.CloudWorkstationService.GetTemplates).toHaveBeenCalledTimes(1);
     });
 
-    it('shows loading state initially', () => {
-      render(<App />);
+    it('shows loading state initially', async () => {
+      await act(async () => {
+        render(<App />);
+      });
       expect(screen.getByText('Loading templates...')).toBeInTheDocument();
     });
 
-    it('displays navigation elements', () => {
-      render(<App />);
-      expect(screen.getByText('Templates')).toBeInTheDocument();
-      expect(screen.getByText('Instances')).toBeInTheDocument();
-      expect(screen.getByText('Settings')).toBeInTheDocument();
+    it('displays navigation elements', async () => {
+      await act(async () => {
+        render(<App />);
+      });
+      expect(screen.getByRole('link', { name: /templates/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /instances/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /settings/i })).toBeInTheDocument();
     });
 
     it('handles API call failures gracefully', async () => {
       mockWails.CloudWorkstationService.GetTemplates.mockRejectedValue(new Error('API Error'));
 
-      render(<App />);
+      await act(async () => {
+        render(<App />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Failed to load data')).toBeInTheDocument();
@@ -94,22 +104,26 @@ describe('CloudWorkstation App - Essential Tests', () => {
 
   describe('Template Display', () => {
     it('shows template count', async () => {
-      render(<App />);
+      await act(async () => {
+        render(<App />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('1 of 1 templates')).toBeInTheDocument();
-      });
+      }, { timeout: 5000 });
     });
 
     it('displays template information', async () => {
-      render(<App />);
+      await act(async () => {
+        render(<App />);
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Python Machine Learning')).toBeInTheDocument();
         expect(screen.getByText('Complete ML environment')).toBeInTheDocument();
         expect(screen.getByText('🤖')).toBeInTheDocument();
         expect(screen.getByText('Popular')).toBeInTheDocument();
-      });
+      }, { timeout: 5000 });
     });
   });
 
@@ -119,7 +133,7 @@ describe('CloudWorkstation App - Essential Tests', () => {
 
       // Wait for initial load
       await waitFor(() => {
-        expect(screen.getByText('Research Templates')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /research templates/i })).toBeInTheDocument();
       });
 
       // Navigate to instances - simulate clicking navigation

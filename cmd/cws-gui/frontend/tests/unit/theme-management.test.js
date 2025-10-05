@@ -73,7 +73,13 @@ function setupDOM() {
 describe('Theme Management', () => {
   beforeEach(() => {
     setupDOM()
-    localStorage.clear()
+    // Mock localStorage
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    })
     document.documentElement.removeAttribute('data-theme')
   })
 
@@ -124,7 +130,6 @@ describe('Theme Management', () => {
 
   test('initializes with saved theme from localStorage', () => {
     // Mock saved theme
-    localStorage.setItem('cws-theme', 'academic')
     localStorage.getItem.mockReturnValue('academic')
     
     initializeTheme()
@@ -132,15 +137,17 @@ describe('Theme Management', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('academic')
     expect(document.getElementById('theme-link').href).toContain('/themes/academic.css')
     expect(document.getElementById('theme-selector').value).toBe('academic')
+    expect(localStorage.getItem).toHaveBeenCalledWith('cws-theme')
   })
 
   test('initializes with default theme when no saved theme', () => {
     localStorage.getItem.mockReturnValue(null)
-    
+
     initializeTheme()
-    
+
     expect(document.documentElement.getAttribute('data-theme')).toBe('core')
     expect(document.getElementById('theme-link').href).toContain('/themes/core.css')
+    expect(localStorage.getItem).toHaveBeenCalledWith('cws-theme')
   })
 
   test('handles all available themes', () => {

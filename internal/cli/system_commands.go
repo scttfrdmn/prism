@@ -87,10 +87,11 @@ func (s *SystemCommands) daemonStart() error {
 				return WrapAPIError("stop outdated daemon", err)
 			}
 			// Continue to start new daemon below
-		} else {
-			fmt.Println("✅ Daemon is already running (version match)")
-			return nil
 		}
+
+		// Daemon is running with correct version
+		fmt.Println("✅ Daemon is already running (version match)")
+		return nil
 	}
 
 	// Message already printed by auto-start caller
