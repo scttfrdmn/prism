@@ -81,6 +81,9 @@ type Template struct {
 	Tags             map[string]string `yaml:"tags,omitempty" json:"tags,omitempty"`
 	Maintainer       string            `yaml:"maintainer,omitempty" json:"maintainer,omitempty"`
 	LastUpdated      time.Time         `yaml:"last_updated,omitempty" json:"last_updated,omitempty"`
+
+	// Marketplace integration (Phase 5B+)
+	Marketplace *MarketplaceConfig `yaml:"marketplace,omitempty" json:"marketplace,omitempty"`
 }
 
 // PackageDefinitions defines packages for different package managers
@@ -561,4 +564,83 @@ func validateParameterValue(name string, value interface{}, param TemplateParame
 	}
 
 	return nil
+}
+
+// MarketplaceConfig defines template marketplace integration settings (Phase 5B+)
+type MarketplaceConfig struct {
+	// Registry information
+	Registry     string `yaml:"registry,omitempty" json:"registry,omitempty"`         // Registry URL or identifier (community, institutional, private)
+	RegistryType string `yaml:"registry_type,omitempty" json:"registry_type,omitempty"` // community, institutional, private, official
+
+	// Publication metadata
+	PublishedAt   *time.Time `yaml:"published_at,omitempty" json:"published_at,omitempty"`
+	Publisher     string     `yaml:"publisher,omitempty" json:"publisher,omitempty"`     // Organization or user who published
+	License       string     `yaml:"license,omitempty" json:"license,omitempty"`         // Template license (MIT, Apache-2.0, etc.)
+	SourceURL     string     `yaml:"source_url,omitempty" json:"source_url,omitempty"`   // Git repository or source location
+	DocumentationURL string `yaml:"documentation_url,omitempty" json:"documentation_url,omitempty"`
+
+	// Community metrics
+	Downloads    int64   `yaml:"downloads,omitempty" json:"downloads,omitempty"`       // Download/usage count
+	Rating       float64 `yaml:"rating,omitempty" json:"rating,omitempty"`             // Average user rating (0-5)
+	RatingCount  int     `yaml:"rating_count,omitempty" json:"rating_count,omitempty"` // Number of ratings
+
+	// Security and validation
+	SecurityScan    *SecurityScanResult `yaml:"security_scan,omitempty" json:"security_scan,omitempty"`
+	ValidationTests []ValidationTest    `yaml:"validation_tests,omitempty" json:"validation_tests,omitempty"`
+
+	// Marketplace categories and discoverability
+	Keywords    []string          `yaml:"keywords,omitempty" json:"keywords,omitempty"`       // Search keywords
+	Categories  []string          `yaml:"categories,omitempty" json:"categories,omitempty"`   // Marketplace categories
+	Badges      []MarketplaceBadge `yaml:"badges,omitempty" json:"badges,omitempty"`         // Quality badges
+	Verified    bool              `yaml:"verified,omitempty" json:"verified,omitempty"`       // Official verification status
+
+	// Dependency information
+	Dependencies    []TemplateDependency `yaml:"dependencies,omitempty" json:"dependencies,omitempty"`       // Other templates this depends on
+	Dependents      []string             `yaml:"dependents,omitempty" json:"dependents,omitempty"`           // Templates that depend on this
+	Compatibility   []string             `yaml:"compatibility,omitempty" json:"compatibility,omitempty"`     // Compatible CloudWorkstation versions
+}
+
+// SecurityScanResult contains security scanning information
+type SecurityScanResult struct {
+	Status       string              `yaml:"status" json:"status"`                 // passed, failed, warning, pending
+	ScanDate     time.Time           `yaml:"scan_date" json:"scan_date"`
+	Scanner      string              `yaml:"scanner" json:"scanner"`               // Tool used for scanning
+	Findings     []SecurityFinding   `yaml:"findings,omitempty" json:"findings,omitempty"`
+	Score        float64             `yaml:"score,omitempty" json:"score,omitempty"`         // Security score (0-100)
+	ReportURL    string              `yaml:"report_url,omitempty" json:"report_url,omitempty"` // Detailed report link
+}
+
+// SecurityFinding represents a security issue found during scanning
+type SecurityFinding struct {
+	Severity    string `yaml:"severity" json:"severity"`       // critical, high, medium, low, info
+	Category    string `yaml:"category" json:"category"`       // vulnerability, misconfiguration, secret, etc.
+	Description string `yaml:"description" json:"description"`
+	Remediation string `yaml:"remediation,omitempty" json:"remediation,omitempty"`
+	CVEID       string `yaml:"cve_id,omitempty" json:"cve_id,omitempty"`
+}
+
+// ValidationTest represents automated template validation results
+type ValidationTest struct {
+	Name        string    `yaml:"name" json:"name"`
+	Status      string    `yaml:"status" json:"status"`           // passed, failed, skipped
+	ExecutedAt  time.Time `yaml:"executed_at" json:"executed_at"`
+	Duration    string    `yaml:"duration,omitempty" json:"duration,omitempty"`
+	Message     string    `yaml:"message,omitempty" json:"message,omitempty"`
+	Details     string    `yaml:"details,omitempty" json:"details,omitempty"`
+}
+
+// MarketplaceBadge represents quality or feature badges
+type MarketplaceBadge struct {
+	Type        string `yaml:"type" json:"type"`                   // verified, trending, editor_choice, community_favorite
+	Label       string `yaml:"label" json:"label"`                 // Display text
+	Description string `yaml:"description,omitempty" json:"description,omitempty"`
+	EarnedAt    *time.Time `yaml:"earned_at,omitempty" json:"earned_at,omitempty"`
+}
+
+// TemplateDependency represents a dependency on another template
+type TemplateDependency struct {
+	Name    string `yaml:"name" json:"name"`                       // Template name or slug
+	Version string `yaml:"version,omitempty" json:"version,omitempty"` // Version requirement (semver)
+	Source  string `yaml:"source,omitempty" json:"source,omitempty"`   // Registry or source location
+	Type    string `yaml:"type,omitempty" json:"type,omitempty"`       // inherits, runtime, build
 }
