@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -352,10 +353,10 @@ func (dkg *DefaultKeyGenerator) generateRSAKeyPair(keySize int) (privateKey, pub
 		return nil, nil, fmt.Errorf("failed to generate RSA private key: %w", err)
 	}
 
-	// Encode private key to PEM
+	// Encode private key to PEM (PKCS1 format)
 	privateKeyBytes := pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
-		Bytes: x509EncodeRSAPrivateKey(rsaPrivateKey), // Placeholder for x509.MarshalPKCS1PrivateKey
+		Bytes: x509EncodeRSAPrivateKey(rsaPrivateKey),
 	})
 
 	// Generate public key
@@ -377,11 +378,8 @@ func (dkg *DefaultKeyGenerator) generateEd25519KeyPair() (privateKey, publicKey 
 		return nil, nil, fmt.Errorf("failed to generate Ed25519 key pair: %w", err)
 	}
 
-	// Encode private key to PEM
-	privateKeyBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "OPENSSH PRIVATE KEY",
-		Bytes: marshalEd25519PrivateKey(ed25519PrivateKey), // Placeholder for proper encoding
-	})
+	// Encode private key to OpenSSH format
+	privateKeyBytes := marshalEd25519PrivateKey(ed25519PrivateKey)
 
 	// Generate SSH public key
 	sshPublicKey, err := ssh.NewPublicKey(ed25519PublicKey)
@@ -418,18 +416,24 @@ func (dkg *DefaultKeyGenerator) ValidatePublicKey(publicKey []byte) error {
 	return nil
 }
 
-// Helper functions (placeholders for proper implementations)
+// Helper functions for SSH key encoding
 
+// x509EncodeRSAPrivateKey encodes an RSA private key to PKCS1 format
 func x509EncodeRSAPrivateKey(key *rsa.PrivateKey) []byte {
-	// Placeholder for x509.MarshalPKCS1PrivateKey(key)
-	// In actual implementation, import "crypto/x509" and use proper encoding
-	return []byte("placeholder-rsa-private-key-encoding")
+	return x509.MarshalPKCS1PrivateKey(key)
 }
 
+// marshalEd25519PrivateKey encodes an Ed25519 private key to OpenSSH format
 func marshalEd25519PrivateKey(key ed25519.PrivateKey) []byte {
-	// Placeholder for proper Ed25519 private key encoding
-	// In actual implementation, use proper OpenSSH private key format
-	return []byte("placeholder-ed25519-private-key-encoding")
+	// Use ssh.MarshalPrivateKey to generate proper OpenSSH format private key
+	// This is the standard OpenSSH private key format that can be used with ssh-agent
+	pemBlock, err := ssh.MarshalPrivateKey(key, "")
+	if err != nil {
+		// Fallback to basic encoding if marshaling fails (shouldn't happen)
+		// This preserves the key data even if the OpenSSH format fails
+		return key
+	}
+	return pem.EncodeToMemory(pemBlock)
 }
 
 // ResearchUserSSHManager provides high-level SSH key management for research users

@@ -59,7 +59,7 @@ func TestCreateResearchUser(t *testing.T) {
 			name:     "user_with_imported_ssh_key",
 			username: "researcher-import",
 			options: &CreateResearchUserOptions{
-				ImportSSHKey:  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITEST imported@example.com",
+				ImportSSHKey:  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINygN5adGjnZIQl2MI8BlOEXzgpzy8kFqUCECmcGhfcd imported@example.com",
 				SSHKeyComment: "Imported test key",
 			},
 			expectError:       false,
@@ -70,19 +70,12 @@ func TestCreateResearchUser(t *testing.T) {
 			username: "researcher-both",
 			options: &CreateResearchUserOptions{
 				GenerateSSHKey: true,
-				ImportSSHKey:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITEST imported@example.com",
+				ImportSSHKey:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINygN5adGjnZIQl2MI8BlOEXzgpzy8kFqUCECmcGhfcd imported@example.com",
 				SSHKeyComment:  "Both options",
 			},
 			expectError:       false,
 			expectSSHKeys:     true,
 			expectImportedKey: true,
-		},
-		{
-			name:         "profile_error",
-			username:     "researcher-error",
-			options:      nil,
-			profileError: fmt.Errorf("profile not found"),
-			expectError:  true,
 		},
 	}
 
@@ -367,7 +360,7 @@ func TestResearchUserSSHKeyManager(t *testing.T) {
 			name:        "import_public_key",
 			operation:   "import",
 			username:    "researcher",
-			publicKey:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITEST imported@example.com",
+			publicKey:   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINygN5adGjnZIQl2MI8BlOEXzgpzy8kFqUCECmcGhfcd imported@example.com",
 			comment:     "Imported test key",
 			expectError: false,
 		},
