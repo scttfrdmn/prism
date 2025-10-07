@@ -22,12 +22,6 @@ func getCurrentSystemUser() (userID, userName string) {
 	return currentUser.Username, currentUser.Name
 }
 
-// getUserIDForRequest returns the current system user ID for API requests
-func getUserIDForRequest() string {
-	userID, _ := getCurrentSystemUser()
-	return userID
-}
-
 // RegisterMarketplaceRoutes registers all marketplace-related API routes
 func (s *Server) RegisterMarketplaceRoutes(mux *http.ServeMux, applyMiddleware func(http.HandlerFunc) http.HandlerFunc) {
 	// Discovery endpoints
@@ -374,7 +368,7 @@ func (s *Server) handleMyPublications(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// In production, this would get the authenticated user ID
-	userID, _ := getCurrentSystemUser()
+	userID := "current-user" // Placeholder
 
 	publications, err := s.marketplaceRegistry.GetUserPublications(userID)
 	if err != nil {
@@ -473,8 +467,8 @@ func (s *Server) handleAddReview(w http.ResponseWriter, r *http.Request, templat
 
 	// Set template ID and reviewer info
 	review.TemplateID = templateID
-	userID, _ := getCurrentSystemUser(); review.Reviewer = userID     // In production, get from authentication
-	_, userName := getCurrentSystemUser(); review.ReviewerName = userName // In production, get from user profile
+	review.Reviewer = "current-user"     // In production, get from authentication
+	review.ReviewerName = "Current User" // In production, get from user profile
 
 	// Add review using marketplace registry
 	if err := s.marketplaceRegistry.AddReview(templateID, &review); err != nil {
@@ -630,15 +624,15 @@ func (s *Server) handleMarketplaceTemplateInstall(w http.ResponseWriter, r *http
 		return
 	}
 
-	// Marketplace templates are standalone - they don't integrate with local template system
-	// Users install them directly from the marketplace registry
+	// In production, this would integrate with the local template system
+	// For now, we'll simulate the installation process
 	fmt.Printf("Installing marketplace template %s as %s\n", installRequest.MarketplaceTemplateID, installRequest.LocalName)
 
 	// Track the download event
 	trackingEvent := &marketplace.UsageEvent{
 		EventType:  "download",
 		TemplateID: installRequest.MarketplaceTemplateID,
-		UserID:     getUserIDForRequest(),
+		UserID:     "current-user", // In production, get from authentication
 		Timestamp:  time.Now(),
 	}
 
@@ -693,7 +687,7 @@ func (s *Server) handleMarketplaceTemplateTracking(w http.ResponseWriter, r *htt
 	trackingEvent := &marketplace.UsageEvent{
 		EventType:  trackingRequest.EventType,
 		TemplateID: templateID,
-		UserID:     getUserIDForRequest(),
+		UserID:     "current-user", // In production, get from authentication
 		Timestamp:  time.Now(),
 	}
 
