@@ -2,7 +2,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -62,12 +61,7 @@ func (c *HTTPClient) ApplyIdlePolicy(ctx context.Context, instanceName string, p
 		"policy_id":     policyID,
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/policies/apply", bytes.NewReader(body))
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/policies/apply", req)
 	if err != nil {
 		return err
 	}
@@ -89,12 +83,7 @@ func (c *HTTPClient) RemoveIdlePolicy(ctx context.Context, instanceName string, 
 		"policy_id":     policyID,
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/policies/remove", bytes.NewReader(body))
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/idle/policies/remove", req)
 	if err != nil {
 		return err
 	}
