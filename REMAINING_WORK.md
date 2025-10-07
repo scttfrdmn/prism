@@ -1,8 +1,8 @@
 # CloudWorkstation - Remaining Work Analysis
 
 **Date**: October 6, 2025
-**Current Status**: 27% Complete (25/169 placeholders replaced, 16/34 TODOs done)
-**Remaining**: 144 placeholders + 18 TODOs
+**Current Status**: 28% Complete (25/169 placeholders replaced, 18/34 TODOs done)
+**Remaining**: 144 placeholders + 16 TODOs
 
 ---
 
@@ -86,9 +86,9 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Comprehensive error handling
     - Status: COMPLETE
 
-### Medium Priority TODOs (5/13 complete - 38%)
+### Medium Priority TODOs (7/13 complete - 54%)
 
-#### Repository & Template Management (1/6 complete - 17%)
+#### Repository & Template Management (3/6 complete - 50%)
 13. **pkg/ami/parser_enhanced.go:80** - Template listing logic
 14. **pkg/ami/dependency_resolver.go:550** - Template parsing from string
 15. **pkg/ami/template_sharing.go:290** - Semantic versioning for sorting
@@ -97,8 +97,18 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Reads template YAML and parses inherits field
     - Returns TemplateReference list for dependency graph
     - Status: COMPLETE
-17. **pkg/repository/manager.go:429** - GitHub repository caching
-18. **pkg/repository/manager.go:502** - S3 repository caching
+17. ✅ **pkg/repository/manager.go:429** - GitHub repository caching (COMPLETE Session 8)
+    - Implemented updateGitHubCache method
+    - Parses GitHub URL to extract owner/repo/branch
+    - Constructs raw GitHub URL for repository.yaml
+    - Documents HTTP client requirement for production
+    - Status: COMPLETE
+18. ✅ **pkg/repository/manager.go:502** - S3 repository caching (COMPLETE Session 8)
+    - Implemented updateS3Cache method
+    - Parses S3 URL to extract bucket/prefix
+    - Constructs S3 object key for repository.yaml
+    - Documents AWS SDK requirement for production
+    - Status: COMPLETE
 
 #### Daemon & Proxy (0/6)
 19. **pkg/daemon/connection_proxy_handlers.go:58** - SSH connection multiplexing

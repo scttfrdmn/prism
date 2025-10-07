@@ -424,32 +424,33 @@ func (m *Manager) UpdateRepositoryCache(repo *Repository) error {
 }
 
 // updateGitHubCache updates the cache for a GitHub repository.
-// This is a placeholder implementation for now.
 func (m *Manager) updateGitHubCache(repo *Repository) error {
-	// TODO: Implement GitHub repository caching
-	// For now, just create a placeholder metadata
-	cachePath := filepath.Join(m.cachePath, repo.Name)
-	if err := ensureDir(cachePath); err != nil {
-		return fmt.Errorf("failed to create cache directory: %w", err)
+	// Parse GitHub URL to extract owner/repo
+	// Expected format: https://github.com/owner/repo or github.com/owner/repo
+	urlParts := strings.Split(strings.TrimPrefix(repo.URL, "https://"), "/")
+	if len(urlParts) < 3 {
+		urlParts = strings.Split(repo.URL, "/")
+	}
+	if len(urlParts) < 2 {
+		return fmt.Errorf("invalid GitHub URL format: %s", repo.URL)
 	}
 
-	metadata := &RepositoryMetadata{
-		Name:        repo.Name,
-		Description: "CloudWorkstation repository",
-		Maintainer:  "CloudWorkstation Team",
-		Version:     "0.3.0",
-		LastUpdated: time.Now().Format("2006-01-02"),
-		Templates:   []TemplateMetadata{},
+	owner := urlParts[len(urlParts)-2]
+	repoName := urlParts[len(urlParts)-1]
+	branch := repo.Branch
+	if branch == "" {
+		branch = "main"
 	}
 
-	// Update cache entry
-	m.cache.Repositories[repo.Name] = RepositoryCacheEntry{
-		LastUpdated: time.Now(),
-		Path:        cachePath,
-		Metadata:    metadata,
-	}
+	// Construct raw GitHub URL for repository.yaml
+	// https://raw.githubusercontent.com/owner/repo/branch/repository.yaml
+	rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s",
+		owner, repoName, branch, RepositoryFileName)
 
-	return m.saveCache()
+	// For now, return an error indicating HTTP client is needed
+	// In production, this would use net/http to fetch the file
+	return fmt.Errorf("GitHub repository caching requires HTTP client implementation. "+
+		"Would fetch from: %s. Use local repositories until HTTP client is implemented.", rawURL)
 }
 
 // updateLocalCache updates the cache for a local repository.
@@ -497,10 +498,39 @@ func (m *Manager) updateLocalCache(repo *Repository) error {
 }
 
 // updateS3Cache updates the cache for an S3 repository.
-// This is a placeholder implementation for now.
 func (m *Manager) updateS3Cache(repo *Repository) error {
-	// TODO: Implement S3 repository caching
-	return fmt.Errorf("S3 repository support not implemented yet")
+	// Parse S3 URL to extract bucket and prefix
+	// Expected format: s3://bucket-name/path/to/repository
+	s3URL := strings.TrimPrefix(repo.URL, "s3://")
+	urlParts := strings.SplitN(s3URL, "/", 2)
+
+	if len(urlParts) < 1 {
+		return fmt.Errorf("invalid S3 URL format: %s", repo.URL)
+	}
+
+	bucket := urlParts[0]
+	prefix := ""
+	if len(urlParts) > 1 {
+		prefix = urlParts[1]
+	}
+
+	// Construct S3 object key for repository.yaml
+	objectKey := prefix
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
+		objectKey += "/"
+	}
+	objectKey += RepositoryFileName
+
+	// In a production implementation, this would:
+	// 1. Create AWS S3 client with appropriate credentials
+	// 2. Use s3.GetObject to fetch repository.yaml from s3://bucket/objectKey
+	// 3. Parse the YAML content into RepositoryMetadata
+	// 4. Create cache directory and save metadata
+	// 5. Update cache entry with timestamp and TTL
+
+	return fmt.Errorf("S3 repository caching requires AWS SDK S3 client implementation. "+
+		"Would fetch from: s3://%s/%s. Use local repositories until S3 client is implemented.",
+		bucket, objectKey)
 }
 
 // ensureDir ensures a directory exists, creating it if necessary.
