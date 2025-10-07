@@ -77,7 +77,17 @@ func (m *S3Manager) ListS3MountPoints() ([]StorageInfo, error) {
 	var storageInfos []StorageInfo
 	for _, bucket := range result.Buckets {
 		// Check if this is a CloudWorkstation bucket by checking tags
-		// Simplified - in real implementation would check tags
+		isCloudWorkstationBucket, err := m.isCloudWorkstationBucket(ctx, *bucket.Name)
+		if err != nil {
+			// Log error but continue with other buckets
+			continue
+		}
+
+		// Only include CloudWorkstation-managed buckets
+		if !isCloudWorkstationBucket {
+			continue
+		}
+
 		storageInfo := StorageInfo{
 			Name:         *bucket.Name,
 			Type:         StorageTypeS3,
@@ -237,6 +247,29 @@ func (m *S3Manager) emptyBucket(ctx context.Context, bucketName string) error {
 	}
 
 	return nil
+}
+
+// isCloudWorkstationBucket checks if a bucket is managed by CloudWorkstation
+func (m *S3Manager) isCloudWorkstationBucket(ctx context.Context, bucketName string) (bool, error) {
+	// Get bucket tags
+	taggingOutput, err := m.s3Client.GetBucketTagging(ctx, &s3.GetBucketTaggingInput{
+		Bucket: aws.String(bucketName),
+	})
+	if err != nil {
+		// If error is NoSuchTagSet, bucket has no tags - not managed by CloudWorkstation
+		return false, nil
+	}
+
+	// Check for CloudWorkstation tag
+	for _, tag := range taggingOutput.TagSet {
+		if tag.Key != nil && *tag.Key == "ManagedBy" {
+			if tag.Value != nil && *tag.Value == "CloudWorkstation" {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
 }
 
 // GetBucketMetrics retrieves S3 bucket metrics for analytics

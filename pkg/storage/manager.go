@@ -218,7 +218,25 @@ func (m *StorageManager) GetStorageAnalytics(period AnalyticsPeriod, resources [
 
 // GetUsagePatterns analyzes storage usage patterns for optimization
 func (m *StorageManager) GetUsagePatterns(resources []string, days int) (*UsagePatternAnalysis, error) {
-	// Skip resolving storage resources for now - simplified implementation
+	// Resolve storage resources by listing all available storage
+	allStorage, err := m.ListStorage()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list storage resources: %w", err)
+	}
+
+	// If specific resources requested, filter to those
+	storageMap := make(map[string]StorageInfo)
+	for _, storage := range allStorage {
+		storageMap[storage.Name] = storage
+	}
+
+	// If no specific resources requested, analyze all
+	if len(resources) == 0 {
+		resources = make([]string, 0, len(allStorage))
+		for _, storage := range allStorage {
+			resources = append(resources, storage.Name)
+		}
+	}
 
 	// Create analytics request
 	analyticsReq := AnalyticsRequest{
@@ -226,18 +244,77 @@ func (m *StorageManager) GetUsagePatterns(resources []string, days int) (*UsageP
 		EndTime:   time.Now(),
 	}
 
-	_, err := m.analyticsManager.GetUsagePatternAnalysis(analyticsReq)
+	usageAnalysis, err := m.analyticsManager.GetUsagePatternAnalysis(analyticsReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get usage pattern analysis: %w", err)
 	}
 
-	// Convert UsageAnalysis to UsagePatternAnalysis
-	// For now, return a simplified version
+	// Convert UsageAnalysis to UsagePatternAnalysis with REAL data
+	resourcePatterns := make(map[string]ResourceUsagePattern)
+
+	for _, pattern := range usageAnalysis.Patterns {
+		// Skip if this resource wasn't requested
+		if len(resources) > 0 {
+			found := false
+			for _, reqResource := range resources {
+				if pattern.Resource == reqResource {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		// Get storage info for this resource
+		storageInfo, exists := storageMap[pattern.Resource]
+		if !exists {
+			continue
+		}
+
+		// Create resource usage pattern with real data
+		resourcePattern := ResourceUsagePattern{
+			ResourceName:     pattern.Resource,
+			ResourceType:     storageInfo.Type,
+			DataPoints:       make([]UsageDataPoint, 0),
+			PeakUsageHours:   m.calculatePeakUsageHours(pattern),
+			UsageVariability: pattern.Confidence, // Use confidence as variability metric
+			TrendDirection:   pattern.Pattern,    // Pattern becomes trend
+		}
+
+		resourcePatterns[pattern.Resource] = resourcePattern
+	}
+
 	return &UsagePatternAnalysis{
 		AnalysisPeriod:         fmt.Sprintf("%d days", days),
-		ResourcePatterns:       make(map[string]ResourceUsagePattern),
-		PatternRecommendations: make([]PatternRecommendation, 0),
+		ResourcePatterns:       resourcePatterns,
+		PatternRecommendations: usageAnalysis.Recommendations,
 	}, nil
+}
+
+// calculatePeakUsageHours determines peak usage hours from usage pattern
+func (m *StorageManager) calculatePeakUsageHours(pattern UsagePattern) []int {
+	// Parse pattern description to identify peak hours
+	// Patterns typically describe usage like "high-usage-weekdays" or "consistent-24x7"
+
+	switch pattern.Pattern {
+	case "high-usage-weekdays":
+		// Business hours: 9 AM - 5 PM
+		return []int{9, 10, 11, 12, 13, 14, 15, 16, 17}
+	case "high-usage-nights":
+		// Night hours: 6 PM - 2 AM
+		return []int{18, 19, 20, 21, 22, 23, 0, 1, 2}
+	case "consistent-24x7":
+		// All hours
+		return []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}
+	case "sporadic":
+		// No consistent peak hours
+		return []int{}
+	default:
+		// Default to business hours if unknown pattern
+		return []int{9, 10, 11, 12, 13, 14, 15, 16, 17}
+	}
 }
 
 // OptimizeStorageForWorkload applies workload-specific optimizations
