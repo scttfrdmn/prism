@@ -26,7 +26,7 @@ func (c *HTTPClient) GetPolicyStatus(ctx context.Context) (*PolicyStatusResponse
 	}
 
 	if err := c.handleResponse(resp, &rawResponse); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get policy status: %w", err)
 	}
 
 	// Map to the response type expected by tests
@@ -156,7 +156,7 @@ func (c *HTTPClient) AssignPolicySet(ctx context.Context, policySet string) (*Po
 	}
 
 	if err := c.handleResponse(resp, &rawResponse); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to assign policy set '%s': %w", policySet, err)
 	}
 
 	// Map to expected response type
@@ -191,7 +191,7 @@ func (c *HTTPClient) SetPolicyEnforcement(ctx context.Context, enabled bool) (*P
 	}
 
 	if err := c.handleResponse(resp, &rawResponse); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to set policy enforcement to %t: %w", enabled, err)
 	}
 
 	// Map to expected response type with Success field
@@ -235,7 +235,7 @@ func (c *HTTPClient) CheckTemplateAccess(ctx context.Context, templateName strin
 	}
 
 	if err := c.handleResponse(resp, &rawResponse); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to check template access for '%s': %w", templateName, err)
 	}
 
 	// Map to expected response type

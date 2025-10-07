@@ -70,8 +70,9 @@ func (rum *ResearchUserManager) CreateResearchUser(profileID, username string) (
 		Shell:           "/bin/bash",
 		CreateHomeDir:   true,
 		SecondaryGroups: []string{ResearchUserGroup, EFSAccessGroup},
-		SudoAccess:      true, // Research users get sudo by default
-		DockerAccess:    true, // Docker access for research workflows
+		SSHPublicKeys:   []string{}, // Initialize empty SSH keys list
+		SudoAccess:      true,       // Research users get sudo by default
+		DockerAccess:    true,       // Docker access for research workflows
 		DefaultEnvironment: map[string]string{
 			"RESEARCH_USER": "true",
 			"RESEARCH_HOME": fmt.Sprintf("/efs/home/%s", username),
