@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
+	cwtypes "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -90,8 +94,8 @@ func (s *Server) performRightsizingAnalysis(w http.ResponseWriter, r *http.Reque
 	// Generate rightsizing recommendation
 	recommendation := s.generateRightsizingRecommendation(targetInstance, req.AnalysisPeriodHours, req.ForceRefresh)
 
-	// Simulate some metrics availability (in real implementation, this would query actual metrics)
-	dataPointsCount := s.calculateDataPointsCount(targetInstance, req.AnalysisPeriodHours)
+	// Calculate actual data points count from CloudWatch metrics
+	dataPointsCount := s.calculateActualDataPointsCount(targetInstance, req.AnalysisPeriodHours)
 
 	response := types.RightsizingAnalysisResponse{
 		Recommendation:      recommendation,
@@ -419,7 +423,7 @@ func (s *Server) generateRightsizingRecommendation(instance *types.Instance, ana
 		CostImpact:              costImpact,
 		ResourceAnalysis:        resourceAnalysis,
 		CreatedAt:               time.Now(),
-		DataPointsAnalyzed:      s.calculateDataPointsCount(instance, analysisPeriodHours),
+		DataPointsAnalyzed:      s.calculateActualDataPointsCount(instance, analysisPeriodHours),
 		AnalysisPeriodHours:     analysisPeriodHours,
 	}
 }
@@ -516,35 +520,75 @@ func (s *Server) calculateConfidence(instance *types.Instance, analysisPeriodHou
 	}
 }
 
-// generateResourceAnalysis creates detailed resource analysis
+// generateResourceAnalysis creates detailed resource analysis using real CloudWatch metrics
 func (s *Server) generateResourceAnalysis(instance *types.Instance) types.ResourceAnalysis {
-	// Simulate resource analysis based on instance type and template
+	ctx := context.Background()
+	endTime := time.Now()
+	startTime := endTime.Add(-24 * time.Hour) // Analyze last 24 hours
+
 	template := strings.ToLower(instance.Template)
 	currentSize := s.parseInstanceSize(instance.InstanceType)
 
-	// Generate simulated CPU analysis
-	cpuAnalysis := types.CPUAnalysis{
-		AverageUtilization: s.simulateCPUUtilization(template, currentSize),
-		PeakUtilization:    s.simulateCPUUtilization(template, currentSize) * 1.8,
-		P95Utilization:     s.simulateCPUUtilization(template, currentSize) * 1.5,
-		P99Utilization:     s.simulateCPUUtilization(template, currentSize) * 1.7,
-		IdlePercentage:     100 - s.simulateCPUUtilization(template, currentSize),
-		IsBottleneck:       s.simulateCPUUtilization(template, currentSize) > 80,
-		Recommendation:     s.generateCPURecommendation(template, currentSize),
+	// Get real CPU metrics from CloudWatch
+	cpuDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "CPUUtilization", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get CPU metrics for resource analysis: %v", err)
+		cpuDatapoints = []cwtypes.Datapoint{}
 	}
 
-	// Generate simulated memory analysis
+	// Calculate CPU statistics from real data
+	cpuStats := s.calculatePercentileStats(cpuDatapoints)
+	cpuAnalysis := types.CPUAnalysis{
+		AverageUtilization: cpuStats.Average,
+		PeakUtilization:    cpuStats.Maximum,
+		P95Utilization:     cpuStats.P95,
+		P99Utilization:     cpuStats.P99,
+		IdlePercentage:     100 - cpuStats.Average,
+		IsBottleneck:       cpuStats.P95 > 80,
+		Recommendation:     s.generateCPURecommendationFromMetrics(cpuStats),
+	}
+
+	// Get real network metrics from CloudWatch
+	networkInDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "NetworkIn", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get NetworkIn metrics for resource analysis: %v", err)
+		networkInDatapoints = []cwtypes.Datapoint{}
+	}
+
+	networkOutDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "NetworkOut", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get NetworkOut metrics for resource analysis: %v", err)
+		networkOutDatapoints = []cwtypes.Datapoint{}
+	}
+
+	// Calculate network statistics
+	networkInStats := s.calculatePercentileStats(networkInDatapoints)
+	networkOutStats := s.calculatePercentileStats(networkOutDatapoints)
+
+	// Convert bytes to MB/s (CloudWatch reports bytes over 5-minute period)
+	avgThroughput := (networkInStats.Average + networkOutStats.Average) / (1024 * 1024 * 300)
+	peakThroughput := (networkInStats.Maximum + networkOutStats.Maximum) / (1024 * 1024 * 300)
+
+	networkAnalysis := types.NetworkAnalysis{
+		AverageThroughput: avgThroughput,
+		PeakThroughput:    peakThroughput,
+		PacketRate:        1000.0, // CloudWatch doesn't provide packet rate by default
+		IsBottleneck:      peakThroughput > 100.0,
+		Recommendation:    s.generateNetworkRecommendation(avgThroughput, peakThroughput),
+	}
+
+	// Memory and storage analysis - CloudWatch doesn't provide these by default
+	// Use simulated values as fallback (users need CloudWatch agent for detailed metrics)
 	memoryAnalysis := types.MemoryAnalysis{
 		AverageUtilization: s.simulateMemoryUtilization(template, currentSize),
 		PeakUtilization:    s.simulateMemoryUtilization(template, currentSize) * 1.3,
 		P95Utilization:     s.simulateMemoryUtilization(template, currentSize) * 1.2,
 		P99Utilization:     s.simulateMemoryUtilization(template, currentSize) * 1.25,
-		SwapUsage:          0.0, // Assume no swap usage
+		SwapUsage:          0.0,
 		IsBottleneck:       s.simulateMemoryUtilization(template, currentSize) > 85,
 		Recommendation:     s.generateMemoryRecommendation(template, currentSize),
 	}
 
-	// Generate storage analysis
 	storageAnalysis := types.StorageAnalysis{
 		AverageIOPS:       100.0,
 		PeakIOPS:          300.0,
@@ -552,28 +596,11 @@ func (s *Server) generateResourceAnalysis(instance *types.Instance) types.Resour
 		PeakThroughput:    150.0,
 		SpaceUtilization:  45.0,
 		IsBottleneck:      false,
-		Recommendation:    "Storage performance is adequate for current workload",
+		Recommendation:    "Storage performance is adequate for current workload. Install CloudWatch agent for detailed metrics.",
 	}
 
-	// Generate network analysis
-	networkAnalysis := types.NetworkAnalysis{
-		AverageThroughput: 25.0,
-		PeakThroughput:    100.0,
-		PacketRate:        1000.0,
-		IsBottleneck:      false,
-		Recommendation:    "Network performance is sufficient",
-	}
-
-	// Generate workload pattern
-	workloadPattern := types.WorkloadPattern{
-		Type:                types.WorkloadPatternSteady,
-		ConsistencyScore:    0.8,
-		PeakHours:           []int{9, 10, 11, 14, 15, 16},
-		SeasonalityDetected: false,
-		GrowthTrend:         0.05, // 5% growth trend
-		BurstFrequency:      0.2,  // 20% burst frequency
-		Description:         "Steady workload with predictable daily patterns",
-	}
+	// Analyze workload pattern from CPU metrics
+	workloadPattern := s.analyzeWorkloadPattern(cpuDatapoints)
 
 	return types.ResourceAnalysis{
 		CPUAnalysis:     cpuAnalysis,
@@ -581,6 +608,168 @@ func (s *Server) generateResourceAnalysis(instance *types.Instance) types.Resour
 		StorageAnalysis: storageAnalysis,
 		NetworkAnalysis: networkAnalysis,
 		WorkloadPattern: workloadPattern,
+	}
+}
+
+// MetricStats holds statistical analysis of metric datapoints
+type MetricStats struct {
+	Average float64
+	Maximum float64
+	Minimum float64
+	P95     float64
+	P99     float64
+	Count   int
+}
+
+// calculatePercentileStats calculates percentile statistics from CloudWatch datapoints
+func (s *Server) calculatePercentileStats(datapoints []cwtypes.Datapoint) MetricStats {
+	if len(datapoints) == 0 {
+		return MetricStats{}
+	}
+
+	var values []float64
+	var sum, max, min float64
+	first := true
+
+	for _, dp := range datapoints {
+		if dp.Average == nil {
+			continue
+		}
+
+		val := *dp.Average
+		values = append(values, val)
+		sum += val
+
+		if first {
+			max = val
+			min = val
+			first = false
+		} else {
+			if val > max {
+				max = val
+			}
+			if val < min {
+				min = val
+			}
+		}
+	}
+
+	if len(values) == 0 {
+		return MetricStats{}
+	}
+
+	// Sort for percentile calculation
+	sort.Float64s(values)
+
+	avg := sum / float64(len(values))
+	p95 := values[int(float64(len(values))*0.95)]
+	p99 := values[int(float64(len(values))*0.99)]
+
+	return MetricStats{
+		Average: avg,
+		Maximum: max,
+		Minimum: min,
+		P95:     p95,
+		P99:     p99,
+		Count:   len(values),
+	}
+}
+
+// generateCPURecommendationFromMetrics generates CPU recommendation from real metrics
+func (s *Server) generateCPURecommendationFromMetrics(stats MetricStats) string {
+	switch {
+	case stats.P95 > 80:
+		return fmt.Sprintf("CPU utilization is high (P95: %.1f%%). Consider upgrading to a larger instance size.", stats.P95)
+	case stats.Average < 20:
+		return fmt.Sprintf("CPU utilization is low (Avg: %.1f%%). Consider downsizing to reduce costs.", stats.Average)
+	default:
+		return fmt.Sprintf("CPU utilization is within optimal range (Avg: %.1f%%, P95: %.1f%%).", stats.Average, stats.P95)
+	}
+}
+
+// generateNetworkRecommendation generates network recommendation
+func (s *Server) generateNetworkRecommendation(avg, peak float64) string {
+	switch {
+	case peak > 100:
+		return fmt.Sprintf("Network throughput is high (Peak: %.1f MB/s). Consider instance type with better network performance.", peak)
+	case avg < 1:
+		return fmt.Sprintf("Network throughput is low (Avg: %.1f MB/s). Current instance type is sufficient.", avg)
+	default:
+		return "Network performance is adequate for current workload."
+	}
+}
+
+// analyzeWorkloadPattern analyzes workload pattern from CPU metrics
+func (s *Server) analyzeWorkloadPattern(datapoints []cwtypes.Datapoint) types.WorkloadPattern {
+	if len(datapoints) == 0 {
+		return types.WorkloadPattern{
+			Type:        types.WorkloadPatternSteady,
+			Description: "Insufficient data for workload pattern analysis",
+		}
+	}
+
+	// Calculate variability
+	stats := s.calculatePercentileStats(datapoints)
+	variability := (stats.Maximum - stats.Minimum) / max(stats.Average, 1.0)
+
+	// Determine pattern type based on variability
+	var patternType types.WorkloadPatternType
+	var description string
+
+	switch {
+	case variability < 0.5:
+		patternType = types.WorkloadPatternSteady
+		description = "Steady workload with consistent resource usage"
+	case variability < 1.5:
+		patternType = types.WorkloadPatternUnpredictable
+		description = "Variable workload with moderate usage fluctuations"
+	default:
+		patternType = types.WorkloadPatternBursty
+		description = "Bursty workload with significant usage spikes"
+	}
+
+	// Calculate consistency score (inverse of coefficient of variation)
+	consistencyScore := 1.0 / (1.0 + variability)
+
+	// Detect peak hours by grouping datapoints by hour
+	hourlyAvg := make(map[int]float64)
+	hourlyCount := make(map[int]int)
+
+	for _, dp := range datapoints {
+		if dp.Timestamp == nil || dp.Average == nil {
+			continue
+		}
+
+		hour := dp.Timestamp.Hour()
+		hourlyAvg[hour] += *dp.Average
+		hourlyCount[hour]++
+	}
+
+	// Find peak hours (above average)
+	var peakHours []int
+	var totalAvg float64
+	for hour, sum := range hourlyAvg {
+		avg := sum / float64(hourlyCount[hour])
+		totalAvg += avg
+	}
+	totalAvg /= float64(len(hourlyAvg))
+
+	for hour, sum := range hourlyAvg {
+		avg := sum / float64(hourlyCount[hour])
+		if avg > totalAvg*1.2 { // 20% above average
+			peakHours = append(peakHours, hour)
+		}
+	}
+	sort.Ints(peakHours)
+
+	return types.WorkloadPattern{
+		Type:                patternType,
+		ConsistencyScore:    consistencyScore,
+		PeakHours:           peakHours,
+		SeasonalityDetected: false,
+		GrowthTrend:         0.0,
+		BurstFrequency:      variability,
+		Description:         description,
 	}
 }
 
@@ -725,8 +914,8 @@ func (s *Server) estimateCostForSize(size string) float64 {
 	return 0.084 // Default medium cost
 }
 
-// calculateDataPointsCount calculates expected number of data points
-func (s *Server) calculateDataPointsCount(instance *types.Instance, analysisPeriodHours float64) int {
+// calculateActualDataPointsCount calculates actual number of data points from CloudWatch
+func (s *Server) calculateActualDataPointsCount(instance *types.Instance, analysisPeriodHours float64) int {
 	runtime := time.Since(instance.LaunchTime).Hours()
 	if analysisPeriodHours == 0 {
 		analysisPeriodHours = runtime
@@ -737,8 +926,19 @@ func (s *Server) calculateDataPointsCount(instance *types.Instance, analysisPeri
 		effectivePeriod = runtime
 	}
 
-	// Assume metrics collected every 2 minutes (30 per hour)
-	return int(effectivePeriod * 30)
+	// Query CloudWatch to get actual data point count
+	ctx := context.Background()
+	endTime := time.Now()
+	startTime := endTime.Add(-time.Duration(effectivePeriod) * time.Hour)
+
+	cpuDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "CPUUtilization", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get CPU metrics for data point count: %v", err)
+		// Fall back to estimated count based on 5-minute CloudWatch periods
+		return int(effectivePeriod * 12) // 12 data points per hour (5-minute intervals)
+	}
+
+	return len(cpuDatapoints)
 }
 
 // generateRightsizingStats creates detailed stats response
@@ -771,11 +971,11 @@ func (s *Server) generateRightsizingStats(instance *types.Instance) types.Rights
 	// Collection status
 	collectionStatus := types.MetricsCollectionStatus{
 		IsActive:           instance.State == "running",
-		LastCollectionTime: time.Now().Add(-2 * time.Minute),
-		CollectionInterval: "2 minutes",
-		TotalDataPoints:    s.calculateDataPointsCount(instance, 0),
-		DataRetentionDays:  7,
-		StorageLocation:    "/var/log/cloudworkstation-metrics.json",
+		LastCollectionTime: time.Now().Add(-5 * time.Minute), // CloudWatch 5-minute intervals
+		CollectionInterval: "5 minutes",                      // CloudWatch default
+		TotalDataPoints:    s.calculateActualDataPointsCount(instance, 0),
+		DataRetentionDays:  15, // CloudWatch standard retention
+		StorageLocation:    "AWS CloudWatch",
 	}
 
 	var recommendation *types.RightsizingRecommendation
@@ -859,80 +1059,126 @@ func (s *Server) generateResourceSummary(resourceType, template, size string) ty
 	}
 }
 
-// generateSampleMetrics generates sample metrics for an instance
+// generateSampleMetrics generates metrics for an instance using real CloudWatch data
 func (s *Server) generateSampleMetrics(instance *types.Instance, count int) []types.InstanceMetrics {
 	var metrics []types.InstanceMetrics
-	template := strings.ToLower(instance.Template)
+
+	// For stopped instances, return empty metrics
+	if instance.State != "running" {
+		return metrics
+	}
+
+	ctx := context.Background()
+	endTime := time.Now()
+
+	// Calculate period based on count (assume 5-minute intervals for CloudWatch)
+	periodMinutes := count * 5
+	startTime := endTime.Add(-time.Duration(periodMinutes) * time.Minute)
+
+	// Get real CloudWatch metrics
+	cpuDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "CPUUtilization", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get CPU metrics for %s: %v", instance.Name, err)
+		return metrics
+	}
+
+	networkInDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "NetworkIn", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get NetworkIn metrics for %s: %v", instance.Name, err)
+		networkInDatapoints = []cwtypes.Datapoint{}
+	}
+
+	networkOutDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "NetworkOut", startTime, endTime)
+	if err != nil {
+		log.Printf("Failed to get NetworkOut metrics for %s: %v", instance.Name, err)
+		networkOutDatapoints = []cwtypes.Datapoint{}
+	}
+
+	// Convert CloudWatch datapoints to our metrics format
 	size := s.parseInstanceSize(instance.InstanceType)
+	template := strings.ToLower(instance.Template)
 
-	for i := 0; i < count; i++ {
-		timestamp := time.Now().Add(-time.Duration(i*2) * time.Minute)
+	// Merge all datapoints by timestamp
+	datapointsByTime := make(map[time.Time]*types.InstanceMetrics)
 
-		metric := types.InstanceMetrics{
-			InstanceID:   instance.ID,
-			InstanceName: instance.Name,
-			Timestamp:    timestamp,
-			CPU: types.CPUMetrics{
-				UtilizationPercent: s.simulateCPUUtilization(template, size) + (float64(i%10) - 5),
-				Load1Min:           1.2,
-				Load5Min:           1.0,
-				Load15Min:          0.8,
-				CoreCount:          s.getCPUsForSize(size),
-				IdlePercent:        100 - s.simulateCPUUtilization(template, size),
-				WaitPercent:        5.0,
-			},
-			Memory: types.MemoryMetrics{
-				TotalMB:            s.getMemoryForSize(size) * 1024,
-				UsedMB:             s.getMemoryForSize(size) * 1024 * s.simulateMemoryUtilization(template, size) / 100,
-				FreeMB:             s.getMemoryForSize(size) * 1024 * (100 - s.simulateMemoryUtilization(template, size)) / 100,
-				AvailableMB:        s.getMemoryForSize(size) * 1024 * 0.8,
-				CachedMB:           s.getMemoryForSize(size) * 1024 * 0.1,
-				BufferedMB:         s.getMemoryForSize(size) * 1024 * 0.05,
-				UtilizationPercent: s.simulateMemoryUtilization(template, size),
-				SwapTotalMB:        0,
-				SwapUsedMB:         0,
-			},
-			Storage: types.StorageMetrics{
-				TotalGB:             instance.StorageGB,
-				UsedGB:              instance.StorageGB * 0.45,
-				AvailableGB:         instance.StorageGB * 0.55,
-				UtilizationPercent:  45.0,
-				ReadIOPS:            100.0,
-				WriteIOPS:           50.0,
-				ReadThroughputMBps:  25.0,
-				WriteThroughputMBps: 15.0,
-			},
-			Network: types.NetworkMetrics{
-				RxBytesPerSec:   1024 * 25, // 25 KB/s
-				TxBytesPerSec:   1024 * 20, // 20 KB/s
-				RxPacketsPerSec: 100,
-				TxPacketsPerSec: 80,
-				TotalRxBytes:    1024 * 1024 * 100, // 100 MB
-				TotalTxBytes:    1024 * 1024 * 80,  // 80 MB
-			},
-			System: types.SystemMetrics{
-				ProcessCount:    120,
-				LoggedInUsers:   1,
-				UptimeSeconds:   time.Since(instance.LaunchTime).Seconds(),
-				LastActivity:    time.Now().Add(-time.Duration(i*30) * time.Second),
-				LoadAverage1Min: 1.2,
-			},
+	// Process CPU datapoints
+	for _, dp := range cpuDatapoints {
+		if dp.Timestamp == nil || dp.Average == nil {
+			continue
 		}
 
-		// Add GPU metrics for ML templates
+		timestamp := dp.Timestamp.Truncate(5 * time.Minute)
+		if _, exists := datapointsByTime[timestamp]; !exists {
+			datapointsByTime[timestamp] = &types.InstanceMetrics{
+				InstanceID:   instance.ID,
+				InstanceName: instance.Name,
+				Timestamp:    timestamp,
+				CPU: types.CPUMetrics{
+					CoreCount:   s.getCPUsForSize(size),
+					IdlePercent: 100 - *dp.Average,
+					WaitPercent: 5.0,
+				},
+				Memory: types.MemoryMetrics{
+					TotalMB: s.getMemoryForSize(size) * 1024,
+				},
+				Storage: types.StorageMetrics{
+					TotalGB: instance.StorageGB,
+				},
+				System: types.SystemMetrics{
+					UptimeSeconds: time.Since(instance.LaunchTime).Seconds(),
+				},
+			}
+		}
+		datapointsByTime[timestamp].CPU.UtilizationPercent = *dp.Average
+	}
+
+	// Process NetworkIn datapoints
+	for _, dp := range networkInDatapoints {
+		if dp.Timestamp == nil || dp.Average == nil {
+			continue
+		}
+
+		timestamp := dp.Timestamp.Truncate(5 * time.Minute)
+		if metric, exists := datapointsByTime[timestamp]; exists {
+			// CloudWatch NetworkIn is in bytes, convert to bytes per second
+			metric.Network.RxBytesPerSec = *dp.Average / 300.0 // 5-minute period
+			if dp.Sum != nil {
+				metric.Network.TotalRxBytes = *dp.Sum
+			}
+		}
+	}
+
+	// Process NetworkOut datapoints
+	for _, dp := range networkOutDatapoints {
+		if dp.Timestamp == nil || dp.Average == nil {
+			continue
+		}
+
+		timestamp := dp.Timestamp.Truncate(5 * time.Minute)
+		if metric, exists := datapointsByTime[timestamp]; exists {
+			metric.Network.TxBytesPerSec = *dp.Average / 300.0
+			if dp.Sum != nil {
+				metric.Network.TotalTxBytes = *dp.Sum
+			}
+		}
+	}
+
+	// Convert map to slice
+	for _, metric := range datapointsByTime {
+		// Add GPU metrics for ML templates (CloudWatch doesn't provide GPU metrics by default)
 		if strings.Contains(template, "ml") || strings.Contains(template, "gpu") {
 			metric.GPU = &types.GPUMetrics{
 				Count:                    1,
 				UtilizationPercent:       75.0,
-				MemoryTotalMB:            8192, // 8GB VRAM
-				MemoryUsedMB:             6144, // 6GB used
+				MemoryTotalMB:            8192,
+				MemoryUsedMB:             6144,
 				MemoryUtilizationPercent: 75.0,
 				TemperatureCelsius:       65.0,
 				PowerDrawWatts:           200.0,
 			}
 		}
 
-		metrics = append(metrics, metric)
+		metrics = append(metrics, *metric)
 	}
 
 	// Sort by timestamp (newest first)
@@ -940,7 +1186,41 @@ func (s *Server) generateSampleMetrics(instance *types.Instance, count int) []ty
 		return metrics[i].Timestamp.After(metrics[j].Timestamp)
 	})
 
+	// Limit to requested count
+	if len(metrics) > count {
+		metrics = metrics[:count]
+	}
+
 	return metrics
+}
+
+// getCloudWatchMetric retrieves a specific CloudWatch metric for an instance
+func (s *Server) getCloudWatchMetric(ctx context.Context, instanceID, metricName string, startTime, endTime time.Time) ([]cwtypes.Datapoint, error) {
+	if s.cloudwatchClient == nil {
+		return nil, fmt.Errorf("CloudWatch client not initialized")
+	}
+
+	input := &cloudwatch.GetMetricStatisticsInput{
+		Namespace:  aws.String("AWS/EC2"),
+		MetricName: aws.String(metricName),
+		Dimensions: []cwtypes.Dimension{
+			{
+				Name:  aws.String("InstanceId"),
+				Value: aws.String(instanceID),
+			},
+		},
+		StartTime:  aws.Time(startTime),
+		EndTime:    aws.Time(endTime),
+		Period:     aws.Int32(300), // 5-minute periods
+		Statistics: []cwtypes.Statistic{cwtypes.StatisticAverage, cwtypes.StatisticSum},
+	}
+
+	result, err := s.cloudwatchClient.GetMetricStatistics(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	return result.Datapoints, nil
 }
 
 // generateFleetRightsizingSummary generates fleet-wide summary
@@ -1010,14 +1290,55 @@ func (s *Server) generateFleetRightsizingSummary(instances []types.Instance) typ
 		OptimallyProvisionedInstances: optimal,
 	}
 
+	// Calculate instances with low/high resource usage using real CloudWatch metrics
+	ctx := context.Background()
+	endTime := time.Now()
+	startTime := endTime.Add(-24 * time.Hour)
+
+	var instancesWithLowCPU, instancesWithHighCPU int
+	var instancesWithLowMemory, instancesWithHighMemory int
+
+	for _, instance := range instances {
+		if instance.State != "running" {
+			continue
+		}
+
+		// Get CPU metrics for this instance
+		cpuDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "CPUUtilization", startTime, endTime)
+		if err == nil && len(cpuDatapoints) > 0 {
+			cpuStats := s.calculatePercentileStats(cpuDatapoints)
+
+			// Low CPU: average < 20%
+			if cpuStats.Average < 20 {
+				instancesWithLowCPU++
+			}
+
+			// High CPU: P95 > 80%
+			if cpuStats.P95 > 80 {
+				instancesWithHighCPU++
+			}
+		}
+
+		// Memory analysis (using simulated values as CloudWatch doesn't provide by default)
+		template := strings.ToLower(instance.Template)
+		size := s.parseInstanceSize(instance.InstanceType)
+		memUtil := s.simulateMemoryUtilization(template, size)
+
+		if memUtil < 30 {
+			instancesWithLowMemory++
+		} else if memUtil > 85 {
+			instancesWithHighMemory++
+		}
+	}
+
 	resourceUtilization := types.ResourceUtilizationSummary{
 		AverageCPUUtilization:     totalCPU / max(float64(cpuCount), 1),
 		AverageMemoryUtilization:  totalMemory / max(float64(memoryCount), 1),
 		AverageStorageUtilization: totalStorage / max(float64(storageCount), 1),
-		InstancesWithLowCPU:       0, // Would need actual analysis
-		InstancesWithHighCPU:      0,
-		InstancesWithLowMemory:    0,
-		InstancesWithHighMemory:   0,
+		InstancesWithLowCPU:       instancesWithLowCPU,
+		InstancesWithHighCPU:      instancesWithHighCPU,
+		InstancesWithLowMemory:    instancesWithLowMemory,
+		InstancesWithHighMemory:   instancesWithHighMemory,
 	}
 
 	recommendations := types.RecommendationsSummary{

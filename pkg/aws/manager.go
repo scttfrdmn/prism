@@ -3640,3 +3640,8 @@ func (m *Manager) GetIdleScheduler() *idle.Scheduler {
 func (m *Manager) GetPolicyManager() *idle.PolicyManager {
 	return m.policyManager
 }
+
+// GetAWSConfig returns the AWS config for creating additional service clients
+func (m *Manager) GetAWSConfig() aws.Config {
+	return m.cfg
+}

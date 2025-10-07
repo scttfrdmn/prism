@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
 	"github.com/scttfrdmn/cloudworkstation/pkg/connection"
 	"github.com/scttfrdmn/cloudworkstation/pkg/cost"
@@ -54,6 +55,9 @@ type Server struct {
 
 	// Template marketplace components
 	marketplaceRegistry *marketplace.Registry
+
+	// CloudWatch client for rightsizing metrics
+	cloudwatchClient *cloudwatch.Client
 }
 
 // NewServer creates a new daemon server
@@ -219,6 +223,14 @@ func NewServer(port string) (*Server, error) {
 	// Initialize daemon stability
 	stabilityManager := NewStabilityManager(performanceMonitor)
 
+	// Initialize CloudWatch client for rightsizing metrics
+	var cloudwatchClient *cloudwatch.Client
+	if awsManager != nil {
+		// Get AWS config from the manager
+		awsConfig := awsManager.GetAWSConfig()
+		cloudwatchClient = cloudwatch.NewFromConfig(awsConfig)
+	}
+
 	server := &Server{
 		config:              config,
 		port:                port,
@@ -238,6 +250,7 @@ func NewServer(port string) (*Server, error) {
 		budgetTracker:       budgetTracker,
 		alertManager:        alertManager,
 		marketplaceRegistry: marketplaceRegistry,
+		cloudwatchClient:    cloudwatchClient,
 	}
 
 	// Configure budget tracker with action executor
