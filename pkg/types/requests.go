@@ -25,6 +25,7 @@ type LaunchRequest struct {
 	PreferScript        bool                 `json:"prefer_script,omitempty"`         // Prefer script over AMI
 	ShowAMIResolution   bool                 `json:"show_ami_resolution,omitempty"`   // Show AMI resolution details
 	AMIResolutionResult *AMIResolutionResult `json:"ami_resolution_result,omitempty"` // Internal: resolved AMI info
+	CustomAMI           string               `json:"custom_ami,omitempty"`            // Override AMI ID (e.g., for restore from snapshot)
 }
 
 // LaunchResponse represents a successful launch response

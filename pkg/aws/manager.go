@@ -3426,9 +3426,9 @@ func (m *Manager) RestoreInstanceFromSnapshot(snapshotName, newInstanceName stri
 
 	// Create launch request using the snapshot as the AMI
 	launchReq := ctypes.LaunchRequest{
-		Name:     newInstanceName,
-		Template: sourceTemplate,
-		// Note: AMI override functionality would need to be implemented in LaunchInstance
+		Name:      newInstanceName,
+		Template:  sourceTemplate,
+		CustomAMI: *image.ImageId, // Use snapshot AMI directly
 	}
 
 	// Launch the instance
@@ -3483,16 +3483,39 @@ func (m *Manager) DeleteInstanceSnapshot(snapshotName string) (*ctypes.InstanceS
 	// Calculate storage savings before deletion
 	storageSavings := m.calculateAMIStorageCost(image)
 
-	// Note: AMI deregistration and snapshot deletion functionality
-	// would need to be implemented when EC2ClientInterface is extended
-	// For now, this is a placeholder implementation
-
-	var deletedSnapshots []string
-	// Placeholder: would extract snapshot IDs from block device mappings
+	// Extract snapshot IDs from block device mappings before deletion
+	var snapshotIds []string
 	for _, blockDevice := range image.BlockDeviceMappings {
 		if blockDevice.Ebs != nil && blockDevice.Ebs.SnapshotId != nil {
-			deletedSnapshots = append(deletedSnapshots, *blockDevice.Ebs.SnapshotId)
+			snapshotIds = append(snapshotIds, *blockDevice.Ebs.SnapshotId)
 		}
+	}
+
+	// Deregister the AMI first
+	deregisterInput := &ec2.DeregisterImageInput{
+		ImageId: aws.String(imageId),
+	}
+
+	_, err = m.ec2.DeregisterImage(ctx, deregisterInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deregister AMI %s: %w", imageId, err)
+	}
+
+	// Delete associated EBS snapshots
+	var deletedSnapshots []string
+	for _, snapshotId := range snapshotIds {
+		deleteSnapInput := &ec2.DeleteSnapshotInput{
+			SnapshotId: aws.String(snapshotId),
+		}
+
+		_, err = m.ec2.DeleteSnapshot(ctx, deleteSnapInput)
+		if err != nil {
+			// Log error but continue deleting other snapshots
+			fmt.Printf("Warning: failed to delete snapshot %s: %v\n", snapshotId, err)
+			continue
+		}
+
+		deletedSnapshots = append(deletedSnapshots, snapshotId)
 	}
 
 	return &ctypes.InstanceSnapshotDeleteResult{
