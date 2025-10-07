@@ -413,8 +413,8 @@ func (hm *HealthMonitor) collectSystemMetrics() SystemMetrics {
 		GCCount:         m.NumGC,
 		LastGCPause:     time.Duration(m.PauseNs[(m.NumGC+255)%256]),
 		Uptime:          time.Since(hm.lastHealthCheck),
-		CPUUsagePercent: 0.0, // Would need platform-specific implementation
-		LoadAverage:     0.0, // Would need platform-specific implementation
+		CPUUsagePercent: getCachedCPUUsage(),
+		LoadAverage:     getCachedLoadAverage(),
 	}
 }
 
