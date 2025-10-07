@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -249,7 +250,48 @@ func (cm *ConnectionManager) HealthCheckHTTP(ctx context.Context, target string,
 		}, err
 	}
 
-	// TODO: Add actual HTTP request to path for more thorough check
+	// Perform actual HTTP request to verify service is responding
+	url := fmt.Sprintf("http://%s:%d%s", target, port, path)
+
+	// Create HTTP client with timeout
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Make GET request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return &HealthResult{
+			Service:   fmt.Sprintf("http:%d", port),
+			Status:    HealthStatusUnhealthy,
+			Error:     fmt.Sprintf("failed to create HTTP request: %v", err),
+			CheckedAt: startTime,
+			Duration:  time.Since(startTime),
+		}, err
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return &HealthResult{
+			Service:   fmt.Sprintf("http:%d", port),
+			Status:    HealthStatusUnhealthy,
+			Error:     fmt.Sprintf("HTTP request failed: %v", err),
+			CheckedAt: startTime,
+			Duration:  time.Since(startTime),
+		}, err
+	}
+	defer resp.Body.Close()
+
+	// Check for successful response (2xx or 3xx status code)
+	if resp.StatusCode >= 400 {
+		return &HealthResult{
+			Service:   fmt.Sprintf("http:%d", port),
+			Status:    HealthStatusUnhealthy,
+			Error:     fmt.Sprintf("HTTP %d: %s", resp.StatusCode, resp.Status),
+			CheckedAt: startTime,
+			Duration:  time.Since(startTime),
+		}, fmt.Errorf("HTTP status %d", resp.StatusCode)
+	}
 
 	return &HealthResult{
 		Service:   fmt.Sprintf("http:%d", port),
