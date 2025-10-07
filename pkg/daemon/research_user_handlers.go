@@ -147,8 +147,27 @@ func (s *Server) handleGetResearchUser(w http.ResponseWriter, r *http.Request, u
 
 // handleDeleteResearchUser deletes a research user
 func (s *Server) handleDeleteResearchUser(w http.ResponseWriter, r *http.Request, username string) {
-	// For now, return method not implemented until we add DeleteResearchUser to service layer
-	s.writeError(w, http.StatusNotImplemented, "Delete research user not yet implemented in service layer")
+	service, err := s.getResearchUserService()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to initialize research user service: %v", err))
+		return
+	}
+
+	// Get current profile
+	profileID, err := s.getCurrentProfile()
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get current profile: %v", err))
+		return
+	}
+
+	// Delete the research user
+	err = service.DeleteResearchUser(profileID, username)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to delete research user: %v", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleResearchUserSSHKey handles SSH key operations for research users
