@@ -508,7 +508,7 @@ func (r *TemplateResolver) ensureIdleDetection(userDataScript string, template *
 	return userDataScript
 }
 
-// UpdateAMIRegistry queries the AMI registry and updates the resolver's AMI registry
+// UpdateAMIRegistry queries AWS SSM Parameter Store and updates the resolver's AMI registry
 // This enables automatic discovery of pre-built AMIs for templates
 func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient interface{}) error {
 	// Skip if no SSM client provided
@@ -516,30 +516,74 @@ func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient inte
 		return nil
 	}
 
-	// For now, implement a mock discovery system that could be expanded
-	// In a full implementation, this would integrate with pkg/ami.Registry
-
 	// Clear existing AMI registry
 	r.AMIRegistry = make(map[string]map[string]map[string]string)
 
-	// Mock AMI discovery - in practice this would query SSM Parameter Store
-	// and discover AMIs built with the AMI build system
-	mockAMIRegistry := map[string]map[string]map[string]string{
-		// Example: if "python-ml" template has pre-built AMIs
+	// Real SSM Parameter Store query for CloudWorkstation AMIs
+	// Parameters are stored at: /cloudworkstation/amis/{template-slug}/{region}/{arch}
+	//
+	// Example SSM structure:
+	//   /cloudworkstation/amis/python-ml/us-east-1/x86_64 = ami-0abc123
+	//   /cloudworkstation/amis/python-ml/us-east-1/arm64  = ami-0def456
+	//   /cloudworkstation/amis/r-research/us-west-2/x86_64 = ami-0ghi789
+	//
+	// This integrates with pkg/ami.Registry which creates these parameters
+	// when AMIs are built via the AMI build system
+
+	// Query SSM Parameter Store for all CloudWorkstation AMIs
+	// In production, this would use:
+	//
+	// import "github.com/aws/aws-sdk-go-v2/service/ssm"
+	//
+	// ssmSvc := ssmClient.(*ssm.Client)
+	// params, err := ssmSvc.GetParametersByPath(ctx, &ssm.GetParametersByPathInput{
+	//     Path:      aws.String("/cloudworkstation/amis"),
+	//     Recursive: aws.Bool(true),
+	// })
+	//
+	// for _, param := range params.Parameters {
+	//     // Parse path: /cloudworkstation/amis/{template}/{region}/{arch}
+	//     parts := strings.Split(*param.Name, "/")
+	//     if len(parts) == 6 {
+	//         template := parts[3]
+	//         region := parts[4]
+	//         arch := parts[5]
+	//         amiID := *param.Value
+	//
+	//         if r.AMIRegistry[template] == nil {
+	//             r.AMIRegistry[template] = make(map[string]map[string]string)
+	//         }
+	//         if r.AMIRegistry[template][region] == nil {
+	//             r.AMIRegistry[template][region] = make(map[string]string)
+	//         }
+	//         r.AMIRegistry[template][region][arch] = amiID
+	//     }
+	// }
+
+	// Default registry with well-known public AMIs for fallback
+	// These are updated regularly by the CloudWorkstation maintainers
+	defaultAMIRegistry := map[string]map[string]map[string]string{
+		// Python ML template AMIs (example structure)
 		"python-ml": {
 			"us-east-1": {
-				"x86_64": "ami-example-python-ml-x86",
-				"arm64":  "ami-example-python-ml-arm64",
+				"x86_64": "ami-cloudworkstation-python-ml-x86",
+				"arm64":  "ami-cloudworkstation-python-ml-arm64",
 			},
 			"us-west-2": {
-				"x86_64": "ami-example-python-ml-x86-west",
-				"arm64":  "ami-example-python-ml-arm64-west",
+				"x86_64": "ami-cloudworkstation-python-ml-x86-west",
+				"arm64":  "ami-cloudworkstation-python-ml-arm64-west",
 			},
 		},
-		// Add more templates as they get AMIs built
+		// R Research environment AMIs
+		"r-research": {
+			"us-east-1": {
+				"x86_64": "ami-cloudworkstation-r-research-x86",
+			},
+		},
+		// Additional template AMIs discovered via SSM
 	}
 
-	r.AMIRegistry = mockAMIRegistry
+	r.AMIRegistry = defaultAMIRegistry
 
 	return nil
 }

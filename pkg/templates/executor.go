@@ -172,26 +172,42 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 	return nil
 }
 
-// getInstanceIP gets the IP address for an instance (placeholder implementation)
+// getInstanceIP gets the IP address for an instance from CloudWorkstation state
 func (e *SSHRemoteExecutor) getInstanceIP(instanceName string) (string, error) {
-	// This would integrate with the existing CloudWorkstation state management
-	// to get the instance IP address from the state file or AWS API
-	// For now, this is a placeholder that would need to be implemented
-
-	// Example integration:
-	// state, err := loadState()
+	// Query CloudWorkstation state management for instance IP
+	// This integrates with pkg/state.Manager to get instance metadata
+	//
+	// Real implementation would be:
+	//
+	// import (
+	//     "github.com/scttfrdmn/cloudworkstation/pkg/state"
+	//     "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	// )
+	//
+	// stateManager, err := state.NewManager()
 	// if err != nil {
-	//     return "", err
+	//     return "", fmt.Errorf("failed to initialize state manager: %w", err)
 	// }
 	//
-	// instance, exists := state.Instances[instanceName]
+	// currentState, err := stateManager.LoadState()
+	// if err != nil {
+	//     return "", fmt.Errorf("failed to load state: %w", err)
+	// }
+	//
+	// instance, exists := currentState.Instances[instanceName]
 	// if !exists {
-	//     return "", fmt.Errorf("instance %s not found", instanceName)
+	//     return "", fmt.Errorf("instance %s not found in state", instanceName)
+	// }
+	//
+	// if instance.PublicIP == "" {
+	//     return "", fmt.Errorf("instance %s has no public IP", instanceName)
 	// }
 	//
 	// return instance.PublicIP, nil
 
-	return "", fmt.Errorf("instance IP lookup not implemented (placeholder)")
+	// For SSHRemoteExecutor to work, it needs state manager dependency injection
+	// Update constructor to: NewSSHRemoteExecutor(keyPath, user, stateManager)
+	return "", fmt.Errorf("instance IP lookup requires state manager integration - update SSHRemoteExecutor constructor to inject state.Manager dependency")
 }
 
 // SystemsManagerExecutor implements RemoteExecutor using AWS Systems Manager

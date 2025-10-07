@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"gopkg.in/yaml.v3"
 )
 
 // DefaultTemplateDirs returns the default template directories to scan
@@ -377,7 +378,7 @@ func GenerateScript(templateName, packageManager string) (string, error) {
 
 // CreateExampleTemplate creates an example template file
 func CreateExampleTemplate(filename string) error {
-	_ = &Template{
+	template := &Template{
 		Name:           "Example Research Environment",
 		Description:    "An example template showing the simplified template system",
 		Base:           "ubuntu-22.04",
@@ -422,9 +423,19 @@ func CreateExampleTemplate(filename string) error {
 		Maintainer: "CloudWorkstation Team",
 	}
 
-	// In a real implementation, this would marshal to YAML
-	// For now, just create a placeholder
-	return fmt.Errorf("YAML marshaling not implemented in this example")
+	// Marshal template to YAML
+	data, err := yaml.Marshal(template)
+	if err != nil {
+		return fmt.Errorf("failed to marshal template to YAML: %w", err)
+	}
+
+	// Write to file
+	if err := os.WriteFile(filename, data, 0644); err != nil {
+		return fmt.Errorf("failed to write template file: %w", err)
+	}
+
+	fmt.Printf("✅ Created example template: %s\n", filename)
+	return nil
 }
 
 // MigrateFromLegacy migrates existing hardcoded templates to YAML format

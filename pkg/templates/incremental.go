@@ -358,24 +358,76 @@ func (e *IncrementalApplyEngine) generateUserScript(usersToCreate []UserDiff, us
 	return script.String()
 }
 
-// openPorts handles port opening (placeholder for security group integration)
+// openPorts handles port opening via iptables and firewall configuration
 func (e *IncrementalApplyEngine) openPorts(ctx context.Context, instanceName string, ports []int) error {
-	// This would integrate with AWS security group management
-	// For now, it's a placeholder that logs the ports that need to be opened
+	// Open ports using iptables and firewalld/ufw on the instance
+	// Note: AWS Security Group rules should also be updated externally via AWS Manager
+
+	if len(ports) == 0 {
+		return nil // Nothing to do
+	}
+
+	// Generate script to open ports using iptables and firewall tools
+	portsList := make([]string, len(ports))
+	for i, port := range ports {
+		portsList[i] = fmt.Sprintf("%d", port)
+	}
+	portsStr := strings.Join(portsList, " ")
 
 	script := fmt.Sprintf(`#!/bin/bash
-# Port opening placeholder
-echo "Ports to open: %v"
-echo "Note: Port opening requires security group updates (not implemented in this prototype)"
-`, ports)
+set -e
+
+echo "Opening ports: %s"
+
+# Function to open port in iptables
+open_port_iptables() {
+    local port=$1
+    # Check if rule already exists
+    if ! iptables -C INPUT -p tcp --dport $port -j ACCEPT 2>/dev/null; then
+        echo "Opening port $port in iptables..."
+        iptables -I INPUT -p tcp --dport $port -j ACCEPT
+    else
+        echo "Port $port already open in iptables"
+    fi
+}
+
+# Function to open port in firewalld (RHEL/Rocky/Fedora)
+open_port_firewalld() {
+    local port=$1
+    if command -v firewall-cmd &>/dev/null; then
+        echo "Opening port $port in firewalld..."
+        firewall-cmd --permanent --add-port=${port}/tcp || true
+        firewall-cmd --reload || true
+    fi
+}
+
+# Function to open port in ufw (Ubuntu/Debian)
+open_port_ufw() {
+    local port=$1
+    if command -v ufw &>/dev/null; then
+        echo "Opening port $port in ufw..."
+        ufw allow ${port}/tcp || true
+    fi
+}
+
+# Open each port
+for port in %s; do
+    open_port_iptables $port
+    open_port_firewalld $port
+    open_port_ufw $port
+done
+
+echo "Port opening completed successfully"
+echo "Note: Ensure AWS Security Group allows these ports externally"
+`, portsStr, portsStr)
 
 	result, err := e.executor.ExecuteScript(ctx, instanceName, script)
 	if err != nil {
-		return fmt.Errorf("failed to execute port script: %w", err)
+		return fmt.Errorf("failed to execute port opening script: %w", err)
 	}
 
 	if result.ExitCode != 0 {
-		return fmt.Errorf("port script failed (exit code %d): %s", result.ExitCode, result.Stderr)
+		return fmt.Errorf("port opening failed (exit code %d): %s", result.ExitCode, result.Stderr)
 	}
 
 	return nil
