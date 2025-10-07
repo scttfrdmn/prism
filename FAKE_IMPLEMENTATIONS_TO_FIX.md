@@ -27,13 +27,32 @@
 - ✅ CloudWatch metrics collector - REAL GetMetricStatistics integration
 - ✅ shouldExecuteIdle() - REAL idle detection via CloudWatch CPU/network metrics
 
+### Cost Alerts
+- ✅ Alert rule evaluation - REAL cost analysis with budget tracker integration
+- ✅ Threshold conditions - Budget % and daily cost checks
+- ✅ Trend conditions - Cost increase pattern detection
+- ✅ Anomaly conditions - Statistical anomaly detection (standard deviation)
+- ✅ Projection conditions - Linear projection of future costs
+
 ---
 
-## Priority 2: Cost & Monitoring (MEDIUM-HIGH)
+## Priority 2: Cost & Monitoring (MEDIUM)
+
+### pkg/daemon/log_handlers.go
+- **Timestamp parsing** - Real log timestamp extraction
+- Current: Placeholder comment
+- Required: Parse CloudWatch Logs timestamps
+- Complexity: LOW
+
+### pkg/daemon/rightsizing_handlers.go
+- **InstancesWithLowCPU** - Real CloudWatch metrics analysis
+- Current: Returns 0
+- Required: CloudWatch GetMetricStatistics integration
+- Complexity: MEDIUM
 
 ---
 
-## Priority 3: Daemon Proxy Handlers (MEDIUM-HIGH)
+## Priority 4: Daemon Proxy Handlers (LOW-MEDIUM - Consider Deferral)
 
 ### pkg/daemon/connection_proxy_handlers.go
 All proxy implementations are placeholders:
@@ -78,16 +97,9 @@ All proxy implementations are placeholders:
 - Required: CloudWatch GetMetricStatistics integration
 - Complexity: MEDIUM
 
-### pkg/cost/alerts.go
-- **Line: "For now, return false"**
-- Context: Alert triggering
-- Current: Always returns false
-- Required: Implement actual alert threshold logic
-- Complexity: LOW
-
 ---
 
-## Priority 5: Storage & Data Management (MEDIUM)
+## Priority 3: Storage & Data Management (MEDIUM)
 
 ### pkg/storage/manager.go
 - **Line: "For now, return a simplified version"**
