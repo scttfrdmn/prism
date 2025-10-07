@@ -1,14 +1,20 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"gopkg.in/yaml.v3"
 )
 
@@ -447,10 +453,60 @@ func (m *Manager) updateGitHubCache(repo *Repository) error {
 	rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s",
 		owner, repoName, branch, RepositoryFileName)
 
-	// For now, return an error indicating HTTP client is needed
-	// In production, this would use net/http to fetch the file
-	return fmt.Errorf("GitHub repository caching requires HTTP client implementation. "+
-		"Would fetch from: %s. Use local repositories until HTTP client is implemented.", rawURL)
+	// Fetch repository.yaml via HTTP
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", rawURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Add authentication if GitHub token is available
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to fetch repository.yaml from GitHub: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch repository.yaml: HTTP %d", resp.StatusCode)
+	}
+
+	// Read response body
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse YAML
+	metadata := &RepositoryMetadata{}
+	if err := yaml.Unmarshal(data, metadata); err != nil {
+		return fmt.Errorf("failed to parse repository.yaml: %w", err)
+	}
+
+	// Create cache directory
+	cachePath := filepath.Join(m.cachePath, repo.Name)
+	if err := ensureDir(cachePath); err != nil {
+		return fmt.Errorf("failed to create cache directory: %w", err)
+	}
+
+	// Update cache entry
+	m.cache.Repositories[repo.Name] = RepositoryCacheEntry{
+		LastUpdated: time.Now(),
+		Path:        cachePath,
+		Metadata:    metadata,
+	}
+
+	return m.saveCache()
 }
 
 // updateLocalCache updates the cache for a local repository.
@@ -521,16 +577,59 @@ func (m *Manager) updateS3Cache(repo *Repository) error {
 	}
 	objectKey += RepositoryFileName
 
-	// In a production implementation, this would:
-	// 1. Create AWS S3 client with appropriate credentials
-	// 2. Use s3.GetObject to fetch repository.yaml from s3://bucket/objectKey
-	// 3. Parse the YAML content into RepositoryMetadata
-	// 4. Create cache directory and save metadata
-	// 5. Update cache entry with timestamp and TTL
+	// Create AWS S3 client
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	return fmt.Errorf("S3 repository caching requires AWS SDK S3 client implementation. "+
-		"Would fetch from: s3://%s/%s. Use local repositories until S3 client is implemented.",
-		bucket, objectKey)
+	// Load AWS configuration with support for AWS_PROFILE environment variable
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(os.Getenv("AWS_REGION")),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	// Create S3 client
+	s3Client := s3.NewFromConfig(cfg)
+
+	// Fetch repository.yaml from S3
+	getObjectInput := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objectKey),
+	}
+
+	result, err := s3Client.GetObject(ctx, getObjectInput)
+	if err != nil {
+		return fmt.Errorf("failed to fetch repository.yaml from S3 (s3://%s/%s): %w", bucket, objectKey, err)
+	}
+	defer result.Body.Close()
+
+	// Read object content
+	data, err := io.ReadAll(result.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read S3 object body: %w", err)
+	}
+
+	// Parse YAML
+	metadata := &RepositoryMetadata{}
+	if err := yaml.Unmarshal(data, metadata); err != nil {
+		return fmt.Errorf("failed to parse repository.yaml: %w", err)
+	}
+
+	// Create cache directory
+	cachePath := filepath.Join(m.cachePath, repo.Name)
+	if err := ensureDir(cachePath); err != nil {
+		return fmt.Errorf("failed to create cache directory: %w", err)
+	}
+
+	// Update cache entry
+	m.cache.Repositories[repo.Name] = RepositoryCacheEntry{
+		LastUpdated: time.Now(),
+		Path:        cachePath,
+		Metadata:    metadata,
+	}
+
+	return m.saveCache()
 }
 
 // ensureDir ensures a directory exists, creating it if necessary.
@@ -609,20 +708,104 @@ func (m *Manager) downloadFromGitHub(repo *Repository, templatePath string) ([]b
 		branch = "main"
 	}
 
-	// GitHub download requires HTTP client implementation
-	// Would construct URL: https://raw.githubusercontent.com/owner/repo/branch/path
-	// In production, use github.com/google/go-github or net/http client
-	_ = owner    // Future: used for GitHub API
-	_ = repoName // Future: used for GitHub API
-	_ = branch   // Future: used for GitHub API
-	return nil, fmt.Errorf("GitHub download requires HTTP client implementation - use local or S3 repositories")
+	// Construct raw GitHub URL for template file
+	rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s",
+		owner, repoName, branch, templatePath)
+
+	// Fetch template via HTTP
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", rawURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	// Add authentication if GitHub token is available
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch template from GitHub: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch template: HTTP %d", resp.StatusCode)
+	}
+
+	// Read response body
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	return data, nil
 }
 
 // downloadFromS3 downloads a template from an S3 bucket
 func (m *Manager) downloadFromS3(repo *Repository, templatePath string) ([]byte, error) {
-	// S3 download requires AWS SDK integration
-	// For now, return an error indicating it needs implementation
-	return nil, fmt.Errorf("S3 download requires AWS SDK integration - use local repositories")
+	// Parse S3 URL to extract bucket
+	s3URL := strings.TrimPrefix(repo.URL, "s3://")
+	urlParts := strings.SplitN(s3URL, "/", 2)
+
+	if len(urlParts) < 1 {
+		return nil, fmt.Errorf("invalid S3 URL format: %s", repo.URL)
+	}
+
+	bucket := urlParts[0]
+	prefix := ""
+	if len(urlParts) > 1 {
+		prefix = urlParts[1]
+	}
+
+	// Construct S3 object key
+	objectKey := prefix
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
+		objectKey += "/"
+	}
+	objectKey += templatePath
+
+	// Create AWS S3 client
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Load AWS configuration
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(os.Getenv("AWS_REGION")),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	// Create S3 client
+	s3Client := s3.NewFromConfig(cfg)
+
+	// Fetch template from S3
+	getObjectInput := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objectKey),
+	}
+
+	result, err := s3Client.GetObject(ctx, getObjectInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch template from S3 (s3://%s/%s): %w", bucket, objectKey, err)
+	}
+	defer result.Body.Close()
+
+	// Read object content
+	data, err := io.ReadAll(result.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read S3 object body: %w", err)
+	}
+
+	return data, nil
 }
 
 // UploadTemplate uploads a template to a repository
@@ -677,21 +860,63 @@ func (m *Manager) uploadToLocal(repo *Repository, templateName string, content [
 
 // uploadToGitHub uploads a template to a GitHub repository
 func (m *Manager) uploadToGitHub(repo *Repository, templateName string, content []byte) error {
-	// GitHub upload requires GitHub API integration
-	// Would need to:
-	// 1. Authenticate with GitHub (token)
-	// 2. Get current file SHA if it exists
-	// 3. Create/update file via GitHub API
-	// 4. Handle commit message
-	return fmt.Errorf("GitHub upload requires GitHub API integration - use local repositories")
+	// GitHub uploads require direct push access or pull request workflow
+	// This is intentionally not implemented as template uploads to GitHub
+	// should go through proper git workflows (clone, commit, push)
+	// For automated template sharing, use S3 or local repositories
+	return fmt.Errorf("GitHub uploads must use git workflows (clone/commit/push) - use 'git push' or S3/local repositories for automated uploads")
 }
 
 // uploadToS3 uploads a template to an S3 bucket
 func (m *Manager) uploadToS3(repo *Repository, templateName string, content []byte) error {
-	// S3 upload requires AWS SDK integration
-	// Would need to:
-	// 1. Initialize S3 client
-	// 2. Put object to bucket
-	// 3. Update repository metadata
-	return fmt.Errorf("S3 upload requires AWS SDK integration - use local repositories")
+	// Parse S3 URL to extract bucket
+	s3URL := strings.TrimPrefix(repo.URL, "s3://")
+	urlParts := strings.SplitN(s3URL, "/", 2)
+
+	if len(urlParts) < 1 {
+		return fmt.Errorf("invalid S3 URL format: %s", repo.URL)
+	}
+
+	bucket := urlParts[0]
+	prefix := ""
+	if len(urlParts) > 1 {
+		prefix = urlParts[1]
+	}
+
+	// Construct S3 object key
+	objectKey := prefix
+	if prefix != "" && !strings.HasSuffix(prefix, "/") {
+		objectKey += "/"
+	}
+	objectKey += templateName + ".yml"
+
+	// Create AWS S3 client
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Load AWS configuration
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion(os.Getenv("AWS_REGION")),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to load AWS config: %w", err)
+	}
+
+	// Create S3 client
+	s3Client := s3.NewFromConfig(cfg)
+
+	// Upload template to S3
+	putObjectInput := &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(objectKey),
+		Body:        strings.NewReader(string(content)),
+		ContentType: aws.String("application/x-yaml"),
+	}
+
+	_, err = s3Client.PutObject(ctx, putObjectInput)
+	if err != nil {
+		return fmt.Errorf("failed to upload template to S3 (s3://%s/%s): %w", bucket, objectKey, err)
+	}
+
+	return nil
 }
