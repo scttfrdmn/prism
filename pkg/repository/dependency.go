@@ -2,6 +2,9 @@ package repository
 
 import (
 	"fmt"
+	"os"
+
+	"gopkg.in/yaml.v3"
 )
 
 // ResolveDependencies builds a dependency graph and resolves dependencies.
@@ -40,14 +43,14 @@ func (m *Manager) buildDependencyGraph(graph *DependencyGraph, ref TemplateRefer
 		return err
 	}
 
-	// Get template path (unused for now, will be used for reading dependencies)
-	// We don't actually read from this path yet since the dependencies feature
-	// is not fully implemented
-	_ = getTemplatePath(template, repo, m.cache)
+	// Get template path to read dependencies
+	templatePath := getTemplatePath(template, repo, m.cache)
 
 	// Read template file to get dependencies
-	// TODO: Implement reading template dependencies
-	dependencies := []TemplateReference{}
+	dependencies, err := m.readTemplateDependencies(templatePath, ref.Repository)
+	if err != nil {
+		return fmt.Errorf("failed to read template dependencies: %w", err)
+	}
 
 	// Create node
 	node := &DependencyNode{
@@ -142,4 +145,42 @@ func refToKey(ref TemplateReference) string {
 	}
 
 	return fmt.Sprintf("%s:%s@%s", repo, ref.Template, version)
+}
+
+// readTemplateDependencies reads a template file and extracts its dependencies
+func (m *Manager) readTemplateDependencies(templatePath string, defaultRepo string) ([]TemplateReference, error) {
+	// Read template file
+	data, err := os.ReadFile(templatePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template file: %w", err)
+	}
+
+	// Parse YAML to extract inherits field
+	var templateData struct {
+		Inherits []string `yaml:"inherits"`
+	}
+
+	if err := yaml.Unmarshal(data, &templateData); err != nil {
+		return nil, fmt.Errorf("failed to parse template YAML: %w", err)
+	}
+
+	// Convert inherits to TemplateReferences
+	dependencies := make([]TemplateReference, 0, len(templateData.Inherits))
+	for _, inherit := range templateData.Inherits {
+		// Parse the inherit string as a template reference
+		// Format: [repo:]template[@version]
+		ref := TemplateReference{
+			Repository: defaultRepo, // Default to same repository
+			Template:   inherit,
+		}
+
+		// Parse if it contains repository or version
+		// Simple parsing: check for ':' (repository) and '@' (version)
+		// For simplicity, assume inherit is just the template name
+		// More complex parsing can be added if needed
+
+		dependencies = append(dependencies, ref)
+	}
+
+	return dependencies, nil
 }

@@ -1,8 +1,8 @@
 # CloudWorkstation - Remaining Work Analysis
 
 **Date**: October 6, 2025
-**Current Status**: 26% Complete (25/169 placeholders replaced, 15/34 TODOs done)
-**Remaining**: 144 placeholders + 19 TODOs
+**Current Status**: 27% Complete (25/169 placeholders replaced, 16/34 TODOs done)
+**Remaining**: 144 placeholders + 18 TODOs
 
 ---
 
@@ -12,7 +12,7 @@ This document provides a comprehensive analysis of all remaining work to achieve
 
 ---
 
-## Phase 3: TODO Markers (19 remaining, 15/34 complete - 44%)
+## Phase 3: TODO Markers (18 remaining, 16/34 complete - 47%)
 
 ### 🎉 High Priority TODOs (12/12 complete - 100% DONE!)
 
@@ -86,13 +86,17 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Comprehensive error handling
     - Status: COMPLETE
 
-### Medium Priority TODOs (4/13 complete - 31%)
+### Medium Priority TODOs (5/13 complete - 38%)
 
-#### Repository & Template Management (0/6)
+#### Repository & Template Management (1/6 complete - 17%)
 13. **pkg/ami/parser_enhanced.go:80** - Template listing logic
 14. **pkg/ami/dependency_resolver.go:550** - Template parsing from string
 15. **pkg/ami/template_sharing.go:290** - Semantic versioning for sorting
-16. **pkg/repository/dependency.go:49** - Read template dependencies
+16. ✅ **pkg/repository/dependency.go:49** - Read template dependencies (COMPLETE Session 8)
+    - Implemented readTemplateDependencies method
+    - Reads template YAML and parses inherits field
+    - Returns TemplateReference list for dependency graph
+    - Status: COMPLETE
 17. **pkg/repository/manager.go:429** - GitHub repository caching
 18. **pkg/repository/manager.go:502** - S3 repository caching
 

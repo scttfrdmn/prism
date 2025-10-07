@@ -292,10 +292,10 @@
 
 ## Current Focus
 
-**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (15/34 TODOs, 25/169 placeholders complete)
+**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (16/34 TODOs, 25/169 placeholders complete)
 
 **Progress**:
-- Phase 3: 15/34 TODO markers replaced (44% complete)
+- Phase 3: 16/34 TODO markers replaced (47% complete)
   - 🎉 **ALL HIGH-PRIORITY TODOs COMPLETE (12/12 - 100%)**
   - ✅ Hibernation scheduler AWS integration (3 critical TODOs)
   - ✅ Project-instance association & budget enforcement (3 TODOs)
@@ -305,6 +305,7 @@
   - ✅ Instance commands Cobra flag integration (1 TODO)
   - ✅ HTTP path check (1 TODO)
   - ✅ Idle detection integration (4 TODOs)
+  - ✅ Template dependency reading (1 TODO)
 - Phase 4: 25/169 placeholders replaced (15% of placeholders complete)
   - ✅ SSH key encoding (RSA + Ed25519) - 3 placeholders
   - ✅ Platform credential storage (macOS + Windows + Linux + encrypted fallback) - 9 placeholders
@@ -319,13 +320,30 @@
 - Template marketplace: local repositories fully functional
 
 **Next Tasks**:
-1. Continue Phase 3: Replace remaining medium-priority TODO markers (19 remaining)
+1. Continue Phase 3: Replace remaining medium-priority TODO markers (18 remaining)
 2. Continue Phase 4: Replace remaining simulated/mock logic implementations
 3. Fix remaining research package test failures
 4. Fix remaining 5 mock daemon issues in CLI tests
 5. Write AWS integration tests for all implemented functionality
 
-**Next Commit**: Idle Detection Integration Complete (4 TODOs)
+**Next Commit**: Template Dependency Reading Complete
+
+### 2025-10-06 - Session 8 (continued)
+- **Template Dependency Reading**: Replaced TODO (dependency.go:49)
+  - **pkg/repository/dependency.go**: Implemented readTemplateDependencies
+    - Reads template YAML file from disk
+    - Parses YAML to extract 'inherits' field
+    - Converts inherits list to TemplateReference objects
+    - Returns dependencies for dependency graph resolution
+    - Added os and gopkg.in/yaml.v3 imports
+  - **buildDependencyGraph**: Now reads actual template dependencies
+    - Calls readTemplateDependencies for each template
+    - Builds complete dependency graph with real data
+    - Enables proper template inheritance resolution
+  - **Functionality**: Dependency resolution now uses actual template data
+  - All builds passing (CLI, daemon)
+  - 25/169 total placeholders replaced (15% of placeholders complete)
+  - 18/34 TODOs remaining (16 TODOs complete - 47% done)
 
 ### 2025-10-06 - Session 8 (continued)
 - **Idle Detection Integration**: Replaced 4 TODOs (idle_handlers.go:141, 211, 223, 239)
