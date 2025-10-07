@@ -36,6 +36,11 @@ type MockEC2Client struct {
 	DeleteKeyPairFunc                 func(ctx context.Context, params *ec2.DeleteKeyPairInput) (*ec2.DeleteKeyPairOutput, error)
 	GetConsoleOutputFunc              func(ctx context.Context, params *ec2.GetConsoleOutputInput) (*ec2.GetConsoleOutputOutput, error)
 	ModifyInstanceAttributeFunc       func(ctx context.Context, params *ec2.ModifyInstanceAttributeInput) (*ec2.ModifyInstanceAttributeOutput, error)
+	DeregisterImageFunc               func(ctx context.Context, params *ec2.DeregisterImageInput) (*ec2.DeregisterImageOutput, error)
+	DeleteSnapshotFunc                func(ctx context.Context, params *ec2.DeleteSnapshotInput) (*ec2.DeleteSnapshotOutput, error)
+	DescribeSnapshotsFunc             func(ctx context.Context, params *ec2.DescribeSnapshotsInput) (*ec2.DescribeSnapshotsOutput, error)
+	ModifyImageAttributeFunc          func(ctx context.Context, params *ec2.ModifyImageAttributeInput) (*ec2.ModifyImageAttributeOutput, error)
+	CreateTagsFunc                    func(ctx context.Context, params *ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error)
 }
 
 func (m *MockEC2Client) RunInstances(ctx context.Context, params *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
@@ -204,6 +209,41 @@ func (m *MockEC2Client) ModifyInstanceAttribute(ctx context.Context, params *ec2
 		return m.ModifyInstanceAttributeFunc(ctx, params)
 	}
 	return &ec2.ModifyInstanceAttributeOutput{}, nil
+}
+
+func (m *MockEC2Client) DeregisterImage(ctx context.Context, params *ec2.DeregisterImageInput, optFns ...func(*ec2.Options)) (*ec2.DeregisterImageOutput, error) {
+	if m.DeregisterImageFunc != nil {
+		return m.DeregisterImageFunc(ctx, params)
+	}
+	return &ec2.DeregisterImageOutput{}, nil
+}
+
+func (m *MockEC2Client) DeleteSnapshot(ctx context.Context, params *ec2.DeleteSnapshotInput, optFns ...func(*ec2.Options)) (*ec2.DeleteSnapshotOutput, error) {
+	if m.DeleteSnapshotFunc != nil {
+		return m.DeleteSnapshotFunc(ctx, params)
+	}
+	return &ec2.DeleteSnapshotOutput{}, nil
+}
+
+func (m *MockEC2Client) DescribeSnapshots(ctx context.Context, params *ec2.DescribeSnapshotsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeSnapshotsOutput, error) {
+	if m.DescribeSnapshotsFunc != nil {
+		return m.DescribeSnapshotsFunc(ctx, params)
+	}
+	return &ec2.DescribeSnapshotsOutput{}, nil
+}
+
+func (m *MockEC2Client) ModifyImageAttribute(ctx context.Context, params *ec2.ModifyImageAttributeInput, optFns ...func(*ec2.Options)) (*ec2.ModifyImageAttributeOutput, error) {
+	if m.ModifyImageAttributeFunc != nil {
+		return m.ModifyImageAttributeFunc(ctx, params)
+	}
+	return &ec2.ModifyImageAttributeOutput{}, nil
+}
+
+func (m *MockEC2Client) CreateTags(ctx context.Context, params *ec2.CreateTagsInput, optFns ...func(*ec2.Options)) (*ec2.CreateTagsOutput, error) {
+	if m.CreateTagsFunc != nil {
+		return m.CreateTagsFunc(ctx, params)
+	}
+	return &ec2.CreateTagsOutput{}, nil
 }
 
 // MockEFSClient provides a mock implementation of EFSClientInterface for testing

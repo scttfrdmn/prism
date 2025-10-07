@@ -39,6 +39,7 @@ type ReliabilityCheck struct {
 	LastSuccess          time.Time         `json:"last_success"`
 	LastFailure          time.Time         `json:"last_failure"`
 	ErrorMessage         string            `json:"error_message,omitempty"`
+	RecentResults        []bool            `json:"-"` // Sliding window of recent check results (true=success)
 }
 
 // ReliabilityStatus represents the reliability status
@@ -258,6 +259,9 @@ func (rm *ReliabilityManager) performSingleReliabilityCheck(ctx context.Context,
 		check.LastSuccess = now
 		check.ErrorMessage = ""
 
+		// Add to sliding window
+		check.RecentResults = append(check.RecentResults, true)
+
 		// Update status based on consecutive successes
 		if check.Status == ReliabilityStatusUnhealthy && check.ConsecutiveSuccesses >= rm.recoveryThreshold {
 			check.Status = ReliabilityStatusRecovering
@@ -275,6 +279,9 @@ func (rm *ReliabilityManager) performSingleReliabilityCheck(ctx context.Context,
 		check.LastFailure = now
 		check.ErrorMessage = err.Error()
 
+		// Add to sliding window
+		check.RecentResults = append(check.RecentResults, false)
+
 		// Update status based on consecutive failures
 		if check.ConsecutiveFailures >= rm.unhealthyThreshold {
 			check.Status = ReliabilityStatusUnhealthy
@@ -285,21 +292,20 @@ func (rm *ReliabilityManager) performSingleReliabilityCheck(ctx context.Context,
 		rm.monitor.RecordValue("reliability_check_failure", 1, "count")
 	}
 
-	// Calculate success rate (last 100 checks)
-	if check.TotalChecks > 0 {
-		// For simplicity, using current consecutive failures
-		// In production, you'd maintain a sliding window
-		recent := check.TotalChecks
-		if recent > 100 {
-			recent = 100
-		}
+	// Maintain sliding window of last 100 checks
+	if len(check.RecentResults) > 100 {
+		check.RecentResults = check.RecentResults[len(check.RecentResults)-100:]
+	}
 
-		recentSuccesses := recent - check.ConsecutiveFailures
-		if recentSuccesses < 0 {
-			recentSuccesses = 0
+	// Calculate success rate from sliding window
+	if len(check.RecentResults) > 0 {
+		successCount := 0
+		for _, success := range check.RecentResults {
+			if success {
+				successCount++
+			}
 		}
-
-		check.SuccessRate = float64(recentSuccesses) / float64(recent)
+		check.SuccessRate = float64(successCount) / float64(len(check.RecentResults))
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -234,15 +235,29 @@ func (dcm *DaemonConnectionManager) updateHealthStatus(healthy bool) {
 
 // parseHostPort parses host and port from daemon URL
 func parseHostPort(daemonURL string) (string, int, error) {
-	// Simple parsing - assumes format like "http://localhost:8947"
-	// In production, use proper URL parsing
-
-	if daemonURL == "http://localhost:8947" {
-		return "localhost", 8947, nil
+	// Parse URL properly using net/url
+	u, err := url.Parse(daemonURL)
+	if err != nil {
+		return "", 0, fmt.Errorf("invalid daemon URL: %w", err)
 	}
 
-	// Default fallback
-	return "localhost", 8947, nil
+	// Extract host and port
+	host := u.Hostname()
+	if host == "" {
+		return "", 0, fmt.Errorf("no hostname in URL: %s", daemonURL)
+	}
+
+	port := 8947 // Default port
+	if u.Port() != "" {
+		portInt := 0
+		_, err := fmt.Sscanf(u.Port(), "%d", &portInt)
+		if err != nil {
+			return "", 0, fmt.Errorf("invalid port in URL: %w", err)
+		}
+		port = portInt
+	}
+
+	return host, port, nil
 }
 
 // DaemonConnectionStats provides daemon connection statistics

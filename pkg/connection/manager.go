@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -220,12 +221,22 @@ func (cm *ConnectionManager) HealthCheckSSH(ctx context.Context, target string, 
 		}, err
 	}
 
-	// Additional SSH-specific checks could go here
-	// For now, port availability is sufficient
+	// Perform SSH banner check to verify SSH service is responding
+	banner, err := cm.readSSHBanner(ctx, target, port, 5*time.Second)
+	if err != nil {
+		return &HealthResult{
+			Service:   "ssh",
+			Status:    HealthStatusDegraded,
+			Error:     fmt.Sprintf("SSH port open but banner check failed: %v", err),
+			CheckedAt: startTime,
+			Duration:  time.Since(startTime),
+		}, nil // Not a hard failure - port is available
+	}
 
 	return &HealthResult{
 		Service:   "ssh",
 		Status:    HealthStatusHealthy,
+		Message:   fmt.Sprintf("SSH banner: %s", banner),
 		CheckedAt: startTime,
 		Duration:  time.Since(startTime),
 	}, nil
@@ -418,6 +429,7 @@ type ConnectionResult struct {
 type HealthResult struct {
 	Service   string        `json:"service"`
 	Status    HealthStatus  `json:"status"`
+	Message   string        `json:"message,omitempty"`
 	Error     string        `json:"error,omitempty"`
 	CheckedAt time.Time     `json:"checked_at"`
 	Duration  time.Duration `json:"duration"`
@@ -428,6 +440,7 @@ type HealthStatus string
 
 const (
 	HealthStatusHealthy   HealthStatus = "healthy"
+	HealthStatusDegraded  HealthStatus = "degraded"
 	HealthStatusUnhealthy HealthStatus = "unhealthy"
 	HealthStatusUnknown   HealthStatus = "unknown"
 )
@@ -436,4 +449,43 @@ const (
 type ConnectionStats struct {
 	TotalConnections    int                      `json:"total_connections"`
 	ConnectionsByStatus map[ConnectionStatus]int `json:"connections_by_status"`
+}
+
+// readSSHBanner reads the SSH server banner to verify SSH service is responding
+func (cm *ConnectionManager) readSSHBanner(ctx context.Context, host string, port int, timeout time.Duration) (string, error) {
+	// Create dialer with timeout
+	dialer := net.Dialer{
+		Timeout: timeout,
+	}
+
+	// Connect to SSH port
+	conn, err := dialer.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		return "", fmt.Errorf("failed to connect: %w", err)
+	}
+	defer conn.Close()
+
+	// Set read deadline
+	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		return "", fmt.Errorf("failed to set read deadline: %w", err)
+	}
+
+	// Read SSH banner (should start with "SSH-")
+	buffer := make([]byte, 256)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		return "", fmt.Errorf("failed to read banner: %w", err)
+	}
+
+	banner := string(buffer[:n])
+
+	// Verify it's an SSH banner
+	if !strings.HasPrefix(banner, "SSH-") {
+		return "", fmt.Errorf("invalid SSH banner: %s", banner)
+	}
+
+	// Clean up banner (remove newlines)
+	banner = strings.TrimSpace(banner)
+
+	return banner, nil
 }
