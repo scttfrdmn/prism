@@ -138,9 +138,15 @@ func (s *Server) recommendIdlePolicy(w http.ResponseWriter, r *http.Request) {
 
 // listIdleSchedules returns active idle schedules
 func (s *Server) listIdleSchedules(w http.ResponseWriter, r *http.Request) {
-	// TODO: Integrate with scheduler when available
-	// For now, return empty list
-	schedules := []idle.Schedule{}
+	// Get scheduler from AWS manager
+	scheduler := s.awsManager.GetIdleScheduler()
+	if scheduler == nil {
+		http.Error(w, "Scheduler not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Get all schedules from scheduler
+	schedules := scheduler.ListSchedules()
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(schedules); err != nil {
@@ -208,8 +214,12 @@ func (s *Server) handleInstanceIdlePolicy(w http.ResponseWriter, r *http.Request
 
 // getInstanceIdlePolicies returns idle policies applied to an instance
 func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request, instanceName string) {
-	// TODO: Implement actual policy retrieval
-	policies := []idle.PolicyTemplate{}
+	// Get applied policies from AWS manager
+	policies, err := s.awsManager.GetInstancePolicies(instanceName)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get instance policies: %v", err), http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(policies); err != nil {
@@ -220,8 +230,12 @@ func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request,
 
 // applyIdlePolicyToInstance applies an idle policy to an instance
 func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Request, instanceName, policyID string) {
-	// TODO: Implement actual policy application
-	// For now, return success message
+	// Apply the idle policy via AWS manager
+	if err := s.awsManager.ApplyHibernationPolicy(instanceName, policyID); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to apply idle policy: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	response := map[string]string{
 		"status":  "success",
 		"message": fmt.Sprintf("Successfully applied idle policy %s to instance %s", policyID, instanceName),
@@ -236,8 +250,12 @@ func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Reques
 
 // removeIdlePolicyFromInstance removes an idle policy from an instance
 func (s *Server) removeIdlePolicyFromInstance(w http.ResponseWriter, r *http.Request, instanceName, policyID string) {
-	// TODO: Implement actual policy removal
-	// For now, return success message
+	// Remove the idle policy via AWS manager
+	if err := s.awsManager.RemoveHibernationPolicy(instanceName, policyID); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to remove idle policy: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	response := map[string]string{
 		"status":  "success",
 		"message": fmt.Sprintf("Successfully removed idle policy %s from instance %s", policyID, instanceName),

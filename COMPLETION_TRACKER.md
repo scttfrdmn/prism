@@ -292,10 +292,10 @@
 
 ## Current Focus
 
-**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (11/34 TODOs, 25/169 placeholders complete)
+**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (15/34 TODOs, 25/169 placeholders complete)
 
 **Progress**:
-- Phase 3: 11/34 TODO markers replaced (32% complete)
+- Phase 3: 15/34 TODO markers replaced (44% complete)
   - 🎉 **ALL HIGH-PRIORITY TODOs COMPLETE (12/12 - 100%)**
   - ✅ Hibernation scheduler AWS integration (3 critical TODOs)
   - ✅ Project-instance association & budget enforcement (3 TODOs)
@@ -304,6 +304,7 @@
   - ✅ SSM validation logic (1 TODO - HIGH impact)
   - ✅ Instance commands Cobra flag integration (1 TODO)
   - ✅ HTTP path check (1 TODO)
+  - ✅ Idle detection integration (4 TODOs)
 - Phase 4: 25/169 placeholders replaced (15% of placeholders complete)
   - ✅ SSH key encoding (RSA + Ed25519) - 3 placeholders
   - ✅ Platform credential storage (macOS + Windows + Linux + encrypted fallback) - 9 placeholders
@@ -318,13 +319,29 @@
 - Template marketplace: local repositories fully functional
 
 **Next Tasks**:
-1. Continue Phase 3: Replace remaining medium-priority TODO markers (23 remaining)
+1. Continue Phase 3: Replace remaining medium-priority TODO markers (19 remaining)
 2. Continue Phase 4: Replace remaining simulated/mock logic implementations
 3. Fix remaining research package test failures
 4. Fix remaining 5 mock daemon issues in CLI tests
 5. Write AWS integration tests for all implemented functionality
 
-**Next Commit**: HTTP path check complete - ALL HIGH-PRIORITY TODOs DONE! 🎉
+**Next Commit**: Idle Detection Integration Complete (4 TODOs)
+
+### 2025-10-06 - Session 8 (continued)
+- **Idle Detection Integration**: Replaced 4 TODOs (idle_handlers.go:141, 211, 223, 239)
+  - **pkg/aws/manager.go**: Added scheduler/policy manager getters
+    - GetIdleScheduler: Returns idle scheduler for direct access
+    - GetPolicyManager: Returns policy manager for direct access
+  - **pkg/daemon/idle_handlers.go**: Complete integration with scheduler and policies
+    - listIdleSchedules (line 141): Now retrieves actual schedules from scheduler
+    - getInstanceIdlePolicies (line 211): Retrieves applied policies via AWS manager
+    - applyIdlePolicyToInstance (line 223): Applies hibernation policies via AWS manager
+    - removeIdlePolicyFromInstance (line 239): Removes hibernation policies via AWS manager
+    - All methods use real AWS manager integration, not placeholders
+  - **Functionality**: REST API now fully functional for idle policy management
+  - All builds passing (CLI, daemon)
+  - 25/169 total placeholders replaced (15% of placeholders complete)
+  - 19/34 TODOs remaining (15 TODOs complete - 44% done)
 
 ### 2025-10-06 - Session 8 (continued)
 - **HTTP Path Check Implementation**: Replaced TODO (connection/manager.go:252)

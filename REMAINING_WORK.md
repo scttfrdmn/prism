@@ -1,8 +1,8 @@
 # CloudWorkstation - Remaining Work Analysis
 
 **Date**: October 6, 2025
-**Current Status**: 23% Complete (25/169 placeholders replaced, 11/34 TODOs done)
-**Remaining**: 144 placeholders + 23 TODOs
+**Current Status**: 26% Complete (25/169 placeholders replaced, 15/34 TODOs done)
+**Remaining**: 144 placeholders + 19 TODOs
 
 ---
 
@@ -12,7 +12,7 @@ This document provides a comprehensive analysis of all remaining work to achieve
 
 ---
 
-## Phase 3: TODO Markers (23 remaining, 11/34 complete - 32%)
+## Phase 3: TODO Markers (19 remaining, 15/34 complete - 44%)
 
 ### 🎉 High Priority TODOs (12/12 complete - 100% DONE!)
 
@@ -86,9 +86,9 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Comprehensive error handling
     - Status: COMPLETE
 
-### Medium Priority TODOs (0/13 complete)
+### Medium Priority TODOs (4/13 complete - 31%)
 
-#### Repository & Template Management
+#### Repository & Template Management (0/6)
 13. **pkg/ami/parser_enhanced.go:80** - Template listing logic
 14. **pkg/ami/dependency_resolver.go:550** - Template parsing from string
 15. **pkg/ami/template_sharing.go:290** - Semantic versioning for sorting
@@ -96,7 +96,7 @@ This document provides a comprehensive analysis of all remaining work to achieve
 17. **pkg/repository/manager.go:429** - GitHub repository caching
 18. **pkg/repository/manager.go:502** - S3 repository caching
 
-#### Daemon & Proxy
+#### Daemon & Proxy (0/6)
 19. **pkg/daemon/connection_proxy_handlers.go:58** - SSH connection multiplexing
 20. **pkg/daemon/connection_proxy_handlers.go:100** - DCV proxy logic
 21. **pkg/daemon/connection_proxy_handlers.go:141** - AWS federation token (placeholder)
@@ -104,12 +104,30 @@ This document provides a comprehensive analysis of all remaining work to achieve
 23. **pkg/daemon/connection_proxy_handlers.go:203** - Enhanced CORS for embedding
 24. **pkg/daemon/project_handlers.go:174** - Project-instance association
 
-#### Idle Detection Integration
-25. **pkg/daemon/idle_handlers.go:141** - Integrate with scheduler
+#### Idle Detection Integration (4/5 complete - 80%) ✅
+25. ✅ **pkg/daemon/idle_handlers.go:141** - Integrate with scheduler (COMPLETE Session 8)
+    - Now retrieves actual schedules from idleScheduler
+    - Returns real schedule data via REST API
+    - Status: COMPLETE
+
 26. **pkg/daemon/idle_handlers.go:154** - Integrate with cost tracking
-27. **pkg/daemon/idle_handlers.go:211** - Actual policy retrieval
-28. **pkg/daemon/idle_handlers.go:223** - Actual policy application
-29. **pkg/daemon/idle_handlers.go:239** - Actual policy removal
+    - Requires cost tracking system implementation
+    - Status: DEFERRED (cost tracking not yet implemented)
+
+27. ✅ **pkg/daemon/idle_handlers.go:211** - Actual policy retrieval (COMPLETE Session 8)
+    - Retrieves applied policies via AWS manager GetInstancePolicies
+    - Returns real policy data from policy manager
+    - Status: COMPLETE
+
+28. ✅ **pkg/daemon/idle_handlers.go:223** - Actual policy application (COMPLETE Session 8)
+    - Applies hibernation policies via AWS manager ApplyHibernationPolicy
+    - Full integration with scheduler and policy manager
+    - Status: COMPLETE
+
+29. ✅ **pkg/daemon/idle_handlers.go:239** - Actual policy removal (COMPLETE Session 8)
+    - Removes hibernation policies via AWS manager RemoveHibernationPolicy
+    - Cleans up schedules and policy assignments
+    - Status: COMPLETE
 
 ### Low Priority TODOs (9)
 

@@ -3613,3 +3613,13 @@ func (m *Manager) calculateAMIStorageCost(image ec2types.Image) float64 {
 
 	return totalCost
 }
+
+// GetIdleScheduler returns the idle scheduler for direct access
+func (m *Manager) GetIdleScheduler() *idle.Scheduler {
+	return m.idleScheduler
+}
+
+// GetPolicyManager returns the policy manager for direct access
+func (m *Manager) GetPolicyManager() *idle.PolicyManager {
+	return m.policyManager
+}
