@@ -292,13 +292,14 @@
 
 ## Current Focus
 
-**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (8/34 TODOs, 25/169 placeholders complete)
+**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (9/34 TODOs, 25/169 placeholders complete)
 
 **Progress**:
-- Phase 3: 8/34 TODO markers replaced (24% complete)
+- Phase 3: 9/34 TODO markers replaced (26% complete)
   - ✅ Hibernation scheduler AWS integration (3 critical TODOs)
   - ✅ Project-instance association & budget enforcement (3 TODOs)
   - ✅ Template marketplace download/upload (2 TODOs)
+  - ✅ Template saving implementation (1 TODO)
 - Phase 4: 25/169 placeholders replaced (15% of placeholders complete)
   - ✅ SSH key encoding (RSA + Ed25519) - 3 placeholders
   - ✅ Platform credential storage (macOS + Windows + Linux + encrypted fallback) - 9 placeholders
@@ -313,13 +314,26 @@
 - Template marketplace: local repositories fully functional
 
 **Next Tasks**:
-1. Continue Phase 3: Replace remaining high-priority TODO markers (26 remaining)
+1. Continue Phase 3: Replace remaining high-priority TODO markers (25 remaining)
 2. Continue Phase 4: Replace remaining simulated/mock logic implementations
 3. Fix remaining research package test failures
 4. Fix remaining 5 mock daemon issues in CLI tests
 5. Write AWS integration tests for all implemented functionality
 
-**Next Commit**: Template marketplace download/upload complete
+**Next Commit**: Template saving implementation complete
+
+### 2025-10-06 - Session 8 (continued)
+- **Template Saving Implementation**: Replaced TODO (commands.go:887)
+  - **internal/cli/commands.go**: Implemented saveTemplateAndDisplayResults
+    - Added actual file saving to ~/.cloudworkstation/templates/
+    - Creates directory if it doesn't exist with proper permissions
+    - Writes template YAML content to file
+    - Added os and filepath imports
+    - Full error handling with descriptive messages
+  - **Functionality**: Template snapshot command now saves templates to disk
+  - All builds passing (CLI)
+  - 25/169 total placeholders replaced (15% of placeholders complete)
+  - 25/34 TODOs remaining (9 TODOs complete - 26% done)
 
 ### 2025-10-06 - Session 8
 - **Template Marketplace Download/Upload Implementation**: Replaced 2 TODOs (repo.go:448, 486)

@@ -3,6 +3,8 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -884,14 +886,30 @@ func (s *TemplateSnapshotSaveService) displayDryRunResults(config *TemplateSnaps
 
 // saveTemplateAndDisplayResults saves template and displays success (Single Responsibility)
 func (s *TemplateSnapshotSaveService) saveTemplateAndDisplayResults(config *TemplateSnapshotConfig, template string) error {
-	// TODO: Implement actual template saving
-	// For now, simulate saving
+	// Determine template directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+	templatesDir := filepath.Join(homeDir, ".cloudworkstation", "templates")
+
+	// Create templates directory if it doesn't exist
+	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create templates directory: %w", err)
+	}
+
+	// Save template file
+	templateFile := filepath.Join(templatesDir, config.TemplateName+".yml")
+	if err := os.WriteFile(templateFile, []byte(template), 0644); err != nil {
+		return fmt.Errorf("failed to write template file: %w", err)
+	}
+
 	fmt.Printf("   ✅ Configuration discovery completed\n")
 	fmt.Printf("   ✅ Template generated and saved\n\n")
 
 	fmt.Printf("✅ **Template Created Successfully**:\n")
 	fmt.Printf("   Template saved as: %s\n", config.TemplateName)
-	fmt.Printf("   Location: templates/%s.yml\n\n", config.TemplateName)
+	fmt.Printf("   Location: %s\n\n", templateFile)
 
 	fmt.Printf("🚀 **Usage**:\n")
 	fmt.Printf("   Launch new instance: cws launch \"%s\" new-instance\n", config.TemplateName)
