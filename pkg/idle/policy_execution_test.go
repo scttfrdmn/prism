@@ -47,6 +47,11 @@ func (m *mockAWSManager) GetInstanceNames() ([]string, error) {
 	return m.instances, nil
 }
 
+func (m *mockAWSManager) GetInstanceID(name string) (string, error) {
+	// Return mock instance ID - just prepend i- to the name
+	return "i-" + name, nil
+}
+
 // TestPolicyManagerWorkflows tests the complete hibernation policy management workflows
 func TestPolicyManagerWorkflows(t *testing.T) {
 

@@ -677,6 +677,41 @@ func (bt *BudgetTracker) saveBudgetData() error {
 }
 
 // GetCostTrends returns cost trends for a project over a specified period
+// GetAllProjectIDs returns all project IDs being tracked
+func (bt *BudgetTracker) GetAllProjectIDs() []string {
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
+
+	projectIDs := make([]string, 0, len(bt.budgetData))
+	for projectID := range bt.budgetData {
+		projectIDs = append(projectIDs, projectID)
+	}
+	return projectIDs
+}
+
+// GetProjectCostHistory returns cost history for a project
+func (bt *BudgetTracker) GetProjectCostHistory(projectID string, days int) ([]float64, error) {
+	bt.mutex.RLock()
+	defer bt.mutex.RUnlock()
+
+	budgetData, exists := bt.budgetData[projectID]
+	if !exists {
+		return nil, fmt.Errorf("budget data not found for project %q", projectID)
+	}
+
+	// Filter by days
+	cutoff := time.Now().AddDate(0, 0, -days)
+	costHistory := make([]float64, 0)
+
+	for _, point := range budgetData.CostHistory {
+		if point.Timestamp.After(cutoff) {
+			costHistory = append(costHistory, point.TotalCost)
+		}
+	}
+
+	return costHistory, nil
+}
+
 func (bt *BudgetTracker) GetCostTrends(projectID string, period string) (map[string]interface{}, error) {
 	bt.mutex.RLock()
 	defer bt.mutex.RUnlock()

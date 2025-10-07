@@ -142,6 +142,19 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 			}
 			return names, nil
 		},
+		func(name string) (string, error) {
+			// Get instance ID from name via state manager
+			instances, err := manager.ListInstances()
+			if err != nil {
+				return "", err
+			}
+			for _, inst := range instances {
+				if inst.Name == name {
+					return inst.ID, nil
+				}
+			}
+			return "", fmt.Errorf("instance not found: %s", name)
+		},
 	)
 
 	// Create CloudWatch metrics collector for idle detection

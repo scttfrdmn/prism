@@ -59,6 +59,7 @@ type AlertRule struct {
 	Name          string          `json:"name"`
 	Type          AlertType       `json:"type"`
 	Enabled       bool            `json:"enabled"`
+	ProjectID     string          `json:"project_id,omitempty"` // Specific project, empty means all projects
 	Conditions    AlertConditions `json:"conditions"`
 	Actions       []string        `json:"actions"`  // Actions to take when triggered
 	Cooldown      time.Duration   `json:"cooldown"` // Minimum time between alerts
@@ -91,6 +92,8 @@ type CostDataProvider interface {
 	GetProjectDailyCost(projectID string) (float64, error)
 	// GetProjectCostHistory returns cost history for calculating trends/anomalies
 	GetProjectCostHistory(projectID string, days int) ([]float64, error)
+	// GetAllProjectIDs returns all project IDs being tracked
+	GetAllProjectIDs() ([]string, error)
 }
 
 // AlertManager manages cost alerts
@@ -198,47 +201,56 @@ func (am *AlertManager) evaluateRule(rule *AlertRule) bool {
 
 // evaluateThresholdConditions checks threshold-based conditions
 func (am *AlertManager) evaluateThresholdConditions(conditions AlertConditions) bool {
-	// Budget percentage threshold
-	if conditions.BudgetPercentage != nil {
-		// For now, check against default project "default" - in production this would iterate over all projects
-		currentCost, err := am.costDataProvider.GetProjectCurrentCost("default")
-		if err != nil {
-			return false
-		}
-
-		budget, err := am.costDataProvider.GetProjectBudget("default")
-		if err != nil || budget == 0 {
-			return false
-		}
-
-		usagePercent := (currentCost / budget) * 100.0
-		if usagePercent >= *conditions.BudgetPercentage {
-			return true
-		}
+	// Get all project IDs to check
+	projectIDs, err := am.costDataProvider.GetAllProjectIDs()
+	if err != nil || len(projectIDs) == 0 {
+		// Fallback to checking "default" project if no projects found
+		projectIDs = []string{"default"}
 	}
 
-	// Daily cost threshold
-	if conditions.DailyCostThreshold != nil {
-		dailyCost, err := am.costDataProvider.GetProjectDailyCost("default")
-		if err != nil {
-			return false
+	// Check each project against thresholds
+	for _, projectID := range projectIDs {
+		// Budget percentage threshold
+		if conditions.BudgetPercentage != nil {
+			currentCost, err := am.costDataProvider.GetProjectCurrentCost(projectID)
+			if err != nil {
+				continue
+			}
+
+			budget, err := am.costDataProvider.GetProjectBudget(projectID)
+			if err != nil || budget == 0 {
+				continue
+			}
+
+			usagePercent := (currentCost / budget) * 100.0
+			if usagePercent >= *conditions.BudgetPercentage {
+				return true
+			}
 		}
 
-		if dailyCost >= *conditions.DailyCostThreshold {
-			return true
-		}
-	}
+		// Daily cost threshold
+		if conditions.DailyCostThreshold != nil {
+			dailyCost, err := am.costDataProvider.GetProjectDailyCost(projectID)
+			if err != nil {
+				continue
+			}
 
-	// Hourly cost threshold (derive from daily)
-	if conditions.HourlyCostThreshold != nil {
-		dailyCost, err := am.costDataProvider.GetProjectDailyCost("default")
-		if err != nil {
-			return false
+			if dailyCost >= *conditions.DailyCostThreshold {
+				return true
+			}
 		}
 
-		hourlyCost := dailyCost / 24.0
-		if hourlyCost >= *conditions.HourlyCostThreshold {
-			return true
+		// Hourly cost threshold (derive from daily)
+		if conditions.HourlyCostThreshold != nil {
+			dailyCost, err := am.costDataProvider.GetProjectDailyCost(projectID)
+			if err != nil {
+				continue
+			}
+
+			hourlyCost := dailyCost / 24.0
+			if hourlyCost >= *conditions.HourlyCostThreshold {
+				return true
+			}
 		}
 	}
 
@@ -593,13 +605,18 @@ func isAutomatedAction(actionType string) bool {
 
 // BudgetTrackerAdapter adapts a BudgetTracker to the CostDataProvider interface
 type BudgetTrackerAdapter struct {
-	getBudgetDataFunc func(projectID string) (currentCost, budget, dailyCost float64, costHistory []float64, err error)
+	getBudgetDataFunc  func(projectID string) (currentCost, budget, dailyCost float64, costHistory []float64, err error)
+	getAllProjectsFunc func() ([]string, error)
 }
 
 // NewBudgetTrackerAdapter creates a new adapter for a budget tracker
-func NewBudgetTrackerAdapter(getBudgetDataFunc func(projectID string) (float64, float64, float64, []float64, error)) *BudgetTrackerAdapter {
+func NewBudgetTrackerAdapter(
+	getBudgetDataFunc func(projectID string) (float64, float64, float64, []float64, error),
+	getAllProjectsFunc func() ([]string, error),
+) *BudgetTrackerAdapter {
 	return &BudgetTrackerAdapter{
-		getBudgetDataFunc: getBudgetDataFunc,
+		getBudgetDataFunc:  getBudgetDataFunc,
+		getAllProjectsFunc: getAllProjectsFunc,
 	}
 }
 
@@ -633,4 +650,12 @@ func (bta *BudgetTrackerAdapter) GetProjectCostHistory(projectID string, days in
 		return costHistory[len(costHistory)-days:], nil
 	}
 	return costHistory, nil
+}
+
+// GetAllProjectIDs returns all project IDs being tracked
+func (bta *BudgetTrackerAdapter) GetAllProjectIDs() ([]string, error) {
+	if bta.getAllProjectsFunc == nil {
+		return []string{"default"}, nil
+	}
+	return bta.getAllProjectsFunc()
 }

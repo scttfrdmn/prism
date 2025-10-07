@@ -137,22 +137,41 @@ func NewServer(port string) (*Server, error) {
 	}
 
 	// Create cost data provider adapter for alert manager
-	costDataProvider := cost.NewBudgetTrackerAdapter(func(projectID string) (float64, float64, float64, []float64, error) {
-		// Get budget data from tracker
-		budgetStatus, err := budgetTracker.CheckBudgetStatus(projectID)
-		if err != nil {
-			// Return zeros if project not found - allows alert manager to function even without projects
-			return 0, 0, 0, []float64{}, nil
-		}
+	costDataProvider := cost.NewBudgetTrackerAdapter(
+		func(projectID string) (float64, float64, float64, []float64, error) {
+			// Get budget data from tracker
+			budgetStatus, err := budgetTracker.CheckBudgetStatus(projectID)
+			if err != nil {
+				// Return zeros if project not found - allows alert manager to function even without projects
+				return 0, 0, 0, []float64{}, nil
+			}
 
-		// Extract cost history
-		costHistory := make([]float64, 0)
-		// In production, this would extract actual cost history from the budget tracker
-		// For now, return empty history which will cause anomaly/trend alerts to be skipped
+			// Extract REAL cost history from budget tracker (last 90 days)
+			costHistory, err := budgetTracker.GetProjectCostHistory(projectID, 90)
+			if err != nil {
+				costHistory = []float64{}
+			}
 
-		// Return current spent, total budget, spent (as proxy for daily), and cost history
-		return budgetStatus.SpentAmount, budgetStatus.TotalBudget, budgetStatus.SpentAmount, costHistory, nil
-	})
+			// Calculate real daily cost from recent history
+			dailyCost := budgetStatus.SpentAmount
+			if len(costHistory) >= 2 {
+				// Use last 24 hours if available
+				recentCost := costHistory[len(costHistory)-1]
+				previousCost := costHistory[len(costHistory)-2]
+				dailyCost = recentCost - previousCost
+				if dailyCost < 0 {
+					dailyCost = 0
+				}
+			}
+
+			return budgetStatus.SpentAmount, budgetStatus.TotalBudget, dailyCost, costHistory, nil
+		},
+		func() ([]string, error) {
+			// Get all project IDs from budget tracker
+			projectIDs := budgetTracker.GetAllProjectIDs()
+			return projectIDs, nil
+		},
+	)
 
 	alertManager := cost.NewAlertManager(costDataProvider)
 	alertManager.CreateDefaultRules()

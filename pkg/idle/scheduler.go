@@ -17,6 +17,7 @@ type AWSInstanceManager interface {
 	StopInstance(name string) error
 	StartInstance(name string) error
 	GetInstanceNames() ([]string, error)
+	GetInstanceID(name string) (string, error) // Get AWS instance ID from instance name
 }
 
 // ScheduleType defines the type of hibernation schedule
@@ -260,19 +261,23 @@ func (s *Scheduler) shouldExecuteIdle(schedule *Schedule) bool {
 	defer cancel()
 
 	for _, instanceName := range instances {
-		// Get instance ID from state (this would need to be provided by the state manager)
-		// For now, assume instanceName is the instance ID or we need to look it up
-		// This is a simplified implementation - production would need proper instance ID resolution
-
-		isIdle, err := s.metricsCollector.IsInstanceIdle(ctx, instanceName, schedule)
+		// Get AWS instance ID for CloudWatch metrics
+		instanceID, err := s.awsManager.GetInstanceID(instanceName)
 		if err != nil {
-			log.Printf("Failed to check idle status for instance %s: %v", instanceName, err)
+			log.Printf("Failed to get instance ID for %s: %v", instanceName, err)
+			continue
+		}
+
+		// Check if instance is idle using CloudWatch metrics
+		isIdle, err := s.metricsCollector.IsInstanceIdle(ctx, instanceID, schedule)
+		if err != nil {
+			log.Printf("Failed to check idle status for instance %s (ID: %s): %v", instanceName, instanceID, err)
 			continue
 		}
 
 		if isIdle {
-			log.Printf("Instance %s detected as idle (CPU/network below thresholds for %d minutes)",
-				instanceName, schedule.IdleMinutes)
+			log.Printf("Instance %s (ID: %s) detected as idle (CPU/network below thresholds for %d minutes)",
+				instanceName, instanceID, schedule.IdleMinutes)
 			return true
 		}
 	}
@@ -636,6 +641,7 @@ type AWSManagerAdapter struct {
 	stopFn             func(string) error
 	startFn            func(string) error
 	getInstanceNamesFn func() ([]string, error)
+	getInstanceIDFn    func(string) (string, error)
 }
 
 // NewAWSManagerAdapter creates an adapter for an AWS manager
@@ -645,6 +651,7 @@ func NewAWSManagerAdapter(
 	stopFn func(string) error,
 	startFn func(string) error,
 	getInstanceNamesFn func() ([]string, error),
+	getInstanceIDFn func(string) (string, error),
 ) *AWSManagerAdapter {
 	return &AWSManagerAdapter{
 		hibernateFn:        hibernateFn,
@@ -652,6 +659,7 @@ func NewAWSManagerAdapter(
 		stopFn:             stopFn,
 		startFn:            startFn,
 		getInstanceNamesFn: getInstanceNamesFn,
+		getInstanceIDFn:    getInstanceIDFn,
 	}
 }
 
@@ -673,4 +681,8 @@ func (a *AWSManagerAdapter) StartInstance(name string) error {
 
 func (a *AWSManagerAdapter) GetInstanceNames() ([]string, error) {
 	return a.getInstanceNamesFn()
+}
+
+func (a *AWSManagerAdapter) GetInstanceID(name string) (string, error) {
+	return a.getInstanceIDFn(name)
 }
