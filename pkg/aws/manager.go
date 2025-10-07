@@ -144,7 +144,11 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		},
 	)
 
-	idleScheduler := idle.NewScheduler(awsAdapter)
+	// Create CloudWatch metrics collector for idle detection
+	metricsCollector := idle.NewMetricsCollector(cfg)
+
+	// Create scheduler with metrics collector
+	idleScheduler := idle.NewScheduler(awsAdapter, metricsCollector)
 	policyManager := idle.NewPolicyManager()
 	policyManager.SetScheduler(idleScheduler)
 

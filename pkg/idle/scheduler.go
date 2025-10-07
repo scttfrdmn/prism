@@ -91,6 +91,7 @@ type Scheduler struct {
 	ctx               context.Context
 	cancel            context.CancelFunc
 	awsManager        AWSInstanceManager
+	metricsCollector  *MetricsCollector
 }
 
 // ScheduleExecution tracks active schedule execution
@@ -102,7 +103,7 @@ type ScheduleExecution struct {
 }
 
 // NewScheduler creates a new hibernation scheduler
-func NewScheduler(awsManager AWSInstanceManager) *Scheduler {
+func NewScheduler(awsManager AWSInstanceManager, metricsCollector *MetricsCollector) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
 		schedules:         make(map[string]*Schedule),
@@ -111,6 +112,7 @@ func NewScheduler(awsManager AWSInstanceManager) *Scheduler {
 		ctx:               ctx,
 		cancel:            cancel,
 		awsManager:        awsManager,
+		metricsCollector:  metricsCollector,
 	}
 }
 
@@ -227,9 +229,54 @@ func (s *Scheduler) shouldExecuteWorkHours(schedule *Schedule, now time.Time) bo
 }
 
 // shouldExecuteIdle checks idle-based schedule
+// This checks if instances have been idle for the specified duration
 func (s *Scheduler) shouldExecuteIdle(schedule *Schedule) bool {
-	// This would integrate with the idle detection system
-	// For now, return false
+	// If IdleMinutes is not set, can't evaluate
+	if schedule.IdleMinutes <= 0 {
+		return false
+	}
+
+	// If no metrics collector available, can't check idle status
+	if s.metricsCollector == nil {
+		log.Printf("Warning: No metrics collector available for idle detection on schedule %s", schedule.Name)
+		return false
+	}
+
+	// Get target instances
+	instances := schedule.TargetInstances
+	if len(instances) == 0 {
+		// If no specific targets, get all instances
+		allInstances, err := s.awsManager.GetInstanceNames()
+		if err != nil {
+			log.Printf("Failed to get instance names for idle detection: %v", err)
+			return false
+		}
+		instances = allInstances
+	}
+
+	// Check if any instance should be hibernated due to idle
+	// We return true if ANY instance is idle (schedule will execute on all targets)
+	ctx, cancel := context.WithTimeout(s.ctx, 5*time.Minute)
+	defer cancel()
+
+	for _, instanceName := range instances {
+		// Get instance ID from state (this would need to be provided by the state manager)
+		// For now, assume instanceName is the instance ID or we need to look it up
+		// This is a simplified implementation - production would need proper instance ID resolution
+
+		isIdle, err := s.metricsCollector.IsInstanceIdle(ctx, instanceName, schedule)
+		if err != nil {
+			log.Printf("Failed to check idle status for instance %s: %v", instanceName, err)
+			continue
+		}
+
+		if isIdle {
+			log.Printf("Instance %s detected as idle (CPU/network below thresholds for %d minutes)",
+				instanceName, schedule.IdleMinutes)
+			return true
+		}
+	}
+
 	return false
 }
 

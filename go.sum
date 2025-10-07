@@ -22,6 +22,8 @@ github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.9 h1:w9LnHqTq8MEdlnyhV4Bwfizd65lf
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.9/go.mod h1:LGEP6EK4nj+bwWNdrvX/FnDTFowdBNwcSPuZu/ouFys=
 github.com/aws/aws-sdk-go-v2/service/artifact v1.13.0 h1:BSmUSPhm2tXYAgghJVCqSVd0Lw9yDBH1RZ00kPQkUWY=
 github.com/aws/aws-sdk-go-v2/service/artifact v1.13.0/go.mod h1:rZTDMpEXCucs8zRrqYO9Iy/iNx56iYIKK9D54EyF58U=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.51.1 h1:GqVafesryYki8Lw/yRzLcoSeaT06qSAIbLoZLqeY0ks=
+github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.51.1/go.mod h1:Kg/y+WTU5U8KtZ8vYYz0CyiR8UCBbZkpsT7TeqIkQ2M=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.245.2 h1:P94OfRObDwjklbvdJTGuRZXeGYF7Bv5NNUo+I628kKQ=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.245.2/go.mod h1:D8Wb993SJuFQ10Lp95Vod8VTpYjJz4v0LeW4rEI471c=
 github.com/aws/aws-sdk-go-v2/service/efs v1.40.1 h1:grCvggIToLtguxSuaBfCmKSBEmkE8CTiUwUNyHSMYkI=

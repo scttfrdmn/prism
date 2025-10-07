@@ -191,7 +191,7 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 		// NOTE: Current implementation has limitations with overnight schedules (22:00-08:00)
 		// This test demonstrates the actual behavior and documents the limitation
 		mockAWS := newMockAWSManager()
-		scheduler := NewScheduler(mockAWS)
+		scheduler := NewScheduler(mockAWS, nil)
 
 		// Create a daily schedule that works with current string comparison logic
 		schedule := &Schedule{
@@ -240,7 +240,7 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 	t.Run("idle_based_hibernation_detection", func(t *testing.T) {
 		// User scenario: GPU instance should hibernate after idle period
 		mockAWS := newMockAWSManager()
-		scheduler := NewScheduler(mockAWS)
+		scheduler := NewScheduler(mockAWS, nil)
 
 		// Create an idle-based schedule
 		schedule := &Schedule{
@@ -271,7 +271,7 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 	t.Run("scheduler_lifecycle_management", func(t *testing.T) {
 		// User scenario: Scheduler can be started and stopped properly
 		mockAWS := newMockAWSManager()
-		scheduler := NewScheduler(mockAWS)
+		scheduler := NewScheduler(mockAWS, nil)
 
 		// Test that scheduler can be started and stopped without error
 		// Note: We don't actually start/stop to avoid goroutines in tests
