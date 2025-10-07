@@ -225,7 +225,7 @@ func (v *Validator) executeValidationCommand(instanceID string, validation Valid
 		TimeoutSeconds: aws.Int32(60), // 60 second timeout for validation commands
 	}
 
-	sendOutput, err := v.SSMClient.SendCommand(context.TODO(), sendInput)
+	sendOutput, err := v.SSMClient.SendCommand(context.Background(), sendInput)
 	if err != nil {
 		return false, "", fmt.Errorf("failed to send SSM command: %w", err)
 	}
@@ -240,7 +240,7 @@ func (v *Validator) executeValidationCommand(instanceID string, validation Valid
 			InstanceId: aws.String(instanceID),
 		}
 
-		getOutput, err := v.SSMClient.GetCommandInvocation(context.TODO(), getInput)
+		getOutput, err := v.SSMClient.GetCommandInvocation(context.Background(), getInput)
 		if err != nil {
 			// Command not ready yet, wait and retry
 			time.Sleep(1 * time.Second)
