@@ -1,8 +1,8 @@
 # CloudWorkstation - Remaining Work Analysis
 
 **Date**: October 6, 2025
-**Current Status**: 13% Complete (19/169 placeholders replaced)
-**Remaining**: 150 placeholders + 34 TODOs
+**Current Status**: 17% Complete (25/169 placeholders replaced, 6/34 TODOs done)
+**Remaining**: 144 placeholders + 28 TODOs
 
 ---
 
@@ -12,9 +12,9 @@ This document provides a comprehensive analysis of all remaining work to achieve
 
 ---
 
-## Phase 3: TODO Markers (34 remaining)
+## Phase 3: TODO Markers (28 remaining, 6/34 complete - 18%)
 
-### High Priority TODOs (12)
+### High Priority TODOs (6/12 complete)
 
 #### CLI & User Interface
 1. **internal/cli/app.go:1158** - Budget command flag parsing
@@ -43,40 +43,40 @@ This document provides a comprehensive analysis of all remaining work to achieve
    - Effort: 2 hours
 
 #### AWS & Infrastructure
-6. **pkg/ami/types.go:186** - SSM validation logic
-   - Implement SSM-based AMI validation
-   - Impact: HIGH (AMI security validation)
-   - Effort: 3 hours + AWS SSM testing
+6. ✅ **pkg/idle/policies.go:289** - Apply schedules to instance (COMPLETE Session 6)
+   - Integrated scheduler with PolicyManager via SetScheduler
+   - Schedule assignment when applying policy templates
+   - Status: COMPLETE
 
-7. **pkg/idle/policies.go:289** - Apply schedules to instance
-   - Actually register schedules with scheduler
-   - Impact: HIGH (hibernation automation)
-   - Effort: 3 hours + AWS EC2 testing
+7. ✅ **pkg/idle/policies.go:318** - Remove schedules from instance (COMPLETE Session 6)
+   - Schedule removal when removing policy templates
+   - Cleanup of schedule assignments
+   - Status: COMPLETE
 
-8. **pkg/idle/policies.go:318** - Remove schedules from instance
-   - Actually unregister schedules from scheduler
-   - Impact: HIGH (hibernation automation)
-   - Effort: 2 hours + AWS EC2 testing
+8. ✅ **pkg/idle/scheduler.go:235** - Integrate hibernation (COMPLETE Session 6)
+   - Integrated with AWS manager to actually hibernate instances
+   - Complete AWS hibernation integration with adapter pattern
+   - Status: COMPLETE
 
-9. **pkg/idle/scheduler.go:235** - Integrate hibernation
-   - Integrate with AWS manager to actually hibernate instances
-   - Impact: CRITICAL (core hibernation functionality)
-   - Effort: 4 hours + extensive AWS EC2 testing
+9. ✅ **pkg/daemon/server.go:663, 695** - Project-instance association (COMPLETE Session 7)
+   - Implemented ProjectID filtering in ExecuteHibernateAll and ExecuteStopAll
+   - Project-specific instance operations with skip counters
+   - Status: COMPLETE
 
-10. **pkg/connection/manager.go:252** - HTTP path check
+10. ✅ **pkg/daemon/server.go:734** - Launch prevention mechanism (COMPLETE Session 7)
+    - Implemented LaunchPrevented field and project manager methods
+    - Budget-based launch prevention fully functional
+    - Status: COMPLETE
+
+11. **pkg/ami/types.go:186** - SSM validation logic
+    - Implement SSM-based AMI validation
+    - Impact: HIGH (AMI security validation)
+    - Effort: 3 hours + AWS SSM testing
+
+12. **pkg/connection/manager.go:252** - HTTP path check
     - Add actual HTTP request for thorough connection check
     - Impact: Medium (connection reliability)
     - Effort: 2 hours
-
-11. **pkg/daemon/server.go:663, 695** - Project-instance association
-    - Implement proper project-instance association with AWS tags
-    - Impact: HIGH (project management)
-    - Effort: 4 hours + AWS tagging testing
-
-12. **pkg/daemon/server.go:720** - Launch prevention mechanism
-    - Implement budget-based launch prevention
-    - Impact: HIGH (cost control)
-    - Effort: 3 hours
 
 ### Medium Priority TODOs (13)
 
