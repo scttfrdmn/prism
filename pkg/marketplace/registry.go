@@ -2,46 +2,77 @@
 package marketplace
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Registry implements the MarketplaceRegistry interface
+// Registry implements the MarketplaceRegistry interface with DynamoDB backend
 type Registry struct {
 	config        *MarketplaceConfig
-	templateCache map[string]*CommunityTemplate
+	dynamoClient  *dynamodb.Client
+	templateCache map[string]*CommunityTemplate // Optional cache for performance
 	categories    []TemplateCategory
 	featured      []*CommunityTemplate
 	lastSync      time.Time
+
+	// DynamoDB table names
+	templatesTable  string
+	reviewsTable    string
+	analyticsTable  string
 }
 
-// NewRegistry creates a new marketplace registry
+// NewRegistry creates a new marketplace registry with DynamoDB backend
 func NewRegistry(config *MarketplaceConfig) *Registry {
 	return &Registry{
-		config:        config,
-		templateCache: make(map[string]*CommunityTemplate),
-		categories:    DefaultCategories(),
-		featured:      make([]*CommunityTemplate, 0),
-		lastSync:      time.Now(),
+		config:          config,
+		dynamoClient:    nil, // Set via SetDynamoClient
+		templateCache:   make(map[string]*CommunityTemplate),
+		categories:      DefaultCategories(),
+		featured:        make([]*CommunityTemplate, 0),
+		lastSync:        time.Now(),
+		templatesTable:  "cloudworkstation-templates",
+		reviewsTable:    "cloudworkstation-reviews",
+		analyticsTable:  "cloudworkstation-analytics",
 	}
 }
 
-// SearchTemplates searches for templates using optimized in-memory indexing
-// This implementation provides production-ready search functionality
-// DynamoDB integration: Add dynamoClient to Registry struct for distributed storage
-func (r *Registry) SearchTemplates(query SearchQuery) ([]*CommunityTemplate, error) {
-	results := make([]*CommunityTemplate, 0)
+// NewRegistryWithDynamoDB creates a registry with DynamoDB client
+func NewRegistryWithDynamoDB(config *MarketplaceConfig, dynamoClient *dynamodb.Client) *Registry {
+	r := NewRegistry(config)
+	r.dynamoClient = dynamoClient
+	return r
+}
 
-	// Efficient search using pre-built indexes and filters
+// SetDynamoClient sets the DynamoDB client for the registry
+func (r *Registry) SetDynamoClient(client *dynamodb.Client) {
+	r.dynamoClient = client
+}
+
+// SearchTemplates searches for templates using DynamoDB with fallback to cache
+func (r *Registry) SearchTemplates(query SearchQuery) ([]*CommunityTemplate, error) {
+	ctx := context.Background()
+
+	// If DynamoDB client is configured, use it for search
+	if r.dynamoClient != nil {
+		return r.searchTemplatesWithDynamoDB(ctx, query)
+	}
+
+	// Fallback to in-memory cache for development/testing
+	results := make([]*CommunityTemplate, 0)
 	for _, template := range r.templateCache {
 		if r.matchesQuery(template, query) {
 			results = append(results, template)
 		}
 	}
 
-	// Sort results
 	r.sortResults(results, query.SortBy, query.SortOrder)
 
 	// Apply pagination
@@ -55,15 +86,150 @@ func (r *Registry) SearchTemplates(query SearchQuery) ([]*CommunityTemplate, err
 	return results, nil
 }
 
-// GetTemplate retrieves a specific template by ID from cache
-// DynamoDB integration: Query cloudworkstation-templates table by PK
+// searchTemplatesWithDynamoDB performs DynamoDB scan with filters
+func (r *Registry) searchTemplatesWithDynamoDB(ctx context.Context, query SearchQuery) ([]*CommunityTemplate, error) {
+	// Build filter expression
+	filterExpr := "visibility = :public"
+	exprAttrValues := map[string]types.AttributeValue{
+		":public": &types.AttributeValueMemberS{Value: "public"},
+	}
+
+	// Add category filter
+	if query.Category != "" {
+		filterExpr += " AND category = :category"
+		exprAttrValues[":category"] = &types.AttributeValueMemberS{Value: query.Category}
+	}
+
+	// Add author filter
+	if query.Author != "" {
+		filterExpr += " AND author = :author"
+		exprAttrValues[":author"] = &types.AttributeValueMemberS{Value: query.Author}
+	}
+
+	// Add verified filter
+	if query.VerifiedOnly {
+		filterExpr += " AND verified = :verified"
+		exprAttrValues[":verified"] = &types.AttributeValueMemberBOOL{Value: true}
+	}
+
+	// Add featured filter
+	if query.FeaturedOnly {
+		filterExpr += " AND featured = :featured"
+		exprAttrValues[":featured"] = &types.AttributeValueMemberBOOL{Value: true}
+	}
+
+	// Add rating filter
+	if query.MinRating > 0 {
+		filterExpr += " AND rating >= :minRating"
+		exprAttrValues[":minRating"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", query.MinRating)}
+	}
+
+	// Execute scan
+	scanInput := &dynamodb.ScanInput{
+		TableName:                 aws.String(r.templatesTable),
+		FilterExpression:          aws.String(filterExpr),
+		ExpressionAttributeValues: exprAttrValues,
+	}
+
+	result, err := r.dynamoClient.Scan(ctx, scanInput)
+	if err != nil {
+		return nil, fmt.Errorf("DynamoDB scan failed: %w", err)
+	}
+
+	// Unmarshal results
+	var templates []*CommunityTemplate
+	for _, item := range result.Items {
+		var template CommunityTemplate
+		if err := attributevalue.UnmarshalMap(item, &template); err != nil {
+			continue // Skip malformed items
+		}
+
+		// Apply text search filter (not efficient in DynamoDB, but complete)
+		if query.Query != "" {
+			searchText := strings.ToLower(query.Query)
+			if !strings.Contains(strings.ToLower(template.Name), searchText) &&
+				!strings.Contains(strings.ToLower(template.Description), searchText) {
+				continue
+			}
+		}
+
+		// Apply tag filter
+		if len(query.Tags) > 0 {
+			templateTags := make(map[string]bool)
+			for _, tag := range template.Tags {
+				templateTags[strings.ToLower(tag)] = true
+			}
+			hasAllTags := true
+			for _, requiredTag := range query.Tags {
+				if !templateTags[strings.ToLower(requiredTag)] {
+					hasAllTags = false
+					break
+				}
+			}
+			if !hasAllTags {
+				continue
+			}
+		}
+
+		templates = append(templates, &template)
+	}
+
+	// Sort and paginate
+	r.sortResults(templates, query.SortBy, query.SortOrder)
+
+	if query.Offset > 0 && query.Offset < len(templates) {
+		templates = templates[query.Offset:]
+	}
+	if query.Limit > 0 && query.Limit < len(templates) {
+		templates = templates[:query.Limit]
+	}
+
+	return templates, nil
+}
+
+// GetTemplate retrieves a specific template by ID from DynamoDB or cache
 func (r *Registry) GetTemplate(templateID string) (*CommunityTemplate, error) {
+	ctx := context.Background()
+
+	// If DynamoDB client is configured, fetch from DynamoDB
+	if r.dynamoClient != nil {
+		input := &dynamodb.GetItemInput{
+			TableName: aws.String(r.templatesTable),
+			Key: map[string]types.AttributeValue{
+				"template_id": &types.AttributeValueMemberS{Value: templateID},
+			},
+		}
+
+		result, err := r.dynamoClient.GetItem(ctx, input)
+		if err != nil {
+			return nil, fmt.Errorf("DynamoDB GetItem failed: %w", err)
+		}
+
+		if result.Item == nil {
+			return nil, fmt.Errorf("template not found: %s", templateID)
+		}
+
+		var template CommunityTemplate
+		if err := attributevalue.UnmarshalMap(result.Item, &template); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal template: %w", err)
+		}
+
+		// Track access for analytics
+		r.trackUsage(templateID, &UsageEvent{
+			EventType:  "view",
+			TemplateID: templateID,
+			Timestamp:  time.Now(),
+		})
+
+		return &template, nil
+	}
+
+	// Fallback to cache
 	template, exists := r.templateCache[templateID]
 	if !exists {
 		return nil, fmt.Errorf("template not found: %s", templateID)
 	}
 
-	// Track access for analytics
 	r.trackUsage(templateID, &UsageEvent{
 		EventType:  "view",
 		TemplateID: templateID,
@@ -123,8 +289,10 @@ func (r *Registry) GetTrending(timeframe string) ([]*CommunityTemplate, error) {
 	return trending, nil
 }
 
-// PublishTemplate publishes a template to the marketplace
+// PublishTemplate publishes a template to the marketplace using DynamoDB
 func (r *Registry) PublishTemplate(template *TemplatePublication) (*PublicationResult, error) {
+	ctx := context.Background()
+
 	// Generate unique template ID
 	templateID := r.generateTemplateID(template.Name)
 
@@ -134,8 +302,26 @@ func (r *Registry) PublishTemplate(template *TemplatePublication) (*PublicationR
 		return nil, fmt.Errorf("failed to create community template: %w", err)
 	}
 
-	// Store in cache
-	// DynamoDB integration: PutItem to cloudworkstation-templates table
+	// If DynamoDB client is configured, store in DynamoDB
+	if r.dynamoClient != nil {
+		// Marshal template to DynamoDB attribute values
+		item, err := attributevalue.MarshalMap(communityTemplate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal template: %w", err)
+		}
+
+		// Put item in DynamoDB
+		putInput := &dynamodb.PutItemInput{
+			TableName: aws.String(r.templatesTable),
+			Item:      item,
+		}
+
+		if _, err := r.dynamoClient.PutItem(ctx, putInput); err != nil {
+			return nil, fmt.Errorf("DynamoDB PutItem failed: %w", err)
+		}
+	}
+
+	// Also store in cache for performance
 	r.templateCache[templateID] = communityTemplate
 
 	// Create publication result
@@ -228,33 +414,125 @@ func (r *Registry) GetUserPublications(userID string) ([]*CommunityTemplate, err
 	return publications, nil
 }
 
-// AddReview adds a review for a template
-// DynamoDB integration: PutItem to cloudworkstation-reviews table with GSI on template_id
+// AddReview adds a review for a template to DynamoDB
 func (r *Registry) AddReview(templateID string, review *TemplateReview) error {
-	template, exists := r.templateCache[templateID]
-	if !exists {
-		return fmt.Errorf("template not found: %s", templateID)
+	ctx := context.Background()
+
+	// Generate review ID if not provided
+	if review.ReviewID == "" {
+		review.ReviewID = fmt.Sprintf("review-%s-%d", templateID, time.Now().Unix())
+	}
+	review.TemplateID = templateID
+	review.CreatedAt = time.Now()
+
+	// If DynamoDB client is configured, store review
+	if r.dynamoClient != nil {
+		// Marshal review to DynamoDB
+		item, err := attributevalue.MarshalMap(review)
+		if err != nil {
+			return fmt.Errorf("failed to marshal review: %w", err)
+		}
+
+		// Put review in DynamoDB
+		putInput := &dynamodb.PutItemInput{
+			TableName: aws.String(r.reviewsTable),
+			Item:      item,
+		}
+
+		if _, err := r.dynamoClient.PutItem(ctx, putInput); err != nil {
+			return fmt.Errorf("DynamoDB PutItem failed: %w", err)
+		}
+
+		// Update template rating in templates table
+		updateExpr := "SET review_count = review_count + :inc, rating = :newRating"
+		exprAttrValues := map[string]types.AttributeValue{
+			":inc":       &types.AttributeValueMemberN{Value: "1"},
+			":newRating": &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", float64(review.Rating))},
+		}
+
+		updateInput := &dynamodb.UpdateItemInput{
+			TableName: aws.String(r.templatesTable),
+			Key: map[string]types.AttributeValue{
+				"template_id": &types.AttributeValueMemberS{Value: templateID},
+			},
+			UpdateExpression:          aws.String(updateExpr),
+			ExpressionAttributeValues: exprAttrValues,
+		}
+
+		if _, err := r.dynamoClient.UpdateItem(ctx, updateInput); err != nil {
+			// Log error but don't fail the review submission
+			fmt.Printf("Warning: failed to update template rating: %v\n", err)
+		}
 	}
 
-	// Update aggregate rating metrics
-	r.updateRatingMetrics(template, review.Rating)
+	// Update cache if template exists
+	if template, exists := r.templateCache[templateID]; exists {
+		r.updateRatingMetrics(template, review.Rating)
+	}
 
 	return nil
 }
 
-// GetReviews retrieves reviews for a template with pagination
-// DynamoDB integration: Query cloudworkstation-reviews table using template_id GSI
+// GetReviews retrieves reviews for a template with pagination from DynamoDB
 func (r *Registry) GetReviews(templateID string, pagination *ReviewPagination) (*ReviewResponse, error) {
-	// Generate sample reviews for demonstration
+	ctx := context.Background()
+
+	// If DynamoDB client is configured, query reviews
+	if r.dynamoClient != nil {
+		// Query reviews using template_id GSI
+		queryInput := &dynamodb.QueryInput{
+			TableName:              aws.String(r.reviewsTable),
+			IndexName:              aws.String("template_id-index"),
+			KeyConditionExpression: aws.String("template_id = :templateID"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":templateID": &types.AttributeValueMemberS{Value: templateID},
+			},
+			Limit:            aws.Int32(int32(pagination.Limit)),
+			ScanIndexForward: aws.Bool(false), // Newest first
+		}
+
+		result, err := r.dynamoClient.Query(ctx, queryInput)
+		if err != nil {
+			return nil, fmt.Errorf("DynamoDB Query failed: %w", err)
+		}
+
+		// Unmarshal reviews
+		var reviews []*TemplateReview
+		for _, item := range result.Items {
+			var review TemplateReview
+			if err := attributevalue.UnmarshalMap(item, &review); err != nil {
+				continue // Skip malformed items
+			}
+			reviews = append(reviews, &review)
+		}
+
+		// Calculate pagination info
+		totalCount := len(reviews)
+		limit := pagination.Limit
+		if limit == 0 {
+			limit = 10
+		}
+
+		response := &ReviewResponse{
+			Reviews:    reviews,
+			TotalCount: totalCount,
+			Page:       (pagination.Offset / limit) + 1,
+			TotalPages: (totalCount + limit - 1) / limit,
+			HasMore:    result.LastEvaluatedKey != nil,
+		}
+
+		return response, nil
+	}
+
+	// Fallback to mock reviews for development
 	mockReviews := r.generateMockReviews(templateID)
 
-	// Apply pagination
 	start := 0
 	if pagination.Offset > 0 {
 		start = pagination.Offset
 	}
 
-	limit := 10 // Default limit
+	limit := 10
 	if pagination.Limit > 0 {
 		limit = pagination.Limit
 	}
@@ -277,10 +555,42 @@ func (r *Registry) GetReviews(templateID string, pagination *ReviewPagination) (
 	return response, nil
 }
 
-// TrackUsage tracks usage events for analytics
-// DynamoDB integration: PutItem to cloudworkstation-analytics table with composite key
+// TrackUsage tracks usage events for analytics in DynamoDB
 func (r *Registry) TrackUsage(templateID string, event *UsageEvent) error {
+	ctx := context.Background()
+
+	// Ensure event has required fields
+	event.TemplateID = templateID
+	event.Timestamp = time.Now()
+
+	// If DynamoDB client is configured, store analytics event
+	if r.dynamoClient != nil {
+		// Marshal event to DynamoDB
+		item, err := attributevalue.MarshalMap(event)
+		if err != nil {
+			return fmt.Errorf("failed to marshal usage event: %w", err)
+		}
+
+		// Add composite key for efficient querying
+		// PK: template_id, SK: timestamp
+		eventID := fmt.Sprintf("%s#%d", templateID, event.Timestamp.Unix())
+		item["event_id"] = &types.AttributeValueMemberS{Value: eventID}
+
+		// Put event in DynamoDB
+		putInput := &dynamodb.PutItemInput{
+			TableName: aws.String(r.analyticsTable),
+			Item:      item,
+		}
+
+		if _, err := r.dynamoClient.PutItem(ctx, putInput); err != nil {
+			// Log error but don't fail tracking
+			fmt.Printf("Warning: failed to track usage in DynamoDB: %v\n", err)
+		}
+	}
+
+	// Update local cache metrics
 	r.trackUsage(templateID, event)
+
 	return nil
 }
 
