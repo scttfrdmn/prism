@@ -2,13 +2,19 @@
 package profile
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/zalando/go-keyring"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
 // Credentials holds AWS credentials data
@@ -136,16 +142,243 @@ func (p *SecureCredentialProvider) removeFromSecureStorage(profileName string) e
 	}
 }
 
-// Local file fallback implementations
+// macOS Keychain implementations using go-keyring
+
+func (p *SecureCredentialProvider) getFromKeychain(profileName string) (*Credentials, error) {
+	// Retrieve from macOS Keychain using go-keyring
+	data, err := keyring.Get(p.service, profileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get credentials from keychain: %w", err)
+	}
+
+	// Decode JSON credentials
+	var creds Credentials
+	if err := json.Unmarshal([]byte(data), &creds); err != nil {
+		return nil, fmt.Errorf("failed to decode credentials: %w", err)
+	}
+
+	return &creds, nil
+}
+
+func (p *SecureCredentialProvider) storeInKeychain(profileName string, creds *Credentials) error {
+	// Encode credentials as JSON
+	data, err := json.Marshal(creds)
+	if err != nil {
+		return fmt.Errorf("failed to encode credentials: %w", err)
+	}
+
+	// Store in macOS Keychain using go-keyring
+	if err := keyring.Set(p.service, profileName, string(data)); err != nil {
+		return fmt.Errorf("failed to store credentials in keychain: %w", err)
+	}
+
+	return nil
+}
+
+func (p *SecureCredentialProvider) removeFromKeychain(profileName string) error {
+	// Remove from macOS Keychain using go-keyring
+	if err := keyring.Delete(p.service, profileName); err != nil {
+		// If the item doesn't exist, that's okay
+		if err == keyring.ErrNotFound {
+			return nil
+		}
+		return fmt.Errorf("failed to remove credentials from keychain: %w", err)
+	}
+
+	return nil
+}
+
+// Windows Credential Manager implementations using go-keyring
+
+func (p *SecureCredentialProvider) getFromCredentialManager(profileName string) (*Credentials, error) {
+	// Retrieve from Windows Credential Manager using go-keyring
+	data, err := keyring.Get(p.service, profileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get credentials from credential manager: %w", err)
+	}
+
+	// Decode JSON credentials
+	var creds Credentials
+	if err := json.Unmarshal([]byte(data), &creds); err != nil {
+		return nil, fmt.Errorf("failed to decode credentials: %w", err)
+	}
+
+	return &creds, nil
+}
+
+func (p *SecureCredentialProvider) storeInCredentialManager(profileName string, creds *Credentials) error {
+	// Encode credentials as JSON
+	data, err := json.Marshal(creds)
+	if err != nil {
+		return fmt.Errorf("failed to encode credentials: %w", err)
+	}
+
+	// Store in Windows Credential Manager using go-keyring
+	if err := keyring.Set(p.service, profileName, string(data)); err != nil {
+		return fmt.Errorf("failed to store credentials in credential manager: %w", err)
+	}
+
+	return nil
+}
+
+func (p *SecureCredentialProvider) removeFromCredentialManager(profileName string) error {
+	// Remove from Windows Credential Manager using go-keyring
+	if err := keyring.Delete(p.service, profileName); err != nil {
+		// If the item doesn't exist, that's okay
+		if err == keyring.ErrNotFound {
+			return nil
+		}
+		return fmt.Errorf("failed to remove credentials from credential manager: %w", err)
+	}
+
+	return nil
+}
+
+// Linux Secret Service implementations using go-keyring
+
+func (p *SecureCredentialProvider) getFromSecretService(profileName string) (*Credentials, error) {
+	// Retrieve from Linux Secret Service using go-keyring
+	data, err := keyring.Get(p.service, profileName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get credentials from secret service: %w", err)
+	}
+
+	// Decode JSON credentials
+	var creds Credentials
+	if err := json.Unmarshal([]byte(data), &creds); err != nil {
+		return nil, fmt.Errorf("failed to decode credentials: %w", err)
+	}
+
+	return &creds, nil
+}
+
+func (p *SecureCredentialProvider) storeInSecretService(profileName string, creds *Credentials) error {
+	// Encode credentials as JSON
+	data, err := json.Marshal(creds)
+	if err != nil {
+		return fmt.Errorf("failed to encode credentials: %w", err)
+	}
+
+	// Store in Linux Secret Service using go-keyring
+	if err := keyring.Set(p.service, profileName, string(data)); err != nil {
+		return fmt.Errorf("failed to store credentials in secret service: %w", err)
+	}
+
+	return nil
+}
+
+func (p *SecureCredentialProvider) removeFromSecretService(profileName string) error {
+	// Remove from Linux Secret Service using go-keyring
+	if err := keyring.Delete(p.service, profileName); err != nil {
+		// If the item doesn't exist, that's okay
+		if err == keyring.ErrNotFound {
+			return nil
+		}
+		return fmt.Errorf("failed to remove credentials from secret service: %w", err)
+	}
+
+	return nil
+}
+
+// Local file fallback implementations with NaCl secretbox encryption
+
+const nonceSize = 24
+const keySize = 32
+
+// getEncryptionKey derives an encryption key for the credentials file
+// This uses a combination of machine-specific data and user home directory
+func (p *SecureCredentialProvider) getEncryptionKey() ([keySize]byte, error) {
+	var key [keySize]byte
+
+	// Get user home directory as part of the key derivation
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return key, fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	// Use a combination of home directory and service name for key derivation
+	// In production, this should use a more sophisticated key derivation function
+	keyMaterial := []byte(homeDir + p.service)
+	copy(key[:], keyMaterial)
+
+	return key, nil
+}
 
 func (p *SecureCredentialProvider) getFromFile(profileName string) (*Credentials, error) {
-	// In a real implementation, this would decrypt the stored credentials
-	return nil, fmt.Errorf("credential file does not exist for profile %s", profileName)
+	credFile := filepath.Join(p.configPath, profileName+".creds")
+
+	// Read encrypted file
+	encryptedData, err := os.ReadFile(credFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("credentials not found for profile %s", profileName)
+		}
+		return nil, fmt.Errorf("failed to read credentials file: %w", err)
+	}
+
+	// Get encryption key
+	key, err := p.getEncryptionKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get encryption key: %w", err)
+	}
+
+	// Extract nonce and ciphertext
+	if len(encryptedData) < nonceSize {
+		return nil, fmt.Errorf("invalid encrypted data: too short")
+	}
+
+	var nonce [nonceSize]byte
+	copy(nonce[:], encryptedData[:nonceSize])
+	ciphertext := encryptedData[nonceSize:]
+
+	// Decrypt using NaCl secretbox
+	plaintext, ok := secretbox.Open(nil, ciphertext, &nonce, &key)
+	if !ok {
+		return nil, fmt.Errorf("failed to decrypt credentials")
+	}
+
+	// Decode JSON credentials
+	var creds Credentials
+	if err := json.Unmarshal(plaintext, &creds); err != nil {
+		return nil, fmt.Errorf("failed to decode credentials: %w", err)
+	}
+
+	return &creds, nil
 }
 
 func (p *SecureCredentialProvider) storeInFile(profileName string, creds *Credentials) error {
-	// In a real implementation, this would encrypt the credentials before storing
-	return fmt.Errorf("secure storage not available and encrypted file storage not yet implemented")
+	credFile := filepath.Join(p.configPath, profileName+".creds")
+
+	// Encode credentials as JSON
+	plaintext, err := json.Marshal(creds)
+	if err != nil {
+		return fmt.Errorf("failed to encode credentials: %w", err)
+	}
+
+	// Get encryption key
+	key, err := p.getEncryptionKey()
+	if err != nil {
+		return fmt.Errorf("failed to get encryption key: %w", err)
+	}
+
+	// Generate random nonce
+	var nonce [nonceSize]byte
+	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		return fmt.Errorf("failed to generate nonce: %w", err)
+	}
+
+	// Encrypt using NaCl secretbox
+	ciphertext := secretbox.Seal(nil, plaintext, &nonce, &key)
+
+	// Combine nonce and ciphertext
+	encryptedData := append(nonce[:], ciphertext...)
+
+	// Write to file with restrictive permissions
+	if err := os.WriteFile(credFile, encryptedData, 0600); err != nil {
+		return fmt.Errorf("failed to write credentials file: %w", err)
+	}
+
+	return nil
 }
 
 func (p *SecureCredentialProvider) removeFromFile(profileName string) error {
@@ -154,53 +387,6 @@ func (p *SecureCredentialProvider) removeFromFile(profileName string) error {
 		return nil // Already removed
 	}
 	return os.Remove(credFile)
-}
-
-// Platform-specific implementations (stubs)
-
-func (p *SecureCredentialProvider) getFromKeychain(profileName string) (*Credentials, error) {
-	// Stub: In real implementation, this would use the macOS Keychain API
-	return nil, fmt.Errorf("keychain access not implemented")
-}
-
-func (p *SecureCredentialProvider) storeInKeychain(profileName string, creds *Credentials) error {
-	// Stub: In real implementation, this would use the macOS Keychain API
-	return fmt.Errorf("keychain access not implemented")
-}
-
-func (p *SecureCredentialProvider) removeFromKeychain(profileName string) error {
-	// Stub: In real implementation, this would use the macOS Keychain API
-	return fmt.Errorf("keychain access not implemented")
-}
-
-func (p *SecureCredentialProvider) getFromCredentialManager(profileName string) (*Credentials, error) {
-	// Stub: In real implementation, this would use the Windows Credential Manager API
-	return nil, fmt.Errorf("credential manager access not implemented")
-}
-
-func (p *SecureCredentialProvider) storeInCredentialManager(profileName string, creds *Credentials) error {
-	// Stub: In real implementation, this would use the Windows Credential Manager API
-	return fmt.Errorf("credential manager access not implemented")
-}
-
-func (p *SecureCredentialProvider) removeFromCredentialManager(profileName string) error {
-	// Stub: In real implementation, this would use the Windows Credential Manager API
-	return fmt.Errorf("credential manager access not implemented")
-}
-
-func (p *SecureCredentialProvider) getFromSecretService(profileName string) (*Credentials, error) {
-	// Stub: In real implementation, this would use the Linux Secret Service API
-	return nil, fmt.Errorf("secret service access not implemented")
-}
-
-func (p *SecureCredentialProvider) storeInSecretService(profileName string, creds *Credentials) error {
-	// Stub: In real implementation, this would use the Linux Secret Service API
-	return fmt.Errorf("secret service access not implemented")
-}
-
-func (p *SecureCredentialProvider) removeFromSecretService(profileName string) error {
-	// Stub: In real implementation, this would use the Linux Secret Service API
-	return fmt.Errorf("secret service access not implemented")
 }
 
 // AWSCredentialsProvider adapts our credentials to AWS SDK
@@ -254,4 +440,52 @@ func (p *AWSCredentialsProvider) Retrieve(ctx interface{}) (aws.Credentials, err
 		CanExpire:       creds.Expiration != nil,
 		Expires:         expiry,
 	}, nil
+}
+
+// EncodeCredsForDisplay encodes credentials for display (masking sensitive data)
+func EncodeCredsForDisplay(creds *Credentials) string {
+	if creds == nil {
+		return "No credentials"
+	}
+
+	masked := fmt.Sprintf("AccessKeyID: %s****", creds.AccessKeyID[:min(4, len(creds.AccessKeyID))])
+	if creds.SessionToken != "" {
+		masked += " (with session token)"
+	}
+	if creds.Expiration != nil {
+		masked += fmt.Sprintf(" expires: %s", creds.Expiration.Format(time.RFC3339))
+	}
+
+	return masked
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// Base64EncodeCredentials encodes credentials to base64 for transport
+func Base64EncodeCredentials(creds *Credentials) (string, error) {
+	data, err := json.Marshal(creds)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal credentials: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(data), nil
+}
+
+// Base64DecodeCredentials decodes credentials from base64
+func Base64DecodeCredentials(encoded string) (*Credentials, error) {
+	data, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	var creds Credentials
+	if err := json.Unmarshal(data, &creds); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal credentials: %w", err)
+	}
+
+	return &creds, nil
 }

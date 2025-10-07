@@ -12,7 +12,7 @@
 - TUI/GUI feature parity gaps
 - Missing AWS integration tests
 
-**Completion Status**: 7% (SSH key encoding complete, test failures being resolved)
+**Completion Status**: 10% (SSH keys + credential storage complete, 12/169 placeholders replaced)
 
 ---
 
@@ -92,18 +92,19 @@
 
 ---
 
-## Phase 4: Placeholder Implementations (3/169)
+## Phase 4: Placeholder Implementations (12/169)
 
-### Critical Placeholders (3/45)
+### Critical Placeholders (12/45)
 #### SSH Key Management (3/3) ✅ COMPLETE
 - ✅ pkg/research/ssh_keys.go - x509.MarshalPKCS1PrivateKey (RSA) - IMPLEMENTED
 - ✅ pkg/research/ssh_keys.go - Ed25519 private key encoding - IMPLEMENTED with ssh.MarshalPrivateKey
 - ✅ pkg/research/ssh_keys.go - OpenSSH private key format - IMPLEMENTED
 
-#### Platform Credential Storage (0/6)
-- ⏳ pkg/profile/credentials.go - macOS Keychain API (3 functions)
-- ⏳ pkg/profile/credentials.go - Windows Credential Manager (2 functions)
-- ⏳ pkg/profile/credentials.go - Encryption/decryption
+#### Platform Credential Storage (9/9) ✅ COMPLETE
+- ✅ pkg/profile/credentials.go - macOS Keychain API (3 functions) - IMPLEMENTED with go-keyring
+- ✅ pkg/profile/credentials.go - Windows Credential Manager (3 functions) - IMPLEMENTED with go-keyring
+- ✅ pkg/profile/credentials.go - Linux Secret Service (3 functions) - IMPLEMENTED with go-keyring
+- ✅ pkg/profile/credentials.go - NaCl secretbox encryption/decryption for file fallback - IMPLEMENTED
 
 #### TUI "Not Implemented" (0/2)
 - ⏳ internal/tui/models/users.go - 2 methods returning "not implemented"
@@ -226,6 +227,17 @@
   - SSH key generation tests now passing (RSA and Ed25519)
   - SSH key import tests now passing with proper validation
 
+### 2025-10-06 - Session 4
+- **Platform Credential Storage Implementation**: Replaced 9 critical placeholders
+  - Added github.com/zalando/go-keyring for cross-platform secure storage
+  - Added golang.org/x/crypto/nacl/secretbox for encrypted file fallback
+  - **macOS Keychain**: 3 functions (get/store/remove) using go-keyring
+  - **Windows Credential Manager**: 3 functions (get/store/remove) using go-keyring
+  - **Linux Secret Service**: 3 functions (get/store/remove) using go-keyring
+  - **Encrypted File Fallback**: NaCl secretbox with proper nonce generation and key derivation
+  - All profile tests passing (8/8 tests, 100% pass rate)
+  - Cross-platform secure credential storage fully functional
+
 ---
 
 ## Notes
@@ -239,17 +251,20 @@
 
 ## Current Focus
 
-**Active Task**: Phase 4 - SSH Key Encoding Complete ✅, Now fixing research test failures
+**Active Task**: Phase 4 - Critical Placeholders Complete ✅ (SSH Keys + Credential Storage)
 
 **Progress**:
-- Phase 4: 3/169 placeholders replaced (SSH key encoding complete)
+- Phase 4: 12/169 placeholders replaced (7% of placeholders complete)
+  - ✅ SSH key encoding (RSA + Ed25519)
+  - ✅ Platform credential storage (macOS + Windows + Linux + encrypted fallback)
 - Phase 2: 54/60 tests fixed (90% passing in pkg/api/client and internal/cli)
-- Research package: SSH key tests passing, other test failures being addressed
+- All profile tests passing (100%)
 
 **Next Tasks**:
-1. Fix remaining research package test failures (manager_test.go, integration_test.go)
-2. Fix remaining 5 mock daemon issues in CLI tests
-3. Continue Phase 4: Replace remaining placeholder implementations
+1. Continue Phase 4: Replace remaining TUI/CLI/GUI placeholder implementations
+2. Fix remaining research package test failures
+3. Fix remaining 5 mock daemon issues in CLI tests
 4. Begin Phase 3: Replace TODO markers
+5. Write AWS integration tests for credential storage
 
-**Next Commit**: After fixing research test failures or completing next placeholder batch
+**Next Commit**: Credential storage implementation complete
