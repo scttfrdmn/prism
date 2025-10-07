@@ -542,14 +542,17 @@ func (r *DependencyResolver) ResolveAndFetchDependencies(templateName string, fe
 					continue
 				}
 
-				// For now we'll use a simple mock approach
-				template := &Template{
-					Name:        name,
-					Description: "Imported from registry",
+				// Parse template from string data using Parser
+				template, err := r.Manager.Parser.ParseTemplate(templateData)
+				if err != nil {
+					// Log error but continue with other templates
+					continue
 				}
-				// TODO: Implement proper template parsing from string
 
-				// Add template directly instead of importing
+				// Ensure the template has the correct name
+				template.Name = name
+
+				// Add template to manager
 				r.Manager.Templates[name] = template
 
 				// Add metadata

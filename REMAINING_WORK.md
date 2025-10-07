@@ -1,8 +1,8 @@
 # CloudWorkstation - Remaining Work Analysis
 
 **Date**: October 6, 2025
-**Current Status**: 28% Complete (25/169 placeholders replaced, 18/34 TODOs done)
-**Remaining**: 144 placeholders + 16 TODOs
+**Current Status**: 31% Complete (25/169 placeholders replaced, 21/34 TODOs done)
+**Remaining**: 144 placeholders + 13 TODOs
 
 ---
 
@@ -86,12 +86,24 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Comprehensive error handling
     - Status: COMPLETE
 
-### Medium Priority TODOs (7/13 complete - 54%)
+### Medium Priority TODOs (10/13 complete - 77%)
 
-#### Repository & Template Management (3/6 complete - 50%)
-13. **pkg/ami/parser_enhanced.go:80** - Template listing logic
-14. **pkg/ami/dependency_resolver.go:550** - Template parsing from string
-15. **pkg/ami/template_sharing.go:290** - Semantic versioning for sorting
+#### Repository & Template Management (6/6 complete - 100% ✅)
+13. ✅ **pkg/ami/parser_enhanced.go:80** - Template listing logic (COMPLETE Session 8)
+    - Implemented ListTemplates method
+    - Scans ./templates/, ~/.cloudworkstation/templates/, /usr/local/share/cloudworkstation/templates/
+    - Deduplicates and filters .yml/.yaml files
+    - Status: COMPLETE
+14. ✅ **pkg/ami/dependency_resolver.go:550** - Template parsing from string (COMPLETE Session 8)
+    - Uses Parser.ParseTemplate for actual YAML parsing
+    - Replaces mock template creation
+    - Validates templates during import
+    - Status: COMPLETE
+15. ✅ **pkg/ami/template_sharing.go:290** - Semantic versioning for sorting (COMPLETE Session 8)
+    - Implemented compareSemanticVersions and parseVersionNumbers
+    - Supports v1.2.3, 1.2.3-alpha, etc.
+    - Proper semver ordering with prerelease handling
+    - Status: COMPLETE
 16. ✅ **pkg/repository/dependency.go:49** - Read template dependencies (COMPLETE Session 8)
     - Implemented readTemplateDependencies method
     - Reads template YAML and parses inherits field

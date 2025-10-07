@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -287,7 +289,10 @@ func (r *Registry) ListSharedTemplateVersions(ctx context.Context, templateName 
 		}
 	}
 
-	// Sort versions (TODO: use semantic versioning for proper sorting)
+	// Sort versions using semantic versioning
+	sort.Slice(result, func(i, j int) bool {
+		return compareSemanticVersions(result[i], result[j]) < 0
+	})
 
 	return result, nil
 }
@@ -355,4 +360,69 @@ func (r *Registry) DeleteSharedTemplate(ctx context.Context, templateName, versi
 	}
 
 	return nil
+}
+
+// compareSemanticVersions compares two semantic version strings.
+// Returns -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
+// Supports formats like "1.2.3", "v1.2.3", "1.2", "1.2.3-alpha", etc.
+func compareSemanticVersions(v1, v2 string) int {
+	// Remove 'v' prefix if present
+	v1 = strings.TrimPrefix(v1, "v")
+	v2 = strings.TrimPrefix(v2, "v")
+
+	// Split on '-' to separate version from prerelease (e.g., "1.2.3-alpha")
+	v1Parts := strings.SplitN(v1, "-", 2)
+	v2Parts := strings.SplitN(v2, "-", 2)
+
+	v1Base := v1Parts[0]
+	v2Base := v2Parts[0]
+
+	// Compare base versions (major.minor.patch)
+	v1Numbers := parseVersionNumbers(v1Base)
+	v2Numbers := parseVersionNumbers(v2Base)
+
+	for i := 0; i < 3; i++ {
+		if v1Numbers[i] < v2Numbers[i] {
+			return -1
+		}
+		if v1Numbers[i] > v2Numbers[i] {
+			return 1
+		}
+	}
+
+	// Base versions are equal, compare prerelease tags
+	// Version without prerelease (e.g., "1.2.3") > version with prerelease (e.g., "1.2.3-alpha")
+	if len(v1Parts) == 1 && len(v2Parts) == 2 {
+		return 1 // v1 is release, v2 is prerelease
+	}
+	if len(v1Parts) == 2 && len(v2Parts) == 1 {
+		return -1 // v1 is prerelease, v2 is release
+	}
+
+	// Both have prerelease or both don't - compare lexicographically
+	if len(v1Parts) == 2 && len(v2Parts) == 2 {
+		if v1Parts[1] < v2Parts[1] {
+			return -1
+		}
+		if v1Parts[1] > v2Parts[1] {
+			return 1
+		}
+	}
+
+	return 0 // Versions are equal
+}
+
+// parseVersionNumbers parses a version string like "1.2.3" into [major, minor, patch]
+// Missing components default to 0 (e.g., "1.2" becomes [1, 2, 0])
+func parseVersionNumbers(version string) [3]int {
+	parts := strings.Split(version, ".")
+	numbers := [3]int{0, 0, 0}
+
+	for i := 0; i < len(parts) && i < 3; i++ {
+		if num, err := strconv.Atoi(parts[i]); err == nil {
+			numbers[i] = num
+		}
+	}
+
+	return numbers
 }

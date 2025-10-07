@@ -327,6 +327,34 @@
 5. Write AWS integration tests for all implemented functionality
 
 ### 2025-10-06 - Session 8 (continued)
+- **AMI Template Management**: Replaced 3 TODOs (parser_enhanced.go:80, dependency_resolver.go:550, template_sharing.go:290)
+  - **pkg/ami/parser_enhanced.go**: Implemented ListTemplates method
+    - Scans default template directories (dev, user, system)
+    - Priority order: ./templates/ > ~/.cloudworkstation/templates/ > /usr/local/share/cloudworkstation/templates/
+    - Deduplicates template names (higher priority wins)
+    - Filters .yml and .yaml files only
+    - Returns list of available template names
+  - **pkg/ami/dependency_resolver.go**: Implemented template parsing from string
+    - Uses Parser.ParseTemplate to parse template YAML from string
+    - Replaces mock template creation with actual parsing
+    - Validates templates during dependency resolution
+    - Enables proper template importing from registries
+  - **pkg/ami/template_sharing.go**: Implemented semantic versioning for sorting
+    - compareSemanticVersions: Compares version strings with semver rules
+    - Supports formats: "1.2.3", "v1.2.3", "1.2", "1.2.3-alpha"
+    - Handles prerelease tags (release > prerelease)
+    - parseVersionNumbers: Parses major.minor.patch with defaults
+    - Template versions now sorted properly (1.0.0 < 1.2.0 < 2.0.0)
+  - **Functionality**: Complete AMI template management workflow
+    - List templates from multiple directories
+    - Parse templates from strings (registry import)
+    - Sort template versions semantically
+  - All builds passing (CLI, daemon)
+  - Added sort and strconv imports
+  - 25/169 total placeholders replaced (15% of placeholders complete)
+  - 13/34 TODOs remaining (21 TODOs complete - 62% done)
+
+### 2025-10-06 - Session 8 (continued)
 - **Repository Caching (GitHub & S3)**: Replaced 2 TODOs (manager.go:429, 502)
   - **pkg/repository/manager.go**: Implemented updateGitHubCache
     - Parses GitHub URL to extract owner/repository/branch

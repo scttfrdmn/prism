@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -75,11 +76,67 @@ func (p *Parser) WriteTemplate(template *Template, writer io.Writer) error {
 	return nil
 }
 
-// ListTemplates returns a list of available templates (placeholder implementation)
+// ListTemplates returns a list of available templates from default template directories
 func (p *Parser) ListTemplates() ([]string, error) {
-	// TODO: Implement actual template listing logic
-	// For now, return an empty list to fix compilation
-	return []string{}, nil
+	var templates []string
+	var templateDirs []string
+
+	// Check default template directories in priority order:
+	// 1. Current working directory's templates/ (for development)
+	if wd, err := os.Getwd(); err == nil {
+		devTemplatesPath := filepath.Join(wd, "templates")
+		if _, err := os.Stat(devTemplatesPath); err == nil {
+			templateDirs = append(templateDirs, devTemplatesPath)
+		}
+	}
+
+	// 2. User's home directory ~/.cloudworkstation/templates/
+	if home, err := os.UserHomeDir(); err == nil {
+		userTemplatesPath := filepath.Join(home, ".cloudworkstation", "templates")
+		if _, err := os.Stat(userTemplatesPath); err == nil {
+			templateDirs = append(templateDirs, userTemplatesPath)
+		}
+	}
+
+	// 3. System-wide /usr/local/share/cloudworkstation/templates/
+	systemTemplatesPath := "/usr/local/share/cloudworkstation/templates"
+	if _, err := os.Stat(systemTemplatesPath); err == nil {
+		templateDirs = append(templateDirs, systemTemplatesPath)
+	}
+
+	// Scan each directory for .yml and .yaml files
+	seen := make(map[string]bool) // Deduplicate template names
+	for _, dir := range templateDirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue // Skip directories we can't read
+		}
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+
+			name := entry.Name()
+			// Only consider .yml and .yaml files
+			if !strings.HasSuffix(name, ".yml") && !strings.HasSuffix(name, ".yaml") {
+				continue
+			}
+
+			// Remove extension to get template name
+			templateName := strings.TrimSuffix(name, filepath.Ext(name))
+
+			// Skip if we've already seen this template (higher priority dir wins)
+			if seen[templateName] {
+				continue
+			}
+
+			seen[templateName] = true
+			templates = append(templates, templateName)
+		}
+	}
+
+	return templates, nil
 }
 
 // validateEnhancedTemplate validates a template against the enhanced schema.
