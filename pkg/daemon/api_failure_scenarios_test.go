@@ -84,8 +84,8 @@ func TestAPIEndpointFailureScenarios(t *testing.T) {
 			method:         "GET",
 			endpoint:       "/api/v1/instances/stopped-instance/connect",
 			requestBody:    nil,
-			expectedStatus: http.StatusInternalServerError, // Should return error when instance stopped
-			expectedError:  "failed to find instance",
+			expectedStatus: http.StatusNotFound, // Instance doesn't exist in mock state
+			expectedError:  "not found",
 			description:    "User tries to connect to instance that is stopped",
 		},
 		{

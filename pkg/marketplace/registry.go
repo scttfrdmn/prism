@@ -418,6 +418,12 @@ func (r *Registry) GetUserPublications(userID string) ([]*CommunityTemplate, err
 func (r *Registry) AddReview(templateID string, review *TemplateReview) error {
 	ctx := context.Background()
 
+	// Verify template exists before adding review
+	template, err := r.GetTemplate(templateID)
+	if err != nil || template == nil {
+		return fmt.Errorf("template '%s' not found", templateID)
+	}
+
 	// Generate review ID if not provided
 	if review.ReviewID == "" {
 		review.ReviewID = fmt.Sprintf("review-%s-%d", templateID, time.Now().Unix())
