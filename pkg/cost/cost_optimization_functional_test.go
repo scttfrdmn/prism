@@ -362,7 +362,7 @@ func testRecommendationPrioritization(t *testing.T, optimizer *CostOptimizer) {
 
 // TestCostAlertManagerBasicFunctionality validates basic alert manager functionality
 func TestCostAlertManagerBasicFunctionality(t *testing.T) {
-	manager := NewAlertManager()
+	manager := NewAlertManager(nil)
 	defer manager.Stop()
 
 	// Test basic creation
@@ -411,7 +411,7 @@ func TestCostAlertManagerBasicFunctionality(t *testing.T) {
 
 // setupAlertManager creates and configures an alert manager for testing
 func setupAlertManager(t *testing.T) *AlertManager {
-	manager := NewAlertManager()
+	manager := NewAlertManager(nil)
 	if manager == nil {
 		t.Fatal("Failed to create alert manager")
 	}
@@ -803,7 +803,7 @@ func (t *TestAlertSubscriber) GetAlerts() []*Alert {
 // TestCostOptimizationIntegration validates integration between optimizer and alert manager
 func TestCostOptimizationIntegration(t *testing.T) {
 	optimizer := NewCostOptimizer()
-	alertManager := NewAlertManager()
+	alertManager := NewAlertManager(nil)
 	defer alertManager.Stop()
 
 	// Create test instance with optimization opportunities

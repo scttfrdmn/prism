@@ -4,6 +4,7 @@ package cost
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 )
@@ -80,14 +81,27 @@ type AlertConditions struct {
 	BaselineWindow     string   `json:"baseline_window,omitempty"`
 }
 
+// CostDataProvider defines the interface for retrieving cost data
+type CostDataProvider interface {
+	// GetProjectCurrentCost returns the current cost for a project
+	GetProjectCurrentCost(projectID string) (float64, error)
+	// GetProjectBudget returns the budget for a project
+	GetProjectBudget(projectID string) (float64, error)
+	// GetProjectDailyCost returns the daily cost for a project
+	GetProjectDailyCost(projectID string) (float64, error)
+	// GetProjectCostHistory returns cost history for calculating trends/anomalies
+	GetProjectCostHistory(projectID string, days int) ([]float64, error)
+}
+
 // AlertManager manages cost alerts
 type AlertManager struct {
-	mu          sync.RWMutex
-	alerts      map[string]*Alert
-	rules       map[string]*AlertRule
-	subscribers []AlertSubscriber
-	ctx         context.Context
-	cancel      context.CancelFunc
+	mu               sync.RWMutex
+	alerts           map[string]*Alert
+	rules            map[string]*AlertRule
+	subscribers      []AlertSubscriber
+	ctx              context.Context
+	cancel           context.CancelFunc
+	costDataProvider CostDataProvider
 }
 
 // AlertSubscriber receives alert notifications
@@ -96,14 +110,15 @@ type AlertSubscriber interface {
 }
 
 // NewAlertManager creates a new alert manager
-func NewAlertManager() *AlertManager {
+func NewAlertManager(costDataProvider CostDataProvider) *AlertManager {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &AlertManager{
-		alerts:      make(map[string]*Alert),
-		rules:       make(map[string]*AlertRule),
-		subscribers: make([]AlertSubscriber, 0),
-		ctx:         ctx,
-		cancel:      cancel,
+		alerts:           make(map[string]*Alert),
+		rules:            make(map[string]*AlertRule),
+		subscribers:      make([]AlertSubscriber, 0),
+		ctx:              ctx,
+		cancel:           cancel,
+		costDataProvider: costDataProvider,
 	}
 }
 
@@ -160,9 +175,174 @@ func (am *AlertManager) checkAlertRules() {
 
 // evaluateRule checks if a rule's conditions are met
 func (am *AlertManager) evaluateRule(rule *AlertRule) bool {
-	// This would integrate with actual cost data
-	// For now, return false
+	// If no cost data provider, cannot evaluate
+	if am.costDataProvider == nil {
+		return false
+	}
+
+	conditions := rule.Conditions
+
+	switch rule.Type {
+	case AlertTypeThreshold:
+		return am.evaluateThresholdConditions(conditions)
+	case AlertTypeAnomaly:
+		return am.evaluateAnomalyConditions(conditions)
+	case AlertTypeTrend:
+		return am.evaluateTrendConditions(conditions)
+	case AlertTypeProjection:
+		return am.evaluateProjectionConditions(conditions)
+	default:
+		return false
+	}
+}
+
+// evaluateThresholdConditions checks threshold-based conditions
+func (am *AlertManager) evaluateThresholdConditions(conditions AlertConditions) bool {
+	// Budget percentage threshold
+	if conditions.BudgetPercentage != nil {
+		// For now, check against default project "default" - in production this would iterate over all projects
+		currentCost, err := am.costDataProvider.GetProjectCurrentCost("default")
+		if err != nil {
+			return false
+		}
+
+		budget, err := am.costDataProvider.GetProjectBudget("default")
+		if err != nil || budget == 0 {
+			return false
+		}
+
+		usagePercent := (currentCost / budget) * 100.0
+		if usagePercent >= *conditions.BudgetPercentage {
+			return true
+		}
+	}
+
+	// Daily cost threshold
+	if conditions.DailyCostThreshold != nil {
+		dailyCost, err := am.costDataProvider.GetProjectDailyCost("default")
+		if err != nil {
+			return false
+		}
+
+		if dailyCost >= *conditions.DailyCostThreshold {
+			return true
+		}
+	}
+
+	// Hourly cost threshold (derive from daily)
+	if conditions.HourlyCostThreshold != nil {
+		dailyCost, err := am.costDataProvider.GetProjectDailyCost("default")
+		if err != nil {
+			return false
+		}
+
+		hourlyCost := dailyCost / 24.0
+		if hourlyCost >= *conditions.HourlyCostThreshold {
+			return true
+		}
+	}
+
 	return false
+}
+
+// evaluateTrendConditions checks for concerning cost trends
+func (am *AlertManager) evaluateTrendConditions(conditions AlertConditions) bool {
+	if conditions.CostIncreasePercent == nil {
+		return false
+	}
+
+	// Parse trend window (default to 7 days)
+	days := 7
+	if conditions.TrendWindow != "" {
+		// Simple parsing: "7d" -> 7, "30d" -> 30
+		fmt.Sscanf(conditions.TrendWindow, "%dd", &days)
+	}
+
+	// Get cost history
+	costHistory, err := am.costDataProvider.GetProjectCostHistory("default", days)
+	if err != nil || len(costHistory) < 2 {
+		return false
+	}
+
+	// Calculate trend: compare recent costs vs baseline
+	recentCost := costHistory[len(costHistory)-1]
+	baselineCost := costHistory[0]
+
+	if baselineCost == 0 {
+		return false
+	}
+
+	increasePercent := ((recentCost - baselineCost) / baselineCost) * 100.0
+	return increasePercent >= *conditions.CostIncreasePercent
+}
+
+// evaluateAnomalyConditions checks for cost anomalies using standard deviation
+func (am *AlertManager) evaluateAnomalyConditions(conditions AlertConditions) bool {
+	if conditions.StandardDeviations == nil {
+		return false
+	}
+
+	// Parse baseline window (default to 7 days)
+	days := 7
+	if conditions.BaselineWindow != "" {
+		fmt.Sscanf(conditions.BaselineWindow, "%dd", &days)
+	}
+
+	// Get cost history
+	costHistory, err := am.costDataProvider.GetProjectCostHistory("default", days)
+	if err != nil || len(costHistory) < 3 {
+		return false // Need at least 3 data points for anomaly detection
+	}
+
+	// Calculate mean and standard deviation
+	var sum float64
+	for _, cost := range costHistory {
+		sum += cost
+	}
+	mean := sum / float64(len(costHistory))
+
+	var varianceSum float64
+	for _, cost := range costHistory {
+		diff := cost - mean
+		varianceSum += diff * diff
+	}
+	variance := varianceSum / float64(len(costHistory))
+	stdDev := math.Sqrt(variance)
+
+	// Check if latest cost is an anomaly
+	latestCost := costHistory[len(costHistory)-1]
+	deviations := (latestCost - mean) / stdDev
+
+	return deviations >= *conditions.StandardDeviations
+}
+
+// evaluateProjectionConditions checks if projected costs will exceed budget
+func (am *AlertManager) evaluateProjectionConditions(conditions AlertConditions) bool {
+	// Get recent cost trend to project future costs
+	costHistory, err := am.costDataProvider.GetProjectCostHistory("default", 7)
+	if err != nil || len(costHistory) < 3 {
+		return false
+	}
+
+	// Simple linear projection: calculate daily rate of change
+	var totalChange float64
+	for i := 1; i < len(costHistory); i++ {
+		totalChange += costHistory[i] - costHistory[i-1]
+	}
+	avgDailyChange := totalChange / float64(len(costHistory)-1)
+
+	// Project costs for next 30 days
+	currentCost := costHistory[len(costHistory)-1]
+	projectedCost := currentCost + (avgDailyChange * 30)
+
+	// Check against budget
+	budget, err := am.costDataProvider.GetProjectBudget("default")
+	if err != nil || budget == 0 {
+		return false
+	}
+
+	// Trigger if projected to exceed budget
+	return projectedCost >= budget
 }
 
 // triggerAlert creates and sends an alert
@@ -409,4 +589,48 @@ func isAutomatedAction(actionType string) bool {
 	// Only notifications are automated by default
 	// Other actions require manual confirmation
 	return actionType == "notify"
+}
+
+// BudgetTrackerAdapter adapts a BudgetTracker to the CostDataProvider interface
+type BudgetTrackerAdapter struct {
+	getBudgetDataFunc func(projectID string) (currentCost, budget, dailyCost float64, costHistory []float64, err error)
+}
+
+// NewBudgetTrackerAdapter creates a new adapter for a budget tracker
+func NewBudgetTrackerAdapter(getBudgetDataFunc func(projectID string) (float64, float64, float64, []float64, error)) *BudgetTrackerAdapter {
+	return &BudgetTrackerAdapter{
+		getBudgetDataFunc: getBudgetDataFunc,
+	}
+}
+
+// GetProjectCurrentCost returns the current cost for a project
+func (bta *BudgetTrackerAdapter) GetProjectCurrentCost(projectID string) (float64, error) {
+	currentCost, _, _, _, err := bta.getBudgetDataFunc(projectID)
+	return currentCost, err
+}
+
+// GetProjectBudget returns the budget for a project
+func (bta *BudgetTrackerAdapter) GetProjectBudget(projectID string) (float64, error) {
+	_, budget, _, _, err := bta.getBudgetDataFunc(projectID)
+	return budget, err
+}
+
+// GetProjectDailyCost returns the daily cost for a project
+func (bta *BudgetTrackerAdapter) GetProjectDailyCost(projectID string) (float64, error) {
+	_, _, dailyCost, _, err := bta.getBudgetDataFunc(projectID)
+	return dailyCost, err
+}
+
+// GetProjectCostHistory returns cost history for calculating trends/anomalies
+func (bta *BudgetTrackerAdapter) GetProjectCostHistory(projectID string, days int) ([]float64, error) {
+	_, _, _, costHistory, err := bta.getBudgetDataFunc(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return last N days of history
+	if len(costHistory) > days {
+		return costHistory[len(costHistory)-days:], nil
+	}
+	return costHistory, nil
 }

@@ -16,14 +16,20 @@
 - ✅ uploadToS3 - REAL S3 upload implemented
 - ✅ Idle savings report - REAL budget tracker integration
 
+### Security & SSH
+- ✅ SSH host key verification - REAL known_hosts implementation with TOFU fallback
+
+### System Metrics
+- ✅ Platform-specific CPU monitoring - Linux/macOS/Windows implementations
+- ✅ Platform-specific load average - /proc/loadavg, sysctl implementations
+
+### Idle Detection
+- ✅ CloudWatch metrics collector - REAL GetMetricStatistics integration
+- ✅ shouldExecuteIdle() - REAL idle detection via CloudWatch CPU/network metrics
+
 ---
 
-## Priority 2: Security & SSH (HIGH)
-
-### pkg/research/provisioner.go
-- Line: `HostKeyCallback: ssh.InsecureIgnoreHostKey()`
-- Issue: Insecure SSH host key verification
-- Fix Required: Implement proper host key verification with known_hosts
+## Priority 2: Cost & Monitoring (MEDIUM-HIGH)
 
 ---
 
@@ -60,15 +66,6 @@ All proxy implementations are placeholders:
 
 ---
 
-## Priority 4: Cost & Monitoring (MEDIUM)
-
-### pkg/daemon/health_monitor.go
-- **Line: CPUUsagePercent** - Platform-specific CPU monitoring
-- **Line: LoadAverage** - Platform-specific load average
-- Current: Returns 0.0
-- Required: Platform-specific implementations (Linux: /proc, macOS: sysctl, Windows: WMI)
-- Complexity: MEDIUM
-
 ### pkg/daemon/log_handlers.go
 - **Timestamp parsing** - Real log timestamp extraction
 - Current: Placeholder comment
@@ -80,13 +77,6 @@ All proxy implementations are placeholders:
 - Current: Returns 0
 - Required: CloudWatch GetMetricStatistics integration
 - Complexity: MEDIUM
-
-### pkg/idle/scheduler.go
-- **Line: "For now, return false"**
-- Context: Schedule evaluation
-- Current: Always returns false
-- Required: Implement actual schedule evaluation logic
-- Complexity: LOW
 
 ### pkg/cost/alerts.go
 - **Line: "For now, return false"**
