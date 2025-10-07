@@ -8,6 +8,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// mockAWSManager implements AWSInstanceManager for testing
+type mockAWSManager struct {
+	instances      []string
+	hibernateCalls int
+	stopCalls      int
+	startCalls     int
+	resumeCalls    int
+}
+
+func newMockAWSManager() *mockAWSManager {
+	return &mockAWSManager{
+		instances: []string{"test-instance-1", "test-instance-2"},
+	}
+}
+
+func (m *mockAWSManager) HibernateInstance(name string) error {
+	m.hibernateCalls++
+	return nil
+}
+
+func (m *mockAWSManager) ResumeInstance(name string) error {
+	m.resumeCalls++
+	return nil
+}
+
+func (m *mockAWSManager) StopInstance(name string) error {
+	m.stopCalls++
+	return nil
+}
+
+func (m *mockAWSManager) StartInstance(name string) error {
+	m.startCalls++
+	return nil
+}
+
+func (m *mockAWSManager) GetInstanceNames() ([]string, error) {
+	return m.instances, nil
+}
+
 // TestPolicyManagerWorkflows tests the complete hibernation policy management workflows
 func TestPolicyManagerWorkflows(t *testing.T) {
 
@@ -151,7 +190,8 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 		// User scenario: Research instance hibernates during business hours (9 AM to 6 PM)
 		// NOTE: Current implementation has limitations with overnight schedules (22:00-08:00)
 		// This test demonstrates the actual behavior and documents the limitation
-		scheduler := NewScheduler()
+		mockAWS := newMockAWSManager()
+		scheduler := NewScheduler(mockAWS)
 
 		// Create a daily schedule that works with current string comparison logic
 		schedule := &Schedule{
@@ -199,7 +239,8 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 
 	t.Run("idle_based_hibernation_detection", func(t *testing.T) {
 		// User scenario: GPU instance should hibernate after idle period
-		scheduler := NewScheduler()
+		mockAWS := newMockAWSManager()
+		scheduler := NewScheduler(mockAWS)
 
 		// Create an idle-based schedule
 		schedule := &Schedule{
@@ -229,7 +270,8 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 
 	t.Run("scheduler_lifecycle_management", func(t *testing.T) {
 		// User scenario: Scheduler can be started and stopped properly
-		scheduler := NewScheduler()
+		mockAWS := newMockAWSManager()
+		scheduler := NewScheduler(mockAWS)
 
 		// Test that scheduler can be started and stopped without error
 		// Note: We don't actually start/stop to avoid goroutines in tests

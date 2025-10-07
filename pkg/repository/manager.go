@@ -510,3 +510,158 @@ func ensureDir(path string) error {
 	}
 	return nil
 }
+
+// DownloadTemplate downloads a template from a repository to the local templates directory
+func (m *Manager) DownloadTemplate(ref TemplateReference, destDir string) (string, error) {
+	// Find the template in repositories
+	templateMeta, repo, err := m.FindTemplate(ref)
+	if err != nil {
+		return "", fmt.Errorf("failed to find template: %w", err)
+	}
+
+	// Ensure destination directory exists
+	if err := ensureDir(destDir); err != nil {
+		return "", fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Download based on repository type
+	var templateContent []byte
+	switch repo.Type {
+	case "local":
+		templateContent, err = m.downloadFromLocal(repo, templateMeta.Path)
+	case "github":
+		templateContent, err = m.downloadFromGitHub(repo, templateMeta.Path)
+	case "s3":
+		templateContent, err = m.downloadFromS3(repo, templateMeta.Path)
+	default:
+		return "", fmt.Errorf("unsupported repository type: %s", repo.Type)
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("failed to download template: %w", err)
+	}
+
+	// Write template to destination
+	destFile := filepath.Join(destDir, filepath.Base(templateMeta.Path))
+	if err := os.WriteFile(destFile, templateContent, 0644); err != nil {
+		return "", fmt.Errorf("failed to write template file: %w", err)
+	}
+
+	return destFile, nil
+}
+
+// downloadFromLocal reads a template from a local repository
+func (m *Manager) downloadFromLocal(repo *Repository, templatePath string) ([]byte, error) {
+	fullPath := filepath.Join(repo.Path, templatePath)
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read local template: %w", err)
+	}
+	return content, nil
+}
+
+// downloadFromGitHub downloads a template from a GitHub repository
+func (m *Manager) downloadFromGitHub(repo *Repository, templatePath string) ([]byte, error) {
+	// Parse GitHub URL to get owner and repo
+	// Expected format: github.com/owner/repo
+	parts := strings.Split(strings.TrimPrefix(repo.URL, "https://"), "/")
+	if len(parts) < 3 {
+		parts = strings.Split(repo.URL, "/")
+	}
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("invalid GitHub URL format: %s", repo.URL)
+	}
+
+	owner := parts[len(parts)-2]
+	repoName := parts[len(parts)-1]
+	branch := repo.Branch
+	if branch == "" {
+		branch = "main"
+	}
+
+	// GitHub download requires HTTP client implementation
+	// Would construct URL: https://raw.githubusercontent.com/owner/repo/branch/path
+	// In production, use github.com/google/go-github or net/http client
+	_ = owner    // Future: used for GitHub API
+	_ = repoName // Future: used for GitHub API
+	_ = branch   // Future: used for GitHub API
+	return nil, fmt.Errorf("GitHub download requires HTTP client implementation - use local or S3 repositories")
+}
+
+// downloadFromS3 downloads a template from an S3 bucket
+func (m *Manager) downloadFromS3(repo *Repository, templatePath string) ([]byte, error) {
+	// S3 download requires AWS SDK integration
+	// For now, return an error indicating it needs implementation
+	return nil, fmt.Errorf("S3 download requires AWS SDK integration - use local repositories")
+}
+
+// UploadTemplate uploads a template to a repository
+func (m *Manager) UploadTemplate(templatePath string, ref TemplateReference) error {
+	// Get the target repository
+	repo, err := m.GetRepository(ref.Repository)
+	if err != nil {
+		return fmt.Errorf("failed to get repository: %w", err)
+	}
+
+	// Read template file
+	templateContent, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("failed to read template file: %w", err)
+	}
+
+	// Upload based on repository type
+	switch repo.Type {
+	case "local":
+		return m.uploadToLocal(repo, ref.Template, templateContent)
+	case "github":
+		return m.uploadToGitHub(repo, ref.Template, templateContent)
+	case "s3":
+		return m.uploadToS3(repo, ref.Template, templateContent)
+	default:
+		return fmt.Errorf("unsupported repository type: %s", repo.Type)
+	}
+}
+
+// uploadToLocal writes a template to a local repository
+func (m *Manager) uploadToLocal(repo *Repository, templateName string, content []byte) error {
+	// Ensure repository directory exists
+	if err := ensureDir(repo.Path); err != nil {
+		return fmt.Errorf("failed to create repository directory: %w", err)
+	}
+
+	// Construct destination path
+	destPath := filepath.Join(repo.Path, templateName+".yml")
+
+	// Write template file
+	if err := os.WriteFile(destPath, content, 0644); err != nil {
+		return fmt.Errorf("failed to write template: %w", err)
+	}
+
+	// Update repository cache
+	if err := m.UpdateRepositoryCache(repo); err != nil {
+		return fmt.Errorf("failed to update repository cache: %w", err)
+	}
+
+	return nil
+}
+
+// uploadToGitHub uploads a template to a GitHub repository
+func (m *Manager) uploadToGitHub(repo *Repository, templateName string, content []byte) error {
+	// GitHub upload requires GitHub API integration
+	// Would need to:
+	// 1. Authenticate with GitHub (token)
+	// 2. Get current file SHA if it exists
+	// 3. Create/update file via GitHub API
+	// 4. Handle commit message
+	return fmt.Errorf("GitHub upload requires GitHub API integration - use local repositories")
+}
+
+// uploadToS3 uploads a template to an S3 bucket
+func (m *Manager) uploadToS3(repo *Repository, templateName string, content []byte) error {
+	// S3 upload requires AWS SDK integration
+	// Would need to:
+	// 1. Initialize S3 client
+	// 2. Put object to bucket
+	// 3. Update repository metadata
+	return fmt.Errorf("S3 upload requires AWS SDK integration - use local repositories")
+}

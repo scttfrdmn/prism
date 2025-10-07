@@ -464,7 +464,6 @@ func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
 	return listCmd
 }
 
-
 func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "snapshot <action>",

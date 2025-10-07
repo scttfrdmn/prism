@@ -17,12 +17,12 @@ func (c *HTTPClient) GetPolicyStatus(ctx context.Context) (*PolicyStatusResponse
 
 	// Parse the raw response first to handle field mapping
 	var rawResponse struct {
-		Enabled           bool   `json:"enabled"`
-		CurrentPolicySet  string `json:"current_policy_set"`
-		LastUpdated       string `json:"last_updated"`
-		Status            string `json:"status"`
-		StatusIcon        string `json:"status_icon"`
-		Message           string `json:"message,omitempty"`
+		Enabled          bool   `json:"enabled"`
+		CurrentPolicySet string `json:"current_policy_set"`
+		LastUpdated      string `json:"last_updated"`
+		Status           string `json:"status"`
+		StatusIcon       string `json:"status_icon"`
+		Message          string `json:"message,omitempty"`
 	}
 
 	if err := c.handleResponse(resp, &rawResponse); err != nil {

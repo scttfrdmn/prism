@@ -1299,8 +1299,8 @@ func (m *MockAPIClient) GetRightsizingStats(ctx context.Context, instanceName st
 			VCPUs:        2,
 			MemoryGB:     4.0,
 		},
-		MetricsSummary: types.MetricsSummary{},
-		RecentMetrics:  []types.InstanceMetrics{},
+		MetricsSummary:   types.MetricsSummary{},
+		RecentMetrics:    []types.InstanceMetrics{},
 		CollectionStatus: types.MetricsCollectionStatus{},
 	}, nil
 }

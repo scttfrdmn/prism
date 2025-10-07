@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -445,8 +446,22 @@ func (a *App) repoPull(args []string) error {
 	fmt.Printf("Found template %q in repository %q\n", ref.Template, repo.Name)
 	fmt.Printf("Path: %s\n", template.Path)
 
-	// TODO: Implement template downloading
-	fmt.Println("Template pull not fully implemented yet")
+	// Get templates directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+	templatesDir := filepath.Join(homeDir, ".cloudworkstation", "templates")
+
+	// Download template
+	destFile, err := repoManager.DownloadTemplate(ref, templatesDir)
+	if err != nil {
+		return fmt.Errorf("failed to download template: %w", err)
+	}
+
+	fmt.Printf("\n✅ Template downloaded successfully\n")
+	fmt.Printf("   File: %s\n", destFile)
+	fmt.Printf("   Use: cws launch %s <instance-name>\n", ref.Template)
 
 	return nil
 }
@@ -483,8 +498,25 @@ func (a *App) repoPush(args []string) error {
 
 	fmt.Printf("Pushing template %q to repository %q\n", templateFile, repoName)
 
-	// TODO: Implement template uploading
-	fmt.Println("Template push not fully implemented yet")
+	// Verify template file exists
+	if _, err := os.Stat(templateFile); err != nil {
+		return fmt.Errorf("template file not found: %w", err)
+	}
+
+	// Parse template reference for upload
+	ref := repository.TemplateReference{
+		Repository: repoName,
+		Template:   filepath.Base(templateFile),
+	}
+
+	// Upload template
+	if err := repoManager.UploadTemplate(templateFile, ref); err != nil {
+		return fmt.Errorf("failed to upload template: %w", err)
+	}
+
+	fmt.Printf("\n✅ Template uploaded successfully\n")
+	fmt.Printf("   Repository: %s\n", repoName)
+	fmt.Printf("   Template: %s\n", filepath.Base(templateFile))
 
 	return nil
 }

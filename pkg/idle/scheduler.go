@@ -83,14 +83,14 @@ type Schedule struct {
 
 // Scheduler manages hibernation schedules
 type Scheduler struct {
-	mu               sync.RWMutex
-	schedules        map[string]*Schedule
-	active           map[string]*ScheduleExecution
+	mu                sync.RWMutex
+	schedules         map[string]*Schedule
+	active            map[string]*ScheduleExecution
 	instanceSchedules map[string][]string // instance name -> schedule IDs
-	ticker           *time.Ticker
-	ctx              context.Context
-	cancel           context.CancelFunc
-	awsManager       AWSInstanceManager
+	ticker            *time.Ticker
+	ctx               context.Context
+	cancel            context.CancelFunc
+	awsManager        AWSInstanceManager
 }
 
 // ScheduleExecution tracks active schedule execution
@@ -105,12 +105,12 @@ type ScheduleExecution struct {
 func NewScheduler(awsManager AWSInstanceManager) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
-		schedules:        make(map[string]*Schedule),
-		active:           make(map[string]*ScheduleExecution),
+		schedules:         make(map[string]*Schedule),
+		active:            make(map[string]*ScheduleExecution),
 		instanceSchedules: make(map[string][]string),
-		ctx:              ctx,
-		cancel:           cancel,
-		awsManager:       awsManager,
+		ctx:               ctx,
+		cancel:            cancel,
+		awsManager:        awsManager,
 	}
 }
 
@@ -584,10 +584,10 @@ func (s *Scheduler) GetInstanceSchedules(instanceName string) []*Schedule {
 // AWSManagerAdapter adapts an AWS Manager to the AWSInstanceManager interface
 // This allows the scheduler to work with the real AWS manager without direct dependencies
 type AWSManagerAdapter struct {
-	hibernateFn       func(string) error
-	resumeFn          func(string) error
-	stopFn            func(string) error
-	startFn           func(string) error
+	hibernateFn        func(string) error
+	resumeFn           func(string) error
+	stopFn             func(string) error
+	startFn            func(string) error
 	getInstanceNamesFn func() ([]string, error)
 }
 
@@ -600,10 +600,10 @@ func NewAWSManagerAdapter(
 	getInstanceNamesFn func() ([]string, error),
 ) *AWSManagerAdapter {
 	return &AWSManagerAdapter{
-		hibernateFn:       hibernateFn,
-		resumeFn:          resumeFn,
-		stopFn:            stopFn,
-		startFn:           startFn,
+		hibernateFn:        hibernateFn,
+		resumeFn:           resumeFn,
+		stopFn:             stopFn,
+		startFn:            startFn,
 		getInstanceNamesFn: getInstanceNamesFn,
 	}
 }
