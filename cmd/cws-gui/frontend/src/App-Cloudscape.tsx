@@ -85,64 +85,40 @@ export default function CloudWorkstationApp() {
     setState(prev => ({ ...prev, loading: true }));
 
     try {
-      // Load templates and instances from backend
-      // This would be replaced with actual API calls
-      const mockTemplates: Template[] = [
-        {
-          id: 'python-ml',
-          name: 'Python Machine Learning',
-          description: 'Complete ML environment with TensorFlow, PyTorch, and Jupyter',
-          category: 'ml',
-          complexity: 'moderate',
-          cost_per_hour: 0.48,
-          launch_time_minutes: 2,
-          popularity: 1200,
-          features: ['Python 3.11', 'TensorFlow', 'PyTorch', 'Jupyter', 'CUDA'],
-          icon: '🤖'
-        },
-        {
-          id: 'r-research',
-          name: 'R Research Environment',
-          description: 'Statistical analysis with R, RStudio, and tidyverse',
-          category: 'datascience',
-          complexity: 'simple',
-          cost_per_hour: 0.32,
-          launch_time_minutes: 1.5,
-          popularity: 800,
-          features: ['R 4.3', 'RStudio Server', 'tidyverse', 'Bioconductor'],
-          icon: '📊'
-        },
-        {
-          id: 'bioinformatics',
-          name: 'Bioinformatics Suite',
-          description: 'Genome analysis tools and NGS pipeline',
-          category: 'bio',
-          complexity: 'advanced',
-          cost_per_hour: 0.64,
-          launch_time_minutes: 3,
-          popularity: 450,
-          features: ['BLAST', 'BWA', 'SAMtools', 'Bioconductor', 'Python'],
-          icon: '🧬'
-        }
-      ];
+      // Load templates and instances from CloudWorkstation backend via Wails
+      const backendTemplates = await (window as any).wails.CloudWorkstationService.GetTemplates();
+      const backendInstances = await (window as any).wails.CloudWorkstationService.GetInstances();
 
-      const mockInstances: Instance[] = [
-        {
-          id: 'i-1234567890abcdef0',
-          name: 'my-ml-project',
-          template: 'Python Machine Learning',
-          status: 'running',
-          public_ip: '54.123.45.67',
-          cost_per_hour: 0.48,
-          launch_time: '2025-01-15T10:30:00Z',
-          region: 'us-west-2'
-        }
-      ];
+      // Convert backend template format to UI format
+      const templates: Template[] = backendTemplates.map((t: any) => ({
+        id: t.Name || t.id,
+        name: t.Name,
+        description: t.Description || '',
+        category: t.Domain || t.Category || 'general',
+        complexity: t.Complexity || 'moderate',
+        cost_per_hour: t.EstimatedCostPerHour?.['x86_64'] || t.cost_per_hour || 0,
+        launch_time_minutes: 2, // Reasonable default
+        popularity: t.Popular ? 1000 : 500,
+        features: Array.isArray(t.Features) ? t.Features : [],
+        icon: t.Icon || '💻'
+      }));
+
+      // Convert backend instance format to UI format
+      const instances: Instance[] = backendInstances.map((i: any) => ({
+        id: i.ID || i.id,
+        name: i.Name,
+        template: i.Template,
+        status: i.State || i.status,
+        public_ip: i.PublicIP || i.public_ip,
+        cost_per_hour: i.EstimatedDailyCost ? i.EstimatedDailyCost / 24 : 0,
+        launch_time: i.LaunchTime || i.launch_time,
+        region: i.Region || 'us-west-2'
+      }));
 
       setState(prev => ({
         ...prev,
-        templates: mockTemplates,
-        instances: mockInstances,
+        templates: templates,
+        instances: instances,
         loading: false
       }));
 

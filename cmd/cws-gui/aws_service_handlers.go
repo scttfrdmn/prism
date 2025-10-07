@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
 )
 
 // AWS service constants
@@ -287,15 +289,37 @@ func (s *CloudWorkstationService) getServicePolicy(service string) string {
 }
 
 // getAWSConfig returns AWS configuration for the specified region
+// Uses the CloudWorkstation profile system for consistent credential management
 //
 //nolint:unparam // Error return reserved for future auth validation
-func (s *CloudWorkstationService) getAWSConfig(_ context.Context, region string) (aws.Config, error) {
-	// This should use the same AWS configuration logic as the rest of CloudWorkstation
-	// For now, return a basic configuration - this will need to be integrated
-	// with the existing AWS profile and credential management system
+func (s *CloudWorkstationService) getAWSConfig(ctx context.Context, region string) (aws.Config, error) {
+	// Get current profile from the CloudWorkstation profile system
+	profileManager, err := profile.NewManagerEnhanced()
+	if err != nil {
+		// Fallback to default config if profile manager unavailable
+		return config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	}
 
-	return aws.Config{
-		Region: region,
-		// Additional AWS configuration will be added based on existing CloudWorkstation setup
-	}, nil
+	currentProfile, err := profileManager.GetCurrentProfile()
+	if err != nil {
+		// Fallback to default config if no current profile
+		return config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	}
+
+	// Load AWS config using the profile's AWS profile name and region
+	cfgOpts := []func(*config.LoadOptions) error{}
+
+	// Use profile's AWS profile name if specified
+	if currentProfile.AWSProfile != "" {
+		cfgOpts = append(cfgOpts, config.WithSharedConfigProfile(currentProfile.AWSProfile))
+	}
+
+	// Prefer specified region parameter, fallback to profile's region
+	if region != "" {
+		cfgOpts = append(cfgOpts, config.WithRegion(region))
+	} else if currentProfile.Region != "" {
+		cfgOpts = append(cfgOpts, config.WithRegion(currentProfile.Region))
+	}
+
+	return config.LoadDefaultConfig(ctx, cfgOpts...)
 }

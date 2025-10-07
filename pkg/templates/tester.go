@@ -423,7 +423,7 @@ func testPackageAvailability(ctx context.Context, template *Template) TestResult
 		// Deprecated system packages
 		"python-software-properties",
 		// Packages with security vulnerabilities
-		"tensorflow==2.7.0", // Known CVEs
+		"tensorflow==2.7.0",                        // Known CVEs
 		"django==1.", "django==2.0", "django==2.1", // Old versions
 		// Conflicting packages
 		"nvidia-driver-390", // Conflicts with modern CUDA

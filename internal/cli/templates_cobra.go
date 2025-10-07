@@ -1,10 +1,24 @@
+// Package cli - Template Cobra Command Layer
+//
+// ARCHITECTURE NOTE: This file defines the user-facing CLI interface for template commands.
+// The actual business logic is in template_impl.go (TemplateCommands).
+//
+// This separation follows the Facade/Adapter pattern:
+//   - templates_cobra.go: CLI interface (THIS FILE - Cobra commands, flag parsing, help text)
+//   - template_impl.go: Business logic (API calls, formatting, error handling)
+//
+// This Cobra layer is responsible for:
+//   - Defining command structure and subcommands
+//   - Parsing and validating flags
+//   - Providing help text and examples
+//   - Delegating to TemplateCommands for execution
 package cli
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// TemplateCobraCommands creates the templates command with proper Cobra subcommands
+// TemplateCobraCommands creates the templates command with proper Cobra subcommands (Cobra layer)
 type TemplateCobraCommands struct {
 	app              *App
 	templateCommands *TemplateCommands

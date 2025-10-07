@@ -842,9 +842,14 @@ class CloudWorkstationDCVManager {
      * @returns {Promise<Object>} - Configured DCV client
      */
     async createSecureDCVClient(sessionInfo) {
-        // Note: This is a placeholder for NICE DCV Web SDK integration
-        // In a real implementation, this would import and configure the actual DCV Web SDK
-        
+        // AWS NICE DCV Web SDK Integration
+        // Production deployment requires: npm install nice-dcv-web-viewer
+        // Then: import { DCVViewer } from 'nice-dcv-web-viewer';
+        // const viewer = new DCVViewer(dcvViewerOptions);
+        // viewer.connect(sessionInfo.serverUrl, sessionInfo.authToken);
+        //
+        // For development/demo, using compatible interface simulation
+
         const dcvClient = {
             // Mock DCV client configuration
             sessionId: sessionInfo.sessionId,
@@ -1051,12 +1056,14 @@ class CloudWorkstationDCVManager {
      * @param {Object} dcvClient - DCV client instance
      */
     setupSessionEventListeners(instanceName, dcvClient) {
-        // Note: In real DCV Web SDK, these would be actual event listeners
-        // This is a simulation of the event handling structure
-        
+        // DCV Web SDK event listener structure
+        // Production code: dcvClient.on('connect', () => this.handleDCVConnect(instanceName));
+        // Production code: dcvClient.on('disconnect', () => this.handleDCVDisconnect(instanceName));
+        // Production code: dcvClient.on('error', (err) => this.handleDCVError(instanceName, err));
+
         console.log(`Setting up event listeners for DCV session: ${instanceName}`);
-        
-        // Simulate connection events
+
+        // Simulate connection events for demo/development
         setTimeout(() => {
             this.handleDCVConnect(instanceName);
         }, 2000);
@@ -1270,18 +1277,45 @@ class CloudWorkstationDCVManager {
      * @param {string} type - Notification type (success, error, info)
      */
     showNotification(message, type) {
-        // Simple notification implementation
-        // In a full implementation, this would show a proper toast notification
+        // Real toast notification implementation
         console.log(`${type.toUpperCase()}: ${message}`);
-        
+
         const icon = {
             success: '✅',
             error: '❌',
-            info: 'ℹ️'
+            info: 'ℹ️',
+            warning: '⚠️'
         }[type] || 'ℹ️';
-        
-        // You could implement a proper notification system here
-        // For now, we'll just log to console
+
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'toast-container';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <span class="toast-icon">${icon}</span>
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+
+        // Add to container
+        toastContainer.appendChild(toast);
+
+        // Trigger animation
+        setTimeout(() => toast.classList.add('toast-show'), 10);
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            toast.classList.remove('toast-show');
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
     }
 
     /**
@@ -2013,47 +2047,124 @@ class CloudWorkstationConnectionManager {
     async createSSHTerminal(instanceName, sshInfo) {
         console.log(`Creating SSH terminal for ${instanceName}:`, sshInfo);
 
-        // In a real implementation, this would use xterm.js or similar
-        // For now, create a mock terminal interface
+        // Create real WebSocket terminal connection to backend
         const terminal = {
             instanceName,
             host: sshInfo.host,
             port: sshInfo.port,
             username: sshInfo.username,
             connected: false,
-            
-            // Mock terminal methods
+            ws: null,
+            outputBuffer: [],
+
             connect: async () => {
                 console.log(`SSH Terminal: Connecting to ${sshInfo.username}@${sshInfo.host}:${sshInfo.port}`);
-                // Simulate connection delay
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                terminal.connected = true;
-                console.log('SSH Terminal: Connected successfully');
-                this.renderSSHTerminalContent(instanceName, terminal);
-                return true;
+
+                return new Promise((resolve, reject) => {
+                    // Connect to CloudWorkstation daemon's WebSocket terminal endpoint
+                    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${wsProtocol}//${window.location.host}/api/terminal`;
+
+                    terminal.ws = new WebSocket(wsUrl);
+
+                    terminal.ws.onopen = () => {
+                        console.log('WebSocket connection established');
+
+                        // Send SSH connection parameters
+                        terminal.ws.send(JSON.stringify({
+                            host: sshInfo.host,
+                            port: sshInfo.port,
+                            username: sshInfo.username,
+                            instanceName: instanceName
+                        }));
+                    };
+
+                    terminal.ws.onmessage = (event) => {
+                        // Handle terminal output
+                        if (typeof event.data === 'string') {
+                            const data = event.data;
+
+                            // Check for connection success message
+                            if (data.includes('Connected') || data.includes('Welcome')) {
+                                terminal.connected = true;
+                                this.renderSSHTerminalContent(instanceName, terminal);
+                                resolve(true);
+                            }
+
+                            // Add to output buffer and update display
+                            terminal.outputBuffer.push(data);
+                            this.updateTerminalOutput(instanceName, data);
+                        } else {
+                            // Binary data (for file transfers, etc.)
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const text = new TextDecoder().decode(reader.result);
+                                terminal.outputBuffer.push(text);
+                                this.updateTerminalOutput(instanceName, text);
+                            };
+                            reader.readAsArrayBuffer(event.data);
+                        }
+                    };
+
+                    terminal.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        reject(new Error('Failed to establish terminal connection'));
+                    };
+
+                    terminal.ws.onclose = () => {
+                        console.log('WebSocket connection closed');
+                        terminal.connected = false;
+                        this.handleSSHDisconnect(instanceName);
+                    };
+
+                    // Timeout after 10 seconds
+                    setTimeout(() => {
+                        if (!terminal.connected) {
+                            reject(new Error('Connection timeout'));
+                        }
+                    }, 10000);
+                });
             },
-            
+
             disconnect: () => {
                 console.log('SSH Terminal: Disconnecting...');
+                if (terminal.ws && terminal.ws.readyState === WebSocket.OPEN) {
+                    terminal.ws.close();
+                }
                 terminal.connected = false;
                 this.handleSSHDisconnect(instanceName);
             },
-            
+
             write: (data) => {
-                console.log('SSH Terminal write:', data);
+                if (terminal.ws && terminal.ws.readyState === WebSocket.OPEN) {
+                    terminal.ws.send(data);
+                } else {
+                    console.warn('Cannot write to disconnected terminal');
+                }
             },
-            
+
             resize: (cols, rows) => {
-                console.log(`SSH Terminal resize: ${cols}x${rows}`);
+                // Send resize command to backend
+                if (terminal.ws && terminal.ws.readyState === WebSocket.OPEN) {
+                    terminal.ws.send(JSON.stringify({
+                        type: 'resize',
+                        cols: cols,
+                        rows: rows
+                    }));
+                }
             }
         };
 
         // Start connection
-        const connected = await terminal.connect();
-        if (connected) {
-            return terminal;
+        try {
+            const connected = await terminal.connect();
+            if (connected) {
+                return terminal;
+            }
+        } catch (error) {
+            console.error('Terminal connection failed:', error);
         }
-        
+
         return null;
     }
 
@@ -2186,7 +2297,6 @@ class CloudWorkstationConnectionManager {
      * @param {Object} webInterface - Web interface object
      */
     renderWebInterfaceContent(instanceName, webInterface) {
-        // For now, show a placeholder - in real implementation this would embed the web apps
         let webDisplay = document.getElementById('web-display');
         
         if (!webDisplay) {
@@ -2238,49 +2348,25 @@ class CloudWorkstationConnectionManager {
             const container = document.getElementById('web-interface-container');
             if (container) {
                 const activeInterface = webInterface.activeInterface;
-                const url = `http://${webInterface.host}:${activeInterface.port}${activeInterface.path}`;
-                
+
+                // Use proxy URL through CloudWorkstation daemon to handle CORS and authentication
+                const proxyUrl = `/proxy/${instanceName}${activeInterface.path}`;
+
+                // Embed web application in iframe
                 container.innerHTML = `
                     <div class="web-interface-content">
-                        <div class="web-interface-placeholder">
-                            <h3>${activeInterface.icon} ${activeInterface.name}</h3>
-                            <p>Web interface ready at: <strong>${url}</strong></p>
-                            <div class="web-interface-info">
-                                <p>In a full implementation, this would embed the web application using an iframe or similar:</p>
-                                <div class="web-embed-simulation">
-                                    <div class="embed-header">
-                                        <span class="embed-url">${url}</span>
-                                    </div>
-                                    <div class="embed-content">
-                                        <div class="app-simulation">
-                                            <h4>📊 ${activeInterface.name} Interface Simulation</h4>
-                                            <div class="feature-list">
-                                                ${activeInterface.name === 'Jupyter' ? `
-                                                    <div class="feature-item">📓 Interactive notebooks</div>
-                                                    <div class="feature-item">🐍 Python, R, Julia kernels</div>
-                                                    <div class="feature-item">📊 Data visualization</div>
-                                                    <div class="feature-item">🔬 Research workflows</div>
-                                                ` : activeInterface.name === 'RStudio' ? `
-                                                    <div class="feature-item">📈 R statistical computing</div>
-                                                    <div class="feature-item">📝 R Markdown documents</div>
-                                                    <div class="feature-item">📊 Data analysis tools</div>
-                                                    <div class="feature-item">📚 Package management</div>
-                                                ` : `
-                                                    <div class="feature-item">🌊 Interactive web apps</div>
-                                                    <div class="feature-item">📊 Real-time dashboards</div>
-                                                    <div class="feature-item">🎛️ Interactive widgets</div>
-                                                    <div class="feature-item">📱 Mobile-responsive</div>
-                                                `}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="web-interface-actions">
-                                    <button class="btn-primary" onclick="window.open('${url}', '_blank')">
-                                        🗗 Open in New Tab
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="web-interface-loading" id="web-loading-${instanceName}">
+                            <div class="loading-spinner"></div>
+                            <p>Loading ${activeInterface.icon} ${activeInterface.name}...</p>
+                        </div>
+                        <iframe
+                            id="web-iframe-${instanceName}"
+                            src="${proxyUrl}"
+                            class="web-interface-iframe"
+                            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                            allow="clipboard-read; clipboard-write"
+                            title="${activeInterface.name} Interface"
+                            onload="connectionManager.handleWebInterfaceLoad('${instanceName}')"></iframe>
                         </div>
                     </div>
                 `;
@@ -2311,7 +2397,60 @@ class CloudWorkstationConnectionManager {
      */
     switchWebInterface(instanceName, interfaceName) {
         console.log(`Switching to ${interfaceName} for ${instanceName}`);
-        // This would be implemented to switch between different web interfaces
+
+        // Find the interface configuration
+        const connections = this.webInterfaces || new Map();
+        const webInterface = connections.get(instanceName);
+
+        if (webInterface) {
+            const newInterface = webInterface.interfaces.find(iface => iface.name === interfaceName);
+
+            if (newInterface) {
+                webInterface.activeInterface = newInterface;
+
+                // Update iframe src to new interface
+                const iframe = document.getElementById(`web-iframe-${instanceName}`);
+                const proxyUrl = `/proxy/${instanceName}${newInterface.path}`;
+
+                if (iframe) {
+                    // Show loading indicator
+                    const loading = document.getElementById(`web-loading-${instanceName}`);
+                    if (loading) loading.style.display = 'flex';
+
+                    iframe.src = proxyUrl;
+                }
+
+                // Update active tab styling
+                const tabs = document.querySelectorAll('.interface-tab');
+                tabs.forEach(tab => {
+                    if (tab.textContent.includes(interfaceName)) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Handle web interface iframe load
+     * @param {string} instanceName - Instance name
+     */
+    handleWebInterfaceLoad(instanceName) {
+        console.log(`Web interface loaded for ${instanceName}`);
+
+        // Hide loading indicator
+        const loading = document.getElementById(`web-loading-${instanceName}`);
+        if (loading) {
+            loading.style.display = 'none';
+        }
+
+        // Show iframe
+        const iframe = document.getElementById(`web-iframe-${instanceName}`);
+        if (iframe) {
+            iframe.style.display = 'block';
+        }
     }
 
     /**
@@ -2354,35 +2493,114 @@ class CloudWorkstationConnectionManager {
         }
 
         if (terminalContent) {
-            // In a real implementation, this would be handled by xterm.js
+            // Create interactive terminal interface with WebSocket backend
             terminalContent.innerHTML = `
-                <div class="terminal-session">
-                    <div class="terminal-line">
-                        <span class="terminal-prompt">CloudWorkstation SSH Terminal</span>
-                    </div>
-                    <div class="terminal-line">
+                <div class="terminal-session" id="terminal-${instanceName}">
+                    <div class="terminal-header">
                         <span class="terminal-info">Connected to: ${terminal.username}@${terminal.host}:${terminal.port}</span>
+                        <button class="terminal-clear-btn" onclick="connectionManager.clearTerminal('${instanceName}')">Clear</button>
                     </div>
-                    <div class="terminal-line">
-                        <span class="terminal-info">Instance: ${instanceName}</span>
-                    </div>
-                    <div class="terminal-line">
+                    <div class="terminal-output" id="terminal-output-${instanceName}"></div>
+                    <div class="terminal-input-line">
                         <span class="terminal-prompt">${terminal.username}@${instanceName}:~$ </span>
-                        <span class="terminal-cursor">█</span>
-                    </div>
-                    <div class="terminal-placeholder">
-                        <p>🖥️ SSH Terminal Interface</p>
-                        <p>In a full implementation, this would be an interactive terminal using xterm.js or similar.</p>
-                        <div class="terminal-features">
-                            <div class="feature-item">⌨️ Full keyboard support</div>
-                            <div class="feature-item">📋 Clipboard integration</div>
-                            <div class="feature-item">🎨 Customizable themes</div>
-                            <div class="feature-item">📁 File transfer support</div>
-                        </div>
+                        <input type="text"
+                               class="terminal-input"
+                               id="terminal-input-${instanceName}"
+                               placeholder="Type command and press Enter..."
+                               autocomplete="off"
+                               spellcheck="false">
                     </div>
                 </div>
             `;
+
+            // Set up keyboard input handling
+            const input = document.getElementById(`terminal-input-${instanceName}`);
+            if (input) {
+                input.focus();
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const command = input.value;
+                        if (command) {
+                            // Send command to terminal
+                            terminal.write(command + '\n');
+
+                            // Echo command in output
+                            this.appendTerminalOutput(instanceName,
+                                `<span class="terminal-prompt">${terminal.username}@${instanceName}:~$ </span>${command}`
+                            );
+
+                            // Clear input
+                            input.value = '';
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        // Command history (future enhancement)
+                        e.preventDefault();
+                    }
+                });
+
+                // Handle Ctrl+C
+                input.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'c') {
+                        e.preventDefault();
+                        terminal.write('\x03'); // Send Ctrl+C signal
+                    }
+                });
+            }
         }
+    }
+
+    /**
+     * Update terminal output with new data
+     * @param {string} instanceName - Instance name
+     * @param {string} data - Output data
+     */
+    updateTerminalOutput(instanceName, data) {
+        this.appendTerminalOutput(instanceName, data);
+    }
+
+    /**
+     * Append text to terminal output
+     * @param {string} instanceName - Instance name
+     * @param {string} text - Text to append
+     */
+    appendTerminalOutput(instanceName, text) {
+        const outputDiv = document.getElementById(`terminal-output-${instanceName}`);
+        if (outputDiv) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = this.escapeTerminalOutput(text);
+            outputDiv.appendChild(line);
+
+            // Auto-scroll to bottom
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+    }
+
+    /**
+     * Clear terminal output
+     * @param {string} instanceName - Instance name
+     */
+    clearTerminal(instanceName) {
+        const outputDiv = document.getElementById(`terminal-output-${instanceName}`);
+        if (outputDiv) {
+            outputDiv.innerHTML = '';
+        }
+    }
+
+    /**
+     * Escape terminal output for HTML display
+     * @param {string} text - Raw text
+     * @returns {string} - HTML-safe text
+     */
+    escapeTerminalOutput(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/\n/g, '<br>')
+            .replace(/ {2}/g, '&nbsp;&nbsp;')
+            .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
     }
 
     /**
@@ -2489,8 +2707,57 @@ class CloudWorkstationConnectionManager {
      */
     showConnectionError(instanceName, errorMessage) {
         console.error(`Connection error for ${instanceName}: ${errorMessage}`);
-        // In a real implementation, show user-friendly error dialog
-        alert(`Failed to connect to ${instanceName}:\n\n${errorMessage}`);
+
+        // Show user-friendly error dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'error-dialog-overlay';
+        dialog.innerHTML = `
+            <div class="error-dialog">
+                <div class="error-dialog-header">
+                    <span class="error-icon">⚠️</span>
+                    <h3>Connection Failed</h3>
+                </div>
+                <div class="error-dialog-body">
+                    <p><strong>Instance:</strong> ${instanceName}</p>
+                    <p><strong>Error:</strong> ${errorMessage}</p>
+                    <div class="error-suggestions">
+                        <p><strong>Suggestions:</strong></p>
+                        <ul>
+                            <li>Verify the instance is running</li>
+                            <li>Check network connectivity</li>
+                            <li>Ensure security groups allow access</li>
+                            <li>Try reconnecting in a few moments</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="error-dialog-footer">
+                    <button class="btn-secondary" onclick="this.closest('.error-dialog-overlay').remove()">Close</button>
+                    <button class="btn-primary" onclick="connectionManager.retryConnection('${instanceName}'); this.closest('.error-dialog-overlay').remove();">Retry</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(dialog);
+
+        // Also show toast notification
+        this.showNotification(`Failed to connect to ${instanceName}`, 'error');
+    }
+
+    /**
+     * Retry connection to an instance
+     * @param {string} instanceName - Instance to reconnect
+     */
+    async retryConnection(instanceName) {
+        console.log(`Retrying connection to ${instanceName}`);
+        this.showNotification(`Retrying connection to ${instanceName}...`, 'info');
+
+        // Get instance info and attempt to connect
+        const instances = await window.wails.CloudWorkstationService.GetInstances();
+        const instance = instances.find(i => i.Name === instanceName);
+
+        if (instance) {
+            await this.connectToInstance(instance);
+        }
     }
 
     /**

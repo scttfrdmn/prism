@@ -5,6 +5,7 @@ import (
 	"context"
 
 	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api/client"
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -149,25 +150,35 @@ func (c *TUIClient) GetStatus(ctx context.Context) (*SystemStatusResponse, error
 
 // ListIdlePolicies returns all idle detection policies
 func (c *TUIClient) ListIdlePolicies(ctx context.Context) (*ListIdlePoliciesResponse, error) {
-	// For now, return hardcoded policies
+	// Get real policy templates from the idle policy manager
+	policyManager := idle.NewPolicyManager()
+	templates := policyManager.ListTemplates()
+
+	// Convert policy templates to TUI response format
+	policies := make(map[string]IdlePolicyResponse)
+	for _, template := range templates {
+		// Extract idle threshold and action from the first schedule
+		idleMinutes := 30 // Default threshold
+		action := "stop"  // Default action
+		if len(template.Schedules) > 0 {
+			schedule := template.Schedules[0]
+			if schedule.IdleMinutes > 0 {
+				idleMinutes = schedule.IdleMinutes
+			}
+			if schedule.HibernateAction != "" {
+				action = schedule.HibernateAction
+			}
+		}
+
+		policies[template.ID] = IdlePolicyResponse{
+			Name:      template.Name,
+			Threshold: idleMinutes,
+			Action:    action,
+		}
+	}
+
 	return &ListIdlePoliciesResponse{
-		Policies: map[string]IdlePolicyResponse{
-			"default": {
-				Name:      "default",
-				Threshold: 30, // 30 minutes
-				Action:    "stop",
-			},
-			"aggressive": {
-				Name:      "aggressive",
-				Threshold: 15, // 15 minutes
-				Action:    "stop",
-			},
-			"conservative": {
-				Name:      "conservative",
-				Threshold: 60, // 60 minutes
-				Action:    "stop",
-			},
-		},
+		Policies: policies,
 	}, nil
 }
 

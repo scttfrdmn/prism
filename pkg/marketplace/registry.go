@@ -24,23 +24,23 @@ type Registry struct {
 	lastSync      time.Time
 
 	// DynamoDB table names
-	templatesTable  string
-	reviewsTable    string
-	analyticsTable  string
+	templatesTable string
+	reviewsTable   string
+	analyticsTable string
 }
 
 // NewRegistry creates a new marketplace registry with DynamoDB backend
 func NewRegistry(config *MarketplaceConfig) *Registry {
 	return &Registry{
-		config:          config,
-		dynamoClient:    nil, // Set via SetDynamoClient
-		templateCache:   make(map[string]*CommunityTemplate),
-		categories:      DefaultCategories(),
-		featured:        make([]*CommunityTemplate, 0),
-		lastSync:        time.Now(),
-		templatesTable:  "cloudworkstation-templates",
-		reviewsTable:    "cloudworkstation-reviews",
-		analyticsTable:  "cloudworkstation-analytics",
+		config:         config,
+		dynamoClient:   nil, // Set via SetDynamoClient
+		templateCache:  make(map[string]*CommunityTemplate),
+		categories:     DefaultCategories(),
+		featured:       make([]*CommunityTemplate, 0),
+		lastSync:       time.Now(),
+		templatesTable: "cloudworkstation-templates",
+		reviewsTable:   "cloudworkstation-reviews",
+		analyticsTable: "cloudworkstation-analytics",
 	}
 }
 

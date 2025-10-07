@@ -473,8 +473,10 @@ func (s *Server) handleAddReview(w http.ResponseWriter, r *http.Request, templat
 
 	// Set template ID and reviewer info
 	review.TemplateID = templateID
-	userID, _ := getCurrentSystemUser(); review.Reviewer = userID     // In production, get from authentication
-	_, userName := getCurrentSystemUser(); review.ReviewerName = userName // In production, get from user profile
+	userID, _ := getCurrentSystemUser()
+	review.Reviewer = userID // In production, get from authentication
+	_, userName := getCurrentSystemUser()
+	review.ReviewerName = userName // In production, get from user profile
 
 	// Add review using marketplace registry
 	if err := s.marketplaceRegistry.AddReview(templateID, &review); err != nil {

@@ -1,10 +1,24 @@
+// Package cli - Storage Cobra Command Layer
+//
+// ARCHITECTURE NOTE: This file defines the user-facing CLI interface for storage commands.
+// The actual business logic is in storage_impl.go (StorageCommands).
+//
+// This separation follows the Facade/Adapter pattern:
+//   - storage_cobra.go: CLI interface (THIS FILE - Cobra commands, flag parsing, help text)
+//   - storage_impl.go: Business logic (API calls, formatting, error handling)
+//
+// This Cobra layer is responsible for:
+//   - Defining command structure and subcommands
+//   - Parsing and validating flags
+//   - Providing help text and examples
+//   - Delegating to StorageCommands for execution
 package cli
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// StorageCobraCommands handles storage/volume commands
+// StorageCobraCommands handles storage/volume commands (Cobra layer)
 type StorageCobraCommands struct {
 	app *App
 }

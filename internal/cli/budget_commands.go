@@ -25,6 +25,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -1468,15 +1469,12 @@ func (bc *BudgetCommands) breakdownBudget(cmd *cobra.Command, args []string) err
 
 // Helper methods for budget command implementation
 
-// getCostTrends retrieves cost trends for a project
+// getCostTrends retrieves cost trends for a project using the API client
 func (bc *BudgetCommands) getCostTrends(budgetID, period string) (map[string]interface{}, error) {
-	// This would use the budget tracker API to get cost trends
-	// For now, return a placeholder structure
-	trends := map[string]interface{}{
-		"project_id": budgetID,
-		"period":     period,
-		"trends":     []map[string]interface{}{},
-		"count":      0,
+	ctx := context.Background()
+	trends, err := bc.app.apiClient.GetCostTrends(ctx, budgetID, period)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cost trends: %w", err)
 	}
 	return trends, nil
 }
@@ -1545,10 +1543,57 @@ func (bc *BudgetCommands) outputCSV(data interface{}) error {
 	return nil
 }
 
-// outputHistoryTable outputs spending history in table format
+// outputHistoryTable outputs spending history in table format with ASCII visualization
 func (bc *BudgetCommands) outputHistoryTable(trends map[string]interface{}) error {
-	fmt.Printf("📊 Spending History:\n")
-	fmt.Printf("(Historical trend visualization would be implemented here)\n")
+	fmt.Printf("📊 Spending History:\n\n")
+
+	// Extract trend data
+	trendsList, ok := trends["trends"].([]interface{})
+	if !ok || len(trendsList) == 0 {
+		fmt.Printf("No historical data available.\n")
+		return nil
+	}
+
+	// Create table writer
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintf(w, "DATE\tSPENT\tBUDGET\tUSAGE\tVISUAL\n")
+
+	// Find max value for scaling
+	maxValue := 0.0
+	for _, item := range trendsList {
+		if trend, ok := item.(map[string]interface{}); ok {
+			if spent, ok := trend["spent"].(float64); ok && spent > maxValue {
+				maxValue = spent
+			}
+		}
+	}
+
+	// Display each trend with ASCII bar chart
+	for _, item := range trendsList {
+		if trend, ok := item.(map[string]interface{}); ok {
+			date := trend["date"].(string)
+			spent := trend["spent"].(float64)
+			budget := trend["budget"].(float64)
+			usage := (spent / budget) * 100
+
+			// Create ASCII bar (max 40 chars)
+			barLength := int((spent / maxValue) * 40)
+			bar := strings.Repeat("█", barLength)
+
+			// Color code based on usage
+			symbol := "🟢"
+			if usage >= 80 {
+				symbol = "🔴"
+			} else if usage >= 60 {
+				symbol = "🟡"
+			}
+
+			fmt.Fprintf(w, "%s\t$%.2f\t$%.2f\t%.1f%%\t%s %s\n",
+				date, spent, budget, usage, symbol, bar)
+		}
+	}
+
+	w.Flush()
 	return nil
 }
 
@@ -1711,8 +1756,41 @@ func (bc *BudgetCommands) testAlert(cmd *cobra.Command, budgetID string) error {
 
 	fmt.Printf("🧪 Testing alert delivery for '%s'\n", budgetID)
 	fmt.Printf("   Test Threshold: %.1f%%\n", threshold)
-	fmt.Printf("   This would trigger a test alert to configured recipients\n")
-	fmt.Printf("   (Alert delivery testing would be implemented here)\n")
+
+	// Get project info to find configured alerts
+	project, err := bc.app.apiClient.GetProject(bc.app.ctx, budgetID)
+	if err != nil {
+		return fmt.Errorf("failed to get project: %w", err)
+	}
+
+	if project.Budget == nil || len(project.Budget.AlertThresholds) == 0 {
+		fmt.Printf("   ⚠️  No alerts configured. Configure alerts first:\n")
+		fmt.Printf("      cws budget alerts %s --action add --threshold 80 --type email\n", budgetID)
+		return nil
+	}
+
+	// Find matching alert
+	var testAlert *types.BudgetAlert
+	for i := range project.Budget.AlertThresholds {
+		if project.Budget.AlertThresholds[i].Threshold == threshold/100.0 {
+			testAlert = &project.Budget.AlertThresholds[i]
+			break
+		}
+	}
+
+	if testAlert == nil {
+		fmt.Printf("   ⚠️  No alert configured at %.1f%% threshold\n", threshold)
+		return nil
+	}
+
+	// Simulate test alert delivery
+	fmt.Printf("   📧 Simulating alert delivery...\n")
+	fmt.Printf("   Recipients: %v\n", testAlert.Recipients)
+	fmt.Printf("   Type: %s\n", testAlert.Type)
+	fmt.Printf("   Message: Budget threshold %.1f%% reached for project '%s'\n", threshold, budgetID)
+	fmt.Printf("\n")
+	fmt.Printf("   ✅ Test alert would be delivered to configured recipients\n")
+	fmt.Printf("   💡 Actual alerts are sent automatically when thresholds are reached\n")
 
 	return nil
 }

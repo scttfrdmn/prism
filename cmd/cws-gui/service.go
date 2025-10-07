@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -495,29 +496,48 @@ func (s *CloudWorkstationService) templateHasDisplay(template *Template) bool {
 	return false
 }
 
-func (s *CloudWorkstationService) getDefaultUsername(_ string) string {
-	// In a full implementation, this would be based on the template or AMI
-	// For now, return common defaults
-	return "ubuntu" // Most common default for AWS instances
+func (s *CloudWorkstationService) getDefaultUsername(templateName string) string {
+	// Query the daemon API for template information to get the correct default username
+	resp, err := s.client.Get(s.daemonURL + "/api/v1/templates/" + templateName)
+	if err == nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+
+		var template map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&template); err == nil {
+			// Extract default username from template users
+			if users, ok := template["users"].([]interface{}); ok && len(users) > 0 {
+				if firstUser, ok := users[0].(map[string]interface{}); ok {
+					if username, ok := firstUser["name"].(string); ok {
+						return username
+					}
+				}
+			}
+
+			// Check for AMI-based templates with ubuntu/ec2-user
+			if base, ok := template["base"].(string); ok {
+				if strings.Contains(strings.ToLower(base), "ubuntu") {
+					return "ubuntu"
+				}
+				if strings.Contains(strings.ToLower(base), "amazon") || strings.Contains(strings.ToLower(base), "al2") {
+					return "ec2-user"
+				}
+				if strings.Contains(strings.ToLower(base), "rocky") || strings.Contains(strings.ToLower(base), "rhel") {
+					return "rocky"
+				}
+			}
+		}
+	}
+
+	// Fallback to ubuntu (most common)
+	return "ubuntu"
 }
 
 // ConfigureAutoStart configures automatic startup for the GUI application
-func (s *CloudWorkstationService) ConfigureAutoStart(_ context.Context, enable bool) error { //nolint:unparam // Error return reserved for future validation
-	// This calls the same auto-start configuration that the CLI uses
-	// The actual implementation is handled by the autostart.go file
-
-	// For now, we'll simulate success and let the JavaScript handle the message
-	// In a full implementation, this would call the configureAutoStart function
-	// from autostart.go or execute the cws-gui binary with the appropriate flags
-
-	// Both branches return nil as this is a placeholder implementation
-	// that would execute different commands in a complete version
-	if enable {
-		// Would execute: cws-gui -autostart
-		return nil
-	}
-	// Would execute: cws-gui -remove-autostart
-	return nil
+// Uses the platform-specific autostart configuration from autostart.go
+func (s *CloudWorkstationService) ConfigureAutoStart(_ context.Context, enable bool) error {
+	// Call the platform-specific autostart configuration function
+	// This handles macOS Login Items, Linux systemd/autostart, and Windows Registry
+	return configureAutoStart(enable)
 }
 
 // RestartDaemon restarts the CloudWorkstation daemon

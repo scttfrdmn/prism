@@ -4,6 +4,7 @@ package api
 import (
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -164,15 +165,14 @@ type ListStorageResponse struct {
 func ToInstanceResponse(instance types.Instance) InstanceResponse {
 	// Look up template info to get ports
 	ports := []int{}
-	// In a real implementation, we would look up the template
-	// and get the ports from it. For now, we'll use some defaults
-	// based on the template name.
-	if instance.Template == "r-research" {
-		ports = []int{8787}
-	} else if instance.Template == "python-research" {
-		ports = []int{8888}
-	} else if instance.Template == "desktop-research" {
-		ports = []int{8443}
+
+	// Real template lookup to get actual port configuration
+	template, err := templates.GetTemplateInfo(instance.Template)
+	if err == nil && template != nil && template.InstanceDefaults.Ports != nil {
+		ports = template.InstanceDefaults.Ports
+	} else {
+		// Fallback: SSH port is always available
+		ports = []int{22}
 	}
 
 	return InstanceResponse{

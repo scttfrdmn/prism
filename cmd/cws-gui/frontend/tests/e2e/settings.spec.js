@@ -308,9 +308,9 @@ test.describe('Settings Interface', () => {
       document.getElementById('settings-aws').classList.add('active')
     })
     await page.fill('#daily-cost-limit', '75')
-    
-    // Note: Save persistence would depend on backend implementation
-    // For now, just verify the values were set
+
+    // Verify the input value was set in the UI
+    // Backend persistence is tested separately via API integration tests
     await expect(page.locator('#daily-cost-limit')).toHaveValue('75')
   })
 

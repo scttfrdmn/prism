@@ -1206,14 +1206,35 @@ export default function CloudWorkstationApp() {
       });
 
       try {
-        // TODO: Call actual API when available for other actions
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+        // Call actual CloudWorkstation API for instance actions
+        switch (action.toLowerCase()) {
+          case 'stop':
+            await (window as any).wails.CloudWorkstationService.StopInstance(instance.name);
+            break;
+          case 'start':
+            await (window as any).wails.CloudWorkstationService.StartInstance(instance.name);
+            break;
+          case 'hibernate':
+            await (window as any).wails.CloudWorkstationService.HibernateInstance(instance.name);
+            break;
+          case 'resume':
+            await (window as any).wails.CloudWorkstationService.ResumeInstance(instance.name);
+            break;
+          case 'terminate':
+            await (window as any).wails.CloudWorkstationService.TerminateInstance(instance.name);
+            break;
+          default:
+            throw new Error(`Unknown action: ${action}`);
+        }
 
         // Clear loading notifications
         setState(prev => ({
           ...prev,
           notifications: prev.notifications.filter(n => !n.loading)
         }));
+
+        // Reload instances to reflect changes
+        await loadApplicationData();
 
         // Show success notification
         addNotification({
@@ -1246,19 +1267,24 @@ export default function CloudWorkstationApp() {
 
   // Connection management functions
   const determineConnectionType = (instance: Instance): 'ssh' | 'desktop' | 'web' => {
-    // Logic to determine the best connection type based on instance template and capabilities
-    // For now, default to SSH - this will be enhanced based on template metadata
+    // Determine best connection type based on template category and name
+    // Priority: web interfaces (Jupyter/RStudio) > desktop GUI > SSH terminal
     const template = state.templates.find(t => t.Name === instance.template);
 
-    if (template?.Category === 'Machine Learning' || template?.Name.includes('Jupyter')) {
-      return 'web'; // ML templates likely have Jupyter
+    // Web interface preferred for data science/ML templates with Jupyter/RStudio
+    if (template?.Category === 'Machine Learning' || template?.Name.includes('Jupyter') ||
+        template?.Category === 'Data Science' || template?.Name.includes('RStudio')) {
+      return 'web';
     }
 
-    if (template?.Category === 'Desktop' || template?.Name.includes('Desktop')) {
-      return 'desktop'; // Desktop templates have GUI
+    // Desktop connection for templates with GUI
+    if (template?.Category === 'Desktop' || template?.Name.includes('Desktop') ||
+        template?.ConnectionType === 'dcv') {
+      return 'desktop';
     }
 
-    return 'ssh'; // Default to SSH terminal
+    // SSH terminal for all other cases (CLI, general purpose, etc.)
+    return 'ssh';
   };
 
   const createConnectionTab = (config: ConnectionConfig) => {
