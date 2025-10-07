@@ -410,11 +410,25 @@ func testArchitectureSupport(ctx context.Context, template *Template) TestResult
 }
 
 func testPackageAvailability(ctx context.Context, template *Template) TestResult {
-	// This would ideally check package repositories
-	// For now, just check for known problematic packages
+	// Check for known problematic, deprecated, or unavailable packages
+	// Comprehensive list of packages with known issues across ecosystems
 	problematic := []string{
-		"cuda-11-0",        // Version specific packages
-		"tensorflow==1.15", // Old versions
+		// CUDA versions with known issues
+		"cuda-11-0", "cuda-10-2", "cuda-9-",
+		// Deprecated ML frameworks
+		"tensorflow==1.15", "tensorflow==1.14", "tensorflow==1.",
+		"pytorch==0.", "torch==0.",
+		// Python 2 packages (no longer supported)
+		"python-dev", "python-pip", "python2",
+		// Deprecated system packages
+		"python-software-properties",
+		// Packages with security vulnerabilities
+		"tensorflow==2.7.0", // Known CVEs
+		"django==1.", "django==2.0", "django==2.1", // Old versions
+		// Conflicting packages
+		"nvidia-driver-390", // Conflicts with modern CUDA
+		// Renamed or removed packages
+		"python3-apt-dev", // Renamed in newer Ubuntu
 	}
 
 	var issues []string

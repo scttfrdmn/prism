@@ -123,25 +123,32 @@ const dnfScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
 # CloudWorkstation Template: {{.Template.Name}}
-# Generated script using dnf package manager (APT-compatible mode)
+# Generated script using dnf package manager (RHEL/Rocky/Fedora)
 # Generated at: $(date)
 
 echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
-echo "Using package manager: {{.PackageManager}} (APT-compatible mode for Ubuntu)"
+echo "Using package manager: {{.PackageManager}} (DNF for RHEL-based systems)"
 
-# Note: In production, this would use actual DNF on RHEL/Rocky/Fedora
-echo "Setting up enterprise-style package management..."
-apt-get update -y
-apt-get upgrade -y
+# Update system using DNF
+echo "Updating system packages with DNF..."
+dnf check-update -y || true  # Non-zero exit if updates available
+dnf upgrade -y
 
-# Install base requirements
+# Enable EPEL repository for additional packages (RHEL/Rocky)
+echo "Enabling EPEL repository..."
+dnf install -y epel-release || true
+
+# Install base requirements for RHEL-based systems
 echo "Installing base requirements..."
-apt-get install -y curl wget software-properties-common build-essential
+dnf install -y curl wget ca-certificates gcc gcc-c++ make git
+
+# Install development tools group
+dnf groupinstall -y "Development Tools" || true
 
 {{if .Packages}}
-# Install template packages (enterprise-focused)
-echo "Installing enterprise packages..."
-apt-get install -y{{range .Packages}} {{.}}{{end}}
+# Install template packages
+echo "Installing template packages with DNF..."
+dnf install -y{{range .Packages}} {{.}}{{end}}
 {{end}}
 
 {{range .Users}}

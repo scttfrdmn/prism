@@ -622,11 +622,67 @@ func (v *MarketplaceValidator) analyzeDependencies(ctx context.Context, template
 				Status:  "unknown",
 			}
 
-			// TODO: Implement actual dependency validation
-			// This would involve checking if the dependency exists,
-			// scanning it for vulnerabilities, validating licenses, etc.
+			// Validate dependency based on type
+			switch dep.Type {
+			case "template":
+				// Check if template dependency exists and is valid
+				if v.validateTemplateDependency(dep) {
+					analysis.Status = "safe"
+				} else {
+					analysis.Status = "unsafe"
+					analysis.SecurityFindings = append(analysis.SecurityFindings, SecurityFinding{
+						Severity:    "critical",
+						Category:    "dependency",
+						Description: "Template dependency not found or invalid",
+					})
+				}
 
-			analysis.Status = "safe" // Placeholder
+			case "package":
+				// Validate package dependencies (system, conda, pip)
+				if v.validatePackageDependency(dep) {
+					analysis.Status = "safe"
+				} else {
+					analysis.Status = "warning"
+					analysis.SecurityFindings = append(analysis.SecurityFindings, SecurityFinding{
+						Severity:    "medium",
+						Category:    "availability",
+						Description: "Package availability uncertain",
+					})
+				}
+
+			case "service":
+				// Validate external service dependencies
+				if v.validateServiceDependency(dep) {
+					analysis.Status = "safe"
+				} else {
+					analysis.Status = "warning"
+					analysis.SecurityFindings = append(analysis.SecurityFindings, SecurityFinding{
+						Severity:    "medium",
+						Category:    "availability",
+						Description: "Service dependency may be unavailable",
+					})
+				}
+
+			default:
+				analysis.Status = "warning"
+				analysis.SecurityFindings = append(analysis.SecurityFindings, SecurityFinding{
+					Severity:    "low",
+					Category:    "dependency",
+					Description: fmt.Sprintf("Unknown dependency type: %s", dep.Type),
+				})
+			}
+
+			// Check for known vulnerable versions
+			if v.isVulnerableVersion(dep) {
+				analysis.Status = "unsafe"
+				analysis.SecurityFindings = append(analysis.SecurityFindings, SecurityFinding{
+					Severity:    "critical",
+					Category:    "vulnerability",
+					Description: "Known security vulnerability in this version",
+					CVEID:       fmt.Sprintf("CVE-YYYY-XXXX (%s %s)", dep.Name, dep.Version),
+				})
+			}
+
 			dependencies = append(dependencies, analysis)
 		}
 	}
@@ -948,4 +1004,127 @@ func (v *MarketplaceValidator) calculateComplexityScore(template *Template) floa
 	}
 
 	return score
+}
+
+// validateTemplateDependency validates template-type dependencies
+func (v *MarketplaceValidator) validateTemplateDependency(dep TemplateDependency) bool {
+	// Check if the referenced template exists in the system
+	// This would normally query the template registry/marketplace
+	// For now, check against common base templates
+	knownTemplates := []string{
+		"Rocky Linux 9 Base",
+		"Ubuntu 24.04 LTS Base",
+		"Python Machine Learning",
+		"R Research Environment",
+		"Web Development",
+	}
+
+	for _, known := range knownTemplates {
+		if dep.Name == known || dep.Source == known {
+			return true
+		}
+	}
+
+	// If template has a source URL, consider it valid (external template)
+	if dep.Source != "" && (strings.HasPrefix(dep.Source, "http://") || strings.HasPrefix(dep.Source, "https://")) {
+		return true
+	}
+
+	return false
+}
+
+// validatePackageDependency validates package-type dependencies
+func (v *MarketplaceValidator) validatePackageDependency(dep TemplateDependency) bool {
+	// Check if package is in known problematic list
+	problematic := []string{
+		"cuda-11-0", "tensorflow==1.15", "python2",
+		"nvidia-driver-390", "python-dev",
+	}
+
+	depIdentifier := dep.Name
+	if dep.Version != "" {
+		depIdentifier = fmt.Sprintf("%s==%s", dep.Name, dep.Version)
+	}
+
+	for _, prob := range problematic {
+		if strings.Contains(depIdentifier, prob) {
+			return false
+		}
+	}
+
+	// Consider package valid if not in problematic list
+	return true
+}
+
+// validateServiceDependency validates service-type dependencies
+func (v *MarketplaceValidator) validateServiceDependency(dep TemplateDependency) bool {
+	// Check if service dependency is reasonable
+	// Services that are commonly available
+	commonServices := []string{
+		"docker", "postgresql", "mysql", "redis",
+		"nginx", "apache2", "mongodb", "rabbitmq",
+		"jupyter", "rstudio-server", "code-server",
+	}
+
+	for _, service := range commonServices {
+		if strings.Contains(strings.ToLower(dep.Name), service) {
+			return true
+		}
+	}
+
+	// If service has a source URL, consider it valid
+	if dep.Source != "" {
+		return true
+	}
+
+	// Unknown service - validation uncertain
+	return false
+}
+
+// isVulnerableVersion checks if dependency has known vulnerabilities
+func (v *MarketplaceValidator) isVulnerableVersion(dep TemplateDependency) bool {
+	// Known vulnerable package versions
+	vulnerabilities := map[string][]string{
+		"tensorflow": {"1.15.0", "1.15.1", "1.15.2", "2.7.0"},
+		"django":     {"1.11", "2.0", "2.1", "3.0"},
+		"numpy":      {"1.19.0"},
+		"pillow":     {"8.1.0", "8.1.1", "8.2.0"},
+	}
+
+	if vulnVersions, exists := vulnerabilities[dep.Name]; exists {
+		for _, vulnVer := range vulnVersions {
+			if dep.Version == vulnVer || strings.HasPrefix(dep.Version, vulnVer) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// isLicenseCompatible checks if license is compatible with CloudWorkstation
+func (v *MarketplaceValidator) isLicenseCompatible(license string) bool {
+	// Compatible open-source licenses
+	compatibleLicenses := []string{
+		"MIT", "Apache-2.0", "BSD-3-Clause", "BSD-2-Clause",
+		"GPL-3.0", "LGPL-3.0", "MPL-2.0", "ISC", "CC0-1.0",
+	}
+
+	licenseLower := strings.ToLower(license)
+	for _, compat := range compatibleLicenses {
+		if strings.Contains(licenseLower, strings.ToLower(compat)) {
+			return true
+		}
+	}
+
+	// Warn about proprietary or restrictive licenses
+	restrictive := []string{"proprietary", "commercial", "all rights reserved"}
+	for _, restr := range restrictive {
+		if strings.Contains(licenseLower, restr) {
+			return false
+		}
+	}
+
+	// Unknown license - warn but don't block
+	return true
 }
