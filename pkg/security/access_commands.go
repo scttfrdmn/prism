@@ -3,7 +3,10 @@ package security
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"net"
+	"strings"
 	"time"
 )
 
@@ -139,19 +142,57 @@ func ValidateWebAccess(instanceIP string, ports []int) *ValidationResult {
 		Timestamp:     time.Now(),
 	}
 
-	// For now, we'll assume access is available based on strategy
-	// In a full implementation, we'd actually test HTTP connections
+	// Test actual HTTP connections to verify access
+	accessible := false
+	for _, port := range ports {
+		if testHTTPConnection(instanceIP, port, 5*time.Second) {
+			accessible = true
+			result.AccessibleIPs[fmt.Sprintf("%s:%d", instanceIP, port)] = true
+		}
+	}
+
+	result.DirectAccessAvailable = accessible
+
 	switch config.Strategy {
 	case AccessDirect, AccessSubnet:
-		result.DirectAccessAvailable = true
-		result.AccessibleIPs[instanceIP] = true
-		result.Message = "Direct web access should be available"
+		if accessible {
+			result.Message = "Direct web access verified"
+		} else {
+			result.Message = "Direct access expected but connection failed - check security groups"
+		}
 	case AccessTunneled:
-		result.DirectAccessAvailable = false
-		result.Message = "SSH tunneling required for web access"
+		if accessible {
+			result.Message = "Warning: Direct access available despite tunneled strategy"
+		} else {
+			result.Message = "SSH tunneling required for web access (as expected)"
+		}
 	}
 
 	return result
+}
+
+// testHTTPConnection tests HTTP connectivity to a host:port
+func testHTTPConnection(host string, port int, timeout time.Duration) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), timeout)
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+
+	// Try HTTP GET request
+	conn.SetDeadline(time.Now().Add(timeout))
+	fmt.Fprintf(conn, "GET / HTTP/1.0\r\nHost: %s\r\n\r\n", host)
+
+	// Read response (just check if we get something back)
+	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer)
+	if err != nil && err != io.EOF {
+		return false
+	}
+
+	// Check for HTTP response
+	response := string(buffer[:n])
+	return strings.HasPrefix(response, "HTTP/")
 }
 
 // ValidationResult contains results of web access validation

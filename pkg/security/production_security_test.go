@@ -31,7 +31,8 @@ func TestSecurityValidationWorkflows(t *testing.T) {
 		}
 
 		// Run comprehensive security validation
-		result, err := validator.ValidateConfiguration(context.TODO(), config)
+		ctx := context.Background()
+		result, err := validator.ValidateConfiguration(ctx, config)
 		require.NoError(t, err, "Security validation should complete")
 		require.NotNil(t, result, "Should return validation result")
 
@@ -69,7 +70,8 @@ func TestSecurityValidationWorkflows(t *testing.T) {
 			RequireVPN:          false,
 		}
 
-		result, err := validator.ValidateConfiguration(context.TODO(), config)
+		ctx := context.Background()
+		result, err := validator.ValidateConfiguration(ctx, config)
 		require.NoError(t, err)
 
 		// Startup config may still be valid (no critical issues) but with low score
@@ -112,7 +114,8 @@ func TestSecurityValidationWorkflows(t *testing.T) {
 			RequireDigitalSignature: true,
 		}
 
-		result, err := validator.ValidateConfiguration(context.TODO(), config)
+		ctx := context.Background()
+		result, err := validator.ValidateConfiguration(ctx, config)
 		require.NoError(t, err)
 
 		// Government config should meet highest standards
@@ -149,7 +152,8 @@ func TestSecurityValidationWorkflows(t *testing.T) {
 			SessionTimeout:     240, // 4 hours for research work
 		}
 
-		result, err := validator.ValidateConfiguration(context.TODO(), config)
+		ctx := context.Background()
+		result, err := validator.ValidateConfiguration(ctx, config)
 		require.NoError(t, err)
 
 		// Multi-tenant should have specific security considerations
@@ -189,7 +193,8 @@ func TestAccessControlWorkflows(t *testing.T) {
 			ProjectID:     "cs7641-ml-project",
 		}
 
-		grant, err := accessManager.GrantTemporaryAccess(context.TODO(), accessRequest)
+		ctx := context.Background()
+		grant, err := accessManager.GrantTemporaryAccess(ctx, accessRequest)
 		require.NoError(t, err, "Professor should be able to grant access")
 		require.NotNil(t, grant, "Should create access grant")
 
@@ -227,7 +232,8 @@ func TestAccessControlWorkflows(t *testing.T) {
 
 		// Check access status after project end
 		for _, studentID := range project.Participants {
-			hasAccess, err := accessManager.CheckAccess(context.TODO(), studentID, project.Resources[0])
+			ctx := context.Background()
+			hasAccess, err := accessManager.CheckAccess(ctx, studentID, project.Resources[0])
 
 			// Access should be automatically revoked
 			assert.NoError(t, err, "Access check should not error")
@@ -257,7 +263,8 @@ func TestAccessControlWorkflows(t *testing.T) {
 			ApprovalBypass:   true,   // PI can bypass normal approval
 		}
 
-		access, err := accessManager.GrantEmergencyAccess(context.TODO(), emergencyRequest)
+		ctx := context.Background()
+		access, err := accessManager.GrantEmergencyAccess(ctx, emergencyRequest)
 		require.NoError(t, err, "Emergency access should be granted")
 		require.NotNil(t, access, "Should create emergency access")
 
@@ -309,7 +316,8 @@ func TestSecurityIncidentResponse(t *testing.T) {
 
 		// Analyze for suspicious patterns
 		for _, activity := range activities {
-			incident, err := incidentDetector.AnalyzeEvent(context.TODO(), &activity)
+			ctx := context.Background()
+			incident, err := incidentDetector.AnalyzeEvent(ctx, &activity)
 			require.NoError(t, err, "Should analyze security event")
 
 			if incident != nil {
@@ -342,7 +350,8 @@ func TestSecurityIncidentResponse(t *testing.T) {
 		}
 
 		// Execute automated response
-		response, err := responseSystem.ExecuteResponse(context.TODO(), incident)
+		ctx := context.Background()
+		response, err := responseSystem.ExecuteResponse(ctx, incident)
 		require.NoError(t, err, "Should execute incident response")
 		require.NotNil(t, response, "Should create response record")
 
@@ -375,7 +384,8 @@ func TestSecurityIncidentResponse(t *testing.T) {
 			DetailLevel:    "comprehensive",
 		}
 
-		report, err := auditManager.GenerateComplianceReport(context.TODO(), auditRequest)
+		ctx := context.Background()
+		report, err := auditManager.GenerateComplianceReport(ctx, auditRequest)
 		require.NoError(t, err, "Should generate audit report")
 		require.NotNil(t, report, "Should create audit report")
 

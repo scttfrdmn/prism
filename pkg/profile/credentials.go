@@ -3,6 +3,7 @@ package profile
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/nacl/secretbox"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 // Credentials holds AWS credentials data
@@ -296,10 +298,14 @@ func (p *SecureCredentialProvider) getEncryptionKey() ([keySize]byte, error) {
 		return key, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Use a combination of home directory and service name for key derivation
-	// In production, this should use a more sophisticated key derivation function
-	keyMaterial := []byte(homeDir + p.service)
-	copy(key[:], keyMaterial)
+	// Use PBKDF2 key derivation function with home directory and service name
+	// This provides cryptographically secure key derivation
+	password := []byte(homeDir + p.service)
+	salt := []byte("cloudworkstation-v1") // Static salt for deterministic keys
+
+	// Use PBKDF2 with SHA-256, 100000 iterations (OWASP recommendation)
+	derivedKey := pbkdf2.Key(password, salt, 100000, 32, sha256.New)
+	copy(key[:], derivedKey)
 
 	return key, nil
 }
