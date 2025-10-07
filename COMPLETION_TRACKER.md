@@ -327,6 +327,18 @@
 5. Write AWS integration tests for all implemented functionality
 
 ### 2025-10-06 - Session 8 (continued)
+- **Project-Instance Association**: Replaced TODO (project_handlers.go:174)
+  - **pkg/daemon/project_handlers.go**: Implemented project-instance filtering
+    - Modified calculateActiveInstances to accept projectID parameter
+    - Filters instances by ProjectID field (instance.ProjectID == projectID)
+    - Only counts running instances belonging to the specified project
+    - Project summaries now show accurate active instance counts
+  - **Functionality**: Project dashboard now shows correct per-project instance counts
+  - All builds passing (CLI, daemon)
+  - 25/169 total placeholders replaced (15% of placeholders complete)
+  - 12/34 TODOs remaining (22 TODOs complete - 65% done)
+
+### 2025-10-06 - Session 8 (continued)
 - **AMI Template Management**: Replaced 3 TODOs (parser_enhanced.go:80, dependency_resolver.go:550, template_sharing.go:290)
   - **pkg/ami/parser_enhanced.go**: Implemented ListTemplates method
     - Scans default template directories (dev, user, system)

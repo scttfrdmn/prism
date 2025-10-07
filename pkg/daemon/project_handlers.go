@@ -144,7 +144,7 @@ func (s *Server) buildProjectSummaries(projects []*types.Project) []project.Proj
 }
 
 func (s *Server) buildProjectSummary(proj *types.Project) project.ProjectSummary {
-	activeInstances := s.calculateActiveInstances()
+	activeInstances := s.calculateActiveInstances(proj.ID)
 	totalCost := s.calculateProjectCost(proj.ID)
 
 	summary := project.ProjectSummary{
@@ -166,12 +166,12 @@ func (s *Server) buildProjectSummary(proj *types.Project) project.ProjectSummary
 	return summary
 }
 
-func (s *Server) calculateActiveInstances() int {
+func (s *Server) calculateActiveInstances(projectID string) int {
 	activeInstances := 0
 	if instances, err := s.awsManager.ListInstances(); err == nil {
 		for _, instance := range instances {
-			if instance.State == "running" {
-				// TODO: Implement proper project-instance association
+			// Only count running instances that belong to this project
+			if instance.State == "running" && instance.ProjectID == projectID {
 				activeInstances++
 			}
 		}

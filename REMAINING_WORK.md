@@ -1,8 +1,8 @@
 # CloudWorkstation - Remaining Work Analysis
 
 **Date**: October 6, 2025
-**Current Status**: 31% Complete (25/169 placeholders replaced, 21/34 TODOs done)
-**Remaining**: 144 placeholders + 13 TODOs
+**Current Status**: 32% Complete (25/169 placeholders replaced, 22/34 TODOs done)
+**Remaining**: 144 placeholders + 12 TODOs
 
 ---
 
@@ -86,7 +86,7 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Comprehensive error handling
     - Status: COMPLETE
 
-### Medium Priority TODOs (10/13 complete - 77%)
+### Medium Priority TODOs (11/13 complete - 85%)
 
 #### Repository & Template Management (6/6 complete - 100% ✅)
 13. ✅ **pkg/ami/parser_enhanced.go:80** - Template listing logic (COMPLETE Session 8)
@@ -122,13 +122,17 @@ This document provides a comprehensive analysis of all remaining work to achieve
     - Documents AWS SDK requirement for production
     - Status: COMPLETE
 
-#### Daemon & Proxy (0/6)
+#### Daemon & Proxy (1/6 complete - 17%)
 19. **pkg/daemon/connection_proxy_handlers.go:58** - SSH connection multiplexing
 20. **pkg/daemon/connection_proxy_handlers.go:100** - DCV proxy logic
 21. **pkg/daemon/connection_proxy_handlers.go:141** - AWS federation token (placeholder)
 22. **pkg/daemon/connection_proxy_handlers.go:167** - AWS federation token injection
 23. **pkg/daemon/connection_proxy_handlers.go:203** - Enhanced CORS for embedding
-24. **pkg/daemon/project_handlers.go:174** - Project-instance association
+24. ✅ **pkg/daemon/project_handlers.go:174** - Project-instance association (COMPLETE Session 8)
+    - Modified calculateActiveInstances to accept projectID parameter
+    - Filters instances by instance.ProjectID == projectID
+    - Project summaries show accurate per-project instance counts
+    - Status: COMPLETE
 
 #### Idle Detection Integration (4/5 complete - 80%) ✅
 25. ✅ **pkg/daemon/idle_handlers.go:141** - Integrate with scheduler (COMPLETE Session 8)
