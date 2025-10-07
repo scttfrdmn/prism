@@ -521,10 +521,20 @@ func (s *CloudWorkstationService) ConfigureAutoStart(_ context.Context, enable b
 }
 
 // RestartDaemon restarts the CloudWorkstation daemon
-func (s *CloudWorkstationService) RestartDaemon(_ context.Context) error {
-	// This would restart the daemon service
-	// For now, return a not implemented error
-	return fmt.Errorf("daemon restart functionality not yet implemented in GUI service")
+func (s *CloudWorkstationService) RestartDaemon(ctx context.Context) error {
+	// Send restart request to daemon
+	resp, err := s.client.Post(s.daemonURL+"/api/v1/daemon/restart", "application/json", nil)
+	if err != nil {
+		return fmt.Errorf("failed to send restart request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("daemon restart failed: status %d, %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 // GetResearchUsers fetches all research users from daemon

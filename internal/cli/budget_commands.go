@@ -25,6 +25,7 @@
 package cli
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -1489,7 +1490,58 @@ func (bc *BudgetCommands) outputJSON(data interface{}) error {
 
 // outputCSV outputs data in CSV format
 func (bc *BudgetCommands) outputCSV(data interface{}) error {
-	fmt.Printf("CSV output not implemented yet\n")
+	writer := csv.NewWriter(os.Stdout)
+	defer writer.Flush()
+
+	// Handle different data types
+	switch v := data.(type) {
+	case map[string]interface{}:
+		// Write header
+		if err := writer.Write([]string{"Date", "Amount", "Type"}); err != nil {
+			return fmt.Errorf("failed to write CSV header: %w", err)
+		}
+
+		// Write data rows
+		for key, value := range v {
+			row := []string{key, fmt.Sprintf("%v", value), "spending"}
+			if err := writer.Write(row); err != nil {
+				return fmt.Errorf("failed to write CSV row: %w", err)
+			}
+		}
+
+	case []interface{}:
+		// Handle array data
+		if len(v) > 0 {
+			// Try to extract keys from first element
+			if firstRow, ok := v[0].(map[string]interface{}); ok {
+				// Write header from first row keys
+				var headers []string
+				for key := range firstRow {
+					headers = append(headers, key)
+				}
+				if err := writer.Write(headers); err != nil {
+					return fmt.Errorf("failed to write CSV header: %w", err)
+				}
+
+				// Write data rows
+				for _, item := range v {
+					if row, ok := item.(map[string]interface{}); ok {
+						var values []string
+						for _, key := range headers {
+							values = append(values, fmt.Sprintf("%v", row[key]))
+						}
+						if err := writer.Write(values); err != nil {
+							return fmt.Errorf("failed to write CSV row: %w", err)
+						}
+					}
+				}
+			}
+		}
+
+	default:
+		return fmt.Errorf("unsupported data type for CSV output: %T", data)
+	}
+
 	return nil
 }
 

@@ -203,9 +203,39 @@ func (s *SystemCommands) daemonStatus() error {
 }
 
 func (s *SystemCommands) daemonLogs() error {
-	// TODO: Implement log viewing
-	fmt.Println("📋 Daemon logs not implemented yet")
-	fmt.Println("Check system logs manually for now")
+	// Get logs summary from daemon
+	summary, err := s.app.apiClient.GetLogsSummary(s.app.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get logs summary: %w", err)
+	}
+
+	if len(summary.Instances) == 0 {
+		fmt.Println("📋 No instance logs available")
+		return nil
+	}
+
+	fmt.Println("📋 Instance Logs Summary:")
+	fmt.Println()
+
+	// Display logs for each instance
+	for _, inst := range summary.Instances {
+		fmt.Printf("Instance: %s\n", inst.Name)
+		fmt.Printf("  State: %s\n", inst.State)
+		fmt.Printf("  Logs Available: %v\n", inst.LogsAvailable)
+
+		if inst.LogsAvailable {
+			// Get available log types
+			logTypes, err := s.app.apiClient.GetInstanceLogTypes(s.app.ctx, inst.Name)
+			if err == nil && len(logTypes.AvailableLogTypes) > 0 {
+				fmt.Printf("  Log Types: %s\n", strings.Join(logTypes.AvailableLogTypes, ", "))
+			}
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("💡 To view specific instance logs:")
+	fmt.Println("   cws logs <instance-name>")
+
 	return nil
 }
 

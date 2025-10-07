@@ -309,9 +309,31 @@ func (d *DaemonProfileAdapter) GetCurrentProfile() (string, error) {
 }
 
 func (d *DaemonProfileAdapter) GetProfileConfig(profileID string) (interface{}, error) {
-	return nil, fmt.Errorf("not implemented in daemon adapter")
+	// Get profile using enhanced profile manager
+	profileManager, err := profile.NewManagerEnhanced()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create profile manager: %w", err)
+	}
+
+	profileConfig, err := profileManager.GetProfile(profileID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profile config: %w", err)
+	}
+
+	return profileConfig, nil
 }
 
 func (d *DaemonProfileAdapter) UpdateProfileConfig(profileID string, config interface{}) error {
-	return fmt.Errorf("not implemented in daemon adapter")
+	// Update profile using enhanced profile manager
+	profileManager, err := profile.NewManagerEnhanced()
+	if err != nil {
+		return fmt.Errorf("failed to create profile manager: %w", err)
+	}
+
+	// Convert config to profile.Profile if needed
+	if profileConfig, ok := config.(*profile.Profile); ok {
+		return profileManager.UpdateProfile(profileID, *profileConfig)
+	}
+
+	return fmt.Errorf("invalid profile config type")
 }
