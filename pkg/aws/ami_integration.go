@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -341,42 +344,57 @@ func (m *Manager) GetAMICreationStatus(creationID string) (*types.AMICreationRes
 
 // ListUserAMIs lists AMIs created by the user
 func (m *Manager) ListUserAMIs() ([]*types.AMIInfo, error) {
-	// In production, this would:
-	// 1. Use EC2 DescribeImages API with Owner=self filter
-	// 2. Filter for AMIs with CloudWorkstation tags
-	// 3. Return detailed AMI information
+	ctx := context.Background()
 
-	// Placeholder implementation
-	userAMIs := []*types.AMIInfo{
-		{
-			AMIID:        "ami-user123456789abcdef",
-			Name:         "my-custom-python-env",
-			Description:  "Custom Python ML environment with PyTorch",
-			Architecture: "x86_64",
-			Owner:        "123456789012", // User's AWS account ID
-			CreationDate: time.Now().Add(-2 * time.Hour),
-			Public:       false,
-			Tags: map[string]string{
-				"CloudWorkstation": "true",
-				"Template":         "python-ml",
-				"Creator":          "researcher",
+	// Use EC2 DescribeImages API with Owner=self filter and CloudWorkstation tags
+	input := &ec2.DescribeImagesInput{
+		Owners: []string{"self"},
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
 			},
 		},
-		{
-			AMIID:        "ami-user987654321fedcba",
-			Name:         "genomics-pipeline-v2",
-			Description:  "Optimized genomics analysis pipeline",
-			Architecture: "arm64",
-			Owner:        "123456789012",
-			CreationDate: time.Now().Add(-24 * time.Hour),
-			Public:       true,
-			Tags: map[string]string{
-				"CloudWorkstation": "true",
-				"Template":         "bioinformatics",
-				"Creator":          "researcher",
-				"Community":        "published",
-			},
-		},
+	}
+
+	result, err := m.ec2.DescribeImages(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe images: %w", err)
+	}
+
+	// Convert EC2 images to AMIInfo
+	userAMIs := make([]*types.AMIInfo, 0, len(result.Images))
+	for _, image := range result.Images {
+		if image.ImageId == nil {
+			continue
+		}
+
+		// Extract tags into map
+		tags := make(map[string]string)
+		for _, tag := range image.Tags {
+			if tag.Key != nil && tag.Value != nil {
+				tags[*tag.Key] = *tag.Value
+			}
+		}
+
+		// Parse creation date
+		var creationDate time.Time
+		if image.CreationDate != nil {
+			creationDate, _ = time.Parse(time.RFC3339, *image.CreationDate)
+		}
+
+		amiInfo := &types.AMIInfo{
+			AMIID:        *image.ImageId,
+			Name:         aws.ToString(image.Name),
+			Description:  aws.ToString(image.Description),
+			Architecture: string(image.Architecture),
+			Owner:        aws.ToString(image.OwnerId),
+			CreationDate: creationDate,
+			Public:       aws.ToBool(image.Public),
+			Tags:         tags,
+		}
+
+		userAMIs = append(userAMIs, amiInfo)
 	}
 
 	return userAMIs, nil
@@ -384,19 +402,59 @@ func (m *Manager) ListUserAMIs() ([]*types.AMIInfo, error) {
 
 // PublishAMIToCommunity makes an AMI available to the community
 func (m *Manager) PublishAMIToCommunity(amiID string, public bool, tags map[string]string) error {
-	// In production, this would:
-	// 1. Update AMI permissions to make it public if requested
-	// 2. Add community tags for discoverability
-	// 3. Submit to CloudWorkstation community registry
-	// 4. Add to template marketplace integration
+	ctx := context.Background()
 
 	// Validate AMI exists and is owned by user
 	if !strings.HasPrefix(amiID, "ami-") {
 		return fmt.Errorf("invalid AMI ID format: %s", amiID)
 	}
 
-	// Placeholder implementation
-	log.Printf("Publishing AMI %s to community (public: %v) with tags: %v", amiID, public, tags)
+	// 1. Update AMI permissions to make it public if requested
+	if public {
+		launchPermissionInput := &ec2.ModifyImageAttributeInput{
+			ImageId: aws.String(amiID),
+			LaunchPermission: &ec2types.LaunchPermissionModifications{
+				Add: []ec2types.LaunchPermission{
+					{
+						Group: ec2types.PermissionGroupAll,
+					},
+				},
+			},
+		}
+
+		_, err := m.ec2.ModifyImageAttribute(ctx, launchPermissionInput)
+		if err != nil {
+			return fmt.Errorf("failed to make AMI public: %w", err)
+		}
+	}
+
+	// 2. Add community tags for discoverability
+	if tags != nil && len(tags) > 0 {
+		// Add CloudWorkstation community tag
+		tags["CloudWorkstation-Community"] = "published"
+
+		// Convert tags to EC2 tag format
+		ec2Tags := make([]ec2types.Tag, 0, len(tags))
+		for key, value := range tags {
+			ec2Tags = append(ec2Tags, ec2types.Tag{
+				Key:   aws.String(key),
+				Value: aws.String(value),
+			})
+		}
+
+		createTagsInput := &ec2.CreateTagsInput{
+			Resources: []string{amiID},
+			Tags:      ec2Tags,
+		}
+
+		_, err := m.ec2.CreateTags(ctx, createTagsInput)
+		if err != nil {
+			return fmt.Errorf("failed to add community tags: %w", err)
+		}
+	}
+
+	// 3. Log publication (marketplace integration would happen here in full implementation)
+	log.Printf("Published AMI %s to community (public: %v) with %d tags", amiID, public, len(tags))
 
 	return nil
 }
@@ -405,62 +463,178 @@ func (m *Manager) PublishAMIToCommunity(amiID string, public bool, tags map[stri
 
 // CleanupOldAMIs removes old and unused AMIs
 func (m *Manager) CleanupOldAMIs(maxAge string, dryRun bool) (*types.AMICleanupResult, error) {
-	// In production, this would:
 	// 1. Parse maxAge duration (e.g., "30d", "7d", "1y")
-	// 2. Query EC2 for AMIs older than maxAge with CloudWorkstation tags
-	// 3. Check for any instances currently using these AMIs
-	// 4. Optionally delete AMIs and associated snapshots if not in use
-	// 5. Calculate storage cost savings
-
-	// Placeholder implementation
-	result := &types.AMICleanupResult{
-		TotalFound:            8,
-		TotalRemoved:          5,
-		StorageSavingsMonthly: 47.25, // $0.05 per GB-month * average 945 GB across 5 AMIs
-		CompletedAt:           time.Now(),
-		RemovedAMIs: []types.AMIInfo{
-			{
-				AMIID:        "ami-old123456789abcdef",
-				Name:         "obsolete-python-2.7-env",
-				CreationDate: time.Now().Add(-45 * 24 * time.Hour), // 45 days old
-			},
-			{
-				AMIID:        "ami-old987654321fedcba",
-				Name:         "deprecated-r-3.6-env",
-				CreationDate: time.Now().Add(-62 * 24 * time.Hour), // 62 days old
-			},
-		},
+	duration, err := parseDuration(maxAge)
+	if err != nil {
+		return nil, fmt.Errorf("invalid maxAge format: %w", err)
 	}
 
-	if dryRun {
-		result.TotalRemoved = 0
-		result.StorageSavingsMonthly = 0
+	cutoffTime := time.Now().Add(-duration)
+
+	// 2. Query EC2 for all user AMIs with CloudWorkstation tags
+	userAMIs, err := m.ListUserAMIs()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list user AMIs: %w", err)
+	}
+
+	// 3. Get all running instances to check which AMIs are in use
+	instances, err := m.ListInstances()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	// Build set of AMIs currently in use
+	amisInUse := make(map[string]bool)
+	for _, instance := range instances {
+		// Get AMI from instance (would need to query EC2 for actual AMI ID)
+		// For now, assume we can't delete if any instances exist
+		if instance.State == "running" || instance.State == "stopped" {
+			amisInUse[instance.ID] = true
+		}
+	}
+
+	// 4. Find old AMIs not in use
+	var oldAMIs []types.AMIInfo
+	var totalSavings float64
+
+	for _, ami := range userAMIs {
+		// Check if AMI is older than cutoff
+		if ami.CreationDate.Before(cutoffTime) {
+			// Check if not in use (conservative: skip if any instances exist)
+			if len(amisInUse) == 0 {
+				oldAMIs = append(oldAMIs, *ami)
+
+				// Calculate storage cost (estimate $0.05/GB-month, assume 50GB per AMI)
+				totalSavings += 2.50 // $0.05 * 50GB
+			}
+		}
+	}
+
+	result := &types.AMICleanupResult{
+		TotalFound:            len(oldAMIs),
+		TotalRemoved:          0,
+		StorageSavingsMonthly: 0,
+		CompletedAt:           time.Now(),
+		RemovedAMIs:           []types.AMIInfo{},
+	}
+
+	// 5. Delete AMIs if not dry run
+	if !dryRun && len(oldAMIs) > 0 {
+		for _, ami := range oldAMIs {
+			// Delete the AMI using our DeleteAMI method
+			deleteResult, err := m.DeleteAMI(ami.AMIID, false)
+			if err != nil {
+				log.Printf("Warning: failed to delete AMI %s: %v", ami.AMIID, err)
+				continue
+			}
+
+			result.TotalRemoved++
+			result.StorageSavingsMonthly += deleteResult.StorageSavingsMonthly
+			result.RemovedAMIs = append(result.RemovedAMIs, ami)
+		}
+	} else if dryRun {
+		result.StorageSavingsMonthly = totalSavings
 	}
 
 	return result, nil
 }
 
-// DeleteAMI deletes a specific AMI by ID
-func (m *Manager) DeleteAMI(amiID string, deregisterOnly bool) (*types.AMIDeletionResult, error) {
-	// In production, this would:
-	// 1. Validate AMI exists and user owns it
-	// 2. Check for any instances using this AMI
-	// 3. Deregister the AMI
-	// 4. Optionally delete associated EBS snapshots
-	// 5. Calculate storage cost savings
-
-	// Placeholder implementation
-	result := &types.AMIDeletionResult{
-		AMIID:                 amiID,
-		Status:                "deleted",
-		StorageSavingsMonthly: 12.50, // $0.05 per GB-month * 250 GB
-		CompletedAt:           time.Now(),
+// parseDuration parses duration strings like "30d", "7d", "1y"
+func parseDuration(s string) (time.Duration, error) {
+	if len(s) < 2 {
+		return 0, fmt.Errorf("invalid duration format")
 	}
 
+	valueStr := s[:len(s)-1]
+	unit := s[len(s)-1]
+
+	value := 0
+	_, err := fmt.Sscanf(valueStr, "%d", &value)
+	if err != nil {
+		return 0, err
+	}
+
+	switch unit {
+	case 'd':
+		return time.Duration(value) * 24 * time.Hour, nil
+	case 'w':
+		return time.Duration(value) * 7 * 24 * time.Hour, nil
+	case 'm':
+		return time.Duration(value) * 30 * 24 * time.Hour, nil
+	case 'y':
+		return time.Duration(value) * 365 * 24 * time.Hour, nil
+	default:
+		return 0, fmt.Errorf("unsupported duration unit: %c (use d, w, m, y)", unit)
+	}
+}
+
+// DeleteAMI deletes a specific AMI by ID
+func (m *Manager) DeleteAMI(amiID string, deregisterOnly bool) (*types.AMIDeletionResult, error) {
+	ctx := context.Background()
+
+	// 1. Validate AMI exists and get its details
+	describeInput := &ec2.DescribeImagesInput{
+		ImageIds: []string{amiID},
+	}
+
+	describeResult, err := m.ec2.DescribeImages(ctx, describeInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe AMI: %w", err)
+	}
+
+	if len(describeResult.Images) == 0 {
+		return nil, fmt.Errorf("AMI %s not found", amiID)
+	}
+
+	image := describeResult.Images[0]
+
+	// Calculate storage cost before deletion
+	storageCost := m.calculateAMIStorageCost(image)
+
+	// Extract snapshot IDs before deregistration
+	var snapshotIds []string
+	for _, blockDevice := range image.BlockDeviceMappings {
+		if blockDevice.Ebs != nil && blockDevice.Ebs.SnapshotId != nil {
+			snapshotIds = append(snapshotIds, *blockDevice.Ebs.SnapshotId)
+		}
+	}
+
+	// 3. Deregister the AMI
+	deregisterInput := &ec2.DeregisterImageInput{
+		ImageId: aws.String(amiID),
+	}
+
+	_, err = m.ec2.DeregisterImage(ctx, deregisterInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to deregister AMI: %w", err)
+	}
+
+	result := &types.AMIDeletionResult{
+		AMIID:                 amiID,
+		Status:                "deregistered",
+		StorageSavingsMonthly: storageCost,
+		CompletedAt:           time.Now(),
+		DeletedSnapshots:      []string{},
+	}
+
+	// 4. Optionally delete associated EBS snapshots
 	if !deregisterOnly {
-		result.DeletedSnapshots = []string{
-			"snap-0123456789abcdef0",
-			"snap-0987654321fedcba0",
+		for _, snapshotId := range snapshotIds {
+			deleteSnapInput := &ec2.DeleteSnapshotInput{
+				SnapshotId: aws.String(snapshotId),
+			}
+
+			_, err = m.ec2.DeleteSnapshot(ctx, deleteSnapInput)
+			if err != nil {
+				log.Printf("Warning: failed to delete snapshot %s: %v", snapshotId, err)
+				continue
+			}
+
+			result.DeletedSnapshots = append(result.DeletedSnapshots, snapshotId)
+		}
+
+		if len(result.DeletedSnapshots) > 0 {
+			result.Status = "deleted"
 		}
 	}
 
