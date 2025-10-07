@@ -16,9 +16,12 @@
 package ami
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
@@ -183,16 +186,119 @@ func (v *Validator) ValidateAMI(instanceID string, template *Template) (*Validat
 			fmt.Printf("Running validation %d: %s\n", i+1, validation.Name)
 		}
 
-		// TODO: Implement actual validation logic via SSM
-		// For now, assume all validations pass
-		result.SuccessfulTests++
-		result.Details[validation.Name] = "PASS"
+		// Execute validation command via SSM
+		passed, detail, err := v.executeValidationCommand(instanceID, validation)
+		if err != nil {
+			result.FailedChecks = append(result.FailedChecks, validation.Name)
+			result.Details[validation.Name] = fmt.Sprintf("ERROR: %v", err)
+			continue
+		}
+
+		if passed {
+			result.SuccessfulTests++
+			result.Details[validation.Name] = detail
+		} else {
+			result.FailedChecks = append(result.FailedChecks, validation.Name)
+			result.Details[validation.Name] = detail
+		}
 	}
 
 	result.TotalTests = len(template.Validation)
 	result.Successful = result.SuccessfulTests == result.TotalTests
 
 	return result, nil
+}
+
+// executeValidationCommand executes a single validation command via SSM
+func (v *Validator) executeValidationCommand(instanceID string, validation Validation) (bool, string, error) {
+	if v.SSMClient == nil {
+		return false, "SSM client not configured", fmt.Errorf("SSM client required for validation")
+	}
+
+	// Send command via SSM
+	sendInput := &ssm.SendCommandInput{
+		InstanceIds:  []string{instanceID},
+		DocumentName: aws.String("AWS-RunShellScript"),
+		Parameters: map[string][]string{
+			"commands": {validation.Command},
+		},
+		TimeoutSeconds: aws.Int32(60), // 60 second timeout for validation commands
+	}
+
+	sendOutput, err := v.SSMClient.SendCommand(context.TODO(), sendInput)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to send SSM command: %w", err)
+	}
+
+	commandID := sendOutput.Command.CommandId
+
+	// Wait for command completion (max 70 seconds)
+	maxWait := 70
+	for i := 0; i < maxWait; i++ {
+		getInput := &ssm.GetCommandInvocationInput{
+			CommandId:  commandID,
+			InstanceId: aws.String(instanceID),
+		}
+
+		getOutput, err := v.SSMClient.GetCommandInvocation(context.TODO(), getInput)
+		if err != nil {
+			// Command not ready yet, wait and retry
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		// Check command status
+		status := string(getOutput.Status)
+		if status == "Success" || status == "Failed" {
+			// Command completed
+			exitCode := int(getOutput.ResponseCode)
+			output := ""
+			if getOutput.StandardOutputContent != nil {
+				output = *getOutput.StandardOutputContent
+			}
+
+			// Determine if validation passed
+			passed := false
+			detail := ""
+
+			if validation.Success {
+				// Check exit code
+				if exitCode == 0 {
+					passed = true
+					detail = "PASS: Command exited with code 0"
+				} else {
+					detail = fmt.Sprintf("FAIL: Command exited with code %d", exitCode)
+				}
+			}
+
+			if validation.Contains != "" {
+				// Check output contains string
+				if strings.Contains(output, validation.Contains) {
+					passed = true
+					detail = fmt.Sprintf("PASS: Output contains '%s'", validation.Contains)
+				} else {
+					detail = fmt.Sprintf("FAIL: Output does not contain '%s'. Got: %s", validation.Contains, output)
+				}
+			}
+
+			// If both checks specified, both must pass
+			if validation.Success && validation.Contains != "" {
+				if exitCode == 0 && strings.Contains(output, validation.Contains) {
+					passed = true
+					detail = fmt.Sprintf("PASS: Exit code 0 and output contains '%s'", validation.Contains)
+				} else {
+					detail = fmt.Sprintf("FAIL: Exit code %d or missing '%s'", exitCode, validation.Contains)
+				}
+			}
+
+			return passed, detail, nil
+		}
+
+		// Still running, wait and retry
+		time.Sleep(1 * time.Second)
+	}
+
+	return false, "TIMEOUT: Command did not complete in time", fmt.Errorf("command timed out after %d seconds", maxWait)
 }
 
 // FormatValidationResult formats a validation result for output
