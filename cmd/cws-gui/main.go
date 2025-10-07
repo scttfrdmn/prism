@@ -92,7 +92,7 @@ func main() {
 
 // showHelp displays command line help
 func showHelp() {
-	log.Printf(`CloudWorkstation GUI v0.4.5
+	log.Printf(`CloudWorkstation GUI v0.5.1
 
 Usage: cws-gui [OPTIONS]
 

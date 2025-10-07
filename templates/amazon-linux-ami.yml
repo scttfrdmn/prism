@@ -54,6 +54,13 @@ services:
   - name: "docker"
     enable: true
 
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 15
+  hibernate_threshold_minutes: 30
+  check_interval_minutes: 5
+
 instance_defaults:
   ports: [22, 80, 443]
 

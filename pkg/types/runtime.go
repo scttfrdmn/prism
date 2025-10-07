@@ -206,3 +206,357 @@ type IdleExecutionResponse struct {
 	Errors   []string `json:"errors"`
 	Total    int      `json:"total"`
 }
+
+// =============================================================================
+// Rightsizing Types
+// =============================================================================
+
+// InstanceMetrics represents collected performance metrics for an instance
+type InstanceMetrics struct {
+	InstanceID   string         `json:"instance_id"`
+	InstanceName string         `json:"instance_name"`
+	Timestamp    time.Time      `json:"timestamp"`
+	CPU          CPUMetrics     `json:"cpu"`
+	Memory       MemoryMetrics  `json:"memory"`
+	Storage      StorageMetrics `json:"storage"`
+	Network      NetworkMetrics `json:"network"`
+	GPU          *GPUMetrics    `json:"gpu,omitempty"`
+	System       SystemMetrics  `json:"system"`
+}
+
+// CPUMetrics represents CPU performance metrics
+type CPUMetrics struct {
+	UtilizationPercent float64 `json:"utilization_percent"`
+	Load1Min           float64 `json:"load_1min"`
+	Load5Min           float64 `json:"load_5min"`
+	Load15Min          float64 `json:"load_15min"`
+	CoreCount          int     `json:"core_count"`
+	IdlePercent        float64 `json:"idle_percent"`
+	WaitPercent        float64 `json:"wait_percent"`
+}
+
+// MemoryMetrics represents memory performance metrics
+type MemoryMetrics struct {
+	TotalMB            float64 `json:"total_mb"`
+	UsedMB             float64 `json:"used_mb"`
+	FreeMB             float64 `json:"free_mb"`
+	AvailableMB        float64 `json:"available_mb"`
+	CachedMB           float64 `json:"cached_mb"`
+	BufferedMB         float64 `json:"buffered_mb"`
+	UtilizationPercent float64 `json:"utilization_percent"`
+	SwapTotalMB        float64 `json:"swap_total_mb"`
+	SwapUsedMB         float64 `json:"swap_used_mb"`
+}
+
+// StorageMetrics represents storage performance metrics
+type StorageMetrics struct {
+	TotalGB             float64 `json:"total_gb"`
+	UsedGB              float64 `json:"used_gb"`
+	AvailableGB         float64 `json:"available_gb"`
+	UtilizationPercent  float64 `json:"utilization_percent"`
+	ReadIOPS            float64 `json:"read_iops"`
+	WriteIOPS           float64 `json:"write_iops"`
+	ReadThroughputMBps  float64 `json:"read_throughput_mbps"`
+	WriteThroughputMBps float64 `json:"write_throughput_mbps"`
+}
+
+// NetworkMetrics represents network performance metrics
+type NetworkMetrics struct {
+	RxBytesPerSec   float64 `json:"rx_bytes_per_sec"`
+	TxBytesPerSec   float64 `json:"tx_bytes_per_sec"`
+	RxPacketsPerSec float64 `json:"rx_packets_per_sec"`
+	TxPacketsPerSec float64 `json:"tx_packets_per_sec"`
+	TotalRxBytes    float64 `json:"total_rx_bytes"`
+	TotalTxBytes    float64 `json:"total_tx_bytes"`
+}
+
+// GPUMetrics represents GPU performance metrics (optional)
+type GPUMetrics struct {
+	Count                    int     `json:"count"`
+	UtilizationPercent       float64 `json:"utilization_percent"`
+	MemoryTotalMB            float64 `json:"memory_total_mb"`
+	MemoryUsedMB             float64 `json:"memory_used_mb"`
+	MemoryUtilizationPercent float64 `json:"memory_utilization_percent"`
+	TemperatureCelsius       float64 `json:"temperature_celsius"`
+	PowerDrawWatts           float64 `json:"power_draw_watts"`
+}
+
+// SystemMetrics represents system-level metrics
+type SystemMetrics struct {
+	ProcessCount    int       `json:"process_count"`
+	LoggedInUsers   int       `json:"logged_in_users"`
+	UptimeSeconds   float64   `json:"uptime_seconds"`
+	LastActivity    time.Time `json:"last_activity"`
+	LoadAverage1Min float64   `json:"load_average_1min"`
+}
+
+// RightsizingRecommendation represents a rightsizing recommendation
+type RightsizingRecommendation struct {
+	InstanceID              string           `json:"instance_id"`
+	InstanceName            string           `json:"instance_name"`
+	CurrentInstanceType     string           `json:"current_instance_type"`
+	CurrentSize             string           `json:"current_size"`
+	RecommendedInstanceType string           `json:"recommended_instance_type"`
+	RecommendedSize         string           `json:"recommended_size"`
+	RecommendationType      RightsizingType  `json:"recommendation_type"`
+	Confidence              ConfidenceLevel  `json:"confidence"`
+	Reasoning               string           `json:"reasoning"`
+	CostImpact              CostImpact       `json:"cost_impact"`
+	ResourceAnalysis        ResourceAnalysis `json:"resource_analysis"`
+	CreatedAt               time.Time        `json:"created_at"`
+	DataPointsAnalyzed      int              `json:"data_points_analyzed"`
+	AnalysisPeriodHours     float64          `json:"analysis_period_hours"`
+}
+
+// RightsizingType represents the type of rightsizing recommendation
+type RightsizingType string
+
+const (
+	RightsizingDownsize         RightsizingType = "downsize"
+	RightsizingUpsize           RightsizingType = "upsize"
+	RightsizingOptimal          RightsizingType = "optimal"
+	RightsizingMemoryOptimized  RightsizingType = "memory_optimized"
+	RightsizingComputeOptimized RightsizingType = "compute_optimized"
+	RightsizingGPUOptimized     RightsizingType = "gpu_optimized"
+)
+
+// ConfidenceLevel represents the confidence level of a recommendation
+type ConfidenceLevel string
+
+const (
+	ConfidenceLow      ConfidenceLevel = "low"
+	ConfidenceMedium   ConfidenceLevel = "medium"
+	ConfidenceHigh     ConfidenceLevel = "high"
+	ConfidenceVeryHigh ConfidenceLevel = "very_high"
+)
+
+// CostImpact represents the cost impact of a rightsizing recommendation
+type CostImpact struct {
+	CurrentDailyCost     float64 `json:"current_daily_cost"`
+	RecommendedDailyCost float64 `json:"recommended_daily_cost"`
+	DailyDifference      float64 `json:"daily_difference"`
+	PercentageChange     float64 `json:"percentage_change"`
+	MonthlySavings       float64 `json:"monthly_savings"`
+	AnnualSavings        float64 `json:"annual_savings"`
+	IsIncrease           bool    `json:"is_increase"`
+	PaybackPeriodDays    float64 `json:"payback_period_days,omitempty"`
+}
+
+// ResourceAnalysis represents detailed resource utilization analysis
+type ResourceAnalysis struct {
+	CPUAnalysis     CPUAnalysis     `json:"cpu_analysis"`
+	MemoryAnalysis  MemoryAnalysis  `json:"memory_analysis"`
+	StorageAnalysis StorageAnalysis `json:"storage_analysis"`
+	NetworkAnalysis NetworkAnalysis `json:"network_analysis"`
+	GPUAnalysis     *GPUAnalysis    `json:"gpu_analysis,omitempty"`
+	WorkloadPattern WorkloadPattern `json:"workload_pattern"`
+}
+
+// CPUAnalysis represents CPU utilization analysis
+type CPUAnalysis struct {
+	AverageUtilization float64 `json:"average_utilization"`
+	PeakUtilization    float64 `json:"peak_utilization"`
+	P95Utilization     float64 `json:"p95_utilization"`
+	P99Utilization     float64 `json:"p99_utilization"`
+	IdlePercentage     float64 `json:"idle_percentage"`
+	IsBottleneck       bool    `json:"is_bottleneck"`
+	Recommendation     string  `json:"recommendation"`
+}
+
+// MemoryAnalysis represents memory utilization analysis
+type MemoryAnalysis struct {
+	AverageUtilization float64 `json:"average_utilization"`
+	PeakUtilization    float64 `json:"peak_utilization"`
+	P95Utilization     float64 `json:"p95_utilization"`
+	P99Utilization     float64 `json:"p99_utilization"`
+	SwapUsage          float64 `json:"swap_usage"`
+	IsBottleneck       bool    `json:"is_bottleneck"`
+	Recommendation     string  `json:"recommendation"`
+}
+
+// StorageAnalysis represents storage utilization analysis
+type StorageAnalysis struct {
+	AverageIOPS       float64 `json:"average_iops"`
+	PeakIOPS          float64 `json:"peak_iops"`
+	AverageThroughput float64 `json:"average_throughput"`
+	PeakThroughput    float64 `json:"peak_throughput"`
+	SpaceUtilization  float64 `json:"space_utilization"`
+	IsBottleneck      bool    `json:"is_bottleneck"`
+	Recommendation    string  `json:"recommendation"`
+}
+
+// NetworkAnalysis represents network utilization analysis
+type NetworkAnalysis struct {
+	AverageThroughput float64 `json:"average_throughput"`
+	PeakThroughput    float64 `json:"peak_throughput"`
+	PacketRate        float64 `json:"packet_rate"`
+	IsBottleneck      bool    `json:"is_bottleneck"`
+	Recommendation    string  `json:"recommendation"`
+}
+
+// GPUAnalysis represents GPU utilization analysis
+type GPUAnalysis struct {
+	AverageUtilization float64 `json:"average_utilization"`
+	PeakUtilization    float64 `json:"peak_utilization"`
+	MemoryUtilization  float64 `json:"memory_utilization"`
+	TemperatureAverage float64 `json:"temperature_average"`
+	PowerUsageAverage  float64 `json:"power_usage_average"`
+	IsBottleneck       bool    `json:"is_bottleneck"`
+	IsUnderutilized    bool    `json:"is_underutilized"`
+	Recommendation     string  `json:"recommendation"`
+}
+
+// WorkloadPattern represents workload pattern analysis
+type WorkloadPattern struct {
+	Type                WorkloadPatternType `json:"type"`
+	ConsistencyScore    float64             `json:"consistency_score"`
+	PeakHours           []int               `json:"peak_hours"`
+	SeasonalityDetected bool                `json:"seasonality_detected"`
+	GrowthTrend         float64             `json:"growth_trend"`
+	BurstFrequency      float64             `json:"burst_frequency"`
+	Description         string              `json:"description"`
+}
+
+// WorkloadPatternType represents different types of workload patterns
+type WorkloadPatternType string
+
+const (
+	WorkloadPatternSteady        WorkloadPatternType = "steady"
+	WorkloadPatternBursty        WorkloadPatternType = "bursty"
+	WorkloadPatternSeasonal      WorkloadPatternType = "seasonal"
+	WorkloadPatternGrowing       WorkloadPatternType = "growing"
+	WorkloadPatternDeclining     WorkloadPatternType = "declining"
+	WorkloadPatternUnpredictable WorkloadPatternType = "unpredictable"
+)
+
+// RightsizingAnalysisRequest represents a request for rightsizing analysis
+type RightsizingAnalysisRequest struct {
+	InstanceName        string  `json:"instance_name"`
+	AnalysisPeriodHours float64 `json:"analysis_period_hours,omitempty"`
+	IncludeDetails      bool    `json:"include_details,omitempty"`
+	ForceRefresh        bool    `json:"force_refresh,omitempty"`
+}
+
+// RightsizingAnalysisResponse represents the response from rightsizing analysis
+type RightsizingAnalysisResponse struct {
+	Recommendation      *RightsizingRecommendation `json:"recommendation"`
+	MetricsAvailable    bool                       `json:"metrics_available"`
+	DataPointsCount     int                        `json:"data_points_count"`
+	AnalysisPeriodHours float64                    `json:"analysis_period_hours"`
+	LastUpdated         time.Time                  `json:"last_updated"`
+	Message             string                     `json:"message,omitempty"`
+}
+
+// RightsizingStatsResponse represents detailed statistics for an instance
+type RightsizingStatsResponse struct {
+	InstanceName         string                     `json:"instance_name"`
+	CurrentConfiguration InstanceConfiguration      `json:"current_configuration"`
+	MetricsSummary       MetricsSummary             `json:"metrics_summary"`
+	RecentMetrics        []InstanceMetrics          `json:"recent_metrics"`
+	Recommendation       *RightsizingRecommendation `json:"recommendation,omitempty"`
+	CollectionStatus     MetricsCollectionStatus    `json:"collection_status"`
+}
+
+// InstanceConfiguration represents current instance configuration
+type InstanceConfiguration struct {
+	InstanceType       string  `json:"instance_type"`
+	Size               string  `json:"size"`
+	VCPUs              int     `json:"vcpus"`
+	MemoryGB           float64 `json:"memory_gb"`
+	StorageGB          float64 `json:"storage_gb"`
+	NetworkPerformance string  `json:"network_performance"`
+	DailyCost          float64 `json:"daily_cost"`
+}
+
+// MetricsSummary represents aggregated metrics summary
+type MetricsSummary struct {
+	CPUSummary     ResourceSummary  `json:"cpu_summary"`
+	MemorySummary  ResourceSummary  `json:"memory_summary"`
+	StorageSummary ResourceSummary  `json:"storage_summary"`
+	NetworkSummary ResourceSummary  `json:"network_summary"`
+	GPUSummary     *ResourceSummary `json:"gpu_summary,omitempty"`
+}
+
+// ResourceSummary represents summary statistics for a resource
+type ResourceSummary struct {
+	Average           float64 `json:"average"`
+	Peak              float64 `json:"peak"`
+	P95               float64 `json:"p95"`
+	P99               float64 `json:"p99"`
+	Minimum           float64 `json:"minimum"`
+	StandardDeviation float64 `json:"standard_deviation"`
+	TrendDirection    string  `json:"trend_direction"` // "increasing", "decreasing", "stable"
+	Bottleneck        bool    `json:"bottleneck"`
+	Underutilized     bool    `json:"underutilized"`
+}
+
+// MetricsCollectionStatus represents the status of metrics collection
+type MetricsCollectionStatus struct {
+	IsActive           bool      `json:"is_active"`
+	LastCollectionTime time.Time `json:"last_collection_time"`
+	CollectionInterval string    `json:"collection_interval"`
+	TotalDataPoints    int       `json:"total_data_points"`
+	DataRetentionDays  int       `json:"data_retention_days"`
+	StorageLocation    string    `json:"storage_location"`
+}
+
+// RightsizingRecommendationsResponse represents multiple recommendations
+type RightsizingRecommendationsResponse struct {
+	Recommendations  []RightsizingRecommendation `json:"recommendations"`
+	TotalInstances   int                         `json:"total_instances"`
+	ActiveInstances  int                         `json:"active_instances"`
+	PotentialSavings float64                     `json:"potential_savings"`
+	GeneratedAt      time.Time                   `json:"generated_at"`
+}
+
+// RightsizingSummaryResponse represents fleet-wide rightsizing summary
+type RightsizingSummaryResponse struct {
+	FleetOverview       FleetOverview              `json:"fleet_overview"`
+	CostOptimization    CostOptimizationSummary    `json:"cost_optimization"`
+	ResourceUtilization ResourceUtilizationSummary `json:"resource_utilization"`
+	Recommendations     RecommendationsSummary     `json:"recommendations"`
+	GeneratedAt         time.Time                  `json:"generated_at"`
+}
+
+// FleetOverview represents overview of all instances
+type FleetOverview struct {
+	TotalInstances       int     `json:"total_instances"`
+	RunningInstances     int     `json:"running_instances"`
+	StoppedInstances     int     `json:"stopped_instances"`
+	TotalDailyCost       float64 `json:"total_daily_cost"`
+	TotalMonthlyCost     float64 `json:"total_monthly_cost"`
+	InstancesWithMetrics int     `json:"instances_with_metrics"`
+}
+
+// CostOptimizationSummary represents cost optimization opportunities
+type CostOptimizationSummary struct {
+	PotentialDailySavings         float64 `json:"potential_daily_savings"`
+	PotentialMonthlySavings       float64 `json:"potential_monthly_savings"`
+	PotentialAnnualSavings        float64 `json:"potential_annual_savings"`
+	SavingsPercentage             float64 `json:"savings_percentage"`
+	OverprovisionedInstances      int     `json:"overprovisioned_instances"`
+	UnderprovisionedInstances     int     `json:"underprovisioned_instances"`
+	OptimallyProvisionedInstances int     `json:"optimally_provisioned_instances"`
+}
+
+// ResourceUtilizationSummary represents fleet-wide resource utilization
+type ResourceUtilizationSummary struct {
+	AverageCPUUtilization     float64 `json:"average_cpu_utilization"`
+	AverageMemoryUtilization  float64 `json:"average_memory_utilization"`
+	AverageStorageUtilization float64 `json:"average_storage_utilization"`
+	InstancesWithLowCPU       int     `json:"instances_with_low_cpu"`
+	InstancesWithHighCPU      int     `json:"instances_with_high_cpu"`
+	InstancesWithLowMemory    int     `json:"instances_with_low_memory"`
+	InstancesWithHighMemory   int     `json:"instances_with_high_memory"`
+}
+
+// RecommendationsSummary represents summary of recommendations
+type RecommendationsSummary struct {
+	TotalRecommendations    int `json:"total_recommendations"`
+	DownsizeRecommendations int `json:"downsize_recommendations"`
+	UpsizeRecommendations   int `json:"upsize_recommendations"`
+	OptimizeRecommendations int `json:"optimize_recommendations"`
+	HighConfidenceCount     int `json:"high_confidence_count"`
+	MediumConfidenceCount   int `json:"medium_confidence_count"`
+	LowConfidenceCount      int `json:"low_confidence_count"`
+}

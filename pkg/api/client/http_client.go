@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -64,6 +65,7 @@ func (c *HTTPClient) SetOptions(opts Options) {
 	c.invitationToken = opts.InvitationToken
 	c.ownerAccount = opts.OwnerAccount
 	c.s3ConfigPath = opts.S3ConfigPath
+	c.apiKey = opts.APIKey
 }
 
 // makeRequest makes an HTTP request to the daemon with proper headers
@@ -235,40 +237,40 @@ func (c *HTTPClient) GetInstance(ctx context.Context, name string) (*types.Insta
 // StartInstance starts a stopped instance
 func (c *HTTPClient) StartInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/start", name), nil)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
 // StopInstance stops a running instance
 func (c *HTTPClient) StopInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/stop", name), nil)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
 // HibernateInstance hibernates a running instance
 func (c *HTTPClient) HibernateInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/hibernate", name), nil)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
 // ResumeInstance resumes a hibernated instance
 func (c *HTTPClient) ResumeInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/resume", name), nil)
-	defer resp.Body.Close()
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -309,6 +311,181 @@ func (c *HTTPClient) ConnectInstance(ctx context.Context, name string) (string, 
 	}
 
 	return result["connection_info"], nil
+}
+
+// ExecInstance executes a command on an instance
+func (c *HTTPClient) ExecInstance(ctx context.Context, instanceName string, execRequest types.ExecRequest) (*types.ExecResult, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/exec", instanceName), execRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.ExecResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ResizeInstance resizes an instance to a new instance type
+func (c *HTTPClient) ResizeInstance(ctx context.Context, resizeRequest types.ResizeRequest) (*types.ResizeResponse, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/instances/%s/resize", resizeRequest.InstanceName), resizeRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.ResizeResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetInstanceLogs retrieves logs for a specific instance
+func (c *HTTPClient) GetInstanceLogs(ctx context.Context, instanceName string, logRequest types.LogRequest) (*types.LogResponse, error) {
+	// Build query parameters
+	params := url.Values{}
+	if logRequest.LogType != "" {
+		params.Set("type", logRequest.LogType)
+	}
+	if logRequest.Tail > 0 {
+		params.Set("tail", strconv.Itoa(logRequest.Tail))
+	}
+	if logRequest.Since != "" {
+		params.Set("since", logRequest.Since)
+	}
+	if logRequest.Follow {
+		params.Set("follow", "true")
+	}
+
+	path := fmt.Sprintf("/api/v1/logs/%s", instanceName)
+	if len(params) > 0 {
+		path += "?" + params.Encode()
+	}
+
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.LogResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetInstanceLogTypes retrieves available log types for a specific instance
+func (c *HTTPClient) GetInstanceLogTypes(ctx context.Context, instanceName string) (*types.LogTypesResponse, error) {
+	path := fmt.Sprintf("/api/v1/logs/%s/types", instanceName)
+	resp, err := c.makeRequest(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.LogTypesResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetLogsSummary retrieves log availability summary for all instances
+func (c *HTTPClient) GetLogsSummary(ctx context.Context) (*types.LogSummaryResponse, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/logs", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.LogSummaryResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ==========================================
+// Instance Snapshot Operations
+// ==========================================
+
+// CreateInstanceSnapshot creates a snapshot from an instance
+func (c *HTTPClient) CreateInstanceSnapshot(ctx context.Context, req types.InstanceSnapshotRequest) (*types.InstanceSnapshotResult, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/snapshots", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.InstanceSnapshotResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ListInstanceSnapshots lists all instance snapshots
+func (c *HTTPClient) ListInstanceSnapshots(ctx context.Context) (*types.InstanceSnapshotListResponse, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/snapshots", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.InstanceSnapshotListResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetInstanceSnapshot gets information about a specific snapshot
+func (c *HTTPClient) GetInstanceSnapshot(ctx context.Context, snapshotName string) (*types.InstanceSnapshotInfo, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/snapshots/%s", snapshotName), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.InstanceSnapshotInfo
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DeleteInstanceSnapshot deletes a snapshot
+func (c *HTTPClient) DeleteInstanceSnapshot(ctx context.Context, snapshotName string) (*types.InstanceSnapshotDeleteResult, error) {
+	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/snapshots/%s", snapshotName), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.InstanceSnapshotDeleteResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// RestoreInstanceFromSnapshot restores a new instance from a snapshot
+func (c *HTTPClient) RestoreInstanceFromSnapshot(ctx context.Context, snapshotName string, req types.InstanceRestoreRequest) (*types.InstanceRestoreResult, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/snapshots/%s/restore", snapshotName), req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.InstanceRestoreResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 // ListTemplates lists all available templates
@@ -867,7 +1044,7 @@ func (c *HTTPClient) ResolveAMI(ctx context.Context, templateName string, params
 	}
 
 	path := fmt.Sprintf("/api/v1/ami/resolve/%s", templateName)
-	if queryParams != nil && len(queryParams) > 0 {
+	if len(queryParams) > 0 {
 		path += "?" + queryParams.Encode()
 	}
 
@@ -977,6 +1154,88 @@ func (c *HTTPClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 	return result, nil
 }
 
+// AMI Lifecycle Management operations
+
+// CleanupAMIs removes old and unused AMIs
+func (c *HTTPClient) CleanupAMIs(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/cleanup", request)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// DeleteAMI deletes a specific AMI by ID
+func (c *HTTPClient) DeleteAMI(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/delete", request)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// AMI Snapshot operations
+
+// ListAMISnapshots lists available snapshots
+func (c *HTTPClient) ListAMISnapshots(ctx context.Context, filters map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/snapshots", filters)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// CreateAMISnapshot creates a snapshot from an instance
+func (c *HTTPClient) CreateAMISnapshot(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/snapshot/create", request)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// RestoreAMIFromSnapshot creates an AMI from a snapshot
+func (c *HTTPClient) RestoreAMIFromSnapshot(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/snapshot/restore", request)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// DeleteAMISnapshot deletes a specific snapshot
+func (c *HTTPClient) DeleteAMISnapshot(ctx context.Context, request map[string]interface{}) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/ami/snapshot/delete", request)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // Template Marketplace operations (Phase 5.2)
 
 // SearchMarketplace searches the marketplace for templates
@@ -1068,4 +1327,276 @@ func (c *HTTPClient) GetMarketplaceTrending(ctx context.Context) (map[string]int
 		return nil, err
 	}
 	return result, nil
+}
+
+// SetProjectBudgetRequest represents a request to set or enable a project budget
+type SetProjectBudgetRequest struct {
+	TotalBudget     float64                  `json:"total_budget"`
+	MonthlyLimit    *float64                 `json:"monthly_limit,omitempty"`
+	DailyLimit      *float64                 `json:"daily_limit,omitempty"`
+	AlertThresholds []types.BudgetAlert      `json:"alert_thresholds,omitempty"`
+	AutoActions     []types.BudgetAutoAction `json:"auto_actions,omitempty"`
+	BudgetPeriod    types.BudgetPeriod       `json:"budget_period"`
+	EndDate         *time.Time               `json:"end_date,omitempty"`
+}
+
+// UpdateProjectBudgetRequest represents a request to update a project budget
+type UpdateProjectBudgetRequest struct {
+	TotalBudget     *float64                 `json:"total_budget,omitempty"`
+	MonthlyLimit    *float64                 `json:"monthly_limit,omitempty"`
+	DailyLimit      *float64                 `json:"daily_limit,omitempty"`
+	AlertThresholds []types.BudgetAlert      `json:"alert_thresholds,omitempty"`
+	AutoActions     []types.BudgetAutoAction `json:"auto_actions,omitempty"`
+	EndDate         *time.Time               `json:"end_date,omitempty"`
+}
+
+// SetProjectBudget sets or enables budget tracking for a project
+func (c *HTTPClient) SetProjectBudget(ctx context.Context, projectID string, req SetProjectBudgetRequest) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "PUT", fmt.Sprintf("/api/v1/projects/%s/budget", projectID), req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// UpdateProjectBudget updates an existing project budget
+func (c *HTTPClient) UpdateProjectBudget(ctx context.Context, projectID string, req UpdateProjectBudgetRequest) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/projects/%s/budget", projectID), req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// DisableProjectBudget disables budget tracking for a project
+func (c *HTTPClient) DisableProjectBudget(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/projects/%s/budget", projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// Data Backup operations
+
+// CreateBackup creates a data backup from an instance
+func (c *HTTPClient) CreateBackup(ctx context.Context, req types.BackupCreateRequest) (*types.BackupCreateResult, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/backups", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.BackupCreateResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ListBackups lists all data backups
+func (c *HTTPClient) ListBackups(ctx context.Context) (*types.BackupListResponse, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/backups", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.BackupListResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetBackup gets detailed information about a backup
+func (c *HTTPClient) GetBackup(ctx context.Context, backupName string) (*types.BackupInfo, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/backups/%s", backupName), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.BackupInfo
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DeleteBackup deletes a backup
+func (c *HTTPClient) DeleteBackup(ctx context.Context, backupName string) (*types.BackupDeleteResult, error) {
+	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/backups/%s", backupName), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.BackupDeleteResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetBackupContents lists the contents of a backup
+func (c *HTTPClient) GetBackupContents(ctx context.Context, req types.BackupContentsRequest) (*types.BackupContentsResponse, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/backups/contents", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.BackupContentsResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// VerifyBackup verifies backup integrity
+func (c *HTTPClient) VerifyBackup(ctx context.Context, req types.BackupVerifyRequest) (*types.BackupVerifyResult, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/backups/verify", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.BackupVerifyResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// Data Restore operations
+
+// RestoreBackup restores data from a backup
+func (c *HTTPClient) RestoreBackup(ctx context.Context, req types.RestoreRequest) (*types.RestoreResult, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/backups/restore", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.RestoreResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetRestoreStatus gets the status of a restore operation
+func (c *HTTPClient) GetRestoreStatus(ctx context.Context, restoreID string) (*types.RestoreResult, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/backups/restore/%s", restoreID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.RestoreResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ListRestoreOperations lists all restore operations
+func (c *HTTPClient) ListRestoreOperations(ctx context.Context) ([]types.RestoreResult, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/backups/restore", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []types.RestoreResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// ==========================================
+// Version Compatibility Check
+// ==========================================
+
+// CheckVersionCompatibility verifies that the client and daemon versions are compatible
+func (c *HTTPClient) CheckVersionCompatibility(ctx context.Context, clientVersion string) error {
+	// Parse client version
+	clientMajor, clientMinor, _ := parseVersion(clientVersion)
+
+	// Get daemon status which includes version information
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/status", nil)
+	if err != nil {
+		return fmt.Errorf("failed to connect to daemon: %w", err)
+	}
+
+	var status map[string]interface{}
+	if err := c.handleResponse(resp, &status); err != nil {
+		return fmt.Errorf("failed to get daemon status: %w", err)
+	}
+
+	// Extract daemon version from status
+	daemonVersionStr, ok := status["version"].(string)
+	if !ok {
+		return fmt.Errorf("daemon did not return version information")
+	}
+
+	daemonMajor, daemonMinor, _ := parseVersion(daemonVersionStr)
+
+	// Version compatibility rules:
+	// 1. Major versions must match exactly
+	// 2. Client minor version must be <= daemon minor version (daemon can be newer)
+	// 3. Patch versions are ignored for compatibility
+
+	if clientMajor != daemonMajor {
+		return fmt.Errorf("version mismatch: client v%s is not compatible with daemon v%s (major version mismatch)",
+			clientVersion, daemonVersionStr)
+	}
+
+	if clientMinor > daemonMinor {
+		return fmt.Errorf("version mismatch: client v%s is newer than daemon v%s (please update daemon)",
+			clientVersion, daemonVersionStr)
+	}
+
+	// Versions are compatible
+	return nil
+}
+
+// parseVersion parses a version string like "v0.5.1" or "0.5.1" into major, minor, patch
+func parseVersion(version string) (major, minor, patch int) {
+	// Remove 'v' prefix if present
+	version = strings.TrimPrefix(version, "v")
+
+	// Split into parts
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 {
+		return 0, 0, 0
+	}
+
+	major, _ = strconv.Atoi(parts[0])
+	minor, _ = strconv.Atoi(parts[1])
+	if len(parts) > 2 {
+		patch, _ = strconv.Atoi(parts[2])
+	}
+
+	return major, minor, patch
 }

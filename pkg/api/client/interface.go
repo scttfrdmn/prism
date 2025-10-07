@@ -18,6 +18,7 @@ type Options struct {
 	InvitationToken string
 	OwnerAccount    string
 	S3ConfigPath    string
+	APIKey          string // API key for daemon authentication
 }
 
 // CloudWorkstationAPI defines the interface for interacting with the CloudWorkstation API
@@ -36,6 +37,13 @@ type CloudWorkstationAPI interface {
 	GetInstanceHibernationStatus(context.Context, string) (*types.HibernationStatus, error)
 	DeleteInstance(context.Context, string) error
 	ConnectInstance(context.Context, string) (string, error)
+	ExecInstance(context.Context, string, types.ExecRequest) (*types.ExecResult, error)
+	ResizeInstance(context.Context, types.ResizeRequest) (*types.ResizeResponse, error)
+
+	// Log operations
+	GetInstanceLogs(context.Context, string, types.LogRequest) (*types.LogResponse, error)
+	GetInstanceLogTypes(context.Context, string) (*types.LogTypesResponse, error)
+	GetLogsSummary(context.Context) (*types.LogSummaryResponse, error)
 
 	// Template operations
 	ListTemplates(context.Context) (map[string]types.Template, error)
@@ -81,6 +89,9 @@ type CloudWorkstationAPI interface {
 	RemoveProjectMember(context.Context, string, string) error
 	GetProjectMembers(context.Context, string) ([]types.ProjectMember, error)
 	GetProjectBudgetStatus(context.Context, string) (*project.BudgetStatus, error)
+	SetProjectBudget(context.Context, string, SetProjectBudgetRequest) (map[string]interface{}, error)
+	UpdateProjectBudget(context.Context, string, UpdateProjectBudgetRequest) (map[string]interface{}, error)
+	DisableProjectBudget(context.Context, string) (map[string]interface{}, error)
 	GetProjectCostBreakdown(context.Context, string, time.Time, time.Time) (*types.ProjectCostBreakdown, error)
 	GetProjectResourceUsage(context.Context, string, time.Duration) (*types.ProjectResourceUsage, error)
 
@@ -99,6 +110,14 @@ type CloudWorkstationAPI interface {
 	GetInstanceIdlePolicies(context.Context, string) ([]*idle.PolicyTemplate, error)
 	RecommendIdlePolicy(context.Context, string) (*idle.PolicyTemplate, error)
 	GetIdleSavingsReport(context.Context, string) (map[string]interface{}, error)
+
+	// Rightsizing analysis operations
+	AnalyzeRightsizing(context.Context, types.RightsizingAnalysisRequest) (*types.RightsizingAnalysisResponse, error)
+	GetRightsizingRecommendations(context.Context) (*types.RightsizingRecommendationsResponse, error)
+	GetRightsizingStats(context.Context, string) (*types.RightsizingStatsResponse, error)
+	ExportRightsizingData(context.Context, string) ([]types.InstanceMetrics, error)
+	GetRightsizingSummary(context.Context) (*types.RightsizingSummaryResponse, error)
+	GetInstanceMetrics(context.Context, string, int) ([]types.InstanceMetrics, error)
 
 	// Status operations
 	GetStatus(context.Context) (*types.DaemonStatus, error)
@@ -125,6 +144,23 @@ type CloudWorkstationAPI interface {
 	GetAMIStatus(context.Context, string) (map[string]interface{}, error)
 	ListUserAMIs(context.Context) (map[string]interface{}, error)
 
+	// AMI Lifecycle Management operations
+	CleanupAMIs(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	DeleteAMI(context.Context, map[string]interface{}) (map[string]interface{}, error)
+
+	// AMI Snapshot operations
+	ListAMISnapshots(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	CreateAMISnapshot(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	RestoreAMIFromSnapshot(context.Context, map[string]interface{}) (map[string]interface{}, error)
+	DeleteAMISnapshot(context.Context, map[string]interface{}) (map[string]interface{}, error)
+
+	// Instance Snapshot operations
+	CreateInstanceSnapshot(context.Context, types.InstanceSnapshotRequest) (*types.InstanceSnapshotResult, error)
+	ListInstanceSnapshots(context.Context) (*types.InstanceSnapshotListResponse, error)
+	GetInstanceSnapshot(context.Context, string) (*types.InstanceSnapshotInfo, error)
+	DeleteInstanceSnapshot(context.Context, string) (*types.InstanceSnapshotDeleteResult, error)
+	RestoreInstanceFromSnapshot(context.Context, string, types.InstanceRestoreRequest) (*types.InstanceRestoreResult, error)
+
 	// Template Marketplace operations (Phase 5.2)
 	SearchMarketplace(context.Context, map[string]interface{}) (map[string]interface{}, error)
 	GetMarketplaceTemplate(context.Context, string) (map[string]interface{}, error)
@@ -133,6 +169,22 @@ type CloudWorkstationAPI interface {
 	ForkMarketplaceTemplate(context.Context, string, map[string]interface{}) (map[string]interface{}, error)
 	GetMarketplaceFeatured(context.Context) (map[string]interface{}, error)
 	GetMarketplaceTrending(context.Context) (map[string]interface{}, error)
+
+	// Data Backup operations
+	CreateBackup(context.Context, types.BackupCreateRequest) (*types.BackupCreateResult, error)
+	ListBackups(context.Context) (*types.BackupListResponse, error)
+	GetBackup(context.Context, string) (*types.BackupInfo, error)
+	DeleteBackup(context.Context, string) (*types.BackupDeleteResult, error)
+	GetBackupContents(context.Context, types.BackupContentsRequest) (*types.BackupContentsResponse, error)
+	VerifyBackup(context.Context, types.BackupVerifyRequest) (*types.BackupVerifyResult, error)
+
+	// Data Restore operations
+	RestoreBackup(context.Context, types.RestoreRequest) (*types.RestoreResult, error)
+	GetRestoreStatus(context.Context, string) (*types.RestoreResult, error)
+	ListRestoreOperations(context.Context) ([]types.RestoreResult, error)
+
+	// Version compatibility checking
+	CheckVersionCompatibility(context.Context, string) error
 }
 
 // Registry-specific response types for API operations

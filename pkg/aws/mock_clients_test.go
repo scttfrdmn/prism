@@ -34,6 +34,8 @@ type MockEC2Client struct {
 	DescribeKeyPairsFunc              func(ctx context.Context, params *ec2.DescribeKeyPairsInput) (*ec2.DescribeKeyPairsOutput, error)
 	ImportKeyPairFunc                 func(ctx context.Context, params *ec2.ImportKeyPairInput) (*ec2.ImportKeyPairOutput, error)
 	DeleteKeyPairFunc                 func(ctx context.Context, params *ec2.DeleteKeyPairInput) (*ec2.DeleteKeyPairOutput, error)
+	GetConsoleOutputFunc              func(ctx context.Context, params *ec2.GetConsoleOutputInput) (*ec2.GetConsoleOutputOutput, error)
+	ModifyInstanceAttributeFunc       func(ctx context.Context, params *ec2.ModifyInstanceAttributeInput) (*ec2.ModifyInstanceAttributeOutput, error)
 }
 
 func (m *MockEC2Client) RunInstances(ctx context.Context, params *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
@@ -188,6 +190,20 @@ func (m *MockEC2Client) DeleteKeyPair(ctx context.Context, params *ec2.DeleteKey
 		return m.DeleteKeyPairFunc(ctx, params)
 	}
 	return &ec2.DeleteKeyPairOutput{}, nil
+}
+
+func (m *MockEC2Client) GetConsoleOutput(ctx context.Context, params *ec2.GetConsoleOutputInput, optFns ...func(*ec2.Options)) (*ec2.GetConsoleOutputOutput, error) {
+	if m.GetConsoleOutputFunc != nil {
+		return m.GetConsoleOutputFunc(ctx, params)
+	}
+	return &ec2.GetConsoleOutputOutput{}, nil
+}
+
+func (m *MockEC2Client) ModifyInstanceAttribute(ctx context.Context, params *ec2.ModifyInstanceAttributeInput, optFns ...func(*ec2.Options)) (*ec2.ModifyInstanceAttributeOutput, error) {
+	if m.ModifyInstanceAttributeFunc != nil {
+		return m.ModifyInstanceAttributeFunc(ctx, params)
+	}
+	return &ec2.ModifyInstanceAttributeOutput{}, nil
 }
 
 // MockEFSClient provides a mock implementation of EFSClientInterface for testing

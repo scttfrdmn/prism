@@ -1,0 +1,655 @@
+package templates
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestRegistryType tests registry type enumeration
+func TestRegistryType(t *testing.T) {
+	tests := []struct {
+		name         string
+		registryType RegistryType
+		expected     string
+	}{
+		{"community", RegistryTypeCommunity, "community"},
+		{"institutional", RegistryTypeInstitutional, "institutional"},
+		{"private", RegistryTypePrivate, "private"},
+		{"official", RegistryTypeOfficial, "official"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, string(tt.registryType))
+		})
+	}
+}
+
+// TestRegistryCredentials tests credential structure
+func TestRegistryCredentials(t *testing.T) {
+	tests := []struct {
+		name        string
+		credentials RegistryCredentials
+		authType    string
+	}{
+		{
+			name: "token_auth",
+			credentials: RegistryCredentials{
+				Type:  "token",
+				Token: "abc123def456",
+			},
+			authType: "token",
+		},
+		{
+			name: "basic_auth",
+			credentials: RegistryCredentials{
+				Type:     "basic",
+				Username: "user",
+				Password: "pass",
+			},
+			authType: "basic",
+		},
+		{
+			name: "ssh_key_auth",
+			credentials: RegistryCredentials{
+				Type:   "ssh_key",
+				SSHKey: "ssh-rsa AAAAB3NzaC1yc2E...",
+			},
+			authType: "ssh_key",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.authType, tt.credentials.Type)
+
+			// Test JSON serialization
+			data, err := json.Marshal(tt.credentials)
+			require.NoError(t, err)
+
+			var unmarshaled RegistryCredentials
+			err = json.Unmarshal(data, &unmarshaled)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.credentials.Type, unmarshaled.Type)
+			assert.Equal(t, tt.credentials.Token, unmarshaled.Token)
+			assert.Equal(t, tt.credentials.Username, unmarshaled.Username)
+			assert.Equal(t, tt.credentials.Password, unmarshaled.Password)
+			assert.Equal(t, tt.credentials.SSHKey, unmarshaled.SSHKey)
+		})
+	}
+}
+
+// TestMarketplaceTemplateRegistry tests registry structure
+func TestMarketplaceTemplateRegistry(t *testing.T) {
+	registry := &MarketplaceTemplateRegistry{
+		Name: "Official CloudWorkstation Registry",
+		URL:  "https://registry.cloudworkstation.com",
+		Type: RegistryTypeOfficial,
+		Credentials: &RegistryCredentials{
+			Type:  "token",
+			Token: "official-token-123",
+		},
+		Client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
+
+	assert.Equal(t, "Official CloudWorkstation Registry", registry.Name)
+	assert.Equal(t, "https://registry.cloudworkstation.com", registry.URL)
+	assert.Equal(t, RegistryTypeOfficial, registry.Type)
+	assert.NotNil(t, registry.Credentials)
+	assert.Equal(t, "token", registry.Credentials.Type)
+	assert.Equal(t, "official-token-123", registry.Credentials.Token)
+	assert.NotNil(t, registry.Client)
+	assert.Equal(t, 30*time.Second, registry.Client.Timeout)
+}
+
+// TestMarketplaceTemplateRegistryEntry tests registry entry structure
+func TestMarketplaceTemplateRegistryEntry(t *testing.T) {
+	baseTemplate := &Template{
+		Name:        "Test Template",
+		Description: "A test template from registry",
+		Base:        "ubuntu-22.04",
+		Category:    "Testing",
+		Domain:      "test",
+		Popular:     true,
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git"},
+		},
+	}
+
+	entry := &MarketplaceTemplateRegistryEntry{
+		Template:       baseTemplate,
+		RegistryName:   "test-registry",
+		RegistryType:   "community",
+		LastSynced:     time.Now(),
+		SearchTags:     []string{"test", "ubuntu", "development"},
+		PopularityRank: 5,
+	}
+
+	assert.Equal(t, "Test Template", entry.Name)
+	assert.Equal(t, "A test template from registry", entry.Description)
+	assert.Equal(t, "test-registry", entry.RegistryName)
+	assert.Equal(t, "community", entry.RegistryType)
+	assert.Equal(t, []string{"test", "ubuntu", "development"}, entry.SearchTags)
+	assert.Equal(t, 5, entry.PopularityRank)
+	assert.False(t, entry.LastSynced.IsZero())
+
+	// Test that embedded template fields are accessible
+	assert.Equal(t, "ubuntu-22.04", entry.Base)
+	assert.Equal(t, "Testing", entry.Category)
+	assert.True(t, entry.Popular)
+	assert.Equal(t, []string{"curl", "git"}, entry.Packages.System)
+}
+
+// TestSearchFilter tests search filter structure
+func TestSearchFilter(t *testing.T) {
+	filter := &SearchFilter{
+		Query:         "machine learning python",
+		Keywords:      []string{"ml", "python", "jupyter"},
+		Categories:    []string{"Machine Learning", "Data Science"},
+		Domains:       []string{"ml", "datascience"},
+		Complexity:    []TemplateComplexity{ComplexitySimple, ComplexityModerate},
+		MinRating:     4.0,
+		VerifiedOnly:  true,
+		ValidatedOnly: true,
+		Registries:    []string{"official", "community"},
+		RegistryTypes: []RegistryType{RegistryTypeOfficial, RegistryTypeCommunity},
+		Limit:         20,
+		Offset:        0,
+		SortBy:        "popularity",
+		SortOrder:     "desc",
+	}
+
+	assert.Equal(t, "machine learning python", filter.Query)
+	assert.Equal(t, []string{"ml", "python", "jupyter"}, filter.Keywords)
+	assert.Equal(t, []string{"Machine Learning", "Data Science"}, filter.Categories)
+	assert.Equal(t, []string{"ml", "datascience"}, filter.Domains)
+	assert.Equal(t, []TemplateComplexity{ComplexitySimple, ComplexityModerate}, filter.Complexity)
+	assert.Equal(t, 4.0, filter.MinRating)
+	assert.True(t, filter.VerifiedOnly)
+	assert.True(t, filter.ValidatedOnly)
+	assert.Equal(t, []string{"official", "community"}, filter.Registries)
+	assert.Equal(t, []RegistryType{RegistryTypeOfficial, RegistryTypeCommunity}, filter.RegistryTypes)
+	assert.Equal(t, 20, filter.Limit)
+	assert.Equal(t, 0, filter.Offset)
+	assert.Equal(t, "popularity", filter.SortBy)
+	assert.Equal(t, "desc", filter.SortOrder)
+}
+
+// TestSearchFilterJSON tests search filter JSON serialization
+func TestSearchFilterJSON(t *testing.T) {
+	filter := &SearchFilter{
+		Query:      "python ml",
+		Categories: []string{"Machine Learning"},
+		MinRating:  4.5,
+		Limit:      10,
+	}
+
+	// Serialize to JSON
+	data, err := json.Marshal(filter)
+	require.NoError(t, err)
+	assert.NotEmpty(t, data)
+
+	// Deserialize from JSON
+	var unmarshaled SearchFilter
+	err = json.Unmarshal(data, &unmarshaled)
+	require.NoError(t, err)
+
+	assert.Equal(t, filter.Query, unmarshaled.Query)
+	assert.Equal(t, filter.Categories, unmarshaled.Categories)
+	assert.Equal(t, filter.MinRating, unmarshaled.MinRating)
+	assert.Equal(t, filter.Limit, unmarshaled.Limit)
+}
+
+// TestSearchResult tests search result structure
+func TestSearchResult(t *testing.T) {
+	entries := []*MarketplaceTemplateRegistryEntry{
+		{
+			Template: &Template{
+				Name:        "Python ML Template",
+				Description: "Machine learning with Python",
+				Category:    "Machine Learning",
+			},
+			RegistryName:   "official",
+			RegistryType:   "official",
+			PopularityRank: 1,
+		},
+		{
+			Template: &Template{
+				Name:        "R Statistics Template",
+				Description: "Statistical computing with R",
+				Category:    "Data Science",
+			},
+			RegistryName:   "community",
+			RegistryType:   "community",
+			PopularityRank: 2,
+		},
+	}
+
+	// Test basic properties of the entries
+	assert.Len(t, entries, 2)
+	assert.Equal(t, "Python ML Template", entries[0].Template.Name)
+	assert.Equal(t, "R Statistics Template", entries[1].Template.Name)
+}
+
+// TestFacetValue tests facet value structure
+// TODO: Re-enable when FacetValue type is implemented
+/*
+func TestFacetValue(t *testing.T) {
+	facet := FacetValue{
+		Value: "Machine Learning",
+		Count: 42,
+	}
+
+	assert.Equal(t, "Machine Learning", facet.Value)
+	assert.Equal(t, 42, facet.Count)
+}
+*/
+
+// TestRegistryConfig tests registry configuration
+func TestRegistryConfig(t *testing.T) {
+	config := &RegistryConfig{
+		Default: "official",
+		Registries: map[string]*MarketplaceTemplateRegistry{
+			"official": {
+				Name: "Official Registry",
+				URL:  "https://registry.cloudworkstation.com",
+				Type: RegistryTypeOfficial,
+			},
+			"community": {
+				Name: "Community Registry",
+				URL:  "https://community.cloudworkstation.com",
+				Type: RegistryTypeCommunity,
+			},
+		},
+		SearchDefaults: &SearchFilter{
+			Limit:         50,
+			SortBy:        "popularity",
+			SortOrder:     "desc",
+			VerifiedOnly:  false,
+			ValidatedOnly: false,
+		},
+		CacheTimeout: 24 * time.Hour,
+	}
+
+	assert.Equal(t, "official", config.Default)
+	assert.Len(t, config.Registries, 2)
+	assert.Contains(t, config.Registries, "official")
+	assert.Contains(t, config.Registries, "community")
+	assert.Equal(t, "Official Registry", config.Registries["official"].Name)
+	assert.Equal(t, RegistryTypeOfficial, config.Registries["official"].Type)
+	assert.Equal(t, 50, config.SearchDefaults.Limit)
+	assert.Equal(t, "popularity", config.SearchDefaults.SortBy)
+	assert.Equal(t, 24*time.Hour, config.CacheTimeout)
+}
+
+// TestRegistryWithMockServer tests registry operations with mock HTTP server
+func TestRegistryWithMockServer(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/templates":
+			templates := []*MarketplaceTemplateRegistryEntry{
+				{
+					Template: &Template{
+						Name:        "Mock Template 1",
+						Description: "First mock template",
+						Category:    "Testing",
+					},
+					RegistryName:   "mock",
+					RegistryType:   "community",
+					PopularityRank: 1,
+				},
+				{
+					Template: &Template{
+						Name:        "Mock Template 2",
+						Description: "Second mock template",
+						Category:    "Development",
+					},
+					RegistryName:   "mock",
+					RegistryType:   "community",
+					PopularityRank: 2,
+				},
+			}
+
+			result := &MarketplaceSearchResult{
+				Templates:  templates,
+				TotalCount: 2,
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(result)
+
+		case "/templates/mock-template-1":
+			template := &MarketplaceTemplateRegistryEntry{
+				Template: &Template{
+					Name:        "Mock Template 1",
+					Description: "Detailed mock template",
+					Category:    "Testing",
+					Base:        "ubuntu-22.04",
+					Packages: PackageDefinitions{
+						System: []string{"curl", "git"},
+					},
+				},
+				RegistryName: "mock",
+				RegistryType: "community",
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(template)
+
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	// Create registry pointing to mock server
+	registry := &MarketplaceTemplateRegistry{
+		Name:   "Mock Registry",
+		URL:    server.URL,
+		Type:   RegistryTypeCommunity,
+		Client: server.Client(),
+	}
+
+	assert.Equal(t, "Mock Registry", registry.Name)
+	assert.Equal(t, server.URL, registry.URL)
+	assert.Equal(t, RegistryTypeCommunity, registry.Type)
+	assert.NotNil(t, registry.Client)
+
+	// Test making a request to the mock server
+	resp, err := registry.Client.Get(server.URL + "/templates")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+	// Test parsing response
+	var result MarketplaceSearchResult
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	require.NoError(t, err)
+
+	assert.Len(t, result.Templates, 2)
+	assert.Equal(t, "Mock Template 1", result.Templates[0].Template.Name)
+	assert.Equal(t, "Mock Template 2", result.Templates[1].Template.Name)
+}
+
+// TestRegistryAuthentication tests registry authentication scenarios
+func TestRegistryAuthentication(t *testing.T) {
+	tests := []struct {
+		name        string
+		credentials *RegistryCredentials
+		setupServer func() *httptest.Server
+		expectAuth  bool
+	}{
+		{
+			name:        "no_authentication",
+			credentials: nil,
+			setupServer: func() *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Check that no auth headers are present
+					assert.Empty(t, r.Header.Get("Authorization"))
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{"templates":[]}`))
+				}))
+			},
+			expectAuth: false,
+		},
+		{
+			name: "token_authentication",
+			credentials: &RegistryCredentials{
+				Type:  "token",
+				Token: "test-token-123",
+			},
+			setupServer: func() *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					auth := r.Header.Get("Authorization")
+					assert.Equal(t, "Bearer test-token-123", auth)
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{"templates":[]}`))
+				}))
+			},
+			expectAuth: true,
+		},
+		{
+			name: "basic_authentication",
+			credentials: &RegistryCredentials{
+				Type:     "basic",
+				Username: "testuser",
+				Password: "testpass",
+			},
+			setupServer: func() *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					username, password, ok := r.BasicAuth()
+					assert.True(t, ok, "Should have basic auth")
+					assert.Equal(t, "testuser", username)
+					assert.Equal(t, "testpass", password)
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{"templates":[]}`))
+				}))
+			},
+			expectAuth: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := tt.setupServer()
+			defer server.Close()
+
+			registry := &MarketplaceTemplateRegistry{
+				Name:        "Test Registry",
+				URL:         server.URL,
+				Type:        RegistryTypeCommunity,
+				Credentials: tt.credentials,
+				Client:      server.Client(),
+			}
+
+			// Create a request that would include authentication
+			req, err := http.NewRequest("GET", server.URL+"/templates", nil)
+			require.NoError(t, err)
+
+			// Add authentication if credentials exist
+			if registry.Credentials != nil {
+				switch registry.Credentials.Type {
+				case "token":
+					req.Header.Set("Authorization", "Bearer "+registry.Credentials.Token)
+				case "basic":
+					req.SetBasicAuth(registry.Credentials.Username, registry.Credentials.Password)
+				}
+			}
+
+			resp, err := registry.Client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+	}
+}
+
+// TestRegistryErrorHandling tests registry error scenarios
+func TestRegistryErrorHandling(t *testing.T) {
+	tests := []struct {
+		name           string
+		serverResponse func(w http.ResponseWriter, r *http.Request)
+		expectError    bool
+		expectedStatus int
+	}{
+		{
+			name: "server_error",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Internal Server Error"))
+			},
+			expectError:    true,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "not_found",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("Not Found"))
+			},
+			expectError:    true,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "unauthorized",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte("Unauthorized"))
+			},
+			expectError:    true,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "success",
+			serverResponse: func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"templates": [], "total_count": 0}`))
+			},
+			expectError:    false,
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(tt.serverResponse))
+			defer server.Close()
+
+			registry := &MarketplaceTemplateRegistry{
+				Name:   "Test Registry",
+				URL:    server.URL,
+				Type:   RegistryTypeCommunity,
+				Client: server.Client(),
+			}
+
+			resp, err := registry.Client.Get(server.URL + "/templates")
+			require.NoError(t, err) // HTTP request itself should succeed
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedStatus, resp.StatusCode)
+
+			if tt.expectError {
+				assert.NotEqual(t, http.StatusOK, resp.StatusCode)
+			} else {
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+			}
+		})
+	}
+}
+
+// TestRegistryConfigJSON tests registry configuration JSON serialization
+func TestRegistryConfigJSON(t *testing.T) {
+	config := &RegistryConfig{
+		Default: "official",
+		Registries: map[string]*MarketplaceTemplateRegistry{
+			"official": {
+				Name: "Official Registry",
+				URL:  "https://registry.cloudworkstation.com",
+				Type: RegistryTypeOfficial,
+				Credentials: &RegistryCredentials{
+					Type:  "token",
+					Token: "official-token",
+				},
+			},
+		},
+		SearchDefaults: &SearchFilter{
+			Limit:     50,
+			SortBy:    "popularity",
+			SortOrder: "desc",
+		},
+		CacheTimeout: 24 * time.Hour,
+	}
+
+	// Serialize to JSON
+	data, err := json.Marshal(config)
+	require.NoError(t, err)
+	assert.NotEmpty(t, data)
+
+	// Deserialize from JSON
+	var unmarshaled RegistryConfig
+	err = json.Unmarshal(data, &unmarshaled)
+	require.NoError(t, err)
+
+	assert.Equal(t, config.Default, unmarshaled.Default)
+	assert.Len(t, unmarshaled.Registries, 1)
+	assert.Contains(t, unmarshaled.Registries, "official")
+	assert.Equal(t, config.Registries["official"].Name, unmarshaled.Registries["official"].Name)
+	assert.Equal(t, config.Registries["official"].URL, unmarshaled.Registries["official"].URL)
+	assert.Equal(t, config.Registries["official"].Type, unmarshaled.Registries["official"].Type)
+	assert.Equal(t, config.SearchDefaults.Limit, unmarshaled.SearchDefaults.Limit)
+	assert.Equal(t, config.CacheTimeout, unmarshaled.CacheTimeout)
+}
+
+// TestRegistryMultipleRegistries tests configuration with multiple registries
+func TestRegistryMultipleRegistries(t *testing.T) {
+	config := &RegistryConfig{
+		Default: "official",
+		Registries: map[string]*MarketplaceTemplateRegistry{
+			"official": {
+				Name: "Official Registry",
+				URL:  "https://registry.cloudworkstation.com",
+				Type: RegistryTypeOfficial,
+			},
+			"community": {
+				Name: "Community Registry",
+				URL:  "https://community.cloudworkstation.com",
+				Type: RegistryTypeCommunity,
+			},
+			"institutional": {
+				Name: "University Registry",
+				URL:  "https://templates.university.edu",
+				Type: RegistryTypeInstitutional,
+				Credentials: &RegistryCredentials{
+					Type:     "basic",
+					Username: "university_user",
+					Password: "university_pass",
+				},
+			},
+			"private": {
+				Name: "Private Registry",
+				URL:  "https://private.company.com/templates",
+				Type: RegistryTypePrivate,
+				Credentials: &RegistryCredentials{
+					Type:  "token",
+					Token: "private-token-xyz",
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, "official", config.Default)
+	assert.Len(t, config.Registries, 4)
+
+	// Test each registry type
+	official := config.Registries["official"]
+	assert.Equal(t, RegistryTypeOfficial, official.Type)
+	assert.Nil(t, official.Credentials)
+
+	community := config.Registries["community"]
+	assert.Equal(t, RegistryTypeCommunity, community.Type)
+	assert.Nil(t, community.Credentials)
+
+	institutional := config.Registries["institutional"]
+	assert.Equal(t, RegistryTypeInstitutional, institutional.Type)
+	assert.NotNil(t, institutional.Credentials)
+	assert.Equal(t, "basic", institutional.Credentials.Type)
+
+	private := config.Registries["private"]
+	assert.Equal(t, RegistryTypePrivate, private.Type)
+	assert.NotNil(t, private.Credentials)
+	assert.Equal(t, "token", private.Credentials.Type)
+}

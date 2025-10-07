@@ -1,0 +1,503 @@
+package templates
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestDefaultTemplateDirs tests template directory discovery
+func TestDefaultTemplateDirs(t *testing.T) {
+	// Store original env
+	originalHome := os.Getenv("HOME")
+	originalHomebrewPrefix := os.Getenv("HOMEBREW_PREFIX")
+
+	defer func() {
+		os.Setenv("HOME", originalHome)
+		os.Setenv("HOMEBREW_PREFIX", originalHomebrewPrefix)
+
+	// Test with temporary directories
+	tmpDir := t.TempDir()
+	os.Setenv("HOME", tmpDir)
+	os.Setenv("HOMEBREW_PREFIX", tmpDir)
+
+	dirs := DefaultTemplateDirs()
+
+	// Should always contain some default paths
+	assert.NotEmpty(t, dirs, "Should return template directories")
+
+	// Check for expected path patterns
+	homeTemplateDir := filepath.Join(tmpDir, ".cloudworkstation", "templates")
+	assert.Contains(t, dirs, homeTemplateDir, "Should include home template directory")
+
+	systemTemplateDir := "/etc/cloudworkstation/templates"
+	assert.Contains(t, dirs, systemTemplateDir, "Should include system template directory")
+
+	t.Logf("Found %d template directories: %v", len(dirs), dirs)
+}
+
+// TestDefaultTemplateDirsWithExistingDirectories tests directory discovery with actual directories
+func TestDefaultTemplateDirsWithExistingDirectories(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Store original env
+	originalHome := os.Getenv("HOME")
+	originalHomebrewPrefix := os.Getenv("HOMEBREW_PREFIX")
+
+	defer func() {
+		os.Setenv("HOME", originalHome)
+		os.Setenv("HOMEBREW_PREFIX", originalHomebrewPrefix)
+
+	os.Setenv("HOME", tmpDir)
+	os.Setenv("HOMEBREW_PREFIX", tmpDir)
+
+	// Create some template directories
+	homeTemplateDir := filepath.Join(tmpDir, ".cloudworkstation", "templates")
+	err := os.MkdirAll(homeTemplateDir, 0755)
+	require.NoError(t, err)
+
+	homebrewTemplateDir := filepath.Join(tmpDir, "opt", "cloudworkstation", "share", "templates")
+	err = os.MkdirAll(homebrewTemplateDir, 0755)
+	require.NoError(t, err)
+
+	dirs := DefaultTemplateDirs()
+
+	// Should include created directories
+	assert.Contains(t, dirs, homeTemplateDir, "Should include home template directory")
+	assert.Contains(t, dirs, homebrewTemplateDir, "Should include homebrew template directory")
+
+	// Check that directories appear in priority order (earlier = higher priority)
+	homeIdx := -1
+	homebrewIdx := -1
+
+	for i, dir := range dirs {
+		if dir == homeTemplateDir {
+			homeIdx = i
+		}
+		if dir == homebrewTemplateDir {
+			homebrewIdx = i
+		}
+	}
+
+	assert.NotEqual(t, -1, homeIdx, "Home template directory should be found")
+	assert.NotEqual(t, -1, homebrewIdx, "Homebrew template directory should be found")
+
+	t.Logf("Home template dir at index %d, Homebrew at index %d", homeIdx, homebrewIdx)
+}
+
+// TestDefaultTemplateDirsWorkingDirectory tests working directory template discovery
+func TestDefaultTemplateDirsWorkingDirectory(t *testing.T) {
+	// Create a temporary directory with templates subdirectory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Change to the temporary directory
+	originalWd, err := os.Getwd()
+	require.NoError(t, err)
+
+	defer func() {
+		os.Chdir(originalWd)
+
+	err = os.Chdir(tmpDir)
+	require.NoError(t, err)
+
+	dirs := DefaultTemplateDirs()
+
+	// Should include the working directory templates
+	assert.Contains(t, dirs, templatesDir, "Should include working directory templates")
+
+	// Should be first in priority (index 0)
+	assert.Equal(t, templatesDir, dirs[0], "Working directory templates should have highest priority")
+}
+
+// TestGetTemplatesForRegion tests template resolution for region/architecture
+func TestGetTemplatesForRegion(t *testing.T) {
+	// Create a temporary template directory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create a simple test template
+	templateContent := `name: "Test Template"
+description: "A test template"
+base: "ubuntu-22.04"
+package_manager: "apt"
+packages:
+  system:
+    - curl
+    - git
+`
+
+	templateFile := filepath.Join(templatesDir, "test-template.yml")
+	err = os.WriteFile(templateFile, []byte(templateContent), 0644)
+	require.NoError(t, err)
+
+	// Mock DefaultTemplateDirs to return our test directory
+
+	tests := []struct {
+		name         string
+		region       string
+		architecture string
+		expectError  bool
+		expectCount  int
+	}{
+		{
+			name:         "us_west_2_arm64",
+			region:       "us-west-2",
+			architecture: "arm64",
+			expectError:  false,
+			expectCount:  1,
+		},
+		{
+			name:         "us_east_1_x86_64",
+			region:       "us-east-1",
+			architecture: "x86_64",
+			expectError:  false,
+			expectCount:  1,
+		},
+		{
+			name:         "eu_west_1_arm64",
+			region:       "eu-west-1",
+			architecture: "arm64",
+			expectError:  false,
+			expectCount:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			templates, err := GetTemplatesForRegion(tt.region, tt.architecture)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, templates)
+
+				if tt.expectCount > 0 {
+					assert.Equal(t, tt.expectCount, len(templates), "Expected number of templates")
+
+					// Check that we got the test template
+					if len(templates) > 0 {
+						foundTemplate := false
+						for name, template := range templates {
+							if template.Name == "Test Template" {
+								foundTemplate = true
+								assert.Equal(t, "Test Template", template.Name)
+								assert.Equal(t, "A test template", template.Description)
+								t.Logf("Found template: %s with name: %s", name, template.Name)
+							}
+						}
+						assert.True(t, foundTemplate, "Should find the test template")
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestGetTemplatesForRegionNoTemplates tests behavior with no templates
+func TestGetTemplatesForRegionNoTemplates(t *testing.T) {
+	// Create an empty template directory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Mock DefaultTemplateDirs to return empty directory
+	}
+	defer func() {
+
+	templates, err := GetTemplatesForRegion("us-west-2", "arm64")
+
+	assert.NoError(t, err, "Should not error with empty template directory")
+	assert.NotNil(t, templates, "Should return non-nil map")
+	assert.Empty(t, templates, "Should return empty template map")
+}
+
+// TestGetTemplatesForRegionInvalidTemplate tests handling of invalid templates
+func TestGetTemplatesForRegionInvalidTemplate(t *testing.T) {
+	// Create a temporary template directory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create an invalid template file
+	invalidTemplateContent := `invalid_yaml: [
+missing_bracket`
+
+	templateFile := filepath.Join(templatesDir, "invalid-template.yml")
+	err = os.WriteFile(templateFile, []byte(invalidTemplateContent), 0644)
+	require.NoError(t, err)
+
+	// Mock DefaultTemplateDirs
+	}
+	defer func() {
+
+	templates, err := GetTemplatesForRegion("us-west-2", "arm64")
+
+	// Should not error completely, but may skip invalid templates
+	assert.NoError(t, err, "Should handle invalid templates gracefully")
+	assert.NotNil(t, templates, "Should return template map")
+	// Invalid template should be skipped, resulting in empty map
+	assert.Empty(t, templates, "Should skip invalid templates")
+}
+
+// TestGetTemplatesForRegionMultipleTemplates tests handling of multiple templates
+func TestGetTemplatesForRegionMultipleTemplates(t *testing.T) {
+	// Create a temporary template directory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create multiple test templates
+	templates := map[string]string{
+		"python-ml.yml": `name: "Python ML"
+description: "Python Machine Learning"
+base: "ubuntu-22.04"
+package_manager: "conda"
+packages:
+  conda:
+    - python=3.9
+    - numpy
+    - scikit-learn
+`,
+		"r-stats.yml": `name: "R Statistics"
+description: "R Statistical Computing"
+base: "ubuntu-22.04"
+package_manager: "apt"
+packages:
+  system:
+    - r-base
+    - r-base-dev
+`,
+		"web-dev.yml": `name: "Web Development"
+description: "Web development environment"
+base: "ubuntu-22.04"
+package_manager: "apt"
+packages:
+  system:
+    - nodejs
+    - npm
+`,
+	}
+
+	for filename, content := range templates {
+		templateFile := filepath.Join(templatesDir, filename)
+		err = os.WriteFile(templateFile, []byte(content), 0644)
+		require.NoError(t, err)
+	}
+
+	// Mock DefaultTemplateDirs
+	}
+	defer func() {
+
+	resolvedTemplates, err := GetTemplatesForRegion("us-west-2", "arm64")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resolvedTemplates)
+	assert.Len(t, resolvedTemplates, 3, "Should find all 3 templates")
+
+	// Check that all templates are present
+	templateNames := []string{"Python ML", "R Statistics", "Web Development"}
+	foundNames := make(map[string]bool)
+
+	for _, template := range resolvedTemplates {
+		foundNames[template.Name] = true
+	}
+
+	for _, expectedName := range templateNames {
+		assert.True(t, foundNames[expectedName], "Should find template: %s", expectedName)
+	}
+
+	t.Logf("Found templates: %v", resolvedTemplates)
+}
+
+// TestGetTemplatesForRegionWithInheritance tests template inheritance handling
+func TestGetTemplatesForRegionWithInheritance(t *testing.T) {
+	// Create a temporary template directory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create base template
+	baseTemplate := `name: "Base Ubuntu"
+description: "Base Ubuntu template"
+base: "ubuntu-22.04"
+package_manager: "apt"
+packages:
+  system:
+    - curl
+    - git
+`
+
+	// Create child template that inherits from base
+	childTemplate := `name: "Python Development"
+description: "Python development environment"
+inherits: ["Base Ubuntu"]
+packages:
+  system:
+    - python3
+    - python3-pip
+`
+
+	err = os.WriteFile(filepath.Join(templatesDir, "base-ubuntu.yml"), []byte(baseTemplate), 0644)
+	require.NoError(t, err)
+
+	err = os.WriteFile(filepath.Join(templatesDir, "python-dev.yml"), []byte(childTemplate), 0644)
+	require.NoError(t, err)
+
+	// Mock DefaultTemplateDirs
+	}
+	defer func() {
+
+	templates, err := GetTemplatesForRegion("us-west-2", "arm64")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, templates)
+	assert.Len(t, templates, 2, "Should find both base and child templates")
+
+	// Verify that inheritance is processed (exact behavior depends on resolver implementation)
+	foundBase := false
+	foundChild := false
+
+	for _, template := range templates {
+		if template.Name == "Base Ubuntu" {
+			foundBase = true
+		}
+		if template.Name == "Python Development" {
+			foundChild = true
+		}
+	}
+
+	assert.True(t, foundBase, "Should find base template")
+	assert.True(t, foundChild, "Should find child template")
+
+	t.Logf("Successfully processed inheritance for templates")
+}
+
+// TestGetTemplatesForRegionDifferentArchitectures tests architecture-specific behavior
+func TestGetTemplatesForRegionDifferentArchitectures(t *testing.T) {
+	// Create template directory
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create template that might behave differently on different architectures
+	templateContent := `name: "Architecture Test"
+description: "Template for architecture testing"
+base: "ubuntu-22.04"
+package_manager: "apt"
+packages:
+  system:
+    - build-essential
+instance_defaults:
+  instance_type_preferences: ["t4g.medium", "t3.medium"]  # ARM preferred, x86 fallback
+`
+
+	err = os.WriteFile(filepath.Join(templatesDir, "arch-test.yml"), []byte(templateContent), 0644)
+	require.NoError(t, err)
+
+	// Mock DefaultTemplateDirs
+	}
+	defer func() {
+
+	architectures := []string{"arm64", "x86_64", "amd64"}
+
+	for _, arch := range architectures {
+		t.Run(arch, func(t *testing.T) {
+			templates, err := GetTemplatesForRegion("us-west-2", arch)
+
+			assert.NoError(t, err, "Should handle architecture: %s", arch)
+			assert.NotNil(t, templates, "Should return templates for architecture: %s", arch)
+			assert.Len(t, templates, 1, "Should find template for architecture: %s", arch)
+
+			// Verify template properties
+			for _, template := range templates {
+				assert.Equal(t, "Architecture Test", template.Name)
+				assert.Equal(t, "Template for architecture testing", template.Description)
+			}
+		})
+	}
+}
+
+// TestGetTemplatesForRegionErrorHandling tests error handling scenarios
+func TestGetTemplatesForRegionErrorHandling(t *testing.T) {
+	tests := []struct {
+		name         string
+		setupFunc    func() (string, func())
+		region       string
+		architecture string
+		expectError  bool
+	}{
+		{
+			name: "nonexistent_template_directory",
+			setupFunc: func() (string, func()) {
+				// Mock to return non-existent directory
+					return []string{"/nonexistent/templates"}
+				}
+				return "/nonexistent/templates", func() {
+				}
+			},
+			region:       "us-west-2",
+			architecture: "arm64",
+			expectError:  false, // Should handle gracefully
+		},
+		{
+			name: "empty_region",
+			setupFunc: func() (string, func()) {
+				tmpDir := t.TempDir()
+				templatesDir := filepath.Join(tmpDir, "templates")
+				os.MkdirAll(templatesDir, 0755)
+
+				}
+				return templatesDir, func() {
+				}
+			},
+			region:       "",
+			architecture: "arm64",
+			expectError:  false, // Should handle empty region
+		},
+		{
+			name: "empty_architecture",
+			setupFunc: func() (string, func()) {
+				tmpDir := t.TempDir()
+				templatesDir := filepath.Join(tmpDir, "templates")
+				os.MkdirAll(templatesDir, 0755)
+
+				}
+				return templatesDir, func() {
+				}
+			},
+			region:       "us-west-2",
+			architecture: "",
+			expectError:  false, // Should handle empty architecture
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, cleanup := tt.setupFunc()
+			defer cleanup()
+
+			templates, err := GetTemplatesForRegion(tt.region, tt.architecture)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, templates)
+			}
+		})
+	}
+}

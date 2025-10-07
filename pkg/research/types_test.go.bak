@@ -1,0 +1,528 @@
+package research
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// TestResearchUserConfig tests ResearchUserConfig structure and validation
+func TestResearchUserConfig(t *testing.T) {
+	now := time.Now()
+	lastUsed := now.Add(-24 * time.Hour)
+
+	config := &ResearchUserConfig{
+		Username:          "researcher",
+		UID:               5001,
+		GID:               5001,
+		FullName:          "Research User",
+		Email:             "researcher@university.edu",
+		HomeDirectory:     "/efs/home/researcher",
+		EFSVolumeID:       "fs-1234567890abcdef0",
+		EFSMountPoint:     "/efs",
+		Shell:             "/bin/bash",
+		CreateHomeDir:     true,
+		SSHPublicKeys:     []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest researcher@laptop"},
+		SSHKeyFingerprint: "SHA256:TestFingerprint",
+		SecondaryGroups:   []string{"docker", "research"},
+		SudoAccess:        true,
+		DockerAccess:      true,
+		DefaultEnvironment: map[string]string{
+			"RESEARCH_HOME": "/efs/research",
+			"PATH":          "/usr/local/bin:/usr/bin:/bin",
+		},
+		DotfileRepo:  "https://github.com/researcher/dotfiles",
+		CreatedAt:    now,
+		LastUsed:     &lastUsed,
+		ProfileOwner: "research-profile-1",
+	}
+
+	// Test basic fields
+	assert.Equal(t, "researcher", config.Username)
+	assert.Equal(t, 5001, config.UID)
+	assert.Equal(t, 5001, config.GID)
+	assert.Equal(t, "Research User", config.FullName)
+	assert.Equal(t, "researcher@university.edu", config.Email)
+
+	// Test directory configuration
+	assert.Equal(t, "/efs/home/researcher", config.HomeDirectory)
+	assert.Equal(t, "fs-1234567890abcdef0", config.EFSVolumeID)
+	assert.Equal(t, "/efs", config.EFSMountPoint)
+	assert.Equal(t, "/bin/bash", config.Shell)
+	assert.True(t, config.CreateHomeDir)
+
+	// Test SSH configuration
+	assert.Len(t, config.SSHPublicKeys, 1)
+	assert.Contains(t, config.SSHPublicKeys[0], "ssh-ed25519")
+	assert.Equal(t, "SHA256:TestFingerprint", config.SSHKeyFingerprint)
+
+	// Test permissions
+	assert.Contains(t, config.SecondaryGroups, "docker")
+	assert.Contains(t, config.SecondaryGroups, "research")
+	assert.True(t, config.SudoAccess)
+	assert.True(t, config.DockerAccess)
+
+	// Test environment
+	assert.Equal(t, "/efs/research", config.DefaultEnvironment["RESEARCH_HOME"])
+	assert.Equal(t, "/usr/local/bin:/usr/bin:/bin", config.DefaultEnvironment["PATH"])
+
+	// Test metadata
+	assert.Equal(t, "https://github.com/researcher/dotfiles", config.DotfileRepo)
+	assert.Equal(t, now, config.CreatedAt)
+	assert.NotNil(t, config.LastUsed)
+	assert.Equal(t, lastUsed, *config.LastUsed)
+	assert.Equal(t, "research-profile-1", config.ProfileOwner)
+}
+
+// TestSystemUser tests SystemUser structure
+func TestSystemUser(t *testing.T) {
+	systemUser := SystemUser{
+		Name:          "ubuntu",
+		UID:           1000,
+		GID:           1000,
+		Groups:        []string{"sudo", "admin", "users"},
+		Shell:         "/bin/bash",
+		HomeDirectory: "/home/ubuntu",
+		Environment: map[string]string{
+			"USER": "ubuntu",
+			"HOME": "/home/ubuntu",
+		},
+		Purpose:         "system",
+		TemplateCreated: true,
+	}
+
+	assert.Equal(t, "ubuntu", systemUser.Name)
+	assert.Equal(t, 1000, systemUser.UID)
+	assert.Equal(t, 1000, systemUser.GID)
+	assert.Contains(t, systemUser.Groups, "sudo")
+	assert.Contains(t, systemUser.Groups, "admin")
+	assert.Equal(t, "/bin/bash", systemUser.Shell)
+	assert.Equal(t, "/home/ubuntu", systemUser.HomeDirectory)
+	assert.Equal(t, "ubuntu", systemUser.Environment["USER"])
+	assert.Equal(t, "system", systemUser.Purpose)
+	assert.True(t, systemUser.TemplateCreated)
+}
+
+// TestDualUserSystem tests DualUserSystem structure
+func TestDualUserSystem(t *testing.T) {
+	researchUser := &ResearchUserConfig{
+		Username: "researcher",
+		UID:      5001,
+		GID:      5001,
+		FullName: "Research User",
+	}
+
+	systemUsers := []SystemUser{
+		{
+			Name:            "ubuntu",
+			UID:             1000,
+			GID:             1000,
+			Purpose:         "system",
+			TemplateCreated: true,
+		},
+		{
+			Name:            "jupyter",
+			UID:             1001,
+			GID:             1001,
+			Purpose:         "jupyter",
+			TemplateCreated: true,
+		},
+	}
+
+	dualSystem := DualUserSystem{
+		SystemUsers:         systemUsers,
+		ResearchUser:        researchUser,
+		PrimaryUser:         "researcher",
+		SharedDirectories:   []string{"/shared/data", "/shared/notebooks"},
+		EnvironmentHandling: EnvironmentPolicyMerged,
+	}
+
+	assert.Len(t, dualSystem.SystemUsers, 2)
+	assert.Equal(t, "ubuntu", dualSystem.SystemUsers[0].Name)
+	assert.Equal(t, "jupyter", dualSystem.SystemUsers[1].Name)
+	assert.NotNil(t, dualSystem.ResearchUser)
+	assert.Equal(t, "researcher", dualSystem.ResearchUser.Username)
+	assert.Equal(t, "researcher", dualSystem.PrimaryUser)
+	assert.Contains(t, dualSystem.SharedDirectories, "/shared/data")
+	assert.Equal(t, EnvironmentPolicyMerged, dualSystem.EnvironmentHandling)
+}
+
+// TestEnvironmentPolicy tests EnvironmentPolicy constants
+func TestEnvironmentPolicy(t *testing.T) {
+	// Test all policy constants exist
+	policies := []EnvironmentPolicy{
+		EnvironmentPolicyResearchPrimary,
+		EnvironmentPolicySystemPrimary,
+		EnvironmentPolicyMerged,
+		EnvironmentPolicyIsolated,
+	}
+
+	expectedPolicies := []string{
+		"research_primary",
+		"system_primary",
+		"merged",
+		"isolated",
+	}
+
+	assert.Len(t, policies, 4)
+	for i, policy := range policies {
+		assert.Equal(t, expectedPolicies[i], string(policy))
+	}
+}
+
+// TestResearchUserConfigValidation tests validation scenarios
+func TestResearchUserConfigValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   ResearchUserConfig
+		isValid  bool
+		errorMsg string
+	}{
+		{
+			name: "valid_complete_config",
+			config: ResearchUserConfig{
+				Username:      "validuser",
+				UID:           5001,
+				GID:           5001,
+				FullName:      "Valid User",
+				Email:         "valid@example.com",
+				HomeDirectory: "/efs/home/validuser",
+				Shell:         "/bin/bash",
+				CreatedAt:     time.Now(),
+				ProfileOwner:  "test-profile",
+			},
+			isValid: true,
+		},
+		{
+			name: "valid_minimal_config",
+			config: ResearchUserConfig{
+				Username:     "minuser",
+				UID:          5002,
+				GID:          5002,
+				CreatedAt:    time.Now(),
+				ProfileOwner: "test-profile",
+			},
+			isValid: true,
+		},
+		{
+			name: "invalid_empty_username",
+			config: ResearchUserConfig{
+				Username: "",
+				UID:      5003,
+				GID:      5003,
+			},
+			isValid:  false,
+			errorMsg: "username cannot be empty",
+		},
+		{
+			name: "invalid_uid_too_low",
+			config: ResearchUserConfig{
+				Username: "lowuid",
+				UID:      999, // Below research user range
+				GID:      5003,
+			},
+			isValid:  false,
+			errorMsg: "UID should be in research user range",
+		},
+		{
+			name: "valid_email_formats",
+			config: ResearchUserConfig{
+				Username: "emailtest",
+				UID:      5004,
+				GID:      5004,
+				Email:    "test@university.edu",
+			},
+			isValid: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Basic structural validation
+			if tt.isValid {
+				assert.NotEmpty(t, tt.config.Username, "Valid config should have username")
+				if tt.config.UID > 0 {
+					assert.Greater(t, tt.config.UID, 0, "UID should be positive")
+				}
+				if tt.config.GID > 0 {
+					assert.Greater(t, tt.config.GID, 0, "GID should be positive")
+				}
+			} else {
+				// Test specific validation rules
+				switch tt.errorMsg {
+				case "username cannot be empty":
+					assert.Empty(t, tt.config.Username, "Should have empty username")
+				case "UID should be in research user range":
+					assert.Less(t, tt.config.UID, ResearchUserBaseUID, "UID should be below research range")
+				}
+			}
+		})
+	}
+}
+
+// TestSystemUserPurposes tests common system user purposes
+func TestSystemUserPurposes(t *testing.T) {
+	commonPurposes := []string{
+		"system",
+		"jupyter",
+		"rstudio",
+		"application",
+		"service",
+		"database",
+	}
+
+	systemUsers := make([]SystemUser, len(commonPurposes))
+	for i, purpose := range commonPurposes {
+		systemUsers[i] = SystemUser{
+			Name:            fmt.Sprintf("%s-user", purpose),
+			UID:             1000 + i,
+			GID:             1000 + i,
+			Purpose:         purpose,
+			TemplateCreated: true,
+		}
+	}
+
+	assert.Len(t, systemUsers, len(commonPurposes))
+
+	for i, user := range systemUsers {
+		assert.Equal(t, commonPurposes[i], user.Purpose)
+		assert.True(t, user.TemplateCreated)
+		assert.Equal(t, 1000+i, user.UID)
+	}
+}
+
+// TestDualUserSystemValidation tests dual user system validation
+func TestDualUserSystemValidation(t *testing.T) {
+	tests := []struct {
+		name       string
+		system     DualUserSystem
+		isValid    bool
+		validation string
+	}{
+		{
+			name: "valid_research_primary",
+			system: DualUserSystem{
+				SystemUsers: []SystemUser{
+					{Name: "ubuntu", UID: 1000, Purpose: "system"},
+				},
+				ResearchUser: &ResearchUserConfig{
+					Username: "researcher",
+					UID:      5001,
+				},
+				PrimaryUser:         "researcher",
+				EnvironmentHandling: EnvironmentPolicyResearchPrimary,
+			},
+			isValid:    true,
+			validation: "research user should be primary",
+		},
+		{
+			name: "valid_system_primary",
+			system: DualUserSystem{
+				SystemUsers: []SystemUser{
+					{Name: "ubuntu", UID: 1000, Purpose: "system"},
+				},
+				ResearchUser: &ResearchUserConfig{
+					Username: "researcher",
+					UID:      5001,
+				},
+				PrimaryUser:         "ubuntu",
+				EnvironmentHandling: EnvironmentPolicySystemPrimary,
+			},
+			isValid:    true,
+			validation: "system user should be primary",
+		},
+		{
+			name: "valid_shared_directories",
+			system: DualUserSystem{
+				SharedDirectories: []string{
+					"/shared/data",
+					"/shared/notebooks",
+					"/shared/results",
+				},
+			},
+			isValid:    true,
+			validation: "should have multiple shared directories",
+		},
+		{
+			name: "valid_isolated_environment",
+			system: DualUserSystem{
+				EnvironmentHandling: EnvironmentPolicyIsolated,
+			},
+			isValid:    true,
+			validation: "isolated environment should be valid",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.isValid {
+				// Test basic structure validation
+				if tt.system.ResearchUser != nil {
+					assert.NotEmpty(t, tt.system.ResearchUser.Username, "Research user should have username")
+				}
+
+				if len(tt.system.SystemUsers) > 0 {
+					for _, user := range tt.system.SystemUsers {
+						assert.NotEmpty(t, user.Name, "System user should have name")
+						assert.Greater(t, user.UID, 0, "System user should have positive UID")
+					}
+				}
+
+				if tt.system.PrimaryUser != "" {
+					assert.NotEmpty(t, tt.system.PrimaryUser, "Primary user should be specified")
+				}
+
+				if len(tt.system.SharedDirectories) > 0 {
+					for _, dir := range tt.system.SharedDirectories {
+						assert.NotEmpty(t, dir, "Shared directory should not be empty")
+						assert.True(t, strings.HasPrefix(dir, "/"), "Shared directory should be absolute path")
+					}
+				}
+
+				// Test environment policy validation
+				validPolicies := []EnvironmentPolicy{
+					EnvironmentPolicyResearchPrimary,
+					EnvironmentPolicySystemPrimary,
+					EnvironmentPolicyMerged,
+					EnvironmentPolicyIsolated,
+				}
+				if tt.system.EnvironmentHandling != "" {
+					assert.Contains(t, validPolicies, tt.system.EnvironmentHandling, "Environment policy should be valid")
+				}
+			}
+		})
+	}
+}
+
+// TestResearchUserConfigDefaults tests default values and initialization
+func TestResearchUserConfigDefaults(t *testing.T) {
+	// Test minimal config with defaults
+	config := &ResearchUserConfig{
+		Username:     "testuser",
+		ProfileOwner: "test-profile",
+		CreatedAt:    time.Now(),
+	}
+
+	// Test that required fields are set
+	assert.NotEmpty(t, config.Username)
+	assert.NotEmpty(t, config.ProfileOwner)
+	assert.False(t, config.CreatedAt.IsZero())
+
+	// Test default shell if not specified
+	if config.Shell == "" {
+		config.Shell = "/bin/bash" // Default shell
+	}
+	assert.Equal(t, "/bin/bash", config.Shell)
+
+	// Test default home directory pattern
+	if config.HomeDirectory == "" {
+		config.HomeDirectory = fmt.Sprintf("/home/%s", config.Username)
+	}
+	assert.Equal(t, "/home/testuser", config.HomeDirectory)
+
+	// Test default environment initialization
+	if config.DefaultEnvironment == nil {
+		config.DefaultEnvironment = make(map[string]string)
+	}
+	assert.NotNil(t, config.DefaultEnvironment)
+
+	// Test default SSH keys initialization
+	if config.SSHPublicKeys == nil {
+		config.SSHPublicKeys = make([]string, 0)
+	}
+	assert.NotNil(t, config.SSHPublicKeys)
+
+	// Test default secondary groups initialization
+	if config.SecondaryGroups == nil {
+		config.SecondaryGroups = make([]string, 0)
+	}
+	assert.NotNil(t, config.SecondaryGroups)
+}
+
+// TestEnvironmentPolicyBehavior tests environment policy behavior patterns
+func TestEnvironmentPolicyBehavior(t *testing.T) {
+	researchEnv := map[string]string{
+		"RESEARCH_HOME": "/efs/research",
+		"PATH":          "/usr/local/bin:/usr/bin",
+		"PYTHON_PATH":   "/opt/research/python",
+	}
+
+	systemEnv := map[string]string{
+		"USER":        "ubuntu",
+		"HOME":        "/home/ubuntu",
+		"PATH":        "/usr/bin:/bin",
+		"SYSTEM_PATH": "/opt/system",
+	}
+
+	testCases := []struct {
+		policy          EnvironmentPolicy
+		expectedBehavior string
+	}{
+		{
+			policy:           EnvironmentPolicyResearchPrimary,
+			expectedBehavior: "research environment should take precedence in conflicts",
+		},
+		{
+			policy:           EnvironmentPolicySystemPrimary,
+			expectedBehavior: "system environment should take precedence in conflicts",
+		},
+		{
+			policy:           EnvironmentPolicyMerged,
+			expectedBehavior: "environments should be merged with research winning conflicts",
+		},
+		{
+			policy:           EnvironmentPolicyIsolated,
+			expectedBehavior: "environments should be kept completely separate",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(string(tc.policy), func(t *testing.T) {
+			// Test that policy enum is valid
+			assert.NotEmpty(t, string(tc.policy))
+
+			// Simulate environment merging behavior based on policy
+			var result map[string]string
+
+			switch tc.policy {
+			case EnvironmentPolicyResearchPrimary:
+				result = make(map[string]string)
+				for k, v := range systemEnv {
+					result[k] = v
+				}
+				for k, v := range researchEnv {
+					result[k] = v // Research wins conflicts
+				}
+				assert.Equal(t, "/usr/local/bin:/usr/bin", result["PATH"], "Research PATH should win")
+
+			case EnvironmentPolicySystemPrimary:
+				result = make(map[string]string)
+				for k, v := range researchEnv {
+					result[k] = v
+				}
+				for k, v := range systemEnv {
+					result[k] = v // System wins conflicts
+				}
+				assert.Equal(t, "/usr/bin:/bin", result["PATH"], "System PATH should win")
+
+			case EnvironmentPolicyMerged:
+				result = make(map[string]string)
+				for k, v := range systemEnv {
+					result[k] = v
+				}
+				for k, v := range researchEnv {
+					result[k] = v // Research wins conflicts in merged mode
+				}
+				assert.Contains(t, result, "RESEARCH_HOME", "Should have research-specific vars")
+				assert.Contains(t, result, "SYSTEM_PATH", "Should have system-specific vars")
+
+			case EnvironmentPolicyIsolated:
+				// In isolated mode, environments are kept separate
+				assert.NotEqual(t, researchEnv, systemEnv, "Environments should be different")
+				assert.Contains(t, researchEnv, "RESEARCH_HOME", "Research env should have research vars")
+				assert.Contains(t, systemEnv, "SYSTEM_PATH", "System env should have system vars")
+			}
+		})
+	}
+}

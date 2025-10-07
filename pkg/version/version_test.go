@@ -20,32 +20,32 @@ func TestGetVersion(t *testing.T) {
 
 func TestSemVer(t *testing.T) {
 	tests := []struct {
-		name           string
-		version        string
-		expectedMajor  int
-		expectedMinor  int
-		expectedPatch  int
+		name          string
+		version       string
+		expectedMajor int
+		expectedMinor int
+		expectedPatch int
 	}{
 		{
-			name:           "valid semantic version",
-			version:        "1.2.3",
-			expectedMajor:  1,
-			expectedMinor:  2,
-			expectedPatch:  3,
+			name:          "valid semantic version",
+			version:       "1.2.3",
+			expectedMajor: 1,
+			expectedMinor: 2,
+			expectedPatch: 3,
 		},
 		{
-			name:           "zero version",
-			version:        "0.0.0",
-			expectedMajor:  0,
-			expectedMinor:  0,
-			expectedPatch:  0,
+			name:          "zero version",
+			version:       "0.0.0",
+			expectedMajor: 0,
+			expectedMinor: 0,
+			expectedPatch: 0,
 		},
 		{
-			name:           "single digit version",
-			version:        "5.10.15",
-			expectedMajor:  5,
-			expectedMinor:  10,
-			expectedPatch:  15,
+			name:          "single digit version",
+			version:       "5.10.15",
+			expectedMajor: 5,
+			expectedMinor: 10,
+			expectedPatch: 15,
 		},
 	}
 

@@ -32,7 +32,7 @@ func NewRegistry(config *MarketplaceConfig) *Registry {
 func (r *Registry) SearchTemplates(query SearchQuery) ([]*CommunityTemplate, error) {
 	// For now, implement in-memory search
 	// In production, this would query DynamoDB with proper indexing
-	var results []*CommunityTemplate
+	results := make([]*CommunityTemplate, 0)
 
 	for _, template := range r.templateCache {
 		if r.matchesQuery(template, query) {
@@ -208,7 +208,7 @@ func (r *Registry) UnpublishTemplate(templateID string) error {
 
 // GetUserPublications returns templates published by a specific user
 func (r *Registry) GetUserPublications(userID string) ([]*CommunityTemplate, error) {
-	var publications []*CommunityTemplate
+	publications := make([]*CommunityTemplate, 0)
 
 	for _, template := range r.templateCache {
 		if template.Author == userID {
@@ -319,6 +319,7 @@ func (r *Registry) ForkTemplate(templateID string, fork *TemplateFork) (*Communi
 
 	// Update fork count on original template
 	originalTemplate.ForkCount++
+	r.templateCache[templateID] = originalTemplate
 
 	return forkedTemplate, nil
 }
@@ -426,6 +427,21 @@ func (r *Registry) matchesCategoryFilters(template *CommunityTemplate, query Sea
 	if query.Author != "" && template.Author != query.Author {
 		return false
 	}
+
+	// Check if template has all required tags
+	if len(query.Tags) > 0 {
+		templateTags := make(map[string]bool)
+		for _, tag := range template.Tags {
+			templateTags[strings.ToLower(tag)] = true
+		}
+
+		for _, requiredTag := range query.Tags {
+			if !templateTags[strings.ToLower(requiredTag)] {
+				return false // Template doesn't have this required tag
+			}
+		}
+	}
+
 	return true
 }
 
@@ -593,6 +609,9 @@ func (r *Registry) updateRatingMetrics(template *CommunityTemplate, newRating in
 	totalRating := template.Rating * float64(template.ReviewCount)
 	template.ReviewCount++
 	template.Rating = (totalRating + float64(newRating)) / float64(template.ReviewCount)
+
+	// Update the cache with modified template
+	r.templateCache[template.TemplateID] = template
 }
 
 func (r *Registry) trackUsage(templateID string, event *UsageEvent) {
@@ -610,6 +629,9 @@ func (r *Registry) trackUsage(templateID string, event *UsageEvent) {
 	case "view":
 		// Just tracking, no metric update
 	}
+
+	// Update the cache with modified template
+	r.templateCache[templateID] = template
 }
 
 func (r *Registry) generateMockReviews(templateID string) []*TemplateReview {

@@ -31,9 +31,11 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -62,6 +64,8 @@ type App struct {
 	templateCommands *TemplateCommands        // Template management commands
 	systemCommands   *SystemCommands          // System and daemon management commands
 	scalingCommands  *ScalingCommands         // Scaling and rightsizing commands
+	snapshotCommands *SnapshotCommands        // Instance snapshot management commands
+	backupCommands   *BackupCommands          // Data backup and restore management commands
 	testMode         bool                     // Skip actual SSH execution in tests
 }
 
@@ -88,10 +92,14 @@ func NewApp(version string) *App {
 		apiURL = envURL
 	}
 
+	// Load API key from daemon state if available
+	apiKey := loadAPIKeyFromState()
+
 	// Create API client with configuration
 	baseClient := client.NewClientWithOptions(apiURL, client.Options{
 		AWSProfile: config.AWS.Profile,
 		AWSRegion:  config.AWS.Region,
+		APIKey:     apiKey,
 	})
 
 	// Create app
@@ -110,6 +118,8 @@ func NewApp(version string) *App {
 	app.templateCommands = NewTemplateCommands(app)
 	app.systemCommands = NewSystemCommands(app)
 	app.scalingCommands = NewScalingCommands(app)
+	app.snapshotCommands = NewSnapshotCommands(app)
+	app.backupCommands = NewBackupCommands(app)
 
 	// Initialize TUI command
 	app.tuiCommand = NewTUICommand()
@@ -131,7 +141,11 @@ func (a *App) ensureDaemonRunning() error {
 
 	// Check if daemon is already running
 	if err := a.apiClient.Ping(a.ctx); err == nil {
-		return nil // Already running
+		// Daemon is running, check version compatibility
+		if err := a.checkVersionCompatibility(); err != nil {
+			return fmt.Errorf("version compatibility check failed: %w", err)
+		}
+		return nil // Already running and compatible
 	}
 
 	// Auto-start daemon with user feedback
@@ -149,7 +163,18 @@ func (a *App) ensureDaemonRunning() error {
 	}
 
 	fmt.Println(DaemonAutoStartSuccessMessage)
+
+	// Check version compatibility after successful start
+	if err := a.checkVersionCompatibility(); err != nil {
+		return fmt.Errorf("version compatibility check failed after daemon auto-start: %w", err)
+	}
+
 	return nil
+}
+
+// checkVersionCompatibility verifies that the CLI and daemon versions are compatible
+func (a *App) checkVersionCompatibility() error {
+	return a.apiClient.CheckVersionCompatibility(a.ctx, a.version)
 }
 
 // NewAppWithClient creates a new CLI application with a custom API client
@@ -184,6 +209,8 @@ func NewAppWithClient(version string, apiClient client.CloudWorkstationAPI) *App
 	app.templateCommands = NewTemplateCommands(app)
 	app.systemCommands = NewSystemCommands(app)
 	app.scalingCommands = NewScalingCommands(app)
+	app.snapshotCommands = NewSnapshotCommands(app)
+	app.backupCommands = NewBackupCommands(app)
 
 	// Initialize TUI command
 	app.tuiCommand = NewTUICommand()
@@ -701,6 +728,11 @@ func (a *App) Connect(args []string) error {
 	return a.instanceCommands.Connect(args)
 }
 
+// Exec handles the exec command
+func (a *App) Exec(args []string) error {
+	return a.instanceCommands.Exec(args)
+}
+
 // executeSSHCommand executes the SSH command and transfers control to the SSH process
 func (a *App) executeSSHCommand(connectionInfo, instanceName string) error {
 	fmt.Printf("🔗 Connecting to %s...\n", instanceName)
@@ -760,6 +792,21 @@ func (a *App) Volume(args []string) error {
 // Storage handles storage commands
 func (a *App) Storage(args []string) error {
 	return a.storageCommands.Storage(args)
+}
+
+// Snapshot handles instance snapshot commands
+func (a *App) Snapshot(args []string) error {
+	return a.snapshotCommands.Snapshot(args)
+}
+
+// Backup handles data backup commands
+func (a *App) Backup(args []string) error {
+	return a.backupCommands.Backup(args)
+}
+
+// Restore handles data restore commands
+func (a *App) Restore(args []string) error {
+	return a.backupCommands.Restore(args)
 }
 
 // Templates handles the templates command
@@ -1010,32 +1057,187 @@ func (a *App) projectInfo(args []string) error {
 
 func (a *App) projectBudget(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project budget <name> [options]")
+		return fmt.Errorf("usage: cws project budget <action> <project> [options]")
 	}
 
-	name := args[0]
+	action := args[0]
+	remainingArgs := args[1:]
 
-	// Show budget status (for now, just get project info and show budget)
-	project, err := a.apiClient.GetProject(a.ctx, name)
+	switch action {
+	case "status":
+		return a.projectBudgetStatus(remainingArgs)
+	case "set", "enable":
+		return a.projectBudgetSet(remainingArgs)
+	case "update":
+		return a.projectBudgetUpdate(remainingArgs)
+	case "disable":
+		return a.projectBudgetDisable(remainingArgs)
+	case "history":
+		return a.projectBudgetHistory(remainingArgs)
+	default:
+		// Legacy support: if first arg is not a subcommand, assume it's a project name for status
+		return a.projectBudgetStatus(args)
+	}
+}
+
+func (a *App) projectBudgetStatus(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project budget status <project>")
+	}
+
+	projectName := args[0]
+
+	// Get detailed budget status
+	budgetStatus, err := a.apiClient.GetProjectBudgetStatus(a.ctx, projectName)
 	if err != nil {
-		return fmt.Errorf("failed to get project: %w", err)
+		return fmt.Errorf("failed to get budget status: %w", err)
 	}
 
-	fmt.Printf("💰 Budget Status for '%s':\n", name)
-	if project.Budget != nil && project.Budget.TotalBudget > 0 {
-		fmt.Printf("   Total Budget: $%.2f\n", project.Budget.TotalBudget)
-		fmt.Printf("   Spent: $%.2f (%.1f%%)\n",
-			project.Budget.SpentAmount,
-			(project.Budget.SpentAmount/project.Budget.TotalBudget)*100)
-		fmt.Printf("   Remaining: $%.2f\n", project.Budget.TotalBudget-project.Budget.SpentAmount)
-	} else {
-		fmt.Printf("   Budget: Unlimited\n")
-		if project.Budget != nil {
-			fmt.Printf("   Total Spent: $%.2f\n", project.Budget.SpentAmount)
-		} else {
-			fmt.Printf("   Total Spent: $0.00\n")
+	fmt.Printf("💰 Budget Status for '%s':\n", projectName)
+
+	if !budgetStatus.BudgetEnabled {
+		fmt.Printf("   Budget: Not enabled\n")
+		fmt.Printf("   💡 Enable cost tracking with: cws project budget set %s <amount>\n", projectName)
+		return nil
+	}
+
+	fmt.Printf("   Total Budget: $%.2f\n", budgetStatus.TotalBudget)
+	fmt.Printf("   Spent: $%.2f (%.1f%%)\n",
+		budgetStatus.SpentAmount,
+		budgetStatus.SpentPercentage*100)
+	fmt.Printf("   Remaining: $%.2f\n", budgetStatus.RemainingBudget)
+
+	if budgetStatus.ProjectedMonthlySpend > 0 {
+		fmt.Printf("   Projected Monthly: $%.2f\n", budgetStatus.ProjectedMonthlySpend)
+	}
+
+	if budgetStatus.DaysUntilBudgetExhausted != nil {
+		fmt.Printf("   Days Until Exhausted: %d\n", *budgetStatus.DaysUntilBudgetExhausted)
+	}
+
+	if len(budgetStatus.ActiveAlerts) > 0 {
+		fmt.Printf("   🚨 Active Alerts:\n")
+		for _, alert := range budgetStatus.ActiveAlerts {
+			fmt.Printf("      • %s\n", alert)
 		}
 	}
+
+	if len(budgetStatus.TriggeredActions) > 0 {
+		fmt.Printf("   ⚡ Recent Actions:\n")
+		for _, action := range budgetStatus.TriggeredActions {
+			fmt.Printf("      • %s\n", action)
+		}
+	}
+
+	return nil
+}
+
+func (a *App) projectBudgetSet(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: cws project budget set <project> <amount> [options]")
+	}
+
+	projectName := args[0]
+	budgetAmount, err := strconv.ParseFloat(args[1], 64)
+	if err != nil {
+		return fmt.Errorf("invalid budget amount: %s", args[1])
+	}
+
+	if budgetAmount <= 0 {
+		return fmt.Errorf("budget amount must be greater than 0")
+	}
+
+	// Parse additional flags (simplified parsing for now)
+	req := client.SetProjectBudgetRequest{
+		TotalBudget:     budgetAmount,
+		BudgetPeriod:    types.BudgetPeriodProject,
+		AlertThresholds: []types.BudgetAlert{},
+		AutoActions:     []types.BudgetAutoAction{},
+	}
+
+	// TODO: Parse flags like --monthly-limit, --daily-limit, --alert, etc.
+	// For now, set some sensible defaults
+
+	// Add a default 80% warning alert
+	req.AlertThresholds = append(req.AlertThresholds, types.BudgetAlert{
+		Threshold: 0.8,
+		Type:      types.BudgetAlertEmail,
+		Enabled:   true,
+	})
+
+	response, err := a.apiClient.SetProjectBudget(a.ctx, projectName, req)
+	if err != nil {
+		return fmt.Errorf("failed to set budget: %w", err)
+	}
+
+	fmt.Printf("✅ Budget configured for project '%s'\n", projectName)
+	fmt.Printf("   Total Budget: $%.2f\n", budgetAmount)
+	fmt.Printf("   Cost tracking enabled\n")
+
+	if message, ok := response["message"].(string); ok {
+		fmt.Printf("   %s\n", message)
+	}
+
+	return nil
+}
+
+func (a *App) projectBudgetUpdate(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project budget update <project> [options]")
+	}
+
+	projectName := args[0]
+
+	// For now, implement basic update - this would be enhanced with flag parsing
+	req := client.UpdateProjectBudgetRequest{}
+
+	response, err := a.apiClient.UpdateProjectBudget(a.ctx, projectName, req)
+	if err != nil {
+		return fmt.Errorf("failed to update budget: %w", err)
+	}
+
+	fmt.Printf("✅ Budget updated for project '%s'\n", projectName)
+
+	if message, ok := response["message"].(string); ok {
+		fmt.Printf("   %s\n", message)
+	}
+
+	return nil
+}
+
+func (a *App) projectBudgetDisable(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project budget disable <project>")
+	}
+
+	projectName := args[0]
+
+	response, err := a.apiClient.DisableProjectBudget(a.ctx, projectName)
+	if err != nil {
+		return fmt.Errorf("failed to disable budget: %w", err)
+	}
+
+	fmt.Printf("✅ Budget disabled for project '%s'\n", projectName)
+	fmt.Printf("   Cost tracking stopped\n")
+
+	if message, ok := response["message"].(string); ok {
+		fmt.Printf("   %s\n", message)
+	}
+
+	return nil
+}
+
+func (a *App) projectBudgetHistory(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: cws project budget history <project> [--days N]")
+	}
+
+	projectName := args[0]
+
+	// For now, show a placeholder - this would be enhanced with actual cost history data
+	fmt.Printf("📊 Budget History for '%s':\n", projectName)
+	fmt.Printf("   (Cost history functionality would be implemented here)\n")
+	fmt.Printf("   💡 Use 'cws project budget status %s' for current spending\n", projectName)
 
 	return nil
 }
@@ -1227,4 +1429,32 @@ func (a *App) projectDelete(args []string) error {
 
 	fmt.Printf("🗑️ Project '%s' has been deleted\n", name)
 	return nil
+}
+
+// loadAPIKeyFromState attempts to load the API key from daemon state
+func loadAPIKeyFromState() string {
+	// Try to load daemon state to get API key
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "" // No API key available
+	}
+
+	stateFile := filepath.Join(homeDir, ".cloudworkstation", "state.json")
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		return "" // No state file or can't read it
+	}
+
+	// Parse state to extract API key
+	var state struct {
+		Config struct {
+			APIKey string `json:"api_key"`
+		} `json:"config"`
+	}
+
+	if err := json.Unmarshal(data, &state); err != nil {
+		return "" // Invalid state format
+	}
+
+	return state.Config.APIKey
 }

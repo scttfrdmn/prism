@@ -16,8 +16,8 @@ import (
 	"time"
 )
 
-// TemplateRegistry provides centralized template discovery and management
-type TemplateRegistry struct {
+// MarketplaceTemplateRegistry provides centralized template discovery and management
+type MarketplaceTemplateRegistry struct {
 	Name        string
 	URL         string
 	Type        RegistryType
@@ -37,25 +37,25 @@ const (
 
 // RegistryCredentials holds authentication information for private registries
 type RegistryCredentials struct {
-	Type     string `json:"type"`     // token, basic, ssh_key
+	Type     string `json:"type"` // token, basic, ssh_key
 	Token    string `json:"token,omitempty"`
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 	SSHKey   string `json:"ssh_key,omitempty"`
 }
 
-// TemplateRegistryEntry represents a template entry in the registry
-type TemplateRegistryEntry struct {
+// MarketplaceTemplateRegistryEntry represents a template entry in the registry
+type MarketplaceTemplateRegistryEntry struct {
 	*Template
 
 	// Registry-specific metadata
-	RegistryName   string    `json:"registry_name"`
-	RegistryType   string    `json:"registry_type"`
-	LastSynced     time.Time `json:"last_synced"`
+	RegistryName string    `json:"registry_name"`
+	RegistryType string    `json:"registry_type"`
+	LastSynced   time.Time `json:"last_synced"`
 
 	// Enhanced search metadata
-	SearchTags     []string  `json:"search_tags"`     // Computed from template content
-	PopularityRank int       `json:"popularity_rank"` // Registry-specific ranking
+	SearchTags     []string `json:"search_tags"`     // Computed from template content
+	PopularityRank int      `json:"popularity_rank"` // Registry-specific ranking
 }
 
 // SearchFilter defines criteria for template marketplace searches
@@ -65,17 +65,17 @@ type SearchFilter struct {
 	Keywords []string `json:"keywords,omitempty"`
 
 	// Classification filters
-	Categories   []string            `json:"categories,omitempty"`
-	Domains      []string            `json:"domains,omitempty"`
-	Complexity   []TemplateComplexity `json:"complexity,omitempty"`
+	Categories []string             `json:"categories,omitempty"`
+	Domains    []string             `json:"domains,omitempty"`
+	Complexity []TemplateComplexity `json:"complexity,omitempty"`
 
 	// Quality filters
-	MinRating        float64  `json:"min_rating,omitempty"`
-	VerifiedOnly     bool     `json:"verified_only,omitempty"`
-	ValidatedOnly    bool     `json:"validated_only,omitempty"`
+	MinRating     float64 `json:"min_rating,omitempty"`
+	VerifiedOnly  bool    `json:"verified_only,omitempty"`
+	ValidatedOnly bool    `json:"validated_only,omitempty"`
 
 	// Registry filters
-	Registries   []string     `json:"registries,omitempty"`
+	Registries    []string       `json:"registries,omitempty"`
 	RegistryTypes []RegistryType `json:"registry_types,omitempty"`
 
 	// Feature filters
@@ -91,17 +91,17 @@ type SearchFilter struct {
 }
 
 // SearchResult contains paginated search results
-type SearchResult struct {
-	Templates    []TemplateRegistryEntry `json:"templates"`
-	TotalCount   int                     `json:"total_count"`
-	FilteredCount int                    `json:"filtered_count"`
-	Query        SearchFilter            `json:"query"`
-	ExecutionTime time.Duration          `json:"execution_time"`
+type MarketplaceSearchResult struct {
+	Templates     []MarketplaceTemplateRegistryEntry `json:"templates"`
+	TotalCount    int                                `json:"total_count"`
+	FilteredCount int                                `json:"filtered_count"`
+	Query         SearchFilter                       `json:"query"`
+	ExecutionTime time.Duration                      `json:"execution_time"`
 }
 
-// NewTemplateRegistry creates a new registry client
-func NewTemplateRegistry(name, url string, registryType RegistryType) *TemplateRegistry {
-	return &TemplateRegistry{
+// NewMarketplaceTemplateRegistry creates a new registry client
+func NewMarketplaceRegistry(name, url string, registryType RegistryType) *MarketplaceTemplateRegistry {
+	return &MarketplaceTemplateRegistry{
 		Name:   name,
 		URL:    url,
 		Type:   registryType,
@@ -110,12 +110,12 @@ func NewTemplateRegistry(name, url string, registryType RegistryType) *TemplateR
 }
 
 // SetCredentials configures authentication for private registries
-func (r *TemplateRegistry) SetCredentials(creds *RegistryCredentials) {
+func (r *MarketplaceTemplateRegistry) SetCredentials(creds *RegistryCredentials) {
 	r.Credentials = creds
 }
 
 // Search performs a template search across the registry
-func (r *TemplateRegistry) Search(ctx context.Context, filter SearchFilter) (*SearchResult, error) {
+func (r *MarketplaceTemplateRegistry) Search(ctx context.Context, filter SearchFilter) (*MarketplaceSearchResult, error) {
 	if filter.Limit == 0 {
 		filter.Limit = 50 // Default page size
 	}
@@ -162,7 +162,7 @@ func (r *TemplateRegistry) Search(ctx context.Context, filter SearchFilter) (*Se
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var result SearchResult
+	var result MarketplaceSearchResult
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse search response: %w", err)
 	}
@@ -174,7 +174,7 @@ func (r *TemplateRegistry) Search(ctx context.Context, filter SearchFilter) (*Se
 }
 
 // GetTemplate retrieves a specific template from the registry
-func (r *TemplateRegistry) GetTemplate(ctx context.Context, name, version string) (*TemplateRegistryEntry, error) {
+func (r *MarketplaceTemplateRegistry) GetTemplate(ctx context.Context, name, version string) (*MarketplaceTemplateRegistryEntry, error) {
 	templateURL := fmt.Sprintf("%s/api/v1/templates/%s", r.URL, url.PathEscape(name))
 	if version != "" {
 		templateURL += "?version=" + url.QueryEscape(version)
@@ -207,7 +207,7 @@ func (r *TemplateRegistry) GetTemplate(ctx context.Context, name, version string
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	var entry TemplateRegistryEntry
+	var entry MarketplaceTemplateRegistryEntry
 	if err := json.Unmarshal(body, &entry); err != nil {
 		return nil, fmt.Errorf("failed to parse template response: %w", err)
 	}
@@ -216,7 +216,7 @@ func (r *TemplateRegistry) GetTemplate(ctx context.Context, name, version string
 }
 
 // ListCategories returns available template categories in the registry
-func (r *TemplateRegistry) ListCategories(ctx context.Context) ([]string, error) {
+func (r *MarketplaceTemplateRegistry) ListCategories(ctx context.Context) ([]string, error) {
 	categoriesURL := fmt.Sprintf("%s/api/v1/categories", r.URL)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", categoriesURL, nil)
@@ -252,7 +252,7 @@ func (r *TemplateRegistry) ListCategories(ctx context.Context) ([]string, error)
 }
 
 // PublishTemplate uploads a template to the registry (for writable registries)
-func (r *TemplateRegistry) PublishTemplate(ctx context.Context, template *Template) error {
+func (r *MarketplaceTemplateRegistry) PublishTemplate(ctx context.Context, template *Template) error {
 	if r.Type == RegistryTypeOfficial {
 		return fmt.Errorf("cannot publish to official registry")
 	}
@@ -272,7 +272,7 @@ func (r *TemplateRegistry) PublishTemplate(ctx context.Context, template *Templa
 	req.Header.Set("Content-Type", "application/json")
 
 	if err := r.addAuth(req); err != nil {
-		return nil, fmt.Errorf("failed to add authentication: %w", err)
+		return fmt.Errorf("failed to add authentication: %w", err)
 	}
 
 	resp, err := r.Client.Do(req)
@@ -290,7 +290,7 @@ func (r *TemplateRegistry) PublishTemplate(ctx context.Context, template *Templa
 }
 
 // buildSearchURL constructs the search API URL with filters
-func (r *TemplateRegistry) buildSearchURL(filter SearchFilter) (string, error) {
+func (r *MarketplaceTemplateRegistry) buildSearchURL(filter SearchFilter) (string, error) {
 	baseURL, err := url.Parse(fmt.Sprintf("%s/api/v1/search", r.URL))
 	if err != nil {
 		return "", err
@@ -354,7 +354,7 @@ func (r *TemplateRegistry) buildSearchURL(filter SearchFilter) (string, error) {
 }
 
 // addAuth adds authentication headers to the request
-func (r *TemplateRegistry) addAuth(req *http.Request) error {
+func (r *MarketplaceTemplateRegistry) addAuth(req *http.Request) error {
 	if r.Credentials == nil {
 		return nil // No authentication required
 	}
@@ -371,21 +371,21 @@ func (r *TemplateRegistry) addAuth(req *http.Request) error {
 	return nil
 }
 
-// TemplateRegistryManager manages multiple template registries
-type TemplateRegistryManager struct {
-	registries map[string]*TemplateRegistry
+// MarketplaceTemplateRegistryManager manages multiple template registries
+type MarketplaceTemplateRegistryManager struct {
+	registries      map[string]*MarketplaceTemplateRegistry
 	defaultRegistry string
 }
 
-// NewTemplateRegistryManager creates a new registry manager
-func NewTemplateRegistryManager() *TemplateRegistryManager {
-	return &TemplateRegistryManager{
-		registries: make(map[string]*TemplateRegistry),
+// NewMarketplaceTemplateRegistryManager creates a new registry manager
+func NewMarketplaceTemplateRegistryManager() *MarketplaceTemplateRegistryManager {
+	return &MarketplaceTemplateRegistryManager{
+		registries: make(map[string]*MarketplaceTemplateRegistry),
 	}
 }
 
 // AddRegistry adds a registry to the manager
-func (m *TemplateRegistryManager) AddRegistry(registry *TemplateRegistry) {
+func (m *MarketplaceTemplateRegistryManager) AddRegistry(registry *MarketplaceTemplateRegistry) {
 	m.registries[registry.Name] = registry
 
 	// Set first official registry as default
@@ -399,13 +399,13 @@ func (m *TemplateRegistryManager) AddRegistry(registry *TemplateRegistry) {
 }
 
 // SearchAll searches across all configured registries
-func (m *TemplateRegistryManager) SearchAll(ctx context.Context, filter SearchFilter) (*SearchResult, error) {
+func (m *MarketplaceTemplateRegistryManager) SearchAll(ctx context.Context, filter SearchFilter) (*MarketplaceSearchResult, error) {
 	if len(m.registries) == 0 {
-		return &SearchResult{Templates: []TemplateRegistryEntry{}, TotalCount: 0}, nil
+		return &MarketplaceSearchResult{Templates: []MarketplaceTemplateRegistryEntry{}, TotalCount: 0}, nil
 	}
 
 	startTime := time.Now()
-	allResults := make([]TemplateRegistryEntry, 0)
+	allResults := make([]MarketplaceTemplateRegistryEntry, 0)
 	totalCount := 0
 
 	// Search each registry
@@ -464,7 +464,7 @@ func (m *TemplateRegistryManager) SearchAll(ctx context.Context, filter SearchFi
 		limit = 50
 	}
 
-	var paginatedResults []TemplateRegistryEntry
+	var paginatedResults []MarketplaceTemplateRegistryEntry
 	if offset < len(allResults) {
 		end := offset + limit
 		if end > len(allResults) {
@@ -473,7 +473,7 @@ func (m *TemplateRegistryManager) SearchAll(ctx context.Context, filter SearchFi
 		paginatedResults = allResults[offset:end]
 	}
 
-	return &SearchResult{
+	return &MarketplaceSearchResult{
 		Templates:     paginatedResults,
 		TotalCount:    totalCount,
 		FilteredCount: len(allResults),
@@ -483,18 +483,18 @@ func (m *TemplateRegistryManager) SearchAll(ctx context.Context, filter SearchFi
 }
 
 // GetRegistry returns a specific registry by name
-func (m *TemplateRegistryManager) GetRegistry(name string) (*TemplateRegistry, bool) {
+func (m *MarketplaceTemplateRegistryManager) GetRegistry(name string) (*MarketplaceTemplateRegistry, bool) {
 	registry, exists := m.registries[name]
 	return registry, exists
 }
 
 // ListRegistries returns all configured registries
-func (m *TemplateRegistryManager) ListRegistries() map[string]*TemplateRegistry {
+func (m *MarketplaceTemplateRegistryManager) ListRegistries() map[string]*MarketplaceTemplateRegistry {
 	return m.registries
 }
 
 // sortResults sorts template results by the specified criteria
-func (m *TemplateRegistryManager) sortResults(results []TemplateRegistryEntry, sortBy, sortOrder string) {
+func (m *MarketplaceTemplateRegistryManager) sortResults(results []MarketplaceTemplateRegistryEntry, sortBy, sortOrder string) {
 	switch sortBy {
 	case "popularity":
 		sort.Slice(results, func(i, j int) bool {

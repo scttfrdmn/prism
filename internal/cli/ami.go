@@ -20,7 +20,7 @@ import (
 // AMI processes AMI-related commands
 func (a *App) AMI(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing AMI command (build, list, validate, publish, save, resolve, test, costs, preview, create, status)")
+		return fmt.Errorf("missing AMI command (build, list, validate, publish, save, resolve, test, costs, preview, create, status, cleanup, delete, snapshot)")
 	}
 
 	subcommand := args[0]
@@ -51,6 +51,13 @@ func (a *App) AMI(args []string) error {
 		return a.handleAMICreate(subargs)
 	case "status":
 		return a.handleAMIStatus(subargs)
+	// AMI Lifecycle Management commands
+	case "cleanup":
+		return a.handleAMICleanup(subargs)
+	case "delete":
+		return a.handleAMIDelete(subargs)
+	case "snapshot":
+		return a.handleAMISnapshot(subargs)
 	default:
 		return fmt.Errorf("unknown AMI command: %s", subcommand)
 	}
@@ -365,7 +372,7 @@ func parseCmdArgs(args []string) map[string]string {
 				value = "true"
 			}
 
-			fmt.Printf("DEBUG: Parsed arg '%s' = '%s'\n", key, value)
+			// Parse successful
 			result[key] = value
 		}
 	}
@@ -1482,6 +1489,385 @@ func (a *App) handleAMIListUser(args []string) error {
 	}
 
 	fmt.Printf("💡 Use an AMI by creating a template or referencing in launch commands\n")
+
+	return nil
+}
+
+// AMI Lifecycle Management Commands
+
+// handleAMICleanup removes old and unused AMIs
+func (a *App) handleAMICleanup(args []string) error {
+	cmdArgs := parseCmdArgs(args)
+
+	// Parse command line arguments
+	dryRun := cmdArgs["dry-run"] != ""
+	force := cmdArgs["force"] != ""
+	maxAge := cmdArgs["max-age"]
+	if maxAge == "" {
+		maxAge = "30d" // Default to 30 days
+	}
+
+	// Display confirmation warning
+	if !dryRun && !force {
+		fmt.Printf("⚠️  AMI Cleanup Operation\n")
+		fmt.Printf("This will identify and remove AMIs older than %s\n", maxAge)
+		fmt.Printf("💡 Use --dry-run to preview which AMIs would be deleted\n")
+		fmt.Printf("💡 Use --force to skip this confirmation\n\n")
+
+		fmt.Printf("Continue? (y/N): ")
+		var response string
+		_, _ = fmt.Scanln(&response)
+		if !(strings.ToLower(response) == "y" || strings.ToLower(response) == "yes") {
+			fmt.Println("Operation cancelled")
+			return nil
+		}
+	}
+
+	// Prepare cleanup request
+	request := map[string]interface{}{
+		"max_age": maxAge,
+		"dry_run": dryRun,
+	}
+
+	// Make API call
+	response, err := a.apiClient.CleanupAMIs(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup AMIs: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("🧹 AMI Cleanup Results\n\n")
+
+	if dryRun {
+		fmt.Printf("🔍 DRY RUN - No AMIs were actually deleted\n\n")
+	}
+
+	totalFound := getInt(response, "total_found")
+	totalRemoved := getInt(response, "total_removed")
+	costSavings := getFloat(response, "storage_savings_monthly")
+
+	fmt.Printf("📊 Summary:\n")
+	fmt.Printf("   AMIs found: %d\n", totalFound)
+	if dryRun {
+		fmt.Printf("   AMIs would be removed: %d\n", totalRemoved)
+		fmt.Printf("   Estimated monthly savings: $%.2f\n", costSavings)
+	} else {
+		fmt.Printf("   AMIs removed: %d\n", totalRemoved)
+		fmt.Printf("   Monthly storage savings: $%.2f\n", costSavings)
+	}
+
+	// Display detailed results if available
+	if removedAMIs := getSlice(response, "removed_amis"); len(removedAMIs) > 0 {
+		fmt.Printf("\n📀 %s AMIs:\n", map[bool]string{true: "Would remove", false: "Removed"}[dryRun])
+		for _, ami := range removedAMIs {
+			if amiMap := getMap(ami, ""); amiMap != nil {
+				fmt.Printf("   • %s (%s) - Created %s\n",
+					getString(amiMap, "ami_id"),
+					getString(amiMap, "name"),
+					getString(amiMap, "creation_date"))
+			}
+		}
+	}
+
+	if !dryRun && totalRemoved > 0 {
+		fmt.Printf("\n✅ Cleanup completed successfully!\n")
+	} else if dryRun {
+		fmt.Printf("\n💡 Run without --dry-run to perform the actual cleanup\n")
+	}
+
+	return nil
+}
+
+// handleAMIDelete deletes a specific AMI by ID
+func (a *App) handleAMIDelete(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami delete <ami-id> [--force] [--deregister-only]")
+	}
+
+	amiID := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+	force := cmdArgs["force"] != ""
+	deregisterOnly := cmdArgs["deregister-only"] != ""
+
+	// Display confirmation warning
+	if !force {
+		fmt.Printf("⚠️  AMI Deletion Warning\n")
+		fmt.Printf("AMI ID: %s\n", amiID)
+		if deregisterOnly {
+			fmt.Printf("Operation: Deregister AMI (keep snapshots)\n")
+		} else {
+			fmt.Printf("Operation: Delete AMI and associated snapshots\n")
+		}
+		fmt.Printf("\n💡 This operation cannot be undone\n")
+		fmt.Printf("💡 Use --force to skip this confirmation\n\n")
+
+		fmt.Printf("Continue? (y/N): ")
+		var response string
+		_, _ = fmt.Scanln(&response)
+		if !(strings.ToLower(response) == "y" || strings.ToLower(response) == "yes") {
+			fmt.Println("Operation cancelled")
+			return nil
+		}
+	}
+
+	// Prepare deletion request
+	request := map[string]interface{}{
+		"ami_id":          amiID,
+		"deregister_only": deregisterOnly,
+	}
+
+	fmt.Printf("🗑️  Deleting AMI %s...\n", amiID)
+
+	// Make API call
+	response, err := a.apiClient.DeleteAMI(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to delete AMI: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("\n✅ AMI deletion completed successfully!\n\n")
+	fmt.Printf("📋 Details:\n")
+	fmt.Printf("   AMI ID: %s\n", getString(response, "ami_id"))
+	fmt.Printf("   Status: %s\n", getString(response, "status"))
+
+	if deletedSnapshots := getSlice(response, "deleted_snapshots"); len(deletedSnapshots) > 0 && !deregisterOnly {
+		fmt.Printf("   Deleted snapshots: %d\n", len(deletedSnapshots))
+		fmt.Printf("   Storage savings: $%.2f/month\n", getFloat(response, "storage_savings_monthly"))
+	} else if deregisterOnly {
+		fmt.Printf("   Snapshots: Preserved (deregister-only mode)\n")
+	}
+
+	return nil
+}
+
+// handleAMISnapshot manages AMI snapshots and creates AMIs from snapshots
+func (a *App) handleAMISnapshot(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami snapshot <subcommand>\n" +
+			"Subcommands:\n" +
+			"  list                    List available snapshots\n" +
+			"  create <instance-id>    Create snapshot from instance\n" +
+			"  restore <snapshot-id>   Create AMI from snapshot\n" +
+			"  delete <snapshot-id>    Delete a snapshot")
+	}
+
+	subcommand := args[0]
+	subargs := args[1:]
+
+	switch subcommand {
+	case "list":
+		return a.handleAMISnapshotList(subargs)
+	case "create":
+		return a.handleAMISnapshotCreate(subargs)
+	case "restore":
+		return a.handleAMISnapshotRestore(subargs)
+	case "delete":
+		return a.handleAMISnapshotDelete(subargs)
+	default:
+		return fmt.Errorf("unknown snapshot command: %s", subcommand)
+	}
+}
+
+// handleAMISnapshotList lists available snapshots
+func (a *App) handleAMISnapshotList(args []string) error {
+	cmdArgs := parseCmdArgs(args)
+
+	// Optional filters
+	filters := make(map[string]interface{})
+	if instanceID := cmdArgs["instance-id"]; instanceID != "" {
+		filters["instance_id"] = instanceID
+	}
+	if maxAge := cmdArgs["max-age"]; maxAge != "" {
+		filters["max_age"] = maxAge
+	}
+
+	// Make API call
+	response, err := a.apiClient.ListAMISnapshots(a.ctx, filters)
+	if err != nil {
+		return fmt.Errorf("failed to list snapshots: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("📸 AMI Snapshots\n\n")
+
+	snapshots := getSlice(response, "snapshots")
+	if len(snapshots) == 0 {
+		fmt.Printf("No snapshots found.\n")
+		fmt.Printf("💡 Create one with: cws ami snapshot create <instance-id>\n")
+		return nil
+	}
+
+	fmt.Printf("Found %d snapshots:\n\n", len(snapshots))
+
+	for i, snapshot := range snapshots {
+		if snapshotMap := getMap(snapshot, ""); snapshotMap != nil {
+			fmt.Printf("📸 Snapshot %d:\n", i+1)
+			fmt.Printf("   🆔 ID: %s\n", getString(snapshotMap, "snapshot_id"))
+			fmt.Printf("   💾 Volume ID: %s\n", getString(snapshotMap, "volume_id"))
+			fmt.Printf("   📊 Size: %d GB\n", getInt(snapshotMap, "volume_size"))
+			fmt.Printf("   🏷️  Description: %s\n", getString(snapshotMap, "description"))
+			fmt.Printf("   📅 Created: %s\n", getString(snapshotMap, "start_time"))
+			fmt.Printf("   ⚡ State: %s\n", getString(snapshotMap, "state"))
+			fmt.Printf("   📈 Progress: %s\n", getString(snapshotMap, "progress"))
+			fmt.Printf("   💰 Storage cost: $%.3f/month\n", getFloat(snapshotMap, "storage_cost_monthly"))
+			fmt.Printf("\n")
+		}
+	}
+
+	totalCost := getFloat(response, "total_storage_cost_monthly")
+	fmt.Printf("💰 Total monthly storage cost: $%.2f\n", totalCost)
+
+	return nil
+}
+
+// handleAMISnapshotCreate creates a snapshot from an instance
+func (a *App) handleAMISnapshotCreate(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami snapshot create <instance-id> [--description <desc>] [--no-reboot]")
+	}
+
+	instanceID := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Prepare snapshot creation request
+	request := map[string]interface{}{
+		"instance_id": instanceID,
+		"no_reboot":   cmdArgs["no-reboot"] != "",
+	}
+
+	if description := cmdArgs["description"]; description != "" {
+		request["description"] = description
+	} else {
+		request["description"] = fmt.Sprintf("Snapshot of instance %s created on %s",
+			instanceID, time.Now().Format("2006-01-02 15:04:05"))
+	}
+
+	fmt.Printf("📸 Creating snapshot of instance %s...\n", instanceID)
+
+	if request["no_reboot"] == false {
+		fmt.Printf("⚠️  Instance will be temporarily stopped to ensure consistent snapshot\n")
+	}
+
+	// Make API call
+	response, err := a.apiClient.CreateAMISnapshot(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to create snapshot: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("\n✅ Snapshot creation initiated successfully!\n\n")
+	fmt.Printf("📋 Details:\n")
+	fmt.Printf("   🆔 Snapshot ID: %s\n", getString(response, "snapshot_id"))
+	fmt.Printf("   💾 Volume ID: %s\n", getString(response, "volume_id"))
+	fmt.Printf("   📊 Volume Size: %d GB\n", getInt(response, "volume_size"))
+	fmt.Printf("   ⏱️  Estimated completion: %d minutes\n", getInt(response, "estimated_completion_minutes"))
+	fmt.Printf("   💰 Storage cost: $%.3f/month\n", getFloat(response, "storage_cost_monthly"))
+
+	fmt.Printf("\n💡 Check progress with: cws ami snapshot list --instance-id %s\n", instanceID)
+
+	return nil
+}
+
+// handleAMISnapshotRestore creates an AMI from a snapshot
+func (a *App) handleAMISnapshotRestore(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami snapshot restore <snapshot-id> --name <ami-name> [--description <desc>] [--architecture <arch>]")
+	}
+
+	snapshotID := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Validate required parameters
+	amiName := cmdArgs["name"]
+	if amiName == "" {
+		return fmt.Errorf("AMI name is required (use --name <ami-name>)")
+	}
+
+	// Prepare restore request
+	request := map[string]interface{}{
+		"snapshot_id": snapshotID,
+		"name":        amiName,
+	}
+
+	if description := cmdArgs["description"]; description != "" {
+		request["description"] = description
+	} else {
+		request["description"] = fmt.Sprintf("AMI restored from snapshot %s", snapshotID)
+	}
+
+	if architecture := cmdArgs["architecture"]; architecture != "" {
+		request["architecture"] = architecture
+	} else {
+		request["architecture"] = "x86_64" // Default
+	}
+
+	fmt.Printf("🔄 Restoring AMI from snapshot %s...\n", snapshotID)
+
+	// Make API call
+	response, err := a.apiClient.RestoreAMIFromSnapshot(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to restore AMI from snapshot: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("\n✅ AMI restore initiated successfully!\n\n")
+	fmt.Printf("📋 Details:\n")
+	fmt.Printf("   🆔 AMI ID: %s\n", getString(response, "ami_id"))
+	fmt.Printf("   📝 Name: %s\n", getString(response, "name"))
+	fmt.Printf("   📸 Source Snapshot: %s\n", getString(response, "snapshot_id"))
+	fmt.Printf("   🏛️  Architecture: %s\n", getString(response, "architecture"))
+	fmt.Printf("   ⏱️  Estimated completion: %d minutes\n", getInt(response, "estimated_completion_minutes"))
+
+	fmt.Printf("\n💡 Check status with: cws ami status %s\n", getString(response, "ami_id"))
+
+	return nil
+}
+
+// handleAMISnapshotDelete deletes a specific snapshot
+func (a *App) handleAMISnapshotDelete(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws ami snapshot delete <snapshot-id> [--force]")
+	}
+
+	snapshotID := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+	force := cmdArgs["force"] != ""
+
+	// Display confirmation warning
+	if !force {
+		fmt.Printf("⚠️  Snapshot Deletion Warning\n")
+		fmt.Printf("Snapshot ID: %s\n", snapshotID)
+		fmt.Printf("\n💡 This operation cannot be undone\n")
+		fmt.Printf("💡 Use --force to skip this confirmation\n\n")
+
+		fmt.Printf("Continue? (y/N): ")
+		var response string
+		_, _ = fmt.Scanln(&response)
+		if !(strings.ToLower(response) == "y" || strings.ToLower(response) == "yes") {
+			fmt.Println("Operation cancelled")
+			return nil
+		}
+	}
+
+	// Prepare deletion request
+	request := map[string]interface{}{
+		"snapshot_id": snapshotID,
+	}
+
+	fmt.Printf("🗑️  Deleting snapshot %s...\n", snapshotID)
+
+	// Make API call
+	response, err := a.apiClient.DeleteAMISnapshot(a.ctx, request)
+	if err != nil {
+		return fmt.Errorf("failed to delete snapshot: %w", err)
+	}
+
+	// Display results
+	fmt.Printf("\n✅ Snapshot deletion completed successfully!\n\n")
+	fmt.Printf("📋 Details:\n")
+	fmt.Printf("   🆔 Snapshot ID: %s\n", getString(response, "snapshot_id"))
+	fmt.Printf("   📊 Size: %d GB\n", getInt(response, "volume_size"))
+	fmt.Printf("   💰 Monthly savings: $%.3f\n", getFloat(response, "storage_savings_monthly"))
 
 	return nil
 }

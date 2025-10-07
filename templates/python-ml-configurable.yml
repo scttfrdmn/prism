@@ -87,7 +87,6 @@ parameters:
 # Template-level variables
 variables:
   CONDA_ENV_NAME: "ml-env"
-  JUPYTER_PORT: "8888"
 
 # Package management
 package_manager: "conda"
@@ -189,6 +188,13 @@ post_install: |
   # Create Jupyter service
   mkdir -p /home/{{.user_name}}/.jupyter
   chown -R {{.user_name}}:{{.user_name}} /home/{{.user_name}}/.jupyter
+
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 10
+  hibernate_threshold_minutes: 20
+  check_interval_minutes: 5
 
 # Instance defaults with GPU conditional
 instance_defaults:

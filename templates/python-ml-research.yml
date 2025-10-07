@@ -84,13 +84,10 @@ instance_defaults:
 
 # Idle detection optimized for ML workloads
 idle_detection:
-  cpu_threshold: 10
-  memory_threshold: 15
-  gpu_threshold: 5  # ML workloads can have low GPU util during data loading
-  network_threshold: 1
-  disk_threshold: 5
-  check_interval: 300  # 5 minutes
-  idle_minutes: 30     # 30 minutes idle before action
+  enabled: true
+  idle_threshold_minutes: 30  # 30 minutes for ML workloads
+  hibernate_threshold_minutes: 60  # 1 hour before hibernation
+  check_interval_minutes: 5
 
 version: "2.0.0"
 maintainer: "CloudWorkstation Team"

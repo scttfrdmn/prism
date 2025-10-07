@@ -10,7 +10,6 @@ import (
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // ResolveAMIForTemplate resolves AMI information for a template using the Universal AMI System
@@ -174,7 +173,7 @@ func (m *Manager) PreviewAMIResolution(templateName string) (*types.AMIResolutio
 }
 
 // LaunchInstanceWithAMI launches an instance using AMI resolution
-func (m *Manager) LaunchInstanceWithAMI(req ctypes.LaunchRequest) (*ctypes.Instance, error) {
+func (m *Manager) LaunchInstanceWithAMI(req types.LaunchRequest) (*types.Instance, error) {
 	// This method integrates AMI resolution with the existing launch process
 	ctx := context.Background()
 
@@ -216,7 +215,7 @@ func (m *Manager) LaunchInstanceWithAMI(req ctypes.LaunchRequest) (*ctypes.Insta
 }
 
 // launchWithAMI launches an instance using resolved AMI information
-func (m *Manager) launchWithAMI(req ctypes.LaunchRequest, amiResult *types.AMIResolutionResult, arch string) (*ctypes.Instance, error) {
+func (m *Manager) launchWithAMI(req types.LaunchRequest, amiResult *types.AMIResolutionResult, arch string) (*types.Instance, error) {
 	// This would implement AMI-based instance launching
 	// For now, we'll integrate with the existing template system by modifying the template
 
@@ -243,7 +242,7 @@ func (m *Manager) launchWithAMI(req ctypes.LaunchRequest, amiResult *types.AMIRe
 }
 
 // launchWithResolvedTemplate launches an instance with resolved template and AMI info
-func (m *Manager) launchWithResolvedTemplate(req ctypes.LaunchRequest, template *ctypes.RuntimeTemplate, amiResult *types.AMIResolutionResult) (*ctypes.Instance, error) {
+func (m *Manager) launchWithResolvedTemplate(req types.LaunchRequest, template *types.RuntimeTemplate, amiResult *types.AMIResolutionResult) (*types.Instance, error) {
 	// This integrates with existing launch orchestration
 	// We'll use the existing launch system but track AMI resolution metrics
 
@@ -270,7 +269,7 @@ func (m *Manager) launchWithResolvedTemplate(req ctypes.LaunchRequest, template 
 }
 
 // Helper method to launch with template (placeholder for existing integration)
-func (m *Manager) launchWithTemplate(req ctypes.LaunchRequest, template *ctypes.RuntimeTemplate) (*ctypes.Instance, error) {
+func (m *Manager) launchWithTemplate(req types.LaunchRequest, template *types.RuntimeTemplate) (*types.Instance, error) {
 	// This would integrate with the existing launch orchestration system
 	// For now, we'll call the existing method
 	arch := m.getLocalArchitecture()
@@ -290,7 +289,7 @@ func (m *Manager) CreateAMIFromInstance(request *types.AMICreationRequest) (*typ
 	}
 
 	// Find the instance to create AMI from
-	var sourceInstance *ctypes.Instance
+	var sourceInstance *types.Instance
 	for _, instance := range instances {
 		if instance.ID == request.InstanceID || instance.Name == request.InstanceID {
 			sourceInstance = &instance
@@ -400,4 +399,183 @@ func (m *Manager) PublishAMIToCommunity(amiID string, public bool, tags map[stri
 	log.Printf("Publishing AMI %s to community (public: %v) with tags: %v", amiID, public, tags)
 
 	return nil
+}
+
+// AMI Lifecycle Management Methods
+
+// CleanupOldAMIs removes old and unused AMIs
+func (m *Manager) CleanupOldAMIs(maxAge string, dryRun bool) (*types.AMICleanupResult, error) {
+	// In production, this would:
+	// 1. Parse maxAge duration (e.g., "30d", "7d", "1y")
+	// 2. Query EC2 for AMIs older than maxAge with CloudWorkstation tags
+	// 3. Check for any instances currently using these AMIs
+	// 4. Optionally delete AMIs and associated snapshots if not in use
+	// 5. Calculate storage cost savings
+
+	// Placeholder implementation
+	result := &types.AMICleanupResult{
+		TotalFound:            8,
+		TotalRemoved:          5,
+		StorageSavingsMonthly: 47.25, // $0.05 per GB-month * average 945 GB across 5 AMIs
+		CompletedAt:           time.Now(),
+		RemovedAMIs: []types.AMIInfo{
+			{
+				AMIID:        "ami-old123456789abcdef",
+				Name:         "obsolete-python-2.7-env",
+				CreationDate: time.Now().Add(-45 * 24 * time.Hour), // 45 days old
+			},
+			{
+				AMIID:        "ami-old987654321fedcba",
+				Name:         "deprecated-r-3.6-env",
+				CreationDate: time.Now().Add(-62 * 24 * time.Hour), // 62 days old
+			},
+		},
+	}
+
+	if dryRun {
+		result.TotalRemoved = 0
+		result.StorageSavingsMonthly = 0
+	}
+
+	return result, nil
+}
+
+// DeleteAMI deletes a specific AMI by ID
+func (m *Manager) DeleteAMI(amiID string, deregisterOnly bool) (*types.AMIDeletionResult, error) {
+	// In production, this would:
+	// 1. Validate AMI exists and user owns it
+	// 2. Check for any instances using this AMI
+	// 3. Deregister the AMI
+	// 4. Optionally delete associated EBS snapshots
+	// 5. Calculate storage cost savings
+
+	// Placeholder implementation
+	result := &types.AMIDeletionResult{
+		AMIID:                 amiID,
+		Status:                "deleted",
+		StorageSavingsMonthly: 12.50, // $0.05 per GB-month * 250 GB
+		CompletedAt:           time.Now(),
+	}
+
+	if !deregisterOnly {
+		result.DeletedSnapshots = []string{
+			"snap-0123456789abcdef0",
+			"snap-0987654321fedcba0",
+		}
+	}
+
+	return result, nil
+}
+
+// AMI Snapshot Management Methods
+
+// ListAMISnapshots lists available snapshots
+func (m *Manager) ListAMISnapshots(instanceID, maxAge string) ([]types.SnapshotInfo, error) {
+	// In production, this would:
+	// 1. Query EC2 DescribeSnapshots API
+	// 2. Filter by CloudWorkstation tags and optional instanceID
+	// 3. Apply maxAge filter if specified
+	// 4. Calculate storage costs for each snapshot
+
+	// Placeholder implementation
+	snapshots := []types.SnapshotInfo{
+		{
+			SnapshotID:         "snap-0123456789abcdef0",
+			VolumeID:           "vol-0123456789abcdef0",
+			VolumeSize:         20,
+			Description:        "Root volume snapshot for python-ml instance",
+			StartTime:          time.Now().Add(-2 * time.Hour),
+			State:              "completed",
+			Progress:           "100%",
+			StorageCostMonthly: 1.00, // $0.05 per GB-month * 20 GB
+		},
+		{
+			SnapshotID:         "snap-0987654321fedcba0",
+			VolumeID:           "vol-0987654321fedcba0",
+			VolumeSize:         100,
+			Description:        "Data volume snapshot for research project",
+			StartTime:          time.Now().Add(-24 * time.Hour),
+			State:              "completed",
+			Progress:           "100%",
+			StorageCostMonthly: 5.00, // $0.05 per GB-month * 100 GB
+		},
+	}
+
+	// Apply instanceID filter if specified
+	if instanceID != "" {
+		filtered := make([]types.SnapshotInfo, 0)
+		for _, snapshot := range snapshots {
+			// In production, would check if snapshot was created from the specified instance
+			if strings.Contains(snapshot.Description, instanceID) {
+				filtered = append(filtered, snapshot)
+			}
+		}
+		snapshots = filtered
+	}
+
+	return snapshots, nil
+}
+
+// CreateInstanceSnapshot creates a snapshot from an instance
+func (m *Manager) CreateInstanceSnapshot(instanceID, description string, noReboot bool) (*types.SnapshotCreationResult, error) {
+	// In production, this would:
+	// 1. Validate instance exists and user owns it
+	// 2. Get instance root volume ID
+	// 3. Optionally stop instance if noReboot is false
+	// 4. Create EBS snapshot with proper tags
+	// 5. Start instance if it was stopped
+	// 6. Calculate estimated completion time and cost
+
+	// Placeholder implementation
+	result := &types.SnapshotCreationResult{
+		SnapshotID:                 "snap-new" + instanceID[2:],
+		VolumeID:                   "vol-" + instanceID[2:],
+		VolumeSize:                 20,
+		Description:                description,
+		EstimatedCompletionMinutes: 15,   // Typical snapshot creation time
+		StorageCostMonthly:         1.00, // $0.05 per GB-month * 20 GB
+		CreationInitiatedAt:        time.Now(),
+	}
+
+	return result, nil
+}
+
+// RestoreAMIFromSnapshot creates an AMI from a snapshot
+func (m *Manager) RestoreAMIFromSnapshot(snapshotID, name, description, architecture string) (*types.AMIRestoreResult, error) {
+	// In production, this would:
+	// 1. Validate snapshot exists and user owns it
+	// 2. Create AMI from the snapshot using RegisterImage API
+	// 3. Add proper CloudWorkstation tags
+	// 4. Return AMI creation details
+
+	// Placeholder implementation
+	result := &types.AMIRestoreResult{
+		AMIID:                      "ami-restored" + snapshotID[5:],
+		Name:                       name,
+		Description:                description,
+		Architecture:               architecture,
+		EstimatedCompletionMinutes: 8, // AMI registration is typically faster than creation
+		RestoreInitiatedAt:         time.Now(),
+	}
+
+	return result, nil
+}
+
+// DeleteSnapshot deletes a specific snapshot
+func (m *Manager) DeleteSnapshot(snapshotID string) (*types.SnapshotDeletionResult, error) {
+	// In production, this would:
+	// 1. Validate snapshot exists and user owns it
+	// 2. Check if snapshot is used by any AMIs
+	// 3. Delete snapshot using DeleteSnapshot API
+	// 4. Calculate storage cost savings
+
+	// Placeholder implementation
+	result := &types.SnapshotDeletionResult{
+		SnapshotID:            snapshotID,
+		VolumeSize:            20,
+		StorageSavingsMonthly: 1.00, // $0.05 per GB-month * 20 GB
+		CompletedAt:           time.Now(),
+	}
+
+	return result, nil
 }

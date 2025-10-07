@@ -91,11 +91,13 @@ type InstanceCommandFactory struct {
 func (f *InstanceCommandFactory) CreateCommands() []*cobra.Command {
 	return []*cobra.Command{
 		f.createConnectCommand(),
+		f.createExecCommand(),
 		f.createStopCommand(),
 		f.createStartCommand(),
 		f.createDeleteCommand(),
 		f.createHibernateCommand(),
 		f.createResumeCommand(),
+		f.createResizeCommand(),
 	}
 }
 
@@ -109,6 +111,41 @@ func (f *InstanceCommandFactory) createConnectCommand() *cobra.Command {
 			return f.app.Connect(args)
 		},
 	}
+}
+
+func (f *InstanceCommandFactory) createExecCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "exec <instance-name> <command>",
+		Short: "Execute a command on a workstation",
+		Long: `Execute a command remotely on a cloud workstation via AWS Systems Manager.
+
+This command provides powerful remote execution capabilities with support for:
+• Custom user execution (--user flag)
+• Working directory specification (--working-dir flag)
+• Environment variable setting (--env flag)
+• Command timeout configuration (--timeout flag)
+• Verbose output and execution details (--verbose flag)
+
+Examples:
+  cws exec my-workstation "ls -la"                    # List directory contents
+  cws exec my-workstation "python script.py" --user researcher --timeout 60
+  cws exec my-workstation "cd /data && df -h" --working-dir /data
+  cws exec my-workstation "export VAR=value && echo $VAR" --env=VAR=value`,
+		Args: cobra.MinimumNArgs(2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			return f.app.Exec(args)
+		},
+	}
+
+	// Add flags for exec command
+	cmd.Flags().String("user", "", "Execute command as specific user")
+	cmd.Flags().String("working-dir", "", "Set working directory for command execution")
+	cmd.Flags().Int("timeout", 30, "Command timeout in seconds")
+	cmd.Flags().StringArray("env", []string{}, "Set environment variables (format: KEY=VALUE)")
+	cmd.Flags().BoolP("interactive", "i", false, "Interactive execution mode")
+	cmd.Flags().BoolP("verbose", "v", false, "Show verbose execution details")
+
+	return cmd
 }
 
 func (f *InstanceCommandFactory) createStopCommand() *cobra.Command {
@@ -171,6 +208,64 @@ If not hibernated, performs regular start operation.`,
 			return f.app.Resume(args)
 		},
 	}
+}
+
+func (f *InstanceCommandFactory) createResizeCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "resize <name>",
+		Short: "Resize a workstation instance type or size",
+		Long: `Resize a cloud workstation to change its instance type, CPU, memory, or storage.
+
+This command provides flexible resizing capabilities with support for:
+• T-shirt sizes (--size XS, S, M, L, XL) for simple scaling
+• Direct instance type specification (--instance-type c5.large)
+• Dry-run preview of resize operations (--dry-run)
+• Force execution without confirmation prompts (--force)
+• Wait for resize completion with progress monitoring (--wait)
+
+The resize operation requires instance shutdown and will cause 2-5 minutes of downtime.
+All data and configuration are preserved during the resize operation.
+
+Examples:
+  cws resize my-workstation --size L                  # Resize to Large t-shirt size
+  cws resize gpu-training --instance-type p3.2xlarge # Resize to specific GPU instance
+  cws resize my-analysis --size XL --dry-run         # Preview resize to Extra Large
+  cws resize my-server --size M --wait               # Resize and wait for completion`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			instanceCommands := NewInstanceCommands(f.app)
+
+			// Convert Cobra flags to args format expected by Resize method
+			resizeArgs := []string{args[0]} // instance name
+
+			if size, _ := cmd.Flags().GetString("size"); size != "" {
+				resizeArgs = append(resizeArgs, "--size", size)
+			}
+			if instanceType, _ := cmd.Flags().GetString("instance-type"); instanceType != "" {
+				resizeArgs = append(resizeArgs, "--instance-type", instanceType)
+			}
+			if dryRun, _ := cmd.Flags().GetBool("dry-run"); dryRun {
+				resizeArgs = append(resizeArgs, "--dry-run")
+			}
+			if force, _ := cmd.Flags().GetBool("force"); force {
+				resizeArgs = append(resizeArgs, "--force")
+			}
+			if wait, _ := cmd.Flags().GetBool("wait"); wait {
+				resizeArgs = append(resizeArgs, "--wait")
+			}
+
+			return instanceCommands.Resize(resizeArgs)
+		},
+	}
+
+	// Add resize-specific flags
+	cmd.Flags().String("size", "", "T-shirt size: XS, S, M, L, XL")
+	cmd.Flags().String("instance-type", "", "AWS instance type (e.g., c5.large, m5.xlarge)")
+	cmd.Flags().Bool("dry-run", false, "Preview resize operation without executing")
+	cmd.Flags().Bool("force", false, "Skip confirmation prompts")
+	cmd.Flags().Bool("wait", false, "Wait for resize completion with progress monitoring")
+
+	return cmd
 }
 
 // TemplateCommandFactory creates template management commands
@@ -274,6 +369,10 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 		rootCmd.AddCommand(cmd)
 	}
 
+	// Logs command
+	logsCommands := NewLogsCommands(r.app)
+	rootCmd.AddCommand(logsCommands.CreateLogsCommand())
+
 	// Template commands
 	templateFactory := &TemplateCommandFactory{app: r.app}
 	for _, cmd := range templateFactory.CreateCommands() {
@@ -288,37 +387,60 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	projectCobra := NewProjectCobraCommands(r.app)
 	rootCmd.AddCommand(projectCobra.CreateProjectCommand())
 
-	// User commands (Phase 5A.2)
-	userFactory := &UserCommandFactory{app: r.app}
-	for _, cmd := range userFactory.CreateCommands() {
-		rootCmd.AddCommand(cmd)
-	}
+	// Budget commands (comprehensive financial management)
+	budgetCommands := NewBudgetCommands(r.app)
+	rootCmd.AddCommand(budgetCommands.CreateBudgetCommand())
 
-	// Admin commands (system administration)
-	adminFactory := &AdminCommandFactory{app: r.app}
-	for _, cmd := range adminFactory.CreateCommands() {
-		rootCmd.AddCommand(cmd)
-	}
+	// Research User commands (Phase 5A Multi-User Foundation)
+	researchUserCobra := NewResearchUserCobraCommands(r.app)
+	rootCmd.AddCommand(researchUserCobra.CreateResearchUserCommand())
+
+	// User commands are now handled via research-user command above
+	// Admin commands are now handled via daemon command above
+
+	// Profile commands (user-friendly interface)
+	AddProfileCommands(rootCmd, r.app.config)
 
 	// Policy commands moved to admin
 
-	// Storage commands
-	rootCmd.AddCommand(r.createVolumeCommand())
-	rootCmd.AddCommand(r.createStorageCommand())
+	// Storage commands (using proper Cobra structure)
+	storageCobra := NewStorageCobraCommands(r.app)
+	rootCmd.AddCommand(storageCobra.CreateVolumeCommand())
+	rootCmd.AddCommand(storageCobra.CreateStorageCommand())
+
+	// Snapshot commands
+	rootCmd.AddCommand(r.createSnapshotCommand())
+
+	// Backup and Restore commands
+	rootCmd.AddCommand(r.createBackupCommand())
+	rootCmd.AddCommand(r.createRestoreCommand())
 
 	// System commands (kept at root level)
 	rootCmd.AddCommand(r.app.tuiCommand)
 	rootCmd.AddCommand(NewGUICommand())
 
-	// Other commands (moved to admin or kept at root)
-	rootCmd.AddCommand(r.createIdleCommand())
+	// Other commands (removed duplicate idle command - using Cobra version instead)
 
-	// Advanced commands
-	rootCmd.AddCommand(r.createRightsizingCommand())
+	// AMI commands (using new Cobra structure)
+	amiCobra := NewAMICobraCommands(r.app)
+	rootCmd.AddCommand(amiCobra.CreateAMICommand())
+	rootCmd.AddCommand(r.createAMIDiscoverCommand()) // Keep legacy ami-discover for now
+
+	// Marketplace commands (using new Cobra structure)
+	marketplaceCobra := NewMarketplaceCobraCommands(r.app)
+	rootCmd.AddCommand(marketplaceCobra.CreateMarketplaceCommand())
+
+	// Repository commands (using new Cobra structure)
+	repoCobra := NewRepoCobraCommands(r.app)
+	rootCmd.AddCommand(repoCobra.CreateRepoCommand())
+
+	// System management commands
+	rootCmd.AddCommand(r.createDaemonCommand())
+
+	// Advanced commands (using new Cobra structure)
+	rightsizingCobra := NewRightsizingCobraCommands(r.app)
+	rootCmd.AddCommand(rightsizingCobra.CreateRightsizingCommand())
 	rootCmd.AddCommand(r.createScalingCommand())
-	rootCmd.AddCommand(r.createAMICommand())
-	rootCmd.AddCommand(r.createAMIDiscoverCommand())
-	rootCmd.AddCommand(r.createMarketplaceCommand())
 }
 
 func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
@@ -342,24 +464,70 @@ func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
 	return listCmd
 }
 
-func (r *CommandFactoryRegistry) createVolumeCommand() *cobra.Command {
+
+func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "volume <action>",
-		Short: "Manage EFS volumes",
-		Long:  `Create and manage shared EFS volumes for your workstations.`,
+		Use:   "snapshot <action>",
+		Short: "Manage instance snapshots",
+		Long: `Create and manage CloudWorkstation instance snapshots for backup, cloning, and disaster recovery.
+
+Snapshots capture the complete state of your instances including:
+• Operating system and all installed software
+• User data and configuration files
+• Template metadata for easy restoration
+
+Examples:
+  cws snapshot create my-workstation backup-v1
+  cws snapshot list
+  cws snapshot restore backup-v1 my-new-workstation`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return r.app.Volume(args)
+			return r.app.Snapshot(args)
 		},
 	}
 }
 
-func (r *CommandFactoryRegistry) createStorageCommand() *cobra.Command {
+func (r *CommandFactoryRegistry) createBackupCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "storage <action>",
-		Short: "Manage EBS storage",
-		Long:  `Create and manage EBS storage volumes for your workstations.`,
+		Use:   "backup <action>",
+		Short: "Manage data backups",
+		Long: `Create and manage CloudWorkstation data backups for user files, configurations, and research data.
+
+Data backups provide granular backup capabilities with:
+• Selective file and directory backup
+• Incremental backup support
+• Multiple storage options (S3, EFS, EBS)
+• Compression and encryption
+• Cost-effective storage with deduplication
+
+Examples:
+  cws backup create my-workstation daily-backup
+  cws backup list
+  cws backup restore daily-backup target-instance`,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return r.app.Storage(args)
+			return r.app.Backup(args)
+		},
+	}
+}
+
+func (r *CommandFactoryRegistry) createRestoreCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "restore <backup-name> <target-instance>",
+		Short: "Restore data from backups",
+		Long: `Restore data from CloudWorkstation backups with granular control over restore operations.
+
+Restore capabilities include:
+• Cross-instance restoration
+• Selective file/directory restoration
+• Multiple restore modes (safe, merge, overwrite)
+• Integrity verification
+• Progress monitoring and dry-run preview
+
+Examples:
+  cws restore daily-backup my-workstation
+  cws restore daily-backup my-workstation --path /data --selective /home/user
+  cws restore daily-backup my-workstation --dry-run`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			return r.app.Restore(args)
 		},
 	}
 }
@@ -599,18 +767,6 @@ func (r *CommandFactoryRegistry) createScalingCommand() *cobra.Command {
 	}
 }
 
-func (r *CommandFactoryRegistry) createAMICommand() *cobra.Command {
-	return &cobra.Command{
-		Use:                "ami <action>",
-		Short:              "AMI management operations",
-		Long:               `Build, manage, and deploy AMIs for fast instance launching.`,
-		DisableFlagParsing: true, // Allow AMI command to handle its own flags
-		RunE: func(_ *cobra.Command, args []string) error {
-			return r.app.AMI(args)
-		},
-	}
-}
-
 func (r *CommandFactoryRegistry) createAMIDiscoverCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "ami-discover",
@@ -618,18 +774,6 @@ func (r *CommandFactoryRegistry) createAMIDiscoverCommand() *cobra.Command {
 		Long:  `Show which templates have pre-built AMIs available for faster launching.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.AMIDiscover(args)
-		},
-	}
-}
-
-func (r *CommandFactoryRegistry) createMarketplaceCommand() *cobra.Command {
-	return &cobra.Command{
-		Use:                "marketplace <action>",
-		Short:              "Template marketplace operations",
-		Long:               `Browse, publish, and manage community templates from the CloudWorkstation marketplace.`,
-		DisableFlagParsing: true, // Allow marketplace command to handle its own flags
-		RunE: func(_ *cobra.Command, args []string) error {
-			return r.app.Marketplace(args)
 		},
 	}
 }

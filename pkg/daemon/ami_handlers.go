@@ -22,6 +22,16 @@ func (s *Server) RegisterAMIRoutes(mux *http.ServeMux, applyMiddleware func(http
 	mux.HandleFunc("/api/v1/ami/create", applyMiddleware(s.handleAMICreate))
 	mux.HandleFunc("/api/v1/ami/status/", applyMiddleware(s.handleAMIStatus))
 	mux.HandleFunc("/api/v1/ami/list", applyMiddleware(s.handleAMIList))
+
+	// AMI lifecycle management endpoints
+	mux.HandleFunc("/api/v1/ami/cleanup", applyMiddleware(s.handleAMICleanup))
+	mux.HandleFunc("/api/v1/ami/delete", applyMiddleware(s.handleAMIDelete))
+
+	// AMI snapshot endpoints
+	mux.HandleFunc("/api/v1/ami/snapshots", applyMiddleware(s.handleAMISnapshotsList))
+	mux.HandleFunc("/api/v1/ami/snapshot/create", applyMiddleware(s.handleAMISnapshotCreate))
+	mux.HandleFunc("/api/v1/ami/snapshot/restore", applyMiddleware(s.handleAMISnapshotRestore))
+	mux.HandleFunc("/api/v1/ami/snapshot/delete", applyMiddleware(s.handleAMISnapshotDelete))
 }
 
 // handleAMIResolve resolves AMI for a specific template
@@ -347,6 +357,304 @@ func (s *Server) handleAMIList(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(userAMIs); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// AMI Lifecycle Management Handlers
+
+// handleAMICleanup removes old and unused AMIs
+// POST /api/v1/ami/cleanup
+func (s *Server) handleAMICleanup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var request struct {
+		MaxAge string `json:"max_age"`
+		DryRun bool   `json:"dry_run"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	// Default max age if not specified
+	if request.MaxAge == "" {
+		request.MaxAge = "30d"
+	}
+
+	// Perform AMI cleanup using the AWS manager
+	result, err := s.awsManager.CleanupOldAMIs(request.MaxAge, request.DryRun)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("AMI cleanup failed: %v", err))
+		return
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"total_found":             result.TotalFound,
+		"total_removed":           result.TotalRemoved,
+		"storage_savings_monthly": result.StorageSavingsMonthly,
+		"removed_amis":            result.RemovedAMIs,
+		"dry_run":                 request.DryRun,
+		"max_age":                 request.MaxAge,
+		"cleanup_completed_at":    result.CompletedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleAMIDelete deletes a specific AMI by ID
+// POST /api/v1/ami/delete
+func (s *Server) handleAMIDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var request struct {
+		AMIID          string `json:"ami_id"`
+		DeregisterOnly bool   `json:"deregister_only"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	if request.AMIID == "" {
+		s.writeError(w, http.StatusBadRequest, "ami_id is required")
+		return
+	}
+
+	// Delete AMI using the AWS manager
+	result, err := s.awsManager.DeleteAMI(request.AMIID, request.DeregisterOnly)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("AMI deletion failed: %v", err))
+		return
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"ami_id":                  request.AMIID,
+		"status":                  result.Status,
+		"deleted_snapshots":       result.DeletedSnapshots,
+		"storage_savings_monthly": result.StorageSavingsMonthly,
+		"deregister_only":         request.DeregisterOnly,
+		"deletion_completed_at":   result.CompletedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// AMI Snapshot Management Handlers
+
+// handleAMISnapshotsList lists available snapshots
+// POST /api/v1/ami/snapshots
+func (s *Server) handleAMISnapshotsList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var filters struct {
+		InstanceID string `json:"instance_id,omitempty"`
+		MaxAge     string `json:"max_age,omitempty"`
+		Region     string `json:"region,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&filters); err != nil {
+		// Allow empty body for listing all snapshots
+		filters = struct {
+			InstanceID string `json:"instance_id,omitempty"`
+			MaxAge     string `json:"max_age,omitempty"`
+			Region     string `json:"region,omitempty"`
+		}{}
+	}
+
+	// List snapshots using the AWS manager
+	snapshots, err := s.awsManager.ListAMISnapshots(filters.InstanceID, filters.MaxAge)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to list snapshots: %v", err))
+		return
+	}
+
+	// Calculate total storage cost
+	totalCost := 0.0
+	for _, snapshot := range snapshots {
+		totalCost += snapshot.StorageCostMonthly
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"snapshots":                  snapshots,
+		"total_count":                len(snapshots),
+		"total_storage_cost_monthly": totalCost,
+		"filters":                    filters,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleAMISnapshotCreate creates a snapshot from an instance
+// POST /api/v1/ami/snapshot/create
+func (s *Server) handleAMISnapshotCreate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var request struct {
+		InstanceID  string `json:"instance_id"`
+		Description string `json:"description"`
+		NoReboot    bool   `json:"no_reboot"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	if request.InstanceID == "" {
+		s.writeError(w, http.StatusBadRequest, "instance_id is required")
+		return
+	}
+
+	// Create snapshot using the AWS manager
+	result, err := s.awsManager.CreateInstanceSnapshot(request.InstanceID, request.Description, request.NoReboot)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("snapshot creation failed: %v", err))
+		return
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"snapshot_id":                  result.SnapshotID,
+		"volume_id":                    result.VolumeID,
+		"volume_size":                  result.VolumeSize,
+		"description":                  result.Description,
+		"estimated_completion_minutes": result.EstimatedCompletionMinutes,
+		"storage_cost_monthly":         result.StorageCostMonthly,
+		"creation_initiated_at":        result.CreationInitiatedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted) // 202 for async operation
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleAMISnapshotRestore creates an AMI from a snapshot
+// POST /api/v1/ami/snapshot/restore
+func (s *Server) handleAMISnapshotRestore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var request struct {
+		SnapshotID   string `json:"snapshot_id"`
+		Name         string `json:"name"`
+		Description  string `json:"description"`
+		Architecture string `json:"architecture"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	if request.SnapshotID == "" {
+		s.writeError(w, http.StatusBadRequest, "snapshot_id is required")
+		return
+	}
+
+	if request.Name == "" {
+		s.writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+
+	// Default architecture if not specified
+	if request.Architecture == "" {
+		request.Architecture = "x86_64"
+	}
+
+	// Restore AMI from snapshot using the AWS manager
+	result, err := s.awsManager.RestoreAMIFromSnapshot(request.SnapshotID, request.Name, request.Description, request.Architecture)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("AMI restore failed: %v", err))
+		return
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"ami_id":                       result.AMIID,
+		"name":                         result.Name,
+		"snapshot_id":                  request.SnapshotID,
+		"architecture":                 result.Architecture,
+		"estimated_completion_minutes": result.EstimatedCompletionMinutes,
+		"restore_initiated_at":         result.RestoreInitiatedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted) // 202 for async operation
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleAMISnapshotDelete deletes a specific snapshot
+// POST /api/v1/ami/snapshot/delete
+func (s *Server) handleAMISnapshotDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var request struct {
+		SnapshotID string `json:"snapshot_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	if request.SnapshotID == "" {
+		s.writeError(w, http.StatusBadRequest, "snapshot_id is required")
+		return
+	}
+
+	// Delete snapshot using the AWS manager
+	result, err := s.awsManager.DeleteSnapshot(request.SnapshotID)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("snapshot deletion failed: %v", err))
+		return
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"snapshot_id":             request.SnapshotID,
+		"volume_size":             result.VolumeSize,
+		"storage_savings_monthly": result.StorageSavingsMonthly,
+		"deletion_completed_at":   result.CompletedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		s.writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }

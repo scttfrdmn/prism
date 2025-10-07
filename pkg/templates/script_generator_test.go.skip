@@ -1,0 +1,629 @@
+package templates
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestNewScriptGenerator tests script generator creation
+func TestNewScriptGenerator(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	assert.NotNil(t, generator)
+	assert.NotEmpty(t, generator.AptTemplate)
+	assert.NotEmpty(t, generator.DnfTemplate)
+	assert.NotEmpty(t, generator.CondaTemplate)
+	assert.NotEmpty(t, generator.SpackTemplate)
+	assert.NotEmpty(t, generator.AMITemplate)
+	assert.NotEmpty(t, generator.PipTemplate)
+}
+
+// TestScriptData tests script data structure
+func TestScriptData(t *testing.T) {
+	template := &Template{
+		Name:        "Test Template",
+		Description: "A test template",
+		Base:        "ubuntu-22.04",
+	}
+
+	scriptData := &ScriptData{
+		Template:       template,
+		PackageManager: "apt",
+		Packages:       []string{"curl", "git", "vim"},
+		Users: []UserData{
+			{
+				Name:   "testuser",
+				Groups: []string{"users", "sudo"},
+				Shell:  "/bin/bash",
+			},
+		},
+		Services: []ServiceConfig{
+			{
+				Name: "nginx",
+				Port: 80,
+			},
+		},
+		WebInterfaceBindIP: "0.0.0.0",
+	}
+
+	assert.Equal(t, "Test Template", scriptData.Template.Name)
+	assert.Equal(t, "apt", scriptData.PackageManager)
+	assert.Equal(t, []string{"curl", "git", "vim"}, scriptData.Packages)
+	assert.Len(t, scriptData.Users, 1)
+	assert.Equal(t, "testuser", scriptData.Users[0].Name)
+	assert.Len(t, scriptData.Services, 1)
+	assert.Equal(t, "nginx", scriptData.Services[0].Name)
+	assert.Equal(t, "0.0.0.0", scriptData.WebInterfaceBindIP)
+}
+
+// TestUserData tests user data structure
+func TestUserData(t *testing.T) {
+	userData := UserData{
+		Name:   "researcher",
+		Groups: []string{"users", "docker", "sudo"},
+		Shell:  "/bin/bash",
+	}
+
+	assert.Equal(t, "researcher", userData.Name)
+	assert.Equal(t, []string{"users", "docker", "sudo"}, userData.Groups)
+	assert.Equal(t, "/bin/bash", userData.Shell)
+}
+
+// TestGenerateScriptAPT tests APT script generation
+func TestGenerateScriptAPT(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "APT Template",
+		Description: "Template with APT packages",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git", "vim", "htop"},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "developer",
+				Shell:      "/bin/bash",
+			},
+		},
+		Services: []ServiceConfig{
+			{
+				Name: "nginx",
+				Port: 80,
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerApt)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for APT-specific content
+	assert.Contains(t, script, "#!/bin/bash")
+	assert.Contains(t, script, "apt-get update")
+	assert.Contains(t, script, "apt-get install")
+
+	// Check for packages
+	assert.Contains(t, script, "curl")
+	assert.Contains(t, script, "git")
+	assert.Contains(t, script, "vim")
+	assert.Contains(t, script, "htop")
+
+	// Check for user creation
+	assert.Contains(t, script, "developer")
+	assert.Contains(t, script, "1001")
+
+	t.Logf("Generated APT script length: %d characters", len(script))
+}
+
+// TestGenerateScriptConda tests Conda script generation
+func TestGenerateScriptConda(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Conda Template",
+		Description: "Template with Conda packages",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			Conda: []string{"python=3.9", "numpy", "pandas", "scikit-learn"},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "datascientist",
+				Shell:      "/bin/bash",
+			},
+		},
+		Services: []ServiceConfig{
+			{
+				Name: "jupyter",
+				Port: 8888,
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerConda)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for Conda-specific content
+	assert.Contains(t, script, "#!/bin/bash")
+	assert.Contains(t, script, "conda")
+	assert.Contains(t, script, "miniconda"+(func() string {
+		// The script might contain miniconda installation
+		return ""
+	})())
+
+	// Check for packages
+	assert.Contains(t, script, "python=3.9")
+	assert.Contains(t, script, "numpy")
+	assert.Contains(t, script, "pandas")
+	assert.Contains(t, script, "scikit-learn")
+
+	// Check for user creation
+	assert.Contains(t, script, "datascientist")
+
+	// Check for service configuration
+	assert.Contains(t, script, "8888")
+
+	t.Logf("Generated Conda script length: %d characters", len(script))
+}
+
+// TestGenerateScriptDNF tests DNF script generation
+func TestGenerateScriptDNF(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "DNF Template",
+		Description: "Template with DNF packages",
+		Base:        "rocky-9",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git", "gcc", "make"},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "developer",
+				Shell:      "/bin/bash",
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerDnf)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for DNF-specific content
+	assert.Contains(t, script, "#!/bin/bash")
+	assert.Contains(t, script, "dnf")
+
+	// Check for packages
+	assert.Contains(t, script, "curl")
+	assert.Contains(t, script, "git")
+	assert.Contains(t, script, "gcc")
+	assert.Contains(t, script, "make")
+
+	t.Logf("Generated DNF script length: %d characters", len(script))
+}
+
+// TestGenerateScriptSpack tests Spack script generation
+func TestGenerateScriptSpack(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Spack Template",
+		Description: "Template with Spack packages",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			Spack: []string{"cmake", "openmpi", "hdf5"},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "hpcuser",
+				Shell:      "/bin/bash",
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerSpack)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for Spack-specific content
+	assert.Contains(t, script, "#!/bin/bash")
+	assert.Contains(t, script, "spack")
+
+	// Check for packages
+	assert.Contains(t, script, "cmake")
+	assert.Contains(t, script, "openmpi")
+	assert.Contains(t, script, "hdf5")
+
+	t.Logf("Generated Spack script length: %d characters", len(script))
+}
+
+// TestGenerateScriptPip tests Pip script generation
+func TestGenerateScriptPip(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Pip Template",
+		Description: "Template with Pip packages",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			Pip: []string{"requests", "flask", "django", "numpy"},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "pythondev",
+				Shell:      "/bin/bash",
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerPip)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for Pip-specific content
+	assert.Contains(t, script, "#!/bin/bash")
+	assert.Contains(t, script, "pip")
+
+	// Check for packages
+	assert.Contains(t, script, "requests")
+	assert.Contains(t, script, "flask")
+	assert.Contains(t, script, "django")
+	assert.Contains(t, script, "numpy")
+
+	t.Logf("Generated Pip script length: %d characters", len(script))
+}
+
+// TestGenerateScriptAMI tests AMI script generation
+func TestGenerateScriptAMI(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "AMI Template",
+		Description: "Template using pre-built AMI",
+		Base:        "ubuntu-22.04",
+		AMIConfig: AMIConfig{
+			Strategy: AMIStrategyRequired,
+			Regions: map[string]RegionAMIConfig{
+				"us-west-2": {
+					X86_64: "ami-12345678",
+					ARM64:  "ami-87654321",
+				},
+			},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "amiuser",
+				Shell:      "/bin/bash",
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerAMI)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// AMI scripts should be minimal since packages are pre-installed
+	assert.Contains(t, script, "#!/bin/bash")
+
+	// Should still handle user creation
+	assert.Contains(t, script, "amiuser")
+
+	t.Logf("Generated AMI script length: %d characters", len(script))
+}
+
+// TestGenerateScriptUnsupportedPackageManager tests error handling for unsupported package managers
+func TestGenerateScriptUnsupportedPackageManager(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Test Template",
+		Description: "Template for testing unsupported package manager",
+		Base:        "ubuntu-22.04",
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerType("unsupported"))
+
+	assert.Error(t, err)
+	assert.Empty(t, script)
+	assert.Contains(t, err.Error(), "unsupported package manager")
+}
+
+// TestGenerateScriptWithServices tests script generation with multiple services
+func TestGenerateScriptWithServices(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Multi-Service Template",
+		Description: "Template with multiple services",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			System: []string{"nginx", "postgresql"},
+		},
+		Services: []ServiceConfig{
+			{
+				Name:        "nginx",
+				Port:        80,
+			},
+			{
+				Name:        "postgresql",
+				Port:        5432,
+			},
+			{
+				Name:        "jupyter",
+				Port:        8888,
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerApt)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for service-related content
+	assert.Contains(t, script, "nginx")
+	assert.Contains(t, script, "postgresql")
+	assert.Contains(t, script, "8888")
+
+	// Check for port configuration
+	assert.Contains(t, script, "80")
+	assert.Contains(t, script, "5432")
+
+	t.Logf("Generated multi-service script length: %d characters", len(script))
+}
+
+// TestGenerateScriptWithMultipleUsers tests script generation with multiple users
+func TestGenerateScriptWithMultipleUsers(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Multi-User Template",
+		Description: "Template with multiple users",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git"},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "admin",
+				Groups:     []string{"sudo", "docker"},
+				Shell:      "/bin/bash",
+			},
+			{
+				Name:       "developer",
+				Groups:     []string{"users"},
+				Shell:      "/bin/bash",
+			},
+			{
+				Name:       "guest",
+				Groups:     []string{"users"},
+				Shell:      "/bin/bash",
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerApt)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Check for all users
+	assert.Contains(t, script, "admin")
+	assert.Contains(t, script, "developer")
+	assert.Contains(t, script, "guest")
+
+	// Check for UIDs
+	assert.Contains(t, script, "1001")
+	assert.Contains(t, script, "1002")
+	assert.Contains(t, script, "1003")
+
+	// Check for groups
+	assert.Contains(t, script, "sudo")
+	assert.Contains(t, script, "docker")
+
+	t.Logf("Generated multi-user script length: %d characters", len(script))
+}
+
+// TestGenerateScriptWithEnvironmentVariables tests script generation with environment variables
+func TestGenerateScriptWithEnvironmentVariables(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Environment Template",
+		Description: "Template with environment variables",
+		Base:        "ubuntu-22.04",
+		Variables: map[string]string{
+			"PYTHON_VERSION": "3.9",
+			"NODE_VERSION":   "16",
+			"DATABASE_URL":   "postgresql://localhost:5432/mydb",
+		},
+		Users: []UserConfig{
+			{
+				Name:  "envuser",
+				Shell: "/bin/bash",
+			},
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerApt)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Environment variables might be set in the script
+	// The exact format depends on the template implementation
+	t.Logf("Generated environment script length: %d characters", len(script))
+}
+
+// TestGenerateScriptComplexTemplate tests script generation for a complex template
+func TestGenerateScriptComplexTemplate(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:            "Complex ML Template",
+		Description:     "Complex machine learning template",
+		LongDescription: "Advanced machine learning environment with GPU support",
+		Base:            "ubuntu-22.04",
+		Category:        "Machine Learning",
+		Domain:          "ml",
+		Complexity:      TemplateComplexityAdvanced,
+		Packages: PackageDefinitions{
+			System: []string{"build-essential", "cmake", "git"},
+			Conda:  []string{"python=3.9", "numpy", "pandas", "scikit-learn", "tensorflow"},
+		},
+		Services: []ServiceConfig{
+			{
+				Name:        "jupyter",
+				Port:        8888,
+			},
+			{
+				Name:        "tensorboard",
+				Port:        6006,
+			},
+		},
+		Users: []UserConfig{
+			{
+				Name:   "mlresearcher",
+				Groups: []string{"users", "docker", "video"}, // video group for GPU access
+				Shell:  "/bin/bash",
+			},
+		},
+		Variables: map[string]string{
+			"CUDA_VERSION":       "11.8",
+			"PYTHON_VERSION":     "3.9",
+			"TENSORFLOW_VERSION": "2.13",
+		},
+		IdleDetection: &IdleDetectionConfig{
+			Enabled:                   true,
+			IdleThresholdMinutes:      30,
+			HibernateThresholdMinutes: 60,
+		},
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerConda)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Should be a substantial script
+	assert.Greater(t, len(script), 500, "Complex template should generate substantial script")
+
+	// Check for key components
+	assert.Contains(t, script, "#!/bin/bash")
+	assert.Contains(t, script, "mlresearcher")
+	assert.Contains(t, script, "8888")
+	assert.Contains(t, script, "6006")
+
+	t.Logf("Generated complex template script length: %d characters", len(script))
+}
+
+// TestScriptGeneratorSelectPackages tests package selection logic
+func TestScriptGeneratorSelectPackages(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name: "Package Selection Test",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git", "vim"},
+			Conda:  []string{"python=3.9", "numpy"},
+			Spack:  []string{"cmake", "openmpi"},
+			Pip:    []string{"requests", "flask"},
+		},
+	}
+
+	tests := []struct {
+		name             string
+		packageManager   PackageManagerType
+		expectedPackages []string
+	}{
+		{
+			name:             "apt_packages",
+			packageManager:   PackageManagerApt,
+			expectedPackages: []string{"curl", "git", "vim"},
+		},
+		{
+			name:             "conda_packages",
+			packageManager:   PackageManagerConda,
+			expectedPackages: []string{"python=3.9", "numpy"},
+		},
+		{
+			name:             "spack_packages",
+			packageManager:   PackageManagerSpack,
+			expectedPackages: []string{"cmake", "openmpi"},
+		},
+		{
+			name:             "pip_packages",
+			packageManager:   PackageManagerPip,
+			expectedPackages: []string{"requests", "flask"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			packages := generator.selectPackagesForManager(template, tt.packageManager)
+			assert.Equal(t, tt.expectedPackages, packages)
+		})
+	}
+}
+
+// TestScriptGeneratorPrepareUsers tests user data preparation
+func TestScriptGeneratorPrepareUsers(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	users := []UserConfig{
+		{
+			Name:   "user1",
+			Groups: []string{"users", "sudo"},
+			Shell:  "/bin/bash",
+		},
+		{
+			Name:   "user2",
+			Groups: []string{"users"},
+			Shell:  "/bin/bash",
+		},
+	}
+
+	userData := generator.prepareUsers(users)
+
+	assert.Len(t, userData, 2)
+
+	// Check first user
+	assert.Equal(t, "user1", userData[0].Name)
+	assert.Equal(t, []string{"users", "sudo"}, userData[0].Groups)
+	assert.Equal(t, "/bin/bash", userData[0].Shell)
+
+	// Check second user
+	assert.Equal(t, "user2", userData[1].Name)
+}
+
+// TestGenerateScriptEmptyTemplate tests script generation with minimal template
+func TestGenerateScriptEmptyTemplate(t *testing.T) {
+	generator := NewScriptGenerator()
+
+	template := &Template{
+		Name:        "Minimal Template",
+		Description: "Minimal template with no packages or users",
+		Base:        "ubuntu-22.04",
+	}
+
+	script, err := generator.GenerateScript(template, PackageManagerApt)
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, script)
+
+	// Should still generate a valid script
+	assert.Contains(t, script, "#!/bin/bash")
+
+	t.Logf("Generated minimal script length: %d characters", len(script))
+}

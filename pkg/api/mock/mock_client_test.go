@@ -225,7 +225,7 @@ func TestInstanceManagementWorkflow(t *testing.T) {
 	status, err := client.GetInstanceHibernationStatus(ctx, instanceName)
 	require.NoError(t, err)
 	assert.True(t, status.HibernationSupported)
-	assert.False(t, status.IsHibernated) // Should be false since we resumed
+	assert.False(t, status.PossiblyHibernated) // Should be false since we resumed
 
 	// Test ListInstances
 	listResp, err := client.ListInstances(ctx)

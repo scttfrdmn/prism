@@ -1457,3 +1457,178 @@ func (m *MockClient) GetMarketplaceTrending(ctx context.Context) (map[string]int
 		"total_count": 1,
 	}, nil
 }
+
+// AnalyzeRightsizing provides instance rightsizing analysis (mock)
+func (m *MockClient) AnalyzeRightsizing(ctx context.Context, req types.RightsizingAnalysisRequest) (*types.RightsizingAnalysisResponse, error) {
+	return &types.RightsizingAnalysisResponse{}, nil
+}
+
+// GetRightsizingRecommendations returns rightsizing recommendations (mock)
+func (m *MockClient) GetRightsizingRecommendations(ctx context.Context) (*types.RightsizingRecommendationsResponse, error) {
+	return &types.RightsizingRecommendationsResponse{}, nil
+}
+
+// GetRightsizingStats returns instance rightsizing statistics (mock)
+func (m *MockClient) GetRightsizingStats(ctx context.Context, instanceID string) (*types.RightsizingStatsResponse, error) {
+	return &types.RightsizingStatsResponse{}, nil
+}
+
+// ExportRightsizingData exports rightsizing analysis data (mock)
+func (m *MockClient) ExportRightsizingData(ctx context.Context, format string) ([]types.InstanceMetrics, error) {
+	return []types.InstanceMetrics{}, nil
+}
+
+// GetRightsizingSummary returns a summary of rightsizing analysis (mock)
+func (m *MockClient) GetRightsizingSummary(ctx context.Context) (*types.RightsizingSummaryResponse, error) {
+	return &types.RightsizingSummaryResponse{}, nil
+}
+
+// GetInstanceMetrics returns metrics for an instance (mock)
+func (m *MockClient) GetInstanceMetrics(ctx context.Context, instanceID string, days int) ([]types.InstanceMetrics, error) {
+	return []types.InstanceMetrics{}, nil
+}
+
+// CheckVersionCompatibility checks version compatibility (mock)
+func (m *MockClient) CheckVersionCompatibility(ctx context.Context, version string) error {
+	return nil
+}
+
+// CleanupAMIs cleans up old AMIs (mock)
+func (m *MockClient) CleanupAMIs(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"cleaned": 0}, nil
+}
+
+// DeleteAMI deletes an AMI (mock)
+func (m *MockClient) DeleteAMI(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+// ListAMISnapshots lists AMI snapshots (mock)
+func (m *MockClient) ListAMISnapshots(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"snapshots": []string{}}, nil
+}
+
+// CreateAMISnapshot creates an AMI snapshot (mock)
+func (m *MockClient) CreateAMISnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"snapshot_id": "mock-snapshot"}, nil
+}
+
+// RestoreAMIFromSnapshot restores AMI from snapshot (mock)
+func (m *MockClient) RestoreAMIFromSnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"ami_id": "mock-restored-ami"}, nil
+}
+
+// DeleteAMISnapshot deletes an AMI snapshot (mock)
+func (m *MockClient) DeleteAMISnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+// CreateInstanceSnapshot creates an instance snapshot (mock)
+func (m *MockClient) CreateInstanceSnapshot(ctx context.Context, req types.InstanceSnapshotRequest) (*types.InstanceSnapshotResult, error) {
+	return &types.InstanceSnapshotResult{}, nil
+}
+
+// ListInstanceSnapshots lists instance snapshots (mock)
+func (m *MockClient) ListInstanceSnapshots(ctx context.Context) (*types.InstanceSnapshotListResponse, error) {
+	return &types.InstanceSnapshotListResponse{}, nil
+}
+
+// GetInstanceSnapshot gets an instance snapshot (mock)
+func (m *MockClient) GetInstanceSnapshot(ctx context.Context, snapshotID string) (*types.InstanceSnapshotInfo, error) {
+	return &types.InstanceSnapshotInfo{}, nil
+}
+
+// DeleteInstanceSnapshot deletes an instance snapshot (mock)
+func (m *MockClient) DeleteInstanceSnapshot(ctx context.Context, snapshotID string) (*types.InstanceSnapshotDeleteResult, error) {
+	return &types.InstanceSnapshotDeleteResult{}, nil
+}
+
+// RestoreInstanceFromSnapshot restores an instance from snapshot (mock)
+func (m *MockClient) RestoreInstanceFromSnapshot(ctx context.Context, snapshotID string, req types.InstanceRestoreRequest) (*types.InstanceRestoreResult, error) {
+	return &types.InstanceRestoreResult{}, nil
+}
+
+// CreateBackup creates a backup (mock)
+func (m *MockClient) CreateBackup(ctx context.Context, req types.BackupCreateRequest) (*types.BackupCreateResult, error) {
+	return &types.BackupCreateResult{}, nil
+}
+
+// ListBackups lists backups (mock)
+func (m *MockClient) ListBackups(ctx context.Context) (*types.BackupListResponse, error) {
+	return &types.BackupListResponse{}, nil
+}
+
+// GetBackup gets a backup (mock)
+func (m *MockClient) GetBackup(ctx context.Context, backupID string) (*types.BackupInfo, error) {
+	return &types.BackupInfo{}, nil
+}
+
+// DeleteBackup deletes a backup (mock)
+func (m *MockClient) DeleteBackup(ctx context.Context, backupID string) (*types.BackupDeleteResult, error) {
+	return &types.BackupDeleteResult{}, nil
+}
+
+// GetBackupContents gets backup contents (mock)
+func (m *MockClient) GetBackupContents(ctx context.Context, req types.BackupContentsRequest) (*types.BackupContentsResponse, error) {
+	return &types.BackupContentsResponse{}, nil
+}
+
+// VerifyBackup verifies a backup (mock)
+func (m *MockClient) VerifyBackup(ctx context.Context, req types.BackupVerifyRequest) (*types.BackupVerifyResult, error) {
+	return &types.BackupVerifyResult{}, nil
+}
+
+// RestoreBackup restores a backup (mock)
+func (m *MockClient) RestoreBackup(ctx context.Context, req types.RestoreRequest) (*types.RestoreResult, error) {
+	return &types.RestoreResult{}, nil
+}
+
+// GetRestoreStatus gets restore status (mock)
+func (m *MockClient) GetRestoreStatus(ctx context.Context, restoreID string) (*types.RestoreResult, error) {
+	return &types.RestoreResult{}, nil
+}
+
+// ListRestoreOperations lists restore operations (mock)
+func (m *MockClient) ListRestoreOperations(ctx context.Context) ([]types.RestoreResult, error) {
+	return []types.RestoreResult{}, nil
+}
+
+// DisableProjectBudget disables project budget (mock)
+func (m *MockClient) DisableProjectBudget(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+// SetProjectBudget sets project budget (mock)
+func (m *MockClient) SetProjectBudget(ctx context.Context, projectID string, req client.SetProjectBudgetRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+// UpdateProjectBudget updates project budget (mock)
+func (m *MockClient) UpdateProjectBudget(ctx context.Context, projectID string, req client.UpdateProjectBudgetRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+// ExecInstance executes a command on an instance (mock)
+func (m *MockClient) ExecInstance(ctx context.Context, instanceName string, execRequest types.ExecRequest) (*types.ExecResult, error) {
+	return &types.ExecResult{}, nil
+}
+
+// ResizeInstance resizes an instance (mock)
+func (m *MockClient) ResizeInstance(ctx context.Context, req types.ResizeRequest) (*types.ResizeResponse, error) {
+	return &types.ResizeResponse{}, nil
+}
+
+// GetInstanceLogs gets instance logs (mock)
+func (m *MockClient) GetInstanceLogs(ctx context.Context, name string, req types.LogRequest) (*types.LogResponse, error) {
+	return &types.LogResponse{}, nil
+}
+
+// GetInstanceLogTypes gets instance log types (mock)
+func (m *MockClient) GetInstanceLogTypes(ctx context.Context, name string) (*types.LogTypesResponse, error) {
+	return &types.LogTypesResponse{}, nil
+}
+
+// GetLogsSummary gets logs summary (mock)
+func (m *MockClient) GetLogsSummary(ctx context.Context) (*types.LogSummaryResponse, error) {
+	return &types.LogSummaryResponse{}, nil
+}

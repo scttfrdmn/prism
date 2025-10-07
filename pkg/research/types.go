@@ -9,6 +9,45 @@ import (
 	"time"
 )
 
+// SSHKeyType represents the type of SSH key
+type SSHKeyType string
+
+const (
+	// SSHKeyTypeEd25519 represents Ed25519 SSH keys
+	SSHKeyTypeEd25519 SSHKeyType = "ed25519"
+	// SSHKeyTypeRSA represents RSA SSH keys
+	SSHKeyTypeRSA SSHKeyType = "rsa"
+)
+
+// UserIntegrationStrategy defines how to integrate research users
+type UserIntegrationStrategy string
+
+const (
+	// UserIntegrationStrategyDualUser combines system and research users
+	UserIntegrationStrategyDualUser UserIntegrationStrategy = "dual-user"
+	// UserIntegrationStrategyResearchOnly uses only research users
+	UserIntegrationStrategyResearchOnly UserIntegrationStrategy = "research-only"
+)
+
+// UserIntegrationConfig defines integration configuration
+type UserIntegrationConfig struct {
+	Strategy         UserIntegrationStrategy `json:"strategy"`
+	PreserveExisting bool                    `json:"preserve_existing"`
+	EnableSudo       bool                    `json:"enable_sudo"`
+}
+
+// EnvironmentPolicy defines how environment variables are handled
+type EnvironmentPolicy string
+
+const (
+	// EnvironmentPolicyMerged merges template and research user environments
+	EnvironmentPolicyMerged EnvironmentPolicy = "merged"
+	// EnvironmentPolicyResearchPrimary prioritizes research user environment
+	EnvironmentPolicyResearchPrimary EnvironmentPolicy = "research-primary"
+	// EnvironmentPolicyTemplatePrimary prioritizes template environment
+	EnvironmentPolicyTemplatePrimary EnvironmentPolicy = "template-primary"
+)
+
 // ResearchUserConfig represents the configuration for a research user
 // that persists across instances and EFS volumes
 type ResearchUserConfig struct {
@@ -73,21 +112,6 @@ type SystemUser struct {
 }
 
 // EnvironmentPolicy defines how to handle environment merging between system and research users
-type EnvironmentPolicy string
-
-const (
-	// EnvironmentPolicyResearchPrimary - Research user environment takes precedence
-	EnvironmentPolicyResearchPrimary EnvironmentPolicy = "research_primary"
-
-	// EnvironmentPolicySystemPrimary - System user environment takes precedence
-	EnvironmentPolicySystemPrimary EnvironmentPolicy = "system_primary"
-
-	// EnvironmentPolicyMerged - Merge environments (research user wins conflicts)
-	EnvironmentPolicyMerged EnvironmentPolicy = "merged"
-
-	// EnvironmentPolicyIsolated - Keep environments completely separate
-	EnvironmentPolicyIsolated EnvironmentPolicy = "isolated"
-)
 
 // ResearchUserManager handles research user lifecycle management
 type ResearchUserManager struct {
@@ -239,6 +263,9 @@ type KeyGenerator interface {
 // SSHKeyConfig represents SSH key configuration for a research user
 type SSHKeyConfig struct {
 	KeyID         string     `json:"key_id"`
+	ProfileID     string     `json:"profile_id"` // Which profile owns this key
+	Username      string     `json:"username"`   // Username this key belongs to
+	KeyType       SSHKeyType `json:"key_type"`   // Type of SSH key (rsa, ed25519)
 	Fingerprint   string     `json:"fingerprint"`
 	PublicKey     string     `json:"public_key"`
 	Comment       string     `json:"comment"`

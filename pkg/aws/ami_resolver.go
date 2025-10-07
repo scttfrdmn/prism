@@ -15,7 +15,6 @@ import (
 type UniversalAMIResolver struct {
 	// AWS clients
 	ec2Client EC2ClientInterface
-	stsClient STSClientInterface
 
 	// Configuration
 	regionMapping map[string][]string // Regional fallback mapping

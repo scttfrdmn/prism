@@ -1,0 +1,586 @@
+package research
+
+import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
+)
+
+// TestGenerateSSHKeyPair tests SSH key pair generation
+func TestGenerateSSHKeyPair(t *testing.T) {
+	tests := []struct {
+		name      string
+		keyType   SSHKeyType
+		keySize   int
+		comment   string
+		expectErr bool
+	}{
+		{
+			name:      "generate_ed25519_key",
+			keyType:   SSHKeyTypeEd25519,
+			keySize:   0, // Ed25519 has fixed size
+			comment:   "test@example.com",
+			expectErr: false,
+		},
+		{
+			name:      "generate_rsa_2048_key",
+			keyType:   SSHKeyTypeRSA,
+			keySize:   2048,
+			comment:   "rsa-test@example.com",
+			expectErr: false,
+		},
+		{
+			name:      "generate_rsa_4096_key",
+			keyType:   SSHKeyTypeRSA,
+			keySize:   4096,
+			comment:   "rsa4096-test@example.com",
+			expectErr: false,
+		},
+		{
+			name:      "invalid_key_type",
+			keyType:   "invalid",
+			keySize:   2048,
+			comment:   "invalid@example.com",
+			expectErr: true,
+		},
+		{
+			name:      "rsa_key_too_small",
+			keyType:   SSHKeyTypeRSA,
+			keySize:   1024, // Too small for security
+			comment:   "small@example.com",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			privateKey, publicKey, err := GenerateSSHKeyPair(tt.keyType, tt.keySize, tt.comment)
+
+			if tt.expectErr {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Empty(t, privateKey, "Private key should be empty on error")
+				assert.Empty(t, publicKey, "Public key should be empty on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for test case: %s", tt.name)
+				assert.NotEmpty(t, privateKey, "Private key should not be empty")
+				assert.NotEmpty(t, publicKey, "Public key should not be empty")
+
+				// Verify key format
+				assert.True(t, strings.HasPrefix(privateKey, "-----BEGIN "), "Private key should be PEM format")
+				assert.True(t, strings.HasSuffix(privateKey, "-----\n"), "Private key should end with PEM footer")
+
+				// Verify public key format and type
+				switch tt.keyType {
+				case SSHKeyTypeEd25519:
+					assert.True(t, strings.HasPrefix(publicKey, "ssh-ed25519 "), "Ed25519 public key should start with ssh-ed25519")
+				case SSHKeyTypeRSA:
+					assert.True(t, strings.HasPrefix(publicKey, "ssh-rsa "), "RSA public key should start with ssh-rsa")
+				}
+
+				// Verify comment is included
+				assert.True(t, strings.HasSuffix(publicKey, " "+tt.comment), "Public key should end with comment")
+
+				// Verify keys can be parsed
+				privateKeyParsed, err := ssh.ParsePrivateKey([]byte(privateKey))
+				assert.NoError(t, err, "Private key should be parseable")
+				assert.NotNil(t, privateKeyParsed, "Parsed private key should not be nil")
+
+				publicKeyParsed, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKey))
+				assert.NoError(t, err, "Public key should be parseable")
+				assert.NotNil(t, publicKeyParsed, "Parsed public key should not be nil")
+
+				// Verify key pair matches
+				assert.Equal(t, privateKeyParsed.PublicKey(), publicKeyParsed, "Public key should match private key")
+			}
+		})
+	}
+}
+
+// TestSSHKeyValidation tests SSH key validation
+func TestSSHKeyValidation(t *testing.T) {
+	// Generate valid test keys
+	_, validEd25519, err := GenerateSSHKeyPair(SSHKeyTypeEd25519, 0, "test@example.com")
+	require.NoError(t, err)
+
+	_, validRSA, err := GenerateSSHKeyPair(SSHKeyTypeRSA, 2048, "rsa@example.com")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name      string
+		publicKey string
+		isValid   bool
+		keyType   string
+	}{
+		{
+			name:      "valid_ed25519_key",
+			publicKey: validEd25519,
+			isValid:   true,
+			keyType:   "ed25519",
+		},
+		{
+			name:      "valid_rsa_key",
+			publicKey: validRSA,
+			isValid:   true,
+			keyType:   "rsa",
+		},
+		{
+			name:      "empty_key",
+			publicKey: "",
+			isValid:   false,
+		},
+		{
+			name:      "invalid_format",
+			publicKey: "this is not a valid ssh key",
+			isValid:   false,
+		},
+		{
+			name:      "partial_key",
+			publicKey: "ssh-rsa AAAAB3NzaC1yc2",
+			isValid:   false,
+		},
+		{
+			name:      "wrong_algorithm",
+			publicKey: "ssh-dss AAAAB3NzaC1kc3MAAACBAPVl9FWR... old@example.com",
+			isValid:   false,
+		},
+		{
+			name:      "malformed_base64",
+			publicKey: "ssh-rsa not-valid-base64 test@example.com",
+			isValid:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			valid, keyType := ValidateSSHPublicKey(tt.publicKey)
+
+			assert.Equal(t, tt.isValid, valid, "Validation result should match expected")
+			if tt.isValid {
+				assert.Equal(t, tt.keyType, keyType, "Key type should match expected")
+			} else {
+				assert.Empty(t, keyType, "Key type should be empty for invalid keys")
+			}
+		})
+	}
+}
+
+// TestSSHKeyFingerprint tests SSH key fingerprint generation
+func TestSSHKeyFingerprint(t *testing.T) {
+	// Generate test keys
+	_, ed25519Key, err := GenerateSSHKeyPair(SSHKeyTypeEd25519, 0, "test@example.com")
+	require.NoError(t, err)
+
+	_, rsaKey, err := GenerateSSHKeyPair(SSHKeyTypeRSA, 2048, "rsa@example.com")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name        string
+		publicKey   string
+		expectError bool
+	}{
+		{
+			name:        "ed25519_fingerprint",
+			publicKey:   ed25519Key,
+			expectError: false,
+		},
+		{
+			name:        "rsa_fingerprint",
+			publicKey:   rsaKey,
+			expectError: false,
+		},
+		{
+			name:        "invalid_key",
+			publicKey:   "invalid key",
+			expectError: true,
+		},
+		{
+			name:        "empty_key",
+			publicKey:   "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fingerprint, err := GenerateSSHKeyFingerprint(tt.publicKey)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Empty(t, fingerprint, "Fingerprint should be empty on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for test case: %s", tt.name)
+				assert.NotEmpty(t, fingerprint, "Fingerprint should not be empty")
+				assert.True(t, strings.HasPrefix(fingerprint, "SHA256:"), "Fingerprint should start with SHA256:")
+				assert.Greater(t, len(fingerprint), 10, "Fingerprint should be reasonably long")
+
+				// Test consistency
+				fingerprint2, err2 := GenerateSSHKeyFingerprint(tt.publicKey)
+				assert.NoError(t, err2, "Second fingerprint generation should not error")
+				assert.Equal(t, fingerprint, fingerprint2, "Fingerprints should be consistent")
+			}
+		})
+	}
+}
+
+// TestSSHKeyManager tests SSH key manager functionality
+func TestSSHKeyManager(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := NewSSHKeyManager(tempDir)
+
+	profileID := "test-profile"
+	username := "testuser"
+
+	t.Run("generate_and_store_keys", func(t *testing.T) {
+		keyInfo, err := manager.GenerateAndStoreKeys(profileID, username, SSHKeyTypeEd25519, "test@example.com")
+
+		assert.NoError(t, err, "Should generate and store keys successfully")
+		assert.NotNil(t, keyInfo, "Key info should not be nil")
+		assert.Equal(t, profileID, keyInfo.ProfileID)
+		assert.Equal(t, username, keyInfo.Username)
+		assert.Equal(t, SSHKeyTypeEd25519, keyInfo.KeyType)
+		assert.NotEmpty(t, keyInfo.PublicKey)
+		assert.NotEmpty(t, keyInfo.Fingerprint)
+		assert.NotEmpty(t, keyInfo.Comment)
+		assert.False(t, keyInfo.CreatedAt.IsZero())
+
+		// Verify files are created
+		keyDir := filepath.Join(tempDir, profileID, username)
+		privateKeyPath := filepath.Join(keyDir, "id_ed25519")
+		publicKeyPath := filepath.Join(keyDir, "id_ed25519.pub")
+
+		assert.FileExists(t, privateKeyPath, "Private key file should exist")
+		assert.FileExists(t, publicKeyPath, "Public key file should exist")
+
+		// Verify file permissions
+		privateInfo, err := os.Stat(privateKeyPath)
+		assert.NoError(t, err)
+		assert.Equal(t, os.FileMode(0600), privateInfo.Mode().Perm(), "Private key should have 0600 permissions")
+
+		publicInfo, err := os.Stat(publicKeyPath)
+		assert.NoError(t, err)
+		assert.Equal(t, os.FileMode(0644), publicInfo.Mode().Perm(), "Public key should have 0644 permissions")
+	})
+
+	t.Run("load_existing_keys", func(t *testing.T) {
+		keyInfo, err := manager.LoadKeys(profileID, username)
+
+		assert.NoError(t, err, "Should load existing keys successfully")
+		assert.NotNil(t, keyInfo, "Key info should not be nil")
+		assert.Equal(t, profileID, keyInfo.ProfileID)
+		assert.Equal(t, username, keyInfo.Username)
+		assert.NotEmpty(t, keyInfo.PublicKey)
+		assert.NotEmpty(t, keyInfo.Fingerprint)
+	})
+
+	t.Run("list_keys", func(t *testing.T) {
+		// Generate another key for different user
+		_, err := manager.GenerateAndStoreKeys(profileID, "anotheruser", SSHKeyTypeRSA, "another@example.com")
+		assert.NoError(t, err)
+
+		keys, err := manager.ListKeys(profileID)
+
+		assert.NoError(t, err, "Should list keys successfully")
+		assert.Len(t, keys, 2, "Should have 2 keys")
+
+		usernames := []string{keys[0].Username, keys[1].Username}
+		assert.Contains(t, usernames, "testuser")
+		assert.Contains(t, usernames, "anotheruser")
+	})
+
+	t.Run("delete_keys", func(t *testing.T) {
+		err := manager.DeleteKeys(profileID, "anotheruser")
+
+		assert.NoError(t, err, "Should delete keys successfully")
+
+		// Verify keys are deleted
+		_, err = manager.LoadKeys(profileID, "anotheruser")
+		assert.Error(t, err, "Should not be able to load deleted keys")
+
+		// Verify other keys still exist
+		keyInfo, err := manager.LoadKeys(profileID, username)
+		assert.NoError(t, err, "Other keys should still exist")
+		assert.NotNil(t, keyInfo)
+	})
+}
+
+// TestSSHKeyStorage tests SSH key storage and retrieval
+func TestSSHKeyStorage(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := NewSSHKeyManager(tempDir)
+
+	tests := []struct {
+		name      string
+		profileID string
+		username  string
+		keyType   SSHKeyType
+		comment   string
+	}{
+		{
+			name:      "store_ed25519_key",
+			profileID: "profile1",
+			username:  "user1",
+			keyType:   SSHKeyTypeEd25519,
+			comment:   "user1@profile1",
+		},
+		{
+			name:      "store_rsa_key",
+			profileID: "profile1",
+			username:  "user2",
+			keyType:   SSHKeyTypeRSA,
+			comment:   "user2@profile1",
+		},
+		{
+			name:      "store_key_different_profile",
+			profileID: "profile2",
+			username:  "user1",
+			keyType:   SSHKeyTypeEd25519,
+			comment:   "user1@profile2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Generate and store keys
+			keyInfo, err := manager.GenerateAndStoreKeys(tt.profileID, tt.username, tt.keyType, tt.comment)
+			assert.NoError(t, err, "Should generate and store keys")
+			assert.NotNil(t, keyInfo)
+
+			// Load keys and verify
+			loadedInfo, err := manager.LoadKeys(tt.profileID, tt.username)
+			assert.NoError(t, err, "Should load stored keys")
+			assert.NotNil(t, loadedInfo)
+
+			// Verify loaded data matches stored data
+			assert.Equal(t, keyInfo.ProfileID, loadedInfo.ProfileID)
+			assert.Equal(t, keyInfo.Username, loadedInfo.Username)
+			assert.Equal(t, keyInfo.KeyType, loadedInfo.KeyType)
+			assert.Equal(t, keyInfo.PublicKey, loadedInfo.PublicKey)
+			assert.Equal(t, keyInfo.Fingerprint, loadedInfo.Fingerprint)
+			assert.Equal(t, keyInfo.Comment, loadedInfo.Comment)
+		})
+	}
+}
+
+// TestSSHKeyManagerErrorHandling tests error handling in SSH key manager
+func TestSSHKeyManagerErrorHandling(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := NewSSHKeyManager(tempDir)
+
+	tests := []struct {
+		name        string
+		action      func() error
+		expectError bool
+		errorCheck  func(*testing.T, error)
+	}{
+		{
+			name: "load_nonexistent_keys",
+			action: func() error {
+				_, err := manager.LoadKeys("nonexistent", "user")
+				return err
+			},
+			expectError: true,
+		},
+		{
+			name: "delete_nonexistent_keys",
+			action: func() error {
+				return manager.DeleteKeys("nonexistent", "user")
+			},
+			expectError: true,
+		},
+		{
+			name: "invalid_key_type",
+			action: func() error {
+				_, err := manager.GenerateAndStoreKeys("profile", "user", "invalid", "test@example.com")
+				return err
+			},
+			expectError: true,
+		},
+		{
+			name: "empty_profile_id",
+			action: func() error {
+				_, err := manager.GenerateAndStoreKeys("", "user", SSHKeyTypeEd25519, "test@example.com")
+				return err
+			},
+			expectError: true,
+		},
+		{
+			name: "empty_username",
+			action: func() error {
+				_, err := manager.GenerateAndStoreKeys("profile", "", SSHKeyTypeEd25519, "test@example.com")
+				return err
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.action()
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				if tt.errorCheck != nil {
+					tt.errorCheck(t, err)
+				}
+			} else {
+				assert.NoError(t, err, "Expected no error for test case: %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestSSHKeyTypes tests SSH key type constants
+func TestSSHKeyTypes(t *testing.T) {
+	// Test that key type constants are properly defined
+	assert.Equal(t, "ed25519", string(SSHKeyTypeEd25519))
+	assert.Equal(t, "rsa", string(SSHKeyTypeRSA))
+
+	// Test supported key types
+	supportedTypes := []SSHKeyType{SSHKeyTypeEd25519, SSHKeyTypeRSA}
+
+	for _, keyType := range supportedTypes {
+		t.Run(string(keyType), func(t *testing.T) {
+			// Test key generation with each type
+			var keySize int
+			if keyType == SSHKeyTypeRSA {
+				keySize = 2048
+			}
+
+			privateKey, publicKey, err := GenerateSSHKeyPair(keyType, keySize, "test@example.com")
+			assert.NoError(t, err, "Should generate %s key successfully", keyType)
+			assert.NotEmpty(t, privateKey, "Private key should not be empty")
+			assert.NotEmpty(t, publicKey, "Public key should not be empty")
+
+			// Test key validation
+			valid, detectedType := ValidateSSHPublicKey(publicKey)
+			assert.True(t, valid, "Generated key should be valid")
+			assert.Equal(t, string(keyType), detectedType, "Detected type should match generated type")
+		})
+	}
+}
+
+// TestSSHKeyRotation tests key rotation functionality
+func TestSSHKeyRotation(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := NewSSHKeyManager(tempDir)
+
+	profileID := "rotation-test"
+	username := "rotateuser"
+
+	// Generate initial keys
+	keyInfo1, err := manager.GenerateAndStoreKeys(profileID, username, SSHKeyTypeEd25519, "initial@example.com")
+	require.NoError(t, err)
+
+	// Wait a bit to ensure different timestamps
+	// (In real use, this would be a longer time period)
+
+	// Generate new keys (rotation)
+	keyInfo2, err := manager.GenerateAndStoreKeys(profileID, username, SSHKeyTypeRSA, "rotated@example.com")
+	require.NoError(t, err)
+
+	// Verify keys are different
+	assert.NotEqual(t, keyInfo1.PublicKey, keyInfo2.PublicKey, "Rotated keys should be different")
+	assert.NotEqual(t, keyInfo1.Fingerprint, keyInfo2.Fingerprint, "Fingerprints should be different")
+	assert.NotEqual(t, keyInfo1.KeyType, keyInfo2.KeyType, "Key types should be different")
+	assert.NotEqual(t, keyInfo1.Comment, keyInfo2.Comment, "Comments should be different")
+
+	// Verify new keys are loaded
+	loadedInfo, err := manager.LoadKeys(profileID, username)
+	require.NoError(t, err)
+
+	assert.Equal(t, keyInfo2.PublicKey, loadedInfo.PublicKey, "Should load rotated keys")
+	assert.Equal(t, keyInfo2.KeyType, loadedInfo.KeyType, "Should have rotated key type")
+}
+
+// TestSSHAuthorizedKeysFormat tests authorized_keys format generation
+func TestSSHAuthorizedKeysFormat(t *testing.T) {
+	// Generate test keys
+	_, publicKey1, err := GenerateSSHKeyPair(SSHKeyTypeEd25519, 0, "user1@example.com")
+	require.NoError(t, err)
+
+	_, publicKey2, err := GenerateSSHKeyPair(SSHKeyTypeRSA, 2048, "user2@example.com")
+	require.NoError(t, err)
+
+	keys := []string{publicKey1, publicKey2}
+
+	// Test creating authorized_keys format
+	authorizedKeys := strings.Join(keys, "\n")
+
+	// Verify format
+	lines := strings.Split(strings.TrimSpace(authorizedKeys), "\n")
+	assert.Len(t, lines, 2, "Should have 2 key lines")
+
+	for i, line := range lines {
+		parts := strings.Fields(line)
+		assert.GreaterOrEqual(t, len(parts), 3, "Each line should have at least 3 parts")
+
+		// Verify each key can be parsed
+		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(line))
+		assert.NoError(t, err, "Line %d should be valid authorized key", i)
+	}
+}
+
+// TestSSHKeyManagerConcurrency tests concurrent access to SSH key manager
+func TestSSHKeyManagerConcurrency(t *testing.T) {
+	tempDir := t.TempDir()
+	manager := NewSSHKeyManager(tempDir)
+
+	profileID := "concurrent-test"
+
+	// Test concurrent key generation
+	t.Run("concurrent_generation", func(t *testing.T) {
+		done := make(chan bool, 5)
+
+		for i := 0; i < 5; i++ {
+			go func(id int) {
+				defer func() { done <- true }()
+				username := fmt.Sprintf("user%d", id)
+				keyInfo, err := manager.GenerateAndStoreKeys(profileID, username, SSHKeyTypeEd25519, fmt.Sprintf("user%d@example.com", id))
+				assert.NoError(t, err)
+				assert.NotNil(t, keyInfo)
+				assert.Equal(t, username, keyInfo.Username)
+			}(i)
+		}
+
+		// Wait for all goroutines to complete
+		for i := 0; i < 5; i++ {
+			<-done
+		}
+
+		// Verify all keys were created
+		keys, err := manager.ListKeys(profileID)
+		assert.NoError(t, err)
+		assert.Len(t, keys, 5, "Should have 5 keys after concurrent generation")
+	})
+
+	// Test concurrent key loading
+	t.Run("concurrent_loading", func(t *testing.T) {
+		done := make(chan bool, 5)
+
+		for i := 0; i < 5; i++ {
+			go func(id int) {
+				defer func() { done <- true }()
+				username := fmt.Sprintf("user%d", id)
+				keyInfo, err := manager.LoadKeys(profileID, username)
+				assert.NoError(t, err)
+				assert.NotNil(t, keyInfo)
+				assert.Equal(t, username, keyInfo.Username)
+			}(i)
+		}
+
+		// Wait for all goroutines to complete
+		for i := 0; i < 5; i++ {
+			<-done
+		}
+	})
+}

@@ -1,6 +1,6 @@
 {
   "name": "cloudworkstation-gui",
-  "version": "0.4.3",
+  "version": "0.5.1",
   "description": "CloudWorkstation Professional GUI Frontend",
   "type": "module",
   "scripts": {

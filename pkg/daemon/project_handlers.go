@@ -375,6 +375,12 @@ func (s *Server) handleProjectBudget(w http.ResponseWriter, r *http.Request, pro
 	switch r.Method {
 	case http.MethodGet:
 		s.handleGetProjectBudgetStatus(w, r, projectID)
+	case http.MethodPut:
+		s.handleSetProjectBudget(w, r, projectID)
+	case http.MethodPost:
+		s.handleUpdateProjectBudget(w, r, projectID)
+	case http.MethodDelete:
+		s.handleDisableProjectBudget(w, r, projectID)
 	default:
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 	}
@@ -449,4 +455,243 @@ func (s *Server) handleProjectUsage(w http.ResponseWriter, r *http.Request, proj
 	}
 
 	_ = json.NewEncoder(w).Encode(usage)
+}
+
+// SetProjectBudgetRequest represents a request to set or enable a project budget
+type SetProjectBudgetRequest struct {
+	TotalBudget     float64                  `json:"total_budget"`
+	MonthlyLimit    *float64                 `json:"monthly_limit,omitempty"`
+	DailyLimit      *float64                 `json:"daily_limit,omitempty"`
+	AlertThresholds []types.BudgetAlert      `json:"alert_thresholds,omitempty"`
+	AutoActions     []types.BudgetAutoAction `json:"auto_actions,omitempty"`
+	BudgetPeriod    types.BudgetPeriod       `json:"budget_period"`
+	EndDate         *time.Time               `json:"end_date,omitempty"`
+}
+
+// Validate validates the set budget request
+func (r *SetProjectBudgetRequest) Validate() error {
+	if r.TotalBudget <= 0 {
+		return fmt.Errorf("total budget must be greater than 0")
+	}
+
+	if r.MonthlyLimit != nil && *r.MonthlyLimit <= 0 {
+		return fmt.Errorf("monthly limit must be greater than 0")
+	}
+
+	if r.DailyLimit != nil && *r.DailyLimit <= 0 {
+		return fmt.Errorf("daily limit must be greater than 0")
+	}
+
+	// Validate alert thresholds
+	for i, alert := range r.AlertThresholds {
+		if alert.Threshold < 0 || alert.Threshold > 1 {
+			return fmt.Errorf("alert threshold %d must be between 0.0 and 1.0", i)
+		}
+	}
+
+	// Validate auto actions
+	for i, action := range r.AutoActions {
+		if action.Threshold < 0 || action.Threshold > 1 {
+			return fmt.Errorf("auto action threshold %d must be between 0.0 and 1.0", i)
+		}
+	}
+
+	return nil
+}
+
+// handleSetProjectBudget sets or enables a project budget (PUT)
+func (s *Server) handleSetProjectBudget(w http.ResponseWriter, r *http.Request, projectID string) {
+	var req SetProjectBudgetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.writeError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		s.writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx := context.Background()
+
+	// Check if project exists
+	_, err := s.projectManager.GetProject(ctx, projectID)
+	if err != nil {
+		s.writeError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	// Create budget configuration
+	budget := &types.ProjectBudget{
+		TotalBudget:     req.TotalBudget,
+		SpentAmount:     0.0, // Initialize as zero
+		MonthlyLimit:    req.MonthlyLimit,
+		DailyLimit:      req.DailyLimit,
+		AlertThresholds: req.AlertThresholds,
+		AutoActions:     req.AutoActions,
+		BudgetPeriod:    req.BudgetPeriod,
+		StartDate:       time.Now(),
+		EndDate:         req.EndDate,
+		LastUpdated:     time.Now(),
+	}
+
+	// Set default budget period if not specified
+	if budget.BudgetPeriod == "" {
+		budget.BudgetPeriod = types.BudgetPeriodProject
+	}
+
+	// Initialize budget tracking via project manager
+	err = s.projectManager.SetProjectBudget(ctx, projectID, budget)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to set budget: %v", err))
+		return
+	}
+
+	// Return success response
+	response := map[string]interface{}{
+		"message":      "Budget configured successfully",
+		"project_id":   projectID,
+		"total_budget": req.TotalBudget,
+		"enabled":      true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// UpdateProjectBudgetRequest represents a request to update a project budget
+type UpdateProjectBudgetRequest struct {
+	TotalBudget     *float64                 `json:"total_budget,omitempty"`
+	MonthlyLimit    *float64                 `json:"monthly_limit,omitempty"`
+	DailyLimit      *float64                 `json:"daily_limit,omitempty"`
+	AlertThresholds []types.BudgetAlert      `json:"alert_thresholds,omitempty"`
+	AutoActions     []types.BudgetAutoAction `json:"auto_actions,omitempty"`
+	EndDate         *time.Time               `json:"end_date,omitempty"`
+}
+
+// handleUpdateProjectBudget updates an existing project budget (POST)
+func (s *Server) handleUpdateProjectBudget(w http.ResponseWriter, r *http.Request, projectID string) {
+	var req UpdateProjectBudgetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.writeError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	ctx := context.Background()
+
+	// Get existing project
+	existingProject, err := s.projectManager.GetProject(ctx, projectID)
+	if err != nil {
+		s.writeError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	// Check if budget exists
+	if existingProject.Budget == nil {
+		s.writeError(w, http.StatusBadRequest, "No budget configured for project. Use PUT to create a budget first.")
+		return
+	}
+
+	// Update budget fields
+	budget := existingProject.Budget
+	if req.TotalBudget != nil {
+		if *req.TotalBudget <= 0 {
+			s.writeError(w, http.StatusBadRequest, "Total budget must be greater than 0")
+			return
+		}
+		budget.TotalBudget = *req.TotalBudget
+	}
+
+	if req.MonthlyLimit != nil {
+		if *req.MonthlyLimit <= 0 {
+			s.writeError(w, http.StatusBadRequest, "Monthly limit must be greater than 0")
+			return
+		}
+		budget.MonthlyLimit = req.MonthlyLimit
+	}
+
+	if req.DailyLimit != nil {
+		if *req.DailyLimit <= 0 {
+			s.writeError(w, http.StatusBadRequest, "Daily limit must be greater than 0")
+			return
+		}
+		budget.DailyLimit = req.DailyLimit
+	}
+
+	if req.AlertThresholds != nil {
+		// Validate alert thresholds
+		for i, alert := range req.AlertThresholds {
+			if alert.Threshold < 0 || alert.Threshold > 1 {
+				s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Alert threshold %d must be between 0.0 and 1.0", i))
+				return
+			}
+		}
+		budget.AlertThresholds = req.AlertThresholds
+	}
+
+	if req.AutoActions != nil {
+		// Validate auto actions
+		for i, action := range req.AutoActions {
+			if action.Threshold < 0 || action.Threshold > 1 {
+				s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Auto action threshold %d must be between 0.0 and 1.0", i))
+				return
+			}
+		}
+		budget.AutoActions = req.AutoActions
+	}
+
+	if req.EndDate != nil {
+		budget.EndDate = req.EndDate
+	}
+
+	budget.LastUpdated = time.Now()
+
+	// Update budget via project manager
+	err = s.projectManager.UpdateProjectBudget(ctx, projectID, budget)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update budget: %v", err))
+		return
+	}
+
+	// Return success response
+	response := map[string]interface{}{
+		"message":    "Budget updated successfully",
+		"project_id": projectID,
+		"budget":     budget,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// handleDisableProjectBudget disables budget tracking for a project (DELETE)
+func (s *Server) handleDisableProjectBudget(w http.ResponseWriter, r *http.Request, projectID string) {
+	ctx := context.Background()
+
+	// Check if project exists
+	_, err := s.projectManager.GetProject(ctx, projectID)
+	if err != nil {
+		s.writeError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	// Disable budget tracking
+	err = s.projectManager.DisableProjectBudget(ctx, projectID)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to disable budget: %v", err))
+		return
+	}
+
+	// Return success response
+	response := map[string]interface{}{
+		"message":    "Budget disabled successfully",
+		"project_id": projectID,
+		"enabled":    false,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
 }

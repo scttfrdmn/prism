@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
@@ -11,6 +12,31 @@ import (
 	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
+
+// resolveInstanceIdentifier resolves an instance identifier (name or ID) to the instance name stored in state
+// Returns the resolved instance name and true if found, empty string and false if not found
+func (s *Server) resolveInstanceIdentifier(identifier string) (string, bool) {
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		return "", false
+	}
+
+	// First try direct name lookup (most common case)
+	if _, exists := state.Instances[identifier]; exists {
+		return identifier, true
+	}
+
+	// If identifier looks like an instance ID (starts with "i-"), search by ID
+	if strings.HasPrefix(identifier, "i-") {
+		for instanceName, instance := range state.Instances {
+			if instance.ID == identifier {
+				return instanceName, true
+			}
+		}
+	}
+
+	return "", false
+}
 
 // handleInstances handles instance collection operations
 func (s *Server) handleInstances(w http.ResponseWriter, r *http.Request) {
@@ -223,6 +249,8 @@ func (s *Server) handleInstanceSubOperation(w http.ResponseWriter, r *http.Reque
 		"resume":             s.handleResumeInstance,
 		"hibernation-status": s.handleInstanceHibernationStatus,
 		"connect":            s.handleConnectInstance,
+		"exec":               s.handleExecInstance,
+		"resize":             s.handleResizeInstance,
 	}
 
 	if handler, exists := operationHandlers[operation]; exists {
@@ -255,24 +283,33 @@ func (s *Server) handleIdlePolicyOperation(w http.ResponseWriter, r *http.Reques
 }
 
 // handleGetInstance gets details of a specific instance
-func (s *Server) handleGetInstance(w http.ResponseWriter, _ *http.Request, name string) {
+func (s *Server) handleGetInstance(w http.ResponseWriter, _ *http.Request, identifier string) {
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
 	state, err := s.stateManager.LoadState()
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
 		return
 	}
 
-	instance, exists := state.Instances[name]
-	if !exists {
-		s.writeError(w, http.StatusNotFound, "Instance not found")
-		return
-	}
-
+	instance := state.Instances[instanceName]
 	_ = json.NewEncoder(w).Encode(instance)
 }
 
 // handleDeleteInstance deletes a specific instance
-func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, identifier string) {
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
 	// Mark deletion timestamp before initiating AWS deletion
 	now := time.Now()
 	state, err := s.stateManager.LoadState()
@@ -281,7 +318,7 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, na
 		return
 	}
 
-	if instance, exists := state.Instances[name]; exists {
+	if instance, exists := state.Instances[instanceName]; exists {
 		instance.DeletionTime = &now
 		if err := s.stateManager.SaveInstance(instance); err != nil {
 			s.writeError(w, http.StatusInternalServerError, "Failed to update instance state")
@@ -291,96 +328,107 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, na
 
 	// Initiate AWS deletion
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.DeleteInstance(name)
+		return awsManager.DeleteInstance(instanceName)
 	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleStartInstance starts a stopped instance
-func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request, identifier string) {
 	if r.Method != http.MethodPost {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.StartInstance(name)
+		return awsManager.StartInstance(instanceName)
 	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleStopInstance stops a running instance
-func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, identifier string) {
 	if r.Method != http.MethodPost {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	// Validate instance exists before attempting AWS operation
-	state, err := s.stateManager.LoadState()
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
-		return
-	}
-
-	if _, exists := state.Instances[name]; !exists {
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
 		s.writeError(w, http.StatusNotFound, "Instance not found")
 		return
 	}
 
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.StopInstance(name)
+		return awsManager.StopInstance(instanceName)
 	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleHibernateInstance hibernates a running instance
-func (s *Server) handleHibernateInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleHibernateInstance(w http.ResponseWriter, r *http.Request, identifier string) {
 	if r.Method != http.MethodPost {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
-	// Validate instance exists before attempting AWS operation
-	state, err := s.stateManager.LoadState()
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
-		return
-	}
-
-	if _, exists := state.Instances[name]; !exists {
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
 		s.writeError(w, http.StatusNotFound, "Instance not found")
 		return
 	}
 
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.HibernateInstance(name)
+		return awsManager.HibernateInstance(instanceName)
 	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleResumeInstance resumes a hibernated instance
-func (s *Server) handleResumeInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleResumeInstance(w http.ResponseWriter, r *http.Request, identifier string) {
 	if r.Method != http.MethodPost {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
 
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.ResumeInstance(name)
+		return awsManager.ResumeInstance(instanceName)
 	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleInstanceHibernationStatus gets hibernation status for an instance
-func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.Request, identifier string) {
 	if r.Method != http.MethodGet {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
 		return
 	}
 
@@ -390,7 +438,7 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
-		hibernationSupported, instanceState, possiblyHibernated, err = awsManager.GetInstanceHibernationStatus(name)
+		hibernationSupported, instanceState, possiblyHibernated, err = awsManager.GetInstanceHibernationStatus(instanceName)
 		return err
 	})
 
@@ -398,7 +446,7 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 		"hibernation_supported": hibernationSupported,
 		"instance_state":        instanceState,
 		"possibly_hibernated":   possiblyHibernated,
-		"instance_name":         name,
+		"instance_name":         instanceName,
 		"is_hibernated":         possiblyHibernated, // Deprecated field for backward compatibility
 		"note":                  "possibly_hibernated is true when instance is stopped and hibernation is supported",
 	}
@@ -407,16 +455,23 @@ func (s *Server) handleInstanceHibernationStatus(w http.ResponseWriter, r *http.
 }
 
 // handleConnectInstance gets connection information for an instance
-func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, name string) {
+func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, identifier string) {
 	if r.Method != http.MethodGet {
 		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
 		return
 	}
 
 	var connectionInfo string
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
-		connectionInfo, err = awsManager.GetConnectionInfo(name)
+		connectionInfo, err = awsManager.GetConnectionInfo(instanceName)
 		return err
 	})
 
@@ -429,6 +484,97 @@ func (s *Server) handleConnectInstance(w http.ResponseWriter, r *http.Request, n
 		"connection_info": connectionInfo,
 	}
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// handleExecInstance executes a command on an instance via SSM
+func (s *Server) handleExecInstance(w http.ResponseWriter, r *http.Request, identifier string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
+	// Parse request body
+	var execRequest types.ExecRequest
+	if err := json.NewDecoder(r.Body).Decode(&execRequest); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
+		return
+	}
+
+	// Validate command
+	if execRequest.Command == "" {
+		s.writeError(w, http.StatusBadRequest, "Command is required")
+		return
+	}
+
+	// Execute command via AWS manager
+	var execResult *types.ExecResult
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		execResult, err = awsManager.ExecuteCommand(instanceName, execRequest)
+		return err
+	})
+
+	if execResult == nil {
+		// Error was already handled by withAWSManager
+		return
+	}
+
+	// Return execution result
+	_ = json.NewEncoder(w).Encode(execResult)
+}
+
+// handleResizeInstance handles the resize instance operation
+func (s *Server) handleResizeInstance(w http.ResponseWriter, r *http.Request, identifier string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "Only POST method is allowed")
+		return
+	}
+
+	// Resolve identifier (name or ID) to instance name
+	instanceName, found := s.resolveInstanceIdentifier(identifier)
+	if !found {
+		s.writeError(w, http.StatusNotFound, "Instance not found")
+		return
+	}
+
+	// Parse request body
+	var resizeRequest types.ResizeRequest
+	if err := json.NewDecoder(r.Body).Decode(&resizeRequest); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
+		return
+	}
+
+	// Validate resize request
+	if resizeRequest.TargetInstanceType == "" {
+		s.writeError(w, http.StatusBadRequest, "Target instance type is required")
+		return
+	}
+
+	// Set instance name from URL (in case it wasn't in the request body)
+	resizeRequest.InstanceName = instanceName
+
+	// Execute resize via AWS manager
+	var resizeResponse *types.ResizeResponse
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		resizeResponse, err = awsManager.ResizeInstance(resizeRequest)
+		return err
+	})
+
+	if resizeResponse == nil {
+		// Error was already handled by withAWSManager
+		return
+	}
+
+	// Return resize result
+	_ = json.NewEncoder(w).Encode(resizeResponse)
 }
 
 // setupSSHKeyForLaunch sets up SSH key configuration for a launch request

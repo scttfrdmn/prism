@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,7 +10,7 @@ import (
 // Marketplace processes marketplace-related commands
 func (a *App) Marketplace(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("missing marketplace command (list, search, info, publish, review, fork, featured, trending, categories)")
+		return fmt.Errorf("missing marketplace command (list, search, info, install, publish, review, fork, featured, trending, categories)")
 	}
 
 	subcommand := args[0]
@@ -22,6 +23,8 @@ func (a *App) Marketplace(args []string) error {
 		return a.handleMarketplaceSearch(subargs)
 	case "info":
 		return a.handleMarketplaceInfo(subargs)
+	case "install":
+		return a.handleMarketplaceInstall(subargs)
 	case "publish":
 		return a.handleMarketplacePublish(subargs)
 	case "review":
@@ -188,6 +191,85 @@ func (a *App) handleMarketplaceInfo(args []string) error {
 
 	// Display detailed template information
 	a.displayTemplateInfo(response)
+
+	return nil
+}
+
+// handleMarketplaceInstall installs a template from the marketplace
+func (a *App) handleMarketplaceInstall(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: cws marketplace install <template-id> [--as <local-name>]")
+	}
+
+	templateID := args[0]
+	cmdArgs := parseCmdArgs(args[1:])
+
+	// Optional local name for the template
+	localName := cmdArgs["as"]
+	if localName == "" {
+		localName = templateID // Use template ID as default local name
+	}
+
+	fmt.Printf("📦 Installing template '%s' from marketplace...\n\n", templateID)
+
+	// Get template details from marketplace
+	endpoint := fmt.Sprintf("/api/v1/marketplace/templates/%s", templateID)
+	templateResponse, err := a.makeAPIRequest("GET", endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get template info: %w", err)
+	}
+
+	// Extract template definition
+	templateData, exists := templateResponse["template"]
+	if !exists {
+		return fmt.Errorf("template definition not found in marketplace response")
+	}
+
+	// Install request - in production this would integrate with local template system
+	installRequest := map[string]interface{}{
+		"marketplace_template_id": templateID,
+		"local_name":              localName,
+		"template_definition":     templateData,
+		"download_ami":            cmdArgs["download-ami"] == "true",
+	}
+
+	// Install via daemon API (this would need to be implemented in the daemon)
+	installEndpoint := "/api/v1/templates/install-marketplace"
+	installResponse, err := a.makeAPIRequest("POST", installEndpoint, installRequest)
+	if err != nil {
+		return fmt.Errorf("failed to install template: %w", err)
+	}
+
+	// Display installation result
+	fmt.Printf("✅ Template installed successfully!\n\n")
+	fmt.Printf("📝 Marketplace ID: %s\n", templateID)
+	fmt.Printf("🏷️  Local Name: %s\n", localName)
+
+	if status, ok := installResponse["status"].(string); ok {
+		fmt.Printf("⚡ Status: %s\n", status)
+	}
+
+	if amiDownloaded, ok := installResponse["ami_downloaded"].(bool); ok && amiDownloaded {
+		fmt.Printf("🚀 AMI downloaded for faster launches\n")
+	}
+
+	// Show usage examples
+	fmt.Printf("\n💻 Usage:\n")
+	fmt.Printf("   Launch: cws launch %s my-project\n", localName)
+	fmt.Printf("   Info: cws templates info %s\n", localName)
+	fmt.Printf("   List: cws templates list\n")
+
+	// Track download for marketplace analytics
+	trackingEvent := map[string]interface{}{
+		"event_type":  "download",
+		"template_id": templateID,
+	}
+
+	trackEndpoint := fmt.Sprintf("/api/v1/marketplace/templates/%s/track", templateID)
+	// Don't fail the install if tracking fails
+	if _, err := a.makeAPIRequest("POST", trackEndpoint, trackingEvent); err != nil {
+		fmt.Printf("\n💡 Note: Unable to track download for analytics: %v\n", err)
+	}
 
 	return nil
 }
@@ -620,126 +702,22 @@ func (a *App) displayTemplateInfo(template map[string]interface{}) {
 }
 
 func (a *App) makeAPIRequest(method, endpoint string, body interface{}) (map[string]interface{}, error) {
-	// This is a placeholder - in production, this would make actual HTTP requests to the daemon
-	// For now, return mock responses based on the endpoint
-
-	switch {
-	case strings.Contains(endpoint, "/api/v1/marketplace/templates") && method == "GET":
-		return a.mockTemplateListResponse(), nil
-	case strings.Contains(endpoint, "/api/v1/marketplace/categories"):
-		return a.mockCategoriesResponse(), nil
-	case strings.Contains(endpoint, "/api/v1/marketplace/featured"):
-		return a.mockFeaturedResponse(), nil
-	case strings.Contains(endpoint, "/api/v1/marketplace/trending"):
-		return a.mockTrendingResponse(), nil
-	case strings.Contains(endpoint, "/api/v1/marketplace/publish") && method == "POST":
-		return a.mockPublishResponse(), nil
-	default:
-		return map[string]interface{}{
-			"status":  "success",
-			"message": "Mock response",
-		}, nil
+	// Use the actual daemon API client instead of mock responses
+	responseData, err := a.apiClient.MakeRequest(method, endpoint, body)
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
 	}
-}
 
-// Mock response helpers (for development/testing)
-
-func (a *App) mockTemplateListResponse() map[string]interface{} {
-	return map[string]interface{}{
-		"templates": []map[string]interface{}{
-			{
-				"template_id":    "genomics-pipeline-v3",
-				"name":           "Advanced Genomics Analysis Pipeline",
-				"description":    "Complete genomics workflow with GATK, BWA, and Bioconductor",
-				"author":         "research-lab-genomics",
-				"author_name":    "Genomics Research Lab",
-				"category":       "bioinformatics",
-				"version":        "3.2.1",
-				"rating":         4.7,
-				"review_count":   23,
-				"download_count": 1547,
-				"verified":       true,
-				"featured":       true,
-				"ami_info": map[string]interface{}{
-					"available": true,
-				},
-			},
-			{
-				"template_id":    "machine-learning-gpu",
-				"name":           "GPU-Accelerated ML Environment",
-				"description":    "PyTorch, TensorFlow, and CUDA toolkit for deep learning research",
-				"author":         "ai-research-team",
-				"author_name":    "AI Research Team",
-				"category":       "machine-learning",
-				"version":        "2.1.0",
-				"rating":         4.5,
-				"review_count":   67,
-				"download_count": 2341,
-				"verified":       true,
-				"featured":       true,
-				"ami_info": map[string]interface{}{
-					"available": true,
-				},
-			},
-		},
-		"total_count": 2,
+	// Parse JSON response
+	var result map[string]interface{}
+	if err := json.Unmarshal(responseData, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse API response: %w", err)
 	}
+
+	return result, nil
 }
 
-func (a *App) mockCategoriesResponse() map[string]interface{} {
-	return map[string]interface{}{
-		"categories": []map[string]interface{}{
-			{
-				"id":             "machine-learning",
-				"name":           "Machine Learning & AI",
-				"description":    "Deep learning, neural networks, and AI research environments",
-				"icon":           "🤖",
-				"template_count": 15,
-				"featured":       true,
-			},
-			{
-				"id":             "bioinformatics",
-				"name":           "Bioinformatics",
-				"description":    "Genomics, proteomics, and computational biology tools",
-				"icon":           "🧬",
-				"template_count": 12,
-				"featured":       true,
-			},
-		},
-		"total": 2,
-	}
-}
+// Helper methods for marketplace operations
 
-func (a *App) mockFeaturedResponse() map[string]interface{} {
-	return map[string]interface{}{
-		"templates": []map[string]interface{}{
-			{
-				"template_id":    "genomics-pipeline-v3",
-				"name":           "Advanced Genomics Analysis Pipeline",
-				"description":    "Complete genomics workflow with GATK, BWA, and Bioconductor",
-				"author_name":    "Genomics Research Lab",
-				"category":       "bioinformatics",
-				"version":        "3.2.1",
-				"rating":         4.7,
-				"review_count":   23,
-				"download_count": 1547,
-				"verified":       true,
-				"featured":       true,
-			},
-		},
-		"count": 1,
-	}
-}
-
-func (a *App) mockTrendingResponse() map[string]interface{} {
-	return a.mockFeaturedResponse() // Same data for now
-}
-
-func (a *App) mockPublishResponse() map[string]interface{} {
-	return map[string]interface{}{
-		"template_id":     "my-custom-template-12345",
-		"publication_url": "https://marketplace.cloudworkstation.org/templates/my-custom-template-12345",
-		"status":          "published",
-		"message":         "Template published successfully",
-	}
-}
+// Need to import json package for JSON marshaling
+// This will be handled by the build system

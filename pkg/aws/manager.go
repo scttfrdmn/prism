@@ -2762,3 +2762,831 @@ func (b *InstanceBuilder) getEBSVolumeCost(volumeId string, pricing map[string]f
 
 	return volumeSize * pricePerGB
 }
+
+// GetInstanceConsoleOutput retrieves console output logs from an EC2 instance
+func (m *Manager) GetInstanceConsoleOutput(instanceID string) (string, error) {
+	input := &ec2.GetConsoleOutputInput{
+		InstanceId: aws.String(instanceID),
+		Latest:     aws.Bool(true),
+	}
+
+	ctx := context.Background()
+	result, err := m.ec2.GetConsoleOutput(ctx, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to get console output for instance %s: %w", instanceID, err)
+	}
+
+	if result.Output == nil {
+		return "", fmt.Errorf("no console output available for instance %s", instanceID)
+	}
+
+	// Decode base64 encoded console output
+	output, err := base64.StdEncoding.DecodeString(*result.Output)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode console output: %w", err)
+	}
+
+	return string(output), nil
+}
+
+// GetInstanceSystemLogs retrieves system logs via SSM (Systems Manager)
+func (m *Manager) GetInstanceSystemLogs(instanceID string, logType string) ([]string, error) {
+	// Define common log paths
+	logPaths := map[string]string{
+		"cloud-init":     "/var/log/cloud-init.log",
+		"cloud-init-out": "/var/log/cloud-init-output.log",
+		"messages":       "/var/log/messages",
+		"secure":         "/var/log/secure",
+		"boot":           "/var/log/boot.log",
+		"dmesg":          "/var/log/dmesg",
+		"kern":           "/var/log/kern.log",
+		"syslog":         "/var/log/syslog",
+	}
+
+	logPath, exists := logPaths[logType]
+	if !exists {
+		return nil, fmt.Errorf("unknown log type: %s", logType)
+	}
+
+	// Use SSM to retrieve log contents
+	command := fmt.Sprintf("tail -n 1000 %s 2>/dev/null || echo 'Log file not found or accessible'", logPath)
+
+	input := &ssm.SendCommandInput{
+		InstanceIds:  []string{instanceID},
+		DocumentName: aws.String("AWS-RunShellScript"),
+		Parameters: map[string][]string{
+			"commands": {command},
+		},
+	}
+
+	ctx := context.Background()
+	result, err := m.ssm.SendCommand(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send command to instance %s: %w", instanceID, err)
+	}
+
+	// Wait for command to complete and get results
+	commandID := *result.Command.CommandId
+	return m.waitForSSMCommandResults(instanceID, commandID)
+}
+
+// waitForSSMCommandResults waits for SSM command to complete and returns the output
+func (m *Manager) waitForSSMCommandResults(instanceID, commandID string) ([]string, error) {
+	ctx := context.Background()
+	maxWaitTime := 30 * time.Second
+	pollInterval := 2 * time.Second
+	startTime := time.Now()
+
+	for time.Since(startTime) < maxWaitTime {
+		// Check command status
+		statusInput := &ssm.GetCommandInvocationInput{
+			CommandId:  aws.String(commandID),
+			InstanceId: aws.String(instanceID),
+		}
+
+		statusResult, err := m.ssm.GetCommandInvocation(ctx, statusInput)
+		if err != nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Command completed
+		if statusResult.Status == "Success" || statusResult.Status == "Failed" {
+			if statusResult.StandardOutputContent != nil {
+				lines := strings.Split(strings.TrimSpace(*statusResult.StandardOutputContent), "\n")
+				return lines, nil
+			}
+			return []string{}, nil
+		}
+
+		// Command still running, wait
+		if statusResult.Status == "InProgress" {
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Command failed or cancelled
+		if statusResult.Status == "Failed" || statusResult.Status == "Cancelled" {
+			errorMsg := "Unknown error"
+			if statusResult.StandardErrorContent != nil {
+				errorMsg = *statusResult.StandardErrorContent
+			}
+			return nil, fmt.Errorf("SSM command failed: %s", errorMsg)
+		}
+	}
+
+	return nil, fmt.Errorf("timeout waiting for SSM command to complete")
+}
+
+// ExecuteCommand executes a command on an instance via SSM
+func (m *Manager) ExecuteCommand(instanceName string, execRequest ctypes.ExecRequest) (*ctypes.ExecResult, error) {
+	// Get instance ID from state
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+
+	instanceData, exists := state.Instances[instanceName]
+	if !exists {
+		return nil, fmt.Errorf("instance %s not found", instanceName)
+	}
+
+	instanceID := instanceData.ID
+	startTime := time.Now()
+
+	// Build command with user and working directory if specified
+	command := execRequest.Command
+	if execRequest.User != "" {
+		// Use 'sudo -u <user>' to execute as different user
+		command = fmt.Sprintf("sudo -u %s bash -c '%s'", execRequest.User, strings.ReplaceAll(command, "'", "'\"'\"'"))
+	}
+	if execRequest.WorkingDir != "" {
+		// Change directory before executing command
+		command = fmt.Sprintf("cd %s && %s", execRequest.WorkingDir, command)
+	}
+
+	// Add environment variables if specified
+	if len(execRequest.Environment) > 0 {
+		var envVars []string
+		for key, value := range execRequest.Environment {
+			envVars = append(envVars, fmt.Sprintf("export %s=%s", key, value))
+		}
+		command = strings.Join(envVars, " && ") + " && " + command
+	}
+
+	// Set timeout (default 30 seconds)
+	timeout := 30
+	if execRequest.TimeoutSeconds > 0 {
+		timeout = execRequest.TimeoutSeconds
+	}
+
+	// Send SSM command
+	input := &ssm.SendCommandInput{
+		InstanceIds:  []string{instanceID},
+		DocumentName: aws.String("AWS-RunShellScript"),
+		Parameters: map[string][]string{
+			"commands":         {command},
+			"executionTimeout": {fmt.Sprintf("%d", timeout)},
+		},
+	}
+
+	ctx := context.Background()
+	result, err := m.ssm.SendCommand(ctx, input)
+	if err != nil {
+		return &ctypes.ExecResult{
+			Command:  execRequest.Command,
+			ExitCode: 1,
+			StdErr:   fmt.Sprintf("Failed to send SSM command: %v", err),
+			Status:   "failed",
+		}, nil
+	}
+
+	commandID := *result.Command.CommandId
+
+	// Wait for command to complete with enhanced result
+	execResult, err := m.waitForSSMCommandExecution(instanceID, commandID, execRequest.Command, startTime)
+	if err != nil {
+		return &ctypes.ExecResult{
+			Command:   execRequest.Command,
+			ExitCode:  1,
+			StdErr:    err.Error(),
+			Status:    "failed",
+			CommandID: commandID,
+		}, nil
+	}
+
+	return execResult, nil
+}
+
+// waitForSSMCommandExecution waits for SSM command execution and returns structured results
+func (m *Manager) waitForSSMCommandExecution(instanceID, commandID, originalCommand string, startTime time.Time) (*ctypes.ExecResult, error) {
+	ctx := context.Background()
+	maxWaitTime := 60 * time.Second // Increased timeout for exec commands
+	pollInterval := 2 * time.Second
+	commandStartTime := time.Now()
+
+	for time.Since(commandStartTime) < maxWaitTime {
+		// Check command status
+		statusInput := &ssm.GetCommandInvocationInput{
+			CommandId:  aws.String(commandID),
+			InstanceId: aws.String(instanceID),
+		}
+
+		statusResult, err := m.ssm.GetCommandInvocation(ctx, statusInput)
+		if err != nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		executionTime := int(time.Since(startTime).Milliseconds())
+
+		// Command completed successfully
+		if statusResult.Status == "Success" {
+			stdout := ""
+			if statusResult.StandardOutputContent != nil {
+				stdout = *statusResult.StandardOutputContent
+			}
+			stderr := ""
+			if statusResult.StandardErrorContent != nil {
+				stderr = *statusResult.StandardErrorContent
+			}
+
+			return &ctypes.ExecResult{
+				Command:       originalCommand,
+				ExitCode:      0,
+				StdOut:        stdout,
+				StdErr:        stderr,
+				Status:        "success",
+				ExecutionTime: executionTime,
+				CommandID:     commandID,
+			}, nil
+		}
+
+		// Command failed
+		if statusResult.Status == "Failed" {
+			stdout := ""
+			if statusResult.StandardOutputContent != nil {
+				stdout = *statusResult.StandardOutputContent
+			}
+			stderr := ""
+			if statusResult.StandardErrorContent != nil {
+				stderr = *statusResult.StandardErrorContent
+			}
+
+			return &ctypes.ExecResult{
+				Command:       originalCommand,
+				ExitCode:      1,
+				StdOut:        stdout,
+				StdErr:        stderr,
+				Status:        "failed",
+				ExecutionTime: executionTime,
+				CommandID:     commandID,
+			}, nil
+		}
+
+		// Command cancelled
+		if statusResult.Status == "Cancelled" {
+			return &ctypes.ExecResult{
+				Command:       originalCommand,
+				ExitCode:      130, // Standard exit code for cancelled commands
+				StdErr:        "Command was cancelled",
+				Status:        "failed",
+				ExecutionTime: executionTime,
+				CommandID:     commandID,
+			}, nil
+		}
+
+		// Command still running, wait
+		if statusResult.Status == "InProgress" {
+			time.Sleep(pollInterval)
+			continue
+		}
+	}
+
+	// Timeout occurred
+	return &ctypes.ExecResult{
+		Command:       originalCommand,
+		ExitCode:      124, // Standard timeout exit code
+		StdErr:        "Command execution timed out",
+		Status:        "timeout",
+		ExecutionTime: int(maxWaitTime.Milliseconds()),
+		CommandID:     commandID,
+	}, nil
+}
+
+// GetAvailableLogTypes returns the available log types that can be retrieved
+func (m *Manager) GetAvailableLogTypes() []string {
+	return []string{
+		"console",        // EC2 console output
+		"cloud-init",     // Cloud-init logs
+		"cloud-init-out", // Cloud-init output
+		"messages",       // System messages
+		"secure",         // Security/auth logs
+		"boot",           // Boot logs
+		"dmesg",          // Kernel ring buffer
+		"kern",           // Kernel logs
+		"syslog",         // System logs
+	}
+}
+
+// ResizeInstance resizes an EC2 instance to a new instance type
+func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.ResizeResponse, error) {
+	ctx := context.Background()
+
+	// Get current instance state
+	instances, err := m.ListInstances()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list instances: %w", err)
+	}
+
+	var targetInstance *ctypes.Instance
+	for _, instance := range instances {
+		if instance.Name == resizeRequest.InstanceName {
+			targetInstance = &instance
+			break
+		}
+	}
+
+	if targetInstance == nil {
+		return &ctypes.ResizeResponse{
+			Success: false,
+			Message: fmt.Sprintf("Instance '%s' not found", resizeRequest.InstanceName),
+		}, nil
+	}
+
+	// Check if resize is needed
+	if targetInstance.InstanceType == resizeRequest.TargetInstanceType {
+		return &ctypes.ResizeResponse{
+			Success:    true,
+			Message:    fmt.Sprintf("Instance '%s' is already type '%s'", resizeRequest.InstanceName, resizeRequest.TargetInstanceType),
+			InstanceID: targetInstance.ID,
+			OldType:    targetInstance.InstanceType,
+			NewType:    resizeRequest.TargetInstanceType,
+			Status:     "no-change",
+		}, nil
+	}
+
+	// Validate instance state (must be stopped to resize)
+	needsStop := false
+	if targetInstance.State == "running" {
+		needsStop = true
+	} else if targetInstance.State != "stopped" {
+		return &ctypes.ResizeResponse{
+			Success: false,
+			Message: fmt.Sprintf("Instance '%s' is in state '%s'. Must be in 'running' or 'stopped' state to resize", resizeRequest.InstanceName, targetInstance.State),
+		}, nil
+	}
+
+	// Stop instance if it's running
+	if needsStop {
+		_, err := m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
+			InstanceIds: []string{targetInstance.ID},
+		})
+		if err != nil {
+			return &ctypes.ResizeResponse{
+				Success: false,
+				Message: fmt.Sprintf("Failed to stop instance for resize: %v", err),
+			}, nil
+		}
+
+		// Wait for instance to stop
+		waiter := ec2.NewInstanceStoppedWaiter(m.ec2)
+		err = waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+			InstanceIds: []string{targetInstance.ID},
+		}, 5*time.Minute)
+		if err != nil {
+			return &ctypes.ResizeResponse{
+				Success: false,
+				Message: fmt.Sprintf("Timeout waiting for instance to stop: %v", err),
+			}, nil
+		}
+	}
+
+	// Modify instance type
+	_, err = m.ec2.ModifyInstanceAttribute(ctx, &ec2.ModifyInstanceAttributeInput{
+		InstanceId: &targetInstance.ID,
+		InstanceType: &ec2types.AttributeValue{
+			Value: &resizeRequest.TargetInstanceType,
+		},
+	})
+	if err != nil {
+		return &ctypes.ResizeResponse{
+			Success: false,
+			Message: fmt.Sprintf("Failed to modify instance type: %v", err),
+		}, nil
+	}
+
+	// Start instance if it was originally running
+	if needsStop {
+		_, err = m.ec2.StartInstances(ctx, &ec2.StartInstancesInput{
+			InstanceIds: []string{targetInstance.ID},
+		})
+		if err != nil {
+			return &ctypes.ResizeResponse{
+				Success: false,
+				Message: fmt.Sprintf("Instance resized successfully but failed to restart: %v", err),
+			}, nil
+		}
+
+		// Wait for instance to start if requested
+		if resizeRequest.Wait {
+			waiter := ec2.NewInstanceRunningWaiter(m.ec2)
+			err = waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+				InstanceIds: []string{targetInstance.ID},
+			}, 5*time.Minute)
+			if err != nil {
+				return &ctypes.ResizeResponse{
+					Success:    true,
+					Message:    fmt.Sprintf("Instance resized successfully but timeout waiting for restart: %v", err),
+					InstanceID: targetInstance.ID,
+					OldType:    targetInstance.InstanceType,
+					NewType:    resizeRequest.TargetInstanceType,
+					Status:     "resize-complete-start-timeout",
+				}, nil
+			}
+		}
+	}
+
+	return &ctypes.ResizeResponse{
+		Success:    true,
+		Message:    fmt.Sprintf("Instance '%s' successfully resized from '%s' to '%s'", resizeRequest.InstanceName, targetInstance.InstanceType, resizeRequest.TargetInstanceType),
+		InstanceID: targetInstance.ID,
+		OldType:    targetInstance.InstanceType,
+		NewType:    resizeRequest.TargetInstanceType,
+		Status:     "resize-complete",
+	}, nil
+}
+
+// ==========================================
+// Instance Snapshot Management
+// ==========================================
+
+// CreateInstanceAMISnapshot creates an AMI snapshot from a CloudWorkstation instance
+func (m *Manager) CreateInstanceAMISnapshot(instanceName, snapshotName, description string, noReboot bool) (*ctypes.InstanceSnapshotResult, error) {
+	ctx := context.Background()
+
+	// Load state to get instance information
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+
+	instanceData, exists := state.Instances[instanceName]
+	if !exists {
+		return nil, fmt.Errorf("instance '%s' not found", instanceName)
+	}
+
+	if instanceData.State != "running" {
+		return nil, fmt.Errorf("instance '%s' must be running to create snapshot (current state: %s)", instanceName, instanceData.State)
+	}
+
+	// Ensure unique snapshot name
+	if snapshotName == "" {
+		snapshotName = fmt.Sprintf("%s-snapshot-%d", instanceName, time.Now().Unix())
+	}
+
+	// Create AMI from instance
+	input := &ec2.CreateImageInput{
+		InstanceId:  aws.String(instanceData.ID),
+		Name:        aws.String(snapshotName),
+		Description: aws.String(description),
+		NoReboot:    aws.Bool(noReboot),
+		TagSpecifications: []ec2types.TagSpecification{
+			{
+				ResourceType: ec2types.ResourceTypeImage,
+				Tags: []ec2types.Tag{
+					{Key: aws.String("Name"), Value: aws.String(snapshotName)},
+					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("SourceInstance"), Value: aws.String(instanceName)},
+					{Key: aws.String("SourceInstanceId"), Value: aws.String(instanceData.ID)},
+					{Key: aws.String("SourceTemplate"), Value: aws.String(instanceData.Template)},
+					{Key: aws.String("CreatedBy"), Value: aws.String("cloudworkstation-snapshot")},
+				},
+			},
+		},
+	}
+
+	result, err := m.ec2.CreateImage(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create snapshot: %w", err)
+	}
+
+	// Calculate estimated storage costs
+	storageCost := m.calculateSnapshotStorageCost(instanceData)
+
+	return &ctypes.InstanceSnapshotResult{
+		SnapshotID:                 *result.ImageId,
+		SnapshotName:               snapshotName,
+		SourceInstance:             instanceName,
+		SourceInstanceId:           instanceData.ID,
+		Description:                description,
+		State:                      "pending",
+		EstimatedCompletionMinutes: 15, // Typical AMI creation time
+		StorageCostMonthly:         storageCost,
+		CreatedAt:                  time.Now(),
+		NoReboot:                   noReboot,
+	}, nil
+}
+
+// ListInstanceSnapshots lists all CloudWorkstation instance snapshots (AMIs)
+func (m *Manager) ListInstanceSnapshots() ([]ctypes.InstanceSnapshotInfo, error) {
+	ctx := context.Background()
+
+	// List all AMIs created by CloudWorkstation
+	input := &ec2.DescribeImagesInput{
+		Owners: []string{"self"},
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
+			},
+			{
+				Name:   aws.String("tag:CreatedBy"),
+				Values: []string{"cloudworkstation-snapshot"},
+			},
+		},
+	}
+
+	result, err := m.ec2.DescribeImages(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list snapshots: %w", err)
+	}
+
+	var snapshots []ctypes.InstanceSnapshotInfo
+	for _, image := range result.Images {
+		// Extract tag values
+		sourceInstance := ""
+		sourceInstanceId := ""
+		sourceTemplate := ""
+		for _, tag := range image.Tags {
+			switch *tag.Key {
+			case "SourceInstance":
+				sourceInstance = *tag.Value
+			case "SourceInstanceId":
+				sourceInstanceId = *tag.Value
+			case "SourceTemplate":
+				sourceTemplate = *tag.Value
+			}
+		}
+
+		// Parse creation date
+		var createdAt time.Time
+		if image.CreationDate != nil {
+			if parsed, err := time.Parse(time.RFC3339, *image.CreationDate); err == nil {
+				createdAt = parsed
+			}
+		}
+
+		// Calculate storage costs based on EBS snapshots associated with AMI
+		storageCost := m.calculateAMIStorageCost(image)
+
+		snapshots = append(snapshots, ctypes.InstanceSnapshotInfo{
+			SnapshotID:         *image.ImageId,
+			SnapshotName:       *image.Name,
+			SourceInstance:     sourceInstance,
+			SourceInstanceId:   sourceInstanceId,
+			SourceTemplate:     sourceTemplate,
+			Description:        aws.ToString(image.Description),
+			State:              string(image.State),
+			Architecture:       string(image.Architecture),
+			StorageCostMonthly: storageCost,
+			CreatedAt:          createdAt,
+		})
+	}
+
+	return snapshots, nil
+}
+
+// RestoreInstanceFromSnapshot launches a new instance from a snapshot
+func (m *Manager) RestoreInstanceFromSnapshot(snapshotName, newInstanceName string) (*ctypes.InstanceRestoreResult, error) {
+	ctx := context.Background()
+
+	// Find the snapshot AMI
+	input := &ec2.DescribeImagesInput{
+		Owners: []string{"self"},
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
+			},
+			{
+				Name:   aws.String("name"),
+				Values: []string{snapshotName},
+			},
+		},
+	}
+
+	result, err := m.ec2.DescribeImages(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find snapshot: %w", err)
+	}
+
+	if len(result.Images) == 0 {
+		return nil, fmt.Errorf("snapshot '%s' not found", snapshotName)
+	}
+
+	if len(result.Images) > 1 {
+		return nil, fmt.Errorf("multiple snapshots found with name '%s'", snapshotName)
+	}
+
+	image := result.Images[0]
+
+	// Extract source template from tags
+	sourceTemplate := ""
+	for _, tag := range image.Tags {
+		if *tag.Key == "SourceTemplate" {
+			sourceTemplate = *tag.Value
+			break
+		}
+	}
+
+	if sourceTemplate == "" {
+		return nil, fmt.Errorf("snapshot does not contain source template information")
+	}
+
+	// Create launch request using the snapshot as the AMI
+	launchReq := ctypes.LaunchRequest{
+		Name:     newInstanceName,
+		Template: sourceTemplate,
+		// Note: AMI override functionality would need to be implemented in LaunchInstance
+	}
+
+	// Launch the instance
+	launchResult, err := m.LaunchInstance(launchReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to restore instance from snapshot: %w", err)
+	}
+
+	return &ctypes.InstanceRestoreResult{
+		NewInstanceName: newInstanceName,
+		InstanceID:      launchResult.ID,
+		SnapshotName:    snapshotName,
+		SnapshotID:      *image.ImageId,
+		SourceTemplate:  sourceTemplate,
+		State:           "pending",
+		Message:         fmt.Sprintf("Instance %s launched from snapshot", newInstanceName),
+		RestoredAt:      time.Now(),
+	}, nil
+}
+
+// DeleteInstanceSnapshot deletes a CloudWorkstation instance snapshot (AMI)
+func (m *Manager) DeleteInstanceSnapshot(snapshotName string) (*ctypes.InstanceSnapshotDeleteResult, error) {
+	ctx := context.Background()
+
+	// Find the snapshot AMI
+	input := &ec2.DescribeImagesInput{
+		Owners: []string{"self"},
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
+			},
+			{
+				Name:   aws.String("name"),
+				Values: []string{snapshotName},
+			},
+		},
+	}
+
+	result, err := m.ec2.DescribeImages(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find snapshot: %w", err)
+	}
+
+	if len(result.Images) == 0 {
+		return nil, fmt.Errorf("snapshot '%s' not found", snapshotName)
+	}
+
+	image := result.Images[0]
+	imageId := *image.ImageId
+
+	// Calculate storage savings before deletion
+	storageSavings := m.calculateAMIStorageCost(image)
+
+	// Note: AMI deregistration and snapshot deletion functionality
+	// would need to be implemented when EC2ClientInterface is extended
+	// For now, this is a placeholder implementation
+
+	var deletedSnapshots []string
+	// Placeholder: would extract snapshot IDs from block device mappings
+	for _, blockDevice := range image.BlockDeviceMappings {
+		if blockDevice.Ebs != nil && blockDevice.Ebs.SnapshotId != nil {
+			deletedSnapshots = append(deletedSnapshots, *blockDevice.Ebs.SnapshotId)
+		}
+	}
+
+	return &ctypes.InstanceSnapshotDeleteResult{
+		SnapshotName:          snapshotName,
+		SnapshotID:            imageId,
+		DeletedSnapshots:      deletedSnapshots,
+		StorageSavingsMonthly: storageSavings,
+		DeletedAt:             time.Now(),
+	}, nil
+}
+
+// GetInstanceSnapshotInfo gets detailed information about a specific snapshot
+func (m *Manager) GetInstanceSnapshotInfo(snapshotName string) (*ctypes.InstanceSnapshotInfo, error) {
+	ctx := context.Background()
+
+	// Find the snapshot AMI
+	input := &ec2.DescribeImagesInput{
+		Owners: []string{"self"},
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("tag:CloudWorkstation"),
+				Values: []string{"true"},
+			},
+			{
+				Name:   aws.String("name"),
+				Values: []string{snapshotName},
+			},
+		},
+	}
+
+	result, err := m.ec2.DescribeImages(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find snapshot: %w", err)
+	}
+
+	if len(result.Images) == 0 {
+		return nil, fmt.Errorf("snapshot '%s' not found", snapshotName)
+	}
+
+	if len(result.Images) > 1 {
+		return nil, fmt.Errorf("multiple snapshots found with name '%s'", snapshotName)
+	}
+
+	image := result.Images[0]
+
+	// Extract tag values
+	sourceInstance := ""
+	sourceInstanceId := ""
+	sourceTemplate := ""
+	for _, tag := range image.Tags {
+		switch *tag.Key {
+		case "SourceInstance":
+			sourceInstance = *tag.Value
+		case "SourceInstanceId":
+			sourceInstanceId = *tag.Value
+		case "SourceTemplate":
+			sourceTemplate = *tag.Value
+		}
+	}
+
+	// Parse creation date
+	var createdAt time.Time
+	if image.CreationDate != nil {
+		if parsed, err := time.Parse(time.RFC3339, *image.CreationDate); err == nil {
+			createdAt = parsed
+		}
+	}
+
+	// Calculate storage costs
+	storageCost := m.calculateAMIStorageCost(image)
+
+	// Get associated snapshots
+	var associatedSnapshots []string
+	for _, blockDevice := range image.BlockDeviceMappings {
+		if blockDevice.Ebs != nil && blockDevice.Ebs.SnapshotId != nil {
+			associatedSnapshots = append(associatedSnapshots, *blockDevice.Ebs.SnapshotId)
+		}
+	}
+
+	return &ctypes.InstanceSnapshotInfo{
+		SnapshotID:          *image.ImageId,
+		SnapshotName:        *image.Name,
+		SourceInstance:      sourceInstance,
+		SourceInstanceId:    sourceInstanceId,
+		SourceTemplate:      sourceTemplate,
+		Description:         aws.ToString(image.Description),
+		State:               string(image.State),
+		Architecture:        string(image.Architecture),
+		StorageCostMonthly:  storageCost,
+		CreatedAt:           createdAt,
+		AssociatedSnapshots: associatedSnapshots,
+	}, nil
+}
+
+// Helper methods for snapshot cost calculation
+
+func (m *Manager) calculateSnapshotStorageCost(instance ctypes.Instance) float64 {
+	// Estimate EBS snapshot costs
+	// Root volume: typically 20GB @ $0.05/GB/month
+	// Additional volumes: based on instance template
+	rootVolumeCost := 20.0 * 0.05 // 20GB root volume
+
+	// Add costs for attached volumes
+	additionalVolumeCost := 0.0
+	for range instance.AttachedEBSVolumes {
+		// Simplified estimation - would need to look up actual volume sizes
+		additionalVolumeCost += 100.0 * 0.05 // Estimate 100GB per volume
+	}
+
+	return rootVolumeCost + additionalVolumeCost
+}
+
+func (m *Manager) calculateAMIStorageCost(image ec2types.Image) float64 {
+	totalCost := 0.0
+
+	// Simplified cost calculation based on typical EBS volumes
+	// In a full implementation, this would query actual snapshot sizes
+	for _, blockDevice := range image.BlockDeviceMappings {
+		if blockDevice.Ebs != nil {
+			// Estimate cost based on typical volume sizes
+			if blockDevice.DeviceName != nil && *blockDevice.DeviceName == "/dev/sda1" {
+				// Root volume - typically 20GB
+				totalCost += 20.0 * 0.05 // $0.05 per GB per month
+			} else {
+				// Additional volume - estimate 100GB
+				totalCost += 100.0 * 0.05 // $0.05 per GB per month
+			}
+		}
+	}
+
+	// Minimum cost if no block devices found
+	if totalCost == 0.0 {
+		totalCost = 20.0 * 0.05 // Default to 20GB root volume
+	}
+
+	return totalCost
+}

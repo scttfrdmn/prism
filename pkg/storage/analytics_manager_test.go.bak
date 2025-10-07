@@ -1,0 +1,430 @@
+package storage
+
+import (
+	"testing"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/stretchr/testify/assert"
+)
+
+// TestNewAnalyticsManager tests analytics manager initialization
+func TestNewAnalyticsManager(t *testing.T) {
+	tests := []struct {
+		name   string
+		config aws.Config
+	}{
+		{
+			name: "successful_initialization",
+			config: aws.Config{
+				Region: "us-west-2",
+			},
+		},
+		{
+			name: "initialization_with_empty_region",
+			config: aws.Config{
+				Region: "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manager := NewAnalyticsManager(tt.config)
+			assert.NotNil(t, manager, "Analytics manager should not be nil")
+			assert.Equal(t, tt.config.Region, manager.cfg.Region, "Region should be set correctly")
+		})
+	}
+}
+
+// TestGetStorageCostAnalysis tests storage cost analysis
+func TestGetStorageCostAnalysis(t *testing.T) {
+	manager := NewAnalyticsManager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		request     AnalyticsRequest
+		expectError bool
+	}{
+		{
+			name: "valid_cost_analysis_request",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "fs-12345678", Type: StorageTypeEFS}},
+				StartTime: time.Now().Add(-24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "daily",
+			},
+			expectError: false,
+		},
+		{
+			name: "valid_ebs_cost_analysis",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "vol-87654321", Type: StorageTypeEBS}},
+				StartTime: time.Now().Add(-7 * 24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "daily",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			analysis, err := manager.GetStorageCostAnalysis(tt.request)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Nil(t, analysis, "Analysis should be nil on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for valid request")
+				assert.NotNil(t, analysis, "Analysis should not be nil on success")
+				assert.NotEmpty(t, analysis.Services, "Analysis should include service costs")
+				assert.NotEmpty(t, analysis.Recommendations, "Analysis should include recommendations")
+				t.Logf("GetStorageCostAnalysis completed for %s", tt.request.Resources[0].ResourceID)
+			}
+		})
+	}
+}
+
+// TestAnalyzeUsagePatterns tests usage pattern analysis
+func TestAnalyzeUsagePatterns(t *testing.T) {
+	manager := NewAnalyticsManager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		request     AnalyticsRequest
+		expectError bool
+	}{
+		{
+			name: "valid_usage_pattern_analysis",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "fs-pattern-test", Type: StorageTypeEFS}},
+				StartTime: time.Now().Add(-24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "hourly",
+			},
+			expectError: false,
+		},
+		{
+			name: "valid_weekly_pattern_analysis",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "vol-weekly-pattern", Type: StorageTypeEBS}},
+				StartTime: time.Now().Add(-7 * 24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "daily",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			analysis, err := manager.AnalyzeUsagePatterns(tt.request)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Nil(t, analysis, "Analysis should be nil on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for valid request")
+				assert.NotNil(t, analysis, "Analysis should not be nil on success")
+				assert.NotEmpty(t, analysis.Patterns, "Analysis should include usage patterns")
+				assert.NotEmpty(t, analysis.Recommendations, "Analysis should include pattern recommendations")
+				t.Logf("AnalyzeUsagePatterns completed for %s", tt.request.Resources[0].ResourceID)
+			}
+		})
+	}
+}
+
+// TestGetPerformanceMetrics tests performance metrics retrieval
+func TestGetPerformanceMetrics(t *testing.T) {
+	manager := NewAnalyticsManager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		request     AnalyticsRequest
+		expectError bool
+	}{
+		{
+			name: "valid_performance_metrics_request",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "fs-performance-test", Type: StorageTypeEFS}},
+				StartTime: time.Now().Add(-1 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "5minute",
+			},
+			expectError: false,
+		},
+		{
+			name: "valid_comprehensive_metrics_request",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "vol-comprehensive-test", Type: StorageTypeEBS}},
+				StartTime: time.Now().Add(-24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "hourly",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			metrics, err := manager.GetPerformanceMetrics(tt.request)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Nil(t, metrics, "Metrics should be nil on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for valid request")
+				assert.NotNil(t, metrics, "Metrics should not be nil on success")
+				assert.Greater(t, metrics.IOPS.Average, 0.0, "IOPS average should be positive")
+				assert.Greater(t, metrics.Throughput.Average, 0.0, "Throughput average should be positive")
+				assert.NotEmpty(t, metrics.IOPS.Unit, "IOPS should have unit")
+				assert.NotEmpty(t, metrics.Throughput.Unit, "Throughput should have unit")
+				t.Logf("GetPerformanceMetrics completed for %s", tt.request.Resources[0].ResourceID)
+			}
+		})
+	}
+}
+
+// TestOptimizeStorageConfiguration tests storage configuration optimization
+func TestOptimizeStorageConfiguration(t *testing.T) {
+	manager := NewAnalyticsManager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		storageType StorageType
+		config      interface{}
+		expectError bool
+	}{
+		{
+			name:        "optimize_efs_configuration",
+			storageType: StorageTypeEFS,
+			config: map[string]interface{}{
+				"performance_mode": "generalPurpose",
+				"throughput_mode":  "bursting",
+			},
+			expectError: false,
+		},
+		{
+			name:        "optimize_ebs_configuration",
+			storageType: StorageTypeEBS,
+			config: map[string]interface{}{
+				"volume_type": "gp2",
+				"size":        100,
+				"iops":        0,
+			},
+			expectError: false,
+		},
+		{
+			name:        "optimize_fsx_configuration",
+			storageType: StorageTypeFSx,
+			config: map[string]interface{}{
+				"filesystem_type":  "lustre",
+				"storage_capacity": 1200,
+			},
+			expectError: false,
+		},
+		{
+			name:        "optimize_s3_configuration",
+			storageType: StorageTypeS3,
+			config: map[string]interface{}{
+				"storage_class": "STANDARD",
+				"lifecycle":     false,
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := manager.OptimizeStorageConfiguration(tt.storageType, tt.config)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Nil(t, result, "Result should be nil on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for valid configuration")
+				assert.NotNil(t, result, "Result should not be nil on success")
+				assert.Equal(t, tt.storageType, result.StorageType, "Storage type should match")
+				assert.NotEmpty(t, result.Recommendations, "Result should include recommendations")
+				assert.NotNil(t, result.OptimalConfig, "Result should include optimal configuration")
+				t.Logf("OptimizeStorageConfiguration completed for %s", tt.storageType)
+			}
+		})
+	}
+}
+
+// TestAnalyticsRequestValidation tests AnalyticsRequest structure validation
+func TestAnalyticsRequestValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		request     AnalyticsRequest
+		expectValid bool
+	}{
+		{
+			name: "valid_complete_request",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "fs-12345678", Type: StorageTypeEFS}},
+				StartTime: time.Now().Add(-24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "hourly",
+			},
+			expectValid: true,
+		},
+		{
+			name: "valid_minimal_request",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "vol-87654321", Type: StorageTypeEBS}},
+				StartTime: time.Now().Add(-1 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "5minute",
+			},
+			expectValid: true,
+		},
+		{
+			name: "invalid_empty_resources",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{},
+				StartTime: time.Now().Add(-24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "hourly",
+			},
+			expectValid: false,
+		},
+		{
+			name: "invalid_empty_period",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "fs-12345678", Type: StorageTypeEFS}},
+				StartTime: time.Now().Add(-24 * time.Hour),
+				EndTime:   time.Now(),
+				Period:    "",
+			},
+			expectValid: false,
+		},
+		{
+			name: "invalid_end_before_start",
+			request: AnalyticsRequest{
+				Resources: []StorageResource{{ResourceID: "fs-12345678", Type: StorageTypeEFS}},
+				StartTime: time.Now(),
+				EndTime:   time.Now().Add(-24 * time.Hour), // End before start
+				Period:    "hourly",
+			},
+			expectValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.expectValid {
+				assert.NotEmpty(t, tt.request.Resources, "Valid request should have resources")
+				assert.NotEqual(t, AnalyticsPeriod(""), tt.request.Period, "Valid request should have period")
+				assert.True(t, tt.request.EndTime.After(tt.request.StartTime), "End time should be after start time")
+			} else {
+				hasValidationIssue := len(tt.request.Resources) == 0 ||
+					tt.request.Period == "" ||
+					tt.request.EndTime.Before(tt.request.StartTime)
+				assert.True(t, hasValidationIssue, "Invalid request should have validation issue")
+			}
+		})
+	}
+}
+
+// TestStorageResource tests StorageResource structure
+func TestStorageResource(t *testing.T) {
+	resource := StorageResource{
+		ResourceID: "fs-test-resource",
+		Type:       StorageTypeEFS,
+	}
+
+	assert.Equal(t, "fs-test-resource", resource.ResourceID)
+	assert.Equal(t, StorageTypeEFS, resource.Type)
+}
+
+// TestTimeRange tests TimeRange structure
+func TestTimeRange(t *testing.T) {
+	now := time.Now()
+	timeRange := TimeRange{
+		Start: now.Add(-24 * time.Hour),
+		End:   now,
+	}
+
+	assert.True(t, timeRange.End.After(timeRange.Start), "End should be after start")
+	assert.Equal(t, 24*time.Hour, timeRange.End.Sub(timeRange.Start), "Duration should be 24 hours")
+}
+
+// TestServiceCost tests ServiceCost structure
+func TestServiceCost(t *testing.T) {
+	serviceCost := ServiceCost{
+		Service: "Amazon EFS",
+		Cost:    15.75,
+		Usage:   "150 GB-hours",
+	}
+
+	assert.Equal(t, "Amazon EFS", serviceCost.Service)
+	assert.Equal(t, 15.75, serviceCost.Cost)
+	assert.Equal(t, "150 GB-hours", serviceCost.Usage)
+}
+
+// TestUsagePattern tests UsagePattern structure
+func TestUsagePattern(t *testing.T) {
+	pattern := UsagePattern{
+		Resource:    "Storage Access",
+		Pattern:     "Peak usage during business hours",
+		Confidence:  0.85,
+		Description: "High activity 9 AM - 5 PM weekdays",
+	}
+
+	assert.Equal(t, "Storage Access", pattern.Resource)
+	assert.Equal(t, "Peak usage during business hours", pattern.Pattern)
+	assert.Equal(t, 0.85, pattern.Confidence)
+	assert.Contains(t, pattern.Description, "9 AM - 5 PM")
+}
+
+// TestPatternRecommendation tests PatternRecommendation structure
+func TestPatternRecommendation(t *testing.T) {
+	recommendation := PatternRecommendation{
+		Resource:       "EFS",
+		Pattern:        "Low weekend usage",
+		Recommendation: "Consider scheduled hibernation for weekends",
+		Confidence:     0.75,
+	}
+
+	assert.Equal(t, "EFS", recommendation.Resource)
+	assert.Equal(t, "Low weekend usage", recommendation.Pattern)
+	assert.Contains(t, recommendation.Recommendation, "hibernation")
+	assert.Equal(t, 0.75, recommendation.Confidence)
+}
+
+// TestMetricData tests MetricData structure
+func TestMetricData(t *testing.T) {
+	metricData := MetricData{
+		Average: 150.5,
+		Maximum: 300.0,
+		Minimum: 50.0,
+		Unit:    "IOPS",
+	}
+
+	assert.Equal(t, 150.5, metricData.Average)
+	assert.Equal(t, 300.0, metricData.Maximum)
+	assert.Equal(t, 50.0, metricData.Minimum)
+	assert.Equal(t, "IOPS", metricData.Unit)
+
+	// Test that max >= average >= min
+	assert.GreaterOrEqual(t, metricData.Maximum, metricData.Average)
+	assert.GreaterOrEqual(t, metricData.Average, metricData.Minimum)
+}
+
+// TestRecommendation tests Recommendation structure
+func TestRecommendation(t *testing.T) {
+	recommendation := Recommendation{
+		Type:        "Performance",
+		Description: "Upgrade to gp3 for better IOPS/cost ratio",
+		Impact:      "Medium",
+		Savings:     3.25,
+	}
+
+	assert.Equal(t, "Performance", recommendation.Type)
+	assert.Contains(t, recommendation.Description, "gp3")
+	assert.Equal(t, "Medium", recommendation.Impact)
+	assert.Equal(t, 3.25, recommendation.Savings)
+}

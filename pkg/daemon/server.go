@@ -362,6 +362,25 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 		}
 	}
 
+	// CORS middleware for web development
+	corsMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			// Set CORS headers for web development
+			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+			// Handle preflight OPTIONS requests
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			handler(w, r)
+		}
+	}
+
 	// Operation tracking middleware
 	operationTrackingMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -415,6 +434,7 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 	applyMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
 		return s.combineMiddleware(
 			handler,
+			corsMiddleware, // Add CORS first for web development
 			jsonMiddleware,
 			operationTrackingMiddleware,
 			versionHeaderMiddleware,
@@ -459,6 +479,10 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/instances", applyMiddleware(s.handleInstances))
 	mux.HandleFunc("/api/v1/instances/", applyMiddleware(s.handleInstanceOperations))
 
+	// Log operations
+	mux.HandleFunc("/api/v1/logs", applyMiddleware(s.handleLogs))
+	mux.HandleFunc("/api/v1/logs/", applyMiddleware(s.handleLogOperations))
+
 	// Template operations
 	mux.HandleFunc("/api/v1/templates", applyMiddleware(s.handleTemplates))
 	mux.HandleFunc("/api/v1/templates/", applyMiddleware(s.handleTemplateInfo))
@@ -475,12 +499,19 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/storage", applyMiddleware(s.handleStorage))
 	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
 
+	// Instance snapshot operations
+	mux.HandleFunc("/api/v1/snapshots", applyMiddleware(s.handleSnapshots))
+	mux.HandleFunc("/api/v1/snapshots/", applyMiddleware(s.handleSnapshotOperations))
+
 	// Research user operations (Phase 5A.3: REST API Integration)
 	mux.HandleFunc("/api/v1/research-users", applyMiddleware(s.handleResearchUsers))
 	mux.HandleFunc("/api/v1/research-users/", applyMiddleware(s.handleResearchUserOperations))
 
 	// Idle policy operations
 	s.RegisterIdleRoutes(mux, applyMiddleware)
+
+	// Rightsizing analysis operations
+	s.registerRightsizingRoutes(mux, applyMiddleware)
 
 	// Process management operations
 	mux.HandleFunc("/api/v1/daemon/processes", applyMiddleware(s.handleDaemonProcesses))

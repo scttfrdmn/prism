@@ -16,6 +16,13 @@ user_data: |
   echo "DEBUG: Custom UserData script is running!" > /tmp/debug-userdata.txt
   curl -s "https://httpbin.org/post" -d "data=debug-test" || true
 
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 15
+  hibernate_threshold_minutes: 30
+  check_interval_minutes: 5
+
 instance_defaults:
   ports: [22]
 

@@ -84,13 +84,10 @@ instance_defaults:
 
 # Idle detection optimized for R statistical workloads
 idle_detection:
-  cpu_threshold: 5   # R can have bursts followed by quiet periods
-  memory_threshold: 20  # R keeps data in memory
-  gpu_threshold: 0   # No GPU typically used
-  network_threshold: 1
-  disk_threshold: 5
-  check_interval: 300  # 5 minutes
-  idle_minutes: 60     # 60 minutes idle before action (R analyses can be long)
+  enabled: true
+  idle_threshold_minutes: 60  # 60 minutes for R analyses
+  hibernate_threshold_minutes: 120  # 2 hours before hibernation
+  check_interval_minutes: 5
 
 version: "2.0.0"
 maintainer: "CloudWorkstation Team"

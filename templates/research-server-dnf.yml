@@ -63,6 +63,13 @@ post_install: |
   echo "Setting up system logging configuration..."
   echo "LogLevel INFO" >> /etc/ssh/sshd_config
 
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 20
+  hibernate_threshold_minutes: 60
+  check_interval_minutes: 5
+
 instance_defaults:
   ports: [22, 80, 443, 8080]
 

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -14,6 +16,7 @@ type CloudWorkstationService struct {
 	daemonURL         string
 	client            *http.Client
 	connectionManager *ConnectionManager
+	apiKey            string // API key for daemon authentication
 }
 
 // Template represents a CloudWorkstation template
@@ -94,6 +97,7 @@ func NewCloudWorkstationService() *CloudWorkstationService {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		apiKey: loadAPIKeyFromState(), // Load API key for authentication
 	}
 
 	// Initialize connection manager
@@ -104,11 +108,19 @@ func NewCloudWorkstationService() *CloudWorkstationService {
 
 // GetTemplates fetches available templates from daemon
 func (s *CloudWorkstationService) GetTemplates(ctx context.Context) ([]Template, error) {
-	resp, err := s.client.Get(s.daemonURL + "/api/v1/templates")
+	req, err := http.NewRequestWithContext(ctx, "GET", s.daemonURL+"/api/v1/templates", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add API key authentication
+	s.addAPIKeyHeader(req)
+
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch templates: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var templates []Template
 	if err := json.NewDecoder(resp.Body).Decode(&templates); err != nil {
@@ -126,11 +138,19 @@ func (s *CloudWorkstationService) GetTemplates(ctx context.Context) ([]Template,
 
 // GetInstances fetches running instances from daemon
 func (s *CloudWorkstationService) GetInstances(ctx context.Context) ([]Instance, error) {
-	resp, err := s.client.Get(s.daemonURL + "/api/v1/instances")
+	req, err := http.NewRequestWithContext(ctx, "GET", s.daemonURL+"/api/v1/instances", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add API key authentication
+	s.addAPIKeyHeader(req)
+
+	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch instances: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var instances []Instance
 	if err := json.NewDecoder(resp.Body).Decode(&instances); err != nil {
@@ -155,7 +175,7 @@ func (s *CloudWorkstationService) LaunchInstance(ctx context.Context, req Launch
 	// Call daemon API to launch instance
 	launchURL := fmt.Sprintf("%s/api/v1/instances", s.daemonURL)
 
-	reqData := map[string]interface{}{
+	reqData := map[string]any{
 		"template": req.Template,
 		"name":     req.Name,
 		"size":     req.Size,
@@ -172,11 +192,14 @@ func (s *CloudWorkstationService) LaunchInstance(ctx context.Context, req Launch
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
+	// Add API key authentication
+	s.addAPIKeyHeader(httpReq)
+
 	resp, err := s.client.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("failed to call daemon API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
@@ -203,7 +226,7 @@ func (s *CloudWorkstationService) StopInstance(ctx context.Context, name string)
 	if err != nil {
 		return fmt.Errorf("failed to call daemon API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
@@ -213,7 +236,7 @@ func (s *CloudWorkstationService) StopInstance(ctx context.Context, name string)
 }
 
 // ConnectToInstance gets connection information for an instance
-func (s *CloudWorkstationService) ConnectToInstance(ctx context.Context, name string) (map[string]interface{}, error) {
+func (s *CloudWorkstationService) ConnectToInstance(ctx context.Context, name string) (map[string]any, error) {
 	if name == "" {
 		return nil, fmt.Errorf("instance name is required")
 	}
@@ -230,13 +253,13 @@ func (s *CloudWorkstationService) ConnectToInstance(ctx context.Context, name st
 	if err != nil {
 		return nil, fmt.Errorf("failed to call daemon API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
 	}
 
-	var connectionInfo map[string]interface{}
+	var connectionInfo map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&connectionInfo); err != nil {
 		return nil, fmt.Errorf("failed to decode connection info: %w", err)
 	}
@@ -247,85 +270,139 @@ func (s *CloudWorkstationService) ConnectToInstance(ctx context.Context, name st
 // Helper functions for better UX
 func getTemplateIcon(name string) string {
 	nameLower := strings.ToLower(name)
-	switch {
-	case strings.Contains(nameLower, "python") || strings.Contains(nameLower, "ml"):
+	if isPythonML(nameLower) {
 		return "🐍"
-	case strings.Contains(nameLower, "r-") || strings.Contains(nameLower, "r "):
-		return "📊"
-	case strings.Contains(nameLower, "rocky") || strings.Contains(nameLower, "linux"):
-		return "🖥️"
-	case strings.Contains(nameLower, "ubuntu"):
-		return "🐧"
-	case strings.Contains(nameLower, "web") || strings.Contains(nameLower, "node"):
-		return "🌐"
-	default:
-		return "⚙️"
 	}
+	if isDataScience(nameLower) {
+		return "📊"
+	}
+	if isLinux(nameLower) {
+		return "🖥️"
+	}
+	if strings.Contains(nameLower, "ubuntu") {
+		return "🐧"
+	}
+	if isWeb(nameLower) {
+		return "🌐"
+	}
+	return "⚙️"
+}
+
+// Helper functions for template classification
+func isPythonML(name string) bool {
+	return strings.Contains(name, "python") || strings.Contains(name, "ml")
+}
+
+func isDataScience(name string) bool {
+	return strings.Contains(name, "r-") || strings.Contains(name, "r ")
+}
+
+func isLinux(name string) bool {
+	return strings.Contains(name, "rocky") || strings.Contains(name, "linux")
+}
+
+func isWeb(name string) bool {
+	return strings.Contains(name, "web") || strings.Contains(name, "node")
 }
 
 func getTemplateCategory(name string) string {
 	nameLower := strings.ToLower(name)
-	switch {
-	case strings.Contains(nameLower, "python") || strings.Contains(nameLower, "ml"):
+	if isPythonML(nameLower) {
 		return "Machine Learning"
-	case strings.Contains(nameLower, "r-") || strings.Contains(nameLower, "r "):
-		return "Data Science"
-	case strings.Contains(nameLower, "web") || strings.Contains(nameLower, "node"):
-		return "Web Development"
-	case strings.Contains(nameLower, "rocky") || strings.Contains(nameLower, "linux") || strings.Contains(nameLower, "ubuntu"):
-		return "Base Systems"
-	default:
-		return "General"
 	}
+	if isDataScience(nameLower) {
+		return "Data Science"
+	}
+	if isWeb(nameLower) {
+		return "Web Development"
+	}
+	if isBaseSystem(nameLower) {
+		return "Base Systems"
+	}
+	return "General"
+}
+
+func isBaseSystem(name string) bool {
+	return isLinux(name) || strings.Contains(name, "ubuntu")
 }
 
 // GetInstanceConnectionInfo gets connection information for intelligent detection
 func (s *CloudWorkstationService) GetInstanceConnectionInfo(ctx context.Context, instanceName string) (*ConnectionInfo, error) {
 	// Try to get detailed instance info from daemon first
-	url := fmt.Sprintf("%s/api/v1/instances/%s/connection-info", s.daemonURL, instanceName)
-	resp, err := s.client.Get(url)
-	if err == nil && resp.StatusCode == 200 {
-		defer resp.Body.Close()
-
-		var connectionInfo ConnectionInfo
-		if err := json.NewDecoder(resp.Body).Decode(&connectionInfo); err == nil {
-			return &connectionInfo, nil
-		}
+	if connectionInfo, err := s.getConnectionInfoFromDaemon(instanceName); err == nil {
+		return connectionInfo, nil
 	}
 
 	// Fallback: analyze based on available instance and template information
+	return s.buildConnectionInfoFromTemplate(ctx, instanceName)
+}
+
+// getConnectionInfoFromDaemon attempts to get connection info directly from daemon
+func (s *CloudWorkstationService) getConnectionInfoFromDaemon(instanceName string) (*ConnectionInfo, error) {
+	url := fmt.Sprintf("%s/api/v1/instances/%s/connection-info", s.daemonURL, instanceName)
+	resp, err := s.client.Get(url)
+	if err != nil || resp.StatusCode != 200 {
+		return nil, fmt.Errorf("daemon connection info not available")
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	var connectionInfo ConnectionInfo
+	if err := json.NewDecoder(resp.Body).Decode(&connectionInfo); err != nil {
+		return nil, fmt.Errorf("failed to decode connection info: %w", err)
+	}
+
+	return &connectionInfo, nil
+}
+
+// buildConnectionInfoFromTemplate builds connection info by analyzing instance and template
+func (s *CloudWorkstationService) buildConnectionInfoFromTemplate(ctx context.Context, instanceName string) (*ConnectionInfo, error) {
+	targetInstance, err := s.findInstanceByName(ctx, instanceName)
+	if err != nil {
+		return nil, err
+	}
+
+	template, err := s.findTemplateByName(ctx, targetInstance.Template)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.createConnectionInfoFromTemplate(instanceName, template), nil
+}
+
+// findInstanceByName finds an instance by name
+func (s *CloudWorkstationService) findInstanceByName(ctx context.Context, instanceName string) (*Instance, error) {
 	instances, err := s.GetInstances(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get instances: %w", err)
 	}
 
-	var targetInstance *Instance
 	for i := range instances {
 		if instances[i].Name == instanceName {
-			targetInstance = &instances[i]
-			break
+			return &instances[i], nil
 		}
 	}
 
-	if targetInstance == nil {
-		return nil, fmt.Errorf("instance %s not found", instanceName)
-	}
+	return nil, fmt.Errorf("instance %s not found", instanceName)
+}
 
-	// Get templates for analysis
+// findTemplateByName finds a template by name
+func (s *CloudWorkstationService) findTemplateByName(ctx context.Context, templateName string) (*Template, error) {
 	templates, err := s.GetTemplates(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get templates: %w", err)
 	}
 
-	var template *Template
 	for i := range templates {
-		if templates[i].Name == targetInstance.Template {
-			template = &templates[i]
-			break
+		if templates[i].Name == templateName {
+			return &templates[i], nil
 		}
 	}
 
-	// Analyze template to determine connection characteristics
+	return nil, nil // Template not found is not an error
+}
+
+// createConnectionInfoFromTemplate creates connection info based on template analysis
+func (s *CloudWorkstationService) createConnectionInfoFromTemplate(instanceName string, template *Template) *ConnectionInfo {
 	hasDesktop := s.templateHasDesktop(template)
 	hasDisplay := s.templateHasDisplay(template)
 	templateType := ""
@@ -333,7 +410,7 @@ func (s *CloudWorkstationService) GetInstanceConnectionInfo(ctx context.Context,
 		templateType = template.Category
 	}
 
-	connectionInfo := &ConnectionInfo{
+	return &ConnectionInfo{
 		InstanceName: instanceName,
 		HasDesktop:   hasDesktop,
 		HasDisplay:   hasDisplay,
@@ -342,8 +419,6 @@ func (s *CloudWorkstationService) GetInstanceConnectionInfo(ctx context.Context,
 		Ports:        []int{22},  // SSH always available
 		Template:     template,
 	}
-
-	return connectionInfo, nil
 }
 
 // GetSSHConnectionInfo gets SSH connection details for an instance
@@ -352,7 +427,7 @@ func (s *CloudWorkstationService) GetSSHConnectionInfo(ctx context.Context, inst
 	url := fmt.Sprintf("%s/api/v1/instances/%s/ssh-info", s.daemonURL, instanceName)
 	resp, err := s.client.Get(url)
 	if err == nil && resp.StatusCode == 200 {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		var sshInfo SSHConnectionInfo
 		if err := json.NewDecoder(resp.Body).Decode(&sshInfo); err == nil {
@@ -420,14 +495,14 @@ func (s *CloudWorkstationService) templateHasDisplay(template *Template) bool {
 	return false
 }
 
-func (s *CloudWorkstationService) getDefaultUsername(instanceName string) string {
+func (s *CloudWorkstationService) getDefaultUsername(_ string) string {
 	// In a full implementation, this would be based on the template or AMI
 	// For now, return common defaults
 	return "ubuntu" // Most common default for AWS instances
 }
 
 // ConfigureAutoStart configures automatic startup for the GUI application
-func (s *CloudWorkstationService) ConfigureAutoStart(ctx context.Context, enable bool) error {
+func (s *CloudWorkstationService) ConfigureAutoStart(_ context.Context, enable bool) error { //nolint:unparam // Error return reserved for future validation
 	// This calls the same auto-start configuration that the CLI uses
 	// The actual implementation is handled by the autostart.go file
 
@@ -435,29 +510,30 @@ func (s *CloudWorkstationService) ConfigureAutoStart(ctx context.Context, enable
 	// In a full implementation, this would call the configureAutoStart function
 	// from autostart.go or execute the cws-gui binary with the appropriate flags
 
+	// Both branches return nil as this is a placeholder implementation
+	// that would execute different commands in a complete version
 	if enable {
 		// Would execute: cws-gui -autostart
 		return nil
-	} else {
-		// Would execute: cws-gui -remove-autostart
-		return nil
 	}
+	// Would execute: cws-gui -remove-autostart
+	return nil
 }
 
 // RestartDaemon restarts the CloudWorkstation daemon
-func (s *CloudWorkstationService) RestartDaemon(ctx context.Context) error {
+func (s *CloudWorkstationService) RestartDaemon(_ context.Context) error {
 	// This would restart the daemon service
 	// For now, return a not implemented error
 	return fmt.Errorf("daemon restart functionality not yet implemented in GUI service")
 }
 
 // GetResearchUsers fetches all research users from daemon
-func (s *CloudWorkstationService) GetResearchUsers(ctx context.Context) ([]ResearchUser, error) {
+func (s *CloudWorkstationService) GetResearchUsers(_ context.Context) ([]ResearchUser, error) {
 	resp, err := s.client.Get(s.daemonURL + "/api/v1/research-users")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch research users: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
@@ -492,7 +568,7 @@ func (s *CloudWorkstationService) CreateResearchUser(ctx context.Context, req Cr
 	if err != nil {
 		return fmt.Errorf("failed to call daemon API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
@@ -516,7 +592,7 @@ func (s *CloudWorkstationService) DeleteResearchUser(ctx context.Context, userna
 	if err != nil {
 		return fmt.Errorf("failed to call daemon API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
@@ -552,7 +628,7 @@ func (s *CloudWorkstationService) GenerateResearchUserSSHKey(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("failed to call daemon API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
@@ -562,7 +638,7 @@ func (s *CloudWorkstationService) GenerateResearchUserSSHKey(ctx context.Context
 }
 
 // GetResearchUserStatus gets detailed status for a research user
-func (s *CloudWorkstationService) GetResearchUserStatus(ctx context.Context, username string) (map[string]interface{}, error) {
+func (s *CloudWorkstationService) GetResearchUserStatus(_ context.Context, username string) (map[string]any, error) {
 	if username == "" {
 		return nil, fmt.Errorf("username is required")
 	}
@@ -572,13 +648,13 @@ func (s *CloudWorkstationService) GetResearchUserStatus(ctx context.Context, use
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch research user status: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("daemon returned error status: %d", resp.StatusCode)
 	}
 
-	var status map[string]interface{}
+	var status map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
 		return nil, fmt.Errorf("failed to decode research user status: %w", err)
 	}
@@ -657,4 +733,39 @@ func (s *CloudWorkstationService) RegisterConnectionCallback(id string, callback
 	if s.connectionManager != nil {
 		s.connectionManager.RegisterCallback(id, callback)
 	}
+}
+
+// addAPIKeyHeader adds API key authentication header if available
+func (s *CloudWorkstationService) addAPIKeyHeader(req *http.Request) {
+	if s.apiKey != "" {
+		req.Header.Set("X-API-Key", s.apiKey)
+	}
+}
+
+// loadAPIKeyFromState attempts to load the API key from daemon state
+func loadAPIKeyFromState() string {
+	// Try to load daemon state to get API key
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "" // No API key available
+	}
+
+	stateFile := filepath.Join(homeDir, ".cloudworkstation", "state.json")
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		return "" // No state file or can't read it
+	}
+
+	// Parse state to extract API key
+	var state struct {
+		Config struct {
+			APIKey string `json:"api_key"`
+		} `json:"config"`
+	}
+
+	if err := json.Unmarshal(data, &state); err != nil {
+		return "" // Invalid state format
+	}
+
+	return state.Config.APIKey
 }

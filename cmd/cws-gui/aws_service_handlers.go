@@ -12,6 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
+// AWS service constants
+const (
+	awsServiceBraket     = "braket"
+	awsServiceSageMaker  = "sagemaker"
+	awsServiceConsole    = "console"
+	awsServiceCloudShell = "cloudshell"
+	awsEmbeddingMode     = "iframe"
+)
+
 // AWS service connection handlers for embedded access
 
 // OpenAWSService provides generic AWS service access
@@ -44,7 +53,7 @@ func (s *CloudWorkstationService) OpenAWSService(ctx context.Context, service st
 
 // OpenBraketConsole opens Amazon Braket quantum computing console
 func (s *CloudWorkstationService) OpenBraketConsole(ctx context.Context, region string) (*ConnectionConfig, error) {
-	config, err := s.OpenAWSService(ctx, "braket", region)
+	config, err := s.OpenAWSService(ctx, awsServiceBraket, region)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +68,7 @@ func (s *CloudWorkstationService) OpenBraketConsole(ctx context.Context, region 
 
 // OpenSageMakerStudio opens SageMaker Studio for ML development
 func (s *CloudWorkstationService) OpenSageMakerStudio(ctx context.Context, region string) (*ConnectionConfig, error) {
-	config, err := s.OpenAWSService(ctx, "sagemaker", region)
+	config, err := s.OpenAWSService(ctx, awsServiceSageMaker, region)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +83,7 @@ func (s *CloudWorkstationService) OpenSageMakerStudio(ctx context.Context, regio
 
 // OpenAWSConsole opens AWS Management Console
 func (s *CloudWorkstationService) OpenAWSConsole(ctx context.Context, service string, region string) (*ConnectionConfig, error) {
-	config, err := s.OpenAWSService(ctx, "console", region)
+	config, err := s.OpenAWSService(ctx, awsServiceConsole, region)
 	if err != nil {
 		return nil, err
 	}
@@ -89,13 +98,13 @@ func (s *CloudWorkstationService) OpenAWSConsole(ctx context.Context, service st
 
 // OpenCloudShell opens AWS CloudShell terminal
 func (s *CloudWorkstationService) OpenCloudShell(ctx context.Context, region string) (*ConnectionConfig, error) {
-	config, err := s.OpenAWSService(ctx, "cloudshell", region)
+	config, err := s.OpenAWSService(ctx, awsServiceCloudShell, region)
 	if err != nil {
 		return nil, err
 	}
 
 	// CloudShell-specific metadata
-	config.Metadata["terminal_type"] = "cloudshell"
+	config.Metadata["terminal_type"] = awsServiceCloudShell
 	config.Metadata["persistent_storage"] = true
 	config.Metadata["service_description"] = "AWS CloudShell browser-based terminal"
 	config.Title = fmt.Sprintf("🖥️ CloudShell (%s)", region)
@@ -146,13 +155,13 @@ func (s *CloudWorkstationService) generateServiceToken(ctx context.Context, serv
 // buildAWSServiceURL constructs the appropriate URL for AWS service access
 func (s *CloudWorkstationService) buildAWSServiceURL(service string, region string, token string) string {
 	switch service {
-	case "braket":
+	case awsServiceBraket:
 		return fmt.Sprintf("%s/aws-proxy/braket?region=%s&token=%s", s.daemonURL, region, url.QueryEscape(token))
-	case "sagemaker":
+	case awsServiceSageMaker:
 		return fmt.Sprintf("%s/aws-proxy/sagemaker?region=%s&token=%s", s.daemonURL, region, url.QueryEscape(token))
-	case "console":
+	case awsServiceConsole:
 		return fmt.Sprintf("%s/aws-proxy/console?region=%s&token=%s", s.daemonURL, region, url.QueryEscape(token))
-	case "cloudshell":
+	case awsServiceCloudShell:
 		return fmt.Sprintf("%s/aws-proxy/cloudshell?region=%s&token=%s", s.daemonURL, region, url.QueryEscape(token))
 	default:
 		return fmt.Sprintf("%s/aws-proxy/%s?region=%s&token=%s", s.daemonURL, service, region, url.QueryEscape(token))
@@ -160,28 +169,30 @@ func (s *CloudWorkstationService) buildAWSServiceURL(service string, region stri
 }
 
 // getServiceEmbeddingMode determines the best embedding approach for each service
+//
+//nolint:unparam // Future extensibility for different embedding modes
 func (s *CloudWorkstationService) getServiceEmbeddingMode(service string) string {
 	switch service {
-	case "braket":
-		return "iframe" // Braket console works well in iframe
-	case "sagemaker":
-		return "iframe" // SageMaker Studio supports iframe embedding
-	case "console":
-		return "iframe" // AWS Console can be embedded with proper auth
-	case "cloudshell":
-		return "iframe" // CloudShell has iframe support
+	case awsServiceBraket:
+		return awsEmbeddingMode // Braket console works well in iframe
+	case awsServiceSageMaker:
+		return awsEmbeddingMode // SageMaker Studio supports iframe embedding
+	case awsServiceConsole:
+		return awsEmbeddingMode // AWS Console can be embedded with proper auth
+	case awsServiceCloudShell:
+		return awsEmbeddingMode // CloudShell has iframe support
 	default:
-		return "iframe"
+		return awsEmbeddingMode
 	}
 }
 
 // buildServiceTitle creates a human-readable title for the service tab
 func (s *CloudWorkstationService) buildServiceTitle(service string, region string) string {
 	serviceNames := map[string]string{
-		"braket":     "Amazon Braket",
-		"sagemaker":  "SageMaker Studio",
-		"console":    "AWS Console",
-		"cloudshell": "CloudShell",
+		awsServiceBraket:     "Amazon Braket",
+		awsServiceSageMaker:  "SageMaker Studio",
+		awsServiceConsole:    "AWS Console",
+		awsServiceCloudShell: "CloudShell",
 	}
 
 	if name, exists := serviceNames[service]; exists {
@@ -193,7 +204,7 @@ func (s *CloudWorkstationService) buildServiceTitle(service string, region strin
 // getServicePolicy returns IAM policy for specific AWS services
 func (s *CloudWorkstationService) getServicePolicy(service string) string {
 	policies := map[string]string{
-		"braket": `{
+		awsServiceBraket: `{
 			"Version": "2012-10-17",
 			"Statement": [
 				{
@@ -208,7 +219,7 @@ func (s *CloudWorkstationService) getServicePolicy(service string) string {
 				}
 			]
 		}`,
-		"sagemaker": `{
+		awsServiceSageMaker: `{
 			"Version": "2012-10-17",
 			"Statement": [
 				{
@@ -224,7 +235,7 @@ func (s *CloudWorkstationService) getServicePolicy(service string) string {
 				}
 			]
 		}`,
-		"console": `{
+		awsServiceConsole: `{
 			"Version": "2012-10-17",
 			"Statement": [
 				{
@@ -240,7 +251,7 @@ func (s *CloudWorkstationService) getServicePolicy(service string) string {
 				}
 			]
 		}`,
-		"cloudshell": `{
+		awsServiceCloudShell: `{
 			"Version": "2012-10-17",
 			"Statement": [
 				{
@@ -276,7 +287,9 @@ func (s *CloudWorkstationService) getServicePolicy(service string) string {
 }
 
 // getAWSConfig returns AWS configuration for the specified region
-func (s *CloudWorkstationService) getAWSConfig(ctx context.Context, region string) (aws.Config, error) {
+//
+//nolint:unparam // Error return reserved for future auth validation
+func (s *CloudWorkstationService) getAWSConfig(_ context.Context, region string) (aws.Config, error) {
 	// This should use the same AWS configuration logic as the rest of CloudWorkstation
 	// For now, return a basic configuration - this will need to be integrated
 	// with the existing AWS profile and credential management system

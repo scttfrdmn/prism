@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/marketplace"
 )
@@ -15,7 +16,7 @@ import (
 func (s *Server) RegisterMarketplaceRoutes(mux *http.ServeMux, applyMiddleware func(http.HandlerFunc) http.HandlerFunc) {
 	// Discovery endpoints
 	mux.HandleFunc("/api/v1/marketplace/templates", applyMiddleware(s.handleMarketplaceTemplates))
-	mux.HandleFunc("/api/v1/marketplace/templates/", applyMiddleware(s.handleMarketplateTemplate))
+	mux.HandleFunc("/api/v1/marketplace/template/", applyMiddleware(s.handleMarketplateTemplate))
 	mux.HandleFunc("/api/v1/marketplace/categories", applyMiddleware(s.handleMarketplaceCategories))
 	mux.HandleFunc("/api/v1/marketplace/featured", applyMiddleware(s.handleMarketplaceFeatured))
 	mux.HandleFunc("/api/v1/marketplace/trending", applyMiddleware(s.handleMarketplaceTrending))
@@ -26,10 +27,14 @@ func (s *Server) RegisterMarketplaceRoutes(mux *http.ServeMux, applyMiddleware f
 	mux.HandleFunc("/api/v1/marketplace/update/", applyMiddleware(s.handleMarketplaceUpdate))
 	mux.HandleFunc("/api/v1/marketplace/my-publications", applyMiddleware(s.handleMyPublications))
 
+	// Template installation endpoint
+	mux.HandleFunc("/api/v1/templates/install-marketplace", applyMiddleware(s.handleMarketplaceTemplateInstall))
+
 	// Community interaction endpoints
 	mux.HandleFunc("/api/v1/marketplace/reviews/", applyMiddleware(s.handleMarketplaceReviews))
 	mux.HandleFunc("/api/v1/marketplace/fork/", applyMiddleware(s.handleMarketplaceFork))
 	mux.HandleFunc("/api/v1/marketplace/analytics/", applyMiddleware(s.handleMarketplaceAnalytics))
+	mux.HandleFunc("/api/v1/marketplace/template-tracking/", applyMiddleware(s.handleMarketplaceTemplateTracking))
 }
 
 // handleMarketplaceTemplates handles template search/browse requests
@@ -576,5 +581,121 @@ func (s *Server) handleMarketplaceAnalytics(w http.ResponseWriter, r *http.Reque
 		if err := json.NewEncoder(w).Encode(stats); err != nil {
 			s.writeError(w, http.StatusInternalServerError, err.Error())
 		}
+	}
+}
+
+// handleMarketplaceTemplateInstall handles marketplace template installation
+// POST /api/v1/templates/install-marketplace
+func (s *Server) handleMarketplaceTemplateInstall(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var installRequest struct {
+		MarketplaceTemplateID string                 `json:"marketplace_template_id"`
+		LocalName             string                 `json:"local_name"`
+		TemplateDefinition    map[string]interface{} `json:"template_definition"`
+		DownloadAMI           bool                   `json:"download_ami"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&installRequest); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	// Validate required fields
+	if installRequest.MarketplaceTemplateID == "" {
+		s.writeError(w, http.StatusBadRequest, "marketplace_template_id is required")
+		return
+	}
+	if installRequest.LocalName == "" {
+		s.writeError(w, http.StatusBadRequest, "local_name is required")
+		return
+	}
+
+	// In production, this would integrate with the local template system
+	// For now, we'll simulate the installation process
+	fmt.Printf("Installing marketplace template %s as %s\n", installRequest.MarketplaceTemplateID, installRequest.LocalName)
+
+	// Track the download event
+	trackingEvent := &marketplace.UsageEvent{
+		EventType:  "download",
+		TemplateID: installRequest.MarketplaceTemplateID,
+		UserID:     "current-user", // In production, get from authentication
+		Timestamp:  time.Now(),
+	}
+
+	if err := s.marketplaceRegistry.TrackUsage(installRequest.MarketplaceTemplateID, trackingEvent); err != nil {
+		// Log but don't fail the installation
+		fmt.Printf("Warning: Failed to track download: %v\n", err)
+	}
+
+	// Simulate installation success
+	response := map[string]interface{}{
+		"status":               "installed",
+		"marketplace_template": installRequest.MarketplaceTemplateID,
+		"local_name":           installRequest.LocalName,
+		"ami_downloaded":       installRequest.DownloadAMI,
+		"message":              "Template installed successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleMarketplaceTemplateTracking handles tracking events for marketplace templates
+// POST /api/v1/marketplace/templates/{template_id}/track
+func (s *Server) handleMarketplaceTemplateTracking(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Extract template ID from URL path
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(pathParts) < 5 || pathParts[3] == "" || pathParts[4] != "track" {
+		s.writeError(w, http.StatusBadRequest, "invalid URL path, expected /api/v1/marketplace/templates/{template_id}/track")
+		return
+	}
+
+	templateID := pathParts[3]
+
+	var trackingRequest struct {
+		EventType string `json:"event_type"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&trackingRequest); err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	// Create tracking event
+	trackingEvent := &marketplace.UsageEvent{
+		EventType:  trackingRequest.EventType,
+		TemplateID: templateID,
+		UserID:     "current-user", // In production, get from authentication
+		Timestamp:  time.Now(),
+	}
+
+	// Track the event
+	if err := s.marketplaceRegistry.TrackUsage(templateID, trackingEvent); err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to track event: %v", err))
+		return
+	}
+
+	response := map[string]interface{}{
+		"status":      "tracked",
+		"event_type":  trackingRequest.EventType,
+		"template_id": templateID,
+		"timestamp":   trackingEvent.Timestamp,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
 	}
 }

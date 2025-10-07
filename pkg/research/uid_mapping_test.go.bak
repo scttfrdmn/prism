@@ -1,0 +1,474 @@
+package research
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestGenerateConsistentUID tests UID generation consistency
+func TestGenerateConsistentUID(t *testing.T) {
+	tests := []struct {
+		name        string
+		profileID   string
+		username    string
+		expectError bool
+	}{
+		{
+			name:        "valid_profile_and_username",
+			profileID:   "test-profile-1",
+			username:    "researcher",
+			expectError: false,
+		},
+		{
+			name:        "different_username_same_profile",
+			profileID:   "test-profile-1",
+			username:    "analyst",
+			expectError: false,
+		},
+		{
+			name:        "same_username_different_profile",
+			profileID:   "test-profile-2",
+			username:    "researcher",
+			expectError: false,
+		},
+		{
+			name:        "long_profile_name",
+			profileID:   "very-long-profile-name-for-testing-uid-generation",
+			username:    "user",
+			expectError: false,
+		},
+		{
+			name:        "special_characters_in_profile",
+			profileID:   "profile-with_special.chars@domain",
+			username:    "user123",
+			expectError: false,
+		},
+		{
+			name:        "empty_profile",
+			profileID:   "",
+			username:    "researcher",
+			expectError: true,
+		},
+		{
+			name:        "empty_username",
+			profileID:   "test-profile",
+			username:    "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uid, err := GenerateConsistentUID(tt.profileID, tt.username)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+			} else {
+				assert.NoError(t, err, "Expected no error for test case: %s", tt.name)
+
+				// Test UID is in research user range
+				assert.GreaterOrEqual(t, uid, ResearchUserBaseUID, "UID should be in research range")
+				assert.Less(t, uid, ResearchUserMaxUID, "UID should be below max research UID")
+
+				// Test consistency - same inputs should produce same UID
+				uid2, err2 := GenerateConsistentUID(tt.profileID, tt.username)
+				assert.NoError(t, err2, "Second call should not error")
+				assert.Equal(t, uid, uid2, "UID should be consistent for same inputs")
+			}
+		})
+	}
+}
+
+// TestGenerateConsistentGID tests GID generation consistency
+func TestGenerateConsistentGID(t *testing.T) {
+	tests := []struct {
+		name        string
+		profileID   string
+		username    string
+		expectError bool
+	}{
+		{
+			name:        "valid_profile_and_username",
+			profileID:   "test-profile-1",
+			username:    "researcher",
+			expectError: false,
+		},
+		{
+			name:        "gid_matches_uid_by_default",
+			profileID:   "test-profile-1",
+			username:    "researcher",
+			expectError: false,
+		},
+		{
+			name:        "empty_profile",
+			profileID:   "",
+			username:    "researcher",
+			expectError: true,
+		},
+		{
+			name:        "empty_username",
+			profileID:   "test-profile",
+			username:    "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gid, err := GenerateConsistentGID(tt.profileID, tt.username)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+			} else {
+				assert.NoError(t, err, "Expected no error for test case: %s", tt.name)
+
+				// Test GID is in research user range
+				assert.GreaterOrEqual(t, gid, ResearchUserBaseGID, "GID should be in research range")
+				assert.Less(t, gid, ResearchUserMaxGID, "GID should be below max research GID")
+
+				// Test consistency
+				gid2, err2 := GenerateConsistentGID(tt.profileID, tt.username)
+				assert.NoError(t, err2, "Second call should not error")
+				assert.Equal(t, gid, gid2, "GID should be consistent for same inputs")
+
+				// For default implementation, GID should match UID
+				uid, uidErr := GenerateConsistentUID(tt.profileID, tt.username)
+				assert.NoError(t, uidErr, "UID generation should not error")
+				assert.Equal(t, uid, gid, "GID should match UID by default")
+			}
+		})
+	}
+}
+
+// TestUIDGIDUniqueness tests that different users get different UIDs/GIDs
+func TestUIDGIDUniqueness(t *testing.T) {
+	testCases := []struct {
+		profileID string
+		username  string
+	}{
+		{"profile1", "user1"},
+		{"profile1", "user2"},
+		{"profile1", "user3"},
+		{"profile2", "user1"},
+		{"profile2", "user2"},
+		{"profile3", "user1"},
+	}
+
+	uidSet := make(map[int]string)
+	gidSet := make(map[int]string)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%s_%s", tc.profileID, tc.username), func(t *testing.T) {
+			uid, err := GenerateConsistentUID(tc.profileID, tc.username)
+			require.NoError(t, err)
+
+			gid, err := GenerateConsistentGID(tc.profileID, tc.username)
+			require.NoError(t, err)
+
+			// Check UID uniqueness
+			key := fmt.Sprintf("%s:%s", tc.profileID, tc.username)
+			if existingUser, exists := uidSet[uid]; exists {
+				assert.Equal(t, key, existingUser, "UID %d should only map to one user", uid)
+			} else {
+				uidSet[uid] = key
+			}
+
+			// Check GID uniqueness
+			if existingUser, exists := gidSet[gid]; exists {
+				assert.Equal(t, key, existingUser, "GID %d should only map to one user", gid)
+			} else {
+				gidSet[gid] = key
+			}
+		})
+	}
+
+	// Verify we have unique UIDs/GIDs for different users
+	uniqueUsers := len(testCases)
+	assert.Len(t, uidSet, uniqueUsers, "Should have unique UIDs for all users")
+	assert.Len(t, gidSet, uniqueUsers, "Should have unique GIDs for all users")
+}
+
+// TestUIDGIDRangeValidation tests UID/GID range validation
+func TestUIDGIDRangeValidation(t *testing.T) {
+	// Test edge cases near range boundaries
+	testCases := []struct {
+		profileID string
+		username  string
+	}{
+		{"a", "a"}, // Minimal input
+		{"test-profile-1", "user1"},
+		{"test-profile-2", "user2"},
+		// Add more cases that might produce UIDs near boundaries
+		{"profile-999", "user-999"},
+		{"boundary-test", "max-user"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("range_validation_%s_%s", tc.profileID, tc.username), func(t *testing.T) {
+			uid, err := GenerateConsistentUID(tc.profileID, tc.username)
+			require.NoError(t, err)
+
+			gid, err := GenerateConsistentGID(tc.profileID, tc.username)
+			require.NoError(t, err)
+
+			// Verify UID is in valid range
+			assert.GreaterOrEqual(t, uid, ResearchUserBaseUID,
+				"UID %d should be >= %d", uid, ResearchUserBaseUID)
+			assert.Less(t, uid, ResearchUserMaxUID,
+				"UID %d should be < %d", uid, ResearchUserMaxUID)
+
+			// Verify GID is in valid range
+			assert.GreaterOrEqual(t, gid, ResearchUserBaseGID,
+				"GID %d should be >= %d", gid, ResearchUserBaseGID)
+			assert.Less(t, gid, ResearchUserMaxGID,
+				"GID %d should be < %d", gid, ResearchUserMaxGID)
+		})
+	}
+}
+
+// TestUIDHashingDistribution tests that UID generation has good distribution
+func TestUIDHashingDistribution(t *testing.T) {
+	profileID := "test-profile"
+	userCount := 100
+
+	uids := make([]int, userCount)
+	uidCounts := make(map[int]int)
+
+	// Generate UIDs for many users
+	for i := 0; i < userCount; i++ {
+		username := fmt.Sprintf("user%d", i)
+		uid, err := GenerateConsistentUID(profileID, username)
+		require.NoError(t, err)
+
+		uids[i] = uid
+		uidCounts[uid]++
+	}
+
+	// All UIDs should be unique (no collisions)
+	assert.Len(t, uidCounts, userCount, "All UIDs should be unique")
+
+	for uid, count := range uidCounts {
+		assert.Equal(t, 1, count, "UID %d should appear exactly once", uid)
+	}
+
+	// Check distribution is reasonable (UIDs spread across the range)
+	minUID := ResearchUserMaxUID
+	maxUID := ResearchUserBaseUID
+
+	for _, uid := range uids {
+		if uid < minUID {
+			minUID = uid
+		}
+		if uid > maxUID {
+			maxUID = uid
+		}
+	}
+
+	uidRange := maxUID - minUID
+	expectedMinRange := (ResearchUserMaxUID - ResearchUserBaseUID) / 10 // At least 10% of range
+
+	assert.Greater(t, uidRange, expectedMinRange,
+		"UID distribution should span at least %d values, got %d", expectedMinRange, uidRange)
+}
+
+// TestProfileIsolation tests that different profiles generate different UIDs
+func TestProfileIsolation(t *testing.T) {
+	username := "researcher"
+	profiles := []string{
+		"profile-1",
+		"profile-2",
+		"profile-3",
+		"university-profile",
+		"lab-profile",
+	}
+
+	uids := make(map[string]int)
+	gids := make(map[string]int)
+
+	for _, profile := range profiles {
+		uid, err := GenerateConsistentUID(profile, username)
+		require.NoError(t, err)
+
+		gid, err := GenerateConsistentGID(profile, username)
+		require.NoError(t, err)
+
+		uids[profile] = uid
+		gids[profile] = gid
+	}
+
+	// Verify all profiles get different UIDs for same username
+	uniqueUIDs := make(map[int]bool)
+	uniqueGIDs := make(map[int]bool)
+
+	for profile, uid := range uids {
+		assert.False(t, uniqueUIDs[uid], "Profile %s should get unique UID %d", profile, uid)
+		uniqueUIDs[uid] = true
+
+		gid := gids[profile]
+		assert.False(t, uniqueGIDs[gid], "Profile %s should get unique GID %d", profile, gid)
+		uniqueGIDs[gid] = true
+	}
+
+	assert.Len(t, uniqueUIDs, len(profiles), "All profiles should get unique UIDs")
+	assert.Len(t, uniqueGIDs, len(profiles), "All profiles should get unique GIDs")
+}
+
+// TestUIDGIDConstants tests that constants are properly defined
+func TestUIDGIDConstants(t *testing.T) {
+	// Test that constants are in expected ranges
+	assert.Greater(t, ResearchUserBaseUID, 1000, "Research user base UID should be above system user range")
+	assert.Greater(t, ResearchUserBaseGID, 1000, "Research user base GID should be above system user range")
+
+	assert.Greater(t, ResearchUserMaxUID, ResearchUserBaseUID, "Max UID should be greater than base UID")
+	assert.Greater(t, ResearchUserMaxGID, ResearchUserBaseGID, "Max GID should be greater than base GID")
+
+	// Test typical values are reasonable
+	assert.Equal(t, 5000, ResearchUserBaseUID, "Base UID should be 5000")
+	assert.Equal(t, 5000, ResearchUserBaseGID, "Base GID should be 5000")
+	assert.Equal(t, 60000, ResearchUserMaxUID, "Max UID should be 60000")
+	assert.Equal(t, 60000, ResearchUserMaxGID, "Max GID should be 60000")
+
+	// Test range size is reasonable
+	uidRange := ResearchUserMaxUID - ResearchUserBaseUID
+	gidRange := ResearchUserMaxGID - ResearchUserBaseGID
+
+	assert.Equal(t, uidRange, gidRange, "UID and GID ranges should be same size")
+	assert.Greater(t, uidRange, 10000, "UID range should be substantial")
+}
+
+// TestUIDMappingErrorCases tests error handling in UID mapping
+func TestUIDMappingErrorCases(t *testing.T) {
+	errorCases := []struct {
+		name      string
+		profileID string
+		username  string
+		testUID   bool
+		testGID   bool
+	}{
+		{
+			name:      "empty_profile_uid",
+			profileID: "",
+			username:  "user",
+			testUID:   true,
+			testGID:   false,
+		},
+		{
+			name:      "empty_username_uid",
+			profileID: "profile",
+			username:  "",
+			testUID:   true,
+			testGID:   false,
+		},
+		{
+			name:      "empty_profile_gid",
+			profileID: "",
+			username:  "user",
+			testUID:   false,
+			testGID:   true,
+		},
+		{
+			name:      "empty_username_gid",
+			profileID: "profile",
+			username:  "",
+			testUID:   false,
+			testGID:   true,
+		},
+		{
+			name:      "both_empty_uid",
+			profileID: "",
+			username:  "",
+			testUID:   true,
+			testGID:   false,
+		},
+		{
+			name:      "both_empty_gid",
+			profileID: "",
+			username:  "",
+			testUID:   false,
+			testGID:   true,
+		},
+	}
+
+	for _, tc := range errorCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.testUID {
+				uid, err := GenerateConsistentUID(tc.profileID, tc.username)
+				assert.Error(t, err, "Should get error for invalid UID inputs")
+				assert.Equal(t, 0, uid, "UID should be 0 on error")
+			}
+
+			if tc.testGID {
+				gid, err := GenerateConsistentGID(tc.profileID, tc.username)
+				assert.Error(t, err, "Should get error for invalid GID inputs")
+				assert.Equal(t, 0, gid, "GID should be 0 on error")
+			}
+		})
+	}
+}
+
+// TestUIDMappingStability tests that UID mapping is stable across calls
+func TestUIDMappingStability(t *testing.T) {
+	profileID := "stability-test"
+	username := "stable-user"
+
+	// Generate UID/GID multiple times
+	iterations := 10
+	uids := make([]int, iterations)
+	gids := make([]int, iterations)
+
+	for i := 0; i < iterations; i++ {
+		uid, err := GenerateConsistentUID(profileID, username)
+		require.NoError(t, err, "Iteration %d: UID generation should not fail", i)
+
+		gid, err := GenerateConsistentGID(profileID, username)
+		require.NoError(t, err, "Iteration %d: GID generation should not fail", i)
+
+		uids[i] = uid
+		gids[i] = gid
+	}
+
+	// Verify all values are identical
+	baseUID := uids[0]
+	baseGID := gids[0]
+
+	for i := 1; i < iterations; i++ {
+		assert.Equal(t, baseUID, uids[i],
+			"Iteration %d: UID should be stable (%d != %d)", i, baseUID, uids[i])
+		assert.Equal(t, baseGID, gids[i],
+			"Iteration %d: GID should be stable (%d != %d)", i, baseGID, gids[i])
+	}
+}
+
+// TestUIDMappingCrossValidation tests consistency between UID and GID generation
+func TestUIDMappingCrossValidation(t *testing.T) {
+	testPairs := []struct {
+		profileID string
+		username  string
+	}{
+		{"cross-validation-1", "user1"},
+		{"cross-validation-2", "user2"},
+		{"cross-validation-1", "user3"},
+	}
+
+	for _, pair := range testPairs {
+		t.Run(fmt.Sprintf("%s_%s", pair.profileID, pair.username), func(t *testing.T) {
+			uid, err := GenerateConsistentUID(pair.profileID, pair.username)
+			require.NoError(t, err)
+
+			gid, err := GenerateConsistentGID(pair.profileID, pair.username)
+			require.NoError(t, err)
+
+			// In the default implementation, UID and GID should be the same
+			assert.Equal(t, uid, gid, "UID and GID should match for same user")
+
+			// Both should be in valid range
+			assert.GreaterOrEqual(t, uid, ResearchUserBaseUID, "UID should be in research range")
+			assert.GreaterOrEqual(t, gid, ResearchUserBaseGID, "GID should be in research range")
+			assert.Less(t, uid, ResearchUserMaxUID, "UID should be below max")
+			assert.Less(t, gid, ResearchUserMaxGID, "GID should be below max")
+		})
+	}
+}

@@ -7,9 +7,16 @@ import (
 	"time"
 )
 
+// Test constants
+const (
+	testEmbeddingModeIframe = "iframe"
+	testServiceBraket       = "braket"
+	testServiceConsole      = "console"
+)
+
 // MockCloudWorkstationService for testing ConnectionManager
 type MockCloudWorkstationService struct {
-	daemonURL string
+	_ string // unused field for mock compatibility
 }
 
 func NewMockCloudWorkstationService() *CloudWorkstationService {
@@ -90,7 +97,7 @@ func TestCreateConnection_Desktop(t *testing.T) {
 		t.Errorf("Expected type %s, got %s", ConnectionTypeDesktop, config.Type)
 	}
 
-	if config.EmbeddingMode != "iframe" {
+	if config.EmbeddingMode != testEmbeddingModeIframe {
 		t.Errorf("Expected embedding mode 'iframe', got %s", config.EmbeddingMode)
 	}
 
@@ -106,11 +113,11 @@ func TestCreateConnection_AWS_Braket(t *testing.T) {
 	ctx := context.Background()
 
 	options := map[string]string{
-		"service": "braket",
+		"service": testServiceBraket,
 		"region":  "us-west-2",
 	}
 
-	config, err := cm.CreateConnection(ctx, ConnectionTypeAWS, "braket", options)
+	config, err := cm.CreateConnection(ctx, ConnectionTypeAWS, testServiceBraket, options)
 	if err != nil {
 		t.Fatalf("CreateConnection failed: %v", err)
 	}
@@ -119,7 +126,7 @@ func TestCreateConnection_AWS_Braket(t *testing.T) {
 		t.Errorf("Expected type %s, got %s", ConnectionTypeAWS, config.Type)
 	}
 
-	if config.AWSService != "braket" {
+	if config.AWSService != testServiceBraket {
 		t.Errorf("Expected AWS service 'braket', got %s", config.AWSService)
 	}
 
@@ -156,7 +163,7 @@ func TestCreateConnection_Web(t *testing.T) {
 		t.Errorf("Expected type %s, got %s", ConnectionTypeWeb, config.Type)
 	}
 
-	if config.EmbeddingMode != "iframe" {
+	if config.EmbeddingMode != testEmbeddingModeIframe {
 		t.Errorf("Expected embedding mode 'iframe', got %s", config.EmbeddingMode)
 	}
 
@@ -381,7 +388,7 @@ func TestAWSConnectionDefaults(t *testing.T) {
 	}
 
 	// Should default to console service
-	if config.AWSService != "console" {
+	if config.AWSService != testServiceConsole {
 		t.Errorf("Expected default AWS service 'console', got %s", config.AWSService)
 	}
 

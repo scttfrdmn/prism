@@ -8,7 +8,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"net/http"
 	"net/url"
 	"regexp"
 	"sort"
@@ -19,17 +18,17 @@ import (
 // MarketplaceValidator provides comprehensive template validation for marketplace publication
 type MarketplaceValidator struct {
 	// Security scanners
-	PackageScanner   PackageSecurityScanner
-	SecretsScanner   SecretsScanner
-	ConfigScanner    ConfigurationScanner
+	PackageScanner PackageSecurityScanner
+	SecretsScanner SecretsScanner
+	ConfigScanner  ConfigurationScanner
 
 	// Quality checkers
 	DependencyChecker DependencyChecker
 	LicenseChecker    LicenseChecker
 
 	// External integrations
-	CVEDatabase      CVEDatabase
-	LicenseRegistry  LicenseRegistry
+	CVEDatabase     CVEDatabase
+	LicenseRegistry LicenseRegistry
 
 	// Validation configuration
 	Config *ValidationConfig
@@ -43,11 +42,11 @@ type ValidationConfig struct {
 	MinSecurityScore           float64 `json:"min_security_score"`
 
 	// Quality requirements
-	RequireDescription    bool     `json:"require_description"`
-	RequireLicense        bool     `json:"require_license"`
-	RequireDocumentation  bool     `json:"require_documentation"`
-	MinDescriptionLength  int      `json:"min_description_length"`
-	MaxLaunchTime         int      `json:"max_launch_time_minutes"`
+	RequireDescription   bool `json:"require_description"`
+	RequireLicense       bool `json:"require_license"`
+	RequireDocumentation bool `json:"require_documentation"`
+	MinDescriptionLength int  `json:"min_description_length"`
+	MaxLaunchTime        int  `json:"max_launch_time_minutes"`
 
 	// Package validation
 	AllowedPackageManagers []string `json:"allowed_package_managers"`
@@ -64,75 +63,75 @@ type ValidationConfig struct {
 	EnforcePolicy bool         `json:"enforce_policy"`
 }
 
-// ValidationResult contains comprehensive validation results
-type ValidationResult struct {
+// MarketplaceValidationResult contains comprehensive validation results
+type MarketplaceValidationResult struct {
 	// Overall validation status
-	Status       ValidationStatus    `json:"status"`
-	Score        float64             `json:"score"`        // 0-100 overall quality score
-	ValidatedAt  time.Time           `json:"validated_at"`
-	ValidatorID  string              `json:"validator_id"`
+	Status      ValidationStatus `json:"status"`
+	Score       float64          `json:"score"` // 0-100 overall quality score
+	ValidatedAt time.Time        `json:"validated_at"`
+	ValidatorID string           `json:"validator_id"`
 
 	// Security analysis
-	SecurityScan SecurityScanResult  `json:"security_scan"`
+	SecurityScan SecurityScanResult `json:"security_scan"`
 
 	// Quality analysis
-	QualityChecks []QualityCheck     `json:"quality_checks"`
+	QualityChecks []QualityCheck `json:"quality_checks"`
 
 	// Dependency analysis
 	Dependencies []DependencyAnalysis `json:"dependencies"`
 
 	// Content analysis
-	ContentAnalysis ContentAnalysis   `json:"content_analysis"`
+	ContentAnalysis ContentAnalysis `json:"content_analysis"`
 
 	// Recommendations
-	Recommendations []Recommendation  `json:"recommendations"`
+	Recommendations []Recommendation `json:"recommendations"`
 
 	// Errors and warnings
-	Errors   []ValidationError   `json:"errors,omitempty"`
-	Warnings []ValidationWarning `json:"warnings,omitempty"`
+	Errors   []MarketplaceValidationError   `json:"errors,omitempty"`
+	Warnings []MarketplaceValidationWarning `json:"warnings,omitempty"`
 }
 
 // QualityCheck represents a specific quality validation check
 type QualityCheck struct {
-	Name        string            `json:"name"`
-	Status      string            `json:"status"`       // passed, failed, warning
-	Score       float64           `json:"score"`        // 0-100
-	Message     string            `json:"message"`
-	Details     map[string]any    `json:"details,omitempty"`
-	Impact      string            `json:"impact"`       // critical, high, medium, low
-	ExecutedAt  time.Time         `json:"executed_at"`
+	Name       string         `json:"name"`
+	Status     string         `json:"status"` // passed, failed, warning
+	Score      float64        `json:"score"`  // 0-100
+	Message    string         `json:"message"`
+	Details    map[string]any `json:"details,omitempty"`
+	Impact     string         `json:"impact"` // critical, high, medium, low
+	ExecutedAt time.Time      `json:"executed_at"`
 }
 
 // DependencyAnalysis contains analysis of template dependencies
 type DependencyAnalysis struct {
-	Name             string               `json:"name"`
-	Version          string               `json:"version,omitempty"`
-	Type             string               `json:"type"` // package, template, system
-	Source           string               `json:"source,omitempty"`
-	SecurityFindings []SecurityFinding    `json:"security_findings,omitempty"`
-	LicenseInfo      LicenseInfo          `json:"license_info,omitempty"`
-	Status           string               `json:"status"` // safe, vulnerable, unknown
+	Name             string            `json:"name"`
+	Version          string            `json:"version,omitempty"`
+	Type             string            `json:"type"` // package, template, system
+	Source           string            `json:"source,omitempty"`
+	SecurityFindings []SecurityFinding `json:"security_findings,omitempty"`
+	LicenseInfo      LicenseInfo       `json:"license_info,omitempty"`
+	Status           string            `json:"status"` // safe, vulnerable, unknown
 }
 
 // ContentAnalysis provides analysis of template content and metadata
 type ContentAnalysis struct {
 	// Template structure
-	TemplateSize       int64                `json:"template_size_bytes"`
-	ComplexityScore    float64              `json:"complexity_score"`
-	MaintenanceScore   float64              `json:"maintenance_score"`
+	TemplateSize     int64   `json:"template_size_bytes"`
+	ComplexityScore  float64 `json:"complexity_score"`
+	MaintenanceScore float64 `json:"maintenance_score"`
 
 	// Content quality
-	DocumentationScore float64              `json:"documentation_score"`
-	DescriptionQuality string               `json:"description_quality"` // excellent, good, adequate, poor
-	MetadataCompleteness float64            `json:"metadata_completeness"`
+	DocumentationScore   float64 `json:"documentation_score"`
+	DescriptionQuality   string  `json:"description_quality"` // excellent, good, adequate, poor
+	MetadataCompleteness float64 `json:"metadata_completeness"`
 
 	// Technical analysis
-	PackageAnalysis    PackageAnalysis      `json:"package_analysis"`
+	PackageAnalysis       PackageAnalysis       `json:"package_analysis"`
 	ConfigurationAnalysis ConfigurationAnalysis `json:"configuration_analysis"`
 
 	// Security content analysis
-	SecretsFound       []SecretFinding      `json:"secrets_found,omitempty"`
-	SuspiciousPatterns []PatternMatch       `json:"suspicious_patterns,omitempty"`
+	SecretsFound       []SecretFinding `json:"secrets_found,omitempty"`
+	SuspiciousPatterns []PatternMatch  `json:"suspicious_patterns,omitempty"`
 }
 
 // PackageAnalysis analyzes packages and their security implications
@@ -185,18 +184,18 @@ type LicenseConflict struct {
 }
 
 type SecretFinding struct {
-	Type        string `json:"type"`        // api_key, password, private_key, etc.
-	Location    string `json:"location"`    // field or section where found
-	Severity    string `json:"severity"`    // critical, high, medium
-	Masked      string `json:"masked"`      // partially masked secret for identification
-	Entropy     float64 `json:"entropy"`    // randomness score
+	Type     string  `json:"type"`     // api_key, password, private_key, etc.
+	Location string  `json:"location"` // field or section where found
+	Severity string  `json:"severity"` // critical, high, medium
+	Masked   string  `json:"masked"`   // partially masked secret for identification
+	Entropy  float64 `json:"entropy"`  // randomness score
 }
 
 type PatternMatch struct {
 	Pattern     string `json:"pattern"`
 	Location    string `json:"location"`
 	Match       string `json:"match"`
-	Risk        string `json:"risk"`        // high, medium, low
+	Risk        string `json:"risk"` // high, medium, low
 	Description string `json:"description"`
 }
 
@@ -208,10 +207,10 @@ type SecurityMisconfiguration struct {
 }
 
 type BestPracticeViolation struct {
-	Practice    string `json:"practice"`
-	Violation   string `json:"violation"`
-	Impact      string `json:"impact"`
-	Suggestion  string `json:"suggestion"`
+	Practice   string `json:"practice"`
+	Violation  string `json:"violation"`
+	Impact     string `json:"impact"`
+	Suggestion string `json:"suggestion"`
 }
 
 type NetworkSecurityIssue struct {
@@ -229,22 +228,22 @@ type PrivilegeEscalation struct {
 }
 
 type Recommendation struct {
-	Type        string `json:"type"`        // security, quality, performance, maintenance
-	Priority    string `json:"priority"`    // critical, high, medium, low
+	Type        string `json:"type"`     // security, quality, performance, maintenance
+	Priority    string `json:"priority"` // critical, high, medium, low
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Action      string `json:"action"`
-	Effort      string `json:"effort"`      // low, medium, high
+	Effort      string `json:"effort"` // low, medium, high
 }
 
-type ValidationError struct {
+type MarketplaceValidationError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Field   string `json:"field,omitempty"`
 	Value   any    `json:"value,omitempty"`
 }
 
-type ValidationWarning struct {
+type MarketplaceValidationWarning struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 	Field   string `json:"field,omitempty"`
@@ -288,24 +287,24 @@ func NewMarketplaceValidator() *MarketplaceValidator {
 			MaxHighVulnerabilities:     2,
 			MinSecurityScore:           70.0,
 			RequireDescription:         true,
-			RequireLicense:            true,
-			RequireDocumentation:      true,
-			MinDescriptionLength:      50,
-			MaxLaunchTime:            30,
-			AllowedPackageManagers:   []string{"apt", "dnf", "conda", "spack"},
-			RequirePackageVersions:   false,
-			MaxTemplateSize:          1024 * 1024, // 1MB
-			EnforcePolicy:           true,
+			RequireLicense:             true,
+			RequireDocumentation:       true,
+			MinDescriptionLength:       50,
+			MaxLaunchTime:              30,
+			AllowedPackageManagers:     []string{"apt", "dnf", "conda", "spack"},
+			RequirePackageVersions:     false,
+			MaxTemplateSize:            1024 * 1024, // 1MB
+			EnforcePolicy:              true,
 		},
 	}
 }
 
 // ValidateTemplate performs comprehensive validation of a template for marketplace publication
-func (v *MarketplaceValidator) ValidateTemplate(ctx context.Context, template *Template) (*ValidationResult, error) {
-	result := &ValidationResult{
+func (v *MarketplaceValidator) ValidateTemplate(ctx context.Context, template *Template) (*MarketplaceValidationResult, error) {
+	result := &MarketplaceValidationResult{
 		ValidatedAt: time.Now(),
 		ValidatorID: fmt.Sprintf("marketplace-validator-v1.0-%x", sha256.Sum256([]byte(template.Name))),
-		Status:      ValidationStatusTesting,
+		Status:      ValidationTesting,
 	}
 
 	// Validate template structure and metadata
@@ -344,10 +343,10 @@ func (v *MarketplaceValidator) ValidateTemplate(ctx context.Context, template *T
 }
 
 // validateTemplateStructure performs basic template structure validation
-func (v *MarketplaceValidator) validateTemplateStructure(template *Template, result *ValidationResult) error {
+func (v *MarketplaceValidator) validateTemplateStructure(template *Template, result *MarketplaceValidationResult) error {
 	// Required fields validation
 	if template.Name == "" {
-		result.Errors = append(result.Errors, ValidationError{
+		result.Errors = append(result.Errors, MarketplaceValidationError{
 			Code:    "MISSING_NAME",
 			Message: "Template name is required",
 			Field:   "name",
@@ -355,13 +354,13 @@ func (v *MarketplaceValidator) validateTemplateStructure(template *Template, res
 	}
 
 	if template.Description == "" {
-		result.Errors = append(result.Errors, ValidationError{
+		result.Errors = append(result.Errors, MarketplaceValidationError{
 			Code:    "MISSING_DESCRIPTION",
 			Message: "Template description is required",
 			Field:   "description",
 		})
 	} else if len(template.Description) < v.Config.MinDescriptionLength {
-		result.Warnings = append(result.Warnings, ValidationWarning{
+		result.Warnings = append(result.Warnings, MarketplaceValidationWarning{
 			Code:    "SHORT_DESCRIPTION",
 			Message: fmt.Sprintf("Description is shorter than recommended minimum of %d characters", v.Config.MinDescriptionLength),
 			Field:   "description",
@@ -379,7 +378,7 @@ func (v *MarketplaceValidator) validateTemplateStructure(template *Template, res
 			}
 		}
 		if !found {
-			result.Warnings = append(result.Warnings, ValidationWarning{
+			result.Warnings = append(result.Warnings, MarketplaceValidationWarning{
 				Code:    "UNSUPPORTED_PACKAGE_MANAGER",
 				Message: fmt.Sprintf("Package manager %s is not in the allowed list", template.PackageManager),
 				Field:   "package_manager",
@@ -390,7 +389,7 @@ func (v *MarketplaceValidator) validateTemplateStructure(template *Template, res
 
 	// Validate launch time estimate
 	if template.EstimatedLaunchTime > v.Config.MaxLaunchTime {
-		result.Warnings = append(result.Warnings, ValidationWarning{
+		result.Warnings = append(result.Warnings, MarketplaceValidationWarning{
 			Code:    "LONG_LAUNCH_TIME",
 			Message: fmt.Sprintf("Estimated launch time of %d minutes exceeds recommended maximum of %d minutes", template.EstimatedLaunchTime, v.Config.MaxLaunchTime),
 			Field:   "estimated_launch_time",
@@ -402,7 +401,7 @@ func (v *MarketplaceValidator) validateTemplateStructure(template *Template, res
 }
 
 // performSecurityScan conducts comprehensive security analysis
-func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template *Template, result *ValidationResult) error {
+func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template *Template, result *MarketplaceValidationResult) error {
 	securityScan := &SecurityScanResult{
 		Status:   "pending",
 		ScanDate: time.Now(),
@@ -546,7 +545,7 @@ func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template
 }
 
 // performQualityAnalysis analyzes template quality metrics
-func (v *MarketplaceValidator) performQualityAnalysis(ctx context.Context, template *Template, result *ValidationResult) error {
+func (v *MarketplaceValidator) performQualityAnalysis(ctx context.Context, template *Template, result *MarketplaceValidationResult) error {
 	checks := []QualityCheck{}
 
 	// Documentation completeness check
@@ -610,7 +609,7 @@ func (v *MarketplaceValidator) performQualityAnalysis(ctx context.Context, templ
 }
 
 // analyzeDependencies performs dependency analysis
-func (v *MarketplaceValidator) analyzeDependencies(ctx context.Context, template *Template, result *ValidationResult) error {
+func (v *MarketplaceValidator) analyzeDependencies(ctx context.Context, template *Template, result *MarketplaceValidationResult) error {
 	dependencies := []DependencyAnalysis{}
 
 	if template.Marketplace != nil {
@@ -637,11 +636,11 @@ func (v *MarketplaceValidator) analyzeDependencies(ctx context.Context, template
 }
 
 // analyzeContent performs comprehensive content analysis
-func (v *MarketplaceValidator) analyzeContent(ctx context.Context, template *Template, result *ValidationResult) error {
+func (v *MarketplaceValidator) analyzeContent(ctx context.Context, template *Template, result *MarketplaceValidationResult) error {
 	analysis := ContentAnalysis{
-		DocumentationScore:     v.calculateDocumentationScore(template),
-		MetadataCompleteness:   v.calculateMetadataScore(template),
-		ComplexityScore:        v.calculateComplexityScore(template),
+		DocumentationScore:   v.calculateDocumentationScore(template),
+		MetadataCompleteness: v.calculateMetadataScore(template),
+		ComplexityScore:      v.calculateComplexityScore(template),
 	}
 
 	// Determine description quality
@@ -666,7 +665,7 @@ func (v *MarketplaceValidator) analyzeContent(ctx context.Context, template *Tem
 }
 
 // generateRecommendations creates actionable recommendations
-func (v *MarketplaceValidator) generateRecommendations(template *Template, result *ValidationResult) {
+func (v *MarketplaceValidator) generateRecommendations(template *Template, result *MarketplaceValidationResult) {
 	recommendations := []Recommendation{}
 
 	// Security recommendations
@@ -722,7 +721,7 @@ func (v *MarketplaceValidator) generateRecommendations(template *Template, resul
 }
 
 // calculateScore computes overall template score
-func (v *MarketplaceValidator) calculateScore(result *ValidationResult) {
+func (v *MarketplaceValidator) calculateScore(result *MarketplaceValidationResult) {
 	// Weight different aspects of the score
 	securityWeight := 0.4
 	qualityWeight := 0.3
@@ -752,22 +751,22 @@ func (v *MarketplaceValidator) calculateScore(result *ValidationResult) {
 }
 
 // determineStatus sets the overall validation status
-func (v *MarketplaceValidator) determineStatus(result *ValidationResult) {
+func (v *MarketplaceValidator) determineStatus(result *MarketplaceValidationResult) {
 	// Check for blocking errors
 	if len(result.Errors) > 0 {
-		result.Status = ValidationStatusFailed
+		result.Status = ValidationFailed
 		return
 	}
 
 	// Check security status
 	if result.SecurityScan.Status == "failed" {
-		result.Status = ValidationStatusFailed
+		result.Status = ValidationFailed
 		return
 	}
 
 	// Check quality thresholds
 	if result.Score < v.Config.MinSecurityScore {
-		result.Status = ValidationStatusTesting
+		result.Status = ValidationTesting
 		return
 	}
 
@@ -781,11 +780,11 @@ func (v *MarketplaceValidator) determineStatus(result *ValidationResult) {
 	}
 
 	if hasHighImpactWarnings || result.SecurityScan.Status == "warning" {
-		result.Status = ValidationStatusTesting
+		result.Status = ValidationTesting
 		return
 	}
 
-	result.Status = ValidationStatusValidated
+	result.Status = ValidationValidated
 }
 
 // Helper methods for score calculations
@@ -868,16 +867,46 @@ func (v *MarketplaceValidator) calculateMetadataScore(template *Template) float6
 	fields := 0
 
 	// Required fields
-	if template.Name != "" { score += 10; fields++ }
-	if template.Description != "" { score += 10; fields++ }
-	if template.Category != "" { score += 10; fields++ }
-	if template.Domain != "" { score += 10; fields++ }
-	if template.Complexity != "" { score += 10; fields++ }
-	if template.Maintainer != "" { score += 10; fields++ }
-	if template.Version != "" { score += 10; fields++ }
-	if template.Base != "" { score += 10; fields++ }
-	if len(template.Tags) > 0 { score += 10; fields++ }
-	if !template.LastUpdated.IsZero() { score += 10; fields++ }
+	if template.Name != "" {
+		score += 10
+		fields++
+	}
+	if template.Description != "" {
+		score += 10
+		fields++
+	}
+	if template.Category != "" {
+		score += 10
+		fields++
+	}
+	if template.Domain != "" {
+		score += 10
+		fields++
+	}
+	if template.Complexity != "" {
+		score += 10
+		fields++
+	}
+	if template.Maintainer != "" {
+		score += 10
+		fields++
+	}
+	if template.Version != "" {
+		score += 10
+		fields++
+	}
+	if template.Base != "" {
+		score += 10
+		fields++
+	}
+	if len(template.Tags) > 0 {
+		score += 10
+		fields++
+	}
+	if !template.LastUpdated.IsZero() {
+		score += 10
+		fields++
+	}
 
 	if fields == 0 {
 		return 0

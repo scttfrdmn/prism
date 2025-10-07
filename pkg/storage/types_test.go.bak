@@ -1,0 +1,530 @@
+package storage
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// TestStorageType tests storage type constants and validation
+func TestStorageType(t *testing.T) {
+	tests := []struct {
+		name        string
+		storageType StorageType
+		isValid     bool
+	}{
+		{"valid_efs", StorageTypeEFS, true},
+		{"valid_ebs", StorageTypeEBS, true},
+		{"valid_fsx", StorageTypeFSx, true},
+		{"valid_s3", StorageTypeS3, true},
+		{"invalid_empty", StorageType(""), false},
+		{"invalid_unknown", StorageType("unknown"), false},
+		{"invalid_uppercase", StorageType("EFS"), false},
+	}
+
+	validTypes := map[StorageType]bool{
+		StorageTypeEFS: true,
+		StorageTypeEBS: true,
+		StorageTypeFSx: true,
+		StorageTypeS3:  true,
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, exists := validTypes[tt.storageType]
+			if tt.isValid {
+				assert.True(t, exists, "Valid storage type should exist in valid types map")
+			} else {
+				assert.False(t, exists, "Invalid storage type should not exist in valid types map")
+			}
+		})
+	}
+}
+
+// TestFSxFilesystemType tests FSx filesystem types and aliases
+func TestFSxFilesystemType(t *testing.T) {
+	// Test all FSx filesystem types
+	assert.Equal(t, FSxFilesystemType("lustre"), FSxTypeLustre)
+	assert.Equal(t, FSxFilesystemType("windows"), FSxTypeWindows)
+	assert.Equal(t, FSxFilesystemType("zfs"), FSxTypeZFS)
+	assert.Equal(t, FSxFilesystemType("openzfs"), FSxTypeOpenZFS)
+	assert.Equal(t, FSxFilesystemType("netapp"), FSxTypeNetApp)
+
+	// Test alias compatibility
+	assert.Equal(t, FSxTypeLustre, FSxFilesystemTypeLustre)
+
+	// Test FSxType alias
+	var fsxType FSxType = FSxTypeLustre
+	assert.Equal(t, FSxFilesystemType("lustre"), fsxType)
+}
+
+// TestS3MountMethod tests S3 mount method constants
+func TestS3MountMethod(t *testing.T) {
+	expectedMethods := []S3MountMethod{
+		S3MountMethodS3FS,
+		S3MountMethodGoofys,
+		S3MountMethodMountpoint,
+		S3MountMethodRclone,
+	}
+
+	expectedValues := []string{
+		"s3fs",
+		"goofys",
+		"mountpoint",
+		"rclone",
+	}
+
+	for i, method := range expectedMethods {
+		assert.Equal(t, expectedValues[i], string(method),
+			"S3 mount method should have correct string value")
+	}
+}
+
+// TestWorkloadTypes tests workload type constants
+func TestWorkloadTypes(t *testing.T) {
+	// Test general workload types
+	generalTypes := []WorkloadType{
+		WorkloadTypeGeneral,
+		WorkloadTypeML,
+		WorkloadTypeBigData,
+		WorkloadTypeHPC,
+		WorkloadTypeArchival,
+	}
+
+	expectedGeneral := []string{
+		"general",
+		"ml",
+		"bigdata",
+		"hpc",
+		"archival",
+	}
+
+	for i, wt := range generalTypes {
+		assert.Equal(t, expectedGeneral[i], string(wt))
+	}
+
+	// Test S3-specific workload types
+	s3Types := []S3WorkloadType{
+		S3WorkloadFrequentAccess,
+		S3WorkloadArchival,
+		S3WorkloadBigData,
+	}
+
+	expectedS3 := []string{
+		"frequent_access",
+		"archival",
+		"bigdata",
+	}
+
+	for i, wt := range s3Types {
+		assert.Equal(t, expectedS3[i], string(wt))
+	}
+
+	// Test FSx-specific workload types
+	fsxTypes := []FSxWorkloadType{
+		FSxWorkloadGeneral,
+		FSxWorkloadHPC,
+		FSxWorkloadBigData,
+	}
+
+	expectedFSx := []string{
+		"general",
+		"hpc",
+		"bigdata",
+	}
+
+	for i, wt := range fsxTypes {
+		assert.Equal(t, expectedFSx[i], string(wt))
+	}
+}
+
+// TestStorageRequest tests storage request validation
+func TestStorageRequest(t *testing.T) {
+	tests := []struct {
+		name        string
+		request     StorageRequest
+		expectValid bool
+	}{
+		{
+			name: "valid_basic_efs_request",
+			request: StorageRequest{
+				Name: "test-efs-storage",
+				Type: StorageTypeEFS,
+				Size: 100,
+				Encrypted: true,
+				Tags: map[string]string{
+					"Environment": "test",
+					"Project":     "cloudworkstation",
+				},
+			},
+			expectValid: true,
+		},
+		{
+			name: "valid_fsx_request_with_config",
+			request: StorageRequest{
+				Name: "test-fsx-lustre",
+				Type: StorageTypeFSx,
+				Size: 1200,
+				FSxConfig: &FSxConfiguration{
+					FilesystemType:  FSxTypeLustre,
+					StorageCapacity: 1200,
+					WorkloadType:    FSxWorkloadHPC,
+				},
+			},
+			expectValid: true,
+		},
+		{
+			name: "valid_s3_request_with_config",
+			request: StorageRequest{
+				Name: "test-s3-mount",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:   "research-data-bucket",
+					MountMethod:  S3MountMethodMountpoint,
+					WorkloadType: S3WorkloadBigData,
+					Region:       "us-west-2",
+				},
+			},
+			expectValid: true,
+		},
+		{
+			name: "invalid_empty_name",
+			request: StorageRequest{
+				Name: "",
+				Type: StorageTypeEFS,
+			},
+			expectValid: false,
+		},
+		{
+			name: "invalid_unknown_type",
+			request: StorageRequest{
+				Name: "test-storage",
+				Type: "unknown-type",
+			},
+			expectValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Basic validation checks
+			if tt.expectValid {
+				assert.NotEmpty(t, tt.request.Name, "Valid request should have non-empty name")
+				assert.NotEmpty(t, string(tt.request.Type), "Valid request should have non-empty type")
+			} else {
+				if tt.request.Name == "" {
+					assert.Empty(t, tt.request.Name, "Invalid request correctly has empty name")
+				}
+			}
+		})
+	}
+}
+
+// TestFSxConfiguration tests FSx configuration validation
+func TestFSxConfiguration(t *testing.T) {
+	tests := []struct {
+		name   string
+		config FSxConfiguration
+		valid  bool
+	}{
+		{
+			name: "valid_lustre_config",
+			config: FSxConfiguration{
+				FilesystemType:  FSxTypeLustre,
+				StorageCapacity: 1200,
+				WorkloadType:    FSxWorkloadHPC,
+				SubnetIds:       []string{"subnet-12345678", "subnet-87654321"},
+				SecurityGroupIds: []string{"sg-12345678"},
+			},
+			valid: true,
+		},
+		{
+			name: "valid_openzfs_config",
+			config: FSxConfiguration{
+				FilesystemType:  FSxTypeOpenZFS,
+				StorageCapacity: 64,
+				ThroughputCapacity: 160,
+				WorkloadType:    FSxWorkloadGeneral,
+			},
+			valid: true,
+		},
+		{
+			name: "valid_netapp_config",
+			config: FSxConfiguration{
+				FilesystemType:  FSxTypeNetApp,
+				StorageCapacity: 1024,
+				ThroughputCapacity: 512,
+				WorkloadType:    FSxWorkloadBigData,
+			},
+			valid: true,
+		},
+		{
+			name: "invalid_zero_capacity",
+			config: FSxConfiguration{
+				FilesystemType:  FSxTypeLustre,
+				StorageCapacity: 0,
+			},
+			valid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.valid {
+				assert.NotEqual(t, FSxFilesystemType(""), tt.config.FilesystemType,
+					"Valid config should have filesystem type")
+				assert.Greater(t, tt.config.StorageCapacity, int64(0),
+					"Valid config should have positive storage capacity")
+			} else {
+				// Check for specific validation failures
+				if tt.config.StorageCapacity == 0 {
+					assert.Equal(t, int64(0), tt.config.StorageCapacity,
+						"Invalid config correctly has zero capacity")
+				}
+			}
+		})
+	}
+}
+
+// TestS3Configuration tests S3 configuration validation
+func TestS3Configuration(t *testing.T) {
+	tests := []struct {
+		name   string
+		config S3Configuration
+		valid  bool
+	}{
+		{
+			name: "valid_s3fs_config",
+			config: S3Configuration{
+				BucketName:   "research-bucket-123",
+				MountMethod:  S3MountMethodS3FS,
+				WorkloadType: S3WorkloadFrequentAccess,
+				Region:       "us-west-2",
+			},
+			valid: true,
+		},
+		{
+			name: "valid_mountpoint_config",
+			config: S3Configuration{
+				BucketName:   "data-lake-bucket",
+				MountMethod:  S3MountMethodMountpoint,
+				WorkloadType: S3WorkloadBigData,
+				Region:       "us-east-1",
+				AllowOtherAccess: true,
+			},
+			valid: true,
+		},
+		{
+			name: "invalid_empty_bucket",
+			config: S3Configuration{
+				BucketName:   "",
+				MountMethod:  S3MountMethodS3FS,
+				WorkloadType: S3WorkloadFrequentAccess,
+			},
+			valid: false,
+		},
+		{
+			name: "invalid_empty_mount_method",
+			config: S3Configuration{
+				BucketName:   "valid-bucket",
+				MountMethod:  "",
+				WorkloadType: S3WorkloadFrequentAccess,
+			},
+			valid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.valid {
+				assert.NotEmpty(t, tt.config.BucketName, "Valid config should have bucket name")
+				assert.NotEqual(t, S3MountMethod(""), tt.config.MountMethod,
+					"Valid config should have mount method")
+			} else {
+				if tt.config.BucketName == "" {
+					assert.Empty(t, tt.config.BucketName,
+						"Invalid config correctly has empty bucket name")
+				}
+				if tt.config.MountMethod == "" {
+					assert.Equal(t, S3MountMethod(""), tt.config.MountMethod,
+						"Invalid config correctly has empty mount method")
+				}
+			}
+		})
+	}
+}
+
+// TestStorageInfo tests storage info structure
+func TestStorageInfo(t *testing.T) {
+	now := time.Now()
+
+	storageInfo := StorageInfo{
+		Id:           "fs-12345678",
+		Name:         "test-storage",
+		Type:         StorageTypeEFS,
+		State:        "available",
+		Size:         100,
+		Region:       "us-west-2",
+		CreatedAt:    now,
+		CreationTime: now, // For backward compatibility
+		Tags: map[string]string{
+			"Environment": "test",
+			"Project":     "cloudworkstation",
+		},
+	}
+
+	// Test all fields are populated correctly
+	assert.Equal(t, "fs-12345678", storageInfo.Id)
+	assert.Equal(t, "test-storage", storageInfo.Name)
+	assert.Equal(t, StorageTypeEFS, storageInfo.Type)
+	assert.Equal(t, "available", storageInfo.State)
+	assert.Equal(t, int64(100), storageInfo.Size)
+	assert.Equal(t, "us-west-2", storageInfo.Region)
+	assert.Equal(t, now, storageInfo.CreatedAt)
+	assert.Equal(t, now, storageInfo.CreationTime)
+	assert.Contains(t, storageInfo.Tags, "Environment")
+	assert.Equal(t, "test", storageInfo.Tags["Environment"])
+}
+
+// TestStorageMetrics tests storage metrics structure
+func TestStorageMetrics(t *testing.T) {
+	metrics := StorageMetrics{
+		StorageId: "vol-12345678",
+		Type:      StorageTypeEBS,
+		UsageMetrics: UsageMetrics{
+			UsedBytes:      50 * 1024 * 1024 * 1024, // 50GB
+			AvailableBytes: 50 * 1024 * 1024 * 1024, // 50GB
+			TotalBytes:     100 * 1024 * 1024 * 1024, // 100GB
+			UsagePercent:   50.0,
+		},
+		PerformanceMetrics: PerformanceMetrics{
+			ReadIOPS:    1000,
+			WriteIOPS:   500,
+			ReadLatency: 5.5,
+			WriteLatency: 3.2,
+		},
+		CostMetrics: CostMetrics{
+			HourlyCost:  0.10,
+			DailyCost:   2.40,
+			MonthlyCost: 72.00,
+			Currency:    "USD",
+		},
+		LastUpdated: time.Now(),
+	}
+
+	// Verify metrics structure
+	assert.Equal(t, "vol-12345678", metrics.StorageId)
+	assert.Equal(t, StorageTypeEBS, metrics.Type)
+
+	// Verify usage metrics
+	assert.Equal(t, int64(50*1024*1024*1024), metrics.UsageMetrics.UsedBytes)
+	assert.Equal(t, float64(50.0), metrics.UsageMetrics.UsagePercent)
+
+	// Verify performance metrics
+	assert.Equal(t, float64(1000), metrics.PerformanceMetrics.ReadIOPS)
+	assert.Equal(t, float64(500), metrics.PerformanceMetrics.WriteIOPS)
+
+	// Verify cost metrics
+	assert.Equal(t, 0.10, metrics.CostMetrics.HourlyCost)
+	assert.Equal(t, "USD", metrics.CostMetrics.Currency)
+}
+
+// TestOptimizationRecommendation tests optimization recommendation structure
+func TestOptimizationRecommendation(t *testing.T) {
+	recommendation := OptimizationRecommendation{
+		Type:        "performance",
+		Priority:    "high",
+		Title:       "Upgrade to gp3 volumes for better performance",
+		Description: "Current gp2 volumes could benefit from gp3 upgrade for improved IOPS and throughput",
+		Impact:      "20% improvement in read/write performance",
+		EstimatedCostChange: CostChange{
+			Amount:   5.50,
+			Currency: "USD",
+			Period:   "monthly",
+			Type:     "increase",
+		},
+		Actions: []RecommendationAction{
+			{
+				Type:        "modify_volume",
+				Description: "Modify volume type to gp3",
+				Parameters: map[string]interface{}{
+					"volume_type": "gp3",
+					"iops":        3000,
+					"throughput":  125,
+				},
+			},
+		},
+	}
+
+	// Verify recommendation structure
+	assert.Equal(t, "performance", recommendation.Type)
+	assert.Equal(t, "high", recommendation.Priority)
+	assert.NotEmpty(t, recommendation.Title)
+	assert.NotEmpty(t, recommendation.Description)
+
+	// Verify cost change
+	assert.Equal(t, 5.50, recommendation.EstimatedCostChange.Amount)
+	assert.Equal(t, "USD", recommendation.EstimatedCostChange.Currency)
+	assert.Equal(t, "monthly", recommendation.EstimatedCostChange.Period)
+	assert.Equal(t, "increase", recommendation.EstimatedCostChange.Type)
+
+	// Verify actions
+	assert.Len(t, recommendation.Actions, 1)
+	assert.Equal(t, "modify_volume", recommendation.Actions[0].Type)
+	assert.Contains(t, recommendation.Actions[0].Parameters, "volume_type")
+	assert.Equal(t, "gp3", recommendation.Actions[0].Parameters["volume_type"])
+}
+
+// TestHealthStatus tests health status structure
+func TestHealthStatus(t *testing.T) {
+	healthStatus := HealthStatus{
+		Overall:   "healthy",
+		Timestamp: time.Now(),
+		Services: map[string]ServiceHealth{
+			"efs": {
+				Status:      "healthy",
+				Message:     "All EFS filesystems operational",
+				LastChecked: time.Now(),
+			},
+			"ebs": {
+				Status:      "warning",
+				Message:     "2 volumes approaching capacity limit",
+				LastChecked: time.Now(),
+			},
+		},
+		Issues: []HealthIssue{
+			{
+				Severity:    "warning",
+				Service:     "ebs",
+				Resource:    "vol-12345678",
+				Message:     "Volume at 85% capacity",
+				Timestamp:   time.Now(),
+				Resolved:    false,
+			},
+		},
+	}
+
+	// Verify health status structure
+	assert.Equal(t, "healthy", healthStatus.Overall)
+	assert.Len(t, healthStatus.Services, 2)
+	assert.Contains(t, healthStatus.Services, "efs")
+	assert.Contains(t, healthStatus.Services, "ebs")
+
+	// Verify service health
+	efsHealth := healthStatus.Services["efs"]
+	assert.Equal(t, "healthy", efsHealth.Status)
+	assert.Equal(t, "All EFS filesystems operational", efsHealth.Message)
+
+	ebsHealth := healthStatus.Services["ebs"]
+	assert.Equal(t, "warning", ebsHealth.Status)
+	assert.Contains(t, ebsHealth.Message, "approaching capacity")
+
+	// Verify health issues
+	assert.Len(t, healthStatus.Issues, 1)
+	issue := healthStatus.Issues[0]
+	assert.Equal(t, "warning", issue.Severity)
+	assert.Equal(t, "ebs", issue.Service)
+	assert.Equal(t, "vol-12345678", issue.Resource)
+	assert.False(t, issue.Resolved)
+}

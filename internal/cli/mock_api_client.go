@@ -1243,6 +1243,486 @@ func (m *MockAPIClient) PreviewAMIResolution(ctx context.Context, templateName s
 	}, nil
 }
 
+// Rightsizing operations - Mock implementations
+
+func (m *MockAPIClient) AnalyzeRightsizing(ctx context.Context, req types.RightsizingAnalysisRequest) (*types.RightsizingAnalysisResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.RightsizingAnalysisResponse{
+		Recommendation: &types.RightsizingRecommendation{
+			InstanceName:            req.InstanceName,
+			CurrentInstanceType:     "t3.medium",
+			RecommendedInstanceType: "t3.small",
+			Reasoning:               "Instance underutilized (mock)",
+			CostImpact: types.CostImpact{
+				CurrentDailyCost:     1.50,
+				RecommendedDailyCost: 0.98,
+				DailyDifference:      0.52,
+				PercentageChange:     34.4,
+				MonthlySavings:       15.50,
+				AnnualSavings:        186.00,
+				IsIncrease:           false,
+			},
+			CreatedAt:           time.Now(),
+			DataPointsAnalyzed:  100,
+			AnalysisPeriodHours: 24.0,
+		},
+		MetricsAvailable:    true,
+		DataPointsCount:     100,
+		AnalysisPeriodHours: 24.0,
+		LastUpdated:         time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) GetRightsizingRecommendations(ctx context.Context) (*types.RightsizingRecommendationsResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.RightsizingRecommendationsResponse{
+		Recommendations:  []types.RightsizingRecommendation{},
+		TotalInstances:   0,
+		ActiveInstances:  0,
+		PotentialSavings: 0.0,
+		GeneratedAt:      time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) GetRightsizingStats(ctx context.Context, instanceName string) (*types.RightsizingStatsResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.RightsizingStatsResponse{
+		InstanceName: instanceName,
+		CurrentConfiguration: types.InstanceConfiguration{
+			InstanceType: "t3.medium",
+			VCPUs:        2,
+			MemoryGB:     4.0,
+		},
+		MetricsSummary: types.MetricsSummary{},
+		RecentMetrics:  []types.InstanceMetrics{},
+		CollectionStatus: types.MetricsCollectionStatus{},
+	}, nil
+}
+
+func (m *MockAPIClient) ExportRightsizingData(ctx context.Context, instanceName string) ([]types.InstanceMetrics, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return []types.InstanceMetrics{}, nil
+}
+
+func (m *MockAPIClient) GetRightsizingSummary(ctx context.Context) (*types.RightsizingSummaryResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.RightsizingSummaryResponse{
+		FleetOverview: types.FleetOverview{
+			TotalInstances:       2,
+			RunningInstances:     1,
+			InstancesWithMetrics: 2,
+		},
+		CostOptimization: types.CostOptimizationSummary{
+			PotentialMonthlySavings: 25.00,
+		},
+		ResourceUtilization: types.ResourceUtilizationSummary{},
+		Recommendations:     types.RecommendationsSummary{},
+		GeneratedAt:         time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) GetInstanceMetrics(ctx context.Context, instanceName string, limit int) ([]types.InstanceMetrics, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return []types.InstanceMetrics{}, nil
+}
+
+// Instance execution and logs
+
+func (m *MockAPIClient) ExecInstance(ctx context.Context, instanceName string, req types.ExecRequest) (*types.ExecResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.ExecResult{
+		ExitCode: 0,
+		StdOut:   "mock output",
+		StdErr:   "",
+		Status:   "success",
+	}, nil
+}
+
+func (m *MockAPIClient) ResizeInstance(ctx context.Context, req types.ResizeRequest) (*types.ResizeResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.ResizeResponse{
+		Success: true,
+		Message: "Instance resized successfully (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) GetInstanceLogs(ctx context.Context, instanceName string, req types.LogRequest) (*types.LogResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.LogResponse{
+		InstanceName: instanceName,
+		LogType:      req.LogType,
+		Lines:        []string{"mock log line 1", "mock log line 2"},
+	}, nil
+}
+
+func (m *MockAPIClient) GetInstanceLogTypes(ctx context.Context, instanceName string) (*types.LogTypesResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.LogTypesResponse{
+		InstanceName:      instanceName,
+		AvailableLogTypes: []string{"system", "user-data", "cloud-init"},
+		SSMEnabled:        true,
+	}, nil
+}
+
+func (m *MockAPIClient) GetLogsSummary(ctx context.Context) (*types.LogSummaryResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.LogSummaryResponse{
+		Instances:         []types.InstanceLogSummary{},
+		AvailableLogTypes: []string{"system", "user-data", "cloud-init"},
+	}, nil
+}
+
+// Project budget operations
+
+func (m *MockAPIClient) SetProjectBudget(ctx context.Context, projectID string, req client.SetProjectBudgetRequest) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success": true,
+		"message": "Budget set successfully (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) UpdateProjectBudget(ctx context.Context, projectID string, req client.UpdateProjectBudgetRequest) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success": true,
+		"message": "Budget updated successfully (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) DisableProjectBudget(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success": true,
+		"message": "Budget disabled successfully (mock)",
+	}, nil
+}
+
+// Snapshot operations
+
+func (m *MockAPIClient) CreateInstanceSnapshot(ctx context.Context, req types.InstanceSnapshotRequest) (*types.InstanceSnapshotResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.InstanceSnapshotResult{
+		SnapshotID:                 "snap-mock123",
+		SnapshotName:               req.SnapshotName,
+		SourceInstance:             req.InstanceName,
+		SourceInstanceId:           "i-mock123",
+		Description:                req.Description,
+		State:                      "creating",
+		EstimatedCompletionMinutes: 10,
+		StorageCostMonthly:         5.00,
+		CreatedAt:                  time.Now(),
+		NoReboot:                   req.NoReboot,
+	}, nil
+}
+
+func (m *MockAPIClient) ListInstanceSnapshots(ctx context.Context) (*types.InstanceSnapshotListResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.InstanceSnapshotListResponse{
+		Snapshots: []types.InstanceSnapshotInfo{},
+		Count:     0,
+	}, nil
+}
+
+func (m *MockAPIClient) GetInstanceSnapshot(ctx context.Context, snapshotID string) (*types.InstanceSnapshotInfo, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.InstanceSnapshotInfo{
+		SnapshotID:         snapshotID,
+		SnapshotName:       "mock-snapshot",
+		SourceInstance:     "test-instance",
+		SourceInstanceId:   "i-mock123",
+		SourceTemplate:     "python-ml",
+		Description:        "Mock snapshot",
+		State:              "available",
+		Architecture:       "x86_64",
+		StorageCostMonthly: 5.00,
+		CreatedAt:          time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) DeleteInstanceSnapshot(ctx context.Context, snapshotID string) (*types.InstanceSnapshotDeleteResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.InstanceSnapshotDeleteResult{
+		SnapshotName:          "mock-snapshot",
+		SnapshotID:            snapshotID,
+		DeletedSnapshots:      []string{snapshotID},
+		StorageSavingsMonthly: 5.00,
+		DeletedAt:             time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) RestoreInstanceFromSnapshot(ctx context.Context, snapshotID string, req types.InstanceRestoreRequest) (*types.InstanceRestoreResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.InstanceRestoreResult{
+		NewInstanceName: req.NewInstanceName,
+		InstanceID:      "i-restored123",
+		SnapshotName:    req.SnapshotName,
+		SnapshotID:      snapshotID,
+		SourceTemplate:  "python-ml",
+		State:           "pending",
+		Message:         "Instance restored successfully (mock)",
+		RestoredAt:      time.Now(),
+	}, nil
+}
+
+// Backup operations
+
+func (m *MockAPIClient) CreateBackup(ctx context.Context, req types.BackupCreateRequest) (*types.BackupCreateResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	backupType := "full"
+	if req.Incremental {
+		backupType = "incremental"
+	}
+	return &types.BackupCreateResult{
+		BackupName:                 req.BackupName,
+		BackupID:                   "backup-mock123",
+		SourceInstance:             req.InstanceName,
+		BackupType:                 backupType,
+		StorageType:                req.StorageType,
+		StorageLocation:            "s3://mock-bucket",
+		EstimatedCompletionMinutes: 15,
+		EstimatedSizeBytes:         1024 * 1024 * 1024, // 1GB
+		StorageCostMonthly:         2.50,
+		CreatedAt:                  time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) ListBackups(ctx context.Context) (*types.BackupListResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.BackupListResponse{
+		Backups: []types.BackupInfo{},
+		Count:   0,
+	}, nil
+}
+
+func (m *MockAPIClient) GetBackup(ctx context.Context, backupID string) (*types.BackupInfo, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.BackupInfo{
+		BackupName:       "mock-backup",
+		BackupID:         backupID,
+		SourceInstance:   "test-instance",
+		SourceInstanceId: "i-mock123",
+		Description:      "Mock backup",
+		BackupType:       "full",
+		StorageType:      "s3",
+		StorageLocation:  "s3://mock-bucket",
+		State:            "available",
+		SizeBytes:        1024 * 1024 * 1024, // 1GB
+		CompressedBytes:  512 * 1024 * 1024,  // 512MB
+		FileCount:        1000,
+		IncludedPaths:    []string{"/home"},
+		ExcludedPaths:    []string{},
+		Encrypted:        true,
+	}, nil
+}
+
+func (m *MockAPIClient) DeleteBackup(ctx context.Context, backupID string) (*types.BackupDeleteResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.BackupDeleteResult{
+		BackupName:            "mock-backup",
+		BackupID:              backupID,
+		StorageType:           "s3",
+		StorageLocation:       "s3://mock-bucket",
+		DeletedSizeBytes:      1024 * 1024 * 1024, // 1GB
+		StorageSavingsMonthly: 2.50,
+		DeletedAt:             time.Now(),
+	}, nil
+}
+
+func (m *MockAPIClient) GetBackupContents(ctx context.Context, req types.BackupContentsRequest) (*types.BackupContentsResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.BackupContentsResponse{
+		BackupName: "mock-backup",
+		Path:       req.Path,
+		Files:      []types.BackupFileInfo{},
+		Count:      0,
+		TotalSize:  0,
+	}, nil
+}
+
+func (m *MockAPIClient) VerifyBackup(ctx context.Context, req types.BackupVerifyRequest) (*types.BackupVerifyResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	now := time.Now()
+	return &types.BackupVerifyResult{
+		BackupName:            "mock-backup",
+		VerificationState:     "valid",
+		CheckedFileCount:      1000,
+		CorruptFileCount:      0,
+		MissingFileCount:      0,
+		VerifiedBytes:         1024 * 1024 * 1024, // 1GB
+		VerificationStarted:   now.Add(-5 * time.Minute),
+		VerificationCompleted: &now,
+		CorruptFiles:          []string{},
+		MissingFiles:          []string{},
+	}, nil
+}
+
+func (m *MockAPIClient) RestoreBackup(ctx context.Context, req types.RestoreRequest) (*types.RestoreResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.RestoreResult{
+		RestoreID:         "restore-mock123",
+		BackupName:        req.BackupName,
+		TargetInstance:    req.TargetInstance,
+		RestorePath:       req.RestorePath,
+		SelectivePaths:    req.SelectivePaths,
+		State:             "running",
+		RestoredFileCount: 0,
+		RestoredBytes:     0,
+		SkippedFileCount:  0,
+		ErrorCount:        0,
+	}, nil
+}
+
+func (m *MockAPIClient) GetRestoreStatus(ctx context.Context, restoreID string) (*types.RestoreResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.RestoreResult{
+		RestoreID:         restoreID,
+		BackupName:        "mock-backup",
+		TargetInstance:    "test-instance",
+		RestorePath:       "/home",
+		SelectivePaths:    []string{},
+		State:             "completed",
+		RestoredFileCount: 1000,
+		RestoredBytes:     1024 * 1024 * 1024, // 1GB
+		SkippedFileCount:  0,
+		ErrorCount:        0,
+	}, nil
+}
+
+func (m *MockAPIClient) ListRestoreOperations(ctx context.Context) ([]types.RestoreResult, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return []types.RestoreResult{}, nil
+}
+
+// Version compatibility
+
+func (m *MockAPIClient) CheckVersionCompatibility(ctx context.Context, clientVersion string) error {
+	if m.ShouldReturnError {
+		return fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return nil
+}
+
+// AMI lifecycle operations
+
+func (m *MockAPIClient) CleanupAMIs(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"deleted_count": 0,
+		"message":       "No AMIs to cleanup (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) DeleteAMI(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success": true,
+		"message": "AMI deleted successfully (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) ListAMISnapshots(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"snapshots": []map[string]interface{}{},
+		"count":     0,
+	}, nil
+}
+
+func (m *MockAPIClient) CreateAMISnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"snapshot_id": "snap-mock123",
+		"status":      "creating",
+		"message":     "AMI snapshot creation initiated (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) RestoreAMIFromSnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"ami_id":  "ami-mock123",
+		"status":  "creating",
+		"message": "AMI restoration initiated (mock)",
+	}, nil
+}
+
+func (m *MockAPIClient) DeleteAMISnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"success": true,
+		"message": "AMI snapshot deleted successfully (mock)",
+	}, nil
+}
+
 // AMI Creation operations - Mock implementations
 
 func (m *MockAPIClient) CreateAMI(ctx context.Context, request types.AMICreationRequest) (map[string]interface{}, error) {

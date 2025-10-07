@@ -489,3 +489,94 @@ func (m *Manager) getActiveInstancesForProject(projectID string) ([]string, erro
 
 	return []string{}, nil
 }
+
+// SetProjectBudget sets or enables budget tracking for a project
+func (m *Manager) SetProjectBudget(ctx context.Context, projectID string, budget *types.ProjectBudget) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	project, exists := m.projects[projectID]
+	if !exists {
+		return fmt.Errorf("project not found: %s", projectID)
+	}
+
+	// Set the budget on the project
+	project.Budget = budget
+	project.UpdatedAt = time.Now()
+
+	// Initialize budget tracking
+	if m.budgetTracker != nil {
+		if err := m.budgetTracker.InitializeProject(projectID, budget); err != nil {
+			return fmt.Errorf("failed to initialize budget tracking: %w", err)
+		}
+	}
+
+	// Save projects to disk
+	if err := m.saveProjects(); err != nil {
+		return fmt.Errorf("failed to save projects: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateProjectBudget updates an existing project budget
+func (m *Manager) UpdateProjectBudget(ctx context.Context, projectID string, budget *types.ProjectBudget) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	project, exists := m.projects[projectID]
+	if !exists {
+		return fmt.Errorf("project not found: %s", projectID)
+	}
+
+	if project.Budget == nil {
+		return fmt.Errorf("no budget configured for project: %s", projectID)
+	}
+
+	// Update the budget on the project
+	project.Budget = budget
+	project.UpdatedAt = time.Now()
+
+	// Re-initialize budget tracking with updated configuration
+	if m.budgetTracker != nil {
+		if err := m.budgetTracker.InitializeProject(projectID, budget); err != nil {
+			return fmt.Errorf("failed to update budget tracking: %w", err)
+		}
+	}
+
+	// Save projects to disk
+	if err := m.saveProjects(); err != nil {
+		return fmt.Errorf("failed to save projects: %w", err)
+	}
+
+	return nil
+}
+
+// DisableProjectBudget disables budget tracking for a project
+func (m *Manager) DisableProjectBudget(ctx context.Context, projectID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	project, exists := m.projects[projectID]
+	if !exists {
+		return fmt.Errorf("project not found: %s", projectID)
+	}
+
+	// Remove budget from project
+	project.Budget = nil
+	project.UpdatedAt = time.Now()
+
+	// Remove from budget tracker
+	if m.budgetTracker != nil {
+		if err := m.budgetTracker.RemoveProject(projectID); err != nil {
+			return fmt.Errorf("failed to remove budget tracking: %w", err)
+		}
+	}
+
+	// Save projects to disk
+	if err := m.saveProjects(); err != nil {
+		return fmt.Errorf("failed to save projects: %w", err)
+	}
+
+	return nil
+}

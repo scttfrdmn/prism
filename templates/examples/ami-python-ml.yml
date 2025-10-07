@@ -61,21 +61,8 @@ ami_config:
     # Minimal AMI customization if needed
     echo "AMI-based Python ML environment ready"
 
-# Script-based fallback (when AMI unavailable)
-package_manager: conda
-packages:
-  conda:
-    - python=3.11
-    - jupyter
-    - jupyterlab
-    - pytorch
-    - tensorflow
-    - numpy
-    - pandas
-    - scikit-learn
-    - matplotlib
-    - seaborn
-    - plotly
+# AMI-based template - packages pre-installed in AMI
+package_manager: ami
 
 # Services configuration
 services:
@@ -87,6 +74,13 @@ services:
       - "c.ServerApp.password = ''"
       - "c.ServerApp.open_browser = False"
     enable: true
+
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 10
+  hibernate_threshold_minutes: 20
+  check_interval_minutes: 5
 
 # Instance defaults
 instance_defaults:

@@ -14,7 +14,7 @@ BOLD='\033[1m'
 
 # Configuration
 PACKAGE_NAME="cloudworkstation"
-VERSION="${VERSION:-0.4.5}"
+VERSION="${VERSION:-0.5.1}"
 RELEASE="${RELEASE:-1}"
 ARCH="${ARCH:-$(uname -m)}"
 BUILD_DIR="$(pwd)/packaging/rpm"

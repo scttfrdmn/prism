@@ -34,6 +34,13 @@ services:
     enable: true
 
 # Extend ports from base template
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 15
+  hibernate_threshold_minutes: 30
+  check_interval_minutes: 5
+
 instance_defaults:
   ports: [8888]  # Will be merged with base ports [22]
 

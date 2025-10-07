@@ -44,6 +44,13 @@ users:
     shell: "/bin/bash"
 
 # Instance defaults optimized for desktop
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 15
+  hibernate_threshold_minutes: 45
+  check_interval_minutes: 5
+
 instance_defaults:
   type: "t3.large"  # Good balance for desktop applications
   ports: [22]  # SSH for administration only

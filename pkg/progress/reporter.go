@@ -42,15 +42,15 @@ const (
 
 // ProgressUpdate contains information about current progress
 type ProgressUpdate struct {
-	Operation       string                 `json:"operation"`
-	CurrentStage    string                 `json:"current_stage"`
-	StageProgress   float64                `json:"stage_progress"`
-	OverallProgress float64                `json:"overall_progress"`
-	ETA             *time.Duration         `json:"eta,omitempty"`
-	ElapsedTime     time.Duration          `json:"elapsed_time"`
-	Description     string                 `json:"description"`
+	Operation       string         `json:"operation"`
+	CurrentStage    string         `json:"current_stage"`
+	StageProgress   float64        `json:"stage_progress"`
+	OverallProgress float64        `json:"overall_progress"`
+	ETA             *time.Duration `json:"eta,omitempty"`
+	ElapsedTime     time.Duration  `json:"elapsed_time"`
+	Description     string         `json:"description"`
 	Metadata        map[string]any `json:"metadata,omitempty"`
-	AllStages       []Stage                `json:"all_stages"`
+	AllStages       []Stage        `json:"all_stages"`
 }
 
 // ProgressCallback is called when progress is updated

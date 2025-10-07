@@ -123,14 +123,43 @@ func (r *AdminCommands) createProfilesCommand() *cobra.Command {
 		Short: "Manage CloudWorkstation profiles",
 		Long:  `Manage CloudWorkstation profiles for different AWS accounts and configurations.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
+			// Run the main profiles command logic directly
+			runProfilesMainCommand(r.app.config)
+			return nil
 		},
 	}
 
-	// Add profile subcommands (integration with existing profile system)
+	// Add profile subcommands directly (not through AddProfileCommands which creates another "profiles" level)
 	if r.app.profileManager != nil {
-		// This will add all the profile subcommands under admin profiles
-		AddProfileCommands(cmd, r.app.config)
+		// Add individual profile management commands directly
+		cmd.AddCommand(createListCommand(r.app.config))
+		cmd.AddCommand(createCurrentCommand(r.app.config))
+		cmd.AddCommand(createSwitchCommand(r.app.config))
+		cmd.AddCommand(createSetupCommand(r.app.config)) // Interactive wizard
+
+		// Add profile management commands
+		addCmd := &cobra.Command{
+			Use:   "add [type] [name] [options]",
+			Short: "Add a new profile",
+			Long:  `Add a new profile for working with AWS accounts.`,
+		}
+		addCmd.AddCommand(createAddPersonalCommand(r.app.config))
+		addCmd.AddCommand(createAddInvitationCommand(r.app.config))
+		cmd.AddCommand(addCmd)
+
+		cmd.AddCommand(createRemoveCommand(r.app.config))
+		cmd.AddCommand(createValidateCommand(r.app.config))
+		cmd.AddCommand(createAcceptInvitationCommand(r.app.config))
+		cmd.AddCommand(createRenameCommand(r.app.config))
+
+		// Add invitation management commands
+		createInvitationCommands(cmd, r.app.config)
+
+		// Add export and import commands
+		AddExportCommands(cmd, r.app.config)
+
+		// Update the accept-invitation command to use the new invitation system
+		updateAcceptInvitationCommand(cmd, r.app.config)
 	}
 
 	return cmd

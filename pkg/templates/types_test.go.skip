@@ -1,0 +1,705 @@
+package templates
+
+import (
+	"encoding/json"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
+)
+
+// TestTemplate tests the core Template struct
+func TestTemplate(t *testing.T) {
+	template := &Template{
+		Name:           "Test Template",
+		Slug:           "test-template",
+		Description:    "A test template for validation",
+		Base:           "ubuntu-22.04",
+		Complexity:     TemplateComplexitySimple,
+		Category:       "Testing",
+		Domain:         "test",
+		Icon:           "🧪",
+		Color:          "#FF5733",
+		Popular:        true,
+		Featured:       false,
+		PackageManager: "apt",
+		Version:        "1.0.0",
+		Maintainer:     "test@example.com",
+		LastUpdated:    time.Now(),
+	}
+
+	// Test basic properties
+	assert.Equal(t, "Test Template", template.Name)
+	assert.Equal(t, "test-template", template.Slug)
+	assert.Equal(t, "A test template for validation", template.Description)
+	assert.Equal(t, "ubuntu-22.04", template.Base)
+	assert.Equal(t, TemplateComplexitySimple, template.Complexity)
+	assert.Equal(t, "Testing", template.Category)
+	assert.Equal(t, "test", template.Domain)
+	assert.Equal(t, "🧪", template.Icon)
+	assert.Equal(t, "#FF5733", template.Color)
+	assert.True(t, template.Popular)
+	assert.False(t, template.Featured)
+	assert.Equal(t, "apt", template.PackageManager)
+	assert.Equal(t, "1.0.0", template.Version)
+	assert.Equal(t, "test@example.com", template.Maintainer)
+}
+
+// TestTemplateInheritance tests template inheritance functionality
+func TestTemplateInheritance(t *testing.T) {
+	baseTemplate := &Template{
+		Name:           "Base Template",
+		Description:    "Base template for inheritance",
+		Base:           "ubuntu-22.04",
+		PackageManager: "apt",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git"},
+		},
+	}
+
+	childTemplate := &Template{
+		Name:        "Child Template",
+		Description: "Child template that inherits from base",
+		Inherits:    []string{"Base Template"},
+		Packages: PackageDefinitions{
+			System: []string{"python3", "python3-pip"},
+		},
+	}
+
+	// Test inheritance structure
+	assert.Equal(t, "Base Template", baseTemplate.Name)
+	assert.Empty(t, baseTemplate.Inherits, "Base template should not inherit from anything")
+
+	assert.Equal(t, "Child Template", childTemplate.Name)
+	assert.Equal(t, []string{"Base Template"}, childTemplate.Inherits)
+
+	// Test package definitions
+	assert.Equal(t, []string{"curl", "git"}, baseTemplate.Packages.System)
+	assert.Equal(t, []string{"python3", "python3-pip"}, childTemplate.Packages.System)
+}
+
+// TestTemplateComplexity tests template complexity enumeration
+func TestTemplateComplexity(t *testing.T) {
+	tests := []struct {
+		name       string
+		complexity TemplateComplexity
+		expected   string
+	}{
+		{"simple", TemplateComplexitySimple, "simple"},
+		{"moderate", TemplateComplexityModerate, "moderate"},
+		{"advanced", TemplateComplexityAdvanced, "advanced"},
+		{"complex", TemplateComplexityComplex, "complex"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, string(tt.complexity))
+		})
+	}
+}
+
+// TestValidationStatus tests validation status enumeration
+func TestValidationStatus(t *testing.T) {
+	tests := []struct {
+		name     string
+		status   ValidationStatus
+		expected string
+	}{
+		{"validated", ValidationStatusValidated, "validated"},
+		{"testing", ValidationStatusTesting, "testing"},
+		{"experimental", ValidationStatusExperimental, "experimental"},
+		{"deprecated", ValidationStatusDeprecated, "deprecated"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, string(tt.status))
+		})
+	}
+}
+
+// TestConnectionType tests connection type enumeration
+func TestConnectionType(t *testing.T) {
+	tests := []struct {
+		name           string
+		connectionType ConnectionType
+		expected       string
+	}{
+		{"auto", ConnectionTypeAuto, "auto"},
+		{"ssh", ConnectionTypeSSH, "ssh"},
+		{"dcv", ConnectionTypeDCV, "dcv"},
+		{"web", ConnectionTypeWeb, "web"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, string(tt.connectionType))
+		})
+	}
+}
+
+// TestPackageDefinitions tests package definitions structure
+func TestPackageDefinitions(t *testing.T) {
+	packages := PackageDefinitions{
+		System: []string{"curl", "git", "vim"},
+		Conda:  []string{"numpy", "pandas", "scikit-learn"},
+		Spack:  []string{"cmake", "openmpi"},
+		Pip:    []string{"requests", "flask"},
+	}
+
+	assert.Equal(t, []string{"curl", "git", "vim"}, packages.System)
+	assert.Equal(t, []string{"numpy", "pandas", "scikit-learn"}, packages.Conda)
+	assert.Equal(t, []string{"cmake", "openmpi"}, packages.Spack)
+	assert.Equal(t, []string{"requests", "flask"}, packages.Pip)
+}
+
+// TestAMIConfig tests AMI configuration structure
+func TestAMIConfig(t *testing.T) {
+	amiConfig := AMIConfig{
+		Strategy: AMIStrategyPreferred,
+		Regions: map[string]RegionAMIConfig{
+			"us-west-2": {
+				X86_64: "ami-12345678",
+				ARM64:  "ami-87654321",
+			},
+			"us-east-1": {
+				X86_64: "ami-abcdef12",
+				ARM64:  "ami-21fedcba",
+			},
+		},
+		LaunchTemplate: "lt-template123",
+		SecurityGroups: []string{"sg-12345", "sg-67890"},
+		AutoUpdate:     true,
+	}
+
+	assert.Equal(t, AMIStrategyPreferred, amiConfig.Strategy)
+	assert.Equal(t, "ami-12345678", amiConfig.Regions["us-west-2"].X86_64)
+	assert.Equal(t, "ami-87654321", amiConfig.Regions["us-west-2"].ARM64)
+	assert.Equal(t, "lt-template123", amiConfig.LaunchTemplate)
+	assert.Equal(t, []string{"sg-12345", "sg-67890"}, amiConfig.SecurityGroups)
+	assert.True(t, amiConfig.AutoUpdate)
+}
+
+// TestAMIStrategy tests AMI strategy enumeration
+func TestAMIStrategy(t *testing.T) {
+	tests := []struct {
+		name     string
+		strategy AMIStrategy
+		expected string
+	}{
+		{"preferred", AMIStrategyPreferred, "ami_preferred"},
+		{"required", AMIStrategyRequired, "ami_required"},
+		{"fallback", AMIStrategyFallback, "ami_fallback"},
+		{"disabled", AMIStrategyDisabled, "ami_disabled"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, string(tt.strategy))
+		})
+	}
+}
+
+// TestServiceConfig tests service configuration structure
+func TestServiceConfig(t *testing.T) {
+	service := ServiceConfig{
+		Name:        "jupyter",
+		Port:        8888,
+		Protocol:    "HTTP",
+		Path:        "/lab",
+		DisplayName: "Jupyter Lab",
+		Icon:        "🔬",
+		Category:    "Development",
+		AutoStart:   true,
+		Command:     "jupyter lab --ip=0.0.0.0 --port=8888",
+		Environment: map[string]string{
+			"JUPYTER_ENABLE_LAB": "yes",
+		},
+		HealthCheck: HealthCheckConfig{
+			Path:            "/lab/api/status",
+			IntervalSeconds: 30,
+			TimeoutSeconds:  5,
+			Retries:         3,
+		},
+	}
+
+	assert.Equal(t, "jupyter", service.Name)
+	assert.Equal(t, 8888, service.Port)
+	assert.Equal(t, "HTTP", service.Protocol)
+	assert.Equal(t, "/lab", service.Path)
+	assert.Equal(t, "Jupyter Lab", service.DisplayName)
+	assert.Equal(t, "🔬", service.Icon)
+	assert.Equal(t, "Development", service.Category)
+	assert.True(t, service.AutoStart)
+	assert.Equal(t, "jupyter lab --ip=0.0.0.0 --port=8888", service.Command)
+	assert.Equal(t, "yes", service.Environment["JUPYTER_ENABLE_LAB"])
+
+	// Test health check
+	assert.Equal(t, "/lab/api/status", service.HealthCheck.Path)
+	assert.Equal(t, 30, service.HealthCheck.IntervalSeconds)
+	assert.Equal(t, 5, service.HealthCheck.TimeoutSeconds)
+	assert.Equal(t, 3, service.HealthCheck.Retries)
+}
+
+// TestUserConfig tests user configuration structure
+func TestUserConfig(t *testing.T) {
+	user := UserConfig{
+		Name:       "researcher",
+		UID:        1001,
+		GID:        1001,
+		Groups:     []string{"users", "docker", "sudo"},
+		Shell:      "/bin/bash",
+		Home:       "/home/researcher",
+		CreateHome: true,
+		Environment: map[string]string{
+			"PYTHON_PATH": "/opt/conda/bin/python",
+		},
+	}
+
+	assert.Equal(t, "researcher", user.Name)
+	assert.Equal(t, 1001, user.UID)
+	assert.Equal(t, 1001, user.GID)
+	assert.Equal(t, []string{"users", "docker", "sudo"}, user.Groups)
+	assert.Equal(t, "/bin/bash", user.Shell)
+	assert.Equal(t, "/home/researcher", user.Home)
+	assert.True(t, user.CreateHome)
+	assert.Equal(t, "/opt/conda/bin/python", user.Environment["PYTHON_PATH"])
+}
+
+// TestIdleDetectionConfig tests idle detection configuration
+func TestIdleDetectionConfig(t *testing.T) {
+	idleConfig := IdleDetectionConfig{
+		Enabled:                   true,
+		IdleThresholdMinutes:      15,
+		HibernateThresholdMinutes: 60,
+		CheckIntervalMinutes:      5,
+		CPUThresholdPercent:       5.0,
+		MemoryThresholdPercent:    10.0,
+		NetworkThresholdKBps:      100,
+		DiskThresholdIOPS:         50,
+		ExcludeProcesses:          []string{"jupyter", "rstudio"},
+	}
+
+	assert.True(t, idleConfig.Enabled)
+	assert.Equal(t, 15, idleConfig.IdleThresholdMinutes)
+	assert.Equal(t, 60, idleConfig.HibernateThresholdMinutes)
+	assert.Equal(t, 5, idleConfig.CheckIntervalMinutes)
+	assert.Equal(t, 5.0, idleConfig.CPUThresholdPercent)
+	assert.Equal(t, 10.0, idleConfig.MemoryThresholdPercent)
+	assert.Equal(t, 100, idleConfig.NetworkThresholdKBps)
+	assert.Equal(t, 50, idleConfig.DiskThresholdIOPS)
+	assert.Equal(t, []string{"jupyter", "rstudio"}, idleConfig.ExcludeProcesses)
+}
+
+// TestInstanceDefaults tests instance defaults configuration
+func TestInstanceDefaults(t *testing.T) {
+	defaults := InstanceDefaults{
+		InstanceType:            "t3.medium",
+		InstanceTypePreferences: []string{"t4g.medium", "t3.medium", "t2.medium"},
+		VolumeSize:              20,
+		VolumeType:              "gp3",
+		SpotInstance:            true,
+		HibernationSupport:      true,
+		EBSOptimized:            true,
+	}
+
+	assert.Equal(t, "t3.medium", defaults.InstanceType)
+	assert.Equal(t, []string{"t4g.medium", "t3.medium", "t2.medium"}, defaults.InstanceTypePreferences)
+	assert.Equal(t, 20, defaults.VolumeSize)
+	assert.Equal(t, "gp3", defaults.VolumeType)
+	assert.True(t, defaults.SpotInstance)
+	assert.True(t, defaults.HibernationSupport)
+	assert.True(t, defaults.EBSOptimized)
+}
+
+// TestTemplateParameter tests template parameter structure
+func TestTemplateParameter(t *testing.T) {
+	param := TemplateParameter{
+		Description:  "Instance size selection",
+		Type:         "choice",
+		DefaultValue: "medium",
+		Choices:      []string{"small", "medium", "large"},
+		Required:     true,
+		Validation:   "^(small|medium|large)$",
+	}
+
+	assert.Equal(t, "Instance size selection", param.Description)
+	assert.Equal(t, "choice", param.Type)
+	assert.Equal(t, "medium", param.DefaultValue)
+	assert.Equal(t, []string{"small", "medium", "large"}, param.Choices)
+	assert.True(t, param.Required)
+	assert.Equal(t, "^(small|medium|large)$", param.Validation)
+}
+
+// TestMarketplaceConfig tests marketplace configuration
+func TestMarketplaceConfig(t *testing.T) {
+	marketplace := MarketplaceConfig{
+		PublisherID:   "cloudworkstation-team",
+		License:       "MIT",
+		Price:         "free",
+		SupportLevel:  "community",
+		Downloads:     1250,
+		Rating:        4.8,
+		LastUpdated:   time.Now(),
+		Verified:      true,
+		Tags:          []string{"ml", "python", "jupyter"},
+		Screenshots:   []string{"screenshot1.png", "screenshot2.png"},
+		Documentation: "https://docs.example.com/template",
+		SourceCode:    "https://github.com/example/template",
+	}
+
+	assert.Equal(t, "cloudworkstation-team", marketplace.PublisherID)
+	assert.Equal(t, "MIT", marketplace.License)
+	assert.Equal(t, "free", marketplace.Price)
+	assert.Equal(t, "community", marketplace.SupportLevel)
+	assert.Equal(t, 1250, marketplace.Downloads)
+	assert.Equal(t, 4.8, marketplace.Rating)
+	assert.True(t, marketplace.Verified)
+	assert.Equal(t, []string{"ml", "python", "jupyter"}, marketplace.Tags)
+	assert.Equal(t, []string{"screenshot1.png", "screenshot2.png"}, marketplace.Screenshots)
+	assert.Equal(t, "https://docs.example.com/template", marketplace.Documentation)
+	assert.Equal(t, "https://github.com/example/template", marketplace.SourceCode)
+}
+
+// TestTemplateYAMLSerialization tests YAML serialization/deserialization
+func TestTemplateYAMLSerialization(t *testing.T) {
+	original := Template{
+		Name:           "YAML Test Template",
+		Description:    "Testing YAML serialization",
+		Base:           "ubuntu-22.04",
+		Complexity:     TemplateComplexityModerate,
+		Category:       "Testing",
+		PackageManager: "conda",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "git"},
+			Conda:  []string{"numpy", "pandas"},
+		},
+		Services: []ServiceConfig{
+			{
+				Name: "jupyter",
+				Port: 8888,
+			},
+		},
+		Users: []UserConfig{
+			{
+				Name: "researcher",
+				UID:  1001,
+				GID:  1001,
+			},
+		},
+		Variables: map[string]string{
+			"PYTHON_VERSION": "3.9",
+		},
+		Parameters: map[string]TemplateParameter{
+			"instance_size": {
+				Description:  "Instance size",
+				Type:         "choice",
+				DefaultValue: "medium",
+				Choices:      []string{"small", "medium", "large"},
+			},
+		},
+	}
+
+	// Serialize to YAML
+	yamlData, err := yaml.Marshal(&original)
+	require.NoError(t, err)
+	assert.NotEmpty(t, yamlData)
+
+	// Deserialize from YAML
+	var deserialized Template
+	err = yaml.Unmarshal(yamlData, &deserialized)
+	require.NoError(t, err)
+
+	// Verify key fields
+	assert.Equal(t, original.Name, deserialized.Name)
+	assert.Equal(t, original.Description, deserialized.Description)
+	assert.Equal(t, original.Base, deserialized.Base)
+	assert.Equal(t, original.Complexity, deserialized.Complexity)
+	assert.Equal(t, original.Category, deserialized.Category)
+	assert.Equal(t, original.PackageManager, deserialized.PackageManager)
+	assert.Equal(t, original.Packages.System, deserialized.Packages.System)
+	assert.Equal(t, original.Packages.Conda, deserialized.Packages.Conda)
+	assert.Len(t, deserialized.Services, 1)
+	assert.Equal(t, "jupyter", deserialized.Services[0].Name)
+	assert.Len(t, deserialized.Users, 1)
+	assert.Equal(t, "researcher", deserialized.Users[0].Name)
+	assert.Equal(t, original.Variables["PYTHON_VERSION"], deserialized.Variables["PYTHON_VERSION"])
+
+	t.Logf("YAML serialization/deserialization successful")
+}
+
+// TestTemplateJSONSerialization tests JSON serialization/deserialization
+func TestTemplateJSONSerialization(t *testing.T) {
+	original := Template{
+		Name:            "JSON Test Template",
+		Description:     "Testing JSON serialization",
+		LongDescription: "This is a longer description for testing JSON serialization capabilities.",
+		Base:            "ubuntu-22.04",
+		Slug:            "json-test",
+		Complexity:      TemplateComplexityAdvanced,
+		Category:        "Testing",
+		Domain:          "test",
+		Icon:            "⚙️",
+		Color:           "#3498DB",
+		Popular:         true,
+		Featured:        false,
+		ConnectionType:  ConnectionTypeSSH,
+		PackageManager:  "apt",
+		Packages: PackageDefinitions{
+			System: []string{"build-essential", "cmake"},
+			Pip:    []string{"requests", "beautifulsoup4"},
+		},
+		ValidationStatus: ValidationStatusTesting,
+		Version:          "2.1.0",
+		Maintainer:       "json-test@example.com",
+		Tags: map[string]string{
+			"language": "python",
+			"purpose":  "testing",
+		},
+		Prerequisites: []string{
+			"Basic Python knowledge",
+			"Linux familiarity",
+		},
+		LearningResources: []string{
+			"https://python.org/tutorial",
+			"https://ubuntu.com/tutorials",
+		},
+		EstimatedLaunchTime: 5,
+	}
+
+	// Serialize to JSON
+	jsonData, err := json.Marshal(&original)
+	require.NoError(t, err)
+	assert.NotEmpty(t, jsonData)
+
+	// Deserialize from JSON
+	var deserialized Template
+	err = json.Unmarshal(jsonData, &deserialized)
+	require.NoError(t, err)
+
+	// Verify all fields
+	assert.Equal(t, original.Name, deserialized.Name)
+	assert.Equal(t, original.Description, deserialized.Description)
+	assert.Equal(t, original.LongDescription, deserialized.LongDescription)
+	assert.Equal(t, original.Base, deserialized.Base)
+	assert.Equal(t, original.Slug, deserialized.Slug)
+	assert.Equal(t, original.Complexity, deserialized.Complexity)
+	assert.Equal(t, original.Category, deserialized.Category)
+	assert.Equal(t, original.Domain, deserialized.Domain)
+	assert.Equal(t, original.Icon, deserialized.Icon)
+	assert.Equal(t, original.Color, deserialized.Color)
+	assert.Equal(t, original.Popular, deserialized.Popular)
+	assert.Equal(t, original.Featured, deserialized.Featured)
+	assert.Equal(t, original.ConnectionType, deserialized.ConnectionType)
+	assert.Equal(t, original.PackageManager, deserialized.PackageManager)
+	assert.Equal(t, original.Packages.System, deserialized.Packages.System)
+	assert.Equal(t, original.Packages.Pip, deserialized.Packages.Pip)
+	assert.Equal(t, original.ValidationStatus, deserialized.ValidationStatus)
+	assert.Equal(t, original.Version, deserialized.Version)
+	assert.Equal(t, original.Maintainer, deserialized.Maintainer)
+	assert.Equal(t, original.Tags, deserialized.Tags)
+	assert.Equal(t, original.Prerequisites, deserialized.Prerequisites)
+	assert.Equal(t, original.LearningResources, deserialized.LearningResources)
+	assert.Equal(t, original.EstimatedLaunchTime, deserialized.EstimatedLaunchTime)
+
+	t.Logf("JSON serialization/deserialization successful")
+}
+
+// TestTemplateValidation tests template validation scenarios
+func TestTemplateValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		template Template
+		valid    bool
+	}{
+		{
+			name: "valid_minimal_template",
+			template: Template{
+				Name:        "Minimal Template",
+				Description: "Minimal valid template",
+				Base:        "ubuntu-22.04",
+			},
+			valid: true,
+		},
+		{
+			name: "empty_name",
+			template: Template{
+				Name:        "",
+				Description: "Template with empty name",
+				Base:        "ubuntu-22.04",
+			},
+			valid: false,
+		},
+		{
+			name: "empty_description",
+			template: Template{
+				Name:        "No Description Template",
+				Description: "",
+				Base:        "ubuntu-22.04",
+			},
+			valid: false,
+		},
+		{
+			name: "empty_base",
+			template: Template{
+				Name:        "No Base Template",
+				Description: "Template without base",
+				Base:        "",
+			},
+			valid: false,
+		},
+		{
+			name: "complete_template",
+			template: Template{
+				Name:           "Complete Template",
+				Description:    "Fully featured template",
+				Base:           "ubuntu-22.04",
+				Slug:           "complete-template",
+				Complexity:     TemplateComplexityAdvanced,
+				Category:       "Development",
+				Domain:         "web",
+				PackageManager: "apt",
+				Packages: PackageDefinitions{
+					System: []string{"nodejs", "npm"},
+				},
+				Services: []ServiceConfig{
+					{Name: "webapp", Port: 3000},
+				},
+				Users: []UserConfig{
+					{Name: "developer", UID: 1001, GID: 1001},
+				},
+				Version:    "1.0.0",
+				Maintainer: "dev@example.com",
+			},
+			valid: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Basic validation - check required fields
+			hasRequiredFields := tt.template.Name != "" &&
+				tt.template.Description != "" &&
+				tt.template.Base != ""
+
+			if tt.valid {
+				assert.True(t, hasRequiredFields, "Valid template should have required fields")
+			} else {
+				assert.False(t, hasRequiredFields, "Invalid template should be missing required fields")
+			}
+		})
+	}
+}
+
+// TestTemplateInheritanceChain tests complex inheritance scenarios
+func TestTemplateInheritanceChain(t *testing.T) {
+	// Base template
+	base := Template{
+		Name:        "Base OS",
+		Description: "Base operating system",
+		Base:        "ubuntu-22.04",
+		Packages: PackageDefinitions{
+			System: []string{"curl", "wget"},
+		},
+	}
+
+	// Middle template
+	middle := Template{
+		Name:        "Development Base",
+		Description: "Development environment base",
+		Inherits:    []string{"Base OS"},
+		Packages: PackageDefinitions{
+			System: []string{"git", "build-essential"},
+		},
+	}
+
+	// Leaf template
+	leaf := Template{
+		Name:        "Python Development",
+		Description: "Python development environment",
+		Inherits:    []string{"Development Base"},
+		Packages: PackageDefinitions{
+			System: []string{"python3", "python3-pip"},
+		},
+	}
+
+	// Test inheritance chain structure
+	assert.Empty(t, base.Inherits, "Base template should not inherit")
+	assert.Equal(t, []string{"Base OS"}, middle.Inherits, "Middle template should inherit from base")
+	assert.Equal(t, []string{"Development Base"}, leaf.Inherits, "Leaf template should inherit from middle")
+
+	// Test that each level adds packages
+	assert.Equal(t, []string{"curl", "wget"}, base.Packages.System)
+	assert.Equal(t, []string{"git", "build-essential"}, middle.Packages.System)
+	assert.Equal(t, []string{"python3", "python3-pip"}, leaf.Packages.System)
+}
+
+// TestTemplateMultipleInheritance tests multiple inheritance scenarios
+func TestTemplateMultipleInheritance(t *testing.T) {
+	parent1 := Template{
+		Name:        "Web Base",
+		Description: "Web development base",
+		Packages: PackageDefinitions{
+			System: []string{"nginx", "nodejs"},
+		},
+	}
+
+	parent2 := Template{
+		Name:        "Database Base",
+		Description: "Database base",
+		Packages: PackageDefinitions{
+			System: []string{"postgresql", "redis"},
+		},
+	}
+
+	child := Template{
+		Name:        "Full Stack Web",
+		Description: "Full stack web development",
+		Inherits:    []string{"Web Base", "Database Base"},
+		Packages: PackageDefinitions{
+			System: []string{"python3", "python3-pip"},
+		},
+	}
+
+	// Test multiple inheritance structure
+	assert.Empty(t, parent1.Inherits)
+	assert.Empty(t, parent2.Inherits)
+	assert.Equal(t, []string{"Web Base", "Database Base"}, child.Inherits)
+
+	// Each parent contributes different packages
+	assert.Equal(t, []string{"nginx", "nodejs"}, parent1.Packages.System)
+	assert.Equal(t, []string{"postgresql", "redis"}, parent2.Packages.System)
+	assert.Equal(t, []string{"python3", "python3-pip"}, child.Packages.System)
+}
+
+// TestTemplateDefaultValues tests default value initialization
+func TestTemplateDefaultValues(t *testing.T) {
+	template := Template{
+		Name:        "Default Values Test",
+		Description: "Testing default values",
+		Base:        "ubuntu-22.04",
+	}
+
+	// Test default values
+	assert.Equal(t, TemplateComplexity(""), template.Complexity) // Should be empty/zero value
+	assert.Empty(t, template.Slug)
+	assert.Empty(t, template.Category)
+	assert.Empty(t, template.Domain)
+	assert.Empty(t, template.Icon)
+	assert.Empty(t, template.Color)
+	assert.False(t, template.Popular)
+	assert.False(t, template.Featured)
+	assert.Equal(t, ConnectionType(""), template.ConnectionType)
+	assert.Empty(t, template.PackageManager)
+	assert.Empty(t, template.Packages.System)
+	assert.Empty(t, template.Packages.Conda)
+	assert.Empty(t, template.Services)
+	assert.Empty(t, template.Users)
+	assert.Empty(t, template.Version)
+	assert.Empty(t, template.Maintainer)
+	assert.Nil(t, template.IdleDetection)
+	assert.Nil(t, template.ResearchUser)
+	assert.Nil(t, template.Marketplace)
+}

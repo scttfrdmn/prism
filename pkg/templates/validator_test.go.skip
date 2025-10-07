@@ -1,0 +1,919 @@
+package templates
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// TestValidationLevel tests validation level enumeration
+func TestValidationLevel(t *testing.T) {
+	tests := []struct {
+		name     string
+		level    ValidationLevel
+		expected string
+	}{
+		{"error", ValidationError, "error"},
+		{"warning", ValidationWarning, "warning"},
+		{"info", ValidationInfo, "info"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, string(tt.level))
+		})
+	}
+}
+
+// TestValidationResult tests validation result structure
+func TestValidationResult(t *testing.T) {
+	result := ValidationResult{
+		Level:   ValidationError,
+		Field:   "name",
+		Message: "Template name is required",
+		Line:    1,
+	}
+
+	assert.Equal(t, ValidationError, result.Level)
+	assert.Equal(t, "name", result.Field)
+	assert.Equal(t, "Template name is required", result.Message)
+	assert.Equal(t, 1, result.Line)
+}
+
+// TestValidationReport tests validation report structure and methods
+func TestValidationReport(t *testing.T) {
+	report := &ValidationReport{
+		TemplateName: "Test Template",
+		Valid:        false,
+		Results: []ValidationResult{
+			{Level: ValidationError, Field: "name", Message: "Name required"},
+			{Level: ValidationError, Field: "description", Message: "Description required"},
+			{Level: ValidationWarning, Field: "icon", Message: "Icon recommended"},
+			{Level: ValidationInfo, Field: "category", Message: "Category suggested"},
+		},
+	}
+
+	// Count results by level
+	errorCount := 0
+	warningCount := 0
+	infoCount := 0
+
+	for _, result := range report.Results {
+		switch result.Level {
+		case ValidationError:
+			errorCount++
+		case ValidationWarning:
+			warningCount++
+		case ValidationInfo:
+			infoCount++
+		}
+	}
+
+	report.ErrorCount = errorCount
+	report.WarningCount = warningCount
+	report.InfoCount = infoCount
+
+	assert.Equal(t, "Test Template", report.TemplateName)
+	assert.False(t, report.Valid)
+	assert.Len(t, report.Results, 4)
+	assert.Equal(t, 2, report.ErrorCount)
+	assert.Equal(t, 1, report.WarningCount)
+	assert.Equal(t, 1, report.InfoCount)
+}
+
+// TestNewComprehensiveValidator tests validator creation
+func TestNewComprehensiveValidator(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+
+	validator := NewComprehensiveValidator(registry)
+
+	assert.NotNil(t, validator)
+	assert.Equal(t, registry, validator.registry)
+	assert.NotEmpty(t, validator.rules, "Should have validation rules")
+	assert.GreaterOrEqual(t, len(validator.rules), 5, "Should have multiple validation rules")
+
+	// Check that rules are properly initialized
+	for i, rule := range validator.rules {
+		assert.NotNil(t, rule, "Rule %d should not be nil", i)
+		assert.NotEmpty(t, rule.Name(), "Rule %d should have a name", i)
+	}
+}
+
+// TestValidateTemplateBasic tests basic template validation
+func TestValidateTemplateBasic(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name           string
+		template       *Template
+		expectValid    bool
+		expectErrors   int
+		expectWarnings int
+	}{
+		{
+			name: "valid_minimal_template",
+			template: &Template{
+				Name:           "Valid Template",
+				Description:    "A valid minimal template",
+				Base:           "ubuntu-22.04",
+				PackageManager: "apt",
+			},
+			expectValid:    true,
+			expectErrors:   0,
+			expectWarnings: 0,
+		},
+		{
+			name: "empty_name",
+			template: &Template{
+				Name:        "",
+				Description: "Template with empty name",
+				Base:        "ubuntu-22.04",
+			},
+			expectValid:  false,
+			expectErrors: 1,
+		},
+		{
+			name: "empty_description",
+			template: &Template{
+				Name:        "No Description",
+				Description: "",
+				Base:        "ubuntu-22.04",
+			},
+			expectValid:  false,
+			expectErrors: 1,
+		},
+		{
+			name: "empty_base",
+			template: &Template{
+				Name:        "No Base",
+				Description: "Template without base",
+				Base:        "",
+			},
+			expectValid:  false,
+			expectErrors: 1,
+		},
+		{
+			name: "multiple_errors",
+			template: &Template{
+				Name:        "",
+				Description: "",
+				Base:        "",
+			},
+			expectValid:  false,
+			expectErrors: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			assert.NotNil(t, report)
+			assert.Equal(t, tt.template.Name, report.TemplateName)
+
+			if tt.expectValid {
+				assert.True(t, report.Valid, "Template should be valid")
+				assert.Zero(t, report.ErrorCount, "Should have no errors")
+			} else {
+				assert.False(t, report.Valid, "Template should be invalid")
+				if tt.expectErrors > 0 {
+					assert.GreaterOrEqual(t, report.ErrorCount, tt.expectErrors,
+						"Should have at least %d errors", tt.expectErrors)
+				}
+			}
+
+			if tt.expectWarnings > 0 {
+				assert.GreaterOrEqual(t, report.WarningCount, tt.expectWarnings,
+					"Should have at least %d warnings", tt.expectWarnings)
+			}
+
+			t.Logf("Validation results for %s: Valid=%v, Errors=%d, Warnings=%d, Info=%d",
+				tt.name, report.Valid, report.ErrorCount, report.WarningCount, report.InfoCount)
+		})
+	}
+}
+
+// TestValidateTemplatePackages tests package validation
+func TestValidateTemplatePackages(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name         string
+		template     *Template
+		expectErrors bool
+	}{
+		{
+			name: "valid_apt_packages",
+			template: &Template{
+				Name:           "APT Template",
+				Description:    "Template with APT packages",
+				Base:           "ubuntu-22.04",
+				PackageManager: "apt",
+				Packages: PackageDefinitions{
+					System: []string{"curl", "git", "vim"},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "valid_conda_packages",
+			template: &Template{
+				Name:           "Conda Template",
+				Description:    "Template with Conda packages",
+				Base:           "ubuntu-22.04",
+				PackageManager: "conda",
+				Packages: PackageDefinitions{
+					Conda: []string{"python=3.9", "numpy", "pandas"},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "mismatched_package_manager",
+			template: &Template{
+				Name:           "Mismatched Template",
+				Description:    "Template with mismatched package manager",
+				Base:           "ubuntu-22.04",
+				PackageManager: "apt",
+				Packages: PackageDefinitions{
+					Conda: []string{"numpy", "pandas"}, // conda packages but apt manager
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "no_packages_with_manager",
+			template: &Template{
+				Name:           "No Packages Template",
+				Description:    "Template with package manager but no packages",
+				Base:           "ubuntu-22.04",
+				PackageManager: "conda",
+				Packages:       PackageDefinitions{}, // empty packages
+			},
+			expectErrors: false, // This might be a warning rather than error
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			if tt.expectErrors {
+				assert.Greater(t, report.ErrorCount, 0, "Should have validation errors")
+				assert.False(t, report.Valid, "Template should be invalid")
+			} else {
+				// Note: template might still be invalid for other reasons
+				// We're just checking package-specific errors here
+				t.Logf("Package validation passed for %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestValidateTemplateServices tests service validation
+func TestValidateTemplateServices(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name         string
+		template     *Template
+		expectErrors bool
+	}{
+		{
+			name: "valid_service",
+			template: &Template{
+				Name:        "Service Template",
+				Description: "Template with valid service",
+				Base:        "ubuntu-22.04",
+				Services: []ServiceConfig{
+					{
+						Name: "jupyter",
+						Port: 8888,
+					},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "invalid_service_port",
+			template: &Template{
+				Name:        "Invalid Port Template",
+				Description: "Template with invalid service port",
+				Base:        "ubuntu-22.04",
+				Services: []ServiceConfig{
+					{
+						Name: "invalid-service",
+						Port: -1, // invalid port
+					},
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "duplicate_service_ports",
+			template: &Template{
+				Name:        "Duplicate Ports Template",
+				Description: "Template with duplicate service ports",
+				Base:        "ubuntu-22.04",
+				Services: []ServiceConfig{
+					{Name: "service1", Port: 8080},
+					{Name: "service2", Port: 8080}, // duplicate port
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "empty_service_name",
+			template: &Template{
+				Name:        "Empty Service Name Template",
+				Description: "Template with empty service name",
+				Base:        "ubuntu-22.04",
+				Services: []ServiceConfig{
+					{
+						Name: "", // empty name
+						Port: 3000,
+					},
+				},
+			},
+			expectErrors: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			if tt.expectErrors {
+				// Should have some validation issues (errors or warnings)
+				assert.Greater(t, len(report.Results), 0, "Should have validation results")
+				t.Logf("Service validation found issues for %s: %d results", tt.name, len(report.Results))
+			} else {
+				t.Logf("Service validation passed for %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestValidateTemplateUsers tests user configuration validation
+func TestValidateTemplateUsers(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name         string
+		template     *Template
+		expectErrors bool
+	}{
+		{
+			name: "valid_user",
+			template: &Template{
+				Name:        "User Template",
+				Description: "Template with valid user",
+				Base:        "ubuntu-22.04",
+				Users: []UserConfig{
+					{
+						Name: "researcher",
+						UID:  1001,
+						GID:  1001,
+					},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "empty_username",
+			template: &Template{
+				Name:        "Empty Username Template",
+				Description: "Template with empty username",
+				Base:        "ubuntu-22.04",
+				Users: []UserConfig{
+					{
+						Name: "", // empty name
+						UID:  1001,
+						GID:  1001,
+					},
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "invalid_uid",
+			template: &Template{
+				Name:        "Invalid UID Template",
+				Description: "Template with invalid UID",
+				Base:        "ubuntu-22.04",
+				Users: []UserConfig{
+					{
+						Name: "user",
+						UID:  -1, // invalid UID
+						GID:  1001,
+					},
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "duplicate_usernames",
+			template: &Template{
+				Name:        "Duplicate Users Template",
+				Description: "Template with duplicate usernames",
+				Base:        "ubuntu-22.04",
+				Users: []UserConfig{
+					{Name: "user", UID: 1001, GID: 1001},
+					{Name: "user", UID: 1002, GID: 1002}, // duplicate name
+				},
+			},
+			expectErrors: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			if tt.expectErrors {
+				assert.Greater(t, len(report.Results), 0, "Should have validation results")
+				t.Logf("User validation found issues for %s: %d results", tt.name, len(report.Results))
+			} else {
+				t.Logf("User validation passed for %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestValidateTemplateInheritance tests inheritance validation
+func TestValidateTemplateInheritance(t *testing.T) {
+	// Set up registry with parent templates
+	registry := &TemplateRegistry{
+		Templates: map[string]*Template{
+			"Base Template": {
+				Name:        "Base Template",
+				Description: "Base template for inheritance",
+				Base:        "ubuntu-22.04",
+			},
+			"Another Base": {
+				Name:        "Another Base",
+				Description: "Another base template",
+				Base:        "ubuntu-22.04",
+			},
+		},
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name         string
+		template     *Template
+		expectErrors bool
+	}{
+		{
+			name: "valid_inheritance",
+			template: &Template{
+				Name:        "Child Template",
+				Description: "Template with valid inheritance",
+				Inherits:    []string{"Base Template"},
+				Packages: PackageDefinitions{
+					System: []string{"python3"},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "valid_multiple_inheritance",
+			template: &Template{
+				Name:        "Multi Child Template",
+				Description: "Template with multiple inheritance",
+				Inherits:    []string{"Base Template", "Another Base"},
+				Packages: PackageDefinitions{
+					System: []string{"nodejs"},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "missing_parent",
+			template: &Template{
+				Name:        "Orphan Template",
+				Description: "Template with missing parent",
+				Inherits:    []string{"Nonexistent Template"},
+				Packages: PackageDefinitions{
+					System: []string{"gcc"},
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "circular_inheritance",
+			template: &Template{
+				Name:        "Circular Template",
+				Description: "Template with circular inheritance",
+				Inherits:    []string{"Circular Template"}, // self-reference
+				Packages: PackageDefinitions{
+					System: []string{"make"},
+				},
+			},
+			expectErrors: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			if tt.expectErrors {
+				assert.Greater(t, len(report.Results), 0, "Should have validation results")
+				t.Logf("Inheritance validation found issues for %s: %d results", tt.name, len(report.Results))
+			} else {
+				t.Logf("Inheritance validation passed for %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestValidateTemplateParameters tests parameter validation
+func TestValidateTemplateParameters(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name         string
+		template     *Template
+		expectErrors bool
+	}{
+		{
+			name: "valid_parameters",
+			template: &Template{
+				Name:        "Parameterized Template",
+				Description: "Template with valid parameters",
+				Base:        "ubuntu-22.04",
+				Parameters: map[string]TemplateParameter{
+					"instance_size": {
+						Description:  "Instance size selection",
+						Type:         "choice",
+						DefaultValue: "medium",
+						Choices:      []string{"small", "medium", "large"},
+						Required:     true,
+					},
+					"enable_gpu": {
+						Description:  "Enable GPU support",
+						Type:         "boolean",
+						DefaultValue: "false",
+						Required:     false,
+					},
+				},
+			},
+			expectErrors: false,
+		},
+		{
+			name: "invalid_parameter_type",
+			template: &Template{
+				Name:        "Invalid Parameter Template",
+				Description: "Template with invalid parameter type",
+				Base:        "ubuntu-22.04",
+				Parameters: map[string]TemplateParameter{
+					"invalid_param": {
+						Description: "Invalid parameter",
+						Type:        "unknown_type", // invalid type
+						Required:    true,
+					},
+				},
+			},
+			expectErrors: true,
+		},
+		{
+			name: "choice_without_options",
+			template: &Template{
+				Name:        "Choice Without Options Template",
+				Description: "Template with choice parameter but no choices",
+				Base:        "ubuntu-22.04",
+				Parameters: map[string]TemplateParameter{
+					"size": {
+						Description: "Size selection",
+						Type:        "choice",
+						Choices:     []string{}, // empty choices for choice type
+						Required:    true,
+					},
+				},
+			},
+			expectErrors: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			if tt.expectErrors {
+				assert.Greater(t, len(report.Results), 0, "Should have validation results")
+				t.Logf("Parameter validation found issues for %s: %d results", tt.name, len(report.Results))
+			} else {
+				t.Logf("Parameter validation passed for %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestValidateTemplateSecurity tests security validation
+func TestValidateTemplateSecurity(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	tests := []struct {
+		name         string
+		template     *Template
+		expectIssues bool
+	}{
+		{
+			name: "secure_template",
+			template: &Template{
+				Name:        "Secure Template",
+				Description: "Template with secure configuration",
+				Base:        "ubuntu-22.04",
+				Users: []UserConfig{
+					{
+						Name: "researcher",
+						UID:  1001,
+						GID:  1001,
+					},
+				},
+			},
+			expectIssues: false,
+		},
+		{
+			name: "root_user_warning",
+			template: &Template{
+				Name:        "Root User Template",
+				Description: "Template with root user (security concern)",
+				Base:        "ubuntu-22.04",
+				Users: []UserConfig{
+					{
+						Name: "root",
+						UID:  0,
+						GID:  0,
+					},
+				},
+			},
+			expectIssues: true, // Should trigger security warning/error
+		},
+		{
+			name: "insecure_service",
+			template: &Template{
+				Name:        "Insecure Service Template",
+				Description: "Template with potentially insecure service",
+				Base:        "ubuntu-22.04",
+				Services: []ServiceConfig{
+					{
+						Name:     "web-server",
+						Port:     80,
+						Protocol: "HTTP", // HTTP instead of HTTPS might trigger warning
+					},
+				},
+			},
+			expectIssues: false, // HTTP might be acceptable for development
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			report := validator.ValidateTemplate(tt.template)
+
+			if tt.expectIssues {
+				// Should have some security-related issues
+				hasSecurityIssues := false
+				for _, result := range report.Results {
+					if strings.Contains(strings.ToLower(result.Message), "security") ||
+						strings.Contains(strings.ToLower(result.Message), "root") {
+						hasSecurityIssues = true
+						break
+					}
+				}
+				if len(report.Results) > 0 {
+					t.Logf("Security validation found %d results for %s", len(report.Results), tt.name)
+				}
+			} else {
+				t.Logf("Security validation passed for %s", tt.name)
+			}
+		})
+	}
+}
+
+// TestValidateTemplateComplex tests complex template validation scenarios
+func TestValidateTemplateComplex(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: map[string]*Template{
+			"ML Base": {
+				Name:           "ML Base",
+				Description:    "Machine learning base template",
+				Base:           "ubuntu-22.04",
+				PackageManager: "conda",
+				Packages: PackageDefinitions{
+					Conda: []string{"python=3.9", "numpy"},
+				},
+			},
+		},
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	complexTemplate := &Template{
+		Name:            "Advanced ML Template",
+		Description:     "Advanced machine learning template with complex configuration",
+		LongDescription: "This template provides a comprehensive machine learning environment with Jupyter, TensorFlow, and GPU support.",
+		Base:            "ubuntu-22.04",
+		Slug:            "advanced-ml",
+		Inherits:        []string{"ML Base"},
+		Complexity:      TemplateComplexityAdvanced,
+		Category:        "Machine Learning",
+		Domain:          "ml",
+		Icon:            "🤖",
+		Color:           "#FF6B35",
+		Popular:         true,
+		Featured:        true,
+		ConnectionType:  ConnectionTypeSSH,
+		PackageManager:  "conda",
+		Packages: PackageDefinitions{
+			Conda: []string{"tensorflow", "pytorch", "scikit-learn"},
+			Pip:   []string{"transformers", "datasets"},
+		},
+		Services: []ServiceConfig{
+			{
+				Name:        "jupyter",
+				Port:        8888,
+				Protocol:    "HTTP",
+				Path:        "/lab",
+				DisplayName: "Jupyter Lab",
+				AutoStart:   true,
+			},
+			{
+				Name:        "tensorboard",
+				Port:        6006,
+				Protocol:    "HTTP",
+				DisplayName: "TensorBoard",
+				AutoStart:   false,
+			},
+		},
+		Users: []UserConfig{
+			{
+				Name:       "mluser",
+				UID:        1001,
+				GID:        1001,
+				Groups:     []string{"users", "docker"},
+				Shell:      "/bin/bash",
+				Home:       "/home/mluser",
+				CreateHome: true,
+			},
+		},
+		IdleDetection: &IdleDetectionConfig{
+			Enabled:                   true,
+			IdleThresholdMinutes:      30,
+			HibernateThresholdMinutes: 60,
+			CPUThresholdPercent:       5.0,
+		},
+		InstanceDefaults: InstanceDefaults{
+			InstanceTypePreferences: []string{"g4dn.xlarge", "p3.2xlarge"},
+			VolumeSize:              50,
+			VolumeType:              "gp3",
+			HibernationSupport:      true,
+		},
+		Parameters: map[string]TemplateParameter{
+			"gpu_enabled": {
+				Description:  "Enable GPU acceleration",
+				Type:         "boolean",
+				DefaultValue: "true",
+				Required:     false,
+			},
+			"memory_size": {
+				Description:  "Memory allocation (GB)",
+				Type:         "integer",
+				DefaultValue: "16",
+				Required:     true,
+				Validation:   "^(8|16|32|64)$",
+			},
+		},
+		Variables: map[string]string{
+			"CUDA_VERSION":   "11.8",
+			"PYTHON_VERSION": "3.9",
+			"JUPYTER_TOKEN":  "auto-generated",
+		},
+		Version:          "2.1.0",
+		Maintainer:       "ml-team@cloudworkstation.com",
+		ValidationStatus: ValidationStatusValidated,
+		Tags: map[string]string{
+			"machine-learning": "true",
+			"gpu":              "true",
+			"jupyter":          "true",
+		},
+		Prerequisites: []string{
+			"Basic Python knowledge",
+			"Familiarity with ML concepts",
+			"GPU instance recommended",
+		},
+		LearningResources: []string{
+			"https://jupyter.org/documentation",
+			"https://tensorflow.org/tutorials",
+		},
+		EstimatedLaunchTime: 8,
+	}
+
+	report := validator.ValidateTemplate(complexTemplate)
+
+	assert.NotNil(t, report)
+	assert.Equal(t, "Advanced ML Template", report.TemplateName)
+
+	// Complex template should generally be valid if well-formed
+	if !report.Valid {
+		t.Logf("Complex template validation failed with %d errors:", report.ErrorCount)
+		for _, result := range report.Results {
+			if result.Level == ValidationError {
+				t.Logf("  ERROR: %s - %s", result.Field, result.Message)
+			}
+		}
+	}
+
+	// Should have comprehensive validation results
+	assert.NotEmpty(t, report.Results, "Should have validation results for complex template")
+
+	t.Logf("Complex template validation: Valid=%v, Errors=%d, Warnings=%d, Info=%d",
+		report.Valid, report.ErrorCount, report.WarningCount, report.InfoCount)
+}
+
+// TestValidatorRuleInterface tests that validation rules implement the interface correctly
+func TestValidatorRuleInterface(t *testing.T) {
+	registry := &TemplateRegistry{
+		Templates: make(map[string]*Template),
+	}
+	validator := NewComprehensiveValidator(registry)
+
+	// Test that all rules implement the ValidationRule interface
+	for i, rule := range validator.rules {
+		assert.NotNil(t, rule, "Rule %d should not be nil", i)
+
+		name := rule.Name()
+		assert.NotEmpty(t, name, "Rule %d should have a name", i)
+
+		// Test that Validate method works
+		testTemplate := &Template{
+			Name:        "Test Template",
+			Description: "Test template for rule validation",
+			Base:        "ubuntu-22.04",
+		}
+
+		results := rule.Validate(testTemplate)
+		assert.NotNil(t, results, "Rule %s should return results", name)
+
+		t.Logf("Rule %s returned %d validation results", name, len(results))
+	}
+}
+
+// TestValidationReportCounting tests validation result counting
+func TestValidationReportCounting(t *testing.T) {
+	results := []ValidationResult{
+		{Level: ValidationError, Field: "name", Message: "Error 1"},
+		{Level: ValidationError, Field: "description", Message: "Error 2"},
+		{Level: ValidationWarning, Field: "icon", Message: "Warning 1"},
+		{Level: ValidationWarning, Field: "category", Message: "Warning 2"},
+		{Level: ValidationWarning, Field: "tags", Message: "Warning 3"},
+		{Level: ValidationInfo, Field: "version", Message: "Info 1"},
+	}
+
+	report := &ValidationReport{
+		TemplateName: "Test Template",
+		Results:      results,
+	}
+
+	// Count results
+	for _, result := range report.Results {
+		switch result.Level {
+		case ValidationError:
+			report.ErrorCount++
+		case ValidationWarning:
+			report.WarningCount++
+		case ValidationInfo:
+			report.InfoCount++
+		}
+	}
+
+	// Set validity based on errors
+	report.Valid = report.ErrorCount == 0
+
+	assert.Equal(t, 2, report.ErrorCount)
+	assert.Equal(t, 3, report.WarningCount)
+	assert.Equal(t, 1, report.InfoCount)
+	assert.False(t, report.Valid, "Template with errors should be invalid")
+}

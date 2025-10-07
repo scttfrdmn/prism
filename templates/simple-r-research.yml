@@ -50,6 +50,13 @@ users:
     shell: "/bin/bash"
 
 # Instance defaults (CloudWorkstation will optimize per-architecture)
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 30
+  hibernate_threshold_minutes: 90
+  check_interval_minutes: 10
+
 instance_defaults:
   type: "t3.medium"  # Will be optimized to t4g.medium on ARM
   ports: [22, 8787]

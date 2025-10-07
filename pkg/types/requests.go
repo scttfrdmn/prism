@@ -46,3 +46,42 @@ type RollbackRequest struct {
 	InstanceName string `json:"instance_name"`
 	CheckpointID string `json:"checkpoint_id"`
 }
+
+// ExecRequest represents a request to execute a command on an instance
+type ExecRequest struct {
+	Command        string            `json:"command"`                   // Command to execute
+	WorkingDir     string            `json:"working_dir,omitempty"`     // Working directory
+	User           string            `json:"user,omitempty"`            // User to execute as
+	Environment    map[string]string `json:"environment,omitempty"`     // Environment variables
+	TimeoutSeconds int               `json:"timeout_seconds,omitempty"` // Command timeout
+	Interactive    bool              `json:"interactive,omitempty"`     // Interactive session
+}
+
+// ExecResult represents the result of command execution
+type ExecResult struct {
+	Command       string `json:"command"`
+	ExitCode      int    `json:"exit_code"`
+	StdOut        string `json:"stdout"`
+	StdErr        string `json:"stderr"`
+	Status        string `json:"status"`               // success, failed, timeout
+	ExecutionTime int    `json:"execution_time"`       // Execution time in milliseconds
+	CommandID     string `json:"command_id,omitempty"` // SSM command ID for reference
+}
+
+// ResizeRequest represents a request to resize an instance
+type ResizeRequest struct {
+	InstanceName       string `json:"instance_name"`
+	TargetInstanceType string `json:"target_instance_type"`
+	Force              bool   `json:"force,omitempty"`
+	Wait               bool   `json:"wait,omitempty"`
+}
+
+// ResizeResponse represents the response to a resize request
+type ResizeResponse struct {
+	Success    bool   `json:"success"`
+	Message    string `json:"message"`
+	InstanceID string `json:"instance_id,omitempty"`
+	OldType    string `json:"old_type,omitempty"`
+	NewType    string `json:"new_type,omitempty"`
+	Status     string `json:"status,omitempty"`
+}

@@ -65,6 +65,13 @@ users:
     shell: "/bin/bash"
 
 # Instance defaults optimized for R workloads
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 30
+  hibernate_threshold_minutes: 90
+  check_interval_minutes: 10
+
 instance_defaults:
   type: "r5.large"  # Memory-optimized for R
   ports: [22, 8787]  # SSH + RStudio Server

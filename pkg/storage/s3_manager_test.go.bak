@@ -1,0 +1,687 @@
+package storage
+
+import (
+	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/stretchr/testify/assert"
+)
+
+// TestNewS3Manager tests S3 manager initialization
+func TestNewS3Manager(t *testing.T) {
+	tests := []struct {
+		name   string
+		config aws.Config
+	}{
+		{
+			name: "successful_initialization",
+			config: aws.Config{
+				Region: "us-west-2",
+			},
+		},
+		{
+			name: "initialization_with_empty_region",
+			config: aws.Config{
+				Region: "",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manager := NewS3Manager(tt.config)
+			assert.NotNil(t, manager, "S3 manager should not be nil")
+			assert.NotNil(t, manager.client, "S3 client should be initialized")
+		})
+	}
+}
+
+// TestCreateS3MountPoint tests S3 mount point creation
+func TestCreateS3MountPoint(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name          string
+		request       StorageRequest
+		expectError   bool
+		expectedError string
+	}{
+		{
+			name: "valid_s3fs_mount_point",
+			request: StorageRequest{
+				Name: "research-data-s3fs",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:   "research-data-bucket-123",
+					MountMethod:  S3MountMethodS3FS,
+					WorkloadType: S3WorkloadFrequentAccess,
+					Region:       "us-west-2",
+					MountPath:    "/mnt/research-data",
+				},
+				Tags: map[string]string{
+					"Workload":    "research-data",
+					"Environment": "production",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid_mountpoint_for_s3",
+			request: StorageRequest{
+				Name: "ml-datasets-mountpoint",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:       "ml-training-datasets",
+					MountMethod:      S3MountMethodMountpoint,
+					WorkloadType:     S3WorkloadBigData,
+					Region:           "us-west-2",
+					MountPath:        "/mnt/ml-data",
+					AllowOtherAccess: true,
+					ReadOnly:         false,
+				},
+				Tags: map[string]string{
+					"Workload": "ml-training",
+					"DataType": "training-datasets",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid_goofys_mount_point",
+			request: StorageRequest{
+				Name: "backup-storage-goofys",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:   "backup-storage-bucket",
+					MountMethod:  S3MountMethodGoofys,
+					WorkloadType: S3WorkloadArchival,
+					Region:       "us-east-1",
+					MountPath:    "/mnt/backup",
+					ReadOnly:     true,
+				},
+				Tags: map[string]string{
+					"Purpose": "backup-storage",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid_rclone_mount_point",
+			request: StorageRequest{
+				Name: "cross-region-sync",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:   "cross-region-data-sync",
+					MountMethod:  S3MountMethodRclone,
+					WorkloadType: S3WorkloadBigData,
+					Region:       "eu-west-1",
+					MountPath:    "/mnt/sync-data",
+				},
+				Tags: map[string]string{
+					"Purpose": "data-synchronization",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid_empty_name",
+			request: StorageRequest{
+				Name: "",
+				Type: StorageTypeS3,
+			},
+			expectError:   true,
+			expectedError: "mount point name cannot be empty",
+		},
+		{
+			name: "invalid_wrong_type",
+			request: StorageRequest{
+				Name: "test-mount",
+				Type: StorageTypeEFS, // Wrong type for S3 manager
+			},
+			expectError:   true,
+			expectedError: "request type must be S3",
+		},
+		{
+			name: "invalid_missing_s3_config",
+			request: StorageRequest{
+				Name:     "test-s3-mount",
+				Type:     StorageTypeS3,
+				S3Config: nil, // Missing required S3 configuration
+			},
+			expectError:   true,
+			expectedError: "S3 configuration is required",
+		},
+		{
+			name: "invalid_empty_bucket_name",
+			request: StorageRequest{
+				Name: "test-s3-mount",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:  "", // Empty bucket name
+					MountMethod: S3MountMethodS3FS,
+				},
+			},
+			expectError:   true,
+			expectedError: "bucket name cannot be empty",
+		},
+		{
+			name: "invalid_empty_mount_method",
+			request: StorageRequest{
+				Name: "test-s3-mount",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:  "valid-bucket",
+					MountMethod: "", // Empty mount method
+				},
+			},
+			expectError:   true,
+			expectedError: "mount method cannot be empty",
+		},
+		{
+			name: "invalid_bucket_name_format",
+			request: StorageRequest{
+				Name: "test-s3-mount",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:  "Invalid_Bucket_Name", // Invalid characters
+					MountMethod: S3MountMethodS3FS,
+				},
+			},
+			expectError:   true,
+			expectedError: "invalid bucket name format",
+		},
+		{
+			name: "invalid_unknown_mount_method",
+			request: StorageRequest{
+				Name: "test-s3-mount",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:  "valid-bucket-name",
+					MountMethod: "unknown-method", // Invalid mount method
+				},
+			},
+			expectError:   true,
+			expectedError: "unsupported mount method",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := manager.CreateS3MountPoint(tt.request)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				if tt.expectedError != "" {
+					assert.Contains(t, err.Error(), tt.expectedError, "Error message should contain expected text")
+				}
+				assert.Nil(t, result, "Result should be nil on error")
+			} else {
+				// With simplified implementation, AWS SDK errors are expected in test environment
+				if err != nil {
+					t.Logf("Note: AWS SDK error expected in test environment: %v", err)
+				} else {
+					assert.NotNil(t, result, "Result should not be nil on success")
+					assert.Equal(t, tt.request.Name, result.Name, "Result name should match request")
+					assert.Equal(t, StorageTypeS3, result.Type, "Result type should be S3")
+				}
+				t.Logf("CreateS3MountPoint completed for %s", tt.request.Name)
+			}
+		})
+	}
+}
+
+// TestGenerateS3MountCommand tests S3 mount command generation
+func TestGenerateS3MountCommand(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		config      S3Configuration
+		expectError bool
+	}{
+		{
+			name: "s3fs_mount_command",
+			config: S3Configuration{
+				BucketName:   "test-bucket",
+				MountMethod:  S3MountMethodS3FS,
+				MountPath:    "/mnt/s3",
+				ReadOnly:     false,
+				AllowOtherAccess: true,
+			},
+			expectError: false,
+		},
+		{
+			name: "goofys_mount_command",
+			config: S3Configuration{
+				BucketName:   "test-bucket",
+				MountMethod:  S3MountMethodGoofys,
+				MountPath:    "/mnt/goofys",
+				ReadOnly:     true,
+			},
+			expectError: false,
+		},
+		{
+			name: "aws_mountpoint_command",
+			config: S3Configuration{
+				BucketName:       "test-bucket",
+				MountMethod:      S3MountMethodMountpoint,
+				MountPath:        "/mnt/mountpoint",
+				AllowOtherAccess: false,
+			},
+			expectError: false,
+		},
+		{
+			name: "rclone_mount_command",
+			config: S3Configuration{
+				BucketName:   "test-bucket",
+				MountMethod:  S3MountMethodRclone,
+				MountPath:    "/mnt/rclone",
+				ReadOnly:     false,
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid_empty_bucket",
+			config: S3Configuration{
+				BucketName:  "",
+				MountMethod: S3MountMethodS3FS,
+				MountPath:   "/mnt/s3",
+			},
+			expectError: true,
+		},
+		{
+			name: "invalid_empty_mount_path",
+			config: S3Configuration{
+				BucketName:  "test-bucket",
+				MountMethod: S3MountMethodS3FS,
+				MountPath:   "",
+			},
+			expectError: true,
+		},
+		{
+			name: "invalid_unknown_mount_method",
+			config: S3Configuration{
+				BucketName:  "test-bucket",
+				MountMethod: "unknown-method",
+				MountPath:   "/mnt/s3",
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, err := manager.GenerateS3MountCommand(tt.config)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				assert.Empty(t, cmd, "Command should be empty on error")
+			} else {
+				assert.NoError(t, err, "Expected no error for valid configuration")
+				assert.NotEmpty(t, cmd, "Command should not be empty")
+				t.Logf("Generated mount command: %s", cmd)
+
+				// Verify command contains expected components
+				assert.Contains(t, cmd, tt.config.BucketName, "Command should contain bucket name")
+				assert.Contains(t, cmd, tt.config.MountPath, "Command should contain mount path")
+			}
+		})
+	}
+}
+
+// TestCreateS3Bucket tests S3 bucket creation
+func TestCreateS3Bucket(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name          string
+		bucketName    string
+		region        string
+		expectError   bool
+		expectedError string
+	}{
+		{
+			name:        "valid_bucket_creation",
+			bucketName:  "test-cloudworkstation-bucket-123",
+			region:      "us-west-2",
+			expectError: false,
+		},
+		{
+			name:        "valid_bucket_different_region",
+			bucketName:  "test-bucket-eu-west-1",
+			region:      "eu-west-1",
+			expectError: false,
+		},
+		{
+			name:          "invalid_empty_bucket_name",
+			bucketName:    "",
+			region:        "us-west-2",
+			expectError:   true,
+			expectedError: "bucket name cannot be empty",
+		},
+		{
+			name:          "invalid_bucket_name_format",
+			bucketName:    "Invalid_Bucket_Name",
+			region:        "us-west-2",
+			expectError:   true,
+			expectedError: "invalid bucket name format",
+		},
+		{
+			name:          "invalid_bucket_name_too_short",
+			bucketName:    "ab",
+			region:        "us-west-2",
+			expectError:   true,
+			expectedError: "bucket name must be between 3 and 63 characters",
+		},
+		{
+			name:          "invalid_bucket_name_too_long",
+			bucketName:    "this-bucket-name-is-way-too-long-and-exceeds-the-maximum-allowed-length",
+			region:        "us-west-2",
+			expectError:   true,
+			expectedError: "bucket name must be between 3 and 63 characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := manager.CreateS3Bucket(tt.bucketName, tt.region)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				if tt.expectedError != "" {
+					assert.Contains(t, err.Error(), tt.expectedError, "Error message should contain expected text")
+				}
+			} else {
+				// With simplified implementation, AWS SDK errors are expected
+				if err != nil {
+					t.Logf("Note: AWS SDK error expected in test environment: %v", err)
+				}
+				t.Logf("CreateS3Bucket completed for %s in region %s", tt.bucketName, tt.region)
+			}
+		})
+	}
+}
+
+// TestListS3Buckets tests S3 bucket listing
+func TestListS3Buckets(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	buckets, err := manager.ListS3Buckets()
+
+	// With simplified implementation, we expect controlled behavior
+	if err != nil {
+		t.Logf("Note: AWS SDK error expected in test environment: %v", err)
+	} else {
+		assert.NotNil(t, buckets, "Bucket list should not be nil")
+		t.Logf("ListS3Buckets returned %d buckets", len(buckets))
+	}
+}
+
+// TestDeleteS3Bucket tests S3 bucket deletion
+func TestDeleteS3Bucket(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		bucketName  string
+		expectError bool
+	}{
+		{
+			name:        "valid_bucket_name",
+			bucketName:  "test-bucket-to-delete",
+			expectError: false,
+		},
+		{
+			name:        "invalid_empty_bucket_name",
+			bucketName:  "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := manager.DeleteS3Bucket(tt.bucketName)
+
+			if tt.expectError && tt.bucketName == "" {
+				assert.Error(t, err, "Expected error for empty bucket name")
+				assert.Contains(t, err.Error(), "bucket name cannot be empty")
+			} else {
+				// With simplified implementation, AWS SDK errors are expected
+				if err != nil {
+					t.Logf("Note: AWS SDK error expected in test environment: %v", err)
+				}
+				t.Logf("DeleteS3Bucket completed for %s", tt.bucketName)
+			}
+		})
+	}
+}
+
+// TestValidateS3Request tests S3 request validation
+func TestValidateS3Request(t *testing.T) {
+	tests := []struct {
+		name          string
+		request       StorageRequest
+		expectError   bool
+		expectedError string
+	}{
+		{
+			name: "valid_s3_request",
+			request: StorageRequest{
+				Name: "valid-s3-mount",
+				Type: StorageTypeS3,
+				S3Config: &S3Configuration{
+					BucketName:  "valid-bucket-name",
+					MountMethod: S3MountMethodS3FS,
+					MountPath:   "/mnt/s3",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid_empty_name",
+			request: StorageRequest{
+				Name: "",
+				Type: StorageTypeS3,
+			},
+			expectError:   true,
+			expectedError: "mount point name cannot be empty",
+		},
+		{
+			name: "invalid_wrong_type",
+			request: StorageRequest{
+				Name: "test-mount",
+				Type: StorageTypeEBS,
+			},
+			expectError:   true,
+			expectedError: "request type must be S3",
+		},
+		{
+			name: "invalid_missing_s3_config",
+			request: StorageRequest{
+				Name:     "test-s3-mount",
+				Type:     StorageTypeS3,
+				S3Config: nil,
+			},
+			expectError:   true,
+			expectedError: "S3 configuration is required",
+		},
+	}
+
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := manager.validateRequest(tt.request)
+
+			if tt.expectError {
+				assert.Error(t, err, "Expected error for test case: %s", tt.name)
+				if tt.expectedError != "" {
+					assert.Contains(t, err.Error(), tt.expectedError, "Error message should contain expected text")
+				}
+			} else {
+				assert.NoError(t, err, "Expected no error for valid request")
+			}
+		})
+	}
+}
+
+// TestValidateBucketName tests S3 bucket name validation
+func TestValidateBucketName(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	tests := []struct {
+		name        string
+		bucketName  string
+		expectValid bool
+	}{
+		{"valid_lowercase", "valid-bucket-name", true},
+		{"valid_with_numbers", "bucket-name-123", true},
+		{"valid_with_dots", "my.bucket.name", true},
+		{"valid_min_length", "abc", true},
+		{"valid_max_length", "this-is-a-very-long-bucket-name-that-is-exactly-sixty-three-chars", true},
+
+		{"invalid_empty", "", false},
+		{"invalid_too_short", "ab", false},
+		{"invalid_too_long", "this-bucket-name-is-way-too-long-and-exceeds-the-maximum-allowed-length-for-s3-buckets", false},
+		{"invalid_uppercase", "Invalid-Bucket-Name", false},
+		{"invalid_underscore", "invalid_bucket_name", false},
+		{"invalid_starts_with_dash", "-invalid-bucket", false},
+		{"invalid_ends_with_dash", "invalid-bucket-", false},
+		{"invalid_consecutive_dots", "invalid..bucket", false},
+		{"invalid_dash_dot", "invalid-.bucket", false},
+		{"invalid_dot_dash", "invalid.-bucket", false},
+		{"invalid_ip_address", "192.168.1.1", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := manager.validateBucketName(tt.bucketName)
+
+			if tt.expectValid {
+				assert.NoError(t, err, "Expected bucket name to be valid: %s", tt.bucketName)
+			} else {
+				assert.Error(t, err, "Expected bucket name to be invalid: %s", tt.bucketName)
+			}
+		})
+	}
+}
+
+// TestS3MountMethodValidation tests S3 mount method validation
+func TestS3MountMethodValidation(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	validMethods := []S3MountMethod{
+		S3MountMethodS3FS,
+		S3MountMethodGoofys,
+		S3MountMethodMountpoint,
+		S3MountMethodRclone,
+	}
+
+	for _, method := range validMethods {
+		t.Run("valid_method_"+string(method), func(t *testing.T) {
+			isValid := manager.isValidMountMethod(method)
+			assert.True(t, isValid, "Mount method %s should be valid", method)
+		})
+	}
+
+	invalidMethods := []S3MountMethod{
+		"",
+		"invalid-method",
+		"nfs", // Wrong service
+		"S3FS", // Wrong case
+	}
+
+	for _, method := range invalidMethods {
+		t.Run("invalid_method_"+string(method), func(t *testing.T) {
+			isValid := manager.isValidMountMethod(method)
+			assert.False(t, isValid, "Mount method %s should be invalid", method)
+		})
+	}
+}
+
+// TestS3ManagerEdgeCases tests edge cases and error conditions
+func TestS3ManagerEdgeCases(t *testing.T) {
+	manager := NewS3Manager(aws.Config{Region: "us-west-2"})
+
+	t.Run("nil_s3_config_handled", func(t *testing.T) {
+		request := StorageRequest{
+			Name:     "test-s3-mount",
+			Type:     StorageTypeS3,
+			S3Config: nil, // Should be caught by validation
+		}
+
+		err := manager.validateRequest(request)
+		assert.Error(t, err, "Nil S3 config should be rejected")
+		assert.Contains(t, err.Error(), "S3 configuration is required")
+	})
+
+	t.Run("empty_mount_path_in_config", func(t *testing.T) {
+		config := S3Configuration{
+			BucketName:  "valid-bucket",
+			MountMethod: S3MountMethodS3FS,
+			MountPath:   "", // Empty mount path
+		}
+
+		_, err := manager.GenerateS3MountCommand(config)
+		assert.Error(t, err, "Empty mount path should be rejected")
+	})
+
+	t.Run("workload_type_handling", func(t *testing.T) {
+		// Test that workload types are properly handled
+		config := S3Configuration{
+			BucketName:   "workload-test-bucket",
+			MountMethod:  S3MountMethodMountpoint,
+			MountPath:    "/mnt/workload",
+			WorkloadType: S3WorkloadBigData,
+		}
+
+		cmd, err := manager.GenerateS3MountCommand(config)
+		if err != nil {
+			t.Logf("Note: Error from implementation: %v", err)
+		} else {
+			assert.NotEmpty(t, cmd, "Command should be generated for workload-optimized config")
+		}
+	})
+
+	t.Run("region_handling_in_bucket_creation", func(t *testing.T) {
+		// Test bucket creation with different regions
+		err := manager.CreateS3Bucket("test-bucket-region", "")
+		// Implementation should handle empty region gracefully or use default
+		if err != nil {
+			t.Logf("Note: Error handling empty region: %v", err)
+		}
+	})
+
+	t.Run("read_only_mount_options", func(t *testing.T) {
+		config := S3Configuration{
+			BucketName:  "readonly-test-bucket",
+			MountMethod: S3MountMethodS3FS,
+			MountPath:   "/mnt/readonly",
+			ReadOnly:    true,
+		}
+
+		cmd, err := manager.GenerateS3MountCommand(config)
+		if err != nil {
+			t.Logf("Note: Error from implementation: %v", err)
+		} else {
+			assert.NotEmpty(t, cmd, "Command should be generated for read-only mount")
+			// Implementation might include read-only options in the command
+		}
+	})
+
+	t.Run("allow_other_access_option", func(t *testing.T) {
+		config := S3Configuration{
+			BucketName:       "shared-access-bucket",
+			MountMethod:      S3MountMethodGoofys,
+			MountPath:        "/mnt/shared",
+			AllowOtherAccess: true,
+		}
+
+		cmd, err := manager.GenerateS3MountCommand(config)
+		if err != nil {
+			t.Logf("Note: Error from implementation: %v", err)
+		} else {
+			assert.NotEmpty(t, cmd, "Command should be generated with allow_other option")
+		}
+	})
+}

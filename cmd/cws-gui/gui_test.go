@@ -64,7 +64,7 @@ func TestLaunchInstance(t *testing.T) {
 		}
 
 		var req LaunchRequest
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		if req.Template != "python-ml" || req.Name != "test" {
 			t.Errorf("Unexpected launch request: %+v", req)
@@ -131,7 +131,7 @@ func TestInstanceActions(t *testing.T) {
 
 // TestGetInstanceAccess tests instance access information retrieval
 func TestGetInstanceAccess(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"id":                "i-123",
 			"name":              "test",
@@ -154,7 +154,12 @@ func TestGetInstanceAccess(t *testing.T) {
 		t.Fatalf("GetInstanceAccess failed: %v", err)
 	}
 
-	// Verify access information
+	verifyInstanceAccessBasics(t, access)
+	verifyInstanceAccessTypes(t, access)
+}
+
+// verifyInstanceAccessBasics verifies basic access information
+func verifyInstanceAccessBasics(t *testing.T, access *InstanceAccess) {
 	if access.PublicIP != "1.2.3.4" {
 		t.Errorf("Expected IP 1.2.3.4, got %s", access.PublicIP)
 	}
@@ -164,11 +169,14 @@ func TestGetInstanceAccess(t *testing.T) {
 	if access.RDPPort != 3389 {
 		t.Errorf("Expected RDP port 3389, got %d", access.RDPPort)
 	}
+}
 
-	// Check access types
+// verifyInstanceAccessTypes verifies access type availability
+func verifyInstanceAccessTypes(t *testing.T, access *InstanceAccess) {
 	hasDesktop := false
 	hasWeb := false
 	hasTerminal := false
+
 	for _, at := range access.AccessTypes {
 		switch at {
 		case AccessTypeDesktop:
@@ -188,7 +196,7 @@ func TestGetInstanceAccess(t *testing.T) {
 
 // TestConnectionInfo tests connection info retrieval
 func TestConnectionInfo(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(ConnectionInfo{
 			InstanceName: "test",
 			HasDesktop:   true,
@@ -250,7 +258,7 @@ func TestTemplateHelpers(t *testing.T) {
 
 // TestEmbeddedWebView tests embedded web view configuration
 func TestEmbeddedWebView(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"name":              "test",
 			"has_web_interface": true,
@@ -280,7 +288,7 @@ func TestEmbeddedWebView(t *testing.T) {
 // TestErrorHandling tests error handling
 func TestErrorHandling(t *testing.T) {
 	// Test server that always returns errors
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "test error"})
 	}))
@@ -311,7 +319,7 @@ func TestErrorHandling(t *testing.T) {
 // TestTimeout tests request timeout handling
 func TestTimeout(t *testing.T) {
 	// Server that delays response
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		time.Sleep(2 * time.Second)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -333,7 +341,7 @@ func TestTimeout(t *testing.T) {
 
 // BenchmarkGetTemplates benchmarks template fetching
 func BenchmarkGetTemplates(b *testing.B) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		templates := make([]Template, 100)
 		for i := 0; i < 100; i++ {
 			templates[i] = Template{
@@ -359,7 +367,7 @@ func BenchmarkGetTemplates(b *testing.B) {
 // TestConcurrentRequests tests concurrent API requests
 func TestConcurrentRequests(t *testing.T) {
 	requestCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requestCount++
 		_ = json.NewEncoder(w).Encode([]Template{})
 	}))
@@ -374,7 +382,7 @@ func TestConcurrentRequests(t *testing.T) {
 	done := make(chan bool)
 	for i := 0; i < 10; i++ {
 		go func() {
-			service.GetTemplates(context.Background())
+			_, _ = service.GetTemplates(context.Background())
 			done <- true
 		}()
 	}
@@ -398,7 +406,7 @@ func TestServiceLayerConnectionManagement(t *testing.T) {
 	ctx := context.Background()
 
 	// Test CreateConnection
-	config := testCreateConnection(t, service, ctx)
+	config := testCreateConnection(ctx, t, service)
 
 	// Test GetActiveConnections
 	testGetActiveConnections(t, service)
@@ -429,7 +437,8 @@ func setupTestHTTPServer() *httptest.Server {
 
 // handleConnectionsEndpoint handles requests to /connections endpoint
 func handleConnectionsEndpoint(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+	switch r.Method {
+	case "POST":
 		// Simulate connection creation
 		config := map[string]interface{}{
 			"id":            "test-conn-123",
@@ -440,7 +449,7 @@ func handleConnectionsEndpoint(w http.ResponseWriter, r *http.Request) {
 			"status":        "connecting",
 		}
 		_ = json.NewEncoder(w).Encode(config)
-	} else if r.Method == "GET" {
+	case "GET":
 		// Simulate getting all connections
 		connections := []map[string]interface{}{
 			{
@@ -455,7 +464,8 @@ func handleConnectionsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 // handleSingleConnectionEndpoint handles requests to /connection/{id} endpoint
 func handleSingleConnectionEndpoint(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+	switch r.Method {
+	case "GET":
 		// Simulate getting single connection
 		config := map[string]interface{}{
 			"id":     "test-conn-123",
@@ -463,10 +473,10 @@ func handleSingleConnectionEndpoint(w http.ResponseWriter, r *http.Request) {
 			"status": "connected",
 		}
 		_ = json.NewEncoder(w).Encode(config)
-	} else if r.Method == "PUT" {
+	case "PUT":
 		// Simulate connection update
 		w.WriteHeader(http.StatusOK)
-	} else if r.Method == "DELETE" {
+	case "DELETE":
 		// Simulate connection close
 		w.WriteHeader(http.StatusOK)
 	}
@@ -482,7 +492,7 @@ func createTestService(serverURL string) *CloudWorkstationService {
 }
 
 // testCreateConnection tests connection creation functionality
-func testCreateConnection(t *testing.T, service *CloudWorkstationService, ctx context.Context) *ConnectionConfig {
+func testCreateConnection(ctx context.Context, t *testing.T, service *CloudWorkstationService) *ConnectionConfig {
 	config, err := service.CreateConnection(ctx, "ssh", "test-instance", map[string]string{})
 	if err != nil {
 		t.Fatalf("CreateConnection failed: %v", err)
@@ -533,8 +543,6 @@ func testCloseConnection(t *testing.T, service *CloudWorkstationService, config 
 
 // TestAWSServiceConnectionHandlers tests AWS service-specific connection handlers (mock only)
 func TestAWSServiceConnectionHandlers(t *testing.T) {
-	// Test the AWS connection creation without calling actual AWS services
-	// This tests the connection type handling and title generation logic
 	service := &CloudWorkstationService{
 		daemonURL:         "http://localhost:8947",
 		client:            &http.Client{Timeout: 5 * time.Second},
@@ -543,52 +551,46 @@ func TestAWSServiceConnectionHandlers(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Test direct connection manager AWS service creation (bypasses AWS calls)
-	config, err := service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, "braket", map[string]string{
-		"service": "braket",
-		"region":  "us-west-2",
-	})
-	if err != nil {
-		t.Fatalf("CreateConnection for Braket failed: %v", err)
+	// Test cases for different AWS services
+	testCases := []struct {
+		service       string
+		region        string
+		expectedTitle string
+		expectedEmoji string
+	}{
+		{"braket", "us-west-2", "⚛️ Braket", "⚛️"},
+		{"sagemaker", "us-east-1", "🤖 SageMaker", "🤖"},
+		{"console", "eu-west-1", "🎛️ Console", "🎛️"},
 	}
+
+	for _, tc := range testCases {
+		t.Run(tc.service, func(t *testing.T) {
+			testAWSServiceConnection(ctx, t, service, tc.service, tc.region, tc.expectedTitle)
+		})
+	}
+}
+
+// testAWSServiceConnection tests a specific AWS service connection
+func testAWSServiceConnection(ctx context.Context, t *testing.T, service *CloudWorkstationService, serviceName, region, expectedTitle string) {
+	config, err := service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, serviceName, map[string]string{
+		"service": serviceName,
+		"region":  region,
+	})
+
+	if err != nil {
+		t.Fatalf("CreateConnection for %s failed: %v", serviceName, err)
+	}
+
 	if config.Type != ConnectionTypeAWS {
 		t.Errorf("Expected AWS connection type, got %s", config.Type)
 	}
-	if config.AWSService != "braket" {
-		t.Errorf("Expected braket service, got %s", config.AWSService)
-	}
-	if !strings.Contains(config.Title, "⚛️ Braket") {
-		t.Errorf("Expected Braket title with quantum emoji, got %s", config.Title)
+
+	if config.AWSService != serviceName {
+		t.Errorf("Expected %s service, got %s", serviceName, config.AWSService)
 	}
 
-	// Test SageMaker connection
-	config, err = service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, "sagemaker", map[string]string{
-		"service": "sagemaker",
-		"region":  "us-east-1",
-	})
-	if err != nil {
-		t.Fatalf("CreateConnection for SageMaker failed: %v", err)
-	}
-	if config.AWSService != "sagemaker" {
-		t.Errorf("Expected sagemaker service, got %s", config.AWSService)
-	}
-	if !strings.Contains(config.Title, "🤖 SageMaker") {
-		t.Errorf("Expected SageMaker title with robot emoji, got %s", config.Title)
-	}
-
-	// Test Console connection
-	config, err = service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, "console", map[string]string{
-		"service": "console",
-		"region":  "eu-west-1",
-	})
-	if err != nil {
-		t.Fatalf("CreateConnection for Console failed: %v", err)
-	}
-	if config.AWSService != "console" {
-		t.Errorf("Expected console service, got %s", config.AWSService)
-	}
-	if !strings.Contains(config.Title, "🎛️ Console") {
-		t.Errorf("Expected Console title with control emoji, got %s", config.Title)
+	if !strings.Contains(config.Title, expectedTitle) {
+		t.Errorf("Expected title containing '%s', got %s", expectedTitle, config.Title)
 	}
 }
 
@@ -602,42 +604,55 @@ func TestConnectionTabManagement(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Test creating multiple connection tabs
-	configs := make([]*ConnectionConfig, 3)
-	var err error
-
-	// Create SSH connection tab
-	configs[0], err = service.connectionManager.CreateConnection(ctx, ConnectionTypeSSH, "test-ssh", map[string]string{})
-	if err != nil {
-		t.Fatalf("Failed to create SSH connection: %v", err)
-	}
-
-	// Create AWS Braket connection tab
-	configs[1], err = service.connectionManager.CreateConnection(ctx, ConnectionTypeAWS, "braket", map[string]string{
-		"service": "braket",
-		"region":  "us-west-2",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create Braket connection: %v", err)
-	}
-
-	// Create Web connection tab
-	configs[2], err = service.connectionManager.CreateConnection(ctx, ConnectionTypeWeb, "jupyter-instance", map[string]string{
-		"service": "jupyter",
-	})
-	if err != nil {
-		t.Fatalf("Failed to create Web connection: %v", err)
-	}
+	// Create multiple connection tabs
+	configs := createTestConnections(ctx, t, service)
 
 	// Verify all connections exist
-	allConnections := service.connectionManager.GetAllConnections()
-	if len(allConnections) != 3 {
-		t.Errorf("Expected 3 connections, got %d", len(allConnections))
-	}
+	verifyConnectionsCreated(t, service, len(configs))
 
 	// Test connection status updates
+	testConnectionStatusUpdates(t, service, configs)
+
+	// Test connection cleanup
+	testConnectionCleanup(t, service, configs)
+}
+
+// createTestConnections creates test connections for tab management testing
+func createTestConnections(ctx context.Context, t *testing.T, service *CloudWorkstationService) []*ConnectionConfig {
+	connectionSpecs := []struct {
+		connType ConnectionType
+		target   string
+		options  map[string]string
+		name     string
+	}{
+		{ConnectionTypeSSH, "test-ssh", map[string]string{}, "SSH"},
+		{ConnectionTypeAWS, "braket", map[string]string{"service": "braket", "region": "us-west-2"}, "Braket"},
+		{ConnectionTypeWeb, "jupyter-instance", map[string]string{"service": "jupyter"}, "Web"},
+	}
+
+	configs := make([]*ConnectionConfig, len(connectionSpecs))
+	for i, spec := range connectionSpecs {
+		config, err := service.connectionManager.CreateConnection(ctx, spec.connType, spec.target, spec.options)
+		if err != nil {
+			t.Fatalf("Failed to create %s connection: %v", spec.name, err)
+		}
+		configs[i] = config
+	}
+	return configs
+}
+
+// verifyConnectionsCreated verifies that all connections were created successfully
+func verifyConnectionsCreated(t *testing.T, service *CloudWorkstationService, expectedCount int) {
+	allConnections := service.connectionManager.GetAllConnections()
+	if len(allConnections) != expectedCount {
+		t.Errorf("Expected %d connections, got %d", expectedCount, len(allConnections))
+	}
+}
+
+// testConnectionStatusUpdates tests updating connection statuses
+func testConnectionStatusUpdates(t *testing.T, service *CloudWorkstationService, configs []*ConnectionConfig) {
 	for i, config := range configs {
-		err = service.connectionManager.UpdateConnection(config.ID, "connected", "Connection established")
+		err := service.connectionManager.UpdateConnection(config.ID, "connected", "Connection established")
 		if err != nil {
 			t.Errorf("Failed to update connection %d status: %v", i, err)
 		}
@@ -652,10 +667,12 @@ func TestConnectionTabManagement(t *testing.T) {
 			t.Errorf("Connection %d status not updated: expected 'connected', got '%s'", i, updatedConfig.Status)
 		}
 	}
+}
 
-	// Test connection cleanup
+// testConnectionCleanup tests closing and cleaning up connections
+func testConnectionCleanup(t *testing.T, service *CloudWorkstationService, configs []*ConnectionConfig) {
 	for i, config := range configs {
-		err = service.connectionManager.CloseConnection(config.ID)
+		err := service.connectionManager.CloseConnection(config.ID)
 		if err != nil {
 			t.Errorf("Failed to close connection %d: %v", i, err)
 		}
@@ -699,11 +716,12 @@ func TestConnectionTypeDetection(t *testing.T) {
 
 			// Test connection type determination logic
 			var connectionType string
-			if template.Category == "Machine Learning" || strings.Contains(template.Name, "Jupyter") {
+			switch {
+			case template.Category == "Machine Learning" || strings.Contains(template.Name, "Jupyter"):
 				connectionType = "web"
-			} else if template.Category == "Desktop" || strings.Contains(template.Name, "Desktop") {
+			case template.Category == "Desktop" || strings.Contains(template.Name, "Desktop"):
 				connectionType = "desktop"
-			} else {
+			default:
 				connectionType = "ssh"
 			}
 

@@ -170,7 +170,7 @@ func TestCLIAPIErrorScenarios(t *testing.T) {
 				return client
 			},
 			testCommand: func(client *MockAPIClient) error {
-				return client.HibernateInstance(nil, "t2-micro-instance")
+				return client.HibernateInstance(context.TODO(), "t2-micro-instance")
 			},
 			expectError: true,
 			errorMsg:    "hibernation not supported",
@@ -182,7 +182,7 @@ func TestCLIAPIErrorScenarios(t *testing.T) {
 				return NewMockAPIClientWithPingError()
 			},
 			testCommand: func(client *MockAPIClient) error {
-				return client.Ping(nil)
+				return client.Ping(context.TODO())
 			},
 			expectError: true,
 			errorMsg:    "daemon not running",

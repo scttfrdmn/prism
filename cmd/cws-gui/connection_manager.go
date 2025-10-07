@@ -1,3 +1,4 @@
+// Package main provides connection management for the CloudWorkstation GUI
 package main
 
 import (
@@ -7,6 +8,27 @@ import (
 	"strings"
 	"sync"
 	"time"
+)
+
+// Connection status constants
+const (
+	statusDisconnected = "disconnected"
+	statusConnected    = "connected"
+	statusError        = "error"
+	defaultRegion      = "us-west-2"
+)
+
+// AWS service constants
+const (
+	serviceConsole    = "console"
+	serviceSageMaker  = "sagemaker"
+	serviceBraket     = "braket"
+	serviceCloudShell = "cloudshell"
+)
+
+// Connection embedding constants (kept for future use)
+const (
+	_ = "iframe" // embeddingModeIframe - reserved for future iframe embedding features
 )
 
 // ConnectionManager manages the lifecycle of embedded connections
@@ -27,117 +49,130 @@ func NewConnectionManager(service *CloudWorkstationService) *ConnectionManager {
 }
 
 // CreateConnection creates a new connection and starts monitoring it
-func (cm *ConnectionManager) CreateConnection(ctx context.Context, connectionType ConnectionType, target string, options map[string]string) (*ConnectionConfig, error) {
+func (cm *ConnectionManager) CreateConnection(_ context.Context, connectionType ConnectionType, target string, options map[string]string) (*ConnectionConfig, error) {
 	cm.mutex.Lock()
 	defer cm.mutex.Unlock()
 
 	var config *ConnectionConfig
-	var err error
 
 	// Create connection configuration based on type
 	switch connectionType {
 	case ConnectionTypeSSH:
-		config = &ConnectionConfig{
-			ID:            fmt.Sprintf("ssh-%s-%d", target, time.Now().Unix()),
-			Type:          ConnectionTypeSSH,
-			InstanceName:  target,
-			ProxyURL:      fmt.Sprintf("http://localhost:8947/ssh-proxy/%s", target),
-			EmbeddingMode: "websocket",
-			Title:         fmt.Sprintf("🖥️ SSH: %s", target),
-			Status:        "connecting",
-			Metadata: map[string]interface{}{
-				"connection_type": "ssh",
-				"launch_time":     time.Now().Format(time.RFC3339),
-			},
-		}
+		config = cm.createSSHConnection(target)
 	case ConnectionTypeDesktop:
-		config = &ConnectionConfig{
-			ID:            fmt.Sprintf("desktop-%s-%d", target, time.Now().Unix()),
-			Type:          ConnectionTypeDesktop,
-			InstanceName:  target,
-			ProxyURL:      fmt.Sprintf("http://localhost:8947/dcv-proxy/%s", target),
-			EmbeddingMode: "iframe",
-			Title:         fmt.Sprintf("🖥️ Desktop: %s", target),
-			Status:        "connecting",
-			Metadata: map[string]interface{}{
-				"connection_type": "desktop",
-				"launch_time":     time.Now().Format(time.RFC3339),
-			},
-		}
+		config = cm.createDesktopConnection(target)
 	case ConnectionTypeWeb:
-		service := options["service"]
-		if service == "" {
-			service = "jupyter"
-		}
-		config = &ConnectionConfig{
-			ID:            fmt.Sprintf("web-%s-%s-%d", target, service, time.Now().Unix()),
-			Type:          ConnectionTypeWeb,
-			InstanceName:  target,
-			ProxyURL:      fmt.Sprintf("http://localhost:8947/web-proxy/%s", target),
-			EmbeddingMode: "iframe",
-			Title:         fmt.Sprintf("🌐 %s: %s", service, target),
-			Status:        "connecting",
-			Metadata: map[string]interface{}{
-				"connection_type": "web",
-				"service":         service,
-				"launch_time":     time.Now().Format(time.RFC3339),
-			},
-		}
+		config = cm.createWebConnection(target, options)
 	case ConnectionTypeAWS:
-		region := options["region"]
-		if region == "" {
-			region = "us-west-2"
-		}
-		service := options["service"]
-		if service == "" {
-			service = "console"
-		}
-
-		var title string
-		switch service {
-		case "braket":
-			title = fmt.Sprintf("⚛️ Braket (%s)", region)
-		case "sagemaker":
-			title = fmt.Sprintf("🤖 SageMaker (%s)", region)
-		case "console":
-			title = fmt.Sprintf("🎛️ Console (%s)", region)
-		case "cloudshell":
-			title = fmt.Sprintf("🖥️ CloudShell (%s)", region)
-		default:
-			title = fmt.Sprintf("☁️ %s (%s)", service, region)
-		}
-
-		config = &ConnectionConfig{
-			ID:            fmt.Sprintf("aws-%s-%s-%d", service, region, time.Now().Unix()),
-			Type:          ConnectionTypeAWS,
-			AWSService:    service,
-			Region:        region,
-			ProxyURL:      fmt.Sprintf("http://localhost:8947/aws-proxy/%s?region=%s", service, region),
-			EmbeddingMode: "iframe",
-			Title:         title,
-			Status:        "connecting",
-			Metadata: map[string]interface{}{
-				"connection_type": "aws",
-				"service":         service,
-				"region":          region,
-				"launch_time":     time.Now().Format(time.RFC3339),
-			},
-		}
+		config = cm.createAWSConnection(target, options)
 	default:
 		return nil, fmt.Errorf("unsupported connection type: %s", connectionType)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to create %s connection: %w", connectionType, err)
-	}
-
-	// Store connection
+	// Store connection and start monitoring
 	cm.connections[config.ID] = config
-
-	// Start monitoring connection status
 	go cm.monitorConnection(config.ID)
 
 	return config, nil
+}
+
+// Helper functions for creating different connection types
+func (cm *ConnectionManager) createSSHConnection(target string) *ConnectionConfig {
+	return &ConnectionConfig{
+		ID:            fmt.Sprintf("ssh-%s-%d", target, time.Now().Unix()),
+		Type:          ConnectionTypeSSH,
+		InstanceName:  target,
+		ProxyURL:      fmt.Sprintf("http://localhost:8947/ssh-proxy/%s", target),
+		EmbeddingMode: "websocket",
+		Title:         fmt.Sprintf("🖥️ SSH: %s", target),
+		Status:        "connecting",
+		Metadata: map[string]interface{}{
+			"connection_type": "ssh",
+			"launch_time":     time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func (cm *ConnectionManager) createDesktopConnection(target string) *ConnectionConfig {
+	return &ConnectionConfig{
+		ID:            fmt.Sprintf("desktop-%s-%d", target, time.Now().Unix()),
+		Type:          ConnectionTypeDesktop,
+		InstanceName:  target,
+		ProxyURL:      fmt.Sprintf("http://localhost:8947/dcv-proxy/%s", target),
+		EmbeddingMode: "iframe",
+		Title:         fmt.Sprintf("🖥️ Desktop: %s", target),
+		Status:        "connecting",
+		Metadata: map[string]interface{}{
+			"connection_type": "desktop",
+			"launch_time":     time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func (cm *ConnectionManager) createWebConnection(target string, options map[string]string) *ConnectionConfig {
+	service := options["service"]
+	if service == "" {
+		service = "jupyter"
+	}
+	return &ConnectionConfig{
+		ID:            fmt.Sprintf("web-%s-%s-%d", target, service, time.Now().Unix()),
+		Type:          ConnectionTypeWeb,
+		InstanceName:  target,
+		ProxyURL:      fmt.Sprintf("http://localhost:8947/web-proxy/%s", target),
+		EmbeddingMode: "iframe",
+		Title:         fmt.Sprintf("🌐 %s: %s", service, target),
+		Status:        "connecting",
+		Metadata: map[string]interface{}{
+			"connection_type": "web",
+			"service":         service,
+			"launch_time":     time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func (cm *ConnectionManager) createAWSConnection(_ string, options map[string]string) *ConnectionConfig {
+	region := options["region"]
+	if region == "" {
+		region = defaultRegion
+	}
+	service := options["service"]
+	if service == "" {
+		service = serviceConsole
+	}
+
+	title := cm.getAWSConnectionTitle(service, region)
+
+	return &ConnectionConfig{
+		ID:            fmt.Sprintf("aws-%s-%s-%d", service, region, time.Now().Unix()),
+		Type:          ConnectionTypeAWS,
+		AWSService:    service,
+		Region:        region,
+		ProxyURL:      fmt.Sprintf("http://localhost:8947/aws-proxy/%s?region=%s", service, region),
+		EmbeddingMode: "iframe",
+		Title:         title,
+		Status:        "connecting",
+		Metadata: map[string]interface{}{
+			"connection_type": "aws",
+			"service":         service,
+			"region":          region,
+			"launch_time":     time.Now().Format(time.RFC3339),
+		},
+	}
+}
+
+func (cm *ConnectionManager) getAWSConnectionTitle(service, region string) string {
+	switch service {
+	case serviceBraket:
+		return fmt.Sprintf("⚛️ Braket (%s)", region)
+	case serviceSageMaker:
+		return fmt.Sprintf("🤖 SageMaker (%s)", region)
+	case serviceConsole:
+		return fmt.Sprintf("🎛️ Console (%s)", region)
+	case serviceCloudShell:
+		return fmt.Sprintf("🖥️ CloudShell (%s)", region)
+	default:
+		return fmt.Sprintf("☁️ %s (%s)", service, region)
+	}
 }
 
 // GetConnection retrieves a connection by ID
@@ -201,7 +236,7 @@ func (cm *ConnectionManager) CloseConnection(id string) error {
 	}
 
 	// Update status to disconnected
-	config.Status = "disconnected"
+	config.Status = statusDisconnected
 	config.Metadata["closed_at"] = time.Now().Format(time.RFC3339)
 
 	// Remove from active connections
@@ -224,33 +259,30 @@ func (cm *ConnectionManager) monitorConnection(id string) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			config, exists := cm.GetConnection(id)
-			if !exists {
-				// Connection was closed
-				return
-			}
+	for range ticker.C {
+		config, exists := cm.GetConnection(id)
+		if !exists {
+			// Connection was closed
+			return
+		}
 
-			// Check connection health based on type
-			var newStatus string
-			switch config.Type {
-			case ConnectionTypeSSH:
-				newStatus = cm.checkSSHStatus(config)
-			case ConnectionTypeDesktop:
-				newStatus = cm.checkDesktopStatus(config)
-			case ConnectionTypeWeb:
-				newStatus = cm.checkWebStatus(config)
-			case ConnectionTypeAWS:
-				newStatus = cm.checkAWSStatus(config)
-			default:
-				newStatus = "unknown"
-			}
+		// Check connection health based on type
+		var newStatus string
+		switch config.Type {
+		case ConnectionTypeSSH:
+			newStatus = cm.checkSSHStatus(config)
+		case ConnectionTypeDesktop:
+			newStatus = cm.checkDesktopStatus(config)
+		case ConnectionTypeWeb:
+			newStatus = cm.checkWebStatus(config)
+		case ConnectionTypeAWS:
+			newStatus = cm.checkAWSStatus(config)
+		default:
+			newStatus = "unknown"
+		}
 
-			if newStatus != config.Status {
-				cm.UpdateConnection(id, newStatus, "")
-			}
+		if newStatus != config.Status {
+			_ = cm.UpdateConnection(id, newStatus, "")
 		}
 	}
 }
@@ -259,7 +291,7 @@ func (cm *ConnectionManager) monitorConnection(id string) {
 func (cm *ConnectionManager) checkSSHStatus(config *ConnectionConfig) string {
 	// Health check SSH connection via WebSocket proxy endpoint
 	if config.ProxyURL == "" {
-		return "error"
+		return statusError
 	}
 
 	// Check if the WebSocket endpoint is reachable
@@ -270,28 +302,28 @@ func (cm *ConnectionManager) checkSSHStatus(config *ConnectionConfig) string {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Get(healthURL)
 	if err != nil {
-		return "disconnected"
+		return statusDisconnected
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check if we get a reasonable response (could be upgrade required for WebSocket)
 	if resp.StatusCode < 500 {
-		return "connected"
+		return statusConnected
 	}
 
-	return "disconnected"
+	return statusDisconnected
 }
 
 func (cm *ConnectionManager) checkDesktopStatus(config *ConnectionConfig) string {
 	// Health check DCV desktop connection
 	if config.ProxyURL == "" {
-		return "error"
+		return statusError
 	}
 
 	// For DCV connections, check if the session endpoint is responding
 	client := &http.Client{
 		Timeout: 5 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			// Allow redirects for DCV authentication flows
 			return nil
 		},
@@ -299,28 +331,28 @@ func (cm *ConnectionManager) checkDesktopStatus(config *ConnectionConfig) string
 
 	resp, err := client.Get(config.ProxyURL)
 	if err != nil {
-		return "disconnected"
+		return statusDisconnected
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// DCV sessions typically respond with 200 OK or redirect to login
 	if resp.StatusCode == 200 || resp.StatusCode == 302 || resp.StatusCode == 401 {
-		return "connected"
+		return statusConnected
 	}
 
-	return "disconnected"
+	return statusDisconnected
 }
 
 func (cm *ConnectionManager) checkWebStatus(config *ConnectionConfig) string {
 	// Health check web interface connection
 	if config.ProxyURL == "" {
-		return "error"
+		return statusError
 	}
 
 	// For web interfaces (Jupyter, RStudio, etc.), check if the service is responding
 	client := &http.Client{
 		Timeout: 5 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 			// Allow redirects for authentication flows
 			return nil
 		},
@@ -328,22 +360,22 @@ func (cm *ConnectionManager) checkWebStatus(config *ConnectionConfig) string {
 
 	resp, err := client.Get(config.ProxyURL)
 	if err != nil {
-		return "disconnected"
+		return statusDisconnected
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Web services typically respond with 200 OK, or redirects for login/auth
 	if resp.StatusCode >= 200 && resp.StatusCode < 500 {
-		return "connected"
+		return statusConnected
 	}
 
-	return "disconnected"
+	return statusDisconnected
 }
 
 func (cm *ConnectionManager) checkAWSStatus(config *ConnectionConfig) string {
 	// Health check AWS service connection
 	if config.ProxyURL == "" && config.AuthToken == "" {
-		return "error"
+		return statusError
 	}
 
 	// For AWS service connections, we can check a few things:
@@ -354,7 +386,7 @@ func (cm *ConnectionManager) checkAWSStatus(config *ConnectionConfig) string {
 		// Check proxied AWS service endpoint
 		client := &http.Client{
 			Timeout: 10 * time.Second, // AWS services might take longer to respond
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
 				// AWS console redirects are common
 				return nil
 			},
@@ -362,25 +394,25 @@ func (cm *ConnectionManager) checkAWSStatus(config *ConnectionConfig) string {
 
 		resp, err := client.Get(config.ProxyURL)
 		if err != nil {
-			return "disconnected"
+			return statusDisconnected
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		// AWS services typically respond with 200 OK or redirects for authentication
 		if resp.StatusCode >= 200 && resp.StatusCode < 500 {
-			return "connected"
+			return statusConnected
 		}
 
-		return "disconnected"
+		return statusDisconnected
 	}
 
 	// If no ProxyURL but has AuthToken, assume it's a direct federation connection
 	if config.AuthToken != "" {
 		// For federation tokens, we assume they're valid if they exist
 		// A more sophisticated check would validate the token with AWS STS
-		return "connected"
+		return statusConnected
 	}
 
 	// No way to verify connection
-	return "error"
+	return statusError
 }

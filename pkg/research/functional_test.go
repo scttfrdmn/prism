@@ -8,10 +8,20 @@ import (
 )
 
 // MockProfileManager for testing research user functionality
-type MockProfileManager struct{}
+type MockProfileManager struct {
+	currentProfile string
+}
 
 func (m *MockProfileManager) GetCurrentProfile() (string, error) {
-	return "test-profile", nil
+	if m.currentProfile == "" {
+		return "test-profile", nil
+	}
+	return m.currentProfile, nil
+}
+
+// SetCurrentProfile allows tests to set the current profile
+func (m *MockProfileManager) SetCurrentProfile(profile string) {
+	m.currentProfile = profile
 }
 
 func (m *MockProfileManager) GetProfileConfig(profileID string) (interface{}, error) {

@@ -271,3 +271,66 @@ type AMIUsageMetrics struct {
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
 }
+
+// AMI Lifecycle Management Types
+
+// AMICleanupResult represents the result of an AMI cleanup operation
+type AMICleanupResult struct {
+	TotalFound            int       `json:"total_found"`
+	TotalRemoved          int       `json:"total_removed"`
+	StorageSavingsMonthly float64   `json:"storage_savings_monthly"`
+	RemovedAMIs           []AMIInfo `json:"removed_amis"`
+	CompletedAt           time.Time `json:"completed_at"`
+}
+
+// AMIDeletionResult represents the result of an AMI deletion
+type AMIDeletionResult struct {
+	AMIID                 string    `json:"ami_id"`
+	Status                string    `json:"status"`
+	DeletedSnapshots      []string  `json:"deleted_snapshots,omitempty"`
+	StorageSavingsMonthly float64   `json:"storage_savings_monthly"`
+	CompletedAt           time.Time `json:"completed_at"`
+}
+
+// AMI Snapshot Management Types
+
+// SnapshotInfo represents information about an EBS snapshot
+type SnapshotInfo struct {
+	SnapshotID         string    `json:"snapshot_id"`
+	VolumeID           string    `json:"volume_id"`
+	VolumeSize         int       `json:"volume_size"`
+	Description        string    `json:"description"`
+	StartTime          time.Time `json:"start_time"`
+	State              string    `json:"state"`
+	Progress           string    `json:"progress"`
+	StorageCostMonthly float64   `json:"storage_cost_monthly"`
+}
+
+// SnapshotCreationResult represents the result of snapshot creation
+type SnapshotCreationResult struct {
+	SnapshotID                 string    `json:"snapshot_id"`
+	VolumeID                   string    `json:"volume_id"`
+	VolumeSize                 int       `json:"volume_size"`
+	Description                string    `json:"description"`
+	EstimatedCompletionMinutes int       `json:"estimated_completion_minutes"`
+	StorageCostMonthly         float64   `json:"storage_cost_monthly"`
+	CreationInitiatedAt        time.Time `json:"creation_initiated_at"`
+}
+
+// AMIRestoreResult represents the result of AMI restoration from snapshot
+type AMIRestoreResult struct {
+	AMIID                      string    `json:"ami_id"`
+	Name                       string    `json:"name"`
+	Description                string    `json:"description"`
+	Architecture               string    `json:"architecture"`
+	EstimatedCompletionMinutes int       `json:"estimated_completion_minutes"`
+	RestoreInitiatedAt         time.Time `json:"restore_initiated_at"`
+}
+
+// SnapshotDeletionResult represents the result of snapshot deletion
+type SnapshotDeletionResult struct {
+	SnapshotID            string    `json:"snapshot_id"`
+	VolumeSize            int       `json:"volume_size"`
+	StorageSavingsMonthly float64   `json:"storage_savings_monthly"`
+	CompletedAt           time.Time `json:"completed_at"`
+}

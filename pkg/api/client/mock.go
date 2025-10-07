@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -102,6 +105,17 @@ func (m *MockClient) DeleteInstance(ctx context.Context, name string) error {
 
 func (m *MockClient) ConnectInstance(ctx context.Context, name string) (string, error) {
 	return "ssh mock@mock-ip", nil
+}
+
+func (m *MockClient) ExecInstance(ctx context.Context, instanceName string, execRequest types.ExecRequest) (*types.ExecResult, error) {
+	return &types.ExecResult{
+		Command:       execRequest.Command,
+		ExitCode:      0,
+		StdOut:        "Mock command executed successfully",
+		Status:        "success",
+		ExecutionTime: 100,
+		CommandID:     "mock-command-id",
+	}, nil
 }
 
 // Template operations
@@ -352,4 +366,371 @@ func (m *MockClient) GetMarketplaceTrending(ctx context.Context) (map[string]int
 			},
 		},
 	}, nil
+}
+
+// Hibernation operations
+func (m *MockClient) HibernateInstance(ctx context.Context, name string) error {
+	if instance, exists := m.instances[name]; exists {
+		instance.State = "hibernated"
+		return nil
+	}
+	return fmt.Errorf("instance not found: %s", name)
+}
+
+func (m *MockClient) ResumeInstance(ctx context.Context, name string) error {
+	if instance, exists := m.instances[name]; exists {
+		instance.State = "running"
+		return nil
+	}
+	return fmt.Errorf("instance not found: %s", name)
+}
+
+func (m *MockClient) GetInstanceHibernationStatus(ctx context.Context, name string) (*types.HibernationStatus, error) {
+	return &types.HibernationStatus{
+		HibernationSupported: true,
+		PossiblyHibernated:   false,
+		InstanceState:        "running",
+	}, nil
+}
+
+// Resize operations
+func (m *MockClient) ResizeInstance(ctx context.Context, req types.ResizeRequest) (*types.ResizeResponse, error) {
+	return &types.ResizeResponse{
+		Success: true,
+		Message: "Instance resized successfully",
+	}, nil
+}
+
+// Log operations
+func (m *MockClient) GetInstanceLogs(ctx context.Context, name string, req types.LogRequest) (*types.LogResponse, error) {
+	return &types.LogResponse{}, nil
+}
+
+func (m *MockClient) GetInstanceLogTypes(ctx context.Context, name string) (*types.LogTypesResponse, error) {
+	return &types.LogTypesResponse{}, nil
+}
+
+func (m *MockClient) GetLogsSummary(ctx context.Context) (*types.LogSummaryResponse, error) {
+	return &types.LogSummaryResponse{}, nil
+}
+
+// Template application operations
+func (m *MockClient) ApplyTemplate(ctx context.Context, req templates.ApplyRequest) (*templates.ApplyResponse, error) {
+	return &templates.ApplyResponse{}, nil
+}
+
+func (m *MockClient) DiffTemplate(ctx context.Context, req templates.DiffRequest) (*templates.TemplateDiff, error) {
+	return &templates.TemplateDiff{}, nil
+}
+
+func (m *MockClient) GetInstanceLayers(ctx context.Context, name string) ([]templates.AppliedTemplate, error) {
+	return []templates.AppliedTemplate{}, nil
+}
+
+func (m *MockClient) RollbackInstance(ctx context.Context, req types.RollbackRequest) error {
+	return nil
+}
+
+// Idle detection operations
+func (m *MockClient) GetIdlePendingActions(ctx context.Context) ([]types.IdleState, error) {
+	return []types.IdleState{}, nil
+}
+
+func (m *MockClient) ExecuteIdleActions(ctx context.Context) (*types.IdleExecutionResponse, error) {
+	return &types.IdleExecutionResponse{}, nil
+}
+
+func (m *MockClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistoryEntry, error) {
+	return []types.IdleHistoryEntry{}, nil
+}
+
+// Project management operations - Stubs
+func (m *MockClient) CreateProject(ctx context.Context, req project.CreateProjectRequest) (*types.Project, error) {
+	return &types.Project{
+		ID:          "mock-project-123",
+		Name:        req.Name,
+		Description: req.Description,
+	}, nil
+}
+
+func (m *MockClient) ListProjects(ctx context.Context, filter *project.ProjectFilter) (*project.ProjectListResponse, error) {
+	return &project.ProjectListResponse{}, nil
+}
+
+func (m *MockClient) GetProject(ctx context.Context, id string) (*types.Project, error) {
+	return &types.Project{
+		ID:   id,
+		Name: "Mock Project",
+	}, nil
+}
+
+func (m *MockClient) UpdateProject(ctx context.Context, id string, req project.UpdateProjectRequest) (*types.Project, error) {
+	return &types.Project{
+		ID:   id,
+		Name: "Updated Project",
+	}, nil
+}
+
+func (m *MockClient) DeleteProject(ctx context.Context, id string) error {
+	return nil
+}
+
+func (m *MockClient) AddProjectMember(ctx context.Context, projectID string, req project.AddMemberRequest) error {
+	return nil
+}
+
+func (m *MockClient) UpdateProjectMember(ctx context.Context, projectID, userID string, req project.UpdateMemberRequest) error {
+	return nil
+}
+
+func (m *MockClient) RemoveProjectMember(ctx context.Context, projectID, userID string) error {
+	return nil
+}
+
+func (m *MockClient) GetProjectMembers(ctx context.Context, projectID string) ([]types.ProjectMember, error) {
+	return []types.ProjectMember{}, nil
+}
+
+func (m *MockClient) GetProjectBudgetStatus(ctx context.Context, projectID string) (*project.BudgetStatus, error) {
+	return &project.BudgetStatus{
+		BudgetEnabled: true,
+		TotalBudget:   1000.0,
+	}, nil
+}
+
+func (m *MockClient) SetProjectBudget(ctx context.Context, projectID string, req SetProjectBudgetRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+func (m *MockClient) UpdateProjectBudget(ctx context.Context, projectID string, req UpdateProjectBudgetRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+func (m *MockClient) DisableProjectBudget(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+func (m *MockClient) GetProjectCostBreakdown(ctx context.Context, projectID string, start, end time.Time) (*types.ProjectCostBreakdown, error) {
+	return &types.ProjectCostBreakdown{}, nil
+}
+
+func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID string, duration time.Duration) (*types.ProjectResourceUsage, error) {
+	return &types.ProjectResourceUsage{}, nil
+}
+
+// Policy management operations
+func (m *MockClient) GetPolicyStatus(ctx context.Context) (*PolicyStatusResponse, error) {
+	return &PolicyStatusResponse{
+		Enabled: false,
+		Status:  "disabled",
+	}, nil
+}
+
+func (m *MockClient) ListPolicySets(ctx context.Context) (*PolicySetsResponse, error) {
+	return &PolicySetsResponse{
+		PolicySets: map[string]PolicySetInfo{},
+	}, nil
+}
+
+func (m *MockClient) AssignPolicySet(ctx context.Context, setID string) (*PolicyAssignResponse, error) {
+	return &PolicyAssignResponse{
+		Success: true,
+		Message: "Policy set assigned",
+	}, nil
+}
+
+func (m *MockClient) SetPolicyEnforcement(ctx context.Context, enabled bool) (*PolicyEnforcementResponse, error) {
+	return &PolicyEnforcementResponse{
+		Success: true,
+		Enabled: enabled,
+	}, nil
+}
+
+func (m *MockClient) CheckTemplateAccess(ctx context.Context, templateName string) (*PolicyCheckResponse, error) {
+	return &PolicyCheckResponse{
+		Allowed:      true,
+		TemplateName: templateName,
+	}, nil
+}
+
+// Idle policy operations
+func (m *MockClient) ListIdlePolicies(ctx context.Context) ([]*idle.PolicyTemplate, error) {
+	return []*idle.PolicyTemplate{}, nil
+}
+
+func (m *MockClient) GetIdlePolicy(ctx context.Context, id string) (*idle.PolicyTemplate, error) {
+	return &idle.PolicyTemplate{
+		ID:   id,
+		Name: "Mock Policy",
+	}, nil
+}
+
+func (m *MockClient) ApplyIdlePolicy(ctx context.Context, instanceID, policyID string) error {
+	return nil
+}
+
+func (m *MockClient) RemoveIdlePolicy(ctx context.Context, instanceID, policyID string) error {
+	return nil
+}
+
+func (m *MockClient) GetInstanceIdlePolicies(ctx context.Context, instanceID string) ([]*idle.PolicyTemplate, error) {
+	return []*idle.PolicyTemplate{}, nil
+}
+
+func (m *MockClient) RecommendIdlePolicy(ctx context.Context, instanceID string) (*idle.PolicyTemplate, error) {
+	return &idle.PolicyTemplate{
+		ID:   "recommended",
+		Name: "Recommended Policy",
+	}, nil
+}
+
+func (m *MockClient) GetIdleSavingsReport(ctx context.Context, instanceID string) (map[string]interface{}, error) {
+	return map[string]interface{}{"savings": 100.0}, nil
+}
+
+// Rightsizing analysis operations
+func (m *MockClient) AnalyzeRightsizing(ctx context.Context, req types.RightsizingAnalysisRequest) (*types.RightsizingAnalysisResponse, error) {
+	return &types.RightsizingAnalysisResponse{}, nil
+}
+
+func (m *MockClient) GetRightsizingRecommendations(ctx context.Context) (*types.RightsizingRecommendationsResponse, error) {
+	return &types.RightsizingRecommendationsResponse{}, nil
+}
+
+func (m *MockClient) GetRightsizingStats(ctx context.Context, instanceID string) (*types.RightsizingStatsResponse, error) {
+	return &types.RightsizingStatsResponse{}, nil
+}
+
+func (m *MockClient) ExportRightsizingData(ctx context.Context, format string) ([]types.InstanceMetrics, error) {
+	return []types.InstanceMetrics{}, nil
+}
+
+func (m *MockClient) GetRightsizingSummary(ctx context.Context) (*types.RightsizingSummaryResponse, error) {
+	return &types.RightsizingSummaryResponse{}, nil
+}
+
+func (m *MockClient) GetInstanceMetrics(ctx context.Context, instanceID string, days int) ([]types.InstanceMetrics, error) {
+	return []types.InstanceMetrics{}, nil
+}
+
+// AMI operations
+func (m *MockClient) ResolveAMI(ctx context.Context, templateName string, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"ami_id": "mock-ami-123"}, nil
+}
+
+func (m *MockClient) TestAMIAvailability(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"available": true}, nil
+}
+
+func (m *MockClient) GetAMICosts(ctx context.Context, amiID string) (map[string]interface{}, error) {
+	return map[string]interface{}{"cost": 0.05}, nil
+}
+
+func (m *MockClient) PreviewAMIResolution(ctx context.Context, templateName string) (map[string]interface{}, error) {
+	return map[string]interface{}{"ami_id": "mock-ami-preview"}, nil
+}
+
+func (m *MockClient) CreateAMI(ctx context.Context, req types.AMICreationRequest) (map[string]interface{}, error) {
+	return map[string]interface{}{"ami_id": "mock-created-ami"}, nil
+}
+
+func (m *MockClient) GetAMIStatus(ctx context.Context, amiID string) (map[string]interface{}, error) {
+	return map[string]interface{}{"status": "available"}, nil
+}
+
+func (m *MockClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{"amis": []string{}}, nil
+}
+
+func (m *MockClient) CleanupAMIs(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"cleaned": 0}, nil
+}
+
+func (m *MockClient) DeleteAMI(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+func (m *MockClient) ListAMISnapshots(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"snapshots": []string{}}, nil
+}
+
+func (m *MockClient) CreateAMISnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"snapshot_id": "mock-snapshot"}, nil
+}
+
+func (m *MockClient) RestoreAMIFromSnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"ami_id": "mock-restored-ami"}, nil
+}
+
+func (m *MockClient) DeleteAMISnapshot(ctx context.Context, params map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{"success": true}, nil
+}
+
+// Instance Snapshot operations
+func (m *MockClient) CreateInstanceSnapshot(ctx context.Context, req types.InstanceSnapshotRequest) (*types.InstanceSnapshotResult, error) {
+	return &types.InstanceSnapshotResult{}, nil
+}
+
+func (m *MockClient) ListInstanceSnapshots(ctx context.Context) (*types.InstanceSnapshotListResponse, error) {
+	return &types.InstanceSnapshotListResponse{}, nil
+}
+
+func (m *MockClient) GetInstanceSnapshot(ctx context.Context, snapshotID string) (*types.InstanceSnapshotInfo, error) {
+	return &types.InstanceSnapshotInfo{}, nil
+}
+
+func (m *MockClient) DeleteInstanceSnapshot(ctx context.Context, snapshotID string) (*types.InstanceSnapshotDeleteResult, error) {
+	return &types.InstanceSnapshotDeleteResult{}, nil
+}
+
+func (m *MockClient) RestoreInstanceFromSnapshot(ctx context.Context, snapshotID string, req types.InstanceRestoreRequest) (*types.InstanceRestoreResult, error) {
+	return &types.InstanceRestoreResult{}, nil
+}
+
+// Backup operations
+func (m *MockClient) CreateBackup(ctx context.Context, req types.BackupCreateRequest) (*types.BackupCreateResult, error) {
+	return &types.BackupCreateResult{}, nil
+}
+
+func (m *MockClient) ListBackups(ctx context.Context) (*types.BackupListResponse, error) {
+	return &types.BackupListResponse{}, nil
+}
+
+func (m *MockClient) GetBackup(ctx context.Context, backupID string) (*types.BackupInfo, error) {
+	return &types.BackupInfo{}, nil
+}
+
+func (m *MockClient) DeleteBackup(ctx context.Context, backupID string) (*types.BackupDeleteResult, error) {
+	return &types.BackupDeleteResult{}, nil
+}
+
+func (m *MockClient) GetBackupContents(ctx context.Context, req types.BackupContentsRequest) (*types.BackupContentsResponse, error) {
+	return &types.BackupContentsResponse{}, nil
+}
+
+func (m *MockClient) VerifyBackup(ctx context.Context, req types.BackupVerifyRequest) (*types.BackupVerifyResult, error) {
+	return &types.BackupVerifyResult{}, nil
+}
+
+// Restore operations
+func (m *MockClient) RestoreBackup(ctx context.Context, req types.RestoreRequest) (*types.RestoreResult, error) {
+	return &types.RestoreResult{}, nil
+}
+
+func (m *MockClient) GetRestoreStatus(ctx context.Context, restoreID string) (*types.RestoreResult, error) {
+	return &types.RestoreResult{}, nil
+}
+
+func (m *MockClient) ListRestoreOperations(ctx context.Context) ([]types.RestoreResult, error) {
+	return []types.RestoreResult{}, nil
+}
+
+// Version compatibility
+func (m *MockClient) CheckVersionCompatibility(ctx context.Context, version string) error {
+	return nil
+}
+
+// MakeRequest for generic endpoint access
+func (m *MockClient) MakeRequest(method, path string, body interface{}) ([]byte, error) {
+	return []byte(`{"success": true}`), nil
 }

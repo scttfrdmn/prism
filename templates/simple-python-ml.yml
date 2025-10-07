@@ -45,6 +45,13 @@ users:
     groups: ["sudo"]
 
 # GPU instances recommended for ML workloads
+# Idle detection configuration for hibernation support
+idle_detection:
+  enabled: true
+  idle_threshold_minutes: 10
+  hibernate_threshold_minutes: 20
+  check_interval_minutes: 5
+
 instance_defaults:
   ports: [22, 8888]
 

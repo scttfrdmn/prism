@@ -9,14 +9,23 @@ import (
 	"strings"
 )
 
+// Operating system constants
+const (
+	osDarwin  = "darwin"
+	osLinux   = "linux"
+	osWindows = "windows"
+)
+
 // configureAutoStart configures or removes automatic startup at login
+//
+//nolint:unused // Platform-specific function called conditionally
 func configureAutoStart(enable bool) error {
 	switch runtime.GOOS {
-	case "darwin":
+	case osDarwin:
 		return configureMacOSAutoStart(enable)
-	case "linux":
+	case osLinux:
 		return configureLinuxAutoStart(enable)
-	case "windows":
+	case osWindows:
 		return configureWindowsAutoStart(enable)
 	default:
 		return fmt.Errorf("auto-start configuration not supported on %s", runtime.GOOS)
@@ -24,6 +33,8 @@ func configureAutoStart(enable bool) error {
 }
 
 // configureMacOSAutoStart configures macOS Login Items
+//
+//nolint:unused // Platform-specific function
 func configureMacOSAutoStart(enable bool) error {
 	// Get the path to the current executable
 	execPath, err := os.Executable()
@@ -47,7 +58,7 @@ func configureMacOSAutoStart(enable bool) error {
 		end tell
 		`, execPath)
 
-		cmd := exec.Command("osascript", "-e", script)
+		cmd := exec.Command("osascript", "-e", script) //nolint:gosec // Generated AppleScript for login item management
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to add login item: %w", err)
 		}
@@ -63,7 +74,7 @@ func configureMacOSAutoStart(enable bool) error {
 		end tell
 		`, appName)
 
-		cmd := exec.Command("osascript", "-e", script)
+		cmd := exec.Command("osascript", "-e", script) //nolint:gosec // Generated AppleScript for login item removal
 		if err := cmd.Run(); err != nil {
 			// Try alternative removal by path
 			script = fmt.Sprintf(`
@@ -71,7 +82,7 @@ func configureMacOSAutoStart(enable bool) error {
 				delete (login items whose path is "%s")
 			end tell
 			`, execPath)
-			cmd = exec.Command("osascript", "-e", script)
+			cmd = exec.Command("osascript", "-e", script) //nolint:gosec // Alternative AppleScript for login item removal
 			if err := cmd.Run(); err != nil {
 				return fmt.Errorf("failed to remove login item: %w", err)
 			}
@@ -84,6 +95,8 @@ func configureMacOSAutoStart(enable bool) error {
 }
 
 // configureLinuxAutoStart configures XDG autostart
+//
+//nolint:unused // Platform-specific function
 func configureLinuxAutoStart(enable bool) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -95,7 +108,7 @@ func configureLinuxAutoStart(enable bool) error {
 
 	if enable {
 		// Create autostart directory if it doesn't exist
-		if err := os.MkdirAll(autostartDir, 0755); err != nil {
+		if err := os.MkdirAll(autostartDir, 0750); err != nil {
 			return fmt.Errorf("failed to create autostart directory: %w", err)
 		}
 
@@ -126,7 +139,7 @@ StartupNotify=true
 X-GNOME-Autostart-enabled=true
 `, execPath)
 
-		if err := os.WriteFile(desktopFile, []byte(desktopEntry), 0644); err != nil {
+		if err := os.WriteFile(desktopFile, []byte(desktopEntry), 0600); err != nil {
 			return fmt.Errorf("failed to create desktop file: %w", err)
 		}
 
@@ -145,6 +158,8 @@ X-GNOME-Autostart-enabled=true
 }
 
 // configureWindowsAutoStart configures Windows startup
+//
+//nolint:unused // Platform-specific function
 func configureWindowsAutoStart(enable bool) error {
 	keyPath := `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`
 	appName := "CloudWorkstationGUI"
@@ -157,7 +172,7 @@ func configureWindowsAutoStart(enable bool) error {
 		}
 
 		// Add to Windows registry using reg command
-		cmd := exec.Command("reg", "add", keyPath, "/v", appName, "/d", fmt.Sprintf("\"%s\" -minimize", execPath), "/f")
+		cmd := exec.Command("reg", "add", keyPath, "/v", appName, "/d", fmt.Sprintf("\"%s\" -minimize", execPath), "/f") //nolint:gosec // Registry modification with validated executable path
 		output, err := cmd.CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("failed to add registry entry: %w\nOutput: %s", err, string(output))
