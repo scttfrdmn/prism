@@ -42,6 +42,7 @@ const (
 type PolicyManager struct {
 	templates map[string]*PolicyTemplate
 	applied   map[string][]string // instance -> policy IDs
+	scheduler *Scheduler          // Optional scheduler for automated execution
 }
 
 // NewPolicyManager creates a new policy manager with default templates
@@ -55,6 +56,11 @@ func NewPolicyManager() *PolicyManager {
 	pm.loadDefaultTemplates()
 
 	return pm
+}
+
+// SetScheduler sets the scheduler for automated policy execution
+func (pm *PolicyManager) SetScheduler(scheduler *Scheduler) {
+	pm.scheduler = scheduler
 }
 
 // loadDefaultTemplates loads pre-configured policy templates
@@ -286,7 +292,25 @@ func (pm *PolicyManager) ApplyTemplate(instanceID string, templateID string) err
 	}
 	pm.applied[instanceID] = append(pm.applied[instanceID], templateID)
 
-	// TODO: Actually apply the schedules to the instance
+	// Apply schedules to the instance if scheduler is available
+	if pm.scheduler != nil {
+		for _, schedule := range template.Schedules {
+			// Add schedule to scheduler if not already present
+			if _, err := pm.scheduler.GetSchedule(schedule.ID); err != nil {
+				// Schedule doesn't exist, add it
+				scheduleCopy := schedule // Copy to avoid modifying template
+				scheduleCopy.ID = generateScheduleID()
+				if err := pm.scheduler.AddSchedule(&scheduleCopy); err != nil {
+					return fmt.Errorf("failed to add schedule: %w", err)
+				}
+			}
+
+			// Assign schedule to instance
+			if err := pm.scheduler.AssignScheduleToInstance(schedule.ID, instanceID); err != nil {
+				return fmt.Errorf("failed to assign schedule to instance: %w", err)
+			}
+		}
+	}
 
 	return nil
 }
@@ -315,7 +339,19 @@ func (pm *PolicyManager) RemoveTemplate(instanceID string, templateID string) er
 
 	pm.applied[instanceID] = newPolicies
 
-	// TODO: Actually remove the schedules from the instance
+	// Remove schedules from the instance if scheduler is available
+	if pm.scheduler != nil {
+		template, exists := pm.templates[templateID]
+		if exists {
+			for _, schedule := range template.Schedules {
+				// Remove schedule assignment from instance
+				if err := pm.scheduler.RemoveScheduleFromInstance(schedule.ID, instanceID); err != nil {
+					// Log error but don't fail the removal
+					fmt.Printf("Warning: failed to remove schedule %s from instance: %v\n", schedule.ID, err)
+				}
+			}
+		}
+	}
 
 	return nil
 }

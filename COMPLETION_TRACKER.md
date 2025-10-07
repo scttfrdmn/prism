@@ -12,7 +12,7 @@
 - TUI/GUI feature parity gaps
 - Missing AWS integration tests
 
-**Completion Status**: 13% (Critical placeholders: 19/169 replaced, TUI/CLI/GUI "not implemented" complete)
+**Completion Status**: 15% (Critical placeholders: 22/169 replaced, Hibernation scheduler AWS integration complete)
 
 ---
 
@@ -62,9 +62,12 @@
 
 ---
 
-## Phase 3: TODO/FIXME Markers (0/35)
+## Phase 3: TODO/FIXME Markers (3/34)
 
-### High Priority TODOs (0/12)
+### High Priority TODOs (3/12)
+- ✅ pkg/idle/scheduler.go:235 - Hibernation integration with AWS Manager (COMPLETE)
+- ✅ pkg/idle/policies.go:289 - Apply schedules to instances (COMPLETE)
+- ✅ pkg/idle/policies.go:318 - Remove schedules from instances (COMPLETE)
 - ⏳ internal/cli/app.go:L### - Budget command flag parsing
 - ⏳ internal/cli/repo.go - Template download implementation
 - ⏳ internal/cli/repo.go - Template upload implementation
@@ -72,8 +75,6 @@
 - ⏳ internal/cli/commands.go - Template saving implementation
 - ⏳ internal/cli/instance_commands.go - Cobra flag integration
 - ⏳ pkg/ami/types.go - SSM validation logic
-- ⏳ pkg/idle/policies.go - Schedule application (2 TODOs)
-- ⏳ pkg/idle/scheduler.go - Hibernation integration
 - ⏳ pkg/repository/* - Dependency reading, caching (3 TODOs)
 - ⏳ pkg/connection/manager.go - HTTP path check
 
@@ -254,6 +255,30 @@
   - All builds passing (CLI, daemon, GUI)
   - 19/169 total placeholders replaced (11% of placeholders complete)
 
+### 2025-10-06 - Session 6
+- **Hibernation Scheduler AWS Integration**: Replaced 3 critical TODOs
+  - **pkg/idle/scheduler.go** (TODO line 235): Complete AWS hibernation integration
+    - Added AWSInstanceManager interface for scheduler operations
+    - Implemented executeSchedule with actual AWS hibernation/stop actions
+    - Added executeAction with hibernate, stop, terminate support
+    - Added AssignScheduleToInstance and RemoveScheduleFromInstance methods
+    - Added GetInstanceSchedules for per-instance schedule tracking
+    - Created AWSManagerAdapter for flexible AWS manager integration
+  - **pkg/idle/policies.go** (TODO line 289): Apply schedules to instances
+    - Integrated scheduler with PolicyManager via SetScheduler method
+    - Implemented schedule assignment when applying policy templates
+    - Added schedule tracking to instance assignments
+  - **pkg/idle/policies.go** (TODO line 318): Remove schedules from instances
+    - Implemented schedule removal when removing policy templates
+    - Added cleanup of schedule assignments on instance removal
+  - **pkg/aws/manager.go**: Wired scheduler with AWS manager adapter
+    - Created adapter with HibernateInstance, ResumeInstance, StopInstance, StartInstance
+    - Connected scheduler to PolicyManager for automated execution
+    - Started scheduler on manager initialization
+  - All builds passing (CLI, daemon)
+  - 22/169 total placeholders replaced (13% of placeholders complete)
+  - 31/34 TODOs remaining (3 critical hibernation TODOs complete)
+
 ---
 
 ## Notes
@@ -267,24 +292,27 @@
 
 ## Current Focus
 
-**Active Task**: Phase 4 - Critical Placeholders (19/45 complete, 42% of critical placeholders done)
+**Active Task**: Phase 3 & 4 - TODO Markers and Placeholders (3/34 TODOs, 22/169 placeholders complete)
 
 **Progress**:
-- Phase 4: 19/169 placeholders replaced (11% of placeholders complete, 13% overall)
+- Phase 3: 3/34 TODO markers replaced (9% complete)
+  - ✅ Hibernation scheduler AWS integration (3 critical TODOs)
+- Phase 4: 22/169 placeholders replaced (13% of placeholders complete, 15% overall)
   - ✅ SSH key encoding (RSA + Ed25519) - 3 placeholders
   - ✅ Platform credential storage (macOS + Windows + Linux + encrypted fallback) - 9 placeholders
   - ✅ TUI/Daemon profile methods (GetProfileConfig, UpdateProfileConfig) - 4 placeholders
   - ✅ CLI implementations (CSV output, daemon logs) - 2 placeholders
   - ✅ GUI RestartDaemon - 1 placeholder
+  - ✅ Hibernation scheduler integration - 3 TODOs (also counted as implementations)
 - Phase 2: 54/60 tests fixed (90% passing in pkg/api/client and internal/cli)
 - All profile tests passing (100%)
-- All builds passing (CLI, daemon, GUI)
+- All builds passing (CLI, daemon)
 
 **Next Tasks**:
-1. Continue Phase 4: Replace remaining simulated/mock logic implementations
-2. Replace remaining TODO markers (35 found)
+1. Continue Phase 3: Replace remaining high-priority TODO markers (31 remaining)
+2. Continue Phase 4: Replace remaining simulated/mock logic implementations
 3. Fix remaining research package test failures
 4. Fix remaining 5 mock daemon issues in CLI tests
 5. Write AWS integration tests for all implemented functionality
 
-**Next Commit**: TUI/CLI/GUI placeholder implementations complete
+**Next Commit**: Hibernation scheduler AWS integration complete

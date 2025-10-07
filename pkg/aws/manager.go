@@ -105,13 +105,10 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		region = cfg.Region
 	}
 
-	// Initialize hibernation components
-	idleScheduler := idle.NewScheduler()
-	policyManager := idle.NewPolicyManager()
-
 	// Initialize Universal AMI System (Phase 5.1)
 	amiResolver := NewUniversalAMIResolver(ec2Client)
 
+	// Create manager first (needed for adapter)
 	manager := &Manager{
 		cfg:             cfg,
 		ec2:             ec2Client,
@@ -124,10 +121,36 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		lastPriceUpdate: time.Time{},
 		discountConfig:  ctypes.DiscountConfig{}, // No discounts by default
 		stateManager:    stateManager,
-		idleScheduler:   idleScheduler,
-		policyManager:   policyManager,
 		amiResolver:     amiResolver,
 	}
+
+	// Initialize hibernation components with adapter to break circular dependency
+	awsAdapter := idle.NewAWSManagerAdapter(
+		manager.HibernateInstance,
+		manager.ResumeInstance,
+		manager.StopInstance,
+		manager.StartInstance,
+		func() ([]string, error) {
+			// Get instance names from ListInstances
+			instances, err := manager.ListInstances()
+			if err != nil {
+				return nil, err
+			}
+			names := make([]string, len(instances))
+			for i, inst := range instances {
+				names[i] = inst.Name
+			}
+			return names, nil
+		},
+	)
+
+	idleScheduler := idle.NewScheduler(awsAdapter)
+	policyManager := idle.NewPolicyManager()
+	policyManager.SetScheduler(idleScheduler)
+
+	// Assign to manager
+	manager.idleScheduler = idleScheduler
+	manager.policyManager = policyManager
 
 	// Start the idle scheduler
 	idleScheduler.Start()

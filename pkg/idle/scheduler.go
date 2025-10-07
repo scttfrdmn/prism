@@ -4,10 +4,20 @@ package idle
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 )
+
+// AWSInstanceManager defines the interface for AWS instance operations needed by the scheduler
+type AWSInstanceManager interface {
+	HibernateInstance(name string) error
+	ResumeInstance(name string) error
+	StopInstance(name string) error
+	StartInstance(name string) error
+	GetInstanceNames() ([]string, error)
+}
 
 // ScheduleType defines the type of hibernation schedule
 type ScheduleType string
@@ -41,6 +51,9 @@ type Schedule struct {
 	Type        ScheduleType `json:"type"`
 	Enabled     bool         `json:"enabled"`
 
+	// Target instances
+	TargetInstances []string `json:"target_instances,omitempty"` // Specific instance names, empty means all
+
 	// Time-based scheduling
 	StartTime  string      `json:"start_time,omitempty"` // HH:MM format
 	EndTime    string      `json:"end_time,omitempty"`   // HH:MM format
@@ -70,12 +83,14 @@ type Schedule struct {
 
 // Scheduler manages hibernation schedules
 type Scheduler struct {
-	mu        sync.RWMutex
-	schedules map[string]*Schedule
-	active    map[string]*ScheduleExecution
-	ticker    *time.Ticker
-	ctx       context.Context
-	cancel    context.CancelFunc
+	mu               sync.RWMutex
+	schedules        map[string]*Schedule
+	active           map[string]*ScheduleExecution
+	instanceSchedules map[string][]string // instance name -> schedule IDs
+	ticker           *time.Ticker
+	ctx              context.Context
+	cancel           context.CancelFunc
+	awsManager       AWSInstanceManager
 }
 
 // ScheduleExecution tracks active schedule execution
@@ -87,13 +102,15 @@ type ScheduleExecution struct {
 }
 
 // NewScheduler creates a new hibernation scheduler
-func NewScheduler() *Scheduler {
+func NewScheduler(awsManager AWSInstanceManager) *Scheduler {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
-		schedules: make(map[string]*Schedule),
-		active:    make(map[string]*ScheduleExecution),
-		ctx:       ctx,
-		cancel:    cancel,
+		schedules:        make(map[string]*Schedule),
+		active:           make(map[string]*ScheduleExecution),
+		instanceSchedules: make(map[string][]string),
+		ctx:              ctx,
+		cancel:           cancel,
+		awsManager:       awsManager,
 	}
 }
 
@@ -232,11 +249,73 @@ func (s *Scheduler) executeSchedule(schedule *Schedule) {
 	}
 	s.mu.Unlock()
 
-	// TODO: Integrate with AWS manager to actually hibernate instances
-	fmt.Printf("Executing hibernation schedule: %s\n", schedule.Name)
+	defer func() {
+		s.mu.Lock()
+		if exec, exists := s.active[schedule.ID]; exists {
+			exec.IsActive = false
+		}
+		s.mu.Unlock()
+	}()
+
+	log.Printf("Executing hibernation schedule: %s (ID: %s)", schedule.Name, schedule.ID)
+
+	// Determine which instances to target
+	var targetInstances []string
+	if len(schedule.TargetInstances) > 0 {
+		// Specific instances
+		targetInstances = schedule.TargetInstances
+	} else {
+		// All instances - query AWS if manager available
+		if s.awsManager != nil {
+			instances, err := s.awsManager.GetInstanceNames()
+			if err != nil {
+				log.Printf("Failed to list instances for schedule %s: %v", schedule.Name, err)
+				return
+			}
+			targetInstances = instances
+		} else {
+			log.Printf("No AWS manager available for schedule %s", schedule.Name)
+			return
+		}
+	}
+
+	// Execute hibernation action on each target instance
+	successCount := 0
+	failureCount := 0
+	for _, instanceName := range targetInstances {
+		if err := s.executeAction(schedule, instanceName); err != nil {
+			log.Printf("Failed to execute action for instance %s in schedule %s: %v",
+				instanceName, schedule.Name, err)
+			failureCount++
+		} else {
+			successCount++
+		}
+	}
 
 	// Update last executed time
 	schedule.LastExecuted = time.Now()
+
+	log.Printf("Schedule %s execution complete: %d succeeded, %d failed",
+		schedule.Name, successCount, failureCount)
+}
+
+// executeAction executes the hibernation action on a single instance
+func (s *Scheduler) executeAction(schedule *Schedule, instanceName string) error {
+	if s.awsManager == nil {
+		return fmt.Errorf("no AWS manager available")
+	}
+
+	switch schedule.HibernateAction {
+	case "hibernate":
+		return s.awsManager.HibernateInstance(instanceName)
+	case "stop":
+		return s.awsManager.StopInstance(instanceName)
+	case "terminate":
+		// Terminate is intentionally not implemented for safety
+		return fmt.Errorf("terminate action not supported by scheduler (use CLI directly)")
+	default:
+		return fmt.Errorf("unknown hibernate action: %s", schedule.HibernateAction)
+	}
 }
 
 // AddSchedule adds a new schedule
@@ -401,4 +480,150 @@ func calculateHoursBetween(start, end string) float64 {
 	// Parse HH:MM format and calculate hours
 	// Simplified implementation
 	return 8.0 // Default to 8 hours
+}
+
+// AssignScheduleToInstance assigns a schedule to a specific instance
+func (s *Scheduler) AssignScheduleToInstance(scheduleID, instanceName string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Verify schedule exists
+	schedule, exists := s.schedules[scheduleID]
+	if !exists {
+		return fmt.Errorf("schedule not found: %s", scheduleID)
+	}
+
+	// Add instance to schedule's target list if not already there
+	found := false
+	for _, target := range schedule.TargetInstances {
+		if target == instanceName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		schedule.TargetInstances = append(schedule.TargetInstances, instanceName)
+	}
+
+	// Track instance -> schedule mapping
+	if scheduleIDs, exists := s.instanceSchedules[instanceName]; exists {
+		// Check if already assigned
+		for _, sid := range scheduleIDs {
+			if sid == scheduleID {
+				return nil // Already assigned
+			}
+		}
+		s.instanceSchedules[instanceName] = append(scheduleIDs, scheduleID)
+	} else {
+		s.instanceSchedules[instanceName] = []string{scheduleID}
+	}
+
+	log.Printf("Assigned schedule %s (%s) to instance %s", scheduleID, schedule.Name, instanceName)
+	return nil
+}
+
+// RemoveScheduleFromInstance removes a schedule from a specific instance
+func (s *Scheduler) RemoveScheduleFromInstance(scheduleID, instanceName string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Verify schedule exists
+	schedule, exists := s.schedules[scheduleID]
+	if !exists {
+		return fmt.Errorf("schedule not found: %s", scheduleID)
+	}
+
+	// Remove instance from schedule's target list
+	newTargets := make([]string, 0)
+	for _, target := range schedule.TargetInstances {
+		if target != instanceName {
+			newTargets = append(newTargets, target)
+		}
+	}
+	schedule.TargetInstances = newTargets
+
+	// Remove from instance -> schedule mapping
+	if scheduleIDs, exists := s.instanceSchedules[instanceName]; exists {
+		newScheduleIDs := make([]string, 0)
+		for _, sid := range scheduleIDs {
+			if sid != scheduleID {
+				newScheduleIDs = append(newScheduleIDs, sid)
+			}
+		}
+		if len(newScheduleIDs) > 0 {
+			s.instanceSchedules[instanceName] = newScheduleIDs
+		} else {
+			delete(s.instanceSchedules, instanceName)
+		}
+	}
+
+	log.Printf("Removed schedule %s (%s) from instance %s", scheduleID, schedule.Name, instanceName)
+	return nil
+}
+
+// GetInstanceSchedules returns all schedules assigned to an instance
+func (s *Scheduler) GetInstanceSchedules(instanceName string) []*Schedule {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	scheduleIDs, exists := s.instanceSchedules[instanceName]
+	if !exists {
+		return []*Schedule{}
+	}
+
+	schedules := make([]*Schedule, 0, len(scheduleIDs))
+	for _, scheduleID := range scheduleIDs {
+		if schedule, exists := s.schedules[scheduleID]; exists {
+			schedules = append(schedules, schedule)
+		}
+	}
+
+	return schedules
+}
+
+// AWSManagerAdapter adapts an AWS Manager to the AWSInstanceManager interface
+// This allows the scheduler to work with the real AWS manager without direct dependencies
+type AWSManagerAdapter struct {
+	hibernateFn       func(string) error
+	resumeFn          func(string) error
+	stopFn            func(string) error
+	startFn           func(string) error
+	getInstanceNamesFn func() ([]string, error)
+}
+
+// NewAWSManagerAdapter creates an adapter for an AWS manager
+func NewAWSManagerAdapter(
+	hibernateFn func(string) error,
+	resumeFn func(string) error,
+	stopFn func(string) error,
+	startFn func(string) error,
+	getInstanceNamesFn func() ([]string, error),
+) *AWSManagerAdapter {
+	return &AWSManagerAdapter{
+		hibernateFn:       hibernateFn,
+		resumeFn:          resumeFn,
+		stopFn:            stopFn,
+		startFn:           startFn,
+		getInstanceNamesFn: getInstanceNamesFn,
+	}
+}
+
+func (a *AWSManagerAdapter) HibernateInstance(name string) error {
+	return a.hibernateFn(name)
+}
+
+func (a *AWSManagerAdapter) ResumeInstance(name string) error {
+	return a.resumeFn(name)
+}
+
+func (a *AWSManagerAdapter) StopInstance(name string) error {
+	return a.stopFn(name)
+}
+
+func (a *AWSManagerAdapter) StartInstance(name string) error {
+	return a.startFn(name)
+}
+
+func (a *AWSManagerAdapter) GetInstanceNames() ([]string, error) {
+	return a.getInstanceNamesFn()
 }
