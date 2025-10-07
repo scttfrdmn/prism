@@ -211,8 +211,27 @@ echo "S3 mount tools installation - method not specified"
 
 // configureBucketForMounting optimizes bucket configuration for mounting
 func (m *S3Manager) configureBucketForMounting(ctx context.Context, bucketName string, config *S3Configuration) error {
-	// Simplified configuration - bucket optimization features would be implemented here
-	// Current implementation is a placeholder for future enhancements
+	if config == nil {
+		return nil
+	}
+
+	// Enable default encryption for the bucket (always a good practice for storage)
+	_, err := m.s3Client.PutBucketEncryption(ctx, &s3.PutBucketEncryptionInput{
+		Bucket: aws.String(bucketName),
+		ServerSideEncryptionConfiguration: &s3Types.ServerSideEncryptionConfiguration{
+			Rules: []s3Types.ServerSideEncryptionRule{
+				{
+					ApplyServerSideEncryptionByDefault: &s3Types.ServerSideEncryptionByDefault{
+						SSEAlgorithm: s3Types.ServerSideEncryptionAes256,
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to enable encryption: %w", err)
+	}
+
 	return nil
 }
 
