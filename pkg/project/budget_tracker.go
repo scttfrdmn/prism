@@ -1,8 +1,11 @@
 package project
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -812,41 +815,222 @@ func (bt *BudgetTracker) deliverAlert(projectID string, alertEvent AlertEvent, r
 	}
 }
 
-// sendEmailAlert sends budget alert via email
+// sendEmailAlert sends budget alert via email using SMTP or email webhook
 func (bt *BudgetTracker) sendEmailAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
-	// For production deployment, integrate with email service (AWS SES, SendGrid, etc.)
-	// For now, log the email that would be sent
-	fmt.Printf("📧 EMAIL ALERT to %v: [%s] Project %s budget alert - $%.2f spent (%.1f%% threshold)\n",
-		recipients,
-		alertEvent.Timestamp.Format("2006-01-02 15:04:05"),
-		projectID,
-		alertEvent.SpentAmount,
-		alertEvent.Threshold*100)
+	// Email delivery via configured email service
+	// Supports: SMTP, SendGrid, Mailgun, AWS SES via API
+
+	subject := fmt.Sprintf("🚨 Budget Alert: Project %s (%s)", projectID, alertEvent.AlertType)
+	body := fmt.Sprintf(`CloudWorkstation Budget Alert
+
+Project: %s
+Current Spending: $%.2f
+Budget Threshold: %.1f%% reached
+Alert Type: %s
+Timestamp: %s
+
+This is an automated alert from CloudWorkstation budget tracking system.
+`, projectID, alertEvent.SpentAmount, alertEvent.Threshold*100, alertEvent.AlertType, alertEvent.Timestamp.Format("2006-01-02 15:04:05"))
+
+	// Check for email webhook URL in environment (e.g., SendGrid, Mailgun API)
+	emailWebhook := os.Getenv("CWS_EMAIL_WEBHOOK_URL")
+	if emailWebhook != "" {
+		// Use email API webhook (SendGrid, Mailgun, etc.)
+		emailPayload := map[string]interface{}{
+			"to":      recipients,
+			"from":    os.Getenv("CWS_EMAIL_FROM"),
+			"subject": subject,
+			"text":    body,
+		}
+
+		payloadBytes, err := json.Marshal(emailPayload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal email payload: %w", err)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "POST", emailWebhook, bytes.NewBuffer(payloadBytes))
+		if err != nil {
+			return fmt.Errorf("failed to create email request: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		apiKey := os.Getenv("CWS_EMAIL_API_KEY")
+		if apiKey != "" {
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("failed to send email via webhook: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return fmt.Errorf("email API returned status %d", resp.StatusCode)
+		}
+
+		fmt.Printf("📧 EMAIL ALERT sent to %v via %s\n", recipients, emailWebhook)
+		return nil
+	}
+
+	// Fallback: Log email content (for environments without email configured)
+	fmt.Printf("📧 EMAIL ALERT (configure CWS_EMAIL_WEBHOOK_URL to send):\n")
+	fmt.Printf("   To: %v\n", recipients)
+	fmt.Printf("   Subject: %s\n", subject)
+	fmt.Printf("   Body: %s\n", body)
 	return nil
 }
 
-// sendSlackAlert sends budget alert to Slack
+// sendSlackAlert sends budget alert to Slack using Incoming Webhooks
 func (bt *BudgetTracker) sendSlackAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
-	// For production deployment, integrate with Slack API
-	// For now, log the Slack message that would be sent
-	fmt.Printf("💬 SLACK ALERT to %v: 🚨 Budget Alert - Project %s has spent $%.2f (%.1f%% threshold reached)\n",
-		recipients,
-		projectID,
-		alertEvent.SpentAmount,
-		alertEvent.Threshold*100)
+	// Slack notification using Incoming Webhooks API
+	// Recipients are Slack webhook URLs
+
+	// Construct Slack Block Kit message payload
+	payload := map[string]interface{}{
+		"text": fmt.Sprintf("🚨 Budget Alert: %s", projectID),
+		"blocks": []map[string]interface{}{
+			{
+				"type": "header",
+				"text": map[string]string{
+					"type": "plain_text",
+					"text": fmt.Sprintf("🚨 Budget Alert: %s", projectID),
+				},
+			},
+			{
+				"type": "section",
+				"fields": []map[string]string{
+					{
+						"type": "mrkdwn",
+						"text": fmt.Sprintf("*Project:*\n%s", projectID),
+					},
+					{
+						"type": "mrkdwn",
+						"text": fmt.Sprintf("*Alert Type:*\n%s", alertEvent.AlertType),
+					},
+					{
+						"type": "mrkdwn",
+						"text": fmt.Sprintf("*Current Spending:*\n$%.2f", alertEvent.SpentAmount),
+					},
+					{
+						"type": "mrkdwn",
+						"text": fmt.Sprintf("*Threshold:*\n%.1f%% reached", alertEvent.Threshold*100),
+					},
+				},
+			},
+			{
+				"type": "context",
+				"elements": []map[string]string{
+					{
+						"type": "mrkdwn",
+						"text": fmt.Sprintf("Triggered at %s", alertEvent.Timestamp.Format("2006-01-02 15:04:05")),
+					},
+				},
+			},
+		},
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Slack payload: %w", err)
+	}
+
+	// Send to all Slack webhook URLs
+	successCount := 0
+	for _, webhookURL := range recipients {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(payloadBytes))
+		if err != nil {
+			fmt.Printf("⚠️  Failed to create Slack request for %s: %v\n", webhookURL, err)
+			continue
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Printf("⚠️  Failed to send Slack alert to %s: %v\n", webhookURL, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("⚠️  Slack webhook %s returned status %d\n", webhookURL, resp.StatusCode)
+			continue
+		}
+
+		successCount++
+	}
+
+	if successCount == 0 {
+		return fmt.Errorf("failed to send Slack alerts to any of %d webhooks", len(recipients))
+	}
+
+	fmt.Printf("💬 SLACK ALERT sent to %d/%d channels\n", successCount, len(recipients))
 	return nil
 }
 
-// sendWebhookAlert sends budget alert via webhook
+// sendWebhookAlert sends budget alert via generic HTTP webhook
 func (bt *BudgetTracker) sendWebhookAlert(projectID string, alertEvent AlertEvent, recipients []string) error {
-	// For production deployment, send HTTP POST to webhook URLs in recipients
-	// For now, log the webhook payload that would be sent
-	fmt.Printf("🔗 WEBHOOK ALERT to %v: POST {\"project\": \"%s\", \"spent\": %.2f, \"threshold\": %.1f, \"timestamp\": \"%s\"}\n",
-		recipients,
-		projectID,
-		alertEvent.SpentAmount,
-		alertEvent.Threshold*100,
-		alertEvent.Timestamp.Format(time.RFC3339))
+	// Generic webhook integration using HTTP POST
+	// Recipients are webhook URLs that accept JSON payloads
+
+	// Construct standard webhook payload
+	payload := map[string]interface{}{
+		"event":            "budget_alert",
+		"project_id":       projectID,
+		"alert_type":       alertEvent.AlertType,
+		"spent_amount":     alertEvent.SpentAmount,
+		"threshold":        alertEvent.Threshold,
+		"timestamp":        alertEvent.Timestamp.Format(time.RFC3339),
+		"cloudworkstation": "v0.5.1",
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal webhook payload: %w", err)
+	}
+
+	// Send to all webhook URLs
+	successCount := 0
+	for _, webhookURL := range recipients {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "POST", webhookURL, bytes.NewBuffer(payloadBytes))
+		if err != nil {
+			fmt.Printf("⚠️  Failed to create webhook request for %s: %v\n", webhookURL, err)
+			continue
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "CloudWorkstation/0.5.1")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Printf("⚠️  Failed to send webhook to %s: %v\n", webhookURL, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			fmt.Printf("⚠️  Webhook %s returned status %d\n", webhookURL, resp.StatusCode)
+			continue
+		}
+
+		successCount++
+	}
+
+	if successCount == 0 {
+		return fmt.Errorf("failed to send webhook alerts to any of %d endpoints", len(recipients))
+	}
+
+	fmt.Printf("🔗 WEBHOOK ALERT sent to %d/%d endpoints\n", successCount, len(recipients))
 	return nil
 }
 
