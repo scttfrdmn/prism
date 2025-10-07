@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -174,12 +175,9 @@ func (s *Server) handleGetInstanceLogs(w http.ResponseWriter, r *http.Request, i
 		}
 		cutoff := time.Now().Add(-duration)
 
-		// Note: This is a simplified implementation
-		// In a real implementation, you'd parse timestamps from log lines
-		// For now, we return all logs if within the duration
-		if timestamp.Before(cutoff) {
-			logs = []string{"No logs available within the specified time range"}
-		}
+		// Parse timestamps from log lines and filter
+		filteredLogs := filterLogsByTimestamp(logs, cutoff)
+		logs = filteredLogs
 	}
 
 	response := types.LogResponse{
@@ -227,4 +225,110 @@ func (s *Server) handleGetLogTypes(w http.ResponseWriter, r *http.Request, insta
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+// filterLogsByTimestamp filters log lines by parsing timestamps and comparing to cutoff
+func filterLogsByTimestamp(logs []string, cutoff time.Time) []string {
+	if len(logs) == 0 {
+		return logs
+	}
+
+	// Common log timestamp patterns
+	// RFC3339: 2006-01-02T15:04:05Z07:00
+	// Syslog: Jan 2 15:04:05
+	// ISO8601: 2006-01-02 15:04:05
+	// CloudWatch: 2006/01/02 15:04:05
+	// Systemd: [  123.456789] (seconds since boot)
+
+	timestampPatterns := []struct {
+		regex  *regexp.Regexp
+		layout string
+		parse  func(string) (time.Time, error)
+	}{
+		{
+			// RFC3339: 2024-10-07T12:34:56Z or 2024-10-07T12:34:56-07:00
+			regex:  regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})`),
+			layout: time.RFC3339,
+			parse: func(s string) (time.Time, error) {
+				return time.Parse(time.RFC3339, s)
+			},
+		},
+		{
+			// ISO8601: 2024-10-07 12:34:56
+			regex:  regexp.MustCompile(`^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}`),
+			layout: "2006-01-02 15:04:05",
+			parse: func(s string) (time.Time, error) {
+				return time.Parse("2006-01-02 15:04:05", s)
+			},
+		},
+		{
+			// CloudWatch: 2024/10/07 12:34:56
+			regex:  regexp.MustCompile(`^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}`),
+			layout: "2006/01/02 15:04:05",
+			parse: func(s string) (time.Time, error) {
+				return time.Parse("2006/01/02 15:04:05", s)
+			},
+		},
+		{
+			// Syslog: Oct  7 12:34:56 or Oct 07 12:34:56
+			regex:  regexp.MustCompile(`^[A-Z][a-z]{2}\s+\d{1,2} \d{2}:\d{2}:\d{2}`),
+			layout: "Jan _2 15:04:05",
+			parse: func(s string) (time.Time, error) {
+				// Syslog doesn't include year, assume current year
+				t, err := time.Parse("Jan _2 15:04:05", s)
+				if err != nil {
+					return time.Time{}, err
+				}
+				now := time.Now()
+				return time.Date(now.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, time.Local), nil
+			},
+		},
+		{
+			// Systemd journal: [  123.456789] kernel message
+			regex:  regexp.MustCompile(`^\[\s*\d+\.\d+\]`),
+			layout: "",
+			parse: func(s string) (time.Time, error) {
+				// Boot time offset - can't reliably convert to absolute time
+				// Return zero time to skip filtering on these lines
+				return time.Time{}, fmt.Errorf("relative timestamp")
+			},
+		},
+	}
+
+	filtered := make([]string, 0, len(logs))
+
+	for _, line := range logs {
+		if len(line) == 0 {
+			filtered = append(filtered, line)
+			continue
+		}
+
+		// Try each timestamp pattern
+		var logTime time.Time
+		var parsed bool
+
+		for _, pattern := range timestampPatterns {
+			if match := pattern.regex.FindString(line); match != "" {
+				t, err := pattern.parse(match)
+				if err == nil {
+					logTime = t
+					parsed = true
+					break
+				}
+			}
+		}
+
+		// If we couldn't parse a timestamp, include the line (might be continuation)
+		if !parsed {
+			filtered = append(filtered, line)
+			continue
+		}
+
+		// Filter by cutoff time
+		if logTime.After(cutoff) || logTime.Equal(cutoff) {
+			filtered = append(filtered, line)
+		}
+	}
+
+	return filtered
 }
