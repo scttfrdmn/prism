@@ -659,18 +659,25 @@ func (s *Server) ExecuteHibernateAll(projectID string) error {
 		return fmt.Errorf("failed to list instances for hibernation: %w", err)
 	}
 
-	// Find instances belonging to this project
-	// TODO: Proper project-instance association needs to be implemented with tags
-	// For now, hibernate all running instances as a safety measure
+	// Find instances belonging to this project by filtering on ProjectID field
 	var hibernatedCount int
 	var errors []string
+	var skippedCount int
 
 	for _, instance := range instances {
+		// Only process instances that belong to this project
+		if instance.ProjectID != projectID {
+			skippedCount++
+			continue
+		}
+
+		// Only hibernate running instances
 		if instance.State == "running" {
 			if err := s.awsManager.HibernateInstance(instance.Name); err != nil {
 				errors = append(errors, fmt.Sprintf("failed to hibernate %s: %v", instance.Name, err))
 			} else {
 				hibernatedCount++
+				log.Printf("Budget auto action: hibernated instance %s (project: %s)", instance.Name, projectID)
 			}
 		}
 	}
@@ -679,7 +686,8 @@ func (s *Server) ExecuteHibernateAll(projectID string) error {
 		return fmt.Errorf("hibernated %d instances but encountered errors: %s", hibernatedCount, strings.Join(errors, ", "))
 	}
 
-	log.Printf("Budget auto action: hibernated %d instances for project %s", hibernatedCount, projectID)
+	log.Printf("Budget auto action: hibernated %d instances for project %s (skipped %d instances from other projects)",
+		hibernatedCount, projectID, skippedCount)
 	return nil
 }
 
@@ -691,13 +699,19 @@ func (s *Server) ExecuteStopAll(projectID string) error {
 		return fmt.Errorf("failed to list instances for stopping: %w", err)
 	}
 
-	// Find instances belonging to this project
-	// TODO: Proper project-instance association needs to be implemented with tags
-	// For now, stop all running instances as a safety measure
+	// Find instances belonging to this project by filtering on ProjectID field
 	var stoppedCount int
 	var errors []string
+	var skippedCount int
 
 	for _, instance := range instances {
+		// Only process instances that belong to this project
+		if instance.ProjectID != projectID {
+			skippedCount++
+			continue
+		}
+
+		// Only stop running instances
 		if instance.State == "running" {
 			if err := s.awsManager.StopInstance(instance.Name); err != nil {
 				errors = append(errors, fmt.Sprintf("failed to stop %s: %v", instance.Name, err))
@@ -711,15 +725,19 @@ func (s *Server) ExecuteStopAll(projectID string) error {
 		return fmt.Errorf("stopped %d instances but encountered errors: %s", stoppedCount, strings.Join(errors, ", "))
 	}
 
-	log.Printf("Budget auto action: stopped %d instances for project %s", stoppedCount, projectID)
+	log.Printf("Budget auto action: stopped %d instances for project %s (skipped %d instances from other projects)",
+		stoppedCount, projectID, skippedCount)
 	return nil
 }
 
 // ExecutePreventLaunch sets a flag to prevent new launches for a project
 func (s *Server) ExecutePreventLaunch(projectID string) error {
-	// TODO: Implement launch prevention mechanism
-	// This would require adding a flag to the project or state manager
-	// that prevents new instance launches for this project
-	log.Printf("Budget auto action: prevent launch triggered for project %s (not yet implemented)", projectID)
-	return fmt.Errorf("prevent launch action not yet implemented")
+	// Prevent new launches via project manager
+	ctx := context.Background()
+	if err := s.projectManager.PreventLaunches(ctx, projectID); err != nil {
+		return fmt.Errorf("failed to prevent launches: %w", err)
+	}
+
+	log.Printf("Budget auto action: prevented new launches for project %s", projectID)
+	return nil
 }

@@ -40,6 +40,9 @@ type Project struct {
 
 	// Status indicates the project status
 	Status ProjectStatus `json:"status"`
+
+	// LaunchPrevented prevents new instance launches when true (set by budget actions)
+	LaunchPrevented bool `json:"launch_prevented"`
 }
 
 // ProjectMember represents a project member with specific permissions

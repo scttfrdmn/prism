@@ -316,3 +316,21 @@
 5. Write AWS integration tests for all implemented functionality
 
 **Next Commit**: Hibernation scheduler AWS integration complete
+
+### 2025-10-06 - Session 7
+- **Project-Instance Association & Budget Enforcement**: Replaced 3 TODOs (lines 663, 695, 734)
+  - **pkg/daemon/server.go** (TODO lines 663, 695): Project-instance filtering
+    - Implemented ProjectID filtering in ExecuteHibernateAll
+    - Implemented ProjectID filtering in ExecuteStopAll
+    - Added skip counters to track instances from other projects
+    - Enhanced logging with project-specific action tracking
+  - **pkg/daemon/server.go** (TODO line 734): Launch prevention mechanism
+    - Added LaunchPrevented field to Project struct
+    - Implemented PreventLaunches, AllowLaunches, IsLaunchPrevented methods
+    - Integrated with project manager for persistent storage
+    - ExecutePreventLaunch now fully functional with budget automation
+  - **pkg/types/project.go**: Added LaunchPrevented field to Project struct
+  - **pkg/project/manager.go**: Added 3 new methods for launch control
+  - All builds passing (CLI, daemon)
+  - 25/169 total placeholders replaced (15% of placeholders complete)
+  - 28/34 TODOs remaining (6 TODOs complete - 18% done)

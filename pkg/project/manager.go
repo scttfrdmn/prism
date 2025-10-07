@@ -580,3 +580,56 @@ func (m *Manager) DisableProjectBudget(ctx context.Context, projectID string) er
 
 	return nil
 }
+
+// PreventLaunches prevents new instance launches for a project
+func (m *Manager) PreventLaunches(ctx context.Context, projectID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	project, exists := m.projects[projectID]
+	if !exists {
+		return fmt.Errorf("project not found: %s", projectID)
+	}
+
+	project.LaunchPrevented = true
+	project.UpdatedAt = time.Now()
+
+	if err := m.saveProjects(); err != nil {
+		return fmt.Errorf("failed to save project: %w", err)
+	}
+
+	return nil
+}
+
+// AllowLaunches allows new instance launches for a project (clears launch prevention)
+func (m *Manager) AllowLaunches(ctx context.Context, projectID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	project, exists := m.projects[projectID]
+	if !exists {
+		return fmt.Errorf("project not found: %s", projectID)
+	}
+
+	project.LaunchPrevented = false
+	project.UpdatedAt = time.Now()
+
+	if err := m.saveProjects(); err != nil {
+		return fmt.Errorf("failed to save project: %w", err)
+	}
+
+	return nil
+}
+
+// IsLaunchPrevented checks if launches are prevented for a project
+func (m *Manager) IsLaunchPrevented(ctx context.Context, projectID string) (bool, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
+	project, exists := m.projects[projectID]
+	if !exists {
+		return false, fmt.Errorf("project not found: %s", projectID)
+	}
+
+	return project.LaunchPrevented, nil
+}
