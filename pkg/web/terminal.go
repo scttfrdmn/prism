@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -17,6 +18,7 @@ type TerminalServer struct {
 	mu        sync.RWMutex
 	sessions  map[string]*TerminalSession
 	sshConfig *ssh.ClientConfig
+	upgrader  websocket.Upgrader
 }
 
 // TerminalSession represents an active terminal session
@@ -67,22 +69,114 @@ func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 	return &TerminalServer{
 		sessions:  make(map[string]*TerminalSession),
 		sshConfig: sshConfig,
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  32 * 1024,
+			WriteBufferSize: 32 * 1024,
+			CheckOrigin: func(r *http.Request) bool {
+				return true // Allow all origins for terminal access
+			},
+		},
 	}
 }
 
 // ServeHTTP handles terminal WebSocket connections
 func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// In a real implementation, you would upgrade to WebSocket here
-	// For now, we'll implement a simple REST API for terminal operations
-
-	switch r.Method {
-	case http.MethodPost:
-		ts.handleConnect(w, r)
-	case http.MethodDelete:
-		ts.handleDisconnect(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// Upgrade HTTP connection to WebSocket
+	conn, err := ts.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("WebSocket upgrade failed: %v", err), http.StatusInternalServerError)
+		return
 	}
+	defer conn.Close()
+
+	// Read connection parameters from first message
+	var connectData ConnectData
+	if err := conn.ReadJSON(&connectData); err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: %v", err)))
+		return
+	}
+
+	// Create SSH connection
+	addr := fmt.Sprintf("%s:%d", connectData.Host, connectData.Port)
+	sshClient, err := ssh.Dial("tcp", addr, ts.sshConfig)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("SSH connection failed: %v", err)))
+		return
+	}
+	defer sshClient.Close()
+
+	// Create SSH session
+	sshSession, err := sshClient.NewSession()
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("SSH session failed: %v", err)))
+		return
+	}
+	defer sshSession.Close()
+
+	// Set up terminal modes
+	modes := ssh.TerminalModes{
+		ssh.ECHO:          1,
+		ssh.TTY_OP_ISPEED: 14400,
+		ssh.TTY_OP_OSPEED: 14400,
+	}
+
+	if err := sshSession.RequestPty("xterm-256color", 40, 80, modes); err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("PTY request failed: %v", err)))
+		return
+	}
+
+	// Connect SSH pipes
+	stdinPipe, err := sshSession.StdinPipe()
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Stdin pipe failed: %v", err)))
+		return
+	}
+
+	stdoutPipe, err := sshSession.StdoutPipe()
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Stdout pipe failed: %v", err)))
+		return
+	}
+
+	// Start shell
+	if err := sshSession.Shell(); err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Shell start failed: %v", err)))
+		return
+	}
+
+	// Bidirectional data transfer
+	done := make(chan struct{})
+
+	// WebSocket → SSH
+	go func() {
+		defer close(done)
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if _, err := stdinPipe.Write(message); err != nil {
+				return
+			}
+		}
+	}()
+
+	// SSH → WebSocket
+	go func() {
+		buf := make([]byte, 32*1024)
+		for {
+			n, err := stdoutPipe.Read(buf)
+			if err != nil {
+				return
+			}
+			if err := conn.WriteMessage(websocket.BinaryMessage, buf[:n]); err != nil {
+				return
+			}
+		}
+	}()
+
+	<-done
+	sshSession.Wait()
 }
 
 // handleConnect establishes a new SSH connection
@@ -460,22 +554,59 @@ const terminalHTML = `<!DOCTYPE html>
 
             document.getElementById('connectionForm').style.display = 'none';
             document.getElementById('terminalWrapper').style.display = 'block';
-            
+
             initTerminal();
-            
-            // WebSocket connection would go here
-            // For now, just show a message
-            term.writeln('Connecting to ' + username + '@' + host + ':' + port + '...');
-            term.writeln('\\r\\nNote: WebSocket terminal connection not implemented in this demo');
-            term.writeln('Use "cws connect <instance-name>" for SSH access\\r\\n');
-            
-            document.getElementById('instanceName').textContent = host;
-            document.getElementById('connectionStatus').textContent = 'Demo Mode';
-            document.getElementById('connectionStatus').className = 'status connected';
-            
-            // Demo: Echo local input
+
+            // Establish WebSocket connection
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(protocol + '//' + window.location.host + '/api/terminal');
+
+            ws.onopen = () => {
+                term.writeln('Connecting to ' + username + '@' + host + ':' + port + '...');
+
+                // Send connection parameters
+                ws.send(JSON.stringify({
+                    host: host,
+                    port: parseInt(port),
+                    username: username,
+                    password: password
+                }));
+
+                document.getElementById('instanceName').textContent = host;
+                document.getElementById('connectionStatus').textContent = 'Connected';
+                document.getElementById('connectionStatus').className = 'status connected';
+            };
+
+            ws.onmessage = (event) => {
+                if (typeof event.data === 'string') {
+                    term.write(event.data);
+                } else {
+                    // Binary data
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        term.write(new Uint8Array(reader.result));
+                    };
+                    reader.readAsArrayBuffer(event.data);
+                }
+            };
+
+            ws.onerror = (error) => {
+                term.writeln('\\r\\n\\x1b[31mWebSocket error: ' + error + '\\x1b[0m\\r\\n');
+                document.getElementById('connectionStatus').textContent = 'Error';
+                document.getElementById('connectionStatus').className = 'status disconnected';
+            };
+
+            ws.onclose = () => {
+                term.writeln('\\r\\n\\x1b[33mConnection closed\\x1b[0m\\r\\n');
+                document.getElementById('connectionStatus').textContent = 'Disconnected';
+                document.getElementById('connectionStatus').className = 'status disconnected';
+            };
+
+            // Send terminal input to WebSocket
             term.onData(data => {
-                term.write(data);
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(data);
+                }
             });
         }
 

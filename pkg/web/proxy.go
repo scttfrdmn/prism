@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -269,11 +270,75 @@ func NewWebSocketProxy(targetURL string) (*WebSocketProxy, error) {
 	}, nil
 }
 
-// ServeHTTP handles WebSocket proxy requests
+// ServeHTTP handles WebSocket proxy requests using gorilla/websocket
 func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// This is a simplified WebSocket proxy
-	// In production, you'd use a proper WebSocket library like gorilla/websocket
+	// Upgrade client connection to WebSocket
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:  32 * 1024,
+		WriteBufferSize: 32 * 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			return true // Allow all origins for proxy
+		},
+	}
 
+	clientConn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("WebSocket upgrade failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer clientConn.Close()
+
+	// Connect to backend WebSocket
+	backendURL := strings.Replace(wp.targetURL.String(), "http://", "ws://", 1)
+	backendURL = strings.Replace(backendURL, "https://", "wss://", 1)
+
+	dialer := websocket.Dialer{
+		HandshakeTimeout: 10 * time.Second,
+		TLSClientConfig:  &tls.Config{InsecureSkipVerify: true},
+	}
+
+	backendConn, _, err := dialer.Dial(backendURL+r.URL.Path, nil)
+	if err != nil {
+		clientConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Backend connection failed: %v", err)))
+		return
+	}
+	defer backendConn.Close()
+
+	// Bidirectional proxy
+	done := make(chan struct{})
+
+	// Client → Backend
+	go func() {
+		defer close(done)
+		for {
+			messageType, message, err := clientConn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if err := backendConn.WriteMessage(messageType, message); err != nil {
+				return
+			}
+		}
+	}()
+
+	// Backend → Client
+	go func() {
+		for {
+			messageType, message, err := backendConn.ReadMessage()
+			if err != nil {
+				return
+			}
+			if err := clientConn.WriteMessage(messageType, message); err != nil {
+				return
+			}
+		}
+	}()
+
+	<-done
+}
+
+// ServeHTTPOld handles WebSocket proxy requests (old hijacking implementation)
+func (wp *WebSocketProxy) ServeHTTPOld(w http.ResponseWriter, r *http.Request) {
 	// Connect to backend
 	targetConn, err := net.Dial("tcp", wp.targetURL.Host)
 	if err != nil {
