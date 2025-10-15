@@ -1006,6 +1006,56 @@ func (m *MockClient) GetProjectResourceUsage(ctx context.Context, projectID stri
 	}, nil
 }
 
+// GetCostTrends returns cost trend data for analysis (mock)
+func (m *MockClient) GetCostTrends(ctx context.Context, projectID, period string) (map[string]interface{}, error) {
+	// Generate mock cost trend data based on period
+	dailyData := []map[string]interface{}{
+		{"date": "2025-10-01", "cost": 45.50, "instances": 3},
+		{"date": "2025-10-02", "cost": 52.30, "instances": 4},
+		{"date": "2025-10-03", "cost": 48.75, "instances": 3},
+		{"date": "2025-10-04", "cost": 51.20, "instances": 4},
+		{"date": "2025-10-05", "cost": 44.80, "instances": 3},
+		{"date": "2025-10-06", "cost": 47.90, "instances": 3},
+		{"date": "2025-10-07", "cost": 53.40, "instances": 4},
+	}
+
+	weeklyData := []map[string]interface{}{
+		{"week": "Week 1", "cost": 320.50, "instances": 3},
+		{"week": "Week 2", "cost": 355.30, "instances": 4},
+		{"week": "Week 3", "cost": 298.75, "instances": 3},
+		{"week": "Week 4", "cost": 340.20, "instances": 4},
+	}
+
+	monthlyData := []map[string]interface{}{
+		{"month": "July 2025", "cost": 1250.00, "instances": 3},
+		{"month": "August 2025", "cost": 1420.50, "instances": 4},
+		{"month": "September 2025", "cost": 1380.75, "instances": 3},
+		{"month": "October 2025", "cost": 1510.30, "instances": 4},
+	}
+
+	var trendsData []map[string]interface{}
+	switch period {
+	case "daily":
+		trendsData = dailyData
+	case "weekly":
+		trendsData = weeklyData
+	case "monthly":
+		trendsData = monthlyData
+	default:
+		trendsData = dailyData
+	}
+
+	return map[string]interface{}{
+		"project_id":     projectID,
+		"period":         period,
+		"trends":         trendsData,
+		"total_cost":     1510.30,
+		"average_cost":   377.58,
+		"trend":          "increasing",
+		"percent_change": 3.2,
+	}, nil
+}
+
 // Status operations - Mock implementations
 
 // GetStatus returns daemon status (mock)

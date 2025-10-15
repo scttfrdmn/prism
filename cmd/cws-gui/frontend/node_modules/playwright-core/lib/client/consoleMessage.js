@@ -22,10 +22,9 @@ __export(consoleMessage_exports, {
 });
 module.exports = __toCommonJS(consoleMessage_exports);
 var import_jsHandle = require("./jsHandle");
-var import_page = require("./page");
 class ConsoleMessage {
-  constructor(platform, event) {
-    this._page = "page" in event && event.page ? import_page.Page.from(event.page) : null;
+  constructor(platform, event, page) {
+    this._page = page;
     this._event = event;
     if (platform.inspectCustom)
       this[platform.inspectCustom] = () => this._inspect();

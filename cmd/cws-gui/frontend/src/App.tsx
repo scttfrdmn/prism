@@ -27,7 +27,8 @@ import {
   ColumnLayout,
   Link,
   ButtonDropdown,
-  FormField
+  Tabs,
+  PropertyFilter
 } from '@cloudscape-design/components';
 
 // Type definitions
@@ -125,14 +126,179 @@ interface Project {
   last_activity: string;
 }
 
+interface BudgetData {
+  project_id: string;
+  project_name: string;
+  total_budget: number;
+  spent_amount: number;
+  spent_percentage: number;
+  remaining: number;
+  alert_count: number;
+  status: 'ok' | 'warning' | 'critical';
+  projected_monthly_spend?: number;
+  days_until_exhausted?: number;
+  active_alerts?: Array<{
+    threshold: number;
+    action: string;
+    triggered_at: string;
+  }>;
+}
+
+interface CostBreakdown {
+  ec2_compute: number;
+  ebs_storage: number;
+  efs_storage: number;
+  data_transfer: number;
+  other: number;
+  total: number;
+}
+
+interface AMI {
+  id: string;
+  name: string;
+  template_name: string;
+  region: string;
+  state: string;
+  architecture: string;
+  size_gb: number;
+  description?: string;
+  created_at: string;
+  tags?: Record<string, string>;
+}
+
+interface AMIBuild {
+  id: string;
+  template_name: string;
+  status: string;
+  progress: number;
+  current_step?: string;
+  error?: string;
+  started_at: string;
+  completed_at?: string;
+}
+
+interface AMIRegion {
+  name: string;
+  ami_count: number;
+  total_size_gb: number;
+  monthly_cost: number;
+}
+
+interface RightsizingRecommendation {
+  instance_name: string;
+  current_type: string;
+  recommended_type: string;
+  cpu_utilization: number;
+  memory_utilization: number;
+  current_cost: number;
+  recommended_cost: number;
+  monthly_savings: number;
+  savings_percentage: number;
+  confidence: 'high' | 'medium' | 'low';
+  reason?: string;
+}
+
+interface RightsizingStats {
+  total_recommendations: number;
+  total_monthly_savings: number;
+  average_cpu_utilization: number;
+  average_memory_utilization: number;
+  over_provisioned_count: number;
+  optimized_count: number;
+}
+
+interface PolicyStatus {
+  enabled: boolean;
+  status: string;
+  status_icon: string;
+  assigned_policies: string[];
+  message?: string;
+}
+
+interface PolicySet {
+  id: string;
+  name: string;
+  description: string;
+  policies: number;
+  status: string;
+  tags?: Record<string, string>;
+}
+
+interface PolicyCheckResult {
+  allowed: boolean;
+  template_name: string;
+  reason: string;
+  matched_policies?: string[];
+  suggestions?: string[];
+}
+
+interface MarketplaceTemplate {
+  id: string;
+  name: string;
+  display_name: string;
+  author: string;
+  publisher: string;
+  category: string;
+  description: string;
+  rating: number;
+  downloads: number;
+  verified: boolean;
+  featured: boolean;
+  version: string;
+  tags?: string[];
+  badges?: string[];
+  created_at: string;
+  updated_at: string;
+  ami_available?: boolean;
+}
+
+interface MarketplaceCategory {
+  id: string;
+  name: string;
+  count: number;
+}
+
+interface IdlePolicy {
+  id: string;
+  name: string;
+  idle_minutes: number;
+  action: 'hibernate' | 'stop' | 'notify';
+  cpu_threshold: number;
+  memory_threshold: number;
+  network_threshold: number;
+  description?: string;
+  enabled: boolean;
+}
+
+interface IdleSchedule {
+  instance_name: string;
+  policy_name: string;
+  enabled: boolean;
+  last_checked: string;
+  idle_minutes: number;
+  status: string;
+}
+
 interface AppState {
-  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'settings';
+  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'budget' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings';
   templates: Record<string, Template>;
   instances: Instance[];
   efsVolumes: EFSVolume[];
   ebsVolumes: EBSVolume[];
   projects: Project[];
   users: User[];
+  budgets: BudgetData[];
+  amis: AMI[];
+  amiBuilds: AMIBuild[];
+  amiRegions: AMIRegion[];
+  rightsizingRecommendations: RightsizingRecommendation[];
+  rightsizingStats: RightsizingStats | null;
+  policyStatus: PolicyStatus | null;
+  policySets: PolicySet[];
+  marketplaceTemplates: MarketplaceTemplate[];
+  marketplaceCategories: MarketplaceCategory[];
+  idlePolicies: IdlePolicy[];
+  idleSchedules: IdleSchedule[];
   selectedTemplate: Template | null;
   loading: boolean;
   notifications: any[];
@@ -394,6 +560,390 @@ class SafeCloudWorkstationAPI {
   async generateSSHKey(username: string): Promise<any> {
     return this.safeRequest(`/api/v1/users/${username}/ssh-keys`, 'POST');
   }
+
+  // Budget Management APIs
+  async getBudgets(): Promise<BudgetData[]> {
+    try {
+      const projects = await this.getProjects();
+      const budgets: BudgetData[] = [];
+
+      // Fetch budget status for each project
+      for (const project of projects) {
+        try {
+          const budgetStatus = await this.safeRequest(`/api/v1/projects/${project.id}/budget`);
+
+          if (budgetStatus && budgetStatus.total_budget > 0) {
+            const remaining = budgetStatus.total_budget - budgetStatus.spent_amount;
+            const spentPercent = budgetStatus.spent_percentage * 100;
+
+            let status: 'ok' | 'warning' | 'critical' = 'ok';
+            if (spentPercent >= 95) {
+              status = 'critical';
+            } else if (spentPercent >= 80) {
+              status = 'warning';
+            }
+
+            budgets.push({
+              project_id: project.id,
+              project_name: project.name,
+              total_budget: budgetStatus.total_budget,
+              spent_amount: budgetStatus.spent_amount,
+              spent_percentage: budgetStatus.spent_percentage,
+              remaining: remaining,
+              alert_count: budgetStatus.alert_count || 0,
+              status: status,
+              projected_monthly_spend: budgetStatus.projected_monthly_spend,
+              days_until_exhausted: budgetStatus.days_until_exhausted,
+              active_alerts: budgetStatus.active_alerts
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to fetch budget for project ${project.id}:`, error);
+        }
+      }
+
+      return budgets;
+    } catch (error) {
+      console.error('Failed to fetch budgets:', error);
+      return [];
+    }
+  }
+
+  async getCostBreakdown(projectId: string, startDate?: string, endDate?: string): Promise<CostBreakdown> {
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      const query = params.toString();
+
+      const data = await this.safeRequest(`/api/v1/projects/${projectId}/costs${query ? '?' + query : ''}`);
+
+      return {
+        ec2_compute: data.ec2_compute || 0,
+        ebs_storage: data.ebs_storage || 0,
+        efs_storage: data.efs_storage || 0,
+        data_transfer: data.data_transfer || 0,
+        other: data.other || 0,
+        total: data.total || 0
+      };
+    } catch (error) {
+      console.error(`Failed to fetch cost breakdown for project ${projectId}:`, error);
+      return {
+        ec2_compute: 0,
+        ebs_storage: 0,
+        efs_storage: 0,
+        data_transfer: 0,
+        other: 0,
+        total: 0
+      };
+    }
+  }
+
+  async setBudget(projectId: string, totalBudget: number, alertThresholds?: number[]): Promise<void> {
+    const alerts = alertThresholds?.map(threshold => ({
+      threshold,
+      action: 'notify',
+      enabled: true
+    })) || [];
+
+    await this.safeRequest(`/api/v1/projects/${projectId}/budget`, 'PUT', {
+      total_budget: totalBudget,
+      alert_thresholds: alerts,
+      budget_period: 'monthly'
+    });
+  }
+
+  // AMI Management APIs
+  async getAMIs(): Promise<AMI[]> {
+    try {
+      const data = await this.safeRequest('/api/v1/ami/list');
+
+      // Transform backend response to frontend format
+      if (!data || !Array.isArray(data)) {
+        return [];
+      }
+
+      return data.map((ami: any) => ({
+        id: ami.id || ami.ami_id || '',
+        name: ami.name || ami.id || '',
+        template_name: ami.template_name || ami.template || 'unknown',
+        region: ami.region || 'us-west-2',
+        state: ami.state || 'available',
+        architecture: ami.architecture || 'x86_64',
+        size_gb: ami.size_gb || ami.size || 0,
+        description: ami.description || '',
+        created_at: ami.created_at || ami.creation_date || new Date().toISOString(),
+        tags: ami.tags || {}
+      }));
+    } catch (error) {
+      console.error('Failed to fetch AMIs:', error);
+      return [];
+    }
+  }
+
+  async getAMIBuilds(): Promise<AMIBuild[]> {
+    try {
+      // Note: Backend may not have build tracking yet
+      // Return empty array for now
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch AMI builds:', error);
+      return [];
+    }
+  }
+
+  async getAMIRegions(): Promise<AMIRegion[]> {
+    try {
+      const amis = await this.getAMIs();
+
+      // Group AMIs by region
+      const regionMap = new Map<string, { count: number; totalSize: number }>();
+
+      amis.forEach(ami => {
+        const existing = regionMap.get(ami.region) || { count: 0, totalSize: 0 };
+        regionMap.set(ami.region, {
+          count: existing.count + 1,
+          totalSize: existing.totalSize + ami.size_gb
+        });
+      });
+
+      // Convert to array and calculate costs (estimated at $0.05 per GB-month for EBS snapshots)
+      return Array.from(regionMap.entries()).map(([name, data]) => ({
+        name,
+        ami_count: data.count,
+        total_size_gb: data.totalSize,
+        monthly_cost: data.totalSize * 0.05
+      })).sort((a, b) => b.ami_count - a.ami_count);
+    } catch (error) {
+      console.error('Failed to calculate AMI regions:', error);
+      return [];
+    }
+  }
+
+  async deleteAMI(amiId: string): Promise<void> {
+    await this.safeRequest('/api/v1/ami/delete', 'POST', {
+      ami_id: amiId,
+      deregister_only: false
+    });
+  }
+
+  async buildAMI(templateName: string): Promise<{ build_id: string }> {
+    const response = await this.safeRequest('/api/v1/ami/create', 'POST', {
+      template_name: templateName
+    });
+    return response;
+  }
+
+  // Rightsizing APIs
+  async getRightsizingRecommendations(): Promise<RightsizingRecommendation[]> {
+    try {
+      const data = await this.safeRequest('/api/v1/rightsizing/recommendations');
+      if (!data || !Array.isArray(data.recommendations)) {
+        return [];
+      }
+      return data.recommendations.map((rec: any) => ({
+        instance_name: rec.instance_name || rec.InstanceName || '',
+        current_type: rec.current_type || rec.CurrentType || '',
+        recommended_type: rec.recommended_type || rec.RecommendedType || '',
+        cpu_utilization: rec.cpu_utilization || rec.CPUUtilization || 0,
+        memory_utilization: rec.memory_utilization || rec.MemoryUtilization || 0,
+        current_cost: rec.current_cost || rec.CurrentCost || 0,
+        recommended_cost: rec.recommended_cost || rec.RecommendedCost || 0,
+        monthly_savings: rec.monthly_savings || rec.MonthlySavings || 0,
+        savings_percentage: rec.savings_percentage || rec.SavingsPercentage || 0,
+        confidence: rec.confidence || rec.Confidence || 'medium',
+        reason: rec.reason || rec.Reason
+      }));
+    } catch (error) {
+      console.error('Failed to fetch rightsizing recommendations:', error);
+      return [];
+    }
+  }
+
+  async getRightsizingStats(): Promise<RightsizingStats | null> {
+    try {
+      const data = await this.safeRequest('/api/v1/rightsizing/stats');
+      return {
+        total_recommendations: data.total_recommendations || 0,
+        total_monthly_savings: data.total_monthly_savings || 0,
+        average_cpu_utilization: data.average_cpu_utilization || 0,
+        average_memory_utilization: data.average_memory_utilization || 0,
+        over_provisioned_count: data.over_provisioned_count || 0,
+        optimized_count: data.optimized_count || 0
+      };
+    } catch (error: any) {
+      // Silently handle 400/404 - endpoint may not be implemented yet
+      const errorMessage = error?.message || String(error);
+      if (errorMessage.includes('HTTP 400') || errorMessage.includes('HTTP 404')) {
+        return null; // Don't log, just return null
+      }
+      // Only log unexpected errors
+      console.error('Unexpected error fetching rightsizing stats:', error);
+      return null;
+    }
+  }
+
+  async applyRightsizingRecommendation(instanceName: string): Promise<void> {
+    await this.safeRequest(`/api/v1/rightsizing/instance/${instanceName}/apply`, 'POST');
+  }
+
+  // Policy APIs
+  async getPolicyStatus(): Promise<PolicyStatus | null> {
+    try {
+      const data = await this.safeRequest('/api/v1/policies/status');
+      return {
+        enabled: data.enabled || false,
+        status: data.status || 'unknown',
+        status_icon: data.status_icon || '',
+        assigned_policies: data.assigned_policies || [],
+        message: data.message
+      };
+    } catch (error) {
+      console.error('Failed to fetch policy status:', error);
+      return null;
+    }
+  }
+
+  async getPolicySets(): Promise<PolicySet[]> {
+    try {
+      const data = await this.safeRequest('/api/v1/policies/sets');
+      if (!data || !data.policy_sets) {
+        return [];
+      }
+      return Object.entries(data.policy_sets).map(([id, info]: [string, any]) => ({
+        id,
+        name: info.name || id,
+        description: info.description || '',
+        policies: info.policies || 0,
+        status: info.status || 'active',
+        tags: info.tags
+      }));
+    } catch (error) {
+      console.error('Failed to fetch policy sets:', error);
+      return [];
+    }
+  }
+
+  async setPolicyEnforcement(enabled: boolean): Promise<void> {
+    await this.safeRequest('/api/v1/policies/enforcement', 'POST', { enabled });
+  }
+
+  async assignPolicySet(policySetId: string): Promise<void> {
+    await this.safeRequest('/api/v1/policies/assign', 'POST', { policy_set: policySetId });
+  }
+
+  async checkTemplateAccess(templateName: string): Promise<PolicyCheckResult> {
+    const data = await this.safeRequest('/api/v1/policies/check', 'POST', { template_name: templateName });
+    return {
+      allowed: data.allowed || false,
+      template_name: data.template_name || templateName,
+      reason: data.reason || '',
+      matched_policies: data.matched_policies,
+      suggestions: data.suggestions
+    };
+  }
+
+  // Marketplace APIs
+  async getMarketplaceTemplates(query?: string, category?: string): Promise<MarketplaceTemplate[]> {
+    try {
+      let url = '/api/v1/marketplace/templates?';
+      if (query) url += `query=${encodeURIComponent(query)}&`;
+      if (category) url += `category=${encodeURIComponent(category)}&`;
+
+      const data = await this.safeRequest(url);
+      if (!data || !Array.isArray(data.templates)) {
+        return [];
+      }
+      return data.templates.map((t: any) => ({
+        id: t.id || t.ID || '',
+        name: t.name || t.Name || '',
+        display_name: t.display_name || t.DisplayName || t.name || '',
+        author: t.author || t.Author || '',
+        publisher: t.publisher || t.Publisher || '',
+        category: t.category || t.Category || '',
+        description: t.description || t.Description || '',
+        rating: t.rating || t.Rating || 0,
+        downloads: t.downloads || t.Downloads || 0,
+        verified: t.verified || t.Verified || false,
+        featured: t.featured || t.Featured || false,
+        version: t.version || t.Version || '',
+        tags: t.tags || t.Tags,
+        badges: t.badges || t.Badges,
+        created_at: t.created_at || t.CreatedAt || '',
+        updated_at: t.updated_at || t.UpdatedAt || '',
+        ami_available: t.ami_available || t.AMIAvailable || false
+      }));
+    } catch (error) {
+      console.error('Failed to fetch marketplace templates:', error);
+      return [];
+    }
+  }
+
+  async getMarketplaceCategories(): Promise<MarketplaceCategory[]> {
+    try {
+      const data = await this.safeRequest('/api/v1/marketplace/categories');
+      if (!data || !Array.isArray(data.categories)) {
+        return [];
+      }
+      return data.categories.map((c: any) => ({
+        id: c.id || c.ID || '',
+        name: c.name || c.Name || '',
+        count: c.count || c.Count || 0
+      }));
+    } catch (error) {
+      console.error('Failed to fetch marketplace categories:', error);
+      return [];
+    }
+  }
+
+  async installMarketplaceTemplate(templateId: string): Promise<void> {
+    await this.safeRequest('/api/v1/templates/install-marketplace', 'POST', { template_id: templateId });
+  }
+
+  // Idle Detection APIs
+  async getIdlePolicies(): Promise<IdlePolicy[]> {
+    try {
+      const data = await this.safeRequest('/api/v1/idle/policies');
+      if (!data || !data.policies) {
+        return [];
+      }
+      const policies = Object.entries(data.policies).map(([id, p]: [string, any]) => ({
+        id,
+        name: p.name || p.Name || id,
+        idle_minutes: p.idle_minutes || p.IdleMinutes || 0,
+        action: p.action || p.Action || 'notify',
+        cpu_threshold: p.cpu_threshold || p.CPUThreshold || 10,
+        memory_threshold: p.memory_threshold || p.MemoryThreshold || 10,
+        network_threshold: p.network_threshold || p.NetworkThreshold || 1,
+        description: p.description || p.Description,
+        enabled: p.enabled !== undefined ? p.enabled : (p.Enabled !== undefined ? p.Enabled : true)
+      }));
+      return policies;
+    } catch (error) {
+      console.error('Failed to fetch idle policies:', error);
+      return [];
+    }
+  }
+
+  async getIdleSchedules(): Promise<IdleSchedule[]> {
+    try {
+      const data = await this.safeRequest('/api/v1/idle/schedules');
+      if (!data || !Array.isArray(data.schedules)) {
+        return [];
+      }
+      return data.schedules.map((s: any) => ({
+        instance_name: s.instance_name || s.InstanceName || '',
+        policy_name: s.policy_name || s.PolicyName || '',
+        enabled: s.enabled !== undefined ? s.enabled : (s.Enabled !== undefined ? s.Enabled : true),
+        last_checked: s.last_checked || s.LastChecked || '',
+        idle_minutes: s.idle_minutes || s.IdleMinutes || 0,
+        status: s.status || s.Status || ''
+      }));
+    } catch (error) {
+      console.error('Failed to fetch idle schedules:', error);
+      return [];
+    }
+  }
 }
 
 export default function BulletproofCloudWorkstationApp() {
@@ -407,6 +957,18 @@ export default function BulletproofCloudWorkstationApp() {
     ebsVolumes: [],
     projects: [],
     users: [],
+    budgets: [],
+    amis: [],
+    amiBuilds: [],
+    amiRegions: [],
+    rightsizingRecommendations: [],
+    rightsizingStats: null,
+    policyStatus: null,
+    policySets: [],
+    marketplaceTemplates: [],
+    marketplaceCategories: [],
+    idlePolicies: [],
+    idleSchedules: [],
     selectedTemplate: null,
     loading: true,
     notifications: [],
@@ -421,6 +983,36 @@ export default function BulletproofCloudWorkstationApp() {
     size: 'M'
   });
 
+  // Delete confirmation modal state
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteModalConfig, setDeleteModalConfig] = useState<{
+    type: 'instance' | 'efs-volume' | 'ebs-volume' | 'project' | 'user' | null;
+    name: string;
+    requireNameConfirmation: boolean;
+    onConfirm: () => Promise<void>;
+  }>({
+    type: null,
+    name: '',
+    requireNameConfirmation: false,
+    onConfirm: async () => {}
+  });
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
+
+  // Onboarding wizard state
+  const [onboardingVisible, setOnboardingVisible] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(0);
+  const [onboardingComplete, setOnboardingComplete] = useState(() => {
+    // Check if user has completed onboarding before
+    const completed = localStorage.getItem('cws_onboarding_complete');
+    return completed === 'true';
+  });
+
+  // Bulk selection state for instances
+  const [selectedInstances, setSelectedInstances] = useState<Instance[]>([]);
+
+  // Filtering state for instances table
+  const [instancesFilterQuery, setInstancesFilterQuery] = useState({ tokens: [], operation: 'and' as const });
+
   // Safe data loading with comprehensive error handling
   const loadApplicationData = async () => {
     try {
@@ -428,13 +1020,25 @@ export default function BulletproofCloudWorkstationApp() {
 
       console.log('Loading CloudWorkstation data...');
 
-      const [templatesData, instancesData, efsVolumesData, ebsVolumesData, projectsData, usersData] = await Promise.all([
+      const [templatesData, instancesData, efsVolumesData, ebsVolumesData, projectsData, usersData, budgetsData, amisData, amiBuildsData, amiRegionsData, rightsizingRecommendationsData, rightsizingStatsData, policyStatusData, policySetsData, marketplaceTemplatesData, marketplaceCategoriesData, idlePoliciesData, idleSchedulesData] = await Promise.all([
         api.getTemplates(),
         api.getInstances(),
         api.getEFSVolumes(),
         api.getEBSVolumes(),
         api.getProjects(),
-        api.getUsers()
+        api.getUsers(),
+        api.getBudgets(),
+        api.getAMIs(),
+        api.getAMIBuilds(),
+        api.getAMIRegions(),
+        api.getRightsizingRecommendations(),
+        api.getRightsizingStats(),
+        api.getPolicyStatus(),
+        api.getPolicySets(),
+        api.getMarketplaceTemplates(),
+        api.getMarketplaceCategories(),
+        api.getIdlePolicies(),
+        api.getIdleSchedules()
       ]);
 
       console.log('Templates loaded:', Object.keys(templatesData).length);
@@ -443,6 +1047,10 @@ export default function BulletproofCloudWorkstationApp() {
       console.log('EBS Volumes loaded:', ebsVolumesData.length);
       console.log('Projects loaded:', projectsData.length);
       console.log('Users loaded:', usersData.length);
+      console.log('Budgets loaded:', budgetsData.length);
+      console.log('AMIs loaded:', amisData.length);
+      console.log('AMI Builds loaded:', amiBuildsData.length);
+      console.log('AMI Regions loaded:', amiRegionsData.length);
 
       setState(prev => ({
         ...prev,
@@ -452,6 +1060,18 @@ export default function BulletproofCloudWorkstationApp() {
         ebsVolumes: ebsVolumesData,
         projects: projectsData,
         users: usersData,
+        budgets: budgetsData,
+        amis: amisData,
+        amiBuilds: amiBuildsData,
+        amiRegions: amiRegionsData,
+        rightsizingRecommendations: rightsizingRecommendationsData,
+        rightsizingStats: rightsizingStatsData,
+        policyStatus: policyStatusData,
+        policySets: policySetsData,
+        marketplaceTemplates: marketplaceTemplatesData,
+        marketplaceCategories: marketplaceCategoriesData,
+        idlePolicies: idlePoliciesData,
+        idleSchedules: idleSchedulesData,
         loading: false,
         connected: true,
         error: null
@@ -486,12 +1106,156 @@ export default function BulletproofCloudWorkstationApp() {
     }
   };
 
+  // Utility function to get accessible status labels (WCAG 1.1.1)
+  const getStatusLabel = (context: string, status: string, additionalInfo?: string): string => {
+    const labels: Record<string, Record<string, string>> = {
+      instance: {
+        running: 'Instance running',
+        stopped: 'Instance stopped',
+        pending: 'Instance pending',
+        stopping: 'Instance stopping',
+        terminated: 'Instance terminated',
+        hibernated: 'Instance hibernated'
+      },
+      volume: {
+        available: 'Volume available',
+        'in-use': 'Volume in use',
+        creating: 'Volume creating',
+        deleting: 'Volume deleting'
+      },
+      project: {
+        active: 'Project active',
+        suspended: 'Project suspended',
+        archived: 'Project archived'
+      },
+      user: {
+        active: 'User active',
+        inactive: 'User inactive'
+      },
+      connection: {
+        success: 'Connected to daemon',
+        error: 'Disconnected from daemon'
+      },
+      ami: {
+        available: 'AMI available',
+        pending: 'AMI pending',
+        failed: 'AMI failed'
+      },
+      build: {
+        completed: 'Build completed',
+        failed: 'Build failed',
+        'in-progress': 'Build in progress'
+      },
+      budget: {
+        ok: 'Budget OK',
+        warning: 'Budget warning',
+        critical: 'Budget critical'
+      },
+      policy: {
+        enabled: 'Policy enabled',
+        disabled: 'Policy disabled'
+      },
+      marketplace: {
+        verified: 'Verified publisher',
+        community: 'Community template'
+      },
+      idle: {
+        enabled: 'Idle detection enabled',
+        disabled: 'Idle detection disabled'
+      },
+      auth: {
+        authenticated: 'Authenticated'
+      }
+    };
+    const label = labels[context]?.[status] || `${context} ${status}`;
+    return additionalInfo ? `${label}: ${additionalInfo}` : label;
+  };
+
   // Load data on mount and refresh periodically
   useEffect(() => {
     loadApplicationData();
     const interval = setInterval(loadApplicationData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Show onboarding for first-time users
+  useEffect(() => {
+    if (!onboardingComplete && state.connected && !state.loading) {
+      // Show onboarding after a short delay to let the UI settle
+      const timer = setTimeout(() => {
+        setOnboardingVisible(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [onboardingComplete, state.connected, state.loading]);
+
+  // Keyboard shortcuts for common actions
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Skip if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Cmd/Ctrl + R: Refresh data
+      if ((event.metaKey || event.ctrlKey) && event.key === 'r') {
+        event.preventDefault();
+        loadApplicationData();
+        setState(prev => ({
+          ...prev,
+          notifications: [...prev.notifications, {
+            type: 'success',
+            content: 'Data refreshed',
+            dismissible: true,
+            id: Date.now().toString()
+          }]
+        }));
+      }
+
+      // Cmd/Ctrl + K: Focus search/filter
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        // Focus first search input if available
+        const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+        if (searchInput) searchInput.focus();
+      }
+
+      // Number keys 1-9: Navigate to views
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+        const viewMap: Record<string, string> = {
+          '1': 'dashboard',
+          '2': 'templates',
+          '3': 'instances',
+          '4': 'storage',
+          '5': 'projects',
+          '6': 'users',
+          '7': 'settings'
+        };
+        if (viewMap[event.key]) {
+          event.preventDefault();
+          setState(prev => ({ ...prev, activeView: viewMap[event.key] }));
+        }
+      }
+
+      // ? : Show keyboard shortcuts help
+      if (event.key === '?' && !event.shiftKey) {
+        setState(prev => ({
+          ...prev,
+          notifications: [...prev.notifications, {
+            type: 'info',
+            header: 'Keyboard Shortcuts',
+            content: 'Cmd/Ctrl+R: Refresh | Cmd/Ctrl+K: Search | 1-7: Navigate views | ?: Help',
+            dismissible: true,
+            id: Date.now().toString()
+          }]
+        }));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [state.activeView]);
 
   // Safe template selection
   const handleTemplateSelection = (template: Template) => {
@@ -609,7 +1373,10 @@ export default function BulletproofCloudWorkstationApp() {
           <SpaceBetween size="s">
             <Box>
               <Box variant="awsui-key-label">Connection</Box>
-              <StatusIndicator type={state.connected ? 'success' : 'error'}>
+              <StatusIndicator
+                type={state.connected ? 'success' : 'error'}
+                ariaLabel={getStatusLabel('connection', state.connected ? 'success' : 'error')}
+              >
                 {state.connected ? 'Connected' : 'Disconnected'}
               </StatusIndicator>
             </Box>
@@ -774,9 +1541,50 @@ export default function BulletproofCloudWorkstationApp() {
           actionMessage = `Connection command copied to clipboard: ${connectionInfo}`;
           break;
         case 'delete':
-          await api.deleteInstance(instance.name);
-          actionMessage = `Deleted instance ${instance.name}`;
-          break;
+          // Show confirmation modal instead of deleting immediately
+          setState(prev => ({ ...prev, loading: false }));
+          setDeleteModalConfig({
+            type: 'instance',
+            name: instance.name,
+            requireNameConfirmation: true,
+            onConfirm: async () => {
+              try {
+                await api.deleteInstance(instance.name);
+                setState(prev => ({
+                  ...prev,
+                  notifications: [
+                    ...prev.notifications,
+                    {
+                      type: 'success',
+                      header: 'Instance Deleted',
+                      content: `Successfully deleted instance ${instance.name}`,
+                      dismissible: true,
+                      id: Date.now().toString()
+                    }
+                  ]
+                }));
+                setDeleteModalVisible(false);
+                setDeleteConfirmationText('');
+                setTimeout(loadApplicationData, 1000);
+              } catch (error) {
+                setState(prev => ({
+                  ...prev,
+                  notifications: [
+                    ...prev.notifications,
+                    {
+                      type: 'error',
+                      header: 'Delete Failed',
+                      content: `Failed to delete instance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      dismissible: true,
+                      id: Date.now().toString()
+                    }
+                  ]
+                }));
+              }
+            }
+          });
+          setDeleteModalVisible(true);
+          return; // Don't continue with normal flow
         default:
           throw new Error(`Unknown action: ${action}`);
       }
@@ -820,6 +1628,154 @@ export default function BulletproofCloudWorkstationApp() {
     }
   };
 
+  // Bulk action handlers for multiple instances
+  const handleBulkAction = async (action: 'start' | 'stop' | 'hibernate' | 'delete') => {
+    if (selectedInstances.length === 0) {
+      setState(prev => ({
+        ...prev,
+        notifications: [
+          ...prev.notifications,
+          {
+            type: 'warning',
+            header: 'No Instances Selected',
+            content: 'Please select one or more instances to perform bulk actions.',
+            dismissible: true,
+            id: Date.now().toString()
+          }
+        ]
+      }));
+      return;
+    }
+
+    // For delete, show confirmation modal
+    if (action === 'delete') {
+      setDeleteModalConfig({
+        type: 'instance',
+        name: `${selectedInstances.length} instance${selectedInstances.length > 1 ? 's' : ''}`,
+        requireNameConfirmation: false,
+        onConfirm: async () => {
+          await executeBulkAction('delete');
+          setDeleteModalVisible(false);
+        }
+      });
+      setDeleteModalVisible(true);
+      return;
+    }
+
+    // Execute non-delete bulk actions immediately
+    await executeBulkAction(action);
+  };
+
+  const executeBulkAction = async (action: 'start' | 'stop' | 'hibernate' | 'delete') => {
+    try {
+      setState(prev => ({ ...prev, loading: true }));
+
+      // Execute action on all selected instances
+      const results = await Promise.allSettled(
+        selectedInstances.map(async (instance) => {
+          switch (action) {
+            case 'start':
+              return await api.startInstance(instance.name);
+            case 'stop':
+              return await api.stopInstance(instance.name);
+            case 'hibernate':
+              return await api.hibernateInstance(instance.name);
+            case 'delete':
+              return await api.deleteInstance(instance.name);
+            default:
+              throw new Error(`Unknown action: ${action}`);
+          }
+        })
+      );
+
+      // Count successes and failures
+      const successes = results.filter(r => r.status === 'fulfilled').length;
+      const failures = results.filter(r => r.status === 'rejected').length;
+
+      // Show notification with results
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        notifications: [
+          ...prev.notifications,
+          {
+            type: failures > 0 ? 'warning' : 'success',
+            header: `Bulk ${action.charAt(0).toUpperCase() + action.slice(1)} ${failures > 0 ? 'Partially Complete' : 'Complete'}`,
+            content: `Successfully ${action}ed ${successes} instance${successes !== 1 ? 's' : ''}${failures > 0 ? `, failed to ${action} ${failures} instance${failures !== 1 ? 's' : ''}` : ''}.`,
+            dismissible: true,
+            id: Date.now().toString()
+          }
+        ]
+      }));
+
+      // Clear selection and refresh data
+      setSelectedInstances([]);
+      setTimeout(loadApplicationData, 1000);
+
+    } catch (error) {
+      console.error(`Failed to execute bulk ${action}:`, error);
+
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        notifications: [
+          ...prev.notifications,
+          {
+            type: 'error',
+            header: 'Bulk Action Failed',
+            content: `Failed to ${action} instances: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            dismissible: true,
+            id: Date.now().toString()
+          }
+        ]
+      }));
+    }
+  };
+
+  // Filter instances based on PropertyFilter query
+  const getFilteredInstances = () => {
+    if (!instancesFilterQuery.tokens || instancesFilterQuery.tokens.length === 0) {
+      return state.instances;
+    }
+
+    return state.instances.filter((instance) => {
+      return instancesFilterQuery.tokens.every((token: any) => {
+        const { propertyKey, value, operator } = token;
+
+        if (!propertyKey) {
+          // Free text search across all fields
+          const searchValue = value.toLowerCase();
+          return (
+            instance.name.toLowerCase().includes(searchValue) ||
+            instance.template.toLowerCase().includes(searchValue) ||
+            instance.state.toLowerCase().includes(searchValue) ||
+            (instance.public_ip && instance.public_ip.toLowerCase().includes(searchValue))
+          );
+        }
+
+        // Property-specific filtering
+        const instanceValue = instance[propertyKey as keyof Instance];
+        if (!instanceValue) return false;
+
+        const stringValue = String(instanceValue).toLowerCase();
+        const filterValue = value.toLowerCase();
+
+        switch (operator) {
+          case '=':
+            return stringValue === filterValue;
+          case '!=':
+            return stringValue !== filterValue;
+          case ':':
+            return stringValue.includes(filterValue);
+          case '!:':
+            return !stringValue.includes(filterValue);
+          default:
+            return stringValue.includes(filterValue);
+        }
+      });
+    });
+  };
+
   // Instances View
   const InstanceManagementView = () => (
     <SpaceBetween size="l">
@@ -847,7 +1803,83 @@ export default function BulletproofCloudWorkstationApp() {
           </Header>
         }
       >
+        {/* Advanced Filtering */}
+        <PropertyFilter
+          query={instancesFilterQuery}
+          onChange={({ detail }) => setInstancesFilterQuery(detail)}
+          filteringPlaceholder="Search instances"
+          filteringProperties={[
+            {
+              key: 'name',
+              propertyLabel: 'Instance Name',
+              operators: [':', '!:', '=', '!=']
+            },
+            {
+              key: 'template',
+              propertyLabel: 'Template',
+              operators: [':', '!:', '=', '!=']
+            },
+            {
+              key: 'state',
+              propertyLabel: 'Status',
+              operators: ['=', '!=']
+            },
+            {
+              key: 'public_ip',
+              propertyLabel: 'Public IP',
+              operators: [':', '!:', '=', '!=']
+            }
+          ]}
+          filteringOptions={[
+            { propertyKey: 'state', value: 'running', label: 'Status: Running' },
+            { propertyKey: 'state', value: 'stopped', label: 'Status: Stopped' },
+            { propertyKey: 'state', value: 'hibernated', label: 'Status: Hibernated' },
+            { propertyKey: 'state', value: 'pending', label: 'Status: Pending' }
+          ]}
+        />
+
+        {/* Bulk Actions Toolbar */}
+        {selectedInstances.length > 0 && (
+          <SpaceBetween direction="horizontal" size="xs">
+            <Box variant="awsui-key-label">
+              {selectedInstances.length} instance{selectedInstances.length !== 1 ? 's' : ''} selected
+            </Box>
+            <Button
+              onClick={() => handleBulkAction('start')}
+              disabled={state.loading || selectedInstances.every(i => i.state === 'running')}
+            >
+              Start Selected
+            </Button>
+            <Button
+              onClick={() => handleBulkAction('stop')}
+              disabled={state.loading || selectedInstances.every(i => i.state !== 'running')}
+            >
+              Stop Selected
+            </Button>
+            <Button
+              onClick={() => handleBulkAction('hibernate')}
+              disabled={state.loading || selectedInstances.every(i => i.state !== 'running')}
+            >
+              Hibernate Selected
+            </Button>
+            <Button
+              onClick={() => handleBulkAction('delete')}
+              disabled={state.loading}
+            >
+              Delete Selected
+            </Button>
+            <Button
+              variant="link"
+              onClick={() => setSelectedInstances([])}
+            >
+              Clear Selection
+            </Button>
+          </SpaceBetween>
+        )}
         <Table
+          selectionType="multi"
+          selectedItems={selectedInstances}
+          onSelectionChange={({ detail }) => setSelectedInstances(detail.selectedItems)}
           columnDefinitions={[
             {
               id: "name",
@@ -871,6 +1903,7 @@ export default function BulletproofCloudWorkstationApp() {
                     item.state === 'hibernated' ? 'pending' :
                     item.state === 'pending' ? 'in-progress' : 'error'
                   }
+                  ariaLabel={getStatusLabel('instance', item.state)}
                 >
                   {item.state}
                 </StatusIndicator>
@@ -903,7 +1936,7 @@ export default function BulletproofCloudWorkstationApp() {
               )
             }
           ]}
-          items={state.instances}
+          items={getFilteredInstances()}
           loadingText="Loading instances from AWS"
           loading={state.loading}
           trackBy="id"
@@ -939,9 +1972,49 @@ export default function BulletproofCloudWorkstationApp() {
       if (volumeType === 'efs') {
         switch (action) {
           case 'delete':
-            await api.deleteEFSVolume(volume.name);
-            actionMessage = `Deleted EFS volume ${volume.name}`;
-            break;
+            // Show confirmation modal instead of deleting immediately
+            setState(prev => ({ ...prev, loading: false }));
+            setDeleteModalConfig({
+              type: 'efs-volume',
+              name: volume.name,
+              requireNameConfirmation: false,
+              onConfirm: async () => {
+                try {
+                  await api.deleteEFSVolume(volume.name);
+                  setState(prev => ({
+                    ...prev,
+                    notifications: [
+                      ...prev.notifications,
+                      {
+                        type: 'success',
+                        header: 'EFS Volume Deleted',
+                        content: `Successfully deleted EFS volume ${volume.name}`,
+                        dismissible: true,
+                        id: Date.now().toString()
+                      }
+                    ]
+                  }));
+                  setDeleteModalVisible(false);
+                  setTimeout(loadApplicationData, 1000);
+                } catch (error) {
+                  setState(prev => ({
+                    ...prev,
+                    notifications: [
+                      ...prev.notifications,
+                      {
+                        type: 'error',
+                        header: 'Delete Failed',
+                        content: `Failed to delete EFS volume: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        dismissible: true,
+                        id: Date.now().toString()
+                      }
+                    ]
+                  }));
+                }
+              }
+            });
+            setDeleteModalVisible(true);
+            return;
           case 'mount':
             // For demo, mount to first available instance
             if (state.instances.length > 0) {
@@ -967,9 +2040,49 @@ export default function BulletproofCloudWorkstationApp() {
       } else if (volumeType === 'ebs') {
         switch (action) {
           case 'delete':
-            await api.deleteEBSVolume(volume.name);
-            actionMessage = `Deleted EBS volume ${volume.name}`;
-            break;
+            // Show confirmation modal instead of deleting immediately
+            setState(prev => ({ ...prev, loading: false }));
+            setDeleteModalConfig({
+              type: 'ebs-volume',
+              name: volume.name,
+              requireNameConfirmation: false,
+              onConfirm: async () => {
+                try {
+                  await api.deleteEBSVolume(volume.name);
+                  setState(prev => ({
+                    ...prev,
+                    notifications: [
+                      ...prev.notifications,
+                      {
+                        type: 'success',
+                        header: 'EBS Volume Deleted',
+                        content: `Successfully deleted EBS volume ${volume.name}`,
+                        dismissible: true,
+                        id: Date.now().toString()
+                      }
+                    ]
+                  }));
+                  setDeleteModalVisible(false);
+                  setTimeout(loadApplicationData, 1000);
+                } catch (error) {
+                  setState(prev => ({
+                    ...prev,
+                    notifications: [
+                      ...prev.notifications,
+                      {
+                        type: 'error',
+                        header: 'Delete Failed',
+                        content: `Failed to delete EBS volume: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        dismissible: true,
+                        id: Date.now().toString()
+                      }
+                    ]
+                  }));
+                }
+              }
+            });
+            setDeleteModalVisible(true);
+            return;
           case 'attach':
             if (state.instances.length > 0) {
               const instance = state.instances[0].name;
@@ -1075,6 +2188,7 @@ export default function BulletproofCloudWorkstationApp() {
                     item.state === 'creating' ? 'in-progress' :
                     item.state === 'deleting' ? 'warning' : 'error'
                   }
+                  ariaLabel={getStatusLabel('volume', item.state)}
                 >
                   {item.state}
                 </StatusIndicator>
@@ -1173,6 +2287,7 @@ export default function BulletproofCloudWorkstationApp() {
                     item.state === 'creating' ? 'in-progress' :
                     item.state === 'deleting' ? 'warning' : 'error'
                   }
+                  ariaLabel={getStatusLabel('volume', item.state)}
                 >
                   {item.state}
                 </StatusIndicator>
@@ -1338,7 +2453,10 @@ export default function BulletproofCloudWorkstationApp() {
 
                 return (
                   <SpaceBetween direction="horizontal" size="xs">
-                    <StatusIndicator type={colorType}>
+                    <StatusIndicator
+                      type={colorType}
+                      ariaLabel={getStatusLabel('budget', colorType === 'error' ? 'critical' : colorType === 'warning' ? 'warning' : 'ok', `$${spend.toFixed(2)}`)}
+                    >
                       ${spend.toFixed(2)}
                     </StatusIndicator>
                     {limit > 0 && (
@@ -1360,10 +2478,13 @@ export default function BulletproofCloudWorkstationApp() {
               id: "status",
               header: "Status",
               cell: (item: Project) => (
-                <StatusIndicator type={
-                  item.status === 'active' ? 'success' :
-                  item.status === 'suspended' ? 'warning' : 'error'
-                }>
+                <StatusIndicator
+                  type={
+                    item.status === 'active' ? 'success' :
+                    item.status === 'suspended' ? 'warning' : 'error'
+                  }
+                  ariaLabel={getStatusLabel('project', item.status || 'active')}
+                >
                   {item.status || 'active'}
                 </StatusIndicator>
               ),
@@ -1460,7 +2581,10 @@ export default function BulletproofCloudWorkstationApp() {
                   <Box key={project.id}>
                     <SpaceBetween direction="horizontal" size="s">
                       <Box fontWeight="bold">{project.name}:</Box>
-                      <StatusIndicator type={percentage > 80 ? 'error' : percentage > 60 ? 'warning' : 'success'}>
+                      <StatusIndicator
+                        type={percentage > 80 ? 'error' : percentage > 60 ? 'warning' : 'success'}
+                        ariaLabel={getStatusLabel('budget', percentage > 80 ? 'critical' : percentage > 60 ? 'warning' : 'ok', `${percentage.toFixed(1)}% used`)}
+                      >
                         ${spend.toFixed(2)} / ${limit.toFixed(2)} ({percentage.toFixed(1)}%)
                       </StatusIndicator>
                     </SpaceBetween>
@@ -1580,7 +2704,10 @@ export default function BulletproofCloudWorkstationApp() {
                 const keyCount = item.ssh_keys || 0;
                 return (
                   <SpaceBetween direction="horizontal" size="xs">
-                    <StatusIndicator type={keyCount > 0 ? 'success' : 'warning'}>
+                    <StatusIndicator
+                      type={keyCount > 0 ? 'success' : 'warning'}
+                      ariaLabel={keyCount > 0 ? `User has ${keyCount} SSH keys` : 'User has no SSH keys'}
+                    >
                       {keyCount}
                     </StatusIndicator>
                     {keyCount === 0 && (
@@ -1602,10 +2729,13 @@ export default function BulletproofCloudWorkstationApp() {
               id: "status",
               header: "Status",
               cell: (item: User) => (
-                <StatusIndicator type={
-                  item.status === 'active' ? 'success' :
-                  item.status === 'inactive' ? 'warning' : 'success'
-                }>
+                <StatusIndicator
+                  type={
+                    item.status === 'active' ? 'success' :
+                    item.status === 'inactive' ? 'warning' : 'success'
+                  }
+                  ariaLabel={getStatusLabel('user', item.status || 'active')}
+                >
                   {item.status || 'active'}
                 </StatusIndicator>
               ),
@@ -1697,7 +2827,10 @@ export default function BulletproofCloudWorkstationApp() {
                   <Box key={user.username}>
                     <SpaceBetween direction="horizontal" size="s">
                       <Box fontWeight="bold">{user.username}:</Box>
-                      <StatusIndicator type={keyCount > 0 ? 'success' : 'warning'}>
+                      <StatusIndicator
+                        type={keyCount > 0 ? 'success' : 'warning'}
+                        ariaLabel={getStatusLabel('auth', keyCount > 0 ? 'authenticated' : 'warning', `${keyCount} SSH keys`)}
+                      >
                         {keyCount > 0 ? `${keyCount} SSH keys` : 'No SSH keys'}
                       </StatusIndicator>
                       {keyCount === 0 && (
@@ -1724,7 +2857,12 @@ export default function BulletproofCloudWorkstationApp() {
                 {state.instances.length > 0 ? (
                   state.instances.filter(i => i.state === 'running').map(instance => (
                     <Box key={instance.id}>
-                      <StatusIndicator type="success">{instance.name}</StatusIndicator>
+                      <StatusIndicator
+                        type="success"
+                        ariaLabel={getStatusLabel('instance', 'running', instance.name)}
+                      >
+                        {instance.name}
+                      </StatusIndicator>
                     </Box>
                   ))
                 ) : (
@@ -1772,7 +2910,10 @@ export default function BulletproofCloudWorkstationApp() {
         <ColumnLayout columns={3} variant="text-grid">
           <SpaceBetween size="m">
             <Box variant="awsui-key-label">Daemon Status</Box>
-            <StatusIndicator type={state.connected ? 'success' : 'error'}>
+            <StatusIndicator
+              type={state.connected ? 'success' : 'error'}
+              ariaLabel={getStatusLabel('connection', state.connected ? 'success' : 'error')}
+            >
               {state.connected ? 'Connected' : 'Disconnected'}
             </StatusIndicator>
             <Box color="text-body-secondary">
@@ -1892,7 +3033,10 @@ export default function BulletproofCloudWorkstationApp() {
           </SpaceBetween>
           <SpaceBetween size="m">
             <Box variant="strong">Authentication Status</Box>
-            <StatusIndicator type="success">
+            <StatusIndicator
+              type="success"
+              ariaLabel={getStatusLabel('auth', 'authenticated')}
+            >
               Authenticated via AWS profile
             </StatusIndicator>
             <Box color="text-body-secondary">
@@ -1928,10 +3072,13 @@ export default function BulletproofCloudWorkstationApp() {
             <Box key={feature.name}>
               <SpaceBetween direction="horizontal" size="s">
                 <Box fontWeight="bold" style={{ minWidth: '200px' }}>{feature.name}:</Box>
-                <StatusIndicator type={
-                  feature.status === 'enabled' ? 'success' :
-                  feature.status === 'partial' ? 'warning' : 'error'
-                }>
+                <StatusIndicator
+                  type={
+                    feature.status === 'enabled' ? 'success' :
+                    feature.status === 'partial' ? 'warning' : 'error'
+                  }
+                  ariaLabel={getStatusLabel('policy', feature.status, feature.name)}
+                >
                   {feature.status}
                 </StatusIndicator>
                 <Box color="text-body-secondary">{feature.description}</Box>
@@ -1980,6 +3127,1598 @@ export default function BulletproofCloudWorkstationApp() {
     </SpaceBetween>
   );
 
+  // Budget Management View
+  const BudgetManagementView = () => {
+    const [selectedTab, setSelectedTab] = useState<number>(0);
+    const [selectedBudget, setSelectedBudget] = useState<BudgetData | null>(null);
+    const [costBreakdown, setCostBreakdown] = useState<CostBreakdown | null>(null);
+
+    // Load cost breakdown when a budget is selected
+    useEffect(() => {
+      if (selectedBudget && selectedTab === 1) {
+        api.getCostBreakdown(selectedBudget.project_id).then(setCostBreakdown);
+      }
+    }, [selectedBudget, selectedTab]);
+
+    // Calculate aggregate statistics
+    const totalBudget = state.budgets.reduce((sum, b) => sum + b.total_budget, 0);
+    const totalSpent = state.budgets.reduce((sum, b) => sum + b.spent_amount, 0);
+    const totalRemaining = totalBudget - totalSpent;
+    const overallPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+    const criticalCount = state.budgets.filter(b => b.status === 'critical').length;
+    const warningCount = state.budgets.filter(b => b.status === 'warning').length;
+
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="Monitor budgets, analyze costs, and optimize spending across research projects"
+          counter={`(${state.budgets.length} budgets)`}
+          actions={
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button onClick={loadApplicationData} disabled={state.loading}>
+                {state.loading ? <Spinner /> : 'Refresh'}
+              </Button>
+              <Button variant="primary">
+                Configure Budget
+              </Button>
+            </SpaceBetween>
+          }
+        >
+          Budget Management
+        </Header>
+
+        {/* Budget Overview Stats */}
+        <ColumnLayout columns={4} variant="text-grid">
+          <Container header={<Header variant="h3">Total Budget</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-info">
+              ${totalBudget.toFixed(2)}
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Total Spent</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color={overallPercent > 80 ? 'text-status-error' : 'text-status-success'}>
+              ${totalSpent.toFixed(2)}
+            </Box>
+            <Box variant="small" color="text-body-secondary">
+              {overallPercent.toFixed(1)}% of budget
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Remaining</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-warning">
+              ${totalRemaining.toFixed(2)}
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Alerts</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color={criticalCount > 0 ? 'text-status-error' : 'text-body-secondary'}>
+              {criticalCount} Critical
+            </Box>
+            <Box variant="small" color="text-body-secondary">
+              {warningCount} warnings
+            </Box>
+          </Container>
+        </ColumnLayout>
+
+        {/* Budget Table - Overview Tab */}
+        <Container
+          header={
+            <Header
+              variant="h2"
+              description="Project budgets with spending tracking and alert monitoring"
+              counter={`(${state.budgets.length})`}
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button>Export Report</Button>
+                  <Button variant="primary">Set Budget</Button>
+                </SpaceBetween>
+              }
+            >
+              Project Budgets
+            </Header>
+          }
+        >
+          <Table
+            columnDefinitions={[
+              {
+                id: "project",
+                header: "Project",
+                cell: (item: BudgetData) => <Link fontSize="body-m" onFollow={() => setSelectedBudget(item)}>{item.project_name}</Link>,
+                sortingField: "project_name"
+              },
+              {
+                id: "budget",
+                header: "Budget",
+                cell: (item: BudgetData) => `$${item.total_budget.toFixed(2)}`,
+                sortingField: "total_budget"
+              },
+              {
+                id: "spent",
+                header: "Spent",
+                cell: (item: BudgetData) => `$${item.spent_amount.toFixed(2)}`,
+                sortingField: "spent_amount"
+              },
+              {
+                id: "remaining",
+                header: "Remaining",
+                cell: (item: BudgetData) => `$${item.remaining.toFixed(2)}`,
+                sortingField: "remaining"
+              },
+              {
+                id: "percentage",
+                header: "% Used",
+                cell: (item: BudgetData) => {
+                  const percent = item.spent_percentage * 100;
+                  return (
+                    <SpaceBetween direction="horizontal" size="xs">
+                      <StatusIndicator
+                        type={
+                          percent >= 95 ? 'error' :
+                          percent >= 80 ? 'warning' : 'success'
+                        }
+                        ariaLabel={getStatusLabel('budget',
+                          percent >= 95 ? 'critical' : percent >= 80 ? 'warning' : 'ok',
+                          `${percent.toFixed(1)}%`)}
+                      >
+                        {percent.toFixed(1)}%
+                      </StatusIndicator>
+                    </SpaceBetween>
+                  );
+                }
+              },
+              {
+                id: "status",
+                header: "Status",
+                cell: (item: BudgetData) => (
+                  <StatusIndicator
+                    type={
+                      item.status === 'critical' ? 'error' :
+                      item.status === 'warning' ? 'warning' : 'success'
+                    }
+                    ariaLabel={getStatusLabel('budget', item.status)}
+                  >
+                    {item.status === 'ok' ? 'OK' : item.status.toUpperCase()}
+                  </StatusIndicator>
+                )
+              },
+              {
+                id: "alerts",
+                header: "Alerts",
+                cell: (item: BudgetData) => {
+                  if (item.alert_count > 0) {
+                    return (
+                      <Badge color="red">{item.alert_count} active</Badge>
+                    );
+                  }
+                  return <Box color="text-body-secondary">None</Box>;
+                }
+              },
+              {
+                id: "actions",
+                header: "Actions",
+                cell: (item: BudgetData) => (
+                  <ButtonDropdown
+                    items={[
+                      { text: "View Breakdown", id: "breakdown" },
+                      { text: "View Forecast", id: "forecast" },
+                      { text: "Cost Analysis", id: "costs" },
+                      { text: "Configure Alerts", id: "alerts" },
+                      { text: "Edit Budget", id: "edit" },
+                    ]}
+                    onItemClick={({ detail }) => {
+                      setSelectedBudget(item);
+                      if (detail.id === 'breakdown') {
+                        setSelectedTab(1);
+                      } else if (detail.id === 'forecast') {
+                        setSelectedTab(2);
+                      }
+                    }}
+                  >
+                    Actions
+                  </ButtonDropdown>
+                )
+              }
+            ]}
+            items={state.budgets}
+            loadingText="Loading budgets..."
+            loading={state.loading}
+            trackBy="project_id"
+            empty={
+              <Box textAlign="center" color="text-body-secondary">
+                <Box variant="strong" textAlign="center" color="text-body-secondary">
+                  No budgets configured
+                </Box>
+                <Box variant="p" padding={{ bottom: 's' }} color="text-body-secondary">
+                  Configure budgets for your projects to track spending and set alerts.
+                </Box>
+                <Button variant="primary">Configure Budget</Button>
+              </Box>
+            }
+            sortingDisabled={false}
+          />
+        </Container>
+
+        {/* Cost Breakdown View - when budget is selected */}
+        {selectedBudget && selectedTab === 1 && (
+          <Container
+            header={
+              <Header
+                variant="h2"
+                description={`Detailed cost breakdown for ${selectedBudget.project_name}`}
+                actions={
+                  <Button onClick={() => { setSelectedBudget(null); setSelectedTab(0); }}>
+                    Back to Overview
+                  </Button>
+                }
+              >
+                Cost Breakdown
+              </Header>
+            }
+          >
+            <SpaceBetween size="m">
+              <ColumnLayout columns={3} variant="text-grid">
+                <Box>
+                  <Box variant="awsui-key-label">Total Spent</Box>
+                  <Box fontSize="heading-l" fontWeight="bold">
+                    ${selectedBudget.spent_amount.toFixed(2)}
+                  </Box>
+                </Box>
+                <Box>
+                  <Box variant="awsui-key-label">Total Budget</Box>
+                  <Box fontSize="heading-l" fontWeight="bold">
+                    ${selectedBudget.total_budget.toFixed(2)}
+                  </Box>
+                </Box>
+                <Box>
+                  <Box variant="awsui-key-label">Remaining</Box>
+                  <Box fontSize="heading-l" fontWeight="bold" color="text-status-warning">
+                    ${selectedBudget.remaining.toFixed(2)}
+                  </Box>
+                </Box>
+              </ColumnLayout>
+
+              {costBreakdown ? (
+                <>
+                  <Header variant="h3">Cost by Service</Header>
+                  <ColumnLayout columns={2}>
+                    <SpaceBetween size="s">
+                      <Box>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold" style={{ minWidth: '150px' }}>EC2 Compute:</Box>
+                          <Box>${costBreakdown.ec2_compute.toFixed(2)}</Box>
+                        </SpaceBetween>
+                      </Box>
+                      <Box>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold" style={{ minWidth: '150px' }}>EBS Storage:</Box>
+                          <Box>${costBreakdown.ebs_storage.toFixed(2)}</Box>
+                        </SpaceBetween>
+                      </Box>
+                      <Box>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold" style={{ minWidth: '150px' }}>EFS Storage:</Box>
+                          <Box>${costBreakdown.efs_storage.toFixed(2)}</Box>
+                        </SpaceBetween>
+                      </Box>
+                    </SpaceBetween>
+                    <SpaceBetween size="s">
+                      <Box>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold" style={{ minWidth: '150px' }}>Data Transfer:</Box>
+                          <Box>${costBreakdown.data_transfer.toFixed(2)}</Box>
+                        </SpaceBetween>
+                      </Box>
+                      <Box>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold" style={{ minWidth: '150px' }}>Other:</Box>
+                          <Box>${costBreakdown.other.toFixed(2)}</Box>
+                        </SpaceBetween>
+                      </Box>
+                      <Box>
+                        <SpaceBetween direction="horizontal" size="s">
+                          <Box fontWeight="bold" style={{ minWidth: '150px' }}>Total:</Box>
+                          <Box fontSize="heading-m" fontWeight="bold">${costBreakdown.total.toFixed(2)}</Box>
+                        </SpaceBetween>
+                      </Box>
+                    </SpaceBetween>
+                  </ColumnLayout>
+                </>
+              ) : (
+                <Box textAlign="center" padding="l">
+                  <Spinner size="large" />
+                  <Box variant="p" color="text-body-secondary">Loading cost breakdown...</Box>
+                </Box>
+              )}
+            </SpaceBetween>
+          </Container>
+        )}
+
+        {/* Forecast View - when budget is selected */}
+        {selectedBudget && selectedTab === 2 && (
+          <Container
+            header={
+              <Header
+                variant="h2"
+                description={`Spending forecast and projections for ${selectedBudget.project_name}`}
+                actions={
+                  <Button onClick={() => { setSelectedBudget(null); setSelectedTab(0); }}>
+                    Back to Overview
+                  </Button>
+                }
+              >
+                Spending Forecast
+              </Header>
+            }
+          >
+            <SpaceBetween size="m">
+              <ColumnLayout columns={3} variant="text-grid">
+                <Box>
+                  <Box variant="awsui-key-label">Current Spending</Box>
+                  <Box fontSize="heading-l" fontWeight="bold">
+                    ${selectedBudget.spent_amount.toFixed(2)}
+                  </Box>
+                  <Box variant="small" color="text-body-secondary">
+                    {(selectedBudget.spent_percentage * 100).toFixed(1)}% of budget
+                  </Box>
+                </Box>
+                {selectedBudget.projected_monthly_spend && (
+                  <Box>
+                    <Box variant="awsui-key-label">Projected Monthly</Box>
+                    <Box fontSize="heading-l" fontWeight="bold" color="text-status-warning">
+                      ${selectedBudget.projected_monthly_spend.toFixed(2)}
+                    </Box>
+                  </Box>
+                )}
+                {selectedBudget.days_until_exhausted && (
+                  <Box>
+                    <Box variant="awsui-key-label">Budget Exhaustion</Box>
+                    <Box fontSize="heading-l" fontWeight="bold" color="text-status-error">
+                      {selectedBudget.days_until_exhausted} days
+                    </Box>
+                  </Box>
+                )}
+              </ColumnLayout>
+
+              {selectedBudget.projected_monthly_spend && selectedBudget.days_until_exhausted && (
+                <Alert type="warning">
+                  <Box variant="strong">Budget Alert</Box>
+                  <Box>
+                    At current spending rate (${selectedBudget.projected_monthly_spend.toFixed(2)}/month),
+                    your budget will be exhausted in approximately {selectedBudget.days_until_exhausted} days.
+                    Consider implementing cost optimization measures or adjusting your budget.
+                  </Box>
+                </Alert>
+              )}
+            </SpaceBetween>
+          </Container>
+        )}
+
+        {/* Active Alerts */}
+        {state.budgets.some(b => b.alert_count > 0) && (
+          <Container
+            header={
+              <Header
+                variant="h2"
+                description="Active budget alerts requiring attention"
+              >
+                Active Alerts
+              </Header>
+            }
+          >
+            <SpaceBetween size="m">
+              {state.budgets.filter(b => b.alert_count > 0).map(budget => (
+                <Alert key={budget.project_id} type="warning">
+                  <Box variant="strong">{budget.project_name}</Box>
+                  <Box>
+                    Budget usage: {(budget.spent_percentage * 100).toFixed(1)}%
+                    (${budget.spent_amount.toFixed(2)} of ${budget.total_budget.toFixed(2)})
+                  </Box>
+                  {budget.active_alerts && budget.active_alerts.length > 0 && (
+                    <Box variant="small" color="text-body-secondary">
+                      {budget.active_alerts.length} active alert(s)
+                    </Box>
+                  )}
+                </Alert>
+              ))}
+            </SpaceBetween>
+          </Container>
+        )}
+      </SpaceBetween>
+    );
+  };
+
+  // AMI Management View
+  const AMIManagementView = () => {
+    const [selectedTab, setSelectedTab] = useState<'amis' | 'builds' | 'regions'>('amis');
+    const [selectedAMI, setSelectedAMI] = useState<AMI | null>(null);
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [buildModalVisible, setBuildModalVisible] = useState(false);
+
+    const totalSize = state.amis.reduce((sum, ami) => sum + ami.size_gb, 0);
+    const monthlyCost = totalSize * 0.05; // $0.05 per GB-month
+
+    const handleDeleteAMI = async () => {
+      if (!selectedAMI) return;
+
+      try {
+        await api.deleteAMI(selectedAMI.id);
+        setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'success', content: `AMI ${selectedAMI.id} deleted successfully` }] }));
+        setDeleteModalVisible(false);
+        setSelectedAMI(null);
+        await loadApplicationData();
+      } catch (error) {
+        setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'error', content: `Failed to delete AMI: ${error}` }] }));
+      }
+    };
+
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="Manage AMIs for fast instance launching (30 seconds vs 5-8 minutes)"
+          counter={`(${state.amis.length} AMIs)`}
+          actions={
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button onClick={loadApplicationData} disabled={state.loading}>
+                {state.loading ? <Spinner /> : 'Refresh'}
+              </Button>
+              <Button variant="primary" onClick={() => setBuildModalVisible(true)}>
+                Build AMI
+              </Button>
+            </SpaceBetween>
+          }
+        >
+          AMI Management
+        </Header>
+
+        {/* Stats Overview */}
+        <ColumnLayout columns={4} variant="text-grid">
+          <Container header={<Header variant="h3">Total AMIs</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-info">
+              {state.amis.length}
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Total Size</Header>}>
+            <Box fontSize="display-l" fontWeight="bold">
+              {totalSize.toFixed(1)} GB
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Monthly Cost</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-warning">
+              ${monthlyCost.toFixed(2)}
+            </Box>
+            <Box variant="small" color="text-body-secondary">
+              Snapshot storage
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Regions</Header>}>
+            <Box fontSize="display-l" fontWeight="bold">
+              {state.amiRegions.length}
+            </Box>
+          </Container>
+        </ColumnLayout>
+
+        {/* Tabs */}
+        <Tabs
+          activeTabId={selectedTab}
+          onChange={({ detail }) => setSelectedTab(detail.activeTabId as 'amis' | 'builds' | 'regions')}
+          tabs={[
+            {
+              id: 'amis',
+              label: 'AMIs',
+              content: (
+                <Container>
+                  <Table
+                    columnDefinitions={[
+                      {
+                        id: 'id',
+                        header: 'AMI ID',
+                        cell: (item: AMI) => <Link fontSize="body-m" onFollow={() => setSelectedAMI(item)}>{item.id}</Link>,
+                        sortingField: 'id'
+                      },
+                      {
+                        id: 'template',
+                        header: 'Template',
+                        cell: (item: AMI) => item.template_name,
+                        sortingField: 'template_name'
+                      },
+                      {
+                        id: 'region',
+                        header: 'Region',
+                        cell: (item: AMI) => <Badge>{item.region}</Badge>,
+                        sortingField: 'region'
+                      },
+                      {
+                        id: 'state',
+                        header: 'State',
+                        cell: (item: AMI) => (
+                          <StatusIndicator
+                            type={item.state === 'available' ? 'success' : 'pending'}
+                            ariaLabel={getStatusLabel('ami', item.state)}
+                          >
+                            {item.state}
+                          </StatusIndicator>
+                        )
+                      },
+                      {
+                        id: 'architecture',
+                        header: 'Architecture',
+                        cell: (item: AMI) => item.architecture
+                      },
+                      {
+                        id: 'size',
+                        header: 'Size',
+                        cell: (item: AMI) => `${item.size_gb.toFixed(1)} GB`,
+                        sortingField: 'size_gb'
+                      },
+                      {
+                        id: 'created',
+                        header: 'Created',
+                        cell: (item: AMI) => new Date(item.created_at).toLocaleDateString()
+                      },
+                      {
+                        id: 'actions',
+                        header: 'Actions',
+                        cell: (item: AMI) => (
+                          <ButtonDropdown
+                            items={[
+                              { text: 'View Details', id: 'details' },
+                              { text: 'Copy to Region', id: 'copy', disabled: true },
+                              { text: 'Delete AMI', id: 'delete' }
+                            ]}
+                            onItemClick={({ detail }) => {
+                              setSelectedAMI(item);
+                              if (detail.id === 'delete') {
+                                setDeleteModalVisible(true);
+                              }
+                            }}
+                          >
+                            Actions
+                          </ButtonDropdown>
+                        )
+                      }
+                    ]}
+                    items={state.amis}
+                    loadingText="Loading AMIs..."
+                    loading={state.loading}
+                    trackBy="id"
+                    empty={
+                      <Box textAlign="center" color="text-body-secondary">
+                        <Box variant="strong" textAlign="center" color="text-body-secondary">
+                          No AMIs available
+                        </Box>
+                        <Box variant="p" padding={{ bottom: 's' }} color="text-body-secondary">
+                          Build an AMI to enable fast instance launching (30 seconds vs 5-8 minutes).
+                        </Box>
+                        <Button variant="primary" onClick={() => setBuildModalVisible(true)}>Build AMI</Button>
+                      </Box>
+                    }
+                    sortingDisabled={false}
+                  />
+                </Container>
+              )
+            },
+            {
+              id: 'builds',
+              label: 'Build Status',
+              content: (
+                <Container>
+                  {state.amiBuilds.length === 0 ? (
+                    <Box textAlign="center" padding="xl">
+                      <Box variant="strong">No active builds</Box>
+                      <Box variant="p" color="text-body-secondary">
+                        AMI builds typically take 10-15 minutes to complete.
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Table
+                      columnDefinitions={[
+                        { id: 'id', header: 'Build ID', cell: (item: AMIBuild) => item.id },
+                        { id: 'template', header: 'Template', cell: (item: AMIBuild) => item.template_name },
+                        {
+                          id: 'status',
+                          header: 'Status',
+                          cell: (item: AMIBuild) => (
+                            <StatusIndicator
+                              type={
+                                item.status === 'completed' ? 'success' :
+                                item.status === 'failed' ? 'error' : 'in-progress'
+                              }
+                              ariaLabel={getStatusLabel('build', item.status)}
+                            >
+                              {item.status}
+                            </StatusIndicator>
+                          )
+                        },
+                        { id: 'progress', header: 'Progress', cell: (item: AMIBuild) => `${item.progress}%` },
+                        { id: 'step', header: 'Current Step', cell: (item: AMIBuild) => item.current_step || '-' }
+                      ]}
+                      items={state.amiBuilds}
+                      trackBy="id"
+                    />
+                  )}
+                </Container>
+              )
+            },
+            {
+              id: 'regions',
+              label: 'Regional Coverage',
+              content: (
+                <Container>
+                  <Table
+                    columnDefinitions={[
+                      {
+                        id: 'region',
+                        header: 'Region',
+                        cell: (item: AMIRegion) => <Badge color={item.ami_count > 0 ? 'green' : 'grey'}>{item.name}</Badge>,
+                        sortingField: 'name'
+                      },
+                      {
+                        id: 'count',
+                        header: 'AMI Count',
+                        cell: (item: AMIRegion) => item.ami_count,
+                        sortingField: 'ami_count'
+                      },
+                      {
+                        id: 'size',
+                        header: 'Total Size',
+                        cell: (item: AMIRegion) => `${item.total_size_gb.toFixed(1)} GB`,
+                        sortingField: 'total_size_gb'
+                      },
+                      {
+                        id: 'cost',
+                        header: 'Monthly Cost',
+                        cell: (item: AMIRegion) => `$${item.monthly_cost.toFixed(2)}`,
+                        sortingField: 'monthly_cost'
+                      }
+                    ]}
+                    items={state.amiRegions}
+                    trackBy="name"
+                    sortingDisabled={false}
+                    empty={
+                      <Box textAlign="center" padding="xl">
+                        <Box variant="strong">No regional data available</Box>
+                      </Box>
+                    }
+                  />
+                </Container>
+              )
+            }
+          ]}
+        />
+
+        {/* Delete Modal */}
+        <Modal
+          visible={deleteModalVisible}
+          onDismiss={() => setDeleteModalVisible(false)}
+          header="Delete AMI"
+          footer={
+            <Box float="right">
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button variant="link" onClick={() => setDeleteModalVisible(false)}>Cancel</Button>
+                <Button variant="primary" onClick={handleDeleteAMI}>Delete</Button>
+              </SpaceBetween>
+            </Box>
+          }
+        >
+          <SpaceBetween size="m">
+            <Alert type="warning">
+              This will permanently delete the AMI and associated snapshots. This action cannot be undone.
+            </Alert>
+            {selectedAMI && (
+              <Box>
+                <Box variant="strong">AMI ID:</Box> {selectedAMI.id}
+                <br />
+                <Box variant="strong">Template:</Box> {selectedAMI.template_name}
+                <br />
+                <Box variant="strong">Size:</Box> {selectedAMI.size_gb.toFixed(1)} GB
+              </Box>
+            )}
+          </SpaceBetween>
+        </Modal>
+      </SpaceBetween>
+    );
+  };
+
+
+  // Marketplace View
+  const MarketplaceView = () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [selectedTemplate, setSelectedTemplate] = useState<MarketplaceTemplate | null>(null);
+    const [installModalVisible, setInstallModalVisible] = useState(false);
+    const [filteredTemplates, setFilteredTemplates] = useState<MarketplaceTemplate[]>(state.marketplaceTemplates);
+
+    // Update filtered templates when search or category changes
+    useEffect(() => {
+      let filtered = state.marketplaceTemplates;
+
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(t =>
+          t.name.toLowerCase().includes(query) ||
+          t.display_name.toLowerCase().includes(query) ||
+          t.description.toLowerCase().includes(query) ||
+          (t.tags && t.tags.some(tag => tag.toLowerCase().includes(query)))
+        );
+      }
+
+      if (selectedCategory) {
+        filtered = filtered.filter(t => t.category === selectedCategory);
+      }
+
+      setFilteredTemplates(filtered);
+    }, [searchQuery, selectedCategory, state.marketplaceTemplates]);
+
+    const handleInstallTemplate = async () => {
+      if (!selectedTemplate) return;
+
+      try {
+        await api.installMarketplaceTemplate(selectedTemplate.id);
+        setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'success', content: `Installing template: ${selectedTemplate.display_name}` }] }));
+        setInstallModalVisible(false);
+        setSelectedTemplate(null);
+        await loadApplicationData();
+      } catch (error) {
+        setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'error', content: `Failed to install template: ${error}` }] }));
+      }
+    };
+
+    const renderRatingStars = (rating: number) => {
+      const stars = [];
+      for (let i = 1; i <= 5; i++) {
+        stars.push(i <= rating ? '★' : '☆');
+      }
+      return stars.join('');
+    };
+
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="Discover and install community-contributed research templates"
+          counter={`(${filteredTemplates.length} templates)`}
+          actions={
+            <Button onClick={loadApplicationData} disabled={state.loading}>
+              {state.loading ? <Spinner /> : 'Refresh'}
+            </Button>
+          }
+        >
+          Template Marketplace
+        </Header>
+
+        {/* Search and Filters */}
+        <Container>
+          <SpaceBetween size="m">
+            <FormField label="Search templates" description="Search by name, description, or tags">
+              <Input
+                value={searchQuery}
+                onChange={({ detail }) => setSearchQuery(detail.value)}
+                placeholder="Search templates..."
+                clearAriaLabel="Clear search"
+                type="search"
+              />
+            </FormField>
+            <FormField label="Category" description="Filter by template category">
+              <Select
+                selectedOption={selectedCategory ? { label: selectedCategory, value: selectedCategory } : null}
+                onChange={({ detail }) => setSelectedCategory(detail.selectedOption?.value || '')}
+                options={[
+                  { label: 'All Categories', value: '' },
+                  ...state.marketplaceCategories.map(c => ({ label: `${c.name} (${c.count})`, value: c.id }))
+                ]}
+                placeholder="All Categories"
+                selectedAriaLabel="Selected"
+              />
+            </FormField>
+          </SpaceBetween>
+        </Container>
+
+        {/* Template Cards Grid */}
+        <Cards
+          cardDefinition={{
+            header: (item: MarketplaceTemplate) => (
+              <SpaceBetween direction="horizontal" size="xs">
+                <Link fontSize="heading-m" onFollow={() => setSelectedTemplate(item)}>
+                  {item.display_name || item.name}
+                </Link>
+                {item.verified && <Badge color="blue">Verified</Badge>}
+                {item.featured && <Badge color="green">Featured</Badge>}
+              </SpaceBetween>
+            ),
+            sections: [
+              {
+                id: 'description',
+                content: (item: MarketplaceTemplate) => (
+                  <Box>
+                    <Box variant="p" color="text-body-secondary">
+                      {item.description}
+                    </Box>
+                  </Box>
+                )
+              },
+              {
+                id: 'metadata',
+                content: (item: MarketplaceTemplate) => (
+                  <ColumnLayout columns={2} variant="text-grid">
+                    <div>
+                      <Box variant="awsui-key-label">Publisher</Box>
+                      <Box>{item.publisher || item.author}</Box>
+                    </div>
+                    <div>
+                      <Box variant="awsui-key-label">Category</Box>
+                      <Badge>{item.category}</Badge>
+                    </div>
+                    <div>
+                      <Box variant="awsui-key-label">Rating</Box>
+                      <Box color={item.rating >= 4 ? 'text-status-success' : 'inherit'}>
+                        {renderRatingStars(item.rating)} ({item.rating.toFixed(1)})
+                      </Box>
+                    </div>
+                    <div>
+                      <Box variant="awsui-key-label">Downloads</Box>
+                      <Box>{item.downloads.toLocaleString()}</Box>
+                    </div>
+                  </ColumnLayout>
+                )
+              },
+              {
+                id: 'tags',
+                content: (item: MarketplaceTemplate) =>
+                  item.tags && item.tags.length > 0 ? (
+                    <SpaceBetween direction="horizontal" size="xs">
+                      {item.tags.slice(0, 5).map(tag => (
+                        <Badge key={tag} color="grey">{tag}</Badge>
+                      ))}
+                    </SpaceBetween>
+                  ) : null
+              },
+              {
+                id: 'actions',
+                content: (item: MarketplaceTemplate) => (
+                  <SpaceBetween direction="horizontal" size="xs">
+                    <Button
+                      onClick={() => {
+                        setSelectedTemplate(item);
+                        setInstallModalVisible(true);
+                      }}
+                    >
+                      Install
+                    </Button>
+                    <Button onClick={() => setSelectedTemplate(item)}>
+                      View Details
+                    </Button>
+                  </SpaceBetween>
+                )
+              }
+            ]
+          }}
+          items={filteredTemplates}
+          cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
+          loading={state.loading}
+          loadingText="Loading marketplace templates..."
+          empty={
+            <Box textAlign="center" padding="xl">
+              <Box variant="strong">No templates found</Box>
+              <Box variant="p" color="text-body-secondary">
+                {searchQuery || selectedCategory
+                  ? 'Try adjusting your search or filter criteria.'
+                  : 'No marketplace templates available.'}
+              </Box>
+            </Box>
+          }
+        />
+
+        {/* Template Details Modal */}
+        {selectedTemplate && !installModalVisible && (
+          <Container
+            header={
+              <Header
+                variant="h2"
+                actions={<Button onClick={() => setSelectedTemplate(null)}>Close</Button>}
+              >
+                {selectedTemplate.display_name || selectedTemplate.name}
+              </Header>
+            }
+          >
+            <SpaceBetween size="l">
+              <ColumnLayout columns={2}>
+                <SpaceBetween size="m">
+                  <div>
+                    <Box variant="awsui-key-label">Publisher</Box>
+                    <Box>{selectedTemplate.publisher || selectedTemplate.author}</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Category</Box>
+                    <Badge>{selectedTemplate.category}</Badge>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Version</Box>
+                    <Box>{selectedTemplate.version}</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Verified</Box>
+                    {selectedTemplate.verified ? (
+                      <StatusIndicator type="success" ariaLabel={getStatusLabel('marketplace', 'verified')}>Verified Publisher</StatusIndicator>
+                    ) : (
+                      <StatusIndicator type="pending" ariaLabel={getStatusLabel('marketplace', 'community')}>Community</StatusIndicator>
+                    )}
+                  </div>
+                </SpaceBetween>
+                <SpaceBetween size="m">
+                  <div>
+                    <Box variant="awsui-key-label">Rating</Box>
+                    <Box color={selectedTemplate.rating >= 4 ? 'text-status-success' : 'inherit'}>
+                      {renderRatingStars(selectedTemplate.rating)} ({selectedTemplate.rating.toFixed(1)})
+                    </Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Downloads</Box>
+                    <Box>{selectedTemplate.downloads.toLocaleString()}</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Created</Box>
+                    <Box>{new Date(selectedTemplate.created_at).toLocaleDateString()}</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Last Updated</Box>
+                    <Box>{new Date(selectedTemplate.updated_at).toLocaleDateString()}</Box>
+                  </div>
+                </SpaceBetween>
+              </ColumnLayout>
+
+              <div>
+                <Box variant="awsui-key-label">Description</Box>
+                <Box variant="p">{selectedTemplate.description}</Box>
+              </div>
+
+              {selectedTemplate.tags && selectedTemplate.tags.length > 0 && (
+                <div>
+                  <Box variant="awsui-key-label">Tags</Box>
+                  <SpaceBetween direction="horizontal" size="xs">
+                    {selectedTemplate.tags.map(tag => (
+                      <Badge key={tag} color="grey">{tag}</Badge>
+                    ))}
+                  </SpaceBetween>
+                </div>
+              )}
+
+              {selectedTemplate.badges && selectedTemplate.badges.length > 0 && (
+                <div>
+                  <Box variant="awsui-key-label">Badges</Box>
+                  <SpaceBetween direction="horizontal" size="xs">
+                    {selectedTemplate.badges.map(badge => (
+                      <Badge key={badge} color="blue">{badge}</Badge>
+                    ))}
+                  </SpaceBetween>
+                </div>
+              )}
+
+              {selectedTemplate.ami_available && (
+                <Alert type="info">
+                  This template has pre-built AMIs available for faster launches (30 seconds vs 5-8 minutes).
+                </Alert>
+              )}
+
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setInstallModalVisible(true);
+                }}
+              >
+                Install Template
+              </Button>
+            </SpaceBetween>
+          </Container>
+        )}
+
+        {/* Install Confirmation Modal */}
+        <Modal
+          visible={installModalVisible}
+          onDismiss={() => { setInstallModalVisible(false); setSelectedTemplate(null); }}
+          header="Install Marketplace Template"
+          footer={
+            <Box float="right">
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button variant="link" onClick={() => { setInstallModalVisible(false); setSelectedTemplate(null); }}>Cancel</Button>
+                <Button variant="primary" onClick={handleInstallTemplate}>Install</Button>
+              </SpaceBetween>
+            </Box>
+          }
+        >
+          {selectedTemplate && (
+            <SpaceBetween size="m">
+              <Alert type="info">
+                This will download and install the template to your local templates directory.
+              </Alert>
+              <div>
+                <Box variant="strong">Template:</Box> {selectedTemplate.display_name || selectedTemplate.name}
+                <br />
+                <Box variant="strong">Publisher:</Box> {selectedTemplate.publisher || selectedTemplate.author}
+                <br />
+                <Box variant="strong">Version:</Box> {selectedTemplate.version}
+                <br />
+                {selectedTemplate.verified && (
+                  <>
+                    <Box variant="strong">Status:</Box> <StatusIndicator type="success" ariaLabel={getStatusLabel('marketplace', 'verified')}>Verified Publisher</StatusIndicator>
+                  </>
+                )}
+              </div>
+            </SpaceBetween>
+          )}
+        </Modal>
+      </SpaceBetween>
+    );
+  };
+
+  // Idle Detection & Hibernation View
+  const IdleDetectionView = () => {
+    const [selectedTab, setSelectedTab] = useState<'policies' | 'schedules'>('policies');
+    const [selectedPolicy, setSelectedPolicy] = useState<IdlePolicy | null>(null);
+
+    const getActionBadgeColor = (action: string) => {
+      switch (action) {
+        case 'hibernate': return 'green';
+        case 'stop': return 'blue';
+        case 'notify': return 'grey';
+        default: return 'grey';
+      }
+    };
+
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="Automatic cost optimization through idle detection and hibernation"
+          actions={
+            <Button onClick={loadApplicationData} disabled={state.loading}>
+              {state.loading ? <Spinner /> : 'Refresh'}
+            </Button>
+          }
+        >
+          Idle Detection & Hibernation
+        </Header>
+
+        {/* Overview Stats */}
+        <ColumnLayout columns={4} variant="text-grid">
+          <Container header={<Header variant="h3">Active Policies</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-info">
+              {state.idlePolicies.filter(p => p.enabled).length}
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Total Policies</Header>}>
+            <Box fontSize="display-l" fontWeight="bold">
+              {state.idlePolicies.length}
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Monitored Instances</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
+              {state.idleSchedules.filter(s => s.enabled).length}
+            </Box>
+          </Container>
+          <Container header={<Header variant="h3">Cost Savings</Header>}>
+            <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
+              ~40%
+            </Box>
+            <Box variant="small" color="text-body-secondary">
+              Through hibernation
+            </Box>
+          </Container>
+        </ColumnLayout>
+
+        <Tabs
+          activeTabId={selectedTab}
+          onChange={({ detail }) => setSelectedTab(detail.activeTabId as 'policies' | 'schedules')}
+          tabs={[
+            {
+              id: 'policies',
+              label: 'Idle Policies',
+              content: (
+                <Container>
+                  <Table
+                    columnDefinitions={[
+                      {
+                        id: 'name',
+                        header: 'Policy Name',
+                        cell: (item: IdlePolicy) => <Link onFollow={() => setSelectedPolicy(item)}>{item.name}</Link>,
+                        sortingField: 'name'
+                      },
+                      {
+                        id: 'idle_minutes',
+                        header: 'Idle Threshold',
+                        cell: (item: IdlePolicy) => `${item.idle_minutes} minutes`,
+                        sortingField: 'idle_minutes'
+                      },
+                      {
+                        id: 'action',
+                        header: 'Action',
+                        cell: (item: IdlePolicy) => (
+                          <Badge color={getActionBadgeColor(item.action)}>
+                            {item.action.toUpperCase()}
+                          </Badge>
+                        )
+                      },
+                      {
+                        id: 'thresholds',
+                        header: 'Thresholds',
+                        cell: (item: IdlePolicy) => (
+                          <Box variant="small">
+                            CPU: {item.cpu_threshold}%, Mem: {item.memory_threshold}%, Net: {item.network_threshold} Mbps
+                          </Box>
+                        )
+                      },
+                      {
+                        id: 'enabled',
+                        header: 'Status',
+                        cell: (item: IdlePolicy) => (
+                          <StatusIndicator
+                            type={item.enabled ? 'success' : 'stopped'}
+                            ariaLabel={getStatusLabel('idle', item.enabled ? 'enabled' : 'disabled')}
+                          >
+                            {item.enabled ? 'Enabled' : 'Disabled'}
+                          </StatusIndicator>
+                        )
+                      }
+                    ]}
+                    items={state.idlePolicies}
+                    loadingText="Loading idle policies..."
+                    loading={state.loading}
+                    trackBy="id"
+                    empty={
+                      <Box textAlign="center" padding="xl">
+                        <Box variant="strong">No idle policies configured</Box>
+                        <Box variant="p" color="text-body-secondary">
+                          Idle policies automatically hibernate or stop instances when they're not being used.
+                        </Box>
+                      </Box>
+                    }
+                    sortingDisabled={false}
+                  />
+                </Container>
+              )
+            },
+            {
+              id: 'schedules',
+              label: 'Instance Schedules',
+              content: (
+                <Container>
+                  <Table
+                    columnDefinitions={[
+                      {
+                        id: 'instance',
+                        header: 'Instance',
+                        cell: (item: IdleSchedule) => item.instance_name,
+                        sortingField: 'instance_name'
+                      },
+                      {
+                        id: 'policy',
+                        header: 'Policy',
+                        cell: (item: IdleSchedule) => <Badge>{item.policy_name}</Badge>
+                      },
+                      {
+                        id: 'idle_minutes',
+                        header: 'Current Idle Time',
+                        cell: (item: IdleSchedule) => `${item.idle_minutes} minutes`,
+                        sortingField: 'idle_minutes'
+                      },
+                      {
+                        id: 'status',
+                        header: 'Status',
+                        cell: (item: IdleSchedule) => item.status || 'Active'
+                      },
+                      {
+                        id: 'last_checked',
+                        header: 'Last Checked',
+                        cell: (item: IdleSchedule) => item.last_checked ? new Date(item.last_checked).toLocaleString() : 'Never'
+                      },
+                      {
+                        id: 'enabled',
+                        header: 'Monitoring',
+                        cell: (item: IdleSchedule) => (
+                          <StatusIndicator
+                            type={item.enabled ? 'success' : 'stopped'}
+                            ariaLabel={getStatusLabel('idle', item.enabled ? 'enabled' : 'disabled')}
+                          >
+                            {item.enabled ? 'Enabled' : 'Disabled'}
+                          </StatusIndicator>
+                        )
+                      }
+                    ]}
+                    items={state.idleSchedules}
+                    loadingText="Loading instance schedules..."
+                    loading={state.loading}
+                    trackBy="instance_name"
+                    empty={
+                      <Box textAlign="center" padding="xl">
+                        <Box variant="strong">No instances being monitored</Box>
+                        <Box variant="p" color="text-body-secondary">
+                          Start instances with idle detection enabled to see them here.
+                        </Box>
+                      </Box>
+                    }
+                    sortingDisabled={false}
+                  />
+                </Container>
+              )
+            }
+          ]}
+        />
+
+        {/* Policy Details */}
+        {selectedPolicy && (
+          <Container
+            header={
+              <Header
+                variant="h2"
+                actions={<Button onClick={() => setSelectedPolicy(null)}>Close</Button>}
+              >
+                {selectedPolicy.name}
+              </Header>
+            }
+          >
+            <SpaceBetween size="l">
+              <ColumnLayout columns={2}>
+                <SpaceBetween size="m">
+                  <div>
+                    <Box variant="awsui-key-label">Policy ID</Box>
+                    <Box>{selectedPolicy.id}</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Idle Threshold</Box>
+                    <Box fontWeight="bold">{selectedPolicy.idle_minutes} minutes</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Action</Box>
+                    <Badge color={getActionBadgeColor(selectedPolicy.action)}>
+                      {selectedPolicy.action.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Status</Box>
+                    <StatusIndicator
+                      type={selectedPolicy.enabled ? 'success' : 'stopped'}
+                      ariaLabel={getStatusLabel('idle', selectedPolicy.enabled ? 'enabled' : 'disabled')}
+                    >
+                      {selectedPolicy.enabled ? 'Enabled' : 'Disabled'}
+                    </StatusIndicator>
+                  </div>
+                </SpaceBetween>
+                <SpaceBetween size="m">
+                  <div>
+                    <Box variant="awsui-key-label">CPU Threshold</Box>
+                    <Box>{selectedPolicy.cpu_threshold}%</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Memory Threshold</Box>
+                    <Box>{selectedPolicy.memory_threshold}%</Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Network Threshold</Box>
+                    <Box>{selectedPolicy.network_threshold} Mbps</Box>
+                  </div>
+                </SpaceBetween>
+              </ColumnLayout>
+
+              {selectedPolicy.description && (
+                <div>
+                  <Box variant="awsui-key-label">Description</Box>
+                  <Box variant="p">{selectedPolicy.description}</Box>
+                </div>
+              )}
+
+              <Alert type="info">
+                <Box variant="strong">How It Works:</Box>
+                <Box variant="p">
+                  This policy monitors instance activity. When CPU, memory, and network usage all fall below
+                  the specified thresholds for {selectedPolicy.idle_minutes} consecutive minutes, the system will
+                  automatically {selectedPolicy.action === 'hibernate' ? 'hibernate (preserve RAM state)' :
+                  selectedPolicy.action === 'stop' ? 'stop the instance' : 'send a notification'}.
+                </Box>
+              </Alert>
+
+              {selectedPolicy.action === 'hibernate' && (
+                <Alert type="success">
+                  <Box variant="strong">Cost Savings with Hibernation:</Box>
+                  <Box variant="p">
+                    Hibernation preserves your RAM state to disk, allowing instant resume while only paying for
+                    EBS storage (~$0.10/GB/month). This can save ~40% on compute costs for instances that are
+                    idle for extended periods.
+                  </Box>
+                </Alert>
+              )}
+            </SpaceBetween>
+          </Container>
+        )}
+
+        {/* Educational Content */}
+        <Container header={<Header variant="h2">About Idle Detection</Header>}>
+          <SpaceBetween size="m">
+            <Box variant="p">
+              Idle detection monitors your instances and automatically hibernates or stops them when they're not
+              being used, saving significant compute costs while preserving your work environment.
+            </Box>
+            <ColumnLayout columns={3}>
+              <div>
+                <Box variant="strong">Hibernate</Box>
+                <Box variant="small" color="text-body-secondary">
+                  Preserves RAM state to disk. Resume in seconds with your session intact. Best for
+                  workloads that need quick resumption.
+                </Box>
+              </div>
+              <div>
+                <Box variant="strong">Stop</Box>
+                <Box variant="small" color="text-body-secondary">
+                  Fully stops the instance. Cheaper than hibernation but requires full restart.
+                  Best for instances that don't need quick resumption.
+                </Box>
+              </div>
+              <div>
+                <Box variant="strong">Notify</Box>
+                <Box variant="small" color="text-body-secondary">
+                  Sends a notification without taking action. Useful for monitoring patterns
+                  before enabling automated actions.
+                </Box>
+              </div>
+            </ColumnLayout>
+          </SpaceBetween>
+        </Container>
+      </SpaceBetween>
+    );
+  };
+
+  // Logs Viewer
+  const LogsView = () => {
+    const [selectedInstance, setSelectedInstance] = useState<string>('');
+    const [logType, setLogType] = useState<string>('console');
+    const [logLines, setLogLines] = useState<string[]>([]);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+
+    const logTypes = [
+      { label: 'Console Output', value: 'console' },
+      { label: 'Cloud-Init Log', value: 'cloud-init' },
+      { label: 'System Log', value: 'system' },
+      { label: 'Application Log', value: 'application' }
+    ];
+
+    const runningInstances = state.instances.filter(i => i.state === 'running' || i.state === 'stopped');
+
+    const fetchLogs = async () => {
+      if (!selectedInstance) return;
+
+      setLoadingLogs(true);
+      try {
+        // Mock log fetching - in real implementation would call API
+        // const logs = await api.getInstanceLogs(selectedInstance, logType);
+
+        // Generate mock logs for demonstration
+        const mockLogs = [
+          `[${new Date().toISOString()}] Instance ${selectedInstance} logs (${logType})`,
+          `[INFO] Instance started successfully`,
+          `[INFO] Loading configuration...`,
+          `[INFO] Mounting EFS volumes...`,
+          `[INFO] Starting services...`,
+          `[INFO] CloudWorkstation template: ${state.instances.find(i => i.name === selectedInstance)?.template || 'unknown'}`,
+          `[INFO] All services running`,
+          `[DEBUG] Memory usage: 1.2GB / 8GB`,
+          `[DEBUG] CPU usage: 5%`,
+          `[INFO] Instance ready for use`,
+          `[INFO] SSH access: ssh ${state.instances.find(i => i.name === selectedInstance)?.public_ip || 'N/A'}`,
+          `--- End of ${logType} log ---`
+        ];
+
+        setLogLines(mockLogs);
+      } catch (error) {
+        setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'error', content: `Failed to fetch logs: ${error}` }] }));
+        setLogLines([`Error fetching logs: ${error}`]);
+      } finally {
+        setLoadingLogs(false);
+      }
+    };
+
+    useEffect(() => {
+      if (selectedInstance) {
+        fetchLogs();
+      }
+    }, [selectedInstance, logType]);
+
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="View instance console output and system logs"
+          actions={
+            <Button onClick={loadApplicationData} disabled={state.loading}>
+              {state.loading ? <Spinner /> : 'Refresh'}
+            </Button>
+          }
+        >
+          Instance Logs Viewer
+        </Header>
+
+        {/* Instance and Log Type Selection */}
+        <Container>
+          <SpaceBetween size="m">
+            <FormField
+              label="Instance"
+              description="Select an instance to view its logs"
+            >
+              <Select
+                selectedOption={selectedInstance ?
+                  { label: selectedInstance, value: selectedInstance } : null}
+                onChange={({ detail }) => {
+                  setSelectedInstance(detail.selectedOption?.value || '');
+                  setLogLines([]);
+                }}
+                options={runningInstances.map(i => ({
+                  label: `${i.name} (${i.state})`,
+                  value: i.name
+                }))}
+                placeholder="Choose an instance"
+                selectedAriaLabel="Selected instance"
+                disabled={runningInstances.length === 0}
+              />
+            </FormField>
+
+            {selectedInstance && (
+              <FormField
+                label="Log Type"
+                description="Select the type of log to view"
+              >
+                <Select
+                  selectedOption={logType ?
+                    logTypes.find(t => t.value === logType) : null}
+                  onChange={({ detail }) => {
+                    setLogType(detail.selectedOption?.value || 'console');
+                    setLogLines([]);
+                  }}
+                  options={logTypes}
+                  selectedAriaLabel="Selected log type"
+                />
+              </FormField>
+            )}
+
+            {selectedInstance && (
+              <Button
+                onClick={fetchLogs}
+                loading={loadingLogs}
+                disabled={loadingLogs}
+              >
+                Refresh Logs
+              </Button>
+            )}
+          </SpaceBetween>
+        </Container>
+
+        {/* Log Display */}
+        {selectedInstance ? (
+          <Container
+            header={
+              <Header
+                variant="h2"
+                description={`Viewing ${logType} logs for ${selectedInstance}`}
+              >
+                Log Output
+              </Header>
+            }
+          >
+            {loadingLogs ? (
+              <Box textAlign="center" padding="xl">
+                <Spinner size="large" />
+                <Box variant="p">Loading logs...</Box>
+              </Box>
+            ) : logLines.length > 0 ? (
+              <Box
+                padding="s"
+                variant="code"
+              >
+                <pre style={{
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  lineHeight: '1.5',
+                  margin: 0,
+                  padding: '8px',
+                  backgroundColor: '#232f3e',
+                  color: '#d4d4d4',
+                  borderRadius: '4px',
+                  maxHeight: '600px',
+                  overflow: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  wordWrap: 'break-word'
+                }}>
+                  {logLines.join('\n')}
+                </pre>
+              </Box>
+            ) : (
+              <Box textAlign="center" padding="xl">
+                <Box variant="strong">No logs available</Box>
+                <Box variant="p" color="text-body-secondary">
+                  Select a log type and click "Refresh Logs" to view output.
+                </Box>
+              </Box>
+            )}
+
+            {logLines.length > 0 && (
+              <Box padding={{ top: 'm' }}>
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button iconName="copy" onClick={() => {
+                    navigator.clipboard.writeText(logLines.join('\n'));
+                    setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'success', content: 'Logs copied to clipboard' }] }));
+                  }}>
+                    Copy to Clipboard
+                  </Button>
+                  <Button iconName="download" onClick={() => {
+                    const blob = new Blob([logLines.join('\n')], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${selectedInstance}-${logType}-${new Date().toISOString().split('T')[0]}.log`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setState(prev => ({ ...prev, notifications: [...prev.notifications, { type: 'success', content: 'Log file downloaded' }] }));
+                  }}>
+                    Download Log File
+                  </Button>
+                </SpaceBetween>
+              </Box>
+            )}
+          </Container>
+        ) : (
+          <Container>
+            <Box textAlign="center" padding="xl">
+              <Box variant="strong">Select an Instance</Box>
+              <Box variant="p" color="text-body-secondary">
+                {runningInstances.length === 0
+                  ? 'No running or stopped instances available. Start an instance to view its logs.'
+                  : 'Choose an instance from the dropdown above to view its logs.'}
+              </Box>
+            </Box>
+          </Container>
+        )}
+
+        {/* Information */}
+        <Container header={<Header variant="h2">About Log Viewing</Header>}>
+          <SpaceBetween size="m">
+            <Box variant="p">
+              View real-time console output and system logs from your CloudWorkstation instances.
+              Logs are useful for troubleshooting startup issues, monitoring application output,
+              and understanding instance behavior.
+            </Box>
+            <ColumnLayout columns={4}>
+              <div>
+                <Box variant="strong">Console Output</Box>
+                <Box variant="small" color="text-body-secondary">
+                  System boot messages and console output
+                </Box>
+              </div>
+              <div>
+                <Box variant="strong">Cloud-Init</Box>
+                <Box variant="small" color="text-body-secondary">
+                  CloudWorkstation provisioning logs
+                </Box>
+              </div>
+              <div>
+                <Box variant="strong">System Log</Box>
+                <Box variant="small" color="text-body-secondary">
+                  Operating system events and services
+                </Box>
+              </div>
+              <div>
+                <Box variant="strong">Application Log</Box>
+                <Box variant="small" color="text-body-secondary">
+                  Application-specific output
+                </Box>
+              </div>
+            </ColumnLayout>
+            <Alert type="info">
+              <Box variant="strong">Note:</Box> Log viewing is read-only. To interact with your instance,
+              use SSH: <Box fontFamily="monospace" variant="code">
+                ssh {selectedInstance && state.instances.find(i => i.name === selectedInstance)?.public_ip || 'instance-ip'}
+              </Box>
+            </Alert>
+          </SpaceBetween>
+        </Container>
+      </SpaceBetween>
+    );
+  };
+
   const PlaceholderView = ({ title, description }: { title: string; description: string }) => (
     <Container header={<Header variant="h1">{title}</Header>}>
       <Box textAlign="center" padding="xl">
@@ -1991,6 +4730,96 @@ export default function BulletproofCloudWorkstationApp() {
   );
 
   // Launch Modal
+  // Delete Confirmation Modal Component
+  const DeleteConfirmationModal = () => {
+    const getDeleteMessage = () => {
+      switch (deleteModalConfig.type) {
+        case 'instance':
+          return `You are about to permanently delete the instance "${deleteModalConfig.name}". This action cannot be undone.`;
+        case 'efs-volume':
+          return `You are about to permanently delete the EFS volume "${deleteModalConfig.name}". All data on this volume will be lost. This action cannot be undone.`;
+        case 'ebs-volume':
+          return `You are about to permanently delete the EBS volume "${deleteModalConfig.name}". All data on this volume will be lost. This action cannot be undone.`;
+        case 'project':
+          return `You are about to permanently delete the project "${deleteModalConfig.name}". This action cannot be undone.`;
+        case 'user':
+          return `You are about to permanently delete the user "${deleteModalConfig.name}". This action cannot be undone.`;
+        default:
+          return 'This action cannot be undone.';
+      }
+    };
+
+    const isConfirmationValid = deleteModalConfig.requireNameConfirmation
+      ? deleteConfirmationText === deleteModalConfig.name
+      : true;
+
+    return (
+      <Modal
+        visible={deleteModalVisible}
+        onDismiss={() => {
+          setDeleteModalVisible(false);
+          setDeleteConfirmationText('');
+        }}
+        header={`Delete ${deleteModalConfig.type?.replace('-', ' ') || 'Resource'}?`}
+        size="medium"
+        footer={
+          <Box float="right">
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button
+                variant="link"
+                onClick={() => {
+                  setDeleteModalVisible(false);
+                  setDeleteConfirmationText('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={deleteModalConfig.onConfirm}
+                disabled={!isConfirmationValid}
+              >
+                Delete
+              </Button>
+            </SpaceBetween>
+          </Box>
+        }
+      >
+        <SpaceBetween size="m">
+          <Alert type="warning" header="Warning: This action is permanent">
+            {getDeleteMessage()}
+          </Alert>
+
+          {deleteModalConfig.requireNameConfirmation && (
+            <FormField
+              label={`Type "${deleteModalConfig.name}" to confirm deletion`}
+              description="This extra step helps prevent accidental deletions"
+              errorText={
+                deleteConfirmationText.length > 0 && deleteConfirmationText !== deleteModalConfig.name
+                  ? `Name must match exactly: "${deleteModalConfig.name}"`
+                  : ""
+              }
+            >
+              <Input
+                value={deleteConfirmationText}
+                onChange={({ detail }) => setDeleteConfirmationText(detail.value)}
+                placeholder={deleteModalConfig.name}
+                ariaRequired
+                invalid={deleteConfirmationText.length > 0 && deleteConfirmationText !== deleteModalConfig.name}
+              />
+            </FormField>
+          )}
+
+          <Box variant="p" color="text-body-secondary">
+            {deleteModalConfig.requireNameConfirmation
+              ? 'Enter the exact name above to enable the delete button.'
+              : 'Click Delete to confirm this action.'}
+          </Box>
+        </SpaceBetween>
+      </Modal>
+    );
+  };
+
   const LaunchModal = () => (
     <Modal
       onDismiss={handleModalDismiss}
@@ -2061,6 +4890,180 @@ export default function BulletproofCloudWorkstationApp() {
     </Modal>
   );
 
+  // Onboarding Wizard Modal
+  const OnboardingWizard = () => {
+    const totalSteps = 3;
+
+    const handleNext = () => {
+      if (onboardingStep < totalSteps - 1) {
+        setOnboardingStep(onboardingStep + 1);
+      } else {
+        // Complete onboarding
+        localStorage.setItem('cws_onboarding_complete', 'true');
+        setOnboardingComplete(true);
+        setOnboardingVisible(false);
+        setOnboardingStep(0);
+      }
+    };
+
+    const handleBack = () => {
+      if (onboardingStep > 0) {
+        setOnboardingStep(onboardingStep - 1);
+      }
+    };
+
+    const handleSkip = () => {
+      localStorage.setItem('cws_onboarding_complete', 'true');
+      setOnboardingComplete(true);
+      setOnboardingVisible(false);
+      setOnboardingStep(0);
+    };
+
+    return (
+      <Modal
+        visible={onboardingVisible}
+        onDismiss={handleSkip}
+        header={`Welcome to CloudWorkstation - Step ${onboardingStep + 1} of ${totalSteps}`}
+        size="large"
+        footer={
+          <Box float="right">
+            <SpaceBetween direction="horizontal" size="xs">
+              {onboardingStep > 0 && (
+                <Button onClick={handleBack}>
+                  Back
+                </Button>
+              )}
+              <Button variant="link" onClick={handleSkip}>
+                Skip Tour
+              </Button>
+              <Button variant="primary" onClick={handleNext}>
+                {onboardingStep < totalSteps - 1 ? 'Next' : 'Get Started'}
+              </Button>
+            </SpaceBetween>
+          </Box>
+        }
+      >
+        <SpaceBetween size="l">
+          {/* Step 1: AWS Profile Setup */}
+          {onboardingStep === 0 && (
+            <SpaceBetween size="m">
+              <Alert type="info" header="AWS Credentials Configured">
+                CloudWorkstation is already connected to your AWS account using the configured profile.
+              </Alert>
+              <Box variant="h2">Step 1: AWS Configuration</Box>
+              <Box>
+                CloudWorkstation manages cloud workstations in your AWS account. Your current AWS configuration:
+              </Box>
+              <Container>
+                <ColumnLayout columns={2} variant="text-grid">
+                  <div>
+                    <Box variant="awsui-key-label">AWS Profile</Box>
+                    <Box fontWeight="bold">aws</Box>
+                    <Box variant="small" color="text-body-secondary">
+                      Your AWS credentials profile
+                    </Box>
+                  </div>
+                  <div>
+                    <Box variant="awsui-key-label">Region</Box>
+                    <Box fontWeight="bold">us-west-2</Box>
+                    <Box variant="small" color="text-body-secondary">
+                      Resources will be created here
+                    </Box>
+                  </div>
+                </ColumnLayout>
+              </Container>
+              <Box variant="p" color="text-body-secondary">
+                CloudWorkstation uses your AWS credentials to create and manage cloud workstations.
+                You maintain full control over your resources and costs.
+              </Box>
+            </SpaceBetween>
+          )}
+
+          {/* Step 2: Template Discovery Tour */}
+          {onboardingStep === 1 && (
+            <SpaceBetween size="m">
+              <Box variant="h2">Step 2: Choose Your Research Environment</Box>
+              <Box>
+                CloudWorkstation provides pre-configured templates for different research workflows.
+                Each template includes specialized software, libraries, and tools.
+              </Box>
+              <ColumnLayout columns={2}>
+                <Container header={<Header variant="h3">Popular Templates</Header>}>
+                  <SpaceBetween size="s">
+                    <Box>
+                      <Box variant="strong">Python Machine Learning</Box>
+                      <Box variant="small" color="text-body-secondary">
+                        Python 3, Jupyter, TensorFlow, PyTorch, scikit-learn
+                      </Box>
+                    </Box>
+                    <Box>
+                      <Box variant="strong">R Research Environment</Box>
+                      <Box variant="small" color="text-body-secondary">
+                        R, RStudio Server, tidyverse, statistical packages
+                      </Box>
+                    </Box>
+                    <Box>
+                      <Box variant="strong">Collaborative Workspace</Box>
+                      <Box variant="small" color="text-body-secondary">
+                        Multi-language support with Python, R, Julia
+                      </Box>
+                    </Box>
+                  </SpaceBetween>
+                </Container>
+                <Container header={<Header variant="h3">What's Included</Header>}>
+                  <SpaceBetween size="s">
+                    <Box>✓ Pre-installed software and dependencies</Box>
+                    <Box>✓ Optimized instance sizing for your workload</Box>
+                    <Box>✓ Persistent storage for your data</Box>
+                    <Box>✓ SSH and remote access configured</Box>
+                    <Box>✓ Security best practices applied</Box>
+                  </SpaceBetween>
+                </Container>
+              </ColumnLayout>
+              <Alert type="info">
+                You can browse all available templates in the <strong>Templates</strong> section after completing this tour.
+              </Alert>
+            </SpaceBetween>
+          )}
+
+          {/* Step 3: Launch Your First Instance */}
+          {onboardingStep === 2 && (
+            <SpaceBetween size="m">
+              <Box variant="h2">Step 3: Launch Your First Workstation</Box>
+              <Box>
+                Ready to get started? Here's how to launch your first cloud workstation:
+              </Box>
+              <Container>
+                <SpaceBetween size="m">
+                  <div>
+                    <Box variant="h4">1. Select a Template</Box>
+                    <Box>Choose a template that matches your research needs from the Templates page.</Box>
+                  </div>
+                  <div>
+                    <Box variant="h4">2. Configure Instance</Box>
+                    <Box>Give your workstation a name and select the appropriate size (Small, Medium, Large).</Box>
+                  </div>
+                  <div>
+                    <Box variant="h4">3. Launch & Connect</Box>
+                    <Box>CloudWorkstation creates your instance in minutes. Connect via SSH or web interface when ready.</Box>
+                  </div>
+                </SpaceBetween>
+              </Container>
+              <Alert type="success" header="You're All Set!">
+                After clicking "Get Started", explore the dashboard to see your system status,
+                browse templates, and launch your first cloud workstation.
+              </Alert>
+              <Box variant="p" color="text-body-secondary">
+                💡 <strong>Tip:</strong> Start with a Medium (M) sized instance for most workloads.
+                You can always stop, resize, or terminate instances to manage costs.
+              </Box>
+            </SpaceBetween>
+          )}
+        </SpaceBetween>
+      </Modal>
+    );
+  };
+
   // Main render
   return (
     <>
@@ -2113,6 +5116,54 @@ export default function BulletproofCloudWorkstationApp() {
               { type: "divider" },
               {
                 type: "link",
+                text: "Budget Management",
+                href: "/budget",
+                info: state.budgets.filter(b => b.alert_count > 0).length > 0 ?
+                      <Badge color="red">{state.budgets.filter(b => b.alert_count > 0).length} alerts</Badge> : undefined
+              },
+              {
+                type: "link",
+                text: "AMI Management",
+                href: "/ami",
+                info: <Badge>{state.amis.length} AMIs</Badge>
+              },
+              {
+                type: "link",
+                text: "Rightsizing",
+                href: "/rightsizing",
+                info: state.rightsizingRecommendations.length > 0 ?
+                      <Badge color="green">{state.rightsizingRecommendations.length} recommendations</Badge> : undefined
+              },
+              {
+                type: "link",
+                text: "Policy Framework",
+                href: "/policy",
+                info: state.policyStatus?.enabled ?
+                      <Badge color="green">Enforced</Badge> :
+                      <Badge color="grey">Disabled</Badge>
+              },
+              {
+                type: "link",
+                text: "Template Marketplace",
+                href: "/marketplace",
+                info: state.marketplaceTemplates.length > 0 ?
+                      <Badge color="blue">{state.marketplaceTemplates.length} templates</Badge> : undefined
+              },
+              {
+                type: "link",
+                text: "Idle Detection",
+                href: "/idle",
+                info: state.idlePolicies.filter(p => p.enabled).length > 0 ?
+                      <Badge color="green">{state.idlePolicies.filter(p => p.enabled).length} active</Badge> : undefined
+              },
+              {
+                type: "link",
+                text: "Logs Viewer",
+                href: "/logs"
+              },
+              { type: "divider" },
+              {
+                type: "link",
                 text: "Settings",
                 href: "/settings"
               }
@@ -2138,19 +5189,28 @@ export default function BulletproofCloudWorkstationApp() {
           />
         }
         content={
-          <div>
+          <div id="main-content" role="main">
             {state.activeView === 'dashboard' && <DashboardView />}
             {state.activeView === 'templates' && <TemplateSelectionView />}
             {state.activeView === 'instances' && <InstanceManagementView />}
             {state.activeView === 'storage' && <StorageManagementView />}
             {state.activeView === 'projects' && <ProjectManagementView />}
             {state.activeView === 'users' && <UserManagementView />}
+            {state.activeView === 'budget' && <BudgetManagementView />}
+            {state.activeView === 'ami' && <AMIManagementView />}
+            {state.activeView === 'rightsizing' && <RightsizingView />}
+            {state.activeView === 'policy' && <PolicyView />}
+            {state.activeView === 'marketplace' && <MarketplaceView />}
+            {state.activeView === 'idle' && <IdleDetectionView />}
+            {state.activeView === 'logs' && <LogsView />}
             {state.activeView === 'settings' && <SettingsView />}
           </div>
         }
         toolsHide
       />
       <LaunchModal />
+      <DeleteConfirmationModal />
+      <OnboardingWizard />
     </>
   );
 }

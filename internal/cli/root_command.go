@@ -448,10 +448,19 @@ func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
 		Use:   "list",
 		Short: "List workstations",
 		Long:  `List all your cloud workstations and their status.`,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Get flag value and prepend to args for App.List() to parse
+			detailed, _ := cmd.Flags().GetBool("detailed")
+			if detailed {
+				args = append([]string{"--detailed"}, args...)
+			}
 			return r.app.List(args)
 		},
 	}
+
+	// Add flags
+	listCmd.Flags().BoolP("detailed", "d", false, "Show detailed information including region and availability zone")
+
 	listCostCmd := &cobra.Command{
 		Use:   "cost",
 		Short: "Show detailed cost information",

@@ -570,6 +570,10 @@ func TestDaemonConfigRetentionValues(t *testing.T) {
 
 // TestWaitForDaemonAndVerifyVersion tests daemon startup verification
 func TestWaitForDaemonAndVerifyVersion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping daemon timeout test in short mode")
+	}
+
 	tests := []struct {
 		name        string
 		setupMock   func(*MockAPIClient)

@@ -20,6 +20,7 @@ var utilsBundle_exports = {};
 __export(utilsBundle_exports, {
   HttpsProxyAgent: () => HttpsProxyAgent,
   PNG: () => PNG,
+  ProgramOption: () => ProgramOption,
   SocksProxyAgent: () => SocksProxyAgent,
   colors: () => colors,
   debug: () => debug,
@@ -54,6 +55,7 @@ const minimatch = require("./utilsBundleImpl").minimatch;
 const open = require("./utilsBundleImpl").open;
 const PNG = require("./utilsBundleImpl").PNG;
 const program = require("./utilsBundleImpl").program;
+const ProgramOption = require("./utilsBundleImpl").ProgramOption;
 const progress = require("./utilsBundleImpl").progress;
 const SocksProxyAgent = require("./utilsBundleImpl").SocksProxyAgent;
 const yaml = require("./utilsBundleImpl").yaml;
@@ -84,6 +86,7 @@ function ms(ms2) {
 0 && (module.exports = {
   HttpsProxyAgent,
   PNG,
+  ProgramOption,
   SocksProxyAgent,
   colors,
   debug,

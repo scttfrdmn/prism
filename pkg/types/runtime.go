@@ -52,6 +52,8 @@ type Instance struct {
 	ID                 string                  `json:"id"`
 	Name               string                  `json:"name"`
 	Template           string                  `json:"template"`
+	Region             string                  `json:"region"`            // AWS region where instance is running
+	AvailabilityZone   string                  `json:"availability_zone"` // AWS availability zone within region
 	PublicIP           string                  `json:"public_ip"`
 	PrivateIP          string                  `json:"private_ip"`
 	State              string                  `json:"state"`

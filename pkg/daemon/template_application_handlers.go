@@ -284,7 +284,11 @@ func (s *Server) createRemoteExecutor(instance types.Instance) (templates.Remote
 		// Use Systems Manager for private instances
 		region := s.getAWSRegion()
 
-		return templates.NewSystemsManagerExecutor(region), nil
+		// Design Note: SSM executor created with nil clients for file operations (CopyFile/GetFile)
+		// Command execution (Execute/ExecuteScript) uses awsManager's SSM client instead
+		// This separation keeps the executor lightweight while delegating AWS operations to awsManager
+		// File operations (CopyFile/GetFile) not currently used; can be implemented when needed
+		return templates.NewSystemsManagerExecutor(region, nil, nil, "", s.stateManager), nil
 	}
 }
 

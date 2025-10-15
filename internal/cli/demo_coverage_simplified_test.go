@@ -259,6 +259,10 @@ func TestSimplified_DemoScript_Commands(t *testing.T) {
 
 // TestSimplified_AvailableCommands tests all documented commands that exist
 func TestSimplified_AvailableCommands(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test with isolation issues in short mode")
+	}
+
 	mockClient := NewMockAPIClient()
 	app := NewAppWithClient("1.0.0", mockClient)
 

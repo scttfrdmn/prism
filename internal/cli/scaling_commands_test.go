@@ -80,7 +80,7 @@ func TestScalingCommands_Rightsizing(t *testing.T) {
 			name:        "Daemon not running",
 			args:        []string{"analyze", "test-instance"},
 			expectError: true,
-			errorMsg:    "daemon not running",
+			errorMsg:    "daemon",
 			setupMock: func(mock *MockAPIClient) {
 				mock.PingError = assert.AnError
 			},

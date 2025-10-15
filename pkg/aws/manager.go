@@ -53,6 +53,9 @@ type Manager struct {
 
 	// Universal AMI System components (Phase 5.1)
 	amiResolver *UniversalAMIResolver
+
+	// Architecture cache for instance types
+	architectureCache map[string]string // instance_type -> architecture
 }
 
 // ManagerOptions contains optional parameters for creating a new Manager
@@ -110,18 +113,19 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 
 	// Create manager first (needed for adapter)
 	manager := &Manager{
-		cfg:             cfg,
-		ec2:             ec2Client,
-		efs:             efsClient,
-		ssm:             ssmClient,
-		sts:             stsClient,
-		region:          region,
-		templates:       getTemplates(),
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  ctypes.DiscountConfig{}, // No discounts by default
-		stateManager:    stateManager,
-		amiResolver:     amiResolver,
+		cfg:               cfg,
+		ec2:               ec2Client,
+		efs:               efsClient,
+		ssm:               ssmClient,
+		sts:               stsClient,
+		region:            region,
+		templates:         getTemplates(),
+		pricingCache:      make(map[string]float64),
+		lastPriceUpdate:   time.Time{},
+		discountConfig:    ctypes.DiscountConfig{}, // No discounts by default
+		stateManager:      stateManager,
+		amiResolver:       amiResolver,
+		architectureCache: make(map[string]string), // Initialize architecture cache
 	}
 
 	// Initialize hibernation components with adapter to break circular dependency
@@ -196,10 +200,40 @@ func (m *Manager) GetTemplate(name string) (*ctypes.Template, error) {
 
 // LaunchInstance launches a new EC2 instance
 func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, error) {
-	// Detect architecture (use local for now, could be part of request)
-	arch := m.getLocalArchitecture()
+	// ARCHITECTURE FIX: Determine instance type first, then query its architecture
+	// This fixes the critical bug where local machine architecture was used to select AMIs
 
-	// Always use unified template system with inheritance support
+	// Step 1: Get template to determine what instance type will be used
+	// We need to know the instance type before we can determine architecture
+	rawTemplate, err := templates.GetTemplateInfo(req.Template)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template info: %w", err)
+	}
+
+	// Step 2: Determine which instance type will be used
+	var instanceType string
+	if req.Size != "" {
+		// User specified size, map it to instance type
+		instanceType = m.getInstanceTypeForSize(req.Size)
+	} else if rawTemplate.InstanceDefaults.Type != "" {
+		// Use template's default instance type
+		instanceType = rawTemplate.InstanceDefaults.Type
+	} else {
+		// Ultimate fallback
+		instanceType = "t3.micro"
+	}
+
+	// Step 3: Query AWS for this instance type's architecture
+	arch, err := m.getInstanceTypeArchitecture(instanceType)
+	if err != nil {
+		// This shouldn't fail due to fallbacks in getInstanceTypeArchitecture
+		log.Printf("Warning: Failed to get architecture for instance type %s: %v", instanceType, err)
+		arch = "x86_64" // Safe fallback
+	}
+
+	log.Printf("Instance type %s supports architecture: %s", instanceType, arch)
+
+	// Step 4: Now launch with the correct architecture
 	return m.launchWithUnifiedTemplateSystem(req, arch)
 }
 
@@ -251,7 +285,7 @@ type NetworkingResolver struct {
 }
 
 // ResolveNetworking determines VPC, subnet, and security group for launch
-func (n *NetworkingResolver) ResolveNetworking(req ctypes.LaunchRequest) (string, string, string, error) {
+func (n *NetworkingResolver) ResolveNetworking(req ctypes.LaunchRequest, instanceType string) (string, string, string, error) {
 	var vpcID, subnetID string
 
 	if req.VpcID != "" {
@@ -267,7 +301,8 @@ func (n *NetworkingResolver) ResolveNetworking(req ctypes.LaunchRequest) (string
 	if req.SubnetID != "" {
 		subnetID = req.SubnetID
 	} else {
-		discoveredSubnet, err := n.manager.DiscoverPublicSubnet(vpcID)
+		// Discover subnet that supports the instance type
+		discoveredSubnet, err := n.manager.DiscoverPublicSubnetForInstanceType(vpcID, instanceType)
 		if err != nil {
 			return "", "", "", fmt.Errorf("failed to discover subnet: %w\n\n🏗️  To fix this issue:\n  1. Create a public subnet in your VPC\n  2. Or specify a subnet: cws launch %s %s --subnet subnet-xxxxxxxxx", err, req.Template, req.Name)
 		}
@@ -300,9 +335,8 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 		UserData:         &userDataEncoded,
 		SubnetId:         aws.String(subnetID),
 		SecurityGroupIds: []string{securityGroupID},
-		IamInstanceProfile: &ec2types.IamInstanceProfileSpecification{
-			Name: aws.String("CloudWorkstation-Instance-Profile"),
-		},
+		// IAM Instance Profile is optional - only add if it exists
+		// This makes onboarding painless for new users
 		TagSpecifications: []ec2types.TagSpecification{
 			{
 				ResourceType: ec2types.ResourceTypeInstance,
@@ -320,6 +354,17 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 	// Add SSH key pair if provided
 	if req.SSHKeyName != "" {
 		runInput.KeyName = aws.String(req.SSHKeyName)
+	}
+
+	// Optionally add IAM instance profile if it exists
+	// This enables SSM access for advanced features while not blocking new users
+	if b.manager.checkIAMInstanceProfileExists("CloudWorkstation-Instance-Profile") {
+		runInput.IamInstanceProfile = &ec2types.IamInstanceProfileSpecification{
+			Name: aws.String("CloudWorkstation-Instance-Profile"),
+		}
+		log.Printf("Using IAM instance profile for SSM access")
+	} else {
+		log.Printf("IAM instance profile not found - launching without it (SSM features will be unavailable)")
 	}
 
 	return runInput, nil
@@ -385,6 +430,7 @@ func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInp
 // InstanceLauncher executes the actual instance launch (Single Responsibility - SOLID)
 type InstanceLauncher struct {
 	manager *Manager
+	region  string
 }
 
 // LaunchInstance executes EC2 instance launch and returns result
@@ -394,6 +440,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		return &ctypes.Instance{
 			Name:          req.Name,
 			Template:      req.Template,
+			Region:        l.region,
 			State:         "dry-run",
 			HourlyRate:    hourlyRate,
 			CurrentSpend:  0.0,
@@ -412,6 +459,12 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	instanceType := string(instance.InstanceType)
 	launchTime := time.Now()
 
+	// Get availability zone from placement
+	availabilityZone := ""
+	if instance.Placement != nil && instance.Placement.AvailabilityZone != nil {
+		availabilityZone = *instance.Placement.AvailabilityZone
+	}
+
 	// Calculate storage costs that persist even when stopped/hibernated
 	storageCostPerHour := calculateStorageCosts(req.Volumes, req.EBSVolumes)
 
@@ -419,6 +472,8 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		ID:                 *instance.InstanceId,
 		Name:               req.Name,
 		Template:           req.Template,
+		Region:             l.region, // Store region for proper instance management
+		AvailabilityZone:   availabilityZone,
 		State:              string(instance.State.Name),
 		InstanceType:       instanceType,
 		LaunchTime:         launchTime,
@@ -448,7 +503,7 @@ func NewLaunchOrchestrator(manager *Manager, region string) *LaunchOrchestrator 
 		networkingResolver: &NetworkingResolver{manager: manager},
 		configBuilder:      &InstanceConfigBuilder{manager: manager},
 		optionsProcessor:   &LaunchOptionsProcessor{manager: manager},
-		instanceLauncher:   &InstanceLauncher{manager: manager},
+		instanceLauncher:   &InstanceLauncher{manager: manager, region: region},
 	}
 }
 
@@ -463,8 +518,8 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 	// Process user data
 	userDataEncoded := o.userDataProcessor.ProcessUserData(template, req)
 
-	// Resolve networking
-	_, subnetID, securityGroupID, err := o.networkingResolver.ResolveNetworking(req)
+	// Resolve networking (pass instance type for AZ compatibility check)
+	_, subnetID, securityGroupID, err := o.networkingResolver.ResolveNetworking(req, instanceType)
 	if err != nil {
 		return nil, err
 	}
@@ -537,15 +592,24 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 
 // DeleteInstance terminates an EC2 instance
 func (m *Manager) DeleteInstance(name string) error {
+	// Get instance region
+	region, err := m.getInstanceRegion(name)
+	if err != nil {
+		return fmt.Errorf("failed to get instance region: %w", err)
+	}
+
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	// Get regional EC2 client
+	regionalClient := m.getRegionalEC2Client(region)
+
 	// Terminate the instance
 	ctx := context.Background()
-	_, err = m.ec2.TerminateInstances(ctx, &ec2.TerminateInstancesInput{
+	_, err = regionalClient.TerminateInstances(ctx, &ec2.TerminateInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -557,15 +621,24 @@ func (m *Manager) DeleteInstance(name string) error {
 
 // StartInstance starts a stopped EC2 instance
 func (m *Manager) StartInstance(name string) error {
+	// Get instance region
+	region, err := m.getInstanceRegion(name)
+	if err != nil {
+		return fmt.Errorf("failed to get instance region: %w", err)
+	}
+
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	// Get regional EC2 client
+	regionalClient := m.getRegionalEC2Client(region)
+
 	// Start the instance
 	ctx := context.Background()
-	_, err = m.ec2.StartInstances(ctx, &ec2.StartInstancesInput{
+	_, err = regionalClient.StartInstances(ctx, &ec2.StartInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -577,15 +650,24 @@ func (m *Manager) StartInstance(name string) error {
 
 // StopInstance stops a running EC2 instance
 func (m *Manager) StopInstance(name string) error {
+	// Get instance region
+	region, err := m.getInstanceRegion(name)
+	if err != nil {
+		return fmt.Errorf("failed to get instance region: %w", err)
+	}
+
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	// Get regional EC2 client
+	regionalClient := m.getRegionalEC2Client(region)
+
 	ctx := context.Background()
 	// Stop the instance
-	_, err = m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
+	_, err = regionalClient.StopInstances(ctx, &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -598,15 +680,24 @@ func (m *Manager) StopInstance(name string) error {
 // HibernateInstance hibernates (pauses) a running EC2 instance
 // This preserves the RAM state to storage for faster resume than regular stop/start
 func (m *Manager) HibernateInstance(name string) error {
+	// Get instance region
+	region, err := m.getInstanceRegion(name)
+	if err != nil {
+		return fmt.Errorf("failed to get instance region: %w", err)
+	}
+
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	// Get regional EC2 client
+	regionalClient := m.getRegionalEC2Client(region)
+
 	ctx := context.Background()
 	// Check if instance supports hibernation
-	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -658,7 +749,7 @@ func (m *Manager) HibernateInstance(name string) error {
 	}
 
 	// Stop the instance with hibernation
-	_, err = m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
+	_, err = regionalClient.StopInstances(ctx, &ec2.StopInstancesInput{
 		InstanceIds: []string{instanceID},
 		Hibernate:   aws.Bool(true), // This enables hibernation
 	})
@@ -677,15 +768,24 @@ func (m *Manager) ResumeInstance(name string) error {
 
 // GetInstanceHibernationStatus returns hibernation support, current state, and whether it might be hibernated
 func (m *Manager) GetInstanceHibernationStatus(name string) (bool, string, bool, error) {
+	// Get instance region
+	region, err := m.getInstanceRegion(name)
+	if err != nil {
+		return false, "", false, fmt.Errorf("failed to get instance region: %w", err)
+	}
+
 	// Find instance by name tag
 	instanceID, err := m.findInstanceByName(name)
 	if err != nil {
 		return false, "", false, fmt.Errorf("failed to find instance: %w", err)
 	}
 
+	// Get regional EC2 client
+	regionalClient := m.getRegionalEC2Client(region)
+
 	ctx := context.Background()
 	// Get instance details
-	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
@@ -1388,7 +1488,91 @@ func (m *Manager) DetachStorage(volumeName string) error {
 
 // Helper functions
 
+// getInstanceTypeArchitecture queries AWS to determine the architecture of an instance type
+// This ensures AMI architecture matches the actual instance type being launched
+func (m *Manager) getInstanceTypeArchitecture(instanceType string) (string, error) {
+	// Check cache first
+	if arch, exists := m.architectureCache[instanceType]; exists {
+		return arch, nil
+	}
+
+	// Query AWS for instance type details
+	ctx := context.Background()
+	input := &ec2.DescribeInstanceTypesInput{
+		InstanceTypes: []ec2types.InstanceType{
+			ec2types.InstanceType(instanceType),
+		},
+	}
+
+	result, err := m.ec2.DescribeInstanceTypes(ctx, input)
+	if err != nil {
+		// Fallback to x86_64 on error (most widely available)
+		log.Printf("Warning: Could not query instance type %s architecture, defaulting to x86_64: %v", instanceType, err)
+		return "x86_64", nil
+	}
+
+	if len(result.InstanceTypes) == 0 {
+		// Instance type not found, default to x86_64
+		log.Printf("Warning: Instance type %s not found, defaulting to x86_64", instanceType)
+		return "x86_64", nil
+	}
+
+	// Extract architectures supported by this instance type
+	instanceTypeInfo := result.InstanceTypes[0]
+	if len(instanceTypeInfo.ProcessorInfo.SupportedArchitectures) == 0 {
+		// No architecture info, default to x86_64
+		log.Printf("Warning: No architecture info for instance type %s, defaulting to x86_64", instanceType)
+		return "x86_64", nil
+	}
+
+	// Get the first supported architecture (most instance types support only one)
+	arch := string(instanceTypeInfo.ProcessorInfo.SupportedArchitectures[0])
+
+	// Normalize architecture names to match AMI conventions
+	normalizedArch := arch
+	if arch == "x86_64_mac" {
+		normalizedArch = "x86_64"
+	}
+
+	// Cache the result
+	m.architectureCache[instanceType] = normalizedArch
+
+	return normalizedArch, nil
+}
+
+// checkIAMInstanceProfileExists checks if an IAM instance profile exists
+// Returns true if it exists, false otherwise (doesn't error - just checks)
+func (m *Manager) checkIAMInstanceProfileExists(profileName string) bool {
+	// Design Decision: Always return false for painless onboarding
+	// This allows CloudWorkstation to work without requiring IAM instance profiles
+	// If IAM checks become critical in the future, add IAM client and implement proper verification
+	// Current behavior: Templates specify IAM profiles but they're optional
+	return false
+}
+
+// getInstanceTypeForSize maps size strings to default instance types
+func (m *Manager) getInstanceTypeForSize(size string) string {
+	// Map sizes to reasonable default x86_64 instance types
+	// These are widely available across all regions
+	sizeMap := map[string]string{
+		"XS": "t3.micro",  // 1 vCPU, 2GB RAM
+		"S":  "t3.small",  // 2 vCPU, 4GB RAM
+		"M":  "t3.medium", // 2 vCPU, 8GB RAM
+		"L":  "t3.large",  // 4 vCPU, 16GB RAM
+		"XL": "t3.xlarge", // 8 vCPU, 32GB RAM
+	}
+
+	if instanceType, exists := sizeMap[size]; exists {
+		return instanceType
+	}
+
+	// Default fallback
+	return "t3.micro"
+}
+
 // getLocalArchitecture detects the local system architecture
+// DEPRECATED: Use getInstanceTypeArchitecture instead for cloud instance launches
+// This method should only be used for local system detection, not for selecting cloud AMIs
 func (m *Manager) getLocalArchitecture() string {
 	arch := runtime.GOARCH
 	switch arch {
@@ -1462,10 +1646,72 @@ chown -R ubuntu:ubuntu /mnt/%s
 	return originalUserData + efsMount
 }
 
+// getRegionalEC2Client creates an EC2 client for the specified region
+// Reuses the existing client if region matches, creates new client otherwise
+func (m *Manager) getRegionalEC2Client(region string) EC2ClientInterface {
+	if region == m.region || region == "" {
+		return m.ec2
+	}
+	regionalCfg := m.cfg.Copy()
+	regionalCfg.Region = region
+	return ec2.NewFromConfig(regionalCfg)
+}
+
+// getInstanceRegion looks up the region for an instance from state
+func (m *Manager) getInstanceRegion(name string) (string, error) {
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return "", fmt.Errorf("failed to load state: %w", err)
+	}
+
+	for _, inst := range state.Instances {
+		if inst.Name == name {
+			if inst.Region != "" {
+				return inst.Region, nil
+			}
+			break
+		}
+	}
+
+	// Default to manager's region
+	return m.region, nil
+}
+
 // findInstanceByName finds an EC2 instance by its Name tag
 func (m *Manager) findInstanceByName(name string) (string, error) {
+	// Load state to get the instance's region
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return "", fmt.Errorf("failed to load state: %w", err)
+	}
+
+	// Find instance in state to get its region
+	var instanceRegion string
+	for _, inst := range state.Instances {
+		if inst.Name == name {
+			instanceRegion = inst.Region
+			break
+		}
+	}
+
+	// Default to manager's region if not found in state
+	if instanceRegion == "" {
+		instanceRegion = m.region
+	}
+
+	// Create EC2 client for the instance's region
+	var regionalClient EC2ClientInterface
+	if instanceRegion == m.region {
+		regionalClient = m.ec2
+	} else {
+		regionalCfg := m.cfg.Copy()
+		regionalCfg.Region = instanceRegion
+		regionalClient = ec2.NewFromConfig(regionalCfg)
+	}
+
+	// Query the instance in its region
 	ctx := context.Background()
-	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:Name"),
@@ -1482,7 +1728,7 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 		},
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to describe instances: %w", err)
+		return "", fmt.Errorf("failed to describe instances in region %s: %w", instanceRegion, err)
 	}
 
 	for _, reservation := range result.Reservations {
@@ -1491,7 +1737,7 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("instance '%s' not found", name)
+	return "", fmt.Errorf("instance '%s' not found in region %s", name, instanceRegion)
 }
 
 // StateLoader loads local state for instance merging (Single Responsibility - SOLID)
@@ -1590,6 +1836,12 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		publicIP = *ec2Instance.PublicIpAddress
 	}
 
+	// Get availability zone
+	availabilityZone := ""
+	if ec2Instance.Placement != nil && ec2Instance.Placement.AvailabilityZone != nil {
+		availabilityZone = *ec2Instance.Placement.AvailabilityZone
+	}
+
 	// Determine instance lifecycle
 	instanceLifecycle := "on-demand"
 	if string(ec2Instance.InstanceLifecycle) == "spot" {
@@ -1612,6 +1864,7 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		Template:          template,
 		State:             state,
 		PublicIP:          publicIP,
+		AvailabilityZone:  availabilityZone,
 		ProjectID:         project,
 		InstanceLifecycle: instanceLifecycle,
 		LaunchTime:        *ec2Instance.LaunchTime,
@@ -1661,27 +1914,105 @@ func (p *InstanceListProcessor) ProcessReservations(reservations []ec2types.Rese
 	return instances
 }
 
-// ListInstances returns all CloudWorkstation instances using Strategy Pattern (SOLID: Single Responsibility)
-func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
+// GetInstance retrieves real-time information for a specific instance from AWS
+func (m *Manager) GetInstance(instanceID string) (*ctypes.Instance, error) {
 	ctx := context.Background()
+
+	// Query AWS for this specific instance
 	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-		Filters: []ec2types.Filter{
-			{
-				Name:   aws.String("tag:CloudWorkstation"),
-				Values: []string{"true"},
-			},
-			{
-				Name:   aws.String("instance-state-name"),
-				Values: []string{"pending", instanceStateRunning, "shutting-down", "stopping", instanceStateStopped, "terminating", "terminated"},
-			},
-		},
+		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to describe instances: %w", err)
+		return nil, fmt.Errorf("failed to describe instance %s: %w", instanceID, err)
 	}
 
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return nil, fmt.Errorf("instance %s not found", instanceID)
+	}
+
+	// Process the single instance
 	processor := NewInstanceListProcessor(m.ec2)
-	return processor.ProcessReservations(result.Reservations), nil
+	instances := processor.ProcessReservations(result.Reservations)
+
+	if len(instances) == 0 {
+		return nil, fmt.Errorf("failed to process instance %s", instanceID)
+	}
+
+	return &instances[0], nil
+}
+
+// ListInstances returns all CloudWorkstation instances using Strategy Pattern (SOLID: Single Responsibility)
+func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
+	// Load state to get all instances and their regions
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+
+	// Collect unique regions from saved instances
+	regionsMap := make(map[string]bool)
+	for _, instance := range state.Instances {
+		if instance.Region != "" {
+			regionsMap[instance.Region] = true
+		}
+	}
+
+	// If no instances or no regions saved, use default region
+	if len(regionsMap) == 0 {
+		regionsMap[m.region] = true
+	}
+
+	// Query each region and collect results
+	var allInstances []ctypes.Instance
+	ctx := context.Background()
+
+	for region := range regionsMap {
+		// Create EC2 client for this specific region
+		var regionalClient EC2ClientInterface
+		if region == m.region {
+			// Use existing client for default region
+			regionalClient = m.ec2
+		} else {
+			// Create temporary client for other regions
+			regionalCfg := m.cfg.Copy()
+			regionalCfg.Region = region
+			regionalClient = ec2.NewFromConfig(regionalCfg)
+		}
+
+		// Query instances in this region
+		result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+			Filters: []ec2types.Filter{
+				{
+					Name:   aws.String("tag:CloudWorkstation"),
+					Values: []string{"true"},
+				},
+				{
+					Name:   aws.String("instance-state-name"),
+					Values: []string{"pending", instanceStateRunning, "shutting-down", "stopping", instanceStateStopped, "terminating", "terminated"},
+				},
+			},
+		})
+		if err != nil {
+			// Log error but continue with other regions
+			log.Printf("Warning: Failed to query instances in region %s: %v", region, err)
+			continue
+		}
+
+		// Process instances from this region
+		processor := NewInstanceListProcessor(regionalClient)
+		regionalInstances := processor.ProcessReservations(result.Reservations)
+
+		// Ensure each instance has the region set
+		for i := range regionalInstances {
+			if regionalInstances[i].Region == "" {
+				regionalInstances[i].Region = region
+			}
+		}
+
+		allInstances = append(allInstances, regionalInstances...)
+	}
+
+	return allInstances, nil
 }
 
 // parseSizeToGB converts t-shirt sizes to GB
@@ -2272,6 +2603,81 @@ func (m *Manager) DiscoverDefaultVPC() (string, error) {
 }
 
 // DiscoverPublicSubnet finds a public subnet in the specified VPC
+// DiscoverPublicSubnetForInstanceType finds a public subnet that supports the specified instance type
+// This prevents launch failures due to instance type not being available in a randomly selected AZ
+func (m *Manager) DiscoverPublicSubnetForInstanceType(vpcID, instanceType string) (string, error) {
+	ctx := context.Background()
+
+	// Get all subnets in the VPC
+	result, err := m.ec2.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []string{vpcID},
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to describe subnets in VPC %s: %w", vpcID, err)
+	}
+
+	if len(result.Subnets) == 0 {
+		return "", fmt.Errorf("no subnets found in VPC %s", vpcID)
+	}
+
+	// Get availability zones that support this instance type
+	offeringsResult, err := m.ec2.DescribeInstanceTypeOfferings(ctx, &ec2.DescribeInstanceTypeOfferingsInput{
+		LocationType: ec2types.LocationTypeAvailabilityZone,
+		Filters: []ec2types.Filter{
+			{
+				Name:   aws.String("instance-type"),
+				Values: []string{instanceType},
+			},
+		},
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to check instance type availability, will try first public subnet: %v", err)
+		// Fallback to old behavior
+		return m.DiscoverPublicSubnet(vpcID)
+	}
+
+	// Build map of AZs that support this instance type
+	supportedAZs := make(map[string]bool)
+	for _, offering := range offeringsResult.InstanceTypeOfferings {
+		if offering.Location != nil {
+			supportedAZs[*offering.Location] = true
+		}
+	}
+
+	// Find a public subnet in a supported AZ
+	for _, subnet := range result.Subnets {
+		// Check if subnet's AZ supports the instance type
+		if subnet.AvailabilityZone != nil && supportedAZs[*subnet.AvailabilityZone] {
+			// Check if subnet is public
+			isPublic, err := m.isSubnetPublic(*subnet.SubnetId)
+			if err != nil {
+				continue // Skip this subnet on error
+			}
+			if isPublic {
+				log.Printf("Selected subnet %s in AZ %s (supports %s)", *subnet.SubnetId, *subnet.AvailabilityZone, instanceType)
+				return *subnet.SubnetId, nil
+			}
+		}
+	}
+
+	// If no public subnet found in supported AZ, try any subnet in supported AZ
+	// (handles cases where route table detection fails)
+	for _, subnet := range result.Subnets {
+		if subnet.AvailabilityZone != nil && supportedAZs[*subnet.AvailabilityZone] {
+			log.Printf("Selected subnet %s in AZ %s (supports %s, assuming public)", *subnet.SubnetId, *subnet.AvailabilityZone, instanceType)
+			return *subnet.SubnetId, nil
+		}
+	}
+
+	return "", fmt.Errorf("no subnet found that supports instance type %s in VPC %s", instanceType, vpcID)
+}
+
+// DiscoverPublicSubnet finds a public subnet (legacy method, kept for fallback)
 func (m *Manager) DiscoverPublicSubnet(vpcID string) (string, error) {
 	ctx := context.Background()
 	// Get all subnets in the VPC

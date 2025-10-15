@@ -278,6 +278,9 @@ func (c *HTTPClient) ResumeInstance(ctx context.Context, name string) error {
 func (c *HTTPClient) GetInstanceHibernationStatus(ctx context.Context, name string) (*types.HibernationStatus, error) {
 	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/instances/%s/hibernation-status", name), nil)
 	if err != nil {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
 		return nil, err
 	}
 
@@ -293,6 +296,9 @@ func (c *HTTPClient) GetInstanceHibernationStatus(ctx context.Context, name stri
 func (c *HTTPClient) DeleteInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/instances/%s", name), nil)
 	if err != nil {
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
 		return err
 	}
 	return c.handleResponse(resp, nil)

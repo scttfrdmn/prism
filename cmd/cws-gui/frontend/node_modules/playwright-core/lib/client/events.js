@@ -45,6 +45,7 @@ const Events = {
     // @see https://nodejs.org/api/events.html#events_error_events
     WebError: "weberror",
     BackgroundPage: "backgroundpage",
+    // Deprecated in v1.56, never emitted anymore.
     ServiceWorker: "serviceworker",
     Request: "request",
     Response: "response",

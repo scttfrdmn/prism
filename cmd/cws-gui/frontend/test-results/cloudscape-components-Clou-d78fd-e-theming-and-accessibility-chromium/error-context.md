@@ -1,0 +1,153 @@
+# Page snapshot
+
+```yaml
+- main:
+  - navigation:
+    - button
+    - heading "CloudWorkstation" [level=2]:
+      - link "CloudWorkstation":
+        - /url: /
+    - list:
+      - listitem:
+        - link "Dashboard":
+          - /url: /dashboard
+    - separator
+    - list:
+      - listitem:
+        - link "Research Templates":
+          - /url: /templates
+        - text: "27"
+      - listitem:
+        - link "My Instances":
+          - /url: /instances
+    - separator
+    - list:
+      - listitem:
+        - link "Storage":
+          - /url: /storage
+      - listitem:
+        - link "Projects":
+          - /url: /projects
+      - listitem:
+        - link "Users":
+          - /url: /users
+    - separator
+    - list:
+      - listitem:
+        - link "Budget Management":
+          - /url: /budget
+      - listitem:
+        - link "AMI Management":
+          - /url: /ami
+        - text: 0 AMIs
+      - listitem:
+        - link "Rightsizing":
+          - /url: /rightsizing
+      - listitem:
+        - link "Policy Framework":
+          - /url: /policy
+        - text: Enforced
+      - listitem:
+        - link "Template Marketplace":
+          - /url: /marketplace
+        - text: 3 templates
+      - listitem:
+        - link "Idle Detection":
+          - /url: /idle
+      - listitem:
+        - link "Logs Viewer":
+          - /url: /logs
+    - separator
+    - list:
+      - listitem:
+        - link "Settings":
+          - /url: /settings
+  - region:
+    - list
+  - heading "Research Templates (27 templates)" [level=1]
+  - button "Refresh"
+  - button "Launch Selected" [disabled]
+  - paragraph: 27 pre-configured research environments ready to launch
+  - heading "AWS Deep Learning AMI (AMI)" [level=3]
+  - text: Pre-built AWS Deep Learning AMI with PyTorch, TensorFlow, and CUDA drivers
+  - button "Launch Template"
+  - heading "Amazon Linux 2023 (AMI)" [level=3]
+  - text: Latest Amazon Linux 2023 AMI with AWS CLI and development tools pre-installed
+  - button "Launch Template"
+  - heading "Basic Research (DNF)" [level=3]
+  - text: Ubuntu environment configured with DNF-style packages for RHEL compatibility testing
+  - button "Launch Template"
+  - heading "Basic Ubuntu (APT)" [level=3]
+  - text: Minimal Ubuntu environment with essential development tools using APT package manager
+  - button "Launch Template"
+  - heading "Collaborative Research Workspace" [level=3]
+  - text: Multi-language collaborative environment optimized for team research projects
+  - button "Launch Template"
+  - heading "Configurable Python ML Environment" [level=3]
+  - text: Python ML environment with configurable Python version, ML frameworks, and compute resources
+  - button "Launch Template"
+  - heading "Debug Template" [level=3]
+  - text: Simple template for debugging UserData
+  - button "Launch Template"
+  - heading "Idle Detection Test" [level=3]
+  - text: Template for testing idle detection with proper UserData deployment
+  - button "Launch Template"
+  - heading "Jupyter Data Science Lab" [level=3]
+  - text: Complete data science environment with Jupyter web interface
+  - button "Launch Template"
+  - heading "Python ML (Headless)" [level=3]
+  - text: Headless Python machine learning environment optimized for automation
+  - button "Launch Template"
+  - heading "Python ML Research (Research User Enabled)" [level=3]
+  - text: Python + Jupyter + ML packages with integrated research user management
+  - button "Launch Template"
+  - heading "Python Machine Learning (Simplified)" [level=3]
+  - text: Python + Jupyter + ML packages using simplified template system
+  - button "Launch Template"
+  - heading "R Research Environment (Research User Enabled)" [level=3]
+  - text: Complete R statistical analysis environment with research user management
+  - button "Launch Template"
+  - heading "R Research Environment (Simplified)" [level=3]
+  - text: R + RStudio Server + tidyverse packages using simplified template system
+  - button "Launch Template"
+  - heading "RStudio Server Research Environment" [level=3]
+  - text: Complete R research environment with RStudio Server web interface
+  - button "Launch Template"
+  - heading "Research Server (DNF)" [level=3]
+  - text: Ubuntu environment configured with DNF for research server development and testing
+  - button "Launch Template"
+  - heading "Rocky Linux 9 + Conda Stack" [level=3]
+  - text: Rocky Linux 9 base with Conda data science stack - demonstrates template stacking
+  - button "Launch Template"
+  - heading "Rocky Linux 9 Base" [level=3]
+  - text: Base Rocky Linux 9 environment with essential system tools
+  - button "Launch Template"
+  - heading "Test Auto-Detection" [level=3]
+  - text: Template without explicit connection type for testing auto-detection
+  - button "Launch Template"
+  - heading "Test Desktop Environment (DCV)" [level=3]
+  - text: Simple desktop template for testing NICE DCV connections
+  - button "Launch Template"
+  - heading "Test Headless Server (SSH)" [level=3]
+  - text: Simple headless template for testing SSH terminal connections
+  - button "Launch Template"
+  - heading "Test Parameters" [level=3]
+  - text: Simple template to test parameter functionality
+  - button "Launch Template"
+  - heading "Test Streamlit App (Web)" [level=3]
+  - text: Simple web app template for testing web interface connections
+  - button "Launch Template"
+  - heading "Ubuntu Data Science Workstation" [level=3]
+  - text: Complete data science environment with both GUI and headless capabilities
+  - button "Launch Template"
+  - heading "Ubuntu Desktop (GUI Only)" [level=3]
+  - text: Full Ubuntu desktop environment for graphical applications
+  - button "Launch Template"
+  - heading "Ultimate Research Workstation" [level=3]
+  - text: Complete research environment supporting all connection methods
+  - button "Launch Template"
+  - heading "Web Development (APT)" [level=3]
+  - text: Full-stack web development environment with Node.js, Docker, and essential tools using APT
+  - button "Launch Template"
+- text: Instance name is required
+```

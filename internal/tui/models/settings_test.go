@@ -163,6 +163,74 @@ func (m *mockAPIClientSettings) GetStatus(ctx context.Context) (*api.SystemStatu
 	return &api.SystemStatusResponse{}, nil
 }
 
+func (m *mockAPIClientSettings) ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error) {
+	return &api.ListProjectsResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error) {
+	return &api.PolicyStatusResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error) {
+	return &api.ListPolicySetsResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) AssignPolicySet(ctx context.Context, policySetID string) error {
+	return nil
+}
+
+func (m *mockAPIClientSettings) SetPolicyEnforcement(ctx context.Context, enabled bool) error {
+	return nil
+}
+
+func (m *mockAPIClientSettings) CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error) {
+	return &api.TemplateAccessResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error) {
+	return &api.ListMarketplaceTemplatesResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error) {
+	return &api.ListCategoriesResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error) {
+	return &api.ListRegistriesResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) InstallMarketplaceTemplate(ctx context.Context, templateName string) error {
+	return nil
+}
+
+func (m *mockAPIClientSettings) ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error) {
+	return &api.ListAMIsResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error) {
+	return &api.ListAMIBuildsResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error) {
+	return &api.ListAMIRegionsResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) DeleteAMI(ctx context.Context, amiID string) error {
+	return nil
+}
+
+func (m *mockAPIClientSettings) GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error) {
+	return &api.GetRightsizingRecommendationsResponse{}, nil
+}
+
+func (m *mockAPIClientSettings) ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error {
+	return nil
+}
+
+func (m *mockAPIClientSettings) GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error) {
+	return &api.LogsResponse{}, nil
+}
+
 // TestNewSettingsModel tests settings model creation
 func TestNewSettingsModel(t *testing.T) {
 	mockAPIClient := &mockAPIClientSettings{}

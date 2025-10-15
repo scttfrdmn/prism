@@ -126,6 +126,74 @@ func (m *mockStorageAPIClient) GetStatus(ctx context.Context) (*api.SystemStatus
 	return &api.SystemStatusResponse{}, nil
 }
 
+func (m *mockStorageAPIClient) ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error) {
+	return &api.ListProjectsResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error) {
+	return &api.PolicyStatusResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error) {
+	return &api.ListPolicySetsResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) AssignPolicySet(ctx context.Context, policySetID string) error {
+	return nil
+}
+
+func (m *mockStorageAPIClient) SetPolicyEnforcement(ctx context.Context, enabled bool) error {
+	return nil
+}
+
+func (m *mockStorageAPIClient) CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error) {
+	return &api.TemplateAccessResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error) {
+	return &api.ListMarketplaceTemplatesResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error) {
+	return &api.ListCategoriesResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error) {
+	return &api.ListRegistriesResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) InstallMarketplaceTemplate(ctx context.Context, templateName string) error {
+	return nil
+}
+
+func (m *mockStorageAPIClient) ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error) {
+	return &api.ListAMIsResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error) {
+	return &api.ListAMIBuildsResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error) {
+	return &api.ListAMIRegionsResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) DeleteAMI(ctx context.Context, amiID string) error {
+	return nil
+}
+
+func (m *mockStorageAPIClient) GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error) {
+	return &api.GetRightsizingRecommendationsResponse{}, nil
+}
+
+func (m *mockStorageAPIClient) ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error {
+	return nil
+}
+
+func (m *mockStorageAPIClient) GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error) {
+	return &api.LogsResponse{}, nil
+}
+
 // TestStorageModelCreation tests basic storage model instantiation
 func TestStorageModelCreation(t *testing.T) {
 	mockClient := &mockStorageAPIClient{

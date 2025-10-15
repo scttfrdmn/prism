@@ -314,3 +314,207 @@ func ToSystemStatusResponse(status *types.DaemonStatus) *SystemStatusResponse {
 		CurrentProfile:    status.CurrentProfile,
 	}
 }
+
+// Project and Budget types (Phase 4 Enterprise)
+
+// BudgetStatus represents budget status for a project
+type BudgetStatus struct {
+	TotalBudget              float64  `json:"total_budget"`
+	SpentAmount              float64  `json:"spent_amount"`
+	SpentPercentage          float64  `json:"spent_percentage"`
+	ActiveAlerts             []string `json:"active_alerts"`
+	ProjectedMonthlySpend    float64  `json:"projected_monthly_spend,omitempty"`
+	DaysUntilBudgetExhausted *int     `json:"days_until_budget_exhausted,omitempty"`
+}
+
+// ProjectResponse represents a project returned from the API
+type ProjectResponse struct {
+	ID              string        `json:"id"`
+	Name            string        `json:"name"`
+	Description     string        `json:"description,omitempty"`
+	Owner           string        `json:"owner"`
+	Status          string        `json:"status"`
+	MemberCount     int           `json:"member_count"`
+	ActiveInstances int           `json:"active_instances"`
+	TotalCost       float64       `json:"total_cost"`
+	BudgetStatus    *BudgetStatus `json:"budget_status,omitempty"`
+	CreatedAt       time.Time     `json:"created_at"`
+	LastActivity    time.Time     `json:"last_activity"`
+}
+
+// ListProjectsResponse represents a list of projects returned from the API
+type ListProjectsResponse struct {
+	Projects []ProjectResponse `json:"projects"`
+}
+
+// ProjectFilter represents filters for listing projects
+type ProjectFilter struct {
+	Status string `json:"status,omitempty"`
+	Owner  string `json:"owner,omitempty"`
+}
+
+// Policy Framework types (Phase 5A+)
+
+// PolicyStatusResponse represents policy framework status
+type PolicyStatusResponse struct {
+	Enabled          bool     `json:"enabled"`
+	AssignedPolicies []string `json:"assigned_policies"`
+	Message          string   `json:"message,omitempty"`
+	StatusIcon       string   `json:"status_icon,omitempty"`
+}
+
+// PolicySetResponse represents a policy set
+type PolicySetResponse struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
+	PolicyCount int    `json:"policy_count"`
+	Status      string `json:"status"`
+}
+
+// ListPolicySetsResponse represents a list of policy sets
+type ListPolicySetsResponse struct {
+	PolicySets []PolicySetResponse `json:"policy_sets"`
+}
+
+// TemplateAccessResponse represents template access check result
+type TemplateAccessResponse struct {
+	Allowed         bool     `json:"allowed"`
+	TemplateName    string   `json:"template_name"`
+	Reason          string   `json:"reason,omitempty"`
+	MatchedPolicies []string `json:"matched_policies,omitempty"`
+	Suggestions     []string `json:"suggestions,omitempty"`
+}
+
+// Marketplace types (Phase 5B)
+
+// MarketplaceTemplateResponse represents a template from the marketplace
+type MarketplaceTemplateResponse struct {
+	Name         string   `json:"name"`
+	Publisher    string   `json:"publisher"`
+	Category     string   `json:"category"`
+	Description  string   `json:"description"`
+	Rating       float64  `json:"rating"`
+	RatingCount  int      `json:"rating_count"`
+	Downloads    int64    `json:"downloads"`
+	Verified     bool     `json:"verified"`
+	Keywords     []string `json:"keywords"`
+	SourceURL    string   `json:"source_url,omitempty"`
+	License      string   `json:"license,omitempty"`
+	Registry     string   `json:"registry,omitempty"`
+	RegistryType string   `json:"registry_type,omitempty"`
+}
+
+// ListMarketplaceTemplatesResponse represents a list of marketplace templates
+type ListMarketplaceTemplatesResponse struct {
+	Templates []MarketplaceTemplateResponse `json:"templates"`
+}
+
+// MarketplaceFilter represents filters for listing marketplace templates
+type MarketplaceFilter struct {
+	Query     string  `json:"query,omitempty"`
+	Category  string  `json:"category,omitempty"`
+	Registry  string  `json:"registry,omitempty"`
+	Verified  bool    `json:"verified,omitempty"`
+	MinRating float64 `json:"min_rating,omitempty"`
+}
+
+// CategoryResponse represents a template category
+type CategoryResponse struct {
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	TemplateCount int    `json:"template_count"`
+}
+
+// ListCategoriesResponse represents a list of categories
+type ListCategoriesResponse struct {
+	Categories []CategoryResponse `json:"categories"`
+}
+
+// RegistryResponse represents a template registry
+type RegistryResponse struct {
+	Name          string `json:"name"`
+	Type          string `json:"type"` // community, institutional, private, official
+	URL           string `json:"url"`
+	TemplateCount int    `json:"template_count"`
+	Status        string `json:"status"` // active, inactive, syncing
+}
+
+// ListRegistriesResponse represents a list of registries
+type ListRegistriesResponse struct {
+	Registries []RegistryResponse `json:"registries"`
+}
+
+// AMI Management types
+
+// AMIResponse represents an AMI
+type AMIResponse struct {
+	ID           string    `json:"id"`
+	TemplateName string    `json:"template_name"`
+	Region       string    `json:"region"`
+	State        string    `json:"state"`
+	Architecture string    `json:"architecture"`
+	SizeGB       float64   `json:"size_gb"`
+	Description  string    `json:"description,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// ListAMIsResponse represents a list of AMIs
+type ListAMIsResponse struct {
+	AMIs []AMIResponse `json:"amis"`
+}
+
+// AMIBuildResponse represents an AMI build job
+type AMIBuildResponse struct {
+	ID           string    `json:"id"`
+	TemplateName string    `json:"template_name"`
+	Status       string    `json:"status"`
+	Progress     int       `json:"progress"`
+	CurrentStep  string    `json:"current_step,omitempty"`
+	Error        string    `json:"error,omitempty"`
+	StartedAt    time.Time `json:"started_at"`
+}
+
+// ListAMIBuildsResponse represents a list of AMI builds
+type ListAMIBuildsResponse struct {
+	Builds []AMIBuildResponse `json:"builds"`
+}
+
+// AMIRegionResponse represents AMI regional coverage
+type AMIRegionResponse struct {
+	Name     string `json:"name"`
+	AMICount int    `json:"ami_count"`
+}
+
+// ListAMIRegionsResponse represents a list of AMI regions
+type ListAMIRegionsResponse struct {
+	Regions []AMIRegionResponse `json:"regions"`
+}
+
+// Rightsizing types
+
+// RightsizingRecommendation represents an instance rightsizing recommendation
+type RightsizingRecommendation struct {
+	InstanceName      string  `json:"instance_name"`
+	CurrentType       string  `json:"current_type"`
+	RecommendedType   string  `json:"recommended_type"`
+	CPUUtilization    float64 `json:"cpu_utilization"`
+	MemoryUtilization float64 `json:"memory_utilization"`
+	CurrentCost       float64 `json:"current_cost"`
+	RecommendedCost   float64 `json:"recommended_cost"`
+	MonthlySavings    float64 `json:"monthly_savings"`
+	SavingsPercentage float64 `json:"savings_percentage"`
+	Confidence        string  `json:"confidence"` // high, medium, low
+	Reason            string  `json:"reason,omitempty"`
+}
+
+// GetRightsizingRecommendationsResponse represents a list of rightsizing recommendations
+type GetRightsizingRecommendationsResponse struct {
+	Recommendations []RightsizingRecommendation `json:"recommendations"`
+}
+
+// Logs types
+
+// LogsResponse represents logs from an instance
+type LogsResponse struct {
+	Lines []string `json:"lines"`
+}

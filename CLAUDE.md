@@ -126,6 +126,44 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - 🔄 **Amazon Braket**: Quantum computing research access
 - 🔄 **SageMaker Integration**: ML workflow integration (pending AWS partnership)
 
+### **v0.5.6: Template Provisioning Enhancements** 🔄 **PLANNED (February 2026)**
+**FOCUS**: Advanced template capabilities
+- 🔄 **SSM File Operations**: S3-backed file transfer for template provisioning
+- 🔄 **Large File Handling**: Progress reporting for multi-GB file transfers
+- 🔄 **Template Asset Management**: Binary and configuration file distribution
+
+**Phase 6: Enterprise Authentication & Security** (v0.6.0 - Q2 2026)
+
+### **v0.6.0: Multi-User Authentication & IAM**
+**FOCUS**: Institutional authentication and AWS security
+- 🎯 **OAuth/OIDC Integration**: Google, Microsoft, institutional SSO providers
+- 🎯 **LDAP/Active Directory**: Enterprise directory service authentication
+- 🎯 **SAML Support**: Federated SSO for enterprise deployments
+- 🎯 **IAM Profile Validation**: Pre-launch validation of IAM instance profiles
+- 🎯 **Token Validation**: Secure session management and token validation
+- 🎯 **RBAC System**: Role-based access control for multi-tenant deployments
+
+### **v0.6.1: TUI Feature Completeness**
+**FOCUS**: Terminal interface polish and feature parity
+- 🎯 **Project Member Management**: Paginated member list with add/remove dialogs
+- 🎯 **Project Instance Filtering**: Project-specific instance views with actions
+- 🎯 **Cost Breakdown Visualization**: Service-level cost charts in TUI
+- 🎯 **Hibernation Savings Display**: Savings trends and forecasts in terminal
+
+**Phase 7: Advanced UI & Code Modernization** (v0.7.0-0.8.0 - Q3-Q4 2026)
+
+### **v0.7.0: TUI Advanced Features**
+- 🎯 **TUI Project Creation**: Multi-step form dialogs for project creation
+- 🎯 **TUI Budget Creation**: Complex budget configuration in terminal interface
+- 🎯 **Multi-User Auth Phase 2**: Complete authentication system rollout
+
+### **v0.8.0: Code Modernization**
+- 🎯 **Cobra Migration**: Remove legacy flag parsing, full Cobra integration
+- 🎯 **API Cleanup**: Deprecate backwards compatibility layers
+- 🎯 **Code Consolidation**: Unify duplicate functionality paths
+
+**📋 Technical Debt Tracking**: See [docs/TECHNICAL_DEBT_BACKLOG.md](docs/TECHNICAL_DEBT_BACKLOG.md) for detailed implementation plans, effort estimates, and priority assignments for all deferred features.
+
 🎉 **PHASE 5A COMPLETE: Full Research User Multi-Modal Integration**
 - ✅ **Dual User System**: Complete architecture separating system users (template-created) from research users (persistent identity)
 - ✅ **Consistent UID/GID Mapping**: Deterministic allocation ensuring same profile+username = same UID across all instances

@@ -195,8 +195,25 @@ func (m *Manager) LaunchInstanceWithAMI(req types.LaunchRequest) (*types.Instanc
 	// Store AMI resolution info for launch process
 	req.AMIResolutionResult = amiResult
 
-	// Determine architecture preference
-	arch := m.getLocalArchitecture() // Default to local arch
+	// ARCHITECTURE FIX: Determine instance type first, then get its architecture
+	// Do NOT use local machine architecture for cloud instance selection
+	var instanceType string
+	if req.Size != "" {
+		instanceType = m.getInstanceTypeForSize(req.Size)
+	} else if rawTemplate.InstanceDefaults.Type != "" {
+		instanceType = rawTemplate.InstanceDefaults.Type
+	} else {
+		instanceType = "t3.micro"
+	}
+
+	// Query AWS for instance type's architecture
+	arch, err := m.getInstanceTypeArchitecture(instanceType)
+	if err != nil {
+		log.Printf("Warning: Could not determine architecture for %s, using x86_64", instanceType)
+		arch = "x86_64"
+	}
+
+	// Allow template to override if explicitly specified
 	if rawTemplate.AMIConfig.PreferredArchitecture != "" {
 		arch = rawTemplate.AMIConfig.PreferredArchitecture
 	}
@@ -273,9 +290,30 @@ func (m *Manager) launchWithResolvedTemplate(req types.LaunchRequest, template *
 
 // Helper method to launch with template (placeholder for existing integration)
 func (m *Manager) launchWithTemplate(req types.LaunchRequest, template *types.RuntimeTemplate) (*types.Instance, error) {
-	// This would integrate with the existing launch orchestration system
-	// For now, we'll call the existing method
-	arch := m.getLocalArchitecture()
+	// ARCHITECTURE FIX: Determine instance type architecture properly
+	// Get template info to determine instance type
+	rawTemplate, err := templates.GetTemplateInfo(req.Template)
+	if err != nil {
+		// Fallback to old behavior if we can't get template info
+		log.Printf("Warning: Could not get template info for architecture determination: %v", err)
+		return m.launchWithUnifiedTemplateSystem(req, "x86_64")
+	}
+
+	var instanceType string
+	if req.Size != "" {
+		instanceType = m.getInstanceTypeForSize(req.Size)
+	} else if rawTemplate.InstanceDefaults.Type != "" {
+		instanceType = rawTemplate.InstanceDefaults.Type
+	} else {
+		instanceType = "t3.micro"
+	}
+
+	arch, err := m.getInstanceTypeArchitecture(instanceType)
+	if err != nil {
+		log.Printf("Warning: Could not determine architecture for %s, using x86_64", instanceType)
+		arch = "x86_64"
+	}
+
 	return m.launchWithUnifiedTemplateSystem(req, arch)
 }
 

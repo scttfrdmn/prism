@@ -164,6 +164,142 @@ func (m *mockAPIClientProfiles) GetStatus(ctx context.Context) (*api.SystemStatu
 	return &api.SystemStatusResponse{}, nil
 }
 
+func (m *mockAPIClientProfiles) ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error) {
+	m.callLog = append(m.callLog, "ListProjects")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListProjectsResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error) {
+	m.callLog = append(m.callLog, "GetPolicyStatus")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.PolicyStatusResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error) {
+	m.callLog = append(m.callLog, "ListPolicySets")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListPolicySetsResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) AssignPolicySet(ctx context.Context, policySetID string) error {
+	m.callLog = append(m.callLog, "AssignPolicySet:"+policySetID)
+	if m.shouldError {
+		return fmt.Errorf("%s", m.errorMessage)
+	}
+	return nil
+}
+
+func (m *mockAPIClientProfiles) SetPolicyEnforcement(ctx context.Context, enabled bool) error {
+	m.callLog = append(m.callLog, "SetPolicyEnforcement")
+	if m.shouldError {
+		return fmt.Errorf("%s", m.errorMessage)
+	}
+	return nil
+}
+
+func (m *mockAPIClientProfiles) CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error) {
+	m.callLog = append(m.callLog, "CheckTemplateAccess:"+templateName)
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.TemplateAccessResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error) {
+	m.callLog = append(m.callLog, "ListMarketplaceTemplates")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListMarketplaceTemplatesResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error) {
+	m.callLog = append(m.callLog, "ListMarketplaceCategories")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListCategoriesResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error) {
+	m.callLog = append(m.callLog, "ListMarketplaceRegistries")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListRegistriesResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) InstallMarketplaceTemplate(ctx context.Context, templateName string) error {
+	m.callLog = append(m.callLog, "InstallMarketplaceTemplate:"+templateName)
+	if m.shouldError {
+		return fmt.Errorf("%s", m.errorMessage)
+	}
+	return nil
+}
+
+func (m *mockAPIClientProfiles) ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error) {
+	m.callLog = append(m.callLog, "ListAMIs")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListAMIsResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error) {
+	m.callLog = append(m.callLog, "ListAMIBuilds")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListAMIBuildsResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error) {
+	m.callLog = append(m.callLog, "ListAMIRegions")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.ListAMIRegionsResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) DeleteAMI(ctx context.Context, amiID string) error {
+	m.callLog = append(m.callLog, "DeleteAMI:"+amiID)
+	if m.shouldError {
+		return fmt.Errorf("%s", m.errorMessage)
+	}
+	return nil
+}
+
+func (m *mockAPIClientProfiles) GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error) {
+	m.callLog = append(m.callLog, "GetRightsizingRecommendations")
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.GetRightsizingRecommendationsResponse{}, nil
+}
+
+func (m *mockAPIClientProfiles) ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error {
+	m.callLog = append(m.callLog, "ApplyRightsizingRecommendation:"+instanceName)
+	if m.shouldError {
+		return fmt.Errorf("%s", m.errorMessage)
+	}
+	return nil
+}
+
+func (m *mockAPIClientProfiles) GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error) {
+	m.callLog = append(m.callLog, "GetLogs:"+instanceName+":"+logType)
+	if m.shouldError {
+		return nil, fmt.Errorf("%s", m.errorMessage)
+	}
+	return &api.LogsResponse{}, nil
+}
+
 // TestNewProfilesModel tests profiles model creation
 func TestNewProfilesModel(t *testing.T) {
 	mockAPIClient := &mockAPIClientProfiles{}

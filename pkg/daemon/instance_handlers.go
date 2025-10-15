@@ -283,7 +283,7 @@ func (s *Server) handleIdlePolicyOperation(w http.ResponseWriter, r *http.Reques
 }
 
 // handleGetInstance gets details of a specific instance
-func (s *Server) handleGetInstance(w http.ResponseWriter, _ *http.Request, identifier string) {
+func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, identifier string) {
 	// Resolve identifier (name or ID) to instance name
 	instanceName, found := s.resolveInstanceIdentifier(identifier)
 	if !found {
@@ -291,14 +291,39 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, _ *http.Request, ident
 		return
 	}
 
+	// Get instance ID from state to query AWS
 	state, err := s.stateManager.LoadState()
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to load state")
 		return
 	}
 
-	instance := state.Instances[instanceName]
-	_ = json.NewEncoder(w).Encode(instance)
+	cachedInstance, exists := state.Instances[instanceName]
+	if !exists {
+		s.writeError(w, http.StatusNotFound, "Instance not found in state")
+		return
+	}
+
+	// Query AWS for real-time instance data
+	var liveInstance *types.Instance
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		var err error
+		liveInstance, err = awsManager.GetInstance(cachedInstance.ID)
+		return err
+	})
+
+	// If AWS query failed, withAWSManager already wrote error response
+	if liveInstance == nil {
+		return
+	}
+
+	// Update state with latest AWS data
+	if err := s.stateManager.SaveInstance(*liveInstance); err != nil {
+		// Log error but don't fail - we still have the live data
+		// TODO: Add proper logging here
+	}
+
+	_ = json.NewEncoder(w).Encode(liveInstance)
 }
 
 // handleDeleteInstance deletes a specific instance

@@ -41,6 +41,8 @@ type MockEC2Client struct {
 	DescribeSnapshotsFunc             func(ctx context.Context, params *ec2.DescribeSnapshotsInput) (*ec2.DescribeSnapshotsOutput, error)
 	ModifyImageAttributeFunc          func(ctx context.Context, params *ec2.ModifyImageAttributeInput) (*ec2.ModifyImageAttributeOutput, error)
 	CreateTagsFunc                    func(ctx context.Context, params *ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error)
+	DescribeInstanceTypeOfferingsFunc func(ctx context.Context, params *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error)
+	DescribeInstanceTypesFunc         func(ctx context.Context, params *ec2.DescribeInstanceTypesInput) (*ec2.DescribeInstanceTypesOutput, error)
 }
 
 func (m *MockEC2Client) RunInstances(ctx context.Context, params *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
@@ -244,6 +246,20 @@ func (m *MockEC2Client) CreateTags(ctx context.Context, params *ec2.CreateTagsIn
 		return m.CreateTagsFunc(ctx, params)
 	}
 	return &ec2.CreateTagsOutput{}, nil
+}
+
+func (m *MockEC2Client) DescribeInstanceTypeOfferings(ctx context.Context, params *ec2.DescribeInstanceTypeOfferingsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceTypeOfferingsOutput, error) {
+	if m.DescribeInstanceTypeOfferingsFunc != nil {
+		return m.DescribeInstanceTypeOfferingsFunc(ctx, params)
+	}
+	return &ec2.DescribeInstanceTypeOfferingsOutput{}, nil
+}
+
+func (m *MockEC2Client) DescribeInstanceTypes(ctx context.Context, params *ec2.DescribeInstanceTypesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceTypesOutput, error) {
+	if m.DescribeInstanceTypesFunc != nil {
+		return m.DescribeInstanceTypesFunc(ctx, params)
+	}
+	return &ec2.DescribeInstanceTypesOutput{}, nil
 }
 
 // MockEFSClient provides a mock implementation of EFSClientInterface for testing

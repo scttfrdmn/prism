@@ -130,6 +130,74 @@ func (m *instanceActionMockClient) GetInstanceIdleStatus(ctx context.Context, na
 	return &api.IdleDetectionResponse{}, nil
 }
 
+func (m *instanceActionMockClient) ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error) {
+	return &api.ListProjectsResponse{}, nil
+}
+
+func (m *instanceActionMockClient) GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error) {
+	return &api.PolicyStatusResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error) {
+	return &api.ListPolicySetsResponse{}, nil
+}
+
+func (m *instanceActionMockClient) AssignPolicySet(ctx context.Context, policySetID string) error {
+	return nil
+}
+
+func (m *instanceActionMockClient) SetPolicyEnforcement(ctx context.Context, enabled bool) error {
+	return nil
+}
+
+func (m *instanceActionMockClient) CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error) {
+	return &api.TemplateAccessResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error) {
+	return &api.ListMarketplaceTemplatesResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error) {
+	return &api.ListCategoriesResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error) {
+	return &api.ListRegistriesResponse{}, nil
+}
+
+func (m *instanceActionMockClient) InstallMarketplaceTemplate(ctx context.Context, templateName string) error {
+	return nil
+}
+
+func (m *instanceActionMockClient) ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error) {
+	return &api.ListAMIsResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error) {
+	return &api.ListAMIBuildsResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error) {
+	return &api.ListAMIRegionsResponse{}, nil
+}
+
+func (m *instanceActionMockClient) DeleteAMI(ctx context.Context, amiID string) error {
+	return nil
+}
+
+func (m *instanceActionMockClient) GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error) {
+	return &api.GetRightsizingRecommendationsResponse{}, nil
+}
+
+func (m *instanceActionMockClient) ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error {
+	return nil
+}
+
+func (m *instanceActionMockClient) GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error) {
+	return &api.LogsResponse{}, nil
+}
+
 // Test Data Helpers
 func createRunningInstance() *types.Instance {
 	launchTime, _ := time.Parse(time.RFC3339, "2024-06-15T10:30:00Z")

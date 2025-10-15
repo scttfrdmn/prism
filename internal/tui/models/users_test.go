@@ -166,6 +166,74 @@ func (m *mockAPIClientUsers) GetStatus(ctx context.Context) (*api.SystemStatusRe
 	return &api.SystemStatusResponse{}, nil
 }
 
+func (m *mockAPIClientUsers) ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error) {
+	return &api.ListProjectsResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error) {
+	return &api.PolicyStatusResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error) {
+	return &api.ListPolicySetsResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) AssignPolicySet(ctx context.Context, policySetID string) error {
+	return nil
+}
+
+func (m *mockAPIClientUsers) SetPolicyEnforcement(ctx context.Context, enabled bool) error {
+	return nil
+}
+
+func (m *mockAPIClientUsers) CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error) {
+	return &api.TemplateAccessResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error) {
+	return &api.ListMarketplaceTemplatesResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error) {
+	return &api.ListCategoriesResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error) {
+	return &api.ListRegistriesResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) InstallMarketplaceTemplate(ctx context.Context, templateName string) error {
+	return nil
+}
+
+func (m *mockAPIClientUsers) ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error) {
+	return &api.ListAMIsResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error) {
+	return &api.ListAMIBuildsResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error) {
+	return &api.ListAMIRegionsResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) DeleteAMI(ctx context.Context, amiID string) error {
+	return nil
+}
+
+func (m *mockAPIClientUsers) GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error) {
+	return &api.GetRightsizingRecommendationsResponse{}, nil
+}
+
+func (m *mockAPIClientUsers) ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error {
+	return nil
+}
+
+func (m *mockAPIClientUsers) GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error) {
+	return &api.LogsResponse{}, nil
+}
+
 // TestNewUsersModel tests users model creation
 func TestNewUsersModel(t *testing.T) {
 	mockAPIClient := &mockAPIClientUsers{}
@@ -755,14 +823,14 @@ func TestTUIProfileManagerAdapter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, profile)
 
-	// Test GetProfileConfig (not implemented)
-	config, err := adapter.GetProfileConfig("test")
+	// Test GetProfileConfig (now implemented - returns error for non-existent profile)
+	config, err := adapter.GetProfileConfig("nonexistent-profile")
 	assert.Error(t, err)
 	assert.Nil(t, config)
-	assert.Contains(t, err.Error(), "not implemented")
+	assert.Contains(t, err.Error(), "profile")
 
-	// Test UpdateProfileConfig (not implemented)
+	// Test UpdateProfileConfig (now implemented - returns error for invalid config)
 	err = adapter.UpdateProfileConfig("test", nil)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not implemented")
+	assert.Contains(t, err.Error(), "invalid profile config type")
 }

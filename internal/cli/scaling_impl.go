@@ -78,6 +78,16 @@ func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 		return err
 	}
 
+	// Validate instance exists and is running
+	instance, err := s.app.apiClient.GetInstance(s.app.ctx, instanceName)
+	if err != nil {
+		return fmt.Errorf("instance not found: %w", err)
+	}
+
+	if instance.State != "running" {
+		return fmt.Errorf("instance '%s' is %s, expected 'running' - rightsizing analysis requires a running instance", instanceName, instance.State)
+	}
+
 	// Perform rightsizing analysis
 	req := types.RightsizingAnalysisRequest{
 		InstanceName:        instanceName,
@@ -285,6 +295,12 @@ func (s *ScalingCommands) rightsizingStats(args []string) error {
 	// Check daemon is running
 	if err := s.app.ensureDaemonRunning(); err != nil {
 		return err
+	}
+
+	// Validate instance exists
+	_, err := s.app.apiClient.GetInstance(s.app.ctx, instanceName)
+	if err != nil {
+		return fmt.Errorf("instance not found: %w", err)
 	}
 
 	// Get detailed stats from API

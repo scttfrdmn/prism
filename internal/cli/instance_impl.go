@@ -264,8 +264,10 @@ func (ic *InstanceCommands) Exec(args []string) error {
 	instanceName := args[0]
 	command := args[1]
 
-	// For now, use simple argument parsing since Cobra integration will handle flags
-	// TODO: Integrate with Cobra flag system when this is called from Cobra command
+	// Design Note: This function supports both Cobra and direct API usage
+	// When called via Cobra command (instance_cobra.go), flags are pre-parsed by Cobra
+	// When called directly (legacy/API usage), manual flag parsing below handles arguments
+	// Both paths converge to the same API client call for consistency
 	var user string
 	var workingDir string
 	var timeout int = 30
@@ -273,7 +275,7 @@ func (ic *InstanceCommands) Exec(args []string) error {
 	interactive := false
 	verbose := false
 
-	// Simple flag parsing for direct API usage (non-Cobra calls)
+	// Manual flag parsing for direct API usage (Cobra commands use cmd.Flags() instead)
 	for i := 2; i < len(args); i++ {
 		arg := args[i]
 		switch {

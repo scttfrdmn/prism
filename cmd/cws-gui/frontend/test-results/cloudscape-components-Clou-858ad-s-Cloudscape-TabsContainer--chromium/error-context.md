@@ -4,28 +4,81 @@
 - main:
   - navigation:
     - button
-  - navigation "Breadcrumbs":
+    - heading "CloudWorkstation" [level=2]:
+      - link "CloudWorkstation":
+        - /url: /
     - list:
       - listitem:
-        - link "CloudWorkstation":
-          - /url: "#/"
+        - link "Dashboard":
+          - /url: /dashboard
+    - separator
+    - list:
       - listitem:
-        - link "Research Templates" [disabled]
-  - heading "Research Templates" [level=1]
-  - combobox "Filter templates"
-  - group:
-    - text: 🤖
-    - heading "Python Machine Learning" [level=3]
-    - text: Popular
-    - radio
-    - text: Complete ML environment with TensorFlow, PyTorch, and Jupyter Machine Learning moderate Pre-tested Launch Time ~2 min Cost $0.48/hour 📊
-    - heading "R Research Environment" [level=3]
-    - text: Popular
-    - radio
-    - text: Statistical computing with R, RStudio, and tidyverse packages Data Science simple Pre-tested Launch Time ~3 min Cost $0.24/hour 🖥️
-    - heading "Rocky Linux 9 Base" [level=3]
-    - radio
-    - text: Enterprise Linux foundation for custom research environments Base System simple Pre-tested Launch Time ~1 min Cost $0.12/hour
-  - complementary:
-    - button
+        - link "Research Templates":
+          - /url: /templates
+        - text: "27"
+      - listitem:
+        - link "My Instances":
+          - /url: /instances
+    - separator
+    - list:
+      - listitem:
+        - link "Storage":
+          - /url: /storage
+      - listitem:
+        - link "Projects":
+          - /url: /projects
+      - listitem:
+        - link "Users":
+          - /url: /users
+    - separator
+    - list:
+      - listitem:
+        - link "Budget Management":
+          - /url: /budget
+      - listitem:
+        - link "AMI Management":
+          - /url: /ami
+        - text: 0 AMIs
+      - listitem:
+        - link "Rightsizing":
+          - /url: /rightsizing
+      - listitem:
+        - link "Policy Framework":
+          - /url: /policy
+        - text: Enforced
+      - listitem:
+        - link "Template Marketplace":
+          - /url: /marketplace
+        - text: 3 templates
+      - listitem:
+        - link "Idle Detection":
+          - /url: /idle
+      - listitem:
+        - link "Logs Viewer":
+          - /url: /logs
+    - separator
+    - list:
+      - listitem:
+        - link "Settings":
+          - /url: /settings
+  - region:
+    - list
+  - heading "Dashboard" [level=1]
+  - button "Refresh"
+  - paragraph: CloudWorkstation research computing platform - manage your cloud environments
+  - heading "Research Templates" [level=2]
+  - text: Available Templates 27
+  - button "Browse Templates"
+  - heading "Active Instances" [level=2]
+  - text: Running Instances 0
+  - button "Manage Instances"
+  - heading "System Status" [level=2]
+  - text: Connection Connected
+  - button "Test Connection"
+  - heading "Quick Actions" [level=2]
+  - button "Launch New Instance"
+  - button "View Instances (0)" [disabled]
+  - button "Storage Management"
+- text: Instance name is required
 ```

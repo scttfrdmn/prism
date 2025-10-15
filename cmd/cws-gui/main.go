@@ -3,14 +3,139 @@ package main
 import (
 	"embed"
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"syscall"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
+
+// checkDaemonHealth checks if the daemon is responding to health checks
+func checkDaemonHealth() bool {
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	resp, err := client.Get("http://localhost:8947/api/v1/health")
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK
+}
+
+// findDaemonBinary locates the cwsd daemon binary
+func findDaemonBinary() (string, error) {
+	// Get the directory where cws-gui is located
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	exeDir := filepath.Dir(exePath)
+
+	// Try several locations in order of preference
+	locations := []string{
+		filepath.Join(exeDir, "cwsd"),       // Same directory as GUI (production)
+		filepath.Join(exeDir, "..", "cwsd"), // Parent directory
+		"./bin/cwsd",                        // Development environment
+		"cwsd",                              // In PATH
+	}
+
+	// Add platform-specific extension
+	if runtime.GOOS == "windows" {
+		for i, loc := range locations {
+			locations[i] = loc + ".exe"
+		}
+	}
+
+	// Check each location
+	for _, loc := range locations {
+		absPath, err := filepath.Abs(loc)
+		if err != nil {
+			continue
+		}
+
+		if _, err := os.Stat(absPath); err == nil {
+			// Found it!
+			return absPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("daemon binary (cwsd) not found in expected locations")
+}
+
+// startDaemon attempts to start the daemon if it's not running
+func startDaemon() error {
+	log.Println("🔍 Checking if daemon is running...")
+
+	// Check if daemon is already running
+	if checkDaemonHealth() {
+		log.Println("✅ Daemon is already running")
+		return nil
+	}
+
+	log.Println("⚠️  Daemon is not running, attempting to start...")
+
+	// Find the daemon binary
+	daemonPath, err := findDaemonBinary()
+	if err != nil {
+		return fmt.Errorf("cannot start daemon: %w", err)
+	}
+
+	log.Printf("📍 Found daemon at: %s", daemonPath)
+
+	// Start the daemon process
+	cmd := exec.Command(daemonPath)
+
+	// Redirect output to devnull so daemon runs independently
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	cmd.Stdin = nil
+
+	// Set process group so daemon isn't killed when GUI exits
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true, // Create new process group
+	}
+
+	// Start daemon in background
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start daemon: %w", err)
+	}
+
+	// Detach from daemon process so it continues after GUI exits
+	if err := cmd.Process.Release(); err != nil {
+		log.Printf("⚠️  Warning: could not release daemon process: %v", err)
+	}
+
+	log.Println("⏳ Waiting for daemon to initialize...")
+
+	// Wait for daemon to become ready (up to 10 seconds)
+	maxAttempts := 20
+	for i := 0; i < maxAttempts; i++ {
+		time.Sleep(500 * time.Millisecond)
+
+		if checkDaemonHealth() {
+			log.Println("✅ Daemon started successfully!")
+			return nil
+		}
+
+		if i < maxAttempts-1 {
+			log.Printf("🔄 Waiting for daemon to be ready (attempt %d/%d)...", i+1, maxAttempts)
+		}
+	}
+
+	return fmt.Errorf("daemon started but did not become healthy within 10 seconds")
+}
 
 func main() {
 	// Parse command line flags
@@ -44,6 +169,13 @@ func main() {
 		}
 		log.Println("✅ Auto-start removed successfully")
 		return
+	}
+
+	// Ensure daemon is running before starting GUI
+	if err := startDaemon(); err != nil {
+		log.Printf("❌ Failed to start daemon: %v", err)
+		log.Println("Please start the daemon manually with: cws daemon start")
+		// Continue anyway - GUI will show connection error to user
 	}
 
 	// Create CloudWorkstation GUI application

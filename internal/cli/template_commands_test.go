@@ -25,6 +25,10 @@ func TestNewTemplateCommands(t *testing.T) {
 
 // TestTemplateCommands_Templates tests the main templates command routing
 func TestTemplateCommands_Templates(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test with filesystem dependencies in short mode")
+	}
+
 	tests := []struct {
 		name        string
 		args        []string

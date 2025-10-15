@@ -100,8 +100,12 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 			// Check if user manager is initialized
 			if s.userManager != nil && s.userManager.initialized {
-				// TODO: Validate token and get user ID
-				// For now, just use the token as the user ID for testing
+				// Future Enhancement: Token validation for multi-user authentication
+				// When implementing institutional deployments with OAuth/LDAP/SAML:
+				//   1. Call s.userManager.ValidateToken(token) to verify token
+				//   2. Extract user ID and permissions from validated token
+				//   3. Apply role-based access control (RBAC) based on user permissions
+				// Current behavior: Uses token directly as user ID for single-user/development mode
 				userID := token
 
 				// Add user ID to context

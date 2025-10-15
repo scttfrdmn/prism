@@ -34,8 +34,26 @@ const (
 	TemplatesPage
 	// StoragePage shows storage management
 	StoragePage
+	// ProjectsPage shows project management (Phase 4 Enterprise)
+	ProjectsPage
+	// BudgetPage shows budget management (Phase 4 Enterprise)
+	BudgetPage
 	// UsersPage shows user management (Phase 5A.2)
 	UsersPage
+	// PolicyPage shows policy framework management (Phase 5A+)
+	PolicyPage
+	// MarketplacePage shows template marketplace (Phase 5B)
+	MarketplacePage
+	// IdlePage shows idle detection and hibernation management (Phase 3)
+	IdlePage
+	// AMIPage shows AMI management
+	AMIPage
+	// RightsizingPage shows rightsizing recommendations
+	RightsizingPage
+	// LogsPage shows logs viewer
+	LogsPage
+	// DaemonPage shows daemon management
+	DaemonPage
 	// SettingsPage shows application settings
 	SettingsPage
 	// ProfilesPage shows profile management
@@ -44,17 +62,26 @@ const (
 
 // AppModel represents the main application model
 type AppModel struct {
-	apiClient      *api.TUIClient
-	currentPage    PageID
-	dashboardModel models.DashboardModel
-	instancesModel models.InstancesModel
-	templatesModel models.TemplatesModel
-	storageModel   models.StorageModel
-	usersModel     models.UsersModel
-	settingsModel  models.SettingsModel
-	profilesModel  models.ProfilesModel
-	width          int
-	height         int
+	apiClient        *api.TUIClient
+	currentPage      PageID
+	dashboardModel   models.DashboardModel
+	instancesModel   models.InstancesModel
+	templatesModel   models.TemplatesModel
+	storageModel     models.StorageModel
+	projectsModel    models.ProjectsModel
+	budgetModel      models.BudgetModel
+	usersModel       models.UsersModel
+	policyModel      models.PolicyModel
+	marketplaceModel models.MarketplaceModel
+	idleModel        models.IdleModel
+	amiModel         models.AMIModel
+	rightsizingModel models.RightsizingModel
+	logsModel        models.LogsModel
+	daemonModel      models.DaemonModel
+	settingsModel    models.SettingsModel
+	profilesModel    models.ProfilesModel
+	width            int
+	height           int
 }
 
 // NewApp creates a new TUI application
@@ -102,15 +129,24 @@ func NewApp() *App {
 func (a *App) Run() error {
 	// Create initial model
 	model := AppModel{
-		apiClient:      a.apiClient,
-		currentPage:    DashboardPage,
-		dashboardModel: models.NewDashboardModel(a.apiClient),
-		instancesModel: models.NewInstancesModel(a.apiClient),
-		templatesModel: models.NewTemplatesModel(a.apiClient),
-		storageModel:   models.NewStorageModel(a.apiClient),
-		usersModel:     models.NewUsersModel(a.apiClient),
-		settingsModel:  models.NewSettingsModel(a.apiClient),
-		profilesModel:  models.NewProfilesModel(a.apiClient),
+		apiClient:        a.apiClient,
+		currentPage:      DashboardPage,
+		dashboardModel:   models.NewDashboardModel(a.apiClient),
+		instancesModel:   models.NewInstancesModel(a.apiClient),
+		templatesModel:   models.NewTemplatesModel(a.apiClient),
+		storageModel:     models.NewStorageModel(a.apiClient),
+		projectsModel:    models.NewProjectsModel(a.apiClient),
+		budgetModel:      models.NewBudgetModel(a.apiClient),
+		usersModel:       models.NewUsersModel(a.apiClient),
+		policyModel:      models.NewPolicyModel(a.apiClient),
+		marketplaceModel: models.NewMarketplaceModel(a.apiClient),
+		idleModel:        models.NewIdleModel(a.apiClient),
+		amiModel:         models.NewAMIModel(a.apiClient),
+		rightsizingModel: models.NewRightsizingModel(a.apiClient),
+		logsModel:        models.NewLogsModel(a.apiClient),
+		daemonModel:      models.NewDaemonModel(a.apiClient),
+		settingsModel:    models.NewSettingsModel(a.apiClient),
+		profilesModel:    models.NewProfilesModel(a.apiClient),
 	}
 
 	// Create program with explicit input/output streams for maximum compatibility
@@ -139,8 +175,26 @@ func (m AppModel) Init() tea.Cmd {
 		return m.templatesModel.Init()
 	case StoragePage:
 		return m.storageModel.Init()
+	case ProjectsPage:
+		return m.projectsModel.Init()
+	case BudgetPage:
+		return m.budgetModel.Init()
 	case UsersPage:
 		return m.usersModel.Init()
+	case PolicyPage:
+		return m.policyModel.Init()
+	case MarketplacePage:
+		return m.marketplaceModel.Init()
+	case IdlePage:
+		return m.idleModel.Init()
+	case AMIPage:
+		return m.amiModel.Init()
+	case RightsizingPage:
+		return m.rightsizingModel.Init()
+	case LogsPage:
+		return m.logsModel.Init()
+	case DaemonPage:
+		return m.daemonModel.Init()
 	case SettingsPage:
 		return m.settingsModel.Init()
 	case ProfilesPage:
@@ -192,7 +246,7 @@ func (h *PageNavigationHandler) CanHandle(msg tea.Msg) bool {
 		return false
 	}
 	key := keyMsg.String()
-	return key == "1" || key == "2" || key == "3" || key == "4" || key == "5" || key == "6"
+	return key == "1" || key == "2" || key == "3" || key == "4" || key == "5" || key == "6" || key == "7" || key == "8" || key == "9" || key == "0" || key == "m" || key == "i" || key == "a" || key == "r" || key == "l" || key == "d"
 }
 
 func (h *PageNavigationHandler) Handle(m AppModel, msg tea.Msg) (AppModel, []tea.Cmd) {
@@ -212,12 +266,39 @@ func (h *PageNavigationHandler) Handle(m AppModel, msg tea.Msg) (AppModel, []tea
 		m.currentPage = StoragePage
 		cmds = append(cmds, m.storageModel.Init())
 	case "5":
+		m.currentPage = ProjectsPage
+		cmds = append(cmds, m.projectsModel.Init())
+	case "6":
+		m.currentPage = BudgetPage
+		cmds = append(cmds, m.budgetModel.Init())
+	case "7":
 		m.currentPage = UsersPage
 		cmds = append(cmds, m.usersModel.Init())
-	case "6":
+	case "8":
+		m.currentPage = PolicyPage
+		cmds = append(cmds, m.policyModel.Init())
+	case "m":
+		m.currentPage = MarketplacePage
+		cmds = append(cmds, m.marketplaceModel.Init())
+	case "i":
+		m.currentPage = IdlePage
+		cmds = append(cmds, m.idleModel.Init())
+	case "a":
+		m.currentPage = AMIPage
+		cmds = append(cmds, m.amiModel.Init())
+	case "r":
+		m.currentPage = RightsizingPage
+		cmds = append(cmds, m.rightsizingModel.Init())
+	case "l":
+		m.currentPage = LogsPage
+		cmds = append(cmds, m.logsModel.Init())
+	case "d":
+		m.currentPage = DaemonPage
+		cmds = append(cmds, m.daemonModel.Init())
+	case "9":
 		m.currentPage = SettingsPage
 		cmds = append(cmds, m.settingsModel.Init())
-	case "7":
+	case "0":
 		m.currentPage = ProfilesPage
 		m.profilesModel.SetSize(m.width, m.height)
 		cmds = append(cmds, func() tea.Msg { return models.ProfileInitMsg{} })
@@ -247,9 +328,45 @@ func (u *PageModelUpdater) UpdateCurrentPage(m AppModel, msg tea.Msg) (AppModel,
 		newModel, newCmd := m.storageModel.Update(msg)
 		m.storageModel = newModel.(models.StorageModel)
 		return m, newCmd
+	case ProjectsPage:
+		newModel, newCmd := m.projectsModel.Update(msg)
+		m.projectsModel = newModel.(models.ProjectsModel)
+		return m, newCmd
+	case BudgetPage:
+		newModel, newCmd := m.budgetModel.Update(msg)
+		m.budgetModel = newModel.(models.BudgetModel)
+		return m, newCmd
 	case UsersPage:
 		newModel, newCmd := m.usersModel.Update(msg)
 		m.usersModel = newModel.(models.UsersModel)
+		return m, newCmd
+	case PolicyPage:
+		newModel, newCmd := m.policyModel.Update(msg)
+		m.policyModel = newModel.(models.PolicyModel)
+		return m, newCmd
+	case MarketplacePage:
+		newModel, newCmd := m.marketplaceModel.Update(msg)
+		m.marketplaceModel = newModel.(models.MarketplaceModel)
+		return m, newCmd
+	case IdlePage:
+		newModel, newCmd := m.idleModel.Update(msg)
+		m.idleModel = newModel.(models.IdleModel)
+		return m, newCmd
+	case AMIPage:
+		newModel, newCmd := m.amiModel.Update(msg)
+		m.amiModel = newModel.(models.AMIModel)
+		return m, newCmd
+	case RightsizingPage:
+		newModel, newCmd := m.rightsizingModel.Update(msg)
+		m.rightsizingModel = newModel.(models.RightsizingModel)
+		return m, newCmd
+	case LogsPage:
+		newModel, newCmd := m.logsModel.Update(msg)
+		m.logsModel = newModel.(models.LogsModel)
+		return m, newCmd
+	case DaemonPage:
+		newModel, newCmd := m.daemonModel.Update(msg)
+		m.daemonModel = newModel.(models.DaemonModel)
 		return m, newCmd
 	case SettingsPage:
 		newModel, newCmd := m.settingsModel.Update(msg)
@@ -325,8 +442,26 @@ func (m AppModel) View() string {
 		return m.templatesModel.View()
 	case StoragePage:
 		return m.storageModel.View()
+	case ProjectsPage:
+		return m.projectsModel.View()
+	case BudgetPage:
+		return m.budgetModel.View()
 	case UsersPage:
 		return m.usersModel.View()
+	case PolicyPage:
+		return m.policyModel.View()
+	case MarketplacePage:
+		return m.marketplaceModel.View()
+	case IdlePage:
+		return m.idleModel.View()
+	case AMIPage:
+		return m.amiModel.View()
+	case RightsizingPage:
+		return m.rightsizingModel.View()
+	case LogsPage:
+		return m.logsModel.View()
+	case DaemonPage:
+		return m.daemonModel.View()
 	case SettingsPage:
 		return m.settingsModel.View()
 	case ProfilesPage:

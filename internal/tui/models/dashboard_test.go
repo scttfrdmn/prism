@@ -173,6 +173,91 @@ func (m *mockAPIClientDashboard) GetStatus(ctx context.Context) (*api.SystemStat
 	return &api.SystemStatusResponse{}, nil
 }
 
+func (m *mockAPIClientDashboard) ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error) {
+	m.callLog = append(m.callLog, "ListProjects")
+	return &api.ListProjectsResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error) {
+	m.callLog = append(m.callLog, "GetPolicyStatus")
+	return &api.PolicyStatusResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error) {
+	m.callLog = append(m.callLog, "ListPolicySets")
+	return &api.ListPolicySetsResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) AssignPolicySet(ctx context.Context, policySetID string) error {
+	m.callLog = append(m.callLog, "AssignPolicySet")
+	return nil
+}
+
+func (m *mockAPIClientDashboard) SetPolicyEnforcement(ctx context.Context, enabled bool) error {
+	m.callLog = append(m.callLog, "SetPolicyEnforcement")
+	return nil
+}
+
+func (m *mockAPIClientDashboard) CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error) {
+	m.callLog = append(m.callLog, "CheckTemplateAccess")
+	return &api.TemplateAccessResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error) {
+	m.callLog = append(m.callLog, "ListMarketplaceTemplates")
+	return &api.ListMarketplaceTemplatesResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error) {
+	m.callLog = append(m.callLog, "ListMarketplaceCategories")
+	return &api.ListCategoriesResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error) {
+	m.callLog = append(m.callLog, "ListMarketplaceRegistries")
+	return &api.ListRegistriesResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) InstallMarketplaceTemplate(ctx context.Context, templateName string) error {
+	m.callLog = append(m.callLog, "InstallMarketplaceTemplate")
+	return nil
+}
+
+func (m *mockAPIClientDashboard) ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error) {
+	m.callLog = append(m.callLog, "ListAMIs")
+	return &api.ListAMIsResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error) {
+	m.callLog = append(m.callLog, "ListAMIBuilds")
+	return &api.ListAMIBuildsResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error) {
+	m.callLog = append(m.callLog, "ListAMIRegions")
+	return &api.ListAMIRegionsResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) DeleteAMI(ctx context.Context, amiID string) error {
+	m.callLog = append(m.callLog, "DeleteAMI")
+	return nil
+}
+
+func (m *mockAPIClientDashboard) GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error) {
+	m.callLog = append(m.callLog, "GetRightsizingRecommendations")
+	return &api.GetRightsizingRecommendationsResponse{}, nil
+}
+
+func (m *mockAPIClientDashboard) ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error {
+	m.callLog = append(m.callLog, "ApplyRightsizingRecommendation")
+	return nil
+}
+
+func (m *mockAPIClientDashboard) GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error) {
+	m.callLog = append(m.callLog, "GetLogs")
+	return &api.LogsResponse{}, nil
+}
+
 // TestCostData tests the cost data structure
 func TestCostData(t *testing.T) {
 	costData := CostData{

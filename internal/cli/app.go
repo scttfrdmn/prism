@@ -579,14 +579,17 @@ func (m *LaunchProgressMonitor) handleInstanceState(state string, elapsed int, i
 
 // List handles the list command with optional project filtering
 func (a *App) List(args []string) error {
-	// Parse arguments for project filtering
+	// Parse arguments for project filtering and detailed output
 	var projectFilter string
+	var detailed bool
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--project" && i+1 < len(args):
 			projectFilter = args[i+1]
 			i++
+		case arg == "--detailed" || arg == "-d":
+			detailed = true
 		}
 	}
 
@@ -627,7 +630,14 @@ func (a *App) List(args []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
-	_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
+
+	// Show different headers based on detailed flag
+	if detailed {
+		_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tREGION\tAZ\tPUBLIC IP\tPROJECT\tLAUNCHED")
+	} else {
+		_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
+	}
+
 	for _, instance := range filteredInstances {
 		projectInfo := "-"
 		if instance.ProjectID != "" {
@@ -640,15 +650,40 @@ func (a *App) List(args []string) error {
 			typeIndicator = "SP"
 		}
 
-		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			instance.Name,
-			instance.Template,
-			strings.ToUpper(instance.State),
-			typeIndicator,
-			instance.PublicIP,
-			projectInfo,
-			instance.LaunchTime.Format(ShortDateFormat),
-		)
+		if detailed {
+			// Detailed output with region and AZ
+			region := instance.Region
+			if region == "" {
+				region = "-"
+			}
+			az := instance.AvailabilityZone
+			if az == "" {
+				az = "-"
+			}
+
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				instance.Name,
+				instance.Template,
+				strings.ToUpper(instance.State),
+				typeIndicator,
+				region,
+				az,
+				instance.PublicIP,
+				projectInfo,
+				instance.LaunchTime.Format(ShortDateFormat),
+			)
+		} else {
+			// Standard output
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+				instance.Name,
+				instance.Template,
+				strings.ToUpper(instance.State),
+				typeIndicator,
+				instance.PublicIP,
+				projectInfo,
+				instance.LaunchTime.Format(ShortDateFormat),
+			)
+		}
 	}
 
 	_ = w.Flush()
@@ -1147,7 +1182,11 @@ func (a *App) projectBudgetSet(args []string) error {
 		return fmt.Errorf("budget amount must be greater than 0")
 	}
 
-	// Parse additional flags (simplified parsing for now)
+	// NOTE: This is a simplified legacy function for backwards compatibility
+	// For full budget creation with all flags (--monthly-limit, --daily-limit, --alert, --action, etc.),
+	// use the Cobra-based command: `cws budget create <project> <amount> [flags]`
+	// See internal/cli/budget_commands.go for complete implementation with all features
+
 	req := client.SetProjectBudgetRequest{
 		TotalBudget:     budgetAmount,
 		BudgetPeriod:    types.BudgetPeriodProject,
@@ -1155,10 +1194,7 @@ func (a *App) projectBudgetSet(args []string) error {
 		AutoActions:     []types.BudgetAutoAction{},
 	}
 
-	// TODO: Parse flags like --monthly-limit, --daily-limit, --alert, etc.
-	// For now, set some sensible defaults
-
-	// Add a default 80% warning alert
+	// Add a default 80% warning alert (for full alert customization, use `cws budget create`)
 	req.AlertThresholds = append(req.AlertThresholds, types.BudgetAlert{
 		Threshold: 0.8,
 		Type:      types.BudgetAlertEmail,

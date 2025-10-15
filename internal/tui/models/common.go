@@ -48,6 +48,35 @@ type apiClient interface {
 
 	// Status operations
 	GetStatus(ctx context.Context) (*api.SystemStatusResponse, error)
+
+	// Project operations (Phase 4 Enterprise)
+	ListProjects(ctx context.Context, filter *api.ProjectFilter) (*api.ListProjectsResponse, error)
+
+	// Policy operations (Phase 5A+)
+	GetPolicyStatus(ctx context.Context) (*api.PolicyStatusResponse, error)
+	ListPolicySets(ctx context.Context) (*api.ListPolicySetsResponse, error)
+	AssignPolicySet(ctx context.Context, policySetID string) error
+	SetPolicyEnforcement(ctx context.Context, enabled bool) error
+	CheckTemplateAccess(ctx context.Context, templateName string) (*api.TemplateAccessResponse, error)
+
+	// Marketplace operations (Phase 5B)
+	ListMarketplaceTemplates(ctx context.Context, filter *api.MarketplaceFilter) (*api.ListMarketplaceTemplatesResponse, error)
+	ListMarketplaceCategories(ctx context.Context) (*api.ListCategoriesResponse, error)
+	ListMarketplaceRegistries(ctx context.Context) (*api.ListRegistriesResponse, error)
+	InstallMarketplaceTemplate(ctx context.Context, templateName string) error
+
+	// AMI operations
+	ListAMIs(ctx context.Context) (*api.ListAMIsResponse, error)
+	ListAMIBuilds(ctx context.Context) (*api.ListAMIBuildsResponse, error)
+	ListAMIRegions(ctx context.Context) (*api.ListAMIRegionsResponse, error)
+	DeleteAMI(ctx context.Context, amiID string) error
+
+	// Rightsizing operations
+	GetRightsizingRecommendations(ctx context.Context) (*api.GetRightsizingRecommendationsResponse, error)
+	ApplyRightsizingRecommendation(ctx context.Context, instanceName string) error
+
+	// Logs operations
+	GetLogs(ctx context.Context, instanceName, logType string) (*api.LogsResponse, error)
 }
 
 // refreshRoutine schedules periodic refresh operations
