@@ -285,8 +285,24 @@ func (a *App) Launch(args []string) error {
 		fmt.Printf("🏷️  Instance will be tracked under project budget\n")
 	}
 
-	// If --wait is specified, monitor launch progress
-	if req.Wait {
+	// Determine if we should monitor progress
+	// For package-based templates, always monitor (they take 5-10 minutes)
+	// For AMI templates, only monitor if --wait is specified
+	shouldMonitor := req.Wait
+
+	// Check if this is a package-based template (no AMI = needs package installation)
+	if !shouldMonitor {
+		templateInfo, err := a.apiClient.GetTemplate(a.ctx, req.Template)
+		if err == nil && (templateInfo.AMI == nil || len(templateInfo.AMI) == 0) {
+			// Package-based template - always monitor progress
+			shouldMonitor = true
+			fmt.Printf("\n💡 Package installation will take 5-10 minutes. Monitoring progress...\n")
+			fmt.Printf("   (Use Ctrl+C to return to prompt - instance will continue setup)\n")
+		}
+	}
+
+	// Monitor launch progress if needed
+	if shouldMonitor {
 		fmt.Println()
 		return a.monitorLaunchProgress(req.Name, req.Template)
 	}
