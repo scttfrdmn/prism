@@ -66,6 +66,7 @@ type App struct {
 	scalingCommands  *ScalingCommands         // Scaling and rightsizing commands
 	snapshotCommands *SnapshotCommands        // Instance snapshot management commands
 	backupCommands   *BackupCommands          // Data backup and restore management commands
+	webCommands      *WebCommands             // Web service management commands
 	testMode         bool                     // Skip actual SSH execution in tests
 }
 
@@ -95,10 +96,24 @@ func NewApp(version string) *App {
 	// Load API key from daemon state if available
 	apiKey := loadAPIKeyFromState()
 
+	// Determine AWS profile and region to use
+	// Priority: Current CloudWorkstation profile > Config file > Environment variables
+	awsProfile := config.AWS.Profile
+	awsRegion := config.AWS.Region
+
+	// Check if there's an active CloudWorkstation profile
+	if profileManager != nil {
+		if currentProfile, err := profileManager.GetCurrentProfile(); err == nil && currentProfile != nil {
+			// Use CloudWorkstation profile settings
+			awsProfile = currentProfile.AWSProfile
+			awsRegion = currentProfile.Region
+		}
+	}
+
 	// Create API client with configuration
 	baseClient := client.NewClientWithOptions(apiURL, client.Options{
-		AWSProfile: config.AWS.Profile,
-		AWSRegion:  config.AWS.Region,
+		AWSProfile: awsProfile,
+		AWSRegion:  awsRegion,
 		APIKey:     apiKey,
 	})
 
@@ -120,6 +135,7 @@ func NewApp(version string) *App {
 	app.scalingCommands = NewScalingCommands(app)
 	app.snapshotCommands = NewSnapshotCommands(app)
 	app.backupCommands = NewBackupCommands(app)
+	app.webCommands = NewWebCommands(app)
 
 	// Initialize TUI command
 	app.tuiCommand = NewTUICommand()
@@ -211,6 +227,7 @@ func NewAppWithClient(version string, apiClient client.CloudWorkstationAPI) *App
 	app.scalingCommands = NewScalingCommands(app)
 	app.snapshotCommands = NewSnapshotCommands(app)
 	app.backupCommands = NewBackupCommands(app)
+	app.webCommands = NewWebCommands(app)
 
 	// Initialize TUI command
 	app.tuiCommand = NewTUICommand()
@@ -375,32 +392,24 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 		// Check for completion or error states
 		switch instance.State {
 		case "running":
-			// For package-based templates, verify setup is complete
-			// Check if it's NOT an AMI-based template
+			// Determine if this is an AMI-based template
+			// Templates with pre-built AMIs launch immediately (30s) vs package installation (5-10min)
 			isAMI := false
 			if template != nil {
 				isAMI = len(template.AMI) > 0
 			}
-			if !isAMI && !strings.Contains(strings.ToLower(reporter.templateName), "ami") {
-				// Check if setup is actually complete (simplified check)
-				if elapsed > 2*time.Minute { // Allow some setup time
-					// Try to connect to verify setup completion
-					_, connErr := a.apiClient.ConnectInstance(a.ctx, reporter.instanceName)
-					if connErr == nil {
-						reporter.ShowCompletion(instance)
-						return nil
-					}
-					// If connection fails but we've been running a while, consider it complete
-					if elapsed > 10*time.Minute {
-						reporter.ShowCompletion(instance)
-						return nil
-					}
-				}
-			} else {
+
+			if isAMI || strings.Contains(strings.ToLower(reporter.templateName), "ami") {
 				// AMI-based template - instance running means ready
+				// Pre-built AMIs include all packages pre-installed
 				reporter.ShowCompletion(instance)
 				return nil
 			}
+
+			// Package-based template - switch to detailed progress monitoring
+			// This monitors actual setup progress via SSH and cloud-init status
+			fmt.Printf("\n📦 Instance running - monitoring package installation progress...\n\n")
+			return a.monitorSetupProgress(instance)
 
 		case "stopped", "stopping":
 			err := fmt.Errorf("instance stopped during launch")
@@ -842,6 +851,25 @@ func (a *App) Backup(args []string) error {
 // Restore handles data restore commands
 func (a *App) Restore(args []string) error {
 	return a.backupCommands.Restore(args)
+}
+
+// Web handles web service commands
+func (a *App) Web(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("web command requires an action: list, open, or close")
+	}
+
+	action := args[0]
+	switch action {
+	case "list":
+		return a.webCommands.List(args[1:])
+	case "open":
+		return a.webCommands.Open(args[1:])
+	case "close":
+		return a.webCommands.Close(args[1:])
+	default:
+		return fmt.Errorf("unknown web action: %s (available: list, open, close)", action)
+	}
 }
 
 // Templates handles the templates command
@@ -1493,4 +1521,230 @@ func loadAPIKeyFromState() string {
 	}
 
 	return state.Config.APIKey
+}
+
+// monitorSetupProgress monitors setup progress using SSH-based monitoring
+func (a *App) monitorSetupProgress(instance *types.Instance) error {
+	// We need the SSH key to monitor progress
+	// Use the tunnel manager's key resolution logic
+	sshKeyPath, err := a.findSSHKey(instance.Region)
+	if err != nil {
+		// Fall back to basic monitoring if no SSH key
+		fmt.Printf("⚠️  SSH key not found - using basic progress monitoring\n")
+		fmt.Printf("💡 Expected key: cws-test-%s-key in ~/.ssh/\n", instance.Region)
+		return a.basicSetupMonitoring(instance)
+	}
+
+	// Determine username (ubuntu for standard AMIs)
+	username := instance.Username
+	if username == "" {
+		username = "ubuntu"
+	}
+
+	// Create progress monitor (from daemon package, need to import it properly)
+	// For now, use basic monitoring with cloud-init status check
+	fmt.Printf("🔍 Monitoring setup with SSH key: %s\n", filepath.Base(sshKeyPath))
+	fmt.Printf("👤 Username: %s\n", username)
+	fmt.Printf("🌐 IP: %s\n\n", instance.PublicIP)
+
+	// Poll for setup completion
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	startTime := time.Now()
+	lastStage := ""
+
+	for {
+		select {
+		case <-a.ctx.Done():
+			return a.ctx.Err()
+		case <-ticker.C:
+			elapsed := time.Since(startTime)
+
+			// Check cloud-init status via SSH
+			status := a.checkSetupStatus(sshKeyPath, username, instance.PublicIP)
+
+			if status != lastStage {
+				fmt.Printf("📦 %s (%s)\n", status, elapsed.Round(time.Second))
+				lastStage = status
+			}
+
+			// Check if complete
+			if strings.Contains(status, "Complete") || strings.Contains(status, "ready") {
+				fmt.Printf("\n✅ Setup complete! Instance ready.\n")
+				fmt.Printf("⏱️  Total setup time: %s\n", elapsed.Round(time.Second))
+				fmt.Printf("🔗 Connect: cws connect %s\n", instance.Name)
+				return nil
+			}
+
+			// Timeout after 15 minutes
+			if elapsed > 15*time.Minute {
+				fmt.Printf("\n⚠️  Setup taking longer than expected\n")
+				fmt.Printf("💡 Instance may still be configuring. Check with: cws list\n")
+				return nil
+			}
+		}
+	}
+}
+
+// findSSHKey finds the SSH key for a region
+func (a *App) findSSHKey(region string) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Standard format: cws-test-{region}-key
+	keyPaths := []string{
+		filepath.Join(homeDir, ".ssh", fmt.Sprintf("cws-test-%s-key", region)),
+		filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", fmt.Sprintf("cws-test-%s-key", region)),
+	}
+
+	for _, path := range keyPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", fmt.Errorf("SSH key not found for region %s", region)
+}
+
+// checkSetupStatus checks the setup status via SSH
+func (a *App) checkSetupStatus(sshKeyPath, username, ip string) string {
+	ctx, cancel := context.WithTimeout(a.ctx, 5*time.Second)
+	defer cancel()
+
+	// Try to get cloud-init status
+	cmd := exec.CommandContext(ctx, "ssh",
+		"-o", "ConnectTimeout=3",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "LogLevel=ERROR",
+		"-i", sshKeyPath,
+		fmt.Sprintf("%s@%s", username, ip),
+		"cloud-init status 2>/dev/null || echo 'status: unknown'",
+	)
+
+	output, err := cmd.Output()
+	if err != nil {
+		return "Waiting for SSH..."
+	}
+
+	statusStr := strings.TrimSpace(string(output))
+
+	// Parse cloud-init status
+	if strings.Contains(statusStr, "status: done") {
+		return "Setup complete"
+	} else if strings.Contains(statusStr, "status: running") {
+		// Try to get more detail from progress markers
+		return a.getDetailedProgress(sshKeyPath, username, ip)
+	} else if strings.Contains(statusStr, "status: error") {
+		return "Setup error detected"
+	}
+
+	return "Initializing..."
+}
+
+// getDetailedProgress gets detailed progress from setup log
+func (a *App) getDetailedProgress(sshKeyPath, username, ip string) string {
+	ctx, cancel := context.WithTimeout(a.ctx, 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "ssh",
+		"-o", "ConnectTimeout=3",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "LogLevel=ERROR",
+		"-i", sshKeyPath,
+		fmt.Sprintf("%s@%s", username, ip),
+		"tail -5 /var/log/cws-setup.log 2>/dev/null | grep CWS-PROGRESS | tail -1 || echo ''",
+	)
+
+	output, err := cmd.Output()
+	if err != nil || len(output) == 0 {
+		return "Installing packages"
+	}
+
+	// Parse progress marker
+	// Format: [CWS-PROGRESS] STAGE:stage-name:status
+	line := strings.TrimSpace(string(output))
+	if strings.Contains(line, "STAGE:") {
+		parts := strings.Split(line, "STAGE:")
+		if len(parts) > 1 {
+			stageParts := strings.Split(parts[1], ":")
+			if len(stageParts) >= 2 {
+				stageName := stageParts[0]
+				stageStatus := stageParts[1]
+
+				// Human-readable stage names
+				stageNames := map[string]string{
+					"init":            "Initializing system",
+					"system-packages": "Installing system packages",
+					"conda-packages":  "Installing conda packages",
+					"pip-packages":    "Installing pip packages",
+					"service-config":  "Configuring services",
+					"ready":           "Starting services",
+				}
+
+				displayName := stageNames[stageName]
+				if displayName == "" {
+					displayName = stageName
+				}
+
+				if stageStatus == "COMPLETE" {
+					return fmt.Sprintf("✅ %s", displayName)
+				} else {
+					return fmt.Sprintf("🔄 %s", displayName)
+				}
+			}
+		}
+	}
+
+	return "Installing packages"
+}
+
+// basicSetupMonitoring provides basic time-based monitoring when SSH not available
+func (a *App) basicSetupMonitoring(instance *types.Instance) error {
+	fmt.Printf("📦 Monitoring setup progress (estimated 5-8 minutes)...\n\n")
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	startTime := time.Now()
+	minWaitTime := 5 * time.Minute
+
+	for {
+		select {
+		case <-a.ctx.Done():
+			return a.ctx.Err()
+		case <-ticker.C:
+			elapsed := time.Since(startTime)
+
+			if elapsed < 2*time.Minute {
+				fmt.Printf("🔧 System initialization (%s)\n", elapsed.Round(time.Second))
+			} else if elapsed < 5*time.Minute {
+				fmt.Printf("📦 Installing packages (%s)\n", elapsed.Round(time.Second))
+			} else if elapsed < 7*time.Minute {
+				fmt.Printf("⚙️  Configuring services (%s)\n", elapsed.Round(time.Second))
+			} else {
+				fmt.Printf("🔧 Finalizing setup (%s)\n", elapsed.Round(time.Second))
+			}
+
+			// After minimum wait, try to connect
+			if elapsed > minWaitTime {
+				_, err := a.apiClient.ConnectInstance(a.ctx, instance.Name)
+				if err == nil {
+					fmt.Printf("\n✅ Setup complete!\n")
+					fmt.Printf("⏱️  Total time: %s\n", elapsed.Round(time.Second))
+					return nil
+				}
+			}
+
+			// Timeout after 15 minutes
+			if elapsed > 15*time.Minute {
+				fmt.Printf("\n⚠️  Setup taking longer than expected\n")
+				return nil
+			}
+		}
+	}
 }

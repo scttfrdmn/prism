@@ -288,7 +288,28 @@ echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
 
 const condaScriptTemplate = `#!/bin/bash
 set -euo pipefail
+
+# CloudWorkstation Progress Monitoring
+# This script logs progress markers that can be monitored via SSH
+PROGRESS_LOG="/var/log/cws-setup.log"
+touch "$PROGRESS_LOG"
+chmod 644 "$PROGRESS_LOG"
+
+# Progress marker function
+progress() {
+    echo "[CWS-PROGRESS] $1" | tee -a "$PROGRESS_LOG"
+    logger -t cws-setup "$1"
+}
+
+progress "STAGE:init:START"
+
+# System initialization
 apt-get update -y && apt-get install -y curl wget bzip2 ca-certificates
+
+progress "STAGE:init:COMPLETE"
+progress "STAGE:system-packages:START"
+
+# Install miniforge
 ARCH=$(uname -m)
 MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-${ARCH}.sh"
 wget -O /tmp/mf.sh "$MINIFORGE_URL" && bash /tmp/mf.sh -b -p /opt/miniforge && rm /tmp/mf.sh
@@ -296,8 +317,18 @@ export PATH="/opt/miniforge/bin:$PATH"
 echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /etc/environment
 /opt/miniforge/bin/conda init bash
 
+progress "STAGE:system-packages:COMPLETE"
+progress "STAGE:conda-packages:START"
+
 {{if .Packages}}/opt/miniforge/bin/conda install -y{{range .Packages}} {{.}}{{end}}{{end}}
+
+progress "STAGE:conda-packages:COMPLETE"
+progress "STAGE:pip-packages:START"
+
 {{if .Template.Packages.Pip}}/opt/miniforge/bin/pip install{{range .Template.Packages.Pip}} {{.}}{{end}}{{end}}
+
+progress "STAGE:pip-packages:COMPLETE"
+progress "STAGE:service-config:START"
 
 {{range .Users}}useradd -m -s /bin/bash {{.Name}} || true
 {{if .Groups}}{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}{{end}}{{end}}
@@ -306,7 +337,22 @@ echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /home/{{.Name}}/.bashrc
 chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 {{end}}
 
-{{range .Services}}{{if eq .Name "jupyter"}}cat > /etc/systemd/system/jupyter.service << 'EOF'
+{{range .Services}}{{if eq .Name "jupyter"}}# Generate Jupyter config for researcher user
+sudo -u {{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}} /opt/miniforge/bin/jupyter lab --generate-config -y
+
+# Configure Jupyter for no-token access (safe for SSH tunnel usage)
+JUPYTER_CONFIG="/home/{{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}}/.jupyter/jupyter_lab_config.py"
+cat >> "$JUPYTER_CONFIG" << 'JUPYTEREOF'
+
+# CloudWorkstation: Disable token for SSH tunnel access
+c.ServerApp.token = ''
+c.ServerApp.password = ''
+c.ServerApp.disable_check_xsrf = False
+JUPYTEREOF
+chown {{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}:{{.Name}}{{end}}{{end}} "$JUPYTER_CONFIG"
+
+# Create Jupyter systemd service
+cat > /etc/systemd/system/jupyter.service << 'EOF'
 [Unit]
 Description=Jupyter Lab
 After=network.target
@@ -315,16 +361,85 @@ Type=simple
 User={{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}}
 Environment=PATH=/opt/miniforge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 WorkingDirectory={{range $.Users}}{{if eq .Name "researcher"}}/home/{{.Name}}{{end}}{{end}}
-ExecStart=/opt/miniforge/bin/jupyter lab --ip=127.0.0.1 --port={{.Port}} --no-browser --generate-config
+ExecStart=/opt/miniforge/bin/jupyter lab --ip=127.0.0.1 --port={{.Port}} --no-browser
 Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
-{{if .Enable}}systemctl enable jupyter && systemctl start jupyter{{end}}{{end}}{{end}}
+{{if .Enable}}systemctl enable jupyter && systemctl start jupyter{{end}}{{end}}{{if eq .Name "rstudio-server"}}# Install RStudio Server
+wget -q https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2024.12.0-467-amd64.deb -O /tmp/rstudio-server.deb
+apt-get install -y gdebi-core
+gdebi -n /tmp/rstudio-server.deb
+rm /tmp/rstudio-server.deb
 
+# Configure RStudio Server
+mkdir -p /etc/rstudio
+cat > /etc/rstudio/rserver.conf << 'EOF'
+# RStudio Server Configuration
+www-port={{.Port}}
+www-address=127.0.0.1
+rsession-which-r=/opt/miniforge/bin/R
+rsession-ld-library-path=/opt/miniforge/lib
+EOF
+
+# Configure R session
+cat > /etc/rstudio/rsession.conf << 'EOF'
+# R Session Configuration
+r-libs-user=~/R/library
+session-timeout-minutes=0
+EOF
+
+# Create rstudio-users group and add R user
+groupadd -f rstudio-users
+{{range $.Users}}{{if or (eq .Name "rstats") (eq .Name "researcher")}}usermod -aG rstudio-users {{.Name}}
+{{end}}{{end}}
+# Restart RStudio Server
+systemctl daemon-reload
+{{if .Enable}}systemctl enable rstudio-server && systemctl restart rstudio-server{{end}}
+{{end}}{{if eq .Name "shiny-server"}}
+# Install Shiny Server
+wget -q https://download3.rstudio.org/ubuntu-18.04/x86_64/shiny-server-1.5.22.1017-amd64.deb -O /tmp/shiny-server.deb
+gdebi -n /tmp/shiny-server.deb
+rm /tmp/shiny-server.deb
+
+# Install Shiny R package via conda
+/opt/miniforge/bin/R -e "install.packages('shiny', repos='https://cloud.r-project.org')"
+
+# Configure Shiny Server
+cat > /etc/shiny-server/shiny-server.conf << 'EOF'
+# Shiny Server Configuration
+run_as shiny;
+server {
+  listen {{.Port}} 127.0.0.1;
+  location / {
+    site_dir /srv/shiny-server;
+    log_dir /var/log/shiny-server;
+    directory_index on;
+  }
+}
+EOF
+
+# Create shared Shiny apps directory accessible by R users
+mkdir -p /srv/shiny-server
+chmod 755 /srv/shiny-server
+{{range $.Users}}{{if or (eq .Name "rstats") (eq .Name "researcher")}}chown -R {{.Name}}:shiny /srv/shiny-server
+{{end}}{{end}}
+# Restart Shiny Server
+systemctl daemon-reload
+{{if .Enable}}systemctl enable shiny-server && systemctl restart shiny-server{{end}}{{end}}{{end}}
+
+progress "STAGE:service-config:COMPLETE"
+progress "STAGE:ready:START"
+
+# Cleanup
 /opt/miniforge/bin/conda clean -a -y && apt-get autoremove -y && apt-get autoclean
-date > /var/log/cws-setup.log
+
+progress "STAGE:ready:COMPLETE"
+progress "SETUP:COMPLETE:All setup tasks finished successfully"
+
+# Final completion marker
+echo "CloudWorkstation setup completed at $(date)" >> "$PROGRESS_LOG"
 `
 
 const spackScriptTemplate = `#!/bin/bash

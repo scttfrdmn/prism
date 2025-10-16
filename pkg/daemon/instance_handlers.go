@@ -317,6 +317,10 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, ident
 		return
 	}
 
+	// Merge cached metadata (services, etc.) with live AWS data
+	// AWS doesn't store our custom metadata, so preserve it from cache
+	liveInstance.Services = cachedInstance.Services
+
 	// Update state with latest AWS data
 	if err := s.stateManager.SaveInstance(*liveInstance); err != nil {
 		// Log error but don't fail - we still have the live data

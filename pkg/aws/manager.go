@@ -376,13 +376,35 @@ type LaunchOptionsProcessor struct {
 }
 
 // ProcessOptions validates and applies hibernation/spot options
-func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string) error {
+func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string, rootVolumeGB int) error {
+	fmt.Printf("DEBUG [ProcessOptions:379]: Received rootVolumeGB parameter: %d GB\n", rootVolumeGB)
+
 	// Support IdlePolicy flag
 	enableIdlePolicy := req.IdlePolicy
 
 	// Validate idle policy and spot combination
 	if enableIdlePolicy && req.Spot {
 		return fmt.Errorf("idle policy (hibernation) and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Idle policies preserve instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --idle-policy for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
+	}
+
+	// Determine root device name (AWS uses different names for different AMIs)
+	rootDevice := "/dev/sda1"
+	if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
+		rootDevice = "/dev/xvda"
+	}
+
+	// Always set root volume size from template (default 20GB if not specified)
+	fmt.Printf("DEBUG [ProcessOptions:395]: Setting BlockDeviceMapping with %d GB root volume on device %s\n", rootVolumeGB, rootDevice)
+	runInput.BlockDeviceMappings = []ec2types.BlockDeviceMapping{
+		{
+			DeviceName: aws.String(rootDevice),
+			Ebs: &ec2types.EbsBlockDevice{
+				VolumeType:          ec2types.VolumeTypeGp3,
+				VolumeSize:          aws.Int32(int32(rootVolumeGB)),
+				Encrypted:           aws.Bool(enableIdlePolicy), // Only encrypt if hibernation enabled
+				DeleteOnTermination: aws.Bool(true),
+			},
+		},
 	}
 
 	// Add idle policy support if requested
@@ -393,24 +415,6 @@ func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInp
 
 		runInput.HibernationOptions = &ec2types.HibernationOptionsRequest{
 			Configured: aws.Bool(true),
-		}
-
-		// Enable EBS encryption for root volume (required for idle policy hibernation)
-		rootDevice := "/dev/sda1"
-		if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
-			rootDevice = "/dev/xvda"
-		}
-
-		runInput.BlockDeviceMappings = []ec2types.BlockDeviceMapping{
-			{
-				DeviceName: aws.String(rootDevice),
-				Ebs: &ec2types.EbsBlockDevice{
-					VolumeType:          ec2types.VolumeTypeGp3,
-					VolumeSize:          aws.Int32(20),
-					Encrypted:           aws.Bool(true),
-					DeleteOnTermination: aws.Bool(true),
-				},
-			},
 		}
 	}
 
@@ -433,8 +437,70 @@ type InstanceLauncher struct {
 	region  string
 }
 
+// Helper functions for service extraction
+func getServiceString(m map[string]interface{}, key string) string {
+	if val, ok := m[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+func getServiceInt(m map[string]interface{}, key string) int {
+	if val, ok := m[key].(int); ok {
+		return val
+	}
+	if val, ok := m[key].(float64); ok {
+		return int(val)
+	}
+	return 0
+}
+
 // LaunchInstance executes EC2 instance launch and returns result
-func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64) (*ctypes.Instance, error) {
+func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64, template *ctypes.RuntimeTemplate) (*ctypes.Instance, error) {
+	// Extract services from template if available
+	// For now, create basic service entries for known ports
+	// TODO: Enhance to read actual service definitions from template YAML
+	var services []ctypes.Service
+
+	// DEBUG LOGGING
+	log.Printf("[DEBUG] LaunchInstance: template=%v", template != nil)
+	if template != nil {
+		log.Printf("[DEBUG] LaunchInstance: template.Ports=%v", template.Ports)
+	}
+
+	if template != nil && len(template.Ports) > 0 {
+		log.Printf("[DEBUG] LaunchInstance: Extracting services from %d ports", len(template.Ports))
+		for _, port := range template.Ports {
+			service := ctypes.Service{
+				Port:   port,
+				Type:   "web",
+				Status: "unknown",
+			}
+			// Infer service name and description from port
+			switch port {
+			case 8888:
+				service.Name = "jupyter"
+				service.Description = "Jupyter Lab"
+			case 8787:
+				service.Name = "rstudio-server"
+				service.Description = "RStudio Server"
+			case 3838:
+				service.Name = "shiny-server"
+				service.Description = "Shiny Server"
+			case 8080:
+				service.Name = "web"
+				service.Description = "Web Application"
+			default:
+				service.Name = fmt.Sprintf("port-%d", port)
+				service.Description = fmt.Sprintf("Service on port %d", port)
+			}
+			services = append(services, service)
+			log.Printf("[DEBUG] LaunchInstance: Added service %s (port %d)", service.Name, service.Port)
+		}
+	} else {
+		log.Printf("[DEBUG] LaunchInstance: No ports to extract (template nil or ports empty)")
+	}
+
 	// Handle dry run
 	if req.DryRun {
 		return &ctypes.Instance{
@@ -445,6 +511,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 			HourlyRate:    hourlyRate,
 			CurrentSpend:  0.0,
 			EffectiveRate: 0.0,
+			Services:      services,
 		}, nil
 	}
 
@@ -468,7 +535,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	// Calculate storage costs that persist even when stopped/hibernated
 	storageCostPerHour := calculateStorageCosts(req.Volumes, req.EBSVolumes)
 
-	return &ctypes.Instance{
+	cwsInstance := &ctypes.Instance{
 		ID:                 *instance.InstanceId,
 		Name:               req.Name,
 		Template:           req.Template,
@@ -482,7 +549,16 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		EffectiveRate:      hourlyRate + storageCostPerHour, // Will include storage
 		AttachedVolumes:    req.Volumes,
 		AttachedEBSVolumes: req.EBSVolumes,
-	}, nil
+		Services:           services, // Web services from template
+	}
+
+	// DEBUG LOGGING
+	log.Printf("[DEBUG] LaunchInstance: Created instance with %d services", len(cwsInstance.Services))
+	for _, svc := range cwsInstance.Services {
+		log.Printf("[DEBUG] LaunchInstance: Instance service: %s (port %d)", svc.Name, svc.Port)
+	}
+
+	return cwsInstance, nil
 }
 
 // LaunchOrchestrator coordinates instance launch using SOLID principles (Strategy Pattern - SOLID)
@@ -530,13 +606,17 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 		return nil, err
 	}
 
-	// Process launch options
-	if err := o.optionsProcessor.ProcessOptions(req, runInput, ami, instanceType); err != nil {
+	// Process launch options (pass root volume size from template)
+	rootVolumeGB := template.RootVolumeGB
+	if rootVolumeGB == 0 {
+		rootVolumeGB = 20 // Default if not specified
+	}
+	if err := o.optionsProcessor.ProcessOptions(req, runInput, ami, instanceType, rootVolumeGB); err != nil {
 		return nil, err
 	}
 
 	// Execute launch
-	return o.instanceLauncher.LaunchInstance(req, runInput, dailyCost)
+	return o.instanceLauncher.LaunchInstance(req, runInput, dailyCost, template)
 }
 
 // launchWithUnifiedTemplateSystem launches instance using unified template system with SOLID orchestration (SOLID: Single Responsibility)
@@ -2002,10 +2082,16 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		processor := NewInstanceListProcessor(regionalClient)
 		regionalInstances := processor.ProcessReservations(result.Reservations)
 
-		// Ensure each instance has the region set
+		// Ensure each instance has the region set and merge cached metadata
 		for i := range regionalInstances {
 			if regionalInstances[i].Region == "" {
 				regionalInstances[i].Region = region
+			}
+
+			// Merge cached metadata (services, etc.) with live AWS data
+			// AWS doesn't store our custom metadata, so preserve it from cache
+			if cachedInstance, exists := state.Instances[regionalInstances[i].Name]; exists {
+				regionalInstances[i].Services = cachedInstance.Services
 			}
 		}
 

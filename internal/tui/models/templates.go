@@ -236,7 +236,7 @@ func (m *TemplatesModel) updateDetailView() {
 			if template.ResearchUser.InstallSSHKeys {
 				content.WriteString("✅ Automatic SSH key generation and installation\n")
 			}
-			if template.ResearchUser.DualUserIntegration != nil && template.ResearchUser.DualUserIntegration.CollaborationEnabled {
+			if len(template.ResearchUser.UserIntegration.SharedDirectories) > 0 {
 				content.WriteString("✅ Multi-user collaboration support\n")
 			}
 			content.WriteString("\n")

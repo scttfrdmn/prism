@@ -10,12 +10,15 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 )
 
 // CloudWorkstationService provides the API bridge between frontend and daemon
 type CloudWorkstationService struct {
 	daemonURL         string
 	client            *http.Client
+	apiClient         client.CloudWorkstationAPI // Typed API client
 	connectionManager *ConnectionManager
 	apiKey            string // API key for daemon authentication
 }
@@ -93,13 +96,20 @@ type ResearchUserSSHKeyRequest struct {
 }
 
 func NewCloudWorkstationService() *CloudWorkstationService {
+	apiKey := loadAPIKeyFromState()
+
 	service := &CloudWorkstationService{
 		daemonURL: "http://localhost:8947",
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		apiKey: loadAPIKeyFromState(), // Load API key for authentication
+		apiKey: apiKey, // Load API key for authentication
 	}
+
+	// Initialize typed API client
+	service.apiClient = client.NewClientWithOptions("http://localhost:8947", client.Options{
+		APIKey: apiKey,
+	})
 
 	// Initialize connection manager
 	service.connectionManager = NewConnectionManager(service)
@@ -690,6 +700,95 @@ func (s *CloudWorkstationService) GetResearchUserStatus(_ context.Context, usern
 	}
 
 	return status, nil
+}
+
+// OpenInstanceWebService opens a web service running on an instance
+func (s *CloudWorkstationService) OpenInstanceWebService(ctx context.Context, instanceName string, serviceName string) (*ConnectionConfig, error) {
+	// Create tunnel for the service if not already exists
+	tunnelResp, err := s.apiClient.CreateTunnels(ctx, instanceName, []string{serviceName})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tunnel: %w", err)
+	}
+
+	if len(tunnelResp.Tunnels) == 0 {
+		return nil, fmt.Errorf("no tunnels created for service %s", serviceName)
+	}
+
+	tunnel := tunnelResp.Tunnels[0]
+
+	// Build connection configuration
+	config := &ConnectionConfig{
+		ID:            fmt.Sprintf("web-%s-%s-%d", instanceName, serviceName, time.Now().Unix()),
+		Type:          ConnectionTypeWeb,
+		InstanceName:  instanceName,
+		ProxyURL:      tunnel.LocalURL,
+		AuthToken:     tunnel.AuthToken,
+		EmbeddingMode: "iframe",
+		Title:         fmt.Sprintf("%s - %s", instanceName, tunnel.ServiceDesc),
+		Status:        "connected",
+		Metadata: map[string]interface{}{
+			"service_type":   "instance-web",
+			"service_name":   serviceName,
+			"remote_port":    tunnel.RemotePort,
+			"local_port":     tunnel.LocalPort,
+			"launch_time":    time.Now().Format(time.RFC3339),
+			"has_auth_token": tunnel.AuthToken != "",
+		},
+	}
+
+	// If there's an auth token, append it to the URL
+	if tunnel.AuthToken != "" {
+		config.ProxyURL = fmt.Sprintf("%s?token=%s", tunnel.LocalURL, tunnel.AuthToken)
+	}
+
+	return config, nil
+}
+
+// ListInstanceWebServices lists all available web services for an instance
+func (s *CloudWorkstationService) ListInstanceWebServices(ctx context.Context, instanceName string) ([]map[string]interface{}, error) {
+	// Get instance details to see available services
+	instance, err := s.apiClient.GetInstance(ctx, instanceName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instance: %w", err)
+	}
+
+	// Get active tunnels
+	tunnels, err := s.apiClient.ListTunnels(ctx, instanceName)
+	if err != nil {
+		// Don't fail if we can't list tunnels - just return available services
+		tunnels = nil
+	}
+
+	// Build service list with tunnel status
+	services := make([]map[string]interface{}, 0, len(instance.Services))
+	for _, service := range instance.Services {
+		svcInfo := map[string]interface{}{
+			"name":        service.Name,
+			"description": service.Description,
+			"port":        service.Port,
+			"type":        service.Type,
+			"tunneled":    false,
+			"local_url":   "",
+		}
+
+		// Check if service has an active tunnel
+		if tunnels != nil {
+			for _, tunnel := range tunnels.Tunnels {
+				if tunnel.ServiceName == service.Name {
+					svcInfo["tunneled"] = true
+					svcInfo["local_url"] = tunnel.LocalURL
+					if tunnel.AuthToken != "" {
+						svcInfo["local_url"] = fmt.Sprintf("%s?token=%s", tunnel.LocalURL, tunnel.AuthToken)
+					}
+					break
+				}
+			}
+		}
+
+		services = append(services, svcInfo)
+	}
+
+	return services, nil
 }
 
 // Connection Management Methods (Phase 2: Tab Management System)

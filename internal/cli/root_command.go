@@ -102,15 +102,21 @@ func (f *InstanceCommandFactory) CreateCommands() []*cobra.Command {
 }
 
 func (f *InstanceCommandFactory) createConnectCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "connect <name>",
 		Short: "Connect to a workstation",
 		Long:  `Get connection information for a cloud workstation.`,
 		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
+			verbose, _ := cmd.Flags().GetBool("verbose")
+			if verbose {
+				args = append(args, "--verbose")
+			}
 			return f.app.Connect(args)
 		},
 	}
+	cmd.Flags().BoolP("verbose", "v", false, "Show SSH connection command without executing")
+	return cmd
 }
 
 func (f *InstanceCommandFactory) createExecCommand() *cobra.Command {
@@ -415,6 +421,9 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(r.createBackupCommand())
 	rootCmd.AddCommand(r.createRestoreCommand())
 
+	// Web Services command
+	rootCmd.AddCommand(r.createWebCommand())
+
 	// System commands (kept at root level)
 	rootCmd.AddCommand(r.app.tuiCommand)
 	rootCmd.AddCommand(NewGUICommand())
@@ -536,6 +545,29 @@ Examples:
   cws restore daily-backup my-workstation --dry-run`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Restore(args)
+		},
+	}
+}
+
+func (r *CommandFactoryRegistry) createWebCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "web <action>",
+		Short: "Manage instance web services",
+		Long: `Access and manage web services running on CloudWorkstation instances.
+
+Web service management provides seamless access to:
+• Jupyter Lab and Jupyter Notebook
+• RStudio Server
+• Shiny Server
+• Custom web applications
+
+Examples:
+  cws web list my-jupyter         # List all web services for instance
+  cws web open my-jupyter jupyter # Open Jupyter in browser with auto-tunneling
+  cws web close my-jupyter         # Close all tunnels for instance
+  cws web close my-jupyter jupyter # Close specific service tunnel`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			return r.app.Web(args)
 		},
 	}
 }

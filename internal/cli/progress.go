@@ -34,25 +34,41 @@ type ProgressStage struct {
 func NewProgressReporter(instanceName, templateName string, template *types.Template) *ProgressReporter {
 	templateType := "package"
 
-	// For runtime templates, we need to infer the type from other properties
-	// Check if it's AMI-based by looking at the AMI field or template name
+	// Determine template type based on template properties
+	// Priority: UserData (package-based) > AMI map (AMI-based) > template name
 	if template != nil {
-		if len(template.AMI) > 0 {
-			templateType = "ami"
+		// If template has UserData, it's package-based (will run installation scripts)
+		// If template has AMI map populated, it's AMI-based (pre-built image)
+		if len(template.UserData) > 0 {
+			templateType = "package"
+		} else if len(template.AMI) > 0 {
+			// Check if AMI map actually has entries (not just empty nested maps)
+			hasAMI := false
+			for _, archMap := range template.AMI {
+				if len(archMap) > 0 {
+					hasAMI = true
+					break
+				}
+			}
+			if hasAMI {
+				templateType = "ami"
+			}
 		}
 	}
 
-	// Also check template name for AMI indicators
-	if strings.Contains(strings.ToLower(templateName), "ami") {
+	// Fallback: check template name for AMI indicators
+	if templateType == "package" && strings.Contains(strings.ToLower(templateName), "ami") {
 		templateType = "ami"
 	}
 
+	now := time.Now()
 	reporter := &ProgressReporter{
-		instanceName: instanceName,
-		templateName: templateName,
-		templateType: templateType,
-		startTime:    time.Now(),
-		currentStage: 0,
+		instanceName:   instanceName,
+		templateName:   templateName,
+		templateType:   templateType,
+		startTime:      now,
+		stageStartTime: now,
+		currentStage:   0,
 	}
 
 	// Set total stages based on template type

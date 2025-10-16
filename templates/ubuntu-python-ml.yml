@@ -1,10 +1,17 @@
 name: "Python Machine Learning (Simplified)"
 slug: "python-ml"
-description: "Python + Jupyter + ML packages using simplified template system"
+description: "Python + Jupyter + ML packages using simplified template system. Requires size M or larger (1TB+) for ML package installation."
 base: "ubuntu-22.04"
+
+# IMPORTANT: Minimum size M required for TensorFlow/PyTorch packages
+minimum_size: "M"
 
 # EXPLICIT CONNECTION TYPE - Web interface (Jupyter)
 connection_type: "web"  # Primary interface is Jupyter in browser
+
+# Web service ports
+ports:
+  - 8888  # Jupyter Lab
 
 # Complexity and categorization
 complexity: "simple"
@@ -54,6 +61,7 @@ idle_detection:
 
 instance_defaults:
   ports: [22, 8888]
+  root_volume_gb: 50  # ML packages (TensorFlow 620MB + PyTorch + conda) need extra space
 
 version: "1.0.0"
 maintainer: "CloudWorkstation Team"

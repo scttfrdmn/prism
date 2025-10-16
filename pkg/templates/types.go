@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/research"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
 // Template represents a unified CloudWorkstation template
@@ -157,13 +158,8 @@ type ServiceConfig struct {
 	Enable bool     `yaml:"enable,omitempty" json:"enable,omitempty"` // Default: true
 }
 
-// IdleDetectionConfig represents idle detection configuration in templates
-type IdleDetectionConfig struct {
-	Enabled                   bool `yaml:"enabled" json:"enabled"`
-	IdleThresholdMinutes      int  `yaml:"idle_threshold_minutes" json:"idle_threshold_minutes"`
-	HibernateThresholdMinutes int  `yaml:"hibernate_threshold_minutes" json:"hibernate_threshold_minutes"`
-	CheckIntervalMinutes      int  `yaml:"check_interval_minutes" json:"check_interval_minutes"`
-}
+// IdleDetectionConfig is an alias to types.IdleDetectionConfig (canonical definition)
+type IdleDetectionConfig = types.IdleDetectionConfig
 
 // UserConfig defines a user to create
 type UserConfig struct {
@@ -176,51 +172,14 @@ type UserConfig struct {
 type InstanceDefaults struct {
 	Type                 string             `yaml:"type,omitempty" json:"type,omitempty"` // Default instance type
 	Ports                []int              `yaml:"ports,omitempty" json:"ports,omitempty"`
+	RootVolumeGB         int                `yaml:"root_volume_gb,omitempty" json:"root_volume_gb,omitempty"`                   // Root volume size in GB (default: 20)
 	EstimatedCostPerHour map[string]float64 `yaml:"estimated_cost_per_hour,omitempty" json:"estimated_cost_per_hour,omitempty"` // arch -> cost
 }
 
 // RuntimeTemplate represents a resolved template ready for instance launch
 // This maintains compatibility with existing types.RuntimeTemplate
-type RuntimeTemplate struct {
-	Name                 string
-	Slug                 string // CLI identifier for template (e.g., "python-ml")
-	Description          string
-	LongDescription      string                       // Detailed description for GUI
-	AMI                  map[string]map[string]string // region -> arch -> AMI ID
-	InstanceType         map[string]string            // arch -> instance type
-	UserData             string                       // Generated installation script
-	Ports                []int
-	EstimatedCostPerHour map[string]float64   // arch -> cost per hour
-	IdleDetection        *IdleDetectionConfig // Idle detection configuration
-
-	// Complexity and categorization for GUI
-	Complexity TemplateComplexity `json:"complexity,omitempty"`
-	Category   string             `json:"category,omitempty"`
-	Domain     string             `json:"domain,omitempty"`
-
-	// Visual presentation for GUI
-	Icon     string `json:"icon,omitempty"`
-	Color    string `json:"color,omitempty"`
-	Popular  bool   `json:"popular,omitempty"`
-	Featured bool   `json:"featured,omitempty"`
-
-	// User guidance for GUI
-	EstimatedLaunchTime int      `json:"estimated_launch_time,omitempty"`
-	Prerequisites       []string `json:"prerequisites,omitempty"`
-	LearningResources   []string `json:"learning_resources,omitempty"`
-
-	// Template metadata for GUI
-	ValidationStatus ValidationStatus  `json:"validation_status,omitempty"`
-	Tags             map[string]string `json:"tags,omitempty"`
-	Maintainer       string            `json:"maintainer,omitempty"`
-
-	// Connection configuration
-	ConnectionType ConnectionType `json:"connection_type,omitempty"`
-
-	// Additional metadata from unified template
-	Source    *Template `json:"-"` // Reference to source template
-	Generated time.Time // When this runtime template was generated
-}
+// RuntimeTemplate is an alias to types.RuntimeTemplate (canonical definition)
+type RuntimeTemplate = types.RuntimeTemplate
 
 // PackageManagerType represents supported package managers
 type PackageManagerType string
@@ -234,116 +193,39 @@ const (
 	PackageManagerPip   PackageManagerType = "pip"
 )
 
-// TemplateComplexity represents the complexity level of a template
-type TemplateComplexity string
+// TemplateComplexity is an alias to types.TemplateComplexity (canonical definition)
+type TemplateComplexity = types.TemplateComplexity
 
+// Alias constants for backward compatibility
 const (
-	ComplexitySimple   TemplateComplexity = "simple"   // Ready to use, perfect for getting started
-	ComplexityModerate TemplateComplexity = "moderate" // Some customization available, good for regular users
-	ComplexityAdvanced TemplateComplexity = "advanced" // Highly configurable, for experienced users
-	ComplexityComplex  TemplateComplexity = "complex"  // Maximum flexibility, requires technical knowledge
+	ComplexitySimple                      = types.TemplateComplexitySimple
+	ComplexityModerate                    = types.TemplateComplexityModerate
+	ComplexityAdvanced TemplateComplexity = "advanced" // Keep local (not in types package)
+	ComplexityComplex                     = types.TemplateComplexityComplex
 )
 
-// ValidationStatus represents the validation state of a template
-type ValidationStatus string
+// ValidationStatus is an alias to types.ValidationStatus (canonical definition)
+type ValidationStatus = types.ValidationStatus
 
+// Alias constants for backward compatibility
 const (
-	ValidationValidated    ValidationStatus = "validated"    // Fully tested and verified
-	ValidationTesting      ValidationStatus = "testing"      // Currently under testing
-	ValidationExperimental ValidationStatus = "experimental" // Experimental, use with caution
-	ValidationFailed       ValidationStatus = "failed"       // Validation failed
+	ValidationValidated                     = types.ValidationStatusValid
+	ValidationTesting      ValidationStatus = "testing"      // Keep local (not in types package)
+	ValidationExperimental ValidationStatus = "experimental" // Keep local (not in types package)
+	ValidationFailed       ValidationStatus = "failed"       // Keep local (not in types package)
 )
 
-// ConnectionType represents the connection interface type for instances
-type ConnectionType string
+// ConnectionType is an alias to types.ConnectionType (canonical definition)
+type ConnectionType = types.ConnectionType
 
+// Alias constants for backward compatibility
 const (
-	ConnectionTypeAuto ConnectionType = "auto" // Automatic detection based on template analysis (default)
-	ConnectionTypeDCV  ConnectionType = "dcv"  // NICE DCV remote desktop for GUI instances
-	ConnectionTypeSSH  ConnectionType = "ssh"  // SSH terminal for headless instances
-	ConnectionTypeWeb  ConnectionType = "web"  // Web interface (Jupyter, RStudio, Streamlit, etc.)
-	ConnectionTypeAll  ConnectionType = "all"  // Supports DCV + SSH + Web - user can choose
+	ConnectionTypeAuto ConnectionType = "auto" // Keep local (not in types package)
+	ConnectionTypeDCV  ConnectionType = "dcv"  // Keep local (not in types package)
+	ConnectionTypeSSH                 = types.ConnectionTypeSSH
+	ConnectionTypeWeb                 = types.ConnectionTypeWeb
+	ConnectionTypeAll  ConnectionType = "all" // Keep local (not in types package)
 )
-
-// ComplexityLevel returns the numeric level for sorting (1=simple, 4=complex)
-func (c TemplateComplexity) Level() int {
-	switch c {
-	case ComplexitySimple:
-		return 1
-	case ComplexityModerate:
-		return 2
-	case ComplexityAdvanced:
-		return 3
-	case ComplexityComplex:
-		return 4
-	default:
-		return 1 // Default to simple
-	}
-}
-
-// Label returns the human-readable label for the complexity level
-func (c TemplateComplexity) Label() string {
-	switch c {
-	case ComplexitySimple:
-		return "Simple"
-	case ComplexityModerate:
-		return "Moderate"
-	case ComplexityAdvanced:
-		return "Advanced"
-	case ComplexityComplex:
-		return "Complex"
-	default:
-		return "Simple"
-	}
-}
-
-// Badge returns the badge text for GUI display
-func (c TemplateComplexity) Badge() string {
-	switch c {
-	case ComplexitySimple:
-		return "Ready to Use"
-	case ComplexityModerate:
-		return "Some Options"
-	case ComplexityAdvanced:
-		return "Many Options"
-	case ComplexityComplex:
-		return "Full Control"
-	default:
-		return "Ready to Use"
-	}
-}
-
-// Icon returns the emoji icon for the complexity level
-func (c TemplateComplexity) Icon() string {
-	switch c {
-	case ComplexitySimple:
-		return "🟢"
-	case ComplexityModerate:
-		return "🟡"
-	case ComplexityAdvanced:
-		return "🟠"
-	case ComplexityComplex:
-		return "🔴"
-	default:
-		return "🟢"
-	}
-}
-
-// Color returns the hex color for the complexity level
-func (c TemplateComplexity) Color() string {
-	switch c {
-	case ComplexitySimple:
-		return "#059669"
-	case ComplexityModerate:
-		return "#d97706"
-	case ComplexityAdvanced:
-		return "#ea580c"
-	case ComplexityComplex:
-		return "#dc2626"
-	default:
-		return "#059669"
-	}
-}
 
 // PackageManagerStrategy handles package manager selection logic
 type PackageManagerStrategy struct {

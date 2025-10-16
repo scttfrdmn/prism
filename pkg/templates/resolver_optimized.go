@@ -137,6 +137,12 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 	}
 
 	// Create runtime template
+	// Get root volume size (default 20GB if not specified)
+	rootVolumeGB := template.InstanceDefaults.RootVolumeGB
+	if rootVolumeGB == 0 {
+		rootVolumeGB = 20 // Default root volume size
+	}
+
 	runtimeTemplate := &RuntimeTemplate{
 		Name:                 template.Name,
 		Slug:                 template.Slug,
@@ -146,6 +152,7 @@ func (r *OptimizedResolver) ResolveTemplateOptimized(ctx context.Context, templa
 		InstanceType:         instanceTypeMapping,
 		UserData:             userDataScript,
 		Ports:                ports,
+		RootVolumeGB:         rootVolumeGB,
 		EstimatedCostPerHour: costMapping,
 		IdleDetection:        idleDetectionConfig,
 	}

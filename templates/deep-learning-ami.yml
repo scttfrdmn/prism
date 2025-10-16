@@ -39,7 +39,7 @@ ami_config:
     /opt/conda/envs/pytorch/bin/pip install wandb jupyterlab-git
     
     # Setup Jupyter for remote access
-    jupyter lab --generate-config
+    jupyter lab --generate-config -y
     echo "c.NotebookApp.allow_remote_access = True" >> ~/.jupyter/jupyter_lab_config.py
     echo "c.NotebookApp.ip = '0.0.0.0'" >> ~/.jupyter/jupyter_lab_config.py
 

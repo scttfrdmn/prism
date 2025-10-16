@@ -40,6 +40,12 @@ type CloudWorkstationAPI interface {
 	ExecInstance(context.Context, string, types.ExecRequest) (*types.ExecResult, error)
 	ResizeInstance(context.Context, types.ResizeRequest) (*types.ResizeResponse, error)
 
+	// Tunnel operations
+	CreateTunnels(context.Context, string, []string) (*CreateTunnelsResponse, error)
+	ListTunnels(context.Context, string) (*ListTunnelsResponse, error)
+	CloseTunnel(context.Context, string, string) error
+	CloseInstanceTunnels(context.Context, string) error
+
 	// Log operations
 	GetInstanceLogs(context.Context, string, types.LogRequest) (*types.LogResponse, error)
 	GetInstanceLogTypes(context.Context, string) (*types.LogTypesResponse, error)

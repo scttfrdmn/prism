@@ -54,7 +54,22 @@ services:
 
 users:
   - name: "rstats"
-    groups: ["sudo", "rstudio-users"]
+    groups: ["sudo"]  # rstudio-users added in post_install after group exists
+
+# Post-install script to add user to rstudio-users group after RStudio Server is installed
+post_install: |
+  # Create rstudio-users group if it doesn't exist (RStudio Server should create it)
+  groupadd -f rstudio-users
+
+  # Add rstats user to rstudio-users group
+  usermod -aG rstudio-users rstats
+
+  # Verify group membership
+  if groups rstats | grep -q rstudio-users; then
+    echo "✅ User rstats successfully added to rstudio-users group"
+  else
+    echo "⚠️ WARNING: Failed to add rstats to rstudio-users group"
+  fi
 
 # Research user integration (Phase 5A+)
 research_user:
@@ -80,6 +95,7 @@ research_user:
 # Memory-optimized instances for R workloads
 instance_defaults:
   ports: [22, 8787, 3838]
+  root_volume_gb: 40  # R + RStudio Server + conda packages need extra space
   instance_type_preference: ["r5.xlarge", "r5.2xlarge", "m5.xlarge"]
 
 # Idle detection optimized for R statistical workloads

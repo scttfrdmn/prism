@@ -1682,3 +1682,33 @@ func (m *MockClient) GetInstanceLogTypes(ctx context.Context, name string) (*typ
 func (m *MockClient) GetLogsSummary(ctx context.Context) (*types.LogSummaryResponse, error) {
 	return &types.LogSummaryResponse{}, nil
 }
+
+// CloseInstanceTunnels closes all tunnels for an instance (mock)
+func (m *MockClient) CloseInstanceTunnels(ctx context.Context, instanceName string) error {
+	// Mock implementation - just return success
+	return nil
+}
+
+// CreateTunnels creates SSH tunnels for instance services (mock)
+func (m *MockClient) CreateTunnels(ctx context.Context, instanceName string, services []string) (*client.CreateTunnelsResponse, error) {
+	// Mock implementation - return successful tunnel creation
+	return &client.CreateTunnelsResponse{
+		Tunnels: []client.TunnelInfo{},
+		Message: "SSH tunnels created successfully (mock)",
+	}, nil
+}
+
+// ListTunnels lists active SSH tunnels for an instance (mock)
+func (m *MockClient) ListTunnels(ctx context.Context, instanceName string) (*client.ListTunnelsResponse, error) {
+	// Mock implementation - return empty tunnel list
+	return &client.ListTunnelsResponse{
+		Tunnels: []client.TunnelInfo{},
+		Count:   0,
+	}, nil
+}
+
+// CloseTunnel closes a specific SSH tunnel (mock)
+func (m *MockClient) CloseTunnel(ctx context.Context, instanceName string, serviceName string) error {
+	// Mock implementation - just return success
+	return nil
+}

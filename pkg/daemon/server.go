@@ -56,6 +56,9 @@ type Server struct {
 	// Template marketplace components
 	marketplaceRegistry *marketplace.Registry
 
+	// Web service tunneling
+	tunnelManager *TunnelManager
+
 	// CloudWatch client for rightsizing metrics
 	cloudwatchClient *cloudwatch.Client
 }
@@ -199,6 +202,10 @@ func NewServer(port string) (*Server, error) {
 	marketplaceRegistry.LoadSampleData() // Load sample data for development
 	alertManager.Start()
 
+	// Initialize tunnel manager for web services
+	tunnelManager := NewTunnelManager(stateManager)
+	log.Printf("Tunnel manager initialized for automatic web service access")
+
 	// Initialize security manager
 	securityConfig := security.GetDefaultSecurityConfig()
 	securityManager, err := security.NewSecurityManager(securityConfig)
@@ -250,6 +257,7 @@ func NewServer(port string) (*Server, error) {
 		budgetTracker:       budgetTracker,
 		alertManager:        alertManager,
 		marketplaceRegistry: marketplaceRegistry,
+		tunnelManager:       tunnelManager,
 		cloudwatchClient:    cloudwatchClient,
 	}
 
@@ -529,6 +537,9 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	// Instance operations
 	mux.HandleFunc("/api/v1/instances", applyMiddleware(s.handleInstances))
 	mux.HandleFunc("/api/v1/instances/", applyMiddleware(s.handleInstanceOperations))
+
+	// Tunnel operations (web service access)
+	mux.HandleFunc("/api/v1/tunnels", applyMiddleware(s.handleTunnels))
 
 	// Log operations
 	mux.HandleFunc("/api/v1/logs", applyMiddleware(s.handleLogs))

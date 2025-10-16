@@ -59,6 +59,32 @@ func (ic *InstanceCommands) Connect(args []string) error {
 		return err
 	}
 
+	// Get instance details to check for web services
+	instance, err := ic.app.apiClient.GetInstance(ic.app.ctx, name)
+	if err != nil {
+		return WrapAPIError("get instance details for "+name, err)
+	}
+
+	// Automatically create tunnels for any web services
+	if len(instance.Services) > 0 {
+		fmt.Printf("🌐 Setting up tunnels for web services...\n")
+		tunnelResp, err := ic.app.apiClient.CreateTunnels(ic.app.ctx, name, nil) // nil = create all
+		if err != nil {
+			// Don't fail connection if tunnels can't be created - just warn
+			fmt.Printf("⚠️  Warning: Could not create tunnels: %v\n", err)
+		} else {
+			fmt.Printf("✅ Tunnels created:\n")
+			for _, tunnel := range tunnelResp.Tunnels {
+				if tunnel.AuthToken != "" {
+					// Show full URL with token for services that need it
+					fmt.Printf("   • %s: %s?token=%s\n", tunnel.ServiceDesc, tunnel.LocalURL, tunnel.AuthToken)
+				} else {
+					fmt.Printf("   • %s: %s\n", tunnel.ServiceDesc, tunnel.LocalURL)
+				}
+			}
+		}
+	}
+
 	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
 	if err != nil {
 		return WrapAPIError("get connection info for "+name, err)

@@ -112,10 +112,9 @@ func GetTemplatesForRegion(region, architecture string) (map[string]types.Runtim
 				InstallSSHKeys: template.ResearchUser.InstallSSHKeys,
 				DefaultShell:   template.ResearchUser.DefaultShell,
 				DefaultGroups:  template.ResearchUser.DefaultGroups,
-				DualUserIntegration: &types.DualUserIntegration{
-					Strategy:             string(template.ResearchUser.UserIntegration.Strategy),
-					PrimaryUser:          template.ResearchUser.UserIntegration.PrimaryUser,
-					CollaborationEnabled: true, // Default enabled for research users
+				UserIntegration: types.DualUserIntegration{
+					Strategy:    template.ResearchUser.UserIntegration.Strategy,
+					PrimaryUser: template.ResearchUser.UserIntegration.PrimaryUser,
 				},
 			}
 		}
@@ -184,10 +183,9 @@ func GetTemplateWithPackageManager(name, region, architecture, packageManager, s
 			InstallSSHKeys: template.ResearchUser.InstallSSHKeys,
 			DefaultShell:   template.ResearchUser.DefaultShell,
 			DefaultGroups:  template.ResearchUser.DefaultGroups,
-			DualUserIntegration: &types.DualUserIntegration{
-				Strategy:             string(template.ResearchUser.UserIntegration.Strategy),
-				PrimaryUser:          template.ResearchUser.UserIntegration.PrimaryUser,
-				CollaborationEnabled: true, // Default to enabled for template integration
+			UserIntegration: types.DualUserIntegration{
+				Strategy:    template.ResearchUser.UserIntegration.Strategy,
+				PrimaryUser: template.ResearchUser.UserIntegration.PrimaryUser,
 			},
 		}
 	}
@@ -200,6 +198,7 @@ func GetTemplateWithPackageManager(name, region, architecture, packageManager, s
 		InstanceType:         runtimeTemplate.InstanceType,
 		UserData:             runtimeTemplate.UserData,
 		Ports:                runtimeTemplate.Ports,
+		RootVolumeGB:         runtimeTemplate.RootVolumeGB,
 		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
 		IdleDetection:        idleDetectionConfig,
 		ResearchUser:         researchUserConfig,
@@ -272,10 +271,9 @@ func GetTemplateWithParameters(name, region, architecture, packageManager, size 
 			InstallSSHKeys: template.ResearchUser.InstallSSHKeys,
 			DefaultShell:   template.ResearchUser.DefaultShell,
 			DefaultGroups:  template.ResearchUser.DefaultGroups,
-			DualUserIntegration: &types.DualUserIntegration{
-				Strategy:             string(template.ResearchUser.UserIntegration.Strategy),
-				PrimaryUser:          template.ResearchUser.UserIntegration.PrimaryUser,
-				CollaborationEnabled: true, // Default to enabled for template integration
+			UserIntegration: types.DualUserIntegration{
+				Strategy:    template.ResearchUser.UserIntegration.Strategy,
+				PrimaryUser: template.ResearchUser.UserIntegration.PrimaryUser,
 			},
 		}
 	}
@@ -288,6 +286,7 @@ func GetTemplateWithParameters(name, region, architecture, packageManager, size 
 		InstanceType:         runtimeTemplate.InstanceType,
 		UserData:             runtimeTemplate.UserData,
 		Ports:                runtimeTemplate.Ports,
+		RootVolumeGB:         runtimeTemplate.RootVolumeGB,
 		EstimatedCostPerHour: runtimeTemplate.EstimatedCostPerHour,
 		IdleDetection:        idleDetectionConfig,
 		ResearchUser:         researchUserConfig,

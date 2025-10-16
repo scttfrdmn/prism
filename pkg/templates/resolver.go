@@ -65,6 +65,12 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 	// Always ensure idle detection config (with defaults if not specified)
 	idleDetectionConfig := r.ensureIdleDetectionConfig(template)
 
+	// Get root volume size (default 20GB if not specified)
+	rootVolumeGB := template.InstanceDefaults.RootVolumeGB
+	if rootVolumeGB == 0 {
+		rootVolumeGB = 20 // Default root volume size
+	}
+
 	// Create runtime template
 	runtimeTemplate := &RuntimeTemplate{
 		Name:                 template.Name,
@@ -75,6 +81,7 @@ func (r *TemplateResolver) ResolveTemplateWithOptions(template *Template, region
 		InstanceType:         instanceTypeMapping,
 		UserData:             userDataScript,
 		Ports:                ports,
+		RootVolumeGB:         rootVolumeGB,
 		EstimatedCostPerHour: costMapping,
 		IdleDetection:        idleDetectionConfig,
 

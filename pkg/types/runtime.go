@@ -2,42 +2,174 @@ package types
 
 import (
 	"time"
+
+	"github.com/scttfrdmn/cloudworkstation/pkg/research"
 )
 
 // RuntimeTemplate defines a cloud workstation template for launching instances
-// This is distinct from AMI build templates (see pkg/ami package)
+// This is the CANONICAL definition - pkg/templates/types.go uses a type alias to this
 type RuntimeTemplate struct {
 	Name                 string
 	Slug                 string // CLI identifier for template (e.g., "python-ml")
 	Description          string
+	LongDescription      string                       // Detailed description for GUI
 	AMI                  map[string]map[string]string // region -> arch -> AMI ID
 	InstanceType         map[string]string            // arch -> instance type
-	UserData             string
+	UserData             string                       // Generated installation script
 	Ports                []int
-	EstimatedCostPerHour map[string]float64   // arch -> cost per hour
-	IdleDetection        *IdleDetectionConfig // Idle detection configuration
+	RootVolumeGB         int                            `json:"root_volume_gb"` // Root volume size in GB (default: 20)
+	EstimatedCostPerHour map[string]float64             // arch -> cost per hour
+	IdleDetection        *IdleDetectionConfig           // Idle detection configuration
+	ResearchUser         *research.ResearchUserTemplate `json:"research_user,omitempty"`
 
-	// Research user integration (Phase 5A+)
-	ResearchUser *ResearchUserTemplate `json:"research_user,omitempty"`
+	// Complexity and categorization for GUI
+	Complexity TemplateComplexity `json:"complexity,omitempty"`
+	Category   string             `json:"category,omitempty"`
+	Domain     string             `json:"domain,omitempty"`
+
+	// Visual presentation for GUI
+	Icon     string `json:"icon,omitempty"`
+	Color    string `json:"color,omitempty"`
+	Popular  bool   `json:"popular,omitempty"`
+	Featured bool   `json:"featured,omitempty"`
+
+	// User guidance for GUI
+	EstimatedLaunchTime int      `json:"estimated_launch_time,omitempty"`
+	Prerequisites       []string `json:"prerequisites,omitempty"`
+	LearningResources   []string `json:"learning_resources,omitempty"`
+
+	// Template metadata for GUI
+	ValidationStatus ValidationStatus  `json:"validation_status,omitempty"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	Maintainer       string            `json:"maintainer,omitempty"`
+
+	// Connection configuration
+	ConnectionType ConnectionType `json:"connection_type,omitempty"`
+
+	// Additional metadata from unified template
+	Source    interface{} `json:"-"` // Reference to source template (avoid circular import)
+	Generated time.Time   // When this runtime template was generated
 }
 
-// ResearchUserTemplate represents research user integration configuration for templates
-type ResearchUserTemplate struct {
-	AutoCreate          bool                 `yaml:"auto_create" json:"auto_create"`
-	RequireEFS          bool                 `yaml:"require_efs" json:"require_efs"`
-	EFSMountPoint       string               `yaml:"efs_mount_point" json:"efs_mount_point"`
-	InstallSSHKeys      bool                 `yaml:"install_ssh_keys" json:"install_ssh_keys"`
-	DefaultShell        string               `yaml:"default_shell" json:"default_shell"`
-	DefaultGroups       []string             `yaml:"default_groups" json:"default_groups"`
-	DualUserIntegration *DualUserIntegration `yaml:"user_integration" json:"user_integration"`
+// Service represents a web service running on an instance
+type Service struct {
+	Name        string `json:"name"`                  // Service name (e.g., "jupyter", "rstudio-server")
+	Port        int    `json:"port"`                  // Remote port on instance
+	LocalPort   int    `json:"local_port"`            // Local tunnel port (0 = not tunneled)
+	Type        string `json:"type,omitempty"`        // Service type: "web", "api", etc.
+	URL         string `json:"url,omitempty"`         // Local access URL (e.g., "http://localhost:8787")
+	AuthToken   string `json:"auth_token,omitempty"`  // Authentication token if needed
+	Status      string `json:"status,omitempty"`      // "running", "stopped", "unknown"
+	Description string `json:"description,omitempty"` // Human-readable description
 }
 
-// DualUserIntegration represents dual user system configuration
-type DualUserIntegration struct {
-	Strategy             string `yaml:"strategy" json:"strategy"`
-	PrimaryUser          string `yaml:"primary_user" json:"primary_user"`
-	CollaborationEnabled bool   `yaml:"collaboration_enabled" json:"collaboration_enabled"`
+// TemplateComplexity represents template complexity level
+type TemplateComplexity string
+
+const (
+	TemplateComplexitySimple   TemplateComplexity = "simple"   // Ready to use, perfect for getting started
+	TemplateComplexityModerate TemplateComplexity = "moderate" // Some customization available, good for regular users
+	TemplateComplexityAdvanced TemplateComplexity = "advanced" // Highly configurable, for experienced users
+	TemplateComplexityComplex  TemplateComplexity = "complex"  // Maximum flexibility, requires technical knowledge
+)
+
+// Level returns the numeric level for sorting (1=simple, 4=complex)
+func (c TemplateComplexity) Level() int {
+	switch c {
+	case TemplateComplexitySimple:
+		return 1
+	case TemplateComplexityModerate:
+		return 2
+	case TemplateComplexityAdvanced:
+		return 3
+	case TemplateComplexityComplex:
+		return 4
+	default:
+		return 1 // Default to simple
+	}
 }
+
+// Label returns the human-readable label for the complexity level
+func (c TemplateComplexity) Label() string {
+	switch c {
+	case TemplateComplexitySimple:
+		return "Simple"
+	case TemplateComplexityModerate:
+		return "Moderate"
+	case TemplateComplexityAdvanced:
+		return "Advanced"
+	case TemplateComplexityComplex:
+		return "Complex"
+	default:
+		return "Simple"
+	}
+}
+
+// Badge returns the badge text for GUI display
+func (c TemplateComplexity) Badge() string {
+	switch c {
+	case TemplateComplexitySimple:
+		return "Ready to Use"
+	case TemplateComplexityModerate:
+		return "Some Options"
+	case TemplateComplexityAdvanced:
+		return "Many Options"
+	case TemplateComplexityComplex:
+		return "Full Control"
+	default:
+		return "Ready to Use"
+	}
+}
+
+// Icon returns the emoji icon for the complexity level
+func (c TemplateComplexity) Icon() string {
+	switch c {
+	case TemplateComplexitySimple:
+		return "🟢"
+	case TemplateComplexityModerate:
+		return "🟡"
+	case TemplateComplexityAdvanced:
+		return "🟠"
+	case TemplateComplexityComplex:
+		return "🔴"
+	default:
+		return "🟢"
+	}
+}
+
+// Color returns the hex color for the complexity level
+func (c TemplateComplexity) Color() string {
+	switch c {
+	case TemplateComplexitySimple:
+		return "#059669"
+	case TemplateComplexityModerate:
+		return "#d97706"
+	case TemplateComplexityAdvanced:
+		return "#ea580c"
+	case TemplateComplexityComplex:
+		return "#dc2626"
+	default:
+		return "#059669"
+	}
+}
+
+// ValidationStatus represents template validation status
+type ValidationStatus string
+
+const (
+	ValidationStatusValid   ValidationStatus = "valid"
+	ValidationStatusInvalid ValidationStatus = "invalid"
+	ValidationStatusUnknown ValidationStatus = "unknown"
+)
+
+// ConnectionType represents how users connect to instances
+type ConnectionType string
+
+const (
+	ConnectionTypeSSH  ConnectionType = "ssh"
+	ConnectionTypeWeb  ConnectionType = "web"
+	ConnectionTypeBoth ConnectionType = "both"
+)
 
 // IdleDetectionConfig represents idle detection configuration in templates
 type IdleDetectionConfig struct {
@@ -46,6 +178,10 @@ type IdleDetectionConfig struct {
 	HibernateThresholdMinutes int  `yaml:"hibernate_threshold_minutes" json:"hibernate_threshold_minutes"`
 	CheckIntervalMinutes      int  `yaml:"check_interval_minutes" json:"check_interval_minutes"`
 }
+
+// Type aliases pointing to canonical definitions in research package
+type ResearchUserTemplate = research.ResearchUserTemplate
+type DualUserIntegration = research.DualUserIntegration
 
 // Instance represents a running cloud workstation
 type Instance struct {
@@ -67,8 +203,9 @@ type Instance struct {
 	InstanceType       string                  `json:"instance_type"`
 	InstanceLifecycle  string                  `json:"instance_lifecycle"` // "spot" or "on-demand"
 	Username           string                  `json:"username"`
-	WebPort            int                     `json:"web_port"`
-	HasWebInterface    bool                    `json:"has_web_interface"`
+	WebPort            int                     `json:"web_port"`             // Deprecated: Use Services instead
+	HasWebInterface    bool                    `json:"has_web_interface"`    // Deprecated: Use Services instead
+	Services           []Service               `json:"services,omitempty"`   // Web services available on this instance
 	ProjectID          string                  `json:"project_id,omitempty"` // Associated project ID
 	IdleDetection      *IdleDetection          `json:"idle_detection,omitempty"`
 	AppliedTemplates   []AppliedTemplateRecord `json:"applied_templates,omitempty"` // Template application history
