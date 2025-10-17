@@ -155,7 +155,15 @@ dnf install -y{{range .Packages}} {{.}}{{end}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-# SSH key authentication configured - no password needed
+# Copy SSH keys from ubuntu user for seamless SSH access
+if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
+  mkdir -p /home/{{.Name}}/.ssh
+  cp /home/ubuntu/.ssh/authorized_keys /home/{{.Name}}/.ssh/authorized_keys
+  chown -R {{.Name}}:{{.Name}} /home/{{.Name}}/.ssh
+  chmod 700 /home/{{.Name}}/.ssh
+  chmod 600 /home/{{.Name}}/.ssh/authorized_keys
+  echo "✅ SSH keys copied to {{.Name}} user"
+fi
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -235,7 +243,15 @@ apt-get install -y{{range .Packages}} {{.}}{{end}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-# SSH key authentication configured - no password needed
+# Copy SSH keys from ubuntu user for seamless SSH access
+if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
+  mkdir -p /home/{{.Name}}/.ssh
+  cp /home/ubuntu/.ssh/authorized_keys /home/{{.Name}}/.ssh/authorized_keys
+  chown -R {{.Name}}:{{.Name}} /home/{{.Name}}/.ssh
+  chmod 700 /home/{{.Name}}/.ssh
+  chmod 600 /home/{{.Name}}/.ssh/authorized_keys
+  echo "✅ SSH keys copied to {{.Name}} user"
+fi
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -332,7 +348,26 @@ progress "STAGE:service-config:START"
 
 {{range .Users}}useradd -m -s /bin/bash {{.Name}} || true
 {{if .Groups}}{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}{{end}}{{end}}
+# Copy SSH keys from ubuntu user for seamless SSH access
+if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
+  mkdir -p /home/{{.Name}}/.ssh
+  cp /home/ubuntu/.ssh/authorized_keys /home/{{.Name}}/.ssh/authorized_keys
+  chown -R {{.Name}}:{{.Name}} /home/{{.Name}}/.ssh
+  chmod 700 /home/{{.Name}}/.ssh
+  chmod 600 /home/{{.Name}}/.ssh/authorized_keys
+  echo "✅ SSH keys copied to {{.Name}} user"
+fi
 sudo -u {{.Name}} /opt/miniforge/bin/conda init bash
+# Create .bash_profile to set PATH before .bashrc runs
+cat > /home/{{.Name}}/.bash_profile << 'PROFILE_EOF'
+# Set PATH for login shells (sourced before .bashrc)
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/opt/miniforge/bin"
+
+# Source .bashrc if it exists (for interactive shells)
+if [ -f ~/.bashrc ]; then
+  source ~/.bashrc
+fi
+PROFILE_EOF
 echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /home/{{.Name}}/.bashrc
 chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 {{end}}
@@ -580,7 +615,15 @@ echo "Running custom AMI user data script..."
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-# SSH key authentication configured - no password needed
+# Copy SSH keys from ubuntu user for seamless SSH access
+if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
+  mkdir -p /home/{{.Name}}/.ssh
+  cp /home/ubuntu/.ssh/authorized_keys /home/{{.Name}}/.ssh/authorized_keys
+  chown -R {{.Name}}:{{.Name}} /home/{{.Name}}/.ssh
+  chmod 700 /home/{{.Name}}/.ssh
+  chmod 600 /home/{{.Name}}/.ssh/authorized_keys
+  echo "✅ SSH keys copied to {{.Name}} user"
+fi
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}
@@ -665,7 +708,15 @@ pip3 install{{range .Packages}} {{.}}{{end}}
 # Create user: {{.Name}}
 echo "Creating user: {{.Name}}"
 {{if .Shell}}useradd -m -s {{.Shell}} {{.Name}} || true{{else}}useradd -m -s /bin/bash {{.Name}} || true{{end}}
-# SSH key authentication configured - no password needed
+# Copy SSH keys from ubuntu user for seamless SSH access
+if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
+  mkdir -p /home/{{.Name}}/.ssh
+  cp /home/ubuntu/.ssh/authorized_keys /home/{{.Name}}/.ssh/authorized_keys
+  chown -R {{.Name}}:{{.Name}} /home/{{.Name}}/.ssh
+  chmod 700 /home/{{.Name}}/.ssh
+  chmod 600 /home/{{.Name}}/.ssh/authorized_keys
+  echo "✅ SSH keys copied to {{.Name}} user"
+fi
 {{if .Groups}}
 {{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}
 {{end}}

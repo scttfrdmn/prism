@@ -116,15 +116,16 @@ func (s *Server) handleCreateTunnels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get instance from AWS
+	// Get fresh instance data from AWS (includes KeyName for SSH)
 	var instance types.Instance
-	var awsErr error
+
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		instances, err := awsManager.ListInstances()
 		if err != nil {
-			awsErr = err
-			return err
+			log.Printf("[DEBUG] handleCreateTunnels: Failed to list instances: %v", err)
+			return fmt.Errorf("failed to list instances: %w", err)
 		}
+
 		// Find the requested instance
 		found := false
 		for _, inst := range instances {
@@ -134,16 +135,16 @@ func (s *Server) handleCreateTunnels(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
+
 		if !found {
-			awsErr = fmt.Errorf("instance not found: %s", req.InstanceName)
-			return awsErr
+			log.Printf("[DEBUG] handleCreateTunnels: Instance not found: %s", req.InstanceName)
+			return fmt.Errorf("instance not found: %s", req.InstanceName)
 		}
+
+		log.Printf("[DEBUG] handleCreateTunnels: Found instance - Name=%s, State=%s, IP=%s, KeyName=%s",
+			instance.Name, instance.State, instance.PublicIP, instance.KeyName)
 		return nil
 	})
-
-	if awsErr != nil {
-		return // Error response already written by withAWSManager
-	}
 
 	// Check if instance is running
 	if instance.State != "running" {

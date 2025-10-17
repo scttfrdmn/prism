@@ -178,18 +178,35 @@ func main() {
 		// Continue anyway - GUI will show connection error to user
 	}
 
+	// Create CloudWorkstation service
+	cwsService := NewCloudWorkstationService()
+
+	// Reload API key after daemon is running (daemon may have generated a new key)
+	cwsService.ReloadAPIKey()
+
+	// Start WebSocket server for terminal connections (port 8948)
+	go func() {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/terminal", cwsService.HandleTerminalWebSocket)
+
+		log.Println("🔌 Starting WebSocket server on :8948")
+		if err := http.ListenAndServe(":8948", mux); err != nil {
+			log.Printf("❌ WebSocket server error: %v", err)
+		}
+	}()
+
 	// Create CloudWorkstation GUI application
 	app := application.New(application.Options{
 		Name:        "CloudWorkstation",
 		Description: "Academic Research Computing Platform - Professional GUI",
 		Services: []application.Service{
-			application.NewService(NewCloudWorkstationService()),
+			application.NewService(cwsService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
+			ApplicationShouldTerminateAfterLastWindowClosed: false, // Keep running in menu bar
 		},
 	})
 
@@ -197,9 +214,8 @@ func main() {
 	_ = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title: "CloudWorkstation",
 		Mac: application.MacWindow{
-			InvisibleTitleBarHeight: 50,
-			Backdrop:                application.MacBackdropTranslucent,
-			TitleBar:                application.MacTitleBarHiddenInset,
+			Backdrop: application.MacBackdropTranslucent,
+			TitleBar: application.MacTitleBarDefault,
 		},
 		BackgroundColour: application.NewRGB(248, 250, 252), // Clean light background
 		URL:              "/",

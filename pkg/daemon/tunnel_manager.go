@@ -48,6 +48,7 @@ func NewTunnelManager(state StateManager) *TunnelManager {
 
 // CreateTunnel creates an SSH tunnel for a service
 func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Service) (*SSHTunnel, error) {
+	fmt.Printf("[DEBUG] CreateTunnel: START for %s/%s\n", instance.Name, service.Name)
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -56,6 +57,7 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 	// Check if tunnel already exists
 	if existing, ok := tm.tunnels[key]; ok {
 		if existing.status == "active" {
+			fmt.Printf("[DEBUG] CreateTunnel: Tunnel already exists\n")
 			return existing, nil
 		}
 		// Clean up failed tunnel
@@ -63,13 +65,18 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 	}
 
 	// Determine SSH key path from profile
+	fmt.Printf("[DEBUG] CreateTunnel: Getting SSH key path\n")
 	keyPath, err := tm.getSSHKeyPath(instance)
 	if err != nil {
+		fmt.Printf("[DEBUG] CreateTunnel: SSH key path error: %v\n", err)
 		return nil, fmt.Errorf("failed to get SSH key: %w", err)
 	}
+	fmt.Printf("[DEBUG] CreateTunnel: SSH key found at %s\n", keyPath)
 
 	// Allocate local port
+	fmt.Printf("[DEBUG] CreateTunnel: Allocating local port\n")
 	localPort := tm.allocateLocalPort(service.Port)
+	fmt.Printf("[DEBUG] CreateTunnel: Allocated port %d\n", localPort)
 
 	// Determine SSH username - use instance username or fallback to "ubuntu"
 	username := instance.Username
@@ -100,22 +107,31 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 		"-L", fmt.Sprintf("%d:localhost:%d", localPort, service.Port), // Local port forwarding
 		"-o", "StrictHostKeyChecking=no", // Auto-accept host key
 		"-o", "UserKnownHostsFile=/dev/null", // Don't save host key
+		"-o", "BatchMode=yes", // Never prompt for password/passphrase
+		"-o", "ConnectTimeout=10", // Timeout after 10 seconds
 		"-o", "ServerAliveInterval=60", // Keep connection alive
 		"-o", "ServerAliveCountMax=3", // Retry 3 times
 		"-i", keyPath, // SSH key
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP), // Connection
 	}
 
+	fmt.Printf("[DEBUG] Creating SSH tunnel: ssh %s\n", strings.Join(args, " "))
+
 	cmd := exec.CommandContext(ctx, "ssh", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Capture output for debugging
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	tunnel.cmd = cmd
 
 	// Start tunnel
 	if err := cmd.Start(); err != nil {
 		cancel()
+		fmt.Printf("[DEBUG] SSH tunnel start error: %v\n", err)
 		return nil, fmt.Errorf("failed to start SSH tunnel: %w", err)
 	}
+
+	fmt.Printf("[DEBUG] SSH tunnel process started (PID: %d)\n", cmd.Process.Pid)
 
 	// Wait briefly to see if tunnel connects
 	time.Sleep(500 * time.Millisecond)
@@ -163,16 +179,15 @@ func (tm *TunnelManager) allocateLocalPort(remotePort int) int {
 }
 
 // isPortAvailable checks if a local port is available
+// NOTE: Must be called with tm.mu lock already held (either read or write lock)
 func (tm *TunnelManager) isPortAvailable(port int) bool {
 	// Check if port is already used by another tunnel
-	tm.mu.RLock()
+	// No locking here - caller must hold the lock
 	for _, tunnel := range tm.tunnels {
 		if tunnel.LocalPort == port {
-			tm.mu.RUnlock()
 			return false
 		}
 	}
-	tm.mu.RUnlock()
 
 	// Try to bind to the port to check if it's available
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
@@ -184,16 +199,39 @@ func (tm *TunnelManager) isPortAvailable(port int) bool {
 	return true
 }
 
-// getSSHKeyPath gets the SSH key path for an instance from profile
+// getSSHKeyPath gets the SSH key path for an instance using the EC2 KeyName
 func (tm *TunnelManager) getSSHKeyPath(instance *types.Instance) (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 
-	// Standardized key naming: cws-{profile}-{region}-key
-	// Example: cws-test-us-west-2-key
-	// This matches AWS region naming conventions (with hyphens)
+	// If instance has KeyName from EC2, use that directly
+	if instance.KeyName != "" {
+		fmt.Printf("[DEBUG] Using EC2 KeyName: %s\n", instance.KeyName)
+
+		// Try standard SSH locations with EC2 KeyName
+		candidatePaths := []string{
+			filepath.Join(homeDir, ".ssh", instance.KeyName),
+			filepath.Join(homeDir, ".ssh", instance.KeyName+".pem"),
+			filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", instance.KeyName),
+			filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", instance.KeyName+".pem"),
+		}
+
+		for _, keyPath := range candidatePaths {
+			fmt.Printf("[DEBUG] Trying SSH key: %s\n", keyPath)
+			if _, err := os.Stat(keyPath); err == nil {
+				fmt.Printf("[DEBUG] Found SSH key: %s\n", keyPath)
+				return keyPath, nil
+			}
+		}
+
+		return "", fmt.Errorf("SSH key not found for EC2 KeyName '%s'. Tried %d locations in ~/.ssh/", instance.KeyName, len(candidatePaths))
+	}
+
+	// LEGACY FALLBACK: If no KeyName, try guessing based on region
+	// This maintains backward compatibility but should not be needed
+	fmt.Printf("[DEBUG] No EC2 KeyName available, falling back to region-based guessing\n")
 
 	region := instance.Region
 
@@ -215,9 +253,15 @@ func (tm *TunnelManager) getSSHKeyPath(instance *types.Instance) (string, error)
 		)
 	}
 
-	// For backward compatibility, also try legacy formats (lowercase, no hyphens in region)
+	// For backward compatibility, also try legacy formats
+	// Legacy naming: cws-test-aws-{regionshort}-key where regionshort has hyphens removed
+	// Example: us-west-2 → west2, so cws-test-aws-west2-key
+	regionShort := strings.TrimPrefix(region, "us-")
+	regionShort = strings.Replace(regionShort, "-", "", -1) // west-2 → west2
+
 	legacyFormats := []string{
-		fmt.Sprintf("cws-test-aws-%s-key", strings.Replace(strings.TrimPrefix(region, "us-"), "-", "", -1)), // cws-test-aws-west2-key
+		fmt.Sprintf("cws-test-aws-%s-key", regionShort), // cws-test-aws-west2-key
+		fmt.Sprintf("cws-aws-%s-key", regionShort),      // cws-aws-west2-key
 	}
 	for _, legacyName := range legacyFormats {
 		candidatePaths = append(candidatePaths,
@@ -227,12 +271,29 @@ func (tm *TunnelManager) getSSHKeyPath(instance *types.Instance) (string, error)
 	}
 
 	for _, keyPath := range candidatePaths {
+		fmt.Printf("[DEBUG] Trying SSH key: %s\n", keyPath)
 		if _, err := os.Stat(keyPath); err == nil {
+			fmt.Printf("[DEBUG] Found SSH key: %s\n", keyPath)
 			return keyPath, nil
 		}
 	}
 
-	return "", fmt.Errorf("SSH key not found. Expected format: cws-test-%s-key in ~/.ssh/ (tried %d locations)", region, len(candidatePaths))
+	// Final fallback: scan ~/.ssh for any cws-* keys
+	sshDir := filepath.Join(homeDir, ".ssh")
+	entries, err := os.ReadDir(sshDir)
+	if err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() && strings.HasPrefix(entry.Name(), "cws-") && !strings.HasSuffix(entry.Name(), ".pub") {
+				keyPath := filepath.Join(sshDir, entry.Name())
+				// Verify it's a valid SSH key file
+				if _, err := os.Stat(keyPath); err == nil {
+					return keyPath, nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("SSH key not found. Expected format: cws-test-%s-key in ~/.ssh/ (tried %d locations + fallback scan)", region, len(candidatePaths))
 }
 
 // monitorTunnel monitors tunnel health and restarts if needed

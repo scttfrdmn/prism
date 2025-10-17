@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -115,6 +116,21 @@ func NewCloudWorkstationService() *CloudWorkstationService {
 	service.connectionManager = NewConnectionManager(service)
 
 	return service
+}
+
+// ReloadAPIKey reloads the API key from state and reinitializes the API client
+// This should be called after the daemon is confirmed to be running
+func (s *CloudWorkstationService) ReloadAPIKey() {
+	newAPIKey := loadAPIKeyFromState()
+	if newAPIKey != "" && newAPIKey != s.apiKey {
+		log.Printf("🔄 Reloading API key from state (key changed after daemon startup)")
+		s.apiKey = newAPIKey
+
+		// Reinitialize API client with new key
+		s.apiClient = client.NewClientWithOptions("http://localhost:8947", client.Options{
+			APIKey: newAPIKey,
+		})
+	}
 }
 
 // GetTemplates fetches available templates from daemon

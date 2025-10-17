@@ -8,7 +8,7 @@ package_manager: "apt"
 packages:
   system:  # Research packages (APT equivalent)
     - "build-essential"
-    - "curl" 
+    - "curl"
     - "wget"
     - "git"
     - "vim"
@@ -18,10 +18,19 @@ packages:
     - "software-properties-common"
     - "openssl"
     - "ca-certificates"
+    - "amazon-ssm-agent"  # AWS Systems Manager for remote management
 
 users:
   - name: "ubuntu"
     groups: ["sudo"]
+
+# Post-install script for SSM agent configuration
+post_install: |
+  # Ensure SSM agent is enabled and started
+  systemctl enable amazon-ssm-agent
+  systemctl start amazon-ssm-agent
+  systemctl status amazon-ssm-agent || true
+  echo "✅ AWS Systems Manager agent configured"
 
 services: []
 

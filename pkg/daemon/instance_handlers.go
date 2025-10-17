@@ -308,6 +308,21 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, ident
 	var liveInstance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
 		var err error
+		// If cached ID is empty/corrupt, try to find instance by Name tag
+		if cachedInstance.ID == "" {
+			// Query all instances and find by name
+			instances, listErr := awsManager.ListInstances()
+			if listErr != nil {
+				return listErr
+			}
+			for _, inst := range instances {
+				if inst.Name == instanceName {
+					liveInstance = &inst
+					return nil
+				}
+			}
+			return fmt.Errorf("instance not found in AWS")
+		}
 		liveInstance, err = awsManager.GetInstance(cachedInstance.ID)
 		return err
 	})
@@ -317,9 +332,12 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, ident
 		return
 	}
 
-	// Merge cached metadata (services, etc.) with live AWS data
+	// Merge cached metadata (services, username, etc.) with live AWS data
 	// AWS doesn't store our custom metadata, so preserve it from cache
 	liveInstance.Services = cachedInstance.Services
+	if cachedInstance.Username != "" {
+		liveInstance.Username = cachedInstance.Username
+	}
 
 	// Update state with latest AWS data
 	if err := s.stateManager.SaveInstance(*liveInstance); err != nil {

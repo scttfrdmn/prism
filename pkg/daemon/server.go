@@ -424,8 +424,11 @@ func (s *Server) setupRoutes(mux *http.ServeMux) {
 	// CORS middleware for web development
 	corsMiddleware := func(handler http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			// Set CORS headers for web development
-			w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			// Allow requests from both web dev server and Wails GUI
+			origin := r.Header.Get("Origin")
+			if origin == "http://localhost:3000" || origin == "wails://localhost" {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")

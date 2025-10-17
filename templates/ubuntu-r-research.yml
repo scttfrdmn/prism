@@ -64,12 +64,19 @@ post_install: |
   # Add rstats user to rstudio-users group
   usermod -aG rstudio-users rstats
 
+  # Set default password for RStudio Server login
+  # RStudio Server requires password authentication
+  # Default: username=rstats, password=rstudio
+  echo "rstats:rstudio" | chpasswd
+
   # Verify group membership
   if groups rstats | grep -q rstudio-users; then
     echo "✅ User rstats successfully added to rstudio-users group"
   else
     echo "⚠️ WARNING: Failed to add rstats to rstudio-users group"
   fi
+
+  echo "✅ RStudio Server configured - Login: username=rstats, password=rstudio"
 
 # Research user integration (Phase 5A+)
 research_user:

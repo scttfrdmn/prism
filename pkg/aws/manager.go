@@ -323,7 +323,7 @@ type InstanceConfigBuilder struct {
 }
 
 // BuildRunInstancesInput creates configured RunInstancesInput
-func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest, ami, instanceType, userDataEncoded, subnetID, securityGroupID string) (*ec2.RunInstancesInput, error) {
+func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest, ami, instanceType, userDataEncoded, subnetID, securityGroupID, primaryUsername string) (*ec2.RunInstancesInput, error) {
 	minCount := int32(1)
 	maxCount := int32(1)
 
@@ -346,6 +346,7 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 					{Key: aws.String("LaunchedBy"), Value: aws.String("CloudWorkstation")},
 					{Key: aws.String("Template"), Value: &req.Template},
 					{Key: aws.String("PackageManager"), Value: &req.PackageManager},
+					{Key: aws.String("PrimaryUser"), Value: aws.String(primaryUsername)},
 				},
 			},
 		},
@@ -456,7 +457,7 @@ func getServiceInt(m map[string]interface{}, key string) int {
 }
 
 // LaunchInstance executes EC2 instance launch and returns result
-func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64, template *ctypes.RuntimeTemplate) (*ctypes.Instance, error) {
+func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64, template *ctypes.RuntimeTemplate, primaryUsername string) (*ctypes.Instance, error) {
 	// Extract services from template if available
 	// For now, create basic service entries for known ports
 	// TODO: Enhance to read actual service definitions from template YAML
@@ -512,6 +513,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 			CurrentSpend:  0.0,
 			EffectiveRate: 0.0,
 			Services:      services,
+			Username:      primaryUsername,
 		}, nil
 	}
 
@@ -535,6 +537,8 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	// Calculate storage costs that persist even when stopped/hibernated
 	storageCostPerHour := calculateStorageCosts(req.Volumes, req.EBSVolumes)
 
+	log.Printf("[DEBUG] Creating instance with username: %s", primaryUsername)
+
 	cwsInstance := &ctypes.Instance{
 		ID:                 *instance.InstanceId,
 		Name:               req.Name,
@@ -549,8 +553,11 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		EffectiveRate:      hourlyRate + storageCostPerHour, // Will include storage
 		AttachedVolumes:    req.Volumes,
 		AttachedEBSVolumes: req.EBSVolumes,
-		Services:           services, // Web services from template
+		Services:           services,        // Web services from template
+		Username:           primaryUsername, // Primary user from template
 	}
+
+	log.Printf("[DEBUG] Instance created with username: %s", cwsInstance.Username)
 
 	// DEBUG LOGGING
 	log.Printf("[DEBUG] LaunchInstance: Created instance with %d services", len(cwsInstance.Services))
@@ -584,7 +591,7 @@ func NewLaunchOrchestrator(manager *Manager, region string) *LaunchOrchestrator 
 }
 
 // ExecuteLaunch performs complete instance launch using SOLID strategy pattern
-func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *ctypes.RuntimeTemplate, arch string) (*ctypes.Instance, error) {
+func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *ctypes.RuntimeTemplate, arch, primaryUsername string) (*ctypes.Instance, error) {
 	// Extract template configuration
 	ami, instanceType, dailyCost, err := o.configExtractor.ExtractConfig(template, arch)
 	if err != nil {
@@ -601,7 +608,7 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 	}
 
 	// Build run configuration
-	runInput, err := o.configBuilder.BuildRunInstancesInput(req, ami, instanceType, userDataEncoded, subnetID, securityGroupID)
+	runInput, err := o.configBuilder.BuildRunInstancesInput(req, ami, instanceType, userDataEncoded, subnetID, securityGroupID, primaryUsername)
 	if err != nil {
 		return nil, err
 	}
@@ -616,7 +623,7 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 	}
 
 	// Execute launch
-	return o.instanceLauncher.LaunchInstance(req, runInput, dailyCost, template)
+	return o.instanceLauncher.LaunchInstance(req, runInput, dailyCost, template, primaryUsername)
 }
 
 // launchWithUnifiedTemplateSystem launches instance using unified template system with SOLID orchestration (SOLID: Single Responsibility)
@@ -641,10 +648,20 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
 
+	// Get raw template for validation and username extraction
+	rawTemplate, _ := templates.GetTemplateInfo(req.Template)
+
+	// Extract primary username from template (first user in list)
+	primaryUsername := "ubuntu" // Default fallback
+	if rawTemplate != nil && len(rawTemplate.Users) > 0 {
+		primaryUsername = rawTemplate.Users[0].Name
+		log.Printf("[DEBUG] Extracted username from template: %s (from %d users)", primaryUsername, len(rawTemplate.Users))
+	} else {
+		log.Printf("[DEBUG] No users in template, using default: ubuntu")
+	}
+
 	// Validate template before launch (if not dry-run)
 	if !req.DryRun {
-		// Get raw template for validation
-		rawTemplate, _ := templates.GetTemplateInfo(req.Template)
 		if rawTemplate != nil {
 			registry := templates.NewTemplateRegistry(templates.DefaultTemplateDirs())
 			registry.Templates[req.Template] = rawTemplate // Add to registry for validation
@@ -667,7 +684,7 @@ func (m *Manager) launchWithUnifiedTemplateSystem(req ctypes.LaunchRequest, arch
 
 	// Create orchestrator and execute launch
 	orchestrator := NewLaunchOrchestrator(m, m.region)
-	return orchestrator.ExecuteLaunch(req, template, arch)
+	return orchestrator.ExecuteLaunch(req, template, arch, primaryUsername)
 }
 
 // DeleteInstance terminates an EC2 instance
@@ -1937,6 +1954,12 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 
 	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, *ec2Instance.LaunchTime, state)
 
+	// Get EC2 KeyName (SSH key pair)
+	keyName := ""
+	if ec2Instance.KeyName != nil {
+		keyName = *ec2Instance.KeyName
+	}
+
 	// Create instance
 	instance := &ctypes.Instance{
 		ID:                *ec2Instance.InstanceId,
@@ -1947,6 +1970,7 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		AvailabilityZone:  availabilityZone,
 		ProjectID:         project,
 		InstanceLifecycle: instanceLifecycle,
+		KeyName:           keyName,
 		LaunchTime:        *ec2Instance.LaunchTime,
 		InstanceType:      instanceType,
 		HourlyRate:        hourlyRate,
@@ -2088,10 +2112,14 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 				regionalInstances[i].Region = region
 			}
 
-			// Merge cached metadata (services, etc.) with live AWS data
+			// Merge cached metadata (services, username, etc.) with live AWS data
 			// AWS doesn't store our custom metadata, so preserve it from cache
 			if cachedInstance, exists := state.Instances[regionalInstances[i].Name]; exists {
 				regionalInstances[i].Services = cachedInstance.Services
+				// Always use cached username if it exists (AWS never has this metadata)
+				if cachedInstance.Username != "" {
+					regionalInstances[i].Username = cachedInstance.Username
+				}
 			}
 		}
 

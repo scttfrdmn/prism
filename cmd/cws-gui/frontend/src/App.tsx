@@ -3,6 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import '@cloudscape-design/global-styles/index.css';
+import './index.css';
+import Terminal from './Terminal';
+import WebView from './WebView';
 
 import {
   AppLayout,
@@ -280,7 +283,7 @@ interface IdleSchedule {
 }
 
 interface AppState {
-  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'budget' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings';
+  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'budget' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
   templates: Record<string, Template>;
   instances: Instance[];
   efsVolumes: EFSVolume[];
@@ -300,6 +303,7 @@ interface AppState {
   idlePolicies: IdlePolicy[];
   idleSchedules: IdleSchedule[];
   selectedTemplate: Template | null;
+  selectedTerminalInstance: string;
   loading: boolean;
   notifications: any[];
   connected: boolean;
@@ -309,7 +313,7 @@ interface AppState {
 // Safe API Service with comprehensive error handling
 class SafeCloudWorkstationAPI {
   private baseURL = 'http://localhost:8947';
-  private apiKey = 'f3f0442f56089e22ca7bb834a76ac92e3f72bf9cba944578af4cec3866401e78';
+  private apiKey = '4ca6a598e99ba1ad0696e0cc67f81f56dcb6b77b9dfe0f43f192fbd6cea05f18';
 
   private async safeRequest(endpoint: string, method = 'GET', body?: any): Promise<any> {
     try {
@@ -970,6 +974,7 @@ export default function BulletproofCloudWorkstationApp() {
     idlePolicies: [],
     idleSchedules: [],
     selectedTemplate: null,
+    selectedTerminalInstance: '',
     loading: true,
     notifications: [],
     connected: false,
@@ -1919,6 +1924,7 @@ export default function BulletproofCloudWorkstationApp() {
               header: "Actions",
               cell: (item: Instance) => (
                 <ButtonDropdown
+                  expandToViewport
                   items={[
                     { text: 'Connect', id: 'connect', disabled: item.state !== 'running' },
                     { text: 'Stop', id: 'stop', disabled: item.state !== 'running' },
@@ -2209,6 +2215,7 @@ export default function BulletproofCloudWorkstationApp() {
               header: "Actions",
               cell: (item: EFSVolume) => (
                 <ButtonDropdown
+                  expandToViewport
                   items={[
                     { text: 'Mount', id: 'mount', disabled: item.state !== 'available' },
                     { text: 'Unmount', id: 'unmount', disabled: item.state !== 'available' },
@@ -2318,6 +2325,7 @@ export default function BulletproofCloudWorkstationApp() {
               header: "Actions",
               cell: (item: EBSVolume) => (
                 <ButtonDropdown
+                  expandToViewport
                   items={[
                     { text: 'Attach', id: 'attach', disabled: item.state !== 'available' },
                     { text: 'Detach', id: 'detach', disabled: item.state !== 'in-use' },
@@ -2501,6 +2509,7 @@ export default function BulletproofCloudWorkstationApp() {
               header: "Actions",
               cell: (item: Project) => (
                 <ButtonDropdown
+                  expandToViewport
                   items={[
                     { text: "View Details", id: "view" },
                     { text: "Manage Members", id: "members" },
@@ -2752,6 +2761,7 @@ export default function BulletproofCloudWorkstationApp() {
               header: "Actions",
               cell: (item: User) => (
                 <ButtonDropdown
+                  expandToViewport
                   items={[
                     { text: "View Details", id: "view" },
                     { text: "Generate SSH Key", id: "ssh-key", disabled: (item.ssh_keys || 0) > 0 },
@@ -3296,6 +3306,7 @@ export default function BulletproofCloudWorkstationApp() {
                 header: "Actions",
                 cell: (item: BudgetData) => (
                   <ButtonDropdown
+                    expandToViewport
                     items={[
                       { text: "View Breakdown", id: "breakdown" },
                       { text: "View Forecast", id: "forecast" },
@@ -3659,6 +3670,7 @@ export default function BulletproofCloudWorkstationApp() {
                         header: 'Actions',
                         cell: (item: AMI) => (
                           <ButtonDropdown
+                            expandToViewport
                             items={[
                               { text: 'View Details', id: 'details' },
                               { text: 'Copy to Region', id: 'copy', disabled: true },
@@ -4719,6 +4731,78 @@ export default function BulletproofCloudWorkstationApp() {
     );
   };
 
+  const RightsizingView = () => (
+    <PlaceholderView
+      title="Rightsizing Recommendations"
+      description="Instance rightsizing recommendations will help optimize your costs by suggesting better-sized instances based on actual usage patterns."
+    />
+  );
+
+  const PolicyView = () => (
+    <PlaceholderView
+      title="Policy Management"
+      description="Policy management allows you to configure institutional policies, access controls, and governance rules for your CloudWorkstation deployment."
+    />
+  );
+
+
+  const WebViewView = () => {
+    const [selectedService, setSelectedService] = React.useState<{instance: string, service: any} | null>(null);
+    const instancesWithServices = state.instances.filter(i =>
+      i.state === 'running' && i.web_services && i.web_services.length > 0
+    );
+
+    if (instancesWithServices.length === 0) {
+      return (
+        <Container header={<Header variant="h1">Web Services</Header>}>
+          <Alert type="info">
+            No running instances with web services available. Launch an instance with Jupyter or RStudio to access web services.
+          </Alert>
+        </Container>
+      );
+    }
+
+    const serviceOptions = instancesWithServices.flatMap(instance =>
+      (instance.web_services || []).map(service => ({
+        label: `${instance.name} - ${service.name} (${service.type})`,
+        value: JSON.stringify({ instance: instance.name, service }),
+        instanceName: instance.name,
+        service: service
+      }))
+    );
+
+    return (
+      <SpaceBetween size="l">
+        <Container header={<Header variant="h1">Web Services</Header>}>
+          <SpaceBetween size="m">
+            <FormField label="Select Web Service">
+              <Select
+                selectedOption={selectedService ?
+                  { label: `${selectedService.instance} - ${selectedService.service.name} (${selectedService.service.type})`,
+                    value: JSON.stringify(selectedService) } : null}
+                onChange={({ detail }) => {
+                  if (detail.selectedOption.value) {
+                    const parsed = JSON.parse(detail.selectedOption.value);
+                    setSelectedService(parsed);
+                  }
+                }}
+                options={serviceOptions.map(opt => ({ label: opt.label, value: opt.value }))}
+                placeholder="Choose a web service"
+              />
+            </FormField>
+            {selectedService && (
+              <WebView
+                url={selectedService.service.url}
+                serviceName={selectedService.service.name}
+                instanceName={selectedService.instance}
+              />
+            )}
+          </SpaceBetween>
+        </Container>
+      </SpaceBetween>
+    );
+  };
+
   const PlaceholderView = ({ title, description }: { title: string; description: string }) => (
     <Container header={<Header variant="h1">{title}</Header>}>
       <Box textAlign="center" padding="xl">
@@ -5097,6 +5181,20 @@ export default function BulletproofCloudWorkstationApp() {
                         {state.instances.length}
                       </Badge> : undefined
               },
+              {
+                type: "link",
+                text: "Terminal",
+                href: "/terminal",
+                info: state.instances.filter(i => i.state === 'running').length > 0 ?
+                      <Badge color="green">SSH</Badge> : undefined
+              },
+              {
+                type: "link",
+                text: "Web Services",
+                href: "/webview",
+                info: state.instances.filter(i => i.state === 'running' && i.web_services && i.web_services.length > 0).length > 0 ?
+                      <Badge color="blue">Available</Badge> : undefined
+              },
               { type: "divider" },
               {
                 type: "link",
@@ -5193,6 +5291,40 @@ export default function BulletproofCloudWorkstationApp() {
             {state.activeView === 'dashboard' && <DashboardView />}
             {state.activeView === 'templates' && <TemplateSelectionView />}
             {state.activeView === 'instances' && <InstanceManagementView />}
+            <div style={{ display: state.activeView === 'terminal' ? 'block' : 'none' }}>
+              {(() => {
+                const runningInstances = state.instances.filter(i => i.state === 'running');
+
+                if (runningInstances.length === 0) {
+                  return (
+                    <Container header={<Header variant="h1">SSH Terminal</Header>}>
+                      <Alert type="info">
+                        No running instances available. Launch an instance to access the SSH terminal.
+                      </Alert>
+                    </Container>
+                  );
+                }
+
+                return (
+                  <SpaceBetween size="l">
+                    <Container header={<Header variant="h1">SSH Terminal</Header>}>
+                      <SpaceBetween size="m">
+                        <FormField label="Select Instance">
+                          <Select
+                            selectedOption={state.selectedTerminalInstance ? { label: state.selectedTerminalInstance, value: state.selectedTerminalInstance } : null}
+                            onChange={({ detail }) => setState({ ...state, selectedTerminalInstance: detail.selectedOption.value || '' })}
+                            options={runningInstances.map(i => ({ label: i.name, value: i.name }))}
+                            placeholder="Choose an instance"
+                          />
+                        </FormField>
+                        {state.selectedTerminalInstance && <Terminal instanceName={state.selectedTerminalInstance} />}
+                      </SpaceBetween>
+                    </Container>
+                  </SpaceBetween>
+                );
+              })()}
+            </div>
+            {state.activeView === 'webview' && <WebViewView />}
             {state.activeView === 'storage' && <StorageManagementView />}
             {state.activeView === 'projects' && <ProjectManagementView />}
             {state.activeView === 'users' && <UserManagementView />}

@@ -3,9 +3,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
+	"log"
 	"os/exec"
 	"runtime"
 )
@@ -186,54 +185,44 @@ func (s *CloudWorkstationService) createLinuxTerminalCommandForEmulator(term, ss
 }
 
 // GetInstanceAccess retrieves access information for an instance
-func (s *CloudWorkstationService) GetInstanceAccess(_ context.Context, instanceName string) (*InstanceAccess, error) {
-	// Get instance details from daemon
-	resp, err := s.client.Get(fmt.Sprintf("%s/api/v1/instances/%s", s.daemonURL, instanceName))
+func (s *CloudWorkstationService) GetInstanceAccess(ctx context.Context, instanceName string) (*InstanceAccess, error) {
+	// Use the API client (same method CLI uses) - it handles all the complexity
+	instance, err := s.apiClient.GetInstance(ctx, instanceName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch instance: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("instance not found: %s", instanceName)
+		return nil, fmt.Errorf("failed to get instance: %w", err)
 	}
 
-	var instance map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&instance); err != nil {
-		return nil, fmt.Errorf("failed to decode instance: %w", err)
+	// Use the username from the instance (API client ensures this is populated correctly)
+	username := instance.Username
+	if username == "" {
+		username = "ubuntu" // Fallback if somehow empty
 	}
 
-	// Build access information
+	log.Printf("[DEBUG] GetInstanceAccess: instance=%s, template=%s, username=%q (from API client)",
+		instance.Name, instance.Template, username)
+
 	access := &InstanceAccess{
-		InstanceID:   getString(instance, "id"),
-		InstanceName: getString(instance, "name"),
-		PublicIP:     getString(instance, "public_ip"),
-		Username:     getString(instance, "username", "ubuntu"),
+		InstanceID:   instance.ID,
+		InstanceName: instance.Name,
+		PublicIP:     instance.PublicIP,
+		Username:     username,
 		SSHPort:      22,                               // Default SSH port
 		AccessTypes:  []AccessType{AccessTypeTerminal}, // SSH is always available
 	}
 
-	// Check for web interface
-	if getBool(instance, "has_web_interface") {
-		access.WebPort = getInt(instance, "web_port")
-		if access.WebPort > 0 {
+	// Check for web interface from services
+	for _, service := range instance.Services {
+		if service.Port > 0 {
+			access.WebPort = service.Port
 			access.AccessTypes = append(access.AccessTypes, AccessTypeWeb)
-			access.WebURL = fmt.Sprintf("http://%s:%d", access.PublicIP, access.WebPort)
+			access.WebURL = fmt.Sprintf("http://%s:%d", access.PublicIP, service.Port)
+			break // Use first service port
 		}
 	}
 
-	// Check ports for RDP/VNC
-	ports := getIntSlice(instance, "ports")
-	for _, port := range ports {
-		switch port {
-		case 3389:
-			access.RDPPort = 3389
-			access.AccessTypes = append(access.AccessTypes, AccessTypeDesktop)
-		case 5900, 5901:
-			access.VNCPort = port
-			access.AccessTypes = append(access.AccessTypes, AccessTypeDesktop)
-		}
-	}
+	// Check ports for RDP/VNC (if they exist in Ports field)
+	// Note: Instance type may not have Ports field in all cases
+	// For now, we rely on services for web access
 
 	return access, nil
 }
@@ -269,7 +258,7 @@ func (s *CloudWorkstationService) CreateEmbeddedWebView(ctx context.Context, ins
 
 // Helper functions to safely extract values from map
 func getString(m map[string]interface{}, key string, defaultVal ...string) string {
-	if val, ok := m[key].(string); ok {
+	if val, ok := m[key].(string); ok && val != "" {
 		return val
 	}
 	if len(defaultVal) > 0 {

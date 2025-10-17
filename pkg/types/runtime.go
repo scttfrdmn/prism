@@ -202,6 +202,7 @@ type Instance struct {
 	AttachedEBSVolumes []string                `json:"attached_ebs_volumes"`    // EBS volume IDs
 	InstanceType       string                  `json:"instance_type"`
 	InstanceLifecycle  string                  `json:"instance_lifecycle"` // "spot" or "on-demand"
+	KeyName            string                  `json:"key_name"`           // EC2 key pair name
 	Username           string                  `json:"username"`
 	WebPort            int                     `json:"web_port"`             // Deprecated: Use Services instead
 	HasWebInterface    bool                    `json:"has_web_interface"`    // Deprecated: Use Services instead
