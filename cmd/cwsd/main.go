@@ -63,6 +63,19 @@ func main() {
 
 	log.Printf("CloudWorkstation Daemon v%s starting...", version.GetVersion())
 
+	// Enforce singleton: only one daemon can run at a time
+	singleton, err := daemon.NewSingletonManager()
+	if err != nil {
+		log.Fatalf("Failed to create singleton manager: %v", err)
+	}
+
+	if err := singleton.Acquire(); err != nil {
+		log.Fatalf("Failed to acquire singleton lock: %v", err)
+	}
+	defer singleton.Release()
+
+	log.Printf("✅ Singleton lock acquired (PID: %d)", os.Getpid())
+
 	// Setup signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

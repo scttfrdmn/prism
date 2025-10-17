@@ -1589,12 +1589,30 @@ func (c *HTTPClient) CheckVersionCompatibility(ctx context.Context, clientVersio
 	// 3. Patch versions are ignored for compatibility
 
 	if clientMajor != daemonMajor {
-		return fmt.Errorf("version mismatch: client v%s is not compatible with daemon v%s (major version mismatch)",
+		return fmt.Errorf("❌ VERSION MISMATCH ERROR\n\n"+
+			"Client version:  v%s\n"+
+			"Daemon version:  v%s\n\n"+
+			"The client and daemon have incompatible major versions.\n"+
+			"Both must be updated to the same major version.\n\n"+
+			"💡 To fix this:\n"+
+			"   1. Stop the daemon: cws daemon stop\n"+
+			"   2. Update CloudWorkstation: brew upgrade cloudworkstation\n"+
+			"   3. Restart the daemon: cws daemon start\n"+
+			"   4. Verify versions match: cws version && cws daemon status",
 			clientVersion, daemonVersionStr)
 	}
 
 	if clientMinor > daemonMinor {
-		return fmt.Errorf("version mismatch: client v%s is newer than daemon v%s (please update daemon)",
+		return fmt.Errorf("❌ VERSION MISMATCH ERROR\n\n"+
+			"Client version:  v%s\n"+
+			"Daemon version:  v%s\n\n"+
+			"Your CLI client is newer than the daemon.\n"+
+			"The daemon needs to be updated.\n\n"+
+			"💡 To fix this:\n"+
+			"   1. Stop the daemon: cws daemon stop\n"+
+			"   2. The daemon will auto-start with the new version\n"+
+			"   3. Or manually restart: cws daemon start\n"+
+			"   4. Verify versions match: cws version && cws daemon status",
 			clientVersion, daemonVersionStr)
 	}
 

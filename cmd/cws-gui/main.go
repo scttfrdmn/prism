@@ -171,6 +171,21 @@ func main() {
 		return
 	}
 
+	// Enforce singleton: only one GUI can run at a time
+	singleton, err := NewGUISingletonManager()
+	if err != nil {
+		log.Printf("❌ Failed to create singleton manager: %v", err)
+		os.Exit(1)
+	}
+
+	if err := singleton.Acquire(); err != nil {
+		log.Printf("❌ %v", err)
+		os.Exit(0) // Exit gracefully - another GUI is already running
+	}
+	defer singleton.Release()
+
+	log.Printf("✅ GUI singleton lock acquired (PID: %d)", os.Getpid())
+
 	// Ensure daemon is running before starting GUI
 	if err := startDaemon(); err != nil {
 		log.Printf("❌ Failed to start daemon: %v", err)
