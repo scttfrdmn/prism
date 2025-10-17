@@ -294,27 +294,51 @@ validate-templates: build-cli
 	@echo "🔍 Validating all templates..."
 	@./bin/cws templates validate
 
-# Enhanced linting
+# Enhanced linting (Go Report Card tools for A+ rating)
 .PHONY: lint
 lint:
-	@echo "🔍 Running linter..."
+	@echo "🔍 Running comprehensive linter (Go Report Card tools)..."
+	@echo "  • Checking Go formatting (gofmt)..."
+	@test -z "$$(gofmt -l .)" || (echo "Files need formatting. Run: make fmt" && gofmt -l . && exit 1)
+	@echo "  • Checking Go imports (goimports)..."
+	@command -v goimports >/dev/null 2>&1 || { echo "goimports not found. Install with: go install golang.org/x/tools/cmd/goimports@latest"; exit 1; }
+	@test -z "$$(goimports -l .)" || (echo "Files need import formatting. Run: make fmt" && goimports -l . && exit 1)
+	@echo "  • Running go vet..."
+	@go vet ./...
+	@echo "  • Running gocyclo (cyclomatic complexity)..."
+	@command -v gocyclo >/dev/null 2>&1 || { echo "gocyclo not found. Install with: go install github.com/fzipp/gocyclo/cmd/gocyclo@latest"; exit 1; }
+	@gocyclo -over 15 . || true
+	@echo "  • Running misspell (spelling errors)..."
+	@command -v misspell >/dev/null 2>&1 || { echo "misspell not found. Install with: go install github.com/client9/misspell/cmd/misspell@latest"; exit 1; }
+	@misspell -error .
+	@echo "  • Running staticcheck (static analysis)..."
+	@command -v staticcheck >/dev/null 2>&1 || { echo "staticcheck not found. Install with: go install honnef.co/go/tools/cmd/staticcheck@latest"; exit 1; }
+	@staticcheck ./...
+	@echo "  • Running golangci-lint (meta-linter)..."
 	@golangci-lint run --issues-exit-code=1 --timeout=5m
+	@echo "✅ All Go Report Card linter checks passed!"
 
-# Vet code
+# Vet code (standalone)
+.PHONY: vet
 vet:
 	@echo "🔎 Running go vet..."
 	@go vet ./...
 
-# Security scan
+# Security scan (comprehensive)
+.PHONY: security
 security:
 	@echo "🔒 Running security scan..."
 	@gosec -quiet ./...
+	@echo "✅ Security scan passed!"
 
-# Format code
+# Format code (auto-fix)
 .PHONY: fmt
 fmt:
-	@echo "Formatting code..."
+	@echo "🎨 Formatting code..."
 	@go fmt ./...
+	@command -v goimports >/dev/null 2>&1 && goimports -w . || echo "⚠️  goimports not found. Install with: go install golang.org/x/tools/cmd/goimports@latest"
+	@go mod tidy
+	@echo "✅ Code formatted!"
 
 # Update dependencies
 .PHONY: deps
@@ -843,6 +867,13 @@ dmg-setup:
 .PHONY: help
 help:
 	@echo "CloudWorkstation Build System"
+	@echo ""
+	@echo "📋 Quick Start Development Workflow:"
+	@echo "  make fmt          # Auto-format code before committing (fast)"
+	@echo "  git add . && git commit -m \"message\"  # Pre-commit hook runs formatting checks (< 5 sec)"
+	@echo "  make lint         # Run comprehensive Go Report Card linting (before push)"
+	@echo "  make test-unit    # Run unit tests (before push)"
+	@echo "  make test-smoke   # Run smoke tests (before push)"
 	@echo ""
 	@echo "Available targets:"
 	@echo "  build        Build daemon, CLI, and GUI"

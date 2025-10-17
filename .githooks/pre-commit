@@ -1,104 +1,39 @@
 #!/bin/bash
-# Pre-commit hook for CloudWorkstation
-# Runs quick tests before allowing commit
+# Simplified pre-commit hook for CloudWorkstation  
+# Only runs fast formatting checks (< 5 seconds)
+# Heavy checks (lint, tests) moved to make targets run before push
 
 set -e
 
-echo "🧪 Running pre-commit tests..."
+echo "⚡ Running fast pre-commit checks..."
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if we have Go files in the commit
 if git diff --cached --name-only | grep -q '\.go$'; then
-    echo "📝 Running Go format check..."
+    echo "📝 Auto-formatting Go files..."
     
-    # Check Go formatting
-    UNFORMATTED=$(gofmt -l $(git diff --cached --name-only | grep '\.go$' | xargs))
-    if [ -n "$UNFORMATTED" ]; then
-        echo -e "${RED}❌ Go files are not formatted:${NC}"
-        echo "$UNFORMATTED"
-        echo -e "${YELLOW}Run 'go fmt ./...' to fix${NC}"
-        exit 1
+    # Auto-format Go files (gofmt + goimports)
+    go fmt ./...
+    
+    if command -v goimports &> /dev/null; then
+        goimports -w .
     fi
     
-    echo "✅ Go formatting check passed"
+    # Auto-tidy go.mod
+    go mod tidy
     
-    echo "🔍 Running Go linting..."
+    # Re-add auto-formatted files
+    git add -u
     
-    # Run golangci-lint if available
-    if command -v golangci-lint &> /dev/null; then
-        # Run fast linters only for pre-commit
-        if ! golangci-lint run --fast --timeout 30s $(git diff --cached --name-only | grep '\.go$' | xargs dirname | sort -u | xargs) > /dev/null 2>&1; then
-            echo -e "${YELLOW}⚠️  Linting issues found${NC}"
-            echo "Run 'golangci-lint run --fast' to see issues"
-            # Don't fail on linting for now, just warn
-        else
-            echo "✅ Go linting passed"
-        fi
-    else
-        echo -e "${YELLOW}⚠️  golangci-lint not installed, skipping lint check${NC}"
-        echo "Install with: brew install golangci-lint"
-    fi
-    
-    echo "🔨 Building binaries..."
-    
-    # Quick build test (no cross-compilation)
-    if ! make build > /dev/null 2>&1; then
-        echo -e "${RED}❌ Build failed${NC}"
-        echo "Run 'make build' to see errors"
-        exit 1
-    fi
-    
-    echo "✅ Build successful"
-    
-    echo "🧪 Running Go unit tests..."
-    
-    # Run quick Go tests (no integration tests)
-    if ! go test -short -timeout 30s ./pkg/... > /dev/null 2>&1; then
-        echo -e "${RED}❌ Go unit tests failed${NC}"
-        echo "Run 'go test -short ./pkg/...' to see failures"
-        exit 1
-    fi
-    
-    echo "✅ Go unit tests passed"
+    echo "✅ Go files auto-formatted"
 fi
 
-# Check if we have frontend files in the commit
-if git diff --cached --name-only | grep -q 'cmd/cws-gui/frontend/.*\.\(js\|jsx\|ts\|tsx\|vue\|html\|css\)$'; then
-    echo "🎨 Checking frontend files..."
-    
-    # Check if node_modules exists
-    if [ -d "cmd/cws-gui/frontend/node_modules" ]; then
-        cd cmd/cws-gui/frontend
-        
-        # Run frontend unit tests if they exist
-        if [ -f "package.json" ] && grep -q '"test:unit"' package.json; then
-            echo "🧪 Running frontend unit tests..."
-            if ! npm run test:unit > /dev/null 2>&1; then
-                echo -e "${RED}❌ Frontend unit tests failed${NC}"
-                echo "Run 'npm run test:unit' in cmd/cws-gui/frontend to see failures"
-                exit 1
-            fi
-            echo "✅ Frontend unit tests passed"
-        fi
-        
-        cd - > /dev/null
-    else
-        echo -e "${YELLOW}⚠️  Frontend dependencies not installed, skipping frontend tests${NC}"
-    fi
-fi
-
-# Check for TODO/FIXME/XXX comments in staged files
-echo "🔍 Checking for TODO markers..."
-TODO_COUNT=$(git diff --cached --name-only | xargs grep -i "TODO\|FIXME\|XXX" 2>/dev/null | wc -l | tr -d ' ')
-if [ "$TODO_COUNT" -gt "0" ]; then
-    echo -e "${YELLOW}⚠️  Found $TODO_COUNT TODO/FIXME/XXX markers in staged files${NC}"
-    echo "Consider addressing these before committing:"
-    git diff --cached --name-only | xargs grep -n -i "TODO\|FIXME\|XXX" 2>/dev/null | head -5
-fi
-
-echo -e "${GREEN}✅ Pre-commit tests passed!${NC}"
+echo -e "${GREEN}✅ Fast checks complete! (< 5 sec)${NC}"
+echo -e "${YELLOW}💡 Before pushing, run:${NC}"
+echo -e "${YELLOW}   make lint       # Go Report Card linting${NC}"
+echo -e "${YELLOW}   make test-unit  # Unit tests${NC}"
+echo -e "${YELLOW}   make test-smoke # Critical path tests${NC}"

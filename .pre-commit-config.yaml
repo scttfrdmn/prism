@@ -1,4 +1,5 @@
 repos:
+  # Standard file checks (fast)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -9,42 +10,13 @@ repos:
       - id: check-case-conflict
       - id: check-merge-conflict
 
+  # Go formatting only (fast, auto-fixable)
   - repo: local
     hooks:
       - id: go-fmt
         name: Go Format
         language: system
-        entry: gofmt -l -d
-        types: [go]
-        fail_fast: true
-
-      - id: go-imports
-        name: Go Imports
-        language: system
-        entry: goimports -l -d
-        types: [go]
-        fail_fast: true
-
-      - id: go-lint
-        name: Go Lint (golangci-lint)
-        language: system
-        entry: golangci-lint run --issues-exit-code=1
-        types: [go]
-        pass_filenames: false
-        fail_fast: true
-
-      - id: go-test
-        name: Go Test
-        language: system
-        entry: go test -race -short ./...
-        types: [go]
-        pass_filenames: false
-        fail_fast: true
-
-      - id: go-coverage
-        name: Go Coverage Check (85%)
-        language: system
-        entry: ./scripts/check-coverage.sh
+        entry: sh -c 'gofmt -w . && goimports -w .'
         types: [go]
         pass_filenames: false
         fail_fast: true
@@ -55,20 +27,16 @@ repos:
         entry: go mod tidy
         types: [go]
         pass_filenames: false
-        fail_fast: true
 
-      - id: go-sec
-        name: Go Security Check
-        language: system
-        entry: gosec -quiet ./...
-        types: [go]
-        pass_filenames: false
-        fail_fast: true
-
-      - id: govulncheck
-        name: Go Vulnerability Check
-        language: system
-        entry: govulncheck ./...
-        types: [go]
-        pass_filenames: false
-        fail_fast: true
+# REMOVED from pre-commit (moved to make targets):
+#   - golangci-lint (use: make lint)
+#   - go test (use: make test-unit)
+#   - coverage check (use: make test-coverage)
+#   - gosec (use: make security)
+#   - govulncheck (use: make security)
+#
+# Run before pushing:
+#   make lint              # Comprehensive linting
+#   make test-unit         # Fast unit tests
+#   make test-smoke        # Critical path verification
+#   make test-regression   # Full regression suite

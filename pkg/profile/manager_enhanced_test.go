@@ -1,7 +1,5 @@
 package profile
 
-import ()
-
 // MockCredentialProvider implements CredentialProvider for testing
 type MockCredentialProvider struct {
 	storedCredentials map[string]*Credentials
