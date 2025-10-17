@@ -313,7 +313,23 @@ interface AppState {
 // Safe API Service with comprehensive error handling
 class SafeCloudWorkstationAPI {
   private baseURL = 'http://localhost:8947';
-  private apiKey = '4ca6a598e99ba1ad0696e0cc67f81f56dcb6b77b9dfe0f43f192fbd6cea05f18';
+  private apiKey = '';
+
+  constructor() {
+    // Load API key on initialization
+    this.loadAPIKey();
+  }
+
+  private async loadAPIKey() {
+    try {
+      const response = await fetch('http://localhost:8948/api-key');
+      const data = await response.json();
+      this.apiKey = data.api_key;
+      console.log('✅ API key loaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to load API key:', error);
+    }
+  }
 
   private async safeRequest(endpoint: string, method = 'GET', body?: any): Promise<any> {
     try {

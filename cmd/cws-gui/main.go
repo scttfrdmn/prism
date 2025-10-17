@@ -188,6 +188,11 @@ func main() {
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/terminal", cwsService.HandleTerminalWebSocket)
+		mux.HandleFunc("/api-key", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			fmt.Fprintf(w, `{"api_key":"%s"}`, cwsService.apiKey)
+		})
 
 		log.Println("🔌 Starting WebSocket server on :8948")
 		if err := http.ListenAndServe(":8948", mux); err != nil {

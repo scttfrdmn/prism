@@ -43,14 +43,21 @@ func (ic *InstanceCommands) Connect(args []string) error {
 
 	name := args[0]
 	verbose := false
+	userOverride := ""
 
 	// Parse flags
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
 		case "--verbose", "-v":
 			verbose = true
+		case "--user", "-u":
+			if i+1 >= len(args) {
+				return NewValidationError("--user", "", "requires a username")
+			}
+			userOverride = args[i+1]
+			i++
 		default:
-			return NewValidationError("flag", args[i], "--verbose or -v")
+			return NewValidationError("flag", args[i], "--verbose, -v, --user, or -u")
 		}
 	}
 
@@ -88,6 +95,24 @@ func (ic *InstanceCommands) Connect(args []string) error {
 	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
 	if err != nil {
 		return WrapAPIError("get connection info for "+name, err)
+	}
+
+	// Apply username override if specified
+	if userOverride != "" {
+		// Parse SSH command and replace username
+		// Format: ssh -i "/path/to/key" username@host
+		parts := strings.Fields(connectionInfo)
+		for _, part := range parts {
+			if strings.Contains(part, "@") {
+				// Replace username in user@host format
+				hostPart := part[strings.Index(part, "@"):]
+				connectionInfo = strings.Replace(connectionInfo, part, userOverride+hostPart, 1)
+				if verbose {
+					fmt.Printf("🔧 Username overridden: %s\n", userOverride)
+				}
+				break
+			}
+		}
 	}
 
 	if verbose {

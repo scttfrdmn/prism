@@ -109,13 +109,18 @@ func (f *InstanceCommandFactory) createConnectCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verbose, _ := cmd.Flags().GetBool("verbose")
+			user, _ := cmd.Flags().GetString("user")
 			if verbose {
 				args = append(args, "--verbose")
+			}
+			if user != "" {
+				args = append(args, "--user", user)
 			}
 			return f.app.Connect(args)
 		},
 	}
 	cmd.Flags().BoolP("verbose", "v", false, "Show SSH connection command without executing")
+	cmd.Flags().StringP("user", "u", "", "Override SSH username (e.g., ubuntu, rstats)")
 	return cmd
 }
 
@@ -406,6 +411,10 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 
 	// Profile commands (user-friendly interface)
 	AddProfileCommands(rootCmd, r.app.config)
+
+	// Keys commands (SSH key management)
+	keysCobra := NewKeysCobraCommands(r.app)
+	rootCmd.AddCommand(keysCobra.CreateKeysCommand())
 
 	// Policy commands moved to admin
 
