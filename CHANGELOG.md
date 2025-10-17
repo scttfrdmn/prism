@@ -5,6 +5,27 @@ All notable changes to CloudWorkstation will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2025-10-17
+
+### Development Workflow
+- **Simplified Git Hooks**: Streamlined pre-commit checks to run in < 5 seconds (down from 2-5 minutes)
+  - Fast auto-formatting only (gofmt, goimports, go mod tidy)
+  - Heavy checks (lint, tests) moved to explicit make targets for pre-push validation
+- **Enhanced Makefile**: Go Report Card linting integration with comprehensive quality tools
+  - gofmt, goimports, go vet, gocyclo, misspell, staticcheck, golangci-lint
+  - Quick Start workflow documentation for new developers
+- **Documentation Cleanup**: Organized 20+ historical documents into structured archive
+  - Created docs/archive/ with planning/, implementation/, deprecated/ subdirectories
+  - Preserved historical context while cleaning main docs/ directory
+
+### Quality Improvements
+- **Cost Display Precision**: Enhanced cost output from 3 to 4 decimal places for sub-cent accuracy
+- **Version Synchronization**: Fixed Makefile version mismatch (aligned with runtime version)
+
+### Infrastructure
+- **Build System**: Maintained zero compilation errors for production binaries
+- **Testing**: Core functionality verification with automated smoke tests
+
 ## [0.4.1] - 2025-08-08
 
 ### Critical Bug Fixes
