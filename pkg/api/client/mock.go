@@ -64,6 +64,11 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 }
 
 func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
+	return m.ListInstancesWithRefresh(ctx, false)
+}
+
+func (m *MockClient) ListInstancesWithRefresh(ctx context.Context, refresh bool) (*types.ListResponse, error) {
+	// Mock implementation - refresh parameter is ignored since we don't have real AWS state
 	instances := make([]types.Instance, 0, len(m.instances))
 	for _, instance := range m.instances {
 		instances = append(instances, *instance)

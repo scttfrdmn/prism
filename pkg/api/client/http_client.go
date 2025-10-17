@@ -204,7 +204,17 @@ func (c *HTTPClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 
 // ListInstances lists all instances
 func (c *HTTPClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
-	resp, err := c.makeRequest(ctx, "GET", "/api/v1/instances", nil)
+	return c.ListInstancesWithRefresh(ctx, false)
+}
+
+// ListInstancesWithRefresh lists all instances with optional AWS refresh
+func (c *HTTPClient) ListInstancesWithRefresh(ctx context.Context, refresh bool) (*types.ListResponse, error) {
+	url := "/api/v1/instances"
+	if refresh {
+		url += "?refresh=true"
+	}
+
+	resp, err := c.makeRequest(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}

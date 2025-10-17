@@ -5,8 +5,10 @@
 package tui
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
@@ -110,10 +112,14 @@ func NewApp() *App {
 		}
 	}
 
+	// Load API key from daemon state if available
+	apiKey := loadAPIKeyFromState()
+
 	// Create API client with modern Options pattern
 	apiClient := client.NewClientWithOptions("http://localhost:8947", client.Options{
 		AWSProfile: currentProfile.AWSProfile,
 		AWSRegion:  currentProfile.Region,
+		APIKey:     apiKey,
 	})
 
 	// Wrap with TUI client
@@ -469,4 +475,32 @@ func (m AppModel) View() string {
 	default:
 		return fmt.Sprintf("CloudWorkstation v%s\n\nUnknown page", version.GetVersion())
 	}
+}
+
+// loadAPIKeyFromState attempts to load the API key from daemon state
+func loadAPIKeyFromState() string {
+	// Try to load daemon state to get API key
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "" // No API key available
+	}
+
+	stateFile := filepath.Join(homeDir, ".cloudworkstation", "state.json")
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		return "" // No state file or can't read it
+	}
+
+	// Parse state to extract API key
+	var state struct {
+		Config struct {
+			APIKey string `json:"api_key"`
+		} `json:"config"`
+	}
+
+	if err := json.Unmarshal(data, &state); err != nil {
+		return "" // Invalid state format
+	}
+
+	return state.Config.APIKey
 }

@@ -229,6 +229,19 @@ type Instance struct {
 	AMIID               string        `json:"ami_id,omitempty"`                // AMI used for launch
 	CostSavings         float64       `json:"cost_savings,omitempty"`          // Cost savings vs script
 	BootTime            time.Duration `json:"boot_time,omitempty"`             // Time to boot from AMI
+
+	// State transition history for accurate cost tracking
+	StateHistory []StateTransition `json:"state_history,omitempty"` // History of all state changes
+}
+
+// StateTransition records when an instance changes state for cost tracking
+// This enables accurate billing calculations based on actual runtime vs stopped time
+type StateTransition struct {
+	FromState string    `json:"from_state"`          // Previous state (or empty for launch)
+	ToState   string    `json:"to_state"`            // New state
+	Timestamp time.Time `json:"timestamp"`           // When transition occurred
+	Reason    string    `json:"reason,omitempty"`    // Why transition happened (user action, idle detection, etc.)
+	Initiator string    `json:"initiator,omitempty"` // Who/what initiated (user, system, policy)
 }
 
 // IdleDetection represents idle detection configuration for an instance

@@ -46,6 +46,8 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 	profilesCmd.AddCommand(addCmd)
 
 	profilesCmd.AddCommand(createRemoveCommand(config))
+	profilesCmd.AddCommand(createDeleteCommand(config)) // Alias for remove
+	profilesCmd.AddCommand(createUpdateCommand(config))
 	profilesCmd.AddCommand(createValidateCommand(config))
 	profilesCmd.AddCommand(createAcceptInvitationCommand(config))
 	profilesCmd.AddCommand(createRenameCommand(config))
@@ -362,6 +364,19 @@ func createRemoveCommand(config *Config) *cobra.Command {
 	}
 }
 
+// createDeleteCommand creates the delete profile command (alias for remove)
+func createDeleteCommand(config *Config) *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete [profile-id]",
+		Short: "Delete a profile (alias for remove)",
+		Long:  `Delete a profile from your configuration. This is an alias for the remove command.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			runRemoveCommand(config, args[0])
+		},
+	}
+}
+
 // runRemoveCommand handles the remove command logic
 func runRemoveCommand(config *Config, profileID string) {
 	// Create profile manager
@@ -386,6 +401,82 @@ func runRemoveCommand(config *Config, profileID string) {
 	}
 
 	fmt.Printf("Removed profile '%s'\n", profileID)
+}
+
+// createUpdateCommand creates the update profile command
+func createUpdateCommand(config *Config) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "update [profile-id] [options]",
+		Short: "Update an existing profile",
+		Long:  `Update an existing profile's AWS profile, region, or name.`,
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			runUpdateCommand(config, cmd, args[0])
+		},
+	}
+	cmd.Flags().String("aws-profile", "", "New AWS profile name in ~/.aws/credentials")
+	cmd.Flags().String("region", "", "New AWS region for this profile")
+	cmd.Flags().String("name", "", "New display name for the profile")
+	return cmd
+}
+
+// runUpdateCommand handles the update command logic
+func runUpdateCommand(config *Config, cmd *cobra.Command, profileID string) {
+	awsProfile, _ := cmd.Flags().GetString("aws-profile")
+	region, _ := cmd.Flags().GetString("region")
+	name, _ := cmd.Flags().GetString("name")
+
+	// Check if at least one flag is provided
+	if awsProfile == "" && region == "" && name == "" {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(fmt.Errorf("at least one of --aws-profile, --region, or --name must be specified"), "update profile"))
+		os.Exit(1)
+	}
+
+	// Create profile manager
+	profileManager, err := createProfileManager(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "create profile manager"))
+		os.Exit(1)
+	}
+
+	// Get the current profile
+	prof, err := profileManager.GetProfile(profileID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "get profile for update"))
+		os.Exit(1)
+	}
+
+	// Create updated profile with new values
+	updates := *prof
+
+	// Track what's being updated for user feedback
+	var changes []string
+
+	if awsProfile != "" {
+		updates.AWSProfile = awsProfile
+		changes = append(changes, fmt.Sprintf("AWS profile: %s → %s", prof.AWSProfile, awsProfile))
+	}
+	if region != "" {
+		updates.Region = region
+		changes = append(changes, fmt.Sprintf("region: %s → %s", valueOrEmpty(prof.Region), region))
+	}
+	if name != "" {
+		updates.Name = name
+		changes = append(changes, fmt.Sprintf("name: %s → %s", prof.Name, name))
+	}
+
+	// Update the profile
+	err = profileManager.UpdateProfile(profileID, updates)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "update profile"))
+		os.Exit(1)
+	}
+
+	// Print success message with changes
+	fmt.Printf("Updated profile '%s':\n", profileID)
+	for _, change := range changes {
+		fmt.Printf("  • %s\n", change)
+	}
 }
 
 // createValidateCommand creates the validate profile command

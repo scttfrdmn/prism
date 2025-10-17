@@ -252,7 +252,7 @@ func main() {
 	}
 
 	// Run the application
-	err := app.Run()
+	err = app.Run()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -50,23 +50,47 @@ func (s *Server) handleInstances(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleListInstances lists all instances with real-time AWS status
+// handleListInstances lists all instances from local state (fast response)
+// Use query parameter ?refresh=true to force refresh from AWS
 func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 	var instances []types.Instance
 	totalCost := 0.0
 
-	var awsErr error
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		var err error
-		instances, err = awsManager.ListInstances()
-		awsErr = err
-		return err
-	})
+	// Check if refresh from AWS is explicitly requested
+	refreshFromAWS := r.URL.Query().Get("refresh") == "true"
 
-	// If AWS call failed, the withAWSManager already wrote the error response
-	// Note: instances will be an empty slice when no instances exist, not nil
-	if awsErr != nil {
-		return
+	if refreshFromAWS {
+		// Query AWS for real-time status (slow but accurate)
+		var awsErr error
+		s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+			var err error
+			instances, err = awsManager.ListInstances()
+			awsErr = err
+			return err
+		})
+
+		// If AWS call failed, the withAWSManager already wrote the error response
+		if awsErr != nil {
+			return
+		}
+
+		// Update local state with fresh AWS data
+		for _, instance := range instances {
+			_ = s.stateManager.SaveInstance(instance)
+		}
+	} else {
+		// Serve from local state (fast response)
+		state, err := s.stateManager.LoadState()
+		if err != nil {
+			s.writeError(w, http.StatusInternalServerError, "Failed to load state")
+			return
+		}
+
+		// Convert state map to slice
+		instances = make([]types.Instance, 0, len(state.Instances))
+		for _, instance := range state.Instances {
+			instances = append(instances, instance)
+		}
 	}
 
 	// Filter out terminated instances older than retention period (configurable)
@@ -167,7 +191,18 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		launchDuration := int(time.Since(launchStart).Seconds())
 		templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
 
-		return err
+		if err != nil {
+			return err
+		}
+
+		// Immediately query AWS to get actual current state (may have transitioned from pending to running)
+		// This keeps our cache fresh and prevents showing stale "pending" state for hours
+		refreshedInstance := s.refreshInstanceStateFromAWS(awsManager, instance.Name)
+		if refreshedInstance != nil {
+			instance = refreshedInstance
+		}
+
+		return nil
 	})
 
 	// If instance is nil, withAWSManager already wrote an error response
@@ -175,7 +210,7 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save state
+	// Save state with actual current AWS state
 	if err := s.stateManager.SaveInstance(*instance); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to save instance state")
 		return
@@ -373,12 +408,134 @@ func (s *Server) handleDeleteInstance(w http.ResponseWriter, r *http.Request, id
 		}
 	}
 
-	// Initiate AWS deletion
+	// Initiate AWS deletion and refresh state from AWS
+	var deleteErr error
+	var updatedInstance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.DeleteInstance(instanceName)
+		// Delete the instance
+		deleteErr = awsManager.DeleteInstance(instanceName)
+		if deleteErr != nil {
+			return deleteErr
+		}
+
+		// Get the cached instance to preserve metadata
+		state, err := s.stateManager.LoadState()
+		if err != nil {
+			return err
+		}
+
+		cachedInstance, exists := state.Instances[instanceName]
+		if !exists {
+			return nil // Instance not in cache, nothing to update
+		}
+
+		// Query AWS immediately to get actual state (shutting-down or terminated)
+		liveInstance, err := awsManager.GetInstance(cachedInstance.ID)
+		if err != nil {
+			// Instance might already be terminated and not found - that's OK
+			// Just mark it as terminated in our state and record transition
+			oldState := cachedInstance.State
+			cachedInstance.State = "terminated"
+
+			// Record state transition for cost tracking
+			if oldState != "terminated" {
+				transition := types.StateTransition{
+					FromState: oldState,
+					ToState:   "terminated",
+					Timestamp: time.Now(),
+					Reason:    "user_deletion",
+					Initiator: "user",
+				}
+				cachedInstance.StateHistory = append(cachedInstance.StateHistory, transition)
+			}
+
+			updatedInstance = &cachedInstance
+			return nil
+		}
+
+		// Preserve metadata from cache that AWS doesn't store
+		liveInstance.Services = cachedInstance.Services
+		if cachedInstance.Username != "" {
+			liveInstance.Username = cachedInstance.Username
+		}
+
+		// Preserve and update state history
+		liveInstance.StateHistory = cachedInstance.StateHistory
+
+		// Record state transition if state changed
+		if cachedInstance.State != liveInstance.State {
+			transition := types.StateTransition{
+				FromState: cachedInstance.State,
+				ToState:   liveInstance.State,
+				Timestamp: time.Now(),
+				Reason:    "user_deletion",
+				Initiator: "user",
+			}
+			liveInstance.StateHistory = append(liveInstance.StateHistory, transition)
+		}
+
+		updatedInstance = liveInstance
+		return nil
 	})
 
-	w.WriteHeader(http.StatusNoContent)
+	// Only send success response if deletion succeeded
+	// (withAWSManager already sent error response if it failed)
+	if deleteErr == nil {
+		// Update local state with real AWS state (shutting-down or terminated)
+		if updatedInstance != nil {
+			_ = s.stateManager.SaveInstance(*updatedInstance)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// refreshInstanceStateFromAWS queries AWS and updates local state with current instance info
+// This should be called after state-changing operations to keep cache fresh
+// Records state transitions for accurate cost tracking
+func (s *Server) refreshInstanceStateFromAWS(awsManager *aws.Manager, instanceName string) *types.Instance {
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		return nil
+	}
+
+	cachedInstance, exists := state.Instances[instanceName]
+	if !exists {
+		return nil
+	}
+
+	// Query AWS for current state
+	liveInstance, err := awsManager.GetInstance(cachedInstance.ID)
+	if err != nil {
+		// Instance might be terminated/not found - return cached version
+		return &cachedInstance
+	}
+
+	// Preserve metadata that AWS doesn't store
+	liveInstance.Services = cachedInstance.Services
+	if cachedInstance.Username != "" {
+		liveInstance.Username = cachedInstance.Username
+	}
+	if cachedInstance.DeletionTime != nil {
+		liveInstance.DeletionTime = cachedInstance.DeletionTime
+	}
+
+	// Preserve existing state history
+	liveInstance.StateHistory = cachedInstance.StateHistory
+
+	// Record state transition if state changed
+	if cachedInstance.State != liveInstance.State {
+		transition := types.StateTransition{
+			FromState: cachedInstance.State,
+			ToState:   liveInstance.State,
+			Timestamp: time.Now(),
+			Reason:    "user_action", // State change triggered by user via API
+			Initiator: "user",        // User-initiated state change
+		}
+		liveInstance.StateHistory = append(liveInstance.StateHistory, transition)
+	}
+
+	return liveInstance
 }
 
 // handleStartInstance starts a stopped instance
@@ -395,11 +552,26 @@ func (s *Server) handleStartInstance(w http.ResponseWriter, r *http.Request, ide
 		return
 	}
 
+	var operationErr error
+	var updatedInstance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.StartInstance(instanceName)
+		operationErr = awsManager.StartInstance(instanceName)
+		if operationErr != nil {
+			return operationErr
+		}
+
+		// Refresh state from AWS to get actual current state (pending, running, etc.)
+		updatedInstance = s.refreshInstanceStateFromAWS(awsManager, instanceName)
+		return nil
 	})
 
-	w.WriteHeader(http.StatusNoContent)
+	if operationErr == nil {
+		// Update local state with real AWS state
+		if updatedInstance != nil {
+			_ = s.stateManager.SaveInstance(*updatedInstance)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // handleStopInstance stops a running instance
@@ -416,11 +588,26 @@ func (s *Server) handleStopInstance(w http.ResponseWriter, r *http.Request, iden
 		return
 	}
 
+	var operationErr error
+	var updatedInstance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.StopInstance(instanceName)
+		operationErr = awsManager.StopInstance(instanceName)
+		if operationErr != nil {
+			return operationErr
+		}
+
+		// Refresh state from AWS to get actual current state (stopping, stopped, etc.)
+		updatedInstance = s.refreshInstanceStateFromAWS(awsManager, instanceName)
+		return nil
 	})
 
-	w.WriteHeader(http.StatusNoContent)
+	if operationErr == nil {
+		// Update local state with real AWS state
+		if updatedInstance != nil {
+			_ = s.stateManager.SaveInstance(*updatedInstance)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // handleHibernateInstance hibernates a running instance
@@ -437,11 +624,26 @@ func (s *Server) handleHibernateInstance(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
+	var operationErr error
+	var updatedInstance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.HibernateInstance(instanceName)
+		operationErr = awsManager.HibernateInstance(instanceName)
+		if operationErr != nil {
+			return operationErr
+		}
+
+		// Refresh state from AWS to get actual current state (stopping for hibernation)
+		updatedInstance = s.refreshInstanceStateFromAWS(awsManager, instanceName)
+		return nil
 	})
 
-	w.WriteHeader(http.StatusNoContent)
+	if operationErr == nil {
+		// Update local state with real AWS state
+		if updatedInstance != nil {
+			_ = s.stateManager.SaveInstance(*updatedInstance)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // handleResumeInstance resumes a hibernated instance
@@ -458,11 +660,26 @@ func (s *Server) handleResumeInstance(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 
+	var operationErr error
+	var updatedInstance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		return awsManager.ResumeInstance(instanceName)
+		operationErr = awsManager.ResumeInstance(instanceName)
+		if operationErr != nil {
+			return operationErr
+		}
+
+		// Refresh state from AWS to get actual current state (pending, running)
+		updatedInstance = s.refreshInstanceStateFromAWS(awsManager, instanceName)
+		return nil
 	})
 
-	w.WriteHeader(http.StatusNoContent)
+	if operationErr == nil {
+		// Update local state with real AWS state
+		if updatedInstance != nil {
+			_ = s.stateManager.SaveInstance(*updatedInstance)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // handleInstanceHibernationStatus gets hibernation status for an instance

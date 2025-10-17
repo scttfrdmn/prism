@@ -29,6 +29,7 @@ type CloudWorkstationAPI interface {
 	// Instance operations
 	LaunchInstance(context.Context, types.LaunchRequest) (*types.LaunchResponse, error)
 	ListInstances(context.Context) (*types.ListResponse, error)
+	ListInstancesWithRefresh(context.Context, bool) (*types.ListResponse, error)
 	GetInstance(context.Context, string) (*types.Instance, error)
 	StartInstance(context.Context, string) error
 	StopInstance(context.Context, string) error

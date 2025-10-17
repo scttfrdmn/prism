@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,8 +18,9 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamTypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
@@ -37,19 +39,19 @@ const (
 
 // Manager handles all AWS operations
 type Manager struct {
-	cfg             aws.Config
-	ec2             EC2ClientInterface
-	efs             EFSClientInterface
-	ssm             SSMClientInterface
-	sts             STSClientInterface
-	region          string
-	templates       map[string]ctypes.Template
-	pricingCache    map[string]float64
-	lastPriceUpdate time.Time
-	discountConfig  ctypes.DiscountConfig
-	stateManager    StateManagerInterface
-	idleScheduler   *idle.Scheduler
-	policyManager   *idle.PolicyManager
+	cfg            aws.Config
+	ec2            EC2ClientInterface
+	efs            EFSClientInterface
+	iam            *iam.Client
+	ssm            SSMClientInterface
+	sts            STSClientInterface
+	region         string
+	templates      map[string]ctypes.Template
+	pricingClient  *PricingClient
+	discountConfig ctypes.DiscountConfig
+	stateManager   StateManagerInterface
+	idleScheduler  *idle.Scheduler
+	policyManager  *idle.PolicyManager
 
 	// Universal AMI System components (Phase 5.1)
 	amiResolver *UniversalAMIResolver
@@ -99,6 +101,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	// Create clients
 	ec2Client := ec2.NewFromConfig(cfg)
 	efsClient := efs.NewFromConfig(cfg)
+	iamClient := iam.NewFromConfig(cfg)
 	ssmClient := ssm.NewFromConfig(cfg)
 	stsClient := sts.NewFromConfig(cfg)
 
@@ -111,17 +114,20 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	// Initialize Universal AMI System (Phase 5.1)
 	amiResolver := NewUniversalAMIResolver(ec2Client)
 
+	// Initialize AWS Pricing API client with caching
+	pricingClient := NewPricingClient(cfg)
+
 	// Create manager first (needed for adapter)
 	manager := &Manager{
 		cfg:               cfg,
 		ec2:               ec2Client,
 		efs:               efsClient,
+		iam:               iamClient,
 		ssm:               ssmClient,
 		sts:               stsClient,
 		region:            region,
 		templates:         getTemplates(),
-		pricingCache:      make(map[string]float64),
-		lastPriceUpdate:   time.Time{},
+		pricingClient:     pricingClient,
 		discountConfig:    ctypes.DiscountConfig{}, // No discounts by default
 		stateManager:      stateManager,
 		amiResolver:       amiResolver,
@@ -539,13 +545,25 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 
 	log.Printf("[DEBUG] Creating instance with username: %s", primaryUsername)
 
+	// Record initial state transition for cost tracking
+	initialState := string(instance.State.Name)
+	stateHistory := []ctypes.StateTransition{
+		{
+			FromState: "",           // Empty for initial launch
+			ToState:   initialState, // Usually "pending" at launch
+			Timestamp: launchTime,
+			Reason:    "instance_launch",
+			Initiator: "user",
+		},
+	}
+
 	cwsInstance := &ctypes.Instance{
 		ID:                 *instance.InstanceId,
 		Name:               req.Name,
 		Template:           req.Template,
 		Region:             l.region, // Store region for proper instance management
 		AvailabilityZone:   availabilityZone,
-		State:              string(instance.State.Name),
+		State:              initialState,
 		InstanceType:       instanceType,
 		LaunchTime:         launchTime,
 		HourlyRate:         hourlyRate,
@@ -555,6 +573,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		AttachedEBSVolumes: req.EBSVolumes,
 		Services:           services,        // Web services from template
 		Username:           primaryUsername, // Primary user from template
+		StateHistory:       stateHistory,    // Initialize state history with launch event
 	}
 
 	log.Printf("[DEBUG] Instance created with username: %s", cwsInstance.Username)
@@ -563,6 +582,25 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	log.Printf("[DEBUG] LaunchInstance: Created instance with %d services", len(cwsInstance.Services))
 	for _, svc := range cwsInstance.Services {
 		log.Printf("[DEBUG] LaunchInstance: Instance service: %s (port %d)", svc.Name, svc.Port)
+	}
+
+	// Wait for instance to be ready for use (running + SSH accessible)
+	// This ensures users can connect immediately after launch
+	// Provides status feedback during waiting period
+	log.Printf("⏳ Waiting for instance to be ready for connections...")
+	if err := l.manager.waitForInstanceReadyWithProgress(cwsInstance.ID, l.region, func(stage string, progress float64, description string) {
+		// Provide user feedback during readiness waiting
+		if progress == 0.0 {
+			log.Printf("  → %s", description)
+		} else if progress == 1.0 {
+			log.Printf("  ✓ %s", description)
+		}
+	}); err != nil {
+		// Don't fail the launch if waiting times out - instance is still created
+		log.Printf("⚠️  Warning: Instance launched but readiness check timed out: %v", err)
+		log.Printf("    The instance may need a few more moments before you can connect")
+	} else {
+		log.Printf("✅ Instance %s is ready for SSH connections", cwsInstance.ID)
 	}
 
 	return cwsInstance, nil
@@ -1637,14 +1675,137 @@ func (m *Manager) getInstanceTypeArchitecture(instanceType string) (string, erro
 	return normalizedArch, nil
 }
 
-// checkIAMInstanceProfileExists checks if an IAM instance profile exists
-// Returns true if it exists, false otherwise (doesn't error - just checks)
+// checkIAMInstanceProfileExists checks if an IAM instance profile exists, creating it if needed
+// Returns true if it exists or was created successfully, false otherwise (doesn't error - just checks)
 func (m *Manager) checkIAMInstanceProfileExists(profileName string) bool {
-	// Design Decision: Always return false for painless onboarding
-	// This allows CloudWorkstation to work without requiring IAM instance profiles
-	// If IAM checks become critical in the future, add IAM client and implement proper verification
-	// Current behavior: Templates specify IAM profiles but they're optional
-	return false
+	// Validate IAM instance profile exists before launch
+	// This enables SSM access for advanced features (remote execution, file operations)
+	// Auto-creates the profile if it doesn't exist for zero-configuration SSM access
+
+	ctx := context.Background()
+
+	// Try to get the instance profile
+	_, err := m.iam.GetInstanceProfile(ctx, &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(profileName),
+	})
+
+	if err == nil {
+		// Profile exists and is accessible
+		return true
+	}
+
+	// Profile doesn't exist - try to create it
+	log.Printf("IAM instance profile '%s' not found - attempting to create it automatically...", profileName)
+
+	// Create IAM role first
+	roleName := profileName + "-Role"
+
+	// Trust policy allowing EC2 to assume this role
+	trustPolicy := `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Principal": {
+					"Service": "ec2.amazonaws.com"
+				},
+				"Action": "sts:AssumeRole"
+			}
+		]
+	}`
+
+	// Create the role
+	_, err = m.iam.CreateRole(ctx, &iam.CreateRoleInput{
+		RoleName:                 aws.String(roleName),
+		AssumeRolePolicyDocument: aws.String(trustPolicy),
+		Description:              aws.String("CloudWorkstation instance role for SSM access and autonomous idle detection"),
+		Tags: []iamTypes.Tag{
+			{
+				Key:   aws.String("ManagedBy"),
+				Value: aws.String("CloudWorkstation"),
+			},
+			{
+				Key:   aws.String("Purpose"),
+				Value: aws.String("Instance management and SSM access"),
+			},
+		},
+	})
+
+	if err != nil {
+		// Role creation failed - check if it already exists
+		if !strings.Contains(err.Error(), "EntityAlreadyExists") {
+			log.Printf("Failed to create IAM role '%s': %v", roleName, err)
+			log.Printf("Continuing without IAM profile - some features (SSM, autonomous idle detection) will be unavailable")
+			return false
+		}
+		// Role already exists, continue to attach policies
+	}
+
+	// Attach AWS managed policy for SSM
+	_, err = m.iam.AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
+		RoleName:  aws.String(roleName),
+		PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"),
+	})
+	if err != nil && !strings.Contains(err.Error(), "already attached") {
+		log.Printf("Warning: Failed to attach SSM policy to role: %v", err)
+	}
+
+	// Create inline policy for autonomous idle detection (EC2 self-management)
+	idleDetectionPolicy := `{
+		"Version": "2012-10-17",
+		"Statement": [
+			{
+				"Effect": "Allow",
+				"Action": [
+					"ec2:CreateTags",
+					"ec2:DescribeTags",
+					"ec2:DescribeInstances",
+					"ec2:StopInstances"
+				],
+				"Resource": "*"
+			}
+		]
+	}`
+
+	_, err = m.iam.PutRolePolicy(ctx, &iam.PutRolePolicyInput{
+		RoleName:       aws.String(roleName),
+		PolicyName:     aws.String("CloudWorkstation-IdleDetection"),
+		PolicyDocument: aws.String(idleDetectionPolicy),
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to create idle detection policy: %v", err)
+	}
+
+	// Create the instance profile
+	_, err = m.iam.CreateInstanceProfile(ctx, &iam.CreateInstanceProfileInput{
+		InstanceProfileName: aws.String(profileName),
+		Tags: []iamTypes.Tag{
+			{
+				Key:   aws.String("ManagedBy"),
+				Value: aws.String("CloudWorkstation"),
+			},
+		},
+	})
+	if err != nil && !strings.Contains(err.Error(), "EntityAlreadyExists") {
+		log.Printf("Failed to create instance profile '%s': %v", profileName, err)
+		return false
+	}
+
+	// Add role to instance profile
+	_, err = m.iam.AddRoleToInstanceProfile(ctx, &iam.AddRoleToInstanceProfileInput{
+		InstanceProfileName: aws.String(profileName),
+		RoleName:            aws.String(roleName),
+	})
+	if err != nil && !strings.Contains(err.Error(), "LimitExceeded") {
+		log.Printf("Failed to add role to instance profile: %v", err)
+		return false
+	}
+
+	// Wait a moment for IAM changes to propagate
+	time.Sleep(2 * time.Second)
+
+	log.Printf("✅ Successfully created IAM instance profile '%s' with SSM access and idle detection permissions", profileName)
+	return true
 }
 
 // getInstanceTypeForSize maps size strings to default instance types
@@ -1776,19 +1937,26 @@ func (m *Manager) getInstanceRegion(name string) (string, error) {
 
 // findInstanceByName finds an EC2 instance by its Name tag
 func (m *Manager) findInstanceByName(name string) (string, error) {
-	// Load state to get the instance's region
+	// Load state to get the instance ID and region (fast - no AWS API calls)
 	state, err := m.stateManager.LoadState()
 	if err != nil {
 		return "", fmt.Errorf("failed to load state: %w", err)
 	}
 
-	// Find instance in state to get its region
+	// Find instance in state to get its ID and region
+	var instanceID string
 	var instanceRegion string
 	for _, inst := range state.Instances {
 		if inst.Name == name {
+			instanceID = inst.ID
 			instanceRegion = inst.Region
 			break
 		}
+	}
+
+	// If we found the instance ID in state, return it immediately (fast path)
+	if instanceID != "" {
+		return instanceID, nil
 	}
 
 	// Default to manager's region if not found in state
@@ -1806,7 +1974,7 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 		regionalClient = ec2.NewFromConfig(regionalCfg)
 	}
 
-	// Query the instance in its region
+	// Fallback: Query AWS if instance ID not in state (slow but handles edge cases)
 	ctx := context.Background()
 	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
@@ -1903,14 +2071,18 @@ type InstanceBuilder struct {
 	tagExtractor   *InstanceTagExtractor
 	stateConverter *InstanceStateConverter
 	ec2Client      EC2ClientInterface
+	pricingClient  *PricingClient
+	region         string
 }
 
 // NewInstanceBuilder creates instance builder
-func NewInstanceBuilder(ec2Client EC2ClientInterface) *InstanceBuilder {
+func NewInstanceBuilder(ec2Client EC2ClientInterface, pricingClient *PricingClient, region string) *InstanceBuilder {
 	return &InstanceBuilder{
 		tagExtractor:   &InstanceTagExtractor{},
 		stateConverter: &InstanceStateConverter{},
 		ec2Client:      ec2Client,
+		pricingClient:  pricingClient,
+		region:         region,
 	}
 }
 
@@ -1945,20 +2117,43 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		instanceLifecycle = "spot"
 	}
 
-	// Calculate cost metrics based on instance type and runtime
-	instanceType := string(ec2Instance.InstanceType)
-	hourlyRate := getHourlyRate(instanceType)
-
-	// Calculate EBS storage costs using AWS API (persist when stopped/hibernated)
-	ebsStorageCostPerHour := b.calculateInstanceEBSCosts(*ec2Instance.InstanceId)
-
-	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, *ec2Instance.LaunchTime, state)
-
 	// Get EC2 KeyName (SSH key pair)
 	keyName := ""
 	if ec2Instance.KeyName != nil {
 		keyName = *ec2Instance.KeyName
 	}
+
+	// Determine launch time - preserve original launch time from cache across stop/start cycles
+	// AWS's LaunchTime field changes to the START time when an instance is restarted,
+	// but we want to track cost from the original launch for accurate total cost tracking
+	launchTime := *ec2Instance.LaunchTime
+	var stateHistory []ctypes.StateTransition
+	if localState != nil {
+		if localInstance, exists := localState.Instances[name]; exists {
+			// Use cached launch time to preserve cost tracking across stop/start cycles
+			launchTime = localInstance.LaunchTime
+			// Get state history for accurate cost calculation
+			stateHistory = localInstance.StateHistory
+		}
+	}
+
+	// Calculate cost metrics based on instance type and runtime
+	instanceType := string(ec2Instance.InstanceType)
+
+	// Get accurate hourly rate from AWS Pricing API (with fallback to estimates)
+	ctx := context.Background()
+	hourlyRate, err := b.pricingClient.GetInstanceHourlyRate(ctx, b.region, instanceType)
+	if err != nil {
+		// Fall back to hardcoded estimate on error (pricing API failure)
+		log.Printf("Warning: Pricing API failed for %s in %s: %v. Using estimate.", instanceType, b.region, err)
+		hourlyRate = getHourlyRate(instanceType)
+	}
+
+	// Calculate EBS storage costs using AWS API (persist when stopped/hibernated)
+	ebsStorageCostPerHour := b.calculateInstanceEBSCosts(*ec2Instance.InstanceId)
+
+	// Calculate actual costs using state history for accurate tracking
+	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, launchTime, state, stateHistory)
 
 	// Create instance
 	instance := &ctypes.Instance{
@@ -1971,14 +2166,16 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		ProjectID:         project,
 		InstanceLifecycle: instanceLifecycle,
 		KeyName:           keyName,
-		LaunchTime:        *ec2Instance.LaunchTime,
+		LaunchTime:        launchTime,
 		InstanceType:      instanceType,
 		HourlyRate:        hourlyRate,
 		CurrentSpend:      currentSpend,
 		EffectiveRate:     effectiveRate,
+		StateHistory:      stateHistory,
 	}
 
-	// Merge deletion time from local state if available
+	// Merge remaining metadata from local state if available
+	// Local state contains fields that AWS doesn't store (deletion time, etc.)
 	if localState != nil {
 		if localInstance, exists := localState.Instances[name]; exists {
 			instance.DeletionTime = localInstance.DeletionTime
@@ -1995,10 +2192,10 @@ type InstanceListProcessor struct {
 }
 
 // NewInstanceListProcessor creates instance list processor
-func NewInstanceListProcessor(ec2Client EC2ClientInterface) *InstanceListProcessor {
+func NewInstanceListProcessor(ec2Client EC2ClientInterface, pricingClient *PricingClient, region string) *InstanceListProcessor {
 	return &InstanceListProcessor{
 		stateLoader:     &StateLoader{},
-		instanceBuilder: NewInstanceBuilder(ec2Client),
+		instanceBuilder: NewInstanceBuilder(ec2Client, pricingClient, region),
 	}
 }
 
@@ -2035,7 +2232,7 @@ func (m *Manager) GetInstance(instanceID string) (*ctypes.Instance, error) {
 	}
 
 	// Process the single instance
-	processor := NewInstanceListProcessor(m.ec2)
+	processor := NewInstanceListProcessor(m.ec2, m.pricingClient, m.region)
 	instances := processor.ProcessReservations(result.Reservations)
 
 	if len(instances) == 0 {
@@ -2103,7 +2300,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		}
 
 		// Process instances from this region
-		processor := NewInstanceListProcessor(regionalClient)
+		processor := NewInstanceListProcessor(regionalClient, m.pricingClient, region)
 		regionalInstances := processor.ProcessReservations(result.Reservations)
 
 		// Ensure each instance has the region set and merge cached metadata
@@ -2198,16 +2395,9 @@ func (m *Manager) getEBSCostPerGB(volumeType string) float64 {
 	return m.applyEBSDiscounts(basePrice)
 }
 
-// getRegionalEBSPrice returns region-aware EBS pricing with smart caching
+// getRegionalEBSPrice returns region-aware EBS pricing
+// Note: This uses estimated pricing. For production accuracy, integrate AWS Pricing API
 func (m *Manager) getRegionalEBSPrice(volumeType string) float64 {
-	// Check cache first (24-hour TTL)
-	cacheKey := fmt.Sprintf("ebs-%s-%s", volumeType, m.region)
-	if cachedPrice, exists := m.pricingCache[cacheKey]; exists {
-		if time.Since(m.lastPriceUpdate) < 24*time.Hour {
-			return cachedPrice
-		}
-	}
-
 	// Get regional pricing multiplier
 	regionMultiplier := m.getRegionPricingMultiplier()
 
@@ -2229,11 +2419,6 @@ func (m *Manager) getRegionalEBSPrice(volumeType string) float64 {
 	}
 
 	regionalPrice := basePrice * regionMultiplier
-
-	// Cache the result
-	m.pricingCache[cacheKey] = regionalPrice
-	m.lastPriceUpdate = time.Now()
-
 	return regionalPrice
 }
 
@@ -2274,34 +2459,13 @@ func (m *Manager) getRegionPricingMultiplier() float64 {
 	}
 }
 
-// getRegionalEC2Price returns region-aware EC2 pricing with smart caching
+// getRegionalEC2Price returns region-aware EC2 pricing
+// Note: This is now primarily used as fallback. Production pricing comes from AWS Pricing API
 func (m *Manager) getRegionalEC2Price(instanceType string) float64 {
-	cacheKey := fmt.Sprintf("ec2-%s-%s", instanceType, m.region)
-
-	if cachedPrice := m.getCachedPrice(cacheKey); cachedPrice > 0 {
-		return cachedPrice
-	}
-
 	basePrice := m.getBaseInstancePrice(instanceType)
 	regionalPrice := basePrice * m.getRegionPricingMultiplier()
 	finalPrice := m.applyEC2Discounts(regionalPrice)
-
-	m.setCachedPrice(cacheKey, finalPrice)
 	return finalPrice
-}
-
-func (m *Manager) getCachedPrice(cacheKey string) float64 {
-	if cachedPrice, exists := m.pricingCache[cacheKey]; exists {
-		if time.Since(m.lastPriceUpdate) < 24*time.Hour {
-			return cachedPrice
-		}
-	}
-	return 0
-}
-
-func (m *Manager) setCachedPrice(cacheKey string, price float64) {
-	m.pricingCache[cacheKey] = price
-	m.lastPriceUpdate = time.Now()
 }
 
 func (m *Manager) getBaseInstancePrice(instanceType string) float64 {
@@ -2397,16 +2561,9 @@ func (m *Manager) getInstanceSizeMultiplier(size string) float64 {
 	return 4.0 // Default to large
 }
 
-// getRegionalEFSPrice returns region-aware EFS pricing with smart caching
+// getRegionalEFSPrice returns region-aware EFS pricing
+// Note: This uses estimated pricing. For production accuracy, integrate AWS Pricing API
 func (m *Manager) getRegionalEFSPrice() float64 {
-	// Check cache first (24-hour TTL)
-	cacheKey := fmt.Sprintf("efs-%s", m.region)
-	if cachedPrice, exists := m.pricingCache[cacheKey]; exists {
-		if time.Since(m.lastPriceUpdate) < 24*time.Hour {
-			return cachedPrice
-		}
-	}
-
 	// Get regional pricing multiplier
 	regionMultiplier := m.getRegionPricingMultiplier()
 
@@ -2416,11 +2573,6 @@ func (m *Manager) getRegionalEFSPrice() float64 {
 
 	// Apply discounts
 	finalPrice := m.applyEFSDiscounts(regionalPrice)
-
-	// Cache the result
-	m.pricingCache[cacheKey] = finalPrice
-	m.lastPriceUpdate = time.Now()
-
 	return finalPrice
 }
 
@@ -2469,9 +2621,7 @@ func (m *Manager) detectPotentialCredits() []ctypes.CreditInfo {
 // SetDiscountConfig configures pricing discounts for various AWS services
 func (m *Manager) SetDiscountConfig(config ctypes.DiscountConfig) {
 	m.discountConfig = config
-	// Clear pricing cache to force recalculation with new discounts
-	m.pricingCache = make(map[string]float64)
-	m.lastPriceUpdate = time.Time{}
+	// Note: Discount changes will apply on next price calculation
 }
 
 // GetDiscountConfig returns the current discount configuration
@@ -3183,7 +3333,7 @@ func estimateInstanceCost(instanceType string) float64 {
 }
 
 // calculateActualCosts calculates current spend and effective rate based on actual usage
-func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, launchTime time.Time, currentState string) (currentSpend, effectiveRate float64) {
+func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, launchTime time.Time, currentState string, stateHistory []ctypes.StateTransition) (currentSpend, effectiveRate float64) {
 	now := time.Now()
 	totalHours := now.Sub(launchTime).Hours()
 
@@ -3191,31 +3341,34 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 		return 0, 0
 	}
 
-	// Estimate actual running time based on current state and hibernation patterns
-	// This is a simplified calculation - in production would track state changes
+	// Calculate actual running time from state history if available
 	var runningHours float64
+	if len(stateHistory) > 0 {
+		// Use state history for accurate cost calculation
+		runningHours = calculateRunningHoursFromHistory(launchTime, currentState, stateHistory)
+	} else {
+		// Fallback to estimation if no state history (legacy instances or first launch)
+		switch strings.ToLower(currentState) {
+		case instanceStateRunning:
+			// If currently running and no history, assume it's been running the whole time
+			runningHours = totalHours
 
-	switch strings.ToLower(currentState) {
-	case instanceStateRunning:
-		// If currently running, estimate it's been running most of the time
-		// But account for potential hibernation periods
-		runningHours = totalHours * 0.8 // Assume 20% hibernation savings on average
+		case instanceStateStopped, "hibernated":
+			// If currently stopped/hibernated and no history, estimate it ran for part of the time
+			runningHours = totalHours * 0.6 // Conservative estimate
 
-	case instanceStateStopped, "hibernated":
-		// If currently stopped/hibernated, estimate it ran for part of the time
-		runningHours = totalHours * 0.6 // More aggressive hibernation usage
+		case "pending", "shutting-down":
+			// Transitional states - estimate partial running time
+			runningHours = totalHours * 0.9
 
-	case "pending", "shutting-down":
-		// Transitional states - estimate partial running time
-		runningHours = totalHours * 0.7
-
-	default:
-		// Default conservative estimate
-		runningHours = totalHours * 0.7
+		default:
+			// Default conservative estimate
+			runningHours = totalHours * 0.7
+		}
 	}
 
 	// Calculate current spend
-	// Compute costs: only for running hours (savings from hibernation!)
+	// Compute costs: only for running hours (savings from stop/hibernation!)
 	computeCost := runningHours * computeHourlyRate
 	// Storage costs: persist for all hours (EBS continues when stopped/hibernated)
 	storageCost := totalHours * storageHourlyRate
@@ -3225,6 +3378,67 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 	effectiveRate = currentSpend / totalHours
 
 	return currentSpend, effectiveRate
+}
+
+// calculateRunningHoursFromHistory calculates actual running hours from state transition history
+func calculateRunningHoursFromHistory(launchTime time.Time, currentState string, history []ctypes.StateTransition) float64 {
+	if len(history) == 0 {
+		// No history - use simple calculation based on current state
+		now := time.Now()
+		totalHours := now.Sub(launchTime).Hours()
+		if strings.ToLower(currentState) == instanceStateRunning || currentState == "pending" {
+			return totalHours
+		}
+		return 0
+	}
+
+	// Filter out transitions that happened before current launch time
+	// This handles the case where an instance was stopped and restarted,
+	// and the launch time was updated but old state history remains
+	var relevantHistory []ctypes.StateTransition
+	for _, transition := range history {
+		if transition.Timestamp.After(launchTime) {
+			relevantHistory = append(relevantHistory, transition)
+		}
+	}
+
+	// If no relevant history after launch time, use simple calculation
+	if len(relevantHistory) == 0 {
+		now := time.Now()
+		totalHours := now.Sub(launchTime).Hours()
+		if strings.ToLower(currentState) == instanceStateRunning || currentState == "pending" {
+			return totalHours
+		}
+		return 0
+	}
+
+	var runningHours float64
+	lastStateTime := launchTime
+	lastState := instanceStateRunning // Instances start in running/pending state
+
+	// Process each state transition to calculate running time
+	for _, transition := range relevantHistory {
+		// Calculate duration in previous state
+		duration := transition.Timestamp.Sub(lastStateTime).Hours()
+
+		// Add to running hours if previous state was a "running" state
+		if lastState == instanceStateRunning || lastState == "pending" {
+			runningHours += duration
+		}
+
+		// Update for next iteration
+		lastStateTime = transition.Timestamp
+		lastState = transition.ToState
+	}
+
+	// Add time from last transition to now
+	now := time.Now()
+	finalDuration := now.Sub(lastStateTime).Hours()
+	if lastState == instanceStateRunning || lastState == "pending" {
+		runningHours += finalDuration
+	}
+
+	return runningHours
 }
 
 // calculateStorageCosts calculates hourly EBS storage costs for this instance
@@ -3252,15 +3466,6 @@ func calculateStorageCosts(efsVolumes []string, ebsVolumes []string) float64 {
 
 // calculateInstanceEBSCosts calculates hourly EBS costs for a specific instance using AWS API
 func (b *InstanceBuilder) calculateInstanceEBSCosts(instanceId string) float64 {
-	// EBS pricing (monthly rates converted to hourly)
-	ebsPricing := map[string]float64{
-		"gp3":         0.08 / (30 * 24),  // $0.08/GB/month → hourly
-		"gp2":         0.10 / (30 * 24),  // $0.10/GB/month → hourly
-		"io1":         0.125 / (30 * 24), // $0.125/GB/month → hourly
-		volumeTypeIO2: 0.125 / (30 * 24), // $0.125/GB/month → hourly
-		"standard":    0.05 / (30 * 24),  // $0.05/GB/month → hourly
-	}
-
 	ctx := context.Background()
 
 	// Get instance details to find attached volumes
@@ -3270,21 +3475,22 @@ func (b *InstanceBuilder) calculateInstanceEBSCosts(instanceId string) float64 {
 
 	result, err := b.ec2Client.DescribeInstances(ctx, input)
 	if err != nil {
-		// If API call fails, return estimated cost for root volume
-		return 20.0 * ebsPricing["gp3"] // 20GB gp3 estimate
+		// If API call fails, return estimated cost for root volume (20GB gp3)
+		return b.pricingClient.GetEBSVolumeHourlyRate("gp3", 20)
 	}
 
 	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
-		return 20.0 * ebsPricing["gp3"] // Fallback estimate
+		// Fallback estimate (20GB gp3)
+		return b.pricingClient.GetEBSVolumeHourlyRate("gp3", 20)
 	}
 
 	instance := result.Reservations[0].Instances[0]
 	var totalEBSCostPerHour float64
 
-	// Calculate costs for all attached EBS volumes
+	// Calculate costs for all attached EBS volumes using actual AWS data
 	for _, blockDevice := range instance.BlockDeviceMappings {
 		if blockDevice.Ebs != nil && blockDevice.Ebs.VolumeId != nil {
-			volumeCost := b.getEBSVolumeCost(*blockDevice.Ebs.VolumeId, ebsPricing)
+			volumeCost := b.getEBSVolumeCost(*blockDevice.Ebs.VolumeId)
 			totalEBSCostPerHour += volumeCost
 		}
 	}
@@ -3292,8 +3498,8 @@ func (b *InstanceBuilder) calculateInstanceEBSCosts(instanceId string) float64 {
 	return totalEBSCostPerHour
 }
 
-// getEBSVolumeCost gets the hourly cost for a specific EBS volume
-func (b *InstanceBuilder) getEBSVolumeCost(volumeId string, pricing map[string]float64) float64 {
+// getEBSVolumeCost gets the hourly cost for a specific EBS volume using actual AWS volume data
+func (b *InstanceBuilder) getEBSVolumeCost(volumeId string) float64 {
 	ctx := context.Background()
 
 	input := &ec2.DescribeVolumesInput{
@@ -3302,25 +3508,21 @@ func (b *InstanceBuilder) getEBSVolumeCost(volumeId string, pricing map[string]f
 
 	result, err := b.ec2Client.DescribeVolumes(ctx, input)
 	if err != nil {
-		// Fallback to gp3 estimate
-		return 20.0 * pricing["gp3"]
+		// Fallback to gp3 estimate (20GB)
+		return b.pricingClient.GetEBSVolumeHourlyRate("gp3", 20)
 	}
 
 	if len(result.Volumes) == 0 {
-		return 20.0 * pricing["gp3"]
+		// Fallback to gp3 estimate (20GB)
+		return b.pricingClient.GetEBSVolumeHourlyRate("gp3", 20)
 	}
 
 	volume := result.Volumes[0]
 	volumeType := string(volume.VolumeType)
-	volumeSize := float64(*volume.Size)
+	volumeSize := int(*volume.Size)
 
-	// Get price per GB for this volume type
-	pricePerGB, exists := pricing[volumeType]
-	if !exists {
-		pricePerGB = pricing["gp3"] // Default to gp3 pricing
-	}
-
-	return volumeSize * pricePerGB
+	// Get accurate pricing from PricingClient
+	return b.pricingClient.GetEBSVolumeHourlyRate(volumeType, volumeSize)
 }
 
 // GetInstanceConsoleOutput retrieves console output logs from an EC2 instance
@@ -3755,6 +3957,96 @@ func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.Re
 		NewType:    resizeRequest.TargetInstanceType,
 		Status:     "resize-complete",
 	}, nil
+}
+
+// ==========================================
+// Instance Readiness Waiting
+// ==========================================
+
+// waitForInstanceReadyWithProgress waits for an instance to be fully ready for use with progress reporting
+// This includes:
+// 1. Instance reaching "running" state
+// 2. SSH port (22) being accessible
+func (m *Manager) waitForInstanceReadyWithProgress(instanceID, region string, progressCallback func(stage string, progress float64, description string)) error {
+	ctx := context.Background()
+
+	// Get regional EC2 client
+	regionalClient := m.getRegionalEC2Client(region)
+
+	// Step 1: Wait for instance to reach "running" state (typically 30-60 seconds)
+	if progressCallback != nil {
+		progressCallback("instance_ready", 0.0, "Waiting for instance to start...")
+	}
+
+	waiter := ec2.NewInstanceRunningWaiter(regionalClient)
+	err := waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	}, 3*time.Minute) // Give it 3 minutes to start
+	if err != nil {
+		return fmt.Errorf("timeout waiting for instance to start: %w", err)
+	}
+
+	if progressCallback != nil {
+		progressCallback("instance_ready", 1.0, "Instance is running")
+	}
+
+	// Step 2: Get public IP address for SSH check
+	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get instance details: %w", err)
+	}
+
+	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
+		return fmt.Errorf("instance not found")
+	}
+
+	instance := result.Reservations[0].Instances[0]
+	if instance.PublicIpAddress == nil {
+		return fmt.Errorf("instance has no public IP address")
+	}
+
+	publicIP := *instance.PublicIpAddress
+
+	// Step 3: Wait for SSH to be accessible (typically 10-30 more seconds)
+	if progressCallback != nil {
+		progressCallback("ssh_ready", 0.0, "Waiting for SSH to be accessible...")
+	}
+
+	maxAttempts := 20
+	attemptDelay := 3 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		// Try to connect to SSH port (don't actually authenticate, just check if port is open)
+		conn, err := net.DialTimeout("tcp", publicIP+":22", 2*time.Second)
+		if err == nil {
+			conn.Close()
+			if progressCallback != nil {
+				progressCallback("ssh_ready", 1.0, "SSH is accepting connections")
+			}
+			return nil
+		}
+
+		// Report progress
+		if progressCallback != nil {
+			progress := float64(attempt) / float64(maxAttempts)
+			description := fmt.Sprintf("Waiting for SSH (attempt %d/%d)...", attempt, maxAttempts)
+			progressCallback("ssh_ready", progress, description)
+		}
+
+		if attempt < maxAttempts {
+			time.Sleep(attemptDelay)
+		}
+	}
+
+	return fmt.Errorf("timeout waiting for SSH to become accessible after %d attempts", maxAttempts)
+}
+
+// waitForInstanceReady is a wrapper that calls waitForInstanceReadyWithProgress without progress callbacks
+// This maintains backward compatibility for code that doesn't use progress reporting yet
+func (m *Manager) waitForInstanceReady(instanceID, region string) error {
+	return m.waitForInstanceReadyWithProgress(instanceID, region, nil)
 }
 
 // ==========================================

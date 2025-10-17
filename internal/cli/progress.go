@@ -3,7 +3,10 @@ package cli
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
@@ -315,4 +318,114 @@ func (pr *ProgressReporter) formatDuration(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("%dh%dm", int(d.Hours()), int(d.Minutes())%60)
 	}
+}
+
+// Spinner provides an animated terminal spinner for long-running operations
+type Spinner struct {
+	frames   []string
+	message  string
+	delay    time.Duration
+	writer   io.Writer
+	stopChan chan struct{}
+	wg       sync.WaitGroup
+	active   bool
+	mu       sync.Mutex
+}
+
+// Default spinner frames (various styles available)
+var (
+	// DotsSpinner is a simple dots animation
+	DotsSpinner = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	// LineSpinner is a simple line rotation
+	LineSpinner = []string{"|", "/", "-", "\\"}
+	// ArrowSpinner is a rotating arrow
+	ArrowSpinner = []string{"←", "↖", "↑", "↗", "→", "↘", "↓", "↙"}
+	// CircleSpinner is a circle animation
+	CircleSpinner = []string{"◐", "◓", "◑", "◒"}
+	// BoxSpinner is a box bouncing animation
+	BoxSpinner = []string{"◰", "◳", "◲", "◱"}
+	// EarthSpinner is a rotating earth (fun option!)
+	EarthSpinner = []string{"🌍", "🌎", "🌏"}
+)
+
+// NewSpinner creates a new spinner with the given message
+func NewSpinner(message string) *Spinner {
+	return &Spinner{
+		frames:   DotsSpinner, // Default to dots
+		message:  message,
+		delay:    80 * time.Millisecond,
+		writer:   os.Stdout,
+		stopChan: make(chan struct{}),
+	}
+}
+
+// WithFrames sets custom spinner frames
+func (s *Spinner) WithFrames(frames []string) *Spinner {
+	s.frames = frames
+	return s
+}
+
+// WithDelay sets the animation delay
+func (s *Spinner) WithDelay(delay time.Duration) *Spinner {
+	s.delay = delay
+	return s
+}
+
+// Start begins the spinner animation
+func (s *Spinner) Start() {
+	s.mu.Lock()
+	if s.active {
+		s.mu.Unlock()
+		return // Already running
+	}
+	s.active = true
+	s.mu.Unlock()
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		frameIndex := 0
+
+		for {
+			select {
+			case <-s.stopChan:
+				// Clear the spinner line
+				fmt.Fprintf(s.writer, "\r%s\r", strings.Repeat(" ", len(s.message)+5))
+				return
+			default:
+				// Print current frame
+				frame := s.frames[frameIndex%len(s.frames)]
+				fmt.Fprintf(s.writer, "\r%s %s", frame, s.message)
+				frameIndex++
+				time.Sleep(s.delay)
+			}
+		}
+	}()
+}
+
+// Stop stops the spinner animation
+func (s *Spinner) Stop() {
+	s.mu.Lock()
+	if !s.active {
+		s.mu.Unlock()
+		return // Not running
+	}
+	s.active = false
+	s.mu.Unlock()
+
+	close(s.stopChan)
+	s.wg.Wait()
+}
+
+// UpdateMessage updates the spinner message while it's running
+func (s *Spinner) UpdateMessage(message string) {
+	s.mu.Lock()
+	s.message = message
+	s.mu.Unlock()
+}
+
+// StopWithMessage stops the spinner and prints a final message
+func (s *Spinner) StopWithMessage(message string) {
+	s.Stop()
+	fmt.Fprintln(s.writer, message)
 }

@@ -90,31 +90,43 @@ func NewLaunchProgressReporter(instanceName string) *ProgressReporter {
 		{
 			Name:        "template_resolution",
 			Description: "Resolving template and generating configuration",
-			Weight:      0.15,
+			Weight:      0.10,
 			Status:      StagePending,
 		},
 		{
 			Name:        "ami_discovery",
 			Description: "Finding optimal AMI for your region",
-			Weight:      0.10,
+			Weight:      0.05,
 			Status:      StagePending,
 		},
 		{
 			Name:        "instance_launch",
 			Description: "Starting EC2 instance",
-			Weight:      0.20,
+			Weight:      0.15,
+			Status:      StagePending,
+		},
+		{
+			Name:        "instance_ready",
+			Description: "Waiting for instance to be ready",
+			Weight:      0.15,
+			Status:      StagePending,
+		},
+		{
+			Name:        "ssh_ready",
+			Description: "Waiting for SSH to be accessible",
+			Weight:      0.15,
 			Status:      StagePending,
 		},
 		{
 			Name:        "software_installation",
 			Description: "Installing software and configuring environment",
-			Weight:      0.40,
+			Weight:      0.30,
 			Status:      StagePending,
 		},
 		{
 			Name:        "service_startup",
 			Description: "Starting services and performing health checks",
-			Weight:      0.10,
+			Weight:      0.05,
 			Status:      StagePending,
 		},
 		{

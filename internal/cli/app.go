@@ -52,22 +52,23 @@ import (
 
 // App represents the CLI application
 type App struct {
-	version          string
-	apiClient        client.CloudWorkstationAPI
-	ctx              context.Context // Context for AWS operations
-	tuiCommand       *cobra.Command
-	config           *Config
-	profileManager   *profile.ManagerEnhanced
-	launchDispatcher *LaunchCommandDispatcher // Command Pattern for launch flags
-	instanceCommands *InstanceCommands        // Instance management commands
-	storageCommands  *StorageCommands         // Storage management commands
-	templateCommands *TemplateCommands        // Template management commands
-	systemCommands   *SystemCommands          // System and daemon management commands
-	scalingCommands  *ScalingCommands         // Scaling and rightsizing commands
-	snapshotCommands *SnapshotCommands        // Instance snapshot management commands
-	backupCommands   *BackupCommands          // Data backup and restore management commands
-	webCommands      *WebCommands             // Web service management commands
-	testMode         bool                     // Skip actual SSH execution in tests
+	version               string
+	apiClient             client.CloudWorkstationAPI
+	ctx                   context.Context // Context for AWS operations
+	tuiCommand            *cobra.Command
+	config                *Config
+	profileManager        *profile.ManagerEnhanced
+	launchDispatcher      *LaunchCommandDispatcher // Command Pattern for launch flags
+	instanceCommands      *InstanceCommands        // Instance management commands
+	storageCommands       *StorageCommands         // Storage management commands
+	templateCommands      *TemplateCommands        // Template management commands
+	systemCommands        *SystemCommands          // System and daemon management commands
+	scalingCommands       *ScalingCommands         // Scaling and rightsizing commands
+	snapshotCommands      *SnapshotCommands        // Instance snapshot management commands
+	backupCommands        *BackupCommands          // Data backup and restore management commands
+	webCommands           *WebCommands             // Web service management commands
+	testMode              bool                     // Skip actual SSH execution in tests
+	versionCheckCompleted bool                     // Cache version compatibility check result
 }
 
 // NewApp creates a new CLI application
@@ -157,9 +158,12 @@ func (a *App) ensureDaemonRunning() error {
 
 	// Check if daemon is already running
 	if err := a.apiClient.Ping(a.ctx); err == nil {
-		// Daemon is running, check version compatibility
-		if err := a.checkVersionCompatibility(); err != nil {
-			return fmt.Errorf("version compatibility check failed: %w", err)
+		// Daemon is running, check version compatibility only if not already checked
+		if !a.versionCheckCompleted {
+			if err := a.checkVersionCompatibility(); err != nil {
+				return fmt.Errorf("version compatibility check failed: %w", err)
+			}
+			a.versionCheckCompleted = true
 		}
 		return nil // Already running and compatible
 	}
@@ -184,6 +188,7 @@ func (a *App) ensureDaemonRunning() error {
 	if err := a.checkVersionCompatibility(); err != nil {
 		return fmt.Errorf("version compatibility check failed after daemon auto-start: %w", err)
 	}
+	a.versionCheckCompleted = true
 
 	return nil
 }
@@ -272,12 +277,17 @@ func (a *App) Launch(args []string) error {
 		return err
 	}
 
+	// Show immediate feedback with animated spinner
+	spinner := NewSpinner(fmt.Sprintf("Launching instance '%s' from template '%s'", req.Name, req.Template))
+	spinner.Start()
+
 	response, err := a.apiClient.LaunchInstance(a.ctx, req)
+
+	spinner.StopWithMessage(fmt.Sprintf("✅ %s", response.Message))
+
 	if err != nil {
 		return WrapAPIError("launch instance "+req.Name, err)
 	}
-
-	fmt.Printf("🚀 %s\n", response.Message)
 
 	// Show project information if launched in a project
 	if req.ProjectID != "" {
@@ -604,9 +614,10 @@ func (m *LaunchProgressMonitor) handleInstanceState(state string, elapsed int, i
 
 // List handles the list command with optional project filtering
 func (a *App) List(args []string) error {
-	// Parse arguments for project filtering and detailed output
+	// Parse arguments for project filtering, detailed output, and refresh
 	var projectFilter string
 	var detailed bool
+	var refresh bool
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
@@ -615,6 +626,8 @@ func (a *App) List(args []string) error {
 			i++
 		case arg == "--detailed" || arg == "-d":
 			detailed = true
+		case arg == "--refresh" || arg == "-r":
+			refresh = true
 		}
 	}
 
@@ -623,7 +636,7 @@ func (a *App) List(args []string) error {
 		return err
 	}
 
-	response, err := a.apiClient.ListInstances(a.ctx)
+	response, err := a.apiClient.ListInstancesWithRefresh(a.ctx, refresh)
 	if err != nil {
 		return WrapAPIError("list instances", err)
 	}
@@ -658,9 +671,9 @@ func (a *App) List(args []string) error {
 
 	// Show different headers based on detailed flag
 	if detailed {
-		_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tREGION\tAZ\tPUBLIC IP\tPROJECT\tLAUNCHED")
+		_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tREGION\tAZ\tPUBLIC IP\tPROJECT\tTOTAL $\tEFF $/HR\tLAUNCHED")
 	} else {
-		_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tLAUNCHED")
+		_, _ = fmt.Fprintln(w, "NAME\tTEMPLATE\tSTATE\tTYPE\tPUBLIC IP\tPROJECT\tTOTAL $\tEFF $/HR\tLAUNCHED")
 	}
 
 	for _, instance := range filteredInstances {
@@ -675,6 +688,30 @@ func (a *App) List(args []string) error {
 			typeIndicator = "SP"
 		}
 
+		// Format cost information
+		currentCost := fmt.Sprintf("$%.4f", instance.CurrentSpend)
+		effectiveRate := fmt.Sprintf("$%.4f", instance.EffectiveRate)
+
+		// For stopped/terminated instances, compute cost goes to $0 but storage persists
+		// Calculate EBS storage cost: $0.10/GB/month = ~$0.00014/GB/hour
+		// Typical root volume is 8-100GB, so $0.001-$0.014/hour storage cost
+		if instance.State == "stopped" || instance.State == "terminated" || instance.State == "stopping" {
+			// Estimate EBS storage cost (rough estimate: ~$0.005/hr for typical volumes)
+			// In production, this should be calculated from actual EBS volumes attached
+			estimatedStorageCostPerHour := 0.005
+			numEBSVolumes := len(instance.AttachedEBSVolumes)
+			if numEBSVolumes == 0 {
+				numEBSVolumes = 1 // At least root volume
+			}
+			storageCost := estimatedStorageCostPerHour * float64(numEBSVolumes)
+
+			// CurrentSpend continues to accumulate storage costs
+			// EffectiveRate shows only ongoing storage costs (EC2 compute is $0)
+			effectiveRate = fmt.Sprintf("$%.4f", storageCost)
+
+			// Note: CurrentSpend keeps its value (accumulated costs to date)
+		}
+
 		if detailed {
 			// Detailed output with region and AZ
 			region := instance.Region
@@ -686,7 +723,7 @@ func (a *App) List(args []string) error {
 				az = "-"
 			}
 
-			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				instance.Name,
 				instance.Template,
 				strings.ToUpper(instance.State),
@@ -695,23 +732,49 @@ func (a *App) List(args []string) error {
 				az,
 				instance.PublicIP,
 				projectInfo,
+				currentCost,
+				effectiveRate,
 				instance.LaunchTime.Format(ShortDateFormat),
 			)
 		} else {
 			// Standard output
-			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				instance.Name,
 				instance.Template,
 				strings.ToUpper(instance.State),
 				typeIndicator,
 				instance.PublicIP,
 				projectInfo,
+				currentCost,
+				effectiveRate,
 				instance.LaunchTime.Format(ShortDateFormat),
 			)
 		}
 	}
 
 	_ = w.Flush()
+
+	// Show cost summary for running instances
+	fmt.Println()
+	runningCount := 0
+	totalCurrentCost := 0.0
+	totalEffectiveCost := 0.0
+	for _, instance := range filteredInstances {
+		if instance.State == "running" {
+			runningCount++
+			totalCurrentCost += instance.CurrentSpend
+			totalEffectiveCost += instance.EffectiveRate
+		}
+	}
+
+	if runningCount > 0 {
+		fmt.Printf("💰 Cost Summary:\n")
+		fmt.Printf("   Running instances: %d\n", runningCount)
+		fmt.Printf("   Total accumulated:  $%.4f (since launch)\n", totalCurrentCost)
+		fmt.Printf("   Effective rate:     $%.4f/hr (actual usage)\n", totalEffectiveCost)
+		fmt.Printf("   Estimated daily:    $%.2f (at current rate)\n", totalEffectiveCost*24)
+		fmt.Printf("\n💡 Tip: Use 'cws list cost' for detailed cost breakdown with savings analysis\n")
+	}
 
 	return nil
 }

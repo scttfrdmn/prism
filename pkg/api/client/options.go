@@ -39,7 +39,7 @@ type PerformanceOptions struct {
 // DefaultPerformanceOptions returns sensible defaults for HTTP client performance
 func DefaultPerformanceOptions() PerformanceOptions {
 	return PerformanceOptions{
-		Timeout:        30 * time.Second,
+		Timeout:        60 * time.Second, // Allow time for AWS operations (stop, launch, etc)
 		MaxConnections: 10,
 		KeepAlive:      30 * time.Second,
 		RequestRetries: 3,

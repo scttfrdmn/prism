@@ -43,7 +43,27 @@ brew install awscli   # or: pip install awscli
 aws configure
 ```
 
-**Required AWS Permissions**: CloudWorkstation needs EC2, EFS, EBS, and Systems Manager access. See [AWS Setup Guide](../AWS_SETUP_GUIDE.md) for detailed IAM policies.
+**Using Named AWS Profiles**: CloudWorkstation creates a default profile that maps to your AWS CLI's `default` profile. If you use a **named AWS profile** (like `aws`, `production`, etc.) instead of `default`, you'll need to configure CloudWorkstation to use your profile:
+
+```bash
+# Check current profile
+cws profiles list
+
+# Create profile for your named AWS profile
+cws profiles add personal my-aws --aws-profile aws --region us-west-2
+
+# Switch to your new profile
+cws profiles switch my-aws
+
+# Or update the default profile to use your AWS profile
+cws profiles update default --aws-profile aws --region us-west-2
+```
+
+**Required AWS Permissions**: CloudWorkstation needs EC2, EFS, IAM, and Systems Manager access. See [AWS IAM Permissions](AWS_IAM_PERMISSIONS.md) for detailed policies, or run our setup script:
+
+```bash
+./scripts/setup-iam-permissions.sh
+```
 
 ### 3. Start Using CloudWorkstation
 ```bash
@@ -182,7 +202,11 @@ aws configure
 ```
 
 ### "Permission denied" errors
-Make sure your AWS user has the required permissions. See our [AWS Setup Guide](docs/DEMO_TESTER_SETUP.md) for complete IAM policies.
+Make sure your AWS user has the required permissions. See our [AWS IAM Permissions](AWS_IAM_PERMISSIONS.md) for complete IAM policies, or run:
+
+```bash
+./scripts/setup-iam-permissions.sh
+```
 
 ### Instance launch fails
 ```bash

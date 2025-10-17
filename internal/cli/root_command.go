@@ -22,10 +22,11 @@ type LaunchCommandFactory struct {
 
 func (f *LaunchCommandFactory) CreateCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "launch <template> <name>",
-		Short: "Launch a new cloud workstation",
-		Long:  `Launch a new cloud workstation from a template with smart defaults.`,
-		Args:  cobra.MinimumNArgs(2),
+		Use:     "launch <template> <name>",
+		Short:   "Launch a new cloud workstation",
+		Long:    `Launch a new cloud workstation from a template with smart defaults.`,
+		Args:    cobra.MinimumNArgs(2),
+		GroupID: "core",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return f.buildLaunchArgs(cmd, args)
 		},
@@ -103,10 +104,11 @@ func (f *InstanceCommandFactory) CreateCommands() []*cobra.Command {
 
 func (f *InstanceCommandFactory) createConnectCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "connect <name>",
-		Short: "Connect to a workstation",
-		Long:  `Get connection information for a cloud workstation.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "connect <name>",
+		Short:   "Connect to a workstation",
+		Long:    `Get connection information for a cloud workstation.`,
+		Args:    cobra.ExactArgs(1),
+		GroupID: "core",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			verbose, _ := cmd.Flags().GetBool("verbose")
 			user, _ := cmd.Flags().GetString("user")
@@ -126,8 +128,9 @@ func (f *InstanceCommandFactory) createConnectCommand() *cobra.Command {
 
 func (f *InstanceCommandFactory) createExecCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "exec <instance-name> <command>",
-		Short: "Execute a command on a workstation",
+		Use:     "exec <instance-name> <command>",
+		Short:   "Execute a command on a workstation",
+		GroupID: "instance",
 		Long: `Execute a command remotely on a cloud workstation via AWS Systems Manager.
 
 This command provides powerful remote execution capabilities with support for:
@@ -161,10 +164,11 @@ Examples:
 
 func (f *InstanceCommandFactory) createStopCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "stop <name>",
-		Short: "Stop a workstation",
-		Long:  `Stop a running cloud workstation to save costs.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "stop <name>",
+		Short:   "Stop a workstation",
+		Long:    `Stop a running cloud workstation to save costs.`,
+		Args:    cobra.ExactArgs(1),
+		GroupID: "instance",
 		RunE: func(_ *cobra.Command, args []string) error {
 			return f.app.Stop(args)
 		},
@@ -173,10 +177,11 @@ func (f *InstanceCommandFactory) createStopCommand() *cobra.Command {
 
 func (f *InstanceCommandFactory) createStartCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "start <name>",
-		Short: "Start a workstation",
-		Long:  `Start a stopped cloud workstation.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "start <name>",
+		Short:   "Start a workstation",
+		Long:    `Start a stopped cloud workstation.`,
+		Args:    cobra.ExactArgs(1),
+		GroupID: "instance",
 		RunE: func(_ *cobra.Command, args []string) error {
 			return f.app.Start(args)
 		},
@@ -185,10 +190,11 @@ func (f *InstanceCommandFactory) createStartCommand() *cobra.Command {
 
 func (f *InstanceCommandFactory) createDeleteCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "delete <name>",
-		Short: "Delete a workstation",
-		Long:  `Permanently delete a cloud workstation and its resources.`,
-		Args:  cobra.ExactArgs(1),
+		Use:     "delete <name>",
+		Short:   "Delete a workstation",
+		Long:    `Permanently delete a cloud workstation and its resources.`,
+		Args:    cobra.ExactArgs(1),
+		GroupID: "instance",
 		RunE: func(_ *cobra.Command, args []string) error {
 			return f.app.Delete(args)
 		},
@@ -197,8 +203,9 @@ func (f *InstanceCommandFactory) createDeleteCommand() *cobra.Command {
 
 func (f *InstanceCommandFactory) createHibernateCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "hibernate <name>",
-		Short: "Hibernate a workstation",
+		Use:     "hibernate <name>",
+		Short:   "Hibernate a workstation",
+		GroupID: "instance",
 		Long: `Hibernate a running workstation to preserve RAM state while stopping compute billing.
 If hibernation is not supported, automatically falls back to regular stop.`,
 		Args: cobra.ExactArgs(1),
@@ -210,8 +217,9 @@ If hibernation is not supported, automatically falls back to regular stop.`,
 
 func (f *InstanceCommandFactory) createResumeCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "resume <name>",
-		Short: "Resume a workstation",
+		Use:     "resume <name>",
+		Short:   "Resume a workstation",
+		GroupID: "instance",
 		Long: `Resume a hibernated workstation with instant startup from preserved RAM state.
 If not hibernated, performs regular start operation.`,
 		Args: cobra.ExactArgs(1),
@@ -223,8 +231,9 @@ If not hibernated, performs regular start operation.`,
 
 func (f *InstanceCommandFactory) createResizeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "resize <name>",
-		Short: "Resize a workstation instance type or size",
+		Use:     "resize <name>",
+		Short:   "Resize a workstation instance type or size",
+		GroupID: "instance",
 		Long: `Resize a cloud workstation to change its instance type, CPU, memory, or storage.
 
 This command provides flexible resizing capabilities with support for:
@@ -302,9 +311,10 @@ func (f *TemplateCommandFactory) createTemplatesCommand() *cobra.Command {
 
 func (f *TemplateCommandFactory) createApplyCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "apply <template> <instance-name>",
-		Short: "Apply template to running instance",
-		Long: `Apply a template to an already running instance, enabling incremental 
+		Use:     "apply <template> <instance-name>",
+		Short:   "Apply template to running instance",
+		GroupID: "templates",
+		Long: `Apply a template to an already running instance, enabling incremental
 environment evolution without requiring instance recreation.
 
 This allows you to add packages, services, and users to existing instances
@@ -318,8 +328,9 @@ while maintaining rollback capabilities.`,
 
 func (f *TemplateCommandFactory) createDiffCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "diff <template> <instance-name>",
-		Short: "Show template differences",
+		Use:     "diff <template> <instance-name>",
+		Short:   "Show template differences",
+		GroupID: "templates",
 		Long: `Show what changes would be made when applying a template to a running instance.
 This provides a preview of packages, services, users, and ports that would be modified.`,
 		Args: cobra.ExactArgs(2),
@@ -331,8 +342,9 @@ This provides a preview of packages, services, users, and ports that would be mo
 
 func (f *TemplateCommandFactory) createLayersCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "layers <instance-name>",
-		Short: "List applied template layers",
+		Use:     "layers <instance-name>",
+		Short:   "List applied template layers",
+		GroupID: "templates",
 		Long: `List all templates that have been applied to an instance, showing the
 layer history with rollback checkpoints.`,
 		Args: cobra.ExactArgs(1),
@@ -344,8 +356,9 @@ layer history with rollback checkpoints.`,
 
 func (f *TemplateCommandFactory) createRollbackCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "rollback <instance-name>",
-		Short: "Rollback template applications",
+		Use:     "rollback <instance-name>",
+		Short:   "Rollback template applications",
+		GroupID: "templates",
 		Long: `Rollback an instance to a previous state by undoing template applications.
 Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 		Args: cobra.ExactArgs(1),
@@ -436,6 +449,7 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	// System commands (kept at root level)
 	rootCmd.AddCommand(r.app.tuiCommand)
 	rootCmd.AddCommand(NewGUICommand())
+	rootCmd.AddCommand(NewAboutCommand())
 
 	// Other commands (removed duplicate idle command - using Cobra version instead)
 
@@ -465,12 +479,18 @@ func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List workstations",
-		Long:  `List all your cloud workstations and their status.`,
+		Long: `List all your cloud workstations and their status from local cache (fast).
+Use --refresh to query AWS for real-time status (slower).`,
+		GroupID: "core",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Get flag value and prepend to args for App.List() to parse
+			// Get flag values and prepend to args for App.List() to parse
 			detailed, _ := cmd.Flags().GetBool("detailed")
+			refresh, _ := cmd.Flags().GetBool("refresh")
 			if detailed {
 				args = append([]string{"--detailed"}, args...)
+			}
+			if refresh {
+				args = append([]string{"--refresh"}, args...)
 			}
 			return r.app.List(args)
 		},
@@ -478,6 +498,7 @@ func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
 
 	// Add flags
 	listCmd.Flags().BoolP("detailed", "d", false, "Show detailed information including region and availability zone")
+	listCmd.Flags().BoolP("refresh", "r", false, "Refresh from AWS for real-time status (slower)")
 
 	listCostCmd := &cobra.Command{
 		Use:   "cost",
@@ -493,8 +514,9 @@ func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {
 
 func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "snapshot <action>",
-		Short: "Manage instance snapshots",
+		Use:     "snapshot <action>",
+		Short:   "Manage instance snapshots",
+		GroupID: "storage",
 		Long: `Create and manage CloudWorkstation instance snapshots for backup, cloning, and disaster recovery.
 
 Snapshots capture the complete state of your instances including:
@@ -514,8 +536,9 @@ Examples:
 
 func (r *CommandFactoryRegistry) createBackupCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "backup <action>",
-		Short: "Manage data backups",
+		Use:     "backup <action>",
+		Short:   "Manage data backups",
+		GroupID: "storage",
 		Long: `Create and manage CloudWorkstation data backups for user files, configurations, and research data.
 
 Data backups provide granular backup capabilities with:
@@ -537,8 +560,9 @@ Examples:
 
 func (r *CommandFactoryRegistry) createRestoreCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "restore <backup-name> <target-instance>",
-		Short: "Restore data from backups",
+		Use:     "restore <backup-name> <target-instance>",
+		Short:   "Restore data from backups",
+		GroupID: "storage",
 		Long: `Restore data from CloudWorkstation backups with granular control over restore operations.
 
 Restore capabilities include:
@@ -560,8 +584,9 @@ Examples:
 
 func (r *CommandFactoryRegistry) createWebCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "web <action>",
-		Short: "Manage instance web services",
+		Use:     "web <action>",
+		Short:   "Manage instance web services",
+		GroupID: "instance",
 		Long: `Access and manage web services running on CloudWorkstation instances.
 
 Web service management provides seamless access to:
@@ -583,9 +608,10 @@ Examples:
 
 func (r *CommandFactoryRegistry) createDaemonCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "daemon <action>",
-		Short: "Manage the daemon",
-		Long:  `Control the CloudWorkstation daemon process.`,
+		Use:     "daemon <action>",
+		Short:   "Manage the daemon",
+		GroupID: "system",
+		Long:    `Control the CloudWorkstation daemon process.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Daemon(args)
 		},
@@ -796,9 +822,10 @@ func (r *CommandFactoryRegistry) addIdleFlags(cmd *cobra.Command) {
 
 func (r *CommandFactoryRegistry) createRightsizingCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "rightsizing <action>",
-		Short: "Analyze and optimize instance sizes",
-		Long:  `Analyze usage patterns and provide rightsizing recommendations for cost optimization.`,
+		Use:     "rightsizing <action>",
+		Short:   "Analyze and optimize instance sizes",
+		GroupID: "cost",
+		Long:    `Analyze usage patterns and provide rightsizing recommendations for cost optimization.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Rightsizing(args)
 		},
@@ -807,9 +834,10 @@ func (r *CommandFactoryRegistry) createRightsizingCommand() *cobra.Command {
 
 func (r *CommandFactoryRegistry) createScalingCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "scaling <action>",
-		Short: "Dynamic instance scaling operations",
-		Long:  `Dynamically scale instances to different sizes based on usage patterns and requirements.`,
+		Use:     "scaling <action>",
+		Short:   "Dynamic instance scaling operations",
+		GroupID: "cost",
+		Long:    `Dynamically scale instances to different sizes based on usage patterns and requirements.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Scaling(args)
 		},
@@ -840,6 +868,15 @@ environments for data analysis, machine learning, and research computing.
 `, version.GetVersionInfo()),
 		Version: version.GetCLIVersionInfo(),
 	}
+
+	// Add command groups for better organization
+	rootCmd.AddGroup(&cobra.Group{ID: "core", Title: "Core Commands:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "instance", Title: "Instance Management:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "storage", Title: "Storage & Data:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "cost", Title: "Cost Management:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "templates", Title: "Templates & Marketplace:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "collab", Title: "Collaboration:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "system", Title: "System & Configuration:"})
 
 	// Register all commands using factory pattern
 	factory := NewCommandFactoryRegistry(a)

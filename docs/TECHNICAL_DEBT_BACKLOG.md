@@ -1,26 +1,51 @@
 # Technical Debt and Enhancement Backlog
 
-**Last Updated**: October 15, 2025
+**Last Updated**: October 17, 2025
 **Status**: Active tracking of deferred implementations
 
 This document tracks features that were intentionally deferred during development, marked as design decisions rather than immediate TODO items. These represent real work that should be scheduled for future releases.
 
 ---
 
-## High Priority Items
+## ✅ Completed Items (October 17, 2025)
 
-### 1. IAM Instance Profile Validation
-**Location**: `pkg/aws/manager.go:1545`
-**Current Behavior**: Always returns `false` for painless onboarding
-**Impact**: Templates can specify IAM profiles but they're not validated before launch
-**Implementation Needed**:
-- Add IAM client to Manager struct
-- Implement `GetInstanceProfile()` API call
-- Add profile validation before instance launch
-- Handle graceful fallback when profile doesn't exist
-**Target Release**: v0.6.0
-**Effort**: Medium (2-3 days)
-**Priority**: High - enables secure AWS resource access
+### ✅ 0. SSH Readiness Progress Reporting - COMPLETED
+**Location**: `pkg/aws/manager.go:572-589`
+**Completed**: October 17, 2025
+**Implementation**:
+- ✅ Status message feedback with emoji indicators (⏳, →, ✓, ⚠️, ✅)
+- ✅ `waitForInstanceReadyWithProgress()` integrated into launch flow with progress callback
+- ✅ Real-time feedback for instance_ready and ssh_ready stages
+- ✅ Graceful error handling with user-friendly messages
+**Remaining Work for Full Implementation** (moved to Future Enhancements):
+- Thread ProgressReporter through launch orchestration flow for GUI/TUI
+- Stream progress updates from daemon to CLI via WebSocket or SSE
+- Update TUI to show launch progress with real-time updates
+- Update GUI to show launch progress with real-time updates
+
+### ✅ 1. IAM Instance Profile Validation - COMPLETED (Enhanced)
+**Location**: `pkg/aws/manager.go:1663-1794`
+**Completed**: October 17, 2025
+**Implementation**:
+- ✅ IAM client added to Manager struct (line 44)
+- ✅ IAM client initialized in NewManager (lines 104, 122)
+- ✅ Real `GetInstanceProfile()` API call implemented
+- ✅ **Auto-creation of CloudWorkstation-Instance-Profile** if it doesn't exist:
+  - Creates IAM role with EC2 trust relationship
+  - Attaches AmazonSSMManagedInstanceCore for SSM access
+  - Creates inline policy for autonomous idle detection (EC2 self-management)
+  - Tags resources as ManagedBy: CloudWorkstation
+- ✅ Graceful fallback when user lacks IAM permissions (logs warning, continues without IAM)
+- ✅ Zero-configuration SSM access for users with IAM permissions
+**Bonus Deliverables**:
+- 📄 Complete IAM permissions documentation (docs/AWS_IAM_PERMISSIONS.md)
+- 📄 Ready-to-apply IAM policy JSON (docs/cloudworkstation-iam-policy.json)
+- 🔧 Interactive IAM setup script (scripts/setup-iam-permissions.sh)
+**Note**: IAM profile auto-creation provides zero-configuration SSM and autonomous features
+
+---
+
+## High Priority Items
 
 ### 2. Multi-User Authentication System
 **Location**: `pkg/daemon/middleware.go:103`
@@ -187,11 +212,13 @@ This document tracks features that were intentionally deferred during developmen
 
 ## Tracking Metrics
 
-- **Total Items**: 10
-- **High Priority**: 3 items
+- **Total Items**: 11
+- **Completed**: 2 items (SSH Readiness Progress, IAM Instance Profile Validation)
+- **Remaining**: 9 items
+- **High Priority**: 2 items (down from 3)
 - **Medium Priority**: 4 items
 - **Low Priority**: 3 items
-- **Estimated Total Effort**: 8-10 weeks of development time
+- **Estimated Remaining Effort**: 8-9 weeks of development time (down from 9-11 weeks)
 
 ---
 

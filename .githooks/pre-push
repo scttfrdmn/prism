@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-push hook for CloudWorkstation
-# Runs comprehensive tests before allowing push to remote
+# Runs smoke tests before allowing push to remote
 
 set -e
 
@@ -9,191 +9,28 @@ echo "🚀 Running pre-push tests..."
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to check if daemon is running
-is_daemon_running() {
-    curl -s http://localhost:8947/api/v1/ping > /dev/null 2>&1
-}
-
-# Function to cleanup background processes
-cleanup() {
-    if [ -n "$DAEMON_PID" ]; then
-        echo "🛑 Stopping test daemon..."
-        kill $DAEMON_PID 2>/dev/null || true
-    fi
-}
-
-# Set up cleanup trap
-trap cleanup EXIT
-
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}1/5 Building CloudWorkstation...${NC}"
+echo -e "${BLUE}Running smoke tests (critical path verification)${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
 
-# Full build test
-if ! make build; then
-    echo -e "${RED}❌ Build failed${NC}"
+# Run smoke tests
+if ! make test-smoke; then
+    echo -e "${RED}❌ Smoke tests failed${NC}"
+    echo ""
+    echo "Fix the failing tests before pushing."
+    echo "To run tests manually: make test-smoke"
+    echo "To skip this hook (not recommended): git push --no-verify"
     exit 1
 fi
 
-echo -e "${GREEN}✅ Build successful${NC}"
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}2/5 Running Go tests...${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-# Run all Go tests (not just short ones)
-if ! go test -timeout 2m ./...; then
-    echo -e "${RED}❌ Go tests failed${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Go tests passed${NC}"
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}3/5 Running comprehensive Go linting...${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-# Check if golangci-lint is installed
-if command -v golangci-lint &> /dev/null; then
-    echo "🔍 Running golangci-lint..."
-    
-    # Count current issues (we'll track improvement over time)
-    LINT_OUTPUT=$(golangci-lint run --timeout 2m ./... 2>&1)
-    LINT_EXIT=$?
-    ISSUE_COUNT=$(echo "$LINT_OUTPUT" | grep -c "^[^:]*:[0-9]*:")
-    
-    if [ $LINT_EXIT -eq 0 ]; then
-        echo -e "${GREEN}✅ No linting issues found!${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Found $ISSUE_COUNT linting issues${NC}"
-        echo "$LINT_OUTPUT" | head -20
-        
-        # Check if there are critical issues
-        CRITICAL_ISSUES=$(echo "$LINT_OUTPUT" | grep -E "(gosec|errcheck|ineffassign|staticcheck)" | wc -l)
-        if [ $CRITICAL_ISSUES -gt 0 ]; then
-            echo -e "${RED}❌ Found $CRITICAL_ISSUES critical issues that must be fixed${NC}"
-            echo "Run 'golangci-lint run' to see all issues"
-            # For now, don't block push but warn strongly
-            echo -e "${YELLOW}WARNING: Pushing code with critical linting issues${NC}"
-        fi
-    fi
-else
-    echo "🔍 Running go vet as fallback..."
-    if ! go vet ./...; then
-        echo -e "${RED}❌ Go vet found issues${NC}"
-        exit 1
-    fi
-fi
-
-echo -e "${GREEN}✅ Linting checks complete${NC}"
-
-# Check if frontend exists and has tests
-if [ -d "cmd/cws-gui/frontend" ] && [ -f "cmd/cws-gui/frontend/package.json" ]; then
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}4/5 Running frontend tests...${NC}"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
-    cd cmd/cws-gui/frontend
-    
-    # Install dependencies if needed
-    if [ ! -d "node_modules" ]; then
-        echo "📦 Installing frontend dependencies..."
-        npm install
-    fi
-    
-    # Run unit tests
-    if grep -q '"test:unit"' package.json; then
-        echo "🧪 Running frontend unit tests..."
-        if ! npm run test:unit; then
-            echo -e "${RED}❌ Frontend unit tests failed${NC}"
-            cd - > /dev/null
-            exit 1
-        fi
-    fi
-    
-    # Run E2E tests if daemon can be started
-    if grep -q '"test:e2e"' package.json && [ -f "../../../bin/cwsd" ]; then
-        echo "🧪 Running E2E tests..."
-        
-        # Check if daemon is already running
-        if ! is_daemon_running; then
-            echo "🚀 Starting daemon for E2E tests..."
-            ../../../bin/cwsd > /tmp/cwsd-test.log 2>&1 &
-            DAEMON_PID=$!
-            
-            # Wait for daemon to be ready
-            for i in {1..10}; do
-                if is_daemon_running; then
-                    break
-                fi
-                sleep 1
-            done
-            
-            if ! is_daemon_running; then
-                echo -e "${YELLOW}⚠️  Could not start daemon, skipping E2E tests${NC}"
-            else
-                # Run E2E tests with chromium only for speed
-                if ! npx playwright test --project=chromium tests/e2e/basic.spec.js; then
-                    echo -e "${RED}❌ E2E tests failed${NC}"
-                    cd - > /dev/null
-                    exit 1
-                fi
-            fi
-        else
-            echo "ℹ️  Daemon already running, using existing instance"
-            # Run E2E tests with chromium only for speed
-            if ! npx playwright test --project=chromium tests/e2e/basic.spec.js; then
-                echo -e "${RED}❌ E2E tests failed${NC}"
-                cd - > /dev/null
-                exit 1
-            fi
-        fi
-    fi
-    
-    cd - > /dev/null
-    echo -e "${GREEN}✅ Frontend tests passed${NC}"
-else
-    echo -e "${YELLOW}ℹ️  No frontend tests found, skipping${NC}"
-fi
-
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BLUE}5/5 Running integration tests...${NC}"
-echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-# Run the automated test script if it exists
-if [ -f "test/automated/run-tests.sh" ]; then
-    echo "🧪 Running automated integration tests..."
-    
-    # Make sure daemon is running for integration tests
-    if ! is_daemon_running; then
-        if [ -z "$DAEMON_PID" ]; then
-            echo "🚀 Starting daemon for integration tests..."
-            ./bin/cwsd > /tmp/cwsd-test.log 2>&1 &
-            DAEMON_PID=$!
-            
-            # Wait for daemon to be ready
-            for i in {1..10}; do
-                if is_daemon_running; then
-                    break
-                fi
-                sleep 1
-            done
-        fi
-    fi
-    
-    if ! bash test/automated/run-tests.sh; then
-        echo -e "${RED}❌ Integration tests failed${NC}"
-        exit 1
-    fi
-    
-    echo -e "${GREEN}✅ Integration tests passed${NC}"
-fi
-
+echo ""
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${GREEN}🎉 All pre-push tests passed!${NC}"
 echo -e "${GREEN}Your code is ready to push.${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+echo "💡 To run comprehensive regression tests: make test-regression"

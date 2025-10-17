@@ -1,11 +1,12 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/scttfrdmn/cloudworkstation/internal/tui"
+	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
 	"github.com/scttfrdmn/cloudworkstation/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ func NewTUICommand() *cobra.Command {
 		Use:   "tui",
 		Short: "Launch the interactive terminal UI",
 		Long: `Launch the CloudWorkstation Terminal User Interface (TUI).
-		
+
 This provides an interactive terminal interface for managing your cloud workstations.
 Press 'q' or 'Esc' at any time to exit the TUI.`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -29,18 +30,21 @@ Press 'q' or 'Esc' at any time to exit the TUI.`,
 
 // runTUI launches the terminal UI
 func runTUI() {
-	// Check if daemon is running
-	if err := checkDaemonForTUI(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "check daemon for TUI"))
-		fmt.Println("Attempting to start daemon...")
-
-		if err := startDaemonForTUI(); err != nil {
-			fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "start daemon for TUI"))
-			fmt.Println("Please start the daemon manually with: cws daemon start")
+	// Check if auto-start is disabled via environment variable
+	if os.Getenv(AutoStartDisableEnvVar) != "" {
+		// Auto-start disabled, just check if daemon is running
+		apiClient := client.NewClient(DefaultDaemonURL)
+		if err := apiClient.Ping(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n\n💡 Tip: Auto-start is disabled via %s environment variable\n",
+				DaemonNotRunningMessage, AutoStartDisableEnvVar)
 			os.Exit(1)
 		}
-
-		fmt.Println("Daemon started successfully.")
+	} else {
+		// Ensure daemon is running with auto-start
+		if err := ensureDaemonForTUI(); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "ensure daemon for TUI"))
+			os.Exit(1)
+		}
 	}
 
 	// Print TUI initialization message
@@ -49,69 +53,71 @@ func runTUI() {
 	// Create and run the TUI application
 	app := tui.NewApp()
 	if err := app.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "TUI error: %v\\n", err)
+		fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-// checkDaemonForTUI verifies if the daemon is running by checking the API endpoint
-func checkDaemonForTUI() error {
-	// Check if daemon is responding on port 8947 using HTTP ping
-	cmd := exec.Command("curl", "-s", "-f", "http://localhost:8947/api/v1/ping")
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("daemon not responding on port 8947")
+// ensureDaemonForTUI ensures the daemon is running, with auto-start if needed
+func ensureDaemonForTUI() error {
+	// Create a temporary App instance to use the ensureDaemonRunning logic
+	// This reuses all the singleton enforcement, binary discovery, and version checking
+	config := &Config{}
+	config.Daemon.URL = DefaultDaemonURL
+	if envURL := os.Getenv(DaemonURLEnvVar); envURL != "" {
+		config.Daemon.URL = envURL
 	}
 
-	// If we get any response, daemon is running
-	if len(output) > 0 {
-		return nil
-	}
+	// Load API key from daemon state if available
+	apiKey := loadAPIKeyFromState()
 
-	return fmt.Errorf("daemon API not responding")
-}
+	apiClient := client.NewClientWithOptions(config.Daemon.URL, client.Options{
+		APIKey: apiKey,
+	})
+	ctx := context.Background()
 
-// startDaemonForTUI attempts to start the daemon if not already running
-func startDaemonForTUI() error {
-	// Double-check daemon isn't running (avoid port conflicts)
-	if checkDaemonForTUI() == nil {
-		return nil // Already running
-	}
-
-	// First, try to find cwsd binary
-	cwsdPath, _ := exec.LookPath("cwsd")
-	if cwsdPath == "" {
-		// Try in bin directory
-		cwsdPath = "./bin/cwsd"
-		if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
-			cwsdPath = "../bin/cwsd"
-			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
-				return fmt.Errorf("daemon executable not found in PATH or bin directory")
-			}
+	// Check if daemon is already running
+	if err := apiClient.Ping(ctx); err == nil {
+		// Daemon is running, check version compatibility
+		if err := apiClient.CheckVersionCompatibility(ctx, version.GetVersion()); err != nil {
+			return fmt.Errorf("version compatibility check failed: %w", err)
 		}
+		return nil // Already running and compatible
 	}
 
-	// Start daemon
-	cmd := exec.Command(cwsdPath)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
+	// Auto-start daemon with user feedback
+	fmt.Println(DaemonAutoStartMessage)
+	fmt.Printf("⏳ Please wait while the daemon initializes (typically 2-3 seconds)...\n")
 
-	// Start in background
-	err := cmd.Start()
-	if err != nil {
-		return fmt.Errorf("failed to start daemon: %v", err)
+	// Use SystemCommands to start the daemon (reuses all the sophisticated logic)
+	app := &App{
+		version:   version.GetVersion(),
+		apiClient: apiClient,
+		ctx:       ctx,
+		config:    config,
+	}
+	app.systemCommands = NewSystemCommands(app)
+
+	if err := app.systemCommands.Daemon([]string{"start"}); err != nil {
+		fmt.Println(DaemonAutoStartFailedMessage)
+		fmt.Printf("\n💡 Troubleshooting:\n")
+		fmt.Printf("   • Check if 'cwsd' binary is in your PATH\n")
+		fmt.Printf("   • Try manual start: cws daemon start\n")
+		fmt.Printf("   • Check daemon logs for errors\n")
+		return WrapAPIError("auto-start daemon", err)
 	}
 
-	// If successful, detach
-	_ = cmd.Process.Release()
+	fmt.Println(DaemonAutoStartSuccessMessage)
 
-	// Wait a moment for daemon to initialize
-	waitCmd := exec.Command("sleep", "3")
-	_ = waitCmd.Run()
+	// Reload API key after daemon start (daemon generates new key on first start)
+	apiKey = loadAPIKeyFromState()
+	apiClient = client.NewClientWithOptions(config.Daemon.URL, client.Options{
+		APIKey: apiKey,
+	})
 
-	// Final check that daemon started successfully
-	if err := checkDaemonForTUI(); err != nil {
-		return fmt.Errorf("daemon started but not responding: %v", err)
+	// Check version compatibility after successful start
+	if err := apiClient.CheckVersionCompatibility(ctx, version.GetVersion()); err != nil {
+		return fmt.Errorf("version compatibility check failed after daemon auto-start: %w", err)
 	}
 
 	return nil

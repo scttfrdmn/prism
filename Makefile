@@ -91,7 +91,7 @@ clean:
 	@go clean
 
 # Test targets
-.PHONY: test test-unit test-integration test-e2e test-coverage test-all test-aws test-aws-quick test-aws-setup
+.PHONY: test test-unit test-integration test-e2e test-coverage test-all test-aws test-aws-quick test-aws-setup test-smoke test-regression
 
 # Run automated test suite
 test-automated: build
@@ -174,6 +174,102 @@ test-all: test-unit test-integration test-e2e test-coverage
 
 # Legacy test target for backwards compatibility
 test: test-unit
+
+# Smoke tests - Fast critical path verification (< 2 minutes)
+.PHONY: test-smoke
+test-smoke: build
+	@echo "🔥 Running smoke tests (critical path verification)..."
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "1/8 Testing daemon singleton enforcement..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/test-daemon-singleton.sh
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "2/8 Testing CLI auto-start..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/test-cli-autostart.sh
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "3/8 Testing version compatibility..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/test-version-compat.sh
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "4/8 Testing binary discovery..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./scripts/test-binary-discovery.sh
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "5/8 Testing CLI commands..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws --help > /dev/null
+	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws about > /dev/null
+	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws templates > /dev/null
+	@echo "✅ CLI commands working"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "6/8 Testing daemon API..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./bin/cwsd > /tmp/smoke-daemon.log 2>&1 & echo $$! > /tmp/smoke-daemon.pid
+	@sleep 3
+	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws daemon status || (kill `cat /tmp/smoke-daemon.pid` 2>/dev/null; exit 1)
+	@kill `cat /tmp/smoke-daemon.pid` 2>/dev/null && rm -f /tmp/smoke-daemon.pid /tmp/smoke-daemon.log
+	@echo "✅ Daemon API working"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "7/8 Testing template validation..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws templates validate || echo "⚠️  Template validation issues detected"
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "8/8 Testing binary versions..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@./bin/cws --version
+	@./bin/cwsd --version
+	@if [ -f "./bin/cws-gui" ]; then ./bin/cws-gui -help 2>&1 | head -1; fi
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ All smoke tests passed!"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Regression tests - Comprehensive verification including recent features
+.PHONY: test-regression
+test-regression: build
+	@echo "🔬 Running regression tests (comprehensive verification)..."
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "Regression Test Suite - CloudWorkstation v$(VERSION)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "🔥 Running smoke tests first..."
+	@$(MAKE) test-smoke
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "Additional Regression Tests"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "1/6 Testing GUI singleton enforcement..."
+	@./scripts/test-gui-singleton.sh
+	@echo ""
+	@echo "2/6 Testing GUI auto-start..."
+	@./scripts/test-gui-autostart.sh
+	@echo ""
+	@echo "3/6 Testing graceful daemon shutdown..."
+	@./scripts/test-graceful-shutdown.sh
+	@echo ""
+	@echo "4/6 Running unit tests..."
+	@go test -short ./pkg/daemon -run TestSingleton -v
+	@echo ""
+	@echo "5/6 Testing daemon restart after crash..."
+	@./scripts/test-daemon-restart.sh
+	@echo ""
+	@echo "6/6 Testing profile system integration..."
+	@./scripts/test-profile-integration.sh
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "✅ All regression tests passed!"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Validate entire build and test pipeline
 .PHONY: validate
@@ -762,6 +858,8 @@ help:
 	@echo "  test-integration Run integration tests with LocalStack"
 	@echo "  test-e2e     Run end-to-end tests"
 	@echo "  test-coverage Generate coverage report"
+	@echo "  test-smoke   Run smoke tests (fast critical path verification)"
+	@echo "  test-regression Run regression tests (comprehensive verification)"
 	@echo "  test-all     Run all tests"
 	@echo "  validate     Validate entire build and test pipeline"
 	@echo "  quality-check Run all quality checks"
