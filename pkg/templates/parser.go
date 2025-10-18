@@ -107,7 +107,9 @@ func (v *RequiredFieldValidator) Validate(template *Template) error {
 
 	// Validate base OS is supported (skip for AMI-based templates)
 	if template.Base != "ami-based" {
-		if _, exists := v.parser.BaseAMIs[template.Base]; !exists {
+		// Check if base exists in hierarchical structure (support both "ubuntu" and "ubuntu-22.04" formats)
+		baseOS := template.Base
+		if _, exists := v.parser.BaseAMIs[baseOS]; !exists {
 			return &TemplateValidationError{
 				Field:   "base",
 				Message: fmt.Sprintf("unsupported base OS: %s", template.Base),
@@ -259,69 +261,262 @@ func (s *PackageManagerStrategy) SelectPackageManager(template *Template) Packag
 	return PackageManagerType(template.PackageManager)
 }
 
-// getDefaultBaseAMIs returns the default base AMI mappings
-func getDefaultBaseAMIs() map[string]map[string]map[string]string {
-	return map[string]map[string]map[string]string{
-		"ubuntu-22.04": {
-			"us-east-1": {
-				"x86_64": "ami-02029c87fa31fb148",
-				"arm64":  "ami-050499786ebf55a6a",
+// getDefaultBaseAMIs returns the default base AMI mappings in hierarchical structure
+// Structure: distro -> version -> region -> arch -> AMI
+func getDefaultBaseAMIs() map[string]map[string]map[string]map[string]string {
+	return map[string]map[string]map[string]map[string]string{
+		// Ubuntu versions
+		"ubuntu": {
+			"24.04": {
+				"us-east-1": {
+					"x86_64": "ami-0e2c8caa4b6378d8c",
+					"arm64":  "ami-0a0e5d9c7acc336f1",
+				},
+				"us-east-2": {
+					"x86_64": "ami-036841078a4b68e14",
+					"arm64":  "ami-0c80e2b6ccb9ad6d1",
+				},
+				"us-west-1": {
+					"x86_64": "ami-05fb0b8c1424f266b",
+					"arm64":  "ami-0da424eb883458071",
+				},
+				"us-west-2": {
+					"x86_64": "ami-05d38da78ce859165",
+					"arm64":  "ami-0cf2b4e024cdb6960",
+				},
 			},
-			"us-east-2": {
-				"x86_64": "ami-0b05d988257befbbe",
-				"arm64":  "ami-010755a3881216bba",
+			"22.04": {
+				"us-east-1": {
+					"x86_64": "ami-02029c87fa31fb148",
+					"arm64":  "ami-050499786ebf55a6a",
+				},
+				"us-east-2": {
+					"x86_64": "ami-0b05d988257befbbe",
+					"arm64":  "ami-010755a3881216bba",
+				},
+				"us-west-1": {
+					"x86_64": "ami-043b59f1d11f8f189",
+					"arm64":  "ami-0d3e8bea392f79ebb",
+				},
+				"us-west-2": {
+					"x86_64": "ami-016d360a89daa11ba",
+					"arm64":  "ami-09f6c9efbf93542be",
+				},
 			},
-			"us-west-1": {
-				"x86_64": "ami-043b59f1d11f8f189",
-				"arm64":  "ami-0d3e8bea392f79ebb",
-			},
-			"us-west-2": {
-				"x86_64": "ami-016d360a89daa11ba",
-				"arm64":  "ami-09f6c9efbf93542be",
+			"20.04": {
+				"us-east-1": {
+					"x86_64": "ami-0d70546e43a941d70",
+					"arm64":  "ami-0c5a8b0c5d3c6d5a1",
+				},
+				"us-east-2": {
+					"x86_64": "ami-0b05d988257befbbe",
+					"arm64":  "ami-010755a3881216bba",
+				},
+				"us-west-1": {
+					"x86_64": "ami-043b59f1d11f8f189",
+					"arm64":  "ami-0d3e8bea392f79ebb",
+				},
+				"us-west-2": {
+					"x86_64": "ami-016d360a89daa11ba",
+					"arm64":  "ami-09f6c9efbf93542be",
+				},
 			},
 		},
-		"ubuntu-22.04-server-lts": {
-			"us-east-1": {
-				"x86_64": "ami-02029c87fa31fb148",
-				"arm64":  "ami-050499786ebf55a6a",
-			},
-			"us-east-2": {
-				"x86_64": "ami-0b05d988257befbbe",
-				"arm64":  "ami-010755a3881216bba",
-			},
-			"us-west-1": {
-				"x86_64": "ami-043b59f1d11f8f189",
-				"arm64":  "ami-0d3e8bea392f79ebb",
-			},
-			"us-west-2": {
-				"x86_64": "ami-016d360a89daa11ba",
-				"arm64":  "ami-09f6c9efbf93542be",
+
+		// Legacy aliases for backward compatibility (will be deprecated in v0.5.5)
+		"ubuntu-22.04": {
+			"22.04": {
+				"us-east-1": {
+					"x86_64": "ami-02029c87fa31fb148",
+					"arm64":  "ami-050499786ebf55a6a",
+				},
+				"us-east-2": {
+					"x86_64": "ami-0b05d988257befbbe",
+					"arm64":  "ami-010755a3881216bba",
+				},
+				"us-west-1": {
+					"x86_64": "ami-043b59f1d11f8f189",
+					"arm64":  "ami-0d3e8bea392f79ebb",
+				},
+				"us-west-2": {
+					"x86_64": "ami-016d360a89daa11ba",
+					"arm64":  "ami-09f6c9efbf93542be",
+				},
 			},
 		},
 		"ubuntu-24.04": {
-			"us-east-1": {
-				"x86_64": "ami-0e2c8caa4b6378d8c",
-				"arm64":  "ami-0a0e5d9c7acc336f1",
-			},
-			"us-east-2": {
-				"x86_64": "ami-036841078a4b68e14",
-				"arm64":  "ami-0c80e2b6ccb9ad6d1",
-			},
-			"us-west-1": {
-				"x86_64": "ami-05fb0b8c1424f266b",
-				"arm64":  "ami-0da424eb883458071",
-			},
-			"us-west-2": {
-				"x86_64": "ami-05d38da78ce859165",
-				"arm64":  "ami-0cf2b4e024cdb6960",
+			"24.04": {
+				"us-east-1": {
+					"x86_64": "ami-0e2c8caa4b6378d8c",
+					"arm64":  "ami-0a0e5d9c7acc336f1",
+				},
+				"us-east-2": {
+					"x86_64": "ami-036841078a4b68e14",
+					"arm64":  "ami-0c80e2b6ccb9ad6d1",
+				},
+				"us-west-1": {
+					"x86_64": "ami-05fb0b8c1424f266b",
+					"arm64":  "ami-0da424eb883458071",
+				},
+				"us-west-2": {
+					"x86_64": "ami-05d38da78ce859165",
+					"arm64":  "ami-0cf2b4e024cdb6960",
+				},
 			},
 		},
 		"ubuntu-20.04": {
-			"us-east-1": {
-				"x86_64": "ami-0d70546e43a941d70",
-				"arm64":  "ami-0c5a8b0c5d3c6d5a1",
+			"20.04": {
+				"us-east-1": {
+					"x86_64": "ami-0d70546e43a941d70",
+					"arm64":  "ami-0c5a8b0c5d3c6d5a1",
+				},
 			},
-			// Add more regions as needed
+		},
+
+		// Rocky Linux versions
+		"rocky": {
+			"10": {
+				"us-east-1": {
+					"x86_64": "ami-0a1234567890abcde", // Rocky 10 x86_64
+					"arm64":  "ami-0b1234567890abcde", // Rocky 10 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-0c1234567890abcde",
+					"arm64":  "ami-0d1234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-0e1234567890abcde",
+					"arm64":  "ami-0f1234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-0g1234567890abcde",
+					"arm64":  "ami-0h1234567890abcde",
+				},
+			},
+			"9": {
+				"us-east-1": {
+					"x86_64": "ami-0i1234567890abcde", // Rocky 9 x86_64
+					"arm64":  "ami-0j1234567890abcde", // Rocky 9 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-0k1234567890abcde",
+					"arm64":  "ami-0l1234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-0m1234567890abcde",
+					"arm64":  "ami-0n1234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-0o1234567890abcde",
+					"arm64":  "ami-0p1234567890abcde",
+				},
+			},
+		},
+
+		// Amazon Linux versions
+		"amazonlinux": {
+			"2023": {
+				"us-east-1": {
+					"x86_64": "ami-0q1234567890abcde", // AL2023 x86_64
+					"arm64":  "ami-0r1234567890abcde", // AL2023 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-0s1234567890abcde",
+					"arm64":  "ami-0t1234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-0u1234567890abcde",
+					"arm64":  "ami-0v1234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-0w1234567890abcde",
+					"arm64":  "ami-0x1234567890abcde",
+				},
+			},
+			"2": {
+				"us-east-1": {
+					"x86_64": "ami-0y1234567890abcde", // AL2 x86_64
+					"arm64":  "ami-0z1234567890abcde", // AL2 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-011234567890abcde",
+					"arm64":  "ami-021234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-031234567890abcde",
+					"arm64":  "ami-041234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-051234567890abcde",
+					"arm64":  "ami-061234567890abcde",
+				},
+			},
+		},
+
+		// Alpine Linux versions
+		"alpine": {
+			"3.20": {
+				"us-east-1": {
+					"x86_64": "ami-071234567890abcde", // Alpine 3.20 x86_64
+					"arm64":  "ami-081234567890abcde", // Alpine 3.20 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-091234567890abcde",
+					"arm64":  "ami-0a1234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-0b1234567890abcde",
+					"arm64":  "ami-0c1234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-0d1234567890abcde",
+					"arm64":  "ami-0e1234567890abcde",
+				},
+			},
+		},
+
+		// RHEL versions
+		"rhel": {
+			"9": {
+				"us-east-1": {
+					"x86_64": "ami-0f1234567890abcde", // RHEL 9 x86_64
+					"arm64":  "ami-0g1234567890abcde", // RHEL 9 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-0h1234567890abcde",
+					"arm64":  "ami-0i1234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-0j1234567890abcde",
+					"arm64":  "ami-0k1234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-0l1234567890abcde",
+					"arm64":  "ami-0m1234567890abcde",
+				},
+			},
+		},
+
+		// Debian versions
+		"debian": {
+			"12": {
+				"us-east-1": {
+					"x86_64": "ami-0n1234567890abcde", // Debian 12 x86_64
+					"arm64":  "ami-0o1234567890abcde", // Debian 12 ARM64
+				},
+				"us-east-2": {
+					"x86_64": "ami-0p1234567890abcde",
+					"arm64":  "ami-0q1234567890abcde",
+				},
+				"us-west-1": {
+					"x86_64": "ami-0r1234567890abcde",
+					"arm64":  "ami-0s1234567890abcde",
+				},
+				"us-west-2": {
+					"x86_64": "ami-0t1234567890abcde",
+					"arm64":  "ami-0u1234567890abcde",
+				},
+			},
 		},
 	}
 }

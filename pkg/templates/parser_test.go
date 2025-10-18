@@ -17,10 +17,11 @@ func TestNewTemplateParser(t *testing.T) {
 	assert.NotNil(t, parser.BaseAMIs)
 	assert.NotNil(t, parser.Strategy)
 
-	// Verify default base AMIs are loaded
-	assert.Contains(t, parser.BaseAMIs, "ubuntu-22.04")
-	assert.Contains(t, parser.BaseAMIs["ubuntu-22.04"], "us-east-1")
-	assert.Contains(t, parser.BaseAMIs["ubuntu-22.04"]["us-east-1"], "x86_64")
+	// Verify default base AMIs are loaded (hierarchical structure: distro → version → region → arch)
+	assert.Contains(t, parser.BaseAMIs, "ubuntu")
+	assert.Contains(t, parser.BaseAMIs["ubuntu"], "22.04")
+	assert.Contains(t, parser.BaseAMIs["ubuntu"]["22.04"], "us-east-1")
+	assert.Contains(t, parser.BaseAMIs["ubuntu"]["22.04"]["us-east-1"], "x86_64")
 }
 
 func TestTemplateParser_ParseTemplate(t *testing.T) {

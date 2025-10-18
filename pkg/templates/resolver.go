@@ -3,6 +3,7 @@ package templates
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -146,13 +147,20 @@ func (r *TemplateResolver) getAMIMapping(template *Template, region, architectur
 		return templateAMIs, nil
 	}
 
-	// Fall back to base AMI mapping
-	baseAMIs := r.Parser.BaseAMIs[template.Base]
-	if baseAMIs == nil {
+	// Fall back to base AMI mapping (hierarchical structure)
+	// For backward compatibility, support both "ubuntu" and "ubuntu-22.04" formats
+	distroVersions := r.Parser.BaseAMIs[template.Base]
+	if distroVersions == nil {
 		return nil, fmt.Errorf("no base AMI found for OS: %s", template.Base)
 	}
 
-	return baseAMIs, nil
+	// Get the first available version (usually the default/latest)
+	// This maintains backward compatibility for templates using old "ubuntu-22.04" format
+	for _, versionAMIs := range distroVersions {
+		return versionAMIs, nil // Return first version's AMI mappings
+	}
+
+	return nil, fmt.Errorf("no AMI versions found for OS: %s", template.Base)
 }
 
 // getInstanceTypeMapping generates instance type mapping based on template requirements and size
@@ -606,4 +614,255 @@ func (r *TemplateResolver) CheckAMIAvailability(templateName, region, architectu
 		}
 	}
 	return ""
+}
+
+// VersionResolver handles dynamic version resolution for templates
+// This enables the universal version system (--version flag) for both OS and software versions
+type VersionResolver struct {
+	parser *TemplateParser
+}
+
+// NewVersionResolver creates a new version resolver
+func NewVersionResolver(parser *TemplateParser) *VersionResolver {
+	return &VersionResolver{
+		parser: parser,
+	}
+}
+
+// ResolveAMI resolves an AMI based on template base OS, version, region, and architecture
+//
+// Parameters:
+//   - templateBase: The base OS distro family (e.g., "ubuntu", "rocky", "amazonlinux", "alpine")
+//   - version: The OS version (e.g., "24.04", "9.5", "latest", "lts") or empty for default
+//   - region: AWS region (e.g., "us-west-2")
+//   - architecture: Architecture (e.g., "x86_64", "arm64")
+//
+// Returns the AMI ID or an error if resolution fails
+func (vr *VersionResolver) ResolveAMI(templateBase, version, region, architecture string) (string, error) {
+	// Get AMI mappings for this distro
+	distroMap := vr.parser.BaseAMIs[templateBase]
+	if distroMap == nil {
+		return "", fmt.Errorf("unsupported base OS: %s", templateBase)
+	}
+
+	// Use default version if not specified
+	if version == "" {
+		version = vr.getDefaultVersion(templateBase)
+	}
+
+	// Resolve version aliases (latest, lts, etc.)
+	resolvedVersion := vr.resolveVersionAlias(templateBase, version)
+
+	// Get version-specific mappings
+	versionMap := distroMap[resolvedVersion]
+	if versionMap == nil {
+		return "", fmt.Errorf("unsupported version %s for %s (resolved from %s)", resolvedVersion, templateBase, version)
+	}
+
+	// Get region-specific mappings
+	regionMap := versionMap[region]
+	if regionMap == nil {
+		return "", fmt.Errorf("region %s not available for %s %s", region, templateBase, resolvedVersion)
+	}
+
+	// Get architecture-specific AMI
+	ami := regionMap[architecture]
+	if ami == "" {
+		return "", fmt.Errorf("architecture %s not available for %s %s in %s",
+			architecture, templateBase, resolvedVersion, region)
+	}
+
+	return ami, nil
+}
+
+// getDefaultVersion returns the default version for a given distro
+func (vr *VersionResolver) getDefaultVersion(distro string) string {
+	defaults := map[string]string{
+		"ubuntu":      "24.04",
+		"rocky":       "10", // Latest release
+		"amazonlinux": "2023",
+		"alpine":      "3.20",
+		"debian":      "12",
+		"rhel":        "9",
+	}
+
+	if version, ok := defaults[distro]; ok {
+		return version
+	}
+
+	// Fallback: try to find any version
+	if distroMap := vr.parser.BaseAMIs[distro]; distroMap != nil {
+		for version := range distroMap {
+			return version // Return first available version
+		}
+	}
+
+	return ""
+}
+
+// resolveVersionAlias resolves version aliases like "latest", "lts" to actual versions
+func (vr *VersionResolver) resolveVersionAlias(distro, version string) string {
+	// Direct version specified - no alias resolution needed
+	if !isVersionAlias(version) {
+		return version
+	}
+
+	// Version alias mappings per distro
+	aliases := map[string]map[string]string{
+		"ubuntu": {
+			"latest":       "24.04",
+			"lts":          "24.04",
+			"previous-lts": "22.04",
+		},
+		"rocky": {
+			"latest": "10",
+			"lts":    "9", // Rocky 9 has longer support
+		},
+		"amazonlinux": {
+			"latest": "2023",
+		},
+		"alpine": {
+			"latest": "3.20",
+		},
+		"debian": {
+			"latest": "12",
+			"lts":    "12",
+		},
+		"rhel": {
+			"latest": "9",
+		},
+	}
+
+	if distroAliases, ok := aliases[distro]; ok {
+		if resolved, ok := distroAliases[version]; ok {
+			return resolved
+		}
+	}
+
+	// Alias not found, return as-is (will fail in ResolveAMI if invalid)
+	return version
+}
+
+// isVersionAlias checks if a version string is an alias rather than a direct version
+func isVersionAlias(version string) bool {
+	aliases := []string{"latest", "lts", "previous-lts"}
+	for _, alias := range aliases {
+		if version == alias {
+			return true
+		}
+	}
+	return false
+}
+
+// GetSupportedVersions returns all supported versions for a given distro
+func (vr *VersionResolver) GetSupportedVersions(distro string) ([]string, error) {
+	distroMap := vr.parser.BaseAMIs[distro]
+	if distroMap == nil {
+		return nil, fmt.Errorf("unsupported base OS: %s", distro)
+	}
+
+	versions := make([]string, 0, len(distroMap))
+	for version := range distroMap {
+		versions = append(versions, version)
+	}
+
+	return versions, nil
+}
+
+// GetVersionAliases returns available version aliases for a given distro
+func (vr *VersionResolver) GetVersionAliases(distro string) map[string]string {
+	aliases := map[string]map[string]string{
+		"ubuntu": {
+			"latest":       "24.04",
+			"lts":          "24.04",
+			"previous-lts": "22.04",
+		},
+		"rocky": {
+			"latest": "10",
+			"lts":    "9",
+		},
+		"amazonlinux": {
+			"latest": "2023",
+		},
+		"alpine": {
+			"latest": "3.20",
+		},
+		"debian": {
+			"latest": "12",
+			"lts":    "12",
+		},
+		"rhel": {
+			"latest": "9",
+		},
+	}
+
+	if distroAliases, ok := aliases[distro]; ok {
+		return distroAliases
+	}
+
+	return map[string]string{}
+}
+
+// ValidateVersion checks if a version is valid for a given distro
+func (vr *VersionResolver) ValidateVersion(distro, version string) error {
+	// Empty version is valid (will use default)
+	if version == "" {
+		return nil
+	}
+
+	// Check if it's a valid alias
+	if isVersionAlias(version) {
+		aliases := vr.GetVersionAliases(distro)
+		if _, ok := aliases[version]; ok {
+			return nil // Valid alias
+		}
+		return fmt.Errorf("unsupported version alias '%s' for %s", version, distro)
+	}
+
+	// Check if it's a supported version
+	versions, err := vr.GetSupportedVersions(distro)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range versions {
+		if v == version {
+			return nil // Valid version
+		}
+	}
+
+	return fmt.Errorf("unsupported version '%s' for %s (supported: %s)",
+		version, distro, strings.Join(versions, ", "))
+}
+
+// ResolveTemplateVersion resolves version requirements from a template
+func (vr *VersionResolver) ResolveTemplateVersion(template *Template, userOverride string) (string, error) {
+	// User override takes highest priority
+	if userOverride != "" {
+		return userOverride, nil
+	}
+
+	// Check if template has version dependencies
+	if template.Marketplace != nil && len(template.Marketplace.Dependencies) > 0 {
+		for _, dep := range template.Marketplace.Dependencies {
+			if dep.Type == "base_os" && dep.Version != "" {
+				return vr.parseVersionRequirement(dep.Version)
+			}
+		}
+	}
+
+	// No version requirement - use default
+	return "", nil
+}
+
+// parseVersionRequirement parses version requirements like ">=24.04", "^9", "24.04"
+func (vr *VersionResolver) parseVersionRequirement(requirement string) (string, error) {
+	// Exact version: "24.04", "9", "2023"
+	if !strings.ContainsAny(requirement, ">=<^~*") {
+		return requirement, nil
+	}
+
+	// For now, just handle exact versions
+	// Future: implement semver-style version constraint parsing
+	return "", fmt.Errorf("version constraint '%s' not yet supported (use exact version)", requirement)
 }

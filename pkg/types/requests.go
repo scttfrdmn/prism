@@ -20,6 +20,9 @@ type LaunchRequest struct {
 	Parameters     map[string]interface{} `json:"parameters,omitempty"`    // Template parameters
 	ResearchUser   string                 `json:"research_user,omitempty"` // Research user to create and provision (Phase 5A+)
 
+	// Universal Version System (v0.5.5)
+	Version string `json:"version,omitempty"` // OS version (e.g., "24.04", "22.04", "9", "10", "latest", "lts")
+
 	// Universal AMI System fields (Phase 5.1)
 	AMIStrategy         string               `json:"ami_strategy,omitempty"`          // Override template AMI strategy
 	PreferScript        bool                 `json:"prefer_script,omitempty"`         // Prefer script over AMI

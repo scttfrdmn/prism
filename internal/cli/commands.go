@@ -43,6 +43,7 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&WaitCommand{})
 	dispatcher.RegisterCommand(&ParameterCommand{})
 	dispatcher.RegisterCommand(&ResearchUserCommand{})
+	dispatcher.RegisterCommand(&VersionCommand{})
 
 	// Universal AMI System commands (Phase 5.1 Week 2)
 	dispatcher.RegisterCommand(&AMIStrategyCommand{})
@@ -336,6 +337,21 @@ func (r *ResearchUserCommand) Execute(req *types.LaunchRequest, args []string, i
 		return index, fmt.Errorf("--research-user requires a username")
 	}
 	req.ResearchUser = args[index+1]
+	return index + 1, nil
+}
+
+// VersionCommand handles --version flag (v0.5.5 Universal Version System)
+type VersionCommand struct{}
+
+func (v *VersionCommand) CanHandle(arg string) bool {
+	return arg == "--version"
+}
+
+func (v *VersionCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--version requires a value (e.g., 24.04, 22.04, 9, 10, latest, lts)")
+	}
+	req.Version = args[index+1]
 	return index + 1, nil
 }
 

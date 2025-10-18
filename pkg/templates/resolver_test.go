@@ -621,3 +621,289 @@ func TestTemplateResolver_EdgeCases(t *testing.T) {
 	assert.True(t, cost > 0.0, "Should have a positive cost")
 	// The actual cost depends on the resolver's cost calculation logic
 }
+
+// Version Resolution Tests (v0.5.5 Universal Version System)
+
+func TestVersionResolver_ResolveAMI(t *testing.T) {
+	parser := NewTemplateParser()
+	resolver := NewVersionResolver(parser)
+
+	tests := []struct {
+		name        string
+		distro      string
+		version     string
+		region      string
+		arch        string
+		expectError bool
+		description string
+	}{
+		// Ubuntu version resolution
+		{
+			name:        "Ubuntu 24.04 explicit",
+			distro:      "ubuntu",
+			version:     "24.04",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Ubuntu 24.04",
+		},
+		{
+			name:        "Ubuntu 22.04 explicit",
+			distro:      "ubuntu",
+			version:     "22.04",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Ubuntu 22.04",
+		},
+		{
+			name:        "Ubuntu latest alias",
+			distro:      "ubuntu",
+			version:     "latest",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve 'latest' to Ubuntu 24.04",
+		},
+		{
+			name:        "Ubuntu lts alias",
+			distro:      "ubuntu",
+			version:     "lts",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve 'lts' to Ubuntu 24.04",
+		},
+		{
+			name:        "Ubuntu previous-lts alias",
+			distro:      "ubuntu",
+			version:     "previous-lts",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve 'previous-lts' to Ubuntu 22.04",
+		},
+		{
+			name:        "Ubuntu ARM64",
+			distro:      "ubuntu",
+			version:     "24.04",
+			region:      "us-east-1",
+			arch:        "arm64",
+			expectError: false,
+			description: "Should resolve Ubuntu 24.04 for ARM64",
+		},
+
+		// Rocky Linux version resolution
+		{
+			name:        "Rocky 10 explicit",
+			distro:      "rocky",
+			version:     "10",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Rocky 10",
+		},
+		{
+			name:        "Rocky 9 explicit",
+			distro:      "rocky",
+			version:     "9",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Rocky 9",
+		},
+		{
+			name:        "Rocky latest alias",
+			distro:      "rocky",
+			version:     "latest",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve 'latest' to Rocky 10",
+		},
+
+		// Amazon Linux version resolution
+		{
+			name:        "Amazon Linux 2023 explicit",
+			distro:      "amazonlinux",
+			version:     "2023",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Amazon Linux 2023",
+		},
+		{
+			name:        "Amazon Linux 2 explicit",
+			distro:      "amazonlinux",
+			version:     "2",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Amazon Linux 2",
+		},
+
+		// Alpine version resolution
+		{
+			name:        "Alpine 3.20 explicit",
+			distro:      "alpine",
+			version:     "3.20",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: false,
+			description: "Should resolve Alpine 3.20",
+		},
+
+		// Error cases
+		{
+			name:        "Invalid version",
+			distro:      "ubuntu",
+			version:     "99.99",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: true,
+			description: "Should fail for non-existent version",
+		},
+		{
+			name:        "Invalid distro",
+			distro:      "invalid-distro",
+			version:     "1.0",
+			region:      "us-east-1",
+			arch:        "x86_64",
+			expectError: true,
+			description: "Should fail for unsupported distro",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ami, err := resolver.ResolveAMI(tt.distro, tt.version, tt.region, tt.arch)
+
+			if tt.expectError {
+				assert.Error(t, err, tt.description)
+			} else {
+				assert.NoError(t, err, tt.description)
+				assert.NotEmpty(t, ami, "AMI should not be empty")
+			}
+		})
+	}
+}
+
+func TestVersionResolver_VersionAliases(t *testing.T) {
+	parser := NewTemplateParser()
+	resolver := NewVersionResolver(parser)
+
+	tests := []struct {
+		distro          string
+		alias           string
+		expectedVersion string
+	}{
+		{"ubuntu", "latest", "24.04"},
+		{"ubuntu", "lts", "24.04"},
+		{"ubuntu", "previous-lts", "22.04"},
+		{"rocky", "latest", "10"},
+		{"rocky", "lts", "9"},
+		{"amazonlinux", "latest", "2023"},
+		{"alpine", "latest", "3.20"},
+		{"rhel", "latest", "9"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.distro+"_"+tt.alias, func(t *testing.T) {
+			resolved := resolver.resolveVersionAlias(tt.distro, tt.alias)
+			assert.Equal(t, tt.expectedVersion, resolved, "Alias %s for %s should resolve to %s", tt.alias, tt.distro, tt.expectedVersion)
+		})
+	}
+}
+
+func TestVersionResolver_DefaultVersions(t *testing.T) {
+	parser := NewTemplateParser()
+	resolver := NewVersionResolver(parser)
+
+	tests := []struct {
+		distro          string
+		expectedDefault string
+	}{
+		{"ubuntu", "24.04"},
+		{"rocky", "10"},
+		{"amazonlinux", "2023"},
+		{"alpine", "3.20"},
+		{"rhel", "9"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.distro, func(t *testing.T) {
+			defaultVersion := resolver.getDefaultVersion(tt.distro)
+			assert.Equal(t, tt.expectedDefault, defaultVersion, "Default version for %s should be %s", tt.distro, tt.expectedDefault)
+		})
+	}
+}
+
+func TestVersionResolver_GetSupportedVersions(t *testing.T) {
+	parser := NewTemplateParser()
+	resolver := NewVersionResolver(parser)
+
+	tests := []struct {
+		distro      string
+		minVersions int
+		expectError bool
+	}{
+		{"ubuntu", 3, false},      // 24.04, 22.04, 20.04
+		{"rocky", 2, false},       // 10, 9
+		{"amazonlinux", 2, false}, // 2023, 2
+		{"alpine", 1, false},      // 3.20
+		{"invalid", 0, true},      // Should error
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.distro, func(t *testing.T) {
+			versions, err := resolver.GetSupportedVersions(tt.distro)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.GreaterOrEqual(t, len(versions), tt.minVersions, "Should have at least %d versions", tt.minVersions)
+			}
+		})
+	}
+}
+
+func TestVersionResolver_ValidateVersion(t *testing.T) {
+	parser := NewTemplateParser()
+	resolver := NewVersionResolver(parser)
+
+	tests := []struct {
+		distro      string
+		version     string
+		expectError bool
+	}{
+		// Valid versions
+		{"ubuntu", "24.04", false},
+		{"ubuntu", "22.04", false},
+		{"ubuntu", "20.04", false},
+		{"ubuntu", "latest", false},
+		{"ubuntu", "lts", false},
+		{"rocky", "10", false},
+		{"rocky", "9", false},
+		{"amazonlinux", "2023", false},
+		{"amazonlinux", "2", false},
+
+		// Invalid versions
+		{"ubuntu", "99.99", true},
+		{"ubuntu", "invalid", true},
+		{"rocky", "100", true},
+		{"invalid-distro", "1.0", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.distro+"_"+tt.version, func(t *testing.T) {
+			err := resolver.ValidateVersion(tt.distro, tt.version)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

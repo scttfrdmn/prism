@@ -252,8 +252,9 @@ type PackageManagerRules struct {
 
 // TemplateParser handles parsing and validation of template YAML files
 type TemplateParser struct {
-	// Base AMI mappings for validation
-	BaseAMIs map[string]map[string]map[string]string // base -> region -> arch -> AMI
+	// Base AMI mappings for validation (hierarchical structure for version support)
+	// Structure: distro -> version -> region -> arch -> AMI
+	BaseAMIs map[string]map[string]map[string]map[string]string
 
 	// Package manager strategy
 	Strategy *PackageManagerStrategy
