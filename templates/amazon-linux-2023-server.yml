@@ -1,5 +1,5 @@
-name: "Amazon Linux 2023 (AMI)"
-description: "Latest Amazon Linux 2023 AMI with AWS CLI and development tools pre-installed"
+name: "Amazon Linux 2023 Server"
+description: "Amazon Linux 2023 server with optimized AWS integration and YUM package management"
 base: "ami-based"
 
 # Use AMI package manager

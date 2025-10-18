@@ -1,7 +1,7 @@
 # RStudio Research - Web Interface
-name: "RStudio Server Research Environment"
-slug: "rstudio-research"
-description: "Complete R research environment with RStudio Server web interface"
+name: "RStudio Server"
+slug: "rstudio-server"
+description: "RStudio Server with R, tidyverse, and web-based R development environment"
 long_description: "Professional R research workstation with RStudio Server, comprehensive R packages for statistics, bioinformatics, and data visualization. Full IDE experience in your browser."
 base: "ubuntu-22.04"
 

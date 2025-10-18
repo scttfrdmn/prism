@@ -1,5 +1,5 @@
-name: "AWS Deep Learning AMI (AMI)"
-description: "Pre-built AWS Deep Learning AMI with PyTorch, TensorFlow, and CUDA drivers"
+name: "Deep Learning GPU"
+description: "GPU-optimized deep learning environment with CUDA, TensorFlow, PyTorch, and ML frameworks"
 base: "ami-based"
 
 # Use AMI package manager (no installation needed)

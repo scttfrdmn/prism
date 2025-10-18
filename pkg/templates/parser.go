@@ -298,6 +298,24 @@ func getDefaultBaseAMIs() map[string]map[string]map[string]string {
 				"arm64":  "ami-09f6c9efbf93542be",
 			},
 		},
+		"ubuntu-24.04": {
+			"us-east-1": {
+				"x86_64": "ami-0e2c8caa4b6378d8c",
+				"arm64":  "ami-0a0e5d9c7acc336f1",
+			},
+			"us-east-2": {
+				"x86_64": "ami-036841078a4b68e14",
+				"arm64":  "ami-0c80e2b6ccb9ad6d1",
+			},
+			"us-west-1": {
+				"x86_64": "ami-05fb0b8c1424f266b",
+				"arm64":  "ami-0da424eb883458071",
+			},
+			"us-west-2": {
+				"x86_64": "ami-05d38da78ce859165",
+				"arm64":  "ami-0cf2b4e024cdb6960",
+			},
+		},
 		"ubuntu-20.04": {
 			"us-east-1": {
 				"x86_64": "ami-0d70546e43a941d70",

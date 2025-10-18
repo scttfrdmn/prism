@@ -1,7 +1,7 @@
 # Jupyter Data Science - Web Interface
-name: "Jupyter Data Science Lab"
-slug: "jupyter-datascience"
-description: "Complete data science environment with Jupyter web interface"
+name: "Jupyter Notebook Server"
+slug: "jupyter-notebook-server"
+description: "Jupyter Notebook server with data science libraries and web-based interactive computing"
 long_description: "Professional data science workstation with JupyterLab web interface, Python, R, Julia kernels, and comprehensive ML libraries. Access through your browser - no additional software needed."
 base: "ubuntu-22.04"
 

@@ -1,6 +1,6 @@
-name: "R Research Environment (Research User Enabled)"
-slug: "r-research"
-description: "Complete R statistical analysis environment with research user management"
+name: "R Research Workstation"
+slug: "r-research-workstation"
+description: "R research environment with RStudio Server, tidyverse, and statistical computing tools"
 long_description: |
   Advanced R environment optimized for statistical research with automatic research user provisioning.
   Includes RStudio Server, essential R packages, and persistent EFS home directories for seamless

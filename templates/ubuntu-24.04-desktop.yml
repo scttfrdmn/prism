@@ -1,9 +1,9 @@
 # Ubuntu Desktop - GUI Only (DCV)
-name: "Ubuntu Desktop (GUI Only)"
-slug: "ubuntu-desktop-gui"
-description: "Full Ubuntu desktop environment for graphical applications"
+name: "Ubuntu 24.04 Desktop"
+slug: "ubuntu-24-04-desktop"
+description: "Ubuntu 24.04 desktop environment with full GUI, web browser, and development tools"
 long_description: "Traditional Ubuntu desktop with GNOME, perfect for users who primarily work with GUI applications like IDEs, browsers, and graphical tools."
-base: "ubuntu-22.04"
+base: "ubuntu-24.04"
 
 # EXPLICIT CONNECTION TYPE - DCV only
 connection_type: "dcv"  # Desktop-only, optimized for GUI workflows

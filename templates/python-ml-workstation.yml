@@ -1,6 +1,6 @@
-name: "Python Machine Learning (Simplified)"
-slug: "python-ml"
-description: "Python + Jupyter + ML packages using simplified template system. Requires size M or larger (1TB+) for ML package installation."
+name: "Python ML Workstation"
+slug: "python-ml-workstation"
+description: "Python machine learning workstation with Jupyter, scikit-learn, and popular ML libraries"
 base: "ubuntu-22.04"
 
 # IMPORTANT: Minimum size M required for TensorFlow/PyTorch packages
