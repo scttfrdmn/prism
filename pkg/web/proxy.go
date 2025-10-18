@@ -297,10 +297,13 @@ func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		TLSClientConfig:  &tls.Config{InsecureSkipVerify: true},
 	}
 
-	backendConn, _, err := dialer.Dial(backendURL+r.URL.Path, nil)
+	backendConn, resp, err := dialer.Dial(backendURL+r.URL.Path, nil)
 	if err != nil {
 		clientConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Backend connection failed: %v", err)))
 		return
+	}
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
 	}
 	defer backendConn.Close()
 

@@ -320,6 +320,7 @@ func (c *HTTPClient) ConnectInstance(ctx context.Context, name string) (string, 
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]string
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -335,6 +336,7 @@ func (c *HTTPClient) ExecInstance(ctx context.Context, instanceName string, exec
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.ExecResult
 	if err := c.handleResponse(resp, &result); err != nil {
