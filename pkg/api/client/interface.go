@@ -162,6 +162,9 @@ type CloudWorkstationAPI interface {
 	RestoreAMIFromSnapshot(context.Context, map[string]interface{}) (map[string]interface{}, error)
 	DeleteAMISnapshot(context.Context, map[string]interface{}) (map[string]interface{}, error)
 
+	// AMI Freshness Checking (v0.5.4 - Universal Version System)
+	CheckAMIFreshness(context.Context) (map[string]interface{}, error)
+
 	// Instance Snapshot operations
 	CreateInstanceSnapshot(context.Context, types.InstanceSnapshotRequest) (*types.InstanceSnapshotResult, error)
 	ListInstanceSnapshots(context.Context) (*types.InstanceSnapshotListResponse, error)

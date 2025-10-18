@@ -1252,6 +1252,19 @@ func (c *HTTPClient) DeleteAMISnapshot(ctx context.Context, request map[string]i
 	return result, nil
 }
 
+// CheckAMIFreshness checks static AMI IDs against latest SSM versions (v0.5.4 - Universal Version System)
+func (c *HTTPClient) CheckAMIFreshness(ctx context.Context) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "GET", "/api/v1/ami/check-freshness", nil)
+	if err != nil {
+		return nil, err
+	}
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 // Template Marketplace operations (Phase 5.2)
 
 // SearchMarketplace searches the marketplace for templates

@@ -41,6 +41,7 @@ launch times from 5-8 minutes to under 30 seconds.`,
 		ac.createCleanupCommand(),
 		ac.createDeleteCommand(),
 		ac.createSnapshotCommand(),
+		ac.createCheckFreshnessCommand(),
 	)
 
 	return cmd
@@ -318,6 +319,32 @@ func (ac *AMICobraCommands) createSnapshotCommand() *cobra.Command {
 			},
 		},
 	)
+
+	return cmd
+}
+
+func (ac *AMICobraCommands) createCheckFreshnessCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "check-freshness",
+		Short: "Check AMI freshness against latest versions",
+		Long: `Check static AMI IDs against latest versions from AWS SSM Parameter Store.
+
+This command validates all static AMI mappings to identify outdated AMIs that
+should be updated to the latest version for optimal security and performance.
+
+SSM-supported distributions (automatically updated):
+  - Ubuntu 24.04, 22.04, 20.04
+  - Amazon Linux 2023, 2
+  - Debian 12
+
+Static-only distributions (manual updates required):
+  - Rocky Linux 10, 9
+  - RHEL 9
+  - Alpine 3.20`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return ac.app.AMI([]string{"check-freshness"})
+		},
+	}
 
 	return cmd
 }
