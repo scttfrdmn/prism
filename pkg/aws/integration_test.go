@@ -7,7 +7,6 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -44,15 +43,13 @@ func setupLocalStackManager(t *testing.T) *Manager {
 	}
 
 	manager := &Manager{
-		cfg:             cfg,
-		ec2:             ec2.NewFromConfig(cfg),
-		efs:             efs.NewFromConfig(cfg),
-		sts:             sts.NewFromConfig(cfg),
-		region:          "us-east-1",
-		templates:       getTemplates(),
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  ctypes.DiscountConfig{},
+		cfg:            cfg,
+		ec2:            ec2.NewFromConfig(cfg),
+		efs:            efs.NewFromConfig(cfg),
+		sts:            sts.NewFromConfig(cfg),
+		region:         "us-east-1",
+		templates:      getTemplates(),
+		discountConfig: ctypes.DiscountConfig{},
 	}
 
 	return manager

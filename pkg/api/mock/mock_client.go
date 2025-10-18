@@ -371,6 +371,12 @@ func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, er
 	}, nil
 }
 
+// ListInstancesWithRefresh returns mock instances with optional refresh
+func (m *MockClient) ListInstancesWithRefresh(ctx context.Context, refresh bool) (*types.ListResponse, error) {
+	// Mock client ignores refresh flag and returns same data
+	return m.ListInstances(ctx)
+}
+
 // GetInstance returns a specific instance
 func (m *MockClient) GetInstance(ctx context.Context, name string) (*types.Instance, error) {
 	if instance, exists := m.Instances[name]; exists {
@@ -1711,4 +1717,27 @@ func (m *MockClient) ListTunnels(ctx context.Context, instanceName string) (*cli
 func (m *MockClient) CloseTunnel(ctx context.Context, instanceName string, serviceName string) error {
 	// Mock implementation - just return success
 	return nil
+}
+
+// CheckAMIFreshness checks AMI freshness against latest versions (v0.5.4 - Universal Version System)
+func (m *MockClient) CheckAMIFreshness(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"total_checked":  15,
+		"up_to_date":     12,
+		"outdated":       2,
+		"no_ssm_support": 1,
+		"outdated_details": []map[string]interface{}{
+			{
+				"distro":         "ubuntu",
+				"version":        "22.04",
+				"region":         "us-east-1",
+				"architecture":   "x86_64",
+				"current_ami":    "ami-old123456789",
+				"latest_ami":     "ami-new987654321",
+				"current_date":   "2024-09-01",
+				"latest_date":    "2024-10-15",
+				"recommendation": "update_recommended",
+			},
+		},
+	}, nil
 }

@@ -29,7 +29,11 @@ func checkDaemonHealth() bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Warning: failed to close response body: %v", err)
+		}
+	}()
 
 	return resp.StatusCode == http.StatusOK
 }
@@ -182,7 +186,11 @@ func main() {
 		log.Printf("❌ %v", err)
 		os.Exit(0) // Exit gracefully - another GUI is already running
 	}
-	defer singleton.Release()
+	defer func() {
+		if err := singleton.Release(); err != nil {
+			log.Printf("Warning: failed to release singleton lock: %v", err)
+		}
+	}()
 
 	log.Printf("✅ GUI singleton lock acquired (PID: %d)", os.Getpid())
 
@@ -203,10 +211,12 @@ func main() {
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/terminal", cwsService.HandleTerminalWebSocket)
-		mux.HandleFunc("/api-key", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/api-key", func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			fmt.Fprintf(w, `{"api_key":"%s"}`, cwsService.apiKey)
+			if _, err := fmt.Fprintf(w, `{"api_key":"%s"}`, cwsService.apiKey); err != nil {
+				log.Printf("Warning: failed to write API key response: %v", err)
+			}
 		})
 
 		log.Println("🔌 Starting WebSocket server on :8948")
@@ -252,9 +262,13 @@ func main() {
 	}
 
 	// Run the application
-	err = app.Run()
-	if err != nil {
-		log.Fatal(err)
+	appErr := app.Run()
+
+	// Cleanup runs (deferred singleton.Release() executes here)
+
+	if appErr != nil {
+		log.Printf("❌ Application error: %v", appErr)
+		os.Exit(1)
 	}
 }
 

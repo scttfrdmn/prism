@@ -4,7 +4,6 @@ import (
 	"math"
 	"strings"
 	"testing"
-	"time"
 
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
@@ -217,13 +216,12 @@ func TestApplyDiscounts(t *testing.T) {
 }
 
 func TestDiscountConfigManagement(t *testing.T) {
-	manager := &Manager{
-		pricingCache: make(map[string]float64),
-	}
+	manager := &Manager{}
 
-	// Set some initial cache
-	manager.pricingCache["test-key"] = 123.45
-	manager.lastPriceUpdate = time.Now()
+	// Set some initial discount config
+	manager.discountConfig = ctypes.DiscountConfig{
+		EC2Discount: 0.10,
+	}
 
 	newConfig := ctypes.DiscountConfig{
 		EC2Discount:         0.15,
@@ -240,16 +238,6 @@ func TestDiscountConfigManagement(t *testing.T) {
 	}
 	if result.EducationalDiscount != 0.10 {
 		t.Errorf("GetDiscountConfig() EducationalDiscount = %f, want %f", result.EducationalDiscount, 0.10)
-	}
-
-	// Check that cache was cleared
-	if len(manager.pricingCache) != 0 {
-		t.Errorf("SetDiscountConfig() should clear pricing cache, but cache size = %d", len(manager.pricingCache))
-	}
-
-	// Check that lastPriceUpdate was reset
-	if !manager.lastPriceUpdate.IsZero() {
-		t.Errorf("SetDiscountConfig() should reset lastPriceUpdate to zero")
 	}
 }
 
@@ -336,18 +324,12 @@ func TestManagerCreation(t *testing.T) {
 	// but we can test the initialization logic
 
 	manager := &Manager{
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  ctypes.DiscountConfig{},
-		templates:       getTemplates(),
-		region:          "us-east-1",
+		discountConfig: ctypes.DiscountConfig{},
+		templates:      getTemplates(),
+		region:         "us-east-1",
 	}
 
 	// Test that manager is properly initialized
-	if manager.pricingCache == nil {
-		t.Error("Manager pricingCache should be initialized")
-	}
-
 	if len(manager.templates) == 0 {
 		t.Error("Manager should have templates loaded")
 	}
@@ -359,38 +341,19 @@ func TestManagerCreation(t *testing.T) {
 
 func TestPricingCacheLogic(t *testing.T) {
 	manager := &Manager{
-		region:          "us-east-1",
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  ctypes.DiscountConfig{},
+		region:         "us-east-1",
+		discountConfig: ctypes.DiscountConfig{},
 	}
 
-	t.Run("Cache miss and population", func(t *testing.T) {
-		// First call should populate cache
+	t.Run("Pricing consistency", func(t *testing.T) {
+		// First call
 		price1 := manager.getRegionalEC2Price("t3.medium")
 
-		// Check that cache was populated
-		if len(manager.pricingCache) == 0 {
-			t.Error("Cache should be populated after first call")
-		}
-
-		// Second call should use cache
+		// Second call should return consistent price
 		price2 := manager.getRegionalEC2Price("t3.medium")
 
 		if !floatEquals(price1, price2) {
-			t.Errorf("Cached price (%f) should equal first call (%f)", price2, price1)
-		}
-	})
-
-	t.Run("Cache expiration", func(t *testing.T) {
-		// Set old cache entry
-		manager.pricingCache["ec2-t3.small-us-east-1"] = 999.99
-		manager.lastPriceUpdate = time.Now().Add(-25 * time.Hour) // Older than 24 hours
-
-		// Should ignore expired cache and recalculate
-		price := manager.getRegionalEC2Price("t3.small")
-		if floatEquals(price, 999.99) {
-			t.Error("Should not use expired cache entry")
+			t.Errorf("Price should be consistent: %f vs %f", price1, price2)
 		}
 	})
 
@@ -399,7 +362,6 @@ func TestPricingCacheLogic(t *testing.T) {
 		priceUSEast := manager.getRegionalEC2Price("t3.medium")
 
 		manager.region = "eu-west-1"
-		manager.pricingCache = make(map[string]float64) // Clear cache
 		priceEUWest := manager.getRegionalEC2Price("t3.medium")
 
 		if floatEquals(priceUSEast, priceEUWest) {
@@ -416,7 +378,6 @@ func TestPricingCacheLogic(t *testing.T) {
 func TestGetEBSCostPerGB(t *testing.T) {
 	manager := &Manager{
 		region:         "us-east-1",
-		pricingCache:   make(map[string]float64),
 		discountConfig: ctypes.DiscountConfig{},
 	}
 
@@ -459,7 +420,6 @@ func TestGetEBSCostPerGB(t *testing.T) {
 func TestGetRegionalEFSPrice(t *testing.T) {
 	manager := &Manager{
 		region:         "us-east-1",
-		pricingCache:   make(map[string]float64),
 		discountConfig: ctypes.DiscountConfig{},
 	}
 
@@ -475,7 +435,6 @@ func TestGetRegionalEFSPrice(t *testing.T) {
 		manager.discountConfig = ctypes.DiscountConfig{
 			EFSDiscount: 0.15, // 15% discount
 		}
-		manager.pricingCache = make(map[string]float64) // Clear cache
 
 		price := manager.getRegionalEFSPrice()
 		expected := 0.30 * 0.85 // 15% off base price
@@ -487,7 +446,6 @@ func TestGetRegionalEFSPrice(t *testing.T) {
 	t.Run("EFS regional pricing", func(t *testing.T) {
 		manager.discountConfig = ctypes.DiscountConfig{} // Reset discounts
 		manager.region = "ap-southeast-2"
-		manager.pricingCache = make(map[string]float64) // Clear cache
 
 		price := manager.getRegionalEFSPrice()
 		expected := 0.30 * 1.25 // Sydney multiplier
@@ -637,7 +595,6 @@ func TestParseSizeToGBError(t *testing.T) {
 func TestGetRegionalEBSPrice(t *testing.T) {
 	manager := &Manager{
 		region:         "us-east-1",
-		pricingCache:   make(map[string]float64),
 		discountConfig: ctypes.DiscountConfig{},
 	}
 
@@ -778,70 +735,39 @@ func TestErrorHandling(t *testing.T) {
 	})
 }
 
-func TestCacheInvalidation(t *testing.T) {
-	manager := &Manager{
-		region:          "us-east-1",
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Now(),
-		discountConfig:  ctypes.DiscountConfig{},
-	}
-
-	// Set up cache
-	manager.pricingCache["test-key"] = 123.45
-
-	t.Run("Fresh cache should be used", func(t *testing.T) {
-		manager.lastPriceUpdate = time.Now() // Fresh cache
-
-		// This would use cache if it existed (in a real scenario)
-		if len(manager.pricingCache) == 0 {
-			t.Error("Cache should contain entries")
-		}
-	})
-
-	t.Run("Expired cache should be refreshed", func(t *testing.T) {
-		manager.lastPriceUpdate = time.Now().Add(-25 * time.Hour) // Expired
-
-		// In a real implementation, this would trigger cache refresh
-		if time.Since(manager.lastPriceUpdate) <= 24*time.Hour {
-			t.Error("Cache should be considered expired")
-		}
-	})
-}
+// TestCacheInvalidation is no longer relevant since pricingCache
+// is now managed internally by PricingClient
 
 func TestRegionalPricingWithCache(t *testing.T) {
 	manager := &Manager{
-		region:          "us-east-1",
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  ctypes.DiscountConfig{},
+		region:         "us-east-1",
+		discountConfig: ctypes.DiscountConfig{},
 	}
 
-	t.Run("EC2 price caching", func(t *testing.T) {
+	t.Run("EC2 price consistency", func(t *testing.T) {
 		price1 := manager.getRegionalEC2Price("t3.medium")
 		price2 := manager.getRegionalEC2Price("t3.medium")
 
 		if !floatEquals(price1, price2) {
-			t.Errorf("Cached prices should be equal: %f vs %f", price1, price2)
+			t.Errorf("Prices should be consistent: %f vs %f", price1, price2)
 		}
 	})
 
-	t.Run("EBS price caching", func(t *testing.T) {
-		manager.pricingCache = make(map[string]float64) // Clear cache
+	t.Run("EBS price consistency", func(t *testing.T) {
 		price1 := manager.getRegionalEBSPrice("gp3")
 		price2 := manager.getRegionalEBSPrice("gp3")
 
 		if !floatEquals(price1, price2) {
-			t.Errorf("Cached EBS prices should be equal: %f vs %f", price1, price2)
+			t.Errorf("EBS prices should be consistent: %f vs %f", price1, price2)
 		}
 	})
 
-	t.Run("EFS price caching", func(t *testing.T) {
-		manager.pricingCache = make(map[string]float64) // Clear cache
+	t.Run("EFS price consistency", func(t *testing.T) {
 		price1 := manager.getRegionalEFSPrice()
 		price2 := manager.getRegionalEFSPrice()
 
 		if !floatEquals(price1, price2) {
-			t.Errorf("Cached EFS prices should be equal: %f vs %f", price1, price2)
+			t.Errorf("EFS prices should be consistent: %f vs %f", price1, price2)
 		}
 	})
 }

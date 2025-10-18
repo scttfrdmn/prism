@@ -1838,3 +1838,21 @@ func (m *MockAPIClient) ListUserAMIs(ctx context.Context) (map[string]interface{
 		"storage_cost": 8.50,
 	}, nil
 }
+
+// CheckAMIFreshness checks the freshness of AMIs for all templates
+func (m *MockAPIClient) CheckAMIFreshness(ctx context.Context) (map[string]interface{}, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return map[string]interface{}{
+		"templates": []map[string]interface{}{
+			{
+				"name":         "python-ml",
+				"status":       "fresh",
+				"days_old":     5,
+				"max_age_days": 30,
+				"message":      "AMI is up to date (mock)",
+			},
+		},
+	}, nil
+}

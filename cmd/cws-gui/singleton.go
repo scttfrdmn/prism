@@ -51,15 +51,16 @@ func (s *GUISingletonManager) Acquire() error {
 	if _, err := os.Stat(s.pidFile); err == nil {
 		// PID file exists, check if process is running
 		oldPID, err := s.readPIDFile()
-		if err != nil {
+		switch {
+		case err != nil:
 			// PID file is corrupted, remove it
 			_ = os.Remove(s.pidFile)
-		} else if s.isProcessRunning(oldPID) {
+		case s.isProcessRunning(oldPID):
 			// Another GUI is already running
 			return fmt.Errorf("another CloudWorkstation GUI is already running (PID: %d)\n\n"+
-				"💡 Only one GUI can run at a time.\n"+
-				"   The other GUI has been brought to the foreground.", oldPID)
-		} else {
+				"💡 Only one GUI can run at a time\n"+
+				"   The other GUI has been brought to the foreground", oldPID)
+		default:
 			// Process not running, remove stale PID file
 			_ = os.Remove(s.pidFile)
 		}

@@ -340,7 +340,6 @@ func TestStorageStatePersistenceErrors(t *testing.T) {
 			efs:          mockEFS,
 			stateManager: mockState,
 			region:       "ap-southeast-1",
-			pricingCache: make(map[string]float64),
 		}
 
 		// Mock successful EFS creation
@@ -383,7 +382,6 @@ func TestStorageStatePersistenceErrors(t *testing.T) {
 			efs:          mockEFS,
 			stateManager: mockState,
 			region:       "eu-central-1",
-			pricingCache: make(map[string]float64),
 		}
 
 		// Mock name conflict error
@@ -442,7 +440,6 @@ func TestStorageWorkflowIntegration(t *testing.T) {
 			ssm:          mockSSM,
 			stateManager: mockState,
 			region:       "us-west-1",
-			pricingCache: make(map[string]float64),
 		}
 
 		// Step 1: Volume creation succeeds

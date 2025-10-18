@@ -16,6 +16,9 @@ const (
 	AccessTypeDesktop  AccessType = "desktop"  // RDP/VNC
 	AccessTypeWeb      AccessType = "web"      // Jupyter, RStudio, etc.
 	AccessTypeTerminal AccessType = "terminal" // SSH
+
+	// Default username fallback
+	defaultUsername = "ubuntu"
 )
 
 // InstanceAccess represents access methods for an instance
@@ -195,7 +198,7 @@ func (s *CloudWorkstationService) GetInstanceAccess(ctx context.Context, instanc
 	// Use the username from the instance (API client ensures this is populated correctly)
 	username := instance.Username
 	if username == "" {
-		username = "ubuntu" // Fallback if somehow empty
+		username = defaultUsername // Fallback if somehow empty
 	}
 
 	log.Printf("[DEBUG] GetInstanceAccess: instance=%s, template=%s, username=%q (from API client)",
@@ -254,51 +257,4 @@ func (s *CloudWorkstationService) CreateEmbeddedWebView(ctx context.Context, ins
 		},
 		DevTools: false, // Enable for debugging
 	}, nil
-}
-
-// Helper functions to safely extract values from map
-func getString(m map[string]interface{}, key string, defaultVal ...string) string {
-	if val, ok := m[key].(string); ok && val != "" {
-		return val
-	}
-	if len(defaultVal) > 0 {
-		return defaultVal[0]
-	}
-	return ""
-}
-
-func getInt(m map[string]interface{}, key string, defaultVal ...int) int {
-	if val, ok := m[key].(float64); ok {
-		return int(val)
-	}
-	if val, ok := m[key].(int); ok {
-		return val
-	}
-	if len(defaultVal) > 0 {
-		return defaultVal[0]
-	}
-	return 0
-}
-
-func getBool(m map[string]interface{}, key string, defaultVal ...bool) bool {
-	if val, ok := m[key].(bool); ok {
-		return val
-	}
-	if len(defaultVal) > 0 {
-		return defaultVal[0]
-	}
-	return false
-}
-
-func getIntSlice(m map[string]interface{}, key string) []int {
-	if val, ok := m[key].([]interface{}); ok {
-		result := make([]int, 0, len(val))
-		for _, v := range val {
-			if num, ok := v.(float64); ok {
-				result = append(result, int(num))
-			}
-		}
-		return result
-	}
-	return []int{}
 }

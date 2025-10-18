@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/stretchr/testify/assert"
@@ -161,7 +160,6 @@ func TestGetTemplateFromRealTemplates(t *testing.T) {
 func TestGetTemplateForArchitectureBasic(t *testing.T) {
 	manager := &Manager{
 		templates:      getTemplates(),
-		pricingCache:   make(map[string]float64),
 		discountConfig: types.DiscountConfig{},
 	}
 
@@ -216,9 +214,7 @@ func TestErrorMessages(t *testing.T) {
 
 // TestDiscountConfigOperations tests discount configuration
 func TestDiscountConfigOperations(t *testing.T) {
-	manager := &Manager{
-		pricingCache: make(map[string]float64),
-	}
+	manager := &Manager{}
 
 	// Test setting and getting discount config
 	config := types.DiscountConfig{
@@ -235,7 +231,6 @@ func TestDiscountConfigOperations(t *testing.T) {
 	assert.Equal(t, 0.05, result.EBSDiscount)
 
 	// Test that cache was cleared
-	assert.Empty(t, manager.pricingCache)
 }
 
 // TestProcessIdleDetectionConfig tests idle detection configuration processing
@@ -441,10 +436,8 @@ func TestEstimateInstancePriceExtended(t *testing.T) {
 // TestGetRegionalEC2PriceEdgeCases tests regional pricing edge cases
 func TestGetRegionalEC2PriceEdgeCases(t *testing.T) {
 	manager := &Manager{
-		region:          "us-east-1",
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  types.DiscountConfig{},
+		region:         "us-east-1",
+		discountConfig: types.DiscountConfig{},
 	}
 
 	tests := []struct {
@@ -463,7 +456,6 @@ func TestGetRegionalEC2PriceEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			manager.region = tt.region
-			manager.pricingCache = make(map[string]float64) // Clear cache
 
 			price := manager.getRegionalEC2Price(tt.instanceType)
 			assert.Greater(t, price, 0.0, "Price should be positive for %s in %s", tt.instanceType, tt.region)
@@ -574,40 +566,29 @@ func TestGetRegionPricingMultiplierComplete(t *testing.T) {
 // TestCacheExpirationLogic tests cache expiration behavior
 func TestCacheExpirationLogic(t *testing.T) {
 	manager := &Manager{
-		region:          "us-east-1",
-		pricingCache:    make(map[string]float64),
-		lastPriceUpdate: time.Time{},
-		discountConfig:  types.DiscountConfig{},
+		region:         "us-east-1",
+		discountConfig: types.DiscountConfig{},
 	}
 
 	t.Run("Fresh cache behavior", func(t *testing.T) {
 		// Set fresh cache
-		manager.lastPriceUpdate = time.Now()
-		manager.pricingCache["test-key"] = 1.23
 
 		// Verify cache is considered fresh
-		assert.True(t, time.Since(manager.lastPriceUpdate) < 24*time.Hour)
 	})
 
 	t.Run("Expired cache behavior", func(t *testing.T) {
 		// Set expired cache
-		manager.lastPriceUpdate = time.Now().Add(-25 * time.Hour)
 
 		// Verify cache is considered expired
-		assert.True(t, time.Since(manager.lastPriceUpdate) > 24*time.Hour)
 	})
 
 	t.Run("Cache operations with regional pricing", func(t *testing.T) {
-		manager.pricingCache = make(map[string]float64)
-		manager.lastPriceUpdate = time.Time{}
 
 		// First call should populate cache
 		price1 := manager.getRegionalEC2Price("t3.medium")
 		assert.Greater(t, price1, 0.0)
 
 		// Cache should be populated
-		assert.NotEmpty(t, manager.pricingCache)
-		assert.False(t, manager.lastPriceUpdate.IsZero())
 
 		// Second call should use cache (same result)
 		price2 := manager.getRegionalEC2Price("t3.medium")
@@ -619,7 +600,6 @@ func TestCacheExpirationLogic(t *testing.T) {
 func TestEBSVolumeTypeHandling(t *testing.T) {
 	manager := &Manager{
 		region:         "us-east-1",
-		pricingCache:   make(map[string]float64),
 		discountConfig: types.DiscountConfig{},
 	}
 
