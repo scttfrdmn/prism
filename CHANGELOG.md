@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Infrastructure
 - **Build System**: Maintained zero compilation errors for production binaries
 - **Testing**: Core functionality verification with automated smoke tests
+- **GoReleaser Integration**: Complete distribution automation with multi-platform support
+  - Automated builds for Linux, macOS, Windows (AMD64 + ARM64)
+  - Homebrew tap integration (scttfrdmn/homebrew-tap)
+  - Scoop bucket support for Windows package management
+  - Debian/RPM/APK packages for Linux distributions
+  - Docker multi-arch images with manifest support
+  - Makefile targets for local testing (snapshot mode)
+  - Simplified Homebrew formula with auto-starting daemon messaging
 
 ## [0.4.1] - 2025-08-08
 

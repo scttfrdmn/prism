@@ -392,6 +392,52 @@ release: clean
 	
 	@echo "✅ Release binaries built in bin/release/"
 
+# GoReleaser targets
+.PHONY: goreleaser-snapshot goreleaser-release goreleaser-check goreleaser-clean
+
+# Test GoReleaser build without publishing (snapshot mode)
+goreleaser-snapshot:
+	@echo "📦 Building snapshot release with GoReleaser..."
+	@command -v goreleaser >/dev/null 2>&1 || { echo "❌ GoReleaser not found. Install with: brew install goreleaser"; exit 1; }
+	@goreleaser build --snapshot --clean
+	@echo "✅ Snapshot build complete! Check dist/ directory"
+	@echo "   Binaries: dist/*/cws and dist/*/cwsd"
+	@echo "   Archives: dist/*.tar.gz and dist/*.zip"
+
+# Create a full release with GoReleaser (requires git tag)
+goreleaser-release:
+	@echo "🚀 Creating release with GoReleaser..."
+	@command -v goreleaser >/dev/null 2>&1 || { echo "❌ GoReleaser not found. Install with: brew install goreleaser"; exit 1; }
+	@if [ -z "$$(git describe --exact-match --tags HEAD 2>/dev/null)" ]; then \
+		echo "❌ No git tag found on current commit"; \
+		echo "   Create a tag first: git tag v$(VERSION) && git push origin v$(VERSION)"; \
+		exit 1; \
+	fi
+	@echo "⚠️  This will:"
+	@echo "   1. Build binaries for all platforms"
+	@echo "   2. Create GitHub release"
+	@echo "   3. Upload artifacts to GitHub"
+	@echo "   4. Update Homebrew tap (scttfrdmn/homebrew-tap)"
+	@echo "   5. Update Scoop bucket (scttfrdmn/scoop-bucket)"
+	@echo "   6. Generate deb/rpm packages"
+	@echo ""
+	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
+	@goreleaser release --clean
+	@echo "✅ Release complete!"
+
+# Check GoReleaser configuration
+goreleaser-check:
+	@echo "🔍 Validating GoReleaser configuration..."
+	@command -v goreleaser >/dev/null 2>&1 || { echo "❌ GoReleaser not found. Install with: brew install goreleaser"; exit 1; }
+	@goreleaser check
+	@echo "✅ Configuration is valid!"
+
+# Clean GoReleaser artifacts
+goreleaser-clean:
+	@echo "🧹 Cleaning GoReleaser artifacts..."
+	@rm -rf dist/
+	@echo "✅ GoReleaser artifacts cleaned"
+
 # Pre-commit simulation
 .PHONY: pre-commit
 pre-commit: quality-check test-unit
@@ -900,7 +946,15 @@ help:
 	@echo "  pre-commit   Simulate pre-commit checks"
 	@echo "  fmt          Format code"
 	@echo "  deps         Update dependencies"
-	@echo "  release      Build release binaries for all platforms"
+	@echo "  release      Build release binaries for all platforms (manual)"
+	@echo ""
+	@echo "GoReleaser Distribution (Automated):"
+	@echo "  goreleaser-snapshot Test build without publishing (snapshot mode)"
+	@echo "  goreleaser-release  Full release with GitHub + Homebrew + Scoop + deb/rpm"
+	@echo "  goreleaser-check    Validate .goreleaser.yaml configuration"
+	@echo "  goreleaser-clean    Clean GoReleaser dist/ artifacts"
+	@echo ""
+	@echo "Manual Package Distribution:"
 	@echo "  package      Create all package manager distribution files"
 	@echo "  package-homebrew Create Homebrew formula and packages"
 	@echo "  package-chocolatey Create Chocolatey package"

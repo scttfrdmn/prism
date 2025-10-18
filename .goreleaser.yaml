@@ -1,0 +1,378 @@
+# GoReleaser configuration for CloudWorkstation
+# https://goreleaser.com/customization/
+
+version: 2
+
+# Project metadata
+project_name: cloudworkstation
+
+# Before hooks - run before building
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+# Build configuration
+builds:
+  # CLI binary (cws)
+  - id: cws
+    binary: cws
+    main: ./cmd/cws
+    env:
+      - CGO_ENABLED=0
+    overrides:
+      - goos: darwin
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1  # Required for macOS keychain integration
+      - goos: darwin
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1  # Required for macOS keychain integration
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.Version={{.Version}}
+      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate={{.Date}}
+      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit={{.Commit}}
+
+  # Daemon binary (cwsd)
+  - id: cwsd
+    binary: cwsd
+    main: ./cmd/cwsd
+    env:
+      - CGO_ENABLED=0
+    overrides:
+      - goos: darwin
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1  # Required for macOS keychain integration
+      - goos: darwin
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1  # Required for macOS keychain integration
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.Version={{.Version}}
+      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate={{.Date}}
+      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit={{.Commit}}
+
+# Archives configuration
+archives:
+  - id: cloudworkstation
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - CHANGELOG.md
+      - LICENSE
+      - templates/**/*
+      - docs/GETTING_STARTED.md
+      - docs/AWS_IAM_PERMISSIONS.md
+    builds:
+      - cws
+      - cwsd
+
+# Checksum configuration
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+# Snapshot configuration (for testing releases)
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot-{{.ShortCommit}}"
+
+# Changelog configuration
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: '🎉 New Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: '🐛 Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: '📝 Documentation'
+      regexp: '^.*?docs?(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: '🔧 Other Changes'
+      order: 999
+
+# Homebrew tap configuration
+brews:
+  - name: cloudworkstation
+    # Replace with your consolidated homebrew-tap repository
+    repository:
+      owner: scttfrdmn
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.GITHUB_TOKEN }}"
+
+    # Commit message template
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    # Formula metadata
+    homepage: "https://github.com/scttfrdmn/cloudworkstation"
+    description: "CLI tool for launching pre-configured cloud workstations for academic research"
+    license: "MIT"
+
+    # Installation configuration
+    install: |
+      bin.install "cws"
+      bin.install "cwsd"
+
+      # Install documentation
+      doc.install "README.md"
+      doc.install "CHANGELOG.md"
+
+      # Install templates
+      (share/"cloudworkstation").install "templates"
+
+      # Create config directory
+      (etc/"cloudworkstation").mkpath
+
+    # Post-install message
+    caveats: |
+      CloudWorkstation has been installed!
+
+      Command Line Interface (CLI):
+        cws --help
+
+      Terminal User Interface (TUI):
+        cws tui
+
+      Quick start:
+        cws templates                           # List available templates
+        cws launch <template-name> <instance>   # Launch a workstation
+
+      The daemon (cwsd) starts automatically when needed - no manual setup required!
+
+      AWS credentials are required:
+        aws configure
+
+      Documentation: https://github.com/scttfrdmn/cloudworkstation
+
+    # Test block
+    test: |
+      system "#{bin}/cws", "--version"
+      system "#{bin}/cwsd", "--version"
+
+    # Dependencies
+    dependencies:
+      - name: go
+        type: build
+
+# Scoop bucket configuration
+scoops:
+  - name: cloudworkstation
+    repository:
+      owner: scttfrdmn
+      name: scoop-bucket
+      branch: main
+      token: "{{ .Env.GITHUB_TOKEN }}"
+
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+
+    homepage: "https://github.com/scttfrdmn/cloudworkstation"
+    description: "CLI tool for launching pre-configured cloud workstations for academic research"
+    license: "MIT"
+
+    # Post-install message
+    post_install: ["Write-Host 'CloudWorkstation installed successfully!'", "Write-Host 'Run: cws --help to get started'"]
+
+# Linux packages (deb and rpm)
+nfpms:
+  - id: cloudworkstation
+    package_name: cloudworkstation
+
+    # Package metadata
+    vendor: Scott Freedman
+    homepage: https://github.com/scttfrdmn/cloudworkstation
+    maintainer: Scott Freedman <scott@example.com>
+    description: CLI tool for launching pre-configured cloud workstations for academic research
+    license: MIT
+
+    # Formats to generate
+    formats:
+      - deb
+      - rpm
+      - apk  # Alpine Linux
+
+    # Additional files
+    contents:
+      - src: README.md
+        dst: /usr/share/doc/cloudworkstation/README.md
+      - src: CHANGELOG.md
+        dst: /usr/share/doc/cloudworkstation/CHANGELOG.md
+      - src: templates/
+        dst: /usr/share/cloudworkstation/templates/
+      - src: docs/GETTING_STARTED.md
+        dst: /usr/share/doc/cloudworkstation/GETTING_STARTED.md
+      - src: docs/AWS_IAM_PERMISSIONS.md
+        dst: /usr/share/doc/cloudworkstation/AWS_IAM_PERMISSIONS.md
+
+    # Scripts
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+      preremove: "scripts/preremove.sh"
+
+    # Overrides per package format
+    deb:
+      lintian_overrides:
+        - statically-linked-binary
+        - changelog-file-missing-in-native-package
+
+    rpm:
+      summary: CloudWorkstation CLI tool
+      group: Development/Tools
+      compression: lzma
+
+    apk:
+      signature:
+        key_file: '{{ if index .Env "APK_KEY_FILE" }}{{ .Env.APK_KEY_FILE }}{{ end }}'
+
+# Docker images (optional - for containerized deployments)
+# TODO: Uncomment for production releases with Docker support
+# dockers:
+##   - image_templates:
+#      - "ghcr.io/scttfrdmn/cloudworkstation:{{ .Version }}-amd64"
+#      - "ghcr.io/scttfrdmn/cloudworkstation:latest-amd64"
+#    use: buildx
+#    dockerfile: Dockerfile
+#    build_flag_templates:
+#      - "--platform=linux/amd64"
+#      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+#      - "--label=org.opencontainers.image.description={{ .ProjectName }}"
+#      - "--label=org.opencontainers.image.url=https://github.com/scttfrdmn/cloudworkstation"
+#      - "--label=org.opencontainers.image.source=https://github.com/scttfrdmn/cloudworkstation"
+#      - "--label=org.opencontainers.image.version={{ .Version }}"
+#      - "--label=org.opencontainers.image.created={{ .Date }}"
+#      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+#      - "--label=org.opencontainers.image.licenses=MIT"
+#
+#  - image_templates:
+#      - "ghcr.io/scttfrdmn/cloudworkstation:{{ .Version }}-arm64"
+#      - "ghcr.io/scttfrdmn/cloudworkstation:latest-arm64"
+#    use: buildx
+#    dockerfile: Dockerfile
+#    build_flag_templates:
+#      - "--platform=linux/arm64"
+#      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+#      - "--label=org.opencontainers.image.description={{ .ProjectName }}"
+#      - "--label=org.opencontainers.image.url=https://github.com/scttfrdmn/cloudworkstation"
+#      - "--label=org.opencontainers.image.source=https://github.com/scttfrdmn/cloudworkstation"
+#      - "--label=org.opencontainers.image.version={{ .Version }}"
+#      - "--label=org.opencontainers.image.created={{ .Date }}"
+#      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+#      - "--label=org.opencontainers.image.licenses=MIT"
+#    goarch: arm64
+#
+## Docker manifest (multi-arch support)
+#docker_manifests:
+#  - name_template: "ghcr.io/scttfrdmn/cloudworkstation:{{ .Version }}"
+#    image_templates:
+#      - "ghcr.io/scttfrdmn/cloudworkstation:{{ .Version }}-amd64"
+#      - "ghcr.io/scttfrdmn/cloudworkstation:{{ .Version }}-arm64"
+#
+#  - name_template: "ghcr.io/scttfrdmn/cloudworkstation:latest"
+#    image_templates:
+#      - "ghcr.io/scttfrdmn/cloudworkstation:latest-amd64"
+#      - "ghcr.io/scttfrdmn/cloudworkstation:latest-arm64"
+#
+# GitHub Release configuration
+release:
+  github:
+    owner: scttfrdmn
+    name: cloudworkstation
+
+  # Release notes
+  header: |
+    ## CloudWorkstation {{ .Tag }}
+
+    Welcome to this new release of CloudWorkstation!
+
+  footer: |
+    ## Installation
+
+    ### Homebrew (macOS and Linux)
+    ```bash
+    brew install scttfrdmn/tap/cloudworkstation
+    ```
+
+    ### Scoop (Windows)
+    ```powershell
+    scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
+    scoop install cloudworkstation
+    ```
+
+    ### Debian/Ubuntu
+    ```bash
+    wget https://github.com/scttfrdmn/cloudworkstation/releases/download/{{ .Tag }}/cloudworkstation_{{ .Version }}_linux_amd64.deb
+    sudo dpkg -i cloudworkstation_{{ .Version }}_linux_amd64.deb
+    ```
+
+    ### RHEL/CentOS/Fedora
+    ```bash
+    wget https://github.com/scttfrdmn/cloudworkstation/releases/download/{{ .Tag }}/cloudworkstation_{{ .Version }}_linux_amd64.rpm
+    sudo rpm -i cloudworkstation_{{ .Version }}_linux_amd64.rpm
+    ```
+
+    ### Docker
+    ```bash
+    docker pull ghcr.io/scttfrdmn/cloudworkstation:{{ .Tag }}
+    ```
+
+    **Full Changelog**: https://github.com/scttfrdmn/cloudworkstation/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+  # Release name template
+  name_template: "{{.ProjectName}} v{{.Version}}"
+
+  # Draft release (set to false for automatic publishing)
+  draft: false
+
+  # Prerelease detection
+  prerelease: auto
+
+  # Replace existing release
+  mode: replace
+
+  # Include metadata
+  make_latest: true
+
+# Announce release (optional - can integrate with Slack, Discord, etc.)
+# announce:
+#   slack:
+#     enabled: true
+#     message_template: 'CloudWorkstation {{ .Tag }} is out! Check it out: {{ .ReleaseURL }}'
+#     channel: '#releases'
