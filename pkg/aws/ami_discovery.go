@@ -299,3 +299,118 @@ func GetStaticAMILocations() map[string]string {
 		"Debian":       "https://wiki.debian.org/Cloud/AmazonEC2Image - Debian official AMIs",
 	}
 }
+
+// AMIFreshnessResult contains the result of an AMI freshness check
+type AMIFreshnessResult struct {
+	Distro         string
+	Version        string
+	Region         string
+	Arch           string
+	StaticAMI      string
+	LatestAMI      string
+	IsOutdated     bool
+	NeedsUpdate    bool
+	HasSSMSupport  bool
+	CheckTimestamp string
+}
+
+// CheckAMIFreshness validates if static AMI IDs match the latest available AMIs
+//
+// This should be run monthly (or when fallback is triggered) to ensure static
+// AMI mappings are up-to-date. Returns a report of all outdated AMIs.
+//
+// Parameters:
+//   - staticAMIs: Map of static AMI IDs (distro → version → region → arch → AMI)
+//   - region: AWS region to check
+//
+// Returns:
+//   - Slice of freshness results with update recommendations
+//   - Error only for serious issues
+func (d *AMIDiscovery) CheckAMIFreshness(ctx context.Context, staticAMIs map[string]map[string]map[string]map[string]string, region string) ([]AMIFreshnessResult, error) {
+	var results []AMIFreshnessResult
+
+	// Check each static AMI mapping
+	for distro, versions := range staticAMIs {
+		for version, regions := range versions {
+			regionAMIs, exists := regions[region]
+			if !exists {
+				continue
+			}
+
+			for arch, staticAMI := range regionAMIs {
+				result := AMIFreshnessResult{
+					Distro:    distro,
+					Version:   version,
+					Region:    region,
+					Arch:      arch,
+					StaticAMI: staticAMI,
+				}
+
+				// Try to get latest AMI from SSM
+				latestAMI, err := d.GetLatestAMI(ctx, distro, version, region, arch)
+				if err != nil {
+					// SSM query failed - skip this combination
+					result.HasSSMSupport = false
+					result.NeedsUpdate = false
+					results = append(results, result)
+					continue
+				}
+
+				if latestAMI == "" {
+					// No SSM support - static AMI is authoritative
+					result.HasSSMSupport = false
+					result.NeedsUpdate = false
+					results = append(results, result)
+					continue
+				}
+
+				// SSM support available - compare AMIs
+				result.HasSSMSupport = true
+				result.LatestAMI = latestAMI
+				result.IsOutdated = (staticAMI != latestAMI)
+				result.NeedsUpdate = result.IsOutdated
+
+				results = append(results, result)
+			}
+		}
+	}
+
+	return results, nil
+}
+
+// GetOutdatedAMIs returns only the AMIs that need updating
+//
+// Convenience method to filter freshness check results
+func GetOutdatedAMIs(results []AMIFreshnessResult) []AMIFreshnessResult {
+	var outdated []AMIFreshnessResult
+	for _, result := range results {
+		if result.NeedsUpdate && result.IsOutdated {
+			outdated = append(outdated, result)
+		}
+	}
+	return outdated
+}
+
+// FormatFreshnessReport generates a human-readable AMI freshness report
+//
+// This can be displayed to users or logged for monitoring
+func FormatFreshnessReport(results []AMIFreshnessResult) string {
+	outdated := GetOutdatedAMIs(results)
+
+	if len(outdated) == 0 {
+		return "✅ All static AMI mappings are up-to-date"
+	}
+
+	report := fmt.Sprintf("⚠️  Found %d outdated AMI mappings:\n\n", len(outdated))
+
+	for _, result := range outdated {
+		report += fmt.Sprintf("  %s %s (%s/%s):\n", result.Distro, result.Version, result.Region, result.Arch)
+		report += fmt.Sprintf("    Current: %s\n", result.StaticAMI)
+		report += fmt.Sprintf("    Latest:  %s\n", result.LatestAMI)
+		report += "\n"
+	}
+
+	report += "Run automated update or manually update static AMI mappings in pkg/templates/parser.go\n"
+
+	return report
+}
