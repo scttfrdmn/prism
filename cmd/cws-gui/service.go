@@ -526,7 +526,7 @@ func (s *CloudWorkstationService) getDefaultUsername(templateName string) string
 	// Query the daemon API for template information to get the correct default username
 	resp, err := s.client.Get(s.daemonURL + "/api/v1/templates/" + templateName)
 	if err == nil && resp.StatusCode == http.StatusOK {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		var template map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&template); err == nil {
@@ -567,7 +567,7 @@ func (s *CloudWorkstationService) ConfigureAutoStart(_ context.Context, enable b
 }
 
 // RestartDaemon restarts the CloudWorkstation daemon
-func (s *CloudWorkstationService) RestartDaemon(ctx context.Context) error {
+func (s *CloudWorkstationService) RestartDaemon(_ context.Context) error {
 	// Send restart request to daemon
 	resp, err := s.client.Post(s.daemonURL+"/api/v1/daemon/restart", "application/json", nil)
 	if err != nil {

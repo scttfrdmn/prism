@@ -19,7 +19,7 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
+	CheckOrigin: func(_ *http.Request) bool {
 		// Allow connections from the same origin (GUI frontend)
 		return true
 	},
@@ -67,14 +67,14 @@ func (s *CloudWorkstationService) HandleTerminalWebSocket(w http.ResponseWriter,
 	// Get instance access information
 	access, err := s.GetInstanceAccess(context.Background(), instanceName)
 	if err != nil {
-		ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to get instance access: %v\r\n", err)))
-		ws.Close()
+		_ = ws.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to get instance access: %v\r\n", err)))
+		_ = ws.Close()
 		return
 	}
 
 	if access.SSHPort == 0 {
-		ws.WriteMessage(websocket.TextMessage, []byte("Error: No SSH access available\r\n"))
-		ws.Close()
+		_ = ws.WriteMessage(websocket.TextMessage, []byte("Error: No SSH access available\r\n"))
+		_ = ws.Close()
 		return
 	}
 
@@ -167,7 +167,7 @@ func (ts *TerminalSession) connectSSH(access *InstanceAccess) {
 		return
 	}
 	ts.sshClient = sshClient
-	defer sshClient.Close()
+	defer func() { _ = sshClient.Close() }()
 
 	// Create SSH session
 	sshSession, err := sshClient.NewSession()
@@ -176,7 +176,7 @@ func (ts *TerminalSession) connectSSH(access *InstanceAccess) {
 		return
 	}
 	ts.sshSession = sshSession
-	defer sshSession.Close()
+	defer func() { _ = sshSession.Close() }()
 
 	// Set up terminal modes
 	modes := ssh.TerminalModes{
@@ -240,7 +240,7 @@ func (ts *TerminalSession) connectSSH(access *InstanceAccess) {
 
 	// Wait for session to end
 	wg.Wait()
-	sshSession.Wait()
+	_ = sshSession.Wait()
 }
 
 // copyOutput copies SSH output to WebSocket
@@ -278,7 +278,7 @@ func (ts *TerminalSession) copyOutput(wg *sync.WaitGroup, reader io.Reader) {
 
 // readWebSocketInput reads input from WebSocket and writes to SSH
 func (ts *TerminalSession) readWebSocketInput(stdin io.WriteCloser) {
-	defer stdin.Close()
+	defer func() { _ = stdin.Close() }()
 
 	for {
 		select {
@@ -334,7 +334,7 @@ func (ts *TerminalSession) sendMessage(msg string) {
 	defer ts.mu.Unlock()
 
 	if !ts.closed {
-		ts.ws.WriteMessage(websocket.TextMessage, []byte(msg))
+		_ = ts.ws.WriteMessage(websocket.TextMessage, []byte(msg))
 	}
 }
 
@@ -356,14 +356,14 @@ func (ts *TerminalSession) cleanup() {
 	ts.cancel()
 
 	if ts.sshSession != nil {
-		ts.sshSession.Close()
+		_ = ts.sshSession.Close()
 	}
 
 	if ts.sshClient != nil {
-		ts.sshClient.Close()
+		_ = ts.sshClient.Close()
 	}
 
 	if ts.ws != nil {
-		ts.ws.Close()
+		_ = ts.ws.Close()
 	}
 }
