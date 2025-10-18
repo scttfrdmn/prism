@@ -1856,3 +1856,45 @@ func (m *MockAPIClient) CheckAMIFreshness(ctx context.Context) (map[string]inter
 		},
 	}, nil
 }
+
+// CloseInstanceTunnels closes all tunnels for a given instance
+func (m *MockAPIClient) CloseInstanceTunnels(_ context.Context, _ string) error {
+	if m.ShouldReturnError {
+		return fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return nil
+}
+
+// CreateTunnels creates tunnels for the specified services
+func (m *MockAPIClient) CreateTunnels(_ context.Context, _ string, _ []string) (*client.CreateTunnelsResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &client.CreateTunnelsResponse{}, nil
+}
+
+// ListTunnels lists all tunnels for an instance
+func (m *MockAPIClient) ListTunnels(_ context.Context, _ string) (*client.ListTunnelsResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &client.ListTunnelsResponse{}, nil
+}
+
+// CloseTunnel closes a specific tunnel
+func (m *MockAPIClient) CloseTunnel(_ context.Context, _ string, _ string) error {
+	if m.ShouldReturnError {
+		return fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return nil
+}
+
+// ListInstancesWithRefresh lists instances with optional refresh
+func (m *MockAPIClient) ListInstancesWithRefresh(_ context.Context, _ bool) (*types.ListResponse, error) {
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+	return &types.ListResponse{
+		Instances: m.Instances,
+	}, nil
+}
