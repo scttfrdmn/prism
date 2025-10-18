@@ -5,6 +5,55 @@ All notable changes to CloudWorkstation will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2025-10-18
+
+### Added
+- **Universal Version System**: Dynamic OS version selection at launch time
+  - `--version` flag for specifying OS versions (e.g., `--version 24.04`, `--version 22.04`)
+  - Support for version aliases: `latest`, `lts`, `previous-lts`
+  - 4-level hierarchical AMI structure: distro → version → region → architecture
+  - AWS SSM Parameter Store integration for Ubuntu, Amazon Linux, Debian
+  - Static fallback AMIs for Rocky Linux, RHEL, Alpine
+- **AMI Freshness Checking**: Proactive validation of static AMI IDs
+  - `cws ami check-freshness` command to validate AMI mappings
+  - Automatic detection of outdated AMIs against latest SSM values
+  - Clear reporting with recommended update actions
+  - Support for all distributions (SSM-backed and static)
+- **Enhanced AMI Discovery**: Intelligent AMI resolution with automatic updates
+  - Daemon startup warm-up with bulk AMI discovery
+  - Hybrid discovery: SSM Parameter Store with static fallback
+  - Regional AMI caching for improved performance
+
+### Enhanced
+- **Version Resolution**: 3-tier priority system (User → Template → Default)
+- **Template System**: Version constraints in template dependencies
+- **Documentation**: Complete VERSION_SYSTEM_IMPLEMENTATION.md guide
+
+### Technical
+- Added `pkg/aws/ami_discovery.go` (416 lines) - AMI discovery and freshness checking
+- Added `pkg/templates/resolver.go` (267 lines) - Version resolution and aliases
+- Added `pkg/templates/dependencies.go` (300 lines) - Dependency resolution
+- Enhanced `pkg/templates/parser.go` with hierarchical AMI structure
+- Added `Version` field to `LaunchRequest` for version specification
+- Integrated AMI discovery into daemon initialization
+- Added REST API endpoint `/api/v1/ami/check-freshness`
+- Added CLI commands: `cws ami check-freshness`
+
+### Benefits
+- **No Template Explosion**: Single template supports multiple OS versions
+- **Always Current**: SSM integration provides latest AMIs automatically
+- **Version Flexibility**: Choose any supported OS version at launch time
+- **Proactive Maintenance**: Monthly freshness checks identify outdated AMIs
+- **Clear Communication**: Users know exactly which version they're getting
+
+### Supported Distributions
+- Ubuntu: 24.04, 22.04, 20.04 (SSM-backed)
+- Rocky Linux: 10, 9 (static fallback)
+- Amazon Linux: 2023, 2 (SSM-backed)
+- Debian: 12 (SSM-backed)
+- RHEL: 9 (static fallback)
+- Alpine: 3.20 (static fallback)
+
 ## [0.5.3] - 2025-10-17
 
 ### Development Workflow
