@@ -473,6 +473,7 @@ func (c *HTTPClient) GetInstanceSnapshot(ctx context.Context, snapshotName strin
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.InstanceSnapshotInfo
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -488,6 +489,7 @@ func (c *HTTPClient) DeleteInstanceSnapshot(ctx context.Context, snapshotName st
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.InstanceSnapshotDeleteResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -503,6 +505,7 @@ func (c *HTTPClient) RestoreInstanceFromSnapshot(ctx context.Context, snapshotNa
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.InstanceRestoreResult
 	if err := c.handleResponse(resp, &result); err != nil {
