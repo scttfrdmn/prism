@@ -236,12 +236,12 @@ cws doctor                      # System health check
 
 ## 🗓️ Version History
 
-### v0.5.4 (Current) - Distribution & Workflow Automation
-- **GoReleaser Integration**: Complete multi-platform distribution automation
-- **Package Management**: Homebrew, Scoop, deb, rpm, apk packages
-- **Simplified Git Hooks**: Fast pre-commit checks (< 5 seconds)
-- **Documentation Cleanup**: Organized historical docs into structured archive
-- **Template Marketplace**: Foundation for community template sharing
+### v0.5.4 (Current) - Universal Version System
+- **Dynamic OS Versions**: Choose OS versions at launch time with `--version` flag
+- **Version Aliases**: Support for `latest`, `lts`, `previous-lts`
+- **AMI Freshness Checking**: `cws ami check-freshness` validates static AMI IDs
+- **AWS SSM Integration**: Automatic latest AMI discovery for major distributions
+- **Package Management**: Available via Homebrew (macOS), Scoop (Windows), deb, rpm, apk
 
 ### v0.5.3 - Research User System & Template Marketplace
 - **Multi-User Architecture**: Persistent research identities across instances

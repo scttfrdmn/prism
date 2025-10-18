@@ -9,21 +9,20 @@ CloudWorkstation launches pre-configured research environments in seconds. No co
 **macOS (Recommended)**
 ```bash
 # Install via Homebrew
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew install scttfrdmn/tap/cloudworkstation
 ```
 
 **Linux**
 ```bash
 # Install via Homebrew
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew install scttfrdmn/tap/cloudworkstation
 ```
 
 **Windows**
-```bash
-# Install via Chocolatey
-choco install cloudworkstation
+```powershell
+# Install via Scoop
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
+scoop install cloudworkstation
 ```
 
 **Direct Download**

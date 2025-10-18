@@ -10,9 +10,10 @@ Zero-setup means you can go from installation to running workstation in **one co
 
 ```bash
 # Install CloudWorkstation (pick your platform)
-brew install cloudworkstation              # macOS
-sudo apt install cloudworkstation.deb      # Ubuntu/Debian
-sudo dnf install cloudworkstation.rpm      # RHEL/Fedora
+brew install scttfrdmn/tap/cloudworkstation              # macOS/Linux
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket && scoop install cloudworkstation  # Windows
+sudo dpkg -i cloudworkstation_0.5.4_linux_amd64.deb      # Ubuntu/Debian
+sudo rpm -i cloudworkstation_0.5.4_linux_amd64.rpm       # RHEL/Fedora
 
 # Launch a workstation - that's it!
 cws launch "Python Machine Learning (Simplified)" my-research

@@ -1,14 +1,24 @@
-# CloudWorkstation v0.4.5 Installation Guide
+# CloudWorkstation v0.5.4 Installation Guide
 
-## Quick Start (Homebrew - Recommended)
+## Quick Start (Package Managers - Recommended)
 
-### macOS and Linux
+### macOS and Linux (Homebrew)
 ```bash
-# Step 1: Add the CloudWorkstation tap
-brew tap scttfrdmn/cloudworkstation
+# Step 1: Install CloudWorkstation
+brew install scttfrdmn/tap/cloudworkstation
+
+# Step 2: Verify installation
+cws --version
+cwsd --version
+```
+
+### Windows (Scoop)
+```powershell
+# Step 1: Add the CloudWorkstation bucket
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
 
 # Step 2: Install CloudWorkstation
-brew install cloudworkstation
+scoop install cloudworkstation
 
 # Step 3: Verify installation
 cws --version
@@ -64,8 +74,9 @@ cws connect my-research
 - **Architecture**: Both x86_64 and arm64 supported
 
 ### Windows
-- **Basic Support**: CLI, daemon
-- **TUI/GUI**: Planned for future releases
+- **Full Support**: CLI, TUI, daemon
+- **GUI**: Available when built from source or via Docker
+- **Installation**: Use Scoop package manager for easy installation
 
 ## Configuration
 
@@ -109,10 +120,16 @@ echo 'export AWS_PROFILE=aws' >> ~/.zshrc
 
 ## Upgrading
 
-### Homebrew
+### Homebrew (macOS/Linux)
 ```bash
 brew update
-brew upgrade cloudworkstation
+brew upgrade scttfrdmn/tap/cloudworkstation
+```
+
+### Scoop (Windows)
+```powershell
+scoop update
+scoop update cloudworkstation
 ```
 
 ### Manual
@@ -120,10 +137,16 @@ Download the latest release and replace the existing binaries.
 
 ## Uninstalling
 
-### Homebrew
+### Homebrew (macOS/Linux)
 ```bash
-brew uninstall cloudworkstation
-brew untap scttfrdmn/cloudworkstation
+brew uninstall scttfrdmn/tap/cloudworkstation
+brew untap scttfrdmn/tap
+```
+
+### Scoop (Windows)
+```powershell
+scoop uninstall cloudworkstation
+scoop bucket rm scttfrdmn
 ```
 
 ### Manual
