@@ -421,6 +421,7 @@ func (c *HTTPClient) GetLogsSummary(ctx context.Context) (*types.LogSummaryRespo
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.LogSummaryResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -440,6 +441,7 @@ func (c *HTTPClient) CreateInstanceSnapshot(ctx context.Context, req types.Insta
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.InstanceSnapshotResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -455,6 +457,7 @@ func (c *HTTPClient) ListInstanceSnapshots(ctx context.Context) (*types.Instance
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.InstanceSnapshotListResponse
 	if err := c.handleResponse(resp, &result); err != nil {
