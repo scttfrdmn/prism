@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -32,6 +34,9 @@ func (s *Server) RegisterAMIRoutes(mux *http.ServeMux, applyMiddleware func(http
 	mux.HandleFunc("/api/v1/ami/snapshot/create", applyMiddleware(s.handleAMISnapshotCreate))
 	mux.HandleFunc("/api/v1/ami/snapshot/restore", applyMiddleware(s.handleAMISnapshotRestore))
 	mux.HandleFunc("/api/v1/ami/snapshot/delete", applyMiddleware(s.handleAMISnapshotDelete))
+
+	// AMI freshness checking endpoints (v0.5.4 - Universal Version System)
+	mux.HandleFunc("/api/v1/ami/check-freshness", applyMiddleware(s.handleAMICheckFreshness))
 }
 
 // handleAMIResolve resolves AMI for a specific template
@@ -651,6 +656,60 @@ func (s *Server) handleAMISnapshotDelete(w http.ResponseWriter, r *http.Request)
 		"volume_size":             result.VolumeSize,
 		"storage_savings_monthly": result.StorageSavingsMonthly,
 		"deletion_completed_at":   result.CompletedAt,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+// handleAMICheckFreshness validates static AMI IDs against latest SSM values
+// GET /api/v1/ami/check-freshness
+func (s *Server) handleAMICheckFreshness(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	// Get template parser to access static AMI mappings
+	parser := templates.NewTemplateParser()
+	staticAMIs := parser.BaseAMIs
+
+	// Check AMI freshness using AWS manager
+	ctx := r.Context()
+	results, err := s.awsManager.CheckAMIFreshness(ctx, staticAMIs)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("AMI freshness check failed: %v", err))
+		return
+	}
+
+	// Format results
+	outdatedCount := 0
+	upToDateCount := 0
+	noSSMSupportCount := 0
+
+	for _, result := range results {
+		if result.NeedsUpdate && result.IsOutdated {
+			outdatedCount++
+		} else if result.HasSSMSupport {
+			upToDateCount++
+		} else {
+			noSSMSupportCount++
+		}
+	}
+
+	// Create response
+	response := map[string]interface{}{
+		"total_checked":   len(results),
+		"outdated":        outdatedCount,
+		"up_to_date":      upToDateCount,
+		"no_ssm_support":  noSSMSupportCount,
+		"results":         results,
+		"recommendation":  "Update outdated AMIs in pkg/templates/parser.go",
+		"ssm_supported":   []string{"Ubuntu", "Amazon Linux", "Debian"},
+		"static_only":     []string{"Rocky Linux", "RHEL", "Alpine"},
+		"check_timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

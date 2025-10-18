@@ -56,6 +56,9 @@ type Manager struct {
 	// Universal AMI System components (Phase 5.1)
 	amiResolver *UniversalAMIResolver
 
+	// Universal Version System components (v0.5.4)
+	amiDiscovery *AMIDiscovery
+
 	// Architecture cache for instance types
 	architectureCache map[string]string // instance_type -> architecture
 }
@@ -114,6 +117,9 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	// Initialize Universal AMI System (Phase 5.1)
 	amiResolver := NewUniversalAMIResolver(ec2Client)
 
+	// Initialize Universal Version System (v0.5.4)
+	amiDiscovery := NewAMIDiscovery(ssmClient)
+
 	// Initialize AWS Pricing API client with caching
 	pricingClient := NewPricingClient(cfg)
 
@@ -131,6 +137,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		discountConfig:    ctypes.DiscountConfig{}, // No discounts by default
 		stateManager:      stateManager,
 		amiResolver:       amiResolver,
+		amiDiscovery:      amiDiscovery,
 		architectureCache: make(map[string]string), // Initialize architecture cache
 	}
 
@@ -4479,4 +4486,9 @@ func (m *Manager) GetPolicyManager() *idle.PolicyManager {
 // GetAWSConfig returns the AWS config for creating additional service clients
 func (m *Manager) GetAWSConfig() aws.Config {
 	return m.cfg
+}
+
+// CheckAMIFreshness validates static AMI IDs against latest SSM values (v0.5.4)
+func (m *Manager) CheckAMIFreshness(ctx context.Context, staticAMIs map[string]map[string]map[string]map[string]string) ([]AMIFreshnessResult, error) {
+	return m.amiDiscovery.CheckAMIFreshness(ctx, staticAMIs, m.region)
 }
