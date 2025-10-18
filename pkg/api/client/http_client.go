@@ -352,6 +352,7 @@ func (c *HTTPClient) ResizeInstance(ctx context.Context, resizeRequest types.Res
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.ResizeResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -387,6 +388,7 @@ func (c *HTTPClient) GetInstanceLogs(ctx context.Context, instanceName string, l
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.LogResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -403,6 +405,7 @@ func (c *HTTPClient) GetInstanceLogTypes(ctx context.Context, instanceName strin
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.LogTypesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
