@@ -15,7 +15,7 @@ v0.5.2 introduces the **Universal AMI System**, transforming CloudWorkstation fr
 ### **⚡ Universal AMI Reference System**
 **Status**: 🚧 **In Development**
 
-**Revolutionary Performance**:
+**Performance Improvements**:
 - **30-second launches** vs 5-8 minute script provisioning
 - **4.2x faster deployment** for optimized environments
 - **Universal coverage** - any template can reference pre-built AMIs
@@ -331,4 +331,4 @@ GET /api/v1/ami/costs                   # Get AMI deployment costs
 
 ---
 
-**CloudWorkstation v0.5.2** represents a **revolutionary advancement** in research computing deployment speed and reliability. The Universal AMI System transforms the platform from script-based provisioning into an intelligent hybrid system that provides **researchers with the fastest, most reliable path to their research environments** while maintaining complete flexibility and backwards compatibility.
+**CloudWorkstation v0.5.2** represents a significant advancement in research computing deployment speed and reliability. The Universal AMI System transforms the platform from script-based provisioning into an intelligent hybrid system that provides researchers with faster, more reliable research environments while maintaining complete flexibility and backwards compatibility.
