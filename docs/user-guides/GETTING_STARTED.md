@@ -13,9 +13,12 @@ Quick install:
 # macOS/Linux
 brew tap scttfrdmn/cloudworkstation
 brew install cloudworkstation
+```
 
+```powershell
 # Windows
-choco install cloudworkstation --source="'https://package.cloudworkstation.org/chocolatey'"
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
+scoop install cloudworkstation
 ```
 
 ### 2. AWS Setup

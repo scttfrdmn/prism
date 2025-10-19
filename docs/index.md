@@ -28,9 +28,10 @@ brew install cloudworkstation
 
 ### Windows
 
-```bash
-# Using Chocolatey
-choco install cloudworkstation --source="'https://package.cloudworkstation.org/chocolatey'"
+```powershell
+# Using Scoop
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
+scoop install cloudworkstation
 ```
 
 ### Linux
@@ -60,6 +61,18 @@ You can also download the right version for your computer:
 
 ## Documentation Index
 
+### 👥 Persona Walkthroughs (Start Here!)
+
+**The best way to learn CloudWorkstation is through real-world scenarios:**
+
+- [Solo Researcher Walkthrough](USER_SCENARIOS/01_SOLO_RESEARCHER_WALKTHROUGH.md) - Individual research projects
+- [Lab Environment Walkthrough](USER_SCENARIOS/02_LAB_ENVIRONMENT_WALKTHROUGH.md) - Team collaboration
+- [University Class Walkthrough](USER_SCENARIOS/03_UNIVERSITY_CLASS_WALKTHROUGH.md) - Teaching and coursework
+- [Conference Workshop Walkthrough](USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH.md) - Workshops and tutorials
+- [Cross-Institutional Collaboration](USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH.md) - Multi-institution projects
+
+These walkthroughs show complete end-to-end workflows with real commands, expected outputs, and best practices.
+
 ### 🚀 User Guides
 
 - [Getting Started](user-guides/ZERO_SETUP_GUIDE.md) - Quickest path to first launch
@@ -67,7 +80,7 @@ You can also download the right version for your computer:
 - [Desktop Interface Guide](user-guides/GUI_USER_GUIDE.md) - Point-and-click interface
 - [Terminal Interface Guide](user-guides/TUI_USER_GUIDE.md) - Command-line power users
 - [Linux Installation](user-guides/LINUX_INSTALLATION.md) - Linux setup
-- [macOS Installation](user-guides/MACOS_DMG_INSTALLATION.md) - macOS setup
+- [macOS Installation](user-guides/MACOS_INSTALLATION.md) - macOS setup via Homebrew
 - [Multiple AWS Accounts](user-guides/MULTI_PROFILE_GUIDE.md) - Profile management
 - [Template Format](user-guides/TEMPLATE_FORMAT.md) - Creating templates
 - [Template Marketplace](user-guides/TEMPLATE_MARKETPLACE_USER_GUIDE.md) - Community templates

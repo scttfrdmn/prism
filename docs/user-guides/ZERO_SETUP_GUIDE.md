@@ -11,7 +11,7 @@ Zero-setup means you can go from installation to running workstation in **one co
 ```bash
 # Install CloudWorkstation (see Installation Guide for your platform)
 brew install scttfrdmn/cloudworkstation   # macOS/Linux
-# or: choco install cloudworkstation       # Windows
+# or: scoop install cloudworkstation       # Windows (via Scoop)
 # or: conda install cloudworkstation       # Any platform via Conda
 
 # Launch a workstation - that's it!
