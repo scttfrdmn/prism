@@ -62,51 +62,58 @@ You can also download the right version for your computer:
 
 ### 🚀 User Guides
 
-- [Quick Start Guide](GETTING_STARTED.md) - Get up and running fast
-- [Terminal Interface Guide](TUI_USER_GUIDE.md) - Command-line power users  
-- [Desktop Interface Guide](GUI_USER_GUIDE.md) - Point-and-click interface
-- [Multiple AWS Accounts](MULTI_PROFILE_GUIDE.md) - Work with different AWS accounts
-- [Template System](TEMPLATE_INHERITANCE.md) - Understanding research templates
+- [Getting Started](user-guides/ZERO_SETUP_GUIDE.md) - Quickest path to first launch
+- [User Guide v0.5.x](user-guides/USER_GUIDE_v0.5.x.md) - Complete CLI guide
+- [Desktop Interface Guide](user-guides/GUI_USER_GUIDE.md) - Point-and-click interface
+- [Terminal Interface Guide](user-guides/TUI_USER_GUIDE.md) - Command-line power users
+- [Linux Installation](user-guides/LINUX_INSTALLATION.md) - Linux setup
+- [macOS Installation](user-guides/MACOS_DMG_INSTALLATION.md) - macOS setup
+- [Multiple AWS Accounts](user-guides/MULTI_PROFILE_GUIDE.md) - Profile management
+- [Template Format](user-guides/TEMPLATE_FORMAT.md) - Creating templates
+- [Template Marketplace](user-guides/TEMPLATE_MARKETPLACE_USER_GUIDE.md) - Community templates
+- [Web Services](user-guides/WEB_SERVICES_INTEGRATION_GUIDE.md) - Jupyter, RStudio
+- [Troubleshooting](user-guides/TROUBLESHOOTING.md) - Common issues
 
 ### 🔧 Administrator Documentation
 
-- [Administrator Guide](ADMINISTRATOR_GUIDE.md) - Managing CloudWorkstation
-- [Security & Invitations](SECURE_INVITATION_ARCHITECTURE.md) - User access control
-- [Batch Management](BATCH_INVITATION_GUIDE.md) - Managing multiple users
-- [Security Hardening](SECURITY_HARDENING_GUIDE.md) - Enterprise security
+- [Administrator Guide](admin-guides/ADMINISTRATOR_GUIDE.md) - System administration
+- [Batch Management](admin-guides/BATCH_INVITATION_GUIDE.md) - Multiple users
+- [Research User Management](admin-guides/RESEARCH_USER_MANAGEMENT_GUIDE.md) - Multi-user
+- [Security Hardening](admin-guides/SECURITY_HARDENING_GUIDE.md) - Enterprise security
+- [NIST 800-171 Compliance](admin-guides/NIST_800_171_COMPLIANCE.md) - Compliance
+- [AWS IAM Permissions](admin-guides/AWS_IAM_PERMISSIONS.md) - Required permissions
+- [Policy Examples](admin-guides/BASIC_POLICY_EXAMPLES.md) - Policy configuration
 
-### 📦 Installation & Distribution
+### 🏗️ Architecture & Design
 
-- [Linux Installation](LINUX_INSTALLATION.md) - Linux-specific setup
-- [macOS DMG Installation](MACOS_DMG_INSTALLATION.md) - macOS installer
-- [Homebrew Tap](HOMEBREW_TAP.md) - macOS/Linux package management
-- [Chocolatey Package](CHOCOLATEY_PACKAGE.md) - Windows package management
-- [Windows MSI Installer](../packaging/windows/README.md) - Enterprise Windows install
+- [Vision](VISION.md) - Project vision and goals
+- [Design Principles](DESIGN_PRINCIPLES.md) - Core philosophy
+- [User Requirements](USER_REQUIREMENTS.md) - User scenarios
+- [GUI Architecture](architecture/GUI_ARCHITECTURE.md) - Desktop app design
+- [API Reference](architecture/DAEMON_API_REFERENCE.md) - REST API docs
+- [Dual User Architecture](architecture/DUAL_USER_ARCHITECTURE.md) - User system
+- [Template Marketplace](architecture/TEMPLATE_MARKETPLACE_ARCHITECTURE.md) - Distribution
+- [Auto-AMI System](architecture/AUTO_AMI_SYSTEM.md) - AMI automation
+- [Idle Detection](architecture/IDLE_DETECTION.md) - Cost optimization
 
-### 🛠️ Advanced Features
+### 💻 Development
 
-- [Template Format](TEMPLATE_FORMAT.md) - Creating custom templates
-- [Advanced Templates](TEMPLATE_FORMAT_ADVANCED.md) - Complex template features
-- [EFS File Sharing](EFS_SHARING_IMPLEMENTATION.md) - Multi-instance collaboration
-- [Cost Optimization](IDLE_DETECTION.md) - Hibernation and idle detection
-- [Profile Management](PROFILE_EXPORT_IMPORT.md) - Importing/exporting profiles
+- [Development Setup](development/DEVELOPMENT_SETUP.md) - Dev environment
+- [Testing Guide](development/TESTING.md) - Running tests
+- [Code Quality](development/CODE_QUALITY_BEST_PRACTICES.md) - Best practices
+- [Release Process](development/RELEASE_PROCESS.md) - Creating releases
+- [Distribution](development/DISTRIBUTION.md) - Package distribution
+- [Template Implementation](development/TEMPLATE_SYSTEM_IMPLEMENTATION.md) - How templates work
 
-### 🏗️ Developer Documentation
+### 📋 Releases
 
-- [GUI Architecture](GUI_ARCHITECTURE.md) - Desktop application design
-- [Plugin Architecture](PLUGIN_ARCHITECTURE.md) - Extensibility system
-- [API Reference](DAEMON_API_REFERENCE.md) - REST API documentation
-- [Template Implementation](TEMPLATE_SYSTEM_IMPLEMENTATION.md) - How templates work
-
-### 🔮 Future Planning
-
-- [Phase 5 Development](PHASE_5_DEVELOPMENT_PLAN.md) - Roadmap for v0.5.0
-- [Multi-User Planning](MULTI_USER_PLANNING_v0.5.0.md) - Collaborative features
-- [Research Architecture](RESEARCH_USER_ARCHITECTURE.md) - Academic integration
+- [Release Notes](releases/RELEASE_NOTES.md) - All versions
+- [v0.5.2](releases/RELEASE_NOTES_v0.5.2.md) - Template Marketplace
+- [v0.5.1](releases/RELEASE_NOTES_v0.5.1.md) - Command updates
 
 ### 📚 Archive
 
-Historical documentation and completed implementation details are archived in [docs/archive/](archive/README.md).
+Historical documentation, session summaries, and obsolete plans are archived in [docs/archive/](archive/README.md).
 
 ## Features
 

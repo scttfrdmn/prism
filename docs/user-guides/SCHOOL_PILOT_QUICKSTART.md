@@ -1,6 +1,6 @@
 # CloudWorkstation School Pilot Quick Start Guide
 
-*Last Updated: September 2025 • Version 0.4.5*
+*Last Updated: October 2025 • Version 0.5.5*
 
 ## 🎯 For Educational Institutions & School Pilots
 

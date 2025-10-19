@@ -4,7 +4,7 @@ Professional macOS installer for CloudWorkstation with native experience, code s
 
 ## Quick Start
 
-1. **Download:** Get `CloudWorkstation-v0.4.2.dmg` from [GitHub Releases](https://github.com/scttfrdmn/cloudworkstation/releases)
+1. **Download:** Get the latest `CloudWorkstation-v0.5.5.dmg` from [GitHub Releases](https://github.com/scttfrdmn/cloudworkstation/releases)
 2. **Install:** Double-click DMG, drag CloudWorkstation.app to Applications
 3. **Launch:** Open CloudWorkstation from Applications or Spotlight
 4. **Setup:** Follow the guided setup for AWS configuration
@@ -17,8 +17,8 @@ Professional macOS installer for CloudWorkstation with native experience, code s
 
 ```bash
 # Download and install
-curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.2.dmg
-open CloudWorkstation-v0.4.2.dmg
+curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.5.5.dmg
+open CloudWorkstation-v0.5.5.dmg
 # Drag CloudWorkstation.app to Applications folder
 ```
 

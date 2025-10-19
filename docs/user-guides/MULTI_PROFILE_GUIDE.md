@@ -4,7 +4,7 @@
   <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
-> **Current v0.4.3**: Enhanced profile management with context support, secure credential storage, and full API integration.
+> **Current v0.5.5**: Enhanced profile management with context support, secure credential storage, and full API integration.
 
 ## What are Profiles?
 
