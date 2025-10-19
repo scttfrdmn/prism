@@ -1,0 +1,78 @@
+name: 📚 Documentation Issue
+description: Report missing, incorrect, or unclear documentation
+title: "[Docs]: "
+labels: ["documentation", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us improve CloudWorkstation's documentation! Clear documentation is essential for researchers.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What kind of documentation is affected?
+      options:
+        - User Guide
+        - Administrator Guide
+        - Architecture Documentation
+        - Development Documentation
+        - Persona Walkthroughs
+        - README/Getting Started
+        - API Documentation
+        - Error Messages
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Which file or page has the issue?
+      placeholder: docs/user-guides/USER_GUIDE_v0.5.x.md
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What's wrong with the documentation?
+      options:
+        - Missing documentation
+        - Incorrect information
+        - Unclear/confusing
+        - Outdated information
+        - Broken links
+        - Typo/grammar
+        - Example doesn't work
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What's wrong or missing?
+      placeholder: |
+        The documentation says to [do X], but...
+        Or: There's no documentation for [feature Y]...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Fix
+      description: How should the documentation be improved?
+      placeholder: |
+        The documentation should explain...
+        Or: Add a section that covers...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that helps us understand the issue
+      placeholder: Related to which feature, workflow, or use case?

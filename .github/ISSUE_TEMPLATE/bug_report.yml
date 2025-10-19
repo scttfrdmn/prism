@@ -1,0 +1,123 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of CloudWorkstation is affected?
+      options:
+        - CLI
+        - GUI (Desktop App)
+        - TUI (Terminal Interface)
+        - Daemon
+        - Templates
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Run command '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The command should...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Instead, the command...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: CloudWorkstation Version
+      description: Run `cws version` to get the version
+      placeholder: v0.5.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running?
+      options:
+        - macOS
+        - Linux
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS Version
+      description: What version of your OS?
+      placeholder: macOS 14.5, Ubuntu 22.04, Windows 11
+
+  - type: dropdown
+    id: aws-region
+    attributes:
+      label: AWS Region
+      description: Which AWS region were you using?
+      options:
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+        - eu-west-1
+        - eu-central-1
+        - ap-southeast-1
+        - ap-northeast-1
+        - Other
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Please paste any relevant log output
+      render: shell
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help us debug this issue
+      placeholder: Screenshots, error messages, configuration files, etc.

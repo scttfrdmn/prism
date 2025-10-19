@@ -113,8 +113,14 @@ They prioritize usability and clarity by showing complete end-to-end workflows w
 - [Auto-AMI System](architecture/AUTO_AMI_SYSTEM.md) - AMI automation
 - [Idle Detection](architecture/IDLE_DETECTION.md) - Cost optimization
 
-### 💻 Development
+### 💻 Development & Contributing
 
+**Get Involved:**
+- [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues) - Report bugs or request features
+- [GitHub Projects](https://github.com/scttfrdmn/cloudworkstation/projects) - View roadmap and current work
+- [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones) - Track development phases
+
+**Developer Documentation:**
 - [Development Setup](development/DEVELOPMENT_SETUP.md) - Dev environment
 - [Testing Guide](development/TESTING.md) - Running tests
 - [Code Quality](development/CODE_QUALITY_BEST_PRACTICES.md) - Best practices

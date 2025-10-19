@@ -1,0 +1,216 @@
+# GitHub Labels Configuration for CloudWorkstation
+# This file defines all labels used for issue and PR management
+#
+# To apply these labels, use: gh label sync --labels .github/labels.yml
+
+# ============================================================================
+# Type Labels - What kind of issue is this?
+# ============================================================================
+
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working correctly"
+
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "ux-improvement"
+  color: "bfdadc"
+  description: "Usability or user experience improvement"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "technical-debt"
+  color: "fbca04"
+  description: "Code refactoring or improvement needed"
+
+# ============================================================================
+# Priority Labels - How urgent is this?
+# ============================================================================
+
+- name: "priority: critical"
+  color: "b60205"
+  description: "Highest priority - blocking work or severe impact"
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: "High priority - should be addressed soon"
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: "Medium priority - important but not urgent"
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: "Low priority - nice to have"
+
+# ============================================================================
+# Area Labels - Which component is affected?
+# ============================================================================
+
+- name: "area: cli"
+  color: "c5def5"
+  description: "Command-line interface (cmd/cws, internal/cli)"
+
+- name: "area: gui"
+  color: "c5def5"
+  description: "Desktop GUI application (cmd/cws-gui)"
+
+- name: "area: tui"
+  color: "c5def5"
+  description: "Terminal interface (internal/tui)"
+
+- name: "area: daemon"
+  color: "c5def5"
+  description: "Backend daemon (cmd/cwsd, pkg/daemon)"
+
+- name: "area: templates"
+  color: "c5def5"
+  description: "Template system and marketplace"
+
+- name: "area: aws"
+  color: "c5def5"
+  description: "AWS integration (pkg/aws)"
+
+- name: "area: build"
+  color: "c5def5"
+  description: "Build system, CI/CD, packaging"
+
+- name: "area: tests"
+  color: "c5def5"
+  description: "Testing infrastructure and test coverage"
+
+# ============================================================================
+# Persona Labels - Who does this help?
+# ============================================================================
+
+- name: "persona: solo-researcher"
+  color: "e99695"
+  description: "Benefits solo researcher workflow"
+
+- name: "persona: lab-environment"
+  color: "e99695"
+  description: "Benefits lab collaboration workflow"
+
+- name: "persona: university-class"
+  color: "e99695"
+  description: "Benefits teaching/coursework workflow"
+
+- name: "persona: conference-workshop"
+  color: "e99695"
+  description: "Benefits workshop/tutorial workflow"
+
+- name: "persona: cross-institutional"
+  color: "e99695"
+  description: "Benefits multi-institution collaboration"
+
+# ============================================================================
+# Status Labels - Issue lifecycle
+# ============================================================================
+
+- name: "triage"
+  color: "ededed"
+  description: "Needs initial review and prioritization"
+
+- name: "needs-info"
+  color: "d876e3"
+  description: "Waiting for more information from reporter"
+
+- name: "blocked"
+  color: "b60205"
+  description: "Blocked by external dependency or other issue"
+
+- name: "ready"
+  color: "0e8a16"
+  description: "Ready to be worked on"
+
+- name: "in-progress"
+  color: "fbca04"
+  description: "Currently being worked on"
+
+- name: "in-review"
+  color: "fef2c0"
+  description: "In code review"
+
+- name: "awaiting-merge"
+  color: "c2e0c6"
+  description: "Approved and ready to merge"
+
+# ============================================================================
+# Resolution Labels - Why was this closed?
+# ============================================================================
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or PR already exists"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "invalid"
+  color: "e4e669"
+  description: "This doesn't seem right or is not applicable"
+
+- name: "works-as-designed"
+  color: "fef2c0"
+  description: "Behavior is intentional"
+
+# ============================================================================
+# Special Labels
+# ============================================================================
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers to the project"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed from community"
+
+- name: "breaking-change"
+  color: "d73a4a"
+  description: "Changes that break backward compatibility"
+
+- name: "security"
+  color: "ee0701"
+  description: "Security-related issue or improvement"
+
+- name: "performance"
+  color: "1d76db"
+  description: "Performance optimization or issue"
+
+- name: "dependencies"
+  color: "0366d6"
+  description: "Pull requests that update a dependency file"
+
+# ============================================================================
+# Phase/Milestone Labels (align with roadmap)
+# ============================================================================
+
+- name: "phase: 5.0-ux-redesign"
+  color: "bfd4f2"
+  description: "Part of Phase 5.0 UX Redesign"
+
+- name: "phase: 5.1-universal-ami"
+  color: "bfd4f2"
+  description: "Part of Phase 5.1 Universal AMI System"
+
+- name: "phase: 5.2-marketplace"
+  color: "bfd4f2"
+  description: "Part of Phase 5.2 Template Marketplace Enhancement"
+
+- name: "phase: 5.3-config-sync"
+  color: "bfd4f2"
+  description: "Part of Phase 5.3 Configuration & Directory Sync"
+
+- name: "phase: 5.4-aws-services"
+  color: "bfd4f2"
+  description: "Part of Phase 5.4 AWS Research Services"
+
+- name: "phase: 6.0-extensibility"
+  color: "bfd4f2"
+  description: "Part of Phase 6 Extensibility & Ecosystem"

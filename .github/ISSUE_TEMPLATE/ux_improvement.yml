@@ -1,0 +1,86 @@
+name: 🎨 UX Improvement
+description: Suggest a usability or user experience improvement
+title: "[UX]: "
+labels: ["ux-improvement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us improve CloudWorkstation's usability! We prioritize changes that make the tool easier to learn and use for researchers.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which interface is affected?
+      options:
+        - CLI (Command Line)
+        - GUI (Desktop App)
+        - TUI (Terminal Interface)
+        - Documentation
+        - Error Messages
+        - All Interfaces
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Experience
+      description: What's confusing or difficult right now?
+      placeholder: |
+        Currently, when I try to [do something], I find it confusing because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: improved
+    attributes:
+      label: Improved Experience
+      description: How could this be better?
+      placeholder: |
+        It would be clearer if...
+        For example, the command could provide...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      description: Who does this affect?
+      options:
+        - New users (first-time learning)
+        - Occasional users (once a month)
+        - Regular users (daily/weekly)
+        - Power users (advanced features)
+        - All users
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      description: How often do users encounter this?
+      options:
+        - Every time (always confusing)
+        - Often (multiple times per session)
+        - Sometimes (once per session)
+        - Rarely (edge case)
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or Screenshots
+      description: Show us the problem (screenshots, command output, etc.)
+      placeholder: Attach screenshots or paste command output
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other details that help explain the issue
+      placeholder: Related to specific workflows, similar to other tools, etc.

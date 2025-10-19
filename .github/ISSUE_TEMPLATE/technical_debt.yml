@@ -1,0 +1,108 @@
+name: 🔧 Technical Debt
+description: Report code that needs refactoring or improvement (maintainers only)
+title: "[Debt]: "
+labels: ["technical-debt", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Technical debt items are code improvements that enhance maintainability without changing user-facing behavior.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What type of technical debt?
+      options:
+        - Code Modernization
+        - Performance Optimization
+        - Test Coverage
+        - Code Duplication
+        - API Cleanup
+        - Deprecated Dependencies
+        - Security Hardening
+        - Build System
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the codebase?
+      options:
+        - CLI (cmd/cws, internal/cli)
+        - GUI (cmd/cws-gui)
+        - TUI (internal/tui)
+        - Daemon (cmd/cwsd, pkg/daemon)
+        - AWS Integration (pkg/aws)
+        - Templates (pkg/templates)
+        - Build/CI
+        - Tests
+        - Multiple Components
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Current State
+      description: What's the problem with the current code?
+      placeholder: |
+        Currently, the code in [file/package] uses [old pattern] which...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Improvement
+      description: How should this be refactored?
+      placeholder: |
+        We should migrate to [new pattern] because...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this refactoring?
+      options:
+        - Critical - Blocking other work
+        - High - Should be addressed soon
+        - Medium - Important but not urgent
+        - Low - Nice to have
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: How much work is this?
+      options:
+        - Small (< 1 day)
+        - Medium (1-3 days)
+        - Large (1 week)
+        - Very Large (> 1 week)
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks & Considerations
+      description: What could go wrong? What else is affected?
+      placeholder: |
+        This change affects...
+        Breaking changes to...
+        Need to coordinate with...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Links to related code, issues, or discussions
+      placeholder: Related to issue #123, affects PR #456, etc.

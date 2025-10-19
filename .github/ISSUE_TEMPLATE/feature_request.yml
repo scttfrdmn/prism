@@ -1,0 +1,105 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Before submitting, please check:
+        - Does this improve one of our [5 persona workflows](https://github.com/scttfrdmn/cloudworkstation/tree/main/docs/USER_SCENARIOS)?
+        - Does it align with our [design principles](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/DESIGN_PRINCIPLES.md)?
+
+  - type: dropdown
+    id: persona
+    attributes:
+      label: Which Persona Benefits?
+      description: Which researcher persona does this feature help?
+      options:
+        - Solo Researcher
+        - Lab Environment
+        - University Class
+        - Conference Workshop
+        - Cross-Institutional Collaboration
+        - All/Multiple Personas
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of CloudWorkstation would this affect?
+      options:
+        - CLI
+        - GUI (Desktop App)
+        - TUI (Terminal Interface)
+        - Daemon/API
+        - Templates
+        - Documentation
+        - All Components
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: As a [persona], I need to [do something] because [reason]...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you like this feature to work?
+      placeholder: |
+        I'd like to be able to...
+        For example: `cws command --new-flag`
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you thought of other ways to solve this problem?
+      placeholder: I also considered...
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Example Workflow
+      description: Show us how this feature would improve your workflow
+      placeholder: |
+        Current workflow:
+        1. Step 1
+        2. Step 2
+
+        With this feature:
+        1. Step 1 (simplified)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Critical - Blocking my work
+        - High - Would significantly improve my workflow
+        - Medium - Nice to have
+        - Low - Minor improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information, mockups, or examples
+      placeholder: Screenshots, diagrams, links to similar features in other tools, etc.

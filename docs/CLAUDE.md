@@ -6,8 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 📋 Quick Navigation
 
+**Project Management** (Use GitHub!):
+- 🎯 [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues) - **Current work, bugs, features**
+- 📊 [GitHub Projects](https://github.com/scttfrdmn/cloudworkstation/projects) - **Roadmap and sprint planning**
+- 🏁 [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones) - **Phase tracking and progress**
+
 **Essential Reading**:
-- 🎯 [ROADMAP.md](ROADMAP.md) - **Current status, priorities, and development plan**
 - 👥 [USER_SCENARIOS/](USER_SCENARIOS/) - **5 persona walkthroughs (our north star)**
 - 🎨 [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md) - **Current UX issues and fixes**
 - 🏛️ [VISION.md](VISION.md) - Long-term product vision
@@ -78,7 +82,8 @@ Simple by default, detailed when needed. Power users can access advanced feature
 
 ## 🚀 Current Development Status
 
-**See [ROADMAP.md](ROADMAP.md) for complete status tracking.**
+**Current Version**: v0.5.5
+**Current Milestone**: [Phase 5.0: UX Redesign](https://github.com/scttfrdmn/cloudworkstation/milestone/1)
 
 ### Completed Phases
 - ✅ Phase 1: Distributed Architecture
@@ -98,15 +103,15 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - Current: 15-minute learning curve for first workspace (should be 30 seconds)
 - Problem: 14 flat navigation items, advanced features too prominent
 - Impact: New researchers face cognitive overload before basic tasks
-- **See detailed plan**: [ROADMAP.md - Phase 5.0](ROADMAP.md#-current-focus-phase-50---ux-redesign)
+- **Track progress**: [GitHub Milestone](https://github.com/scttfrdmn/cloudworkstation/milestone/1)
 - **See UX analysis**: [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 
-**Quick Wins (2 weeks)**:
-- [ ] Home Page with Quick Start
-- [ ] Merge Terminal/WebView into Workspaces
-- [ ] Rename "Instances" → "Workspaces"
-- [ ] Collapse Advanced Features
-- [ ] Add `cws init` wizard
+**Quick Wins** (tracked as [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues?q=is%3Aissue+milestone%3A%22Phase+5.0.1%3A+Quick+Wins%22)):
+- Home Page with Quick Start wizard
+- Merge Terminal/WebView into Workspaces
+- Rename "Instances" → "Workspaces"
+- Collapse Advanced Features under Settings
+- Add `cws init` onboarding wizard
 
 ---
 
