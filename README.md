@@ -225,6 +225,8 @@ curl http://localhost:8947/api/v1/instances
 
 ## 📖 Documentation
 
+**📚 [Complete Documentation Site](https://scttfrdmn.github.io/cloudworkstation/)** - User guides, architecture docs, and persona walkthroughs
+
 ```bash
 cws --help                      # Show all commands
 cws templates                   # List available templates
@@ -287,9 +289,10 @@ make test
 
 ## 🆘 Support
 
-- **Documentation**: `cws --help` or browse [docs](docs/)
+- **Documentation**: [Complete docs site](https://scttfrdmn.github.io/cloudworkstation/) or `cws --help`
 - **System Check**: `cws doctor`
 - **Issues**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions)
 - **AWS Setup**: See [AWS Setup Guide](AWS_SETUP_GUIDE.md)
 
 ---
