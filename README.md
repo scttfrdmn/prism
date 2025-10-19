@@ -283,7 +283,7 @@ make test
 
 ## 📄 License
 
-[MIT License](LICENSE) - Free for academic and commercial use
+[Apache License 2.0](LICENSE) - Free for academic and commercial use
 
 ## 🆘 Support
 
