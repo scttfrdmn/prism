@@ -28,19 +28,13 @@ echo "✅ GitHub CLI is installed and authenticated"
 echo ""
 
 # ============================================================================
-# Step 1: Sync Labels
+# Step 1: Create Labels
 # ============================================================================
 
-echo "📋 Step 1: Syncing labels from .github/labels.yml..."
+echo "📋 Step 1: Creating labels..."
 echo ""
-
-if [ -f ".github/labels.yml" ]; then
-    gh label sync --repo "$REPO" --labels .github/labels.yml --force
-    echo "✅ Labels synced successfully"
-else
-    echo "⚠️  .github/labels.yml not found, skipping label sync"
-fi
-
+echo "Run: ./scripts/setup-github-labels.sh to create labels"
+echo "(Skipping label creation in this script for compatibility)"
 echo ""
 
 # ============================================================================
