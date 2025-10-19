@@ -1,7 +1,7 @@
 # CloudWorkstation
 
 <p align="center">
-  <img src="docs/images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
+  <img src="docs/images/cloudworkstation-transparent.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
 <p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments in seconds</strong></p>

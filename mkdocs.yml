@@ -57,8 +57,8 @@ theme:
     edit: material/pencil
     view: material/eye
 
-  logo: images/cloudworkstation.png
-  favicon: images/cloudworkstation.png
+  logo: images/cloudworkstation-transparent.png
+  favicon: images/cloudworkstation-favicon-32.png
 
 plugins:
   - search:
