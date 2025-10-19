@@ -1,0 +1,76 @@
+title: CloudWorkstation
+description: Launch research environments in the cloud in seconds, not hours
+baseurl: "/cloudworkstation"
+url: "https://scttfrdmn.github.io"
+logo: /images/cloudworkstation.png
+
+# Theme settings
+theme: jekyll-theme-cayman
+color:
+  header: "#5a4fcf"
+  gradient_left: "#7045af"
+  gradient_right: "#3498db"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Navigation
+navigation:
+  - text: Home
+    url: /
+  - text: Getting Started
+    url: /getting-started/
+  - text: CLI Reference
+    url: /cli-reference/
+  - text: TUI Guide
+    url: /tui-guide/
+  - text: Templates
+    url: /templates/
+  - text: GUI Guide
+    url: /gui-user-guide/
+  - text: Multi-Profile Guide
+    url: /multi-profile-guide/
+  - text: Installation
+    url: /installation/
+  - text: GitHub
+    url: https://github.com/scttfrdmn/cloudworkstation
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:path/
+
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "page"
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - .sass-cache/
+  - .jekyll-cache/
+  - .DS_Store
+  - README.md
