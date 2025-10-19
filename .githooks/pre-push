@@ -12,6 +12,24 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Step 1: Version validation
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BLUE}Validating version synchronization${NC}"
+echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+if ! ./scripts/validate-versions.sh; then
+    echo -e "${RED}❌ Version mismatch detected${NC}"
+    echo ""
+    echo "Fix version inconsistencies before pushing."
+    echo "To check versions: ./scripts/validate-versions.sh"
+    echo "To skip this hook (not recommended): git push --no-verify"
+    exit 1
+fi
+
+echo ""
+
+# Step 2: Smoke tests
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}Running smoke tests (critical path verification)${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

@@ -6,6 +6,8 @@ cwsd.exe
 /cws-*
 !/cmd/cws-*
 /bin/
+cmd/cws-gui/cws-gui
+cmd/cws-gui/cws-gui.exe
 
 # Go build artifacts
 *.o

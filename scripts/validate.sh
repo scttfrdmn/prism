@@ -16,25 +16,34 @@ blue() { echo -e "\033[34m$*\033[0m"; }
 
 # Step counter
 step=1
-total_steps=6
+total_steps=7
 
 print_step() {
     blue "[$step/$total_steps] $1"
     ((step++))
 }
 
-# Step 1: Go environment validation
+# Step 1: Version synchronization check
+print_step "Validating version synchronization..."
+if ./scripts/validate-versions.sh; then
+    green "    ✓ Version numbers synchronized"
+else
+    red "    ✗ Version mismatch detected"
+    exit 1
+fi
+
+# Step 2: Go environment validation
 print_step "Validating Go environment..."
 go version
 go env GOPATH
 go env GOROOT
 
-# Step 2: Dependency validation
+# Step 3: Dependency validation
 print_step "Validating dependencies..."
 go mod verify
 go mod tidy -diff
 
-# Step 3: Code quality checks
+# Step 4: Code quality checks
 print_step "Running code quality checks..."
 echo "  - Formatting..."
 if ! go fmt ./... | grep -q "^"; then
@@ -52,7 +61,7 @@ else
     exit 1
 fi
 
-# Step 4: Build validation
+# Step 5: Build validation
 print_step "Validating build..."
 if make clean && make build; then
     green "    ✓ Build successful"
@@ -61,7 +70,7 @@ else
     exit 1
 fi
 
-# Step 5: Test validation
+# Step 6: Test validation
 print_step "Running test suite..."
 if make test-unit; then
     green "    ✓ Unit tests passed"
@@ -70,7 +79,7 @@ else
     exit 1
 fi
 
-# Step 6: Binary validation
+# Step 7: Binary validation
 print_step "Validating binaries..."
 if [ -f "bin/cws" ] && [ -f "bin/cwsd" ]; then
     green "    ✓ Core binaries created"
@@ -92,6 +101,7 @@ echo ""
 green "🎉 CloudWorkstation validation completed successfully!"
 echo ""
 echo "Summary:"
+echo "  ✅ Version sync: Consistent"
 echo "  ✅ Go environment: Valid"
 echo "  ✅ Dependencies: Verified"
 echo "  ✅ Code quality: Passed"
