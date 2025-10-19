@@ -123,25 +123,64 @@ cws volume mount research-data rocky-instance     # rocky user
 
 **Phase 5: AWS-Native Research Ecosystem Expansion**
 
-### **Phase 5.1: Universal AMI System** (v0.5.2 - Q1 2026)
+### **PRIORITY: Phase 5.0 - UX Redesign** (v0.5.6 - Q4 2025 - **IMMEDIATE**)
+
+**CRITICAL**: Before adding more features, fix severe usability problems that make persona workflows harder than necessary.
+
+**Based on Expert UX Evaluation** (see [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)):
+- Current state: 15-minute learning curve for first workspace launch (should be 30 seconds)
+- Problem: 14 flat navigation items with no hierarchy, advanced features too prominent
+- Impact: New researchers face cognitive overload before accomplishing basic tasks
+
+**Phase 5.0.1: Quick Wins (2 weeks) - HIGHEST PRIORITY**
+- ✅ Add **Home Page** with Quick Start guide and context-aware recommendations (90% reduction in "what do I do first?")
+- ✅ **Merge Terminal/WebView** into Workspaces as contextual actions (not navigation destinations)
+- ✅ **Rename "Instances" → "Workspaces"** for researcher-friendly language
+- ✅ **Collapse Advanced Features** (AMI, Rightsizing, Idle Detection) under Settings (64% cognitive load reduction)
+- ✅ **Add `cws init` wizard** for first-time setup (15min → 2min onboarding)
+
+**Phase 5.0.2: Information Architecture (4 weeks)**
+- ✅ **Unified Storage UI** - Single "Storage" with EFS/EBS tabs (eliminates #1 user confusion)
+- ✅ **Integrate Budgets into Projects** - Budget as tab in Project view (makes budgets discoverable)
+- ✅ **Reorganize Navigation** - 5 top-level items instead of 14 (Home, Workspaces, My Work, Collaboration, Settings)
+- ✅ **Role-Based Visibility** - Admin features only visible to admins
+- ✅ **Context-Aware Recommendations** - Home page suggests actions based on user state
+
+**Phase 5.0.3: CLI Consistency (2 weeks)**
+- ✅ **Consistent Command Structure** - `cws workspace`, `cws storage`, `cws admin` grouping
+- ✅ **Unified Storage Commands** - Merge `volume` and `storage` into `cws storage --type efs|ebs`
+- ✅ **Predictable Patterns** - Verb-noun-object everywhere: `cws storage create`, `cws workspace hibernate`
+
+**Success Metrics**:
+- Time to first workspace: 15min → 2min (87% improvement)
+- Navigation complexity: 14 items → 5 items (64% reduction)
+- CLI first-attempt success: 35% → 85% (143% improvement)
+
+**Why This is Priority #1**:
+1. **Validates Persona Workflows** - UX improvements directly benefit all 5 persona scenarios
+2. **Reduces Friction** - Makes CloudWorkstation "just work" as promised in vision
+3. **Enables Growth** - Can't scale adoption with 15-minute learning curve
+4. **Technical Debt** - Feature sprawl created navigation chaos
+
+### **Phase 5.1: Universal AMI System** (v0.5.7 - Q1 2026)
 - 🎯 **Universal AMI Reference**: Any template can use pre-built AMIs with intelligent multi-tier fallback strategies
 - 🎯 **AMI Creation & Sharing**: Generate and distribute optimized AMIs from successful template launches
 - 🎯 **Cross-Region Intelligence**: Automatic AMI discovery, copying, and cost-aware regional optimization
 - 🎯 **Performance Revolution**: 30-second launches vs 5-8 minute script provisioning
 
-### **Phase 5.2: Template Marketplace Integration** (v0.5.3 - Q1 2026)
+### **Phase 5.2: Template Marketplace Integration** (v0.5.8 - Q1 2026)
 - 🎯 **Decentralized Repositories**: Community, institutional, and commercial template + AMI distribution
 - 🎯 **Repository Authentication**: SSH keys, tokens, OAuth for secure template and AMI access
 - 🎯 **AMI + Template Packages**: Combined optimized environments with community ratings and verification
 - 🎯 **Commercial Software**: BYOL licensing with marketplace AMI integration
 
-### **Phase 5.3: Configuration & Directory Sync** (v0.5.4 - Q2 2026)
+### **Phase 5.3: Configuration & Directory Sync** (v0.5.9 - Q2 2026)
 - 🎯 **Template-Based Config Sync**: Share RStudio, Jupyter, VS Code configurations as reusable templates
 - 🎯 **EFS Directory Sync**: Bidirectional file sync between local systems and cloud instances
 - 🎯 **Research-Optimized**: Handle large datasets, code, and notebooks with conflict resolution
 - 🎯 **Cross-Platform**: Seamless sync across macOS, Linux, and Windows
 
-### **Phase 5.4: AWS Research Services** (v0.5.5 - Q2 2026)
+### **Phase 5.4: AWS Research Services** (v0.5.10 - Q2 2026)
 - 🎯 **EMR Studio**: Big data analytics and Spark-based research integration
 - 🎯 **SageMaker Studio Lab**: Educational ML use cases with free tier support
 - 🎯 **Amazon Braket**: Quantum computing research and education access
