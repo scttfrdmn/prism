@@ -10,6 +10,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a command-line tool that allows academic researchers to launch pre-configured cloud workstations in seconds rather than spending hours setting up research environments.
 
+## 🎯 Persona-Driven Development
+
+**CRITICAL**: CloudWorkstation's feature development is guided by [5 persona walkthroughs](USER_SCENARIOS/) that represent real-world research scenarios. These scenarios are our north star for prioritization and decision-making.
+
+**Before implementing ANY feature**:
+1. Ask: "Does this clearly improve one of the 5 persona workflows?"
+2. If yes: Validate the feature makes the workflow simpler/faster/clearer
+3. If no: Question whether it's the right priority
+
+**The 5 Personas**:
+- Solo Researcher (individual projects)
+- Lab Environment (team collaboration)
+- University Class (teaching & coursework)
+- Conference Workshop (workshops & tutorials)
+- Cross-Institutional Collaboration (multi-institution projects)
+
+These walkthroughs prioritize **usability and clarity of use** over technical sophistication. Features that add complexity without clear benefit to these scenarios should be deferred or redesigned.
+
 ## Core Design Principles
 
 These principles guide every design decision and feature implementation:

@@ -63,7 +63,11 @@ You can also download the right version for your computer:
 
 ### 👥 Persona Walkthroughs (Start Here!)
 
-**The best way to learn CloudWorkstation is through real-world scenarios:**
+**🎯 These walkthroughs are our north star for feature development and product direction.**
+
+They prioritize usability and clarity by showing complete end-to-end workflows with real commands, expected outputs, and best practices. When we add features or make design decisions, we validate them against these scenarios to ensure CloudWorkstation remains focused on real researcher needs.
+
+**User Scenarios:**
 
 - [Solo Researcher Walkthrough](USER_SCENARIOS/01_SOLO_RESEARCHER_WALKTHROUGH.md) - Individual research projects
 - [Lab Environment Walkthrough](USER_SCENARIOS/02_LAB_ENVIRONMENT_WALKTHROUGH.md) - Team collaboration
@@ -71,7 +75,7 @@ You can also download the right version for your computer:
 - [Conference Workshop Walkthrough](USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH.md) - Workshops and tutorials
 - [Cross-Institutional Collaboration](USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH.md) - Multi-institution projects
 
-These walkthroughs show complete end-to-end workflows with real commands, expected outputs, and best practices.
+💡 **For Contributors**: Before implementing a feature, check if it improves one of these workflows. If it doesn't clearly benefit a persona scenario, it may not be the right priority.
 
 ### 🚀 User Guides
 
