@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a command-line tool that allows academic researchers to launch pre-configured cloud workstations in seconds rather than spending hours setting up research environments.
+This is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
 
 ## Core Design Principles
 
@@ -395,10 +395,10 @@ pkg/types/
 ### API Architecture
 - **REST API**: HTTP endpoints on port 8947 (CWS on phone keypad)
 - **Options Pattern**: Modern `api.NewClientWithOptions()` with configuration
-- **Profile Integration**: Seamless AWS credential and region management
+- **Profile Integration**: Integrated AWS credential and region management
 - **Graceful Operations**: Proper shutdown, error handling, progress reporting
 
-### Seamless User Experience
+### Streamlined User Experience
 - **Auto-Start Daemon**: All interfaces automatically start daemon as needed - no manual setup required
 - **Zero Keychain Prompts**: Basic profiles work without macOS keychain password requests
 - **Intelligent Binary Discovery**: Auto-locates daemon binary in development and production environments
@@ -492,8 +492,8 @@ Enhanced state management with profile integration:
 
 1. **Multi-modal first**: Every feature must work across CLI, TUI, and GUI
 2. **API-driven**: All interfaces use the same backend API
-3. **Profile-aware**: Seamless AWS credential and region management
-4. **Real-time sync**: Changes reflect across all interfaces immediately
+3. **Profile-aware**: Integrated AWS credential and region management
+4. **Real-time sync**: Changes reflect across all interfaces automatically
 5. **Professional quality**: Zero compilation errors, comprehensive testing
 
 ## Future Phases (Post-Phase 2)

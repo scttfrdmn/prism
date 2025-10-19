@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CloudWorkstation is a command-line tool that allows academic researchers to launch pre-configured cloud workstations in seconds rather than spending hours setting up research environments.
+CloudWorkstation is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
 
 **Current Version**: v0.5.5
 **Current Focus**: [Phase 5.0 UX Redesign](ROADMAP.md#-current-focus-phase-50---ux-redesign) (HIGHEST PRIORITY)

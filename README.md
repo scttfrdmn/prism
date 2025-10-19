@@ -4,7 +4,7 @@
   <img src="docs/images/cloudworkstation-transparent.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
-<p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments in seconds</strong></p>
+<p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments made simple</strong></p>
 
 <p align="center">
   <a href="https://github.com/scttfrdmn/cloudworkstation/releases/latest">
@@ -23,7 +23,7 @@
 
 ## What is CloudWorkstation?
 
-CloudWorkstation provides researchers with **pre-configured cloud workstations** for data analysis, machine learning, and computational research. Launch production-ready environments in seconds, not hours.
+CloudWorkstation provides researchers with **pre-configured cloud workstations** for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
 
 **From individual researchers to institutional deployments** - research computing made simple, scalable, and cost-effective.
 
@@ -144,7 +144,7 @@ cws list
 ### 🏢 Enterprise & Collaboration
 - **Project-Based Organization**: Multi-user projects with role-based access
 - **Research User System**: Persistent identities across instances
-- **Multi-Account Support**: Manage multiple AWS profiles seamlessly
+- **Multi-Account Support**: Manage multiple AWS profiles efficiently
 - **Template Marketplace**: Share and discover community templates
 
 ### 📱 Multi-Modal Access
@@ -297,4 +297,4 @@ make test
 
 ---
 
-**CloudWorkstation v0.5.4** - Pre-configured cloud environments for research computing
+**CloudWorkstation v0.5.4** - Research computing environments made accessible

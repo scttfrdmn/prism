@@ -4,7 +4,7 @@
   <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
-CloudWorkstation helps researchers launch cloud computers with just a few clicks. No more spending hours setting up research tools - we've done the hard work for you!
+CloudWorkstation provides researchers with pre-configured cloud computing environments for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
 
 ## Getting Started
 
@@ -12,7 +12,7 @@ CloudWorkstation helps researchers launch cloud computers with just a few clicks
 2. Choose a research environment template
 3. Give your project a name
 4. Click "Launch"
-5. Start working in seconds!
+5. Connect and begin your work
 
 ## Installation
 

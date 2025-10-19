@@ -1,6 +1,6 @@
 site_name: CloudWorkstation Documentation
 site_url: https://scttfrdmn.github.io/cloudworkstation
-site_description: Launch cloud research environments in seconds
+site_description: Pre-configured cloud research environments for academic computing
 site_author: CloudWorkstation Team
 
 repo_url: https://github.com/scttfrdmn/cloudworkstation

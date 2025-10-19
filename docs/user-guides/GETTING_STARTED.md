@@ -2,7 +2,7 @@
 
 ## Quick Start (5 minutes)
 
-CloudWorkstation launches pre-configured research environments in seconds. No complex setup required.
+CloudWorkstation provides pre-configured research environments without complex setup requirements.
 
 ### 1. Installation
 

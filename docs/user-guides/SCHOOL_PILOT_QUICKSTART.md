@@ -8,7 +8,7 @@ This guide is specifically designed for educational institutions evaluating Clou
 
 ## 📚 What is CloudWorkstation?
 
-CloudWorkstation is an academic research platform that launches pre-configured cloud environments in seconds. Students and educators can access professional development tools, research environments, and collaborative workspaces through a simple interface - no IT expertise required.
+CloudWorkstation is an academic research platform that provides pre-configured cloud environments for students and educators. Access professional development tools, research environments, and collaborative workspaces through a simple interface - no IT expertise required.
 
 **Perfect for:**
 - Computer science courses and labs
