@@ -164,9 +164,10 @@ After running the setup scripts, manually create a GitHub Projects board:
 
 ## 📚 Resources
 
-- [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
-- [GitHub Projects](https://github.com/scttfrdmn/cloudworkstation/projects)
-- [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones)
-- [Persona Walkthroughs](../docs/USER_SCENARIOS/)
-- [UX Evaluation](../docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
-- [Design Principles](../docs/DESIGN_PRINCIPLES.md)
+- [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues) - Bug reports, feature requests, tasks
+- [GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions) - Q&A, ideas, show and tell
+- [GitHub Projects](https://github.com/scttfrdmn/cloudworkstation/projects) - Development roadmap and sprint planning
+- [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones) - Phase tracking and progress
+- [Persona Walkthroughs](../docs/USER_SCENARIOS/) - Real-world use cases
+- [UX Evaluation](../docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md) - Usability improvements
+- [Design Principles](../docs/DESIGN_PRINCIPLES.md) - Core philosophy

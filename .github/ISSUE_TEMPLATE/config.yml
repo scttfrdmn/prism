@@ -1,8 +1,14 @@
 blank_issues_enabled: false
 contact_links:
+  - name: 💬 Ask a Question
+    url: https://github.com/scttfrdmn/cloudworkstation/discussions/new?category=q-a
+    about: Ask questions about using CloudWorkstation
+  - name: 💡 Share an Idea
+    url: https://github.com/scttfrdmn/cloudworkstation/discussions/new?category=ideas
+    about: Suggest new features or improvements (informal discussion before creating issues)
+  - name: 🎉 Show and Tell
+    url: https://github.com/scttfrdmn/cloudworkstation/discussions/new?category=show-and-tell
+    about: Share your CloudWorkstation projects and research workflows
   - name: 📚 Documentation
     url: https://github.com/scttfrdmn/cloudworkstation/tree/main/docs
     about: Read the user guides, architecture docs, and persona walkthroughs
-  - name: 💬 Discussions
-    url: https://github.com/scttfrdmn/cloudworkstation/discussions
-    about: Ask questions and discuss ideas with the community
