@@ -464,6 +464,6 @@ Start using Research Users today to streamline your cloud research workflows!
 ---
 
 **Need Help?**
-- 📚 Full documentation: [Research User Architecture](PHASE_5A_RESEARCH_USER_ARCHITECTURE.md)
+- 📚 Full documentation: [Research User Architecture](../architecture/DUAL_USER_ARCHITECTURE.md)
 - 🐛 Report issues: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
 - 💬 Discuss: [GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions)

@@ -160,7 +160,7 @@ aws configure
 ```
 
 ### "Permission denied" errors
-Make sure your AWS user has the required permissions. See our [AWS IAM Permissions](AWS_IAM_PERMISSIONS.md) for complete IAM policies, or run:
+Make sure your AWS user has the required permissions. See our [AWS IAM Permissions](../admin-guides/AWS_IAM_PERMISSIONS.md) for complete IAM policies, or run:
 
 ```bash
 ./scripts/setup-iam-permissions.sh

@@ -335,6 +335,6 @@ You should be doing research, not configuring infrastructure. CloudWorkstation m
 ## 📚 Learn More
 
 - [Quick Start Guide](../README.md#-quick-start---zero-setup-experience)
-- [AWS Setup Guide](AWS_SETUP_GUIDE.md) (for manual configuration)
-- [Template System](TEMPLATE_SYSTEM.md)
-- [Cost Optimization](COST_OPTIMIZATION.md)
+- [Administrator Guide](../admin-guides/ADMINISTRATOR_GUIDE.md) (for manual AWS configuration)
+- [Template Format](TEMPLATE_FORMAT.md) (creating custom templates)
+- [User Guide](USER_GUIDE_v0.5.x.md) (complete CLI reference)
