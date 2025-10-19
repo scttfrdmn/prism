@@ -62,3 +62,7 @@ test-state.json
 /cws
 analyze_coverage.sh
 daemon_debug.log
+
+# MkDocs
+site/
+.cache/

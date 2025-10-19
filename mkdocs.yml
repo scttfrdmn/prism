@@ -1,0 +1,181 @@
+site_name: CloudWorkstation Documentation
+site_url: https://scttfrdmn.github.io/cloudworkstation
+site_description: Launch cloud research environments in seconds
+site_author: CloudWorkstation Team
+
+repo_url: https://github.com/scttfrdmn/cloudworkstation
+repo_name: scttfrdmn/cloudworkstation
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2025 CloudWorkstation
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - content.tooltips
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+  logo: docs/images/cloudworkstation.png
+  favicon: docs/images/cloudworkstation.png
+
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/scttfrdmn/cloudworkstation
+    - icon: fontawesome/solid/comments
+      link: https://github.com/scttfrdmn/cloudworkstation/discussions
+
+  version:
+    provider: mike
+    default: latest
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+    - Installation: user-guides/GETTING_STARTED.md
+    - Zero-Setup Guide: user-guides/ZERO_SETUP_GUIDE.md
+    - macOS Installation: user-guides/MACOS_INSTALLATION.md
+    - Linux Installation: user-guides/LINUX_INSTALLATION.md
+
+  - User Guides:
+    - CLI User Guide: user-guides/USER_GUIDE_v0.5.x.md
+    - GUI User Guide: user-guides/GUI_USER_GUIDE.md
+    - TUI User Guide: user-guides/TUI_USER_GUIDE.md
+    - Template Format: user-guides/TEMPLATE_FORMAT.md
+    - Template Marketplace: user-guides/TEMPLATE_MARKETPLACE_USER_GUIDE.md
+    - Multi-Profile Guide: user-guides/MULTI_PROFILE_GUIDE.md
+    - Web Services: user-guides/WEB_SERVICES_INTEGRATION_GUIDE.md
+    - Troubleshooting: user-guides/TROUBLESHOOTING.md
+
+  - Persona Walkthroughs:
+    - user-guides/USER_SCENARIOS/01_SOLO_RESEARCHER_WALKTHROUGH.md
+    - user-guides/USER_SCENARIOS/02_LAB_ENVIRONMENT_WALKTHROUGH.md
+    - user-guides/USER_SCENARIOS/03_UNIVERSITY_CLASS_WALKTHROUGH.md
+    - user-guides/USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH.md
+    - user-guides/USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH.md
+
+  - Administrator Guides:
+    - Administrator Guide: admin-guides/ADMINISTRATOR_GUIDE.md
+    - Research User Management: admin-guides/RESEARCH_USER_MANAGEMENT_GUIDE.md
+    - Batch Invitation: admin-guides/BATCH_INVITATION_GUIDE.md
+    - Security Hardening: admin-guides/SECURITY_HARDENING_GUIDE.md
+    - NIST 800-171 Compliance: admin-guides/NIST_800_171_COMPLIANCE.md
+    - AWS IAM Permissions: admin-guides/AWS_IAM_PERMISSIONS.md
+    - Policy Examples: admin-guides/BASIC_POLICY_EXAMPLES.md
+
+  - Architecture:
+    - Vision: VISION.md
+    - Design Principles: DESIGN_PRINCIPLES.md
+    - GUI Architecture: architecture/GUI_ARCHITECTURE.md
+    - API Reference: architecture/DAEMON_API_REFERENCE.md
+    - Dual User Architecture: architecture/DUAL_USER_ARCHITECTURE.md
+    - Template Marketplace: architecture/TEMPLATE_MARKETPLACE_ARCHITECTURE.md
+    - Auto-AMI System: architecture/AUTO_AMI_SYSTEM.md
+    - Idle Detection: architecture/IDLE_DETECTION.md
+    - UX Evaluation: architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md
+
+  - Development:
+    - Development Setup: development/DEVELOPMENT_SETUP.md
+    - Testing Guide: development/TESTING.md
+    - Code Quality: development/CODE_QUALITY_BEST_PRACTICES.md
+    - Release Process: development/RELEASE_PROCESS.md
+    - Distribution: development/DISTRIBUTION.md
+    - Template System: development/TEMPLATE_SYSTEM_IMPLEMENTATION.md
+
+  - Release Notes:
+    - All Releases: releases/RELEASE_NOTES.md
+    - v0.5.2: releases/RELEASE_NOTES_v0.5.2.md
+    - v0.5.1: releases/RELEASE_NOTES_v0.5.1.md
+
+  - Community:
+    - Contributing: https://github.com/scttfrdmn/cloudworkstation/blob/main/.github/README.md
+    - Discussions: https://github.com/scttfrdmn/cloudworkstation/discussions
+    - Issues: https://github.com/scttfrdmn/cloudworkstation/issues
+    - Projects: https://github.com/scttfrdmn/cloudworkstation/projects
