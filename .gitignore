@@ -46,6 +46,8 @@ Thumbs.db
 # Build output directories
 dist/
 build/
+/node_modules/
+/package-lock.json
 
 # Debug files
 debug-*.yml
@@ -53,3 +55,10 @@ golint-results.json
 
 # State files (for testing)
 test-state.json
+
+# Root directory clutter prevention
+/*.out
+/*.test
+/cws
+analyze_coverage.sh
+daemon_debug.log
