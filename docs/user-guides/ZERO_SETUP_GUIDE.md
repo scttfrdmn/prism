@@ -9,15 +9,16 @@ CloudWorkstation is designed to work **immediately** after installation, with ze
 Zero-setup means you can go from installation to running workstation in **one command**:
 
 ```bash
-# Install CloudWorkstation (pick your platform)
-brew install scttfrdmn/tap/cloudworkstation              # macOS/Linux
-scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket && scoop install cloudworkstation  # Windows
-sudo dpkg -i cloudworkstation_0.5.4_linux_amd64.deb      # Ubuntu/Debian
-sudo rpm -i cloudworkstation_0.5.4_linux_amd64.rpm       # RHEL/Fedora
+# Install CloudWorkstation (see Installation Guide for your platform)
+brew install scttfrdmn/cloudworkstation   # macOS/Linux
+# or: choco install cloudworkstation       # Windows
+# or: conda install cloudworkstation       # Any platform via Conda
 
 # Launch a workstation - that's it!
 cws launch "Python Machine Learning (Simplified)" my-research
 ```
+
+For detailed installation instructions, see the main [Installation Guide](../index.md#installation).
 
 **No configuration files. No setup scripts. No manual steps.**
 

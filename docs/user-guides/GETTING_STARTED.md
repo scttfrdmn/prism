@@ -4,73 +4,32 @@
 
 CloudWorkstation launches pre-configured research environments in seconds. No complex setup required.
 
-### 1. Install CloudWorkstation
+### 1. Installation
 
-**macOS (Recommended)**
+See the main [Installation Guide](../index.md#installation) for detailed installation instructions for your platform (macOS, Linux, Windows, Conda).
+
+Quick install:
 ```bash
-# Install via Homebrew
-brew install scttfrdmn/tap/cloudworkstation
+# macOS/Linux
+brew tap scttfrdmn/cloudworkstation
+brew install cloudworkstation
+
+# Windows
+choco install cloudworkstation --source="'https://package.cloudworkstation.org/chocolatey'"
 ```
 
-**Linux**
-```bash
-# Install via Homebrew
-brew install scttfrdmn/tap/cloudworkstation
-```
+### 2. AWS Setup
 
-**Windows**
-```powershell
-# Install via Scoop
-scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
-scoop install cloudworkstation
-```
-
-**Direct Download**
-```bash
-# Download for your platform from GitHub releases
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-arm64.tar.gz
-```
-
-### 2. Configure AWS Credentials
-CloudWorkstation uses your existing AWS credentials. If you don't have them set up:
+CloudWorkstation uses your existing AWS credentials. If you don't have AWS CLI configured:
 
 ```bash
-# Install AWS CLI if needed
-brew install awscli   # or: pip install awscli
-
-# Configure your credentials
 aws configure
+# Enter your AWS Access Key ID, Secret Access Key, and default region
 ```
 
-**Using Named AWS Profiles**: CloudWorkstation creates a default profile that maps to your AWS CLI's `default` profile. If you use a **named AWS profile** (like `aws`, `production`, etc.) instead of `default`, you'll need to configure CloudWorkstation to use your profile:
+For detailed AWS setup including IAM permissions, see the [Administrator Guide](../admin-guides/ADMINISTRATOR_GUIDE.md) or [AWS IAM Permissions](../admin-guides/AWS_IAM_PERMISSIONS.md).
 
-```bash
-# Check current profile
-cws profiles list
-
-# Create profile for your named AWS profile
-cws profiles add personal my-aws --aws-profile aws --region us-west-2
-
-# Switch to your new profile
-cws profiles switch my-aws
-
-# Or update the default profile to use your AWS profile
-cws profiles update default --aws-profile aws --region us-west-2
-```
-
-**Required AWS Permissions**: CloudWorkstation needs EC2, EFS, IAM, and Systems Manager access. See [AWS IAM Permissions](AWS_IAM_PERMISSIONS.md) for detailed policies, or run our setup script:
-
-```bash
-./scripts/setup-iam-permissions.sh
-```
-
-### 3. Start Using CloudWorkstation
-```bash
-# Launch interactive interface (daemon auto-starts as needed)
-cws tui
-```
-
-### 4. Launch Your First Environment
+### 3. Launch Your First Environment
 ```bash
 # See available templates
 cws templates
