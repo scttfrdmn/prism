@@ -401,77 +401,27 @@ func (m *MarketplaceTemplateRegistryManager) AddRegistry(registry *MarketplaceTe
 // SearchAll searches across all configured registries
 func (m *MarketplaceTemplateRegistryManager) SearchAll(ctx context.Context, filter SearchFilter) (*MarketplaceSearchResult, error) {
 	if len(m.registries) == 0 {
-		return &MarketplaceSearchResult{Templates: []MarketplaceTemplateRegistryEntry{}, TotalCount: 0}, nil
+		return m.emptySearchResult(), nil
 	}
 
 	startTime := time.Now()
 	allResults := make([]MarketplaceTemplateRegistryEntry, 0)
 	totalCount := 0
 
-	// Search each registry
+	// Search each matching registry
 	for _, registry := range m.registries {
-		// Skip registries not in filter if specified
-		if len(filter.Registries) > 0 {
-			found := false
-			for _, name := range filter.Registries {
-				if name == registry.Name {
-					found = true
-					break
-				}
-			}
-			if !found {
-				continue
-			}
-		}
-
-		// Skip registry types not in filter if specified
-		if len(filter.RegistryTypes) > 0 {
-			found := false
-			for _, rt := range filter.RegistryTypes {
-				if rt == registry.Type {
-					found = true
-					break
-				}
-			}
-			if !found {
-				continue
-			}
-		}
-
-		result, err := registry.Search(ctx, filter)
-		if err != nil {
-			// Log error but continue with other registries
+		if !m.shouldSearchRegistry(registry, filter) {
 			continue
 		}
 
-		// Add registry metadata to results
-		for i := range result.Templates {
-			result.Templates[i].RegistryName = registry.Name
-			result.Templates[i].RegistryType = string(registry.Type)
-		}
-
-		allResults = append(allResults, result.Templates...)
-		totalCount += result.TotalCount
+		results, count := m.searchRegistry(ctx, registry, filter)
+		allResults = append(allResults, results...)
+		totalCount += count
 	}
 
-	// Sort combined results
+	// Sort and paginate combined results
 	m.sortResults(allResults, filter.SortBy, filter.SortOrder)
-
-	// Apply pagination to combined results
-	offset := filter.Offset
-	limit := filter.Limit
-	if limit == 0 {
-		limit = 50
-	}
-
-	var paginatedResults []MarketplaceTemplateRegistryEntry
-	if offset < len(allResults) {
-		end := offset + limit
-		if end > len(allResults) {
-			end = len(allResults)
-		}
-		paginatedResults = allResults[offset:end]
-	}
+	paginatedResults := m.paginateResults(allResults, filter)
 
 	return &MarketplaceSearchResult{
 		Templates:     paginatedResults,
@@ -480,6 +430,86 @@ func (m *MarketplaceTemplateRegistryManager) SearchAll(ctx context.Context, filt
 		Query:         filter,
 		ExecutionTime: time.Since(startTime),
 	}, nil
+}
+
+// emptySearchResult returns an empty search result
+func (m *MarketplaceTemplateRegistryManager) emptySearchResult() *MarketplaceSearchResult {
+	return &MarketplaceSearchResult{
+		Templates:  []MarketplaceTemplateRegistryEntry{},
+		TotalCount: 0,
+	}
+}
+
+// shouldSearchRegistry checks if registry matches filter criteria
+func (m *MarketplaceTemplateRegistryManager) shouldSearchRegistry(registry *MarketplaceTemplateRegistry, filter SearchFilter) bool {
+	// Check registry name filter
+	if len(filter.Registries) > 0 && !m.registryNameMatches(registry.Name, filter.Registries) {
+		return false
+	}
+
+	// Check registry type filter
+	if len(filter.RegistryTypes) > 0 && !m.registryTypeMatches(registry.Type, filter.RegistryTypes) {
+		return false
+	}
+
+	return true
+}
+
+// registryNameMatches checks if registry name is in the filter list
+func (m *MarketplaceTemplateRegistryManager) registryNameMatches(name string, allowedNames []string) bool {
+	for _, allowedName := range allowedNames {
+		if name == allowedName {
+			return true
+		}
+	}
+	return false
+}
+
+// registryTypeMatches checks if registry type is in the filter list
+func (m *MarketplaceTemplateRegistryManager) registryTypeMatches(registryType RegistryType, allowedTypes []RegistryType) bool {
+	for _, allowedType := range allowedTypes {
+		if registryType == allowedType {
+			return true
+		}
+	}
+	return false
+}
+
+// searchRegistry executes search on a single registry
+func (m *MarketplaceTemplateRegistryManager) searchRegistry(ctx context.Context, registry *MarketplaceTemplateRegistry, filter SearchFilter) ([]MarketplaceTemplateRegistryEntry, int) {
+	result, err := registry.Search(ctx, filter)
+	if err != nil {
+		// Log error but continue with other registries
+		return nil, 0
+	}
+
+	// Add registry metadata to results
+	for i := range result.Templates {
+		result.Templates[i].RegistryName = registry.Name
+		result.Templates[i].RegistryType = string(registry.Type)
+	}
+
+	return result.Templates, result.TotalCount
+}
+
+// paginateResults applies pagination to search results
+func (m *MarketplaceTemplateRegistryManager) paginateResults(results []MarketplaceTemplateRegistryEntry, filter SearchFilter) []MarketplaceTemplateRegistryEntry {
+	offset := filter.Offset
+	limit := filter.Limit
+	if limit == 0 {
+		limit = 50
+	}
+
+	if offset >= len(results) {
+		return []MarketplaceTemplateRegistryEntry{}
+	}
+
+	end := offset + limit
+	if end > len(results) {
+		end = len(results)
+	}
+
+	return results[offset:end]
 }
 
 // GetRegistry returns a specific registry by name

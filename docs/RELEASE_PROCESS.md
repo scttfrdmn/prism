@@ -161,7 +161,10 @@ GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkst
 If including GUI components, build them separately:
 
 ```bash
-# Build GUI (requires Fyne and platform-specific dependencies)
+# Build GUI (requires Wails v3 and platform-specific dependencies)
+# Frontend must be built first
+cd cmd/cws-gui/frontend && npm run build && cd ../../..
+# Then build Wails application
 go build -o bin/release/darwin-amd64/cws-gui ./cmd/cws-gui
 go build -o bin/release/darwin-arm64/cws-gui ./cmd/cws-gui
 # Note: GUI may not be available on all platforms

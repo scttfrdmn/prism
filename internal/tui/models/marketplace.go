@@ -138,139 +138,198 @@ func (m MarketplaceModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.templatesTable.SetSize(msg.Width-4, msg.Height-15)
-		return m, nil
-
+		return m.handleWindowSize(msg)
 	case MarketplaceDataMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			m.loading = false
-			return m, nil
-		}
-
-		m.templates = msg.Templates
-		m.categories = msg.Categories
-		m.registries = msg.Registries
-		m.loading = false
-		m.error = ""
-
-		// Update table with template data
-		m.updateTemplatesTable()
-		return m, nil
-
+		return m.handleMarketplaceData(msg)
 	case MarketplaceSearchMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			return m, nil
-		}
-
-		m.templates = msg.Templates
-		m.updateTemplatesTable()
-		return m, nil
-
+		return m.handleSearchData(msg)
 	case MarketplaceInstallMsg:
-		m.showInstallDialog = false
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			return m, nil
-		}
-		// Refresh template list after installation
-		return m, m.fetchMarketplaceData
-
+		return m.handleInstallResult(msg)
 	case tea.KeyMsg:
-		if m.loading {
-			return m, nil
-		}
-
-		// Handle search input when in search tab
-		if m.selectedTab == 1 && m.searchInput.Focused() {
-			switch msg.String() {
-			case "enter":
-				m.searchQuery = m.searchInput.Value()
-				m.searchInput.Blur()
-				return m, m.searchTemplates
-			case "esc":
-				m.searchInput.Blur()
-				return m, nil
-			default:
-				m.searchInput, cmd = m.searchInput.Update(msg)
-				return m, cmd
-			}
-		}
-
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-
-		case "r", "f5":
-			// Refresh marketplace data
-			m.loading = true
-			return m, m.fetchMarketplaceData
-
-		case "tab":
-			// Cycle through tabs
-			m.selectedTab = (m.selectedTab + 1) % 4
-			return m, nil
-
-		case "/":
-			// Focus search in search tab
-			if m.selectedTab == 1 {
-				m.searchInput.Focus()
-				return m, nil
-			}
-
-		case "i":
-			// Install selected template
-			if m.selectedTemplate < len(m.templates) && !m.showDetailView {
-				m.showInstallDialog = true
-				return m, nil
-			}
-
-		case "v":
-			// View template details
-			if m.selectedTemplate < len(m.templates) {
-				m.showDetailView = !m.showDetailView
-				return m, nil
-			}
-
-		case "enter":
-			// Handle install dialog confirmation
-			if m.showInstallDialog {
-				template := m.templates[m.selectedTemplate]
-				return m, m.installTemplate(template.Name)
-			}
-
-		case "esc":
-			// Close dialogs
-			if m.showInstallDialog {
-				m.showInstallDialog = false
-				return m, nil
-			}
-			if m.showDetailView {
-				m.showDetailView = false
-				return m, nil
-			}
-
-		case "up", "k":
-			if m.selectedTemplate > 0 {
-				m.selectedTemplate--
-			}
-			return m, nil
-
-		case "down", "j":
-			if m.selectedTemplate < len(m.templates)-1 {
-				m.selectedTemplate++
-			}
-			return m, nil
-		}
-
+		return m.handleKeyPress(msg)
 	case spinner.TickMsg:
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	}
 
+	return m, nil
+}
+
+// handleWindowSize handles window resize events
+func (m MarketplaceModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.templatesTable.SetSize(msg.Width-4, msg.Height-15)
+	return m, nil
+}
+
+// handleMarketplaceData handles marketplace data response from API
+func (m MarketplaceModel) handleMarketplaceData(msg MarketplaceDataMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		m.loading = false
+		return m, nil
+	}
+
+	m.templates = msg.Templates
+	m.categories = msg.Categories
+	m.registries = msg.Registries
+	m.loading = false
+	m.error = ""
+
+	// Update table with template data
+	m.updateTemplatesTable()
+	return m, nil
+}
+
+// handleSearchData handles search results response
+func (m MarketplaceModel) handleSearchData(msg MarketplaceSearchMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		return m, nil
+	}
+
+	m.templates = msg.Templates
+	m.updateTemplatesTable()
+	return m, nil
+}
+
+// handleInstallResult handles template installation result
+func (m MarketplaceModel) handleInstallResult(msg MarketplaceInstallMsg) (tea.Model, tea.Cmd) {
+	m.showInstallDialog = false
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		return m, nil
+	}
+	// Refresh template list after installation
+	return m, m.fetchMarketplaceData
+}
+
+// handleKeyPress handles keyboard input
+func (m MarketplaceModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		return m, nil
+	}
+
+	// Handle search input when in search tab
+	if m.selectedTab == 1 && m.searchInput.Focused() {
+		return m.handleSearchInput(msg)
+	}
+
+	switch msg.String() {
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	case "r", "f5":
+		return m.handleRefresh()
+	case "tab":
+		return m.handleTabSwitch()
+	case "/":
+		return m.handleSearchFocus()
+	case "i":
+		return m.handleInstall()
+	case "v":
+		return m.handleViewDetails()
+	case "enter":
+		return m.handleEnterKey()
+	case "esc":
+		return m.handleEscKey()
+	case "up", "k":
+		return m.handleUpKey()
+	case "down", "j":
+		return m.handleDownKey()
+	}
+
+	return m, nil
+}
+
+// handleSearchInput handles text input in search field
+func (m MarketplaceModel) handleSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.String() {
+	case "enter":
+		m.searchQuery = m.searchInput.Value()
+		m.searchInput.Blur()
+		return m, m.searchTemplates
+	case "esc":
+		m.searchInput.Blur()
+		return m, nil
+	default:
+		m.searchInput, cmd = m.searchInput.Update(msg)
+		return m, cmd
+	}
+}
+
+// handleRefresh refreshes marketplace data
+func (m MarketplaceModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	return m, m.fetchMarketplaceData
+}
+
+// handleTabSwitch cycles through tabs
+func (m MarketplaceModel) handleTabSwitch() (tea.Model, tea.Cmd) {
+	m.selectedTab = (m.selectedTab + 1) % 4
+	return m, nil
+}
+
+// handleSearchFocus focuses search input in search tab
+func (m MarketplaceModel) handleSearchFocus() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 1 {
+		m.searchInput.Focus()
+	}
+	return m, nil
+}
+
+// handleInstall shows install dialog for selected template
+func (m MarketplaceModel) handleInstall() (tea.Model, tea.Cmd) {
+	if m.selectedTemplate < len(m.templates) && !m.showDetailView {
+		m.showInstallDialog = true
+	}
+	return m, nil
+}
+
+// handleViewDetails toggles detail view for selected template
+func (m MarketplaceModel) handleViewDetails() (tea.Model, tea.Cmd) {
+	if m.selectedTemplate < len(m.templates) {
+		m.showDetailView = !m.showDetailView
+	}
+	return m, nil
+}
+
+// handleEnterKey handles Enter key press (dialog confirmation)
+func (m MarketplaceModel) handleEnterKey() (tea.Model, tea.Cmd) {
+	if m.showInstallDialog {
+		template := m.templates[m.selectedTemplate]
+		return m, m.installTemplate(template.Name)
+	}
+	return m, nil
+}
+
+// handleEscKey handles Escape key press (close dialogs)
+func (m MarketplaceModel) handleEscKey() (tea.Model, tea.Cmd) {
+	if m.showInstallDialog {
+		m.showInstallDialog = false
+		return m, nil
+	}
+	if m.showDetailView {
+		m.showDetailView = false
+		return m, nil
+	}
+	return m, nil
+}
+
+// handleUpKey handles up arrow navigation
+func (m MarketplaceModel) handleUpKey() (tea.Model, tea.Cmd) {
+	if m.selectedTemplate > 0 {
+		m.selectedTemplate--
+	}
+	return m, nil
+}
+
+// handleDownKey handles down arrow navigation
+func (m MarketplaceModel) handleDownKey() (tea.Model, tea.Cmd) {
+	if m.selectedTemplate < len(m.templates)-1 {
+		m.selectedTemplate++
+	}
 	return m, nil
 }
 

@@ -125,126 +125,174 @@ func (m IdleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.policiesTable.SetSize(msg.Width-4, msg.Height-18)
-		m.instancesTable.SetSize(msg.Width-4, msg.Height-18)
-		return m, nil
-
+		return m.handleWindowSize(msg)
 	case IdleDataMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			m.loading = false
-			return m, nil
-		}
-
-		m.policies = msg.Policies
-		m.instances = msg.Instances
-		m.loading = false
-		m.error = ""
-
-		// Update tables with data
-		m.updatePoliciesTable()
-		m.updateInstancesTable()
-		return m, nil
-
+		return m.handleIdleData(msg)
 	case IdlePolicyActionMsg:
-		m.showPolicyDialog = false
-		m.showEnableDialog = false
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			return m, nil
-		}
-		// Refresh data after action
-		return m, m.fetchIdleData
-
+		return m.handlePolicyAction(msg)
 	case tea.KeyMsg:
-		if m.loading {
-			return m, nil
-		}
-
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-
-		case "r", "f5":
-			// Refresh idle data
-			m.loading = true
-			return m, m.fetchIdleData
-
-		case "tab":
-			// Cycle through tabs
-			m.selectedTab = (m.selectedTab + 1) % 3
-			return m, nil
-
-		case "u":
-			// Update selected policy
-			if m.selectedTab == 0 && len(m.policies) > 0 {
-				m.showPolicyDialog = true
-				return m, nil
-			}
-
-		case "e":
-			// Enable idle detection for selected instance
-			if m.selectedTab == 1 && m.selectedInstance < len(m.instances) {
-				m.showEnableDialog = true
-				instance := m.instances[m.selectedInstance]
-				m.dialogInstanceName = instance.Name
-				return m, nil
-			}
-
-		case "d":
-			// Disable idle detection for selected instance
-			if m.selectedTab == 1 && m.selectedInstance < len(m.instances) {
-				instance := m.instances[m.selectedInstance]
-				return m, m.disableIdleDetection(instance.Name)
-			}
-
-		case "enter":
-			// Handle dialog confirmation
-			if m.showPolicyDialog {
-				// Update policy logic
-				m.showPolicyDialog = false
-				return m, nil
-			}
-			if m.showEnableDialog {
-				// Enable idle detection with default policy
-				return m, m.enableIdleDetection(m.dialogInstanceName, "default")
-			}
-
-		case "esc":
-			// Close dialogs
-			if m.showPolicyDialog {
-				m.showPolicyDialog = false
-				return m, nil
-			}
-			if m.showEnableDialog {
-				m.showEnableDialog = false
-				return m, nil
-			}
-
-		case "up", "k":
-			if m.selectedTab == 0 && m.selectedPolicy > 0 {
-				m.selectedPolicy--
-			} else if m.selectedTab == 1 && m.selectedInstance > 0 {
-				m.selectedInstance--
-			}
-			return m, nil
-
-		case "down", "j":
-			if m.selectedTab == 0 && m.selectedPolicy < len(m.policies)-1 {
-				m.selectedPolicy++
-			} else if m.selectedTab == 1 && m.selectedInstance < len(m.instances)-1 {
-				m.selectedInstance++
-			}
-			return m, nil
-		}
-
+		return m.handleKeyPress(msg)
 	case spinner.TickMsg:
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	}
 
+	return m, nil
+}
+
+// handleWindowSize handles window resize events
+func (m IdleModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.policiesTable.SetSize(msg.Width-4, msg.Height-18)
+	m.instancesTable.SetSize(msg.Width-4, msg.Height-18)
+	return m, nil
+}
+
+// handleIdleData handles idle data response from API
+func (m IdleModel) handleIdleData(msg IdleDataMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		m.loading = false
+		return m, nil
+	}
+
+	m.policies = msg.Policies
+	m.instances = msg.Instances
+	m.loading = false
+	m.error = ""
+
+	// Update tables with data
+	m.updatePoliciesTable()
+	m.updateInstancesTable()
+	return m, nil
+}
+
+// handlePolicyAction handles policy action response
+func (m IdleModel) handlePolicyAction(msg IdlePolicyActionMsg) (tea.Model, tea.Cmd) {
+	m.showPolicyDialog = false
+	m.showEnableDialog = false
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		return m, nil
+	}
+	// Refresh data after action
+	return m, m.fetchIdleData
+}
+
+// handleKeyPress handles keyboard input
+func (m IdleModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		return m, nil
+	}
+
+	switch msg.String() {
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	case "r", "f5":
+		return m.handleRefresh()
+	case "tab":
+		return m.handleTabSwitch()
+	case "u":
+		return m.handleUpdatePolicy()
+	case "e":
+		return m.handleEnableIdle()
+	case "d":
+		return m.handleDisableIdle()
+	case "enter":
+		return m.handleEnterKey()
+	case "esc":
+		return m.handleEscKey()
+	case "up", "k":
+		return m.handleUpKey()
+	case "down", "j":
+		return m.handleDownKey()
+	}
+
+	return m, nil
+}
+
+// handleRefresh refreshes idle data
+func (m IdleModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	return m, m.fetchIdleData
+}
+
+// handleTabSwitch cycles through tabs
+func (m IdleModel) handleTabSwitch() (tea.Model, tea.Cmd) {
+	m.selectedTab = (m.selectedTab + 1) % 3
+	return m, nil
+}
+
+// handleUpdatePolicy shows policy update dialog
+func (m IdleModel) handleUpdatePolicy() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && len(m.policies) > 0 {
+		m.showPolicyDialog = true
+	}
+	return m, nil
+}
+
+// handleEnableIdle shows enable idle detection dialog
+func (m IdleModel) handleEnableIdle() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 1 && m.selectedInstance < len(m.instances) {
+		m.showEnableDialog = true
+		instance := m.instances[m.selectedInstance]
+		m.dialogInstanceName = instance.Name
+	}
+	return m, nil
+}
+
+// handleDisableIdle disables idle detection for selected instance
+func (m IdleModel) handleDisableIdle() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 1 && m.selectedInstance < len(m.instances) {
+		instance := m.instances[m.selectedInstance]
+		return m, m.disableIdleDetection(instance.Name)
+	}
+	return m, nil
+}
+
+// handleEnterKey handles Enter key press (dialog confirmation)
+func (m IdleModel) handleEnterKey() (tea.Model, tea.Cmd) {
+	if m.showPolicyDialog {
+		m.showPolicyDialog = false
+		return m, nil
+	}
+	if m.showEnableDialog {
+		return m, m.enableIdleDetection(m.dialogInstanceName, "default")
+	}
+	return m, nil
+}
+
+// handleEscKey handles Escape key press (close dialogs)
+func (m IdleModel) handleEscKey() (tea.Model, tea.Cmd) {
+	if m.showPolicyDialog {
+		m.showPolicyDialog = false
+		return m, nil
+	}
+	if m.showEnableDialog {
+		m.showEnableDialog = false
+		return m, nil
+	}
+	return m, nil
+}
+
+// handleUpKey handles up arrow navigation
+func (m IdleModel) handleUpKey() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedPolicy > 0 {
+		m.selectedPolicy--
+	} else if m.selectedTab == 1 && m.selectedInstance > 0 {
+		m.selectedInstance--
+	}
+	return m, nil
+}
+
+// handleDownKey handles down arrow navigation
+func (m IdleModel) handleDownKey() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedPolicy < len(m.policies)-1 {
+		m.selectedPolicy++
+	} else if m.selectedTab == 1 && m.selectedInstance < len(m.instances)-1 {
+		m.selectedInstance++
+	}
 	return m, nil
 }
 

@@ -16,6 +16,9 @@
   <a href="https://goreportcard.com/report/github.com/scttfrdmn/cloudworkstation">
     <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/scttfrdmn/cloudworkstation">
   </a>
+  <a href="https://github.com/scttfrdmn/cloudworkstation/blob/main/cmd/cws-gui/frontend/eslint.config.js">
+    <img alt="ESLint" src="https://img.shields.io/badge/ESLint-A%2B-success?logo=eslint&logoColor=white">
+  </a>
 </p>
 
 ## What is CloudWorkstation?

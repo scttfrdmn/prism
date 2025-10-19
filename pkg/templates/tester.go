@@ -490,71 +490,13 @@ func testResourceUsage(ctx context.Context, template *Template) TestResult {
 func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult {
 	var issues []string
 
-	// Check for common secret patterns with context-aware validation
-	secretPatterns := map[string][]string{
-		"password=": {"password=hardcoded", "password=\"secret\""},
-		"api_key=":  {"api_key=sk-", "api_key=\"ak-\""},
-		"secret=":   {"secret=hardcoded", "secret=\"mysecret\""},
-		"token=":    {"token=hardcoded", "token=\"abc123\""},
-	}
+	// Check for common secret patterns
+	secretIssues := checkSecretPatterns(template)
+	issues = append(issues, secretIssues...)
 
-	// Legitimate patterns that are not secrets
-	legitimatePatterns := []string{
-		"TOKEN=$(curl",                 // AWS IMDSv2 token retrieval
-		"token=$(curl",                 // Dynamic token retrieval
-		"X-aws-ec2-metadata-token",     // AWS metadata service header
-		"X-aws-ec2-metadata-token-ttl", // AWS metadata service TTL header
-	}
-
-	for pattern, examples := range secretPatterns {
-		postInstallLower := strings.ToLower(template.PostInstall)
-		userDataLower := strings.ToLower(template.UserData)
-
-		// Check if pattern exists
-		if strings.Contains(postInstallLower, pattern) || strings.Contains(userDataLower, pattern) {
-			// Check if it's a legitimate pattern
-			isLegitimate := false
-			for _, legitPattern := range legitimatePatterns {
-				if strings.Contains(postInstallLower, strings.ToLower(legitPattern)) ||
-					strings.Contains(userDataLower, strings.ToLower(legitPattern)) {
-					isLegitimate = true
-					break
-				}
-			}
-
-			// If not legitimate, check if it looks like a real secret (has actual values)
-			if !isLegitimate {
-				for _, example := range examples {
-					if strings.Contains(postInstallLower, example) ||
-						strings.Contains(userDataLower, example) {
-						fieldName := "post_install"
-						if strings.Contains(userDataLower, example) {
-							fieldName = "user_data"
-						}
-						issues = append(issues, fmt.Sprintf("Potential secret in %s: %s", fieldName, pattern))
-						break
-					}
-				}
-			}
-		}
-	}
-
-	// Also check for AWS access key patterns specifically
-	awsKeyPatterns := []string{
-		"AKIA", // AWS Access Key prefix
-		"ASIA", // AWS Session Token prefix
-		"aws_access_key_id=",
-		"aws_secret_access_key=",
-	}
-
-	for _, pattern := range awsKeyPatterns {
-		if strings.Contains(strings.ToLower(template.PostInstall), strings.ToLower(pattern)) {
-			issues = append(issues, fmt.Sprintf("Potential AWS secret in post_install: %s", pattern))
-		}
-		if strings.Contains(strings.ToLower(template.UserData), strings.ToLower(pattern)) {
-			issues = append(issues, fmt.Sprintf("Potential AWS secret in user_data: %s", pattern))
-		}
-	}
+	// Check for AWS access key patterns
+	awsIssues := checkAWSKeyPatterns(template)
+	issues = append(issues, awsIssues...)
 
 	if len(issues) > 0 {
 		return TestResult{
@@ -568,6 +510,101 @@ func testNoHardcodedSecrets(ctx context.Context, template *Template) TestResult 
 		Passed:  true,
 		Message: "No hardcoded secrets detected",
 	}
+}
+
+// checkSecretPatterns checks for common secret patterns with context-aware validation
+func checkSecretPatterns(template *Template) []string {
+	var issues []string
+
+	secretPatterns := map[string][]string{
+		"password=": {"password=hardcoded", "password=\"secret\""},
+		"api_key=":  {"api_key=sk-", "api_key=\"ak-\""},
+		"secret=":   {"secret=hardcoded", "secret=\"mysecret\""},
+		"token=":    {"token=hardcoded", "token=\"abc123\""},
+	}
+
+	legitimatePatterns := []string{
+		"TOKEN=$(curl",                 // AWS IMDSv2 token retrieval
+		"token=$(curl",                 // Dynamic token retrieval
+		"X-aws-ec2-metadata-token",     // AWS metadata service header
+		"X-aws-ec2-metadata-token-ttl", // AWS metadata service TTL header
+	}
+
+	postInstallLower := strings.ToLower(template.PostInstall)
+	userDataLower := strings.ToLower(template.UserData)
+
+	for pattern, examples := range secretPatterns {
+		if !containsPattern(postInstallLower, userDataLower, pattern) {
+			continue
+		}
+
+		if isLegitimatePattern(postInstallLower, userDataLower, legitimatePatterns) {
+			continue
+		}
+
+		issue := findSecretIssue(postInstallLower, userDataLower, pattern, examples)
+		if issue != "" {
+			issues = append(issues, issue)
+		}
+	}
+
+	return issues
+}
+
+// checkAWSKeyPatterns checks for AWS access key patterns
+func checkAWSKeyPatterns(template *Template) []string {
+	var issues []string
+
+	awsKeyPatterns := []string{
+		"AKIA", // AWS Access Key prefix
+		"ASIA", // AWS Session Token prefix
+		"aws_access_key_id=",
+		"aws_secret_access_key=",
+	}
+
+	postInstallLower := strings.ToLower(template.PostInstall)
+	userDataLower := strings.ToLower(template.UserData)
+
+	for _, pattern := range awsKeyPatterns {
+		patternLower := strings.ToLower(pattern)
+		if strings.Contains(postInstallLower, patternLower) {
+			issues = append(issues, fmt.Sprintf("Potential AWS secret in post_install: %s", pattern))
+		}
+		if strings.Contains(userDataLower, patternLower) {
+			issues = append(issues, fmt.Sprintf("Potential AWS secret in user_data: %s", pattern))
+		}
+	}
+
+	return issues
+}
+
+// containsPattern checks if pattern exists in either field
+func containsPattern(postInstallLower, userDataLower, pattern string) bool {
+	return strings.Contains(postInstallLower, pattern) || strings.Contains(userDataLower, pattern)
+}
+
+// isLegitimatePattern checks if content matches legitimate patterns
+func isLegitimatePattern(postInstallLower, userDataLower string, legitimatePatterns []string) bool {
+	for _, legitPattern := range legitimatePatterns {
+		legitLower := strings.ToLower(legitPattern)
+		if strings.Contains(postInstallLower, legitLower) || strings.Contains(userDataLower, legitLower) {
+			return true
+		}
+	}
+	return false
+}
+
+// findSecretIssue checks if pattern looks like a real secret
+func findSecretIssue(postInstallLower, userDataLower, pattern string, examples []string) string {
+	for _, example := range examples {
+		if strings.Contains(postInstallLower, example) {
+			return fmt.Sprintf("Potential secret in post_install: %s", pattern)
+		}
+		if strings.Contains(userDataLower, example) {
+			return fmt.Sprintf("Potential secret in user_data: %s", pattern)
+		}
+	}
+	return ""
 }
 
 func testSecureDefaults(ctx context.Context, template *Template) TestResult {
@@ -613,90 +650,26 @@ func testHibernationSupport(ctx context.Context, template *Template) TestResult 
 }
 
 func testParameterProcessing(ctx context.Context, template *Template) TestResult {
-	if len(template.Parameters) > 0 {
-		// Check that parameters are used in template
-		var unused []string
-		for name := range template.Parameters {
-			paramRef := fmt.Sprintf("{{.%s}}", name)
-			found := false
-
-			// Check various fields for parameter usage
-			if strings.Contains(template.Description, paramRef) ||
-				strings.Contains(template.LongDescription, paramRef) ||
-				strings.Contains(template.PostInstall, paramRef) ||
-				strings.Contains(template.UserData, paramRef) {
-				found = true
-			}
-
-			// Check services configuration
-			for _, service := range template.Services {
-				if strings.Contains(service.Name, paramRef) {
-					found = true
-					break
-				}
-				for _, config := range service.Config {
-					if strings.Contains(config, paramRef) {
-						found = true
-						break
-					}
-				}
-				if found {
-					break
-				}
-			}
-
-			// Check packages for parameter usage
-			if !found {
-				allPackages := append(template.Packages.System, template.Packages.Conda...)
-				allPackages = append(allPackages, template.Packages.Pip...)
-				allPackages = append(allPackages, template.Packages.Spack...)
-				for _, pkg := range allPackages {
-					if strings.Contains(pkg, paramRef) {
-						found = true
-						break
-					}
-				}
-			}
-
-			// Check prerequisites and learning resources
-			if !found {
-				for _, prereq := range template.Prerequisites {
-					if strings.Contains(prereq, paramRef) {
-						found = true
-						break
-					}
-				}
-				if !found {
-					for _, resource := range template.LearningResources {
-						if strings.Contains(resource, paramRef) {
-							found = true
-							break
-						}
-					}
-				}
-			}
-
-			// Check tags for parameter usage
-			if !found {
-				for _, tagValue := range template.Tags {
-					if strings.Contains(tagValue, paramRef) {
-						found = true
-						break
-					}
-				}
-			}
-
-			if !found {
-				unused = append(unused, name)
-			}
+	if len(template.Parameters) == 0 {
+		return TestResult{
+			Passed:  true,
+			Message: "Parameters correctly configured",
 		}
+	}
 
-		if len(unused) > 0 {
-			return TestResult{
-				Passed:  false,
-				Message: fmt.Sprintf("Unused parameters: %s", strings.Join(unused, ", ")),
-				Details: unused,
-			}
+	// Check that parameters are used in template
+	var unused []string
+	for name := range template.Parameters {
+		if !isParameterUsed(name, template) {
+			unused = append(unused, name)
+		}
+	}
+
+	if len(unused) > 0 {
+		return TestResult{
+			Passed:  false,
+			Message: fmt.Sprintf("Unused parameters: %s", strings.Join(unused, ", ")),
+			Details: unused,
 		}
 	}
 
@@ -704,4 +677,94 @@ func testParameterProcessing(ctx context.Context, template *Template) TestResult
 		Passed:  true,
 		Message: "Parameters correctly configured",
 	}
+}
+
+// isParameterUsed checks if a parameter is referenced anywhere in the template
+func isParameterUsed(paramName string, template *Template) bool {
+	paramRef := fmt.Sprintf("{{.%s}}", paramName)
+
+	// Check text fields
+	if isParameterInTextFields(paramRef, template) {
+		return true
+	}
+
+	// Check services
+	if isParameterInServices(paramRef, template.Services) {
+		return true
+	}
+
+	// Check packages
+	if isParameterInPackages(paramRef, template) {
+		return true
+	}
+
+	// Check prerequisites and resources
+	if isParameterInPrereqsAndResources(paramRef, template) {
+		return true
+	}
+
+	// Check tags
+	return isParameterInTags(paramRef, template.Tags)
+}
+
+// isParameterInTextFields checks for parameter usage in text fields
+func isParameterInTextFields(paramRef string, template *Template) bool {
+	return strings.Contains(template.Description, paramRef) ||
+		strings.Contains(template.LongDescription, paramRef) ||
+		strings.Contains(template.PostInstall, paramRef) ||
+		strings.Contains(template.UserData, paramRef)
+}
+
+// isParameterInServices checks for parameter usage in services
+func isParameterInServices(paramRef string, services []ServiceConfig) bool {
+	for _, service := range services {
+		if strings.Contains(service.Name, paramRef) {
+			return true
+		}
+		for _, config := range service.Config {
+			if strings.Contains(config, paramRef) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isParameterInPackages checks for parameter usage in package lists
+func isParameterInPackages(paramRef string, template *Template) bool {
+	allPackages := append(template.Packages.System, template.Packages.Conda...)
+	allPackages = append(allPackages, template.Packages.Pip...)
+	allPackages = append(allPackages, template.Packages.Spack...)
+
+	for _, pkg := range allPackages {
+		if strings.Contains(pkg, paramRef) {
+			return true
+		}
+	}
+	return false
+}
+
+// isParameterInPrereqsAndResources checks for parameter usage in prerequisites and learning resources
+func isParameterInPrereqsAndResources(paramRef string, template *Template) bool {
+	for _, prereq := range template.Prerequisites {
+		if strings.Contains(prereq, paramRef) {
+			return true
+		}
+	}
+	for _, resource := range template.LearningResources {
+		if strings.Contains(resource, paramRef) {
+			return true
+		}
+	}
+	return false
+}
+
+// isParameterInTags checks for parameter usage in tags
+func isParameterInTags(paramRef string, tags map[string]string) bool {
+	for _, tagValue := range tags {
+		if strings.Contains(tagValue, paramRef) {
+			return true
+		}
+	}
+	return false
 }

@@ -14,6 +14,7 @@ func (c *HTTPClient) GetPolicyStatus(ctx context.Context) (*PolicyStatusResponse
 	if err != nil {
 		return nil, fmt.Errorf("failed to get policy status: %w", err)
 	}
+	defer resp.Body.Close()
 
 	// Parse the raw response first to handle field mapping
 	var rawResponse struct {
@@ -146,6 +147,7 @@ func (c *HTTPClient) AssignPolicySet(ctx context.Context, policySet string) (*Po
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign policy set '%s': %w", policySet, err)
 	}
+	defer resp.Body.Close()
 
 	// Parse the raw response to handle field mapping
 	var rawResponse struct {
@@ -181,6 +183,7 @@ func (c *HTTPClient) SetPolicyEnforcement(ctx context.Context, enabled bool) (*P
 	if err != nil {
 		return nil, fmt.Errorf("failed to set policy enforcement to %t: %w", enabled, err)
 	}
+	defer resp.Body.Close()
 
 	// Parse the raw response to handle field mapping
 	var rawResponse struct {
@@ -224,6 +227,7 @@ func (c *HTTPClient) CheckTemplateAccess(ctx context.Context, templateName strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to check template access for '%s': %w", templateName, err)
 	}
+	defer resp.Body.Close()
 
 	// Parse the raw response to handle field mapping
 	var rawResponse struct {

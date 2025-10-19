@@ -125,113 +125,158 @@ func (m RightsizingModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.recommendationsTable.SetSize(msg.Width-4, msg.Height-18)
-		m.instancesTable.SetSize(msg.Width-4, msg.Height-18)
-		return m, nil
-
+		return m.handleWindowSize(msg)
 	case RightsizingDataMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			m.loading = false
-			return m, nil
-		}
-
-		m.recommendations = msg.Recommendations
-		m.instances = msg.Instances
-		m.loading = false
-		m.error = ""
-
-		// Update tables with data
-		m.updateRecommendationsTable()
-		m.updateInstancesTable()
-		return m, nil
-
+		return m.handleRightsizingData(msg)
 	case RightsizingActionMsg:
-		m.showApplyDialog = false
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			return m, nil
-		}
-		// Refresh data after action
-		return m, m.fetchRightsizingData
-
+		return m.handleActionResult(msg)
 	case tea.KeyMsg:
-		if m.loading {
-			return m, nil
-		}
-
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-
-		case "r", "f5":
-			// Refresh rightsizing data
-			m.loading = true
-			return m, m.fetchRightsizingData
-
-		case "tab":
-			// Cycle through tabs
-			m.selectedTab = (m.selectedTab + 1) % 3
-			return m, nil
-
-		case "v":
-			// Toggle detail view
-			if m.selectedTab == 0 && len(m.recommendations) > 0 {
-				m.showDetailView = !m.showDetailView
-				return m, nil
-			}
-
-		case "a":
-			// Apply recommendation
-			if m.selectedTab == 0 && m.selectedRecommendation < len(m.recommendations) {
-				rec := m.recommendations[m.selectedRecommendation]
-				m.dialogRecommendationID = rec.InstanceName
-				m.showApplyDialog = true
-				return m, nil
-			}
-
-		case "enter":
-			// Handle dialog confirmation
-			if m.showApplyDialog {
-				// Apply recommendation
-				return m, m.applyRecommendation(m.dialogRecommendationID)
-			}
-
-		case "esc":
-			// Close dialogs or detail view
-			if m.showApplyDialog {
-				m.showApplyDialog = false
-				return m, nil
-			}
-			if m.showDetailView {
-				m.showDetailView = false
-				return m, nil
-			}
-
-		case "up", "k":
-			if m.selectedTab == 0 && m.selectedRecommendation > 0 {
-				m.selectedRecommendation--
-			} else if m.selectedTab == 1 && m.selectedInstance > 0 {
-				m.selectedInstance--
-			}
-			return m, nil
-
-		case "down", "j":
-			if m.selectedTab == 0 && m.selectedRecommendation < len(m.recommendations)-1 {
-				m.selectedRecommendation++
-			} else if m.selectedTab == 1 && m.selectedInstance < len(m.instances)-1 {
-				m.selectedInstance++
-			}
-			return m, nil
-		}
-
+		return m.handleKeyPress(msg)
 	case spinner.TickMsg:
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	}
 
+	return m, nil
+}
+
+// handleWindowSize handles window resize events
+func (m RightsizingModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.recommendationsTable.SetSize(msg.Width-4, msg.Height-18)
+	m.instancesTable.SetSize(msg.Width-4, msg.Height-18)
+	return m, nil
+}
+
+// handleRightsizingData handles rightsizing data response from API
+func (m RightsizingModel) handleRightsizingData(msg RightsizingDataMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		m.loading = false
+		return m, nil
+	}
+
+	m.recommendations = msg.Recommendations
+	m.instances = msg.Instances
+	m.loading = false
+	m.error = ""
+
+	// Update tables with data
+	m.updateRecommendationsTable()
+	m.updateInstancesTable()
+	return m, nil
+}
+
+// handleActionResult handles rightsizing action result
+func (m RightsizingModel) handleActionResult(msg RightsizingActionMsg) (tea.Model, tea.Cmd) {
+	m.showApplyDialog = false
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		return m, nil
+	}
+	// Refresh data after action
+	return m, m.fetchRightsizingData
+}
+
+// handleKeyPress handles keyboard input
+func (m RightsizingModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		return m, nil
+	}
+
+	switch msg.String() {
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	case "r", "f5":
+		return m.handleRefresh()
+	case "tab":
+		return m.handleTabSwitch()
+	case "v":
+		return m.handleToggleDetailView()
+	case "a":
+		return m.handleApplyRecommendation()
+	case "enter":
+		return m.handleEnterKey()
+	case "esc":
+		return m.handleEscKey()
+	case "up", "k":
+		return m.handleUpKey()
+	case "down", "j":
+		return m.handleDownKey()
+	}
+
+	return m, nil
+}
+
+// handleRefresh refreshes rightsizing data
+func (m RightsizingModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	return m, m.fetchRightsizingData
+}
+
+// handleTabSwitch cycles through tabs
+func (m RightsizingModel) handleTabSwitch() (tea.Model, tea.Cmd) {
+	m.selectedTab = (m.selectedTab + 1) % 3
+	return m, nil
+}
+
+// handleToggleDetailView toggles detail view in recommendations tab
+func (m RightsizingModel) handleToggleDetailView() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && len(m.recommendations) > 0 {
+		m.showDetailView = !m.showDetailView
+	}
+	return m, nil
+}
+
+// handleApplyRecommendation shows apply recommendation dialog
+func (m RightsizingModel) handleApplyRecommendation() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedRecommendation < len(m.recommendations) {
+		rec := m.recommendations[m.selectedRecommendation]
+		m.dialogRecommendationID = rec.InstanceName
+		m.showApplyDialog = true
+	}
+	return m, nil
+}
+
+// handleEnterKey handles Enter key press (dialog confirmation)
+func (m RightsizingModel) handleEnterKey() (tea.Model, tea.Cmd) {
+	if m.showApplyDialog {
+		return m, m.applyRecommendation(m.dialogRecommendationID)
+	}
+	return m, nil
+}
+
+// handleEscKey handles Escape key press (close dialogs)
+func (m RightsizingModel) handleEscKey() (tea.Model, tea.Cmd) {
+	if m.showApplyDialog {
+		m.showApplyDialog = false
+		return m, nil
+	}
+	if m.showDetailView {
+		m.showDetailView = false
+		return m, nil
+	}
+	return m, nil
+}
+
+// handleUpKey handles up arrow navigation
+func (m RightsizingModel) handleUpKey() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedRecommendation > 0 {
+		m.selectedRecommendation--
+	} else if m.selectedTab == 1 && m.selectedInstance > 0 {
+		m.selectedInstance--
+	}
+	return m, nil
+}
+
+// handleDownKey handles down arrow navigation
+func (m RightsizingModel) handleDownKey() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedRecommendation < len(m.recommendations)-1 {
+		m.selectedRecommendation++
+	} else if m.selectedTab == 1 && m.selectedInstance < len(m.instances)-1 {
+		m.selectedInstance++
+	}
 	return m, nil
 }
 

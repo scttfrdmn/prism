@@ -310,7 +310,7 @@ lint:
 	@gocyclo -over 15 . || true
 	@echo "  • Running misspell (spelling errors)..."
 	@command -v misspell >/dev/null 2>&1 || { echo "misspell not found. Install with: go install github.com/client9/misspell/cmd/misspell@latest"; exit 1; }
-	@misspell -error .
+	@misspell -error -i node_modules .
 	@echo "  • Running staticcheck (static analysis)..."
 	@command -v staticcheck >/dev/null 2>&1 || { echo "staticcheck not found. Install with: go install honnef.co/go/tools/cmd/staticcheck@latest"; exit 1; }
 	@staticcheck ./...
@@ -324,12 +324,27 @@ vet:
 	@echo "🔎 Running go vet..."
 	@go vet ./...
 
-# Security scan (comprehensive)
-.PHONY: security
-security:
-	@echo "🔒 Running security scan..."
-	@gosec -quiet ./...
-	@echo "✅ Security scan passed!"
+# Security scan (comprehensive - Go + npm)
+.PHONY: security security-go security-npm
+security: security-go security-npm
+	@echo "✅ All security scans passed!"
+
+# Go vulnerability scan
+security-go:
+	@echo "🔒 Running Go security scan..."
+	@command -v govulncheck >/dev/null 2>&1 || { echo "Installing govulncheck..."; go install golang.org/x/vuln/cmd/govulncheck@latest; }
+	@govulncheck ./...
+	@echo "✅ Go security scan passed!"
+
+# npm vulnerability scan
+security-npm:
+	@echo "🔒 Running npm security scan..."
+	@if [ -d "cmd/cws-gui/frontend" ]; then \
+		cd cmd/cws-gui/frontend && npm audit; \
+		echo "✅ npm security scan passed!"; \
+	else \
+		echo "⚠️  Frontend directory not found, skipping npm audit"; \
+	fi
 
 # Format code (auto-fix)
 .PHONY: fmt

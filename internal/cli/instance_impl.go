@@ -37,28 +37,15 @@ func NewInstanceCommands(app *App) *InstanceCommands {
 
 // Connect handles the connect command
 func (ic *InstanceCommands) Connect(args []string) error {
+	// Validate arguments
 	if len(args) < 1 {
 		return NewUsageError("cws connect <instance-name>", "cws connect my-workstation")
 	}
 
-	name := args[0]
-	verbose := false
-	userOverride := ""
-
 	// Parse flags
-	for i := 1; i < len(args); i++ {
-		switch args[i] {
-		case "--verbose", "-v":
-			verbose = true
-		case "--user", "-u":
-			if i+1 >= len(args) {
-				return NewValidationError("--user", "", "requires a username")
-			}
-			userOverride = args[i+1]
-			i++
-		default:
-			return NewValidationError("flag", args[i], "--verbose, -v, --user, or -u")
-		}
+	name, verbose, userOverride, err := ic.parseConnectFlags(args)
+	if err != nil {
+		return err
 	}
 
 	// Ensure daemon is running (auto-start if needed)
@@ -66,63 +53,115 @@ func (ic *InstanceCommands) Connect(args []string) error {
 		return err
 	}
 
-	// Get instance details to check for web services
+	// Get instance and setup tunnels
+	_, err = ic.setupInstanceConnection(name)
+	if err != nil {
+		return err
+	}
+
+	// Get connection info
+	connectionInfo, err := ic.getConnectionInfo(name, userOverride, verbose)
+	if err != nil {
+		return err
+	}
+
+	// Execute or display connection
+	return ic.executeConnection(connectionInfo, name, verbose)
+}
+
+// parseConnectFlags parses connect command flags
+func (ic *InstanceCommands) parseConnectFlags(args []string) (name string, verbose bool, userOverride string, err error) {
+	name = args[0]
+
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--verbose", "-v":
+			verbose = true
+		case "--user", "-u":
+			if i+1 >= len(args) {
+				return "", false, "", NewValidationError("--user", "", "requires a username")
+			}
+			userOverride = args[i+1]
+			i++
+		default:
+			return "", false, "", NewValidationError("flag", args[i], "--verbose, -v, --user, or -u")
+		}
+	}
+
+	return name, verbose, userOverride, nil
+}
+
+// setupInstanceConnection gets instance and creates tunnels
+func (ic *InstanceCommands) setupInstanceConnection(name string) (*types.Instance, error) {
 	instance, err := ic.app.apiClient.GetInstance(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("get instance details for "+name, err)
+		return nil, WrapAPIError("get instance details for "+name, err)
 	}
 
-	// Automatically create tunnels for any web services
 	if len(instance.Services) > 0 {
-		fmt.Printf("🌐 Setting up tunnels for web services...\n")
-		tunnelResp, err := ic.app.apiClient.CreateTunnels(ic.app.ctx, name, nil) // nil = create all
-		if err != nil {
-			// Don't fail connection if tunnels can't be created - just warn
-			fmt.Printf("⚠️  Warning: Could not create tunnels: %v\n", err)
+		ic.createWebServiceTunnels(name)
+	}
+
+	return instance, nil
+}
+
+// createWebServiceTunnels creates tunnels for web services
+func (ic *InstanceCommands) createWebServiceTunnels(name string) {
+	fmt.Printf("🌐 Setting up tunnels for web services...\n")
+	tunnelResp, err := ic.app.apiClient.CreateTunnels(ic.app.ctx, name, nil) // nil = create all
+	if err != nil {
+		fmt.Printf("⚠️  Warning: Could not create tunnels: %v\n", err)
+		return
+	}
+
+	fmt.Printf("✅ Tunnels created:\n")
+	for _, tunnel := range tunnelResp.Tunnels {
+		if tunnel.AuthToken != "" {
+			fmt.Printf("   • %s: %s?token=%s\n", tunnel.ServiceDesc, tunnel.LocalURL, tunnel.AuthToken)
 		} else {
-			fmt.Printf("✅ Tunnels created:\n")
-			for _, tunnel := range tunnelResp.Tunnels {
-				if tunnel.AuthToken != "" {
-					// Show full URL with token for services that need it
-					fmt.Printf("   • %s: %s?token=%s\n", tunnel.ServiceDesc, tunnel.LocalURL, tunnel.AuthToken)
-				} else {
-					fmt.Printf("   • %s: %s\n", tunnel.ServiceDesc, tunnel.LocalURL)
-				}
-			}
+			fmt.Printf("   • %s: %s\n", tunnel.ServiceDesc, tunnel.LocalURL)
 		}
 	}
+}
 
+// getConnectionInfo retrieves and optionally modifies connection info
+func (ic *InstanceCommands) getConnectionInfo(name, userOverride string, verbose bool) (string, error) {
 	connectionInfo, err := ic.app.apiClient.ConnectInstance(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("get connection info for "+name, err)
+		return "", WrapAPIError("get connection info for "+name, err)
 	}
 
-	// Apply username override if specified
 	if userOverride != "" {
-		// Parse SSH command and replace username
-		// Format: ssh -i "/path/to/key" username@host
-		parts := strings.Fields(connectionInfo)
-		for _, part := range parts {
-			if strings.Contains(part, "@") {
-				// Replace username in user@host format
-				hostPart := part[strings.Index(part, "@"):]
-				connectionInfo = strings.Replace(connectionInfo, part, userOverride+hostPart, 1)
-				if verbose {
-					fmt.Printf("🔧 Username overridden: %s\n", userOverride)
-				}
-				break
+		connectionInfo = ic.applyUsernameOverride(connectionInfo, userOverride, verbose)
+	}
+
+	return connectionInfo, nil
+}
+
+// applyUsernameOverride replaces username in SSH connection string
+func (ic *InstanceCommands) applyUsernameOverride(connectionInfo, userOverride string, verbose bool) string {
+	parts := strings.Fields(connectionInfo)
+	for _, part := range parts {
+		if strings.Contains(part, "@") {
+			hostPart := part[strings.Index(part, "@"):]
+			connectionInfo = strings.Replace(connectionInfo, part, userOverride+hostPart, 1)
+			if verbose {
+				fmt.Printf("🔧 Username overridden: %s\n", userOverride)
 			}
+			break
 		}
 	}
+	return connectionInfo
+}
 
+// executeConnection executes or displays connection info
+func (ic *InstanceCommands) executeConnection(connectionInfo, name string, verbose bool) error {
 	if verbose {
 		fmt.Printf("🔗 SSH command for %s:\n", name)
 		fmt.Printf("%s\n", connectionInfo)
-	} else {
-		return ic.app.executeSSHCommand(connectionInfo, name)
+		return nil
 	}
-
-	return nil
+	return ic.app.executeSSHCommand(connectionInfo, name)
 }
 
 // Stop handles the stop command
@@ -308,122 +347,96 @@ func (ic *InstanceCommands) Resume(args []string) error {
 // Note: This method is called from the Cobra command structure, so flag parsing
 // is handled by Cobra. This simplified version assumes args contains only positional arguments.
 func (ic *InstanceCommands) Exec(args []string) error {
+	// Validate arguments
 	if len(args) < 2 {
 		return NewUsageError("cws exec <instance-name> <command>", "cws exec my-workstation \"ls -la\"")
 	}
 
+	// Parse command arguments and flags
 	instanceName := args[0]
 	command := args[1]
+	execRequest, verbose := ic.parseExecFlags(args[2:], command)
 
+	// Ensure daemon is running
+	if err := ic.app.ensureDaemonRunning(); err != nil {
+		return err
+	}
+
+	// Display verbose execution info
+	if verbose {
+		ic.displayExecInfo(instanceName, execRequest)
+	}
+
+	// Execute command and display results
+	return ic.executeAndDisplayResult(instanceName, execRequest, verbose)
+}
+
+// parseExecFlags parses exec command flags
+func (ic *InstanceCommands) parseExecFlags(args []string, command string) (types.ExecRequest, bool) {
 	// Design Note: This function supports both Cobra and direct API usage
 	// When called via Cobra command (instance_cobra.go), flags are pre-parsed by Cobra
 	// When called directly (legacy/API usage), manual flag parsing below handles arguments
-	// Both paths converge to the same API client call for consistency
-	var user string
-	var workingDir string
-	var timeout int = 30
-	environment := make(map[string]string)
-	interactive := false
+	execRequest := types.ExecRequest{
+		Command:        command,
+		TimeoutSeconds: 30,
+		Environment:    make(map[string]string),
+	}
 	verbose := false
 
-	// Manual flag parsing for direct API usage (Cobra commands use cmd.Flags() instead)
-	for i := 2; i < len(args); i++ {
+	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
 		case arg == "--user" && i+1 < len(args):
-			user = args[i+1]
+			execRequest.User = args[i+1]
 			i++
 		case arg == "--working-dir" && i+1 < len(args):
-			workingDir = args[i+1]
+			execRequest.WorkingDir = args[i+1]
 			i++
 		case arg == "--timeout" && i+1 < len(args):
-			timeout, _ = strconv.Atoi(args[i+1])
+			execRequest.TimeoutSeconds, _ = strconv.Atoi(args[i+1])
 			i++
 		case strings.HasPrefix(arg, "--env="):
 			envPart := strings.TrimPrefix(arg, "--env=")
 			if envKV := strings.SplitN(envPart, "=", 2); len(envKV) == 2 {
-				environment[envKV[0]] = envKV[1]
+				execRequest.Environment[envKV[0]] = envKV[1]
 			}
 		case arg == "--interactive" || arg == "-i":
-			interactive = true
+			execRequest.Interactive = true
 		case arg == "--verbose" || arg == "-v":
 			verbose = true
 		}
 	}
 
-	// Create exec request
-	execRequest := types.ExecRequest{
-		Command:        command,
-		WorkingDir:     workingDir,
-		User:           user,
-		Environment:    environment,
-		TimeoutSeconds: timeout,
-		Interactive:    interactive,
-	}
+	return execRequest, verbose
+}
 
-	// Ensure daemon is running (auto-start if needed)
-	if err := ic.app.ensureDaemonRunning(); err != nil {
-		return err
+// displayExecInfo displays execution information in verbose mode
+func (ic *InstanceCommands) displayExecInfo(instanceName string, req types.ExecRequest) {
+	fmt.Printf("🔧 Executing command on %s...\n", instanceName)
+	fmt.Printf("   Command: %s\n", req.Command)
+	if req.User != "" {
+		fmt.Printf("   User: %s\n", req.User)
 	}
-
-	if verbose {
-		fmt.Printf("🔧 Executing command on %s...\n", instanceName)
-		fmt.Printf("   Command: %s\n", command)
-		if user != "" {
-			fmt.Printf("   User: %s\n", user)
-		}
-		if workingDir != "" {
-			fmt.Printf("   Working Directory: %s\n", workingDir)
-		}
-		if len(environment) > 0 {
-			fmt.Printf("   Environment: %v\n", environment)
-		}
-		fmt.Printf("   Timeout: %ds\n", timeout)
-		fmt.Printf("   Interactive: %t\n", interactive)
-		fmt.Println()
+	if req.WorkingDir != "" {
+		fmt.Printf("   Working Directory: %s\n", req.WorkingDir)
 	}
+	if len(req.Environment) > 0 {
+		fmt.Printf("   Environment: %v\n", req.Environment)
+	}
+	fmt.Printf("   Timeout: %ds\n", req.TimeoutSeconds)
+	fmt.Printf("   Interactive: %t\n", req.Interactive)
+	fmt.Println()
+}
 
-	// Execute the command
-	result, err := ic.app.apiClient.ExecInstance(ic.app.ctx, instanceName, execRequest)
+// executeAndDisplayResult executes command and displays results
+func (ic *InstanceCommands) executeAndDisplayResult(instanceName string, req types.ExecRequest, verbose bool) error {
+	result, err := ic.app.apiClient.ExecInstance(ic.app.ctx, instanceName, req)
 	if err != nil {
 		return WrapAPIError("execute command on "+instanceName, err)
 	}
 
-	// Display results based on verbosity
-	if verbose {
-		fmt.Printf("📊 Command execution completed:\n")
-		fmt.Printf("   Exit Code: %d\n", result.ExitCode)
-		fmt.Printf("   Status: %s\n", result.Status)
-		fmt.Printf("   Execution Time: %dms\n", result.ExecutionTime)
-		if result.CommandID != "" {
-			fmt.Printf("   Command ID: %s\n", result.CommandID)
-		}
-		fmt.Println()
-	}
+	ic.displayExecResult(result, verbose)
 
-	// Display stdout if available
-	if result.StdOut != "" {
-		if verbose {
-			fmt.Printf("📤 Output:\n")
-		}
-		fmt.Print(result.StdOut)
-		if !strings.HasSuffix(result.StdOut, "\n") {
-			fmt.Println()
-		}
-	}
-
-	// Display stderr if available and command failed
-	if result.StdErr != "" && (result.ExitCode != 0 || verbose) {
-		if verbose {
-			fmt.Printf("⚠️  Error Output:\n")
-		}
-		fmt.Fprint(os.Stderr, result.StdErr)
-		if !strings.HasSuffix(result.StdErr, "\n") {
-			fmt.Fprintln(os.Stderr)
-		}
-	}
-
-	// Exit with the same code as the remote command
 	if result.ExitCode != 0 {
 		os.Exit(result.ExitCode)
 	}
@@ -431,137 +444,253 @@ func (ic *InstanceCommands) Exec(args []string) error {
 	return nil
 }
 
+// displayExecResult displays command execution results
+func (ic *InstanceCommands) displayExecResult(result *types.ExecResult, verbose bool) {
+	if verbose {
+		ic.displayExecSummary(result)
+	}
+
+	ic.displayStdOut(result.StdOut, verbose)
+	ic.displayStdErr(result.StdErr, result.ExitCode, verbose)
+}
+
+// displayExecSummary displays execution summary in verbose mode
+func (ic *InstanceCommands) displayExecSummary(result *types.ExecResult) {
+	fmt.Printf("📊 Command execution completed:\n")
+	fmt.Printf("   Exit Code: %d\n", result.ExitCode)
+	fmt.Printf("   Status: %s\n", result.Status)
+	fmt.Printf("   Execution Time: %dms\n", result.ExecutionTime)
+	if result.CommandID != "" {
+		fmt.Printf("   Command ID: %s\n", result.CommandID)
+	}
+	fmt.Println()
+}
+
+// displayStdOut displays standard output
+func (ic *InstanceCommands) displayStdOut(stdout string, verbose bool) {
+	if stdout == "" {
+		return
+	}
+
+	if verbose {
+		fmt.Printf("📤 Output:\n")
+	}
+	fmt.Print(stdout)
+	if !strings.HasSuffix(stdout, "\n") {
+		fmt.Println()
+	}
+}
+
+// displayStdErr displays standard error
+func (ic *InstanceCommands) displayStdErr(stderr string, exitCode int, verbose bool) {
+	if stderr == "" || (exitCode == 0 && !verbose) {
+		return
+	}
+
+	if verbose {
+		fmt.Printf("⚠️  Error Output:\n")
+	}
+	fmt.Fprint(os.Stderr, stderr)
+	if !strings.HasSuffix(stderr, "\n") {
+		fmt.Fprintln(os.Stderr)
+	}
+}
+
 // Resize handles the resize command - changes instance type/size
 func (ic *InstanceCommands) Resize(args []string) error {
+	// Validate arguments
 	if len(args) < 2 {
 		return NewUsageError("cws resize <instance-name> --size <size> [options]",
 			"cws resize my-workstation --size L")
 	}
 
-	instanceName := args[0]
-	var newSize string
-	var instanceType string
-	var dryRun bool
-	var force bool
-	var wait bool
-
 	// Parse flags
-	for i := 1; i < len(args); i++ {
-		switch args[i] {
-		case "--size":
-			if i+1 >= len(args) {
-				return NewValidationError("--size", "", "requires a t-shirt size (XS, S, M, L, XL)")
-			}
-			newSize = strings.ToUpper(args[i+1])
-			if !ValidTSizes[newSize] {
-				return NewValidationError("size", newSize, "XS, S, M, L, XL")
-			}
-			i++
-		case "--instance-type":
-			if i+1 >= len(args) {
-				return NewValidationError("--instance-type", "", "requires an AWS instance type")
-			}
-			instanceType = args[i+1]
-			i++
-		case "--dry-run":
-			dryRun = true
-		case "--force":
-			force = true
-		case "--wait":
-			wait = true
-		default:
-			return NewValidationError("flag", args[i], "--size, --instance-type, --dry-run, --force, or --wait")
-		}
+	instanceName, resizeOpts, err := ic.parseResizeFlags(args)
+	if err != nil {
+		return err
 	}
 
-	// Ensure daemon is running (auto-start if needed)
+	// Ensure daemon is running
 	if err := ic.app.ensureDaemonRunning(); err != nil {
 		return err
 	}
 
-	// Get current instance info
-	listResponse, err := ic.app.apiClient.ListInstances(ic.app.ctx)
+	// Get and validate instance
+	targetInstance, err := ic.getInstanceForResize(instanceName)
 	if err != nil {
-		return WrapAPIError("get instance status", err)
-	}
-
-	var targetInstance *types.Instance
-	for _, instance := range listResponse.Instances {
-		if instance.Name == instanceName {
-			targetInstance = &instance
-			break
-		}
-	}
-
-	if targetInstance == nil {
-		return NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
+		return err
 	}
 
 	// Determine target instance type
-	var targetInstanceType string
-	if instanceType != "" {
-		targetInstanceType = instanceType
-	} else if newSize != "" {
-		if mappedType, exists := SizeInstanceTypeMapping[newSize]; exists {
-			targetInstanceType = mappedType
-		} else {
-			return NewValidationError("size", newSize, "valid t-shirt size (XS, S, M, L, XL)")
+	targetInstanceType, err := ic.resolveTargetInstanceType(resizeOpts)
+	if err != nil {
+		return err
+	}
+
+	// Display resize information and handle dry-run
+	if err := ic.displayResizeInfo(instanceName, targetInstance, targetInstanceType, resizeOpts); err != nil {
+		return err
+	}
+
+	// Execute resize
+	return ic.executeResize(instanceName, targetInstanceType, resizeOpts)
+}
+
+// resizeOptions holds parsed resize command options
+type resizeOptions struct {
+	newSize      string
+	instanceType string
+	dryRun       bool
+	force        bool
+	wait         bool
+}
+
+// parseResizeFlags parses resize command flags
+func (ic *InstanceCommands) parseResizeFlags(args []string) (string, resizeOptions, error) {
+	instanceName := args[0]
+	opts := resizeOptions{}
+
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--size":
+			if i+1 >= len(args) {
+				return "", opts, NewValidationError("--size", "", "requires a t-shirt size (XS, S, M, L, XL)")
+			}
+			opts.newSize = strings.ToUpper(args[i+1])
+			if !ValidTSizes[opts.newSize] {
+				return "", opts, NewValidationError("size", opts.newSize, "XS, S, M, L, XL")
+			}
+			i++
+		case "--instance-type":
+			if i+1 >= len(args) {
+				return "", opts, NewValidationError("--instance-type", "", "requires an AWS instance type")
+			}
+			opts.instanceType = args[i+1]
+			i++
+		case "--dry-run":
+			opts.dryRun = true
+		case "--force":
+			opts.force = true
+		case "--wait":
+			opts.wait = true
+		default:
+			return "", opts, NewValidationError("flag", args[i], "--size, --instance-type, --dry-run, --force, or --wait")
 		}
-	} else {
-		return NewUsageError("cws resize <instance-name> --size <size> OR --instance-type <type>",
-			"cws resize my-workstation --size L")
 	}
 
-	// Parse current size
-	currentSize := "Unknown"
-	if size, exists := InstanceTypeSizeMapping[targetInstance.InstanceType]; exists {
-		currentSize = size
+	return instanceName, opts, nil
+}
+
+// getInstanceForResize retrieves and validates the target instance
+func (ic *InstanceCommands) getInstanceForResize(instanceName string) (*types.Instance, error) {
+	listResponse, err := ic.app.apiClient.ListInstances(ic.app.ctx)
+	if err != nil {
+		return nil, WrapAPIError("get instance status", err)
 	}
 
-	fmt.Printf("🔄 Instance Resize Operation\n")
-	fmt.Printf("═══════════════════════════\n\n")
-
-	fmt.Printf("📋 **Resize Details**:\n")
-	fmt.Printf("   Instance: %s\n", instanceName)
-	fmt.Printf("   Current Type: %s (%s)\n", targetInstance.InstanceType, currentSize)
-	fmt.Printf("   Target Type: %s", targetInstanceType)
-	if newSize != "" {
-		fmt.Printf(" (%s)", newSize)
+	for _, instance := range listResponse.Instances {
+		if instance.Name == instanceName {
+			return &instance, nil
+		}
 	}
-	fmt.Printf("\n")
-	fmt.Printf("   Current State: %s\n\n", targetInstance.State)
 
-	// Check if resize is needed
+	return nil, NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
+}
+
+// resolveTargetInstanceType determines the target instance type from options
+func (ic *InstanceCommands) resolveTargetInstanceType(opts resizeOptions) (string, error) {
+	if opts.instanceType != "" {
+		return opts.instanceType, nil
+	}
+
+	if opts.newSize != "" {
+		if mappedType, exists := SizeInstanceTypeMapping[opts.newSize]; exists {
+			return mappedType, nil
+		}
+		return "", NewValidationError("size", opts.newSize, "valid t-shirt size (XS, S, M, L, XL)")
+	}
+
+	return "", NewUsageError("cws resize <instance-name> --size <size> OR --instance-type <type>",
+		"cws resize my-workstation --size L")
+}
+
+// displayResizeInfo displays resize operation details and handles validation
+func (ic *InstanceCommands) displayResizeInfo(instanceName string, targetInstance *types.Instance, targetInstanceType string, opts resizeOptions) error {
+	currentSize := ic.getCurrentSize(targetInstance.InstanceType)
+
+	ic.displayResizeHeader(instanceName, targetInstance, targetInstanceType, currentSize, opts.newSize)
+
 	if targetInstance.InstanceType == targetInstanceType {
 		fmt.Printf("✅ Instance is already type %s. No resize needed.\n", targetInstanceType)
-		return nil
+		return fmt.Errorf("no resize needed")
 	}
 
-	// Validate instance state
 	if targetInstance.State != "running" && targetInstance.State != "stopped" {
 		return NewStateError("instance", instanceName, targetInstance.State, "running or stopped")
 	}
 
-	// Show cost comparison
-	currentCost := targetInstance.HourlyRate
-	newCost := ic.estimateCostForInstanceType(targetInstanceType)
+	ic.displayCostImpact(targetInstance, targetInstanceType)
+	ic.displayResizeProcess(targetInstance)
+
+	if opts.dryRun {
+		fmt.Printf("🔍 **Dry Run Complete**\n")
+		fmt.Printf("   Resize operation validated successfully\n")
+		fmt.Printf("   Run without --dry-run to execute\n")
+		return fmt.Errorf("dry-run complete")
+	}
+
+	return ic.confirmResize(instanceName, opts.force)
+}
+
+// getCurrentSize gets current t-shirt size for instance type
+func (ic *InstanceCommands) getCurrentSize(instanceType string) string {
+	if size, exists := InstanceTypeSizeMapping[instanceType]; exists {
+		return size
+	}
+	return "Unknown"
+}
+
+// displayResizeHeader displays resize operation header
+func (ic *InstanceCommands) displayResizeHeader(instanceName string, instance *types.Instance, targetType, currentSize, newSize string) {
+	fmt.Printf("🔄 Instance Resize Operation\n")
+	fmt.Printf("═══════════════════════════\n\n")
+	fmt.Printf("📋 **Resize Details**:\n")
+	fmt.Printf("   Instance: %s\n", instanceName)
+	fmt.Printf("   Current Type: %s (%s)\n", instance.InstanceType, currentSize)
+	fmt.Printf("   Target Type: %s", targetType)
+	if newSize != "" {
+		fmt.Printf(" (%s)", newSize)
+	}
+	fmt.Printf("\n   Current State: %s\n\n", instance.State)
+}
+
+// displayCostImpact displays cost comparison
+func (ic *InstanceCommands) displayCostImpact(instance *types.Instance, targetType string) {
+	currentCost := instance.HourlyRate
+	newCost := ic.estimateCostForInstanceType(targetType)
 
 	fmt.Printf("💰 **Cost Impact**:\n")
 	fmt.Printf("   Current Cost: $%.2f/day\n", currentCost)
 	fmt.Printf("   New Cost: $%.2f/day\n", newCost)
 
 	if newCost > currentCost {
-		fmt.Printf("   Impact: +$%.2f/day (+%.1f%%)\n", newCost-currentCost, ((newCost-currentCost)/currentCost)*100)
-		fmt.Printf("   Monthly Impact: +$%.2f\n", (newCost-currentCost)*30)
+		diff := newCost - currentCost
+		fmt.Printf("   Impact: +$%.2f/day (+%.1f%%)\n", diff, (diff/currentCost)*100)
+		fmt.Printf("   Monthly Impact: +$%.2f\n", diff*30)
 	} else if newCost < currentCost {
-		fmt.Printf("   Impact: -$%.2f/day (-%.1f%%)\n", currentCost-newCost, ((currentCost-newCost)/currentCost)*100)
-		fmt.Printf("   Monthly Savings: $%.2f\n", (currentCost-newCost)*30)
+		diff := currentCost - newCost
+		fmt.Printf("   Impact: -$%.2f/day (-%.1f%%)\n", diff, (diff/currentCost)*100)
+		fmt.Printf("   Monthly Savings: $%.2f\n", diff*30)
 	} else {
 		fmt.Printf("   Impact: No cost change\n")
 	}
+	fmt.Println()
+}
 
-	fmt.Printf("\n⚡ **Resize Process**:\n")
-	if targetInstance.State == "running" {
+// displayResizeProcess displays resize process steps
+func (ic *InstanceCommands) displayResizeProcess(instance *types.Instance) {
+	fmt.Printf("⚡ **Resize Process**:\n")
+	if instance.State == "running" {
 		fmt.Printf("   1. Stop instance (preserves data)\n")
 		fmt.Printf("   2. Modify instance type\n")
 		fmt.Printf("   3. Start with new configuration\n")
@@ -572,38 +701,38 @@ func (ic *InstanceCommands) Resize(args []string) error {
 		fmt.Printf("   2. Start with new configuration\n")
 		fmt.Printf("   No additional downtime required\n\n")
 	}
+}
 
-	if dryRun {
-		fmt.Printf("🔍 **Dry Run Complete**\n")
-		fmt.Printf("   Resize operation validated successfully\n")
-		fmt.Printf("   Run without --dry-run to execute\n")
+// confirmResize prompts for user confirmation unless forced
+func (ic *InstanceCommands) confirmResize(instanceName string, force bool) error {
+	if force {
 		return nil
 	}
 
-	// Confirmation prompt unless --force is used
-	if !force {
-		fmt.Printf("⚠️  **Confirmation Required**\n")
-		fmt.Printf("   This will modify the instance type and require a restart.\n")
-		fmt.Printf("   Type the instance name to confirm: ")
+	fmt.Printf("⚠️  **Confirmation Required**\n")
+	fmt.Printf("   This will modify the instance type and require a restart.\n")
+	fmt.Printf("   Type the instance name to confirm: ")
 
-		var confirmation string
-		fmt.Scanln(&confirmation)
+	var confirmation string
+	fmt.Scanln(&confirmation)
 
-		if confirmation != instanceName {
-			fmt.Printf("❌ Instance name doesn't match. Resize cancelled.\n")
-			return nil
-		}
+	if confirmation != instanceName {
+		fmt.Printf("❌ Instance name doesn't match. Resize cancelled.\n")
+		return fmt.Errorf("confirmation failed")
 	}
 
-	// Create resize request
+	return nil
+}
+
+// executeResize executes the resize operation
+func (ic *InstanceCommands) executeResize(instanceName, targetType string, opts resizeOptions) error {
 	resizeRequest := types.ResizeRequest{
 		InstanceName:       instanceName,
-		TargetInstanceType: targetInstanceType,
-		Force:              force,
-		Wait:               wait,
+		TargetInstanceType: targetType,
+		Force:              opts.force,
+		Wait:               opts.wait,
 	}
 
-	// Execute resize
 	response, err := ic.app.apiClient.ResizeInstance(ic.app.ctx, resizeRequest)
 	if err != nil {
 		return WrapAPIError("resize instance "+instanceName, err)
@@ -611,14 +740,13 @@ func (ic *InstanceCommands) Resize(args []string) error {
 
 	fmt.Printf("✅ %s\n", response.Message)
 
-	if wait {
+	if opts.wait {
 		fmt.Printf("⏳ Monitoring resize progress...\n")
 		return ic.monitorResizeProgress(instanceName)
-	} else {
-		fmt.Printf("💡 Monitor progress with: cws list\n")
-		fmt.Printf("💡 Check when ready: cws connect %s\n", instanceName)
 	}
 
+	fmt.Printf("💡 Monitor progress with: cws list\n")
+	fmt.Printf("💡 Check when ready: cws connect %s\n", instanceName)
 	return nil
 }
 

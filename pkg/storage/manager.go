@@ -643,7 +643,20 @@ func (m *StorageManager) GetStorageHealth() (*StorageHealthReport, error) {
 		Issues:        []StorageHealthIssue{},
 	}
 
-	// Check EFS health
+	// Check health of each storage service
+	m.checkEFSHealth(report)
+	m.checkEBSHealth(report)
+	m.checkFSxHealth(report)
+	m.checkS3Health(report)
+
+	// Determine overall health based on issues
+	m.determineOverallHealth(report)
+
+	return report, nil
+}
+
+// checkEFSHealth checks EFS filesystem health
+func (m *StorageManager) checkEFSHealth(report *StorageHealthReport) {
 	efsStorages, err := m.efsManager.ListEFSFilesystems()
 	if err != nil {
 		report.ServiceHealth["EFS"] = "unhealthy"
@@ -653,22 +666,25 @@ func (m *StorageManager) GetStorageHealth() (*StorageHealthReport, error) {
 			Message:   fmt.Sprintf("Failed to list EFS filesystems: %v", err),
 			Timestamp: time.Now(),
 		})
-	} else {
-		report.ServiceHealth["EFS"] = "healthy"
-		for _, storage := range efsStorages {
-			if storage.State != "available" {
-				report.Issues = append(report.Issues, StorageHealthIssue{
-					Service:   "EFS",
-					Resource:  storage.Name,
-					Severity:  "medium",
-					Message:   fmt.Sprintf("EFS filesystem %s is in state: %s", storage.Name, storage.State),
-					Timestamp: time.Now(),
-				})
-			}
-		}
+		return
 	}
 
-	// Check EBS health
+	report.ServiceHealth["EFS"] = "healthy"
+	for _, storage := range efsStorages {
+		if storage.State != "available" {
+			report.Issues = append(report.Issues, StorageHealthIssue{
+				Service:   "EFS",
+				Resource:  storage.Name,
+				Severity:  "medium",
+				Message:   fmt.Sprintf("EFS filesystem %s is in state: %s", storage.Name, storage.State),
+				Timestamp: time.Now(),
+			})
+		}
+	}
+}
+
+// checkEBSHealth checks EBS volume health
+func (m *StorageManager) checkEBSHealth(report *StorageHealthReport) {
 	ebsStorages, err := m.ebsManager.ListEBSVolumes()
 	if err != nil {
 		report.ServiceHealth["EBS"] = "unhealthy"
@@ -678,22 +694,25 @@ func (m *StorageManager) GetStorageHealth() (*StorageHealthReport, error) {
 			Message:   fmt.Sprintf("Failed to list EBS volumes: %v", err),
 			Timestamp: time.Now(),
 		})
-	} else {
-		report.ServiceHealth["EBS"] = "healthy"
-		for _, storage := range ebsStorages {
-			if storage.State != "available" && storage.State != "in-use" {
-				report.Issues = append(report.Issues, StorageHealthIssue{
-					Service:   "EBS",
-					Resource:  storage.Name,
-					Severity:  "medium",
-					Message:   fmt.Sprintf("EBS volume %s is in state: %s", storage.Name, storage.State),
-					Timestamp: time.Now(),
-				})
-			}
-		}
+		return
 	}
 
-	// Check FSx health
+	report.ServiceHealth["EBS"] = "healthy"
+	for _, storage := range ebsStorages {
+		if !m.isEBSStateHealthy(storage.State) {
+			report.Issues = append(report.Issues, StorageHealthIssue{
+				Service:   "EBS",
+				Resource:  storage.Name,
+				Severity:  "medium",
+				Message:   fmt.Sprintf("EBS volume %s is in state: %s", storage.Name, storage.State),
+				Timestamp: time.Now(),
+			})
+		}
+	}
+}
+
+// checkFSxHealth checks FSx filesystem health
+func (m *StorageManager) checkFSxHealth(report *StorageHealthReport) {
 	fsxStorages, err := m.fsxManager.ListFSxFilesystems()
 	if err != nil {
 		report.ServiceHealth["FSx"] = "unhealthy"
@@ -703,22 +722,25 @@ func (m *StorageManager) GetStorageHealth() (*StorageHealthReport, error) {
 			Message:   fmt.Sprintf("Failed to list FSx filesystems: %v", err),
 			Timestamp: time.Now(),
 		})
-	} else {
-		report.ServiceHealth["FSx"] = "healthy"
-		for _, storage := range fsxStorages {
-			if storage.State != "AVAILABLE" {
-				report.Issues = append(report.Issues, StorageHealthIssue{
-					Service:   "FSx",
-					Resource:  storage.Name,
-					Severity:  "medium",
-					Message:   fmt.Sprintf("FSx filesystem %s is in state: %s", storage.Name, storage.State),
-					Timestamp: time.Now(),
-				})
-			}
-		}
+		return
 	}
 
-	// Check S3 health
+	report.ServiceHealth["FSx"] = "healthy"
+	for _, storage := range fsxStorages {
+		if storage.State != "AVAILABLE" {
+			report.Issues = append(report.Issues, StorageHealthIssue{
+				Service:   "FSx",
+				Resource:  storage.Name,
+				Severity:  "medium",
+				Message:   fmt.Sprintf("FSx filesystem %s is in state: %s", storage.Name, storage.State),
+				Timestamp: time.Now(),
+			})
+		}
+	}
+}
+
+// checkS3Health checks S3 mount point health
+func (m *StorageManager) checkS3Health(report *StorageHealthReport) {
 	s3Storages, err := m.s3Manager.ListS3MountPoints()
 	if err != nil {
 		report.ServiceHealth["S3"] = "unhealthy"
@@ -728,35 +750,43 @@ func (m *StorageManager) GetStorageHealth() (*StorageHealthReport, error) {
 			Message:   fmt.Sprintf("Failed to list S3 buckets: %v", err),
 			Timestamp: time.Now(),
 		})
+		return
+	}
+
+	report.ServiceHealth["S3"] = "healthy"
+	for _, storage := range s3Storages {
+		if storage.State != "available" {
+			report.Issues = append(report.Issues, StorageHealthIssue{
+				Service:   "S3",
+				Severity:  "medium",
+				Message:   fmt.Sprintf("S3 storage %s is in %s state", storage.Name, storage.State),
+				Timestamp: time.Now(),
+			})
+		}
+	}
+}
+
+// isEBSStateHealthy checks if EBS volume state is healthy
+func (m *StorageManager) isEBSStateHealthy(state string) bool {
+	return state == "available" || state == "in-use"
+}
+
+// determineOverallHealth sets overall health based on issue severity
+func (m *StorageManager) determineOverallHealth(report *StorageHealthReport) {
+	if len(report.Issues) == 0 {
+		return
+	}
+
+	highSeverityCount := 0
+	for _, issue := range report.Issues {
+		if issue.Severity == "high" {
+			highSeverityCount++
+		}
+	}
+
+	if highSeverityCount > 0 {
+		report.OverallHealth = "unhealthy"
 	} else {
-		report.ServiceHealth["S3"] = "healthy"
-		// Process S3 storages for detailed health checks
-		for _, storage := range s3Storages {
-			if storage.State != "available" {
-				report.Issues = append(report.Issues, StorageHealthIssue{
-					Service:   "S3",
-					Severity:  "medium",
-					Message:   fmt.Sprintf("S3 storage %s is in %s state", storage.Name, storage.State),
-					Timestamp: time.Now(),
-				})
-			}
-		}
+		report.OverallHealth = "degraded"
 	}
-
-	// Determine overall health
-	if len(report.Issues) > 0 {
-		highSeverityCount := 0
-		for _, issue := range report.Issues {
-			if issue.Severity == "high" {
-				highSeverityCount++
-			}
-		}
-		if highSeverityCount > 0 {
-			report.OverallHealth = "unhealthy"
-		} else {
-			report.OverallHealth = "degraded"
-		}
-	}
-
-	return report, nil
 }

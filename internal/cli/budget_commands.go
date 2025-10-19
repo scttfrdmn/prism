@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
+	"github.com/scttfrdmn/cloudworkstation/pkg/project"
 	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"github.com/spf13/cobra"
 )
@@ -582,17 +583,42 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 		return err
 	}
 
+	projectName, amount, err := bc.parseCreateBudgetArgs(args)
+	if err != nil {
+		return err
+	}
+
+	req, err := bc.buildCreateBudgetRequest(cmd, amount)
+	if err != nil {
+		return err
+	}
+
+	response, err := bc.app.apiClient.SetProjectBudget(bc.app.ctx, projectName, req)
+	if err != nil {
+		return fmt.Errorf("failed to create budget: %w", err)
+	}
+
+	bc.displayCreateBudgetSuccess(projectName, amount, req, response)
+	return nil
+}
+
+// parseCreateBudgetArgs parses and validates budget creation arguments
+func (bc *BudgetCommands) parseCreateBudgetArgs(args []string) (string, float64, error) {
 	projectName := args[0]
 	amount, err := strconv.ParseFloat(args[1], 64)
 	if err != nil {
-		return fmt.Errorf("invalid budget amount '%s': must be a number", args[1])
+		return "", 0, fmt.Errorf("invalid budget amount '%s': must be a number", args[1])
 	}
 
 	if amount <= 0 {
-		return fmt.Errorf("budget amount must be greater than 0")
+		return "", 0, fmt.Errorf("budget amount must be greater than 0")
 	}
 
-	// Build budget request from flags
+	return projectName, amount, nil
+}
+
+// buildCreateBudgetRequest builds the budget creation request from command flags
+func (bc *BudgetCommands) buildCreateBudgetRequest(cmd *cobra.Command, amount float64) (client.SetProjectBudgetRequest, error) {
 	req := client.SetProjectBudgetRequest{
 		TotalBudget:     amount,
 		BudgetPeriod:    types.BudgetPeriodProject,
@@ -600,7 +626,29 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 		AutoActions:     []types.BudgetAutoAction{},
 	}
 
-	// Parse period flag
+	if err := bc.parseCreateBudgetPeriod(cmd, &req); err != nil {
+		return req, err
+	}
+
+	bc.parseCreateBudgetLimits(cmd, &req)
+
+	if err := bc.parseCreateBudgetEndDate(cmd, &req); err != nil {
+		return req, err
+	}
+
+	if err := bc.parseCreateBudgetAlerts(cmd, &req); err != nil {
+		return req, err
+	}
+
+	if err := bc.parseCreateBudgetActions(cmd, &req); err != nil {
+		return req, err
+	}
+
+	return req, nil
+}
+
+// parseCreateBudgetPeriod parses the budget period flag
+func (bc *BudgetCommands) parseCreateBudgetPeriod(cmd *cobra.Command, req *client.SetProjectBudgetRequest) error {
 	if period, _ := cmd.Flags().GetString("period"); period != "" {
 		switch period {
 		case "project":
@@ -615,16 +663,21 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 			return fmt.Errorf("invalid period '%s': must be project, monthly, weekly, or daily", period)
 		}
 	}
+	return nil
+}
 
-	// Parse optional limits
+// parseCreateBudgetLimits parses monthly and daily limit flags
+func (bc *BudgetCommands) parseCreateBudgetLimits(cmd *cobra.Command, req *client.SetProjectBudgetRequest) {
 	if monthlyLimit, _ := cmd.Flags().GetFloat64("monthly-limit"); monthlyLimit > 0 {
 		req.MonthlyLimit = &monthlyLimit
 	}
 	if dailyLimit, _ := cmd.Flags().GetFloat64("daily-limit"); dailyLimit > 0 {
 		req.DailyLimit = &dailyLimit
 	}
+}
 
-	// Parse end date
+// parseCreateBudgetEndDate parses the end date flag
+func (bc *BudgetCommands) parseCreateBudgetEndDate(cmd *cobra.Command, req *client.SetProjectBudgetRequest) error {
 	if endDateStr, _ := cmd.Flags().GetString("end-date"); endDateStr != "" {
 		endDate, err := time.Parse("2006-01-02", endDateStr)
 		if err != nil {
@@ -632,8 +685,11 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 		}
 		req.EndDate = &endDate
 	}
+	return nil
+}
 
-	// Parse alerts
+// parseCreateBudgetAlerts parses alert threshold flags
+func (bc *BudgetCommands) parseCreateBudgetAlerts(cmd *cobra.Command, req *client.SetProjectBudgetRequest) error {
 	if alerts, _ := cmd.Flags().GetStringSlice("alert"); len(alerts) > 0 {
 		for _, alertStr := range alerts {
 			alert, err := bc.parseAlertFlag(alertStr)
@@ -650,8 +706,11 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 			Enabled:   true,
 		})
 	}
+	return nil
+}
 
-	// Parse automated actions
+// parseCreateBudgetActions parses automated action flags
+func (bc *BudgetCommands) parseCreateBudgetActions(cmd *cobra.Command, req *client.SetProjectBudgetRequest) error {
 	if actions, _ := cmd.Flags().GetStringSlice("action"); len(actions) > 0 {
 		for _, actionStr := range actions {
 			action, err := bc.parseActionFlag(actionStr)
@@ -661,13 +720,11 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 			req.AutoActions = append(req.AutoActions, action)
 		}
 	}
+	return nil
+}
 
-	// Create the budget
-	response, err := bc.app.apiClient.SetProjectBudget(bc.app.ctx, projectName, req)
-	if err != nil {
-		return fmt.Errorf("failed to create budget: %w", err)
-	}
-
+// displayCreateBudgetSuccess displays successful budget creation message
+func (bc *BudgetCommands) displayCreateBudgetSuccess(projectName string, amount float64, req client.SetProjectBudgetRequest, response map[string]interface{}) {
 	fmt.Printf("✅ Budget created successfully for project '%s'\n", projectName)
 	fmt.Printf("   Total Budget: $%.2f\n", amount)
 	fmt.Printf("   Budget Period: %s\n", req.BudgetPeriod)
@@ -689,8 +746,6 @@ func (bc *BudgetCommands) createBudget(cmd *cobra.Command, args []string) error 
 	fmt.Printf("\n💡 Next Steps:\n")
 	fmt.Printf("   cws budget status %s     # Check budget status\n", projectName)
 	fmt.Printf("   cws launch <template> <instance> --project %s  # Launch with budget tracking\n", projectName)
-
-	return nil
 }
 
 // updateBudget updates an existing budget
@@ -701,8 +756,54 @@ func (bc *BudgetCommands) updateBudget(cmd *cobra.Command, args []string) error 
 
 	budgetID := args[0]
 
-	// Build update request from flags
+	req, hasUpdates, err := bc.buildUpdateBudgetRequest(cmd)
+	if err != nil {
+		return err
+	}
+
+	if !hasUpdates {
+		return fmt.Errorf("no updates specified. Use flags to specify what to update")
+	}
+
+	response, err := bc.app.apiClient.UpdateProjectBudget(bc.app.ctx, budgetID, req)
+	if err != nil {
+		return fmt.Errorf("failed to update budget: %w", err)
+	}
+
+	bc.displayUpdateBudgetSuccess(budgetID, req, response)
+	return nil
+}
+
+// buildUpdateBudgetRequest builds update request from command flags
+func (bc *BudgetCommands) buildUpdateBudgetRequest(cmd *cobra.Command) (client.UpdateProjectBudgetRequest, bool, error) {
 	req := client.UpdateProjectBudgetRequest{}
+	hasUpdates := false
+
+	hasUpdates = bc.parseUpdateBudgetLimits(cmd, &req) || hasUpdates
+
+	updated, err := bc.parseUpdateBudgetEndDate(cmd, &req)
+	if err != nil {
+		return req, false, err
+	}
+	hasUpdates = updated || hasUpdates
+
+	updated, err = bc.parseUpdateBudgetAlerts(cmd, &req)
+	if err != nil {
+		return req, false, err
+	}
+	hasUpdates = updated || hasUpdates
+
+	updated, err = bc.parseUpdateBudgetActions(cmd, &req)
+	if err != nil {
+		return req, false, err
+	}
+	hasUpdates = updated || hasUpdates
+
+	return req, hasUpdates, nil
+}
+
+// parseUpdateBudgetLimits parses budget limit update flags
+func (bc *BudgetCommands) parseUpdateBudgetLimits(cmd *cobra.Command, req *client.UpdateProjectBudgetRequest) bool {
 	hasUpdates := false
 
 	if totalBudget, _ := cmd.Flags().GetFloat64("total-budget"); totalBudget > 0 {
@@ -720,48 +821,54 @@ func (bc *BudgetCommands) updateBudget(cmd *cobra.Command, args []string) error 
 		hasUpdates = true
 	}
 
+	return hasUpdates
+}
+
+// parseUpdateBudgetEndDate parses end date update flag
+func (bc *BudgetCommands) parseUpdateBudgetEndDate(cmd *cobra.Command, req *client.UpdateProjectBudgetRequest) (bool, error) {
 	if endDateStr, _ := cmd.Flags().GetString("end-date"); endDateStr != "" {
 		endDate, err := time.Parse("2006-01-02", endDateStr)
 		if err != nil {
-			return fmt.Errorf("invalid end date format: use YYYY-MM-DD")
+			return false, fmt.Errorf("invalid end date format: use YYYY-MM-DD")
 		}
 		req.EndDate = &endDate
-		hasUpdates = true
+		return true, nil
 	}
+	return false, nil
+}
 
-	// Parse alerts (replaces existing alerts if provided)
+// parseUpdateBudgetAlerts parses alert update flags
+func (bc *BudgetCommands) parseUpdateBudgetAlerts(cmd *cobra.Command, req *client.UpdateProjectBudgetRequest) (bool, error) {
 	if alerts, _ := cmd.Flags().GetStringSlice("alert"); len(alerts) > 0 {
 		for _, alertStr := range alerts {
 			alert, err := bc.parseAlertFlag(alertStr)
 			if err != nil {
-				return fmt.Errorf("invalid alert format '%s': %v", alertStr, err)
+				return false, fmt.Errorf("invalid alert format '%s': %v", alertStr, err)
 			}
 			req.AlertThresholds = append(req.AlertThresholds, alert)
 		}
-		hasUpdates = true
+		return true, nil
 	}
+	return false, nil
+}
 
-	// Parse actions (replaces existing actions if provided)
+// parseUpdateBudgetActions parses action update flags
+func (bc *BudgetCommands) parseUpdateBudgetActions(cmd *cobra.Command, req *client.UpdateProjectBudgetRequest) (bool, error) {
 	if actions, _ := cmd.Flags().GetStringSlice("action"); len(actions) > 0 {
 		for _, actionStr := range actions {
 			action, err := bc.parseActionFlag(actionStr)
 			if err != nil {
-				return fmt.Errorf("invalid action format '%s': %v", actionStr, err)
+				return false, fmt.Errorf("invalid action format '%s': %v", actionStr, err)
 			}
 			req.AutoActions = append(req.AutoActions, action)
 		}
-		hasUpdates = true
+		return true, nil
 	}
+	return false, nil
+}
 
-	if !hasUpdates {
-		return fmt.Errorf("no updates specified. Use flags to specify what to update")
-	}
-
-	response, err := bc.app.apiClient.UpdateProjectBudget(bc.app.ctx, budgetID, req)
-	if err != nil {
-		return fmt.Errorf("failed to update budget: %w", err)
-	}
-
+// displayUpdateBudgetSuccess displays budget update success message
+func (bc *BudgetCommands) displayUpdateBudgetSuccess(budgetID string, req client.UpdateProjectBudgetRequest, response map[string]interface{}) {
 	fmt.Printf("✅ Budget updated successfully for '%s'\n", budgetID)
 
 	if req.TotalBudget != nil {
@@ -783,8 +890,6 @@ func (bc *BudgetCommands) updateBudget(cmd *cobra.Command, args []string) error 
 	if message, ok := response["message"].(string); ok {
 		fmt.Printf("   %s\n", message)
 	}
-
-	return nil
 }
 
 // deleteBudget deletes a budget after confirmation
@@ -842,7 +947,6 @@ func (bc *BudgetCommands) infoBudget(args []string) error {
 
 	budgetID := args[0]
 
-	// Get comprehensive budget information
 	budgetStatus, err := bc.app.apiClient.GetProjectBudgetStatus(bc.app.ctx, budgetID)
 	if err != nil {
 		return fmt.Errorf("failed to get budget status: %w", err)
@@ -853,9 +957,32 @@ func (bc *BudgetCommands) infoBudget(args []string) error {
 		return fmt.Errorf("failed to get project info: %w", err)
 	}
 
+	bc.displayBudgetInfo(budgetID, project, budgetStatus)
+	return nil
+}
+
+// displayBudgetInfo displays comprehensive budget information
+func (bc *BudgetCommands) displayBudgetInfo(budgetID string, proj *types.Project, budgetStatus *project.BudgetStatus) {
 	fmt.Printf("💰 Budget Information for '%s'\n\n", budgetID)
 
-	// Basic info
+	bc.displayProjectDetails(proj)
+
+	if !budgetStatus.BudgetEnabled {
+		fmt.Printf("\n❌ Budget: Not enabled\n")
+		fmt.Printf("💡 Enable budget tracking with: cws budget create %s <amount>\n", budgetID)
+		return
+	}
+
+	bc.displayBudgetConfiguration(budgetStatus, proj.Budget)
+	bc.displaySpendingProjections(budgetStatus)
+	bc.displayAlertConfiguration(proj.Budget)
+	bc.displayAutomatedActions(proj.Budget)
+	bc.displayActiveAlertsAndActions(budgetStatus)
+	bc.displayInfoCommands(budgetID)
+}
+
+// displayProjectDetails displays basic project information
+func (bc *BudgetCommands) displayProjectDetails(project *types.Project) {
 	fmt.Printf("🏗️ Project Details:\n")
 	fmt.Printf("   Name: %s\n", project.Name)
 	fmt.Printf("   ID: %s\n", project.ID)
@@ -865,73 +992,85 @@ func (bc *BudgetCommands) infoBudget(args []string) error {
 	fmt.Printf("   Owner: %s\n", project.Owner)
 	fmt.Printf("   Members: %d\n", len(project.Members))
 	fmt.Printf("   Status: %s\n", strings.ToUpper(string(project.Status)))
+}
 
-	if !budgetStatus.BudgetEnabled {
-		fmt.Printf("\n❌ Budget: Not enabled\n")
-		fmt.Printf("💡 Enable budget tracking with: cws budget create %s <amount>\n", budgetID)
-		return nil
-	}
-
-	// Budget configuration
+// displayBudgetConfiguration displays budget settings
+func (bc *BudgetCommands) displayBudgetConfiguration(budgetStatus *project.BudgetStatus, budget *types.ProjectBudget) {
 	fmt.Printf("\n💰 Budget Configuration:\n")
 	fmt.Printf("   Total Budget: $%.2f\n", budgetStatus.TotalBudget)
 	fmt.Printf("   Current Spent: $%.2f (%.1f%%)\n",
 		budgetStatus.SpentAmount, budgetStatus.SpentPercentage*100)
 	fmt.Printf("   Remaining: $%.2f\n", budgetStatus.RemainingBudget)
 
-	if project.Budget != nil {
-		if project.Budget.MonthlyLimit != nil {
-			fmt.Printf("   Monthly Limit: $%.2f\n", *project.Budget.MonthlyLimit)
-		}
-		if project.Budget.DailyLimit != nil {
-			fmt.Printf("   Daily Limit: $%.2f\n", *project.Budget.DailyLimit)
-		}
-		fmt.Printf("   Budget Period: %s\n", project.Budget.BudgetPeriod)
-		if project.Budget.EndDate != nil {
-			fmt.Printf("   End Date: %s\n", project.Budget.EndDate.Format("2006-01-02"))
-		}
+	if budget == nil {
+		return
 	}
 
-	// Spending projections
-	if budgetStatus.ProjectedMonthlySpend > 0 {
-		fmt.Printf("\n📊 Spending Analysis:\n")
-		fmt.Printf("   Projected Monthly: $%.2f\n", budgetStatus.ProjectedMonthlySpend)
+	if budget.MonthlyLimit != nil {
+		fmt.Printf("   Monthly Limit: $%.2f\n", *budget.MonthlyLimit)
+	}
+	if budget.DailyLimit != nil {
+		fmt.Printf("   Daily Limit: $%.2f\n", *budget.DailyLimit)
+	}
+	fmt.Printf("   Budget Period: %s\n", budget.BudgetPeriod)
+	if budget.EndDate != nil {
+		fmt.Printf("   End Date: %s\n", budget.EndDate.Format("2006-01-02"))
+	}
+}
 
-		if budgetStatus.DaysUntilBudgetExhausted != nil {
-			fmt.Printf("   Days Until Exhausted: %d\n", *budgetStatus.DaysUntilBudgetExhausted)
-		}
+// displaySpendingProjections displays spending analysis
+func (bc *BudgetCommands) displaySpendingProjections(budgetStatus *project.BudgetStatus) {
+	if budgetStatus.ProjectedMonthlySpend <= 0 {
+		return
 	}
 
-	// Alert configuration
-	if project.Budget != nil && len(project.Budget.AlertThresholds) > 0 {
-		fmt.Printf("\n🚨 Alert Configuration:\n")
-		for i, alert := range project.Budget.AlertThresholds {
-			status := "Enabled"
-			if !alert.Enabled {
-				status = "Disabled"
-			}
-			fmt.Printf("   Alert %d: %.1f%% threshold (%s, %s)\n",
-				i+1, alert.Threshold*100, alert.Type, status)
-			if len(alert.Recipients) > 0 {
-				fmt.Printf("     Recipients: %s\n", strings.Join(alert.Recipients, ", "))
-			}
-		}
+	fmt.Printf("\n📊 Spending Analysis:\n")
+	fmt.Printf("   Projected Monthly: $%.2f\n", budgetStatus.ProjectedMonthlySpend)
+
+	if budgetStatus.DaysUntilBudgetExhausted != nil {
+		fmt.Printf("   Days Until Exhausted: %d\n", *budgetStatus.DaysUntilBudgetExhausted)
+	}
+}
+
+// displayAlertConfiguration displays alert settings
+func (bc *BudgetCommands) displayAlertConfiguration(budget *types.ProjectBudget) {
+	if budget == nil || len(budget.AlertThresholds) == 0 {
+		return
 	}
 
-	// Automated actions
-	if project.Budget != nil && len(project.Budget.AutoActions) > 0 {
-		fmt.Printf("\n⚡ Automated Actions:\n")
-		for i, action := range project.Budget.AutoActions {
-			status := "Enabled"
-			if !action.Enabled {
-				status = "Disabled"
-			}
-			fmt.Printf("   Action %d: %s at %.1f%% (%s)\n",
-				i+1, action.Action, action.Threshold*100, status)
+	fmt.Printf("\n🚨 Alert Configuration:\n")
+	for i, alert := range budget.AlertThresholds {
+		status := "Enabled"
+		if !alert.Enabled {
+			status = "Disabled"
+		}
+		fmt.Printf("   Alert %d: %.1f%% threshold (%s, %s)\n",
+			i+1, alert.Threshold*100, alert.Type, status)
+		if len(alert.Recipients) > 0 {
+			fmt.Printf("     Recipients: %s\n", strings.Join(alert.Recipients, ", "))
 		}
 	}
+}
 
-	// Active alerts and actions
+// displayAutomatedActions displays automated action settings
+func (bc *BudgetCommands) displayAutomatedActions(budget *types.ProjectBudget) {
+	if budget == nil || len(budget.AutoActions) == 0 {
+		return
+	}
+
+	fmt.Printf("\n⚡ Automated Actions:\n")
+	for i, action := range budget.AutoActions {
+		status := "Enabled"
+		if !action.Enabled {
+			status = "Disabled"
+		}
+		fmt.Printf("   Action %d: %s at %.1f%% (%s)\n",
+			i+1, action.Action, action.Threshold*100, status)
+	}
+}
+
+// displayActiveAlertsAndActions displays current alerts and recent actions
+func (bc *BudgetCommands) displayActiveAlertsAndActions(budgetStatus *project.BudgetStatus) {
 	if len(budgetStatus.ActiveAlerts) > 0 {
 		fmt.Printf("\n🚨 Active Alerts:\n")
 		for _, alert := range budgetStatus.ActiveAlerts {
@@ -945,13 +1084,14 @@ func (bc *BudgetCommands) infoBudget(args []string) error {
 			fmt.Printf("   • %s\n", action)
 		}
 	}
+}
 
+// displayInfoCommands displays helpful command suggestions
+func (bc *BudgetCommands) displayInfoCommands(budgetID string) {
 	fmt.Printf("\n💡 Commands:\n")
 	fmt.Printf("   cws budget breakdown %s    # Detailed cost breakdown\n", budgetID)
 	fmt.Printf("   cws budget usage %s       # Resource usage analysis\n", budgetID)
 	fmt.Printf("   cws budget forecast %s    # Spending forecast\n", budgetID)
-
-	return nil
 }
 
 // statusBudget shows current budget status
@@ -971,66 +1111,104 @@ func (bc *BudgetCommands) statusBudget(args []string) error {
 		return fmt.Errorf("failed to get budget status: %w", err)
 	}
 
+	bc.displayBudgetStatus(budgetID, budgetStatus)
+	return nil
+}
+
+// displayBudgetStatus displays budget status information
+func (bc *BudgetCommands) displayBudgetStatus(budgetID string, budgetStatus *project.BudgetStatus) {
 	fmt.Printf("💰 Budget Status for '%s'\n\n", budgetID)
 
 	if !budgetStatus.BudgetEnabled {
 		fmt.Printf("❌ Budget: Not enabled\n")
 		fmt.Printf("💡 Enable with: cws budget create %s <amount>\n", budgetID)
-		return nil
+		return
 	}
 
-	// Current status
+	usagePercent := budgetStatus.SpentPercentage * 100
+	bc.displayCurrentStatus(budgetStatus, usagePercent)
+	bc.displayStatusProjections(budgetStatus)
+	bc.displayStatusAlerts(budgetStatus)
+	bc.displayStatusActions(budgetStatus)
+	bc.displayStatusQuickActions(budgetID, usagePercent)
+}
+
+// displayCurrentStatus displays current budget metrics
+func (bc *BudgetCommands) displayCurrentStatus(budgetStatus *project.BudgetStatus, usagePercent float64) {
 	fmt.Printf("📊 Current Status:\n")
 	fmt.Printf("   Total Budget: $%.2f\n", budgetStatus.TotalBudget)
 	fmt.Printf("   Amount Spent: $%.2f\n", budgetStatus.SpentAmount)
 	fmt.Printf("   Remaining: $%.2f\n", budgetStatus.RemainingBudget)
-	fmt.Printf("   Usage: %.1f%%\n", budgetStatus.SpentPercentage*100)
+	fmt.Printf("   Usage: %.1f%%\n", usagePercent)
+	fmt.Printf("   Status: %s\n", bc.getStatusIndicator(usagePercent))
+}
 
-	// Status indicator
-	usagePercent := budgetStatus.SpentPercentage * 100
+// getStatusIndicator returns color-coded status based on usage percentage
+func (bc *BudgetCommands) getStatusIndicator(usagePercent float64) string {
 	if usagePercent >= 95 {
-		fmt.Printf("   Status: 🔴 CRITICAL - Budget Nearly Exhausted\n")
-	} else if usagePercent >= 80 {
-		fmt.Printf("   Status: 🟡 WARNING - High Budget Usage\n")
-	} else if usagePercent >= 60 {
-		fmt.Printf("   Status: 🟡 MODERATE - Monitor Spending\n")
+		return "🔴 CRITICAL - Budget Nearly Exhausted"
+	}
+	if usagePercent >= 80 {
+		return "🟡 WARNING - High Budget Usage"
+	}
+	if usagePercent >= 60 {
+		return "🟡 MODERATE - Monitor Spending"
+	}
+	return "🟢 HEALTHY - On Track"
+}
+
+// displayStatusProjections displays spending projections
+func (bc *BudgetCommands) displayStatusProjections(budgetStatus *project.BudgetStatus) {
+	if budgetStatus.ProjectedMonthlySpend <= 0 {
+		return
+	}
+
+	fmt.Printf("\n📈 Projections:\n")
+	fmt.Printf("   Projected Monthly: $%.2f\n", budgetStatus.ProjectedMonthlySpend)
+
+	if budgetStatus.DaysUntilBudgetExhausted != nil {
+		days := *budgetStatus.DaysUntilBudgetExhausted
+		bc.displayExhaustionWarning(days)
+	}
+}
+
+// displayExhaustionWarning displays budget exhaustion timeline
+func (bc *BudgetCommands) displayExhaustionWarning(days int) {
+	if days <= 7 {
+		fmt.Printf("   ⚠️  Budget Exhausted In: %d days (URGENT)\n", days)
+	} else if days <= 30 {
+		fmt.Printf("   ⚠️  Budget Exhausted In: %d days\n", days)
 	} else {
-		fmt.Printf("   Status: 🟢 HEALTHY - On Track\n")
+		fmt.Printf("   Budget Duration: %d days remaining\n", days)
+	}
+}
+
+// displayStatusAlerts displays active alerts
+func (bc *BudgetCommands) displayStatusAlerts(budgetStatus *project.BudgetStatus) {
+	if len(budgetStatus.ActiveAlerts) == 0 {
+		return
 	}
 
-	// Projections
-	if budgetStatus.ProjectedMonthlySpend > 0 {
-		fmt.Printf("\n📈 Projections:\n")
-		fmt.Printf("   Projected Monthly: $%.2f\n", budgetStatus.ProjectedMonthlySpend)
+	fmt.Printf("\n🚨 Active Alerts:\n")
+	for _, alert := range budgetStatus.ActiveAlerts {
+		fmt.Printf("   • %s\n", alert)
+	}
+}
 
-		if budgetStatus.DaysUntilBudgetExhausted != nil {
-			days := *budgetStatus.DaysUntilBudgetExhausted
-			if days <= 7 {
-				fmt.Printf("   ⚠️  Budget Exhausted In: %d days (URGENT)\n", days)
-			} else if days <= 30 {
-				fmt.Printf("   ⚠️  Budget Exhausted In: %d days\n", days)
-			} else {
-				fmt.Printf("   Budget Duration: %d days remaining\n", days)
-			}
-		}
+// displayStatusActions displays recent triggered actions
+func (bc *BudgetCommands) displayStatusActions(budgetStatus *project.BudgetStatus) {
+	if len(budgetStatus.TriggeredActions) == 0 {
+		return
 	}
 
-	// Active alerts
-	if len(budgetStatus.ActiveAlerts) > 0 {
-		fmt.Printf("\n🚨 Active Alerts:\n")
-		for _, alert := range budgetStatus.ActiveAlerts {
-			fmt.Printf("   • %s\n", alert)
-		}
+	fmt.Printf("\n⚡ Recent Actions (last 24h):\n")
+	for _, action := range budgetStatus.TriggeredActions {
+		fmt.Printf("   • %s\n", action)
 	}
+}
 
-	// Recent automated actions
-	if len(budgetStatus.TriggeredActions) > 0 {
-		fmt.Printf("\n⚡ Recent Actions (last 24h):\n")
-		for _, action := range budgetStatus.TriggeredActions {
-			fmt.Printf("   • %s\n", action)
-		}
-	}
-
+// displayStatusQuickActions displays helpful command suggestions
+func (bc *BudgetCommands) displayStatusQuickActions(budgetID string, usagePercent float64) {
 	fmt.Printf("\n💡 Quick Actions:\n")
 	fmt.Printf("   cws budget breakdown %s    # See where money is spent\n", budgetID)
 	fmt.Printf("   cws budget savings %s      # Find cost optimization opportunities\n", budgetID)
@@ -1038,8 +1216,6 @@ func (bc *BudgetCommands) statusBudget(args []string) error {
 		fmt.Printf("   cws list --project %s      # Review running instances\n", budgetID)
 		fmt.Printf("   cws hibernate <instance>   # Hibernate idle instances\n")
 	}
-
-	return nil
 }
 
 // Additional implementation methods would continue here...
@@ -1307,26 +1483,9 @@ func (bc *BudgetCommands) savingsBudget(cmd *cobra.Command, args []string) error
 	period, _ := cmd.Flags().GetString("period")
 	showRecommendations, _ := cmd.Flags().GetBool("recommendations")
 
-	fmt.Printf("💡 Cost Savings Analysis\n")
-	fmt.Printf("Period: Last %s\n\n", period)
-
-	var budgetIDs []string
-	if len(args) > 0 {
-		budgetIDs = []string{args[0]}
-		fmt.Printf("Project: %s\n\n", args[0])
-	} else {
-		// Get all projects with budgets
-		projects, err := bc.app.apiClient.ListProjects(bc.app.ctx, nil)
-		if err != nil {
-			return fmt.Errorf("failed to list projects: %w", err)
-		}
-
-		for _, proj := range projects.Projects {
-			if proj.BudgetStatus != nil && proj.BudgetStatus.TotalBudget > 0 {
-				budgetIDs = append(budgetIDs, proj.ID)
-			}
-		}
-		fmt.Printf("Analyzing %d projects with budgets\n\n", len(budgetIDs))
+	budgetIDs, err := bc.parseSavingsBudgetIDs(args)
+	if err != nil {
+		return err
 	}
 
 	if len(budgetIDs) == 0 {
@@ -1334,70 +1493,126 @@ func (bc *BudgetCommands) savingsBudget(cmd *cobra.Command, args []string) error
 		return nil
 	}
 
-	totalSavings := 0.0
-	totalPotentialSavings := 0.0
-
-	fmt.Printf("🏆 Hibernation Savings:\n")
-	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintf(w, "PROJECT\tACTUAL SAVINGS\tPOTENTIAL SAVINGS\tEFFICIENCY\n")
-
-	for _, budgetID := range budgetIDs {
-		// Parse period duration
-		var duration time.Duration
-		switch period {
-		case "7d":
-			duration = 7 * 24 * time.Hour
-		case "30d":
-			duration = 30 * 24 * time.Hour
-		case "90d":
-			duration = 90 * 24 * time.Hour
-		default:
-			duration = 30 * 24 * time.Hour
-		}
-
-		usage, err := bc.app.apiClient.GetProjectResourceUsage(bc.app.ctx, budgetID, duration)
-		if err != nil {
-			fmt.Fprintf(w, "%s\tError\tError\tError\n", budgetID)
-			continue
-		}
-
-		actualSavings := usage.IdleSavings
-		// Estimate potential additional savings (simplified calculation)
-		potentialSavings := actualSavings * 0.5 // Assume 50% more savings possible
-
-		efficiency := 0.0
-		if potentialSavings > 0 {
-			efficiency = (actualSavings / (actualSavings + potentialSavings)) * 100
-		}
-
-		fmt.Fprintf(w, "%s\t$%.2f\t$%.2f\t%.1f%%\n",
-			budgetID, actualSavings, potentialSavings, efficiency)
-
-		totalSavings += actualSavings
-		totalPotentialSavings += potentialSavings
-	}
-
-	fmt.Fprintf(w, "\nTOTAL\t$%.2f\t$%.2f\t%.1f%%\n",
-		totalSavings, totalPotentialSavings,
-		(totalSavings/(totalSavings+totalPotentialSavings))*100)
-	w.Flush()
+	_, totalPotentialSavings := bc.calculateAndDisplaySavings(budgetIDs, period)
 
 	if showRecommendations {
-		fmt.Printf("\n🎯 Optimization Recommendations:\n")
-		if totalPotentialSavings > 0 {
-			fmt.Printf("   • Enable hibernation on idle instances: +$%.2f/month\n", totalPotentialSavings)
-		}
-		fmt.Printf("   • Review instance right-sizing opportunities\n")
-		fmt.Printf("   • Consider spot instances for fault-tolerant workloads\n")
-		fmt.Printf("   • Implement automated idle detection policies\n")
-
-		fmt.Printf("\n💡 Quick Actions:\n")
-		fmt.Printf("   cws idle profile create aggressive --idle-minutes 15\n")
-		fmt.Printf("   cws list | grep STOPPED  # Find stopped instances to terminate\n")
-		fmt.Printf("   cws rightsizing analyze  # Get right-sizing recommendations\n")
+		bc.displaySavingsRecommendations(totalPotentialSavings)
 	}
 
 	return nil
+}
+
+// parseSavingsBudgetIDs parses budget IDs from args or retrieves all budgets
+func (bc *BudgetCommands) parseSavingsBudgetIDs(args []string) ([]string, error) {
+	fmt.Printf("💡 Cost Savings Analysis\n")
+
+	if len(args) > 0 {
+		fmt.Printf("Project: %s\n\n", args[0])
+		return []string{args[0]}, nil
+	}
+
+	projects, err := bc.app.apiClient.ListProjects(bc.app.ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	var budgetIDs []string
+	for _, proj := range projects.Projects {
+		if proj.BudgetStatus != nil && proj.BudgetStatus.TotalBudget > 0 {
+			budgetIDs = append(budgetIDs, proj.ID)
+		}
+	}
+
+	fmt.Printf("Analyzing %d projects with budgets\n\n", len(budgetIDs))
+	return budgetIDs, nil
+}
+
+// calculateAndDisplaySavings calculates and displays savings for all budgets
+func (bc *BudgetCommands) calculateAndDisplaySavings(budgetIDs []string, period string) (float64, float64) {
+	fmt.Printf("Period: Last %s\n\n", period)
+	fmt.Printf("🏆 Hibernation Savings:\n")
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+	fmt.Fprintf(w, "PROJECT\tACTUAL SAVINGS\tPOTENTIAL SAVINGS\tEFFICIENCY\n")
+
+	totalSavings := 0.0
+	totalPotentialSavings := 0.0
+
+	for _, budgetID := range budgetIDs {
+		savings, potential := bc.calculateBudgetSavings(budgetID, period, w)
+		totalSavings += savings
+		totalPotentialSavings += potential
+	}
+
+	bc.displaySavingsTotals(w, totalSavings, totalPotentialSavings)
+	return totalSavings, totalPotentialSavings
+}
+
+// calculateBudgetSavings calculates savings for a single budget
+func (bc *BudgetCommands) calculateBudgetSavings(budgetID, period string, w *tabwriter.Writer) (float64, float64) {
+	duration := bc.parsePeriodDuration(period)
+
+	usage, err := bc.app.apiClient.GetProjectResourceUsage(bc.app.ctx, budgetID, duration)
+	if err != nil {
+		fmt.Fprintf(w, "%s\tError\tError\tError\n", budgetID)
+		return 0.0, 0.0
+	}
+
+	actualSavings := usage.IdleSavings
+	potentialSavings := actualSavings * 0.5 // Assume 50% more savings possible
+
+	efficiency := bc.calculateEfficiency(actualSavings, potentialSavings)
+
+	fmt.Fprintf(w, "%s\t$%.2f\t$%.2f\t%.1f%%\n",
+		budgetID, actualSavings, potentialSavings, efficiency)
+
+	return actualSavings, potentialSavings
+}
+
+// parsePeriodDuration converts period string to time.Duration
+func (bc *BudgetCommands) parsePeriodDuration(period string) time.Duration {
+	switch period {
+	case "7d":
+		return 7 * 24 * time.Hour
+	case "30d":
+		return 30 * 24 * time.Hour
+	case "90d":
+		return 90 * 24 * time.Hour
+	default:
+		return 30 * 24 * time.Hour
+	}
+}
+
+// calculateEfficiency calculates savings efficiency percentage
+func (bc *BudgetCommands) calculateEfficiency(actual, potential float64) float64 {
+	if potential <= 0 {
+		return 0.0
+	}
+	return (actual / (actual + potential)) * 100
+}
+
+// displaySavingsTotals displays total savings summary
+func (bc *BudgetCommands) displaySavingsTotals(w *tabwriter.Writer, totalSavings, totalPotentialSavings float64) {
+	totalEfficiency := bc.calculateEfficiency(totalSavings, totalPotentialSavings)
+	fmt.Fprintf(w, "\nTOTAL\t$%.2f\t$%.2f\t%.1f%%\n",
+		totalSavings, totalPotentialSavings, totalEfficiency)
+	w.Flush()
+}
+
+// displaySavingsRecommendations displays cost optimization recommendations
+func (bc *BudgetCommands) displaySavingsRecommendations(totalPotentialSavings float64) {
+	fmt.Printf("\n🎯 Optimization Recommendations:\n")
+	if totalPotentialSavings > 0 {
+		fmt.Printf("   • Enable hibernation on idle instances: +$%.2f/month\n", totalPotentialSavings)
+	}
+	fmt.Printf("   • Review instance right-sizing opportunities\n")
+	fmt.Printf("   • Consider spot instances for fault-tolerant workloads\n")
+	fmt.Printf("   • Implement automated idle detection policies\n")
+
+	fmt.Printf("\n💡 Quick Actions:\n")
+	fmt.Printf("   cws idle profile create aggressive --idle-minutes 15\n")
+	fmt.Printf("   cws list | grep STOPPED  # Find stopped instances to terminate\n")
+	fmt.Printf("   cws rightsizing analyze  # Get right-sizing recommendations\n")
 }
 
 func (bc *BudgetCommands) breakdownBudget(cmd *cobra.Command, args []string) error {

@@ -1890,7 +1890,17 @@ func (a *App) handleAMICheckFreshness(args []string) error {
 		return fmt.Errorf("failed to check AMI freshness: %w", err)
 	}
 
-	// Display summary
+	// Display results using helper methods
+	a.displayFreshnessSummary(response)
+	a.displayFreshnessResults(response)
+	a.displayFreshnessRecommendations(response)
+	a.displayFreshnessFooter(response)
+
+	return nil
+}
+
+// displayFreshnessSummary shows the summary statistics
+func (a *App) displayFreshnessSummary(response map[string]interface{}) {
 	totalChecked := getInt(response, "total_checked")
 	outdated := getInt(response, "outdated")
 	upToDate := getInt(response, "up_to_date")
@@ -1901,92 +1911,122 @@ func (a *App) handleAMICheckFreshness(args []string) error {
 	fmt.Printf("   Up to date: %d\n", upToDate)
 	fmt.Printf("   Outdated: %d\n", outdated)
 	fmt.Printf("   No SSM support: %d\n\n", noSSM)
+}
 
-	// Display results by category
-	if results := getSlice(response, "results"); results != nil {
-		// Group results by status
-		var outdatedResults, ssmResults, staticResults []interface{}
-
-		for _, result := range results {
-			resultMap := getMap(result, "")
-			if resultMap == nil {
-				continue
-			}
-
-			needsUpdate := getBool(resultMap, "needs_update")
-			hasSSMSupport := getBool(resultMap, "has_ssm_support")
-
-			if needsUpdate && getBool(resultMap, "is_outdated") {
-				outdatedResults = append(outdatedResults, result)
-			} else if hasSSMSupport {
-				ssmResults = append(ssmResults, result)
-			} else {
-				staticResults = append(staticResults, result)
-			}
-		}
-
-		// Display outdated AMIs
-		if len(outdatedResults) > 0 {
-			fmt.Printf("⚠️  Outdated AMIs (need updates):\n\n")
-			for _, result := range outdatedResults {
-				resultMap := getMap(result, "")
-				distro := getString(resultMap, "distro")
-				version := getString(resultMap, "version")
-				region := getString(resultMap, "region")
-				arch := getString(resultMap, "architecture")
-				current := getString(resultMap, "current_ami")
-				latest := getString(resultMap, "latest_ami")
-
-				fmt.Printf("  📀 %s %s (%s/%s)\n", distro, version, region, arch)
-				fmt.Printf("     Current: %s\n", current)
-				fmt.Printf("     Latest:  %s\n", latest)
-				if message := getString(resultMap, "message"); message != "" {
-					fmt.Printf("     Note: %s\n", message)
-				}
-				fmt.Printf("\n")
-			}
-		}
-
-		// Display SSM-supported distributions (up to date)
-		if len(ssmResults) > 0 && outdated == 0 {
-			fmt.Printf("✅ SSM-supported distributions (automatically updated):\n")
-			ssmDistros := make(map[string]bool)
-			for _, result := range ssmResults {
-				resultMap := getMap(result, "")
-				distro := getString(resultMap, "distro")
-				ssmDistros[distro] = true
-			}
-			for distro := range ssmDistros {
-				fmt.Printf("   • %s\n", distro)
-			}
-			fmt.Printf("\n")
-		}
-
-		// Display static distributions
-		if len(staticResults) > 0 {
-			fmt.Printf("ℹ️  Static distributions (manual updates required):\n")
-			staticDistros := make(map[string]bool)
-			for _, result := range staticResults {
-				resultMap := getMap(result, "")
-				distro := getString(resultMap, "distro")
-				staticDistros[distro] = true
-			}
-			for distro := range staticDistros {
-				fmt.Printf("   • %s\n", distro)
-			}
-			fmt.Printf("\n")
-		}
+// displayFreshnessResults displays categorized AMI results
+func (a *App) displayFreshnessResults(response map[string]interface{}) {
+	results := getSlice(response, "results")
+	if results == nil {
+		return
 	}
 
-	// Display recommendations
+	outdated := getInt(response, "outdated")
+	outdatedResults, ssmResults, staticResults := a.categorizeAMIResults(results)
+
+	a.displayOutdatedAMIs(outdatedResults)
+	a.displaySSMDistros(ssmResults, outdated)
+	a.displayStaticDistros(staticResults)
+}
+
+// categorizeAMIResults groups results by status
+func (a *App) categorizeAMIResults(results []interface{}) (outdated, ssm, static []interface{}) {
+	for _, result := range results {
+		resultMap := getMap(result, "")
+		if resultMap == nil {
+			continue
+		}
+
+		needsUpdate := getBool(resultMap, "needs_update")
+		hasSSMSupport := getBool(resultMap, "has_ssm_support")
+
+		if needsUpdate && getBool(resultMap, "is_outdated") {
+			outdated = append(outdated, result)
+		} else if hasSSMSupport {
+			ssm = append(ssm, result)
+		} else {
+			static = append(static, result)
+		}
+	}
+	return
+}
+
+// displayOutdatedAMIs shows outdated AMIs that need updates
+func (a *App) displayOutdatedAMIs(outdatedResults []interface{}) {
+	if len(outdatedResults) == 0 {
+		return
+	}
+
+	fmt.Printf("⚠️  Outdated AMIs (need updates):\n\n")
+	for _, result := range outdatedResults {
+		resultMap := getMap(result, "")
+		distro := getString(resultMap, "distro")
+		version := getString(resultMap, "version")
+		region := getString(resultMap, "region")
+		arch := getString(resultMap, "architecture")
+		current := getString(resultMap, "current_ami")
+		latest := getString(resultMap, "latest_ami")
+
+		fmt.Printf("  📀 %s %s (%s/%s)\n", distro, version, region, arch)
+		fmt.Printf("     Current: %s\n", current)
+		fmt.Printf("     Latest:  %s\n", latest)
+		if message := getString(resultMap, "message"); message != "" {
+			fmt.Printf("     Note: %s\n", message)
+		}
+		fmt.Printf("\n")
+	}
+}
+
+// displaySSMDistros shows SSM-supported distributions
+func (a *App) displaySSMDistros(ssmResults []interface{}, outdated int) {
+	if len(ssmResults) == 0 || outdated > 0 {
+		return
+	}
+
+	fmt.Printf("✅ SSM-supported distributions (automatically updated):\n")
+	ssmDistros := make(map[string]bool)
+	for _, result := range ssmResults {
+		resultMap := getMap(result, "")
+		distro := getString(resultMap, "distro")
+		ssmDistros[distro] = true
+	}
+	for distro := range ssmDistros {
+		fmt.Printf("   • %s\n", distro)
+	}
+	fmt.Printf("\n")
+}
+
+// displayStaticDistros shows static distributions
+func (a *App) displayStaticDistros(staticResults []interface{}) {
+	if len(staticResults) == 0 {
+		return
+	}
+
+	fmt.Printf("ℹ️  Static distributions (manual updates required):\n")
+	staticDistros := make(map[string]bool)
+	for _, result := range staticResults {
+		resultMap := getMap(result, "")
+		distro := getString(resultMap, "distro")
+		staticDistros[distro] = true
+	}
+	for distro := range staticDistros {
+		fmt.Printf("   • %s\n", distro)
+	}
+	fmt.Printf("\n")
+}
+
+// displayFreshnessRecommendations shows recommendations
+func (a *App) displayFreshnessRecommendations(response map[string]interface{}) {
+	outdated := getInt(response, "outdated")
 	if outdated > 0 {
 		fmt.Printf("💡 Recommendation: %s\n", getString(response, "recommendation"))
 		fmt.Printf("\n📝 Update static AMI mappings in pkg/templates/parser.go\n")
 	} else {
 		fmt.Printf("✅ All AMIs are up to date!\n")
 	}
+}
 
-	// Display supported distributions
+// displayFreshnessFooter shows supported distributions and timestamp
+func (a *App) displayFreshnessFooter(response map[string]interface{}) {
 	if ssmSupported := getStringSlice(response, "ssm_supported"); len(ssmSupported) > 0 {
 		fmt.Printf("\n🔄 SSM-supported distributions: %s\n", strings.Join(ssmSupported, ", "))
 	}
@@ -1994,10 +2034,7 @@ func (a *App) handleAMICheckFreshness(args []string) error {
 		fmt.Printf("📌 Static-only distributions: %s\n", strings.Join(staticOnly, ", "))
 	}
 
-	// Display timestamp
 	if timestamp := getString(response, "check_timestamp"); timestamp != "" {
 		fmt.Printf("\n⏰ Check completed at: %s\n", timestamp)
 	}
-
-	return nil
 }

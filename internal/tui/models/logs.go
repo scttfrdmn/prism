@@ -126,130 +126,182 @@ func (m LogsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.instancesTable.SetSize(msg.Width-4, msg.Height-18)
-		m.viewport.Width = msg.Width - 4
-		m.viewport.Height = msg.Height - 10
-		return m, nil
-
+		return m.handleWindowSize(msg)
 	case LogsDataMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			m.loading = false
-			return m, nil
-		}
-
-		m.instances = msg.Instances
-		m.loading = false
-		m.error = ""
-		m.updateInstancesTable()
-		return m, nil
-
+		return m.handleLogsData(msg)
 	case LogLinesMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			m.loading = false
-			return m, nil
-		}
-
-		m.logLines = msg.Lines
-		m.loading = false
-		m.error = ""
-
-		// Update viewport content
-		m.viewport.SetContent(strings.Join(m.logLines, "\n"))
-		return m, nil
-
+		return m.handleLogLines(msg)
 	case tea.KeyMsg:
-		if m.loading {
-			return m, nil
-		}
-
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-
-		case "r", "f5":
-			// Refresh data
-			m.loading = true
-			if m.selectedTab == 0 {
-				return m, func() tea.Msg { return m.fetchInstances() }
-			} else if m.selectedInstanceName != "" {
-				return m, m.fetchLogs(m.selectedInstanceName, m.logType)
-			}
-
-		case "tab":
-			// Cycle through tabs
-			m.selectedTab = (m.selectedTab + 1) % 2
-			return m, nil
-
-		case "enter":
-			// View logs for selected instance
-			if m.selectedTab == 0 && m.selectedInstance < len(m.instances) {
-				instance := m.instances[m.selectedInstance]
-				m.selectedInstanceName = instance.Name
-				m.selectedTab = 1
-				m.loading = true
-				return m, m.fetchLogs(instance.Name, m.logType)
-			}
-			// Handle type dialog
-			if m.showTypeDialog {
-				m.showTypeDialog = false
-				return m, nil
-			}
-
-		case "t":
-			// Change log type
-			if m.selectedTab == 1 {
-				m.showTypeDialog = true
-				return m, nil
-			}
-
-		case "esc":
-			// Close dialogs or go back
-			if m.showTypeDialog {
-				m.showTypeDialog = false
-				return m, nil
-			}
-			if m.selectedTab == 1 {
-				m.selectedTab = 0
-				m.selectedInstanceName = ""
-				m.logLines = nil
-				return m, nil
-			}
-
-		case "up", "k":
-			if m.selectedTab == 0 && m.selectedInstance > 0 {
-				m.selectedInstance--
-			} else if m.selectedTab == 1 {
-				m.viewport, cmd = m.viewport.Update(msg)
-				return m, cmd
-			}
-			return m, nil
-
-		case "down", "j":
-			if m.selectedTab == 0 && m.selectedInstance < len(m.instances)-1 {
-				m.selectedInstance++
-			} else if m.selectedTab == 1 {
-				m.viewport, cmd = m.viewport.Update(msg)
-				return m, cmd
-			}
-			return m, nil
-
-		case "pgup", "pgdown", "home", "end":
-			// Viewport navigation
-			if m.selectedTab == 1 {
-				m.viewport, cmd = m.viewport.Update(msg)
-				return m, cmd
-			}
-		}
-
+		return m.handleKeyPress(msg)
 	case spinner.TickMsg:
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	}
 
+	return m, nil
+}
+
+// handleWindowSize handles window resize events
+func (m LogsModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.instancesTable.SetSize(msg.Width-4, msg.Height-18)
+	m.viewport.Width = msg.Width - 4
+	m.viewport.Height = msg.Height - 10
+	return m, nil
+}
+
+// handleLogsData handles instance list response from API
+func (m LogsModel) handleLogsData(msg LogsDataMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		m.loading = false
+		return m, nil
+	}
+
+	m.instances = msg.Instances
+	m.loading = false
+	m.error = ""
+	m.updateInstancesTable()
+	return m, nil
+}
+
+// handleLogLines handles log lines response from API
+func (m LogsModel) handleLogLines(msg LogLinesMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		m.loading = false
+		return m, nil
+	}
+
+	m.logLines = msg.Lines
+	m.loading = false
+	m.error = ""
+
+	// Update viewport content
+	m.viewport.SetContent(strings.Join(m.logLines, "\n"))
+	return m, nil
+}
+
+// handleKeyPress handles keyboard input
+func (m LogsModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		return m, nil
+	}
+
+	switch msg.String() {
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	case "r", "f5":
+		return m.handleRefresh()
+	case "tab":
+		return m.handleTabSwitch()
+	case "enter":
+		return m.handleEnterKey()
+	case "t":
+		return m.handleChangeLogType()
+	case "esc":
+		return m.handleEscKey()
+	case "up", "k":
+		return m.handleUpKey(msg)
+	case "down", "j":
+		return m.handleDownKey(msg)
+	case "pgup", "pgdown", "home", "end":
+		return m.handleViewportNav(msg)
+	}
+
+	return m, nil
+}
+
+// handleRefresh refreshes data based on current tab
+func (m LogsModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	if m.selectedTab == 0 {
+		return m, func() tea.Msg { return m.fetchInstances() }
+	} else if m.selectedInstanceName != "" {
+		return m, m.fetchLogs(m.selectedInstanceName, m.logType)
+	}
+	return m, nil
+}
+
+// handleTabSwitch cycles through tabs
+func (m LogsModel) handleTabSwitch() (tea.Model, tea.Cmd) {
+	m.selectedTab = (m.selectedTab + 1) % 2
+	return m, nil
+}
+
+// handleEnterKey handles Enter key press (view logs or close dialog)
+func (m LogsModel) handleEnterKey() (tea.Model, tea.Cmd) {
+	// View logs for selected instance
+	if m.selectedTab == 0 && m.selectedInstance < len(m.instances) {
+		instance := m.instances[m.selectedInstance]
+		m.selectedInstanceName = instance.Name
+		m.selectedTab = 1
+		m.loading = true
+		return m, m.fetchLogs(instance.Name, m.logType)
+	}
+	// Close type dialog
+	if m.showTypeDialog {
+		m.showTypeDialog = false
+	}
+	return m, nil
+}
+
+// handleChangeLogType shows log type selection dialog
+func (m LogsModel) handleChangeLogType() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 1 {
+		m.showTypeDialog = true
+	}
+	return m, nil
+}
+
+// handleEscKey handles Escape key press (close dialogs or go back)
+func (m LogsModel) handleEscKey() (tea.Model, tea.Cmd) {
+	if m.showTypeDialog {
+		m.showTypeDialog = false
+		return m, nil
+	}
+	if m.selectedTab == 1 {
+		m.selectedTab = 0
+		m.selectedInstanceName = ""
+		m.logLines = nil
+	}
+	return m, nil
+}
+
+// handleUpKey handles up arrow navigation
+func (m LogsModel) handleUpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedInstance > 0 {
+		m.selectedInstance--
+		return m, nil
+	} else if m.selectedTab == 1 {
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+// handleDownKey handles down arrow navigation
+func (m LogsModel) handleDownKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedInstance < len(m.instances)-1 {
+		m.selectedInstance++
+		return m, nil
+	} else if m.selectedTab == 1 {
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+// handleViewportNav handles viewport navigation keys
+func (m LogsModel) handleViewportNav(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.selectedTab == 1 {
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
+	}
 	return m, nil
 }
 

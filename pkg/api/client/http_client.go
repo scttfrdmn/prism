@@ -521,6 +521,7 @@ func (c *HTTPClient) ListTemplates(ctx context.Context) (map[string]types.Templa
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]types.Template
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -536,6 +537,7 @@ func (c *HTTPClient) GetTemplate(ctx context.Context, name string) (*types.Templ
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.Template
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -552,6 +554,7 @@ func (c *HTTPClient) CreateVolume(ctx context.Context, req types.VolumeCreateReq
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.EFSVolume
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -566,6 +569,7 @@ func (c *HTTPClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []types.EFSVolume
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -580,6 +584,7 @@ func (c *HTTPClient) GetVolume(ctx context.Context, name string) (*types.EFSVolu
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.EFSVolume
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -594,6 +599,7 @@ func (c *HTTPClient) DeleteVolume(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -603,6 +609,7 @@ func (c *HTTPClient) AttachVolume(ctx context.Context, volumeName, instanceName 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -611,6 +618,7 @@ func (c *HTTPClient) DetachVolume(ctx context.Context, volumeName string) error 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -623,6 +631,7 @@ func (c *HTTPClient) MountVolume(ctx context.Context, volumeName, instanceName, 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -632,6 +641,7 @@ func (c *HTTPClient) UnmountVolume(ctx context.Context, volumeName, instanceName
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -642,6 +652,7 @@ func (c *HTTPClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.EBSVolume
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -656,6 +667,7 @@ func (c *HTTPClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []types.EBSVolume
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -670,6 +682,7 @@ func (c *HTTPClient) GetStorage(ctx context.Context, name string) (*types.EBSVol
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.EBSVolume
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -684,6 +697,7 @@ func (c *HTTPClient) DeleteStorage(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -693,6 +707,7 @@ func (c *HTTPClient) AttachStorage(ctx context.Context, storageName, instanceNam
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -701,6 +716,7 @@ func (c *HTTPClient) DetachStorage(ctx context.Context, storageName string) erro
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -711,6 +727,7 @@ func (c *HTTPClient) GetRegistryStatus(ctx context.Context) (*RegistryStatusResp
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result RegistryStatusResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -726,6 +743,7 @@ func (c *HTTPClient) SetRegistryStatus(ctx context.Context, active bool) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -736,6 +754,7 @@ func (c *HTTPClient) LookupAMI(ctx context.Context, templateName, region, archit
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result AMIReferenceResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -751,6 +770,7 @@ func (c *HTTPClient) ListTemplateAMIs(ctx context.Context, templateName string) 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []AMIReferenceResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -767,6 +787,7 @@ func (c *HTTPClient) ApplyTemplate(ctx context.Context, req templates.ApplyReque
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result templates.ApplyResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -781,6 +802,7 @@ func (c *HTTPClient) DiffTemplate(ctx context.Context, req templates.DiffRequest
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result templates.TemplateDiff
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -796,6 +818,7 @@ func (c *HTTPClient) GetInstanceLayers(ctx context.Context, instanceName string)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []templates.AppliedTemplate
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -811,6 +834,7 @@ func (c *HTTPClient) RollbackInstance(ctx context.Context, req types.RollbackReq
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	return c.handleResponse(resp, nil)
 }
@@ -822,6 +846,7 @@ func (c *HTTPClient) GetIdlePendingActions(ctx context.Context) ([]types.IdleSta
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []types.IdleState
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -836,6 +861,7 @@ func (c *HTTPClient) ExecuteIdleActions(ctx context.Context) (*types.IdleExecuti
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.IdleExecutionResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -850,6 +876,7 @@ func (c *HTTPClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistoryEnt
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []types.IdleHistoryEntry
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -867,6 +894,7 @@ func (c *HTTPClient) CreateProject(ctx context.Context, req project.CreateProjec
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var project types.Project
 	if err := c.handleResponse(resp, &project); err != nil {
@@ -907,6 +935,7 @@ func (c *HTTPClient) ListProjects(ctx context.Context, filter *project.ProjectFi
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result project.ProjectListResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -922,6 +951,7 @@ func (c *HTTPClient) GetProject(ctx context.Context, projectID string) (*types.P
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var project types.Project
 	if err := c.handleResponse(resp, &project); err != nil {
@@ -937,6 +967,7 @@ func (c *HTTPClient) UpdateProject(ctx context.Context, projectID string, req pr
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var project types.Project
 	if err := c.handleResponse(resp, &project); err != nil {
@@ -952,6 +983,7 @@ func (c *HTTPClient) DeleteProject(ctx context.Context, projectID string) error 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	return c.handleResponse(resp, nil)
 }
@@ -962,6 +994,7 @@ func (c *HTTPClient) AddProjectMember(ctx context.Context, projectID string, req
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	return c.handleResponse(resp, nil)
 }
@@ -972,6 +1005,7 @@ func (c *HTTPClient) UpdateProjectMember(ctx context.Context, projectID, userID 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	return c.handleResponse(resp, nil)
 }
@@ -982,6 +1016,7 @@ func (c *HTTPClient) RemoveProjectMember(ctx context.Context, projectID, userID 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	return c.handleResponse(resp, nil)
 }
@@ -992,6 +1027,7 @@ func (c *HTTPClient) GetProjectMembers(ctx context.Context, projectID string) ([
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var members []types.ProjectMember
 	if err := c.handleResponse(resp, &members); err != nil {
@@ -1007,6 +1043,7 @@ func (c *HTTPClient) GetProjectBudgetStatus(ctx context.Context, projectID strin
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var budgetStatus project.BudgetStatus
 	if err := c.handleResponse(resp, &budgetStatus); err != nil {
@@ -1027,6 +1064,7 @@ func (c *HTTPClient) GetProjectCostBreakdown(ctx context.Context, projectID stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var costBreakdown types.ProjectCostBreakdown
 	if err := c.handleResponse(resp, &costBreakdown); err != nil {
@@ -1046,6 +1084,7 @@ func (c *HTTPClient) GetProjectResourceUsage(ctx context.Context, projectID stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var usage types.ProjectResourceUsage
 	if err := c.handleResponse(resp, &usage); err != nil {
@@ -1079,6 +1118,7 @@ func (c *HTTPClient) ResolveAMI(ctx context.Context, templateName string, params
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1096,6 +1136,7 @@ func (c *HTTPClient) TestAMIAvailability(ctx context.Context, request map[string
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1113,6 +1154,7 @@ func (c *HTTPClient) GetAMICosts(ctx context.Context, templateName string) (map[
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1130,6 +1172,7 @@ func (c *HTTPClient) PreviewAMIResolution(ctx context.Context, templateName stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1147,6 +1190,7 @@ func (c *HTTPClient) CreateAMI(ctx context.Context, request types.AMICreationReq
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1161,6 +1205,7 @@ func (c *HTTPClient) GetAMIStatus(ctx context.Context, creationID string) (map[s
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1174,6 +1219,7 @@ func (c *HTTPClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1189,6 +1235,7 @@ func (c *HTTPClient) CleanupAMIs(ctx context.Context, request map[string]interfa
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1202,6 +1249,7 @@ func (c *HTTPClient) DeleteAMI(ctx context.Context, request map[string]interface
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1217,6 +1265,7 @@ func (c *HTTPClient) ListAMISnapshots(ctx context.Context, filters map[string]in
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1230,6 +1279,7 @@ func (c *HTTPClient) CreateAMISnapshot(ctx context.Context, request map[string]i
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1243,6 +1293,7 @@ func (c *HTTPClient) RestoreAMIFromSnapshot(ctx context.Context, request map[str
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1256,6 +1307,7 @@ func (c *HTTPClient) DeleteAMISnapshot(ctx context.Context, request map[string]i
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1269,6 +1321,7 @@ func (c *HTTPClient) CheckAMIFreshness(ctx context.Context) (map[string]interfac
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1284,6 +1337,7 @@ func (c *HTTPClient) SearchMarketplace(ctx context.Context, query map[string]int
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1297,6 +1351,7 @@ func (c *HTTPClient) GetMarketplaceTemplate(ctx context.Context, templateID stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1310,6 +1365,7 @@ func (c *HTTPClient) PublishMarketplaceTemplate(ctx context.Context, template ma
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1323,6 +1379,7 @@ func (c *HTTPClient) AddMarketplaceReview(ctx context.Context, templateID string
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1336,6 +1393,7 @@ func (c *HTTPClient) ForkMarketplaceTemplate(ctx context.Context, templateID str
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1349,6 +1407,7 @@ func (c *HTTPClient) GetMarketplaceFeatured(ctx context.Context) (map[string]int
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1362,6 +1421,7 @@ func (c *HTTPClient) GetMarketplaceTrending(ctx context.Context) (map[string]int
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
@@ -1396,6 +1456,7 @@ func (c *HTTPClient) SetProjectBudget(ctx context.Context, projectID string, req
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1411,6 +1472,7 @@ func (c *HTTPClient) UpdateProjectBudget(ctx context.Context, projectID string, 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1426,6 +1488,7 @@ func (c *HTTPClient) DisableProjectBudget(ctx context.Context, projectID string)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1441,6 +1504,7 @@ func (c *HTTPClient) GetCostTrends(ctx context.Context, projectID, period string
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result map[string]interface{}
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1458,6 +1522,7 @@ func (c *HTTPClient) CreateBackup(ctx context.Context, req types.BackupCreateReq
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.BackupCreateResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1473,6 +1538,7 @@ func (c *HTTPClient) ListBackups(ctx context.Context) (*types.BackupListResponse
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.BackupListResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1488,6 +1554,7 @@ func (c *HTTPClient) GetBackup(ctx context.Context, backupName string) (*types.B
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.BackupInfo
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1503,6 +1570,7 @@ func (c *HTTPClient) DeleteBackup(ctx context.Context, backupName string) (*type
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.BackupDeleteResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1518,6 +1586,7 @@ func (c *HTTPClient) GetBackupContents(ctx context.Context, req types.BackupCont
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.BackupContentsResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1533,6 +1602,7 @@ func (c *HTTPClient) VerifyBackup(ctx context.Context, req types.BackupVerifyReq
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.BackupVerifyResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1550,6 +1620,7 @@ func (c *HTTPClient) RestoreBackup(ctx context.Context, req types.RestoreRequest
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.RestoreResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1565,6 +1636,7 @@ func (c *HTTPClient) GetRestoreStatus(ctx context.Context, restoreID string) (*t
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result types.RestoreResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1580,6 +1652,7 @@ func (c *HTTPClient) ListRestoreOperations(ctx context.Context) ([]types.Restore
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var result []types.RestoreResult
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -1603,6 +1676,7 @@ func (c *HTTPClient) CheckVersionCompatibility(ctx context.Context, clientVersio
 	if err != nil {
 		return fmt.Errorf("failed to connect to daemon: %w", err)
 	}
+	defer resp.Body.Close()
 
 	var status map[string]interface{}
 	if err := c.handleResponse(resp, &status); err != nil {

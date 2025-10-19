@@ -37,105 +37,196 @@ func NewEBSManager(cfg aws.Config) *EBSManager {
 func (m *EBSManager) CreateEBSVolume(req StorageRequest) (*StorageInfo, error) {
 	ctx := context.Background()
 
-	// Default EBS configuration
+	// Parse and validate configuration
+	volumeType, iops, throughput := m.parseVolumeConfiguration(req)
+
+	// Build volume creation input
+	input, err := m.buildVolumeInput(ctx, req, volumeType, iops, throughput)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the volume
+	volumeID, err := m.createVolume(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wait for volume availability
+	if err := m.waitForVolumeAvailable(ctx, volumeID); err != nil {
+		return nil, err
+	}
+
+	// Build and return storage info
+	return m.buildStorageInfo(ctx, volumeID, req), nil
+}
+
+// parseVolumeConfiguration extracts volume type, IOPS, and throughput from request
+func (m *EBSManager) parseVolumeConfiguration(req StorageRequest) (types.VolumeType, int32, int32) {
 	volumeType := types.VolumeTypeGp3
-	size := req.Size
 	iops := int32(3000)      // GP3 default
 	throughput := int32(125) // GP3 default (MB/s)
 
-	// Apply custom configuration if provided
-	if req.EBSConfig != nil {
-		switch req.EBSConfig.VolumeType {
-		case "gp2":
-			volumeType = types.VolumeTypeGp2
-		case "gp3":
-			volumeType = types.VolumeTypeGp3
-		case "io1":
-			volumeType = types.VolumeTypeIo1
-		case "io2":
-			volumeType = types.VolumeTypeIo2
-		case "sc1":
-			volumeType = types.VolumeTypeSc1
-		case "st1":
-			volumeType = types.VolumeTypeSt1
-		}
-
-		if req.EBSConfig.IOPS > 0 {
-			iops = req.EBSConfig.IOPS
-		}
-		if req.EBSConfig.Throughput > 0 {
-			throughput = req.EBSConfig.Throughput
-		}
+	if req.EBSConfig == nil {
+		return volumeType, iops, throughput
 	}
 
-	// Create volume input
+	// Parse volume type
+	switch req.EBSConfig.VolumeType {
+	case "gp2":
+		volumeType = types.VolumeTypeGp2
+	case "gp3":
+		volumeType = types.VolumeTypeGp3
+	case "io1":
+		volumeType = types.VolumeTypeIo1
+	case "io2":
+		volumeType = types.VolumeTypeIo2
+	case "sc1":
+		volumeType = types.VolumeTypeSc1
+	case "st1":
+		volumeType = types.VolumeTypeSt1
+	}
+
+	// Override IOPS and throughput if specified
+	if req.EBSConfig.IOPS > 0 {
+		iops = req.EBSConfig.IOPS
+	}
+	if req.EBSConfig.Throughput > 0 {
+		throughput = req.EBSConfig.Throughput
+	}
+
+	return volumeType, iops, throughput
+}
+
+// buildVolumeInput constructs the EC2 CreateVolumeInput
+func (m *EBSManager) buildVolumeInput(ctx context.Context, req StorageRequest, volumeType types.VolumeType, iops, throughput int32) (*ec2.CreateVolumeInput, error) {
 	input := &ec2.CreateVolumeInput{
-		Size:       aws.Int32(int32(size)),
+		Size:       aws.Int32(int32(req.Size)),
 		VolumeType: volumeType,
 		Encrypted:  aws.Bool(true), // Always encrypt by default
 	}
 
 	// Set IOPS for provisioned IOPS volume types
-	if volumeType == types.VolumeTypeIo1 || volumeType == types.VolumeTypeIo2 || volumeType == types.VolumeTypeGp3 {
+	if m.supportsIOPS(volumeType) {
 		input.Iops = aws.Int32(iops)
 	}
 
-	// Set throughput for GP3 and ST1/SC1
-	if volumeType == types.VolumeTypeGp3 || volumeType == types.VolumeTypeSt1 || volumeType == types.VolumeTypeSc1 {
+	// Set throughput for supported volume types
+	if m.supportsThroughput(volumeType) {
 		input.Throughput = aws.Int32(throughput)
 	}
 
-	// Add availability zone if specified
-	if req.EBSConfig != nil && req.EBSConfig.AvailabilityZone != "" {
-		input.AvailabilityZone = aws.String(req.EBSConfig.AvailabilityZone)
-	} else {
-		// Use the first AZ in the region by default
-		azs, err := m.getAvailabilityZones(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get availability zones: %w", err)
-		}
-		if len(azs) > 0 {
-			input.AvailabilityZone = aws.String(azs[0])
-		}
+	// Select availability zone
+	az, err := m.selectAvailabilityZone(ctx, req)
+	if err != nil {
+		return nil, err
 	}
+	input.AvailabilityZone = aws.String(az)
 
 	// Add tags
-	input.TagSpecifications = []types.TagSpecification{
+	input.TagSpecifications = m.buildTagSpecifications(req.Name)
+
+	return input, nil
+}
+
+// supportsIOPS checks if volume type supports IOPS configuration
+func (m *EBSManager) supportsIOPS(volumeType types.VolumeType) bool {
+	return volumeType == types.VolumeTypeIo1 ||
+		volumeType == types.VolumeTypeIo2 ||
+		volumeType == types.VolumeTypeGp3
+}
+
+// supportsThroughput checks if volume type supports throughput configuration
+func (m *EBSManager) supportsThroughput(volumeType types.VolumeType) bool {
+	return volumeType == types.VolumeTypeGp3 ||
+		volumeType == types.VolumeTypeSt1 ||
+		volumeType == types.VolumeTypeSc1
+}
+
+// selectAvailabilityZone determines the availability zone for the volume
+func (m *EBSManager) selectAvailabilityZone(ctx context.Context, req StorageRequest) (string, error) {
+	if req.EBSConfig != nil && req.EBSConfig.AvailabilityZone != "" {
+		return req.EBSConfig.AvailabilityZone, nil
+	}
+
+	// Use the first AZ in the region by default
+	azs, err := m.getAvailabilityZones(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get availability zones: %w", err)
+	}
+
+	if len(azs) == 0 {
+		return "", fmt.Errorf("no availability zones found in region")
+	}
+
+	return azs[0], nil
+}
+
+// buildTagSpecifications creates tag specifications for the volume
+func (m *EBSManager) buildTagSpecifications(name string) []types.TagSpecification {
+	return []types.TagSpecification{
 		{
 			ResourceType: types.ResourceTypeVolume,
 			Tags: []types.Tag{
-				{Key: aws.String("Name"), Value: aws.String(req.Name)},
+				{Key: aws.String("Name"), Value: aws.String(name)},
 				{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
 				{Key: aws.String("CreatedBy"), Value: aws.String("CloudWorkstation")},
 			},
 		},
 	}
+}
 
+// createVolume executes the volume creation API call
+func (m *EBSManager) createVolume(ctx context.Context, input *ec2.CreateVolumeInput) (string, error) {
 	result, err := m.ec2Client.CreateVolume(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create EBS volume: %w", err)
+		return "", fmt.Errorf("failed to create EBS volume: %w", err)
 	}
+	return *result.VolumeId, nil
+}
 
-	// Wait for volume to become available
+// waitForVolumeAvailable waits for volume to reach available state
+func (m *EBSManager) waitForVolumeAvailable(ctx context.Context, volumeID string) error {
 	waiter := ec2.NewVolumeAvailableWaiter(m.ec2Client)
-	err = waiter.Wait(ctx, &ec2.DescribeVolumesInput{
-		VolumeIds: []string{*result.VolumeId},
+	err := waiter.Wait(ctx, &ec2.DescribeVolumesInput{
+		VolumeIds: []string{volumeID},
 	}, 5*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("timeout waiting for EBS volume to become available: %w", err)
+		return fmt.Errorf("timeout waiting for EBS volume to become available: %w", err)
+	}
+	return nil
+}
+
+// buildStorageInfo constructs the StorageInfo response
+func (m *EBSManager) buildStorageInfo(ctx context.Context, volumeID string, req StorageRequest) *StorageInfo {
+	// Describe volume to get current state
+	result, err := m.ec2Client.DescribeVolumes(ctx, &ec2.DescribeVolumesInput{
+		VolumeIds: []string{volumeID},
+	})
+
+	if err != nil || len(result.Volumes) == 0 {
+		// Fallback to basic info if describe fails
+		return &StorageInfo{
+			Name:      req.Name,
+			Type:      StorageTypeEBS,
+			Id:        volumeID,
+			State:     "available",
+			Size:      req.Size,
+			CreatedAt: time.Now(),
+			EBSConfig: req.EBSConfig,
+		}
 	}
 
-	storageInfo := &StorageInfo{
+	volume := result.Volumes[0]
+	return &StorageInfo{
 		Name:      req.Name,
 		Type:      StorageTypeEBS,
-		Id:        *result.VolumeId,
-		State:     string(result.State),
-		Size:      int64(*result.Size),
-		CreatedAt: *result.CreateTime,
+		Id:        *volume.VolumeId,
+		State:     string(volume.State),
+		Size:      int64(*volume.Size),
+		CreatedAt: *volume.CreateTime,
 		EBSConfig: req.EBSConfig,
 	}
-
-	return storageInfo, nil
 }
 
 // ListEBSVolumes lists all CloudWorkstation EBS volumes

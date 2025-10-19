@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/scttfrdmn/cloudworkstation/pkg/types"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -42,29 +43,25 @@ var upgrader = websocket.Upgrader{
 
 // handleSSHProxy handles WebSocket connections for embedded SSH terminals with full SSH multiplexing
 func (s *Server) handleSSHProxy(w http.ResponseWriter, r *http.Request) {
-	// Extract instance name from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/ssh-proxy/")
-	instanceName := strings.Split(path, "/")[0]
-
-	if instanceName == "" {
-		s.writeError(w, http.StatusBadRequest, "Instance name required")
-		return
-	}
-
-	// Get instance connection details from state
-	state, err := s.stateManager.LoadState()
+	// Parse instance name from URL
+	instanceName, err := s.parseSSHProxyInstanceName(r)
 	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to load state: %v", err))
+		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	instance, exists := state.Instances[instanceName]
-	if !exists {
-		s.writeError(w, http.StatusNotFound, fmt.Sprintf("Instance not found: %s", instanceName))
+	// Get instance details
+	instance, err := s.getInstanceForSSHProxy(instanceName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			s.writeError(w, http.StatusNotFound, err.Error())
+		} else {
+			s.writeError(w, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
-	// Upgrade to WebSocket connection
+	// Upgrade to WebSocket
 	wsConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "WebSocket upgrade failed: "+err.Error())
@@ -74,61 +71,87 @@ func (s *Server) handleSSHProxy(w http.ResponseWriter, r *http.Request) {
 		_ = wsConn.Close()
 	}()
 
-	// Send connection info message to client
-	welcomeMsg := fmt.Sprintf("Connecting to %s (%s)...\r\n", instanceName, instance.PublicIP)
-	err = wsConn.WriteMessage(websocket.TextMessage, []byte(welcomeMsg))
-	if err != nil {
+	// Send welcome message
+	if err := s.sendSSHWelcomeMessage(wsConn, instanceName, instance.PublicIP); err != nil {
 		return
 	}
 
-	// Get SSH private key from CloudWorkstation configuration
-	homeDir, err := os.UserHomeDir()
+	// Setup SSH connection
+	sshClient, session, err := s.setupSSHConnection(wsConn, &instance)
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to get home directory: %v\r\n", err)))
+		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: %v\r\n", err)))
+		return
+	}
+	defer sshClient.Close()
+	defer session.Close()
+
+	// Setup SSH pipes
+	sshStdin, sshStdout, sshStderr, err := s.setupSSHPipes(session)
+	if err != nil {
+		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: %v\r\n", err)))
 		return
 	}
 
-	keyPath := filepath.Join(homeDir, ".cloudworkstation", "ssh_keys", "id_ed25519")
-	keyBytes, err := os.ReadFile(keyPath)
-	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to read SSH key: %v\r\n", err)))
+	// Start shell
+	if err := session.Shell(); err != nil {
+		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to start shell: %v\r\n", err)))
 		return
 	}
 
-	// Parse the private key
-	signer, err := ssh.ParsePrivateKey(keyBytes)
+	_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Connected to %s\r\n", instanceName)))
+
+	// Run SSH proxy loop
+	s.runSSHProxyLoop(wsConn, sshStdin, sshStdout, sshStderr, session)
+}
+
+// parseSSHProxyInstanceName extracts instance name from URL
+func (s *Server) parseSSHProxyInstanceName(r *http.Request) (string, error) {
+	path := strings.TrimPrefix(r.URL.Path, "/ssh-proxy/")
+	instanceName := strings.Split(path, "/")[0]
+
+	if instanceName == "" {
+		return "", fmt.Errorf("instance name required")
+	}
+	return instanceName, nil
+}
+
+// getInstanceForSSHProxy retrieves instance from state
+func (s *Server) getInstanceForSSHProxy(instanceName string) (types.Instance, error) {
+	state, err := s.stateManager.LoadState()
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to parse SSH key: %v\r\n", err)))
-		return
+		return types.Instance{}, fmt.Errorf("failed to load state: %w", err)
 	}
 
-	// Configure SSH client with host key verification
-	// Load known hosts file for host key verification
-	knownHostsPath := filepath.Join(homeDir, ".cloudworkstation", "known_hosts")
-	var hostKeyCallback ssh.HostKeyCallback
+	instance, exists := state.Instances[instanceName]
+	if !exists {
+		return types.Instance{}, fmt.Errorf("instance not found: %s", instanceName)
+	}
+	return instance, nil
+}
 
-	// Try to load known hosts file
-	if _, err := os.Stat(knownHostsPath); err == nil {
-		hostKeyCallback, err = loadKnownHosts(knownHostsPath)
-		if err != nil {
-			_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to load known hosts, using insecure mode: %v\r\n", err)))
-			hostKeyCallback = ssh.InsecureIgnoreHostKey()
-		}
-	} else {
-		// Create known hosts file if it doesn't exist
-		if err := os.MkdirAll(filepath.Dir(knownHostsPath), 0700); err == nil {
-			// Use trust-on-first-use with automatic known_hosts population
-			hostKeyCallback = trustOnFirstUse(knownHostsPath, instance.PublicIP)
-		} else {
-			_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to create known hosts directory, using insecure mode: %v\r\n", err)))
-			hostKeyCallback = ssh.InsecureIgnoreHostKey()
-		}
+// sendSSHWelcomeMessage sends initial connection message
+func (s *Server) sendSSHWelcomeMessage(wsConn *websocket.Conn, instanceName, publicIP string) error {
+	welcomeMsg := fmt.Sprintf("Connecting to %s (%s)...\r\n", instanceName, publicIP)
+	return wsConn.WriteMessage(websocket.TextMessage, []byte(welcomeMsg))
+}
+
+// setupSSHConnection establishes SSH connection with proper authentication
+func (s *Server) setupSSHConnection(wsConn *websocket.Conn, instance *types.Instance) (*ssh.Client, *ssh.Session, error) {
+	// Get SSH key and config
+	signer, err := s.loadSSHKey(wsConn)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// Determine SSH username from instance (use Username field or default to ec2-user)
+	hostKeyCallback, err := s.setupHostKeyVerification(wsConn, instance.PublicIP)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Determine SSH username
 	sshUsername := instance.Username
 	if sshUsername == "" {
-		sshUsername = "ec2-user" // Default for AWS instances
+		sshUsername = "ec2-user"
 	}
 
 	sshConfig := &ssh.ClientConfig{
@@ -143,122 +166,150 @@ func (s *Server) handleSSHProxy(w http.ResponseWriter, r *http.Request) {
 	sshAddr := fmt.Sprintf("%s:22", instance.PublicIP)
 	sshClient, err := ssh.Dial("tcp", sshAddr, sshConfig)
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to connect to SSH: %v\r\n", err)))
-		return
+		return nil, nil, fmt.Errorf("failed to connect to SSH: %w", err)
 	}
-	defer sshClient.Close()
 
 	// Create SSH session
 	session, err := sshClient.NewSession()
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to create SSH session: %v\r\n", err)))
-		return
+		sshClient.Close()
+		return nil, nil, fmt.Errorf("failed to create SSH session: %w", err)
 	}
-	defer session.Close()
 
-	// Set up terminal modes
+	// Request pseudo terminal
 	modes := ssh.TerminalModes{
 		ssh.ECHO:          1,
 		ssh.TTY_OP_ISPEED: 14400,
 		ssh.TTY_OP_OSPEED: 14400,
 	}
 
-	// Request pseudo terminal
 	if err := session.RequestPty("xterm-256color", 80, 40, modes); err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to request PTY: %v\r\n", err)))
-		return
+		session.Close()
+		sshClient.Close()
+		return nil, nil, fmt.Errorf("failed to request PTY: %w", err)
 	}
 
-	// Get SSH session stdin/stdout/stderr
+	return sshClient, session, nil
+}
+
+// loadSSHKey loads and parses SSH private key
+func (s *Server) loadSSHKey(wsConn *websocket.Conn) (ssh.Signer, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	keyPath := filepath.Join(homeDir, ".cloudworkstation", "ssh_keys", "id_ed25519")
+	keyBytes, err := os.ReadFile(keyPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read SSH key: %w", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse SSH key: %w", err)
+	}
+	return signer, nil
+}
+
+// setupHostKeyVerification configures host key verification
+func (s *Server) setupHostKeyVerification(wsConn *websocket.Conn, publicIP string) (ssh.HostKeyCallback, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	knownHostsPath := filepath.Join(homeDir, ".cloudworkstation", "known_hosts")
+
+	// Try to load known hosts file
+	if _, err := os.Stat(knownHostsPath); err == nil {
+		hostKeyCallback, err := loadKnownHosts(knownHostsPath)
+		if err != nil {
+			_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to load known hosts, using insecure mode: %v\r\n", err)))
+			return ssh.InsecureIgnoreHostKey(), nil
+		}
+		return hostKeyCallback, nil
+	}
+
+	// Create known hosts file if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(knownHostsPath), 0700); err != nil {
+		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to create known hosts directory, using insecure mode: %v\r\n", err)))
+		return ssh.InsecureIgnoreHostKey(), nil
+	}
+
+	// Use trust-on-first-use
+	return trustOnFirstUse(knownHostsPath, publicIP), nil
+}
+
+// setupSSHPipes sets up SSH session pipes
+func (s *Server) setupSSHPipes(session *ssh.Session) (io.WriteCloser, io.Reader, io.Reader, error) {
 	sshStdin, err := session.StdinPipe()
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to get stdin pipe: %v\r\n", err)))
-		return
+		return nil, nil, nil, fmt.Errorf("failed to get stdin pipe: %w", err)
 	}
 
 	sshStdout, err := session.StdoutPipe()
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to get stdout pipe: %v\r\n", err)))
-		return
+		return nil, nil, nil, fmt.Errorf("failed to get stdout pipe: %w", err)
 	}
 
 	sshStderr, err := session.StderrPipe()
 	if err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to get stderr pipe: %v\r\n", err)))
-		return
+		return nil, nil, nil, fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
-	// Start remote shell
-	if err := session.Shell(); err != nil {
-		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: Failed to start shell: %v\r\n", err)))
-		return
-	}
+	return sshStdin, sshStdout, sshStderr, nil
+}
 
-	// Send success message
-	_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Connected to %s\r\n", instanceName)))
-
-	// Create error channel for goroutines
+// runSSHProxyLoop handles bidirectional data forwarding
+func (s *Server) runSSHProxyLoop(wsConn *websocket.Conn, sshStdin io.WriteCloser, sshStdout, sshStderr io.Reader, session *ssh.Session) {
 	done := make(chan error, 3)
 
 	// WebSocket -> SSH (stdin)
-	go func() {
-		for {
-			_, message, err := wsConn.ReadMessage()
-			if err != nil {
-				done <- err
-				return
-			}
-			if _, err := sshStdin.Write(message); err != nil {
-				done <- err
-				return
-			}
-		}
-	}()
+	go s.forwardWebSocketToSSH(wsConn, sshStdin, done)
 
 	// SSH stdout -> WebSocket
-	go func() {
-		buf := make([]byte, 32*1024)
-		for {
-			n, err := sshStdout.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					done <- err
-				}
-				return
-			}
-			if err := wsConn.WriteMessage(websocket.TextMessage, buf[:n]); err != nil {
-				done <- err
-				return
-			}
-		}
-	}()
+	go s.forwardSSHToWebSocket(wsConn, sshStdout, done, "stdout")
 
 	// SSH stderr -> WebSocket
-	go func() {
-		buf := make([]byte, 32*1024)
-		for {
-			n, err := sshStderr.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					done <- err
-				}
-				return
-			}
-			if err := wsConn.WriteMessage(websocket.TextMessage, buf[:n]); err != nil {
-				done <- err
-				return
-			}
-		}
-	}()
+	go s.forwardSSHToWebSocket(wsConn, sshStderr, done, "stderr")
 
-	// Wait for session to end or error
-	select {
-	case <-done:
-		// Connection closed or error occurred
-	}
-
-	// Wait for SSH session to finish
+	// Wait for session to end
+	<-done
 	_ = session.Wait()
+}
+
+// forwardWebSocketToSSH forwards WebSocket messages to SSH stdin
+func (s *Server) forwardWebSocketToSSH(wsConn *websocket.Conn, sshStdin io.WriteCloser, done chan error) {
+	for {
+		_, message, err := wsConn.ReadMessage()
+		if err != nil {
+			done <- err
+			return
+		}
+		if _, err := sshStdin.Write(message); err != nil {
+			done <- err
+			return
+		}
+	}
+}
+
+// forwardSSHToWebSocket forwards SSH output to WebSocket
+func (s *Server) forwardSSHToWebSocket(wsConn *websocket.Conn, sshOutput io.Reader, done chan error, name string) {
+	buf := make([]byte, 32*1024)
+	for {
+		n, err := sshOutput.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				done <- err
+			}
+			return
+		}
+		if err := wsConn.WriteMessage(websocket.TextMessage, buf[:n]); err != nil {
+			done <- err
+			return
+		}
+	}
 }
 
 // handleDCVProxy handles DCV desktop connections via iframe

@@ -465,43 +465,112 @@ func (s *Server) predictOptimalSize(instance *types.Instance, analysisPeriodHour
 	currentSize := s.parseInstanceSize(instance.InstanceType)
 	template := strings.ToLower(instance.Template)
 
-	// Simple heuristic based on template type and runtime
-	switch {
-	case strings.Contains(template, "ml") || strings.Contains(template, "gpu") || strings.Contains(template, "machine learning"):
-		// ML workloads typically need more resources
-		if currentSize == "XS" {
-			return "S"
-		} else if currentSize == "S" {
-			return "M"
-		}
-	case strings.Contains(template, "r-") || strings.Contains(template, "r ") || strings.Contains(template, "research"):
-		// R workloads are memory intensive
-		if currentSize == "XS" {
-			return "S"
-		} else if currentSize == "S" {
-			return "M"
-		}
-	case strings.Contains(template, "simple") || strings.Contains(template, "basic") || strings.Contains(template, "ubuntu"):
-		// Simple workloads might be over-provisioned
-		if currentSize == "L" || currentSize == "XL" {
-			return "M"
-		} else if currentSize == "M" {
-			return "S"
-		}
+	// Check template-based recommendations
+	if recommendedSize := s.getTemplateSizeRecommendation(template, currentSize); recommendedSize != "" {
+		return recommendedSize
 	}
 
-	// If instance has been running for a while with likely low utilization, consider downsizing
-	runtime := time.Since(instance.LaunchTime).Hours()
-	if runtime > 24 && analysisPeriodHours > 12 {
-		// Simulate some downsizing opportunities for long-running instances
-		if currentSize == "L" {
-			return "M"
-		} else if currentSize == "M" {
-			return "S"
-		}
+	// Check runtime-based downsizing
+	if recommendedSize := s.getRuntimeSizeRecommendation(instance, currentSize, analysisPeriodHours); recommendedSize != "" {
+		return recommendedSize
 	}
 
 	return currentSize // Default: current size is optimal
+}
+
+// getTemplateSizeRecommendation returns size recommendation based on template type
+func (s *Server) getTemplateSizeRecommendation(template, currentSize string) string {
+	// ML workloads typically need more resources
+	if s.isMLWorkload(template) {
+		return s.upsizeForMLWorkload(currentSize)
+	}
+
+	// R workloads are memory intensive
+	if s.isRWorkload(template) {
+		return s.upsizeForRWorkload(currentSize)
+	}
+
+	// Simple workloads might be over-provisioned
+	if s.isSimpleWorkload(template) {
+		return s.downsizeForSimpleWorkload(currentSize)
+	}
+
+	return ""
+}
+
+// isMLWorkload checks if template is ML-related
+func (s *Server) isMLWorkload(template string) bool {
+	return strings.Contains(template, "ml") ||
+		strings.Contains(template, "gpu") ||
+		strings.Contains(template, "machine learning")
+}
+
+// isRWorkload checks if template is R-related
+func (s *Server) isRWorkload(template string) bool {
+	return strings.Contains(template, "r-") ||
+		strings.Contains(template, "r ") ||
+		strings.Contains(template, "research")
+}
+
+// isSimpleWorkload checks if template is basic
+func (s *Server) isSimpleWorkload(template string) bool {
+	return strings.Contains(template, "simple") ||
+		strings.Contains(template, "basic") ||
+		strings.Contains(template, "ubuntu")
+}
+
+// upsizeForMLWorkload recommends upsize for ML workloads
+func (s *Server) upsizeForMLWorkload(currentSize string) string {
+	if currentSize == "XS" {
+		return "S"
+	} else if currentSize == "S" {
+		return "M"
+	}
+	return ""
+}
+
+// upsizeForRWorkload recommends upsize for R workloads
+func (s *Server) upsizeForRWorkload(currentSize string) string {
+	if currentSize == "XS" {
+		return "S"
+	} else if currentSize == "S" {
+		return "M"
+	}
+	return ""
+}
+
+// downsizeForSimpleWorkload recommends downsize for simple workloads
+func (s *Server) downsizeForSimpleWorkload(currentSize string) string {
+	if currentSize == "L" || currentSize == "XL" {
+		return "M"
+	} else if currentSize == "M" {
+		return "S"
+	}
+	return ""
+}
+
+// getRuntimeSizeRecommendation returns size recommendation based on runtime
+func (s *Server) getRuntimeSizeRecommendation(instance *types.Instance, currentSize string, analysisPeriodHours float64) string {
+	runtime := time.Since(instance.LaunchTime).Hours()
+
+	// Check if instance qualifies for runtime-based downsizing
+	if !s.shouldConsiderRuntimeDownsizing(runtime, analysisPeriodHours) {
+		return ""
+	}
+
+	// Simulate downsizing opportunities for long-running instances
+	if currentSize == "L" {
+		return "M"
+	} else if currentSize == "M" {
+		return "S"
+	}
+
+	return ""
+}
+
+// shouldConsiderRuntimeDownsizing checks if runtime justifies downsizing
+func (s *Server) shouldConsiderRuntimeDownsizing(runtime, analysisPeriodHours float64) bool {
+	return runtime > 24 && analysisPeriodHours > 12
 }
 
 // calculateConfidence determines confidence level based on available data
@@ -1061,27 +1130,49 @@ func (s *Server) generateResourceSummary(resourceType, template, size string) ty
 
 // generateSampleMetrics generates metrics for an instance using real CloudWatch data
 func (s *Server) generateSampleMetrics(instance *types.Instance, count int) []types.InstanceMetrics {
-	var metrics []types.InstanceMetrics
-
 	// For stopped instances, return empty metrics
 	if instance.State != "running" {
-		return metrics
+		return []types.InstanceMetrics{}
 	}
 
+	// Fetch CloudWatch datapoints
+	datapoints, err := s.fetchCloudWatchDatapoints(instance, count)
+	if err != nil {
+		log.Printf("Failed to fetch metrics for %s: %v", instance.Name, err)
+		return []types.InstanceMetrics{}
+	}
+
+	// Merge datapoints by timestamp
+	metricsByTime := s.mergeDatapointsByTimestamp(instance, datapoints)
+
+	// Add GPU metrics if applicable
+	s.addGPUMetricsIfApplicable(instance, metricsByTime)
+
+	// Convert to slice and sort
+	return s.finalizeMetrics(metricsByTime, count)
+}
+
+// cloudWatchDatapoints holds all CloudWatch datapoints for an instance
+type cloudWatchDatapoints struct {
+	cpuDatapoints        []cwtypes.Datapoint
+	networkInDatapoints  []cwtypes.Datapoint
+	networkOutDatapoints []cwtypes.Datapoint
+}
+
+// fetchCloudWatchDatapoints retrieves all CloudWatch metrics for an instance
+func (s *Server) fetchCloudWatchDatapoints(instance *types.Instance, count int) (*cloudWatchDatapoints, error) {
 	ctx := context.Background()
 	endTime := time.Now()
-
-	// Calculate period based on count (assume 5-minute intervals for CloudWatch)
 	periodMinutes := count * 5
 	startTime := endTime.Add(-time.Duration(periodMinutes) * time.Minute)
 
-	// Get real CloudWatch metrics
+	// Get CPU metrics
 	cpuDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "CPUUtilization", startTime, endTime)
 	if err != nil {
-		log.Printf("Failed to get CPU metrics for %s: %v", instance.Name, err)
-		return metrics
+		return nil, fmt.Errorf("failed to get CPU metrics: %w", err)
 	}
 
+	// Get network metrics (allow failures)
 	networkInDatapoints, err := s.getCloudWatchMetric(ctx, instance.ID, "NetworkIn", startTime, endTime)
 	if err != nil {
 		log.Printf("Failed to get NetworkIn metrics for %s: %v", instance.Name, err)
@@ -1094,90 +1185,127 @@ func (s *Server) generateSampleMetrics(instance *types.Instance, count int) []ty
 		networkOutDatapoints = []cwtypes.Datapoint{}
 	}
 
-	// Convert CloudWatch datapoints to our metrics format
-	size := s.parseInstanceSize(instance.InstanceType)
-	template := strings.ToLower(instance.Template)
+	return &cloudWatchDatapoints{
+		cpuDatapoints:        cpuDatapoints,
+		networkInDatapoints:  networkInDatapoints,
+		networkOutDatapoints: networkOutDatapoints,
+	}, nil
+}
 
-	// Merge all datapoints by timestamp
-	datapointsByTime := make(map[time.Time]*types.InstanceMetrics)
+// mergeDatapointsByTimestamp merges CloudWatch datapoints into InstanceMetrics
+func (s *Server) mergeDatapointsByTimestamp(instance *types.Instance, datapoints *cloudWatchDatapoints) map[time.Time]*types.InstanceMetrics {
+	size := s.parseInstanceSize(instance.InstanceType)
+	metricsByTime := make(map[time.Time]*types.InstanceMetrics)
 
 	// Process CPU datapoints
-	for _, dp := range cpuDatapoints {
+	s.processCPUDatapoints(instance, datapoints.cpuDatapoints, size, metricsByTime)
+
+	// Process network datapoints
+	s.processNetworkInDatapoints(datapoints.networkInDatapoints, metricsByTime)
+	s.processNetworkOutDatapoints(datapoints.networkOutDatapoints, metricsByTime)
+
+	return metricsByTime
+}
+
+// processCPUDatapoints processes CPU CloudWatch datapoints
+func (s *Server) processCPUDatapoints(instance *types.Instance, datapoints []cwtypes.Datapoint, size string, metricsByTime map[time.Time]*types.InstanceMetrics) {
+	for _, dp := range datapoints {
 		if dp.Timestamp == nil || dp.Average == nil {
 			continue
 		}
 
 		timestamp := dp.Timestamp.Truncate(5 * time.Minute)
-		if _, exists := datapointsByTime[timestamp]; !exists {
-			datapointsByTime[timestamp] = &types.InstanceMetrics{
-				InstanceID:   instance.ID,
-				InstanceName: instance.Name,
-				Timestamp:    timestamp,
-				CPU: types.CPUMetrics{
-					CoreCount:   s.getCPUsForSize(size),
-					IdlePercent: 100 - *dp.Average,
-					WaitPercent: 5.0,
-				},
-				Memory: types.MemoryMetrics{
-					TotalMB: s.getMemoryForSize(size) * 1024,
-				},
-				Storage: types.StorageMetrics{
-					TotalGB: instance.StorageGB,
-				},
-				System: types.SystemMetrics{
-					UptimeSeconds: time.Since(instance.LaunchTime).Seconds(),
-				},
-			}
+		if _, exists := metricsByTime[timestamp]; !exists {
+			metricsByTime[timestamp] = s.createBaseInstanceMetrics(instance, size, timestamp)
 		}
-		datapointsByTime[timestamp].CPU.UtilizationPercent = *dp.Average
+		metricsByTime[timestamp].CPU.UtilizationPercent = *dp.Average
 	}
+}
 
-	// Process NetworkIn datapoints
-	for _, dp := range networkInDatapoints {
+// createBaseInstanceMetrics creates a new InstanceMetrics with base values
+func (s *Server) createBaseInstanceMetrics(instance *types.Instance, size string, timestamp time.Time) *types.InstanceMetrics {
+	return &types.InstanceMetrics{
+		InstanceID:   instance.ID,
+		InstanceName: instance.Name,
+		Timestamp:    timestamp,
+		CPU: types.CPUMetrics{
+			CoreCount:   s.getCPUsForSize(size),
+			IdlePercent: 100,
+			WaitPercent: 5.0,
+		},
+		Memory: types.MemoryMetrics{
+			TotalMB: s.getMemoryForSize(size) * 1024,
+		},
+		Storage: types.StorageMetrics{
+			TotalGB: instance.StorageGB,
+		},
+		System: types.SystemMetrics{
+			UptimeSeconds: time.Since(instance.LaunchTime).Seconds(),
+		},
+	}
+}
+
+// processNetworkInDatapoints processes NetworkIn CloudWatch datapoints
+func (s *Server) processNetworkInDatapoints(datapoints []cwtypes.Datapoint, metricsByTime map[time.Time]*types.InstanceMetrics) {
+	for _, dp := range datapoints {
 		if dp.Timestamp == nil || dp.Average == nil {
 			continue
 		}
 
 		timestamp := dp.Timestamp.Truncate(5 * time.Minute)
-		if metric, exists := datapointsByTime[timestamp]; exists {
-			// CloudWatch NetworkIn is in bytes, convert to bytes per second
+		if metric, exists := metricsByTime[timestamp]; exists {
 			metric.Network.RxBytesPerSec = *dp.Average / 300.0 // 5-minute period
 			if dp.Sum != nil {
 				metric.Network.TotalRxBytes = *dp.Sum
 			}
 		}
 	}
+}
 
-	// Process NetworkOut datapoints
-	for _, dp := range networkOutDatapoints {
+// processNetworkOutDatapoints processes NetworkOut CloudWatch datapoints
+func (s *Server) processNetworkOutDatapoints(datapoints []cwtypes.Datapoint, metricsByTime map[time.Time]*types.InstanceMetrics) {
+	for _, dp := range datapoints {
 		if dp.Timestamp == nil || dp.Average == nil {
 			continue
 		}
 
 		timestamp := dp.Timestamp.Truncate(5 * time.Minute)
-		if metric, exists := datapointsByTime[timestamp]; exists {
+		if metric, exists := metricsByTime[timestamp]; exists {
 			metric.Network.TxBytesPerSec = *dp.Average / 300.0
 			if dp.Sum != nil {
 				metric.Network.TotalTxBytes = *dp.Sum
 			}
 		}
 	}
+}
 
-	// Convert map to slice
-	for _, metric := range datapointsByTime {
-		// Add GPU metrics for ML templates (CloudWatch doesn't provide GPU metrics by default)
-		if strings.Contains(template, "ml") || strings.Contains(template, "gpu") {
-			metric.GPU = &types.GPUMetrics{
-				Count:                    1,
-				UtilizationPercent:       75.0,
-				MemoryTotalMB:            8192,
-				MemoryUsedMB:             6144,
-				MemoryUtilizationPercent: 75.0,
-				TemperatureCelsius:       65.0,
-				PowerDrawWatts:           200.0,
-			}
+// addGPUMetricsIfApplicable adds GPU metrics for ML templates
+func (s *Server) addGPUMetricsIfApplicable(instance *types.Instance, metricsByTime map[time.Time]*types.InstanceMetrics) {
+	template := strings.ToLower(instance.Template)
+
+	if !strings.Contains(template, "ml") && !strings.Contains(template, "gpu") {
+		return
+	}
+
+	// Add GPU metrics for ML/GPU templates
+	for _, metric := range metricsByTime {
+		metric.GPU = &types.GPUMetrics{
+			Count:                    1,
+			UtilizationPercent:       75.0,
+			MemoryTotalMB:            8192,
+			MemoryUsedMB:             6144,
+			MemoryUtilizationPercent: 75.0,
+			TemperatureCelsius:       65.0,
+			PowerDrawWatts:           200.0,
 		}
+	}
+}
 
+// finalizeMetrics converts metrics map to sorted slice
+func (s *Server) finalizeMetrics(metricsByTime map[time.Time]*types.InstanceMetrics, count int) []types.InstanceMetrics {
+	var metrics []types.InstanceMetrics
+
+	for _, metric := range metricsByTime {
 		metrics = append(metrics, *metric)
 	}
 

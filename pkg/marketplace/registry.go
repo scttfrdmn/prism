@@ -88,7 +88,26 @@ func (r *Registry) SearchTemplates(query SearchQuery) ([]*CommunityTemplate, err
 
 // searchTemplatesWithDynamoDB performs DynamoDB scan with filters
 func (r *Registry) searchTemplatesWithDynamoDB(ctx context.Context, query SearchQuery) ([]*CommunityTemplate, error) {
-	// Build filter expression
+	// Build DynamoDB filter expression
+	filterExpr, exprAttrValues := r.buildDynamoDBFilterExpression(query)
+
+	// Execute DynamoDB scan
+	templates, err := r.executeDynamoDBScan(ctx, filterExpr, exprAttrValues)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply client-side filters
+	templates = r.applyClientSideFilters(templates, query)
+
+	// Sort and paginate results
+	templates = r.sortAndPaginate(templates, query)
+
+	return templates, nil
+}
+
+// buildDynamoDBFilterExpression constructs filter expression for DynamoDB
+func (r *Registry) buildDynamoDBFilterExpression(query SearchQuery) (string, map[string]types.AttributeValue) {
 	filterExpr := "visibility = :public"
 	exprAttrValues := map[string]types.AttributeValue{
 		":public": &types.AttributeValueMemberS{Value: "public"},
@@ -124,7 +143,11 @@ func (r *Registry) searchTemplatesWithDynamoDB(ctx context.Context, query Search
 		exprAttrValues[":minRating"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%.2f", query.MinRating)}
 	}
 
-	// Execute scan
+	return filterExpr, exprAttrValues
+}
+
+// executeDynamoDBScan performs DynamoDB scan and unmarshals results
+func (r *Registry) executeDynamoDBScan(ctx context.Context, filterExpr string, exprAttrValues map[string]types.AttributeValue) ([]*CommunityTemplate, error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:                 aws.String(r.templatesTable),
 		FilterExpression:          aws.String(filterExpr),
@@ -136,55 +159,85 @@ func (r *Registry) searchTemplatesWithDynamoDB(ctx context.Context, query Search
 		return nil, fmt.Errorf("DynamoDB scan failed: %w", err)
 	}
 
-	// Unmarshal results
 	var templates []*CommunityTemplate
 	for _, item := range result.Items {
 		var template CommunityTemplate
 		if err := attributevalue.UnmarshalMap(item, &template); err != nil {
 			continue // Skip malformed items
 		}
-
-		// Apply text search filter (not efficient in DynamoDB, but complete)
-		if query.Query != "" {
-			searchText := strings.ToLower(query.Query)
-			if !strings.Contains(strings.ToLower(template.Name), searchText) &&
-				!strings.Contains(strings.ToLower(template.Description), searchText) {
-				continue
-			}
-		}
-
-		// Apply tag filter
-		if len(query.Tags) > 0 {
-			templateTags := make(map[string]bool)
-			for _, tag := range template.Tags {
-				templateTags[strings.ToLower(tag)] = true
-			}
-			hasAllTags := true
-			for _, requiredTag := range query.Tags {
-				if !templateTags[strings.ToLower(requiredTag)] {
-					hasAllTags = false
-					break
-				}
-			}
-			if !hasAllTags {
-				continue
-			}
-		}
-
 		templates = append(templates, &template)
 	}
 
-	// Sort and paginate
+	return templates, nil
+}
+
+// applyClientSideFilters applies filters not supported by DynamoDB
+func (r *Registry) applyClientSideFilters(templates []*CommunityTemplate, query SearchQuery) []*CommunityTemplate {
+	var filtered []*CommunityTemplate
+
+	for _, template := range templates {
+		// Apply text search filter
+		if !r.matchesTextQuery(template, query.Query) {
+			continue
+		}
+
+		// Apply tag filter
+		if !r.matchesTagFilter(template, query.Tags) {
+			continue
+		}
+
+		filtered = append(filtered, template)
+	}
+
+	return filtered
+}
+
+// matchesTextQuery checks if template matches text search
+func (r *Registry) matchesTextQuery(template *CommunityTemplate, query string) bool {
+	if query == "" {
+		return true
+	}
+
+	searchText := strings.ToLower(query)
+	return strings.Contains(strings.ToLower(template.Name), searchText) ||
+		strings.Contains(strings.ToLower(template.Description), searchText)
+}
+
+// matchesTagFilter checks if template has all required tags
+func (r *Registry) matchesTagFilter(template *CommunityTemplate, requiredTags []string) bool {
+	if len(requiredTags) == 0 {
+		return true
+	}
+
+	templateTags := make(map[string]bool)
+	for _, tag := range template.Tags {
+		templateTags[strings.ToLower(tag)] = true
+	}
+
+	for _, requiredTag := range requiredTags {
+		if !templateTags[strings.ToLower(requiredTag)] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// sortAndPaginate sorts and paginates template results
+func (r *Registry) sortAndPaginate(templates []*CommunityTemplate, query SearchQuery) []*CommunityTemplate {
 	r.sortResults(templates, query.SortBy, query.SortOrder)
 
+	// Apply offset
 	if query.Offset > 0 && query.Offset < len(templates) {
 		templates = templates[query.Offset:]
 	}
+
+	// Apply limit
 	if query.Limit > 0 && query.Limit < len(templates) {
 		templates = templates[:query.Limit]
 	}
 
-	return templates, nil
+	return templates
 }
 
 // GetTemplate retrieves a specific template by ID from DynamoDB or cache

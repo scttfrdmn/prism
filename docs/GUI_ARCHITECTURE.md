@@ -261,7 +261,7 @@ cmd/cws-gui/main.go
 
 ### Best Practices
 - **Single responsibility** - Each function has a clear purpose
-- **Consistent naming** - Follow Go and Fyne conventions
+- **Consistent naming** - Follow Go and React/TypeScript conventions
 - **Error handling** - Graceful degradation with user feedback
 - **Documentation** - Clear comments for complex logic
 

@@ -470,10 +470,8 @@ func getServiceInt(m map[string]interface{}, key string) int {
 }
 
 // LaunchInstance executes EC2 instance launch and returns result
-func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64, template *ctypes.RuntimeTemplate, primaryUsername string) (*ctypes.Instance, error) {
-	// Extract services from template if available
-	// For now, create basic service entries for known ports
-	// TODO: Enhance to read actual service definitions from template YAML
+// extractServicesFromTemplate extracts service definitions from template ports
+func (l *InstanceLauncher) extractServicesFromTemplate(template *ctypes.RuntimeTemplate) []ctypes.Service {
 	var services []ctypes.Service
 
 	// DEBUG LOGGING
@@ -482,62 +480,82 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		log.Printf("[DEBUG] LaunchInstance: template.Ports=%v", template.Ports)
 	}
 
-	if template != nil && len(template.Ports) > 0 {
-		log.Printf("[DEBUG] LaunchInstance: Extracting services from %d ports", len(template.Ports))
-		for _, port := range template.Ports {
-			service := ctypes.Service{
-				Port:   port,
-				Type:   "web",
-				Status: "unknown",
-			}
-			// Infer service name and description from port
-			switch port {
-			case 8888:
-				service.Name = "jupyter"
-				service.Description = "Jupyter Lab"
-			case 8787:
-				service.Name = "rstudio-server"
-				service.Description = "RStudio Server"
-			case 3838:
-				service.Name = "shiny-server"
-				service.Description = "Shiny Server"
-			case 8080:
-				service.Name = "web"
-				service.Description = "Web Application"
-			default:
-				service.Name = fmt.Sprintf("port-%d", port)
-				service.Description = fmt.Sprintf("Service on port %d", port)
-			}
-			services = append(services, service)
-			log.Printf("[DEBUG] LaunchInstance: Added service %s (port %d)", service.Name, service.Port)
-		}
-	} else {
+	if template == nil || len(template.Ports) == 0 {
 		log.Printf("[DEBUG] LaunchInstance: No ports to extract (template nil or ports empty)")
+		return services
 	}
 
-	// Handle dry run
-	if req.DryRun {
-		return &ctypes.Instance{
-			Name:          req.Name,
-			Template:      req.Template,
-			Region:        l.region,
-			State:         "dry-run",
-			HourlyRate:    hourlyRate,
-			CurrentSpend:  0.0,
-			EffectiveRate: 0.0,
-			Services:      services,
-			Username:      primaryUsername,
-		}, nil
+	log.Printf("[DEBUG] LaunchInstance: Extracting services from %d ports", len(template.Ports))
+	for _, port := range template.Ports {
+		service := l.createServiceForPort(port)
+		services = append(services, service)
+		log.Printf("[DEBUG] LaunchInstance: Added service %s (port %d)", service.Name, service.Port)
 	}
 
-	// Launch instance
-	ctx := context.Background()
+	return services
+}
+
+// createServiceForPort creates a service definition for a given port
+func (l *InstanceLauncher) createServiceForPort(port int) ctypes.Service {
+	service := ctypes.Service{
+		Port:   port,
+		Type:   "web",
+		Status: "unknown",
+	}
+
+	// Infer service name and description from port
+	switch port {
+	case 8888:
+		service.Name = "jupyter"
+		service.Description = "Jupyter Lab"
+	case 8787:
+		service.Name = "rstudio-server"
+		service.Description = "RStudio Server"
+	case 3838:
+		service.Name = "shiny-server"
+		service.Description = "Shiny Server"
+	case 8080:
+		service.Name = "web"
+		service.Description = "Web Application"
+	default:
+		service.Name = fmt.Sprintf("port-%d", port)
+		service.Description = fmt.Sprintf("Service on port %d", port)
+	}
+
+	return service
+}
+
+// createDryRunInstance creates a dry-run instance response
+func (l *InstanceLauncher) createDryRunInstance(req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername string) *ctypes.Instance {
+	return &ctypes.Instance{
+		Name:          req.Name,
+		Template:      req.Template,
+		Region:        l.region,
+		State:         "dry-run",
+		HourlyRate:    hourlyRate,
+		CurrentSpend:  0.0,
+		EffectiveRate: 0.0,
+		Services:      services,
+		Username:      primaryUsername,
+	}
+}
+
+// executeInstanceLaunch performs the actual EC2 instance launch
+func (l *InstanceLauncher) executeInstanceLaunch(ctx context.Context, runInput *ec2.RunInstancesInput) (*ec2types.Instance, error) {
 	result, err := l.manager.ec2.RunInstances(ctx, runInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch instance: %w", err)
 	}
 
-	instance := result.Instances[0]
+	if len(result.Instances) == 0 {
+		return nil, fmt.Errorf("no instances returned from launch")
+	}
+
+	return &result.Instances[0], nil
+}
+
+// buildInstanceFromEC2 builds CloudWorkstation instance from EC2 instance
+func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername string) *ctypes.Instance {
 	instanceType := string(instance.InstanceType)
 	launchTime := time.Now()
 
@@ -591,11 +609,13 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		log.Printf("[DEBUG] LaunchInstance: Instance service: %s (port %d)", svc.Name, svc.Port)
 	}
 
-	// Wait for instance to be ready for use (running + SSH accessible)
-	// This ensures users can connect immediately after launch
-	// Provides status feedback during waiting period
+	return cwsInstance
+}
+
+// waitForInstanceReady waits for instance to be ready with user feedback
+func (l *InstanceLauncher) waitForInstanceReady(instanceID string) {
 	log.Printf("⏳ Waiting for instance to be ready for connections...")
-	if err := l.manager.waitForInstanceReadyWithProgress(cwsInstance.ID, l.region, func(stage string, progress float64, description string) {
+	if err := l.manager.waitForInstanceReadyWithProgress(instanceID, l.region, func(stage string, progress float64, description string) {
 		// Provide user feedback during readiness waiting
 		if progress == 0.0 {
 			log.Printf("  → %s", description)
@@ -607,8 +627,32 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		log.Printf("⚠️  Warning: Instance launched but readiness check timed out: %v", err)
 		log.Printf("    The instance may need a few more moments before you can connect")
 	} else {
-		log.Printf("✅ Instance %s is ready for SSH connections", cwsInstance.ID)
+		log.Printf("✅ Instance %s is ready for SSH connections", instanceID)
 	}
+}
+
+// LaunchInstance orchestrates instance launch with extracted helper methods
+func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64, template *ctypes.RuntimeTemplate, primaryUsername string) (*ctypes.Instance, error) {
+	// Extract services from template
+	services := l.extractServicesFromTemplate(template)
+
+	// Handle dry run
+	if req.DryRun {
+		return l.createDryRunInstance(req, hourlyRate, services, primaryUsername), nil
+	}
+
+	// Launch instance
+	ctx := context.Background()
+	instance, err := l.executeInstanceLaunch(ctx, runInput)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build CloudWorkstation instance from EC2 instance
+	cwsInstance := l.buildInstanceFromEC2(instance, req, hourlyRate, services, primaryUsername)
+
+	// Wait for instance to be ready for use
+	l.waitForInstanceReady(cwsInstance.ID)
 
 	return cwsInstance, nil
 }
@@ -3839,21 +3883,108 @@ func (m *Manager) GetAvailableLogTypes() []string {
 }
 
 // ResizeInstance resizes an EC2 instance to a new instance type
-func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.ResizeResponse, error) {
-	ctx := context.Background()
-
-	// Get current instance state
+// findTargetInstance finds an instance by name
+func (m *Manager) findTargetInstance(instanceName string) (*ctypes.Instance, error) {
 	instances, err := m.ListInstances()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list instances: %w", err)
 	}
 
-	var targetInstance *ctypes.Instance
 	for _, instance := range instances {
-		if instance.Name == resizeRequest.InstanceName {
-			targetInstance = &instance
-			break
+		if instance.Name == instanceName {
+			return &instance, nil
 		}
+	}
+
+	return nil, nil // Not found
+}
+
+// validateResizeRequest validates resize request and returns whether stop is needed
+func (m *Manager) validateResizeRequest(targetInstance *ctypes.Instance, targetType string) (needsStop bool, err error) {
+	// Check if resize is needed
+	if targetInstance.InstanceType == targetType {
+		return false, fmt.Errorf("instance already type %s", targetType)
+	}
+
+	// Validate instance state (must be stopped to resize)
+	if targetInstance.State == "running" {
+		return true, nil
+	}
+
+	if targetInstance.State != "stopped" {
+		return false, fmt.Errorf("instance in state '%s', must be 'running' or 'stopped'", targetInstance.State)
+	}
+
+	return false, nil
+}
+
+// stopInstanceForResize stops an instance and waits for it to stop
+func (m *Manager) stopInstanceForResize(ctx context.Context, instanceID string) error {
+	_, err := m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to stop instance: %w", err)
+	}
+
+	// Wait for instance to stop
+	waiter := ec2.NewInstanceStoppedWaiter(m.ec2)
+	err = waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	}, 5*time.Minute)
+	if err != nil {
+		return fmt.Errorf("timeout waiting for instance to stop: %w", err)
+	}
+
+	return nil
+}
+
+// modifyInstanceType changes the instance type
+func (m *Manager) modifyInstanceType(ctx context.Context, instanceID, targetType string) error {
+	_, err := m.ec2.ModifyInstanceAttribute(ctx, &ec2.ModifyInstanceAttributeInput{
+		InstanceId: &instanceID,
+		InstanceType: &ec2types.AttributeValue{
+			Value: &targetType,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to modify instance type: %w", err)
+	}
+
+	return nil
+}
+
+// startInstanceAfterResize starts an instance after resize
+func (m *Manager) startInstanceAfterResize(ctx context.Context, instanceID string, wait bool) error {
+	_, err := m.ec2.StartInstances(ctx, &ec2.StartInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to start instance: %w", err)
+	}
+
+	// Wait for instance to start if requested
+	if wait {
+		waiter := ec2.NewInstanceRunningWaiter(m.ec2)
+		err = waiter.Wait(ctx, &ec2.DescribeInstancesInput{
+			InstanceIds: []string{instanceID},
+		}, 5*time.Minute)
+		if err != nil {
+			return fmt.Errorf("timeout waiting for instance to start: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ResizeInstance orchestrates instance resize with extracted helper methods
+func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.ResizeResponse, error) {
+	ctx := context.Background()
+
+	// Find target instance
+	targetInstance, err := m.findTargetInstance(resizeRequest.InstanceName)
+	if err != nil {
+		return nil, err
 	}
 
 	if targetInstance == nil {
@@ -3863,87 +3994,49 @@ func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.Re
 		}, nil
 	}
 
-	// Check if resize is needed
-	if targetInstance.InstanceType == resizeRequest.TargetInstanceType {
-		return &ctypes.ResizeResponse{
-			Success:    true,
-			Message:    fmt.Sprintf("Instance '%s' is already type '%s'", resizeRequest.InstanceName, resizeRequest.TargetInstanceType),
-			InstanceID: targetInstance.ID,
-			OldType:    targetInstance.InstanceType,
-			NewType:    resizeRequest.TargetInstanceType,
-			Status:     "no-change",
-		}, nil
-	}
-
-	// Validate instance state (must be stopped to resize)
-	needsStop := false
-	if targetInstance.State == "running" {
-		needsStop = true
-	} else if targetInstance.State != "stopped" {
-		return &ctypes.ResizeResponse{
-			Success: false,
-			Message: fmt.Sprintf("Instance '%s' is in state '%s'. Must be in 'running' or 'stopped' state to resize", resizeRequest.InstanceName, targetInstance.State),
-		}, nil
-	}
-
-	// Stop instance if it's running
-	if needsStop {
-		_, err := m.ec2.StopInstances(ctx, &ec2.StopInstancesInput{
-			InstanceIds: []string{targetInstance.ID},
-		})
-		if err != nil {
+	// Validate resize request
+	needsStop, err := m.validateResizeRequest(targetInstance, resizeRequest.TargetInstanceType)
+	if err != nil {
+		// Check if this is the "already correct type" case
+		if strings.Contains(err.Error(), "already type") {
 			return &ctypes.ResizeResponse{
-				Success: false,
-				Message: fmt.Sprintf("Failed to stop instance for resize: %v", err),
+				Success:    true,
+				Message:    fmt.Sprintf("Instance '%s' is already type '%s'", resizeRequest.InstanceName, resizeRequest.TargetInstanceType),
+				InstanceID: targetInstance.ID,
+				OldType:    targetInstance.InstanceType,
+				NewType:    resizeRequest.TargetInstanceType,
+				Status:     "no-change",
 			}, nil
 		}
+		return &ctypes.ResizeResponse{
+			Success: false,
+			Message: fmt.Sprintf("Validation failed: %v", err),
+		}, nil
+	}
 
-		// Wait for instance to stop
-		waiter := ec2.NewInstanceStoppedWaiter(m.ec2)
-		err = waiter.Wait(ctx, &ec2.DescribeInstancesInput{
-			InstanceIds: []string{targetInstance.ID},
-		}, 5*time.Minute)
-		if err != nil {
+	// Stop instance if needed
+	if needsStop {
+		if err := m.stopInstanceForResize(ctx, targetInstance.ID); err != nil {
 			return &ctypes.ResizeResponse{
 				Success: false,
-				Message: fmt.Sprintf("Timeout waiting for instance to stop: %v", err),
+				Message: err.Error(),
 			}, nil
 		}
 	}
 
 	// Modify instance type
-	_, err = m.ec2.ModifyInstanceAttribute(ctx, &ec2.ModifyInstanceAttributeInput{
-		InstanceId: &targetInstance.ID,
-		InstanceType: &ec2types.AttributeValue{
-			Value: &resizeRequest.TargetInstanceType,
-		},
-	})
-	if err != nil {
+	if err := m.modifyInstanceType(ctx, targetInstance.ID, resizeRequest.TargetInstanceType); err != nil {
 		return &ctypes.ResizeResponse{
 			Success: false,
-			Message: fmt.Sprintf("Failed to modify instance type: %v", err),
+			Message: err.Error(),
 		}, nil
 	}
 
 	// Start instance if it was originally running
 	if needsStop {
-		_, err = m.ec2.StartInstances(ctx, &ec2.StartInstancesInput{
-			InstanceIds: []string{targetInstance.ID},
-		})
-		if err != nil {
-			return &ctypes.ResizeResponse{
-				Success: false,
-				Message: fmt.Sprintf("Instance resized successfully but failed to restart: %v", err),
-			}, nil
-		}
-
-		// Wait for instance to start if requested
-		if resizeRequest.Wait {
-			waiter := ec2.NewInstanceRunningWaiter(m.ec2)
-			err = waiter.Wait(ctx, &ec2.DescribeInstancesInput{
-				InstanceIds: []string{targetInstance.ID},
-			}, 5*time.Minute)
-			if err != nil {
+		if err := m.startInstanceAfterResize(ctx, targetInstance.ID, resizeRequest.Wait); err != nil {
+			// Check if this is a timeout on restart
+			if strings.Contains(err.Error(), "timeout") {
 				return &ctypes.ResizeResponse{
 					Success:    true,
 					Message:    fmt.Sprintf("Instance resized successfully but timeout waiting for restart: %v", err),
@@ -3953,6 +4046,10 @@ func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.Re
 					Status:     "resize-complete-start-timeout",
 				}, nil
 			}
+			return &ctypes.ResizeResponse{
+				Success: false,
+				Message: fmt.Sprintf("Instance resized successfully but failed to restart: %v", err),
+			}, nil
 		}
 	}
 

@@ -409,66 +409,105 @@ func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template
 		Findings: []SecurityFinding{},
 	}
 
-	// Package security scanning
-	if v.PackageScanner != nil {
-		packageAnalysis, err := v.PackageScanner.ScanPackages(ctx, template.Packages)
-		if err != nil {
-			return fmt.Errorf("package scanning failed: %w", err)
-		}
+	// Run all security scans
+	if err := v.scanPackages(ctx, template, securityScan); err != nil {
+		return err
+	}
+	if err := v.scanSecrets(ctx, template, securityScan); err != nil {
+		return err
+	}
+	if err := v.scanConfiguration(ctx, template, securityScan); err != nil {
+		return err
+	}
+	v.checkForbiddenPatterns(template, securityScan)
+	v.validateExternalURLs(template, securityScan)
 
-		// Convert package vulnerabilities to security findings
-		for _, vuln := range packageAnalysis.KnownVulnerabilities {
-			finding := SecurityFinding{
-				Severity:    vuln.Severity,
-				Category:    "vulnerability",
-				Description: fmt.Sprintf("Package %s %s has known vulnerability %s", vuln.Package, vuln.Version, vuln.CVEID),
-				CVEID:       vuln.CVEID,
-			}
-			if vuln.FixVersion != "" {
-				finding.Remediation = fmt.Sprintf("Update to version %s or later", vuln.FixVersion)
-			}
-			securityScan.Findings = append(securityScan.Findings, finding)
-		}
+	// Calculate score and determine status
+	securityScan.Score = v.calculateSecurityScore(securityScan.Findings)
+	v.determineSecurityStatus(securityScan)
+
+	result.SecurityScan = *securityScan
+	return nil
+}
+
+// scanPackages performs package vulnerability scanning
+func (v *MarketplaceValidator) scanPackages(ctx context.Context, template *Template, securityScan *SecurityScanResult) error {
+	if v.PackageScanner == nil {
+		return nil
 	}
 
-	// Secrets scanning
-	if v.SecretsScanner != nil {
-		templateContent := fmt.Sprintf("%+v", template)
-		secrets, err := v.SecretsScanner.ScanForSecrets(ctx, templateContent)
-		if err != nil {
-			return fmt.Errorf("secrets scanning failed: %w", err)
-		}
-
-		for _, secret := range secrets {
-			finding := SecurityFinding{
-				Severity:    secret.Severity,
-				Category:    "secret",
-				Description: fmt.Sprintf("Potential %s found in %s", secret.Type, secret.Location),
-				Remediation: "Remove or properly secure sensitive information",
-			}
-			securityScan.Findings = append(securityScan.Findings, finding)
-		}
+	packageAnalysis, err := v.PackageScanner.ScanPackages(ctx, template.Packages)
+	if err != nil {
+		return fmt.Errorf("package scanning failed: %w", err)
 	}
 
-	// Configuration security scanning
-	if v.ConfigScanner != nil {
-		configAnalysis, err := v.ConfigScanner.ScanConfiguration(ctx, template)
-		if err != nil {
-			return fmt.Errorf("configuration scanning failed: %w", err)
+	for _, vuln := range packageAnalysis.KnownVulnerabilities {
+		finding := SecurityFinding{
+			Severity:    vuln.Severity,
+			Category:    "vulnerability",
+			Description: fmt.Sprintf("Package %s %s has known vulnerability %s", vuln.Package, vuln.Version, vuln.CVEID),
+			CVEID:       vuln.CVEID,
 		}
-
-		for _, misconfig := range configAnalysis.SecurityMisconfigurations {
-			finding := SecurityFinding{
-				Severity:    misconfig.Severity,
-				Category:    "misconfiguration",
-				Description: misconfig.Description,
-				Remediation: misconfig.Remediation,
-			}
-			securityScan.Findings = append(securityScan.Findings, finding)
+		if vuln.FixVersion != "" {
+			finding.Remediation = fmt.Sprintf("Update to version %s or later", vuln.FixVersion)
 		}
+		securityScan.Findings = append(securityScan.Findings, finding)
 	}
 
-	// Check for forbidden patterns
+	return nil
+}
+
+// scanSecrets performs secrets detection scanning
+func (v *MarketplaceValidator) scanSecrets(ctx context.Context, template *Template, securityScan *SecurityScanResult) error {
+	if v.SecretsScanner == nil {
+		return nil
+	}
+
+	templateContent := fmt.Sprintf("%+v", template)
+	secrets, err := v.SecretsScanner.ScanForSecrets(ctx, templateContent)
+	if err != nil {
+		return fmt.Errorf("secrets scanning failed: %w", err)
+	}
+
+	for _, secret := range secrets {
+		finding := SecurityFinding{
+			Severity:    secret.Severity,
+			Category:    "secret",
+			Description: fmt.Sprintf("Potential %s found in %s", secret.Type, secret.Location),
+			Remediation: "Remove or properly secure sensitive information",
+		}
+		securityScan.Findings = append(securityScan.Findings, finding)
+	}
+
+	return nil
+}
+
+// scanConfiguration performs configuration security scanning
+func (v *MarketplaceValidator) scanConfiguration(ctx context.Context, template *Template, securityScan *SecurityScanResult) error {
+	if v.ConfigScanner == nil {
+		return nil
+	}
+
+	configAnalysis, err := v.ConfigScanner.ScanConfiguration(ctx, template)
+	if err != nil {
+		return fmt.Errorf("configuration scanning failed: %w", err)
+	}
+
+	for _, misconfig := range configAnalysis.SecurityMisconfigurations {
+		finding := SecurityFinding{
+			Severity:    misconfig.Severity,
+			Category:    "misconfiguration",
+			Description: misconfig.Description,
+			Remediation: misconfig.Remediation,
+		}
+		securityScan.Findings = append(securityScan.Findings, finding)
+	}
+
+	return nil
+}
+
+// checkForbiddenPatterns checks for policy-forbidden patterns
+func (v *MarketplaceValidator) checkForbiddenPatterns(template *Template, securityScan *SecurityScanResult) {
 	templateStr := fmt.Sprintf("%+v", template)
 	for _, pattern := range v.Config.ForbiddenPatterns {
 		if matched, _ := regexp.MatchString(pattern, templateStr); matched {
@@ -481,12 +520,15 @@ func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template
 			securityScan.Findings = append(securityScan.Findings, finding)
 		}
 	}
+}
 
-	// Validate external URLs
-	allURLs := append(template.LearningResources, template.Maintainer)
-	if template.Marketplace != nil {
-		allURLs = append(allURLs, template.Marketplace.SourceURL, template.Marketplace.DocumentationURL)
+// validateExternalURLs validates external URL references
+func (v *MarketplaceValidator) validateExternalURLs(template *Template, securityScan *SecurityScanResult) {
+	if len(v.Config.AllowedDomains) == 0 {
+		return
 	}
+
+	allURLs := v.collectTemplateURLs(template)
 
 	for _, urlStr := range allURLs {
 		if urlStr == "" {
@@ -497,32 +539,43 @@ func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template
 			continue
 		}
 
-		if len(v.Config.AllowedDomains) > 0 {
-			allowed := false
-			for _, domain := range v.Config.AllowedDomains {
-				if strings.HasSuffix(parsedURL.Hostname(), domain) {
-					allowed = true
-					break
-				}
+		if !v.isDomainAllowed(parsedURL.Hostname()) {
+			finding := SecurityFinding{
+				Severity:    "medium",
+				Category:    "external_reference",
+				Description: fmt.Sprintf("Reference to non-whitelisted domain: %s", parsedURL.Hostname()),
+				Remediation: "Use only approved domains for external references",
 			}
-			if !allowed {
-				finding := SecurityFinding{
-					Severity:    "medium",
-					Category:    "external_reference",
-					Description: fmt.Sprintf("Reference to non-whitelisted domain: %s", parsedURL.Hostname()),
-					Remediation: "Use only approved domains for external references",
-				}
-				securityScan.Findings = append(securityScan.Findings, finding)
-			}
+			securityScan.Findings = append(securityScan.Findings, finding)
 		}
 	}
+}
 
-	// Calculate security score
-	securityScan.Score = v.calculateSecurityScore(securityScan.Findings)
+// collectTemplateURLs gathers all URLs from the template
+func (v *MarketplaceValidator) collectTemplateURLs(template *Template) []string {
+	allURLs := append([]string{}, template.LearningResources...)
+	allURLs = append(allURLs, template.Maintainer)
+	if template.Marketplace != nil {
+		allURLs = append(allURLs, template.Marketplace.SourceURL, template.Marketplace.DocumentationURL)
+	}
+	return allURLs
+}
 
-	// Determine overall security status
+// isDomainAllowed checks if a domain is in the allowed list
+func (v *MarketplaceValidator) isDomainAllowed(hostname string) bool {
+	for _, domain := range v.Config.AllowedDomains {
+		if strings.HasSuffix(hostname, domain) {
+			return true
+		}
+	}
+	return false
+}
+
+// determineSecurityStatus sets the security scan status based on findings
+func (v *MarketplaceValidator) determineSecurityStatus(securityScan *SecurityScanResult) {
 	criticalCount := 0
 	highCount := 0
+
 	for _, finding := range securityScan.Findings {
 		switch finding.Severity {
 		case "critical":
@@ -539,9 +592,6 @@ func (v *MarketplaceValidator) performSecurityScan(ctx context.Context, template
 	} else {
 		securityScan.Status = "passed"
 	}
-
-	result.SecurityScan = *securityScan
-	return nil
 }
 
 // performQualityAnalysis analyzes template quality metrics

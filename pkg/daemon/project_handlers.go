@@ -572,89 +572,159 @@ type UpdateProjectBudgetRequest struct {
 
 // handleUpdateProjectBudget updates an existing project budget (POST)
 func (s *Server) handleUpdateProjectBudget(w http.ResponseWriter, r *http.Request, projectID string) {
-	var req UpdateProjectBudgetRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeError(w, http.StatusBadRequest, "Invalid JSON")
+	// Parse request
+	req, err := s.parseUpdateBudgetRequest(r)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	ctx := context.Background()
 
-	// Get existing project
-	existingProject, err := s.projectManager.GetProject(ctx, projectID)
+	// Get and validate existing project
+	budget, err := s.getExistingProjectBudget(ctx, projectID)
 	if err != nil {
-		s.writeError(w, http.StatusNotFound, "Project not found")
+		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Check if budget exists
-	if existingProject.Budget == nil {
-		s.writeError(w, http.StatusBadRequest, "No budget configured for project. Use PUT to create a budget first.")
+	// Apply updates to budget
+	if err := s.applyBudgetUpdates(budget, req); err != nil {
+		s.writeError(w, http.StatusBadRequest, err.Error())
 		return
-	}
-
-	// Update budget fields
-	budget := existingProject.Budget
-	if req.TotalBudget != nil {
-		if *req.TotalBudget <= 0 {
-			s.writeError(w, http.StatusBadRequest, "Total budget must be greater than 0")
-			return
-		}
-		budget.TotalBudget = *req.TotalBudget
-	}
-
-	if req.MonthlyLimit != nil {
-		if *req.MonthlyLimit <= 0 {
-			s.writeError(w, http.StatusBadRequest, "Monthly limit must be greater than 0")
-			return
-		}
-		budget.MonthlyLimit = req.MonthlyLimit
-	}
-
-	if req.DailyLimit != nil {
-		if *req.DailyLimit <= 0 {
-			s.writeError(w, http.StatusBadRequest, "Daily limit must be greater than 0")
-			return
-		}
-		budget.DailyLimit = req.DailyLimit
-	}
-
-	if req.AlertThresholds != nil {
-		// Validate alert thresholds
-		for i, alert := range req.AlertThresholds {
-			if alert.Threshold < 0 || alert.Threshold > 1 {
-				s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Alert threshold %d must be between 0.0 and 1.0", i))
-				return
-			}
-		}
-		budget.AlertThresholds = req.AlertThresholds
-	}
-
-	if req.AutoActions != nil {
-		// Validate auto actions
-		for i, action := range req.AutoActions {
-			if action.Threshold < 0 || action.Threshold > 1 {
-				s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Auto action threshold %d must be between 0.0 and 1.0", i))
-				return
-			}
-		}
-		budget.AutoActions = req.AutoActions
-	}
-
-	if req.EndDate != nil {
-		budget.EndDate = req.EndDate
 	}
 
 	budget.LastUpdated = time.Now()
 
-	// Update budget via project manager
-	err = s.projectManager.UpdateProjectBudget(ctx, projectID, budget)
-	if err != nil {
+	// Save updated budget
+	if err := s.projectManager.UpdateProjectBudget(ctx, projectID, budget); err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to update budget: %v", err))
 		return
 	}
 
-	// Return success response
+	// Send success response
+	s.sendUpdateBudgetResponse(w, projectID, budget)
+}
+
+// parseUpdateBudgetRequest parses and decodes the update request
+func (s *Server) parseUpdateBudgetRequest(r *http.Request) (*UpdateProjectBudgetRequest, error) {
+	var req UpdateProjectBudgetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("invalid JSON")
+	}
+	return &req, nil
+}
+
+// getExistingProjectBudget retrieves and validates existing budget
+func (s *Server) getExistingProjectBudget(ctx context.Context, projectID string) (*types.ProjectBudget, error) {
+	existingProject, err := s.projectManager.GetProject(ctx, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("project not found")
+	}
+
+	if existingProject.Budget == nil {
+		return nil, fmt.Errorf("no budget configured for project. Use PUT to create a budget first")
+	}
+
+	return existingProject.Budget, nil
+}
+
+// applyBudgetUpdates applies all requested updates to the budget
+func (s *Server) applyBudgetUpdates(budget *types.ProjectBudget, req *UpdateProjectBudgetRequest) error {
+	// Update total budget
+	if err := s.updateBudgetTotal(budget, req.TotalBudget); err != nil {
+		return err
+	}
+
+	// Update monthly limit
+	if err := s.updateBudgetMonthlyLimit(budget, req.MonthlyLimit); err != nil {
+		return err
+	}
+
+	// Update daily limit
+	if err := s.updateBudgetDailyLimit(budget, req.DailyLimit); err != nil {
+		return err
+	}
+
+	// Update alert thresholds
+	if err := s.updateBudgetAlertThresholds(budget, req.AlertThresholds); err != nil {
+		return err
+	}
+
+	// Update auto actions
+	if err := s.updateBudgetAutoActions(budget, req.AutoActions); err != nil {
+		return err
+	}
+
+	// Update end date
+	if req.EndDate != nil {
+		budget.EndDate = req.EndDate
+	}
+
+	return nil
+}
+
+// updateBudgetTotal updates the total budget if provided
+func (s *Server) updateBudgetTotal(budget *types.ProjectBudget, totalBudget *float64) error {
+	if totalBudget != nil {
+		if *totalBudget <= 0 {
+			return fmt.Errorf("total budget must be greater than 0")
+		}
+		budget.TotalBudget = *totalBudget
+	}
+	return nil
+}
+
+// updateBudgetMonthlyLimit updates the monthly limit if provided
+func (s *Server) updateBudgetMonthlyLimit(budget *types.ProjectBudget, monthlyLimit *float64) error {
+	if monthlyLimit != nil {
+		if *monthlyLimit <= 0 {
+			return fmt.Errorf("monthly limit must be greater than 0")
+		}
+		budget.MonthlyLimit = monthlyLimit
+	}
+	return nil
+}
+
+// updateBudgetDailyLimit updates the daily limit if provided
+func (s *Server) updateBudgetDailyLimit(budget *types.ProjectBudget, dailyLimit *float64) error {
+	if dailyLimit != nil {
+		if *dailyLimit <= 0 {
+			return fmt.Errorf("daily limit must be greater than 0")
+		}
+		budget.DailyLimit = dailyLimit
+	}
+	return nil
+}
+
+// updateBudgetAlertThresholds validates and updates alert thresholds
+func (s *Server) updateBudgetAlertThresholds(budget *types.ProjectBudget, alertThresholds []types.BudgetAlert) error {
+	if alertThresholds != nil {
+		for i, alert := range alertThresholds {
+			if alert.Threshold < 0 || alert.Threshold > 1 {
+				return fmt.Errorf("alert threshold %d must be between 0.0 and 1.0", i)
+			}
+		}
+		budget.AlertThresholds = alertThresholds
+	}
+	return nil
+}
+
+// updateBudgetAutoActions validates and updates auto actions
+func (s *Server) updateBudgetAutoActions(budget *types.ProjectBudget, autoActions []types.BudgetAutoAction) error {
+	if autoActions != nil {
+		for i, action := range autoActions {
+			if action.Threshold < 0 || action.Threshold > 1 {
+				return fmt.Errorf("auto action threshold %d must be between 0.0 and 1.0", i)
+			}
+		}
+		budget.AutoActions = autoActions
+	}
+	return nil
+}
+
+// sendUpdateBudgetResponse sends the success response
+func (s *Server) sendUpdateBudgetResponse(w http.ResponseWriter, projectID string, budget *types.ProjectBudget) {
 	response := map[string]interface{}{
 		"message":    "Budget updated successfully",
 		"project_id": projectID,

@@ -966,7 +966,7 @@ class SafeCloudWorkstationAPI {
   }
 }
 
-export default function BulletproofCloudWorkstationApp() {
+export default function CloudWorkstationApp() {
   const api = new SafeCloudWorkstationAPI();
 
   const [state, setState] = useState<AppState>({

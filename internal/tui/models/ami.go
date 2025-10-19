@@ -135,120 +135,164 @@ func (m AMIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.amisTable.SetSize(msg.Width-4, msg.Height-18)
-		m.buildsTable.SetSize(msg.Width-4, msg.Height-18)
-		return m, nil
-
+		return m.handleWindowSize(msg)
 	case AMIDataMsg:
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			m.loading = false
-			return m, nil
-		}
-
-		m.amis = msg.AMIs
-		m.builds = msg.Builds
-		m.regions = msg.Regions
-		m.loading = false
-		m.error = ""
-
-		// Update tables with data
-		m.updateAMIsTable()
-		m.updateBuildsTable()
-		return m, nil
-
+		return m.handleAMIData(msg)
 	case AMIActionMsg:
-		m.showBuildDialog = false
-		m.showDeleteDialog = false
-		if msg.Error != nil {
-			m.error = msg.Error.Error()
-			return m, nil
-		}
-		// Refresh data after action
-		return m, m.fetchAMIData
-
+		return m.handleActionResult(msg)
 	case tea.KeyMsg:
-		if m.loading {
-			return m, nil
-		}
-
-		switch msg.String() {
-		case "ctrl+c", "q":
-			return m, tea.Quit
-
-		case "r", "f5":
-			// Refresh AMI data
-			m.loading = true
-			return m, m.fetchAMIData
-
-		case "tab":
-			// Cycle through tabs
-			m.selectedTab = (m.selectedTab + 1) % 3
-			return m, nil
-
-		case "b":
-			// Build new AMI
-			if m.selectedTab == 0 {
-				m.showBuildDialog = true
-				return m, nil
-			}
-
-		case "d":
-			// Delete selected AMI
-			if m.selectedTab == 0 && m.selectedAMI < len(m.amis) {
-				ami := m.amis[m.selectedAMI]
-				m.dialogAMIID = ami.ID
-				m.showDeleteDialog = true
-				return m, nil
-			}
-
-		case "enter":
-			// Handle dialog confirmation
-			if m.showBuildDialog {
-				// Build AMI logic
-				m.showBuildDialog = false
-				return m, nil
-			}
-			if m.showDeleteDialog {
-				// Delete AMI
-				return m, m.deleteAMI(m.dialogAMIID)
-			}
-
-		case "esc":
-			// Close dialogs
-			if m.showBuildDialog {
-				m.showBuildDialog = false
-				return m, nil
-			}
-			if m.showDeleteDialog {
-				m.showDeleteDialog = false
-				return m, nil
-			}
-
-		case "up", "k":
-			if m.selectedTab == 0 && m.selectedAMI > 0 {
-				m.selectedAMI--
-			} else if m.selectedTab == 1 && m.selectedBuild > 0 {
-				m.selectedBuild--
-			}
-			return m, nil
-
-		case "down", "j":
-			if m.selectedTab == 0 && m.selectedAMI < len(m.amis)-1 {
-				m.selectedAMI++
-			} else if m.selectedTab == 1 && m.selectedBuild < len(m.builds)-1 {
-				m.selectedBuild++
-			}
-			return m, nil
-		}
-
+		return m.handleKeyPress(msg)
 	case spinner.TickMsg:
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
 	}
 
+	return m, nil
+}
+
+// handleWindowSize handles window resize events
+func (m AMIModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.amisTable.SetSize(msg.Width-4, msg.Height-18)
+	m.buildsTable.SetSize(msg.Width-4, msg.Height-18)
+	return m, nil
+}
+
+// handleAMIData handles AMI data response from API
+func (m AMIModel) handleAMIData(msg AMIDataMsg) (tea.Model, tea.Cmd) {
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		m.loading = false
+		return m, nil
+	}
+
+	m.amis = msg.AMIs
+	m.builds = msg.Builds
+	m.regions = msg.Regions
+	m.loading = false
+	m.error = ""
+
+	// Update tables with data
+	m.updateAMIsTable()
+	m.updateBuildsTable()
+	return m, nil
+}
+
+// handleActionResult handles AMI action result
+func (m AMIModel) handleActionResult(msg AMIActionMsg) (tea.Model, tea.Cmd) {
+	m.showBuildDialog = false
+	m.showDeleteDialog = false
+	if msg.Error != nil {
+		m.error = msg.Error.Error()
+		return m, nil
+	}
+	// Refresh data after action
+	return m, m.fetchAMIData
+}
+
+// handleKeyPress handles keyboard input
+func (m AMIModel) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.loading {
+		return m, nil
+	}
+
+	switch msg.String() {
+	case "ctrl+c", "q":
+		return m, tea.Quit
+	case "r", "f5":
+		return m.handleRefresh()
+	case "tab":
+		return m.handleTabSwitch()
+	case "b":
+		return m.handleBuildAMI()
+	case "d":
+		return m.handleDeleteAMI()
+	case "enter":
+		return m.handleEnterKey()
+	case "esc":
+		return m.handleEscKey()
+	case "up", "k":
+		return m.handleUpKey()
+	case "down", "j":
+		return m.handleDownKey()
+	}
+
+	return m, nil
+}
+
+// handleRefresh refreshes AMI data
+func (m AMIModel) handleRefresh() (tea.Model, tea.Cmd) {
+	m.loading = true
+	return m, m.fetchAMIData
+}
+
+// handleTabSwitch cycles through tabs
+func (m AMIModel) handleTabSwitch() (tea.Model, tea.Cmd) {
+	m.selectedTab = (m.selectedTab + 1) % 3
+	return m, nil
+}
+
+// handleBuildAMI shows build AMI dialog
+func (m AMIModel) handleBuildAMI() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 {
+		m.showBuildDialog = true
+	}
+	return m, nil
+}
+
+// handleDeleteAMI shows delete AMI dialog
+func (m AMIModel) handleDeleteAMI() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedAMI < len(m.amis) {
+		ami := m.amis[m.selectedAMI]
+		m.dialogAMIID = ami.ID
+		m.showDeleteDialog = true
+	}
+	return m, nil
+}
+
+// handleEnterKey handles Enter key press (dialog confirmation)
+func (m AMIModel) handleEnterKey() (tea.Model, tea.Cmd) {
+	if m.showBuildDialog {
+		m.showBuildDialog = false
+		return m, nil
+	}
+	if m.showDeleteDialog {
+		return m, m.deleteAMI(m.dialogAMIID)
+	}
+	return m, nil
+}
+
+// handleEscKey handles Escape key press (close dialogs)
+func (m AMIModel) handleEscKey() (tea.Model, tea.Cmd) {
+	if m.showBuildDialog {
+		m.showBuildDialog = false
+		return m, nil
+	}
+	if m.showDeleteDialog {
+		m.showDeleteDialog = false
+		return m, nil
+	}
+	return m, nil
+}
+
+// handleUpKey handles up arrow navigation
+func (m AMIModel) handleUpKey() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedAMI > 0 {
+		m.selectedAMI--
+	} else if m.selectedTab == 1 && m.selectedBuild > 0 {
+		m.selectedBuild--
+	}
+	return m, nil
+}
+
+// handleDownKey handles down arrow navigation
+func (m AMIModel) handleDownKey() (tea.Model, tea.Cmd) {
+	if m.selectedTab == 0 && m.selectedAMI < len(m.amis)-1 {
+		m.selectedAMI++
+	} else if m.selectedTab == 1 && m.selectedBuild < len(m.builds)-1 {
+		m.selectedBuild++
+	}
 	return m, nil
 }
 

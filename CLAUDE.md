@@ -338,7 +338,7 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 ```
 cmd/
 ├── cws/          # CLI client binary
-├── cws-gui/      # GUI client binary (Fyne-based)
+├── cws-gui/      # GUI client binary (Wails v3-based)
 └── cwsd/         # Backend daemon binary
 
 pkg/
@@ -595,8 +595,8 @@ apiClient := api.NewClientWithOptions(daemonURL, client.Options{
 - Consistent error handling and user feedback
 
 ### GUI Specific (cmd/cws-gui/main.go)
-- **Fyne Framework**: Cross-platform native GUI
-- **System Tray**: Always-on monitoring and quick access
+- **Wails v3 Framework**: Cross-platform web-based native GUI with React frontend
+- **Cloudscape Design System**: AWS-native professional UI components
 - **Tabbed Interface**: Templates, Instances, Storage, Settings
 - **Professional Dialogs**: Connection info, confirmations, progress
 - **Real-time Updates**: Automatic refresh with visual indicators

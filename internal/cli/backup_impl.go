@@ -104,13 +104,35 @@ func (bc *BackupCommands) createBackup(args []string) error {
 		return fmt.Errorf("usage: cws backup create <instance-name> <backup-name> [options]")
 	}
 
-	instanceName := args[0]
-	backupName := args[1]
+	req, err := bc.parseCreateBackupFlags(args)
+	if err != nil {
+		return err
+	}
 
-	// Parse options
+	bc.applyCreateBackupDefaults(&req)
+	bc.displayCreateBackupInfo(req)
+
+	result, err := bc.app.apiClient.CreateBackup(bc.app.ctx, req)
+	if err != nil {
+		return WrapAPIError("create backup", err)
+	}
+
+	bc.displayCreateBackupResult(result)
+
+	if req.Wait {
+		fmt.Printf("\n⏳ Monitoring backup creation progress...\n")
+		return bc.monitorBackupProgress(result.BackupID, result.BackupName)
+	}
+
+	bc.displayCreateBackupNextSteps(req.BackupName)
+	return nil
+}
+
+// parseCreateBackupFlags parses command-line flags for backup creation
+func (bc *BackupCommands) parseCreateBackupFlags(args []string) (types.BackupCreateRequest, error) {
 	req := types.BackupCreateRequest{
-		InstanceName: instanceName,
-		BackupName:   backupName,
+		InstanceName: args[0],
+		BackupName:   args[1],
 		StorageType:  "s3", // Default to S3
 		Encrypted:    true, // Default to encrypted
 	}
@@ -151,21 +173,26 @@ func (bc *BackupCommands) createBackup(args []string) error {
 		case strings.HasPrefix(arg, "--storage="):
 			req.StorageType = strings.TrimPrefix(arg, "--storage=")
 		default:
-			return fmt.Errorf("unknown option: %s", arg)
+			return req, fmt.Errorf("unknown option: %s", arg)
 		}
 	}
 
-	// Set default paths if none specified
+	return req, nil
+}
+
+// applyCreateBackupDefaults applies default values to backup request
+func (bc *BackupCommands) applyCreateBackupDefaults(req *types.BackupCreateRequest) {
 	if len(req.IncludePaths) == 0 {
 		req.IncludePaths = []string{"/home", "/data", "/opt/research"}
 	}
-
-	// Set default exclusions
 	if len(req.ExcludePaths) == 0 {
 		req.ExcludePaths = []string{".cache", ".tmp", "*.log", "/proc", "/sys", "/dev"}
 	}
+}
 
-	fmt.Printf("💾 Creating data backup '%s' from instance '%s'...\n", backupName, instanceName)
+// displayCreateBackupInfo displays backup creation information
+func (bc *BackupCommands) displayCreateBackupInfo(req types.BackupCreateRequest) {
+	fmt.Printf("💾 Creating data backup '%s' from instance '%s'...\n", req.BackupName, req.InstanceName)
 
 	if req.Incremental {
 		fmt.Printf("📈 Incremental backup mode - only changed files since last backup\n")
@@ -182,12 +209,10 @@ func (bc *BackupCommands) createBackup(args []string) error {
 
 	fmt.Printf("💿 Storage: %s (%s)\n", strings.ToUpper(req.StorageType),
 		map[bool]string{true: "encrypted", false: "unencrypted"}[req.Encrypted])
+}
 
-	result, err := bc.app.apiClient.CreateBackup(bc.app.ctx, req)
-	if err != nil {
-		return WrapAPIError("create backup", err)
-	}
-
+// displayCreateBackupResult displays backup creation result
+func (bc *BackupCommands) displayCreateBackupResult(result *types.BackupCreateResult) {
 	fmt.Printf("✅ Backup creation initiated\n")
 	fmt.Printf("   Backup ID: %s\n", result.BackupID)
 	fmt.Printf("   Source Instance: %s\n", result.SourceInstance)
@@ -199,16 +224,12 @@ func (bc *BackupCommands) createBackup(args []string) error {
 	}
 	fmt.Printf("   Monthly Storage Cost: $%.2f\n", result.StorageCostMonthly)
 	fmt.Printf("   Created: %s\n", result.CreatedAt.Format("2006-01-02 15:04:05"))
+}
 
-	if req.Wait {
-		fmt.Printf("\n⏳ Monitoring backup creation progress...\n")
-		return bc.monitorBackupProgress(result.BackupID, result.BackupName)
-	}
-
+// displayCreateBackupNextSteps displays next steps after backup creation
+func (bc *BackupCommands) displayCreateBackupNextSteps(backupName string) {
 	fmt.Printf("\n💡 Check progress with: cws backup info %s\n", backupName)
 	fmt.Printf("💡 List backup contents: cws backup contents %s\n", backupName)
-
-	return nil
 }
 
 // listBackups lists all data backups
@@ -466,14 +487,29 @@ func (bc *BackupCommands) verifyBackup(args []string) error {
 		return fmt.Errorf("usage: cws backup verify <backup-name> [options]")
 	}
 
-	backupName := args[0]
+	req, err := bc.parseVerifyBackupFlags(args)
+	if err != nil {
+		return err
+	}
 
+	bc.displayVerifyBackupStart(req)
+
+	result, err := bc.app.apiClient.VerifyBackup(bc.app.ctx, req)
+	if err != nil {
+		return WrapAPIError("verify backup", err)
+	}
+
+	bc.displayVerifyBackupResults(result)
+	return nil
+}
+
+// parseVerifyBackupFlags parses verify backup command-line flags
+func (bc *BackupCommands) parseVerifyBackupFlags(args []string) (types.BackupVerifyRequest, error) {
 	req := types.BackupVerifyRequest{
-		BackupName: backupName,
+		BackupName: args[0],
 		QuickCheck: false,
 	}
 
-	// Parse options
 	for i := 1; i < len(args); i++ {
 		arg := args[i]
 		switch {
@@ -484,46 +520,32 @@ func (bc *BackupCommands) verifyBackup(args []string) error {
 			req.SelectivePaths = paths
 			i++
 		default:
-			return fmt.Errorf("unknown option: %s", arg)
+			return req, fmt.Errorf("unknown option: %s", arg)
 		}
 	}
 
-	fmt.Printf("🔍 Verifying backup '%s'...\n", backupName)
+	return req, nil
+}
+
+// displayVerifyBackupStart displays verification start information
+func (bc *BackupCommands) displayVerifyBackupStart(req types.BackupVerifyRequest) {
+	fmt.Printf("🔍 Verifying backup '%s'...\n", req.BackupName)
 	if req.QuickCheck {
 		fmt.Printf("⚡ Quick verification mode - checking metadata only\n")
 	} else {
 		fmt.Printf("🔒 Full verification mode - checking file integrity and checksums\n")
 	}
+}
 
-	result, err := bc.app.apiClient.VerifyBackup(bc.app.ctx, req)
-	if err != nil {
-		return WrapAPIError("verify backup", err)
-	}
-
+// displayVerifyBackupResults displays verification results
+func (bc *BackupCommands) displayVerifyBackupResults(result *types.BackupVerifyResult) {
 	fmt.Printf("\n✅ Backup verification completed\n")
 	fmt.Printf("   Verification State: %s\n", strings.ToUpper(result.VerificationState))
 	fmt.Printf("   Files Checked: %d\n", result.CheckedFileCount)
 	fmt.Printf("   Verified Size: %s\n", bc.formatBytes(result.VerifiedBytes))
 
-	if result.CorruptFileCount > 0 {
-		fmt.Printf("   ❌ Corrupt Files: %d\n", result.CorruptFileCount)
-		if len(result.CorruptFiles) > 0 {
-			fmt.Printf("   Corrupt Files: %s\n", strings.Join(result.CorruptFiles[:minInt(5, len(result.CorruptFiles))], ", "))
-			if len(result.CorruptFiles) > 5 {
-				fmt.Printf("   ... and %d more\n", len(result.CorruptFiles)-5)
-			}
-		}
-	}
-
-	if result.MissingFileCount > 0 {
-		fmt.Printf("   ❌ Missing Files: %d\n", result.MissingFileCount)
-		if len(result.MissingFiles) > 0 {
-			fmt.Printf("   Missing Files: %s\n", strings.Join(result.MissingFiles[:minInt(5, len(result.MissingFiles))], ", "))
-			if len(result.MissingFiles) > 5 {
-				fmt.Printf("   ... and %d more\n", len(result.MissingFiles)-5)
-			}
-		}
-	}
+	bc.displayCorruptFiles(result)
+	bc.displayMissingFiles(result)
 
 	if result.CorruptFileCount == 0 && result.MissingFileCount == 0 {
 		fmt.Printf("   ✅ All files verified successfully\n")
@@ -534,8 +556,32 @@ func (bc *BackupCommands) verifyBackup(args []string) error {
 		duration = result.VerificationCompleted.Sub(result.VerificationStarted)
 	}
 	fmt.Printf("   Verification Time: %s\n", bc.formatDuration(duration))
+}
 
-	return nil
+// displayCorruptFiles displays corrupt files from verification
+func (bc *BackupCommands) displayCorruptFiles(result *types.BackupVerifyResult) {
+	if result.CorruptFileCount > 0 {
+		fmt.Printf("   ❌ Corrupt Files: %d\n", result.CorruptFileCount)
+		if len(result.CorruptFiles) > 0 {
+			fmt.Printf("   Corrupt Files: %s\n", strings.Join(result.CorruptFiles[:minInt(5, len(result.CorruptFiles))], ", "))
+			if len(result.CorruptFiles) > 5 {
+				fmt.Printf("   ... and %d more\n", len(result.CorruptFiles)-5)
+			}
+		}
+	}
+}
+
+// displayMissingFiles displays missing files from verification
+func (bc *BackupCommands) displayMissingFiles(result *types.BackupVerifyResult) {
+	if result.MissingFileCount > 0 {
+		fmt.Printf("   ❌ Missing Files: %d\n", result.MissingFileCount)
+		if len(result.MissingFiles) > 0 {
+			fmt.Printf("   Missing Files: %s\n", strings.Join(result.MissingFiles[:minInt(5, len(result.MissingFiles))], ", "))
+			if len(result.MissingFiles) > 5 {
+				fmt.Printf("   ... and %d more\n", len(result.MissingFiles)-5)
+			}
+		}
+	}
 }
 
 // restoreFromBackup restores data from a backup
@@ -544,13 +590,34 @@ func (bc *BackupCommands) restoreFromBackup(args []string) error {
 		return fmt.Errorf("usage: cws restore <backup-name> <target-instance> [options]")
 	}
 
-	backupName := args[0]
-	targetInstance := args[1]
+	req, err := bc.parseRestoreFlags(args)
+	if err != nil {
+		return err
+	}
 
-	// Parse options
+	bc.displayRestoreStart(req)
+
+	result, err := bc.app.apiClient.RestoreBackup(bc.app.ctx, req)
+	if err != nil {
+		return WrapAPIError("restore backup", err)
+	}
+
+	bc.displayRestoreResult(req, result)
+
+	if req.Wait && !req.DryRun {
+		fmt.Printf("\n⏳ Monitoring restore progress...\n")
+		return bc.monitorRestoreProgress(result.RestoreID, result.BackupName, result.TargetInstance)
+	}
+
+	bc.displayRestoreNextSteps(req, result)
+	return nil
+}
+
+// parseRestoreFlags parses restore command-line flags
+func (bc *BackupCommands) parseRestoreFlags(args []string) (types.RestoreRequest, error) {
 	req := types.RestoreRequest{
-		BackupName:      backupName,
-		TargetInstance:  targetInstance,
+		BackupName:      args[0],
+		TargetInstance:  args[1],
 		RestorePath:     "/", // Default to root
 		PreservePerms:   true,
 		PreserveOwner:   true,
@@ -587,14 +654,19 @@ func (bc *BackupCommands) restoreFromBackup(args []string) error {
 			paths := strings.Split(strings.TrimPrefix(arg, "--selective="), ",")
 			req.SelectivePaths = paths
 		default:
-			return fmt.Errorf("unknown option: %s", arg)
+			return req, fmt.Errorf("unknown option: %s", arg)
 		}
 	}
 
+	return req, nil
+}
+
+// displayRestoreStart displays restore operation start information
+func (bc *BackupCommands) displayRestoreStart(req types.RestoreRequest) {
 	if req.DryRun {
 		fmt.Printf("🔍 Dry-run: Previewing restore operation...\n")
 	} else {
-		fmt.Printf("🔄 Restoring data from backup '%s' to instance '%s'...\n", backupName, targetInstance)
+		fmt.Printf("🔄 Restoring data from backup '%s' to instance '%s'...\n", req.BackupName, req.TargetInstance)
 	}
 
 	if req.RestorePath != "/" {
@@ -605,6 +677,11 @@ func (bc *BackupCommands) restoreFromBackup(args []string) error {
 		fmt.Printf("📂 Selective paths: %s\n", strings.Join(req.SelectivePaths, ", "))
 	}
 
+	bc.displayRestoreMode(req)
+}
+
+// displayRestoreMode displays the restore mode being used
+func (bc *BackupCommands) displayRestoreMode(req types.RestoreRequest) {
 	if req.Overwrite {
 		fmt.Printf("⚠️  Overwrite mode: Existing files will be replaced\n")
 	} else if req.Merge {
@@ -612,12 +689,10 @@ func (bc *BackupCommands) restoreFromBackup(args []string) error {
 	} else {
 		fmt.Printf("🔒 Safe mode: Existing files will be preserved\n")
 	}
+}
 
-	result, err := bc.app.apiClient.RestoreBackup(bc.app.ctx, req)
-	if err != nil {
-		return WrapAPIError("restore backup", err)
-	}
-
+// displayRestoreResult displays restore operation result
+func (bc *BackupCommands) displayRestoreResult(req types.RestoreRequest, result *types.RestoreResult) {
 	if req.DryRun {
 		fmt.Printf("✅ Dry-run completed - no actual restore performed\n")
 	} else {
@@ -638,18 +713,14 @@ func (bc *BackupCommands) restoreFromBackup(args []string) error {
 			fmt.Printf("   Message: %s\n", result.Message)
 		}
 	}
+}
 
-	if req.Wait && !req.DryRun {
-		fmt.Printf("\n⏳ Monitoring restore progress...\n")
-		return bc.monitorRestoreProgress(result.RestoreID, result.BackupName, result.TargetInstance)
-	}
-
+// displayRestoreNextSteps displays next steps after restore initiation
+func (bc *BackupCommands) displayRestoreNextSteps(req types.RestoreRequest, result *types.RestoreResult) {
 	if !req.DryRun {
 		fmt.Printf("\n💡 Check progress with: cws restore status %s\n", result.RestoreID)
 		fmt.Printf("💡 View all operations: cws restore operations\n")
 	}
-
-	return nil
 }
 
 // getRestoreStatus gets the status of a restore operation
