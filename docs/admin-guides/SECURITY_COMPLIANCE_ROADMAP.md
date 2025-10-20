@@ -1,5 +1,26 @@
 # Security & Compliance Roadmap
 
+---
+
+## ⚠️ COMPLIANCE DISCLAIMER
+
+**CloudWorkStation provides technical security controls but DOES NOT guarantee compliance with any regulatory framework.**
+
+Use of CloudWorkStation does not, by itself, constitute compliance with NIST 800-171, HIPAA, FISMA, GDPR, CMMC, or any other standard. This documentation does not constitute legal, regulatory, or compliance advice.
+
+**Your institution is solely responsible for**:
+- Determining applicable compliance requirements
+- Conducting compliance assessments and risk analysis
+- Implementing organizational policies and procedures
+- Obtaining necessary certifications or attestations
+- Consulting with qualified legal and compliance professionals
+
+**Always defer to your institution's Research Security Office, HIPAA Privacy Officer, Information Security Office, and Office of General Counsel for compliance guidance.**
+
+📚 **See [COMPLIANCE_DISCLAIMER.md](COMPLIANCE_DISCLAIMER.md) for complete legal notice and framework-specific disclaimers.**
+
+---
+
 ## Overview
 
 CloudWorkstation is designed with security and compliance as foundational principles, not afterthoughts. This document outlines our security posture, compliance frameworks supported, and roadmap for institutional deployment requirements.

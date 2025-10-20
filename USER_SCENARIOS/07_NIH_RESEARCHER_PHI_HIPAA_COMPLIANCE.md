@@ -8,6 +8,25 @@
 
 ---
 
+## ⚠️ COMPLIANCE DISCLAIMER
+
+**This scenario is for educational purposes only and does not constitute legal, regulatory, or compliance advice.**
+
+Use of CloudWorkStation does not, by itself, ensure compliance with HIPAA, NIST 800-53, or any other requirement. Your institution is solely responsible for:
+- Determining HIPAA applicability and covered entity obligations
+- Executing Business Associate Agreements (BAAs) with cloud providers
+- Conducting HIPAA Security Rule risk analyses
+- Implementing Administrative and Physical Safeguards beyond technical controls
+- Consulting with your HIPAA Privacy Officer, IRB, and Office of General Counsel
+
+**Always obtain institutional approval before using CloudWorkStation for Protected Health Information (PHI).**
+
+**Note**: HIPAA compliance features in CloudWorkStation are planned for v0.8.0 (Q4 2026). This scenario represents target architecture.
+
+See [COMPLIANCE_DISCLAIMER.md](../docs/admin-guides/COMPLIANCE_DISCLAIMER.md) for complete legal notice.
+
+---
+
 ## Background Context
 
 ### The Compliance Landscape (2025)

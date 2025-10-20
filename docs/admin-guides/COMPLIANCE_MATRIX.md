@@ -1,5 +1,17 @@
 # Compliance Framework Support Matrix
 
+---
+
+## ⚠️ COMPLIANCE DISCLAIMER
+
+**CloudWorkStation provides technical security controls but DOES NOT guarantee compliance with any regulatory framework.**
+
+This matrix documents technical controls that CloudWorkStation provides. Use of CloudWorkStation does not, by itself, constitute compliance. Your institution remains solely responsible for compliance assessments, certifications, and consulting with qualified legal/compliance professionals.
+
+**Always defer to your institution for compliance guidance.** See [COMPLIANCE_DISCLAIMER.md](COMPLIANCE_DISCLAIMER.md) for complete legal notice.
+
+---
+
 Quick reference for CloudWorkstation compliance coverage across major security frameworks.
 
 ## 📊 Compliance Status Legend

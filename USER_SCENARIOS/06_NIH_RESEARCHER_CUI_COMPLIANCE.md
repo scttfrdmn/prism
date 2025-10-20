@@ -8,6 +8,22 @@
 
 ---
 
+## ⚠️ COMPLIANCE DISCLAIMER
+
+**This scenario is for educational purposes only and does not constitute legal, regulatory, or compliance advice.**
+
+Use of CloudWorkStation does not, by itself, ensure compliance with NIST 800-171, NIH data use agreements, or any other requirement. Your institution is solely responsible for:
+- Determining compliance obligations for NIH controlled-access data
+- Conducting NIST 800-171 assessments and attestations
+- Implementing organizational policies beyond technical controls
+- Consulting with your Research Security Office and Sponsored Projects Office
+
+**Always obtain institutional approval before using CloudWorkStation for NIH dbGaP data or other CUI.**
+
+See [COMPLIANCE_DISCLAIMER.md](../docs/admin-guides/COMPLIANCE_DISCLAIMER.md) for complete legal notice.
+
+---
+
 ## Background Context
 
 ### The Compliance Landscape (2025)
