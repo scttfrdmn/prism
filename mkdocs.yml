@@ -144,14 +144,19 @@ nav:
     - University Class: USER_SCENARIOS/03_UNIVERSITY_CLASS_WALKTHROUGH.md
     - Conference Workshop: USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH.md
     - Cross-Institutional: USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH.md
-    - Institutional IT: USER_SCENARIOS/06_INSTITUTIONAL_RESEARCH_IT_WALKTHROUGH.md
+    - NIH Researcher (CUI/NIST 800-171): USER_SCENARIOS/06_NIH_RESEARCHER_CUI_COMPLIANCE.md
+    - NIH Researcher (PHI/HIPAA): USER_SCENARIOS/07_NIH_RESEARCHER_PHI_HIPAA_COMPLIANCE.md
+    - Institutional Research IT: USER_SCENARIOS/08_INSTITUTIONAL_RESEARCH_IT_WALKTHROUGH.md
 
   - Administrator Guides:
     - Administrator Guide: admin-guides/ADMINISTRATOR_GUIDE.md
     - Research User Management: admin-guides/RESEARCH_USER_MANAGEMENT_GUIDE.md
     - Batch Invitation: admin-guides/BATCH_INVITATION_GUIDE.md
     - Security Hardening: admin-guides/SECURITY_HARDENING_GUIDE.md
+    - Security & Compliance Roadmap: admin-guides/SECURITY_COMPLIANCE_ROADMAP.md
+    - Compliance Matrix: admin-guides/COMPLIANCE_MATRIX.md
     - NIST 800-171 Compliance: admin-guides/NIST_800_171_COMPLIANCE.md
+    - Compliance Disclaimer: admin-guides/COMPLIANCE_DISCLAIMER.md
     - AWS IAM Permissions: admin-guides/AWS_IAM_PERMISSIONS.md
     - Policy Examples: admin-guides/BASIC_POLICY_EXAMPLES.md
 
