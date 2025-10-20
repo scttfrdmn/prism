@@ -146,7 +146,13 @@ cws project bulk-launch neurips-dl-workshop \
 # Output:
 # 🚀 Scheduling 60 instance launches for Dec 8, 8:45 AM
 # 📊 Estimated cost: $192.00 (within $200 budget ✅)
-# ⏰ All instances will auto-terminate at 2:45 PM
+# ⏰ All instances will auto-terminate at 2:45 PM (3-hour workshop)
+#
+# 💡 Effective Cost Analysis:
+#    24/7 assumption: $2.40/hour × 60 instances × 24 hours = $3,456
+#    Actual workshop cost: $2.40/hour × 60 instances × 3 hours = $432
+#    Your cost with auto-terminate: $192 (early terminations banked immediately)
+#    Savings: $240 banked in real-time as participants finish early!
 #
 # Instance name assignments:
 # - Participant_01 → workshop-01
@@ -156,6 +162,8 @@ cws project bulk-launch neurips-dl-workshop \
 # 8:45 AM on workshop day - all instances auto-launch
 # 9:00 AM - participants arrive, instances are ready
 ```
+
+> **💡 GUI Note**: Workshop scheduling available in GUI Projects tab with calendar view - *coming soon in v0.6.0*
 
 **Current workaround**: Participants launch on-demand (slow, error-prone)
 **Impact**: First 30 minutes wasted on environment setup
@@ -174,9 +182,13 @@ cws workshop dashboard neurips-dl-workshop
 # │                                                         │
 # │ Participants:     58 / 60 active                       │
 # │ Instances:        58 running, 2 stopped                │
-# │ Avg Uptime:       1h 23m                              │
+# │ Avg Uptime:       1h 23m (82 compute hours total)     │
 # │                                                         │
 # │ Budget:          $38.40 / $200.00 (19%) ✅            │
+# │ Available:       $161.60 (real-time as terminations happen) │
+# │ Effective cost:  $0.47/hour (vs $2.40/hour 24/7)     │
+# │                                                         │
+# │ 💡 Real-time banking: 2 early finishers already banked $4.80! │
 # │ Time Remaining:   1h 37m until auto-terminate          │
 # │                                                         │
 # │ Participants Needing Help:                             │
@@ -190,6 +202,8 @@ cws workshop dashboard neurips-dl-workshop
 # │ Refresh: Every 30s | Press 'q' to quit                 │
 # └─────────────────────────────────────────────────────────┘
 ```
+
+> **💡 GUI Note**: Live workshop dashboard available in GUI with real-time participant status - *coming soon in v0.6.0*
 
 **Current workaround**: Manual `cws list` + `cws project instances` polling
 **Impact**: Can't proactively help struggling participants
@@ -415,11 +429,24 @@ cws workshop report neurips-dl-workshop --export-pdf
 # Budget:
 #   Allocated: $200.00
 #   Spent:     $187.45 ✅ (within budget)
+#   Saved:     $12.55 (available for next workshop - rollover enabled)
+#
+#   💡 Effective Cost Analysis:
+#      24/7 assumption: $2.40/hr × 58 instances × 24 hours = $3,345.60
+#      Actual workshop: $2.40/hr × 58 instances × 3 hours = $418.00
+#      Your actual cost: $187.45 (early terminations banked immediately!)
+#      Real-time banking: Every participant who finished early freed budget
+#
 #   Breakdown:
 #     - Instance compute: $172.90 (58 × 3hrs × $0.99/hr)
 #     - Early access:     $3.20 (15 tests)
 #     - Pre-provisioning: $0.22 (15min buffer)
 #     - Storage:          $11.13 (EBS, snapshots)
+#
+#   💡 Cloud vs Traditional:
+#      Conference room PCs: $60,000 upfront + maintenance
+#      CloudWorkstation: $187.45 for 3 hours of actual use
+#      You only paid for compute time, not ownership!
 #
 # Participant Engagement:
 #   - High engagement: 42 participants (72%)
@@ -435,6 +462,8 @@ cws workshop report neurips-dl-workshop --export-pdf
 # 💰 No ongoing costs
 # 📧 Post-workshop survey sent to all participants
 ```
+
+> **💡 GUI Note**: Workshop reports with charts and PDF export available in GUI Reports tab - *coming soon in v0.6.0*
 
 ---
 

@@ -243,6 +243,12 @@ cws project cost show "CS229-Fall2024"
 # Output:
 # ⚠️  Budget Alert: Student overspending detected
 #    Total: $156 / $1,200 (13%) - Week 1 of 15
+#    Rollover from setup: $44 (from unused orientation budget)
+#    Available budget: $1,088 ($1,200 - $156 + $44 rollover)
+#
+#    💡 Effective cost: $0.52/hour avg (vs $2.40/hour 24/7 assumption)
+#       Students are only paying for active compute time!
+#
 #    Anomaly: emily.chen@university.edu spent $24.80 (103% of individual budget)
 #
 #    Dr. Martinez now has to:
@@ -250,6 +256,8 @@ cws project cost show "CS229-Fall2024"
 #    2. Request additional funds from department (awkward)
 #    3. OR: Emily can't do assignments for rest of semester
 ```
+
+> **💡 GUI Note**: Class budget monitoring available in GUI Projects tab with per-student breakdown - *coming soon in v0.6.0*
 
 **Current workaround**: Trust students, hope for the best
 **Impact**: Budget surprises, student anxiety, administrative burden

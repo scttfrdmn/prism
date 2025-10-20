@@ -197,23 +197,37 @@ stanford$ cws project cost nih-neuro-consortium --by-user
 # 📊 NIH Neuro Consortium - Cost Attribution (Month 6)
 #
 # Total: $4,823.40 / $5,000.00 (96%) ✅
+# Available: $176.60 + rollover from month 5: $142.50 = $319.10
+#
+# 💡 Effective Cost: $1.89/hour avg (vs $4.20/hour 24/7 assumption)
+#    Total compute hours: 2,554 hours across all collaborators
+#    Hibernation savings: $3,890 this month (banked in real-time!)
 #
 # By Collaborator:
-# ┌──────────────────────┬────────────┬──────────┬──────────────┐
-# │ User                 │ Institution│ Instances│ Cost         │
-# ├──────────────────────┼────────────┼──────────┼──────────────┤
-# │ Dr. Smith (owner)    │ Stanford   │ 3        │ $1,240.80    │
-# │ Dr. Johnson (admin)  │ MIT        │ 5        │ $2,890.20    │
-# │ Dr. Lee (read_write) │ Berkeley   │ 2        │ $692.40      │
-# └──────────────────────┴────────────┴──────────┴──────────────┘
+# ┌──────────────────────┬────────────┬──────────┬──────────┬──────────────┐
+# │ User                 │ Institution│ Instances│ Hours    │ Cost         │
+# ├──────────────────────┼────────────┼──────────┼──────────┼──────────────┤
+# │ Dr. Smith (owner)    │ Stanford   │ 3        │ 656h     │ $1,240.80    │
+# │ Dr. Johnson (admin)  │ MIT        │ 5        │ 1,530h   │ $2,890.20    │
+# │ Dr. Lee (read_write) │ Berkeley   │ 2        │ 366h     │ $692.40      │
+# └──────────────────────┴────────────┴──────────┴──────────┴──────────────┘
 #
 # By Institution:
-#   Stanford: $1,240.80 (26%)
-#   MIT:      $2,890.20 (60%)
-#   Berkeley: $692.40   (14%)
+#   Stanford: $1,240.80 (26%) - 656 compute hours
+#   MIT:      $2,890.20 (60%) - 1,530 compute hours
+#   Berkeley: $692.40   (14%) - 366 compute hours
+#
+# 💡 Cross-Institution Efficiency:
+#    Each institution only pays for actual compute time
+#    No idle time charges - every hibernation banks budget immediately
+#    Shared project benefits from combined hibernation savings!
 #
 # Chargeback Report: Available in project_chargeback_june2026.csv
+```
 
+> **💡 GUI Note**: Cross-institutional cost tracking with chargeback available in GUI Projects tab - *coming soon in v0.6.0*
+
+```bash
 # Optional: Enable chargeback to collaborator accounts
 stanford$ cws project chargeback nih-neuro-consortium \
   --enable \
@@ -473,6 +487,12 @@ stanford$ cws project status nih-neuro-consortium --detail
 # 📊 NIH Neuro Consortium Status - Month 6
 #
 # Budget: $4,823.40 / $5,000.00 (96%) ✅
+# Rollover available: $319.10 (from months 4-5 underspend)
+#
+# 💡 Real-time Cost Efficiency:
+#    Current effective rate: $1.89/hour (vs $4.20/hour 24/7)
+#    Active compute: 10 instances (2,554 hours this month)
+#    Hibernation savings banked: $3,890 (available for extended compute)
 #
 # Active Instances:
 #   Stanford (3):  stanford-integration-1, stanford-pipeline-2, stanford-viz-3
@@ -557,11 +577,24 @@ stanford$ cws collaboration report nih-neuro-consortium --final
 #
 # Total Budget: $90,000 (18 months × $5,000)
 # Total Spent: $87,234.60 (96.9%) ✅
+# Budget rollover: $2,765.40 returned to Stanford grant
+#
+# 💡 18-Month Cost Efficiency:
+#    Total compute hours: 46,223 hours across all institutions
+#    Effective cost: $1.89/hour (vs $4.20/hour 24/7 assumption)
+#    If running 24/7: $553,104 (18 months × 24 hrs × 30 days × $4.20)
+#    Actual cost: $87,234.60
+#    Total savings: $465,869.40 through hibernation/stop banking!
+#
+# 💡 Cloud vs Traditional Multi-Institution Setup:
+#    Each institution buying hardware: 3 × $100,000 = $300,000 upfront
+#    CloudWorkstation: $87,234.60 for 18 months of actual compute
+#    Only paid for compute time, not infrastructure ownership!
 #
 # Cost by Institution:
-#   Stanford: $22,860.40 (26%)
-#   MIT:      $52,020.36 (60%)
-#   Berkeley: $12,353.84 (14%)
+#   Stanford: $22,860.40 (26%) - 12,095 compute hours
+#   MIT:      $52,020.36 (60%) - 27,513 compute hours
+#   Berkeley: $12,353.84 (14) - 6,529 compute hours
 #
 # Resources Created:
 #   - Instances launched: 847 total
@@ -581,6 +614,11 @@ stanford$ cws collaboration report nih-neuro-consortium --final
 #   - Collaborator instances: Stopped (not terminated)
 #   - Snapshots: Archived for 90 days
 #   - Shared data: Retained by Stanford
+```
+
+> **💡 GUI Note**: Cross-institutional final reports with 18-month analytics available in GUI Reports tab - *coming soon in v0.6.0*
+
+```bash
 #
 # Next Steps:
 #   1. Generate compliance report: --export-compliance

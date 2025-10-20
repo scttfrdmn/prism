@@ -82,16 +82,32 @@ cws ssh rnaseq-analysis     # Start working
 # - Sarah gets coffee, 15 minutes pass with no activity
 # - Instance automatically hibernates
 
+# ✅ Hibernation triggered! Charges stop immediately
+# 💰 Real-time savings: $2.40/hour → $0/hour
+#    The money you're NOT spending is banked for future use!
+#    Budget available increases in real-time as instances hibernate/stop
+
 # Afternoon: Check costs
 cws cost summary
 # Output:
 # Total monthly spend: $18.50
 # Running instances: 0 (all hibernated)
-# Hibernation savings: $24.30 (57% saved)
+# Hibernation savings: $24.30 (57% saved) ← THIS IS REAL MONEY BANKED!
+# Available budget: $81.50 ($100 - $18.50)
 # Projected month-end: $62 (within $100 budget ✅)
+#
+# 💡 Effective cost per hour: $0.31/hour (vs $2.40/hour if running 24/7)
+#    You're paying for 60 hours of actual compute, not 360 hours!
+#    That $24.30 savings? It's available RIGHT NOW for more work!
+#
+# 💡 Cloud vs Owned Reality:
+#    Owned workstation: $3,000 upfront, depreciates whether you use it or not
+#    CloudWorkstation: Pay $18.50 for 60 actual hours, bank the rest!
 ```
 
-**What Sarah thinks**: *"The hibernation is working! I'm on track. No anxiety!"*
+> **💡 GUI Note**: Cost summary is available in the GUI Dashboard (Costs tab) with visual charts - *coming soon in v0.6.0*
+
+**What Sarah thinks**: *"The hibernation is working! Every time it hibernates, I'm banking money for future compute. I'm only paying $0.31/hour instead of $2.40/hour! No anxiety!"*
 
 ---
 
@@ -249,7 +265,14 @@ cws budget show
 #    Current spend: $0.00 (Day 1 of 30)
 #    Remaining: $100.00
 #    Alerts: sarah.chen@university.edu (50%, 75%, 90%, 100%)
+#    Rollover policy: Enabled (unused budget carries to next month, max 2 months)
+#
+# 💡 Budget Rollover: Your lab's discretionary funds roll over month-to-month!
+#    If you only spend $80 this month, you'll have $120 available next month.
+#    This aligns with grant year budgets and encourages efficient usage.
 ```
+
+> **💡 GUI Note**: Budget configuration available in GUI Settings (Budget tab) - *coming soon in v0.6.0*
 
 ### Day 1: Launch with Budget Awareness
 
@@ -263,6 +286,11 @@ cws launch bioinformatics-suite rnaseq-analysis --size M
 #    Instance: r5.xlarge (4 vCPU, 32GB RAM)
 #    Cost: $2.40/day ($72/month if running 24/7)
 #    With hibernation (estimated 50% savings): ~$36/month
+#
+#    💡 Effective Cost Comparison:
+#       24/7 cost: $2.40/hour (what most people assume for cloud)
+#       Your actual cost: ~$1.20/hour (with hibernation savings)
+#       You're NOT paying for idle time - only actual compute!
 #
 #    Your Budget:
 #    Current: $0 / $100 (0%)
@@ -278,6 +306,8 @@ cws launch bioinformatics-suite rnaseq-analysis --size M
 # ⚙️  Hibernation: budget-safe (15min idle)
 # 🔗 SSH ready in ~90 seconds...
 ```
+
+> **💡 GUI Note**: Instance launch with budget preview available in GUI Templates tab - *coming soon in v0.6.0*
 
 ### Week 3: Budget Alert (80% threshold)
 
@@ -324,13 +354,21 @@ cws budget status
 #
 # Active Instances:
 #   rnaseq-analysis: Hibernated
-#   └─ Recent usage: 4h/day average
+#   └─ Recent usage: 4h/day average (96 hours compute time this month)
+#   └─ Effective cost: $0.83/hour (vs $2.40/hour 24/7 assumption)
 #   └─ Projected cost this week: $9.60
+#
+# 💡 Cost Reality Check:
+#    If you bought a workstation: $3,000 upfront + depreciation
+#    CloudWorkstation this month: $90 for 96 hours of actual compute
+#    You're only paying for what you USE, not what you OWN!
 #
 # Recommendations:
 #   ✅ You're on track!
 #   💡 Consider stopping instances over weekend if not needed ($4.80 savings)
 ```
+
+> **💡 GUI Note**: Budget status available in GUI Dashboard (Budget tab) with real-time charts - *coming soon in v0.6.0*
 
 ### Week 4: Attempting Over-Budget Launch
 
@@ -381,15 +419,20 @@ cws launch gpu-ml-workstation protein-folding --size L
 #
 # Efficiency:
 # - Hibernation savings: $48.30 (33% of potential cost)
+# - Effective cost: $1.33/hour (vs $2.40/hour 24/7 assumption)
 # - Average session length: 4.2 hours
 # - Total productive hours: 72
 #
+# 💡 Cost Reality: You paid $95.77 for 72 hours of actual compute
+#    vs $1,728 if you ran 24/7 (you saved $1,632!)
+#
 # Top Instances:
-# 1. rnaseq-analysis (r5.xlarge): $87.50 (15 days)
+# 1. rnaseq-analysis (r5.xlarge): $87.50 (15 days, 68 compute hours)
 # 2. protein-folding (p3.2xlarge): $8.27 (8 hours)
 #
 # Next Month Budget:
-# Your budget resets to $100.00 on October 1st.
+# October budget: $104.23 ($100 base + $4.23 rollover)
+# Rollover policy allows unused budget to carry forward (max 2 months)
 #
 # View detailed report: cws budget report --month september --pdf
 
@@ -401,9 +444,12 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 #    - Monthly summary with cost breakdown
 #    - Instance usage timeline
 #    - Hibernation savings analysis
-#    - Cost efficiency metrics
+#    - Cost efficiency metrics (effective $/hour vs 24/7)
+#    - Budget rollover calculation
 #    - Ready to attach to expense report
 ```
+
+> **💡 GUI Note**: Monthly reports available in GUI Dashboard (Reports tab) with export to PDF - *coming soon in v0.6.0*
 
 ---
 

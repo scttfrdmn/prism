@@ -158,6 +158,11 @@ cws launch bioinformatics-suite rnaseq-sample-42 \
 # James works for 4 hours, then stops
 cws stop rnaseq-sample-42
 
+# ✅ Instance stopped - charges cease immediately
+# 💰 Real-time budget update: $9.60 "banked" back to available budget
+#    (Would have cost $57.60 for 24 hours, you paid $9.60 for 4 hours)
+#    The $48 you DIDN'T spend is now available for other lab members!
+
 # Cost tracking automatically updated
 cws project cost show "NIH-R01-2023"
 
@@ -165,12 +170,24 @@ cws project cost show "NIH-R01-2023"
 # 💰 Project: NIH-R01-2023 Budget Status
 #    Monthly budget: $2,000.00
 #    Current spend: $1,245.80 (62%)
+#    Available for new launches: $754.20 + $1,890 banked savings
+#
+#    💡 Effective Cost: $2.10/hour avg (vs $4.80/hour 24/7 assumption)
+#       Hibernation/stop savings across all instances: $1,890 this month!
+#       This is REAL MONEY you can spend on more compute!
 #
 #    By member:
-#    - michael.torres: $720.50 / $800.00 (90%)
-#    - james.wilson: $245.30 / $400.00 (61%)
-#    - Shared resources: $280.00 / $800.00 (35%)
+#    - michael.torres: $720.50 / $800.00 (90%) - 343 compute hours
+#    - james.wilson: $245.30 / $400.00 (61%) - 123 compute hours
+#    - Shared resources: $280.00 / $800.00 (35%) - 140 compute hours
+#
+# 💡 Cloud vs Owned Hardware Reality:
+#    Owned workstation: $5,000 upfront + depreciation whether used or not
+#    CloudWorkstation: Pay $1,245 for 606 actual compute hours
+#    Every hibernation/stop IMMEDIATELY increases available budget!
 ```
+
+> **💡 GUI Note**: Project cost tracking available in GUI Projects tab with visual breakdown - *coming soon in v0.6.0*
 
 #### Scenario: Lab Manager Monitors Usage
 ```bash
@@ -189,7 +206,14 @@ cws project list --tree
 # └── Discretionary: $50 / $1,000 (5%) ✅
 #
 # Total: $2,275 / $4,500 (51%) ✅
+# Rollover from last month: $225 (from NIH-R01-2023 underspend)
+# Next month budget: $4,725
+#
+# 💡 Effective Lab Cost: $2.10/hour (vs $5.50/hour 24/7 assumption)
+#    Lab is paying for 1,083 compute hours, not 8,760 hours/month!
 ```
+
+> **💡 GUI Note**: Project tree view available in GUI Projects tab - *coming soon in v0.6.0*
 
 ---
 
