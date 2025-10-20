@@ -246,6 +246,8 @@ Reliable auto-launch requires daemon to be running OR AWS Lambda function:
 | Feature | Status | Target Release | GitHub Issue |
 |---------|--------|----------------|--------------|
 | UX Redesign | 🟡 In Progress | v0.5.6 | [Milestone #1](https://github.com/scttfrdmn/cloudworkstation/milestone/1) |
+| Directory Sync | 📋 Planned | v0.5.5-0.5.6 | [#53](https://github.com/scttfrdmn/cloudworkstation/issues/53) |
+| Configuration Sync | 📋 Planned | v0.5.3-0.5.4 | [#54](https://github.com/scttfrdmn/cloudworkstation/issues/54) |
 | Auto-Update | 📋 Planned | v0.6.0-0.7.0 | [#61](https://github.com/scttfrdmn/cloudworkstation/issues/61) |
 | GUI System Tray | 📋 Planned | v0.6.0-0.6.1 | [#62](https://github.com/scttfrdmn/cloudworkstation/issues/62) |
 | AWS Quota Management | 📋 Planned | v0.6.0 | [#57-60](https://github.com/scttfrdmn/cloudworkstation/issues/57) |

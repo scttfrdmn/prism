@@ -180,8 +180,11 @@ nav:
       - GUI System Tray & Auto-Start: https://github.com/scttfrdmn/cloudworkstation/issues/62
       - EC2 Capacity Blocks for ML: https://github.com/scttfrdmn/cloudworkstation/issues/63
       - AWS Quota Management: https://github.com/scttfrdmn/cloudworkstation/issues/57
-      - Directory Sync: archive/planning/DIRECTORY_SYNC_PLANNING.md
-      - Configuration Sync: archive/planning/CONFIG_SYNC_PLANNING.md
+      - Directory Sync (Dropbox-like): https://github.com/scttfrdmn/cloudworkstation/issues/53
+      - Configuration Sync: https://github.com/scttfrdmn/cloudworkstation/issues/54
+    - Planning Documents:
+      - Directory Sync Planning: archive/planning/DIRECTORY_SYNC_PLANNING.md
+      - Configuration Sync Planning: archive/planning/CONFIG_SYNC_PLANNING.md
     - Technical Debt Backlog: archive/roadmap/TECHNICAL_DEBT_BACKLOG.md
 
   - Development:
