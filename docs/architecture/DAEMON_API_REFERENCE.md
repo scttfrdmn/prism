@@ -1,9 +1,12 @@
 # CloudWorkstation Daemon API Reference
 
-## Version: v0.4.5  
-**Port**: 8947 (CWS on phone keypad)  
-**Base URL**: `http://localhost:8947`  
+## Version: v0.5.5
+**Last Updated**: October 20, 2025
+**Port**: 8947 (CWS on phone keypad)
+**Base URL**: `http://localhost:8947`
 **Protocol**: REST API with JSON
+
+> **Note**: This API reference is maintained alongside the codebase. The version number reflects the current CloudWorkstation release. All endpoints are stable unless marked as "Future Enhancement" or "Planned".
 
 ---
 
@@ -647,7 +650,7 @@ Get daemon health status and version information.
 ```json
 {
   "status": "healthy",
-  "version": "0.4.3",
+  "version": "0.5.5",
   "uptime": "2h 45m 30s",
   "api_version": "v1",
   "aws_connectivity": "connected",
