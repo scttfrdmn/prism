@@ -1,7 +1,7 @@
 # Welcome to CloudWorkstation
 
 <p align="center">
-  <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
+  <img src="images/cloudworkstation-transparent.png" alt="CloudWorkstation Logo" width="200">
 </p>
 
 CloudWorkstation provides researchers with pre-configured cloud computing environments for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
