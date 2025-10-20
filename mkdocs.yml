@@ -140,6 +140,7 @@ nav:
     - user-guides/USER_SCENARIOS/03_UNIVERSITY_CLASS_WALKTHROUGH.md
     - user-guides/USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH.md
     - user-guides/USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH.md
+    - user-guides/USER_SCENARIOS/06_INSTITUTIONAL_RESEARCH_IT_WALKTHROUGH.md
 
   - Administrator Guides:
     - Administrator Guide: admin-guides/ADMINISTRATOR_GUIDE.md
@@ -159,7 +160,12 @@ nav:
     - Template Marketplace: architecture/TEMPLATE_MARKETPLACE_ARCHITECTURE.md
     - Auto-AMI System: architecture/AUTO_AMI_SYSTEM.md
     - Idle Detection: architecture/IDLE_DETECTION.md
+    - International Support: architecture/INTERNATIONAL_SUPPORT_ROADMAP.md
     - UX Evaluation: architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md
+
+  - Planned Features:
+    - Directory Sync: archive/planning/DIRECTORY_SYNC_PLANNING.md
+    - Configuration Sync: archive/planning/CONFIG_SYNC_PLANNING.md
 
   - Development:
     - Development Setup: development/DEVELOPMENT_SETUP.md
