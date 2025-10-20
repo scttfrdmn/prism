@@ -1,5 +1,5 @@
 site_name: CloudWorkstation Documentation
-site_url: https://scttfrdmn.github.io/cloudworkstation
+site_url: https://cloudworkstation.io
 site_description: Pre-configured cloud research environments for academic computing
 site_author: CloudWorkstation Team
 
@@ -8,6 +8,10 @@ repo_name: scttfrdmn/cloudworkstation
 edit_uri: edit/main/docs/
 
 copyright: Copyright &copy; 2025 CloudWorkstation
+
+# Custom domain configuration for GitHub Pages
+docs_dir: docs
+site_dir: site
 
 theme:
   name: material
