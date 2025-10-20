@@ -194,6 +194,58 @@ Recommendations:
 
 ---
 
+## User Experience Items
+
+### 11. Auto-Update Feature
+**Location**: New module `pkg/update/`
+**Current Behavior**: No version detection, users manually check for updates
+**Impact**: Users run outdated versions, miss bug fixes and features
+**Implementation Needed**:
+- **Phase 1 (v0.6.0)**: Version detection and notifications (2-3 days)
+  - Query GitHub Releases API for latest version
+  - Add `cws version --check-update` command
+  - Show startup notifications in CLI/TUI/GUI
+  - Cache update checks (24-hour TTL)
+- **Phase 2 (v0.6.1)**: Assisted platform-specific updates (3-4 days)
+  - `cws update` command with platform detection
+  - Homebrew, apt, manual install support
+  - Checksum verification and rollback
+- **Phase 3 (v0.7.0)**: Background auto-update system (4-5 days)
+  - Daemon-managed background checks
+  - Auto-download with user permission
+  - Release channel support (stable/beta/dev)
+**Target Release**: v0.6.0 (Phase 1), v0.6.1 (Phase 2), v0.7.0 (Phase 3)
+**Effort**: Large (9-12 days total across 3 phases)
+**Priority**: High - improves version adoption and user experience
+**GitHub Issue**: #61
+
+### 12. GUI System Tray/Menu Bar and Auto-Start
+**Location**: `cmd/cws-gui/main.go` (Wails 3 integration)
+**Current Behavior**: No system tray, no auto-start, GUI must stay visible
+**Impact**: Reduced convenience compared to other dev tools (Docker Desktop, VS Code)
+**Implementation Needed**:
+- **Phase 1 (v0.6.0)**: System tray/menu bar integration (3-4 days)
+  - Native macOS menu bar, Windows system tray, Linux tray
+  - Context menu with common actions (Quick Launch, My Workspaces, Cost Summary)
+  - Minimize to tray instead of taskbar
+  - Native notifications for events
+- **Phase 2 (v0.6.0)**: Auto-start on login (2-3 days)
+  - macOS Launch Agent creation
+  - Windows Registry startup
+  - Linux XDG autostart
+  - Settings UI for auto-start preferences
+  - `--minimized` flag support
+- **Phase 3 (v0.6.1)**: Advanced tray features (2-3 days)
+  - Quick Launch from system tray
+  - Intelligent notifications (launch complete, budget alerts, idle warnings)
+  - Context-aware menu (recent templates, instances needing attention)
+**Target Release**: v0.6.0 (Phases 1-2), v0.6.1 (Phase 3)
+**Effort**: Large (7-10 days total across 3 phases)
+**Priority**: High - significantly improves GUI usability and convenience
+**GitHub Issue**: #62
+
+---
+
 ## Medium Priority Items
 
 ### 5. TUI Project Member Management
@@ -307,35 +359,40 @@ Recommendations:
 **v0.5.6 (Q1 2026)**: Storage & Template Enhancements
 - Item #3: SSM File Operations Support
 
-**v0.6.0 (Q2 2026)**: Security & Authentication
-- Item #1: IAM Instance Profile Validation
-- Item #2: Multi-User Authentication System (Phase 1)
+**v0.6.0 (Q2 2026)**: Security, Authentication & User Experience
+- Item #2: AWS Quota Management and Intelligent Availability Handling
+- Item #3: Multi-User Authentication System (Phase 1)
+- Item #11: Auto-Update Feature (Phase 1: Version Detection)
+- Item #12: GUI System Tray/Menu Bar and Auto-Start
 
-**v0.6.1 (Q2 2026)**: TUI Polish
-- Item #4: TUI Project Member Management
-- Item #5: TUI Project Instance List
-- Item #6: TUI Cost Breakdown Display
-- Item #7: TUI Hibernation Savings Display
+**v0.6.1 (Q2 2026)**: TUI Polish & Advanced Features
+- Item #5: TUI Project Member Management
+- Item #6: TUI Project Instance List
+- Item #7: TUI Cost Breakdown Display
+- Item #8: TUI Hibernation Savings Display
+- Item #11: Auto-Update Feature (Phase 2: Assisted Update)
+- Item #12: GUI System Tray (Phase 3: Advanced Features)
 
 **v0.7.0 (Q3 2026)**: Advanced UI Features
-- Item #2: Multi-User Authentication System (Phase 2)
-- Item #8: TUI Project Creation Dialog
-- Item #9: TUI Budget Creation Dialog
+- Item #3: Multi-User Authentication System (Phase 2)
+- Item #9: TUI Project Creation Dialog
+- Item #10: TUI Budget Creation Dialog
+- Item #11: Auto-Update Feature (Phase 3: Background Updates)
 
 **v0.8.0 (Q4 2026)**: Code Cleanup & Modernization
-- Item #10: Cobra Flag System Integration
+- Item #4: Cobra Flag System Integration
 
 ---
 
 ## Tracking Metrics
 
-- **Total Items**: 11
+- **Total Items**: 13 (added 2 new UX features)
 - **Completed**: 2 items (SSH Readiness Progress, IAM Instance Profile Validation)
-- **Remaining**: 9 items
-- **High Priority**: 2 items (down from 3)
+- **Remaining**: 11 items
+- **High Priority**: 4 items (AWS Quota Management, Multi-User Auth, Auto-Update, GUI System Tray)
 - **Medium Priority**: 4 items
 - **Low Priority**: 3 items
-- **Estimated Remaining Effort**: 8-9 weeks of development time (down from 9-11 weeks)
+- **Estimated Remaining Effort**: 12-14 weeks of development time (added 4 weeks for new features)
 
 ---
 
