@@ -325,13 +325,20 @@ apt-get update -y && apt-get install -y curl wget bzip2 ca-certificates
 progress "STAGE:init:COMPLETE"
 progress "STAGE:system-packages:START"
 
-# Install miniforge
+# Install Miniforge (standard conda-forge distribution)
+# Following official Miniforge installation: https://github.com/conda-forge/miniforge
 ARCH=$(uname -m)
 MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-${ARCH}.sh"
-wget -O /tmp/mf.sh "$MINIFORGE_URL" && bash /tmp/mf.sh -b -p /opt/miniforge && rm /tmp/mf.sh
-export PATH="/opt/miniforge/bin:$PATH"
-echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /etc/environment
+wget -O /tmp/miniforge.sh "$MINIFORGE_URL"
+bash /tmp/miniforge.sh -b -p /opt/miniforge
+rm /tmp/miniforge.sh
+
+# Initialize conda for bash (standard approach - modifies shell rc files)
 /opt/miniforge/bin/conda init bash
+
+# Reload bash environment to make conda available
+export PATH="/opt/miniforge/bin:$PATH"
+source /root/.bashrc || true
 
 progress "STAGE:system-packages:COMPLETE"
 progress "STAGE:conda-packages:START"
@@ -346,8 +353,10 @@ progress "STAGE:pip-packages:START"
 progress "STAGE:pip-packages:COMPLETE"
 progress "STAGE:service-config:START"
 
-{{range .Users}}useradd -m -s /bin/bash {{.Name}} || true
+{{range .Users}}# Create user: {{.Name}}
+useradd -m -s /bin/bash {{.Name}} || true
 {{if .Groups}}{{$user := .}}{{range .Groups}}usermod -aG {{.}} {{$user.Name}}{{end}}{{end}}
+
 # Copy SSH keys from ubuntu user for seamless SSH access
 if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
   mkdir -p /home/{{.Name}}/.ssh
@@ -357,18 +366,11 @@ if [ -f /home/ubuntu/.ssh/authorized_keys ]; then
   chmod 600 /home/{{.Name}}/.ssh/authorized_keys
   echo "✅ SSH keys copied to {{.Name}} user"
 fi
-sudo -u {{.Name}} /opt/miniforge/bin/conda init bash
-# Create .bash_profile to set PATH before .bashrc runs
-cat > /home/{{.Name}}/.bash_profile << 'PROFILE_EOF'
-# Set PATH for login shells (sourced before .bashrc)
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:/opt/miniforge/bin"
 
-# Source .bashrc if it exists (for interactive shells)
-if [ -f ~/.bashrc ]; then
-  source ~/.bashrc
-fi
-PROFILE_EOF
-echo 'export PATH="/opt/miniforge/bin:$PATH"' >> /home/{{.Name}}/.bashrc
+# Initialize conda for this user (standard approach)
+sudo -u {{.Name}} /opt/miniforge/bin/conda init bash
+
+# Fix ownership
 chown -R {{.Name}}:{{.Name}} /home/{{.Name}}
 {{end}}
 

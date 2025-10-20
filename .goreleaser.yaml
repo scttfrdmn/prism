@@ -89,9 +89,10 @@ archives:
       - README.md
       - CHANGELOG.md
       - LICENSE
+      - templates/*.yml
       - templates/**/*
-      - docs/GETTING_STARTED.md
-      - docs/AWS_IAM_PERMISSIONS.md
+      - docs/user-guides/GETTING_STARTED.md
+      - docs/admin-guides/AWS_IAM_PERMISSIONS.md
     builds:
       - cws
       - cwsd
@@ -235,11 +236,17 @@ nfpms:
         dst: /usr/share/doc/cloudworkstation/README.md
       - src: CHANGELOG.md
         dst: /usr/share/doc/cloudworkstation/CHANGELOG.md
-      - src: templates/
+      - src: templates/*.yml
         dst: /usr/share/cloudworkstation/templates/
-      - src: docs/GETTING_STARTED.md
+      - src: templates/community/*.yml
+        dst: /usr/share/cloudworkstation/templates/community/
+      - src: templates/examples/*.yml
+        dst: /usr/share/cloudworkstation/templates/examples/
+      - src: templates/testing/*.yml
+        dst: /usr/share/cloudworkstation/templates/testing/
+      - src: docs/user-guides/GETTING_STARTED.md
         dst: /usr/share/doc/cloudworkstation/GETTING_STARTED.md
-      - src: docs/AWS_IAM_PERMISSIONS.md
+      - src: docs/admin-guides/AWS_IAM_PERMISSIONS.md
         dst: /usr/share/doc/cloudworkstation/AWS_IAM_PERMISSIONS.md
 
     # Scripts
