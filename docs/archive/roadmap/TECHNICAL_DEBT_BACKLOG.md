@@ -47,7 +47,124 @@ This document tracks features that were intentionally deferred during developmen
 
 ## High Priority Items
 
-### 2. Multi-User Authentication System
+### 2. AWS Quota Management and Intelligent Availability Handling
+**Location**: `pkg/aws/manager.go` (new quota monitoring module needed)
+**Current Behavior**: No quota awareness, generic launch failures, no AZ failover
+**Impact**: Users surprised by quota limits, confusing errors, failed launches in unavailable AZs
+**Problem Statement**:
+Researchers often don't understand AWS service quotas (vCPU limits, instance type limits per region/AZ). When launches fail, error messages are cryptic. CloudWorkStation should be intelligent about AWS capacity and gracefully handle failures.
+
+**Implementation Needed**:
+
+1. **Quota Awareness** (`pkg/aws/quota_manager.go`):
+   - Query AWS Service Quotas API for current limits
+   - Track usage against quotas (vCPUs, instances per type, storage)
+   - Pre-launch validation: "You have 12/20 vCPUs used, this t3.xlarge (4 vCPU) will use 16/20"
+   - Proactive warnings: "Warning: You're at 90% of your vCPU quota in us-west-2"
+   - CLI command: `cws admin quota show --region us-west-2`
+
+2. **Quota Increase Assistance** (`pkg/aws/quota_requests.go`):
+   - Detect quota-related launch failures
+   - Explain what quota was hit and why
+   - Provide pre-filled quota increase request URL
+   - CLI command: `cws admin quota request --instance-type p3.2xlarge --reason "ML research workload"`
+   - Guide users through AWS Support Center quota request process
+
+3. **Intelligent AZ Failover** (`pkg/aws/availability_manager.go`):
+   - Detect `InsufficientInstanceCapacity` errors
+   - Automatically retry in different AZ within same region
+   - User-friendly message: "Instance type unavailable in us-west-2a, trying us-west-2b..."
+   - Track AZ health per instance type (recent success rates)
+   - Prefer AZs with recent successful launches
+
+4. **AWS Health Dashboard Integration** (`pkg/aws/health_monitor.go`):
+   - Monitor AWS Health API for service events
+   - Detect regional outages, degraded performance, scheduled maintenance
+   - Proactive notifications: "⚠️ AWS reports degraded EC2 performance in us-east-1"
+   - Block launches to affected regions with clear explanations
+   - Auto-suggest alternative regions with healthy status
+   - CLI command: `cws admin aws-health --all-regions`
+
+5. **Capacity Planning** (`pkg/aws/capacity_planner.go`):
+   - Analyze historical launch patterns
+   - Recommend regions/AZs with best availability for instance types
+   - Warn about high-demand instance types (GPU, large memory)
+   - Suggest spot instances when on-demand capacity is constrained
+
+**User Experience Examples**:
+
+```bash
+# Pre-launch quota check
+$ cws launch gpu-ml-workstation my-training --size XL
+⚠️  Quota Check Failed
+    Instance type: p3.8xlarge (32 vCPUs, 4 GPUs)
+    Current usage: 24/32 vCPUs in us-west-2
+    After launch: 56/32 vCPUs ❌ (24 over limit)
+
+    You need to request a vCPU quota increase:
+    1. Visit: https://console.aws.amazon.com/servicequotas/home/services/ec2/quotas/L-1216C47A
+    2. Request new limit: 64 vCPUs (allows 2 simultaneous p3.8xlarge)
+    3. Typical approval time: 24-48 hours
+
+    Alternative: Launch p3.2xlarge instead? (8 vCPUs, 1 GPU) [Y/n]
+
+# Intelligent AZ failover
+$ cws launch bioinformatics-suite genome-analysis
+✅ Launching r5.4xlarge in us-west-2a...
+⚠️  InsufficientInstanceCapacity in us-west-2a
+🔄 Retrying in us-west-2b...
+✅ Successfully launched in us-west-2b!
+🔗 SSH ready in ~90 seconds...
+
+# AWS Health monitoring
+$ cws launch python-ml earthquake-prediction --region us-east-1
+⚠️  AWS Health Alert: Degraded EC2 Performance in us-east-1
+    Event: API_ISSUE (started 15 minutes ago)
+    Impact: Elevated launch failures and delayed instance starts
+    Status: AWS engineers investigating
+
+    Recommendation: Use us-west-2 (healthy) or wait ~30 minutes
+    Launch anyway? [y/N]
+
+# Quota status command
+$ cws admin quota show
+📊 AWS Service Quotas - us-west-2
+
+vCPU Limits:
+  Standard (A, C, D, H, I, M, R, T, Z): 24/32 (75% used) ⚠️
+  GPU (P, G, Inf, DL, Trn):             0/8 (0% used) ✅
+
+Instance Type Limits:
+  p3.2xlarge: 0/2 available ✅
+  r5.xlarge:  3/5 available ⚠️ (approaching limit)
+  t3.medium:  8/20 available ✅
+
+Storage:
+  EBS General Purpose (gp3): 3.2TB / 50TB ✅
+
+Recommendations:
+  ⚠️  Consider requesting vCPU increase for compute-intensive work
+  ✅ GPU quota sufficient for current workload
+```
+
+**Target Release**: v0.6.0 (Q2 2026)
+**Effort**: Large (2-3 weeks for full implementation)
+**Priority**: High - dramatically improves user experience and reduces support burden
+
+**Dependencies**:
+- AWS Service Quotas API
+- AWS Health API (requires Business or Enterprise Support for full access)
+- EC2 DescribeInstanceTypeOfferings for AZ availability
+
+**Related Issues**:
+- Reduces "why did my launch fail?" support tickets
+- Makes CloudWorkStation intelligent about AWS constraints
+- Enables researchers to self-service quota increases
+- Proactive problem prevention vs reactive error handling
+
+---
+
+### 3. Multi-User Authentication System
 **Location**: `pkg/daemon/middleware.go:103`
 **Current Behavior**: Uses bearer token directly as user ID without validation
 **Impact**: No real authentication for institutional deployments
@@ -62,7 +179,7 @@ This document tracks features that were intentionally deferred during developmen
 **Effort**: Large (2-3 weeks)
 **Priority**: High - critical for institutional deployments
 
-### 3. SSM File Operations Support
+### 4. SSM File Operations Support
 **Location**: `pkg/daemon/template_application_handlers.go:287`
 **Current Behavior**: SSM executor created with nil clients for file operations
 **Impact**: `CopyFile()` and `GetFile()` methods not functional
@@ -79,7 +196,7 @@ This document tracks features that were intentionally deferred during developmen
 
 ## Medium Priority Items
 
-### 4. TUI Project Member Management
+### 5. TUI Project Member Management
 **Location**: `internal/tui/models/projects.go:313`
 **Current Behavior**: Shows member count, directs to CLI for details
 **Impact**: TUI provides overview only, no direct member management
@@ -93,7 +210,7 @@ This document tracks features that were intentionally deferred during developmen
 **Effort**: Medium (4-6 days)
 **Priority**: Medium - improves TUI completeness
 
-### 5. TUI Project Instance List
+### 6. TUI Project Instance List
 **Location**: `internal/tui/models/projects.go:339`
 **Current Behavior**: Shows instance count, directs to CLI or main instance view
 **Impact**: No project-filtered instance view in TUI
@@ -106,7 +223,7 @@ This document tracks features that were intentionally deferred during developmen
 **Effort**: Medium (3-4 days)
 **Priority**: Low - main instance view already provides this functionality
 
-### 6. TUI Cost Breakdown Display
+### 7. TUI Cost Breakdown Display
 **Location**: `internal/tui/models/budget.go:352`
 **Current Behavior**: Shows placeholder text, directs to CLI
 **Impact**: No detailed cost breakdown in TUI
@@ -119,7 +236,7 @@ This document tracks features that were intentionally deferred during developmen
 **Effort**: Small (2-3 days)
 **Priority**: Low - CLI provides excellent cost breakdown already
 
-### 7. TUI Hibernation Savings Display
+### 8. TUI Hibernation Savings Display
 **Location**: `internal/tui/models/budget.go:414`
 **Current Behavior**: Shows placeholder text, directs to CLI
 **Impact**: No hibernation savings visualization in TUI
@@ -136,7 +253,7 @@ This document tracks features that were intentionally deferred during developmen
 
 ## Low Priority Items
 
-### 8. TUI Project Creation Dialog
+### 9. TUI Project Creation Dialog
 **Location**: `internal/tui/models/projects.go:433`
 **Current Behavior**: Returns error, directs to CLI
 **Impact**: Project creation must be done via CLI
@@ -150,7 +267,7 @@ This document tracks features that were intentionally deferred during developmen
 **Effort**: Medium (3-4 days)
 **Priority**: Low - CLI provides excellent UX for complex input
 
-### 9. TUI Budget Creation Dialog
+### 10. TUI Budget Creation Dialog
 **Location**: `internal/tui/models/budget.go:467`
 **Current Behavior**: Returns error, directs to CLI
 **Impact**: Budget creation must be done via CLI
@@ -168,7 +285,7 @@ This document tracks features that were intentionally deferred during developmen
 
 ## Architectural Improvements
 
-### 10. Cobra Flag System Integration
+### 11. Cobra Flag System Integration
 **Location**: `internal/cli/instance_impl.go:267`
 **Current Behavior**: Manual flag parsing for direct API usage
 **Impact**: Duplicate flag parsing logic for backwards compatibility
