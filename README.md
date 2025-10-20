@@ -240,6 +240,7 @@ cws doctor                      # System health check
 **Guides:**
 - [AWS Setup Guide](AWS_SETUP_GUIDE.md) - AWS account and credential configuration
 - [Installation Guide](INSTALL.md) - Comprehensive installation instructions
+- [Security & Compliance](docs/admin-guides/SECURITY_COMPLIANCE_ROADMAP.md) - NIST 800-171, HIPAA, GDPR, FISMA compliance
 - [Changelog](CHANGELOG.md) - Version history and release notes
 
 ## 🗓️ Version History
