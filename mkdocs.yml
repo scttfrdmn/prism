@@ -158,6 +158,7 @@ nav:
     - NIST 800-171 Compliance: admin-guides/NIST_800_171_COMPLIANCE.md
     - Compliance Disclaimer: admin-guides/COMPLIANCE_DISCLAIMER.md
     - AWS IAM Permissions: admin-guides/AWS_IAM_PERMISSIONS.md
+    - AWS Quota Management: admin-guides/AWS_QUOTA_MANAGEMENT.md
     - Policy Examples: admin-guides/BASIC_POLICY_EXAMPLES.md
 
   - Architecture:
