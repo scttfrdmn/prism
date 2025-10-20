@@ -7,6 +7,9 @@
 <p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments made simple</strong></p>
 
 <p align="center">
+  <a href="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/ci.yml/badge.svg">
+  </a>
   <a href="https://github.com/scttfrdmn/cloudworkstation/releases/latest">
     <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/scttfrdmn/cloudworkstation">
   </a>
