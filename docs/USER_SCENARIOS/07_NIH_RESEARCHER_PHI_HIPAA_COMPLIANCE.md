@@ -548,6 +548,8 @@ $ cws compliance report \
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
+> **💡 GUI Note**: HIPAA Security Rule compliance reports with PHI audit trails available in GUI Compliance tab - *coming soon in v0.6.0*
+
 **Medical Center HIPAA Privacy Officer's Reaction**:
 "This is the most comprehensive HIPAA compliance documentation I've reviewed. CloudWorkstation's automated audit trail and evidence collection transformed what typically takes weeks into a 2-hour review. Your research group is now our institutional model for HIPAA-compliant cloud research computing."
 
@@ -568,22 +570,34 @@ $ cws compliance report \
 - Plus $50,000 setup = **$175,000 total**
 - Delays IRB approval by 4-6 months (impacts hiring, enrollment)
 
-### CloudWorkstation Approach (HIPAA-Compliant Cloud)
+### CloudWorkStation Approach (HIPAA-Compliant Cloud)
 
 **Costs**:
 - **Setup**: $0 (self-service with institutional HIPAA profile)
 - **Annual Compliance**: $0 (automated evidence generation, audit trails)
 - **AWS Compute**: ~$350/month for HIPAA-compliant workstation
-  - EC2 instance: $150/month (t3.xlarge, 24x7 for data security)
+  - EC2 instance: $150/month (t3.xlarge with hibernation-aware usage)
   - EBS encrypted storage: $50/month (500 GB PHI data)
   - EFS encrypted storage: $100/month (persistent PHI, 7-year retention)
   - Enhanced CloudTrail logging: $30/month (data events, 7-year retention)
   - VPC Flow Logs: $20/month (network monitoring)
   - Total: ~$4,200/year
 
+**💡 Effective Cost Reality** (CloudWorkstation Enables This!):
+- 24/7 assumption: $150/month × 12 = $1,800/year for compute
+- With hibernation: ~120 hours/month actual usage = $60/month = $720/year
+- **Additional annual savings: $1,080/year** through real-time banking
+- **Revised 5-year total: $16,140** vs $21,000 (24/7 assumption)
+- **Real-time banking**: Every hibernation immediately frees budget
+- **Pay for compute time, not ownership**: No hardware depreciation
+
+**🔑 Why This Matters**:
+CloudWorkStation makes this kind of sophisticated cost control accessible to individual researchers and small labs. The cloud alone doesn't provide this - it typically requires large engineering teams to develop. CloudWorkStation brings enterprise-grade cost management to research!
+
 **Dr. Chen's Share**:
-- $4,200/year × 5 years = $21,000 vs. $175,000 traditional
-- **Savings: $154,000** (can fund 1-2 additional research staff)
+- $16,140 (5 years, actual usage) vs. $175,000 (traditional)
+- **Savings: $158,860** (can fund 1-2 additional research staff)
+- **Budget rollover**: Unused monthly budget carries forward
 - **Time to IRB Approval**: 2 weeks (HIPAA compliance no longer a blocker)
 
 ### Return on Investment
@@ -593,8 +607,9 @@ $ cws compliance report \
 | Metric | Traditional On-Premise | CloudWorkstation | Improvement |
 |--------|------------------------|------------------|-------------|
 | Setup Cost | $50,000 | $0 | $50,000 saved |
-| Annual Cost | $25,000 | $4,200 | $20,800 saved/year |
-| 5-Year Total | $175,000 | $21,000 | **$154,000 saved** |
+| Annual Cost | $25,000 | $3,228 (actual usage) | $21,772 saved/year |
+| 5-Year Total | $175,000 | $16,140 | **$158,860 saved** |
+| Effective Cost | N/A (owned infrastructure) | $0.50/hour (vs $2.50/hour 24/7) | Pay only for compute time! |
 | Time to IRB Approval | 16-24 weeks | 2 weeks | ~18 weeks faster |
 | Compliance Assessment | Manual (160 hours/year) | Automated (4 hours/year) | 156 hours saved/year |
 | PHI Disclosure Tracking | Manual spreadsheets | Automated audit trail | 40 hours saved/year |

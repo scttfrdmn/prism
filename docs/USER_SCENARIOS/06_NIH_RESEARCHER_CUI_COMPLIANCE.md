@@ -423,6 +423,8 @@ cws compliance report \
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
+> **💡 GUI Note**: NIST 800-171 compliance reports with automated evidence generation available in GUI Compliance tab - *coming soon in v0.6.0*
+
 **Dr. Chen's Reaction**:
 "Wait, that's it? I thought this would take weeks of meetings and documentation. CloudWorkstation just... did all of that automatically?"
 
@@ -455,9 +457,16 @@ cws compliance report \
   - Hibernation reduces costs during non-use
   - Total: ~$2,400/year
 
+**💡 Effective Cost Reality**:
+- 24/7 assumption: $2.40/hour × 24 hours × 30 days = $1,728/month
+- Actual usage: ~80 hours/month with hibernation = $192/month ($2,304/year)
+- **Real-time banking**: Every hibernation immediately frees budget for more compute
+- **Pay for compute time, not ownership**: No upfront hardware costs or depreciation
+
 **Dr. Chen's Share**:
-- $2,400/year × 5 years = $12,000 vs. $75,000
-- **Savings: $63,000** (can fund additional research assistant)
+- $2,304/year × 5 years = $11,520 vs. $75,000 (traditional)
+- **Savings: $63,480** (can fund additional research assistant)
+- **Budget rollover**: Unused monthly budget carries forward to next month
 - **Time to Production**: 1 day (launch compliance-ready workstation immediately)
 
 ### Return on Investment
@@ -467,8 +476,9 @@ cws compliance report \
 | Metric | Traditional | CloudWorkstation | Improvement |
 |--------|-------------|------------------|-------------|
 | Setup Cost | $8,000 | $0 | $8,000 saved |
-| Annual Cost | $15,000 | $2,400 | $12,600 saved/year |
-| 5-Year Total | $83,000 | $12,000 | $71,000 saved |
+| Annual Cost | $15,000 | $2,304 (actual usage) | $12,696 saved/year |
+| 5-Year Total | $83,000 | $11,520 | $71,480 saved |
+| Effective Cost | N/A (owned infrastructure) | $0.48/hour (vs $2.40/hour 24/7) | Pay only for compute time! |
 | Time to Production | 8-12 weeks | 1 day | ~10 weeks faster |
 | Compliance Assessment | Manual (weeks) | Automated (minutes) | ~160 hours saved/year |
 | Team Onboarding | IT ticket + 2 weeks | Self-service (1 hour) | ~80 hours saved/person |
