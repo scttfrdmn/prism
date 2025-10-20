@@ -244,6 +244,52 @@ Recommendations:
 **Priority**: High - significantly improves GUI usability and convenience
 **GitHub Issue**: #62
 
+### 13. EC2 Capacity Blocks for ML Support
+**Location**: New module `pkg/aws/capacity_blocks.go`
+**Current Behavior**: No support for reserved GPU capacity blocks
+**Impact**: Researchers can't guarantee GPU availability for scheduled training runs
+**Problem**: Large ML workloads need guaranteed capacity for multi-day training jobs. On-demand launches can fail with InsufficientInstanceCapacity, especially for high-end GPU instances (P5, P4d, Trn1). Capacity Blocks solve this by allowing advance reservation (up to 8 weeks) with guaranteed capacity and discounted pricing.
+**Implementation Needed**:
+- **Phase 1 (v0.7.0)**: Capacity Block Discovery (4-5 days)
+  - API: DescribeCapacityBlockOfferings
+  - CLI: `cws capacity-blocks search` with cost comparison
+  - Search by instance type, count, duration (1-14 days), date range
+- **Phase 2 (v0.7.0)**: Reservation Purchase (3-4 days)
+  - API: PurchaseCapacityBlock (upfront payment, immutable)
+  - CLI: `cws capacity-blocks purchase` with budget integration
+  - State management for reservations
+  - Confirmation dialog with warnings (cannot cancel)
+- **Phase 3 (v0.7.1)**: Scheduled Launch (5-6 days)
+  - Launch instances using capacity reservation ID
+  - Pre-launch validation (time window, capacity availability)
+  - **Scheduling Options**: Daemon-based (simple) or Lambda-based (reliable)
+  - Auto-launch when reservation becomes active
+- **Phase 4 (v0.7.1)**: Management & Monitoring (3-4 days)
+  - List reservations (active, scheduled, past)
+  - Utilization tracking (X/N instances used)
+  - Cost analytics integration
+  - Underutilization warnings
+- **Phase 5 (v0.7.2)**: GUI Integration (4-5 days)
+  - Visual calendar picker for date selection
+  - Reservation dashboard with timeline view
+  - Cost comparison charts
+  - Scheduled launch interface
+**Key Challenges**:
+- **Immutability**: Reservations cannot be modified or canceled after purchase
+- **Upfront Costs**: Full payment charged within 12 hours (budget planning required)
+- **Scheduling**: Reliable auto-launch requires Lambda/EventBridge (daemon-based option for simplicity)
+- **Utilization**: Users must maximize capacity usage to justify cost
+**Technical Details**:
+- Supported: p6-b200, p5, p5e, p5en, p4d, p4de, trn1, trn2 instances
+- Duration: 1-14 days (1-day increments), up to 182 days (7-day increments)
+- Cluster sizes: 1-64 instances (512 GPUs or 1024 Trainium chips)
+- Pricing: Upfront with ~10-20% discount vs on-demand
+- Advance booking: Up to 8 weeks before start date
+**Target Release**: v0.7.0 (Phases 1-2), v0.7.1 (Phases 3-4), v0.7.2 (Phase 5)
+**Effort**: Large (19-24 days total across 5 phases)
+**Priority**: Medium - valuable for large ML workloads, institutional deployments
+**GitHub Issue**: #63
+
 ---
 
 ## Medium Priority Items
@@ -373,11 +419,18 @@ Recommendations:
 - Item #11: Auto-Update Feature (Phase 2: Assisted Update)
 - Item #12: GUI System Tray (Phase 3: Advanced Features)
 
-**v0.7.0 (Q3 2026)**: Advanced UI Features
+**v0.7.0 (Q3 2026)**: Advanced UI Features & GPU Scheduling
 - Item #3: Multi-User Authentication System (Phase 2)
 - Item #9: TUI Project Creation Dialog
 - Item #10: TUI Budget Creation Dialog
 - Item #11: Auto-Update Feature (Phase 3: Background Updates)
+- Item #13: EC2 Capacity Blocks for ML (Phases 1-2: Discovery & Reservation)
+
+**v0.7.1 (Q3 2026)**: Capacity Block Scheduling & Management
+- Item #13: EC2 Capacity Blocks for ML (Phases 3-4: Scheduled Launch & Management)
+
+**v0.7.2 (Q4 2026)**: GUI Enhancements
+- Item #13: EC2 Capacity Blocks for ML (Phase 5: GUI Integration)
 
 **v0.8.0 (Q4 2026)**: Code Cleanup & Modernization
 - Item #4: Cobra Flag System Integration
@@ -386,13 +439,13 @@ Recommendations:
 
 ## Tracking Metrics
 
-- **Total Items**: 13 (added 2 new UX features)
+- **Total Items**: 14 (added Capacity Blocks for ML)
 - **Completed**: 2 items (SSH Readiness Progress, IAM Instance Profile Validation)
-- **Remaining**: 11 items
+- **Remaining**: 12 items
 - **High Priority**: 4 items (AWS Quota Management, Multi-User Auth, Auto-Update, GUI System Tray)
-- **Medium Priority**: 4 items
+- **Medium Priority**: 5 items (includes Capacity Blocks for ML)
 - **Low Priority**: 3 items
-- **Estimated Remaining Effort**: 12-14 weeks of development time (added 4 weeks for new features)
+- **Estimated Remaining Effort**: 16-18 weeks of development time (added 4 weeks for Capacity Blocks)
 
 ---
 
