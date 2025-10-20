@@ -59,9 +59,17 @@ cws profiles invitations batch-create \
 **Current capabilities**:
 - ✅ Batch invitation generation (60 participants in seconds)
 - ✅ Time-boxed access (7-day expiration)
+- ✅ **Access extension**: Can extend for additional day(s) so participants can continue working
 - ✅ Device binding (prevents casual sharing)
 - ✅ Budget allocation ($200 total)
 - ✅ Basic policy restrictions (template whitelist)
+
+💡 **Workshop Extension Example**: After 3-hour workshop ends, Alex can extend access for 24 hours:
+```bash
+cws profiles invitations extend neurips-workshop --add-days 1
+# All 60 participants get automatic 24-hour extension
+# Great for: Homework completion, extended tutorials, follow-up work
+```
 
 ### ✅ Day Before Workshop (Early Access Testing)
 
