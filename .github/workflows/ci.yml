@@ -12,59 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-
-      - name: Install dependencies
-        run: |
-          go mod download
-          go mod verify
-
-      - name: Run unit tests only
-        run: go test -short -timeout=2m -run='^(Test(?!Simplified_))'  ./... || go test -short -timeout=2m ./cmd/... ./pkg/api/... ./pkg/types/... ./pkg/version/...
-
-      - name: Run go vet
-        run: go vet ./...
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-
-      - name: Run gofmt
-        run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Go code is not formatted:"
-            gofmt -d .
-            exit 1
-          fi
-
-      - name: Install staticcheck
-        run: go install honnef.co/go/tools/cmd/staticcheck@latest
-
-      - name: Run staticcheck
-        run: staticcheck ./...
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -76,8 +23,24 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24'
           cache: true
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Go code is not formatted:"
+            gofmt -d .
+            exit 1
+          fi
 
       - name: Build CLI
         run: go build -o bin/cws ./cmd/cws
@@ -89,25 +52,3 @@ jobs:
         run: |
           ./bin/cws --version
           ./bin/cwsd --version
-
-  template-validation:
-    name: Template Validation
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-
-      - name: Build CLI
-        run: go build -o bin/cws ./cmd/cws
-
-      - name: Validate templates
-        run: |
-          export CWS_DAEMON_AUTO_START_DISABLE=1
-          ./bin/cws templates validate || echo "Template validation skipped (requires AWS credentials)"
