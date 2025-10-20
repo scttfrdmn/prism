@@ -84,19 +84,34 @@
 </span><span id=__span-5-12><a id=__codelineno-5-12 name=__codelineno-5-12 href=#__codelineno-5-12></a><span class=c1># James works for 4 hours, then stops</span>
 </span><span id=__span-5-13><a id=__codelineno-5-13 name=__codelineno-5-13 href=#__codelineno-5-13></a>cws<span class=w> </span>stop<span class=w> </span>rnaseq-sample-42
 </span><span id=__span-5-14><a id=__codelineno-5-14 name=__codelineno-5-14 href=#__codelineno-5-14></a>
-</span><span id=__span-5-15><a id=__codelineno-5-15 name=__codelineno-5-15 href=#__codelineno-5-15></a><span class=c1># Cost tracking automatically updated</span>
-</span><span id=__span-5-16><a id=__codelineno-5-16 name=__codelineno-5-16 href=#__codelineno-5-16></a>cws<span class=w> </span>project<span class=w> </span>cost<span class=w> </span>show<span class=w> </span><span class=s2>&quot;NIH-R01-2023&quot;</span>
-</span><span id=__span-5-17><a id=__codelineno-5-17 name=__codelineno-5-17 href=#__codelineno-5-17></a>
-</span><span id=__span-5-18><a id=__codelineno-5-18 name=__codelineno-5-18 href=#__codelineno-5-18></a><span class=c1># Output:</span>
-</span><span id=__span-5-19><a id=__codelineno-5-19 name=__codelineno-5-19 href=#__codelineno-5-19></a><span class=c1># 💰 Project: NIH-R01-2023 Budget Status</span>
-</span><span id=__span-5-20><a id=__codelineno-5-20 name=__codelineno-5-20 href=#__codelineno-5-20></a><span class=c1>#    Monthly budget: $2,000.00</span>
-</span><span id=__span-5-21><a id=__codelineno-5-21 name=__codelineno-5-21 href=#__codelineno-5-21></a><span class=c1>#    Current spend: $1,245.80 (62%)</span>
-</span><span id=__span-5-22><a id=__codelineno-5-22 name=__codelineno-5-22 href=#__codelineno-5-22></a><span class=c1>#</span>
-</span><span id=__span-5-23><a id=__codelineno-5-23 name=__codelineno-5-23 href=#__codelineno-5-23></a><span class=c1>#    By member:</span>
-</span><span id=__span-5-24><a id=__codelineno-5-24 name=__codelineno-5-24 href=#__codelineno-5-24></a><span class=c1>#    - michael.torres: $720.50 / $800.00 (90%)</span>
-</span><span id=__span-5-25><a id=__codelineno-5-25 name=__codelineno-5-25 href=#__codelineno-5-25></a><span class=c1>#    - james.wilson: $245.30 / $400.00 (61%)</span>
-</span><span id=__span-5-26><a id=__codelineno-5-26 name=__codelineno-5-26 href=#__codelineno-5-26></a><span class=c1>#    - Shared resources: $280.00 / $800.00 (35%)</span>
-</span></code></pre></div> <h4 id=scenario-lab-manager-monitors-usage>Scenario: Lab Manager Monitors Usage<a class=headerlink href=#scenario-lab-manager-monitors-usage title="Permanent link">&para;</a></h4> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># Dr. Torres checks overall lab status</span>
+</span><span id=__span-5-15><a id=__codelineno-5-15 name=__codelineno-5-15 href=#__codelineno-5-15></a><span class=c1># ✅ Instance stopped - charges cease immediately</span>
+</span><span id=__span-5-16><a id=__codelineno-5-16 name=__codelineno-5-16 href=#__codelineno-5-16></a><span class=c1># 💰 Real-time budget update: $9.60 &quot;banked&quot; back to available budget</span>
+</span><span id=__span-5-17><a id=__codelineno-5-17 name=__codelineno-5-17 href=#__codelineno-5-17></a><span class=c1>#    (Would have cost $57.60 for 24 hours, you paid $9.60 for 4 hours)</span>
+</span><span id=__span-5-18><a id=__codelineno-5-18 name=__codelineno-5-18 href=#__codelineno-5-18></a><span class=c1>#    The $48 you DIDN&#39;T spend is now available for other lab members!</span>
+</span><span id=__span-5-19><a id=__codelineno-5-19 name=__codelineno-5-19 href=#__codelineno-5-19></a>
+</span><span id=__span-5-20><a id=__codelineno-5-20 name=__codelineno-5-20 href=#__codelineno-5-20></a><span class=c1># Cost tracking automatically updated</span>
+</span><span id=__span-5-21><a id=__codelineno-5-21 name=__codelineno-5-21 href=#__codelineno-5-21></a>cws<span class=w> </span>project<span class=w> </span>cost<span class=w> </span>show<span class=w> </span><span class=s2>&quot;NIH-R01-2023&quot;</span>
+</span><span id=__span-5-22><a id=__codelineno-5-22 name=__codelineno-5-22 href=#__codelineno-5-22></a>
+</span><span id=__span-5-23><a id=__codelineno-5-23 name=__codelineno-5-23 href=#__codelineno-5-23></a><span class=c1># Output:</span>
+</span><span id=__span-5-24><a id=__codelineno-5-24 name=__codelineno-5-24 href=#__codelineno-5-24></a><span class=c1># 💰 Project: NIH-R01-2023 Budget Status</span>
+</span><span id=__span-5-25><a id=__codelineno-5-25 name=__codelineno-5-25 href=#__codelineno-5-25></a><span class=c1>#    Monthly budget: $2,000.00</span>
+</span><span id=__span-5-26><a id=__codelineno-5-26 name=__codelineno-5-26 href=#__codelineno-5-26></a><span class=c1>#    Current spend: $1,245.80 (62%)</span>
+</span><span id=__span-5-27><a id=__codelineno-5-27 name=__codelineno-5-27 href=#__codelineno-5-27></a><span class=c1>#    Available for new launches: $754.20 + $1,890 banked savings</span>
+</span><span id=__span-5-28><a id=__codelineno-5-28 name=__codelineno-5-28 href=#__codelineno-5-28></a><span class=c1>#</span>
+</span><span id=__span-5-29><a id=__codelineno-5-29 name=__codelineno-5-29 href=#__codelineno-5-29></a><span class=c1>#    💡 Effective Cost: $2.10/hour avg (vs $4.80/hour 24/7 assumption)</span>
+</span><span id=__span-5-30><a id=__codelineno-5-30 name=__codelineno-5-30 href=#__codelineno-5-30></a><span class=c1>#       Hibernation/stop savings across all instances: $1,890 this month!</span>
+</span><span id=__span-5-31><a id=__codelineno-5-31 name=__codelineno-5-31 href=#__codelineno-5-31></a><span class=c1>#       This is REAL MONEY you can spend on more compute!</span>
+</span><span id=__span-5-32><a id=__codelineno-5-32 name=__codelineno-5-32 href=#__codelineno-5-32></a><span class=c1>#</span>
+</span><span id=__span-5-33><a id=__codelineno-5-33 name=__codelineno-5-33 href=#__codelineno-5-33></a><span class=c1>#    By member:</span>
+</span><span id=__span-5-34><a id=__codelineno-5-34 name=__codelineno-5-34 href=#__codelineno-5-34></a><span class=c1>#    - michael.torres: $720.50 / $800.00 (90%) - 343 compute hours</span>
+</span><span id=__span-5-35><a id=__codelineno-5-35 name=__codelineno-5-35 href=#__codelineno-5-35></a><span class=c1>#    - james.wilson: $245.30 / $400.00 (61%) - 123 compute hours</span>
+</span><span id=__span-5-36><a id=__codelineno-5-36 name=__codelineno-5-36 href=#__codelineno-5-36></a><span class=c1>#    - Shared resources: $280.00 / $800.00 (35%) - 140 compute hours</span>
+</span><span id=__span-5-37><a id=__codelineno-5-37 name=__codelineno-5-37 href=#__codelineno-5-37></a><span class=c1>#</span>
+</span><span id=__span-5-38><a id=__codelineno-5-38 name=__codelineno-5-38 href=#__codelineno-5-38></a><span class=c1># 💡 Cloud vs Owned Hardware Reality:</span>
+</span><span id=__span-5-39><a id=__codelineno-5-39 name=__codelineno-5-39 href=#__codelineno-5-39></a><span class=c1>#    Owned workstation: $5,000 upfront + depreciation whether used or not</span>
+</span><span id=__span-5-40><a id=__codelineno-5-40 name=__codelineno-5-40 href=#__codelineno-5-40></a><span class=c1>#    CloudWorkstation: Pay $1,245 for 606 actual compute hours</span>
+</span><span id=__span-5-41><a id=__codelineno-5-41 name=__codelineno-5-41 href=#__codelineno-5-41></a><span class=c1>#    Every hibernation/stop IMMEDIATELY increases available budget!</span>
+</span></code></pre></div> <blockquote> <p><strong>💡 GUI Note</strong>: Project cost tracking available in GUI Projects tab with visual breakdown - <em>coming soon in v0.6.0</em></p> </blockquote> <h4 id=scenario-lab-manager-monitors-usage>Scenario: Lab Manager Monitors Usage<a class=headerlink href=#scenario-lab-manager-monitors-usage title="Permanent link">&para;</a></h4> <div class="language-bash highlight"><pre><span></span><code><span id=__span-6-1><a id=__codelineno-6-1 name=__codelineno-6-1 href=#__codelineno-6-1></a><span class=c1># Dr. Torres checks overall lab status</span>
 </span><span id=__span-6-2><a id=__codelineno-6-2 name=__codelineno-6-2 href=#__codelineno-6-2></a>cws<span class=w> </span>project<span class=w> </span>list<span class=w> </span>--tree
 </span><span id=__span-6-3><a id=__codelineno-6-3 name=__codelineno-6-3 href=#__codelineno-6-3></a>
 </span><span id=__span-6-4><a id=__codelineno-6-4 name=__codelineno-6-4 href=#__codelineno-6-4></a><span class=c1># Output:</span>
@@ -111,7 +126,12 @@
 </span><span id=__span-6-13><a id=__codelineno-6-13 name=__codelineno-6-13 href=#__codelineno-6-13></a><span class=c1># └── Discretionary: $50 / $1,000 (5%) ✅</span>
 </span><span id=__span-6-14><a id=__codelineno-6-14 name=__codelineno-6-14 href=#__codelineno-6-14></a><span class=c1>#</span>
 </span><span id=__span-6-15><a id=__codelineno-6-15 name=__codelineno-6-15 href=#__codelineno-6-15></a><span class=c1># Total: $2,275 / $4,500 (51%) ✅</span>
-</span></code></pre></div> <hr> <h2 id=current-pain-points-what-doesnt-work>⚠️ Current Pain Points: What Doesn't Work<a class=headerlink href=#current-pain-points-what-doesnt-work title="Permanent link">&para;</a></h2> <h3 id=problem-1-no-sub-budget-hierarchy>❌ Problem 1: No Sub-Budget Hierarchy<a class=headerlink href=#problem-1-no-sub-budget-hierarchy title="Permanent link">&para;</a></h3> <p><strong>Scenario</strong>: Dr. Park wants to allocate her $800 between her own work and grad student Maria</p> <p><strong>What should work</strong> (MISSING): <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># Dr. Park creates sub-budgets from her allocation</span>
+</span><span id=__span-6-16><a id=__codelineno-6-16 name=__codelineno-6-16 href=#__codelineno-6-16></a><span class=c1># Rollover from last month: $225 (from NIH-R01-2023 underspend)</span>
+</span><span id=__span-6-17><a id=__codelineno-6-17 name=__codelineno-6-17 href=#__codelineno-6-17></a><span class=c1># Next month budget: $4,725</span>
+</span><span id=__span-6-18><a id=__codelineno-6-18 name=__codelineno-6-18 href=#__codelineno-6-18></a><span class=c1>#</span>
+</span><span id=__span-6-19><a id=__codelineno-6-19 name=__codelineno-6-19 href=#__codelineno-6-19></a><span class=c1># 💡 Effective Lab Cost: $2.10/hour (vs $5.50/hour 24/7 assumption)</span>
+</span><span id=__span-6-20><a id=__codelineno-6-20 name=__codelineno-6-20 href=#__codelineno-6-20></a><span class=c1>#    Lab is paying for 1,083 compute hours, not 8,760 hours/month!</span>
+</span></code></pre></div> <blockquote> <p><strong>💡 GUI Note</strong>: Project tree view available in GUI Projects tab - <em>coming soon in v0.6.0</em></p> </blockquote> <hr> <h2 id=current-pain-points-what-doesnt-work>⚠️ Current Pain Points: What Doesn't Work<a class=headerlink href=#current-pain-points-what-doesnt-work title="Permanent link">&para;</a></h2> <h3 id=problem-1-no-sub-budget-hierarchy>❌ Problem 1: No Sub-Budget Hierarchy<a class=headerlink href=#problem-1-no-sub-budget-hierarchy title="Permanent link">&para;</a></h3> <p><strong>Scenario</strong>: Dr. Park wants to allocate her $800 between her own work and grad student Maria</p> <p><strong>What should work</strong> (MISSING): <div class="language-bash highlight"><pre><span></span><code><span id=__span-7-1><a id=__codelineno-7-1 name=__codelineno-7-1 href=#__codelineno-7-1></a><span class=c1># Dr. Park creates sub-budgets from her allocation</span>
 </span><span id=__span-7-2><a id=__codelineno-7-2 name=__codelineno-7-2 href=#__codelineno-7-2></a>cws<span class=w> </span>project<span class=w> </span>budget<span class=w> </span>allocate<span class=w> </span><span class=s2>&quot;NSF-2024-ML&quot;</span><span class=w> </span><span class=se>\</span>
 </span><span id=__span-7-3><a id=__codelineno-7-3 name=__codelineno-7-3 href=#__codelineno-7-3></a><span class=w>  </span>--member<span class=w> </span>lisa.park<span class=w> </span><span class=se>\</span>
 </span><span id=__span-7-4><a id=__codelineno-7-4 name=__codelineno-7-4 href=#__codelineno-7-4></a><span class=w>  </span>--subdivide<span class=w> </span><span class=se>\</span>
