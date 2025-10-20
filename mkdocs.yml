@@ -173,9 +173,16 @@ nav:
     - International Support: architecture/INTERNATIONAL_SUPPORT_ROADMAP.md
     - UX Evaluation: architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md
 
-  - Planned Features:
-    - Directory Sync: archive/planning/DIRECTORY_SYNC_PLANNING.md
-    - Configuration Sync: archive/planning/CONFIG_SYNC_PLANNING.md
+  - Roadmap & Planning:
+    - Development Roadmap: ROADMAP.md
+    - Planned Features:
+      - Auto-Update System: https://github.com/scttfrdmn/cloudworkstation/issues/61
+      - GUI System Tray & Auto-Start: https://github.com/scttfrdmn/cloudworkstation/issues/62
+      - EC2 Capacity Blocks for ML: https://github.com/scttfrdmn/cloudworkstation/issues/63
+      - AWS Quota Management: https://github.com/scttfrdmn/cloudworkstation/issues/57
+      - Directory Sync: archive/planning/DIRECTORY_SYNC_PLANNING.md
+      - Configuration Sync: archive/planning/CONFIG_SYNC_PLANNING.md
+    - Technical Debt Backlog: archive/roadmap/TECHNICAL_DEBT_BACKLOG.md
 
   - Development:
     - Development Setup: development/DEVELOPMENT_SETUP.md
