@@ -259,7 +259,16 @@ cws admin billing report --month 2025-10 \
   --format csv \
   --group-by department \
   --output /shared/finance/cloudworkstation-2025-10.csv
+
+# Report includes:
+# - Total spend per department
+# - Effective cost per hour (actual usage vs 24/7 assumption)
+# - Hibernation savings (real-time banking tracked)
+# - Budget rollover per project
+# - Chargeback amounts by chartstring
 ```
+
+> **💡 GUI Note**: Institutional billing reports with department chargeback available in GUI Admin Console - *coming soon in v0.6.0*
 
 **Month 3: Training & Documentation**
 
@@ -525,11 +534,20 @@ Audit Summary:
 ✅ 100% encryption compliance
 ✅ 0 unauthorized data transfers
 
+Cost Efficiency (Q3 2025):
+💰 Total spend: $187,450
+💰 Effective cost: $1.82/hour avg (vs $4.20/hour 24/7 assumption)
+💰 Hibernation savings: $315,680 (real-time banking across all projects)
+💰 Budget rollover: $42,550 carried forward to Q4
+💡 CloudWorkStation enables this institution-wide cost control!
+
 Risk Findings:
 ⚠️  12 projects approaching budget limits (notifications sent)
 ⚠️  3 instances running >30 days (hibernation recommended)
 ✅ All findings within acceptable parameters
 ```
+
+> **💡 GUI Note**: Institutional audit reports with cost efficiency tracking available in GUI Admin Console - *coming soon in v0.6.0*
 
 ### Template Reuse
 
@@ -735,11 +753,15 @@ cws admin compliance report \
 
 # Generated report includes:
 # - All compute resources used
-# - Cost allocation by task
+# - Cost allocation by task (with effective cost per hour)
+# - Hibernation savings and budget rollover
+# - Real-time banking impact on grant spending
 # - Data storage locations
 # - Security compliance status
 # - Export control verification
 ```
+
+> **💡 GUI Note**: NSF/NIH grant compliance reports with cost efficiency metrics available in GUI Admin Console - *coming soon in v0.6.0*
 
 **Template Marketplace Curation**:
 ```bash
