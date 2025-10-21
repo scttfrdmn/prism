@@ -1,9 +1,133 @@
 # Technical Debt and Enhancement Backlog
 
-**Last Updated**: October 17, 2025
+**Last Updated**: October 20, 2025
 **Status**: Active tracking of deferred implementations
 
 This document tracks features that were intentionally deferred during development, marked as design decisions rather than immediate TODO items. These represent real work that should be scheduled for future releases.
+
+---
+
+## 🎯 Current Focus: v0.5.6 UX Redesign (Q4 2025 - Q1 2026)
+
+### Phase 5.0.1: Quick Wins (2 weeks - Due: November 15, 2025)
+**Milestone**: [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2)
+
+#### 🏠 #13: Home Page with Quick Start Wizard
+**Location**: `cmd/cws-gui/frontend/src/` (new HomePage component)
+**Priority**: Critical
+**Effort**: 3-4 days
+**Implementation**:
+- Create HomePage.tsx with context-aware landing page
+- New user view: Quick Start buttons, educational content
+- Returning user view: Recent workspaces, recommendations, quick stats
+- Integration points: Dashboard navigation, first-run detection
+
+#### 🔀 #14: Merge Terminal/WebView into Workspaces
+**Location**: `cmd/cws-gui/frontend/src/`, TUI navigation, CLI help
+**Priority**: Critical
+**Effort**: 2-3 days
+**Implementation**:
+- Move Terminal/WebView from top-level nav to contextual actions in Workspaces
+- GUI: Add "Open Terminal" / "Open Web UI" buttons to workspace action dropdown
+- TUI: Remove pages 4-5, add actions to instance detail view
+- Update navigation: 14 items → 12 items (step toward 6)
+
+#### 📝 #15: Rename "Instances" → "Workspaces"
+**Location**: All interfaces (CLI/TUI/GUI), docs, code comments
+**Priority**: Critical
+**Effort**: 4-5 days (requires comprehensive rename across codebase)
+**Implementation**:
+- Code: Update all user-facing strings, preserve internal "instance" in API/types
+- GUI: Navigation item, page titles, dialogs, help text
+- TUI: Page headers, help text, status messages
+- CLI: Command help text, output formatting, error messages
+- Docs: Update all user-facing documentation (ROADMAP, USER_GUIDE, etc.)
+
+#### ⚙️ #16: Collapse Advanced Features Under Settings
+**Location**: `cmd/cws-gui/frontend/src/App.tsx` navigation
+**Priority**: Critical
+**Effort**: 2-3 days
+**Implementation**:
+- Move AMI, Rightsizing, Policy, Idle Detection, Logs under Settings → Advanced
+- Create Settings submenu structure
+- Update navigation: 12 items → 7 items (Settings + 6 collapsed items)
+- Role-based visibility: Hide admin features from non-admin users
+
+#### 🚀 #17: `cws init` Onboarding Wizard
+**Location**: `internal/cli/` (new init command)
+**Priority**: Critical
+**Effort**: 3-4 days
+**Implementation**:
+- Interactive wizard: AWS profile detection, first workspace launch, budget setup
+- Template recommendations based on use case (data analysis, ML, statistics)
+- Profile creation/selection with validation
+- Success message with next steps
+
+**Phase 5.0.1 Total Effort**: 14-19 days
+
+### Phase 5.0.2: Information Architecture (4 weeks - Due: December 15, 2025)
+**Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3)
+
+#### 💾 #18: Unified Storage UI (EFS + EBS)
+**Location**: `cmd/cws-gui/frontend/src/pages/Storage.tsx`
+**Priority**: High
+**Effort**: 5-6 days
+**Implementation**:
+- Single unified storage page with tabbed interface (EFS Volumes | EBS Volumes)
+- Consistent operations: Create, Attach, Detach, Delete for both types
+- Clear visual distinction: Shared (EFS) vs Dedicated (EBS)
+- Merge `volume` and `storage` CLI commands into `cws storage`
+
+#### 💰 #19: Integrate Budgets into Projects
+**Location**: `cmd/cws-gui/frontend/src/pages/Projects.tsx`, Budget page removal
+**Priority**: High
+**Effort**: 4-5 days
+**Implementation**:
+- Remove standalone Budget navigation item
+- Add Budget tab to Project detail view
+- Show budget in project list table as additional column
+- Update CLI: Budget operations under `cws project budget`
+- Navigation: 7 items → 6 items (final target)
+
+**Phase 5.0.2 Total Effort**: 9-11 days
+
+### Phase 5.0.3: CLI Consistency (2 weeks - Due: December 31, 2025)
+**Milestone**: [#4](https://github.com/scttfrdmn/cloudworkstation/milestone/4)
+
+#### ⌨️ #20: Consistent CLI Command Structure
+**Location**: `internal/cli/app.go`, all command files
+**Priority**: High
+**Effort**: 8-10 days
+**Implementation**:
+- Unified storage commands: `cws storage create/attach/detach/list/delete`
+- Consistent workspace operations: `cws workspace start/stop/hibernate/resize`
+- Predictable patterns: `cws <noun> <verb> <target> [options]`
+- Enhanced tab completion with hierarchical structure
+- Backward compatibility aliases for deprecated commands
+
+**Phase 5.0.3 Total Effort**: 8-10 days
+
+### Template Provisioning Enhancements (Parallel to Phase 5.0)
+**Milestone**: [#13](https://github.com/scttfrdmn/cloudworkstation/milestone/13)
+
+#### 📦 #30: SSM File Operations for Large File Transfer
+**Location**: `pkg/aws/ssm_transfer.go` (new)
+**Priority**: Medium
+**Effort**: 5-6 days
+
+#### ☁️ #64: S3-Backed File Transfer with Progress Reporting
+**Location**: `pkg/storage/s3_transfer.go` (new)
+**Priority**: Medium
+**Effort**: 6-7 days
+
+#### 🗂️ #31: Template Asset Management System
+**Location**: `pkg/templates/assets.go` (new)
+**Priority**: Medium
+**Effort**: 4-5 days
+
+**Template Provisioning Total Effort**: 15-18 days
+
+**v0.5.6 Total Estimated Effort**: 46-58 days (9-12 weeks with parallel development)
 
 ---
 

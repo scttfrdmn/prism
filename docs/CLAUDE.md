@@ -96,22 +96,51 @@ Simple by default, detailed when needed. Power users can access advanced feature
 
 ### Current Priority: Phase 5.0 UX Redesign
 
-**Status**: 🟡 PLANNING (v0.5.6 - Q4 2025)
+**Status**: 🟡 IN PROGRESS (v0.5.6 - Q4 2025 / Q1 2026)
 **Priority**: 🔴 **CRITICAL - HIGHEST PRIORITY**
 
 **Why This is Priority #1**:
 - Current: 15-minute learning curve for first workspace (should be 30 seconds)
 - Problem: 14 flat navigation items, advanced features too prominent
 - Impact: New researchers face cognitive overload before basic tasks
-- **Track progress**: [GitHub Milestone](https://github.com/scttfrdmn/cloudworkstation/milestone/1)
+- **Track progress**: [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones)
 - **See UX analysis**: [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 
-**Quick Wins** (tracked as [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues?q=is%3Aissue+milestone%3A%22Phase+5.0.1%3A+Quick+Wins%22)):
-- Home Page with Quick Start wizard
-- Merge Terminal/WebView into Workspaces
-- Rename "Instances" → "Workspaces"
-- Collapse Advanced Features under Settings
-- Add `cws init` onboarding wizard
+#### Phase 5.0.1: Quick Wins (Due: November 15, 2025)
+**Milestone**: [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | **Status**: 🟡 In Progress
+
+High-impact, low-effort improvements (2 weeks):
+- [#13](https://github.com/scttfrdmn/cloudworkstation/issues/13) - Home Page with Quick Start wizard
+- [#14](https://github.com/scttfrdmn/cloudworkstation/issues/14) - Merge Terminal/WebView into Workspaces
+- [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15) - Rename "Instances" → "Workspaces"
+- [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16) - Collapse Advanced Features under Settings
+- [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) - Add `cws init` onboarding wizard
+
+#### Phase 5.0.2: Information Architecture (Due: December 15, 2025)
+**Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | **Status**: 📋 Planned
+
+Navigation and structural improvements (4 weeks):
+- [#18](https://github.com/scttfrdmn/cloudworkstation/issues/18) - Unified Storage UI (EFS + EBS)
+- [#19](https://github.com/scttfrdmn/cloudworkstation/issues/19) - Integrate Budgets into Projects
+- Navigation reorganization (14 → 6 items)
+- Role-based visibility (hide admin features)
+
+#### Phase 5.0.3: CLI Consistency (Due: December 31, 2025)
+**Milestone**: [#4](https://github.com/scttfrdmn/cloudworkstation/milestone/4) | **Status**: 📋 Planned
+
+Command structure improvements (2 weeks):
+- [#20](https://github.com/scttfrdmn/cloudworkstation/issues/20) - Consistent CLI Command Structure
+- Unified storage commands (`cws storage`)
+- Predictable command patterns
+- Enhanced tab completion
+
+#### Template Provisioning Enhancements (Also in v0.5.6)
+**Milestone**: [#13](https://github.com/scttfrdmn/cloudworkstation/milestone/13) | **Status**: 📋 Planned
+
+Advanced provisioning capabilities:
+- [#30](https://github.com/scttfrdmn/cloudworkstation/issues/30) - SSM File Operations for Large Files
+- [#64](https://github.com/scttfrdmn/cloudworkstation/issues/64) - S3-Backed File Transfer with Progress
+- [#31](https://github.com/scttfrdmn/cloudworkstation/issues/31) - Template Asset Management
 
 ---
 
