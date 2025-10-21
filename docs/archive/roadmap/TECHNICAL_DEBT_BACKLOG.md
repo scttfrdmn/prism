@@ -64,7 +64,7 @@ This document tracks features that were intentionally deferred during developmen
 - Success message with next steps
 
 #### 🏷️ #65: Rename Project: CloudWorkStation → CloudWorkspaces
-**Location**: Entire codebase, documentation, GitHub repository
+**Location**: Entire codebase, documentation, GitHub repository, domain
 **Priority**: High
 **Effort**: 4-5 days
 **Implementation**:
@@ -75,8 +75,12 @@ This document tracks features that were intentionally deferred during developmen
 - **Documentation**: Update all markdown files, mkdocs.yml, links
 - **Binary Names**: Keep `cws`, `cwsd`, `cws-gui` (abbreviation works for both!)
 - **GitHub**: Rename repository (redirects handled automatically)
-- **Testing**: Verify migration path, all interfaces, documentation links
+- **Domain Migration**: ✅ cloudworkspaces.io acquired! Update mkdocs.yml, docs/CNAME
+- **DNS Setup**: Point cloudworkspaces.io to GitHub Pages, configure SSL
+- **Old Domain**: Set up 301 redirect from cloudworkstation.io → cloudworkspaces.io (6-12 months)
+- **Testing**: Verify migration path, all interfaces, documentation links, domain
 **Rationale**: Aligns with "Instances → Workspaces" terminology change, better describes product
+**Bonus**: Complete branding consistency with cloudworkspaces.io domain
 
 **Phase 5.0.1 Total Effort**: 18-24 days
 
