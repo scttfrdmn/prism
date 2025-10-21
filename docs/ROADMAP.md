@@ -24,6 +24,7 @@ High-impact, low-effort improvements:
 - [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15) - Rename "Instances" → "Workspaces"
 - [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16) - Collapse Advanced Features under Settings
 - [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) - Add `cws init` onboarding wizard
+- [#65](https://github.com/scttfrdmn/cloudworkstation/issues/65) - **Rename project: CloudWorkStation → CloudWorkspaces**
 
 ### Phase 5.0.2: Information Architecture (4 weeks - Due: December 15, 2025)
 **Milestone**: [Phase 5.0.2: Information Architecture](https://github.com/scttfrdmn/cloudworkstation/milestone/3)
@@ -281,12 +282,13 @@ Reliable auto-launch requires daemon to be running OR AWS Lambda function:
 
 | Feature | Status | Milestone | Issues |
 |---------|--------|-----------|--------|
-| **Phase 5.0.1: Quick Wins** | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#13](https://github.com/scttfrdmn/cloudworkstation/issues/13), [#14](https://github.com/scttfrdmn/cloudworkstation/issues/14), [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15), [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16), [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) |
+| **Phase 5.0.1: Quick Wins** | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#13](https://github.com/scttfrdmn/cloudworkstation/issues/13), [#14](https://github.com/scttfrdmn/cloudworkstation/issues/14), [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15), [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16), [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17), [#65](https://github.com/scttfrdmn/cloudworkstation/issues/65) |
 | Home Page + Quick Start | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#13](https://github.com/scttfrdmn/cloudworkstation/issues/13) |
 | Merge Terminal/WebView | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#14](https://github.com/scttfrdmn/cloudworkstation/issues/14) |
 | Rename to "Workspaces" | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15) |
 | Collapse Advanced Features | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16) |
 | `cws init` Wizard | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) |
+| **Rename Project to CloudWorkspaces** | 🟡 In Progress | [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [#65](https://github.com/scttfrdmn/cloudworkstation/issues/65) |
 | **Phase 5.0.2: Info Architecture** | 📋 Planned | [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | [#18](https://github.com/scttfrdmn/cloudworkstation/issues/18), [#19](https://github.com/scttfrdmn/cloudworkstation/issues/19) |
 | Unified Storage UI | 📋 Planned | [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | [#18](https://github.com/scttfrdmn/cloudworkstation/issues/18) |
 | Integrate Budgets into Projects | 📋 Planned | [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | [#19](https://github.com/scttfrdmn/cloudworkstation/issues/19) |

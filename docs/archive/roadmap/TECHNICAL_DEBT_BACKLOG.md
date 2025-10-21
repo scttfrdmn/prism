@@ -63,7 +63,22 @@ This document tracks features that were intentionally deferred during developmen
 - Profile creation/selection with validation
 - Success message with next steps
 
-**Phase 5.0.1 Total Effort**: 14-19 days
+#### 🏷️ #65: Rename Project: CloudWorkStation → CloudWorkspaces
+**Location**: Entire codebase, documentation, GitHub repository
+**Priority**: High
+**Effort**: 4-5 days
+**Implementation**:
+- **Go Module**: Update module path from `github.com/scttfrdmn/cloudworkstation` to `cloudworkspaces`
+- **All Imports**: Update ~100+ import statements across all `.go` files
+- **State Migration**: Add code to move `~/.cloudworkstation` → `~/.cloudworkspaces` automatically
+- **User-Facing Text**: Update all CLI/TUI/GUI strings, help text, error messages
+- **Documentation**: Update all markdown files, mkdocs.yml, links
+- **Binary Names**: Keep `cws`, `cwsd`, `cws-gui` (abbreviation works for both!)
+- **GitHub**: Rename repository (redirects handled automatically)
+- **Testing**: Verify migration path, all interfaces, documentation links
+**Rationale**: Aligns with "Instances → Workspaces" terminology change, better describes product
+
+**Phase 5.0.1 Total Effort**: 18-24 days
 
 ### Phase 5.0.2: Information Architecture (4 weeks - Due: December 15, 2025)
 **Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3)
@@ -127,7 +142,7 @@ This document tracks features that were intentionally deferred during developmen
 
 **Template Provisioning Total Effort**: 15-18 days
 
-**v0.5.6 Total Estimated Effort**: 46-58 days (9-12 weeks with parallel development)
+**v0.5.6 Total Estimated Effort**: 50-63 days (10-13 weeks with parallel development)
 
 ---
 
