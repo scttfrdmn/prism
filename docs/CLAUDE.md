@@ -115,7 +115,8 @@ High-impact, low-effort improvements (2 weeks):
 - [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15) - Rename "Instances" → "Workspaces"
 - [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16) - Collapse Advanced Features under Settings
 - [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) - Add `cws init` onboarding wizard
-- [#65](https://github.com/scttfrdmn/cloudworkstation/issues/65) - **Rename project: CloudWorkStation → CloudWorkspaces**
+
+**Deferred**: ~~[#65](https://github.com/scttfrdmn/cloudworkstation/issues/65) - Project rename~~ *(final name TBD)*
 
 #### Phase 5.0.2: Information Architecture (Due: December 15, 2025)
 **Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | **Status**: 📋 Planned

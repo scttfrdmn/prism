@@ -63,26 +63,7 @@ This document tracks features that were intentionally deferred during developmen
 - Profile creation/selection with validation
 - Success message with next steps
 
-#### 🏷️ #65: Rename Project: CloudWorkStation → CloudWorkspaces
-**Location**: Entire codebase, documentation, GitHub repository, domain
-**Priority**: High
-**Effort**: 4-5 days
-**Implementation**:
-- **Go Module**: Update module path from `github.com/scttfrdmn/cloudworkstation` to `cloudworkspaces`
-- **All Imports**: Update ~100+ import statements across all `.go` files
-- **State Migration**: Add code to move `~/.cloudworkstation` → `~/.cloudworkspaces` automatically
-- **User-Facing Text**: Update all CLI/TUI/GUI strings, help text, error messages
-- **Documentation**: Update all markdown files, mkdocs.yml, links
-- **Binary Names**: Keep `cws`, `cwsd`, `cws-gui` (abbreviation works for both!)
-- **GitHub**: Rename repository (redirects handled automatically)
-- **Domain Migration**: ✅ cloudworkspaces.io acquired! Update mkdocs.yml, docs/CNAME
-- **DNS Setup**: Point cloudworkspaces.io to GitHub Pages, configure SSL
-- **Old Domain**: Set up 301 redirect from cloudworkstation.io → cloudworkspaces.io (6-12 months)
-- **Testing**: Verify migration path, all interfaces, documentation links, domain
-**Rationale**: Aligns with "Instances → Workspaces" terminology change, better describes product
-**Bonus**: Complete branding consistency with cloudworkspaces.io domain
-
-**Phase 5.0.1 Total Effort**: 18-24 days
+**Phase 5.0.1 Total Effort**: 14-19 days
 
 ### Phase 5.0.2: Information Architecture (4 weeks - Due: December 15, 2025)
 **Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3)
@@ -146,7 +127,30 @@ This document tracks features that were intentionally deferred during developmen
 
 **Template Provisioning Total Effort**: 15-18 days
 
-**v0.5.6 Total Estimated Effort**: 50-63 days (10-13 weeks with parallel development)
+**v0.5.6 Total Estimated Effort**: 46-58 days (9-12 weeks with parallel development)
+
+---
+
+## 🔄 Deferred Items
+
+### 🏷️ #65: Project Rename (DEFERRED - Final Name TBD)
+**Location**: Entire codebase, documentation, GitHub repository, domain
+**Status**: **ON HOLD** - Awaiting final project name decision (may not be "CloudWorkspaces")
+**Effort**: 4-5 days (when resumed)
+**Implementation**:
+- **Go Module**: Update module path from `github.com/scttfrdmn/cloudworkstation` to new name
+- **All Imports**: Update ~100+ import statements across all `.go` files
+- **State Migration**: Add code to move `~/.cloudworkstation` → new config directory
+- **User-Facing Text**: Update all CLI/TUI/GUI strings, help text, error messages
+- **Documentation**: Update all markdown files, mkdocs.yml, links
+- **Binary Names**: Keep `cws`, `cwsd`, `cws-gui` (abbreviation works for both!)
+- **GitHub**: Rename repository (redirects handled automatically)
+- **Domain Migration**: If cloudworkspaces.io is chosen, update mkdocs.yml, docs/CNAME
+- **DNS Setup**: Point new domain to GitHub Pages, configure SSL
+- **Old Domain**: Set up 301 redirect (6-12 months)
+- **Testing**: Verify migration path, all interfaces, documentation links, domain
+**Rationale**: Aligns with "Instances → Workspaces" terminology change, better describes product
+**Note**: All planning work preserved for when final name is selected
 
 ---
 
