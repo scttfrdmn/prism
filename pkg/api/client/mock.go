@@ -16,8 +16,8 @@ type MockClient struct {
 	// Mock data
 	instances map[string]*types.Instance
 	templates map[string]types.Template
-	volumes   []types.EFSVolume
-	storage   []types.EBSVolume
+	volumes   []types.StorageVolume
+	storage   []types.StorageVolume
 
 	// Mock responses
 	pingError    error
@@ -32,8 +32,8 @@ func NewMockClient() *MockClient {
 	return &MockClient{
 		instances: make(map[string]*types.Instance),
 		templates: make(map[string]types.Template),
-		volumes:   make([]types.EFSVolume, 0),
-		storage:   make([]types.EBSVolume, 0),
+		volumes:   make([]types.StorageVolume, 0),
+		storage:   make([]types.StorageVolume, 0),
 		statusResult: &types.DaemonStatus{
 			Version:   "mock-1.0.0",
 			Status:    "running",
@@ -136,24 +136,30 @@ func (m *MockClient) GetTemplate(ctx context.Context, name string) (*types.Templ
 }
 
 // Volume operations
-func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.EFSVolume, error) {
-	volume := types.EFSVolume{
+func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.StorageVolume, error) {
+	volume := types.StorageVolume{
 		Name:         req.Name,
-		FileSystemId: "mock-fs-" + req.Name,
+		Type:         types.StorageTypeShared,
+		AWSService:   types.AWSServiceEFS,
+		FileSystemID: "mock-fs-" + req.Name,
 		State:        "available",
 	}
 	m.volumes = append(m.volumes, volume)
 	return &volume, nil
 }
 
-func (m *MockClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error) {
-	return m.volumes, nil
+func (m *MockClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, error) {
+	result := make([]*types.StorageVolume, len(m.volumes))
+	for i := range m.volumes {
+		result[i] = &m.volumes[i]
+	}
+	return result, nil
 }
 
-func (m *MockClient) GetVolume(ctx context.Context, name string) (*types.EFSVolume, error) {
-	for _, volume := range m.volumes {
-		if volume.Name == name {
-			return &volume, nil
+func (m *MockClient) GetVolume(ctx context.Context, name string) (*types.StorageVolume, error) {
+	for i := range m.volumes {
+		if m.volumes[i].Name == name {
+			return &m.volumes[i], nil
 		}
 	}
 	return nil, fmt.Errorf("volume not found: %s", name)
@@ -186,24 +192,30 @@ func (m *MockClient) UnmountVolume(ctx context.Context, volumeName, instanceName
 }
 
 // Storage operations
-func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
-	volume := types.EBSVolume{
-		Name:     req.Name,
-		VolumeID: "mock-vol-" + req.Name,
-		State:    "available",
+func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.StorageVolume, error) {
+	volume := types.StorageVolume{
+		Name:       req.Name,
+		Type:       types.StorageTypeLocal,
+		AWSService: types.AWSServiceEBS,
+		VolumeID:   "mock-vol-" + req.Name,
+		State:      "available",
 	}
 	m.storage = append(m.storage, volume)
 	return &volume, nil
 }
 
-func (m *MockClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error) {
-	return m.storage, nil
+func (m *MockClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, error) {
+	result := make([]*types.StorageVolume, len(m.storage))
+	for i := range m.storage {
+		result[i] = &m.storage[i]
+	}
+	return result, nil
 }
 
-func (m *MockClient) GetStorage(ctx context.Context, name string) (*types.EBSVolume, error) {
-	for _, volume := range m.storage {
-		if volume.Name == name {
-			return &volume, nil
+func (m *MockClient) GetStorage(ctx context.Context, name string) (*types.StorageVolume, error) {
+	for i := range m.storage {
+		if m.storage[i].Name == name {
+			return &m.storage[i], nil
 		}
 	}
 	return nil, fmt.Errorf("storage not found: %s", name)

@@ -549,14 +549,14 @@ func (c *HTTPClient) GetTemplate(ctx context.Context, name string) (*types.Templ
 
 // Volume operations
 
-func (c *HTTPClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.EFSVolume, error) {
+func (c *HTTPClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.StorageVolume, error) {
 	resp, err := c.makeRequest(ctx, "POST", "/api/v1/volumes", req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var result types.EFSVolume
+	var result types.StorageVolume
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
@@ -564,14 +564,14 @@ func (c *HTTPClient) CreateVolume(ctx context.Context, req types.VolumeCreateReq
 	return &result, nil
 }
 
-func (c *HTTPClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error) {
+func (c *HTTPClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, error) {
 	resp, err := c.makeRequest(ctx, "GET", "/api/v1/volumes", nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var result []types.EFSVolume
+	var result []*types.StorageVolume
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
@@ -579,14 +579,14 @@ func (c *HTTPClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error)
 	return result, nil
 }
 
-func (c *HTTPClient) GetVolume(ctx context.Context, name string) (*types.EFSVolume, error) {
+func (c *HTTPClient) GetVolume(ctx context.Context, name string) (*types.StorageVolume, error) {
 	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/volumes/%s", name), nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var result types.EFSVolume
+	var result types.StorageVolume
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
@@ -647,14 +647,14 @@ func (c *HTTPClient) UnmountVolume(ctx context.Context, volumeName, instanceName
 
 // Storage operations
 
-func (c *HTTPClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
+func (c *HTTPClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.StorageVolume, error) {
 	resp, err := c.makeRequest(ctx, "POST", "/api/v1/storage", req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var result types.EBSVolume
+	var result types.StorageVolume
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
@@ -662,14 +662,14 @@ func (c *HTTPClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 	return &result, nil
 }
 
-func (c *HTTPClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error) {
+func (c *HTTPClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, error) {
 	resp, err := c.makeRequest(ctx, "GET", "/api/v1/storage", nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var result []types.EBSVolume
+	var result []*types.StorageVolume
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
@@ -677,14 +677,14 @@ func (c *HTTPClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error)
 	return result, nil
 }
 
-func (c *HTTPClient) GetStorage(ctx context.Context, name string) (*types.EBSVolume, error) {
+func (c *HTTPClient) GetStorage(ctx context.Context, name string) (*types.StorageVolume, error) {
 	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/storage/%s", name), nil)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var result types.EBSVolume
+	var result types.StorageVolume
 	if err := c.handleResponse(resp, &result); err != nil {
 		return nil, err
 	}
