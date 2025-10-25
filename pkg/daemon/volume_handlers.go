@@ -22,7 +22,7 @@ func (s *Server) handleVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleListVolumes lists all volumes
+// handleListVolumes lists all volumes (EFS - shared storage)
 func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 	state, err := s.stateManager.LoadState()
 	if err != nil {
@@ -30,10 +30,13 @@ func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert map to slice for API consistency
-	volumes := make([]types.EFSVolume, 0, len(state.Volumes))
-	for _, volume := range state.Volumes {
-		volumes = append(volumes, volume)
+	// Filter for EFS volumes (shared storage) from unified StorageVolumes
+	volumes := make([]*types.StorageVolume, 0)
+	for _, vol := range state.StorageVolumes {
+		if vol.IsShared() {
+			volCopy := vol // Create copy to get address
+			volumes = append(volumes, &volCopy)
+		}
 	}
 
 	_ = json.NewEncoder(w).Encode(volumes)
@@ -66,7 +69,7 @@ func (s *Server) handleCreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save state
-	if err := s.stateManager.SaveVolume(*volume); err != nil {
+	if err := s.stateManager.SaveStorageVolume(*volume); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to save volume state")
 		return
 	}
@@ -115,8 +118,8 @@ func (s *Server) handleGetVolume(w http.ResponseWriter, r *http.Request, name st
 		return
 	}
 
-	volume, exists := state.Volumes[name]
-	if !exists {
+	volume, exists := state.StorageVolumes[name]
+	if !exists || !volume.IsShared() {
 		s.writeError(w, http.StatusNotFound, "Volume not found")
 		return
 	}
@@ -139,7 +142,7 @@ func (s *Server) handleDeleteVolume(w http.ResponseWriter, r *http.Request, name
 	}
 
 	// Remove from state
-	if err := s.stateManager.RemoveVolume(name); err != nil {
+	if err := s.stateManager.RemoveStorageVolume(name); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
 		return
 	}

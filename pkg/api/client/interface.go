@@ -67,20 +67,20 @@ type CloudWorkstationAPI interface {
 	ExecuteIdleActions(context.Context) (*types.IdleExecutionResponse, error)
 	GetIdleHistory(context.Context) ([]types.IdleHistoryEntry, error)
 
-	// Volume operations (EFS)
-	CreateVolume(context.Context, types.VolumeCreateRequest) (*types.EFSVolume, error)
-	ListVolumes(context.Context) ([]types.EFSVolume, error)
-	GetVolume(context.Context, string) (*types.EFSVolume, error)
+	// Volume operations (EFS - shared storage)
+	CreateVolume(context.Context, types.VolumeCreateRequest) (*types.StorageVolume, error)
+	ListVolumes(context.Context) ([]*types.StorageVolume, error)
+	GetVolume(context.Context, string) (*types.StorageVolume, error)
 	DeleteVolume(context.Context, string) error
 	AttachVolume(context.Context, string, string) error
 	DetachVolume(context.Context, string) error
 	MountVolume(context.Context, string, string, string) error
 	UnmountVolume(context.Context, string, string) error
 
-	// Storage operations (EBS)
-	CreateStorage(context.Context, types.StorageCreateRequest) (*types.EBSVolume, error)
-	ListStorage(context.Context) ([]types.EBSVolume, error)
-	GetStorage(context.Context, string) (*types.EBSVolume, error)
+	// Storage operations (EBS - local storage)
+	CreateStorage(context.Context, types.StorageCreateRequest) (*types.StorageVolume, error)
+	ListStorage(context.Context) ([]*types.StorageVolume, error)
+	GetStorage(context.Context, string) (*types.StorageVolume, error)
 	DeleteStorage(context.Context, string) error
 	AttachStorage(context.Context, string, string) error
 	DetachStorage(context.Context, string) error

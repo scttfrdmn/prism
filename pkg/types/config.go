@@ -12,10 +12,9 @@ type Config struct {
 
 // State manages the application state
 type State struct {
-	Instances  map[string]Instance  `json:"instances"`
-	Volumes    map[string]EFSVolume `json:"volumes"`
-	EBSVolumes map[string]EBSVolume `json:"ebs_volumes"`
-	Config     Config               `json:"config"`
+	Instances      map[string]Instance      `json:"instances"`
+	StorageVolumes map[string]StorageVolume `json:"storage_volumes"`
+	Config         Config                   `json:"config"`
 }
 
 // DaemonStatus represents the status of the CloudWorkstation daemon

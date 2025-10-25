@@ -95,21 +95,21 @@ func (sc *StorageCommands) volumeCreate(args []string) error {
 
 	volume, err := sc.app.apiClient.CreateVolume(sc.app.ctx, req)
 	if err != nil {
-		return WrapAPIError("create EFS volume "+req.Name, err)
+		return WrapAPIError("create shared storage "+req.Name, err)
 	}
 
-	fmt.Printf("%s\n", FormatSuccessMessage("Created EFS volume", volume.Name, fmt.Sprintf("(%s)", volume.FileSystemId)))
+	fmt.Printf("%s\n", FormatSuccessMessage("Created Shared Storage", volume.Name, fmt.Sprintf("(%s)", volume.FileSystemID)))
 	return nil
 }
 
 func (sc *StorageCommands) volumeList(_ []string) error {
 	volumes, err := sc.app.apiClient.ListVolumes(sc.app.ctx)
 	if err != nil {
-		return WrapAPIError("list EFS volumes", err)
+		return WrapAPIError("list shared storage", err)
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println(NoEFSVolumesFoundMessage)
+		fmt.Println("No shared storage volumes found. Create one with 'cws volume create'.")
 		return nil
 	}
 
@@ -117,11 +117,14 @@ func (sc *StorageCommands) volumeList(_ []string) error {
 	_, _ = fmt.Fprintln(w, "NAME\tFILESYSTEM ID\tSTATE\tSIZE\tCOST/MONTH")
 
 	for _, volume := range volumes {
-		sizeGB := float64(volume.SizeBytes) / BytesToGB
+		var sizeGB float64
+		if volume.SizeBytes != nil {
+			sizeGB = float64(*volume.SizeBytes) / BytesToGB
+		}
 		costMonth := sizeGB * volume.EstimatedCostGB
 		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%.1f GB\t$%.2f\n",
 			volume.Name,
-			volume.FileSystemId,
+			volume.FileSystemID,
 			strings.ToUpper(volume.State),
 			sizeGB,
 			costMonth,
@@ -143,15 +146,19 @@ func (sc *StorageCommands) volumeInfo(args []string) error {
 		return WrapAPIError("get volume info for "+name, err)
 	}
 
-	fmt.Printf("📁 EFS Volume: %s\n", volume.Name)
-	fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemId)
+	fmt.Printf("📁 Shared Storage: %s\n", volume.Name)
+	fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemID)
 	fmt.Printf("   State: %s\n", strings.ToUpper(volume.State))
 	fmt.Printf("   Region: %s\n", volume.Region)
 	fmt.Printf("   Performance Mode: %s\n", volume.PerformanceMode)
 	fmt.Printf("   Throughput Mode: %s\n", volume.ThroughputMode)
-	fmt.Printf("   Size: %.1f GB\n", float64(volume.SizeBytes)/BytesToGB)
-	fmt.Printf("   Cost: $%.2f/month\n", float64(volume.SizeBytes)/BytesToGB*volume.EstimatedCostGB)
+	if volume.SizeBytes != nil {
+		sizeGB := float64(*volume.SizeBytes) / BytesToGB
+		fmt.Printf("   Size: %.1f GB\n", sizeGB)
+		fmt.Printf("   Cost: $%.2f/month\n", sizeGB*volume.EstimatedCostGB)
+	}
 	fmt.Printf("   Created: %s\n", volume.CreationTime.Format(StandardDateFormat))
+	fmt.Printf("   AWS Service: %s\n", volume.GetTechnicalType())
 
 	return nil
 }
@@ -164,10 +171,10 @@ func (sc *StorageCommands) volumeDelete(args []string) error {
 	name := args[0]
 	err := sc.app.apiClient.DeleteVolume(sc.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("delete EFS volume "+name, err)
+		return WrapAPIError("delete shared storage "+name, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Deleting EFS volume", name))
+	fmt.Printf("%s\n", FormatProgressMessage("Deleting Shared Storage", name))
 	return nil
 }
 
@@ -190,7 +197,7 @@ func (sc *StorageCommands) volumeMount(args []string) error {
 		return WrapAPIError("mount volume "+volumeName+" to "+instanceName, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Mounting EFS volume", fmt.Sprintf("'%s' to '%s' at %s", volumeName, instanceName, mountPoint)))
+	fmt.Printf("%s\n", FormatProgressMessage("Mounting Shared Storage", fmt.Sprintf("'%s' to '%s' at %s", volumeName, instanceName, mountPoint)))
 	return nil
 }
 
@@ -207,7 +214,7 @@ func (sc *StorageCommands) volumeUnmount(args []string) error {
 		return WrapAPIError("unmount volume "+volumeName+" from "+instanceName, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Unmounting EFS volume", fmt.Sprintf("'%s' from '%s'", volumeName, instanceName)))
+	fmt.Printf("%s\n", FormatProgressMessage("Unmounting Shared Storage", fmt.Sprintf("'%s' from '%s'", volumeName, instanceName)))
 	return nil
 }
 
@@ -275,40 +282,67 @@ func (sc *StorageCommands) storageCreate(args []string) error {
 
 	volume, err := sc.app.apiClient.CreateStorage(sc.app.ctx, req)
 	if err != nil {
-		return WrapAPIError("create EBS volume "+req.Name, err)
+		return WrapAPIError("create workspace storage "+req.Name, err)
 	}
 
-	fmt.Printf("%s\n", FormatSuccessMessage("Created EBS volume", volume.Name, fmt.Sprintf("(%s) - %d GB %s", volume.VolumeID, volume.SizeGB, volume.VolumeType)))
+	sizeStr := "unknown"
+	if volume.SizeGB != nil {
+		sizeStr = fmt.Sprintf("%d GB", *volume.SizeGB)
+	}
+	fmt.Printf("%s\n", FormatSuccessMessage("Created Workspace Storage", volume.Name, fmt.Sprintf("(%s) - %s %s", volume.VolumeID, sizeStr, volume.VolumeType)))
 	return nil
 }
 
 func (sc *StorageCommands) storageList(_ []string) error {
 	volumes, err := sc.app.apiClient.ListStorage(sc.app.ctx)
 	if err != nil {
-		return WrapAPIError("list EBS volumes", err)
+		return WrapAPIError("list storage volumes", err)
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println(NoEBSVolumesFoundMessage)
+		fmt.Println("No storage volumes found. Create one with 'cws storage create'.")
 		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
-	_, _ = fmt.Fprintln(w, "NAME\tVOLUME ID\tSTATE\tSIZE\tTYPE\tATTACHED TO\tCOST/MONTH")
+	_, _ = fmt.Fprintln(w, "NAME\tTYPE\tSTATE\tSIZE\tDETAILS\tCOST/MONTH")
 
 	for _, volume := range volumes {
-		costMonth := float64(volume.SizeGB) * volume.EstimatedCostGB
-		attachedTo := volume.AttachedTo
-		if attachedTo == "" {
-			attachedTo = "-"
+		var sizeStr, detailsStr string
+		var costMonth float64
+
+		if volume.IsWorkspace() {
+			// Workspace Storage (EBS)
+			if volume.SizeGB != nil {
+				sizeStr = fmt.Sprintf("%d GB", *volume.SizeGB)
+				costMonth = float64(*volume.SizeGB) * volume.EstimatedCostGB
+			}
+			if volume.VolumeType != "" {
+				detailsStr = volume.VolumeType
+			}
+			if volume.AttachedTo != "" {
+				detailsStr += fmt.Sprintf(" → %s", volume.AttachedTo)
+			}
+		} else if volume.IsShared() {
+			// Shared Storage (EFS)
+			if volume.SizeBytes != nil {
+				sizeGB := float64(*volume.SizeBytes) / BytesToGB
+				sizeStr = fmt.Sprintf("%.1f GB", sizeGB)
+				costMonth = sizeGB * volume.EstimatedCostGB
+			}
+			detailsStr = volume.PerformanceMode
 		}
-		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d GB\t%s\t%s\t$%.2f\n",
+
+		if detailsStr == "" {
+			detailsStr = "-"
+		}
+
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t$%.2f\n",
 			volume.Name,
-			volume.VolumeID,
+			volume.GetDisplayType(),
 			strings.ToUpper(volume.State),
-			volume.SizeGB,
-			volume.VolumeType,
-			attachedTo,
+			sizeStr,
+			detailsStr,
 			costMonth,
 		)
 	}
@@ -328,23 +362,49 @@ func (sc *StorageCommands) storageInfo(args []string) error {
 		return WrapAPIError("get storage info for "+name, err)
 	}
 
-	fmt.Printf("💾 EBS Volume: %s\n", volume.Name)
-	fmt.Printf("   Volume ID: %s\n", volume.VolumeID)
+	// Display common fields
+	icon := "💾"
+	if volume.IsShared() {
+		icon = "📁"
+	}
+	fmt.Printf("%s %s: %s\n", icon, volume.GetDisplayType(), volume.Name)
 	fmt.Printf("   State: %s\n", strings.ToUpper(volume.State))
 	fmt.Printf("   Region: %s\n", volume.Region)
-	fmt.Printf("   Size: %d GB\n", volume.SizeGB)
-	fmt.Printf("   Type: %s\n", volume.VolumeType)
-	if volume.IOPS > 0 {
-		fmt.Printf("   IOPS: %d\n", volume.IOPS)
+
+	// Display type-specific fields
+	if volume.IsWorkspace() {
+		// Workspace Storage (EBS) fields
+		fmt.Printf("   Volume ID: %s\n", volume.VolumeID)
+		if volume.SizeGB != nil {
+			fmt.Printf("   Size: %d GB\n", *volume.SizeGB)
+		}
+		fmt.Printf("   Type: %s\n", volume.VolumeType)
+		if volume.IOPS != nil && *volume.IOPS > 0 {
+			fmt.Printf("   IOPS: %d\n", *volume.IOPS)
+		}
+		if volume.Throughput != nil && *volume.Throughput > 0 {
+			fmt.Printf("   Throughput: %d MB/s\n", *volume.Throughput)
+		}
+		if volume.AttachedTo != "" {
+			fmt.Printf("   Attached to: %s\n", volume.AttachedTo)
+		}
+		if volume.SizeGB != nil {
+			fmt.Printf("   Cost: $%.2f/month\n", float64(*volume.SizeGB)*volume.EstimatedCostGB)
+		}
+	} else if volume.IsShared() {
+		// Shared Storage (EFS) fields
+		fmt.Printf("   Filesystem ID: %s\n", volume.FileSystemID)
+		if volume.SizeBytes != nil {
+			sizeGB := float64(*volume.SizeBytes) / BytesToGB
+			fmt.Printf("   Size: %.1f GB\n", sizeGB)
+			fmt.Printf("   Cost: $%.2f/month\n", sizeGB*volume.EstimatedCostGB)
+		}
+		fmt.Printf("   Performance Mode: %s\n", volume.PerformanceMode)
+		fmt.Printf("   Throughput Mode: %s\n", volume.ThroughputMode)
 	}
-	if volume.Throughput > 0 {
-		fmt.Printf("   Throughput: %d MB/s\n", volume.Throughput)
-	}
-	if volume.AttachedTo != "" {
-		fmt.Printf("   Attached to: %s\n", volume.AttachedTo)
-	}
-	fmt.Printf("   Cost: $%.2f/month\n", float64(volume.SizeGB)*volume.EstimatedCostGB)
+
 	fmt.Printf("   Created: %s\n", volume.CreationTime.Format(StandardDateFormat))
+	fmt.Printf("   AWS Service: %s\n", volume.GetTechnicalType())
 
 	return nil
 }
@@ -390,9 +450,9 @@ func (sc *StorageCommands) storageDelete(args []string) error {
 	name := args[0]
 	err := sc.app.apiClient.DeleteStorage(sc.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("delete EBS volume "+name, err)
+		return WrapAPIError("delete storage "+name, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Deleting EBS volume", name))
+	fmt.Printf("%s\n", FormatProgressMessage("Deleting storage", name))
 	return nil
 }

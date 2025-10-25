@@ -32,8 +32,13 @@ func NewStorageCobraCommands(app *App) *StorageCobraCommands {
 func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "storage",
-		Short: "Manage CloudWorkstation storage (EBS volumes)",
-		Long:  "Create, attach, detach, and manage EBS storage volumes.",
+		Short: "Manage CloudWorkstation storage (all types)",
+		Long: `Manage all storage types (workspace and shared).
+
+'cws storage list' shows all storage volumes (both workspace EBS and shared EFS).
+'cws storage create' creates workspace storage (EBS volumes).
+
+For shared storage (EFS), use 'cws volume' commands.`,
 	}
 
 	// Create commands separately to add flags
@@ -116,8 +121,13 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 func (sc *StorageCobraCommands) CreateVolumeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "volume",
-		Short: "Manage CloudWorkstation volumes (EFS shared storage)",
-		Long:  "Create, mount, unmount, and manage EFS shared storage volumes.",
+		Short: "Manage shared storage volumes (EFS)",
+		Long: `Create, mount, unmount, and manage shared storage (EFS volumes).
+
+Shared storage can be mounted to multiple workspaces simultaneously,
+making it ideal for collaborative projects and shared datasets.
+
+Use 'cws storage' for local storage (EBS volumes).`,
 	}
 
 	// Create command with flags

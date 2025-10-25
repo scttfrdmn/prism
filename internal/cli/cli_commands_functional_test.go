@@ -426,10 +426,12 @@ func testStorageCommandsWorkflow(t *testing.T, app *App) {
 func testEFSVolumeOperations(t *testing.T, app *App) {
 	mockClient := app.apiClient.(*MockAPIClient)
 
-	// Setup mock EFS volumes
-	mockClient.Volumes = []types.EFSVolume{
+	// Setup mock EFS volumes (using unified StorageVolume)
+	mockClient.StorageVolumes = []types.StorageVolume{
 		{
-			FileSystemId: "fs-1234567890abcdef0",
+			Type:         types.StorageTypeShared,
+			AWSService:   types.AWSServiceEFS,
+			FileSystemID: "fs-1234567890abcdef0",
 			Name:         "shared-data",
 			State:        "available",
 			CreationTime: time.Now(),
@@ -437,8 +439,11 @@ func testEFSVolumeOperations(t *testing.T, app *App) {
 	}
 
 	// Validate EFS volume structure
-	for _, volume := range mockClient.Volumes {
-		if volume.FileSystemId == "" {
+	for _, volume := range mockClient.StorageVolumes {
+		if !volume.IsShared() {
+			continue // Skip non-EFS volumes
+		}
+		if volume.FileSystemID == "" {
 			t.Error("EFS volume should have filesystem ID")
 		}
 
@@ -458,12 +463,15 @@ func testEFSVolumeOperations(t *testing.T, app *App) {
 func testEBSVolumeOperations(t *testing.T, app *App) {
 	mockClient := app.apiClient.(*MockAPIClient)
 
-	// Setup mock EBS volumes
-	mockClient.StorageVolumes = []types.EBSVolume{
+	// Setup mock EBS volumes (using unified StorageVolume)
+	sizeGB := int32(100)
+	mockClient.StorageVolumes = []types.StorageVolume{
 		{
+			Type:         types.StorageTypeWorkspace,
+			AWSService:   types.AWSServiceEBS,
 			VolumeID:     "vol-1234567890abcdef0",
 			Name:         "project-storage-L",
-			SizeGB:       100,
+			SizeGB:       &sizeGB,
 			State:        "available",
 			CreationTime: time.Now(),
 		},
@@ -471,11 +479,14 @@ func testEBSVolumeOperations(t *testing.T, app *App) {
 
 	// Validate EBS volume structure
 	for _, volume := range mockClient.StorageVolumes {
+		if !volume.IsWorkspace() {
+			continue // Skip non-EBS volumes
+		}
 		if volume.VolumeID == "" {
 			t.Error("EBS volume should have volume ID")
 		}
 
-		if volume.SizeGB <= 0 {
+		if volume.SizeGB == nil || *volume.SizeGB <= 0 {
 			t.Error("EBS volume should have positive size")
 		}
 
@@ -491,12 +502,24 @@ func testEBSVolumeOperations(t *testing.T, app *App) {
 func testStorageListingOperations(t *testing.T, app *App) {
 	mockClient := app.apiClient.(*MockAPIClient)
 
-	// Ensure both storage types are available
-	if len(mockClient.Volumes) == 0 {
+	// Ensure both storage types are available in unified StorageVolumes
+	hasEFS := false
+	hasEBS := false
+
+	for _, vol := range mockClient.StorageVolumes {
+		if vol.IsShared() {
+			hasEFS = true
+		}
+		if vol.IsWorkspace() {
+			hasEBS = true
+		}
+	}
+
+	if !hasEFS {
 		t.Error("Mock client should have EFS volumes")
 	}
 
-	if len(mockClient.StorageVolumes) == 0 {
+	if !hasEBS {
 		t.Error("Mock client should have EBS volumes")
 	}
 

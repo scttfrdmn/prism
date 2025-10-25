@@ -49,9 +49,8 @@ func (m *Manager) LoadState() (*types.State, error) {
 	if _, err := os.Stat(m.statePath); os.IsNotExist(err) {
 		// Return empty state if file doesn't exist
 		return &types.State{
-			Instances:  make(map[string]types.Instance),
-			Volumes:    make(map[string]types.EFSVolume),
-			EBSVolumes: make(map[string]types.EBSVolume),
+			Instances:      make(map[string]types.Instance),
+			StorageVolumes: make(map[string]types.StorageVolume),
 			Config: types.Config{
 				DefaultRegion: "us-east-1",
 			},
@@ -68,15 +67,12 @@ func (m *Manager) LoadState() (*types.State, error) {
 		return nil, fmt.Errorf("failed to parse state file: %w", err)
 	}
 
-	// Ensure maps are initialized (backward compatibility)
+	// Ensure maps are initialized
 	if state.Instances == nil {
 		state.Instances = make(map[string]types.Instance)
 	}
-	if state.Volumes == nil {
-		state.Volumes = make(map[string]types.EFSVolume)
-	}
-	if state.EBSVolumes == nil {
-		state.EBSVolumes = make(map[string]types.EBSVolume)
+	if state.StorageVolumes == nil {
+		state.StorageVolumes = make(map[string]types.StorageVolume)
 	}
 
 	return &state, nil
@@ -127,47 +123,25 @@ func (m *Manager) RemoveInstance(name string) error {
 	return m.SaveState(state)
 }
 
-// SaveVolume saves a single EFS volume to state
-func (m *Manager) SaveVolume(volume types.EFSVolume) error {
+// SaveStorageVolume saves a single storage volume to state
+func (m *Manager) SaveStorageVolume(volume types.StorageVolume) error {
 	state, err := m.LoadState()
 	if err != nil {
 		return err
 	}
 
-	state.Volumes[volume.Name] = volume
+	state.StorageVolumes[volume.Name] = volume
 	return m.SaveState(state)
 }
 
-// RemoveVolume removes an EFS volume from state
-func (m *Manager) RemoveVolume(name string) error {
+// RemoveStorageVolume removes a storage volume from state
+func (m *Manager) RemoveStorageVolume(name string) error {
 	state, err := m.LoadState()
 	if err != nil {
 		return err
 	}
 
-	delete(state.Volumes, name)
-	return m.SaveState(state)
-}
-
-// SaveEBSVolume saves a single EBS volume to state
-func (m *Manager) SaveEBSVolume(volume types.EBSVolume) error {
-	state, err := m.LoadState()
-	if err != nil {
-		return err
-	}
-
-	state.EBSVolumes[volume.Name] = volume
-	return m.SaveState(state)
-}
-
-// RemoveEBSVolume removes an EBS volume from state
-func (m *Manager) RemoveEBSVolume(name string) error {
-	state, err := m.LoadState()
-	if err != nil {
-		return err
-	}
-
-	delete(state.EBSVolumes, name)
+	delete(state.StorageVolumes, name)
 	return m.SaveState(state)
 }
 

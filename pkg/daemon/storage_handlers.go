@@ -28,10 +28,12 @@ func (s *Server) handleListStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert map to slice for API consistency
-	storage := make([]types.EBSVolume, 0, len(state.EBSVolumes))
-	for _, volume := range state.EBSVolumes {
-		storage = append(storage, volume)
+	// Build list from unified StorageVolumes
+	storage := make([]*types.StorageVolume, 0, len(state.StorageVolumes))
+
+	for _, vol := range state.StorageVolumes {
+		volCopy := vol // Create copy to get address
+		storage = append(storage, &volCopy)
 	}
 
 	_ = json.NewEncoder(w).Encode(storage)
@@ -58,7 +60,7 @@ func (s *Server) handleCreateStorage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save state
-	if err := s.stateManager.SaveEBSVolume(*volume); err != nil {
+	if err := s.stateManager.SaveStorageVolume(*volume); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to save storage state")
 		return
 	}
@@ -107,13 +109,13 @@ func (s *Server) handleGetStorage(w http.ResponseWriter, r *http.Request, name s
 		return
 	}
 
-	storage, exists := state.EBSVolumes[name]
-	if !exists {
-		s.writeError(w, http.StatusNotFound, "Storage not found")
+	// Check unified StorageVolumes
+	if vol, exists := state.StorageVolumes[name]; exists {
+		_ = json.NewEncoder(w).Encode(vol)
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(storage)
+	s.writeError(w, http.StatusNotFound, "Storage not found")
 }
 
 // handleDeleteStorage deletes a specific storage volume
@@ -131,7 +133,7 @@ func (s *Server) handleDeleteStorage(w http.ResponseWriter, r *http.Request, nam
 	}
 
 	// Remove from state
-	if err := s.stateManager.RemoveEBSVolume(name); err != nil {
+	if err := s.stateManager.RemoveStorageVolume(name); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
 		return
 	}

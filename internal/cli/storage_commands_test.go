@@ -202,7 +202,7 @@ func TestVolumeListCommand(t *testing.T) {
 			args:        []string{"list"},
 			expectError: false,
 			setupMock: func(mock *MockAPIClient) {
-				mock.Volumes = []types.EFSVolume{}
+				mock.StorageVolumes = []types.StorageVolume{}
 			},
 		},
 		{
@@ -640,7 +640,7 @@ func TestStorageListCommand(t *testing.T) {
 			args:        []string{"list"},
 			expectError: false,
 			setupMock: func(mock *MockAPIClient) {
-				mock.StorageVolumes = []types.EBSVolume{}
+				mock.StorageVolumes = []types.StorageVolume{}
 			},
 		},
 		{

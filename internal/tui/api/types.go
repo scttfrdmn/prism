@@ -241,36 +241,59 @@ func ToListTemplatesResponse(templates map[string]types.Template) *ListTemplates
 	return result
 }
 
-// ToVolumeResponse converts a types.EFSVolume to a VolumeResponse
-func ToVolumeResponse(volume types.EFSVolume) VolumeResponse {
+// ToVolumeResponse converts a types.StorageVolume (shared/EFS) to a VolumeResponse
+func ToVolumeResponse(volume types.StorageVolume) VolumeResponse {
+	sizeBytes := int64(0)
+	if volume.SizeBytes != nil {
+		sizeBytes = *volume.SizeBytes
+	}
+
 	return VolumeResponse{
 		Name:            volume.Name,
-		FileSystemId:    volume.FileSystemId,
+		FileSystemId:    volume.FileSystemID,
 		Region:          volume.Region,
 		CreationTime:    volume.CreationTime,
 		State:           volume.State,
 		PerformanceMode: volume.PerformanceMode,
 		ThroughputMode:  volume.ThroughputMode,
 		EstimatedCostGB: volume.EstimatedCostGB,
-		SizeBytes:       volume.SizeBytes,
+		SizeBytes:       sizeBytes,
 	}
 }
 
-// ToListVolumesResponse converts a map of types.EFSVolume to a ListVolumesResponse
-func ToListVolumesResponse(volumes []types.EFSVolume) *ListVolumesResponse {
+// ToListVolumesResponse converts a slice of types.StorageVolume to a ListVolumesResponse
+func ToListVolumesResponse(volumes []*types.StorageVolume) *ListVolumesResponse {
 	result := &ListVolumesResponse{
 		Volumes: make(map[string]VolumeResponse),
 	}
 
 	for _, volume := range volumes {
-		result.Volumes[volume.Name] = ToVolumeResponse(volume)
+		// Only include shared storage (EFS) volumes
+		if volume.IsShared() {
+			result.Volumes[volume.Name] = ToVolumeResponse(*volume)
+		}
 	}
 
 	return result
 }
 
-// ToStorageResponse converts a types.EBSVolume to a StorageResponse
-func ToStorageResponse(storage types.EBSVolume) StorageResponse {
+// ToStorageResponse converts a types.StorageVolume (workspace/EBS) to a StorageResponse
+func ToStorageResponse(storage types.StorageVolume) StorageResponse {
+	sizeGB := int32(0)
+	if storage.SizeGB != nil {
+		sizeGB = *storage.SizeGB
+	}
+
+	iops := int32(0)
+	if storage.IOPS != nil {
+		iops = *storage.IOPS
+	}
+
+	throughput := int32(0)
+	if storage.Throughput != nil {
+		throughput = *storage.Throughput
+	}
+
 	return StorageResponse{
 		Name:            storage.Name,
 		VolumeID:        storage.VolumeID,
@@ -278,22 +301,25 @@ func ToStorageResponse(storage types.EBSVolume) StorageResponse {
 		CreationTime:    storage.CreationTime,
 		State:           storage.State,
 		VolumeType:      storage.VolumeType,
-		SizeGB:          storage.SizeGB,
-		IOPS:            storage.IOPS,
-		Throughput:      storage.Throughput,
+		SizeGB:          sizeGB,
+		IOPS:            iops,
+		Throughput:      throughput,
 		EstimatedCostGB: storage.EstimatedCostGB,
 		AttachedTo:      storage.AttachedTo,
 	}
 }
 
-// ToListStorageResponse converts a map of types.EBSVolume to a ListStorageResponse
-func ToListStorageResponse(storage []types.EBSVolume) *ListStorageResponse {
+// ToListStorageResponse converts a slice of types.StorageVolume to a ListStorageResponse
+func ToListStorageResponse(storage []*types.StorageVolume) *ListStorageResponse {
 	result := &ListStorageResponse{
 		Storage: make(map[string]StorageResponse),
 	}
 
 	for _, volume := range storage {
-		result.Storage[volume.Name] = ToStorageResponse(volume)
+		// Only include workspace storage (EBS) volumes
+		if volume.IsWorkspace() {
+			result.Storage[volume.Name] = ToStorageResponse(*volume)
+		}
 	}
 
 	return result
