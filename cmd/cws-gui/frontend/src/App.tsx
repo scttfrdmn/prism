@@ -31,7 +31,8 @@ import {
   Link,
   ButtonDropdown,
   Tabs,
-  PropertyFilter
+  PropertyFilter,
+  ExpandableSection
 } from '@cloudscape-design/components';
 
 // Type definitions
@@ -3184,6 +3185,137 @@ export default function CloudWorkstationApp() {
         </SpaceBetween>
       </Container>
 
+      {/* Advanced Features Section */}
+      <Container
+        header={
+          <Header
+            variant="h2"
+            description="Power user features for advanced management and optimization"
+            info={<Link variant="info">Learn more</Link>}
+          >
+            Advanced Features
+          </Header>
+        }
+      >
+        <ExpandableSection
+          headerText="Advanced Management Tools"
+          variant="default"
+          defaultExpanded={false}
+          headerDescription="Access advanced features for cost optimization, automation, and system management"
+        >
+          <SpaceBetween size="l">
+            <ColumnLayout columns={2} variant="text-grid">
+              {/* AMI Management */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h3">AMI Management</Box>
+                  <Box color="text-body-secondary">
+                    Build, manage, and share custom Amazon Machine Images for faster workspace deployments
+                  </Box>
+                  <Box>
+                    <Badge color="blue">{state.amis.length} AMIs</Badge>
+                  </Box>
+                  <Button
+                    onClick={() => setState(prev => ({ ...prev, activeView: 'ami' }))}
+                  >
+                    Open AMI Management
+                  </Button>
+                </SpaceBetween>
+              </Box>
+
+              {/* Rightsizing */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h3">Rightsizing</Box>
+                  <Box color="text-body-secondary">
+                    Analyze workspace usage and get recommendations for optimal instance types
+                  </Box>
+                  <Box>
+                    {state.rightsizingRecommendations.length > 0 ? (
+                      <Badge color="green">{state.rightsizingRecommendations.length} recommendations</Badge>
+                    ) : (
+                      <Badge color="grey">No recommendations</Badge>
+                    )}
+                  </Box>
+                  <Button
+                    onClick={() => setState(prev => ({ ...prev, activeView: 'rightsizing' }))}
+                  >
+                    Open Rightsizing
+                  </Button>
+                </SpaceBetween>
+              </Box>
+
+              {/* Policy Framework */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h3">Policy Framework</Box>
+                  <Box color="text-body-secondary">
+                    Define and enforce institutional policies for governance and compliance
+                  </Box>
+                  <Box>
+                    {state.policyStatus?.enabled ? (
+                      <Badge color="green">Enforced</Badge>
+                    ) : (
+                      <Badge color="grey">Disabled</Badge>
+                    )}
+                  </Box>
+                  <Button
+                    onClick={() => setState(prev => ({ ...prev, activeView: 'policy' }))}
+                  >
+                    Open Policy Framework
+                  </Button>
+                </SpaceBetween>
+              </Box>
+
+              {/* Idle Detection */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h3">Idle Detection</Box>
+                  <Box color="text-body-secondary">
+                    Automatically hibernate or stop idle workspaces to reduce costs
+                  </Box>
+                  <Box>
+                    {state.idlePolicies.filter(p => p.enabled).length > 0 ? (
+                      <Badge color="green">{state.idlePolicies.filter(p => p.enabled).length} active policies</Badge>
+                    ) : (
+                      <Badge color="grey">No active policies</Badge>
+                    )}
+                  </Box>
+                  <Button
+                    onClick={() => setState(prev => ({ ...prev, activeView: 'idle' }))}
+                  >
+                    Open Idle Detection
+                  </Button>
+                </SpaceBetween>
+              </Box>
+
+              {/* Logs Viewer */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h3">Logs Viewer</Box>
+                  <Box color="text-body-secondary">
+                    View system logs and troubleshoot workspace issues
+                  </Box>
+                  <Box>
+                    <Badge color="blue">System logs</Badge>
+                  </Box>
+                  <Button
+                    onClick={() => setState(prev => ({ ...prev, activeView: 'logs' }))}
+                  >
+                    Open Logs Viewer
+                  </Button>
+                </SpaceBetween>
+              </Box>
+            </ColumnLayout>
+
+            <Alert type="info" header="Advanced features for power users">
+              These features provide fine-grained control over workspaces, costs, and institutional policies.
+              Most users won't need to access these features regularly.
+            </Alert>
+          </SpaceBetween>
+        </ExpandableSection>
+      </Container>
+
       {/* Debug and Troubleshooting */}
       <Container
         header={
@@ -5307,49 +5439,52 @@ export default function CloudWorkstationApp() {
               },
               {
                 type: "link",
-                text: "AMI Management",
-                href: "/ami",
-                info: <Badge>{state.amis.length} AMIs</Badge>
-              },
-              {
-                type: "link",
-                text: "Rightsizing",
-                href: "/rightsizing",
-                info: state.rightsizingRecommendations.length > 0 ?
-                      <Badge color="green">{state.rightsizingRecommendations.length} recommendations</Badge> : undefined
-              },
-              {
-                type: "link",
-                text: "Policy Framework",
-                href: "/policy",
-                info: state.policyStatus?.enabled ?
-                      <Badge color="green">Enforced</Badge> :
-                      <Badge color="grey">Disabled</Badge>
-              },
-              {
-                type: "link",
                 text: "Template Marketplace",
                 href: "/marketplace",
                 info: state.marketplaceTemplates.length > 0 ?
                       <Badge color="blue">{state.marketplaceTemplates.length} templates</Badge> : undefined
               },
-              {
-                type: "link",
-                text: "Idle Detection",
-                href: "/idle",
-                info: state.idlePolicies.filter(p => p.enabled).length > 0 ?
-                      <Badge color="green">{state.idlePolicies.filter(p => p.enabled).length} active</Badge> : undefined
-              },
-              {
-                type: "link",
-                text: "Logs Viewer",
-                href: "/logs"
-              },
               { type: "divider" },
               {
-                type: "link",
+                type: "expandable-link-group",
                 text: "Settings",
-                href: "/settings"
+                href: "/settings",
+                defaultExpanded: false,
+                items: [
+                  {
+                    type: "link",
+                    text: "AMI Management",
+                    href: "/ami",
+                    info: state.amis.length > 0 ? <Badge>{state.amis.length}</Badge> : undefined
+                  },
+                  {
+                    type: "link",
+                    text: "Rightsizing",
+                    href: "/rightsizing",
+                    info: state.rightsizingRecommendations.length > 0 ?
+                          <Badge color="green">{state.rightsizingRecommendations.length}</Badge> : undefined
+                  },
+                  {
+                    type: "link",
+                    text: "Policy Framework",
+                    href: "/policy",
+                    info: state.policyStatus?.enabled ?
+                          <Badge color="green">On</Badge> :
+                          <Badge color="grey">Off</Badge>
+                  },
+                  {
+                    type: "link",
+                    text: "Idle Detection",
+                    href: "/idle",
+                    info: state.idlePolicies.filter(p => p.enabled).length > 0 ?
+                          <Badge color="green">{state.idlePolicies.filter(p => p.enabled).length}</Badge> : undefined
+                  },
+                  {
+                    type: "link",
+                    text: "Logs Viewer",
+                    href: "/logs"
+                  }
+                ]
               }
             ]}
             onFollow={event => {
