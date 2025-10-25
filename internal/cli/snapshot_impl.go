@@ -59,7 +59,7 @@ func (s *SnapshotCommands) Snapshot(args []string) error {
 // createSnapshot creates a snapshot from an instance
 func (s *SnapshotCommands) createSnapshot(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws snapshot create <instance-name> <snapshot-name> [options]")
+		return fmt.Errorf("usage: cws snapshot create <workspace-name> <snapshot-name> [options]")
 	}
 
 	instanceName := args[0]
@@ -93,7 +93,7 @@ func (s *SnapshotCommands) createSnapshot(args []string) error {
 		return err
 	}
 
-	fmt.Printf("📸 Creating snapshot '%s' from instance '%s'...\n", snapshotName, instanceName)
+	fmt.Printf("📸 Creating snapshot '%s' from workspace '%s'...\n", snapshotName, instanceName)
 
 	if req.NoReboot {
 		fmt.Printf("⚠️  Creating snapshot without reboot (may result in inconsistent state)\n")
@@ -138,7 +138,7 @@ func (s *SnapshotCommands) listSnapshots(args []string) error {
 
 	if len(response.Snapshots) == 0 {
 		fmt.Println("No snapshots found.")
-		fmt.Println("Create one with: cws snapshot create <instance-name> <snapshot-name>")
+		fmt.Println("Create one with: cws snapshot create <workspace-name> <snapshot-name>")
 		return nil
 	}
 
@@ -387,7 +387,7 @@ func (s *SnapshotCommands) getSnapshotUsageText() string {
 	return `Usage: cws snapshot <action> [arguments]
 
 Actions:
-  create <instance-name> <snapshot-name> [options]   Create a snapshot from an instance
+  create <workspace-name> <snapshot-name> [options]   Create a snapshot from an instance
   list                                              List all snapshots
   info <snapshot-name>                              Show detailed snapshot information
   delete <snapshot-name>                            Delete a snapshot
@@ -402,7 +402,7 @@ Restore Options:
   --wait                 Wait and monitor instance launch progress
 
 Examples:
-  cws snapshot create my-workstation backup-v1
+  cws snapshot create my-workspace backup-v1
   cws snapshot create gpu-training checkpoint-epoch-10 --description "Training checkpoint after 10 epochs"
   cws snapshot list
   cws snapshot info backup-v1

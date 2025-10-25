@@ -34,7 +34,7 @@ func (lc *LogsCommands) CreateLogsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logs [instance-name]",
 		Short: "View and manage instance logs",
-		Long: `View logs from CloudWorkstation instances including console output,
+		Long: `View logs from CloudWorkstation workspaces including console output,
 system logs, and application logs.
 
 Examples:
@@ -54,7 +54,7 @@ Examples:
 	cmd.Flags().String("since", "", "Show logs since duration (e.g., 1h, 30m, 2h30m)")
 	cmd.Flags().BoolP("follow", "f", false, "Follow log output in real-time")
 	cmd.Flags().Bool("list", false, "List all instances with log availability")
-	cmd.Flags().Bool("types", false, "Show available log types for instance")
+	cmd.Flags().Bool("types", false, "Show available log types for workspace")
 	cmd.Flags().Bool("json", false, "Output in JSON format")
 
 	return cmd
@@ -124,7 +124,7 @@ func (lc *LogsCommands) handleListLogs(jsonOutput bool) error {
 	}
 
 	fmt.Printf("\nAvailable log types: %s\n", strings.Join(summary.AvailableLogTypes, ", "))
-	fmt.Println("\nUse 'cws logs <instance-name>' to view logs for a specific instance")
+	fmt.Println("\nUse 'cws logs <workspace-name>' to view logs for a specific instance")
 
 	return nil
 }
@@ -134,7 +134,7 @@ func (lc *LogsCommands) handleShowLogTypes(instanceName string, jsonOutput bool)
 	ctx := context.Background()
 	logTypes, err := lc.app.apiClient.GetInstanceLogTypes(ctx, instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to get log types for instance %s: %w", instanceName, err)
+		return fmt.Errorf("failed to get log types for workspace %s: %w", instanceName, err)
 	}
 
 	if jsonOutput {
@@ -190,7 +190,7 @@ func (lc *LogsCommands) handleShowLogs(cmd *cobra.Command, instanceName string, 
 	ctx := context.Background()
 	logs, err := lc.app.apiClient.GetInstanceLogs(ctx, instanceName, logRequest)
 	if err != nil {
-		return fmt.Errorf("failed to get logs for instance %s: %w", instanceName, err)
+		return fmt.Errorf("failed to get logs for workspace %s: %w", instanceName, err)
 	}
 
 	if jsonOutput {

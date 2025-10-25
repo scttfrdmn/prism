@@ -234,7 +234,7 @@ func (s *SystemCommands) daemonLogs() error {
 	}
 
 	fmt.Println("💡 To view specific instance logs:")
-	fmt.Println("   cws logs <instance-name>")
+	fmt.Println("   cws logs <workspace-name>")
 
 	return nil
 }

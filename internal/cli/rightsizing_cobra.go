@@ -47,7 +47,7 @@ Key capabilities:
 // createAnalyzeCommand creates the analyze subcommand
 func (r *RightsizingCobraCommands) createAnalyzeCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "analyze <instance-name>",
+		Use:   "analyze <workspace-name>",
 		Short: "Analyze instance rightsizing recommendations",
 		Long: `Perform detailed rightsizing analysis for a specific instance.
 
@@ -55,7 +55,7 @@ This command analyzes CPU, memory, storage, and network utilization patterns
 to provide intelligent sizing recommendations with cost impact analysis.
 
 Examples:
-  cws rightsizing analyze my-workstation
+  cws rightsizing analyze my-workspace
   cws rightsizing analyze gpu-training --period 168  # 1 week analysis
   cws rightsizing analyze my-server --refresh         # Force refresh metrics`,
 		Args: cobra.ExactArgs(1),
@@ -126,7 +126,7 @@ Examples:
 // createStatsCommand creates the stats subcommand
 func (r *RightsizingCobraCommands) createStatsCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "stats <instance-name>",
+		Use:   "stats <workspace-name>",
 		Short: "Show detailed rightsizing statistics",
 		Long: `Display comprehensive rightsizing statistics for a specific instance.
 
@@ -134,7 +134,7 @@ This command provides detailed resource utilization statistics, performance
 metrics, and comprehensive analysis for informed rightsizing decisions.
 
 Examples:
-  cws rightsizing stats my-workstation
+  cws rightsizing stats my-workspace
   cws rightsizing stats gpu-server --detailed
   cws rightsizing stats my-analysis --format json`,
 		Args: cobra.ExactArgs(1),
@@ -196,7 +196,7 @@ Examples:
 // createExportCommand creates the export subcommand
 func (r *RightsizingCobraCommands) createExportCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "export <instance-name>",
+		Use:   "export <workspace-name>",
 		Short: "Export rightsizing metrics data",
 		Long: `Export detailed metrics data for external analysis or reporting.
 
@@ -204,7 +204,7 @@ This command exports raw metrics data in various formats for integration
 with external monitoring systems, reporting tools, or custom analysis.
 
 Examples:
-  cws rightsizing export my-workstation
+  cws rightsizing export my-workspace
   cws rightsizing export gpu-server --format csv --output metrics.csv
   cws rightsizing export my-analysis --period 168  # Export 1 week of data`,
 		Args: cobra.ExactArgs(1),

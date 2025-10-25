@@ -39,7 +39,7 @@ func NewInstanceCommands(app *App) *InstanceCommands {
 func (ic *InstanceCommands) Connect(args []string) error {
 	// Validate arguments
 	if len(args) < 1 {
-		return NewUsageError("cws connect <instance-name>", "cws connect my-workstation")
+		return NewUsageError("cws connect <workspace-name>", "cws connect my-workspace")
 	}
 
 	// Parse flags
@@ -95,7 +95,7 @@ func (ic *InstanceCommands) parseConnectFlags(args []string) (name string, verbo
 func (ic *InstanceCommands) setupInstanceConnection(name string) (*types.Instance, error) {
 	instance, err := ic.app.apiClient.GetInstance(ic.app.ctx, name)
 	if err != nil {
-		return nil, WrapAPIError("get instance details for "+name, err)
+		return nil, WrapAPIError("get workspace details for "+name, err)
 	}
 
 	if len(instance.Services) > 0 {
@@ -167,7 +167,7 @@ func (ic *InstanceCommands) executeConnection(connectionInfo, name string, verbo
 // Stop handles the stop command
 func (ic *InstanceCommands) Stop(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws stop <name>", "cws stop my-workstation")
+		return NewUsageError("cws stop <name>", "cws stop my-workspace")
 	}
 
 	name := args[0]
@@ -179,17 +179,17 @@ func (ic *InstanceCommands) Stop(args []string) error {
 
 	err := ic.app.apiClient.StopInstance(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("stop instance "+name, err)
+		return WrapAPIError("stop workspace "+name, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Stopping instance", name))
+	fmt.Printf("%s\n", FormatProgressMessage("Stopping workspace", name))
 	return nil
 }
 
 // Start handles the start command with intelligent state management
 func (ic *InstanceCommands) Start(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws start <name>", "cws start my-workstation")
+		return NewUsageError("cws start <name>", "cws start my-workspace")
 	}
 
 	name := args[0]
@@ -202,7 +202,7 @@ func (ic *InstanceCommands) Start(args []string) error {
 	// First, get current instance status
 	listResponse, err := ic.app.apiClient.ListInstances(ic.app.ctx)
 	if err != nil {
-		return WrapAPIError("get instance status", err)
+		return WrapAPIError("get workspace status", err)
 	}
 
 	var targetInstance *types.Instance
@@ -214,37 +214,37 @@ func (ic *InstanceCommands) Start(args []string) error {
 	}
 
 	if targetInstance == nil {
-		return NewNotFoundError("instance", name, "Use 'cws list' to see available instances")
+		return NewNotFoundError("workspace", name, "Use 'cws list' to see available instances")
 	}
 
 	// Check current state and handle appropriately
 	switch targetInstance.State {
 	case "running":
-		fmt.Printf("✅ Instance %s is already running\n", name)
+		fmt.Printf("✅ Workspace %s is already running\n", name)
 		return nil
 	case "hibernated":
-		fmt.Printf("🛌 Instance %s is hibernated - use 'cws resume %s' for instant startup\n", name, name)
+		fmt.Printf("🛌 Workspace %s is hibernated - use 'cws resume %s' for instant startup\n", name, name)
 		fmt.Printf("   Or use 'cws start %s' for regular boot (slower)\n", name)
 		fmt.Printf("   Proceeding with regular start...\n")
 	case "stopped", "stopping":
 		// Normal case - proceed with start
 	default:
-		fmt.Printf("⚠️  Instance %s is in state '%s' - attempting to start anyway\n", name, targetInstance.State)
+		fmt.Printf("⚠️  Workspace %s is in state '%s' - attempting to start anyway\n", name, targetInstance.State)
 	}
 
 	err = ic.app.apiClient.StartInstance(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("start instance "+name, err)
+		return WrapAPIError("start workspace "+name, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Starting instance", name))
+	fmt.Printf("%s\n", FormatProgressMessage("Starting workspace", name))
 	return nil
 }
 
 // Delete handles the delete command
 func (ic *InstanceCommands) Delete(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws delete <name>", "cws delete my-workstation")
+		return NewUsageError("cws delete <name>", "cws delete my-workspace")
 	}
 
 	name := args[0]
@@ -256,17 +256,17 @@ func (ic *InstanceCommands) Delete(args []string) error {
 
 	err := ic.app.apiClient.DeleteInstance(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("delete instance "+name, err)
+		return WrapAPIError("delete workspace "+name, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Deleting instance", name))
+	fmt.Printf("%s\n", FormatProgressMessage("Deleting workspace", name))
 	return nil
 }
 
 // Hibernate handles the hibernate command
 func (ic *InstanceCommands) Hibernate(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws hibernate <name>", "cws hibernate my-workstation")
+		return NewUsageError("cws hibernate <name>", "cws hibernate my-workspace")
 	}
 
 	name := args[0]
@@ -283,21 +283,21 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 	}
 
 	if !status.HibernationSupported {
-		fmt.Printf("⚠️  Instance %s does not support EC2 hibernation\n", name)
+		fmt.Printf("⚠️  Workspace %s does not support EC2 hibernation\n", name)
 		fmt.Printf("    Falling back to regular stop operation\n")
 	}
 
 	err = ic.app.apiClient.HibernateInstance(ic.app.ctx, name)
 	if err != nil {
-		return WrapAPIError("hibernate instance "+name, err)
+		return WrapAPIError("hibernate workspace "+name, err)
 	}
 
 	if status.HibernationSupported {
-		fmt.Printf("%s\n", FormatProgressMessage("Hibernating instance", name))
+		fmt.Printf("%s\n", FormatProgressMessage("Hibernating workspace", name))
 		fmt.Printf("   %s\n", FormatInfoMessage("RAM state preserved for instant resume"))
 		fmt.Printf("   💰 Compute billing stopped, storage billing continues\n")
 	} else {
-		fmt.Printf("%s\n", FormatProgressMessage("Stopping instance", name))
+		fmt.Printf("%s\n", FormatProgressMessage("Stopping workspace", name))
 		fmt.Printf("   %s\n", FormatInfoMessage("Consider using EC2 hibernation-capable instance types for RAM preservation"))
 	}
 
@@ -307,7 +307,7 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 // Resume handles the resume command
 func (ic *InstanceCommands) Resume(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws resume <name>", "cws resume my-workstation")
+		return NewUsageError("cws resume <name>", "cws resume my-workspace")
 	}
 
 	name := args[0]
@@ -326,18 +326,18 @@ func (ic *InstanceCommands) Resume(args []string) error {
 	if status.PossiblyHibernated {
 		err = ic.app.apiClient.ResumeInstance(ic.app.ctx, name)
 		if err != nil {
-			return WrapAPIError("resume instance "+name, err)
+			return WrapAPIError("resume workspace "+name, err)
 		}
-		fmt.Printf("%s\n", FormatProgressMessage("Resuming hibernated instance", name))
+		fmt.Printf("%s\n", FormatProgressMessage("Resuming hibernated workspace", name))
 		fmt.Printf("   🚀 Instant startup from preserved RAM state\n")
 	} else {
 		// Fall back to regular start
 		err = ic.app.apiClient.StartInstance(ic.app.ctx, name)
 		if err != nil {
-			return WrapAPIError("start instance "+name, err)
+			return WrapAPIError("start workspace "+name, err)
 		}
-		fmt.Printf("%s\n", FormatProgressMessage("Starting instance", name))
-		fmt.Printf("   %s\n", FormatInfoMessage("Instance was not hibernated - performing regular start"))
+		fmt.Printf("%s\n", FormatProgressMessage("Starting workspace", name))
+		fmt.Printf("   %s\n", FormatInfoMessage("Workspace was not hibernated - performing regular start"))
 	}
 
 	return nil
@@ -349,7 +349,7 @@ func (ic *InstanceCommands) Resume(args []string) error {
 func (ic *InstanceCommands) Exec(args []string) error {
 	// Validate arguments
 	if len(args) < 2 {
-		return NewUsageError("cws exec <instance-name> <command>", "cws exec my-workstation \"ls -la\"")
+		return NewUsageError("cws exec <workspace-name> <command>", "cws exec my-workspace \"ls -la\"")
 	}
 
 	// Parse command arguments and flags
@@ -500,8 +500,8 @@ func (ic *InstanceCommands) displayStdErr(stderr string, exitCode int, verbose b
 func (ic *InstanceCommands) Resize(args []string) error {
 	// Validate arguments
 	if len(args) < 2 {
-		return NewUsageError("cws resize <instance-name> --size <size> [options]",
-			"cws resize my-workstation --size L")
+		return NewUsageError("cws resize <workspace-name> --size <size> [options]",
+			"cws resize my-workspace --size L")
 	}
 
 	// Parse flags
@@ -521,7 +521,7 @@ func (ic *InstanceCommands) Resize(args []string) error {
 		return err
 	}
 
-	// Determine target instance type
+	// Determine target workspace type
 	targetInstanceType, err := ic.resolveTargetInstanceType(resizeOpts)
 	if err != nil {
 		return err
@@ -581,11 +581,11 @@ func (ic *InstanceCommands) parseResizeFlags(args []string) (string, resizeOptio
 	return instanceName, opts, nil
 }
 
-// getInstanceForResize retrieves and validates the target instance
+// getInstanceForResize retrieves and validates the target workspace
 func (ic *InstanceCommands) getInstanceForResize(instanceName string) (*types.Instance, error) {
 	listResponse, err := ic.app.apiClient.ListInstances(ic.app.ctx)
 	if err != nil {
-		return nil, WrapAPIError("get instance status", err)
+		return nil, WrapAPIError("get workspace status", err)
 	}
 
 	for _, instance := range listResponse.Instances {
@@ -594,10 +594,10 @@ func (ic *InstanceCommands) getInstanceForResize(instanceName string) (*types.In
 		}
 	}
 
-	return nil, NewNotFoundError("instance", instanceName, "Use 'cws list' to see available instances")
+	return nil, NewNotFoundError("workspace", instanceName, "Use 'cws list' to see available instances")
 }
 
-// resolveTargetInstanceType determines the target instance type from options
+// resolveTargetInstanceType determines the target workspace type from options
 func (ic *InstanceCommands) resolveTargetInstanceType(opts resizeOptions) (string, error) {
 	if opts.instanceType != "" {
 		return opts.instanceType, nil
@@ -610,8 +610,8 @@ func (ic *InstanceCommands) resolveTargetInstanceType(opts resizeOptions) (strin
 		return "", NewValidationError("size", opts.newSize, "valid t-shirt size (XS, S, M, L, XL)")
 	}
 
-	return "", NewUsageError("cws resize <instance-name> --size <size> OR --instance-type <type>",
-		"cws resize my-workstation --size L")
+	return "", NewUsageError("cws resize <workspace-name> --size <size> OR --instance-type <type>",
+		"cws resize my-workspace --size L")
 }
 
 // displayResizeInfo displays resize operation details and handles validation
@@ -626,7 +626,7 @@ func (ic *InstanceCommands) displayResizeInfo(instanceName string, targetInstanc
 	}
 
 	if targetInstance.State != "running" && targetInstance.State != "stopped" {
-		return NewStateError("instance", instanceName, targetInstance.State, "running or stopped")
+		return NewStateError("workspace", instanceName, targetInstance.State, "running or stopped")
 	}
 
 	ic.displayCostImpact(targetInstance, targetInstanceType)
@@ -791,7 +791,7 @@ func (ic *InstanceCommands) monitorResizeProgress(instanceName string) error {
 		// Check current status
 		instance, err := ic.app.apiClient.GetInstance(ic.app.ctx, instanceName)
 		if err != nil {
-			fmt.Printf("⚠️  Unable to get instance status: %v\n", err)
+			fmt.Printf("⚠️  Unable to get workspace status: %v\n", err)
 			return nil
 		}
 

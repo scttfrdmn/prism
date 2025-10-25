@@ -146,7 +146,7 @@ func (ac *AMICobraCommands) createPublishCommand() *cobra.Command {
 
 func (ac *AMICobraCommands) createSaveCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "save <instance-name> <ami-name>",
+		Use:   "save <workspace-name> <ami-name>",
 		Short: "Save instance as AMI",
 		Long:  `Save a running instance as an AMI for faster future launches.`,
 		Args:  cobra.ExactArgs(2),

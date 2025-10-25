@@ -8,7 +8,7 @@
 //   - user list                 # List users for current profile
 //   - user delete <username>    # Delete a user
 //   - user ssh-key <subcommand> # SSH key management
-//   - user provision <username> <instance> # Provision user on instance
+//   - user provision <username> <workspace> # Provision user on workspace
 //   - user status <username>    # Show user status across instances
 //
 // Examples:
@@ -79,7 +79,7 @@ func (r *UserCommands) createMainCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "user",
 		Short: "Manage users with persistent identity across instances",
-		Long: `Manage users with persistent identity across CloudWorkstation instances.
+		Long: `Manage users with persistent identity across CloudWorkstation workspaces.
 
 Users provide consistent UID/GID mapping, SSH key management, and EFS home
 directories that persist across different template environments. This enables seamless
@@ -89,7 +89,7 @@ Examples:
   cws user create alice              # Create user 'alice'
   cws user list                      # List all users
   cws user ssh-key generate alice   # Generate SSH keys for alice
-  cws user provision alice my-instance # Provision alice on instance`,
+  cws user provision alice my-instance # Provision alice on workspace`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -122,7 +122,7 @@ func (r *UserCommands) createCreateCommand() *cobra.Command {
 		Long: `Create a new user with consistent UID/GID across instances.
 
 The user will be assigned a deterministic UID/GID based on your profile,
-ensuring consistent file ownership across all CloudWorkstation instances.
+ensuring consistent file ownership across all CloudWorkstation workspaces.
 
 Examples:
   cws user create alice
@@ -181,7 +181,7 @@ Examples:
 
 			fmt.Printf("\n💡 Next Steps:\n")
 			fmt.Printf("   1. Generate SSH keys: cws user ssh-key generate %s\n", username)
-			fmt.Printf("   2. Provision on instance: cws user provision %s <instance-name>\n", username)
+			fmt.Printf("   2. Provision on workspace: cws user provision %s <workspace-name>\n", username)
 
 			return nil
 		},
@@ -247,7 +247,7 @@ func (r *UserCommands) createDeleteCommand() *cobra.Command {
 		Long: `Delete a user configuration.
 
 WARNING: This only removes the local user configuration. Files in EFS
-home directories and provisioned users on instances are NOT automatically removed.`,
+home directories and provisioned users on workspaces are NOT automatically removed.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			username := args[0]
@@ -293,7 +293,7 @@ func (r *UserCommands) createSSHKeyCommand() *cobra.Command {
 		Long: `Manage SSH keys for users including key generation, import, and export.
 
 SSH keys are stored per-profile and automatically distributed when provisioning
-users on instances.`,
+users on workspaces.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -428,9 +428,9 @@ func (r *UserCommands) createProvisionCommand() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "provision <username> <instance-name>",
-		Short: "Provision user on CloudWorkstation instance",
-		Long: `Provision a user on a running CloudWorkstation instance.
+		Use:   "provision <username> <workspace-name>",
+		Short: "Provision user on CloudWorkstation workspace",
+		Long: `Provision a user on a running CloudWorkstation workspace.
 
 This will:
 - Create the user with consistent UID/GID
@@ -451,7 +451,7 @@ This will:
 		},
 	}
 
-	cmd.Flags().StringVar(&mountPoint, "mount-point", "/efs", "EFS mount point on instance")
+	cmd.Flags().StringVar(&mountPoint, "mount-point", "/efs", "EFS mount point on workspace")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show provisioning script without executing")
 
 	return cmd
@@ -462,7 +462,7 @@ func (r *UserCommands) createStatusCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status <username>",
 		Short: "Show user status across instances",
-		Long: `Show the status of a user across all CloudWorkstation instances.
+		Long: `Show the status of a user across all CloudWorkstation workspaces.
 
 Displays where the user is provisioned, SSH key status, and EFS mount information.`,
 		Args: cobra.ExactArgs(1),
@@ -634,7 +634,7 @@ func (r *UserCommands) outputUsersAsTable(users []*research.ResearchUserConfig) 
 
 	fmt.Printf("\n💡 Usage:\n")
 	fmt.Printf("   cws user status <username>     # Detailed user status\n")
-	fmt.Printf("   cws user provision <username> <instance>  # Provision on instance\n")
+	fmt.Printf("   cws user provision <username> <workspace>  # Provision on workspace\n")
 
 	return nil
 }
@@ -721,7 +721,7 @@ func (c *CLIProfileManagerAdapter) UpdateProfileConfig(profileID string, config 
 
 // executeUserProvisioning handles the main user provisioning logic
 func (r *UserCommands) executeUserProvisioning(username, instanceName, mountPoint string, dryRun bool) error {
-	fmt.Printf("👤 Provisioning user: %s on instance: %s\n", username, instanceName)
+	fmt.Printf("👤 Provisioning user: %s on workspace: %s\n", username, instanceName)
 
 	// Get user and instance information
 	user, instance, err := r.getUserAndInstanceInfo(username, instanceName)
@@ -761,7 +761,7 @@ func (r *UserCommands) getUserAndInstanceInfo(username, instanceName string) (*r
 	}
 
 	if instance.State != "running" {
-		return nil, nil, fmt.Errorf("instance %s is not running (current state: %s)", instanceName, instance.State)
+		return nil, nil, fmt.Errorf("workspace %s is not running (current state: %s)", instanceName, instance.State)
 	}
 
 	return user, instance, nil
@@ -790,9 +790,9 @@ func (r *UserCommands) generateProvisioningScript(user *research.ResearchUserCon
 // executeProvisioning performs the actual user provisioning on the instance
 func (r *UserCommands) executeProvisioning(username, instanceName, mountPoint string, instance *types.Instance, user *research.ResearchUserConfig) error {
 	fmt.Printf("📝 Generated provisioning script\n")
-	fmt.Printf("🚀 Executing on instance...\n")
+	fmt.Printf("🚀 Executing on workspace...\n")
 
-	// Execute provisioning on instance
+	// Execute provisioning on workspace
 	provisionReq := &research.ProvisionInstanceRequest{
 		InstanceID:    instance.ID,
 		InstanceName:  instanceName,
@@ -806,7 +806,7 @@ func (r *UserCommands) executeProvisioning(username, instanceName, mountPoint st
 	ctx := r.app.ctx
 	response, err := r.researchUserService.ProvisionUserOnInstance(ctx, provisionReq)
 	if err != nil {
-		return fmt.Errorf("failed to provision user on instance: %w", err)
+		return fmt.Errorf("failed to provision user on workspace: %w", err)
 	}
 
 	// Display results
