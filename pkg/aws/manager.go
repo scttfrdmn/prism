@@ -555,7 +555,7 @@ func (l *InstanceLauncher) executeInstanceLaunch(ctx context.Context, runInput *
 }
 
 // buildInstanceFromEC2 builds CloudWorkstation instance from EC2 instance
-func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername string) *ctypes.Instance {
+func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername string, rootVolumeGB int) *ctypes.Instance {
 	instanceType := string(instance.InstanceType)
 	launchTime := time.Now()
 
@@ -568,7 +568,7 @@ func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req
 	// Calculate storage costs that persist even when stopped/hibernated
 	storageCostPerHour := calculateStorageCosts(req.Volumes, req.EBSVolumes)
 
-	log.Printf("[DEBUG] Creating instance with username: %s", primaryUsername)
+	log.Printf("[DEBUG] Creating instance with username: %s, root volume size: %d GB", primaryUsername, rootVolumeGB)
 
 	// Record initial state transition for cost tracking
 	initialState := string(instance.State.Name)
@@ -596,9 +596,10 @@ func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req
 		EffectiveRate:      hourlyRate + storageCostPerHour, // Will include storage
 		AttachedVolumes:    req.Volumes,
 		AttachedEBSVolumes: req.EBSVolumes,
-		Services:           services,        // Web services from template
-		Username:           primaryUsername, // Primary user from template
-		StateHistory:       stateHistory,    // Initialize state history with launch event
+		Services:           services,              // Web services from template
+		Username:           primaryUsername,       // Primary user from template
+		StateHistory:       stateHistory,          // Initialize state history with launch event
+		StorageGB:          float64(rootVolumeGB), // Root EBS volume size for cost tracking
 	}
 
 	log.Printf("[DEBUG] Instance created with username: %s", cwsInstance.Username)
@@ -636,6 +637,12 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	// Extract services from template
 	services := l.extractServicesFromTemplate(template)
 
+	// Get root volume size from template (default 20GB if not specified)
+	rootVolumeGB := template.RootVolumeGB
+	if rootVolumeGB == 0 {
+		rootVolumeGB = 20
+	}
+
 	// Handle dry run
 	if req.DryRun {
 		return l.createDryRunInstance(req, hourlyRate, services, primaryUsername), nil
@@ -649,7 +656,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	}
 
 	// Build CloudWorkstation instance from EC2 instance
-	cwsInstance := l.buildInstanceFromEC2(instance, req, hourlyRate, services, primaryUsername)
+	cwsInstance := l.buildInstanceFromEC2(instance, req, hourlyRate, services, primaryUsername, rootVolumeGB)
 
 	// Wait for instance to be ready for use
 	l.waitForInstanceReady(cwsInstance.ID)

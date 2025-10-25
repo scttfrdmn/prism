@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
 )
 
@@ -770,4 +771,75 @@ func TestRegionalPricingWithCache(t *testing.T) {
 			t.Errorf("EFS prices should be consistent: %f vs %f", price1, price2)
 		}
 	})
+}
+
+// TestInstanceStorageGBIsSet verifies that StorageGB field is set during instance creation (Issue #68)
+func TestInstanceStorageGBIsSet(t *testing.T) {
+	launcher := &InstanceLauncher{
+		region: "us-west-2",
+	}
+
+	// Create a mock EC2 instance response
+	mockEC2Instance := &ec2types.Instance{
+		InstanceId:   strPtr("i-1234567890abcdef0"),
+		InstanceType: ec2types.InstanceTypeT3Medium,
+		State: &ec2types.InstanceState{
+			Name: ec2types.InstanceStateNameRunning,
+		},
+		Placement: &ec2types.Placement{
+			AvailabilityZone: strPtr("us-west-2a"),
+		},
+	}
+
+	req := ctypes.LaunchRequest{
+		Name:     "test-instance",
+		Template: "python-ml",
+	}
+
+	hourlyRate := 0.0416
+	services := []ctypes.Service{}
+	primaryUsername := "ubuntu"
+
+	testCases := []struct {
+		name            string
+		rootVolumeGB    int
+		expectedStorage float64
+	}{
+		{
+			name:            "Default root volume size",
+			rootVolumeGB:    20,
+			expectedStorage: 20.0,
+		},
+		{
+			name:            "Custom root volume size",
+			rootVolumeGB:    100,
+			expectedStorage: 100.0,
+		},
+		{
+			name:            "Large root volume size",
+			rootVolumeGB:    500,
+			expectedStorage: 500.0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			instance := launcher.buildInstanceFromEC2(mockEC2Instance, req, hourlyRate, services, primaryUsername, tc.rootVolumeGB)
+
+			if instance == nil {
+				t.Fatal("buildInstanceFromEC2 returned nil")
+			}
+
+			if !floatEquals(instance.StorageGB, tc.expectedStorage) {
+				t.Errorf("Expected StorageGB to be %.0f GB, got %.0f GB", tc.expectedStorage, instance.StorageGB)
+			}
+
+			t.Logf("✅ StorageGB correctly set to %.0f GB for %s", instance.StorageGB, tc.name)
+		})
+	}
+}
+
+// Helper function to create string pointers
+func strPtr(s string) *string {
+	return &s
 }
