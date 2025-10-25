@@ -1411,95 +1411,316 @@ export default function CloudWorkstationApp() {
     }
   };
 
-  // Dashboard View
-  const DashboardView = () => (
-    <SpaceBetween size="l">
-      <Header
-        variant="h1"
-        description="CloudWorkstation research computing platform - manage your cloud environments"
-        actions={
-          <Button onClick={loadApplicationData} disabled={state.loading}>
-            {state.loading ? <Spinner size="normal" /> : 'Refresh'}
-          </Button>
-        }
-      >
-        Dashboard
-      </Header>
+  // Enhanced Home Page / Dashboard View
+  const DashboardView = () => {
+    const isFirstTimeUser = state.instances.length === 0;
+    const runningInstances = state.instances.filter(i => i.state === 'running');
+    const recentInstances = [...state.instances].sort((a, b) =>
+      new Date(b.launch_time || 0).getTime() - new Date(a.launch_time || 0).getTime()
+    ).slice(0, 3);
 
-      <ColumnLayout columns={3} variant="text-grid">
-        <Container header={<Header variant="h2">Research Templates</Header>}>
-          <SpaceBetween size="s">
-            <Box>
-              <Box variant="awsui-key-label">Available Templates</Box>
-              <Box fontSize="display-l" fontWeight="bold" color={state.connected ? 'text-status-success' : 'text-status-error'}>
-                {Object.keys(state.templates).length}
+    // First-Time User: Quick Start Wizard
+    if (isFirstTimeUser && !state.loading) {
+      return (
+        <SpaceBetween size="l">
+          <Alert type="info" header="Welcome to CloudWorkstation! 🎉">
+            Get started in just a few minutes with our Quick Start guide.
+          </Alert>
+
+          <Container header={<Header variant="h2">Quick Start Guide</Header>}>
+            <SpaceBetween size="m">
+              {/* Step 1: Choose Template */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box>
+                    <Badge color="blue">Step 1</Badge>
+                    <Box variant="h3">Choose a Research Template</Box>
+                    <Box variant="p" color="text-body-secondary">
+                      Select from {Object.keys(state.templates).length} pre-configured research environments
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="primary"
+                    onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
+                  >
+                    Browse Templates
+                  </Button>
+                </SpaceBetween>
               </Box>
-            </Box>
-            <Button
-              variant="primary"
-              onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
-            >
-              Browse Templates
-            </Button>
-          </SpaceBetween>
-        </Container>
 
-        <Container header={<Header variant="h2">Active Workspaces</Header>}>
-          <SpaceBetween size="s">
-            <Box>
+              {/* Step 2: Launch Workspace */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box>
+                    <Badge color="grey">Step 2</Badge>
+                    <Box variant="h3">Launch Your Workspace</Box>
+                    <Box variant="p" color="text-body-secondary">
+                      Configure and launch your research computing environment
+                    </Box>
+                  </Box>
+                  <Box color="text-status-inactive">
+                    Select a template first to enable launch
+                  </Box>
+                </SpaceBetween>
+              </Box>
+
+              {/* Step 3: Connect */}
+              <Box>
+                <SpaceBetween size="s">
+                  <Box>
+                    <Badge color="grey">Step 3</Badge>
+                    <Box variant="h3">Connect and Start Research</Box>
+                    <Box variant="p" color="text-body-secondary">
+                      Access your workspace via SSH terminal or web interface
+                    </Box>
+                  </Box>
+                  <Box color="text-status-inactive">
+                    Launch a workspace first to connect
+                  </Box>
+                </SpaceBetween>
+              </Box>
+            </SpaceBetween>
+          </Container>
+
+          {/* Popular Templates */}
+          <Container header={<Header variant="h2">Popular Research Templates</Header>}>
+            <ColumnLayout columns={3} variant="text-grid">
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h4">Python Machine Learning</Box>
+                  <Box variant="small">Jupyter, PyTorch, TensorFlow, scikit-learn</Box>
+                  <Button onClick={() => {
+                    const pythonTemplate = Object.values(state.templates).find(t =>
+                      getTemplateName(t).toLowerCase().includes('python') &&
+                      getTemplateName(t).toLowerCase().includes('machine')
+                    );
+                    if (pythonTemplate) {
+                      setState(prev => ({ ...prev, selectedTemplate: pythonTemplate, activeView: 'templates' }));
+                    }
+                  }}>
+                    View Template
+                  </Button>
+                </SpaceBetween>
+              </Box>
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h4">R Research Environment</Box>
+                  <Box variant="small">RStudio, tidyverse, statistical packages</Box>
+                  <Button onClick={() => {
+                    const rTemplate = Object.values(state.templates).find(t =>
+                      getTemplateName(t).toLowerCase().includes('r research')
+                    );
+                    if (rTemplate) {
+                      setState(prev => ({ ...prev, selectedTemplate: rTemplate, activeView: 'templates' }));
+                    }
+                  }}>
+                    View Template
+                  </Button>
+                </SpaceBetween>
+              </Box>
+              <Box>
+                <SpaceBetween size="s">
+                  <Box variant="h4">General Computing</Box>
+                  <Box variant="small">Ubuntu with common research tools</Box>
+                  <Button onClick={() => {
+                    const ubuntuTemplate = Object.values(state.templates).find(t =>
+                      getTemplateName(t).toLowerCase().includes('ubuntu')
+                    );
+                    if (ubuntuTemplate) {
+                      setState(prev => ({ ...prev, selectedTemplate: ubuntuTemplate, activeView: 'templates' }));
+                    }
+                  }}>
+                    View Template
+                  </Button>
+                </SpaceBetween>
+              </Box>
+            </ColumnLayout>
+          </Container>
+        </SpaceBetween>
+      );
+    }
+
+    // Returning User: Activity Dashboard
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="Welcome back! Manage your research computing environments"
+          actions={
+            <Button onClick={loadApplicationData} disabled={state.loading}>
+              {state.loading ? <Spinner size="normal" /> : 'Refresh'}
+            </Button>
+          }
+        >
+          Home
+        </Header>
+
+        {/* At-a-Glance Status */}
+        <ColumnLayout columns={4} variant="text-grid">
+          <Container>
+            <SpaceBetween size="s">
               <Box variant="awsui-key-label">Running Workspaces</Box>
               <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
-                {state.instances.filter(i => i.state === 'running').length}
+                {runningInstances.length}
               </Box>
-            </Box>
-            <Button
-              onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
-            >
-              Manage Workspaces
-            </Button>
-          </SpaceBetween>
-        </Container>
-
-        <Container header={<Header variant="h2">System Status</Header>}>
-          <SpaceBetween size="s">
-            <Box>
-              <Box variant="awsui-key-label">Connection</Box>
-              <StatusIndicator
-                type={state.connected ? 'success' : 'error'}
-                ariaLabel={getStatusLabel('connection', state.connected ? 'success' : 'error')}
+              <Button
+                onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+                variant="link"
               >
-                {state.connected ? 'Connected' : 'Disconnected'}
-              </StatusIndicator>
-            </Box>
-            <Button onClick={loadApplicationData} disabled={state.loading}>
-              {state.loading ? 'Checking...' : 'Test Connection'}
-            </Button>
-          </SpaceBetween>
-        </Container>
-      </ColumnLayout>
+                Manage Workspaces →
+              </Button>
+            </SpaceBetween>
+          </Container>
 
-      <Container header={<Header variant="h2">Quick Actions</Header>}>
-        <SpaceBetween direction="horizontal" size="s">
-          <Button
-            variant="primary"
-            onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
-            disabled={Object.keys(state.templates).length === 0}
-          >
-            Launch New Instance
-          </Button>
-          <Button
-            onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
-            disabled={state.instances.length === 0}
-          >
-            View Instances ({state.instances.length})
-          </Button>
-          <Button onClick={() => setState(prev => ({ ...prev, activeView: 'storage' }))}>
-            Storage Management
-          </Button>
-        </SpaceBetween>
-      </Container>
-    </SpaceBetween>
-  );
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Total Workspaces</Box>
+              <Box fontSize="display-l" fontWeight="bold">
+                {state.instances.length}
+              </Box>
+              <Box variant="small" color="text-body-secondary">
+                {state.instances.filter(i => i.state === 'stopped').length} stopped,{' '}
+                {state.instances.filter(i => i.state === 'hibernated').length} hibernated
+              </Box>
+            </SpaceBetween>
+          </Container>
+
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Available Templates</Box>
+              <Box fontSize="display-l" fontWeight="bold">
+                {Object.keys(state.templates).length}
+              </Box>
+              <Button
+                onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
+                variant="link"
+              >
+                Browse Templates →
+              </Button>
+            </SpaceBetween>
+          </Container>
+
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Storage Volumes</Box>
+              <Box fontSize="display-l" fontWeight="bold">
+                {state.efsVolumes.length + state.ebsVolumes.length}
+              </Box>
+              <Button
+                onClick={() => setState(prev => ({ ...prev, activeView: 'storage' }))}
+                variant="link"
+              >
+                Manage Storage →
+              </Button>
+            </SpaceBetween>
+          </Container>
+        </ColumnLayout>
+
+        {/* Recent Workspaces */}
+        {recentInstances.length > 0 && (
+          <Container header={<Header variant="h2">Recent Workspaces</Header>}>
+            <ColumnLayout columns={3} variant="text-grid">
+              {recentInstances.map(instance => (
+                <Box key={instance.id}>
+                  <SpaceBetween size="s">
+                    <Box>
+                      <Box variant="h4">{instance.name}</Box>
+                      <StatusIndicator
+                        type={
+                          instance.state === 'running' ? 'success' :
+                          instance.state === 'stopped' ? 'stopped' :
+                          instance.state === 'hibernated' ? 'pending' : 'error'
+                        }
+                      >
+                        {instance.state}
+                      </StatusIndicator>
+                    </Box>
+                    <Box variant="small" color="text-body-secondary">
+                      Template: {instance.template}
+                    </Box>
+                    <SpaceBetween direction="horizontal" size="xs">
+                      {instance.state === 'running' && (
+                        <Button
+                          onClick={() => handleInstanceAction('terminal', instance)}
+                          iconName="console"
+                        >
+                          Terminal
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+                      >
+                        Manage
+                      </Button>
+                    </SpaceBetween>
+                  </SpaceBetween>
+                </Box>
+              ))}
+            </ColumnLayout>
+          </Container>
+        )}
+
+        {/* Quick Actions */}
+        <Container header={<Header variant="h2">Quick Actions</Header>}>
+          <ColumnLayout columns={4}>
+            <Box>
+              <SpaceBetween size="s">
+                <Box variant="h4">Launch New Workspace</Box>
+                <Box variant="small">Start a new research environment</Box>
+                <Button
+                  variant="primary"
+                  onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
+                >
+                  Browse Templates
+                </Button>
+              </SpaceBetween>
+            </Box>
+            <Box>
+              <SpaceBetween size="s">
+                <Box variant="h4">Manage Workspaces</Box>
+                <Box variant="small">View and control all workspaces</Box>
+                <Button
+                  onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+                >
+                  View Workspaces
+                </Button>
+              </SpaceBetween>
+            </Box>
+            <Box>
+              <SpaceBetween size="s">
+                <Box variant="h4">Storage Management</Box>
+                <Box variant="small">Configure persistent storage</Box>
+                <Button
+                  onClick={() => setState(prev => ({ ...prev, activeView: 'storage' }))}
+                >
+                  Manage Storage
+                </Button>
+              </SpaceBetween>
+            </Box>
+            <Box>
+              <SpaceBetween size="s">
+                <Box variant="h4">Cost Optimization</Box>
+                <Box variant="small">Monitor budgets and savings</Box>
+                <Button
+                  onClick={() => setState(prev => ({ ...prev, activeView: 'budget' }))}
+                >
+                  View Budgets
+                </Button>
+              </SpaceBetween>
+            </Box>
+          </ColumnLayout>
+        </Container>
+
+        {/* Recommendations */}
+        {runningInstances.length === 0 && state.instances.length > 0 && (
+          <Alert type="info" header="No workspaces currently running">
+            You have {state.instances.length} workspace{state.instances.length !== 1 ? 's' : ''} that {state.instances.length !== 1 ? 'are' : 'is'} stopped or hibernated.
+            Start a workspace to continue your research.
+          </Alert>
+        )}
+      </SpaceBetween>
+    );
+  };
 
   // Safe accessors for template data
   const getTemplateName = (template: Template): string => {
