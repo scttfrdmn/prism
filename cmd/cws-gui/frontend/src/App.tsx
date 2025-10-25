@@ -86,6 +86,37 @@ interface Instance {
   region?: string;
 }
 
+// Unified StorageVolume interface matching backend API
+interface StorageVolume {
+  name: string;
+  type: 'local' | 'shared' | 'cloud';
+  aws_service: 'ebs' | 'efs' | 's3';
+  region: string;
+  state: string;
+  creation_time: string;
+
+  // Size fields (varies by type)
+  size_gb?: number;      // EBS
+  size_bytes?: number;   // EFS
+
+  // EBS-specific fields
+  volume_id?: string;
+  volume_type?: string;
+  iops?: number;
+  throughput?: number;
+  attached_to?: string;
+
+  // EFS-specific fields
+  filesystem_id?: string;
+  mount_targets?: string[];
+  performance_mode?: string;
+  throughput_mode?: string;
+
+  // Cost
+  estimated_cost_gb: number;
+}
+
+// Legacy interfaces for backward compatibility
 interface EFSVolume {
   name: string;
   filesystem_id: string;
@@ -414,13 +445,46 @@ class SafeCloudWorkstationAPI {
 
   // Comprehensive Storage Management APIs
 
-  // EFS Volume Management
-  async getEFSVolumes(): Promise<any[]> {
+  // Helper functions to convert unified StorageVolume to legacy formats
+  private storageVolumeToEFS(vol: StorageVolume): EFSVolume | null {
+    if (vol.type !== 'shared' && vol.aws_service !== 'efs') return null;
+    return {
+      name: vol.name,
+      filesystem_id: vol.filesystem_id || '',
+      region: vol.region,
+      creation_time: vol.creation_time,
+      state: vol.state,
+      performance_mode: vol.performance_mode || '',
+      throughput_mode: vol.throughput_mode || '',
+      estimated_cost_gb: vol.estimated_cost_gb,
+      size_bytes: vol.size_bytes || 0,
+    };
+  }
+
+  private storageVolumeToEBS(vol: StorageVolume): EBSVolume | null {
+    if (vol.type !== 'local' && vol.aws_service !== 'ebs') return null;
+    return {
+      name: vol.name,
+      volume_id: vol.volume_id || '',
+      region: vol.region,
+      creation_time: vol.creation_time,
+      state: vol.state,
+      volume_type: vol.volume_type || '',
+      size_gb: vol.size_gb || 0,
+      estimated_cost_gb: vol.estimated_cost_gb,
+      attached_to: vol.attached_to,
+    };
+  }
+
+  // EFS Volume Management (using unified API)
+  async getEFSVolumes(): Promise<EFSVolume[]> {
     try {
-      const data = await this.safeRequest('/api/v1/volumes');
-      return Array.isArray(data) ? data : [];
+      const data: StorageVolume[] = await this.safeRequest('/api/v1/volumes');
+      if (!Array.isArray(data)) return [];
+      // Convert unified StorageVolume to legacy EFSVolume format
+      return data.map(vol => this.storageVolumeToEFS(vol)).filter((v): v is EFSVolume => v !== null);
     } catch (error) {
-      console.error('Failed to fetch EFS volumes:', error);
+      console.error('Failed to fetch shared storage volumes:', error);
       return [];
     }
   }
@@ -447,13 +511,19 @@ class SafeCloudWorkstationAPI {
     await this.safeRequest(`/api/v1/volumes/${volumeName}/unmount`, 'POST', { instance });
   }
 
-  // EBS Storage Management
-  async getEBSVolumes(): Promise<any[]> {
+  // EBS Storage Management (using unified API)
+  async getEBSVolumes(): Promise<EBSVolume[]> {
     try {
-      const data = await this.safeRequest('/api/v1/storage');
-      return Array.isArray(data) ? data : [];
+      const data: StorageVolume[] = await this.safeRequest('/api/v1/storage');
+      if (!Array.isArray(data)) return [];
+      // Convert unified StorageVolume to legacy EBSVolume format
+      // Note: /api/v1/storage now returns ALL storage (EBS + EFS), so filter for local only
+      return data
+        .filter(vol => vol.type === 'local' || vol.aws_service === 'ebs')
+        .map(vol => this.storageVolumeToEBS(vol))
+        .filter((v): v is EBSVolume => v !== null);
     } catch (error) {
-      console.error('Failed to fetch EBS volumes:', error);
+      console.error('Failed to fetch local storage volumes:', error);
       return [];
     }
   }
@@ -2165,12 +2235,12 @@ export default function CloudWorkstationApp() {
   // Storage Management View
   const StorageManagementView = () => (
     <SpaceBetween size="l">
-      {/* EFS Volumes Section */}
+      {/* Shared Storage Section */}
       <Container
         header={
           <Header
             variant="h2"
-            description="Elastic File System volumes for shared persistent storage"
+            description="Shared storage (EFS) for collaborative projects and multi-workspace data access"
             counter={`(${state.efsVolumes.length})`}
             actions={
               <SpaceBetween direction="horizontal" size="xs">
@@ -2178,12 +2248,12 @@ export default function CloudWorkstationApp() {
                   {state.loading ? <Spinner /> : 'Refresh'}
                 </Button>
                 <Button variant="primary">
-                  Create EFS Volume
+                  Create Shared Storage
                 </Button>
               </SpaceBetween>
             }
           >
-            EFS Volumes
+            📁 Shared Storage
           </Header>
         }
       >
@@ -2247,16 +2317,16 @@ export default function CloudWorkstationApp() {
             }
           ]}
           items={state.efsVolumes}
-          loadingText="Loading EFS volumes from AWS"
+          loadingText="Loading shared storage volumes from AWS"
           loading={state.loading}
           trackBy="name"
           empty={
             <Box textAlign="center" color="inherit">
               <Box variant="strong" textAlign="center" color="inherit">
-                No EFS volumes found
+                No shared storage volumes found
               </Box>
               <Box variant="p" padding={{ bottom: 's' }} color="inherit">
-                Create your first EFS volume for persistent shared storage.
+                Create shared storage for collaborative projects and multi-workspace data access.
               </Box>
             </Box>
           }
@@ -2264,12 +2334,12 @@ export default function CloudWorkstationApp() {
         />
       </Container>
 
-      {/* EBS Volumes Section */}
+      {/* Local Storage Section */}
       <Container
         header={
           <Header
             variant="h2"
-            description="Elastic Block Store volumes for high-performance workspace storage"
+            description="Local storage (EBS) for high-performance workspace-specific data"
             counter={`(${state.ebsVolumes.length})`}
             actions={
               <SpaceBetween direction="horizontal" size="xs">
@@ -2277,12 +2347,12 @@ export default function CloudWorkstationApp() {
                   {state.loading ? <Spinner /> : 'Refresh'}
                 </Button>
                 <Button variant="primary">
-                  Create EBS Volume
+                  Create Local Storage
                 </Button>
               </SpaceBetween>
             }
           >
-            EBS Volumes
+            💾 Local Storage
           </Header>
         }
       >
@@ -2357,16 +2427,16 @@ export default function CloudWorkstationApp() {
             }
           ]}
           items={state.ebsVolumes}
-          loadingText="Loading EBS volumes from AWS"
+          loadingText="Loading local storage volumes from AWS"
           loading={state.loading}
           trackBy="name"
           empty={
             <Box textAlign="center" color="inherit">
               <Box variant="strong" textAlign="center" color="inherit">
-                No EBS volumes found
+                No local storage volumes found
               </Box>
               <Box variant="p" padding={{ bottom: 's' }} color="inherit">
-                Create your first EBS volume for high-performance block storage.
+                Create local storage for high-performance workspace-specific data.
               </Box>
             </Box>
           }
