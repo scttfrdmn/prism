@@ -28,10 +28,19 @@ func (s *Server) handleListStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert map to slice for API consistency
-	storage := make([]types.EBSVolume, 0, len(state.EBSVolumes))
-	for _, volume := range state.EBSVolumes {
-		storage = append(storage, volume)
+	// Build unified storage list from both EBS and EFS volumes
+	storage := make([]*types.StorageVolume, 0, len(state.EBSVolumes)+len(state.Volumes))
+
+	// Add EBS volumes (local storage)
+	for _, ebsVol := range state.EBSVolumes {
+		vol := ebsVol // Create copy to get address
+		storage = append(storage, types.EBSVolumeToStorageVolume(&vol))
+	}
+
+	// Add EFS volumes (shared storage)
+	for _, efsVol := range state.Volumes {
+		vol := efsVol // Create copy to get address
+		storage = append(storage, types.EFSVolumeToStorageVolume(&vol))
 	}
 
 	_ = json.NewEncoder(w).Encode(storage)
@@ -63,7 +72,9 @@ func (s *Server) handleCreateStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(volume)
+	// Convert to unified StorageVolume for response
+	storageVolume := types.EBSVolumeToStorageVolume(volume)
+	_ = json.NewEncoder(w).Encode(storageVolume)
 }
 
 // handleStorageOperations handles operations on specific storage volumes
@@ -107,13 +118,21 @@ func (s *Server) handleGetStorage(w http.ResponseWriter, r *http.Request, name s
 		return
 	}
 
-	storage, exists := state.EBSVolumes[name]
-	if !exists {
-		s.writeError(w, http.StatusNotFound, "Storage not found")
+	// Check EBS volumes (local storage) first
+	if ebsVol, exists := state.EBSVolumes[name]; exists {
+		storageVolume := types.EBSVolumeToStorageVolume(&ebsVol)
+		_ = json.NewEncoder(w).Encode(storageVolume)
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(storage)
+	// Check EFS volumes (shared storage)
+	if efsVol, exists := state.Volumes[name]; exists {
+		storageVolume := types.EFSVolumeToStorageVolume(&efsVol)
+		_ = json.NewEncoder(w).Encode(storageVolume)
+		return
+	}
+
+	s.writeError(w, http.StatusNotFound, "Storage not found")
 }
 
 // handleDeleteStorage deletes a specific storage volume

@@ -22,7 +22,7 @@ func (s *Server) handleVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleListVolumes lists all volumes
+// handleListVolumes lists all volumes (EFS - shared storage)
 func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 	state, err := s.stateManager.LoadState()
 	if err != nil {
@@ -30,10 +30,11 @@ func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert map to slice for API consistency
-	volumes := make([]types.EFSVolume, 0, len(state.Volumes))
-	for _, volume := range state.Volumes {
-		volumes = append(volumes, volume)
+	// Convert EFS volumes to unified StorageVolume type
+	volumes := make([]*types.StorageVolume, 0, len(state.Volumes))
+	for _, efsVol := range state.Volumes {
+		vol := efsVol // Create copy to get address
+		volumes = append(volumes, types.EFSVolumeToStorageVolume(&vol))
 	}
 
 	_ = json.NewEncoder(w).Encode(volumes)
@@ -71,7 +72,9 @@ func (s *Server) handleCreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(volume)
+	// Convert to unified StorageVolume for response
+	storageVolume := types.EFSVolumeToStorageVolume(volume)
+	_ = json.NewEncoder(w).Encode(storageVolume)
 }
 
 // handleVolumeOperations handles operations on specific volumes
@@ -121,7 +124,9 @@ func (s *Server) handleGetVolume(w http.ResponseWriter, r *http.Request, name st
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(volume)
+	// Convert to unified StorageVolume for response
+	storageVolume := types.EFSVolumeToStorageVolume(&volume)
+	_ = json.NewEncoder(w).Encode(storageVolume)
 }
 
 // handleDeleteVolume deletes a specific volume
