@@ -20,14 +20,14 @@ func NewRightsizingCobraCommands(app *App) *RightsizingCobraCommands {
 func (r *RightsizingCobraCommands) CreateRightsizingCommand() *cobra.Command {
 	rightsizingCmd := &cobra.Command{
 		Use:   "rightsizing",
-		Short: "Analyze and optimize instance sizes",
+		Short: "Analyze and optimize workspace sizes",
 		Long: `Analyze usage patterns and provide rightsizing recommendations for cost optimization.
 
-CloudWorkstation rightsizing provides intelligent instance sizing recommendations based on
+CloudWorkstation rightsizing provides intelligent workspace sizing recommendations based on
 real usage metrics, helping you optimize costs while maintaining performance.
 
 Key capabilities:
-• Instance-specific analysis with detailed resource utilization
+• Workspace-specific analysis with detailed resource utilization
 • Fleet-wide optimization recommendations
 • Cost impact analysis with potential savings calculations
 • Resource usage patterns and bottleneck detection
@@ -48,8 +48,8 @@ Key capabilities:
 func (r *RightsizingCobraCommands) createAnalyzeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "analyze <workspace-name>",
-		Short: "Analyze instance rightsizing recommendations",
-		Long: `Perform detailed rightsizing analysis for a specific instance.
+		Short: "Analyze workspace rightsizing recommendations",
+		Long: `Perform detailed rightsizing analysis for a specific workspace.
 
 This command analyzes CPU, memory, storage, and network utilization patterns
 to provide intelligent sizing recommendations with cost impact analysis.
@@ -89,7 +89,7 @@ func (r *RightsizingCobraCommands) createRecommendationsCommand() *cobra.Command
 	cmd := &cobra.Command{
 		Use:   "recommendations",
 		Short: "List all rightsizing recommendations",
-		Long: `Display rightsizing recommendations for all instances in your environment.
+		Long: `Display rightsizing recommendations for all workspaces in your environment.
 
 This command provides a fleet-wide view of rightsizing opportunities with
 potential cost savings and optimization recommendations.
@@ -117,7 +117,7 @@ Examples:
 	}
 
 	cmd.Flags().String("format", "table", "Output format: table, json, yaml")
-	cmd.Flags().Bool("savings-only", false, "Show only instances with cost-saving opportunities")
+	cmd.Flags().Bool("savings-only", false, "Show only workspaces with cost-saving opportunities")
 	cmd.Flags().String("sort-by", "savings", "Sort by: savings, utilization, confidence, name")
 
 	return cmd
@@ -128,7 +128,7 @@ func (r *RightsizingCobraCommands) createStatsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stats <workspace-name>",
 		Short: "Show detailed rightsizing statistics",
-		Long: `Display comprehensive rightsizing statistics for a specific instance.
+		Long: `Display comprehensive rightsizing statistics for a specific workspace.
 
 This command provides detailed resource utilization statistics, performance
 metrics, and comprehensive analysis for informed rightsizing decisions.
@@ -165,7 +165,7 @@ func (r *RightsizingCobraCommands) createSummaryCommand() *cobra.Command {
 		Short: "Show fleet-wide rightsizing summary",
 		Long: `Display a comprehensive fleet-wide rightsizing summary.
 
-This command provides high-level insights across your entire instance fleet,
+This command provides high-level insights across your entire workspace fleet,
 including total potential savings, resource utilization trends, and optimization
 opportunities.
 
