@@ -314,7 +314,7 @@ interface IdleSchedule {
 }
 
 interface AppState {
-  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'budget' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
+  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'project-detail' | 'users' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
   templates: Record<string, Template>;
   instances: Instance[];
   efsVolumes: EFSVolume[];
@@ -334,6 +334,7 @@ interface AppState {
   idlePolicies: IdlePolicy[];
   idleSchedules: IdleSchedule[];
   selectedTemplate: Template | null;
+  selectedProject: Project | null;
   selectedTerminalInstance: string;
   loading: boolean;
   notifications: any[];
@@ -1060,6 +1061,7 @@ export default function CloudWorkstationApp() {
     idlePolicies: [],
     idleSchedules: [],
     selectedTemplate: null,
+    selectedProject: null,
     selectedTerminalInstance: '',
     loading: true,
     notifications: [],
@@ -2708,7 +2710,20 @@ export default function CloudWorkstationApp() {
             {
               id: "name",
               header: "Project Name",
-              cell: (item: Project) => <Link fontSize="body-m">{item.name}</Link>,
+              cell: (item: Project) => (
+                <Link
+                  fontSize="body-m"
+                  onFollow={() => {
+                    setState(prev => ({
+                      ...prev,
+                      selectedProject: item,
+                      activeView: 'project-detail'
+                    }));
+                  }}
+                >
+                  {item.name}
+                </Link>
+              ),
               sortingField: "name"
             },
             {
@@ -3164,6 +3179,442 @@ export default function CloudWorkstationApp() {
       </Container>
     </SpaceBetween>
   );
+
+  // Project Detail View with Integrated Budget
+  const ProjectDetailView = () => {
+    if (!state.selectedProject) {
+      // Fallback if no project selected
+      return (
+        <SpaceBetween size="l">
+          <Alert type="warning" header="No project selected">
+            Please select a project from the Projects page to view details.
+          </Alert>
+          <Button onClick={() => setState(prev => ({ ...prev, activeView: 'projects' }))}>
+            Back to Projects
+          </Button>
+        </SpaceBetween>
+      );
+    }
+
+    const project = state.selectedProject;
+    const [activeTabId, setActiveTabId] = React.useState('overview');
+
+    // Get budget data for this project
+    const projectBudget = state.budgets.find(b => b.project_id === project.id);
+
+    // Get workspaces for this project
+    const projectWorkspaces = state.instances.filter(i =>
+      i.project === project.name || i.project === project.id
+    );
+
+    return (
+      <SpaceBetween size="l">
+        {/* Project Header */}
+        <Header
+          variant="h1"
+          description={project.description || 'No description provided'}
+          actions={
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button onClick={() => setState(prev => ({ ...prev, activeView: 'projects', selectedProject: null }))}>
+                Back to Projects
+              </Button>
+              <Button>Edit Project</Button>
+              <Button variant="primary">Configure Budget</Button>
+            </SpaceBetween>
+          }
+        >
+          {project.name}
+        </Header>
+
+        {/* Quick Stats */}
+        <ColumnLayout columns={4} variant="text-grid">
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Status</Box>
+              <StatusIndicator
+                type={project.status === 'active' ? 'success' : project.status === 'suspended' ? 'warning' : 'error'}
+              >
+                {project.status || 'active'}
+              </StatusIndicator>
+            </SpaceBetween>
+          </Container>
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Workspaces</Box>
+              <Box fontSize="display-l" fontWeight="bold" color="text-status-info">
+                {projectWorkspaces.length}
+              </Box>
+            </SpaceBetween>
+          </Container>
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Members</Box>
+              <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
+                {project.member_count || 1}
+              </Box>
+            </SpaceBetween>
+          </Container>
+          <Container>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Owner</Box>
+              <Box fontSize="heading-m">{project.owner_email || 'Unknown'}</Box>
+            </SpaceBetween>
+          </Container>
+        </ColumnLayout>
+
+        {/* Tabbed Interface */}
+        <Tabs
+          activeTabId={activeTabId}
+          onChange={({ detail }) => setActiveTabId(detail.activeTabId)}
+          tabs={[
+            {
+              id: 'overview',
+              label: 'Overview',
+              content: (
+                <SpaceBetween size="l">
+                  {/* Project Details */}
+                  <Container header={<Header variant="h2">Project Details</Header>}>
+                    <ColumnLayout columns={2} variant="text-grid">
+                      <SpaceBetween size="m">
+                        <div>
+                          <Box variant="awsui-key-label">Project ID</Box>
+                          <Box>{project.id}</Box>
+                        </div>
+                        <div>
+                          <Box variant="awsui-key-label">Created</Box>
+                          <Box>{new Date(project.created_at).toLocaleString()}</Box>
+                        </div>
+                        <div>
+                          <Box variant="awsui-key-label">Last Updated</Box>
+                          <Box>{new Date(project.updated_at).toLocaleString()}</Box>
+                        </div>
+                      </SpaceBetween>
+                      <SpaceBetween size="m">
+                        <div>
+                          <Box variant="awsui-key-label">Owner</Box>
+                          <Box>{project.owner_email || 'Unknown'}</Box>
+                        </div>
+                        <div>
+                          <Box variant="awsui-key-label">Members</Box>
+                          <Box>{project.member_count || 1} member{(project.member_count || 1) !== 1 ? 's' : ''}</Box>
+                        </div>
+                        <div>
+                          <Box variant="awsui-key-label">Status</Box>
+                          <StatusIndicator type={project.status === 'active' ? 'success' : 'warning'}>
+                            {project.status || 'active'}
+                          </StatusIndicator>
+                        </div>
+                      </SpaceBetween>
+                    </ColumnLayout>
+                  </Container>
+
+                  {/* Project Workspaces */}
+                  <Container
+                    header={
+                      <Header
+                        variant="h2"
+                        counter={`(${projectWorkspaces.length})`}
+                        description="Workspaces associated with this project"
+                      >
+                        Project Workspaces
+                      </Header>
+                    }
+                  >
+                    {projectWorkspaces.length > 0 ? (
+                      <Table
+                        columnDefinitions={[
+                          {
+                            id: 'name',
+                            header: 'Workspace Name',
+                            cell: (item: Instance) => item.name
+                          },
+                          {
+                            id: 'template',
+                            header: 'Template',
+                            cell: (item: Instance) => item.template
+                          },
+                          {
+                            id: 'state',
+                            header: 'State',
+                            cell: (item: Instance) => (
+                              <StatusIndicator
+                                type={item.state === 'running' ? 'success' : 'stopped'}
+                              >
+                                {item.state}
+                              </StatusIndicator>
+                            )
+                          },
+                          {
+                            id: 'type',
+                            header: 'Type',
+                            cell: (item: Instance) => item.instance_type || 'Unknown'
+                          }
+                        ]}
+                        items={projectWorkspaces}
+                        empty={
+                          <Box textAlign="center" color="inherit">
+                            <Box variant="p">No workspaces in this project</Box>
+                          </Box>
+                        }
+                      />
+                    ) : (
+                      <Box textAlign="center" padding={{ vertical: 'xl' }}>
+                        <SpaceBetween size="m">
+                          <Box variant="strong">No workspaces yet</Box>
+                          <Box color="text-body-secondary">
+                            Launch workspaces and assign them to this project
+                          </Box>
+                          <Button variant="primary">Launch Workspace</Button>
+                        </SpaceBetween>
+                      </Box>
+                    )}
+                  </Container>
+                </SpaceBetween>
+              )
+            },
+            {
+              id: 'budget',
+              label: 'Budget & Costs',
+              content: (
+                <SpaceBetween size="l">
+                  {/* Budget Overview */}
+                  <ColumnLayout columns={4} variant="text-grid">
+                    <Container>
+                      <SpaceBetween size="s">
+                        <Box variant="awsui-key-label">Budget Limit</Box>
+                        <Box fontSize="display-l" fontWeight="bold" color="text-status-info">
+                          ${(project.budget_limit || 0).toFixed(2)}
+                        </Box>
+                      </SpaceBetween>
+                    </Container>
+                    <Container>
+                      <SpaceBetween size="s">
+                        <Box variant="awsui-key-label">Current Spend</Box>
+                        <Box
+                          fontSize="display-l"
+                          fontWeight="bold"
+                          color={
+                            (project.budget_limit || 0) > 0 &&
+                            ((project.current_spend || 0) / project.budget_limit) > 0.8
+                              ? 'text-status-error'
+                              : 'text-status-success'
+                          }
+                        >
+                          ${(project.current_spend || 0).toFixed(2)}
+                        </Box>
+                      </SpaceBetween>
+                    </Container>
+                    <Container>
+                      <SpaceBetween size="s">
+                        <Box variant="awsui-key-label">Remaining</Box>
+                        <Box fontSize="display-l" fontWeight="bold" color="text-status-warning">
+                          ${Math.max(0, (project.budget_limit || 0) - (project.current_spend || 0)).toFixed(2)}
+                        </Box>
+                      </SpaceBetween>
+                    </Container>
+                    <Container>
+                      <SpaceBetween size="s">
+                        <Box variant="awsui-key-label">% Used</Box>
+                        <Box fontSize="display-l" fontWeight="bold">
+                          {project.budget_limit && project.budget_limit > 0
+                            ? ((project.current_spend || 0) / project.budget_limit * 100).toFixed(1)
+                            : 0}%
+                        </Box>
+                      </SpaceBetween>
+                    </Container>
+                  </ColumnLayout>
+
+                  {/* Budget Status Alert */}
+                  {project.budget_limit && project.budget_limit > 0 && (
+                    (() => {
+                      const percentage = ((project.current_spend || 0) / project.budget_limit) * 100;
+                      if (percentage >= 95) {
+                        return (
+                          <Alert type="error" header="Budget Critical">
+                            This project has used {percentage.toFixed(1)}% of its budget. Consider hibernating workspaces or increasing the budget limit.
+                          </Alert>
+                        );
+                      } else if (percentage >= 80) {
+                        return (
+                          <Alert type="warning" header="Budget Warning">
+                            This project has used {percentage.toFixed(1)}% of its budget. Monitor spending closely.
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()
+                  )}
+
+                  {/* Budget Configuration */}
+                  <Container
+                    header={
+                      <Header
+                        variant="h2"
+                        description="Configure budget limits and alerts for this project"
+                        actions={<Button variant="primary">Edit Budget</Button>}
+                      >
+                        Budget Configuration
+                      </Header>
+                    }
+                  >
+                    <SpaceBetween size="m">
+                      {project.budget_limit && project.budget_limit > 0 ? (
+                        <>
+                          <ColumnLayout columns={2}>
+                            <div>
+                              <Box variant="awsui-key-label">Monthly Budget Limit</Box>
+                              <Box fontSize="heading-l">${project.budget_limit.toFixed(2)}</Box>
+                            </div>
+                            <div>
+                              <Box variant="awsui-key-label">Budget Period</Box>
+                              <Box fontSize="heading-m">Monthly (resets 1st of month)</Box>
+                            </div>
+                          </ColumnLayout>
+                          <Box variant="h4">Alert Thresholds</Box>
+                          <ColumnLayout columns={3}>
+                            <div>
+                              <Box color="text-body-secondary">50% Warning</Box>
+                              <Box>${(project.budget_limit * 0.5).toFixed(2)}</Box>
+                            </div>
+                            <div>
+                              <Box color="text-body-secondary">80% Alert</Box>
+                              <Box>${(project.budget_limit * 0.8).toFixed(2)}</Box>
+                            </div>
+                            <div>
+                              <Box color="text-body-secondary">100% Critical</Box>
+                              <Box>${project.budget_limit.toFixed(2)}</Box>
+                            </div>
+                          </ColumnLayout>
+                        </>
+                      ) : (
+                        <Box textAlign="center" padding={{ vertical: 'xl' }}>
+                          <SpaceBetween size="m">
+                            <Box variant="strong">No budget configured</Box>
+                            <Box color="text-body-secondary">
+                              Set a budget limit to track spending and receive alerts
+                            </Box>
+                            <Button variant="primary">Configure Budget</Button>
+                          </SpaceBetween>
+                        </Box>
+                      )}
+                    </SpaceBetween>
+                  </Container>
+
+                  {/* Per-Workspace Cost Breakdown */}
+                  <Container
+                    header={
+                      <Header
+                        variant="h2"
+                        description="Cost breakdown by workspace"
+                        counter={`(${projectWorkspaces.length} workspaces)`}
+                      >
+                        Workspace Costs
+                      </Header>
+                    }
+                  >
+                    {projectWorkspaces.length > 0 ? (
+                      <Table
+                        columnDefinitions={[
+                          {
+                            id: 'name',
+                            header: 'Workspace',
+                            cell: (item: Instance) => item.name
+                          },
+                          {
+                            id: 'state',
+                            header: 'State',
+                            cell: (item: Instance) => (
+                              <StatusIndicator type={item.state === 'running' ? 'success' : 'stopped'}>
+                                {item.state}
+                              </StatusIndicator>
+                            )
+                          },
+                          {
+                            id: 'cost',
+                            header: 'Accumulated Cost',
+                            cell: (item: Instance) => {
+                              // Mock cost calculation - in real implementation, fetch from API
+                              const mockCost = Math.random() * 50;
+                              return `$${mockCost.toFixed(2)}`;
+                            }
+                          },
+                          {
+                            id: 'rate',
+                            header: 'Hourly Rate',
+                            cell: (item: Instance) => {
+                              // Mock rate - in real implementation, fetch from API
+                              return '$0.85/hr';
+                            }
+                          },
+                          {
+                            id: 'runtime',
+                            header: 'Runtime',
+                            cell: (item: Instance) => {
+                              if (item.launch_time) {
+                                const hours = Math.floor(
+                                  (Date.now() - new Date(item.launch_time).getTime()) / (1000 * 60 * 60)
+                                );
+                                return `${hours}h`;
+                              }
+                              return 'N/A';
+                            }
+                          }
+                        ]}
+                        items={projectWorkspaces}
+                      />
+                    ) : (
+                      <Box textAlign="center" padding={{ vertical: 'xl' }} color="inherit">
+                        <Box variant="p">No workspace costs to display</Box>
+                      </Box>
+                    )}
+                  </Container>
+
+                  {/* Cost Optimization Recommendations */}
+                  {projectWorkspaces.some(i => i.state === 'running') && (
+                    <Alert type="info" header="💡 Cost Optimization Tips">
+                      <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                        <li>Hibernate idle workspaces to reduce costs while preserving state</li>
+                        <li>Use spot instances for non-critical workloads (up to 90% savings)</li>
+                        <li>Configure auto-hibernation policies for unused workspaces</li>
+                        <li>Right-size instances based on actual usage patterns</li>
+                      </ul>
+                    </Alert>
+                  )}
+                </SpaceBetween>
+              )
+            },
+            {
+              id: 'members',
+              label: `Members (${project.member_count || 1})`,
+              content: (
+                <Container
+                  header={
+                    <Header
+                      variant="h2"
+                      description="Manage project members and their permissions"
+                      counter={`(${project.member_count || 1} members)`}
+                      actions={<Button variant="primary">Add Member</Button>}
+                    >
+                      Project Members
+                    </Header>
+                  }
+                >
+                  <Box textAlign="center" padding={{ vertical: 'xl' }}>
+                    <SpaceBetween size="m">
+                      <Box variant="strong">Member management coming soon</Box>
+                      <Box color="text-body-secondary">
+                        View and manage project members, assign roles, and configure permissions
+                      </Box>
+                    </SpaceBetween>
+                  </Box>
+                </Container>
+              )
+            }
+          ]}
+        />
+      </SpaceBetween>
+    );
+  };
 
   // Settings View
   const SettingsView = () => (
@@ -5493,13 +5944,6 @@ export default function CloudWorkstationApp() {
               { type: "divider" },
               {
                 type: "link",
-                text: "Budget Management",
-                href: "/budget",
-                info: state.budgets.filter(b => b.alert_count > 0).length > 0 ?
-                      <Badge color="red">{state.budgets.filter(b => b.alert_count > 0).length} alerts</Badge> : undefined
-              },
-              {
-                type: "link",
                 text: "AMI Management",
                 href: "/ami",
                 info: <Badge>{state.amis.length} AMIs</Badge>
@@ -5606,8 +6050,8 @@ export default function CloudWorkstationApp() {
             {state.activeView === 'webview' && <WebViewView />}
             {state.activeView === 'storage' && <StorageManagementView />}
             {state.activeView === 'projects' && <ProjectManagementView />}
+            {state.activeView === 'project-detail' && <ProjectDetailView />}
             {state.activeView === 'users' && <UserManagementView />}
-            {state.activeView === 'budget' && <BudgetManagementView />}
             {state.activeView === 'ami' && <AMIManagementView />}
             {state.activeView === 'rightsizing' && <RightsizingView />}
             {state.activeView === 'policy' && <PolicyView />}
