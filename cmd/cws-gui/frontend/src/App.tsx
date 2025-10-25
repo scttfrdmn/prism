@@ -314,7 +314,7 @@ interface IdleSchedule {
 }
 
 interface AppState {
-  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'budget' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
+  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'users' | 'budget' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings';
   templates: Record<string, Template>;
   instances: Instance[];
   efsVolumes: EFSVolume[];
@@ -335,6 +335,9 @@ interface AppState {
   idleSchedules: IdleSchedule[];
   selectedTemplate: Template | null;
   selectedTerminalInstance: string;
+  selectedWebService: {instance: string, service: any} | null;
+  terminalModalVisible: boolean;
+  webServiceModalVisible: boolean;
   loading: boolean;
   notifications: any[];
   connected: boolean;
@@ -1061,6 +1064,9 @@ export default function CloudWorkstationApp() {
     idleSchedules: [],
     selectedTemplate: null,
     selectedTerminalInstance: '',
+    selectedWebService: null,
+    terminalModalVisible: false,
+    webServiceModalVisible: false,
     loading: true,
     notifications: [],
     connected: false,
@@ -1631,6 +1637,27 @@ export default function CloudWorkstationApp() {
           navigator.clipboard.writeText(connectionInfo);
           actionMessage = `Connection command copied to clipboard: ${connectionInfo}`;
           break;
+        case 'terminal':
+          // Open terminal modal for this instance
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            selectedTerminalInstance: instance.name,
+            terminalModalVisible: true
+          }));
+          return; // Don't continue with normal flow
+        case 'webservices':
+          // Open web services modal for this instance
+          const firstService = instance.web_services && instance.web_services.length > 0
+            ? instance.web_services[0]
+            : null;
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            selectedWebService: firstService ? { instance: instance.name, service: firstService } : null,
+            webServiceModalVisible: true
+          }));
+          return; // Don't continue with normal flow
         case 'delete':
           // Show confirmation modal instead of deleting immediately
           setState(prev => ({ ...prev, loading: false }));
@@ -2013,6 +2040,8 @@ export default function CloudWorkstationApp() {
                   expandToViewport
                   items={[
                     { text: 'Connect', id: 'connect', disabled: item.state !== 'running' },
+                    { text: 'Open Terminal', id: 'terminal', disabled: item.state !== 'running' },
+                    { text: 'Open Web Services', id: 'webservices', disabled: item.state !== 'running' || !item.web_services || item.web_services.length === 0 },
                     { text: 'Stop', id: 'stop', disabled: item.state !== 'running' },
                     { text: 'Start', id: 'start', disabled: item.state === 'running' },
                     { text: 'Hibernate', id: 'hibernate', disabled: item.state !== 'running' },
@@ -5267,20 +5296,6 @@ export default function CloudWorkstationApp() {
                         {state.instances.length}
                       </Badge> : undefined
               },
-              {
-                type: "link",
-                text: "Terminal",
-                href: "/terminal",
-                info: state.instances.filter(i => i.state === 'running').length > 0 ?
-                      <Badge color="green">SSH</Badge> : undefined
-              },
-              {
-                type: "link",
-                text: "Web Services",
-                href: "/webview",
-                info: state.instances.filter(i => i.state === 'running' && i.web_services && i.web_services.length > 0).length > 0 ?
-                      <Badge color="blue">Available</Badge> : undefined
-              },
               { type: "divider" },
               {
                 type: "link",
@@ -5377,40 +5392,6 @@ export default function CloudWorkstationApp() {
             {state.activeView === 'dashboard' && <DashboardView />}
             {state.activeView === 'templates' && <TemplateSelectionView />}
             {state.activeView === 'instances' && <InstanceManagementView />}
-            <div style={{ display: state.activeView === 'terminal' ? 'block' : 'none' }}>
-              {(() => {
-                const runningInstances = state.instances.filter(i => i.state === 'running');
-
-                if (runningInstances.length === 0) {
-                  return (
-                    <Container header={<Header variant="h1">SSH Terminal</Header>}>
-                      <Alert type="info">
-                        No running instances available. Launch an instance to access the SSH terminal.
-                      </Alert>
-                    </Container>
-                  );
-                }
-
-                return (
-                  <SpaceBetween size="l">
-                    <Container header={<Header variant="h1">SSH Terminal</Header>}>
-                      <SpaceBetween size="m">
-                        <FormField label="Select Workspace">
-                          <Select
-                            selectedOption={state.selectedTerminalInstance ? { label: state.selectedTerminalInstance, value: state.selectedTerminalInstance } : null}
-                            onChange={({ detail }) => setState({ ...state, selectedTerminalInstance: detail.selectedOption.value || '' })}
-                            options={runningInstances.map(i => ({ label: i.name, value: i.name }))}
-                            placeholder="Choose a workspace"
-                          />
-                        </FormField>
-                        {state.selectedTerminalInstance && <Terminal instanceName={state.selectedTerminalInstance} />}
-                      </SpaceBetween>
-                    </Container>
-                  </SpaceBetween>
-                );
-              })()}
-            </div>
-            {state.activeView === 'webview' && <WebViewView />}
             {state.activeView === 'storage' && <StorageManagementView />}
             {state.activeView === 'projects' && <ProjectManagementView />}
             {state.activeView === 'users' && <UserManagementView />}
@@ -5429,6 +5410,44 @@ export default function CloudWorkstationApp() {
       <LaunchModal />
       <DeleteConfirmationModal />
       <OnboardingWizard />
+
+      {/* Terminal Modal */}
+      <Modal
+        visible={state.terminalModalVisible}
+        onDismiss={() => setState(prev => ({ ...prev, terminalModalVisible: false }))}
+        size="max"
+        header={<Header variant="h2">SSH Terminal - {state.selectedTerminalInstance}</Header>}
+      >
+        <div style={{ height: '600px' }}>
+          {state.selectedTerminalInstance && (
+            <Terminal instanceName={state.selectedTerminalInstance} />
+          )}
+        </div>
+      </Modal>
+
+      {/* Web Services Modal */}
+      <Modal
+        visible={state.webServiceModalVisible}
+        onDismiss={() => setState(prev => ({ ...prev, webServiceModalVisible: false, selectedWebService: null }))}
+        size="max"
+        header={
+          <Header variant="h2">
+            {state.selectedWebService
+              ? `${state.selectedWebService.service.name} - ${state.selectedWebService.instance}`
+              : 'Web Services'}
+          </Header>
+        }
+      >
+        <div style={{ height: '700px' }}>
+          {state.selectedWebService && (
+            <WebView
+              url={state.selectedWebService.service.url}
+              serviceName={state.selectedWebService.service.name}
+              instanceName={state.selectedWebService.instance}
+            />
+          )}
+        </div>
+      </Modal>
     </>
   );
 }
