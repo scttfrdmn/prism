@@ -18,7 +18,7 @@ func NewAMICobraCommands(app *App) *AMICobraCommands {
 func (ac *AMICobraCommands) CreateAMICommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ami",
-		Short: "Manage AMIs for fast instance launching",
+		Short: "Manage AMIs for fast workspace launching",
 		Long: `Build, manage, and deploy AMIs for faster CloudWorkstation deployments.
 
 AMIs enable fast launching by pre-building template environments, reducing
