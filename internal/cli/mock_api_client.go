@@ -503,7 +503,7 @@ func (m *MockAPIClient) GetIdleHistory(ctx context.Context) ([]types.IdleHistory
 }
 
 // Volume operations (EFS)
-func (m *MockAPIClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.EFSVolume, error) {
+func (m *MockAPIClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.StorageVolume, error) {
 	m.CreateVolumeCalls = append(m.CreateVolumeCalls, req)
 
 	if m.ShouldReturnError {
@@ -518,24 +518,31 @@ func (m *MockAPIClient) CreateVolume(ctx context.Context, req types.VolumeCreate
 	}
 
 	m.Volumes = append(m.Volumes, volume)
-	return &volume, nil
+	return types.EFSVolumeToStorageVolume(&volume), nil
 }
 
-func (m *MockAPIClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error) {
+func (m *MockAPIClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, error) {
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	return m.Volumes, nil
+	// Convert EFS volumes to unified storage volumes
+	result := make([]*types.StorageVolume, 0, len(m.Volumes))
+	for i := range m.Volumes {
+		if sv := types.EFSVolumeToStorageVolume(&m.Volumes[i]); sv != nil {
+			result = append(result, sv)
+		}
+	}
+	return result, nil
 }
 
-func (m *MockAPIClient) GetVolume(ctx context.Context, name string) (*types.EFSVolume, error) {
+func (m *MockAPIClient) GetVolume(ctx context.Context, name string) (*types.StorageVolume, error) {
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
 
-	for _, volume := range m.Volumes {
-		if volume.Name == name {
-			return &volume, nil
+	for i := range m.Volumes {
+		if m.Volumes[i].Name == name {
+			return types.EFSVolumeToStorageVolume(&m.Volumes[i]), nil
 		}
 	}
 
@@ -586,7 +593,7 @@ func (m *MockAPIClient) UnmountVolume(ctx context.Context, volumeName, instanceN
 }
 
 // Storage operations (EBS)
-func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
+func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.StorageVolume, error) {
 	m.CreateStorageCalls = append(m.CreateStorageCalls, req)
 
 	if m.ShouldReturnError {
@@ -618,24 +625,31 @@ func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCrea
 	}
 
 	m.StorageVolumes = append(m.StorageVolumes, volume)
-	return &volume, nil
+	return types.EBSVolumeToStorageVolume(&volume), nil
 }
 
-func (m *MockAPIClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error) {
+func (m *MockAPIClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, error) {
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	return m.StorageVolumes, nil
+	// Convert EBS volumes to unified storage volumes
+	result := make([]*types.StorageVolume, 0, len(m.StorageVolumes))
+	for i := range m.StorageVolumes {
+		if sv := types.EBSVolumeToStorageVolume(&m.StorageVolumes[i]); sv != nil {
+			result = append(result, sv)
+		}
+	}
+	return result, nil
 }
 
-func (m *MockAPIClient) GetStorage(ctx context.Context, name string) (*types.EBSVolume, error) {
+func (m *MockAPIClient) GetStorage(ctx context.Context, name string) (*types.StorageVolume, error) {
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
 
-	for _, volume := range m.StorageVolumes {
-		if volume.Name == name {
-			return &volume, nil
+	for i := range m.StorageVolumes {
+		if m.StorageVolumes[i].Name == name {
+			return types.EBSVolumeToStorageVolume(&m.StorageVolumes[i]), nil
 		}
 	}
 

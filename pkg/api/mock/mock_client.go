@@ -484,7 +484,7 @@ func (m *MockClient) GetTemplate(ctx context.Context, name string) (*types.Templ
 }
 
 // CreateVolume simulates creating an EFS volume
-func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.EFSVolume, error) {
+func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.StorageVolume, error) {
 	if _, exists := m.Volumes[req.Name]; exists {
 		return nil, fmt.Errorf("volume already exists: %s", req.Name)
 	}
@@ -522,22 +522,24 @@ func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateReq
 	// Simulate delay
 	time.Sleep(300 * time.Millisecond)
 
-	return &volume, nil
+	return types.EFSVolumeToStorageVolume(&volume), nil
 }
 
 // ListVolumes returns all mock EFS volumes
-func (m *MockClient) ListVolumes(ctx context.Context) ([]types.EFSVolume, error) {
-	volumes := make([]types.EFSVolume, 0, len(m.Volumes))
+func (m *MockClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, error) {
+	volumes := make([]*types.StorageVolume, 0, len(m.Volumes))
 	for _, volume := range m.Volumes {
-		volumes = append(volumes, volume)
+		if sv := types.EFSVolumeToStorageVolume(&volume); sv != nil {
+			volumes = append(volumes, sv)
+		}
 	}
 	return volumes, nil
 }
 
 // GetVolume returns a specific EFS volume
-func (m *MockClient) GetVolume(ctx context.Context, name string) (*types.EFSVolume, error) {
+func (m *MockClient) GetVolume(ctx context.Context, name string) (*types.StorageVolume, error) {
 	if volume, exists := m.Volumes[name]; exists {
-		return &volume, nil
+		return types.EFSVolumeToStorageVolume(&volume), nil
 	}
 	return nil, fmt.Errorf("volume not found: %s", name)
 }
@@ -553,7 +555,7 @@ func (m *MockClient) DeleteVolume(ctx context.Context, name string) error {
 }
 
 // CreateStorage simulates creating an EBS volume
-func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.EBSVolume, error) {
+func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.StorageVolume, error) {
 	if _, exists := m.Storage[req.Name]; exists {
 		return nil, fmt.Errorf("storage volume already exists: %s", req.Name)
 	}
@@ -636,22 +638,24 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 	// Simulate delay
 	time.Sleep(500 * time.Millisecond)
 
-	return &volume, nil
+	return types.EBSVolumeToStorageVolume(&volume), nil
 }
 
 // ListStorage returns all mock EBS volumes
-func (m *MockClient) ListStorage(ctx context.Context) ([]types.EBSVolume, error) {
-	volumes := make([]types.EBSVolume, 0, len(m.Storage))
+func (m *MockClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, error) {
+	volumes := make([]*types.StorageVolume, 0, len(m.Storage))
 	for _, volume := range m.Storage {
-		volumes = append(volumes, volume)
+		if sv := types.EBSVolumeToStorageVolume(&volume); sv != nil {
+			volumes = append(volumes, sv)
+		}
 	}
 	return volumes, nil
 }
 
 // GetStorage returns a specific EBS volume
-func (m *MockClient) GetStorage(ctx context.Context, name string) (*types.EBSVolume, error) {
+func (m *MockClient) GetStorage(ctx context.Context, name string) (*types.StorageVolume, error) {
 	if volume, exists := m.Storage[name]; exists {
-		return &volume, nil
+		return types.EBSVolumeToStorageVolume(&volume), nil
 	}
 	return nil, fmt.Errorf("storage volume not found: %s", name)
 }
