@@ -1223,13 +1223,13 @@ func (m *Manager) DeleteVolume(name string) error {
 		return fmt.Errorf("failed to load state: %w", err)
 	}
 
-	volume, exists := state.Volumes[name]
-	if !exists {
+	volume, exists := state.StorageVolumes[name]
+	if !exists || !volume.IsShared() {
 		return fmt.Errorf("volume '%s' not found in state", name)
 	}
 
 	// Check if the filesystem exists
-	fsId := volume.FileSystemId
+	fsId := volume.FileSystemID
 	if fsId == "" {
 		return fmt.Errorf("no filesystem ID found for volume '%s'", name)
 	}
@@ -1298,7 +1298,7 @@ func (m *Manager) DeleteVolume(name string) error {
 	}
 
 	// 4. Remove from state
-	return m.stateManager.RemoveVolume(name)
+	return m.stateManager.RemoveStorageVolume(name)
 }
 
 // MountVolume mounts an EFS volume to an instance
@@ -1309,8 +1309,8 @@ func (m *Manager) MountVolume(volumeName, instanceName, mountPoint string) error
 		return fmt.Errorf("failed to load state: %w", err)
 	}
 
-	volume, exists := state.Volumes[volumeName]
-	if !exists {
+	volume, exists := state.StorageVolumes[volumeName]
+	if !exists || !volume.IsShared() {
 		return fmt.Errorf("volume '%s' not found in state", volumeName)
 	}
 
@@ -1325,7 +1325,7 @@ func (m *Manager) MountVolume(volumeName, instanceName, mountPoint string) error
 		return fmt.Errorf("instance '%s' is not running (state: %s)", instanceName, instance.State)
 	}
 
-	fsId := volume.FileSystemId
+	fsId := volume.FileSystemID
 	if fsId == "" {
 		return fmt.Errorf("no filesystem ID found for volume '%s'", volumeName)
 	}
@@ -1415,8 +1415,8 @@ func (m *Manager) UnmountVolume(volumeName, instanceName string) error {
 		return fmt.Errorf("failed to load state: %w", err)
 	}
 
-	volume, exists := state.Volumes[volumeName]
-	if !exists {
+	volume, exists := state.StorageVolumes[volumeName]
+	if !exists || !volume.IsShared() {
 		return fmt.Errorf("volume '%s' not found in state", volumeName)
 	}
 
@@ -1425,7 +1425,7 @@ func (m *Manager) UnmountVolume(volumeName, instanceName string) error {
 		return fmt.Errorf("instance '%s' not found in state", instanceName)
 	}
 
-	fsId := volume.FileSystemId
+	fsId := volume.FileSystemID
 	if fsId == "" {
 		return fmt.Errorf("no filesystem ID found for volume '%s'", volumeName)
 	}

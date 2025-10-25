@@ -89,10 +89,8 @@ type StateManagerInterface interface {
 	SaveState(*types.State) error
 	SaveInstance(types.Instance) error
 	RemoveInstance(string) error
-	SaveVolume(types.EFSVolume) error
-	RemoveVolume(string) error
-	SaveEBSVolume(types.EBSVolume) error
-	RemoveEBSVolume(string) error
+	SaveStorageVolume(types.StorageVolume) error
+	RemoveStorageVolume(string) error
 	UpdateConfig(types.Config) error
 }
 

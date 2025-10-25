@@ -122,7 +122,7 @@ func (bt *BudgetTracker) RemoveProject(projectID string) error {
 }
 
 // UpdateProjectCosts updates cost tracking for a project
-func (bt *BudgetTracker) UpdateProjectCosts(projectID string, instances []types.Instance, volumes []types.EFSVolume, ebsVolumes []types.EBSVolume) error {
+func (bt *BudgetTracker) UpdateProjectCosts(projectID string, instances []types.Instance, storageVolumes []types.StorageVolume) error {
 	bt.mutex.Lock()
 	defer bt.mutex.Unlock()
 
@@ -133,7 +133,7 @@ func (bt *BudgetTracker) UpdateProjectCosts(projectID string, instances []types.
 
 	// Calculate current costs
 	instanceCosts, totalInstanceCost := bt.costCalculator.CalculateInstanceCosts(instances)
-	storageCosts, totalStorageCost := bt.costCalculator.CalculateStorageCosts(volumes, ebsVolumes)
+	storageCosts, totalStorageCost := bt.costCalculator.CalculateStorageCosts(storageVolumes)
 
 	totalCost := totalInstanceCost + totalStorageCost
 

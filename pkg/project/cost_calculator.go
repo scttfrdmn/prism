@@ -89,21 +89,14 @@ func (c *CostCalculator) CalculateInstanceCosts(instances []types.Instance) ([]t
 	return instanceCosts, totalCost
 }
 
-// CalculateStorageCosts calculates costs for EFS and EBS volumes
-func (c *CostCalculator) CalculateStorageCosts(efsVolumes []types.EFSVolume, ebsVolumes []types.EBSVolume) ([]types.StorageCost, float64) {
+// CalculateStorageCosts calculates costs for all storage volumes
+func (c *CostCalculator) CalculateStorageCosts(storageVolumes []types.StorageVolume) ([]types.StorageCost, float64) {
 	var storageCosts []types.StorageCost
 	var totalCost float64
 
-	// Calculate EFS costs
-	for _, volume := range efsVolumes {
-		cost := c.calculateEFSCost(volume)
-		storageCosts = append(storageCosts, cost)
-		totalCost += cost.Cost
-	}
-
-	// Calculate EBS costs
-	for _, volume := range ebsVolumes {
-		cost := c.calculateEBSCost(volume)
+	// Calculate costs for all storage volumes (EFS, EBS, S3)
+	for _, volume := range storageVolumes {
+		cost := c.calculateStorageVolumeCost(volume)
 		storageCosts = append(storageCosts, cost)
 		totalCost += cost.Cost
 	}
@@ -179,46 +172,56 @@ func (c *CostCalculator) calculateInstanceStorageCost(instance types.Instance) f
 	return monthlyStorageCost * (daysSinceLaunch / 30.0)
 }
 
-// calculateEFSCost calculates the cost for an EFS volume
-func (c *CostCalculator) calculateEFSCost(volume types.EFSVolume) types.StorageCost {
-	pricePerGB := storagePricing["efs-standard"]
+// calculateStorageVolumeCost calculates the cost for a unified storage volume (EFS, EBS, or S3)
+func (c *CostCalculator) calculateStorageVolumeCost(volume types.StorageVolume) types.StorageCost {
+	var pricePerGB float64
+	var sizeGB float64
+	var volumeTypeStr string
 
-	// EFS size is not directly available in our volume type
-	// In a real implementation, we would query AWS for actual usage
-	estimatedSizeGB := 10.0 // Default estimate
+	// Handle different storage types
+	if volume.IsShared() {
+		// EFS (Shared Storage)
+		pricePerGB = storagePricing["efs-standard"]
+		// EFS size is not directly available, estimate if needed
+		if volume.SizeBytes != nil {
+			sizeGB = float64(*volume.SizeBytes) / (1024 * 1024 * 1024)
+		} else {
+			sizeGB = 10.0 // Default estimate
+		}
+		volumeTypeStr = "EFS"
+	} else if volume.IsWorkspace() {
+		// EBS (Workspace Storage)
+		pricePerGB = storagePricing["gp3"] // Default to gp3 pricing
+
+		// Use volume type specific pricing if available
+		if volume.VolumeType != "" {
+			if price, exists := storagePricing[volume.VolumeType]; exists {
+				pricePerGB = price
+			}
+		}
+
+		if volume.SizeGB != nil {
+			sizeGB = float64(*volume.SizeGB)
+		} else {
+			sizeGB = 0.0
+		}
+		volumeTypeStr = volume.VolumeType
+	} else {
+		// S3 or other cloud storage
+		pricePerGB = storagePricing["gp3"] // Fallback pricing
+		sizeGB = 0.0
+		volumeTypeStr = string(volume.AWSService)
+	}
 
 	// Calculate monthly cost, then pro-rate for actual time
-	monthlyStorageCost := estimatedSizeGB * pricePerGB
+	monthlyStorageCost := sizeGB * pricePerGB
 	daysSinceCreation := time.Since(volume.CreationTime).Hours() / 24
 	actualCost := monthlyStorageCost * (daysSinceCreation / 30.0)
 
 	return types.StorageCost{
 		VolumeName: volume.Name,
-		VolumeType: "EFS",
-		SizeGB:     estimatedSizeGB,
-		Cost:       actualCost,
-		CostPerGB:  pricePerGB,
-	}
-}
-
-// calculateEBSCost calculates the cost for an EBS volume
-func (c *CostCalculator) calculateEBSCost(volume types.EBSVolume) types.StorageCost {
-	pricePerGB := storagePricing["gp3"] // Default to gp3 pricing
-
-	// Use volume type specific pricing if available
-	if price, exists := storagePricing[volume.VolumeType]; exists {
-		pricePerGB = price
-	}
-
-	// Calculate monthly cost, then pro-rate for actual time
-	monthlyStorageCost := float64(volume.SizeGB) * pricePerGB
-	daysSinceCreation := time.Since(volume.CreationTime).Hours() / 24
-	actualCost := monthlyStorageCost * (daysSinceCreation / 30.0)
-
-	return types.StorageCost{
-		VolumeName: volume.Name,
-		VolumeType: volume.VolumeType,
-		SizeGB:     float64(volume.SizeGB),
+		VolumeType: volumeTypeStr,
+		SizeGB:     sizeGB,
 		Cost:       actualCost,
 		CostPerGB:  pricePerGB,
 	}

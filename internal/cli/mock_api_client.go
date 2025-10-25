@@ -33,8 +33,7 @@ type MockAPIClient struct {
 	// Mock data
 	Instances      []types.Instance
 	Templates      map[string]types.Template
-	Volumes        []types.EFSVolume
-	StorageVolumes []types.EBSVolume
+	StorageVolumes []types.StorageVolume // Unified storage (EFS, EBS, S3)
 	Projects       []types.Project
 	// Legacy idle fields removed - using new hibernation policy system
 	DaemonStatus      *types.DaemonStatus
@@ -54,6 +53,11 @@ type MockAPIClient struct {
 
 	// Configuration
 	Options client.Options
+}
+
+// Helper function to create int32 pointer
+func intPtr(i int32) *int32 {
+	return &i
 }
 
 // NewMockAPIClient creates a new mock API client with default test data
@@ -98,20 +102,24 @@ func NewMockAPIClient() *MockAPIClient {
 				Description: "Rocky Linux 9 with Conda stack",
 			},
 		},
-		Volumes: []types.EFSVolume{
+		StorageVolumes: []types.StorageVolume{
+			// EFS (Shared) volume
 			{
 				Name:         "test-volume",
-				FileSystemId: "fs-1234567890abcdef0",
+				Type:         types.StorageTypeShared,
+				AWSService:   types.AWSServiceEFS,
+				FileSystemID: "fs-1234567890abcdef0",
 				State:        "available",
 				CreationTime: time.Now().Add(-24 * time.Hour),
 			},
-		},
-		StorageVolumes: []types.EBSVolume{
+			// EBS (Workspace) volume
 			{
 				Name:         "test-storage",
+				Type:         types.StorageTypeWorkspace,
+				AWSService:   types.AWSServiceEBS,
 				VolumeID:     "vol-1234567890abcdef0",
 				State:        "available",
-				SizeGB:       100,
+				SizeGB:       intPtr(100),
 				VolumeType:   "gp3",
 				CreationTime: time.Now().Add(-24 * time.Hour),
 			},
@@ -531,11 +539,11 @@ func (m *MockAPIClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	// Convert EFS volumes to unified storage volumes
-	result := make([]*types.StorageVolume, 0, len(m.Volumes))
-	for i := range m.Volumes {
-		if sv := types.EFSVolumeToStorageVolume(&m.Volumes[i]); sv != nil {
-			result = append(result, sv)
+	// Filter for shared storage (EFS) volumes
+	result := make([]*types.StorageVolume, 0)
+	for i := range m.StorageVolumes {
+		if m.StorageVolumes[i].IsShared() {
+			result = append(result, &m.StorageVolumes[i])
 		}
 	}
 	return result, nil
@@ -546,9 +554,9 @@ func (m *MockAPIClient) GetVolume(ctx context.Context, name string) (*types.Stor
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
 
-	for i := range m.Volumes {
-		if m.Volumes[i].Name == name {
-			return types.EFSVolumeToStorageVolume(&m.Volumes[i]), nil
+	for i := range m.StorageVolumes {
+		if m.StorageVolumes[i].Name == name && m.StorageVolumes[i].IsShared() {
+			return &m.StorageVolumes[i], nil
 		}
 	}
 
@@ -560,9 +568,9 @@ func (m *MockAPIClient) DeleteVolume(ctx context.Context, name string) error {
 		return fmt.Errorf("%s", m.ErrorMessage)
 	}
 
-	for i, volume := range m.Volumes {
-		if volume.Name == name {
-			m.Volumes = append(m.Volumes[:i], m.Volumes[i+1:]...)
+	for i, volume := range m.StorageVolumes {
+		if volume.Name == name && volume.IsShared() {
+			m.StorageVolumes = append(m.StorageVolumes[:i], m.StorageVolumes[i+1:]...)
 			return nil
 		}
 	}
@@ -644,11 +652,11 @@ func (m *MockAPIClient) ListStorage(ctx context.Context) ([]*types.StorageVolume
 	if m.ShouldReturnError {
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
-	// Convert EBS volumes to unified storage volumes
-	result := make([]*types.StorageVolume, 0, len(m.StorageVolumes))
+	// Filter for workspace storage (EBS) volumes
+	result := make([]*types.StorageVolume, 0)
 	for i := range m.StorageVolumes {
-		if sv := types.EBSVolumeToStorageVolume(&m.StorageVolumes[i]); sv != nil {
-			result = append(result, sv)
+		if m.StorageVolumes[i].IsWorkspace() {
+			result = append(result, &m.StorageVolumes[i])
 		}
 	}
 	return result, nil
@@ -660,8 +668,8 @@ func (m *MockAPIClient) GetStorage(ctx context.Context, name string) (*types.Sto
 	}
 
 	for i := range m.StorageVolumes {
-		if m.StorageVolumes[i].Name == name {
-			return types.EBSVolumeToStorageVolume(&m.StorageVolumes[i]), nil
+		if m.StorageVolumes[i].Name == name && m.StorageVolumes[i].IsWorkspace() {
+			return &m.StorageVolumes[i], nil
 		}
 	}
 
