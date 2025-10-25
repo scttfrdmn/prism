@@ -17,14 +17,26 @@ func TestMockClientCreation(t *testing.T) {
 	require.NotNil(t, client)
 	assert.NotNil(t, client.Templates)
 	assert.NotNil(t, client.Instances)
-	assert.NotNil(t, client.Volumes)
-	assert.NotNil(t, client.Storage)
+	assert.NotNil(t, client.StorageVolumes)
 
 	// Validate pre-populated data
 	assert.Greater(t, len(client.Templates), 0, "Mock client should have pre-loaded templates")
 	assert.Greater(t, len(client.Instances), 0, "Mock client should have pre-loaded instances")
-	assert.Greater(t, len(client.Volumes), 0, "Mock client should have pre-loaded volumes")
-	assert.Greater(t, len(client.Storage), 0, "Mock client should have pre-loaded storage")
+	assert.Greater(t, len(client.StorageVolumes), 0, "Mock client should have pre-loaded storage volumes")
+
+	// Verify both types of storage volumes are present
+	hasEFS := false
+	hasEBS := false
+	for _, vol := range client.StorageVolumes {
+		if vol.IsShared() {
+			hasEFS = true
+		}
+		if vol.IsWorkspace() {
+			hasEBS = true
+		}
+	}
+	assert.True(t, hasEFS, "Mock client should have EFS volumes")
+	assert.True(t, hasEBS, "Mock client should have EBS volumes")
 }
 
 // TestMockTemplateData validates template data consistency
