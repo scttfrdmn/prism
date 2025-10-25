@@ -68,7 +68,7 @@ func NewDashboardModel(apiClient apiClient) DashboardModel {
 
 	// Create tabs
 	tabs := components.NewTabBar(
-		[]string{"Overview", "Instances", "Storage", "Costs"},
+		[]string{"Overview", "Workspaces", "Storage", "Costs"},
 		0,
 	)
 
@@ -116,7 +116,7 @@ func (m DashboardModel) fetchDashboardData() tea.Msg {
 	// Return combined data
 	if instancesErr != nil {
 		return DashboardDataMsg{
-			Error: fmt.Errorf("failed to list instances: %w", instancesErr),
+			Error: fmt.Errorf("failed to list workspaces: %w", instancesErr),
 		}
 	}
 
@@ -267,7 +267,7 @@ func (m DashboardModel) View() string {
 		instancesPanel := theme.Panel.Width(m.width/2 - 4).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				theme.PanelHeader.Render("Running Instances"),
+				theme.PanelHeader.Render("Running Workspaces"),
 				m.instancesTable.View(),
 			),
 		)
@@ -313,7 +313,7 @@ func (m DashboardModel) View() string {
 	}
 
 	// Help text with navigation
-	help := theme.Help.Render("Navigation: 1: Dashboard • 2: Instances • 3: Templates • 4: Storage • 5: Users • 6: Settings\n" +
+	help := theme.Help.Render("Navigation: 1: Dashboard • 2: Workspaces • 3: Templates • 4: Storage • 5: Users • 6: Settings\n" +
 		"Actions: r: refresh • q: quit")
 
 	// Join everything together

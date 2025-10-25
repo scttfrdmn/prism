@@ -1131,12 +1131,12 @@ export default function CloudWorkstationApp() {
   const getStatusLabel = (context: string, status: string, additionalInfo?: string): string => {
     const labels: Record<string, Record<string, string>> = {
       instance: {
-        running: 'Instance running',
-        stopped: 'Instance stopped',
-        pending: 'Instance pending',
-        stopping: 'Instance stopping',
-        terminated: 'Instance terminated',
-        hibernated: 'Instance hibernated'
+        running: 'Workspace running',
+        stopped: 'Workspace stopped',
+        pending: 'Workspace pending',
+        stopping: 'Workspace stopping',
+        terminated: 'Workspace terminated',
+        hibernated: 'Workspace hibernated'
       },
       volume: {
         available: 'Volume available',
@@ -1312,7 +1312,7 @@ export default function CloudWorkstationApp() {
         notifications: [
           {
             type: 'success',
-            header: 'Instance Launched',
+            header: 'Workspace Launched',
             content: `Successfully launched ${launchConfig.name} using ${templateName}`,
             dismissible: true,
             id: Date.now().toString()
@@ -1374,10 +1374,10 @@ export default function CloudWorkstationApp() {
           </SpaceBetween>
         </Container>
 
-        <Container header={<Header variant="h2">Active Instances</Header>}>
+        <Container header={<Header variant="h2">Active Workspaces</Header>}>
           <SpaceBetween size="s">
             <Box>
-              <Box variant="awsui-key-label">Running Instances</Box>
+              <Box variant="awsui-key-label">Running Workspaces</Box>
               <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
                 {state.instances.filter(i => i.state === 'running').length}
               </Box>
@@ -1385,7 +1385,7 @@ export default function CloudWorkstationApp() {
             <Button
               onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
             >
-              Manage Instances
+              Manage Workspaces
             </Button>
           </SpaceBetween>
         </Container>
@@ -1577,8 +1577,8 @@ export default function CloudWorkstationApp() {
                     ...prev.notifications,
                     {
                       type: 'success',
-                      header: 'Instance Deleted',
-                      content: `Successfully deleted instance ${instance.name}`,
+                      header: 'Workspace Deleted',
+                      content: `Successfully deleted workspace ${instance.name}`,
                       dismissible: true,
                       id: Date.now().toString()
                     }
@@ -1658,8 +1658,8 @@ export default function CloudWorkstationApp() {
           ...prev.notifications,
           {
             type: 'warning',
-            header: 'No Instances Selected',
-            content: 'Please select one or more instances to perform bulk actions.',
+            header: 'No Workspaces Selected',
+            content: 'Please select one or more workspaces to perform bulk actions.',
             dismissible: true,
             id: Date.now().toString()
           }
@@ -1722,7 +1722,7 @@ export default function CloudWorkstationApp() {
           {
             type: failures > 0 ? 'warning' : 'success',
             header: `Bulk ${action.charAt(0).toUpperCase() + action.slice(1)} ${failures > 0 ? 'Partially Complete' : 'Complete'}`,
-            content: `Successfully ${action}ed ${successes} instance${successes !== 1 ? 's' : ''}${failures > 0 ? `, failed to ${action} ${failures} instance${failures !== 1 ? 's' : ''}` : ''}.`,
+            content: `Successfully ${action}ed ${successes} workspace${successes !== 1 ? 's' : ''}${failures > 0 ? `, failed to ${action} ${failures} workspace${failures !== 1 ? 's' : ''}` : ''}.`,
             dismissible: true,
             id: Date.now().toString()
           }
@@ -1828,11 +1828,11 @@ export default function CloudWorkstationApp() {
         <PropertyFilter
           query={instancesFilterQuery}
           onChange={({ detail }) => setInstancesFilterQuery(detail)}
-          filteringPlaceholder="Search instances"
+          filteringPlaceholder="Search workspaces"
           filteringProperties={[
             {
               key: 'name',
-              propertyLabel: 'Instance Name',
+              propertyLabel: 'Workspace Name',
               operators: [':', '!:', '=', '!=']
             },
             {
@@ -1904,7 +1904,7 @@ export default function CloudWorkstationApp() {
           columnDefinitions={[
             {
               id: "name",
-              header: "Instance Name",
+              header: "Workspace Name",
               cell: (item: Instance) => <Link fontSize="body-m">{item.name}</Link>,
               sortingField: "name"
             },
@@ -1959,13 +1959,13 @@ export default function CloudWorkstationApp() {
             }
           ]}
           items={getFilteredInstances()}
-          loadingText="Loading instances from AWS"
+          loadingText="Loading workspaces from AWS"
           loading={state.loading}
           trackBy="id"
           empty={
             <Box textAlign="center" color="inherit">
               <Box variant="strong" textAlign="center" color="inherit">
-                No instances running
+                No workspaces running
               </Box>
               <Box variant="p" padding={{ bottom: 's' }} color="inherit">
                 Launch your first research environment to get started.
@@ -2044,7 +2044,7 @@ export default function CloudWorkstationApp() {
               await api.mountEFSVolume(volume.name, instance);
               actionMessage = `Mounted EFS volume ${volume.name} to ${instance}`;
             } else {
-              throw new Error('No running instances available for mounting');
+              throw new Error('No running workspaces available for mounting');
             }
             break;
           case 'unmount':
@@ -2053,7 +2053,7 @@ export default function CloudWorkstationApp() {
               await api.unmountEFSVolume(volume.name, instance);
               actionMessage = `Unmounted EFS volume ${volume.name} from ${instance}`;
             } else {
-              throw new Error('No instances to unmount from');
+              throw new Error('No workspaces to unmount from');
             }
             break;
           default:
@@ -2111,7 +2111,7 @@ export default function CloudWorkstationApp() {
               await api.attachEBSVolume(volume.name, instance);
               actionMessage = `Attached EBS volume ${volume.name} to ${instance}`;
             } else {
-              throw new Error('No running instances available for attachment');
+              throw new Error('No running workspaces available for attachment');
             }
             break;
           case 'detach':
@@ -2269,7 +2269,7 @@ export default function CloudWorkstationApp() {
         header={
           <Header
             variant="h2"
-            description="Elastic Block Store volumes for high-performance instance storage"
+            description="Elastic Block Store volumes for high-performance workspace storage"
             counter={`(${state.ebsVolumes.length})`}
             actions={
               <SpaceBetween direction="horizontal" size="xs">
@@ -2638,7 +2638,7 @@ export default function CloudWorkstationApp() {
     <SpaceBetween size="l">
       <Header
         variant="h1"
-        description="Manage research users with persistent identity across CloudWorkstation instances"
+        description="Manage research users with persistent identity across CloudWorkstation workspaces"
         counter={`(${state.users.length} users)`}
         actions={
           <SpaceBetween direction="horizontal" size="xs">
@@ -2744,7 +2744,7 @@ export default function CloudWorkstationApp() {
             },
             {
               id: "instances",
-              header: "Instances",
+              header: "Workspaces",
               cell: (item: User) => {
                 const count = item.provisioned_instances?.length || 0;
                 return count > 0 ? count.toString() : 'None';
@@ -2781,7 +2781,7 @@ export default function CloudWorkstationApp() {
                   items={[
                     { text: "View Details", id: "view" },
                     { text: "Generate SSH Key", id: "ssh-key", disabled: (item.ssh_keys || 0) > 0 },
-                    { text: "Provision on Instance", id: "provision" },
+                    { text: "Provision on Workspace", id: "provision" },
                     { text: "User Status", id: "status" },
                     { text: "Edit User", id: "edit" },
                     { text: "Delete User", id: "delete" }
@@ -2872,9 +2872,9 @@ export default function CloudWorkstationApp() {
           </SpaceBetween>
 
           <SpaceBetween size="m">
-            <Header variant="h3">Instance Provisioning</Header>
+            <Header variant="h3">Workspace Provisioning</Header>
             <Box color="text-body-secondary">
-              User provisioning across instances and EFS home directory management.
+              User provisioning across workspaces and EFS home directory management.
               Persistent identity ensures same UID/GID mapping across all environments.
             </Box>
             {state.users.length > 0 && (
@@ -2992,8 +2992,8 @@ export default function CloudWorkstationApp() {
           </FormField>
 
           <FormField
-            label="Default instance size"
-            description="Default size for new instances when launching templates"
+            label="Default workspace size"
+            description="Default size for new workspaces when launching templates"
           >
             <Select
               selectedOption={{ label: "Medium (M)", value: "M" }}
@@ -3086,7 +3086,7 @@ export default function CloudWorkstationApp() {
       >
         <SpaceBetween size="m">
           {[
-            { name: "Instance Management", status: "enabled", description: "Launch, manage, and connect to cloud instances" },
+            { name: "Workspace Management", status: "enabled", description: "Launch, manage, and connect to cloud workspaces" },
             { name: "Storage Management", status: "enabled", description: "EFS and EBS volume operations" },
             { name: "Project Management", status: "enabled", description: "Multi-user collaboration and budget tracking" },
             { name: "User Management", status: "enabled", description: "Research users with persistent identity" },
@@ -3580,7 +3580,7 @@ export default function CloudWorkstationApp() {
       <SpaceBetween size="l">
         <Header
           variant="h1"
-          description="Manage AMIs for fast instance launching (30 seconds vs 5-8 minutes)"
+          description="Manage AMIs for fast workspace launching (30 seconds vs 5-8 minutes)"
           counter={`(${state.amis.length} AMIs)`}
           actions={
             <SpaceBetween direction="horizontal" size="xs">
@@ -4305,14 +4305,14 @@ export default function CloudWorkstationApp() {
             },
             {
               id: 'schedules',
-              label: 'Instance Schedules',
+              label: 'Workspace Schedules',
               content: (
                 <Container>
                   <Table
                     columnDefinitions={[
                       {
                         id: 'instance',
-                        header: 'Instance',
+                        header: 'Workspace',
                         cell: (item: IdleSchedule) => item.instance_name,
                         sortingField: 'instance_name'
                       },
@@ -4351,14 +4351,14 @@ export default function CloudWorkstationApp() {
                       }
                     ]}
                     items={state.idleSchedules}
-                    loadingText="Loading instance schedules..."
+                    loadingText="Loading workspace schedules..."
                     loading={state.loading}
                     trackBy="instance_name"
                     empty={
                       <Box textAlign="center" padding="xl">
-                        <Box variant="strong">No instances being monitored</Box>
+                        <Box variant="strong">No workspaces being monitored</Box>
                         <Box variant="p" color="text-body-secondary">
-                          Start instances with idle detection enabled to see them here.
+                          Start workspaces with idle detection enabled to see them here.
                         </Box>
                       </Box>
                     }
@@ -4551,22 +4551,22 @@ export default function CloudWorkstationApp() {
       <SpaceBetween size="l">
         <Header
           variant="h1"
-          description="View instance console output and system logs"
+          description="View workspace console output and system logs"
           actions={
             <Button onClick={loadApplicationData} disabled={state.loading}>
               {state.loading ? <Spinner /> : 'Refresh'}
             </Button>
           }
         >
-          Instance Logs Viewer
+          Workspace Logs Viewer
         </Header>
 
         {/* Instance and Log Type Selection */}
         <Container>
           <SpaceBetween size="m">
             <FormField
-              label="Instance"
-              description="Select an instance to view its logs"
+              label="Workspace"
+              description="Select a workspace to view its logs"
             >
               <Select
                 selectedOption={selectedInstance ?
@@ -4750,7 +4750,7 @@ export default function CloudWorkstationApp() {
   const RightsizingView = () => (
     <PlaceholderView
       title="Rightsizing Recommendations"
-      description="Instance rightsizing recommendations will help optimize your costs by suggesting better-sized instances based on actual usage patterns."
+      description="Workspace rightsizing recommendations will help optimize your costs by suggesting better-sized workspaces based on actual usage patterns."
     />
   );
 
@@ -4946,9 +4946,9 @@ export default function CloudWorkstationApp() {
       <Form>
         <SpaceBetween size="m">
           <FormField
-            label="Instance name"
+            label="Workspace name"
             description="Choose a descriptive name for your research project"
-            errorText={!launchConfig.name.trim() ? "Instance name is required" : ""}
+            errorText={!launchConfig.name.trim() ? "Workspace name is required" : ""}
           >
             <Input
               value={launchConfig.name}
@@ -4957,7 +4957,7 @@ export default function CloudWorkstationApp() {
             />
           </FormField>
 
-          <FormField label="Instance size" description="Choose the right size for your workload">
+          <FormField label="Workspace size" description="Choose the right size for your workload">
             <Select
               selectedOption={{ label: "Medium (M) - Recommended", value: "M" }}
               onChange={({ detail }) => setLaunchConfig(prev => ({ ...prev, size: detail.selectedOption.value }))}
@@ -5190,7 +5190,7 @@ export default function CloudWorkstationApp() {
               },
               {
                 type: "link",
-                text: "My Instances",
+                text: "My Workspaces",
                 href: "/instances",
                 info: state.instances.length > 0 ?
                       <Badge color={state.instances.some(i => i.state === 'running') ? 'green' : 'grey'}>
@@ -5325,12 +5325,12 @@ export default function CloudWorkstationApp() {
                   <SpaceBetween size="l">
                     <Container header={<Header variant="h1">SSH Terminal</Header>}>
                       <SpaceBetween size="m">
-                        <FormField label="Select Instance">
+                        <FormField label="Select Workspace">
                           <Select
                             selectedOption={state.selectedTerminalInstance ? { label: state.selectedTerminalInstance, value: state.selectedTerminalInstance } : null}
                             onChange={({ detail }) => setState({ ...state, selectedTerminalInstance: detail.selectedOption.value || '' })}
                             options={runningInstances.map(i => ({ label: i.name, value: i.name }))}
-                            placeholder="Choose an instance"
+                            placeholder="Choose a workspace"
                           />
                         </FormField>
                         {state.selectedTerminalInstance && <Terminal instanceName={state.selectedTerminalInstance} />}

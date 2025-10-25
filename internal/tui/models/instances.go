@@ -54,8 +54,8 @@ func NewInstancesModel(apiClient apiClient) InstancesModel {
 	instancesTable := components.NewTable(columns, []table.Row{}, 80, 10, true)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Instances", "")
-	spinner := components.NewSpinner("Loading instances...")
+	statusBar := components.NewStatusBar("CloudWorkstation Workspaces", "")
+	spinner := components.NewSpinner("Loading workspaces...")
 
 	// Initialize command dispatcher with instance commands
 	dispatcher := NewCommandDispatcher()
@@ -93,7 +93,7 @@ func (m InstancesModel) Init() tea.Cmd {
 func (m InstancesModel) fetchInstances() tea.Msg {
 	resp, err := m.apiClient.ListInstances(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return fmt.Errorf("failed to list workspaces: %w", err)
 	}
 	return resp
 }
@@ -128,13 +128,13 @@ func (m InstancesModel) performAction(action string) tea.Cmd {
 			return InstanceActionMsg{
 				Action:  action,
 				Success: false,
-				Message: fmt.Sprintf("Failed to %s instance %s: %v", action, instance.Name, err),
+				Message: fmt.Sprintf("Failed to %s workspace %s: %v", action, instance.Name, err),
 			}
 		}
 		return InstanceActionMsg{
 			Action:  action,
 			Success: true,
-			Message: fmt.Sprintf("Successfully %sed instance %s", action, instance.Name),
+			Message: fmt.Sprintf("Successfully %sed workspace %s", action, instance.Name),
 		}
 	}
 }
@@ -184,7 +184,7 @@ func (m InstancesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.instances = msg.Instances
 		m.updateInstancesTable()
-		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d instances", len(m.instances)), components.StatusSuccess)
+		m.statusBar.SetStatus(fmt.Sprintf("Loaded %d workspaces", len(m.instances)), components.StatusSuccess)
 		cmds = append(cmds, m.refreshTicker())
 
 	default:
@@ -247,7 +247,7 @@ func (m InstancesModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Instances")
+	title := theme.Title.Render("CloudWorkstation Workspaces")
 
 	// Content area
 	var content string
@@ -268,7 +268,7 @@ func (m InstancesModel) View() string {
 			Width(m.width).
 			Height(m.height-4).
 			Align(lipgloss.Center, lipgloss.Center).
-			Render("No instances found. Use 'cws launch' to create one.")
+			Render("No workspaces found. Use 'cws launch' to create one.")
 	} else {
 		// Main instances table
 		content = m.instancesTable.View()
@@ -282,9 +282,9 @@ func (m InstancesModel) View() string {
 					lipgloss.Left,
 					theme.PanelHeader.Render(fmt.Sprintf("Actions for %s", instance.Name)),
 					"",
-					"s - Start instance",
-					"p - Stop instance",
-					"d - Delete instance",
+					"s - Start workspace",
+					"p - Stop workspace",
+					"d - Delete workspace",
 					"",
 					"esc - Cancel",
 				))
