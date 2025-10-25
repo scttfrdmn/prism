@@ -447,6 +447,7 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(r.createWebCommand())
 
 	// System commands (kept at root level)
+	rootCmd.AddCommand(r.createInitCommand())
 	rootCmd.AddCommand(r.app.tuiCommand)
 	rootCmd.AddCommand(NewGUICommand())
 	rootCmd.AddCommand(NewAboutCommand())
@@ -614,6 +615,28 @@ func (r *CommandFactoryRegistry) createDaemonCommand() *cobra.Command {
 		Long:    `Control the CloudWorkstation daemon process.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Daemon(args)
+		},
+	}
+}
+
+func (r *CommandFactoryRegistry) createInitCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:     "init",
+		Short:   "Initialize CloudWorkstation",
+		GroupID: "system",
+		Long: `Interactive first-time setup wizard for CloudWorkstation.
+
+This wizard guides you through:
+• AWS credential detection and validation
+• Research area selection
+• Optional budget configuration
+• Hibernation policy setup
+• Template recommendations
+
+The setup takes about 2 minutes and helps you get started quickly.`,
+		RunE: func(_ *cobra.Command, args []string) error {
+			wizard := NewInitWizard(r.app.config)
+			return wizard.Run()
 		},
 	}
 }
