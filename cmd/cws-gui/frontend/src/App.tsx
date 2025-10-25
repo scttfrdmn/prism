@@ -2233,218 +2233,411 @@ export default function CloudWorkstationApp() {
   };
 
   // Storage Management View
-  const StorageManagementView = () => (
-    <SpaceBetween size="l">
-      {/* Shared Storage Section */}
-      <Container
-        header={
-          <Header
-            variant="h2"
-            description="Shared storage (EFS) for collaborative projects and multi-workspace data access"
-            counter={`(${state.efsVolumes.length})`}
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button onClick={loadApplicationData} disabled={state.loading}>
-                  {state.loading ? <Spinner /> : 'Refresh'}
-                </Button>
-                <Button variant="primary">
-                  Create Shared Storage
-                </Button>
-              </SpaceBetween>
-            }
-          >
-            📁 Shared Storage
-          </Header>
-        }
-      >
-        <Table
-          columnDefinitions={[
-            {
-              id: "name",
-              header: "Volume Name",
-              cell: (item: EFSVolume) => <Link fontSize="body-m">{item.name}</Link>,
-              sortingField: "name"
-            },
-            {
-              id: "filesystem_id",
-              header: "File System ID",
-              cell: (item: EFSVolume) => item.filesystem_id
-            },
-            {
-              id: "status",
-              header: "Status",
-              cell: (item: EFSVolume) => (
-                <StatusIndicator
-                  type={
-                    item.state === 'available' ? 'success' :
-                    item.state === 'creating' ? 'in-progress' :
-                    item.state === 'deleting' ? 'warning' : 'error'
-                  }
-                  ariaLabel={getStatusLabel('volume', item.state)}
-                >
-                  {item.state}
-                </StatusIndicator>
-              )
-            },
-            {
-              id: "size",
-              header: "Size",
-              cell: (item: EFSVolume) => `${Math.round(item.size_bytes / (1024 * 1024 * 1024))} GB`
-            },
-            {
-              id: "cost",
-              header: "Est. Cost/GB",
-              cell: (item: EFSVolume) => `$${item.estimated_cost_gb.toFixed(3)}`
-            },
-            {
-              id: "actions",
-              header: "Actions",
-              cell: (item: EFSVolume) => (
-                <ButtonDropdown
-                  expandToViewport
-                  items={[
-                    { text: 'Mount', id: 'mount', disabled: item.state !== 'available' },
-                    { text: 'Unmount', id: 'unmount', disabled: item.state !== 'available' },
-                    { text: 'Delete', id: 'delete', disabled: item.state !== 'available' }
-                  ]}
-                  onItemClick={({ detail }) => {
-                    handleStorageAction(detail.id, item, 'efs');
-                  }}
-                >
-                  Actions
-                </ButtonDropdown>
-              )
-            }
-          ]}
-          items={state.efsVolumes}
-          loadingText="Loading shared storage volumes from AWS"
-          loading={state.loading}
-          trackBy="name"
-          empty={
-            <Box textAlign="center" color="inherit">
-              <Box variant="strong" textAlign="center" color="inherit">
-                No shared storage volumes found
-              </Box>
-              <Box variant="p" padding={{ bottom: 's' }} color="inherit">
-                Create shared storage for collaborative projects and multi-workspace data access.
-              </Box>
-            </Box>
-          }
-          sortingDisabled={false}
-        />
-      </Container>
+  const StorageManagementView = () => {
+    const [activeTabId, setActiveTabId] = React.useState('shared');
 
-      {/* Workspace Storage Section */}
-      <Container
-        header={
-          <Header
-            variant="h2"
-            description="Workspace storage (EBS) for high-performance workspace-specific data"
-            counter={`(${state.ebsVolumes.length})`}
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button onClick={loadApplicationData} disabled={state.loading}>
-                  {state.loading ? <Spinner /> : 'Refresh'}
-                </Button>
-                <Button variant="primary">
-                  Create Workspace Storage
-                </Button>
-              </SpaceBetween>
-            }
-          >
-            💾 Workspace Storage
-          </Header>
-        }
-      >
-        <Table
-          columnDefinitions={[
+    return (
+      <SpaceBetween size="l">
+        <Header
+          variant="h1"
+          description="Manage shared and workspace-specific storage for your research computing environments"
+          actions={
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button onClick={loadApplicationData} disabled={state.loading}>
+                {state.loading ? <Spinner /> : 'Refresh'}
+              </Button>
+            </SpaceBetween>
+          }
+        >
+          Storage
+        </Header>
+
+        {/* Educational Overview */}
+        <Container>
+          <ColumnLayout columns={2} variant="text-grid">
+            <SpaceBetween size="s">
+              <Box variant="h3">📁 Shared Storage (EFS)</Box>
+              <Box color="text-body-secondary">
+                <strong>Use for:</strong> Data shared across multiple workspaces, collaborative projects, persistent datasets
+              </Box>
+              <Box color="text-body-secondary">
+                <strong>Cost:</strong> ~$0.30/GB/month (pay for what you use)
+              </Box>
+              <Box color="text-body-secondary">
+                <strong>Performance:</strong> Elastic, scalable file system with automatic capacity
+              </Box>
+            </SpaceBetween>
+            <SpaceBetween size="s">
+              <Box variant="h3">💾 Private Storage (EBS)</Box>
+              <Box color="text-body-secondary">
+                <strong>Use for:</strong> Workspace-specific data, high-performance applications, temporary processing
+              </Box>
+              <Box color="text-body-secondary">
+                <strong>Cost:</strong> ~$0.10/GB/month (fixed allocation, pay for provisioned size)
+              </Box>
+              <Box color="text-body-secondary">
+                <strong>Performance:</strong> High IOPS, low latency, best for compute-intensive work
+              </Box>
+            </SpaceBetween>
+          </ColumnLayout>
+        </Container>
+
+        {/* Cost Comparison Alert */}
+        <Alert
+          type="info"
+          header="💡 Storage Selection Guide"
+        >
+          <ColumnLayout columns={2}>
+            <Box>
+              <strong>Choose Shared (EFS) when:</strong>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                <li>Multiple workspaces need access to the same data</li>
+                <li>Collaborating with other researchers</li>
+                <li>Data needs to persist across workspace lifecycles</li>
+                <li>Total data size is unpredictable or grows over time</li>
+              </ul>
+            </Box>
+            <Box>
+              <strong>Choose Private (EBS) when:</strong>
+              <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+                <li>Data is workspace-specific and not shared</li>
+                <li>Need maximum I/O performance for databases or processing</li>
+                <li>Working with large temporary datasets</li>
+                <li>Data is tied to a single workspace's lifecycle</li>
+              </ul>
+            </Box>
+          </ColumnLayout>
+        </Alert>
+
+        {/* Tabbed Storage Interface */}
+        <Tabs
+          activeTabId={activeTabId}
+          onChange={({ detail }) => setActiveTabId(detail.activeTabId)}
+          tabs={[
             {
-              id: "name",
-              header: "Volume Name",
-              cell: (item: EBSVolume) => <Link fontSize="body-m">{item.name}</Link>,
-              sortingField: "name"
-            },
-            {
-              id: "volume_id",
-              header: "Volume ID",
-              cell: (item: EBSVolume) => item.volume_id
-            },
-            {
-              id: "status",
-              header: "Status",
-              cell: (item: EBSVolume) => (
-                <StatusIndicator
-                  type={
-                    item.state === 'available' ? 'success' :
-                    item.state === 'in-use' ? 'success' :
-                    item.state === 'creating' ? 'in-progress' :
-                    item.state === 'deleting' ? 'warning' : 'error'
+              id: 'shared',
+              label: `Shared (EFS) - ${state.efsVolumes.length}`,
+              content: (
+                <Container
+                  header={
+                    <Header
+                      variant="h2"
+                      description="Elastic File System volumes for multi-workspace data sharing and collaboration"
+                      counter={`(${state.efsVolumes.length} volumes)`}
+                      actions={
+                        <Button variant="primary">
+                          Create Shared Storage
+                        </Button>
+                      }
+                      info={
+                        <Link variant="info" onFollow={() => {}}>
+                          Learn more about EFS
+                        </Link>
+                      }
+                    >
+                      Shared Storage Volumes
+                    </Header>
                   }
-                  ariaLabel={getStatusLabel('volume', item.state)}
                 >
-                  {item.state}
-                </StatusIndicator>
+                  <Table
+                    columnDefinitions={[
+                      {
+                        id: "name",
+                        header: "Volume Name",
+                        cell: (item: EFSVolume) => <Link fontSize="body-m">{item.name}</Link>,
+                        sortingField: "name"
+                      },
+                      {
+                        id: "filesystem_id",
+                        header: "File System ID",
+                        cell: (item: EFSVolume) => item.filesystem_id
+                      },
+                      {
+                        id: "status",
+                        header: "Status",
+                        cell: (item: EFSVolume) => (
+                          <StatusIndicator
+                            type={
+                              item.state === 'available' ? 'success' :
+                              item.state === 'creating' ? 'in-progress' :
+                              item.state === 'deleting' ? 'warning' : 'error'
+                            }
+                            ariaLabel={getStatusLabel('volume', item.state)}
+                          >
+                            {item.state}
+                          </StatusIndicator>
+                        )
+                      },
+                      {
+                        id: "size",
+                        header: "Size",
+                        cell: (item: EFSVolume) => `${Math.round(item.size_bytes / (1024 * 1024 * 1024))} GB`
+                      },
+                      {
+                        id: "cost",
+                        header: "Est. Cost/Month",
+                        cell: (item: EFSVolume) => {
+                          const sizeGB = Math.round(item.size_bytes / (1024 * 1024 * 1024));
+                          const monthlyCost = sizeGB * item.estimated_cost_gb;
+                          return (
+                            <SpaceBetween direction="horizontal" size="xs">
+                              <Box>${monthlyCost.toFixed(2)}</Box>
+                              <Badge color="grey">${item.estimated_cost_gb.toFixed(3)}/GB</Badge>
+                            </SpaceBetween>
+                          );
+                        }
+                      },
+                      {
+                        id: "actions",
+                        header: "Actions",
+                        cell: (item: EFSVolume) => (
+                          <ButtonDropdown
+                            expandToViewport
+                            items={[
+                              { text: 'Mount to Workspace', id: 'mount', disabled: item.state !== 'available' },
+                              { text: 'Unmount', id: 'unmount', disabled: item.state !== 'available' },
+                              { text: 'View Details', id: 'details' },
+                              { text: 'Delete', id: 'delete', disabled: item.state !== 'available' }
+                            ]}
+                            onItemClick={({ detail }) => {
+                              handleStorageAction(detail.id, item, 'efs');
+                            }}
+                          >
+                            Actions
+                          </ButtonDropdown>
+                        )
+                      }
+                    ]}
+                    items={state.efsVolumes}
+                    loadingText="Loading shared storage volumes from AWS"
+                    loading={state.loading}
+                    trackBy="name"
+                    empty={
+                      <Box textAlign="center" color="inherit" padding={{ vertical: 'xl' }}>
+                        <SpaceBetween size="m">
+                          <Box variant="strong" textAlign="center" color="inherit">
+                            No shared storage volumes found
+                          </Box>
+                          <Box variant="p" color="text-body-secondary">
+                            Create shared storage (EFS) for collaborative projects and data that needs to be accessed by multiple workspaces.
+                          </Box>
+                          <Box textAlign="center">
+                            <Button variant="primary">Create Shared Storage</Button>
+                          </Box>
+                        </SpaceBetween>
+                      </Box>
+                    }
+                    sortingDisabled={false}
+                  />
+                </Container>
               )
             },
             {
-              id: "type",
-              header: "Type",
-              cell: (item: EBSVolume) => item.volume_type.toUpperCase()
-            },
-            {
-              id: "size",
-              header: "Size",
-              cell: (item: EBSVolume) => `${item.size_gb} GB`
-            },
-            {
-              id: "attached_to",
-              header: "Attached To",
-              cell: (item: EBSVolume) => item.attached_to || 'Not attached'
-            },
-            {
-              id: "cost",
-              header: "Est. Cost/GB",
-              cell: (item: EBSVolume) => `$${item.estimated_cost_gb.toFixed(3)}`
-            },
-            {
-              id: "actions",
-              header: "Actions",
-              cell: (item: EBSVolume) => (
-                <ButtonDropdown
-                  expandToViewport
-                  items={[
-                    { text: 'Attach', id: 'attach', disabled: item.state !== 'available' },
-                    { text: 'Detach', id: 'detach', disabled: item.state !== 'in-use' },
-                    { text: 'Delete', id: 'delete', disabled: item.state === 'in-use' }
-                  ]}
-                  onItemClick={({ detail }) => {
-                    handleStorageAction(detail.id, item, 'ebs');
-                  }}
+              id: 'private',
+              label: `Private (EBS) - ${state.ebsVolumes.length}`,
+              content: (
+                <Container
+                  header={
+                    <Header
+                      variant="h2"
+                      description="Elastic Block Store volumes for high-performance workspace-specific data"
+                      counter={`(${state.ebsVolumes.length} volumes)`}
+                      actions={
+                        <Button variant="primary">
+                          Create Private Storage
+                        </Button>
+                      }
+                      info={
+                        <Link variant="info" onFollow={() => {}}>
+                          Learn more about EBS
+                        </Link>
+                      }
+                    >
+                      Private Storage Volumes
+                    </Header>
+                  }
                 >
-                  Actions
-                </ButtonDropdown>
+                  <Table
+                    columnDefinitions={[
+                      {
+                        id: "name",
+                        header: "Volume Name",
+                        cell: (item: EBSVolume) => <Link fontSize="body-m">{item.name}</Link>,
+                        sortingField: "name"
+                      },
+                      {
+                        id: "volume_id",
+                        header: "Volume ID",
+                        cell: (item: EBSVolume) => item.volume_id
+                      },
+                      {
+                        id: "status",
+                        header: "Status",
+                        cell: (item: EBSVolume) => (
+                          <StatusIndicator
+                            type={
+                              item.state === 'available' ? 'success' :
+                              item.state === 'in-use' ? 'success' :
+                              item.state === 'creating' ? 'in-progress' :
+                              item.state === 'deleting' ? 'warning' : 'error'
+                            }
+                            ariaLabel={getStatusLabel('volume', item.state)}
+                          >
+                            {item.state}
+                          </StatusIndicator>
+                        )
+                      },
+                      {
+                        id: "type",
+                        header: "Type",
+                        cell: (item: EBSVolume) => (
+                          <SpaceBetween direction="horizontal" size="xs">
+                            <Box>{item.volume_type.toUpperCase()}</Box>
+                            {item.volume_type.startsWith('gp') && (
+                              <Badge color="blue">General Purpose</Badge>
+                            )}
+                            {item.volume_type.startsWith('io') && (
+                              <Badge color="green">High Performance</Badge>
+                            )}
+                          </SpaceBetween>
+                        )
+                      },
+                      {
+                        id: "size",
+                        header: "Size",
+                        cell: (item: EBSVolume) => `${item.size_gb} GB`
+                      },
+                      {
+                        id: "attached_to",
+                        header: "Attached To",
+                        cell: (item: EBSVolume) => {
+                          if (item.attached_to) {
+                            return (
+                              <SpaceBetween direction="horizontal" size="xs">
+                                <StatusIndicator type="success">
+                                  {item.attached_to}
+                                </StatusIndicator>
+                              </SpaceBetween>
+                            );
+                          }
+                          return <Box color="text-body-secondary">Not attached</Box>;
+                        }
+                      },
+                      {
+                        id: "cost",
+                        header: "Est. Cost/Month",
+                        cell: (item: EBSVolume) => {
+                          const monthlyCost = item.size_gb * item.estimated_cost_gb;
+                          return (
+                            <SpaceBetween direction="horizontal" size="xs">
+                              <Box>${monthlyCost.toFixed(2)}</Box>
+                              <Badge color="grey">${item.estimated_cost_gb.toFixed(3)}/GB</Badge>
+                            </SpaceBetween>
+                          );
+                        }
+                      },
+                      {
+                        id: "actions",
+                        header: "Actions",
+                        cell: (item: EBSVolume) => (
+                          <ButtonDropdown
+                            expandToViewport
+                            items={[
+                              { text: 'Attach to Workspace', id: 'attach', disabled: item.state !== 'available' },
+                              { text: 'Detach', id: 'detach', disabled: item.state !== 'in-use' },
+                              { text: 'View Details', id: 'details' },
+                              { text: 'Create Snapshot', id: 'snapshot', disabled: item.state !== 'available' && item.state !== 'in-use' },
+                              { text: 'Delete', id: 'delete', disabled: item.state === 'in-use' }
+                            ]}
+                            onItemClick={({ detail }) => {
+                              handleStorageAction(detail.id, item, 'ebs');
+                            }}
+                          >
+                            Actions
+                          </ButtonDropdown>
+                        )
+                      }
+                    ]}
+                    items={state.ebsVolumes}
+                    loadingText="Loading private storage volumes from AWS"
+                    loading={state.loading}
+                    trackBy="name"
+                    empty={
+                      <Box textAlign="center" color="inherit" padding={{ vertical: 'xl' }}>
+                        <SpaceBetween size="m">
+                          <Box variant="strong" textAlign="center" color="inherit">
+                            No private storage volumes found
+                          </Box>
+                          <Box variant="p" color="text-body-secondary">
+                            Create private storage (EBS) for workspace-specific data and high-performance applications.
+                          </Box>
+                          <Box textAlign="center">
+                            <Button variant="primary">Create Private Storage</Button>
+                          </Box>
+                        </SpaceBetween>
+                      </Box>
+                    }
+                    sortingDisabled={false}
+                  />
+                </Container>
               )
             }
           ]}
-          items={state.ebsVolumes}
-          loadingText="Loading workspace storage volumes from AWS"
-          loading={state.loading}
-          trackBy="name"
-          empty={
-            <Box textAlign="center" color="inherit">
-              <Box variant="strong" textAlign="center" color="inherit">
-                No workspace storage volumes found
-              </Box>
-              <Box variant="p" padding={{ bottom: 's' }} color="inherit">
-                Create workspace storage for high-performance workspace-specific data.
-              </Box>
-            </Box>
-          }
-          sortingDisabled={false}
         />
-      </Container>
-    </SpaceBetween>
-  );
+
+        {/* Storage Statistics */}
+        <Container
+          header={
+            <Header variant="h2" description="Overview of your storage usage and costs">
+              Storage Summary
+            </Header>
+          }
+        >
+          <ColumnLayout columns={4} variant="text-grid">
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Total Shared (EFS)</Box>
+              <Box fontSize="display-l" fontWeight="bold" color="text-status-info">
+                {state.efsVolumes.reduce((sum, v) => sum + Math.round(v.size_bytes / (1024 * 1024 * 1024)), 0)} GB
+              </Box>
+              <Box color="text-body-secondary">
+                Across {state.efsVolumes.length} volume{state.efsVolumes.length !== 1 ? 's' : ''}
+              </Box>
+            </SpaceBetween>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Total Private (EBS)</Box>
+              <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
+                {state.ebsVolumes.reduce((sum, v) => sum + v.size_gb, 0)} GB
+              </Box>
+              <Box color="text-body-secondary">
+                Across {state.ebsVolumes.length} volume{state.ebsVolumes.length !== 1 ? 's' : ''}
+              </Box>
+            </SpaceBetween>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Est. Monthly Cost (EFS)</Box>
+              <Box fontSize="display-l" fontWeight="bold" color="text-body-secondary">
+                ${state.efsVolumes.reduce((sum, v) => {
+                  const sizeGB = Math.round(v.size_bytes / (1024 * 1024 * 1024));
+                  return sum + (sizeGB * v.estimated_cost_gb);
+                }, 0).toFixed(2)}
+              </Box>
+              <Box color="text-body-secondary">
+                ~$0.30/GB/month average
+              </Box>
+            </SpaceBetween>
+            <SpaceBetween size="s">
+              <Box variant="awsui-key-label">Est. Monthly Cost (EBS)</Box>
+              <Box fontSize="display-l" fontWeight="bold" color="text-status-warning">
+                ${state.ebsVolumes.reduce((sum, v) => sum + (v.size_gb * v.estimated_cost_gb), 0).toFixed(2)}
+              </Box>
+              <Box color="text-body-secondary">
+                ~$0.10/GB/month average
+              </Box>
+            </SpaceBetween>
+          </ColumnLayout>
+        </Container>
+      </SpaceBetween>
+    );
+  };
 
   // Placeholder views for other sections
   // Project Management View
