@@ -4,6 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Cloud Workstation Platform - Claude Development Context
 
+## ⚠️ **IMPORTANT: Project Rename in v0.5.6**
+**This project will be renamed from "CloudWorkStation" to "Prism" in v0.5.6 (Q4 2025 - Q1 2026)**
+
+- **New Project Name**: Prism
+- **New Binaries**: `prism`, `prismd`, `prism-gui` (replacing `cws`, `cwsd`, `cws-gui`)
+- **New Repository**: `github.com/scttfrdmn/prism` (from `github.com/scttfrdmn/cloudworkstation`)
+- **New Config Directory**: `~/.prism` (from `~/.cloudworkstation`)
+- **Automatic Migration**: User data automatically migrated on first v0.5.6 launch
+- **See Issue #65** for complete implementation plan
+
+Until v0.5.6 is released, continue using "CloudWorkStation" terminology and binary names.
+
 ## Project Overview
 
 This is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
@@ -126,11 +138,23 @@ CloudWorkstation is now a full **enterprise research platform** supporting colla
 - 🔄 **Amazon Braket**: Quantum computing research access
 - 🔄 **SageMaker Integration**: ML workflow integration (pending AWS partnership)
 
-### **v0.5.6: Template Provisioning Enhancements** 🔄 **PLANNED (February 2026)**
-**FOCUS**: Advanced template capabilities
+### **v0.5.6: Project Rename to "Prism" + Template Provisioning** 🔄 **PLANNED (Q4 2025 - Q1 2026)**
+**PRIMARY FOCUS**: Complete project rebrand from CloudWorkStation to Prism (Issue #65)
+- 🔄 **Project Rename**: CloudWorkStation → Prism (complete rebrand)
+- 🔄 **Binary Rename**: `cws`/`cwsd`/`cws-gui` → `prism`/`prismd`/`prism-gui`
+- 🔄 **Repository Rename**: `cloudworkstation` → `prism` on GitHub
+- 🔄 **Automatic Migration**: User config/state migrated from `~/.cloudworkstation` to `~/.prism`
+- 🔄 **Module Path Update**: `github.com/scttfrdmn/cloudworkstation` → `github.com/scttfrdmn/prism`
+
+**SECONDARY FOCUS**: Advanced template capabilities (Issue #64)
 - 🔄 **SSM File Operations**: S3-backed file transfer for template provisioning
 - 🔄 **Large File Handling**: Progress reporting for multi-GB file transfers
 - 🔄 **Template Asset Management**: Binary and configuration file distribution
+
+**CRITICAL BUG FIX**: EBS volume size tracking (Issue #68)
+- 🔴 **Storage Cost Bug**: Fix `Instance.EBSSize` not being set during launch
+- 🔴 **Cost Calculation Fix**: Ensure accurate storage cost tracking and reporting
+- 🔴 **Data Migration**: Backfill EBS sizes for existing instances
 
 **Phase 6: Enterprise Authentication & Security** (v0.6.0 - Q2 2026)
 
