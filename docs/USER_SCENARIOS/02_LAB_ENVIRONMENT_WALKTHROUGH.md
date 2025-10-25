@@ -14,21 +14,21 @@
 - **Responsibilities**: Day-to-day lab operations, mentors junior staff, manages GPU cluster usage
 - **Technical level**: Expert - can troubleshoot CloudWorkstation, optimizes costs
 - **Concerns**: Efficient resource allocation, preventing grad student mistakes
-- **Authority**: Can approve requests up to $500, launch any instance type
+- **Authority**: Can approve requests up to $500, launch any workspace type
 
 ### Dr. Lisa Park (Postdoctoral Researcher)
 - **Role**: Independent researcher with sub-grant
 - **Responsibilities**: Leads protein folding project, manages 2 grad students
 - **Technical level**: Advanced - comfortable with command line and cloud
 - **Concerns**: Staying within her sub-budget ($800/month), finishing papers before fellowship ends
-- **Authority**: Can launch CPU instances freely, needs approval for GPU
+- **Authority**: Can launch CPU workspaces freely, needs approval for GPU
 
 ### James Wilson (Graduate Student - Year 4)
 - **Role**: Ph.D. candidate working on RNA-seq analysis
 - **Responsibilities**: Running experiments, learning computational methods
 - **Technical level**: Intermediate - knows Python/R, learning cloud concepts
 - **Concerns**: Not breaking anything, staying within allocated resources
-- **Authority**: Can launch t3/r5 instances only, limited to 2 instances
+- **Authority**: Can launch t3/r5 workspaces only, limited to 2 instances
 
 ### Maria Garcia (Graduate Student - Year 2)
 - **Role**: Rotating student, new to lab
@@ -150,7 +150,7 @@ cws launch bioinformatics-suite rnaseq-sample-42 \
   --size M
 
 # CloudWorkstation output:
-# ✅ Instance launching: rnaseq-sample-42
+# ✅ Workspace launching: rnaseq-sample-42
 # 📊 Cost: $2.40/day (r5.xlarge)
 # 💰 Project budget: $245 / $400 (61% used this month)
 # 🔗 SSH ready in ~90 seconds...
@@ -158,7 +158,7 @@ cws launch bioinformatics-suite rnaseq-sample-42 \
 # James works for 4 hours, then stops
 cws stop rnaseq-sample-42
 
-# ✅ Instance stopped - charges cease immediately
+# ✅ Workspace stopped - charges cease immediately
 # 💰 Real-time budget update: $9.60 "banked" back to available budget
 #    (Would have cost $57.60 for 24 hours, you paid $9.60 for 4 hours)
 #    The $48 you DIDN'T spend is now available for other lab members!
@@ -242,7 +242,7 @@ cws project budget allocate "NSF-2024-ML" \
 **Impact**: Dr. Park can't manage her sub-team independently
 
 ### ❌ Problem 2: No Approval Workflows
-**Scenario**: Maria (beginner grad student) tries to launch expensive GPU instance
+**Scenario**: Maria (beginner grad student) tries to launch expensive GPU workspace
 
 **What should happen** (MISSING):
 ```bash
@@ -250,14 +250,14 @@ cws project budget allocate "NSF-2024-ML" \
 cws launch gpu-ml-workstation protein-experiment --project "NSF-2024-ML"
 
 # CloudWorkstation should prompt:
-# ⚠️  APPROVAL REQUIRED: GPU Instance Launch
+# ⚠️  APPROVAL REQUIRED: GPU Workspace Launch
 #
 #    Requested by: maria.garcia@university.edu
 #    Instance: p3.2xlarge ($24.80/day)
 #    Project: NSF-2024-ML
 #    Your budget: $130 / $300 (43%)
 #
-#    This instance exceeds your authority level.
+#    This workspace exceeds your authority level.
 #    Approval request sent to:
 #    - Dr. Lisa Park (lisa.park@university.edu) - Project lead
 #    - Dr. Michael Torres (michael.torres@university.edu) - Lab manager
@@ -268,7 +268,7 @@ cws launch gpu-ml-workstation protein-experiment --project "NSF-2024-ML"
 #    You can check status with: cws approval status req-xyz789
 
 # Dr. Park receives email:
-# Subject: Approval Request: GPU Instance Launch (Maria Garcia)
+# Subject: Approval Request: GPU Workspace Launch (Maria Garcia)
 #
 # Maria Garcia has requested approval to launch:
 # - Instance: p3.2xlarge (1 GPU, $24.80/day)
@@ -319,11 +319,11 @@ cws project member add "NIH-R01-2023" \
 #
 # Actions:
 # 1. Extend access: cws project member extend dr.kim@external.edu --days 30
-# 2. Let expire: Instances will be stopped, data archived on Sep 1
+# 2. Let expire: Workspaces will be stopped, data archived on Sep 1
 # 3. Convert to permanent: cws project member permanent dr.kim@external.edu
 
 # On September 1 at 00:00 UTC (auto-revoke):
-# - Dr. Kim's instances automatically stopped
+# - Dr. Kim's workspaces automatically stopped
 # - SSH keys revoked from all project instances
 # - EFS home directory archived to S3
 # - Email sent to both parties confirming revocation
@@ -334,7 +334,7 @@ cws project member add "NIH-R01-2023" \
 **Impact**: Forgotten temp users accumulate, security risk, budget waste
 
 ### ❌ Problem 4: No Resource Quotas by Role
-**Scenario**: Grad students should have instance limits to prevent mistakes
+**Scenario**: Grad students should have workspace limits to prevent mistakes
 
 **What should work** (MISSING):
 ```bash
@@ -364,14 +364,14 @@ cws launch bioinformatics-suite experiment-3 --project "NIH-R01-2023"
 #
 #    Contact: michael.torres@university.edu
 
-# Maria tries GPU instance
+# Maria tries GPU workspace
 cws launch gpu-ml-workstation experiment-gpu --project "NIH-R01-2023"
 
 # CloudWorkstation output:
-# ❌ Launch failed: Instance type not allowed
+# ❌ Launch failed: Workspace type not allowed
 #
 #    p3.2xlarge is not permitted for Member role.
-#    Allowed instance types: t3.*, r5.large, r5.xlarge
+#    Allowed workspace types: t3.*, r5.large, r5.xlarge
 #
 #    For GPU access, request approval from:
 #    - Dr. Michael Torres (Lab Manager)
@@ -394,7 +394,7 @@ cws project configure "NIH-R01-2023" \
   --final-report-email patricia.smith@university.edu
 
 # June 30, 2024 at 23:59 (automatic actions):
-# 1. All running instances stopped
+# 1. All running workspaces stopped
 # 2. No new launches allowed
 # 3. Project marked as "Archived"
 # 4. Final cost report generated
@@ -416,7 +416,7 @@ cws project configure "NIH-R01-2023" \
 #
 # Data Archive:
 # - EFS snapshots: s3://smith-lab-archives/NIH-R01-2023/
-# - Instance configs: s3://smith-lab-archives/NIH-R01-2023/instances.json
+# - Workspace configs: s3://smith-lab-archives/NIH-R01-2023/instances.json
 # - Cost reports: s3://smith-lab-archives/NIH-R01-2023/reports/
 #
 # Next steps:
@@ -437,7 +437,7 @@ cws project report "NIH-R01-2023" \
 # - Cost by resource type (compute, storage, network)
 # - Per-member usage and efficiency
 # - Hibernation/cost optimization summary
-# - Instance type distribution
+# - Workspace type distribution
 # - Peak usage periods
 # - Compliance: All expenses within approved budget
 ```
@@ -523,7 +523,7 @@ cws project member add "NIH-R01-2023" \
 cws launch bioinformatics-suite rnaseq-batch-1 --project "NIH-R01-2023"
 
 # Auto-approved (within authority):
-# ✅ Instance launching: rnaseq-batch-1 (r5.xlarge, $2.40/day)
+# ✅ Workspace launching: rnaseq-batch-1 (r5.xlarge, $2.40/day)
 # 📊 Your budget: $45 / $400 (11%)
 # ⚙️  Hibernation: lab-standard (20min idle)
 ```
@@ -534,7 +534,7 @@ cws launch bioinformatics-suite rnaseq-batch-1 --project "NIH-R01-2023"
 cws launch gpu-ml-workstation protein-hw --project "NSF-2024-ML"
 
 # Approval required (exceeds authority):
-# ⚠️  GPU Instance Approval Required
+# ⚠️  GPU Workspace Approval Required
 #
 #    Requested: p3.2xlarge ($24.80/day, 1 GPU)
 #    Your role: Member (max $5/day without approval)
@@ -572,7 +572,7 @@ cws approval approve req-202406-015 \
 
 cws launch --approval req-202406-015
 
-# Instance launches with enforced limits:
+# Workspace launches with enforced limits:
 # ✅ Launching: protein-hw (p3.2xlarge)
 # ⏰ Auto-terminate: 4:30 PM (6 hours)
 # 📊 Estimated cost: $6.20
@@ -686,7 +686,7 @@ cws project archive-plan "NIH-R01-2023"
 # End date: June 30, 2024 (60 days)
 #
 # Current resources:
-# - 6 active instances → Will auto-stop June 30 23:59
+# - 6 active workspaces → Will auto-stop June 30 23:59
 # - 2 EFS volumes (1.2 TB) → Will be snapshotted and archived to S3
 # - 4 EBS volumes (500 GB) → Will be snapshotted
 #
@@ -714,7 +714,7 @@ cws project archive-plan "NIH-R01-2023"
 # Approve plan? [y/N]: y
 
 # June 30, 11:59 PM: Automated archival
-# - All instances stopped
+# - All workspaces stopped
 # - EFS snapshots created
 # - Data archived to S3
 # - Final reports generated
@@ -764,7 +764,7 @@ cws project report "NIH-R01-2023" --final
 | **Hierarchical Sub-Budgets** | 🔴 Critical | PI can't delegate | Postdoc managing students | High |
 | **Approval Workflows** | 🔴 Critical | No request/review process | Grad students, GPU access | High |
 | **Time-Boxed Access** | 🟡 High | Manual collaborator mgmt | Visiting scholars | Medium |
-| **Resource Quotas by Role** | 🟡 High | No instance limits | Prevent mistakes | Medium |
+| **Resource Quotas by Role** | 🟡 High | No workspace limits | Prevent mistakes | Medium |
 | **Grant Period Management** | 🟡 High | Manual project closure | End-of-grant chaos | Medium |
 | **Approval Dashboard** | 🟢 Medium | Requests via email | Centralized management | Low |
 
@@ -797,8 +797,8 @@ cws project report "NIH-R01-2023" --final
    - Rollup reporting
 
 3. **Resource Quotas** (1 week)
-   - Per-role instance limits
-   - Instance type restrictions
+   - Per-role workspace limits
+   - Workspace type restrictions
    - Cost-per-day caps
 
 ### Phase 2: Lab Management (v0.7.1)
@@ -808,7 +808,7 @@ cws project report "NIH-R01-2023" --final
    - Organization-wide view
    - Pending approvals
    - Budget alerts
-   - Active instances by project
+   - Active workspaces by project
 
 5. **Time-Boxed Membership** (1 week)
    - Start/end dates for members

@@ -190,7 +190,7 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
      --data-classification CUI \
      --require-mfa
 
-   # Result: Instance launched with all 110 NIST 800-171 controls applied
+   # Result: Workspace launched with all 110 NIST 800-171 controls applied
    ```
 
 ---

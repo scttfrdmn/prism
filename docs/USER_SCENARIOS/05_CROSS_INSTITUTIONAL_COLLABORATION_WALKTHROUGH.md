@@ -117,7 +117,7 @@ berkeley$ cws profiles list
 mit$ cws profiles use stanford-collab
 mit$ cws launch "Python Machine Learning" mit-algorithm-dev
 
-# MIT instance launches in Stanford's AWS account
+# MIT workspace launches in Stanford's AWS account
 # - Uses Stanford's VPC and networking
 # - Billed to Stanford's AWS account
 # - MIT researcher has full access
@@ -126,14 +126,14 @@ mit$ cws launch "Python Machine Learning" mit-algorithm-dev
 berkeley$ cws profiles use stanford-collab
 berkeley$ cws launch "R Research Environment" berkeley-analysis
 
-# Berkeley instance also in Stanford's AWS account
+# Berkeley workspace also in Stanford's AWS account
 # - Can access same EFS volumes as MIT
 # - Billed to Stanford's AWS account
 # - Berkeley researcher has read/write access
 ```
 
 **Current functionality**:
-- ✅ Collaborators launch instances in lead institution's account
+- ✅ Collaborators launch workspaces in lead institution's account
 - ✅ Shared EFS access (if manually configured)
 - ✅ Consistent networking and security groups
 - ✅ All costs billed to Stanford's grant
@@ -181,7 +181,7 @@ berkeley$ cws volume mount neuro-dataset berkeley-analysis
 # 📊 Can add analysis results to shared dataset
 ```
 
-**Current workaround**: All instances must be in Stanford's account to access EFS
+**Current workaround**: All workspaces must be in Stanford's account to access EFS
 **Risk**: Cannot use collaborators' institutional AWS credits/accounts
 
 ### ❌ Problem 2: No Cost Attribution for Collaborators
@@ -245,7 +245,7 @@ stanford$ cws project chargeback nih-neuro-consortium \
 
 ### ❌ Problem 3: No Invitation-Based Policy Enforcement
 
-**Scenario**: Berkeley should only launch small instances for analysis (not expensive GPUs)
+**Scenario**: Berkeley should only launch small workspaces for analysis (not expensive GPUs)
 
 **What should happen** (MISSING):
 ```bash
@@ -259,7 +259,7 @@ stanford$ cws profiles invitations create berkeley-collaboration \
     --max-hourly-cost 0.50 \
     --forbidden-regions "us-west-1,eu-west-1"
 
-# Berkeley tries to launch expensive GPU instance
+# Berkeley tries to launch expensive GPU workspace
 berkeley$ cws profiles use stanford-collab
 berkeley$ cws launch "GPU ML Workstation" expensive-gpu --size XL
 
@@ -268,12 +268,12 @@ berkeley$ cws launch "GPU ML Workstation" expensive-gpu --size XL
 #
 # Your invitation from Stanford has the following restrictions:
 #   - Allowed templates: "R Research Environment", "Python Machine Learning"
-#   - Max instance types: t3.large, r5.xlarge
+#   - Max workspace types: t3.large, r5.xlarge
 #   - Max hourly cost: $0.50/hour
 #
 # Requested launch:
 #   - Template: "GPU ML Workstation" ❌ (not in allowed list)
-#   - Instance type: p3.8xlarge ❌ (exceeds max)
+#   - Workspace type: p3.8xlarge ❌ (exceeds max)
 #   - Hourly cost: $12.24/hour ❌ (exceeds $0.50 limit)
 #
 # Contact Dr. Smith (stanford-neuroscience) to request policy adjustment.
@@ -298,8 +298,8 @@ stanford$ cws audit collaboration nih-neuro-consortium \
 # 📋 Collaboration Audit Report: Jan-June 2026
 #
 # Invitation Activity:
-#   - mit-collaboration: 247 profile switches, 182 instance launches
-#   - berkeley-collaboration: 128 profile switches, 89 instance launches
+#   - mit-collaboration: 247 profile switches, 182 workspace launches
+#   - berkeley-collaboration: 128 profile switches, 89 workspace launches
 #
 # Data Access Events:
 #   ┌──────────────┬──────────────┬─────────────────────┬─────────────┐
@@ -309,12 +309,12 @@ stanford$ cws audit collaboration nih-neuro-consortium \
 #   │ Dr. Johnson  │ S3 Download  │ raw-data/subject01  │ 2026-01-15  │
 #   │ Dr. Lee      │ EFS Mount    │ neuro-dataset       │ 2026-02-03  │
 #   │ Dr. Lee      │ EFS Write    │ analysis-results/   │ 2026-02-03  │
-#   │ Dr. Johnson  │ Instance Launch│ mit-algorithm-dev │ 2026-03-12  │
+#   │ Dr. Johnson  │ Workspace Launch│ mit-algorithm-dev │ 2026-03-12  │
 #   └──────────────┴──────────────┴─────────────────────┴─────────────┘
 #
 # Compliance Summary:
 #   - Total data access events: 1,247
-#   - Total instance launches by collaborators: 271
+#   - Total workspace launches by collaborators: 271
 #   - Policy violations: 0 ✅
 #   - Unauthorized access attempts: 0 ✅
 #
@@ -449,7 +449,7 @@ mit$ cws volume mount neuro-dataset mit-algorithm-dev
 # SSH into instance
 mit$ cws ssh mit-algorithm-dev
 
-# Inside instance - develop algorithms on Stanford data
+# Inside workspace - develop algorithms on Stanford data
 mit-instance$ ls /mnt/neuro-dataset/
 # raw-data/ (50TB neuroimaging scans - read-only)
 
@@ -491,7 +491,7 @@ stanford$ cws project status nih-neuro-consortium --detail
 #
 # 💡 Real-time Cost Efficiency:
 #    Current effective rate: $1.89/hour (vs $4.20/hour 24/7)
-#    Active compute: 10 instances (2,554 hours this month)
+#    Active compute: 10 workspaces (2,554 hours this month)
 #    Hibernation savings banked: $3,890 (available for extended compute)
 #
 # Active Instances:
@@ -597,7 +597,7 @@ stanford$ cws collaboration report nih-neuro-consortium --final
 #   Berkeley: $12,353.84 (14) - 6,529 compute hours
 #
 # Resources Created:
-#   - Instances launched: 847 total
+#   - Workspaces launched: 847 total
 #   - Shared dataset: 50TB → 73TB (analysis results added)
 #   - Snapshots: 127 created (42 transferred to collaborators)
 #   - Publications: 3 papers, 2 preprints
@@ -670,7 +670,7 @@ stanford$ cws collaboration report nih-neuro-consortium --final
 
 3. **Invitation Policy Restrictions** (1 week)
    - Template whitelist in invitations
-   - Instance type restrictions
+   - Workspace type restrictions
    - Hourly cost limits
    - Pre-launch policy validation
 
@@ -808,14 +808,14 @@ Stanford AWS Account (Lead)
 │
 MIT Researcher (MIT AWS Account)
 ├── Profile: stanford-collab (invitation-based)
-├── Launch: MIT instance in MIT account
+├── Launch: MIT workspace in MIT account
 ├── Mount: Stanford EFS via cross-account access point
 ├── Billing: MIT pays compute, Stanford tracks attribution
 └── Data: Access Stanford's 50TB dataset seamlessly
 
 Berkeley Researcher (Berkeley AWS Account)
 ├── Profile: stanford-collab (invitation-based)
-├── Launch: Berkeley instance in Berkeley account
+├── Launch: Berkeley workspace in Berkeley account
 ├── Mount: Stanford EFS via cross-account access point
 ├── Billing: Berkeley pays compute, Stanford tracks attribution
 └── Data: Read and write to Stanford's shared dataset

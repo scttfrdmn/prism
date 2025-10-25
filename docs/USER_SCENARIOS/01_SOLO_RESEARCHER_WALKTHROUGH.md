@@ -11,8 +11,8 @@
 - Works from laptop, often from home or coffee shops
 
 **Pain Points**:
-- Has accidentally left EC2 instances running overnight (cost $40 in one month!)
-- Anxious about trying GPU instances (too expensive if forgotten)
+- Has accidentally left EC2 workspaces running overnight (cost $40 in one month!)
+- Anxious about trying GPU workspaces (too expensive if forgotten)
 - Needs to provide monthly cost reports to PI
 - Current solution: Checks AWS billing dashboard obsessively, sets phone alarms to stop instances
 
@@ -50,18 +50,18 @@ cws idle profile create budget-safe \
 cws idle profile set-default budget-safe
 ```
 
-**Result**: Any instance automatically hibernates after 15 minutes of inactivity
+**Result**: Any workspace automatically hibernates after 15 minutes of inactivity
 - Hibernation preserves RAM state (no lost work)
 - Stops compute charges immediately
 - Sarah can resume work exactly where she left off
 
-### ✅ Launch First Instance (Day 1)
+### ✅ Launch First Workspace (Day 1)
 ```bash
 # Launch bioinformatics workstation
 cws launch bioinformatics-suite rnaseq-analysis --size M
 
 # CloudWorkstation output:
-# ✅ Instance launching: rnaseq-analysis
+# ✅ Workspace launching: rnaseq-analysis
 # 📊 Estimated cost: $2.40/day ($72/month if running 24/7)
 # ⚙️  Hibernation policy: budget-safe (15min idle)
 # 🔗 SSH ready in ~90 seconds...
@@ -80,12 +80,12 @@ cws ssh rnaseq-analysis     # Start working
 # - Run RNA-seq pipeline
 # - Hibernation policy watches: CPU, memory, disk activity
 # - Sarah gets coffee, 15 minutes pass with no activity
-# - Instance automatically hibernates
+# - Workspace automatically hibernates
 
 # ✅ Hibernation triggered! Charges stop immediately
 # 💰 Real-time savings: $2.40/hour → $0/hour
 #    The money you're NOT spending is banked for future use!
-#    Budget available increases in real-time as instances hibernate/stop
+#    Budget available increases in real-time as workspaces hibernate/stop
 
 # Afternoon: Check costs
 cws cost summary
@@ -114,30 +114,30 @@ cws cost summary
 ## ⚠️ Current Pain Points: What Doesn't Work
 
 ### ❌ Problem 1: No Budget Enforcement
-**Scenario**: Week 3, Sarah accidentally launches GPU instance
+**Scenario**: Week 3, Sarah accidentally launches GPU workspace
 
 ```bash
 # Sarah tries GPU template for deep learning experiment
 cws launch gpu-ml-workstation protein-folding --size L
 
 # CloudWorkstation output:
-# ✅ Instance launching: protein-folding
+# ✅ Workspace launching: protein-folding
 # 📊 Estimated cost: $24.80/day ($744/month)
 # 🔗 SSH ready in ~2 minutes...
 ```
 
 **What should happen** (MISSING):
 ```
-⚠️  WARNING: High-cost instance detected!
+⚠️  WARNING: High-cost workspace detected!
    Estimated: $24.80/day ($744/month)
    Your monthly budget: $100
-   This instance will exceed your budget in 4 days.
+   This workspace will exceed your budget in 4 days.
 
    Continue? [y/N]: _
 ```
 
 **Current workaround**: Sarah has to remember to check costs manually
-**Risk**: One forgotten GPU instance = entire month's budget gone in 4 days
+**Risk**: One forgotten GPU workspace = entire month's budget gone in 4 days
 
 ### ❌ Problem 2: No Budget Alerts
 **Scenario**: Week 4, Sarah hits 80% of budget
@@ -154,7 +154,7 @@ cws launch gpu-ml-workstation protein-folding --size L
    - rnaseq-analysis: Running ($2.40/day)
 
    Recommendation: You have $20 remaining for 8 days.
-   Consider hibernating instances when not in use.
+   Consider hibernating workspaces when not in use.
 ```
 
 **Current workaround**: Sarah checks `cws cost summary` daily
@@ -185,7 +185,7 @@ cws budget forecast
 ```
 
 **Current workaround**: Sarah does mental math and Excel calculations
-**Impact**: Decision paralysis - hesitant to launch instances even when budget allows
+**Impact**: Decision paralysis - hesitant to launch workspaces even when budget allows
 
 ### ❌ Problem 4: No Month-End Reporting
 **Scenario**: End of month, PI asks "How much did you spend and on what?"
@@ -201,9 +201,9 @@ cws budget report --month september
 # Actual Spend: $87.50 ✅
 # Savings: $12.50
 #
-# Instance Usage:
+# Workspace Usage:
 # ┌────────────────────┬──────────┬──────────┬────────────┬──────────┐
-# │ Instance           │ Template │ Hours    │ Cost       │ Savings  │
+# │ Workspace           │ Template │ Hours    │ Cost       │ Savings  │
 # ├────────────────────┼──────────┼──────────┼────────────┼──────────┤
 # │ rnaseq-analysis    │ Bioinfo  │ 72h      │ $87.50     │ $45.30   │
 # │ (hibernated: 96h)  │          │          │            │          │
@@ -245,13 +245,13 @@ cws init
 #   Monthly budget: $100
 #   Alert thresholds: 50%, 75%, 90%, 100%
 #   Alert email: sarah.chen@university.edu
-#   Hard budget cap: [ ] Enable (stops all instances at 100%)
+#   Hard budget cap: [ ] Enable (stops all workspaces at 100%)
 #                    [x] Warn only
 #
 # Cost Safety:
 #   Default hibernation: 15 minutes idle
-#   Pre-launch warnings: [x] Expensive instances (>$5/day)
-#                        [x] GPU instances
+#   Pre-launch warnings: [x] Expensive workspaces (>$5/day)
+#                        [x] GPU workspaces
 #                        [x] Budget impact preview
 #
 # Setup complete! ✅
@@ -277,7 +277,7 @@ cws budget show
 ### Day 1: Launch with Budget Awareness
 
 ```bash
-# Launch instance with budget preview
+# Launch workspace with budget preview
 cws launch bioinformatics-suite rnaseq-analysis --size M
 
 # CloudWorkstation output:
@@ -294,20 +294,20 @@ cws launch bioinformatics-suite rnaseq-analysis --size M
 #
 #    Your Budget:
 #    Current: $0 / $100 (0%)
-#    Projected with this instance: ~$36 / $100 (36%) ✅
+#    Projected with this workspace: ~$36 / $100 (36%) ✅
 #    Remaining buffer: ~$64
 #
-#    💡 Tip: This instance will use ~36% of your monthly budget.
+#    💡 Tip: This workspace will use ~36% of your monthly budget.
 #            Hibernation will activate after 15 minutes of idle time.
 #
 # Proceed? [Y/n]: y
 #
-# ✅ Instance launching: rnaseq-analysis
+# ✅ Workspace launching: rnaseq-analysis
 # ⚙️  Hibernation: budget-safe (15min idle)
 # 🔗 SSH ready in ~90 seconds...
 ```
 
-> **💡 GUI Note**: Instance launch with budget preview available in GUI Templates tab - *coming soon in v0.6.0*
+> **💡 GUI Note**: Workspace launch with budget preview available in GUI Templates tab - *coming soon in v0.6.0*
 
 ### Week 3: Budget Alert (80% threshold)
 
@@ -365,7 +365,7 @@ cws budget status
 #
 # Recommendations:
 #   ✅ You're on track!
-#   💡 Consider stopping instances over weekend if not needed ($4.80 savings)
+#   💡 Consider stopping workspaces over weekend if not needed ($4.80 savings)
 ```
 
 > **💡 GUI Note**: Budget status available in GUI Dashboard (Budget tab) with real-time charts - *coming soon in v0.6.0*
@@ -373,7 +373,7 @@ cws budget status
 ### Week 4: Attempting Over-Budget Launch
 
 ```bash
-# Sarah tries to launch expensive GPU instance
+# Sarah tries to launch expensive GPU workspace
 cws launch gpu-ml-workstation protein-folding --size L
 
 # CloudWorkstation output:
@@ -387,19 +387,19 @@ cws launch gpu-ml-workstation protein-folding --size L
 #    Remaining: $12.50
 #    Days left: 5
 #
-#    ⚠️  This instance will exceed your budget in 12 hours
+#    ⚠️  This workspace will exceed your budget in 12 hours
 #        Even with hibernation, projected overage: $60.00
 #
 #    Options:
 #    1. Launch with time limit (auto-terminate in X hours)
-#    2. Choose smaller instance (g4dn.xlarge: $3.90/day)
+#    2. Choose smaller workspace (g4dn.xlarge: $3.90/day)
 #    3. Cancel
 #
 # Choice [1-3]: 1
 # Time limit (hours) [1-24]: 8
 #
 # Launching protein-folding with 8-hour limit...
-# ✅ Instance will auto-terminate at 11:30 PM tonight
+# ✅ Workspace will auto-terminate at 11:30 PM tonight
 # 📊 Estimated cost: $8.27 (within remaining budget ✅)
 ```
 
@@ -442,7 +442,7 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 # Output:
 # ✅ Report generated: sept-cloudworkstation-report.pdf
 #    - Monthly summary with cost breakdown
-#    - Instance usage timeline
+#    - Workspace usage timeline
 #    - Hibernation savings analysis
 #    - Cost efficiency metrics (effective $/hour vs 24/7)
 #    - Budget rollover calculation
@@ -502,7 +502,7 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 4. **Budget Forecasting** (1 week)
    - `cws budget forecast`
    - ML-based prediction using historical patterns
-   - "Can I afford this instance?" tool
+   - "Can I afford this workspace?" tool
 
 5. **Monthly Reporting** (1 week)
    - `cws budget report --month september --pdf`
@@ -529,7 +529,7 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 ### User Satisfaction (Sarah's Perspective)
 - ✅ **Anxiety Reduction**: "I sleep better knowing I can't accidentally overspend"
 - ✅ **Time Savings**: "No more daily AWS billing checks - 30 min/week saved"
-- ✅ **Confidence**: "I try new instance types knowing I'll be warned if too expensive"
+- ✅ **Confidence**: "I try new workspace types knowing I'll be warned if too expensive"
 - ✅ **Efficiency**: "Monthly reports generate automatically for my PI"
 
 ### Technical Metrics
