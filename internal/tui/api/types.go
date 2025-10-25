@@ -256,14 +256,18 @@ func ToVolumeResponse(volume types.EFSVolume) VolumeResponse {
 	}
 }
 
-// ToListVolumesResponse converts a map of types.EFSVolume to a ListVolumesResponse
-func ToListVolumesResponse(volumes []types.EFSVolume) *ListVolumesResponse {
+// ToListVolumesResponse converts a slice of types.StorageVolume to a ListVolumesResponse
+func ToListVolumesResponse(volumes []*types.StorageVolume) *ListVolumesResponse {
 	result := &ListVolumesResponse{
 		Volumes: make(map[string]VolumeResponse),
 	}
 
 	for _, volume := range volumes {
-		result.Volumes[volume.Name] = ToVolumeResponse(volume)
+		// Convert StorageVolume to legacy EFSVolume for backward compatibility
+		efsVol := types.StorageVolumeToEFSVolume(volume)
+		if efsVol != nil {
+			result.Volumes[efsVol.Name] = ToVolumeResponse(*efsVol)
+		}
 	}
 
 	return result
@@ -286,14 +290,18 @@ func ToStorageResponse(storage types.EBSVolume) StorageResponse {
 	}
 }
 
-// ToListStorageResponse converts a map of types.EBSVolume to a ListStorageResponse
-func ToListStorageResponse(storage []types.EBSVolume) *ListStorageResponse {
+// ToListStorageResponse converts a slice of types.StorageVolume to a ListStorageResponse
+func ToListStorageResponse(storage []*types.StorageVolume) *ListStorageResponse {
 	result := &ListStorageResponse{
 		Storage: make(map[string]StorageResponse),
 	}
 
 	for _, volume := range storage {
-		result.Storage[volume.Name] = ToStorageResponse(volume)
+		// Convert StorageVolume to legacy EBSVolume for backward compatibility
+		ebsVol := types.StorageVolumeToEBSVolume(volume)
+		if ebsVol != nil {
+			result.Storage[ebsVol.Name] = ToStorageResponse(*ebsVol)
+		}
 	}
 
 	return result
