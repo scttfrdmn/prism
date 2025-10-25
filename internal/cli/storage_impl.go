@@ -173,7 +173,7 @@ func (sc *StorageCommands) volumeDelete(args []string) error {
 
 func (sc *StorageCommands) volumeMount(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws volume mount <volume-name> <instance-name> [mount-point]", "cws volume mount my-shared-data my-workstation")
+		return NewUsageError("cws volume mount <volume-name> <workspace-name> [mount-point]", "cws volume mount my-shared-data my-workspace")
 	}
 
 	volumeName := args[0]
@@ -196,7 +196,7 @@ func (sc *StorageCommands) volumeMount(args []string) error {
 
 func (sc *StorageCommands) volumeUnmount(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws volume unmount <volume-name> <instance-name>", "cws volume unmount my-shared-data my-workstation")
+		return NewUsageError("cws volume unmount <volume-name> <workspace-name>", "cws volume unmount my-shared-data my-workspace")
 	}
 
 	volumeName := args[0]
@@ -351,7 +351,7 @@ func (sc *StorageCommands) storageInfo(args []string) error {
 
 func (sc *StorageCommands) storageAttach(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws storage attach <volume> <instance>", "cws storage attach my-data my-workstation")
+		return NewUsageError("cws storage attach <volume> <workspace>", "cws storage attach my-data my-workspace")
 	}
 
 	volumeName := args[0]
@@ -362,7 +362,7 @@ func (sc *StorageCommands) storageAttach(args []string) error {
 		return WrapAPIError("attach storage "+volumeName+" to "+instanceName, err)
 	}
 
-	fmt.Printf("%s\n", FormatProgressMessage("Attaching volume", fmt.Sprintf("%s to instance %s", volumeName, instanceName)))
+	fmt.Printf("%s\n", FormatProgressMessage("Attaching volume", fmt.Sprintf("%s to workspace %s", volumeName, instanceName)))
 	return nil
 }
 

@@ -15,14 +15,14 @@
 - **Responsibilities**: Office hours, debugging student code, grading assignments
 - **Technical level**: Graduate student (expert) - CS PhD candidate
 - **Concerns**: Helping struggling students debug remotely, preventing cheating
-- **Needs**: View/access student instances for debugging, monitor student progress
+- **Needs**: View/access student workspaces for debugging, monitor student progress
 - **Authority**: Can SSH into student instances, extend deadlines, reset instances
 
 ### Priya Sharma & Kevin Wong (Teaching Assistants)
 - **Role**: Section TAs, grade assignments, hold office hours
 - **Technical level**: Advanced (MS students)
 - **Responsibilities**: Specific section support, grading
-- **Authority**: View student instances (read-only), submit grades
+- **Authority**: View student workspaces (read-only), submit grades
 
 ### 50 Students (Various backgrounds)
 **Example students**:
@@ -51,7 +51,7 @@
 - **Shared Resources**: Course datasets (100GB), lecture notebooks
 
 ### Technical Requirements
-- **Compute**: CPU instances sufficient (t3.medium for most students)
+- **Compute**: CPU workspaces sufficient (t3.medium for most students)
 - **Special needs**: Final project may need t3.large for training
 - **Storage**: Shared read-only course materials, individual student workspace
 - **Security**: Students isolated, no SSH key sharing, audit trail required
@@ -92,7 +92,7 @@ cws volume create cs229-course-materials \
   --size 100GB \
   --project "CS229-Fall2024"
 
-# Mount to temporary instance for setup
+# Mount to temporary workspace for setup
 cws launch ubuntu temp-setup
 cws volume mount cs229-course-materials temp-setup
 
@@ -212,7 +212,7 @@ cws ta annotate ml-hw3 --student sophie.martinez@university.edu \
 
 **What should happen** (MISSING):
 ```bash
-# Emily (eager student) tries GPU instance for fun
+# Emily (eager student) tries GPU workspace for fun
 emily@laptop:~$ cws launch gpu-ml-workstation homework1
 
 # CloudWorkstation should block:
@@ -231,7 +231,7 @@ emily@laptop:~$ cws launch gpu-ml-workstation homework1
 #    If you need GPU access, contact your instructor or TA.
 
 # Instead, current behavior:
-# ✅ Instance launching: homework1 (p3.2xlarge, $24.80/day)
+# ✅ Workspace launching: homework1 (p3.2xlarge, $24.80/day)
 # 📊 Your budget: $12 / $24 (50%)
 #
 # (24 hours later, Emily forgets to stop it)
@@ -263,7 +263,7 @@ cws project cost show "CS229-Fall2024"
 **Impact**: Budget surprises, student anxiety, administrative burden
 
 ### ❌ Problem 3: No Automatic Semester End Cleanup
-**Scenario**: Semester ends, students leave instances running into winter break
+**Scenario**: Semester ends, students leave workspaces running into winter break
 
 **What should happen** (MISSING):
 ```bash
@@ -290,7 +290,7 @@ cws project cost show "CS229-Fall2024"
 # - 45 students: Within budget ($22.80 avg)
 # - 5 students: Over budget (avg $26.50) - See details
 #
-# Student instances (all stopped):
+# Student workspaces (all stopped):
 # - Active at closure: 12 (now stopped)
 # - Hibernated: 18 (archived)
 # - Already stopped: 20
@@ -323,7 +323,7 @@ cws project cost show "CS229-Fall2024"
 # Alex (TA) suspects plagiarism between Emily and David
 # Same assignment submission, very similar code
 
-# Check instance access logs
+# Check workspace access logs
 cws ta audit --students emily.chen@university.edu,david.kim@university.edu \
   --timeframe "2024-10-15 to 2024-10-20" \
   --assignment hw5
@@ -362,7 +362,7 @@ cws ta audit --students emily.chen@university.edu,david.kim@university.edu \
 #    $ cp emily-code/hw5_solution.py .
 #
 # ⚠️  Suspicious Activity Flags:
-# 1. David created instance very late (1 day before deadline)
+# 1. David created workspace very late (1 day before deadline)
 # 2. David's work time unusually short (1.2h vs class avg 7.5h)
 # 3. File transfer detected from external source
 # 4. Code similarity: 94% match with Emily's submission
@@ -377,7 +377,7 @@ cws ta audit --students emily.chen@university.edu,david.kim@university.edu \
 **Current workaround**: Manual code comparison, no access logs
 **Impact**: Difficult to prove plagiarism, academic integrity concerns
 
-### ❌ Problem 5: No Student Instance Reset
+### ❌ Problem 5: No Student Workspace Reset
 **Scenario**: Student breaks their environment, needs fresh start
 
 **What should happen** (MISSING):
@@ -394,7 +394,7 @@ sophie@ml-hw4:~$ python train.py
 cws ta reset-instance ml-hw4 --student sophie.martinez@university.edu
 
 # CloudWorkstation output:
-# 🔄 Instance Reset Requested
+# 🔄 Workspace Reset Requested
 #
 #    Student: Sophie Martinez
 #    Instance: ml-hw4
@@ -403,7 +403,7 @@ cws ta reset-instance ml-hw4 --student sophie.martinez@university.edu
 #    This will:
 #    ✅ Backup current state to S3
 #    ✅ Stop instance
-#    ✅ Launch fresh instance from template
+#    ✅ Launch fresh workspace from template
 #    ✅ Restore student's homework files (/home/student/homework)
 #    ✅ Preserve Jupyter notebooks
 #    ❌ Discard broken environment
@@ -414,12 +414,12 @@ cws ta reset-instance ml-hw4 --student sophie.martinez@university.edu
 #
 # Resetting instance...
 # ✅ Backup created: s3://cs229-backups/sophie.martinez/ml-hw4-backup-2024-10-18.tar.gz
-# ✅ Fresh instance launched
+# ✅ Fresh workspace launched
 # ✅ Student files restored
 # ✅ Ready to use!
 #
 # Email sent to sophie.martinez@university.edu:
-# "Your instance has been reset by TA Alex Thompson. You can now continue working."
+# "Your workspace has been reset by TA Alex Thompson. You can now continue working."
 
 # Sophie can immediately continue
 sophie@laptop:~$ cws ssh ml-hw4
@@ -471,7 +471,7 @@ cws course create "CS229-Fall2024" \
 #   [x] ml-final-project (t3.large, $1.67/day) - Requires approval
 #   [ ] gpu-ml-workstation (blocked)
 #
-#   Instance limits per student:
+#   Workspace limits per student:
 #   Max concurrent instances: 1
 #   Max daily cost: $2.00
 #   Auto-stop after: 4 hours idle
@@ -487,7 +487,7 @@ cws course create "CS229-Fall2024" \
 #   [x] Plagiarism detection support
 #
 # Semester End Actions:
-#   [x] Auto-stop all instances on Dec 13, 11:59 PM
+#   [x] Auto-stop all workspaces on Dec 13, 11:59 PM
 #   [x] Archive student work to S3 (1 year retention)
 #   [x] Revoke student access
 #   [x] Generate final cost report
@@ -551,12 +551,12 @@ cws course import-students "CS229-Fall2024" \
 #
 # Your Resources:
 # - Budget: $24.00 for entire semester
-# - Instance type: t3.medium (2 vCPU, 4GB RAM)
+# - Workspace type: t3.medium (2 vCPU, 4GB RAM)
 # - Course materials: Available in /mnt/cs229-materials/
 #
 # Important Dates:
 # - Semester ends: December 13, 2024
-# - Your instance will automatically stop at semester end
+# - Your workspace will automatically stop at semester end
 #
 # Need help? Contact TAs during office hours.
 #
@@ -593,14 +593,14 @@ emily@laptop:~$ cws student join CS229-Fall2024
 emily@laptop:~$ cws launch ml-cpu-student hw1
 
 # CloudWorkstation output:
-# ✅ Instance launching: hw1 (t3.medium)
+# ✅ Workspace launching: hw1 (t3.medium)
 # 📊 Cost: $0.83/day ($24.90/month if running 24/7)
 # 💰 Your budget: $0 / $24.00 (0%)
 # 🎯 Course: CS229-Fall2024
 # ⏰ Auto-stop: 4 hours idle (course policy)
 # 🔗 SSH ready in ~60 seconds...
 #
-# 💡 Tip: Your instance will auto-stop after 4 hours of inactivity to save your budget!
+# 💡 Tip: Your workspace will auto-stop after 4 hours of inactivity to save your budget!
 
 emily@laptop:~$ cws ssh hw1
 
@@ -648,11 +648,11 @@ alex@laptop:~$ cws ta debug ml-hw3 --student sophie.martinez@university.edu
 #    Your role: Head TA (full debug access)
 #
 #    Available actions:
-#    [1] View instance status and logs
-#    [2] SSH into instance (full access, logged)
+#    [1] View workspace status and logs
+#    [2] SSH into workspace (full access, logged)
 #    [3] View Jupyter notebooks (read-only)
 #    [4] Export student workspace for review
-#    [5] Reset instance (backup + fresh start)
+#    [5] Reset workspace (backup + fresh start)
 #
 # Choice [1-5]: 2
 
@@ -679,7 +679,7 @@ alex@laptop:~$ # (Identifies: batch size too large for instance)
 alex@laptop:~$ cws ta message sophie.martinez@university.edu \
   --instance ml-hw3 \
   --subject "Homework 3 - Memory Error Fix" \
-  --message "Found the issue! Your batch size (256) is too large for this instance (4GB RAM). Try batch size 32 or 64. See train.py line 42. Also attached: fixed code example."
+  --message "Found the issue! Your batch size (256) is too large for this workspace (4GB RAM). Try batch size 32 or 64. See train.py line 42. Also attached: fixed code example."
 
 # Sophie receives in-app notification and email
 # Next time Sophie SSHs in:
@@ -691,7 +691,7 @@ sophie@ml-hw3:~$
 # └─────────────────────────────────────────────────┘
 ```
 
-### Week 10: David Tries Expensive Instance (Budget Protection)
+### Week 10: David Tries Expensive Workspace (Budget Protection)
 
 ```bash
 # David (grad student) tries to launch GPU for final project
@@ -705,7 +705,7 @@ david@laptop:~$ cws launch gpu-ml-workstation final-project
 #    Your budget: $18.50 / $24.00 (77%)
 #
 #    ⚠️  This template is not approved for CS 229.
-#        GPU instances exceed the per-student budget.
+#        GPU workspaces exceed the per-student budget.
 #
 #    Approved templates:
 #    - ml-cpu-student (t3.medium, $0.83/day) ✅ Default
@@ -728,10 +728,10 @@ david@laptop:~$ cws launch ml-final-project final-project
 #    Your budget: $18.50 / $24.00 (77%)
 #    Remaining: $5.50
 #
-#    ⚠️  This instance will use your remaining budget in ~3.3 days.
+#    ⚠️  This workspace will use your remaining budget in ~3.3 days.
 #        For final project (2 weeks), you may need to:
 #        - Use hibernation aggressively (auto-enabled)
-#        - Stop instance when not actively working
+#        - Stop workspace when not actively working
 #        - Contact instructor if you need budget increase
 #
 # Proceed? [y/N]: y
@@ -743,11 +743,11 @@ david@laptop:~$ cws launch ml-final-project final-project
 # Automated actions at semester end:
 
 # 11:50 PM - Final warning email to all students with running instances
-# Subject: [CS 229] Your instance will stop in 10 minutes (Semester End)
+# Subject: [CS 229] Your workspace will stop in 10 minutes (Semester End)
 #
 # Hi Emily,
 #
-# The semester ends at midnight tonight. Your instance will automatically stop in 10 minutes.
+# The semester ends at midnight tonight. Your workspace will automatically stop in 10 minutes.
 #
 # Current instance:
 # - final-project (t3.large): Running
@@ -803,11 +803,11 @@ david@laptop:~$ cws launch ml-final-project final-project
 # Student Efficiency:
 # - High efficiency (>90%): 35 students
 # - Medium efficiency (70-90%): 12 students
-# - Low efficiency (<70%): 3 students (left instances running)
+# - Low efficiency (<70%): 3 students (left workspaces running)
 #
 # Teaching Assistant Activity:
 # - Debug sessions: 42 (avg 50 minutes each)
-# - Instance resets: 8
+# - Workspace resets: 8
 # - Messages sent: 156
 # - Most active TA: Alex Thompson (28 debug sessions)
 #
@@ -855,7 +855,7 @@ david@laptop:~$ cws launch ml-final-project final-project
 | Feature | Priority | User Impact | Blocks Scenario | Effort |
 |---------|----------|-------------|-----------------|--------|
 | **TA Debug Access** | 🔴 Critical | Can't help students remotely | Office hours inefficient | High |
-| **Template Whitelisting** | 🔴 Critical | Students launch wrong instances | Budget blowouts | Medium |
+| **Template Whitelisting** | 🔴 Critical | Students launch wrong workspaces | Budget blowouts | Medium |
 | **Auto Semester End** | 🔴 Critical | Manual cleanup burden | Continued spending over break | Medium |
 | **Student Budget Isolation** | 🟡 High | No per-student enforcement | Budget tracking unclear | Medium |
 | **Instance Reset** | 🟡 High | Broken environments = lost time | Student frustration | Low |
@@ -901,12 +901,12 @@ david@laptop:~$ cws launch ml-final-project final-project
 4. **TA Debug Access** (2 weeks)
    - View student instances
    - Temporary SSH access (logged)
-   - Instance reset capability
+   - Workspace reset capability
    - Student messaging
 
 5. **TA Dashboard** (1 week)
    - List all students
-   - View instance status
+   - View workspace status
    - Budget warnings
    - Pending help requests
 
@@ -980,7 +980,7 @@ david@laptop:~$ cws launch ml-final-project final-project
 | **Access** | Semester (controlled) | Workshop only (3 hours) |
 | **TAs** | 3 TAs (trained) | 1-2 helpers (ad-hoc) |
 | **Environment** | Complex (assignments) | Simple (demo) |
-| **Follow-up** | Graded assignments | Optional (keep instance 1 week) |
+| **Follow-up** | Graded assignments | Optional (keep workspace 1 week) |
 
 ### Workshop-Specific Features Needed
 
@@ -998,10 +998,10 @@ cws workshop create "AWS-MLOps-Tutorial" \
 participant@laptop:~$ cws workshop join --code MLOPS2024
 
 # Auto-extend option at end
-# "Keep your instance for 7 days to continue learning? (+$0.50/day)"
+# "Keep your workspace for 7 days to continue learning? (+$0.50/day)"
 
 # Auto-cleanup after workshop + extension period
-# All instances deleted after 7 days, no manual cleanup
+# All workspaces deleted after 7 days, no manual cleanup
 ```
 
 **Key Differences**:

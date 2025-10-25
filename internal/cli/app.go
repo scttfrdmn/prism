@@ -278,7 +278,7 @@ func (a *App) Launch(args []string) error {
 	}
 
 	// Show immediate feedback with animated spinner
-	spinner := NewSpinner(fmt.Sprintf("Launching instance '%s' from template '%s'", req.Name, req.Template))
+	spinner := NewSpinner(fmt.Sprintf("Launching workspace '%s' from template '%s'", req.Name, req.Template))
 	spinner.Start()
 
 	response, err := a.apiClient.LaunchInstance(a.ctx, req)
@@ -286,13 +286,13 @@ func (a *App) Launch(args []string) error {
 	spinner.StopWithMessage(fmt.Sprintf("✅ %s", response.Message))
 
 	if err != nil {
-		return WrapAPIError("launch instance "+req.Name, err)
+		return WrapAPIError("launch workspace "+req.Name, err)
 	}
 
 	// Show project information if launched in a project
 	if req.ProjectID != "" {
 		fmt.Printf("📁 Project: %s\n", req.ProjectID)
-		fmt.Printf("🏷️  Instance will be tracked under project budget\n")
+		fmt.Printf("🏷️  Workspace will be tracked under project budget\n")
 	}
 
 	// Determine if we should monitor progress
@@ -307,7 +307,7 @@ func (a *App) Launch(args []string) error {
 			// Package-based template - always monitor progress
 			shouldMonitor = true
 			fmt.Printf("\n💡 Package installation will take 5-10 minutes. Monitoring progress...\n")
-			fmt.Printf("   (Use Ctrl+C to return to prompt - instance will continue setup)\n")
+			fmt.Printf("   (Use Ctrl+C to return to prompt - workspace will continue setup)\n")
 		}
 	}
 
@@ -347,7 +347,7 @@ func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricing
 		if summary.TotalListCost > 0 {
 			savingsPercent = (totalSavings / summary.TotalListCost) * 100
 		}
-		fmt.Printf("   Running instances: %d\n", summary.RunningInstances)
+		fmt.Printf("   Running workspaces: %d\n", summary.RunningInstances)
 		fmt.Printf("   Your daily cost:   $%.4f\n", summary.TotalRunningCost)
 		fmt.Printf("   Your monthly est:  $%.4f\n", summary.TotalRunningCost*DaysToMonthEstimate)
 		fmt.Printf("   List price daily:  $%.4f\n", summary.TotalListCost)
@@ -357,7 +357,7 @@ func (a *App) displayCostSummary(summary CostSummary, hasDiscounts bool, pricing
 			fmt.Printf("   Institution:       %s\n", pricingConfig.Institution)
 		}
 	} else {
-		fmt.Printf("   Running instances: %d\n", summary.RunningInstances)
+		fmt.Printf("   Running workspaces: %d\n", summary.RunningInstances)
 		fmt.Printf("   Daily cost:        $%.4f\n", summary.TotalRunningCost)
 		fmt.Printf("   Monthly estimate:  $%.4f\n", summary.TotalRunningCost*DaysToMonthEstimate)
 		fmt.Printf("   Historical spend:  $%.4f\n", summary.TotalHistoricalSpend)
@@ -390,7 +390,7 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 
 		// Check for timeout
 		if elapsed > maxDuration {
-			fmt.Printf("⚠️  Launch monitoring timeout (%s). Instance may still be setting up.\n",
+			fmt.Printf("⚠️  Launch monitoring timeout (%s). Workspace may still be setting up.\n",
 				reporter.FormatDuration(maxDuration))
 			fmt.Printf("💡 Check status with: cws list\n")
 			fmt.Printf("💡 Try connecting: cws connect %s\n", reporter.instanceName)
@@ -402,11 +402,11 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 		if err != nil {
 			// If we can't get instance info initially, show initializing
 			if elapsed < 30*time.Second {
-				fmt.Printf("⏳ Instance initializing...\n")
+				fmt.Printf("⏳ Workspace initializing...\n")
 			} else {
 				// After 30 seconds, show as potential issue
 				fmt.Printf("⚠️  Unable to get instance status after %s\n", reporter.FormatDuration(elapsed))
-				fmt.Printf("💡 Instance may still be launching. Check with: cws list\n")
+				fmt.Printf("💡 Workspace may still be launching. Check with: cws list\n")
 			}
 			time.Sleep(5 * time.Second)
 			continue
@@ -434,21 +434,21 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 
 			// Package-based template - switch to detailed progress monitoring
 			// This monitors actual setup progress via SSH and cloud-init status
-			fmt.Printf("\n📦 Instance running - monitoring package installation progress...\n\n")
+			fmt.Printf("\n📦 Workspace running - monitoring package installation progress...\n\n")
 			return a.monitorSetupProgress(instance)
 
 		case "stopped", "stopping":
-			err := fmt.Errorf("instance stopped during launch")
+			err := fmt.Errorf("workspace stopped during launch")
 			reporter.ShowError(err, instance)
 			return err
 
 		case "terminated":
-			err := fmt.Errorf("instance terminated during launch")
+			err := fmt.Errorf("workspace terminated during launch")
 			reporter.ShowError(err, instance)
 			return err
 
 		case "dry-run":
-			fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+			fmt.Printf("✅ Dry-run validation successful! No actual workspace launched.\n")
 			return nil
 		}
 
@@ -471,7 +471,7 @@ func (h *PendingStateHandler) CanHandle(state string) bool {
 }
 
 func (h *PendingStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
-	fmt.Printf("🔄 Instance starting... (%ds)\n", elapsed)
+	fmt.Printf("🔄 Workspace starting... (%ds)\n", elapsed)
 	return true, nil
 }
 
@@ -493,7 +493,7 @@ func (h *RunningStateHandler) Handle(state string, elapsed int, instanceName str
 	if elapsed > 60 && elapsed%30 == 0 { // Check every 30 seconds after 1 minute
 		_, connErr := h.apiClient.ConnectInstance(h.ctx, instanceName)
 		if connErr == nil {
-			fmt.Printf("✅ Setup complete! Instance ready.\n")
+			fmt.Printf("✅ Setup complete! Workspace ready.\n")
 			fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
 			return false, nil
 		}
@@ -503,7 +503,7 @@ func (h *RunningStateHandler) Handle(state string, elapsed int, instanceName str
 
 func (h *RunningStateHandler) displaySetupProgress(elapsed int) {
 	if elapsed < 30 {
-		fmt.Printf("🔧 Instance running, beginning setup... (%ds)\n", elapsed)
+		fmt.Printf("🔧 Workspace running, beginning setup... (%ds)\n", elapsed)
 	} else if elapsed < 120 {
 		fmt.Printf("📥 Installing packages... (%ds)\n", elapsed)
 	} else if elapsed < 300 {
@@ -523,9 +523,9 @@ func (h *ErrorStateHandler) CanHandle(state string) bool {
 func (h *ErrorStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
 	switch state {
 	case "stopping", "stopped":
-		return false, fmt.Errorf("❌ Instance stopped during setup")
+		return false, fmt.Errorf("❌ Workspace stopped during setup")
 	case "terminated":
-		return false, fmt.Errorf("❌ Instance terminated during launch")
+		return false, fmt.Errorf("❌ Workspace terminated during launch")
 	}
 	return false, nil
 }
@@ -538,7 +538,7 @@ func (h *DryRunStateHandler) CanHandle(state string) bool {
 }
 
 func (h *DryRunStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
-	fmt.Printf("✅ Dry-run validation successful! No actual instance launched.\n")
+	fmt.Printf("✅ Dry-run validation successful! No actual workspace launched.\n")
 	return false, nil
 }
 
@@ -638,7 +638,7 @@ func (a *App) List(args []string) error {
 
 	response, err := a.apiClient.ListInstancesWithRefresh(a.ctx, refresh)
 	if err != nil {
-		return WrapAPIError("list instances", err)
+		return WrapAPIError("list workspaces", err)
 	}
 
 	// Filter instances by project if specified
@@ -769,7 +769,7 @@ func (a *App) List(args []string) error {
 
 	if runningCount > 0 {
 		fmt.Printf("💰 Cost Summary:\n")
-		fmt.Printf("   Running instances: %d\n", runningCount)
+		fmt.Printf("   Running workspaces: %d\n", runningCount)
 		fmt.Printf("   Total accumulated:  $%.4f (since launch)\n", totalCurrentCost)
 		fmt.Printf("   Effective rate:     $%.4f/hr (actual usage)\n", totalEffectiveCost)
 		fmt.Printf("   Estimated daily:    $%.2f (at current rate)\n", totalEffectiveCost*24)
@@ -797,7 +797,7 @@ func (a *App) ListCost(args []string) error {
 
 	response, err := a.apiClient.ListInstances(a.ctx)
 	if err != nil {
-		return WrapAPIError("list instances for cost analysis", err)
+		return WrapAPIError("list workspaces for cost analysis", err)
 	}
 
 	// Filter instances by project if specified
@@ -842,7 +842,7 @@ func (a *App) ListCost(args []string) error {
 	// Display cost summary
 	a.displayCostSummary(summary, hasDiscounts, pricingConfig)
 
-	fmt.Printf("\n💡 Tip: Use 'cws list' for a clean instance overview without cost data\n")
+	fmt.Printf("\n💡 Tip: Use 'cws list' for a clean workspace overview without cost data\n")
 
 	return nil
 }
@@ -1395,7 +1395,7 @@ func (a *App) projectInstances(args []string) error {
 	// Get all instances and filter by project
 	instanceResponse, err := a.apiClient.ListInstances(a.ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list instances: %w", err)
+		return fmt.Errorf("failed to list workspaces: %w", err)
 	}
 
 	// Filter instances by project
@@ -1408,7 +1408,7 @@ func (a *App) projectInstances(args []string) error {
 
 	if len(projectInstances) == 0 {
 		fmt.Printf("No instances found in project '%s'\n", projectName)
-		fmt.Printf("Launch one with: cws launch <template> <instance-name> --project %s\n", projectName)
+		fmt.Printf("Launch one with: cws launch <template> <workspace-name> --project %s\n", projectName)
 		return nil
 	}
 
@@ -1650,7 +1650,7 @@ func (a *App) monitorSetupProgress(instance *types.Instance) error {
 
 			// Check if complete
 			if strings.Contains(status, "Complete") || strings.Contains(status, "ready") {
-				fmt.Printf("\n✅ Setup complete! Instance ready.\n")
+				fmt.Printf("\n✅ Setup complete! Workspace ready.\n")
 				fmt.Printf("⏱️  Total setup time: %s\n", elapsed.Round(time.Second))
 				fmt.Printf("🔗 Connect: cws connect %s\n", instance.Name)
 				return nil
@@ -1659,7 +1659,7 @@ func (a *App) monitorSetupProgress(instance *types.Instance) error {
 			// Timeout after 15 minutes
 			if elapsed > 15*time.Minute {
 				fmt.Printf("\n⚠️  Setup taking longer than expected\n")
-				fmt.Printf("💡 Instance may still be configuring. Check with: cws list\n")
+				fmt.Printf("💡 Workspace may still be configuring. Check with: cws list\n")
 				return nil
 			}
 		}

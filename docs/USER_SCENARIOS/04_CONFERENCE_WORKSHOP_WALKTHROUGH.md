@@ -22,7 +22,7 @@
 - **Week before**: Send invitation links to registered participants
 - **Day before**: Early access for testing (24-hour window)
 - **Workshop day**: 3-hour hands-on session
-- **Auto-cleanup**: Terminate all instances 3 hours after workshop ends
+- **Auto-cleanup**: Terminate all workspaces 3 hours after workshop ends
 
 ---
 
@@ -82,7 +82,7 @@ cws profiles invitations accept <INVITATION-CODE> neurips-workshop
 cws launch pytorch-ml workshop-test --size S
 
 # Alex monitors early access
-cws project instances neurips-dl-workshop
+cws project workspaces neurips-dl-workshop
 # Output:
 # ✅ 12 participants tested successfully
 # ⚠️  3 participants having issues (Alex contacts them)
@@ -93,23 +93,23 @@ cws project instances neurips-dl-workshop
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No Automatic Instance Termination
+### ❌ Problem 1: No Automatic Workspace Termination
 
-**Scenario**: Workshop ends at 3:00 PM, instances should terminate at 6:00 PM
+**Scenario**: Workshop ends at 3:00 PM, workspaces should terminate at 6:00 PM
 
 **What should happen** (MISSING):
 ```bash
-# Alex launches instances with auto-terminate timer
+# Alex launches workspaces with auto-terminate timer
 cws launch pytorch-ml workshop-instance --hours 6
 
 # CloudWorkstation output:
-# ✅ Instance launching: workshop-instance
+# ✅ Workspace launching: workshop-instance
 # ⏰ Auto-terminate scheduled: 6 hours from now (6:00 PM)
 # 📊 Cost for 6 hours: $3.20
 # 🔔 Warning will be sent 30 minutes before termination
 ```
 
-**Current workaround**: Alex must manually stop 60 instances or rely on participants
+**Current workaround**: Alex must manually stop 60 workspaces or rely on participants
 **Risk**: If forgotten, $200 budget exhausted in 3 days
 
 ### ❌ Problem 2: No Template Whitelisting at Invitation Level
@@ -135,7 +135,7 @@ participant$ cws launch gpu-ml-workstation expensive-instance
 ```
 
 **Current workaround**: Trust participants + budget alerts
-**Risk**: Single participant launches GPU instance → $600/day → budget blown in 8 hours
+**Risk**: Single participant launches GPU workspace → $600/day → budget blown in 8 hours
 
 ### ❌ Problem 3: No Bulk Launch for Pre-Provisioning
 
@@ -152,23 +152,23 @@ cws project bulk-launch neurips-dl-workshop \
   --terminate-hours 6
 
 # Output:
-# 🚀 Scheduling 60 instance launches for Dec 8, 8:45 AM
+# 🚀 Scheduling 60 workspace launches for Dec 8, 8:45 AM
 # 📊 Estimated cost: $192.00 (within $200 budget ✅)
-# ⏰ All instances will auto-terminate at 2:45 PM (3-hour workshop)
+# ⏰ All workspaces will auto-terminate at 2:45 PM (3-hour workshop)
 #
 # 💡 Effective Cost Analysis:
-#    24/7 assumption: $2.40/hour × 60 instances × 24 hours = $3,456
-#    Actual workshop cost: $2.40/hour × 60 instances × 3 hours = $432
+#    24/7 assumption: $2.40/hour × 60 workspaces × 24 hours = $3,456
+#    Actual workshop cost: $2.40/hour × 60 workspaces × 3 hours = $432
 #    Your cost with auto-terminate: $192 (early terminations banked immediately)
 #    Savings: $240 banked in real-time as participants finish early!
 #
-# Instance name assignments:
+# Workspace name assignments:
 # - Participant_01 → workshop-01
 # - Participant_02 → workshop-02
 # ...
 
-# 8:45 AM on workshop day - all instances auto-launch
-# 9:00 AM - participants arrive, instances are ready
+# 8:45 AM on workshop day - all workspaces auto-launch
+# 9:00 AM - participants arrive, workspaces are ready
 ```
 
 > **💡 GUI Note**: Workshop scheduling available in GUI Projects tab with calendar view - *coming soon in v0.6.0*
@@ -200,7 +200,7 @@ cws workshop dashboard neurips-dl-workshop
 # │ Time Remaining:   1h 37m until auto-terminate          │
 # │                                                         │
 # │ Participants Needing Help:                             │
-# │   ⚠️  workshop-27: Instance stopped (needs restart)    │
+# │   ⚠️  workshop-27: Workspace stopped (needs restart)    │
 # │   ⚠️  workshop-43: High error rate (check logs)        │
 # │                                                         │
 # │ Cost by Status:                                         │
@@ -218,15 +218,15 @@ cws workshop dashboard neurips-dl-workshop
 
 ### ❌ Problem 5: No Post-Workshop Data Preservation
 
-**Scenario**: Participants want to keep their workshop code after instances terminate
+**Scenario**: Participants want to keep their workshop code after workspaces terminate
 
 **What should happen** (MISSING):
 ```bash
 # 30 minutes before auto-terminate, participants receive email:
 #
-# Subject: ⏰ Workshop Instance Terminating in 30 Minutes
+# Subject: ⏰ Workshop Workspace Terminating in 30 Minutes
 #
-# Your workshop instance will terminate at 6:00 PM (in 30 minutes).
+# Your workshop workspace will terminate at 6:00 PM (in 30 minutes).
 #
 # To preserve your work:
 #
@@ -348,19 +348,19 @@ cws workshop participants neurips-dl-workshop
 # - Slower but gives participants control
 # - Launch time: ~2 minutes per instance
 
-# Option B: Pre-provision all instances (advanced)
+# Option B: Pre-provision all workspaces (advanced)
 cws workshop bulk-provision neurips-dl-workshop \
   --template "PyTorch Machine Learning" \
   --size S \
   --auto-terminate-hours 6
 
 # Output:
-# 🚀 Provisioning 58 instances for accepted participants...
+# 🚀 Provisioning 58 workspaces for accepted participants...
 # ⏰ Auto-terminate: 6 hours from now (2:45 PM)
 #
 # Progress: [████████████████████] 58/58 complete (3m 12s)
 #
-# ✅ All instances ready!
+# ✅ All workspaces ready!
 # 💰 Current cost: $0.22 (15 minutes of provisioning)
 # 📧 Email sent to all participants with connection info
 ```
@@ -372,9 +372,9 @@ cws workshop dashboard neurips-dl-workshop --live
 
 # Participants launch (if not pre-provisioned):
 participant$ cws launch "PyTorch Machine Learning" workshop-instance
-# ✅ Instance ready in 90 seconds!
+# ✅ Workspace ready in 90 seconds!
 # 📓 Jupyter Lab: http://54.123.45.67:8888 (token: abc123)
-# ⏰ Instance will auto-terminate at 3:00 PM (6 hours)
+# ⏰ Workspace will auto-terminate at 3:00 PM (6 hours)
 # 💡 To save your work: cws download workshop-instance ~/my-work.zip
 ```
 
@@ -398,7 +398,7 @@ alex$ cws workshop debug neurips-dl-workshop workshop-27
 ```bash
 # All participants automatically receive email + terminal notification:
 #
-# ⏰ Your workshop instance will terminate in 30 minutes!
+# ⏰ Your workshop workspace will terminate in 30 minutes!
 #
 # Save your work now:
 #   cws download workshop-instance ~/neurips-workshop.zip
@@ -420,7 +420,7 @@ participant$ cws snapshot create workshop-instance my-workshop
 ```bash
 # CloudWorkstation automatically:
 # 1. Sends final warning (5 minutes before)
-# 2. Terminates all instances at 3:00 PM sharp
+# 2. Terminates all workspaces at 3:00 PM sharp
 # 3. Generates cost report
 # 4. Archives workshop data (optional)
 
@@ -431,7 +431,7 @@ cws workshop report neurips-dl-workshop --export-pdf
 # 📊 NeurIPS 2025 Deep Learning Workshop - Final Report
 #
 # Participants:     58 / 60 registered (97%)
-# Active instances: 58 instances for 3 hours
+# Active instances: 58 workspaces for 3 hours
 # Total uptime:     174 instance-hours
 #
 # Budget:
@@ -440,13 +440,13 @@ cws workshop report neurips-dl-workshop --export-pdf
 #   Saved:     $12.55 (available for next workshop - rollover enabled)
 #
 #   💡 Effective Cost Analysis:
-#      24/7 assumption: $2.40/hr × 58 instances × 24 hours = $3,345.60
-#      Actual workshop: $2.40/hr × 58 instances × 3 hours = $418.00
+#      24/7 assumption: $2.40/hr × 58 workspaces × 24 hours = $3,345.60
+#      Actual workshop: $2.40/hr × 58 workspaces × 3 hours = $418.00
 #      Your actual cost: $187.45 (early terminations banked immediately!)
 #      Real-time banking: Every participant who finished early freed budget
 #
 #   Breakdown:
-#     - Instance compute: $172.90 (58 × 3hrs × $0.99/hr)
+#     - Workspace compute: $172.90 (58 × 3hrs × $0.99/hr)
 #     - Early access:     $3.20 (15 tests)
 #     - Pre-provisioning: $0.22 (15min buffer)
 #     - Storage:          $11.13 (EBS, snapshots)
@@ -466,7 +466,7 @@ cws workshop report neurips-dl-workshop --export-pdf
 #   - Downloads completed: 31 participants
 #   - No action: 15 participants (work lost)
 #
-# ✅ All instances terminated successfully
+# ✅ All workspaces terminated successfully
 # 💰 No ongoing costs
 # 📧 Post-workshop survey sent to all participants
 ```
@@ -484,7 +484,7 @@ cws workshop report neurips-dl-workshop --export-pdf
 | **Auto-Terminate Timer** | 🔴 Critical | Prevents budget overruns | Manual cleanup | Medium |
 | **Template Whitelisting in Invitations** | 🔴 Critical | Prevents expensive launches | Trust + alerts | Low |
 | **Policy-Restricted Invitations** | 🔴 Critical | Enforces workshop constraints | Manual monitoring | Medium |
-| **Bulk Instance Provisioning** | 🟡 High | Saves 30min setup time | On-demand launch | Medium |
+| **Bulk Workspace Provisioning** | 🟡 High | Saves 30min setup time | On-demand launch | Medium |
 | **Workshop Dashboard** | 🟡 High | Real-time participant monitoring | Manual polling | High |
 
 ### Nice-to-Have Features (Enhancers)
@@ -511,7 +511,7 @@ cws workshop report neurips-dl-workshop --export-pdf
 
 2. **Invitation Policy Restrictions** (1 week)
    - Template whitelist in invitation tokens
-   - Instance type restrictions
+   - Workspace type restrictions
    - Hourly cost limits
    - Policy validation before launch
 
@@ -531,7 +531,7 @@ cws workshop report neurips-dl-workshop --export-pdf
    - Terminal-based (TUI) interface
 
 5. **Bulk Provisioning** (1 week)
-   - Pre-launch instances for all participants
+   - Pre-launch workspaces for all participants
    - Scheduled start time
    - Coordinated auto-terminate
    - Assignment to invitation tokens
@@ -563,7 +563,7 @@ cws workshop report neurips-dl-workshop --export-pdf
 - Auto-terminate prevents 100% of budget overruns
 - Workshop setup time: < 30 minutes (vs 2+ hours manual)
 - Participant environment ready: < 2 minutes (vs 30+ minutes with local install)
-- Zero instances left running post-workshop
+- Zero workspaces left running post-workshop
 
 ### Business Impact
 - **Conference Adoption**: "CloudWorkstation workshops" become a standard

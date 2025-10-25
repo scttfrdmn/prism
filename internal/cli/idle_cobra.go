@@ -72,7 +72,7 @@ func (hc *IdleCobraCommands) createPolicyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "policy",
 		Short: "Manage idle policies",
-		Long:  "Manage idle policy templates and apply them to instances",
+		Long:  "Manage idle policy templates and apply them to workspaces",
 	}
 
 	// Add policy subcommands
@@ -141,7 +141,7 @@ func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 // createPolicyApplyCommand applies a policy to an instance
 func (hc *IdleCobraCommands) createPolicyApplyCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "apply <instance-name> <policy-id>",
+		Use:   "apply <workspace-name> <policy-id>",
 		Short: "Apply a idle policy to an instance",
 		Long:  "Apply a idle policy template to an instance to enable automatic idle",
 		Args:  cobra.ExactArgs(2),
@@ -155,7 +155,7 @@ func (hc *IdleCobraCommands) createPolicyApplyCommand() *cobra.Command {
 				return fmt.Errorf("policy not found: %w", err)
 			}
 
-			fmt.Printf("🔄 Applying idle policy '%s' to instance '%s'...\n", policy.Name, instanceName)
+			fmt.Printf("🔄 Applying idle policy '%s' to workspace '%s'...\n", policy.Name, instanceName)
 
 			if err := hc.app.apiClient.ApplyIdlePolicy(hc.app.ctx, instanceName, policyID); err != nil {
 				return fmt.Errorf("failed to apply idle policy: %w", err)
@@ -185,7 +185,7 @@ func (hc *IdleCobraCommands) createPolicyApplyCommand() *cobra.Command {
 // createPolicyRemoveCommand removes a policy from an instance
 func (hc *IdleCobraCommands) createPolicyRemoveCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove <instance-name> <policy-id>",
+		Use:   "remove <workspace-name> <policy-id>",
 		Short: "Remove a idle policy from an instance",
 		Long:  "Remove a idle policy and its schedules from an instance",
 		Args:  cobra.ExactArgs(2),
@@ -193,7 +193,7 @@ func (hc *IdleCobraCommands) createPolicyRemoveCommand() *cobra.Command {
 			instanceName := args[0]
 			policyID := args[1]
 
-			fmt.Printf("🔄 Removing idle policy '%s' from instance '%s'...\n", policyID, instanceName)
+			fmt.Printf("🔄 Removing idle policy '%s' from workspace '%s'...\n", policyID, instanceName)
 
 			if err := hc.app.apiClient.RemoveIdlePolicy(hc.app.ctx, instanceName, policyID); err != nil {
 				return fmt.Errorf("failed to remove idle policy: %w", err)
@@ -210,7 +210,7 @@ func (hc *IdleCobraCommands) createPolicyRemoveCommand() *cobra.Command {
 // createPolicyStatusCommand shows policies applied to an instance
 func (hc *IdleCobraCommands) createPolicyStatusCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "status <instance-name>",
+		Use:   "status <workspace-name>",
 		Short: "Show idle policies applied to an instance",
 		Long:  "Display all idle policies currently applied to an instance",
 		Args:  cobra.ExactArgs(1),
@@ -223,12 +223,12 @@ func (hc *IdleCobraCommands) createPolicyStatusCommand() *cobra.Command {
 			}
 
 			if len(policies) == 0 {
-				fmt.Printf("No idle policies applied to instance '%s'\n", instanceName)
+				fmt.Printf("No idle policies applied to workspace '%s'\n", instanceName)
 				fmt.Println("\n💡 Tip: Use 'cws idle policy apply' to add a policy")
 				return nil
 			}
 
-			fmt.Printf("Idle policies for instance '%s':\n\n", instanceName)
+			fmt.Printf("Idle policies for workspace '%s':\n\n", instanceName)
 
 			for _, policy := range policies {
 				fmt.Printf("📋 %s (%s)\n", policy.Name, policy.ID)
@@ -262,7 +262,7 @@ func (hc *IdleCobraCommands) createPolicyStatusCommand() *cobra.Command {
 // createPolicyRecommendCommand recommends a policy for an instance
 func (hc *IdleCobraCommands) createPolicyRecommendCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "recommend <instance-name>",
+		Use:   "recommend <workspace-name>",
 		Short: "Get idle policy recommendation for an instance",
 		Long:  "Analyze instance characteristics and recommend the best idle policy",
 		Args:  cobra.ExactArgs(1),
@@ -403,7 +403,7 @@ func (hc *IdleCobraCommands) createScheduleListCommand() *cobra.Command {
 			fmt.Println("Active Idle Schedules:")
 			fmt.Println("════════════════════════════")
 			fmt.Println("\n(Schedule listing will be populated from the scheduler)")
-			fmt.Println("\n💡 Schedules are automatically created when policies are applied to instances")
+			fmt.Println("\n💡 Schedules are automatically created when policies are applied to workspaces")
 
 			return nil
 		},

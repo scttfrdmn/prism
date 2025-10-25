@@ -32,18 +32,18 @@ func (lc *LogsCommands) printJSON(data interface{}) error {
 // CreateLogsCommand creates the main logs command with subcommands
 func (lc *LogsCommands) CreateLogsCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "logs [instance-name]",
-		Short: "View and manage instance logs",
-		Long: `View logs from CloudWorkstation instances including console output,
+		Use:   "logs [workspace-name]",
+		Short: "View and manage workspace logs",
+		Long: `View logs from CloudWorkstation workspaces including console output,
 system logs, and application logs.
 
 Examples:
-  cws logs my-instance                    # Show console logs
-  cws logs my-instance --type cloud-init # Show cloud-init logs
-  cws logs my-instance --tail 50         # Show last 50 lines
-  cws logs my-instance --since 1h        # Show logs from last hour
-  cws logs my-instance --follow          # Follow logs in real-time
-  cws logs --list                        # List all instances with log availability`,
+  cws logs my-workspace                    # Show console logs
+  cws logs my-workspace --type cloud-init # Show cloud-init logs
+  cws logs my-workspace --tail 50         # Show last 50 lines
+  cws logs my-workspace --since 1h        # Show logs from last hour
+  cws logs my-workspace --follow          # Follow logs in real-time
+  cws logs --list                         # List all workspaces with log availability`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: lc.handleLogsCommand,
 	}
@@ -53,8 +53,8 @@ Examples:
 	cmd.Flags().IntP("tail", "n", 0, "Number of lines to show from the end of the logs")
 	cmd.Flags().String("since", "", "Show logs since duration (e.g., 1h, 30m, 2h30m)")
 	cmd.Flags().BoolP("follow", "f", false, "Follow log output in real-time")
-	cmd.Flags().Bool("list", false, "List all instances with log availability")
-	cmd.Flags().Bool("types", false, "Show available log types for instance")
+	cmd.Flags().Bool("list", false, "List all workspaces with log availability")
+	cmd.Flags().Bool("types", false, "Show available log types for workspace")
 	cmd.Flags().Bool("json", false, "Output in JSON format")
 
 	return cmd
@@ -66,14 +66,14 @@ func (lc *LogsCommands) handleLogsCommand(cmd *cobra.Command, args []string) err
 	showTypes, _ := cmd.Flags().GetBool("types")
 	jsonOutput, _ := cmd.Flags().GetBool("json")
 
-	// Handle list all instances
+	// Handle list all workspaces
 	if list {
 		return lc.handleListLogs(jsonOutput)
 	}
 
-	// Require instance name for other operations
+	// Require workspace name for other operations
 	if len(args) == 0 {
-		return fmt.Errorf("instance name required (use --list to see all instances)")
+		return fmt.Errorf("workspace name required (use --list to see all workspaces)")
 	}
 
 	instanceName := args[0]
@@ -99,11 +99,11 @@ func (lc *LogsCommands) handleListLogs(jsonOutput bool) error {
 		return lc.printJSON(summary)
 	}
 
-	fmt.Println("📋 Instance Log Availability")
-	fmt.Println("===========================")
+	fmt.Println("📋 Workspace Log Availability")
+	fmt.Println("=============================")
 
 	if len(summary.Instances) == 0 {
-		fmt.Println("No instances found")
+		fmt.Println("No workspaces found")
 		return nil
 	}
 
@@ -124,7 +124,7 @@ func (lc *LogsCommands) handleListLogs(jsonOutput bool) error {
 	}
 
 	fmt.Printf("\nAvailable log types: %s\n", strings.Join(summary.AvailableLogTypes, ", "))
-	fmt.Println("\nUse 'cws logs <instance-name>' to view logs for a specific instance")
+	fmt.Println("\nUse 'cws logs <workspace-name>' to view logs for a specific workspace")
 
 	return nil
 }
@@ -134,15 +134,15 @@ func (lc *LogsCommands) handleShowLogTypes(instanceName string, jsonOutput bool)
 	ctx := context.Background()
 	logTypes, err := lc.app.apiClient.GetInstanceLogTypes(ctx, instanceName)
 	if err != nil {
-		return fmt.Errorf("failed to get log types for instance %s: %w", instanceName, err)
+		return fmt.Errorf("failed to get log types for workspace %s: %w", instanceName, err)
 	}
 
 	if jsonOutput {
 		return lc.printJSON(logTypes)
 	}
 
-	fmt.Printf("📋 Available Log Types for Instance: %s\n", instanceName)
-	fmt.Println("===============================================")
+	fmt.Printf("📋 Available Log Types for Workspace: %s\n", instanceName)
+	fmt.Println("=================================================")
 	fmt.Printf("Instance ID: %s\n", logTypes.InstanceID)
 	fmt.Printf("SSM Enabled: %v\n\n", logTypes.SSMEnabled)
 
@@ -151,13 +151,13 @@ func (lc *LogsCommands) handleShowLogTypes(instanceName string, jsonOutput bool)
 		status := "✅"
 		description := lc.getLogTypeDescription(logType)
 		if logType != "console" && !logTypes.SSMEnabled {
-			status = "⚠️ (requires running instance)"
+			status = "⚠️ (requires running workspace)"
 		}
 		fmt.Printf("  %s %s - %s\n", status, logType, description)
 	}
 
 	if !logTypes.SSMEnabled {
-		fmt.Println("\n⚠️  Some log types require the instance to be running for SSM access")
+		fmt.Println("\n⚠️  Some log types require the workspace to be running for SSM access")
 	}
 
 	fmt.Printf("\nUsage: cws logs %s --type <log-type>\n", instanceName)
@@ -190,7 +190,7 @@ func (lc *LogsCommands) handleShowLogs(cmd *cobra.Command, instanceName string, 
 	ctx := context.Background()
 	logs, err := lc.app.apiClient.GetInstanceLogs(ctx, instanceName, logRequest)
 	if err != nil {
-		return fmt.Errorf("failed to get logs for instance %s: %w", instanceName, err)
+		return fmt.Errorf("failed to get logs for workspace %s: %w", instanceName, err)
 	}
 
 	if jsonOutput {
@@ -206,8 +206,8 @@ func (lc *LogsCommands) handleShowLogs(cmd *cobra.Command, instanceName string, 
 // displayLogs formats and displays log output
 func (lc *LogsCommands) displayLogs(logs *types.LogResponse, follow bool) {
 	// Header
-	fmt.Printf("📋 Logs for Instance: %s (%s)\n", logs.InstanceName, logs.InstanceID)
-	fmt.Println("=====================================")
+	fmt.Printf("📋 Logs for Workspace: %s (%s)\n", logs.InstanceName, logs.InstanceID)
+	fmt.Println("=======================================")
 	fmt.Printf("Log Type: %s\n", logs.LogType)
 	fmt.Printf("Timestamp: %s\n", logs.Timestamp.Format("2006-01-02 15:04:05 MST"))
 	if logs.Tail > 0 {

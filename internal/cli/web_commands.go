@@ -19,7 +19,7 @@ func NewWebCommands(app *App) *WebCommands {
 // List lists all web services for an instance
 func (wc *WebCommands) List(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws web list <instance-name>", "cws web list my-jupyter")
+		return NewUsageError("cws web list <workspace-name>", "cws web list my-jupyter")
 	}
 
 	instanceName := args[0]
@@ -36,7 +36,7 @@ func (wc *WebCommands) List(args []string) error {
 	}
 
 	if len(instance.Services) == 0 {
-		fmt.Printf("No web services configured for instance %s\n", instanceName)
+		fmt.Printf("No web services configured for workspace %s\n", instanceName)
 		return nil
 	}
 
@@ -93,7 +93,7 @@ func (wc *WebCommands) List(args []string) error {
 // Open opens a web service in the default browser
 func (wc *WebCommands) Open(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws web open <instance-name> <service-name>", "cws web open my-jupyter jupyter")
+		return NewUsageError("cws web open <workspace-name> <service-name>", "cws web open my-jupyter jupyter")
 	}
 
 	instanceName := args[0]
@@ -138,7 +138,7 @@ func (wc *WebCommands) Open(args []string) error {
 // Close closes web service tunnels
 func (wc *WebCommands) Close(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws web close <instance-name> [service-name]", "cws web close my-jupyter jupyter")
+		return NewUsageError("cws web close <workspace-name> [service-name]", "cws web close my-jupyter jupyter")
 	}
 
 	instanceName := args[0]
@@ -160,7 +160,7 @@ func (wc *WebCommands) Close(args []string) error {
 		}
 		fmt.Printf("✅ Tunnel closed\n")
 	} else {
-		// Close all tunnels for instance
+		// Close all tunnels for workspace
 		fmt.Printf("🔒 Closing all tunnels for %s...\n", instanceName)
 		if err := wc.app.apiClient.CloseInstanceTunnels(wc.app.ctx, instanceName); err != nil {
 			return WrapAPIError("close tunnels", err)

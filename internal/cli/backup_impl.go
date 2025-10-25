@@ -101,7 +101,7 @@ func (bc *BackupCommands) Restore(args []string) error {
 // createBackup creates a data backup from an instance
 func (bc *BackupCommands) createBackup(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws backup create <instance-name> <backup-name> [options]")
+		return fmt.Errorf("usage: cws backup create <workspace-name> <backup-name> [options]")
 	}
 
 	req, err := bc.parseCreateBackupFlags(args)
@@ -192,7 +192,7 @@ func (bc *BackupCommands) applyCreateBackupDefaults(req *types.BackupCreateReque
 
 // displayCreateBackupInfo displays backup creation information
 func (bc *BackupCommands) displayCreateBackupInfo(req types.BackupCreateRequest) {
-	fmt.Printf("💾 Creating data backup '%s' from instance '%s'...\n", req.BackupName, req.InstanceName)
+	fmt.Printf("💾 Creating data backup '%s' from workspace '%s'...\n", req.BackupName, req.InstanceName)
 
 	if req.Incremental {
 		fmt.Printf("📈 Incremental backup mode - only changed files since last backup\n")
@@ -241,7 +241,7 @@ func (bc *BackupCommands) listBackups(args []string) error {
 
 	if len(response.Backups) == 0 {
 		fmt.Println("No data backups found.")
-		fmt.Println("Create one with: cws backup create <instance-name> <backup-name>")
+		fmt.Println("Create one with: cws backup create <workspace-name> <backup-name>")
 		return nil
 	}
 
@@ -289,7 +289,7 @@ func (bc *BackupCommands) listBackups(args []string) error {
 	}
 
 	fmt.Printf("\n💡 Use 'cws backup info <name>' for detailed information\n")
-	fmt.Printf("💡 Restore data with: cws restore <backup-name> <instance-name>\n")
+	fmt.Printf("💡 Restore data with: cws restore <backup-name> <workspace-name>\n")
 
 	return nil
 }
@@ -359,7 +359,7 @@ func (bc *BackupCommands) getBackupInfo(args []string) error {
 
 	fmt.Printf("\n💡 Operations:\n")
 	fmt.Printf("   List contents: cws backup contents %s\n", backup.BackupName)
-	fmt.Printf("   Restore data: cws restore %s <instance-name>\n", backup.BackupName)
+	fmt.Printf("   Restore data: cws restore %s <workspace-name>\n", backup.BackupName)
 	fmt.Printf("   Verify integrity: cws backup verify %s\n", backup.BackupName)
 	fmt.Printf("   Delete backup: cws backup delete %s\n", backup.BackupName)
 
@@ -476,7 +476,7 @@ func (bc *BackupCommands) listBackupContents(args []string) error {
 	if !req.Recursive {
 		fmt.Printf("💡 Use '--recursive' to list all files recursively\n")
 	}
-	fmt.Printf("💡 Restore files: cws restore %s <instance-name> --path %s\n", backupName, path)
+	fmt.Printf("💡 Restore files: cws restore %s <workspace-name> --path %s\n", backupName, path)
 
 	return nil
 }
@@ -666,7 +666,7 @@ func (bc *BackupCommands) displayRestoreStart(req types.RestoreRequest) {
 	if req.DryRun {
 		fmt.Printf("🔍 Dry-run: Previewing restore operation...\n")
 	} else {
-		fmt.Printf("🔄 Restoring data from backup '%s' to instance '%s'...\n", req.BackupName, req.TargetInstance)
+		fmt.Printf("🔄 Restoring data from backup '%s' to workspace '%s'...\n", req.BackupName, req.TargetInstance)
 	}
 
 	if req.RestorePath != "/" {
@@ -1036,7 +1036,7 @@ func (bc *BackupCommands) getBackupUsageText() string {
 	return `Usage: cws backup <action> [arguments]
 
 Actions:
-  create <instance> <backup-name> [options]    Create a data backup from instance
+  create <workspace> <backup-name> [options]    Create a data backup from workspace
   list                                         List all data backups
   info <backup-name>                          Show detailed backup information
   delete <backup-name>                        Delete a backup
@@ -1061,7 +1061,7 @@ Contents Options:
   --recursive, -r            List contents recursively
 
 Examples:
-  cws backup create my-workstation daily-backup
+  cws backup create my-workspace daily-backup
   cws backup create gpu-training checkpoint-data --include /data,/results --incremental
   cws backup list
   cws backup info daily-backup
@@ -1096,7 +1096,7 @@ func (bc *BackupCommands) getRestoreUsageText() string {
        cws restore <action> [arguments]
 
 Direct Restore:
-  <backup-name> <target-instance>    Restore backup to instance
+  <backup-name> <target-instance>    Restore backup to workspace
 
 Actions:
   list <backup-name> [path]          List backup contents (same as backup contents)
@@ -1116,10 +1116,10 @@ Restore Options:
   --wait                            Wait and monitor restore progress
 
 Examples:
-  cws restore daily-backup my-workstation
+  cws restore daily-backup my-workspace
   cws restore checkpoint-data gpu-training --path /data --overwrite
-  cws restore daily-backup my-workstation --selective /home/user,/data/project
-  cws restore daily-backup my-workstation --dry-run
+  cws restore daily-backup my-workspace --selective /home/user,/data/project
+  cws restore daily-backup my-workspace --dry-run
   cws restore operations
   cws restore status restore-123456
   cws restore verify restore-123456

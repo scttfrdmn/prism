@@ -406,7 +406,7 @@ cws admin policy apply johnson-nih-r01-genomics \
 cws launch bioinformatics-hipaa my-patient-genomics \
   --project johnson-nih-r01-genomics
 
-# Instance automatically has:
+# Workspace automatically has:
 # ✅ Encrypted storage
 # ✅ HIPAA-compliant configuration
 # ✅ Audit logging enabled
@@ -528,7 +528,7 @@ cws admin audit report --quarter Q3-2025
 
 Audit Summary:
 ✅ 342 projects reviewed
-✅ 1,847 instances scanned
+✅ 1,847 workspaces scanned
 ✅ 0 security violations
 ✅ 0 export control issues
 ✅ 100% encryption compliance
@@ -543,7 +543,7 @@ Cost Efficiency (Q3 2025):
 
 Risk Findings:
 ⚠️  12 projects approaching budget limits (notifications sent)
-⚠️  3 instances running >30 days (hibernation recommended)
+⚠️  3 workspaces running >30 days (hibernation recommended)
 ✅ All findings within acceptable parameters
 ```
 

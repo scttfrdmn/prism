@@ -619,7 +619,7 @@ func (tc *TemplateCommands) templatesFeatured(args []string) error {
 		fmt.Printf("🏆 %s:%s (%s)\n", tmpl.repo, tmpl.name, tmpl.featured)
 		fmt.Printf("   %s\n", tmpl.description)
 		fmt.Printf("   Category: %s\n", tmpl.category)
-		fmt.Printf("   Launch: cws launch %s:%s <instance-name>\n", tmpl.repo, tmpl.name)
+		fmt.Printf("   Launch: cws launch %s:%s <workspace-name>\n", tmpl.repo, tmpl.name)
 		fmt.Println()
 	}
 
@@ -824,7 +824,7 @@ func (tc *TemplateCommands) templatesInstall(args []string) error {
 	fmt.Printf("📥 Installing template dependencies...\n")
 	fmt.Printf("✅ Template '%s' installed successfully\n", templateName)
 
-	fmt.Printf("\n🚀 Launch with: cws launch %s <instance-name>\n", templateName)
+	fmt.Printf("\n🚀 Launch with: cws launch %s <workspace-name>\n", templateName)
 	fmt.Printf("📋 Get details: cws templates info %s\n", templateName)
 
 	return nil
