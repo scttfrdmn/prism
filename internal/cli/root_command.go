@@ -73,18 +73,18 @@ func (f *LaunchCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []string
 
 func (f *LaunchCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("hibernation", false, "Enable hibernation support")
-	cmd.Flags().Bool("spot", false, "Use spot instances")
-	cmd.Flags().String("size", "", "Instance size: XS=1vCPU,2GB+100GB | S=2vCPU,4GB+500GB | M=2vCPU,8GB+1TB | L=4vCPU,16GB+2TB | XL=8vCPU,32GB+4TB")
+	cmd.Flags().Bool("spot", false, "Use spot workspaces")
+	cmd.Flags().String("size", "", "Workspace size: XS=1vCPU,2GB+100GB | S=2vCPU,4GB+500GB | M=2vCPU,8GB+1TB | L=4vCPU,16GB+2TB | XL=8vCPU,32GB+4TB")
 	cmd.Flags().String("subnet", "", "Specify subnet ID")
 	cmd.Flags().String("vpc", "", "Specify VPC ID")
 	cmd.Flags().String("project", "", "Associate with project")
 	cmd.Flags().Bool("wait", false, "Wait and display launch progress in real-time")
 	cmd.Flags().Bool("dry-run", false, "Validate configuration without launching")
 	cmd.Flags().StringArray("param", []string{}, "Template parameter in format name=value")
-	cmd.Flags().String("research-user", "", "Automatically create and provision research user on instance")
+	cmd.Flags().String("research-user", "", "Automatically create and provision research user on workspace")
 }
 
-// InstanceCommandFactory creates instance management commands
+// InstanceCommandFactory creates workspace management commands
 type InstanceCommandFactory struct {
 	app *App
 }
@@ -128,10 +128,10 @@ func (f *InstanceCommandFactory) createConnectCommand() *cobra.Command {
 
 func (f *InstanceCommandFactory) createExecCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "exec <instance-name> <command>",
-		Short:   "Execute a command on a workstation",
+		Use:     "exec <workspace-name> <command>",
+		Short:   "Execute a command on a workspace",
 		GroupID: "instance",
-		Long: `Execute a command remotely on a cloud workstation via AWS Systems Manager.
+		Long: `Execute a command remotely on a cloud workspace via AWS Systems Manager.
 
 This command provides powerful remote execution capabilities with support for:
 • Custom user execution (--user flag)
@@ -141,10 +141,10 @@ This command provides powerful remote execution capabilities with support for:
 • Verbose output and execution details (--verbose flag)
 
 Examples:
-  cws exec my-workstation "ls -la"                    # List directory contents
-  cws exec my-workstation "python script.py" --user researcher --timeout 60
-  cws exec my-workstation "cd /data && df -h" --working-dir /data
-  cws exec my-workstation "export VAR=value && echo $VAR" --env=VAR=value`,
+  cws exec my-workspace "ls -la"                    # List directory contents
+  cws exec my-workspace "python script.py" --user researcher --timeout 60
+  cws exec my-workspace "cd /data && df -h" --working-dir /data
+  cws exec my-workspace "export VAR=value && echo $VAR" --env=VAR=value`,
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return f.app.Exec(args)
@@ -165,8 +165,8 @@ Examples:
 func (f *InstanceCommandFactory) createStopCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "stop <name>",
-		Short:   "Stop a workstation",
-		Long:    `Stop a running cloud workstation to save costs.`,
+		Short:   "Stop a workspace",
+		Long:    `Stop a running cloud workspace to save costs.`,
 		Args:    cobra.ExactArgs(1),
 		GroupID: "instance",
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -178,8 +178,8 @@ func (f *InstanceCommandFactory) createStopCommand() *cobra.Command {
 func (f *InstanceCommandFactory) createStartCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "start <name>",
-		Short:   "Start a workstation",
-		Long:    `Start a stopped cloud workstation.`,
+		Short:   "Start a workspace",
+		Long:    `Start a stopped cloud workspace.`,
 		Args:    cobra.ExactArgs(1),
 		GroupID: "instance",
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -191,8 +191,8 @@ func (f *InstanceCommandFactory) createStartCommand() *cobra.Command {
 func (f *InstanceCommandFactory) createDeleteCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "delete <name>",
-		Short:   "Delete a workstation",
-		Long:    `Permanently delete a cloud workstation and its resources.`,
+		Short:   "Delete a workspace",
+		Long:    `Permanently delete a cloud workspace and its resources.`,
 		Args:    cobra.ExactArgs(1),
 		GroupID: "instance",
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -204,9 +204,9 @@ func (f *InstanceCommandFactory) createDeleteCommand() *cobra.Command {
 func (f *InstanceCommandFactory) createHibernateCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "hibernate <name>",
-		Short:   "Hibernate a workstation",
+		Short:   "Hibernate a workspace",
 		GroupID: "instance",
-		Long: `Hibernate a running workstation to preserve RAM state while stopping compute billing.
+		Long: `Hibernate a running workspace to preserve RAM state while stopping compute billing.
 If hibernation is not supported, automatically falls back to regular stop.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -218,9 +218,9 @@ If hibernation is not supported, automatically falls back to regular stop.`,
 func (f *InstanceCommandFactory) createResumeCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "resume <name>",
-		Short:   "Resume a workstation",
+		Short:   "Resume a workspace",
 		GroupID: "instance",
-		Long: `Resume a hibernated workstation with instant startup from preserved RAM state.
+		Long: `Resume a hibernated workspace with instant startup from preserved RAM state.
 If not hibernated, performs regular start operation.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -232,9 +232,9 @@ If not hibernated, performs regular start operation.`,
 func (f *InstanceCommandFactory) createResizeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "resize <name>",
-		Short:   "Resize a workstation instance type or size",
+		Short:   "Resize a workspace type or size",
 		GroupID: "instance",
-		Long: `Resize a cloud workstation to change its instance type, CPU, memory, or storage.
+		Long: `Resize a cloud workspace to change its instance type, CPU, memory, or storage.
 
 This command provides flexible resizing capabilities with support for:
 • T-shirt sizes (--size XS, S, M, L, XL) for simple scaling
@@ -247,10 +247,10 @@ The resize operation requires instance shutdown and will cause 2-5 minutes of do
 All data and configuration are preserved during the resize operation.
 
 Examples:
-  cws resize my-workstation --size L                  # Resize to Large t-shirt size
+  cws resize my-workspace --size L                  # Resize to Large t-shirt size
   cws resize gpu-training --instance-type p3.2xlarge # Resize to specific GPU instance
-  cws resize my-analysis --size XL --dry-run         # Preview resize to Extra Large
-  cws resize my-server --size M --wait               # Resize and wait for completion`,
+  cws resize my-analysis --size XL --dry-run       # Preview resize to Extra Large
+  cws resize my-server --size M --wait             # Resize and wait for completion`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceCommands := NewInstanceCommands(f.app)
@@ -311,13 +311,13 @@ func (f *TemplateCommandFactory) createTemplatesCommand() *cobra.Command {
 
 func (f *TemplateCommandFactory) createApplyCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:     "apply <template> <instance-name>",
-		Short:   "Apply template to running instance",
+		Use:     "apply <template> <workspace-name>",
+		Short:   "Apply template to running workspace",
 		GroupID: "templates",
-		Long: `Apply a template to an already running instance, enabling incremental
-environment evolution without requiring instance recreation.
+		Long: `Apply a template to an already running workspace, enabling incremental
+environment evolution without requiring workspace recreation.
 
-This allows you to add packages, services, and users to existing instances
+This allows you to add packages, services, and users to existing workspaces
 while maintaining rollback capabilities.`,
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -328,10 +328,10 @@ while maintaining rollback capabilities.`,
 
 func (f *TemplateCommandFactory) createDiffCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:     "diff <template> <instance-name>",
+		Use:     "diff <template> <workspace-name>",
 		Short:   "Show template differences",
 		GroupID: "templates",
-		Long: `Show what changes would be made when applying a template to a running instance.
+		Long: `Show what changes would be made when applying a template to a running workspace.
 This provides a preview of packages, services, users, and ports that would be modified.`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -342,10 +342,10 @@ This provides a preview of packages, services, users, and ports that would be mo
 
 func (f *TemplateCommandFactory) createLayersCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:     "layers <instance-name>",
+		Use:     "layers <workspace-name>",
 		Short:   "List applied template layers",
 		GroupID: "templates",
-		Long: `List all templates that have been applied to an instance, showing the
+		Long: `List all templates that have been applied to a workspace, showing the
 layer history with rollback checkpoints.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -356,10 +356,10 @@ layer history with rollback checkpoints.`,
 
 func (f *TemplateCommandFactory) createRollbackCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:     "rollback <instance-name>",
+		Use:     "rollback <workspace-name>",
 		Short:   "Rollback template applications",
 		GroupID: "templates",
-		Long: `Rollback an instance to a previous state by undoing template applications.
+		Long: `Rollback a workspace to a previous state by undoing template applications.
 Can rollback to the previous checkpoint or a specific checkpoint ID.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -515,19 +515,19 @@ Use --refresh to query AWS for real-time status (slower).`,
 func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "snapshot <action>",
-		Short:   "Manage instance snapshots",
+		Short:   "Manage workspace snapshots",
 		GroupID: "storage",
-		Long: `Create and manage CloudWorkstation instance snapshots for backup, cloning, and disaster recovery.
+		Long: `Create and manage CloudWorkstation workspace snapshots for backup, cloning, and disaster recovery.
 
-Snapshots capture the complete state of your instances including:
+Snapshots capture the complete state of your workspaces including:
 • Operating system and all installed software
 • User data and configuration files
 • Template metadata for easy restoration
 
 Examples:
-  cws snapshot create my-workstation backup-v1
+  cws snapshot create my-workspace backup-v1
   cws snapshot list
-  cws snapshot restore backup-v1 my-new-workstation`,
+  cws snapshot restore backup-v1 my-new-workspace`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Snapshot(args)
 		},
@@ -549,9 +549,9 @@ Data backups provide granular backup capabilities with:
 • Cost-effective storage with deduplication
 
 Examples:
-  cws backup create my-workstation daily-backup
+  cws backup create my-workspace daily-backup
   cws backup list
-  cws backup restore daily-backup target-instance`,
+  cws backup restore daily-backup target-workspace`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Backup(args)
 		},
@@ -560,22 +560,22 @@ Examples:
 
 func (r *CommandFactoryRegistry) createRestoreCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:     "restore <backup-name> <target-instance>",
+		Use:     "restore <backup-name> <target-workspace>",
 		Short:   "Restore data from backups",
 		GroupID: "storage",
 		Long: `Restore data from CloudWorkstation backups with granular control over restore operations.
 
 Restore capabilities include:
-• Cross-instance restoration
+• Cross-workspace restoration
 • Selective file/directory restoration
 • Multiple restore modes (safe, merge, overwrite)
 • Integrity verification
 • Progress monitoring and dry-run preview
 
 Examples:
-  cws restore daily-backup my-workstation
-  cws restore daily-backup my-workstation --path /data --selective /home/user
-  cws restore daily-backup my-workstation --dry-run`,
+  cws restore daily-backup my-workspace
+  cws restore daily-backup my-workspace --path /data --selective /home/user
+  cws restore daily-backup my-workspace --dry-run`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Restore(args)
 		},
@@ -585,9 +585,9 @@ Examples:
 func (r *CommandFactoryRegistry) createWebCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "web <action>",
-		Short:   "Manage instance web services",
+		Short:   "Manage workspace web services",
 		GroupID: "instance",
-		Long: `Access and manage web services running on CloudWorkstation instances.
+		Long: `Access and manage web services running on CloudWorkstation workspaces.
 
 Web service management provides seamless access to:
 • Jupyter Lab and Jupyter Notebook
@@ -596,9 +596,9 @@ Web service management provides seamless access to:
 • Custom web applications
 
 Examples:
-  cws web list my-jupyter         # List all web services for instance
+  cws web list my-jupyter         # List all web services for workspace
   cws web open my-jupyter jupyter # Open Jupyter in browser with auto-tunneling
-  cws web close my-jupyter         # Close all tunnels for instance
+  cws web close my-jupyter         # Close all tunnels for workspace
   cws web close my-jupyter jupyter # Close specific service tunnel`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Web(args)
@@ -783,14 +783,14 @@ func (r *CommandFactoryRegistry) handleConfigCommand(args []string) error {
 func (r *CommandFactoryRegistry) createIdleCommand() *cobra.Command {
 	idleCmd := &cobra.Command{
 		Use:   "idle",
-		Short: "Configure idle detection on running instances",
-		Long:  "Configure runtime idle detection parameters on running CloudWorkstation instances.",
+		Short: "Configure idle detection on running workspaces",
+		Long:  "Configure runtime idle detection parameters on running CloudWorkstation workspaces.",
 	}
 
 	idleConfigureCmd := &cobra.Command{
-		Use:   "configure <instance-name>",
-		Short: "Configure idle thresholds on running instance",
-		Long:  "Configure runtime idle detection parameters on a running CloudWorkstation instance.",
+		Use:   "configure <workspace-name>",
+		Short: "Configure idle thresholds on running workspace",
+		Long:  "Configure runtime idle detection parameters on a running CloudWorkstation workspace.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return r.handleIdleConfigureCommand(cmd, args)
@@ -823,7 +823,7 @@ func (r *CommandFactoryRegistry) addIdleFlags(cmd *cobra.Command) {
 func (r *CommandFactoryRegistry) createRightsizingCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "rightsizing <action>",
-		Short:   "Analyze and optimize instance sizes",
+		Short:   "Analyze and optimize workspace sizes",
 		GroupID: "cost",
 		Long:    `Analyze usage patterns and provide rightsizing recommendations for cost optimization.`,
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -835,9 +835,9 @@ func (r *CommandFactoryRegistry) createRightsizingCommand() *cobra.Command {
 func (r *CommandFactoryRegistry) createScalingCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:     "scaling <action>",
-		Short:   "Dynamic instance scaling operations",
+		Short:   "Dynamic workspace scaling operations",
 		GroupID: "cost",
-		Long:    `Dynamically scale instances to different sizes based on usage patterns and requirements.`,
+		Long:    `Dynamically scale workspaces to different sizes based on usage patterns and requirements.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Scaling(args)
 		},
@@ -871,7 +871,7 @@ environments for data analysis, machine learning, and research computing.
 
 	// Add command groups for better organization
 	rootCmd.AddGroup(&cobra.Group{ID: "core", Title: "Core Commands:"})
-	rootCmd.AddGroup(&cobra.Group{ID: "instance", Title: "Instance Management:"})
+	rootCmd.AddGroup(&cobra.Group{ID: "instance", Title: "Workspace Management:"})
 	rootCmd.AddGroup(&cobra.Group{ID: "storage", Title: "Storage & Data:"})
 	rootCmd.AddGroup(&cobra.Group{ID: "cost", Title: "Cost Management:"})
 	rootCmd.AddGroup(&cobra.Group{ID: "templates", Title: "Templates & Marketplace:"})
