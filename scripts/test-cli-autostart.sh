@@ -10,7 +10,7 @@ sleep 1
 echo "Testing CLI auto-start..."
 
 # Run CLI command - should auto-start daemon
-timeout 10s ./bin/cws list > /dev/null 2>&1
+timeout 10s ./bin/cws workspace list > /dev/null 2>&1
 
 echo "✅ CLI auto-start working"
 
