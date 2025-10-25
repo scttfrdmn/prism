@@ -28,7 +28,74 @@ CloudWorkstation v0.5.x introduces the **Universal AMI System**, revolutionizing
 - **Discover optimized** research environments
 - **Rate and review** community contributions
 
+### **🎉 Interactive Onboarding** (New in v0.5.6)
+- **2-minute setup wizard** for first-time users
+- **Personalized recommendations** based on research area
+- **Automated AWS validation** with helpful guidance
+- **Optional budget and hibernation** configuration
+
+## First-Time Setup
+
+If you're new to CloudWorkstation, start with the interactive onboarding wizard:
+
+```bash
+cws init
+```
+
+The wizard will guide you through:
+
+### 1. AWS Configuration
+- Automatic credential detection from `~/.aws/credentials`
+- Profile and region discovery
+- Credential validation with helpful error messages
+
+### 2. Research Area Selection
+Choose your primary research domain for personalized recommendations:
+- **Machine Learning / Data Science** - GPU-optimized policies, Python/R templates
+- **Bioinformatics / Genomics** - Batch processing policies, computational biology tools
+- **Social Science / Statistics** - Balanced policies, statistical analysis environments
+- **Other** - General research computing with flexible configurations
+
+### 3. Budget Configuration (Optional)
+Set a monthly budget to receive cost alerts:
+- Alert thresholds at 50%, 80%, and 100% of budget
+- Non-blocking alerts (workspaces continue running)
+- Adjust later with `cws budget` commands
+
+### 4. Hibernation Policy
+Automatically pause idle workspaces to save costs:
+- **GPU Policy** (15 min idle → stop) - For expensive GPU instances
+- **Batch Policy** (60 min idle → hibernate) - For long-running jobs
+- **Balanced Policy** (30 min idle → hibernate) - General research workflows
+
+### 5. Template Recommendations
+Get personalized template suggestions based on your research area:
+- Python Machine Learning (Simplified)
+- R Research Environment (Simplified)
+- Bioinformatics toolkits
+- And more...
+
+### Completion
+
+Once setup is complete, you'll see next steps for launching your first workspace:
+
+```
+✅ Setup Complete!
+
+You're all set! Here's how to launch your first workspace:
+
+  cws launch "Python Machine Learning (Simplified)" my-first-project
+
+Other helpful commands:
+  • cws templates list - List all available templates
+  • cws list - List your workspaces
+  • cws connect <name> - Connect to a workspace
+  • cws tui - Launch interactive interface
+```
+
 ## Quick Start Guide
+
+> **Note**: If you've already run `cws init`, jump directly to launching workspaces below.
 
 ### 1. Launch with AMI Optimization
 ```bash

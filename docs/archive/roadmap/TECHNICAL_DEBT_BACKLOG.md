@@ -1,6 +1,6 @@
 # Technical Debt and Enhancement Backlog
 
-**Last Updated**: October 20, 2025
+**Last Updated**: October 25, 2025
 **Status**: Active tracking of deferred implementations
 
 This document tracks features that were intentionally deferred during development, marked as design decisions rather than immediate TODO items. These represent real work that should be scheduled for future releases.
@@ -53,15 +53,35 @@ This document tracks features that were intentionally deferred during developmen
 - Update navigation: 12 items → 7 items (Settings + 6 collapsed items)
 - Role-based visibility: Hide admin features from non-admin users
 
-#### 🚀 #17: `cws init` Onboarding Wizard
-**Location**: `internal/cli/` (new init command)
-**Priority**: Critical
-**Effort**: 3-4 days
-**Implementation**:
-- Interactive wizard: AWS profile detection, first workspace launch, budget setup
-- Template recommendations based on use case (data analysis, ML, statistics)
-- Profile creation/selection with validation
-- Success message with next steps
+#### ✅ #17: `cws init` Onboarding Wizard **(COMPLETE - October 25, 2025)**
+**Status**: ✅ Complete - PR #70 merged
+**Location**: `internal/cli/init_wizard.go`
+**Implemented**:
+- ✅ 5-step interactive wizard: AWS config, research area, budget, hibernation, templates
+- ✅ AWS credential detection and validation
+- ✅ Research area selection with personalized recommendations
+- ✅ Optional budget configuration
+- ✅ Hibernation policy setup (gpu/batch/balanced)
+- ✅ Template recommendations based on domain
+
+**Deferred Enhancements** (moved to technical debt):
+- [ ] **Auto-run on first command**: Automatically prompt `cws init` on first use if not initialized
+  - Priority: Medium
+  - Effort: 1-2 days
+  - Implementation: Check `IsInitialized()` in main command handler, prompt user to run init
+  - Benefits: Zero-friction onboarding, no manual init required
+
+- [ ] **Skip/customize options**: Add `--skip` flag and `CWS_SKIP_INIT=1` env var
+  - Priority: Low
+  - Effort: 0.5 days
+  - Implementation: Add flag parsing, env var check in init wizard
+  - Benefits: Advanced users can bypass wizard for CI/CD environments
+
+- [ ] **TUI init equivalent**: Simplified onboarding in terminal interface
+  - Priority: Low
+  - Effort: 2-3 days
+  - Implementation: BubbleTea-based init flow in TUI
+  - Benefits: Consistent experience across CLI/TUI
 
 **Phase 5.0.1 Total Effort**: 14-19 days
 
