@@ -30,11 +30,13 @@ func (s *Server) handleListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert EFS volumes to unified StorageVolume type
-	volumes := make([]*types.StorageVolume, 0, len(state.Volumes))
-	for _, efsVol := range state.Volumes {
-		vol := efsVol // Create copy to get address
-		volumes = append(volumes, types.EFSVolumeToStorageVolume(&vol))
+	// Filter for EFS volumes (shared storage) from unified StorageVolumes
+	volumes := make([]*types.StorageVolume, 0)
+	for _, vol := range state.StorageVolumes {
+		if vol.IsShared() {
+			volCopy := vol // Create copy to get address
+			volumes = append(volumes, &volCopy)
+		}
 	}
 
 	_ = json.NewEncoder(w).Encode(volumes)
@@ -67,14 +69,12 @@ func (s *Server) handleCreateVolume(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save state
-	if err := s.stateManager.SaveVolume(*volume); err != nil {
+	if err := s.stateManager.SaveStorageVolume(*volume); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to save volume state")
 		return
 	}
 
-	// Convert to unified StorageVolume for response
-	storageVolume := types.EFSVolumeToStorageVolume(volume)
-	_ = json.NewEncoder(w).Encode(storageVolume)
+	_ = json.NewEncoder(w).Encode(volume)
 }
 
 // handleVolumeOperations handles operations on specific volumes
@@ -118,15 +118,13 @@ func (s *Server) handleGetVolume(w http.ResponseWriter, r *http.Request, name st
 		return
 	}
 
-	volume, exists := state.Volumes[name]
-	if !exists {
+	volume, exists := state.StorageVolumes[name]
+	if !exists || !volume.IsShared() {
 		s.writeError(w, http.StatusNotFound, "Volume not found")
 		return
 	}
 
-	// Convert to unified StorageVolume for response
-	storageVolume := types.EFSVolumeToStorageVolume(&volume)
-	_ = json.NewEncoder(w).Encode(storageVolume)
+	_ = json.NewEncoder(w).Encode(volume)
 }
 
 // handleDeleteVolume deletes a specific volume
@@ -144,7 +142,7 @@ func (s *Server) handleDeleteVolume(w http.ResponseWriter, r *http.Request, name
 	}
 
 	// Remove from state
-	if err := s.stateManager.RemoveVolume(name); err != nil {
+	if err := s.stateManager.RemoveStorageVolume(name); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
 		return
 	}

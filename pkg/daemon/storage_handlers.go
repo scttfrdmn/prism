@@ -28,19 +28,12 @@ func (s *Server) handleListStorage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build unified storage list from both EBS and EFS volumes
-	storage := make([]*types.StorageVolume, 0, len(state.EBSVolumes)+len(state.Volumes))
+	// Build list from unified StorageVolumes
+	storage := make([]*types.StorageVolume, 0, len(state.StorageVolumes))
 
-	// Add EBS volumes (local storage)
-	for _, ebsVol := range state.EBSVolumes {
-		vol := ebsVol // Create copy to get address
-		storage = append(storage, types.EBSVolumeToStorageVolume(&vol))
-	}
-
-	// Add EFS volumes (shared storage)
-	for _, efsVol := range state.Volumes {
-		vol := efsVol // Create copy to get address
-		storage = append(storage, types.EFSVolumeToStorageVolume(&vol))
+	for _, vol := range state.StorageVolumes {
+		volCopy := vol // Create copy to get address
+		storage = append(storage, &volCopy)
 	}
 
 	_ = json.NewEncoder(w).Encode(storage)
@@ -67,14 +60,12 @@ func (s *Server) handleCreateStorage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Save state
-	if err := s.stateManager.SaveEBSVolume(*volume); err != nil {
+	if err := s.stateManager.SaveStorageVolume(*volume); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to save storage state")
 		return
 	}
 
-	// Convert to unified StorageVolume for response
-	storageVolume := types.EBSVolumeToStorageVolume(volume)
-	_ = json.NewEncoder(w).Encode(storageVolume)
+	_ = json.NewEncoder(w).Encode(volume)
 }
 
 // handleStorageOperations handles operations on specific storage volumes
@@ -118,17 +109,9 @@ func (s *Server) handleGetStorage(w http.ResponseWriter, r *http.Request, name s
 		return
 	}
 
-	// Check EBS volumes (local storage) first
-	if ebsVol, exists := state.EBSVolumes[name]; exists {
-		storageVolume := types.EBSVolumeToStorageVolume(&ebsVol)
-		_ = json.NewEncoder(w).Encode(storageVolume)
-		return
-	}
-
-	// Check EFS volumes (shared storage)
-	if efsVol, exists := state.Volumes[name]; exists {
-		storageVolume := types.EFSVolumeToStorageVolume(&efsVol)
-		_ = json.NewEncoder(w).Encode(storageVolume)
+	// Check unified StorageVolumes
+	if vol, exists := state.StorageVolumes[name]; exists {
+		_ = json.NewEncoder(w).Encode(vol)
 		return
 	}
 
@@ -150,7 +133,7 @@ func (s *Server) handleDeleteStorage(w http.ResponseWriter, r *http.Request, nam
 	}
 
 	// Remove from state
-	if err := s.stateManager.RemoveEBSVolume(name); err != nil {
+	if err := s.stateManager.RemoveStorageVolume(name); err != nil {
 		s.writeError(w, http.StatusInternalServerError, "Failed to update state")
 		return
 	}

@@ -1162,7 +1162,7 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 }
 
 // CreateVolume creates a new EFS volume
-func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.EFSVolume, error) {
+func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.StorageVolume, error) {
 	// Set defaults
 	performanceMode := "generalPurpose"
 	if req.PerformanceMode != "" {
@@ -1196,16 +1196,20 @@ func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.EFSVolum
 		return nil, fmt.Errorf("failed to create EFS file system: %w", err)
 	}
 
-	volume := &ctypes.EFSVolume{
+	sizeBytes := int64(0) // Will be updated as files are added
+	volume := &ctypes.StorageVolume{
 		Name:            req.Name,
-		FileSystemId:    *result.FileSystemId,
+		Type:            ctypes.StorageTypeShared,
+		AWSService:      ctypes.AWSServiceEFS,
 		Region:          m.region,
-		CreationTime:    time.Now(),
 		State:           string(result.LifeCycleState),
+		CreationTime:    time.Now(),
+		SizeBytes:       &sizeBytes,
+		FileSystemID:    *result.FileSystemId,
+		MountTargets:    []string{},
 		PerformanceMode: performanceMode,
 		ThroughputMode:  throughputMode,
 		EstimatedCostGB: m.getRegionalEFSPrice(), // Regional EFS pricing
-		SizeBytes:       0,                       // Will be updated as files are added
 	}
 
 	return volume, nil
@@ -1527,7 +1531,7 @@ func (m *Manager) executeScriptOnInstance(instanceID, script string) error {
 }
 
 // CreateStorage creates a new EBS volume
-func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVolume, error) {
+func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.StorageVolume, error) {
 	// Parse size from t-shirt sizes or use direct GB value
 	sizeGB, err := m.parseSizeToGB(req.Size)
 	if err != nil {
@@ -1584,18 +1588,24 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.EBSVol
 	// Calculate cost per GB per month
 	costPerGB := m.getEBSCostPerGB(volumeType)
 
-	volume := &ctypes.EBSVolume{
+	sizeGB32 := int32(sizeGB)
+	iops32 := int32(iops)
+	throughput32 := int32(throughput)
+
+	volume := &ctypes.StorageVolume{
 		Name:            req.Name,
-		VolumeID:        *result.VolumeId,
+		Type:            ctypes.StorageTypeWorkspace,
+		AWSService:      ctypes.AWSServiceEBS,
 		Region:          m.region,
-		CreationTime:    time.Now(),
 		State:           string(result.State),
+		CreationTime:    time.Now(),
+		SizeGB:          &sizeGB32,
+		VolumeID:        *result.VolumeId,
 		VolumeType:      volumeType,
-		SizeGB:          int32(sizeGB),
-		IOPS:            int32(iops),
-		Throughput:      int32(throughput),
-		EstimatedCostGB: costPerGB,
+		IOPS:            &iops32,
+		Throughput:      &throughput32,
 		AttachedTo:      "", // Not attached initially
+		EstimatedCostGB: costPerGB,
 	}
 
 	return volume, nil

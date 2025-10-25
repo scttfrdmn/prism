@@ -510,15 +510,21 @@ func (m *MockAPIClient) CreateVolume(ctx context.Context, req types.VolumeCreate
 		return nil, fmt.Errorf("%s", m.ErrorMessage)
 	}
 
-	volume := types.EFSVolume{
-		Name:         req.Name,
-		FileSystemId: fmt.Sprintf("fs-%d", time.Now().Unix()),
-		State:        "creating",
-		CreationTime: time.Now(),
+	sizeBytes := int64(0)
+	volume := &types.StorageVolume{
+		Name:            req.Name,
+		Type:            types.StorageTypeShared,
+		AWSService:      types.AWSServiceEFS,
+		FileSystemID:    fmt.Sprintf("fs-%d", time.Now().Unix()),
+		State:           "creating",
+		CreationTime:    time.Now(),
+		SizeBytes:       &sizeBytes,
+		PerformanceMode: req.PerformanceMode,
+		ThroughputMode:  req.ThroughputMode,
+		MountTargets:    []string{},
 	}
 
-	m.Volumes = append(m.Volumes, volume)
-	return types.EFSVolumeToStorageVolume(&volume), nil
+	return volume, nil
 }
 
 func (m *MockAPIClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, error) {
@@ -615,17 +621,23 @@ func (m *MockAPIClient) CreateStorage(ctx context.Context, req types.StorageCrea
 		sizeGB = 1000
 	}
 
-	volume := types.EBSVolume{
+	iops := int32(3000)
+	throughput := int32(125)
+
+	volume := &types.StorageVolume{
 		Name:         req.Name,
+		Type:         types.StorageTypeWorkspace,
+		AWSService:   types.AWSServiceEBS,
 		VolumeID:     fmt.Sprintf("vol-%d", time.Now().Unix()),
 		State:        "creating",
-		SizeGB:       sizeGB,
+		SizeGB:       &sizeGB,
 		VolumeType:   req.VolumeType,
+		IOPS:         &iops,
+		Throughput:   &throughput,
 		CreationTime: time.Now(),
 	}
 
-	m.StorageVolumes = append(m.StorageVolumes, volume)
-	return types.EBSVolumeToStorageVolume(&volume), nil
+	return volume, nil
 }
 
 func (m *MockAPIClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, error) {

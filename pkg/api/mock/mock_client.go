@@ -25,10 +25,9 @@ import (
 
 // MockClient provides a mock implementation of the CloudWorkstationAPI interface
 type MockClient struct {
-	Templates map[string]types.Template
-	Instances map[string]types.Instance
-	Volumes   map[string]types.EFSVolume
-	Storage   map[string]types.EBSVolume
+	Templates      map[string]types.Template
+	Instances      map[string]types.Instance
+	StorageVolumes map[string]types.StorageVolume // Unified storage (all types)
 }
 
 // Ensure MockClient implements CloudWorkstationAPI
@@ -37,10 +36,9 @@ var _ client.CloudWorkstationAPI = (*MockClient)(nil)
 // NewClient creates a new mock client with pre-populated data
 func NewClient() *MockClient {
 	return &MockClient{
-		Templates: loadMockTemplates(),
-		Instances: loadMockInstances(),
-		Volumes:   loadMockVolumes(),
-		Storage:   loadMockStorage(),
+		Templates:      loadMockTemplates(),
+		Instances:      loadMockInstances(),
+		StorageVolumes: loadMockStorageVolumes(),
 	}
 }
 
@@ -167,63 +165,72 @@ func loadMockInstances() map[string]types.Instance {
 }
 
 // loadMockVolumes creates realistic EFS volume data
-func loadMockVolumes() map[string]types.EFSVolume {
-	return map[string]types.EFSVolume{
+// loadMockStorageVolumes creates realistic unified storage volume data (both EFS and EBS)
+func loadMockStorageVolumes() map[string]types.StorageVolume {
+	// Helper to create pointers for int32 and int64
+	int32Ptr := func(v int32) *int32 { return &v }
+	int64Ptr := func(v int64) *int64 { return &v }
+
+	return map[string]types.StorageVolume{
+		// EFS Volumes (Shared Storage)
 		"shared-data": {
 			Name:            "shared-data",
-			FileSystemId:    "fs-0123456789abcdef0",
+			Type:            types.StorageTypeShared,
+			AWSService:      types.AWSServiceEFS,
 			Region:          "us-east-1",
-			CreationTime:    time.Now().Add(-30 * 24 * time.Hour),
-			MountTargets:    []string{"fsmt-0123456789abcdef0"},
 			State:           "available",
+			CreationTime:    time.Now().Add(-30 * 24 * time.Hour),
+			FileSystemID:    "fs-0123456789abcdef0",
+			MountTargets:    []string{"fsmt-0123456789abcdef0"},
 			PerformanceMode: "generalPurpose",
 			ThroughputMode:  "bursting",
+			SizeBytes:       int64Ptr(10 * 1024 * 1024 * 1024), // 10 GB
 			EstimatedCostGB: 0.30,
-			SizeBytes:       int64(10 * 1024 * 1024 * 1024), // 10 GB
 		},
 		"research-data": {
 			Name:            "research-data",
-			FileSystemId:    "fs-0abcdef0123456789",
+			Type:            types.StorageTypeShared,
+			AWSService:      types.AWSServiceEFS,
 			Region:          "us-east-1",
-			CreationTime:    time.Now().Add(-15 * 24 * time.Hour),
-			MountTargets:    []string{"fsmt-0abcdef0123456789"},
 			State:           "available",
+			CreationTime:    time.Now().Add(-15 * 24 * time.Hour),
+			FileSystemID:    "fs-0abcdef0123456789",
+			MountTargets:    []string{"fsmt-0abcdef0123456789"},
 			PerformanceMode: "maxIO",
 			ThroughputMode:  "provisioned",
+			SizeBytes:       int64Ptr(50 * 1024 * 1024 * 1024), // 50 GB
 			EstimatedCostGB: 0.33,
-			SizeBytes:       int64(50 * 1024 * 1024 * 1024), // 50 GB
 		},
-	}
-}
-
-// loadMockStorage creates realistic EBS volume data
-func loadMockStorage() map[string]types.EBSVolume {
-	return map[string]types.EBSVolume{
+		// EBS Volumes (Workspace Storage)
 		"training-data": {
 			Name:            "training-data",
-			VolumeID:        "vol-0123456789abcdef0",
+			Type:            types.StorageTypeWorkspace,
+			AWSService:      types.AWSServiceEBS,
 			Region:          "us-east-1",
-			CreationTime:    time.Now().Add(-45 * 24 * time.Hour),
 			State:           "available",
+			CreationTime:    time.Now().Add(-45 * 24 * time.Hour),
+			VolumeID:        "vol-0123456789abcdef0",
 			VolumeType:      "gp3",
-			SizeGB:          1000,
-			IOPS:            3000,
-			Throughput:      125,
-			EstimatedCostGB: 0.08,
+			SizeGB:          int32Ptr(1000),
+			IOPS:            int32Ptr(3000),
+			Throughput:      int32Ptr(125),
 			AttachedTo:      "ml-training",
+			EstimatedCostGB: 0.08,
 		},
 		"analysis-storage": {
 			Name:            "analysis-storage",
-			VolumeID:        "vol-0abcdef0123456789",
+			Type:            types.StorageTypeWorkspace,
+			AWSService:      types.AWSServiceEBS,
 			Region:          "us-east-1",
-			CreationTime:    time.Now().Add(-10 * 24 * time.Hour),
 			State:           "available",
+			CreationTime:    time.Now().Add(-10 * 24 * time.Hour),
+			VolumeID:        "vol-0abcdef0123456789",
 			VolumeType:      "gp3",
-			SizeGB:          500,
-			IOPS:            3000,
-			Throughput:      125,
-			EstimatedCostGB: 0.08,
+			SizeGB:          int32Ptr(500),
+			IOPS:            int32Ptr(3000),
+			Throughput:      int32Ptr(125),
 			AttachedTo:      "",
+			EstimatedCostGB: 0.08,
 		},
 	}
 }
@@ -485,52 +492,59 @@ func (m *MockClient) GetTemplate(ctx context.Context, name string) (*types.Templ
 
 // CreateVolume simulates creating an EFS volume
 func (m *MockClient) CreateVolume(ctx context.Context, req types.VolumeCreateRequest) (*types.StorageVolume, error) {
-	if _, exists := m.Volumes[req.Name]; exists {
+	if _, exists := m.StorageVolumes[req.Name]; exists {
 		return nil, fmt.Errorf("volume already exists: %s", req.Name)
 	}
 
-	// Create mock volume with realistic values
-	volume := types.EFSVolume{
+	// Set defaults
+	performanceMode := req.PerformanceMode
+	if performanceMode == "" {
+		performanceMode = "generalPurpose"
+	}
+
+	throughputMode := req.ThroughputMode
+	if throughputMode == "" {
+		throughputMode = "bursting"
+	}
+
+	region := req.Region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	sizeBytes := int64(0) // New volume starts empty
+	volume := &types.StorageVolume{
 		Name:            req.Name,
-		FileSystemId:    fmt.Sprintf("fs-%s-%d", req.Name, time.Now().Unix()),
-		Region:          req.Region,
-		CreationTime:    time.Now(),
-		MountTargets:    []string{fmt.Sprintf("fsmt-%s-%d", req.Name, time.Now().Unix())},
+		Type:            types.StorageTypeShared,
+		AWSService:      types.AWSServiceEFS,
+		Region:          region,
 		State:           "available",
-		PerformanceMode: req.PerformanceMode,
-		ThroughputMode:  req.ThroughputMode,
+		CreationTime:    time.Now(),
+		FileSystemID:    fmt.Sprintf("fs-%s-%d", req.Name, time.Now().Unix()),
+		MountTargets:    []string{fmt.Sprintf("fsmt-%s-%d", req.Name, time.Now().Unix())},
+		PerformanceMode: performanceMode,
+		ThroughputMode:  throughputMode,
+		SizeBytes:       &sizeBytes,
 		EstimatedCostGB: 0.30, // $0.30/GB is typical EFS cost
-		SizeBytes:       0,    // New volume starts empty
-	}
-
-	// Use defaults if not specified
-	if volume.PerformanceMode == "" {
-		volume.PerformanceMode = "generalPurpose"
-	}
-
-	if volume.ThroughputMode == "" {
-		volume.ThroughputMode = "bursting"
-	}
-
-	if volume.Region == "" {
-		volume.Region = "us-east-1"
 	}
 
 	// Store volume
-	m.Volumes[req.Name] = volume
+	m.StorageVolumes[req.Name] = *volume
 
 	// Simulate delay
 	time.Sleep(300 * time.Millisecond)
 
-	return types.EFSVolumeToStorageVolume(&volume), nil
+	return volume, nil
 }
 
 // ListVolumes returns all mock EFS volumes
 func (m *MockClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, error) {
-	volumes := make([]*types.StorageVolume, 0, len(m.Volumes))
-	for _, volume := range m.Volumes {
-		if sv := types.EFSVolumeToStorageVolume(&volume); sv != nil {
-			volumes = append(volumes, sv)
+	volumes := make([]*types.StorageVolume, 0)
+	for _, volume := range m.StorageVolumes {
+		// Only return EFS volumes (shared storage)
+		if volume.IsShared() {
+			volCopy := volume
+			volumes = append(volumes, &volCopy)
 		}
 	}
 	return volumes, nil
@@ -538,25 +552,29 @@ func (m *MockClient) ListVolumes(ctx context.Context) ([]*types.StorageVolume, e
 
 // GetVolume returns a specific EFS volume
 func (m *MockClient) GetVolume(ctx context.Context, name string) (*types.StorageVolume, error) {
-	if volume, exists := m.Volumes[name]; exists {
-		return types.EFSVolumeToStorageVolume(&volume), nil
+	if volume, exists := m.StorageVolumes[name]; exists {
+		if volume.IsShared() {
+			volCopy := volume
+			return &volCopy, nil
+		}
+		return nil, fmt.Errorf("volume '%s' is not an EFS volume", name)
 	}
 	return nil, fmt.Errorf("volume not found: %s", name)
 }
 
 // DeleteVolume simulates deleting an EFS volume
 func (m *MockClient) DeleteVolume(ctx context.Context, name string) error {
-	if _, exists := m.Volumes[name]; !exists {
+	if _, exists := m.StorageVolumes[name]; !exists {
 		return fmt.Errorf("volume not found: %s", name)
 	}
 
-	delete(m.Volumes, name)
+	delete(m.StorageVolumes, name)
 	return nil
 }
 
 // CreateStorage simulates creating an EBS volume
 func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.StorageVolume, error) {
-	if _, exists := m.Storage[req.Name]; exists {
+	if _, exists := m.StorageVolumes[req.Name]; exists {
 		return nil, fmt.Errorf("storage volume already exists: %s", req.Name)
 	}
 
@@ -614,39 +632,45 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 		costPerGB = 0.10
 	}
 
-	// Create storage volume
-	volume := types.EBSVolume{
+	region := req.Region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	// Create storage volume natively
+	volume := &types.StorageVolume{
 		Name:            req.Name,
-		VolumeID:        fmt.Sprintf("vol-%s-%d", req.Name, time.Now().Unix()),
-		Region:          req.Region,
-		CreationTime:    time.Now(),
+		Type:            types.StorageTypeWorkspace,
+		AWSService:      types.AWSServiceEBS,
+		Region:          region,
 		State:           "available",
+		CreationTime:    time.Now(),
+		VolumeID:        fmt.Sprintf("vol-%s-%d", req.Name, time.Now().Unix()),
 		VolumeType:      volumeType,
-		SizeGB:          sizeGB,
-		IOPS:            iops,
-		Throughput:      throughput,
+		SizeGB:          &sizeGB,
+		IOPS:            &iops,
+		Throughput:      &throughput,
+		AttachedTo:      "",
 		EstimatedCostGB: costPerGB,
 	}
 
-	if volume.Region == "" {
-		volume.Region = "us-east-1"
-	}
-
 	// Store volume
-	m.Storage[req.Name] = volume
+	m.StorageVolumes[req.Name] = *volume
 
 	// Simulate delay
 	time.Sleep(500 * time.Millisecond)
 
-	return types.EBSVolumeToStorageVolume(&volume), nil
+	return volume, nil
 }
 
 // ListStorage returns all mock EBS volumes
 func (m *MockClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, error) {
-	volumes := make([]*types.StorageVolume, 0, len(m.Storage))
-	for _, volume := range m.Storage {
-		if sv := types.EBSVolumeToStorageVolume(&volume); sv != nil {
-			volumes = append(volumes, sv)
+	volumes := make([]*types.StorageVolume, 0)
+	for _, volume := range m.StorageVolumes {
+		// Only return EBS volumes (workspace storage)
+		if volume.IsWorkspace() {
+			volCopy := volume
+			volumes = append(volumes, &volCopy)
 		}
 	}
 	return volumes, nil
@@ -654,25 +678,29 @@ func (m *MockClient) ListStorage(ctx context.Context) ([]*types.StorageVolume, e
 
 // GetStorage returns a specific EBS volume
 func (m *MockClient) GetStorage(ctx context.Context, name string) (*types.StorageVolume, error) {
-	if volume, exists := m.Storage[name]; exists {
-		return types.EBSVolumeToStorageVolume(&volume), nil
+	if volume, exists := m.StorageVolumes[name]; exists {
+		if volume.IsWorkspace() {
+			volCopy := volume
+			return &volCopy, nil
+		}
+		return nil, fmt.Errorf("volume '%s' is not an EBS volume", name)
 	}
 	return nil, fmt.Errorf("storage volume not found: %s", name)
 }
 
 // DeleteStorage simulates deleting an EBS volume
 func (m *MockClient) DeleteStorage(ctx context.Context, name string) error {
-	if _, exists := m.Storage[name]; !exists {
+	if _, exists := m.StorageVolumes[name]; !exists {
 		return fmt.Errorf("storage volume not found: %s", name)
 	}
 
-	delete(m.Storage, name)
+	delete(m.StorageVolumes, name)
 	return nil
 }
 
 // AttachStorage simulates attaching an EBS volume to an instance
 func (m *MockClient) AttachStorage(ctx context.Context, volumeName, instanceName string) error {
-	volume, exists := m.Storage[volumeName]
+	volume, exists := m.StorageVolumes[volumeName]
 	if !exists {
 		return fmt.Errorf("storage volume not found: %s", volumeName)
 	}
@@ -684,7 +712,7 @@ func (m *MockClient) AttachStorage(ctx context.Context, volumeName, instanceName
 	// Update volume attachment
 	volume.AttachedTo = instanceName
 	volume.State = "in-use"
-	m.Storage[volumeName] = volume
+	m.StorageVolumes[volumeName] = volume
 
 	// Update instance
 	instance := m.Instances[instanceName]
@@ -696,7 +724,7 @@ func (m *MockClient) AttachStorage(ctx context.Context, volumeName, instanceName
 
 // DetachStorage simulates detaching an EBS volume
 func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error {
-	volume, exists := m.Storage[volumeName]
+	volume, exists := m.StorageVolumes[volumeName]
 	if !exists {
 		return fmt.Errorf("storage volume not found: %s", volumeName)
 	}
@@ -722,7 +750,7 @@ func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error
 	// Update volume
 	volume.AttachedTo = ""
 	volume.State = "available"
-	m.Storage[volumeName] = volume
+	m.StorageVolumes[volumeName] = volume
 
 	return nil
 }
@@ -731,7 +759,7 @@ func (m *MockClient) DetachStorage(ctx context.Context, volumeName string) error
 
 // AttachVolume simulates attaching an EFS volume to an instance
 func (m *MockClient) AttachVolume(ctx context.Context, volumeName, instanceName string) error {
-	_, exists := m.Volumes[volumeName]
+	_, exists := m.StorageVolumes[volumeName]
 	if !exists {
 		return fmt.Errorf("volume not found: %s", volumeName)
 	}
@@ -750,7 +778,7 @@ func (m *MockClient) AttachVolume(ctx context.Context, volumeName, instanceName 
 
 // DetachVolume simulates detaching an EFS volume from an instance
 func (m *MockClient) DetachVolume(ctx context.Context, volumeName string) error {
-	if _, exists := m.Volumes[volumeName]; !exists {
+	if _, exists := m.StorageVolumes[volumeName]; !exists {
 		return fmt.Errorf("volume not found: %s", volumeName)
 	}
 
