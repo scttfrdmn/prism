@@ -6,9 +6,9 @@ import "time"
 type StorageType string
 
 const (
-	StorageTypeLocal  StorageType = "local"  // Local Storage (EBS)
-	StorageTypeShared StorageType = "shared" // Shared Storage (EFS)
-	StorageTypeCloud  StorageType = "cloud"  // Cloud Storage (S3)
+	StorageTypeWorkspace StorageType = "workspace" // Workspace Storage (EBS)
+	StorageTypeShared    StorageType = "shared"    // Shared Storage (EFS)
+	StorageTypeCloud     StorageType = "cloud"     // Cloud Storage (S3)
 )
 
 // AWSService represents the underlying AWS service (technical detail)
@@ -55,9 +55,9 @@ type StorageVolume struct {
 
 // Helper methods for StorageVolume
 
-// IsLocal returns true if this is local storage (EBS)
-func (sv *StorageVolume) IsLocal() bool {
-	return sv.Type == StorageTypeLocal || sv.AWSService == AWSServiceEBS
+// IsWorkspace returns true if this is workspace storage (EBS)
+func (sv *StorageVolume) IsWorkspace() bool {
+	return sv.Type == StorageTypeWorkspace || sv.AWSService == AWSServiceEBS
 }
 
 // IsShared returns true if this is shared storage (EFS)
@@ -73,8 +73,8 @@ func (sv *StorageVolume) IsCloud() bool {
 // GetDisplayType returns the user-friendly type name
 func (sv *StorageVolume) GetDisplayType() string {
 	switch sv.Type {
-	case StorageTypeLocal:
-		return "Local Storage"
+	case StorageTypeWorkspace:
+		return "Workspace Storage"
 	case StorageTypeShared:
 		return "Shared Storage"
 	case StorageTypeCloud:
@@ -182,7 +182,7 @@ func EBSVolumeToStorageVolume(ebs *EBSVolume) *StorageVolume {
 
 	return &StorageVolume{
 		Name:            ebs.Name,
-		Type:            StorageTypeLocal,
+		Type:            StorageTypeWorkspace,
 		AWSService:      AWSServiceEBS,
 		Region:          ebs.Region,
 		State:           ebs.State,
@@ -224,7 +224,7 @@ func StorageVolumeToEFSVolume(sv *StorageVolume) *EFSVolume {
 
 // StorageVolumeToEBSVolume converts unified StorageVolume to legacy EBSVolume
 func StorageVolumeToEBSVolume(sv *StorageVolume) *EBSVolume {
-	if sv == nil || !sv.IsLocal() {
+	if sv == nil || !sv.IsWorkspace() {
 		return nil
 	}
 

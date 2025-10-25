@@ -89,7 +89,7 @@ interface Instance {
 // Unified StorageVolume interface matching backend API
 interface StorageVolume {
   name: string;
-  type: 'local' | 'shared' | 'cloud';
+  type: 'workspace' | 'shared' | 'cloud';
   aws_service: 'ebs' | 'efs' | 's3';
   region: string;
   state: string;
@@ -462,7 +462,7 @@ class SafeCloudWorkstationAPI {
   }
 
   private storageVolumeToEBS(vol: StorageVolume): EBSVolume | null {
-    if (vol.type !== 'local' && vol.aws_service !== 'ebs') return null;
+    if (vol.type !== 'workspace' && vol.aws_service !== 'ebs') return null;
     return {
       name: vol.name,
       volume_id: vol.volume_id || '',
@@ -517,13 +517,13 @@ class SafeCloudWorkstationAPI {
       const data: StorageVolume[] = await this.safeRequest('/api/v1/storage');
       if (!Array.isArray(data)) return [];
       // Convert unified StorageVolume to legacy EBSVolume format
-      // Note: /api/v1/storage now returns ALL storage (EBS + EFS), so filter for local only
+      // Note: /api/v1/storage now returns ALL storage (EBS + EFS), so filter for workspace only
       return data
-        .filter(vol => vol.type === 'local' || vol.aws_service === 'ebs')
+        .filter(vol => vol.type === 'workspace' || vol.aws_service === 'ebs')
         .map(vol => this.storageVolumeToEBS(vol))
         .filter((v): v is EBSVolume => v !== null);
     } catch (error) {
-      console.error('Failed to fetch local storage volumes:', error);
+      console.error('Failed to fetch workspace storage volumes:', error);
       return [];
     }
   }
@@ -2334,12 +2334,12 @@ export default function CloudWorkstationApp() {
         />
       </Container>
 
-      {/* Local Storage Section */}
+      {/* Workspace Storage Section */}
       <Container
         header={
           <Header
             variant="h2"
-            description="Local storage (EBS) for high-performance workspace-specific data"
+            description="Workspace storage (EBS) for high-performance workspace-specific data"
             counter={`(${state.ebsVolumes.length})`}
             actions={
               <SpaceBetween direction="horizontal" size="xs">
@@ -2347,12 +2347,12 @@ export default function CloudWorkstationApp() {
                   {state.loading ? <Spinner /> : 'Refresh'}
                 </Button>
                 <Button variant="primary">
-                  Create Local Storage
+                  Create Workspace Storage
                 </Button>
               </SpaceBetween>
             }
           >
-            💾 Local Storage
+            💾 Workspace Storage
           </Header>
         }
       >
@@ -2427,16 +2427,16 @@ export default function CloudWorkstationApp() {
             }
           ]}
           items={state.ebsVolumes}
-          loadingText="Loading local storage volumes from AWS"
+          loadingText="Loading workspace storage volumes from AWS"
           loading={state.loading}
           trackBy="name"
           empty={
             <Box textAlign="center" color="inherit">
               <Box variant="strong" textAlign="center" color="inherit">
-                No local storage volumes found
+                No workspace storage volumes found
               </Box>
               <Box variant="p" padding={{ bottom: 's' }} color="inherit">
-                Create local storage for high-performance workspace-specific data.
+                Create workspace storage for high-performance workspace-specific data.
               </Box>
             </Box>
           }

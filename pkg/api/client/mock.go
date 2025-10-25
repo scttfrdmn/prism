@@ -195,7 +195,7 @@ func (m *MockClient) UnmountVolume(ctx context.Context, volumeName, instanceName
 func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateRequest) (*types.StorageVolume, error) {
 	volume := types.StorageVolume{
 		Name:       req.Name,
-		Type:       types.StorageTypeLocal,
+		Type:       types.StorageTypeWorkspace,
 		AWSService: types.AWSServiceEBS,
 		VolumeID:   "mock-vol-" + req.Name,
 		State:      "available",

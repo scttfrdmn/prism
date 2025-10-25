@@ -282,14 +282,14 @@ func (sc *StorageCommands) storageCreate(args []string) error {
 
 	volume, err := sc.app.apiClient.CreateStorage(sc.app.ctx, req)
 	if err != nil {
-		return WrapAPIError("create local storage "+req.Name, err)
+		return WrapAPIError("create workspace storage "+req.Name, err)
 	}
 
 	sizeStr := "unknown"
 	if volume.SizeGB != nil {
 		sizeStr = fmt.Sprintf("%d GB", *volume.SizeGB)
 	}
-	fmt.Printf("%s\n", FormatSuccessMessage("Created Local Storage", volume.Name, fmt.Sprintf("(%s) - %s %s", volume.VolumeID, sizeStr, volume.VolumeType)))
+	fmt.Printf("%s\n", FormatSuccessMessage("Created Workspace Storage", volume.Name, fmt.Sprintf("(%s) - %s %s", volume.VolumeID, sizeStr, volume.VolumeType)))
 	return nil
 }
 
@@ -311,8 +311,8 @@ func (sc *StorageCommands) storageList(_ []string) error {
 		var sizeStr, detailsStr string
 		var costMonth float64
 
-		if volume.IsLocal() {
-			// Local Storage (EBS)
+		if volume.IsWorkspace() {
+			// Workspace Storage (EBS)
 			if volume.SizeGB != nil {
 				sizeStr = fmt.Sprintf("%d GB", *volume.SizeGB)
 				costMonth = float64(*volume.SizeGB) * volume.EstimatedCostGB
@@ -372,8 +372,8 @@ func (sc *StorageCommands) storageInfo(args []string) error {
 	fmt.Printf("   Region: %s\n", volume.Region)
 
 	// Display type-specific fields
-	if volume.IsLocal() {
-		// Local Storage (EBS) fields
+	if volume.IsWorkspace() {
+		// Workspace Storage (EBS) fields
 		fmt.Printf("   Volume ID: %s\n", volume.VolumeID)
 		if volume.SizeGB != nil {
 			fmt.Printf("   Size: %d GB\n", *volume.SizeGB)

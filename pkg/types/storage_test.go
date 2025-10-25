@@ -28,8 +28,8 @@ func TestEBSVolumeToStorageVolume(t *testing.T) {
 	if storage.Name != "test-ebs" {
 		t.Errorf("Expected name 'test-ebs', got '%s'", storage.Name)
 	}
-	if storage.Type != StorageTypeLocal {
-		t.Errorf("Expected type 'local', got '%s'", storage.Type)
+	if storage.Type != StorageTypeWorkspace {
+		t.Errorf("Expected type 'workspace', got '%s'", storage.Type)
 	}
 	if storage.AWSService != AWSServiceEBS {
 		t.Errorf("Expected service 'ebs', got '%s'", storage.AWSService)
@@ -141,7 +141,7 @@ func TestStorageVolumeToEBSVolume(t *testing.T) {
 
 	storage := &StorageVolume{
 		Name:            "test-storage",
-		Type:            StorageTypeLocal,
+		Type:            StorageTypeWorkspace,
 		AWSService:      AWSServiceEBS,
 		Region:          "us-west-2",
 		State:           "available",
@@ -220,13 +220,13 @@ func TestStorageVolumeToEFSVolume(t *testing.T) {
 
 // TestStorageVolumeHelperMethods tests the helper methods
 func TestStorageVolumeHelperMethods(t *testing.T) {
-	// Test IsLocal
+	// Test IsWorkspace
 	ebsStorage := &StorageVolume{
-		Type:       StorageTypeLocal,
+		Type:       StorageTypeWorkspace,
 		AWSService: AWSServiceEBS,
 	}
-	if !ebsStorage.IsLocal() {
-		t.Error("Expected EBS storage to be local")
+	if !ebsStorage.IsWorkspace() {
+		t.Error("Expected EBS storage to be workspace storage")
 	}
 	if ebsStorage.IsShared() {
 		t.Error("Expected EBS storage not to be shared")
@@ -240,8 +240,8 @@ func TestStorageVolumeHelperMethods(t *testing.T) {
 		Type:       StorageTypeShared,
 		AWSService: AWSServiceEFS,
 	}
-	if efsStorage.IsLocal() {
-		t.Error("Expected EFS storage not to be local")
+	if efsStorage.IsWorkspace() {
+		t.Error("Expected EFS storage not to be workspace storage")
 	}
 	if !efsStorage.IsShared() {
 		t.Error("Expected EFS storage to be shared")
@@ -255,8 +255,8 @@ func TestStorageVolumeHelperMethods(t *testing.T) {
 		Type:       StorageTypeCloud,
 		AWSService: AWSServiceS3,
 	}
-	if s3Storage.IsLocal() {
-		t.Error("Expected S3 storage not to be local")
+	if s3Storage.IsWorkspace() {
+		t.Error("Expected S3 storage not to be workspace storage")
 	}
 	if s3Storage.IsShared() {
 		t.Error("Expected S3 storage not to be shared")
@@ -272,7 +272,7 @@ func TestGetDisplayType(t *testing.T) {
 		storageType StorageType
 		expected    string
 	}{
-		{StorageTypeLocal, "Local Storage"},
+		{StorageTypeWorkspace, "Workspace Storage"},
 		{StorageTypeShared, "Shared Storage"},
 		{StorageTypeCloud, "Cloud Storage"},
 		{StorageType("unknown"), "unknown"},
@@ -346,7 +346,7 @@ func TestWrongTypeConversions(t *testing.T) {
 
 	// Try to convert EBS StorageVolume to EFS
 	ebsStorage := &StorageVolume{
-		Type:       StorageTypeLocal,
+		Type:       StorageTypeWorkspace,
 		AWSService: AWSServiceEBS,
 	}
 	if result := StorageVolumeToEFSVolume(ebsStorage); result != nil {

@@ -33,10 +33,10 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "storage",
 		Short: "Manage CloudWorkstation storage (all types)",
-		Long: `Manage all storage types (local and shared).
+		Long: `Manage all storage types (workspace and shared).
 
-'cws storage list' shows all storage volumes (both local EBS and shared EFS).
-'cws storage create' creates local storage (EBS volumes).
+'cws storage list' shows all storage volumes (both workspace EBS and shared EFS).
+'cws storage create' creates workspace storage (EBS volumes).
 
 For shared storage (EFS), use 'cws volume' commands.`,
 	}
