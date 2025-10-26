@@ -26,7 +26,7 @@ build-daemon:
 .PHONY: build-cli
 build-cli:
 	@echo "Building CloudWorkstation CLI..."
-	@go build $(LDFLAGS) -o bin/prism ./cmd/cws
+	@go build $(LDFLAGS) -o bin/prism ./cmd/prism
 
 # Build GUI binary
 .PHONY: build-gui
@@ -383,27 +383,27 @@ release: clean
 	# Linux amd64 (GUI excluded due to cross-compile OpenGL issues)
 	@mkdir -p bin/release/linux-amd64
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/prismd ./cmd/prismd
-	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/cws ./cmd/cws
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/cws ./cmd/prism
 	
 	# Linux arm64 (GUI excluded due to cross-compile OpenGL issues)
 	@mkdir -p bin/release/linux-arm64
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/prismd ./cmd/prismd
-	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/cws ./cmd/cws
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/cws ./cmd/prism
 	
 	# macOS amd64
 	@mkdir -p bin/release/darwin-amd64
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/prismd ./cmd/prismd
-	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/cws ./cmd/cws
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/cws ./cmd/prism
 	
 	# macOS arm64 (Apple Silicon)
 	@mkdir -p bin/release/darwin-arm64
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/prismd ./cmd/prismd
-	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/cws ./cmd/cws
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/cws ./cmd/prism
 	
 	# Windows amd64 (GUI excluded due to cross-compile OpenGL issues)
 	@mkdir -p bin/release/windows-amd64
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/prismd.exe ./cmd/prismd
-	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/cws.exe ./cmd/cws
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/cws.exe ./cmd/prism
 	
 	@echo "✅ Release binaries built in bin/release/"
 

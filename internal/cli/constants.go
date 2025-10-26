@@ -88,7 +88,7 @@ const (
 
 const (
 	// DaemonNotRunningMessage is the standard message when daemon is not running
-	DaemonNotRunningMessage = "daemon not running - this is unusual since daemon auto-starts. Try: cws daemon status"
+	DaemonNotRunningMessage = "daemon not running - this is unusual since daemon auto-starts. Try: prism daemon status"
 
 	// DaemonAutoStartMessage is displayed when auto-starting the daemon
 	DaemonAutoStartMessage = "🚀 Starting Prism daemon..."
@@ -97,19 +97,19 @@ const (
 	DaemonAutoStartSuccessMessage = "✅ Daemon ready"
 
 	// DaemonAutoStartFailedMessage is displayed when auto-start fails
-	DaemonAutoStartFailedMessage = "❌ Failed to auto-start daemon. Please start manually with: cws daemon start"
+	DaemonAutoStartFailedMessage = "❌ Failed to auto-start daemon. Please start manually with: prism daemon start"
 
 	// NoInstancesFoundMessage is displayed when no instances are found
-	NoInstancesFoundMessage = "No workstations found. Launch one with: cws launch <template> <name>"
+	NoInstancesFoundMessage = "No workstations found. Launch one with: prism launch <template> <name>"
 
 	// NoInstancesFoundProjectMessage is displayed when no instances are found in a project
-	NoInstancesFoundProjectMessage = "No workstations found in project '%s'. Launch one with: cws launch <template> <name> --project %s"
+	NoInstancesFoundProjectMessage = "No workstations found in project '%s'. Launch one with: prism launch <template> <name> --project %s"
 
 	// NoEFSVolumesFoundMessage is displayed when no EFS volumes are found
-	NoEFSVolumesFoundMessage = "No EFS volumes found. Create one with: cws volume create <name>"
+	NoEFSVolumesFoundMessage = "No EFS volumes found. Create one with: prism volume create <name>"
 
 	// NoEBSVolumesFoundMessage is displayed when no EBS volumes are found
-	NoEBSVolumesFoundMessage = "No EBS volumes found. Create one with: cws storage create <name> <size>"
+	NoEBSVolumesFoundMessage = "No EBS volumes found. Create one with: prism storage create <name> <size>"
 )
 
 // =============================================================================
