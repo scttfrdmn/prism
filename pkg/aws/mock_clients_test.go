@@ -380,22 +380,23 @@ func (m *MockSTSClient) GetCallerIdentity(ctx context.Context, params *sts.GetCa
 
 // MockStateManager provides a mock implementation of StateManagerInterface for testing
 type MockStateManager struct {
-	LoadStateFunc       func() (*types.State, error)
-	SaveStateFunc       func(*types.State) error
-	SaveInstanceFunc    func(types.Instance) error
-	RemoveInstanceFunc  func(string) error
-	SaveVolumeFunc      func(types.EFSVolume) error
-	RemoveVolumeFunc    func(string) error
-	SaveEBSVolumeFunc   func(types.EBSVolume) error
-	RemoveEBSVolumeFunc func(string) error
-	UpdateConfigFunc    func(types.Config) error
+	LoadStateFunc           func() (*types.State, error)
+	SaveStateFunc           func(*types.State) error
+	SaveInstanceFunc        func(types.Instance) error
+	RemoveInstanceFunc      func(string) error
+	SaveStorageVolumeFunc   func(types.StorageVolume) error
+	RemoveStorageVolumeFunc func(string) error
+	UpdateConfigFunc        func(types.Config) error
 }
 
 func (m *MockStateManager) LoadState() (*types.State, error) {
 	if m.LoadStateFunc != nil {
 		return m.LoadStateFunc()
 	}
-	return &types.State{}, nil
+	return &types.State{
+		Instances:      make(map[string]types.Instance),
+		StorageVolumes: make(map[string]types.StorageVolume),
+	}, nil
 }
 
 func (m *MockStateManager) SaveState(state *types.State) error {
@@ -419,30 +420,16 @@ func (m *MockStateManager) RemoveInstance(name string) error {
 	return nil
 }
 
-func (m *MockStateManager) SaveVolume(volume types.EFSVolume) error {
-	if m.SaveVolumeFunc != nil {
-		return m.SaveVolumeFunc(volume)
+func (m *MockStateManager) SaveStorageVolume(volume types.StorageVolume) error {
+	if m.SaveStorageVolumeFunc != nil {
+		return m.SaveStorageVolumeFunc(volume)
 	}
 	return nil
 }
 
-func (m *MockStateManager) RemoveVolume(name string) error {
-	if m.RemoveVolumeFunc != nil {
-		return m.RemoveVolumeFunc(name)
-	}
-	return nil
-}
-
-func (m *MockStateManager) SaveEBSVolume(volume types.EBSVolume) error {
-	if m.SaveEBSVolumeFunc != nil {
-		return m.SaveEBSVolumeFunc(volume)
-	}
-	return nil
-}
-
-func (m *MockStateManager) RemoveEBSVolume(name string) error {
-	if m.RemoveEBSVolumeFunc != nil {
-		return m.RemoveEBSVolumeFunc(name)
+func (m *MockStateManager) RemoveStorageVolume(name string) error {
+	if m.RemoveStorageVolumeFunc != nil {
+		return m.RemoveStorageVolumeFunc(name)
 	}
 	return nil
 }
