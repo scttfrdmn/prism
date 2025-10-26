@@ -13,12 +13,12 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-PACKAGE_NAME="cloudworkstation"
+PACKAGE_NAME="prism"
 VERSION="${VERSION:-0.5.1}"
 RELEASE="${RELEASE:-1}"
 ARCH="${ARCH:-$(uname -m)}"
 BUILD_DIR="$(pwd)/packaging/rpm"
-SPEC_FILE="$BUILD_DIR/cloudworkstation.spec"
+SPEC_FILE="$BUILD_DIR/prism.spec"
 SOURCE_DIR="$BUILD_DIR/sources"
 DIST_DIR="$(pwd)/dist/rpm"
 
@@ -146,7 +146,7 @@ prepare_source_package() {
         --exclude='.pytest_cache/' \
         --exclude='test_results/' \
         --exclude='volume/' \
-        --exclude='cloudworkstation-*.tar.gz' \
+        --exclude='prism-*.tar.gz' \
         --exclude='packaging/rpm/BUILD/*' \
         --exclude='packaging/rpm/RPMS/*' \
         --exclude='packaging/rpm/SRPMS/*' \
@@ -336,9 +336,9 @@ print_build_summary() {
     echo "   SUSE:         sudo zypper install $DIST_DIR/${PACKAGE_NAME}-${VERSION}-${RELEASE}.*.rpm"
     echo ""
     echo -e "${BOLD}📚 Post-Installation:${NC}"
-    echo "   1. Configure AWS credentials in /etc/cloudworkstation/aws/"
-    echo "   2. Start service: sudo systemctl start cloudworkstation"
-    echo "   3. Enable auto-start: sudo systemctl enable cloudworkstation"
+    echo "   1. Configure AWS credentials in /etc/prism/aws/"
+    echo "   2. Start service: sudo systemctl start prism"
+    echo "   3. Enable auto-start: sudo systemctl enable prism"
     echo "   4. Test: cws --version && cws templates"
     echo ""
 }

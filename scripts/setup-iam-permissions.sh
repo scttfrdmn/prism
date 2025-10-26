@@ -74,7 +74,7 @@ case $CHOICE in
             read -p "Would you like to create a new version? [y/N]: " CREATE_VERSION
             if [[ "$CREATE_VERSION" =~ ^[Yy]$ ]]; then
                 # Create new policy version
-                POLICY_DOCUMENT=$(cat "$(dirname "$0")/../docs/cloudworkstation-iam-policy.json")
+                POLICY_DOCUMENT=$(cat "$(dirname "$0")/../docs/prism-iam-policy.json")
                 aws iam create-policy-version \
                     --policy-arn "$POLICY_ARN" \
                     --policy-document "$POLICY_DOCUMENT" \
@@ -85,7 +85,7 @@ case $CHOICE in
             # Create new policy
             aws iam create-policy \
                 --policy-name CloudWorkstationAccess \
-                --policy-document file://$(dirname "$0")/../docs/cloudworkstation-iam-policy.json \
+                --policy-document file://$(dirname "$0")/../docs/prism-iam-policy.json \
                 --description "Full access permissions for CloudWorkstation research platform"
             echo "✅ Created policy: $POLICY_ARN"
         fi
@@ -150,7 +150,7 @@ case $CHOICE in
         if ! aws iam get-policy --policy-arn "$POLICY_ARN" &> /dev/null; then
             aws iam create-policy \
                 --policy-name CloudWorkstationAccess \
-                --policy-document file://$(dirname "$0")/../docs/cloudworkstation-iam-policy.json \
+                --policy-document file://$(dirname "$0")/../docs/prism-iam-policy.json \
                 --description "Full access permissions for CloudWorkstation research platform"
         fi
 
@@ -179,12 +179,12 @@ case $CHOICE in
         echo ""
         echo "📄 CloudWorkstation IAM Policy:"
         echo "================================"
-        cat "$(dirname "$0")/../docs/cloudworkstation-iam-policy.json"
+        cat "$(dirname "$0")/../docs/prism-iam-policy.json"
         echo ""
         echo "To apply manually:"
         echo "  aws iam create-policy \\"
         echo "    --policy-name CloudWorkstationAccess \\"
-        echo "    --policy-document file://docs/cloudworkstation-iam-policy.json"
+        echo "    --policy-document file://docs/prism-iam-policy.json"
         ;;
 
     5)

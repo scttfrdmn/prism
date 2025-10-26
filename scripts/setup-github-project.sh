@@ -4,7 +4,7 @@
 
 set -e
 
-REPO="scttfrdmn/cloudworkstation"
+REPO="scttfrdmn/prism"
 
 echo "🚀 Setting up GitHub Project Management for $REPO"
 echo "=================================================="

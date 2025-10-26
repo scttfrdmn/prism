@@ -119,7 +119,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   --force          Force removal without confirmation prompts
-  --keep-config    Preserve user configuration files (~/.cloudworkstation)
+  --keep-config    Preserve user configuration files (~/.prism)
   --keep-logs      Preserve log files
   --dry-run        Show what would be removed without actually removing
   --verbose        Show detailed output
@@ -132,7 +132,7 @@ Examples:
   $0 --keep-config --keep-logs # Uninstall but keep user data
 
 Installation Methods Supported:
-  • Homebrew (macOS): brew uninstall cloudworkstation
+  • Homebrew (macOS): brew uninstall prism
   • Direct binary installations
   • Source code installations
   • Package managers (future support)
@@ -223,7 +223,7 @@ detect_installation() {
     
     # Check Homebrew installation
     if command -v brew >/dev/null 2>&1; then
-        if brew list cloudworkstation >/dev/null 2>&1; then
+        if brew list prism >/dev/null 2>&1; then
             installation_type="homebrew"
             binary_locations+=("$(brew --prefix)/bin/cws")
             binary_locations+=("$(brew --prefix)/bin/prismd")
@@ -379,16 +379,16 @@ uninstall_homebrew() {
         return 1
     fi
     
-    if ! brew list cloudworkstation >/dev/null 2>&1; then
+    if ! brew list prism >/dev/null 2>&1; then
         log_warning "CloudWorkstation not installed via Homebrew"
         return 0
     fi
     
     # Stop Homebrew service first
-    execute_command "brew services stop cloudworkstation 2>/dev/null || true" "Stop Homebrew service"
+    execute_command "brew services stop prism 2>/dev/null || true" "Stop Homebrew service"
     
     # Uninstall package (this will call our uninstall block)
-    execute_command "brew uninstall cloudworkstation" "Uninstall CloudWorkstation package"
+    execute_command "brew uninstall prism" "Uninstall CloudWorkstation package"
     
     log_success "Homebrew uninstallation completed"
 }
@@ -409,7 +409,7 @@ remove_system_binaries() {
             
             # Check if it's a Homebrew binary (skip if Homebrew will handle it)
             if [[ "$binary_path" =~ /opt/homebrew/bin/ ]] || [[ "$binary_path" =~ /usr/local/bin/ ]]; then
-                if command -v brew >/dev/null 2>&1 && brew list cloudworkstation >/dev/null 2>&1; then
+                if command -v brew >/dev/null 2>&1 && brew list prism >/dev/null 2>&1; then
                     log_verbose "Skipping Homebrew binary: $binary_path"
                     continue
                 fi
@@ -436,7 +436,7 @@ cleanup_config_files() {
     
     log_info "Cleaning up configuration files..."
     
-    local config_dir="$HOME/.cloudworkstation"
+    local config_dir="$HOME/.prism"
     if [[ -d "$config_dir" ]]; then
         if [[ "$FORCE_REMOVAL" == "false" ]]; then
             echo
@@ -467,22 +467,22 @@ cleanup_log_files() {
     case "$OS_TYPE" in
         macos)
             log_paths+=(
-                "$HOME/Library/Logs/cloudworkstation"
-                "/usr/local/var/log/cloudworkstation"
-                "/opt/homebrew/var/log/cloudworkstation"
+                "$HOME/Library/Logs/prism"
+                "/usr/local/var/log/prism"
+                "/opt/homebrew/var/log/prism"
             )
             ;;
         linux)
             log_paths+=(
-                "$HOME/.local/share/cloudworkstation/logs"
-                "/var/log/cloudworkstation"
-                "/tmp/cloudworkstation.log"
+                "$HOME/.local/share/prism/logs"
+                "/var/log/prism"
+                "/tmp/prism.log"
             )
             ;;
         windows)
             log_paths+=(
                 "$HOME/AppData/Local/CloudWorkstation/logs"
-                "/tmp/cloudworkstation.log"
+                "/tmp/prism.log"
             )
             ;;
     esac
@@ -509,16 +509,16 @@ cleanup_service_files() {
     case "$OS_TYPE" in
         macos)
             local service_files=(
-                "$HOME/Library/LaunchAgents/homebrew.mxcl.cloudworkstation.plist"
-                "$HOME/Library/LaunchAgents/com.cloudworkstation.daemon.plist"
-                "/Library/LaunchDaemons/com.cloudworkstation.daemon.plist"
+                "$HOME/Library/LaunchAgents/homebrew.mxcl.prism.plist"
+                "$HOME/Library/LaunchAgents/com.prism.daemon.plist"
+                "/Library/LaunchDaemons/com.prism.daemon.plist"
             )
             ;;
         linux)
             local service_files=(
-                "$HOME/.local/share/systemd/user/cloudworkstation.service"
-                "/etc/systemd/system/cloudworkstation.service"
-                "/etc/init.d/cloudworkstation"
+                "$HOME/.local/share/systemd/user/prism.service"
+                "/etc/systemd/system/prism.service"
+                "/etc/init.d/prism"
             )
             ;;
         windows)
@@ -547,9 +547,9 @@ cleanup_temp_files() {
     log_info "Cleaning up temporary files..."
     
     local temp_patterns=(
-        "/tmp/cloudworkstation*"
-        "/var/tmp/cloudworkstation*"
-        "$HOME/.tmp/cloudworkstation*"
+        "/tmp/prism*"
+        "/var/tmp/prism*"
+        "$HOME/.tmp/prism*"
     )
     
     local removed_any=false
@@ -590,8 +590,8 @@ verify_cleanup() {
     done
     
     # Check for remaining config (if not kept)
-    if [[ "$KEEP_CONFIG" == "false" ]] && [[ -d "$HOME/.cloudworkstation" ]]; then
-        issues+=("Configuration directory still exists: $HOME/.cloudworkstation")
+    if [[ "$KEEP_CONFIG" == "false" ]] && [[ -d "$HOME/.prism" ]]; then
+        issues+=("Configuration directory still exists: $HOME/.prism")
     fi
     
     if [[ ${#issues[@]} -eq 0 ]]; then

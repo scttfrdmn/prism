@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO="scttfrdmn/cloudworkstation"
+REPO="scttfrdmn/prism"
 
 echo "🚀 Creating GitHub issues for all remaining phases..."
 echo ""

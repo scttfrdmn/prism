@@ -5,6 +5,48 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2025-10-26
+
+### 🎉 Major: Template File Provisioning
+
+**S3-Backed File Provisioning System**:
+- Complete S3 transfer system for template provisioning
+- Multipart transfers supporting files up to 5TB
+- MD5 checksum verification for data integrity
+- Progress tracking with real-time updates
+- Conditional provisioning (architecture-specific files)
+- Required vs optional files with graceful fallback
+- Auto-cleanup from S3 after download
+- Complete documentation: [TEMPLATE_FILE_PROVISIONING.md](docs/TEMPLATE_FILE_PROVISIONING.md)
+
+### Added
+- **Template File Provisioning** (#64, #31):
+  - S3 transfer system with multipart upload support
+  - Template schema extensions for file configuration
+  - S3 file download integration in instance launch
+  - Documentation and examples for dataset distribution
+
+### Fixed
+- **Test Infrastructure Stability** (#83):
+  - Fixed Issue #83 regression (tests hitting AWS and timing out)
+  - Fixed data race in system_metrics.go (concurrent cache access)
+  - Test performance: 206x faster (97.961s → 0.463s)
+  - All smoke tests passing (8/8)
+  - Zero race conditions detected
+
+### Changed
+- **Script Cleanup**:
+  - Completed CloudWorkStation → Prism rename across all scripts
+  - Updated 19 script files with consistent branding
+  - Documentation consistency verification
+
+### Technical
+- **Impact**: Enable multi-GB dataset distribution, binary deployment, pre-trained models
+- **Performance**: Reliable CI/CD pipeline with fast developer feedback loop
+- **Quality**: Production-ready test infrastructure with race-free concurrent operations
+
+---
+
 ## [0.5.6] - 2025-10-26
 
 ### 🎉 Major: Complete Prism Rebrand

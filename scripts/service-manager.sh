@@ -191,14 +191,14 @@ macOS:
     - Service runs when user is logged in (user mode) or at system startup (system mode)
     - Supports both Homebrew and manual installation
     - Uses launchd for service management
-    - Logs stored in ~/Library/Logs/cloudworkstation/ or /var/log/cloudworkstation/
+    - Logs stored in ~/Library/Logs/prism/ or /var/log/prism/
 
 Linux:
     - Service runs at system startup as dedicated user
     - Requires sudo for installation and service control
     - Uses systemd for service management
     - Logs available via journalctl
-    - Configuration in /etc/cloudworkstation/
+    - Configuration in /etc/prism/
 
 Windows:
     - Service runs as Windows Service at system startup

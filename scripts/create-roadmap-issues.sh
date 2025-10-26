@@ -4,7 +4,7 @@
 
 set -e
 
-REPO="scttfrdmn/cloudworkstation"
+REPO="scttfrdmn/prism"
 
 echo "🚀 Creating GitHub Issues from ROADMAP.md"
 echo "=========================================="
@@ -295,7 +295,7 @@ This wizard will help you set up your research environment.
 - Profile creation (if using multiple AWS accounts)
 
 ### Post-Setup
-- Save configuration to ~/.cloudworkstation/config.yaml
+- Save configuration to ~/.prism/config.yaml
 - Show next steps (launch first workspace)
 - Link to relevant documentation based on research area
 
@@ -316,7 +316,7 @@ This wizard will help you set up your research environment.
 
 - Implement as \`cws init\` command in internal/cli/
 - Use interactive prompts (survey library or similar)
-- Auto-run on first \`cws\` command if ~/.cloudworkstation/ doesn't exist
+- Auto-run on first \`cws\` command if ~/.prism/ doesn't exist
 - Allow skipping with \`cws init --skip\` or \`PRISM_SKIP_INIT=1\`
 
 ## Related

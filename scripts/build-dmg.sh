@@ -366,7 +366,7 @@ create_info_plist() {
     <string>CloudWorkstation</string>
     
     <key>CFBundleIdentifier</key>
-    <string>com.cloudworkstation.app</string>
+    <string>com.prism.app</string>
     
     <key>CFBundleVersion</key>
     <string>$VERSION</string>
@@ -475,7 +475,7 @@ create_app_icon() {
         # Generate a simple programmatic icon
         log_warning "No icon file found, generating simple icon"
         
-        local temp_icon="/tmp/cloudworkstation_temp_icon.png"
+        local temp_icon="/tmp/prism_temp_icon.png"
         
         # Create a simple icon using built-in tools
         python3 << 'PYTHON_EOF'
@@ -516,7 +516,7 @@ except:
     draw.text((center_x - 30, center_y + 20), "CW", fill='#1e40af')
 
 # Save
-img.save('/tmp/cloudworkstation_temp_icon.png')
+img.save('/tmp/prism_temp_icon.png')
 PYTHON_EOF
         
         if [[ ! -f "$temp_icon" ]]; then
@@ -704,7 +704,7 @@ SUPPORT:
 UNINSTALLATION:
 • Remove CloudWorkstation.app from Applications
 • Remove CLI tools: sudo rm /usr/local/bin/cws /usr/local/bin/prismd
-• Remove preferences: ~/Library/Preferences/com.cloudworkstation.*
+• Remove preferences: ~/Library/Preferences/com.prism.*
 
 CloudWorkstation helps academic researchers launch pre-configured
 cloud workstations in seconds rather than spending hours setting

@@ -137,8 +137,8 @@ check_stored_credentials() {
     log_info "Checking for stored notarization credentials..."
     
     # List stored credentials
-    if xcrun notarytool history --keychain-profile cloudworkstation 2>/dev/null | head -1 &>/dev/null; then
-        log_success "Found stored credentials with profile 'cloudworkstation'"
+    if xcrun notarytool history --keychain-profile prism 2>/dev/null | head -1 &>/dev/null; then
+        log_success "Found stored credentials with profile 'prism'"
         return 0
     elif xcrun notarytool history --keychain-profile default 2>/dev/null | head -1 &>/dev/null; then
         log_success "Found stored credentials with profile 'default'"
@@ -157,7 +157,7 @@ store_credentials() {
     
     log_info "Storing notarization credentials in keychain..."
     
-    local store_cmd="xcrun notarytool store-credentials cloudworkstation --apple-id $apple_id"
+    local store_cmd="xcrun notarytool store-credentials prism --apple-id $apple_id"
     
     if [[ -n "$team_id" ]]; then
         store_cmd="$store_cmd --team-id $team_id"
@@ -220,8 +220,8 @@ submit_notarization_notarytool() {
     # Try to use stored credentials first
     local submit_cmd=""
     if check_stored_credentials; then
-        if xcrun notarytool history --keychain-profile cloudworkstation 2>/dev/null | head -1 &>/dev/null; then
-            submit_cmd="xcrun notarytool submit \"$dmg_path\" --keychain-profile cloudworkstation --wait"
+        if xcrun notarytool history --keychain-profile prism 2>/dev/null | head -1 &>/dev/null; then
+            submit_cmd="xcrun notarytool submit \"$dmg_path\" --keychain-profile prism --wait"
         else
             submit_cmd="xcrun notarytool submit \"$dmg_path\" --keychain-profile default --wait"
         fi
@@ -236,7 +236,7 @@ submit_notarization_notarytool() {
         log_error "No notarization credentials available"
         echo ""
         echo "Please either:"
-        echo "1. Store credentials: xcrun notarytool store-credentials cloudworkstation --apple-id your@email.com"
+        echo "1. Store credentials: xcrun notarytool store-credentials prism --apple-id your@email.com"
         echo "2. Provide credentials: $0 --apple-id your@email.com --password app-specific-password"
         echo ""
         exit 1
@@ -286,8 +286,8 @@ check_notarization_status() {
     
     local status_cmd=""
     if check_stored_credentials; then
-        if xcrun notarytool history --keychain-profile cloudworkstation 2>/dev/null | head -1 &>/dev/null; then
-            status_cmd="xcrun notarytool info $request_uuid --keychain-profile cloudworkstation"
+        if xcrun notarytool history --keychain-profile prism 2>/dev/null | head -1 &>/dev/null; then
+            status_cmd="xcrun notarytool info $request_uuid --keychain-profile prism"
         else
             status_cmd="xcrun notarytool info $request_uuid --keychain-profile default"
         fi

@@ -6,17 +6,17 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SERVICE_NAME="cloudworkstation-daemon"
+SERVICE_NAME="prism-daemon"
 SYSTEMD_SERVICE_NAME="cwsd"
 SYSTEMD_SERVICE_FILE="/etc/systemd/system/${SYSTEMD_SERVICE_NAME}.service"
 
 # Paths
 DAEMON_PATH="/usr/local/bin/prismd"
 CLI_PATH="/usr/local/bin/cws"
-CONFIG_DIR="/etc/cloudworkstation"
-STATE_DIR="/var/lib/cloudworkstation"
-LOG_DIR="/var/log/cloudworkstation"
-SERVICE_USER="cloudworkstation"
+CONFIG_DIR="/etc/prism"
+STATE_DIR="/var/lib/prism"
+LOG_DIR="/var/log/prism"
+SERVICE_USER="prism"
 
 # Color output functions
 red() { echo -e "\033[31m$*\033[0m"; }
@@ -106,7 +106,7 @@ create_directories() {
     
     # State and data directory
     mkdir -p "$STATE_DIR/.config"
-    mkdir -p "$STATE_DIR/.cloudworkstation"
+    mkdir -p "$STATE_DIR/.prism"
     mkdir -p "$STATE_DIR/.ssh"
     chown -R "$SERVICE_USER:$SERVICE_USER" "$STATE_DIR"
     chmod 700 "$STATE_DIR"
@@ -186,7 +186,7 @@ Environment=PRISM_LOG_DIR=$LOG_DIR
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=cloudworkstation
+SyslogIdentifier=prism
 
 [Install]
 WantedBy=multi-user.target
@@ -207,7 +207,7 @@ create_default_config() {
 region = us-west-2
 output = json
 
-[profile cloudworkstation]
+[profile prism]
 region = us-west-2
 output = json
 EOF
@@ -225,7 +225,7 @@ EOF
 aws_access_key_id = YOUR_ACCESS_KEY_HERE
 aws_secret_access_key = YOUR_SECRET_KEY_HERE
 
-[cloudworkstation]
+[prism]
 aws_access_key_id = YOUR_ACCESS_KEY_HERE
 aws_secret_access_key = YOUR_SECRET_KEY_HERE
 EOF
@@ -245,7 +245,7 @@ EOF
   },
   "aws": {
     "region": "us-west-2",
-    "profile": "cloudworkstation"
+    "profile": "prism"
   },
   "idle": {
     "enabled": true,
@@ -270,10 +270,10 @@ EOF
 setup_ssh_keys() {
     log "Setting up SSH keys for instance management..."
     
-    local ssh_key_path="$STATE_DIR/.ssh/cloudworkstation"
+    local ssh_key_path="$STATE_DIR/.ssh/prism"
     
     if [[ ! -f "$ssh_key_path" ]]; then
-        sudo -u "$SERVICE_USER" ssh-keygen -t ed25519 -f "$ssh_key_path" -N "" -C "cloudworkstation-daemon"
+        sudo -u "$SERVICE_USER" ssh-keygen -t ed25519 -f "$ssh_key_path" -N "" -C "prism-daemon"
         green "✅ Generated SSH key: $ssh_key_path"
         echo
         blue "📋 Public key (add this to your AWS EC2 key pairs):"
@@ -667,18 +667,18 @@ EXAMPLES:
     ./linux-service-manager.sh follow
 
 NOTES:
-    - Service runs as dedicated 'cloudworkstation' user
+    - Service runs as dedicated 'prism' user
     - Service starts automatically on system boot
     - Service automatically restarts if daemon crashes
-    - Configuration stored in /etc/cloudworkstation/
-    - Data stored in /var/lib/cloudworkstation/
+    - Configuration stored in /etc/prism/
+    - Data stored in /var/lib/prism/
     - Logs available via journalctl -u cwsd
     - Requires systemd (most modern Linux distributions)
 
 INSTALLATION STEPS:
     1. Install the service: sudo ./linux-service-manager.sh install
-    2. Edit AWS credentials: sudo nano /etc/cloudworkstation/aws/credentials
-    3. Configure daemon: sudo nano /etc/cloudworkstation/config.json
+    2. Edit AWS credentials: sudo nano /etc/prism/aws/credentials
+    3. Configure daemon: sudo nano /etc/prism/config.json
     4. Check status: ./linux-service-manager.sh status
 EOF
 }

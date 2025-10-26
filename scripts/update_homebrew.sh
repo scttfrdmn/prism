@@ -26,10 +26,10 @@ if [ ! -d "$RELEASE_DIR" ]; then
 fi
 
 # Define archive files
-DARWIN_AMD64="cloudworkstation-darwin-amd64.tar.gz"
-DARWIN_ARM64="cloudworkstation-darwin-arm64.tar.gz"
-LINUX_AMD64="cloudworkstation-linux-amd64.tar.gz"
-LINUX_ARM64="cloudworkstation-linux-arm64.tar.gz"
+DARWIN_AMD64="prism-darwin-amd64.tar.gz"
+DARWIN_ARM64="prism-darwin-arm64.tar.gz"
+LINUX_AMD64="prism-linux-amd64.tar.gz"
+LINUX_ARM64="prism-linux-arm64.tar.gz"
 
 # Check if archive files exist in release directory
 for archive in "$DARWIN_AMD64" "$DARWIN_ARM64" "$LINUX_AMD64" "$LINUX_ARM64"; do
@@ -46,17 +46,17 @@ SHA_LINUX_AMD64=$(shasum -a 256 "$RELEASE_DIR/$LINUX_AMD64" | awk '{print $1}')
 SHA_LINUX_ARM64=$(shasum -a 256 "$RELEASE_DIR/$LINUX_ARM64" | awk '{print $1}')
 
 # Update the formula
-FORMULA_PATH="packaging/homebrew/cloudworkstation.rb"
+FORMULA_PATH="packaging/homebrew/prism.rb"
 
 # Backup original formula
 cp "$FORMULA_PATH" "$FORMULA_PATH.bak"
 
 # Update version and SHA256 checksums
 sed -i.tmp "s|version \".*\"|version \"$VERSION_NUM\"|g" "$FORMULA_PATH"
-sed -i.tmp "s|/v[0-9.]*\(/cloudworkstation-darwin-arm64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
-sed -i.tmp "s|/v[0-9.]*\(/cloudworkstation-darwin-amd64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
-sed -i.tmp "s|/v[0-9.]*\(/cloudworkstation-linux-arm64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
-sed -i.tmp "s|/v[0-9.]*\(/cloudworkstation-linux-amd64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
+sed -i.tmp "s|/v[0-9.]*\(/prism-darwin-arm64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
+sed -i.tmp "s|/v[0-9.]*\(/prism-darwin-amd64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
+sed -i.tmp "s|/v[0-9.]*\(/prism-linux-arm64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
+sed -i.tmp "s|/v[0-9.]*\(/prism-linux-amd64.tar.gz\"|/$VERSION_TAG\1\"|g" "$FORMULA_PATH"
 
 sed -i.tmp "s|sha256 \".*\" # Will be updated during release process.*darwin-arm64|sha256 \"$SHA_DARWIN_ARM64\" # Updated for $VERSION_TAG darwin-arm64|g" "$FORMULA_PATH"
 sed -i.tmp "s|sha256 \".*\" # Will be updated during release process.*darwin-amd64|sha256 \"$SHA_DARWIN_AMD64\" # Updated for $VERSION_TAG darwin-amd64|g" "$FORMULA_PATH"
@@ -74,4 +74,4 @@ echo "Linux ARM64:  $SHA_LINUX_ARM64"
 echo "Linux AMD64:  $SHA_LINUX_AMD64"
 echo ""
 echo "To validate the formula, run: brew install --build-from-source $FORMULA_PATH"
-echo "To submit the formula to the tap, copy it to your homebrew-cloudworkstation repository"
+echo "To submit the formula to the tap, copy it to your homebrew-prism repository"

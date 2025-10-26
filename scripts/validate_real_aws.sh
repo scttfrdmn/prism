@@ -95,9 +95,9 @@ test_first_time_setup() {
     log "========================================="
 
     # Backup existing config
-    if [ -d ~/.cloudworkstation ]; then
+    if [ -d ~/.prism ]; then
         log "Backing up existing config..."
-        mv ~/.cloudworkstation ~/.cloudworkstation.backup.$(date +%s)
+        mv ~/.prism ~/.prism.backup.$(date +%s)
     fi
 
     # Test: Can list templates without setup

@@ -5,7 +5,7 @@
 set -e
 
 REPO_OWNER="scttfrdmn"
-REPO_NAME="cloudworkstation"
+REPO_NAME="prism"
 
 echo "🚀 Setting up GitHub Projects Board"
 echo "===================================="

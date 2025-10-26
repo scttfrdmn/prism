@@ -4,7 +4,7 @@
 
 set -e
 
-REPO="scttfrdmn/cloudworkstation"
+REPO="scttfrdmn/prism"
 
 echo "🚀 Creating GitHub Labels for $REPO"
 echo "===================================="

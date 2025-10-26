@@ -91,7 +91,7 @@ BEGIN { failures = 0 }
     if (match($0, /([0-9]+\.[0-9]+)%/, arr)) {
         coverage = arr[1]
         package = $1
-        gsub(/github\.com\/scttfrdmn\/cloudworkstation\//, "", package)
+        gsub(/github\.com\/scttfrdmn\/prism\//, "", package)
         
         # Check if package should be excluded
         excluded = 0

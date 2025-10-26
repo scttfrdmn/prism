@@ -11,7 +11,7 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly APP_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"  # From Resources/scripts to app root
 readonly MACOS_DIR="$APP_DIR/Contents/MacOS"
 readonly INSTALL_DIR="/usr/local/bin"
-readonly PRISM_DIR="$HOME/.cloudworkstation"
+readonly PRISM_DIR="$HOME/.prism"
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -206,7 +206,7 @@ install_launch_agent() {
     log_info "Installing LaunchAgent for daemon auto-start..."
     
     local launch_agents_dir="$HOME/Library/LaunchAgents"
-    local plist_file="$launch_agents_dir/com.cloudworkstation.daemon.plist"
+    local plist_file="$launch_agents_dir/com.prism.daemon.plist"
     
     mkdir -p "$launch_agents_dir"
     
@@ -217,7 +217,7 @@ install_launch_agent() {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.cloudworkstation.daemon</string>
+    <string>com.prism.daemon</string>
     
     <key>ProgramArguments</key>
     <array>

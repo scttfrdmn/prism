@@ -6,8 +6,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLIST_TEMPLATE="$SCRIPT_DIR/com.cloudworkstation.daemon.plist"
-SERVICE_NAME="com.cloudworkstation.daemon"
+PLIST_TEMPLATE="$SCRIPT_DIR/com.prism.daemon.plist"
+SERVICE_NAME="com.prism.daemon"
 
 # Color output functions
 red() { echo -e "\033[31m$*\033[0m"; }
@@ -46,16 +46,16 @@ get_paths() {
     
     if [[ "$context" == "system" ]]; then
         DAEMON_PATH="/usr/local/bin"
-        LOG_PATH="/var/log/cloudworkstation"
+        LOG_PATH="/var/log/prism"
         PLIST_PATH="/Library/LaunchDaemons"
-        CONFIG_PATH="/etc/cloudworkstation"
-        HOME_PATH="/var/lib/cloudworkstation"
+        CONFIG_PATH="/etc/prism"
+        HOME_PATH="/var/lib/prism"
         USER_NAME="nobody"
     else
         DAEMON_PATH="$(brew --prefix)/bin" 2>/dev/null || DAEMON_PATH="/usr/local/bin"
-        LOG_PATH="$HOME/Library/Logs/cloudworkstation"
+        LOG_PATH="$HOME/Library/Logs/prism"
         PLIST_PATH="$HOME/Library/LaunchAgents"
-        CONFIG_PATH="$HOME/.cloudworkstation"
+        CONFIG_PATH="$HOME/.prism"
         HOME_PATH="$HOME"
         USER_NAME="$(whoami)"
     fi
@@ -238,7 +238,7 @@ show_status() {
         green "📦 Service: Installed"
         echo "   Plist: $PLIST_PATH/$SERVICE_NAME.plist"
         echo "   Daemon: $DAEMON_PATH/cwsd"
-        echo "   Logs: $LOG_PATH/cloudworkstation-daemon.log"
+        echo "   Logs: $LOG_PATH/prism-daemon.log"
         echo
         
         # Check if service is loaded and running
@@ -257,10 +257,10 @@ show_status() {
         fi
         
         # Show recent log entries
-        if [[ -f "$LOG_PATH/cloudworkstation-daemon.log" ]]; then
+        if [[ -f "$LOG_PATH/prism-daemon.log" ]]; then
             echo
             blue "📝 Recent Log Entries:"
-            tail -n 5 "$LOG_PATH/cloudworkstation-daemon.log" | sed 's/^/   /'
+            tail -n 5 "$LOG_PATH/prism-daemon.log" | sed 's/^/   /'
         fi
     else
         red "❌ Service: Not installed"
@@ -274,7 +274,7 @@ show_logs() {
     local context="$(get_install_context)"
     get_paths "$context"
     
-    local log_file="$LOG_PATH/cloudworkstation-daemon.log"
+    local log_file="$LOG_PATH/prism-daemon.log"
     
     if [[ -f "$log_file" ]]; then
         log "Showing CloudWorkstation service logs..."
@@ -294,7 +294,7 @@ follow_logs() {
     local context="$(get_install_context)"
     get_paths "$context"
     
-    local log_file="$LOG_PATH/cloudworkstation-daemon.log"
+    local log_file="$LOG_PATH/prism-daemon.log"
     
     if [[ -f "$log_file" ]]; then
         log "Following CloudWorkstation service logs... (Press Ctrl+C to stop)"
@@ -396,7 +396,7 @@ NOTES:
     - User installation: Service runs when user is logged in
     - System installation: Service runs at system startup (requires sudo)
     - Service automatically restarts if daemon crashes
-    - Logs are written to ~/Library/Logs/cloudworkstation/ (user) or /var/log/cloudworkstation/ (system)
+    - Logs are written to ~/Library/Logs/prism/ (user) or /var/log/prism/ (system)
 EOF
 }
 

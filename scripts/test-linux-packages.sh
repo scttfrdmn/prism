@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-PACKAGE_NAME="cloudworkstation"
+PACKAGE_NAME="prism"
 VERSION="${VERSION:-0.4.2}"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_RESULTS_DIR="$PROJECT_ROOT/test_results/packaging"
@@ -175,24 +175,24 @@ cws --version || exit 1
 cwsd --version || exit 1
 
 # Check systemd service
-systemctl status cloudworkstation || echo "Service not automatically started (expected)"
-systemctl is-enabled cloudworkstation || echo "Service not enabled (may be expected)"
+systemctl status prism || echo "Service not automatically started (expected)"
+systemctl is-enabled prism || echo "Service not enabled (may be expected)"
 
 # Test service can be enabled
-systemctl enable cloudworkstation || exit 1
+systemctl enable prism || exit 1
 
 # Check configuration files
-test -f /etc/cloudworkstation/daemon.conf || exit 1
-test -f /etc/cloudworkstation/aws/config.template || exit 1
-test -f /etc/cloudworkstation/aws/credentials.template || exit 1
+test -f /etc/prism/daemon.conf || exit 1
+test -f /etc/prism/aws/config.template || exit 1
+test -f /etc/prism/aws/credentials.template || exit 1
 
 # Check directories
-test -d /var/lib/cloudworkstation || exit 1
-test -d /var/log/cloudworkstation || exit 1
+test -d /var/lib/prism || exit 1
+test -d /var/log/prism || exit 1
 
 # Check user creation
-getent passwd cloudworkstation || exit 1
-getent group cloudworkstation || exit 1
+getent passwd prism || exit 1
+getent group prism || exit 1
 
 echo "✅ RPM package test passed"
 EOF
@@ -267,24 +267,24 @@ cws --version || exit 1
 cwsd --version || exit 1
 
 # Check systemd service
-systemctl status cloudworkstation || echo "Service not automatically started (expected)"
-systemctl is-enabled cloudworkstation || echo "Service not enabled (may be expected)"
+systemctl status prism || echo "Service not automatically started (expected)"
+systemctl is-enabled prism || echo "Service not enabled (may be expected)"
 
 # Test service can be enabled
-systemctl enable cloudworkstation || exit 1
+systemctl enable prism || exit 1
 
 # Check configuration files
-test -f /etc/cloudworkstation/daemon.conf || exit 1
-test -f /etc/cloudworkstation/aws/config.template || exit 1
-test -f /etc/cloudworkstation/aws/credentials.template || exit 1
+test -f /etc/prism/daemon.conf || exit 1
+test -f /etc/prism/aws/config.template || exit 1
+test -f /etc/prism/aws/credentials.template || exit 1
 
 # Check directories
-test -d /var/lib/cloudworkstation || exit 1
-test -d /var/log/cloudworkstation || exit 1
+test -d /var/lib/prism || exit 1
+test -d /var/log/prism || exit 1
 
 # Check user creation
-getent passwd cloudworkstation || exit 1
-getent group cloudworkstation || exit 1
+getent passwd prism || exit 1
+getent group prism || exit 1
 
 echo "✅ DEB package test passed"
 EOF

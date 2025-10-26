@@ -1,7 +1,7 @@
 # Prism Development Roadmap
 
-**Current Version**: v0.5.5  
-**Last Updated**: October 20, 2025  
+**Current Version**: v0.5.7 (Release Candidate)
+**Last Updated**: October 26, 2025
 **Status**: Active Development
 
 This roadmap outlines planned features and enhancements for Prism. All items are tracked in [GitHub Issues](https://github.com/scttfrdmn/prism/issues) and the [Prism Development Project](https://github.com/scttfrdmn/prism/projects).
@@ -11,7 +11,7 @@ This roadmap outlines planned features and enhancements for Prism. All items are
 ## 🎯 Current Focus: Phase 5.0 - UX Redesign
 
 **Priority**: CRITICAL - HIGHEST PRIORITY
-**Target**: v0.5.6 (Q4 2025)
+**Target**: v0.6.0 (Q1 2026)
 
 Prism is shifting focus from feature development to user experience optimization. The current 15-minute learning curve for first workspace needs to be reduced to 30 seconds.
 
@@ -55,9 +55,41 @@ Command structure improvements:
 
 ## 📅 Release Schedule
 
-### v0.5.6 (Q1 2026): UX Redesign + Storage & Template Enhancements
+### v0.5.7 (October 2025): Template Provisioning & Test Infrastructure ✅ READY
+**Release Date**: October 26, 2025
+**Focus**: S3-backed template provisioning + Test infrastructure stability
+
+#### Template File Provisioning ✅ COMPLETE
+**Milestone**: [Phase 5.6: Template Provisioning](https://github.com/scttfrdmn/prism/milestone/13)
+- ✅ [#64](https://github.com/scttfrdmn/prism/issues/64) - S3-backed file transfer with multipart support (up to 5TB)
+- ✅ [#31](https://github.com/scttfrdmn/prism/issues/31) - Template asset management for binaries and datasets
+- ✅ S3 Transfer System with progress tracking and MD5 verification
+- ✅ Conditional provisioning (architecture-specific files)
+- ✅ Required vs optional files with graceful fallback
+- ✅ Complete documentation ([TEMPLATE_FILE_PROVISIONING.md](TEMPLATE_FILE_PROVISIONING.md))
+- **Impact**: Enable multi-GB dataset distribution, binary deployment, and pre-trained model distribution
+
+#### Test Infrastructure Fixes ✅ COMPLETE
+**Issue**: [#83](https://github.com/scttfrdmn/prism/issues/83) - API Test Stability
+- ✅ Fixed Issue #83 regression (tests hitting AWS and timing out)
+- ✅ Fixed data race in system_metrics.go (concurrent cache access)
+- ✅ Test performance: 206x faster (97.961s → 0.463s)
+- ✅ All smoke tests passing (8/8)
+- ✅ Zero race conditions detected
+- **Impact**: Reliable CI/CD pipeline, fast developer feedback loop
+
+#### Script Cleanup ✅ COMPLETE
+- ✅ Completed CloudWorkStation → Prism rename across all scripts
+- ✅ Documentation consistency verification
+- **Impact**: Consistent branding across entire codebase
+
+**Status**: ✅ Release Candidate - Ready for final verification
+
+---
+
+### v0.6.0 (Q1 2026): UX Redesign + Enterprise Authentication
 **Release Date**: January 15, 2026
-**Focus**: User experience transformation + Advanced provisioning capabilities
+**Focus**: User experience transformation + Enterprise-ready authentication
 
 #### UX Redesign Components
 **Milestones**: [5.0.1](https://github.com/scttfrdmn/prism/milestone/2), [5.0.2](https://github.com/scttfrdmn/prism/milestone/3), [5.0.3](https://github.com/scttfrdmn/prism/milestone/4)
@@ -65,15 +97,14 @@ Command structure improvements:
 - Home page, navigation restructure, CLI consistency
 - **Impact**: Reduce onboarding from 15min to 30sec
 
-#### Storage & Template Enhancements
-**Milestone**: [Phase 5.6: Template Provisioning](https://github.com/scttfrdmn/prism/milestone/13)
-- [#30](https://github.com/scttfrdmn/prism/issues/30) - SSM File Operations for Large File Transfer
-- [#64](https://github.com/scttfrdmn/prism/issues/64) - S3-backed file transfer with progress reporting
-- [#31](https://github.com/scttfrdmn/prism/issues/31) - Template asset management for binaries and configuration files
-- **Impact**: Enable multi-GB template provisioning with progress tracking
+#### Enterprise Authentication
+- OAuth/OIDC integration (Google, Microsoft, institutional SSO)
+- LDAP/Active Directory support
+- SAML support for enterprise SSO
+- Token validation and session management
+- Role-based access control (RBAC) foundation
 
-### v0.6.0 (Q2 2026): Security, Authentication & User Experience
-**Major Release - Enterprise Ready**
+#### Additional v0.6.0 Features
 
 #### 1. 🔄 Auto-Update Feature ([#61](https://github.com/scttfrdmn/prism/issues/61))
 **Status**: Planned  

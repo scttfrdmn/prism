@@ -13,14 +13,14 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-PACKAGE_NAME="cloudworkstation"
+PACKAGE_NAME="prism"
 VERSION="${VERSION:-0.4.2}"
 REVISION="${REVISION:-1}"
 ARCH="${ARCH:-$(dpkg --print-architecture 2>/dev/null || echo "amd64")}"
 BUILD_DIR="$(pwd)/packaging/deb"
 DEBIAN_DIR="$BUILD_DIR/debian"
 DIST_DIR="$(pwd)/dist/deb"
-WORK_DIR="/tmp/cloudworkstation-build-$$"
+WORK_DIR="/tmp/prism-build-$$"
 
 # Functions
 print_header() {
@@ -165,7 +165,7 @@ prepare_build_directory() {
         --exclude='.pytest_cache/' \
         --exclude='test_results/' \
         --exclude='volume/' \
-        --exclude='cloudworkstation-*.tar.gz' \
+        --exclude='prism-*.tar.gz' \
         --exclude='packaging/deb/build/' \
         --exclude='packaging/rpm/BUILD/*' \
         --exclude='packaging/rpm/RPMS/*' \
@@ -349,11 +349,11 @@ print_build_summary() {
     echo "   With apt:      sudo apt install $DIST_DIR/${PACKAGE_NAME}_${VERSION}-${REVISION}_${ARCH}.deb"
     echo ""
     echo -e "${BOLD}📚 Post-Installation:${NC}"
-    echo "   1. Configure AWS credentials in /etc/cloudworkstation/aws/"
-    echo "   2. Copy templates: sudo cp /etc/cloudworkstation/aws/*.template /etc/cloudworkstation/aws/"
-    echo "   3. Edit credentials: sudo nano /etc/cloudworkstation/aws/credentials"
-    echo "   4. Start service: sudo systemctl start cloudworkstation"
-    echo "   5. Enable auto-start: sudo systemctl enable cloudworkstation"
+    echo "   1. Configure AWS credentials in /etc/prism/aws/"
+    echo "   2. Copy templates: sudo cp /etc/prism/aws/*.template /etc/prism/aws/"
+    echo "   3. Edit credentials: sudo nano /etc/prism/aws/credentials"
+    echo "   4. Start service: sudo systemctl start prism"
+    echo "   5. Enable auto-start: sudo systemctl enable prism"
     echo "   6. Test: cws --version && cws templates"
     echo ""
 }
