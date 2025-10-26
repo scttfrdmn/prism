@@ -26,9 +26,10 @@ build: build-daemon build-cli build-gui-optional
 build-for-tests: clean
 	@echo "🧹 Clearing Go build cache..."
 	@go clean -cache
-	@echo "🔨 Force rebuilding all binaries..."
+	@echo "🔨 Force rebuilding all binaries (daemon, CLI, GUI)..."
 	@go build -a $(LDFLAGS) -o bin/prismd ./cmd/prismd
 	@go build -a $(LDFLAGS) -o bin/prism ./cmd/prism
+	@cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build) || echo "⚠️ GUI build skipped"
 	@echo "✅ Fresh build complete"
 
 # Build daemon binary
