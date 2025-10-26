@@ -87,22 +87,12 @@ func (m *mockStateManagerForVolume) RemoveInstance(name string) error {
 	return args.Error(0)
 }
 
-func (m *mockStateManagerForVolume) SaveVolume(volume types.EFSVolume) error {
+func (m *mockStateManagerForVolume) SaveStorageVolume(volume types.StorageVolume) error {
 	args := m.Called(volume)
 	return args.Error(0)
 }
 
-func (m *mockStateManagerForVolume) RemoveVolume(name string) error {
-	args := m.Called(name)
-	return args.Error(0)
-}
-
-func (m *mockStateManagerForVolume) SaveEBSVolume(volume types.EBSVolume) error {
-	args := m.Called(volume)
-	return args.Error(0)
-}
-
-func (m *mockStateManagerForVolume) RemoveEBSVolume(name string) error {
+func (m *mockStateManagerForVolume) RemoveStorageVolume(name string) error {
 	args := m.Called(name)
 	return args.Error(0)
 }
@@ -131,12 +121,14 @@ func TestVolumeDeletion(t *testing.T) {
 		}
 
 		// Setup state with volume
-		testVolume := types.EFSVolume{
+		testVolume := types.StorageVolume{
 			Name:         "test-volume",
-			FileSystemId: "fs-12345678",
+			Type:         types.StorageTypeShared,
+			AWSService:   types.AWSServiceEFS,
+			FileSystemID: "fs-12345678",
 		}
 		mockState.On("LoadState").Return(&types.State{
-			Volumes: map[string]types.EFSVolume{
+			StorageVolumes: map[string]types.StorageVolume{
 				"test-volume": testVolume,
 			},
 		}, nil)
@@ -176,7 +168,7 @@ func TestVolumeDeletion(t *testing.T) {
 		}, mock.Anything).Return(&efs.DeleteFileSystemOutput{}, nil)
 
 		// Mock remove from state
-		mockState.On("RemoveVolume", "test-volume").Return(nil)
+		mockState.On("RemoveStorageVolume", "test-volume").Return(nil)
 
 		// Call the function under test
 		err := manager.DeleteVolume("test-volume")
@@ -191,7 +183,7 @@ func TestVolumeDeletion(t *testing.T) {
 		// Setup mock state manager
 		mockState := new(mockStateManagerForVolume)
 		mockState.On("LoadState").Return(&types.State{
-			Volumes: map[string]types.EFSVolume{},
+			StorageVolumes: map[string]types.StorageVolume{},
 		}, nil)
 
 		// Create manager with mocks
@@ -239,12 +231,14 @@ func TestVolumeDeletion(t *testing.T) {
 		}
 
 		// Setup state with volume
-		testVolume := types.EFSVolume{
+		testVolume := types.StorageVolume{
 			Name:         "test-volume",
-			FileSystemId: "fs-12345678",
+			Type:         types.StorageTypeShared,
+			AWSService:   types.AWSServiceEFS,
+			FileSystemID: "fs-12345678",
 		}
 		mockState.On("LoadState").Return(&types.State{
-			Volumes: map[string]types.EFSVolume{
+			StorageVolumes: map[string]types.StorageVolume{
 				"test-volume": testVolume,
 			},
 		}, nil)
@@ -275,12 +269,14 @@ func TestVolumeDeletion(t *testing.T) {
 		}
 
 		// Setup state with volume
-		testVolume := types.EFSVolume{
+		testVolume := types.StorageVolume{
 			Name:         "test-volume",
-			FileSystemId: "fs-12345678",
+			Type:         types.StorageTypeShared,
+			AWSService:   types.AWSServiceEFS,
+			FileSystemID: "fs-12345678",
 		}
 		mockState.On("LoadState").Return(&types.State{
-			Volumes: map[string]types.EFSVolume{
+			StorageVolumes: map[string]types.StorageVolume{
 				"test-volume": testVolume,
 			},
 		}, nil)
@@ -321,12 +317,14 @@ func TestVolumeDeletion(t *testing.T) {
 		}
 
 		// Setup state with volume
-		testVolume := types.EFSVolume{
+		testVolume := types.StorageVolume{
 			Name:         "test-volume",
-			FileSystemId: "fs-12345678",
+			Type:         types.StorageTypeShared,
+			AWSService:   types.AWSServiceEFS,
+			FileSystemID: "fs-12345678",
 		}
 		mockState.On("LoadState").Return(&types.State{
-			Volumes: map[string]types.EFSVolume{
+			StorageVolumes: map[string]types.StorageVolume{
 				"test-volume": testVolume,
 			},
 		}, nil)

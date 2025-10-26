@@ -107,10 +107,12 @@ func TestEFSVolumeErrorScenarios(t *testing.T) {
 		// Mock state with existing volume and instance
 		mockState.LoadStateFunc = func() (*types.State, error) {
 			return &types.State{
-				Volumes: map[string]types.EFSVolume{
+				StorageVolumes: map[string]types.StorageVolume{
 					"shared-data": {
 						Name:         "shared-data",
-						FileSystemId: "fs-12345678",
+						Type:         types.StorageTypeShared,
+						AWSService:   types.AWSServiceEFS,
+						FileSystemID: "fs-12345678",
 						State:        "available",
 					},
 				},
@@ -278,12 +280,16 @@ func TestEBSVolumeErrorScenarios(t *testing.T) {
 
 		// Mock state with volume in us-east-1a and instance in us-east-1b
 		mockState.LoadStateFunc = func() (*types.State, error) {
+			int32Ptr := func(v int32) *int32 { return &v }
 			return &types.State{
-				EBSVolumes: map[string]types.EBSVolume{
+				StorageVolumes: map[string]types.StorageVolume{
 					"data-storage": {
-						Name:     "data-storage",
-						VolumeID: "vol-12345678",
-						State:    "available",
+						Name:       "data-storage",
+						Type:       types.StorageTypeWorkspace,
+						AWSService: types.AWSServiceEBS,
+						VolumeID:   "vol-12345678",
+						State:      "available",
+						SizeGB:     int32Ptr(100),
 					},
 				},
 				Instances: map[string]types.Instance{
@@ -321,7 +327,7 @@ func TestEBSVolumeErrorScenarios(t *testing.T) {
 
 		// Verify proper error handling - this test reveals the actual error path
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to find instance")
+		assert.Contains(t, err.Error(), "failed to attach volume")
 
 		t.Logf("✅ Attachment prerequisite error handled: %v", err)
 		t.Logf("💡 Real workflow: Instance must exist before volume attachment")
@@ -351,7 +357,7 @@ func TestStorageStatePersistenceErrors(t *testing.T) {
 		}
 
 		// Mock state save failure (disk corruption, permission issues, etc.)
-		mockState.SaveVolumeFunc = func(volume types.EFSVolume) error {
+		mockState.SaveStorageVolumeFunc = func(volume types.StorageVolume) error {
 			return errors.New("failed to write state file: disk I/O error")
 		}
 
@@ -367,9 +373,9 @@ func TestStorageStatePersistenceErrors(t *testing.T) {
 		// This tests resilience of the system
 		require.NoError(t, err, "Volume creation should succeed even with state issues")
 		require.NotNil(t, volume)
-		assert.Equal(t, "fs-87654321", volume.FileSystemId)
+		assert.Equal(t, "fs-87654321", volume.FileSystemID)
 
-		t.Logf("✅ Volume created despite state save failure: %s", volume.FileSystemId)
+		t.Logf("✅ Volume created despite state save failure: %s", volume.FileSystemID)
 		t.Logf("🔧 System resilience: AWS operations succeed even with local state issues")
 	})
 
@@ -455,12 +461,12 @@ func TestStorageWorkflowIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, volume)
 
-		t.Logf("✅ Step 1: Volume created successfully: %s", volume.FileSystemId)
+		t.Logf("✅ Step 1: Volume created successfully: %s", volume.FileSystemID)
 
 		// Step 2: Mount operation fails due to SSM agent not ready
 		mockState.LoadStateFunc = func() (*types.State, error) {
 			return &types.State{
-				Volumes: map[string]types.EFSVolume{
+				StorageVolumes: map[string]types.StorageVolume{
 					"workflow-test-volume": *volume,
 				},
 				Instances: map[string]types.Instance{
@@ -494,7 +500,7 @@ func TestStorageWorkflowIntegration(t *testing.T) {
 			return &efs.DeleteFileSystemOutput{}, nil
 		}
 
-		mockState.RemoveVolumeFunc = func(name string) error {
+		mockState.RemoveStorageVolumeFunc = func(name string) error {
 			return nil
 		}
 
@@ -518,12 +524,16 @@ func TestStorageWorkflowIntegration(t *testing.T) {
 		attachmentError := errors.New("VolumeInUseException: Volume vol-workflow123 is currently attached to instance i-different123")
 
 		mockState.LoadStateFunc = func() (*types.State, error) {
+			int32Ptr := func(v int32) *int32 { return &v }
 			return &types.State{
-				EBSVolumes: map[string]types.EBSVolume{
+				StorageVolumes: map[string]types.StorageVolume{
 					"project-storage": {
-						Name:     "project-storage",
-						VolumeID: "vol-workflow123",
-						State:    "in-use", // Already attached!
+						Name:       "project-storage",
+						Type:       types.StorageTypeWorkspace,
+						AWSService: types.AWSServiceEBS,
+						VolumeID:   "vol-workflow123",
+						State:      "in-use", // Already attached!
+						SizeGB:     int32Ptr(100),
 					},
 				},
 				Instances: map[string]types.Instance{

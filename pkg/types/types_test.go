@@ -70,78 +70,106 @@ func TestInstanceSerialization(t *testing.T) {
 	}
 }
 
-func TestEFSVolumeSerialization(t *testing.T) {
-	original := EFSVolume{
-		Name:            "test-volume",
-		FileSystemId:    "fs-1234567890abcdef0",
-		Region:          "us-east-1",
-		CreationTime:    time.Now().UTC().Truncate(time.Second),
-		MountTargets:    []string{"fsmt-1", "fsmt-2"},
-		State:           "available",
-		PerformanceMode: "generalPurpose",
-		ThroughputMode:  "bursting",
-		EstimatedCostGB: 0.30,
-		SizeBytes:       1073741824, // 1GB
+func TestStorageVolumeSerialization(t *testing.T) {
+	// Helper functions for pointers
+	int32Ptr := func(v int32) *int32 { return &v }
+	int64Ptr := func(v int64) *int64 { return &v }
+
+	tests := []struct {
+		name    string
+		volume  StorageVolume
+		checkFn func(*testing.T, StorageVolume, StorageVolume)
+	}{
+		{
+			name: "EFS Volume",
+			volume: StorageVolume{
+				Name:            "test-efs",
+				Type:            StorageTypeShared,
+				AWSService:      AWSServiceEFS,
+				FileSystemID:    "fs-1234567890abcdef0",
+				Region:          "us-east-1",
+				CreationTime:    time.Now().UTC().Truncate(time.Second),
+				MountTargets:    []string{"fsmt-1", "fsmt-2"},
+				State:           "available",
+				PerformanceMode: "generalPurpose",
+				ThroughputMode:  "bursting",
+				EstimatedCostGB: 0.30,
+				SizeBytes:       int64Ptr(1073741824), // 1GB
+			},
+			checkFn: func(t *testing.T, original, restored StorageVolume) {
+				if !restored.IsShared() {
+					t.Error("Restored volume should be shared storage type")
+				}
+				if restored.FileSystemID != original.FileSystemID {
+					t.Errorf("FileSystemID mismatch: got %s, want %s", restored.FileSystemID, original.FileSystemID)
+				}
+				if restored.SizeBytes == nil || *restored.SizeBytes != *original.SizeBytes {
+					t.Errorf("SizeBytes mismatch")
+				}
+			},
+		},
+		{
+			name: "EBS Volume",
+			volume: StorageVolume{
+				Name:            "test-ebs",
+				Type:            StorageTypeWorkspace,
+				AWSService:      AWSServiceEBS,
+				VolumeID:        "vol-1234567890abcdef0",
+				Region:          "us-east-1",
+				CreationTime:    time.Now().UTC().Truncate(time.Second),
+				State:           "available",
+				VolumeType:      "gp3",
+				SizeGB:          int32Ptr(100),
+				IOPS:            int32Ptr(3000),
+				Throughput:      int32Ptr(125),
+				EstimatedCostGB: 0.08,
+				AttachedTo:      "test-instance",
+			},
+			checkFn: func(t *testing.T, original, restored StorageVolume) {
+				if !restored.IsWorkspace() {
+					t.Error("Restored volume should be workspace storage type")
+				}
+				if restored.VolumeType != original.VolumeType {
+					t.Errorf("VolumeType mismatch: got %s, want %s", restored.VolumeType, original.VolumeType)
+				}
+				if restored.SizeGB == nil || *restored.SizeGB != *original.SizeGB {
+					t.Errorf("SizeGB mismatch")
+				}
+				if restored.IOPS == nil || *restored.IOPS != *original.IOPS {
+					t.Errorf("IOPS mismatch")
+				}
+			},
+		},
 	}
 
-	// Test JSON serialization/deserialization
-	data, err := json.Marshal(original)
-	if err != nil {
-		t.Fatalf("Failed to marshal EFS volume: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test JSON serialization/deserialization
+			data, err := json.Marshal(tt.volume)
+			if err != nil {
+				t.Fatalf("Failed to marshal storage volume: %v", err)
+			}
 
-	var restored EFSVolume
-	err = json.Unmarshal(data, &restored)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal EFS volume: %v", err)
-	}
+			var restored StorageVolume
+			err = json.Unmarshal(data, &restored)
+			if err != nil {
+				t.Fatalf("Failed to unmarshal storage volume: %v", err)
+			}
 
-	if restored.Name != original.Name {
-		t.Errorf("Name mismatch: got %s, want %s", restored.Name, original.Name)
-	}
-	if restored.FileSystemId != original.FileSystemId {
-		t.Errorf("FileSystemId mismatch: got %s, want %s", restored.FileSystemId, original.FileSystemId)
-	}
-	if restored.SizeBytes != original.SizeBytes {
-		t.Errorf("SizeBytes mismatch: got %d, want %d", restored.SizeBytes, original.SizeBytes)
-	}
-}
+			// Common checks
+			if restored.Name != tt.volume.Name {
+				t.Errorf("Name mismatch: got %s, want %s", restored.Name, tt.volume.Name)
+			}
+			if restored.Type != tt.volume.Type {
+				t.Errorf("Type mismatch: got %s, want %s", restored.Type, tt.volume.Type)
+			}
+			if restored.AWSService != tt.volume.AWSService {
+				t.Errorf("AWSService mismatch: got %s, want %s", restored.AWSService, tt.volume.AWSService)
+			}
 
-func TestEBSVolumeSerialization(t *testing.T) {
-	original := EBSVolume{
-		Name:            "test-storage",
-		VolumeID:        "vol-1234567890abcdef0",
-		Region:          "us-east-1",
-		CreationTime:    time.Now().UTC().Truncate(time.Second),
-		State:           "available",
-		VolumeType:      "gp3",
-		SizeGB:          100,
-		IOPS:            3000,
-		Throughput:      125,
-		EstimatedCostGB: 0.08,
-		AttachedTo:      "test-instance",
-	}
-
-	// Test JSON serialization/deserialization
-	data, err := json.Marshal(original)
-	if err != nil {
-		t.Fatalf("Failed to marshal EBS volume: %v", err)
-	}
-
-	var restored EBSVolume
-	err = json.Unmarshal(data, &restored)
-	if err != nil {
-		t.Fatalf("Failed to unmarshal EBS volume: %v", err)
-	}
-
-	if restored.VolumeType != original.VolumeType {
-		t.Errorf("VolumeType mismatch: got %s, want %s", restored.VolumeType, original.VolumeType)
-	}
-	if restored.SizeGB != original.SizeGB {
-		t.Errorf("SizeGB mismatch: got %d, want %d", restored.SizeGB, original.SizeGB)
-	}
-	if restored.IOPS != original.IOPS {
-		t.Errorf("IOPS mismatch: got %d, want %d", restored.IOPS, original.IOPS)
+			// Type-specific checks
+			tt.checkFn(t, tt.volume, restored)
+		})
 	}
 }
 
@@ -218,6 +246,9 @@ func TestLaunchRequestValidation(t *testing.T) {
 }
 
 func TestStateSerialization(t *testing.T) {
+	// Helper for int32 pointers
+	int32Ptr := func(v int32) *int32 { return &v }
+
 	state := State{
 		Instances: map[string]Instance{
 			"test-1": {
@@ -227,18 +258,21 @@ func TestStateSerialization(t *testing.T) {
 				State:    "running",
 			},
 		},
-		Volumes: map[string]EFSVolume{
-			"vol-1": {
-				Name:         "vol-1",
-				FileSystemId: "fs-123",
+		StorageVolumes: map[string]StorageVolume{
+			"efs-vol-1": {
+				Name:         "efs-vol-1",
+				Type:         StorageTypeShared,
+				AWSService:   AWSServiceEFS,
+				FileSystemID: "fs-123",
 				State:        "available",
 			},
-		},
-		EBSVolumes: map[string]EBSVolume{
-			"ebs-1": {
-				Name:     "ebs-1",
-				VolumeID: "vol-123",
-				State:    "available",
+			"ebs-vol-1": {
+				Name:       "ebs-vol-1",
+				Type:       StorageTypeWorkspace,
+				AWSService: AWSServiceEBS,
+				VolumeID:   "vol-123",
+				State:      "available",
+				SizeGB:     int32Ptr(100),
 			},
 		},
 		Config: Config{
@@ -261,12 +295,26 @@ func TestStateSerialization(t *testing.T) {
 	if len(restored.Instances) != 1 {
 		t.Errorf("Instances count mismatch: got %d, want 1", len(restored.Instances))
 	}
-	if len(restored.Volumes) != 1 {
-		t.Errorf("Volumes count mismatch: got %d, want 1", len(restored.Volumes))
+	if len(restored.StorageVolumes) != 2 {
+		t.Errorf("StorageVolumes count mismatch: got %d, want 2", len(restored.StorageVolumes))
 	}
-	if len(restored.EBSVolumes) != 1 {
-		t.Errorf("EBSVolumes count mismatch: got %d, want 1", len(restored.EBSVolumes))
+
+	// Verify EFS volume
+	efsVol, exists := restored.StorageVolumes["efs-vol-1"]
+	if !exists {
+		t.Error("EFS volume should exist")
+	} else if !efsVol.IsShared() {
+		t.Error("EFS volume should be shared storage type")
 	}
+
+	// Verify EBS volume
+	ebsVol, exists := restored.StorageVolumes["ebs-vol-1"]
+	if !exists {
+		t.Error("EBS volume should exist")
+	} else if !ebsVol.IsWorkspace() {
+		t.Error("EBS volume should be workspace storage type")
+	}
+
 	if restored.Config.DefaultRegion != "us-east-1" {
 		t.Errorf("Config DefaultRegion mismatch: got %s, want us-east-1", restored.Config.DefaultRegion)
 	}
