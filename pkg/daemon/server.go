@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -306,11 +307,52 @@ func NewServerForTesting(port string) (*Server, error) {
 func (s *Server) Start() error {
 	log.Printf("Starting Prism daemon on port %s", s.port)
 
+	// Enforce singleton: check for existing daemon and perform takeover if necessary
+	currentPID := os.Getpid()
+	existingProcesses, err := s.processManager.FindDaemonProcesses()
+	if err == nil && len(existingProcesses) > 0 {
+		for _, proc := range existingProcesses {
+			if proc.PID != currentPID && s.processManager.IsProcessRunning(proc.PID) {
+				log.Printf("Found existing daemon (PID: %d), performing singleton takeover...", proc.PID)
+
+				// Signal existing daemon to shut down gracefully
+				if err := s.processManager.GracefulShutdown(proc.PID); err != nil {
+					log.Printf("Warning: Failed to gracefully shutdown existing daemon: %v", err)
+					// Continue anyway - might be stale registry entry
+				}
+
+				// Wait for port to be released (with timeout)
+				portReleased := false
+				for i := 0; i < 10; i++ {
+					time.Sleep(1 * time.Second)
+					// Try to bind to the port to check if it's available
+					listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.port))
+					if err == nil {
+						listener.Close()
+						portReleased = true
+						break
+					}
+				}
+
+				if !portReleased {
+					return fmt.Errorf("timeout waiting for existing daemon (PID: %d) to release port %s", proc.PID, s.port)
+				}
+
+				log.Printf("✅ Singleton lock acquired (PID: %d)", currentPID)
+			}
+		}
+	}
+
 	// Register this daemon instance
 	pid := os.Getpid()
 	configPath := fmt.Sprintf("%s/.prism", os.Getenv("HOME"))
 	if err := s.processManager.RegisterDaemon(pid, configPath, ""); err != nil {
 		log.Printf("Warning: Failed to register daemon: %v", err)
+	} else {
+		// Only log this if there was no takeover (otherwise we already logged "Singleton lock acquired")
+		if len(existingProcesses) == 0 {
+			log.Printf("✅ Singleton lock acquired (PID: %d)", currentPID)
+		}
 	}
 
 	// Start daemon stability and monitoring systems
