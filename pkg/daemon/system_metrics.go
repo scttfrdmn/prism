@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -178,6 +179,7 @@ func getLoadAverageUnix() float64 {
 
 // cpuUsageCache caches CPU usage to avoid excessive system calls
 type cpuUsageCache struct {
+	mu        sync.Mutex
 	value     float64
 	timestamp time.Time
 	ttl       time.Duration
@@ -190,6 +192,9 @@ var (
 
 // getCachedCPUUsage returns cached CPU usage if available
 func getCachedCPUUsage() float64 {
+	cpuCache.mu.Lock()
+	defer cpuCache.mu.Unlock()
+
 	if time.Since(cpuCache.timestamp) < cpuCache.ttl && cpuCache.value > 0 {
 		return cpuCache.value
 	}
@@ -201,6 +206,9 @@ func getCachedCPUUsage() float64 {
 
 // getCachedLoadAverage returns cached load average if available
 func getCachedLoadAverage() float64 {
+	loadCache.mu.Lock()
+	defer loadCache.mu.Unlock()
+
 	if time.Since(loadCache.timestamp) < loadCache.ttl && loadCache.value > 0 {
 		return loadCache.value
 	}

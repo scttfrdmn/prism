@@ -172,57 +172,58 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 
 	// Use AWS manager from request and handle launch
 	var instance *types.Instance
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		// Ensure SSH key exists in AWS if specified (skip in test mode)
-		if req.SSHKeyName != "" && !s.testMode {
-			if err := s.ensureSSHKeyInAWS(awsManager, &req); err != nil {
-				return fmt.Errorf("failed to ensure SSH key in AWS: %w", err)
-			}
+
+	// In test mode, skip AWS entirely and return mock instance
+	if s.testMode {
+		// Return mock instance for testing
+		instance = &types.Instance{
+			ID:            "i-test123456",
+			Name:          req.Name,
+			State:         "running",
+			PublicIP:      "203.0.113.1",
+			PrivateIP:     "10.0.1.100",
+			InstanceType:  "t3.micro",
+			Template:      req.Template,
+			Username:      "ubuntu",
+			HourlyRate:    0.0104,
+			EffectiveRate: 0.0104,
+			LaunchTime:    time.Now(),
 		}
-
-		// Track launch start time
-		launchStart := time.Now()
-
-		// Delegate to AWS manager (or return mock in test mode)
-		var err error
-		if s.testMode {
-			// Return mock instance for testing
-			instance = &types.Instance{
-				ID:            "i-test123456",
-				Name:          req.Name,
-				State:         "running",
-				PublicIP:      "203.0.113.1",
-				PrivateIP:     "10.0.1.100",
-				InstanceType:  "t3.micro",
-				Template:      req.Template,
-				Username:      "ubuntu",
-				HourlyRate:    0.0104,
-				EffectiveRate: 0.0104,
-				LaunchTime:    time.Now(),
+	} else {
+		// Production mode: use AWS manager
+		s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+			// Ensure SSH key exists in AWS if specified
+			if req.SSHKeyName != "" {
+				if err := s.ensureSSHKeyInAWS(awsManager, &req); err != nil {
+					return fmt.Errorf("failed to ensure SSH key in AWS: %w", err)
+				}
 			}
-		} else {
+
+			// Track launch start time
+			launchStart := time.Now()
+
+			// Launch instance via AWS
+			var err error
 			instance, err = awsManager.LaunchInstance(req)
-		}
 
-		// Record usage stats
-		launchDuration := int(time.Since(launchStart).Seconds())
-		templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
+			// Record usage stats
+			launchDuration := int(time.Since(launchStart).Seconds())
+			templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
 
-		if err != nil {
-			return err
-		}
+			if err != nil {
+				return err
+			}
 
-		// Immediately query AWS to get actual current state (skip in test mode)
-		// This keeps our cache fresh and prevents showing stale "pending" state for hours
-		if !s.testMode {
+			// Immediately query AWS to get actual current state
+			// This keeps our cache fresh and prevents showing stale "pending" state for hours
 			refreshedInstance := s.refreshInstanceStateFromAWS(awsManager, instance.Name)
 			if refreshedInstance != nil {
 				instance = refreshedInstance
 			}
-		}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
 	// If instance is nil, withAWSManager already wrote an error response
 	if instance == nil {
