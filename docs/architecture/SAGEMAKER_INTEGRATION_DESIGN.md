@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the technical architecture for integrating AWS SageMaker Studio into CloudWorkstation as the first web-based research service, serving as the proof of concept for Phase 5B AWS Research Services Integration.
+This document outlines the technical architecture for integrating AWS SageMaker Studio into Prism as the first web-based research service, serving as the proof of concept for Phase 5B AWS Research Services Integration.
 
 ## Architecture Components
 
@@ -62,7 +62,7 @@ type StudioConfig struct {
     InstanceTypes       []string `json:"instance_types"`        // Allowed types
     
     // Storage and networking
-    EFSIntegration bool   `json:"efs_integration,omitempty"` // Mount CloudWorkstation EFS
+    EFSIntegration bool   `json:"efs_integration,omitempty"` // Mount Prism EFS
     VPCConfig      *VPCConfig `json:"vpc_config,omitempty"`  // Custom VPC
     
     // Cost controls
@@ -151,7 +151,7 @@ service_config:
     user_profile_name: "from_research_user"  # Links to research user identity
     default_instance_type: "ml.t3.medium"
     instance_types: ["ml.t3.medium", "ml.t3.large", "ml.g4dn.xlarge"]
-    efs_integration: true  # Mount CloudWorkstation EFS
+    efs_integration: true  # Mount Prism EFS
     auto_stop_minutes: 30  # Cost optimization
     max_hourly_cost: 5.00  # Budget control
 
@@ -202,22 +202,22 @@ policy_metadata:
 
 ```bash
 # Traditional EC2 launch (unchanged)
-cws launch python-ml my-research-project
+prism launch python-ml my-research-project
 
 # SageMaker Studio Lab launch (free)
-cws launch sagemaker-studio-lab ml-learning
+prism launch sagemaker-studio-lab ml-learning
 # → Creates Studio Lab environment
 # → Returns web URL for direct access
 # → Shows "Free tier - no cost" message
 
 # SageMaker Studio launch (managed)  
-cws launch sagemaker-studio-gpu ml-training --instance-type ml.g4dn.xlarge
+prism launch sagemaker-studio-gpu ml-training --instance-type ml.g4dn.xlarge
 # → Creates SageMaker domain if needed
 # → Provisions user profile with research user identity
 # → Returns studio URL + cost estimate
 
 # Canvas no-code ML launch
-cws launch sagemaker-canvas business-analysis
+prism launch sagemaker-canvas business-analysis
 # → Creates Canvas workspace
 # → Configures data sources
 # → Returns Canvas URL
@@ -227,7 +227,7 @@ cws launch sagemaker-canvas business-analysis
 
 ```bash
 # Unified listing shows all service types
-cws list
+prism list
 # INSTANCE          TYPE           STATUS    ACCESS     COST/HOUR
 # ml-learning       sagemaker_lab  running   web        $0.00
 # ml-training       sagemaker      running   web        $0.736  
@@ -235,7 +235,7 @@ cws list
 # data-prep         glue           running   web        $0.44
 
 # Enhanced info shows service-specific details
-cws info ml-training
+prism info ml-training
 # Instance: ml-training
 # Service: SageMaker Studio
 # Status: Running
@@ -251,11 +251,11 @@ cws info ml-training
 
 ```bash
 # New connect command for web services
-cws connect ml-training
+prism connect ml-training
 # → Opens web browser to SageMaker Studio URL
 # → Shows connection info and shortcuts
 
-cws connect ml-training --print-url
+prism connect ml-training --print-url
 # → Prints URL without opening browser (for remote/headless usage)
 # https://studio-ml-training.studio.us-west-2.sagemaker.aws
 ```
@@ -273,7 +273,7 @@ type SageMakerManager struct {
     
     // Configuration
     region        string
-    vpcID         string  // CloudWorkstation managed VPC
+    vpcID         string  // Prism managed VPC
     subnetIDs     []string
     securityGroups []string
 }

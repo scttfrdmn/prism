@@ -1,12 +1,12 @@
 # Homebrew Release Deployment Process
 
-This document provides a step-by-step process for deploying CloudWorkstation releases via Homebrew tap with prebuilt binaries.
+This document provides a step-by-step process for deploying Prism releases via Homebrew tap with prebuilt binaries.
 
 ## Prerequisites
 
 - GitHub CLI authenticated with SSH access
-- Access to `scttfrdmn/cloudworkstation` and `scttfrdmn/homebrew-cloudworkstation` repositories
-- Local CloudWorkstation project built successfully
+- Access to `scttfrdmn/prism` and `scttfrdmn/homebrew-prism` repositories
+- Local Prism project built successfully
 
 ## Step-by-Step Release Process
 
@@ -14,12 +14,12 @@ This document provides a step-by-step process for deploying CloudWorkstation rel
 
 ```bash
 # Update version in all deployment assets
-cd /Users/scttfrdmn/src/cloudworkstation
+cd /Users/scttfrdmn/src/prism
 
 # Update version files
 # - pkg/version/version.go: Version = "X.Y.Z-N"
 # - Makefile: VERSION := X.Y.Z-N  
-# - Formula/cloudworkstation.rb: version "X.Y.Z-N"
+# - Formula/prism.rb: version "X.Y.Z-N"
 # - INSTALL.md, demo.sh, DEMO_SEQUENCE.md: Update version references
 
 # Build release binaries for all platforms
@@ -30,7 +30,7 @@ make release
 ls -la bin/release/
 ./bin/release/darwin-arm64/cws --version
 ./bin/release/darwin-arm64/cwsd --version
-# Should show: CloudWorkstation CLI vX.Y.Z-N and CloudWorkstation Daemon vX.Y.Z-N
+# Should show: Prism CLI vX.Y.Z-N and Prism Daemon vX.Y.Z-N
 ```
 
 ### 2. Create Release Archives
@@ -40,51 +40,51 @@ ls -la bin/release/
 cd bin/release
 
 # Create tar.gz archives with correct structure for Homebrew
-tar -czf cloudworkstation-darwin-arm64.tar.gz -C darwin-arm64 cws cwsd
-tar -czf cloudworkstation-darwin-amd64.tar.gz -C darwin-amd64 cws cwsd
+tar -czf prism-darwin-arm64.tar.gz -C darwin-arm64 prism cwsd
+tar -czf prism-darwin-amd64.tar.gz -C darwin-amd64 prism cwsd
 
 # Verify archive contents (should show binaries in root, not subdirectories)
-tar -tzf cloudworkstation-darwin-arm64.tar.gz
+tar -tzf prism-darwin-arm64.tar.gz
 # Should show:
 # cws
 # cwsd
 
 # Verify binary functionality from archives
-tar -xzf cloudworkstation-darwin-arm64.tar.gz -C /tmp/test-extract/
+tar -xzf prism-darwin-arm64.tar.gz -C /tmp/test-extract/
 /tmp/test-extract/cws --version
-# Should show: CloudWorkstation CLI vX.Y.Z-N
+# Should show: Prism CLI vX.Y.Z-N
 ```
 
 ### 3. Calculate SHA256 Checksums
 
 ```bash
 # Get checksums for formula
-shasum -a 256 /tmp/release-archives/cloudworkstation-darwin-arm64.tar.gz
-shasum -a 256 /tmp/release-archives/cloudworkstation-darwin-amd64.tar.gz
+shasum -a 256 /tmp/release-archives/prism-darwin-arm64.tar.gz
+shasum -a 256 /tmp/release-archives/prism-darwin-amd64.tar.gz
 
 # Save these checksums for the formula update
 ```
 
 ### 4. Update Homebrew Formula
 
-Edit `/Users/scttfrdmn/src/cloudworkstation/Formula/cloudworkstation.rb`:
+Edit `/Users/scttfrdmn/src/prism/Formula/prism.rb`:
 
 ```ruby
 class Cloudworkstation < Formula
   desc "Enterprise research management platform - Launch cloud research environments in seconds"
-  homepage "https://github.com/scttfrdmn/cloudworkstation"
+  homepage "https://github.com/scttfrdmn/prism"
   license "MIT"
-  head "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
+  head "https://github.com/scttfrdmn/prism.git", branch: "main"
   
   version "X.Y.Z"  # Update version number
 
   # Use prebuilt binaries for faster installation  
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/vX.Y.Z/cloudworkstation-darwin-arm64.tar.gz"
+      url "https://github.com/scttfrdmn/prism/releases/download/vX.Y.Z/prism-darwin-arm64.tar.gz"
       sha256 "ARM64_SHA256_HERE"  # Insert actual checksum
     else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/vX.Y.Z/cloudworkstation-darwin-amd64.tar.gz"
+      url "https://github.com/scttfrdmn/prism/releases/download/vX.Y.Z/prism-darwin-amd64.tar.gz"
       sha256 "AMD64_SHA256_HERE"  # Insert actual checksum
     end
   end
@@ -97,7 +97,7 @@ class Cloudworkstation < Formula
 
   def post_install
     # Ensure configuration directory exists
-    system "mkdir", "-p", "#{ENV["HOME"]}/.cloudworkstation"
+    system "mkdir", "-p", "#{ENV["HOME"]}/.prism"
   end
 
   test do
@@ -106,15 +106,15 @@ class Cloudworkstation < Formula
     assert_predicate bin/"cwsd", :exist?
     
     # Test version command
-    assert_match "CloudWorkstation v", shell_output("#{bin}/cws --version")
-    assert_match "CloudWorkstation v", shell_output("#{bin}/cwsd --version")
+    assert_match "Prism v", shell_output("#{bin}/cws --version")
+    assert_match "Prism v", shell_output("#{bin}/cwsd --version")
   end
 
   service do
     run [opt_bin/"cwsd"]
     keep_alive true
-    log_path var/"log/cloudworkstation/cwsd.log"
-    error_log_path var/"log/cloudworkstation/cwsd.log"
+    log_path var/"log/prism/cwsd.log"
+    error_log_path var/"log/prism/cwsd.log"
     working_dir HOMEBREW_PREFIX
   end
 end
@@ -124,34 +124,34 @@ end
 
 ```bash
 # Create GitHub release (if new version)
-cd /Users/scttfrdmn/src/cloudworkstation
-gh release create vX.Y.Z --title "CloudWorkstation vX.Y.Z" --notes "Release notes here"
+cd /Users/scttfrdmn/src/prism
+gh release create vX.Y.Z --title "Prism vX.Y.Z" --notes "Release notes here"
 
 # Or, if updating existing release, delete old assets first
-gh release delete-asset vX.Y.Z cloudworkstation-darwin-arm64.tar.gz -y
-gh release delete-asset vX.Y.Z cloudworkstation-darwin-amd64.tar.gz -y
+gh release delete-asset vX.Y.Z prism-darwin-arm64.tar.gz -y
+gh release delete-asset vX.Y.Z prism-darwin-amd64.tar.gz -y
 
 # Upload new binary archives
-gh release upload vX.Y.Z /tmp/release-archives/cloudworkstation-darwin-arm64.tar.gz
-gh release upload vX.Y.Z /tmp/release-archives/cloudworkstation-darwin-amd64.tar.gz
+gh release upload vX.Y.Z /tmp/release-archives/prism-darwin-arm64.tar.gz
+gh release upload vX.Y.Z /tmp/release-archives/prism-darwin-amd64.tar.gz
 
 # Verify upload
 gh release view vX.Y.Z --json assets --jq '.assets[].name'
 # Should show:
-# cloudworkstation-darwin-arm64.tar.gz
-# cloudworkstation-darwin-amd64.tar.gz
+# prism-darwin-arm64.tar.gz
+# prism-darwin-amd64.tar.gz
 ```
 
 ### 6. Update and Deploy Homebrew Tap
 
 ```bash
 # Copy updated formula to tap repository
-cp /Users/scttfrdmn/src/cloudworkstation/Formula/cloudworkstation.rb /opt/homebrew/Library/Taps/scttfrdmn/homebrew-cloudworkstation/
+cp /Users/scttfrdmn/src/prism/Formula/prism.rb /opt/homebrew/Library/Taps/scttfrdmn/homebrew-prism/
 
 # Commit and push to tap repository
-cd /opt/homebrew/Library/Taps/scttfrdmn/homebrew-cloudworkstation
-git add cloudworkstation.rb
-git commit -m "🚀 RELEASE: Update CloudWorkstation to vX.Y.Z with prebuilt binaries
+cd /opt/homebrew/Library/Taps/scttfrdmn/homebrew-prism
+git add prism.rb
+git commit -m "🚀 RELEASE: Update Prism to vX.Y.Z with prebuilt binaries
 
 - Update version to X.Y.Z
 - Update SHA256 checksums for new binary archives
@@ -168,27 +168,27 @@ git push origin main
 
 ```bash
 # Clean test: remove existing installation
-brew uninstall cloudworkstation 2>/dev/null || true
-brew untap scttfrdmn/cloudworkstation
+brew uninstall prism 2>/dev/null || true
+brew untap scttfrdmn/prism
 
 # Fresh installation from GitHub
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 
 # Verify installation
-cws --version
+prism --version
 cwsd --version
-brew test cloudworkstation
+brew test prism
 
 # Test service functionality
-brew services start cloudworkstation
+brew services start prism
 sleep 2
-cws daemon status
+prism daemon status
 pgrep -f cwsd | wc -l  # Should be 1
 
 # Verify no duplicate startups
-launchctl list | grep cloudworkstation  # Should show single entry
-brew services list | grep cloudworkstation  # Should show single service
+launchctl list | grep prism  # Should show single entry
+brew services list | grep prism  # Should show single service
 ```
 
 ### 8. Service Startup Verification
@@ -196,16 +196,16 @@ brew services list | grep cloudworkstation  # Should show single service
 **Critical Checks for No Duplicates**:
 ```bash
 # Check for single service entry
-launchctl list | grep cloudworkstation  # Should show 1 line
+launchctl list | grep prism  # Should show 1 line
 
 # Check for single LaunchAgent file
-find ~/Library/LaunchAgents/ -name "*cloudworkstation*"  # Should show 1 file
+find ~/Library/LaunchAgents/ -name "*prism*"  # Should show 1 file
 
 # Check for single process
 pgrep -f cwsd | wc -l  # Should return 1
 
 # Check service restart behavior
-brew services restart cloudworkstation
+brew services restart prism
 sleep 2
 pgrep -f cwsd | wc -l  # Should still be 1
 ```
@@ -224,7 +224,7 @@ pgrep -f cwsd | wc -l  # Should still be 1
 1. **Archive Structure**: Binaries must be in `darwin-arm64/` and `darwin-amd64/` subdirectories
 2. **Hardware Detection**: Use `Hardware::CPU.arm?` not `Hardware::CPU.arm64?`
 3. **Installation Paths**: Homebrew extracts to working directory root, not subdirectories
-4. **Test Assertions**: Match actual binary output (`CloudWorkstation v`)
+4. **Test Assertions**: Match actual binary output (`Prism v`)
 5. **Service Labels**: Use unique Homebrew labels to prevent conflicts
 
 ### 🔄 **For Cross-Compilation (Future)**:
@@ -233,10 +233,10 @@ pgrep -f cwsd | wc -l  # Should still be 1
 make cross-compile
 
 # This creates:
-# cloudworkstation-darwin-amd64.tar.gz
-# cloudworkstation-darwin-arm64.tar.gz
+# prism-darwin-amd64.tar.gz
+# prism-darwin-arm64.tar.gz
 
 # Then follow steps 3-8 above
 ```
 
-This process ensures repeatable, professional deployment of CloudWorkstation via Homebrew with proper service management and no startup duplicates.
+This process ensures repeatable, professional deployment of Prism via Homebrew with proper service management and no startup duplicates.

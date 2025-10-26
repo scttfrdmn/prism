@@ -1,9 +1,9 @@
-# CloudWorkstation Roadmap
+# Prism Roadmap
 
 **Current Version**: v0.5.5
 **Last Updated**: October 19, 2025
 
-This document tracks CloudWorkstation's development roadmap, current status, and upcoming priorities.
+This document tracks Prism's development roadmap, current status, and upcoming priorities.
 
 ---
 
@@ -119,7 +119,7 @@ High-impact, low-effort improvements:
   - Collapsed by default (expand when needed)
   - **Impact**: 64% reduction in cognitive load
 
-- [ ] **Add `cws init` Wizard**
+- [ ] **Add `prism init` Wizard**
   - Interactive first-time setup (AWS, budget, hibernation, templates)
   - Learns user's research area for recommendations
   - **Impact**: 15min → 2min onboarding (87% improvement)
@@ -185,27 +185,27 @@ Restructure CLI commands for predictable patterns:
 - [ ] **Consistent Command Structure**
   ```
   Current (scattered):         Proposed (grouped):
-  ├─ cws hibernate             ├─ cws launch
-  ├─ cws start                 ├─ cws connect
-  ├─ cws volume                ├─ cws list
-  ├─ cws storage               ├─ cws stop
-  ├─ cws ami                   ├─ cws delete
-  ├─ cws marketplace           │
-  ├─ cws research-user         ├─ cws workspace <action>
-  ├─ cws idle                  ├─ cws storage <action>
-  └─ ...40+ commands           ├─ cws templates <action>
-                               ├─ cws collab <action>
-                               ├─ cws admin <action>
-                               └─ cws config <action>
+  ├─ prism hibernate             ├─ prism launch
+  ├─ prism start                 ├─ prism connect
+  ├─ prism volume                ├─ prism list
+  ├─ prism storage               ├─ prism stop
+  ├─ prism ami                   ├─ prism delete
+  ├─ prism marketplace           │
+  ├─ prism research-user         ├─ prism workspace <action>
+  ├─ prism idle                  ├─ prism storage <action>
+  └─ ...40+ commands           ├─ prism templates <action>
+                               ├─ prism collab <action>
+                               ├─ prism admin <action>
+                               └─ prism config <action>
   ```
 
 - [ ] **Unified Storage Commands**
-  - Merge `cws volume` and `cws storage` into `cws storage`
+  - Merge `prism volume` and `prism storage` into `prism storage`
   - Use `--type efs|ebs` flag for clarity
   - Backward compatibility warnings for deprecated commands
 
 - [ ] **Predictable Patterns**
-  - Verb-noun-object everywhere: `cws storage create`, `cws workspace hibernate`
+  - Verb-noun-object everywhere: `prism storage create`, `prism workspace hibernate`
   - Consistent help text format
   - Tab completion support
 

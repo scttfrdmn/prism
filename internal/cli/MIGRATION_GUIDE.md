@@ -1,7 +1,7 @@
 # CLI Cobra Migration Guide
 
 ## Overview
-This guide explains how to migrate CloudWorkstation CLI commands from internal routing to proper Cobra subcommands for consistent flag handling and better user experience.
+This guide explains how to migrate Prism CLI commands from internal routing to proper Cobra subcommands for consistent flag handling and better user experience.
 
 ## Migration Status
 
@@ -137,18 +137,18 @@ Test all command variations:
 
 ```bash
 # Test help generation
-cws command --help
-cws command subcommand --help
+prism command --help
+prism command subcommand --help
 
 # Test flag parsing
-cws command subcommand --flag1 value --flag2
-cws command subcommand -f  # Short flags
+prism command subcommand --flag1 value --flag2
+prism command subcommand -f  # Short flags
 
 # Test argument validation
-cws command subcommand arg1 arg2  # Should fail if expecting 1 arg
+prism command subcommand arg1 arg2  # Should fail if expecting 1 arg
 
 # Test required flags
-cws command subcommand  # Should fail if flag is required
+prism command subcommand  # Should fail if flag is required
 ```
 
 ### 6. Update Documentation
@@ -163,7 +163,7 @@ Description of what this does.
 
 **Usage:**
 ```
-cws command subcommand [flags]
+prism command subcommand [flags]
 ```
 
 **Flags:**
@@ -172,8 +172,8 @@ cws command subcommand [flags]
 
 **Examples:**
 ```bash
-cws command subcommand --flag1 value
-cws command subcommand -f
+prism command subcommand --flag1 value
+prism command subcommand -f
 ```
 ```
 
@@ -227,7 +227,7 @@ func (c *CobraCommands) createSubcommand() *cobra.Command {
 
 ### Pattern 1: Subcommand Groups
 ```go
-// For commands like: cws project members add
+// For commands like: prism project members add
 func createMembersCommand() *cobra.Command {
     cmd := &cobra.Command{
         Use:   "members",
@@ -263,8 +263,8 @@ cmd := &cobra.Command{
 ### Pattern 3: Multiple Value Flags
 ```go
 cmd.Flags().StringSlice("tags", []string{}, "Tags to apply")
-// Usage: cws command --tags tag1 --tags tag2
-// Or: cws command --tags tag1,tag2
+// Usage: prism command --tags tag1 --tags tag2
+// Or: prism command --tags tag1,tag2
 ```
 
 ### Pattern 4: Mutually Exclusive Flags

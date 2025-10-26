@@ -1,7 +1,7 @@
 # Legacy Code Removal Plan
 
 ## Overview
-CloudWorkstation is early in development and should not maintain backwards compatibility. All legacy code should be removed to simplify the codebase.
+Prism is early in development and should not maintain backwards compatibility. All legacy code should be removed to simplify the codebase.
 
 ## Major Legacy Components to Remove
 
@@ -86,10 +86,10 @@ Since these policies handle multiple actions (hibernate, stop, terminate, alert)
 4. `pkg/api/client/hibernation_policies.go` → `pkg/api/client/idle_policies.go`
 
 ### CLI Command Changes:
-- `cws hibernation` → `cws idle`
-- `cws hibernation policy list` → `cws idle policy list`
-- `cws hibernation policy apply` → `cws idle policy apply`
-- `cws hibernation savings` → `cws idle savings`
+- `prism hibernation` → `prism idle`
+- `prism hibernation policy list` → `prism idle policy list`
+- `prism hibernation policy apply` → `prism idle policy apply`
+- `prism hibernation savings` → `prism idle savings`
 
 ### Type/Struct Renames:
 - `HibernationPolicy` → `IdlePolicy`

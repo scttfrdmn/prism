@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Template Application Engine enables applying CloudWorkstation templates to already running instances, allowing for incremental environment evolution without requiring instance recreation.
+The Template Application Engine enables applying Prism templates to already running instances, allowing for incremental environment evolution without requiring instance recreation.
 
 ## Architecture
 
@@ -302,14 +302,14 @@ func TestTemplateApplication(t *testing.T) {
 
 ### CLI Integration
 
-The template application engine is designed to integrate with CloudWorkstation's CLI:
+The template application engine is designed to integrate with Prism's CLI:
 
 ```bash
 # New CLI commands that would use this engine
-cws apply <template> <instance-name> [options]
-cws diff <template> <instance-name>
-cws layers <instance-name>
-cws rollback <instance-name> [--to-checkpoint=<id>]
+prism apply <template> <instance-name> [options]
+prism diff <template> <instance-name>
+prism layers <instance-name>
+prism rollback <instance-name> [--to-checkpoint=<id>]
 ```
 
 ### API Integration
@@ -337,7 +337,7 @@ func (s *Server) handleApplyTemplate(w http.ResponseWriter, r *http.Request) {
 
 ### State Management Integration
 
-The engine maintains template application history in the CloudWorkstation state system:
+The engine maintains template application history in the Prism state system:
 
 ```json
 {
@@ -370,10 +370,10 @@ The engine maintains template application history in the CloudWorkstation state 
 
 ### 🚧 Implementation Needed
 
-1. **Instance IP Resolution**: Integration with CloudWorkstation state management
+1. **Instance IP Resolution**: Integration with Prism state management
 2. **Security Group Updates**: Port opening via AWS API
 3. **Systems Manager Executor**: AWS Systems Manager implementation for private instances
-4. **CLI Commands**: `cws apply`, `cws diff`, `cws layers`, `cws rollback`
+4. **CLI Commands**: `prism apply`, `prism diff`, `prism layers`, `prism rollback`
 5. **API Endpoints**: REST API integration with daemon
 6. **Integration Testing**: End-to-end testing with real instances
 
@@ -381,10 +381,10 @@ The engine maintains template application history in the CloudWorkstation state 
 
 The current prototype provides a solid foundation for template application to running instances. The next phase should focus on:
 
-1. **Integration**: Connect with existing CloudWorkstation state and AWS management
+1. **Integration**: Connect with existing Prism state and AWS management
 2. **CLI Implementation**: Add the new commands to the existing CLI application
 3. **Testing**: Comprehensive testing with real AWS instances
 4. **Documentation**: User-facing documentation and examples
 5. **Error Handling**: Robust error handling and recovery mechanisms
 
-This template application engine represents a significant advancement in CloudWorkstation's capabilities, transforming it from a "launch and manage" platform into a true "infrastructure as code" research environment system.
+This template application engine represents a significant advancement in Prism's capabilities, transforming it from a "launch and manage" platform into a true "infrastructure as code" research environment system.

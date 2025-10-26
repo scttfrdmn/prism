@@ -1,4 +1,4 @@
-# CloudWorkstation GUI Troubleshooting Guide
+# Prism GUI Troubleshooting Guide
 
 **Version**: 0.5.1
 **Last Updated**: October 15, 2025
@@ -16,7 +16,7 @@
 - GUI shows "Connected" status but no data loads
 
 **Root Cause**:
-The CloudWorkstation daemon (`cwsd`) was not running when the GUI attempted to load data.
+The Prism daemon (`cwsd`) was not running when the GUI attempted to load data.
 
 **Solution (v0.5.2+)**: ✅ **Auto-Fixed!**
 
@@ -460,14 +460,14 @@ The GUI includes comprehensive console logging for debugging:
 
 ```javascript
 // Already enabled in development
-console.log('Loading CloudWorkstation data...');
+console.log('Loading Prism data...');
 console.error('Failed to fetch templates:', error);
 ```
 
 **View logs**:
 1. Open Developer Tools (Cmd+Option+I on Mac, F12 on Windows)
 2. Click Console tab
-3. Look for CloudWorkstation messages
+3. Look for Prism messages
 4. Errors shown in red
 
 ### Check API Requests
@@ -518,7 +518,7 @@ curl http://localhost:8947/api/v1/health
 ### Reporting Issues
 
 **Include in bug reports**:
-- CloudWorkstation version: `./bin/cws version`
+- Prism version: `./bin/cws version`
 - Operating system and version
 - Browser and version
 - Daemon status output
@@ -527,7 +527,7 @@ curl http://localhost:8947/api/v1/health
 - Expected vs actual behavior
 
 **Where to report**:
-- GitHub Issues: https://github.com/scttfrdmn/cloudworkstation/issues
+- GitHub Issues: https://github.com/scttfrdmn/prism/issues
 - Include "[GUI]" prefix in issue title
 
 ### Diagnostic Commands

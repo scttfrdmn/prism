@@ -1,8 +1,8 @@
-# CloudWorkstation Template System Implementation
+# Prism Template System Implementation
 
 ## Overview
 
-CloudWorkstation now features a comprehensive template system with inheritance, validation, and composition capabilities. This document summarizes the complete implementation that addresses the original user request for template stacking and provides a foundation for advanced research computing environments.
+Prism now features a comprehensive template system with inheritance, validation, and composition capabilities. This document summarizes the complete implementation that addresses the original user request for template stacking and provides a foundation for advanced research computing environments.
 
 ## 🎯 Original User Request
 
@@ -29,8 +29,8 @@ Template System Architecture
 │   ├── Inheritance chain resolution
 │   └── Template caching and management
 └── CLI Integration (internal/cli/app.go)
-    ├── cws templates - List templates
-    ├── cws templates validate - Template validation
+    ├── prism templates - List templates
+    ├── prism templates validate - Template validation
     └── Enhanced launch with inheritance support
 ```
 
@@ -111,12 +111,12 @@ services:
 **Commands Added**:
 ```bash
 # Template validation
-cws templates validate                    # All templates
-cws templates validate "Template Name"    # Specific template  
-cws templates validate file.yml          # Template file
+prism templates validate                    # All templates
+prism templates validate "Template Name"    # Specific template  
+prism templates validate file.yml          # Template file
 
 # Enhanced launch with inheritance
-cws launch "Rocky Linux 9 + Conda Stack" my-analysis
+prism launch "Rocky Linux 9 + Conda Stack" my-analysis
 ```
 
 ## 📊 Working Examples
@@ -234,7 +234,7 @@ Simple commands for template discovery, validation, and launch operations.
 ### Basic Usage
 ```bash
 # Launch pre-configured stacked environment
-cws launch "Rocky Linux 9 + Conda Stack" my-research
+prism launch "Rocky Linux 9 + Conda Stack" my-research
 
 # Result: Rocky Linux base + conda ML packages + both users
 # (rocky + datascientist) + system + conda packages + jupyter service
@@ -243,11 +243,11 @@ cws launch "Rocky Linux 9 + Conda Stack" my-research
 ### Advanced Usage  
 ```bash
 # Override package manager at launch time
-cws launch "Rocky Linux 9 + Conda Stack" my-project --with spack
+prism launch "Rocky Linux 9 + Conda Stack" my-project --with spack
 
 # Validate before launch
-cws templates validate "Rocky Linux 9 + Conda Stack"
-cws launch "Rocky Linux 9 + Conda Stack" validated-instance
+prism templates validate "Rocky Linux 9 + Conda Stack"
+prism launch "Rocky Linux 9 + Conda Stack" validated-instance
 ```
 
 ## 📈 Scalability Design
@@ -301,7 +301,7 @@ Successfully migrated from legacy "auto" package manager system:
 
 ## 🎯 Design Principle Alignment
 
-The template system aligns perfectly with CloudWorkstation's core design principles:
+The template system aligns perfectly with Prism's core design principles:
 
 - **✅ Default to Success**: Base templates provide working defaults
 - **✅ Optimize by Default**: Templates choose optimal configurations
@@ -331,4 +331,4 @@ The template system aligns perfectly with CloudWorkstation's core design princip
 - ✅ Intuitive inheritance syntax in YAML templates
 - ✅ Predictable behavior with well-defined merging rules
 
-This template system implementation represents a significant advancement in CloudWorkstation's capabilities, providing researchers with a powerful, flexible, and reliable way to compose complex computing environments from simple, reusable building blocks.
+This template system implementation represents a significant advancement in Prism's capabilities, providing researchers with a powerful, flexible, and reliable way to compose complex computing environments from simple, reusable building blocks.

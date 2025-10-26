@@ -116,7 +116,7 @@ interface CostBreakdown {
 ### **API Methods**
 
 ```typescript
-class SafeCloudWorkstationAPI {
+class SafePrismAPI {
   // Fetch budget data for all projects with budgets configured
   async getBudgets(): Promise<BudgetData[]>
 
@@ -243,7 +243,7 @@ This implementation establishes the pattern for remaining 7 GUI features:
 ### **Standard Pattern**
 1. **Add type definitions** at top of App.tsx
 2. **Extend AppState** with new data array
-3. **Add API methods** to SafeCloudWorkstationAPI class
+3. **Add API methods** to SafePrismAPI class
 4. **Integrate data loading** into Promise.all()
 5. **Create view component** with Cloudscape components
 6. **Add navigation link** to SideNavigation

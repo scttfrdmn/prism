@@ -1,4 +1,4 @@
-# CloudWorkstation System Implementation - v0.5.x Series
+# Prism System Implementation - v0.5.x Series
 
 **Version**: 0.5.x Development Series
 **Last Updated**: December 2025
@@ -6,7 +6,7 @@
 
 ## Architecture Overview
 
-The v0.5.x series introduces the **Universal AMI System** as a foundational component that transforms CloudWorkstation from script-only provisioning to intelligent hybrid deployment. This document outlines the complete technical implementation.
+The v0.5.x series introduces the **Universal AMI System** as a foundational component that transforms Prism from script-only provisioning to intelligent hybrid deployment. This document outlines the complete technical implementation.
 
 ## 🏗️ Core Architecture Changes
 
@@ -14,10 +14,10 @@ The v0.5.x series introduces the **Universal AMI System** as a foundational comp
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   CloudWorkstation v0.5.x                  │
+│                   Prism v0.5.x                  │
 ├─────────────────────────────────────────────────────────────┤
 │  CLI Client  │  TUI Client  │  GUI Client  │  REST API     │
-│  (cmd/cws)   │  (cws tui)   │  (cws-gui)   │  (external)   │
+│  (cmd/cws)   │  (prism tui)   │  (cws-gui)   │  (external)   │
 └──────┬───────┴──────┬───────┴──────┬───────┴───────┬────────┘
        │              │              │               │
        └──────────────┼──────────────┼───────────────┘
@@ -202,13 +202,13 @@ cmd/
 
 **CLI Commands Added**:
 ```
-cws ami create <template> <instance>     # Create AMI from instance
-cws ami list [--template name]           # List available AMIs
-cws ami share <ami-id> <targets>         # Share AMI
-cws ami rate <ami-id> <rating>           # Rate community AMI
-cws ami test <template> [--all-regions]  # Test AMI availability
-cws ami browse [--category cat]          # Browse community AMIs
-cws ami info <ami-id>                    # Detailed AMI information
+prism ami create <template> <instance>     # Create AMI from instance
+prism ami list [--template name]           # List available AMIs
+prism ami share <ami-id> <targets>         # Share AMI
+prism ami rate <ami-id> <rating>           # Rate community AMI
+prism ami test <template> [--all-regions]  # Test AMI availability
+prism ami browse [--category cat]          # Browse community AMIs
+prism ami info <ami-id>                    # Detailed AMI information
 ```
 
 ### Phase 5.1.3: Advanced Intelligence (May 2026)
@@ -597,7 +597,7 @@ func BenchmarkCommunityRegistryLookup(b *testing.B)
 ```yaml
 # docker-compose.yml for development
 services:
-  cloudworkstation:
+  prism:
     build: .
     ports:
       - "8947:8947"
@@ -726,10 +726,10 @@ func (cm *CompatibilityManager) ProcessTemplate(template *Template) (*ProcessedT
 
 ```bash
 # CLI tools for migrating existing deployments
-cws migrate analyze                    # Analyze current templates for AMI opportunities
-cws migrate template python-research  # Convert template to use AMI optimization
-cws migrate instance my-instance      # Create AMI from existing instance
-cws migrate test-all                  # Test all templates with AMI resolution
+prism migrate analyze                    # Analyze current templates for AMI opportunities
+prism migrate template python-research  # Convert template to use AMI optimization
+prism migrate instance my-instance      # Create AMI from existing instance
+prism migrate test-all                  # Test all templates with AMI resolution
 ```
 
 ## 📚 Documentation Integration
@@ -761,4 +761,4 @@ All existing API documentation requires updates to include:
 
 ---
 
-**CloudWorkstation v0.5.x System Implementation** provides the technical foundation for **revolutionary improvements in research environment deployment speed and reliability** while maintaining the platform's core principles of simplicity, reliability, and cost-effectiveness. The Universal AMI System represents a **major architectural advancement** that positions CloudWorkstation as the leading platform for research cloud computing.
+**Prism v0.5.x System Implementation** provides the technical foundation for **revolutionary improvements in research environment deployment speed and reliability** while maintaining the platform's core principles of simplicity, reliability, and cost-effectiveness. The Universal AMI System represents a **major architectural advancement** that positions Prism as the leading platform for research cloud computing.

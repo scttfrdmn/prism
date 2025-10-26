@@ -1,6 +1,6 @@
 # Batch Invitation Interface Guide
 
-CloudWorkstation v0.4.3 provides multiple interfaces for managing batch invitations, each designed for different usage scenarios. This guide explains how to use the batch invitation system through the GUI, TUI, and CLI interfaces.
+Prism v0.4.3 provides multiple interfaces for managing batch invitations, each designed for different usage scenarios. This guide explains how to use the batch invitation system through the GUI, TUI, and CLI interfaces.
 
 ## Overview
 
@@ -14,11 +14,11 @@ All interfaces use the same core functionality, ensuring consistent behavior reg
 
 ## GUI Interface
 
-The graphical interface provides a user-friendly way to manage batch invitations through the CloudWorkstation desktop application.
+The graphical interface provides a user-friendly way to manage batch invitations through the Prism desktop application.
 
 ### Accessing the Batch Invitation Interface
 
-1. Launch the CloudWorkstation desktop application
+1. Launch the Prism desktop application
 2. Navigate to the "Profiles" section in the sidebar
 3. Select the "Batch Invitations" tab
 
@@ -69,7 +69,7 @@ The terminal user interface provides visual management of invitations in termina
 
 ### Accessing the Invitation Dashboard
 
-1. Launch the CloudWorkstation TUI: `cws tui`
+1. Launch the Prism TUI: `prism tui`
 2. Navigate to "Profiles" using Tab key or keyboard shortcuts
 3. Select "Invitation Management" from the menu
 4. Press Enter to access the invitation dashboard
@@ -115,7 +115,7 @@ The command line interface provides powerful batch operations that can be integr
 ### Create Batch Invitations
 
 ```bash
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file invitations.csv \
   --s3-config s3://bucket/path \
   --parent-token "inv-abcdefg" \
@@ -136,7 +136,7 @@ cws profiles invitations batch-create \
 ### Export All Invitations
 
 ```bash
-cws profiles invitations batch-export \
+prism profiles invitations batch-export \
   --output-file invitations.csv \
   --include-encoded
 ```
@@ -148,7 +148,7 @@ cws profiles invitations batch-export \
 ### Accept Batch Invitations
 
 ```bash
-cws profiles invitations batch-accept \
+prism profiles invitations batch-accept \
   --csv-file encoded_invitations.csv \
   --name-prefix "Team" \
   --has-header
@@ -163,17 +163,17 @@ cws profiles invitations batch-accept \
 
 ```bash
 # Batch device operations
-cws profiles invitations devices batch-operation \
+prism profiles invitations devices batch-operation \
   --csv-file devices.csv \
   --operation revoke \
   --output-file results.csv
 
 # Export device information
-cws profiles invitations devices export-info \
+prism profiles invitations devices export-info \
   --output-file device_info.csv
 
 # Revoke all devices
-cws profiles invitations devices batch-revoke-all \
+prism profiles invitations devices batch-revoke-all \
   --confirm \
   --output-file revocation_results.csv
 ```
@@ -284,4 +284,4 @@ The batch invitation system can be integrated with:
 - **Invalid CSV**: Verify CSV format and try with `--has-header=false`
 - **Rate limiting**: Reduce concurrency for large batch operations
 
-For all other issues, check logs at `~/.cloudworkstation/logs/batch_operations.log`
+For all other issues, check logs at `~/.prism/logs/batch_operations.log`

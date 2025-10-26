@@ -22,15 +22,15 @@
 
 ### ✅ Initial Setup (Day 0)
 ```bash
-# Install CloudWorkstation
-brew install scttfrdmn/tap/cloudworkstation
+# Install Prism
+brew install scttfrdmn/tap/prism
 
 # Start daemon and configure AWS
-cws daemon start
-cws profile create personal-research --aws-profile my-aws --region us-west-2
+prism daemon start
+prism profile create personal-research --aws-profile my-aws --region us-west-2
 
 # Browse available templates
-cws templates
+prism templates
 ```
 
 **What Sarah sees**: 22 pre-configured templates with estimated costs
@@ -41,13 +41,13 @@ cws templates
 ### ✅ Enable Hibernation (Cost Safety Net)
 ```bash
 # Configure aggressive hibernation for budget safety
-cws idle profile create budget-safe \
+prism idle profile create budget-safe \
   --idle-minutes 15 \
   --action hibernate \
   --description "Hibernate after 15min idle - cost savings"
 
 # Apply to future instances
-cws idle profile set-default budget-safe
+prism idle profile set-default budget-safe
 ```
 
 **Result**: Any workspace automatically hibernates after 15 minutes of inactivity
@@ -58,9 +58,9 @@ cws idle profile set-default budget-safe
 ### ✅ Launch First Workspace (Day 1)
 ```bash
 # Launch bioinformatics workstation
-cws launch bioinformatics-suite rnaseq-analysis --size M
+prism launch bioinformatics-suite rnaseq-analysis --size M
 
-# CloudWorkstation output:
+# Prism output:
 # ✅ Workspace launching: rnaseq-analysis
 # 📊 Estimated cost: $2.40/day ($72/month if running 24/7)
 # ⚙️  Hibernation policy: budget-safe (15min idle)
@@ -72,9 +72,9 @@ cws launch bioinformatics-suite rnaseq-analysis --size M
 ### ✅ Daily Work (Days 1-15)
 ```bash
 # Morning: Resume work
-cws list                    # See status: hibernated
-cws start rnaseq-analysis   # Resume in 30 seconds
-cws ssh rnaseq-analysis     # Start working
+prism list                    # See status: hibernated
+prism start rnaseq-analysis   # Resume in 30 seconds
+prism ssh rnaseq-analysis     # Start working
 
 # Work session: 4 hours
 # - Run RNA-seq pipeline
@@ -88,7 +88,7 @@ cws ssh rnaseq-analysis     # Start working
 #    Budget available increases in real-time as workspaces hibernate/stop
 
 # Afternoon: Check costs
-cws cost summary
+prism cost summary
 # Output:
 # Total monthly spend: $18.50
 # Running instances: 0 (all hibernated)
@@ -102,7 +102,7 @@ cws cost summary
 #
 # 💡 Cloud vs Owned Reality:
 #    Owned workstation: $3,000 upfront, depreciates whether you use it or not
-#    CloudWorkstation: Pay $18.50 for 60 actual hours, bank the rest!
+#    Prism: Pay $18.50 for 60 actual hours, bank the rest!
 ```
 
 > **💡 GUI Note**: Cost summary is available in the GUI Dashboard (Costs tab) with visual charts - *coming soon in v0.6.0*
@@ -118,9 +118,9 @@ cws cost summary
 
 ```bash
 # Sarah tries GPU template for deep learning experiment
-cws launch gpu-ml-workstation protein-folding --size L
+prism launch gpu-ml-workstation protein-folding --size L
 
-# CloudWorkstation output:
+# Prism output:
 # ✅ Workspace launching: protein-folding
 # 📊 Estimated cost: $24.80/day ($744/month)
 # 🔗 SSH ready in ~2 minutes...
@@ -157,7 +157,7 @@ cws launch gpu-ml-workstation protein-folding --size L
    Consider hibernating workspaces when not in use.
 ```
 
-**Current workaround**: Sarah checks `cws cost summary` daily
+**Current workaround**: Sarah checks `prism cost summary` daily
 **Impact**: Constant cognitive load, anxiety about overspending
 
 ### ❌ Problem 3: No Spending Forecasts
@@ -165,7 +165,7 @@ cws launch gpu-ml-workstation protein-folding --size L
 
 **What should happen** (MISSING):
 ```bash
-cws budget forecast
+prism budget forecast
 
 # Output:
 # 📊 Budget Forecast - Personal Research
@@ -192,10 +192,10 @@ cws budget forecast
 
 **What should happen** (MISSING):
 ```bash
-cws budget report --month september
+prism budget report --month september
 
 # Output (markdown + PDF):
-# 📊 CloudWorkstation Monthly Report - September 2024
+# 📊 Prism Monthly Report - September 2024
 #
 # Budget: $100.00
 # Actual Spend: $87.50 ✅
@@ -230,12 +230,12 @@ cws budget report --month september
 
 ```bash
 # Install and configure
-brew install scttfrdmn/tap/cloudworkstation
-cws init
+brew install scttfrdmn/tap/prism
+prism init
 
 # Interactive setup wizard:
 #
-# 🎯 CloudWorkstation Setup Wizard
+# 🎯 Prism Setup Wizard
 #
 # AWS Configuration:
 #   AWS Profile: my-aws
@@ -257,7 +257,7 @@ cws init
 # Setup complete! ✅
 
 # Verify budget configuration
-cws budget show
+prism budget show
 
 # Output:
 # 📊 Personal Budget
@@ -278,9 +278,9 @@ cws budget show
 
 ```bash
 # Launch workspace with budget preview
-cws launch bioinformatics-suite rnaseq-analysis --size M
+prism launch bioinformatics-suite rnaseq-analysis --size M
 
-# CloudWorkstation output:
+# Prism output:
 # 📊 Budget Impact Preview
 #
 #    Instance: r5.xlarge (4 vCPU, 32GB RAM)
@@ -314,11 +314,11 @@ cws launch bioinformatics-suite rnaseq-analysis --size M
 ```bash
 # Sarah receives email:
 #
-# Subject: ⚠️ CloudWorkstation Budget Alert: 80% Used
+# Subject: ⚠️ Prism Budget Alert: 80% Used
 #
 # Hi Sarah,
 #
-# You've reached 80% of your monthly CloudWorkstation budget.
+# You've reached 80% of your monthly Prism budget.
 #
 # Current Status:
 # - Spent: $80.00 / $100.00
@@ -332,15 +332,15 @@ cws launch bioinformatics-suite rnaseq-analysis --size M
 # You're on track! At current usage, you'll finish the month at ~$90.
 #
 # Actions:
-# - View details: cws budget status
-# - Adjust hibernation: cws idle profile edit budget-safe
-# - Stop all instances: cws stop --all
+# - View details: prism budget status
+# - Adjust hibernation: prism idle profile edit budget-safe
+# - Stop all instances: prism stop --all
 #
 # Best,
-# CloudWorkstation
+# Prism
 
 # Sarah checks status
-cws budget status
+prism budget status
 
 # Output:
 # 📊 Budget Status - September 2024
@@ -360,7 +360,7 @@ cws budget status
 #
 # 💡 Cost Reality Check:
 #    If you bought a workstation: $3,000 upfront + depreciation
-#    CloudWorkstation this month: $90 for 96 hours of actual compute
+#    Prism this month: $90 for 96 hours of actual compute
 #    You're only paying for what you USE, not what you OWN!
 #
 # Recommendations:
@@ -374,9 +374,9 @@ cws budget status
 
 ```bash
 # Sarah tries to launch expensive GPU workspace
-cws launch gpu-ml-workstation protein-folding --size L
+prism launch gpu-ml-workstation protein-folding --size L
 
-# CloudWorkstation output:
+# Prism output:
 # ⚠️  BUDGET WARNING: This launch may exceed your monthly budget
 #
 #    Instance: p3.2xlarge (8 vCPU, 61GB RAM, 1 GPU)
@@ -408,11 +408,11 @@ cws launch gpu-ml-workstation protein-folding --size L
 ```bash
 # First day of new month: Sarah receives email
 #
-# Subject: 📊 CloudWorkstation Monthly Report - September 2024
+# Subject: 📊 Prism Monthly Report - September 2024
 #
 # Hi Sarah,
 #
-# Your September CloudWorkstation usage summary:
+# Your September Prism usage summary:
 #
 # Budget: $100.00
 # Spent: $95.77 ✅ ($4.23 under budget)
@@ -434,13 +434,13 @@ cws launch gpu-ml-workstation protein-folding --size L
 # October budget: $104.23 ($100 base + $4.23 rollover)
 # Rollover policy allows unused budget to carry forward (max 2 months)
 #
-# View detailed report: cws budget report --month september --pdf
+# View detailed report: prism budget report --month september --pdf
 
 # Sarah generates PDF report for PI
-cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstation-report.pdf
+prism budget report --month september --pdf --output ~/Desktop/sept-prism-report.pdf
 
 # Output:
-# ✅ Report generated: sept-cloudworkstation-report.pdf
+# ✅ Report generated: sept-prism-report.pdf
 #    - Monthly summary with cost breakdown
 #    - Workspace usage timeline
 #    - Hibernation savings analysis
@@ -482,13 +482,13 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 **Target**: Solo researchers can confidently stay within budget
 
 1. **Budget Configuration** (1 week)
-   - `cws budget set --monthly 100`
+   - `prism budget set --monthly 100`
    - Store in daemon state/config
    - Persistent across restarts
 
 2. **Budget Alerts** (1 week)
    - Email notifications at 50%, 75%, 90%, 100%
-   - CLI: `cws budget alert add --threshold 80 --email user@example.com`
+   - CLI: `prism budget alert add --threshold 80 --email user@example.com`
    - Integration with daemon monitoring
 
 3. **Pre-launch Budget Check** (3 days)
@@ -500,12 +500,12 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 **Target**: Solo researchers can plan and optimize spending
 
 4. **Budget Forecasting** (1 week)
-   - `cws budget forecast`
+   - `prism budget forecast`
    - ML-based prediction using historical patterns
    - "Can I afford this workspace?" tool
 
 5. **Monthly Reporting** (1 week)
-   - `cws budget report --month september --pdf`
+   - `prism budget report --month september --pdf`
    - Automated email on 1st of month
    - Export to CSV/PDF for expense reports
 
@@ -513,7 +513,7 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 **Target**: Power users and special scenarios
 
 6. **Time-boxed Launches** (3 days)
-   - `cws launch template name --hours 8`
+   - `prism launch template name --hours 8`
    - Auto-terminate after time limit
    - Prevents runaway costs
 
@@ -540,7 +540,7 @@ cws budget report --month september --pdf --output ~/Desktop/sept-cloudworkstati
 
 ### Business Impact
 - **Reduced Support Tickets**: Fewer "How do I track costs?" questions
-- **Increased Adoption**: Budget-conscious researchers feel safe to try CloudWorkstation
+- **Increased Adoption**: Budget-conscious researchers feel safe to try Prism
 - **Positive Reviews**: "Finally, AWS for researchers who aren't made of money!"
 
 ---

@@ -349,8 +349,8 @@ scape Design System assets load (CSS + JS)
 **Error Message**:
 ```
 API request failed for /api/v1/rightsizing/stats: Error: HTTP 400: Bad Request
-    at SafeCloudWorkstationAPI.safeRequest (http://localhost:3000/src/App.tsx:44:15)
-    at async SafeCloudWorkstationAPI.getRightsizingStats (http://localhost:3000/src/App.tsx:413:20)
+    at SafePrismAPI.safeRequest (http://localhost:3000/src/App.tsx:44:15)
+    at async SafePrismAPI.getRightsizingStats (http://localhost:3000/src/App.tsx:413:20)
 ```
 
 **Recommendation**: Either implement the `/api/v1/rightsizing/stats` endpoint in the daemon OR update the GUI to handle this endpoint being unavailable without logging errors.
@@ -607,7 +607,7 @@ Since E2E tests need updating, manual testing is recommended for production vali
 
 ## Conclusion
 
-GUI user journey testing reveals that the CloudWorkstation GUI is **functionally production-ready** but has **test framework updates needed**. The application successfully loads, displays real daemon data, and provides a professional Cloudscape-based interface.
+GUI user journey testing reveals that the Prism GUI is **functionally production-ready** but has **test framework updates needed**. The application successfully loads, displays real daemon data, and provides a professional Cloudscape-based interface.
 
 **Key Issues**:
 1. **API Endpoint**: `/api/v1/rightsizing/stats` returns 400 (non-blocking)

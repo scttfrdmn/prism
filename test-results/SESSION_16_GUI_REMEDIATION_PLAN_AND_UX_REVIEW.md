@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-Conducted comprehensive UX expert review of CloudWorkstation GUI from the perspective of an experienced research computing platform designer. Identified 18 improvement opportunities across 6 categories, ranging from critical pre-launch fixes to post-production enhancements.
+Conducted comprehensive UX expert review of Prism GUI from the perspective of an experienced research computing platform designer. Identified 18 improvement opportunities across 6 categories, ranging from critical pre-launch fixes to post-production enhancements.
 
 ### Quick Assessment
 
@@ -434,13 +434,13 @@ const [showOnboarding, setShowOnboarding] = useState(() => {
 const OnboardingWizard = () => (
   <Modal
     visible={showOnboarding}
-    header="Welcome to CloudWorkstation!"
+    header="Welcome to Prism!"
     size="large"
   >
     <Wizard
       steps={[
         {
-          title: "What is CloudWorkstation?",
+          title: "What is Prism?",
           description: "Launch pre-configured research environments in seconds",
           content: <OnboardingStep1 />
         },
@@ -1448,7 +1448,7 @@ Success Criteria:
 
 ## Conclusion
 
-CloudWorkstation GUI is **very close to production-ready** with strong foundations in place (Cloudscape design system, comprehensive feature coverage, real daemon integration). However, completing the P0 items (~8 hours) is **critical before real user testing** to ensure safety and positive first impressions.
+Prism GUI is **very close to production-ready** with strong foundations in place (Cloudscape design system, comprehensive feature coverage, real daemon integration). However, completing the P0 items (~8 hours) is **critical before real user testing** to ensure safety and positive first impressions.
 
 ### Strengths to Maintain:
 - ✅ Professional Cloudscape design system

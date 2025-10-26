@@ -1,4 +1,4 @@
-# CloudWorkstation Phase 5A: Research User Architecture
+# Prism Phase 5A: Research User Architecture
 
 **Version**: v0.5.0 Implementation Guide
 **Status**: Foundation Complete
@@ -24,7 +24,7 @@
 
 ## Overview
 
-CloudWorkstation Phase 5A implements a **research user architecture** that provides persistent user identity across instances while maintaining template flexibility. This foundation enables collaborative research environments with consistent file permissions and cross-template compatibility.
+Prism Phase 5A implements a **research user architecture** that provides persistent user identity across instances while maintaining template flexibility. This foundation enables collaborative research environments with consistent file permissions and cross-template compatibility.
 
 ### Key Achievements
 
@@ -39,7 +39,7 @@ CloudWorkstation Phase 5A implements a **research user architecture** that provi
 
 ### Current Challenge
 
-CloudWorkstation templates create various system users:
+Prism templates create various system users:
 
 ```yaml
 # Python ML Template
@@ -108,7 +108,7 @@ Profile Selection → Research User Creation → UID/GID Allocation → SSH Key 
 
 ### Key Design Principles
 
-1. **Profile-Centric**: Research users belong to CloudWorkstation profiles
+1. **Profile-Centric**: Research users belong to Prism profiles
 2. **Deterministic**: Same profile+username = same UID everywhere
 3. **Template-Agnostic**: Works with any template system
 4. **EFS-Ready**: Home directories designed for EFS persistence
@@ -245,7 +245,7 @@ type SSHKeyConfig struct {
 
 ```bash
 # Generated authorized_keys content
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@cloudworkstation-personal
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@prism-personal
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQc7... alice@external-key
 ```
 
@@ -277,7 +277,7 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQc7... alice@external-key
 
 ```bash
 #!/bin/bash
-# CloudWorkstation Research User Provisioning Script
+# Prism Research User Provisioning Script
 # User: alice (UID: 5001)
 
 # Create research groups
@@ -295,7 +295,7 @@ chmod 750 /efs/home/alice
 
 # Install SSH keys
 mkdir -p /efs/home/alice/.ssh
-echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@cloudworkstation' >> /efs/home/alice/.ssh/authorized_keys
+echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@prism' >> /efs/home/alice/.ssh/authorized_keys
 chmod 600 /efs/home/alice/.ssh/authorized_keys
 chown -R alice:research /efs/home/alice/.ssh
 
@@ -415,22 +415,22 @@ R Instance (Day 2):
 
 ```bash
 # Research user management
-cws research-user create alice
-cws research-user list
-cws research-user delete alice
+prism research-user create alice
+prism research-user list
+prism research-user delete alice
 
 # SSH key management
-cws research-user ssh-key generate alice ed25519
-cws research-user ssh-key import alice ~/.ssh/id_rsa.pub
-cws research-user ssh-key list alice
+prism research-user ssh-key generate alice ed25519
+prism research-user ssh-key import alice ~/.ssh/id_rsa.pub
+prism research-user ssh-key list alice
 
 # Instance provisioning
-cws launch python-ml my-instance --research-user alice
-cws research-user provision alice --instance my-instance
+prism launch python-ml my-instance --research-user alice
+prism research-user provision alice --instance my-instance
 
 # Status and monitoring
-cws research-user status alice --instance my-instance
-cws research-user list-instances alice
+prism research-user status alice --instance my-instance
+prism research-user list-instances alice
 ```
 
 ### TUI Integration
@@ -472,7 +472,7 @@ Research Users Tab
 
 ### SSH Key Security
 
-- **Per-Profile Storage**: SSH keys isolated by CloudWorkstation profile
+- **Per-Profile Storage**: SSH keys isolated by Prism profile
 - **Secure Generation**: Ed25519/RSA keys generated with cryptographically secure randomness
 - **Fingerprint Validation**: All keys validated and fingerprinted
 - **Key Rotation**: Support for key replacement and rotation
@@ -530,7 +530,7 @@ Research Users Tab
 
 ### Phase 2: Integration (Next)
 
-- [ ] CLI command integration (`cws research-user`)
+- [ ] CLI command integration (`prism research-user`)
 - [ ] TUI interface for research user management
 - [ ] GUI screens for visual management
 - [ ] Template system integration
@@ -626,7 +626,7 @@ func TestSSHKeyGeneration(t *testing.T) {
 
 ## Conclusion
 
-CloudWorkstation Phase 5A Research User Architecture provides a solid foundation for collaborative research computing. The dual user system successfully separates template flexibility from research user continuity, enabling seamless multi-instance workflows while maintaining backward compatibility.
+Prism Phase 5A Research User Architecture provides a solid foundation for collaborative research computing. The dual user system successfully separates template flexibility from research user continuity, enabling seamless multi-instance workflows while maintaining backward compatibility.
 
 **Key Success Metrics:**
 - ✅ **Consistent Identity**: Same UID/GID across all instances
@@ -635,7 +635,7 @@ CloudWorkstation Phase 5A Research User Architecture provides a solid foundation
 - ✅ **SSH Management**: Automated key generation and distribution
 - ✅ **Profile Integration**: Seamless existing system integration
 
-This architecture enables CloudWorkstation's evolution from individual research tool to collaborative research platform, supporting institutional deployment while preserving its core simplicity.
+This architecture enables Prism's evolution from individual research tool to collaborative research platform, supporting institutional deployment while preserving its core simplicity.
 
 ---
 

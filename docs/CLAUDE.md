@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 📋 Quick Navigation
 
 **Project Management** (Use GitHub!):
-- 🎯 [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues) - **Current work, bugs, features**
-- 📊 [GitHub Projects](https://github.com/scttfrdmn/cloudworkstation/projects) - **Roadmap and sprint planning**
-- 🏁 [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones) - **Phase tracking and progress**
+- 🎯 [GitHub Issues](https://github.com/scttfrdmn/prism/issues) - **Current work, bugs, features**
+- 📊 [GitHub Projects](https://github.com/scttfrdmn/prism/projects) - **Roadmap and sprint planning**
+- 🏁 [GitHub Milestones](https://github.com/scttfrdmn/prism/milestones) - **Phase tracking and progress**
 
 **Essential Reading**:
 - 👥 [USER_SCENARIOS/](USER_SCENARIOS/) - **5 persona walkthroughs (our north star)**
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CloudWorkstation is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
+Prism is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
 
 **Current Version**: v0.5.5
 **Current Focus**: [Phase 5.0 UX Redesign](ROADMAP.md#-current-focus-phase-50---ux-redesign) (HIGHEST PRIORITY)
@@ -36,7 +36,7 @@ CloudWorkstation is a command-line tool that provides academic researchers with 
 
 ## 🎯 Persona-Driven Development (CRITICAL)
 
-CloudWorkstation's feature development is guided by [5 persona walkthroughs](USER_SCENARIOS/) that represent real-world research scenarios. These scenarios are our **north star** for prioritization and decision-making.
+Prism's feature development is guided by [5 persona walkthroughs](USER_SCENARIOS/) that represent real-world research scenarios. These scenarios are our **north star** for prioritization and decision-making.
 
 ### Before Implementing ANY Feature:
 
@@ -83,7 +83,7 @@ Simple by default, detailed when needed. Power users can access advanced feature
 ## 🚀 Current Development Status
 
 **Current Version**: v0.5.5
-**Current Milestone**: [Phase 5.0: UX Redesign](https://github.com/scttfrdmn/cloudworkstation/milestone/1)
+**Current Milestone**: [Phase 5.0: UX Redesign](https://github.com/scttfrdmn/prism/milestone/1)
 
 ### Completed Phases
 - ✅ Phase 1: Distributed Architecture
@@ -103,46 +103,46 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - Current: 15-minute learning curve for first workspace (should be 30 seconds)
 - Problem: 14 flat navigation items, advanced features too prominent
 - Impact: New researchers face cognitive overload before basic tasks
-- **Track progress**: [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones)
+- **Track progress**: [GitHub Milestones](https://github.com/scttfrdmn/prism/milestones)
 - **See UX analysis**: [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 
 #### Phase 5.0.1: Quick Wins (Due: November 15, 2025)
-**Milestone**: [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | **Status**: 🟡 In Progress
+**Milestone**: [#2](https://github.com/scttfrdmn/prism/milestone/2) | **Status**: 🟡 In Progress
 
 High-impact, low-effort improvements (2 weeks):
-- [#13](https://github.com/scttfrdmn/cloudworkstation/issues/13) - Home Page with Quick Start wizard
-- [#14](https://github.com/scttfrdmn/cloudworkstation/issues/14) - Merge Terminal/WebView into Workspaces
-- [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15) - Rename "Instances" → "Workspaces"
-- [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16) - Collapse Advanced Features under Settings
-- [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) - Add `cws init` onboarding wizard
+- [#13](https://github.com/scttfrdmn/prism/issues/13) - Home Page with Quick Start wizard
+- [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
+- [#15](https://github.com/scttfrdmn/prism/issues/15) - Rename "Instances" → "Workspaces"
+- [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
+- [#17](https://github.com/scttfrdmn/prism/issues/17) - Add `prism init` onboarding wizard
 
-**Deferred**: ~~[#65](https://github.com/scttfrdmn/cloudworkstation/issues/65) - Project rename~~ *(final name TBD)*
+**Deferred**: ~~[#65](https://github.com/scttfrdmn/prism/issues/65) - Project rename~~ *(final name TBD)*
 
 #### Phase 5.0.2: Information Architecture (Due: December 15, 2025)
-**Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | **Status**: 📋 Planned
+**Milestone**: [#3](https://github.com/scttfrdmn/prism/milestone/3) | **Status**: 📋 Planned
 
 Navigation and structural improvements (4 weeks):
-- [#18](https://github.com/scttfrdmn/cloudworkstation/issues/18) - Unified Storage UI (EFS + EBS)
-- [#19](https://github.com/scttfrdmn/cloudworkstation/issues/19) - Integrate Budgets into Projects
+- [#18](https://github.com/scttfrdmn/prism/issues/18) - Unified Storage UI (EFS + EBS)
+- [#19](https://github.com/scttfrdmn/prism/issues/19) - Integrate Budgets into Projects
 - Navigation reorganization (14 → 6 items)
 - Role-based visibility (hide admin features)
 
 #### Phase 5.0.3: CLI Consistency (Due: December 31, 2025)
-**Milestone**: [#4](https://github.com/scttfrdmn/cloudworkstation/milestone/4) | **Status**: 📋 Planned
+**Milestone**: [#4](https://github.com/scttfrdmn/prism/milestone/4) | **Status**: 📋 Planned
 
 Command structure improvements (2 weeks):
-- [#20](https://github.com/scttfrdmn/cloudworkstation/issues/20) - Consistent CLI Command Structure
-- Unified storage commands (`cws storage`)
+- [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
+- Unified storage commands (`prism storage`)
 - Predictable command patterns
 - Enhanced tab completion
 
 #### Template Provisioning Enhancements (Also in v0.5.6)
-**Milestone**: [#13](https://github.com/scttfrdmn/cloudworkstation/milestone/13) | **Status**: 📋 Planned
+**Milestone**: [#13](https://github.com/scttfrdmn/prism/milestone/13) | **Status**: 📋 Planned
 
 Advanced provisioning capabilities:
-- [#30](https://github.com/scttfrdmn/cloudworkstation/issues/30) - SSM File Operations for Large Files
-- [#64](https://github.com/scttfrdmn/cloudworkstation/issues/64) - S3-Backed File Transfer with Progress
-- [#31](https://github.com/scttfrdmn/cloudworkstation/issues/31) - Template Asset Management
+- [#30](https://github.com/scttfrdmn/prism/issues/30) - SSM File Operations for Large Files
+- [#64](https://github.com/scttfrdmn/prism/issues/64) - S3-Backed File Transfer with Progress
+- [#31](https://github.com/scttfrdmn/prism/issues/31) - Template Asset Management
 
 ---
 
@@ -153,7 +153,7 @@ Advanced provisioning capabilities:
 ```
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
 │ CLI Client  │  │ TUI Client  │  │ GUI Client  │
-│ (cmd/cws)   │  │ (cws tui)   │  │ (cmd/cws-gui)│
+│ (cmd/cws)   │  │ (prism tui)   │  │ (cmd/cws-gui)│
 └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
        │                │                │
        └────────────────┼────────────────┘

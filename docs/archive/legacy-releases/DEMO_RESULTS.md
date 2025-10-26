@@ -1,8 +1,8 @@
-# CloudWorkstation v0.4.2 Demo Results
+# Prism v0.4.2 Demo Results
 
 ## ✅ Demo Execution Summary
 
-Successfully tested and demonstrated CloudWorkstation v0.4.2 with all major features working correctly.
+Successfully tested and demonstrated Prism v0.4.2 with all major features working correctly.
 
 ## 🧪 Test Results
 
@@ -13,8 +13,8 @@ Successfully tested and demonstrated CloudWorkstation v0.4.2 with all major feat
 - **✅ Development Mode**: CLOUDWORKSTATION_DEV=true eliminates keychain prompts
 
 ### Homebrew Tap Testing
-- **✅ Tap Installation**: `brew tap scttfrdmn/cloudworkstation` successful
-- **✅ Formula Discovery**: `brew search cloudworkstation` finds formula
+- **✅ Tap Installation**: `brew tap scttfrdmn/prism` successful
+- **✅ Formula Discovery**: `brew search prism` finds formula
 - **✅ Formula Configuration**: Cross-platform support (macOS Intel/ARM, Linux x64/ARM64)
 
 ### API Testing
@@ -55,8 +55,8 @@ curl http://localhost:8947/api/v1/templates | jq 'keys'
 ### 4. Package Management Integration
 ```bash
 # Homebrew tap working
-brew search cloudworkstation
-# → scttfrdmn/cloudworkstation/cloudworkstation
+brew search prism
+# → scttfrdmn/prism/prism
 ```
 
 ### 5. Enterprise Features (Simulated)
@@ -68,20 +68,20 @@ brew search cloudworkstation
 ## 📋 Demo Replication Instructions
 
 ### Quick Start (Homebrew Installation)
-1. **Install**: `brew tap scttfrdmn/cloudworkstation && brew install cloudworkstation`
-2. **AWS Setup**: `aws configure --profile aws && cws profiles add personal research --aws-profile aws --region us-west-2`
+1. **Install**: `brew tap scttfrdmn/prism && brew install prism`
+2. **AWS Setup**: `aws configure --profile aws && prism profiles add personal research --aws-profile aws --region us-west-2`
 3. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
 4. **Run Demo**: `./demo.sh`
 
 ### Alternative (Source Build)
-1. **Clone Repository**: `git clone https://github.com/scttfrdmn/cloudworkstation`
+1. **Clone Repository**: `git clone https://github.com/scttfrdmn/prism`
 2. **AWS Setup**: `aws configure --profile aws && ./bin/cws profiles add personal research --aws-profile aws --region us-west-2`
 3. **Set Development Mode**: `export CLOUDWORKSTATION_DEV=true`
 4. **Build Locally**: `make build`
 5. **Run Demo**: `./demo.sh` (auto-detects source vs system installation)
 
 ### Full Demo Sequence (15 minutes)
-1. **Installation & Setup (2 min)**: Homebrew tap, CloudWorkstation profiles, versions
+1. **Installation & Setup (2 min)**: Homebrew tap, Prism profiles, versions
 2. **First Workstation (3 min)**: Launch, connect (SSH), environment verification
 3. **Template Inheritance (2 min)**: Stacking, multi-user environments
 4. **Multi-Modal Access (2 min)**: CLI, TUI, GUI, REST API, profile management
@@ -91,8 +91,8 @@ brew search cloudworkstation
 
 ### Prerequisites for Full AWS Demo
 - AWS credentials configured (`aws configure --profile aws`)
-- CloudWorkstation profile created (`cws profiles add personal research --aws-profile aws --region us-west-2`)
-- CloudWorkstation daemon running (`cws daemon start`)
+- Prism profile created (`prism profiles add personal research --aws-profile aws --region us-west-2`)
+- Prism daemon running (`prism daemon start`)
 - Active AWS account with EC2 permissions
 
 ### Demo Files Created
@@ -112,8 +112,8 @@ brew search cloudworkstation
 ### 📦 Distribution Channels
 1. **Homebrew Tap**: 
    ```bash
-   brew tap scttfrdmn/cloudworkstation
-   brew install cloudworkstation
+   brew tap scttfrdmn/prism
+   brew install prism
    ```
 2. **GitHub Releases**: Cross-platform binaries (pending manual release creation)
 3. **Source Build**: Full functionality including GUI
@@ -141,4 +141,4 @@ brew search cloudworkstation
 - Complete API coverage for all functionality
 - Multi-modal interface parity (CLI, TUI, GUI, API)
 
-**CloudWorkstation v0.4.2 successfully demonstrates enterprise-ready research computing platform that scales from individual researchers to institutional deployments while preserving the simplicity that makes research computing accessible to everyone.**
+**Prism v0.4.2 successfully demonstrates enterprise-ready research computing platform that scales from individual researchers to institutional deployments while preserving the simplicity that makes research computing accessible to everyone.**

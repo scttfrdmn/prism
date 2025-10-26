@@ -1,8 +1,8 @@
-# CloudWorkstation v0.4.1 Release Notes
+# Prism v0.4.1 Release Notes
 
 ## 🎉 Major Stability & Polish Release
 
-This release represents a major stability milestone for CloudWorkstation, resolving critical GUI issues, fixing daemon communication bugs, and providing a completely reorganized documentation structure. All interfaces (CLI, TUI, GUI) now work seamlessly with improved error handling and user experience.
+This release represents a major stability milestone for Prism, resolving critical GUI issues, fixing daemon communication bugs, and providing a completely reorganized documentation structure. All interfaces (CLI, TUI, GUI) now work seamlessly with improved error handling and user experience.
 
 ## 🐛 Critical Bug Fixes
 
@@ -82,17 +82,17 @@ This release includes a production-ready Homebrew formula:
 
 ```bash
 # For public release (future):
-brew tap scttfrdmn/cloudworkstation  
-brew install cloudworkstation
+brew tap scttfrdmn/prism  
+brew install prism
 
 # Current development:
-brew install path/to/cloudworkstation.rb
+brew install path/to/prism.rb
 ```
 
 ### Multi-Interface Support
-- **CLI**: `cws --help` (command-line interface)
-- **TUI**: `cws tui` (terminal user interface) 
-- **GUI**: `cws-gui` (graphical user interface)
+- **CLI**: `prism --help` (command-line interface)
+- **TUI**: `prism tui` (terminal user interface) 
+- **GUI**: `prism-gui` (graphical user interface)
 
 All interfaces now work seamlessly with the same daemon backend.
 
@@ -119,7 +119,7 @@ With v0.4.1's stability improvements, the foundation is set for exciting v0.5.0 
 ## 📦 Download & Installation
 
 ### GitHub Release
-- **Source code**: `cloudworkstation-0.4.1.tar.gz`
+- **Source code**: `prism-0.4.1.tar.gz`
 - **SHA256**: `3a747a4e0fd8fd85ee621699b443d288d4e254180acafa5dbaa5674e9e5ee922`
 
 ### Requirements
@@ -130,8 +130,8 @@ With v0.4.1's stability improvements, the foundation is set for exciting v0.5.0 
 ### Quick Start
 ```bash
 # Install from source
-tar -xzf cloudworkstation-0.4.1.tar.gz
-cd cloudworkstation-0.4.1
+tar -xzf prism-0.4.1.tar.gz
+cd prism-0.4.1
 make build
 
 # View available templates
@@ -147,4 +147,4 @@ This release represents significant improvements in stability, user experience, 
 
 ---
 
-**Full Changelog**: https://github.com/scttfrdmn/cloudworkstation/compare/v0.4.0...v0.4.1
+**Full Changelog**: https://github.com/scttfrdmn/prism/compare/v0.4.0...v0.4.1

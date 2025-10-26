@@ -1,8 +1,8 @@
-# Testing and Linting Guide for CloudWorkstation
+# Testing and Linting Guide for Prism
 
 ## Overview
 
-CloudWorkstation employs comprehensive testing and linting strategies to ensure code quality, reliability, and maintainability. This guide covers our testing infrastructure, linting configuration, and automated quality checks.
+Prism employs comprehensive testing and linting strategies to ensure code quality, reliability, and maintainability. This guide covers our testing infrastructure, linting configuration, and automated quality checks.
 
 ## Testing Infrastructure
 

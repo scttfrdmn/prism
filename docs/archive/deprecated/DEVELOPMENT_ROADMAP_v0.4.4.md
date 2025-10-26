@@ -1,4 +1,4 @@
-# CloudWorkstation v0.4.4 Development Roadmap
+# Prism v0.4.4 Development Roadmap
 
 ## Overview
 

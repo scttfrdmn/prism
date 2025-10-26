@@ -11,7 +11,7 @@
 
 Running the comprehensive real AWS validation script immediately uncovered **critical architecture mismatch bugs** that would result in **100% failure rate for ARM64 Mac users** (the majority of academic researchers).
 
-**Key Finding**: CloudWorkstation currently uses the **local machine's architecture** to select cloud instance AMIs, but then pairs them with instance types that may have different architectures. This fundamental design flaw makes the platform **completely unusable for Mac users**.
+**Key Finding**: Prism currently uses the **local machine's architecture** to select cloud instance AMIs, but then pairs them with instance types that may have different architectures. This fundamental design flaw makes the platform **completely unusable for Mac users**.
 
 ### Test Results Summary
 
@@ -37,7 +37,7 @@ Running the comprehensive real AWS validation script immediately uncovered **cri
 
 ### ✅ Test 1: First-Time Setup Experience - PASSED
 
-**Objective**: Verify new users can set up CloudWorkstation without AWS/systemd expertise
+**Objective**: Verify new users can set up Prism without AWS/systemd expertise
 
 **Results**:
 - ✅ Templates list worked on first run (fresh config)
@@ -88,7 +88,7 @@ API error 500 for POST /api/v1/instances: {
 **User Impact**:
 - Non-expert users see cryptic AWS API error
 - No clear path forward
-- Complete inability to use CloudWorkstation
+- Complete inability to use Prism
 - Affects 100% of Mac users
 
 **Test Details**:
@@ -116,7 +116,7 @@ All subsequent tests depend on successful instance launch:
 
 ### Problem Description
 
-CloudWorkstation uses `runtime.GOARCH` to detect the **local machine's architecture** (where the CLI is running) to select which AMI to use in AWS. This is fundamentally wrong because:
+Prism uses `runtime.GOARCH` to detect the **local machine's architecture** (where the CLI is running) to select which AMI to use in AWS. This is fundamentally wrong because:
 
 1. Local machine architecture is **irrelevant** to cloud instance selection
 2. Mac users (ARM64 locally) may want x86_64 cloud instances
@@ -124,7 +124,7 @@ CloudWorkstation uses `runtime.GOARCH` to detect the **local machine's architect
 
 ### Root Cause Analysis
 
-**File**: `/Users/scttfrdmn/src/cloudworkstation/pkg/aws/manager.go`
+**File**: `/Users/scttfrdmn/src/prism/pkg/aws/manager.go`
 
 **Buggy Function** (lines 1392-1402):
 ```go
@@ -166,10 +166,10 @@ func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, er
 ### Reproduction Steps
 
 1. Use any ARM64 Mac (Apple Silicon)
-2. Run CloudWorkstation CLI
+2. Run Prism CLI
 3. Attempt to launch any template:
    ```bash
-   cws launch test-ssh my-instance --size S
+   prism launch test-ssh my-instance --size S
    ```
 4. Observe immediate failure with architecture mismatch error
 
@@ -249,7 +249,7 @@ func (m *Manager) LaunchInstance(req ctypes.LaunchRequest) (*ctypes.Instance, er
 
 **Pros**:
 - ✅ Optimal cost/performance automatically
-- ✅ Follows all CloudWorkstation design principles
+- ✅ Follows all Prism design principles
 - ✅ Educational user experience
 
 **Cons**:
@@ -392,7 +392,7 @@ Before releasing to real testers, MUST have:
 
 ### Design Principle Violations
 
-The architecture bug violates these CloudWorkstation design principles:
+The architecture bug violates these Prism design principles:
 
 1. **❌ Default to Success**: Mac users cannot succeed by default
 2. **❌ Optimize by Default**: Not selecting optimal architecture

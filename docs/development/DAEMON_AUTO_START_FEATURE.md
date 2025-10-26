@@ -8,7 +8,7 @@
 
 ## Overview
 
-The GUI now automatically starts the CloudWorkstation daemon (`cwsd`) if it's not already running. This eliminates the common issue where users launch the GUI and see empty data because the daemon wasn't started first.
+The GUI now automatically starts the Prism daemon (`cwsd`) if it's not already running. This eliminates the common issue where users launch the GUI and see empty data because the daemon wasn't started first.
 
 ---
 
@@ -47,7 +47,7 @@ When the GUI starts, it now:
 ```
 2025/10/15 09:02:47 🔍 Checking if daemon is running...
 2025/10/15 09:02:47 ⚠️  Daemon is not running, attempting to start...
-2025/10/15 09:02:47 📍 Found daemon at: /Users/username/cloudworkstation/bin/cwsd
+2025/10/15 09:02:47 📍 Found daemon at: /Users/username/prism/bin/cwsd
 2025/10/15 09:02:47 ⏳ Waiting for daemon to initialize...
 2025/10/15 09:02:50 ✅ Daemon started successfully!
 ```
@@ -116,7 +116,7 @@ cmd.SysProcAttr = &syscall.SysProcAttr{
 - GUI launched with timeout
 - GUI killed by timeout signal
 - Daemon continued running independently ✅
-- `cws daemon status` confirmed daemon still healthy ✅
+- `prism daemon status` confirmed daemon still healthy ✅
 
 #### 4. Wait Loop
 ```go
@@ -139,8 +139,8 @@ for i := 0; i < maxAttempts; i++ {
 
 ### Successful Auto-Start
 
-1. User double-clicks `cws-gui` application
-2. GUI window shows briefly: "Starting CloudWorkstation..."
+1. User double-clicks `prism-gui` application
+2. GUI window shows briefly: "Starting Prism..."
 3. Console shows daemon auto-start messages (if terminal visible)
 4. GUI loads with all data populated (27 templates, instances, etc.)
 5. User never knows daemon wasn't running
@@ -149,7 +149,7 @@ for i := 0; i < maxAttempts; i++ {
 
 ### Daemon Already Running
 
-1. User double-clicks `cws-gui` application
+1. User double-clicks `prism-gui` application
 2. Health check passes immediately (<100ms)
 3. GUI loads with all data populated
 4. No daemon startup messages
@@ -158,12 +158,12 @@ for i := 0; i < maxAttempts; i++ {
 
 ### Auto-Start Failure
 
-1. User double-clicks `cws-gui` application
+1. User double-clicks `prism-gui` application
 2. Daemon binary not found or fails to start
 3. Console shows error:
    ```
    ❌ Failed to start daemon: cannot start daemon: daemon binary (cwsd) not found
-   Please start the daemon manually with: cws daemon start
+   Please start the daemon manually with: prism daemon start
    ```
 4. GUI continues to open anyway
 5. GUI shows connection error with helpful message
@@ -395,4 +395,4 @@ The daemon auto-start feature successfully eliminates the #1 user confusion poin
 **Implementation Date**: October 15, 2025
 **Implemented By**: Claude Code Development Session
 **Tested On**: macOS 15.7.1 (Sequoia)
-**Version**: CloudWorkstation 0.5.2
+**Version**: Prism 0.5.2

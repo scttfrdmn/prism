@@ -1,6 +1,6 @@
 # Basic Policy Framework Examples
 
-This document demonstrates the basic policy framework included in the open source version of CloudWorkstation, showing practical examples for educational, research, and small organizational use cases.
+This document demonstrates the basic policy framework included in the open source version of Prism, showing practical examples for educational, research, and small organizational use cases.
 
 ## Educational Use Cases
 
@@ -10,7 +10,7 @@ This document demonstrates the basic policy framework included in the open sourc
 
 ```bash
 # Create invitation for CS101 students with specific templates only
-cws profiles invitations create "CS101 Introduction to Python" \
+prism profiles invitations create "CS101 Introduction to Python" \
   --type read_only \
   --valid-days 120 \
   --template-whitelist "python-basic,ubuntu-basic" \
@@ -32,14 +32,14 @@ Share this invitation code with the recipient:
 inv-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
 
 They can accept it with:
-cws profiles accept-invitation --encoded 'inv-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890' --name 'CS101'
+prism profiles accept-invitation --encoded 'inv-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890' --name 'CS101'
 ```
 
 **Student Experience** (accepting and using restricted profile):
 
 ```bash
 # Student accepts class invitation
-cws profiles accept-invitation \
+prism profiles accept-invitation \
   --encoded 'inv-AbCdEfGhIjKlMnOpQrStUvWxYz1234567890' \
   --name 'CS101'
 
@@ -47,7 +47,7 @@ cws profiles accept-invitation \
 Accepted invitation and created profile 'CS101'
 
 # Student tries to launch an allowed template - SUCCESS
-cws launch python-basic my-homework
+prism launch python-basic my-homework
 # Output:
 ✓ Policy check: Template 'python-basic' is allowed
 ✓ Instance type 't2.micro' is within limits
@@ -55,13 +55,13 @@ cws launch python-basic my-homework
 Launching instance...
 
 # Student tries to launch a restricted template - BLOCKED
-cws launch python-ml advanced-project
+prism launch python-ml advanced-project
 # Output:
 ✗ Policy violation: Template 'python-ml' not in allowed list: [python-basic ubuntu-basic]
 Available templates for this profile: python-basic, ubuntu-basic
 
 # Student tries expensive instance - BLOCKED  
-cws launch python-basic my-project --size XL
+prism launch python-basic my-project --size XL
 # Output:
 ✗ Policy violation: Instance type 'c5.4xlarge' not allowed. Maximum allowed: [t2.micro t2.small]
 ✗ Policy violation: Hourly cost $0.544 exceeds maximum allowed $0.10
@@ -71,7 +71,7 @@ cws launch python-basic my-project --size XL
 
 ```bash
 # CS401 Machine Learning course with GPU access
-cws profiles invitations create "CS401 Machine Learning" \
+prism profiles invitations create "CS401 Machine Learning" \
   --type read_write \
   --valid-days 90 \
   --template-whitelist "python-ml,r-research,jupyter-gpu" \
@@ -90,7 +90,7 @@ cws profiles invitations create "CS401 Machine Learning" \
 
 ```bash
 # Create invitation for graduate students with research flexibility
-cws profiles invitations create "Bioinformatics Lab Access" \
+prism profiles invitations create "Bioinformatics Lab Access" \
   --type read_write \
   --valid-days 365 \
   --template-blacklist "windows-desktop,gaming-instance" \
@@ -106,16 +106,16 @@ cws profiles invitations create "Bioinformatics Lab Access" \
 
 ```bash
 # Student can launch appropriate research templates
-cws launch python-ml genomics-analysis  # ✓ Allowed
-cws launch r-research statistical-modeling  # ✓ Allowed 
-cws launch jupyter-gpu deep-learning  # ✓ Allowed
+prism launch python-ml genomics-analysis  # ✓ Allowed
+prism launch r-research statistical-modeling  # ✓ Allowed 
+prism launch jupyter-gpu deep-learning  # ✓ Allowed
 
 # But blocked from inappropriate templates
-cws launch windows-desktop my-project
+prism launch windows-desktop my-project
 # ✗ Policy violation: Template 'windows-desktop' is blacklisted
 
 # And prevented from expensive regions
-cws launch python-ml project --region eu-central-1  
+prism launch python-ml project --region eu-central-1  
 # ✗ Policy violation: Region 'eu-central-1' is forbidden
 ```
 
@@ -123,7 +123,7 @@ cws launch python-ml project --region eu-central-1
 
 ```bash
 # Shared project between multiple institutions
-cws profiles invitations create "Multi-Lab COVID Study" \
+prism profiles invitations create "Multi-Lab COVID Study" \
   --type read_write \
   --valid-days 180 \
   --template-whitelist "r-research,python-bio,jupyter-collaborative" \
@@ -142,7 +142,7 @@ cws profiles invitations create "Multi-Lab COVID Study" \
 
 ```bash
 # Development team with cost controls
-cws profiles invitations create "Dev Team Environment" \
+prism profiles invitations create "Dev Team Environment" \
   --type read_write \
   --valid-days 90 \
   --template-whitelist "ubuntu-dev,python-web,node-js,docker-compose" \
@@ -158,7 +158,7 @@ cws profiles invitations create "Dev Team Environment" \
 
 ```bash
 # Client-specific environment with restrictions
-cws profiles invitations create "ACME Corp Analytics Project" \
+prism profiles invitations create "ACME Corp Analytics Project" \
   --type read_only \
   --valid-days 60 \
   --template-whitelist "r-research,python-data-analysis" \
@@ -177,7 +177,7 @@ cws profiles invitations create "ACME Corp Analytics Project" \
 
 ```bash
 # NSF grant with specific budget limits
-cws profiles invitations create "NSF Grant XYZ Computing" \
+prism profiles invitations create "NSF Grant XYZ Computing" \
   --type read_write \
   --valid-days 1095 \  # 3 years
   --template-whitelist "python-scientific,r-hpc,matlab-compute" \
@@ -193,7 +193,7 @@ cws profiles invitations create "NSF Grant XYZ Computing" \
 
 ```bash
 # Chemistry department semester budget
-cws profiles invitations create "Chem Dept Fall 2024" \
+prism profiles invitations create "Chem Dept Fall 2024" \
   --type read_write \
   --valid-days 120 \
   --template-blacklist "gaming-instance,desktop-heavy,video-editing" \
@@ -211,7 +211,7 @@ cws profiles invitations create "Chem Dept Fall 2024" \
 
 ```bash
 # View current profile policy restrictions
-cws profiles current
+prism profiles current
 
 # Output:
 Current profile: CS101 (Invitation)
@@ -229,7 +229,7 @@ Policy Restrictions:
 
 ```bash
 # Check which templates are available for current profile
-cws templates list --profile-filtered
+prism templates list --profile-filtered
 
 # Output:
 Available templates for profile 'CS101':
@@ -247,7 +247,7 @@ Restricted templates (policy violations):
 
 ```bash
 # Profile owner can temporarily override restrictions (admin profiles only)
-cws launch python-ml emergency-analysis --override-policy --confirm
+prism launch python-ml emergency-analysis --override-policy --confirm
 
 # Requires confirmation and logs policy override for audit
 ```
@@ -258,7 +258,7 @@ cws launch python-ml emergency-analysis --override-policy --confirm
 
 ```bash
 # Department-level base restrictions
-cws profiles invitations create "Computer Science Department" \
+prism profiles invitations create "Computer Science Department" \
   --type admin \
   --template-blacklist "windows-desktop,gaming-instance" \
   --forbidden-regions "us-gov-west-1" \
@@ -272,7 +272,7 @@ cws profiles invitations create "Computer Science Department" \
 
 ```bash
 # Summer research program with higher limits
-cws profiles invitations create "Summer REU Program" \
+prism profiles invitations create "Summer REU Program" \
   --type read_write \
   --valid-days 90 \
   --template-whitelist "python-ml,r-research,jupyter-gpu,matlab-compute" \

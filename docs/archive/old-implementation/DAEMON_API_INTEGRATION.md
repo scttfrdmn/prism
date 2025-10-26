@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CloudWorkstation daemon now includes complete API support for applying templates to running instances. This integration provides server-side endpoints that the CLI and GUI clients can use to perform template operations through the REST API.
+The Prism daemon now includes complete API support for applying templates to running instances. This integration provides server-side endpoints that the CLI and GUI clients can use to perform template operations through the REST API.
 
 ## API Endpoints
 
@@ -195,8 +195,8 @@ type AppliedTemplateRecord struct {
 ```
 
 **Persistent Storage**:
-- Template application history stored in CloudWorkstation state file
-- Rollback checkpoints maintained on instances at `/opt/cloudworkstation/checkpoints/`
+- Template application history stored in Prism state file
+- Rollback checkpoints maintained on instances at `/opt/prism/checkpoints/`
 - Automatic state synchronization between daemon and instances
 
 ## Request Validation
@@ -235,7 +235,7 @@ return templates.NewSystemsManagerExecutor(region), nil
 ### Configuration Management
 
 **SSH Key Resolution**:
-- Check CloudWorkstation configuration for instance-specific keys
+- Check Prism configuration for instance-specific keys
 - Fall back to default AWS key pairs
 - Support per-template SSH user configuration
 

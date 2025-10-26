@@ -65,7 +65,7 @@ assert.Contains(t, err.Error(), "invalid profile config type")  // For invalid c
 ---
 
 ### 3. ✅ Malformed Template File Resolution (25 minutes)
-**File**: `/Users/scttfrdmn/.cloudworkstation/templates/new-template.yml`
+**File**: `/Users/scttfrdmn/.prism/templates/new-template.yml`
 
 **Problem**: Template validation tests failing with YAML parse errors
 ```

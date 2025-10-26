@@ -1,8 +1,8 @@
 # Research User Management Guide
 
-**CloudWorkstation v0.5.0 Administrator and Power User Guide**
+**Prism v0.5.0 Administrator and Power User Guide**
 
-This guide provides comprehensive information for managing research users in CloudWorkstation environments, including setup, administration, troubleshooting, and best practices for individual, team, and institutional deployments.
+This guide provides comprehensive information for managing research users in Prism environments, including setup, administration, troubleshooting, and best practices for individual, team, and institutional deployments.
 
 ## Table of Contents
 
@@ -25,32 +25,32 @@ This guide provides comprehensive information for managing research users in Clo
 
 ```bash
 # Research User Management
-cws research-user create <username>                    # Create research user
-cws research-user list                                 # List all research users
-cws research-user status <username>                   # Check user status
-cws research-user delete <username>                   # Remove research user
+prism research-user create <username>                    # Create research user
+prism research-user list                                 # List all research users
+prism research-user status <username>                   # Check user status
+prism research-user delete <username>                   # Remove research user
 
 # SSH Key Management
-cws research-user ssh-key generate <username> ed25519 # Generate SSH key pair
-cws research-user ssh-key import <username> <pubkey>  # Import existing key
-cws research-user ssh-key list <username>             # List user's keys
-cws research-user ssh-key delete <username> <key-id>  # Remove SSH key
+prism research-user ssh-key generate <username> ed25519 # Generate SSH key pair
+prism research-user ssh-key import <username> <pubkey>  # Import existing key
+prism research-user ssh-key list <username>             # List user's keys
+prism research-user ssh-key delete <username> <key-id>  # Remove SSH key
 
 # Instance Integration
-cws launch <template> <instance> --research-user <username>  # Launch with research user
-cws research-user provision <username> --instance <name>     # Provision user on instance
-cws research-user status <username> --instance <name>        # Check user on instance
+prism launch <template> <instance> --research-user <username>  # Launch with research user
+prism research-user provision <username> --instance <name>     # Provision user on instance
+prism research-user status <username> --instance <name>        # Check user on instance
 
 # EFS and Storage
-cws volumes create <name>                             # Create EFS volume
-cws volumes mount <volume> <instance>                 # Mount EFS volume
-cws volumes list                                      # List EFS volumes
+prism volumes create <name>                             # Create EFS volume
+prism volumes mount <volume> <instance>                 # Mount EFS volume
+prism volumes list                                      # List EFS volumes
 ```
 
 ### Key File Locations
 
 ```
-~/.cloudworkstation/
+~/.prism/
 ├── research-users/           # Research user configurations
 │   └── <profile-id>/
 │       └── <username>.json   # User config
@@ -72,30 +72,30 @@ cws volumes list                                      # List EFS volumes
 
 ### Initial Setup
 
-1. **Verify CloudWorkstation Installation**
+1. **Verify Prism Installation**
    ```bash
-   cws --version
+   prism --version
    # Should show v0.5.0 or later for research user support
    ```
 
 2. **Check Profile Configuration**
    ```bash
-   cws profiles list
-   cws profiles show current
+   prism profiles list
+   prism profiles show current
    ```
 
 3. **Initialize Research User System**
    ```bash
    # Create base directories (automatic on first use)
-   mkdir -p ~/.cloudworkstation/research-users
-   mkdir -p ~/.cloudworkstation/ssh-keys
+   mkdir -p ~/.prism/research-users
+   mkdir -p ~/.prism/ssh-keys
    ```
 
 ### Configuration Files
 
 #### Research User Configuration
 
-**Location**: `~/.cloudworkstation/research-users/<profile-id>/<username>.json`
+**Location**: `~/.prism/research-users/<profile-id>/<username>.json`
 
 ```json
 {
@@ -110,7 +110,7 @@ cws volumes list                                      # List EFS volumes
   "shell": "/bin/bash",
   "create_home_dir": true,
   "ssh_public_keys": [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@cloudworkstation"
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@prism"
   ],
   "secondary_groups": ["research", "efs-users", "sudo", "docker"],
   "sudo_access": true,
@@ -122,14 +122,14 @@ cws volumes list                                      # List EFS volumes
 
 #### SSH Key Configuration
 
-**Location**: `~/.cloudworkstation/ssh-keys/<profile-id>/<username>/<key-id>.json`
+**Location**: `~/.prism/ssh-keys/<profile-id>/<username>/<key-id>.json`
 
 ```json
 {
   "key_id": "alice-ed25519-1727519400",
   "fingerprint": "SHA256:abc123def456...",
-  "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@cloudworkstation",
-  "comment": "alice@cloudworkstation-personal",
+  "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5... alice@prism",
+  "comment": "alice@prism-personal",
   "created_at": "2025-09-28T10:30:00Z",
   "from_profile": "personal-research",
   "auto_generated": true
@@ -144,57 +144,57 @@ cws volumes list                                      # List EFS volumes
 
 ```bash
 # Create research user with automatic UID assignment
-cws research-user create alice
+prism research-user create alice
 
 # Create with custom full name and email
-cws research-user create alice --full-name "Alice Smith" --email "alice@university.edu"
+prism research-user create alice --full-name "Alice Smith" --email "alice@university.edu"
 
 # Create with SSH key generation
-cws research-user create alice --generate-ssh-key
+prism research-user create alice --generate-ssh-key
 ```
 
 #### Advanced User Creation
 
 ```bash
 # Create with specific shell
-cws research-user create alice --shell /bin/zsh
+prism research-user create alice --shell /bin/zsh
 
 # Create with custom groups
-cws research-user create alice --groups research,docker,jupyter-users
+prism research-user create alice --groups research,docker,jupyter-users
 
 # Create with EFS configuration
-cws research-user create alice --efs-volume fs-1234567890abcdef0 --efs-mount /efs
+prism research-user create alice --efs-volume fs-1234567890abcdef0 --efs-mount /efs
 ```
 
 ### Modifying Research Users
 
 ```bash
 # Update user information
-cws research-user update alice --full-name "Dr. Alice Smith"
-cws research-user update alice --email "alice.smith@university.edu"
+prism research-user update alice --full-name "Dr. Alice Smith"
+prism research-user update alice --email "alice.smith@university.edu"
 
 # Add/remove groups
-cws research-user update alice --add-groups jupyter-users
-cws research-user update alice --remove-groups docker
+prism research-user update alice --add-groups jupyter-users
+prism research-user update alice --remove-groups docker
 
 # Change shell
-cws research-user update alice --shell /bin/zsh
+prism research-user update alice --shell /bin/zsh
 ```
 
 ### Listing and Inspecting Users
 
 ```bash
 # List all research users in current profile
-cws research-user list
+prism research-user list
 
 # List with detailed information
-cws research-user list --detailed
+prism research-user list --detailed
 
 # Show specific user information
-cws research-user show alice
+prism research-user show alice
 
 # Show user with SSH keys and instance history
-cws research-user show alice --include-keys --include-instances
+prism research-user show alice --include-keys --include-instances
 ```
 
 #### Example Output
@@ -214,16 +214,16 @@ Research Users (Profile: personal-research)
 
 ```bash
 # Delete user (with confirmation)
-cws research-user delete alice
+prism research-user delete alice
 
 # Force delete without confirmation
-cws research-user delete alice --force
+prism research-user delete alice --force
 
 # Delete user and clean up SSH keys
-cws research-user delete alice --cleanup-keys
+prism research-user delete alice --cleanup-keys
 
 # Delete user but preserve EFS home directory
-cws research-user delete alice --preserve-home
+prism research-user delete alice --preserve-home
 ```
 
 ## SSH Key Management
@@ -232,45 +232,45 @@ cws research-user delete alice --preserve-home
 
 ```bash
 # Generate Ed25519 key (recommended)
-cws research-user ssh-key generate alice ed25519
+prism research-user ssh-key generate alice ed25519
 
 # Generate RSA key for compatibility
-cws research-user ssh-key generate alice rsa
+prism research-user ssh-key generate alice rsa
 
 # Generate with custom comment
-cws research-user ssh-key generate alice ed25519 --comment "alice-laptop-2025"
+prism research-user ssh-key generate alice ed25519 --comment "alice-laptop-2025"
 ```
 
 ### Key Import and Export
 
 ```bash
 # Import existing public key
-cws research-user ssh-key import alice ~/.ssh/id_rsa.pub
+prism research-user ssh-key import alice ~/.ssh/id_rsa.pub
 
 # Import with custom comment
-cws research-user ssh-key import alice ~/.ssh/id_rsa.pub --comment "Personal laptop key"
+prism research-user ssh-key import alice ~/.ssh/id_rsa.pub --comment "Personal laptop key"
 
 # Export all keys for backup
-cws research-user ssh-key export alice --output alice-keys-backup.tar.gz
+prism research-user ssh-key export alice --output alice-keys-backup.tar.gz
 
 # Export single key
-cws research-user ssh-key export alice --key-id <key-id> --output alice-key.pub
+prism research-user ssh-key export alice --key-id <key-id> --output alice-key.pub
 ```
 
 ### Key Management
 
 ```bash
 # List all SSH keys for user
-cws research-user ssh-key list alice
+prism research-user ssh-key list alice
 
 # Show detailed key information
-cws research-user ssh-key show alice <key-id>
+prism research-user ssh-key show alice <key-id>
 
 # Delete specific key
-cws research-user ssh-key delete alice <key-id>
+prism research-user ssh-key delete alice <key-id>
 
 # Rotate keys (generate new, deactivate old)
-cws research-user ssh-key rotate alice ed25519
+prism research-user ssh-key rotate alice ed25519
 ```
 
 #### SSH Key Listing Example
@@ -290,13 +290,13 @@ SSH Keys for alice (Profile: personal-research)
 
 ```bash
 # Generate authorized_keys content for user
-cws research-user ssh-key authorized-keys alice
+prism research-user ssh-key authorized-keys alice
 
 # Save to file
-cws research-user ssh-key authorized-keys alice > alice_authorized_keys
+prism research-user ssh-key authorized-keys alice > alice_authorized_keys
 
 # Generate for multiple users
-cws research-user ssh-key authorized-keys alice,bob,carol > team_authorized_keys
+prism research-user ssh-key authorized-keys alice,bob,carol > team_authorized_keys
 ```
 
 ## EFS Integration
@@ -305,39 +305,39 @@ cws research-user ssh-key authorized-keys alice,bob,carol > team_authorized_keys
 
 ```bash
 # Create EFS volume for research users
-cws volumes create research-home --type efs --performance generalPurpose
+prism volumes create research-home --type efs --performance generalPurpose
 
 # Create high-performance EFS for shared data
-cws volumes create shared-datasets --type efs --performance provisioned --throughput 500
+prism volumes create shared-datasets --type efs --performance provisioned --throughput 500
 
 # List EFS volumes
-cws volumes list --type efs
+prism volumes list --type efs
 ```
 
 ### Home Directory Setup
 
 ```bash
 # Configure research user with EFS home
-cws research-user create alice --efs-volume research-home --efs-mount /efs
+prism research-user create alice --efs-volume research-home --efs-mount /efs
 
 # Update existing user with EFS
-cws research-user update alice --efs-volume research-home --efs-mount /efs
+prism research-user update alice --efs-volume research-home --efs-mount /efs
 
 # Create home directory structure
-cws research-user setup-home alice --create-directories projects,scratch,archive
+prism research-user setup-home alice --create-directories projects,scratch,archive
 ```
 
 ### EFS Mounting and Permissions
 
 ```bash
 # Mount EFS volume to instance
-cws volumes mount research-home my-instance --mount-point /efs
+prism volumes mount research-home my-instance --mount-point /efs
 
 # Check mount status
-cws volumes status research-home
+prism volumes status research-home
 
 # Set up permissions for research users
-cws research-user setup-efs-permissions alice --volume research-home
+prism research-user setup-efs-permissions alice --volume research-home
 ```
 
 #### EFS Directory Structure
@@ -370,45 +370,45 @@ cws research-user setup-efs-permissions alice --volume research-home
 
 ```bash
 # Provision research user on existing instance
-cws research-user provision alice --instance my-python-instance
+prism research-user provision alice --instance my-python-instance
 
 # Provision with custom EFS mount
-cws research-user provision alice --instance my-instance --efs-volume research-data --mount-point /data
+prism research-user provision alice --instance my-instance --efs-volume research-data --mount-point /data
 
 # Provision multiple users
-cws research-user provision alice,bob,carol --instance shared-instance
+prism research-user provision alice,bob,carol --instance shared-instance
 
 # Provision with specific SSH user
-cws research-user provision alice --instance my-instance --ssh-user ubuntu --ssh-key ~/.ssh/my-key
+prism research-user provision alice --instance my-instance --ssh-user ubuntu --ssh-key ~/.ssh/my-key
 ```
 
 ### Instance Launch with Research Users
 
 ```bash
 # Launch instance with research user
-cws launch "Python Machine Learning" ml-work --research-user alice
+prism launch "Python Machine Learning" ml-work --research-user alice
 
 # Launch with multiple research users
-cws launch "R Research Environment" shared-analysis --research-users alice,bob
+prism launch "R Research Environment" shared-analysis --research-users alice,bob
 
 # Launch with EFS volume
-cws launch "Python ML" gpu-training --research-user alice --efs-volume shared-datasets
+prism launch "Python ML" gpu-training --research-user alice --efs-volume shared-datasets
 ```
 
 ### Provisioning Status and Monitoring
 
 ```bash
 # Check research user status on instance
-cws research-user status alice --instance ml-work
+prism research-user status alice --instance ml-work
 
 # Monitor provisioning progress
-cws research-user provision-status <job-id>
+prism research-user provision-status <job-id>
 
 # List all research user instances
-cws research-user instances alice
+prism research-user instances alice
 
 # Check what instances a user can access
-cws research-user list-access alice
+prism research-user list-access alice
 ```
 
 #### Status Output Example
@@ -436,15 +436,15 @@ Research User Status: alice on ml-work
 
 ```bash
 # Create team research users
-cws research-user create alice --full-name "Alice Smith" --email "alice@lab.edu"
-cws research-user create bob --full-name "Bob Johnson" --email "bob@lab.edu"
-cws research-user create carol --full-name "Carol Davis" --email "carol@lab.edu"
+prism research-user create alice --full-name "Alice Smith" --email "alice@lab.edu"
+prism research-user create bob --full-name "Bob Johnson" --email "bob@lab.edu"
+prism research-user create carol --full-name "Carol Davis" --email "carol@lab.edu"
 
 # Create shared EFS volume
-cws volumes create team-research --type efs --performance provisioned --throughput 300
+prism volumes create team-research --type efs --performance provisioned --throughput 300
 
 # Setup shared directories
-cws research-user setup-collaboration --users alice,bob,carol --volume team-research
+prism research-user setup-collaboration --users alice,bob,carol --volume team-research
 ```
 
 ### Collaborative Workflows
@@ -489,14 +489,14 @@ ls -la /efs/shared/analysis/
 
 ```bash
 # Create project-specific groups
-cws research-user create-group ml-team --members alice,bob
-cws research-user create-group viz-team --members alice,carol
-cws research-user create-group stats-team --members bob,carol
+prism research-user create-group ml-team --members alice,bob
+prism research-user create-group viz-team --members alice,carol
+prism research-user create-group stats-team --members bob,carol
 
 # Set directory permissions for groups
-cws research-user set-permissions /efs/shared/ml-project --group ml-team --mode 775
-cws research-user set-permissions /efs/shared/visualizations --group viz-team --mode 775
-cws research-user set-permissions /efs/shared/statistics --group stats-team --mode 775
+prism research-user set-permissions /efs/shared/ml-project --group ml-team --mode 775
+prism research-user set-permissions /efs/shared/visualizations --group viz-team --mode 775
+prism research-user set-permissions /efs/shared/statistics --group stats-team --mode 775
 ```
 
 ## Monitoring and Analytics
@@ -505,16 +505,16 @@ cws research-user set-permissions /efs/shared/statistics --group stats-team --mo
 
 ```bash
 # Show research user activity summary
-cws research-user analytics --profile personal-research
+prism research-user analytics --profile personal-research
 
 # Show detailed usage for specific user
-cws research-user analytics alice --detailed
+prism research-user analytics alice --detailed
 
 # Show team usage summary
-cws research-user analytics --users alice,bob,carol --timeframe 30d
+prism research-user analytics --users alice,bob,carol --timeframe 30d
 
 # Export usage data
-cws research-user analytics alice --export csv --output alice-usage.csv
+prism research-user analytics alice --export csv --output alice-usage.csv
 ```
 
 #### Analytics Output Example
@@ -539,32 +539,32 @@ Research User Analytics (Last 30 days)
 
 ```bash
 # Check UID/GID allocation status
-cws research-user system-status --uid-allocations
+prism research-user system-status --uid-allocations
 
 # Check SSH key health
-cws research-user system-status --ssh-keys
+prism research-user system-status --ssh-keys
 
 # Check EFS integration status
-cws research-user system-status --efs-integration
+prism research-user system-status --efs-integration
 
 # Full system health check
-cws research-user system-status --full
+prism research-user system-status --full
 ```
 
 ### Audit and Security Monitoring
 
 ```bash
 # Show recent research user activities
-cws research-user audit-log --recent 24h
+prism research-user audit-log --recent 24h
 
 # Show specific user's audit trail
-cws research-user audit-log alice --timeframe 7d
+prism research-user audit-log alice --timeframe 7d
 
 # Show SSH key usage patterns
-cws research-user audit-log --ssh-keys --timeframe 30d
+prism research-user audit-log --ssh-keys --timeframe 30d
 
 # Export audit logs
-cws research-user audit-log --export json --output audit-2025-09.json
+prism research-user audit-log --export json --output audit-2025-09.json
 ```
 
 ## Troubleshooting
@@ -577,18 +577,18 @@ cws research-user audit-log --export json --output audit-2025-09.json
 
 ```bash
 # Diagnosis
-cws research-user status alice --instance my-instance
-cws research-user ssh-key list alice
+prism research-user status alice --instance my-instance
+prism research-user ssh-key list alice
 
 # Solutions
 # Check if user is provisioned
-cws research-user provision alice --instance my-instance
+prism research-user provision alice --instance my-instance
 
 # Verify SSH keys are installed
 ssh ubuntu@my-instance "sudo cat /efs/home/alice/.ssh/authorized_keys"
 
 # Re-provision if needed
-cws research-user provision alice --instance my-instance --force
+prism research-user provision alice --instance my-instance --force
 ```
 
 #### 2. File Permission Issues
@@ -602,7 +602,7 @@ ssh alice@instance "groups"
 
 # Solutions
 # Check if user is in research group
-cws research-user update alice --add-groups research
+prism research-user update alice --add-groups research
 
 # Fix file permissions
 ssh alice@instance "sudo chgrp research /efs/shared/problematic-file"
@@ -620,13 +620,13 @@ ssh alice@instance "ls -la /efs/"
 
 # Solutions
 # Check EFS mount status
-cws volumes status research-home
+prism volumes status research-home
 
 # Remount EFS volume
-cws volumes mount research-home my-instance --mount-point /efs
+prism volumes mount research-home my-instance --mount-point /efs
 
 # Fix EFS permissions
-cws research-user setup-efs-permissions alice --volume research-home
+prism research-user setup-efs-permissions alice --volume research-home
 ```
 
 #### 4. UID Conflicts
@@ -640,29 +640,29 @@ ssh alice@instance2 "id alice"  # Should also be 5001
 
 # Solutions
 # Check UID allocation
-cws research-user show alice --include-uid
+prism research-user show alice --include-uid
 
 # Re-provision user with correct UID
-cws research-user provision alice --instance instance2 --force
+prism research-user provision alice --instance instance2 --force
 
 # Clear and regenerate UID cache
-cws research-user system-maintenance --clear-uid-cache
+prism research-user system-maintenance --clear-uid-cache
 ```
 
 ### Diagnostic Commands
 
 ```bash
 # Comprehensive system diagnostics
-cws research-user diagnose
+prism research-user diagnose
 
 # Diagnose specific user
-cws research-user diagnose alice
+prism research-user diagnose alice
 
 # Diagnose specific instance
-cws research-user diagnose --instance my-instance
+prism research-user diagnose --instance my-instance
 
 # Generate diagnostic report
-cws research-user diagnose --report diagnostic-report.txt
+prism research-user diagnose --report diagnostic-report.txt
 ```
 
 ### Recovery Procedures
@@ -671,26 +671,26 @@ cws research-user diagnose --report diagnostic-report.txt
 
 ```bash
 # Recreate research user from backup
-cws research-user restore alice --from-backup alice-backup.json
+prism research-user restore alice --from-backup alice-backup.json
 
 # Recreate with same UID (if known)
-cws research-user create alice --force-uid 5001
+prism research-user create alice --force-uid 5001
 
 # Restore SSH keys
-cws research-user ssh-key import-backup alice alice-keys-backup.tar.gz
+prism research-user ssh-key import-backup alice alice-keys-backup.tar.gz
 ```
 
 #### Reset Research User System
 
 ```bash
 # Clear all research user data (DESTRUCTIVE)
-cws research-user system-reset --confirm
+prism research-user system-reset --confirm
 
 # Reset specific profile
-cws research-user system-reset --profile personal-research --confirm
+prism research-user system-reset --profile personal-research --confirm
 
 # Reset UID allocations only
-cws research-user system-reset --uid-allocations --confirm
+prism research-user system-reset --uid-allocations --confirm
 ```
 
 ## Security Best Practices
@@ -699,18 +699,18 @@ cws research-user system-reset --uid-allocations --confirm
 
 1. **Use Ed25519 Keys**: Prefer Ed25519 over RSA for new key generation
    ```bash
-   cws research-user ssh-key generate alice ed25519
+   prism research-user ssh-key generate alice ed25519
    ```
 
 2. **Regular Key Rotation**: Rotate SSH keys periodically
    ```bash
    # Monthly key rotation
-   cws research-user ssh-key rotate alice ed25519 --deactivate-old-after 30d
+   prism research-user ssh-key rotate alice ed25519 --deactivate-old-after 30d
    ```
 
 3. **Monitor Key Usage**: Track SSH key usage patterns
    ```bash
-   cws research-user audit-log alice --ssh-keys --timeframe 7d
+   prism research-user audit-log alice --ssh-keys --timeframe 7d
    ```
 
 ### Access Control
@@ -718,24 +718,24 @@ cws research-user system-reset --uid-allocations --confirm
 1. **Principle of Least Privilege**: Only grant necessary permissions
    ```bash
    # Remove docker access if not needed
-   cws research-user update alice --remove-groups docker
+   prism research-user update alice --remove-groups docker
    ```
 
 2. **Regular Access Reviews**: Review user permissions quarterly
    ```bash
-   cws research-user list --detailed --include-permissions
+   prism research-user list --detailed --include-permissions
    ```
 
 3. **Group-Based Permissions**: Use groups for shared access
    ```bash
-   cws research-user create-group project-alpha --members alice,bob
+   prism research-user create-group project-alpha --members alice,bob
    ```
 
 ### Data Security
 
 1. **EFS Encryption**: Use encrypted EFS volumes
    ```bash
-   cws volumes create secure-research --type efs --encrypted
+   prism volumes create secure-research --type efs --encrypted
    ```
 
 2. **Home Directory Isolation**: Ensure proper home directory permissions
@@ -755,18 +755,18 @@ cws research-user system-reset --uid-allocations --confirm
 1. **Enable Audit Logging**: Track all research user activities
    ```bash
    # Enable comprehensive audit logging
-   cws config set research-user.audit-log.enabled true
-   cws config set research-user.audit-log.level detailed
+   prism config set research-user.audit-log.enabled true
+   prism config set research-user.audit-log.level detailed
    ```
 
 2. **Regular Security Scans**: Check for security issues
    ```bash
-   cws research-user security-scan --profile personal-research
+   prism research-user security-scan --profile personal-research
    ```
 
 3. **Compliance Reporting**: Generate compliance reports
    ```bash
-   cws research-user compliance-report --format pdf --output compliance-2025-Q3.pdf
+   prism research-user compliance-report --format pdf --output compliance-2025-Q3.pdf
    ```
 
 ## Institutional Deployment
@@ -777,25 +777,25 @@ cws research-user system-reset --uid-allocations --confirm
 
 ```bash
 # Batch user creation from CSV
-cws research-user batch-create --from-csv students-cs501.csv
+prism research-user batch-create --from-csv students-cs501.csv
 
 # Template optimization for education
-cws research-user configure-education --class cs501 --template "Python ML" --users-from-csv students.csv
+prism research-user configure-education --class cs501 --template "Python ML" --users-from-csv students.csv
 
 # Automated EFS setup for classes
-cws research-user setup-class-storage cs501 --volume-size 1TB --shared-quota 100GB-per-user
+prism research-user setup-class-storage cs501 --volume-size 1TB --shared-quota 100GB-per-user
 ```
 
 #### Research Institution (500+ Users)
 
 ```bash
 # Department-based organization
-cws research-user create-department computer-science --quota 10TB
-cws research-user create-department biology --quota 25TB
-cws research-user create-department physics --quota 15TB
+prism research-user create-department computer-science --quota 10TB
+prism research-user create-department biology --quota 25TB
+prism research-user create-department physics --quota 15TB
 
 # Automated provisioning pipeline
-cws research-user setup-auto-provisioning --ldap-integration --department-quotas
+prism research-user setup-auto-provisioning --ldap-integration --department-quotas
 ```
 
 ### Integration with External Systems
@@ -804,23 +804,23 @@ cws research-user setup-auto-provisioning --ldap-integration --department-quotas
 
 ```bash
 # Configure LDAP authentication
-cws research-user configure-ldap --server ldap.university.edu --base-dn "ou=users,dc=university,dc=edu"
+prism research-user configure-ldap --server ldap.university.edu --base-dn "ou=users,dc=university,dc=edu"
 
 # Sync users from LDAP
-cws research-user ldap-sync --department computer-science
+prism research-user ldap-sync --department computer-science
 
 # Map LDAP groups to research user groups
-cws research-user map-ldap-groups "cn=CS Students,ou=groups,dc=university,dc=edu" students
+prism research-user map-ldap-groups "cn=CS Students,ou=groups,dc=university,dc=edu" students
 ```
 
 #### Single Sign-On (SSO) Integration
 
 ```bash
 # Configure SAML SSO
-cws research-user configure-sso --provider saml --metadata-url https://sso.university.edu/metadata
+prism research-user configure-sso --provider saml --metadata-url https://sso.university.edu/metadata
 
 # Configure OAuth integration
-cws research-user configure-sso --provider oauth --client-id university-cws --discovery-url https://oauth.university.edu/.well-known
+prism research-user configure-sso --provider oauth --client-id university-cws --discovery-url https://oauth.university.edu/.well-known
 ```
 
 ### Policy Management
@@ -829,26 +829,26 @@ cws research-user configure-sso --provider oauth --client-id university-cws --di
 
 ```bash
 # Create policy templates for different user types
-cws research-user create-policy undergraduate --max-instances 2 --max-storage 10GB --templates "Python ML,R Research"
-cws research-user create-policy graduate --max-instances 5 --max-storage 100GB --templates "*"
-cws research-user create-policy faculty --max-instances unlimited --max-storage 1TB --templates "*"
+prism research-user create-policy undergraduate --max-instances 2 --max-storage 10GB --templates "Python ML,R Research"
+prism research-user create-policy graduate --max-instances 5 --max-storage 100GB --templates "*"
+prism research-user create-policy faculty --max-instances unlimited --max-storage 1TB --templates "*"
 
 # Apply policies to users
-cws research-user apply-policy alice undergraduate
-cws research-user apply-policy bob graduate
+prism research-user apply-policy alice undergraduate
+prism research-user apply-policy bob graduate
 ```
 
 #### Compliance and Governance
 
 ```bash
 # Enable data residency controls
-cws research-user configure-compliance --data-residency US --encryption required
+prism research-user configure-compliance --data-residency US --encryption required
 
 # Set retention policies
-cws research-user configure-retention --inactive-users 365d --archive-data 7y
+prism research-user configure-retention --inactive-users 365d --archive-data 7y
 
 # Configure audit requirements
-cws research-user configure-audit --level comprehensive --retention 10y --export-format syslog
+prism research-user configure-audit --level comprehensive --retention 10y --export-format syslog
 ```
 
 ## Advanced Configuration
@@ -859,33 +859,33 @@ cws research-user configure-audit --level comprehensive --retention 10y --export
 
 ```bash
 # Configure UID allocation for large deployments
-cws config set research-user.uid-base 10000
-cws config set research-user.uid-range 50000
+prism config set research-user.uid-base 10000
+prism config set research-user.uid-range 50000
 
 # Enable UID allocation caching
-cws config set research-user.uid-cache.enabled true
-cws config set research-user.uid-cache.ttl 24h
+prism config set research-user.uid-cache.enabled true
+prism config set research-user.uid-cache.ttl 24h
 ```
 
 #### EFS Performance Optimization
 
 ```bash
 # Configure EFS performance mode for research workloads
-cws config set research-user.efs.performance-mode provisioned
-cws config set research-user.efs.throughput-mode provisioned
-cws config set research-user.efs.throughput-mib 500
+prism config set research-user.efs.performance-mode provisioned
+prism config set research-user.efs.throughput-mode provisioned
+prism config set research-user.efs.throughput-mib 500
 ```
 
 #### SSH Key Management Optimization
 
 ```bash
 # Enable SSH key caching for faster access
-cws config set research-user.ssh-key.cache.enabled true
-cws config set research-user.ssh-key.cache.ttl 1h
+prism config set research-user.ssh-key.cache.enabled true
+prism config set research-user.ssh-key.cache.ttl 1h
 
 # Configure key rotation policies
-cws config set research-user.ssh-key.rotation.enabled true
-cws config set research-user.ssh-key.rotation.interval 90d
+prism config set research-user.ssh-key.rotation.enabled true
+prism config set research-user.ssh-key.rotation.interval 90d
 ```
 
 ### Custom Integration
@@ -897,8 +897,8 @@ cws config set research-user.ssh-key.rotation.interval 90d
 package main
 
 import (
-    "github.com/scttfrdmn/cloudworkstation/pkg/research"
-    "github.com/scttfrdmn/cloudworkstation/pkg/profile"
+    "github.com/scttfrdmn/prism/pkg/research"
+    "github.com/scttfrdmn/prism/pkg/profile"
 )
 
 func main() {
@@ -937,12 +937,12 @@ func main() {
 
 ```bash
 # Install research user plugins
-cws plugin install research-user-ldap-sync
-cws plugin install research-user-quota-manager
-cws plugin install research-user-analytics-dashboard
+prism plugin install research-user-ldap-sync
+prism plugin install research-user-quota-manager
+prism plugin install research-user-analytics-dashboard
 
 # Configure plugins
-cws plugin configure research-user-ldap-sync --server ldap.university.edu
+prism plugin configure research-user-ldap-sync --server ldap.university.edu
 ```
 
 ### Backup and Disaster Recovery
@@ -951,31 +951,31 @@ cws plugin configure research-user-ldap-sync --server ldap.university.edu
 
 ```bash
 # Backup all research user configurations
-cws research-user backup --profile personal-research --output research-users-backup.tar.gz
+prism research-user backup --profile personal-research --output research-users-backup.tar.gz
 
 # Backup SSH keys
-cws research-user backup-ssh-keys --profile personal-research --output ssh-keys-backup.tar.gz
+prism research-user backup-ssh-keys --profile personal-research --output ssh-keys-backup.tar.gz
 
 # Backup EFS data
-cws volumes snapshot research-home --description "Weekly backup $(date +%Y-%m-%d)"
+prism volumes snapshot research-home --description "Weekly backup $(date +%Y-%m-%d)"
 ```
 
 #### Recovery Procedures
 
 ```bash
 # Restore research users from backup
-cws research-user restore --from-backup research-users-backup.tar.gz
+prism research-user restore --from-backup research-users-backup.tar.gz
 
 # Restore SSH keys
-cws research-user restore-ssh-keys --from-backup ssh-keys-backup.tar.gz
+prism research-user restore-ssh-keys --from-backup ssh-keys-backup.tar.gz
 
 # Restore EFS from snapshot
-cws volumes restore research-home --from-snapshot snap-1234567890abcdef0
+prism volumes restore research-home --from-snapshot snap-1234567890abcdef0
 ```
 
 ## Conclusion
 
-Research User Management in CloudWorkstation v0.5.0 provides a comprehensive foundation for collaborative research computing. This guide covers:
+Research User Management in Prism v0.5.0 provides a comprehensive foundation for collaborative research computing. This guide covers:
 
 - ✅ **Complete Setup**: From initial configuration to advanced deployment
 - ✅ **User Management**: Creation, modification, and lifecycle management
@@ -984,16 +984,16 @@ Research User Management in CloudWorkstation v0.5.0 provides a comprehensive fou
 - ✅ **Monitoring**: Analytics, troubleshooting, and system health
 - ✅ **Scale**: From individual researchers to institutional deployments
 
-The research user system transforms CloudWorkstation from a single-user tool into a collaborative research platform while maintaining the simplicity and flexibility that makes CloudWorkstation powerful.
+The research user system transforms Prism from a single-user tool into a collaborative research platform while maintaining the simplicity and flexibility that makes Prism powerful.
 
 For additional support:
 - 📚 **Technical Documentation**: [Phase 5A Research User Architecture](PHASE_5A_RESEARCH_USER_ARCHITECTURE.md)
 - 👥 **User Guide**: [Research Users User Guide](USER_GUIDE_RESEARCH_USERS.md)
 - 🏗️ **Architecture Guide**: [Dual User Architecture](DUAL_USER_ARCHITECTURE.md)
-- 🐛 **Support**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+- 🐛 **Support**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
 
 ---
 
 **Document Version**: 1.0
 **Last Updated**: September 28, 2025
-**CloudWorkstation Version**: v0.5.0+
+**Prism Version**: v0.5.0+

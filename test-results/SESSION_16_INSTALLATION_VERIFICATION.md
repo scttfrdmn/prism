@@ -189,7 +189,7 @@ Asset Requests:
 ```bash
 $ ./bin/cws-gui --help
 
-CloudWorkstation GUI v0.5.1
+Prism GUI v0.5.1
 
 OPTIONS:
   -autostart          Configure to start automatically at login
@@ -359,7 +359,7 @@ OPTIONS:
 
 ## Conclusion
 
-Template installation verification confirms that **CloudWorkstation templates actually deliver what they promise**. The test-ssh template showed 100% accuracy with all packages and users created exactly as specified. The collaborative-workspace template's Python installation confirms the mechanism works for complex conda environments.
+Template installation verification confirms that **Prism templates actually deliver what they promise**. The test-ssh template showed 100% accuracy with all packages and users created exactly as specified. The collaborative-workspace template's Python installation confirms the mechanism works for complex conda environments.
 
 GUI testing shows the application launches successfully with Cloudscape assets loading correctly, but has a minor layout issue with title bar text overlapping macOS window controls (P3 cosmetic issue).
 

@@ -1,6 +1,6 @@
 # DMG Build Guide
 
-Complete guide for building professional macOS DMG installer packages for CloudWorkstation.
+Complete guide for building professional macOS DMG installer packages for Prism.
 
 ## Quick Start
 
@@ -140,7 +140,7 @@ GOOS=darwin GOARCH=arm64 make build
 
 ```bash
 # Setup credentials first
-xcrun notarytool store-credentials cloudworkstation \
+xcrun notarytool store-credentials prism \
   --apple-id your@email.com \
   --team-id TEAMID
 
@@ -193,13 +193,13 @@ DEVELOPER_ID_APPLICATION_IDENTITY=<full certificate name>
 
 ```bash
 # Store in keychain
-xcrun notarytool store-credentials cloudworkstation \
+xcrun notarytool store-credentials prism \
   --apple-id your@email.com \
   --team-id TEAMID123 \
   --password
 
 # Verify stored credentials
-xcrun notarytool history --keychain-profile cloudworkstation
+xcrun notarytool history --keychain-profile prism
 ```
 
 ### 3. Environment Variables (CI/CD)
@@ -288,13 +288,13 @@ sudo rm -rf ~/Library/Caches/com.apple.dt.Xcode/
 **5. Notarization issues**
 ```bash
 # Check credentials
-xcrun notarytool history --keychain-profile cloudworkstation
+xcrun notarytool history --keychain-profile prism
 
 # Verify app-specific password
 # Make sure 2FA is enabled on Apple ID
 
 # Check submission status
-xcrun notarytool info SUBMISSION-UUID --keychain-profile cloudworkstation
+xcrun notarytool info SUBMISSION-UUID --keychain-profile prism
 ```
 
 ### Testing and Validation
@@ -306,26 +306,26 @@ make dmg-dev
 make dmg-test
 
 # Manual verification
-hdiutil verify dist/dmg/CloudWorkstation-v0.4.2.dmg
+hdiutil verify dist/dmg/Prism-v0.4.2.dmg
 ```
 
 **Test Installation:**
 ```bash
 # Mount and inspect
-open dist/dmg/CloudWorkstation-v0.4.2.dmg
+open dist/dmg/Prism-v0.4.2.dmg
 # Verify all components present
 
 # Test app bundle
-/Applications/CloudWorkstation.app/Contents/MacOS/CloudWorkstation --help
+/Applications/Prism.app/Contents/MacOS/Prism --help
 ```
 
 **Test Signing:**
 ```bash
 # Verify signature
-codesign --verify --verbose /Applications/CloudWorkstation.app
+codesign --verify --verbose /Applications/Prism.app
 
 # Test Gatekeeper
-spctl --assess --verbose --type execute /Applications/CloudWorkstation.app
+spctl --assess --verbose --type execute /Applications/Prism.app
 ```
 
 ## CI/CD Integration
@@ -442,7 +442,7 @@ git push origin v0.4.3
 
 ```bash
 # Test release
-curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.3.dmg
+curl -L -O https://github.com/scttfrdmn/prism/releases/latest/download/Prism-v0.4.3.dmg
 
 # Update documentation
 # Update Homebrew formula (if needed)
@@ -456,16 +456,16 @@ curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/downloa
 The DMG creates a complete macOS application bundle:
 
 ```
-CloudWorkstation.app/
+Prism.app/
 ├── Contents/
 │   ├── Info.plist              # Bundle metadata
 │   ├── MacOS/
-│   │   ├── CloudWorkstation    # Launcher script
-│   │   ├── cws                 # CLI binary
+│   │   ├── Prism    # Launcher script
+│   │   ├── prism                 # CLI binary
 │   │   ├── cwsd                # Daemon binary
 │   │   └── cws-gui            # GUI binary
 │   ├── Resources/
-│   │   ├── CloudWorkstation.icns
+│   │   ├── Prism.icns
 │   │   ├── templates/
 │   │   └── scripts/
 │   └── Frameworks/            # Dependencies (if needed)
@@ -473,7 +473,7 @@ CloudWorkstation.app/
 
 ### Post-Installation Hooks
 
-The launcher script (`Contents/MacOS/CloudWorkstation`) handles:
+The launcher script (`Contents/MacOS/Prism`) handles:
 
 - First-run welcome dialog
 - CLI tools installation
@@ -493,4 +493,4 @@ Professional uninstaller included:
 
 ---
 
-This DMG build system provides a professional, Apple-compliant installation experience for CloudWorkstation users.
+This DMG build system provides a professional, Apple-compliant installation experience for Prism users.

@@ -1,6 +1,6 @@
-# CloudWorkstation Templates
+# Prism Templates
 
-This directory contains YAML template files for building CloudWorkstation AMIs.
+This directory contains YAML template files for building Prism AMIs.
 
 ## Template Format
 
@@ -86,8 +86,8 @@ To create a new template:
 1. Create a new YAML file in this directory with the `.yml` extension
 2. Ensure it includes all required sections
 3. Add appropriate validation checks
-4. Test the template with `cws ami validate <template-name>`
-5. Build the AMI with `cws ami build <template-name>`
+4. Test the template with `prism ami validate <template-name>`
+5. Build the AMI with `prism ami build <template-name>`
 6. Update this README with details about your template
 
 ## Base AMIs

@@ -12,13 +12,13 @@
 
 **This scenario is for educational purposes only and does not constitute legal, regulatory, or compliance advice.**
 
-Use of CloudWorkStation does not, by itself, ensure compliance with NIST 800-171, NIH data use agreements, or any other requirement. Your institution is solely responsible for:
+Use of Prism does not, by itself, ensure compliance with NIST 800-171, NIH data use agreements, or any other requirement. Your institution is solely responsible for:
 - Determining compliance obligations for NIH controlled-access data
 - Conducting NIST 800-171 assessments and attestations
 - Implementing organizational policies beyond technical controls
 - Consulting with your Research Security Office and Sponsored Projects Office
 
-**Always obtain institutional approval before using CloudWorkStation for NIH dbGaP data or other CUI.**
+**Always obtain institutional approval before using Prism for NIH dbGaP data or other CUI.**
 
 See [COMPLIANCE_DISCLAIMER.md](../docs/admin-guides/COMPLIANCE_DISCLAIMER.md) for complete legal notice.
 
@@ -79,7 +79,7 @@ Failure to comply may result in:
 - This is **NOT PHI** because all 18 HIPAA identifiers have been removed by NIH
 - However, genomic data is still **CUI** requiring NIST 800-171 compliance
 - Re-identification is prohibited by data use agreement
-- CloudWorkstation NIST 800-171 compliance is sufficient (HIPAA not required)
+- Prism NIST 800-171 compliance is sufficient (HIPAA not required)
 
 **The Notification**:
 Dr. Rodriguez receives an email from NIH dbGaP Data Access Committee (DAC):
@@ -149,14 +149,14 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
 
 ---
 
-## CloudWorkstation Solution
+## Prism Solution
 
 ### Discovery & Setup
 
-**Dr. Chen's Path to CloudWorkstation**:
+**Dr. Chen's Path to Prism**:
 
-1. **Research IT Recommends CloudWorkstation**:
-   - University Research Security Office recently validated CloudWorkstation against NIST 800-171
+1. **Research IT Recommends Prism**:
+   - University Research Security Office recently validated Prism against NIST 800-171
    - Provides compliance documentation: [NIST_800_171_COMPLIANCE.md](../docs/admin-guides/NIST_800_171_COMPLIANCE.md)
    - Meets all 110 required controls in Rev. 3
    - Researchers can self-service with pre-approved configuration
@@ -164,11 +164,11 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
 2. **Institutional Compliance Profile**:
    University provides pre-configured compliance profile:
    ```bash
-   # Dr. Chen installs CloudWorkstation
-   brew install scttfrdmn/tap/cloudworkstation
+   # Dr. Chen installs Prism
+   brew install scttfrdmn/tap/prism
 
    # Import university's CUI compliance profile
-   cws profile import university-cui-profile.json
+   prism profile import university-cui-profile.json
    # Profile includes:
    # - Required security group configurations
    # - Encrypted EBS/EFS settings (KMS key: university-managed)
@@ -180,11 +180,11 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
 3. **Quick Start Guide from Research IT**:
    ```bash
    # Verify compliance profile is active
-   cws profile list
+   prism profile list
    # Output shows: [university-cui] ✅ NIST 800-171 Rev. 3 Compliant
 
    # Launch CUI-compliant research environment
-   cws launch python-ml lung-cancer-genomics \
+   prism launch python-ml lung-cancer-genomics \
      --profile university-cui \
      --project chen-lab-nih-r01 \
      --data-classification CUI \
@@ -203,7 +203,7 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
 
 ```bash
 # Connect to CUI-compliant workstation
-cws connect lung-cancer-genomics
+prism connect lung-cancer-genomics
 # ↑ Prompts for MFA token (IA.2.078 - Multifactor Authentication)
 # ↑ Logs connection attempt (AU.2.041 - Audit Records)
 
@@ -261,7 +261,7 @@ $ python setup.py install
 **Compliant Workflow**:
 
 ```bash
-# On CloudWorkstation:
+# On Prism:
 $ cd /mnt/efs/cui-data/analysis-results/
 
 # Create encrypted archive for transfer
@@ -316,7 +316,7 @@ rsync -avz results/ collaborator@partner.edu:/data/shared/
 # - NDA signed for NIH contract
 
 # 2. Research IT provisions access
-cws project member add chen-lab-nih-r01 \
+prism project member add chen-lab-nih-r01 \
   jmartinez@university.edu \
   --role member \
   --require-cui-training \
@@ -329,9 +329,9 @@ cws project member add chen-lab-nih-r01 \
 # - CUI handling training (required within 7 days)
 
 # 4. Dr. Martinez sets up access
-brew install scttfrdmn/tap/cloudworkstation
-cws profile import university-cui-profile.json
-cws connect lung-cancer-genomics  # Prompts for MFA setup on first use
+brew install scttfrdmn/tap/prism
+prism profile import university-cui-profile.json
+prism connect lung-cancer-genomics  # Prompts for MFA setup on first use
 
 # 5. Access logged for compliance
 # AU.2.042 - Account creation logged
@@ -341,7 +341,7 @@ cws connect lung-cancer-genomics  # Prompts for MFA setup on first use
 
 **Compliance Benefits**:
 - ✅ **AC.1.001** (Limit Access): Only authorized users after training/verification
-- ✅ **IA.1.076** (Unique Identification): Each user has unique CloudWorkstation identity
+- ✅ **IA.1.076** (Unique Identification): Each user has unique Prism identity
 - ✅ **AT.2.008** (Security Awareness): CUI training required before access
 - ✅ **AU.2.042** (Audit Record Generation): All account activities logged
 
@@ -351,11 +351,11 @@ cws connect lung-cancer-genomics  # Prompts for MFA setup on first use
 
 **University CISO Requests Evidence** for Annual NIST 800-171 Assessment:
 
-**CloudWorkstation Makes This Easy**:
+**Prism Makes This Easy**:
 
 ```bash
 # Generate compliance evidence package
-cws compliance report \
+prism compliance report \
   --framework "NIST 800-171 Rev 3" \
   --project chen-lab-nih-r01 \
   --output chen-lab-compliance-evidence.pdf
@@ -426,10 +426,10 @@ cws compliance report \
 > **💡 GUI Note**: NIST 800-171 compliance reports with automated evidence generation available in GUI Compliance tab - *coming soon in v0.6.0*
 
 **Dr. Chen's Reaction**:
-"Wait, that's it? I thought this would take weeks of meetings and documentation. CloudWorkstation just... did all of that automatically?"
+"Wait, that's it? I thought this would take weeks of meetings and documentation. Prism just... did all of that automatically?"
 
 **University CISO's Reaction**:
-"This is the first research project that passed 100% on first assessment. Usually we spend months remediating findings. Your use of CloudWorkstation with our compliance profile made this trivial."
+"This is the first research project that passed 100% on first assessment. Usually we spend months remediating findings. Your use of Prism with our compliance profile made this trivial."
 
 ---
 
@@ -447,7 +447,7 @@ cws compliance report \
 - Impacts ability to hire additional research staff
 - Delays project timeline by 3 months
 
-### CloudWorkstation Approach
+### Prism Approach
 
 **Costs**:
 - Setup: $0 (self-service with university profile)
@@ -473,7 +473,7 @@ cws compliance report \
 
 **Quantified Benefits**:
 
-| Metric | Traditional | CloudWorkstation | Improvement |
+| Metric | Traditional | Prism | Improvement |
 |--------|-------------|------------------|-------------|
 | Setup Cost | $8,000 | $0 | $8,000 saved |
 | Annual Cost | $15,000 | $2,304 (actual usage) | $12,696 saved/year |
@@ -494,7 +494,7 @@ cws compliance report \
 
 ## Key Compliance Mappings
 
-### How CloudWorkstation Addresses NIST 800-171 Rev. 3 for Dr. Chen
+### How Prism Addresses NIST 800-171 Rev. 3 for Dr. Chen
 
 **Access Control (AC) - 22 Controls**:
 - **AC.1.001** (Limit Access): Project membership + MFA enforcement
@@ -548,7 +548,7 @@ cws compliance report \
    - Ensures consistent compliance across all NIH projects
 
 2. **Template-Based Compliance**:
-   - CloudWorkstation's template system maps directly to NIST CM.2.061 (Configuration Baselines)
+   - Prism's template system maps directly to NIST CM.2.061 (Configuration Baselines)
    - Version-controlled templates provide audit trail of changes
    - Easy to update all workstations when university policy changes
 
@@ -571,12 +571,12 @@ cws compliance report \
 
 **Challenge 2: Collaborator Access Across Institutions**
 - **Problem**: Partner universities have different CUI compliance approaches
-- **Solution**: CloudWorkstation's portable profiles - share configuration across institutions
+- **Solution**: Prism's portable profiles - share configuration across institutions
 - **Result**: Collaborators adopt same compliant workflow
 
 **Challenge 3: Legacy Data Migration**
 - **Problem**: Existing data on non-compliant systems needs migration to CUI environment
-- **Solution**: University IT provides secure migration service using CloudWorkstation's encrypted transfer
+- **Solution**: University IT provides secure migration service using Prism's encrypted transfer
 - **Result**: Data migrated with full audit trail, maintaining compliance
 
 ---
@@ -585,12 +585,12 @@ cws compliance report \
 
 ### Institutional Adoption
 
-**After Dr. Chen's Success**, University Research IT promotes CloudWorkstation:
+**After Dr. Chen's Success**, University Research IT promotes Prism:
 
 **For Researchers**:
 ```bash
 # Every NIH grant with CUI requirements now uses:
-cws launch <research-template> <project-name> \
+prism launch <research-template> <project-name> \
   --profile university-cui \
   --data-classification CUI
 
@@ -602,7 +602,7 @@ cws launch <research-template> <project-name> \
 ```
 
 **University-Wide Benefits**:
-- **300+ NIH grants** now using CloudWorkstation for CUI compliance
+- **300+ NIH grants** now using Prism for CUI compliance
 - **$4.2M saved annually** vs. traditional managed infrastructure approach
 - **95% reduction** in compliance assessment time
 - **Zero compliance findings** in past 18 months since adoption
@@ -610,7 +610,7 @@ cws launch <research-template> <project-name> \
 
 **Research Security Office Dashboard**:
 ```bash
-cws admin compliance summary --institution
+prism admin compliance summary --institution
 # Output:
 # ✅ 312 CUI projects actively monitored
 # ✅ 1,247 researchers with compliant workstations

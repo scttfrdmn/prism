@@ -1,4 +1,4 @@
-# CloudWorkstation CLI Command Structure Refactor
+# Prism CLI Command Structure Refactor
 
 **Date**: September 30, 2025
 **Version**: v0.5.1
@@ -6,17 +6,17 @@
 
 ## Overview
 
-The CloudWorkstation CLI has been refactored to provide a cleaner, more intuitive command structure. This major update reorganizes commands into logical groups, making the CLI more professional and user-friendly for both researchers and system administrators.
+The Prism CLI has been refactored to provide a cleaner, more intuitive command structure. This major update reorganizes commands into logical groups, making the CLI more professional and user-friendly for both researchers and system administrators.
 
 ## 🎯 Key Changes
 
 ### **User Management Simplified**
-- **Before**: `cws research-user` (verbose, unclear)
-- **After**: `cws user` (clean, intuitive)
+- **Before**: `prism research-user` (verbose, unclear)
+- **After**: `prism user` (clean, intuitive)
 
 ### **System Administration Organized**
 - **Before**: Commands scattered at root level (`config`, `daemon`, `security`, `policy`, `profiles`, `uninstall`)
-- **After**: All grouped under `cws admin`
+- **After**: All grouped under `prism admin`
 
 ## 📋 Complete Command Mapping
 
@@ -24,23 +24,23 @@ The CloudWorkstation CLI has been refactored to provide a cleaner, more intuitiv
 
 | **New Command** | **Description** | **Example** |
 |----------------|----------------|-------------|
-| `cws user create <username>` | Create a new user | `cws user create alice` |
-| `cws user list` | List all users | `cws user list` |
-| `cws user delete <username>` | Delete a user | `cws user delete alice` |
-| `cws user ssh-key generate <username>` | Generate SSH keys | `cws user ssh-key generate alice` |
-| `cws user provision <username> <instance>` | Provision user on instance | `cws user provision alice my-instance` |
-| `cws user status <username>` | Show user status | `cws user status alice` |
+| `prism user create <username>` | Create a new user | `prism user create alice` |
+| `prism user list` | List all users | `prism user list` |
+| `prism user delete <username>` | Delete a user | `prism user delete alice` |
+| `prism user ssh-key generate <username>` | Generate SSH keys | `prism user ssh-key generate alice` |
+| `prism user provision <username> <instance>` | Provision user on instance | `prism user provision alice my-instance` |
+| `prism user status <username>` | Show user status | `prism user status alice` |
 
 ### Admin Commands (System Administration)
 
 | **New Command** | **Old Command** | **Description** |
 |----------------|----------------|----------------|
-| `cws admin config <action>` | `cws config <action>` | Configure CloudWorkstation |
-| `cws admin daemon <action>` | `cws daemon <action>` | Manage the daemon |
-| `cws admin security` | `cws security` | Security management |
-| `cws admin policy <action>` | `cws policy <action>` | Policy management |
-| `cws admin profiles <action>` | `cws profiles <action>` | Profile management |
-| `cws admin uninstall` | `cws uninstall` | Complete uninstallation |
+| `prism admin config <action>` | `prism config <action>` | Configure Prism |
+| `prism admin daemon <action>` | `prism daemon <action>` | Manage the daemon |
+| `prism admin security` | `prism security` | Security management |
+| `prism admin policy <action>` | `prism policy <action>` | Policy management |
+| `prism admin profiles <action>` | `prism profiles <action>` | Profile management |
+| `prism admin uninstall` | `prism uninstall` | Complete uninstallation |
 
 ## 🔄 Migration Examples
 
@@ -49,14 +49,14 @@ The CloudWorkstation CLI has been refactored to provide a cleaner, more intuitiv
 **User Management** (before → after):
 ```bash
 # Before
-cws research-user create alice
-cws research-user ssh-key generate alice
-cws research-user provision alice my-instance
+prism research-user create alice
+prism research-user ssh-key generate alice
+prism research-user provision alice my-instance
 
 # After
-cws user create alice
-cws user ssh-key generate alice
-cws user provision alice my-instance
+prism user create alice
+prism user ssh-key generate alice
+prism user provision alice my-instance
 ```
 
 ### System Administration Workflows
@@ -64,30 +64,30 @@ cws user provision alice my-instance
 **Configuration Management** (before → after):
 ```bash
 # Before
-cws config --check
-cws daemon status
-cws security scan
-cws policy enable
-cws profiles list
+prism config --check
+prism daemon status
+prism security scan
+prism policy enable
+prism profiles list
 
 # After
-cws admin config --check
-cws admin daemon status
-cws admin security scan
-cws admin policy enable
-cws admin profiles list
+prism admin config --check
+prism admin daemon status
+prism admin security scan
+prism admin policy enable
+prism admin profiles list
 ```
 
 ## 💡 Benefits
 
 ### **For Researchers**
-1. **Intuitive Discovery**: "I want to manage users" → `cws user`
+1. **Intuitive Discovery**: "I want to manage users" → `prism user`
 2. **Cleaner Commands**: `user` instead of `research-user` (shorter, clearer)
 3. **Consistent Patterns**: All user operations under one parent command
 4. **Better Help**: Organized help system with clear examples
 
 ### **For System Administrators**
-1. **Logical Grouping**: All admin operations under `cws admin`
+1. **Logical Grouping**: All admin operations under `prism admin`
 2. **Professional Structure**: Matches enterprise CLI standards
 3. **Clear Separation**: User vs admin commands clearly distinguished
 4. **Easier Discovery**: No more hunting for admin commands in root list
@@ -108,7 +108,7 @@ cws admin profiles list
 
 ### Architecture
 ```
-CloudWorkstation CLI
+Prism CLI
 ├── Core Commands (root level)
 │   ├── launch, list, connect, start, stop
 │   ├── volume, storage, templates
@@ -145,8 +145,8 @@ CloudWorkstation CLI
 $ ./bin/cws user list
 🧑‍🔬 Users (2)
 USERNAME   UID    FULL NAME   EMAIL                             SSH KEYS   CREATED
-alice      5853   Alice       alice@cloudworkstation.local      1          2025-09-29
-testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-09-29
+alice      5853   Alice       alice@prism.local      1          2025-09-29
+testuser   5853   Testuser    testuser@prism.local   0          2025-09-29
 
 # Admin commands working
 $ ./bin/cws admin daemon status
@@ -179,6 +179,6 @@ The command structure refactor successfully delivers:
 4. **✅ Better User Experience**: Easier discovery and usage
 5. **✅ Clean Architecture**: Logical grouping and consistent patterns
 
-The CloudWorkstation CLI now provides a **much more professional and intuitive experience** that clearly separates user management from system administration, making it easier for researchers to focus on their work while giving administrators the tools they need for system management.
+The Prism CLI now provides a **much more professional and intuitive experience** that clearly separates user management from system administration, making it easier for researchers to focus on their work while giving administrators the tools they need for system management.
 
 **Status**: Ready for production deployment with updated documentation.

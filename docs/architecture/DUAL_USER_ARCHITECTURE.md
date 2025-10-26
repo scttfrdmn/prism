@@ -1,10 +1,10 @@
-# CloudWorkstation Dual User Architecture
+# Prism Dual User Architecture
 
 **The Foundation for Collaborative Research Computing**
 
 ## Executive Summary
 
-CloudWorkstation's **Dual User Architecture** solves the fundamental challenge of providing both **template flexibility** and **research continuity** in cloud computing environments. By separating system users (template-created) from research users (persistent identity), researchers can work seamlessly across different computational environments while maintaining consistent file permissions and access patterns.
+Prism's **Dual User Architecture** solves the fundamental challenge of providing both **template flexibility** and **research continuity** in cloud computing environments. By separating system users (template-created) from research users (persistent identity), researchers can work seamlessly across different computational environments while maintaining consistent file permissions and access patterns.
 
 ## The Challenge
 
@@ -217,7 +217,7 @@ func allocateUID(profileID, username string) int {
 
 **Per-Profile Key Storage:**
 ```
-~/.cloudworkstation/ssh-keys/
+~/.prism/ssh-keys/
 ├── personal-research/
 │   ├── alice/
 │   │   ├── key1.pub
@@ -418,7 +418,7 @@ research_user:
 - Clear separation prevents conflicts
 
 **Profile-Based Security:**
-- Research users belong to specific CloudWorkstation profiles
+- Research users belong to specific Prism profiles
 - SSH keys isolated per profile
 - Cross-profile access requires explicit sharing
 
@@ -440,7 +440,7 @@ research_user:
 
 ### Advanced Collaboration
 
-**Multi-Profile Research Users:** Share research users across CloudWorkstation profiles for inter-institutional collaboration.
+**Multi-Profile Research Users:** Share research users across Prism profiles for inter-institutional collaboration.
 
 **Advanced Access Control:** Fine-grained permissions for shared directories and resources.
 
@@ -458,13 +458,13 @@ research_user:
 
 **Database Storage:** Move from file-based to database storage for large deployments.
 
-**Distributed Caching:** Redis-based caching for multi-node CloudWorkstation deployments.
+**Distributed Caching:** Redis-based caching for multi-node Prism deployments.
 
 **Async Provisioning:** Background user provisioning with progress tracking.
 
 ## Conclusion
 
-The Dual User Architecture represents a fundamental advancement in cloud research computing. By separating template flexibility from research continuity, CloudWorkstation enables:
+The Dual User Architecture represents a fundamental advancement in cloud research computing. By separating template flexibility from research continuity, Prism enables:
 
 **For Individual Researchers:**
 - Seamless workflow continuation across different computational environments
@@ -481,7 +481,7 @@ The Dual User Architecture represents a fundamental advancement in cloud researc
 - Consistent backup and recovery procedures
 - Cross-course and cross-project collaboration
 
-This architecture positions CloudWorkstation as the foundation for collaborative research computing, enabling the transition from individual research tools to institutional research platforms while maintaining the simplicity and flexibility that makes CloudWorkstation powerful.
+This architecture positions Prism as the foundation for collaborative research computing, enabling the transition from individual research tools to institutional research platforms while maintaining the simplicity and flexibility that makes Prism powerful.
 
 ---
 

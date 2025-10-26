@@ -26,7 +26,7 @@ Completed final polish pass verifying all three interfaces (CLI, TUI, GUI) are p
 
 ### Fix Applied
 
-**File Modified**: `/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/index.html`
+**File Modified**: `/Users/scttfrdmn/src/prism/cmd/cws-gui/frontend/index.html`
 
 **CSS Solution** (lines 10-29):
 ```html
@@ -119,7 +119,7 @@ wails3 build
 3. **Instance List**:
    ```bash
    $ ./bin/cws list
-   No workstations found. Launch one with: cws launch <template> <name>
+   No workstations found. Launch one with: prism launch <template> <name>
    ```
    **Status**: ✅ Clean state, helpful message
 
@@ -140,7 +140,7 @@ wails3 build
 5. **Help System**:
    ```bash
    $ ./bin/cws --help
-   CloudWorkstation v0.5.1 (commit: 14a3edac, built: 2025-10-07T18:18:29Z)
+   Prism v0.5.1 (commit: 14a3edac, built: 2025-10-07T18:18:29Z)
 
    Available Commands:
    - ami, ami-discover, apply, backup, budget
@@ -164,13 +164,13 @@ wails3 build
 **Launch Test**:
 ```bash
 $ ./bin/cws tui
-Starting CloudWorkstation TUI v0.5.1...
+Starting Prism TUI v0.5.1...
 ```
 
 **Dashboard Display**:
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ CloudWorkstation Dashboard                                               │
+│ Prism Dashboard                                               │
 │                                                                          │
 │ System Status                                                            │
 │ ─────────────                                                            │
@@ -234,7 +234,7 @@ $ ./bin/cws-gui
 - ✅ **Layout fix applied**: 80px left padding for macOS traffic lights
 
 **Screenshot Verification** (`/tmp/cws-gui-fixed-layout.png`):
-- ✅ CloudWorkstation window visible
+- ✅ Prism window visible
 - ✅ Dashboard tab active
 - ✅ "Research Templates" section visible
 - ✅ "Active Instances" section visible
@@ -517,7 +517,7 @@ Successfully completed final polish pass verifying all three interfaces (CLI, TU
 
 **Multi-Modal Status**: ✅ **ALL INTERFACES PERFECT**
 
-CloudWorkstation v0.5.1 provides researchers with three high-quality interfaces for managing cloud workstations:
+Prism v0.5.1 provides researchers with three high-quality interfaces for managing cloud workstations:
 - **CLI**: For power users and automation (40+ commands)
 - **TUI**: For interactive terminal users (professional BubbleTea interface)
 - **GUI**: For desktop users (AWS-quality Cloudscape design)

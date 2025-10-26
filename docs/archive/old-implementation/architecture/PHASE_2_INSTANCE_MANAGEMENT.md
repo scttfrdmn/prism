@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-CloudWorkstation has successfully implemented **comprehensive, enterprise-grade instance management** in the GUI that exceeds CLI functionality while maintaining perfect parity. The implementation includes dynamic instance loading, professional connection management, detailed instance information dialogs, lifecycle operations with confirmations, and real-time cost tracking - transforming the GUI into a complete instance management platform for research computing.
+Prism has successfully implemented **comprehensive, enterprise-grade instance management** in the GUI that exceeds CLI functionality while maintaining perfect parity. The implementation includes dynamic instance loading, professional connection management, detailed instance information dialogs, lifecycle operations with confirmations, and real-time cost tracking - transforming the GUI into a complete instance management platform for research computing.
 
 ## Achievement Overview
 
@@ -35,7 +35,7 @@ Transform GUI Instance section from basic static cards to dynamic, feature-rich 
 
 ```go
 // Professional instance loading with comprehensive error handling
-func (g *CloudWorkstationGUI) refreshInstances() {
+func (g *PrismGUI) refreshInstances() {
     // Clear existing content and show loading
     g.instancesContainer.RemoveAll()
     loadingLabel := widget.NewLabel("Loading instances...")
@@ -85,7 +85,7 @@ func (g *CloudWorkstationGUI) refreshInstances() {
 
 ```go
 // Comprehensive instance card with complete information
-func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance) *widget.Card {
+func (g *PrismGUI) createEnhancedInstanceCard(instance types.Instance) *widget.Card {
     // Left section: Complete instance details
     detailsContainer := fynecontainer.NewVBox()
     
@@ -136,7 +136,7 @@ func (g *CloudWorkstationGUI) createEnhancedInstanceCard(instance types.Instance
 
 ```go
 // Professional connection dialog with comprehensive information
-func (g *CloudWorkstationGUI) showConnectionDialog(instance types.Instance) {
+func (g *PrismGUI) showConnectionDialog(instance types.Instance) {
     contentContainer := fynecontainer.NewVBox()
     
     // Template-specific web interface information
@@ -145,13 +145,13 @@ func (g *CloudWorkstationGUI) showConnectionDialog(instance types.Instance) {
         switch instance.Template {
         case "r-research":
             webURL = fmt.Sprintf("http://%s:8787", instance.PublicIP)
-            webDescription = "RStudio Server (username: rstudio, password: cloudworkstation)"
+            webDescription = "RStudio Server (username: rstudio, password: prism)"
         case "python-research":
             webURL = fmt.Sprintf("http://%s:8888", instance.PublicIP)
-            webDescription = "JupyterLab (token: cloudworkstation)"
+            webDescription = "JupyterLab (token: prism)"
         case "desktop-research":
             webURL = fmt.Sprintf("https://%s:8443", instance.PublicIP)
-            webDescription = "NICE DCV Desktop (username: ubuntu, password: cloudworkstation)"
+            webDescription = "NICE DCV Desktop (username: ubuntu, password: prism)"
         }
         
         if webURL != "" {
@@ -190,7 +190,7 @@ func (g *CloudWorkstationGUI) showConnectionDialog(instance types.Instance) {
 
 ```go
 // Comprehensive instance details with complete specifications
-func (g *CloudWorkstationGUI) showInstanceDetails(instance types.Instance) {
+func (g *PrismGUI) showInstanceDetails(instance types.Instance) {
     contentContainer := fynecontainer.NewVBox()
     
     // Complete basic information
@@ -246,7 +246,7 @@ func (g *CloudWorkstationGUI) showInstanceDetails(instance types.Instance) {
 
 ```go
 // Professional instance lifecycle management with confirmations
-func (g *CloudWorkstationGUI) showDeleteInstanceConfirmation(instanceName string) {
+func (g *PrismGUI) showDeleteInstanceConfirmation(instanceName string) {
     title := "Delete Instance"
     message := fmt.Sprintf("Are you sure you want to DELETE the instance '%s'?\n\n⚠️ WARNING: This action CANNOT be undone.\n\nAll data on the instance will be permanently lost.\nAttached EBS volumes will be preserved but detached.", instanceName)
     
@@ -279,12 +279,12 @@ func (g *CloudWorkstationGUI) showDeleteInstanceConfirmation(instanceName string
 **CLI Command Mapping:**
 ```bash
 # CLI Commands → Enhanced GUI Functionality
-cws list                    → Dynamic instances view with comprehensive cards
-cws connect <name>          → Connection dialog with URLs, credentials, and copy functionality
-cws start <name>            → Start confirmation with billing implications
-cws stop <name>             → Stop confirmation with preservation notice
-cws delete <name>           → Delete confirmation with data loss warnings
-cws list --details          → Instance details dialog with complete specifications
+prism list                    → Dynamic instances view with comprehensive cards
+prism connect <name>          → Connection dialog with URLs, credentials, and copy functionality
+prism start <name>            → Start confirmation with billing implications
+prism stop <name>             → Stop confirmation with preservation notice
+prism delete <name>           → Delete confirmation with data loss warnings
+prism list --details          → Instance details dialog with complete specifications
 ```
 
 **Enhanced Features Beyond CLI:**
@@ -306,14 +306,14 @@ cws list --details          → Instance details dialog with complete specificat
 
 ```go
 // Professional container management with initialization
-func (g *CloudWorkstationGUI) initializeInstancesContainer() {
+func (g *PrismGUI) initializeInstancesContainer() {
     if g.instancesContainer == nil {
         g.instancesContainer = fynecontainer.NewVBox()
     }
 }
 
 // Coordinated instance refresh with proper error handling
-func (g *CloudWorkstationGUI) refreshInstances() {
+func (g *PrismGUI) refreshInstances() {
     if g.instancesContainer == nil {
         return
     }
@@ -343,7 +343,7 @@ func (g *CloudWorkstationGUI) refreshInstances() {
 
 ```go
 // Professional API integration with proper error handling
-func (g *CloudWorkstationGUI) showStartConfirmation(instanceName string) {
+func (g *PrismGUI) showStartConfirmation(instanceName string) {
     dialog := dialog.NewConfirm(title, message, func(confirmed bool) {
         if confirmed {
             go func() {
@@ -379,7 +379,7 @@ func (g *CloudWorkstationGUI) showStartConfirmation(instanceName string) {
 - Confirmed lifecycle operations with billing awareness
 - Real-time cost tracking and storage integration visualization
 
-### 📱 **CloudWorkstation Design Principles Applied**
+### 📱 **Prism Design Principles Applied**
 
 **Instance Management Implementation:**
 
@@ -405,7 +405,7 @@ func (g *CloudWorkstationGUI) showStartConfirmation(instanceName string) {
 - Error scenarios handled gracefully with user feedback
 
 ### ✅ **User Interface Standards**
-- Consistent with established CloudWorkstation design language
+- Consistent with established Prism design language
 - Responsive layout with proper scrolling and dialog sizing
 - Professional dialog system with comprehensive information display
 - Intuitive instance management workflow with clear visual cues
@@ -474,7 +474,7 @@ func (g *CloudWorkstationGUI) showStartConfirmation(instanceName string) {
 
 ## Conclusion
 
-The **Instance Management Enhancement** represents a major advancement in CloudWorkstation's research computing capabilities, transforming the GUI from basic instance display into a **comprehensive, enterprise-grade instance management platform** that exceeds CLI functionality while maintaining perfect compatibility.
+The **Instance Management Enhancement** represents a major advancement in Prism's research computing capabilities, transforming the GUI from basic instance display into a **comprehensive, enterprise-grade instance management platform** that exceeds CLI functionality while maintaining perfect compatibility.
 
 **Key Outcomes:**
 - ✅ **Complete Instance Management**: Professional lifecycle operations with confirmations and error handling
@@ -483,7 +483,7 @@ The **Instance Management Enhancement** represents a major advancement in CloudW
 - ✅ **CLI Parity Plus**: Perfect CLI compatibility with visual enhancements beyond command-line capabilities
 - ✅ **Research Integration**: Instance management seamlessly integrated with storage and cost workflows
 
-This implementation establishes CloudWorkstation as a **professional research computing platform** with instance management capabilities that rival dedicated cloud management platforms. Researchers can now visually monitor their compute resources, understand cost implications in real-time, manage connections with confidence, and perform all lifecycle operations with professional-grade confirmations and error handling.
+This implementation establishes Prism as a **professional research computing platform** with instance management capabilities that rival dedicated cloud management platforms. Researchers can now visually monitor their compute resources, understand cost implications in real-time, manage connections with confidence, and perform all lifecycle operations with professional-grade confirmations and error handling.
 
 The consistent pattern of dynamic API integration, comprehensive error handling, and enhanced CLI parity established across Templates, Storage, and Instance sections provides a solid foundation for the remaining Phase 2 GUI components and future advanced features.
 
@@ -491,4 +491,4 @@ The consistent pattern of dynamic API integration, comprehensive error handling,
 
 **Project Status:** 🎉 **INSTANCE MANAGEMENT ENHANCEMENT COMPLETE** 🎉
 
-*This achievement transforms CloudWorkstation from a simple launcher into a comprehensive research computing platform with professional instance management capabilities that exceed basic cloud management tools while maintaining the simplicity researchers need.*
+*This achievement transforms Prism from a simple launcher into a comprehensive research computing platform with professional instance management capabilities that exceed basic cloud management tools while maintaining the simplicity researchers need.*

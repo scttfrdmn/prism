@@ -1,10 +1,10 @@
-# CloudWorkstation Administrator Guide
+# Prism Administrator Guide
 
-This guide provides information for administrators on managing CloudWorkstation profiles and invitations with a focus on security features.
+This guide provides information for administrators on managing Prism profiles and invitations with a focus on security features.
 
 ## Profile Security System
 
-CloudWorkstation v0.4.3 introduces a comprehensive security model for invitation-based profiles, allowing administrators to control access to their AWS resources with fine-grained permissions.
+Prism v0.4.3 introduces a comprehensive security model for invitation-based profiles, allowing administrators to control access to their AWS resources with fine-grained permissions.
 
 ### Invitation Security Features
 
@@ -23,7 +23,7 @@ Administrators can create secure invitations with specific security constraints:
 
 ```bash
 # Create a secure invitation with device binding and other security features
-cws profiles invitations create-secure lab-access \
+prism profiles invitations create-secure lab-access \
   --type admin \
   --can-invite=true \
   --transferable=false \
@@ -37,18 +37,18 @@ Administrators can view and manage the devices registered to use invitations:
 
 ```bash
 # List all devices for an invitation
-cws profiles invitations devices inv-abc123def456
+prism profiles invitations devices inv-abc123def456
 
 # Revoke a specific device
-cws profiles invitations revoke-device inv-abc123def456 device-xyz789
+prism profiles invitations revoke-device inv-abc123def456 device-xyz789
 
 # Revoke all devices for an invitation
-cws profiles invitations revoke-all inv-abc123def456
+prism profiles invitations revoke-all inv-abc123def456
 ```
 
 ### Hierarchical Permissions
 
-CloudWorkstation implements a hierarchical permission model for delegation:
+Prism implements a hierarchical permission model for delegation:
 
 1. **Permission Inheritance**: Sub-invitations cannot have more permissions than their parent invitation
 2. **Delegation Control**: Only users with `can_invite=true` can create sub-invitations
@@ -81,14 +81,14 @@ go run scripts/device-manager.go revoke-all --token inv-abc123def456 --force
 The registry can be configured using environment variables:
 
 ```bash
-# Set registry bucket name (defaults to cloudworkstation-invitations)
-export CWS_REGISTRY_BUCKET=my-organization-invitations
+# Set registry bucket name (defaults to prism-invitations)
+export PRISM_REGISTRY_BUCKET=my-organization-invitations
 
 # Set registry region (defaults to us-west-2)
-export CWS_REGISTRY_REGION=us-east-1
+export PRISM_REGISTRY_REGION=us-east-1
 
 # Set registry API endpoint for custom deployments
-export CWS_REGISTRY_API=https://registry.example.com/api
+export PRISM_REGISTRY_API=https://registry.example.com/api
 ```
 
 ### Security Monitoring
@@ -107,12 +107,12 @@ If you suspect a security breach:
 
 1. **Revoke all devices** for the affected invitation:
    ```bash
-   cws profiles invitations revoke-all inv-abc123def456
+   prism profiles invitations revoke-all inv-abc123def456
    ```
 
 2. **Create new invitation** with stricter security:
    ```bash
-   cws profiles invitations create-secure new-access --device-bound=true --max-devices=1
+   prism profiles invitations create-secure new-access --device-bound=true --max-devices=1
    ```
 
 3. **Notify legitimate users** to register with the new invitation
@@ -123,12 +123,12 @@ When a user leaves your organization:
 
 1. **Identify the user's devices**:
    ```bash
-   cws profiles invitations devices inv-abc123def456
+   prism profiles invitations devices inv-abc123def456
    ```
 
 2. **Revoke their specific devices**:
    ```bash
-   cws profiles invitations revoke-device inv-abc123def456 device-xyz789
+   prism profiles invitations revoke-device inv-abc123def456 device-xyz789
    ```
 
 ## Security Best Practices
@@ -175,11 +175,11 @@ This occurs when a user tries to register more devices than allowed.
 Resolution:
 1. Use the device manager to list current devices:
    ```bash
-   cws profiles invitations devices inv-abc123def456
+   prism profiles invitations devices inv-abc123def456
    ```
 2. Revoke unused devices:
    ```bash
-   cws profiles invitations revoke-device inv-abc123def456 device-old
+   prism profiles invitations revoke-device inv-abc123def456 device-old
    ```
 3. Try registering the new device again
 

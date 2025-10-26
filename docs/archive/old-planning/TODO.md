@@ -1,4 +1,4 @@
-# CloudWorkstation Development TODOs
+# Prism Development TODOs
 
 ## High Priority - Critical Issues
 
@@ -21,7 +21,7 @@
   - Implement versioned agent deployment with semantic versioning
   - Create agent update mechanism for existing instances
   - Add version comparison and automatic update capabilities
-  - Implement agent self-update via CloudWorkstation daemon push
+  - Implement agent self-update via Prism daemon push
 
 - [ ] **AWS CLI Maintenance Automation**
   - Add periodic AWS CLI version checking (weekly cron job)
@@ -33,15 +33,15 @@
 - [ ] **Template Slug Names for CLI**
   - Add slug versions of template names with dashes (e.g., `r-research-env`) as **alternatives**
   - Support both display names and slugs for launch commands (user choice)
-  - Update `cws list` to show both display name and slug for reference
+  - Update `prism list` to show both display name and slug for reference
   - Examples (both work):
-    - `cws launch "R Research Environment" my-project` (existing)
-    - `cws launch r-research-env my-project` (new slug alternative)
-    - `cws launch "Idle Detection Test" my-test` (existing)  
-    - `cws launch idle-detection-test my-test` (new slug alternative)
+    - `prism launch "R Research Environment" my-project` (existing)
+    - `prism launch r-research-env my-project` (new slug alternative)
+    - `prism launch "Idle Detection Test" my-test` (existing)  
+    - `prism launch idle-detection-test my-test` (new slug alternative)
 
 - [ ] **Enhanced Template Information**
-  - Implement `cws templates info <name>` command for detailed template information
+  - Implement `prism templates info <name>` command for detailed template information
   - Show packages included, services configured, ports exposed
   - Display template inheritance chain and dependencies  
   - Include cost estimates and instance type recommendations

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the design for a comprehensive AMI reference system that enables any CloudWorkstation template to reference pre-built AMIs with intelligent fallback strategies and AMI sharing capabilities, extending far beyond just commercial software to cover any use case where pre-built environments would benefit researchers.
+This document outlines the design for a comprehensive AMI reference system that enables any Prism template to reference pre-built AMIs with intelligent fallback strategies and AMI sharing capabilities, extending far beyond just commercial software to cover any use case where pre-built environments would benefit researchers.
 
 ## Problem Statement
 
@@ -43,7 +43,7 @@ ami_config:
 
   # Dynamic AMI discovery (second priority)
   ami_search:
-    owner: "cloudworkstation-community"  # AWS account ID or alias
+    owner: "prism-community"  # AWS account ID or alias
     name_pattern: "cws-python-ml-*"
     version_tag: "v2.1.0"
     architecture: ["x86_64", "arm64"]
@@ -209,18 +209,18 @@ func (r *UniversalAMIResolver) crossRegionSearch(template *Template, targetRegio
 **AMI Generation from Templates**:
 ```bash
 # Create AMI from successful template launch
-cws ami create python-ml my-instance --name "Python ML v2.1.0" --public
+prism ami create python-ml my-instance --name "Python ML v2.1.0" --public
 🔧 Creating AMI from instance: my-instance
 📸 Creating snapshot of root volume...
 🏗️  Building AMI: Python ML v2.1.0
 ✅ AMI created: ami-0123456789abcdef0
 
 # Share AMI with community
-cws ami share ami-0123456789abcdef0 --community cloudworkstation
-✅ AMI shared with cloudworkstation community
+prism ami share ami-0123456789abcdef0 --community prism
+✅ AMI shared with prism community
 
 # Publish AMI to marketplace (advanced)
-cws ami publish ami-0123456789abcdef0 --marketplace --price 0.05
+prism ami publish ami-0123456789abcdef0 --marketplace --price 0.05
 📤 Submitting AMI to AWS Marketplace...
 ⏳ Marketplace review process initiated
 ```
@@ -228,7 +228,7 @@ cws ami publish ami-0123456789abcdef0 --marketplace --price 0.05
 **AMI Management Commands**:
 ```bash
 # List available AMIs for templates
-cws ami list --template python-ml
+prism ami list --template python-ml
 📋 Available AMIs for template: python-ml
 
 Region: us-east-1
@@ -239,7 +239,7 @@ Region: us-west-2
   ami-0abcdef123456789a  Python ML v2.1.0   (community)  ⭐ 4.8/5
 
 # Test AMI availability across regions
-cws ami test python-ml --all-regions
+prism ami test python-ml --all-regions
 🧪 Testing AMI availability for template: python-ml
 
 ✅ us-east-1: ami-0123456789abcdef0 (available)
@@ -248,7 +248,7 @@ cws ami test python-ml --all-regions
 ✅ ap-south-1: ami-0xyz123456789def0 (cross-region copy available)
 
 # Create AMI for multiple regions
-cws ami create-multi python-ml my-instance --regions us-east-1,us-west-2,eu-west-1
+prism ami create-multi python-ml my-instance --regions us-east-1,us-west-2,eu-west-1
 🌍 Creating AMI in multiple regions...
 📸 Creating master AMI in us-east-1...
 🔄 Copying to us-west-2... ✅
@@ -260,7 +260,7 @@ cws ami create-multi python-ml my-instance --regions us-east-1,us-west-2,eu-west
 
 **Community AMI Repository**:
 ```yaml
-# .cloudworkstation/ami-community.yml
+# .prism/ami-community.yml
 community_amis:
   python-ml:
     v2.1.0:
@@ -368,21 +368,21 @@ const (
 **Launch with AMI Intelligence**:
 ```bash
 # Standard launch with automatic AMI resolution
-cws launch python-ml my-research
+prism launch python-ml my-research
 🔍 Resolving AMI for template: python-ml
 ✅ Found optimized AMI: ami-0123456789abcdef0
 📈 Performance: 4.2x faster launch (30s vs 6min)
 🚀 Launching with pre-built environment...
 
 # Launch with AMI preference override
-cws launch python-ml my-research --prefer-script
+prism launch python-ml my-research --prefer-script
 ⚠️  Script provisioning requested (6 minutes estimated)
 🔍 AMI available: ami-0123456789abcdef0 (30 seconds)
 Continue with script provisioning? [y/N]: n
 ✅ Using AMI: ami-0123456789abcdef0
 
 # Launch with regional fallback
-cws launch python-ml my-research --region ap-south-1
+prism launch python-ml my-research --region ap-south-1
 🔍 Resolving AMI in ap-south-1...
 ❌ No AMI in ap-south-1
 🔄 Searching fallback regions...
@@ -391,7 +391,7 @@ cws launch python-ml my-research --region ap-south-1
 Continue? [y/N]: y
 
 # Show AMI resolution preview
-cws launch python-ml my-research --dry-run --show-ami-resolution
+prism launch python-ml my-research --dry-run --show-ami-resolution
 🔍 AMI Resolution Preview:
 
 Strategy: ami_preferred
@@ -468,4 +468,4 @@ Cost Comparison:
 - **Smart defaults** - intelligent architecture and instance type selection
 - **Graceful degradation** - always have a working fallback path
 
-This universal AMI system transforms CloudWorkstation from a script-provisioning platform into a hybrid system that intelligently chooses the fastest, most reliable deployment method while maintaining backward compatibility and providing graceful fallbacks for any scenario.
+This universal AMI system transforms Prism from a script-provisioning platform into a hybrid system that intelligently chooses the fastest, most reliable deployment method while maintaining backward compatibility and providing graceful fallbacks for any scenario.

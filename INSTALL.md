@@ -1,42 +1,42 @@
-# CloudWorkstation v0.5.4 Installation Guide
+# Prism v0.5.4 Installation Guide
 
 ## Quick Start (Package Managers - Recommended)
 
 ### macOS and Linux (Homebrew)
 ```bash
-# Step 1: Install CloudWorkstation
-brew install scttfrdmn/tap/cloudworkstation
+# Step 1: Install Prism
+brew install scttfrdmn/tap/prism
 
 # Step 2: Verify installation
-cws --version
+prism --version
 cwsd --version
 ```
 
 ### Windows (Scoop)
 ```powershell
-# Step 1: Add the CloudWorkstation bucket
+# Step 1: Add the Prism bucket
 scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
 
-# Step 2: Install CloudWorkstation
-scoop install cloudworkstation
+# Step 2: Install Prism
+scoop install prism
 
 # Step 3: Verify installation
-cws --version
+prism --version
 cwsd --version
 ```
 
 ## Alternative Installation Methods
 
 ### GitHub Releases (Direct Download)
-1. Download the appropriate binary for your platform from [GitHub Releases](https://github.com/scttfrdmn/cloudworkstation/releases)
+1. Download the appropriate binary for your platform from [GitHub Releases](https://github.com/scttfrdmn/prism/releases)
 2. Extract the archive
 3. Move binaries to your PATH (e.g., `/usr/local/bin/`)
 
 ### Source Build (Full Features)
 ```bash
 # Clone the repository
-git clone https://github.com/scttfrdmn/cloudworkstation.git
-cd cloudworkstation
+git clone https://github.com/scttfrdmn/prism.git
+cd prism
 
 # Set development mode (avoids keychain prompts during build)
 cp .env.example .env
@@ -52,13 +52,13 @@ make install
 
 ```bash
 # Start the daemon
-cws daemon start
+prism daemon start
 
 # Launch your first workstation
-cws launch "Python Machine Learning (Simplified)" my-research
+prism launch "Python Machine Learning (Simplified)" my-research
 
 # Connect to your workstation
-cws connect my-research
+prism connect my-research
 ```
 
 ## Platform-Specific Notes
@@ -89,14 +89,14 @@ export CLOUDWORKSTATION_DEV=true
 
 ### AWS Credentials
 
-CloudWorkstation requires AWS credentials to launch cloud workstations. See the **[AWS Setup Guide](AWS_SETUP_GUIDE.md)** for complete configuration instructions.
+Prism requires AWS credentials to launch cloud workstations. See the **[AWS Setup Guide](AWS_SETUP_GUIDE.md)** for complete configuration instructions.
 
 **Quick setup:**
 ```bash
 # Configure with your preferred AWS profile name
 aws configure --profile aws  # or any name you prefer
 
-# Point CloudWorkstation to your profile
+# Point Prism to your profile
 export AWS_PROFILE=aws
 export AWS_REGION=us-west-2
 
@@ -108,14 +108,14 @@ echo 'export AWS_PROFILE=aws' >> ~/.zshrc
 - AWS account setup and permissions
 - Using non-default profiles (like 'aws' instead of 'default')
 - Regional configuration
-- CloudWorkstation profile management
+- Prism profile management
 - Troubleshooting common issues
 
 ## Getting Help
 
-- **Documentation**: [https://docs.cloudworkstation.dev](https://docs.cloudworkstation.dev)
-- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
-- **CLI Help**: `cws --help`
+- **Documentation**: [https://docs.prism.dev](https://docs.prism.dev)
+- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
+- **CLI Help**: `prism --help`
 - **Demo**: Run `./demo.sh` in the repository
 
 ## Upgrading
@@ -123,13 +123,13 @@ echo 'export AWS_PROFILE=aws' >> ~/.zshrc
 ### Homebrew (macOS/Linux)
 ```bash
 brew update
-brew upgrade scttfrdmn/tap/cloudworkstation
+brew upgrade scttfrdmn/tap/prism
 ```
 
 ### Scoop (Windows)
 ```powershell
 scoop update
-scoop update cloudworkstation
+scoop update prism
 ```
 
 ### Manual
@@ -139,13 +139,13 @@ Download the latest release and replace the existing binaries.
 
 ### Homebrew (macOS/Linux)
 ```bash
-brew uninstall scttfrdmn/tap/cloudworkstation
+brew uninstall scttfrdmn/tap/prism
 brew untap scttfrdmn/tap
 ```
 
 ### Scoop (Windows)
 ```powershell
-scoop uninstall cloudworkstation
+scoop uninstall prism
 scoop bucket rm scttfrdmn
 ```
 
@@ -155,7 +155,7 @@ scoop bucket rm scttfrdmn
 sudo rm -f /usr/local/bin/cws /usr/local/bin/cwsd /usr/local/bin/cws-gui
 
 # Remove configuration (optional)
-rm -rf ~/.cloudworkstation
+rm -rf ~/.prism
 ```
 
 ## Troubleshooting
@@ -164,8 +164,8 @@ rm -rf ~/.cloudworkstation
 
 **Daemon won't start:**
 ```bash
-cws daemon stop
-cws daemon start
+prism daemon stop
+prism daemon start
 ```
 
 **Keychain password prompts:**
@@ -176,7 +176,7 @@ export CLOUDWORKSTATION_DEV=true
 **AWS permission errors:**
 ```bash
 aws sts get-caller-identity
-cws doctor
+prism doctor
 ```
 
-For more help, see the [Troubleshooting Guide](https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBLESHOOTING.md).
+For more help, see the [Troubleshooting Guide](https://github.com/scttfrdmn/prism/blob/main/TROUBLESHOOTING.md).

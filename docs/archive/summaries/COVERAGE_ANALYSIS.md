@@ -1,4 +1,4 @@
-# CloudWorkstation Project-Wide Test Coverage Analysis
+# Prism Project-Wide Test Coverage Analysis
 
 ## Current Status: 79 test files covering 39 packages (241 source files)
 
@@ -267,7 +267,7 @@
 
 **Test Creation Strategy:**
 1. **Analyze existing patterns** in well-tested packages
-2. **Create test templates** for common CloudWorkstation patterns
+2. **Create test templates** for common Prism patterns
 3. **Use table-driven tests** for validation scenarios
 4. **Mock external dependencies** (AWS, filesystem, network)
 5. **Add integration tests** for component interactions

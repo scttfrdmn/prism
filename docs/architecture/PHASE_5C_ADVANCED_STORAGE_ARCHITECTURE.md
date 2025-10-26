@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-Phase 5C Advanced Storage Integration represents a comprehensive implementation of enterprise-grade storage capabilities for CloudWorkstation, delivering high-performance computing storage, intelligent analytics, and cost optimization. This architecture provides researchers with seamless access to multiple AWS storage services while maintaining CloudWorkstation's core principle of simplicity and default success.
+Phase 5C Advanced Storage Integration represents a comprehensive implementation of enterprise-grade storage capabilities for Prism, delivering high-performance computing storage, intelligent analytics, and cost optimization. This architecture provides researchers with seamless access to multiple AWS storage services while maintaining Prism's core principle of simplicity and default success.
 
 ## Architecture Overview
 
@@ -14,7 +14,7 @@ The Phase 5C implementation follows a modular, service-oriented architecture tha
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CloudWorkstation Clients                    │
+│                    Prism Clients                    │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐           │
 │  │ CLI Client  │  │ TUI Client  │  │ GUI Client  │           │
 │  └─────────────┘  └─────────────┘  └─────────────┘           │
@@ -463,20 +463,20 @@ GET    /api/v1/storage/cost-analysis     // Get cost analysis
 
 **Command Structure:**
 ```bash
-cws storage <operation> [arguments] [flags]
+prism storage <operation> [arguments] [flags]
 
 # Core operations
-cws storage create <name> --type <type> [type-specific-flags]
-cws storage list [--type <type>] [--format <format>]
-cws storage show <name>
-cws storage delete <name>
-cws storage mount <storage-name> <instance-name>
+prism storage create <name> --type <type> [type-specific-flags]
+prism storage list [--type <type>] [--format <format>]
+prism storage show <name>
+prism storage delete <name>
+prism storage mount <storage-name> <instance-name>
 
 # Analytics operations
-cws storage analytics [--period <period>] [--resources <resources>]
-cws storage recommendations [--focus <cost|performance>]
-cws storage optimize <name> --workload <workload-type>
-cws storage patterns [--days <days>] [--resources <resources>]
+prism storage analytics [--period <period>] [--resources <resources>]
+prism storage recommendations [--focus <cost|performance>]
+prism storage optimize <name> --workload <workload-type>
+prism storage patterns [--days <days>] [--resources <resources>]
 ```
 
 ## Error Handling and Recovery
@@ -606,7 +606,7 @@ type StorageMetrics struct {
 
 ## Conclusion
 
-Phase 5C Advanced Storage Integration represents a comprehensive transformation of CloudWorkstation's storage capabilities, delivering enterprise-grade functionality while maintaining the platform's core principles of simplicity and default success. The modular architecture enables seamless integration of multiple AWS storage services through a unified interface, while intelligent analytics and optimization ensure optimal performance and cost-effectiveness.
+Phase 5C Advanced Storage Integration represents a comprehensive transformation of Prism's storage capabilities, delivering enterprise-grade functionality while maintaining the platform's core principles of simplicity and default success. The modular architecture enables seamless integration of multiple AWS storage services through a unified interface, while intelligent analytics and optimization ensure optimal performance and cost-effectiveness.
 
 Key architectural achievements:
 
@@ -616,4 +616,4 @@ Key architectural achievements:
 4. **Advanced Security Model**: Multi-layered security with comprehensive audit and compliance capabilities
 5. **Scalable Performance Architecture**: Support for high-throughput, high-IOPS research workloads
 
-This architecture provides the foundation for CloudWorkstation to serve as a comprehensive research data platform, enabling researchers to focus on their research while automatically optimizing storage performance, cost, and management complexity.
+This architecture provides the foundation for Prism to serve as a comprehensive research data platform, enabling researchers to focus on their research while automatically optimizing storage performance, cost, and management complexity.

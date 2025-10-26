@@ -1,11 +1,11 @@
-# CloudWorkStation Keychain Access Analysis
+# Prism Keychain Access Analysis
 **Date:** August 15, 2025  
 **Issue:** Frequent keychain password prompts during development on macOS
 
 ## 🔍 **Root Cause Analysis**
 
 ### **Current Keychain Usage:**
-- **Single Entry**: Only 1 legitimate keychain entry exists: `CloudWorkstation.registry.signing-key`
+- **Single Entry**: Only 1 legitimate keychain entry exists: `Prism.registry.signing-key`
 - **Entry Type**: Registry signing key for secure request authentication  
 - **Created**: August 7, 2025
 - **Status**: ✅ No spurious entries or keychain clogging
@@ -123,8 +123,8 @@ export CLOUDWORKSTATION_DEV=true
 # Now run development commands without keychain prompts
 make test
 make build
-cws --help
-cws templates
+prism --help
+prism templates
 ```
 
 ### **For Production/Release Testing:**
@@ -133,8 +133,8 @@ cws templates
 unset CLOUDWORKSTATION_DEV
 
 # Test production keychain behavior
-cws daemon start
-cws security status
+prism daemon start
+prism security status
 ```
 
 ## 🎉 **Result**

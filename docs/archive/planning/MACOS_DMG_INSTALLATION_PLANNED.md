@@ -1,12 +1,12 @@
 # macOS DMG Installation Guide
 
-Professional macOS installer for CloudWorkstation with native experience, code signing, and notarization.
+Professional macOS installer for Prism with native experience, code signing, and notarization.
 
 ## Quick Start
 
-1. **Download:** Get the latest `CloudWorkstation-v0.5.5.dmg` from [GitHub Releases](https://github.com/scttfrdmn/cloudworkstation/releases)
-2. **Install:** Double-click DMG, drag CloudWorkstation.app to Applications
-3. **Launch:** Open CloudWorkstation from Applications or Spotlight
+1. **Download:** Get the latest `Prism-v0.5.5.dmg` from [GitHub Releases](https://github.com/scttfrdmn/prism/releases)
+2. **Install:** Double-click DMG, drag Prism.app to Applications
+3. **Launch:** Open Prism from Applications or Spotlight
 4. **Setup:** Follow the guided setup for AWS configuration
 
 ## Installation Methods
@@ -17,9 +17,9 @@ Professional macOS installer for CloudWorkstation with native experience, code s
 
 ```bash
 # Download and install
-curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.5.5.dmg
-open CloudWorkstation-v0.5.5.dmg
-# Drag CloudWorkstation.app to Applications folder
+curl -L -O https://github.com/scttfrdmn/prism/releases/latest/download/Prism-v0.5.5.dmg
+open Prism-v0.5.5.dmg
+# Drag Prism.app to Applications folder
 ```
 
 **Includes:**
@@ -35,7 +35,7 @@ open CloudWorkstation-v0.5.5.dmg
 
 ```bash
 brew tap scttfrdmn/tap
-brew install cloudworkstation
+brew install prism
 ```
 
 ### Method 3: Direct Binary Download
@@ -44,10 +44,10 @@ brew install cloudworkstation
 
 ```bash
 # Intel Macs
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-amd64.tar.gz | tar xz
+curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-amd64.tar.gz | tar xz
 
 # Apple Silicon Macs
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-arm64.tar.gz | tar xz
 ```
 
 ## DMG Installation Process
@@ -56,24 +56,24 @@ curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/c
 
 ```bash
 # Download DMG
-curl -L -O https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/CloudWorkstation-v0.4.2.dmg
+curl -L -O https://github.com/scttfrdmn/prism/releases/latest/download/Prism-v0.4.2.dmg
 
 # Verify integrity (optional)
-hdiutil verify CloudWorkstation-v0.4.2.dmg
+hdiutil verify Prism-v0.4.2.dmg
 
 # Check code signature (if signed)
-codesign --verify --verbose CloudWorkstation-v0.4.2.dmg
+codesign --verify --verbose Prism-v0.4.2.dmg
 ```
 
 ### 2. Installation
 
-1. **Mount DMG:** Double-click `CloudWorkstation-v0.4.2.dmg`
-2. **Install:** Drag `CloudWorkstation.app` to `Applications` folder
+1. **Mount DMG:** Double-click `Prism-v0.4.2.dmg`
+2. **Install:** Drag `Prism.app` to `Applications` folder
 3. **Eject DMG:** Unmount the disk image
 
 ### 3. First Launch
 
-1. **Open:** Launch CloudWorkstation from Applications or Spotlight
+1. **Open:** Launch Prism from Applications or Spotlight
 2. **Security:** Allow unsigned app if prompted (first launch only)
 3. **Setup Wizard:** Choose your preferred setup:
    - **GUI Interface:** Visual management with desktop integration
@@ -84,7 +84,7 @@ codesign --verify --verbose CloudWorkstation-v0.4.2.dmg
 The DMG installer can automatically install command-line tools:
 
 - **During App Launch:** Choose "Command Line Setup" in welcome screen
-- **Manual Installation:** Open CloudWorkstation.app → File → Install CLI Tools
+- **Manual Installation:** Open Prism.app → File → Install CLI Tools
 - **Automatic:** CLI tools install to `/usr/local/bin/` with PATH setup
 
 ## What's Installed
@@ -92,16 +92,16 @@ The DMG installer can automatically install command-line tools:
 ### Application Bundle Structure
 
 ```
-/Applications/CloudWorkstation.app/
+/Applications/Prism.app/
 ├── Contents/
 │   ├── Info.plist                    # App metadata and configuration
 │   ├── MacOS/
-│   │   ├── CloudWorkstation          # Main launcher script
-│   │   ├── cws                       # CLI client binary
+│   │   ├── Prism          # Main launcher script
+│   │   ├── prism                       # CLI client binary
 │   │   ├── cwsd                      # Daemon binary
 │   │   └── cws-gui                   # GUI binary (full build only)
 │   ├── Resources/
-│   │   ├── CloudWorkstation.icns     # Application icon
+│   │   ├── Prism.icns     # Application icon
 │   │   ├── templates/                # Built-in templates
 │   │   └── scripts/
 │   │       ├── install-cli-tools.sh # CLI installation
@@ -116,13 +116,13 @@ The DMG installer can automatically install command-line tools:
 - `/usr/local/bin/cwsd` - Daemon binary
 
 **User Data Directory:**
-- `~/.cloudworkstation/` - Configuration and data
-- `~/.cloudworkstation/profiles/` - AWS profiles (secure)
-- `~/.cloudworkstation/templates/` - User templates
-- `~/.cloudworkstation/logs/` - Application logs
+- `~/.prism/` - Configuration and data
+- `~/.prism/profiles/` - AWS profiles (secure)
+- `~/.prism/templates/` - User templates
+- `~/.prism/logs/` - Application logs
 
 **LaunchAgent:**
-- `~/Library/LaunchAgents/com.cloudworkstation.daemon.plist` - Auto-start daemon
+- `~/Library/LaunchAgents/com.prism.daemon.plist` - Auto-start daemon
 
 **Shell Integration:**
 - PATH configuration in `~/.zshrc`, `~/.bashrc`, etc.
@@ -132,18 +132,18 @@ The DMG installer can automatically install command-line tools:
 
 ### Initial Setup
 
-1. **Launch CloudWorkstation**
+1. **Launch Prism**
 2. **AWS Configuration:**
    ```bash
    # Via GUI: Settings → AWS Configuration
    # Via CLI:
-   cws profiles create my-profile
+   prism profiles create my-profile
    ```
 3. **Verify Setup:**
    ```bash
-   cws --version
-   cws templates
-   cws profiles list
+   prism --version
+   prism templates
+   prism profiles list
    ```
 
 ### Advanced Configuration
@@ -151,7 +151,7 @@ The DMG installer can automatically install command-line tools:
 **Daemon Configuration:**
 ```bash
 # Check daemon status
-launchctl list com.cloudworkstation.daemon
+launchctl list com.prism.daemon
 
 # Manual daemon control
 cwsd --help
@@ -160,13 +160,13 @@ cwsd --help
 **Profile Management:**
 ```bash
 # Create profile
-cws profiles create research-profile --region us-west-2
+prism profiles create research-profile --region us-west-2
 
 # Switch profiles
-cws profiles use research-profile
+prism profiles use research-profile
 
 # Export profile
-cws profiles export research-profile > profile-backup.json
+prism profiles export research-profile > profile-backup.json
 ```
 
 ## Security Features
@@ -182,18 +182,18 @@ cws profiles export research-profile > profile-backup.json
 
 ```bash
 # Verify app signature
-codesign --verify --verbose /Applications/CloudWorkstation.app
+codesign --verify --verbose /Applications/Prism.app
 
 # Check Gatekeeper approval
-spctl --assess --verbose --type execute /Applications/CloudWorkstation.app
+spctl --assess --verbose --type execute /Applications/Prism.app
 
 # View certificate details
-codesign --display --verbose=4 /Applications/CloudWorkstation.app
+codesign --display --verbose=4 /Applications/Prism.app
 ```
 
 ### Keychain Integration
 
-CloudWorkstation integrates with macOS Keychain for secure credential storage:
+Prism integrates with macOS Keychain for secure credential storage:
 
 - AWS credentials stored in Keychain
 - Encrypted profile data
@@ -207,7 +207,7 @@ CloudWorkstation integrates with macOS Keychain for secure credential storage:
 ```bash
 # Allow in System Preferences > Security & Privacy
 # Or via command line:
-sudo xattr -rd com.apple.quarantine /Applications/CloudWorkstation.app
+sudo xattr -rd com.apple.quarantine /Applications/Prism.app
 ```
 
 **2. CLI commands not found**
@@ -216,28 +216,28 @@ sudo xattr -rd com.apple.quarantine /Applications/CloudWorkstation.app
 echo $PATH | grep /usr/local/bin
 
 # Reinstall CLI tools
-open /Applications/CloudWorkstation.app
+open /Applications/Prism.app
 # Choose "Command Line Setup"
 ```
 
 **3. Daemon not starting**
 ```bash
 # Check LaunchAgent
-launchctl list | grep cloudworkstation
+launchctl list | grep prism
 
 # Manual start
 cwsd
 
 # Reload LaunchAgent
-launchctl unload ~/Library/LaunchAgents/com.cloudworkstation.daemon.plist
-launchctl load ~/Library/LaunchAgents/com.cloudworkstation.daemon.plist
+launchctl unload ~/Library/LaunchAgents/com.prism.daemon.plist
+launchctl load ~/Library/LaunchAgents/com.prism.daemon.plist
 ```
 
 **4. Permission issues**
 ```bash
 # Fix permissions
-sudo chown -R $(whoami) ~/.cloudworkstation/
-chmod 700 ~/.cloudworkstation/profiles/
+sudo chown -R $(whoami) ~/.prism/
+chmod 700 ~/.prism/profiles/
 ```
 
 ### Diagnostic Information
@@ -248,21 +248,21 @@ make service-info
 
 # Check installation
 which cws
-cws --version
+prism --version
 
 # Daemon status
-cws daemon status
+prism daemon status
 
 # View logs
-tail -f ~/.cloudworkstation/logs/daemon.log
+tail -f ~/.prism/logs/daemon.log
 ```
 
 ### Getting Help
 
-1. **In-App Help:** CloudWorkstation.app → Help Menu
-2. **Command Line:** `cws --help`
-3. **Documentation:** [GitHub Wiki](https://github.com/scttfrdmn/cloudworkstation/wiki)
-4. **Issues:** [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+1. **In-App Help:** Prism.app → Help Menu
+2. **Command Line:** `prism --help`
+3. **Documentation:** [GitHub Wiki](https://github.com/scttfrdmn/prism/wiki)
+4. **Issues:** [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
 
 ## Uninstallation
 
@@ -272,10 +272,10 @@ The DMG includes a professional uninstaller:
 
 ```bash
 # Via included script
-/Applications/CloudWorkstation.app/Contents/Resources/scripts/uninstall.sh
+/Applications/Prism.app/Contents/Resources/scripts/uninstall.sh
 
 # Or download uninstaller
-curl -L -O https://raw.githubusercontent.com/scttfrdmn/cloudworkstation/main/scripts/macos-uninstall.sh
+curl -L -O https://raw.githubusercontent.com/scttfrdmn/prism/main/scripts/macos-uninstall.sh
 chmod +x macos-uninstall.sh
 ./macos-uninstall.sh
 ```
@@ -284,20 +284,20 @@ chmod +x macos-uninstall.sh
 
 ```bash
 # Stop and remove daemon
-launchctl unload ~/Library/LaunchAgents/com.cloudworkstation.daemon.plist
-rm ~/Library/LaunchAgents/com.cloudworkstation.daemon.plist
+launchctl unload ~/Library/LaunchAgents/com.prism.daemon.plist
+rm ~/Library/LaunchAgents/com.prism.daemon.plist
 
 # Remove application
-rm -rf /Applications/CloudWorkstation.app
+rm -rf /Applications/Prism.app
 
 # Remove CLI tools
 sudo rm /usr/local/bin/cws /usr/local/bin/cwsd
 
 # Remove user data (optional)
-rm -rf ~/.cloudworkstation/
+rm -rf ~/.prism/
 
 # Clean shell configuration
-# Edit ~/.zshrc, ~/.bashrc to remove CloudWorkstation PATH entries
+# Edit ~/.zshrc, ~/.bashrc to remove Prism PATH entries
 ```
 
 ### Uninstall Options
@@ -408,4 +408,4 @@ The DMG creation system consists of:
 
 ---
 
-**CloudWorkstation macOS DMG Installer** - Professional installation experience for academic researchers launching cloud workstations in seconds.
+**Prism macOS DMG Installer** - Professional installation experience for academic researchers launching cloud workstations in seconds.

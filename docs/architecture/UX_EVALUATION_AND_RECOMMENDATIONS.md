@@ -1,4 +1,4 @@
-# CloudWorkstation UX Evaluation & Redesign Recommendations
+# Prism UX Evaluation & Redesign Recommendations
 
 **Evaluator Role**: Expert User Interaction Designer
 **Evaluation Date**: October 18, 2025
@@ -11,29 +11,29 @@
 ## 🎯 Implementation Status (Updated: October 20, 2025)
 
 **Target Release**: v0.5.6 (Q4 2025 - Q1 2026)
-**Milestones**: [Phase 5.0.1](https://github.com/scttfrdmn/cloudworkstation/milestone/2) | [Phase 5.0.2](https://github.com/scttfrdmn/cloudworkstation/milestone/3) | [Phase 5.0.3](https://github.com/scttfrdmn/cloudworkstation/milestone/4)
+**Milestones**: [Phase 5.0.1](https://github.com/scttfrdmn/prism/milestone/2) | [Phase 5.0.2](https://github.com/scttfrdmn/prism/milestone/3) | [Phase 5.0.3](https://github.com/scttfrdmn/prism/milestone/4)
 
 ### Phase 5.0.1: Quick Wins (Nov 15, 2025) - 🟡 In Progress
-- [#13](https://github.com/scttfrdmn/cloudworkstation/issues/13) - Home Page with Quick Start Wizard
-- [#14](https://github.com/scttfrdmn/cloudworkstation/issues/14) - Merge Terminal/WebView into Workspaces
-- [#15](https://github.com/scttfrdmn/cloudworkstation/issues/15) - Rename "Instances" → "Workspaces"
-- [#16](https://github.com/scttfrdmn/cloudworkstation/issues/16) - Collapse Advanced Features under Settings
-- [#17](https://github.com/scttfrdmn/cloudworkstation/issues/17) - `cws init` Onboarding Wizard
+- [#13](https://github.com/scttfrdmn/prism/issues/13) - Home Page with Quick Start Wizard
+- [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
+- [#15](https://github.com/scttfrdmn/prism/issues/15) - Rename "Instances" → "Workspaces"
+- [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
+- [#17](https://github.com/scttfrdmn/prism/issues/17) - `prism init` Onboarding Wizard
 
 ### Phase 5.0.2: Information Architecture (Dec 15, 2025) - 📋 Planned
-- [#18](https://github.com/scttfrdmn/cloudworkstation/issues/18) - Unified Storage UI (EFS + EBS)
-- [#19](https://github.com/scttfrdmn/cloudworkstation/issues/19) - Integrate Budgets into Projects
+- [#18](https://github.com/scttfrdmn/prism/issues/18) - Unified Storage UI (EFS + EBS)
+- [#19](https://github.com/scttfrdmn/prism/issues/19) - Integrate Budgets into Projects
 
 ### Phase 5.0.3: CLI Consistency (Dec 31, 2025) - 📋 Planned
-- [#20](https://github.com/scttfrdmn/cloudworkstation/issues/20) - Consistent CLI Command Structure
+- [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
 
-**Track All Progress**: [GitHub Project: CloudWorkStation Development](https://github.com/scttfrdmn/cloudworkstation/projects)
+**Track All Progress**: [GitHub Project: Prism Development](https://github.com/scttfrdmn/prism/projects)
 
 ---
 
 ## Executive Summary
 
-CloudWorkstation suffers from **severe information architecture problems** across both CLI and GUI interfaces. The product has evolved organically without a coherent mental model, resulting in:
+Prism suffers from **severe information architecture problems** across both CLI and GUI interfaces. The product has evolved organically without a coherent mental model, resulting in:
 
 **Critical Issues**:
 1. **Incoherent Information Architecture** - 14 top-level navigation items with no clear hierarchy
@@ -56,7 +56,7 @@ CloudWorkstation suffers from **severe information architecture problems** acros
 
 **Current 14-Item Flat Navigation**:
 ```
-CloudWorkstation
+Prism
 ├── Dashboard          # What's this showing? Unclear purpose
 ├── Templates          # Good - core workflow
 ├── Instances          # Good - core workflow
@@ -113,7 +113,7 @@ Additional Commands: (20+ commands) ← PROBLEM
 3. **Duplicate Concepts**: `storage` vs `volume`, `templates` command vs "Templates & Marketplace"
 4. **Missing Verbs**: `marketplace` (noun) instead of `marketplace search/install`
 5. **Cryptic Names**: `ami-discover` - what does this do? Why separate from `ami`?
-6. **No Onboarding**: No `cws init` or `cws quickstart` for first-time users
+6. **No Onboarding**: No `prism init` or `prism quickstart` for first-time users
 
 ---
 
@@ -122,10 +122,10 @@ Additional Commands: (20+ commands) ← PROBLEM
 ### Solo Researcher (Dr. Sarah Chen)
 **Mental Model**: "I need a Python environment to analyze my data"
 **Current Experience**:
-1. Runs `cws --help` → sees 40 commands → overwhelmed
-2. Finds `launch` → tries `cws launch python` → error (needs template name)
-3. Runs `cws templates` → sees 22 templates → confused about differences
-4. Finally: `cws launch "Python Machine Learning" my-analysis` → works!
+1. Runs `prism --help` → sees 40 commands → overwhelmed
+2. Finds `launch` → tries `prism launch python` → error (needs template name)
+3. Runs `prism templates` → sees 22 templates → confused about differences
+4. Finally: `prism launch "Python Machine Learning" my-analysis` → works!
 5. Result: **15 minutes to launch first instance** (should be 30 seconds)
 
 **Missing**:
@@ -177,7 +177,7 @@ Additional Commands: (20+ commands) ← PROBLEM
 ### Recommended GUI Navigation (5 Top-Level Items)
 
 ```
-CloudWorkstation
+Prism
 │
 ├── 🏠 Home                    ← NEW: Smart landing page
 │   ├── Quick Start (first-time users)
@@ -226,14 +226,14 @@ CloudWorkstation
 
 ```bash
 # PRIMARY COMMANDS (everyday use)
-cws launch <template> <name>     # Create new workspace
-cws connect <name>               # SSH into workspace
-cws list                         # Show my workspaces
-cws stop <name>                  # Stop workspace
-cws delete <name>                # Delete workspace
+prism launch <template> <name>     # Create new workspace
+prism connect <name>               # SSH into workspace
+prism list                         # Show my workspaces
+prism stop <name>                  # Stop workspace
+prism delete <name>                # Delete workspace
 
 # WORKSPACE MANAGEMENT (secondary operations)
-cws workspace
+prism workspace
 ├── start <name>                 # Start stopped workspace
 ├── hibernate <name>             # Hibernate for cost savings
 ├── resume <name>                # Resume hibernated workspace
@@ -242,7 +242,7 @@ cws workspace
 └── logs <name>                  # View workspace logs
 
 # STORAGE (data management)
-cws storage
+prism storage
 ├── create <name>                # Create EFS or EBS storage
 ├── attach <storage> <workspace> # Attach to workspace
 ├── detach <storage> <workspace> # Detach from workspace
@@ -251,7 +251,7 @@ cws storage
 └── delete <name>                # Delete storage
 
 # COLLABORATION (team features)
-cws collab
+prism collab
 ├── project create <name>        # Create project
 ├── project invite <email>       # Invite team member
 ├── project list                 # Show my projects
@@ -259,14 +259,14 @@ cws collab
 └── user create <username>       # Create research user (if admin)
 
 # TEMPLATES (discovery & management)
-cws templates
+prism templates
 ├── list                         # Show available templates
 ├── search <query>               # Search marketplace
 ├── info <template>              # Show template details
 └── install <template>           # Install from marketplace
 
 # ADMIN (institutional management - hide from non-admins)
-cws admin
+prism admin
 ├── policy create <name>         # Create policy
 ├── policy assign <policy>       # Assign to users
 ├── ami build <template>         # Build custom AMI
@@ -274,7 +274,7 @@ cws admin
 └── audit export                 # Compliance audit
 
 # SYSTEM (configuration)
-cws config
+prism config
 ├── profile create <name>        # AWS profile setup
 ├── profile use <name>           # Switch profiles
 ├── init                         # First-time setup wizard
@@ -283,10 +283,10 @@ cws config
 
 **Key Improvements**:
 1. **6 primary commands** - 90% of use cases
-2. **Logical grouping** - `cws workspace` > `cws hibernate`, `cws start`, `cws stop`
+2. **Logical grouping** - `prism workspace` > `prism hibernate`, `prism start`, `prism stop`
 3. **Consistent verbs** - `create`, `list`, `delete` everywhere
-4. **Admin separation** - `cws admin` hides complexity
-5. **Onboarding** - `cws init` for first-time users
+4. **Admin separation** - `prism admin` hides complexity
+5. **Onboarding** - `prism init` for first-time users
 
 ---
 
@@ -300,7 +300,7 @@ cws config
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ 🏠 CloudWorkstation                                     │
+│ 🏠 Prism                                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  👋 Welcome back, Sarah!                                │
@@ -331,7 +331,7 @@ cws config
 RETURNING USER VIEW (when you have workspaces):
 
 ┌─────────────────────────────────────────────────────────┐
-│ 🏠 CloudWorkstation                                     │
+│ 🏠 Prism                                     │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  👋 Welcome back, Sarah!                                │
@@ -572,7 +572,7 @@ Navigation (5 items):
 **Current**:
 ```bash
 $ cws
-CloudWorkstation v0.5.3
+Prism v0.5.3
 
 [40 commands listed]
 
@@ -582,23 +582,23 @@ $ # New user is overwhelmed, doesn't know where to start
 **Fixed**:
 ```bash
 $ cws
-CloudWorkstation v0.5.3
+Prism v0.5.3
 
-Welcome! It looks like this is your first time using CloudWorkstation.
+Welcome! It looks like this is your first time using Prism.
 Let's get you set up! This will take about 2 minutes.
 
-Run: cws init
+Run: prism init
 
 Or if you want to dive right in:
-  cws launch "Python Machine Learning" my-first-workspace
+  prism launch "Python Machine Learning" my-first-workspace
 
-Need help? cws help quickstart
+Need help? prism help quickstart
 
 ---
 
-$ cws init
+$ prism init
 
-🎯 CloudWorkstation Setup Wizard
+🎯 Prism Setup Wizard
 
 Step 1/4: AWS Configuration
   Do you have AWS credentials configured?
@@ -611,7 +611,7 @@ Step 1/4: AWS Configuration
   1. default (us-west-2)
   2. research-account (us-east-1)
 
-  Which profile should CloudWorkstation use? [1]: 1
+  Which profile should Prism use? [1]: 1
 
   ✅ Using AWS profile: default (us-west-2)
 
@@ -621,7 +621,7 @@ Step 2/4: Budget (Optional)
   Monthly budget (USD): 100
 
   ✅ Budget set: $100/month
-  💡 CloudWorkstation will alert you at 75%, 90%, and 100%
+  💡 Prism will alert you at 75%, 90%, and 100%
 
 Step 3/4: Auto-Hibernation (Cost Savings)
   Automatically hibernate idle workspaces? [Y/n]: y
@@ -652,9 +652,9 @@ Setup complete! 🎉
 
 Ready to launch your first workspace?
 
-  cws launch "Python Machine Learning" my-analysis
+  prism launch "Python Machine Learning" my-analysis
 
-Need help? Check out: https://docs.cloudworkstation.io/quickstart
+Need help? Check out: https://docs.prism.io/quickstart
 ```
 
 **Benefits**:
@@ -668,81 +668,81 @@ Need help? Check out: https://docs.cloudworkstation.io/quickstart
 **Current Problems**:
 ```bash
 # Inconsistent verb placement
-cws hibernate my-instance          # Good: verb-noun-object
-cws scaling predict ubuntu L       # Bad: noun-verb-object-modifier
+prism hibernate my-instance          # Good: verb-noun-object
+prism scaling predict ubuntu L       # Bad: noun-verb-object-modifier
 
 # Mixed concepts
-cws volume create shared-data      # Good: noun-verb-noun
-cws storage create project-disk    # Wait, isn't volume == storage?
+prism volume create shared-data      # Good: noun-verb-noun
+prism storage create project-disk    # Wait, isn't volume == storage?
 
 # Unclear actions
-cws ami                            # What does this do? List? Create?
-cws marketplace                    # Same problem
+prism ami                            # What does this do? List? Create?
+prism marketplace                    # Same problem
 
 # Feature sprawl
-cws research-user create           # Why hyphenated?
-cws idle profile list              # Three-word commands get unwieldy
+prism research-user create           # Why hyphenated?
+prism idle profile list              # Three-word commands get unwieldy
 ```
 
 **Fixed (Consistent Patterns)**:
 ```bash
 # PATTERN 1: Primary commands (verb workspace-name)
-cws launch <template> <name>       # Always template first
-cws connect <name>                 # Simple, predictable
-cws stop <name>
-cws delete <name>
+prism launch <template> <name>       # Always template first
+prism connect <name>                 # Simple, predictable
+prism stop <name>
+prism delete <name>
 
 # PATTERN 2: Grouped commands (noun verb [object])
-cws workspace start <name>         # Consistent: workspace operations
-cws workspace hibernate <name>
-cws workspace resize <name> --size L
+prism workspace start <name>         # Consistent: workspace operations
+prism workspace hibernate <name>
+prism workspace resize <name> --size L
 
-cws storage create <name>          # Consistent: storage operations
-cws storage attach <storage> <workspace>
-cws storage snapshot <workspace>
+prism storage create <name>          # Consistent: storage operations
+prism storage attach <storage> <workspace>
+prism storage snapshot <workspace>
 
-cws templates list                 # Consistent: template operations
-cws templates search ML
-cws templates install community/pytorch
+prism templates list                 # Consistent: template operations
+prism templates search ML
+prism templates install community/pytorch
 
 # PATTERN 3: Admin commands (admin noun verb)
-cws admin policy create <name>     # Clearly admin-only
-cws admin audit export
-cws admin ami build <template>
+prism admin policy create <name>     # Clearly admin-only
+prism admin audit export
+prism admin ami build <template>
 
 # PATTERN 4: Config commands (config verb)
-cws config profile create <name>   # System configuration
-cws config init                    # First-time setup
-cws config doctor                  # Diagnose issues
+prism config profile create <name>   # System configuration
+prism config init                    # First-time setup
+prism config doctor                  # Diagnose issues
 ```
 
 **Benefits**:
 - **Predictable** - know the pattern, guess the command
 - **Scalable** - easy to add new features
-- **Discoverable** - `cws workspace --help` shows all workspace commands
+- **Discoverable** - `prism workspace --help` shows all workspace commands
 - **Consistent** - no special cases or exceptions
 
 ### Problem 3: Storage vs Volume Confusion
 
 **Current (CONFUSING)**:
 ```bash
-cws volume create shared-data      # EFS (shared)
-cws storage create project-disk    # EBS (private)
+prism volume create shared-data      # EFS (shared)
+prism storage create project-disk    # EBS (private)
 
 # Users think: "Wait, aren't these the same thing?"
 ```
 
 **Fixed (Clear Distinction)**:
 ```bash
-cws storage create shared-data --type efs    # Explicit type
-cws storage create project-disk --type ebs   # Explicit type
+prism storage create shared-data --type efs    # Explicit type
+prism storage create project-disk --type ebs   # Explicit type
 
 # Or even clearer aliases:
-cws storage shared create research-data      # EFS
-cws storage private create my-disk --size 100  # EBS
+prism storage shared create research-data      # EFS
+prism storage private create my-disk --size 100  # EBS
 
 # Backward compatible:
-cws volume create <name>   # Deprecated, warns user
+prism volume create <name>   # Deprecated, warns user
 ```
 
 ---
@@ -752,7 +752,7 @@ cws volume create <name>   # Deprecated, warns user
 ### Current IA (Problems Highlighted)
 
 ```
-CloudWorkstation
+Prism
 │
 ├── Core Actions (3 commands) ──────────── GOOD
 │   ├── launch, connect, list
@@ -777,7 +777,7 @@ CloudWorkstation
 ### Recommended IA (Task-Oriented)
 
 ```
-CloudWorkstation
+Prism
 │
 ├── 🏠 HOME ───────────────────────────── Smart Entry Point
 │   ├── First-time: Quick Start Wizard
@@ -844,7 +844,7 @@ CloudWorkstation
 - **Impact**: Eliminates #1 user confusion
 - **Effort**: Create unified storage component with tabs/sections
 
-### 4. Add `cws init` Wizard (5 days)
+### 4. Add `prism init` Wizard (5 days)
 - **Impact**: 85% faster first-time setup (15min → 2min)
 - **Effort**: CLI wizard with prompts package
 
@@ -891,7 +891,7 @@ CloudWorkstation
 2. Merge Terminal/WebView into Workspaces
 3. Rename "Instances" → "Workspaces"
 4. Collapse Advanced Features
-5. Add `cws init` wizard
+5. Add `prism init` wizard
 
 **Impact**: 60% usability improvement with minimal code changes
 
@@ -917,12 +917,12 @@ CloudWorkstation
 
 ## Conclusion
 
-CloudWorkstation has **world-class technical architecture** but suffers from **severe UX problems** due to organic growth without intentional information architecture.
+Prism has **world-class technical architecture** but suffers from **severe UX problems** due to organic growth without intentional information architecture.
 
 **The Core Problem**: Feature sprawl created a "kitchen sink" interface where advanced features (AMI, Rightsizing) compete with basic workflows (launch, connect).
 
 **The Solution**: Task-oriented IA with progressive disclosure. Hide complexity, guide users, make common tasks obvious and rare tasks possible.
 
-**Expected Outcome**: With proposed redesign, CloudWorkstation transforms from "powerful but confusing" to "powerful AND intuitive" - reducing learning curve from hours to minutes while maintaining full feature access for advanced users.
+**Expected Outcome**: With proposed redesign, Prism transforms from "powerful but confusing" to "powerful AND intuitive" - reducing learning curve from hours to minutes while maintaining full feature access for advanced users.
 
 **Recommendation**: Implement Phase 1 Quick Wins immediately (2 weeks), then assess user feedback before committing to full redesign.

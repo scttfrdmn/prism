@@ -1,11 +1,11 @@
-# 🚀 CloudWorkstation v0.4.4 Release Notes
+# 🚀 Prism v0.4.4 Release Notes
 
 **Release Date**: August 20, 2025  
 **Release Type**: Major User Experience Improvements
 
 ## 🎯 **Major Breakthrough: Zero Setup Required**
 
-CloudWorkstation v0.4.4 transforms the user experience from "requires setup" to **"just works"** for 90% of users. This release eliminates setup friction while maintaining advanced capabilities for power users.
+Prism v0.4.4 transforms the user experience from "requires setup" to **"just works"** for 90% of users. This release eliminates setup friction while maintaining advanced capabilities for power users.
 
 ---
 
@@ -13,7 +13,7 @@ CloudWorkstation v0.4.4 transforms the user experience from "requires setup" to 
 
 ### 🚀 **Zero-Setup Experience**
 - **Auto-creates intelligent default profile** that maps to user's `~/.aws/credentials` default profile
-- **Works immediately**: `cws launch python-ml my-project` with zero configuration required
+- **Works immediately**: `prism launch python-ml my-project` with zero configuration required
 - **Perfect for researchers**: Install and launch - no profile management needed
 - **Smart UX**: Shows users they're ready to go instead of asking for setup
 
@@ -45,21 +45,21 @@ CloudWorkstation v0.4.4 transforms the user experience from "requires setup" to 
 ### **Before v0.4.4:**
 ```bash
 # Users had to create profiles manually
-cws profiles setup
-cws profiles add personal my-work --aws-profile default
-cws profiles switch [profile-id]
-cws launch python-ml my-project
+prism profiles setup
+prism profiles add personal my-work --aws-profile default
+prism profiles switch [profile-id]
+prism launch python-ml my-project
 ```
 
 ### **After v0.4.4:**
 ```bash
 # Just works immediately
-cws launch python-ml my-project
+prism launch python-ml my-project
 ```
 
 ### **Documentation Impact**
-- ✅ **New approach**: "Run `cws launch python-ml my-project` to get started"
-- ❌ **Old approach**: ~~"First create a profile with `cws profiles setup`"~~
+- ✅ **New approach**: "Run `prism launch python-ml my-project` to get started"
+- ❌ **Old approach**: ~~"First create a profile with `prism profiles setup`"~~
 
 ---
 
@@ -94,8 +94,8 @@ cws launch python-ml my-project
 
 ### **Migration Guide**
 **Existing Users**: No action required - existing profiles continue to work
-**New Users**: Zero setup required - CloudWorkstation works immediately
-**Advanced Users**: Access profile wizard with `cws profiles setup`
+**New Users**: Zero setup required - Prism works immediately
+**Advanced Users**: Access profile wizard with `prism profiles setup`
 
 ---
 
@@ -147,7 +147,7 @@ cws launch python-ml my-project
 ### **New Installation**
 ```bash
 # macOS (Homebrew)
-brew install scttfrdmn/tap/cloudworkstation
+brew install scttfrdmn/tap/prism
 
 # Direct download
 # Download from GitHub releases
@@ -156,7 +156,7 @@ brew install scttfrdmn/tap/cloudworkstation
 ### **Upgrade from Previous Versions**
 ```bash
 # macOS (Homebrew) 
-brew upgrade cloudworkstation
+brew upgrade prism
 
 # Direct upgrade
 # Download latest release and replace binaries
@@ -164,19 +164,19 @@ brew upgrade cloudworkstation
 
 ### **Verification**
 ```bash
-cws --version
-# Should show: CloudWorkstation CLI v0.4.4
+prism --version
+# Should show: Prism CLI v0.4.4
 
 # Test zero-setup experience
-cws launch python-ml my-test-project
+prism launch python-ml my-test-project
 # Should work immediately without any profile setup
 ```
 
 ---
 
-## 🎉 **What This Means for CloudWorkstation**
+## 🎉 **What This Means for Prism**
 
-CloudWorkstation v0.4.4 represents a **major milestone** in user experience:
+Prism v0.4.4 represents a **major milestone** in user experience:
 
 ### **From Tool to Platform**
 - **Tool mentality**: Requires configuration and technical knowledge
@@ -188,7 +188,7 @@ CloudWorkstation v0.4.4 represents a **major milestone** in user experience:
 - **Educational approach**: Helps users succeed instead of frustrating them
 
 ### **Foundation for Growth**
-- **Lower adoption barrier**: Researchers can try CloudWorkstation immediately
+- **Lower adoption barrier**: Researchers can try Prism immediately
 - **Better user retention**: Positive first experience leads to continued use
 - **Platform readiness**: Ready for enterprise and institutional adoption
 
@@ -196,7 +196,7 @@ CloudWorkstation v0.4.4 represents a **major milestone** in user experience:
 
 ## 🔮 **What's Next**
 
-CloudWorkstation v0.4.4 completes **Phase 1: User Experience Improvements** and sets the foundation for:
+Prism v0.4.4 completes **Phase 1: User Experience Improvements** and sets the foundation for:
 
 - **Phase 2**: Template marketplace and community contributions
 - **Phase 3**: Advanced research workflow integrations
@@ -207,7 +207,7 @@ CloudWorkstation v0.4.4 completes **Phase 1: User Experience Improvements** and 
 
 ## 🤝 **Credits**
 
-**Development**: CloudWorkstation Team  
+**Development**: Prism Team  
 **User Experience Research**: Academic researcher feedback and testing  
 **Quality Assurance**: Comprehensive testing across platforms and use cases
 
@@ -215,10 +215,10 @@ CloudWorkstation v0.4.4 completes **Phase 1: User Experience Improvements** and 
 
 ## 📞 **Support & Feedback**
 
-- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
-- **Documentation**: [CloudWorkstation Docs](https://docs.cloudworkstation.dev)
-- **Community**: [Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions)
+- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
+- **Documentation**: [Prism Docs](https://docs.prism.dev)
+- **Community**: [Discussions](https://github.com/scttfrdmn/prism/discussions)
 
 ---
 
-**🎯 CloudWorkstation v0.4.4: Where research computing just works.**
+**🎯 Prism v0.4.4: Where research computing just works.**

@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-CloudWorkstation has successfully implemented a **dynamic, feature-rich Templates section** in the GUI that achieves complete CLI parity with the `cws templates` command. The implementation includes real-time template loading, detailed template information display, integrated launch dialogs, and comprehensive error handling - transforming the GUI from static hardcoded templates to a fully dynamic research environment catalog.
+Prism has successfully implemented a **dynamic, feature-rich Templates section** in the GUI that achieves complete CLI parity with the `prism templates` command. The implementation includes real-time template loading, detailed template information display, integrated launch dialogs, and comprehensive error handling - transforming the GUI from static hardcoded templates to a fully dynamic research environment catalog.
 
 ## Achievement Overview
 
@@ -18,7 +18,7 @@ Transform GUI Templates section from hardcoded static cards to dynamic, API-driv
 - **Rich Information Display**: Architecture, cost, and port information for each template  
 - **Launch Integration**: Complete instance launch workflow with validation
 - **Code Enhancement**: +290 lines of functional code, -56 lines of static content
-- **CLI Parity**: 100% feature compatibility with `cws templates` and `cws launch` commands
+- **CLI Parity**: 100% feature compatibility with `prism templates` and `prism launch` commands
 
 ## Technical Achievements
 
@@ -35,7 +35,7 @@ Transform GUI Templates section from hardcoded static cards to dynamic, API-driv
 
 ```go
 // Dynamic template loading with proper async handling
-func (g *CloudWorkstationGUI) refreshTemplates() {
+func (g *PrismGUI) refreshTemplates() {
     // Show loading indicator
     loadingLabel := widget.NewLabel("Loading templates...")
     g.templatesContainer.Add(loadingLabel)
@@ -63,7 +63,7 @@ func (g *CloudWorkstationGUI) refreshTemplates() {
 
 ```go
 // Rich template card with comprehensive information
-func (g *CloudWorkstationGUI) createTemplateCard(templateID string, template types.Template) *widget.Card {
+func (g *PrismGUI) createTemplateCard(templateID string, template types.Template) *widget.Card {
     detailsContainer := fynecontainer.NewVBox()
     
     // Architecture and instance type information
@@ -99,7 +99,7 @@ func (g *CloudWorkstationGUI) createTemplateCard(templateID string, template typ
 
 ```go
 // Complete launch dialog with validation and options
-func (g *CloudWorkstationGUI) showLaunchDialog(templateID string, template types.Template) {
+func (g *PrismGUI) showLaunchDialog(templateID string, template types.Template) {
     nameEntry := widget.NewEntry()
     nameEntry.SetPlaceHolder("Enter instance name...")
     
@@ -121,16 +121,16 @@ func (g *CloudWorkstationGUI) showLaunchDialog(templateID string, template types
 
 ### ✅ **CLI Parity Achievement**
 
-**Problem:** GUI Templates section didn't match CLI `cws templates` functionality
+**Problem:** GUI Templates section didn't match CLI `prism templates` functionality
 **Solution:** Complete feature parity with CLI commands through API integration
 
 **CLI Command Mapping:**
 ```bash
 # CLI Commands → GUI Functionality
-cws templates           → Templates section with dynamic loading
-cws launch <template>   → Launch dialog from template cards
-cws launch --size <sz>  → Size selection in launch dialog
-cws templates --help    → Template information in cards
+prism templates           → Templates section with dynamic loading
+prism launch <template>   → Launch dialog from template cards
+prism launch --size <sz>  → Size selection in launch dialog
+prism templates --help    → Template information in cards
 ```
 
 **Parity Features:**
@@ -177,7 +177,7 @@ func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // Enhanced API client interface
-type CloudWorkstationAPI interface {
+type PrismAPI interface {
     GetStatus(context.Context) (*types.DaemonStatus, error)
     Ping(context.Context) error
     Shutdown(context.Context) error  // New graceful shutdown method
@@ -205,7 +205,7 @@ type CloudWorkstationAPI interface {
 
 ### 📱 **Progressive Disclosure Success**
 
-Following CloudWorkstation's core design principles:
+Following Prism's core design principles:
 
 - **Default to Success**: All templates work out of the box
 - **Optimize by Default**: Templates show optimal instance types and costs
@@ -229,7 +229,7 @@ Following CloudWorkstation's core design principles:
 - Loading states provide proper user feedback
 
 ### ✅ **User Interface Standards**
-- Consistent with CloudWorkstation design language
+- Consistent with Prism design language
 - Responsive layout with proper scrolling
 - Professional template card presentation
 - Intuitive launch dialog workflow
@@ -303,7 +303,7 @@ Following CloudWorkstation's core design principles:
 
 ## Conclusion
 
-The **Templates Implementation** represents a significant advancement in CloudWorkstation's GUI capabilities, transforming it from a basic interface with hardcoded content to a **dynamic, feature-rich research environment catalog**. 
+The **Templates Implementation** represents a significant advancement in Prism's GUI capabilities, transforming it from a basic interface with hardcoded content to a **dynamic, feature-rich research environment catalog**. 
 
 **Key Outcomes:**
 - ✅ **Complete CLI Parity**: Templates section matches all CLI functionality
@@ -312,10 +312,10 @@ The **Templates Implementation** represents a significant advancement in CloudWo
 - ✅ **Scalable Architecture**: Dynamic system ready for template expansion
 - ✅ **Research Accessibility**: Non-technical users can explore and launch environments
 
-This implementation demonstrates CloudWorkstation's successful evolution toward **multi-modal accessibility** while maintaining the power and flexibility that technical users require. Researchers can now visually explore templates, compare costs and specifications, and launch environments with confidence - all while maintaining perfect consistency with the CLI interface.
+This implementation demonstrates Prism's successful evolution toward **multi-modal accessibility** while maintaining the power and flexibility that technical users require. Researchers can now visually explore templates, compare costs and specifications, and launch environments with confidence - all while maintaining perfect consistency with the CLI interface.
 
 ---
 
 **Project Status:** 🎉 **TEMPLATES SECTION COMPLETE** 🎉
 
-*This achievement establishes CloudWorkstation as a truly accessible platform for researchers of all technical backgrounds, with the Templates section serving as a model for future GUI development.*
+*This achievement establishes Prism as a truly accessible platform for researchers of all technical backgrounds, with the Templates section serving as a model for future GUI development.*

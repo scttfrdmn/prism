@@ -4,8 +4,8 @@
 - main:
   - navigation:
     - button
-    - heading "CloudWorkstation" [level=2]:
-      - link "CloudWorkstation":
+    - heading "Prism" [level=2]:
+      - link "Prism":
         - /url: /
     - list:
       - listitem:

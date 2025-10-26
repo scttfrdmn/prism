@@ -1,6 +1,6 @@
 # Batch Invitation System Guide
 
-CloudWorkstation v0.4.3 introduces a robust batch invitation system for efficiently managing multiple user invitations at once. This guide explains how to use this feature to streamline the process of sharing access to your CloudWorkstation resources.
+Prism v0.4.3 introduces a robust batch invitation system for efficiently managing multiple user invitations at once. This guide explains how to use this feature to streamline the process of sharing access to your Prism resources.
 
 ## Overview
 
@@ -11,7 +11,7 @@ The batch invitation system allows administrators to:
 - Accept multiple invitations from a CSV file
 - Track invitation results and failures
 
-This is especially useful in educational and team environments where many users need access to CloudWorkstation resources.
+This is especially useful in educational and team environments where many users need access to Prism resources.
 
 ## Creating Batch Invitations
 
@@ -42,7 +42,7 @@ Test Admin,admin,90,yes,no,yes,3
 Create batch invitations:
 
 ```bash
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file invitations.csv \
   --s3-config s3://my-bucket/config \
   --has-header \
@@ -63,7 +63,7 @@ cws profiles invitations batch-create \
 Export all active invitations to a CSV file:
 
 ```bash
-cws profiles invitations batch-export \
+prism profiles invitations batch-export \
   --output-file invitations.csv \
   --include-encoded
 ```
@@ -77,7 +77,7 @@ cws profiles invitations batch-export \
 Accept multiple invitations from a CSV file:
 
 ```bash
-cws profiles invitations batch-accept \
+prism profiles invitations batch-accept \
   --csv-file invitations.csv \
   --name-prefix "Team" \
   --has-header
@@ -120,7 +120,7 @@ Student 3,read_only,90,no,no,yes,2
 EOF
 
 # Create invitations and export results
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file students.csv \
   --output-file class_invitations.csv \
   --include-encoded
@@ -130,7 +130,7 @@ cws profiles invitations batch-create \
 
 ```bash
 # Export all current invitations
-cws profiles invitations batch-export \
+prism profiles invitations batch-export \
   --output-file distribution.csv \
   --include-encoded
 ```
@@ -139,7 +139,7 @@ cws profiles invitations batch-export \
 
 ```bash
 # Accept invitations with team prefix
-cws profiles invitations batch-accept \
+prism profiles invitations batch-accept \
   --csv-file team_invitations.csv \
   --name-prefix "Team" \
   --has-header

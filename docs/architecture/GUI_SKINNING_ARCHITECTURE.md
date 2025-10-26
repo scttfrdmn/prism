@@ -2,7 +2,7 @@
 
 ## Overview
 
-CloudWorkstation's GUI skinning system allows institutions and users to customize the interface appearance, branding, and behavior while maintaining core functionality. This enables institutional branding, accessibility customization, and specialized research workflows.
+Prism's GUI skinning system allows institutions and users to customize the interface appearance, branding, and behavior while maintaining core functionality. This enables institutional branding, accessibility customization, and specialized research workflows.
 
 ## Architecture Components
 
@@ -10,7 +10,7 @@ CloudWorkstation's GUI skinning system allows institutions and users to customiz
 
 ```
 themes/
-├── default/                    # Built-in CloudWorkstation theme
+├── default/                    # Built-in Prism theme
 │   ├── theme.json             # Theme configuration
 │   ├── colors.json            # Color palette
 │   ├── fonts.json             # Typography settings
@@ -158,7 +158,7 @@ type ComponentConfig struct {
     "version": "1.0.0",
     "author": "UofR IT Department",
     "institution": "University of Research",
-    "description": "Official CloudWorkstation theme with university branding"
+    "description": "Official Prism theme with university branding"
   },
   
   "branding": {
@@ -180,7 +180,7 @@ type ComponentConfig struct {
     ],
     
     // Contact information
-    "support_email": "cloudworkstation@university.edu",
+    "support_email": "prism@university.edu",
     "support_phone": "+1-555-HELP-RC"
   },
   
@@ -306,23 +306,23 @@ func getStatusColorClass(status types.InstanceState, theme *Theme) string {
 
 ```bash
 # Install institutional theme
-cws gui theme install university-research-theme.cwstheme
+prism gui theme install university-research-theme.cwstheme
 
 # List available themes
-cws gui theme list
+prism gui theme list
 # THEME                     VERSION   AUTHOR              STATUS
-# default                  1.0.0     CloudWorkstation    Active
+# default                  1.0.0     Prism    Active
 # university-research      1.2.0     UofR IT             Available
-# accessibility-high       1.0.0     CloudWorkstation    Available
+# accessibility-high       1.0.0     Prism    Available
 
 # Switch theme
-cws gui theme set university-research
+prism gui theme set university-research
 # Applied theme: University of Research
 # Restart GUI to see changes? [y/N] y
 
 # Create theme from current customizations  
-cws gui theme export my-custom-theme
-# Exported theme to: ~/.cloudworkstation/themes/my-custom-theme/
+prism gui theme export my-custom-theme
+# Exported theme to: ~/.prism/themes/my-custom-theme/
 ```
 
 ### **Theme Package Format**
@@ -433,7 +433,7 @@ func detectInstitutionalTheme() string {
     }
     
     // Check environment variable
-    if theme := os.Getenv("CWS_THEME"); theme != "" {
+    if theme := os.Getenv("PRISM_THEME"); theme != "" {
         return theme
     }
     

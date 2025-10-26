@@ -6,7 +6,7 @@
 
 ## Overview
 
-Successfully completed and retired **2 critical technical debt items** from the CloudWorkstation backlog, plus delivered comprehensive IAM permissions documentation in response to user request.
+Successfully completed and retired **2 critical technical debt items** from the Prism backlog, plus delivered comprehensive IAM permissions documentation in response to user request.
 
 **Status**: ✅ Both items #0 and #1 RETIRED
 **Effort**: ~6 hours development time
@@ -64,24 +64,24 @@ Templates could specify IAM profiles but they weren't validated before launch. A
 1. IAM client added to Manager struct (line 44)
 2. IAM client initialized in NewManager (lines 104, 122)
 3. Real `GetInstanceProfile()` API call implemented
-4. **Auto-creation of CloudWorkstation-Instance-Profile** if it doesn't exist:
+4. **Auto-creation of Prism-Instance-Profile** if it doesn't exist:
    - Creates IAM role with EC2 trust relationship
    - Attaches `AmazonSSMManagedInstanceCore` for SSM access
    - Creates inline policy for autonomous idle detection
-   - Tags resources as `ManagedBy: CloudWorkstation`
+   - Tags resources as `ManagedBy: Prism`
 5. Graceful fallback when user lacks IAM permissions
 
 **Auto-Creation Flow**:
 ```
-1. Check if CloudWorkstation-Instance-Profile exists
+1. Check if Prism-Instance-Profile exists
    ↓ (not found)
-2. Create IAM role: CloudWorkstation-Instance-Profile-Role
+2. Create IAM role: Prism-Instance-Profile-Role
 3. Attach trust policy: Allow EC2 to assume role
 4. Attach AWS managed policy: AmazonSSMManagedInstanceCore
-5. Create inline policy: CloudWorkstation-IdleDetection
+5. Create inline policy: Prism-IdleDetection
    - ec2:CreateTags, ec2:DescribeTags
    - ec2:DescribeInstances, ec2:StopInstances
-6. Create instance profile: CloudWorkstation-Instance-Profile
+6. Create instance profile: Prism-Instance-Profile
 7. Add role to instance profile
 8. Wait 2 seconds for IAM propagation
 9. ✅ Ready for zero-configuration SSM access
@@ -99,7 +99,7 @@ Templates could specify IAM profiles but they weren't validated before launch. A
 ## 📄 Bonus Deliverables: IAM Permissions Documentation
 
 ### User Request
-*"What are the minimum permissions CloudWorkstation needs?"*
+*"What are the minimum permissions Prism needs?"*
 
 ### Documentation Created
 
@@ -119,8 +119,8 @@ Templates could specify IAM profiles but they weren't validated before launch. A
 - **Tier 2 - Full Features**: EC2 + EFS + IAM + SSM (recommended)
 - **Tier 3 - Institutional**: CloudFormation, Cost Explorer, Organizations (future)
 
-#### 2. cloudworkstation-iam-policy.json
-**Location**: `docs/cloudworkstation-iam-policy.json`
+#### 2. prism-iam-policy.json
+**Location**: `docs/prism-iam-policy.json`
 
 Ready-to-apply AWS IAM policy document covering:
 - EC2 instance and network management
@@ -132,8 +132,8 @@ Ready-to-apply AWS IAM policy document covering:
 **Usage**:
 ```bash
 aws iam create-policy \
-  --policy-name CloudWorkstationAccess \
-  --policy-document file://docs/cloudworkstation-iam-policy.json
+  --policy-name PrismAccess \
+  --policy-document file://docs/prism-iam-policy.json
 ```
 
 #### 3. setup-iam-permissions.sh
@@ -141,8 +141,8 @@ aws iam create-policy \
 
 Interactive IAM setup script with options to:
 1. Create new IAM policy and attach to current user/role
-2. Attach existing CloudWorkstation policy
-3. Create new IAM user for CloudWorkstation
+2. Attach existing Prism policy
+3. Create new IAM user for Prism
 4. Show policy JSON only
 5. Exit
 
@@ -272,8 +272,8 @@ Added references to IAM permissions documentation:
 ./bin/cws launch ubuntu test-iam
 
 # Expected log output:
-# IAM instance profile 'CloudWorkstation-Instance-Profile' not found - attempting to create it automatically...
-# ✅ Successfully created IAM instance profile 'CloudWorkstation-Instance-Profile' with SSM access and idle detection permissions
+# IAM instance profile 'Prism-Instance-Profile' not found - attempting to create it automatically...
+# ✅ Successfully created IAM instance profile 'Prism-Instance-Profile' with SSM access and idle detection permissions
 ```
 
 ### Verify IAM Permissions
@@ -282,7 +282,7 @@ Added references to IAM permissions documentation:
 ./scripts/setup-iam-permissions.sh
 
 # Or manually verify permissions
-aws iam get-policy --policy-arn arn:aws:iam::ACCOUNT_ID:policy/CloudWorkstationAccess
+aws iam get-policy --policy-arn arn:aws:iam::ACCOUNT_ID:policy/PrismAccess
 ```
 
 ---
@@ -291,7 +291,7 @@ aws iam get-policy --policy-arn arn:aws:iam::ACCOUNT_ID:policy/CloudWorkstationA
 
 - **Technical Debt Backlog**: `docs/TECHNICAL_DEBT_BACKLOG.md`
 - **IAM Permissions Guide**: `docs/AWS_IAM_PERMISSIONS.md`
-- **IAM Policy JSON**: `docs/cloudworkstation-iam-policy.json`
+- **IAM Policy JSON**: `docs/prism-iam-policy.json`
 - **Setup Script**: `scripts/setup-iam-permissions.sh`
 - **Getting Started**: `docs/GETTING_STARTED.md`
 
@@ -306,7 +306,7 @@ Both items have been implemented beyond their original scope:
 - IAM validation includes automatic profile creation (zero-configuration SSM)
 - Comprehensive IAM documentation addresses user question about permissions
 
-The CloudWorkstation codebase is now more maintainable, user-friendly, and production-ready with clear documentation of AWS requirements.
+The Prism codebase is now more maintainable, user-friendly, and production-ready with clear documentation of AWS requirements.
 
 **Next Steps**:
 1. Test SSH progress feedback with real AWS launches

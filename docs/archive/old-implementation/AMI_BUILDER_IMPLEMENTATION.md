@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CloudWorkstation AMI Builder System has been successfully implemented as planned for the 0.2.0 release. This system replaces the previous approach of using UserData scripts for software installation during instance launch with pre-built AMIs, resulting in faster instance startup times (reduced from 10+ minutes to under 60 seconds) and more reliable deployments.
+The Prism AMI Builder System has been successfully implemented as planned for the 0.2.0 release. This system replaces the previous approach of using UserData scripts for software installation during instance launch with pre-built AMIs, resulting in faster instance startup times (reduced from 10+ minutes to under 60 seconds) and more reliable deployments.
 
 ## Components Implemented
 
@@ -76,17 +76,17 @@ estimated_cost_per_hour:
 
 CLI integration has been completed with the following commands:
 
-- `cws ami build <template>`: Build an AMI from a template
-- `cws ami validate <template>`: Validate a template definition
-- `cws ami list [template]`: List available AMIs
-- `cws ami publish <template> <ami-id>`: Register an AMI in the registry
+- `prism ami build <template>`: Build an AMI from a template
+- `prism ami validate <template>`: Validate a template definition
+- `prism ami list [template]`: List available AMIs
+- `prism ami publish <template> <ami-id>`: Register an AMI in the registry
 
-- `cws registry list [template]`: List templates in registry
-- `cws registry info <template>`: Show template details
-- `cws registry search <query>`: Search for templates
-- `cws registry pull <template>`: Download template from registry
-- `cws registry push <template>`: Upload template to registry
-- `cws registry use enable/disable`: Enable or disable registry lookups
+- `prism registry list [template]`: List templates in registry
+- `prism registry info <template>`: Show template details
+- `prism registry search <query>`: Search for templates
+- `prism registry pull <template>`: Download template from registry
+- `prism registry push <template>`: Upload template to registry
+- `prism registry use enable/disable`: Enable or disable registry lookups
 
 ## Performance Improvements
 
@@ -114,4 +114,4 @@ With the AMI Builder System now complete, the following next steps are recommend
 
 ## Conclusion
 
-The AMI Builder System represents a significant advancement in the CloudWorkstation platform, meeting all of the requirements outlined in the ROADMAP.md document. This system enables faster, more reliable instance launches and provides a foundation for specialized research environments in the upcoming phases.
+The AMI Builder System represents a significant advancement in the Prism platform, meeting all of the requirements outlined in the ROADMAP.md document. This system enables faster, more reliable instance launches and provides a foundation for specialized research environments in the upcoming phases.

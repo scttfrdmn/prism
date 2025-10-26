@@ -1,8 +1,8 @@
-# CloudWorkstation Template System
+# Prism Template System
 
 ## Overview
 
-CloudWorkstation's template system has been completely redesigned to be simple, deterministic, and maintainable. The new system leverages existing package managers (apt, conda, spack) instead of custom bash scripts, following the core principle of "leverage existing tools instead of reinventing the wheel."
+Prism's template system has been completely redesigned to be simple, deterministic, and maintainable. The new system leverages existing package managers (apt, conda, spack) instead of custom bash scripts, following the core principle of "leverage existing tools instead of reinventing the wheel."
 
 ## Architecture
 
@@ -113,7 +113,7 @@ package_manager: "conda"  # Force conda even for system packages
 - Easier to update and test
 
 ### 4. Smart Defaults
-- CloudWorkstation picks optimal package manager automatically
+- Prism picks optimal package manager automatically
 - Per-architecture instance types selected automatically
 - Secure password generation
 
@@ -233,7 +233,7 @@ services:
   - name: "jupyter"
     port: 8888
 
-# CloudWorkstation detects ML packages and recommends GPU instance
+# Prism detects ML packages and recommends GPU instance
 ```
 
 ### HPC Scientific Computing
@@ -270,13 +270,13 @@ This converts hardcoded `RuntimeTemplate` structs to new YAML format.
 
 ```bash
 # Validate template syntax
-cws validate-template templates/my-template.yml
+prism validate-template templates/my-template.yml
 
 # List available templates
-cws templates list
+prism templates list
 
 # Get template information
-cws templates info r-research
+prism templates info r-research
 ```
 
 ## Implementation Status
@@ -334,7 +334,7 @@ legacyTemplates, err := GetTemplatesForRegion("us-east-1", "x86_64")
 
 ## Conclusion
 
-The new template system represents a fundamental improvement in CloudWorkstation's architecture:
+The new template system represents a fundamental improvement in Prism's architecture:
 
 1. **Simplicity**: Templates went from complex bash scripts to simple YAML configuration
 2. **Reliability**: Package managers provide deterministic, reproducible builds  

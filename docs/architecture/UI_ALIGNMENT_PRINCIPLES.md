@@ -1,8 +1,8 @@
-# CloudWorkstation UI Alignment Principles
+# Prism UI Alignment Principles
 
 ## Overview
 
-This document outlines the principles for maintaining alignment between the Terminal User Interface (TUI) and Graphical User Interface (GUI) implementations of CloudWorkstation. Maintaining consistency across interfaces ensures a coherent user experience regardless of which interface users choose.
+This document outlines the principles for maintaining alignment between the Terminal User Interface (TUI) and Graphical User Interface (GUI) implementations of Prism. Maintaining consistency across interfaces ensures a coherent user experience regardless of which interface users choose.
 
 ## Core Principles
 
@@ -83,7 +83,7 @@ This document outlines the principles for maintaining alignment between the Term
 
 ## Transition Strategy
 
-As CloudWorkstation evolves to include the GUI in version 0.4.1, maintain the TUI as the reference implementation. The GUI should adopt and build upon patterns established in the TUI while leveraging graphical capabilities for enhanced usability.
+As Prism evolves to include the GUI in version 0.4.1, maintain the TUI as the reference implementation. The GUI should adopt and build upon patterns established in the TUI while leveraging graphical capabilities for enhanced usability.
 
 ## Success Metrics
 

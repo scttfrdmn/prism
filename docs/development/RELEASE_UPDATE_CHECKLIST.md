@@ -3,7 +3,7 @@
 ## Issues Identified and Solutions
 
 ### 🐛 **Issue 1: Help System Missing Commands**
-**Problem**: The `cws help` command is missing `profiles` and `security` commands, even though they exist in v0.4.2.
+**Problem**: The `prism help` command is missing `profiles` and `security` commands, even though they exist in v0.4.2.
 
 **Root Cause**: Two help systems exist:
 - **Legacy Help** (`cmd/cws/main.go:printUsage()`) - triggered by `--help` flag  
@@ -43,7 +43,7 @@ class Cloudworkstation < Formula
   revision 1
   
   # Use HEAD version for latest features (development builds)
-  url "https://github.com/scttfrdmn/cloudworkstation.git", 
+  url "https://github.com/scttfrdmn/prism.git", 
       using: :git, revision: "main"
   version "0.4.2-dev"
   
@@ -71,9 +71,9 @@ end
 The local formula updates won't take effect until pushed to the tap repository.
 
 **Required Steps**:
-1. Push updated `Formula/cloudworkstation.rb` to https://github.com/scttfrdmn/homebrew-cloudworkstation
-2. Test installation: `brew uninstall cloudworkstation && brew install scttfrdmn/cloudworkstation/cloudworkstation`
-3. Verify: `cws help | grep profiles` should show profiles commands
+1. Push updated `Formula/prism.rb` to https://github.com/scttfrdmn/homebrew-prism
+2. Test installation: `brew uninstall prism && brew install scttfrdmn/prism/prism`
+3. Verify: `prism help | grep profiles` should show profiles commands
 
 ### **📋 Future Release Tasks**
 
@@ -92,14 +92,14 @@ The local formula updates won't take effect until pushed to the tap repository.
 ## Testing Checklist
 
 ### **After Tap Update**:
-- [ ] `brew info cloudworkstation` shows v0.4.2-dev
-- [ ] `cws --version` shows v0.4.2
-- [ ] `cws help` shows complete command list including:
+- [ ] `brew info prism` shows v0.4.2-dev
+- [ ] `prism --version` shows v0.4.2
+- [ ] `prism help` shows complete command list including:
   - [ ] `profiles` commands
   - [ ] `security` commands  
   - [ ] `idle` commands with updated descriptions
-- [ ] `cws-gui` available on macOS installations
-- [ ] All Cobra commands work: `cws profiles list`, `cws security health`
+- [ ] `prism-gui` available on macOS installations
+- [ ] All Cobra commands work: `prism profiles list`, `prism security health`
 
 ### **Cross-Platform Testing**:
 - [ ] macOS Intel: All features including GUI

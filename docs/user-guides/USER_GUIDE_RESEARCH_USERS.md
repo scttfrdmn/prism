@@ -1,14 +1,14 @@
 # Research Users: Your Persistent Identity Across Cloud Environments
 
-**CloudWorkstation v0.5.1** introduces **Research Users** - your persistent identity that follows you across all your cloud research environments. No more worrying about different usernames, file permissions, or SSH keys when switching between Python, R, and other research templates.
+**Prism v0.5.1** introduces **Research Users** - your persistent identity that follows you across all your cloud research environments. No more worrying about different usernames, file permissions, or SSH keys when switching between Python, R, and other research templates.
 
-> **🆕 v0.5.1 Command Update**: Research user commands are now available as `cws user` (simplified from `cws research-user`). All functionality remains the same with cleaner, more intuitive commands.
+> **🆕 v0.5.1 Command Update**: Research user commands are now available as `prism user` (simplified from `prism research-user`). All functionality remains the same with cleaner, more intuitive commands.
 
 ## Quick Start
 
 ### What Are Research Users?
 
-**Research Users** give you a consistent identity across all your CloudWorkstation instances:
+**Research Users** give you a consistent identity across all your Prism instances:
 - **Same username and user ID** on every instance you launch
 - **Persistent home directory** that survives instance shutdowns
 - **SSH keys that work everywhere** without reconfiguration
@@ -40,7 +40,7 @@ ls /efs/home/alice                    # Same files available instantly
 
 ## How It Works: Dual User System
 
-CloudWorkstation uses a **Dual User System** that gives you the best of both worlds:
+Prism uses a **Dual User System** that gives you the best of both worlds:
 
 ### System Users (Template-Created)
 - **Purpose**: Run services like Jupyter, RStudio, databases
@@ -71,20 +71,20 @@ Instance Setup:
 
 ```bash
 # Create your research user (coming in v0.5.0)
-cws user create alice
+prism user create alice
 
 # Generate SSH keys automatically
-cws user ssh-key generate alice ed25519
+prism user ssh-key generate alice ed25519
 ```
 
 ### 2. Launch Instances with Research Users
 
 ```bash
 # Launch with your research user
-cws launch "Python Machine Learning" my-analysis --research-user alice
+prism launch "Python Machine Learning" my-analysis --research-user alice
 
 # Later, launch R instance with same user
-cws launch "R Research Environment" my-analysis-r --research-user alice
+prism launch "R Research Environment" my-analysis-r --research-user alice
 ```
 
 ### 3. Access Your Persistent Home Directory
@@ -109,13 +109,13 @@ Work seamlessly across different research environments:
 
 ```bash
 # Day 1: Python analysis
-cws launch python-ml analysis --research-user alice
+prism launch python-ml analysis --research-user alice
 ssh alice@analysis
 cd /efs/home/alice/projects
 python create_dataset.py  # Creates dataset.csv
 
 # Day 2: R visualization
-cws launch r-research visualization --research-user alice
+prism launch r-research visualization --research-user alice
 ssh alice@visualization
 cd /efs/home/alice/projects
 R -e "data <- read.csv('dataset.csv')"  # Same file, no copying!
@@ -154,7 +154,7 @@ One set of SSH keys works everywhere:
 
 ```bash
 # Generate keys once
-cws user ssh-key generate alice ed25519
+prism user ssh-key generate alice ed25519
 
 # Use same key for all instances
 ssh alice@python-instance    # Works
@@ -199,34 +199,34 @@ ssh alice@rocky-instance     # Works
 
 ```bash
 # Generate Ed25519 key (recommended)
-cws user ssh-key generate alice ed25519
+prism user ssh-key generate alice ed25519
 
 # Or generate RSA key for compatibility
-cws user ssh-key generate alice rsa
+prism user ssh-key generate alice rsa
 ```
 
 ### Import Existing Keys
 
 ```bash
 # Import your existing public key
-cws user ssh-key import alice ~/.ssh/id_rsa.pub "My laptop key"
+prism user ssh-key import alice ~/.ssh/id_rsa.pub "My laptop key"
 ```
 
 ### List and Manage Keys
 
 ```bash
 # List all SSH keys
-cws user ssh-key list alice
+prism user ssh-key list alice
 
 # Delete a key
-cws user ssh-key delete alice key-id
+prism user ssh-key delete alice key-id
 ```
 
 ## Working with Templates
 
 ### Template Compatibility
 
-Research users work with **all CloudWorkstation templates**:
+Research users work with **all Prism templates**:
 
 - ✅ **Python Machine Learning**: Research user + Jupyter service user
 - ✅ **R Research Environment**: Research user + RStudio service user
@@ -242,11 +242,11 @@ Templates can now automatically create and provision research users during launc
 
 ```bash
 # Automatic research user creation with new templates
-cws launch python-ml-research my-project --research-user alice
+prism launch python-ml-research my-project --research-user alice
 # ✅ Launches instance + creates 'alice' research user + provisions SSH keys + sets up EFS home
 
 # Check template capabilities
-cws templates info python-ml-research
+prism templates info python-ml-research
 # Shows research user integration features
 ```
 
@@ -284,23 +284,23 @@ research_user:
 1. **Each team member creates their research user**:
    ```bash
    # Alice
-   cws user create alice
+   prism user create alice
 
    # Bob
-   cws user create bob
+   prism user create bob
 
    # Carol
-   cws user create carol
+   prism user create carol
    ```
 
 2. **Share EFS volumes across instances**:
    ```bash
    # Create shared EFS volume
-   cws volumes create team-research-data
+   prism volumes create team-research-data
 
    # Mount on all instances
-   cws volumes mount team-research-data alice-instance
-   cws volumes mount team-research-data bob-instance
+   prism volumes mount team-research-data alice-instance
+   prism volumes mount team-research-data bob-instance
    ```
 
 3. **Collaborate with consistent permissions**:
@@ -376,10 +376,10 @@ tar -xzf my-research-backup.tar.gz
 
 ```bash
 # Import your existing SSH key
-cws user ssh-key import alice ~/.ssh/id_rsa.pub "Migrated key"
+prism user ssh-key import alice ~/.ssh/id_rsa.pub "Migrated key"
 
 # Or generate new keys and update GitHub/servers
-cws user ssh-key generate alice ed25519
+prism user ssh-key generate alice ed25519
 cat /efs/home/alice/.ssh/id_ed25519.pub  # Add to GitHub, servers
 ```
 
@@ -390,10 +390,10 @@ cat /efs/home/alice/.ssh/id_ed25519.pub  # Add to GitHub, servers
 **Q: I can't SSH into my instance with my research user**
 ```bash
 # Check SSH key is properly configured
-cws user ssh-key list alice
+prism user ssh-key list alice
 
 # Verify user was provisioned
-cws user status alice --instance my-instance
+prism user status alice --instance my-instance
 
 # Check SSH key permissions on instance
 ssh ubuntu@my-instance "ls -la /efs/home/alice/.ssh/"
@@ -408,7 +408,7 @@ ssh alice@my-instance "mount | grep efs"
 ssh alice@my-instance "ls -la /efs/home/"
 
 # Check if EFS volume is mounted
-cws volumes list
+prism volumes list
 ```
 
 **Q: File permissions are wrong**
@@ -425,33 +425,33 @@ ssh alice@my-instance "sudo chown -R alice:research /efs/home/alice"
 
 ```bash
 # Check research user status
-cws user status alice
+prism user status alice
 
 # List all research users
-cws user list
+prism user list
 
 # View detailed instance information
-cws instances describe my-instance --show-users
+prism instances describe my-instance --show-users
 ```
 
 ## What's Coming Next
 
-**CloudWorkstation v0.5.0** will include:
-- **CLI Integration**: `cws user` command suite
+**Prism v0.5.0** will include:
+- **CLI Integration**: `prism user` command suite
 - **TUI Interface**: Visual research user management in terminal
 - **GUI Support**: Point-and-click research user management
 - **Template Enhancement**: Templates with built-in research user support
 - **Advanced EFS**: Automatic EFS volume creation and management
 
 **Future Enhancements**:
-- **Multi-Profile Collaboration**: Share research users across CloudWorkstation profiles
+- **Multi-Profile Collaboration**: Share research users across Prism profiles
 - **Advanced Policies**: Institutional controls and governance
 - **Usage Analytics**: Track research user activity and resource usage
 - **Globus Integration**: Institutional authentication and data transfer
 
 ## Summary
 
-Research Users transform CloudWorkstation from a single-instance tool into a collaborative research platform:
+Research Users transform Prism from a single-instance tool into a collaborative research platform:
 
 - 🎯 **Consistent Identity**: Same username and UID across all instances
 - 💾 **Persistent Storage**: Files survive instance shutdowns and changes
@@ -465,5 +465,5 @@ Start using Research Users today to streamline your cloud research workflows!
 
 **Need Help?**
 - 📚 Full documentation: [Research User Architecture](../architecture/DUAL_USER_ARCHITECTURE.md)
-- 🐛 Report issues: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
-- 💬 Discuss: [GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions)
+- 🐛 Report issues: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
+- 💬 Discuss: [GitHub Discussions](https://github.com/scttfrdmn/prism/discussions)

@@ -1,8 +1,8 @@
-# Getting Started with CloudWorkstation
+# Getting Started with Prism
 
 ## Quick Start (5 minutes)
 
-CloudWorkstation provides pre-configured research environments without complex setup requirements.
+Prism provides pre-configured research environments without complex setup requirements.
 
 ### 1. Installation
 
@@ -11,19 +11,19 @@ See the main [Installation Guide](../index.md#installation) for detailed install
 Quick install:
 ```bash
 # macOS/Linux
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 ```
 
 ```powershell
 # Windows
 scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
-scoop install cloudworkstation
+scoop install prism
 ```
 
 ### 2. AWS Setup
 
-CloudWorkstation uses your existing AWS credentials. If you don't have AWS CLI configured:
+Prism uses your existing AWS credentials. If you don't have AWS CLI configured:
 
 ```bash
 aws configure
@@ -35,13 +35,13 @@ For detailed AWS setup including IAM permissions, see the [Administrator Guide](
 ### 3. Launch Your First Environment
 ```bash
 # See available templates
-cws templates
+prism templates
 
 # Launch a Python ML environment
-cws launch python-ml my-first-project
+prism launch python-ml my-first-project
 
 # Get connection info
-cws connect my-first-project
+prism connect my-first-project
 ```
 
 That's it! Your research environment is ready.
@@ -50,7 +50,7 @@ That's it! Your research environment is ready.
 
 ## Choose Your Interface
 
-CloudWorkstation offers three ways to interact:
+Prism offers three ways to interact:
 
 ### 🖥️ **GUI (Desktop App)**
 Perfect for visual management and one-click operations.
@@ -61,13 +61,13 @@ cws-gui
 ### 📱 **TUI (Terminal Interface)**  
 Keyboard-driven interface for remote work and SSH sessions.
 ```bash
-cws tui
+prism tui
 ```
 
 ### 💻 **CLI (Command Line)**
 Scriptable interface for automation and power users.
 ```bash
-cws launch python-ml my-project --size L
+prism launch python-ml my-project --size L
 ```
 
 ---
@@ -76,25 +76,25 @@ cws launch python-ml my-project --size L
 
 ### Template Management
 ```bash
-cws templates                    # List available environments
-cws templates info python-ml    # Get template details
-cws launch python-ml my-project # Launch environment
+prism templates                    # List available environments
+prism templates info python-ml    # Get template details
+prism launch python-ml my-project # Launch environment
 ```
 
 ### Instance Management
 ```bash
-cws list                        # Show running instances
-cws connect my-project          # Get connection info
-cws stop my-project             # Stop when not in use
-cws start my-project            # Resume later
-cws delete my-project           # Remove completely
+prism list                        # Show running instances
+prism connect my-project          # Get connection info
+prism stop my-project             # Stop when not in use
+prism start my-project            # Resume later
+prism delete my-project           # Remove completely
 ```
 
 ### Cost Optimization
 ```bash
-cws hibernate my-project        # Preserve RAM, reduce costs
-cws resume my-project           # Resume hibernated instance
-cws idle enable                 # Auto-hibernate idle instances
+prism hibernate my-project        # Preserve RAM, reduce costs
+prism resume my-project           # Resume hibernated instance
+prism idle enable                 # Auto-hibernate idle instances
 ```
 
 ---
@@ -104,13 +104,13 @@ cws idle enable                 # Auto-hibernate idle instances
 ### Data Science Project
 ```bash
 # Launch Jupyter environment
-cws launch python-ml data-analysis --size L
+prism launch python-ml data-analysis --size L
 
 # Create shared storage
-cws volume create shared-datasets
+prism volume create shared-datasets
 
 # Connect and start working
-cws connect data-analysis
+prism connect data-analysis
 # Opens: ssh user@ip-address -L 8888:localhost:8888
 # Jupyter: http://localhost:8888
 ```
@@ -118,24 +118,24 @@ cws connect data-analysis
 ### R Statistical Analysis
 ```bash
 # Launch R + RStudio environment
-cws launch r-research stats-project
+prism launch r-research stats-project
 
 # Get RStudio connection
-cws connect stats-project
+prism connect stats-project
 # Opens: http://ip-address:8787 (RStudio Server)
 ```
 
 ### Custom Environment
 ```bash
 # Start with base template
-cws launch basic-ubuntu my-custom
+prism launch basic-ubuntu my-custom
 
 # Customize your setup
-cws connect my-custom
+prism connect my-custom
 # Install packages, configure tools
 
 # Save for reuse
-cws save my-custom custom-template
+prism save my-custom custom-template
 ```
 
 ---
@@ -145,12 +145,12 @@ cws save my-custom custom-template
 ### "Daemon not running"
 ```bash
 # Check daemon status
-cws daemon status
+prism daemon status
 
 # Restart daemon if troubleshooting (rarely needed - daemon auto-starts)
-cws daemon stop
+prism daemon stop
 # Next command will auto-start fresh daemon
-cws templates
+prism templates
 ```
 
 ### "AWS credentials not found"
@@ -175,20 +175,20 @@ Make sure your AWS user has the required permissions. See our [AWS IAM Permissio
 aws ec2 describe-availability-zones
 
 # Try different region
-cws launch python-ml my-project --region us-east-1
+prism launch python-ml my-project --region us-east-1
 ```
 
 ---
 
 ## Next Steps
 
-- **Browse Templates**: Explore research environments with `cws templates`
+- **Browse Templates**: Explore research environments with `prism templates`
 - **Join Community**: Share templates and get help
 - **Read Guides**: Detailed documentation in `/docs` folder
 - **Cost Optimization**: Learn about hibernation and spot instances
 - **Team Collaboration**: Set up shared storage and project management
 
-**Need Help?** Open an issue on [GitHub](https://github.com/scttfrdmn/cloudworkstation/issues) or check our documentation.
+**Need Help?** Open an issue on [GitHub](https://github.com/scttfrdmn/prism/issues) or check our documentation.
 
 ---
 
@@ -197,26 +197,26 @@ cws launch python-ml my-project --region us-east-1
 ### Template Stacking
 ```bash
 # Build on existing templates
-cws apply gpu-drivers my-project    # Add GPU support
-cws apply docker-tools my-project   # Add Docker
+prism apply gpu-drivers my-project    # Add GPU support
+prism apply docker-tools my-project   # Add Docker
 ```
 
 ### Project Management
 ```bash
 # Create research project
-cws project create brain-study --budget 500
+prism project create brain-study --budget 500
 
 # Launch in project context
-cws launch neuroimaging analysis --project brain-study
+prism launch neuroimaging analysis --project brain-study
 ```
 
 ### Custom AMIs
 ```bash
 # Build optimized AMI from template
-cws ami build python-ml --region us-west-2
+prism ami build python-ml --region us-west-2
 
 # Save running instance as template
-cws ami save my-project custom-env
+prism ami save my-project custom-env
 ```
 
-**🎯 Key Principle**: CloudWorkstation defaults to success. Most commands work without options, with smart defaults for research computing.
+**🎯 Key Principle**: Prism defaults to success. Most commands work without options, with smart defaults for research computing.

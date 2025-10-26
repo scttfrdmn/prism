@@ -1,6 +1,6 @@
-# CloudWorkstation GUI Design System
+# Prism GUI Design System
 
-This document outlines the visual design elements and user experience flow for the CloudWorkstation GUI application.
+This document outlines the visual design elements and user experience flow for the Prism GUI application.
 
 ## 1. Design Principles
 

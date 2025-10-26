@@ -1,4 +1,4 @@
-# CloudWorkstation - Remaining Work Analysis
+# Prism - Remaining Work Analysis
 
 **Date**: October 7, 2025 (Updated)
 **Current Status**: Comprehensive Placeholder Audit Complete - Phase 1 Eliminated
@@ -49,7 +49,7 @@ This document provides a comprehensive analysis of all remaining work to achieve
    - Status: COMPLETE
 
 4. ✅ **internal/cli/commands.go:887** - Template saving (COMPLETE Session 8)
-   - Implemented actual template file saving to ~/.cloudworkstation/templates/
+   - Implemented actual template file saving to ~/.prism/templates/
    - Directory creation with proper permissions
    - Full error handling and user-friendly messages
    - Status: COMPLETE
@@ -105,7 +105,7 @@ This document provides a comprehensive analysis of all remaining work to achieve
 #### Repository & Template Management (6/6 complete - 100% ✅)
 13. ✅ **pkg/ami/parser_enhanced.go:80** - Template listing logic (COMPLETE Session 8)
     - Implemented ListTemplates method
-    - Scans ./templates/, ~/.cloudworkstation/templates/, /usr/local/share/cloudworkstation/templates/
+    - Scans ./templates/, ~/.prism/templates/, /usr/local/share/prism/templates/
     - Deduplicates and filters .yml/.yaml files
     - Status: COMPLETE
 14. ✅ **pkg/ami/dependency_resolver.go:550** - Template parsing from string (COMPLETE Session 8)

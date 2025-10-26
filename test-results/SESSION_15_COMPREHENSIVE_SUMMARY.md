@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Session 15 continued comprehensive end-to-end testing and discovered a **fourth critical P0 bug**: CloudWorkstation was randomly selecting availability zones that don't support the requested instance type, causing ~17% launch failure rate in production.
+Session 15 continued comprehensive end-to-end testing and discovered a **fourth critical P0 bug**: Prism was randomly selecting availability zones that don't support the requested instance type, causing ~17% launch failure rate in production.
 
 ### Session Achievements
 
@@ -39,14 +39,14 @@ Both scripts immediately failed on instance launch:
 
 **Initial Investigation**:
 ```bash
-$ CWS_DAEMON_AUTO_START_DISABLE=1 ./bin/cws launch test-ssh e2e-test --size S
+$ PRISM_DAEMON_AUTO_START_DISABLE=1 ./bin/cws launch test-ssh e2e-test --size S
 ❌ Error: Your requested instance type (t3.micro) is not supported in your
 requested Availability Zone (us-east-1e). Please retry by not specifying an
 Availability Zone or choosing us-east-1a, us-east-1b, us-east-1c, us-east-1d, us-east-1f.
 ```
 
 **Root Cause**:
-- CloudWorkstation's `DiscoverPublicSubnet` method used `result.Subnets[0]`
+- Prism's `DiscoverPublicSubnet` method used `result.Subnets[0]`
 - AWS API returns subnets in random order
 - If first subnet is in us-east-1e → t3.micro fails (unsupported AZ)
 - No validation of instance type availability

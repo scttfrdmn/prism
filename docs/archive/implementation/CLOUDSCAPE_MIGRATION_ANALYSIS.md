@@ -1,4 +1,4 @@
-# CloudWorkstation GUI Migration to AWS Cloudscape Design System
+# Prism GUI Migration to AWS Cloudscape Design System
 
 ## Executive Recommendation: **MIGRATE TO CLOUDSCAPE** ⭐⭐⭐⭐⭐
 
@@ -6,13 +6,13 @@
 **Impact**: HIGH - Will significantly improve UX consistency, development speed, and maintainability
 **Timeline**: 2-3 weeks for complete migration
 
-## Why Cloudscape is Perfect for CloudWorkstation
+## Why Cloudscape is Perfect for Prism
 
 ### ✅ **Strategic Alignment**
 - **AWS-Native**: Cloudscape is designed specifically for AWS services - perfect for a cloud management platform
 - **Proven at Scale**: Used by 220+ AWS products and services since 2016
 - **Research-Focused**: Built for complex technical interfaces like AWS consoles
-- **Enterprise-Grade**: Handles the exact use cases CloudWorkstation needs
+- **Enterprise-Grade**: Handles the exact use cases Prism needs
 
 ### ✅ **Solves Our Current UX Problems**
 - **Cognitive Load**: Cloudscape components are designed for complex technical workflows
@@ -40,7 +40,7 @@
 
 ## Component Mapping Analysis
 
-### 🎯 **Core CloudWorkstation Features → Cloudscape Components**
+### 🎯 **Core Prism Features → Cloudscape Components**
 
 #### **Template Selection (Current Problem Area)**
 ```typescript
@@ -202,7 +202,7 @@ function App() {
       navigation={
         <SideNavigation
           activeHref={activeHref}
-          header={{ text: "CloudWorkstation", href: "/" }}
+          header={{ text: "Prism", href: "/" }}
           items={[
             { type: "link", text: "Templates", href: "/templates" },
             { type: "link", text: "Instances", href: "/instances" },
@@ -334,6 +334,6 @@ function App() {
 - Template selection page prototype
 - Migration feasibility demonstration
 
-**Bottom Line**: Migrating to AWS Cloudscape will transform CloudWorkstation from a functional but complex interface into a professional, accessible, enterprise-grade research platform that schools will be excited to deploy.
+**Bottom Line**: Migrating to AWS Cloudscape will transform Prism from a functional but complex interface into a professional, accessible, enterprise-grade research platform that schools will be excited to deploy.
 
-The investment in migration will pay dividends immediately through improved development velocity and user experience, positioning CloudWorkstation as a world-class research computing platform.
+The investment in migration will pay dividends immediately through improved development velocity and user experience, positioning Prism as a world-class research computing platform.

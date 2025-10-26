@@ -24,17 +24,17 @@ API error 500 for POST /api/v1/instances: {"code":"server_error","message":"AWS 
 
 Need help?
 1. Check our troubleshooting guide:
-   https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBLESHOOTING.md
+   https://github.com/scttfrdmn/prism/blob/main/TROUBLESHOOTING.md
 
 2. Verify daemon status:
-   cws daemon status
+   prism daemon status
 
 3. Check AWS credentials:
    aws sts get-caller-identity
 
-4. Open an issue: https://github.com/scttfrdmn/cloudworkstation/issues
+4. Open an issue: https://github.com/scttfrdmn/prism/issues
 Usage:
-  cws launch <template> <name> [flags]
+  prism launch <template> <name> [flags]
 
 Flags:
       --dry-run                Validate configuration without launching
@@ -51,17 +51,17 @@ Flags:
 
 Error: instance launch failed
 
-CloudWorkstation couldn't launch your research environment.
+Prism couldn't launch your research environment.
 
 🔧 Common solutions:
-1. Try different region: cws launch template-name instance-name --region us-west-2
-2. Use different size: cws launch template-name instance-name --size S
-3. Check template availability: cws templates
+1. Try different region: prism launch template-name instance-name --region us-west-2
+2. Use different size: prism launch template-name instance-name --size S
+3. Check template availability: prism templates
 
 🔍 Advanced troubleshooting:
 - Verify AWS quotas: aws service-quotas get-service-quota --service-code ec2 --quota-code L-1216C47A
-- Check template validation: cws templates validate
-- Try different instance type: cws launch template-name instance-name --instance-type t3.medium
+- Check template validation: prism templates validate
+- Try different instance type: prism launch template-name instance-name --instance-type t3.medium
 
 Need template help? Each template shows its requirements with 'cws templates'
 
@@ -72,12 +72,12 @@ API error 500 for POST /api/v1/instances: {"code":"server_error","message":"AWS 
 
 Need help?
 1. Check our troubleshooting guide:
-   https://github.com/scttfrdmn/cloudworkstation/blob/main/TROUBLESHOOTING.md
+   https://github.com/scttfrdmn/prism/blob/main/TROUBLESHOOTING.md
 
 2. Verify daemon status:
-   cws daemon status
+   prism daemon status
 
 3. Check AWS credentials:
    aws sts get-caller-identity
 
-4. Open an issue: https://github.com/scttfrdmn/cloudworkstation/issues
+4. Open an issue: https://github.com/scttfrdmn/prism/issues

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CloudWorkstation GUI now includes package manager selection in the launch form, allowing users to override template defaults with their preferred package manager.
+The Prism GUI now includes package manager selection in the launch form, allowing users to override template defaults with their preferred package manager.
 
 ## Implementation
 
@@ -64,7 +64,7 @@ if g.launchForm.packageMgrSelect.Selected != "" &&
 The help system provides contextual guidance:
 
 ```go
-func (g *CloudWorkstationGUI) updatePackageManagerHelp(selected string) {
+func (g *PrismGUI) updatePackageManagerHelp(selected string) {
     switch selected {
     case "conda":
         helpText = "Best for Python data science and R packages. Cross-platform package manager."
@@ -131,4 +131,4 @@ The package manager selection system provides a foundation for additional GUI en
 3. **Performance Hints**: Show expected performance characteristics for different managers
 4. **Cost Estimates**: Display cost implications of different package manager choices
 
-This implementation provides researchers with the flexibility to customize their environments while maintaining CloudWorkstation's design principles of simplicity with progressive disclosure.
+This implementation provides researchers with the flexibility to customize their environments while maintaining Prism's design principles of simplicity with progressive disclosure.

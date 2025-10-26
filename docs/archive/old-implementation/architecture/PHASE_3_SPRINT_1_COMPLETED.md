@@ -6,7 +6,7 @@
 
 ## Overview
 
-Successfully activated CloudWorkstation's unified multi-package template system in the daemon, eliminating fallback dependencies on hardcoded legacy templates. The daemon now exclusively uses the new YAML-based template architecture with multi-package manager support.
+Successfully activated Prism's unified multi-package template system in the daemon, eliminating fallback dependencies on hardcoded legacy templates. The daemon now exclusively uses the new YAML-based template architecture with multi-package manager support.
 
 ## Key Achievements
 
@@ -34,7 +34,7 @@ templates, err := templates.GetTemplatesForDaemonHandler(region, architecture)
 - **Template Parser**: Successfully parsing YAML template definitions
 - **Package Manager Strategy**: Auto-selection logic for conda/spack/apt based on package types
 - **Compatibility Layer**: Converting new templates to legacy API format
-- **Directory Scanner**: Scanning multiple template directories (`templates/`, `~/.cloudworkstation/templates/`, `/etc/cloudworkstation/templates/`)
+- **Directory Scanner**: Scanning multiple template directories (`templates/`, `~/.prism/templates/`, `/etc/prism/templates/`)
 
 ### 🧪 Validation Results
 ```bash
@@ -143,7 +143,7 @@ ls templates/*.yml  # Should show active template files
 - **Eliminated Technical Debt**: No more hardcoded template maintenance
 - **Scalable Architecture**: Easy to add new templates via YAML files
 - **Multi-Package Manager Ready**: Foundation for conda/spack/apt integration
-- **User Customization**: Users can create custom templates in `~/.cloudworkstation/templates/`
+- **User Customization**: Users can create custom templates in `~/.prism/templates/`
 - **Maintainability**: Template definitions separate from code
 
 ### 📊 Architecture Health

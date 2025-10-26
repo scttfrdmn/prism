@@ -2,7 +2,7 @@
 
 ## Overview
 
-Design a system to automatically create CloudWorkstation AMIs from template definitions, replacing the current hard-coded AMI approach with a dynamic, reproducible pipeline.
+Design a system to automatically create Prism AMIs from template definitions, replacing the current hard-coded AMI approach with a dynamic, reproducible pipeline.
 
 ## Current Problem
 
@@ -72,7 +72,7 @@ setup_script: |
   
   # Create default user
   useradd -m -s /bin/bash ubuntu || true
-  echo "ubuntu:cloudworkstation" | chpasswd
+  echo "ubuntu:prism" | chpasswd
   usermod -aG sudo ubuntu
   
   # Cleanup
@@ -116,7 +116,7 @@ import (
     "fmt"
     
     "github.com/aws/aws-sdk-go-v2/service/ec2"
-    "github.com/scttfrdmn/cloudworkstation/pkg/types"
+    "github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Builder handles AMI creation from templates
@@ -228,22 +228,22 @@ func (b *Builder) BuildAMI(ctx context.Context, req BuildRequest) (*BuildResult,
 **New Commands:**
 ```bash
 # Build AMIs
-cws ami build r-research --architecture x86_64 --region us-east-1
-cws ami build-all r-research  # Build for all regions/architectures
-cws ami build-all --templates r-research,python-research
+prism ami build r-research --architecture x86_64 --region us-east-1
+prism ami build-all r-research  # Build for all regions/architectures
+prism ami build-all --templates r-research,python-research
 
 # List built AMIs
-cws ami list
-cws ami list --template r-research
+prism ami list
+prism ami list --template r-research
 
 # Update templates to use latest AMIs
-cws ami update-templates
+prism ami update-templates
 
 # Validate existing AMIs
-cws ami validate r-research --region us-east-1
+prism ami validate r-research --region us-east-1
 
 # Clean up old AMIs
-cws ami cleanup --keep-latest 3
+prism ami cleanup --keep-latest 3
 ```
 
 **Example Build Output:**
@@ -293,7 +293,7 @@ Template updated:
 **GitHub Actions Integration:**
 ```yaml
 # .github/workflows/ami-build.yml
-name: Build CloudWorkstation AMIs
+name: Build Prism AMIs
 
 on:
   push:
@@ -351,7 +351,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ matrix.region }}
       
-      - name: Build CloudWorkstation
+      - name: Build Prism
         run: make build
       
       - name: Build AMI
@@ -429,7 +429,7 @@ jobs:
 
 **Developer Experience:**
 - ✅ Simple template YAML format
-- ✅ Local testing with `cws ami build`
+- ✅ Local testing with `prism ami build`
 - ✅ CI/CD integration for automated builds
 - ✅ Clear build logs and error reporting
 
@@ -469,4 +469,4 @@ jobs:
 - Fallback to hard-coded AMIs if registry unavailable
 - Clear migration timeline and communication
 
-This AMI creation system transforms CloudWorkstation from a manually-maintained tool into a fully automated, enterprise-grade platform while maintaining its core simplicity for end users.
+This AMI creation system transforms Prism from a manually-maintained tool into a fully automated, enterprise-grade platform while maintaining its core simplicity for end users.

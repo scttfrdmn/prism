@@ -1,14 +1,14 @@
-# Welcome to CloudWorkstation
+# Welcome to Prism
 
 <p align="center">
-  <img src="images/cloudworkstation-transparent.png" alt="CloudWorkstation Logo" width="200">
+  <img src="images/prism-transparent.png" alt="Prism Logo" width="200">
 </p>
 
-CloudWorkstation provides researchers with pre-configured cloud computing environments for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
+Prism provides researchers with pre-configured cloud computing environments for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
 
 ## Getting Started
 
-1. [Install CloudWorkstation](#installation)
+1. [Install Prism](#installation)
 2. Choose a research environment template
 3. Give your project a name
 4. Click "Launch"
@@ -16,14 +16,14 @@ CloudWorkstation provides researchers with pre-configured cloud computing enviro
 
 ## Installation
 
-You can install CloudWorkstation in different ways:
+You can install Prism in different ways:
 
 ### macOS
 
 ```bash
 # Using Homebrew
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 ```
 
 ### Windows
@@ -31,15 +31,15 @@ brew install cloudworkstation
 ```powershell
 # Using Scoop
 scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
-scoop install cloudworkstation
+scoop install prism
 ```
 
 ### Linux
 
 ```bash
 # Using Homebrew on Linux
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 ```
 
 ### Using Conda (Any Platform)
@@ -47,17 +47,17 @@ brew install cloudworkstation
 ```bash
 # Add our channel
 conda config --add channels scttfrdmn
-conda install cloudworkstation
+conda install prism
 ```
 
 ### Direct Download
 
 You can also download the right version for your computer:
 
-- [macOS Intel (x86_64)](https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-amd64.tar.gz)
-- [macOS Apple Silicon (M1/M2)](https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-arm64.tar.gz)
-- [Windows](https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-windows-amd64.zip)
-- [Linux](https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-linux-amd64.tar.gz)
+- [macOS Intel (x86_64)](https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-amd64.tar.gz)
+- [macOS Apple Silicon (M1/M2)](https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-arm64.tar.gz)
+- [Windows](https://github.com/scttfrdmn/prism/releases/latest/download/prism-windows-amd64.zip)
+- [Linux](https://github.com/scttfrdmn/prism/releases/latest/download/prism-linux-amd64.tar.gz)
 
 ## Documentation Index
 
@@ -65,7 +65,7 @@ You can also download the right version for your computer:
 
 **🎯 These walkthroughs are our north star for feature development and product direction.**
 
-They prioritize usability and clarity by showing complete end-to-end workflows with real commands, expected outputs, and best practices. When we add features or make design decisions, we validate them against these scenarios to ensure CloudWorkstation remains focused on real researcher needs.
+They prioritize usability and clarity by showing complete end-to-end workflows with real commands, expected outputs, and best practices. When we add features or make design decisions, we validate them against these scenarios to ensure Prism remains focused on real researcher needs.
 
 **User Scenarios:**
 
@@ -116,9 +116,9 @@ They prioritize usability and clarity by showing complete end-to-end workflows w
 ### 💻 Development & Contributing
 
 **Get Involved:**
-- [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues) - Report bugs or request features
-- [GitHub Projects](https://github.com/scttfrdmn/cloudworkstation/projects) - View roadmap and current work
-- [GitHub Milestones](https://github.com/scttfrdmn/cloudworkstation/milestones) - Track development phases
+- [GitHub Issues](https://github.com/scttfrdmn/prism/issues) - Report bugs or request features
+- [GitHub Projects](https://github.com/scttfrdmn/prism/projects) - View roadmap and current work
+- [GitHub Milestones](https://github.com/scttfrdmn/prism/milestones) - Track development phases
 
 **Developer Documentation:**
 - [Development Setup](development/DEVELOPMENT_SETUP.md) - Dev environment
@@ -140,7 +140,7 @@ Historical documentation, session summaries, and obsolete plans are archived in 
 
 ## Features
 
-CloudWorkstation lets you:
+Prism lets you:
 
 - **Launch research environments** with common tools pre-installed
 - **Save money** by automatically choosing the right computer size
@@ -154,13 +154,13 @@ CloudWorkstation lets you:
 If you need help:
 
 - [Troubleshooting Guide](TROUBLESHOOTING.md) - Common issues and solutions
-- [Report issues on GitHub](https://github.com/scttfrdmn/cloudworkstation/issues)
-- [Read the documentation](https://cloudworkstation.io/docs)
+- [Report issues on GitHub](https://github.com/scttfrdmn/prism/issues)
+- [Read the documentation](https://prism.io/docs)
 
 ## Security
 
-CloudWorkstation takes security seriously:
+Prism takes security seriously:
 
-[![Security Scan](https://img.shields.io/badge/Security%20Scan-Passing-brightgreen)](https://github.com/scttfrdmn/cloudworkstation/actions)
-[![Dependency Check](https://img.shields.io/badge/Dependencies-No%20Known%20Vulnerabilities-brightgreen)](https://github.com/scttfrdmn/cloudworkstation/actions)
-[![Code Coverage](https://img.shields.io/badge/Code%20Coverage-87%25-brightgreen)](https://github.com/scttfrdmn/cloudworkstation/actions)
+[![Security Scan](https://img.shields.io/badge/Security%20Scan-Passing-brightgreen)](https://github.com/scttfrdmn/prism/actions)
+[![Dependency Check](https://img.shields.io/badge/Dependencies-No%20Known%20Vulnerabilities-brightgreen)](https://github.com/scttfrdmn/prism/actions)
+[![Code Coverage](https://img.shields.io/badge/Code%20Coverage-87%25-brightgreen)](https://github.com/scttfrdmn/prism/actions)

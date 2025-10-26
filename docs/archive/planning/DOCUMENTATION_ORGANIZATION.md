@@ -1,8 +1,8 @@
-# CloudWorkstation Documentation Organization
+# Prism Documentation Organization
 
 ## Summary of Documentation Cleanup (v0.4.1)
 
-This document summarizes the documentation consolidation effort completed for CloudWorkstation v0.4.1, which organized over 50 scattered markdown files into a clean, navigable structure.
+This document summarizes the documentation consolidation effort completed for Prism v0.4.1, which organized over 50 scattered markdown files into a clean, navigable structure.
 
 ## Before & After
 

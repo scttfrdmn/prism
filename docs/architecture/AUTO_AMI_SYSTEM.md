@@ -294,7 +294,7 @@ func (sum *SecurityUpdateManager) calculateSecurityDeadline(securityLevel string
 
 ```bash
 # Configure auto-AMI settings
-cws templates auto-ami configure
+prism templates auto-ami configure
 # Auto-AMI Configuration:
 # ├── Popularity threshold: 5 launches
 # ├── Off-peak window: 2:00-6:00 AM UTC
@@ -303,7 +303,7 @@ cws templates auto-ami configure
 # └── Monthly compilation budget: $500.00
 
 # View auto-compilation status
-cws templates auto-ami status
+prism templates auto-ami status
 # AUTO-AMI STATUS
 # 
 # Popular Templates (auto-compilation enabled):
@@ -317,22 +317,22 @@ cws templates auto-ami status
 # └── Estimated rebuild completion: 6:00 AM UTC
 
 # Force immediate compilation (emergency)
-cws templates auto-ami build python-ml --urgent --reason "critical-security-patch"
+prism templates auto-ami build python-ml --urgent --reason "critical-security-patch"
 # Emergency compilation initiated for python-ml
 # Trigger: critical-security-patch
 # Estimated cost: $8.50
 # ETA: 25 minutes
-# Progress: aws.cloudworkstation.cli/templates/build/python-ml-urgent-abc123
+# Progress: aws.prism.cli/templates/build/python-ml-urgent-abc123
 
 # Security update notifications
-cws templates auto-ami security-status
+prism templates auto-ami security-status
 # SECURITY UPDATE STATUS
 # 
 # Critical Updates Available:
 # └── ubuntu-22.04: CVE-2024-1234 (kernel vulnerability)
 #     ├── Affected templates: python-ml, r-research, ubuntu-basic
 #     ├── Auto-rebuild scheduled: 30 minutes
-#     └── Manual rebuild: cws templates auto-ami build --security-update
+#     └── Manual rebuild: prism templates auto-ami build --security-update
 # 
 # Recent Security Updates:
 # ├── rocky-9: Security patches applied (completed 3 hours ago)  
@@ -343,7 +343,7 @@ cws templates auto-ami security-status
 
 ```bash
 # Get notifications about AMI updates
-cws notifications list --type ami-updates
+prism notifications list --type ami-updates
 # AMI UPDATE NOTIFICATIONS
 # 
 # ⚠️  Security Update Available (2 hours ago)
@@ -351,7 +351,7 @@ cws notifications list --type ami-updates
 #     Security level: HIGH
 #     Affected templates: python-ml, ubuntu-basic
 #     Auto-rebuild: Tonight at 2:30 AM
-#     Manual rebuild: cws templates auto-ami build --security-update
+#     Manual rebuild: prism templates auto-ami build --security-update
 # 
 # ✓  Auto-compilation Complete (5 hours ago)
 #     Template: r-research
@@ -360,7 +360,7 @@ cws notifications list --type ami-updates
 #     Launch time improvement: 6 minutes → 45 seconds
 
 # User preferences for auto-updates
-cws templates auto-ami preferences
+prism templates auto-ami preferences
 # AUTO-AMI PREFERENCES
 # 
 # Security Updates:
@@ -379,8 +379,8 @@ cws templates auto-ami preferences
 # └── Approve emergency security builds ✓
 
 # Override auto-AMI for specific template
-cws templates auto-ami disable python-ml --reason "prefer-fresh-builds"
-cws templates auto-ami enable python-ml --popularity-threshold 3
+prism templates auto-ami disable python-ml --reason "prefer-fresh-builds"
+prism templates auto-ami enable python-ml --popularity-threshold 3
 ```
 
 ## Integration Examples
@@ -437,4 +437,4 @@ auto_ami_policy:
   notify_before_rebuild: true       # Warn researchers about updates
 ```
 
-This auto-AMI system ensures CloudWorkstation environments remain secure and performant while minimizing disruption to research workflows. The intelligent scheduling and cost optimization make it practical for both educational institutions and research organizations with varying budget constraints and security requirements.
+This auto-AMI system ensures Prism environments remain secure and performant while minimizing disruption to research workflows. The intelligent scheduling and cost optimization make it practical for both educational institutions and research organizations with varying budget constraints and security requirements.

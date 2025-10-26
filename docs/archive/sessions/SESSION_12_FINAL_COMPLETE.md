@@ -164,7 +164,7 @@
    - Lines changed: 3
 
 #### User Template File
-9. `/Users/scttfrdmn/.cloudworkstation/templates/new-template.yml`
+9. `/Users/scttfrdmn/.prism/templates/new-template.yml`
    - Fixed malformed YAML syntax (Go-style → proper YAML)
    - Added required description field
    - Fixed permissions for snapshot test

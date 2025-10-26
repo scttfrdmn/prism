@@ -2,14 +2,14 @@
 
 ## Overview
 
-Successfully implemented comprehensive AMI creation capabilities for CloudWorkstation, enabling researchers to create custom AMIs from running instances in 10-15 minutes and launch them in 30 seconds for future use.
+Successfully implemented comprehensive AMI creation capabilities for Prism, enabling researchers to create custom AMIs from running instances in 10-15 minutes and launch them in 30 seconds for future use.
 
 ## Implementation Summary
 
 ### Core Features Delivered
 
 1. **Instance-to-AMI Creation System**
-   - Create AMIs from any running CloudWorkstation instance
+   - Create AMIs from any running Prism instance
    - Rich parameter support (name, description, template association)
    - Multi-region deployment capabilities
    - Cost analysis and storage estimation
@@ -39,7 +39,7 @@ func (m *Manager) PublishAMIToCommunity(amiID string, public bool, tags map[stri
 
 **Features**:
 - Instance validation and state checking
-- Integration with existing CloudWorkstation instance management
+- Integration with existing Prism instance management
 - Automatic template association and metadata inheritance
 - Community publishing workflow
 
@@ -101,7 +101,7 @@ func (c *HTTPClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 
 **AMI Creation Command**:
 ```bash
-cws ami create <instance-name> --name <ami-name> [options]
+prism ami create <instance-name> --name <ami-name> [options]
 
 Options:
   --name <name>              AMI name (required)
@@ -114,7 +114,7 @@ Options:
 
 **AMI Status Command**:
 ```bash
-cws ami status <creation-id|ami-id>
+prism ami status <creation-id|ami-id>
 
 # Example output:
 🚀 AMI Creation Status
@@ -131,7 +131,7 @@ cws ami status <creation-id|ami-id>
 
 **Enhanced AMI List Command**:
 ```bash
-cws ami list
+prism ami list
 
 # Shows user's custom AMIs with details:
 🖼️  AMI 1:

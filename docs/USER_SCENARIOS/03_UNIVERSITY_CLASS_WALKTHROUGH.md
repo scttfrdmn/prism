@@ -65,22 +65,22 @@
 #### Week 1 (August): Dr. Martinez Creates Course Project
 ```bash
 # Create course project
-cws project create "CS229-Fall2024" \
+prism project create "CS229-Fall2024" \
   --description "Machine Learning - Fall 2024" \
   --budget 1200 \
   --budget-period semester \
   --owner jennifer.martinez@university.edu
 
 # Add TAs as administrators
-cws project member add "CS229-Fall2024" \
+prism project member add "CS229-Fall2024" \
   --email alex.thompson@university.edu \
   --role admin
 
-cws project member add "CS229-Fall2024" \
+prism project member add "CS229-Fall2024" \
   --email priya.sharma@university.edu \
   --role viewer
 
-cws project member add "CS229-Fall2024" \
+prism project member add "CS229-Fall2024" \
   --email kevin.wong@university.edu \
   --role viewer
 ```
@@ -88,16 +88,16 @@ cws project member add "CS229-Fall2024" \
 #### Week 2: Create Shared Course Materials (EFS)
 ```bash
 # Create shared read-only storage for course content
-cws volume create cs229-course-materials \
+prism volume create cs229-course-materials \
   --size 100GB \
   --project "CS229-Fall2024"
 
 # Mount to temporary workspace for setup
-cws launch ubuntu temp-setup
-cws volume mount cs229-course-materials temp-setup
+prism launch ubuntu temp-setup
+prism volume mount cs229-course-materials temp-setup
 
 # Upload course materials (via SSH)
-cws ssh temp-setup
+prism ssh temp-setup
 # (Inside instance)
 $ cd /mnt/cs229-course-materials
 $ mkdir -p datasets notebooks lectures
@@ -106,8 +106,8 @@ $ git clone https://github.com/prof-martinez/cs229-notebooks ./notebooks/
 $ exit
 
 # Unmount and delete temp instance
-cws volume unmount cs229-course-materials temp-setup
-cws delete temp-setup
+prism volume unmount cs229-course-materials temp-setup
+prism delete temp-setup
 
 # Mark volume as "shared read-only" for students
 # (Manual: Configure EFS permissions)
@@ -116,7 +116,7 @@ cws delete temp-setup
 #### Week 3: Add Students Before Semester
 ```bash
 # Bulk import from Canvas/university system
-cws project member import "CS229-Fall2024" \
+prism project member import "CS229-Fall2024" \
   --csv students.csv \
   --role member \
   --default-budget 24
@@ -138,7 +138,7 @@ cws project member import "CS229-Fall2024" \
 **What should happen** (MISSING):
 ```bash
 # Sophie's current state
-cws list
+prism list
 # Output:
 # Instances:
 # - ml-hw3 (t3.medium): running
@@ -149,9 +149,9 @@ cws list
 # Sophie in Zoom: "My code crashes but I don't know why"
 
 # Alex needs to see Sophie's environment
-cws ta debug-session --student sophie.martinez@university.edu
+prism ta debug-session --student sophie.martinez@university.edu
 
-# CloudWorkstation output:
+# Prism output:
 # 🔍 TA Debug Session Request
 #
 #    Student: Sophie Martinez (sophie.martinez@university.edu)
@@ -172,7 +172,7 @@ cws ta debug-session --student sophie.martinez@university.edu
 # Choice [a/b/c]: b
 
 # Alex gets temporary SSH access
-cws ta ssh ml-hw3 --student sophie.martinez@university.edu
+prism ta ssh ml-hw3 --student sophie.martinez@university.edu
 
 # SSH session starts:
 # ┌─────────────────────────────────────────────────┐
@@ -193,7 +193,7 @@ cws ta ssh ml-hw3 --student sophie.martinez@university.edu
 # To guide Sophie: exit and provide instructions via Zoom
 
 # Alternative: Alex sends fix suggestion
-cws ta annotate ml-hw3 --student sophie.martinez@university.edu \
+prism ta annotate ml-hw3 --student sophie.martinez@university.edu \
   --message "Issue found: You're using GPU code on CPU instance. Change device='cuda' to device='cpu' in train.py line 42."
 
 # Sophie sees message when she SSHs back in:
@@ -213,9 +213,9 @@ cws ta annotate ml-hw3 --student sophie.martinez@university.edu \
 **What should happen** (MISSING):
 ```bash
 # Emily (eager student) tries GPU workspace for fun
-emily@laptop:~$ cws launch gpu-ml-workstation homework1
+emily@laptop:~$ prism launch gpu-ml-workstation homework1
 
-# CloudWorkstation should block:
+# Prism should block:
 # ❌ Launch BLOCKED: Template not approved for CS229-Fall2024
 #
 #    Template: gpu-ml-workstation (p3.2xlarge, $24.80/day)
@@ -238,7 +238,7 @@ emily@laptop:~$ cws launch gpu-ml-workstation homework1
 # Cost: $24.80 (entire per-student budget gone!)
 
 # Dr. Martinez discovers at end of week
-cws project cost show "CS229-Fall2024"
+prism project cost show "CS229-Fall2024"
 
 # Output:
 # ⚠️  Budget Alert: Student overspending detected
@@ -303,7 +303,7 @@ cws project cost show "CS229-Fall2024"
 # Next steps:
 # - Student access revoked automatically
 # - Data available for 1 year for grade disputes
-# - To restore access (e.g., incomplete): cws student restore <email>
+# - To restore access (e.g., incomplete): prism student restore <email>
 
 # Reality (current):
 # - Students forget to stop instances
@@ -324,7 +324,7 @@ cws project cost show "CS229-Fall2024"
 # Same assignment submission, very similar code
 
 # Check workspace access logs
-cws ta audit --students emily.chen@university.edu,david.kim@university.edu \
+prism ta audit --students emily.chen@university.edu,david.kim@university.edu \
   --timeframe "2024-10-15 to 2024-10-20" \
   --assignment hw5
 
@@ -383,7 +383,7 @@ cws ta audit --students emily.chen@university.edu,david.kim@university.edu \
 **What should happen** (MISSING):
 ```bash
 # Sophie (struggling student) has corrupted her environment
-sophie@laptop:~$ cws ssh ml-hw4
+sophie@laptop:~$ prism ssh ml-hw4
 sophie@ml-hw4:~$ python train.py
 # Error: ModuleNotFoundError: No module named 'tensorflow'
 # (Sophie accidentally deleted system packages)
@@ -391,9 +391,9 @@ sophie@ml-hw4:~$ python train.py
 # Sophie emails TA: "Help! I can't run anything anymore!"
 
 # Alex (TA) resets Sophie's instance
-cws ta reset-instance ml-hw4 --student sophie.martinez@university.edu
+prism ta reset-instance ml-hw4 --student sophie.martinez@university.edu
 
-# CloudWorkstation output:
+# Prism output:
 # 🔄 Workspace Reset Requested
 #
 #    Student: Sophie Martinez
@@ -422,7 +422,7 @@ cws ta reset-instance ml-hw4 --student sophie.martinez@university.edu
 # "Your workspace has been reset by TA Alex Thompson. You can now continue working."
 
 # Sophie can immediately continue
-sophie@laptop:~$ cws ssh ml-hw4
+sophie@laptop:~$ prism ssh ml-hw4
 sophie@ml-hw4:~$ python train.py
 # (Works now!)
 ```
@@ -438,12 +438,12 @@ sophie@ml-hw4:~$ python train.py
 
 ```bash
 # Course creation wizard
-cws course create "CS229-Fall2024" \
+prism course create "CS229-Fall2024" \
   --interactive
 
 # Interactive wizard:
 #
-# 🎓 CloudWorkstation Course Setup Wizard
+# 🎓 Prism Course Setup Wizard
 #
 # Course Information:
 #   Course code: CS 229
@@ -496,12 +496,12 @@ cws course create "CS229-Fall2024" \
 # Setup complete! ✅
 #
 # Next steps:
-# 1. Upload course materials: cws course upload-materials "CS229-Fall2024"
-# 2. Import students from Canvas: cws course import-students --canvas
-# 3. Test student environment: cws course test-environment
+# 1. Upload course materials: prism course upload-materials "CS229-Fall2024"
+# 2. Import students from Canvas: prism course import-students --canvas
+# 3. Test student environment: prism course test-environment
 
 # Upload course materials
-cws course upload-materials "CS229-Fall2024" \
+prism course upload-materials "CS229-Fall2024" \
   --source ~/CS229-Materials/ \
   --destination /datasets
 
@@ -514,7 +514,7 @@ cws course upload-materials "CS229-Fall2024" \
 # 📁 Materials available at: /mnt/cs229-materials/ (read-only for students)
 
 # Import students from Canvas LMS
-cws course import-students "CS229-Fall2024" \
+prism course import-students "CS229-Fall2024" \
   --canvas \
   --course-id 12345
 
@@ -527,7 +527,7 @@ cws course import-students "CS229-Fall2024" \
 # ✅ Setting up workspace directories
 # ✅ Sending welcome emails
 #
-# Students ready! They can now run: cws student join CS229-Fall2024
+# Students ready! They can now run: prism student join CS229-Fall2024
 ```
 
 ### Week 1: Student Onboarding (First Day of Class)
@@ -535,18 +535,18 @@ cws course import-students "CS229-Fall2024" \
 ```bash
 # Emily (student) receives welcome email:
 #
-# Subject: Welcome to CS 229 - Your CloudWorkstation Access
+# Subject: Welcome to CS 229 - Your Prism Access
 #
 # Hi Emily,
 #
 # Welcome to CS 229 - Machine Learning!
 #
-# You have been granted access to CloudWorkstation for this course.
+# You have been granted access to Prism for this course.
 # This will provide you with a dedicated Linux environment for assignments.
 #
 # Getting Started:
-# 1. Install CloudWorkstation: https://cloudworkstation.dev/install
-# 2. Run: cws student join CS229-Fall2024
+# 1. Install Prism: https://prism.dev/install
+# 2. Run: prism student join CS229-Fall2024
 # 3. Your first assignment is available in Canvas
 #
 # Your Resources:
@@ -564,10 +564,10 @@ cws course import-students "CS229-Fall2024" \
 # Dr. Jennifer Martinez
 
 # Emily installs and joins course
-emily@laptop:~$ brew install cloudworkstation
-emily@laptop:~$ cws student join CS229-Fall2024
+emily@laptop:~$ brew install prism
+emily@laptop:~$ prism student join CS229-Fall2024
 
-# CloudWorkstation output:
+# Prism output:
 # 🎓 Joining Course: CS 229 - Machine Learning
 #
 #    Instructor: Dr. Jennifer Martinez
@@ -582,17 +582,17 @@ emily@laptop:~$ cws student join CS229-Fall2024
 #    You're ready to start!
 #
 #    Quick start:
-#    1. Launch instance: cws launch ml-cpu-student hw1
-#    2. Connect: cws ssh hw1
+#    1. Launch instance: prism launch ml-cpu-student hw1
+#    2. Connect: prism ssh hw1
 #    3. Course materials: cd /mnt/cs229-materials
 #
 # First assignment: Homework 1 - Linear Regression
 # Due: September 2, 2024 at 11:59 PM (6 days)
 
 # Emily launches first instance
-emily@laptop:~$ cws launch ml-cpu-student hw1
+emily@laptop:~$ prism launch ml-cpu-student hw1
 
-# CloudWorkstation output:
+# Prism output:
 # ✅ Workspace launching: hw1 (t3.medium)
 # 📊 Cost: $0.83/day ($24.90/month if running 24/7)
 # 💰 Your budget: $0 / $24.00 (0%)
@@ -602,10 +602,10 @@ emily@laptop:~$ cws launch ml-cpu-student hw1
 #
 # 💡 Tip: Your workspace will auto-stop after 4 hours of inactivity to save your budget!
 
-emily@laptop:~$ cws ssh hw1
+emily@laptop:~$ prism ssh hw1
 
 # SSH session:
-# Welcome to CS 229 CloudWorkstation!
+# Welcome to CS 229 Prism!
 #
 # Instance: hw1 (t3.medium)
 # Budget remaining: $24.00
@@ -618,7 +618,7 @@ emily@laptop:~$ cws ssh hw1
 emily@hw1:~$ cd /mnt/cs229-materials/assignments/hw1/
 emily@hw1:~/hw1$ jupyter lab --ip=0.0.0.0
 
-# CloudWorkstation detects Jupyter and prints:
+# Prism detects Jupyter and prints:
 # 🔗 Jupyter Lab running at: http://54.123.45.67:8888
 # 🔑 Token: abc123xyz
 # 💡 Access from your browser or VS Code remote SSH
@@ -628,7 +628,7 @@ emily@hw1:~/hw1$ jupyter lab --ip=0.0.0.0
 
 ```bash
 # Sophie (struggling) joins office hours
-sophie@laptop:~$ cws list
+sophie@laptop:~$ prism list
 
 # Output:
 # Instances:
@@ -638,9 +638,9 @@ sophie@laptop:~$ cws list
 # Sophie shares in Zoom: "My training code crashes with memory error"
 
 # Alex (TA) initiates debug session
-alex@laptop:~$ cws ta debug ml-hw3 --student sophie.martinez@university.edu
+alex@laptop:~$ prism ta debug ml-hw3 --student sophie.martinez@university.edu
 
-# CloudWorkstation output:
+# Prism output:
 # 🔍 TA Debug Session
 #
 #    Student: Sophie Martinez (sophie.martinez@university.edu)
@@ -676,7 +676,7 @@ sophie@ml-hw3:~/homework3$ python train.py
 alex@laptop:~$ # (Identifies: batch size too large for instance)
 
 # Alex exits and provides guidance
-alex@laptop:~$ cws ta message sophie.martinez@university.edu \
+alex@laptop:~$ prism ta message sophie.martinez@university.edu \
   --instance ml-hw3 \
   --subject "Homework 3 - Memory Error Fix" \
   --message "Found the issue! Your batch size (256) is too large for this workspace (4GB RAM). Try batch size 32 or 64. See train.py line 42. Also attached: fixed code example."
@@ -687,7 +687,7 @@ sophie@ml-hw3:~$
 # ┌─────────────────────────────────────────────────┐
 # │ 📨 New Message from TA Alex Thompson             │
 # │ Subject: Homework 3 - Memory Error Fix          │
-# │ View: cws messages                              │
+# │ View: prism messages                              │
 # └─────────────────────────────────────────────────┘
 ```
 
@@ -695,9 +695,9 @@ sophie@ml-hw3:~$
 
 ```bash
 # David (grad student) tries to launch GPU for final project
-david@laptop:~$ cws launch gpu-ml-workstation final-project
+david@laptop:~$ prism launch gpu-ml-workstation final-project
 
-# CloudWorkstation blocks and educates:
+# Prism blocks and educates:
 # ❌ Launch BLOCKED: Template not approved for course
 #
 #    Template: gpu-ml-workstation (p3.2xlarge, $24.80/day)
@@ -712,14 +712,14 @@ david@laptop:~$ cws launch gpu-ml-workstation final-project
 #    - ml-final-project (t3.large, $1.67/day) ✅ Final project only
 #
 #    For final project, use:
-#    $ cws launch ml-final-project final-project
+#    $ prism launch ml-final-project final-project
 #
 #    If you believe you need GPU access:
 #    1. Email Dr. Martinez explaining your use case
 #    2. She can grant temporary GPU access if justified
 
 # David uses approved template
-david@laptop:~$ cws launch ml-final-project final-project
+david@laptop:~$ prism launch ml-final-project final-project
 
 # Budget check:
 # 💰 Budget Check: Final Project Instance
@@ -827,7 +827,7 @@ david@laptop:~$ cws launch ml-final-project final-project
 # - Improvement: Better hibernation policies, student education
 #
 # Student Feedback (from exit survey):
-# - 4.6/5.0 average satisfaction with CloudWorkstation
+# - 4.6/5.0 average satisfaction with Prism
 # - 92% found it easier than managing own AWS account
 # - 85% felt budget was sufficient
 # - Top request: More GPU access for final projects
@@ -840,8 +840,8 @@ david@laptop:~$ cws launch ml-final-project final-project
 #
 # Next Steps:
 # - Data retained for 1 year (grade disputes)
-# - To restore student access: cws course restore-student <email> --days 7
-# - To prepare for Spring 2025: cws course duplicate "CS229-Fall2024"
+# - To restore student access: prism course restore-student <email> --days 7
+# - To prepare for Spring 2025: prism course duplicate "CS229-Fall2024"
 
 # Dr. Martinez can now focus on grading, not infrastructure!
 ```
@@ -986,7 +986,7 @@ david@laptop:~$ cws launch ml-final-project final-project
 
 ```bash
 # Conference organizer creates 3-hour workshop
-cws workshop create "AWS-MLOps-Tutorial" \
+prism workshop create "AWS-MLOps-Tutorial" \
   --date 2024-11-15 \
   --duration 3h \
   --max-participants 50 \
@@ -995,7 +995,7 @@ cws workshop create "AWS-MLOps-Tutorial" \
   --template simple-ml-demo
 
 # Participants join via access code (no email required)
-participant@laptop:~$ cws workshop join --code MLOPS2024
+participant@laptop:~$ prism workshop join --code MLOPS2024
 
 # Auto-extend option at end
 # "Keep your workspace for 7 days to continue learning? (+$0.50/day)"

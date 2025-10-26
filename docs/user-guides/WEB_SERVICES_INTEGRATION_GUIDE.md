@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide demonstrates how to integrate third-party web services and custom research tools into CloudWorkstation using the template system. While CloudWorkstation includes built-in support for AWS services like SageMaker, any web-accessible research tool can be integrated through templates.
+This guide demonstrates how to integrate third-party web services and custom research tools into Prism using the template system. While Prism includes built-in support for AWS services like SageMaker, any web-accessible research tool can be integrated through templates.
 
 ## Integration Patterns
 
@@ -161,7 +161,7 @@ post_install: |
   sudo systemctl start nginx
 ```
 
-## Integration with CloudWorkstation Features
+## Integration with Prism Features
 
 ### **EFS Sharing Integration**
 
@@ -222,10 +222,10 @@ instance_defaults:
 
 ```bash
 # Launch web service template
-cws launch custom-jupyter-hub research-hub
+prism launch custom-jupyter-hub research-hub
 
 # Check web service status
-cws info research-hub
+prism info research-hub
 # Instance: research-hub  
 # Service: Custom JupyterHub
 # Status: Running
@@ -233,22 +233,22 @@ cws info research-hub
 # Health: ✓ Healthy (last checked: 30s ago)
 
 # Open web service in browser
-cws connect research-hub
+prism connect research-hub
 # → Opens https://research-hub.cws.university.edu:8000/hub
 
 # Get web service logs
-cws logs research-hub --service jupyterhub
+prism logs research-hub --service jupyterhub
 ```
 
 ### **Custom Domain Integration**
 
 ```bash
 # Configure custom domain for institution
-cws domains add university.edu --verify-ownership
-cws domains configure research-hub --domain research-tools.university.edu
+prism domains add university.edu --verify-ownership
+prism domains configure research-hub --domain research-tools.university.edu
 
 # Launch with custom domain
-cws launch rstudio-server-custom stats-analysis --domain stats.university.edu
+prism launch rstudio-server-custom stats-analysis --domain stats.university.edu
 # → Accessible at https://stats.university.edu
 ```
 
@@ -331,7 +331,7 @@ post_install: |
 
 1. **EFS Integration**: Always mount shared EFS for collaborative access
 2. **Research User**: Configure services to work with research user identity  
-3. **Policy Compliance**: Respect CloudWorkstation policy restrictions
+3. **Policy Compliance**: Respect Prism policy restrictions
 4. **Health Checks**: Implement proper health check endpoints
 
-This guide enables researchers and institutions to integrate any web-based research tool into CloudWorkstation while maintaining the platform's governance, security, and user experience benefits.
+This guide enables researchers and institutions to integrate any web-based research tool into Prism while maintaining the platform's governance, security, and user experience benefits.

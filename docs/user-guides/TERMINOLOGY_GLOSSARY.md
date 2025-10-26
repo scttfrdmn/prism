@@ -1,12 +1,12 @@
-# CloudWorkstation Terminology Glossary
+# Prism Terminology Glossary
 
 ## Overview
 
-CloudWorkstation uses researcher-friendly terminology while leveraging AWS infrastructure. This glossary helps users familiar with AWS understand how CloudWorkstation terms map to AWS concepts.
+Prism uses researcher-friendly terminology while leveraging AWS infrastructure. This glossary helps users familiar with AWS understand how Prism terms map to AWS concepts.
 
 ## Design Philosophy
 
-**For Researchers**: CloudWorkstation prioritizes clarity and accessibility over technical precision.
+**For Researchers**: Prism prioritizes clarity and accessibility over technical precision.
 **For AWS Experts**: Use the `--verbose` flag on CLI commands to see AWS technical details.
 
 ---
@@ -15,18 +15,18 @@ CloudWorkstation uses researcher-friendly terminology while leveraging AWS infra
 
 ### Workspaces (User Term) → EC2 Instances (AWS Term)
 
-**CloudWorkstation Term**: **Workspace**
+**Prism Term**: **Workspace**
 **AWS Equivalent**: EC2 Instance
 **Why the Change**: "Workspace" conveys the researcher's mental model - a complete computing environment for their work.
 
 **Examples**:
-- CloudWorkstation: "Launch a workspace"
+- Prism: "Launch a workspace"
 - AWS: "Launch an EC2 instance"
-- CloudWorkstation: "List my workspaces"
+- Prism: "List my workspaces"
 - AWS: "List my EC2 instances"
 
 **When to Use Which**:
-- ✅ **Workspace** - All user-facing CloudWorkstation interfaces (CLI, TUI, GUI)
+- ✅ **Workspace** - All user-facing Prism interfaces (CLI, TUI, GUI)
 - ✅ **Instance** - When discussing AWS infrastructure directly (e.g., "EC2 instance types", "spot instances")
 
 ---
@@ -35,7 +35,7 @@ CloudWorkstation uses researcher-friendly terminology while leveraging AWS infra
 
 ### Current Terms (v0.5.6)
 
-| CloudWorkstation Term | AWS Equivalent | Description |
+| Prism Term | AWS Equivalent | Description |
 |----------------------|----------------|-------------|
 | **EBS Volume** | EBS Volume | Block storage attached to workspaces |
 | **EFS Filesystem** | EFS Filesystem | Shared network filesystem |
@@ -43,7 +43,7 @@ CloudWorkstation uses researcher-friendly terminology while leveraging AWS infra
 
 ### Planned Simplification (v0.5.7 - Issue #66)
 
-| New CloudWorkstation Term | AWS Equivalent | Description |
+| New Prism Term | AWS Equivalent | Description |
 |--------------------------|----------------|-------------|
 | **Local Storage** | EBS Volume | Workspace-local persistent storage |
 | **Shared Storage** | EFS Filesystem | Network filesystem for collaboration |
@@ -52,12 +52,12 @@ CloudWorkstation uses researcher-friendly terminology while leveraging AWS infra
 **Use `--verbose` to see AWS details**:
 ```bash
 # User-friendly output (default)
-cws storage list
+prism storage list
 # → Local Storage:   my-data-L (500GB)
 # → Shared Storage:  lab-shared (1TB)
 
 # AWS technical details
-cws storage list --verbose
+prism storage list --verbose
 # → Local Storage (EBS gp3):   my-data-L (vol-abc123, 500GB, 3000 IOPS)
 # → Shared Storage (EFS):      lab-shared (fs-def456, 1TB, General Purpose)
 ```
@@ -68,9 +68,9 @@ cws storage list --verbose
 
 ### Instance Sizing
 
-**CloudWorkstation Sizes** (Simple):
+**Prism Sizes** (Simple):
 ```bash
-cws launch python-ml my-project --size L
+prism launch python-ml my-project --size L
 ```
 
 Sizes: `XS`, `S`, `M`, `L`, `XL`
@@ -82,17 +82,17 @@ Sizes: `XS`, `S`, `M`, `L`, `XL`
 
 **AWS Instance Types** (Precise):
 ```bash
-cws launch python-ml my-project --instance-type t3.xlarge
+prism launch python-ml my-project --instance-type t3.xlarge
 ```
 
 **Use `--verbose` to see AWS instance type**:
 ```bash
 # Default output
-cws list
+prism list
 # → my-project   running   Size: L   $2.40/day
 
 # AWS details
-cws list --verbose
+prism list --verbose
 # → my-project   running   t3.xlarge (4vCPU, 16GB)   $2.40/day
 ```
 
@@ -102,14 +102,14 @@ cws list --verbose
 
 ### Hibernation
 
-**CloudWorkstation**: Hibernate a workspace
+**Prism**: Hibernate a workspace
 **AWS**: Hibernate an EC2 instance
 
 Both terms refer to the same AWS hibernation feature - pausing compute while preserving RAM state.
 
 ### Spot Workspaces
 
-**CloudWorkstation**: Spot workspace
+**Prism**: Spot workspace
 **AWS**: Spot instance
 
 Uses AWS EC2 Spot Instances for 60-90% cost savings (with potential interruption).
@@ -120,7 +120,7 @@ Uses AWS EC2 Spot Instances for 60-90% cost savings (with potential interruption
 
 ### Terms that Remain AWS-Specific
 
-Some terms are inherently technical and remain AWS-specific in CloudWorkstation:
+Some terms are inherently technical and remain AWS-specific in Prism:
 
 | Term | Context | Why Unchanged |
 |------|---------|---------------|
@@ -138,7 +138,7 @@ Some terms are inherently technical and remain AWS-specific in CloudWorkstation:
 
 ## Region & Availability
 
-**CloudWorkstation**: Region
+**Prism**: Region
 **AWS**: AWS Region
 **Same meaning**: Geographic location of AWS data centers
 
@@ -153,7 +153,7 @@ Some terms are inherently technical and remain AWS-specific in CloudWorkstation:
 
 ### Templates
 
-**CloudWorkstation Term**: Template
+**Prism Term**: Template
 **What it is**: Pre-configured research environment (e.g., "Python Machine Learning", "R Research")
 **Contains**: Software packages, system configuration, user setup
 
@@ -161,7 +161,7 @@ Some terms are inherently technical and remain AWS-specific in CloudWorkstation:
 
 ### AMIs (Advanced)
 
-**CloudWorkstation**: AMI
+**Prism**: AMI
 **AWS**: Amazon Machine Image
 **Purpose**: Pre-built snapshot of a template for faster launching (30s vs 5-8 minutes)
 
@@ -171,7 +171,7 @@ Some terms are inherently technical and remain AWS-specific in CloudWorkstation:
 
 ## Lifecycle States
 
-| CloudWorkstation State | AWS EC2 State | Meaning |
+| Prism State | AWS EC2 State | Meaning |
 |------------------------|---------------|---------|
 | **Running** | running | Workspace is active and billable |
 | **Stopped** | stopped | Workspace is paused (only storage billed) |
@@ -184,21 +184,21 @@ Some terms are inherently technical and remain AWS-specific in CloudWorkstation:
 
 ## Configuration & Profiles
 
-### CloudWorkstation Profiles
+### Prism Profiles
 
-**CloudWorkstation Term**: Profile
+**Prism Term**: Profile
 **Purpose**: Manages AWS credentials, region, and configuration
 **Not to be confused with**: AWS profiles (in `~/.aws/credentials`)
 
 **How they relate**:
 ```bash
-# CloudWorkstation profile references an AWS profile
-cws profile create research \
+# Prism profile references an AWS profile
+prism profile create research \
   --aws-profile my-aws-creds \
   --region us-west-2
 ```
 
-**CloudWorkstation profile** = AWS profile + region + CloudWorkstation settings
+**Prism profile** = AWS profile + region + Prism settings
 
 ---
 
@@ -210,11 +210,11 @@ Add `--verbose` to any command to see AWS technical details:
 
 ```bash
 # Simple output
-cws list
+prism list
 # → my-ml-project   running   Size: L
 
 # Technical details
-cws list --verbose
+prism list --verbose
 # → my-ml-project   running   t3.xlarge (i-abc123, us-west-2a)
 ```
 
@@ -246,7 +246,7 @@ Press `t` in any TUI view to toggle technical details.
 
 - **Precise control available**: `--instance-type`, `--vpc`, `--subnet` flags for exact AWS resource specification
 - **Transparency**: `--verbose` flag reveals all AWS technical details
-- **Compatibility**: Can use CloudWorkstation alongside native AWS tools (AWS CLI, Console)
+- **Compatibility**: Can use Prism alongside native AWS tools (AWS CLI, Console)
 
 ### For AWS Experts (Contributors)
 
@@ -258,7 +258,7 @@ Press `t` in any TUI view to toggle technical details.
 
 ## Progressive Disclosure
 
-CloudWorkstation follows **progressive disclosure** - simple by default, detailed when needed:
+Prism follows **progressive disclosure** - simple by default, detailed when needed:
 
 | User Level | Experience | Tools |
 |------------|------------|-------|
@@ -275,17 +275,17 @@ CloudWorkstation follows **progressive disclosure** - simple by default, detaile
 
 **Beginner (Simple)**:
 ```bash
-cws launch python-ml my-research
+prism launch python-ml my-research
 ```
 
 **Intermediate (Sized)**:
 ```bash
-cws launch python-ml my-research --size L
+prism launch python-ml my-research --size L
 ```
 
 **Advanced (Spot + Storage)**:
 ```bash
-cws launch python-ml my-research \
+prism launch python-ml my-research \
   --size L \
   --spot \
   --attach-storage my-data
@@ -293,7 +293,7 @@ cws launch python-ml my-research \
 
 **Expert (Full Control)**:
 ```bash
-cws launch python-ml my-research \
+prism launch python-ml my-research \
   --instance-type c5.4xlarge \
   --spot \
   --subnet subnet-abc123 \
@@ -305,13 +305,13 @@ cws launch python-ml my-research \
 
 **Beginner**:
 ```bash
-cws list
+prism list
 # → my-research   running   $2.40/day
 ```
 
 **Advanced**:
 ```bash
-cws list --verbose
+prism list --verbose
 # → my-research   running   c5.4xlarge (i-abc123456789, us-west-2b)   $2.40/day
 ```
 
@@ -330,14 +330,14 @@ aws ec2 describe-instances --instance-ids i-abc123456789
 | Use **workspaces**, **storage**, **regions** | Add `--verbose` to see AWS details |
 | Focus on research, not infrastructure | Use `--instance-type` for precise control |
 | GUI and simple CLI commands | Full AWS flag support in CLI |
-| CloudWorkstation handles AWS complexity | Direct AWS API access available |
+| Prism handles AWS complexity | Direct AWS API access available |
 
-**Key Principle**: CloudWorkstation meets users where they are - simple for researchers, powerful for experts.
+**Key Principle**: Prism meets users where they are - simple for researchers, powerful for experts.
 
 ---
 
 **See Also**:
-- [Issue #15 - Instances → Workspaces Rename](https://github.com/scttfrdmn/cloudworkstation/issues/15)
-- [Issue #66 - Storage Terminology Simplification](https://github.com/scttfrdmn/cloudworkstation/issues/66)
+- [Issue #15 - Instances → Workspaces Rename](https://github.com/scttfrdmn/prism/issues/15)
+- [Issue #66 - Storage Terminology Simplification](https://github.com/scttfrdmn/prism/issues/66)
 - [Design Principles](../DESIGN_PRINCIPLES.md)
 - [User Requirements](../USER_REQUIREMENTS.md)

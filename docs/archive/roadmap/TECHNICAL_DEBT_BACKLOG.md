@@ -10,7 +10,7 @@ This document tracks features that were intentionally deferred during developmen
 ## 🎯 Current Focus: v0.5.6 UX Redesign (Q4 2025 - Q1 2026)
 
 ### Phase 5.0.1: Quick Wins (2 weeks - Due: November 15, 2025)
-**Milestone**: [#2](https://github.com/scttfrdmn/cloudworkstation/milestone/2)
+**Milestone**: [#2](https://github.com/scttfrdmn/prism/milestone/2)
 
 #### 🏠 #13: Home Page with Quick Start Wizard
 **Location**: `cmd/cws-gui/frontend/src/` (new HomePage component)
@@ -53,7 +53,7 @@ This document tracks features that were intentionally deferred during developmen
 - Update navigation: 12 items → 7 items (Settings + 6 collapsed items)
 - Role-based visibility: Hide admin features from non-admin users
 
-#### ✅ #17: `cws init` Onboarding Wizard **(COMPLETE - October 25, 2025)**
+#### ✅ #17: `prism init` Onboarding Wizard **(COMPLETE - October 25, 2025)**
 **Status**: ✅ Complete - PR #70 merged
 **Location**: `internal/cli/init_wizard.go`
 **Implemented**:
@@ -65,13 +65,13 @@ This document tracks features that were intentionally deferred during developmen
 - ✅ Template recommendations based on domain
 
 **Deferred Enhancements** (moved to technical debt):
-- [ ] **Auto-run on first command**: Automatically prompt `cws init` on first use if not initialized
+- [ ] **Auto-run on first command**: Automatically prompt `prism init` on first use if not initialized
   - Priority: Medium
   - Effort: 1-2 days
   - Implementation: Check `IsInitialized()` in main command handler, prompt user to run init
   - Benefits: Zero-friction onboarding, no manual init required
 
-- [ ] **Skip/customize options**: Add `--skip` flag and `CWS_SKIP_INIT=1` env var
+- [ ] **Skip/customize options**: Add `--skip` flag and `PRISM_SKIP_INIT=1` env var
   - Priority: Low
   - Effort: 0.5 days
   - Implementation: Add flag parsing, env var check in init wizard
@@ -86,7 +86,7 @@ This document tracks features that were intentionally deferred during developmen
 **Phase 5.0.1 Total Effort**: 14-19 days
 
 ### Phase 5.0.2: Information Architecture (4 weeks - Due: December 15, 2025)
-**Milestone**: [#3](https://github.com/scttfrdmn/cloudworkstation/milestone/3)
+**Milestone**: [#3](https://github.com/scttfrdmn/prism/milestone/3)
 
 #### 💾 #18: Unified Storage UI (EFS + EBS)
 **Location**: `cmd/cws-gui/frontend/src/pages/Storage.tsx`
@@ -96,7 +96,7 @@ This document tracks features that were intentionally deferred during developmen
 - Single unified storage page with tabbed interface (EFS Volumes | EBS Volumes)
 - Consistent operations: Create, Attach, Detach, Delete for both types
 - Clear visual distinction: Shared (EFS) vs Dedicated (EBS)
-- Merge `volume` and `storage` CLI commands into `cws storage`
+- Merge `volume` and `storage` CLI commands into `prism storage`
 
 #### 💰 #19: Integrate Budgets into Projects
 **Location**: `cmd/cws-gui/frontend/src/pages/Projects.tsx`, Budget page removal
@@ -106,29 +106,29 @@ This document tracks features that were intentionally deferred during developmen
 - Remove standalone Budget navigation item
 - Add Budget tab to Project detail view
 - Show budget in project list table as additional column
-- Update CLI: Budget operations under `cws project budget`
+- Update CLI: Budget operations under `prism project budget`
 - Navigation: 7 items → 6 items (final target)
 
 **Phase 5.0.2 Total Effort**: 9-11 days
 
 ### Phase 5.0.3: CLI Consistency (2 weeks - Due: December 31, 2025)
-**Milestone**: [#4](https://github.com/scttfrdmn/cloudworkstation/milestone/4)
+**Milestone**: [#4](https://github.com/scttfrdmn/prism/milestone/4)
 
 #### ⌨️ #20: Consistent CLI Command Structure
 **Location**: `internal/cli/app.go`, all command files
 **Priority**: High
 **Effort**: 8-10 days
 **Implementation**:
-- Unified storage commands: `cws storage create/attach/detach/list/delete`
-- Consistent workspace operations: `cws workspace start/stop/hibernate/resize`
-- Predictable patterns: `cws <noun> <verb> <target> [options]`
+- Unified storage commands: `prism storage create/attach/detach/list/delete`
+- Consistent workspace operations: `prism workspace start/stop/hibernate/resize`
+- Predictable patterns: `prism <noun> <verb> <target> [options]`
 - Enhanced tab completion with hierarchical structure
 - Backward compatibility aliases for deprecated commands
 
 **Phase 5.0.3 Total Effort**: 8-10 days
 
 ### Template Provisioning Enhancements (Parallel to Phase 5.0)
-**Milestone**: [#13](https://github.com/scttfrdmn/cloudworkstation/milestone/13)
+**Milestone**: [#13](https://github.com/scttfrdmn/prism/milestone/13)
 
 #### 📦 #30: SSM File Operations for Large File Transfer
 **Location**: `pkg/aws/ssm_transfer.go` (new)
@@ -158,12 +158,12 @@ This document tracks features that were intentionally deferred during developmen
 **Status**: **ON HOLD** - Awaiting final project name decision (may not be "CloudWorkspaces")
 **Effort**: 4-5 days (when resumed)
 **Implementation**:
-- **Go Module**: Update module path from `github.com/scttfrdmn/cloudworkstation` to new name
+- **Go Module**: Update module path from `github.com/scttfrdmn/prism` to new name
 - **All Imports**: Update ~100+ import statements across all `.go` files
-- **State Migration**: Add code to move `~/.cloudworkstation` → new config directory
+- **State Migration**: Add code to move `~/.prism` → new config directory
 - **User-Facing Text**: Update all CLI/TUI/GUI strings, help text, error messages
 - **Documentation**: Update all markdown files, mkdocs.yml, links
-- **Binary Names**: Keep `cws`, `cwsd`, `cws-gui` (abbreviation works for both!)
+- **Binary Names**: Keep `cws`, `cwsd`, `prism-gui` (abbreviation works for both!)
 - **GitHub**: Rename repository (redirects handled automatically)
 - **Domain Migration**: If cloudworkspaces.io is chosen, update mkdocs.yml, docs/CNAME
 - **DNS Setup**: Point new domain to GitHub Pages, configure SSL
@@ -197,16 +197,16 @@ This document tracks features that were intentionally deferred during developmen
 - ✅ IAM client added to Manager struct (line 44)
 - ✅ IAM client initialized in NewManager (lines 104, 122)
 - ✅ Real `GetInstanceProfile()` API call implemented
-- ✅ **Auto-creation of CloudWorkstation-Instance-Profile** if it doesn't exist:
+- ✅ **Auto-creation of Prism-Instance-Profile** if it doesn't exist:
   - Creates IAM role with EC2 trust relationship
   - Attaches AmazonSSMManagedInstanceCore for SSM access
   - Creates inline policy for autonomous idle detection (EC2 self-management)
-  - Tags resources as ManagedBy: CloudWorkstation
+  - Tags resources as ManagedBy: Prism
 - ✅ Graceful fallback when user lacks IAM permissions (logs warning, continues without IAM)
 - ✅ Zero-configuration SSM access for users with IAM permissions
 **Bonus Deliverables**:
 - 📄 Complete IAM permissions documentation (docs/AWS_IAM_PERMISSIONS.md)
-- 📄 Ready-to-apply IAM policy JSON (docs/cloudworkstation-iam-policy.json)
+- 📄 Ready-to-apply IAM policy JSON (docs/prism-iam-policy.json)
 - 🔧 Interactive IAM setup script (scripts/setup-iam-permissions.sh)
 **Note**: IAM profile auto-creation provides zero-configuration SSM and autonomous features
 
@@ -219,7 +219,7 @@ This document tracks features that were intentionally deferred during developmen
 **Current Behavior**: No quota awareness, generic launch failures, no AZ failover
 **Impact**: Users surprised by quota limits, confusing errors, failed launches in unavailable AZs
 **Problem Statement**:
-Researchers often don't understand AWS service quotas (vCPU limits, instance type limits per region/AZ). When launches fail, error messages are cryptic. CloudWorkStation should be intelligent about AWS capacity and gracefully handle failures.
+Researchers often don't understand AWS service quotas (vCPU limits, instance type limits per region/AZ). When launches fail, error messages are cryptic. Prism should be intelligent about AWS capacity and gracefully handle failures.
 
 **Implementation Needed**:
 
@@ -228,13 +228,13 @@ Researchers often don't understand AWS service quotas (vCPU limits, instance typ
    - Track usage against quotas (vCPUs, instances per type, storage)
    - Pre-launch validation: "You have 12/20 vCPUs used, this t3.xlarge (4 vCPU) will use 16/20"
    - Proactive warnings: "Warning: You're at 90% of your vCPU quota in us-west-2"
-   - CLI command: `cws admin quota show --region us-west-2`
+   - CLI command: `prism admin quota show --region us-west-2`
 
 2. **Quota Increase Assistance** (`pkg/aws/quota_requests.go`):
    - Detect quota-related launch failures
    - Explain what quota was hit and why
    - Provide pre-filled quota increase request URL
-   - CLI command: `cws admin quota request --instance-type p3.2xlarge --reason "ML research workload"`
+   - CLI command: `prism admin quota request --instance-type p3.2xlarge --reason "ML research workload"`
    - Guide users through AWS Support Center quota request process
 
 3. **Intelligent AZ Failover** (`pkg/aws/availability_manager.go`):
@@ -250,7 +250,7 @@ Researchers often don't understand AWS service quotas (vCPU limits, instance typ
    - Proactive notifications: "⚠️ AWS reports degraded EC2 performance in us-east-1"
    - Block launches to affected regions with clear explanations
    - Auto-suggest alternative regions with healthy status
-   - CLI command: `cws admin aws-health --all-regions`
+   - CLI command: `prism admin aws-health --all-regions`
 
 5. **Capacity Planning** (`pkg/aws/capacity_planner.go`):
    - Analyze historical launch patterns
@@ -262,7 +262,7 @@ Researchers often don't understand AWS service quotas (vCPU limits, instance typ
 
 ```bash
 # Pre-launch quota check
-$ cws launch gpu-ml-workstation my-training --size XL
+$ prism launch gpu-ml-workstation my-training --size XL
 ⚠️  Quota Check Failed
     Instance type: p3.8xlarge (32 vCPUs, 4 GPUs)
     Current usage: 24/32 vCPUs in us-west-2
@@ -276,7 +276,7 @@ $ cws launch gpu-ml-workstation my-training --size XL
     Alternative: Launch p3.2xlarge instead? (8 vCPUs, 1 GPU) [Y/n]
 
 # Intelligent AZ failover
-$ cws launch bioinformatics-suite genome-analysis
+$ prism launch bioinformatics-suite genome-analysis
 ✅ Launching r5.4xlarge in us-west-2a...
 ⚠️  InsufficientInstanceCapacity in us-west-2a
 🔄 Retrying in us-west-2b...
@@ -284,7 +284,7 @@ $ cws launch bioinformatics-suite genome-analysis
 🔗 SSH ready in ~90 seconds...
 
 # AWS Health monitoring
-$ cws launch python-ml earthquake-prediction --region us-east-1
+$ prism launch python-ml earthquake-prediction --region us-east-1
 ⚠️  AWS Health Alert: Degraded EC2 Performance in us-east-1
     Event: API_ISSUE (started 15 minutes ago)
     Impact: Elevated launch failures and delayed instance starts
@@ -294,7 +294,7 @@ $ cws launch python-ml earthquake-prediction --region us-east-1
     Launch anyway? [y/N]
 
 # Quota status command
-$ cws admin quota show
+$ prism admin quota show
 📊 AWS Service Quotas - us-west-2
 
 vCPU Limits:
@@ -325,7 +325,7 @@ Recommendations:
 
 **Related Issues**:
 - Reduces "why did my launch fail?" support tickets
-- Makes CloudWorkStation intelligent about AWS constraints
+- Makes Prism intelligent about AWS constraints
 - Enables researchers to self-service quota increases
 - Proactive problem prevention vs reactive error handling
 
@@ -370,11 +370,11 @@ Recommendations:
 **Implementation Needed**:
 - **Phase 1 (v0.6.0)**: Version detection and notifications (2-3 days)
   - Query GitHub Releases API for latest version
-  - Add `cws version --check-update` command
+  - Add `prism version --check-update` command
   - Show startup notifications in CLI/TUI/GUI
   - Cache update checks (24-hour TTL)
 - **Phase 2 (v0.6.1)**: Assisted platform-specific updates (3-4 days)
-  - `cws update` command with platform detection
+  - `prism update` command with platform detection
   - Homebrew, apt, manual install support
   - Checksum verification and rollback
 - **Phase 3 (v0.7.0)**: Background auto-update system (4-5 days)
@@ -419,11 +419,11 @@ Recommendations:
 **Implementation Needed**:
 - **Phase 1 (v0.7.0)**: Capacity Block Discovery (4-5 days)
   - API: DescribeCapacityBlockOfferings
-  - CLI: `cws capacity-blocks search` with cost comparison
+  - CLI: `prism capacity-blocks search` with cost comparison
   - Search by instance type, count, duration (1-14 days), date range
 - **Phase 2 (v0.7.0)**: Reservation Purchase (3-4 days)
   - API: PurchaseCapacityBlock (upfront payment, immutable)
-  - CLI: `cws capacity-blocks purchase` with budget integration
+  - CLI: `prism capacity-blocks purchase` with budget integration
   - State management for reservations
   - Confirmation dialog with warnings (cannot cancel)
 - **Phase 3 (v0.7.1)**: Scheduled Launch (5-6 days)

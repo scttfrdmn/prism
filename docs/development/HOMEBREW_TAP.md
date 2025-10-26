@@ -1,11 +1,11 @@
-# CloudWorkstation Homebrew Tap
+# Prism Homebrew Tap
 
-This document describes how to set up and maintain the Homebrew tap for CloudWorkstation.
+This document describes how to set up and maintain the Homebrew tap for Prism.
 
 ## Overview
 
-Homebrew taps are third-party repositories of formulas. For CloudWorkstation, we maintain a tap repository at:
-https://github.com/scttfrdmn/homebrew-cloudworkstation
+Homebrew taps are third-party repositories of formulas. For Prism, we maintain a tap repository at:
+https://github.com/scttfrdmn/homebrew-prism
 
 ## Setup Instructions
 
@@ -13,7 +13,7 @@ https://github.com/scttfrdmn/homebrew-cloudworkstation
 
 If you haven't already created the tap repository:
 
-1. Create a new GitHub repository named `homebrew-cloudworkstation`
+1. Create a new GitHub repository named `homebrew-prism`
 2. Initialize with a README.md explaining the purpose of the tap
 3. Create a `Formula` directory to store the formula files
 
@@ -23,10 +23,10 @@ mkdir -p Formula
 
 ### 2. Add the Formula
 
-Copy the CloudWorkstation formula to the repository:
+Copy the Prism formula to the repository:
 
 ```bash
-cp packaging/homebrew/cloudworkstation.rb Formula/
+cp packaging/homebrew/prism.rb Formula/
 ```
 
 ### 3. Configure Automated Updates
@@ -38,14 +38,14 @@ The formula is automatically updated by the GitHub Action workflow in `.github/w
 
 ## Using the Tap
 
-Users can install CloudWorkstation from the tap with:
+Users can install Prism from the tap with:
 
 ```bash
 # Add the tap (only needed once)
-brew tap scttfrdmn/cloudworkstation
+brew tap scttfrdmn/prism
 
-# Install CloudWorkstation
-brew install cloudworkstation
+# Install Prism
+brew install prism
 ```
 
 ## Testing the Formula Locally
@@ -54,10 +54,10 @@ To test the formula locally before releasing:
 
 ```bash
 # Install from the local formula file
-brew install --build-from-source ./packaging/homebrew/cloudworkstation.rb
+brew install --build-from-source ./packaging/homebrew/prism.rb
 
 # Test installation from the tap
-brew install scttfrdmn/cloudworkstation/cloudworkstation
+brew install scttfrdmn/prism/prism
 ```
 
 ## Updating the Formula Manually
@@ -76,16 +76,16 @@ The formula is updated automatically on release, but you can manually update it:
 
 3. Commit and push the updated formula to the tap repository:
    ```bash
-   cp packaging/homebrew/cloudworkstation.rb /path/to/homebrew-cloudworkstation/Formula/
-   cd /path/to/homebrew-cloudworkstation
-   git add Formula/cloudworkstation.rb
+   cp packaging/homebrew/prism.rb /path/to/homebrew-prism/Formula/
+   cd /path/to/homebrew-prism
+   git add Formula/prism.rb
    git commit -m "Update formula for v0.4.3"
    git push
    ```
 
 ## Formula Structure
 
-The CloudWorkstation formula includes:
+The Prism formula includes:
 
 - **Versioning**: The formula automatically detects the latest version from GitHub releases
 - **Architecture-specific builds**: Different binaries for macOS/Linux and arm64/amd64
@@ -108,10 +108,10 @@ The formula is automatically updated by the GitHub Actions workflow when a new r
 Common issues:
 
 - **Missing SHA256 checksums**: Ensure the release artifacts are properly uploaded
-- **Formula audit failures**: Run `brew audit --strict cloudworkstation.rb` to check for issues
+- **Formula audit failures**: Run `brew audit --strict prism.rb` to check for issues
 - **Installation failures**: Check dependencies and path issues
 
 For audit failures, use:
 ```bash
-brew audit --strict --online packaging/homebrew/cloudworkstation.rb
+brew audit --strict --online packaging/homebrew/prism.rb
 ```

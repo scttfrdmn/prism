@@ -2,7 +2,7 @@
 
 ## Overview
 
-With Phase 2's multi-modal access strategy complete, Phase 3 focuses on advanced research-specific features that differentiate CloudWorkstation as the premier academic cloud computing platform. This phase leverages the existing distributed architecture and significant foundation already built.
+With Phase 2's multi-modal access strategy complete, Phase 3 focuses on advanced research-specific features that differentiate Prism as the premier academic cloud computing platform. This phase leverages the existing distributed architecture and significant foundation already built.
 
 ## 🎯 Phase 3 Objectives
 
@@ -71,7 +71,7 @@ func (s *Server) handleListTemplates(w http.ResponseWriter, r *http.Request) {
 ```
 
 #### 1.2 Package Manager Selection Interface
-- **CLI**: `cws launch neuroimaging my-analysis --with spack`
+- **CLI**: `prism launch neuroimaging my-analysis --with spack`
 - **GUI**: Dropdown for package manager selection in launch dialog
 - **TUI**: Package manager option in templates page
 
@@ -121,7 +121,7 @@ type HibernationConfig struct {
 ```
 
 #### 2.2 Multi-Modal Hibernation Controls
-- **CLI**: `cws hibernate my-instance --wake-at 2024-08-01T09:00:00`
+- **CLI**: `prism hibernate my-instance --wake-at 2024-08-01T09:00:00`
 - **GUI**: Hibernation scheduling in instance management
 - **TUI**: Hibernation status and controls in instances page
 
@@ -144,12 +144,12 @@ type HibernationConfig struct {
 **Snapshot Management:**
 ```bash
 # CLI Interface
-cws snapshot create my-analysis --description "Pre-publication analysis environment"
-cws snapshot list my-analysis
-cws snapshot restore my-analysis snapshot-2024-08-01
+prism snapshot create my-analysis --description "Pre-publication analysis environment"
+prism snapshot list my-analysis
+prism snapshot restore my-analysis snapshot-2024-08-01
 
 # Automatic snapshots
-cws launch neuroimaging analysis --auto-snapshot daily
+prism launch neuroimaging analysis --auto-snapshot daily
 ```
 
 #### 3.2 Research Project Versioning
@@ -284,15 +284,15 @@ CREATE TABLE environment_snapshots (
 #### CLI Experience
 ```bash
 # Unified workflow with advanced features
-cws launch neuroimaging analysis \
+prism launch neuroimaging analysis \
   --with spack \
   --budget research-2024 \
   --hibernate-when-idle 30m \
   --auto-snapshot weekly
 
 # Budget management
-cws budget create research-2024 --amount 5000 --period semester
-cws budget status research-2024
+prism budget create research-2024 --amount 5000 --period semester
+prism budget status research-2024
 ```
 
 #### GUI Experience
@@ -370,4 +370,4 @@ Phase 3 will be considered complete when:
 
 ---
 
-*This plan builds on CloudWorkstation's existing foundation to deliver advanced research features that will establish it as the definitive academic cloud computing platform.*
+*This plan builds on Prism's existing foundation to deliver advanced research features that will establish it as the definitive academic cloud computing platform.*

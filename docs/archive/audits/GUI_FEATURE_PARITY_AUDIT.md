@@ -125,18 +125,18 @@ Despite excellent coverage, GUI is still missing some CLI functionality:
 **Missing GUI Features**:
 ```bash
 # Budget Commands (NONE in GUI)
-cws budget list                       # List all budgets
-cws budget create <project> <amount>  # Create budget
-cws budget update <budget-id>         # Update budget
-cws budget delete <budget-id>         # Delete budget
-cws budget info <budget-id>           # Detailed info
-cws budget status [budget-id]         # Current status
-cws budget usage <budget-id>          # Resource usage
-cws budget history <budget-id>        # Spending history
-cws budget alerts <budget-id>         # Manage alerts
-cws budget forecast <budget-id>       # Spending forecast
-cws budget savings [budget-id]        # Hibernation savings
-cws budget breakdown <budget-id>      # Cost breakdown
+prism budget list                       # List all budgets
+prism budget create <project> <amount>  # Create budget
+prism budget update <budget-id>         # Update budget
+prism budget delete <budget-id>         # Delete budget
+prism budget info <budget-id>           # Detailed info
+prism budget status [budget-id]         # Current status
+prism budget usage <budget-id>          # Resource usage
+prism budget history <budget-id>        # Spending history
+prism budget alerts <budget-id>         # Manage alerts
+prism budget forecast <budget-id>       # Spending forecast
+prism budget savings [budget-id]        # Hibernation savings
+prism budget breakdown <budget-id>      # Cost breakdown
 ```
 
 **Note**: GUI has `getProjectBudget()` API method (line 348) but **NO UI implementation** for:
@@ -159,12 +159,12 @@ cws budget breakdown <budget-id>      # Cost breakdown
 **Missing GUI Features**:
 ```bash
 # Policy Commands (NONE in GUI)
-cws policy status                     # Policy enforcement status
-cws policy list                       # List policy sets
-cws policy assign <policy-set>        # Assign policy
-cws policy enable                     # Enable enforcement
-cws policy disable                    # Disable enforcement
-cws policy check <template>           # Check template access
+prism policy status                     # Policy enforcement status
+prism policy list                       # List policy sets
+prism policy assign <policy-set>        # Assign policy
+prism policy enable                     # Enable enforcement
+prism policy disable                    # Disable enforcement
+prism policy check <template>           # Check template access
 ```
 
 **Impact**: ⭐⭐ **HIGH**
@@ -180,11 +180,11 @@ cws policy check <template>           # Check template access
 **Missing GUI Features**:
 ```bash
 # Marketplace Commands (NONE in GUI)
-cws marketplace search <query>        # Search templates
-cws marketplace browse                # Browse categories
-cws marketplace show <template>       # Template details
-cws marketplace install <template>    # Install template
-cws marketplace registries            # Registry management
+prism marketplace search <query>        # Search templates
+prism marketplace browse                # Browse categories
+prism marketplace show <template>       # Template details
+prism marketplace install <template>    # Install template
+prism marketplace registries            # Registry management
 ```
 
 **Impact**: ⭐⭐ **HIGH**
@@ -200,11 +200,11 @@ cws marketplace registries            # Registry management
 **Missing GUI Features**:
 ```bash
 # Idle Commands (NONE in GUI)
-cws idle profile list                 # List idle profiles
-cws idle profile create <name>        # Create profile
-cws idle instance <name> --profile    # Assign profile
-cws idle history                      # Hibernation history
-cws idle status                       # Idle detection status
+prism idle profile list                 # List idle profiles
+prism idle profile create <name>        # Create profile
+prism idle instance <name> --profile    # Assign profile
+prism idle history                      # Hibernation history
+prism idle status                       # Idle detection status
 ```
 
 **Note**: GUI has `hibernateInstance()` and `getHibernationStatus()` API methods for **MANUAL hibernation**, but missing **AUTOMATED hibernation policy management**.
@@ -222,10 +222,10 @@ cws idle status                       # Idle detection status
 **Missing GUI Features**:
 ```bash
 # AMI Commands (NONE in GUI)
-cws ami list                          # List AMIs
-cws ami create <instance>             # Create AMI from instance
-cws ami delete <ami-id>               # Delete AMI
-cws ami info <ami-id>                 # AMI details
+prism ami list                          # List AMIs
+prism ami create <instance>             # Create AMI from instance
+prism ami delete <ami-id>               # Delete AMI
+prism ami info <ami-id>                 # AMI details
 ```
 
 **Impact**: ⭐ **MEDIUM**
@@ -240,9 +240,9 @@ cws ami info <ami-id>                 # AMI details
 **Missing GUI Features**:
 ```bash
 # Rightsizing Commands (NONE in GUI)
-cws rightsizing analyze               # Analyze instances
-cws rightsizing recommendations       # Get recommendations
-cws rightsizing apply <instance>      # Apply recommendation
+prism rightsizing analyze               # Analyze instances
+prism rightsizing recommendations       # Get recommendations
+prism rightsizing apply <instance>      # Apply recommendation
 ```
 
 **Impact**: ⭐⭐ **MEDIUM**
@@ -257,10 +257,10 @@ cws rightsizing apply <instance>      # Apply recommendation
 **Missing GUI Features**:
 ```bash
 # Repository Commands (NONE in GUI)
-cws repo list                         # List repositories
-cws repo add <name> <url>             # Add repository
-cws repo remove <name>                # Remove repository
-cws repo update                       # Update repositories
+prism repo list                         # List repositories
+prism repo add <name> <url>             # Add repository
+prism repo remove <name>                # Remove repository
+prism repo update                       # Update repositories
 ```
 
 **Impact**: ⭐ **MEDIUM**
@@ -274,9 +274,9 @@ cws repo update                       # Update repositories
 **Missing GUI Features**:
 ```bash
 # Logs Commands (NONE in GUI)
-cws logs <instance>                   # View instance logs
-cws logs --follow <instance>          # Follow logs
-cws logs --tail <n> <instance>        # Tail logs
+prism logs <instance>                   # View instance logs
+prism logs --follow <instance>          # Follow logs
+prism logs --tail <n> <instance>        # Tail logs
 ```
 
 **Impact**: ⭐⭐ **MEDIUM**
@@ -291,9 +291,9 @@ cws logs --tail <n> <instance>        # Tail logs
 **Missing GUI Features**:
 ```bash
 # Admin Commands (NONE in GUI)
-cws admin daemon status               # Daemon status
-cws admin daemon restart              # Restart daemon
-cws admin cleanup                     # Cleanup resources
+prism admin daemon status               # Daemon status
+prism admin daemon restart              # Restart daemon
+prism admin cleanup                     # Cleanup resources
 ```
 
 **Impact**: ⭐ **LOW**
@@ -307,11 +307,11 @@ cws admin cleanup                     # Cleanup resources
 **Missing GUI Features**:
 ```bash
 # Daemon Commands (NONE in GUI)
-cws daemon status                     # Check status
-cws daemon start                      # Start daemon
-cws daemon stop                       # Stop daemon
-cws daemon restart                    # Restart daemon
-cws daemon logs                       # Daemon logs
+prism daemon status                     # Check status
+prism daemon start                      # Start daemon
+prism daemon stop                       # Stop daemon
+prism daemon restart                    # Restart daemon
+prism daemon logs                       # Daemon logs
 ```
 
 **Impact**: ⭐⭐ **MEDIUM**

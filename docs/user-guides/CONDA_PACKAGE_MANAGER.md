@@ -1,6 +1,6 @@
 # Conda Package Manager Guide
 
-**CloudWorkstation** uses **conda** as the primary package manager for research environments, providing reliable, cross-platform package management for Python, R, and scientific computing.
+**Prism** uses **conda** as the primary package manager for research environments, providing reliable, cross-platform package management for Python, R, and scientific computing.
 
 ## 🎯 Why Conda for Research?
 
@@ -10,7 +10,7 @@
 - **Cross-Platform**: Consistent across Windows, macOS, Linux, ARM64
 - **GPU Support**: Native CUDA, PyTorch, TensorFlow integration
 
-### ✅ **CloudWorkstation Integration**
+### ✅ **Prism Integration**
 - **Smart Defaults**: Automatically selected for Python/R templates
 - **Manual Override**: `--with conda` for explicit control  
 - **Optimized Installation**: Miniforge for fast, reliable setup
@@ -21,29 +21,29 @@
 ### Basic Usage (Automatic)
 ```bash
 # Conda automatically selected for Python/R templates
-cws launch python-research my-analysis
-cws launch r-research stats-project
+prism launch python-research my-analysis
+prism launch r-research stats-project
 
 # Templates detect scientific packages and choose conda
-cws launch neuroimaging brain-study
+prism launch neuroimaging brain-study
 ```
 
 ### Explicit Conda Selection
 ```bash
 # Force conda package manager
-cws launch python-research my-project --with conda
+prism launch python-research my-project --with conda
 
 # Combine with other options
-cws launch python-research gpu-training --with conda --size GPU-L --volume shared-data
+prism launch python-research gpu-training --with conda --size GPU-L --volume shared-data
 ```
 
 ### Advanced Usage
 ```bash
 # Dry run to see conda installation script
-cws launch python-research test --with conda --dry-run
+prism launch python-research test --with conda --dry-run
 
 # Launch with specific conda environment
-cws launch r-research stats-work --with conda --storage L
+prism launch r-research stats-work --with conda --storage L
 ```
 
 ## 📦 Supported Package Types
@@ -90,7 +90,7 @@ packages:
 ## 🔧 How Conda Integration Works
 
 ### 1. **Template Detection**
-CloudWorkstation automatically selects conda when templates contain:
+Prism automatically selects conda when templates contain:
 - Python data science packages (`numpy`, `pandas`, `jupyter`)  
 - R packages (`r-base`, `tidyverse`, `rstudio`)
 - Scientific computing libraries (`scipy`, `matplotlib`)
@@ -147,7 +147,7 @@ conda env export > environment.yml
 - **GPU Acceleration**: Native CUDA toolkit integration
 - **ARM64 Native**: Apple Silicon optimization
 
-### ✅ **CloudWorkstation Optimizations**
+### ✅ **Prism Optimizations**
 - **Multi-Architecture**: Smart ARM64/x86_64 detection
 - **Package Caching**: Reduced installation time for common packages
 - **Environment Reuse**: Efficient environment setup across instances
@@ -208,11 +208,11 @@ python -c "import torch; print(torch.cuda.is_available())"
 - [Conda-Forge Community](https://conda-forge.org/)
 - [Miniforge Project](https://github.com/conda-forge/miniforge)
 
-### CloudWorkstation Resources
+### Prism Resources
 - Template examples with conda integration
 - Best practices for research environments
 - Multi-user conda configuration guides
 
 ---
 
-**Summary**: Conda provides CloudWorkstation users with world-class package management for research computing, combining reliability, performance, and comprehensive scientific package ecosystems in a research-optimized platform.
+**Summary**: Conda provides Prism users with world-class package management for research computing, combining reliability, performance, and comprehensive scientific package ecosystems in a research-optimized platform.

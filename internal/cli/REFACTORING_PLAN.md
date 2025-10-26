@@ -1,10 +1,10 @@
 # Cobra Command Refactoring Plan
 
 ## Problem
-The current CloudWorkstation CLI has a fundamental architectural issue where commands handle their own subcommands internally using `switch` statements, bypassing Cobra's built-in subcommand and flag handling. This causes:
+The current Prism CLI has a fundamental architectural issue where commands handle their own subcommands internally using `switch` statements, bypassing Cobra's built-in subcommand and flag handling. This causes:
 
-1. **Flags don't work**: `cws templates validate --verbose` fails because Cobra can't parse flags for internally-handled subcommands
-2. **No help generation**: Subcommands don't appear in `cws templates --help`
+1. **Flags don't work**: `prism templates validate --verbose` fails because Cobra can't parse flags for internally-handled subcommands
+2. **No help generation**: Subcommands don't appear in `prism templates --help`
 3. **Inconsistent behavior**: Some commands use Cobra properly, others don't
 4. **Poor maintainability**: Each command reimplements routing logic
 
@@ -56,7 +56,7 @@ Convert all internally-routed commands to use proper Cobra subcommands. This all
 func CreateTemplatesCommand() *cobra.Command {
     cmd := &cobra.Command{
         Use:   "templates",
-        Short: "Manage CloudWorkstation templates",
+        Short: "Manage Prism templates",
     }
     
     // Add subcommands
@@ -153,7 +153,7 @@ func createValidateCommand() *cobra.Command {
 ## Benefits
 
 1. **Proper Flag Support**: All flags work as expected
-2. **Auto-generated Help**: `cws templates validate --help` works
+2. **Auto-generated Help**: `prism templates validate --help` works
 3. **Consistency**: All commands behave the same way
 4. **Maintainability**: Less custom routing code
 5. **Shell Completion**: Better support for bash/zsh completion
@@ -163,12 +163,12 @@ func createValidateCommand() *cobra.Command {
 
 ```bash
 # All of these will work properly:
-cws templates validate --verbose --strict
-cws templates search python --category "Machine Learning" --popular
-cws templates test --suite performance --verbose
-cws daemon logs --follow --tail 100
-cws idle profile create aggressive --idle-minutes 5 --action hibernate
-cws project members add my-project user@example.com --role admin
+prism templates validate --verbose --strict
+prism templates search python --category "Machine Learning" --popular
+prism templates test --suite performance --verbose
+prism daemon logs --follow --tail 100
+prism idle profile create aggressive --idle-minutes 5 --action hibernate
+prism project members add my-project user@example.com --role admin
 ```
 
 ## Backwards Compatibility

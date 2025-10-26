@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the technical approach for implementing commercial software templates in CloudWorkstation, enabling researchers to launch instances with pre-licensed commercial software like MATLAB, ArcGIS, Mathematica, and others.
+This document outlines the technical approach for implementing commercial software templates in Prism, enabling researchers to launch instances with pre-licensed commercial software like MATLAB, ArcGIS, Mathematica, and others.
 
 ## Problem Statement
 
@@ -13,7 +13,7 @@ Researchers frequently need access to commercial software that requires:
 - License compliance tracking
 - Regional AMI availability
 
-Currently, CloudWorkstation only supports open-source software templates, limiting its utility for research that depends on commercial tools.
+Currently, Prism only supports open-source software templates, limiting its utility for research that depends on commercial tools.
 
 ## Technical Architecture
 
@@ -143,16 +143,16 @@ func (r *CommercialAMIResolver) ResolveAMI(template *Template, region string) (*
 **Launch Command Enhancement**:
 ```bash
 # Standard launch with license prompts
-cws launch matlab-r2024a my-research
+prism launch matlab-r2024a my-research
 
 # Launch with pre-configured license
-cws launch matlab-r2024a my-research --license-server "license.university.edu:27000"
+prism launch matlab-r2024a my-research --license-server "license.university.edu:27000"
 
 # Launch with license file
-cws launch matlab-r2024a my-research --license-file ./matlab.lic
+prism launch matlab-r2024a my-research --license-file ./matlab.lic
 
 # Show license requirements before launch
-cws templates info matlab-r2024a --license-info
+prism templates info matlab-r2024a --license-info
 ```
 
 **Interactive License Setup**:
@@ -298,4 +298,4 @@ templates/commercial/
 - Clear error messages and troubleshooting guides
 - Regular template maintenance and updates
 
-This implementation provides a robust foundation for commercial software support while maintaining CloudWorkstation's ease-of-use principles and cost transparency.
+This implementation provides a robust foundation for commercial software support while maintaining Prism's ease-of-use principles and cost transparency.

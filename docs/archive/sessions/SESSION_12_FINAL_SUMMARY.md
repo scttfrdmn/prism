@@ -171,7 +171,7 @@ The codebase has **three separate mock client architectures**:
 **Recommendation**: Consider mock code generation or shared base mocks
 
 ### 2. TUI Interface vs Main Interface
-TUI uses custom `apiClient` interface (subset + stubs) vs main `CloudWorkstationAPI`
+TUI uses custom `apiClient` interface (subset + stubs) vs main `PrismAPI`
 - **Benefit**: TUI can evolve independently
 - **Cost**: Extra maintenance for mock clients
 - **Finding**: Some TUI methods are stubs (e.g., ApplyRightsizingRecommendation returns nil)

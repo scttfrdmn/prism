@@ -1,46 +1,46 @@
-# CloudWorkstation AWS IAM Permissions
+# Prism AWS IAM Permissions
 
 **Last Updated**: October 17, 2025
 
-This document defines the minimum AWS IAM permissions required for CloudWorkstation to function properly.
+This document defines the minimum AWS IAM permissions required for Prism to function properly.
 
 ---
 
 ## Overview
 
-CloudWorkstation requires AWS credentials with sufficient permissions to manage EC2 instances, EFS filesystems, IAM roles, and Systems Manager (SSM) operations. Users must have an AWS account with either:
+Prism requires AWS credentials with sufficient permissions to manage EC2 instances, EFS filesystems, IAM roles, and Systems Manager (SSM) operations. Users must have an AWS account with either:
 
 1. **AWS Access Keys** (Access Key ID + Secret Access Key) stored in `~/.aws/credentials`
-2. **AWS IAM Role** attached to the machine running CloudWorkstation (for EC2/ECS deployments)
+2. **AWS IAM Role** attached to the machine running Prism (for EC2/ECS deployments)
 3. **AWS SSO credentials** configured via `aws sso login`
 
 ---
 
 ## Quick Start: Recommended Setup
 
-For new users, CloudWorkstation provides a **managed IAM policy** that grants all necessary permissions:
+For new users, Prism provides a **managed IAM policy** that grants all necessary permissions:
 
 ```bash
 # Option 1: Attach AWS managed policy (if available in future)
 aws iam attach-user-policy \
   --user-name YOUR_USERNAME \
-  --policy-arn arn:aws:iam::aws:policy/CloudWorkstationFullAccess
+  --policy-arn arn:aws:iam::aws:policy/PrismFullAccess
 
 # Option 2: Create custom policy from this document
 aws iam create-policy \
-  --policy-name CloudWorkstationAccess \
-  --policy-document file://cloudworkstation-policy.json
+  --policy-name PrismAccess \
+  --policy-document file://prism-policy.json
 
 aws iam attach-user-policy \
   --user-name YOUR_USERNAME \
-  --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/CloudWorkstationAccess
+  --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/PrismAccess
 ```
 
 ---
 
 ## Minimum Required Permissions
 
-CloudWorkstation requires the following AWS service permissions:
+Prism requires the following AWS service permissions:
 
 ### 1. **EC2 (Elastic Compute Cloud)** - Core Instance Management
 
@@ -96,7 +96,7 @@ CloudWorkstation requires the following AWS service permissions:
 ```
 
 **Why These Permissions:**
-- **RunInstances**: Launch new CloudWorkstation instances
+- **RunInstances**: Launch new Prism instances
 - **Stop/Start/Terminate**: Instance lifecycle management
 - **DescribeInstances**: List and monitor running instances
 - **DescribeImages**: Find optimal AMIs for templates
@@ -155,8 +155,8 @@ CloudWorkstation requires the following AWS service permissions:
         "iam:PassRole"
       ],
       "Resource": [
-        "arn:aws:iam::*:role/CloudWorkstation-Instance-Profile-Role",
-        "arn:aws:iam::*:instance-profile/CloudWorkstation-Instance-Profile"
+        "arn:aws:iam::*:role/Prism-Instance-Profile-Role",
+        "arn:aws:iam::*:instance-profile/Prism-Instance-Profile"
       ]
     }
   ]
@@ -164,10 +164,10 @@ CloudWorkstation requires the following AWS service permissions:
 ```
 
 **Why These Permissions:**
-- **CreateRole**: Auto-create CloudWorkstation-Instance-Profile for SSM access
+- **CreateRole**: Auto-create Prism-Instance-Profile for SSM access
 - **AttachRolePolicy**: Attach AmazonSSMManagedInstanceCore for Systems Manager
 - **PutRolePolicy**: Create inline policy for autonomous idle detection
-- **PassRole**: Allow EC2 to assume the CloudWorkstation role
+- **PassRole**: Allow EC2 to assume the Prism role
 
 **What This Enables:**
 - **SSM Access**: Remote command execution without SSH keys
@@ -227,7 +227,7 @@ CloudWorkstation requires the following AWS service permissions:
 
 ## Complete IAM Policy
 
-Here is the **complete CloudWorkstation IAM policy** combining all permissions:
+Here is the **complete Prism IAM policy** combining all permissions:
 
 ```json
 {
@@ -311,8 +311,8 @@ Here is the **complete CloudWorkstation IAM policy** combining all permissions:
         "iam:PassRole"
       ],
       "Resource": [
-        "arn:aws:iam::*:role/CloudWorkstation-Instance-Profile-Role",
-        "arn:aws:iam::*:instance-profile/CloudWorkstation-Instance-Profile"
+        "arn:aws:iam::*:role/Prism-Instance-Profile-Role",
+        "arn:aws:iam::*:instance-profile/Prism-Instance-Profile"
       ]
     },
     {
@@ -343,7 +343,7 @@ Here is the **complete CloudWorkstation IAM policy** combining all permissions:
 
 ## Permission Tiers
 
-CloudWorkstation supports different permission levels based on institutional requirements:
+Prism supports different permission levels based on institutional requirements:
 
 ### **Tier 1: Basic Usage** (Minimum Required)
 - EC2 instance management (launch, stop, terminate)
@@ -379,24 +379,24 @@ CloudWorkstation supports different permission levels based on institutional req
 ## Security Best Practices
 
 ### 1. **Use IAM Users, Not Root Credentials**
-Never use AWS root account credentials with CloudWorkstation. Create a dedicated IAM user:
+Never use AWS root account credentials with Prism. Create a dedicated IAM user:
 
 ```bash
-aws iam create-user --user-name cloudworkstation-admin
-aws iam create-access-key --user-name cloudworkstation-admin
+aws iam create-user --user-name prism-admin
+aws iam create-access-key --user-name prism-admin
 aws iam attach-user-policy \
-  --user-name cloudworkstation-admin \
-  --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/CloudWorkstationAccess
+  --user-name prism-admin \
+  --policy-arn arn:aws:iam::YOUR_ACCOUNT_ID:policy/PrismAccess
 ```
 
 ### 2. **Restrict Permissions with Resource Tags**
-Limit CloudWorkstation to only manage its own resources:
+Limit Prism to only manage its own resources:
 
 ```json
 {
   "Condition": {
     "StringEquals": {
-      "aws:ResourceTag/ManagedBy": "CloudWorkstation"
+      "aws:ResourceTag/ManagedBy": "Prism"
     }
   }
 }
@@ -415,17 +415,17 @@ aws_secret_access_key = ...
 aws_access_key_id = AKIA...
 aws_secret_access_key = ...
 
-# CloudWorkstation profiles
-cws profiles add project1 proj1-profile --aws-profile research-project-1 --region us-west-2
-cws profiles add project2 proj2-profile --aws-profile research-project-2 --region us-east-1
+# Prism profiles
+prism profiles add project1 proj1-profile --aws-profile research-project-1 --region us-west-2
+prism profiles add project2 proj2-profile --aws-profile research-project-2 --region us-east-1
 ```
 
 ### 4. **Enable CloudTrail Logging**
-Track all AWS API calls made by CloudWorkstation:
+Track all AWS API calls made by Prism:
 
 ```bash
 aws cloudtrail create-trail \
-  --name cloudworkstation-audit \
+  --name prism-audit \
   --s3-bucket-name YOUR_AUDIT_BUCKET
 ```
 
@@ -437,7 +437,7 @@ aws cloudtrail create-trail \
 
 **Cause**: Missing required IAM permissions
 
-**Solution**: Attach the CloudWorkstation IAM policy to your IAM user/role
+**Solution**: Attach the Prism IAM policy to your IAM user/role
 
 ### **Error: "User is not authorized to perform: iam:CreateRole"**
 
@@ -447,7 +447,7 @@ aws cloudtrail create-trail \
 
 **Solutions**:
 1. **Recommended**: Request IAM permissions from AWS administrator
-2. **Workaround**: Manually create CloudWorkstation-Instance-Profile in AWS console
+2. **Workaround**: Manually create Prism-Instance-Profile in AWS console
 3. **Fallback**: Continue without IAM profile (SSH-only access, no autonomous features)
 
 ### **Error: "Failed to create EFS filesystem: AccessDeniedException"**
@@ -462,20 +462,20 @@ aws cloudtrail create-trail \
 
 ## Verification
 
-Test your IAM permissions with CloudWorkstation:
+Test your IAM permissions with Prism:
 
 ```bash
 # Test EC2 permissions
-cws templates  # Should list available templates
-cws launch ubuntu test-instance --dry-run  # Should show what would be created
+prism templates  # Should list available templates
+prism launch ubuntu test-instance --dry-run  # Should show what would be created
 
 # Test EFS permissions (if you have them)
-cws volume create test-volume  # Should create EFS filesystem
+prism volume create test-volume  # Should create EFS filesystem
 
 # Test IAM permissions (if you have them)
-# CloudWorkstation will automatically create instance profile on first launch
-cws launch ubuntu test-instance
-# Check logs for: "✅ Successfully created IAM instance profile 'CloudWorkstation-Instance-Profile'"
+# Prism will automatically create instance profile on first launch
+prism launch ubuntu test-instance
+# Check logs for: "✅ Successfully created IAM instance profile 'Prism-Instance-Profile'"
 ```
 
 ---
@@ -487,7 +487,7 @@ If you encounter permission issues:
 1. **Check AWS IAM Policy Simulator**: https://policysim.aws.amazon.com/
 2. **Review CloudTrail logs**: See which API calls are being denied
 3. **Contact AWS Support**: For enterprise/educational account assistance
-4. **CloudWorkstation Issues**: https://github.com/anthropics/cloudworkstation/issues
+4. **Prism Issues**: https://github.com/anthropics/prism/issues
 
 ---
 
@@ -501,4 +501,4 @@ If you encounter permission issues:
 
 ---
 
-**Summary**: CloudWorkstation requires EC2, EFS, IAM, SSM, and STS permissions for full functionality. Basic usage requires only EC2 permissions, but EFS and IAM permissions enable persistent storage and autonomous features. Users should create a dedicated IAM user with the CloudWorkstation policy for secure access.
+**Summary**: Prism requires EC2, EFS, IAM, SSM, and STS permissions for full functionality. Basic usage requires only EC2 permissions, but EFS and IAM permissions enable persistent storage and autonomous features. Users should create a dedicated IAM user with the Prism policy for secure access.

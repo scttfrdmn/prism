@@ -4,9 +4,9 @@
 
 ## ⚠️ COMPLIANCE DISCLAIMER
 
-**CloudWorkStation provides technical security controls but DOES NOT guarantee compliance with any regulatory framework.**
+**Prism provides technical security controls but DOES NOT guarantee compliance with any regulatory framework.**
 
-Use of CloudWorkStation does not, by itself, constitute compliance with NIST 800-171, HIPAA, FISMA, GDPR, CMMC, or any other standard. This documentation does not constitute legal, regulatory, or compliance advice.
+Use of Prism does not, by itself, constitute compliance with NIST 800-171, HIPAA, FISMA, GDPR, CMMC, or any other standard. This documentation does not constitute legal, regulatory, or compliance advice.
 
 **Your institution is solely responsible for**:
 - Determining applicable compliance requirements
@@ -23,7 +23,7 @@ Use of CloudWorkStation does not, by itself, constitute compliance with NIST 800
 
 ## Overview
 
-CloudWorkstation is designed with security and compliance as foundational principles, not afterthoughts. This document outlines our security posture, compliance frameworks supported, and roadmap for institutional deployment requirements.
+Prism is designed with security and compliance as foundational principles, not afterthoughts. This document outlines our security posture, compliance frameworks supported, and roadmap for institutional deployment requirements.
 
 ## 🎯 Design Philosophy
 
@@ -108,7 +108,7 @@ CloudWorkstation is designed with security and compliance as foundational princi
 - Data encryption and secure deletion
 
 **Use Cases**:
-- University courses using CloudWorkstation
+- University courses using Prism
 - Student research projects
 - Academic program analytics
 
@@ -249,7 +249,7 @@ CloudWorkstation is designed with security and compliance as foundational princi
 **Scope**: Federal cloud service providers
 **Based On**: NIST 800-53 + FedRAMP controls
 
-**Rationale**: CloudWorkstation is primarily a client tool (not a cloud service provider), but institutions may need FedRAMP-equivalent controls.
+**Rationale**: Prism is primarily a client tool (not a cloud service provider), but institutions may need FedRAMP-equivalent controls.
 
 **Roadmap** (v1.2.0+):
 - [ ] FedRAMP Moderate baseline assessment
@@ -270,7 +270,7 @@ CloudWorkstation is designed with security and compliance as foundational princi
 - Tanium
 - Qualys
 
-**CloudWorkstation Approach**:
+**Prism Approach**:
 1. **Template-Based Deployment**: Institutions can create custom templates with required agents
    ```yaml
    name: "University IT Policy - Python ML"
@@ -284,20 +284,20 @@ CloudWorkstation is designed with security and compliance as foundational princi
 
 2. **Launch-Time Injection**: Instance launch can include institutional user-data scripts
    ```bash
-   cws launch python-ml my-research --user-data-file /path/to/security-setup.sh
+   prism launch python-ml my-research --user-data-file /path/to/security-setup.sh
    ```
 
 3. **AMI Baking**: Institutions can create custom AMIs with agents pre-installed
    ```bash
    # Custom AMI workflow (future feature)
-   cws ami create --from python-ml --with-agents crowdstrike --name python-ml-university-secured
+   prism ami create --from python-ml --with-agents crowdstrike --name python-ml-university-secured
    ```
 
 **Roadmap** (v0.7.0):
 - [ ] `--user-data-file` flag for launch command
 - [ ] Template `user_data_script` field
 - [ ] Documentation for common agent deployments
-- [ ] Validation that agents don't conflict with CloudWorkstation
+- [ ] Validation that agents don't conflict with Prism
 
 ---
 
@@ -309,11 +309,11 @@ CloudWorkstation is designed with security and compliance as foundational princi
 - Export control classification
 - Institutional data categories
 
-**CloudWorkstation Approach**:
+**Prism Approach**:
 
 **Project-Level Classification** (v0.7.0):
 ```bash
-cws project create cancer-research \
+prism project create cancer-research \
   --classification "PHI" \
   --compliance "HIPAA,NIST-800-53" \
   --require-encryption \
@@ -322,7 +322,7 @@ cws project create cancer-research \
 
 **Instance Tagging** (v0.7.0):
 ```bash
-cws launch python-ml research-workstation \
+prism launch python-ml research-workstation \
   --project cancer-research \
   --data-classification PHI \
   --tag "IRB-Protocol=2024-123" \
@@ -368,12 +368,12 @@ requirements:
 4. **IP Whitelisting**: Restricted to campus networks
 5. **Intrusion Detection**: IDS/IPS integration
 
-**CloudWorkstation Support**:
+**Prism Support**:
 
 **Current** (v0.5.x):
 ```bash
 # Private subnet deployment
-cws launch python-ml research \
+prism launch python-ml research \
   --subnet subnet-private123 \
   --no-public-ip \
   --security-group sg-institutional
@@ -385,12 +385,12 @@ ssh -J bastion.university.edu cws-research-instance
 **Enhanced** (v0.7.0):
 ```bash
 # Profile-based network policy
-cws profile create university-secure \
+prism profile create university-secure \
   --network-policy institutional-private \
   --bastion bastion.university.edu \
   --require-vpn
 
-cws launch python-ml research --profile university-secure
+prism launch python-ml research --profile university-secure
 # ↑ Automatically enforces: private subnet, bastion host, VPN check
 ```
 
@@ -412,7 +412,7 @@ cws launch python-ml research --profile university-secure
 - LDAP / Active Directory
 - Duo / MFA enforcement
 
-**CloudWorkstation Architecture**:
+**Prism Architecture**:
 
 **Current** (v0.5.x):
 - AWS IAM-based authentication
@@ -422,26 +422,26 @@ cws launch python-ml research --profile university-secure
 **Planned** (v0.6.0 - Phase 6):
 ```bash
 # SSO configuration
-cws auth configure \
+prism auth configure \
   --provider "University SAML" \
   --idp-url "https://sso.university.edu/saml" \
-  --entity-id "cloudworkstation" \
+  --entity-id "prism" \
   --mfa-required
 
 # User authentication flow
-cws login
+prism login
 # ↑ Opens browser, authenticates via university SSO, stores temporary credentials
 ```
 
 **Multi-Factor Authentication (MFA)**:
 ```bash
 # Profile-level MFA requirement
-cws profile create research-secure \
+prism profile create research-secure \
   --require-mfa \
   --mfa-device arn:aws:iam::123456789012:mfa/jane.smith
 
 # Instance access with MFA
-cws connect my-research
+prism connect my-research
 # ↑ Prompts for MFA token before establishing SSH connection
 ```
 
@@ -493,12 +493,12 @@ roles:
 **Application**:
 ```bash
 # Assign roles to users
-cws user create jane.smith@university.edu \
+prism user create jane.smith@university.edu \
   --role research-faculty \
   --department "Computer Science"
 
 # Role-based template access
-cws templates list
+prism templates list
 # ↑ Shows only templates allowed for user's role
 ```
 
@@ -513,7 +513,7 @@ cws templates list
 **Vision** (v0.8.0+):
 ```bash
 # Generate compliance report
-cws compliance report \
+prism compliance report \
   --framework "NIST 800-171" \
   --output compliance-report.pdf \
   --include-evidence
@@ -529,7 +529,7 @@ cws compliance report \
 **Evidence Collection**:
 ```bash
 # Automated evidence gathering
-cws compliance collect-evidence \
+prism compliance collect-evidence \
   --control "AC.1.001" \
   --date-range "2025-01-01,2025-12-31" \
   --output evidence/ac-1-001/
@@ -550,7 +550,7 @@ cws compliance collect-evidence \
 **Self-Assessment**:
 ```bash
 # Run security posture assessment
-cws security assess \
+prism security assess \
   --framework "NIST 800-171" \
   --profile research-prod
 
@@ -564,7 +564,7 @@ cws security assess \
 **Continuous Monitoring**:
 ```bash
 # Enable continuous compliance monitoring
-cws compliance monitor \
+prism compliance monitor \
   --framework "NIST 800-171" \
   --alert-threshold 85% \
   --notify security@university.edu
@@ -579,7 +579,7 @@ cws compliance monitor \
 **Vulnerability Scanning**:
 ```bash
 # Integrate with vulnerability scanners
-cws security scan \
+prism security scan \
   --tool "Nessus" \
   --target my-research-instance \
   --schedule weekly
@@ -664,7 +664,7 @@ cws security scan \
 
 ## 📞 Institutional Partnership
 
-**For Institutions Considering CloudWorkStation**:
+**For Institutions Considering Prism**:
 
 We're committed to supporting institutional security and compliance requirements. If your institution has specific needs not addressed in this roadmap:
 
@@ -672,7 +672,7 @@ We're committed to supporting institutional security and compliance requirements
 2. **Partnership Opportunities**: We're open to collaborating on compliance implementations
 3. **Documentation Review**: Share your security requirements for roadmap prioritization
 
-**Contact**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues) or [GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions)
+**Contact**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues) or [GitHub Discussions](https://github.com/scttfrdmn/prism/discussions)
 
 ---
 

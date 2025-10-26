@@ -26,7 +26,7 @@ During real AWS end-to-end testing, discovered a **CRITICAL P0 bug** that preven
 When launching instances with `AWS_REGION=us-west-2` (or any non-default region), the region is NOT saved in the instance state. This causes:
 
 1. ✅ Instance launches successfully in specified region
-2. ❌ Instance doesn't appear in `cws list` (queries wrong region)
+2. ❌ Instance doesn't appear in `prism list` (queries wrong region)
 3. ❌ Cannot stop/start/delete instance (CLI doesn't know which region to query)
 4. ❌ Instance is "orphaned" - exists in AWS but not manageable via CWS
 
@@ -51,7 +51,7 @@ $ AWS_REGION=us-west-2 ./bin/cws launch test-ssh cli-e2e-fresh --size S
 **List Command Fails**:
 ```bash
 $ ./bin/cws list
-No workstations found. Launch one with: cws launch <template> <name>
+No workstations found. Launch one with: prism launch <template> <name>
 ```
 **Why**: Daemon queries us-east-1 (default), but instance is in us-west-2
 
@@ -66,7 +66,7 @@ $ aws ec2 describe-instances --profile aws --region us-west-2 \
 
 The launch flow does not capture and persist the region parameter:
 
-1. User specifies: `AWS_REGION=us-west-2 cws launch ...`
+1. User specifies: `AWS_REGION=us-west-2 prism launch ...`
 2. Launch succeeds in us-west-2
 3. State is saved with `region: null`
 4. All subsequent operations (list, stop, start, delete) query daemon's default region (us-east-1)
@@ -81,10 +81,10 @@ The launch flow does not capture and persist the region parameter:
 - Forces users to manually clean up via AWS console
 
 **Affected Operations**:
-- ❌ `cws list` - Won't show instances in non-default regions
-- ❌ `cws stop <name>` - Can't find instance to stop
-- ❌ `cws start <name>` - Can't find instance to start
-- ❌ `cws delete <name>` - Can't find instance to delete
+- ❌ `prism list` - Won't show instances in non-default regions
+- ❌ `prism stop <name>` - Can't find instance to stop
+- ❌ `prism start <name>` - Can't find instance to start
+- ❌ `prism delete <name>` - Can't find instance to delete
 - ❌ GUI Instance Management - Same issues
 
 ### Files Involved
@@ -103,13 +103,13 @@ Need to investigate:
 
 1. **Template Discovery**:
    ```bash
-   $ cws templates
+   $ prism templates
    # Result: ✅ 27 templates loaded successfully
    ```
 
 2. **Instance Launch** (Architecture + IAM Fixes):
    ```bash
-   $ AWS_REGION=us-west-2 cws launch test-ssh cli-e2e-fresh --size S
+   $ AWS_REGION=us-west-2 prism launch test-ssh cli-e2e-fresh --size S
    # Result: ✅ Instance launched successfully
    # Verification: ✅ No architecture mismatch errors
    # Verification: ✅ No IAM profile blocking errors
@@ -125,7 +125,7 @@ Need to investigate:
 
 1. **Instance List**:
    ```bash
-   $ cws list
+   $ prism list
    # Result: ❌ No instances shown (orphaned in wrong region)
    ```
 

@@ -1,6 +1,6 @@
 # AWS Integration Testing Guide
 
-This document describes CloudWorkstation's AWS integration testing framework, which allows comprehensive testing against real AWS resources using the 'aws' profile.
+This document describes Prism's AWS integration testing framework, which allows comprehensive testing against real AWS resources using the 'aws' profile.
 
 ## Overview
 
@@ -17,7 +17,7 @@ The AWS integration testing framework provides:
 
 1. **AWS Account**: Test account with appropriate permissions
 2. **AWS Profile**: Configure 'aws' profile with test account credentials
-3. **CloudWorkstation Daemon**: Running locally on port 8947
+3. **Prism Daemon**: Running locally on port 8947
 4. **Go Build Tags**: Tests use `aws_integration` build tag
 
 ### Basic Usage
@@ -121,7 +121,7 @@ go test -v ./internal/cli/ -run TestAWS
 ## Safety Features
 
 ### Automatic Resource Cleanup
-- All test resources tagged with `CreatedBy=CloudWorkstationIntegrationTest`
+- All test resources tagged with `CreatedBy=PrismIntegrationTest`
 - Unique naming: `cwstest-[testid]-[resource]-[timestamp]`
 - Automatic cleanup in test teardown (even on failure)
 - Orphaned resource detection and cleanup
@@ -213,7 +213,7 @@ aws configure list --profile aws
 aws sts get-caller-identity --profile aws
 ```
 
-**"CloudWorkstation daemon not running"**
+**"Prism daemon not running"**
 ```bash
 # Start the daemon
 ./bin/cwsd &
@@ -249,7 +249,7 @@ export AWS_LOG_LEVEL=debug
 
 ```bash
 # Check for orphaned resources
-aws ec2 describe-instances --filters "Name=tag:CreatedBy,Values=CloudWorkstationIntegrationTest" --profile aws
+aws ec2 describe-instances --filters "Name=tag:CreatedBy,Values=PrismIntegrationTest" --profile aws
 aws efs describe-file-systems --profile aws | grep cwstest
 ```
 
@@ -324,5 +324,5 @@ For issues with AWS integration testing:
 1. Check this documentation
 2. Review test logs and error messages
 3. Verify AWS account setup and permissions
-4. Check CloudWorkstation daemon status
+4. Check Prism daemon status
 5. Open GitHub issue with full error details

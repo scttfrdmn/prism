@@ -1,10 +1,10 @@
-# CloudWorkstation Idle Detection System
+# Prism Idle Detection System
 
-This document describes the idle detection system introduced in CloudWorkstation 0.3.0, designed to optimize costs while respecting research workflows.
+This document describes the idle detection system introduced in Prism 0.3.0, designed to optimize costs while respecting research workflows.
 
 ## Overview
 
-The idle detection system monitors resource usage on CloudWorkstation instances and automatically takes action when an instance is determined to be idle. This system is separate from budget management and focuses exclusively on detecting when instances are not actively being used.
+The idle detection system monitors resource usage on Prism instances and automatically takes action when an instance is determined to be idle. This system is separate from budget management and focuses exclusively on detecting when instances are not actively being used.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ The idle detection system monitors resource usage on CloudWorkstation instances 
 - Domain-specific profiles for different research workloads
 - User-configurable thresholds and actions
 - Transparent notification system
-- Integration with CloudWorkstation's cost management
+- Integration with Prism's cost management
 
 ## Idle Detection Metrics
 
@@ -34,7 +34,7 @@ Idle detection can be configured globally, per-domain, or per-instance:
 
 ### Global Configuration
 
-The global configuration is stored in `~/.cloudworkstation/idle.json`:
+The global configuration is stored in `~/.prism/idle.json`:
 
 ```json
 {
@@ -93,12 +93,12 @@ idle_detection:
 When launching an instance, idle detection can be configured:
 
 ```bash
-cws launch machine-learning my-instance --idle-profile gpu --idle-minutes 15
+prism launch machine-learning my-instance --idle-profile gpu --idle-minutes 15
 ```
 
 ## Idle Detection Profiles
 
-CloudWorkstation provides several pre-configured profiles for different research workloads:
+Prism provides several pre-configured profiles for different research workloads:
 
 ### Standard Profile
 
@@ -146,7 +146,7 @@ For data processing workloads:
 
 ## Domain-Specific Settings
 
-CloudWorkstation 0.3.0 includes domain-specific idle detection settings for optimal cost management:
+Prism 0.3.0 includes domain-specific idle detection settings for optimal cost management:
 
 ### Machine Learning / AI
 
@@ -192,11 +192,11 @@ When an instance is determined to be idle, one of the following actions can be t
 
 ### Monitoring Agent
 
-A lightweight monitoring agent runs on each instance, collecting usage metrics and reporting them to the CloudWorkstation daemon. The agent is deployed automatically during instance launch.
+A lightweight monitoring agent runs on each instance, collecting usage metrics and reporting them to the Prism daemon. The agent is deployed automatically during instance launch.
 
 ### Daemon Integration
 
-The CloudWorkstation daemon receives metrics from the monitoring agent and determines if an instance is idle based on the configured thresholds and idle period. When an instance is determined to be idle, the daemon takes the configured action.
+The Prism daemon receives metrics from the monitoring agent and determines if an instance is idle based on the configured thresholds and idle period. When an instance is determined to be idle, the daemon takes the configured action.
 
 ### CloudSnooze Integration
 
@@ -208,30 +208,30 @@ The idle detection system is inspired by and compatible with the CloudSnooze pro
 
 ```bash
 # Enable/disable idle detection globally
-cws idle enable
-cws idle disable
+prism idle enable
+prism idle disable
 
 # Configure global settings
-cws idle config --default-profile standard
+prism idle config --default-profile standard
 
 # Set profile for a domain
-cws idle domain machine-learning --profile gpu
+prism idle domain machine-learning --profile gpu
 
 # Override settings for an instance
-cws idle instance my-instance --profile custom --cpu-threshold 15 --idle-minutes 45
+prism idle instance my-instance --profile custom --cpu-threshold 15 --idle-minutes 45
 ```
 
 ### View Idle Status
 
 ```bash
 # View global idle detection status
-cws idle status
+prism idle status
 
 # View idle status for an instance
-cws idle status my-instance
+prism idle status my-instance
 
 # View idle history for an instance
-cws idle history my-instance
+prism idle history my-instance
 ```
 
 ## Best Practices
@@ -259,13 +259,13 @@ cws idle history my-instance
 3. **Metrics not reported**: No metrics visible in idle status
    - Check network connectivity between instance and daemon
    - Verify monitoring agent is running with `ps aux | grep idle-monitor`
-   - Check agent logs in `/var/log/cloudworkstation/idle-monitor.log`
+   - Check agent logs in `/var/log/prism/idle-monitor.log`
 
 ### Log Files
 
-- Daemon logs: `~/.cloudworkstation/logs/daemon.log`
-- Agent logs: `/var/log/cloudworkstation/idle-monitor.log`
-- Action history: `~/.cloudworkstation/logs/idle-actions.log`
+- Daemon logs: `~/.prism/logs/daemon.log`
+- Agent logs: `/var/log/prism/idle-monitor.log`
+- Action history: `~/.prism/logs/idle-actions.log`
 
 ## Security Considerations
 

@@ -26,7 +26,7 @@ Running the validation script against real AWS immediately uncovered critical ar
 The AMI selection logic uses the **LOCAL machine's architecture** (`runtime.GOARCH`) to select which AMI to use, but then pairs it with the template's default instance type which may have a different architecture.
 
 **Concrete Example**:
-- User launches CloudWorkstation CLI from ARM64 MacBook
+- User launches Prism CLI from ARM64 MacBook
 - Code detects local architecture: ARM64
 - Code selects ARM64 Ubuntu AMI: `ami-09f6c9efbf93542be` (us-west-2)
 - Template specifies instance type: `t3.micro` (x86_64 only)
@@ -34,7 +34,7 @@ The AMI selection logic uses the **LOCAL machine's architecture** (`runtime.GOAR
 
 ### Root Cause
 
-**File**: `/Users/scttfrdmn/src/cloudworkstation/pkg/aws/manager.go`
+**File**: `/Users/scttfrdmn/src/prism/pkg/aws/manager.go`
 
 **Line 1392-1401** - `getLocalArchitecture()` function:
 ```go
@@ -82,10 +82,10 @@ of the specified AMI. Specify an instance type and an AMI that have matching arc
 
 ### Reproduction
 
-1. Run CloudWorkstation on ARM64 Mac (most academic researchers)
+1. Run Prism on ARM64 Mac (most academic researchers)
 2. Attempt to launch ANY template with default settings:
    ```bash
-   cws launch test-ssh my-instance --size S
+   prism launch test-ssh my-instance --size S
    ```
 3. Observe immediate failure with architecture mismatch error
 

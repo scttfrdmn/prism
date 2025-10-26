@@ -95,7 +95,7 @@ the architecture 'arm64' of the specified AMI.
 
 ### After Architecture Fix Only
 ```
-Error: Value (CloudWorkstation-Instance-Profile) for parameter
+Error: Value (Prism-Instance-Profile) for parameter
 iamInstanceProfile.name is invalid.
 ```
 
@@ -115,7 +115,7 @@ iamInstanceProfile.name is invalid.
 
 ## Design Principles Achieved
 
-The fixes now properly embody all CloudWorkstation design principles:
+The fixes now properly embody all Prism design principles:
 
 ✅ **Default to Success**
 - ARM64 Mac users succeed by default
@@ -224,7 +224,7 @@ $ ./bin/cws delete my-first-instance # Clean up
 2. Create `createIAMInstanceProfile()` method
 3. Show educational prompt explaining benefits:
    ```
-   💡 CloudWorkstation can create an IAM instance profile for you
+   💡 Prism can create an IAM instance profile for you
 
    Benefits:
    - Enable AWS Systems Manager (SSM) access
@@ -307,7 +307,7 @@ $ ./bin/cws delete my-first-instance # Clean up
 **Minimum**:
 - AWS account with credentials configured
 - AWS CLI installed (for credential setup)
-- CloudWorkstation binary
+- Prism binary
 
 **NOT Required** (Thanks to fixes!):
 - AWS IAM knowledge
@@ -324,11 +324,11 @@ AWS Access Key ID: [their key]
 AWS Secret Access Key: [their secret]
 Default region: us-west-2
 
-# 2. Install CloudWorkstation
+# 2. Install Prism
 $ ./install.sh  # or download binary
 
 # 3. Launch first instance
-$ cws launch test-ssh my-project --size S
+$ prism launch test-ssh my-project --size S
 
 # Result: Just works! ✅
 ```
@@ -469,7 +469,7 @@ Now that fixes are complete, we should:
 
 ## Conclusion
 
-All critical blocking issues have been **successfully resolved and verified**. CloudWorkstation is now ready for real tester release with:
+All critical blocking issues have been **successfully resolved and verified**. Prism is now ready for real tester release with:
 
 - ✅ Universal architecture support (works on any machine)
 - ✅ Painless onboarding (no IAM expertise required)

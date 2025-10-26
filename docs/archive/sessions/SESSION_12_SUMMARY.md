@@ -81,12 +81,12 @@ func (m *MockClient) GetCostTrends(ctx context.Context, projectID, period string
 **Three Separate Mock Client Systems**:
 
 1. **Main Mock Client** (`/pkg/api/mock/mock_client.go`)
-   - Implements: `client.CloudWorkstationAPI` interface
+   - Implements: `client.PrismAPI` interface
    - Purpose: Demos, integration tests, development
    - Methods: 120+ methods
 
 2. **CLI Mock Client** (`/internal/cli/mock_api_client.go`)
-   - Implements: `client.CloudWorkstationAPI` interface
+   - Implements: `client.PrismAPI` interface
    - Purpose: CLI unit testing with call tracking
    - Methods: 80+ methods with detailed tracking
 

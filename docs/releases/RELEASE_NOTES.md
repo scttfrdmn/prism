@@ -1,10 +1,10 @@
-# CloudWorkstation 0.1.0-alpha Release Notes
+# Prism 0.1.0-alpha Release Notes
 
-We're excited to announce the first alpha release of CloudWorkstation, a command-line tool that allows academic researchers to launch pre-configured cloud workstations in seconds.
+We're excited to announce the first alpha release of Prism, a command-line tool that allows academic researchers to launch pre-configured cloud workstations in seconds.
 
 ## Overview
 
-CloudWorkstation 0.1.0-alpha is our first public release. It features a distributed architecture with a REST API backend daemon and a lightweight CLI client, implementing our core design principles:
+Prism 0.1.0-alpha is our first public release. It features a distributed architecture with a REST API backend daemon and a lightweight CLI client, implementing our core design principles:
 
 1. **Default to Success**: Every template works out of the box
 2. **Optimize by Default**: Automatic selection of instance types
@@ -38,10 +38,10 @@ CloudWorkstation 0.1.0-alpha is our first public release. It features a distribu
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/cloudworkstation.git
+git clone https://github.com/username/prism.git
 
 # Build the binaries
-cd cloudworkstation
+cd prism
 make build
 
 # Copy binaries to path
@@ -52,25 +52,25 @@ cp bin/cws bin/cwsd /usr/local/bin/
 
 ```bash
 # Start the daemon
-cws daemon start
+prism daemon start
 
 # List available templates
-cws templates
+prism templates
 
 # Launch a new workstation
-cws launch python-research my-project
+prism launch python-research my-project
 
 # List running instances
-cws list
+prism list
 
 # Get connection information
-cws connect my-project
+prism connect my-project
 
 # Stop an instance
-cws stop my-project
+prism stop my-project
 
 # Delete an instance
-cws delete my-project
+prism delete my-project
 ```
 
 ## What's Next

@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document captures future enhancement opportunities for the CloudWorkstation GUI identified during Sessions 10-12 implementation. These are organized by priority and impact to guide future development.
+This document captures future enhancement opportunities for the Prism GUI identified during Sessions 10-12 implementation. These are organized by priority and impact to guide future development.
 
 ---
 

@@ -1,14 +1,14 @@
-# CloudWorkstation School Pilot Quick Start Guide
+# Prism School Pilot Quick Start Guide
 
 *Last Updated: October 2025 • Version 0.5.5*
 
 ## 🎯 For Educational Institutions & School Pilots
 
-This guide is specifically designed for educational institutions evaluating CloudWorkstation for their computing curriculum, research programs, and student projects. CloudWorkstation enables schools to provide students with professional-grade development environments without the complexity of traditional IT infrastructure.
+This guide is specifically designed for educational institutions evaluating Prism for their computing curriculum, research programs, and student projects. Prism enables schools to provide students with professional-grade development environments without the complexity of traditional IT infrastructure.
 
-## 📚 What is CloudWorkstation?
+## 📚 What is Prism?
 
-CloudWorkstation is an academic research platform that provides pre-configured cloud environments for students and educators. Access professional development tools, research environments, and collaborative workspaces through a simple interface - no IT expertise required.
+Prism is an academic research platform that provides pre-configured cloud environments for students and educators. Access professional development tools, research environments, and collaborative workspaces through a simple interface - no IT expertise required.
 
 **Perfect for:**
 - Computer science courses and labs
@@ -19,26 +19,26 @@ CloudWorkstation is an academic research platform that provides pre-configured c
 
 ## ⚡ 5-Minute School Setup
 
-### Step 1: Install CloudWorkstation
+### Step 1: Install Prism
 
 **For IT Administrators (Recommended)**
 ```bash
 # Install via Homebrew (macOS/Linux)
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 
 # Or download directly
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-arm64.tar.gz
+curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-arm64.tar.gz
 ```
 
 **For Individual Educators**
-- Download from [GitHub Releases](https://github.com/scttfrdmn/cloudworkstation/releases)
+- Download from [GitHub Releases](https://github.com/scttfrdmn/prism/releases)
 - Choose your platform: macOS, Linux, or Windows
 - Extract and run - no complex installation required
 
 ### Step 2: AWS Account Setup (One-time per School)
 
-CloudWorkstation uses AWS for cloud resources. Most schools can use AWS Educate for credits:
+Prism uses AWS for cloud resources. Most schools can use AWS Educate for credits:
 
 1. **Get AWS Account**:
    - Apply for [AWS Educate](https://aws.amazon.com/education/awseducate/) (free credits for schools)
@@ -69,21 +69,21 @@ cws-gui
 **For Command Line Users**:
 ```bash
 # View available templates
-cws templates
+prism templates
 
 # Launch a Python environment for data science
-cws launch "Python Machine Learning" my-first-project
+prism launch "Python Machine Learning" my-first-project
 
 # Launch an R environment for statistics
-cws launch "R Research Environment" statistics-project
+prism launch "R Research Environment" statistics-project
 
 # Launch basic Ubuntu for general computing
-cws launch "Basic Ubuntu (APT)" cs-assignment
+prism launch "Basic Ubuntu (APT)" cs-assignment
 ```
 
 ## 🎓 Educational Templates
 
-CloudWorkstation includes pre-configured environments designed for educational use:
+Prism includes pre-configured environments designed for educational use:
 
 ### **Python Machine Learning**
 - **Best for**: Data science courses, AI/ML projects, research
@@ -125,14 +125,14 @@ CloudWorkstation includes pre-configured environments designed for educational u
 ### Cost Optimization Tips:
 ```bash
 # Enable hibernation for classes (preserves student work)
-cws hibernate my-project  # Pause when not in use
-cws resume my-project     # Resume with all work intact
+prism hibernate my-project  # Pause when not in use
+prism resume my-project     # Resume with all work intact
 
 # Use spot instances for assignments
-cws launch "Python Machine Learning" assignment --spot
+prism launch "Python Machine Learning" assignment --spot
 
 # Set up automatic hibernation policies
-cws idle profile create classroom --idle-minutes 30 --action hibernate
+prism idle profile create classroom --idle-minutes 30 --action hibernate
 ```
 
 ## 👥 Classroom Management
@@ -140,14 +140,14 @@ cws idle profile create classroom --idle-minutes 30 --action hibernate
 ### Multi-Student Support
 ```bash
 # Launch environments for entire class
-cws launch "Python Machine Learning" alice-ml-project
-cws launch "Python Machine Learning" bob-ml-project
-cws launch "Python Machine Learning" carol-ml-project
+prism launch "Python Machine Learning" alice-ml-project
+prism launch "Python Machine Learning" bob-ml-project
+prism launch "Python Machine Learning" carol-ml-project
 
 # Share files between students using EFS volumes
-cws volume create class-shared-data
-cws volume mount class-shared-data alice-ml-project
-cws volume mount class-shared-data bob-ml-project
+prism volume create class-shared-data
+prism volume mount class-shared-data alice-ml-project
+prism volume mount class-shared-data bob-ml-project
 ```
 
 ### Student Collaboration
@@ -160,7 +160,7 @@ cws volume mount class-shared-data bob-ml-project
 ### **Computer Science Course**
 ```bash
 # Launch basic Ubuntu environment for each student
-cws launch "Basic Ubuntu (APT)" student-cs101
+prism launch "Basic Ubuntu (APT)" student-cs101
 
 # Students get full Linux environment with:
 # - GCC compiler, Python, Node.js, Git
@@ -172,7 +172,7 @@ cws launch "Basic Ubuntu (APT)" student-cs101
 ### **Data Science Class**
 ```bash
 # Launch Python ML environment with Jupyter
-cws launch "Python Machine Learning" student-datascience
+prism launch "Python Machine Learning" student-datascience
 
 # Students access via web browser:
 # - Jupyter notebooks at http://[instance-ip]:8888
@@ -184,13 +184,13 @@ cws launch "Python Machine Learning" student-datascience
 ### **Research Project**
 ```bash
 # Create shared research environment
-cws volume create research-project-data
-cws launch "R Research Environment" professor-research
-cws launch "Python Machine Learning" student-researcher
+prism volume create research-project-data
+prism launch "R Research Environment" professor-research
+prism launch "Python Machine Learning" student-researcher
 
 # Mount shared storage for collaboration
-cws volume mount research-project-data professor-research
-cws volume mount research-project-data student-researcher
+prism volume mount research-project-data professor-research
+prism volume mount research-project-data student-researcher
 
 # Both can access shared data and collaborate in real-time
 ```
@@ -220,10 +220,10 @@ cws volume mount research-project-data student-researcher
 ### **Automated Management**
 ```bash
 # Set up class-wide hibernation policies
-cws idle profile create night-shutdown --idle-minutes 60 --action hibernate
+prism idle profile create night-shutdown --idle-minutes 60 --action hibernate
 
 # Apply to all student environments
-cws idle bulk-apply night-shutdown cs101-*
+prism idle bulk-apply night-shutdown cs101-*
 
 # Automatic cost optimization without losing student work
 ```
@@ -236,7 +236,7 @@ cws idle bulk-apply night-shutdown cs101-*
 ## 📋 Pilot Program Checklist
 
 ### Week 1: Setup & Testing
-- [ ] Install CloudWorkstation on faculty machine
+- [ ] Install Prism on faculty machine
 - [ ] Configure AWS account with educational credits
 - [ ] Test launch of all relevant templates
 - [ ] Verify cost monitoring and hibernation
@@ -270,36 +270,36 @@ cws idle bulk-apply night-shutdown cs101-*
 **"Cannot connect to environment"**
 ```bash
 # Check if environment is running
-cws list
-cws status my-project
+prism list
+prism status my-project
 
 # Restart if needed
-cws start my-project
+prism start my-project
 ```
 
 **"High costs"**
 ```bash
 # Check running instances
-cws list
+prism list
 
 # Hibernate unused environments
-cws hibernate unused-project
+prism hibernate unused-project
 
 # Set up automatic hibernation
-cws idle profile create cost-saver --idle-minutes 15 --action hibernate
+prism idle profile create cost-saver --idle-minutes 15 --action hibernate
 ```
 
 **"Student cannot access Jupyter/RStudio"**
 ```bash
 # Get connection info
-cws connect my-ml-project
+prism connect my-ml-project
 # Follow the provided URL and SSH instructions
 ```
 
 ### Getting Help
-- **Documentation**: [Full documentation](https://github.com/scttfrdmn/cloudworkstation/docs)
-- **GitHub Issues**: [Report problems](https://github.com/scttfrdmn/cloudworkstation/issues)
-- **Educational Support**: Email support@cloudworkstation.dev with "SCHOOL PILOT" in subject
+- **Documentation**: [Full documentation](https://github.com/scttfrdmn/prism/docs)
+- **GitHub Issues**: [Report problems](https://github.com/scttfrdmn/prism/issues)
+- **Educational Support**: Email support@prism.dev with "SCHOOL PILOT" in subject
 - **Community Forum**: Join educator discussions (coming soon)
 
 ## 📈 Success Metrics
@@ -334,13 +334,13 @@ Track these metrics during your pilot:
 
 ### Successful Pilot Outcomes
 1. **Expand to More Courses**: Roll out to additional CS, data science, and research courses
-2. **Faculty Training**: Train more educators on CloudWorkstation management
+2. **Faculty Training**: Train more educators on Prism management
 3. **Student Onboarding**: Create student-facing documentation and tutorials
 4. **Integration Planning**: Connect with school's LMS and authentication systems
 
 ### Institutional Adoption
 1. **IT Policy Integration**: Align with school's cloud and security policies
-2. **Budget Planning**: Include CloudWorkstation in annual IT budget planning
+2. **Budget Planning**: Include Prism in annual IT budget planning
 3. **Curriculum Integration**: Update course syllabi to leverage cloud environments
 4. **Research Enhancement**: Expand to faculty research projects and collaborations
 
@@ -350,7 +350,7 @@ Track these metrics during your pilot:
 
 **Ready to start your pilot?** Contact our education team:
 
-- **Email**: education@cloudworkstation.dev
+- **Email**: education@prism.dev
 - **Subject**: School Pilot Program - [Your Institution]
 - **Include**: School name, course details, expected student count, timeline
 
@@ -362,4 +362,4 @@ We provide:
 - ✅ Student onboarding materials
 - ✅ Success metrics and reporting
 
-**Transform your computing education with CloudWorkstation - professional development environments for every student, managed with simplicity.**
+**Transform your computing education with Prism - professional development environments for every student, managed with simplicity.**

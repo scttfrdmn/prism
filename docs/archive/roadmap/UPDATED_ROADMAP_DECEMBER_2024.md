@@ -1,4 +1,4 @@
-# CloudWorkstation Roadmap Update - December 2024
+# Prism Roadmap Update - December 2024
 
 ## Major Timeline Revision: Cloudscape Migration Priority
 
@@ -177,6 +177,6 @@ The Cloudscape migration transforms our timeline from "building foundational UI"
 3. **Increases Institutional Confidence**: AWS-quality interface builds trust
 4. **Enables Feature Focus**: Team can concentrate on research computing innovation
 
-**Bottom Line**: CloudWorkstation will be school-deployment ready 3-6 months ahead of original timeline, with professional interface quality that matches the sophistication of our research computing capabilities.
+**Bottom Line**: Prism will be school-deployment ready 3-6 months ahead of original timeline, with professional interface quality that matches the sophistication of our research computing capabilities.
 
-The roadmap update positions CloudWorkstation to begin school partnerships in early 2025 rather than mid-2025, fundamentally accelerating our path to becoming the standard research computing platform for academic institutions.
+The roadmap update positions Prism to begin school partnerships in early 2025 rather than mid-2025, fundamentally accelerating our path to becoming the standard research computing platform for academic institutions.

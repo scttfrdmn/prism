@@ -1,10 +1,10 @@
-# CloudWorkstation Templates - Simple Guide
+# Prism Templates - Simple Guide
 
-![Template Illustration](https://via.placeholder.com/800x200?text=CloudWorkstation+Templates)
+![Template Illustration](https://via.placeholder.com/800x200?text=Prism+Templates)
 
 ## What are Templates?
 
-Templates are like recipes for creating cloud computers. Each template tells CloudWorkstation exactly what software to install and how to set everything up.
+Templates are like recipes for creating cloud computers. Each template tells Prism exactly what software to install and how to set everything up.
 
 Think of templates like cookie cutters - they help make sure your cloud computer has exactly the right shape and ingredients for your research!
 
@@ -19,7 +19,7 @@ Every template has:
 
 ## Available Templates
 
-CloudWorkstation comes with several ready-made templates:
+Prism comes with several ready-made templates:
 
 - **python-research**: Python with data science tools
 - **r-research**: R with statistical packages
@@ -33,10 +33,10 @@ CloudWorkstation comes with several ready-made templates:
 Using a template is super easy:
 
 ```bash
-cws launch python-research my-project
+prism launch python-research my-project
 ```
 
-This tells CloudWorkstation to:
+This tells Prism to:
 1. Find the python-research template
 2. Create a new cloud computer using that template
 3. Name your new computer "my-project"
@@ -45,12 +45,12 @@ This tells CloudWorkstation to:
 
 To see all available templates:
 ```bash
-cws templates
+prism templates
 ```
 
 To learn more about a specific template:
 ```bash
-cws template info python-research
+prism template info python-research
 ```
 
 ## What's Inside a Template?
@@ -90,8 +90,8 @@ If you want to create your own template:
 
 1. Create a new YAML file in the `/templates` directory
 2. Follow the format shown above
-3. Test your template with `cws ami validate my-template.yaml`
-4. Build it with `cws ami build my-template.yaml`
+3. Test your template with `prism ami validate my-template.yaml`
+4. Build it with `prism ami build my-template.yaml`
 
 ## Template Structure Explained
 
@@ -130,7 +130,7 @@ Some templates support automatic research user creation. These templates let you
 
 ```bash
 # Launch with automatic research user creation
-cws launch python-ml-research my-project --research-user alice
+prism launch python-ml-research my-project --research-user alice
 # ✅ Creates instance + research user 'alice' + SSH keys + EFS home directory
 ```
 

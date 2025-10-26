@@ -1,6 +1,6 @@
 # Batch Invitation System Performance Testing Guide
 
-This document provides information about the performance testing framework for the CloudWorkstation batch invitation system and how to interpret the results.
+This document provides information about the performance testing framework for the Prism batch invitation system and how to interpret the results.
 
 ## Overview
 
@@ -167,7 +167,7 @@ Based on benchmark results, consider these optimizations:
 
 Adjust these values in configuration:
 ```bash
-cws profiles invitations config set defaultConcurrency 8
+prism profiles invitations config set defaultConcurrency 8
 ```
 
 ### Memory Optimization

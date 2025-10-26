@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the design for bidirectional directory synchronization between local systems and CloudWorkstation instances, providing seamless file access similar to Google Drive, Dropbox, or OneDrive, but optimized for research workflows.
+This document outlines the design for bidirectional directory synchronization between local systems and Prism instances, providing seamless file access similar to Google Drive, Dropbox, or OneDrive, but optimized for research workflows.
 
 ## Problem Statement
 
@@ -21,7 +21,7 @@ Researchers need seamless file access between their local development environmen
 
 **Option A: Agent-Based Sync**
 ```
-Local System                    CloudWorkstation Instance
+Local System                    Prism Instance
 ┌─────────────────┐           ┌─────────────────────────┐
 │   cws-sync      │  ◄────►   │    cws-sync-agent      │
 │   (daemon)      │   HTTPS   │    (daemon)            │
@@ -35,7 +35,7 @@ Local System                    CloudWorkstation Instance
 
 **Option B: EFS-Backed Sync (Recommended)**
 ```
-Local System                    EFS Volume                CloudWorkstation Instance
+Local System                    EFS Volume                Prism Instance
 ┌─────────────────┐           ┌─────────────┐           ┌─────────────────────────┐
 │   cws-sync      │  ◄────►   │    EFS      │  ◄────►   │    EFS Mount            │
 │   (daemon)      │   API     │   Storage   │   NFS     │    /mnt/research-sync/  │
@@ -89,7 +89,7 @@ const (
 
 **Intelligent File Filtering**:
 ```yaml
-# ~/.cloudworkstation/sync-rules.yml
+# ~/.prism/sync-rules.yml
 default_rules:
   include_patterns:
     - "*.py"
@@ -149,25 +149,25 @@ research_rules:
 **Setup and Configuration**:
 ```bash
 # Initialize sync for a directory
-cws sync init ~/research/project1
+prism sync init ~/research/project1
 ✅ Created sync configuration
 📂 Sync directory: ~/research/project1
 🔗 EFS Volume: fs-1234567890abcdef0
 ⚙️  Sync mode: bidirectional
 
-# Add CloudWorkstation instances to sync
-cws sync add-instance project1-sync my-ml-instance
-cws sync add-instance project1-sync my-analysis-instance
+# Add Prism instances to sync
+prism sync add-instance project1-sync my-ml-instance
+prism sync add-instance project1-sync my-analysis-instance
 
 # Start sync daemon
-cws sync start project1-sync
+prism sync start project1-sync
 🔄 Starting directory sync...
 📡 Monitoring local changes: ~/research/project1
 🔗 Connected to EFS: fs-1234567890abcdef0
 ✅ Sync active - 2 instances connected
 
 # Monitor sync status
-cws sync status project1-sync
+prism sync status project1-sync
 📊 Sync Status: project1-sync
 Local: ~/research/project1 (1,247 files, 2.3GB)
 Remote: fs-1234567890abcdef0 (1,247 files, 2.3GB)
@@ -186,24 +186,24 @@ Recent Activity:
 **Advanced Sync Management**:
 ```bash
 # Pause/resume sync
-cws sync pause project1-sync
-cws sync resume project1-sync
+prism sync pause project1-sync
+prism sync resume project1-sync
 
 # Force sync (resolve conflicts)
-cws sync force-sync project1-sync --direction up
-cws sync force-sync project1-sync --direction down
+prism sync force-sync project1-sync --direction up
+prism sync force-sync project1-sync --direction down
 
 # Show sync conflicts
-cws sync conflicts project1-sync
+prism sync conflicts project1-sync
 ⚠️  3 conflicts detected:
   📄 analysis.py (modified locally and remotely)
   📄 config.yml (modified locally and remotely)
   📄 data.csv (deleted locally, modified remotely)
 
 # Resolve conflicts
-cws sync resolve project1-sync analysis.py --keep local
-cws sync resolve project1-sync config.yml --keep remote
-cws sync resolve project1-sync data.csv --keep remote
+prism sync resolve project1-sync analysis.py --keep local
+prism sync resolve project1-sync config.yml --keep remote
+prism sync resolve project1-sync data.csv --keep remote
 ```
 
 ### 5. Real-Time Sync Implementation
@@ -334,12 +334,12 @@ conflict_resolution:
 - **Lazy Loading**: Download files on-demand when accessed
 - **Cleanup**: Automatically remove old versions and temporary files
 
-### 8. Integration with CloudWorkstation
+### 8. Integration with Prism
 
 **Instance Launch Integration**:
 ```bash
 # Launch instance with auto-sync
-cws launch python-ml my-research --sync ~/research/current-project
+prism launch python-ml my-research --sync ~/research/current-project
 🚀 Launching instance...
 📂 Setting up directory sync...
    EFS Volume: fs-1234567890abcdef0 created
@@ -437,4 +437,4 @@ user_data_additions: |
 - Data integrity verification
 - Comprehensive backup and recovery
 
-This directory sync system will provide researchers with the seamless file access they expect from modern cloud storage while being optimized for research workflows and integrated with CloudWorkstation's existing infrastructure.
+This directory sync system will provide researchers with the seamless file access they expect from modern cloud storage while being optimized for research workflows and integrated with Prism's existing infrastructure.

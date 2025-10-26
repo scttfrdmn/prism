@@ -1,10 +1,10 @@
-# CloudWorkstation Service Startup Integration
+# Prism Service Startup Integration
 
-This document describes the comprehensive system startup integration for CloudWorkstation daemon across different installation methods and operating systems.
+This document describes the comprehensive system startup integration for Prism daemon across different installation methods and operating systems.
 
 ## Overview
 
-CloudWorkstation provides automatic daemon startup on system boot through platform-specific service management systems:
+Prism provides automatic daemon startup on system boot through platform-specific service management systems:
 
 - **macOS**: launchd services (user and system mode)
 - **Linux**: systemd services with security hardening
@@ -15,12 +15,12 @@ CloudWorkstation provides automatic daemon startup on system boot through platfo
 ### macOS (launchd)
 
 **Service Files:**
-- `scripts/com.cloudworkstation.daemon.plist` - launchd plist template
+- `scripts/com.prism.daemon.plist` - launchd plist template
 - `scripts/macos-service-manager.sh` - Complete service management
 - `scripts/macos-dmg-postinstall.sh` - DMG installer integration
 
 **Installation Methods:**
-1. **Homebrew**: `brew services start cloudworkstation`
+1. **Homebrew**: `brew services start prism`
 2. **Manual**: `./scripts/macos-service-manager.sh install`
 3. **DMG**: Automatic via post-install script
 
@@ -54,15 +54,15 @@ sudo systemctl start cwsd
 ```
 
 **Security Features:**
-- Dedicated `cloudworkstation` user
+- Dedicated `prism` user
 - Restricted file system access
 - Security hardening (NoNewPrivileges, ProtectSystem, etc.)
 - Resource limits and process constraints
 
 **Service Configuration:**
-- Configuration: `/etc/cloudworkstation/`
-- Data directory: `/var/lib/cloudworkstation/`
-- Logs: `/var/log/cloudworkstation/` and systemd journal
+- Configuration: `/etc/prism/`
+- Data directory: `/var/lib/prism/`
+- Logs: `/var/log/prism/` and systemd journal
 
 ### Windows (Service Manager)
 
@@ -121,16 +121,16 @@ The Homebrew formula includes full service integration:
 service do
   run [opt_bin/"cwsd"]
   keep_alive true
-  log_path var/"log/cloudworkstation/cwsd.log"
-  error_log_path var/"log/cloudworkstation/cwsd.log"
+  log_path var/"log/prism/cwsd.log"
+  error_log_path var/"log/prism/cwsd.log"
   working_dir HOMEBREW_PREFIX
 end
 ```
 
 **Usage:**
 ```bash
-brew install cloudworkstation
-brew services start cloudworkstation  # Auto-startup enabled
+brew install prism
+brew services start prism  # Auto-startup enabled
 ```
 
 ### Chocolatey (Windows)
@@ -139,7 +139,7 @@ Chocolatey package includes Windows service installation:
 
 ```powershell
 # Automatic during installation
-choco install cloudworkstation
+choco install prism
 
 # Service is installed and started automatically
 ```
@@ -169,7 +169,7 @@ Each platform includes default service configuration:
 ```xml
 <key>EnvironmentVariables</key>
 <dict>
-    <key>CWS_SERVICE_MODE</key>
+    <key>PRISM_SERVICE_MODE</key>
     <string>true</string>
     <key>HOME</key>
     <string>/Users/username</string>
@@ -178,16 +178,16 @@ Each platform includes default service configuration:
 
 **Linux systemd:**
 ```ini
-Environment=CWS_SERVICE_MODE=true
-Environment=CWS_CONFIG_DIR=/etc/cloudworkstation
-Environment=CWS_STATE_DIR=/var/lib/cloudworkstation
+Environment=PRISM_SERVICE_MODE=true
+Environment=PRISM_CONFIG_DIR=/etc/prism
+Environment=PRISM_STATE_DIR=/var/lib/prism
 ```
 
 **Windows Service:**
 ```go
 cmd.Env = append(os.Environ(),
-    "CWS_SERVICE_MODE=true",
-    "CWS_LOG_PATH=C:\\ProgramData\\CloudWorkstation\\Logs",
+    "PRISM_SERVICE_MODE=true",
+    "PRISM_LOG_PATH=C:\\ProgramData\\Prism\\Logs",
 )
 ```
 
@@ -216,16 +216,16 @@ All services implement security best practices:
 ### Log Locations
 
 **macOS:**
-- User mode: `~/Library/Logs/cloudworkstation/`
-- System mode: `/var/log/cloudworkstation/`
+- User mode: `~/Library/Logs/prism/`
+- System mode: `/var/log/prism/`
 
 **Linux:**
 - systemd journal: `journalctl -u cwsd`
-- Log files: `/var/log/cloudworkstation/`
+- Log files: `/var/log/prism/`
 
 **Windows:**
 - Windows Event Log (Application)
-- Log files: `%ProgramData%\CloudWorkstation\Logs\`
+- Log files: `%ProgramData%\Prism\Logs\`
 
 ### Log Management
 
@@ -236,8 +236,8 @@ All services implement security best practices:
 
 # Platform-specific
 journalctl -u cwsd -f                    # Linux
-tail -f ~/Library/Logs/cloudworkstation/ # macOS
-Get-EventLog -LogName Application -Source CloudWorkstationDaemon  # Windows
+tail -f ~/Library/Logs/prism/ # macOS
+Get-EventLog -LogName Application -Source PrismDaemon  # Windows
 ```
 
 ## Troubleshooting
@@ -252,7 +252,7 @@ Get-EventLog -LogName Application -Source CloudWorkstationDaemon  # Windows
 
 **Permission Issues:**
 - macOS: Check user permissions and keychain access
-- Linux: Verify `cloudworkstation` user exists
+- Linux: Verify `prism` user exists
 - Windows: Ensure Administrator privileges for service management
 
 **Configuration Issues:**
@@ -266,8 +266,8 @@ If automated installation fails, services can be managed manually:
 
 **macOS:**
 ```bash
-launchctl load ~/Library/LaunchAgents/com.cloudworkstation.daemon.plist
-launchctl start com.cloudworkstation.daemon
+launchctl load ~/Library/LaunchAgents/com.prism.daemon.plist
+launchctl start com.prism.daemon
 ```
 
 **Linux:**
@@ -278,8 +278,8 @@ sudo systemctl start cwsd
 
 **Windows:**
 ```powershell
-sc create CloudWorkstationDaemon binPath="C:\path\to\cloudworkstation-service.exe"
-sc start CloudWorkstationDaemon
+sc create PrismDaemon binPath="C:\path\to\prism-service.exe"
+sc start PrismDaemon
 ```
 
 ## Development and Testing
@@ -325,4 +325,4 @@ Planned integration with additional package managers:
 
 ## Conclusion
 
-CloudWorkstation provides comprehensive system startup integration across all supported platforms, ensuring that the daemon starts automatically on system boot while maintaining security best practices and providing robust management tools for different installation methods.
+Prism provides comprehensive system startup integration across all supported platforms, ensuring that the daemon starts automatically on system boot while maintaining security best practices and providing robust management tools for different installation methods.

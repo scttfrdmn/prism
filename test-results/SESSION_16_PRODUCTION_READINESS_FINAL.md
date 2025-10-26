@@ -141,7 +141,7 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, string, bool,
     - Inheritance system functional
 
 16. ✅ **Instance Connection**
-    - `cws connect vpc-test` command
+    - `prism connect vpc-test` command
     - SSH connection established
     - System info displayed correctly
 
@@ -474,7 +474,7 @@ Asset Requests:
    Error: template not found
 
    The specified template doesn't exist. To fix this:
-   1. List available templates: cws templates
+   1. List available templates: prism templates
    2. Check template name spelling
    3. Refresh template cache
    ```
@@ -492,7 +492,7 @@ Asset Requests:
 
 5. **Connection Experience**:
    ```bash
-   $ cws connect vpc-test
+   $ prism connect vpc-test
    🔗 Connecting to vpc-test...
    Welcome to Ubuntu 22.04.5 LTS...
    System load: 0.64    Processes: 124
@@ -645,7 +645,7 @@ All identified issues have been resolved:
 
 Session 16 successfully completed comprehensive production readiness validation with real AWS testing. Fixed critical hibernation region bug (P2), verified template installation accuracy (100% for test-ssh), tested GUI and fixed layout issue, and confirmed daemon robustness.
 
-**CloudWorkstation v0.5.1 has passed all critical tests and is approved for production deployment.**
+**Prism v0.5.1 has passed all critical tests and is approved for production deployment.**
 
 **Production Status**: ✅ **READY FOR REAL USER TESTING**
 

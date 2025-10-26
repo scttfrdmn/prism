@@ -15,7 +15,7 @@ The current SSH key management has several issues that need normalization:
 ### Directory Structure
 
 ```
-~/.cloudworkstation/
+~/.prism/
 ├── keys/                          # Isolated SSH key storage
 │   ├── default                    # Default key (RSA 2048)
 │   ├── default.pub
@@ -31,8 +31,8 @@ The current SSH key management has several issues that need normalization:
 | Component | Format | Example |
 |-----------|--------|---------|
 | **AWS KeyName** | `cws-<profile>-<region>` | `cws-research-us-west-2` |
-| **Local Private Key** | `~/.cloudworkstation/keys/<profile>` | `~/.cloudworkstation/keys/research` |
-| **Local Public Key** | `~/.cloudworkstation/keys/<profile>.pub` | `~/.cloudworkstation/keys/research.pub` |
+| **Local Private Key** | `~/.prism/keys/<profile>` | `~/.prism/keys/research` |
+| **Local Public Key** | `~/.prism/keys/<profile>.pub` | `~/.prism/keys/research.pub` |
 
 **Normalization Rules:**
 - Profile name sanitized: lowercase, spaces/underscores → hyphens
@@ -71,8 +71,8 @@ The current SSH key management has several issues that need normalization:
 
 ```go
 type SSHKeyManagerV2 struct {
-    keysDir      string // ~/.cloudworkstation/keys
-    metadataPath string // ~/.cloudworkstation/keys/metadata.json
+    keysDir      string // ~/.prism/keys
+    metadataPath string // ~/.prism/keys/metadata.json
 }
 
 // Core Operations
@@ -98,7 +98,7 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 ```go
 func (m *Manager) GetConnectionInfo(name string) (string, error) {
     // Direct lookup: KeyName = cws-<profile>-<region>
-    // Local path  = ~/.cloudworkstation/keys/<profile>
+    // Local path  = ~/.prism/keys/<profile>
     keyPath := m.keyManager.GetKeyPathFromAWSKeyName(keyName)
     username := m.getUsernameForInstance(name) // From state metadata
     return fmt.Sprintf("ssh -i \"%s\" %s@%s", keyPath, username, ip), nil
@@ -108,39 +108,39 @@ func (m *Manager) GetConnectionInfo(name string) (string, error) {
 ### 3. CLI Commands
 
 ```bash
-# List all CloudWorkstation SSH keys
-cws keys list
+# List all Prism SSH keys
+prism keys list
 # Output:
 # KEY           PROFILE    REGION      INSTANCES  CREATED
 # research      research   us-west-2   5          2025-10-17
 # default       default    us-east-1   2          2025-10-15
 
 # Show specific key details
-cws keys show research
+prism keys show research
 # Output:
 # Key: research
 # AWS KeyName: cws-research-us-west-2
-# Local Path: /Users/username/.cloudworkstation/keys/research
-# Public Key: ssh-rsa AAAA...xyz cloudworkstation
+# Local Path: /Users/username/.prism/keys/research
+# Public Key: ssh-rsa AAAA...xyz prism
 # Associated Instances:
 #   - my-workstation (running)
 #   - gpu-training (stopped)
 
 # Export private key
-cws keys export research --output ~/my-backup-keys/research.pem
+prism keys export research --output ~/my-backup-keys/research.pem
 # Output:
 # ✅ Key exported to ~/my-backup-keys/research.pem
 # ⚠️  Keep this file secure - it provides access to your instances
 
 # Import existing key (for team sharing)
-cws keys import shared-research --key-file ~/shared-research.pem
+prism keys import shared-research --key-file ~/shared-research.pem
 
 # Show public key (for adding to other systems)
-cws keys public research
-# Output: ssh-rsa AAAA...xyz cloudworkstation
+prism keys public research
+# Output: ssh-rsa AAAA...xyz prism
 
 # Delete unused key
-cws keys delete old-project
+prism keys delete old-project
 # Output: ⚠️  Key 'old-project' is used by 3 instances. Delete anyway? [y/N]
 ```
 
@@ -153,9 +153,9 @@ cws keys delete old-project
 
 ### Phase 2: Migration Tool (v0.5.4)
 ```bash
-cws keys migrate
+prism keys migrate
 # Discovers keys in ~/.ssh/cws-*
-# Moves to ~/.cloudworkstation/keys/
+# Moves to ~/.prism/keys/
 # Updates metadata.json
 # Validates all instances still accessible
 ```
@@ -176,9 +176,9 @@ cws keys migrate
 
 ### For Users
 - **Invisible**: Keys automatically managed, no manual setup
-- **Accessible**: `cws keys export` for backup or team sharing
+- **Accessible**: `prism keys export` for backup or team sharing
 - **Clean**: CWS keys isolated from personal SSH keys
-- **Portable**: Easy to backup/restore `.cloudworkstation/` directory
+- **Portable**: Easy to backup/restore `.prism/` directory
 
 ### For Developers
 - **Predictable**: Deterministic key discovery
@@ -195,23 +195,23 @@ cws keys migrate
 
 ```bash
 # Test key creation
-cws launch python-ml test-key-creation
-# Verify: ~/.cloudworkstation/keys/<profile> exists
+prism launch python-ml test-key-creation
+# Verify: ~/.prism/keys/<profile> exists
 # Verify: metadata.json updated
 # Verify: SSH connection works
 
 # Test key reuse
-cws launch r-research test-key-reuse
+prism launch r-research test-key-reuse
 # Verify: Same key used if same profile
 # Verify: metadata.json instances array updated
 
 # Test key export
-cws keys export research --output /tmp/test.pem
+prism keys export research --output /tmp/test.pem
 ssh -i /tmp/test.pem ubuntu@<instance-ip>
 # Verify: Exported key works
 
 # Test key migration
-cws keys migrate
+prism keys migrate
 # Verify: Old keys moved
 # Verify: Old instances still connectable
 # Verify: metadata.json correctly populated
@@ -226,8 +226,8 @@ cws keys migrate
 
 ## Future Enhancements
 
-1. **Key rotation**: `cws keys rotate <profile>` regenerates key and updates instances
-2. **Multiple keys per profile**: `cws keys create research-gpu` for specialized workloads
-3. **Team key sharing**: `cws keys share research --with team@company.com`
+1. **Key rotation**: `prism keys rotate <profile>` regenerates key and updates instances
+2. **Multiple keys per profile**: `prism keys create research-gpu` for specialized workloads
+3. **Team key sharing**: `prism keys share research --with team@company.com`
 4. **Hardware keys**: Support for YubiKey/hardware security modules
-5. **Per-instance keys**: `cws launch python-ml test --dedicated-key` for security isolation
+5. **Per-instance keys**: `prism launch python-ml test --dedicated-key` for security isolation

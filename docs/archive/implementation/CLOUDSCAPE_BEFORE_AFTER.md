@@ -1,4 +1,4 @@
-# CloudWorkstation GUI: Before vs. After Cloudscape Migration
+# Prism GUI: Before vs. After Cloudscape Migration
 
 ## Visual Comparison: The Transformation
 
@@ -181,7 +181,7 @@ alert("Failed to connect to daemon");
     {
       type: 'error',
       header: 'Connection Error',
-      content: 'Failed to connect to CloudWorkstation daemon. Please check that the service is running.',
+      content: 'Failed to connect to Prism daemon. Please check that the service is running.',
       dismissible: true,
       action: <Button onClick={retryConnection}>Retry</Button>
     }
@@ -347,8 +347,8 @@ function handleTemplateSelection(template) {
 
 ## Conclusion: Transformational Upgrade
 
-The migration to AWS Cloudscape transforms CloudWorkstation from a functional but complex research tool into a professional, enterprise-grade platform that schools will be excited to deploy.
+The migration to AWS Cloudscape transforms Prism from a functional but complex research tool into a professional, enterprise-grade platform that schools will be excited to deploy.
 
-**Key Takeaway**: Instead of spending weeks perfecting custom components, we get AWS-quality professional interface in days, allowing us to focus on CloudWorkstation's unique research computing features rather than reinventing UI components.
+**Key Takeaway**: Instead of spending weeks perfecting custom components, we get AWS-quality professional interface in days, allowing us to focus on Prism's unique research computing features rather than reinventing UI components.
 
-This is exactly the kind of strategic decision that will accelerate CloudWorkstation's adoption in academic institutions and position it as the definitive research computing platform.
+This is exactly the kind of strategic decision that will accelerate Prism's adoption in academic institutions and position it as the definitive research computing platform.

@@ -115,7 +115,7 @@ If no output, all mocks are complete!
 
 ## Root Cause
 
-The TUI uses a custom `apiClient` interface defined in `/internal/tui/models/common.go` that differs from the main `CloudWorkstationAPI` interface. As new features were added (Rightsizing, Policy, Marketplace, AMI, Logs), the interface grew but the test mocks weren't updated.
+The TUI uses a custom `apiClient` interface defined in `/internal/tui/models/common.go` that differs from the main `PrismAPI` interface. As new features were added (Rightsizing, Policy, Marketplace, AMI, Logs), the interface grew but the test mocks weren't updated.
 
 ## Prevention
 

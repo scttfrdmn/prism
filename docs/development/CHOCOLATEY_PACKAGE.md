@@ -1,18 +1,18 @@
-# CloudWorkstation Chocolatey Package
+# Prism Chocolatey Package
 
-This document describes how to set up and maintain the Chocolatey package for CloudWorkstation.
+This document describes how to set up and maintain the Chocolatey package for Prism.
 
 ## Overview
 
-[Chocolatey](https://chocolatey.org/) is a package manager for Windows that simplifies software installation. The CloudWorkstation Chocolatey package allows Windows users to easily install and update the application.
+[Chocolatey](https://chocolatey.org/) is a package manager for Windows that simplifies software installation. The Prism Chocolatey package allows Windows users to easily install and update the application.
 
 ## Package Structure
 
-The CloudWorkstation Chocolatey package is structured as follows:
+The Prism Chocolatey package is structured as follows:
 
 ```
 packaging/chocolatey/
-├── cloudworkstation.nuspec      # Package metadata
+├── prism.nuspec      # Package metadata
 └── tools/
     ├── chocolateyinstall.ps1    # Installation script
     └── chocolateyuninstall.ps1  # Uninstallation script
@@ -20,7 +20,7 @@ packaging/chocolatey/
 
 ## Package Elements
 
-### Package Specification (cloudworkstation.nuspec)
+### Package Specification (prism.nuspec)
 
 The `.nuspec` file contains metadata about the package:
 
@@ -36,7 +36,7 @@ The `.nuspec` file contains metadata about the package:
 
 The installation script handles:
 
-- Downloading the CloudWorkstation binary for Windows
+- Downloading the Prism binary for Windows
 - Verifying checksums for security
 - Creating binary shims
 - Setting up the configuration directory
@@ -72,16 +72,16 @@ To test the package locally:
 
 ```powershell
 # Create the package
-choco pack .\packaging\chocolatey\cloudworkstation.nuspec
+choco pack .\packaging\chocolatey\prism.nuspec
 
 # Install the package locally
-choco install cloudworkstation -s . -y
+choco install prism -s . -y
 
 # Test the installation
-cws --version
+prism --version
 
 # Uninstall
-choco uninstall cloudworkstation -y
+choco uninstall prism -y
 ```
 
 ## Publishing to Chocolatey.org
@@ -93,7 +93,7 @@ Once tested, the package can be published to [Chocolatey.org](https://chocolatey
 choco apikey -k <your-api-key> -s https://push.chocolatey.org/
 
 # Push the package
-choco push cloudworkstation.0.4.3.nupkg -s https://push.chocolatey.org/
+choco push prism.0.4.3.nupkg -s https://push.chocolatey.org/
 ```
 
 Note: The first submission to Chocolatey.org requires manual approval, which may take 1-2 days. Subsequent updates are usually approved much faster.

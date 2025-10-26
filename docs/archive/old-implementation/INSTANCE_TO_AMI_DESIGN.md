@@ -2,24 +2,24 @@
 
 ## Overview
 
-Design and implement the ability to save a running, customized CloudWorkstation instance as a reusable AMI template. This enables researchers to preserve their exact environment configuration for reuse and sharing.
+Design and implement the ability to save a running, customized Prism instance as a reusable AMI template. This enables researchers to preserve their exact environment configuration for reuse and sharing.
 
 ## User Story
 
 **Researcher Workflow:**
-1. Launch initial environment: `cws launch python-ml my-research`  
+1. Launch initial environment: `prism launch python-ml my-research`  
 2. Customize environment (install packages, configure tools, add data)
-3. Save customized environment: `cws save my-research my-custom-ml-env`
-4. Reuse saved environment: `cws launch my-custom-ml-env new-project`
-5. Share with colleagues: `cws template share my-custom-ml-env`
+3. Save customized environment: `prism save my-research my-custom-ml-env`
+4. Reuse saved environment: `prism launch my-custom-ml-env new-project`
+5. Share with colleagues: `prism template share my-custom-ml-env`
 
 ## Technical Requirements
 
-### 1. CLI Command: `cws save <instance-name> <template-name>`
+### 1. CLI Command: `prism save <instance-name> <template-name>`
 
 **Command Signature:**
 ```bash
-cws save my-instance my-template [options]
+prism save my-instance my-template [options]
   --description "Description of custom template"
   --region us-west-2                    # Copy to specific regions  
   --public                              # Make template publicly shareable
@@ -44,7 +44,7 @@ func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSav
 **InstanceSaveRequest Structure:**
 ```go
 type InstanceSaveRequest struct {
-    InstanceName     string            // CloudWorkstation instance name
+    InstanceName     string            // Prism instance name
     TemplateName     string            // Name for new template
     Description      string            // Template description  
     CopyToRegions    []string          // Regions to copy AMI
@@ -59,7 +59,7 @@ type InstanceSaveRequest struct {
 **Integration with Template System:**
 - Register saved AMI in template registry (`pkg/ami/registry.go`)
 - Create template definition file (YAML) for the saved environment
-- Enable template to be used with `cws launch` command
+- Enable template to be used with `prism launch` command
 - Support template versioning for incremental updates
 
 **Generated Template Structure:**
@@ -85,11 +85,11 @@ ami_config:
 **Safe AMI Creation Process:**
 1. **Check instance state** - ensure instance is running and healthy
 2. **Create snapshot warning** - inform user about temporary stop
-3. **Stop instance gracefully** - `cws stop instance-name`  
+3. **Stop instance gracefully** - `prism stop instance-name`  
 4. **Create AMI** - AWS CreateImage with proper naming and tagging
 5. **Monitor AMI creation** - wait for AMI to be available
-6. **Restart instance** - `cws start instance-name`
-7. **Register template** - add to CloudWorkstation template system
+6. **Restart instance** - `prism start instance-name`
+7. **Register template** - add to Prism template system
 
 **Error Handling:**
 - If AMI creation fails, restart instance immediately
@@ -103,9 +103,9 @@ Once saved, custom templates work exactly like built-in templates:
 
 ```bash
 # Use saved template like any other
-cws launch my-custom-ml-env new-research --size L
-cws templates                           # Shows custom templates  
-cws template info my-custom-ml-env      # Shows template details
+prism launch my-custom-ml-env new-research --size L
+prism templates                           # Shows custom templates  
+prism template info my-custom-ml-env      # Shows template details
 ```
 
 **Template Metadata:**
@@ -120,19 +120,19 @@ cws template info my-custom-ml-env      # Shows template details
 **Project-Based Template Management:**
 ```bash
 # Associate saved template with project
-cws save my-instance my-template --project brain-imaging-study
+prism save my-instance my-template --project brain-imaging-study
 
 # List project templates
-cws project templates brain-imaging-study
+prism project templates brain-imaging-study
 
 # Share project template with team members
-cws project share-template brain-imaging-study my-template
+prism project share-template brain-imaging-study my-template
 ```
 
 ## Implementation Plan
 
 ### Phase 1: Core Functionality
-1. **CLI Command** - Add `cws save` command to CLI interface
+1. **CLI Command** - Add `prism save` command to CLI interface
 2. **AMI Creation** - Implement instance-to-AMI conversion  
 3. **Template Registration** - Register saved AMIs as templates
 4. **Basic Testing** - Ensure save/launch workflow works
@@ -171,7 +171,7 @@ cws project share-template brain-imaging-study my-template
 ### Workflow 1: Individual Environment Preservation
 ```bash
 # Start with base template
-cws launch python-ml earthquake-analysis
+prism launch python-ml earthquake-analysis
 
 # Researcher customizes over several days:
 # - Installs specific seismic analysis packages
@@ -180,33 +180,33 @@ cws launch python-ml earthquake-analysis
 # - Optimizes performance settings
 
 # Save the customized environment
-cws save earthquake-analysis seismic-ml-environment \
+prism save earthquake-analysis seismic-ml-environment \
   --description "ML environment optimized for seismic data analysis"
 
 # Launch new projects from saved environment
-cws launch seismic-ml-environment aftershock-prediction --size GPU-L
+prism launch seismic-ml-environment aftershock-prediction --size GPU-L
 ```
 
 ### Workflow 2: Team Environment Sharing
 ```bash
 # Lead researcher creates and saves custom environment
-cws save my-genomics-work team-genomics-env --public \
+prism save my-genomics-work team-genomics-env --public \
   --description "Genomics pipeline with BWA, GATK, and R Bioconductor"
 
 # Team members use the shared environment
-cws launch team-genomics-env variant-calling
-cws launch team-genomics-env population-analysis  
+prism launch team-genomics-env variant-calling
+prism launch team-genomics-env population-analysis  
 ```
 
 ### Workflow 3: Course Environment Distribution
 ```bash
 # Professor creates course environment
-cws save ml-course-prep cs229-environment \
+prism save ml-course-prep cs229-environment \
   --description "Stanford CS229 Machine Learning Course Environment"
 
 # Students launch identical environments
-cws launch cs229-environment assignment-1
-cws launch cs229-environment final-project
+prism launch cs229-environment assignment-1
+prism launch cs229-environment final-project
 ```
 
-This feature transforms CloudWorkstation from a template-based system to a **living research platform** where environments evolve and can be preserved at any point in their lifecycle.
+This feature transforms Prism from a template-based system to a **living research platform** where environments evolve and can be preserved at any point in their lifecycle.

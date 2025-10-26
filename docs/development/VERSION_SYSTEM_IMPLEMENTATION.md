@@ -47,30 +47,30 @@ Static Fallback AMI
 
 ```bash
 # Use default version (Ubuntu 24.04)
-cws launch python-ml my-project
+prism launch python-ml my-project
 
 # Specify explicit version
-cws launch python-ml my-project --version 22.04
+prism launch python-ml my-project --version 22.04
 
 # Use version alias
-cws launch python-ml my-project --version lts
-cws launch python-ml my-project --version latest
+prism launch python-ml my-project --version lts
+prism launch python-ml my-project --version latest
 ```
 
 ### Multi-Distro Support
 
 ```bash
 # Rocky Linux 10 (latest)
-cws launch rocky-base my-server --version 10
+prism launch rocky-base my-server --version 10
 
 # Rocky Linux 9 (LTS)
-cws launch rocky-base my-server --version 9
+prism launch rocky-base my-server --version 9
 
 # Amazon Linux 2023
-cws launch web-server aws-host --version 2023
+prism launch web-server aws-host --version 2023
 
 # Debian 12
-cws launch database-server db-host --version 12
+prism launch database-server db-host --version 12
 ```
 
 ### Version Aliases
@@ -119,20 +119,20 @@ Run automated update or manually update static AMI mappings in pkg/templates/par
 
 ```bash
 # Check AMI freshness for current region
-cws admin ami check-freshness
+prism admin ami check-freshness
 
 # Check specific region
-cws admin ami check-freshness --region us-west-2
+prism admin ami check-freshness --region us-west-2
 
 # Show only outdated AMIs
-cws admin ami check-freshness --outdated-only
+prism admin ami check-freshness --outdated-only
 ```
 
 ## AWS SSM Parameter Store Integration
 
 ### SSM Parameter Paths
 
-CloudWorkstation queries these official AWS SSM parameters:
+Prism queries these official AWS SSM parameters:
 
 #### Ubuntu (Canonical)
 ```
@@ -259,7 +259,7 @@ Launch Instance with Resolved AMI
 ## Future Enhancements
 
 ### Planned (Future Releases)
-- **CLI Commands**: `cws admin ami check-freshness`, `cws admin ami update`
+- **CLI Commands**: `prism admin ami check-freshness`, `prism admin ami update`
 - **Cron Integration**: Automatic monthly freshness checks
 - **Daemon Integration**: AMI discovery warm-up at daemon startup
 - **Advanced Caching**: In-memory AMI cache with TTL

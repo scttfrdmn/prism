@@ -1,15 +1,15 @@
-# CloudWorkstation NICE DCV Web SDK Integration Plan
+# Prism NICE DCV Web SDK Integration Plan
 
 ## Version: v0.4.3+ Enhancement  
 **Feature**: Embedded Remote Desktop via NICE DCV Web SDK  
-**Target**: Seamless in-GUI remote access to CloudWorkstation instances
+**Target**: Seamless in-GUI remote access to Prism instances
 
 ---
 
 ## 🎯 **Integration Objectives**
 
 ### **Primary Goals**
-- **Seamless Access**: Users can connect to instances without leaving the CloudWorkstation GUI
+- **Seamless Access**: Users can connect to instances without leaving the Prism GUI
 - **Professional Experience**: High-quality remote desktop with minimal latency
 - **Progressive Disclosure**: Simple connection for basic users, advanced controls for power users
 - **Multi-Instance Support**: Manage multiple remote sessions simultaneously
@@ -28,7 +28,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CloudWorkstation GUI                         │
+│                    Prism GUI                         │
 │                     (Wails 3.x WebView)                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
@@ -138,7 +138,7 @@
 #### **Mode 1: Tabbed Interface**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CloudWorkstation                                  🌙 ⚙️ ✕   │
+│ Prism                                  🌙 ⚙️ ✕   │
 ├─────────────────────────────────────────────────────────────┤
 │ 📋 Templates │ 💻 Instances │ 🖥️ ml-research │ 🖥️ data-viz  │
 ├─────────────────────────────────────────────────────────────┤
@@ -159,7 +159,7 @@
 #### **Mode 2: Split View**
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CloudWorkstation                                  🌙 ⚙️ ✕   │
+│ Prism                                  🌙 ⚙️ ✕   │
 ├─────────────────────────────────────────────────────────────┤
 │ Management │                Remote Desktop                  │
 ├─────────────────────────────────────────────────────────────┤
@@ -204,7 +204,7 @@
 // DCV Web SDK initialization
 import { DcvClient } from '@nice-dcv/web-sdk'
 
-class CloudWorkstationDCVManager {
+class PrismDCVManager {
   constructor() {
     this.activeSessions = new Map()
     this.dcvClients = new Map()
@@ -256,7 +256,7 @@ class CloudWorkstationDCVManager {
   }
   
   async getDCVSessionInfo(instanceName) {
-    // Call CloudWorkstation daemon to get DCV session details
+    // Call Prism daemon to get DCV session details
     const response = await fetch(`http://localhost:8947/api/v1/instances/${instanceName}/dcv`)
     
     if (!response.ok) {
@@ -309,7 +309,7 @@ class CloudWorkstationDCVManager {
 }
 
 // Initialize DCV manager
-const dcvManager = new CloudWorkstationDCVManager()
+const dcvManager = new PrismDCVManager()
 ```
 
 #### **Backend Daemon Integration**
@@ -632,4 +632,4 @@ const QualityManager = {
 
 **Total Implementation Time**: ~5 weeks for complete NICE DCV Web SDK integration with all advanced features.
 
-This integration will transform CloudWorkstation from a simple instance launcher into a complete **integrated research computing platform** where users can launch, manage, and directly access their remote research environments without ever leaving the application.
+This integration will transform Prism from a simple instance launcher into a complete **integrated research computing platform** where users can launch, manage, and directly access their remote research environments without ever leaving the application.

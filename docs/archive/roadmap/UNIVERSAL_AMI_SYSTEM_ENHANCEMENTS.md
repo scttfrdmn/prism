@@ -1,10 +1,10 @@
 # Universal AMI System - User and System Enhancements
 
-*CloudWorkstation Phase 5.1 - Weeks 1-2 Implementation Summary*
+*Prism Phase 5.1 - Weeks 1-2 Implementation Summary*
 
 ## Overview
 
-The Universal AMI System transforms CloudWorkstation from script-only provisioning to intelligent hybrid deployment, providing researchers with 30-second AMI launches while maintaining transparent fallbacks to script provisioning. This represents a fundamental enhancement to both user experience and system architecture.
+The Universal AMI System transforms Prism from script-only provisioning to intelligent hybrid deployment, providing researchers with 30-second AMI launches while maintaining transparent fallbacks to script provisioning. This represents a fundamental enhancement to both user experience and system architecture.
 
 ## User Experience Enhancements
 
@@ -15,11 +15,11 @@ The Universal AMI System transforms CloudWorkstation from script-only provisioni
 
 ```bash
 # Previous behavior
-cws launch python-ml my-project
+prism launch python-ml my-project
 # → Always 6-8 minutes of package installation
 
 # Enhanced behavior
-cws launch python-ml my-project
+prism launch python-ml my-project
 # → 30 seconds if AMI available, graceful fallback to script if not
 ```
 
@@ -27,7 +27,7 @@ cws launch python-ml my-project
 
 **New Cost Analysis Tools**:
 ```bash
-cws ami costs python-ml
+prism ami costs python-ml
 # Detailed cost comparison:
 # - AMI deployment: $0.0003 setup + $0.80/month storage
 # - Script deployment: $0.0033 setup + 5 minutes time
@@ -45,7 +45,7 @@ cws ami costs python-ml
 
 **Enhanced Regional Capabilities**:
 ```bash
-cws ami test python-ml
+prism ami test python-ml
 # Tests AMI availability across:
 # ✅ us-east-1, us-west-2, eu-west-1, ap-south-1
 # Provides regional deployment confidence
@@ -61,7 +61,7 @@ cws ami test python-ml
 
 **AMI Resolution Preview**:
 ```bash
-cws ami preview python-ml
+prism ami preview python-ml
 # Shows exactly what would happen:
 # - Resolution strategy attempted
 # - Estimated launch time
@@ -78,10 +78,10 @@ cws ami preview python-ml
 ### 📊 Rich Command-Line Interface
 
 **New AMI Commands**:
-- `cws ami resolve <template>` - Test AMI resolution for any template
-- `cws ami preview <template>` - Dry-run resolution preview
-- `cws ami costs <template>` - Comprehensive cost analysis
-- `cws ami test <template>` - Cross-region availability testing
+- `prism ami resolve <template>` - Test AMI resolution for any template
+- `prism ami preview <template>` - Dry-run resolution preview
+- `prism ami costs <template>` - Comprehensive cost analysis
+- `prism ami test <template>` - Cross-region availability testing
 
 **Enhanced Output**:
 - Color-coded status indicators
@@ -117,7 +117,7 @@ ami_config:
     us-east-1: "ami-0123456789abcdef0"
     us-west-2: "ami-0fedcba9876543210"
   ami_search:                          # Dynamic search criteria
-    owner: "cloudworkstation-community"
+    owner: "prism-community"
     name_pattern: "cws-python-ml-*"
     version_tag: "v2.1.0"
     architecture: ["arm64", "x86_64"]
@@ -253,7 +253,7 @@ ami_config:
 - **Scalability** for large-scale research computing deployments
 - **Future-ready architecture** for community AMI sharing
 
-### For CloudWorkstation Platform
+### For Prism Platform
 - **Architectural foundation** for advanced research computing features
 - **Performance baseline** for sub-minute research environment deployment
 - **Cost optimization engine** for intelligent resource management

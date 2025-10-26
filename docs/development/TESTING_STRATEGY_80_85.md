@@ -1,4 +1,4 @@
-# CloudWorkstation Testing Strategy: 80-85% Coverage Target
+# Prism Testing Strategy: 80-85% Coverage Target
 
 ## Executive Summary
 

@@ -75,15 +75,15 @@ func NewApp() *App {
 
 | Feature | CLI Command | GUI Section | TUI Page | Status |
 |---------|-------------|-------------|----------|---------|
-| Templates | `cws templates` | Templates tab | Templates page | ⚠️ Update needed |
-| Launch Basic | `cws launch` | Launch dialog | Launch workflow | ⚠️ Update needed |
-| Launch Advanced | `cws launch --volume` | Advanced launch | Advanced options | ❌ Missing |
-| Instance List | `cws list` | Instances tab | Instances page | ⚠️ Update needed |
-| Instance Control | `cws start/stop` | Instance dialogs | Instance actions | ❌ Missing |
-| Storage EFS | `cws volumes` | Storage EFS tab | Storage page | ❌ Missing |
-| Storage EBS | `cws ebs-volumes` | Storage EBS tab | Storage page | ❌ Missing |
-| Profile Mgmt | `cws config` | Settings profiles | Settings page | ⚠️ Update needed |
-| Daemon Control | `cws daemon` | Settings daemon | Settings page | ❌ Missing |
+| Templates | `prism templates` | Templates tab | Templates page | ⚠️ Update needed |
+| Launch Basic | `prism launch` | Launch dialog | Launch workflow | ⚠️ Update needed |
+| Launch Advanced | `prism launch --volume` | Advanced launch | Advanced options | ❌ Missing |
+| Instance List | `prism list` | Instances tab | Instances page | ⚠️ Update needed |
+| Instance Control | `prism start/stop` | Instance dialogs | Instance actions | ❌ Missing |
+| Storage EFS | `prism volumes` | Storage EFS tab | Storage page | ❌ Missing |
+| Storage EBS | `prism ebs-volumes` | Storage EBS tab | Storage page | ❌ Missing |
+| Profile Mgmt | `prism config` | Settings profiles | Settings page | ⚠️ Update needed |
+| Daemon Control | `prism daemon` | Settings daemon | Settings page | ❌ Missing |
 
 ### Task 4: Advanced Features Integration
 **Objective**: Bring TUI up to Phase 2 feature level
@@ -196,7 +196,7 @@ func (m DashboardModel) startRealTimeUpdates() tea.Cmd {
 ### Dependencies
 - BubbleTea framework (already integrated)
 - Lipgloss styling (already configured)  
-- CloudWorkstation API client (needs modernization)
+- Prism API client (needs modernization)
 - Profile system integration (already available)
 
 ### Architecture Benefits
@@ -205,4 +205,4 @@ func (m DashboardModel) startRealTimeUpdates() tea.Cmd {
 - **Real-time Sync**: Changes in one interface reflect in others
 - **Progressive Disclosure**: TUI provides middle ground between CLI simplicity and GUI richness
 
-This plan positions the TUI as a first-class interface alongside CLI and GUI, completing the CloudWorkstation multi-modal access strategy established in Phase 2.
+This plan positions the TUI as a first-class interface alongside CLI and GUI, completing the Prism multi-modal access strategy established in Phase 2.

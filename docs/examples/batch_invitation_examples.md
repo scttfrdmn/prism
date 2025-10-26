@@ -1,11 +1,11 @@
 # Batch Invitation Examples
 
-This document provides practical examples of using CloudWorkstation's batch invitation system for common scenarios. These examples demonstrate how to efficiently manage multiple invitations in various settings.
+This document provides practical examples of using Prism's batch invitation system for common scenarios. These examples demonstrate how to efficiently manage multiple invitations in various settings.
 
 ## Example 1: Creating Invitations for a Research Team
 
 ### Scenario
-You're setting up CloudWorkstation access for a research team with different roles:
+You're setting up Prism access for a research team with different roles:
 - Principal investigators need admin access
 - Research associates need read/write access 
 - Research assistants need read-only access
@@ -28,7 +28,7 @@ Save this as `research_team.csv`.
 ### Step 2: Create Batch Invitations
 
 ```bash
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file research_team.csv \
   --s3-config s3://university-lab/shared-config \
   --output-file research_team_invitations.csv \
@@ -44,7 +44,7 @@ For security reasons, consider sharing invitations individually rather than dist
 ## Example 2: Setting Up a Classroom Environment
 
 ### Scenario
-You're preparing CloudWorkstation for a class of 30 students for a semester-long course.
+You're preparing Prism for a class of 30 students for a semester-long course.
 
 ### Step 1: Create Student Invitation Template
 
@@ -70,7 +70,7 @@ done
 ### Step 2: Create Batch Invitations with S3 Configuration
 
 ```bash
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file class_invitations.csv \
   --s3-config s3://university/cs101/config \
   --concurrency 10 \
@@ -90,7 +90,7 @@ You're setting up access for a corporate team with hierarchical permission struc
 ### Step 1: Create Parent Invitation for Department Head
 
 ```bash
-cws profiles invitations create "Department Head" --type admin --valid-days 365
+prism profiles invitations create "Department Head" --type admin --valid-days 365
 ```
 
 This will output an invitation token. Note this token as `PARENT_TOKEN`.
@@ -106,7 +106,7 @@ Team Manager 3,read_write,180,yes,no,yes,2
 ```
 
 ```bash
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file managers.csv \
   --parent-token PARENT_TOKEN \
   --output-file managers_invitations.csv \
@@ -136,7 +136,7 @@ Workshop-25,read_only,3,no,no,yes,1
 ### Step 2: Create and Distribute Invitations
 
 ```bash
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file workshop.csv \
   --s3-config s3://workshops/data-science-intro \
   --output-file workshop_invitations.csv \
@@ -177,7 +177,7 @@ You've received a CSV file with multiple invitations for different projects.
 ### Step 2: Accept All Invitations
 
 ```bash
-cws profiles invitations batch-accept \
+prism profiles invitations batch-accept \
   --csv-file received_invitations.csv \
   --name-prefix "Project-" \
   --has-header
@@ -193,7 +193,7 @@ You need to track all active invitations and generate a report.
 ### Step 1: Export All Current Invitations
 
 ```bash
-cws profiles invitations batch-export \
+prism profiles invitations batch-export \
   --output-file all_invitations.csv
 ```
 

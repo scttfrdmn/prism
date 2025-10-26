@@ -45,11 +45,11 @@ Uses OIDC authentication (GitHub, Google, etc.) - no keys to manage!
 
 **Signing Flow**:
 ```bash
-$ cws templates sign ubuntu-24.04-server.yml
+$ prism templates sign ubuntu-24.04-server.yml
 
 🔐 Signing template with Cosign...
 🌐 Authenticating with GitHub (OIDC)...
-✅ Signed by: team@cloudworkstation.dev (GitHub)
+✅ Signed by: team@prism.dev (GitHub)
 📝 Certificate stored in Rekor transparency log
 🔗 Rekor entry: https://rekor.sigstore.dev/api/v1/log/entries/abc123...
 
@@ -59,10 +59,10 @@ Certificate: templates/.signatures/ubuntu-24-04-server.yml.cert
 
 **Verification Flow**:
 ```bash
-$ cws templates verify ubuntu-24.04-server.yml
+$ prism templates verify ubuntu-24.04-server.yml
 
 🔍 Verifying template signature...
-✅ Valid signature from team@cloudworkstation.dev
+✅ Valid signature from team@prism.dev
 ✅ Certificate verified via Fulcio CA
 ✅ Timestamp verified via Rekor transparency log
 📅 Signed: 2025-10-18 01:23:45 UTC
@@ -91,14 +91,14 @@ Private key written to cosign.key
 Public key written to cosign.pub
 
 # Sign template
-$ cws templates sign ubuntu-24.04-server.yml --key stanford.key
+$ prism templates sign ubuntu-24.04-server.yml --key stanford.key
 
 Enter password for private key:
 ✅ Signed with key: stanford.key
 🔒 Public key: stanford.pub (distribute to users)
 
 # Verify with public key
-$ cws templates verify ubuntu-24.04-server.yml --key stanford.pub
+$ prism templates verify ubuntu-24.04-server.yml --key stanford.pub
 
 ✅ Valid signature from Stanford University
 ✅ Template verified
@@ -149,20 +149,20 @@ templates/
 **CLI Commands**:
 ```bash
 # Sign (keyless)
-cws templates sign <template.yml>
+prism templates sign <template.yml>
 
 # Sign (with key)
-cws templates sign <template.yml> --key <private-key>
+prism templates sign <template.yml> --key <private-key>
 
 # Verify (keyless)
-cws templates verify <template.yml>
+prism templates verify <template.yml>
 
 # Verify (with key)
-cws templates verify <template.yml> --key <public-key>
+prism templates verify <template.yml> --key <public-key>
 
 # Verify with identity constraint
-cws templates verify <template.yml> \
-    --certificate-identity team@cloudworkstation.dev \
+prism templates verify <template.yml> \
+    --certificate-identity team@prism.dev \
     --certificate-oidc-issuer https://github.com/login/oauth
 ```
 
@@ -215,12 +215,12 @@ type VerifyTemplateResponse struct {
   "predicateType": "https://slsa.dev/provenance/v0.2",
   "predicate": {
     "builder": {
-      "id": "https://github.com/scttfrdmn/cloudworkstation"
+      "id": "https://github.com/scttfrdmn/prism"
     },
-    "buildType": "https://cloudworkstation.dev/template-build/v1",
+    "buildType": "https://prism.dev/template-build/v1",
     "invocation": {
       "configSource": {
-        "uri": "git+https://github.com/scttfrdmn/cloudworkstation",
+        "uri": "git+https://github.com/scttfrdmn/prism",
         "digest": {"sha1": "c5f84ed5"},
         "entryPoint": "templates/ubuntu-24-04-server.yml"
       }
@@ -251,9 +251,9 @@ type VerifyTemplateResponse struct {
     "name": "ubuntu-24-04-server.yml",
     "digest": {"sha256": "abc123..."}
   }],
-  "predicateType": "https://cloudworkstation.dev/test-results/v1",
+  "predicateType": "https://prism.dev/test-results/v1",
   "predicate": {
-    "test_framework": "cloudworkstation-validator",
+    "test_framework": "prism-validator",
     "test_run": {
       "started_at": "2025-10-18T00:00:00Z",
       "finished_at": "2025-10-18T00:10:00Z",
@@ -289,7 +289,7 @@ type VerifyTemplateResponse struct {
     "name": "ubuntu-24-04-server.yml",
     "digest": {"sha256": "abc123..."}
   }],
-  "predicateType": "https://cloudworkstation.dev/security-scan/v1",
+  "predicateType": "https://prism.dev/security-scan/v1",
   "predicate": {
     "scanner": {
       "name": "trivy",
@@ -305,7 +305,7 @@ type VerifyTemplateResponse struct {
       "total": 7
     },
     "scan_result": "passed",
-    "report_url": "https://scans.cloudworkstation.dev/..."
+    "report_url": "https://scans.prism.dev/..."
   }
 }
 ```
@@ -313,39 +313,39 @@ type VerifyTemplateResponse struct {
 **CLI Commands**:
 ```bash
 # Create SLSA provenance attestation
-$ cws templates attest ubuntu-24-04-server.yml \
+$ prism templates attest ubuntu-24-04-server.yml \
     --type slsa-provenance \
     --predicate provenance.json
 
 ✅ SLSA provenance attestation signed and stored
 
 # Create test results attestation
-$ cws templates attest ubuntu-24-04-server.yml \
+$ prism templates attest ubuntu-24-04-server.yml \
     --type test-results \
     --predicate test-results.json
 
 ✅ Test results attestation signed and stored
 
 # Create security scan attestation
-$ cws templates attest ubuntu-24-04-server.yml \
+$ prism templates attest ubuntu-24-04-server.yml \
     --type security-scan \
     --predicate security-scan.json
 
 ✅ Security scan attestation signed and stored
 
 # Verify all attestations
-$ cws templates verify-attestation ubuntu-24-04-server.yml
+$ prism templates verify-attestation ubuntu-24-04-server.yml
 
 ✅ SLSA Provenance verified
    Built by: GitHub Actions
-   Source: github.com/scttfrdmn/cloudworkstation@c5f84ed5
+   Source: github.com/scttfrdmn/prism@c5f84ed5
    Build time: 10m 23s
    Reproducible: Yes
 
 ✅ Test Results verified
    Tests passed: 47/47
    Duration: 10m
-   Framework: cloudworkstation-validator
+   Framework: prism-validator
 
 ✅ Security Scan verified
    Scanner: Trivy v0.50.0
@@ -365,11 +365,11 @@ Templates earn badges based on attestations:
 
 **Display in CLI**:
 ```bash
-$ cws templates
+$ prism templates
 
 🏗️  Ubuntu 24.04 Server [✅🧪🔒🏆]
     Slug: ubuntu-24-04-server
-    Signed by: CloudWorkstation Team
+    Signed by: Prism Team
     SLSA Level: 3 (highest)
     Tests: 47/47 passed
     Security: 0 critical issues
@@ -386,7 +386,7 @@ $ cws templates
 
 ### Admission Control for Templates
 
-**Policy Configuration** (`~/.cloudworkstation/policies/signing.yml`):
+**Policy Configuration** (`~/.prism/policies/signing.yml`):
 ```yaml
 signature_policy:
   # Enforcement level
@@ -396,7 +396,7 @@ signature_policy:
   keyless:
     enabled: true
     allowed_identities:
-      - "team@cloudworkstation.dev"
+      - "team@prism.dev"
       - "*@stanford.edu"          # Any Stanford email
       - "*@mit.edu"
       - "*@berkeley.edu"
@@ -406,11 +406,11 @@ signature_policy:
   key_based:
     enabled: true
     trusted_keys:
-      - path: "~/.cloudworkstation/keys/cloudworkstation-team.pub"
-        name: "CloudWorkstation Team"
-      - path: "~/.cloudworkstation/keys/stanford.pub"
+      - path: "~/.prism/keys/prism-team.pub"
+        name: "Prism Team"
+      - path: "~/.prism/keys/stanford.pub"
         name: "Stanford Research Computing"
-      - path: "~/.cloudworkstation/keys/mit.pub"
+      - path: "~/.prism/keys/mit.pub"
         name: "MIT CSAIL"
 
   # Attestation requirements
@@ -468,7 +468,7 @@ presets:
 **CLI Commands**:
 ```bash
 # Set policy preset
-$ cws admin policy set template-signing research-strict
+$ prism admin policy set template-signing research-strict
 
 ✅ Policy updated: Research-strict mode
    - SLSA Level 3 required
@@ -477,7 +477,7 @@ $ cws admin policy set template-signing research-strict
    - Unsigned templates rejected
 
 # Custom policy
-$ cws admin policy set template-signing strict \
+$ prism admin policy set template-signing strict \
     --require-attestations \
     --min-slsa-level 2 \
     --max-signature-age 90
@@ -485,17 +485,17 @@ $ cws admin policy set template-signing strict \
 ✅ Policy updated
 
 # Check policy compliance
-$ cws templates install python-ml-workstation
+$ prism templates install python-ml-workstation
 
 🔍 Checking signature policy...
-✅ Template signed by team@cloudworkstation.dev
+✅ Template signed by team@prism.dev
 ✅ SLSA provenance verified (Level 3)
 ✅ Test results verified (47/47 passed)
 ✅ Security scan verified (0 critical issues)
 💾 Installing template...
 
 # Policy violation example
-$ cws templates install community-experimental
+$ prism templates install community-experimental
 
 🔍 Checking signature policy...
 ❌ Template is not signed
@@ -507,7 +507,7 @@ Error: Template rejected by policy
 
 **Trust Hierarchy**:
 ```
-CloudWorkstation Team (Root Trust)
+Prism Team (Root Trust)
 ├─ Stanford University
 │  ├─ Research Computing
 │  └─ Computer Science Dept
@@ -598,7 +598,7 @@ jobs:
           for template in templates/*.yml; do
             cosign attest-blob $template \
               --predicate test-results.json \
-              --type https://cloudworkstation.dev/test-results/v1
+              --type https://prism.dev/test-results/v1
           done
 
       - name: Security Scan
@@ -614,13 +614,13 @@ jobs:
           for template in templates/*.yml; do
             cosign attest-blob $template \
               --predicate security-scan.json \
-              --type https://cloudworkstation.dev/security-scan/v1
+              --type https://prism.dev/security-scan/v1
           done
 
       - name: Commit Signatures
         run: |
-          git config user.name "CloudWorkstation Bot"
-          git config user.email "bot@cloudworkstation.dev"
+          git config user.name "Prism Bot"
+          git config user.email "bot@prism.dev"
           git add templates/.signatures/
           git commit -m "chore: sign templates [skip ci]"
           git push
@@ -647,29 +647,29 @@ Templates stored in OCI registries (Docker Hub, GitHub Container Registry, etc.)
 
 **Push Template to OCI Registry**:
 ```bash
-$ cws templates push ubuntu-24.04-server.yml \
-    ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:latest
+$ prism templates push ubuntu-24.04-server.yml \
+    ghcr.io/prism/templates/ubuntu-24-04-server:latest
 
 📦 Pushing to ghcr.io...
-✅ Pushed: ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:latest
+✅ Pushed: ghcr.io/prism/templates/ubuntu-24-04-server:latest
 ```
 
 **Sign OCI Artifact**:
 ```bash
-$ cosign sign ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:latest
+$ cosign sign ghcr.io/prism/templates/ubuntu-24-04-server:latest
 
 🔐 Signing OCI image...
 🌐 Authenticating with GitHub (OIDC)...
-✅ Signed by: team@cloudworkstation.dev
+✅ Signed by: team@prism.dev
 📝 Signature stored in OCI registry
 ```
 
 **Pull and Verify**:
 ```bash
-$ cws templates pull ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:latest
+$ prism templates pull ghcr.io/prism/templates/ubuntu-24-04-server:latest
 
 🔍 Verifying signature...
-✅ Valid signature from team@cloudworkstation.dev
+✅ Valid signature from team@prism.dev
 ✅ SLSA provenance verified
 📥 Pulling template...
 ✅ Installed: ubuntu-24-04-server
@@ -699,7 +699,7 @@ $ cws templates pull ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:late
 **Level 1 - Signed** (Keyless OIDC):
 ```
 🔒 Ubuntu 24.04 Server
-    ✅ Signed by team@cloudworkstation.dev
+    ✅ Signed by team@prism.dev
     📅 Signed: 2 days ago
     [Install] [Cancel]
 ```
@@ -707,7 +707,7 @@ $ cws templates pull ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:late
 **Level 2 - Signed + Tests**:
 ```
 🔒 Ubuntu 24.04 Server
-    ✅ Signed by team@cloudworkstation.dev
+    ✅ Signed by team@prism.dev
     🧪 Tests passed: 47/47
     📅 Signed: 2 days ago
     [Install] [Cancel]
@@ -716,7 +716,7 @@ $ cws templates pull ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:late
 **Level 3 - SLSA L2+**:
 ```
 🔒 Ubuntu 24.04 Server
-    ✅ Signed by team@cloudworkstation.dev
+    ✅ Signed by team@prism.dev
     🏆 SLSA Level 3 (highest)
     🧪 Tests passed: 47/47
     🔍 Security scan: 0 critical issues
@@ -752,20 +752,20 @@ $ cws templates pull ghcr.io/cloudworkstation/templates/ubuntu-24-04-server:late
 
 Support key expiration and rotation:
 ```bash
-$ cws admin keys rotate --old-key old.key --new-key new.key
+$ prism admin keys rotate --old-key old.key --new-key new.key
 
 🔑 Rotating signing key...
 ✅ Re-signing all templates with new key
 ✅ 47 templates re-signed
 ⚠️  Old key should be revoked
-💡 Run: cws admin keys revoke --key old.key
+💡 Run: prism admin keys revoke --key old.key
 ```
 
 ### Revocation
 
 Certificate Revocation List (CRL) for compromised keys:
 ```bash
-$ cws admin keys revoke --key compromised.key --reason "Key leaked"
+$ prism admin keys revoke --key compromised.key --reason "Key leaked"
 
 ⚠️  Revoking key: compromised.key
 ✅ Key revoked in Rekor
@@ -779,7 +779,7 @@ Cache signatures for offline use:
 ```yaml
 cache:
   enabled: true
-  directory: "~/.cloudworkstation/signature-cache"
+  directory: "~/.prism/signature-cache"
   ttl_days: 7
   max_size_mb: 100
 ```

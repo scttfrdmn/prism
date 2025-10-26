@@ -256,11 +256,11 @@ Error: template not found
 The specified template doesn't exist. To fix this:
 
 1. List available templates:
-   cws templates
+   prism templates
 
 2. Check template name spelling
 3. Refresh template cache:
-   rm -rf ~/.cloudworkstation/templates && cws templates
+   rm -rf ~/.prism/templates && prism templates
 ```
 **Result**: ✅ Clear error message with helpful recovery steps
 
@@ -416,7 +416,7 @@ All lifecycle operations validated across regions:
 
 Successfully completed comprehensive end-to-end testing validating all multi-region functionality, lifecycle operations, and error handling with real AWS. All critical bugs (P0 and P2) are fixed and verified.
 
-**CloudWorkstation is production-ready for multi-region deployments.**
+**Prism is production-ready for multi-region deployments.**
 
 The platform now provides:
 - ✅ Intelligent AZ selection preventing launch failures

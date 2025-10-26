@@ -1,8 +1,8 @@
-# CloudWorkstation Vision: The Future of Research Computing
+# Prism Vision: The Future of Research Computing
 
 ## Executive Summary
 
-CloudWorkstation represents a paradigm shift in research computing infrastructure, evolving from a simple cloud management tool into a comprehensive **Enterprise Research Management Platform**. Our vision extends far beyond launching cloud instances—we're building an integrated ecosystem that transforms how researchers, teams, and institutions approach computational research.
+Prism represents a paradigm shift in research computing infrastructure, evolving from a simple cloud management tool into a comprehensive **Enterprise Research Management Platform**. Our vision extends far beyond launching cloud instances—we're building an integrated ecosystem that transforms how researchers, teams, and institutions approach computational research.
 
 ### The Research Computing Crisis
 
@@ -10,7 +10,7 @@ Academic research faces a fundamental infrastructure challenge: researchers spen
 
 ### Our Solution: Integrated Research Platform
 
-CloudWorkstation eliminates these barriers through an integrated platform that combines:
+Prism eliminates these barriers through an integrated platform that combines:
 - **Instant Environment Access**: From hours to seconds for research-ready environments
 - **Intelligent Cost Management**: Automated hibernation and budget optimization
 - **Enterprise Collaboration**: Project-based organization with real-time cost tracking
@@ -20,7 +20,7 @@ CloudWorkstation eliminates these barriers through an integrated platform that c
 
 ### Impact Vision
 
-By 2028, CloudWorkstation aims to be the standard research computing platform used by:
+By 2028, Prism aims to be the standard research computing platform used by:
 - **50,000+ Individual Researchers** across academia and industry
 - **500+ Research Institutions** worldwide for centralized research computing
 - **Major Cloud Providers** as the preferred research interface
@@ -66,13 +66,13 @@ Research computing today suffers from fragmentation and complexity that impedes 
 
 ---
 
-## CloudWorkstation Design Philosophy
+## Prism Design Philosophy
 
 ### 🎯 Default to Success
 
 **Core Principle**: Every interaction should work reliably regardless of researcher expertise, geographic location, institutional context, **or accessibility needs**.
 
-When a researcher runs `cws launch python-ml my-project`, the system delivers a production-ready research environment within 60 seconds, complete with:
+When a researcher runs `prism launch python-ml my-project`, the system delivers a production-ready research environment within 60 seconds, complete with:
 - Pre-configured tools (Jupyter, conda, GPU drivers)
 - Optimal instance sizing for the workload
 - Cost-effective regional fallbacks when needed
@@ -101,9 +101,9 @@ When a researcher runs `cws launch python-ml my-project`, the system delivers a 
 ### 📈 Progressive Complexity
 
 **Accessibility Gradient** (all levels universally accessible):
-- **Novice**: `cws launch template-name project-name` 
-- **Intermediate**: `cws launch template-name project-name --size L`
-- **Advanced**: `cws launch template-name project-name --instance-type c5.2xlarge --spot`
+- **Novice**: `prism launch template-name project-name` 
+- **Intermediate**: `prism launch template-name project-name --size L`
+- **Advanced**: `prism launch template-name project-name --instance-type c5.2xlarge --spot`
 - **Expert**: Full template customization and multi-region optimization
 - **All Interaction Modes**: Voice commands, keyboard shortcuts, screen reader optimization, gesture support available at every complexity level
 
@@ -113,7 +113,7 @@ When a researcher runs `cws launch python-ml my-project`, the system delivers a 
 
 ### Multi-Modal Access Strategy
 
-Researchers operate in diverse computing environments with varying technical preferences. CloudWorkstation provides unified functionality across four synchronized interfaces:
+Researchers operate in diverse computing environments with varying technical preferences. Prism provides unified functionality across four synchronized interfaces:
 
 ```
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
@@ -137,7 +137,7 @@ The future GUI represents a paradigm shift from simple instance management to co
 ```
 Research Management Dashboard (Wails 3.x + Web Technologies + Universal Design)
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│ CloudWorkstation Research Platform    [User] [Accessibility] [Settings] [Help] │
+│ Prism Research Platform    [User] [Accessibility] [Settings] [Help] │
 ├──────────────────────┬──────────────────────┬────────────────────────────────┤
 │ 🖥️ Desktop Access    │ 💰 Cost Intelligence │ 🚀 Instance Management        │
 │ • Embedded DCV       │ • Real-time tracking  │ • Launch with predictions      │
@@ -246,11 +246,11 @@ The foundation is already built with sophisticated template stacking:
 **Intelligent Template Suggestions**:
 ```bash
 # AI analyzes research pattern and suggests optimal template
-cws launch --suggest "I need to analyze RNA-seq data with R and Python"
+prism launch --suggest "I need to analyze RNA-seq data with R and Python"
 # → Suggests: "Bioinformatics Multi-Stack" (R + Python + Bioconductor + conda)
 
 # Dynamic template generation based on paper citations
-cws launch --from-paper "10.1038/s41586-021-03819-2" genomics-analysis
+prism launch --from-paper "10.1038/s41586-021-03819-2" genomics-analysis
 # → Analyzes paper's methods, creates custom environment
 ```
 
@@ -269,17 +269,17 @@ cws launch --from-paper "10.1038/s41586-021-03819-2" genomics-analysis
 
 ```bash
 # Manual hibernation with session preservation
-cws hibernate ml-workstation     # Preserves RAM state, running processes
-cws resume ml-workstation        # Exact environment restoration
+prism hibernate ml-workstation     # Preserves RAM state, running processes
+prism resume ml-workstation        # Exact environment restoration
 
 # Automated hibernation policies
-cws idle profile list
+prism idle profile list
 # → batch: 60min → hibernate (long-running jobs)
 # → gpu: 15min → stop (expensive GPU optimization)  
 # → cost-optimized: 10min → hibernate (maximum savings)
 
-cws idle instance gpu-workstation --profile gpu
-cws idle history                  # Complete audit trail
+prism idle instance gpu-workstation --profile gpu
+prism idle history                  # Complete audit trail
 ```
 
 #### **Future Vision: Predictive Cost Optimization**
@@ -293,12 +293,12 @@ cws idle history                  # Complete audit trail
 **Advanced Hibernation Intelligence**:
 ```bash
 # Predictive hibernation based on researcher patterns
-cws hibernate --predict ml-workstation
+prism hibernate --predict ml-workstation
 # → "Analysis suggests you typically return to this environment in 4 hours"
 # → "Hibernating now will save $12.50 with minimal productivity impact"
 
 # Research workflow optimization
-cws optimize --project brain-imaging-study
+prism optimize --project brain-imaging-study
 # → Analyzes usage patterns, suggests instance scheduling
 # → "Run preprocessing on spot instances at 3 AM for 70% cost reduction"
 ```
@@ -311,16 +311,16 @@ cws optimize --project brain-imaging-study
 
 ```bash
 # Complete project lifecycle management
-cws project create "neuroimaging-study" --budget 5000
-cws project member add neuroimaging-study researcher@uni.edu --role admin
-cws project assign neuroimaging-study gpu-workstation
+prism project create "neuroimaging-study" --budget 5000
+prism project member add neuroimaging-study researcher@uni.edu --role admin
+prism project assign neuroimaging-study gpu-workstation
 
 # Real-time cost tracking and budget enforcement
-cws project cost neuroimaging-study --breakdown
-cws project budget neuroimaging-study set --alert-threshold 0.8
+prism project cost neuroimaging-study --breakdown
+prism project budget neuroimaging-study set --alert-threshold 0.8
 
 # Automated budget actions (hibernation when approaching limits)
-cws project policy neuroimaging-study --auto-hibernate-at 0.9
+prism project policy neuroimaging-study --auto-hibernate-at 0.9
 ```
 
 #### **Future Vision: Institutional Research Management**
@@ -334,13 +334,13 @@ cws project policy neuroimaging-study --auto-hibernate-at 0.9
 **Research Analytics Platform**:
 ```bash
 # Institutional dashboard
-cws analytics --university stanford --department biology
+prism analytics --university stanford --department biology
 # → Research compute utilization across all biology labs
 # → Cost efficiency metrics by research group
 # → Environmental impact tracking and carbon offset integration
 
 # Grant impact analysis
-cws impact --grant NSF-2045678
+prism impact --grant NSF-2045678
 # → Publications enabled by compute resources
 # → Student training hours on research computing
 # → Reproducibility metrics and data sharing statistics
@@ -378,12 +378,12 @@ cws impact --grant NSF-2045678
 #### **Package Manager Ecosystem**:
 ```bash
 # Universal installation
-wget cloudworkstation.io/install | sh          # Universal installer
-brew install cloudworkstation                  # macOS (Homebrew Core)
-apt install cloudworkstation                   # Debian/Ubuntu
-dnf install cloudworkstation                   # RHEL/Fedora
-conda install -c conda-forge cloudworkstation # Data science environments
-winget install CloudWorkstation.CLI            # Windows Package Manager
+wget prism.io/install | sh          # Universal installer
+brew install prism                  # macOS (Homebrew Core)
+apt install prism                   # Debian/Ubuntu
+dnf install prism                   # RHEL/Fedora
+conda install -c conda-forge prism # Data science environments
+winget install Prism.CLI            # Windows Package Manager
 ```
 
 ---
@@ -397,7 +397,7 @@ winget install CloudWorkstation.CLI            # Windows Package Manager
 #### **Current Foundation: Multi-Instance Collaboration**
 
 **Intelligent EFS Integration**:
-- Automatic cross-platform permissions with `cloudworkstation-shared` group
+- Automatic cross-platform permissions with `prism-shared` group
 - Cross-platform Ubuntu ↔ Rocky Linux ↔ macOS file sharing
 - POSIX semantics with cloud-scale performance
 - Dynamic volume attachment and migration
@@ -405,12 +405,12 @@ winget install CloudWorkstation.CLI            # Windows Package Manager
 **Smart Block Storage**:
 ```bash
 # Dynamic storage scaling
-cws storage create analysis-data --size 100GB --type ebs
-cws storage attach analysis-data workstation-1 /data
+prism storage create analysis-data --size 100GB --type ebs
+prism storage attach analysis-data workstation-1 /data
 # Analyze small dataset on t3.medium
 
-cws storage detach analysis-data workstation-1
-cws storage attach analysis-data gpu-workstation /data  
+prism storage detach analysis-data workstation-1
+prism storage attach analysis-data gpu-workstation /data  
 # Migrate to GPU instance for deep learning
 ```
 
@@ -419,25 +419,25 @@ cws storage attach analysis-data gpu-workstation /data
 **Local-Cloud Synchronization** (Roadmap v0.4.8):
 ```bash
 # Bidirectional real-time sync
-cws sync setup ~/research/genomics workstation:/home/ubuntu/genomics
-cws sync status                    # Real-time sync monitoring
-cws sync resolve conflicts         # AI-assisted conflict resolution
+prism sync setup ~/research/genomics workstation:/home/ubuntu/genomics
+prism sync status                    # Real-time sync monitoring
+prism sync resolve conflicts         # AI-assisted conflict resolution
 
 # Multi-instance collaboration
-cws sync add-instance genomics workstation-2  # Sync across team members
+prism sync add-instance genomics workstation-2  # Sync across team members
 # → Researcher A edits locally, changes synchronize to Researcher B's cloud workstation
 ```
 
 **ObjectFS S3 Integration** (Advanced Vision):
 ```bash
 # POSIX-compliant S3 access with intelligent tiering
-cws storage create-s3 massive-dataset s3://research-bucket
-cws storage mount massive-dataset workstation:/data
+prism storage create-s3 massive-dataset s3://research-bucket
+prism storage mount massive-dataset workstation:/data
 # → Transparent access to petabyte-scale datasets
 # → Automatic cost optimization through S3 Intelligent Tiering
 
 # Global data access
-cws storage replicate massive-dataset --regions us-west-2,eu-west-1,ap-southeast-1
+prism storage replicate massive-dataset --regions us-west-2,eu-west-1,ap-southeast-1
 # → Data follows researchers globally with local access speeds
 ```
 
@@ -456,15 +456,15 @@ cws storage replicate massive-dataset --regions us-west-2,eu-west-1,ap-southeast
 #### **Data Pipeline Integration**:
 ```bash
 # Direct S3 integration for research data
-cws data import s3://research-datasets/genomics-2024/ /data/input
-cws data export /results s3://publication-data/paper-2024/
+prism data import s3://research-datasets/genomics-2024/ /data/input
+prism data export /results s3://publication-data/paper-2024/
 
 # AWS Data Exchange integration
-cws data subscribe "COVID-19 Research Database" --mount /data/covid
+prism data subscribe "COVID-19 Research Database" --mount /data/covid
 # → Direct access to curated research datasets
 
 # Automated data cataloging
-cws data catalog /results --tags "genomics,covid,2024" --doi 10.1234/example
+prism data catalog /results --tags "genomics,covid,2024" --doi 10.1234/example
 # → Automatic metadata generation for data sharing and publication
 ```
 
@@ -473,33 +473,33 @@ cws data catalog /results --tags "genomics,covid,2024" --doi 10.1234/example
 **AWS Batch Integration**:
 ```bash
 # Scale to HPC workloads
-cws batch submit analysis-pipeline --instances 100 --spot
+prism batch submit analysis-pipeline --instances 100 --spot
 # → Automatically launch distributed computing jobs
 # → Cost optimization through spot instance bidding
 
 # Queue monitoring and management
-cws batch status analysis-pipeline
-cws batch results analysis-pipeline --download /local/results
+prism batch status analysis-pipeline
+prism batch results analysis-pipeline --download /local/results
 ```
 
 **ParallelCluster Integration**:
 ```bash
 # On-demand HPC cluster creation
-cws cluster create genomics-hpc --nodes 50 --scheduler slurm
-cws cluster connect genomics-hpc
-# → Traditional HPC interface with CloudWorkstation management
+prism cluster create genomics-hpc --nodes 50 --scheduler slurm
+prism cluster connect genomics-hpc
+# → Traditional HPC interface with Prism management
 
 # Hybrid workflows: interactive analysis + batch processing
-cws launch jupyter-gpu interactive-analysis
-cws cluster submit genomics-hpc batch-processing.slurm
+prism launch jupyter-gpu interactive-analysis
+prism cluster submit genomics-hpc batch-processing.slurm
 ```
 
 **SageMaker Integration**:
 ```bash
 # Machine learning workflow integration
-cws ml training start --instance ml.p3.8xlarge --dataset s3://training-data/
-cws ml model deploy --endpoint research-model-v1
-cws ml inference batch --input /data/test --output /results/predictions
+prism ml training start --instance ml.p3.8xlarge --dataset s3://training-data/
+prism ml model deploy --endpoint research-model-v1
+prism ml inference batch --input /data/test --output /results/predictions
 ```
 
 ### 🔧 Application Settings Synchronization
@@ -510,7 +510,7 @@ cws ml inference batch --input /data/test --output /results/predictions
 
 ```bash
 # Capture complete research environment
-cws settings profile create laptop-config
+prism settings profile create laptop-config
 # → RStudio: packages, themes, shortcuts, project templates
 # → Jupyter: extensions, kernels, CSS, notebook preferences  
 # → VS Code: extensions, settings.json, keybindings, workspace configs
@@ -518,13 +518,13 @@ cws settings profile create laptop-config
 # → Git: global config, SSH keys, GPG signatures
 
 # Intelligent synchronization
-cws settings sync laptop-config cloud-workstation
+prism settings sync laptop-config cloud-workstation
 # → Cross-platform path translation (Windows ↔ Linux ↔ macOS)
 # → Package manager translation (conda ↔ apt ↔ dnf ↔ brew)
 # → Incremental updates and rollback support
 
 # Automatic propagation
-cws settings auto-sync enable
+prism settings auto-sync enable
 # → New instances automatically inherit researcher's preferred configuration
 # → Real-time synchronization of preferences across active environments
 ```
@@ -547,7 +547,7 @@ cws settings auto-sync enable
 
 ### 🔧 Advanced Extensibility Ecosystem
 
-**Vision**: Transform CloudWorkstation into an extensible research platform that adapts to institutional needs, research domains, and emerging technologies.
+**Vision**: Transform Prism into an extensible research platform that adapts to institutional needs, research domains, and emerging technologies.
 
 #### **Auto-AMI System: Lightning-Fast, Security-First**
 
@@ -555,14 +555,14 @@ cws settings auto-sync enable
 
 ```bash
 # Popularity-driven compilation for instant launches
-cws templates auto-ami status
+prism templates auto-ami status
 # Popular Templates (auto-compilation enabled):
 # ├── python-ml: ✓ Compiled (launch time: 30s vs 5min)
 # ├── r-research: ⏳ Queued for tonight (off-peak building)
 # └── deep-learning-gpu: ⚠️ Pending security update (critical)
 
 # Security-driven automatic rebuilds
-cws templates auto-ami security-status
+prism templates auto-ami security-status
 # Critical Updates Available:
 # └── ubuntu-22.04: CVE-2024-1234 (kernel vulnerability)
 #     ├── Affected templates: python-ml, r-research, ubuntu-basic
@@ -582,15 +582,15 @@ cws templates auto-ami security-status
 
 ```bash
 # Install institutional HPC integration
-cws plugin install slurm-integration
+prism plugin install slurm-integration
 # New capabilities:
-# ├── CLI commands: cws slurm submit, cws slurm status
+# ├── CLI commands: prism slurm submit, prism slurm status
 # ├── API endpoints: /api/v1/slurm/jobs
 # ├── Service types: slurm_job templates
 # └── Custom GUI components: SLURM job monitoring panel
 
 # Research analytics plugin
-cws plugin install research-analytics
+prism plugin install research-analytics
 # Advanced capabilities:
 # ├── Usage pattern analysis across research teams
 # ├── Cost optimization recommendations based on historical data
@@ -601,15 +601,15 @@ cws plugin install research-analytics
 **Institutional Examples**:
 ```bash
 # University IT deploys custom authentication
-cws plugin install university-sso-plugin
+prism plugin install university-sso-plugin
 # → Integrated campus credential authentication
 
 # Research lab adds specialized genomics tools
-cws plugin install genomics-pipeline-automation
+prism plugin install genomics-pipeline-automation
 # → Custom bioinformatics workflow integration
 
 # Computing center integrates with existing HPC
-cws plugin install pbs-scheduler-bridge
+prism plugin install pbs-scheduler-bridge
 # → Hybrid cloud-HPC job submission and monitoring
 ```
 
@@ -619,7 +619,7 @@ cws plugin install pbs-scheduler-bridge
 
 ```bash
 # Install university theme with complete branding
-cws gui theme install university-research-theme.cwstheme
+prism gui theme install university-research-theme.cwstheme
 # Applied:
 # ├── University colors and logo throughout interface
 # ├── Custom dashboard layout optimized for research workflows
@@ -627,7 +627,7 @@ cws gui theme install university-research-theme.cwstheme
 # └── Domain-specific quick actions and tool shortcuts
 
 # Switch to enhanced accessibility mode (built-in themes)
-cws gui theme set accessibility-enhanced
+prism gui theme set accessibility-enhanced
 # Enhanced accessibility (extends default universal design):
 # ├── Extra high contrast for severe visual impairments
 # ├── Extra large fonts and simplified layouts
@@ -654,11 +654,11 @@ cws gui theme set accessibility-enhanced
 
 #### **Web Services Integration: Universal Research Tool Platform**
 
-**Template-Driven Integration**: Any web-based research tool becomes a first-class CloudWorkstation service
+**Template-Driven Integration**: Any web-based research tool becomes a first-class Prism service
 
 ```bash
 # Launch custom JupyterHub for research team
-cws launch custom-jupyter-hub research-team
+prism launch custom-jupyter-hub research-team
 # Features:
 # ├── Multi-user Jupyter environment with research libraries
 # ├── EFS integration for shared notebooks and data
@@ -666,7 +666,7 @@ cws launch custom-jupyter-hub research-team
 # └── Cost tracking per user with budget enforcement
 
 # Bioinformatics workflow server
-cws launch galaxy-bioinformatics genomics-analysis
+prism launch galaxy-bioinformatics genomics-analysis
 # Includes:
 # ├── Galaxy workflow engine with pre-configured tools
 # ├── Integration with research databases and pipelines
@@ -688,7 +688,7 @@ cws launch galaxy-bioinformatics genomics-analysis
 
 ```bash
 # Computational biology research suite
-cws plugin install bio-research-suite
+prism plugin install bio-research-suite
 # Adds:
 # ├── BLAST, BWA, GATK integration commands
 # ├── Automatic Bioconductor package management
@@ -696,7 +696,7 @@ cws plugin install bio-research-suite
 # └── Integration with NCBI and EBI databases
 
 # Digital humanities research tools
-cws plugin install digital-humanities-toolkit
+prism plugin install digital-humanities-toolkit
 # Includes:
 # ├── Text mining and NLP workflow integration
 # ├── Network analysis and visualization tools
@@ -707,7 +707,7 @@ cws plugin install digital-humanities-toolkit
 **Enterprise Integration Plugins**:
 ```bash
 # Enterprise identity management
-cws plugin install enterprise-identity-bridge
+prism plugin install enterprise-identity-bridge
 # Features:
 # ├── Active Directory / LDAP integration
 # ├── SAML / OAuth enterprise SSO
@@ -715,7 +715,7 @@ cws plugin install enterprise-identity-bridge
 # └── Role-based access control with audit logging
 
 # Institutional compliance automation
-cws plugin install compliance-automation-suite  
+prism plugin install compliance-automation-suite  
 # Provides:
 # ├── FERPA, HIPAA, GDPR compliance checking
 # ├── Automated audit log generation and retention
@@ -752,8 +752,8 @@ npm run test:accessibility
 # └── Color contrast validation: ✓ PASS (AAA compliance verified)
 
 # Automated VPAT generation
-cws accessibility vpat generate --version 2.4-rev
-# Generated: CloudWorkstation_VPAT_2.4_v0.5.0.pdf
+prism accessibility vpat generate --version 2.4-rev
+# Generated: Prism_VPAT_2.4_v0.5.0.pdf
 # ├── Section 508 compliance: 100% conformant
 # ├── WCAG 2.1 AA compliance: 100% conformant  
 # ├── WCAG 2.1 AAA compliance: 100% conformant
@@ -806,21 +806,21 @@ describe('InstanceCard Accessibility', () => {
 **Manual Testing Integration**:
 ```bash
 # Screen reader testing protocol
-cws dev test-accessibility --screen-reader nvda
+prism dev test-accessibility --screen-reader nvda
 # → Launches NVDA screen reader testing mode
 # → Provides step-by-step testing checklist
 # → Records screen reader navigation patterns
 # → Generates accessibility testing report
 
 # Keyboard navigation testing
-cws dev test-accessibility --keyboard-only
+prism dev test-accessibility --keyboard-only
 # → Disables mouse input for testing session
 # → Highlights current focus indicators
 # → Validates tab order and keyboard shortcuts
 # → Checks for keyboard traps and escape mechanisms
 
 # Color vision testing
-cws dev test-accessibility --color-vision
+prism dev test-accessibility --color-vision
 # → Simulates deuteranopia, protanopia, tritanopia
 # → Validates color contrast in different conditions
 # → Tests color-blind safe palettes
@@ -832,14 +832,14 @@ cws dev test-accessibility --color-vision
 **User Testing with Accessibility Community**:
 ```bash
 # Beta testing program for accessibility
-cws community accessibility-beta join
+prism community accessibility-beta join
 # → Connect with assistive technology users
 # → Early access to new features for testing
 # → Direct feedback channel for accessibility improvements
 # → Community recognition and contribution tracking
 
 # Accessibility feedback integration
-cws feedback accessibility submit --component "template-gallery" --issue "screen-reader-navigation"
+prism feedback accessibility submit --component "template-gallery" --issue "screen-reader-navigation"
 # → Direct integration with development workflow  
 # → Priority routing for accessibility issues
 # → Community voting on accessibility improvements
@@ -849,8 +849,8 @@ cws feedback accessibility submit --component "template-gallery" --issue "screen
 **Accessibility Metrics Dashboard**:
 ```bash
 # Real-time accessibility monitoring
-cws analytics accessibility --dashboard
-# CloudWorkstation Accessibility Metrics:
+prism analytics accessibility --dashboard
+# Prism Accessibility Metrics:
 # ├── WCAG 2.1 AAA Compliance: 100% (847/847 checks passed)
 # ├── Lighthouse Accessibility Score: 100/100 (last 30 builds)
 # ├── Screen Reader Compatibility: 100% (NVDA, JAWS, VoiceOver tested)
@@ -876,14 +876,14 @@ cws analytics accessibility --dashboard
 
 ### 🌐 AWS-Native Research Ecosystem Integration
 
-**Vision**: CloudWorkstation as the unified portal to the complete AWS research computing ecosystem
+**Vision**: Prism as the unified portal to the complete AWS research computing ecosystem
 
 #### **SageMaker Research Platform Integration**
 
 **ML Workflow Integration**:
 ```bash
-# Launch SageMaker Studio with CloudWorkstation management
-cws launch sagemaker-studio ml-research-environment
+# Launch SageMaker Studio with Prism management
+prism launch sagemaker-studio ml-research-environment
 # Integration includes:
 # ├── Unified cost tracking across EC2 and SageMaker
 # ├── Shared EFS storage between instances and Studio
@@ -891,28 +891,28 @@ cws launch sagemaker-studio ml-research-environment
 # └── Project-based budget management and alerts
 
 # No-code ML with SageMaker Canvas
-cws launch sagemaker-canvas business-analytics
+prism launch sagemaker-canvas business-analytics
 # Features:
 # ├── Point-and-click ML model building
 # ├── Integration with institutional data sources
 # ├── Automated model deployment and monitoring
-# └── CloudWorkstation cost and access management
+# └── Prism cost and access management
 ```
 
 #### **HPC and Big Data Integration**
 
 **AWS ParallelCluster Integration**:
 ```bash
-# On-demand HPC cluster with CloudWorkstation simplicity
-cws launch parallelcluster-hpc climate-modeling --nodes 100
+# On-demand HPC cluster with Prism simplicity
+prism launch parallelcluster-hpc climate-modeling --nodes 100
 # Capabilities:
 # ├── Traditional SLURM interface with cloud elasticity
-# ├── Automatic data staging from CloudWorkstation storage
+# ├── Automatic data staging from Prism storage
 # ├── Cost optimization through spot instances and hibernation
 # └── Integration with research user identity and budgets
 
 # EMR Studio for big data analytics
-cws launch emr-studio genomics-big-data
+prism launch emr-studio genomics-big-data
 # Includes:
 # ├── Spark and Hadoop clusters with automatic scaling
 # ├── Jupyter and Zeppelin notebook integration
@@ -925,13 +925,13 @@ cws launch emr-studio genomics-big-data
 **AWS Data Exchange and S3 Integration**:
 ```bash
 # Direct integration with curated research datasets
-cws data subscribe "COVID-19 Research Database" --mount /data/covid
+prism data subscribe "COVID-19 Research Database" --mount /data/covid
 # → Automatic access to updated research datasets
-# → Integrated with CloudWorkstation storage
+# → Integrated with Prism storage
 # → Cost tracking for data access and processing
 
 # Intelligent data lifecycle management
-cws storage optimize --project genomics-study
+prism storage optimize --project genomics-study
 # Automated:
 # ├── Hot data on high-performance storage
 # ├── Warm data automatically tiered to S3 Standard
@@ -941,9 +941,9 @@ cws storage optimize --project genomics-study
 
 ## Cost Optimization: Automated Management
 
-Research budgets are typically constrained, making cost optimization important for sustainable research computing. CloudWorkstation addresses this challenge through automated cost management rather than requiring manual oversight, allowing researchers to focus on their work while the system handles cost optimization. This approach provides proactive cost management that responds to research usage patterns.
+Research budgets are typically constrained, making cost optimization important for sustainable research computing. Prism addresses this challenge through automated cost management rather than requiring manual oversight, allowing researchers to focus on their work while the system handles cost optimization. This approach provides proactive cost management that responds to research usage patterns.
 
-The hibernation system provides cloud cost management that extends beyond traditional instance stopping. Rather than simply terminating instances when they're not in use, CloudWorkstation can hibernate instances, preserving the complete memory state including running processes, open files, and application state. When researchers return to their work, they resume where they left off with applications, data, and computational state intact. This capability provides cost optimization without disrupting work sessions, encouraging cost management without sacrificing productivity.
+The hibernation system provides cloud cost management that extends beyond traditional instance stopping. Rather than simply terminating instances when they're not in use, Prism can hibernate instances, preserving the complete memory state including running processes, open files, and application state. When researchers return to their work, they resume where they left off with applications, data, and computational state intact. This capability provides cost optimization without disrupting work sessions, encouraging cost management without sacrificing productivity.
 
 Automated hibernation policies respond to different research patterns and computational workflows. Machine learning workloads that involve long training runs might hibernate after extended idle periods, while interactive data analysis environments hibernate when researchers step away. The system applies policies based on usage patterns automatically, with researchers maintaining control to override or customize behavior based on specific project requirements. Policy templates for different research domains ensure that optimization strategies align with research workflows.
 
@@ -953,9 +953,9 @@ Dynamic scaling capabilities allow instances to grow and shrink based on workloa
 
 ## Enterprise and Institutional Integration
 
-While CloudWorkstation works well for individual researcher productivity, it scales to support institutional research computing needs without sacrificing the simplicity that makes the platform useful to individual researchers. Enterprise features provide the visibility, control, and compliance capabilities that research institutions require while maintaining the user experience that supports adoption and productive usage.
+While Prism works well for individual researcher productivity, it scales to support institutional research computing needs without sacrificing the simplicity that makes the platform useful to individual researchers. Enterprise features provide the visibility, control, and compliance capabilities that research institutions require while maintaining the user experience that supports adoption and productive usage.
 
-Project-based organization allows research teams to collaborate within defined boundaries while maintaining appropriate access controls and resource allocation. Research grants can be mapped to CloudWorkstation projects with associated budgets, spending limits, and automated alerts that align with grant reporting requirements. Principal investigators can monitor resource usage across their research teams while individual researchers maintain the autonomy needed for productive research work.
+Project-based organization allows research teams to collaborate within defined boundaries while maintaining appropriate access controls and resource allocation. Research grants can be mapped to Prism projects with associated budgets, spending limits, and automated alerts that align with grant reporting requirements. Principal investigators can monitor resource usage across their research teams while individual researchers maintain the autonomy needed for productive research work.
 
 Budget management extends beyond simple spending limits to include policy enforcement that adapts to research realities. Projects approaching budget limits can automatically hibernate non-critical instances while maintaining essential research infrastructure, ensuring continued productivity while respecting financial constraints. Spending alerts escalate through institutional hierarchies according to configurable policies, ensuring appropriate oversight without imposing management overhead that would inhibit research progress.
 
@@ -965,7 +965,7 @@ Audit logging provides the compliance capabilities that institutions require for
 
 ## Security and Network Architecture
 
-Research computing often involves sensitive data and intellectual property that requires security measures without imposing burdensome processes on researchers. CloudWorkstation's security architecture provides protection while maintaining the simplicity and accessibility that makes the platform useful for research computing. Security is integrated into the platform architecture rather than layered on top, providing protection without usability compromises.
+Research computing often involves sensitive data and intellectual property that requires security measures without imposing burdensome processes on researchers. Prism's security architecture provides protection while maintaining the simplicity and accessibility that makes the platform useful for research computing. Security is integrated into the platform architecture rather than layered on top, providing protection without usability compromises.
 
 The planned Wireguard-based tunneling system will eliminate public IP exposure for research instances while maintaining connectivity and performance. Researchers will connect through encrypted VPN tunnels to private AWS subnets, ensuring that research data and computational workloads remain protected from external access. This architecture provides security comparable to institutional VPN systems while maintaining the performance characteristics required for interactive research computing and large data transfers.
 
@@ -982,13 +982,13 @@ Security monitoring and audit capabilities provide continuous oversight of resea
 **Embedded Desktop Access**:
 ```bash
 # One-click desktop connectivity
-cws desktop connect ml-workstation
-# → Launches embedded DCV session within CloudWorkstation dashboard
+prism desktop connect ml-workstation
+# → Launches embedded DCV session within Prism dashboard
 # → Complete Linux desktop (XFCE/GNOME) with pre-configured research tools
 # → Automatic authentication, networking, and session management
 
 # Desktop-optimized templates
-cws launch "Ubuntu Desktop + ML Tools" visual-analysis
+prism launch "Ubuntu Desktop + ML Tools" visual-analysis
 # → RStudio, Jupyter Lab, Paraview, matplotlib with GPU acceleration
 # → Multi-monitor support with dynamic resolution adaptation
 ```
@@ -996,7 +996,7 @@ cws launch "Ubuntu Desktop + ML Tools" visual-analysis
 **Comprehensive Research Dashboard Integration**:
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ CloudWorkstation Research Platform                             │
+│ Prism Research Platform                             │
 ├────────────────────┬───────────────────────────────────────────┤
 │ 🖥️ Embedded Desktop │ 📊 Real-Time Analytics                    │
 │ • DCV Web Client    │ • Resource utilization (CPU/GPU/Memory)   │
@@ -1022,15 +1022,15 @@ cws launch "Ubuntu Desktop + ML Tools" visual-analysis
 **Specialized Research Interfaces**:
 ```bash
 # Domain-specific desktop environments
-cws launch "Bioinformatics Visualization Suite" structure-analysis
+prism launch "Bioinformatics Visualization Suite" structure-analysis
 # → PyMOL, ChimeraX, VMD with high-memory instances
 # → Integrated with protein databases and analysis pipelines
 
-cws launch "Geospatial Analysis Workstation" climate-modeling  
+prism launch "Geospatial Analysis Workstation" climate-modeling  
 # → QGIS, GRASS, R spatial packages with optimized storage
 # → Direct satellite data access and processing capabilities
 
-cws launch "Digital Humanities Studio" text-analysis
+prism launch "Digital Humanities Studio" text-analysis
 # → Gephi, Voyant Tools, R text mining with document databases
 # → Integrated OCR and natural language processing pipelines
 ```
@@ -1056,13 +1056,13 @@ cws launch "Digital Humanities Studio" text-analysis
 **Mobile and Tablet Access**:
 ```bash
 # Responsive desktop scaling
-cws mobile connect ml-workstation --touch-optimized
+prism mobile connect ml-workstation --touch-optimized
 # → Touch-friendly interface adaptations
 # → Gesture-based navigation for tablets
 # → Voice command integration for hands-free operation
 
 # Offline capability preparation
-cws offline sync ~/critical-analysis
+prism offline sync ~/critical-analysis
 # → Local caching of essential data and applications
 # → Automatic resume when connectivity returns
 ```
@@ -1076,13 +1076,13 @@ cws offline sync ~/critical-analysis
 **Real-Time Collaboration**:
 ```bash
 # Live collaborative computing
-cws collaborate start genomics-analysis --members researcher1,researcher2
+prism collaborate start genomics-analysis --members researcher1,researcher2
 # → Shared desktop environment with real-time cursor tracking
 # → Integrated voice/video chat with screen annotation
 # → Granular permission control (view/edit/execute)
 
 # Asynchronous collaboration
-cws handoff genomics-analysis --to researcher2 --message "preprocessed, ready for analysis"
+prism handoff genomics-analysis --to researcher2 --message "preprocessed, ready for analysis"
 # → Automated project transfer with context preservation
 # → Automatic environment state documentation
 ```
@@ -1098,14 +1098,14 @@ cws handoff genomics-analysis --to researcher2 --message "preprocessed, ready fo
 **Distributed Research File System**:
 ```bash
 # Global file system with local performance
-cws fs create research-network --global
-cws fs mount research-network /research
+prism fs create research-network --global
+prism fs mount research-network /research
 # → Single namespace spanning multiple institutions
 # → Local cache with global consistency
 # → Automatic data migration based on access patterns
 
 # Intelligent data placement
-cws fs optimize --project genomics-study
+prism fs optimize --project genomics-study
 # → Analysis identifies researcher access patterns
 # → Automatically places data near compute resources
 # → Predictive pre-loading based on research workflows
@@ -1117,17 +1117,17 @@ cws fs optimize --project genomics-study
 
 ## Cross-Platform Accessibility
 
-Research teams are diverse, with members using different operating systems based on personal preference, institutional standards, or specific research requirements. CloudWorkstation's cross-platform design ensures that team members can participate regardless of their local computing environment, reducing platform-based barriers to collaboration and providing consistent experience across different research environments.
+Research teams are diverse, with members using different operating systems based on personal preference, institutional standards, or specific research requirements. Prism's cross-platform design ensures that team members can participate regardless of their local computing environment, reducing platform-based barriers to collaboration and providing consistent experience across different research environments.
 
-Native Windows support brings complete CloudWorkstation capabilities to researchers in Windows-dominant institutional environments. The platform provides identical functionality on Windows as on macOS and Linux, with native installation experiences that feel natural to Windows users and integrate properly with Windows system management. This includes Windows service integration for the daemon process, native GUI frameworks that follow Windows design guidelines and accessibility standards, and integration with Windows package management systems that align with institutional software deployment practices.
+Native Windows support brings complete Prism capabilities to researchers in Windows-dominant institutional environments. The platform provides identical functionality on Windows as on macOS and Linux, with native installation experiences that feel natural to Windows users and integrate properly with Windows system management. This includes Windows service integration for the daemon process, native GUI frameworks that follow Windows design guidelines and accessibility standards, and integration with Windows package management systems that align with institutional software deployment practices.
 
-Distribution flexibility accommodates different installation preferences and institutional requirements through support for multiple package management ecosystems. Traditional package managers like Homebrew and APT work with alternatives like Conda and platform-specific solutions, ensuring that CloudWorkstation can integrate into existing researcher workflows regardless of their preferred tool ecosystem or institutional software management policies.
+Distribution flexibility accommodates different installation preferences and institutional requirements through support for multiple package management ecosystems. Traditional package managers like Homebrew and APT work with alternatives like Conda and platform-specific solutions, ensuring that Prism can integrate into existing researcher workflows regardless of their preferred tool ecosystem or institutional software management policies.
 
-The platform maintains consistent functionality across all supported platforms while respecting platform-specific conventions and capabilities that users expect. Windows users receive native Windows experiences with familiar interface patterns, macOS users get Mac-like interfaces that integrate with system services, and Linux users get the flexibility and customization options they expect. This approach ensures that CloudWorkstation enhances existing workflows rather than requiring researchers to adapt to unfamiliar interface paradigms.
+The platform maintains consistent functionality across all supported platforms while respecting platform-specific conventions and capabilities that users expect. Windows users receive native Windows experiences with familiar interface patterns, macOS users get Mac-like interfaces that integrate with system services, and Linux users get the flexibility and customization options they expect. This approach ensures that Prism enhances existing workflows rather than requiring researchers to adapt to unfamiliar interface paradigms.
 
 ### 🚀 Market Leadership Strategy
 
-**Vision**: Establish CloudWorkstation as the dominant research computing platform globally, serving individual researchers, institutions, and cloud providers.
+**Vision**: Establish Prism as the dominant research computing platform globally, serving individual researchers, institutions, and cloud providers.
 
 #### **Market Penetration Goals**
 
@@ -1159,7 +1159,7 @@ The platform maintains consistent functionality across all supported platforms w
 **Platform Revenue Streams**:
 - **Template Marketplace**: Revenue sharing with template creators
 - **Professional Services**: Custom template development, migration services
-- **Training and Certification**: CloudWorkstation proficiency programs
+- **Training and Certification**: Prism proficiency programs
 - **API Partnerships**: Integration fees from third-party research tools
 
 ### 🎯 Competitive Differentiation
@@ -1283,7 +1283,7 @@ The platform maintains consistent functionality across all supported platforms w
 #### **Market Impact Validation**:
 - **Research Productivity**: Measure time-to-first-result improvements across domains
 - **Institutional Adoption**: Track enterprise deployment growth and usage patterns
-- **Scientific Impact**: Monitor publications enabled by CloudWorkstation compute access
+- **Scientific Impact**: Monitor publications enabled by Prism compute access
 - **Community Growth**: Open source contributions, template marketplace activity
 
 #### **Business Sustainability Metrics**:
@@ -1296,9 +1296,9 @@ The platform maintains consistent functionality across all supported platforms w
 
 ## Transformative Vision Summary
 
-### 🌟 The CloudWorkstation Revolution
+### 🌟 The Prism Revolution
 
-**From Infrastructure Tool to Research Platform**: CloudWorkstation represents a fundamental shift in how computational research is conducted, moving from individual instance management to comprehensive research ecosystem management.
+**From Infrastructure Tool to Research Platform**: Prism represents a fundamental shift in how computational research is conducted, moving from individual instance management to comprehensive research ecosystem management.
 
 #### **Individual Researcher Transformation**:
 - **Time Reclamation**: From hours of setup to seconds of productivity (auto-AMI system)
@@ -1317,20 +1317,20 @@ The platform maintains consistent functionality across all supported platforms w
 - **Reproducibility Renaissance**: Shareable, version-controlled research environments (template inheritance)
 - **Interdisciplinary Acceleration**: Domain-specific tools accessible across fields (plugin marketplace)
 - **Innovation Democratization**: Advanced computing accessible to all research levels (auto-AMI optimization)
-- **Universal Tool Integration**: Any research tool becomes a CloudWorkstation service (web services framework)
+- **Universal Tool Integration**: Any research tool becomes a Prism service (web services framework)
 - **Open Science Enablement**: Built-in data sharing and collaborative capabilities
 
 ### 🚀 The Future We're Building
 
-**By 2027, CloudWorkstation will be the infinitely extensible research platform enabling breakthrough research across the globe**—from individual graduate students using custom plugins for their specific research domains to multinational institutions deploying branded, compliance-integrated research computing ecosystems.
+**By 2027, Prism will be the infinitely extensible research platform enabling breakthrough research across the globe**—from individual graduate students using custom plugins for their specific research domains to multinational institutions deploying branded, compliance-integrated research computing ecosystems.
 
-**Our Extensibility Commitment**: Every researcher, every institution, every research domain can adapt CloudWorkstation to their exact needs through:
+**Our Extensibility Commitment**: Every researcher, every institution, every research domain can adapt Prism to their exact needs through:
 - **Auto-AMI System**: Lightning-fast launches with automatic security maintenance
 - **Plugin Architecture**: Unlimited customization for any workflow or integration need
 - **GUI Theming**: Complete institutional branding and accessibility compliance
 - **Web Services Integration**: Universal research tool platform capabilities
 
-**The CloudWorkstation Promise**: Research computing that adapts to your needs, provides rapid environment deployment, manages costs transparently, and connects researchers globally through extensive customization capabilities.
+**The Prism Promise**: Research computing that adapts to your needs, provides rapid environment deployment, manages costs transparently, and connects researchers globally through extensive customization capabilities.
 
 ---
 

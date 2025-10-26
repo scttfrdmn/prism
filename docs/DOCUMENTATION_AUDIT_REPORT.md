@@ -1,4 +1,4 @@
-# CloudWorkstation Documentation Audit Report
+# Prism Documentation Audit Report
 ## Features Documented But Not Yet Implemented
 
 **Generated**: October 19, 2025
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This audit identifies **52 documented features** across 7 major categories that are described in CloudWorkstation documentation but not yet fully implemented in the codebase. These features are primarily in:
+This audit identifies **52 documented features** across 7 major categories that are described in Prism documentation but not yet fully implemented in the codebase. These features are primarily in:
 
 1. **Invitation System Security Features** (7 features) - Device binding, batch operations
 2. **Profile Export/Import System** (5 features) - Backup and migration features
@@ -36,7 +36,7 @@ This audit identifies **52 documented features** across 7 major categories that 
 **Promised Features**:
 ```bash
 # Device-bound invitations
-cws profiles invitations create-secure lab-access \
+prism profiles invitations create-secure lab-access \
   --device-bound=true \
   --max-devices=3
 ```
@@ -54,13 +54,13 @@ $ grep -r "create-secure" internal/cli/
 ```
 
 **What's Missing**:
-1. `cws profiles invitations create-secure` command (no CLI handler)
-2. `cws profiles invitations devices` command (list devices)
-3. `cws profiles invitations revoke-device` command
-4. `cws profiles invitations revoke-all` command
+1. `prism profiles invitations create-secure` command (no CLI handler)
+2. `prism profiles invitations devices` command (list devices)
+3. `prism profiles invitations revoke-device` command
+4. `prism profiles invitations revoke-all` command
 5. Device registry S3 backend integration
 6. Keychain integration for device binding (code exists but not wired to CLI)
-7. Device enrollment flow (`cws profiles enroll ENROLLMENT_CODE`)
+7. Device enrollment flow (`prism profiles enroll ENROLLMENT_CODE`)
 
 **Suggested Phase**: **v0.6.1** (Multi-User Authentication & IAM)
 **Priority**: 🟡 **High** - Enterprise security requirement
@@ -75,16 +75,16 @@ $ grep -r "create-secure" internal/cli/
 **Promised Features**:
 ```bash
 # Batch invitation creation
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file invitations.csv \
   --output-file results.csv
 
 # Batch invitation export
-cws profiles invitations batch-export \
+prism profiles invitations batch-export \
   --output-file invitations.csv
 
 # Batch invitation acceptance
-cws profiles invitations batch-accept \
+prism profiles invitations batch-accept \
   --csv-file invitations.csv
 ```
 
@@ -118,13 +118,13 @@ $ grep -r "batch-create\|batch-export\|batch-accept" internal/cli/
 **Promised Features**:
 ```bash
 # Export profiles
-cws profiles export my-profiles.zip
-cws profiles export my-profiles.zip --include-credentials --password "secure"
-cws profiles export --profiles personal,work --format json
+prism profiles export my-profiles.zip
+prism profiles export my-profiles.zip --include-credentials --password "secure"
+prism profiles export --profiles personal,work --format json
 
 # Import profiles
-cws profiles import my-profiles.zip
-cws profiles import --mode skip --import-credentials
+prism profiles import my-profiles.zip
+prism profiles import --mode skip --import-credentials
 ```
 
 **Current Status**:
@@ -159,14 +159,14 @@ $ grep -r "profiles export\|profiles import" internal/cli/export.go
 **Promised Features**:
 ```bash
 # Setup wizard with budget
-cws init  # Interactive setup with budget configuration
+prism init  # Interactive setup with budget configuration
 
 # Budget commands
-cws budget set --monthly 100
-cws budget show
-cws budget status
-cws budget forecast
-cws budget report --month september --pdf
+prism budget set --monthly 100
+prism budget show
+prism budget status
+prism budget forecast
+prism budget report --month september --pdf
 ```
 
 **Current Status**:
@@ -182,10 +182,10 @@ $ grep -r "personal.*budget\|monthly.*budget" pkg/project/
 
 **What's Missing**:
 1. ❌ Personal budget system (separate from project budgets)
-2. ❌ `cws init` wizard with budget setup
+2. ❌ `prism init` wizard with budget setup
 3. ❌ Per-user budget tracking and enforcement
 4. ❌ Budget inheritance (project → personal → instance)
-5. ❌ `cws budget set` command for personal budgets
+5. ❌ `prism budget set` command for personal budgets
 
 **Suggested Phase**: **v0.6.0** (Budget Safety Net - Solo Researcher)
 **Priority**: 🔴 **Critical** - Core solo researcher workflow
@@ -198,11 +198,11 @@ $ grep -r "personal.*budget\|monthly.*budget" pkg/project/
 **Promised Features**:
 ```bash
 # Configure budget alerts
-cws budget set --monthly 100 --alert-email user@example.com
-cws budget alert add --threshold 80 --email user@example.com
+prism budget set --monthly 100 --alert-email user@example.com
+prism budget alert add --threshold 80 --email user@example.com
 
 # Email alerts at thresholds
-# Subject: ⚠️ CloudWorkstation Budget Alert: 80% Used
+# Subject: ⚠️ Prism Budget Alert: 80% Used
 ```
 
 **Current Status**:
@@ -228,7 +228,7 @@ cws budget alert add --threshold 80 --email user@example.com
 
 **Promised Features**:
 ```bash
-cws launch bioinformatics-suite rnaseq-analysis
+prism launch bioinformatics-suite rnaseq-analysis
 
 # Expected output:
 # 📊 Budget Impact Preview
@@ -259,7 +259,7 @@ cws launch bioinformatics-suite rnaseq-analysis
 
 **Promised Features**:
 ```bash
-cws budget forecast
+prism budget forecast
 
 # Output:
 # Current spend: $45.00 (Day 15 of 30)
@@ -275,7 +275,7 @@ cws budget forecast
 - ❌ **MISSING**: Projection calculations
 
 **What's Missing**:
-1. `cws budget forecast` command
+1. `prism budget forecast` command
 2. Time-series cost analysis
 3. ML-based usage prediction
 4. "Can I afford this?" tool
@@ -291,7 +291,7 @@ cws budget forecast
 
 **Promised Features**:
 ```bash
-cws budget report --month september --pdf
+prism budget report --month september --pdf
 
 # Generates PDF with:
 # - Budget vs. actual spend
@@ -306,7 +306,7 @@ cws budget report --month september --pdf
 - ❌ **MISSING**: Monthly aggregation and analytics
 
 **What's Missing**:
-1. `cws budget report` command
+1. `prism budget report` command
 2. PDF generation library integration
 3. Monthly cost aggregation
 4. Automated month-end email reports
@@ -323,7 +323,7 @@ cws budget report --month september --pdf
 **Promised Features**:
 ```bash
 # Launch with auto-termination
-cws launch gpu-ml-workstation protein-folding --hours 8
+prism launch gpu-ml-workstation protein-folding --hours 8
 
 # Output:
 # ✅ Instance will auto-terminate at 11:30 PM tonight
@@ -355,7 +355,7 @@ cws launch gpu-ml-workstation protein-folding --hours 8
 
 **Promised Features**:
 ```bash
-cws course create "CS229-Fall2024" --interactive
+prism course create "CS229-Fall2024" --interactive
 
 # Interactive wizard:
 # - Course details (code, title, dates)
@@ -367,11 +367,11 @@ cws course create "CS229-Fall2024" --interactive
 
 **Current Status**:
 - ❌ **MISSING**: Course management system
-- ❌ **MISSING**: `cws course` command namespace
+- ❌ **MISSING**: `prism course` command namespace
 - ❌ **MISSING**: Course entity separate from projects
 
 **What's Missing**:
-1. `cws course create` command
+1. `prism course create` command
 2. Course data model (extends project)
 3. Semester date tracking
 4. Auto-cleanup scheduling
@@ -388,11 +388,11 @@ cws course create "CS229-Fall2024" --interactive
 **Promised Features**:
 ```bash
 # Create course with approved templates
-cws course create "CS229-Fall2024" \
+prism course create "CS229-Fall2024" \
   --approved-templates "ml-cpu-student,ml-final-project"
 
 # Student tries unapproved template:
-cws launch gpu-ml-workstation homework1
+prism launch gpu-ml-workstation homework1
 # ❌ Launch BLOCKED: Template not approved for CS229-Fall2024
 ```
 
@@ -418,7 +418,7 @@ cws launch gpu-ml-workstation homework1
 **Promised Features**:
 ```bash
 # TA initiates debug session
-cws ta debug ml-hw3 --student sophie.martinez@university.edu
+prism ta debug ml-hw3 --student sophie.martinez@university.edu
 
 # Options:
 # [1] View instance status and logs
@@ -429,20 +429,20 @@ cws ta debug ml-hw3 --student sophie.martinez@university.edu
 ```
 
 **Current Status**:
-- ❌ **MISSING**: `cws ta` command namespace
+- ❌ **MISSING**: `prism ta` command namespace
 - ❌ **MISSING**: TA role and permissions system
 - ❌ **MISSING**: Debug session management
 - ❌ **MISSING**: Session logging for academic integrity
 
 **What's Missing**:
 1. TA role definition in project/course system
-2. `cws ta debug` command
+2. `prism ta debug` command
 3. Temporary SSH access with logging
 4. Read-only Jupyter access
 5. Session recording and audit trail
-6. `cws ta ssh` with automatic logging
-7. `cws ta annotate` for leaving messages
-8. `cws ta reset-instance` for clean slate
+6. `prism ta ssh` with automatic logging
+7. `prism ta annotate` for leaving messages
+8. `prism ta reset-instance` for clean slate
 
 **Suggested Phase**: **v0.8.1** (TA Support Tools)
 **Priority**: 🔴 **Critical** - Makes office hours efficient
@@ -455,24 +455,24 @@ cws ta debug ml-hw3 --student sophie.martinez@university.edu
 **Promised Features**:
 ```bash
 # Import students from Canvas LMS
-cws course import-students "CS229-Fall2024" \
+prism course import-students "CS229-Fall2024" \
   --canvas \
   --course-id 12345
 
 # Import from CSV
-cws project member import "CS229-Fall2024" \
+prism project member import "CS229-Fall2024" \
   --csv students.csv \
   --role member \
   --default-budget 24
 ```
 
 **Current Status**:
-- ⚠️ **PARTIAL**: `cws project member add` exists for individual members
+- ⚠️ **PARTIAL**: `prism project member add` exists for individual members
 - ❌ **MISSING**: Bulk CSV import
 - ❌ **MISSING**: Canvas LMS integration
 
 **What's Missing**:
-1. `cws project member import` command
+1. `prism project member import` command
 2. CSV parsing and validation
 3. Bulk SSH key generation
 4. Welcome email automation
@@ -489,7 +489,7 @@ cws project member import "CS229-Fall2024" \
 **Promised Features**:
 ```bash
 # Course with auto-end date
-cws course create "CS229-Fall2024" \
+prism course create "CS229-Fall2024" \
   --end-date "2024-12-13" \
   --auto-stop-instances \
   --revoke-access \
@@ -528,7 +528,7 @@ cws course create "CS229-Fall2024" \
 **Promised Features**:
 ```bash
 # Check for plagiarism between students
-cws ta audit \
+prism ta audit \
   --students emily.chen@university.edu,david.kim@university.edu \
   --timeframe "2024-10-15 to 2024-10-20" \
   --assignment hw5
@@ -547,7 +547,7 @@ cws ta audit \
 - ❌ **MISSING**: Plagiarism detection tools
 
 **What's Missing**:
-1. `cws ta audit` command
+1. `prism ta audit` command
 2. Instance command logging
 3. File modification tracking
 4. SSH session recording
@@ -565,7 +565,7 @@ cws ta audit \
 **Promised Features**:
 ```bash
 # TA views all students in course
-cws ta dashboard "CS229-Fall2024"
+prism ta dashboard "CS229-Fall2024"
 
 # Shows:
 # - List of all students
@@ -576,7 +576,7 @@ cws ta dashboard "CS229-Fall2024"
 ```
 
 **Current Status**:
-- ❌ **MISSING**: `cws ta dashboard` command
+- ❌ **MISSING**: `prism ta dashboard` command
 - ❌ **MISSING**: TUI/GUI TA interface
 - ❌ **MISSING**: Student activity monitoring
 
@@ -598,7 +598,7 @@ cws ta dashboard "CS229-Fall2024"
 **Promised Features**:
 ```bash
 # Upload shared course materials
-cws course upload-materials "CS229-Fall2024" \
+prism course upload-materials "CS229-Fall2024" \
   --source ~/CS229-Materials/ \
   --destination /datasets
 
@@ -612,7 +612,7 @@ cws course upload-materials "CS229-Fall2024" \
 - ❌ **MISSING**: Bulk file upload command
 
 **What's Missing**:
-1. `cws course upload-materials` command
+1. `prism course upload-materials` command
 2. Shared read-only EFS for courses
 3. Bulk file upload with progress
 4. Automatic mounting to student instances
@@ -628,9 +628,9 @@ cws course upload-materials "CS229-Fall2024" \
 **Promised Features**:
 ```bash
 # Sync with Canvas LMS
-cws course import-students --canvas --course-id 12345
-cws course sync-grades "CS229-Fall2024"
-cws course sync-due-dates
+prism course import-students --canvas --course-id 12345
+prism course sync-grades "CS229-Fall2024"
+prism course sync-due-dates
 ```
 
 **Current Status**:
@@ -658,7 +658,7 @@ cws course sync-due-dates
 **Promised Features**:
 ```bash
 # Create 3-hour workshop
-cws workshop create "AWS-MLOps-Tutorial" \
+prism workshop create "AWS-MLOps-Tutorial" \
   --date 2024-11-15 \
   --duration 3h \
   --max-participants 50 \
@@ -666,11 +666,11 @@ cws workshop create "AWS-MLOps-Tutorial" \
   --access-code "MLOPS2024"
 
 # Participants join via code
-cws workshop join --code MLOPS2024
+prism workshop join --code MLOPS2024
 ```
 
 **Current Status**:
-- ❌ **MISSING**: `cws workshop` command namespace
+- ❌ **MISSING**: `prism workshop` command namespace
 - ❌ **MISSING**: Workshop entity (time-limited project)
 - ❌ **MISSING**: Access code system
 
@@ -692,7 +692,7 @@ cws workshop join --code MLOPS2024
 **Promised Features**:
 ```bash
 # TA resets broken student instance
-cws ta reset-instance ml-hw4 \
+prism ta reset-instance ml-hw4 \
   --student sophie.martinez@university.edu
 
 # Actions:
@@ -708,7 +708,7 @@ cws ta reset-instance ml-hw4 \
 - ❌ **MISSING**: TA permission to reset student instances
 
 **What's Missing**:
-1. `cws ta reset-instance` command
+1. `prism ta reset-instance` command
 2. Selective file backup (preserve homework, discard environment)
 3. Instance recreation from template
 4. File restoration logic
@@ -725,12 +725,12 @@ cws ta reset-instance ml-hw4 \
 **Promised Features**:
 ```bash
 # Course with per-student budget
-cws course create "CS229-Fall2024" \
+prism course create "CS229-Fall2024" \
   --total-budget 1200 \
   --budget-per-student 24
 
 # Student sees their individual budget
-emily@laptop:~$ cws budget status
+emily@laptop:~$ prism budget status
 # Your budget: $12 / $24 (50%)
 ```
 
@@ -760,12 +760,12 @@ emily@laptop:~$ cws budget status
 **Promised Features**:
 ```bash
 # Create profile with template restrictions
-cws profiles create lab-profile \
+prism profiles create lab-profile \
   --template-whitelist "python-basic,r-basic" \
   --template-blacklist "gpu-ml"
 
 # Launch with policy enforcement
-cws launch gpu-ml-workstation test
+prism launch gpu-ml-workstation test
 # ❌ Error: Template 'gpu-ml-workstation' not allowed by profile policy
 ```
 
@@ -791,11 +791,11 @@ cws launch gpu-ml-workstation test
 **Promised Features**:
 ```bash
 # Limit instance types
-cws profile create restricted \
+prism profile create restricted \
   --max-instance-types "t3.medium,t3.large"
 
 # Policy check at launch
-cws launch python-ml my-project --instance-type c5.4xlarge
+prism launch python-ml my-project --instance-type c5.4xlarge
 # ❌ Error: Instance type 'c5.4xlarge' exceeds profile limits
 ```
 
@@ -821,10 +821,10 @@ cws launch python-ml my-project --instance-type c5.4xlarge
 **Promised Features**:
 ```bash
 # Restrict to specific regions
-cws profile create regional \
+prism profile create regional \
   --allowed-regions "us-west-2,us-east-1"
 
-cws launch python-ml my-project --region eu-west-1
+prism launch python-ml my-project --region eu-west-1
 # ❌ Error: Region 'eu-west-1' not allowed by profile policy
 ```
 
@@ -848,12 +848,12 @@ cws launch python-ml my-project --region eu-west-1
 **Promised Features**:
 ```bash
 # Set cost limits per profile
-cws profile create cost-limited \
+prism profile create cost-limited \
   --max-hourly-cost 0.20 \
   --max-daily-budget 5.00
 
 # Launch blocked by cost limit
-cws launch gpu-ml-workstation expensive
+prism launch gpu-ml-workstation expensive
 # ❌ Error: Estimated cost $24.80/day exceeds limit $5.00/day
 ```
 
@@ -1003,22 +1003,22 @@ const (
 **Promised Features**:
 ```bash
 # Compile template to AMI
-cws templates compile python-ml \
+prism templates compile python-ml \
   --regions us-west-2,eu-west-1 \
   --architectures x86_64,arm64
 
 # Check compilation status
-cws templates compile status python-ml
+prism templates compile status python-ml
 ```
 
 **Current Status**:
 - ⚠️ **PARTIAL**: AMI-related code exists (`pkg/ami/`, `pkg/aws/ami_*.go`)
-- ❌ **MISSING**: `cws templates compile` command
+- ❌ **MISSING**: `prism templates compile` command
 - ❌ **MISSING**: Template-to-AMI build pipeline
 - ❌ **MISSING**: Multi-region AMI distribution
 
 **What's Missing**:
-1. `cws templates compile` command
+1. `prism templates compile` command
 2. EC2 Image Builder integration
 3. Packer-based template compilation
 4. Multi-region AMI copying
@@ -1073,7 +1073,7 @@ precompiled_amis:
 **Promised Features**:
 ```bash
 # AMI inherits source template policies
-cws launch python-ml-compiled my-homework
+prism launch python-ml-compiled my-homework
 
 # Policy check:
 # → Source template 'python-ml' is in whitelist ✓
@@ -1164,7 +1164,7 @@ policy_metadata:
 
 **Promised Features**:
 ```bash
-cws templates info python-ml-compiled
+prism templates info python-ml-compiled
 
 # Output:
 # Template: Python Machine Learning (Compiled)
@@ -1177,7 +1177,7 @@ cws templates info python-ml-compiled
 ```
 
 **Current Status**:
-- ✅ **EXISTS**: `cws templates info` command
+- ✅ **EXISTS**: `prism templates info` command
 - ❌ **MISSING**: AMI-specific information display
 - ❌ **MISSING**: Compilation status tracking
 
@@ -1222,7 +1222,7 @@ func (s *Server) handleDCVProxy(w http.ResponseWriter, r *http.Request) {
 1. DCV template examples
 2. DCV server installation scripts
 3. DCV authentication integration
-4. `cws dcv` CLI commands
+4. `prism dcv` CLI commands
 5. GUI interface for DCV access
 
 **Suggested Phase**: **v0.8.0** (Web Services Integration)
@@ -1236,10 +1236,10 @@ func (s *Server) handleDCVProxy(w http.ResponseWriter, r *http.Request) {
 **Promised Features**:
 ```bash
 # Launch desktop workstation
-cws launch ubuntu-desktop my-desktop
+prism launch ubuntu-desktop my-desktop
 
 # Access via DCV
-cws dcv connect my-desktop
+prism dcv connect my-desktop
 ```
 
 **Current Status**:
@@ -1264,13 +1264,13 @@ cws dcv connect my-desktop
 **Promised Features**:
 ```bash
 # DCV management
-cws dcv start my-instance
-cws dcv connect my-instance
-cws dcv status my-instance
+prism dcv start my-instance
+prism dcv connect my-instance
+prism dcv status my-instance
 ```
 
 **Current Status**:
-- ❌ **MISSING**: `cws dcv` command namespace
+- ❌ **MISSING**: `prism dcv` command namespace
 - ❌ **MISSING**: DCV lifecycle management
 
 **What's Missing**:
@@ -1426,7 +1426,7 @@ Revise persona walkthroughs to show:
 
 ## Conclusion
 
-CloudWorkstation has **excellent documentation** that describes a comprehensive, enterprise-ready research platform. However, **approximately 52 features** (30-40% of documented functionality) are not yet implemented.
+Prism has **excellent documentation** that describes a comprehensive, enterprise-ready research platform. However, **approximately 52 features** (30-40% of documented functionality) are not yet implemented.
 
 **Key Gaps**:
 1. **Personal Budget Management** - Critical for solo researchers

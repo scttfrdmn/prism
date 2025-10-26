@@ -1,8 +1,8 @@
-# CloudWorkstation Development Plan: AWS-Native Research Ecosystem & Extensibility
+# Prism Development Plan: AWS-Native Research Ecosystem & Extensibility
 
 ## Overview
 
-This comprehensive development plan transforms CloudWorkstation from an EC2 launcher into a unified **Research Portal for AWS** with full extensibility capabilities, providing seamless access to the complete AWS research ecosystem while maintaining enterprise-grade governance and cost control.
+This comprehensive development plan transforms Prism from an EC2 launcher into a unified **Research Portal for AWS** with full extensibility capabilities, providing seamless access to the complete AWS research ecosystem while maintaining enterprise-grade governance and cost control.
 
 ## Release Structure
 
@@ -67,8 +67,8 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 **Files to modify**: `pkg/templates/resolver.go`, `internal/cli/app.go`, `pkg/daemon/instance_handlers.go`
 
 #### **Task 2.2: Enhanced Profile Management**
-- [ ] Update `cws profiles current` to display active policy restrictions
-- [ ] Add `cws templates list --profile-filtered` command
+- [ ] Update `prism profiles current` to display active policy restrictions
+- [ ] Add `prism templates list --profile-filtered` command
 - [ ] Create policy violation explanations in CLI output
 - [ ] Add policy override capability for admin users
 - [ ] Update profile validation to check policy consistency
@@ -76,8 +76,8 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 **Files to modify**: `internal/cli/profiles.go`, `internal/cli/templates.go`
 
 #### **Task 2.3: Policy Management Interface**
-- [ ] Add `cws profiles policy show` command to display current restrictions
-- [ ] Create `cws profiles policy test` command to validate launch parameters
+- [ ] Add `prism profiles policy show` command to display current restrictions
+- [ ] Create `prism profiles policy test` command to validate launch parameters
 - [ ] Add policy inheritance display for invitation chains
 - [ ] Update TUI to show policy restrictions in profile pages
 - [ ] Add GUI policy display in profile management tab
@@ -107,7 +107,7 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 #### **Task 3.3: EFS Integration Enhancement**  
 - [ ] Update EFS mounting to use research user identity
 - [ ] Create research user home directory on EFS mount
-- [ ] Add research user to `cloudworkstation-shared` group automatically
+- [ ] Add research user to `prism-shared` group automatically
 - [ ] Update permission structure for research user access
 - [ ] Test cross-instance sharing with research users
 
@@ -138,7 +138,7 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 
 #### **Task 4.2: SageMaker Domain Management**
 - [ ] Implement SageMaker domain creation and management
-- [ ] Add VPC integration with CloudWorkstation-managed networking
+- [ ] Add VPC integration with Prism-managed networking
 - [ ] Create execution role management with appropriate permissions
 - [ ] Add EFS integration for shared storage access
 - [ ] Implement domain cleanup and resource management
@@ -155,9 +155,9 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 **Files to create**: `templates/sagemaker-studio-lab.yml`, `templates/sagemaker-studio.yml`
 
 #### **Task 4.4: CLI Integration**
-- [ ] Update `cws launch` command to handle web services
-- [ ] Add web URL display in `cws list` and `cws info` commands
-- [ ] Create `cws connect` command with web browser launch
+- [ ] Update `prism launch` command to handle web services
+- [ ] Add web URL display in `prism list` and `prism info` commands
+- [ ] Create `prism connect` command with web browser launch
 - [ ] Add SageMaker-specific status information
 - [ ] Update cost tracking to include SageMaker charges
 
@@ -328,7 +328,7 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 **Files to modify**: `pkg/templates/types.go`, `pkg/templates/compiler.go` (new)
 
 #### **Task 10.3: CLI Integration for Auto-AMI**
-- [ ] Add `cws templates auto-ami` command group
+- [ ] Add `prism templates auto-ami` command group
 - [ ] Implement compilation status monitoring and control commands
 - [ ] Create security update notification and management interface
 - [ ] Add emergency compilation capabilities for critical updates
@@ -425,7 +425,7 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 
 #### **Task 13.3: Web Service CLI Integration**
 - [ ] Add web service launch and management commands
-- [ ] Implement `cws connect` command for browser launching
+- [ ] Implement `prism connect` command for browser launching
 - [ ] Create web service status and health monitoring
 - [ ] Add web service logs and debugging capabilities
 - [ ] Implement unified listing for EC2 and web services
@@ -489,4 +489,4 @@ This comprehensive development plan transforms CloudWorkstation from an EC2 laun
 - **Theme Complexity**: Start with simple institutional branding before advanced customization
 - **Integration Complexity**: Focus on popular web services (Jupyter, RStudio) first
 
-This development plan transforms CloudWorkstation from an EC2 launcher into the comprehensive "Research Portal for AWS" with full extensibility capabilities while maintaining the simplicity and enterprise governance that makes it valuable for academic institutions.
+This development plan transforms Prism from an EC2 launcher into the comprehensive "Research Portal for AWS" with full extensibility capabilities while maintaining the simplicity and enterprise governance that makes it valuable for academic institutions.
