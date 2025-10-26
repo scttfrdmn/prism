@@ -13,7 +13,7 @@ import (
 func TestDefaultPerformanceOptions(t *testing.T) {
 	opts := DefaultPerformanceOptions()
 
-	assert.Equal(t, 30*time.Second, opts.Timeout)
+	assert.Equal(t, 60*time.Second, opts.Timeout)
 	assert.Equal(t, 10, opts.MaxConnections)
 	assert.Equal(t, 30*time.Second, opts.KeepAlive)
 	assert.Equal(t, 3, opts.RequestRetries)
