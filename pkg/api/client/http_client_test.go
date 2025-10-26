@@ -22,7 +22,7 @@ func TestNewClient(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.Equal(t, baseURL, client.baseURL)
 	assert.NotNil(t, client.httpClient)
-	assert.Equal(t, 30*time.Second, client.httpClient.Timeout)
+	assert.Equal(t, 60*time.Second, client.httpClient.Timeout)
 }
 
 // TestNewClientWithOptions tests client creation with options
