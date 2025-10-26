@@ -79,9 +79,9 @@ func TestSSHConnectivity(t *testing.T) {
 		require.NoError(t, err)
 		defer session.Close()
 
-		output, err := session.Output("echo 'Hello CloudWorkstation'")
+		output, err := session.Output("echo 'Hello Prism'")
 		assert.NoError(t, err)
-		assert.Contains(t, string(output), "Hello CloudWorkstation")
+		assert.Contains(t, string(output), "Hello Prism")
 	})
 }
 
@@ -334,7 +334,7 @@ func TestSSHFileTransfer(t *testing.T) {
 
 	// Create test file
 	testFile := filepath.Join(tmpDir, "test.txt")
-	testContent := []byte("CloudWorkstation SSH Test File")
+	testContent := []byte("Prism SSH Test File")
 	err = os.WriteFile(testFile, testContent, 0644)
 	require.NoError(t, err)
 

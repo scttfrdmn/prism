@@ -3,7 +3,7 @@
 // ARCHITECTURE NOTE: This file contains backup and restore command business logic.
 // These commands are registered in root_command.go and called directly from the CLI.
 //
-// This follows CloudWorkstation's command architecture pattern:
+// This follows Prism's command architecture pattern:
 //   - Single-layer implementation for straightforward operations
 //   - Direct integration with root command structure
 //   - API-driven operations with consistent error handling
@@ -18,7 +18,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // BackupCommands handles data backup and restore management operations (implementation layer)
@@ -79,7 +79,7 @@ func (bc *BackupCommands) Restore(args []string) error {
 
 	switch action {
 	case "restore":
-		// Handle both "cws restore backup-name instance-name" and "cws restore restore backup-name instance-name"
+		// Handle both "prism restore backup-name instance-name" and "prism restore restore backup-name instance-name"
 		if len(args) >= 2 {
 			return bc.restoreFromBackup(args)
 		}
@@ -1033,7 +1033,7 @@ func (bc *BackupCommands) showRestoreUsage() error {
 
 // getBackupUsageText returns the backup usage text
 func (bc *BackupCommands) getBackupUsageText() string {
-	return `Usage: cws backup <action> [arguments]
+	return `Usage: prism backup <action> [arguments]
 
 Actions:
   create <workspace> <backup-name> [options]    Create a data backup from workspace
@@ -1092,7 +1092,7 @@ Cost Information:
 
 // getRestoreUsageText returns the restore usage text
 func (bc *BackupCommands) getRestoreUsageText() string {
-	return `Usage: cws restore <backup-name> <target-instance> [options]
+	return `Usage: prism restore <backup-name> <target-instance> [options]
        cws restore <action> [arguments]
 
 Direct Restore:

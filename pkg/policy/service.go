@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-// Service provides policy enforcement for CloudWorkstation
+// Service provides policy enforcement for Prism
 type Service struct {
 	manager *Manager
 	enabled bool

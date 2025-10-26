@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/api"
 )
 
 // TestTUIAppInitialization tests that the TUI app initializes correctly

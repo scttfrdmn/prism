@@ -1,4 +1,4 @@
-// Package types provides CloudWorkstation's core type definitions.
+// Package types provides Prism's core type definitions.
 //
 // This package is organized into logical modules:
 //   - runtime.go: Instance and template runtime definitions

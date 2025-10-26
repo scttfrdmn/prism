@@ -11,7 +11,7 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly APP_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"  # From Resources/scripts to app root
 readonly MACOS_DIR="$APP_DIR/Contents/MacOS"
 readonly INSTALL_DIR="/usr/local/bin"
-readonly CLOUDWORKSTATION_DIR="$HOME/.cloudworkstation"
+readonly PRISM_DIR="$HOME/.cloudworkstation"
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -188,15 +188,15 @@ create_app_directories() {
     log_info "Creating application directories..."
     
     # Create main config directory
-    mkdir -p "$CLOUDWORKSTATION_DIR"
-    mkdir -p "$CLOUDWORKSTATION_DIR/profiles"
-    mkdir -p "$CLOUDWORKSTATION_DIR/templates"
-    mkdir -p "$CLOUDWORKSTATION_DIR/logs"
-    mkdir -p "$CLOUDWORKSTATION_DIR/cache"
+    mkdir -p "$PRISM_DIR"
+    mkdir -p "$PRISM_DIR/profiles"
+    mkdir -p "$PRISM_DIR/templates"
+    mkdir -p "$PRISM_DIR/logs"
+    mkdir -p "$PRISM_DIR/cache"
     
     # Set appropriate permissions
-    chmod 755 "$CLOUDWORKSTATION_DIR"
-    chmod 700 "$CLOUDWORKSTATION_DIR/profiles"  # Sensitive AWS credentials
+    chmod 755 "$PRISM_DIR"
+    chmod 700 "$PRISM_DIR/profiles"  # Sensitive AWS credentials
     
     log_success "Application directories created"
 }
@@ -234,13 +234,13 @@ install_launch_agent() {
     <true/>
     
     <key>WorkingDirectory</key>
-    <string>$CLOUDWORKSTATION_DIR</string>
+    <string>$PRISM_DIR</string>
     
     <key>StandardErrorPath</key>
-    <string>$CLOUDWORKSTATION_DIR/logs/daemon.log</string>
+    <string>$PRISM_DIR/logs/daemon.log</string>
     
     <key>StandardOutPath</key>
-    <string>$CLOUDWORKSTATION_DIR/logs/daemon.log</string>
+    <string>$PRISM_DIR/logs/daemon.log</string>
     
     <key>EnvironmentVariables</key>
     <dict>
@@ -270,7 +270,7 @@ copy_templates() {
     log_info "Copying templates to user directory..."
     
     local templates_source="$APP_DIR/Contents/Resources/templates"
-    local templates_dest="$CLOUDWORKSTATION_DIR/templates"
+    local templates_dest="$PRISM_DIR/templates"
     
     if [[ -d "$templates_source" ]]; then
         cp -r "$templates_source"/* "$templates_dest/" 2>/dev/null || {
@@ -336,7 +336,7 @@ verify_installation() {
     fi
     
     # Check directories
-    if [[ -d "$CLOUDWORKSTATION_DIR" ]]; then
+    if [[ -d "$PRISM_DIR" ]]; then
         log_success "Application directories created"
     else
         log_error "Application directories not found"

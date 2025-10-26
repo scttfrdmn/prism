@@ -226,7 +226,7 @@ detect_installation() {
         if brew list cloudworkstation >/dev/null 2>&1; then
             installation_type="homebrew"
             binary_locations+=("$(brew --prefix)/bin/cws")
-            binary_locations+=("$(brew --prefix)/bin/cwsd")
+            binary_locations+=("$(brew --prefix)/bin/prismd")
         fi
     fi
     
@@ -244,12 +244,12 @@ detect_installation() {
     fi
     
     # Check source installation in project directory
-    if [[ -x "$PROJECT_ROOT/bin/cws" ]] || [[ -x "$PROJECT_ROOT/bin/cwsd" ]]; then
+    if [[ -x "$PROJECT_ROOT/bin/cws" ]] || [[ -x "$PROJECT_ROOT/bin/prismd" ]]; then
         if [[ "$installation_type" == "none" ]]; then
             installation_type="source"
         fi
         [[ -x "$PROJECT_ROOT/bin/cws" ]] && binary_locations+=("$PROJECT_ROOT/bin/cws")
-        [[ -x "$PROJECT_ROOT/bin/cwsd" ]] && binary_locations+=("$PROJECT_ROOT/bin/cwsd")
+        [[ -x "$PROJECT_ROOT/bin/prismd" ]] && binary_locations+=("$PROJECT_ROOT/bin/prismd")
     fi
     
     echo "$installation_type"

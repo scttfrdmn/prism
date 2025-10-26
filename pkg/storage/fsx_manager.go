@@ -9,7 +9,7 @@ import (
 	fsxTypes "github.com/aws/aws-sdk-go-v2/service/fsx/types"
 )
 
-// FSxManager handles Amazon FSx operations for CloudWorkstation
+// FSxManager handles Amazon FSx operations for Prism
 type FSxManager struct {
 	fsxClient *fsx.Client
 	region    string
@@ -46,7 +46,7 @@ func (m *FSxManager) CreateFSxFilesystem(req StorageRequest) (*StorageInfo, erro
 	}
 }
 
-// ListFSxFilesystems lists all CloudWorkstation FSx filesystems
+// ListFSxFilesystems lists all Prism FSx filesystems
 func (m *FSxManager) ListFSxFilesystems() ([]StorageInfo, error) {
 	ctx := context.Background()
 
@@ -58,19 +58,19 @@ func (m *FSxManager) ListFSxFilesystems() ([]StorageInfo, error) {
 
 	var storageInfos []StorageInfo
 	for _, fs := range result.FileSystems {
-		// Check if this is a CloudWorkstation filesystem by checking tags
-		isCloudWorkstation := false
+		// Check if this is a Prism filesystem by checking tags
+		isPrism := false
 		for _, tag := range fs.Tags {
 			if tag.Key != nil && *tag.Key == "ManagedBy" {
-				if tag.Value != nil && *tag.Value == "CloudWorkstation" {
-					isCloudWorkstation = true
+				if tag.Value != nil && *tag.Value == "Prism" {
+					isPrism = true
 					break
 				}
 			}
 		}
 
-		// Only include CloudWorkstation-managed filesystems
-		if !isCloudWorkstation {
+		// Only include Prism-managed filesystems
+		if !isPrism {
 			continue
 		}
 
@@ -179,7 +179,7 @@ func (m *FSxManager) createLustreFilesystem(ctx context.Context, req StorageRequ
 		LustreConfiguration: lustreConfig,
 		Tags: []fsxTypes.Tag{
 			{Key: aws.String("Name"), Value: aws.String(req.Name)},
-			{Key: aws.String("ManagedBy"), Value: aws.String("CloudWorkstation")},
+			{Key: aws.String("ManagedBy"), Value: aws.String("Prism")},
 		},
 	}
 
@@ -225,7 +225,7 @@ func (m *FSxManager) createOpenZFSFilesystem(ctx context.Context, req StorageReq
 		OpenZFSConfiguration: zfsConfig,
 		Tags: []fsxTypes.Tag{
 			{Key: aws.String("Name"), Value: aws.String(req.Name)},
-			{Key: aws.String("ManagedBy"), Value: aws.String("CloudWorkstation")},
+			{Key: aws.String("ManagedBy"), Value: aws.String("Prism")},
 		},
 	}
 
@@ -273,7 +273,7 @@ func (m *FSxManager) createWindowsFilesystem(ctx context.Context, req StorageReq
 		WindowsConfiguration: windowsConfig,
 		Tags: []fsxTypes.Tag{
 			{Key: aws.String("Name"), Value: aws.String(req.Name)},
-			{Key: aws.String("ManagedBy"), Value: aws.String("CloudWorkstation")},
+			{Key: aws.String("ManagedBy"), Value: aws.String("Prism")},
 		},
 	}
 
@@ -316,7 +316,7 @@ func (m *FSxManager) createNetAppFilesystem(ctx context.Context, req StorageRequ
 		OntapConfiguration: ontapConfig,
 		Tags: []fsxTypes.Tag{
 			{Key: aws.String("Name"), Value: aws.String(req.Name)},
-			{Key: aws.String("ManagedBy"), Value: aws.String("CloudWorkstation")},
+			{Key: aws.String("ManagedBy"), Value: aws.String("Prism")},
 		},
 	}
 

@@ -99,7 +99,7 @@ func getConfigPath() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		// Fall back to current directory
-		return ".cloudworkstation"
+		return ".prism"
 	}
-	return filepath.Join(homeDir, ".cloudworkstation")
+	return filepath.Join(homeDir, ".prism")
 }

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+	"github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 // StabilityManager manages daemon stability, memory, and error recovery

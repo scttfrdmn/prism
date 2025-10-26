@@ -6,9 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
 // SettingsModel represents the settings view
@@ -24,7 +24,7 @@ type SettingsModel struct {
 // NewSettingsModel creates a new settings model
 func NewSettingsModel(apiClient apiClient) SettingsModel {
 	// Create status bar
-	statusBar := components.NewStatusBar("CloudWorkstation Settings", "")
+	statusBar := components.NewStatusBar("Prism Settings", "")
 
 	return SettingsModel{
 		apiClient:    apiClient,
@@ -92,7 +92,7 @@ func (m SettingsModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Settings")
+	title := theme.Title.Render("Prism Settings")
 
 	// Build settings content
 	var content string

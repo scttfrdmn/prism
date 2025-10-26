@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Configuration
 readonly INSTALL_DIR="/usr/local/bin"
-readonly CLOUDWORKSTATION_DIR="$HOME/.cloudworkstation"
+readonly PRISM_DIR="$HOME/.cloudworkstation"
 readonly LAUNCH_AGENT_PLIST="$HOME/Library/LaunchAgents/com.cloudworkstation.daemon.plist"
 readonly APP_APPLICATIONS="/Applications/CloudWorkstation.app"
 readonly DESKTOP_SHORTCUT="$HOME/Desktop/CloudWorkstation.command"
@@ -223,8 +223,8 @@ remove_user_data() {
     local removed_items=()
     
     # Remove CloudWorkstation directory
-    if [[ -d "$CLOUDWORKSTATION_DIR" ]]; then
-        rm -rf "$CLOUDWORKSTATION_DIR"
+    if [[ -d "$PRISM_DIR" ]]; then
+        rm -rf "$PRISM_DIR"
         removed_items+=(".cloudworkstation directory")
     fi
     
@@ -315,7 +315,7 @@ verify_removal() {
         remaining_items+=("LaunchAgent")
     fi
     
-    if [[ "$KEEP_USER_DATA" == false ]] && [[ -d "$CLOUDWORKSTATION_DIR" ]]; then
+    if [[ "$KEEP_USER_DATA" == false ]] && [[ -d "$PRISM_DIR" ]]; then
         remaining_items+=("User data")
     fi
     
@@ -424,7 +424,7 @@ Thank you for using CloudWorkstation!"
     if [[ "$COMPLETE_REMOVAL" == true ]] || ([[ "$KEEP_USER_DATA" == false ]] && [[ "$?" == 0 ]]); then
         echo "• User data: Removed"
     else
-        echo "• User data: Preserved in $CLOUDWORKSTATION_DIR"
+        echo "• User data: Preserved in $PRISM_DIR"
     fi
     echo ""
     echo "To reinstall CloudWorkstation, download the latest DMG from:"

@@ -10,7 +10,7 @@ import (
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-// S3Manager handles S3 mount point operations for CloudWorkstation
+// S3Manager handles S3 mount point operations for Prism
 type S3Manager struct {
 	s3Client *s3.Client
 	region   string
@@ -65,7 +65,7 @@ func (m *S3Manager) CreateS3MountPoint(req StorageRequest) (*StorageInfo, error)
 	return storageInfo, nil
 }
 
-// ListS3MountPoints lists all CloudWorkstation S3 buckets
+// ListS3MountPoints lists all Prism S3 buckets
 func (m *S3Manager) ListS3MountPoints() ([]StorageInfo, error) {
 	ctx := context.Background()
 
@@ -76,15 +76,15 @@ func (m *S3Manager) ListS3MountPoints() ([]StorageInfo, error) {
 
 	var storageInfos []StorageInfo
 	for _, bucket := range result.Buckets {
-		// Check if this is a CloudWorkstation bucket by checking tags
-		isCloudWorkstationBucket, err := m.isCloudWorkstationBucket(ctx, *bucket.Name)
+		// Check if this is a Prism bucket by checking tags
+		isPrismBucket, err := m.isPrismBucket(ctx, *bucket.Name)
 		if err != nil {
 			// Log error but continue with other buckets
 			continue
 		}
 
-		// Only include CloudWorkstation-managed buckets
-		if !isCloudWorkstationBucket {
+		// Only include Prism-managed buckets
+		if !isPrismBucket {
 			continue
 		}
 
@@ -268,21 +268,21 @@ func (m *S3Manager) emptyBucket(ctx context.Context, bucketName string) error {
 	return nil
 }
 
-// isCloudWorkstationBucket checks if a bucket is managed by CloudWorkstation
-func (m *S3Manager) isCloudWorkstationBucket(ctx context.Context, bucketName string) (bool, error) {
+// isPrismBucket checks if a bucket is managed by Prism
+func (m *S3Manager) isPrismBucket(ctx context.Context, bucketName string) (bool, error) {
 	// Get bucket tags
 	taggingOutput, err := m.s3Client.GetBucketTagging(ctx, &s3.GetBucketTaggingInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
-		// If error is NoSuchTagSet, bucket has no tags - not managed by CloudWorkstation
+		// If error is NoSuchTagSet, bucket has no tags - not managed by Prism
 		return false, nil
 	}
 
-	// Check for CloudWorkstation tag
+	// Check for Prism tag
 	for _, tag := range taggingOutput.TagSet {
 		if tag.Key != nil && *tag.Key == "ManagedBy" {
-			if tag.Value != nil && *tag.Value == "CloudWorkstation" {
+			if tag.Value != nil && *tag.Value == "Prism" {
 				return true, nil
 			}
 		}

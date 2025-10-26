@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// UniversalAMIResolver implements multi-tier AMI resolution for CloudWorkstation templates
+// UniversalAMIResolver implements multi-tier AMI resolution for Prism templates
 type UniversalAMIResolver struct {
 	// AWS clients
 	ec2Client EC2ClientInterface

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+	"github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 // ReliabilityManager manages connection reliability and automatic recovery

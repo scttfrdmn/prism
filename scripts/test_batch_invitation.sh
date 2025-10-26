@@ -48,12 +48,12 @@ else
     # Build the binary if needed
     if [ ! -f "./bin/cws" ]; then
         echo "Building cws binary..."
-        go build -o ./bin/cws ./cmd/cws
+        go build -o ./bin/prism ./cmd/cws
     fi
 
     # Run batch creation test
     echo "Testing batch invitation creation..."
-    ./bin/cws profiles invitations batch-create \
+    ./bin/prism profiles invitations batch-create \
         --csv-file "${CSV_FILE}" \
         --output-file "${OUTPUT_FILE}"
 

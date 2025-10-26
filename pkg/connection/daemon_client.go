@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+	"github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
-// DaemonConnectionManager manages reliable connections to the CloudWorkstation daemon
+// DaemonConnectionManager manages reliable connections to the Prism daemon
 type DaemonConnectionManager struct {
 	connMgr        *ConnectionManager
 	reliabilityMgr *ReliabilityManager

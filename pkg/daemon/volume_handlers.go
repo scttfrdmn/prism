@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // handleVolumes handles volume collection operations

@@ -19,7 +19,7 @@ func NewWebCommands(app *App) *WebCommands {
 // List lists all web services for an instance
 func (wc *WebCommands) List(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws web list <workspace-name>", "cws web list my-jupyter")
+		return NewUsageError("prism web list <workspace-name>", "prism web list my-jupyter")
 	}
 
 	instanceName := args[0]
@@ -93,7 +93,7 @@ func (wc *WebCommands) List(args []string) error {
 // Open opens a web service in the default browser
 func (wc *WebCommands) Open(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws web open <workspace-name> <service-name>", "cws web open my-jupyter jupyter")
+		return NewUsageError("prism web open <workspace-name> <service-name>", "prism web open my-jupyter jupyter")
 	}
 
 	instanceName := args[0]
@@ -138,7 +138,7 @@ func (wc *WebCommands) Open(args []string) error {
 // Close closes web service tunnels
 func (wc *WebCommands) Close(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws web close <workspace-name> [service-name]", "cws web close my-jupyter jupyter")
+		return NewUsageError("prism web close <workspace-name> [service-name]", "prism web close my-jupyter jupyter")
 	}
 
 	instanceName := args[0]

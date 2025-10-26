@@ -1,0 +1,850 @@
+<!-- CloudWorkstation Enhanced Template Selection -->
+<!-- This component addresses the cognitive overload issues in template selection -->
+
+<div class="template-selection-redesigned">
+  <!-- Research Domain Selector (Primary Choice) -->
+  <div class="research-domain-section">
+    <div class="section-header-enhanced">
+      <h2>🔬 What kind of research are you doing?</h2>
+      <p class="section-subtitle-enhanced">Choose your domain to see relevant templates</p>
+    </div>
+
+    <div class="domain-cards-grid">
+      <button class="domain-card" data-domain="ml" onclick="selectDomain('ml')">
+        <div class="domain-card-content">
+          <div class="domain-icon">🤖</div>
+          <div class="domain-info">
+            <h3 class="domain-title">Machine Learning</h3>
+            <p class="domain-subtitle">TensorFlow, PyTorch, Jupyter</p>
+            <div class="domain-tags">
+              <span class="domain-tag">Python</span>
+              <span class="domain-tag">GPU</span>
+              <span class="domain-tag">CUDA</span>
+            </div>
+          </div>
+          <div class="domain-arrow">→</div>
+        </div>
+      </button>
+
+      <button class="domain-card" data-domain="datascience" onclick="selectDomain('datascience')">
+        <div class="domain-card-content">
+          <div class="domain-icon">📊</div>
+          <div class="domain-info">
+            <h3 class="domain-title">Data Science</h3>
+            <p class="domain-subtitle">R, Pandas, Statistical Analysis</p>
+            <div class="domain-tags">
+              <span class="domain-tag">R</span>
+              <span class="domain-tag">Python</span>
+              <span class="domain-tag">SQL</span>
+            </div>
+          </div>
+          <div class="domain-arrow">→</div>
+        </div>
+      </button>
+
+      <button class="domain-card" data-domain="bio" onclick="selectDomain('bio')">
+        <div class="domain-card-content">
+          <div class="domain-icon">🧬</div>
+          <div class="domain-info">
+            <h3 class="domain-title">Bioinformatics</h3>
+            <p class="domain-subtitle">Genome analysis, BLAST, NGS</p>
+            <div class="domain-tags">
+              <span class="domain-tag">Bioconductor</span>
+              <span class="domain-tag">BLAST</span>
+              <span class="domain-tag">Python</span>
+            </div>
+          </div>
+          <div class="domain-arrow">→</div>
+        </div>
+      </button>
+
+      <button class="domain-card" data-domain="web" onclick="selectDomain('web')">
+        <div class="domain-card-content">
+          <div class="domain-icon">🌐</div>
+          <div class="domain-info">
+            <h3 class="domain-title">Web Development</h3>
+            <p class="domain-subtitle">Node.js, React, APIs</p>
+            <div class="domain-tags">
+              <span class="domain-tag">JavaScript</span>
+              <span class="domain-tag">Node.js</span>
+              <span class="domain-tag">React</span>
+            </div>
+          </div>
+          <div class="domain-arrow">→</div>
+        </div>
+      </button>
+
+      <button class="domain-card" data-domain="base" onclick="selectDomain('base')">
+        <div class="domain-card-content">
+          <div class="domain-icon">🖥️</div>
+          <div class="domain-info">
+            <h3 class="domain-title">General Computing</h3>
+            <p class="domain-subtitle">Basic Linux, custom setup</p>
+            <div class="domain-tags">
+              <span class="domain-tag">Ubuntu</span>
+              <span class="domain-tag">Rocky</span>
+              <span class="domain-tag">SSH</span>
+            </div>
+          </div>
+          <div class="domain-arrow">→</div>
+        </div>
+      </button>
+
+      <button class="domain-card domain-card-explore" onclick="showAllTemplates()">
+        <div class="domain-card-content">
+          <div class="domain-icon">🔍</div>
+          <div class="domain-info">
+            <h3 class="domain-title">Explore All Templates</h3>
+            <p class="domain-subtitle">Browse all available options</p>
+            <div class="domain-tags">
+              <span class="domain-tag">24 templates</span>
+            </div>
+          </div>
+          <div class="domain-arrow">→</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Complexity Selector (Progressive Disclosure) -->
+  <div class="complexity-section hidden" id="complexity-section">
+    <div class="section-header-enhanced">
+      <h3>⚖️ How complex is your project?</h3>
+      <p class="section-subtitle-enhanced">We'll recommend the right template for your experience level</p>
+    </div>
+
+    <div class="complexity-options">
+      <div class="complexity-option" data-complexity="simple" onclick="selectComplexity('simple')">
+        <div class="complexity-indicator">
+          <span class="complexity-dot simple"></span>
+          <span class="complexity-label">Getting Started</span>
+        </div>
+        <div class="complexity-description">
+          Basic templates, ready in 30 seconds. Perfect for learning and simple projects.
+        </div>
+        <div class="complexity-examples">
+          <span class="example-tag">Tutorials</span>
+          <span class="example-tag">Learning</span>
+          <span class="example-tag">Quick Tests</span>
+        </div>
+      </div>
+
+      <div class="complexity-option" data-complexity="moderate" onclick="selectComplexity('moderate')">
+        <div class="complexity-indicator">
+          <span class="complexity-dot moderate"></span>
+          <span class="complexity-label">Standard Research</span>
+        </div>
+        <div class="complexity-description">
+          Full-featured environments with common libraries. Great for most research projects.
+        </div>
+        <div class="complexity-examples">
+          <span class="example-tag">Analysis</span>
+          <span class="example-tag">Prototyping</span>
+          <span class="example-tag">Publishing</span>
+        </div>
+      </div>
+
+      <div class="complexity-option" data-complexity="advanced" onclick="selectComplexity('advanced')">
+        <div class="complexity-indicator">
+          <span class="complexity-dot advanced"></span>
+          <span class="complexity-label">Advanced Projects</span>
+        </div>
+        <div class="complexity-description">
+          Specialized tools and configurations. For experienced researchers with specific needs.
+        </div>
+        <div class="complexity-examples">
+          <span class="example-tag">HPC</span>
+          <span class="example-tag">Distributed</span>
+          <span class="example-tag">Custom</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Results (Filtered and Sorted) -->
+  <div class="template-results hidden" id="template-results">
+    <div class="results-header">
+      <h3>📋 Recommended Templates</h3>
+      <p class="results-subtitle">
+        <span id="results-count">0</span> templates for
+        <span id="selected-domain">your research</span>
+      </p>
+      <button class="btn-text" onclick="resetSelection()">← Start Over</button>
+    </div>
+
+    <div class="template-grid-enhanced" id="template-grid-enhanced">
+      <!-- Templates will be populated here -->
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Template Tile Template -->
+<template id="enhanced-template-tile">
+  <div class="template-tile-enhanced" data-template-id="">
+    <div class="template-tile-header">
+      <div class="template-tile-badge">
+        <span class="complexity-indicator-small"></span>
+      </div>
+      <div class="template-tile-favorite">
+        <button class="favorite-btn" onclick="toggleFavorite(event)">
+          <span class="favorite-icon">☆</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="template-tile-content">
+      <div class="template-tile-icon-large"></div>
+
+      <div class="template-tile-info">
+        <h4 class="template-tile-title"></h4>
+        <p class="template-tile-subtitle"></p>
+
+        <div class="template-tile-features">
+          <div class="feature-list">
+            <!-- Features will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="template-tile-footer">
+      <div class="template-tile-meta">
+        <div class="template-launch-time">
+          <span class="meta-icon">⚡</span>
+          <span class="meta-value">~2min</span>
+        </div>
+        <div class="template-cost">
+          <span class="meta-icon">💰</span>
+          <span class="meta-value">$0.48/hr</span>
+        </div>
+        <div class="template-popularity">
+          <span class="meta-icon">👥</span>
+          <span class="meta-value">1.2k users</span>
+        </div>
+      </div>
+
+      <div class="template-tile-actions">
+        <button class="btn-secondary btn-small" onclick="previewTemplate(event)">
+          Preview
+        </button>
+        <button class="btn-primary btn-small" onclick="selectTemplate(event)">
+          Select
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style>
+/* Enhanced Template Selection Styles */
+
+.template-selection-redesigned {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+}
+
+.section-header-enhanced {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.section-header-enhanced h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.section-subtitle-enhanced {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Domain Cards Grid */
+.domain-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.domain-card {
+  background: var(--color-surface-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-xl);
+  cursor: pointer;
+  transition: all 300ms var(--ease-out-quart);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.domain-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-primary-gradient);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.domain-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+}
+
+.domain-card:hover::before {
+  opacity: 0.05;
+}
+
+.domain-card.selected {
+  border-color: var(--color-primary);
+  background: linear-gradient(to bottom, #fff, #f8fafc);
+  box-shadow: 0 8px 32px var(--color-primary-shadow);
+}
+
+.domain-card-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  position: relative;
+  z-index: 1;
+}
+
+.domain-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.domain-info {
+  flex: 1;
+}
+
+.domain-title {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.domain-subtitle {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.4;
+}
+
+.domain-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.domain-tag {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+}
+
+.domain-arrow {
+  font-size: var(--font-size-xl);
+  color: var(--color-text-muted);
+  transition: all 200ms ease;
+}
+
+.domain-card:hover .domain-arrow {
+  color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+.domain-card-explore {
+  border: 2px dashed var(--color-border-hover);
+  background: var(--color-gray-50);
+}
+
+.domain-card-explore:hover {
+  background: var(--color-surface-elevated);
+  border-style: solid;
+}
+
+/* Complexity Selection */
+.complexity-section {
+  margin: var(--spacing-2xl) 0;
+  padding: var(--spacing-xl);
+  background: var(--color-gray-50);
+  border-radius: var(--border-radius-xl);
+}
+
+.complexity-options {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.complexity-option {
+  background: white;
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.complexity-option:hover {
+  border-color: var(--color-primary);
+  transform: translateX(4px);
+}
+
+.complexity-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+}
+
+.complexity-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.complexity-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.complexity-dot.simple { background: var(--color-success); }
+.complexity-dot.moderate { background: var(--color-warning); }
+.complexity-dot.advanced { background: var(--color-error); }
+
+.complexity-label {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.complexity-description {
+  margin-bottom: var(--spacing-md);
+  line-height: 1.5;
+}
+
+.complexity-examples {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.example-tag {
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+}
+
+/* Enhanced Template Tiles */
+.template-tile-enhanced {
+  background: var(--color-surface-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius-xl);
+  padding: var(--spacing-lg);
+  transition: all 300ms var(--ease-out-quart);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.template-tile-enhanced:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+}
+
+.template-tile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-md);
+}
+
+.template-tile-badge {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.complexity-indicator-small {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.template-tile-favorite {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.template-tile-enhanced:hover .template-tile-favorite {
+  opacity: 1;
+}
+
+.favorite-btn {
+  background: none;
+  border: none;
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: color 200ms ease;
+}
+
+.favorite-btn:hover,
+.favorite-btn.favorited {
+  color: var(--color-warning);
+}
+
+.template-tile-content {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.template-tile-icon-large {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.template-tile-info {
+  flex: 1;
+}
+
+.template-tile-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.template-tile-subtitle {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.4;
+}
+
+.feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.feature-tag {
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-xs);
+  padding: 2px 8px;
+  border-radius: var(--border-radius);
+}
+
+.template-tile-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.template-tile-meta {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.template-launch-time,
+.template-cost,
+.template-popularity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.meta-icon {
+  opacity: 0.7;
+}
+
+.template-tile-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: var(--font-size-sm);
+}
+
+/* Results Section */
+.template-results {
+  margin-top: var(--spacing-2xl);
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.results-subtitle {
+  color: var(--color-text-secondary);
+}
+
+.template-grid-enhanced {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--spacing-xl);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .domain-cards-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .domain-card-content {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-md);
+  }
+
+  .complexity-option {
+    padding: var(--spacing-md);
+  }
+
+  .template-grid-enhanced {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .template-tile-content {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-md);
+  }
+
+  .template-tile-footer {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: stretch;
+  }
+
+  .template-tile-meta {
+    justify-content: center;
+  }
+}
+
+/* Animation States */
+.hidden {
+  display: none;
+}
+
+.slide-up {
+  animation: slideUp 400ms var(--ease-out-quart);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
+
+<script>
+// Enhanced Template Selection Logic
+class TemplateSelectionManager {
+  constructor() {
+    this.selectedDomain = null;
+    this.selectedComplexity = null;
+    this.templates = [];
+    this.favorites = JSON.parse(localStorage.getItem('cws-favorites') || '[]');
+  }
+
+  selectDomain(domain) {
+    this.selectedDomain = domain;
+
+    // Update UI
+    document.querySelectorAll('.domain-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.querySelector(`[data-domain="${domain}"]`).classList.add('selected');
+
+    // Show complexity section
+    const complexitySection = document.getElementById('complexity-section');
+    complexitySection.classList.remove('hidden');
+    complexitySection.classList.add('slide-up');
+
+    // Scroll to complexity section
+    complexitySection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  selectComplexity(complexity) {
+    this.selectedComplexity = complexity;
+
+    // Update UI
+    document.querySelectorAll('.complexity-option').forEach(option => {
+      option.classList.remove('selected');
+    });
+    document.querySelector(`[data-complexity="${complexity}"]`).classList.add('selected');
+
+    // Show filtered templates
+    this.showFilteredTemplates();
+  }
+
+  showFilteredTemplates() {
+    const resultsSection = document.getElementById('template-results');
+    resultsSection.classList.remove('hidden');
+    resultsSection.classList.add('slide-up');
+
+    // Update domain display
+    document.getElementById('selected-domain').textContent =
+      this.getDomainDisplayName(this.selectedDomain);
+
+    // Filter and render templates
+    const filtered = this.filterTemplates();
+    this.renderTemplates(filtered);
+
+    // Update count
+    document.getElementById('results-count').textContent = filtered.length;
+
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  filterTemplates() {
+    // Implementation would filter based on selectedDomain and selectedComplexity
+    // This is a placeholder - real implementation would filter from actual template data
+    return this.templates.filter(template => {
+      const domainMatch = !this.selectedDomain || template.category === this.selectedDomain;
+      const complexityMatch = !this.selectedComplexity || template.complexity === this.selectedComplexity;
+      return domainMatch && complexityMatch;
+    });
+  }
+
+  renderTemplates(templates) {
+    const grid = document.getElementById('template-grid-enhanced');
+    const template = document.getElementById('enhanced-template-tile');
+
+    grid.innerHTML = '';
+
+    templates.forEach(tmpl => {
+      const tile = template.content.cloneNode(true);
+      // Populate template data
+      // Implementation would populate actual template information
+      grid.appendChild(tile);
+    });
+  }
+
+  getDomainDisplayName(domain) {
+    const domains = {
+      ml: 'Machine Learning',
+      datascience: 'Data Science',
+      bio: 'Bioinformatics',
+      web: 'Web Development',
+      base: 'General Computing'
+    };
+    return domains[domain] || 'your research';
+  }
+
+  resetSelection() {
+    this.selectedDomain = null;
+    this.selectedComplexity = null;
+
+    // Reset UI
+    document.querySelectorAll('.domain-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.getElementById('complexity-section').classList.add('hidden');
+    document.getElementById('template-results').classList.add('hidden');
+
+    // Scroll to top
+    document.querySelector('.research-domain-section').scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
+
+  toggleFavorite(event, templateId) {
+    event.stopPropagation();
+    const btn = event.target.closest('.favorite-btn');
+
+    if (this.favorites.includes(templateId)) {
+      this.favorites = this.favorites.filter(id => id !== templateId);
+      btn.classList.remove('favorited');
+      btn.querySelector('.favorite-icon').textContent = '☆';
+    } else {
+      this.favorites.push(templateId);
+      btn.classList.add('favorited');
+      btn.querySelector('.favorite-icon').textContent = '★';
+    }
+
+    localStorage.setItem('cws-favorites', JSON.stringify(this.favorites));
+  }
+}
+
+// Initialize the enhanced template selection
+const templateSelectionManager = new TemplateSelectionManager();
+
+// Global functions for button onclick handlers
+function selectDomain(domain) {
+  templateSelectionManager.selectDomain(domain);
+}
+
+function selectComplexity(complexity) {
+  templateSelectionManager.selectComplexity(complexity);
+}
+
+function resetSelection() {
+  templateSelectionManager.resetSelection();
+}
+
+function toggleFavorite(event) {
+  const templateId = event.target.closest('.template-tile-enhanced').dataset.templateId;
+  templateSelectionManager.toggleFavorite(event, templateId);
+}
+
+function showAllTemplates() {
+  // Implementation would show all templates without filtering
+  console.log('Showing all templates');
+}
+
+function previewTemplate(event) {
+  event.stopPropagation();
+  const templateId = event.target.closest('.template-tile-enhanced').dataset.templateId;
+  // Implementation would show template preview modal
+  console.log('Previewing template:', templateId);
+}
+
+function selectTemplate(event) {
+  event.stopPropagation();
+  const templateId = event.target.closest('.template-tile-enhanced').dataset.templateId;
+  // Implementation would select template and proceed to launch form
+  console.log('Selected template:', templateId);
+}
+</script>

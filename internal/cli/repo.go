@@ -8,7 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/repository"
+	"github.com/scttfrdmn/prism/pkg/repository"
 )
 
 // Repo handles repository-related commands.
@@ -451,7 +451,7 @@ func (a *App) repoPull(args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
-	templatesDir := filepath.Join(homeDir, ".cloudworkstation", "templates")
+	templatesDir := filepath.Join(homeDir, ".prism", "templates")
 
 	// Download template
 	destFile, err := repoManager.DownloadTemplate(ref, templatesDir)

@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/components"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -72,7 +72,7 @@ func GenerateDeviceFingerprint() (*DeviceFingerprint, error) {
 	// Get system-specific identifiers
 	fp.SystemUUID = getSystemUUID()
 	fp.MachineID = getMachineID()
-	fp.InstallTime = getCloudWorkstationInstallTime()
+	fp.InstallTime = getPrismInstallTime()
 
 	// Generate hash
 	if err := fp.generateHash(); err != nil {
@@ -300,7 +300,7 @@ func getMachineID() string {
 	}
 }
 
-// getInstallationTime is implemented in crypto.go as getCloudWorkstationInstallTime
+// getInstallationTime is implemented in crypto.go as getPrismInstallTime
 
 // Platform-specific implementations use functions from crypto.go
 

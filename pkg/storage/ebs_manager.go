@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-// EBSManager handles EBS operations for CloudWorkstation
+// EBSManager handles EBS operations for Prism
 type EBSManager struct {
 	ec2Client *ec2.Client
 	region    string
@@ -169,8 +169,8 @@ func (m *EBSManager) buildTagSpecifications(name string) []types.TagSpecificatio
 			ResourceType: types.ResourceTypeVolume,
 			Tags: []types.Tag{
 				{Key: aws.String("Name"), Value: aws.String(name)},
-				{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
-				{Key: aws.String("CreatedBy"), Value: aws.String("CloudWorkstation")},
+				{Key: aws.String("Prism"), Value: aws.String("true")},
+				{Key: aws.String("CreatedBy"), Value: aws.String("Prism")},
 			},
 		},
 	}
@@ -229,15 +229,15 @@ func (m *EBSManager) buildStorageInfo(ctx context.Context, volumeID string, req 
 	}
 }
 
-// ListEBSVolumes lists all CloudWorkstation EBS volumes
+// ListEBSVolumes lists all Prism EBS volumes
 func (m *EBSManager) ListEBSVolumes() ([]StorageInfo, error) {
 	ctx := context.Background()
 
-	// Filter for CloudWorkstation volumes
+	// Filter for Prism volumes
 	input := &ec2.DescribeVolumesInput{
 		Filters: []types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 		},
@@ -561,7 +561,7 @@ func (m *EBSManager) CreateSnapshot(volumeName, description string) (*SnapshotIn
 				ResourceType: types.ResourceTypeSnapshot,
 				Tags: []types.Tag{
 					{Key: aws.String("Name"), Value: aws.String(fmt.Sprintf("%s-snapshot", volumeName))},
-					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("Prism"), Value: aws.String("true")},
 					{Key: aws.String("SourceVolume"), Value: aws.String(volumeName)},
 				},
 			},
@@ -586,7 +586,7 @@ func (m *EBSManager) CreateSnapshot(volumeName, description string) (*SnapshotIn
 	return info, nil
 }
 
-// ListSnapshots lists EBS snapshots created by CloudWorkstation
+// ListSnapshots lists EBS snapshots created by Prism
 func (m *EBSManager) ListSnapshots() ([]SnapshotInfo, error) {
 	ctx := context.Background()
 
@@ -594,7 +594,7 @@ func (m *EBSManager) ListSnapshots() ([]SnapshotInfo, error) {
 		OwnerIds: []string{"self"},
 		Filters: []types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 		},

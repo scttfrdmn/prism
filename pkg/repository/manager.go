@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	// DefaultRepositoryURL is the URL of the default CloudWorkstation repository.
-	DefaultRepositoryURL = "github.com/scttfrdmn/cloudworkstation-repository"
+	// DefaultRepositoryURL is the URL of the default Prism repository.
+	DefaultRepositoryURL = "github.com/scttfrdmn/prism-repository"
 
 	// DefaultRepositoryBranch is the branch to use for the default repository.
 	DefaultRepositoryBranch = "main"
@@ -28,8 +28,8 @@ const (
 	// CacheTTL is the time-to-live for the repository cache in hours.
 	CacheTTL = 24
 
-	// ConfigDirName is the name of the CloudWorkstation configuration directory.
-	ConfigDirName = ".cloudworkstation"
+	// ConfigDirName is the name of the Prism configuration directory.
+	ConfigDirName = ".prism"
 
 	// ConfigFileName is the name of the configuration file.
 	ConfigFileName = "config.json"

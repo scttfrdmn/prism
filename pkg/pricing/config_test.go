@@ -309,8 +309,8 @@ func TestGetInstitutionalPricingPath(t *testing.T) {
 	path := getInstitutionalPricingPath()
 	assert.NotEmpty(t, path)
 
-	// Should contain .cloudworkstation directory
-	assert.Contains(t, path, ".cloudworkstation")
+	// Should contain .prism directory
+	assert.Contains(t, path, ".prism")
 	assert.Contains(t, path, "institutional_pricing.json")
 }
 

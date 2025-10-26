@@ -1,0 +1,132 @@
+/* CloudWorkstation Custom Theme - User Customizable */
+
+@import url('core.css');
+
+/*
+ * CUSTOMIZATION GUIDE
+ * ==================
+ * 
+ * This theme file can be modified to create your own CloudWorkstation GUI appearance.
+ * Simply override the CSS variables below to change colors, spacing, and typography.
+ * 
+ * STEP 1: Choose your color palette
+ * STEP 2: Adjust typography if desired  
+ * STEP 3: Modify spacing and layout
+ * STEP 4: Add custom styling for specific elements
+ * 
+ * The theme system will automatically apply your changes throughout the interface.
+ */
+
+:root {
+  /* STEP 1: Color Customization */
+  
+  /* Primary brand colors - change these to match your institution */
+  --color-primary: #7c3aed;          /* Your primary brand color */
+  --color-primary-dark: #6d28d9;     /* Darker shade for hover states */
+  --color-primary-light: #8b5cf6;    /* Lighter shade for accents */
+  
+  /* Secondary colors - for less prominent elements */
+  --color-secondary: #6b7280;        /* Neutral secondary color */
+  --color-secondary-dark: #4b5563;   /* Darker secondary */
+  --color-secondary-light: #9ca3af;  /* Lighter secondary */
+  
+  /* Status colors - for success, warning, error states */
+  --color-success: #10b981;          /* Success green */
+  --color-warning: #f59e0b;          /* Warning amber */
+  --color-error: #ef4444;            /* Error red */
+  
+  /* STEP 2: Typography Customization */
+  
+  /* Font family - uncomment and modify to use custom fonts */
+  /* --font-family: 'Your Custom Font', -apple-system, sans-serif; */
+  
+  /* Font sizes - adjust for readability preferences */
+  /* --font-size-base: 1.1rem; */     /* Larger base font */
+  /* --font-size-lg: 1.25rem; */      /* Larger large font */
+  
+  /* STEP 3: Spacing Customization */
+  
+  /* Adjust spacing for tighter or looser layouts */
+  /* --spacing-md: 1.25rem; */        /* Increase default spacing */
+  /* --spacing-lg: 2rem; */           /* Increase large spacing */
+  
+  /* STEP 4: Border and Shadow Customization */
+  
+  /* Border radius - adjust for sharper or rounder corners */
+  /* --border-radius: 0.75rem; */     /* Rounder corners */
+  /* --border-radius-lg: 1rem; */     /* Very round corners */
+  
+  /* Shadows - adjust depth and emphasis */
+  /* --shadow-md: 0 8px 16px 0 rgb(0 0 0 / 0.15); */ /* Deeper shadows */
+}
+
+/* STEP 5: Custom Element Styling */
+
+/* Example: Custom header styling */
+/*
+.header {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+}
+
+.app-title {
+  color: white;
+}
+*/
+
+/* Example: Custom template card styling */
+/*
+.template-card {
+  border: 2px solid var(--color-border);
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+}
+
+.template-card:hover {
+  transform: scale(1.02);
+}
+*/
+
+/* Example: Custom navigation styling */
+/*
+.bottom-nav {
+  background: var(--color-primary);
+}
+
+.nav-item {
+  color: white;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+*/
+
+/* Example: Institution-specific branding */
+/*
+.logo::before {
+  content: "🏛️";
+}
+
+.section-header::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: var(--color-primary);
+  margin: 1rem auto 0;
+}
+*/
+
+/* 
+ * ADVANCED CUSTOMIZATION
+ * ======================
+ * 
+ * For advanced users, you can completely restyle elements:
+ * 
+ * 1. Override any class from core.css
+ * 2. Add new animations and transitions
+ * 3. Create custom layouts for specific elements
+ * 4. Add institution-specific branding elements
+ * 
+ * Remember: Changes to this file persist across CloudWorkstation updates,
+ * allowing you to maintain your custom appearance.
+ */

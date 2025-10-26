@@ -5,9 +5,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // ProfilesModel represents a simplified profiles view
@@ -25,7 +25,7 @@ type ProfileInitMsg struct{}
 
 // NewProfilesModel creates a new simplified profiles model
 func NewProfilesModel(apiClient apiClient) ProfilesModel {
-	statusBar := components.NewStatusBar("CloudWorkstation Profiles", "")
+	statusBar := components.NewStatusBar("Prism Profiles", "")
 
 	return ProfilesModel{
 		apiClient: apiClient,
@@ -92,7 +92,7 @@ func (m ProfilesModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Profiles")
+	title := theme.Title.Render("Prism Profiles")
 
 	// Content
 	var content string

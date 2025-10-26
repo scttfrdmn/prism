@@ -534,7 +534,7 @@ func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient inte
 	// Clear existing AMI registry
 	r.AMIRegistry = make(map[string]map[string]map[string]string)
 
-	// Real SSM Parameter Store query for CloudWorkstation AMIs
+	// Real SSM Parameter Store query for Prism AMIs
 	// Parameters are stored at: /cloudworkstation/amis/{template-slug}/{region}/{arch}
 	//
 	// Example SSM structure:
@@ -545,7 +545,7 @@ func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient inte
 	// This integrates with pkg/ami.Registry which creates these parameters
 	// when AMIs are built via the AMI build system
 
-	// Query SSM Parameter Store for all CloudWorkstation AMIs
+	// Query SSM Parameter Store for all Prism AMIs
 	// In production, this would use:
 	//
 	// import "github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -576,7 +576,7 @@ func (r *TemplateResolver) UpdateAMIRegistry(ctx context.Context, ssmClient inte
 	// }
 
 	// Default registry with well-known public AMIs for fallback
-	// These are updated regularly by the CloudWorkstation maintainers
+	// These are updated regularly by the Prism maintainers
 	defaultAMIRegistry := map[string]map[string]map[string]string{
 		// Python ML template AMIs (example structure)
 		"python-ml": {

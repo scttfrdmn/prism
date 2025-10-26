@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 func TestNewManager(t *testing.T) {

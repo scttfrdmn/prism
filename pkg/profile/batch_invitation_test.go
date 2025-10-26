@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 func TestBatchInvitationImportExport(t *testing.T) {
@@ -64,7 +64,7 @@ func setupBatchInvitationTest(t *testing.T) *profile.BatchInvitationManager {
 	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
 
 	// Create config directory
-	configDir := filepath.Join(tempDir, ".cloudworkstation")
+	configDir := filepath.Join(tempDir, ".prism")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		t.Fatalf("Failed to create config directory: %v", err)
 	}

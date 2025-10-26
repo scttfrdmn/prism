@@ -3,7 +3,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/components"
 	"github.com/stretchr/testify/assert"
 )
 

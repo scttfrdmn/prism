@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
+	"github.com/scttfrdmn/prism/pkg/profile/security"
 )
 
 // SecurityValidationResult represents the result of security configuration validation
@@ -128,7 +128,7 @@ func (v *SecurityConfigValidator) validateAuditLogging(result *SecurityValidatio
 	// Check log directory permissions
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		auditDir := filepath.Join(homeDir, ".cloudworkstation", "security", "audit")
+		auditDir := filepath.Join(homeDir, ".prism", "security", "audit")
 		if info, err := os.Stat(auditDir); err == nil {
 			if info.Mode().Perm() != 0700 {
 				result.Issues = append(result.Issues, ValidationIssue{

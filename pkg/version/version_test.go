@@ -117,8 +117,8 @@ func TestSemVerWithSuffix(t *testing.T) {
 func TestGetVersionInfo(t *testing.T) {
 	info := GetVersionInfo()
 
-	if !strings.Contains(info, "CloudWorkstation") {
-		t.Error("Version info should contain 'CloudWorkstation'")
+	if !strings.Contains(info, "Prism") {
+		t.Error("Version info should contain 'Prism'")
 	}
 
 	if !strings.Contains(info, "v") {
@@ -129,8 +129,8 @@ func TestGetVersionInfo(t *testing.T) {
 func TestGetCLIVersionInfo(t *testing.T) {
 	info := GetCLIVersionInfo()
 
-	if !strings.Contains(info, "CloudWorkstation CLI") {
-		t.Error("CLI version info should contain 'CloudWorkstation CLI'")
+	if !strings.Contains(info, "Prism CLI") {
+		t.Error("CLI version info should contain 'Prism CLI'")
 	}
 
 	if !strings.Contains(info, "v") {
@@ -141,8 +141,8 @@ func TestGetCLIVersionInfo(t *testing.T) {
 func TestGetDaemonVersionInfo(t *testing.T) {
 	info := GetDaemonVersionInfo()
 
-	if !strings.Contains(info, "CloudWorkstation Daemon") {
-		t.Error("Daemon version info should contain 'CloudWorkstation Daemon'")
+	if !strings.Contains(info, "Prism Daemon") {
+		t.Error("Daemon version info should contain 'Prism Daemon'")
 	}
 
 	if !strings.Contains(info, "v") {

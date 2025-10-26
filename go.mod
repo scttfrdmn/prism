@@ -1,4 +1,4 @@
-module github.com/scttfrdmn/cloudworkstation
+module github.com/scttfrdmn/prism
 
 go 1.24.4
 

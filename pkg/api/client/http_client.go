@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// HTTPClient provides an HTTP-based implementation of CloudWorkstationAPI
+// HTTPClient provides an HTTP-based implementation of PrismAPI
 type HTTPClient struct {
 	baseURL    string
 	httpClient *http.Client
@@ -35,7 +35,7 @@ type HTTPClient struct {
 }
 
 // NewClient creates a new HTTP API client
-func NewClient(baseURL string) CloudWorkstationAPI {
+func NewClient(baseURL string) PrismAPI {
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
@@ -50,7 +50,7 @@ func NewClient(baseURL string) CloudWorkstationAPI {
 }
 
 // NewClientWithOptions creates a new HTTP API client with specific options
-func NewClientWithOptions(baseURL string, opts Options) CloudWorkstationAPI {
+func NewClientWithOptions(baseURL string, opts Options) PrismAPI {
 	client := NewClient(baseURL).(*HTTPClient)
 	client.SetOptions(opts)
 	return client
@@ -1704,7 +1704,7 @@ func (c *HTTPClient) CheckVersionCompatibility(ctx context.Context, clientVersio
 			"Both must be updated to the same major version.\n\n"+
 			"💡 To fix this:\n"+
 			"   1. Stop the daemon: cws daemon stop\n"+
-			"   2. Update CloudWorkstation: brew upgrade cloudworkstation\n"+
+			"   2. Update Prism: brew upgrade cloudworkstation\n"+
 			"   3. Restart the daemon: cws daemon start\n"+
 			"   4. Verify versions match: cws version && cws daemon status",
 			clientVersion, daemonVersionStr)

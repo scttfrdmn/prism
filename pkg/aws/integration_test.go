@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	ctypes "github.com/scttfrdmn/prism/pkg/types"
 )
 
 const localstackEndpoint = "http://localhost:4566"

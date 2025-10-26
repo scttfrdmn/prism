@@ -1,4 +1,4 @@
-// Package templates provides CloudWorkstation's unified template system.
+// Package templates provides Prism's unified template system.
 package templates
 
 import (
@@ -147,7 +147,7 @@ func (u *UsageStats) getStatsPath() string {
 		return ""
 	}
 
-	return filepath.Join(homeDir, ".cloudworkstation", "template_usage.json")
+	return filepath.Join(homeDir, ".prism", "template_usage.json")
 }
 
 // load loads usage stats from disk

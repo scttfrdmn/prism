@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // handleProjectOperations routes project-related requests

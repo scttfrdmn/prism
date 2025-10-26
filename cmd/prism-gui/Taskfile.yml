@@ -1,0 +1,41 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the application
+    dir: '{{.PWD}}'
+    cmds:
+      - task: build:frontend
+      - go build -o ../../bin/cws-gui .
+
+  build:frontend:
+    desc: Build the frontend
+    dir: frontend
+    cmds:
+      - npm install
+      - npm run build
+
+  dev:
+    desc: Run in development mode  
+    dir: '{{.PWD}}'
+    cmds:
+      - task: build:frontend
+      - go run . -debug
+
+  dev:frontend:
+    desc: Run frontend in development mode
+    dir: frontend
+    cmds:
+      - npm run dev
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f ../../bin/cws-gui
+      - rm -rf frontend/dist
+
+  install:
+    desc: Install frontend dependencies
+    dir: frontend
+    cmds:
+      - npm install

@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/aws"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TunnelInfo represents tunnel information for API responses

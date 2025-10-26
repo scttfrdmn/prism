@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/api"
 )
 
 // Mock API client for dashboard testing - implements complete apiClient interface
@@ -653,7 +653,7 @@ func TestDashboardModelView(t *testing.T) {
 				m.loading = true
 				return m
 			},
-			expectedContains: []string{"CloudWorkstation Dashboard"},
+			expectedContains: []string{"Prism Dashboard"},
 			description:      "Should show loading state with spinner",
 		},
 		{
@@ -663,7 +663,7 @@ func TestDashboardModelView(t *testing.T) {
 				m.error = "Connection failed"
 				return m
 			},
-			expectedContains: []string{"CloudWorkstation Dashboard", "Error: Connection failed"},
+			expectedContains: []string{"Prism Dashboard", "Error: Connection failed"},
 			description:      "Should show error state",
 		},
 		{
@@ -687,7 +687,7 @@ func TestDashboardModelView(t *testing.T) {
 				return m
 			},
 			expectedContains: []string{
-				"CloudWorkstation Dashboard",
+				"Prism Dashboard",
 				"System Status",
 				"Region: us-west-2",
 				"Daemon: healthy",

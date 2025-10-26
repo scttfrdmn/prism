@@ -20,7 +20,7 @@ func NewProjectCobraCommands(app *App) *ProjectCobraCommands {
 func (pc *ProjectCobraCommands) CreateProjectCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "project",
-		Short: "Manage CloudWorkstation projects",
+		Short: "Manage Prism projects",
 		Long: `Manage projects for organizing instances, tracking budgets, and collaborating
 with team members.`,
 	}

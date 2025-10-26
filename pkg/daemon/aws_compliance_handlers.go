@@ -1,4 +1,4 @@
-// AWS Compliance API handlers for CloudWorkstation daemon
+// AWS Compliance API handlers for Prism daemon
 package daemon
 
 import (
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/security"
+	"github.com/scttfrdmn/prism/pkg/security"
 )
 
 // handleAWSComplianceValidate handles POST requests to /api/v1/security/compliance/validate/{framework}
@@ -318,7 +318,7 @@ func (s *Server) calculateComplianceScore(status *security.AWSComplianceStatus) 
 
 // generateExecutiveSummary creates executive summary section
 func (s *Server) generateExecutiveSummary(framework security.ComplianceFramework, status *security.AWSComplianceStatus, score int) string {
-	summary := fmt.Sprintf(`CloudWorkstation %s Compliance Assessment
+	summary := fmt.Sprintf(`Prism %s Compliance Assessment
 
 Overall Compliance Score: %d/100
 AWS Service Alignment: %t
@@ -400,7 +400,7 @@ func (s *Server) generateGapAnalysisSection(gaps []security.ComplianceGap) strin
 		}
 
 		content += fmt.Sprintf("%s %s - %s\n", severityIcon, gap.Control, gap.Severity)
-		content += fmt.Sprintf("   Issue: %s\n", gap.CloudWorkstationGap)
+		content += fmt.Sprintf("   Issue: %s\n", gap.PrismGap)
 		content += fmt.Sprintf("   Remediation: %s\n\n", gap.Remediation)
 	}
 

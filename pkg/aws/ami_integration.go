@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // ResolveAMIForTemplate resolves AMI information for a template using the Universal AMI System
@@ -384,12 +384,12 @@ func (m *Manager) GetAMICreationStatus(creationID string) (*types.AMICreationRes
 func (m *Manager) ListUserAMIs() ([]*types.AMIInfo, error) {
 	ctx := context.Background()
 
-	// Use EC2 DescribeImages API with Owner=self filter and CloudWorkstation tags
+	// Use EC2 DescribeImages API with Owner=self filter and Prism tags
 	input := &ec2.DescribeImagesInput{
 		Owners: []string{"self"},
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 		},
@@ -468,8 +468,8 @@ func (m *Manager) PublishAMIToCommunity(amiID string, public bool, tags map[stri
 
 	// 2. Add community tags for discoverability
 	if tags != nil && len(tags) > 0 {
-		// Add CloudWorkstation community tag
-		tags["CloudWorkstation-Community"] = "published"
+		// Add Prism community tag
+		tags["Prism-Community"] = "published"
 
 		// Convert tags to EC2 tag format
 		ec2Tags := make([]ec2types.Tag, 0, len(tags))
@@ -509,7 +509,7 @@ func (m *Manager) CleanupOldAMIs(maxAge string, dryRun bool) (*types.AMICleanupR
 
 	cutoffTime := time.Now().Add(-duration)
 
-	// 2. Query EC2 for all user AMIs with CloudWorkstation tags
+	// 2. Query EC2 for all user AMIs with Prism tags
 	userAMIs, err := m.ListUserAMIs()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list user AMIs: %w", err)
@@ -685,7 +685,7 @@ func (m *Manager) DeleteAMI(amiID string, deregisterOnly bool) (*types.AMIDeleti
 func (m *Manager) ListAMISnapshots(instanceID, maxAge string) ([]types.SnapshotInfo, error) {
 	// In production, this would:
 	// 1. Query EC2 DescribeSnapshots API
-	// 2. Filter by CloudWorkstation tags and optional instanceID
+	// 2. Filter by Prism tags and optional instanceID
 	// 3. Apply maxAge filter if specified
 	// 4. Calculate storage costs for each snapshot
 
@@ -757,7 +757,7 @@ func (m *Manager) RestoreAMIFromSnapshot(snapshotID, name, description, architec
 	// In production, this would:
 	// 1. Validate snapshot exists and user owns it
 	// 2. Create AMI from the snapshot using RegisterImage API
-	// 3. Add proper CloudWorkstation tags
+	// 3. Add proper Prism tags
 	// 4. Return AMI creation details
 
 	// Placeholder implementation

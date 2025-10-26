@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // EnhancedProfileProvider integrates with the ManagerEnhanced profile system

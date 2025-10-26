@@ -94,5 +94,5 @@ func GetConfigPath() string {
 	if err != nil {
 		return "daemon_config.json" // Fallback
 	}
-	return filepath.Join(homeDir, ".cloudworkstation", "daemon_config.json")
+	return filepath.Join(homeDir, ".prism", "daemon_config.json")
 }

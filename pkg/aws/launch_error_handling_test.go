@@ -3,7 +3,7 @@ package aws
 import (
 	"testing"
 
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	ctypes "github.com/scttfrdmn/prism/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

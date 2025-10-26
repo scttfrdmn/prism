@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // MonitorConfig holds configuration options for the instance monitor
@@ -69,7 +69,7 @@ const (
 
 // InstanceMonitor monitors instance statuses and generates events
 type InstanceMonitor struct {
-	apiClient client.CloudWorkstationAPI
+	apiClient client.PrismAPI
 	config    MonitorConfig
 
 	// Instance state tracking
@@ -89,7 +89,7 @@ type InstanceMonitor struct {
 }
 
 // NewInstanceMonitor creates a new instance monitor
-func NewInstanceMonitor(apiClient client.CloudWorkstationAPI, config MonitorConfig) *InstanceMonitor {
+func NewInstanceMonitor(apiClient client.PrismAPI, config MonitorConfig) *InstanceMonitor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &InstanceMonitor{

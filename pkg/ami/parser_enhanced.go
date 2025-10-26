@@ -90,9 +90,9 @@ func (p *Parser) ListTemplates() ([]string, error) {
 		}
 	}
 
-	// 2. User's home directory ~/.cloudworkstation/templates/
+	// 2. User's home directory ~/.prism/templates/
 	if home, err := os.UserHomeDir(); err == nil {
-		userTemplatesPath := filepath.Join(home, ".cloudworkstation", "templates")
+		userTemplatesPath := filepath.Join(home, ".prism", "templates")
 		if _, err := os.Stat(userTemplatesPath); err == nil {
 			templateDirs = append(templateDirs, userTemplatesPath)
 		}

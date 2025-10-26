@@ -1,7 +1,7 @@
 //go:build aws_integration
 // +build aws_integration
 
-// Package cli AWS integration tests for CloudWorkstation CLI
+// Package cli AWS integration tests for Prism CLI
 // These tests run against a real AWS account using the 'aws' profile
 //
 // Usage:
@@ -24,7 +24,7 @@
 //
 // Safety Features:
 //   - All test resources use 'cwstest-' prefix with timestamps
-//   - Resources tagged: CreatedBy=CloudWorkstationIntegrationTest
+//   - Resources tagged: CreatedBy=PrismIntegrationTest
 //   - Automatic cleanup in teardown (even on test failure)
 //   - Cost-conscious testing (smallest/cheapest instances)
 //   - Resource limits to prevent runaway costs
@@ -47,16 +47,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Constants for AWS integration testing
 const (
 	TestResourcePrefix = "cwstest"
 	TestTagKey         = "CreatedBy"
-	TestTagValue       = "CloudWorkstationIntegrationTest"
+	TestTagValue       = "PrismIntegrationTest"
 	DefaultTestRegion  = "us-east-1"
 	DefaultTestTimeout = 10 * time.Minute
 	MaxConcurrentTests = 3
@@ -75,7 +75,7 @@ type AWSTestManager struct {
 	resources   *TestResourceRegistry
 	costLimiter *CostLimiter
 	testTimeout time.Duration
-	client      client.CloudWorkstationAPI
+	client      client.PrismAPI
 	app         *App
 }
 
@@ -162,7 +162,7 @@ func NewAWSTestManager(t *testing.T) *AWSTestManager {
 		testTimeout: timeout,
 	}
 
-	// Create CloudWorkstation API client with AWS profile
+	// Create Prism API client with AWS profile
 	daemonURL := getDaemonURL()
 	apiClient := client.NewClientWithOptions(daemonURL, client.Options{
 		AWSProfile: awsProfile,
@@ -174,7 +174,7 @@ func NewAWSTestManager(t *testing.T) *AWSTestManager {
 	defer cancel()
 
 	err = apiClient.Ping(ctx)
-	require.NoError(t, err, "CloudWorkstation daemon not running or not accessible")
+	require.NoError(t, err, "Prism daemon not running or not accessible")
 
 	manager.client = apiClient
 	manager.app = NewAppWithClient("integration-test", apiClient)
@@ -659,7 +659,7 @@ func TestAWSProjectManagement(t *testing.T) {
 
 	t.Run("ProjectOperations", func(t *testing.T) {
 		// Note: Project management typically doesn't create AWS resources directly
-		// but manages CloudWorkstation's project metadata and budgets
+		// but manages Prism's project metadata and budgets
 
 		// Note: Project functionality may be available through API client directly
 		// For now, we test that the app is functional for other operations

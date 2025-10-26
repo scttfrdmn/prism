@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // Mock API client for profiles testing - implements complete apiClient interface
@@ -463,7 +463,7 @@ func TestProfilesModelView(t *testing.T) {
 				// Default state - no profile, no error
 				return m
 			},
-			expectedContains: []string{"CloudWorkstation Profiles", "Loading profile information..."},
+			expectedContains: []string{"Prism Profiles", "Loading profile information..."},
 			description:      "Should show loading state when no profile or error",
 		},
 		{
@@ -472,7 +472,7 @@ func TestProfilesModelView(t *testing.T) {
 				m.error = "Failed to load profile"
 				return m
 			},
-			expectedContains: []string{"CloudWorkstation Profiles", "Error: Failed to load profile"},
+			expectedContains: []string{"Prism Profiles", "Error: Failed to load profile"},
 			description:      "Should show error state when error is set",
 		},
 		{
@@ -486,15 +486,15 @@ func TestProfilesModelView(t *testing.T) {
 				return m
 			},
 			expectedContains: []string{
-				"CloudWorkstation Profiles",
+				"Prism Profiles",
 				"Current Profile:",
 				"Name: test-profile",
 				"AWS Profile: my-aws-profile",
 				"Region: us-west-2",
 				"Profile Management:",
-				"cws config profile",
-				"cws config region",
-				"cws config show",
+				"prism config profile",
+				"prism config region",
+				"prism config show",
 			},
 			description: "Should show profile information and management commands",
 		},

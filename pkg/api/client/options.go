@@ -48,14 +48,14 @@ func DefaultPerformanceOptions() PerformanceOptions {
 }
 
 // ApplyClientOptions applies configuration options to a client
-func ApplyClientOptions(client CloudWorkstationAPI, options Options) CloudWorkstationAPI {
+func ApplyClientOptions(client PrismAPI, options Options) PrismAPI {
 	// Apply basic options
 	client.SetOptions(options)
 	return client
 }
 
 // ApplyExtendedClientOptions applies extended configuration options to a client
-func ApplyExtendedClientOptions(client CloudWorkstationAPI, options ExtendedOptions) CloudWorkstationAPI {
+func ApplyExtendedClientOptions(client PrismAPI, options ExtendedOptions) PrismAPI {
 	// Convert to basic options and apply
 	basicOptions := Options{
 		AWSProfile:      options.AWSProfile,

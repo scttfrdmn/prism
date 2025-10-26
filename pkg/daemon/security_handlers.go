@@ -1,4 +1,4 @@
-// Security API handlers for CloudWorkstation daemon
+// Security API handlers for Prism daemon
 package daemon
 
 import (
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
+	"github.com/scttfrdmn/prism/pkg/profile/security"
 )
 
 // handleSecurityStatus handles GET requests to /api/v1/security/status

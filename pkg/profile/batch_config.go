@@ -94,7 +94,7 @@ func NewBatchConfigManager() (*BatchConfigManager, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ".cloudworkstation")
+	configDir := filepath.Join(homeDir, ".prism")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}

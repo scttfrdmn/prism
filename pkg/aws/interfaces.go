@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/scttfrdmn/cloudworkstation/pkg/state"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/state"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // EC2ClientInterface defines the interface for EC2 client operations.

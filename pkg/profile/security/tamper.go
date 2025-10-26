@@ -266,13 +266,13 @@ var (
 func ProtectSecurityFiles() (*TamperProtection, error) {
 	protection := NewTamperProtection()
 
-	// Get CloudWorkstation directory
+	// Get Prism directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	secureDir := filepath.Join(homeDir, ".cloudworkstation", "secure")
+	secureDir := filepath.Join(homeDir, ".prism", "secure")
 
 	// Find all .bin files in secure directory (encrypted binding files)
 	err = filepath.Walk(secureDir, func(path string, info os.FileInfo, err error) error {
@@ -295,7 +295,7 @@ func ProtectSecurityFiles() (*TamperProtection, error) {
 	}
 
 	// Protect profiles.json if it exists
-	profilesPath := filepath.Join(homeDir, ".cloudworkstation", "profiles.json")
+	profilesPath := filepath.Join(homeDir, ".prism", "profiles.json")
 	if _, err := os.Stat(profilesPath); err == nil {
 		if err := protection.ProtectFile(profilesPath); err != nil {
 			fmt.Printf("Warning: Failed to protect profiles.json: %v\n", err)

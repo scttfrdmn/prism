@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ func (lc *LogsCommands) CreateLogsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logs [workspace-name]",
 		Short: "View and manage workspace logs",
-		Long: `View logs from CloudWorkstation workspaces including console output,
+		Long: `View logs from Prism workspaces including console output,
 system logs, and application logs.
 
 Examples:
@@ -160,7 +160,7 @@ func (lc *LogsCommands) handleShowLogTypes(instanceName string, jsonOutput bool)
 		fmt.Println("\n⚠️  Some log types require the workspace to be running for SSM access")
 	}
 
-	fmt.Printf("\nUsage: cws logs %s --type <log-type>\n", instanceName)
+	fmt.Printf("\nUsage: prism logs %s --type <log-type>\n", instanceName)
 
 	return nil
 }

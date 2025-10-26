@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
+	"github.com/scttfrdmn/prism/pkg/profile/security"
 )
 
 // ContextKey is used to store profile information in context
@@ -38,8 +38,8 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Create CloudWorkstation directory if it doesn't exist
-	cwsDir := filepath.Join(homeDir, ".cloudworkstation")
+	// Create Prism directory if it doesn't exist
+	cwsDir := filepath.Join(homeDir, ".prism")
 	if err := os.MkdirAll(cwsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
@@ -233,7 +233,7 @@ func (m *ManagerEnhanced) AddProfile(profile Profile) error {
 
 	// Check for duplicate profile name
 	if _, exists := m.profiles.Profiles[id]; exists {
-		return fmt.Errorf("CloudWorkstation profile named '%s' already exists. Choose a different name or use 'cws profiles list' to see existing profiles", profile.Name)
+		return fmt.Errorf("Prism profile named '%s' already exists. Choose a different name or use 'cws profiles list' to see existing profiles", profile.Name)
 	}
 
 	// Initialize created time

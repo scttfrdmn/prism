@@ -1,4 +1,4 @@
-// Package web provides web interface and proxy capabilities for CloudWorkstation
+// Package web provides web interface and proxy capabilities for Prism
 package web
 
 import (
@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // ProxyManager manages web proxies for instance services
@@ -84,7 +84,7 @@ func (pm *ProxyManager) RegisterInstance(instance *types.Instance) error {
 				req.Header.Set("X-Forwarded-For", clientIP)
 			}
 			req.Header.Set("X-Forwarded-Proto", "http")
-			req.Header.Set("X-CloudWorkstation-Instance", instance.Name)
+			req.Header.Set("X-Prism-Instance", instance.Name)
 		},
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
@@ -115,7 +115,7 @@ func (pm *ProxyManager) RegisterInstance(instance *types.Instance) error {
 			// Add security headers
 			resp.Header.Set("X-Frame-Options", "SAMEORIGIN")
 			resp.Header.Set("X-Content-Type-Options", "nosniff")
-			resp.Header.Set("X-CloudWorkstation-Proxied", "true")
+			resp.Header.Set("X-Prism-Proxied", "true")
 
 			return nil
 		},
@@ -168,7 +168,7 @@ func (pm *ProxyManager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		r.Header.Set("X-CloudWorkstation-User", username)
+		r.Header.Set("X-Prism-User", username)
 	}
 
 	// Find matching route

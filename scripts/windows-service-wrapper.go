@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	serviceName = "CloudWorkstationDaemon"
-	displayName = "CloudWorkstation Daemon"
+	serviceName = "PrismDaemon"
+	displayName = "Prism Daemon"
 	description = "Enterprise research management platform daemon for launching cloud research environments"
 )
 
@@ -168,7 +168,7 @@ func getConfigPath() string {
 	if appData == "" {
 		appData = "C:\\ProgramData"
 	}
-	return filepath.Join(appData, "CloudWorkstation")
+	return filepath.Join(appData, "Prism")
 }
 
 func getLogPath() string {
@@ -176,7 +176,7 @@ func getLogPath() string {
 	if appData == "" {
 		appData = "C:\\ProgramData"
 	}
-	return filepath.Join(appData, "CloudWorkstation", "Logs")
+	return filepath.Join(appData, "Prism", "Logs")
 }
 
 func runService() {
@@ -228,7 +228,7 @@ func installService() error {
 		return err
 	}
 
-	fmt.Printf("CloudWorkstation service installed successfully\n")
+	fmt.Printf("Prism service installed successfully\n")
 	fmt.Printf("Service will start automatically on system boot\n")
 	return nil
 }
@@ -250,7 +250,7 @@ func removeService() error {
 		return err
 	}
 
-	fmt.Printf("CloudWorkstation service removed successfully\n")
+	fmt.Printf("Prism service removed successfully\n")
 	return nil
 }
 
@@ -266,7 +266,7 @@ func startService() error {
 		return err
 	}
 
-	fmt.Printf("CloudWorkstation service started successfully\n")
+	fmt.Printf("Prism service started successfully\n")
 	return nil
 }
 
@@ -294,7 +294,7 @@ func stopService() error {
 		}
 	}
 
-	fmt.Printf("CloudWorkstation service stopped successfully\n")
+	fmt.Printf("Prism service stopped successfully\n")
 	return nil
 }
 
@@ -330,7 +330,7 @@ func serviceStatus() error {
 		stateStr = "Unknown"
 	}
 
-	fmt.Printf("CloudWorkstation Service Status:\n")
+	fmt.Printf("Prism Service Status:\n")
 	fmt.Printf("  Service Name: %s\n", serviceName)
 	fmt.Printf("  Display Name: %s\n", displayName)
 	fmt.Printf("  State: %s\n", stateStr)

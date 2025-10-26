@@ -1,4 +1,4 @@
-// Package cli provides the command-line interface for CloudWorkstation
+// Package cli provides the command-line interface for Prism
 package cli
 
 import (

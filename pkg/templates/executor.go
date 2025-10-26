@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // SSHRemoteExecutor implements RemoteExecutor using SSH connections
@@ -181,16 +181,16 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 	return nil
 }
 
-// getInstanceIP gets the IP address for an instance from CloudWorkstation state
+// getInstanceIP gets the IP address for an instance from Prism state
 func (e *SSHRemoteExecutor) getInstanceIP(instanceName string) (string, error) {
-	// Query CloudWorkstation state management for instance IP
+	// Query Prism state management for instance IP
 	// This integrates with pkg/state.Manager to get instance metadata
 	//
 	// Real implementation would be:
 	//
 	// import (
-	//     "github.com/scttfrdmn/cloudworkstation/pkg/state"
-	//     "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	//     "github.com/scttfrdmn/prism/pkg/state"
+	//     "github.com/scttfrdmn/prism/pkg/types"
 	// )
 	//
 	// stateManager, err := state.NewManager()

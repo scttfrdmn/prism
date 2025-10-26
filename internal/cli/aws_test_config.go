@@ -178,7 +178,7 @@ func (c *AWSTestConfig) GetSafeInstanceTypes() []string {
 // GetTestTags returns standard tags for test resources
 func (c *AWSTestConfig) GetTestTags() map[string]string {
 	return map[string]string{
-		"CreatedBy":   "CloudWorkstationIntegrationTest",
+		"CreatedBy":   "PrismIntegrationTest",
 		"TestPrefix":  c.TestPrefix,
 		"Environment": "test",
 		"AutoCleanup": "true",

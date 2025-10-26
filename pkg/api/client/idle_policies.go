@@ -1,4 +1,4 @@
-// Package client provides the CloudWorkstation API client implementation
+// Package client provides the Prism API client implementation
 package client
 
 import (
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/idle"
 )
 
 // ListIdlePolicies returns all available idle policy templates

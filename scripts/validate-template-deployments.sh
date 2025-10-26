@@ -18,12 +18,12 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}📋 Step 1: Checking daemon and AWS connectivity...${NC}"
 if ! pgrep -f cwsd > /dev/null; then
     echo -e "${YELLOW}⚠️ Starting daemon...${NC}"
-    ./bin/cwsd &
+    ./bin/prismd &
     sleep 3
 fi
 
 # Check AWS profile  
-if ! ./bin/cws profiles current > /dev/null 2>&1; then
+if ! ./bin/prism profiles current > /dev/null 2>&1; then
     echo -e "${YELLOW}⚠️ No active AWS profile. Template deployment testing requires AWS credentials.${NC}"
     echo -e "${BLUE}💡 Set up profile with: cws profiles add personal research --aws-profile <your-aws-profile> --region us-west-2${NC}"
     exit 1
@@ -53,7 +53,7 @@ while IFS= read -r template; do
     echo -e "${YELLOW}  Testing: $template${NC}"
     
     # Use dry-run to test template deployment without actually launching
-    if timeout 30s ./bin/cws launch "$template" "test-validation-$$" --dry-run > /dev/null 2>&1; then
+    if timeout 30s ./bin/prism launch "$template" "test-validation-$$" --dry-run > /dev/null 2>&1; then
         echo -e "${GREEN}    ✅ PASS: Template deployment validation successful${NC}"
         ((PASSED++))
     else
@@ -62,7 +62,7 @@ while IFS= read -r template; do
         
         # Try to get more information about the failure
         echo -e "${YELLOW}    💡 Attempting detailed validation...${NC}"
-        if ./bin/cws templates info "$template" > /dev/null 2>&1; then
+        if ./bin/prism templates info "$template" > /dev/null 2>&1; then
             echo -e "${GREEN}      ✅ Template definition is valid${NC}"
         else
             echo -e "${RED}      ❌ Template definition has issues${NC}"
@@ -78,7 +78,7 @@ INHERITANCE_TEMPLATES=("Rocky Linux 9 Base" "Rocky Linux 9 + Conda Stack")
 for template in "${INHERITANCE_TEMPLATES[@]}"; do
     echo -e "${YELLOW}  Testing inheritance: $template${NC}"
     
-    if timeout 30s ./bin/cws launch "$template" "inheritance-test-$$" --dry-run > /dev/null 2>&1; then
+    if timeout 30s ./bin/prism launch "$template" "inheritance-test-$$" --dry-run > /dev/null 2>&1; then
         echo -e "${GREEN}    ✅ PASS: Inheritance template deployment OK${NC}"
     else
         echo -e "${RED}    ❌ FAIL: Inheritance template deployment failed${NC}"
@@ -95,7 +95,7 @@ TEST_TEMPLATE="ubuntu"
 for size in "${SIZES[@]}"; do
     echo -e "${YELLOW}  Testing size scaling: $size${NC}"
     
-    if timeout 30s ./bin/cws launch "$TEST_TEMPLATE" "size-test-$size-$$" --size "$size" --dry-run > /dev/null 2>&1; then
+    if timeout 30s ./bin/prism launch "$TEST_TEMPLATE" "size-test-$size-$$" --size "$size" --dry-run > /dev/null 2>&1; then
         echo -e "${GREEN}    ✅ PASS: Size $size deployment validation${NC}"
     else
         echo -e "${RED}    ❌ FAIL: Size $size deployment validation${NC}"
@@ -107,7 +107,7 @@ echo -e "${BLUE}📋 Step 6: Template feature validation...${NC}"
 
 # Test special template features
 echo -e "${YELLOW}  Testing GPU template deployment...${NC}"
-if timeout 30s ./bin/cws launch "python-ml" "gpu-test-$$" --size L --dry-run > /dev/null 2>&1; then
+if timeout 30s ./bin/prism launch "python-ml" "gpu-test-$$" --size L --dry-run > /dev/null 2>&1; then
     echo -e "${GREEN}    ✅ PASS: GPU template deployment validation${NC}"
 else
     echo -e "${RED}    ❌ FAIL: GPU template deployment validation${NC}"
@@ -115,7 +115,7 @@ else
 fi
 
 echo -e "${YELLOW}  Testing spot instance support...${NC}"
-if timeout 30s ./bin/cws launch "ubuntu" "spot-test-$$" --spot --dry-run > /dev/null 2>&1; then
+if timeout 30s ./bin/prism launch "ubuntu" "spot-test-$$" --spot --dry-run > /dev/null 2>&1; then
     echo -e "${GREEN}    ✅ PASS: Spot instance deployment validation${NC}"
 else
     echo -e "${RED}    ❌ FAIL: Spot instance deployment validation${NC}"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"text/template"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/security"
+	"github.com/scttfrdmn/prism/pkg/security"
 )
 
 // NewScriptGenerator creates a new script generator
@@ -122,11 +122,11 @@ func (sg *ScriptGenerator) prepareUsers(users []UserConfig) []UserData {
 const dnfScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-# CloudWorkstation Template: {{.Template.Name}}
+# Prism Template: {{.Template.Name}}
 # Generated script using dnf package manager (RHEL/Rocky/Fedora)
 # Generated at: $(date)
 
-echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "=== Prism Setup: {{.Template.Name}} ==="
 echo "Using package manager: {{.PackageManager}} (DNF for RHEL-based systems)"
 
 # Update system using DNF
@@ -211,17 +211,17 @@ echo "Setup log: /var/log/cws-setup.log"
 
 # Write completion marker
 date > /var/log/cws-setup.log
-echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
+echo "Prism setup completed successfully" >> /var/log/cws-setup.log
 `
 
 const aptScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-# CloudWorkstation Template: {{.Template.Name}}
+# Prism Template: {{.Template.Name}}
 # Generated script using apt package manager
 # Generated at: $(date)
 
-echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "=== Prism Setup: {{.Template.Name}} ==="
 echo "Using package manager: {{.PackageManager}}"
 
 # System update
@@ -299,13 +299,13 @@ echo "Setup log: /var/log/cws-setup.log"
 
 # Write completion marker
 date > /var/log/cws-setup.log
-echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
+echo "Prism setup completed successfully" >> /var/log/cws-setup.log
 `
 
 const condaScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-# CloudWorkstation Progress Monitoring
+# Prism Progress Monitoring
 # This script logs progress markers that can be monitored via SSH
 PROGRESS_LOG="/var/log/cws-setup.log"
 touch "$PROGRESS_LOG"
@@ -381,7 +381,7 @@ sudo -u {{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}} /op
 JUPYTER_CONFIG="/home/{{range $.Users}}{{if eq .Name "researcher"}}{{.Name}}{{end}}{{end}}/.jupyter/jupyter_lab_config.py"
 cat >> "$JUPYTER_CONFIG" << 'JUPYTEREOF'
 
-# CloudWorkstation: Disable token for SSH tunnel access
+# Prism: Disable token for SSH tunnel access
 c.ServerApp.token = ''
 c.ServerApp.password = ''
 c.ServerApp.disable_check_xsrf = False
@@ -476,17 +476,17 @@ progress "STAGE:ready:COMPLETE"
 progress "SETUP:COMPLETE:All setup tasks finished successfully"
 
 # Final completion marker
-echo "CloudWorkstation setup completed at $(date)" >> "$PROGRESS_LOG"
+echo "Prism setup completed at $(date)" >> "$PROGRESS_LOG"
 `
 
 const spackScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-# CloudWorkstation Template: {{.Template.Name}}
+# Prism Template: {{.Template.Name}}
 # Generated script using spack package manager
 # Generated at: $(date)
 
-echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "=== Prism Setup: {{.Template.Name}} ==="
 echo "Using package manager: {{.PackageManager}}"
 
 # System update
@@ -594,17 +594,17 @@ echo "Setup log: /var/log/cws-setup.log"
 
 # Write completion marker
 date > /var/log/cws-setup.log
-echo "CloudWorkstation setup completed successfully" >> /var/log/cws-setup.log
+echo "Prism setup completed successfully" >> /var/log/cws-setup.log
 `
 
 const amiScriptTemplate = `#\!/bin/bash
 set -euo pipefail
 
-# CloudWorkstation Template: {{.Template.Name}}
+# Prism Template: {{.Template.Name}}
 # Generated script for AMI-based template (minimal user data)
 # Generated at: $(date)
 
-echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "=== Prism Setup: {{.Template.Name}} ==="
 echo "Using pre-built AMI - minimal setup required"
 
 {{if .Template.AMIConfig.UserDataScript}}
@@ -672,17 +672,17 @@ echo "Setup log: /var/log/cws-setup.log"
 
 # Write completion marker
 date > /var/log/cws-setup.log
-echo "CloudWorkstation AMI setup completed successfully" >> /var/log/cws-setup.log
+echo "Prism AMI setup completed successfully" >> /var/log/cws-setup.log
 `
 
 const pipScriptTemplate = `#!/bin/bash
 set -euo pipefail
 
-# CloudWorkstation Template: {{.Template.Name}}
+# Prism Template: {{.Template.Name}}
 # Generated script using pip package manager
 # Generated at: $(date)
 
-echo "=== CloudWorkstation Setup: {{.Template.Name}} ==="
+echo "=== Prism Setup: {{.Template.Name}} ==="
 echo "Using package manager: {{.PackageManager}}"
 
 # System update (assumes Ubuntu/Debian for system packages)
@@ -744,7 +744,7 @@ systemctl start {{.Name}} || true
 apt-get autoremove -y
 apt-get autoclean
 
-echo "=== CloudWorkstation Setup Complete ==="
+echo "=== Prism Setup Complete ==="
 echo "Template: {{.Template.Name}}"
 echo "Description: {{.Template.Description}}"
 echo "Pip packages installed"
@@ -760,5 +760,5 @@ echo "Setup log: /var/log/cws-setup.log"
 
 # Write completion marker
 date > /var/log/cws-setup.log
-echo "CloudWorkstation pip setup completed successfully" >> /var/log/cws-setup.log
+echo "Prism pip setup completed successfully" >> /var/log/cws-setup.log
 `

@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
-// StorageManager is the main interface for CloudWorkstation storage operations
+// StorageManager is the main interface for Prism storage operations
 type StorageManager struct {
 	efsManager       *EFSManager
 	ebsManager       *EBSManager

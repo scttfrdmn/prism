@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 func TestUnifiedManager(t *testing.T) {

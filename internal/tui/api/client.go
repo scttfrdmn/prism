@@ -5,19 +5,19 @@ import (
 	"context"
 	"time"
 
-	pkgapi "github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	pkgapi "github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// TUIClient wraps the CloudWorkstationAPI interface to provide
+// TUIClient wraps the PrismAPI interface to provide
 // a consistent interface for the TUI models.
 type TUIClient struct {
-	client pkgapi.CloudWorkstationAPI
+	client pkgapi.PrismAPI
 }
 
 // NewTUIClient creates a new TUIClient.
-func NewTUIClient(client pkgapi.CloudWorkstationAPI) *TUIClient {
+func NewTUIClient(client pkgapi.PrismAPI) *TUIClient {
 	return &TUIClient{
 		client: client,
 	}
@@ -430,21 +430,21 @@ func (c *TUIClient) ListMarketplaceRegistries(ctx context.Context) (*ListRegistr
 			{
 				Name:          "Community Registry",
 				Type:          "community",
-				URL:           "https://registry.cloudworkstation.org",
+				URL:           "https://registry.prism.org",
 				TemplateCount: 65,
 				Status:        "active",
 			},
 			{
 				Name:          "Institutional Registry",
 				Type:          "institutional",
-				URL:           "https://institutional.cloudworkstation.org",
+				URL:           "https://institutional.prism.org",
 				TemplateCount: 23,
 				Status:        "active",
 			},
 			{
 				Name:          "Official Registry",
 				Type:          "official",
-				URL:           "https://official.cloudworkstation.org",
+				URL:           "https://official.prism.org",
 				TemplateCount: 10,
 				Status:        "active",
 			},
@@ -621,7 +621,7 @@ func (c *TUIClient) GetLogs(ctx context.Context, instanceName, logType string) (
 		"[2025-10-07 10:23:50] Installing packages: python3, pip, numpy",
 		"[2025-10-07 10:24:15] Package installation complete",
 		"[2025-10-07 10:24:16] Running post-install scripts",
-		"[2025-10-07 10:24:20] CloudWorkstation initialization complete",
+		"[2025-10-07 10:24:20] Prism initialization complete",
 		"[2025-10-07 10:24:21] Instance ready for SSH connections",
 	}
 

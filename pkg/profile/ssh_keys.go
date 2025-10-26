@@ -41,7 +41,7 @@ func (m *SSHKeyManager) GetSSHKeyForProfile(profile *Profile) (keyPath string, k
 		return profile.SSHKeyPath, profile.SSHKeyName, nil
 	}
 
-	// Generate CloudWorkstation-specific key for this profile
+	// Generate Prism-specific key for this profile
 	return m.getOrCreateProfileKey(profile)
 }
 
@@ -69,7 +69,7 @@ func (m *SSHKeyManager) getDefaultSSHKey() (string, string, error) {
 	return "", "", fmt.Errorf("no default SSH key found in %s", sshDir)
 }
 
-// getOrCreateProfileKey gets or creates a CloudWorkstation-specific key for the profile
+// getOrCreateProfileKey gets or creates a Prism-specific key for the profile
 func (m *SSHKeyManager) getOrCreateProfileKey(profile *Profile) (string, string, error) {
 	keyName := m.generateKeyName(profile)
 	// Use the same safe naming for file paths as for AWS key names

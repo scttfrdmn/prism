@@ -27,7 +27,7 @@ type KeyMetadata struct {
 	PublicKey  string    `json:"-"` // Not serialized, loaded on demand
 }
 
-// KeyMetadataStore tracks all CloudWorkstation SSH keys
+// KeyMetadataStore tracks all Prism SSH keys
 type KeyMetadataStore struct {
 	Keys    map[string]*KeyMetadata `json:"keys"`
 	Version string                  `json:"version"`
@@ -35,8 +35,8 @@ type KeyMetadataStore struct {
 
 // SSHKeyManagerV2 manages SSH keys with normalized storage and naming
 type SSHKeyManagerV2 struct {
-	keysDir      string // ~/.cloudworkstation/keys
-	metadataPath string // ~/.cloudworkstation/keys/metadata.json
+	keysDir      string // ~/.prism/keys
+	metadataPath string // ~/.prism/keys/metadata.json
 }
 
 // NewSSHKeyManagerV2 creates a new normalized SSH key manager
@@ -46,7 +46,7 @@ func NewSSHKeyManagerV2() (*SSHKeyManagerV2, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	keysDir := filepath.Join(homeDir, ".cloudworkstation", "keys")
+	keysDir := filepath.Join(homeDir, ".prism", "keys")
 	metadataPath := filepath.Join(keysDir, "metadata.json")
 
 	// Ensure keys directory exists with proper permissions
@@ -108,13 +108,13 @@ func (m *SSHKeyManagerV2) GetKeyPath(profileName string) (string, error) {
 func (m *SSHKeyManagerV2) GetKeyPathFromAWSKeyName(awsKeyName string) (string, error) {
 	// Parse AWS key name: cws-<profile>-<region>
 	if !strings.HasPrefix(awsKeyName, "cws-") {
-		return "", fmt.Errorf("not a CloudWorkstation key: %s", awsKeyName)
+		return "", fmt.Errorf("not a Prism key: %s", awsKeyName)
 	}
 
 	// Extract profile name (everything between "cws-" and last "-<region>")
 	parts := strings.SplitN(strings.TrimPrefix(awsKeyName, "cws-"), "-", 2)
 	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid CloudWorkstation key name format: %s", awsKeyName)
+		return "", fmt.Errorf("invalid Prism key name format: %s", awsKeyName)
 	}
 
 	profileName := parts[0]
@@ -127,7 +127,7 @@ func (m *SSHKeyManagerV2) GetKeyPathFromAWSKeyName(awsKeyName string) (string, e
 	return keyPath, nil
 }
 
-// ListKeys returns all CloudWorkstation SSH keys
+// ListKeys returns all Prism SSH keys
 func (m *SSHKeyManagerV2) ListKeys() ([]*KeyMetadata, error) {
 	store, err := m.loadMetadata()
 	if err != nil {

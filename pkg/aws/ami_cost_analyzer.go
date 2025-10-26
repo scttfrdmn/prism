@@ -4,7 +4,7 @@ package aws
 import (
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // AMICostAnalyzer provides cost analysis for AMI vs script deployment strategies

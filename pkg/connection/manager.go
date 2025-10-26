@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+	"github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 // ConnectionManager manages reliable connections with retry logic

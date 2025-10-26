@@ -90,7 +90,7 @@ func NewLinuxSecretServiceNative() (*LinuxSecretServiceNative, error) {
 func createCollection(conn *dbus.Conn, service dbus.BusObject) (dbus.ObjectPath, error) {
 	// Collection properties
 	properties := map[string]dbus.Variant{
-		"org.freedesktop.Secret.Collection.Label": dbus.MakeVariant("CloudWorkstation"),
+		"org.freedesktop.Secret.Collection.Label": dbus.MakeVariant("Prism"),
 	}
 
 	// Create collection
@@ -117,7 +117,7 @@ func createCollection(conn *dbus.Conn, service dbus.BusObject) (dbus.ObjectPath,
 func (l *LinuxSecretServiceNative) Store(key string, data []byte) error {
 	// Item properties
 	properties := map[string]dbus.Variant{
-		"org.freedesktop.Secret.Item.Label": dbus.MakeVariant("CloudWorkstation: " + key),
+		"org.freedesktop.Secret.Item.Label": dbus.MakeVariant("Prism: " + key),
 		"org.freedesktop.Secret.Item.Attributes": dbus.MakeVariant(map[string]string{
 			"application": "cloudworkstation",
 			"account":     key,

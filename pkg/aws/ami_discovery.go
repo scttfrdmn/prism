@@ -238,7 +238,7 @@ func (d *AMIDiscovery) ValidateAMI(ctx context.Context, amiID, region string) (b
 	return true, nil
 }
 
-// GetSSMParameterPaths returns all SSM parameter paths that CloudWorkstation queries
+// GetSSMParameterPaths returns all SSM parameter paths that Prism queries
 //
 // This is useful for documentation and debugging
 func (d *AMIDiscovery) GetSSMParameterPaths() map[string][]string {

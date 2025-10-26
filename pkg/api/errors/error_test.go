@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 func TestExtractOperationFromPath(t *testing.T) {

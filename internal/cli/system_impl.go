@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
 // SystemCommands handles all system and daemon-related operations
@@ -43,7 +43,7 @@ func NewSystemCommands(app *App) *SystemCommands {
 // Daemon handles daemon management commands
 func (s *SystemCommands) Daemon(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws daemon <action>", "cws daemon start")
+		return NewUsageError("prism daemon <action>", "prism daemon start")
 	}
 
 	action := args[0]
@@ -264,7 +264,7 @@ func (s *SystemCommands) daemonConfigShow() error {
 		return fmt.Errorf("failed to load daemon configuration: %w", err)
 	}
 
-	fmt.Printf("🔧 CloudWorkstation Daemon Configuration\n\n")
+	fmt.Printf("🔧 Prism Daemon Configuration\n\n")
 	fmt.Printf("Instance Retention:\n")
 	if daemonConfig.InstanceRetentionMinutes == 0 {
 		fmt.Printf("  • Retention Period: ♾️  Indefinite (until AWS removes instances)\n")
@@ -435,7 +435,7 @@ func (s *SystemCommands) getDaemonConfigPath() string {
 
 // daemonProcesses lists all daemon processes
 func (s *SystemCommands) daemonProcesses() error {
-	fmt.Println("🔍 Scanning for CloudWorkstation daemon processes...")
+	fmt.Println("🔍 Scanning for Prism daemon processes...")
 
 	// Make API call to get daemon processes
 	response, err := s.app.apiClient.MakeRequest("GET", "/api/v1/daemon/processes", nil)
@@ -552,13 +552,13 @@ func (s *SystemCommands) daemonCleanup(args []string) error {
 		case "--yes", "-y":
 			confirmed = true
 		case "--help", "-h":
-			fmt.Printf("Usage: cws daemon cleanup [OPTIONS]\n\n")
+			fmt.Printf("Usage: prism daemon cleanup [OPTIONS]\n\n")
 			fmt.Printf("Options:\n")
 			fmt.Printf("  --force    Force kill processes instead of graceful shutdown\n")
 			fmt.Printf("  --yes, -y  Skip confirmation prompts\n")
 			fmt.Printf("  --help, -h Show this help message\n\n")
 			fmt.Printf("Description:\n")
-			fmt.Printf("  Performs comprehensive cleanup of all CloudWorkstation daemon processes\n")
+			fmt.Printf("  Performs comprehensive cleanup of all Prism daemon processes\n")
 			fmt.Printf("  and related files. This is useful for troubleshooting or uninstallation.\n\n")
 			fmt.Printf("Examples:\n")
 			fmt.Printf("  cws daemon cleanup           # Interactive cleanup with confirmations\n")
@@ -570,7 +570,7 @@ func (s *SystemCommands) daemonCleanup(args []string) error {
 		}
 	}
 
-	fmt.Println("🧹 CloudWorkstation Daemon Cleanup")
+	fmt.Println("🧹 Prism Daemon Cleanup")
 	fmt.Println("====================================")
 
 	// Check for running processes first
@@ -599,7 +599,7 @@ func (s *SystemCommands) daemonCleanup(args []string) error {
 	// Confirmation prompt
 	if !confirmed {
 		fmt.Println("\nThis will:")
-		fmt.Printf("  • Stop all CloudWorkstation daemon processes (%d found)\n", processCount)
+		fmt.Printf("  • Stop all Prism daemon processes (%d found)\n", processCount)
 		fmt.Println("  • Clean up daemon configuration files")
 		fmt.Println("  • Remove process ID files and locks")
 		fmt.Print("\nContinue with cleanup? [y/N]: ")
@@ -755,7 +755,7 @@ func (s *SystemCommands) cleanupDaemonFiles() {
 		return
 	}
 
-	configDir := filepath.Join(homeDir, ".cloudworkstation")
+	configDir := filepath.Join(homeDir, ".prism")
 	filesToRemove := []string{
 		filepath.Join(configDir, "daemon.pid"),
 		filepath.Join(configDir, "daemon_registry.json"),

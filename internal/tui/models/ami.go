@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // AMIModel represents the AMI management view
@@ -77,7 +77,7 @@ func NewAMIModel(apiClient apiClient) AMIModel {
 	buildsTable := components.NewTable(buildColumns, []table.Row{}, 80, 8, true)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation AMI Management", "")
+	statusBar := components.NewStatusBar("Prism AMI Management", "")
 	spinner := components.NewSpinner("Loading AMI data...")
 
 	return AMIModel{

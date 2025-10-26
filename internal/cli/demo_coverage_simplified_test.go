@@ -1,4 +1,4 @@
-// Package cli simplified demo coverage tests for CloudWorkstation CLI
+// Package cli simplified demo coverage tests for Prism CLI
 //
 // This file contains simplified demo coverage tests that validate documented functionality
 // using only the methods that actually exist on the App struct, ensuring all documented
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

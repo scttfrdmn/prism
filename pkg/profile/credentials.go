@@ -1,4 +1,4 @@
-// Package profile provides functionality for managing CloudWorkstation profiles
+// Package profile provides functionality for managing Prism profiles
 package profile
 
 import (
@@ -53,14 +53,14 @@ func NewCredentialProvider() (CredentialProvider, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Create CloudWorkstation directory if it doesn't exist
-	cwsDir := filepath.Join(homeDir, ".cloudworkstation", "credentials")
+	// Create Prism directory if it doesn't exist
+	cwsDir := filepath.Join(homeDir, ".prism", "credentials")
 	if err := os.MkdirAll(cwsDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create credentials directory: %w", err)
 	}
 
 	provider := &SecureCredentialProvider{
-		service:    "CloudWorkstation",
+		service:    "Prism",
 		configPath: cwsDir,
 	}
 
@@ -442,7 +442,7 @@ func (p *AWSCredentialsProvider) Retrieve(ctx interface{}) (aws.Credentials, err
 		AccessKeyID:     creds.AccessKeyID,
 		SecretAccessKey: creds.SecretAccessKey,
 		SessionToken:    creds.SessionToken,
-		Source:          "CloudWorkstation",
+		Source:          "Prism",
 		CanExpire:       creds.Expiration != nil,
 		Expires:         expiry,
 	}, nil

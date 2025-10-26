@@ -19,7 +19,7 @@ func (ac *AMICobraCommands) CreateAMICommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ami",
 		Short: "Manage AMIs for fast workspace launching",
-		Long: `Build, manage, and deploy AMIs for faster CloudWorkstation deployments.
+		Long: `Build, manage, and deploy AMIs for faster Prism deployments.
 
 AMIs enable fast launching by pre-building template environments, reducing
 launch times from 5-8 minutes to under 30 seconds.`,
@@ -51,7 +51,7 @@ func (ac *AMICobraCommands) createBuildCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build <template-name>",
 		Short: "Build a new AMI from a template",
-		Long: `Build a new AMI from a CloudWorkstation template for faster launching.
+		Long: `Build a new AMI from a Prism template for faster launching.
 
 This creates a pre-configured AMI that reduces launch times from 5-8 minutes
 to under 30 seconds for subsequent launches.`,

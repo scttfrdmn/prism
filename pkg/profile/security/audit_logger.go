@@ -44,7 +44,7 @@ func NewSecurityAuditLogger() (*SecurityAuditLogger, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	auditDir := filepath.Join(homeDir, ".cloudworkstation", "security", "audit")
+	auditDir := filepath.Join(homeDir, ".prism", "security", "audit")
 	if err := os.MkdirAll(auditDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create audit directory: %w", err)
 	}

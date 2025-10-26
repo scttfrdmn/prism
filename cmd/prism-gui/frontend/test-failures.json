@@ -1,0 +1,5 @@
+
+> cloudworkstation-gui@0.4.3 test:e2e
+> playwright test --reporter=json
+
+Daemon is already running, skipping startup

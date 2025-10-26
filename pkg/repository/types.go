@@ -1,4 +1,4 @@
-// Package repository provides multi-repository support for CloudWorkstation templates.
+// Package repository provides multi-repository support for Prism templates.
 //
 // This package implements the core functionality for managing multiple template
 // repositories with priority-based override capabilities. It handles repository
@@ -68,12 +68,12 @@ type RepositoryMetadata struct {
 	// LastUpdated is the timestamp of the last repository update
 	LastUpdated string `yaml:"last_updated" json:"last_updated"`
 
-	// Compatibility defines version requirements for CloudWorkstation
+	// Compatibility defines version requirements for Prism
 	Compatibility struct {
-		// MinVersion is the minimum required CloudWorkstation version
+		// MinVersion is the minimum required Prism version
 		MinVersion string `yaml:"min_version" json:"min_version"`
 
-		// MaxVersion is the maximum supported CloudWorkstation version
+		// MaxVersion is the maximum supported Prism version
 		MaxVersion string `yaml:"max_version" json:"max_version"`
 	} `yaml:"compatibility" json:"compatibility"`
 

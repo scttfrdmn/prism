@@ -81,14 +81,14 @@ fi
 
 # Step 7: Binary validation
 print_step "Validating binaries..."
-if [ -f "bin/cws" ] && [ -f "bin/cwsd" ]; then
+if [ -f "bin/cws" ] && [ -f "bin/prismd" ]; then
     green "    ✓ Core binaries created"
     echo "    - $(file bin/cws)"
-    echo "    - $(file bin/cwsd)"
+    echo "    - $(file bin/prismd)"
     
-    if [ -f "bin/cws-gui" ]; then
+    if [ -f "bin/prism-gui" ]; then
         green "    ✓ GUI binary created"
-        echo "    - $(file bin/cws-gui)"
+        echo "    - $(file bin/prism-gui)"
     else
         yellow "    ! GUI binary not found (acceptable for headless builds)"
     fi

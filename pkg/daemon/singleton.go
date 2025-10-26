@@ -1,4 +1,4 @@
-// Package daemon provides singleton enforcement for the CloudWorkstation daemon.
+// Package daemon provides singleton enforcement for the Prism daemon.
 //
 // This ensures only one daemon process runs at a time and handles graceful
 // shutdown of old processes when a new daemon starts.
@@ -33,13 +33,13 @@ type SingletonManager struct {
 
 // NewSingletonManager creates a new singleton manager
 func NewSingletonManager() (*SingletonManager, error) {
-	// Get CloudWorkstation state directory
+	// Get Prism state directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	stateDir := filepath.Join(homeDir, ".cloudworkstation")
+	stateDir := filepath.Join(homeDir, ".prism")
 	if err := os.MkdirAll(stateDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}

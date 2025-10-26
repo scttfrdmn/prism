@@ -6,7 +6,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/api"
 )
 
 // Common message types used across multiple models

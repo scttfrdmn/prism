@@ -1,4 +1,4 @@
-// Package cli implements template application commands for CloudWorkstation.
+// Package cli implements template application commands for Prism.
 //
 // These commands enable applying templates to already running instances,
 // allowing for incremental environment evolution without instance recreation.
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Apply handles the apply command using Command Pattern (SOLID: Single Responsibility)

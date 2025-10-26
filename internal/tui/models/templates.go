@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // BrowserTemplateItem represents a template in the browser list
@@ -243,13 +243,13 @@ func (m *TemplatesModel) updateDetailView() {
 		}
 
 		content.WriteString(theme.SubTitle.Render("Launch Command:") + "\n")
-		content.WriteString(fmt.Sprintf("cws launch %s instance-name\n", m.selected))
-		content.WriteString("cws launch " + m.selected + " instance-name --size L\n")
-		content.WriteString("cws launch " + m.selected + " instance-name --volume data-volume\n")
+		content.WriteString(fmt.Sprintf("prism launch %s instance-name\n", m.selected))
+		content.WriteString("prism launch " + m.selected + " instance-name --size L\n")
+		content.WriteString("prism launch " + m.selected + " instance-name --volume data-volume\n")
 
 		// Add research user launch example if supported
 		if template.ResearchUser != nil && template.ResearchUser.AutoCreate {
-			content.WriteString("cws launch " + m.selected + " instance-name --research-user alice\n")
+			content.WriteString("prism launch " + m.selected + " instance-name --research-user alice\n")
 		}
 
 		m.detailView.SetContent(content.String())
@@ -262,7 +262,7 @@ func (m TemplatesModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Templates")
+	title := theme.Title.Render("Prism Templates")
 
 	// Content area
 	var content string

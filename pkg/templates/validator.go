@@ -1,4 +1,4 @@
-// Package templates provides CloudWorkstation's unified template system.
+// Package templates provides Prism's unified template system.
 package templates
 
 import (

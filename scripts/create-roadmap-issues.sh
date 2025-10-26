@@ -317,7 +317,7 @@ This wizard will help you set up your research environment.
 - Implement as \`cws init\` command in internal/cli/
 - Use interactive prompts (survey library or similar)
 - Auto-run on first \`cws\` command if ~/.cloudworkstation/ doesn't exist
-- Allow skipping with \`cws init --skip\` or \`CWS_SKIP_INIT=1\`
+- Allow skipping with \`cws init --skip\` or \`PRISM_SKIP_INIT=1\`
 
 ## Related
 

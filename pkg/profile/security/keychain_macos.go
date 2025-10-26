@@ -193,7 +193,7 @@ type MacOSKeychainNative struct {
 func NewMacOSKeychainNative() (*MacOSKeychainNative, error) {
 	return &MacOSKeychainNative{
 		// IMPROVED UX: Use user-friendly service name in keychain dialogs
-		serviceName: "CloudWorkstation",
+		serviceName: "Prism",
 	}, nil
 }
 

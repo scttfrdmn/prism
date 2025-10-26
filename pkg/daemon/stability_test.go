@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+	"github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 func TestStabilityManager_BasicFunctionality(t *testing.T) {

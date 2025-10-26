@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/marketplace"
+	"github.com/scttfrdmn/prism/pkg/marketplace"
 )
 
 // getCurrentSystemUser returns the current system user ID and name

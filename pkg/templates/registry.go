@@ -1,4 +1,4 @@
-// Package templates provides marketplace registry functionality for CloudWorkstation templates.
+// Package templates provides marketplace registry functionality for Prism templates.
 //
 // The template marketplace enables centralized discovery, validation, and sharing of
 // research environments through community, institutional, and commercial registries.

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -749,8 +749,8 @@ func setupTestBudgetTracker(t *testing.T) *BudgetTracker {
 		_ = os.RemoveAll(tempDir)
 	})
 
-	// Create the .cloudworkstation directory
-	stateDir := filepath.Join(tempDir, ".cloudworkstation")
+	// Create the .prism directory
+	stateDir := filepath.Join(tempDir, ".prism")
 	err = os.MkdirAll(stateDir, 0755)
 	require.NoError(t, err)
 
@@ -783,8 +783,8 @@ func setupTestBudgetTrackerWithMock(t *testing.T) (*BudgetTracker, *MockActionEx
 		_ = os.RemoveAll(tempDir)
 	})
 
-	// Create the .cloudworkstation directory
-	stateDir := filepath.Join(tempDir, ".cloudworkstation")
+	// Create the .prism directory
+	stateDir := filepath.Join(tempDir, ".prism")
 	err = os.MkdirAll(stateDir, 0755)
 	require.NoError(t, err)
 

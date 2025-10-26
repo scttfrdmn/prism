@@ -1,4 +1,4 @@
-// Package security provides cryptographic operations for CloudWorkstation profiles
+// Package security provides cryptographic operations for Prism profiles
 package security
 
 import (
@@ -184,7 +184,7 @@ func getSystemEntropy() string {
 func getInstallationEntropy() string {
 	// This provides a timestamp that's consistent for this installation
 	// but different if the profile is copied to another system
-	installTime := getCloudWorkstationInstallTime()
+	installTime := getPrismInstallTime()
 	return "install_time:" + installTime.Format(time.RFC3339)
 }
 
@@ -265,14 +265,14 @@ func getPrimaryMACAddresses() []string {
 	return addresses
 }
 
-func getCloudWorkstationInstallTime() time.Time {
-	// Try to get the creation time of the CloudWorkstation config directory
+func getPrismInstallTime() time.Time {
+	// Try to get the creation time of the Prism config directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return time.Now()
 	}
 
-	configDir := fmt.Sprintf("%s/.cloudworkstation", homeDir)
+	configDir := fmt.Sprintf("%s/.prism", homeDir)
 	if stat, err := os.Stat(configDir); err == nil {
 		return stat.ModTime()
 	}

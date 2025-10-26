@@ -110,7 +110,7 @@ fi
 
 # Check 6: CloudWorkstation Build
 log_info "Checking CloudWorkstation build..."
-if [ ! -f "./bin/cwsd" ]; then
+if [ ! -f "./bin/prismd" ]; then
     log_warning "CloudWorkstation daemon not built"
     log_info "Building daemon..."
     make build-daemon
@@ -128,11 +128,11 @@ log_success "CloudWorkstation binaries available"
 log_info "Checking CloudWorkstation daemon..."
 if ! pgrep -f "cwsd" > /dev/null; then
     log_warning "CloudWorkstation daemon not running"
-    log_info "Start daemon with: ./bin/cwsd &"
+    log_info "Start daemon with: ./bin/prismd &"
     
     # Try to start daemon for testing
     log_info "Attempting to start daemon..."
-    ./bin/cwsd &
+    ./bin/prismd &
     DAEMON_PID=$!
     sleep 3
     
@@ -192,7 +192,7 @@ echo "=========================================="
 log_success "AWS Integration Test Environment Ready!"
 echo ""
 echo "Next steps:"
-echo "1. Start daemon: ./bin/cwsd &"
+echo "1. Start daemon: ./bin/prismd &"
 echo "2. Run quick tests: make test-aws-quick"
 echo "3. Run full tests: make test-aws"
 echo ""

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // InstanceCommands handles all instance management operations (implementation layer)
@@ -39,7 +39,7 @@ func NewInstanceCommands(app *App) *InstanceCommands {
 func (ic *InstanceCommands) Connect(args []string) error {
 	// Validate arguments
 	if len(args) < 1 {
-		return NewUsageError("cws connect <workspace-name>", "cws connect my-workspace")
+		return NewUsageError("prism connect <workspace-name>", "prism connect my-workspace")
 	}
 
 	// Parse flags
@@ -167,7 +167,7 @@ func (ic *InstanceCommands) executeConnection(connectionInfo, name string, verbo
 // Stop handles the stop command
 func (ic *InstanceCommands) Stop(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws stop <name>", "cws stop my-workspace")
+		return NewUsageError("prism stop <name>", "prism stop my-workspace")
 	}
 
 	name := args[0]
@@ -189,7 +189,7 @@ func (ic *InstanceCommands) Stop(args []string) error {
 // Start handles the start command with intelligent state management
 func (ic *InstanceCommands) Start(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws start <name>", "cws start my-workspace")
+		return NewUsageError("prism start <name>", "prism start my-workspace")
 	}
 
 	name := args[0]
@@ -244,7 +244,7 @@ func (ic *InstanceCommands) Start(args []string) error {
 // Delete handles the delete command
 func (ic *InstanceCommands) Delete(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws delete <name>", "cws delete my-workspace")
+		return NewUsageError("prism delete <name>", "prism delete my-workspace")
 	}
 
 	name := args[0]
@@ -266,7 +266,7 @@ func (ic *InstanceCommands) Delete(args []string) error {
 // Hibernate handles the hibernate command
 func (ic *InstanceCommands) Hibernate(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws hibernate <name>", "cws hibernate my-workspace")
+		return NewUsageError("prism hibernate <name>", "prism hibernate my-workspace")
 	}
 
 	name := args[0]
@@ -307,7 +307,7 @@ func (ic *InstanceCommands) Hibernate(args []string) error {
 // Resume handles the resume command
 func (ic *InstanceCommands) Resume(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws resume <name>", "cws resume my-workspace")
+		return NewUsageError("prism resume <name>", "prism resume my-workspace")
 	}
 
 	name := args[0]
@@ -349,7 +349,7 @@ func (ic *InstanceCommands) Resume(args []string) error {
 func (ic *InstanceCommands) Exec(args []string) error {
 	// Validate arguments
 	if len(args) < 2 {
-		return NewUsageError("cws exec <workspace-name> <command>", "cws exec my-workspace \"ls -la\"")
+		return NewUsageError("prism exec <workspace-name> <command>", "prism exec my-workspace \"ls -la\"")
 	}
 
 	// Parse command arguments and flags
@@ -500,8 +500,8 @@ func (ic *InstanceCommands) displayStdErr(stderr string, exitCode int, verbose b
 func (ic *InstanceCommands) Resize(args []string) error {
 	// Validate arguments
 	if len(args) < 2 {
-		return NewUsageError("cws resize <workspace-name> --size <size> [options]",
-			"cws resize my-workspace --size L")
+		return NewUsageError("prism resize <workspace-name> --size <size> [options]",
+			"prism resize my-workspace --size L")
 	}
 
 	// Parse flags
@@ -610,8 +610,8 @@ func (ic *InstanceCommands) resolveTargetInstanceType(opts resizeOptions) (strin
 		return "", NewValidationError("size", opts.newSize, "valid t-shirt size (XS, S, M, L, XL)")
 	}
 
-	return "", NewUsageError("cws resize <workspace-name> --size <size> OR --instance-type <type>",
-		"cws resize my-workspace --size L")
+	return "", NewUsageError("prism resize <workspace-name> --size <size> OR --instance-type <type>",
+		"prism resize my-workspace --size L")
 }
 
 // displayResizeInfo displays resize operation details and handles validation

@@ -17,8 +17,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/stretchr/testify/require"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // AWSTestHelpers provides utility methods for AWS integration testing
@@ -26,12 +26,12 @@ type AWSTestHelpers struct {
 	config    *AWSTestConfig
 	ec2Client *ec2.Client
 	efsClient *efs.Client
-	apiClient client.CloudWorkstationAPI
+	apiClient client.PrismAPI
 	testID    string
 }
 
 // NewAWSTestHelpers creates a new AWS test helpers instance
-func NewAWSTestHelpers(config *AWSTestConfig, ec2Client *ec2.Client, efsClient *efs.Client, apiClient client.CloudWorkstationAPI, testID string) *AWSTestHelpers {
+func NewAWSTestHelpers(config *AWSTestConfig, ec2Client *ec2.Client, efsClient *efs.Client, apiClient client.PrismAPI, testID string) *AWSTestHelpers {
 	return &AWSTestHelpers{
 		config:    config,
 		ec2Client: ec2Client,
@@ -195,7 +195,7 @@ func (h *AWSTestHelpers) CleanupOrphanedEC2Instances(ctx context.Context, t *tes
 		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:CreatedBy"),
-				Values: []string{"CloudWorkstationIntegrationTest"},
+				Values: []string{"PrismIntegrationTest"},
 			},
 			{
 				Name:   aws.String("instance-state-name"),
@@ -244,7 +244,7 @@ func (h *AWSTestHelpers) CleanupOrphanedEFSVolumes(ctx context.Context, t *testi
 		// Check if it's a test file system
 		isTestFS := false
 		for _, tag := range fs.Tags {
-			if *tag.Key == "CreatedBy" && *tag.Value == "CloudWorkstationIntegrationTest" {
+			if *tag.Key == "CreatedBy" && *tag.Value == "PrismIntegrationTest" {
 				isTestFS = true
 				break
 			}
@@ -281,10 +281,10 @@ func (h *AWSTestHelpers) ValidateAWSConnectivity(ctx context.Context, t *testing
 		require.NoError(t, err, "Failed to connect to EFS - check AWS permissions")
 	})
 
-	// Test CloudWorkstation daemon connectivity
+	// Test Prism daemon connectivity
 	t.Run("DaemonConnectivity", func(t *testing.T) {
 		err := h.apiClient.Ping(ctx)
-		require.NoError(t, err, "Failed to connect to CloudWorkstation daemon")
+		require.NoError(t, err, "Failed to connect to Prism daemon")
 	})
 
 	t.Log("AWS connectivity validation completed successfully")

@@ -1,0 +1,22 @@
+/* CloudWorkstation GUI Custom Styles */
+
+/* Fix z-index for Cloudscape dropdowns to appear above table rows */
+.awsui-button-dropdown-portal {
+  z-index: 9999 !important;
+}
+
+/* Ensure all Cloudscape portals (modals, dropdowns, popovers) appear on top */
+[data-awsui-portal] {
+  z-index: 9999 !important;
+}
+
+/* Fix for ButtonDropdown specifically */
+.awsui-button-dropdown-content {
+  z-index: 9999 !important;
+}
+
+/* Ensure dropdown content is positioned correctly */
+.awsui-button-dropdown-container {
+  position: relative;
+  z-index: 1;
+}

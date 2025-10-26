@@ -62,7 +62,7 @@ log_success "Build completed"
 log_info "Checking daemon..."
 if ! curl -s http://localhost:8947/api/v1/ping > /dev/null 2>&1; then
     log_warning "Daemon not running, starting..."
-    ./bin/cwsd &
+    ./bin/prismd &
     DAEMON_PID=$!
     sleep 3
     if ! curl -s http://localhost:8947/api/v1/ping > /dev/null 2>&1; then

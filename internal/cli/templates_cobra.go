@@ -36,8 +36,8 @@ func NewTemplateCobraCommands(app *App) *TemplateCobraCommands {
 func (tc *TemplateCobraCommands) CreateTemplatesCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "templates",
-		Short: "Manage and explore CloudWorkstation templates",
-		Long: `Manage CloudWorkstation templates including listing, searching, validating,
+		Short: "Manage and explore Prism templates",
+		Long: `Manage Prism templates including listing, searching, validating,
 and testing templates. Use subcommands for specific operations.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Default action: list templates
@@ -67,7 +67,7 @@ func (tc *TemplateCobraCommands) createListCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List all available templates",
-		Long:  "Display all available CloudWorkstation templates with their descriptions and costs.",
+		Long:  "Display all available Prism templates with their descriptions and costs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return tc.templateCommands.templatesList(args)
 		},
@@ -205,7 +205,7 @@ func (tc *TemplateCobraCommands) createDiscoverCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "discover",
 		Short: "Discover templates by category",
-		Long:  "Browse and discover CloudWorkstation templates organized by category and research domain.",
+		Long:  "Browse and discover Prism templates organized by category and research domain.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return tc.templateCommands.templatesDiscover(args)
 		},
@@ -230,7 +230,7 @@ func (tc *TemplateCobraCommands) createInstallCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "install <repository:template>",
 		Short: "Install template from repository",
-		Long:  "Install a template from a CloudWorkstation repository.",
+		Long:  "Install a template from a Prism repository.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Build args with flags

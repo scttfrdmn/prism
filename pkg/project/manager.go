@@ -1,4 +1,4 @@
-// Package project provides project and budget management functionality for CloudWorkstation.
+// Package project provides project and budget management functionality for Prism.
 //
 // This package implements project-based resource organization, budget tracking,
 // and cost controls that enable researchers to organize instances, storage, and
@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Manager handles project lifecycle, budget tracking, and cost controls
@@ -33,7 +33,7 @@ func NewManager() (*Manager, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	stateDir := filepath.Join(homeDir, ".cloudworkstation")
+	stateDir := filepath.Join(homeDir, ".prism")
 	if err := os.MkdirAll(stateDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}

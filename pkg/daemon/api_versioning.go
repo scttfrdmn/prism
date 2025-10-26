@@ -63,7 +63,7 @@ func NewAPIVersionManager(basePath string) *APIVersionManager {
 		Status:      "stable",
 		IsDefault:   true,
 		ReleaseDate: time.Now().AddDate(0, -6, 0), // Assume it was released 6 months ago
-		DocsURL:     "https://docs.cloudworkstation.dev/api/v1",
+		DocsURL:     "https://docs.prism.dev/api/v1",
 	})
 
 	return manager

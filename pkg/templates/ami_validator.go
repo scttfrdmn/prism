@@ -43,14 +43,14 @@ func NewAMIConfigValidator() *AMIConfigValidator {
 		"sa-east-1":      true,
 	}
 
-	// Trusted AWS accounts (CloudWorkstation, major vendors, etc.)
+	// Trusted AWS accounts (Prism, major vendors, etc.)
 	trustedAccounts := map[string]string{
 		"099720109477":     "Canonical (Ubuntu)",
 		"137112412989":     "Amazon Web Services",
 		"309956199498":     "Red Hat",
 		"679593333241":     "MathWorks",
 		"aws-marketplace":  "AWS Marketplace",
-		"cloudworkstation": "CloudWorkstation Community",
+		"cloudworkstation": "Prism Community",
 	}
 
 	// AMI ID regex pattern

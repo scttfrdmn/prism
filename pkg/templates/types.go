@@ -1,4 +1,4 @@
-// Package templates provides CloudWorkstation's unified template system.
+// Package templates provides Prism's unified template system.
 //
 // This package implements a simplified, deterministic template architecture that
 // leverages existing package managers (apt, conda, spack) instead of custom scripts.
@@ -9,11 +9,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/research"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/research"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// Template represents a unified CloudWorkstation template
+// Template represents a unified Prism template
 type Template struct {
 	// Basic metadata
 	Name            string `yaml:"name" json:"name"`
@@ -481,7 +481,7 @@ type MarketplaceConfig struct {
 	// Dependency information
 	Dependencies  []TemplateDependency `yaml:"dependencies,omitempty" json:"dependencies,omitempty"`   // Other templates this depends on
 	Dependents    []string             `yaml:"dependents,omitempty" json:"dependents,omitempty"`       // Templates that depend on this
-	Compatibility []string             `yaml:"compatibility,omitempty" json:"compatibility,omitempty"` // Compatible CloudWorkstation versions
+	Compatibility []string             `yaml:"compatibility,omitempty" json:"compatibility,omitempty"` // Compatible Prism versions
 }
 
 // SecurityScanResult contains security scanning information

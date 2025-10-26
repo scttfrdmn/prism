@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
+	"github.com/scttfrdmn/prism/pkg/usermgmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

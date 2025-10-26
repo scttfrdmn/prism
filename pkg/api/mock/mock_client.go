@@ -1,6 +1,6 @@
-// Package mock provides mock implementations for CloudWorkstation API.
+// Package mock provides mock implementations for Prism API.
 //
-// This package contains mock implementations of the CloudWorkstation API interfaces
+// This package contains mock implementations of the Prism API interfaces
 // for use in demos, testing, and development without requiring actual AWS credentials
 // or resources. It simulates all API responses with realistic data.
 //
@@ -16,22 +16,22 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// MockClient provides a mock implementation of the CloudWorkstationAPI interface
+// MockClient provides a mock implementation of the PrismAPI interface
 type MockClient struct {
 	Templates      map[string]types.Template
 	Instances      map[string]types.Instance
 	StorageVolumes map[string]types.StorageVolume // Unified storage (all types)
 }
 
-// Ensure MockClient implements CloudWorkstationAPI
-var _ client.CloudWorkstationAPI = (*MockClient)(nil)
+// Ensure MockClient implements PrismAPI
+var _ client.PrismAPI = (*MockClient)(nil)
 
 // NewClient creates a new mock client with pre-populated data
 func NewClient() *MockClient {
@@ -1416,9 +1416,9 @@ func (m *MockClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 				"creation_date": "2024-12-01T15:30:00Z",
 				"public":        false,
 				"tags": map[string]string{
-					"CloudWorkstation": "true",
-					"Template":         "python-ml",
-					"Creator":          "researcher",
+					"Prism":    "true",
+					"Template": "python-ml",
+					"Creator":  "researcher",
 				},
 			},
 			{
@@ -1430,10 +1430,10 @@ func (m *MockClient) ListUserAMIs(ctx context.Context) (map[string]interface{}, 
 				"creation_date": "2024-11-30T14:20:00Z",
 				"public":        true,
 				"tags": map[string]string{
-					"CloudWorkstation": "true",
-					"Template":         "bioinformatics",
-					"Creator":          "researcher",
-					"Community":        "published",
+					"Prism":     "true",
+					"Template":  "bioinformatics",
+					"Creator":   "researcher",
+					"Community": "published",
 				},
 			},
 		},
@@ -1478,7 +1478,7 @@ func (m *MockClient) GetMarketplaceTemplate(ctx context.Context, templateID stri
 		"last_updated": "2024-11-15",
 		"verified":     true,
 		"readme":       "# Deep Learning GPU Template\nThis template provides...",
-		"installation": "Automated installation via CloudWorkstation marketplace",
+		"installation": "Automated installation via Prism marketplace",
 	}, nil
 }
 

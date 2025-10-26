@@ -1,7 +1,7 @@
 // Package daemon provides HTTP handlers for daemon process management operations.
 //
 // This file implements REST API endpoints for daemon process detection, management,
-// and cleanup operations supporting CloudWorkstation uninstallation scenarios.
+// and cleanup operations supporting Prism uninstallation scenarios.
 //
 // Endpoints:
 //   GET  /api/v1/daemon/processes  - List all daemon processes

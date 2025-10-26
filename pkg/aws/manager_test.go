@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	ctypes "github.com/scttfrdmn/prism/pkg/types"
 )
 
 // floatEquals checks if two floats are equal within a small tolerance

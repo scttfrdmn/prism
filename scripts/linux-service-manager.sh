@@ -11,7 +11,7 @@ SYSTEMD_SERVICE_NAME="cwsd"
 SYSTEMD_SERVICE_FILE="/etc/systemd/system/${SYSTEMD_SERVICE_NAME}.service"
 
 # Paths
-DAEMON_PATH="/usr/local/bin/cwsd"
+DAEMON_PATH="/usr/local/bin/prismd"
 CLI_PATH="/usr/local/bin/cws"
 CONFIG_DIR="/etc/cloudworkstation"
 STATE_DIR="/var/lib/cloudworkstation"
@@ -178,10 +178,10 @@ Environment=HOME=$STATE_DIR
 Environment=XDG_CONFIG_HOME=$STATE_DIR/.config
 Environment=AWS_CONFIG_FILE=$CONFIG_DIR/aws/config
 Environment=AWS_SHARED_CREDENTIALS_FILE=$CONFIG_DIR/aws/credentials
-Environment=CWS_SERVICE_MODE=true
-Environment=CWS_CONFIG_DIR=$CONFIG_DIR
-Environment=CWS_STATE_DIR=$STATE_DIR
-Environment=CWS_LOG_DIR=$LOG_DIR
+Environment=PRISM_SERVICE_MODE=true
+Environment=PRISM_CONFIG_DIR=$CONFIG_DIR
+Environment=PRISM_STATE_DIR=$STATE_DIR
+Environment=PRISM_LOG_DIR=$LOG_DIR
 
 # Logging
 StandardOutput=journal

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // ErrorHandler is a function that can handle errors

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/internal/tui"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ func NewTUICommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tui",
 		Short: "Launch the interactive terminal UI",
-		Long: `Launch the CloudWorkstation Terminal User Interface (TUI).
+		Long: `Launch the Prism Terminal User Interface (TUI).
 
 This provides an interactive terminal interface for managing your cloud workstations.
 Press 'q' or 'Esc' at any time to exit the TUI.`,
@@ -48,7 +48,7 @@ func runTUI() {
 	}
 
 	// Print TUI initialization message
-	fmt.Printf("Starting CloudWorkstation TUI v%s...\n", version.GetVersion())
+	fmt.Printf("Starting Prism TUI v%s...\n", version.GetVersion())
 
 	// Create and run the TUI application
 	app := tui.NewApp()

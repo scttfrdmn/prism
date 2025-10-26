@@ -17,7 +17,7 @@ type State struct {
 	Config         Config                   `json:"config"`
 }
 
-// DaemonStatus represents the status of the CloudWorkstation daemon
+// DaemonStatus represents the status of the Prism daemon
 type DaemonStatus struct {
 	// Version of the daemon
 	Version string `json:"version"`
