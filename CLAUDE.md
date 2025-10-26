@@ -4,18 +4,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Cloud Workstation Platform - Claude Development Context
 
-## ⚠️ **IMPORTANT: Project Rename in v0.5.6**
-**This project will be renamed from "Prism" to "Prism" in v0.5.6 (Q4 2025 - Q1 2026)**
-
-- **New Project Name**: Prism
-- **New Binaries**: `prism`, `prismd`, `prism-gui` (replacing `cws`, `cwsd`, `prism-gui`)
-- **New Repository**: `github.com/scttfrdmn/prism` (from `github.com/scttfrdmn/prism`)
-- **New Config Directory**: `~/.prism` (from `~/.prism`)
-- **Automatic Migration**: User data automatically migrated on first v0.5.6 launch
-- **See Issue #65** for complete implementation plan
-
-Until v0.5.6 is released, continue using "Prism" terminology and binary names.
-
 ## Project Overview
 
 This is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
@@ -138,23 +126,36 @@ Prism is now a full **enterprise research platform** supporting collaborative pr
 - 🔄 **Amazon Braket**: Quantum computing research access
 - 🔄 **SageMaker Integration**: ML workflow integration (pending AWS partnership)
 
-### **v0.5.6: Project Rename to "Prism" + Template Provisioning** 🔄 **PLANNED (Q4 2025 - Q1 2026)**
-**PRIMARY FOCUS**: Complete project rebrand from Prism to Prism (Issue #65)
-- 🔄 **Project Rename**: Prism → Prism (complete rebrand)
-- 🔄 **Binary Rename**: `cws`/`cwsd`/`prism-gui` → `prism`/`prismd`/`prism-gui`
-- 🔄 **Repository Rename**: `prism` → `prism` on GitHub
-- 🔄 **Automatic Migration**: User config/state migrated from `~/.prism` to `~/.prism`
-- 🔄 **Module Path Update**: `github.com/scttfrdmn/prism` → `github.com/scttfrdmn/prism`
+### **v0.5.6: Complete Prism Rebrand** ✅ **COMPLETE (October 26, 2025)**
+**FOCUS**: Complete project rebrand from CloudWorkStation to Prism
+- ✅ **Project Rename**: CloudWorkStation → Prism (complete rebrand)
+- ✅ **Code Rename**: 29,225 files across 3 PRs (#85, #86, #87)
+- ✅ **Binary Rename**: `cws`/`cwsd` → `prism`/`prismd`
+- ✅ **Repository Rename**: `cloudworkstation` → `prism` on GitHub
+- ✅ **Configuration Directory**: `.cloudworkstation` → `.prism`
+- ✅ **Module Path Update**: `github.com/scttfrdmn/cloudworkstation` → `github.com/scttfrdmn/prism`
+- ✅ **Repository Infrastructure**: 45 files updated (packaging, build scripts, CI/CD)
+- ✅ **Test Remediation**: 60 test failures fixed across storage, CLI, and API tests
 
-**SECONDARY FOCUS**: Advanced template capabilities (Issue #64)
+**Feature Issues Created**:
+- Issue #90: Launch Throttling System (rate limiting for cost control)
+- Issue #91: Local System Sleep/Wake Detection with Auto-Hibernation
+
+### **v0.5.7: Template Provisioning & Test Stability** 🔄 **PLANNED (Early November 2025)**
+**PRIMARY FOCUS**: Template Asset Management (Issue #64)
 - 🔄 **SSM File Operations**: S3-backed file transfer for template provisioning
 - 🔄 **Large File Handling**: Progress reporting for multi-GB file transfers
 - 🔄 **Template Asset Management**: Binary and configuration file distribution
 
-**CRITICAL BUG FIX**: EBS volume size tracking (Issue #68)
-- 🔴 **Storage Cost Bug**: Fix `Instance.EBSSize` not being set during launch
-- 🔴 **Cost Calculation Fix**: Ensure accurate storage cost tracking and reporting
-- 🔴 **Data Migration**: Backfill EBS sizes for existing instances
+**SECONDARY FOCUS**: API Test Fixes (Issue #83)
+- 🔄 **AWS Mocking**: Implement proper AWS service mocking for unit tests
+- 🔄 **Test Stability**: Fix 3 failing tests in `pkg/api/client/`
+- 🔄 **CI/CD Pipeline**: Ensure green build with 100% test pass rate
+
+**TERTIARY FOCUS**: Rename Cleanup
+- 🔄 **Script Updates**: Complete remaining CloudWorkStation → Prism renames in ~45 script files
+- 🔄 **Documentation Verification**: Final branding consistency pass
+- 🔄 **Build System**: Ensure all references updated
 
 **Phase 6: Enterprise Authentication & Security** (v0.6.0 - Q2 2026)
 
