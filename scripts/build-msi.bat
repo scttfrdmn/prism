@@ -78,7 +78,7 @@ echo %BLUE%Building CLI binary (cws.exe)...%RESET%
 set GOOS=windows
 set GOARCH=amd64
 set CGO_ENABLED=0
-go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cws.exe" ./cmd/cws
+go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/prism/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/prism/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cws.exe" ./cmd/cws
 if !errorlevel! neq 0 (
     echo %RED%Error: Failed to build CLI binary%RESET%
     exit /b 1
@@ -86,7 +86,7 @@ if !errorlevel! neq 0 (
 echo %GREEN%✓ CLI binary built successfully%RESET%
 
 echo %BLUE%Building daemon binary (cwsd.exe)...%RESET%
-go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cwsd.exe" ./cmd/cwsd
+go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/prism/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/prism/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cwsd.exe" ./cmd/cwsd
 if !errorlevel! neq 0 (
     echo %RED%Error: Failed to build daemon binary%RESET%
     exit /b 1
@@ -94,7 +94,7 @@ if !errorlevel! neq 0 (
 echo %GREEN%✓ Daemon binary built successfully%RESET%
 
 echo %BLUE%Building service wrapper (cwsd-service.exe)...%RESET%
-go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cwsd-service.exe" ./cmd/cwsd-service
+go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/prism/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/prism/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cwsd-service.exe" ./cmd/cwsd-service
 if !errorlevel! neq 0 (
     echo %RED%Error: Failed to build service wrapper%RESET%
     exit /b 1
@@ -104,7 +104,7 @@ echo %GREEN%✓ Service wrapper built successfully%RESET%
 REM Build GUI if available (best effort)
 echo %BLUE%Building GUI binary (cws-gui.exe)...%RESET%
 set CGO_ENABLED=1
-go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cws-gui.exe" ./cmd/cws-gui 2>nul
+go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=%VERSION% -X github.com/scttfrdmn/prism/pkg/version.BuildDate=%date:~10,4%-%date:~4,2%-%date:~7,2%_%time:~0,2%:%time:~3,2%:%time:~6,2% -X github.com/scttfrdmn/prism/pkg/version.GitCommit=msi-build" -o "%BUILD_DIR%\release\windows-amd64\cws-gui.exe" ./cmd/cws-gui 2>nul
 if !errorlevel! equ 0 (
     echo %GREEN%✓ GUI binary built successfully%RESET%
 ) else (

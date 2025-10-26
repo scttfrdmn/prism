@@ -1,6 +1,6 @@
 [Unit]
 Description=CloudWorkstation Daemon - Autonomous Research Instance Management
-Documentation=https://github.com/scttfrdmn/cloudworkstation
+Documentation=https://github.com/scttfrdmn/prism
 Documentation=man:cwsd(1)
 After=network-online.target
 Wants=network-online.target

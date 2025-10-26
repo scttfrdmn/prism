@@ -205,7 +205,7 @@ function Build-GoBinaries {
         $env:CGO_ENABLED = "0"
         
         $buildDate = Get-Date -Format "yyyy-MM-dd_HH:mm:ss"
-        $ldflags = "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$Version -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$buildDate -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=msi-build"
+        $ldflags = "-X github.com/scttfrdmn/prism/pkg/version.Version=$Version -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$buildDate -X github.com/scttfrdmn/prism/pkg/version.GitCommit=msi-build"
         
         # Build CLI binary
         Write-Task "Building CLI binary (cws.exe)..."

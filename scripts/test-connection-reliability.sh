@@ -107,8 +107,8 @@ import (
     "log"
     "time"
 
-    "github.com/scttfrdmn/cloudworkstation/pkg/connection"
-    "github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+    "github.com/scttfrdmn/prism/pkg/connection"
+    "github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 func main() {
@@ -205,8 +205,8 @@ import (
     "net/http"
     "time"
 
-    "github.com/scttfrdmn/cloudworkstation/pkg/connection"
-    "github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+    "github.com/scttfrdmn/prism/pkg/connection"
+    "github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 func main() {
@@ -283,8 +283,8 @@ import (
     "fmt"
     "time"
 
-    "github.com/scttfrdmn/cloudworkstation/pkg/connection"
-    "github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+    "github.com/scttfrdmn/prism/pkg/connection"
+    "github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 func main() {
@@ -341,8 +341,8 @@ import (
     "fmt"
     "time"
 
-    "github.com/scttfrdmn/cloudworkstation/pkg/connection"
-    "github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
+    "github.com/scttfrdmn/prism/pkg/connection"
+    "github.com/scttfrdmn/prism/pkg/monitoring"
 )
 
 func main() {

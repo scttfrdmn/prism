@@ -6,15 +6,15 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-linux-amd64.tar.gz  # [linux64]
+  - url: https://github.com/scttfrdmn/prism/releases/download/v{{ version }}/cws-linux-amd64.tar.gz  # [linux64]
     sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [linux64]
-  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-linux-arm64.tar.gz  # [aarch64]
+  - url: https://github.com/scttfrdmn/prism/releases/download/v{{ version }}/cws-linux-arm64.tar.gz  # [aarch64]
     sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [aarch64]
-  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-macos-amd64.tar.gz  # [osx and x86_64]
+  - url: https://github.com/scttfrdmn/prism/releases/download/v{{ version }}/cws-macos-amd64.tar.gz  # [osx and x86_64]
     sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [osx and x86_64]
-  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-macos-arm64.tar.gz  # [osx and arm64]
+  - url: https://github.com/scttfrdmn/prism/releases/download/v{{ version }}/cws-macos-arm64.tar.gz  # [osx and arm64]
     sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [osx and arm64]
-  - url: https://github.com/scttfrdmn/cloudworkstation/releases/download/v{{ version }}/cws-windows-amd64.zip  # [win]
+  - url: https://github.com/scttfrdmn/prism/releases/download/v{{ version }}/cws-windows-amd64.zip  # [win]
     sha256: REPLACE_WITH_ACTUAL_SHA256_AFTER_BUILDING  # [win]
 
 build:
@@ -40,7 +40,7 @@ test:
     - cws.exe version  # [win]
 
 about:
-  home: https://github.com/scttfrdmn/cloudworkstation
+  home: https://github.com/scttfrdmn/prism
   license: MIT
   license_family: MIT
   license_file: LICENSE
@@ -50,8 +50,8 @@ about:
     cloud in seconds, not hours. It provides templates for Python, R, and specialized 
     research domains, with automatic configuration and cost optimization. The tool offers 
     a CLI, TUI, and GUI interface for managing your cloud workstations.
-  doc_url: https://github.com/scttfrdmn/cloudworkstation/tree/main/docs
-  dev_url: https://github.com/scttfrdmn/cloudworkstation
+  doc_url: https://github.com/scttfrdmn/prism/tree/main/docs
+  dev_url: https://github.com/scttfrdmn/prism
 
 extra:
   recipe-maintainers:

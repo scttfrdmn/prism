@@ -15,7 +15,7 @@ Version:        0.5.1
 Release:        1%{?dist}
 Summary:        Autonomous Research Instance Management Platform
 License:        MIT
-URL:            https://github.com/scttfrdmn/cloudworkstation
+URL:            https://github.com/scttfrdmn/prism
 Source0:        %{name}-%{version}.tar.gz
 
 # Build requirements
@@ -75,9 +75,9 @@ export GOARCH=%{go_arch}
 export CGO_ENABLED=0
 
 # Build flags with version information
-LDFLAGS="-ldflags \"-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=%{version} \
-                  -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$(date -u '+%%Y-%%m-%%d_%%H:%%M:%%S') \
-                  -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=rpm-build\""
+LDFLAGS="-ldflags \"-X github.com/scttfrdmn/prism/pkg/version.Version=%{version} \
+                  -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$(date -u '+%%Y-%%m-%%d_%%H:%%M:%%S') \
+                  -X github.com/scttfrdmn/prism/pkg/version.GitCommit=rpm-build\""
 
 # Build core binaries
 make build-cli build-daemon LDFLAGS="$LDFLAGS"
@@ -324,8 +324,8 @@ cat << 'EOF'
 ║        cws --version                                                         ║
 ║        cws templates                                                         ║
 ║                                                                              ║
-║  📚 Documentation: https://github.com/scttfrdmn/cloudworkstation            ║
-║  🐛 Issues: https://github.com/scttfrdmn/cloudworkstation/issues            ║
+║  📚 Documentation: https://github.com/scttfrdmn/prism            ║
+║  🐛 Issues: https://github.com/scttfrdmn/prism/issues            ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 

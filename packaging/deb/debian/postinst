@@ -102,8 +102,8 @@ case "$1" in
 ║        cws --version                                                         ║
 ║        cws templates                                                         ║
 ║                                                                              ║
-║  📚 Documentation: https://github.com/scttfrdmn/cloudworkstation            ║
-║  🐛 Issues: https://github.com/scttfrdmn/cloudworkstation/issues            ║
+║  📚 Documentation: https://github.com/scttfrdmn/prism            ║
+║  🐛 Issues: https://github.com/scttfrdmn/prism/issues            ║
 ║                                                                              ║
 ║  💡 Quick start guide:                                                       ║
 ║     Run 'man cws' for detailed usage instructions                           ║

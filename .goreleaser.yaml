@@ -38,9 +38,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.Version={{.Version}}
-      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate={{.Date}}
-      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit={{.Commit}}
+      - -X github.com/scttfrdmn/prism/pkg/version.Version={{.Version}}
+      - -X github.com/scttfrdmn/prism/pkg/version.BuildDate={{.Date}}
+      - -X github.com/scttfrdmn/prism/pkg/version.GitCommit={{.Commit}}
 
   # Daemon binary (cwsd)
   - id: cwsd
@@ -66,9 +66,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.Version={{.Version}}
-      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate={{.Date}}
-      - -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit={{.Commit}}
+      - -X github.com/scttfrdmn/prism/pkg/version.Version={{.Version}}
+      - -X github.com/scttfrdmn/prism/pkg/version.BuildDate={{.Date}}
+      - -X github.com/scttfrdmn/prism/pkg/version.GitCommit={{.Commit}}
 
 # Archives configuration
 archives:
@@ -144,7 +144,7 @@ brews:
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
 
     # Formula metadata
-    homepage: "https://github.com/scttfrdmn/cloudworkstation"
+    homepage: "https://github.com/scttfrdmn/prism"
     description: "CLI tool for launching pre-configured cloud workstations for academic research"
     license: "MIT"
 
@@ -182,7 +182,7 @@ brews:
       AWS credentials are required:
         aws configure
 
-      Documentation: https://github.com/scttfrdmn/cloudworkstation
+      Documentation: https://github.com/scttfrdmn/prism
 
     # Test block
     test: |
@@ -205,7 +205,7 @@ scoops:
 
     commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
 
-    homepage: "https://github.com/scttfrdmn/cloudworkstation"
+    homepage: "https://github.com/scttfrdmn/prism"
     description: "CLI tool for launching pre-configured cloud workstations for academic research"
     license: "MIT"
 
@@ -219,7 +219,7 @@ nfpms:
 
     # Package metadata
     vendor: Scott Freedman
-    homepage: https://github.com/scttfrdmn/cloudworkstation
+    homepage: https://github.com/scttfrdmn/prism
     maintainer: Scott Freedman <scott@example.com>
     description: CLI tool for launching pre-configured cloud workstations for academic research
     license: MIT
@@ -281,8 +281,8 @@ nfpms:
 #      - "--platform=linux/amd64"
 #      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
 #      - "--label=org.opencontainers.image.description={{ .ProjectName }}"
-#      - "--label=org.opencontainers.image.url=https://github.com/scttfrdmn/cloudworkstation"
-#      - "--label=org.opencontainers.image.source=https://github.com/scttfrdmn/cloudworkstation"
+#      - "--label=org.opencontainers.image.url=https://github.com/scttfrdmn/prism"
+#      - "--label=org.opencontainers.image.source=https://github.com/scttfrdmn/prism"
 #      - "--label=org.opencontainers.image.version={{ .Version }}"
 #      - "--label=org.opencontainers.image.created={{ .Date }}"
 #      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
@@ -297,8 +297,8 @@ nfpms:
 #      - "--platform=linux/arm64"
 #      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
 #      - "--label=org.opencontainers.image.description={{ .ProjectName }}"
-#      - "--label=org.opencontainers.image.url=https://github.com/scttfrdmn/cloudworkstation"
-#      - "--label=org.opencontainers.image.source=https://github.com/scttfrdmn/cloudworkstation"
+#      - "--label=org.opencontainers.image.url=https://github.com/scttfrdmn/prism"
+#      - "--label=org.opencontainers.image.source=https://github.com/scttfrdmn/prism"
 #      - "--label=org.opencontainers.image.version={{ .Version }}"
 #      - "--label=org.opencontainers.image.created={{ .Date }}"
 #      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
@@ -345,13 +345,13 @@ release:
 
     ### Debian/Ubuntu
     ```bash
-    wget https://github.com/scttfrdmn/cloudworkstation/releases/download/{{ .Tag }}/cloudworkstation_{{ .Version }}_linux_amd64.deb
+    wget https://github.com/scttfrdmn/prism/releases/download/{{ .Tag }}/cloudworkstation_{{ .Version }}_linux_amd64.deb
     sudo dpkg -i cloudworkstation_{{ .Version }}_linux_amd64.deb
     ```
 
     ### RHEL/CentOS/Fedora
     ```bash
-    wget https://github.com/scttfrdmn/cloudworkstation/releases/download/{{ .Tag }}/cloudworkstation_{{ .Version }}_linux_amd64.rpm
+    wget https://github.com/scttfrdmn/prism/releases/download/{{ .Tag }}/cloudworkstation_{{ .Version }}_linux_amd64.rpm
     sudo rpm -i cloudworkstation_{{ .Version }}_linux_amd64.rpm
     ```
 
@@ -360,7 +360,7 @@ release:
     docker pull ghcr.io/scttfrdmn/cloudworkstation:{{ .Tag }}
     ```
 
-    **Full Changelog**: https://github.com/scttfrdmn/cloudworkstation/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/scttfrdmn/prism/compare/{{ .PreviousTag }}...{{ .Tag }}
 
   # Release name template
   name_template: "{{.ProjectName}} v{{.Version}}"

@@ -213,7 +213,7 @@ jobs:
             brew install scttfrdmn/tap/cloudworkstation
             
             # Direct CLI installation
-            curl -L https://github.com/scttfrdmn/cloudworkstation/releases/download/${{ github.ref_name }}/cloudworkstation-darwin-$(uname -m).tar.gz | tar xz
+            curl -L https://github.com/scttfrdmn/prism/releases/download/${{ github.ref_name }}/cloudworkstation-darwin-$(uname -m).tar.gz | tar xz
             ```
             
             ### Release Notes

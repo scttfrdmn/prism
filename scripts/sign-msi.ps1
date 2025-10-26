@@ -142,7 +142,7 @@ function Sign-WithFileCertificate {
     $signArgs += @(
         "/t", $TimestampUrl,
         "/d", "CloudWorkstation: Enterprise Research Management Platform",
-        "/du", "https://github.com/scttfrdmn/cloudworkstation",
+        "/du", "https://github.com/scttfrdmn/prism",
         "/v",
         "`"$MsiPath`""
     )
@@ -197,7 +197,7 @@ function Sign-WithStoreCertificate {
         "/sha1", $cert.Thumbprint,
         "/t", $TimestampUrl,
         "/d", "CloudWorkstation: Enterprise Research Management Platform",
-        "/du", "https://github.com/scttfrdmn/cloudworkstation",
+        "/du", "https://github.com/scttfrdmn/prism",
         "/v",
         "`"$MsiPath`""
     )
@@ -230,7 +230,7 @@ function Create-TestCertificate {
             "/sha1", $cert.Thumbprint,
             "/t", $TimestampUrl,
             "/d", "CloudWorkstation: Enterprise Research Management Platform (Test Build)",
-            "/du", "https://github.com/scttfrdmn/cloudworkstation",
+            "/du", "https://github.com/scttfrdmn/prism",
             "/v",
             "`"$MsiPath`""
         )

@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: CloudWorkstation
 Upstream-Contact: CloudWorkstation Team <team@cloudworkstation.dev>
-Source: https://github.com/scttfrdmn/cloudworkstation
+Source: https://github.com/scttfrdmn/prism
 
 Files: *
 Copyright: 2024 CloudWorkstation Project

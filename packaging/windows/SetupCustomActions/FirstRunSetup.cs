@@ -187,7 +187,7 @@ function Show-QuickStart {{
     Write-ColorOutput ""Documentation:"" ""Cyan""
     Write-ColorOutput ""  • Getting Started: $InstallPath\docs\GETTING_STARTED.md"" ""White""
     Write-ColorOutput ""  • User Guide: $InstallPath\docs\GUI_USER_GUIDE.md"" ""White""
-    Write-ColorOutput ""  • Online: https://github.com/scttfrdmn/cloudworkstation"" ""White""
+    Write-ColorOutput ""  • Online: https://github.com/scttfrdmn/prism"" ""White""
 }}
 
 function Test-CLIConnectivity {{

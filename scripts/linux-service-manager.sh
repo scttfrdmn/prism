@@ -127,7 +127,7 @@ generate_systemd_service() {
     cat > "$SYSTEMD_SERVICE_FILE" << EOF
 [Unit]
 Description=CloudWorkstation Daemon - Enterprise Research Management Platform
-Documentation=https://github.com/scttfrdmn/cloudworkstation
+Documentation=https://github.com/scttfrdmn/prism
 After=network-online.target multi-user.target
 Wants=network-online.target
 ConditionPathExists=$DAEMON_PATH

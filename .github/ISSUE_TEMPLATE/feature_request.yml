@@ -7,8 +7,8 @@ body:
     attributes:
       value: |
         Thanks for suggesting a new feature! Before submitting, please check:
-        - Does this improve one of our [5 persona workflows](https://github.com/scttfrdmn/cloudworkstation/tree/main/docs/USER_SCENARIOS)?
-        - Does it align with our [design principles](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/DESIGN_PRINCIPLES.md)?
+        - Does this improve one of our [5 persona workflows](https://github.com/scttfrdmn/prism/tree/main/docs/USER_SCENARIOS)?
+        - Does it align with our [design principles](https://github.com/scttfrdmn/prism/blob/main/docs/DESIGN_PRINCIPLES.md)?
 
   - type: dropdown
     id: persona

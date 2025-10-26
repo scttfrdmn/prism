@@ -8,7 +8,7 @@ $preRelease = $env:CHOCOLATEY_PRERELEASE -eq 'true'
 $version = if ($preRelease) { '0.5.1-beta' } else { '0.5.1' }
 $repoPath = if ($preRelease) { 'releases-dev' } else { 'releases' }
 
-$url = "https://github.com/scttfrdmn/cloudworkstation/$repoPath/download/v$version/cws-windows-amd64.zip"
+$url = "https://github.com/scttfrdmn/prism/$repoPath/download/v$version/cws-windows-amd64.zip"
 $checksum = 'REPLACE_WITH_ACTUAL_CHECKSUM_AFTER_BUILDING'
 $checksumType = 'sha256'
 

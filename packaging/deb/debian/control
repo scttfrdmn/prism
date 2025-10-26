@@ -7,9 +7,9 @@ Build-Depends: debhelper-compat (= 13),
                dh-systemd,
                dh-golang
 Standards-Version: 4.6.2
-Homepage: https://github.com/scttfrdmn/cloudworkstation
-Vcs-Git: https://github.com/scttfrdmn/cloudworkstation.git
-Vcs-Browser: https://github.com/scttfrdmn/cloudworkstation
+Homepage: https://github.com/scttfrdmn/prism
+Vcs-Git: https://github.com/scttfrdmn/prism.git
+Vcs-Browser: https://github.com/scttfrdmn/prism
 Rules-Requires-Root: no
 
 Package: cloudworkstation

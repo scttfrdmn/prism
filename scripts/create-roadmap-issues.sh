@@ -80,7 +80,7 @@ Create a smart Home page that serves as the entry point for all users with conte
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Navigation complexity, onboarding friction
 " || true
 
@@ -126,7 +126,7 @@ Terminal and WebView should not be top-level navigation items. They are contextu
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Navigation complexity
 " || true
 
@@ -178,7 +178,7 @@ gh issue create --repo "$REPO" \
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Terminology accessibility
 " || true
 
@@ -229,7 +229,7 @@ AMI Management, Rightsizing, and Idle Detection are advanced features that shoul
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Navigation complexity, progressive disclosure
 " || true
 
@@ -321,9 +321,9 @@ This wizard will help you set up your research environment.
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Onboarding friction, first-time user experience
-- See: [Zero-Setup Guide](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/user-guides/ZERO_SETUP_GUIDE.md)
+- See: [Zero-Setup Guide](https://github.com/scttfrdmn/prism/blob/main/docs/user-guides/ZERO_SETUP_GUIDE.md)
 " || true
 
 echo "✅ Phase 5.0.1 issues created"
@@ -375,7 +375,7 @@ Users are confused by \"Storage\" vs \"Volume\" terminology. Create single Stora
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Storage confusion, terminology clarity
 " || true
 
@@ -414,7 +414,7 @@ Budget should be a tab within Project detail view, not a separate navigation ite
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: Feature discoverability, information architecture
 " || true
 
@@ -494,7 +494,7 @@ cws config <action>      # Configuration
 
 ## Related
 
-- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/cloudworkstation/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
+- Part of [UX Evaluation Recommendations](https://github.com/scttfrdmn/prism/blob/main/docs/architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 - Addresses: CLI consistency, discoverability
 - Technical debt: Cobra migration (see #TBD)
 " || true

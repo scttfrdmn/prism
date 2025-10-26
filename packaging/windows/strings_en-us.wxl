@@ -98,7 +98,7 @@ You can now use:
 • Graphical Interface: Launch 'CloudWorkstation GUI' from the Start Menu
 
 For help getting started, see the documentation in the Start Menu or visit:
-https://github.com/scttfrdmn/cloudworkstation</String>
+https://github.com/scttfrdmn/prism</String>
   
   <!-- Error and warning messages -->
   <String Id="ErrorDlgTitle">Error</String>

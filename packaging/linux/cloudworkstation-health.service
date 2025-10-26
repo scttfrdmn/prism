@@ -1,6 +1,6 @@
 [Unit]
 Description=CloudWorkstation Health Check
-Documentation=https://github.com/scttfrdmn/cloudworkstation
+Documentation=https://github.com/scttfrdmn/prism
 Requires=cloudworkstation.service
 After=cloudworkstation.service
 

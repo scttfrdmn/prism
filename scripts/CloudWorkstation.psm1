@@ -682,7 +682,7 @@ function Open-CloudWorkstationDocumentation {
             Start-Process $docFile
         } else {
             Write-Warning "Documentation file not found: $docFile"
-            Write-Output "Online documentation: https://github.com/scttfrdmn/cloudworkstation"
+            Write-Output "Online documentation: https://github.com/scttfrdmn/prism"
         }
     } catch {
         Write-Error "Failed to open CloudWorkstation documentation: $_"

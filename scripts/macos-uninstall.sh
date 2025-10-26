@@ -428,7 +428,7 @@ Thank you for using CloudWorkstation!"
     fi
     echo ""
     echo "To reinstall CloudWorkstation, download the latest DMG from:"
-    echo "https://github.com/scttfrdmn/cloudworkstation/releases"
+    echo "https://github.com/scttfrdmn/prism/releases"
 }
 
 # Run main function

@@ -31,9 +31,9 @@ BUILD_DATE := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := deb-build
 
 # Build flags with version information
-export LDFLAGS = -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$(PACKAGE_VERSION) \
-                          -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$(BUILD_DATE) \
-                          -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=$(GIT_COMMIT) \
+export LDFLAGS = -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=$(PACKAGE_VERSION) \
+                          -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$(BUILD_DATE) \
+                          -X github.com/scttfrdmn/prism/pkg/version.GitCommit=$(GIT_COMMIT) \
                           -w -s"
 
 %:

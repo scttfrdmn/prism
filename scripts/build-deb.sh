@@ -190,9 +190,9 @@ build_binaries() {
     
     # Build flags with version information
     local ldflags
-    ldflags="-ldflags \"-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$VERSION \
-                     -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$(date -u '+%Y-%m-%d_%H:%M:%S') \
-                     -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=deb-build \
+    ldflags="-ldflags \"-X github.com/scttfrdmn/prism/pkg/version.Version=$VERSION \
+                     -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$(date -u '+%Y-%m-%d_%H:%M:%S') \
+                     -X github.com/scttfrdmn/prism/pkg/version.GitCommit=deb-build \
                      -w -s\""
     
     # Clean and create build directory

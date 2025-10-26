@@ -697,8 +697,8 @@ SYSTEM REQUIREMENTS:
 • Internet connection
 
 SUPPORT:
-• Documentation: https://github.com/scttfrdmn/cloudworkstation
-• Issues: https://github.com/scttfrdmn/cloudworkstation/issues
+• Documentation: https://github.com/scttfrdmn/prism
+• Issues: https://github.com/scttfrdmn/prism/issues
 • User Guide: Open CloudWorkstation → Help → User Guide
 
 UNINSTALLATION:

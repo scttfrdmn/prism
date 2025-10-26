@@ -126,7 +126,7 @@ jobs:
         
         $buildDate = Get-Date -Format "yyyy-MM-dd_HH:mm:ss"
         $gitCommit = git rev-parse --short HEAD
-        $ldflags = "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=$env:VERSION -X github.com/scttfrdmn/cloudworkstation/pkg/version.BuildDate=$buildDate -X github.com/scttfrdmn/cloudworkstation/pkg/version.GitCommit=$gitCommit"
+        $ldflags = "-X github.com/scttfrdmn/prism/pkg/version.Version=$env:VERSION -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$buildDate -X github.com/scttfrdmn/prism/pkg/version.GitCommit=$gitCommit"
         
         # Create output directory
         New-Item -ItemType Directory -Path "build/windows/release/windows-amd64" -Force | Out-Null
@@ -391,8 +391,8 @@ This MSI installer is **unsigned** in the development build. For production use,
 
 ## Support
 - **Documentation**: Installed in Start Menu → CloudWorkstation → Documentation  
-- **Issues**: https://github.com/scttfrdmn/cloudworkstation/issues
-- **Discussions**: https://github.com/scttfrdmn/cloudworkstation/discussions
+- **Issues**: https://github.com/scttfrdmn/prism/issues
+- **Discussions**: https://github.com/scttfrdmn/prism/discussions
 "@
         
         $releaseNotes | Out-File -FilePath "WINDOWS_RELEASE_NOTES.md" -Encoding UTF8

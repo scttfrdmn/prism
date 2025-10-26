@@ -60,7 +60,7 @@ go tool cover -func=total-coverage.out | grep -v "total:" | while read line; do
     if [[ $line =~ ([0-9]+\.[0-9]+)% ]]; then
         coverage="${BASH_REMATCH[1]}"
         coverage_int=$(printf "%.0f" "$coverage")
-        package=$(echo "$line" | awk '{print $1}' | sed 's|github.com/scttfrdmn/cloudworkstation/||')
+        package=$(echo "$line" | awk '{print $1}' | sed 's|github.com/scttfrdmn/prism/||')
         
         # Skip excluded packages
         skip=false

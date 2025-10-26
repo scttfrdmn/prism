@@ -1,4 +1,4 @@
-module github.com/scttfrdmn/cloudworkstation/cmd/cws-gui
+module github.com/scttfrdmn/prism/cmd/cws-gui
 
 go 1.24.4
 
@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.31.13
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.7
 	github.com/gorilla/websocket v1.5.3
-	github.com/scttfrdmn/cloudworkstation v0.5.4
+	github.com/scttfrdmn/prism v0.5.4
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.36
 	golang.org/x/crypto v0.43.0
 )
@@ -79,4 +79,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/scttfrdmn/cloudworkstation => ../../
+replace github.com/scttfrdmn/prism => ../../

@@ -1,7 +1,7 @@
 class Cloudworkstation < Formula
   desc "CLI tool for launching pre-configured cloud workstations for academic research"
-  homepage "https://github.com/scttfrdmn/cloudworkstation"
-  url "https://github.com/scttfrdmn/cloudworkstation/archive/v0.5.1.tar.gz"
+  homepage "https://github.com/scttfrdmn/prism"
+  url "https://github.com/scttfrdmn/prism/archive/v0.5.1.tar.gz"
   sha256 "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed"
   license "MIT"
   version "0.5.1"
@@ -87,7 +87,7 @@ class Cloudworkstation < Formula
         aws configure
       
       For more information:
-        https://github.com/scttfrdmn/cloudworkstation
+        https://github.com/scttfrdmn/prism
     EOS
     
     caveat_text

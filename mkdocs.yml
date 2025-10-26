@@ -3,7 +3,7 @@ site_url: https://cloudworkstation.io
 site_description: Pre-configured cloud research environments for academic computing
 site_author: CloudWorkstation Team
 
-repo_url: https://github.com/scttfrdmn/cloudworkstation
+repo_url: https://github.com/scttfrdmn/prism
 repo_name: scttfrdmn/cloudworkstation
 edit_uri: edit/main/docs/
 
@@ -111,9 +111,9 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/scttfrdmn/cloudworkstation
+      link: https://github.com/scttfrdmn/prism
     - icon: fontawesome/solid/comments
-      link: https://github.com/scttfrdmn/cloudworkstation/discussions
+      link: https://github.com/scttfrdmn/prism/discussions
 
   version:
     provider: mike
@@ -176,12 +176,12 @@ nav:
   - Roadmap & Planning:
     - Development Roadmap: ROADMAP.md
     - Planned Features:
-      - Auto-Update System: https://github.com/scttfrdmn/cloudworkstation/issues/61
-      - GUI System Tray & Auto-Start: https://github.com/scttfrdmn/cloudworkstation/issues/62
-      - EC2 Capacity Blocks for ML: https://github.com/scttfrdmn/cloudworkstation/issues/63
-      - AWS Quota Management: https://github.com/scttfrdmn/cloudworkstation/issues/57
-      - Directory Sync (Dropbox-like): https://github.com/scttfrdmn/cloudworkstation/issues/53
-      - Configuration Sync: https://github.com/scttfrdmn/cloudworkstation/issues/54
+      - Auto-Update System: https://github.com/scttfrdmn/prism/issues/61
+      - GUI System Tray & Auto-Start: https://github.com/scttfrdmn/prism/issues/62
+      - EC2 Capacity Blocks for ML: https://github.com/scttfrdmn/prism/issues/63
+      - AWS Quota Management: https://github.com/scttfrdmn/prism/issues/57
+      - Directory Sync (Dropbox-like): https://github.com/scttfrdmn/prism/issues/53
+      - Configuration Sync: https://github.com/scttfrdmn/prism/issues/54
     - Planning Documents:
       - Directory Sync Planning: archive/planning/DIRECTORY_SYNC_PLANNING.md
       - Configuration Sync Planning: archive/planning/CONFIG_SYNC_PLANNING.md
@@ -201,7 +201,7 @@ nav:
     - v0.5.1: releases/RELEASE_NOTES_v0.5.1.md
 
   - Community:
-    - Contributing: https://github.com/scttfrdmn/cloudworkstation/blob/main/.github/README.md
-    - Discussions: https://github.com/scttfrdmn/cloudworkstation/discussions
-    - Issues: https://github.com/scttfrdmn/cloudworkstation/issues
-    - Projects: https://github.com/scttfrdmn/cloudworkstation/projects
+    - Contributing: https://github.com/scttfrdmn/prism/blob/main/.github/README.md
+    - Discussions: https://github.com/scttfrdmn/prism/discussions
+    - Issues: https://github.com/scttfrdmn/prism/issues
+    - Projects: https://github.com/scttfrdmn/prism/projects

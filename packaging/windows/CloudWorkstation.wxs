@@ -238,8 +238,8 @@
         <RegistryValue Name="EstimatedSize" Type="integer" Value="51200" />
         <RegistryValue Name="NoModify" Type="integer" Value="1" />
         <RegistryValue Name="NoRepair" Type="integer" Value="1" />
-        <RegistryValue Name="HelpLink" Type="string" Value="https://github.com/scttfrdmn/cloudworkstation" />
-        <RegistryValue Name="URLInfoAbout" Type="string" Value="https://github.com/scttfrdmn/cloudworkstation" />
+        <RegistryValue Name="HelpLink" Type="string" Value="https://github.com/scttfrdmn/prism" />
+        <RegistryValue Name="URLInfoAbout" Type="string" Value="https://github.com/scttfrdmn/prism" />
         <RegistryValue Name="Contact" Type="string" Value="CloudWorkstation Project" />
         <RegistryValue Name="InstallDate" Type="string" Value="[Date]" />
       </RegistryKey>
@@ -381,10 +381,10 @@
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     
     <!-- Installation Properties -->
-    <Property Id="ARPURLINFOABOUT" Value="https://github.com/scttfrdmn/cloudworkstation" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/scttfrdmn/prism" />
     <Property Id="ARPNOREPAIR" Value="1" />
     <Property Id="ARPNOMODIFY" Value="1" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/scttfrdmn/cloudworkstation/issues" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/scttfrdmn/prism/issues" />
     <Property Id="ARPCOMMENTS" Value="Launch cloud research environments in seconds" />
     
     <!-- Feature Properties -->

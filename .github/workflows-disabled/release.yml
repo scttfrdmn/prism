@@ -127,7 +127,7 @@ jobs:
           body: |
             # CloudWorkstation v${{ env.VERSION }} (${{ env.CHANNEL }})
             
-            Release notes: [CHANGELOG.md](https://github.com/scttfrdmn/cloudworkstation/blob/main/CHANGELOG.md)
+            Release notes: [CHANGELOG.md](https://github.com/scttfrdmn/prism/blob/main/CHANGELOG.md)
             
             ## Installation
             

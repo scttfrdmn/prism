@@ -1,6 +1,6 @@
 [Unit]
 Description=CloudWorkstation Health Check Timer
-Documentation=https://github.com/scttfrdmn/cloudworkstation
+Documentation=https://github.com/scttfrdmn/prism
 Requires=cloudworkstation.service
 
 [Timer]
