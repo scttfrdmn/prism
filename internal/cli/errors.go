@@ -69,13 +69,13 @@ The Prism background service is not responding. This is unusual since the daemon
 
 🔧 Quick fixes:
 1. Try your command again (daemon may be starting up)
-2. Check daemon status: cws daemon status
-3. If needed, restart daemon: cws daemon stop (next command will auto-start)
+2. Check daemon status: prism daemon status
+3. If needed, restart daemon: prism daemon stop (next command will auto-start)
 
 🔍 If this persists:
 - Check for port conflicts: lsof -i :8947
-- Verify binary permissions: ls -la $(which cws) $(which cwsd)
-- Check logs: cws daemon logs
+- Verify binary permissions: ls -la $(which prism) $(which prismd)
+- Check logs: prism daemon logs
 
 Need help? https://github.com/scttfrdmn/prism/issues`)
 }
@@ -95,7 +95,7 @@ Prism's auto-start couldn't connect to the background service.
 🔧 Quick fixes:
 1. Wait a moment and try again (daemon may still be starting)
 2. Check what's using port 8947: lsof -i :8947
-3. Manual restart: cws daemon stop && cws templates
+3. Manual restart: prism daemon stop && prism templates
 
 🔍 If this continues:
 - Check if another Prism is running
@@ -162,13 +162,13 @@ func (h *NetworkConfigErrorHandler) Handle(err error, context string) error {
 Prism can't find your VPC or subnet. To fix this:
 
 1. Use auto-discovery (recommended):
-   cws launch template-name instance-name
+   prism launch template-name instance-name
 
 2. Create default VPC if needed:
    aws ec2 create-default-vpc
 
 3. Or specify manually:
-   cws ami build template-name --vpc vpc-12345 --subnet subnet-67890
+   prism ami build template-name --vpc vpc-12345 --subnet subnet-67890
 
 Original error: %v`, err)
 }
@@ -186,10 +186,10 @@ func (h *CapacityErrorHandler) Handle(err error, context string) error {
 The requested instance type is not available. To fix this:
 
 1. Try a different region:
-   cws launch template-name instance-name --region us-east-1
+   prism launch template-name instance-name --region us-east-1
 
 2. Use a different instance size:
-   cws launch template-name instance-name --size M
+   prism launch template-name instance-name --size M
 
 3. Try again later (capacity changes frequently)
 
@@ -209,11 +209,11 @@ func (h *TemplateErrorHandler) Handle(err error, context string) error {
 The specified template doesn't exist. To fix this:
 
 1. List available templates:
-   cws templates
+   prism templates
 
 2. Check template name spelling
 3. Refresh template cache:
-   rm -rf ~/.prism/templates && cws templates
+   rm -rf ~/.prism/templates && prism templates
 
 Original error: %v`, err)
 }
@@ -254,14 +254,14 @@ func (h *ProfileErrorHandler) Handle(err error, context string) error {
 Prism can't find or use the specified profile.
 
 🔧 Quick fixes:
-1. List available profiles: cws profiles list
-2. Create a new profile: cws profiles add personal my-account --aws-profile default --region us-east-1
-3. Switch profiles: cws profiles switch <profile-id>
+1. List available profiles: prism profiles list
+2. Create a new profile: prism profiles add personal my-account --aws-profile default --region us-east-1
+3. Switch profiles: prism profiles switch <profile-id>
 
 🔍 Profile troubleshooting:
 - Verify AWS credentials: aws sts get-caller-identity
 - Check profile file: cat ~/.prism/profiles.json
-- Reset to default: rm ~/.prism/profiles.json && cws profiles list
+- Reset to default: rm ~/.prism/profiles.json && prism profiles list
 
 Original error: %v`, err)
 }
@@ -281,14 +281,14 @@ func (h *LaunchErrorHandler) Handle(err error, context string) error {
 Prism couldn't launch your research environment.
 
 🔧 Common solutions:
-1. Try different region: cws launch template-name instance-name --region us-west-2
-2. Use different size: cws launch template-name instance-name --size S
-3. Check template availability: cws templates
+1. Try different region: prism launch template-name instance-name --region us-west-2
+2. Use different size: prism launch template-name instance-name --size S
+3. Check template availability: prism templates
 
 🔍 Advanced troubleshooting:
 - Verify AWS quotas: aws service-quotas get-service-quota --service-code ec2 --quota-code L-1216C47A
-- Check template validation: cws templates validate
-- Try different instance type: cws launch template-name instance-name --instance-type t3.medium
+- Check template validation: prism templates validate
+- Try different instance type: prism launch template-name instance-name --instance-type t3.medium
 
 Need template help? Each template shows its requirements with 'cws templates'
 
@@ -311,7 +311,7 @@ Prism is having trouble with macOS keychain access.
 
 🔧 Quick fixes:
 1. This shouldn't happen with basic profiles - try again
-2. Check profile type: cws profiles list
+2. Check profile type: prism profiles list
 3. Use AWS CLI credentials: aws configure
 
 🔍 If keychain prompts persist:
@@ -342,7 +342,7 @@ Need help?
    https://github.com/scttfrdmn/prism/blob/main/TROUBLESHOOTING.md
 
 2. Verify daemon status:
-   cws daemon status
+   prism daemon status
 
 3. Check AWS credentials:
    aws sts get-caller-identity
@@ -374,7 +374,7 @@ Your instances are still fully functional, but web interfaces require SSH tunnel
 🌐 Alternative Solutions:
 1. Check internet connectivity and try again
 2. Use a VPN or different network
-3. Manual IP refresh: cws access refresh (when available)
+3. Manual IP refresh: prism access refresh (when available)
 
 ✅ This is secure by design - SSH tunneling provides encrypted access.
 
@@ -429,8 +429,8 @@ func (h *TemplateValidationErrorHandler) Handle(err error, context string) error
 One or more templates have configuration issues.
 
 🔧 Troubleshooting:
-1. Check specific template: cws templates validate <template-name>
-2. List all templates: cws templates
+1. Check specific template: prism templates validate <template-name>
+2. List all templates: prism templates
 3. Check template syntax: look for YAML formatting issues
 
 🔍 Common Issues:
@@ -475,15 +475,15 @@ Having trouble accessing Jupyter, RStudio, or other web interfaces?
    Then: http://localhost:8888
 
 🔍 Troubleshooting:
-- Check instance is running: cws list
+- Check instance is running: prism list
 - Verify correct port (8888 for Jupyter, 8787 for RStudio)
 - Try SSH tunnel if direct access fails
-- Check your current IP: cws access status (when available)
+- Check your current IP: prism access status (when available)
 
 🔧 IP Changed? 
 If you moved networks or your IP changed:
 - Use SSH tunneling as immediate solution
-- Command available later: cws access refresh
+- Command available later: prism access refresh
 
 Original error: %v`, err)
 }

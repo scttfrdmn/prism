@@ -24,8 +24,8 @@ func TestConstants(t *testing.T) {
 	assert.Equal(t, "daemon_config.json", DefaultConfigFile)
 
 	// Test file and path constants
-	assert.Equal(t, "/var/log/cloudworkstation-analytics.json", AnalyticsLogFile)
-	assert.Equal(t, "/var/log/cloudworkstation-rightsizing.json", RightsizingLogFile)
+	assert.Equal(t, "/var/log/prism-analytics.json", AnalyticsLogFile)
+	assert.Equal(t, "/var/log/prism-rightsizing.json", RightsizingLogFile)
 	assert.Equal(t, "./templates", DefaultTemplateDir)
 	assert.Equal(t, ".yml", TemplateFileExtensionYML)
 	assert.Equal(t, ".yaml", TemplateFileExtensionYAML)
