@@ -28,7 +28,7 @@ func TestNewManager(t *testing.T) {
 
 func TestLoadStateEmptyFile(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -48,11 +48,8 @@ func TestLoadStateEmptyFile(t *testing.T) {
 	if state.Instances == nil {
 		t.Error("Instances map should be initialized")
 	}
-	if state.Volumes == nil {
-		t.Error("Volumes map should be initialized")
-	}
-	if state.EBSVolumes == nil {
-		t.Error("EBSVolumes map should be initialized")
+	if state.StorageVolumes == nil {
+		t.Error("StorageVolumes map should be initialized")
 	}
 	if state.Config.DefaultRegion != "us-east-1" {
 		t.Errorf("Default region should be us-east-1, got %s", state.Config.DefaultRegion)
@@ -61,7 +58,7 @@ func TestLoadStateEmptyFile(t *testing.T) {
 
 func TestSaveAndLoadState(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -71,7 +68,11 @@ func TestSaveAndLoadState(t *testing.T) {
 		statePath: filepath.Join(tempDir, "state.json"),
 	}
 
-	// Create test state
+	// Helper for int32 pointers
+	int32Ptr := func(v int32) *int32 { return &v }
+	int64Ptr := func(v int64) *int64 { return &v }
+
+	// Create test state with unified storage
 	originalState := &types.State{
 		Instances: map[string]types.Instance{
 			"test-instance": {
@@ -83,32 +84,36 @@ func TestSaveAndLoadState(t *testing.T) {
 				LaunchTime:         time.Now().UTC().Truncate(time.Second),
 				HourlyRate:         0.10,
 				CurrentSpend:       2.40,
-				AttachedVolumes:    []string{"vol-1"},
-				AttachedEBSVolumes: []string{"ebs-1"},
+				AttachedVolumes:    []string{"efs-vol-1"},
+				AttachedEBSVolumes: []string{"ebs-vol-1"},
 			},
 		},
-		Volumes: map[string]types.EFSVolume{
-			"vol-1": {
-				Name:            "vol-1",
-				FileSystemId:    "fs-1234567890abcdef0",
+		StorageVolumes: map[string]types.StorageVolume{
+			// EFS volume
+			"efs-vol-1": {
+				Name:            "efs-vol-1",
+				Type:            types.StorageTypeShared,
+				AWSService:      types.AWSServiceEFS,
+				FileSystemID:    "fs-1234567890abcdef0",
 				Region:          "us-east-1",
 				CreationTime:    time.Now().UTC().Truncate(time.Second),
 				State:           "available",
 				PerformanceMode: "generalPurpose",
 				ThroughputMode:  "bursting",
 				EstimatedCostGB: 0.30,
-				SizeBytes:       1073741824,
+				SizeBytes:       int64Ptr(1073741824),
 			},
-		},
-		EBSVolumes: map[string]types.EBSVolume{
-			"ebs-1": {
-				Name:            "ebs-1",
+			// EBS volume
+			"ebs-vol-1": {
+				Name:            "ebs-vol-1",
+				Type:            types.StorageTypeWorkspace,
+				AWSService:      types.AWSServiceEBS,
 				VolumeID:        "vol-1234567890abcdef0",
 				Region:          "us-east-1",
 				CreationTime:    time.Now().UTC().Truncate(time.Second),
 				State:           "available",
 				VolumeType:      "gp3",
-				SizeGB:          100,
+				SizeGB:          int32Ptr(100),
 				EstimatedCostGB: 0.08,
 			},
 		},
@@ -146,12 +151,24 @@ func TestSaveAndLoadState(t *testing.T) {
 		}
 	}
 
-	if len(loadedState.Volumes) != len(originalState.Volumes) {
-		t.Errorf("Volume count mismatch: got %d, want %d", len(loadedState.Volumes), len(originalState.Volumes))
+	if len(loadedState.StorageVolumes) != len(originalState.StorageVolumes) {
+		t.Errorf("StorageVolume count mismatch: got %d, want %d", len(loadedState.StorageVolumes), len(originalState.StorageVolumes))
 	}
 
-	if len(loadedState.EBSVolumes) != len(originalState.EBSVolumes) {
-		t.Errorf("EBS Volume count mismatch: got %d, want %d", len(loadedState.EBSVolumes), len(originalState.EBSVolumes))
+	// Verify EFS volume
+	efsVol, exists := loadedState.StorageVolumes["efs-vol-1"]
+	if !exists {
+		t.Error("EFS volume should exist")
+	} else if !efsVol.IsShared() {
+		t.Error("EFS volume should be shared storage type")
+	}
+
+	// Verify EBS volume
+	ebsVol, exists := loadedState.StorageVolumes["ebs-vol-1"]
+	if !exists {
+		t.Error("EBS volume should exist")
+	} else if !ebsVol.IsWorkspace() {
+		t.Error("EBS volume should be workspace storage type")
 	}
 
 	if loadedState.Config.DefaultRegion != "us-west-2" {
@@ -161,7 +178,7 @@ func TestSaveAndLoadState(t *testing.T) {
 
 func TestSaveInstance(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -202,7 +219,7 @@ func TestSaveInstance(t *testing.T) {
 
 func TestRemoveInstance(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -242,9 +259,9 @@ func TestRemoveInstance(t *testing.T) {
 	}
 }
 
-func TestSaveAndRemoveVolume(t *testing.T) {
+func TestSaveAndRemoveStorageVolume(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -254,17 +271,20 @@ func TestSaveAndRemoveVolume(t *testing.T) {
 		statePath: filepath.Join(tempDir, "state.json"),
 	}
 
-	volume := types.EFSVolume{
-		Name:         "test-volume",
-		FileSystemId: "fs-123",
+	// Test with EFS volume
+	efsVolume := types.StorageVolume{
+		Name:         "test-efs",
+		Type:         types.StorageTypeShared,
+		AWSService:   types.AWSServiceEFS,
+		FileSystemID: "fs-123",
 		Region:       "us-east-1",
 		State:        "available",
 	}
 
-	// Save volume
-	err = manager.SaveVolume(volume)
+	// Save EFS volume
+	err = manager.SaveStorageVolume(efsVolume)
 	if err != nil {
-		t.Fatalf("Failed to save volume: %v", err)
+		t.Fatalf("Failed to save EFS volume: %v", err)
 	}
 
 	// Verify it exists
@@ -273,83 +293,80 @@ func TestSaveAndRemoveVolume(t *testing.T) {
 		t.Fatalf("Failed to load state: %v", err)
 	}
 
-	if _, exists := state.Volumes["test-volume"]; !exists {
-		t.Error("Volume should exist after saving")
+	vol, exists := state.StorageVolumes["test-efs"]
+	if !exists {
+		t.Error("EFS volume should exist after saving")
+	} else if !vol.IsShared() {
+		t.Error("Volume should be shared storage type")
 	}
 
-	// Remove volume
-	err = manager.RemoveVolume("test-volume")
-	if err != nil {
-		t.Fatalf("Failed to remove volume: %v", err)
-	}
-
-	// Verify it's gone
-	state, err = manager.LoadState()
-	if err != nil {
-		t.Fatalf("Failed to load state: %v", err)
-	}
-
-	if _, exists := state.Volumes["test-volume"]; exists {
-		t.Error("Volume should have been removed")
-	}
-}
-
-func TestSaveAndRemoveEBSVolume(t *testing.T) {
-	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
-	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
-
-	manager := &Manager{
-		statePath: filepath.Join(tempDir, "state.json"),
-	}
-
-	volume := types.EBSVolume{
-		Name:     "test-ebs",
-		VolumeID: "vol-123",
-		Region:   "us-east-1",
-		State:    "available",
-		SizeGB:   100,
+	// Test with EBS volume
+	int32Ptr := func(v int32) *int32 { return &v }
+	ebsVolume := types.StorageVolume{
+		Name:       "test-ebs",
+		Type:       types.StorageTypeWorkspace,
+		AWSService: types.AWSServiceEBS,
+		VolumeID:   "vol-123",
+		Region:     "us-east-1",
+		State:      "available",
+		SizeGB:     int32Ptr(100),
 	}
 
 	// Save EBS volume
-	err = manager.SaveEBSVolume(volume)
+	err = manager.SaveStorageVolume(ebsVolume)
 	if err != nil {
 		t.Fatalf("Failed to save EBS volume: %v", err)
 	}
 
-	// Verify it exists
-	state, err := manager.LoadState()
-	if err != nil {
-		t.Fatalf("Failed to load state: %v", err)
-	}
-
-	if _, exists := state.EBSVolumes["test-ebs"]; !exists {
-		t.Error("EBS volume should exist after saving")
-	}
-
-	// Remove EBS volume
-	err = manager.RemoveEBSVolume("test-ebs")
-	if err != nil {
-		t.Fatalf("Failed to remove EBS volume: %v", err)
-	}
-
-	// Verify it's gone
+	// Verify both volumes exist
 	state, err = manager.LoadState()
 	if err != nil {
 		t.Fatalf("Failed to load state: %v", err)
 	}
 
-	if _, exists := state.EBSVolumes["test-ebs"]; exists {
-		t.Error("EBS volume should have been removed")
+	if len(state.StorageVolumes) != 2 {
+		t.Errorf("Expected 2 storage volumes, got %d", len(state.StorageVolumes))
+	}
+
+	// Remove EFS volume
+	err = manager.RemoveStorageVolume("test-efs")
+	if err != nil {
+		t.Fatalf("Failed to remove EFS volume: %v", err)
+	}
+
+	// Verify EFS is gone but EBS remains
+	state, err = manager.LoadState()
+	if err != nil {
+		t.Fatalf("Failed to load state: %v", err)
+	}
+
+	if _, exists := state.StorageVolumes["test-efs"]; exists {
+		t.Error("EFS volume should have been removed")
+	}
+	if _, exists := state.StorageVolumes["test-ebs"]; !exists {
+		t.Error("EBS volume should still exist")
+	}
+
+	// Remove EBS volume
+	err = manager.RemoveStorageVolume("test-ebs")
+	if err != nil {
+		t.Fatalf("Failed to remove EBS volume: %v", err)
+	}
+
+	// Verify both are gone
+	state, err = manager.LoadState()
+	if err != nil {
+		t.Fatalf("Failed to load state: %v", err)
+	}
+
+	if len(state.StorageVolumes) != 0 {
+		t.Errorf("Expected 0 storage volumes, got %d", len(state.StorageVolumes))
 	}
 }
 
 func TestUpdateConfig(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -382,7 +399,7 @@ func TestUpdateConfig(t *testing.T) {
 
 func TestConcurrentAccess(t *testing.T) {
 	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "cws-test-*")
+	tempDir, err := os.MkdirTemp("", "prism-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
