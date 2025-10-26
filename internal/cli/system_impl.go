@@ -96,11 +96,11 @@ func (s *SystemCommands) daemonStart() error {
 
 	// Message already printed by auto-start caller
 
-	// Find cwsd binary - try same directory as cws first, then PATH
-	cwsdPath := findCwsdBinary()
+	// Find prismd binary - try same directory as prism first, then PATH
+	prismdPath := findPrismdBinary()
 
 	// Start daemon in the background
-	cmd := exec.Command(cwsdPath)
+	cmd := exec.Command(prismdPath)
 	if err := cmd.Start(); err != nil {
 		return WrapAPIError("start daemon process", err)
 	}
@@ -166,7 +166,7 @@ func (s *SystemCommands) daemonStop() error {
 	if err := s.app.apiClient.Shutdown(s.app.ctx); err != nil {
 		fmt.Println("❌ Failed to stop daemon via API:", err)
 		fmt.Println("Find the daemon process and stop it manually:")
-		fmt.Println("  ps aux | grep cwsd")
+		fmt.Println("  ps aux | grep prismd")
 		fmt.Println("  kill <PID>")
 		return err
 	}
@@ -493,7 +493,7 @@ func (s *SystemCommands) daemonProcesses() error {
 // directProcessScan performs direct process scanning when daemon API is unavailable
 func (s *SystemCommands) directProcessScan() error {
 	// Use system commands to find processes
-	cmd := exec.Command("pgrep", "-f", "cwsd")
+	cmd := exec.Command("pgrep", "-f", "prismd")
 	output, err := cmd.Output()
 	if err != nil {
 		// pgrep returns exit code 1 when no processes found
@@ -574,7 +574,7 @@ func (s *SystemCommands) daemonCleanup(args []string) error {
 	fmt.Println("====================================")
 
 	// Check for running processes first
-	cmd := exec.Command("pgrep", "-f", "cwsd")
+	cmd := exec.Command("pgrep", "-f", "prismd")
 	output, err := cmd.Output()
 	processCount := 0
 	if err == nil {
@@ -636,7 +636,7 @@ func (s *SystemCommands) daemonCleanup(args []string) error {
 	} else {
 		fmt.Println("⚠️  Some processes may still be running")
 		fmt.Println("💡 You may need to manually kill remaining processes:")
-		fmt.Println("   ps aux | grep cwsd")
+		fmt.Println("   ps aux | grep prismd")
 		fmt.Println("   kill <PID>")
 	}
 
@@ -687,8 +687,8 @@ func (s *SystemCommands) performAPICleanup(forceKill bool) bool {
 
 // performDirectCleanup performs direct process cleanup when API is unavailable
 func (s *SystemCommands) performDirectCleanup(forceKill bool) error {
-	// Find all cwsd processes
-	cmd := exec.Command("pgrep", "-f", "cwsd")
+	// Find all prismd processes
+	cmd := exec.Command("pgrep", "-f", "prismd")
 	output, err := cmd.Output()
 	if err != nil {
 		// No processes found
@@ -781,25 +781,25 @@ func (s *SystemCommands) cleanupDaemonFiles() {
 	}
 }
 
-// findCwsdBinary finds the cwsd binary, trying same directory as cws first, then PATH
-func findCwsdBinary() string {
-	// Get the path of the current executable (cws)
-	cwsPath, err := os.Executable()
+// findPrismdBinary finds the prismd binary, trying same directory as prism first, then PATH
+func findPrismdBinary() string {
+	// Get the path of the current executable (prism)
+	prismPath, err := os.Executable()
 	if err == nil {
-		// Try cwsd in the same directory as cws
-		cwsDir := filepath.Dir(cwsPath)
-		cwsdInSameDir := filepath.Join(cwsDir, "cwsd")
-		if _, err := os.Stat(cwsdInSameDir); err == nil {
-			return cwsdInSameDir
+		// Try prismd in the same directory as prism
+		prismDir := filepath.Dir(prismPath)
+		prismdInSameDir := filepath.Join(prismDir, "prismd")
+		if _, err := os.Stat(prismdInSameDir); err == nil {
+			return prismdInSameDir
 		}
 	}
 
 	// Fall back to looking in PATH
-	cwsdPath, err := exec.LookPath("cwsd")
+	prismdPath, err := exec.LookPath("prismd")
 	if err == nil {
-		return cwsdPath
+		return prismdPath
 	}
 
-	// If nothing found, return "cwsd" and let exec.Command handle the error
-	return "cwsd"
+	// If nothing found, return "prismd" and let exec.Command handle the error
+	return "prismd"
 }

@@ -97,21 +97,21 @@ func startDaemonForGUI() error {
 		return nil // Already running
 	}
 
-	// First, try to find cwsd binary
-	cwsdPath, _ := exec.LookPath("cwsd")
-	if cwsdPath == "" {
+	// First, try to find prismd binary
+	prismdPath, _ := exec.LookPath("prismd")
+	if prismdPath == "" {
 		// Try in bin directory
-		cwsdPath = "./bin/cwsd"
-		if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
-			cwsdPath = "../bin/cwsd"
-			if _, err := os.Stat(cwsdPath); os.IsNotExist(err) {
+		prismdPath = "./bin/prismd"
+		if _, err := os.Stat(prismdPath); os.IsNotExist(err) {
+			prismdPath = "../bin/prismd"
+			if _, err := os.Stat(prismdPath); os.IsNotExist(err) {
 				return fmt.Errorf("daemon executable not found in PATH or bin directory")
 			}
 		}
 	}
 
 	// Start daemon
-	cmd := exec.Command(cwsdPath)
+	cmd := exec.Command(prismdPath)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
