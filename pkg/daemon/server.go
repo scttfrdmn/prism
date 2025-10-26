@@ -61,6 +61,9 @@ type Server struct {
 
 	// CloudWatch client for rightsizing metrics
 	cloudwatchClient *cloudwatch.Client
+
+	// Test mode flag (skips AWS operations for unit testing)
+	testMode bool
 }
 
 // NewServer creates a new daemon server
@@ -285,6 +288,17 @@ func NewServer(port string) (*Server, error) {
 	// Set HTTP server reference in recovery manager
 	server.recoveryManager.HTTPServer = server.httpServer
 
+	return server, nil
+}
+
+// NewServerForTesting creates a new daemon server with test mode enabled
+// Test mode skips AWS operations to allow unit testing without AWS credentials
+func NewServerForTesting(port string) (*Server, error) {
+	server, err := NewServer(port)
+	if err != nil {
+		return nil, err
+	}
+	server.testMode = true
 	return server, nil
 }
 

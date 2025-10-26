@@ -157,13 +157,13 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		return // Error response already written by validateLaunchRequest
 	}
 
-	// Check instance name uniqueness
-	if s.checkInstanceNameUniqueness(&req, w, r) {
+	// Check instance name uniqueness (skip in test mode)
+	if !s.testMode && s.checkInstanceNameUniqueness(&req, w, r) {
 		return // Error response already written if name exists
 	}
 
-	// Handle SSH key management if not provided in request
-	if req.SSHKeyName == "" {
+	// Handle SSH key management if not provided in request (skip in test mode)
+	if req.SSHKeyName == "" && !s.testMode {
 		if err := s.setupSSHKeyForLaunch(&req); err != nil {
 			s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("SSH key setup failed: %v", err))
 			return
@@ -173,8 +173,8 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	// Use AWS manager from request and handle launch
 	var instance *types.Instance
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		// Ensure SSH key exists in AWS if specified
-		if req.SSHKeyName != "" {
+		// Ensure SSH key exists in AWS if specified (skip in test mode)
+		if req.SSHKeyName != "" && !s.testMode {
 			if err := s.ensureSSHKeyInAWS(awsManager, &req); err != nil {
 				return fmt.Errorf("failed to ensure SSH key in AWS: %w", err)
 			}

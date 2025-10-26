@@ -27,7 +27,7 @@ func createTestServer(t *testing.T) *Server {
 	})
 	_ = os.Setenv("HOME", tempDir)
 
-	server, err := NewServer("8948") // Use different port for testing
+	server, err := NewServerForTesting("8948") // Use test mode to skip AWS operations
 	require.NoError(t, err)
 	require.NotNil(t, server)
 
