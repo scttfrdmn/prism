@@ -1,14 +1,14 @@
-// Package client provides the CloudWorkstation API client interface and implementation.
+// Package client provides the Prism API client interface and implementation.
 package client
 
 import (
 	"context"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Options represents configuration options for the API client
@@ -21,8 +21,8 @@ type Options struct {
 	APIKey          string // API key for daemon authentication
 }
 
-// CloudWorkstationAPI defines the interface for interacting with the CloudWorkstation API
-type CloudWorkstationAPI interface {
+// PrismAPI defines the interface for interacting with the Prism API
+type PrismAPI interface {
 	// Configuration
 	SetOptions(Options)
 

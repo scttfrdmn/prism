@@ -16,7 +16,7 @@ const (
 	ProfileTypeInvitation ProfileType = "invitation"
 )
 
-// Profile represents a CloudWorkstation profile configuration
+// Profile represents a Prism profile configuration
 type Profile struct {
 	// Type is the profile type (personal or invitation)
 	Type ProfileType `json:"type"`

@@ -102,7 +102,7 @@ test_first_time_setup() {
 
     # Test: Can list templates without setup
     log "Testing: List templates on fresh install..."
-    if ./bin/cws templates &> "$RESULTS_DIR/test1_templates.log"; then
+    if ./bin/prism templates &> "$RESULTS_DIR/test1_templates.log"; then
         log_success "Templates list worked on first run"
     else
         log_fail "Templates list failed on first run" "See $RESULTS_DIR/test1_templates.log"
@@ -111,7 +111,7 @@ test_first_time_setup() {
 
     # Test: Daemon auto-started?
     log "Testing: Daemon auto-start..."
-    if ./bin/cws daemon status &> "$RESULTS_DIR/test1_daemon.log"; then
+    if ./bin/prism daemon status &> "$RESULTS_DIR/test1_daemon.log"; then
         log_success "Daemon auto-started successfully"
     else
         log_warn "Daemon not running (may require manual start)"
@@ -132,7 +132,7 @@ test_launch_first_instance() {
 
     START_TIME=$(date +%s)
 
-    if timeout 600 ./bin/cws launch template "$INSTANCE_NAME" --size S &> "$RESULTS_DIR/test2_launch.log"; then
+    if timeout 600 ./bin/prism launch template "$INSTANCE_NAME" --size S &> "$RESULTS_DIR/test2_launch.log"; then
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
         log_success "Instance launched successfully in ${DURATION}s"
@@ -142,7 +142,7 @@ test_launch_first_instance() {
         sleep 60
 
         # Test: Can we get instance info?
-        if ./bin/cws list | grep -q "$INSTANCE_NAME"; then
+        if ./bin/prism list | grep -q "$INSTANCE_NAME"; then
             log_success "Instance appears in list"
         else
             log_fail "Instance not in list" "See $RESULTS_DIR/test2_list.log"
@@ -170,7 +170,7 @@ test_instance_lifecycle() {
     if [ ! -f "$RESULTS_DIR/launched_instance.txt" ]; then
         log_warn "No instance from previous test, creating new one..."
         INSTANCE_NAME="${TEST_PREFIX}-lifecycle"
-        if ! timeout 600 ./bin/cws launch template "$INSTANCE_NAME" --size S &> "$RESULTS_DIR/test3_launch.log"; then
+        if ! timeout 600 ./bin/prism launch template "$INSTANCE_NAME" --size S &> "$RESULTS_DIR/test3_launch.log"; then
             log_fail "Could not launch instance for lifecycle test"
             return 1
         fi
@@ -183,7 +183,7 @@ test_instance_lifecycle() {
 
     # Test: Stop
     log "Testing: Stop instance..."
-    if timeout 180 ./bin/cws stop "$INSTANCE_NAME" &> "$RESULTS_DIR/test3_stop.log"; then
+    if timeout 180 ./bin/prism stop "$INSTANCE_NAME" &> "$RESULTS_DIR/test3_stop.log"; then
         log_success "Instance stopped successfully"
         sleep 30  # Wait for stop to propagate
     else
@@ -192,7 +192,7 @@ test_instance_lifecycle() {
 
     # Test: Start
     log "Testing: Start instance..."
-    if timeout 180 ./bin/cws start "$INSTANCE_NAME" &> "$RESULTS_DIR/test3_start.log"; then
+    if timeout 180 ./bin/prism start "$INSTANCE_NAME" &> "$RESULTS_DIR/test3_start.log"; then
         log_success "Instance started successfully"
         sleep 60  # Wait for start to complete
     else
@@ -201,7 +201,7 @@ test_instance_lifecycle() {
 
     # Test: Delete
     log "Testing: Delete instance..."
-    if timeout 180 ./bin/cws delete "$INSTANCE_NAME" --force &> "$RESULTS_DIR/test3_delete.log"; then
+    if timeout 180 ./bin/prism delete "$INSTANCE_NAME" --force &> "$RESULTS_DIR/test3_delete.log"; then
         log_success "Instance deleted successfully"
         rm -f "$RESULTS_DIR/launched_instance.txt"
     else
@@ -223,7 +223,7 @@ test_efs_storage() {
 
     # Create volume
     log "Creating EFS volume: $VOLUME_NAME..."
-    if timeout 300 ./bin/cws volume create "$VOLUME_NAME" &> "$RESULTS_DIR/test4_create_volume.log"; then
+    if timeout 300 ./bin/prism volume create "$VOLUME_NAME" &> "$RESULTS_DIR/test4_create_volume.log"; then
         log_success "EFS volume created"
     else
         log_fail "EFS volume creation failed" "See $RESULTS_DIR/test4_create_volume.log"
@@ -232,7 +232,7 @@ test_efs_storage() {
 
     # Launch first instance
     log "Launching first instance: $INSTANCE1..."
-    if ! timeout 600 ./bin/cws launch template "$INSTANCE1" --size S &> "$RESULTS_DIR/test4_launch1.log"; then
+    if ! timeout 600 ./bin/prism launch template "$INSTANCE1" --size S &> "$RESULTS_DIR/test4_launch1.log"; then
         log_fail "First instance launch failed"
         return 1
     fi
@@ -240,7 +240,7 @@ test_efs_storage() {
 
     # Mount volume
     log "Mounting volume to first instance..."
-    if timeout 120 ./bin/cws volume mount "$VOLUME_NAME" "$INSTANCE1" &> "$RESULTS_DIR/test4_mount1.log"; then
+    if timeout 120 ./bin/prism volume mount "$VOLUME_NAME" "$INSTANCE1" &> "$RESULTS_DIR/test4_mount1.log"; then
         log_success "Volume mounted to first instance"
     else
         log_fail "Volume mount failed" "See $RESULTS_DIR/test4_mount1.log"
@@ -253,11 +253,11 @@ test_efs_storage() {
 
     # Delete first instance
     log "Deleting first instance..."
-    timeout 180 ./bin/cws delete "$INSTANCE1" --force &> "$RESULTS_DIR/test4_delete1.log"
+    timeout 180 ./bin/prism delete "$INSTANCE1" --force &> "$RESULTS_DIR/test4_delete1.log"
 
     # Launch second instance
     log "Launching second instance: $INSTANCE2..."
-    if ! timeout 600 ./bin/cws launch template "$INSTANCE2" --size S &> "$RESULTS_DIR/test4_launch2.log"; then
+    if ! timeout 600 ./bin/prism launch template "$INSTANCE2" --size S &> "$RESULTS_DIR/test4_launch2.log"; then
         log_fail "Second instance launch failed"
         return 1
     fi
@@ -265,7 +265,7 @@ test_efs_storage() {
 
     # Mount same volume
     log "Mounting same volume to second instance..."
-    if timeout 120 ./bin/cws volume mount "$VOLUME_NAME" "$INSTANCE2" &> "$RESULTS_DIR/test4_mount2.log"; then
+    if timeout 120 ./bin/prism volume mount "$VOLUME_NAME" "$INSTANCE2" &> "$RESULTS_DIR/test4_mount2.log"; then
         log_success "Volume mounted to second instance"
     else
         log_fail "Volume mount to second instance failed" "See $RESULTS_DIR/test4_mount2.log"
@@ -285,8 +285,8 @@ test_efs_storage() {
 
     # Cleanup
     log "Cleaning up test resources..."
-    timeout 180 ./bin/cws delete "$INSTANCE2" --force &> "$RESULTS_DIR/test4_delete2.log"
-    timeout 180 ./bin/cws volume delete "$VOLUME_NAME" --force &> "$RESULTS_DIR/test4_delete_volume.log"
+    timeout 180 ./bin/prism delete "$INSTANCE2" --force &> "$RESULTS_DIR/test4_delete2.log"
+    timeout 180 ./bin/prism volume delete "$VOLUME_NAME" --force &> "$RESULTS_DIR/test4_delete_volume.log"
 }
 
 # Test 5: Template Validation
@@ -303,7 +303,7 @@ test_templates() {
 
         # Launch
         log "Launching $template template..."
-        if timeout 600 ./bin/cws launch "$template" "$INSTANCE_NAME" --size S &> "$RESULTS_DIR/test5_${template}_launch.log"; then
+        if timeout 600 ./bin/prism launch "$template" "$INSTANCE_NAME" --size S &> "$RESULTS_DIR/test5_${template}_launch.log"; then
             log_success "Template $template launched"
 
             log_warn "MANUAL VERIFICATION: SSH to $INSTANCE_NAME and verify software"
@@ -311,7 +311,7 @@ test_templates() {
             read -r
 
             # Cleanup
-            timeout 180 ./bin/cws delete "$INSTANCE_NAME" --force &> "$RESULTS_DIR/test5_${template}_delete.log"
+            timeout 180 ./bin/prism delete "$INSTANCE_NAME" --force &> "$RESULTS_DIR/test5_${template}_delete.log"
         else
             log_fail "Template $template launch failed" "See $RESULTS_DIR/test5_${template}_launch.log"
         fi
@@ -326,7 +326,7 @@ test_error_handling() {
 
     # Test: Non-existent instance
     log "Testing: Operation on non-existent instance..."
-    if ./bin/cws stop "nonexistent-instance-$(date +%s)" &> "$RESULTS_DIR/test6_nonexistent.log"; then
+    if ./bin/prism stop "nonexistent-instance-$(date +%s)" &> "$RESULTS_DIR/test6_nonexistent.log"; then
         log_fail "Should have failed on non-existent instance"
     else
         # Check if error message is user-friendly

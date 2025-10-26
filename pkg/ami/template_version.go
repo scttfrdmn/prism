@@ -1,4 +1,4 @@
-// Package ami provides CloudWorkstation's AMI creation system.
+// Package ami provides Prism's AMI creation system.
 package ami
 
 import (

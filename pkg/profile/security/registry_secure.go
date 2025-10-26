@@ -55,7 +55,7 @@ func NewSecureRegistryClient(config S3RegistryConfig) (*SecureRegistryClient, er
 			return nil, fmt.Errorf("failed to get home directory: %w", err)
 		}
 
-		config.LocalCache = filepath.Join(homeDir, ".cloudworkstation", "registry-cache")
+		config.LocalCache = filepath.Join(homeDir, ".prism", "registry-cache")
 	}
 
 	if err := os.MkdirAll(config.LocalCache, 0755); err != nil {
@@ -331,7 +331,7 @@ func (c *SecureRegistryClient) securePost(url string, payload *SignedPayload) (*
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "CloudWorkstation-Secure/1.0")
+	req.Header.Set("User-Agent", "Prism-Secure/1.0")
 	req.Header.Set("X-Request-ID", generateRequestID())
 
 	// Perform request
@@ -377,7 +377,7 @@ func getOrCreateSigningKey() ([]byte, error) {
 		}
 
 		// IMPROVED UX: Use consistent service name to avoid multiple keychain prompts
-		keyName := "CloudWorkstation.registry.signing-key"
+		keyName := "Prism.registry.signing-key"
 
 		// Try to retrieve existing key
 		existingKey, err := keychain.Retrieve(keyName)

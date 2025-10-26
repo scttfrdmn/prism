@@ -46,7 +46,7 @@ type NotificationOptions struct {
 // DefaultOptions returns default notification options
 func DefaultOptions() NotificationOptions {
 	return NotificationOptions{
-		Title:   "CloudWorkstation",
+		Title:   "Prism",
 		Type:    NotificationInfo,
 		Timeout: 5,
 	}
@@ -128,7 +128,7 @@ func (n *NotificationManager) NotifyFromEvent(event InstanceEvent) error {
 
 	// Create notification options
 	options := NotificationOptions{
-		Title:   "CloudWorkstation",
+		Title:   "Prism",
 		Message: event.Message,
 		Type:    notifType,
 		Timeout: 5,
@@ -148,7 +148,7 @@ func (n *NotificationManager) NotifyFromEvent(event InstanceEvent) error {
 		options.Timeout = 10 // Longer timeout for important alerts
 
 	case EventTypeError:
-		options.Title = "CloudWorkstation Error"
+		options.Title = "Prism Error"
 	}
 
 	return n.Notify(options)
@@ -189,7 +189,7 @@ func (n *NotificationManager) notifyLinux(options NotificationOptions) error {
 
 	// Build command arguments
 	args := []string{
-		"--app-name=CloudWorkstation",
+		"--app-name=Prism",
 		fmt.Sprintf("--expire-time=%d", options.Timeout*1000),
 	}
 

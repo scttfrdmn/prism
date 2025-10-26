@@ -80,7 +80,7 @@ func DefaultPricingConfig() *InstitutionalPricingConfig {
 // LoadInstitutionalPricing loads institutional pricing configuration
 // Checks multiple locations in order of preference:
 // 1. --pricing-config flag or PRICING_CONFIG env var
-// 2. ~/.cloudworkstation/institutional_pricing.json
+// 2. ~/.prism/institutional_pricing.json
 // 3. ./institutional_pricing.json (current directory)
 // 4. Returns default config (no discounts) if none found
 func LoadInstitutionalPricing() (*InstitutionalPricingConfig, error) {
@@ -174,7 +174,7 @@ func getInstitutionalPricingPath() string {
 	if err != nil {
 		return "institutional_pricing.json"
 	}
-	return filepath.Join(homeDir, ".cloudworkstation", "institutional_pricing.json")
+	return filepath.Join(homeDir, ".prism", "institutional_pricing.json")
 }
 
 // SaveExampleConfig saves an example institutional pricing configuration

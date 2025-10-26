@@ -1,4 +1,4 @@
-// Package tui provides the terminal user interface for CloudWorkstation.
+// Package tui provides the terminal user interface for Prism.
 //
 // This package implements a full-featured TUI using the BubbleTea framework,
 // providing an interactive alternative to the command-line interface.
@@ -11,11 +11,11 @@ import (
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/models"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/models"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
 // App represents the TUI application
@@ -473,7 +473,7 @@ func (m AppModel) View() string {
 	case ProfilesPage:
 		return m.profilesModel.View()
 	default:
-		return fmt.Sprintf("CloudWorkstation v%s\n\nUnknown page", version.GetVersion())
+		return fmt.Sprintf("Prism v%s\n\nUnknown page", version.GetVersion())
 	}
 }
 
@@ -485,7 +485,7 @@ func loadAPIKeyFromState() string {
 		return "" // No API key available
 	}
 
-	stateFile := filepath.Join(homeDir, ".cloudworkstation", "state.json")
+	stateFile := filepath.Join(homeDir, ".prism", "state.json")
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		return "" // No state file or can't read it

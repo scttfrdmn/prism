@@ -32,7 +32,7 @@ func NewStorageCobraCommands(app *App) *StorageCobraCommands {
 func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "storage",
-		Short: "Manage CloudWorkstation storage (all types)",
+		Short: "Manage Prism storage (all types)",
 		Long: `Manage all storage types (workspace and shared).
 
 'cws storage list' shows all storage volumes (both workspace EBS and shared EFS).

@@ -12,19 +12,19 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
-	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
-	"github.com/scttfrdmn/cloudworkstation/pkg/connection"
-	"github.com/scttfrdmn/cloudworkstation/pkg/cost"
-	"github.com/scttfrdmn/cloudworkstation/pkg/marketplace"
-	"github.com/scttfrdmn/cloudworkstation/pkg/monitoring"
-	"github.com/scttfrdmn/cloudworkstation/pkg/policy"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/security"
-	"github.com/scttfrdmn/cloudworkstation/pkg/state"
+	"github.com/scttfrdmn/prism/pkg/aws"
+	"github.com/scttfrdmn/prism/pkg/connection"
+	"github.com/scttfrdmn/prism/pkg/cost"
+	"github.com/scttfrdmn/prism/pkg/marketplace"
+	"github.com/scttfrdmn/prism/pkg/monitoring"
+	"github.com/scttfrdmn/prism/pkg/policy"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/security"
+	"github.com/scttfrdmn/prism/pkg/state"
 )
 
-// Server represents the CloudWorkstation daemon server
+// Server represents the Prism daemon server
 type Server struct {
 	config          *Config
 	port            string
@@ -118,7 +118,7 @@ func NewServer(port string) (*Server, error) {
 				Region:  "", // Use AWS SDK default region resolution
 			})
 		} else {
-			// Use profile values from current CloudWorkstation profile
+			// Use profile values from current Prism profile
 			awsManager, _ = aws.NewManager(aws.ManagerOptions{
 				Profile: currentProfile.AWSProfile,
 				Region:  currentProfile.Region,
@@ -185,10 +185,10 @@ func NewServer(port string) (*Server, error) {
 
 	// Initialize template marketplace registry
 	marketplaceConfig := &marketplace.MarketplaceConfig{
-		RegistryEndpoint:      "https://marketplace.cloudworkstation.org",
+		RegistryEndpoint:      "https://marketplace.prism.org",
 		S3Bucket:              "cloudworkstation-marketplace",
 		DynamoDBTable:         "marketplace-templates",
-		CDNEndpoint:           "https://cdn.cloudworkstation.org",
+		CDNEndpoint:           "https://cdn.prism.org",
 		AutoAMIGeneration:     true,
 		DefaultRegions:        []string{"us-east-1", "us-west-2", "eu-west-1"},
 		RequireModeration:     false,
@@ -290,11 +290,11 @@ func NewServer(port string) (*Server, error) {
 
 // Start starts the daemon server
 func (s *Server) Start() error {
-	log.Printf("Starting CloudWorkstation daemon on port %s", s.port)
+	log.Printf("Starting Prism daemon on port %s", s.port)
 
 	// Register this daemon instance
 	pid := os.Getpid()
-	configPath := fmt.Sprintf("%s/.cloudworkstation", os.Getenv("HOME"))
+	configPath := fmt.Sprintf("%s/.prism", os.Getenv("HOME"))
 	if err := s.processManager.RegisterDaemon(pid, configPath, ""); err != nil {
 		log.Printf("Warning: Failed to register daemon: %v", err)
 	}

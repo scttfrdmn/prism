@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Mock API client for repositories testing - implements complete apiClient interface

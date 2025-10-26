@@ -19,7 +19,7 @@ func (mc *MarketplaceCobraCommands) CreateMarketplaceCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "marketplace",
 		Short: "Browse and manage community templates",
-		Long: `Browse, publish, and manage community templates from the CloudWorkstation marketplace.
+		Long: `Browse, publish, and manage community templates from the Prism marketplace.
 
 The marketplace provides access to community-contributed research environments,
 allowing you to share and discover specialized templates for different research domains.`,

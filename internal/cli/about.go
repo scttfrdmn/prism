@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -12,8 +12,8 @@ import (
 func NewAboutCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "about",
-		Short: "Show information about CloudWorkstation",
-		Long: `Display detailed information about CloudWorkstation including version,
+		Short: "Show information about Prism",
+		Long: `Display detailed information about Prism including version,
 build information, platform details, and project links.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			runAbout()
@@ -23,10 +23,10 @@ build information, platform details, and project links.`,
 	return cmd
 }
 
-// runAbout displays comprehensive information about CloudWorkstation
+// runAbout displays comprehensive information about Prism
 func runAbout() {
 	fmt.Println("╔═══════════════════════════════════════════════════════════════╗")
-	fmt.Println("║             CloudWorkstation - Academic Research              ║")
+	fmt.Println("║             Prism - Academic Research              ║")
 	fmt.Println("║             Computing Platform                                 ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════════╝")
 	fmt.Println()
@@ -64,15 +64,15 @@ func runAbout() {
 	fmt.Println("🔗 Project Links")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println("   Website:        https://cloudworkstation.io")
-	fmt.Println("   Documentation:  https://docs.cloudworkstation.io")
-	fmt.Println("   GitHub:         https://github.com/scttfrdmn/cloudworkstation")
-	fmt.Println("   Issues:         https://github.com/scttfrdmn/cloudworkstation/issues")
+	fmt.Println("   Documentation:  https://docs.prism.io")
+	fmt.Println("   GitHub:         https://github.com/scttfrdmn/prism")
+	fmt.Println("   Issues:         https://github.com/scttfrdmn/prism/issues")
 	fmt.Println()
 
 	// Description
 	fmt.Println("📝 About")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("   CloudWorkstation provides researchers with pre-configured cloud")
+	fmt.Println("   Prism provides researchers with pre-configured cloud")
 	fmt.Println("   computing environments for data analysis, machine learning, and")
 	fmt.Println("   research computing. Launch production-ready environments in seconds")
 	fmt.Println("   rather than spending hours on setup and configuration.")
@@ -92,7 +92,7 @@ func runAbout() {
 	// License and Copyright
 	fmt.Println("📄 License")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("   Copyright © 2025 CloudWorkstation Project")
+	fmt.Println("   Copyright © 2025 Prism Project")
 	fmt.Println("   Licensed under the MIT License")
 	fmt.Println()
 

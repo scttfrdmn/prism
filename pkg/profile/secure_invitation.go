@@ -1,11 +1,11 @@
-// Package profile provides functionality for managing CloudWorkstation profiles
+// Package profile provides functionality for managing Prism profiles
 package profile
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
+	"github.com/scttfrdmn/prism/pkg/profile/security"
 )
 
 // SecureInvitationManager extends the standard invitation manager with security features

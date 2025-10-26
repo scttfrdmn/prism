@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // Spinner is a loading spinner component

@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // ProjectsModel represents the project management view
@@ -54,7 +54,7 @@ func NewProjectsModel(apiClient apiClient) ProjectsModel {
 	projectsTable := components.NewTable(columns, []table.Row{}, 80, 10, true)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Project Management", "")
+	statusBar := components.NewStatusBar("Prism Project Management", "")
 	spinner := components.NewSpinner("Loading projects...")
 
 	return ProjectsModel{

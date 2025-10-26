@@ -1,4 +1,4 @@
-// Package state provides unified state management for CloudWorkstation.
+// Package state provides unified state management for Prism.
 //
 // This file provides the unified state management that eliminates the unnecessary
 // ProfileAwareStateManager wrapper while maintaining all functionality.
@@ -7,7 +7,7 @@ package state
 import (
 	"fmt"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // UnifiedManager provides state management with optional profile integration.

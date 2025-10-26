@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-// AWSComplianceValidator validates CloudWorkstation against AWS Artifact compliance reports and SCPs
+// AWSComplianceValidator validates Prism against AWS Artifact compliance reports and SCPs
 type AWSComplianceValidator struct {
 	artifactClient      *artifact.Client
 	organizationsClient *organizations.Client
@@ -65,16 +65,16 @@ type AWSComplianceStatus struct {
 	RecommendedActions []ComplianceRecommendation `json:"recommended_actions"`
 }
 
-// ComplianceGap represents gaps between CloudWorkstation and AWS compliance posture
+// ComplianceGap represents gaps between Prism and AWS compliance posture
 type ComplianceGap struct {
-	Control             string `json:"control"`
-	AWSImplementation   string `json:"aws_implementation"`
-	CloudWorkstationGap string `json:"cloudworkstation_gap"`
-	Severity            string `json:"severity"`
-	Remediation         string `json:"remediation"`
+	Control           string `json:"control"`
+	AWSImplementation string `json:"aws_implementation"`
+	PrismGap          string `json:"cloudworkstation_gap"`
+	Severity          string `json:"severity"`
+	Remediation       string `json:"remediation"`
 }
 
-// AWSServiceCompliance represents compliance status of AWS services used by CloudWorkstation
+// AWSServiceCompliance represents compliance status of AWS services used by Prism
 type AWSServiceCompliance struct {
 	ServiceName         string                 `json:"service_name"`
 	ComplianceStatus    string                 `json:"compliance_status"`
@@ -113,7 +113,7 @@ func NewAWSComplianceValidator(awsProfile, region string) (*AWSComplianceValidat
 	}, nil
 }
 
-// ValidateCompliance validates CloudWorkstation against specified compliance framework
+// ValidateCompliance validates Prism against specified compliance framework
 func (v *AWSComplianceValidator) ValidateCompliance(ctx context.Context, framework ComplianceFramework) (*AWSComplianceStatus, error) {
 	status := &AWSComplianceStatus{
 		Framework:   framework,
@@ -199,9 +199,9 @@ func (v *AWSComplianceValidator) getArtifactReport(ctx context.Context, framewor
 	return nil
 }
 
-// validateAWSServices validates compliance of AWS services used by CloudWorkstation
+// validateAWSServices validates compliance of AWS services used by Prism
 func (v *AWSComplianceValidator) validateAWSServices(ctx context.Context, framework ComplianceFramework, status *AWSComplianceStatus) error {
-	// CloudWorkstation core AWS services
+	// Prism core AWS services
 	coreServices := []string{"EC2", "VPC", "IAM", "CloudTrail", "EFS", "EBS", "Systems Manager"}
 
 	for _, serviceName := range coreServices {
@@ -374,11 +374,11 @@ func (v *AWSComplianceValidator) validateSCPs(ctx context.Context, framework Com
 		}
 		if !found {
 			status.GapAnalysis = append(status.GapAnalysis, ComplianceGap{
-				Control:             fmt.Sprintf("SCP-%s", requiredSCP),
-				AWSImplementation:   "Service Control Policy available",
-				CloudWorkstationGap: "Required SCP not implemented",
-				Severity:            "HIGH",
-				Remediation:         fmt.Sprintf("Implement %s Service Control Policy", requiredSCP),
+				Control:           fmt.Sprintf("SCP-%s", requiredSCP),
+				AWSImplementation: "Service Control Policy available",
+				PrismGap:          "Required SCP not implemented",
+				Severity:          "HIGH",
+				Remediation:       fmt.Sprintf("Implement %s Service Control Policy", requiredSCP),
 			})
 		}
 	}
@@ -386,7 +386,7 @@ func (v *AWSComplianceValidator) validateSCPs(ctx context.Context, framework Com
 	return nil
 }
 
-// performGapAnalysis analyzes gaps between CloudWorkstation and AWS compliance posture
+// performGapAnalysis analyzes gaps between Prism and AWS compliance posture
 func (v *AWSComplianceValidator) performGapAnalysis(framework ComplianceFramework, status *AWSComplianceStatus) error {
 	// Framework-specific gap analysis
 	switch framework {
@@ -468,18 +468,18 @@ func (v *AWSComplianceValidator) analyzeCMMCFrameworkGaps(framework ComplianceFr
 func (v *AWSComplianceValidator) analyzeSOC2Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "CC6.1 - Logical Access Controls",
-			AWSImplementation:   "IAM with MFA and role-based access",
-			CloudWorkstationGap: "Device binding authentication may need AWS integration",
-			Severity:            "MEDIUM",
-			Remediation:         "Integrate device binding with AWS IAM roles",
+			Control:           "CC6.1 - Logical Access Controls",
+			AWSImplementation: "IAM with MFA and role-based access",
+			PrismGap:          "Device binding authentication may need AWS integration",
+			Severity:          "MEDIUM",
+			Remediation:       "Integrate device binding with AWS IAM roles",
 		},
 		{
-			Control:             "CC6.7 - Data Transmission Controls",
-			AWSImplementation:   "TLS 1.2+ for all AWS services",
-			CloudWorkstationGap: "Registry communication uses custom encryption",
-			Severity:            "LOW",
-			Remediation:         "Document custom encryption alignment with AWS standards",
+			Control:           "CC6.7 - Data Transmission Controls",
+			AWSImplementation: "TLS 1.2+ for all AWS services",
+			PrismGap:          "Registry communication uses custom encryption",
+			Severity:          "LOW",
+			Remediation:       "Document custom encryption alignment with AWS standards",
 		},
 	}
 
@@ -490,18 +490,18 @@ func (v *AWSComplianceValidator) analyzeSOC2Gaps(status *AWSComplianceStatus) {
 func (v *AWSComplianceValidator) analyzeHIPAAGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "§164.312(a)(1) - Access Control",
-			AWSImplementation:   "IAM with unique user identification",
-			CloudWorkstationGap: "Need to ensure PHI access controls align with AWS BAA",
-			Severity:            "HIGH",
-			Remediation:         "Implement HIPAA-compliant access controls with AWS services",
+			Control:           "§164.312(a)(1) - Access Control",
+			AWSImplementation: "IAM with unique user identification",
+			PrismGap:          "Need to ensure PHI access controls align with AWS BAA",
+			Severity:          "HIGH",
+			Remediation:       "Implement HIPAA-compliant access controls with AWS services",
 		},
 		{
-			Control:             "§164.312(e)(1) - Transmission Security",
-			AWSImplementation:   "End-to-end encryption for all data transmission",
-			CloudWorkstationGap: "Custom invitation system encryption needs BAA coverage",
-			Severity:            "CRITICAL",
-			Remediation:         "Ensure all CloudWorkstation encryption aligns with AWS BAA",
+			Control:           "§164.312(e)(1) - Transmission Security",
+			AWSImplementation: "End-to-end encryption for all data transmission",
+			PrismGap:          "Custom invitation system encryption needs BAA coverage",
+			Severity:          "CRITICAL",
+			Remediation:       "Ensure all Prism encryption aligns with AWS BAA",
 		},
 	}
 
@@ -512,18 +512,18 @@ func (v *AWSComplianceValidator) analyzeHIPAAGaps(status *AWSComplianceStatus) {
 func (v *AWSComplianceValidator) analyzeFedRAMPGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "AC-2 - Account Management",
-			AWSImplementation:   "Automated account lifecycle management",
-			CloudWorkstationGap: "Manual account provisioning in templates",
-			Severity:            "HIGH",
-			Remediation:         "Integrate with AWS SSO or automated account management",
+			Control:           "AC-2 - Account Management",
+			AWSImplementation: "Automated account lifecycle management",
+			PrismGap:          "Manual account provisioning in templates",
+			Severity:          "HIGH",
+			Remediation:       "Integrate with AWS SSO or automated account management",
 		},
 		{
-			Control:             "AU-2 - Event Logging",
-			AWSImplementation:   "CloudTrail comprehensive event logging",
-			CloudWorkstationGap: "Local audit logging may need CloudTrail integration",
-			Severity:            "MEDIUM",
-			Remediation:         "Forward audit logs to CloudTrail for centralized logging",
+			Control:           "AU-2 - Event Logging",
+			AWSImplementation: "CloudTrail comprehensive event logging",
+			PrismGap:          "Local audit logging may need CloudTrail integration",
+			Severity:          "MEDIUM",
+			Remediation:       "Forward audit logs to CloudTrail for centralized logging",
 		},
 	}
 
@@ -534,18 +534,18 @@ func (v *AWSComplianceValidator) analyzeFedRAMPGaps(status *AWSComplianceStatus)
 func (v *AWSComplianceValidator) analyzeNIST800171Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "3.1.1 - Authorized Access Control",
-			AWSImplementation:   "IAM policies and roles with fine-grained permissions",
-			CloudWorkstationGap: "Template-based access may need AWS IAM integration",
-			Severity:            "HIGH",
-			Remediation:         "Map template users to AWS IAM roles for CUI access",
+			Control:           "3.1.1 - Authorized Access Control",
+			AWSImplementation: "IAM policies and roles with fine-grained permissions",
+			PrismGap:          "Template-based access may need AWS IAM integration",
+			Severity:          "HIGH",
+			Remediation:       "Map template users to AWS IAM roles for CUI access",
 		},
 		{
-			Control:             "3.3.1 - Audit Record Creation",
-			AWSImplementation:   "CloudTrail and AWS Config for comprehensive auditing",
-			CloudWorkstationGap: "Local audit logs need integration with AWS audit services",
-			Severity:            "HIGH",
-			Remediation:         "Forward security audit logs to CloudWatch and CloudTrail",
+			Control:           "3.3.1 - Audit Record Creation",
+			AWSImplementation: "CloudTrail and AWS Config for comprehensive auditing",
+			PrismGap:          "Local audit logs need integration with AWS audit services",
+			Severity:          "HIGH",
+			Remediation:       "Forward security audit logs to CloudWatch and CloudTrail",
 		},
 	}
 
@@ -556,25 +556,25 @@ func (v *AWSComplianceValidator) analyzeNIST800171Gaps(status *AWSComplianceStat
 func (v *AWSComplianceValidator) analyzeNIST80053Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "AC-2 - Account Management",
-			AWSImplementation:   "IAM with automated account lifecycle management",
-			CloudWorkstationGap: "Template-based account provisioning needs IAM integration",
-			Severity:            "HIGH",
-			Remediation:         "Implement automated account management with AWS IAM",
+			Control:           "AC-2 - Account Management",
+			AWSImplementation: "IAM with automated account lifecycle management",
+			PrismGap:          "Template-based account provisioning needs IAM integration",
+			Severity:          "HIGH",
+			Remediation:       "Implement automated account management with AWS IAM",
 		},
 		{
-			Control:             "AU-3 - Audit Record Content",
-			AWSImplementation:   "CloudTrail comprehensive audit logging with data events",
-			CloudWorkstationGap: "Local audit logs may need enhanced content for healthcare/federal compliance",
-			Severity:            "MEDIUM",
-			Remediation:         "Enhance audit record content to meet NIST 800-53 requirements",
+			Control:           "AU-3 - Audit Record Content",
+			AWSImplementation: "CloudTrail comprehensive audit logging with data events",
+			PrismGap:          "Local audit logs may need enhanced content for healthcare/federal compliance",
+			Severity:          "MEDIUM",
+			Remediation:       "Enhance audit record content to meet NIST 800-53 requirements",
 		},
 		{
-			Control:             "SC-7 - Boundary Protection",
-			AWSImplementation:   "VPC with network segmentation and managed boundaries",
-			CloudWorkstationGap: "Research instances may need additional network controls",
-			Severity:            "MEDIUM",
-			Remediation:         "Implement VPC endpoint and network segmentation for sensitive data",
+			Control:           "SC-7 - Boundary Protection",
+			AWSImplementation: "VPC with network segmentation and managed boundaries",
+			PrismGap:          "Research instances may need additional network controls",
+			Severity:          "MEDIUM",
+			Remediation:       "Implement VPC endpoint and network segmentation for sensitive data",
 		},
 	}
 
@@ -585,36 +585,36 @@ func (v *AWSComplianceValidator) analyzeNIST80053Gaps(status *AWSComplianceStatu
 func (v *AWSComplianceValidator) analyzeITARGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "ITAR 120.17 - Physical and Technical Safeguards",
-			AWSImplementation:   "AWS GovCloud physical security and FIPS 140-2",
-			CloudWorkstationGap: "CRITICAL: ITAR compliance requires AWS GovCloud deployment",
-			Severity:            "CRITICAL",
-			Remediation:         "Migrate all ITAR-related workloads to AWS GovCloud (us-gov-east-1 or us-gov-west-1)",
+			Control:           "ITAR 120.17 - Physical and Technical Safeguards",
+			AWSImplementation: "AWS GovCloud physical security and FIPS 140-2",
+			PrismGap:          "CRITICAL: ITAR compliance requires AWS GovCloud deployment",
+			Severity:          "CRITICAL",
+			Remediation:       "Migrate all ITAR-related workloads to AWS GovCloud (us-gov-east-1 or us-gov-west-1)",
 		},
 		{
-			Control:             "ITAR 120.17 - Export Control",
-			AWSImplementation:   "GovCloud provides export control compliance",
-			CloudWorkstationGap: "Commercial AWS regions cannot host ITAR-controlled data",
-			Severity:            "CRITICAL",
-			Remediation:         "Implement region restrictions to prevent ITAR data in commercial regions",
+			Control:           "ITAR 120.17 - Export Control",
+			AWSImplementation: "GovCloud provides export control compliance",
+			PrismGap:          "Commercial AWS regions cannot host ITAR-controlled data",
+			Severity:          "CRITICAL",
+			Remediation:       "Implement region restrictions to prevent ITAR data in commercial regions",
 		},
 		{
-			Control:             "ITAR 120.17 - Personnel Security",
-			AWSImplementation:   "GovCloud personnel are US persons with security clearances",
-			CloudWorkstationGap: "Commercial AWS support may include foreign nationals",
-			Severity:            "CRITICAL",
-			Remediation:         "Use only GovCloud support channels for ITAR-related workloads",
+			Control:           "ITAR 120.17 - Personnel Security",
+			AWSImplementation: "GovCloud personnel are US persons with security clearances",
+			PrismGap:          "Commercial AWS support may include foreign nationals",
+			Severity:          "CRITICAL",
+			Remediation:       "Use only GovCloud support channels for ITAR-related workloads",
 		},
 	}
 
 	// Add critical region validation
 	if v.region != "us-gov-east-1" && v.region != "us-gov-west-1" {
 		gaps = append(gaps, ComplianceGap{
-			Control:             "ITAR Regional Compliance",
-			AWSImplementation:   "GovCloud regions provide ITAR compliance",
-			CloudWorkstationGap: fmt.Sprintf("Current region %s is not ITAR compliant", v.region),
-			Severity:            "CRITICAL",
-			Remediation:         "Immediately migrate to AWS GovCloud region (us-gov-east-1 or us-gov-west-1)",
+			Control:           "ITAR Regional Compliance",
+			AWSImplementation: "GovCloud regions provide ITAR compliance",
+			PrismGap:          fmt.Sprintf("Current region %s is not ITAR compliant", v.region),
+			Severity:          "CRITICAL",
+			Remediation:       "Immediately migrate to AWS GovCloud region (us-gov-east-1 or us-gov-west-1)",
 		})
 	}
 
@@ -625,29 +625,29 @@ func (v *AWSComplianceValidator) analyzeITARGaps(status *AWSComplianceStatus) {
 func (v *AWSComplianceValidator) analyzeEARGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "EAR 734.3 - Export Control Classification",
-			AWSImplementation:   "AWS provides data residency and export controls",
-			CloudWorkstationGap: "Need to classify research data for export control purposes",
-			Severity:            "HIGH",
-			Remediation:         "Implement data classification system for dual-use technology",
+			Control:           "EAR 734.3 - Export Control Classification",
+			AWSImplementation: "AWS provides data residency and export controls",
+			PrismGap:          "Need to classify research data for export control purposes",
+			Severity:          "HIGH",
+			Remediation:       "Implement data classification system for dual-use technology",
 		},
 		{
-			Control:             "EAR 736.2 - General Prohibitions",
-			AWSImplementation:   "AWS Config rules can enforce geographic restrictions",
-			CloudWorkstationGap: "No automated controls for EAR-restricted countries",
-			Severity:            "HIGH",
-			Remediation:         "Implement geographic access controls and monitoring",
+			Control:           "EAR 736.2 - General Prohibitions",
+			AWSImplementation: "AWS Config rules can enforce geographic restrictions",
+			PrismGap:          "No automated controls for EAR-restricted countries",
+			Severity:          "HIGH",
+			Remediation:       "Implement geographic access controls and monitoring",
 		},
 	}
 
 	// Recommend GovCloud for high-sensitivity EAR data
 	if v.region != "us-gov-east-1" && v.region != "us-gov-west-1" {
 		gaps = append(gaps, ComplianceGap{
-			Control:             "EAR High-Sensitivity Data",
-			AWSImplementation:   "GovCloud provides additional export control protections",
-			CloudWorkstationGap: "High-sensitivity EAR data should use GovCloud",
-			Severity:            "MEDIUM",
-			Remediation:         "Consider migrating high-sensitivity dual-use technology research to GovCloud",
+			Control:           "EAR High-Sensitivity Data",
+			AWSImplementation: "GovCloud provides additional export control protections",
+			PrismGap:          "High-sensitivity EAR data should use GovCloud",
+			Severity:          "MEDIUM",
+			Remediation:       "Consider migrating high-sensitivity dual-use technology research to GovCloud",
 		})
 	}
 
@@ -658,11 +658,11 @@ func (v *AWSComplianceValidator) analyzeEARGaps(status *AWSComplianceStatus) {
 func (v *AWSComplianceValidator) analyzeISO27001Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "A.9.1.2 - Access to Networks and Network Services",
-			AWSImplementation:   "VPC with network segmentation and access controls",
-			CloudWorkstationGap: "Instance networking may need VPC endpoint integration",
-			Severity:            "MEDIUM",
-			Remediation:         "Configure VPC endpoints for AWS service access",
+			Control:           "A.9.1.2 - Access to Networks and Network Services",
+			AWSImplementation: "VPC with network segmentation and access controls",
+			PrismGap:          "Instance networking may need VPC endpoint integration",
+			Severity:          "MEDIUM",
+			Remediation:       "Configure VPC endpoints for AWS service access",
 		},
 	}
 
@@ -673,11 +673,11 @@ func (v *AWSComplianceValidator) analyzeISO27001Gaps(status *AWSComplianceStatus
 func (v *AWSComplianceValidator) analyzePCIDSSGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "Requirement 3 - Protect Stored Cardholder Data",
-			AWSImplementation:   "EBS and S3 encryption with AWS KMS",
-			CloudWorkstationGap: "Custom encryption keys may need AWS KMS integration",
-			Severity:            "CRITICAL",
-			Remediation:         "Integrate invitation system encryption with AWS KMS",
+			Control:           "Requirement 3 - Protect Stored Cardholder Data",
+			AWSImplementation: "EBS and S3 encryption with AWS KMS",
+			PrismGap:          "Custom encryption keys may need AWS KMS integration",
+			Severity:          "CRITICAL",
+			Remediation:       "Integrate invitation system encryption with AWS KMS",
 		},
 	}
 
@@ -692,11 +692,11 @@ func (v *AWSComplianceValidator) generateRecommendations(framework ComplianceFra
 			Action:         "Enable AWS Config for comprehensive resource monitoring",
 			AWSService:     "AWS Config",
 			Impact:         "Provides continuous compliance monitoring and assessment",
-			Implementation: "cws aws config enable --compliance-rules " + string(framework),
+			Implementation: "prism aws config enable --compliance-rules " + string(framework),
 		},
 		{
 			Priority:       "HIGH",
-			Action:         "Integrate CloudWorkstation audit logs with CloudWatch",
+			Action:         "Integrate Prism audit logs with CloudWatch",
 			AWSService:     "CloudWatch Logs",
 			Impact:         "Centralized logging and compliance reporting",
 			Implementation: "Configure log forwarding to CloudWatch Logs",
@@ -736,11 +736,11 @@ func (v *AWSComplianceValidator) generateRecommendations(framework ComplianceFra
 func (v *AWSComplianceValidator) analyzeCMMCGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "CMMC Maturity Processes",
-			AWSImplementation:   "AWS provides foundational security controls",
-			CloudWorkstationGap: "CMMC requires organizational maturity processes beyond technical controls",
-			Severity:            "MEDIUM",
-			Remediation:         "Implement CMMC-required processes: documentation, training, incident response",
+			Control:           "CMMC Maturity Processes",
+			AWSImplementation: "AWS provides foundational security controls",
+			PrismGap:          "CMMC requires organizational maturity processes beyond technical controls",
+			Severity:          "MEDIUM",
+			Remediation:       "Implement CMMC-required processes: documentation, training, incident response",
 		},
 	}
 
@@ -751,18 +751,18 @@ func (v *AWSComplianceValidator) analyzeCMMCGaps(status *AWSComplianceStatus) {
 func (v *AWSComplianceValidator) analyzeCMMCL1Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "AC.L1-3.1.1 - Limit System Access",
-			AWSImplementation:   "IAM provides user authentication and authorization",
-			CloudWorkstationGap: "Basic access controls implemented, CMMC Level 1 compliant",
-			Severity:            "LOW",
-			Remediation:         "Continue current access control implementation",
+			Control:           "AC.L1-3.1.1 - Limit System Access",
+			AWSImplementation: "IAM provides user authentication and authorization",
+			PrismGap:          "Basic access controls implemented, CMMC Level 1 compliant",
+			Severity:          "LOW",
+			Remediation:       "Continue current access control implementation",
 		},
 		{
-			Control:             "IA.L1-3.5.1 - Identify Users",
-			AWSImplementation:   "IAM provides unique user identification",
-			CloudWorkstationGap: "Device binding provides additional identification, exceeds Level 1 requirements",
-			Severity:            "LOW",
-			Remediation:         "Current implementation exceeds CMMC Level 1 requirements",
+			Control:           "IA.L1-3.5.1 - Identify Users",
+			AWSImplementation: "IAM provides unique user identification",
+			PrismGap:          "Device binding provides additional identification, exceeds Level 1 requirements",
+			Severity:          "LOW",
+			Remediation:       "Current implementation exceeds CMMC Level 1 requirements",
 		},
 	}
 
@@ -773,25 +773,25 @@ func (v *AWSComplianceValidator) analyzeCMMCL1Gaps(status *AWSComplianceStatus) 
 func (v *AWSComplianceValidator) analyzeCMMCL2Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "AC.L2-3.1.3 - Control Information Flow",
-			AWSImplementation:   "VPC and security groups provide network access controls",
-			CloudWorkstationGap: "Need to implement information flow controls for CUI",
-			Severity:            "HIGH",
-			Remediation:         "Implement VPC endpoints and network segmentation for CUI processing",
+			Control:           "AC.L2-3.1.3 - Control Information Flow",
+			AWSImplementation: "VPC and security groups provide network access controls",
+			PrismGap:          "Need to implement information flow controls for CUI",
+			Severity:          "HIGH",
+			Remediation:       "Implement VPC endpoints and network segmentation for CUI processing",
 		},
 		{
-			Control:             "AU.L2-3.3.1 - Audit Record Generation",
-			AWSImplementation:   "CloudTrail provides comprehensive audit logging",
-			CloudWorkstationGap: "Local audit logs should integrate with AWS audit services",
-			Severity:            "MEDIUM",
-			Remediation:         "Forward CloudWorkstation audit logs to CloudTrail and CloudWatch",
+			Control:           "AU.L2-3.3.1 - Audit Record Generation",
+			AWSImplementation: "CloudTrail provides comprehensive audit logging",
+			PrismGap:          "Local audit logs should integrate with AWS audit services",
+			Severity:          "MEDIUM",
+			Remediation:       "Forward Prism audit logs to CloudTrail and CloudWatch",
 		},
 		{
-			Control:             "SC.L2-3.13.11 - Cryptographic Key Management",
-			AWSImplementation:   "AWS KMS provides centralized key management",
-			CloudWorkstationGap: "CloudWorkstation uses custom encryption keys",
-			Severity:            "MEDIUM",
-			Remediation:         "Consider integrating invitation system encryption with AWS KMS",
+			Control:           "SC.L2-3.13.11 - Cryptographic Key Management",
+			AWSImplementation: "AWS KMS provides centralized key management",
+			PrismGap:          "Prism uses custom encryption keys",
+			Severity:          "MEDIUM",
+			Remediation:       "Consider integrating invitation system encryption with AWS KMS",
 		},
 	}
 
@@ -802,36 +802,36 @@ func (v *AWSComplianceValidator) analyzeCMMCL2Gaps(status *AWSComplianceStatus) 
 func (v *AWSComplianceValidator) analyzeCMMCL3Gaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "AU.L2-3.3.8 - Protect Audit Information",
-			AWSImplementation:   "CloudTrail log file integrity and encryption",
-			CloudWorkstationGap: "Enhanced audit protection required for Level 3",
-			Severity:            "HIGH",
-			Remediation:         "Implement audit log encryption and integrity monitoring",
+			Control:           "AU.L2-3.3.8 - Protect Audit Information",
+			AWSImplementation: "CloudTrail log file integrity and encryption",
+			PrismGap:          "Enhanced audit protection required for Level 3",
+			Severity:          "HIGH",
+			Remediation:       "Implement audit log encryption and integrity monitoring",
 		},
 		{
-			Control:             "RA.L2-3.11.2 - Vulnerability Scanning",
-			AWSImplementation:   "Inspector provides automated vulnerability scanning",
-			CloudWorkstationGap: "Need automated vulnerability scanning of research instances",
-			Severity:            "HIGH",
-			Remediation:         "Integrate AWS Inspector for continuous vulnerability assessment",
+			Control:           "RA.L2-3.11.2 - Vulnerability Scanning",
+			AWSImplementation: "Inspector provides automated vulnerability scanning",
+			PrismGap:          "Need automated vulnerability scanning of research instances",
+			Severity:          "HIGH",
+			Remediation:       "Integrate AWS Inspector for continuous vulnerability assessment",
 		},
 		{
-			Control:             "SI.L2-3.14.6 - Software and Information Integrity",
-			AWSImplementation:   "Systems Manager provides patch management",
-			CloudWorkstationGap: "Need automated integrity monitoring and patch management",
-			Severity:            "HIGH",
-			Remediation:         "Implement AWS Systems Manager for automated patching and integrity monitoring",
+			Control:           "SI.L2-3.14.6 - Software and Information Integrity",
+			AWSImplementation: "Systems Manager provides patch management",
+			PrismGap:          "Need automated integrity monitoring and patch management",
+			Severity:          "HIGH",
+			Remediation:       "Implement AWS Systems Manager for automated patching and integrity monitoring",
 		},
 	}
 
 	// Add GovCloud recommendation for Level 3
 	if v.region != "us-gov-east-1" && v.region != "us-gov-west-1" {
 		gaps = append(gaps, ComplianceGap{
-			Control:             "CMMC L3 Enhanced Protection",
-			AWSImplementation:   "GovCloud provides additional security controls for Level 3",
-			CloudWorkstationGap: "Level 3 organizations often require GovCloud for enhanced protection",
-			Severity:            "MEDIUM",
-			Remediation:         "Consider migrating to AWS GovCloud for enhanced CMMC Level 3 controls",
+			Control:           "CMMC L3 Enhanced Protection",
+			AWSImplementation: "GovCloud provides additional security controls for Level 3",
+			PrismGap:          "Level 3 organizations often require GovCloud for enhanced protection",
+			Severity:          "MEDIUM",
+			Remediation:       "Consider migrating to AWS GovCloud for enhanced CMMC Level 3 controls",
 		})
 	}
 
@@ -842,39 +842,39 @@ func (v *AWSComplianceValidator) analyzeCMMCL3Gaps(status *AWSComplianceStatus) 
 func (v *AWSComplianceValidator) analyzeFERPAGaps(status *AWSComplianceStatus) {
 	gaps := []ComplianceGap{
 		{
-			Control:             "FERPA §99.31 - Disclosure without Consent",
-			AWSImplementation:   "IAM policies can enforce directory information access controls",
-			CloudWorkstationGap: "Need to classify and protect personally identifiable information from education records",
-			Severity:            "HIGH",
-			Remediation:         "Implement data classification for student records and directory information",
+			Control:           "FERPA §99.31 - Disclosure without Consent",
+			AWSImplementation: "IAM policies can enforce directory information access controls",
+			PrismGap:          "Need to classify and protect personally identifiable information from education records",
+			Severity:          "HIGH",
+			Remediation:       "Implement data classification for student records and directory information",
 		},
 		{
-			Control:             "FERPA §99.32 - Record of Requests and Disclosures",
-			AWSImplementation:   "CloudTrail provides comprehensive access logging",
-			CloudWorkstationGap: "Need audit trail specifically for student record access",
-			Severity:            "HIGH",
-			Remediation:         "Configure detailed logging for any student record access with CloudTrail data events",
+			Control:           "FERPA §99.32 - Record of Requests and Disclosures",
+			AWSImplementation: "CloudTrail provides comprehensive access logging",
+			PrismGap:          "Need audit trail specifically for student record access",
+			Severity:          "HIGH",
+			Remediation:       "Configure detailed logging for any student record access with CloudTrail data events",
 		},
 		{
-			Control:             "FERPA §99.35 - Disclosure to Parents and Students",
-			AWSImplementation:   "IAM enables role-based access for student/parent access",
-			CloudWorkstationGap: "Need controlled access mechanism for students to access their own records",
-			Severity:            "MEDIUM",
-			Remediation:         "Implement student self-service access with appropriate authentication",
+			Control:           "FERPA §99.35 - Disclosure to Parents and Students",
+			AWSImplementation: "IAM enables role-based access for student/parent access",
+			PrismGap:          "Need controlled access mechanism for students to access their own records",
+			Severity:          "MEDIUM",
+			Remediation:       "Implement student self-service access with appropriate authentication",
 		},
 		{
-			Control:             "FERPA Data Security",
-			AWSImplementation:   "EBS and S3 encryption protects data at rest",
-			CloudWorkstationGap: "Student records require encryption both at rest and in transit",
-			Severity:            "HIGH",
-			Remediation:         "Ensure all student data is encrypted with AES-256 and transmitted over TLS 1.3",
+			Control:           "FERPA Data Security",
+			AWSImplementation: "EBS and S3 encryption protects data at rest",
+			PrismGap:          "Student records require encryption both at rest and in transit",
+			Severity:          "HIGH",
+			Remediation:       "Ensure all student data is encrypted with AES-256 and transmitted over TLS 1.3",
 		},
 		{
-			Control:             "FERPA Data Retention",
-			AWSImplementation:   "S3 lifecycle policies can automate retention",
-			CloudWorkstationGap: "Need automated retention policies for student records per institutional policy",
-			Severity:            "MEDIUM",
-			Remediation:         "Implement automated data retention and deletion policies for student records",
+			Control:           "FERPA Data Retention",
+			AWSImplementation: "S3 lifecycle policies can automate retention",
+			PrismGap:          "Need automated retention policies for student records per institutional policy",
+			Severity:          "MEDIUM",
+			Remediation:       "Implement automated data retention and deletion policies for student records",
 		},
 	}
 

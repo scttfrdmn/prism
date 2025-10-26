@@ -1,4 +1,4 @@
-// Package templates provides CloudWorkstation's unified template system.
+// Package templates provides Prism's unified template system.
 //
 // This package replaces the fragmented template definitions across the codebase
 // with a single, simplified system that leverages existing package managers
@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,7 +45,7 @@ func DefaultTemplateDirs() []string {
 	}
 
 	// User templates directory
-	dirs = append(dirs, filepath.Join(os.Getenv("HOME"), ".cloudworkstation", "templates"))
+	dirs = append(dirs, filepath.Join(os.Getenv("HOME"), ".prism", "templates"))
 
 	// System templates directory
 	dirs = append(dirs, "/etc/cloudworkstation/templates")
@@ -419,7 +419,7 @@ func CreateExampleTemplate(filename string) error {
 			"language": "python",
 			"example":  "true",
 		},
-		Maintainer: "CloudWorkstation Team",
+		Maintainer: "Prism Team",
 	}
 
 	// Marshal template to YAML

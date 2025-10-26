@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // NewResearchUserManager creates a new research user manager
@@ -194,7 +194,7 @@ func (rum *ResearchUserManager) GenerateUserProvisioningScript(req *UserProvisio
 		"#!/bin/bash",
 		"set -e",
 		"",
-		"# CloudWorkstation Research User Provisioning Script",
+		"# Prism Research User Provisioning Script",
 		fmt.Sprintf("# Instance: %s (%s)", req.InstanceName, req.InstanceID),
 		fmt.Sprintf("# Research User: %s (UID: %d)", user.Username, user.UID),
 		fmt.Sprintf("# Generated: %s", time.Now().Format(time.RFC3339)),
@@ -405,7 +405,7 @@ func (rum *ResearchUserManager) generateEnvironmentSetupCommands(user *ResearchU
 	if len(user.DefaultEnvironment) > 0 {
 		commands = append(commands, fmt.Sprintf("cat >> %s/.bashrc << 'ENV_EOF'", user.HomeDirectory))
 		commands = append(commands, "")
-		commands = append(commands, "# CloudWorkstation Research User Environment")
+		commands = append(commands, "# Prism Research User Environment")
 		for key, value := range user.DefaultEnvironment {
 			commands = append(commands, fmt.Sprintf("export %s='%s'", key, value))
 		}

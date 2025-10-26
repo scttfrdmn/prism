@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -504,7 +504,7 @@ func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
 		Use:     "snapshot <action>",
 		Short:   "Manage workspace snapshots",
 		GroupID: "storage",
-		Long: `Create and manage CloudWorkstation workspace snapshots for backup, cloning, and disaster recovery.
+		Long: `Create and manage Prism workspace snapshots for backup, cloning, and disaster recovery.
 
 Snapshots capture the complete state of your workspaces including:
 • Operating system and all installed software
@@ -526,7 +526,7 @@ func (r *CommandFactoryRegistry) createBackupCommand() *cobra.Command {
 		Use:     "backup <action>",
 		Short:   "Manage data backups",
 		GroupID: "storage",
-		Long: `Create and manage CloudWorkstation data backups for user files, configurations, and research data.
+		Long: `Create and manage Prism data backups for user files, configurations, and research data.
 
 Data backups provide granular backup capabilities with:
 • Selective file and directory backup
@@ -550,7 +550,7 @@ func (r *CommandFactoryRegistry) createRestoreCommand() *cobra.Command {
 		Use:     "restore <backup-name> <target-workspace>",
 		Short:   "Restore data from backups",
 		GroupID: "storage",
-		Long: `Restore data from CloudWorkstation backups with granular control over restore operations.
+		Long: `Restore data from Prism backups with granular control over restore operations.
 
 Restore capabilities include:
 • Cross-workspace restoration
@@ -574,7 +574,7 @@ func (r *CommandFactoryRegistry) createWebCommand() *cobra.Command {
 		Use:     "web <action>",
 		Short:   "Manage workspace web services",
 		GroupID: "instance",
-		Long: `Access and manage web services running on CloudWorkstation workspaces.
+		Long: `Access and manage web services running on Prism workspaces.
 
 Web service management provides seamless access to:
 • Jupyter Lab and Jupyter Notebook
@@ -598,7 +598,7 @@ func (r *CommandFactoryRegistry) createDaemonCommand() *cobra.Command {
 		Use:     "daemon <action>",
 		Short:   "Manage the daemon",
 		GroupID: "system",
-		Long:    `Control the CloudWorkstation daemon process.`,
+		Long:    `Control the Prism daemon process.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Daemon(args)
 		},
@@ -608,8 +608,8 @@ func (r *CommandFactoryRegistry) createDaemonCommand() *cobra.Command {
 func (r *CommandFactoryRegistry) createUninstallCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "uninstall",
-		Short: "Uninstall CloudWorkstation completely",
-		Long: `Completely uninstall CloudWorkstation from your system.
+		Short: "Uninstall Prism completely",
+		Long: `Completely uninstall Prism from your system.
 		
 This command performs comprehensive cleanup including:
 • Stop all running daemon processes
@@ -617,7 +617,7 @@ This command performs comprehensive cleanup including:
 • Clean up log files and temporary data
 • Remove service files and system integrations
 
-Use with caution - this will remove ALL CloudWorkstation data.`,
+Use with caution - this will remove ALL Prism data.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return r.handleUninstallCommand(cmd, args)
 		},
@@ -625,14 +625,14 @@ Use with caution - this will remove ALL CloudWorkstation data.`,
 }
 
 func (r *CommandFactoryRegistry) handleUninstallCommand(cmd *cobra.Command, args []string) error {
-	fmt.Println("🗑️  CloudWorkstation Uninstaller")
+	fmt.Println("🗑️  Prism Uninstaller")
 	fmt.Println("=================================")
 	fmt.Println()
-	fmt.Println("⚠️  This will completely remove CloudWorkstation from your system!")
+	fmt.Println("⚠️  This will completely remove Prism from your system!")
 	fmt.Println()
 	fmt.Println("The following will be removed:")
 	fmt.Println("  • All daemon processes")
-	fmt.Println("  • Configuration files (~/.cloudworkstation)")
+	fmt.Println("  • Configuration files (~/.prism)")
 	fmt.Println("  • Log files and temporary data")
 	fmt.Println("  • Service files and system integrations")
 	fmt.Println()
@@ -640,7 +640,7 @@ func (r *CommandFactoryRegistry) handleUninstallCommand(cmd *cobra.Command, args
 	fmt.Println()
 
 	// Confirmation
-	fmt.Print("Are you sure you want to completely uninstall CloudWorkstation? [y/N]: ")
+	fmt.Print("Are you sure you want to completely uninstall Prism? [y/N]: ")
 	var response string
 	_, _ = fmt.Scanln(&response) // Error ignored - user input validation happens below
 
@@ -673,8 +673,8 @@ func (r *CommandFactoryRegistry) handleUninstallCommand(cmd *cobra.Command, args
 	}
 
 	fmt.Println()
-	fmt.Println("✅ CloudWorkstation has been successfully uninstalled!")
-	fmt.Println("   Thank you for using CloudWorkstation! 👋")
+	fmt.Println("✅ Prism has been successfully uninstalled!")
+	fmt.Println("   Thank you for using Prism! 👋")
 
 	return nil
 }
@@ -709,7 +709,7 @@ func (r *CommandFactoryRegistry) performManualCleanup() error {
 	// Remove configuration directory
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		configDir := filepath.Join(homeDir, ".cloudworkstation")
+		configDir := filepath.Join(homeDir, ".prism")
 		if _, err := os.Stat(configDir); err == nil {
 			fmt.Printf("🗂️  Removing configuration directory: %s\n", configDir)
 			if err := os.RemoveAll(configDir); err != nil {
@@ -733,8 +733,8 @@ func (r *CommandFactoryRegistry) performManualCleanup() error {
 func (r *CommandFactoryRegistry) createConfigCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "config <action> [args]",
-		Short: "Configure CloudWorkstation",
-		Long:  `View and update CloudWorkstation configuration.`,
+		Short: "Configure Prism",
+		Long:  `View and update Prism configuration.`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.handleConfigCommand(args)
 		},
@@ -771,13 +771,13 @@ func (r *CommandFactoryRegistry) createIdleCommand() *cobra.Command {
 	idleCmd := &cobra.Command{
 		Use:   "idle",
 		Short: "Configure idle detection on running workspaces",
-		Long:  "Configure runtime idle detection parameters on running CloudWorkstation workspaces.",
+		Long:  "Configure runtime idle detection parameters on running Prism workspaces.",
 	}
 
 	idleConfigureCmd := &cobra.Command{
 		Use:   "configure <workspace-name>",
 		Short: "Configure idle thresholds on running workspace",
-		Long:  "Configure runtime idle detection parameters on a running CloudWorkstation workspace.",
+		Long:  "Configure runtime idle detection parameters on a running Prism workspace.",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return r.handleIdleConfigureCommand(cmd, args)
@@ -845,11 +845,11 @@ func (r *CommandFactoryRegistry) createAMIDiscoverCommand() *cobra.Command {
 // NewRootCommand creates the root command for the CLI
 func (a *App) NewRootCommand() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "cws",
-		Short: "CloudWorkstation - Launch research computing environments",
+		Use:   "prism",
+		Short: "Prism - Launch research computing environments",
 		Long: fmt.Sprintf(`%s
 
-CloudWorkstation provides researchers with pre-configured cloud computing
+Prism provides researchers with pre-configured cloud computing
 environments for data analysis, machine learning, and research computing.
 
 `, version.GetVersionInfo()),
@@ -882,7 +882,7 @@ func (a *App) Run(args []string) error {
 // Config command implementations
 
 func (a *App) configShow() error {
-	fmt.Printf("📋 CloudWorkstation Configuration\n\n")
+	fmt.Printf("📋 Prism Configuration\n\n")
 
 	// Show current effective configuration
 	fmt.Printf("🔧 Current Configuration:\n")
@@ -907,7 +907,7 @@ func (a *App) configShow() error {
 
 	// Show config file location
 	homeDir, _ := os.UserHomeDir()
-	configFile := filepath.Join(homeDir, ".cloudworkstation", "config.json")
+	configFile := filepath.Join(homeDir, ".prism", "config.json")
 	fmt.Printf("\n📁 Config File: %s\n", configFile)
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
 		fmt.Printf("   (file does not exist - using defaults)\n")

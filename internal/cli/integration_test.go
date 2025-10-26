@@ -1,4 +1,4 @@
-// Package cli integration tests for CloudWorkstation CLI
+// Package cli integration tests for Prism CLI
 //
 // This file contains mock-based integration tests that run by default.
 // For AWS integration tests against real resources, see integration_aws_test.go
@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TestAppCreation tests CLI app creation and initialization

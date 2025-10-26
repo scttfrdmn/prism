@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/idle"
 )
 
 // RegisterIdleRoutes registers all idle policy API routes

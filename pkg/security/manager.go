@@ -1,4 +1,4 @@
-// Package security provides integrated security management for CloudWorkstation
+// Package security provides integrated security management for Prism
 package security
 
 import (
@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/security"
+	"github.com/scttfrdmn/prism/pkg/profile/security"
 )
 
-// SecurityManager coordinates all security components for CloudWorkstation
+// SecurityManager coordinates all security components for Prism
 type SecurityManager struct {
 	auditLogger       *security.SecurityAuditLogger
 	monitor           *security.SecurityMonitor

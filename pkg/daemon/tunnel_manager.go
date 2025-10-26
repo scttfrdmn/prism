@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TunnelManager manages SSH tunnels for instance services
@@ -214,8 +214,8 @@ func (tm *TunnelManager) getSSHKeyPath(instance *types.Instance) (string, error)
 		candidatePaths := []string{
 			filepath.Join(homeDir, ".ssh", instance.KeyName),
 			filepath.Join(homeDir, ".ssh", instance.KeyName+".pem"),
-			filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", instance.KeyName),
-			filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", instance.KeyName+".pem"),
+			filepath.Join(homeDir, ".prism", "profiles", "test", "ssh", instance.KeyName),
+			filepath.Join(homeDir, ".prism", "profiles", "test", "ssh", instance.KeyName+".pem"),
 		}
 
 		for _, keyPath := range candidatePaths {
@@ -249,7 +249,7 @@ func (tm *TunnelManager) getSSHKeyPath(instance *types.Instance) (string, error)
 	for _, keyName := range standardizedNames {
 		candidatePaths = append(candidatePaths,
 			filepath.Join(homeDir, ".ssh", keyName),
-			filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", keyName),
+			filepath.Join(homeDir, ".prism", "profiles", "test", "ssh", keyName),
 		)
 	}
 
@@ -266,7 +266,7 @@ func (tm *TunnelManager) getSSHKeyPath(instance *types.Instance) (string, error)
 	for _, legacyName := range legacyFormats {
 		candidatePaths = append(candidatePaths,
 			filepath.Join(homeDir, ".ssh", legacyName),
-			filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", legacyName),
+			filepath.Join(homeDir, ".prism", "profiles", "test", "ssh", legacyName),
 		)
 	}
 

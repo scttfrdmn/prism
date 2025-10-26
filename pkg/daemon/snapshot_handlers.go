@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/aws"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // handleSnapshotOperations routes snapshot operations based on URL path

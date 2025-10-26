@@ -591,12 +591,12 @@ func TestPolicyMethodsErrorScenarios(t *testing.T) {
 	errorTests := []struct {
 		name       string
 		statusCode int
-		method     func(client CloudWorkstationAPI) error
+		method     func(client PrismAPI) error
 	}{
 		{
 			name:       "GetPolicyStatus_500",
 			statusCode: http.StatusInternalServerError,
-			method: func(client CloudWorkstationAPI) error {
+			method: func(client PrismAPI) error {
 				_, err := client.GetPolicyStatus(context.Background())
 				return err
 			},
@@ -604,7 +604,7 @@ func TestPolicyMethodsErrorScenarios(t *testing.T) {
 		{
 			name:       "ListPolicySets_403",
 			statusCode: http.StatusForbidden,
-			method: func(client CloudWorkstationAPI) error {
+			method: func(client PrismAPI) error {
 				_, err := client.ListPolicySets(context.Background())
 				return err
 			},
@@ -612,7 +612,7 @@ func TestPolicyMethodsErrorScenarios(t *testing.T) {
 		{
 			name:       "AssignPolicySet_404",
 			statusCode: http.StatusNotFound,
-			method: func(client CloudWorkstationAPI) error {
+			method: func(client PrismAPI) error {
 				_, err := client.AssignPolicySet(context.Background(), "invalid")
 				return err
 			},
@@ -620,7 +620,7 @@ func TestPolicyMethodsErrorScenarios(t *testing.T) {
 		{
 			name:       "SetPolicyEnforcement_401",
 			statusCode: http.StatusUnauthorized,
-			method: func(client CloudWorkstationAPI) error {
+			method: func(client PrismAPI) error {
 				_, err := client.SetPolicyEnforcement(context.Background(), true)
 				return err
 			},
@@ -628,7 +628,7 @@ func TestPolicyMethodsErrorScenarios(t *testing.T) {
 		{
 			name:       "CheckTemplateAccess_400",
 			statusCode: http.StatusBadRequest,
-			method: func(client CloudWorkstationAPI) error {
+			method: func(client PrismAPI) error {
 				_, err := client.CheckTemplateAccess(context.Background(), "invalid")
 				return err
 			},

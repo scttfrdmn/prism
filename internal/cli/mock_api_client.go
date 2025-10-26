@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
-// MockAPIClient implements the CloudWorkstationAPI interface for testing
+// MockAPIClient implements the PrismAPI interface for testing
 type MockAPIClient struct {
 	// Response configuration
 	ShouldReturnError      bool
@@ -202,7 +202,7 @@ func (m *MockAPIClient) LaunchInstance(ctx context.Context, req types.LaunchRequ
 		Instance:       instance,
 		Message:        fmt.Sprintf("Instance %s launched successfully", req.Name),
 		EstimatedCost:  "$2.40/day",
-		ConnectionInfo: fmt.Sprintf("cws connect %s", req.Name),
+		ConnectionInfo: fmt.Sprintf("prism connect %s", req.Name),
 	}, nil
 }
 
@@ -1862,9 +1862,9 @@ func (m *MockAPIClient) ListUserAMIs(ctx context.Context) (map[string]interface{
 				"creation_date": "2024-12-01T15:30:00Z",
 				"public":        false,
 				"tags": map[string]string{
-					"CloudWorkstation": "true",
-					"Template":         "mock-template",
-					"Creator":          "mock-user",
+					"Prism":    "true",
+					"Template": "mock-template",
+					"Creator":  "mock-user",
 				},
 			},
 		},

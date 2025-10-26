@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/pkg/research"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/pkg/research"
 )
 
 // Mock API client for testing - implements complete apiClient interface

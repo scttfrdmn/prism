@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/api"
 )
 
 // Mock API client for settings testing - implements complete apiClient interface
@@ -496,19 +496,19 @@ func TestSettingsModelView(t *testing.T) {
 				return m
 			},
 			expectedContains: []string{
-				"CloudWorkstation Settings",
+				"Prism Settings",
 				"System Information:",
 				"Version:",
 				"Daemon Status: unknown",
 				"API Endpoint: http://localhost:8947",
 				"Configuration:",
-				"cws config profile",
-				"cws config region",
-				"cws config show",
+				"prism config profile",
+				"prism config region",
+				"prism config show",
 				"Daemon Management:",
-				"cws daemon start",
-				"cws daemon stop",
-				"cws daemon status",
+				"prism daemon start",
+				"prism daemon stop",
+				"prism daemon status",
 				"TUI Navigation:",
 				"1: Dashboard",
 				"2: Instances",
@@ -551,7 +551,7 @@ func TestSettingsModelView(t *testing.T) {
 				return m
 			},
 			expectedContains: []string{
-				"CloudWorkstation Settings",
+				"Prism Settings",
 				"Connection Error:",
 				"Connection timeout",
 			},

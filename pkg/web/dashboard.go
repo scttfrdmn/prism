@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// DashboardServer provides a web dashboard for CloudWorkstation
+// DashboardServer provides a web dashboard for Prism
 type DashboardServer struct {
 	templates     *template.Template
 	instanceFunc  func() ([]*types.Instance, error)
@@ -70,7 +70,7 @@ func (ds *DashboardServer) serveDashboard(w http.ResponseWriter, r *http.Request
 		Instances []*types.Instance
 		Timestamp time.Time
 	}{
-		Title:     "CloudWorkstation Dashboard",
+		Title:     "Prism Dashboard",
 		Instances: instances,
 		Timestamp: time.Now(),
 	}
@@ -152,7 +152,7 @@ const dashboardHTML = `<!DOCTYPE html>
 <body>
     <div class="container">
         <header>
-            <h1>☁️ CloudWorkstation Dashboard</h1>
+            <h1>☁️ Prism Dashboard</h1>
             <div class="status">
                 <span class="timestamp">Last updated: {{.Timestamp.Format "15:04:05"}}</span>
                 <button id="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
@@ -232,7 +232,7 @@ const dashboardHTML = `<!DOCTYPE html>
         </main>
 
         <footer>
-            <p>CloudWorkstation v0.4.5 | <a href="https://github.com/scttfrdmn/cloudworkstation">GitHub</a></p>
+            <p>Prism v0.4.5 | <a href="https://github.com/scttfrdmn/prism">GitHub</a></p>
         </footer>
     </div>
 

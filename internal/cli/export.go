@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile/export"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile/export"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ func (f *ExportCommandFactory) CreateExportCommand() *cobra.Command {
 	exportCmd := &cobra.Command{
 		Use:   "export [output-file]",
 		Short: "Export profiles to file",
-		Long: `Export CloudWorkstation profiles to a file for backup or sharing.
+		Long: `Export Prism profiles to a file for backup or sharing.
 		
 By default, credentials are not included in exports for security reasons.
 Use the --include-credentials flag to include credentials (use with caution).
@@ -63,7 +63,7 @@ func (f *ExportCommandFactory) CreateImportCommand() *cobra.Command {
 	importCmd := &cobra.Command{
 		Use:   "import [input-file]",
 		Short: "Import profiles from file",
-		Long: `Import CloudWorkstation profiles from a previously exported file.
+		Long: `Import Prism profiles from a previously exported file.
 		
 By default, imported profiles will be renamed if they conflict with existing ones.
 Use --mode to control how conflicts are handled (skip, overwrite, rename).

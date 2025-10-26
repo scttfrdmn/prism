@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/cost"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/cost"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // Cost optimization and alert handlers

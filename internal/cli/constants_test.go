@@ -20,7 +20,7 @@ func TestConstants(t *testing.T) {
 	assert.Equal(t, "gp3", DefaultVolumeType)
 	assert.Equal(t, 5, DefaultInstanceRetentionMinutes)
 	assert.Equal(t, "/mnt/", DefaultMountPointPrefix)
-	assert.Equal(t, ".cloudworkstation", DefaultConfigDir)
+	assert.Equal(t, ".prism", DefaultConfigDir)
 	assert.Equal(t, "daemon_config.json", DefaultConfigFile)
 
 	// Test file and path constants
@@ -62,21 +62,21 @@ func TestConstants(t *testing.T) {
 func TestUsageMessages(t *testing.T) {
 	// Test daemon message
 	assert.Contains(t, DaemonNotRunningMessage, "daemon not running")
-	assert.Contains(t, DaemonNotRunningMessage, "cws daemon status")
+	assert.Contains(t, DaemonNotRunningMessage, "prism daemon status")
 
 	// Test no instances messages
 	assert.Contains(t, NoInstancesFoundMessage, "No workstations found")
-	assert.Contains(t, NoInstancesFoundMessage, "cws launch")
+	assert.Contains(t, NoInstancesFoundMessage, "prism launch")
 
 	assert.Contains(t, NoInstancesFoundProjectMessage, "No workstations found in project")
 	assert.Contains(t, NoInstancesFoundProjectMessage, "%s")
 
 	// Test volume messages
 	assert.Contains(t, NoEFSVolumesFoundMessage, "No EFS volumes found")
-	assert.Contains(t, NoEFSVolumesFoundMessage, "cws volume create")
+	assert.Contains(t, NoEFSVolumesFoundMessage, "prism volume create")
 
 	assert.Contains(t, NoEBSVolumesFoundMessage, "No EBS volumes found")
-	assert.Contains(t, NoEBSVolumesFoundMessage, "cws storage create")
+	assert.Contains(t, NoEBSVolumesFoundMessage, "prism storage create")
 }
 
 // TestProgressMessages tests launch progress and state messages
@@ -263,7 +263,7 @@ func TestErrorHelperFunctions(t *testing.T) {
 	assert.Contains(t, wrappedErr.Error(), "connect to service failed")
 	assert.Contains(t, wrappedErr.Error(), "connection failed")
 	assert.Contains(t, wrappedErr.Error(), "Need help?")
-	assert.Contains(t, wrappedErr.Error(), "cws daemon status")
+	assert.Contains(t, wrappedErr.Error(), "prism daemon status")
 
 	// Test WrapDaemonError - now uses enhanced error handling
 	daemonErr := WrapDaemonError(originalErr)

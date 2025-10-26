@@ -3,7 +3,7 @@
 // ARCHITECTURE NOTE: This file contains instance snapshot command business logic.
 // These commands are registered in root_command.go and called directly from the CLI.
 //
-// This follows CloudWorkstation's command architecture pattern:
+// This follows Prism's command architecture pattern:
 //   - Single-layer implementation for straightforward operations
 //   - Direct integration with root command structure
 //   - API-driven operations with consistent error handling
@@ -18,7 +18,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // SnapshotCommands handles instance snapshot management operations (implementation layer)
@@ -384,7 +384,7 @@ func (s *SnapshotCommands) showSnapshotUsage() error {
 
 // getSnapshotUsageText returns the snapshot usage text
 func (s *SnapshotCommands) getSnapshotUsageText() string {
-	return `Usage: cws snapshot <action> [arguments]
+	return `Usage: prism snapshot <action> [arguments]
 
 Actions:
   create <workspace-name> <snapshot-name> [options]   Create a snapshot from an instance

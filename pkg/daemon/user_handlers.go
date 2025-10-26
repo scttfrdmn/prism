@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
+	"github.com/scttfrdmn/prism/pkg/usermgmt"
 )
 
 // handleUsers handles user management operations

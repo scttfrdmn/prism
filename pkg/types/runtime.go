@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/research"
+	"github.com/scttfrdmn/prism/pkg/research"
 )
 
 // RuntimeTemplate defines a cloud workstation template for launching instances

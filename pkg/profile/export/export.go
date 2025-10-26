@@ -1,4 +1,4 @@
-// Package export provides functionality for exporting and importing CloudWorkstation profiles.
+// Package export provides functionality for exporting and importing Prism profiles.
 package export
 
 import (
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // ExportFormat defines the format version of exported profiles

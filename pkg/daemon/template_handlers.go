@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // handleTemplates handles template collection operations

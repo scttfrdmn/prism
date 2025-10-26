@@ -1,7 +1,7 @@
-// Package version provides centralized version information for CloudWorkstation.
+// Package version provides centralized version information for Prism.
 //
 // This package implements the Semantic Versioning 2.0.0 specification
-// (https://semver.org/) for the CloudWorkstation project. It provides
+// (https://semver.org/) for the Prism project. It provides
 // a single source of truth for version information used by all
 // components and binaries in the project.
 package version
@@ -14,7 +14,7 @@ import (
 
 // These variables are populated by the build system.
 var (
-	// Version is the current version of CloudWorkstation.
+	// Version is the current version of Prism.
 	// Should be in the format MAJOR.MINOR.PATCH.
 	Version = "0.5.5"
 
@@ -55,17 +55,17 @@ func init() {
 
 // GetVersionInfo returns a formatted string with version information.
 func GetVersionInfo() string {
-	return buildVersionString("CloudWorkstation")
+	return buildVersionString("Prism")
 }
 
 // GetCLIVersionInfo returns version info specifically for the CLI component.
 func GetCLIVersionInfo() string {
-	return buildVersionString("CloudWorkstation CLI")
+	return buildVersionString("Prism CLI")
 }
 
 // GetDaemonVersionInfo returns version info specifically for the daemon component.
 func GetDaemonVersionInfo() string {
-	return buildVersionString("CloudWorkstation Daemon")
+	return buildVersionString("Prism Daemon")
 }
 
 // buildVersionString constructs optimized version string using strings.Builder

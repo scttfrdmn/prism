@@ -1,4 +1,4 @@
-// Package research provides the multi-user foundation for CloudWorkstation Phase 5A.
+// Package research provides the multi-user foundation for Prism Phase 5A.
 //
 // This package implements the research user architecture with dual-user system
 // supporting both system users (from templates) and research users (persistent

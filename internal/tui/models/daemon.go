@@ -8,9 +8,9 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // DaemonModel represents the daemon management view
@@ -43,7 +43,7 @@ type DaemonManagementActionMsg struct {
 // NewDaemonModel creates a new daemon management model
 func NewDaemonModel(apiClient apiClient) DaemonModel {
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Daemon Management", "")
+	statusBar := components.NewStatusBar("Prism Daemon Management", "")
 	spinner := components.NewSpinner("Loading daemon status...")
 
 	return DaemonModel{
@@ -271,7 +271,7 @@ func (m DaemonModel) renderRestartDialog() string {
 
 	var content strings.Builder
 	content.WriteString(theme.SubTitle.Render("⚠️  Restart Daemon") + "\n\n")
-	content.WriteString("This will restart the CloudWorkstation daemon.\n")
+	content.WriteString("This will restart the Prism daemon.\n")
 	content.WriteString("Active operations will be interrupted.\n\n")
 	content.WriteString("Press Enter to restart, Esc to cancel\n")
 
@@ -290,7 +290,7 @@ func (m DaemonModel) renderStopDialog() string {
 
 	var content strings.Builder
 	content.WriteString(theme.SubTitle.Render("⚠️  Stop Daemon") + "\n\n")
-	content.WriteString("This will stop the CloudWorkstation daemon.\n")
+	content.WriteString("This will stop the Prism daemon.\n")
 	content.WriteString("All TUI and GUI clients will disconnect.\n")
 	content.WriteString("Active operations will be interrupted.\n\n")
 	content.WriteString("Press Enter to stop, Esc to cancel\n")

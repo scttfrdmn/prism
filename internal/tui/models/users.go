@@ -8,10 +8,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/research"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/research"
 )
 
 // UsersModel represents the user management view
@@ -35,12 +35,12 @@ type UsersModel struct {
 // NewUsersModel creates a new users model
 func NewUsersModel(apiClient apiClient) UsersModel {
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Users", "")
+	statusBar := components.NewStatusBar("Prism Users", "")
 	spinner := components.NewSpinner("Loading users...")
 
 	// Initialize research user manager
 	homeDir, _ := os.UserHomeDir()
-	configDir := filepath.Join(homeDir, ".cloudworkstation")
+	configDir := filepath.Join(homeDir, ".prism")
 
 	// Create a simplified profile adapter for TUI
 	profileAdapter := &TUIProfileManagerAdapter{}

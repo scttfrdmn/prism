@@ -9,10 +9,10 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
 // CostData represents cost information for display
@@ -73,7 +73,7 @@ func NewDashboardModel(apiClient apiClient) DashboardModel {
 	)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Dashboard", version.GetVersion())
+	statusBar := components.NewStatusBar("Prism Dashboard", version.GetVersion())
 	spinner := components.NewSpinner("Loading dashboard data...")
 
 	return DashboardModel{
@@ -229,7 +229,7 @@ func (m DashboardModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Dashboard")
+	title := theme.Title.Render("Prism Dashboard")
 
 	// Content area
 	var content string

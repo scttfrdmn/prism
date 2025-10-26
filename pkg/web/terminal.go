@@ -383,7 +383,7 @@ func ServeTerminalHTML(w http.ResponseWriter, r *http.Request) {
 const terminalHTML = `<!DOCTYPE html>
 <html>
 <head>
-    <title>CloudWorkstation Terminal</title>
+    <title>Prism Terminal</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css">
     <style>
         body {

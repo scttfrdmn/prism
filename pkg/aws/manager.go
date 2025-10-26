@@ -23,11 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
-	"github.com/scttfrdmn/cloudworkstation/pkg/security"
-	"github.com/scttfrdmn/cloudworkstation/pkg/state"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/security"
+	"github.com/scttfrdmn/prism/pkg/state"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	ctypes "github.com/scttfrdmn/prism/pkg/types"
 )
 
 // AWS instance state constants
@@ -322,7 +322,7 @@ func (n *NetworkingResolver) ResolveNetworking(req ctypes.LaunchRequest, instanc
 		subnetID = discoveredSubnet
 	}
 
-	securityGroupID, err := n.manager.GetOrCreateCloudWorkstationSecurityGroup(vpcID)
+	securityGroupID, err := n.manager.GetOrCreatePrismSecurityGroup(vpcID)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to create security group: %w", err)
 	}
@@ -355,8 +355,8 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 				ResourceType: ec2types.ResourceTypeInstance,
 				Tags: []ec2types.Tag{
 					{Key: aws.String("Name"), Value: &req.Name},
-					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
-					{Key: aws.String("LaunchedBy"), Value: aws.String("CloudWorkstation")},
+					{Key: aws.String("Prism"), Value: aws.String("true")},
+					{Key: aws.String("LaunchedBy"), Value: aws.String("Prism")},
 					{Key: aws.String("Template"), Value: &req.Template},
 					{Key: aws.String("PackageManager"), Value: &req.PackageManager},
 					{Key: aws.String("PrimaryUser"), Value: aws.String(primaryUsername)},
@@ -372,9 +372,9 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 
 	// Optionally add IAM instance profile if it exists
 	// This enables SSM access for advanced features while not blocking new users
-	if b.manager.checkIAMInstanceProfileExists("CloudWorkstation-Instance-Profile") {
+	if b.manager.checkIAMInstanceProfileExists("Prism-Instance-Profile") {
 		runInput.IamInstanceProfile = &ec2types.IamInstanceProfileSpecification{
-			Name: aws.String("CloudWorkstation-Instance-Profile"),
+			Name: aws.String("Prism-Instance-Profile"),
 		}
 		log.Printf("Using IAM instance profile for SSM access")
 	} else {
@@ -554,7 +554,7 @@ func (l *InstanceLauncher) executeInstanceLaunch(ctx context.Context, runInput *
 	return &result.Instances[0], nil
 }
 
-// buildInstanceFromEC2 builds CloudWorkstation instance from EC2 instance
+// buildInstanceFromEC2 builds Prism instance from EC2 instance
 func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername string, rootVolumeGB int) *ctypes.Instance {
 	instanceType := string(instance.InstanceType)
 	launchTime := time.Now()
@@ -655,7 +655,7 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 		return nil, err
 	}
 
-	// Build CloudWorkstation instance from EC2 instance
+	// Build Prism instance from EC2 instance
 	cwsInstance := l.buildInstanceFromEC2(instance, req, hourlyRate, services, primaryUsername, rootVolumeGB)
 
 	// Wait for instance to be ready for use
@@ -1191,7 +1191,7 @@ func (m *Manager) CreateVolume(req ctypes.VolumeCreateRequest) (*ctypes.StorageV
 				Value: aws.String(req.Name),
 			},
 			{
-				Key:   aws.String("CloudWorkstation"),
+				Key:   aws.String("Prism"),
 				Value: aws.String("true"),
 			},
 		},
@@ -1355,7 +1355,7 @@ if ! command -v mount.efs &> /dev/null; then
     fi
 fi
 
-# Create CloudWorkstation shared group if it doesn't exist
+# Create Prism shared group if it doesn't exist
 if ! getent group cloudworkstation-shared >/dev/null 2>&1; then
     sudo groupadd -g 3000 cloudworkstation-shared
     echo "Created cloudworkstation-shared group (gid: 3000)"
@@ -1485,7 +1485,7 @@ func (m *Manager) executeScriptOnInstance(instanceID, script string) error {
 		Parameters: map[string][]string{
 			"commands": {script},
 		},
-		Comment: aws.String("CloudWorkstation EFS mount/unmount operation"),
+		Comment: aws.String("Prism EFS mount/unmount operation"),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send SSM command: %w", err)
@@ -1568,7 +1568,7 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.Storag
 						Value: aws.String(req.Name),
 					},
 					{
-						Key:   aws.String("CloudWorkstation"),
+						Key:   aws.String("Prism"),
 						Value: aws.String("true"),
 					},
 				},
@@ -1786,11 +1786,11 @@ func (m *Manager) checkIAMInstanceProfileExists(profileName string) bool {
 	_, err = m.iam.CreateRole(ctx, &iam.CreateRoleInput{
 		RoleName:                 aws.String(roleName),
 		AssumeRolePolicyDocument: aws.String(trustPolicy),
-		Description:              aws.String("CloudWorkstation instance role for SSM access and autonomous idle detection"),
+		Description:              aws.String("Prism instance role for SSM access and autonomous idle detection"),
 		Tags: []iamTypes.Tag{
 			{
 				Key:   aws.String("ManagedBy"),
-				Value: aws.String("CloudWorkstation"),
+				Value: aws.String("Prism"),
 			},
 			{
 				Key:   aws.String("Purpose"),
@@ -1837,7 +1837,7 @@ func (m *Manager) checkIAMInstanceProfileExists(profileName string) bool {
 
 	_, err = m.iam.PutRolePolicy(ctx, &iam.PutRolePolicyInput{
 		RoleName:       aws.String(roleName),
-		PolicyName:     aws.String("CloudWorkstation-IdleDetection"),
+		PolicyName:     aws.String("Prism-IdleDetection"),
 		PolicyDocument: aws.String(idleDetectionPolicy),
 	})
 	if err != nil {
@@ -1850,7 +1850,7 @@ func (m *Manager) checkIAMInstanceProfileExists(profileName string) bool {
 		Tags: []iamTypes.Tag{
 			{
 				Key:   aws.String("ManagedBy"),
-				Value: aws.String("CloudWorkstation"),
+				Value: aws.String("Prism"),
 			},
 		},
 	})
@@ -2051,7 +2051,7 @@ func (m *Manager) findInstanceByName(name string) (string, error) {
 				Values: []string{name},
 			},
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 			{
@@ -2090,7 +2090,7 @@ func (l *StateLoader) LoadLocalState() *ctypes.State {
 // InstanceTagExtractor extracts tags from EC2 instances (Single Responsibility - SOLID)
 type InstanceTagExtractor struct{}
 
-// ExtractTags extracts CloudWorkstation-specific tags from EC2 instance
+// ExtractTags extracts Prism-specific tags from EC2 instance
 func (e *InstanceTagExtractor) ExtractTags(ec2Instance ec2types.Instance) (name, template, project string) {
 	for _, tag := range ec2Instance.Tags {
 		if tag.Key != nil && tag.Value != nil {
@@ -2107,10 +2107,10 @@ func (e *InstanceTagExtractor) ExtractTags(ec2Instance ec2types.Instance) (name,
 	return name, template, project
 }
 
-// InstanceStateConverter converts AWS states to CloudWorkstation states (Single Responsibility - SOLID)
+// InstanceStateConverter converts AWS states to Prism states (Single Responsibility - SOLID)
 type InstanceStateConverter struct{}
 
-// ConvertState converts EC2 instance state to CloudWorkstation state
+// ConvertState converts EC2 instance state to Prism state
 func (c *InstanceStateConverter) ConvertState(ec2Instance ec2types.Instance) string {
 	if ec2Instance.State == nil {
 		return "unknown"
@@ -2134,7 +2134,7 @@ func (c *InstanceStateConverter) isHibernationConfigured(ec2Instance ec2types.In
 	return ec2Instance.HibernationOptions != nil && *ec2Instance.HibernationOptions.Configured
 }
 
-// InstanceBuilder builds CloudWorkstation instance objects (Builder Pattern - SOLID)
+// InstanceBuilder builds Prism instance objects (Builder Pattern - SOLID)
 type InstanceBuilder struct {
 	tagExtractor   *InstanceTagExtractor
 	stateConverter *InstanceStateConverter
@@ -2154,7 +2154,7 @@ func NewInstanceBuilder(ec2Client EC2ClientInterface, pricingClient *PricingClie
 	}
 }
 
-// BuildInstance creates CloudWorkstation instance from EC2 instance
+// BuildInstance creates Prism instance from EC2 instance
 func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localState *ctypes.State) *ctypes.Instance {
 	// Extract tags
 	name, template, project := b.tagExtractor.ExtractTags(ec2Instance)
@@ -2253,7 +2253,7 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	return instance
 }
 
-// InstanceListProcessor processes EC2 reservations into CloudWorkstation instances (Strategy Pattern - SOLID)
+// InstanceListProcessor processes EC2 reservations into Prism instances (Strategy Pattern - SOLID)
 type InstanceListProcessor struct {
 	stateLoader     *StateLoader
 	instanceBuilder *InstanceBuilder
@@ -2267,7 +2267,7 @@ func NewInstanceListProcessor(ec2Client EC2ClientInterface, pricingClient *Prici
 	}
 }
 
-// ProcessReservations converts EC2 reservations to CloudWorkstation instances
+// ProcessReservations converts EC2 reservations to Prism instances
 func (p *InstanceListProcessor) ProcessReservations(reservations []ec2types.Reservation) []ctypes.Instance {
 	localState := p.stateLoader.LoadLocalState()
 	var instances []ctypes.Instance
@@ -2310,7 +2310,7 @@ func (m *Manager) GetInstance(instanceID string) (*ctypes.Instance, error) {
 	return &instances[0], nil
 }
 
-// ListInstances returns all CloudWorkstation instances using Strategy Pattern (SOLID: Single Responsibility)
+// ListInstances returns all Prism instances using Strategy Pattern (SOLID: Single Responsibility)
 func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 	// Load state to get all instances and their regions
 	state, err := m.stateManager.LoadState()
@@ -2352,7 +2352,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 			Filters: []ec2types.Filter{
 				{
-					Name:   aws.String("tag:CloudWorkstation"),
+					Name:   aws.String("tag:Prism"),
 					Values: []string{"true"},
 				},
 				{
@@ -2773,7 +2773,7 @@ func (m *Manager) findVolumeByName(name string) (string, error) {
 				Values: []string{name},
 			},
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 		},
@@ -2811,7 +2811,7 @@ func (m *Manager) EnsureKeyPairExists(keyName, publicKeyContent string) error {
 				ResourceType: ec2types.ResourceTypeKeyPair,
 				Tags: []ec2types.Tag{
 					{
-						Key:   aws.String("CloudWorkstation"),
+						Key:   aws.String("Prism"),
 						Value: aws.String("true"),
 					},
 					{
@@ -2842,13 +2842,13 @@ func (m *Manager) DeleteKeyPair(keyName string) error {
 	return nil
 }
 
-// ListCloudWorkstationKeyPairs lists all SSH key pairs managed by CloudWorkstation
-func (m *Manager) ListCloudWorkstationKeyPairs() ([]string, error) {
+// ListPrismKeyPairs lists all SSH key pairs managed by Prism
+func (m *Manager) ListPrismKeyPairs() ([]string, error) {
 	ctx := context.Background()
 	result, err := m.ec2.DescribeKeyPairs(ctx, &ec2.DescribeKeyPairsInput{
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 		},
@@ -2869,7 +2869,7 @@ func (m *Manager) ListCloudWorkstationKeyPairs() ([]string, error) {
 
 // getSSHKeyPathFromKeyName maps an AWS key pair name to local SSH key path
 func (m *Manager) getSSHKeyPathFromKeyName(keyName string) (string, error) {
-	// CloudWorkstation key naming pattern: cws-<profile>-key
+	// Prism key naming pattern: cws-<profile>-key
 	if strings.HasPrefix(keyName, "cws-") && strings.HasSuffix(keyName, "-key") {
 		// Extract safe name from key name (it's already safe for filesystem)
 		safeName := strings.TrimPrefix(keyName, "cws-")
@@ -2892,7 +2892,7 @@ func (m *Manager) getSSHKeyPathFromKeyName(keyName string) (string, error) {
 		return keyPath, nil
 	}
 
-	// For non-CloudWorkstation keys, try to find default SSH keys
+	// For non-Prism keys, try to find default SSH keys
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
@@ -3076,8 +3076,8 @@ func (m *Manager) isSubnetPublic(subnetID string) (bool, error) {
 	return false, nil
 }
 
-// GetOrCreateCloudWorkstationSecurityGroup creates or finds the CloudWorkstation security group
-func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string, error) {
+// GetOrCreatePrismSecurityGroup creates or finds the Prism security group
+func (m *Manager) GetOrCreatePrismSecurityGroup(vpcID string) (string, error) {
 	securityGroupName := "cloudworkstation-access"
 
 	ctx := context.Background()
@@ -3106,14 +3106,14 @@ func (m *Manager) GetOrCreateCloudWorkstationSecurityGroup(vpcID string) (string
 	// Create new security group
 	createResult, err := m.ec2.CreateSecurityGroup(ctx, &ec2.CreateSecurityGroupInput{
 		GroupName:   aws.String(securityGroupName),
-		Description: aws.String("CloudWorkstation SSH and web access"),
+		Description: aws.String("Prism SSH and web access"),
 		VpcId:       aws.String(vpcID),
 		TagSpecifications: []ec2types.TagSpecification{
 			{
 				ResourceType: ec2types.ResourceTypeSecurityGroup,
 				Tags: []ec2types.Tag{
 					{Key: aws.String("Name"), Value: aws.String(securityGroupName)},
-					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("Prism"), Value: aws.String("true")},
 					{Key: aws.String("Purpose"), Value: aws.String("Research workstation access")},
 				},
 			},
@@ -4174,7 +4174,7 @@ func (m *Manager) waitForInstanceReady(instanceID, region string) error {
 // Instance Snapshot Management
 // ==========================================
 
-// CreateInstanceAMISnapshot creates an AMI snapshot from a CloudWorkstation instance
+// CreateInstanceAMISnapshot creates an AMI snapshot from a Prism instance
 func (m *Manager) CreateInstanceAMISnapshot(instanceName, snapshotName, description string, noReboot bool) (*ctypes.InstanceSnapshotResult, error) {
 	ctx := context.Background()
 
@@ -4209,7 +4209,7 @@ func (m *Manager) CreateInstanceAMISnapshot(instanceName, snapshotName, descript
 				ResourceType: ec2types.ResourceTypeImage,
 				Tags: []ec2types.Tag{
 					{Key: aws.String("Name"), Value: aws.String(snapshotName)},
-					{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+					{Key: aws.String("Prism"), Value: aws.String("true")},
 					{Key: aws.String("SourceInstance"), Value: aws.String(instanceName)},
 					{Key: aws.String("SourceInstanceId"), Value: aws.String(instanceData.ID)},
 					{Key: aws.String("SourceTemplate"), Value: aws.String(instanceData.Template)},
@@ -4241,16 +4241,16 @@ func (m *Manager) CreateInstanceAMISnapshot(instanceName, snapshotName, descript
 	}, nil
 }
 
-// ListInstanceSnapshots lists all CloudWorkstation instance snapshots (AMIs)
+// ListInstanceSnapshots lists all Prism instance snapshots (AMIs)
 func (m *Manager) ListInstanceSnapshots() ([]ctypes.InstanceSnapshotInfo, error) {
 	ctx := context.Background()
 
-	// List all AMIs created by CloudWorkstation
+	// List all AMIs created by Prism
 	input := &ec2.DescribeImagesInput{
 		Owners: []string{"self"},
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 			{
@@ -4319,7 +4319,7 @@ func (m *Manager) RestoreInstanceFromSnapshot(snapshotName, newInstanceName stri
 		Owners: []string{"self"},
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 			{
@@ -4382,7 +4382,7 @@ func (m *Manager) RestoreInstanceFromSnapshot(snapshotName, newInstanceName stri
 	}, nil
 }
 
-// DeleteInstanceSnapshot deletes a CloudWorkstation instance snapshot (AMI)
+// DeleteInstanceSnapshot deletes a Prism instance snapshot (AMI)
 func (m *Manager) DeleteInstanceSnapshot(snapshotName string) (*ctypes.InstanceSnapshotDeleteResult, error) {
 	ctx := context.Background()
 
@@ -4391,7 +4391,7 @@ func (m *Manager) DeleteInstanceSnapshot(snapshotName string) (*ctypes.InstanceS
 		Owners: []string{"self"},
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 			{
@@ -4469,7 +4469,7 @@ func (m *Manager) GetInstanceSnapshotInfo(snapshotName string) (*ctypes.Instance
 		Owners: []string{"self"},
 		Filters: []ec2types.Filter{
 			{
-				Name:   aws.String("tag:CloudWorkstation"),
+				Name:   aws.String("tag:Prism"),
 				Values: []string{"true"},
 			},
 			{

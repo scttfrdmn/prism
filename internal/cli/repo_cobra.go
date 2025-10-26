@@ -19,7 +19,7 @@ func (rc *RepoCobraCommands) CreateRepoCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repo",
 		Short: "Manage template repositories",
-		Long: `Add, remove, and manage CloudWorkstation template repositories.
+		Long: `Add, remove, and manage Prism template repositories.
 
 Repositories allow you to access templates from different sources including
 institutional repositories, research group collections, and private repositories.`,

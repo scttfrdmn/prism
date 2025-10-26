@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // handleAuth handles API authentication endpoints

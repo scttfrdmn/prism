@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // OptimizationType defines the type of cost optimization

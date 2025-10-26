@@ -21,7 +21,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // StorageCommands handles all storage management operations (implementation layer)
@@ -37,7 +37,7 @@ func NewStorageCommands(app *App) *StorageCommands {
 // Volume handles volume commands
 func (sc *StorageCommands) Volume(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws volume <action> [args]", "cws volume create my-shared-data")
+		return NewUsageError("prism volume <action> [args]", "prism volume create my-shared-data")
 	}
 
 	action := args[0]
@@ -68,7 +68,7 @@ func (sc *StorageCommands) Volume(args []string) error {
 
 func (sc *StorageCommands) volumeCreate(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws volume create <name> [options]", "cws volume create my-shared-data --performance generalPurpose")
+		return NewUsageError("prism volume create <name> [options]", "prism volume create my-shared-data --performance generalPurpose")
 	}
 
 	req := types.VolumeCreateRequest{
@@ -137,7 +137,7 @@ func (sc *StorageCommands) volumeList(_ []string) error {
 
 func (sc *StorageCommands) volumeInfo(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws volume info <name>", "cws volume info my-shared-data")
+		return NewUsageError("prism volume info <name>", "prism volume info my-shared-data")
 	}
 
 	name := args[0]
@@ -165,7 +165,7 @@ func (sc *StorageCommands) volumeInfo(args []string) error {
 
 func (sc *StorageCommands) volumeDelete(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws volume delete <name>", "cws volume delete my-shared-data")
+		return NewUsageError("prism volume delete <name>", "prism volume delete my-shared-data")
 	}
 
 	name := args[0]
@@ -180,7 +180,7 @@ func (sc *StorageCommands) volumeDelete(args []string) error {
 
 func (sc *StorageCommands) volumeMount(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws volume mount <volume-name> <workspace-name> [mount-point]", "cws volume mount my-shared-data my-workspace")
+		return NewUsageError("prism volume mount <volume-name> <workspace-name> [mount-point]", "prism volume mount my-shared-data my-workspace")
 	}
 
 	volumeName := args[0]
@@ -203,7 +203,7 @@ func (sc *StorageCommands) volumeMount(args []string) error {
 
 func (sc *StorageCommands) volumeUnmount(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws volume unmount <volume-name> <workspace-name>", "cws volume unmount my-shared-data my-workspace")
+		return NewUsageError("prism volume unmount <volume-name> <workspace-name>", "prism volume unmount my-shared-data my-workspace")
 	}
 
 	volumeName := args[0]
@@ -221,7 +221,7 @@ func (sc *StorageCommands) volumeUnmount(args []string) error {
 // Storage handles storage commands
 func (sc *StorageCommands) Storage(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws storage <action> [args]", "cws storage create my-data 100GB")
+		return NewUsageError("prism storage <action> [args]", "prism storage create my-data 100GB")
 	}
 
 	action := args[0]
@@ -252,7 +252,7 @@ func (sc *StorageCommands) Storage(args []string) error {
 
 func (sc *StorageCommands) storageCreate(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws storage create <name> <size> [type]", "cws storage create my-data 100GB gp3")
+		return NewUsageError("prism storage create <name> <size> [type]", "prism storage create my-data 100GB gp3")
 	}
 
 	req := types.StorageCreateRequest{
@@ -353,7 +353,7 @@ func (sc *StorageCommands) storageList(_ []string) error {
 
 func (sc *StorageCommands) storageInfo(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws storage info <name>", "cws storage info my-data")
+		return NewUsageError("prism storage info <name>", "prism storage info my-data")
 	}
 
 	name := args[0]
@@ -411,7 +411,7 @@ func (sc *StorageCommands) storageInfo(args []string) error {
 
 func (sc *StorageCommands) storageAttach(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws storage attach <volume> <workspace>", "cws storage attach my-data my-workspace")
+		return NewUsageError("prism storage attach <volume> <workspace>", "prism storage attach my-data my-workspace")
 	}
 
 	volumeName := args[0]
@@ -428,7 +428,7 @@ func (sc *StorageCommands) storageAttach(args []string) error {
 
 func (sc *StorageCommands) storageDetach(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws storage detach <volume>", "cws storage detach my-data")
+		return NewUsageError("prism storage detach <volume>", "prism storage detach my-data")
 	}
 
 	volumeName := args[0]
@@ -444,7 +444,7 @@ func (sc *StorageCommands) storageDetach(args []string) error {
 
 func (sc *StorageCommands) storageDelete(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws storage delete <name>", "cws storage delete my-data")
+		return NewUsageError("prism storage delete <name>", "prism storage delete my-data")
 	}
 
 	name := args[0]

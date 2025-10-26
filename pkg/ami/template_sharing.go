@@ -1,4 +1,4 @@
-// Package ami provides CloudWorkstation's AMI creation system.
+// Package ami provides Prism's AMI creation system.
 package ami
 
 import (
@@ -94,7 +94,7 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 		Overwrite: aws.Bool(true),
 		Tags: []types.Tag{
 			{
-				Key:   aws.String("CloudWorkstationTemplate"),
+				Key:   aws.String("PrismTemplate"),
 				Value: aws.String("true"),
 			},
 			{
@@ -122,7 +122,7 @@ func (r *Registry) PublishTemplate(ctx context.Context, templateName, templateDa
 		Value: aws.String(string(entryData)),
 		Tags: []types.Tag{
 			{
-				Key:   aws.String("CloudWorkstationTemplate"),
+				Key:   aws.String("PrismTemplate"),
 				Value: aws.String("true"),
 			},
 			{

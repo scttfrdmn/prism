@@ -44,7 +44,7 @@ type Theme struct {
 	}
 }
 
-// DefaultTheme returns the default CloudWorkstation theme
+// DefaultTheme returns the default Prism theme
 func DefaultTheme() Theme {
 	// Colors
 	primaryColor := lipgloss.Color("#0074D9")   // Blue

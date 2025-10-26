@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/pricing"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/pricing"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // LaunchCommand represents a launch operation using Command Pattern (SOLID)
@@ -907,7 +907,7 @@ func (s *TemplateSnapshotSaveService) saveTemplateAndDisplayResults(config *Temp
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)
 	}
-	templatesDir := filepath.Join(homeDir, ".cloudworkstation", "templates")
+	templatesDir := filepath.Join(homeDir, ".prism", "templates")
 
 	// Create templates directory if it doesn't exist
 	if err := os.MkdirAll(templatesDir, 0755); err != nil {

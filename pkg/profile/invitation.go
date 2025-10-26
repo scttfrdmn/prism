@@ -1,4 +1,4 @@
-// Package profile provides functionality for managing CloudWorkstation profiles
+// Package profile provides functionality for managing Prism profiles
 package profile
 
 import (

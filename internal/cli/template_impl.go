@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TemplateCommands handles all template management operations (implementation layer)
@@ -303,7 +303,7 @@ func (tc *TemplateCommands) displaySearchHelp() {
 // templatesInfo shows detailed information about a specific template
 func (tc *TemplateCommands) templatesInfo(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws templates info <template-name>", "cws templates info python-ml")
+		return NewUsageError("prism templates info <template-name>", "prism templates info python-ml")
 	}
 
 	templateName := args[0]
@@ -362,7 +362,7 @@ func (tc *TemplateCommands) displayTemplateHeader() {
 func (tc *TemplateCommands) displayBasicInfo(template *templates.Template) {
 	fmt.Printf("🏗️  **Name**: %s\n", template.Name)
 	if template.Slug != "" {
-		fmt.Printf("🔗 **Slug**: %s (for CLI: `cws launch %s <name>`)\n", template.Slug, template.Slug)
+		fmt.Printf("🔗 **Slug**: %s (for CLI: `prism launch %s <name>`)\n", template.Slug, template.Slug)
 	}
 	fmt.Printf("📝 **Description**: %s\n", template.Description)
 	fmt.Printf("🖥️  **Base OS**: %s\n", template.Base)
@@ -531,7 +531,7 @@ func (tc *TemplateCommands) displayResearchUserInfo(template *templates.Template
 	if launchName == "" {
 		launchName = fmt.Sprintf("\"%s\"", template.Name)
 	}
-	fmt.Printf("   • 🚀 **Usage**: `cws launch %s my-project --research-user alice`\n", launchName)
+	fmt.Printf("   • 🚀 **Usage**: `prism launch %s my-project --research-user alice`\n", launchName)
 
 	fmt.Println()
 }
@@ -590,17 +590,17 @@ func (tc *TemplateCommands) displayUsageExamples(template *templates.Template) {
 	if launchName == "" {
 		launchName = fmt.Sprintf("\"%s\"", template.Name)
 	}
-	fmt.Printf("   • Basic launch:        `cws launch %s my-workspace`\n", launchName)
-	fmt.Printf("   • Large instance:      `cws launch %s my-workspace --size L`\n", launchName)
-	fmt.Printf("   • With project:        `cws launch %s my-workspace --project my-research`\n", launchName)
-	fmt.Printf("   • Spot instance:       `cws launch %s my-workspace --spot`\n", launchName)
+	fmt.Printf("   • Basic launch:        `prism launch %s my-workspace`\n", launchName)
+	fmt.Printf("   • Large instance:      `prism launch %s my-workspace --size L`\n", launchName)
+	fmt.Printf("   • With project:        `prism launch %s my-workspace --project my-research`\n", launchName)
+	fmt.Printf("   • Spot instance:       `prism launch %s my-workspace --spot`\n", launchName)
 }
 
 // templatesFeatured shows featured templates from repositories
 func (tc *TemplateCommands) templatesFeatured(args []string) error {
-	fmt.Println("⭐ Featured Templates from CloudWorkstation Repositories")
+	fmt.Println("⭐ Featured Templates from Prism Repositories")
 
-	// Featured templates curated by CloudWorkstation team
+	// Featured templates curated by Prism team
 	featuredTemplates := []struct {
 		name        string
 		repo        string
@@ -673,7 +673,7 @@ func (tc *TemplateCommands) fetchTemplateDataForDiscovery() (map[string]*templat
 
 // displayDiscoveryHeader shows the discovery page header
 func (tc *TemplateCommands) displayDiscoveryHeader() {
-	fmt.Println("🔍 Discover CloudWorkstation Templates")
+	fmt.Println("🔍 Discover Prism Templates")
 	fmt.Println()
 }
 
@@ -799,7 +799,7 @@ func (tc *TemplateCommands) getDomainFriendlyName(domain string) string {
 // templatesInstall installs templates from repositories
 func (tc *TemplateCommands) templatesInstall(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws templates install <repo:template> or <template>", "cws templates install community:advanced-python-ml")
+		return NewUsageError("prism templates install <repo:template> or <template>", "prism templates install community:advanced-python-ml")
 	}
 
 	templateRef := args[0]

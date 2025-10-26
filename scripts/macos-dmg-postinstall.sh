@@ -18,7 +18,7 @@ log() {
 
 # Installation paths
 INSTALL_PREFIX="/usr/local"
-DAEMON_PATH="$INSTALL_PREFIX/bin/cwsd"
+DAEMON_PATH="$INSTALL_PREFIX/bin/prismd"
 CLI_PATH="$INSTALL_PREFIX/bin/cws"
 SERVICE_MANAGER="$INSTALL_PREFIX/share/cloudworkstation/macos-service-manager.sh"
 

@@ -7,9 +7,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // StorageModel represents the storage management view
@@ -35,7 +35,7 @@ type StorageModel struct {
 // NewStorageModel creates a new storage model
 func NewStorageModel(apiClient apiClient) StorageModel {
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Storage", "")
+	statusBar := components.NewStatusBar("Prism Storage", "")
 	spinner := components.NewSpinner("Loading storage information...")
 
 	return StorageModel{
@@ -316,7 +316,7 @@ func (m StorageModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Storage")
+	title := theme.Title.Render("Prism Storage")
 
 	// Content area
 	var content string

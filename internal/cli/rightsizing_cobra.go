@@ -23,7 +23,7 @@ func (r *RightsizingCobraCommands) CreateRightsizingCommand() *cobra.Command {
 		Short: "Analyze and optimize workspace sizes",
 		Long: `Analyze usage patterns and provide rightsizing recommendations for cost optimization.
 
-CloudWorkstation rightsizing provides intelligent workspace sizing recommendations based on
+Prism rightsizing provides intelligent workspace sizing recommendations based on
 real usage metrics, helping you optimize costs while maintaining performance.
 
 Key capabilities:

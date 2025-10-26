@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
+	"github.com/scttfrdmn/prism/pkg/usermgmt"
 )
 
 var ErrUserManagerNotInitialized = errors.New("user manager not initialized")

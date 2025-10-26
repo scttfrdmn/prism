@@ -22,7 +22,7 @@ func (p *PolicyCobraCommands) CreatePolicyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "policy",
 		Short: "Manage policy framework for template and resource access control",
-		Long: `Manage CloudWorkstation's policy framework for controlling access to templates,
+		Long: `Manage Prism's policy framework for controlling access to templates,
 resources, and research user operations. Policies enable fine-grained access control
 for educational and research environments.`,
 		RunE: func(cmd *cobra.Command, args []string) error {

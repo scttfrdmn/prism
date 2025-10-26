@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // InstancesModel represents the instances management view
@@ -54,7 +54,7 @@ func NewInstancesModel(apiClient apiClient) InstancesModel {
 	instancesTable := components.NewTable(columns, []table.Row{}, 80, 10, true)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Workspaces", "")
+	statusBar := components.NewStatusBar("Prism Workspaces", "")
 	spinner := components.NewSpinner("Loading workspaces...")
 
 	// Initialize command dispatcher with instance commands
@@ -247,7 +247,7 @@ func (m InstancesModel) View() string {
 	theme := styles.CurrentTheme
 
 	// Title section
-	title := theme.Title.Render("CloudWorkstation Workspaces")
+	title := theme.Title.Render("Prism Workspaces")
 
 	// Content area
 	var content string

@@ -1,4 +1,4 @@
-// Package security provides secure storage and verification for CloudWorkstation profiles.
+// Package security provides secure storage and verification for Prism profiles.
 package security
 
 import (
@@ -161,7 +161,7 @@ func NewFileSecureStorage() (*FileSecureStorage, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	baseDir := fmt.Sprintf("%s/.cloudworkstation/secure", homeDir)
+	baseDir := fmt.Sprintf("%s/.prism/secure", homeDir)
 
 	// Create directory if it doesn't exist with restrictive permissions
 	if err := os.MkdirAll(baseDir, 0700); err != nil { // Owner only

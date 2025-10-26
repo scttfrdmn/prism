@@ -1,4 +1,4 @@
-// Package cli provides enhanced progress reporting for CloudWorkstation launch operations.
+// Package cli provides enhanced progress reporting for Prism launch operations.
 package cli
 
 import (
@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// ProgressReporter provides enhanced real-time progress reporting for CloudWorkstation operations
+// ProgressReporter provides enhanced real-time progress reporting for Prism operations
 type ProgressReporter struct {
 	instanceName   string
 	templateName   string

@@ -545,7 +545,7 @@ func (rp *ResearchUserProvisioner) getHostKeyCallback() ssh.HostKeyCallback {
 	// Get known_hosts path
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		// Fallback: For CloudWorkstation-managed EC2 instances, we can trust on first use
+		// Fallback: For Prism-managed EC2 instances, we can trust on first use
 		// since we control the infrastructure
 		return rp.trustOnFirstUseCallback()
 	}
@@ -556,7 +556,7 @@ func (rp *ResearchUserProvisioner) getHostKeyCallback() ssh.HostKeyCallback {
 	callback, err := knownhosts.New(knownHostsPath)
 	if err != nil {
 		// If known_hosts doesn't exist or can't be read, use trust-on-first-use
-		// This is acceptable for CloudWorkstation since:
+		// This is acceptable for Prism since:
 		// 1. We launch the instances ourselves via AWS
 		// 2. We connect immediately after launch
 		// 3. The instance is in our AWS account
@@ -567,7 +567,7 @@ func (rp *ResearchUserProvisioner) getHostKeyCallback() ssh.HostKeyCallback {
 }
 
 // trustOnFirstUseCallback returns a callback that trusts and records host keys on first use
-// This is acceptable for CloudWorkstation EC2 instances since we control the infrastructure
+// This is acceptable for Prism EC2 instances since we control the infrastructure
 func (rp *ResearchUserProvisioner) trustOnFirstUseCallback() ssh.HostKeyCallback {
 	knownHosts := make(map[string]ssh.PublicKey)
 
@@ -585,7 +585,7 @@ func (rp *ResearchUserProvisioner) trustOnFirstUseCallback() ssh.HostKeyCallback
 		// First time seeing this host - record it
 		knownHosts[hostKey] = key
 
-		// For CloudWorkstation instances, we could optionally append to known_hosts file
+		// For Prism instances, we could optionally append to known_hosts file
 		// but for now just keep in memory for the session
 		return nil
 	}

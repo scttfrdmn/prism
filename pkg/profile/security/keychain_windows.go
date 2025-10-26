@@ -53,7 +53,7 @@ type WindowsCredentialManagerNative struct {
 // NewWindowsCredentialManagerNative creates a new native Windows credential manager provider
 func NewWindowsCredentialManagerNative() (*WindowsCredentialManagerNative, error) {
 	return &WindowsCredentialManagerNative{
-		targetPrefix: "CloudWorkstation",
+		targetPrefix: "Prism",
 	}, nil
 }
 

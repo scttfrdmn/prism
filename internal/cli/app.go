@@ -1,12 +1,12 @@
-// Package cli implements CloudWorkstation's command-line interface application.
+// Package cli implements Prism's command-line interface application.
 //
-// This package provides the CLI application logic for the CloudWorkstation client (cws).
+// This package provides the CLI application logic for the Prism client (cws).
 // It handles command parsing, API client communication, output formatting, and user
-// interaction flows while maintaining CloudWorkstation's core design principles.
+// interaction flows while maintaining Prism's core design principles.
 //
 // Application Structure:
 //   - App: Main CLI application with command routing
-//   - Command handlers for all CloudWorkstation operations
+//   - Command handlers for all Prism operations
 //   - Output formatting with tables and JSON support
 //   - Error handling with user-friendly messages
 //   - Configuration management and validation
@@ -41,19 +41,19 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/pricing"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/pricing"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/spf13/cobra"
 )
 
 // App represents the CLI application
 type App struct {
 	version               string
-	apiClient             client.CloudWorkstationAPI
+	apiClient             client.PrismAPI
 	ctx                   context.Context // Context for AWS operations
 	tuiCommand            *cobra.Command
 	config                *Config
@@ -98,14 +98,14 @@ func NewApp(version string) *App {
 	apiKey := loadAPIKeyFromState()
 
 	// Determine AWS profile and region to use
-	// Priority: Current CloudWorkstation profile > Config file > Environment variables
+	// Priority: Current Prism profile > Config file > Environment variables
 	awsProfile := config.AWS.Profile
 	awsRegion := config.AWS.Region
 
-	// Check if there's an active CloudWorkstation profile
+	// Check if there's an active Prism profile
 	if profileManager != nil {
 		if currentProfile, err := profileManager.GetCurrentProfile(); err == nil && currentProfile != nil {
-			// Use CloudWorkstation profile settings
+			// Use Prism profile settings
 			awsProfile = currentProfile.AWSProfile
 			awsRegion = currentProfile.Region
 		}
@@ -199,7 +199,7 @@ func (a *App) checkVersionCompatibility() error {
 }
 
 // NewAppWithClient creates a new CLI application with a custom API client
-func NewAppWithClient(version string, apiClient client.CloudWorkstationAPI) *App {
+func NewAppWithClient(version string, apiClient client.PrismAPI) *App {
 	// Load config
 	config, err := LoadConfig()
 	if err != nil {
@@ -255,7 +255,7 @@ func (a *App) TUI(_ []string) error {
 // Launch handles the launch command
 func (a *App) Launch(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws launch <template> <name>", "cws launch python-ml my-workstation")
+		return NewUsageError("prism launch <template> <name>", "prism launch python-ml my-workstation")
 	}
 
 	template := args[0]
@@ -477,7 +477,7 @@ func (h *PendingStateHandler) Handle(state string, elapsed int, instanceName str
 
 // RunningStateHandler handles running instance state with setup monitoring
 type RunningStateHandler struct {
-	apiClient client.CloudWorkstationAPI
+	apiClient client.PrismAPI
 	ctx       context.Context
 }
 
@@ -557,12 +557,12 @@ func (h *DefaultStateHandler) Handle(state string, elapsed int, instanceName str
 // LaunchProgressMonitor manages package launch monitoring (Strategy Pattern - SOLID)
 type LaunchProgressMonitor struct {
 	handlers  []InstanceStateHandler
-	apiClient client.CloudWorkstationAPI
+	apiClient client.PrismAPI
 	ctx       context.Context
 }
 
 // NewLaunchProgressMonitor creates launch progress monitor
-func NewLaunchProgressMonitor(apiClient client.CloudWorkstationAPI, ctx context.Context) *LaunchProgressMonitor {
+func NewLaunchProgressMonitor(apiClient client.PrismAPI, ctx context.Context) *LaunchProgressMonitor {
 	return &LaunchProgressMonitor{
 		handlers: []InstanceStateHandler{
 			&PendingStateHandler{},
@@ -825,7 +825,7 @@ func (a *App) ListCost(args []string) error {
 	if projectFilter != "" {
 		fmt.Printf("💰 Cost Analysis for project '%s':\n\n", projectFilter)
 	} else {
-		fmt.Println("💰 CloudWorkstation Cost Analysis")
+		fmt.Println("💰 Prism Cost Analysis")
 	}
 
 	// Use Strategy Pattern for cost analysis (SOLID: Open/Closed Principle)
@@ -973,7 +973,7 @@ func (a *App) Scaling(args []string) error {
 
 // AMIDiscover demonstrates AMI auto-discovery functionality
 func (a *App) AMIDiscover(args []string) error {
-	fmt.Printf("🔍 CloudWorkstation AMI Auto-Discovery\n\n")
+	fmt.Printf("🔍 Prism AMI Auto-Discovery\n\n")
 
 	// This would normally get the template resolver from the daemon
 	// For demo purposes, create a resolver and populate it with mock AMI data
@@ -1291,7 +1291,7 @@ func (a *App) projectBudgetSet(args []string) error {
 
 	// NOTE: This is a simplified legacy function for backwards compatibility
 	// For full budget creation with all flags (--monthly-limit, --daily-limit, --alert, --action, etc.),
-	// use the Cobra-based command: `cws budget create <project> <amount> [flags]`
+	// use the Cobra-based command: `prism budget create <project> <amount> [flags]`
 	// See internal/cli/budget_commands.go for complete implementation with all features
 
 	req := client.SetProjectBudgetRequest{
@@ -1301,7 +1301,7 @@ func (a *App) projectBudgetSet(args []string) error {
 		AutoActions:     []types.BudgetAutoAction{},
 	}
 
-	// Add a default 80% warning alert (for full alert customization, use `cws budget create`)
+	// Add a default 80% warning alert (for full alert customization, use `prism budget create`)
 	req.AlertThresholds = append(req.AlertThresholds, types.BudgetAlert{
 		Threshold: 0.8,
 		Type:      types.BudgetAlertEmail,
@@ -1582,7 +1582,7 @@ func loadAPIKeyFromState() string {
 		return "" // No API key available
 	}
 
-	stateFile := filepath.Join(homeDir, ".cloudworkstation", "state.json")
+	stateFile := filepath.Join(homeDir, ".prism", "state.json")
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		return "" // No state file or can't read it
@@ -1676,7 +1676,7 @@ func (a *App) findSSHKey(region string) (string, error) {
 	// Standard format: cws-test-{region}-key
 	keyPaths := []string{
 		filepath.Join(homeDir, ".ssh", fmt.Sprintf("cws-test-%s-key", region)),
-		filepath.Join(homeDir, ".cloudworkstation", "profiles", "test", "ssh", fmt.Sprintf("cws-test-%s-key", region)),
+		filepath.Join(homeDir, ".prism", "profiles", "test", "ssh", fmt.Sprintf("cws-test-%s-key", region)),
 	}
 
 	for _, path := range keyPaths {

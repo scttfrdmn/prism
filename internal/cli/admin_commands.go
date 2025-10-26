@@ -37,8 +37,8 @@ Examples:
 func (f *AdminCommandFactory) createDaemonCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "daemon <action>",
-		Short: "Manage CloudWorkstation daemon",
-		Long:  `Control the CloudWorkstation daemon service (start, stop, status, logs).`,
+		Short: "Manage Prism daemon",
+		Long:  `Control the Prism daemon service (start, stop, status, logs).`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return f.app.Daemon(args)
 		},

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // ResearchUserService provides the main service layer for research user management
@@ -467,7 +467,7 @@ func CreateDefaultResearchUserService(profileMgr interface {
 	UpdateProfile(profile *profile.Profile) error
 }) *ResearchUserService {
 	// Get config directory
-	configDir := filepath.Join(os.Getenv("HOME"), ".cloudworkstation")
+	configDir := filepath.Join(os.Getenv("HOME"), ".prism")
 
 	// Create profile manager adapter
 	profileAdapter := NewProfileManagerAdapter(profileMgr)

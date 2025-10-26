@@ -100,11 +100,11 @@ func TestAWSComplianceStatus(t *testing.T) {
 // TestComplianceGap struct validation
 func TestComplianceGap(t *testing.T) {
 	gap := ComplianceGap{
-		Control:             "AC-2 Account Management",
-		AWSImplementation:   "IAM provides account lifecycle management",
-		CloudWorkstationGap: "Manual account provisioning in templates",
-		Severity:            "HIGH",
-		Remediation:         "Integrate with AWS SSO",
+		Control:           "AC-2 Account Management",
+		AWSImplementation: "IAM provides account lifecycle management",
+		PrismGap:          "Manual account provisioning in templates",
+		Severity:          "HIGH",
+		Remediation:       "Integrate with AWS SSO",
 	}
 
 	assert.Equal(t, "AC-2 Account Management", gap.Control)
@@ -140,7 +140,7 @@ func TestComplianceRecommendation(t *testing.T) {
 		AWSService:     "AWS Config",
 		SCPRequired:    "RequireConfigRecording",
 		Impact:         "Provides continuous compliance monitoring",
-		Implementation: "cws aws config enable --compliance-rules SOC2",
+		Implementation: "prism aws config enable --compliance-rules SOC2",
 	}
 
 	assert.Equal(t, "HIGH", recommendation.Priority)
@@ -253,7 +253,7 @@ func TestAnalyzeITARGaps(t *testing.T) {
 		if gap.Control == "ITAR Regional Compliance" {
 			foundRegionalCompliance = true
 			assert.Equal(t, "CRITICAL", gap.Severity)
-			assert.Contains(t, gap.CloudWorkstationGap, "us-east-1")
+			assert.Contains(t, gap.PrismGap, "us-east-1")
 		}
 	}
 
@@ -408,7 +408,7 @@ func TestValidateAWSServices(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, status.AWSServices)
 
-	// Check that core CloudWorkstation services are covered
+	// Check that core Prism services are covered
 	serviceNames := make([]string, len(status.AWSServices))
 	for i, service := range status.AWSServices {
 		serviceNames[i] = service.ServiceName

@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // PolicyModel represents the policy management view
@@ -57,7 +57,7 @@ func NewPolicyModel(apiClient apiClient) PolicyModel {
 	policySetsTable := components.NewTable(columns, []table.Row{}, 80, 10, true)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Policy Framework", "")
+	statusBar := components.NewStatusBar("Prism Policy Framework", "")
 	spinner := components.NewSpinner("Loading policy information...")
 
 	return PolicyModel{

@@ -109,7 +109,7 @@ func TestPublicationResult(t *testing.T) {
 	now := time.Now()
 	result := &PublicationResult{
 		TemplateID:     "my-template-456",
-		PublicationURL: "https://marketplace.cloudworkstation.com/templates/my-template-456",
+		PublicationURL: "https://marketplace.prism.com/templates/my-template-456",
 		Status:         "published",
 		Message:        "Template published successfully",
 		CreatedAt:      now,
@@ -661,10 +661,10 @@ func TestUsageStats(t *testing.T) {
 // TestMarketplaceConfig tests MarketplaceConfig structure
 func TestMarketplaceConfig(t *testing.T) {
 	config := &MarketplaceConfig{
-		RegistryEndpoint:      "https://marketplace-api.cloudworkstation.com",
+		RegistryEndpoint:      "https://marketplace-api.prism.com",
 		S3Bucket:              "cloudworkstation-marketplace",
 		DynamoDBTable:         "marketplace-templates",
-		CDNEndpoint:           "https://cdn.cloudworkstation.com",
+		CDNEndpoint:           "https://cdn.prism.com",
 		AutoAMIGeneration:     true,
 		DefaultRegions:        []string{"us-east-1", "us-west-2", "eu-west-1"},
 		RequireModeration:     false,
@@ -675,10 +675,10 @@ func TestMarketplaceConfig(t *testing.T) {
 		SearchRateLimit:       60,
 	}
 
-	assert.Equal(t, "https://marketplace-api.cloudworkstation.com", config.RegistryEndpoint)
+	assert.Equal(t, "https://marketplace-api.prism.com", config.RegistryEndpoint)
 	assert.Equal(t, "cloudworkstation-marketplace", config.S3Bucket)
 	assert.Equal(t, "marketplace-templates", config.DynamoDBTable)
-	assert.Equal(t, "https://cdn.cloudworkstation.com", config.CDNEndpoint)
+	assert.Equal(t, "https://cdn.prism.com", config.CDNEndpoint)
 	assert.True(t, config.AutoAMIGeneration)
 	assert.Len(t, config.DefaultRegions, 3)
 	assert.Contains(t, config.DefaultRegions, "us-east-1")

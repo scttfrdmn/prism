@@ -1,4 +1,4 @@
-// Security CLI commands for CloudWorkstation
+// Security CLI commands for Prism
 package cli
 
 import (
@@ -17,7 +17,7 @@ func (a *App) SecurityCommand() *cobra.Command {
 	securityCmd := &cobra.Command{
 		Use:   "security",
 		Short: "Security management commands",
-		Long:  `Manage CloudWorkstation security features including monitoring, audit logs, and health checks.`,
+		Long:  `Manage Prism security features including monitoring, audit logs, and health checks.`,
 	}
 
 	// Security status command
@@ -84,14 +84,14 @@ func (a *App) SecurityCommand() *cobra.Command {
 	awsComplianceCmd := &cobra.Command{
 		Use:   "compliance",
 		Short: "AWS compliance validation",
-		Long:  `Validate CloudWorkstation against AWS Artifact compliance reports and Service Control Policies.`,
+		Long:  `Validate Prism against AWS Artifact compliance reports and Service Control Policies.`,
 	}
 
 	// AWS compliance validate command
 	awsComplianceCmd.AddCommand(&cobra.Command{
 		Use:   "validate <framework>",
 		Short: "Validate compliance framework",
-		Long: `Validate CloudWorkstation against specific compliance framework using AWS Artifact reports.
+		Long: `Validate Prism against specific compliance framework using AWS Artifact reports.
 		
 Available frameworks:
   nist-800-171    NIST 800-171 (CUI Protection)
@@ -154,7 +154,7 @@ Available frameworks:
 
 // SecurityStatus displays comprehensive security status
 func (a *App) SecurityStatus() error {
-	fmt.Println("🔒 CloudWorkstation Security Status")
+	fmt.Println("🔒 Prism Security Status")
 	fmt.Println("═══════════════════════════════════")
 
 	// Make API request to security status endpoint
@@ -574,7 +574,7 @@ func getIntValue(m map[string]interface{}, key string) int {
 
 // AWS Compliance Methods
 
-// ValidateAWSCompliance validates CloudWorkstation against AWS compliance framework using Strategy Pattern (SOLID: Single Responsibility)
+// ValidateAWSCompliance validates Prism against AWS compliance framework using Strategy Pattern (SOLID: Single Responsibility)
 func (a *App) ValidateAWSCompliance(framework string) error {
 	// Create and execute compliance validation command
 	validator := NewComplianceValidator(a.apiClient)

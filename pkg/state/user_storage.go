@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/usermgmt"
+	"github.com/scttfrdmn/prism/pkg/usermgmt"
 )
 
 // UserState represents the user state stored on disk

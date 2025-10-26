@@ -1,7 +1,7 @@
 // Package templates provides template application capabilities for running instances.
 //
 // This module implements the ability to apply templates to already running
-// CloudWorkstation instances, enabling incremental environment evolution
+// Prism instances, enabling incremental environment evolution
 // without requiring instance recreation.
 package templates
 
@@ -308,7 +308,7 @@ func (e *TemplateApplicationEngine) recordTemplateApplication(ctx context.Contex
 	}
 
 	// In production, this would persist to state management:
-	// - Store in CloudWorkstation state file (~/.cloudworkstation/state.json)
+	// - Store in Prism state file (~/.prism/state.json)
 	// - Create SSM Parameter Store entry for centralized tracking
 	// - Tag EC2 instance with template metadata
 	// - Log to CloudWatch for audit trail

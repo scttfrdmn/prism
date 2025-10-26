@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -35,7 +35,7 @@ func (s *Server) RegisterConnectionProxyRoutes(mux *http.ServeMux, applyMiddlewa
 // WebSocket upgrader for SSH connections
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow connections from the CloudWorkstation GUI
+		// Allow connections from the Prism GUI
 		origin := r.Header.Get("Origin")
 		return strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1")
 	},
@@ -199,7 +199,7 @@ func (s *Server) loadSSHKey(wsConn *websocket.Conn) (ssh.Signer, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	keyPath := filepath.Join(homeDir, ".cloudworkstation", "ssh_keys", "id_ed25519")
+	keyPath := filepath.Join(homeDir, ".prism", "ssh_keys", "id_ed25519")
 	keyBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read SSH key: %w", err)
@@ -219,7 +219,7 @@ func (s *Server) setupHostKeyVerification(wsConn *websocket.Conn, publicIP strin
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	knownHostsPath := filepath.Join(homeDir, ".cloudworkstation", "known_hosts")
+	knownHostsPath := filepath.Join(homeDir, ".prism", "known_hosts")
 
 	// Try to load known hosts file
 	if _, err := os.Stat(knownHostsPath); err == nil {
@@ -410,7 +410,7 @@ func (s *Server) handleAWSServiceProxy(w http.ResponseWriter, r *http.Request) {
 
 		// URL-encode the destination
 		encodedDestination := url.QueryEscape(destinationURL)
-		issuer := url.QueryEscape("CloudWorkstation")
+		issuer := url.QueryEscape("Prism")
 
 		// Build federation signin URL
 		finalURL = fmt.Sprintf("https://signin.aws.amazon.com/federation?Action=login&Issuer=%s&Destination=%s&SigninToken=%s",

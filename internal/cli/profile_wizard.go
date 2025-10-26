@@ -1,4 +1,4 @@
-// Package cli provides interactive profile management wizards for CloudWorkstation.
+// Package cli provides interactive profile management wizards for Prism.
 package cli
 
 import (
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/profile"
 )
 
 // ProfileWizard provides interactive profile creation and management
@@ -65,7 +65,7 @@ func (pw *ProfileWizard) RunInteractiveSetup() error {
 
 // showWelcome displays the wizard welcome message
 func (pw *ProfileWizard) showWelcome() {
-	fmt.Printf("🧙‍♂️ %s\n", color.CyanString("CloudWorkstation Profile Setup Wizard"))
+	fmt.Printf("🧙‍♂️ %s\n", color.CyanString("Prism Profile Setup Wizard"))
 	fmt.Println()
 	fmt.Println("This wizard will help you set up a new profile for working with AWS accounts.")
 	fmt.Println("Profiles let you easily switch between different AWS accounts or regions.")
@@ -185,7 +185,7 @@ func (pw *ProfileWizard) createPersonalProfile() error {
 func (pw *ProfileWizard) createInvitationProfile() error {
 	fmt.Printf("\n🔧 %s\n", color.GreenString("Creating Invitation Profile"))
 	fmt.Println()
-	fmt.Println("An invitation profile gives you access to shared CloudWorkstation resources.")
+	fmt.Println("An invitation profile gives you access to shared Prism resources.")
 	fmt.Println("You'll need an invitation code provided by the resource owner.")
 	fmt.Println()
 

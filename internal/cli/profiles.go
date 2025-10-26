@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ func AddProfileCommands(rootCmd *cobra.Command, config *Config) {
 	// Profiles root command
 	profilesCmd := &cobra.Command{
 		Use:   "profiles",
-		Short: "Manage CloudWorkstation profiles",
+		Short: "Manage Prism profiles",
 		Long:  `Manage profiles for working with different AWS accounts and shared resources.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			runProfilesMainCommand(config)
@@ -656,7 +656,7 @@ func runProfilesMainCommand(config *Config) {
 	hasOnlyDefault := len(profiles) == 1 && profiles[0].Profile.Default && profiles[0].Profile.Name == "AWS Default"
 
 	if hasOnlyDefault {
-		fmt.Printf("🚀 %s\n", color.CyanString("CloudWorkstation Profile Management"))
+		fmt.Printf("🚀 %s\n", color.CyanString("Prism Profile Management"))
 		fmt.Println()
 		fmt.Println("You're using the default AWS profile - perfect! Most users don't need to change this.")
 		fmt.Printf("Current setup: AWS profile '%s'", profiles[0].Profile.AWSProfile)
@@ -665,7 +665,7 @@ func runProfilesMainCommand(config *Config) {
 		}
 		fmt.Println()
 		fmt.Println()
-		fmt.Println("💡 Your CloudWorkstation is ready to use! Try:")
+		fmt.Println("💡 Your Prism is ready to use! Try:")
 		fmt.Println("   cws launch python-ml my-project")
 		fmt.Println()
 
@@ -746,7 +746,7 @@ func createInvitationCommands(profilesCmd *cobra.Command, config *Config) {
 	invitationsCmd := &cobra.Command{
 		Use:   "invitations",
 		Short: "Manage shared access invitations",
-		Long:  `Create and manage invitations for sharing access to your CloudWorkstation resources.`,
+		Long:  `Create and manage invitations for sharing access to your Prism resources.`,
 	}
 	profilesCmd.AddCommand(invitationsCmd)
 
@@ -766,7 +766,7 @@ func createInvitationCreateCommand(config *Config) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create [name] --type [read_only|read_write|admin] --valid-days [days]",
 		Short: "Create a new invitation",
-		Long:  `Generate a new invitation that can be shared with others to grant access to your CloudWorkstation resources.`,
+		Long:  `Generate a new invitation that can be shared with others to grant access to your Prism resources.`,
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			runInvitationCreateCommand(config, cmd, args[0])
@@ -974,7 +974,7 @@ func printInvitationDetails(invitation *profile.InvitationToken) {
 
 	// Print acceptance instructions
 	fmt.Println("\nThey can accept it with:")
-	fmt.Printf("cws profiles accept-invitation --encoded '%s' --name 'Collaboration'\n", encodedInvitation)
+	fmt.Printf("prism profiles accept-invitation --encoded '%s' --name 'Collaboration'\n", encodedInvitation)
 }
 
 // createInvitationListCommand creates the invitation list command

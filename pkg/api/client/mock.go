@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/idle"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/idle"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// MockClient provides a mock implementation of CloudWorkstationAPI for testing
+// MockClient provides a mock implementation of PrismAPI for testing
 type MockClient struct {
 	// Mock data
 	instances map[string]*types.Instance

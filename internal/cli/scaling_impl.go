@@ -1,4 +1,4 @@
-// Package cli implements CloudWorkstation's scaling and rightsizing command handlers.
+// Package cli implements Prism's scaling and rightsizing command handlers.
 //
 // This file contains all scaling-related functionality including:
 //   - Rightsizing analysis and recommendations
@@ -7,7 +7,7 @@
 //   - Helper functions for size mapping and cost estimation
 //
 // Design Philosophy:
-// Follows CloudWorkstation's core principles of transparency, cost optimization,
+// Follows Prism's core principles of transparency, cost optimization,
 // and progressive disclosure for scaling operations.
 package cli
 
@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // ScalingCommands handles all scaling and rightsizing related commands
@@ -66,7 +66,7 @@ Available subcommands:
 // rightsizingAnalyze analyzes usage patterns for a specific instance
 func (s *ScalingCommands) rightsizingAnalyze(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws rightsizing analyze <workspace-name>", "cws rightsizing analyze my-workspace")
+		return NewUsageError("prism rightsizing analyze <workspace-name>", "prism rightsizing analyze my-workspace")
 	}
 
 	instanceName := args[0]
@@ -285,7 +285,7 @@ func (s *ScalingCommands) rightsizingRecommendations(args []string) error {
 // rightsizingStats shows detailed usage statistics for an instance
 func (s *ScalingCommands) rightsizingStats(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws rightsizing stats <workspace-name>", "cws rightsizing stats my-workspace")
+		return NewUsageError("prism rightsizing stats <workspace-name>", "prism rightsizing stats my-workspace")
 	}
 
 	instanceName := args[0]
@@ -429,7 +429,7 @@ func min(a, b int) int {
 // rightsizingExport exports usage data as JSON
 func (s *ScalingCommands) rightsizingExport(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws rightsizing export <workspace-name>", "cws rightsizing export my-workspace")
+		return NewUsageError("prism rightsizing export <workspace-name>", "prism rightsizing export my-workspace")
 	}
 
 	instanceName := args[0]
@@ -629,7 +629,7 @@ Examples:
 // scalingAnalyze analyzes an instance and recommends optimal size
 func (s *ScalingCommands) scalingAnalyze(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws scaling analyze <workspace-name>", "cws scaling analyze my-workspace")
+		return NewUsageError("prism scaling analyze <workspace-name>", "prism scaling analyze my-workspace")
 	}
 
 	instanceName := args[0]
@@ -704,7 +704,7 @@ func (s *ScalingCommands) scalingAnalyze(args []string) error {
 // scalingPredict predicts optimal size based on usage patterns and analytics
 func (s *ScalingCommands) scalingPredict(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws scaling predict <workspace-name>", "cws scaling predict my-workspace")
+		return NewUsageError("prism scaling predict <workspace-name>", "prism scaling predict my-workspace")
 	}
 
 	instanceName := args[0]
@@ -888,7 +888,7 @@ func (s *ScalingCommands) displayUsagePatterns(instance *types.Instance) {
 // scalingScale scales an instance to a new size
 func (s *ScalingCommands) scalingScale(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws scaling scale <workspace-name> <size>", "cws scaling scale my-workspace L")
+		return NewUsageError("prism scaling scale <workspace-name> <size>", "prism scaling scale my-workspace L")
 	}
 
 	instanceName := args[0]
@@ -976,7 +976,7 @@ func (s *ScalingCommands) scalingScale(args []string) error {
 // scalingPreview shows what a scaling operation would do
 func (s *ScalingCommands) scalingPreview(args []string) error {
 	if len(args) < 2 {
-		return NewUsageError("cws scaling preview <workspace-name> <size>", "cws scaling preview my-workspace L")
+		return NewUsageError("prism scaling preview <workspace-name> <size>", "prism scaling preview my-workspace L")
 	}
 
 	instanceName := args[0]
@@ -1069,7 +1069,7 @@ func (s *ScalingCommands) scalingPreview(args []string) error {
 // scalingHistory shows scaling history for an instance
 func (s *ScalingCommands) scalingHistory(args []string) error {
 	if len(args) < 1 {
-		return NewUsageError("cws scaling history <workspace-name>", "cws scaling history my-workspace")
+		return NewUsageError("prism scaling history <workspace-name>", "prism scaling history my-workspace")
 	}
 
 	instanceName := args[0]

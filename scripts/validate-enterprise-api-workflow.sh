@@ -23,7 +23,7 @@ TEST_INSTANCE="api-test-instance"
 echo -e "${BLUE}📋 Step 1: Daemon status check...${NC}"
 if ! pgrep -f cwsd > /dev/null; then
     echo -e "${YELLOW}⚠️ Daemon not running. Starting daemon...${NC}"
-    ./bin/cwsd &
+    ./bin/prismd &
     sleep 3
 fi
 

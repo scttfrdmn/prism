@@ -8,8 +8,8 @@ set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CWS_BINARY="${PROJECT_ROOT}/bin/cws"
-CWSD_BINARY="${PROJECT_ROOT}/bin/cwsd"
+PRISM_BINARY="${PROJECT_ROOT}/bin/cws"
+CWSD_BINARY="${PROJECT_ROOT}/bin/prismd"
 
 # Default values
 ITERATIONS=5
@@ -112,8 +112,8 @@ if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || [ "$TIMEOUT" -lt 30 ]; then
     exit 1
 fi
 
-if [ ! -x "$CWS_BINARY" ]; then
-    error "CloudWorkstation CLI not found at $CWS_BINARY. Run 'make build' first."
+if [ ! -x "$PRISM_BINARY" ]; then
+    error "CloudWorkstation CLI not found at $PRISM_BINARY. Run 'make build' first."
     exit 1
 fi
 
@@ -130,7 +130,7 @@ if ! pgrep -f "$CWSD_BINARY" >/dev/null; then
     
     # Wait for daemon to be ready
     for i in {1..10}; do
-        if "$CWS_BINARY" daemon status &>/dev/null; then
+        if "$PRISM_BINARY" daemon status &>/dev/null; then
             break
         fi
         if [ "$i" -eq 10 ]; then
@@ -173,7 +173,7 @@ for template in "${TEMPLATE_ARRAY[@]}"; do
         
         if [ "$DRY_RUN" = "true" ]; then
             # Dry run - just resolve template
-            if timeout "$TIMEOUT" "$CWS_BINARY" templates info "$template" &>/dev/null; then
+            if timeout "$TIMEOUT" "$PRISM_BINARY" templates info "$template" &>/dev/null; then
                 end_time=$(date +%s.%N)
                 duration=$(echo "$end_time - $start_time" | bc -l)
                 template_times+=("$duration")
@@ -187,7 +187,7 @@ for template in "${TEMPLATE_ARRAY[@]}"; do
             fi
         else
             # Full launch
-            if timeout "$TIMEOUT" "$CWS_BINARY" launch "$template" "$instance_name" --no-connect &>/dev/null; then
+            if timeout "$TIMEOUT" "$PRISM_BINARY" launch "$template" "$instance_name" --no-connect &>/dev/null; then
                 end_time=$(date +%s.%N)
                 duration=$(echo "$end_time - $start_time" | bc -l)
                 template_times+=("$duration")
@@ -198,13 +198,13 @@ for template in "${TEMPLATE_ARRAY[@]}"; do
                 
                 # Clean up instance
                 log "    Cleaning up instance: $instance_name"
-                "$CWS_BINARY" delete "$instance_name" --force &>/dev/null || warn "Failed to delete $instance_name"
+                "$PRISM_BINARY" delete "$instance_name" --force &>/dev/null || warn "Failed to delete $instance_name"
             else
                 warn "    Launch failed for $instance_name"
                 ((failed_launches++))
                 
                 # Try to clean up anyway
-                "$CWS_BINARY" delete "$instance_name" --force &>/dev/null 2>&1 || true
+                "$PRISM_BINARY" delete "$instance_name" --force &>/dev/null 2>&1 || true
             fi
         fi
         

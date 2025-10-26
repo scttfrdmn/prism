@@ -6,7 +6,7 @@ set -e
 echo "Testing binary discovery..."
 
 # Test same directory discovery (already works)
-if [ ! -f "./bin/cwsd" ]; then
+if [ ! -f "./bin/prismd" ]; then
     echo "❌ Daemon binary not found in ./bin/"
     exit 1
 fi

@@ -1,4 +1,4 @@
-// Package storage provides advanced storage integration for CloudWorkstation.
+// Package storage provides advanced storage integration for Prism.
 //
 // This package implements high-performance storage solutions including FSx filesystems,
 // S3 mount points, and comprehensive storage analytics for research workloads.

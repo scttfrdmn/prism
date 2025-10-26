@@ -1,10 +1,10 @@
-// Package ami provides CloudWorkstation's AMI creation system.
+// Package ami provides Prism's AMI creation system.
 //
-// This file implements the template management interface for CloudWorkstation's
+// This file implements the template management interface for Prism's
 // AMI creation system. It provides functionality for importing, exporting,
 // creating, modifying, and sharing templates across different sources and formats.
 //
-// The template management system implements CloudWorkstation's "Progressive Disclosure"
+// The template management system implements Prism's "Progressive Disclosure"
 // principle by providing simple interfaces for common operations while enabling
 // advanced capabilities for power users.
 //
@@ -624,7 +624,7 @@ func (m *TemplateManager) ValidateTemplate(templateName string) error {
 // ShareTemplate shares a template via the registry
 //
 // This method publishes a template to the AMI registry, making it available
-// for other CloudWorkstation instances.
+// for other Prism instances.
 //
 // Parameters:
 //   - templateName: Name of the template to share
@@ -670,7 +670,7 @@ func (m *TemplateManager) ShareTemplate(templateName string, ctx context.Context
 		metadata := map[string]string{
 			"description":  template.Description,
 			"version":      "1.0.0", // Default version
-			"publisher":    "CloudWorkstation",
+			"publisher":    "Prism",
 			"architecture": template.Architecture,
 		}
 

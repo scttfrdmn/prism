@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/profile"
-	"github.com/scttfrdmn/cloudworkstation/pkg/research"
+	"github.com/scttfrdmn/prism/pkg/profile"
+	"github.com/scttfrdmn/prism/pkg/research"
 )
 
 // ResearchUserRequest represents a request to create a research user
@@ -281,7 +281,7 @@ func (s *Server) getResearchUserService() (*research.ResearchUserService, error)
 		return nil, fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	configDir := filepath.Join(homeDir, ".cloudworkstation")
+	configDir := filepath.Join(homeDir, ".prism")
 
 	// Create profile adapter for daemon
 	profileAdapter := &DaemonProfileAdapter{}

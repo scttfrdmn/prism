@@ -3,7 +3,7 @@ package errors
 import (
 	"strings"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // ExtractOperationFromPath extracts the operation name from a request path

@@ -302,7 +302,7 @@ func (b *IdleScriptBuilder) buildConfigFileCreation() []string {
 	return []string{
 		"# Write updated config",
 		"cat > /tmp/idle-config-new << 'EOF'",
-		"# CloudWorkstation Idle Detection Configuration",
+		"# Prism Idle Detection Configuration",
 		"# This file is automatically updated by runtime configuration",
 		"ENABLED=${ENABLED:-false}",
 		"IDLE_THRESHOLD_MINUTES=${IDLE_THRESHOLD_MINUTES:-999999}",

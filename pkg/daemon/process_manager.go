@@ -1,7 +1,7 @@
-// Package daemon provides process management for CloudWorkstation daemon lifecycle.
+// Package daemon provides process management for Prism daemon lifecycle.
 //
 // This module implements comprehensive daemon process detection, management,
-// and cleanup functionality for CloudWorkstation uninstallation scenarios.
+// and cleanup functionality for Prism uninstallation scenarios.
 //
 // Key Features:
 //   - Cross-platform daemon process detection
@@ -81,7 +81,7 @@ func NewProcessManager() ProcessManager {
 		homeDir = "."
 	}
 
-	configDir := filepath.Join(homeDir, ".cloudworkstation")
+	configDir := filepath.Join(homeDir, ".prism")
 
 	// Ensure config directory exists
 	if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -96,7 +96,7 @@ func NewProcessManager() ProcessManager {
 	}
 }
 
-// FindDaemonProcesses discovers all running CloudWorkstation daemon processes
+// FindDaemonProcesses discovers all running Prism daemon processes
 func (pm *DefaultProcessManager) FindDaemonProcesses() ([]ProcessInfo, error) {
 	var processes []ProcessInfo
 

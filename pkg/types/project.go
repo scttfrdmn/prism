@@ -1,4 +1,4 @@
-// Package types provides project and budget management types for CloudWorkstation.
+// Package types provides project and budget management types for Prism.
 //
 // This file defines the core types for project-based resource organization and
 // budget management, enabling researchers to organize instances, storage, and

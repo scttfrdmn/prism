@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/scttfrdmn/cloudworkstation/pkg/ami"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/ami"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // AMI processes AMI-related commands
@@ -879,10 +879,10 @@ func (s *AMISaveBuilderService) createSaveRequest(saveConfig *AMISaveConfig, ins
 		ProjectID:     saveConfig.ProjectID,
 		Public:        saveConfig.Public,
 		Tags: map[string]string{
-			"Name":                             saveConfig.TemplateName,
-			"CloudWorkstationTemplate":         saveConfig.TemplateName,
-			"CloudWorkstationSavedFrom":        saveConfig.InstanceName,
-			"CloudWorkstationOriginalTemplate": instance.Template,
+			"Name":                  saveConfig.TemplateName,
+			"PrismTemplate":         saveConfig.TemplateName,
+			"PrismSavedFrom":        saveConfig.InstanceName,
+			"PrismOriginalTemplate": instance.Template,
 		},
 	}
 }

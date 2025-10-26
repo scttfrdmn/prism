@@ -186,10 +186,10 @@ build_binaries() {
     
     # Build daemon
     print_step "Building daemon binary (cwsd)..."
-    eval "go build $ldflags -o bin/cwsd ./cmd/cwsd"
+    eval "go build $ldflags -o bin/prismd ./cmd/cwsd"
     
     # Verify binaries
-    if [[ ! -x "bin/cws" ]] || [[ ! -x "bin/cwsd" ]]; then
+    if [[ ! -x "bin/cws" ]] || [[ ! -x "bin/prismd" ]]; then
         print_error "Failed to build binaries"
         exit 1
     fi
@@ -197,11 +197,11 @@ build_binaries() {
     # Show binary information
     print_success "Built binaries:"
     echo "  CLI:    $(file bin/cws)"
-    echo "  Daemon: $(file bin/cwsd)"
+    echo "  Daemon: $(file bin/prismd)"
     
     # Test binary execution
     print_step "Testing binary functionality..."
-    if ./bin/cws --version >/dev/null 2>&1 && ./bin/cwsd --version >/dev/null 2>&1; then
+    if ./bin/prism --version >/dev/null 2>&1 && ./bin/prismd --version >/dev/null 2>&1; then
         print_success "Binaries execute correctly"
     else
         print_error "Binary functionality test failed"

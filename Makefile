@@ -20,13 +20,13 @@ build: build-daemon build-cli build-gui-optional
 .PHONY: build-daemon
 build-daemon:
 	@echo "Building CloudWorkstation daemon..."
-	@go build $(LDFLAGS) -o bin/cwsd ./cmd/cwsd
+	@go build $(LDFLAGS) -o bin/prismd ./cmd/prismd
 
 # Build CLI binary  
 .PHONY: build-cli
 build-cli:
 	@echo "Building CloudWorkstation CLI..."
-	@go build $(LDFLAGS) -o bin/cws ./cmd/cws
+	@go build $(LDFLAGS) -o bin/prism ./cmd/cws
 
 # Build GUI binary
 .PHONY: build-gui
@@ -36,7 +36,7 @@ build-gui:
 		echo "❌ Wails v3 CLI not found. Install with: go install github.com/wailsapp/wails/v3/cmd/wails3@latest"; \
 		exit 1; \
 	fi
-	@cd cmd/cws-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build)
+	@cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build)
 
 # Build GUI binary (optional - won't fail if prerequisites missing)
 .PHONY: build-gui-optional
@@ -44,7 +44,7 @@ build-gui-optional:
 	@echo "🎨 Building CloudWorkstation GUI (optional)..."
 	@if command -v wails3 >/dev/null 2>&1 || [ -f "$$HOME/go/bin/wails3" ]; then \
 		echo "✅ Wails CLI found, building GUI..."; \
-		cd cmd/cws-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build); \
+		cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build); \
 		echo "✅ GUI built successfully"; \
 	else \
 		echo "⚠️  Wails v3 CLI not found - GUI build skipped"; \
@@ -56,16 +56,16 @@ build-gui-optional:
 .PHONY: build-gui-force
 build-gui-force:
 	@echo "⚠️  Force building CloudWorkstation GUI (may fail)..."
-	@CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" go build $(LDFLAGS) -o bin/cws-gui ./cmd/cws-gui
+	@CGO_LDFLAGS="-Wl,-no_warn_duplicate_libraries" go build $(LDFLAGS) -o bin/prism-gui ./cmd/prism-gui
 
 # Install binaries to system
 .PHONY: install
 install: build
 	@echo "Installing CloudWorkstation..."
-	@sudo cp bin/cwsd /usr/local/bin/
-	@sudo cp bin/cws /usr/local/bin/
+	@sudo cp bin/prismd /usr/local/bin/
+	@sudo cp bin/prism /usr/local/bin/
 	@echo "✅ CloudWorkstation core binaries installed successfully"
-	@echo "Start daemon with: cwsd"
+	@echo "Start daemon with: prismd"
 	@echo "Use CLI with: cws --help"
 	@echo ""
 	@echo "🔧 Service Management:"
@@ -78,9 +78,9 @@ install: build
 uninstall:
 	@echo "Uninstalling CloudWorkstation..."
 	@./scripts/service-manager.sh uninstall 2>/dev/null || echo "Service not installed or already removed"
-	@sudo rm -f /usr/local/bin/cwsd
+	@sudo rm -f /usr/local/bin/prismd
 	@sudo rm -f /usr/local/bin/cws
-	@sudo rm -f /usr/local/bin/cws-gui
+	@sudo rm -f /usr/local/bin/prism-gui
 	@echo "✅ CloudWorkstation uninstalled"
 
 # Clean build artifacts
@@ -102,13 +102,13 @@ test-automated: build
 # Run GUI Playwright tests
 test-gui:
 	@echo "🎨 Running GUI tests..."
-	@cd cmd/cws-gui/frontend && npm install && npx playwright test
+	@cd cmd/prism-gui/frontend && npm install && npx playwright test
 
 # Run all unit tests (excluding GUI/TUI packages planned for Phase 2)
 # Uses development mode to avoid keychain password prompts
 test-unit:
 	@echo "🧪 Running unit tests..."
-	@CLOUDWORKSTATION_DEV=true GO_ENV=test go test -race -short $$(go list ./... | grep -v -E "(cmd/cws-gui|internal/tui)") -coverprofile=unit-coverage.out
+	@PRISM_DEV=true GO_ENV=test go test -race -short $$(go list ./... | grep -v -E "(cmd/prism-gui|internal/tui)") -coverprofile=unit-coverage.out
 
 # Run integration tests with LocalStack
 test-integration:
@@ -116,8 +116,8 @@ test-integration:
 	@docker-compose -f docker-compose.test.yml up -d localstack
 	@echo "⏳ Waiting for LocalStack to be ready..."
 	@sleep 10
-	@CLOUDWORKSTATION_DEV=true INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=aws-integration-coverage.out
-	@CLOUDWORKSTATION_DEV=true INTEGRATION_TESTS=1 go test -tags=integration ./pkg/ami -v -coverprofile=ami-integration-coverage.out
+	@PRISM_DEV=true INTEGRATION_TESTS=1 go test -tags=integration ./pkg/aws -v -coverprofile=aws-integration-coverage.out
+	@PRISM_DEV=true INTEGRATION_TESTS=1 go test -tags=integration ./pkg/ami -v -coverprofile=ami-integration-coverage.out
 	@docker-compose -f docker-compose.test.yml down
 	@echo "📊 Integration test coverage:"
 	@go tool cover -func=aws-integration-coverage.out | grep "total"
@@ -147,7 +147,7 @@ test-aws: build
 	@echo "⚠️  This will create real AWS resources and may incur costs!"
 	@echo "📋 Ensure you have:"
 	@echo "  - AWS profile 'aws' configured"
-	@echo "  - CloudWorkstation daemon running (./bin/cwsd)"
+	@echo "  - CloudWorkstation daemon running (./bin/prismd)"
 	@echo "  - Appropriate AWS permissions"
 	@echo ""
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
@@ -203,31 +203,31 @@ test-smoke: build
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "5/8 Testing CLI commands..."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws --help > /dev/null
-	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws about > /dev/null
-	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws templates > /dev/null
+	@PRISM_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/prism --help > /dev/null
+	@PRISM_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/prism about > /dev/null
+	@PRISM_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/prism templates > /dev/null
 	@echo "✅ CLI commands working"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "6/8 Testing daemon API..."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@./bin/cwsd > /tmp/smoke-daemon.log 2>&1 & echo $$! > /tmp/smoke-daemon.pid
+	@./bin/prismd > /tmp/smoke-daemon.log 2>&1 & echo $$! > /tmp/smoke-daemon.pid
 	@sleep 3
-	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws admin daemon status || (kill `cat /tmp/smoke-daemon.pid` 2>/dev/null; exit 1)
+	@PRISM_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/prism admin daemon status || (kill `cat /tmp/smoke-daemon.pid` 2>/dev/null; exit 1)
 	@kill `cat /tmp/smoke-daemon.pid` 2>/dev/null && rm -f /tmp/smoke-daemon.pid /tmp/smoke-daemon.log
 	@echo "✅ Daemon API working"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "7/8 Testing template validation..."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws templates validate || echo "⚠️  Template validation issues detected"
+	@PRISM_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/prism templates validate || echo "⚠️  Template validation issues detected"
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "8/8 Testing binary versions..."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@./bin/cws --version
-	@./bin/cwsd --version
-	@if [ -f "./bin/cws-gui" ]; then ./bin/cws-gui -help 2>&1 | head -1; fi
+	@./bin/prism --version
+	@./bin/prismd --version
+	@if [ -f "./bin/prism-gui" ]; then ./bin/prism-gui -help 2>&1 | head -1; fi
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo "✅ All smoke tests passed!"
@@ -292,7 +292,7 @@ check-docs:
 # Validate templates
 validate-templates: build-cli
 	@echo "🔍 Validating all templates..."
-	@./bin/cws templates validate
+	@./bin/prism templates validate
 
 # Enhanced linting (Go Report Card tools for A+ rating)
 .PHONY: lint
@@ -339,8 +339,8 @@ security-go:
 # npm vulnerability scan
 security-npm:
 	@echo "🔒 Running npm security scan..."
-	@if [ -d "cmd/cws-gui/frontend" ]; then \
-		cd cmd/cws-gui/frontend && npm audit; \
+	@if [ -d "cmd/prism-gui/frontend" ]; then \
+		cd cmd/prism-gui/frontend && npm audit; \
 		echo "✅ npm security scan passed!"; \
 	else \
 		echo "⚠️  Frontend directory not found, skipping npm audit"; \
@@ -366,13 +366,13 @@ deps:
 .PHONY: dev-daemon
 dev-daemon: build-daemon
 	@echo "Starting daemon in development mode..."
-	@./bin/cwsd
+	@./bin/prismd
 
 # Development: quick CLI test
 .PHONY: dev-cli
 dev-cli: build-cli
 	@echo "Testing CLI..."
-	@./bin/cws --help
+	@./bin/prism --help
 
 # Create release builds for multiple platforms
 .PHONY: release
@@ -382,27 +382,27 @@ release: clean
 	
 	# Linux amd64 (GUI excluded due to cross-compile OpenGL issues)
 	@mkdir -p bin/release/linux-amd64
-	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/cwsd ./cmd/cwsd
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/prismd ./cmd/prismd
 	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-amd64/cws ./cmd/cws
 	
 	# Linux arm64 (GUI excluded due to cross-compile OpenGL issues)
 	@mkdir -p bin/release/linux-arm64
-	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/cwsd ./cmd/cwsd
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/prismd ./cmd/prismd
 	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/linux-arm64/cws ./cmd/cws
 	
 	# macOS amd64
 	@mkdir -p bin/release/darwin-amd64
-	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/cwsd ./cmd/cwsd
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/prismd ./cmd/prismd
 	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-amd64/cws ./cmd/cws
 	
 	# macOS arm64 (Apple Silicon)
 	@mkdir -p bin/release/darwin-arm64
-	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/cwsd ./cmd/cwsd
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/prismd ./cmd/prismd
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -tags crosscompile -o bin/release/darwin-arm64/cws ./cmd/cws
 	
 	# Windows amd64 (GUI excluded due to cross-compile OpenGL issues)
 	@mkdir -p bin/release/windows-amd64
-	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/cwsd.exe ./cmd/cwsd
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/prismd.exe ./cmd/prismd
 	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -tags crosscompile -o bin/release/windows-amd64/cws.exe ./cmd/cws
 	
 	@echo "✅ Release binaries built in bin/release/"
@@ -416,7 +416,7 @@ goreleaser-snapshot:
 	@command -v goreleaser >/dev/null 2>&1 || { echo "❌ GoReleaser not found. Install with: brew install goreleaser"; exit 1; }
 	@goreleaser build --snapshot --clean
 	@echo "✅ Snapshot build complete! Check dist/ directory"
-	@echo "   Binaries: dist/*/cws and dist/*/cwsd"
+	@echo "   Binaries: dist/*/cws and dist/*/prismd"
 	@echo "   Archives: dist/*.tar.gz and dist/*.zip"
 
 # Create a full release with GoReleaser (requires git tag)
@@ -600,7 +600,7 @@ install-complete: install service-install
 	@echo "🎉 CloudWorkstation installation complete!"
 	@echo ""
 	@echo "📋 What's installed:"
-	@echo "  ✅ Core binaries (cws, cwsd) in /usr/local/bin/"
+	@echo "  ✅ Core binaries (cws, prismd) in /usr/local/bin/"
 	@echo "  ✅ System service configured for auto-start"
 	@echo ""
 	@echo "🚀 Quick start:"
@@ -626,8 +626,8 @@ windows-installer:
 # Build Windows service wrapper only
 windows-service: bin
 	@echo "🪟 Building Windows service wrapper..."
-	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/cwsd-service.exe ./cmd/cwsd-service
-	@echo "✅ Windows service wrapper built: bin/cwsd-service.exe"
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/prismd-service.exe ./cmd/prismd-service
+	@echo "✅ Windows service wrapper built: bin/prismd-service.exe"
 
 # Sign Windows MSI (requires certificate)
 windows-sign-msi:
@@ -677,9 +677,9 @@ package-test:
 	
 	# Create dummy binaries
 	@echo "#!/bin/sh\necho \"CloudWorkstation CLI v0.4.1\"" > bin/release/darwin-amd64-cws
-	@echo "#!/bin/sh\necho \"CloudWorkstation Daemon v0.4.1\"" > bin/release/darwin-amd64-cwsd
-	@echo "#!/bin/sh\necho \"CloudWorkstation GUI v0.4.1\"" > bin/release/darwin-amd64-cws-gui
-	@chmod +x bin/release/darwin-amd64-cws bin/release/darwin-amd64-cwsd bin/release/darwin-amd64-cws-gui
+	@echo "#!/bin/sh\necho \"CloudWorkstation Daemon v0.4.1\"" > bin/release/darwin-amd64-prismd
+	@echo "#!/bin/sh\necho \"CloudWorkstation GUI v0.4.1\"" > bin/release/darwin-amd64-prism-gui
+	@chmod +x bin/release/darwin-amd64-cws bin/release/darwin-amd64-prismd bin/release/darwin-amd64-prism-gui
 	
 	# Create test archives
 	@cd bin/release && tar -czf ../../dist/homebrew/cloudworkstation-darwin-amd64.tar.gz darwin-amd64-*
@@ -938,9 +938,9 @@ help:
 	@echo ""
 	@echo "Available targets:"
 	@echo "  build        Build daemon, CLI, and GUI"
-	@echo "  build-daemon Build daemon binary (cwsd)"
+	@echo "  build-daemon Build daemon binary (prismd)"
 	@echo "  build-cli    Build CLI binary (cws)"
-	@echo "  build-gui    Build GUI binary (cws-gui)"
+	@echo "  build-gui    Build GUI binary (prism-gui)"
 	@echo "  install      Install binaries to /usr/local/bin"
 	@echo "  install-complete Install binaries and setup system service"
 	@echo "  uninstall    Remove binaries from /usr/local/bin"

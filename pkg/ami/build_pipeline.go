@@ -545,10 +545,10 @@ func (i *InstanceAMICreationStep) Execute(ctx context.Context, pipeline *Instanc
 
 func (i *InstanceAMICreationStep) buildInstanceSaveTags(request InstanceSaveRequest, amiName, timestamp string) []types.TagSpecification {
 	nameKey := "Name"
-	templateKey := "CloudWorkstationTemplate"
-	sourceKey := "CloudWorkstationSource"
-	savedFromKey := "CloudWorkstationSavedFrom"
-	savedDateKey := "CloudWorkstationSavedDate"
+	templateKey := "PrismTemplate"
+	sourceKey := "PrismSource"
+	savedFromKey := "PrismSavedFrom"
+	savedDateKey := "PrismSavedDate"
 	sourceValue := "saved-instance"
 
 	tags := []types.Tag{

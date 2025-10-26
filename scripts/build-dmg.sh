@@ -107,33 +107,33 @@ build_binaries() {
         log_info "Building for Intel (amd64)..."
         GOOS=darwin GOARCH=amd64 make build-cli build-daemon
         mv bin/cws "$temp_dir/cws-amd64"
-        mv bin/cwsd "$temp_dir/cwsd-amd64"
+        mv bin/prismd "$temp_dir/cwsd-amd64"
         
         # Build GUI for Intel (if not dev build)
         if [[ "$DEV_BUILD" == false ]]; then
             GOOS=darwin GOARCH=amd64 make build-gui
-            mv bin/cws-gui "$temp_dir/cws-gui-amd64"
+            mv bin/prism-gui "$temp_dir/cws-gui-amd64"
         fi
         
         # Build for Apple Silicon
         log_info "Building for Apple Silicon (arm64)..."
         GOOS=darwin GOARCH=arm64 make build-cli build-daemon
         mv bin/cws "$temp_dir/cws-arm64"
-        mv bin/cwsd "$temp_dir/cwsd-arm64"
+        mv bin/prismd "$temp_dir/cwsd-arm64"
         
         # Build GUI for Apple Silicon (if not dev build)
         if [[ "$DEV_BUILD" == false ]]; then
             GOOS=darwin GOARCH=arm64 make build-gui
-            mv bin/cws-gui "$temp_dir/cws-gui-arm64"
+            mv bin/prism-gui "$temp_dir/cws-gui-arm64"
         fi
         
         # Create universal binaries
         mkdir -p bin
         lipo -create "$temp_dir/cws-amd64" "$temp_dir/cws-arm64" -output "bin/cws"
-        lipo -create "$temp_dir/cwsd-amd64" "$temp_dir/cwsd-arm64" -output "bin/cwsd"
+        lipo -create "$temp_dir/cwsd-amd64" "$temp_dir/cwsd-arm64" -output "bin/prismd"
         
         if [[ "$DEV_BUILD" == false ]]; then
-            lipo -create "$temp_dir/cws-gui-amd64" "$temp_dir/cws-gui-arm64" -output "bin/cws-gui"
+            lipo -create "$temp_dir/cws-gui-amd64" "$temp_dir/cws-gui-arm64" -output "bin/prism-gui"
         fi
         
         # Clean up temp directory
@@ -151,12 +151,12 @@ build_binaries() {
     fi
     
     # Verify binaries
-    if [[ ! -f "bin/cws" ]] || [[ ! -f "bin/cwsd" ]]; then
+    if [[ ! -f "bin/cws" ]] || [[ ! -f "bin/prismd" ]]; then
         log_error "Failed to build required binaries"
         exit 1
     fi
     
-    if [[ "$DEV_BUILD" == false ]] && [[ ! -f "bin/cws-gui" ]]; then
+    if [[ "$DEV_BUILD" == false ]] && [[ ! -f "bin/prism-gui" ]]; then
         log_error "Failed to build GUI binary"
         exit 1
     fi
@@ -180,9 +180,9 @@ create_app_bundle() {
     
     # Copy binaries
     cp "$PROJECT_ROOT/bin/cws" "$macos_path/"
-    cp "$PROJECT_ROOT/bin/cwsd" "$macos_path/"
+    cp "$PROJECT_ROOT/bin/prismd" "$macos_path/"
     if [[ "$DEV_BUILD" == false ]]; then
-        cp "$PROJECT_ROOT/bin/cws-gui" "$macos_path/"
+        cp "$PROJECT_ROOT/bin/prism-gui" "$macos_path/"
     fi
     
     # Create main launcher script
@@ -703,7 +703,7 @@ SUPPORT:
 
 UNINSTALLATION:
 • Remove CloudWorkstation.app from Applications
-• Remove CLI tools: sudo rm /usr/local/bin/cws /usr/local/bin/cwsd
+• Remove CLI tools: sudo rm /usr/local/bin/cws /usr/local/bin/prismd
 • Remove preferences: ~/Library/Preferences/com.cloudworkstation.*
 
 CloudWorkstation helps academic researchers launch pre-configured

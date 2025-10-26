@@ -1,7 +1,7 @@
-// Package ami provides CloudWorkstation's AMI creation system.
+// Package ami provides Prism's AMI creation system.
 //
 // This package implements automated building of Amazon Machine Images (AMIs) for
-// CloudWorkstation templates. It handles YAML template parsing, EC2 instance
+// Prism templates. It handles YAML template parsing, EC2 instance
 // management for building, AMI creation, and validation.
 //
 // Key Components:
@@ -10,7 +10,7 @@
 //   - Registry: AMI version management and lookup service
 //   - Validator: AMI build validation framework
 //
-// The AMI builder implements CloudWorkstation's core principle of "Default to Success"
+// The AMI builder implements Prism's core principle of "Default to Success"
 // by ensuring every template has reliable, pre-built AMIs available across all
 // supported regions and architectures.
 package ami
@@ -79,7 +79,7 @@ type BuildRequest struct {
 // InstanceSaveRequest contains parameters for saving a running instance as an AMI
 type InstanceSaveRequest struct {
 	InstanceID    string            // EC2 instance ID to save
-	InstanceName  string            // CloudWorkstation instance name
+	InstanceName  string            // Prism instance name
 	TemplateName  string            // Name for the new template
 	Description   string            // Template description
 	CopyToRegions []string          // Regions to copy AMI

@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
 // handleAPIVersions returns information about supported API versions
@@ -40,7 +40,7 @@ func (s *Server) handleAPIVersions(w http.ResponseWriter, r *http.Request) {
 		DefaultVersion: s.versionManager.GetDefaultVersion(),
 		StableVersion:  s.versionManager.GetStableVersion(),
 		LatestVersion:  s.versionManager.GetLatestVersion(),
-		DocsBaseURL:    "https://docs.cloudworkstation.dev/api",
+		DocsBaseURL:    "https://docs.prism.dev/api",
 	}
 
 	_ = json.NewEncoder(w).Encode(response)
@@ -64,7 +64,7 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 			Details:    fmt.Sprintf("No handler found for %s %s", r.Method, r.URL.Path),
 			RequestID:  requestID,
 			APIVersion: version,
-			DocsURL:    fmt.Sprintf("https://docs.cloudworkstation.dev/api/%s", version),
+			DocsURL:    fmt.Sprintf("https://docs.prism.dev/api/%s", version),
 		}
 
 		w.WriteHeader(http.StatusNotFound)
@@ -94,7 +94,7 @@ func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
 		Message:   "No API version specified",
 		Details:   "Please specify an API version in the URL path, e.g., /api/v1/...",
 		RequestID: requestID,
-		DocsURL:   "https://docs.cloudworkstation.dev/api",
+		DocsURL:   "https://docs.prism.dev/api",
 	}
 
 	w.WriteHeader(http.StatusBadRequest)

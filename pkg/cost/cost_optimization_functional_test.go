@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TestCostOptimizerFunctionalWorkflow validates complete cost optimizer functionality

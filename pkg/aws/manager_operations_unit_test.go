@@ -3,7 +3,7 @@ package aws
 import (
 	"testing"
 
-	ctypes "github.com/scttfrdmn/cloudworkstation/pkg/types"
+	ctypes "github.com/scttfrdmn/prism/pkg/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -187,27 +187,27 @@ func TestManagerIntegrationPoints(t *testing.T) {
 			description string
 		}{
 			{
-				workflow:    "cws launch python-ml my-project",
+				workflow:    "prism launch python-ml my-project",
 				testFocus:   "Template resolution + EC2 RunInstances + State update",
 				description: "Users launch instances from templates",
 			},
 			{
-				workflow:    "cws stop my-project",
+				workflow:    "prism stop my-project",
 				testFocus:   "Instance lookup by name + EC2 StopInstances",
 				description: "Users stop running instances",
 			},
 			{
-				workflow:    "cws hibernate my-project",
+				workflow:    "prism hibernate my-project",
 				testFocus:   "Hibernation capability check + fallback to stop",
 				description: "Users hibernate instances for cost savings",
 			},
 			{
-				workflow:    "cws volume create shared-data",
+				workflow:    "prism volume create shared-data",
 				testFocus:   "EFS CreateFileSystem + State update",
 				description: "Users create shared storage volumes",
 			},
 			{
-				workflow:    "cws delete my-project",
+				workflow:    "prism delete my-project",
 				testFocus:   "Instance termination + State cleanup",
 				description: "Users clean up instances",
 			},

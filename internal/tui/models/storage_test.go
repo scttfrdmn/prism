@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/api"
 )
 
 // mockStorageAPIClient implements apiClient interface for storage testing

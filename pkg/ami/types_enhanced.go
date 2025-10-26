@@ -79,7 +79,7 @@ type EnhancedBuildResult struct {
 	CopiedAMIs map[string]string `json:"copied_amis,omitempty"`
 }
 
-// EnhancedTemplate represents an enhanced CloudWorkstation template with additional fields.
+// EnhancedTemplate represents an enhanced Prism template with additional fields.
 type EnhancedTemplate struct {
 	// Name is the template name
 	Name string `yaml:"name" json:"name"`

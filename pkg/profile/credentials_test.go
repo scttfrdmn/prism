@@ -48,8 +48,8 @@ func TestAWSCredentialsProvider(t *testing.T) {
 	if creds.Expires != expiry {
 		t.Errorf("Expected expiry time %v, got %v", expiry, creds.Expires)
 	}
-	if creds.Source != "CloudWorkstation" {
-		t.Errorf("Expected source 'CloudWorkstation', got '%s'", creds.Source)
+	if creds.Source != "Prism" {
+		t.Errorf("Expected source 'Prism', got '%s'", creds.Source)
 	}
 
 	// Test retrieving non-existent credentials

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/aws"
+	"github.com/scttfrdmn/prism/pkg/aws"
 )
 
 // createAWSManagerFromRequest creates a new AWS manager from the request context

@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/version"
+	"github.com/scttfrdmn/prism/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ func NewGUICommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gui",
 		Short: "Launch the graphical user interface",
-		Long: `Launch the CloudWorkstation Graphical User Interface (GUI).
+		Long: `Launch the Prism Graphical User Interface (GUI).
 
 This provides a professional desktop interface for managing your cloud workstations.
 The GUI includes template browsing, instance management, remote desktop connections,
@@ -48,7 +48,7 @@ func runGUI() {
 	}
 
 	// Print GUI initialization message
-	fmt.Printf("Starting CloudWorkstation GUI v%s...\n", version.GetVersion())
+	fmt.Printf("Starting Prism GUI v%s...\n", version.GetVersion())
 
 	// Find and execute the GUI binary
 	guiPath, err := findGUIBinary()
@@ -62,7 +62,7 @@ func runGUI() {
 	}
 
 	// Execute the GUI with any passed flags
-	args := os.Args[2:] // Skip "cws gui"
+	args := os.Args[2:] // Skip "prism gui"
 	cmd := exec.Command(guiPath, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -158,7 +158,7 @@ func findGUIBinary() (string, error) {
 
 	return "", fmt.Errorf(`GUI binary 'cws-gui' not found
 
-The CloudWorkstation GUI requires the cws-gui binary to be built and available.
+The Prism GUI requires the cws-gui binary to be built and available.
 
 Installation options:
   • Homebrew (includes GUI): brew install cloudworkstation

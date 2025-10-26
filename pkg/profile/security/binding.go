@@ -58,7 +58,7 @@ func CreateDeviceBinding(profileID, invitationToken string) (*DeviceBinding, err
 // StoreDeviceBinding stores a device binding in the keychain
 func StoreDeviceBinding(binding *DeviceBinding, profileName string) (string, error) {
 	// IMPROVED UX: Use consistent service name to avoid multiple keychain prompts
-	bindingRef := fmt.Sprintf("CloudWorkstation.profile.%s", profileName)
+	bindingRef := fmt.Sprintf("Prism.profile.%s", profileName)
 
 	// Convert to JSON
 	data, err := json.Marshal(binding)

@@ -1,4 +1,4 @@
-// Package ami provides CloudWorkstation's AMI creation system.
+// Package ami provides Prism's AMI creation system.
 package ami
 
 import (
@@ -100,15 +100,15 @@ func (b *Builder) launchBuilderInstance(ctx context.Context, request BuildReques
 			Value: aws.String(fmt.Sprintf("ami-builder-%s-%s", request.TemplateName, request.BuildID)),
 		},
 		{
-			Key:   aws.String("CloudWorkstationBuilderID"),
+			Key:   aws.String("PrismBuilderID"),
 			Value: aws.String(request.BuildID),
 		},
 		{
-			Key:   aws.String("CloudWorkstationTemplate"),
+			Key:   aws.String("PrismTemplate"),
 			Value: aws.String(request.TemplateName),
 		},
 		{
-			Key:   aws.String("CloudWorkstationBuildType"),
+			Key:   aws.String("PrismBuildType"),
 			Value: aws.String(request.BuildType),
 		},
 	}
@@ -347,23 +347,23 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, request Buil
 					Value: aws.String(amiName),
 				},
 				{
-					Key:   aws.String("CloudWorkstationTemplate"),
+					Key:   aws.String("PrismTemplate"),
 					Value: aws.String(request.TemplateName),
 				},
 				{
-					Key:   aws.String("CloudWorkstationArchitecture"),
+					Key:   aws.String("PrismArchitecture"),
 					Value: aws.String(request.Architecture),
 				},
 				{
-					Key:   aws.String("CloudWorkstationBuildID"),
+					Key:   aws.String("PrismBuildID"),
 					Value: aws.String(request.BuildID),
 				},
 				{
-					Key:   aws.String("CloudWorkstationBuildType"),
+					Key:   aws.String("PrismBuildType"),
 					Value: aws.String(request.BuildType),
 				},
 				{
-					Key:   aws.String("CloudWorkstationBuildDate"),
+					Key:   aws.String("PrismBuildDate"),
 					Value: aws.String(timestamp),
 				},
 			},
@@ -374,7 +374,7 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, request Buil
 	input := &ec2.CreateImageInput{
 		InstanceId:        aws.String(instanceID),
 		Name:              aws.String(amiName),
-		Description:       aws.String(fmt.Sprintf("CloudWorkstation %s template", request.TemplateName)),
+		Description:       aws.String(fmt.Sprintf("Prism %s template", request.TemplateName)),
 		TagSpecifications: tags,
 	}
 
@@ -394,7 +394,7 @@ func (b *Builder) createAMI(ctx context.Context, instanceID string, request Buil
 	return *result.ImageId, nil
 }
 
-// CreateAMIFromInstance creates an AMI from a running CloudWorkstation instance using Builder Pattern (SOLID: Single Responsibility)
+// CreateAMIFromInstance creates an AMI from a running Prism instance using Builder Pattern (SOLID: Single Responsibility)
 func (b *Builder) CreateAMIFromInstance(ctx context.Context, request InstanceSaveRequest) (*BuildResult, error) {
 	// Create instance save pipeline
 	pipeline := NewInstanceSavePipeline(b, request)
@@ -463,7 +463,7 @@ estimated_cost_per_hour:
 tags:
   Name: "%s"
   Type: "saved-instance"
-  Source: "CloudWorkstation-Save"
+  Source: "Prism-Save"
 `,
 		request.TemplateName,
 		request.Description,

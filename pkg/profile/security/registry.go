@@ -35,7 +35,7 @@ func NewRegistryClient(config S3RegistryConfig) (*RegistryClient, error) {
 			return nil, fmt.Errorf("failed to get home directory: %w", err)
 		}
 
-		config.LocalCache = filepath.Join(homeDir, ".cloudworkstation", "registry-cache")
+		config.LocalCache = filepath.Join(homeDir, ".prism", "registry-cache")
 	}
 
 	if err := os.MkdirAll(config.LocalCache, 0755); err != nil {

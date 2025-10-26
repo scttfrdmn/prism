@@ -24,9 +24,9 @@ func NewDaemonCobraCommands(app *App) *DaemonCobraCommands {
 func (dc *DaemonCobraCommands) CreateDaemonCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "daemon",
-		Short: "Manage CloudWorkstation daemon",
-		Long: `Manage the CloudWorkstation background daemon service.
-The daemon provides the API backend for all CloudWorkstation operations.`,
+		Short: "Manage Prism daemon",
+		Long: `Manage the Prism background daemon service.
+The daemon provides the API backend for all Prism operations.`,
 	}
 
 	// Add subcommands
@@ -46,8 +46,8 @@ The daemon provides the API backend for all CloudWorkstation operations.`,
 func (dc *DaemonCobraCommands) createStartCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start the CloudWorkstation daemon",
-		Long:  "Start the CloudWorkstation daemon service in the background.",
+		Short: "Start the Prism daemon",
+		Long:  "Start the Prism daemon service in the background.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return dc.systemCommands.daemonStart()
 		},
@@ -65,8 +65,8 @@ func (dc *DaemonCobraCommands) createStartCommand() *cobra.Command {
 func (dc *DaemonCobraCommands) createStopCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
-		Short: "Stop the CloudWorkstation daemon",
-		Long:  "Stop the running CloudWorkstation daemon service.",
+		Short: "Stop the Prism daemon",
+		Long:  "Stop the running Prism daemon service.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return dc.systemCommands.daemonStop()
 		},
@@ -78,7 +78,7 @@ func (dc *DaemonCobraCommands) createStatusCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Check daemon status",
-		Long:  "Check if the CloudWorkstation daemon is running and responsive.",
+		Long:  "Check if the Prism daemon is running and responsive.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return dc.systemCommands.daemonStatus()
 		},
@@ -95,8 +95,8 @@ func (dc *DaemonCobraCommands) createStatusCommand() *cobra.Command {
 func (dc *DaemonCobraCommands) createRestartCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "restart",
-		Short: "Restart the CloudWorkstation daemon",
-		Long:  "Stop and then start the CloudWorkstation daemon service.",
+		Short: "Restart the Prism daemon",
+		Long:  "Stop and then start the Prism daemon service.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := dc.systemCommands.daemonStop(); err != nil {
 				// Continue even if stop fails (daemon might not be running)
@@ -111,7 +111,7 @@ func (dc *DaemonCobraCommands) createLogsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logs",
 		Short: "View daemon logs",
-		Long:  "Display logs from the CloudWorkstation daemon.",
+		Long:  "Display logs from the Prism daemon.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return dc.systemCommands.daemonLogs()
 		},
@@ -130,7 +130,7 @@ func (dc *DaemonCobraCommands) createConfigCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage daemon configuration",
-		Long:  "View and manage CloudWorkstation daemon configuration settings.",
+		Long:  "View and manage Prism daemon configuration settings.",
 	}
 
 	// Add config subcommands

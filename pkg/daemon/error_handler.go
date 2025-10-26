@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // writeError writes a JSON error response to the response writer

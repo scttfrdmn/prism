@@ -4,7 +4,7 @@ package marketplace
 import (
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/templates"
 )
 
 // MarketplaceRegistry defines the interface for community template operations
@@ -65,7 +65,7 @@ type CommunityTemplate struct {
 	ForkCount     int     `json:"fork_count"`     // Number of forks
 
 	// Quality indicators
-	Verified          bool      `json:"verified"`           // Verified by CloudWorkstation team
+	Verified          bool      `json:"verified"`           // Verified by Prism team
 	Featured          bool      `json:"featured"`           // Featured template
 	LastTested        time.Time `json:"last_tested"`        // Last automated testing
 	TestStatus        string    `json:"test_status"`        // "passed", "failed", "unknown"

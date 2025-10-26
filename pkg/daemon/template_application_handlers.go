@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/templates"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // handleTemplateApply handles applying templates to running instances
@@ -295,7 +295,7 @@ func (s *Server) createRemoteExecutor(instance types.Instance) (templates.Remote
 // getSSHKeyPath returns the path to the SSH key for instance connections
 func (s *Server) getSSHKeyPath() string {
 	// In a full implementation, this would:
-	// 1. Check for key in CloudWorkstation config
+	// 1. Check for key in Prism config
 	// 2. Look for default AWS key pairs
 	// 3. Handle per-instance key management
 

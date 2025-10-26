@@ -26,8 +26,8 @@ func NewInvitationManager(profileManager *ManagerEnhanced) (*InvitationManager, 
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Create CloudWorkstation invitations directory if it doesn't exist
-	invitationsDir := filepath.Join(homeDir, ".cloudworkstation", "invitations")
+	// Create Prism invitations directory if it doesn't exist
+	invitationsDir := filepath.Join(homeDir, ".prism", "invitations")
 	generatedDir := filepath.Join(invitationsDir, "generated")
 	receivedDir := filepath.Join(invitationsDir, "received")
 

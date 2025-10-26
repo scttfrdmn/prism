@@ -1,4 +1,4 @@
-// Package templates provides marketplace validation and security scanning for CloudWorkstation templates.
+// Package templates provides marketplace validation and security scanning for Prism templates.
 //
 // The marketplace validator performs comprehensive security analysis, dependency checking,
 // and quality validation to ensure templates meet community and institutional standards.
@@ -1152,7 +1152,7 @@ func (v *MarketplaceValidator) isVulnerableVersion(dep TemplateDependency) bool 
 	return false
 }
 
-// isLicenseCompatible checks if license is compatible with CloudWorkstation
+// isLicenseCompatible checks if license is compatible with Prism
 func (v *MarketplaceValidator) isLicenseCompatible(license string) bool {
 	// Compatible open-source licenses
 	compatibleLicenses := []string{

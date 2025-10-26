@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // AMICache provides in-memory caching for AMI information to improve performance

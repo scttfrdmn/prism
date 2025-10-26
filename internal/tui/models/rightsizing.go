@@ -9,9 +9,9 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/api"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/components"
-	"github.com/scttfrdmn/cloudworkstation/internal/tui/styles"
+	"github.com/scttfrdmn/prism/internal/tui/api"
+	"github.com/scttfrdmn/prism/internal/tui/components"
+	"github.com/scttfrdmn/prism/internal/tui/styles"
 )
 
 // RightsizingModel represents the rightsizing recommendations view
@@ -74,7 +74,7 @@ func NewRightsizingModel(apiClient apiClient) RightsizingModel {
 	instancesTable := components.NewTable(instanceColumns, []table.Row{}, 80, 8, true)
 
 	// Create status bar and spinner
-	statusBar := components.NewStatusBar("CloudWorkstation Rightsizing", "")
+	statusBar := components.NewStatusBar("Prism Rightsizing", "")
 	spinner := components.NewSpinner("Loading rightsizing data...")
 
 	return RightsizingModel{
@@ -487,7 +487,7 @@ func (m RightsizingModel) renderSavings() string {
 
 	b.WriteString("\n")
 	b.WriteString(theme.SubTitle.Render("Optimization Strategy") + "\n\n")
-	b.WriteString("CloudWorkstation analyzes 30-day utilization patterns to identify:\n")
+	b.WriteString("Prism analyzes 30-day utilization patterns to identify:\n")
 	b.WriteString("• Over-provisioned instances (low CPU/memory usage)\n")
 	b.WriteString("• Under-utilized resources (inefficient workload placement)\n")
 	b.WriteString("• Cost-effective alternatives (ARM instances, spot instances)\n")

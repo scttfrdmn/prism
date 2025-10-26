@@ -1,4 +1,4 @@
-// Package cli provides budget management commands for CloudWorkstation.
+// Package cli provides budget management commands for Prism.
 //
 // The budget system provides comprehensive financial controls for research computing,
 // enabling researchers and institutions to track spending, set limits, and automate
@@ -13,7 +13,7 @@
 //   - Alert system: Email, Slack, webhook notifications for budget thresholds
 //
 // Design Philosophy:
-// Follows CloudWorkstation's "Progressive Disclosure" principle - simple budget
+// Follows Prism's "Progressive Disclosure" principle - simple budget
 // creation with optional advanced features like automated actions and custom alerts.
 //
 // Usage Examples:
@@ -35,9 +35,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/scttfrdmn/cloudworkstation/pkg/api/client"
-	"github.com/scttfrdmn/cloudworkstation/pkg/project"
-	"github.com/scttfrdmn/cloudworkstation/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/api/client"
+	"github.com/scttfrdmn/prism/pkg/project"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +58,7 @@ func (bc *BudgetCommands) CreateBudgetCommand() *cobra.Command {
 		Short: "Comprehensive budget management for research computing costs",
 		Long: `Manage budgets, track spending, and control costs for research computing.
 
-CloudWorkstation's budget system provides enterprise-grade financial controls
+Prism's budget system provides enterprise-grade financial controls
 with real-time cost tracking, automated actions, and detailed analytics.
 
 Budget Types:
@@ -96,7 +96,7 @@ Features:
 
 // budgetHelp displays help information and current budget overview
 func (bc *BudgetCommands) budgetHelp() error {
-	fmt.Printf("💰 CloudWorkstation Budget Management\n\n")
+	fmt.Printf("💰 Prism Budget Management\n\n")
 
 	fmt.Printf("🏗️ Budget Management:\n")
 	fmt.Printf("   cws budget list                    List all budgets and status\n")

@@ -1,4 +1,4 @@
-// Package templates provides CloudWorkstation's unified template system.
+// Package templates provides Prism's unified template system.
 package templates
 
 import (
@@ -241,7 +241,7 @@ func createSecurityTestSuite() TestSuite {
 func createIntegrationTestSuite() TestSuite {
 	return TestSuite{
 		Name:        "integration",
-		Description: "Integration with CloudWorkstation features",
+		Description: "Integration with Prism features",
 		Tests: []TemplateTest{
 			{
 				Name:        "hibernation_support",

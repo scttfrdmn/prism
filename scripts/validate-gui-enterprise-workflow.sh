@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Check if GUI binary exists
-if [ ! -f "bin/cws-gui" ]; then
+if [ ! -f "bin/prism-gui" ]; then
     echo -e "${RED}❌ GUI binary not found. Building from source...${NC}"
     make build-gui
 fi
@@ -24,7 +24,7 @@ fi
 echo -e "${BLUE}📋 Step 1: Checking daemon status...${NC}"
 if ! pgrep -f cwsd > /dev/null; then
     echo -e "${YELLOW}⚠️ Daemon not running. Starting daemon...${NC}"
-    ./bin/cwsd &
+    ./bin/prismd &
     sleep 3
 fi
 
@@ -38,7 +38,7 @@ echo -e "${GREEN}✅ Daemon API accessible${NC}"
 
 # Test GUI binary capabilities  
 echo -e "${BLUE}📋 Step 3: Testing GUI binary capabilities...${NC}"
-if ! ./bin/cws-gui --version > /dev/null 2>&1; then
+if ! ./bin/prism-gui --version > /dev/null 2>&1; then
     echo -e "${RED}❌ GUI binary not executable or missing${NC}"
     exit 1
 fi
@@ -90,8 +90,8 @@ fi
 echo -e "${BLUE}📋 Step 5: Testing GUI configuration...${NC}"
 
 # Check GUI configuration capabilities without launching UI
-export CLOUDWORKSTATION_DEV=true
-if ./bin/cws-gui --help 2>&1 | grep -q "CloudWorkstation"; then
+export PRISM_DEV=true
+if ./bin/prism-gui --help 2>&1 | grep -q "CloudWorkstation"; then
     echo -e "${GREEN}✅ GUI configuration and help system functional${NC}"
 else
     echo -e "${YELLOW}⚠️ GUI help system may need attention${NC}"
@@ -109,7 +109,7 @@ fi
 
 # Test profile system (enterprise user management)
 echo "  Testing profile system..."
-if ./bin/cws profiles current > /dev/null 2>&1; then
+if ./bin/prism profiles current > /dev/null 2>&1; then
     echo -e "${GREEN}  ✅ Profile system functional${NC}"
 else
     echo -e "${YELLOW}  ⚠️ Profile system needs setup${NC}"
@@ -126,7 +126,7 @@ echo "  ├── ✅ Profile System: User management ready"
 echo "  └── ✅ Configuration: GUI loads without errors"
 
 echo -e "\n${GREEN}🎉 GUI Enterprise Workflow Validation: PASSED${NC}"
-echo -e "${BLUE}💡 GUI can be launched with: ./bin/cws-gui${NC}"
+echo -e "${BLUE}💡 GUI can be launched with: ./bin/prism-gui${NC}"
 echo -e "${BLUE}💡 Enterprise features: Projects, budgets, cost tracking, hibernation${NC}"
 
 exit 0

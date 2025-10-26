@@ -11,7 +11,7 @@ import (
 	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 )
 
-// EFSManager handles EFS operations for CloudWorkstation
+// EFSManager handles EFS operations for Prism
 type EFSManager struct {
 	efsClient *efs.Client
 	ec2Client *ec2.Client
@@ -70,8 +70,8 @@ func (m *EFSManager) CreateEFSFilesystem(req StorageRequest) (*StorageInfo, erro
 	// Add tags
 	tags := []efsTypes.Tag{
 		{Key: aws.String("Name"), Value: aws.String(req.Name)},
-		{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
-		{Key: aws.String("CreatedBy"), Value: aws.String("CloudWorkstation")},
+		{Key: aws.String("Prism"), Value: aws.String("true")},
+		{Key: aws.String("CreatedBy"), Value: aws.String("Prism")},
 	}
 	input.Tags = tags
 
@@ -97,7 +97,7 @@ func (m *EFSManager) CreateEFSFilesystem(req StorageRequest) (*StorageInfo, erro
 	return storageInfo, nil
 }
 
-// ListEFSFilesystems lists all CloudWorkstation EFS filesystems
+// ListEFSFilesystems lists all Prism EFS filesystems
 func (m *EFSManager) ListEFSFilesystems() ([]StorageInfo, error) {
 	ctx := context.Background()
 
@@ -110,20 +110,20 @@ func (m *EFSManager) ListEFSFilesystems() ([]StorageInfo, error) {
 	var storageInfos []StorageInfo
 
 	for _, filesystem := range result.FileSystems {
-		// Check if this is a CloudWorkstation EFS
-		isCloudWorkstation := false
+		// Check if this is a Prism EFS
+		isPrism := false
 		name := *filesystem.FileSystemId // Default name
 
 		for _, tag := range filesystem.Tags {
-			if *tag.Key == "CloudWorkstation" && *tag.Value == "true" {
-				isCloudWorkstation = true
+			if *tag.Key == "Prism" && *tag.Value == "true" {
+				isPrism = true
 			}
 			if *tag.Key == "Name" {
 				name = *tag.Value
 			}
 		}
 
-		if !isCloudWorkstation {
+		if !isPrism {
 			continue
 		}
 
@@ -434,7 +434,7 @@ func (m *EFSManager) CreateAccessPoint(filesystemId, path string, posixUser *Pos
 			},
 		},
 		Tags: []efsTypes.Tag{
-			{Key: aws.String("CloudWorkstation"), Value: aws.String("true")},
+			{Key: aws.String("Prism"), Value: aws.String("true")},
 		},
 	}
 
