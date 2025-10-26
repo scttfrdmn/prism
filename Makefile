@@ -1,12 +1,17 @@
 # CloudWorkstation Makefile
 # Builds both daemon and CLI client
 
-VERSION := 0.5.3
+VERSION := 0.5.6
 BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Build flags
 LDFLAGS := -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=$(VERSION) -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$(BUILD_TIME) -X github.com/scttfrdmn/prism/pkg/version.GitCommit=$(GIT_COMMIT)"
+
+# Check if VERSION matches pkg/version/version.go
+.PHONY: check-version
+check-version:
+	@bash scripts/check-version-consistency.sh || (echo "❌ Version inconsistency detected. Run: make update-version" && exit 1)
 
 # Default target
 .PHONY: all
@@ -15,6 +20,16 @@ all: build
 # Build all binaries (CLI, daemon, GUI, TUI integrated)
 .PHONY: build
 build: build-daemon build-cli build-gui-optional
+
+# Build for tests (force clean rebuild with cache clearing)
+.PHONY: build-for-tests
+build-for-tests: clean
+	@echo "🧹 Clearing Go build cache..."
+	@go clean -cache
+	@echo "🔨 Force rebuilding all binaries..."
+	@go build -a $(LDFLAGS) -o bin/prismd ./cmd/prismd
+	@go build -a $(LDFLAGS) -o bin/prism ./cmd/prism
+	@echo "✅ Fresh build complete"
 
 # Build daemon binary
 .PHONY: build-daemon
@@ -177,7 +192,7 @@ test: test-unit
 
 # Smoke tests - Fast critical path verification (< 2 minutes)
 .PHONY: test-smoke
-test-smoke: build
+test-smoke: build check-version
 	@echo "🔥 Running smoke tests (critical path verification)..."
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
