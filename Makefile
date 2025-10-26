@@ -19,19 +19,19 @@ build: build-daemon build-cli build-gui-optional
 # Build daemon binary
 .PHONY: build-daemon
 build-daemon:
-	@echo "Building CloudWorkstation daemon..."
+	@echo "Building Prism daemon..."
 	@go build $(LDFLAGS) -o bin/prismd ./cmd/prismd
 
 # Build CLI binary  
 .PHONY: build-cli
 build-cli:
-	@echo "Building CloudWorkstation CLI..."
+	@echo "Building Prism CLI..."
 	@go build $(LDFLAGS) -o bin/prism ./cmd/prism
 
 # Build GUI binary
 .PHONY: build-gui
 build-gui:
-	@echo "Building CloudWorkstation GUI (Wails 3.x)..."
+	@echo "Building Prism GUI (Wails 3.x)..."
 	@if ! command -v wails3 >/dev/null 2>&1 && ! [ -f "$$HOME/go/bin/wails3" ]; then \
 		echo "❌ Wails v3 CLI not found. Install with: go install github.com/wailsapp/wails/v3/cmd/wails3@latest"; \
 		exit 1; \
@@ -41,7 +41,7 @@ build-gui:
 # Build GUI binary (optional - won't fail if prerequisites missing)
 .PHONY: build-gui-optional
 build-gui-optional:
-	@echo "🎨 Building CloudWorkstation GUI (optional)..."
+	@echo "🎨 Building Prism GUI (optional)..."
 	@if command -v wails3 >/dev/null 2>&1 || [ -f "$$HOME/go/bin/wails3" ]; then \
 		echo "✅ Wails CLI found, building GUI..."; \
 		cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build); \

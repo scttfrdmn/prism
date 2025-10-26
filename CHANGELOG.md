@@ -5,6 +5,72 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2025-10-26
+
+### 🎉 Major: Complete Prism Rebrand
+
+**Project Rename**: CloudWorkStation → Prism
+- Complete code rename (29,225 files across 3 PRs)
+- GitHub repository rename: `scttfrdmn/prism`
+- All binaries renamed: `cws` → `prism`, `cwsd` → `prismd`
+- Configuration directory: `.cloudworkstation` → `.prism`
+- Go module: `github.com/scttfrdmn/prism`
+
+### Added
+- **Feature Issues Created**:
+  - Issue #90: Launch Throttling System (rate limiting for cost control)
+  - Issue #91: Local System Sleep/Wake Detection with Auto-Hibernation
+
+### Fixed
+- **CLI Test Fixes** (#88): Updated string constants for Prism rename
+  - Fixed: TestConstants, TestUsageMessages, TestErrorHelperFunctions
+  - Updated all command references: `cws` → `prism`
+  
+- **API Client Test Fixes** (#89): Updated timeout expectations
+  - Fixed: TestNewClient, TestDefaultPerformanceOptions  
+  - Updated timeout expectations: 30s → 60s
+
+- **Storage Test Fixes** (#87): Complete storage volume type migration
+  - Fixed 55 test failures in storage system
+  - Completed unified StorageVolume type implementation
+
+### Changed
+- **Repository Infrastructure** (Commit c37937e35):
+  - Updated 45 files with new repository URLs
+  - Package manifests (homebrew, chocolatey, conda, rpm, deb)
+  - Build scripts and CI/CD configurations
+  - Documentation configs updated
+
+- **CLI Command Structure** (#79):
+  - Consistent command hierarchy implementation
+  - Improved user experience and discoverability
+
+### Technical
+- **3 PRs Merged**:
+  - PR #85: Code rename (189 Go files, 55+ scripts)
+  - PR #86: Documentation updates (320 markdown files)
+  - PR #87: Storage test remediation (55 tests fixed)
+  - PR #88: CLI test fixes (3 tests fixed)
+  - PR #89: API timeout test fixes (2 tests fixed)
+
+- **Repository Renamed**: GitHub automatically redirects old URLs
+- **Backward Compatibility**: All old URLs redirect to new repository
+
+### Benefits
+- **Complete Brand Consistency**: Unified naming across all components
+- **Professional Identity**: Clean, memorable project name
+- **Improved Discoverability**: `prism` command is intuitive
+- **Test Stability**: 60 test failures resolved
+
+### Migration Guide
+Existing users should:
+1. Update git remotes: `git remote set-url origin git@github.com:scttfrdmn/prism.git`
+2. Rebuild binaries: `make build`
+3. Configuration automatically migrates from `.cloudworkstation` to `.prism`
+4. Old commands still work via shell aliases (optional)
+
+**Note**: GitHub automatically redirects old repository URLs, so existing clones continue to work without changes.
+
 ## [0.5.4] - 2025-10-18
 
 ### Added
