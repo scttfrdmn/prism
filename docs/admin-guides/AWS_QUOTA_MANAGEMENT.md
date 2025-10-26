@@ -2,11 +2,11 @@
 
 **Status**: Planned for v0.6.0 (Q2 2026)
 **Priority**: High
-**GitHub Issue**: [#57](https://github.com/scttfrdmn/cloudworkstation/issues/57)
+**GitHub Issue**: [#57](https://github.com/scttfrdmn/prism/issues/57)
 
 ## Overview
 
-AWS imposes service quotas (formerly called "limits") on resources to protect both AWS infrastructure and customer accounts. Researchers often encounter quota-related launch failures without understanding why or how to resolve them. CloudWorkStation v0.6.0 will provide intelligent quota management and automatic failover capabilities.
+AWS imposes service quotas (formerly called "limits") on resources to protect both AWS infrastructure and customer accounts. Researchers often encounter quota-related launch failures without understanding why or how to resolve them. Prism v0.6.0 will provide intelligent quota management and automatic failover capabilities.
 
 ## Problem Statement
 
@@ -44,22 +44,22 @@ Query and track AWS Service Quotas in real-time.
 
 ```bash
 # Show current quota status for default region
-cws admin quota show
+prism admin quota show
 
 # Show quota status for specific region
-cws admin quota show --region us-west-2
+prism admin quota show --region us-west-2
 
 # Show quota status across all regions
-cws admin quota show --all-regions
+prism admin quota show --all-regions
 
 # Show quota history and trends
-cws admin quota history --days 30
+prism admin quota history --days 30
 ```
 
 #### Example Output
 
 ```bash
-$ cws admin quota show --region us-west-2
+$ prism admin quota show --region us-west-2
 
 📊 AWS Service Quotas - us-west-2
 
@@ -86,10 +86,10 @@ Recommendations:
 
 #### Pre-Launch Quota Validation
 
-CloudWorkStation will check quotas **before** attempting launch:
+Prism will check quotas **before** attempting launch:
 
 ```bash
-$ cws launch gpu-ml-workstation protein-folding --size XL
+$ prism launch gpu-ml-workstation protein-folding --size XL
 
 ⚠️  Quota Check Failed
 
@@ -124,21 +124,21 @@ Help users navigate the quota increase request process.
 
 ```bash
 # Request quota increase with guided workflow
-cws admin quota request --instance-type p3.2xlarge \
+prism admin quota request --instance-type p3.2xlarge \
   --reason "ML research for NIH-funded genomics project" \
   --desired-limit 16
 
 # Check status of pending quota requests
-cws admin quota requests list
+prism admin quota requests list
 
 # View quota request history
-cws admin quota requests history
+prism admin quota requests history
 ```
 
 #### Guided Workflow
 
 ```bash
-$ cws admin quota request --instance-type p3.8xlarge
+$ prism admin quota request --instance-type p3.8xlarge
 
 🔍 Analyzing current usage...
 
@@ -178,7 +178,7 @@ Submit request? [Y/n]: y
 
 ✅ Quota increase request submitted!
    Request ID: quota-12345678
-   Track status: cws admin quota requests list
+   Track status: prism admin quota requests list
 ```
 
 ---
@@ -199,7 +199,7 @@ Automatic retry in different Availability Zones when capacity is unavailable.
 #### User Experience
 
 ```bash
-$ cws launch bioinformatics-suite genome-analysis
+$ prism launch bioinformatics-suite genome-analysis
 
 ✅ Launching r5.4xlarge in us-west-2a...
 ⚠️  InsufficientInstanceCapacity in us-west-2a
@@ -217,11 +217,11 @@ $ cws launch bioinformatics-suite genome-analysis
 
 ```bash
 # Configure AZ failover behavior
-cws admin config set az-failover.max-retries 3
-cws admin config set az-failover.prefer-successful-azs true
+prism admin config set az-failover.max-retries 3
+prism admin config set az-failover.prefer-successful-azs true
 
 # View AZ health statistics
-cws admin availability stats --region us-west-2
+prism admin availability stats --region us-west-2
 
 # Output:
 # 📊 Availability Zone Health - us-west-2
@@ -254,19 +254,19 @@ Monitor AWS Health API for service events affecting launches.
 
 ```bash
 # Check AWS health status for all regions
-cws admin aws-health
+prism admin aws-health
 
 # Check specific region
-cws admin aws-health --region us-east-1
+prism admin aws-health --region us-east-1
 
 # Subscribe to health alerts
-cws admin aws-health subscribe --email devops@university.edu
+prism admin aws-health subscribe --email devops@university.edu
 ```
 
 #### Pre-Launch Health Check
 
 ```bash
-$ cws launch python-ml earthquake-prediction --region us-east-1
+$ prism launch python-ml earthquake-prediction --region us-east-1
 
 ⚠️  AWS Health Alert: Degraded EC2 Performance in us-east-1
 
@@ -299,7 +299,7 @@ Choice [1-4]:
 | **Business** | **Full API access** | $100/month |
 | Enterprise | Full API access | $15,000/month |
 
-CloudWorkStation will gracefully degrade if Health API is unavailable (Basic/Developer support).
+Prism will gracefully degrade if Health API is unavailable (Basic/Developer support).
 
 ---
 
@@ -320,16 +320,16 @@ Analyze historical launch patterns and recommend optimal regions/AZs.
 
 ```bash
 # Get capacity recommendations for instance type
-cws admin capacity recommend --instance-type p3.8xlarge
+prism admin capacity recommend --instance-type p3.8xlarge
 
 # View historical capacity data
-cws admin capacity history --instance-type p3.8xlarge --days 30
+prism admin capacity history --instance-type p3.8xlarge --days 30
 ```
 
 #### Example Output
 
 ```bash
-$ cws admin capacity recommend --instance-type p3.8xlarge
+$ prism admin capacity recommend --instance-type p3.8xlarge
 
 📊 Capacity Recommendations: p3.8xlarge
 
@@ -406,10 +406,10 @@ Spot Instance Recommendation: ✅
 ### Dashboard View
 
 ```bash
-$ cws admin quota dashboard
+$ prism admin quota dashboard
 
 ╔══════════════════════════════════════════════════════════════════════╗
-║             CloudWorkStation Quota Dashboard - us-west-2            ║
+║             Prism Quota Dashboard - us-west-2            ║
 ╠══════════════════════════════════════════════════════════════════════╣
 ║                                                                      ║
 ║  Overall Health: ✅ Healthy                                          ║
@@ -463,7 +463,7 @@ Press 'r' to refresh | Press 'q' to quit
 ## Related Documentation
 
 - **Technical Debt Backlog**: [TECHNICAL_DEBT_BACKLOG.md](../archive/roadmap/TECHNICAL_DEBT_BACKLOG.md) (Item #2)
-- **GitHub Issues**: [#57](https://github.com/scttfrdmn/cloudworkstation/issues/57), [#58](https://github.com/scttfrdmn/cloudworkstation/issues/58), [#59](https://github.com/scttfrdmn/cloudworkstation/issues/59), [#60](https://github.com/scttfrdmn/cloudworkstation/issues/60)
+- **GitHub Issues**: [#57](https://github.com/scttfrdmn/prism/issues/57), [#58](https://github.com/scttfrdmn/prism/issues/58), [#59](https://github.com/scttfrdmn/prism/issues/59), [#60](https://github.com/scttfrdmn/prism/issues/60)
 - **AWS IAM Permissions**: [AWS_IAM_PERMISSIONS.md](AWS_IAM_PERMISSIONS.md) - Required permissions for quota APIs
 - **Administrator Guide**: [ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md) - General administration
 
@@ -472,19 +472,19 @@ Press 'r' to refresh | Press 'q' to quit
 ## FAQ
 
 **Q: Will this work with AWS Budgets?**
-A: Yes! Quota management complements AWS Budgets. Quotas limit *what* you can launch, Budgets limit *how much you spend*. CloudWorkStation integrates both.
+A: Yes! Quota management complements AWS Budgets. Quotas limit *what* you can launch, Budgets limit *how much you spend*. Prism integrates both.
 
 **Q: Can I request quota increases automatically?**
-A: No - AWS requires human review for quota increases. CloudWorkStation will guide you through the manual request process with pre-filled forms.
+A: No - AWS requires human review for quota increases. Prism will guide you through the manual request process with pre-filled forms.
 
 **Q: What if I don't have Business Support for Health API?**
-A: CloudWorkStation will gracefully degrade. Basic quota management and AZ failover will still work. Health monitoring requires Business/Enterprise Support.
+A: Prism will gracefully degrade. Basic quota management and AZ failover will still work. Health monitoring requires Business/Enterprise Support.
 
 **Q: How often are quotas checked?**
-A: Quotas are checked before every launch and cached for 5 minutes. You can force refresh with `cws admin quota show --refresh`.
+A: Quotas are checked before every launch and cached for 5 minutes. You can force refresh with `prism admin quota show --refresh`.
 
 **Q: Can I set custom quota thresholds for alerts?**
-A: Yes! Configure via `cws admin config set quota.warn-threshold 75` (default: 75%, 90%).
+A: Yes! Configure via `prism admin config set quota.warn-threshold 75` (default: 75%, 90%).
 
 ---
 

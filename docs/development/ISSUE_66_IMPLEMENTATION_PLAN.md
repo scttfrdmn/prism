@@ -1,6 +1,6 @@
 # Issue #66 Implementation Plan: Storage Terminology Overhaul
 
-**GitHub Issue**: [#66 - Storage Terminology Overhaul: EBS → Local, EFS → Shared, S3 → Cloud](https://github.com/scttfrdmn/cloudworkstation/issues/66)
+**GitHub Issue**: [#66 - Storage Terminology Overhaul: EBS → Local, EFS → Shared, S3 → Cloud](https://github.com/scttfrdmn/prism/issues/66)
 **Milestone**: v0.5.7
 **Estimated Effort**: 3 weeks
 **Status**: Planning
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly terms (Local Storage, Shared Storage, Cloud Storage) across all CloudWorkstation interfaces while maintaining AWS technical details via `--verbose` flag.
+Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly terms (Local Storage, Shared Storage, Cloud Storage) across all Prism interfaces while maintaining AWS technical details via `--verbose` flag.
 
 ---
 
@@ -29,12 +29,12 @@ Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly 
 4. **Command Structure**:
    ```bash
    # OLD (AWS-centric)
-   cws ebs create my-data --size 500GB
-   cws efs create shared-data --size 1TB
+   prism ebs create my-data --size 500GB
+   prism efs create shared-data --size 1TB
 
    # NEW (User-friendly)
-   cws storage create-local my-data --size 500GB
-   cws storage create-shared shared-data --size 1TB
+   prism storage create-local my-data --size 500GB
+   prism storage create-shared shared-data --size 1TB
    ```
 
 ---
@@ -100,14 +100,14 @@ Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly 
 
 ### Phase 2: CLI Command Restructure (Week 1-2)
 
-**Goal**: Reorganize CLI commands around unified `cws storage` hierarchy
+**Goal**: Reorganize CLI commands around unified `prism storage` hierarchy
 
 #### Tasks:
 
 1. **Create New Storage Command Structure** (`internal/cli/storage_cobra.go`)
 
    ```bash
-   cws storage                            # Main storage command
+   prism storage                            # Main storage command
    ├── list                               # List all storage
    ├── create-local <name> --size 500GB   # Create local storage (EBS)
    ├── create-shared <name> --size 1TB    # Create shared storage (EFS)
@@ -117,7 +117,7 @@ Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly 
    ```
 
 2. **Deprecate Old Commands** (`internal/cli/`)
-   - Keep `cws ebs` and `cws efs` commands functional but mark as deprecated
+   - Keep `prism ebs` and `prism efs` commands functional but mark as deprecated
    - Add deprecation warnings: "⚠️  This command is deprecated. Use 'cws storage create-local' instead"
    - Update help text to point to new commands
 
@@ -137,8 +137,8 @@ Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly 
    - Test `--verbose` flag behavior
 
 **Success Criteria**:
-- ✅ `cws storage list` shows storage with user-friendly types
-- ✅ `cws storage list --verbose` shows AWS service details
+- ✅ `prism storage list` shows storage with user-friendly types
+- ✅ `prism storage list --verbose` shows AWS service details
 - ✅ Old commands work with deprecation warnings
 - ✅ Help text uses new terminology consistently
 
@@ -200,7 +200,7 @@ Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly 
 1. **Update User Guides** (`docs/user-guides/`)
    - `STORAGE_GUIDE.md`: Rewrite with new terminology
    - `QUICK_START.md`: Update storage examples
-   - All examples use `cws storage` commands
+   - All examples use `prism storage` commands
 
 2. **Update Architecture Docs** (`docs/architecture/`)
    - Update diagrams showing storage types
@@ -278,27 +278,27 @@ Transform AWS-centric storage terminology (EBS, EFS, S3) to researcher-friendly 
 
 | Old Command | New Command | Notes |
 |-------------|-------------|-------|
-| `cws ebs create NAME --size 500GB` | `cws storage create-local NAME --size 500GB` | EBS → Local Storage |
-| `cws efs create NAME --size 1TB` | `cws storage create-shared NAME --size 1TB` | EFS → Shared Storage |
-| `cws ebs list` | `cws storage list --type local` | Filter by type |
-| `cws efs list` | `cws storage list --type shared` | Filter by type |
-| `cws volume attach NAME WORKSPACE` | `cws storage attach NAME WORKSPACE` | Unified command |
-| `cws volume detach NAME WORKSPACE` | `cws storage detach NAME WORKSPACE` | Unified command |
-| `cws ebs delete NAME` | `cws storage delete NAME` | Auto-detects type |
-| `cws efs delete NAME` | `cws storage delete NAME` | Auto-detects type |
+| `prism ebs create NAME --size 500GB` | `prism storage create-local NAME --size 500GB` | EBS → Local Storage |
+| `prism efs create NAME --size 1TB` | `prism storage create-shared NAME --size 1TB` | EFS → Shared Storage |
+| `prism ebs list` | `prism storage list --type local` | Filter by type |
+| `prism efs list` | `prism storage list --type shared` | Filter by type |
+| `prism volume attach NAME WORKSPACE` | `prism storage attach NAME WORKSPACE` | Unified command |
+| `prism volume detach NAME WORKSPACE` | `prism storage detach NAME WORKSPACE` | Unified command |
+| `prism ebs delete NAME` | `prism storage delete NAME` | Auto-detects type |
+| `prism efs delete NAME` | `prism storage delete NAME` | Auto-detects type |
 
 ### Verbose Flag Examples
 
 ```bash
 # Default: User-friendly
-$ cws storage list
+$ prism storage list
 NAME         TYPE     SIZE    ATTACHED TO
 my-data      Local    500GB   my-workspace
 shared-lab   Shared   1TB     —
 datasets     Cloud    —       —
 
 # Verbose: AWS technical details
-$ cws storage list --verbose
+$ prism storage list --verbose
 NAME         TYPE (AWS)        SIZE    AWS RESOURCE         ATTACHED TO
 my-data      Local (EBS gp3)   500GB   vol-abc123456789     my-workspace
 shared-lab   Shared (EFS)      1TB     fs-def456789012      —
@@ -365,7 +365,7 @@ datasets     Cloud (S3)        —       s3://my-bucket       —
    - State files automatically migrated on load
 
 2. **Recommended Updates**:
-   - Start using `cws storage` commands
+   - Start using `prism storage` commands
    - Update scripts to use new command syntax
    - Review new terminology in documentation
 

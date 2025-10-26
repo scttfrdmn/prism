@@ -1,8 +1,8 @@
-# CloudWorkstation GUI Architecture
+# Prism GUI Architecture
 
 ## Overview
 
-The CloudWorkstation GUI is a modern, single-page application built with Go and Wails v3 that provides a clean, organized interface for managing cloud research environments. It follows contemporary design principles with no popup windows and a dashboard-centric approach.
+The Prism GUI is a modern, single-page application built with Go and Wails v3 that provides a clean, organized interface for managing cloud research environments. It follows contemporary design principles with no popup windows and a dashboard-centric approach.
 
 ## Design Philosophy
 
@@ -105,8 +105,8 @@ The CloudWorkstation GUI is a modern, single-page application built with Go and 
 
 ### API Client Architecture
 ```go
-type CloudWorkstationService struct {
-    apiClient api.CloudWorkstationAPI  // Interface to daemon
+type PrismService struct {
+    apiClient api.PrismAPI  // Interface to daemon
     // ... service methods exposed to frontend
 }
 
@@ -135,7 +135,7 @@ Response → GUI Update → Notification → Refresh
 ### Notification System
 ```go
 // Web-based notifications through Wails frontend
-func (s *CloudWorkstationService) ShowNotification(notificationType, title, message string)
+func (s *PrismService) ShowNotification(notificationType, title, message string)
 - Success: Green with checkmark icon
 - Error: Red with error icon  
 - Info: Blue with info icon
@@ -146,7 +146,7 @@ func (s *CloudWorkstationService) ShowNotification(notificationType, title, mess
 ### Loading States
 ```go
 // Non-blocking operations with visual feedback via web UI
-func (s *CloudWorkstationService) LaunchInstance(req LaunchRequest) {
+func (s *PrismService) LaunchInstance(req LaunchRequest) {
     // Emit loading state to frontend
     s.emitEvent("launch:loading", true)
     
@@ -169,7 +169,7 @@ func (s *CloudWorkstationService) LaunchInstance(req LaunchRequest) {
 
 ### Data Synchronization
 ```go
-type CloudWorkstationGUI struct {
+type PrismGUI struct {
     // Data state
     instances     []types.Instance
     templates     map[string]types.Template
@@ -230,7 +230,7 @@ launchForm struct {
 
 ### Visual Improvements
 - **Dark mode support** - Theme switching capability
-- **Custom icons** - CloudWorkstation branded iconography  
+- **Custom icons** - Prism branded iconography  
 - **Enhanced animations** - Smooth transitions and loading states
 - **Responsive design** - Better window resizing behavior
 

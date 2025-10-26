@@ -1,8 +1,8 @@
-# CloudWorkstation Logo
+# Prism Logo
 
 ## Official Project Logo
 
-The CloudWorkstation project uses a retro-style circular badge logo featuring:
+The Prism project uses a retro-style circular badge logo featuring:
 
 - **Text**: "CLOUD WORKSTATION" at the top and "HELPING TO GET RESEARCH DONE" at the bottom
 - **Tagline**: "SINCE 2025" 
@@ -12,7 +12,7 @@ The CloudWorkstation project uses a retro-style circular badge logo featuring:
 
 ## Design Philosophy
 
-The logo embodies CloudWorkstation's core mission and personality:
+The logo embodies Prism's core mission and personality:
 
 - **Accessibility**: Retro, friendly design makes research computing approachable
 - **Magic**: Sparkles on the screen represent the "magic" of instant research environments
@@ -29,6 +29,6 @@ The logo embodies CloudWorkstation's core mission and personality:
 
 ## Brand Message
 
-"CloudWorkstation: Helping to Get Research Done" - This tagline captures the project's fundamental purpose of removing barriers and friction from research computing, enabling researchers to focus on their science rather than infrastructure setup.
+"Prism: Helping to Get Research Done" - This tagline captures the project's fundamental purpose of removing barriers and friction from research computing, enabling researchers to focus on their science rather than infrastructure setup.
 
 The retro aesthetic suggests reliability, trustworthiness, and a tool that "just works" - exactly what researchers need for their computing environments.

@@ -1,8 +1,8 @@
-# CloudWorkstation Autonomous Idle Detection System
+# Prism Autonomous Idle Detection System
 
 ## Overview
 
-CloudWorkstation now includes a comprehensive autonomous idle detection system that automatically monitors instance activity and performs cost-saving actions (hibernation or stopping) when instances are idle. This system combines daemon-side monitoring with instance-side autonomous agents for maximum effectiveness.
+Prism now includes a comprehensive autonomous idle detection system that automatically monitors instance activity and performs cost-saving actions (hibernation or stopping) when instances are idle. This system combines daemon-side monitoring with instance-side autonomous agents for maximum effectiveness.
 
 ## Architecture
 
@@ -35,7 +35,7 @@ CloudWorkstation now includes a comprehensive autonomous idle detection system t
    - AWS CLI v2 integration
 
 3. **IAM Infrastructure** 
-   - CloudWorkstation-Instance-Profile role
+   - Prism-Instance-Profile role
    - EC2 self-management permissions
    - Automatic role attachment on launch
 
@@ -63,7 +63,7 @@ CloudWorkstation now includes a comprehensive autonomous idle detection system t
 
 ### 1. IAM Role Setup
 
-The system automatically creates and attaches the `CloudWorkstation-Instance-Profile` IAM role to all launched instances:
+The system automatically creates and attaches the `Prism-Instance-Profile` IAM role to all launched instances:
 
 **Permissions:**
 ```json
@@ -142,9 +142,9 @@ The system uses standardized AWS tags for state tracking:
 
 | Tag | Values | Description |
 |-----|--------|-------------|
-| `CloudWorkstation:IdleStatus` | `active`, `idle` | Current activity state |
-| `CloudWorkstation:IdleSince` | ISO8601 timestamp | When idle period started |
-| `CloudWorkstation:IdleAction` | `hibernating`, `hibernated`, `stopping`, `stopped` | Action taken |
+| `Prism:IdleStatus` | `active`, `idle` | Current activity state |
+| `Prism:IdleSince` | ISO8601 timestamp | When idle period started |
+| `Prism:IdleAction` | `hibernating`, `hibernated`, `stopping`, `stopped` | Action taken |
 
 ## Daemon Integration
 
@@ -227,7 +227,7 @@ MIN_AWS_CLI_VERSION="2.0.0"
 
 **Version Logging:**
 ```
-2025-08-08 16:48:00 [IDLE-AGENT v1.0.0] CloudWorkstation Idle Detection Agent v1.0.0 (built 2025-08-08)
+2025-08-08 16:48:00 [IDLE-AGENT v1.0.0] Prism Idle Detection Agent v1.0.0 (built 2025-08-08)
 2025-08-08 16:48:00 [IDLE-AGENT v1.0.0] AWS CLI version: 2.28.5
 ```
 
@@ -249,16 +249,16 @@ MIN_AWS_CLI_VERSION="2.0.0"
 
 ```bash
 # Check agent deployment
-ssh ubuntu@<instance-ip> "ls -la /usr/local/bin/cloudworkstation-idle-check.sh"
+ssh ubuntu@<instance-ip> "ls -la /usr/local/bin/prism-idle-check.sh"
 ssh ubuntu@<instance-ip> "/usr/local/bin/aws --version"  
-ssh ubuntu@<instance-ip> "cat /etc/cron.d/cloudworkstation-idle"
+ssh ubuntu@<instance-ip> "cat /etc/cron.d/prism-idle"
 
 # Test agent execution
-ssh ubuntu@<instance-ip> "sudo /usr/local/bin/cloudworkstation-idle-check.sh"
+ssh ubuntu@<instance-ip> "sudo /usr/local/bin/prism-idle-check.sh"
 
 # Verify AWS tags
 aws ec2 describe-tags --filters "Name=resource-id,Values=<instance-id>" \
-  --query 'Tags[?starts_with(Key, `CloudWorkstation:`)].{Key:Key,Value:Value}' --output table
+  --query 'Tags[?starts_with(Key, `Prism:`)].{Key:Key,Value:Value}' --output table
 
 # Check daemon monitoring
 tail -f daemon.log | grep "idle detection"
@@ -307,10 +307,10 @@ tail -f daemon.log | grep "idle detection"
 
 ```bash
 # Check agent status
-sudo /usr/local/bin/cloudworkstation-idle-check.sh
+sudo /usr/local/bin/prism-idle-check.sh
 
 # View agent logs  
-tail -50 /var/log/cloudworkstation-idle.log
+tail -50 /var/log/prism-idle.log
 
 # Test cron job
 sudo run-parts --test /etc/cron.d/
@@ -341,4 +341,4 @@ aws ec2 describe-tags --filters "Name=resource-id,Values=$(curl -s http://169.25
 
 ---
 
-*This system represents a major advancement in CloudWorkstation's cost optimization capabilities, providing researchers with automatic instance management while preserving work state and minimizing compute waste.*
+*This system represents a major advancement in Prism's cost optimization capabilities, providing researchers with automatic instance management while preserving work state and minimizing compute waste.*

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Policy Framework provides fine-grained access control for CloudWorkstation's enterprise research platform. It enables educational institutions and research organizations to control template access, resource usage, and research user operations through policy-based governance.
+The Policy Framework provides fine-grained access control for Prism's enterprise research platform. It enables educational institutions and research organizations to control template access, resource usage, and research user operations through policy-based governance.
 
 **Status**: Foundation Complete ✅
 **Version**: v0.5.0 (Phase 5A+)
@@ -17,7 +17,7 @@ The Policy Framework provides fine-grained access control for CloudWorkstation's
 │                    Policy Framework                         │
 ├─────────────────────────────────────────────────────────────┤
 │ CLI Commands        │ TUI Interface     │ GUI Interface     │
-│ (cws policy)        │ (Future)          │ (Future)          │
+│ (prism policy)        │ (Future)          │ (Future)          │
 ├─────────────────────┼───────────────────┼───────────────────┤
 │                 Policy Service                              │
 │            (pkg/policy/service.go)                          │
@@ -115,35 +115,35 @@ Policies:
 
 ```bash
 # Policy Management
-cws policy status              # Show enforcement status & assigned policies
-cws policy list                # List available policy sets
-cws policy assign <policy-set> # Assign student or researcher policies
-cws policy enable              # Enable policy enforcement
-cws policy disable             # Disable policy enforcement
-cws policy check <template>    # Check template access permissions
+prism policy status              # Show enforcement status & assigned policies
+prism policy list                # List available policy sets
+prism policy assign <policy-set> # Assign student or researcher policies
+prism policy enable              # Enable policy enforcement
+prism policy disable             # Disable policy enforcement
+prism policy check <template>    # Check template access permissions
 
 # Help System
-cws policy --help              # Full command documentation
-cws policy <command> --help    # Subcommand specific help
+prism policy --help              # Full command documentation
+prism policy <command> --help    # Subcommand specific help
 ```
 
 ### Example Usage
 
 ```bash
 # Check current policy status
-$ cws policy status
+$ prism policy status
 Policy Framework Status: 🔒 Active
 Enforcement: Enabled
 Assigned Policy Sets: student
 💡 Tip: Use 'cws policy assign <policy-set>' to configure access controls
 
 # Assign researcher policies
-$ cws policy assign researcher
+$ prism policy assign researcher
 ✅ Successfully assigned 'researcher' policy set
 💡 Policy enforcement is Enabled. Use 'cws policy enable' to activate.
 
 # Check template access
-$ cws policy check "GPU Machine Learning Advanced"
+$ prism policy check "GPU Machine Learning Advanced"
 ❌ Access DENIED for template: GPU Machine Learning Advanced
 Reason: Template GPU Machine Learning Advanced is denied by policy
 Suggestions:
@@ -173,14 +173,14 @@ if s.policyService != nil && s.policyService.IsEnabled() {
 ### Multi-Modal Consistency
 
 Template filtering applies across all interfaces:
-- **CLI**: `cws templates` shows only allowed templates
+- **CLI**: `prism templates` shows only allowed templates
 - **TUI**: Template selection screens filter automatically
 - **GUI**: Template cards display only accessible templates
 - **API**: All `/api/v1/templates` responses respect policy filtering
 
 ## Profile System Integration
 
-The policy framework integrates with CloudWorkstation's enhanced profile system:
+The policy framework integrates with Prism's enhanced profile system:
 
 ```go
 // User identification via profile system
@@ -211,7 +211,7 @@ This ensures:
 #### 1. Computer Science Course
 ```bash
 # Students get basic templates only
-cws policy assign student
+prism policy assign student
 # Templates: Python Basic, Java Development, Web Development
 # Blocked: GPU ML, Enterprise Database, Production environments
 ```
@@ -219,7 +219,7 @@ cws policy assign student
 #### 2. Research Laboratory
 ```bash
 # Researchers get full access
-cws policy assign researcher
+prism policy assign researcher
 # Templates: All available including GPU, HPC, specialized research tools
 # Research Users: Full creation/management capabilities
 ```
@@ -400,7 +400,7 @@ go build -o bin/cwsd ./cmd/cwsd/  # Daemon builds with policy integration
 
 ## Conclusion
 
-The **Phase 5A Policy Framework Foundation** successfully delivers comprehensive access control for CloudWorkstation's enterprise research platform. The implementation provides:
+The **Phase 5A Policy Framework Foundation** successfully delivers comprehensive access control for Prism's enterprise research platform. The implementation provides:
 
 - **Complete Backend Architecture**: Policy evaluation engine, service integration, and data models
 - **Professional CLI Interface**: 6 policy management commands with full help system
@@ -408,6 +408,6 @@ The **Phase 5A Policy Framework Foundation** successfully delivers comprehensive
 - **Educational Focus**: Student vs Researcher policy sets designed for academic environments
 - **Enterprise Ready**: Template filtering, profile integration, and governance controls
 
-This foundation enables educational institutions to deploy CloudWorkstation with appropriate access controls while maintaining the platform's core simplicity and researcher-focused design principles.
+This foundation enables educational institutions to deploy Prism with appropriate access controls while maintaining the platform's core simplicity and researcher-focused design principles.
 
 **Next Phase**: API endpoint integration to connect CLI commands to daemon policy service for real-time policy management across all interfaces.

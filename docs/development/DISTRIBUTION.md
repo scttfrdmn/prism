@@ -1,12 +1,12 @@
-# CloudWorkstation Distribution Guide
+# Prism Distribution Guide
 
-![CloudWorkstation Logo](images/cloudworkstation.png)
+![Prism Logo](images/prism.png)
 
-This document outlines the different ways to install CloudWorkstation on your system.
+This document outlines the different ways to install Prism on your system.
 
 ## Installation Methods
 
-CloudWorkstation can be installed using multiple methods depending on your platform and preferences:
+Prism can be installed using multiple methods depending on your platform and preferences:
 
 ### Direct Download (All Platforms)
 
@@ -14,9 +14,9 @@ Download the latest binaries directly from our GitHub releases page:
 
 ```bash
 # Example for Linux x86_64
-curl -L https://github.com/yourusername/cloudworkstation/releases/download/v0.4.1/cws-linux-amd64 -o cws
+curl -L https://github.com/yourusername/prism/releases/download/v0.4.1/cws-linux-amd64 -o cws
 chmod +x cws
-sudo mv cws /usr/local/bin/
+sudo mv prism /usr/local/bin/
 ```
 
 Available binaries:
@@ -32,10 +32,10 @@ For macOS and Linux users with Homebrew installed:
 
 ```bash
 # Add our tap (only needed the first time)
-brew tap yourusername/cloudworkstation
+brew tap yourusername/prism
 
-# Install CloudWorkstation
-brew install cloudworkstation
+# Install Prism
+brew install prism
 ```
 
 This automatically installs the correct binary for your architecture (Intel or ARM).
@@ -45,11 +45,11 @@ This automatically installs the correct binary for your architecture (Intel or A
 For Windows users with Chocolatey installed:
 
 ```powershell
-# Install CloudWorkstation
-choco install cloudworkstation
+# Install Prism
+choco install prism
 ```
 
-This adds CloudWorkstation to your PATH and creates desktop shortcuts.
+This adds Prism to your PATH and creates desktop shortcuts.
 
 ### Conda (All Platforms)
 
@@ -57,27 +57,27 @@ For researchers already using the Conda package manager:
 
 ```bash
 # Install from conda-forge channel
-conda install cloudworkstation -c conda-forge
+conda install prism -c conda-forge
 ```
 
 This is particularly useful for scientific computing environments where Conda is commonly used.
 
 ## Verifying Your Installation
 
-To verify CloudWorkstation is correctly installed, run:
+To verify Prism is correctly installed, run:
 
 ```bash
-cws version
+prism version
 ```
 
 You should see output indicating the installed version, for example:
 ```
-CloudWorkstation v0.4.1
+Prism v0.4.1
 ```
 
 ## Setting Up AWS Credentials
 
-CloudWorkstation requires AWS credentials to function. If you haven't already configured your AWS credentials:
+Prism requires AWS credentials to function. If you haven't already configured your AWS credentials:
 
 1. Create an AWS account if you don't have one
 2. Create an IAM user with appropriate permissions
@@ -92,12 +92,12 @@ export AWS_ACCESS_KEY_ID=your_access_key
 export AWS_SECRET_ACCESS_KEY=your_secret_key
 export AWS_DEFAULT_REGION=us-west-2
 
-# Option 3: CloudWorkstation config
-cws config profile my-profile
-cws config region us-west-2
+# Option 3: Prism config
+prism config profile my-profile
+prism config region us-west-2
 ```
 
-## Updating CloudWorkstation
+## Updating Prism
 
 To update to the latest version:
 
@@ -106,17 +106,17 @@ Download the latest binary and replace your existing installation.
 
 ### Homebrew
 ```bash
-brew upgrade cloudworkstation
+brew upgrade prism
 ```
 
 ### Chocolatey
 ```bash
-choco upgrade cloudworkstation
+choco upgrade prism
 ```
 
 ### Conda
 ```bash
-conda update cloudworkstation -c conda-forge
+conda update prism -c conda-forge
 ```
 
 ## Troubleshooting Installation Issues

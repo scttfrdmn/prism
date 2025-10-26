@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Discovered a critical P0 bug during end-to-end testing: CloudWorkstation was randomly selecting availability zones that don't support the requested instance type, causing 100% launch failure in affected regions.
+Discovered a critical P0 bug during end-to-end testing: Prism was randomly selecting availability zones that don't support the requested instance type, causing 100% launch failure in affected regions.
 
 ### Impact Assessment
 

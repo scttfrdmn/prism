@@ -149,9 +149,9 @@ func (m *Manager) OperationName(name string) error {
 ## Verification Testing
 
 ### Test Setup
-1. Created us-west-2 profile: `cws profiles add personal west2 --aws-profile aws --region us-west-2`
-2. Launched instance in us-west-2: `cws launch "Basic Ubuntu (APT)" hibernation-test --size XS`
-3. Verified instance region: `cws list --detailed` showed `us-west-2` / `us-west-2a`
+1. Created us-west-2 profile: `prism profiles add personal west2 --aws-profile aws --region us-west-2`
+2. Launched instance in us-west-2: `prism launch "Basic Ubuntu (APT)" hibernation-test --size XS`
+3. Verified instance region: `prism list --detailed` showed `us-west-2` / `us-west-2a`
 
 ### Test Execution (Cross-Region Operation)
 ```bash
@@ -222,7 +222,7 @@ All lifecycle operations now fully support multi-region deployments:
 
 ## Conclusion
 
-Fixed hibernation region bug by applying the same region-aware pattern used in other lifecycle operations. The fix enables full cross-region hibernation support, completing CloudWorkstation's multi-region architecture. This was a proper architectural fix (not a workaround), consistent with project design principles.
+Fixed hibernation region bug by applying the same region-aware pattern used in other lifecycle operations. The fix enables full cross-region hibernation support, completing Prism's multi-region architecture. This was a proper architectural fix (not a workaround), consistent with project design principles.
 
 **Priority**: P2 (not blocking release, but important for production multi-region deployments)
 **Testing**: ✅ Verified with real AWS multi-region instance operations

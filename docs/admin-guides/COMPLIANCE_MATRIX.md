@@ -4,15 +4,15 @@
 
 ## ⚠️ COMPLIANCE DISCLAIMER
 
-**CloudWorkStation provides technical security controls but DOES NOT guarantee compliance with any regulatory framework.**
+**Prism provides technical security controls but DOES NOT guarantee compliance with any regulatory framework.**
 
-This matrix documents technical controls that CloudWorkStation provides. Use of CloudWorkStation does not, by itself, constitute compliance. Your institution remains solely responsible for compliance assessments, certifications, and consulting with qualified legal/compliance professionals.
+This matrix documents technical controls that Prism provides. Use of Prism does not, by itself, constitute compliance. Your institution remains solely responsible for compliance assessments, certifications, and consulting with qualified legal/compliance professionals.
 
 **Always defer to your institution for compliance guidance.** See [COMPLIANCE_DISCLAIMER.md](COMPLIANCE_DISCLAIMER.md) for complete legal notice.
 
 ---
 
-Quick reference for CloudWorkstation compliance coverage across major security frameworks.
+Quick reference for Prism compliance coverage across major security frameworks.
 
 ## 📊 Compliance Status Legend
 
@@ -54,7 +54,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ### NIST 800-53 (FISMA/HIPAA Technical Controls)
 **Status**: 🟡 **80% Coverage** | **Documentation**: Planned for v0.7.0
 
-| Control Family | Status | CloudWorkstation Coverage | Gaps |
+| Control Family | Status | Prism Coverage | Gaps |
 |----------------|--------|---------------------------|------|
 | Access Control (AC) | ✅ | Role-based access, project permissions | - |
 | Audit & Accountability (AU) | ✅ | Comprehensive logging, audit trails | - |
@@ -79,7 +79,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ---
 
 ### FedRAMP
-**Status**: 🟠 **Planned** (v1.2.0+) | **Rationale**: CloudWorkstation is a client tool, not CSP
+**Status**: 🟠 **Planned** (v1.2.0+) | **Rationale**: Prism is a client tool, not CSP
 
 | Level | Status | Notes |
 |-------|--------|-------|
@@ -115,7 +115,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ### HIPAA (Health Insurance Portability and Accountability Act)
 **Status**: 🟡 **Technical Controls Present** | **Roadmap**: v0.8.0
 
-| HIPAA Safeguard | Status | CloudWorkStation Implementation |
+| HIPAA Safeguard | Status | Prism Implementation |
 |-----------------|--------|--------------------------------|
 | **Administrative Safeguards** | 🟡 | Partially implemented |
 | - Security Management Process | 🟢 | Audit logging, risk monitoring |
@@ -148,7 +148,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ### GDPR (General Data Protection Regulation)
 **Status**: 🟡 **Foundational Controls** | **Roadmap**: v0.7.0
 
-| GDPR Principle | Status | CloudWorkStation Implementation | Gaps |
+| GDPR Principle | Status | Prism Implementation | Gaps |
 |----------------|--------|--------------------------------|------|
 | **Lawfulness, Fairness, Transparency** | 🟢 | Audit logs, user notifications | Data processing agreements |
 | **Purpose Limitation** | 🟢 | Project-based organization | Automated enforcement |
@@ -201,7 +201,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ### FERPA (Family Educational Rights and Privacy Act)
 **Status**: ✅ **Supported by Design**
 
-| FERPA Requirement | Status | CloudWorkStation Implementation |
+| FERPA Requirement | Status | Prism Implementation |
 |-------------------|--------|--------------------------------|
 | Consent for Disclosure | ✅ | Project membership controls |
 | Right to Access Records | ✅ | User access to own data |
@@ -212,7 +212,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 | Audit Trail | ✅ | Comprehensive access logging |
 
 **Use Cases**:
-- University courses using CloudWorkstation
+- University courses using Prism
 - Student research projects
 - Educational program analytics
 
@@ -225,7 +225,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ### ITAR/EAR (Export Control)
 **Status**: 🟡 **Technical Controls Present** | **Institutional Oversight Required**
 
-| Control | Status | CloudWorkStation Implementation |
+| Control | Status | Prism Implementation |
 |---------|--------|--------------------------------|
 | Access Controls | ✅ | User authentication, RBAC |
 | Audit Logs | ✅ | Comprehensive activity tracking |
@@ -234,7 +234,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 | Know Your Customer (KYC) | 🔴 | Institutional responsibility |
 | Technology Control Plans | 🔴 | Institutional responsibility |
 
-**Note**: CloudWorkstation provides technical controls; institutions remain responsible for export control compliance and ITAR/EAR classification.
+**Note**: Prism provides technical controls; institutions remain responsible for export control compliance and ITAR/EAR classification.
 
 **Target**: Universities with ITAR/EAR research, defense contractors
 
@@ -245,7 +245,7 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ### PCI DSS (Payment Card Industry)
 **Status**: 🔴 **Out of Scope**
 
-**Rationale**: CloudWorkstation is not designed for payment processing. Institutions handling payment data should use specialized, PCI-certified systems.
+**Rationale**: Prism is not designed for payment processing. Institutions handling payment data should use specialized, PCI-certified systems.
 
 ---
 
@@ -326,8 +326,8 @@ Quick reference for CloudWorkstation compliance coverage across major security f
 ## 🤝 Institutional Support
 
 **Need help with compliance?**
-- 📋 [File a GitHub Issue](https://github.com/scttfrdmn/cloudworkstation/issues) for compliance questions
-- 💬 [Join GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions) for community support
+- 📋 [File a GitHub Issue](https://github.com/scttfrdmn/prism/issues) for compliance questions
+- 💬 [Join GitHub Discussions](https://github.com/scttfrdmn/prism/discussions) for community support
 - 📧 Contact for institutional partnerships and compliance consulting
 
 ---

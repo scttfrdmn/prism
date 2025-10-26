@@ -6,7 +6,7 @@
 
 ## Overview
 
-Following the successful implementation of the Ubuntu 24.04 template matrix (commit: c5f84ed5), this roadmap outlines the expansion of CloudWorkstation's OS support to provide comprehensive coverage of major Linux distributions across multiple versions.
+Following the successful implementation of the Ubuntu 24.04 template matrix (commit: c5f84ed5), this roadmap outlines the expansion of Prism's OS support to provide comprehensive coverage of major Linux distributions across multiple versions.
 
 **Current Status** (as of v0.5.3):
 - ✅ Ubuntu 22.04 Server & Desktop
@@ -394,8 +394,8 @@ For each new OS version, verify:
 - [ ] Connection types set correctly (ssh/dcv)
 - [ ] Package manager specified correctly (apt/dnf/apk/yum)
 - [ ] Default user configured per distro convention
-- [ ] Templates validate successfully: `cws templates validate`
-- [ ] Templates appear in listing: `cws templates | grep {os}`
+- [ ] Templates validate successfully: `prism templates validate`
+- [ ] Templates appear in listing: `prism templates | grep {os}`
 - [ ] Binaries rebuilt and tested
 
 ---

@@ -1,10 +1,10 @@
 # Administrator Guide: Batch Invitation Management
 
-This guide provides CloudWorkstation administrators with best practices and strategies for managing batch invitations at scale.
+This guide provides Prism administrators with best practices and strategies for managing batch invitations at scale.
 
 ## Introduction
 
-The batch invitation system in CloudWorkstation v0.4.3 introduces powerful tools for managing large numbers of invitations efficiently. This guide will help administrators understand how to leverage these tools for various organizational needs.
+The batch invitation system in Prism v0.4.3 introduces powerful tools for managing large numbers of invitations efficiently. This guide will help administrators understand how to leverage these tools for various organizational needs.
 
 ## Security Considerations
 
@@ -35,13 +35,13 @@ Batch-created invitations inherit security constraints from the parent token. Wh
 
 1. **Regular Audits**: Schedule regular exports of all invitations
    ```bash
-   cws profiles invitations batch-export \
+   prism profiles invitations batch-export \
      --output-file $(date +%Y-%m-%d)_invitation_audit.csv
    ```
 
 2. **Device Inventory**: Maintain device registry information
    ```bash
-   cws profiles invitations devices export-info \
+   prism profiles invitations devices export-info \
      --output-file $(date +%Y-%m-%d)_device_audit.csv
    ```
 
@@ -70,7 +70,7 @@ Educational settings often require creating many similar invitations at the star
 
 3. **Batch Creation**:
    ```bash
-   cws profiles invitations batch-create \
+   prism profiles invitations batch-create \
      --csv-file class_invitations.csv \
      --s3-config s3://university/cs101/config \
      --output-file invitations_result.csv \
@@ -95,13 +95,13 @@ Enterprises typically need more granular control and structured invitation manag
 2. **Delegation Model**: Department admins create team invitations
    ```bash
    # Export department admin invitations with encoded data
-   cws profiles invitations batch-export \
+   prism profiles invitations batch-export \
      --output-file department_admins.csv \
      --include-encoded
    
    # Process department_admins.csv to extract tokens
    # Then for each department:
-   cws profiles invitations batch-create \
+   prism profiles invitations batch-create \
      --csv-file engineering_team.csv \
      --parent-token "TOKEN_FROM_DEPARTMENT_ADMIN" \
      --output-file engineering_invitations.csv
@@ -145,13 +145,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Install CloudWorkstation
+      - name: Install Prism
         run: |
-          # Install CloudWorkstation CLI
+          # Install Prism CLI
           
       - name: Process New Users
         run: |
-          cws profiles invitations batch-create \
+          prism profiles invitations batch-create \
             --csv-file ./users/pending.csv \
             --output-file ./users/processed.csv
             
@@ -171,7 +171,7 @@ Create scripts for comprehensive user lifecycle management:
 # onboard.sh - Process new user onboarding
 
 # Generate invitations
-cws profiles invitations batch-create \
+prism profiles invitations batch-create \
   --csv-file new_users.csv \
   --output-file new_invitations.csv \
   --include-encoded
@@ -180,7 +180,7 @@ cws profiles invitations batch-create \
 while IFS=, read -r name email token encoded rest; do
   if [[ "$name" != "Name" ]]; then # Skip header
     echo "Sending invitation to $name ($email)"
-    echo -e "Subject: Welcome to CloudWorkstation\n\nUse this invitation code to get started: $encoded" | \
+    echo -e "Subject: Welcome to Prism\n\nUse this invitation code to get started: $encoded" | \
       sendmail "$email"
   fi
 done < new_invitations.csv
@@ -198,10 +198,10 @@ Set up scheduled operations for maintenance tasks:
 # Example crontab entries
 
 # Daily invitation audit (midnight)
-0 0 * * * cws profiles invitations batch-export --output-file /var/log/cloudworkstation/invitations_$(date +\%Y\%m\%d).csv
+0 0 * * * prism profiles invitations batch-export --output-file /var/log/prism/invitations_$(date +\%Y\%m\%d).csv
 
 # Weekly device audit (Sunday 1 AM)
-0 1 * * 0 cws profiles invitations devices export-info --output-file /var/log/cloudworkstation/devices_$(date +\%Y\%m\%d).csv
+0 1 * * 0 prism profiles invitations devices export-info --output-file /var/log/prism/devices_$(date +\%Y\%m\%d).csv
 
 # Monthly expired invitation cleanup (1st of month, 2 AM)
 0 2 1 * * /usr/local/bin/cleanup_expired_invitations.sh
@@ -216,10 +216,10 @@ For managing large numbers of invitations:
 1. **Concurrency Tuning**: Adjust based on system capabilities
    ```bash
    # For high-performance systems
-   cws profiles invitations batch-create --concurrency 20 ...
+   prism profiles invitations batch-create --concurrency 20 ...
    
    # For limited resources
-   cws profiles invitations batch-create --concurrency 5 ...
+   prism profiles invitations batch-create --concurrency 5 ...
    ```
 
 2. **Batch Sizing**: Split very large batches (1000+) into multiple operations
@@ -241,17 +241,17 @@ For multi-region organizations:
    ```bash
    # Daily backup script
    #!/bin/bash
-   BACKUP_DIR="/backup/cloudworkstation/invitations"
+   BACKUP_DIR="/backup/prism/invitations"
    DATE=$(date +%Y-%m-%d)
    mkdir -p "$BACKUP_DIR/$DATE"
    
    # Export invitations with all data
-   cws profiles invitations batch-export \
+   prism profiles invitations batch-export \
      --output-file "$BACKUP_DIR/$DATE/invitations.csv" \
      --include-encoded
    
    # Export device information
-   cws profiles invitations devices export-info \
+   prism profiles invitations devices export-info \
      --output-file "$BACKUP_DIR/$DATE/devices.csv"
    
    # Compress for archival
@@ -267,7 +267,7 @@ For multi-region organizations:
 1. **Revocation**: In case of security breach
    ```bash
    # Emergency revocation of all devices
-   cws profiles invitations devices batch-revoke-all --confirm
+   prism profiles invitations devices batch-revoke-all --confirm
    ```
 
 2. **Invitation Regeneration**: Process to recreate critical invitations
@@ -281,7 +281,7 @@ Create custom processors for specialized workflows:
 
 ```python
 #!/usr/bin/env python3
-# process_hr_data.py - Convert HR records to CloudWorkstation invitation format
+# process_hr_data.py - Convert HR records to Prism invitation format
 
 import csv
 import sys
@@ -350,7 +350,7 @@ from email.message import EmailMessage
 
 # Configuration
 SLACK_WEBHOOK = "https://hooks.slack.com/services/..."
-EMAIL_FROM = "cloudworkstation@example.com"
+EMAIL_FROM = "prism@example.com"
 EMAIL_SERVER = "smtp.example.com"
 
 # Read invitation results
@@ -368,18 +368,18 @@ with open(sys.argv[1], 'r') as infile:
         msg.set_content(f"""
         Hello {name},
         
-        You have been invited to CloudWorkstation.
+        You have been invited to Prism.
         
         Your invitation code is:
         {encoded}
         
         To accept this invitation, run:
-        cws profiles accept-invitation --encoded '{encoded}' --name '{name}'
+        prism profiles accept-invitation --encoded '{encoded}' --name '{name}'
         
         This invitation will expire in {row['Valid Days']} days.
         """)
         
-        msg['Subject'] = 'CloudWorkstation Invitation'
+        msg['Subject'] = 'Prism Invitation'
         msg['From'] = EMAIL_FROM
         msg['To'] = f"{name.lower().replace(' ', '.')}@example.com"
         
@@ -388,7 +388,7 @@ with open(sys.argv[1], 'r') as infile:
             
         # Send Slack notification
         requests.post(SLACK_WEBHOOK, json={
-            "text": f"CloudWorkstation invitation sent to {name}."
+            "text": f"Prism invitation sent to {name}."
         })
         
         print(f"Notifications sent for {name}")
@@ -396,6 +396,6 @@ with open(sys.argv[1], 'r') as infile:
 
 ## Conclusion
 
-The batch invitation system provides powerful tools for managing CloudWorkstation access at scale. By following the strategies and best practices in this guide, administrators can efficiently manage invitations across organizations of any size while maintaining security and control.
+The batch invitation system provides powerful tools for managing Prism access at scale. By following the strategies and best practices in this guide, administrators can efficiently manage invitations across organizations of any size while maintaining security and control.
 
 For more detailed information about specific interfaces, refer to the [Batch Invitation Interface Guide](./BATCH_INVITATION_INTERFACE_GUIDE.md).

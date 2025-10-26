@@ -1,6 +1,6 @@
-# CloudWorkstation Testing Guide
+# Prism Testing Guide
 
-This guide covers the comprehensive testing strategy for CloudWorkstation, including unit tests, integration tests with LocalStack, and code coverage analysis.
+This guide covers the comprehensive testing strategy for Prism, including unit tests, integration tests with LocalStack, and code coverage analysis.
 
 ## Test Coverage Targets
 

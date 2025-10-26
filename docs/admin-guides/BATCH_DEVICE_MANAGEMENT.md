@@ -1,6 +1,6 @@
 # Batch Device Management Guide
 
-CloudWorkstation v0.4.3 introduces a comprehensive batch device management system for efficiently managing device registrations across multiple invitations. This guide explains how to use these features to maintain security and control access to your CloudWorkstation resources.
+Prism v0.4.3 introduces a comprehensive batch device management system for efficiently managing device registrations across multiple invitations. This guide explains how to use these features to maintain security and control access to your Prism resources.
 
 ## Overview
 
@@ -18,7 +18,7 @@ This system is particularly valuable for enterprise environments where managing 
 
 ### Device Binding
 
-CloudWorkstation invitations can be configured with device binding, which restricts invitation usage to specific devices. When device binding is enabled:
+Prism invitations can be configured with device binding, which restricts invitation usage to specific devices. When device binding is enabled:
 
 - Each device that uses an invitation is registered with a unique device ID
 - The invitation can only be used on registered devices
@@ -40,7 +40,7 @@ The system maintains a centralized registry that tracks:
 Perform operations on multiple devices using a CSV file:
 
 ```bash
-cws profiles invitations devices batch-operation \
+prism profiles invitations devices batch-operation \
   --csv-file devices.csv \
   --operation revoke \
   --output-file results.csv
@@ -70,7 +70,7 @@ d2345678901bcdefg,inv-bcdefgh,Other Device,validate
 Export information about all registered devices:
 
 ```bash
-cws profiles invitations devices export-info \
+prism profiles invitations devices export-info \
   --output-file device_inventory.csv
 ```
 
@@ -89,7 +89,7 @@ This command:
 Revoke all devices across all invitations:
 
 ```bash
-cws profiles invitations devices batch-revoke-all \
+prism profiles invitations devices batch-revoke-all \
   --confirm \
   --output-file revocation_results.csv
 ```
@@ -172,7 +172,7 @@ d9876543210fedcba,inv-abcdefg,John's Phone,revoke
 EOF
 
 # Revoke the devices
-cws profiles invitations devices batch-operation \
+prism profiles invitations devices batch-operation \
   --csv-file compromised.csv \
   --output-file revocation_results.csv
 ```
@@ -181,7 +181,7 @@ cws profiles invitations devices batch-operation \
 
 ```bash
 # Export all device information
-cws profiles invitations devices export-info \
+prism profiles invitations devices export-info \
   --output-file device_audit.csv
 
 # This can be further processed with tools like Excel, Python, etc.
@@ -198,7 +198,7 @@ d2222222222bcdefg,inv-yyyyyyy,Research Lab 2,validate
 EOF
 
 # Validate the devices
-cws profiles invitations devices batch-operation \
+prism profiles invitations devices batch-operation \
   --csv-file validate_devices.csv \
   --output-file validation_results.csv
 ```
@@ -209,7 +209,7 @@ In case of a security incident:
 
 ```bash
 # Immediately revoke all devices
-cws profiles invitations devices batch-revoke-all \
+prism profiles invitations devices batch-revoke-all \
   --confirm \
   --output-file emergency_revocation.csv
 ```

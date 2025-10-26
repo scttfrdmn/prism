@@ -238,19 +238,19 @@ instance_defaults:
 
 ```bash
 # Template whitelist applies to both YAML templates and their compiled AMIs
-cws profiles invitations create "CS101 Class" \
+prism profiles invitations create "CS101 Class" \
   --template-whitelist "python-basic,python-ml-compiled" \
   --max-hourly-cost 0.15
 
 # Student launch - AMI inherits template restrictions
-cws launch python-ml-compiled my-homework
+prism launch python-ml-compiled my-homework
 # → Policy check: Source template 'python-ml' is in whitelist ✓
 # → Policy check: AMI embedded cost $0.0464 < limit $0.15 ✓  
 # → Policy check: Using pre-compiled AMI for faster launch ✓
 # → Launch approved (ami-0abc123def456789a)
 
 # Student tries expensive instance - blocked by AMI embedded limits
-cws launch python-ml-compiled my-project --instance-type c5.4xlarge
+prism launch python-ml-compiled my-project --instance-type c5.4xlarge
 # → Policy check: Instance type not in AMI resource limits ✗
 # → Error: AMI 'python-ml-compiled' restricts instance types to: [t3.medium, t3.large, c5.large, m5.large]
 ```
@@ -259,7 +259,7 @@ cws launch python-ml-compiled my-project --instance-type c5.4xlarge
 
 ```bash
 # Enterprise deployment with AMI signature verification
-cws launch institutional-python-ml research-project
+prism launch institutional-python-ml research-project
 # → Policy check: AMI signature verified ✓ (institutional key)
 # → Policy check: Compliance frameworks match ✓ (HIPAA approved)
 # → Policy check: User security clearance sufficient ✓ (internal data)
@@ -267,7 +267,7 @@ cws launch institutional-python-ml research-project
 # → Launch approved with audit log entry
 
 # Unauthorized AMI - blocked by signature verification
-cws launch external-ami-12345 test-project
+prism launch external-ami-12345 test-project
 # → Policy check: AMI signature missing or invalid ✗
 # → Error: AMI not approved by institutional policy
 # → Contact IT for AMI approval process
@@ -279,7 +279,7 @@ cws launch external-ami-12345 test-project
 
 ```bash
 # List templates shows both source and compiled variants
-cws templates list
+prism templates list
 # TEMPLATE                    TYPE      STATUS      LAUNCH TIME
 # python-basic               source    ready       ~3-5 minutes
 # python-ml                  source    ready       ~5-8 minutes  
@@ -288,7 +288,7 @@ cws templates list
 # r-research-compiled        compiled  building    ETA: 15 minutes
 
 # Template info shows compilation status and AMI details
-cws templates info python-ml-compiled
+prism templates info python-ml-compiled
 # Template: Python Machine Learning (Compiled)
 # Type: Compiled (AMI-based)
 # Source Template: python-ml-v2.1
@@ -306,7 +306,7 @@ cws templates info python-ml-compiled
 # Launch Performance: ~30 seconds (vs ~5-8 minutes for source template)
 
 # Compile templates on-demand
-cws templates compile python-ml --regions us-west-2,eu-west-1 --architectures x86_64,arm64
+prism templates compile python-ml --regions us-west-2,eu-west-1 --architectures x86_64,arm64
 # → Initiating template compilation...
 # → Building AMI in us-west-2 (x86_64): ami-build-0abc123
 # → Building AMI in us-west-2 (arm64): ami-build-0def456  
@@ -315,7 +315,7 @@ cws templates compile python-ml --regions us-west-2,eu-west-1 --architectures x8
 # → Estimated completion: 20-25 minutes
 
 # Check compilation status
-cws templates compile status python-ml
+prism templates compile status python-ml
 # Compilation Status: In Progress
 # Started: 2024-01-15 10:30:00 UTC
 # Progress:
@@ -341,13 +341,13 @@ cws templates compile status python-ml
 ### **Educational Use Cases**
 ```bash
 # CS department pre-compiles class templates for faster student access
-cws templates compile python-basic --batch-compile class-templates
+prism templates compile python-basic --batch-compile class-templates
 # → Students get 30-second launch times instead of 5-minute waits
 # → Same policy restrictions apply (cost limits, instance types)
 # → Consistent environment across all student instances
 
 # Research lab compiles specialized templates for GPU workloads
-cws templates compile deep-learning-gpu --regions us-west-2 --instance-types p3.2xlarge
+prism templates compile deep-learning-gpu --regions us-west-2 --instance-types p3.2xlarge
 # → Lab members get immediate access to complex ML environments
 # → Pre-installed CUDA, PyTorch, TensorFlow, research-specific libraries
 # → Policy-enforced cost and instance type restrictions maintained
@@ -356,16 +356,16 @@ cws templates compile deep-learning-gpu --regions us-west-2 --instance-types p3.
 ### **Enterprise Use Cases**
 ```bash  
 # IT department maintains approved AMI catalog
-cws templates compile institutional-python --sign-with university-it-key
+prism templates compile institutional-python --sign-with university-it-key
 # → Creates digitally signed AMIs for institutional deployment
 # → Embedded compliance metadata (HIPAA, SOX, university policies)
 # → Automatic security patching and vulnerability scanning
 
 # Department budgets control AMI usage
-cws profiles create chemistry-dept --ami-whitelist "chem-analysis-v2.1,molecular-modeling-v1.3"
+prism profiles create chemistry-dept --ami-whitelist "chem-analysis-v2.1,molecular-modeling-v1.3"
 # → Department members restricted to approved AMIs only
 # → Cost controls and budget tracking apply to AMI-based launches
 # → Template governance extends to compiled AMI governance
 ```
 
-This AMI-as-compiled-template architecture provides the performance benefits of pre-built images while maintaining the governance, traceability, and policy enforcement that makes CloudWorkstation valuable for institutional deployments. The unified policy framework ensures consistent controls whether users launch from source templates or compiled AMIs.
+This AMI-as-compiled-template architecture provides the performance benefits of pre-built images while maintaining the governance, traceability, and policy enforcement that makes Prism valuable for institutional deployments. The unified policy framework ensures consistent controls whether users launch from source templates or compiled AMIs.

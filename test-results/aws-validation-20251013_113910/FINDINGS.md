@@ -22,16 +22,16 @@ Error: template not found
 The specified template doesn't exist. To fix this:
 
 1. List available templates:
-   cws templates
+   prism templates
 
 2. Check template name spelling
 3. Refresh template cache:
-   rm -rf ~/.cloudworkstation/templates && cws templates
+   rm -rf ~/.prism/templates && prism templates
 
 Original error: API error 500 for POST /api/v1/instances: {"code":"server_error","message":"AWS operation failed: failed to get template: template not found: ubuntu-base","status_code":500}
 
 Usage:
-  cws launch <template> <name> [flags]
+  prism launch <template> <name> [flags]
 
 Flags:
       --dry-run                Validate configuration without launching
@@ -51,22 +51,22 @@ Error: template not found
 The specified template doesn't exist. To fix this:
 
 1. List available templates:
-   cws templates
+   prism templates
 
 2. Check template name spelling
 3. Refresh template cache:
-   rm -rf ~/.cloudworkstation/templates && cws templates
+   rm -rf ~/.prism/templates && prism templates
 
 Original error: template not found
 
 The specified template doesn't exist. To fix this:
 
 1. List available templates:
-   cws templates
+   prism templates
 
 2. Check template name spelling
 3. Refresh template cache:
-   rm -rf ~/.cloudworkstation/templates && cws templates
+   rm -rf ~/.prism/templates && prism templates
 
 Original error: API error 500 for POST /api/v1/instances: {"code":"server_error","message":"AWS operation failed: failed to get template: template not found: ubuntu-base","status_code":500}
 

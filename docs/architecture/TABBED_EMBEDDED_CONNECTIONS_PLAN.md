@@ -1,8 +1,8 @@
-# CloudWorkstation Tabbed Embedded Connections Implementation Plan
+# Prism Tabbed Embedded Connections Implementation Plan
 
 ## 🎯 Vision Statement
 
-Transform CloudWorkstation GUI into a unified research platform with tabbed embedded connections supporting traditional compute instances alongside AWS research services (SageMaker, Braket, Console, CloudShell) within a professional Cloudscape-based interface.
+Transform Prism GUI into a unified research platform with tabbed embedded connections supporting traditional compute instances alongside AWS research services (SageMaker, Braket, Console, CloudShell) within a professional Cloudscape-based interface.
 
 ## 🏗️ Architecture Overview
 
@@ -16,7 +16,7 @@ Transform CloudWorkstation GUI into a unified research platform with tabbed embe
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    CloudWorkstation GUI (Cloudscape)                │
+│                    Prism GUI (Cloudscape)                │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ┌─────────────────────────────────────────────────────────────────┐ │
 │  │                    Cloudscape Tabs Component                    │ │
@@ -113,7 +113,7 @@ import (
 )
 
 // AWS service connection handlers
-func (s *CloudWorkstationService) OpenAWSService(ctx context.Context,
+func (s *PrismService) OpenAWSService(ctx context.Context,
     service string, region string) (*ConnectionConfig, error) {
 
     // Generate federated token for AWS service access
@@ -137,19 +137,19 @@ func (s *CloudWorkstationService) OpenAWSService(ctx context.Context,
 }
 
 // Specialized AWS service handlers
-func (s *CloudWorkstationService) OpenBraketConsole(ctx context.Context, region string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenBraketConsole(ctx context.Context, region string) (*ConnectionConfig, error) {
     return s.OpenAWSService(ctx, "braket", region)
 }
 
-func (s *CloudWorkstationService) OpenSageMakerStudio(ctx context.Context, region string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenSageMakerStudio(ctx context.Context, region string) (*ConnectionConfig, error) {
     return s.OpenAWSService(ctx, "sagemaker", region)
 }
 
-func (s *CloudWorkstationService) OpenAWSConsole(ctx context.Context, service string, region string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenAWSConsole(ctx context.Context, service string, region string) (*ConnectionConfig, error) {
     return s.OpenAWSService(ctx, "console", region)
 }
 
-func (s *CloudWorkstationService) OpenCloudShell(ctx context.Context, region string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenCloudShell(ctx context.Context, region string) (*ConnectionConfig, error) {
     return s.OpenAWSService(ctx, "cloudshell", region)
 }
 ```
@@ -157,7 +157,7 @@ func (s *CloudWorkstationService) OpenCloudShell(ctx context.Context, region str
 **1.3 Enhanced Instance Connection Handlers**
 ```go
 // cmd/cws-gui/service.go - Update existing methods
-func (s *CloudWorkstationService) OpenEmbeddedTerminal(ctx context.Context, instanceName string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenEmbeddedTerminal(ctx context.Context, instanceName string) (*ConnectionConfig, error) {
     access, err := s.GetInstanceAccess(ctx, instanceName)
     if err != nil {
         return nil, err
@@ -177,7 +177,7 @@ func (s *CloudWorkstationService) OpenEmbeddedTerminal(ctx context.Context, inst
     }, nil
 }
 
-func (s *CloudWorkstationService) OpenEmbeddedDesktop(ctx context.Context, instanceName string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenEmbeddedDesktop(ctx context.Context, instanceName string) (*ConnectionConfig, error) {
     access, err := s.GetInstanceAccess(ctx, instanceName)
     if err != nil {
         return nil, err
@@ -197,7 +197,7 @@ func (s *CloudWorkstationService) OpenEmbeddedDesktop(ctx context.Context, insta
     }, nil
 }
 
-func (s *CloudWorkstationService) OpenEmbeddedWeb(ctx context.Context, instanceName string) (*ConnectionConfig, error) {
+func (s *PrismService) OpenEmbeddedWeb(ctx context.Context, instanceName string) (*ConnectionConfig, error) {
     access, err := s.GetInstanceAccess(ctx, instanceName)
     if err != nil {
         return nil, err
@@ -268,7 +268,7 @@ interface ConnectionConfig {
 declare global {
   interface Window {
     wails: {
-      CloudWorkstationService: {
+      PrismService: {
         // Instance connections
         OpenEmbeddedTerminal: (instanceName: string) => Promise<ConnectionConfig>;
         OpenEmbeddedDesktop: (instanceName: string) => Promise<ConnectionConfig>;
@@ -300,13 +300,13 @@ const handleInstanceAction = async (action: string, instance: Instance) => {
 
       switch (connectionType) {
         case 'ssh':
-          config = await window.wails.CloudWorkstationService.OpenEmbeddedTerminal(instance.name);
+          config = await window.wails.PrismService.OpenEmbeddedTerminal(instance.name);
           break;
         case 'desktop':
-          config = await window.wails.CloudWorkstationService.OpenEmbeddedDesktop(instance.name);
+          config = await window.wails.PrismService.OpenEmbeddedDesktop(instance.name);
           break;
         case 'web':
-          config = await window.wails.CloudWorkstationService.OpenEmbeddedWeb(instance.name);
+          config = await window.wails.PrismService.OpenEmbeddedWeb(instance.name);
           break;
         default:
           throw new Error('No supported connection type available');
@@ -346,7 +346,7 @@ interface ConnectionTab {
   status: 'connecting' | 'connected' | 'disconnected' | 'error';
 }
 
-interface CloudWorkstationState {
+interface PrismState {
   activeView: 'templates' | 'instances' | 'volumes' | 'research-users' | 'connections' | 'settings';
   // ... existing state
 
@@ -409,14 +409,14 @@ const AWSServiceLauncher = () => {
         service: 'braket',
         icon: '⚛️',
         description: 'Quantum computing research and experimentation',
-        handler: () => window.wails.CloudWorkstationService.OpenBraketConsole(selectedRegion)
+        handler: () => window.wails.PrismService.OpenBraketConsole(selectedRegion)
       },
       {
         name: 'SageMaker Studio',
         service: 'sagemaker',
         icon: '🤖',
         description: 'ML/AI development and training',
-        handler: () => window.wails.CloudWorkstationService.OpenSageMakerStudio(selectedRegion)
+        handler: () => window.wails.PrismService.OpenSageMakerStudio(selectedRegion)
       },
     ],
     compute: [
@@ -425,7 +425,7 @@ const AWSServiceLauncher = () => {
         service: 'cloudshell',
         icon: '🖥️',
         description: 'Browser-based terminal with AWS CLI',
-        handler: () => window.wails.CloudWorkstationService.OpenCloudShell(selectedRegion)
+        handler: () => window.wails.PrismService.OpenCloudShell(selectedRegion)
       }
     ],
     management: [
@@ -434,7 +434,7 @@ const AWSServiceLauncher = () => {
         service: 'console',
         icon: '🎛️',
         description: 'AWS resource management',
-        handler: () => window.wails.CloudWorkstationService.OpenAWSConsole('ec2', selectedRegion)
+        handler: () => window.wails.PrismService.OpenAWSConsole('ec2', selectedRegion)
       }
     ]
   };
@@ -813,4 +813,4 @@ const renderConnectionsView = () => (
 5. **Add AWS service integration** - Starting with Amazon Braket and SageMaker
 6. **Iterate and enhance** - Based on user feedback and usage patterns
 
-This plan transforms CloudWorkstation into a comprehensive research platform that seamlessly integrates traditional compute with AWS's powerful research services, all within a professional, tabbed interface.
+This plan transforms Prism into a comprehensive research platform that seamlessly integrates traditional compute with AWS's powerful research services, all within a professional, tabbed interface.

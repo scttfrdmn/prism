@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-The CloudWorkstation Template Marketplace is a comprehensive system for discovering, validating, and distributing research environment templates across multiple registries. This document describes the technical architecture, implementation details, and integration patterns for the marketplace foundation.
+The Prism Template Marketplace is a comprehensive system for discovering, validating, and distributing research environment templates across multiple registries. This document describes the technical architecture, implementation details, and integration patterns for the marketplace foundation.
 
 ## Architecture Overview
 
@@ -135,7 +135,7 @@ Professional command-line interface providing complete marketplace access:
 
 **Command Structure:**
 ```
-cws marketplace
+prism marketplace
 ├── search [query]     # Advanced template search with filtering
 ├── browse             # Category-based template exploration
 ├── show <name>        # Detailed template information
@@ -288,7 +288,7 @@ type CacheLayer struct {
 
 ### CLI Integration
 
-Seamless integration with existing CloudWorkstation CLI:
+Seamless integration with existing Prism CLI:
 
 ```go
 // Marketplace commands integrate with root CLI
@@ -308,16 +308,16 @@ func init() {
 
 **Template Resolution Priority:**
 1. **Local Marketplace Templates**: User-installed marketplace templates
-2. **Built-in Templates**: CloudWorkstation default templates
+2. **Built-in Templates**: Prism default templates
 3. **Inherited Templates**: Templates with parent relationships
 
 **Launch Compatibility:**
 ```bash
 # Marketplace templates work like built-in templates
-cws launch marketplace-template instance-name
+prism launch marketplace-template instance-name
 
 # Full feature compatibility
-cws launch marketplace-template instance-name \
+prism launch marketplace-template instance-name \
     --research-user johndoe \
     --size L \
     --spot
@@ -406,7 +406,7 @@ type QualityPlugin interface {
 # OpenAPI 3.0 specification for registry compatibility
 openapi: 3.0.0
 info:
-  title: CloudWorkstation Template Registry API
+  title: Prism Template Registry API
   version: 1.0.0
 paths:
   /api/v1/search:
@@ -470,11 +470,11 @@ type TemplateMetrics struct {
 
 **Registry Configuration:**
 ```yaml
-# ~/.cloudworkstation/registries.yaml
+# ~/.prism/registries.yaml
 registries:
   - name: "official"
     type: "official"
-    url: "https://marketplace.cloudworkstation.dev"
+    url: "https://marketplace.prism.dev"
 
   - name: "university"
     type: "institutional"
@@ -492,7 +492,7 @@ registries:
 ### Distribution Strategy
 
 **Registry Types:**
-1. **Official Registry**: CloudWorkstation curated templates
+1. **Official Registry**: Prism curated templates
 2. **Community Registry**: Verified community contributions
 3. **Institutional Registries**: Organization-specific templates
 4. **Private Registries**: Team or project-specific templates
@@ -561,7 +561,7 @@ registries:
 
 ## Conclusion
 
-The CloudWorkstation Template Marketplace Technical Architecture provides a robust, scalable, and secure foundation for research template discovery and distribution. The modular design enables organizations to maintain private registries while participating in the community ecosystem, while comprehensive validation ensures security and quality across all template sources.
+The Prism Template Marketplace Technical Architecture provides a robust, scalable, and secure foundation for research template discovery and distribution. The modular design enables organizations to maintain private registries while participating in the community ecosystem, while comprehensive validation ensures security and quality across all template sources.
 
 Key architectural benefits:
 
@@ -572,4 +572,4 @@ Key architectural benefits:
 5. **Performance Optimization**: Intelligent caching and concurrent processing
 6. **Quality Assurance**: Automated quality scoring and validation
 
-This architecture positions CloudWorkstation as a comprehensive platform for research computing, enabling researchers to discover and deploy sophisticated research environments in seconds while maintaining the highest standards of security and quality.
+This architecture positions Prism as a comprehensive platform for research computing, enabling researchers to discover and deploy sophisticated research environments in seconds while maintaining the highest standards of security and quality.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-CloudWorkstation supports conda-based package management using **Miniforge**, the community-driven, conda-forge-focused distribution of conda. This document describes our implementation and how it follows standard Miniforge installation practices.
+Prism supports conda-based package management using **Miniforge**, the community-driven, conda-forge-focused distribution of conda. This document describes our implementation and how it follows standard Miniforge installation practices.
 
 ## Why Miniforge?
 
@@ -123,7 +123,7 @@ MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download
 
 ## Progress Monitoring
 
-Conda installation and package installation are integrated with CloudWorkstation's progress monitoring system:
+Conda installation and package installation are integrated with Prism's progress monitoring system:
 
 ```bash
 progress "STAGE:system-packages:START"
@@ -188,7 +188,7 @@ progress "STAGE:pip-packages:COMPLETE"
 To test conda template provisioning:
 
 ```bash
-# Build CloudWorkstation
+# Build Prism
 make build
 
 # Launch conda-based template
@@ -253,7 +253,7 @@ sudo chown -R $(whoami):$(whoami) /opt/miniforge
 - **Official Miniforge**: https://github.com/conda-forge/miniforge
 - **Conda Documentation**: https://docs.conda.io/
 - **Conda-Forge**: https://conda-forge.org/
-- **CloudWorkstation Templates**: `templates/python-ml-workstation.yml`, `templates/r-research-workstation.yml`
+- **Prism Templates**: `templates/python-ml-workstation.yml`, `templates/r-research-workstation.yml`
 
 ## Version History
 

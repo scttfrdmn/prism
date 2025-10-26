@@ -1,17 +1,17 @@
-# CloudWorkstation v0.4.5 Demo Sequence
+# Prism v0.4.5 Demo Sequence
 
-This demo showcases CloudWorkstation v0.4.5 from installation to actual usage, demonstrating the complete workflow that researchers experience from setup to connecting to their workstation.
+This demo showcases Prism v0.4.5 from installation to actual usage, demonstrating the complete workflow that researchers experience from setup to connecting to their workstation.
 
 ## Phase 1: Installation (2 minutes)
 
 ### 1.1 Installation Options
 ```bash
 # Option 1: Homebrew Tap (Recommended)
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 
 # Option 2: GitHub Releases (Alternative)
-# Download from https://github.com/scttfrdmn/cloudworkstation/releases
+# Download from https://github.com/scttfrdmn/prism/releases
 
 # Option 3: Source Build (Full Features including GUI)
 # git clone && make build
@@ -20,35 +20,35 @@ brew install cloudworkstation
 ### 1.2 Initial Setup
 ```bash
 # Verify installation
-cws --version
+prism --version
 cwsd --version
 
 # Configure AWS credentials (required for cloud operations)
 aws configure --profile aws  # Use your preferred profile name
 
-# AWS Setup Note: This demo uses CloudWorkstation's built-in profile system (recommended).
+# AWS Setup Note: This demo uses Prism's built-in profile system (recommended).
 # For alternative methods and detailed setup, see AWS_SETUP_GUIDE.md
 
 # Set development mode BEFORE starting daemon (avoids keychain prompts)
 export CLOUDWORKSTATION_DEV=true
 
 # Start daemon for profile management
-cws daemon start
+prism daemon start
 
-# Create CloudWorkstation profile (RECOMMENDED METHOD)
-cws profiles add personal my-research --aws-profile aws --region us-west-2
+# Create Prism profile (RECOMMENDED METHOD)
+prism profiles add personal my-research --aws-profile aws --region us-west-2
 
 # Activate your profile
-cws profiles switch aws
+prism profiles switch aws
 
 # Verify profile is active
-cws profiles current
+prism profiles current
 ```
 
 **Demo Points:**
 - Professional package management via Homebrew
 - Multiple installation options for different needs
-- CloudWorkstation profiles eliminate need for environment variables
+- Prism profiles eliminate need for environment variables
 - Simple setup process with persistent configuration
 
 ## Phase 2: First Workstation Launch (3 minutes)
@@ -56,25 +56,25 @@ cws profiles current
 ### 2.1 Templates
 ```bash
 # Show available templates (daemon already running from setup)
-cws templates list
+prism templates list
 
 # Show template details with cost estimation
-cws templates info "Python Machine Learning (Simplified)"
+prism templates info "Python Machine Learning (Simplified)"
 ```
 
 ### 2.2 Launch and Connect
 ```bash
 # Launch a Python ML workstation
-cws launch "Python Machine Learning (Simplified)" ml-research
+prism launch "Python Machine Learning (Simplified)" ml-research
 
 # Show running instances
-cws list
+prism list
 
 # Get connection details
-cws info ml-research
+prism info ml-research
 
 # Connect to your workstation (KEY STEP)
-cws connect ml-research
+prism connect ml-research
 
 # Inside workstation: show environment
 whoami
@@ -97,16 +97,16 @@ exit
 ### 3.1 Stacked Templates
 ```bash
 # Show template inheritance
-cws templates info "Rocky Linux 9 + Conda Stack"
+prism templates info "Rocky Linux 9 + Conda Stack"
 
 # Launch inherited template workstation
-cws launch "Rocky Linux 9 + Conda Stack" data-analysis
+prism launch "Rocky Linux 9 + Conda Stack" data-analysis
 
 # Compare with base template
-cws templates info "Rocky Linux 9 Base"
+prism templates info "Rocky Linux 9 Base"
 
 # Connect to new workstation
-cws connect data-analysis
+prism connect data-analysis
 
 # Inside workstation: show inherited environment
 whoami  # shows rocky user (from base)
@@ -127,10 +127,10 @@ exit
 ### 4.1 Different Interfaces
 ```bash
 # CLI interface (already shown)
-cws list
+prism list
 
 # Launch TUI for interactive management
-cws tui
+prism tui
 # Navigate: 1=Dashboard, 2=Instances, 3=Templates, 4=Storage
 # Show real-time updates and keyboard navigation
 # Exit TUI
@@ -154,19 +154,19 @@ curl -s http://localhost:8947/api/v1/instances | jq '.[] | .name'
 ### 5.1 Manual Hibernation
 ```bash
 # Show hibernation capabilities
-cws hibernation-status ml-research
+prism hibernation-status ml-research
 
 # Hibernate instance to save costs (preserves state)
-cws hibernate ml-research
+prism hibernate ml-research
 
 # Show state preservation
-cws list
+prism list
 
 # Resume when needed
-cws resume ml-research
+prism resume ml-research
 
 # Reconnect after resume
-cws connect ml-research
+prism connect ml-research
 # Environment is preserved exactly as left
 exit
 ```
@@ -174,16 +174,16 @@ exit
 ### 5.2 Automated Hibernation Policies
 ```bash
 # Show available hibernation policies
-cws idle profile list
+prism idle profile list
 
 # Apply cost-optimized policy
-cws idle instance ml-research --profile cost-optimized
+prism idle instance ml-research --profile cost-optimized
 
 # Show policy configuration
-cws idle profile show cost-optimized
+prism idle profile show cost-optimized
 
 # View hibernation history/audit trail
-cws idle history
+prism idle history
 ```
 
 **Demo Points:**
@@ -197,34 +197,34 @@ cws idle history
 ### 6.1 Project-Based Organization
 ```bash
 # Create a research project
-cws project create "machine-learning-research" \
+prism project create "machine-learning-research" \
   --description "Deep learning model development project" \
   --budget-limit 500.00
 
 # Show project details
-cws project show machine-learning-research
+prism project show machine-learning-research
 
 # Associate instances with project
-cws project assign machine-learning-research ml-research
-cws project assign machine-learning-research data-analysis
+prism project assign machine-learning-research ml-research
+prism project assign machine-learning-research data-analysis
 ```
 
 ### 6.2 Budget Management & Collaboration
 ```bash
 # Set up budget tracking
-cws project budget machine-learning-research set \
+prism project budget machine-learning-research set \
   --monthly-limit 500.00 \
   --alert-threshold 0.8
 
 # Add team members (simulated)
-cws project member add machine-learning-research \
+prism project member add machine-learning-research \
   researcher@university.edu --role member
 
 # Show real-time cost tracking
-cws project cost machine-learning-research --breakdown
+prism project cost machine-learning-research --breakdown
 
 # Show project team
-cws project members machine-learning-research
+prism project members machine-learning-research
 ```
 
 **Demo Points:**
@@ -238,16 +238,16 @@ cws project members machine-learning-research
 ### 7.1 Storage Management
 ```bash
 # Show storage options
-cws storage list
+prism storage list
 
 # Create shared storage
-cws storage create shared-data --size 100GB --type efs
+prism storage create shared-data --size 100GB --type efs
 
 # Attach to instances
-cws storage attach shared-data ml-research /mnt/shared
+prism storage attach shared-data ml-research /mnt/shared
 
 # Connect and verify storage
-cws connect ml-research
+prism connect ml-research
 df -h | grep /mnt/shared  # Show mounted storage
 echo "test data" > /mnt/shared/test.txt
 exit
@@ -256,26 +256,26 @@ exit
 ### 7.2 System Health and Diagnostics
 ```bash
 # Health check
-cws doctor
+prism doctor
 
 # Show system status
-cws daemon status --detailed
+prism daemon status --detailed
 
 # Profile management
-cws profiles current
-cws profiles list
+prism profiles current
+prism profiles list
 
 # Profile switching demonstration
-cws profiles add personal demo-profile --aws-profile aws --region us-east-1
-cws profiles switch demo-profile
-cws profiles current
-cws profiles switch aws  # Switch back to main profile
+prism profiles add personal demo-profile --aws-profile aws --region us-east-1
+prism profiles switch demo-profile
+prism profiles current
+prism profiles switch aws  # Switch back to main profile
 ```
 
 **Demo Points:**
 - Persistent shared storage between workstations
 - System health monitoring
-- CloudWorkstation profile management with easy switching
+- Prism profile management with easy switching
 - No environment variables needed for AWS configuration
 
 ## Phase 8: Cleanup and Next Steps (1 minute)
@@ -283,17 +283,17 @@ cws profiles switch aws  # Switch back to main profile
 ### 8.1 Resource Management
 ```bash
 # Show final project cost summary
-cws project cost machine-learning-research --savings
+prism project cost machine-learning-research --savings
 
 # Hibernate instances (preserves state for next session)
-cws hibernate ml-research
-cws hibernate data-analysis
+prism hibernate ml-research
+prism hibernate data-analysis
 
 # Final status check
-cws list
+prism list
 
 # Clean shutdown
-cws daemon stop
+prism daemon stop
 ```
 
 **Demo Points:**
@@ -315,7 +315,7 @@ cws daemon stop
 
 ### Key Technical Demonstrations:
 - **Template Inheritance**: Rocky Linux 9 Base → Rocky Linux 9 + Conda Stack
-- **Connection Workflow**: `cws launch` → `cws connect` → research environment ready
+- **Connection Workflow**: `prism launch` → `prism connect` → research environment ready
 - **State Preservation**: Hibernation maintains exact work environment for resume
 - **Multi-Modal Access**: Same functionality across CLI, TUI, GUI, and API
 - **Enterprise Features**: Project budgets, team collaboration, cost tracking
@@ -350,12 +350,12 @@ cws daemon stop
 
 ## Demo Environment Requirements:
 - **System**: macOS/Linux with Homebrew installed
-- **CloudWorkstation**: v0.4.2 binaries available
-- **AWS**: Credentials configured using CloudWorkstation profiles (see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md))
+- **Prism**: v0.4.2 binaries available
+- **AWS**: Credentials configured using Prism profiles (see [AWS_SETUP_GUIDE.md](AWS_SETUP_GUIDE.md))
   ```bash
   aws configure --profile aws  # Configure AWS CLI
-  cws profiles add personal my-research --aws-profile aws --region us-west-2
-  cws profiles switch aws      # Activate CloudWorkstation profile
+  prism profiles add personal my-research --aws-profile aws --region us-west-2
+  prism profiles switch aws      # Activate Prism profile
   ```
 - **Development Mode**: `export CLOUDWORKSTATION_DEV=true` for smooth keychain experience
 - **Network**: Internet access for AWS API calls and package downloads
@@ -363,17 +363,17 @@ cws daemon stop
 ## Recovery Commands (if demo issues arise):
 ```bash
 # Reset daemon
-cws daemon stop && sleep 2 && cws daemon start
+prism daemon stop && sleep 2 && prism daemon start
 
 # Clear stuck operations  
-cws project delete machine-learning-research --force
+prism project delete machine-learning-research --force
 
 # Fresh state
-rm ~/.cloudworkstation/state.json && cws daemon restart
+rm ~/.prism/state.json && prism daemon restart
 
 # Emergency cleanup
-cws list  # identify running instances
-cws hibernate <instance-name>  # hibernate all instances
+prism list  # identify running instances
+prism hibernate <instance-name>  # hibernate all instances
 ```
 
 ## Quick Demo Checklist:

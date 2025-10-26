@@ -6,7 +6,7 @@
 
 ## Overview
 
-The CloudWorkstation Template Marketplace is a comprehensive system for discovering, sharing, and installing research environment templates. It connects researchers with a vast ecosystem of pre-configured environments optimized for different research domains, from machine learning and data science to bioinformatics and high-performance computing.
+The Prism Template Marketplace is a comprehensive system for discovering, sharing, and installing research environment templates. It connects researchers with a vast ecosystem of pre-configured environments optimized for different research domains, from machine learning and data science to bioinformatics and high-performance computing.
 
 ## Key Features
 
@@ -34,24 +34,24 @@ The CloudWorkstation Template Marketplace is a comprehensive system for discover
 
 Search for machine learning templates:
 ```bash
-cws marketplace search "machine learning"
+prism marketplace search "machine learning"
 ```
 
 Browse templates by category:
 ```bash
-cws marketplace browse --category "Data Science"
+prism marketplace browse --category "Data Science"
 ```
 
 Filter by specific features:
 ```bash
-cws marketplace search --research-user --verified --min-rating 4.0
+prism marketplace search --research-user --verified --min-rating 4.0
 ```
 
 ### 2. Explore Template Details
 
 Get comprehensive information about a template:
 ```bash
-cws marketplace show pytorch-research
+prism marketplace show pytorch-research
 ```
 
 This shows:
@@ -65,53 +65,53 @@ This shows:
 
 Install a template from the marketplace:
 ```bash
-cws marketplace install pytorch-research
+prism marketplace install pytorch-research
 ```
 
 Install a specific version:
 ```bash
-cws marketplace install pytorch-research --version 2.1.0
+prism marketplace install pytorch-research --version 2.1.0
 ```
 
 Install from a specific registry:
 ```bash
-cws marketplace install pytorch-research --registry community
+prism marketplace install pytorch-research --registry community
 ```
 
 ### 4. Use Installed Templates
 
 Once installed, use templates like built-in ones:
 ```bash
-cws launch pytorch-research my-ml-project
+prism launch pytorch-research my-ml-project
 ```
 
 ## Command Reference
 
-### `cws marketplace search [query]`
+### `prism marketplace search [query]`
 
 Search for templates across all configured registries.
 
 **Usage:**
 ```bash
-cws marketplace search [query] [flags]
+prism marketplace search [query] [flags]
 ```
 
 **Examples:**
 ```bash
 # Basic text search
-cws marketplace search "deep learning"
+prism marketplace search "deep learning"
 
 # Category-specific search
-cws marketplace search --category "Machine Learning" --category "Data Science"
+prism marketplace search --category "Machine Learning" --category "Data Science"
 
 # Quality filtering
-cws marketplace search --verified --min-rating 4.0
+prism marketplace search --verified --min-rating 4.0
 
 # Feature filtering
-cws marketplace search --research-user --connection ssh
+prism marketplace search --research-user --connection ssh
 
 # Advanced filtering with sorting
-cws marketplace search "python" --complexity simple --sort rating --order desc
+prism marketplace search "python" --complexity simple --sort rating --order desc
 ```
 
 **Flags:**
@@ -133,50 +133,50 @@ cws marketplace search "python" --complexity simple --sort rating --order desc
 - `--offset`: Results offset for pagination
 - `--format`: Output format (table, json)
 
-### `cws marketplace browse`
+### `prism marketplace browse`
 
 Browse templates by categories and discover popular templates.
 
 **Usage:**
 ```bash
-cws marketplace browse [flags]
+prism marketplace browse [flags]
 ```
 
 **Examples:**
 ```bash
 # Browse all categories overview
-cws marketplace browse
+prism marketplace browse
 
 # Browse specific category
-cws marketplace browse --category "Bioinformatics"
+prism marketplace browse --category "Bioinformatics"
 
 # Browse with different format
-cws marketplace browse --category "Web Development" --format json
+prism marketplace browse --category "Web Development" --format json
 ```
 
 **Flags:**
 - `--category`: Browse specific category
 - `--format`: Output format (table, json)
 
-### `cws marketplace show <template-name>`
+### `prism marketplace show <template-name>`
 
 Display comprehensive information about a specific template.
 
 **Usage:**
 ```bash
-cws marketplace show <template-name> [flags]
+prism marketplace show <template-name> [flags]
 ```
 
 **Examples:**
 ```bash
 # Show template details
-cws marketplace show pytorch-research
+prism marketplace show pytorch-research
 
 # Show specific version
-cws marketplace show pytorch-research --version 2.1.0
+prism marketplace show pytorch-research --version 2.1.0
 
 # Show from specific registry
-cws marketplace show pytorch-research --registry community
+prism marketplace show pytorch-research --registry community
 ```
 
 **Information Displayed:**
@@ -194,28 +194,28 @@ cws marketplace show pytorch-research --registry community
 - `--registry`: Search specific registry
 - `--version`: Show specific template version
 
-### `cws marketplace install <template-name>`
+### `prism marketplace install <template-name>`
 
 Download and install a template from the marketplace for local use.
 
 **Usage:**
 ```bash
-cws marketplace install <template-name> [flags]
+prism marketplace install <template-name> [flags]
 ```
 
 **Examples:**
 ```bash
 # Install latest version
-cws marketplace install pytorch-research
+prism marketplace install pytorch-research
 
 # Install specific version
-cws marketplace install pytorch-research --version 2.1.0
+prism marketplace install pytorch-research --version 2.1.0
 
 # Install from specific registry
-cws marketplace install pytorch-research --registry institutional
+prism marketplace install pytorch-research --registry institutional
 
 # Force overwrite existing template
-cws marketplace install pytorch-research --force
+prism marketplace install pytorch-research --force
 ```
 
 **Installation Process:**
@@ -230,13 +230,13 @@ cws marketplace install pytorch-research --force
 - `--version`: Install specific template version
 - `--force`: Force overwrite existing template
 
-### `cws marketplace registries`
+### `prism marketplace registries`
 
 Manage and view configured template registries.
 
 **Usage:**
 ```bash
-cws marketplace registries
+prism marketplace registries
 ```
 
 **Example Output:**
@@ -244,13 +244,13 @@ cws marketplace registries
 Configured Registries
 ====================
 NAME        TYPE            URL                                    STATUS
-official    official        https://marketplace.cloudworkstation.dev    ✓ Available
-community   community       https://community.cloudworkstation.dev      ✓ Available
+official    official        https://marketplace.prism.dev    ✓ Available
+community   community       https://community.prism.dev      ✓ Available
 university  institutional   https://templates.university.edu            ✓ Available
 ```
 
 **Registry Types:**
-- **Official**: CloudWorkstation official templates
+- **Official**: Prism official templates
 - **Community**: Community-contributed templates
 - **Institutional**: Organization-specific templates
 - **Private**: Private registry requiring authentication
@@ -259,15 +259,15 @@ university  institutional   https://templates.university.edu            ✓ Avai
 
 ### Default Registries
 
-CloudWorkstation comes configured with two default registries:
+Prism comes configured with two default registries:
 
 1. **Official Registry** (`official`)
-   - URL: `https://marketplace.cloudworkstation.dev`
-   - Type: Official CloudWorkstation templates
-   - Verification: All templates verified by CloudWorkstation team
+   - URL: `https://marketplace.prism.dev`
+   - Type: Official Prism templates
+   - Verification: All templates verified by Prism team
 
 2. **Community Registry** (`community`)
-   - URL: `https://community.cloudworkstation.dev`
+   - URL: `https://community.prism.dev`
    - Type: Community-contributed templates
    - Verification: Community moderation and automated validation
 
@@ -275,7 +275,7 @@ CloudWorkstation comes configured with two default registries:
 
 To add institutional or private registries, create a registry configuration file:
 
-**~/.cloudworkstation/registries.yaml:**
+**~/.prism/registries.yaml:**
 ```yaml
 registries:
   - name: "university"
@@ -396,11 +396,11 @@ The marketplace organizes templates into research-focused categories:
 2. **Review Security Scores**: Ensure templates meet your security requirements
 3. **Read User Ratings**: Community feedback provides valuable insights
 4. **Verify Prerequisites**: Ensure you meet the knowledge requirements
-5. **Check Compatibility**: Confirm CloudWorkstation version compatibility
+5. **Check Compatibility**: Confirm Prism version compatibility
 
 ### Template Installation
 
-1. **Review Before Installing**: Always use `cws marketplace show` before installation
+1. **Review Before Installing**: Always use `prism marketplace show` before installation
 2. **Start with Verified Templates**: Begin with verified templates for reliability
 3. **Test in Development**: Test templates with non-critical data first
 4. **Keep Templates Updated**: Regularly check for template updates
@@ -422,7 +422,7 @@ Many marketplace templates support automatic research user provisioning:
 
 ```bash
 # Launch template with research user support
-cws launch pytorch-research my-project --research-user johndoe
+prism launch pytorch-research my-project --research-user johndoe
 ```
 
 Templates with research user support provide:
@@ -454,13 +454,13 @@ Templates support semantic versioning:
 
 ```bash
 # Install latest version
-cws marketplace install template-name
+prism marketplace install template-name
 
 # Install specific version
-cws marketplace install template-name --version 2.1.0
+prism marketplace install template-name --version 2.1.0
 
 # Install version range (future enhancement)
-cws marketplace install template-name --version ">=2.0.0,<3.0.0"
+prism marketplace install template-name --version ">=2.0.0,<3.0.0"
 ```
 
 ## Troubleshooting
@@ -473,8 +473,8 @@ Error: template not found: template-name
 ```
 **Solutions:**
 - Check template name spelling
-- Verify registry connectivity: `cws marketplace registries`
-- Search for similar templates: `cws marketplace search template-name`
+- Verify registry connectivity: `prism marketplace registries`
+- Search for similar templates: `prism marketplace search template-name`
 
 **Registry Authentication Failed:**
 ```
@@ -490,7 +490,7 @@ Error: registry returned error status: 401
 Error: failed to install template: validation failed
 ```
 **Solutions:**
-- Check security scan results: `cws marketplace show template-name`
+- Check security scan results: `prism marketplace show template-name`
 - Review template dependencies
 - Use `--force` flag to override validation (not recommended)
 
@@ -499,16 +499,16 @@ Error: failed to install template: validation failed
 Error: template validation failed during launch
 ```
 **Solutions:**
-- Verify template installation: `cws templates list`
-- Check template syntax: `cws templates validate template-name`
-- Reinstall template: `cws marketplace install template-name --force`
+- Verify template installation: `prism templates list`
+- Check template syntax: `prism templates validate template-name`
+- Reinstall template: `prism marketplace install template-name --force`
 
 ### Getting Help
 
 1. **Check Documentation**: Review template-specific documentation
 2. **Community Support**: Engage with template authors and community
 3. **Registry Support**: Contact registry administrators for institutional registries
-4. **CloudWorkstation Support**: Report issues at https://github.com/anthropics/claude-code/issues
+4. **Prism Support**: Report issues at https://github.com/anthropics/claude-code/issues
 
 ## Examples and Use Cases
 
@@ -518,16 +518,16 @@ A machine learning researcher needs a PyTorch environment with GPU support:
 
 ```bash
 # Search for PyTorch templates
-cws marketplace search "pytorch" --category "Machine Learning" --verified
+prism marketplace search "pytorch" --category "Machine Learning" --verified
 
 # Review template details
-cws marketplace show pytorch-gpu-research
+prism marketplace show pytorch-gpu-research
 
 # Install the template
-cws marketplace install pytorch-gpu-research
+prism marketplace install pytorch-gpu-research
 
 # Launch with research user support
-cws launch pytorch-gpu-research ml-project --research-user researcher
+prism launch pytorch-gpu-research ml-project --research-user researcher
 ```
 
 ### Scenario 2: Bioinformatics Team
@@ -536,16 +536,16 @@ A bioinformatics team needs a collaborative environment for genomics analysis:
 
 ```bash
 # Search for bioinformatics templates with collaboration support
-cws marketplace search --category "Bioinformatics" --research-user
+prism marketplace search --category "Bioinformatics" --research-user
 
 # Browse bioinformatics category
-cws marketplace browse --category "Bioinformatics"
+prism marketplace browse --category "Bioinformatics"
 
 # Install collaborative genomics template
-cws marketplace install collaborative-genomics
+prism marketplace install collaborative-genomics
 
 # Launch shared workspace
-cws launch collaborative-genomics genomics-project --research-user team-lead
+prism launch collaborative-genomics genomics-project --research-user team-lead
 ```
 
 ### Scenario 3: Institutional Deployment
@@ -554,16 +554,16 @@ An institution wants to deploy approved templates:
 
 ```bash
 # List available registries
-cws marketplace registries
+prism marketplace registries
 
 # Search institutional registry only
-cws marketplace search --registry institutional --verified
+prism marketplace search --registry institutional --verified
 
 # Install institution-approved template
-cws marketplace install institutional-python --registry institutional
+prism marketplace install institutional-python --registry institutional
 
 # Launch with institutional policies
-cws launch institutional-python student-project
+prism launch institutional-python student-project
 ```
 
 ## Future Enhancements
@@ -586,7 +586,7 @@ The Template Marketplace Foundation provides the groundwork for future enhanceme
 
 ## Conclusion
 
-The CloudWorkstation Template Marketplace transforms research environment setup from hours of configuration to seconds of discovery and installation. By providing access to validated, secure, and well-documented templates, researchers can focus on their research rather than infrastructure management.
+The Prism Template Marketplace transforms research environment setup from hours of configuration to seconds of discovery and installation. By providing access to validated, secure, and well-documented templates, researchers can focus on their research rather than infrastructure management.
 
 The marketplace's comprehensive validation system ensures security and quality, while the rich search and filtering capabilities help researchers find exactly the right environment for their work. With support for multiple registries, institutions can maintain their own curated collections while benefiting from the broader community ecosystem.
 

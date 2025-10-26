@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-CloudWorkstation's current architecture is US-centric, limiting its utility for international research collaborations and non-English-speaking research communities. This document outlines a comprehensive roadmap for international support across infrastructure, localization, and accessibility dimensions.
+Prism's current architecture is US-centric, limiting its utility for international research collaborations and non-English-speaking research communities. This document outlines a comprehensive roadmap for international support across infrastructure, localization, and accessibility dimensions.
 
 ---
 
@@ -88,7 +88,7 @@ func (r *RegionalAMIResolver) ResolveAMI(distro string, version string, region s
 **Implementation**:
 ```bash
 # Automatic regional AMI discovery
-cws ami discover --region eu-west-1 --distro ubuntu-22.04
+prism ami discover --region eu-west-1 --distro ubuntu-22.04
 
 🔍 Discovering AMI for ubuntu-22.04 in eu-west-1...
 ✅ Found: ami-0d7892b35e6d2e2e9
@@ -96,12 +96,12 @@ cws ami discover --region eu-west-1 --distro ubuntu-22.04
 🔐 Verified: AWS-managed, security-patched
 
 # Launch in any supported region
-cws launch python-ml european-analysis \
+prism launch python-ml european-analysis \
   --region eu-west-1 \
   --data-residency eu
 
 # Automatic region selection based on data location
-cws launch bioinformatics genomics-eu \
+prism launch bioinformatics genomics-eu \
   --data-location s3://eu-genomics-data/ \
   --auto-select-region
 
@@ -137,26 +137,26 @@ security:
 **Compliance Commands**:
 ```bash
 # Enforce data residency
-cws admin policy set data-residency \
+prism admin policy set data-residency \
   --project eu-research \
   --allowed-regions eu-west-1,eu-central-1 \
   --prohibit-cross-region-transfer \
   --require-encryption
 
 # GDPR compliance reporting
-cws admin gdpr report --project eu-research
+prism admin gdpr report --project eu-research
 
 GDPR Compliance Report:
 ✅ Data residency: All data in EU regions
 ✅ Encryption: 100% of storage encrypted
 ✅ Audit logging: Complete access trail
-✅ Right to erasure: Implemented via `cws project delete`
-✅ Data portability: Export available via `cws project export`
+✅ Right to erasure: Implemented via `prism project delete`
+✅ Data portability: Export available via `prism project export`
 ⚠️  Data Processing Agreement: Requires manual acceptance
 
 Next Steps:
-→ Review DPA at: https://cloudworkstation.io/dpa
-→ Accept with: cws admin gdpr accept-dpa --project eu-research
+→ Review DPA at: https://prism.io/dpa
+→ Accept with: prism admin gdpr accept-dpa --project eu-research
 ```
 
 ---
@@ -266,12 +266,12 @@ locales/
 **Language Selection**:
 ```bash
 # Set user language preference
-cws config set language ja
-cws config set region ap-northeast-1
-cws config set currency JPY
+prism config set language ja
+prism config set region ap-northeast-1
+prism config set currency JPY
 
 # Launch with localized output
-cws launch python-ml 分析プロジェクト
+prism launch python-ml 分析プロジェクト
 
 🔍 AMI を解決中: ubuntu-22.04 (ap-northeast-1)
 ✅ 検出: ami-0d7892b35e6d2e2e9
@@ -284,7 +284,7 @@ cws launch python-ml 分析プロジェクト
 ```bash
 # Detect from environment
 export LANG=es_ES.UTF-8
-cws templates
+prism templates
 
 Plantillas Disponibles:
 ├── python-ml: Aprendizaje automático con Python
@@ -293,7 +293,7 @@ Plantillas Disponibles:
 └── web-dev: Desarrollo web
 
 # Override with flag
-cws templates --lang en
+prism templates --lang en
 ```
 
 ### Phase 3: GUI Localization (v0.7.2 - Q2 2027)
@@ -376,22 +376,22 @@ plugins:
       languages:
         en:
           name: English
-          site_name: CloudWorkstation Documentation
+          site_name: Prism Documentation
         es:
           name: Español
-          site_name: Documentación de CloudWorkstation
+          site_name: Documentación de Prism
         fr:
           name: Français
-          site_name: Documentation de CloudWorkstation
+          site_name: Documentation de Prism
         de:
           name: Deutsch
-          site_name: CloudWorkstation-Dokumentation
+          site_name: Prism-Dokumentation
         ja:
           name: 日本語
-          site_name: CloudWorkstation ドキュメント
+          site_name: Prism ドキュメント
         zh:
           name: 中文
-          site_name: CloudWorkstation 文档
+          site_name: Prism 文档
 ```
 
 ---
@@ -434,7 +434,7 @@ func (cf *CurrencyFormatter) FormatCost(usd float64) string {
 **Usage**:
 ```bash
 # Japanese researcher sees costs in JPY
-cws cost estimate python-ml --region ap-northeast-1
+prism cost estimate python-ml --region ap-northeast-1
 
 インスタンスコストの見積もり:
 ├── コンピューティング: ¥6,825/時間
@@ -443,7 +443,7 @@ cws cost estimate python-ml --region ap-northeast-1
 └── 合計見積もり: ¥205,000/月
 
 # European researcher sees EUR
-cws cost estimate python-ml --region eu-west-1
+prism cost estimate python-ml --region eu-west-1
 
 Instance Cost Estimate:
 ├── Compute: €4.14/hour
@@ -455,7 +455,7 @@ Instance Cost Estimate:
 **Exchange Rate API**:
 ```bash
 # Automatic exchange rate updates
-cws admin exchange-rates update
+prism admin exchange-rates update
 
 Updating exchange rates from ECB...
 ✅ EUR: 0.92 USD
@@ -481,7 +481,7 @@ Last updated: 2025-10-19 14:32 UTC
 **Screen Reader Support**:
 ```bash
 # Verbose mode for screen readers
-cws launch python-ml my-project --accessible
+prism launch python-ml my-project --accessible
 
 Launching instance my-project
 Step 1 of 5: Resolving AMI for ubuntu-22.04
@@ -496,10 +496,10 @@ Status: In progress
 **Alternative Output Formats**:
 ```bash
 # JSON output for assistive tools
-cws list --format json | jq
+prism list --format json | jq
 
 # Plain text without unicode symbols
-cws list --no-emoji --no-colors
+prism list --no-emoji --no-colors
 
 Instances:
   my-project
@@ -572,7 +572,7 @@ function App() {
 ```bash
 # Arabic interface
 export LANG=ar_SA.UTF-8
-cws launch python-ml مشروع-التحليل
+prism launch python-ml مشروع-التحليل
 
 🔍 جارٍ حل AMI: ubuntu-22.04 (me-south-1)
 ✅ تم العثور على: ami-0d7892b35e6d2e2e9
@@ -610,7 +610,7 @@ cws launch python-ml مشروع-التحليل
 **Technical Data Controls**:
 ```bash
 # Automatic export control checks
-cws launch high-performance-computing quantum-research \
+prism launch high-performance-computing quantum-research \
   --region us-west-2
 
 ⚠️  Export Control Warning:
@@ -642,9 +642,9 @@ Technical data classification: EAR99
 
 **Contributor Recognition**:
 ```bash
-cws about --credits
+prism about --credits
 
-CloudWorkstation v0.7.0
+Prism v0.7.0
 
 Core Team:
 [...]
@@ -686,7 +686,7 @@ Thank you to our global community! 🌍
 
 ### Adoption
 - **30%+ international users** (non-US) within 12 months
-- **15+ countries** with active CloudWorkstation deployments
+- **15+ countries** with active Prism deployments
 - **5+ languages** with >80% translation coverage
 
 ### Quality
@@ -701,4 +701,4 @@ Thank you to our global community! 🌍
 
 ---
 
-**CloudWorkstation International**: Research computing without borders. Support global collaboration while respecting data sovereignty and cultural diversity.
+**Prism International**: Research computing without borders. Support global collaboration while respecting data sovereignty and cultural diversity.

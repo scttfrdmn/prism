@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the comprehensive standardization of error handling patterns across CloudWorkstation CLI modules, completed as part of Phase 4 POLISH to improve code consistency and user experience.
+This document summarizes the comprehensive standardization of error handling patterns across Prism CLI modules, completed as part of Phase 4 POLISH to improve code consistency and user experience.
 
 ## Goals Achieved
 
@@ -36,7 +36,7 @@ return WrapAPIError("get instance status", err)
 
 **After:** 
 - Standardized `WrapDaemonError(err)` with consistent recovery message
-- All daemon checks use same pattern: "daemon not running. Start with: cws daemon start"
+- All daemon checks use same pattern: "daemon not running. Start with: prism daemon start"
 
 ### 4. Validation Errors ✅
 
@@ -65,7 +65,7 @@ return NewValidationError("flag", flag, "--verbose or -v")
 
 ### Error Helper Functions Created
 
-Added to `/Users/scttfrdmn/src/cloudworkstation/internal/cli/constants.go`:
+Added to `/Users/scttfrdmn/src/prism/internal/cli/constants.go`:
 
 ```go
 // WrapAPIError wraps API errors with consistent context and formatting
@@ -129,7 +129,7 @@ func NewStateError(resourceType, name, currentState, expectedState string) error
 #### Usage Errors
 **Before:**
 ```go
-return fmt.Errorf("usage: cws connect <instance-name> [--verbose]")
+return fmt.Errorf("usage: prism connect <instance-name> [--verbose]")
 ```
 
 **After:**
@@ -215,4 +215,4 @@ The CLI error handling standardization successfully achieved:
 - ✅ Improved validation error messages
 - ✅ Better user experience with helpful messaging
 
-This improvement enhances CloudWorkstation's professional quality and user experience while maintaining the existing functionality and improving code maintainability.
+This improvement enhances Prism's professional quality and user experience while maintaining the existing functionality and improving code maintainability.

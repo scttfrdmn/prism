@@ -13,7 +13,7 @@ Successfully implemented complete CLI support for the `--with` package manager o
 ### 🎯 End-to-End Feature Flow
 ```bash
 # User specifies package manager override
-cws launch python-research my-project --with spack
+prism launch python-research my-project --with spack
 
 # CLI parses --with flag → LaunchRequest.PackageManager
 # Daemon receives PackageManager field → AWS manager
@@ -106,25 +106,25 @@ template, err := templates.GetTemplateWithPackageManager(
 ### Basic Usage
 ```bash
 # Use automatic package manager selection (default behavior)
-cws launch python-research my-project
+prism launch python-research my-project
 
 # Force conda for Python environment
-cws launch python-research my-project --with conda
+prism launch python-research my-project --with conda
 
 # Force spack for HPC-optimized installation
-cws launch neuroimaging brain-analysis --with spack
+prism launch neuroimaging brain-analysis --with spack
 
 # Force apt for system package installation
-cws launch basic-ubuntu server --with apt
+prism launch basic-ubuntu server --with apt
 ```
 
 ### Advanced Usage
 ```bash
 # Combine with other options
-cws launch python-research gpu-training --with conda --size GPU-L --volume shared-data
+prism launch python-research gpu-training --with conda --size GPU-L --volume shared-data
 
 # Dry run with package manager override
-cws launch neuroimaging analysis --with spack --dry-run
+prism launch neuroimaging analysis --with spack --dry-run
 
 # Query specific template with package manager
 curl "http://localhost:8947/api/v1/templates/Python%20Machine%20Learning%20(Simplified)?package_manager=spack"
@@ -247,7 +247,7 @@ curl -s "http://localhost:8947/api/v1/templates/Python%20Machine%20Learning%20(S
 
 ## Conclusion
 
-The `--with` package manager option is **fully implemented** and provides CloudWorkstation users with precise control over their research environment setup. This feature bridges the gap between automated convenience and expert customization, supporting both novice researchers who use defaults and HPC experts who need specific package managers.
+The `--with` package manager option is **fully implemented** and provides Prism users with precise control over their research environment setup. This feature bridges the gap between automated convenience and expert customization, supporting both novice researchers who use defaults and HPC experts who need specific package managers.
 
 **Key Achievement**: Complete end-to-end integration from CLI flag to EC2 instance launch with customized installation scripts based on user-specified package managers.
 

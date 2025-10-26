@@ -67,11 +67,11 @@ This audit compares CLI command functionality with TUI implementation to identif
 - Auto-refresh
 
 **Missing CLI Features**:
-- ❌ Instance hibernation controls (CLI: `cws hibernate <instance>`)
-- ❌ Instance resume controls (CLI: `cws resume <instance>`)
+- ❌ Instance hibernation controls (CLI: `prism hibernate <instance>`)
+- ❌ Instance resume controls (CLI: `prism resume <instance>`)
 - ❌ Instance rightsizing recommendations
 - ❌ Instance logs viewing
-- ❌ Template application (CLI: `cws template apply <template> <instance>`)
+- ❌ Template application (CLI: `prism template apply <template> <instance>`)
 - ❌ Template rollback
 - ❌ Project filtering/assignment
 
@@ -86,9 +86,9 @@ This audit compares CLI command functionality with TUI implementation to identif
 - Template selection
 
 **Missing CLI Features**:
-- ❌ Template validation (CLI: `cws templates validate`)
-- ❌ Template marketplace integration (CLI: `cws marketplace search/browse/install`)
-- ❌ Template information display (CLI: `cws templates info <template>`)
+- ❌ Template validation (CLI: `prism templates validate`)
+- ❌ Template marketplace integration (CLI: `prism marketplace search/browse/install`)
+- ❌ Template information display (CLI: `prism templates info <template>`)
 - ❌ Template registry management
 - ❌ Template discovery commands
 
@@ -105,7 +105,7 @@ This audit compares CLI command functionality with TUI implementation to identif
 
 **Missing CLI Features**:
 - ❌ Storage creation wizards
-- ❌ Storage analytics (CLI: `cws storage analytics`)
+- ❌ Storage analytics (CLI: `prism storage analytics`)
 - ❌ Cost breakdown by storage type
 - ❌ FSx integration (if implemented in CLI)
 - ❌ S3 mount points (if implemented in CLI)
@@ -133,7 +133,7 @@ This audit compares CLI command functionality with TUI implementation to identif
 **Status**: ⚠️ **UNKNOWN** - Need to examine implementation
 
 **Expected CLI Features to Implement**:
-- Daemon settings (CLI: `cws daemon status/start/stop`)
+- Daemon settings (CLI: `prism daemon status/start/stop`)
 - Configuration management
 - API endpoint configuration
 - Default preferences
@@ -144,9 +144,9 @@ This audit compares CLI command functionality with TUI implementation to identif
 **Status**: ⚠️ **UNKNOWN** - Need to examine implementation
 
 **Expected CLI Features to Implement**:
-- Profile list (CLI: `cws profile list`)
-- Profile switching (CLI: `cws profile switch`)
-- Profile creation (CLI: `cws profile create`)
+- Profile list (CLI: `prism profile list`)
+- Profile switching (CLI: `prism profile switch`)
+- Profile creation (CLI: `prism profile create`)
 - AWS region/credential management
 
 ---
@@ -159,21 +159,21 @@ This audit compares CLI command functionality with TUI implementation to identif
 **Missing TUI Features**:
 ```bash
 # Project Commands (NONE in TUI)
-cws project list                      # List all projects
-cws project create <name>             # Create project
-cws project info <name>               # Project details
-cws project delete <name>             # Delete project
-cws project members <project>         # Member management
+prism project list                      # List all projects
+prism project create <name>             # Create project
+prism project info <name>               # Project details
+prism project delete <name>             # Delete project
+prism project members <project>         # Member management
   - add <email> <role>
   - remove <email>
   - list
-cws project budget                    # Budget management
+prism project budget                    # Budget management
   - status <project>
   - set <project> <amount>
   - disable <project>
   - history <project>
-cws project instances <project>       # Project instances
-cws project templates <project>       # Project templates
+prism project instances <project>       # Project instances
+prism project templates <project>       # Project templates
 ```
 
 **Impact**: ⭐⭐⭐ **CRITICAL**
@@ -189,18 +189,18 @@ cws project templates <project>       # Project templates
 **Missing TUI Features**:
 ```bash
 # Budget Commands (NONE in TUI - 1,797 LINES OF CLI CODE!)
-cws budget list                       # List all budgets
-cws budget create <project> <amount>  # Create budget
-cws budget update <budget-id>         # Update budget
-cws budget delete <budget-id>         # Delete budget
-cws budget info <budget-id>           # Detailed info
-cws budget status [budget-id]         # Current status
-cws budget usage <budget-id>          # Resource usage
-cws budget history <budget-id>        # Spending history
-cws budget alerts <budget-id>         # Manage alerts
-cws budget forecast <budget-id>       # Spending forecast
-cws budget savings [budget-id]        # Hibernation savings
-cws budget breakdown <budget-id>      # Cost breakdown
+prism budget list                       # List all budgets
+prism budget create <project> <amount>  # Create budget
+prism budget update <budget-id>         # Update budget
+prism budget delete <budget-id>         # Delete budget
+prism budget info <budget-id>           # Detailed info
+prism budget status [budget-id]         # Current status
+prism budget usage <budget-id>          # Resource usage
+prism budget history <budget-id>        # Spending history
+prism budget alerts <budget-id>         # Manage alerts
+prism budget forecast <budget-id>       # Spending forecast
+prism budget savings [budget-id]        # Hibernation savings
+prism budget breakdown <budget-id>      # Cost breakdown
 ```
 
 **Advanced Budget Features**:
@@ -226,12 +226,12 @@ cws budget breakdown <budget-id>      # Cost breakdown
 **Missing TUI Features**:
 ```bash
 # Policy Commands (NONE in TUI)
-cws policy status                     # Policy enforcement status
-cws policy list                       # List policy sets
-cws policy assign <policy-set>        # Assign policy
-cws policy enable                     # Enable enforcement
-cws policy disable                    # Disable enforcement
-cws policy check <template>           # Check template access
+prism policy status                     # Policy enforcement status
+prism policy list                       # List policy sets
+prism policy assign <policy-set>        # Assign policy
+prism policy enable                     # Enable enforcement
+prism policy disable                    # Disable enforcement
+prism policy check <template>           # Check template access
 ```
 
 **Impact**: ⭐⭐ **HIGH**
@@ -247,11 +247,11 @@ cws policy check <template>           # Check template access
 **Missing TUI Features**:
 ```bash
 # Marketplace Commands (NONE in TUI)
-cws marketplace search <query>        # Search templates
-cws marketplace browse                # Browse categories
-cws marketplace show <template>       # Template details
-cws marketplace install <template>    # Install template
-cws marketplace registries            # Registry management
+prism marketplace search <query>        # Search templates
+prism marketplace browse                # Browse categories
+prism marketplace show <template>       # Template details
+prism marketplace install <template>    # Install template
+prism marketplace registries            # Registry management
 ```
 
 **Impact**: ⭐⭐ **HIGH**
@@ -267,10 +267,10 @@ cws marketplace registries            # Registry management
 **Missing TUI Features**:
 ```bash
 # AMI Commands (NONE in TUI)
-cws ami list                          # List AMIs
-cws ami create <instance>             # Create AMI from instance
-cws ami delete <ami-id>               # Delete AMI
-cws ami info <ami-id>                 # AMI details
+prism ami list                          # List AMIs
+prism ami create <instance>             # Create AMI from instance
+prism ami delete <ami-id>               # Delete AMI
+prism ami info <ami-id>                 # AMI details
 ```
 
 **Impact**: ⭐ **MEDIUM**
@@ -285,11 +285,11 @@ cws ami info <ami-id>                 # AMI details
 **Missing TUI Features**:
 ```bash
 # Idle Commands (NONE in TUI)
-cws idle profile list                 # List idle profiles
-cws idle profile create <name>        # Create profile
-cws idle instance <name> --profile    # Assign profile
-cws idle history                      # Hibernation history
-cws idle status                       # Idle detection status
+prism idle profile list                 # List idle profiles
+prism idle profile create <name>        # Create profile
+prism idle instance <name> --profile    # Assign profile
+prism idle history                      # Hibernation history
+prism idle status                       # Idle detection status
 ```
 
 **Impact**: ⭐⭐ **MEDIUM-HIGH**
@@ -305,9 +305,9 @@ cws idle status                       # Idle detection status
 **Missing TUI Features**:
 ```bash
 # Rightsizing Commands (NONE in TUI)
-cws rightsizing analyze               # Analyze instances
-cws rightsizing recommendations       # Get recommendations
-cws rightsizing apply <instance>      # Apply recommendation
+prism rightsizing analyze               # Analyze instances
+prism rightsizing recommendations       # Get recommendations
+prism rightsizing apply <instance>      # Apply recommendation
 ```
 
 **Impact**: ⭐⭐ **MEDIUM**
@@ -322,10 +322,10 @@ cws rightsizing apply <instance>      # Apply recommendation
 **Missing TUI Features**:
 ```bash
 # Repository Commands (NONE in TUI)
-cws repo list                         # List repositories
-cws repo add <name> <url>             # Add repository
-cws repo remove <name>                # Remove repository
-cws repo update                       # Update repositories
+prism repo list                         # List repositories
+prism repo add <name> <url>             # Add repository
+prism repo remove <name>                # Remove repository
+prism repo update                       # Update repositories
 ```
 
 **Impact**: ⭐ **MEDIUM**
@@ -339,9 +339,9 @@ cws repo update                       # Update repositories
 **Missing TUI Features**:
 ```bash
 # Logs Commands (NONE in TUI)
-cws logs <instance>                   # View instance logs
-cws logs --follow <instance>          # Follow logs
-cws logs --tail <n> <instance>        # Tail logs
+prism logs <instance>                   # View instance logs
+prism logs --follow <instance>          # Follow logs
+prism logs --tail <n> <instance>        # Tail logs
 ```
 
 **Impact**: ⭐⭐ **MEDIUM**
@@ -356,9 +356,9 @@ cws logs --tail <n> <instance>        # Tail logs
 **Missing TUI Features**:
 ```bash
 # Admin Commands (NONE in TUI)
-cws admin daemon status               # Daemon status
-cws admin daemon restart              # Restart daemon
-cws admin cleanup                     # Cleanup resources
+prism admin daemon status               # Daemon status
+prism admin daemon restart              # Restart daemon
+prism admin cleanup                     # Cleanup resources
 ```
 
 **Impact**: ⭐ **LOW**
@@ -372,11 +372,11 @@ cws admin cleanup                     # Cleanup resources
 **Missing TUI Features**:
 ```bash
 # Daemon Commands (NONE in TUI)
-cws daemon status                     # Check status
-cws daemon start                      # Start daemon
-cws daemon stop                       # Stop daemon
-cws daemon restart                    # Restart daemon
-cws daemon logs                       # Daemon logs
+prism daemon status                     # Check status
+prism daemon start                      # Start daemon
+prism daemon stop                       # Stop daemon
+prism daemon restart                    # Restart daemon
+prism daemon logs                       # Daemon logs
 ```
 
 **Impact**: ⭐⭐ **MEDIUM**

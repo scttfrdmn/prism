@@ -1,14 +1,14 @@
-# CloudWorkstation Multi-Profile Guide
+# Prism Multi-Profile Guide
 
 <p align="center">
-  <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
+  <img src="images/prism.png" alt="Prism Logo" width="200">
 </p>
 
 > **Current v0.5.5**: Enhanced profile management with context support, secure credential storage, and full API integration.
 
 ## What are Profiles?
 
-Profiles let you use CloudWorkstation with different AWS accounts. It's like having multiple backpacks - each one carries different things for different activities!
+Profiles let you use Prism with different AWS accounts. It's like having multiple backpacks - each one carries different things for different activities!
 
 With profiles, you can:
 - Use your own AWS account (Personal Profile)
@@ -68,19 +68,19 @@ Use these commands to manage your profiles:
 
 ```bash
 # List all your profiles
-cws profiles list
+prism profiles list
 
 # Switch to a different profile
-cws profiles use biology-class
+prism profiles use biology-class
 
 # Add a personal profile
-cws profiles add personal my-aws --aws-profile default --region us-west-2
+prism profiles add personal my-aws --aws-profile default --region us-west-2
 
 # Add an invitation profile
-cws profiles add invitation biology-class --token ABC123 --owner "Professor Smith" --region us-east-1
+prism profiles add invitation biology-class --token ABC123 --owner "Professor Smith" --region us-east-1
 
 # See which profile you're using now
-cws profiles current
+prism profiles current
 ```
 
 ## Seeing What You Can Use
@@ -90,7 +90,7 @@ Different profiles let you do different things:
 - **Personal profiles**: You can use any template you want
 - **Invitation profiles**: You can only use templates the owner allows
 
-When using an invitation profile, CloudWorkstation will automatically show you only the templates you're allowed to use.
+When using an invitation profile, Prism will automatically show you only the templates you're allowed to use.
 
 ## Costs and Billing
 
@@ -111,7 +111,7 @@ Remember: The profile name shown in the sidebar tells you which account you're c
 
 ## Technical Reference for Developers
 
-CloudWorkstation v0.4.3 includes a comprehensive API for multi-profile management that can be used by developers building extensions or integrating with the platform.
+Prism v0.4.3 includes a comprehensive API for multi-profile management that can be used by developers building extensions or integrating with the platform.
 
 ### Core Components
 
@@ -124,8 +124,8 @@ CloudWorkstation v0.4.3 includes a comprehensive API for multi-profile managemen
 
 ```go
 import (
-    "github.com/scttfrdmn/cloudworkstation/pkg/profile"
-    "github.com/scttfrdmn/cloudworkstation/pkg/api"
+    "github.com/scttfrdmn/prism/pkg/profile"
+    "github.com/scttfrdmn/prism/pkg/api"
 )
 
 // Create profile manager

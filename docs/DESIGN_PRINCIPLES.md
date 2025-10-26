@@ -1,11 +1,11 @@
-# CloudWorkstation Design Principles
+# Prism Design Principles
 
-> These principles ensure CloudWorkstation remains simple, intuitive, and researcher-focused.
+> These principles ensure Prism remains simple, intuitive, and researcher-focused.
 
 ## 🎯 **Default to Success**
 Every template must work out of the box in every supported region.
 ```bash
-cws launch python-ml my-project  # This should always work
+prism launch python-ml my-project  # This should always work
 ```
 
 ## ⚡ **Optimize by Default**
@@ -39,13 +39,13 @@ Clear communication about what's happening.
 Simple by default, detailed when needed.
 ```bash
 # Simple (90% of users)
-cws launch template-name project-name
+prism launch template-name project-name
 
 # Intermediate (power users)
-cws launch template-name project-name --size L
+prism launch template-name project-name --size L
 
 # Advanced (infrastructure experts)  
-cws launch template-name project-name --instance-type c5.2xlarge --spot
+prism launch template-name project-name --instance-type c5.2xlarge --spot
 ```
 
 ---
@@ -68,4 +68,4 @@ cws launch template-name project-name --instance-type c5.2xlarge --spot
 
 ---
 
-*These principles guide every feature decision and code change in CloudWorkstation.*
+*These principles guide every feature decision and code change in Prism.*

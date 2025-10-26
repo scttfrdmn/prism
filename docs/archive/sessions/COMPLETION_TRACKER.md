@@ -1,4 +1,4 @@
-# CloudWorkstation - Complete Implementation Tracker
+# Prism - Complete Implementation Tracker
 
 **Start Date**: October 6, 2025
 **Goal**: Complete ALL implementations, remove ALL placeholders, pass ALL tests with AWS integration
@@ -342,7 +342,7 @@
 - **AMI Template Management**: Replaced 3 TODOs (parser_enhanced.go:80, dependency_resolver.go:550, template_sharing.go:290)
   - **pkg/ami/parser_enhanced.go**: Implemented ListTemplates method
     - Scans default template directories (dev, user, system)
-    - Priority order: ./templates/ > ~/.cloudworkstation/templates/ > /usr/local/share/cloudworkstation/templates/
+    - Priority order: ./templates/ > ~/.prism/templates/ > /usr/local/share/prism/templates/
     - Deduplicates template names (higher priority wins)
     - Filters .yml and .yaml files only
     - Returns list of available template names
@@ -462,7 +462,7 @@
 ### 2025-10-06 - Session 8 (continued)
 - **Template Saving Implementation**: Replaced TODO (commands.go:887)
   - **internal/cli/commands.go**: Implemented saveTemplateAndDisplayResults
-    - Added actual file saving to ~/.cloudworkstation/templates/
+    - Added actual file saving to ~/.prism/templates/
     - Creates directory if it doesn't exist with proper permissions
     - Writes template YAML content to file
     - Added os and filepath imports
@@ -484,7 +484,7 @@
     - Added uploadToGitHub placeholder (requires GitHub API)
     - Added uploadToS3 placeholder (requires AWS SDK)
   - **internal/cli/repo.go**: Integrated download/upload into CLI commands
-    - Replaced TODO line 448: repoPull now downloads templates to ~/.cloudworkstation/templates
+    - Replaced TODO line 448: repoPull now downloads templates to ~/.prism/templates
     - Replaced TODO line 486: repoPush now uploads templates with validation
     - Added file existence checks and user-friendly success messages
     - Added filepath import for path manipulation

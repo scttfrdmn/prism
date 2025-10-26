@@ -1,6 +1,6 @@
-# Secure Profile Implementation in CloudWorkstation
+# Secure Profile Implementation in Prism
 
-This document describes the implementation of the secure profile management and device binding system in CloudWorkstation v0.4.3.
+This document describes the implementation of the secure profile management and device binding system in Prism v0.4.3.
 
 ## Overview
 
@@ -93,16 +93,16 @@ The CLI provides comprehensive commands for secure invitation management:
 
 ```bash
 # Create secure invitation
-cws profiles invitations create-secure lab-access --type admin --can-invite=true --max-devices=3
+prism profiles invitations create-secure lab-access --type admin --can-invite=true --max-devices=3
 
 # List devices for an invitation
-cws profiles invitations devices inv-abc123def456
+prism profiles invitations devices inv-abc123def456
 
 # Revoke specific device
-cws profiles invitations revoke-device inv-abc123def456 device-xyz789
+prism profiles invitations revoke-device inv-abc123def456 device-xyz789
 
 # Revoke all devices for an invitation
-cws profiles invitations revoke-all inv-abc123def456
+prism profiles invitations revoke-all inv-abc123def456
 ```
 
 ### 2. TUI Components
@@ -185,7 +185,7 @@ The system supports legitimate multi-device usage through:
 
 ## User Experience
 
-The implementation follows CloudWorkstation's design principles:
+The implementation follows Prism's design principles:
 
 - **Default to Success**: Device binding enabled by default for security
 - **Progressive Disclosure**: Security details shown only when relevant
@@ -195,4 +195,4 @@ The implementation follows CloudWorkstation's design principles:
 
 ## Conclusion
 
-The secure profile management implementation in CloudWorkstation v0.4.3 provides a robust security model that prevents casual sharing of profiles while maintaining excellent user experience for legitimate users. The system leverages platform-native security features and a centralized registry to provide strong security guarantees without excessive friction.
+The secure profile management implementation in Prism v0.4.3 provides a robust security model that prevents casual sharing of profiles while maintaining excellent user experience for legitimate users. The system leverages platform-native security features and a centralized registry to provide strong security guarantees without excessive friction.

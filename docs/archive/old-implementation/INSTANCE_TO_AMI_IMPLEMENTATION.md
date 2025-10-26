@@ -2,12 +2,12 @@
 
 ## Overview
 
-Successfully implemented the `cws save` command for converting running CloudWorkstation instances into reusable AMI templates. This addresses the critical researcher workflow of preserving customized environments for reuse and sharing.
+Successfully implemented the `prism save` command for converting running Prism instances into reusable AMI templates. This addresses the critical researcher workflow of preserving customized environments for reuse and sharing.
 
 ## Implementation Summary
 
 ### Core Functionality
-- **Command**: `cws save <instance-name> <template-name> [options]`
+- **Command**: `prism save <instance-name> <template-name> [options]`
 - **Safe Operation**: Temporarily stops instance → Creates AMI → Restarts instance automatically
 - **Error Recovery**: Best-effort instance restart if any step fails
 - **Template Generation**: Creates YAML template definition for immediate reuse
@@ -17,10 +17,10 @@ Successfully implemented the `cws save` command for converting running CloudWork
 #### 1. CLI Integration
 ```bash
 # Basic usage
-cws save my-analysis custom-ml-env
+prism save my-analysis custom-ml-env
 
 # Advanced usage with options
-cws save my-research genomics-pipeline \
+prism save my-research genomics-pipeline \
   --description "Custom genomics analysis environment with GATK and R" \
   --copy-to-regions us-east-2,us-west-1 \
   --project brain-imaging-study \
@@ -33,7 +33,7 @@ cws save my-research genomics-pipeline \
 - Handles copy failures gracefully with detailed error reporting
 
 #### 3. Template Registry Integration
-- Automatically registers saved AMI in CloudWorkstation template system
+- Automatically registers saved AMI in Prism template system
 - Creates YAML template definition for immediate launch capability
 - Maintains metadata about original instance and creation details
 
@@ -48,7 +48,7 @@ cws save my-research genomics-pipeline \
 ```go
 type InstanceSaveRequest struct {
     InstanceID     string            // EC2 instance ID to save
-    InstanceName   string            // CloudWorkstation instance name
+    InstanceName   string            // Prism instance name
     TemplateName   string            // Name for the new template
     Description    string            // Template description
     CopyToRegions  []string          // Regions to copy AMI
@@ -124,7 +124,7 @@ Continue? (y/N): y
 🕒 Total time: 8m 32s
 
 ✨ Template 'custom-ml-env' is now available for launching new instances:
-   cws launch custom-ml-env my-new-instance
+   prism launch custom-ml-env my-new-instance
 ```
 
 #### Generated Template File
@@ -158,23 +158,23 @@ estimated_cost_per_hour:
 tags:
   Name: "custom-ml-env"
   Type: "saved-instance"
-  Source: "CloudWorkstation-Save"
+  Source: "Prism-Save"
 ```
 
 ### Integration Points
 
 #### 1. Main CLI (`cmd/cws/main.go`)
-- Added `cws save` as top-level command
-- Routes to `cws ami save` for implementation
+- Added `prism save` as top-level command
+- Routes to `prism ami save` for implementation
 - Updated help text and examples
 
 #### 2. API Integration (`internal/cli/ami.go`)
 - Uses daemon API client for instance discovery
-- Maintains consistency with CloudWorkstation's API-driven architecture
+- Maintains consistency with Prism's API-driven architecture
 - Proper error handling and user feedback
 
 #### 3. Template System Integration
-- Saved AMIs immediately available via `cws launch`
+- Saved AMIs immediately available via `prism launch`
 - Proper template metadata and inheritance support
 - Integration with existing template validation and management
 
@@ -200,7 +200,7 @@ tags:
 #### 1. Individual Environment Preservation
 ```bash
 # Start with base template
-cws launch python-ml earthquake-analysis
+prism launch python-ml earthquake-analysis
 
 # Researcher customizes over several days:
 # - Installs specific seismic analysis packages
@@ -209,33 +209,33 @@ cws launch python-ml earthquake-analysis
 # - Optimizes performance settings
 
 # Save the customized environment
-cws save earthquake-analysis seismic-ml-environment \
+prism save earthquake-analysis seismic-ml-environment \
   --description "ML environment optimized for seismic data analysis"
 
 # Launch new projects from saved environment
-cws launch seismic-ml-environment aftershock-prediction --size GPU-L
+prism launch seismic-ml-environment aftershock-prediction --size GPU-L
 ```
 
 #### 2. Team Environment Sharing
 ```bash
 # Lead researcher creates and saves custom environment
-cws save my-genomics-work team-genomics-env --public \
+prism save my-genomics-work team-genomics-env --public \
   --description "Genomics pipeline with BWA, GATK, and R Bioconductor"
 
 # Team members use the shared environment
-cws launch team-genomics-env variant-calling
-cws launch team-genomics-env population-analysis  
+prism launch team-genomics-env variant-calling
+prism launch team-genomics-env population-analysis  
 ```
 
 #### 3. Course Environment Distribution
 ```bash
 # Professor creates course environment
-cws save ml-course-prep cs229-environment \
+prism save ml-course-prep cs229-environment \
   --description "Stanford CS229 Machine Learning Course Environment"
 
 # Students launch identical environments
-cws launch cs229-environment assignment-1
-cws launch cs229-environment final-project
+prism launch cs229-environment assignment-1
+prism launch cs229-environment final-project
 ```
 
 ## Architecture Benefits
@@ -271,9 +271,9 @@ cws launch cs229-environment final-project
 
 ## Conclusion
 
-The `cws save` command implementation transforms CloudWorkstation from a template-based system to a **living research platform** where environments can be preserved and shared at any point in their lifecycle. This addresses a critical gap in the research workflow and enables the community-driven template ecosystem envisioned for Phase 5.
+The `prism save` command implementation transforms Prism from a template-based system to a **living research platform** where environments can be preserved and shared at any point in their lifecycle. This addresses a critical gap in the research workflow and enables the community-driven template ecosystem envisioned for Phase 5.
 
-The implementation maintains CloudWorkstation's core design principles:
+The implementation maintains Prism's core design principles:
 - **Default to Success**: Safe operation with automatic error recovery
 - **Zero Surprises**: Clear warnings and progress reporting
 - **Progressive Disclosure**: Simple usage with advanced options available

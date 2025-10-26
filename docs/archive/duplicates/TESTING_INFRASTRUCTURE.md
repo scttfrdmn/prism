@@ -1,8 +1,8 @@
-# CloudWorkstation Testing Infrastructure
+# Prism Testing Infrastructure
 
 ## Overview
 
-This document describes the comprehensive testing infrastructure implemented for CloudWorkstation, including unit tests, integration tests with LocalStack, and code coverage analysis.
+This document describes the comprehensive testing infrastructure implemented for Prism, including unit tests, integration tests with LocalStack, and code coverage analysis.
 
 ## Architecture
 
@@ -283,4 +283,4 @@ INTEGRATION_TESTS=1 go test ./pkg/aws -tags=integration -v -run TestIntegrationL
 - **Development velocity**: Safe to iterate and improve
 - **Quality assurance**: Systematic validation of all features
 
-This testing infrastructure transforms CloudWorkstation from a prototype into a production-ready system with the reliability and confidence needed for managing real cloud resources and costs.
+This testing infrastructure transforms Prism from a prototype into a production-ready system with the reliability and confidence needed for managing real cloud resources and costs.

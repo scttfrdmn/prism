@@ -138,7 +138,7 @@ func (a *App) AMI(args []string) error {
 }
 ```
 
-### Real Example from CloudWorkstation
+### Real Example from Prism
 
 **File**: `internal/tui/models/idle.go`
 **Before**: IdleModel.Update() - Complexity 37

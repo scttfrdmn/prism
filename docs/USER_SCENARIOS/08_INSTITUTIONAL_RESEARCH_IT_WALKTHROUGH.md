@@ -59,11 +59,11 @@ Maria leads the central research computing team at a large public university. He
 
 ---
 
-## 🎯 CloudWorkstation Solution for Research IT
+## 🎯 Prism Solution for Research IT
 
 ### Strategic Value Proposition
 
-CloudWorkstation positions Research IT as a **value-adding service provider** rather than a gatekeeper, enabling researchers while maintaining institutional oversight.
+Prism positions Research IT as a **value-adding service provider** rather than a gatekeeper, enabling researchers while maintaining institutional oversight.
 
 **For Researchers**:
 - Self-service access to approved environments
@@ -84,18 +84,18 @@ CloudWorkstation positions Research IT as a **value-adding service provider** ra
 
 **Week 1: Internal Setup**
 ```bash
-# Maria's team installs CloudWorkstation for institutional deployment
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+# Maria's team installs Prism for institutional deployment
+brew tap scttfrdmn/prism
+brew install prism
 
 # Configure institutional AWS account
-cws profile create university-research \
+prism profile create university-research \
   --aws-profile state-university-research \
   --region us-west-2 \
   --description "State University Research Computing"
 
 # Set up institutional template repository
-cws admin policy set template-registry \
+prism admin policy set template-registry \
   --registry https://github.com/state-university/cws-templates \
   --require-approval true
 ```
@@ -146,7 +146,7 @@ compliance:
 **Security Integration**:
 ```bash
 # Enforce institutional security policies
-cws admin policy set security-baseline \
+prism admin policy set security-baseline \
   --require-encryption true \
   --require-mfa true \
   --allowed-regions us-west-1,us-west-2 \
@@ -154,7 +154,7 @@ cws admin policy set security-baseline \
   --require-tagging true
 
 # Set up cost controls
-cws admin policy set cost-limits \
+prism admin policy set cost-limits \
   --default-project-budget 500 \
   --max-instance-cost 5.00 \
   --require-budget-approval-over 1000
@@ -177,7 +177,7 @@ pilot_groups:
     rationale: "New to cloud, need simplicity, diverse skill levels"
 
 success_criteria:
-  - "80% of pilot users prefer CloudWorkstation over manual AWS"
+  - "80% of pilot users prefer Prism over manual AWS"
   - "50% reduction in support tickets compared to manual cloud setup"
   - "Template reuse across at least 2 research groups"
   - "Zero security incidents during pilot"
@@ -187,24 +187,24 @@ success_criteria:
 **Week 4: Pilot Kickoff**
 ```bash
 # Create pilot project with budget
-cws project create genomics-pilot \
+prism project create genomics-pilot \
   --budget 2000 \
   --pi "sarah.johnson@university.edu" \
   --department "Biology" \
   --grant-number "NIH-R01-12345"
 
 # Add pilot users
-cws project member add genomics-pilot researcher1@university.edu --role member
-cws project member add genomics-pilot researcher2@university.edu --role member
+prism project member add genomics-pilot researcher1@university.edu --role member
+prism project member add genomics-pilot researcher2@university.edu --role member
 
 # Pilot users can now self-serve
 # (as pilot user)
-cws launch bioinformatics-approved my-genomics-analysis \
+prism launch bioinformatics-approved my-genomics-analysis \
   --project genomics-pilot
 
 # Maria's team monitors usage
-cws admin usage report --project genomics-pilot
-cws admin cost report --start-date 2025-10-01
+prism admin usage report --project genomics-pilot
+prism admin cost report --start-date 2025-10-01
 ```
 
 ---
@@ -229,11 +229,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Security Scan
-        run: cws templates validate --security-scan
+        run: prism templates validate --security-scan
       - name: License Check
-        run: cws templates check-licenses
+        run: prism templates check-licenses
       - name: Cost Estimate
-        run: cws templates estimate-cost
+        run: prism templates estimate-cost
       # → Requires approval from research-computing team
 ```
 
@@ -243,22 +243,22 @@ jobs:
 **Chargeback Model**:
 ```bash
 # Configure departmental chargeback
-cws admin billing configure \
+prism admin billing configure \
   --model departmental-chargeback \
   --billing-contact finance@university.edu \
   --monthly-invoicing
 
 # Each project ties to a department/grant
-cws project create physics-simulation \
+prism project create physics-simulation \
   --department "Physics" \
   --chartstring "12-3456-789-0000" \
   --budget 5000
 
 # Monthly reports for finance
-cws admin billing report --month 2025-10 \
+prism admin billing report --month 2025-10 \
   --format csv \
   --group-by department \
-  --output /shared/finance/cloudworkstation-2025-10.csv
+  --output /shared/finance/prism-2025-10.csv
 
 # Report includes:
 # - Total spend per department
@@ -274,12 +274,12 @@ cws admin billing report --month 2025-10 \
 
 **Maria creates institutional documentation**:
 ```markdown
-# State University CloudWorkstation Guide
+# State University Prism Guide
 
 ## For Researchers
 
 ### Quick Start
-1. Visit: https://cloudworkstation.research.university.edu
+1. Visit: https://prism.research.university.edu
 2. Log in with your university credentials
 3. Choose an approved template for your research domain
 4. Launch your environment - ready in under 60 seconds
@@ -307,14 +307,14 @@ Contact research-computing@university.edu with:
 
 ### Monitoring Costs
 ```bash
-cws project costs genomics-research --detailed
-cws project members list genomics-research
+prism project costs genomics-research --detailed
+prism project members list genomics-research
 ```
 
 ## For Departmental Administrators
 
 ### Monthly Billing Reports
-Available at: https://cloudworkstation.research.university.edu/billing
+Available at: https://prism.research.university.edu/billing
 - CSV export for integration with financial systems
 - Breakdown by project, researcher, resource type
 - Cost allocation by chartstring
@@ -380,7 +380,7 @@ compliance:
 
 ```bash
 # Maria's team creates project from grant award
-cws project create johnson-nih-r01-genomics \
+prism project create johnson-nih-r01-genomics \
   --pi "sarah.johnson@university.edu" \
   --grant-number "5R01HG012345" \
   --budget 15000 \
@@ -389,12 +389,12 @@ cws project create johnson-nih-r01-genomics \
   --compliance hipaa
 
 # Add researchers
-cws project member add johnson-nih-r01-genomics postdoc1@university.edu --role admin
-cws project member add johnson-nih-r01-genomics gradstudent1@university.edu --role member
-cws project member add johnson-nih-r01-genomics gradstudent2@university.edu --role member
+prism project member add johnson-nih-r01-genomics postdoc1@university.edu --role admin
+prism project member add johnson-nih-r01-genomics gradstudent1@university.edu --role member
+prism project member add johnson-nih-r01-genomics gradstudent2@university.edu --role member
 
 # Set compliance requirements
-cws admin policy apply johnson-nih-r01-genomics \
+prism admin policy apply johnson-nih-r01-genomics \
   --template hipaa-compliant \
   --audit-logging comprehensive \
   --require-training hipaa-basics
@@ -403,7 +403,7 @@ cws admin policy apply johnson-nih-r01-genomics \
 **Researcher Experience**:
 ```bash
 # Postdoc launches environment (compliant by default)
-cws launch bioinformatics-hipaa my-patient-genomics \
+prism launch bioinformatics-hipaa my-patient-genomics \
   --project johnson-nih-r01-genomics
 
 # Workspace automatically has:
@@ -420,7 +420,7 @@ cws launch bioinformatics-hipaa my-patient-genomics \
 
 ```bash
 # Instructor requests course support
-cws project create cs401-fall2025 \
+prism project create cs401-fall2025 \
   --instructor "david.lee@university.edu" \
   --course-number "CS-401" \
   --semester "Fall 2025" \
@@ -428,13 +428,13 @@ cws project create cs401-fall2025 \
   --max-members 160
 
 # Batch add students from roster
-cws project member batch-add cs401-fall2025 \
+prism project member batch-add cs401-fall2025 \
   --csv course-roster.csv \
   --role member \
   --auto-provision
 
 # Create assignment-specific template
-cws templates create cs401-assignment1 \
+prism templates create cs401-assignment1 \
   --base python-ml \
   --add-package scikit-learn==1.3.0 \
   --add-package matplotlib==3.8.0 \
@@ -443,13 +443,13 @@ cws templates create cs401-assignment1 \
 
 # Students launch identical environments
 # (as student)
-cws launch cs401-assignment1 homework1 --project cs401-fall2025
+prism launch cs401-assignment1 homework1 --project cs401-fall2025
 ```
 
 **Instructor Monitoring**:
 ```bash
 # Track student progress
-cws admin report cs401-fall2025 \
+prism admin report cs401-fall2025 \
   --metric instances-launched \
   --metric compute-hours \
   --metric costs \
@@ -461,22 +461,22 @@ cws admin report cs401-fall2025 \
 **Scenario**: NSF-funded collaboration with 3 universities
 
 ```bash
-# Each institution maintains own CloudWorkstation
+# Each institution maintains own Prism
 # But shares templates via template marketplace
 
 # State University publishes template
-cws templates publish bioinformatics-pipeline \
+prism templates publish bioinformatics-pipeline \
   --registry community \
   --license MIT \
   --tested-regions us-west-1,us-west-2,us-east-1
 
 # Partner University discovers and installs
-cws templates install bioinformatics-pipeline \
+prism templates install bioinformatics-pipeline \
   --from community \
   --author state-university
 
 # Data sharing via EFS cross-account access
-cws storage create collaboration-data \
+prism storage create collaboration-data \
   --type efs \
   --share-with arn:aws:iam::partner-account:root \
   --read-only
@@ -491,14 +491,14 @@ cws storage create collaboration-data \
 
 ### Cost Efficiency
 
-**Before CloudWorkstation**:
+**Before Prism**:
 - Researchers using 47 different personal AWS accounts
 - No bulk discounting
 - Average monthly spend: $48,000
 - 23% waste from forgotten resources
 - No cost visibility by project
 
-**After CloudWorkstation (6 months)**:
+**After Prism (6 months)**:
 - Consolidated to institutional AWS Organizations account
 - 15% EDU bulk discount negotiated
 - Average monthly spend: $39,000 (18% reduction)
@@ -508,12 +508,12 @@ cws storage create collaboration-data \
 
 ### Support Efficiency
 
-**Before CloudWorkstation**:
+**Before Prism**:
 - 340 support tickets/month for cloud computing
 - Average resolution time: 4.2 hours
 - 62% of tickets were "how do I set up X"
 
-**After CloudWorkstation (6 months)**:
+**After Prism (6 months)**:
 - 115 support tickets/month (66% reduction)
 - Average resolution time: 1.8 hours
 - 82% of new researchers self-serve successfully
@@ -524,7 +524,7 @@ cws storage create collaboration-data \
 **Automated Compliance**:
 ```bash
 # Quarterly audit report
-cws admin audit report --quarter Q3-2025
+prism admin audit report --quarter Q3-2025
 
 Audit Summary:
 ✅ 342 projects reviewed
@@ -539,7 +539,7 @@ Cost Efficiency (Q3 2025):
 💰 Effective cost: $1.82/hour avg (vs $4.20/hour 24/7 assumption)
 💰 Hibernation savings: $315,680 (real-time banking across all projects)
 💰 Budget rollover: $42,550 carried forward to Q4
-💡 CloudWorkStation enables this institution-wide cost control!
+💡 Prism enables this institution-wide cost control!
 
 Risk Findings:
 ⚠️  12 projects approaching budget limits (notifications sent)
@@ -693,7 +693,7 @@ template_sources:
     auto_approve: false
 
   community_repository:
-    url: "https://github.com/cloudworkstation/community-templates"
+    url: "https://github.com/prism/community-templates"
     trust_level: "review-required"
     security_scan: "mandatory"
 
@@ -715,7 +715,7 @@ template_maintenance:
 
 ### Adoption Metrics (Year 1)
 
-- ✅ **50% of cloud-using researchers** migrated to CloudWorkstation
+- ✅ **50% of cloud-using researchers** migrated to Prism
 - ✅ **15 departments** actively using the platform
 - ✅ **30+ approved templates** in institutional repository
 - ✅ **20% cost reduction** vs unmanaged cloud usage
@@ -723,7 +723,7 @@ template_maintenance:
 
 ### Quality Metrics
 
-- ✅ **99.5% uptime** for CloudWorkstation daemon
+- ✅ **99.5% uptime** for Prism daemon
 - ✅ **<2% security incidents** (vs 8% industry average)
 - ✅ **95% user satisfaction** rating
 - ✅ **80% self-service** success rate
@@ -746,7 +746,7 @@ template_maintenance:
 **Automated Compliance Reporting**:
 ```bash
 # NSF grant compliance report
-cws admin compliance report \
+prism admin compliance report \
   --grant "NSF-2112345" \
   --period "2025-Q3" \
   --format nsf-standard
@@ -766,7 +766,7 @@ cws admin compliance report \
 **Template Marketplace Curation**:
 ```bash
 # Institutional template ratings and quality metrics
-cws templates leaderboard --institution state-university
+prism templates leaderboard --institution state-university
 
 Top Templates (by usage):
 1. ⭐⭐⭐⭐⭐ Python ML (243 launches, 4.8/5.0)
@@ -774,7 +774,7 @@ Top Templates (by usage):
 3. ⭐⭐⭐⭐☆ R Data Science (134 launches, 4.2/5.0)
 
 # Contribute to community
-cws templates publish bioinformatics-pipeline \
+prism templates publish bioinformatics-pipeline \
   --registry community \
   --quality-assured \
   --peer-reviewed
@@ -785,25 +785,25 @@ cws templates publish bioinformatics-pipeline \
 **Azure/GCP Support**:
 ```yaml
 # Enable multi-cloud for researchers with specific needs
-cws admin cloud-providers enable azure \
+prism admin cloud-providers enable azure \
   --institutional-account state-university-azure \
   --cost-tracking-integration banner-finance
 
 # Researchers can now choose cloud provider
-cws launch python-ml my-project \
+prism launch python-ml my-project \
   --cloud azure \
   --reason "Microsoft-specific ML services required"
 ```
 
 **Hybrid HPC Integration**:
 ```bash
-# Connect CloudWorkstation to on-prem HPC
-cws cluster connect university-hpc \
+# Connect Prism to on-prem HPC
+prism cluster connect university-hpc \
   --scheduler slurm \
   --hybrid-workflows enabled
 
 # Researchers can burst to cloud when cluster is full
-cws job submit analysis.sh \
+prism job submit analysis.sh \
   --prefer on-prem \
   --burst-to-cloud-when-busy
 ```
@@ -842,8 +842,8 @@ Regular reports on cost savings, support reduction, and researcher satisfaction 
 - Collaborative policy development
 - Benchmark metrics across institutions
 
-**Join**: research-it-cloudworkstation@groups.university.edu
+**Join**: research-it-prism@groups.university.edu
 
 ---
 
-**CloudWorkstation for Research IT**: From infrastructure management burden to strategic research enablement. Empower researchers while maintaining institutional oversight, security, and cost control.
+**Prism for Research IT**: From infrastructure management burden to strategic research enablement. Empower researchers while maintaining institutional oversight, security, and cost control.

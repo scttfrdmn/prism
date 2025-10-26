@@ -1,4 +1,4 @@
-# CloudWorkstation Packaging Improvements
+# Prism Packaging Improvements
 
 ## Current State Analysis
 
@@ -6,7 +6,7 @@
 - ✅ **Basic Installation**: CLI (`cws`) and daemon (`cwsd`) binaries installed
 - ✅ **Cross-Platform Support**: macOS (Intel/ARM), Linux (x64/ARM64)
 - ✅ **Shell Completions**: bash, zsh, fish completion scripts
-- ✅ **Configuration**: Creates `~/.cloudworkstation` directory
+- ✅ **Configuration**: Creates `~/.prism` directory
 
 ### Current User Experience Issues
 - ❌ **Manual Daemon Management**: Users must manually start/stop `cwsd`
@@ -21,12 +21,12 @@
 
 #### 1. **Service Integration (macOS)**
 ```ruby
-# Add to Formula/cloudworkstation.rb
+# Add to Formula/prism.rb
 service do
   run [opt_bin/"cwsd"]
-  environment_variables CLOUDWORKSTATION_DEV: var/"log/cloudworkstation.log"
-  log_path var/"log/cloudworkstation.log"
-  error_log_path var/"log/cloudworkstation-error.log"
+  environment_variables CLOUDWORKSTATION_DEV: var/"log/prism.log"
+  log_path var/"log/prism.log"
+  error_log_path var/"log/prism-error.log"
   keep_alive { crashed: true }
   process_type :background
 end
@@ -36,7 +36,7 @@ end
 ```ruby
 def post_install
   # Create configuration directory
-  system "mkdir", "-p", "#{ENV["HOME"]}/.cloudworkstation"
+  system "mkdir", "-p", "#{ENV["HOME"]}/.prism"
   
   # Install daemon control script
   (prefix/"bin").install "scripts/cws-daemon" if File.exist?("scripts/cws-daemon")
@@ -46,7 +46,7 @@ def post_install
   
   # Set up service integration
   if OS.mac?
-    system "brew", "services", "start", "cloudworkstation" if File.exist?(var/"homebrew/linked/cloudworkstation")
+    system "brew", "services", "start", "prism" if File.exist?(var/"homebrew/linked/prism")
   end
 end
 ```
@@ -55,19 +55,19 @@ end
 ```ruby
 def caveats
   s = <<~EOS
-    CloudWorkstation #{version} has been installed!
+    Prism #{version} has been installed!
     
     🚀 The daemon has been configured as a system service and will start automatically.
     
     Quick Start:
-      cws daemon status                    # Check daemon status
-      cws launch python-ml my-project     # Launch your first workstation
-      cws profiles add personal research --help  # Set up AWS profiles
+      prism daemon status                    # Check daemon status
+      prism launch python-ml my-project     # Launch your first workstation
+      prism profiles add personal research --help  # Set up AWS profiles
     
     Service Management:
-      brew services start cloudworkstation   # Start daemon service
-      brew services stop cloudworkstation    # Stop daemon service
-      brew services restart cloudworkstation # Restart daemon service
+      brew services start prism   # Start daemon service
+      brew services stop prism    # Stop daemon service
+      brew services restart prism # Restart daemon service
       
     Alternative Control:
       cws-daemon start                       # Direct daemon management
@@ -75,15 +75,15 @@ def caveats
       cws-daemon restart                     # Restart with cleanup
       
     For complete documentation:
-      cws help
-      open https://docs.cloudworkstation.dev
+      prism help
+      open https://docs.prism.dev
   EOS
   
   s += <<~EOS
     
     Note: GUI functionality requires building from source:
-      git clone https://github.com/scttfrdmn/cloudworkstation.git
-      cd cloudworkstation && make build
+      git clone https://github.com/scttfrdmn/prism.git
+      cd prism && make build
   EOS
 end
 ```
@@ -95,20 +95,20 @@ Based on our current `daemon-control.sh`, create a production-ready version:
 
 ```bash
 #!/bin/bash
-# CloudWorkstation Daemon Control (Homebrew Integration)
+# Prism Daemon Control (Homebrew Integration)
 # Prevents multiple daemon instances and provides seamless management
 
 set -e
 
 DAEMON_NAME="cwsd"
 DAEMON_CMD="cwsd"
-PID_FILE="$HOME/.cloudworkstation/daemon.pid"
-LOG_FILE="$HOME/.cloudworkstation/daemon.log"
+PID_FILE="$HOME/.prism/daemon.pid"
+LOG_FILE="$HOME/.prism/daemon.log"
 API_PORT="8947"
 API_URL="http://localhost:$API_PORT"
 
 # Homebrew vs source build detection
-if command -v brew >/dev/null 2>&1 && brew list cloudworkstation >/dev/null 2>&1; then
+if command -v brew >/dev/null 2>&1 && brew list prism >/dev/null 2>&1; then
     INSTALL_TYPE="homebrew"
     DAEMON_CMD="cwsd"  # In PATH via Homebrew
 else
@@ -135,10 +135,10 @@ fi
 #### **Phase 1: Homebrew Services (v0.4.3)**
 ```bash
 # After installation
-brew install cloudworkstation
+brew install prism
 # Daemon automatically starts as system service
-brew services list | grep cloudworkstation  # Shows running status
-cws daemon status                            # CloudWorkstation-specific status
+brew services list | grep prism  # Shows running status
+prism daemon status                            # Prism-specific status
 ```
 
 #### **Phase 2: GUI Auto-Launch (v0.4.4)**
@@ -147,19 +147,19 @@ cws daemon status                            # CloudWorkstation-specific status
 # Add to post_install for source builds:
 if [[ -x "./bin/cws-gui" ]]; then
     # Create LaunchAgent for GUI auto-start
-    cp scripts/com.cloudworkstation.gui.plist ~/Library/LaunchAgents/
-    launchctl load ~/Library/LaunchAgents/com.cloudworkstation.gui.plist
+    cp scripts/com.prism.gui.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.prism.gui.plist
 fi
 ```
 
 ### 🌟 **Enhanced User Experience**
 
 #### **Seamless Installation Flow**
-1. **Install**: `brew install scttfrdmn/cloudworkstation/cloudworkstation`
+1. **Install**: `brew install scttfrdmn/prism/prism`
 2. **Auto-Start**: Daemon automatically starts as service
-3. **Quick Setup**: `cws profiles add personal research --interactive`  
-4. **First Launch**: `cws launch python-ml my-project`
-5. **Status Check**: `cws daemon status` shows health
+3. **Quick Setup**: `prism profiles add personal research --interactive`  
+4. **First Launch**: `prism launch python-ml my-project`
+5. **Status Check**: `prism daemon status` shows health
 
 #### **Zero-Configuration Goals**
 - Daemon starts automatically after installation
@@ -217,19 +217,19 @@ fi
 ### **Installation Testing Matrix**
 ```bash
 # Fresh installation testing
-brew uninstall cloudworkstation  # Clean slate
-brew install scttfrdmn/cloudworkstation/cloudworkstation
+brew uninstall prism  # Clean slate
+brew install scttfrdmn/prism/prism
 sleep 5
-cws daemon status  # Should show "running" automatically
-brew services list | grep cloudworkstation  # Should show loaded/running
+prism daemon status  # Should show "running" automatically
+brew services list | grep prism  # Should show loaded/running
 
 # Update testing  
-brew upgrade cloudworkstation
-cws daemon status  # Should maintain running state
+brew upgrade prism
+prism daemon status  # Should maintain running state
 
 # Removal testing
-brew services stop cloudworkstation
-brew uninstall cloudworkstation
+brew services stop prism
+brew uninstall prism
 ps aux | grep cwsd  # Should show no processes
 ```
 
@@ -258,4 +258,4 @@ ps aux | grep cwsd  # Should show no processes
 
 ---
 
-**Goal**: Transform CloudWorkstation from a tool requiring daemon expertise to a service that "just works" out of the box, matching the experience of professional developer tools and enterprise software.
+**Goal**: Transform Prism from a tool requiring daemon expertise to a service that "just works" out of the box, matching the experience of professional developer tools and enterprise software.

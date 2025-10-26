@@ -1,16 +1,16 @@
 # macOS Installation Guide
 
-CloudWorkstation can be installed on macOS via Homebrew for a streamlined command-line and GUI experience.
+Prism can be installed on macOS via Homebrew for a streamlined command-line and GUI experience.
 
 ## Quick Start
 
 ```bash
 # Install via Homebrew
-brew tap scttfrdmn/cloudworkstation
-brew install cloudworkstation
+brew tap scttfrdmn/prism
+brew install prism
 
 # Verify installation
-cws version
+prism version
 ```
 
 ## Installation Methods
@@ -20,21 +20,21 @@ cws version
 **Best for:** Most macOS users, provides automatic updates and easy management.
 
 ```bash
-# Add CloudWorkstation tap
-brew tap scttfrdmn/cloudworkstation
+# Add Prism tap
+brew tap scttfrdmn/prism
 
-# Install CloudWorkstation
-brew install cloudworkstation
+# Install Prism
+brew install prism
 
 # Verify installation
-cws version
+prism version
 cwsd version
 ```
 
 **Includes:**
 - `cws` CLI tool
 - `cwsd` daemon
-- `cws-gui` desktop application (if GUI support is available)
+- `prism-gui` desktop application (if GUI support is available)
 - Automatic PATH configuration
 - Easy updates via `brew upgrade`
 
@@ -44,20 +44,20 @@ cwsd version
 
 ```bash
 # Intel Macs
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-amd64.tar.gz | tar xz
+curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-amd64.tar.gz | tar xz
 
 # Apple Silicon Macs
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-arm64.tar.gz | tar xz
 
 # Move binaries to PATH
-sudo mv cws cwsd /usr/local/bin/
+sudo mv prism cwsd /usr/local/bin/
 ```
 
 ## Post-Installation Setup
 
 ### 1. Configure AWS Credentials
 
-CloudWorkstation requires AWS credentials to manage cloud resources:
+Prism requires AWS credentials to manage cloud resources:
 
 ```bash
 # Install AWS CLI if needed
@@ -74,17 +74,17 @@ aws configure
 ### 2. Verify Installation
 
 ```bash
-# Check CloudWorkstation version
-cws version
+# Check Prism version
+prism version
 
 # List available templates
-cws templates
+prism templates
 
 # Check daemon status
-cws daemon status
+prism daemon status
 ```
 
-## Using CloudWorkstation on macOS
+## Using Prism on macOS
 
 ### Launch GUI Application
 
@@ -97,28 +97,28 @@ cws-gui
 
 ```bash
 # Start the interactive terminal UI
-cws tui
+prism tui
 ```
 
 ### Use Command Line
 
 ```bash
 # See all available commands
-cws --help
+prism --help
 
 # Launch your first environment
-cws launch python-ml my-first-project
+prism launch python-ml my-first-project
 ```
 
-## Updating CloudWorkstation
+## Updating Prism
 
 ```bash
 # Update via Homebrew
 brew update
-brew upgrade cloudworkstation
+brew upgrade prism
 
 # Verify new version
-cws version
+prism version
 ```
 
 ## Troubleshooting
@@ -126,11 +126,11 @@ cws version
 ### "Command not found: cws"
 
 ```bash
-# Check if CloudWorkstation is installed
-brew list cloudworkstation
+# Check if Prism is installed
+brew list prism
 
 # Reinstall if needed
-brew reinstall cloudworkstation
+brew reinstall prism
 
 # Verify PATH includes Homebrew bin
 echo $PATH | grep homebrew
@@ -144,30 +144,30 @@ ls -la $(which cws)
 ls -la $(which cwsd)
 
 # Fix permissions if needed
-brew reinstall cloudworkstation
+brew reinstall prism
 ```
 
 ### Daemon Connection Issues
 
 ```bash
 # Check daemon status
-cws daemon status
+prism daemon status
 
 # Restart daemon if needed
-cws daemon stop
+prism daemon stop
 # Next command will auto-start daemon
-cws templates
+prism templates
 ```
 
 ## Uninstalling
 
 ```bash
-# Remove CloudWorkstation via Homebrew
-brew uninstall cloudworkstation
-brew untap scttfrdmn/cloudworkstation
+# Remove Prism via Homebrew
+brew uninstall prism
+brew untap scttfrdmn/prism
 
 # Remove configuration (optional)
-rm -rf ~/.cloudworkstation
+rm -rf ~/.prism
 ```
 
 ## Next Steps

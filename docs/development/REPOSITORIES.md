@@ -1,10 +1,10 @@
-# CloudWorkstation Template Repositories
+# Prism Template Repositories
 
-This document describes the multi-repository support introduced in CloudWorkstation 0.3.0, allowing users to use templates from multiple sources.
+This document describes the multi-repository support introduced in Prism 0.3.0, allowing users to use templates from multiple sources.
 
 ## Overview
 
-CloudWorkstation 0.3.0 introduces a powerful multi-repository system that enables:
+Prism 0.3.0 introduces a powerful multi-repository system that enables:
 
 - Using templates from different sources
 - Organizational customization of templates
@@ -14,7 +14,7 @@ CloudWorkstation 0.3.0 introduces a powerful multi-repository system that enable
 
 ## Repository Structure
 
-A CloudWorkstation template repository follows a standardized structure:
+A Prism template repository follows a standardized structure:
 
 ```
 repository/
@@ -42,9 +42,9 @@ Each repository includes a `repository.yaml` file with metadata:
 
 ```yaml
 name: "Default Repository"
-description: "Official CloudWorkstation template repository"
-maintainer: "CloudWorkstation Team"
-website: "https://github.com/scttfrdmn/cloudworkstation"
+description: "Official Prism template repository"
+maintainer: "Prism Team"
+website: "https://github.com/scttfrdmn/prism"
 contact_email: "contact@example.com"
 version: "1.0.0"
 last_updated: "2025-07-11"
@@ -68,14 +68,14 @@ templates:
 
 ## Configuration
 
-Multiple repositories are configured in `~/.cloudworkstation/config.json`:
+Multiple repositories are configured in `~/.prism/config.json`:
 
 ```json
 {
   "repositories": [
     {
       "name": "default",
-      "url": "github.com/scttfrdmn/cloudworkstation-repository",
+      "url": "github.com/scttfrdmn/prism-repository",
       "priority": 1
     },
     {
@@ -96,7 +96,7 @@ The `priority` field determines the override order, with higher numbers taking p
 
 ## Repository Types
 
-CloudWorkstation supports multiple repository types:
+Prism supports multiple repository types:
 
 ### GitHub Repository
 
@@ -104,7 +104,7 @@ CloudWorkstation supports multiple repository types:
 {
   "name": "default",
   "type": "github",
-  "url": "github.com/scttfrdmn/cloudworkstation-repository",
+  "url": "github.com/scttfrdmn/prism-repository",
   "branch": "main",
   "priority": 1
 }
@@ -128,7 +128,7 @@ CloudWorkstation supports multiple repository types:
   "name": "org-templates",
   "type": "s3",
   "bucket": "my-org-templates",
-  "prefix": "cloudworkstation/",
+  "prefix": "prism/",
   "region": "us-west-2",
   "priority": 2
 }
@@ -136,7 +136,7 @@ CloudWorkstation supports multiple repository types:
 
 ## Default Repository
 
-CloudWorkstation includes a default repository at `github.com/scttfrdmn/cloudworkstation-repository` that provides:
+Prism includes a default repository at `github.com/scttfrdmn/prism-repository` that provides:
 
 1. Base templates for common operating systems
 2. Stack templates for popular research environments
@@ -149,52 +149,52 @@ CloudWorkstation includes a default repository at `github.com/scttfrdmn/cloudwor
 
 ```bash
 # List configured repositories
-cws repo list
+prism repo list
 
 # Add a repository
-cws repo add myorg github.com/myorg/templates --priority 2
+prism repo add myorg github.com/myorg/templates --priority 2
 
 # Remove a repository
-cws repo remove myorg
+prism repo remove myorg
 
 # Update repositories
-cws repo update
+prism repo update
 
 # Get repository information
-cws repo info myorg
+prism repo info myorg
 ```
 
 ### Template Management
 
 ```bash
 # List templates from all repositories
-cws repo templates
+prism repo templates
 
 # List templates from a specific repository
-cws repo templates --repo myorg
+prism repo templates --repo myorg
 
 # Search for templates
-cws repo search machine-learning
+prism repo search machine-learning
 
 # View template details
-cws repo template info python-ml
-cws repo template info myorg:python-ml@1.2.0
+prism repo template info python-ml
+prism repo template info myorg:python-ml@1.2.0
 ```
 
 ### Template Transfer
 
 ```bash
 # Pull template from repository
-cws repo pull python-ml
-cws repo pull myorg:custom-ml
+prism repo pull python-ml
+prism repo pull myorg:custom-ml
 
 # Push template to repository (with write access)
-cws repo push my-template.yaml --repo myorg
+prism repo push my-template.yaml --repo myorg
 ```
 
 ## Template Resolution
 
-When a template name is specified, CloudWorkstation resolves it using the following process:
+When a template name is specified, Prism resolves it using the following process:
 
 1. Parse template specification: [repo:]template[@version]
 2. If repo is specified, look only in that repository
@@ -232,10 +232,10 @@ The dependency resolution process:
 
 ## Local Cache
 
-CloudWorkstation maintains a local cache of repositories to improve performance:
+Prism maintains a local cache of repositories to improve performance:
 
 ```
-~/.cloudworkstation/repositories/
+~/.prism/repositories/
 ├── default/
 │   └── ... (repository contents)
 ├── myorg/
@@ -244,7 +244,7 @@ CloudWorkstation maintains a local cache of repositories to improve performance:
 ```
 
 The cache is automatically updated:
-- When explicitly requested with `cws repo update`
+- When explicitly requested with `prism repo update`
 - When a template is not found in the cache
 - When the cache is older than the configured TTL (default: 24 hours)
 
@@ -256,13 +256,13 @@ To create your own template repository:
 2. Add a `repository.yaml` file with metadata
 3. Create the directory structure (domains, base, stacks)
 4. Add your templates
-5. Add the repository to CloudWorkstation with `cws repo add`
+5. Add the repository to Prism with `prism repo add`
 
 ### Example repository.yaml
 
 ```yaml
 name: "My Organization Templates"
-description: "Custom CloudWorkstation templates for my organization"
+description: "Custom Prism templates for my organization"
 maintainer: "Your Name"
 website: "https://github.com/myorg/templates"
 contact_email: "you@example.com"
@@ -287,12 +287,12 @@ templates:
 4. **Version Management**: Use semantic versioning for templates
 5. **Documentation**: Include comprehensive documentation in repository.yaml and individual templates
 6. **Dependencies**: Explicitly specify dependencies with version constraints
-7. **Cache Management**: Update repositories regularly with `cws repo update`
+7. **Cache Management**: Update repositories regularly with `prism repo update`
 
 ## Security Considerations
 
 1. Templates can execute arbitrary code during AMI building
 2. Only add repositories from trusted sources
 3. Review template code before building AMIs
-4. Use template validation with `cws ami validate` before building
+4. Use template validation with `prism ami validate` before building
 5. Consider using checksums for template verification

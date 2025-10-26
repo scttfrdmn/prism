@@ -1,10 +1,10 @@
-# CloudWorkstation API Authentication
+# Prism API Authentication
 
-This document describes the authentication mechanism for the CloudWorkstation API.
+This document describes the authentication mechanism for the Prism API.
 
 ## Overview
 
-CloudWorkstation API uses a simple API key authentication scheme. When enabled, all API requests must include the API key in the `X-API-Key` header. This provides basic security for your CloudWorkstation deployments.
+Prism API uses a simple API key authentication scheme. When enabled, all API requests must include the API key in the `X-API-Key` header. This provides basic security for your Prism deployments.
 
 ## Key Features
 
@@ -19,7 +19,7 @@ CloudWorkstation API uses a simple API key authentication scheme. When enabled, 
 Authentication is enabled by generating an API key:
 
 ```bash
-cws auth generate
+prism auth generate
 ```
 
 This will generate a new API key and store it securely. The key will be displayed once and must be saved by the user.
@@ -83,7 +83,7 @@ curl -H "X-API-Key: your-api-key" http://localhost:8080/api/v1/instances
 
 ### Client Configuration
 
-The CloudWorkstation CLI automatically manages API keys. When using the API directly, you need to:
+The Prism CLI automatically manages API keys. When using the API directly, you need to:
 
 1. Generate an API key
 2. Store the key securely
@@ -136,11 +136,11 @@ The following endpoints don't require authentication:
 
 ```bash
 # Generate a new API key
-cws auth generate
+prism auth generate
 
 # Check authentication status
-cws auth status
+prism auth status
 
 # Revoke the current API key
-cws auth revoke
+prism auth revoke
 ```

@@ -1,4 +1,4 @@
-# CloudWorkstation Release Readiness Assessment
+# Prism Release Readiness Assessment
 
 **Date**: October 13, 2025
 **Assessment**: ✅ **READY FOR REAL TESTER RELEASE**
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-CloudWorkstation has successfully passed real AWS validation testing. Both critical P0 bugs discovered during validation have been **completely fixed and verified** with successful production launches.
+Prism has successfully passed real AWS validation testing. Both critical P0 bugs discovered during validation have been **completely fixed and verified** with successful production launches.
 
 ### Final Verification Result
 
@@ -69,7 +69,7 @@ $ AWS_REGION=us-west-2 ./bin/cws launch test-ssh iam-fix-test-west --size S
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
 | First-time setup works | ✅ PASS | Daemon auto-starts, templates list on first run |
-| Templates discoverable | ✅ PASS | `cws templates` shows all available templates |
+| Templates discoverable | ✅ PASS | `prism templates` shows all available templates |
 | Instance launch works | ✅ PASS | Successful real AWS launch verified |
 | Works on ARM64 Macs | ✅ PASS | Both fixes verified on Apple Silicon |
 | No AWS expertise required | ✅ PASS | IAM profile now optional |
@@ -104,11 +104,11 @@ $ AWS_REGION=us-west-2 ./bin/cws launch test-ssh iam-fix-test-west --size S
 # Researcher has: AWS account + AWS credentials configured
 # Researcher does NOT need: IAM knowledge, systemd expertise, architecture understanding
 
-# Step 1: Install CloudWorkstation
+# Step 1: Install Prism
 $ ./install.sh
 
 # Step 2: Launch first instance
-$ cws launch test-ssh my-project --size S
+$ prism launch test-ssh my-project --size S
 
 # Behind the scenes (automatic):
 # 1. Daemon auto-starts (no manual intervention)
@@ -119,9 +119,9 @@ $ cws launch test-ssh my-project --size S
 # 6. System launches: t3.small + x86_64 AMI → SUCCESS
 
 # Step 3: Researcher starts working
-$ cws list                    # See instance
-$ cws stop my-project        # Manage lifecycle
-$ cws delete my-project      # Clean up when done
+$ prism list                    # See instance
+$ prism stop my-project        # Manage lifecycle
+$ prism delete my-project      # Clean up when done
 ```
 
 **Result**: Painless onboarding, no surprises, just works.
@@ -130,7 +130,7 @@ $ cws delete my-project      # Clean up when done
 
 ## Design Principles Achievement
 
-The fixes now properly embody all CloudWorkstation design principles:
+The fixes now properly embody all Prism design principles:
 
 ### ✅ Default to Success
 - ARM64 Mac users succeed by default (was 0%, now 100%)
@@ -234,13 +234,13 @@ AWS Secret Access Key: [paste from AWS console]
 Default region: us-west-2
 Default output format: json
 
-# 2. Install CloudWorkstation (30 seconds)
-$ curl -O https://releases.cloudworkstation.dev/install.sh
+# 2. Install Prism (30 seconds)
+$ curl -O https://releases.prism.dev/install.sh
 $ chmod +x install.sh
 $ ./install.sh
 
 # 3. Launch first instance (5-8 minutes)
-$ cws launch test-ssh my-first-project --size S
+$ prism launch test-ssh my-first-project --size S
 
 # Result: Just works! ✅
 ```
@@ -333,7 +333,7 @@ $ cws launch test-ssh my-first-project --size S
 
 ## Conclusion
 
-CloudWorkstation is **production-ready for real tester release**. Both critical blocking bugs have been fixed, verified, and documented. The system now delivers on its core promise: painless cloud workstation launches for non-expert researchers.
+Prism is **production-ready for real tester release**. Both critical blocking bugs have been fixed, verified, and documented. The system now delivers on its core promise: painless cloud workstation launches for non-expert researchers.
 
 ### Key Achievements ✅
 

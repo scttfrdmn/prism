@@ -1,32 +1,32 @@
-# CloudWorkstation
+# Prism
 
 <p align="center">
-  <img src="docs/images/cloudworkstation-transparent.png" alt="CloudWorkstation Logo" width="200">
+  <img src="docs/images/prism-transparent.png" alt="Prism Logo" width="200">
 </p>
 
 <p align="center"><strong>Academic Research Computing Platform - Pre-configured cloud environments made simple</strong></p>
 
 <p align="center">
-  <a href="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/ci.yml">
-    <img alt="CI" src="https://github.com/scttfrdmn/cloudworkstation/actions/workflows/ci.yml/badge.svg">
+  <a href="https://github.com/scttfrdmn/prism/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/scttfrdmn/prism/actions/workflows/ci.yml/badge.svg">
   </a>
-  <a href="https://github.com/scttfrdmn/cloudworkstation/releases/latest">
-    <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/scttfrdmn/cloudworkstation">
+  <a href="https://github.com/scttfrdmn/prism/releases/latest">
+    <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/scttfrdmn/prism">
   </a>
-  <a href="https://github.com/scttfrdmn/cloudworkstation/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/scttfrdmn/cloudworkstation">
+  <a href="https://github.com/scttfrdmn/prism/blob/main/LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/scttfrdmn/prism">
   </a>
-  <a href="https://goreportcard.com/report/github.com/scttfrdmn/cloudworkstation">
-    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/scttfrdmn/cloudworkstation?style=flat&cachebust=1">
+  <a href="https://goreportcard.com/report/github.com/scttfrdmn/prism">
+    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/scttfrdmn/prism?style=flat&cachebust=1">
   </a>
-  <a href="https://github.com/scttfrdmn/cloudworkstation/blob/main/cmd/cws-gui/frontend/eslint.config.js">
+  <a href="https://github.com/scttfrdmn/prism/blob/main/cmd/cws-gui/frontend/eslint.config.js">
     <img alt="ESLint" src="https://img.shields.io/badge/ESLint-A%2B-success?logo=eslint&logoColor=white">
   </a>
 </p>
 
-## What is CloudWorkstation?
+## What is Prism?
 
-CloudWorkstation provides researchers with **pre-configured cloud workstations** for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
+Prism provides researchers with **pre-configured cloud workstations** for data analysis, machine learning, and computational research. Launch production-ready environments without manual configuration.
 
 **From individual researchers to institutional deployments** - research computing made simple, scalable, and cost-effective.
 
@@ -46,36 +46,36 @@ CloudWorkstation provides researchers with **pre-configured cloud workstations**
 **Homebrew (Recommended)**
 
 ```bash
-brew install scttfrdmn/tap/cloudworkstation
+brew install scttfrdmn/tap/prism
 ```
 
 **Manual Installation**
 ```bash
 # Download and extract
-curl -L https://github.com/scttfrdmn/cloudworkstation/releases/latest/download/cloudworkstation_0.5.4_darwin_arm64.tar.gz | tar xz
+curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism_0.5.4_darwin_arm64.tar.gz | tar xz
 
 # Install binaries
-sudo mv cws cwsd /usr/local/bin/
+sudo mv prism cwsd /usr/local/bin/
 ```
 
 ### Linux
 
 **Debian/Ubuntu**
 ```bash
-wget https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.5.4/cloudworkstation_0.5.4_linux_amd64.deb
-sudo dpkg -i cloudworkstation_0.5.4_linux_amd64.deb
+wget https://github.com/scttfrdmn/prism/releases/download/v0.5.4/prism_0.5.4_linux_amd64.deb
+sudo dpkg -i prism_0.5.4_linux_amd64.deb
 ```
 
 **RHEL/CentOS/Fedora**
 ```bash
-wget https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.5.4/cloudworkstation_0.5.4_linux_amd64.rpm
-sudo rpm -i cloudworkstation_0.5.4_linux_amd64.rpm
+wget https://github.com/scttfrdmn/prism/releases/download/v0.5.4/prism_0.5.4_linux_amd64.rpm
+sudo rpm -i prism_0.5.4_linux_amd64.rpm
 ```
 
 **Alpine Linux**
 ```bash
-wget https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.5.4/cloudworkstation_0.5.4_linux_amd64.apk
-sudo apk add --allow-untrusted cloudworkstation_0.5.4_linux_amd64.apk
+wget https://github.com/scttfrdmn/prism/releases/download/v0.5.4/prism_0.5.4_linux_amd64.apk
+sudo apk add --allow-untrusted prism_0.5.4_linux_amd64.apk
 ```
 
 ### Windows
@@ -83,13 +83,13 @@ sudo apk add --allow-untrusted cloudworkstation_0.5.4_linux_amd64.apk
 **Scoop**
 ```powershell
 scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
-scoop install cloudworkstation
+scoop install prism
 ```
 
 **Manual Installation**
 ```powershell
 # Download from GitHub releases
-# https://github.com/scttfrdmn/cloudworkstation/releases/latest
+# https://github.com/scttfrdmn/prism/releases/latest
 # Extract and add to PATH
 ```
 
@@ -102,25 +102,25 @@ scoop install cloudworkstation
 aws configure
 ```
 
-CloudWorkstation automatically discovers credentials from:
+Prism automatically discovers credentials from:
 - Environment variables (AWS_PROFILE, AWS_ACCESS_KEY_ID)
 - AWS CLI configuration (~/.aws/credentials)
-- CloudWorkstation profiles (for multi-account management)
+- Prism profiles (for multi-account management)
 
 ### 2. Launch Your First Workstation
 
 ```bash
 # View available templates
-cws templates
+prism templates
 
 # Launch a Python ML environment
-cws launch python-ml my-research
+prism launch python-ml my-research
 
 # Connect via SSH
-cws connect my-research
+prism connect my-research
 
 # View running instances
-cws list
+prism list
 ```
 
 **What happens automatically:**
@@ -158,7 +158,7 @@ cws list
 
 ## 📦 Example Templates
 
-CloudWorkstation includes 21+ pre-configured templates for research computing:
+Prism includes 21+ pre-configured templates for research computing:
 
 - **Python ML**: Jupyter, scikit-learn, TensorFlow, PyTorch
 - **R Research**: RStudio, tidyverse, Bioconductor
@@ -168,10 +168,10 @@ CloudWorkstation includes 21+ pre-configured templates for research computing:
 
 ```bash
 # View all templates
-cws templates
+prism templates
 
 # Get detailed template info
-cws templates info python-ml
+prism templates info python-ml
 ```
 
 ## 💻 Usage Examples
@@ -179,48 +179,48 @@ cws templates info python-ml
 ### Basic Instance Management
 ```bash
 # Launch an instance
-cws launch python-ml my-project
+prism launch python-ml my-project
 
 # List running instances
-cws list
+prism list
 
 # Connect via SSH
-cws connect my-project
+prism connect my-project
 
 # Stop instance
-cws stop my-project
+prism stop my-project
 ```
 
 ### Cost Optimization
 ```bash
 # Hibernate to preserve state while saving costs
-cws hibernate my-instance
-cws resume my-instance
+prism hibernate my-instance
+prism resume my-instance
 
 # Automated idle policies
-cws idle profile list
-cws idle instance my-gpu --profile gpu
+prism idle profile list
+prism idle instance my-gpu --profile gpu
 ```
 
 ### Project Management
 ```bash
 # Create project with budget
-cws project create ml-research --budget 500
+prism project create ml-research --budget 500
 
 # Add team members
-cws project member add ml-research user@example.com --role member
+prism project member add ml-research user@example.com --role member
 
 # Launch instance in project
-cws launch python-ml analysis --project ml-research
+prism launch python-ml analysis --project ml-research
 ```
 
 ### Multi-Modal Access
 ```bash
 # Command line
-cws templates
+prism templates
 
 # Terminal UI
-cws tui
+prism tui
 
 # REST API
 curl http://localhost:8947/api/v1/instances
@@ -228,13 +228,13 @@ curl http://localhost:8947/api/v1/instances
 
 ## 📖 Documentation
 
-**📚 [Complete Documentation Site](https://scttfrdmn.github.io/cloudworkstation/)** - User guides, architecture docs, and persona walkthroughs
+**📚 [Complete Documentation Site](https://scttfrdmn.github.io/prism/)** - User guides, architecture docs, and persona walkthroughs
 
 ```bash
-cws --help                      # Show all commands
-cws templates                   # List available templates
-cws templates info <template>   # Detailed template info
-cws doctor                      # System health check
+prism --help                      # Show all commands
+prism templates                   # List available templates
+prism templates info <template>   # Detailed template info
+prism doctor                      # System health check
 ```
 
 **Guides:**
@@ -248,7 +248,7 @@ cws doctor                      # System health check
 ### v0.5.4 (Current) - Universal Version System
 - **Dynamic OS Versions**: Choose OS versions at launch time with `--version` flag
 - **Version Aliases**: Support for `latest`, `lts`, `previous-lts`
-- **AMI Freshness Checking**: `cws ami check-freshness` validates static AMI IDs
+- **AMI Freshness Checking**: `prism ami check-freshness` validates static AMI IDs
 - **AWS SSM Integration**: Automatic latest AMI discovery for major distributions
 - **Package Management**: Available via Homebrew (macOS), Scoop (Windows), deb, rpm, apk
 
@@ -272,17 +272,17 @@ cws doctor                      # System health check
 
 ## 🤝 Contributing
 
-CloudWorkstation is open source and welcomes contributions!
+Prism is open source and welcomes contributions!
 
-- **Issues**: [Report bugs or request features](https://github.com/scttfrdmn/cloudworkstation/issues)
+- **Issues**: [Report bugs or request features](https://github.com/scttfrdmn/prism/issues)
 - **Pull Requests**: Submit code improvements
 - **Templates**: Contribute research environment templates
 - **Documentation**: Help improve guides
 
 **Development:**
 ```bash
-git clone https://github.com/scttfrdmn/cloudworkstation.git
-cd cloudworkstation
+git clone https://github.com/scttfrdmn/prism.git
+cd prism
 make build
 make test
 ```
@@ -293,12 +293,12 @@ make test
 
 ## 🆘 Support
 
-- **Documentation**: [Complete docs site](https://scttfrdmn.github.io/cloudworkstation/) or `cws --help`
-- **System Check**: `cws doctor`
-- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/scttfrdmn/cloudworkstation/discussions)
+- **Documentation**: [Complete docs site](https://scttfrdmn.github.io/prism/) or `prism --help`
+- **System Check**: `prism doctor`
+- **Issues**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/scttfrdmn/prism/discussions)
 - **AWS Setup**: See [AWS Setup Guide](AWS_SETUP_GUIDE.md)
 
 ---
 
-**CloudWorkstation v0.5.4** - Research computing environments made accessible
+**Prism v0.5.4** - Research computing environments made accessible

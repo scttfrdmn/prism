@@ -3,7 +3,7 @@
 ## Testing Date: October 17, 2025
 ## Version: 0.5.2
 
-This document summarizes comprehensive testing of the singleton enforcement and daemon auto-start mechanisms implemented in CloudWorkstation v0.5.2.
+This document summarizes comprehensive testing of the singleton enforcement and daemon auto-start mechanisms implemented in Prism v0.5.2.
 
 ---
 
@@ -14,7 +14,7 @@ Ensure only one `cwsd` daemon process can run at a time. When a new daemon start
 
 ### Implementation
 - **Location**: `pkg/daemon/singleton.go` (200+ lines)
-- **PID File**: `~/.cloudworkstation/cwsd.pid`
+- **PID File**: `~/.prism/cwsd.pid`
 - **Shutdown Strategy**: Progressive signal escalation (SIGTERM → SIGINT → SIGKILL)
 
 ### Test Results ✅
@@ -24,7 +24,7 @@ Ensure only one `cwsd` daemon process can run at a time. When a new daemon start
 ./bin/cwsd > /tmp/daemon1.log 2>&1 &
 # Result: Started successfully (PID 77209)
 # Log excerpt:
-# 2025/10/17 11:18:53 CloudWorkstation Daemon v0.4.6 starting...
+# 2025/10/17 11:18:53 Prism Daemon v0.4.6 starting...
 # 2025/10/17 11:18:53 ✅ Singleton lock acquired (PID: 77209)
 ```
 
@@ -37,7 +37,7 @@ Ensure only one `cwsd` daemon process can run at a time. When a new daemon start
 # Log excerpt from daemon1.log:
 # 2025/10/17 11:20:54 🔔 Received signal: terminated
 # 2025/10/17 11:20:54 🛑 Graceful shutdown requested
-# 2025/10/17 11:20:54 ✅ CloudWorkstation daemon shutdown complete
+# 2025/10/17 11:20:54 ✅ Prism daemon shutdown complete
 #
 # Log excerpt from daemon2.log:
 # 2025/10/17 11:20:54 ✅ Singleton lock acquired (PID: 78339)
@@ -74,13 +74,13 @@ The CLI should automatically detect when the daemon is not running and start it 
 ./bin/cws list
 
 # Result:
-🚀 Starting CloudWorkstation daemon...
+🚀 Starting Prism daemon...
 ⏳ Please wait while the daemon initializes (typically 2-3 seconds)...
 ✅ Daemon started (PID 82175)
 ⏳ Waiting for daemon to initialize...
 ✅ Daemon is ready and version verified
 ✅ Daemon ready
-No workstations found. Launch one with: cws launch <template> <name>
+No workstations found. Launch one with: prism launch <template> <name>
 ```
 
 **Test 2: Multiple CLI Commands in Sequence**
@@ -128,13 +128,13 @@ export PATH="/tmp/cws-test-bin:$PATH"
 ./bin/cws list
 
 # Result:
-🚀 Starting CloudWorkstation daemon...
+🚀 Starting Prism daemon...
 ⏳ Please wait while the daemon initializes (typically 2-3 seconds)...
 ✅ Daemon started (PID 87921)
 ⏳ Waiting for daemon to initialize...
 ✅ Daemon is ready and version verified
 ✅ Daemon ready
-No workstations found. Launch one with: cws launch <template> <name>
+No workstations found. Launch one with: prism launch <template> <name>
 ```
 
 **Verification**
@@ -167,7 +167,7 @@ During testing, we encountered version mismatches (v0.4.6 vs v0.5.2) which were 
 **Test 2: Version Match Verification**
 ```bash
 ./bin/cws version
-# Output: CloudWorkstation CLI v0.5.2
+# Output: Prism CLI v0.5.2
 
 ./bin/cws daemon status
 # Output: Version: 0.5.2
@@ -208,7 +208,7 @@ During testing, we encountered version mismatches (v0.4.6 vs v0.5.2) which were 
 - Standardized on `./bin/` directory for all development binaries
 - Build process properly injects version with ldflags:
   ```bash
-  go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.5.2" \
+  go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.5.2" \
     -o bin/cwsd ./cmd/cwsd
   ```
 
@@ -229,7 +229,7 @@ All singleton and auto-start mechanisms have been successfully implemented and t
 1. **Daemon Singleton Enforcement**: ✅ Working correctly with graceful shutdown
 2. **GUI Singleton Enforcement**: ✅ Working correctly with user-friendly messages
 3. **CLI Auto-Start**: ✅ Seamless auto-start without user intervention
-4. **GUI Auto-Start**: ✅ Daemon auto-start from both `cws gui` command and GUI binary
+4. **GUI Auto-Start**: ✅ Daemon auto-start from both `prism gui` command and GUI binary
 5. **Daemon Discovery**: ✅ Works from same directory and PATH
 6. **Version Compatibility**: ✅ Clear error messages with actionable steps
 
@@ -255,7 +255,7 @@ The singleton and auto-start system is production-ready and addresses all origin
 
 ### GUI Singleton Enforcement - TESTED ✅
 - **Location**: `cmd/cws-gui/singleton.go` (150+ lines)
-- **PID File**: `~/.cloudworkstation/cws-gui.pid`
+- **PID File**: `~/.prism/cws-gui.pid`
 - **Status**: ✅ Fully tested and working
 
 **Test Results**:
@@ -268,7 +268,7 @@ The singleton and auto-start system is production-ready and addresses all origin
 # Second GUI attempt is rejected
 ./bin/cws-gui > /tmp/gui2.log 2>&1 &
 # Output: Second GUI exited (singleton worked)
-# Log: ❌ another CloudWorkstation GUI is already running (PID: 99249)
+# Log: ❌ another Prism GUI is already running (PID: 99249)
 #      💡 Only one GUI can run at a time.
 #         The other GUI has been brought to the foreground.
 ```
@@ -281,7 +281,7 @@ The singleton and auto-start system is production-ready and addresses all origin
 
 ### GUI Auto-Start of Daemon - TESTED ✅
 - **Location**: `cmd/cws-gui/main.go` (startDaemon function)
-- **CLI Command**: `cws gui` (internal/cli/gui.go)
+- **CLI Command**: `prism gui` (internal/cli/gui.go)
 - **Status**: ✅ Fully tested and working
 
 **Test Results**:
@@ -291,13 +291,13 @@ The singleton and auto-start system is production-ready and addresses all origin
 # Output:
 # daemon not responding on port 8947
 # Attempting to start daemon...
-# CloudWorkstation Daemon v0.5.2 starting...
+# Prism Daemon v0.5.2 starting...
 # ✅ Singleton lock acquired (PID: 312)
-# Starting CloudWorkstation GUI v0.5.2...
+# Starting Prism GUI v0.5.2...
 ```
 
 **Behavior**:
-- `cws gui` command checks if daemon is running
+- `prism gui` command checks if daemon is running
 - Automatically starts daemon if not found
 - Uses same binary discovery as CLI (same directory, then PATH)
 - Waits for daemon initialization before starting GUI
@@ -322,7 +322,7 @@ The singleton and auto-start system is production-ready and addresses all origin
 ./bin/cws daemon status
 
 # Test CLI auto-start
-CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws list
+PRISM_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws list
 
 # Manual daemon start (for testing)
 ./bin/cwsd > /tmp/daemon.log 2>&1 &
@@ -337,7 +337,7 @@ CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws list
 find . -name "cwsd"
 
 # Build with version
-go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.5.2" \
+go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.5.2" \
   -o bin/cwsd ./cmd/cwsd
 ```
 

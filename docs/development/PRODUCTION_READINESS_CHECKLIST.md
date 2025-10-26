@@ -1,4 +1,4 @@
-# CloudWorkstation v0.5.1 - Production Readiness Checklist
+# Prism v0.5.1 - Production Readiness Checklist
 
 **Version**: 0.5.1
 **Date**: October 15, 2025
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This checklist verifies that CloudWorkstation v0.5.1 (GUI Accessibility & UX Polish) is ready for production deployment. All critical, high-priority, and polish items have been completed and tested.
+This checklist verifies that Prism v0.5.1 (GUI Accessibility & UX Polish) is ready for production deployment. All critical, high-priority, and polish items have been completed and tested.
 
 ---
 
@@ -138,7 +138,7 @@ This checklist verifies that CloudWorkstation v0.5.1 (GUI Accessibility & UX Pol
 
 ### Runtime Verification ✅ Complete
 - [x] **Daemon starts**: cwsd launches without errors
-- [x] **CLI connects**: cws commands work with daemon
+- [x] **CLI connects**: prism commands work with daemon
 - [x] **GUI connects**: cws-gui communicates with daemon
 - [x] **API functional**: REST endpoints respond correctly
 
@@ -367,7 +367,7 @@ This checklist verifies that CloudWorkstation v0.5.1 (GUI Accessibility & UX Pol
 
 ## Conclusion
 
-CloudWorkstation v0.5.1 has successfully completed all Sprint 0 (Critical), Sprint 1 (High Priority), and Sprint 2 (Polish) items. The application now provides:
+Prism v0.5.1 has successfully completed all Sprint 0 (Critical), Sprint 1 (High Priority), and Sprint 2 (Polish) items. The application now provides:
 
 - ✅ WCAG 2.2 Level AA accessibility compliance
 - ✅ Professional AWS-quality user experience

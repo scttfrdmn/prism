@@ -1,4 +1,4 @@
-# CloudWorkstation Testing Roadmap & Implementation Plan
+# Prism Testing Roadmap & Implementation Plan
 
 **Document Version**: 1.0  
 **Created**: August 25, 2025  
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This document outlines the comprehensive testing strategy for CloudWorkstation from v0.4.5 through v0.6.0+, progressing from immediate critical fixes to enterprise-grade testing infrastructure. The plan addresses current testing gaps while establishing a foundation for scalable, reliable testing across all CloudWorkstation interfaces (CLI, TUI, GUI).
+This document outlines the comprehensive testing strategy for Prism from v0.4.5 through v0.6.0+, progressing from immediate critical fixes to enterprise-grade testing infrastructure. The plan addresses current testing gaps while establishing a foundation for scalable, reliable testing across all Prism interfaces (CLI, TUI, GUI).
 
 **Current Status**: ✅ Daemon integration tests implemented (100% passing), ~60% overall test coverage
 **Target**: 99.5% test coverage with enterprise compliance validation by v0.6.0
@@ -157,13 +157,13 @@ Test Areas:
 - Interactive prompt handling
 
 Commands to Test:
-- cws launch <template> <name> [options]
-- cws list [--format json|table]
-- cws connect <instance>
-- cws stop/start/hibernate <instance>
-- cws templates [list|validate|info]
-- cws storage [create|attach|detach]
-- cws profiles [list|create|switch]
+- prism launch <template> <name> [options]
+- prism list [--format json|table]
+- prism connect <instance>
+- prism stop/start/hibernate <instance>
+- prism templates [list|validate|info]
+- prism storage [create|attach|detach]
+- prism profiles [list|create|switch]
 ```
 
 #### **B. CLI-Daemon Integration**
@@ -673,7 +673,7 @@ Team Prerequisites:
 
 ## 📝 **Conclusion**
 
-This comprehensive testing roadmap transforms CloudWorkstation from its current 60% test coverage to a world-class, enterprise-ready research platform with 99.5% test coverage and full compliance validation. 
+This comprehensive testing roadmap transforms Prism from its current 60% test coverage to a world-class, enterprise-ready research platform with 99.5% test coverage and full compliance validation. 
 
 The phased approach ensures:
 1. **Immediate stability** (v0.4.5) - Critical bug fixes and core functionality

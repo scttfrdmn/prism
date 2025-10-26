@@ -27,13 +27,13 @@
 **Usage**:
 ```bash
 # Default (auto-selects conda for Python/R templates)
-cws launch python-research my-project
+prism launch python-research my-project
 
 # Explicit conda specification
-cws launch python-research my-project --with conda
+prism launch python-research my-project --with conda
 
 # Works with all template types
-cws launch r-research stats-work --with conda
+prism launch r-research stats-work --with conda
 ```
 
 ## 🗺️ Future Package Manager Support
@@ -183,7 +183,7 @@ Template System
 
 ## 🎉 Current Achievement
 
-**Conda-First Strategy Success**: CloudWorkstation now provides world-class conda support that meets 90%+ of research computing needs. The extensible architecture is in place for future expansion, but conda excellence is the current focus.
+**Conda-First Strategy Success**: Prism now provides world-class conda support that meets 90%+ of research computing needs. The extensible architecture is in place for future expansion, but conda excellence is the current focus.
 
 **Key Insight**: By focusing on conda first, we deliver maximum value to the research community while building a solid foundation for future package manager support when clearly justified by user needs.
 

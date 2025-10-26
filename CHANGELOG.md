@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to CloudWorkstation will be documented in this file.
+All notable changes to Prism will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - AWS SSM Parameter Store integration for Ubuntu, Amazon Linux, Debian
   - Static fallback AMIs for Rocky Linux, RHEL, Alpine
 - **AMI Freshness Checking**: Proactive validation of static AMI IDs
-  - `cws ami check-freshness` command to validate AMI mappings
+  - `prism ami check-freshness` command to validate AMI mappings
   - Automatic detection of outdated AMIs against latest SSM values
   - Clear reporting with recommended update actions
   - Support for all distributions (SSM-backed and static)
@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `Version` field to `LaunchRequest` for version specification
 - Integrated AMI discovery into daemon initialization
 - Added REST API endpoint `/api/v1/ami/check-freshness`
-- Added CLI commands: `cws ami check-freshness`
+- Added CLI commands: `prism ami check-freshness`
 
 ### Benefits
 - **No Template Explosion**: Single template supports multiple OS versions
@@ -246,7 +246,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System status monitoring and notifications
   - Visual storage and volume management
   - Keyboard shortcuts for common operations
-- Integration with new CloudWorkstation API context-aware methods
+- Integration with new Prism API context-aware methods
 - Consistent help system with keyboard shortcut reference
 - Better terminal compatibility across platforms
 - Tab-based navigation between sections

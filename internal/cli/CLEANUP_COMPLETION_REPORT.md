@@ -55,7 +55,7 @@ Added comprehensive header comments to all implementation files explaining:
 
 ### 3. Comprehensive Architecture Guide (✅ Complete)
 
-Created `/Users/scttfrdmn/src/cloudworkstation/internal/cli/ARCHITECTURE.md`:
+Created `/Users/scttfrdmn/src/prism/internal/cli/ARCHITECTURE.md`:
 - Explains the Facade/Adapter pattern
 - Documents both two-layer and single-layer approaches
 - Provides code examples showing delegation

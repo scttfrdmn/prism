@@ -2,11 +2,11 @@
 
 ## Executive Summary
 
-This document outlines the design for a decentralized template marketplace that enables community-contributed research environments while maintaining security through optional access controls. The marketplace expands beyond the core CloudWorkstation template repository to support institutional, community, and private template collections.
+This document outlines the design for a decentralized template marketplace that enables community-contributed research environments while maintaining security through optional access controls. The marketplace expands beyond the core Prism template repository to support institutional, community, and private template collections.
 
 ## Problem Statement
 
-The current CloudWorkstation template system is limited to a single core repository. Researchers need:
+The current Prism template system is limited to a single core repository. Researchers need:
 
 - **Community Templates**: Access to templates created by other researchers
 - **Institutional Templates**: Private template repositories for universities/organizations
@@ -21,9 +21,9 @@ The current CloudWorkstation template system is limited to a single core reposit
 
 **Repository Types**:
 ```
-Core Repository (cloudworkstation/templates)
+Core Repository (prism/templates)
 ├── Essential research templates
-├── Maintained by CloudWorkstation team
+├── Maintained by Prism team
 ├── High quality standards
 └── Always accessible
 
@@ -90,10 +90,10 @@ const (
 **Search Command Interface**:
 ```bash
 # Search all available templates
-cws templates search machine-learning
+prism templates search machine-learning
 🔍 Searching templates for: machine-learning
 
-Core Repository (cloudworkstation/templates):
+Core Repository (prism/templates):
   ✅ Python Machine Learning (Simplified) - Basic ML environment
   ✅ Python ML (GPU) - GPU-accelerated ML with CUDA
 
@@ -111,11 +111,11 @@ Private Repository (premium-ml/templates):
   🔒 Requires authentication: premium subscription
 
 # Search specific repository
-cws templates search --repo community/ml-advanced pytorch
-cws templates search --repo university-edu gpu --auth-key ~/.cws/university.key
+prism templates search --repo community/ml-advanced pytorch
+prism templates search --repo university-edu gpu --auth-key ~/.cws/university.key
 
 # Browse repository contents
-cws templates browse community/bioinformatics-templates
+prism templates browse community/bioinformatics-templates
 📂 Repository: community/bioinformatics-templates
 🌟 72 templates available
 
@@ -132,29 +132,29 @@ Categories:
 **Repository Registration**:
 ```bash
 # Add public community repository
-cws templates repo add community/ml-advanced https://github.com/ml-community/cws-templates.git
+prism templates repo add community/ml-advanced https://github.com/ml-community/cws-templates.git
 ✅ Added repository: community/ml-advanced
 📥 Downloading template metadata...
 🔍 Found 24 templates
 
 # Add private institutional repository
-cws templates repo add university-edu https://git.university.edu/cws/templates.git --auth ssh
+prism templates repo add university-edu https://git.university.edu/cws/templates.git --auth ssh
 🔐 SSH key authentication required
 🔑 Using SSH key: ~/.ssh/id_rsa
 ✅ Added repository: university-edu
 📥 Downloaded 45 private templates
 
 # Add premium repository with token
-cws templates repo add premium-ml https://api.premium-templates.com/v1/templates --auth token --key premium-123abc
+prism templates repo add premium-ml https://api.premium-templates.com/v1/templates --auth token --key premium-123abc
 ✅ Added repository: premium-ml
 💎 Access granted to 15 premium templates
 
 # List registered repositories
-cws templates repo list
+prism templates repo list
 📋 Registered Template Repositories:
 
 Core:
-  ✅ cloudworkstation/templates (58 templates) - Always available
+  ✅ prism/templates (58 templates) - Always available
 
 Community:
   🌟 community/ml-advanced (24 templates) - Public
@@ -187,7 +187,7 @@ verification:
   trust_level: "community"
 
 compatibility:
-  cloudworkstation_version: ">=0.5.0"
+  prism_version: ">=0.5.0"
   required_features: ["gpu", "large-instance"]
   tested_regions: ["us-east-1", "us-west-2", "eu-west-1"]
 
@@ -212,27 +212,27 @@ dependencies:
 **Public Repositories (No Auth)**:
 ```bash
 # Public community templates - no authentication required
-cws templates search --repo community/open-science
-cws launch community/open-science/jupyter-basic my-project
+prism templates search --repo community/open-science
+prism launch community/open-science/jupyter-basic my-project
 ```
 
 **SSH Key Authentication**:
 ```bash
 # SSH-based authentication for institutional repos
-cws templates repo add university-edu git@git.university.edu:cws/templates.git --auth ssh
+prism templates repo add university-edu git@git.university.edu:cws/templates.git --auth ssh
 # Uses existing SSH keys from ~/.ssh/
 
-cws launch university-edu/hpc-cluster-access my-research
+prism launch university-edu/hpc-cluster-access my-research
 ```
 
 **Token-Based Authentication**:
 ```bash
 # API token for premium/private repositories
-cws templates auth set-token premium-ml "premium-api-key-abc123"
-cws templates auth set-token lab-internal "lab-token-xyz789"
+prism templates auth set-token premium-ml "premium-api-key-abc123"
+prism templates auth set-token lab-internal "lab-token-xyz789"
 
 # Token stored securely in profile keychain
-cws launch premium-ml/matlab-optimized my-project
+prism launch premium-ml/matlab-optimized my-project
 🔐 Authenticating with premium-ml...
 ✅ Premium license validated
 ```
@@ -240,7 +240,7 @@ cws launch premium-ml/matlab-optimized my-project
 **OAuth Flow (Future)**:
 ```bash
 # OAuth for enterprise integrations
-cws templates repo add enterprise-corp https://templates.corp.com --auth oauth
+prism templates repo add enterprise-corp https://templates.corp.com --auth oauth
 🌐 Opening browser for authentication...
 ✅ Enterprise SSO authentication successful
 ```
@@ -250,7 +250,7 @@ cws templates repo add enterprise-corp https://templates.corp.com --auth oauth
 **Publishing Templates**:
 ```bash
 # Contribute to community repository
-cws templates publish my-custom-template community/ml-advanced
+prism templates publish my-custom-template community/ml-advanced
 📤 Preparing template for publication...
 🔍 Validating template syntax and dependencies...
 📋 Template validation successful
@@ -258,7 +258,7 @@ cws templates publish my-custom-template community/ml-advanced
 ✅ Template published! Pull request created: #123
 
 # Publish to private repository
-cws templates publish lab-specific-tool lab-internal
+prism templates publish lab-specific-tool lab-internal
 🔐 Authenticating with lab-internal...
 📤 Publishing private template...
 ✅ Template published to private repository
@@ -267,14 +267,14 @@ cws templates publish lab-specific-tool lab-internal
 **Template Development**:
 ```bash
 # Create new template from existing instance
-cws templates create-from-instance my-running-instance custom-r-setup
+prism templates create-from-instance my-running-instance custom-r-setup
 📸 Capturing instance configuration...
 📝 Generating template YAML...
 🔍 Template created: templates/custom-r-setup.yml
 
 # Test template before publishing
-cws templates test custom-r-setup --dry-run
-cws templates test custom-r-setup --launch-test
+prism templates test custom-r-setup --dry-run
+prism templates test custom-r-setup --launch-test
 🧪 Testing template launch...
 ✅ Template launches successfully
 💰 Estimated cost: $0.12/hour
@@ -347,18 +347,18 @@ func (r *APIRepository) GetTemplate(name string) (*Template, error) {
 **Local Template Cache**:
 ```bash
 # Cache management commands
-cws templates cache status
+prism templates cache status
 📊 Template Cache Status:
 Size: 245MB (1,247 templates cached)
 Last Update: 2 hours ago
 Repositories: 5 active, 2 need updates
 
-cws templates cache update
+prism templates cache update
 🔄 Updating template cache...
 📥 Downloaded 15 new templates
 ✅ Cache updated successfully
 
-cws templates cache clean
+prism templates cache clean
 🧹 Cleaning template cache...
 🗑️  Removed 23 old template versions
 💾 Freed 45MB of storage
@@ -370,17 +370,17 @@ cws templates cache clean
 - Automatic cache updates on repository changes
 - Configurable cache size limits
 
-### 10. Integration with Core CloudWorkstation
+### 10. Integration with Core Prism
 
 **Template Launch Integration**:
 ```bash
 # Launch templates from any repository
-cws launch pytorch-research my-ml-project  # Searches all repos
-cws launch community/ml-advanced/pytorch-research my-ml-project  # Specific repo
-cws launch university-edu/hpc-pytorch my-ml-project  # Private repo
+prism launch pytorch-research my-ml-project  # Searches all repos
+prism launch community/ml-advanced/pytorch-research my-ml-project  # Specific repo
+prism launch university-edu/hpc-pytorch my-ml-project  # Private repo
 
 # Template info from marketplace
-cws templates info community/ml-advanced/pytorch-research
+prism templates info community/ml-advanced/pytorch-research
 📋 Template: PyTorch Research Environment
 Repository: community/ml-advanced ✅ Verified
 Author: ML Research Group
@@ -394,7 +394,7 @@ pre-installed research libraries, and optimized CUDA configuration.
 Verification:
 ✅ Digitally signed by ml-research-group@university.edu
 ✅ Template tested in 3 AWS regions
-✅ Compatible with CloudWorkstation v0.5.0+
+✅ Compatible with Prism v0.5.0+
 
 Dependencies:
 📦 External: community/cuda-base

@@ -1,8 +1,8 @@
-# CloudWorkstation Profile Export/Import Guide
+# Prism Profile Export/Import Guide
 
-CloudWorkstation v0.4.2 introduces profile export and import functionality, allowing users to:
+Prism v0.4.2 introduces profile export and import functionality, allowing users to:
 
-1. Back up their CloudWorkstation profiles
+1. Back up their Prism profiles
 2. Share profile configurations between machines
 3. Transfer profiles to team members
 
@@ -13,7 +13,7 @@ This document explains how to use these features effectively.
 You can export your profiles to a file using the command line interface:
 
 ```bash
-cws profiles export my-profiles.zip
+prism profiles export my-profiles.zip
 ```
 
 This creates a ZIP file containing your profile configurations.
@@ -34,22 +34,22 @@ Several options are available for customizing your exports:
 
 **Export all profiles without credentials (safest option):**
 ```bash
-cws profiles export my-profiles.zip
+prism profiles export my-profiles.zip
 ```
 
 **Export specific profiles:**
 ```bash
-cws profiles export personal-profiles.zip --profiles personal,work
+prism profiles export personal-profiles.zip --profiles personal,work
 ```
 
 **Export with credentials (only for personal backups):**
 ```bash
-cws profiles export full-backup.zip --include-credentials
+prism profiles export full-backup.zip --include-credentials
 ```
 
 **Export in JSON format:**
 ```bash
-cws profiles export profiles.json --format json
+prism profiles export profiles.json --format json
 ```
 
 ## Profile Import
@@ -57,7 +57,7 @@ cws profiles export profiles.json --format json
 You can import profiles from a previously exported file:
 
 ```bash
-cws profiles import my-profiles.zip
+prism profiles import my-profiles.zip
 ```
 
 ### Import Options
@@ -83,22 +83,22 @@ When importing profiles, conflicts can occur if profiles with the same ID alread
 
 **Import all profiles, renaming any conflicts:**
 ```bash
-cws profiles import my-profiles.zip
+prism profiles import my-profiles.zip
 ```
 
 **Import only specific profiles:**
 ```bash
-cws profiles import team-profiles.zip --profiles team-project,shared
+prism profiles import team-profiles.zip --profiles team-project,shared
 ```
 
 **Import and skip any profiles that already exist:**
 ```bash
-cws profiles import my-profiles.zip --mode skip
+prism profiles import my-profiles.zip --mode skip
 ```
 
 **Import with credentials:**
 ```bash
-cws profiles import my-profiles.zip --import-credentials
+prism profiles import my-profiles.zip --import-credentials
 ```
 
 ## Security Considerations
@@ -118,18 +118,18 @@ By default, credentials are **not** included in exports for security reasons. Th
 For sensitive exports, particularly those including credentials, you can add password protection:
 
 ```bash
-cws profiles export secure-backup.zip --include-credentials --password "my-secure-password"
+prism profiles export secure-backup.zip --include-credentials --password "my-secure-password"
 ```
 
 When importing, provide the same password:
 
 ```bash
-cws profiles import secure-backup.zip --password "my-secure-password"
+prism profiles import secure-backup.zip --password "my-secure-password"
 ```
 
 ## Sharing with Teams
 
-The export/import functionality is particularly useful for teams who need to share common CloudWorkstation configurations.
+The export/import functionality is particularly useful for teams who need to share common Prism configurations.
 
 **Best practice for sharing with teams:**
 
@@ -141,10 +141,10 @@ The export/import functionality is particularly useful for teams who need to sha
 
 ```bash
 # Team lead:
-cws profiles export team-profiles.zip --profiles team-project,shared
+prism profiles export team-profiles.zip --profiles team-project,shared
 
 # Team members:
-cws profiles import team-profiles.zip
+prism profiles import team-profiles.zip
 ```
 
 ## Working with Invitation Profiles
@@ -158,7 +158,7 @@ When exporting invitation profiles:
 To exclude invitation profiles from export:
 
 ```bash
-cws profiles export personal-only.zip --include-invitations=false
+prism profiles export personal-only.zip --include-invitations=false
 ```
 
 ## File Formats
@@ -176,7 +176,7 @@ The default export format is ZIP, which includes:
 For simpler integration with other tools, you can export in plain JSON format:
 
 ```bash
-cws profiles export profiles.json --format json
+prism profiles export profiles.json --format json
 ```
 
 Note that JSON exports cannot include credentials.
@@ -200,10 +200,10 @@ Note that JSON exports cannot include credentials.
 For additional assistance with profile export/import:
 
 ```bash
-cws profiles export --help
-cws profiles import --help
+prism profiles export --help
+prism profiles import --help
 ```
 
 ## Version Compatibility
 
-Profile export/import is available in CloudWorkstation v0.4.2 and later. Exports created with newer versions may not be compatible with older versions of CloudWorkstation.
+Profile export/import is available in Prism v0.4.2 and later. Exports created with newer versions may not be compatible with older versions of Prism.

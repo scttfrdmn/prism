@@ -128,7 +128,7 @@ result, err := regionalClient.DescribeInstances(...)
     - Inheritance system functional
 
 16. ✅ **Instance Connection**
-    - `cws connect vpc-test` command
+    - `prism connect vpc-test` command
     - SSH connection established
     - System info displayed
 
@@ -233,7 +233,7 @@ result, err := regionalClient.DescribeInstances(...)
    Error: template not found
 
    The specified template doesn't exist. To fix this:
-   1. List available templates: cws templates
+   1. List available templates: prism templates
    2. Check template name spelling
    3. Refresh template cache
    ```
@@ -251,7 +251,7 @@ result, err := regionalClient.DescribeInstances(...)
 
 5. **Connection Experience**:
    ```bash
-   $ cws connect vpc-test
+   $ prism connect vpc-test
    🔗 Connecting to vpc-test...
    Welcome to Ubuntu 22.04.5 LTS...
    System load: 0.64    Processes: 124
@@ -405,7 +405,7 @@ result, err := regionalClient.DescribeInstances(...)
 
 ## Conclusion
 
-Successfully completed comprehensive end-to-end testing validating all CloudWorkstation functionality with real AWS infrastructure. Fixed hibernation region bug and validated all critical features across 20 test categories with 100% success rate.
+Successfully completed comprehensive end-to-end testing validating all Prism functionality with real AWS infrastructure. Fixed hibernation region bug and validated all critical features across 20 test categories with 100% success rate.
 
 **Key Achievements**:
 - ✅ Fixed hibernation region bug (P2) with proper architectural solution
@@ -417,7 +417,7 @@ Successfully completed comprehensive end-to-end testing validating all CloudWork
 
 **Production Status**: **READY FOR DEPLOYMENT**
 
-CloudWorkstation v0.5.1 has passed all critical tests and is approved for production use. The platform provides researchers with a robust, intelligent, multi-region cloud workstation management system with comprehensive cost optimization, excellent user experience, and enterprise-grade reliability.
+Prism v0.5.1 has passed all critical tests and is approved for production use. The platform provides researchers with a robust, intelligent, multi-region cloud workstation management system with comprehensive cost optimization, excellent user experience, and enterprise-grade reliability.
 
 **No blocking issues identified. Approved for production deployment and real user testing.**
 

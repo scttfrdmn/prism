@@ -2,11 +2,11 @@
 
 ## Executive Summary
 
-This document outlines the design for template-based configuration synchronization between local development environments and CloudWorkstation instances, enabling researchers to maintain consistent tool configurations across environments.
+This document outlines the design for template-based configuration synchronization between local development environments and Prism instances, enabling researchers to maintain consistent tool configurations across environments.
 
 ## Problem Statement
 
-Researchers spend significant time reconfiguring familiar tools (RStudio, Jupyter, VS Code, etc.) on each new CloudWorkstation instance. This reduces productivity and creates barriers to cloud adoption. Configuration sync should be:
+Researchers spend significant time reconfiguring familiar tools (RStudio, Jupyter, VS Code, etc.) on each new Prism instance. This reduces productivity and creates barriers to cloud adoption. Configuration sync should be:
 
 - **Template-Based**: Configurations stored as shareable templates
 - **Application-Aware**: Smart sync for different application types
@@ -78,15 +78,15 @@ security:
 **Local Configuration Scanning**:
 ```bash
 # Capture current local configuration
-cws config capture rstudio-config --applications rstudio,git
+prism config capture rstudio-config --applications rstudio,git
 # Creates: config-templates/local/rstudio-config.yml
 
 # Share configuration template
-cws config publish rstudio-config --repository community
+prism config publish rstudio-config --repository community
 # Uploads to: community/rstudio/rstudio-config.yml
 
 # Browse available configurations
-cws config browse --application rstudio
+prism config browse --application rstudio
 ```
 
 **Smart Configuration Detection**:
@@ -132,14 +132,14 @@ func (r *RStudioScanner) ScanConfiguration() (*ApplicationConfig, error) {
 **Sync Command Architecture**:
 ```bash
 # Apply configuration template to instance
-cws config apply rstudio-config my-instance
-cws config apply rstudio-config my-instance --dry-run
-cws config apply rstudio-config my-instance --interactive
+prism config apply rstudio-config my-instance
+prism config apply rstudio-config my-instance --dry-run
+prism config apply rstudio-config my-instance --interactive
 
 # Apply from different sources
-cws config apply community/rstudio/data-science my-instance
-cws config apply ./local-config.yml my-instance
-cws config apply github:university/rstudio-configs/bioinformatics my-instance
+prism config apply community/rstudio/data-science my-instance
+prism config apply ./local-config.yml my-instance
+prism config apply github:university/rstudio-configs/bioinformatics my-instance
 ```
 
 **Template Processing Engine**:
@@ -207,17 +207,17 @@ config-templates/
 **Template Sharing Commands**:
 ```bash
 # Create template repository
-cws config repo init my-lab-configs
-cws config repo add-remote origin git@github.com:mylab/cws-configs.git
+prism config repo init my-lab-configs
+prism config repo add-remote origin git@github.com:mylab/cws-configs.git
 
 # Publish configuration
-cws config publish my-rstudio-setup --repo my-lab-configs
-cws config publish my-rstudio-setup --repo community --public
+prism config publish my-rstudio-setup --repo my-lab-configs
+prism config publish my-rstudio-setup --repo community --public
 
 # Install from repository
-cws config install community/rstudio/data-science
-cws config install github:mylab/cws-configs/rstudio-setup
-cws config install https://raw.githubusercontent.com/mylab/configs/main/rstudio.yml
+prism config install community/rstudio/data-science
+prism config install github:mylab/cws-configs/rstudio-setup
+prism config install https://raw.githubusercontent.com/mylab/configs/main/rstudio.yml
 ```
 
 ### 5. Application-Specific Implementations
@@ -351,14 +351,14 @@ Continue with configuration? [y/N]: y
 ### Initial Setup:
 ```bash
 # Capture local RStudio configuration
-cws config capture rstudio-setup
+prism config capture rstudio-setup
 ✅ Scanned RStudio preferences
 ✅ Found 45 installed packages
 ✅ Detected custom themes: 2 files
 📝 Configuration saved as: config-templates/personal/rstudio-setup.yml
 
 # Launch instance with configuration
-cws launch python-ml my-research --config rstudio-setup
+prism launch python-ml my-research --config rstudio-setup
 🚀 Launching instance...
 ⚙️  Applying configuration template: rstudio-setup
    📦 Installing 45 R packages...
@@ -370,14 +370,14 @@ cws launch python-ml my-research --config rstudio-setup
 ### Daily Workflow:
 ```bash
 # Quick sync to existing instance
-cws config sync rstudio-setup my-research
+prism config sync rstudio-setup my-research
 ⚙️  Checking for configuration changes...
 📦 New packages detected: 3 packages
 🔄 Syncing updates...
 ✅ Configuration synchronized
 
 # Share configuration with team
-cws config publish rstudio-setup --repo lab-configs --description "Updated with new bioinformatics packages"
+prism config publish rstudio-setup --repo lab-configs --description "Updated with new bioinformatics packages"
 ```
 
 ## Success Metrics

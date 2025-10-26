@@ -63,7 +63,7 @@ The TODO in app.go:1158 is in LEGACY code being maintained for backward compatib
    ```
 
 ### Recommendation:
-**DELETE LEGACY CODE** - Since CloudWorkstation hasn't been released yet, no need to maintain backward compatibility. Remove `app.go` legacy budget methods and the project_cobra.go wrappers that call them.
+**DELETE LEGACY CODE** - Since Prism hasn't been released yet, no need to maintain backward compatibility. Remove `app.go` legacy budget methods and the project_cobra.go wrappers that call them.
 
 ---
 

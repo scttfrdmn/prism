@@ -1,4 +1,4 @@
-# CloudWorkstation GUI Testing Guide
+# Prism GUI Testing Guide
 
 ## Version: v0.4.5 - Production-Grade Testing Implementation  
 **Last Updated**: 2025-09-01  
@@ -8,7 +8,7 @@
 
 ## 🎯 **Testing Philosophy**
 
-CloudWorkstation's Wails 3.x GUI leverages modern web testing tools to ensure reliability, visual consistency, and accessibility across all 5 professional themes. Our testing strategy provides comprehensive coverage while maintaining fast feedback cycles.
+Prism's Wails 3.x GUI leverages modern web testing tools to ensure reliability, visual consistency, and accessibility across all 5 professional themes. Our testing strategy provides comprehensive coverage while maintaining fast feedback cycles.
 
 ### **Key Advantages of Web-Based Testing**
 - **Familiar Tooling**: Same tools used for modern web applications
@@ -552,7 +552,7 @@ await expect(page.locator('#launch-form')).toBeVisible()
 ```javascript
 // Mock Wails service calls
 global.wails = {
-  CloudWorkstationService: {
+  PrismService: {
     GetTemplates: vi.fn().mockResolvedValue(mockTemplates)
   }
 }
@@ -672,7 +672,7 @@ afterAll(() => server.close())
 - [Mock Service Worker](https://mswjs.io/)
 - [Percy Visual Testing](https://percy.io/)
 
-### **CloudWorkstation-Specific Resources**
+### **Prism-Specific Resources**
 - [GUI Refinements TODO List](./GUI_REFINEMENTS_TODOLIST.md)
 - [Daemon API Reference](./DAEMON_API_REFERENCE.md)
 - [Wails 3.x Documentation](https://wails.io/docs/next/)
@@ -686,4 +686,4 @@ afterAll(() => server.close())
 
 **Total Test Coverage**: 65+ test scenarios across unit, E2E, visual, accessibility, and performance categories.
 
-This comprehensive testing guide ensures the CloudWorkstation Wails 3.x GUI maintains professional quality, visual consistency, and accessibility standards while providing fast feedback loops for developers.
+This comprehensive testing guide ensures the Prism Wails 3.x GUI maintains professional quality, visual consistency, and accessibility standards while providing fast feedback loops for developers.

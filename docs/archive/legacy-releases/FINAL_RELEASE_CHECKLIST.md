@@ -1,4 +1,4 @@
-# CloudWorkstation 0.2.0 Release Checklist
+# Prism 0.2.0 Release Checklist
 
 ## Pre-Release Checklist
 
@@ -58,7 +58,7 @@ To finalize the 0.2.0 release:
 
 3. **Create Git Tag**:
    ```bash
-   git tag -a v0.2.0 -m "CloudWorkstation 0.2.0"
+   git tag -a v0.2.0 -m "Prism 0.2.0"
    git push origin v0.2.0
    ```
 
@@ -95,12 +95,12 @@ After release, we will focus on:
 - AMI lookup now uses registry system with fallback to hard-coded IDs
 
 ### Migration Path
-- Existing users should run `cws registry pull <template-name>` to download templates
+- Existing users should run `prism registry pull <template-name>` to download templates
 - API clients should migrate to context-aware API methods defined in api.go
 
 ## Final Review
 
-- Code quality meets CloudWorkstation's high standards
+- Code quality meets Prism's high standards
 - Core design principles are implemented and documented
 - No known critical bugs or regressions
 - Test suite is passing

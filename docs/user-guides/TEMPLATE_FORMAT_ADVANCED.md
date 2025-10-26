@@ -1,6 +1,6 @@
-# CloudWorkstation Template Format - Advanced Guide
+# Prism Template Format - Advanced Guide
 
-This document describes the technical details of the YAML template format used by CloudWorkstation to define research environment templates.
+This document describes the technical details of the YAML template format used by Prism to define research environment templates.
 
 ## Overview
 
@@ -120,7 +120,7 @@ validation:
 
 ## Template Organization
 
-CloudWorkstation templates are organized by research domain:
+Prism templates are organized by research domain:
 
 - `/templates/python-research.yaml`: Python data science environment
 - `/templates/neuroimaging.yaml`: Neuroimaging tools (FSL, AFNI, etc.)
@@ -129,7 +129,7 @@ CloudWorkstation templates are organized by research domain:
 
 ## Common Base Images
 
-CloudWorkstation supports multiple base images:
+Prism supports multiple base images:
 
 - `ubuntu-22.04-server-lts`: Standard Ubuntu 22.04 LTS server
 - `ubuntu-22.04-server-lts-arm64`: ARM64 version of Ubuntu 22.04 LTS
@@ -140,8 +140,8 @@ To add a new template:
 
 1. Create a YAML file in the `/templates` directory
 2. Follow the format described above
-3. Test your template with `cws ami validate my-template.yaml`
-4. Build the AMI with `cws ami build my-template.yaml`
+3. Test your template with `prism ami validate my-template.yaml`
+4. Build the AMI with `prism ami build my-template.yaml`
 
 ## Testing Templates
 
@@ -149,11 +149,11 @@ Test your template before building:
 
 ```bash
 # Validate the template format
-cws ami validate my-template.yaml
+prism ami validate my-template.yaml
 
 # Test with dry run
-cws ami build my-template.yaml --dry-run
+prism ami build my-template.yaml --dry-run
 
 # Build the AMI
-cws ami build my-template.yaml
+prism ami build my-template.yaml
 ```

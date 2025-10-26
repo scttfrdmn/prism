@@ -1,4 +1,4 @@
-# CloudWorkstation v0.5.1 Release Notes
+# Prism v0.5.1 Release Notes
 
 **Release Date**: September 29, 2025 (In Development)
 **Release Type**: Minor Update - Command Structure & GUI Polish
@@ -16,31 +16,31 @@ v0.5.1 focuses on **command structure consistency** and **professional user expe
 **Status**: ✅ **COMPLETE** (September 29, 2025)
 
 **Major Changes**:
-- **Renamed**: `cws research-user` → `cws user` (cleaner, more intuitive)
-- **New Hierarchy**: Added `cws admin` parent command for system administration
-- **Organized Commands**: All admin operations now under unified `cws admin` structure
+- **Renamed**: `prism research-user` → `prism user` (cleaner, more intuitive)
+- **New Hierarchy**: Added `prism admin` parent command for system administration
+- **Organized Commands**: All admin operations now under unified `prism admin` structure
 
 **Command Mapping**:
 ```bash
 # User Management (Researchers)
-cws user create <username>          # Create new user
-cws user list                       # List all users
-cws user delete <username>          # Delete user
-cws user ssh-key generate <username> # Generate SSH keys
-cws user provision <username> <instance> # Provision user on instance
-cws user status <username>          # Show user status
+prism user create <username>          # Create new user
+prism user list                       # List all users
+prism user delete <username>          # Delete user
+prism user ssh-key generate <username> # Generate SSH keys
+prism user provision <username> <instance> # Provision user on instance
+prism user status <username>          # Show user status
 
 # System Administration
-cws admin config <action>           # Configure CloudWorkstation
-cws admin daemon <action>           # Manage daemon
-cws admin security                  # Security management
-cws admin policy <action>           # Policy management
-cws admin profiles <action>         # Profile management
-cws admin uninstall                 # System uninstallation
+prism admin config <action>           # Configure Prism
+prism admin daemon <action>           # Manage daemon
+prism admin security                  # Security management
+prism admin policy <action>           # Policy management
+prism admin profiles <action>         # Profile management
+prism admin uninstall                 # System uninstallation
 ```
 
 **Benefits**:
-- ✅ **Intuitive Discovery**: "Manage users" → `cws user`
+- ✅ **Intuitive Discovery**: "Manage users" → `prism user`
 - ✅ **Professional Organization**: Clear separation between user and admin operations
 - ✅ **Reduced Clutter**: Root command list much cleaner
 - ✅ **Industry Standards**: Follows enterprise CLI patterns
@@ -190,20 +190,20 @@ cws admin uninstall                 # System uninstallation
 **Old Commands** → **New Commands**:
 ```bash
 # User Management
-cws research-user create alice      → cws user create alice
-cws research-user list              → cws user list
-cws research-user delete alice      → cws user delete alice
-cws research-user ssh-key generate → cws user ssh-key generate
-cws research-user provision         → cws user provision
-cws research-user status           → cws user status
+prism research-user create alice      → prism user create alice
+prism research-user list              → prism user list
+prism research-user delete alice      → prism user delete alice
+prism research-user ssh-key generate → prism user ssh-key generate
+prism research-user provision         → prism user provision
+prism research-user status           → prism user status
 
 # System Administration
-cws config --check                 → cws admin config --check
-cws daemon status                  → cws admin daemon status
-cws security scan                  → cws admin security scan
-cws policy enable                  → cws admin policy enable
-cws profiles list                  → cws admin profiles list
-cws uninstall                      → cws admin uninstall
+prism config --check                 → prism admin config --check
+prism daemon status                  → prism admin daemon status
+prism security scan                  → prism admin security scan
+prism policy enable                  → prism admin policy enable
+prism profiles list                  → prism admin profiles list
+prism uninstall                      → prism admin uninstall
 ```
 
 **Breaking Changes**:
@@ -320,4 +320,4 @@ cws uninstall                      → cws admin uninstall
 
 ---
 
-**CloudWorkstation v0.5.1** represents significant progress in **professional user experience** and **command structure consistency**. The release maintains all existing functionality while providing a much cleaner, more intuitive interface that aligns with enterprise CLI standards and prepares the foundation for community adoption and institutional partnerships.
+**Prism v0.5.1** represents significant progress in **professional user experience** and **command structure consistency**. The release maintains all existing functionality while providing a much cleaner, more intuitive interface that aligns with enterprise CLI standards and prepares the foundation for community adoption and institutional partnerships.

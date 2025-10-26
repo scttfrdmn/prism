@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Template Policy Framework provides institutional control over template access, usage, and governance within CloudWorkstation deployments. This is a **proprietary enterprise feature** designed for institutional and organizational deployments.
+The Template Policy Framework provides institutional control over template access, usage, and governance within Prism deployments. This is a **proprietary enterprise feature** designed for institutional and organizational deployments.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ The Template Policy Framework provides institutional control over template acces
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
 │                   Open Source Core                         │
-│  (Base CloudWorkstation - MIT Licensed)                    │
+│  (Base Prism - MIT Licensed)                    │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  Profile System + Basic Invitations                        │
@@ -188,32 +188,32 @@ policy_metadata:
 ### Open Source Deployment (Basic Policy Framework)
 ```bash
 # Class/lab invitation with template restrictions
-cws profiles invitations create "CS101 Class" --type read_only --template-whitelist "python-basic,r-basic"
+prism profiles invitations create "CS101 Class" --type read_only --template-whitelist "python-basic,r-basic"
 # Creates invitation that only allows specific templates
 
 # Student accepting class invitation
-cws profiles accept-invitation --encoded [token] --name "CS101"
-cws launch python-advanced my-project  
+prism profiles accept-invitation --encoded [token] --name "CS101"
+prism launch python-advanced my-project  
 # → Policy check: Template not in whitelist ✗
 # → Error: Template 'python-advanced' not allowed for this profile
 # → Available templates: python-basic, r-basic
 
-cws launch python-basic my-project
+prism launch python-basic my-project
 # → Policy check: Template in whitelist ✓
 # → Launch approved
 ```
 
 ### Enterprise Deployment (Advanced Policy Framework)
 ```bash
-# Enterprise CloudWorkstation with full policy engine
-cws launch python-ml my-project
+# Enterprise Prism with full policy engine
+prism launch python-ml my-project
 # → Policy check: Approved institutional template ✓
 # → Security check: User clearance sufficient ✓  
 # → Resource check: Instance type within budget ✓
 # → Compliance check: Audit logged ✓
 # → Launch approved
 
-cws launch external-gpu-template my-project  
+prism launch external-gpu-template my-project  
 # → Policy check: External template not approved ✗
 # → Access denied: Contact IT for template approval
 ```

@@ -2,7 +2,7 @@
 
 ## Overview
 
-CloudWorkstation now provides automatic SSH tunneling for web services (Jupyter Lab, RStudio Server, Shiny Server) with zero manual configuration. This document describes the complete implementation.
+Prism now provides automatic SSH tunneling for web services (Jupyter Lab, RStudio Server, Shiny Server) with zero manual configuration. This document describes the complete implementation.
 
 ## Architecture
 
@@ -21,12 +21,12 @@ CloudWorkstation now provides automatic SSH tunneling for web services (Jupyter 
 
 3. **API Client** (`pkg/api/client/tunnel_methods.go` - 119 lines)
    - Type-safe client methods
-   - Integrated into `CloudWorkstationAPI` interface
+   - Integrated into `PrismAPI` interface
 
 4. **CLI Commands** (`internal/cli/web_commands.go` - 204 lines)
-   - `cws web list <instance>` - List services with tunnel status
-   - `cws web open <instance> <service>` - Open service in browser
-   - `cws web close <instance> [service]` - Close tunnels
+   - `prism web list <instance>` - List services with tunnel status
+   - `prism web open <instance> <service>` - Open service in browser
+   - `prism web close <instance> [service]` - Close tunnels
 
 5. **GUI Integration** (`cmd/cws-gui/service.go`)
    - `OpenInstanceWebService()` - Create tunnel and return connection config
@@ -38,7 +38,7 @@ CloudWorkstation now provides automatic SSH tunneling for web services (Jupyter 
 ### Automatic Tunneling on Connect
 
 ```bash
-$ cws connect my-jupyter
+$ prism connect my-jupyter
 🌐 Setting up tunnels for web services...
 ✅ Tunnels created:
    • Jupyter Lab: http://localhost:8888?token=f3a8b9c7d2e1
@@ -50,7 +50,7 @@ $ cws connect my-jupyter
 
 ```bash
 # List available services
-$ cws web list my-jupyter
+$ prism web list my-jupyter
 Web services for my-jupyter:
 
 ✅ Jupyter Lab (port 8888)
@@ -60,15 +60,15 @@ Web services for my-jupyter:
    Not tunneled - use 'cws web open my-jupyter rstudio-server' to access
 
 # Open service in browser
-$ cws web open my-jupyter jupyter
+$ prism web open my-jupyter jupyter
 🌐 Creating tunnel for jupyter...
 ✅ Tunnel created: http://localhost:8888?token=abc123
 🌐 Opening in browser...
 ✅ Browser opened
 
 # Close tunnels
-$ cws web close my-jupyter jupyter  # Specific service
-$ cws web close my-jupyter          # All tunnels
+$ prism web close my-jupyter jupyter  # Specific service
+$ prism web close my-jupyter          # All tunnels
 ```
 
 ## Technical Details
@@ -177,7 +177,7 @@ func (ic *InstanceCommands) Connect(args []string) error {
 
 ```go
 // service.go
-func (s *CloudWorkstationService) OpenInstanceWebService(
+func (s *PrismService) OpenInstanceWebService(
     ctx context.Context, instanceName string, serviceName string) (*ConnectionConfig, error) {
 
     // Create tunnel
@@ -233,7 +233,7 @@ Tunnels "just work" - no SSH commands, no port configuration needed.
 
 ### 3. Multi-Modal Consistency
 Same functionality across CLI, TUI, and GUI:
-- CLI: `cws web` commands + auto-tunneling
+- CLI: `prism web` commands + auto-tunneling
 - TUI: Planned integration
 - GUI: Infrastructure complete, iframe embedding ready
 
@@ -275,15 +275,15 @@ See [WEB_SERVICE_TESTING.md](../WEB_SERVICE_TESTING.md) for comprehensive testin
 Quick test:
 ```bash
 # Launch instance
-cws launch python-ml test-jupyter --size S
+prism launch python-ml test-jupyter --size S
 
 # Test auto-tunneling
-cws connect test-jupyter
+prism connect test-jupyter
 
 # Test manual commands
-cws web list test-jupyter
-cws web open test-jupyter jupyter
-cws web close test-jupyter
+prism web list test-jupyter
+prism web open test-jupyter jupyter
+prism web close test-jupyter
 ```
 
 ## Known Limitations
@@ -309,4 +309,4 @@ cws web close test-jupyter
 
 ## Conclusion
 
-This implementation provides researchers with seamless access to their web-based tools while maintaining CloudWorkstation's "Default to Success" philosophy. Zero configuration, automatic token handling, and graceful error handling ensure researchers can focus on their work, not infrastructure management.
+This implementation provides researchers with seamless access to their web-based tools while maintaining Prism's "Default to Success" philosophy. Zero configuration, automatic token handling, and graceful error handling ensure researchers can focus on their work, not infrastructure management.

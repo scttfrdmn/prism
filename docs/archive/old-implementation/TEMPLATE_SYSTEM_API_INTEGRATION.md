@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document marks the completion of CloudWorkstation's comprehensive template application system with full API integration across CLI, GUI, and daemon interfaces. The template application system now provides production-ready capabilities for applying software templates to running instances, calculating template differences, managing template history, and performing safe rollbacks.
+This document marks the completion of Prism's comprehensive template application system with full API integration across CLI, GUI, and daemon interfaces. The template application system now provides production-ready capabilities for applying software templates to running instances, calculating template differences, managing template history, and performing safe rollbacks.
 
 ## System Completion Status
 
@@ -11,10 +11,10 @@ This document marks the completion of CloudWorkstation's comprehensive template 
 The template application system is now complete with end-to-end functionality:
 
 **CLI Interface**: Complete with real API integration
-- `cws template apply` - Apply templates with progress tracking
-- `cws template diff` - Calculate and display template differences  
-- `cws template layers` - View template application history
-- `cws template rollback` - Rollback to previous checkpoints
+- `prism template apply` - Apply templates with progress tracking
+- `prism template diff` - Calculate and display template differences  
+- `prism template layers` - View template application history
+- `prism template rollback` - Rollback to previous checkpoints
 
 **GUI Interface**: Complete with real API integration  
 - Visual template application dialogs with progress bars
@@ -32,7 +32,7 @@ The template application system is now complete with end-to-end functionality:
 
 ### 🔗 **Real API Integration in GUI**
 
-The GUI now uses actual CloudWorkstation daemon APIs instead of simulated operations:
+The GUI now uses actual Prism daemon APIs instead of simulated operations:
 
 **Template Application Integration**:
 ```go
@@ -206,7 +206,7 @@ unifiedTemplate := &templates.Template{
 
 ### **Environment Management Revolution**
 
-The completed template application system transforms CloudWorkstation from a simple instance launcher into a comprehensive research environment management platform:
+The completed template application system transforms Prism from a simple instance launcher into a comprehensive research environment management platform:
 
 **For Individual Researchers**:
 - **Dynamic environments** that evolve with research needs without downtime
@@ -286,7 +286,7 @@ The completed system provides a solid foundation for advanced research computing
 
 ## Conclusion
 
-The CloudWorkstation template application system represents a significant advancement in research computing platform capabilities. By providing seamless template application across CLI, GUI, and API interfaces, the system democratizes access to sophisticated environment management while maintaining the reliability and safety that research workflows require.
+The Prism template application system represents a significant advancement in research computing platform capabilities. By providing seamless template application across CLI, GUI, and API interfaces, the system democratizes access to sophisticated environment management while maintaining the reliability and safety that research workflows require.
 
 ### **Key Achievements**
 
@@ -298,7 +298,7 @@ The CloudWorkstation template application system represents a significant advanc
 
 ### **Impact on Research Computing**
 
-The template application system transforms CloudWorkstation into a comprehensive research environment management platform that:
+The template application system transforms Prism into a comprehensive research environment management platform that:
 
 - **Reduces setup time** from hours to minutes for complex research environments
 - **Enables safe experimentation** with rollback capabilities and conflict detection
@@ -306,4 +306,4 @@ The template application system transforms CloudWorkstation into a comprehensive
 - **Scales efficiently** from individual researchers to large institutions
 - **Integrates seamlessly** with existing research computing workflows
 
-This system establishes CloudWorkstation as a leading platform for modern research computing, providing researchers with the tools they need to focus on their science rather than infrastructure management.
+This system establishes Prism as a leading platform for modern research computing, providing researchers with the tools they need to focus on their science rather than infrastructure management.

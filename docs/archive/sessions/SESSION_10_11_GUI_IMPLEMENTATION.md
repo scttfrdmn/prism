@@ -183,7 +183,7 @@ async buildAMI(templateName: string): Promise<{ build_id: string }>
 ### **Standard Pattern** (Reusable for remaining 6 features)
 1. **Add type definitions** at top of App.tsx
 2. **Extend AppState** interface with new data arrays
-3. **Add API methods** to SafeCloudWorkstationAPI class
+3. **Add API methods** to SafePrismAPI class
 4. **Integrate data loading** into Promise.all()
 5. **Create view component** using Cloudscape components
 6. **Add navigation link** to SideNavigation
@@ -418,7 +418,7 @@ async buildAMI(templateName: string): Promise<{ build_id: string }>
 
 **Remaining work**: 6 features, ~15.5 hours estimated (vs. original 82 hours)
 
-**CloudWorkstation GUI is on track for 100% feature parity ahead of schedule** 🚀
+**Prism GUI is on track for 100% feature parity ahead of schedule** 🚀
 
 ---
 

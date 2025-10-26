@@ -2,14 +2,14 @@
 
 ## Overview
 
-CloudWorkstation now supports seamless EFS volume sharing between multiple instances with different default users through an enhanced mount system with shared group permissions.
+Prism now supports seamless EFS volume sharing between multiple instances with different default users through an enhanced mount system with shared group permissions.
 
 ## Scenario 1: Basic Multi-Instance Sharing (Implemented)
 
 ### Key Features
 
 **🤝 Unified Permission System**
-- `cloudworkstation-shared` group (GID: 3000) for consistent permissions
+- `prism-shared` group (GID: 3000) for consistent permissions
 - Automatic user provisioning to shared group during mount operations
 - Group sticky bit and umask configuration for collaborative file creation
 
@@ -34,11 +34,11 @@ CloudWorkstation now supports seamless EFS volume sharing between multiple insta
 
 ```bash
 # Create shared EFS volume
-cws volume create research-data
+prism volume create research-data
 
 # Mount to multiple instances with different default users
-cws volume mount research-data ubuntu-instance
-cws volume mount research-data rocky-instance
+prism volume mount research-data ubuntu-instance
+prism volume mount research-data rocky-instance
 
 # Both instances now share the same EFS with proper permissions
 # Files created by either user are accessible to both via shared group
@@ -51,7 +51,7 @@ cws volume mount research-data rocky-instance
 The EFS mount operation executes a comprehensive 30-line script on each instance:
 
 1. **Package Installation**: Installs `amazon-efs-utils` if not present
-2. **Group Creation**: Creates `cloudworkstation-shared` group (GID: 3000)
+2. **Group Creation**: Creates `prism-shared` group (GID: 3000)
 3. **User Provisioning**: Adds current user to shared group
 4. **Directory Structure**: Creates mount point and subdirectories
 5. **EFS Mounting**: Mounts with TLS encryption and group ownership
@@ -65,7 +65,7 @@ The EFS mount operation executes a comprehensive 30-line script on each instance
 ```bash
 #!/bin/bash
 # Install EFS utils if needed
-# Create cloudworkstation-shared group (gid: 3000)  
+# Create prism-shared group (gid: 3000)  
 # Add current user to shared group
 # Mount EFS with group ownership
 # Set sticky bit permissions (2775)
@@ -75,17 +75,17 @@ The EFS mount operation executes a comprehensive 30-line script on each instance
 
 **API Integration:**
 - REST endpoint: `POST /api/v1/volumes/{name}/mount`
-- CLI command: `cws volume mount <volume-name> <instance-name>`
+- CLI command: `prism volume mount <volume-name> <instance-name>`
 - SSM-based remote execution with comprehensive error handling
 
 ### Directory Permissions
 
 | Path | Owner | Group | Permissions | Purpose |
 |------|-------|-------|-------------|---------|
-| `/mnt/shared-volume/` | root | cloudworkstation-shared | 2775 | Mount root |
-| `/mnt/shared-volume/shared/` | root | cloudworkstation-shared | 2775 | Collaboration |
-| `/mnt/shared-volume/users/` | root | cloudworkstation-shared | 2755 | User container |
-| `/mnt/shared-volume/users/{user}/` | user | cloudworkstation-shared | 755 | Personal space |
+| `/mnt/shared-volume/` | root | prism-shared | 2775 | Mount root |
+| `/mnt/shared-volume/shared/` | root | prism-shared | 2775 | Collaboration |
+| `/mnt/shared-volume/users/` | root | prism-shared | 2755 | User container |
+| `/mnt/shared-volume/users/{user}/` | user | prism-shared | 755 | Personal space |
 
 ### Multi-User Collaboration Examples
 

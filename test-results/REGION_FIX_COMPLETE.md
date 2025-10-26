@@ -419,7 +419,7 @@ func (m *Manager) StartInstance(name string) error {
 
 1. ✅ **Cache regional clients**: Already implemented (reuse pattern)
 2. 📋 **Parallel region queries**: Could speed up list operations
-3. 📋 **Region discovery**: Auto-detect regions with CloudWorkstation instances
+3. 📋 **Region discovery**: Auto-detect regions with Prism instances
 4. 📋 **CLI flag**: `--all-regions` to scan all AWS regions
 
 ---

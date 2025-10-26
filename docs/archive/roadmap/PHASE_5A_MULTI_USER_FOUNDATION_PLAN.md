@@ -6,7 +6,7 @@
 
 ## Overview
 
-Phase 5A represents the foundation for CloudWorkstation's evolution into a comprehensive multi-user research platform. This phase builds upon the completed Phase 4 enterprise features while laying the groundwork for advanced AWS-native research ecosystem integration.
+Phase 5A represents the foundation for Prism's evolution into a comprehensive multi-user research platform. This phase builds upon the completed Phase 4 enterprise features while laying the groundwork for advanced AWS-native research ecosystem integration.
 
 ## Current Architecture Analysis
 
@@ -22,7 +22,7 @@ Phase 5A represents the foundation for CloudWorkstation's evolution into a compr
 ```
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
 │ CLI Client  │  │ TUI Client  │  │ GUI Client  │
-│ (cmd/cws)   │  │ (cws tui)   │  │ (cmd/cws-gui)│
+│ (cmd/cws)   │  │ (prism tui)   │  │ (cmd/cws-gui)│
 └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
        │                │                │
        └────────────────┼────────────────┘
@@ -39,7 +39,7 @@ Phase 5A represents the foundation for CloudWorkstation's evolution into a compr
 ### 1. Research User Architecture 🎯
 
 **Current State Analysis:**
-- CloudWorkstation currently uses single-user instances with AWS EC2 user accounts
+- Prism currently uses single-user instances with AWS EC2 user accounts
 - No consistent UID/GID mapping across instances or templates
 - SSH access primarily through ec2-user or template-specific users
 - Limited user identity management and persistence
@@ -50,7 +50,7 @@ Instance User Model (Dual-User System):
 ┌─────────────────────────┐
 │ System User (ec2-user)  │ <- AWS instance management
 │ ├── System services     │
-│ ├── CloudWorkstation    │
+│ ├── Prism    │
 │ └── Administrative ops  │
 └─────────────────────────┘
 ┌─────────────────────────┐
@@ -321,17 +321,17 @@ type EnhancedProfile struct {
 #### CLI Enhancements
 ```bash
 # Research user management
-cws user create researcher --uid 2001 --home-efs fs-abc123
-cws user list --research
-cws user ssh-key add researcher ~/.ssh/id_rsa.pub
+prism user create researcher --uid 2001 --home-efs fs-abc123
+prism user list --research
+prism user ssh-key add researcher ~/.ssh/id_rsa.pub
 
 # Policy management
-cws policy list --scope project --project my-research
-cws policy create academic-limits --template limits.yaml
-cws policy validate --template ml-gpu --user researcher
+prism policy list --scope project --project my-research
+prism policy create academic-limits --template limits.yaml
+prism policy validate --template ml-gpu --user researcher
 
 # Profile with research user
-cws profile create research-profile --research-user researcher --globus-auth
+prism profile create research-profile --research-user researcher --globus-auth
 ```
 
 #### TUI Enhancements
@@ -415,6 +415,6 @@ cws profile create research-profile --research-user researcher --globus-auth
 
 ## Conclusion
 
-Phase 5A establishes the critical foundation for CloudWorkstation's evolution into a comprehensive multi-user research platform. By implementing research user architecture, enhanced policy management, and optional Globus Auth integration, we create the necessary infrastructure for institutional adoption while maintaining the simplicity and power that defines CloudWorkstation.
+Phase 5A establishes the critical foundation for Prism's evolution into a comprehensive multi-user research platform. By implementing research user architecture, enhanced policy management, and optional Globus Auth integration, we create the necessary infrastructure for institutional adoption while maintaining the simplicity and power that defines Prism.
 
-This phase bridges the gap between Phase 4's enterprise features and Phase 5B's advanced AWS research services integration, positioning CloudWorkstation as the leading cloud-native research computing platform for academic institutions and collaborative research environments.
+This phase bridges the gap between Phase 4's enterprise features and Phase 5B's advanced AWS research services integration, positioning Prism as the leading cloud-native research computing platform for academic institutions and collaborative research environments.

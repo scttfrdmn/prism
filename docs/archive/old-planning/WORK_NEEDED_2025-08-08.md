@@ -1,8 +1,8 @@
-# CloudWorkstation Work Needed - August 8, 2025
+# Prism Work Needed - August 8, 2025
 
 ## Executive Summary
 
-CloudWorkstation is a mature, feature-complete research computing platform that is significantly closer to production release than initially assessed. The project contains 66 test files, sophisticated build infrastructure with 40+ Makefile targets, comprehensive cross-platform support, and enterprise-ready architecture.
+Prism is a mature, feature-complete research computing platform that is significantly closer to production release than initially assessed. The project contains 66 test files, sophisticated build infrastructure with 40+ Makefile targets, comprehensive cross-platform support, and enterprise-ready architecture.
 
 **Primary Issue**: Compilation failures are preventing the extensive test suite from validating the mature codebase. These are technical debt issues rather than missing functionality.
 
@@ -13,7 +13,7 @@ CloudWorkstation is a mature, feature-complete research computing platform that 
 ### Phase 1: Compilation Fixes (3-5 days)
 
 #### 1. Missing Package Dependencies
-**Issue**: `simulate_hibernation.go:11:2: no required module provides package github.com/scttfrdmn/cloudworkstation/pkg/idle`
+**Issue**: `simulate_hibernation.go:11:2: no required module provides package github.com/scttfrdmn/prism/pkg/idle`
 
 **Action Required**:
 - Investigate if `pkg/idle` package exists but is not properly imported
@@ -21,7 +21,7 @@ CloudWorkstation is a mature, feature-complete research computing platform that 
 - Update `go.mod` to include all required dependencies
 
 #### 2. API Interface Synchronization
-**Issue**: `MockClient does not implement client.CloudWorkstationAPI (missing method MountVolume)`
+**Issue**: `MockClient does not implement client.PrismAPI (missing method MountVolume)`
 
 **Action Required**:
 - Add `MountVolume(context.Context, string, string, string) error` method to `pkg/api/mock/mock_client.go`
@@ -196,8 +196,8 @@ Based on existing roadmap documentation, the following priorities are planned fo
 
 ## Conclusion
 
-CloudWorkstation represents a remarkable achievement in research computing infrastructure. The project is much more mature and sophisticated than surface-level analysis suggests, with comprehensive testing, advanced build systems, and production-ready architecture.
+Prism represents a remarkable achievement in research computing infrastructure. The project is much more mature and sophisticated than surface-level analysis suggests, with comprehensive testing, advanced build systems, and production-ready architecture.
 
 The path to v0.4.2 production release is clear and achievable within 2-3 weeks of focused effort on compilation fixes and test validation. This is not a project requiring fundamental development but rather technical debt resolution to unlock existing sophisticated capabilities.
 
-Once compilation issues are resolved, CloudWorkstation will demonstrate itself as one of the most comprehensive research computing platforms available, ready for production deployment and community adoption.
+Once compilation issues are resolved, Prism will demonstrate itself as one of the most comprehensive research computing platforms available, ready for production deployment and community adoption.

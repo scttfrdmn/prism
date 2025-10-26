@@ -1,9 +1,9 @@
-# CloudWorkstation Strategic Refactoring Plan
+# Prism Strategic Refactoring Plan
 *Preparing for Phase 5: AWS-Native Research Ecosystem*
 
 ## Executive Summary
 
-This document outlines critical architectural refactoring needed to transition CloudWorkstation from its current Phase 4 state to Phase 5 readiness. Based on comprehensive analysis of 242 Go files and 84K+ lines of code, we've identified 7 strategic issues that must be addressed in the next 6-12 months.
+This document outlines critical architectural refactoring needed to transition Prism from its current Phase 4 state to Phase 5 readiness. Based on comprehensive analysis of 242 Go files and 84K+ lines of code, we've identified 7 strategic issues that must be addressed in the next 6-12 months.
 
 **Priority**: Address template marketplace architecture, multi-user foundation, and AWS service integration before Phase 5 implementation.
 
@@ -447,7 +447,7 @@ type Database interface {
 
 ## Conclusion
 
-This refactoring plan addresses the critical architectural gaps preventing CloudWorkstation from achieving its Phase 5 vision. The 16-week implementation timeline is aggressive but achievable given the strong foundation already in place.
+This refactoring plan addresses the critical architectural gaps preventing Prism from achieving its Phase 5 vision. The 16-week implementation timeline is aggressive but achievable given the strong foundation already in place.
 
 **Key Success Factors**:
 1. **Immediate cleanup** of legacy code to reduce technical debt
@@ -455,4 +455,4 @@ This refactoring plan addresses the critical architectural gaps preventing Cloud
 3. **Gradual migration** approach to minimize disruption
 4. **Community engagement** to validate marketplace and collaboration features
 
-The plan positions CloudWorkstation to become the definitive AWS-native research computing platform while maintaining its core simplicity and user-focused design principles.
+The plan positions Prism to become the definitive AWS-native research computing platform while maintaining its core simplicity and user-focused design principles.

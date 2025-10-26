@@ -1,4 +1,4 @@
-# CloudWorkstation Testing Plan
+# Prism Testing Plan
 
 **Goal**: Establish comprehensive testing strategy with functional coverage and Go Report Card A+ grade compliance.
 

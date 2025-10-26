@@ -1,18 +1,18 @@
-# CloudWorkstation AWS Setup Guide
+# Prism AWS Setup Guide
 
-This guide walks you through setting up your AWS account and configuring CloudWorkstation to work with your specific AWS profile and preferences.
+This guide walks you through setting up your AWS account and configuring Prism to work with your specific AWS profile and preferences.
 
 ## Prerequisites
 
 - AWS Account with programmatic access
 - AWS CLI installed on your system
-- CloudWorkstation installed via Homebrew or built from source
+- Prism installed via Homebrew or built from source
 
 ## 1. AWS Account Setup
 
 ### Required AWS Permissions
 
-CloudWorkstation needs these AWS permissions to function properly:
+Prism needs these AWS permissions to function properly:
 
 ```json
 {
@@ -36,10 +36,10 @@ CloudWorkstation needs these AWS permissions to function properly:
 }
 ```
 
-### Create IAM User for CloudWorkstation
+### Create IAM User for Prism
 
 1. **Log into AWS Console** → IAM → Users → Create User
-2. **User name**: `cloudworkstation-user`
+2. **User name**: `prism-user`
 3. **Access type**: Programmatic access (Access key + Secret key)
 4. **Permissions**: Attach the policy above or use `PowerUserAccess` for simplicity
 5. **Download credentials**: Save the Access Key ID and Secret Access Key
@@ -85,7 +85,7 @@ aws sts get-caller-identity --profile aws
 # {
 #     "UserId": "AIDAXXXXXXXXXXXXX",
 #     "Account": "123456789012", 
-#     "Arn": "arn:aws:iam::123456789012:user/cloudworkstation-user"
+#     "Arn": "arn:aws:iam::123456789012:user/prism-user"
 # }
 ```
 
@@ -115,25 +115,25 @@ region = us-east-1
 output = json
 ```
 
-## 3. CloudWorkstation Configuration
+## 3. Prism Configuration
 
-### Method 1: CloudWorkstation Profiles (Recommended)
+### Method 1: Prism Profiles (Recommended)
 
-CloudWorkstation has its own profile system for managing different AWS accounts and configurations:
+Prism has its own profile system for managing different AWS accounts and configurations:
 
 ```bash
-# Create a CloudWorkstation profile using your 'aws' AWS profile
-cws profiles add personal my-research --aws-profile aws --region us-west-2
+# Create a Prism profile using your 'aws' AWS profile
+prism profiles add personal my-research --aws-profile aws --region us-west-2
 
 # Switch to your new profile
-cws profiles switch aws  # Use the AWS profile name as the profile ID
+prism profiles switch aws  # Use the AWS profile name as the profile ID
 
 # Verify it's active
-cws profiles current
-cws profiles list
+prism profiles current
+prism profiles list
 ```
 
-**This is the cleanest method** - CloudWorkstation remembers your settings and you don't need environment variables.
+**This is the cleanest method** - Prism remembers your settings and you don't need environment variables.
 
 ### Method 2: Environment Variables
 
@@ -156,10 +156,10 @@ You can specify the AWS profile for individual commands:
 
 ```bash
 # Set environment variable for single session
-AWS_PROFILE=aws cws templates list
+AWS_PROFILE=aws prism templates list
 
-# Or use CloudWorkstation's profile system
-cws --aws-profile aws templates list
+# Or use Prism's profile system
+prism --aws-profile aws templates list
 ```
 
 ## 4. Verification and Testing
@@ -168,14 +168,14 @@ cws --aws-profile aws templates list
 
 ```bash
 # Check daemon can access AWS
-cws daemon start
-cws doctor
+prism daemon start
+prism doctor
 
 # List available templates (requires AWS access)
-cws templates list
+prism templates list
 
 # Check your current configuration
-cws profile current
+prism profile current
 aws configure list --profile aws
 ```
 
@@ -183,13 +183,13 @@ aws configure list --profile aws
 
 ```bash
 # Launch a simple test instance
-cws launch "Basic Ubuntu (APT)" test-instance
+prism launch "Basic Ubuntu (APT)" test-instance
 
 # Check it's running
-cws list
+prism list
 
 # Clean up
-cws terminate test-instance
+prism terminate test-instance
 ```
 
 ## 5. Regional Configuration
@@ -254,19 +254,19 @@ aws iam get-user --profile aws
 aws ec2 describe-instances --profile aws --region us-west-2
 ```
 
-**CloudWorkstation can't find your profile:**
+**Prism can't find your profile:**
 ```bash
-# Check CloudWorkstation sees your AWS profile
-cws doctor --verbose
+# Check Prism sees your AWS profile
+prism doctor --verbose
 
-# Create explicit CloudWorkstation profile
-cws profile create research --aws-profile aws --region us-west-2
-cws profile use research
+# Create explicit Prism profile
+prism profile create research --aws-profile aws --region us-west-2
+prism profile use research
 ```
 
 ### Debug Mode
 
-Enable verbose logging to see what CloudWorkstation is doing:
+Enable verbose logging to see what Prism is doing:
 
 ```bash
 # Set debug environment variables
@@ -274,7 +274,7 @@ export AWS_PROFILE=aws
 export CLOUDWORKSTATION_DEBUG=true
 
 # Run commands with detailed output
-cws templates list
+prism templates list
 ```
 
 ## 7. Production Recommendations
@@ -292,44 +292,44 @@ cws templates list
 # Set up billing alerts in AWS Console
 # Enable Cost Explorer
 # Use spot instances for non-critical workloads
-cws launch "Python ML" my-project --spot
+prism launch "Python ML" my-project --spot
 
 # Use hibernation for cost savings
-cws hibernate my-project
+prism hibernate my-project
 ```
 
 ### Profile Organization
 
 ```bash
 # Organize profiles by project/purpose
-cws profile create personal-research --aws-profile aws --region us-west-2
-cws profile create team-project --aws-profile work --region us-east-1
-cws profile create gpu-experiments --aws-profile aws --region us-west-2
+prism profile create personal-research --aws-profile aws --region us-west-2
+prism profile create team-project --aws-profile work --region us-east-1
+prism profile create gpu-experiments --aws-profile aws --region us-west-2
 ```
 
 ## 8. Example Complete Setup
 
-Here's a complete example for your specific case using CloudWorkstation profiles:
+Here's a complete example for your specific case using Prism profiles:
 
 ```bash
 # 1. Configure AWS CLI with 'aws' profile
 aws configure --profile aws
 # Enter your credentials when prompted
 
-# 2. Create CloudWorkstation profile (RECOMMENDED METHOD)
-cws daemon start
-cws profiles add personal my-research --aws-profile aws --region us-west-2
-cws profiles switch aws  # Switch to use your 'aws' profile
+# 2. Create Prism profile (RECOMMENDED METHOD)
+prism daemon start
+prism profiles add personal my-research --aws-profile aws --region us-west-2
+prism profiles switch aws  # Switch to use your 'aws' profile
 
 # 3. Verify configuration
-cws profiles current
-cws doctor
+prism profiles current
+prism doctor
 
 # 4. Launch your first workstation
-cws launch "Python Machine Learning (Simplified)" my-research
+prism launch "Python Machine Learning (Simplified)" my-research
 
 # 5. Connect and start working
-cws connect my-research
+prism connect my-research
 ```
 
 ### Alternative Setup (Environment Variables)
@@ -350,16 +350,16 @@ echo 'export AWS_PROFILE=aws' >> ~/.zshrc
 echo 'export AWS_REGION=us-west-2' >> ~/.zshrc
 
 # 4. Test and launch
-cws daemon start
-cws templates list
-cws launch "Python ML" my-research
+prism daemon start
+prism templates list
+prism launch "Python ML" my-research
 ```
 
 ## Need Help?
 
-- **CloudWorkstation Issues**: `cws doctor --verbose`
+- **Prism Issues**: `prism doctor --verbose`
 - **AWS Issues**: `aws sts get-caller-identity --profile aws`
-- **Documentation**: Run `cws --help` for command reference
-- **Demo**: Run `./demo.sh` to see CloudWorkstation in action
+- **Documentation**: Run `prism --help` for command reference
+- **Demo**: Run `./demo.sh` to see Prism in action
 
-Your AWS profile 'aws' should now work seamlessly with CloudWorkstation!
+Your AWS profile 'aws' should now work seamlessly with Prism!

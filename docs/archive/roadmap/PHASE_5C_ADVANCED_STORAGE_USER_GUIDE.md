@@ -6,7 +6,7 @@
 
 ## Overview
 
-CloudWorkstation Phase 5C Advanced Storage Integration transforms research data management by providing enterprise-grade storage capabilities optimized for research workloads. This comprehensive system supports multiple AWS storage services including FSx high-performance filesystems, S3 mount points, and intelligent storage analytics.
+Prism Phase 5C Advanced Storage Integration transforms research data management by providing enterprise-grade storage capabilities optimized for research workloads. This comprehensive system supports multiple AWS storage services including FSx high-performance filesystems, S3 mount points, and intelligent storage analytics.
 
 ## Key Features
 
@@ -42,14 +42,14 @@ Create an FSx Lustre filesystem for HPC workloads:
 
 ```bash
 # Create FSx Lustre filesystem (high-performance computing)
-cws storage create hpc-lustre \
+prism storage create hpc-lustre \
     --type fsx \
     --fsx-type lustre \
     --storage-capacity 1200 \
     --throughput-capacity 500
 
 # Create FSx OpenZFS filesystem (general-purpose)
-cws storage create research-zfs \
+prism storage create research-zfs \
     --type fsx \
     --fsx-type zfs \
     --storage-capacity 500 \
@@ -62,13 +62,13 @@ Create S3 mount points for cloud-native data access:
 
 ```bash
 # Create S3 mount point with Mountpoint for Amazon S3 (highest performance)
-cws storage create dataset-bucket \
+prism storage create dataset-bucket \
     --type s3 \
     --mount-method mountpoint \
     --enable-intelligent-tiering
 
 # Create S3 mount with S3FS for POSIX compatibility
-cws storage create shared-data \
+prism storage create shared-data \
     --type s3 \
     --mount-method s3fs \
     --enable-caching
@@ -80,7 +80,7 @@ Set up intelligent data tiering for cost optimization:
 
 ```bash
 # Create multi-tier storage setup
-cws storage create-tier research-project \
+prism storage create-tier research-project \
     --hot-tier "type=fsx,fsx-type=zfs,capacity=100" \
     --warm-tier "type=efs,performance-mode=generalPurpose" \
     --cold-tier "type=s3,storage-class=glacier"
@@ -92,13 +92,13 @@ Get comprehensive storage insights:
 
 ```bash
 # Get storage analytics for all resources
-cws storage analytics --period monthly
+prism storage analytics --period monthly
 
 # Get usage patterns for optimization
-cws storage patterns --days 30
+prism storage patterns --days 30
 
 # Get cost analysis and recommendations
-cws storage optimize --show-recommendations
+prism storage optimize --show-recommendations
 ```
 
 ## Storage Types and Use Cases
@@ -108,7 +108,7 @@ cws storage optimize --show-recommendations
 **FSx Lustre** - High-Performance Computing:
 ```bash
 # Best for: ML training, genomics, fluid dynamics, weather modeling
-cws storage create ml-training \
+prism storage create ml-training \
     --type fsx \
     --fsx-type lustre \
     --storage-capacity 2400 \
@@ -119,7 +119,7 @@ cws storage create ml-training \
 **FSx OpenZFS** - General-Purpose High Performance:
 ```bash
 # Best for: Databases, file shares, content repositories, backup storage
-cws storage create db-storage \
+prism storage create db-storage \
     --type fsx \
     --fsx-type zfs \
     --storage-capacity 800 \
@@ -130,7 +130,7 @@ cws storage create db-storage \
 **FSx Windows** - Windows-Native File Sharing:
 ```bash
 # Best for: Mixed Windows/Linux environments, legacy applications
-cws storage create windows-share \
+prism storage create windows-share \
     --type fsx \
     --fsx-type windows \
     --storage-capacity 500 \
@@ -140,7 +140,7 @@ cws storage create windows-share \
 **FSx NetApp ONTAP** - Enterprise Data Management:
 ```bash
 # Best for: Multi-protocol access, advanced data management features
-cws storage create enterprise-nas \
+prism storage create enterprise-nas \
     --type fsx \
     --fsx-type netapp \
     --storage-capacity 1000 \
@@ -152,7 +152,7 @@ cws storage create enterprise-nas \
 **AWS Mountpoint for Amazon S3** - Highest Performance:
 ```bash
 # Best for: Large-scale data processing, analytics, high-throughput access
-cws storage create analytics-data \
+prism storage create analytics-data \
     --type s3 \
     --mount-method mountpoint \
     --enable-intelligent-tiering \
@@ -162,7 +162,7 @@ cws storage create analytics-data \
 **S3FS** - POSIX Compatibility:
 ```bash
 # Best for: Legacy applications requiring POSIX filesystem semantics
-cws storage create legacy-data \
+prism storage create legacy-data \
     --type s3 \
     --mount-method s3fs \
     --enable-caching \
@@ -172,7 +172,7 @@ cws storage create legacy-data \
 **Goofys** - High Performance Go Implementation:
 ```bash
 # Best for: General-purpose S3 access with good performance
-cws storage create general-s3 \
+prism storage create general-s3 \
     --type s3 \
     --mount-method goofys \
     --cache-directory /tmp/goofys-cache
@@ -181,7 +181,7 @@ cws storage create general-s3 \
 **Rclone** - Universal Cloud Storage:
 ```bash
 # Best for: Multi-cloud scenarios, advanced features, encryption
-cws storage create encrypted-backup \
+prism storage create encrypted-backup \
     --type s3 \
     --mount-method rclone \
     --enable-encryption \
@@ -195,31 +195,31 @@ cws storage create encrypted-backup \
 **Cost Analysis**:
 ```bash
 # Get detailed cost breakdown by service
-cws storage analytics --cost-analysis --period quarterly
+prism storage analytics --cost-analysis --period quarterly
 
 # Get cost optimization recommendations
-cws storage recommendations --focus cost
+prism storage recommendations --focus cost
 
 # Analyze cost trends
-cws storage cost-trends --period yearly
+prism storage cost-trends --period yearly
 ```
 
 **Usage Pattern Analysis**:
 ```bash
 # Identify usage patterns for optimization
-cws storage patterns --resources research-data,ml-training --days 60
+prism storage patterns --resources research-data,ml-training --days 60
 
 # Get predictive recommendations
-cws storage predict --resource hpc-lustre --horizon 30days
+prism storage predict --resource hpc-lustre --horizon 30days
 ```
 
 **Performance Monitoring**:
 ```bash
 # Monitor storage performance metrics
-cws storage metrics --type fsx --resources ml-training
+prism storage metrics --type fsx --resources ml-training
 
 # Get IOPS and throughput analysis
-cws storage performance --detailed --period weekly
+prism storage performance --detailed --period weekly
 ```
 
 ### Workload Optimization
@@ -227,10 +227,10 @@ cws storage performance --detailed --period weekly
 **Machine Learning Workloads**:
 ```bash
 # Optimize storage for ML training
-cws storage optimize ml-training --workload ml
+prism storage optimize ml-training --workload ml
 
 # Configure for GPU training with high IOPS
-cws storage create gpu-training \
+prism storage create gpu-training \
     --type fsx \
     --fsx-type lustre \
     --optimize-for ml
@@ -239,10 +239,10 @@ cws storage create gpu-training \
 **Big Data Analytics**:
 ```bash
 # Optimize for big data processing
-cws storage optimize analytics-data --workload bigdata
+prism storage optimize analytics-data --workload bigdata
 
 # Configure S3 for analytics workloads
-cws storage create spark-data \
+prism storage create spark-data \
     --type s3 \
     --optimize-for bigdata \
     --enable-intelligent-tiering
@@ -251,10 +251,10 @@ cws storage create spark-data \
 **General Research**:
 ```bash
 # Balanced configuration for general research
-cws storage optimize research-storage --workload general
+prism storage optimize research-storage --workload general
 
 # Multi-purpose storage setup
-cws storage create general-research \
+prism storage create general-research \
     --type efs \
     --performance-mode generalPurpose \
     --throughput-mode provisioned \
@@ -266,13 +266,13 @@ cws storage create general-research \
 **Automated Tiering**:
 ```bash
 # Create intelligent tiering setup
-cws storage create-tier data-lifecycle \
+prism storage create-tier data-lifecycle \
     --hot-tier "type=fsx,fsx-type=zfs,capacity=200,tier-policy=frequent" \
     --warm-tier "type=efs,performance-mode=generalPurpose,tier-policy=occasional" \
     --cold-tier "type=s3,storage-class=ia,tier-policy=archive"
 
 # Configure automatic data movement
-cws storage tier-policy data-lifecycle \
+prism storage tier-policy data-lifecycle \
     --hot-to-warm-days 30 \
     --warm-to-cold-days 90 \
     --enable-intelligent-tiering
@@ -284,45 +284,45 @@ cws storage tier-policy data-lifecycle \
 
 ```bash
 # List all storage resources
-cws storage list
+prism storage list
 
 # Get detailed information about storage
-cws storage show <storage-name>
+prism storage show <storage-name>
 
 # Delete storage resource
-cws storage delete <storage-name>
+prism storage delete <storage-name>
 
 # Mount storage to instance
-cws storage mount <storage-name> <instance-name>
+prism storage mount <storage-name> <instance-name>
 
 # Unmount storage from instance
-cws storage unmount <storage-name> <instance-name>
+prism storage unmount <storage-name> <instance-name>
 ```
 
 ### Health and Monitoring
 
 ```bash
 # Check storage health
-cws storage health
+prism storage health
 
 # Monitor storage usage
-cws storage usage --real-time
+prism storage usage --real-time
 
 # Get storage capacity planning
-cws storage capacity-plan --growth-rate 20% --horizon 12months
+prism storage capacity-plan --growth-rate 20% --horizon 12months
 ```
 
 ### Backup and Snapshots
 
 ```bash
 # Create storage snapshot
-cws storage snapshot <storage-name> --description "Pre-experiment backup"
+prism storage snapshot <storage-name> --description "Pre-experiment backup"
 
 # List snapshots
-cws storage snapshots
+prism storage snapshots
 
 # Restore from snapshot
-cws storage restore <storage-name> --snapshot <snapshot-id>
+prism storage restore <storage-name> --snapshot <snapshot-id>
 ```
 
 ## Cost Optimization Strategies
@@ -339,13 +339,13 @@ cws storage restore <storage-name> --snapshot <snapshot-id>
 
 ```bash
 # Enable automatic cost optimization
-cws storage auto-optimize --enable-all-resources
+prism storage auto-optimize --enable-all-resources
 
 # Configure cost alerts
-cws storage alerts --cost-threshold 500 --monthly
+prism storage alerts --cost-threshold 500 --monthly
 
 # Schedule cost optimization reviews
-cws storage schedule-optimization --frequency monthly
+prism storage schedule-optimization --frequency monthly
 ```
 
 ### 3. Usage-Based Recommendations
@@ -390,26 +390,26 @@ All storage types support encryption:
 
 ```bash
 # Configure IAM-based access
-cws storage access <storage-name> --iam-role research-team-role
+prism storage access <storage-name> --iam-role research-team-role
 
 # Set up VPC endpoints for secure access
-cws storage vpc-endpoint --services s3,fsx,efs
+prism storage vpc-endpoint --services s3,fsx,efs
 
 # Configure security groups
-cws storage security-group --allow-research-team --port-ranges 2049,988,111
+prism storage security-group --allow-research-team --port-ranges 2049,988,111
 ```
 
 ### Audit and Compliance
 
 ```bash
 # Enable audit logging
-cws storage audit --enable --log-level detailed
+prism storage audit --enable --log-level detailed
 
 # Generate compliance reports
-cws storage compliance-report --framework SOC2
+prism storage compliance-report --framework SOC2
 
 # Monitor access patterns for anomalies
-cws storage security-monitor --enable-anomaly-detection
+prism storage security-monitor --enable-anomaly-detection
 ```
 
 ## Troubleshooting
@@ -419,37 +419,37 @@ cws storage security-monitor --enable-anomaly-detection
 **FSx Mount Issues**:
 ```bash
 # Verify FSx filesystem status
-cws storage show <fsx-name>
+prism storage show <fsx-name>
 
 # Check network connectivity
-cws storage test-connectivity <fsx-name>
+prism storage test-connectivity <fsx-name>
 
 # Regenerate mount commands
-cws storage mount-command <fsx-name>
+prism storage mount-command <fsx-name>
 ```
 
 **S3 Mount Performance Issues**:
 ```bash
 # Check mount method optimization
-cws storage optimize <s3-storage> --mount-method mountpoint
+prism storage optimize <s3-storage> --mount-method mountpoint
 
 # Verify caching configuration
-cws storage cache-stats <s3-storage>
+prism storage cache-stats <s3-storage>
 
 # Test different mount methods
-cws storage benchmark <s3-storage> --all-methods
+prism storage benchmark <s3-storage> --all-methods
 ```
 
 **Cost Unexpected Issues**:
 ```bash
 # Analyze cost drivers
-cws storage cost-analysis --detailed --period monthly
+prism storage cost-analysis --detailed --period monthly
 
 # Check for unused resources
-cws storage unused-resources
+prism storage unused-resources
 
 # Review optimization recommendations
-cws storage recommendations --priority high
+prism storage recommendations --priority high
 ```
 
 ### Performance Tuning
@@ -457,25 +457,25 @@ cws storage recommendations --priority high
 **FSx Tuning**:
 ```bash
 # Increase throughput capacity
-cws storage modify <fsx-name> --throughput-capacity 1000
+prism storage modify <fsx-name> --throughput-capacity 1000
 
 # Enable performance monitoring
-cws storage monitor <fsx-name> --enable-detailed-monitoring
+prism storage monitor <fsx-name> --enable-detailed-monitoring
 
 # Optimize for workload
-cws storage tune <fsx-name> --workload hpc
+prism storage tune <fsx-name> --workload hpc
 ```
 
 **S3 Mount Tuning**:
 ```bash
 # Optimize cache settings
-cws storage cache-config <s3-name> --cache-size 20480 --cache-type memory
+prism storage cache-config <s3-name> --cache-size 20480 --cache-type memory
 
 # Tune parallel requests
-cws storage tune <s3-name> --parallel-requests 16 --multipart-size 16MB
+prism storage tune <s3-name> --parallel-requests 16 --multipart-size 16MB
 
 # Configure regional optimization
-cws storage region-optimize <s3-name> --preferred-regions us-west-2,us-east-1
+prism storage region-optimize <s3-name> --preferred-regions us-west-2,us-east-1
 ```
 
 ## Integration with Research Workflows
@@ -484,7 +484,7 @@ cws storage region-optimize <s3-name> --preferred-regions us-west-2,us-east-1
 
 ```bash
 # Setup ML training storage pipeline
-cws storage create ml-pipeline \
+prism storage create ml-pipeline \
     --raw-data "type=s3,bucket=datasets,mount-method=mountpoint" \
     --training-data "type=fsx,fsx-type=lustre,capacity=2400" \
     --model-output "type=s3,bucket=models,intelligent-tiering=true"
@@ -494,7 +494,7 @@ cws storage create ml-pipeline \
 
 ```bash
 # Setup genomics analysis storage
-cws storage create genomics-analysis \
+prism storage create genomics-analysis \
     --input-data "type=s3,bucket=raw-sequences,mount-method=mountpoint" \
     --scratch-space "type=fsx,fsx-type=lustre,capacity=4800,throughput=2000" \
     --results "type=efs,performance-mode=maxIO"
@@ -504,7 +504,7 @@ cws storage create genomics-analysis \
 
 ```bash
 # Setup shared research environment
-cws storage create collaborative-research \
+prism storage create collaborative-research \
     --shared-data "type=efs,throughput-mode=provisioned,throughput=200" \
     --backup "type=s3,lifecycle-policy=glacier-after-90days" \
     --snapshots "enable=true,frequency=daily,retention=30days"
@@ -525,12 +525,12 @@ The Phase 5C Advanced Storage Integration provides the foundation for upcoming e
 For support with advanced storage integration:
 
 1. **Documentation**: Review this guide and the technical architecture documentation
-2. **Community**: Engage with the CloudWorkstation community
-3. **Issues**: Report issues at https://github.com/scttfrdmn/cloudworkstation/issues
-4. **Commercial Support**: Contact your CloudWorkstation support representative
+2. **Community**: Engage with the Prism community
+3. **Issues**: Report issues at https://github.com/scttfrdmn/prism/issues
+4. **Commercial Support**: Contact your Prism support representative
 
 ## Conclusion
 
-Phase 5C Advanced Storage Integration transforms CloudWorkstation into a comprehensive research data platform, providing enterprise-grade storage capabilities that automatically optimize for both performance and cost. Researchers can now seamlessly work with petabyte-scale datasets, leverage high-performance computing storage, and benefit from intelligent cost optimization—all through CloudWorkstation's familiar interface.
+Phase 5C Advanced Storage Integration transforms Prism into a comprehensive research data platform, providing enterprise-grade storage capabilities that automatically optimize for both performance and cost. Researchers can now seamlessly work with petabyte-scale datasets, leverage high-performance computing storage, and benefit from intelligent cost optimization—all through Prism's familiar interface.
 
 The combination of multiple AWS storage services, intelligent analytics, and automated optimization ensures that researchers have access to the right storage performance at the right cost for every phase of their research lifecycle.

@@ -1,11 +1,11 @@
 # Running Instance Template Application - Roadmap Analysis
 
 ## User Request
-> "Can I run a template on an already defined and running cloudworkstation?"
+> "Can I run a template on an already defined and running prism?"
 
 ## Current State Analysis
 
-### What CloudWorkstation Currently Supports
+### What Prism Currently Supports
 ✅ **Template-based Launches**: Templates define complete environments from scratch
 ✅ **Template Inheritance**: Stack templates to build complex environments
 ✅ **Package Manager Overrides**: Choose different package managers at launch time
@@ -24,39 +24,39 @@
 **1. Iterative Environment Building**
 ```bash
 # Current workflow (requires new instance)
-cws launch base-ubuntu my-workspace
+prism launch base-ubuntu my-workspace
 # ... work in environment, realize need ML tools
-cws terminate my-workspace
-cws launch python-ml my-workspace-v2
+prism terminate my-workspace
+prism launch python-ml my-workspace-v2
 
 # Desired workflow (apply to running instance)
-cws launch base-ubuntu my-workspace
+prism launch base-ubuntu my-workspace
 # ... work in environment, realize need ML tools  
-cws apply python-ml-stack my-workspace  # Apply template to running instance
+prism apply python-ml-stack my-workspace  # Apply template to running instance
 ```
 
 **2. Environment Evolution**
 ```bash
 # Start with basic R environment
-cws launch r-research data-analysis
+prism launch r-research data-analysis
 
 # Later add GIS capabilities
-cws apply gis-stack data-analysis
+prism apply gis-stack data-analysis
 
 # Later add GPU support for visualization
-cws apply gpu-viz-stack data-analysis
+prism apply gpu-viz-stack data-analysis
 ```
 
 **3. Collaborative Environment Setup**
 ```bash
 # Researcher A sets up base environment
-cws launch basic-python collaboration-env
+prism launch basic-python collaboration-env
 
 # Researcher B adds their specialized tools
-cws apply bioinformatics-stack collaboration-env
+prism apply bioinformatics-stack collaboration-env
 
 # Researcher C adds visualization tools
-cws apply scivis-stack collaboration-env
+prism apply scivis-stack collaboration-env
 ```
 
 ## Technical Architecture Design
@@ -95,19 +95,19 @@ type TemplateDiffCalculator struct {
 **New Commands**:
 ```bash
 # Apply template to running instance
-cws apply <template> <instance-name> [options]
+prism apply <template> <instance-name> [options]
 
 # Preview what would be applied (dry-run)
-cws apply <template> <instance-name> --dry-run
+prism apply <template> <instance-name> --dry-run
 
 # Show difference between current state and template
-cws diff <template> <instance-name>
+prism diff <template> <instance-name>
 
 # List applied templates/layers on instance
-cws layers <instance-name>
+prism layers <instance-name>
 
 # Rollback to previous state
-cws rollback <instance-name> [--to-layer=<layer-id>]
+prism rollback <instance-name> [--to-layer=<layer-id>]
 ```
 
 ### 3. State Management & Tracking
@@ -251,14 +251,14 @@ func (e *TemplateApplicationEngine) ApplyTemplate(instanceName string, template 
 **Commands**:
 ```bash
 # Show applied template layers
-$ cws layers my-workspace
+$ prism layers my-workspace
 LAYER  TEMPLATE           APPLIED              PACKAGES    SERVICES
 1      base-ubuntu        2024-01-15 10:00    15          2
 2      python-research    2024-01-15 11:30    8           1  
 3      ml-stack          2024-01-15 14:20    12          0
 
 # Rollback to specific layer
-$ cws rollback my-workspace --to-layer=2
+$ prism rollback my-workspace --to-layer=2
 Rolling back to layer 2 (python-research)...
 Removing ml-stack packages: tensorflow, pytorch, scikit-learn
 Instance rolled back successfully.
@@ -305,7 +305,7 @@ Instance rolled back successfully.
 # Add to existing CLI app structure
 func (a *App) Apply(args []string) error {
     if len(args) < 2 {
-        return fmt.Errorf("usage: cws apply <template> <instance-name> [options]")
+        return fmt.Errorf("usage: prism apply <template> <instance-name> [options]")
     }
     
     template := args[0]
@@ -368,7 +368,7 @@ type ApplyResponse struct {
 ✅ **Maintenance**: Update environments with patches and new tools
 ✅ **Rollback Capability**: Quick recovery from problematic changes
 
-### For CloudWorkstation Platform
+### For Prism Platform
 ✅ **Competitive Advantage**: Unique capability not available in basic VM platforms
 ✅ **User Retention**: Reduces friction in environment management
 ✅ **Template Adoption**: Increases value of template library
@@ -376,7 +376,7 @@ type ApplyResponse struct {
 
 ## Roadmap Priority
 
-**Priority**: **High** - This would be a significant differentiator for CloudWorkstation
+**Priority**: **High** - This would be a significant differentiator for Prism
 
 **Effort Estimate**: **3-4 development cycles**
 - Phase 1: State inspection & diff (1 cycle)
@@ -397,4 +397,4 @@ type ApplyResponse struct {
 4. **Rollback System Design**: Checkpoint and restoration mechanisms
 5. **User Testing**: Validate workflow with researcher feedback
 
-This capability would transform CloudWorkstation from a "launch and manage" platform into a true "infrastructure as code" research environment system, where environments can evolve dynamically while maintaining reproducibility and rollback capabilities.
+This capability would transform Prism from a "launch and manage" platform into a true "infrastructure as code" research environment system, where environments can evolve dynamically while maintaining reproducibility and rollback capabilities.

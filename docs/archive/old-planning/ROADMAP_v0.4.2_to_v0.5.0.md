@@ -1,8 +1,8 @@
-# CloudWorkstation Roadmap: v0.4.2 → v0.5.0
+# Prism Roadmap: v0.4.2 → v0.5.0
 
 ## Overview
 
-Strategic roadmap for CloudWorkstation development between the next minor release (v0.4.2) and the major multi-user architecture release (v0.5.0). This phase focuses on desktop integration, cross-platform support, and distribution channel expansion.
+Strategic roadmap for Prism development between the next minor release (v0.4.2) and the major multi-user architecture release (v0.5.0). This phase focuses on desktop integration, cross-platform support, and distribution channel expansion.
 
 ## Post-v0.4.2 Sub-Release Roadmap
 
@@ -54,13 +54,13 @@ Strategic roadmap for CloudWorkstation development between the next minor releas
 #### 🖥️ **Enhanced Desktop Connectivity**
 ```bash
 # Desktop connectivity commands (CLI integration)
-cws desktop connect my-ml-workstation    # Launch embedded DCV session in dashboard
-cws desktop reconnect my-ml-workstation  # Restore dropped connections automatically
-cws desktop status                       # Show active sessions with performance metrics
+prism desktop connect my-ml-workstation    # Launch embedded DCV session in dashboard
+prism desktop reconnect my-ml-workstation  # Restore dropped connections automatically
+prism desktop status                       # Show active sessions with performance metrics
 
 # Enhanced template launching with cost estimation
-cws launch "Ubuntu Desktop + ML Tools" my-workstation --desktop --cost-estimate
-cws launch "Rocky Desktop + HPC" hpc-workstation --desktop --monitor-usage
+prism launch "Ubuntu Desktop + ML Tools" my-workstation --desktop --cost-estimate
+prism launch "Rocky Desktop + HPC" hpc-workstation --desktop --monitor-usage
 ```
 
 #### 🖥️ **Desktop Templates with Monitoring**
@@ -73,7 +73,7 @@ cws launch "Rocky Desktop + HPC" hpc-workstation --desktop --monitor-usage
 ```
 Research Management Dashboard Layout:
 ┌────────────────────────────────────────────────────────────────────────────────┐
-│ CloudWorkstation Research Dashboard                                            │
+│ Prism Research Dashboard                                            │
 ├──────────────────────┬──────────────────────┬────────────────────────────────┤
 │ 🖥️ DCV Desktop        │ 💰 Cost Monitor       │ 🔧 Instance Management         │
 │ • Embedded viewer     │ • Real-time spending  │ • Start/Stop/Hibernate         │
@@ -100,21 +100,21 @@ Research Management Dashboard Layout:
 **Focus**: Native Windows 11 client with full feature parity
 
 #### 🪟 **Core Windows Features**
-- **Native Windows Service**: CloudWorkstation daemon as Windows service
-- **Windows Package Manager**: Distribution via `winget install cloudworkstation`
+- **Native Windows Service**: Prism daemon as Windows service
+- **Windows Package Manager**: Distribution via `winget install prism`
 - **Feature Parity**: Full CLI, TUI, and GUI functionality on Windows 11
 - **Registry Integration**: Windows-specific configuration and AWS profile handling
 
 #### 🪟 **Installation Methods**
 ```powershell
 # Windows Package Manager (Primary)
-winget install CloudWorkstation.CLI
+winget install Prism.CLI
 
 # Chocolatey (Alternative)
-choco install cloudworkstation
+choco install prism
 
 # MSI Installer (Enterprise)
-CloudWorkstation-0.4.5-x64.msi
+Prism-0.4.5-x64.msi
 ```
 
 #### 🪟 **Windows-Specific Features**
@@ -131,20 +131,20 @@ CloudWorkstation-0.4.5-x64.msi
 **Focus**: Expanded package managers and distribution channels
 
 #### 📦 **Conda Integration** 
-- **conda-forge Package**: `conda install -c conda-forge cloudworkstation`
+- **conda-forge Package**: `conda install -c conda-forge prism`
 - **Data Science Integration**: Seamless integration with Jupyter, pandas, R environments
 - **Dependency Management**: Automatic AWS CLI and research tool dependencies
 
 #### 📦 **Additional Package Managers**
 ```bash
 # Linux package managers
-sudo apt install cloudworkstation      # Debian/Ubuntu APT
-sudo dnf install cloudworkstation      # Fedora/RHEL DNF
-sudo pacman -S cloudworkstation        # Arch Linux
+sudo apt install prism      # Debian/Ubuntu APT
+sudo dnf install prism      # Fedora/RHEL DNF
+sudo pacman -S prism        # Arch Linux
 
 # macOS additional
-port install cloudworkstation          # MacPorts
-brew install cloudworkstation          # Homebrew tap (current)
+port install prism          # MacPorts
+brew install prism          # Homebrew tap (current)
 ```
 
 #### 📦 **Homebrew Core Preparation**
@@ -156,7 +156,7 @@ brew install cloudworkstation          # Homebrew tap (current)
 #### 📦 **Research Community Distribution**
 - **Anaconda.com Integration**: Official Anaconda platform presence
 - **Docker Hub**: Container-based distribution for containerized workflows  
-- **Snap Package**: `snap install cloudworkstation` for Linux
+- **Snap Package**: `snap install prism` for Linux
 - **Flatpak**: Universal Linux application packaging
 
 **Deliverables**: conda-forge package, APT/DNF packages, Homebrew Core preparation, research community integration
@@ -175,14 +175,14 @@ brew install cloudworkstation          # Homebrew tap (current)
 #### 🔒 **New Networking Commands**
 ```bash
 # Secure tunnel management
-cws tunnel create research-network --region us-west-2    # Deploy bastion + VPN
-cws tunnel connect research-network                      # Connect via Wireguard
-cws tunnel status                                       # Show tunnel health
-cws tunnel disconnect research-network                   # Disconnect tunnel
+prism tunnel create research-network --region us-west-2    # Deploy bastion + VPN
+prism tunnel connect research-network                      # Connect via Wireguard
+prism tunnel status                                       # Show tunnel health
+prism tunnel disconnect research-network                   # Disconnect tunnel
 
 # Private instance launching
-cws launch python-ml my-workstation --private          # Launch in private subnet
-cws connect my-workstation                             # Seamless private access
+prism launch python-ml my-workstation --private          # Launch in private subnet
+prism connect my-workstation                             # Seamless private access
 ```
 
 #### 🔒 **Security Architecture**
@@ -196,10 +196,10 @@ cws connect my-workstation                             # Seamless private access
 ---
 
 ### **v0.4.8: Directory Synchronization (6-8 weeks)**
-**Focus**: Real-time bidirectional file sync between laptop and CloudWorkstations
+**Focus**: Real-time bidirectional file sync between laptop and Prisms
 
 #### 📁 **Core Sync Features**
-- **Real-time Bidirectional Sync**: Automatic synchronization between laptop and CloudWorkstations
+- **Real-time Bidirectional Sync**: Automatic synchronization between laptop and Prisms
 - **Selective Directory Sync**: Choose specific folders for synchronization
 - **Intelligent Conflict Resolution**: Automated handling of concurrent modifications
 - **Research Workflow Optimization**: Specialized handling for datasets, notebooks, and code
@@ -207,14 +207,14 @@ cws connect my-workstation                             # Seamless private access
 #### 📁 **Sync Commands & Workflow**
 ```bash
 # Directory sync setup and management
-cws sync setup ~/research/project-alpha my-workstation:/home/ubuntu/project-alpha
-cws sync status                          # Show sync status and conflicts
-cws sync resolve conflicts               # Interactive conflict resolution
-cws sync pause/resume project-alpha      # Control sync behavior
+prism sync setup ~/research/project-alpha my-workstation:/home/ubuntu/project-alpha
+prism sync status                          # Show sync status and conflicts
+prism sync resolve conflicts               # Interactive conflict resolution
+prism sync pause/resume project-alpha      # Control sync behavior
 
 # Multi-instance collaboration
-cws sync add-instance project-alpha other-workstation  # Sync to multiple instances
-cws sync remove-instance project-alpha other-workstation
+prism sync add-instance project-alpha other-workstation  # Sync to multiple instances
+prism sync remove-instance project-alpha other-workstation
 ```
 
 #### 📁 **Research-Optimized Features**
@@ -231,7 +231,7 @@ cws sync remove-instance project-alpha other-workstation
 **Focus**: Comprehensive multi-user research platform with centralized identity management
 
 #### 👥 **Multi-User Core Features**
-- **Centralized User Registry**: Single source of truth for user identity across all CloudWorkstations
+- **Centralized User Registry**: Single source of truth for user identity across all Prisms
 - **Role-Based Access Control**: Fine-grained permissions for projects, templates, and resources
 - **Team Collaboration**: Shared workspaces, resource pools, and collaborative research environments  
 - **Enterprise Authentication**: SSO integration with institutional identity providers
@@ -239,13 +239,13 @@ cws sync remove-instance project-alpha other-workstation
 #### 👥 **New Multi-User Commands**
 ```bash
 # User management
-cws users register researcher@university.edu    # Register new user
-cws users invite project-alpha researcher@university.edu --role member
-cws users list --project project-alpha         # Show project team members
+prism users register researcher@university.edu    # Register new user
+prism users invite project-alpha researcher@university.edu --role member
+prism users list --project project-alpha         # Show project team members
 
 # Shared resource management
-cws shared create workspace team-ml-lab        # Create shared workspace
-cws shared grant workspace team-ml-lab researcher@university.edu --permission read-write
+prism shared create workspace team-ml-lab        # Create shared workspace
+prism shared grant workspace team-ml-lab researcher@university.edu --permission read-write
 ```
 
 #### 🖥️ **GUI Framework Decision Point**
@@ -255,10 +255,10 @@ cws shared grant workspace team-ml-lab researcher@university.edu --permission re
 - **Cross-Platform Consistency**: Unified GUI experience across macOS, Windows, and Linux
 
 #### 📦 **Homebrew Core Readiness Assessment**
-- **Stability Evaluation**: Assess CloudWorkstation stability for official Homebrew Core inclusion
+- **Stability Evaluation**: Assess Prism stability for official Homebrew Core inclusion
 - **Community Metrics**: Evaluate user base, GitHub stars, and community adoption
 - **Formula Submission**: Prepare and submit Homebrew Core formula if criteria met
-- **Official Distribution**: Transition from tap to `brew install cloudworkstation` (no tap required)
+- **Official Distribution**: Transition from tap to `brew install prism` (no tap required)
 
 **Deliverables**: Complete multi-user architecture, centralized identity, team collaboration, enterprise integration, potential Wails 3.x GUI, Homebrew Core evaluation
 
@@ -270,7 +270,7 @@ cws shared grant workspace team-ml-lab researcher@university.edu --permission re
 
 ### 🎛️ **Application Settings Synchronization**
 
-**Objective**: Automatically synchronize application configurations, plugins, and personalization settings from local system to CloudWorkstation instances.
+**Objective**: Automatically synchronize application configurations, plugins, and personalization settings from local system to Prism instances.
 
 **Supported Applications**:
 - **RStudio**: Preferences, installed packages, custom themes, keyboard shortcuts
@@ -282,13 +282,13 @@ cws shared grant workspace team-ml-lab researcher@university.edu --permission re
 **Technical Approach**:
 ```bash
 # Settings sync commands  
-cws settings profile create laptop-config           # Capture local settings
-cws settings sync laptop-config my-workstation     # Apply to CloudWorkstation
-cws settings auto-sync enable                      # Automatic sync for new instances
+prism settings profile create laptop-config           # Capture local settings
+prism settings sync laptop-config my-workstation     # Apply to Prism
+prism settings auto-sync enable                      # Automatic sync for new instances
 
 # Application-specific sync
-cws settings sync-rstudio my-workstation           # Sync RStudio configuration
-cws settings sync-jupyter my-workstation           # Sync Jupyter setup
+prism settings sync-rstudio my-workstation           # Sync RStudio configuration
+prism settings sync-jupyter my-workstation           # Sync Jupyter setup
 ```
 
 **Configuration Management**:
@@ -300,11 +300,11 @@ cws settings sync-jupyter my-workstation           # Sync Jupyter setup
 
 ### 🔗 **Local EFS Mount Integration**
 
-**Objective**: Enable local laptop to mount remote EFS volumes alongside CloudWorkstation instances for seamless file access.
+**Objective**: Enable local laptop to mount remote EFS volumes alongside Prism instances for seamless file access.
 
 **Key Capabilities**:
 - **Direct EFS Access**: Mount EFS volumes on local system using AWS EFS client
-- **Shared Access**: Concurrent access from laptop and CloudWorkstation instances
+- **Shared Access**: Concurrent access from laptop and Prism instances
 - **Cross-Platform Support**: EFS mounting on macOS, Linux, and Windows
 - **Offline Caching**: Local caching for offline access to frequently used files
 - **Permission Synchronization**: Maintain consistent permissions across local and cloud access
@@ -312,18 +312,18 @@ cws settings sync-jupyter my-workstation           # Sync Jupyter setup
 **Usage Examples**:
 ```bash
 # Local EFS mounting
-cws efs mount research-data ~/CloudWorkstation/research-data
-cws efs list-local                    # Show locally mounted EFS volumes
-cws efs unmount research-data         # Unmount from local system
+prism efs mount research-data ~/Prism/research-data
+prism efs list-local                    # Show locally mounted EFS volumes
+prism efs unmount research-data         # Unmount from local system
 
 # Shared access verification
-ls ~/CloudWorkstation/research-data/  # Local access
-cws exec my-workstation "ls /mnt/research-data/"  # Remote access
+ls ~/Prism/research-data/  # Local access
+prism exec my-workstation "ls /mnt/research-data/"  # Remote access
 ```
 
 ### 🪣 **ObjectFS S3 Integration**
 
-**Objective**: Leverage ObjectFS project to provide POSIX-compliant S3 storage mounting for CloudWorkstations and local systems.
+**Objective**: Leverage ObjectFS project to provide POSIX-compliant S3 storage mounting for Prisms and local systems.
 
 **ObjectFS Integration Benefits**:
 - **POSIX Semantics**: Standard file system operations on S3 storage
@@ -334,16 +334,16 @@ cws exec my-workstation "ls /mnt/research-data/"  # Remote access
 
 **Technical Implementation**:
 ```bash
-# ObjectFS S3 mounting via CloudWorkstation
-cws storage create-s3 research-datasets s3://my-research-bucket
-cws storage mount research-datasets my-workstation:/data/research-datasets
+# ObjectFS S3 mounting via Prism
+prism storage create-s3 research-datasets s3://my-research-bucket
+prism storage mount research-datasets my-workstation:/data/research-datasets
 
 # Local ObjectFS mounting
-cws storage mount-local research-datasets ~/CloudWorkstation/datasets
+prism storage mount-local research-datasets ~/Prism/datasets
 
 # Tiered storage management
-cws storage policy create cost-optimized --transition-days 30 --storage-class IA
-cws storage policy apply cost-optimized research-datasets
+prism storage policy create cost-optimized --transition-days 30 --storage-class IA
+prism storage policy apply cost-optimized research-datasets
 ```
 
 **Advanced S3 Features**:
@@ -431,7 +431,7 @@ cws storage policy apply cost-optimized research-datasets
 **Vision: Comprehensive Research Management Dashboard**
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ CloudWorkstation Research Dashboard (Wails 3.x + Web Tech)     │
+│ Prism Research Dashboard (Wails 3.x + Web Tech)     │
 ├─────────────────┬─────────────────┬─────────────────────────────┤
 │ DCV Desktop     │ Cost Monitor    │ Instance Management         │
 │ (Embedded)      │ Real-time $$$   │ Start/Stop/Hibernate        │
@@ -467,7 +467,7 @@ cws storage policy apply cost-optimized research-datasets
 ## Success Metrics
 
 ### **Desktop Connectivity Success**:
-- One-click desktop access to CloudWorkstation instances
+- One-click desktop access to Prism instances
 - Sub-5-second connection establishment to running instances
 - Automatic reconnection with <10% session loss
 - Support for common research desktop workflows (Jupyter, RStudio, IDEs)
@@ -486,8 +486,8 @@ cws storage policy apply cost-optimized research-datasets
 
 ### **Secure Tunnel Success**:
 - Sub-30-second tunnel establishment to private AWS subnets
-- Zero public IP exposure for CloudWorkstation instances
-- Seamless integration with existing CloudWorkstation workflows
+- Zero public IP exposure for Prism instances
+- Seamless integration with existing Prism workflows
 - Mole project integration working reliably across platforms
 
 ### **Local Sync Success**:
@@ -508,13 +508,13 @@ These v0.4.2+ features will integrate seamlessly with v0.5.0's comprehensive mul
 - **Settings Sync**: User-specific application configuration synchronization
 - **Storage Integration**: Unified local and cloud storage with user isolation
 
-This roadmap positions CloudWorkstation as the comprehensive research computing platform spanning command-line efficiency, desktop integration, cross-platform support, and collaborative multi-user workflows.
+This roadmap positions Prism as the comprehensive research computing platform spanning command-line efficiency, desktop integration, cross-platform support, and collaborative multi-user workflows.
 
 ## Research Questions for Next Session
 
 ### **Core Infrastructure Questions**
 1. **DCV Licensing**: What are the licensing implications for embedding NICE DCV client?
-2. **Windows Security**: How does Windows Defender/SmartScreen affect CloudWorkstation installation?
+2. **Windows Security**: How does Windows Defender/SmartScreen affect Prism installation?
 3. **Conda Community**: What's the current state of Go application distribution through conda?
 4. **Desktop Templates**: Which desktop environments provide the best research computing experience?
 5. **Connection Security**: How to secure DCV connections while maintaining ease of use?
@@ -531,7 +531,7 @@ This roadmap positions CloudWorkstation as the comprehensive research computing 
 12. **Delta Sync Algorithms**: Which algorithms provide best performance for large research datasets?
 13. **Conflict Resolution UX**: How to present merge conflicts intuitively for non-technical researchers?
 14. **EFS Local Mounting**: What are the performance characteristics of local EFS mounting?
-15. **ObjectFS Integration**: How to best integrate ObjectFS FUSE filesystem with CloudWorkstation?
+15. **ObjectFS Integration**: How to best integrate ObjectFS FUSE filesystem with Prism?
 
 ### **Application Sync Questions**
 16. **Settings Discovery**: How to automatically discover application configuration locations?

@@ -1,4 +1,4 @@
-# CloudWorkstation GUI Refinements & Polish TODO List
+# Prism GUI Refinements & Polish TODO List
 
 ## Version: Post-Wails 3.x MVP Implementation 
 Created: 2025-08-18  
@@ -31,7 +31,7 @@ Created: 2025-08-18
 ## 🔧 **Technical Improvements**
 
 ### API Integration
-- [ ] **Real Daemon Integration**: Connect service.go TODO methods to actual CloudWorkstation daemon API
+- [ ] **Real Daemon Integration**: Connect service.go TODO methods to actual Prism daemon API
 - [ ] **Error Handling**: Comprehensive error states and recovery mechanisms
 - [ ] **Caching**: Smart template and instance data caching with refresh strategies
 - [ ] **Websocket Updates**: Real-time instance status updates via websocket instead of polling
@@ -190,7 +190,7 @@ describe('Template Selection', () => {
   test('loads and displays templates', async () => {
     // Mock Wails service
     window.wails = {
-      CloudWorkstationService: {
+      PrismService: {
         GetTemplates: vi.fn().mockResolvedValue([
           { Name: 'Python ML', Description: 'Machine learning environment' }
         ])

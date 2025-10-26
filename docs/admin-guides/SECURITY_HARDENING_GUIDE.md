@@ -1,8 +1,8 @@
-# CloudWorkstation Security Hardening Guide
+# Prism Security Hardening Guide
 
 ## Overview
 
-This guide provides comprehensive security hardening recommendations for CloudWorkstation production deployments. Following these guidelines will ensure enterprise-grade security for your research computing infrastructure.
+This guide provides comprehensive security hardening recommendations for Prism production deployments. Following these guidelines will ensure enterprise-grade security for your research computing infrastructure.
 
 ## 🎯 Security Objectives
 
@@ -54,11 +54,11 @@ log_retention_days: 90  # Minimum 30 days, recommend 90+ for compliance
 **Production Requirements:**
 ```bash
 # Verify audit directory permissions
-chmod 700 ~/.cloudworkstation/security/audit
-chown $(whoami):$(whoami) ~/.cloudworkstation/security/audit
+chmod 700 ~/.prism/security/audit
+chown $(whoami):$(whoami) ~/.prism/security/audit
 
 # Enable audit log monitoring
-cws security config  # Verify audit_log_enabled: true
+prism security config  # Verify audit_log_enabled: true
 ```
 
 ### 2. Security Monitoring
@@ -80,11 +80,11 @@ alert_threshold: MEDIUM
 **Production Commands:**
 ```bash
 # Check security monitoring status
-cws security status
-cws security dashboard
+prism security status
+prism security dashboard
 
 # Monitor security events
-cws security correlations
+prism security correlations
 ```
 
 ### 3. Event Correlation Analysis
@@ -107,7 +107,7 @@ analysis_interval: 5m
 **Configuration:**
 ```yaml
 registry_security_enabled: true
-registry_url: "https://registry.cloudworkstation.io"
+registry_url: "https://registry.prism.io"
 ```
 
 **Hardening Steps:**
@@ -131,10 +131,10 @@ registry_url: "https://registry.cloudworkstation.io"
 **Validation Commands:**
 ```bash
 # Check keychain status
-cws security keychain
+prism security keychain
 
 # Validate keychain provider
-cws security health
+prism security health
 ```
 
 ## 🛡️ System Hardening
@@ -142,14 +142,14 @@ cws security health
 ### File System Security
 
 ```bash
-# Secure CloudWorkstation directories
-chmod 700 ~/.cloudworkstation
-chmod 700 ~/.cloudworkstation/security
-chmod 600 ~/.cloudworkstation/security/*.json
+# Secure Prism directories
+chmod 700 ~/.prism
+chmod 700 ~/.prism/security
+chmod 600 ~/.prism/security/*.json
 
 # Verify file permissions
-find ~/.cloudworkstation -type f -exec chmod 600 {} \;
-find ~/.cloudworkstation -type d -exec chmod 700 {} \;
+find ~/.prism -type f -exec chmod 600 {} \;
+find ~/.prism -type d -exec chmod 700 {} \;
 ```
 
 ### Network Security
@@ -160,28 +160,28 @@ iptables -A INPUT -p tcp --dport 8947 -s 127.0.0.1 -j ACCEPT
 iptables -A INPUT -p tcp --dport 8947 -j DROP
 
 # Use TLS for all communications
-export CWS_TLS_ENABLED=true
-export CWS_TLS_CERT_PATH=/path/to/cert.pem
-export CWS_TLS_KEY_PATH=/path/to/key.pem
+export PRISM_TLS_ENABLED=true
+export PRISM_TLS_CERT_PATH=/path/to/cert.pem
+export PRISM_TLS_KEY_PATH=/path/to/key.pem
 ```
 
 ### Process Security
 
 ```bash
 # Run daemon with limited privileges
-systemctl edit cloudworkstation --force
+systemctl edit prism --force
 ```
 
 Create systemd service configuration:
 ```ini
 [Unit]
-Description=CloudWorkstation Daemon
+Description=Prism Daemon
 After=network.target
 
 [Service]
 Type=simple
-User=cloudworkstation
-Group=cloudworkstation
+User=prism
+Group=prism
 ExecStart=/usr/local/bin/cwsd -port 8947
 Restart=always
 RestartSec=5
@@ -189,7 +189,7 @@ PrivateTmp=true
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/cloudworkstation
+ReadWritePaths=/opt/prism
 
 [Install]
 WantedBy=multi-user.target
@@ -201,20 +201,20 @@ WantedBy=multi-user.target
 
 ```bash
 # 1. Validate security configuration
-cws security config
-cws security health
+prism security config
+prism security health
 
 # 2. Run comprehensive health check
-cws security health
+prism security health
 
 # 3. Verify all security components
-cws security status
+prism security status
 
 # 4. Check keychain provider
-cws security keychain
+prism security keychain
 
 # 5. Test security monitoring
-cws security dashboard
+prism security dashboard
 ```
 
 ### Required Security Features for Production
@@ -325,7 +325,7 @@ alert_threshold: MEDIUM
 ```
 
 **NIST 800-171 Production Checklist:**
-- [ ] **System Security Plan (SSP)**: Document CloudWorkstation security architecture
+- [ ] **System Security Plan (SSP)**: Document Prism security architecture
 - [ ] **Plan of Action & Milestones (POA&M)**: Address any identified gaps
 - [ ] **Security Assessment**: Independent validation of security controls
 - [ ] **Continuous Monitoring**: Ongoing security posture assessment
@@ -385,14 +385,14 @@ alert_threshold: MEDIUM
 
 ```bash
 # Example: Integrate with external monitoring
-export CWS_WEBHOOK_URL="https://monitoring.example.com/webhook"
-export CWS_SLACK_WEBHOOK="https://hooks.slack.com/services/..."
-export CWS_EMAIL_ALERTS="security@example.com"
+export PRISM_WEBHOOK_URL="https://monitoring.example.com/webhook"
+export PRISM_SLACK_WEBHOOK="https://hooks.slack.com/services/..."
+export PRISM_EMAIL_ALERTS="security@example.com"
 ```
 
 ## 📚 Additional Resources
 
-- [CloudWorkstation Security Architecture](./SECURITY_ARCHITECTURE.md)
+- [Prism Security Architecture](./SECURITY_ARCHITECTURE.md)
 - [API Security Reference](./API_SECURITY.md)
 - [Compliance Checklist](./COMPLIANCE_CHECKLIST.md)
 - [Incident Response Playbook](./INCIDENT_RESPONSE.md)
@@ -401,25 +401,25 @@ export CWS_EMAIL_ALERTS="security@example.com"
 
 ### Security Support Channels
 
-- **Security Issues**: security@cloudworkstation.io
-- **Documentation**: https://docs.cloudworkstation.io/security
-- **Community**: https://github.com/cloudworkstation/community
+- **Security Issues**: security@prism.io
+- **Documentation**: https://docs.prism.io/security
+- **Community**: https://github.com/prism/community
 
 ### Common Troubleshooting
 
 ```bash
 # Debug security configuration
-cws security status --verbose
-cws security health --debug
+prism security status --verbose
+prism security health --debug
 
 # Check audit logs
-tail -f ~/.cloudworkstation/security/audit/*.log
+tail -f ~/.prism/security/audit/*.log
 
 # Validate keychain
-cws security keychain --validate
+prism security keychain --validate
 
 # Test security monitoring
-cws security dashboard --refresh
+prism security dashboard --refresh
 ```
 
 ---
@@ -433,7 +433,7 @@ Following this guide ensures:
 - ✅ **Defense in depth** with multiple security layers and controls
 - ✅ **Audit compliance** with complete security event logging and retention
 
-**Security Contact**: For security questions or to report vulnerabilities, contact security@cloudworkstation.io
+**Security Contact**: For security questions or to report vulnerabilities, contact security@prism.io
 
 **Last Updated**: 2025-08-05
 **Version**: 1.0 (Phase 4: Final Integration & Deployment)

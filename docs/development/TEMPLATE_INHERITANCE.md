@@ -2,7 +2,7 @@
 
 ## Overview
 
-CloudWorkstation now supports template inheritance and stacking, allowing templates to build upon each other for powerful composition. This enables users to create specialized environments by combining base templates with additional functionality.
+Prism now supports template inheritance and stacking, allowing templates to build upon each other for powerful composition. This enables users to create specialized environments by combining base templates with additional functionality.
 
 ## How It Works
 
@@ -186,10 +186,10 @@ Template inheritance makes dependencies and relationships explicit.
 ### Data Science Stack
 ```bash
 # Launch with inherited configuration
-cws launch "Rocky Linux 9 + Conda Stack" my-analysis
+prism launch "Rocky Linux 9 + Conda Stack" my-analysis
 
 # Override package manager at launch time
-cws launch "Rocky Linux 9 + Conda Stack" my-analysis --with spack
+prism launch "Rocky Linux 9 + Conda Stack" my-analysis --with spack
 ```
 
 ### Building Complex Environments
@@ -221,7 +221,7 @@ Templates are resolved after all templates are loaded, ensuring all parent refer
 
 ## Design Philosophy Alignment
 
-Template inheritance aligns with CloudWorkstation's core design principles:
+Template inheritance aligns with Prism's core design principles:
 
 - **✅ Default to Success**: Base templates provide working defaults
 - **✅ Progressive Disclosure**: Simple inheritance with advanced options available
@@ -232,19 +232,19 @@ This system enables the "Rocky9 linux but install some conda software on it" use
 
 ## Template Validation
 
-CloudWorkstation includes comprehensive template validation to catch errors early and ensure templates work correctly.
+Prism includes comprehensive template validation to catch errors early and ensure templates work correctly.
 
 ### Validation Commands
 
 ```bash
 # Validate all templates
-cws templates validate
+prism templates validate
 
 # Validate specific template by name
-cws templates validate "Rocky Linux 9 + Conda Stack"
+prism templates validate "Rocky Linux 9 + Conda Stack"
 
 # Validate template file directly
-cws templates validate templates/my-template.yml
+prism templates validate templates/my-template.yml
 ```
 
 ### Validation Rules

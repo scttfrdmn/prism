@@ -1,17 +1,17 @@
-# CloudWorkstation TUI Guide
+# Prism TUI Guide
 
 *Interactive terminal interface with keyboard navigation*
 
 ## What is the TUI?
 
-TUI stands for "Terminal User Interface." It's a colorful, interactive way to use CloudWorkstation without typing lots of commands. You can navigate with arrow keys and see everything on one screen!
+TUI stands for "Terminal User Interface." It's a colorful, interactive way to use Prism without typing lots of commands. You can navigate with arrow keys and see everything on one screen!
 
 ## How to Start the TUI
 
 Open your terminal and type:
 
 ```bash
-cws tui
+prism tui
 ```
 
 That's it! You'll see a colorful screen with tabs at the top.
@@ -120,7 +120,7 @@ These are storage volumes attached to a specific cloud computer.
 
 **Settings Configuration**
 
-Here you can change how CloudWorkstation works.
+Here you can change how Prism works.
 
 **Settings you can change:**
 - **AWS Profile**: Which AWS account to use
@@ -136,7 +136,7 @@ Here you can change how CloudWorkstation works.
 
 ## Changing Colors: Light and Dark Theme
 
-CloudWorkstation can use either dark colors (easier on the eyes at night) or light colors (better in bright rooms).
+Prism can use either dark colors (easier on the eyes at night) or light colors (better in bright rooms).
 
 To switch between them:
 1. Go to the Settings view
@@ -167,7 +167,7 @@ In any list (Instances, Templates, Storage), you can search by:
 If the TUI doesn't display correctly:
 - Try making your terminal window bigger
 - Check that your terminal supports colors
-- Make sure you have the latest version of CloudWorkstation
+- Make sure you have the latest version of Prism
 
 ## Getting Out of the TUI
 
@@ -182,6 +182,6 @@ You'll go back to the regular command line.
 If you need more help, press **?** while in the TUI to see all available keyboard shortcuts for the current view.
 
 Or check out these resources:
-- The CloudWorkstation help command: `cws help`
+- The Prism help command: `prism help`
 - The Getting Started Guide
 - Ask your research supervisor for help

@@ -1,6 +1,6 @@
-# CloudWorkstation Release Process
+# Prism Release Process
 
-This document outlines the comprehensive release process for CloudWorkstation, covering all steps from version updates to GitHub releases and Homebrew formula updates.
+This document outlines the comprehensive release process for Prism, covering all steps from version updates to GitHub releases and Homebrew formula updates.
 
 ## Table of Contents
 
@@ -69,7 +69,7 @@ git log --oneline -10
 
 ### 1. Update Version Files
 
-CloudWorkstation uses several files that need version updates:
+Prism uses several files that need version updates:
 
 **pkg/version/version.go:**
 ```go
@@ -118,7 +118,7 @@ rm -rf bin/ dist/
 
 ### 2. Cross-Platform Compilation
 
-CloudWorkstation supports multiple platforms and architectures:
+Prism supports multiple platforms and architectures:
 
 ```bash
 # Build for all platforms
@@ -136,24 +136,24 @@ make cross-compile
 
 ```bash
 # macOS Intel
-GOOS=darwin GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/darwin-amd64/cws ./cmd/cws
-GOOS=darwin GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/darwin-amd64/cwsd ./cmd/cwsd
+GOOS=darwin GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/darwin-amd64/cws ./cmd/cws
+GOOS=darwin GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/darwin-amd64/cwsd ./cmd/cwsd
 
 # macOS Apple Silicon
-GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/darwin-arm64/cws ./cmd/cws
-GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/darwin-arm64/cwsd ./cmd/cwsd
+GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/darwin-arm64/cws ./cmd/cws
+GOOS=darwin GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/darwin-arm64/cwsd ./cmd/cwsd
 
 # Linux x86_64
-GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/linux-amd64/cws ./cmd/cws
-GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/linux-amd64/cwsd ./cmd/cwsd
+GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/linux-amd64/cws ./cmd/cws
+GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/linux-amd64/cwsd ./cmd/cwsd
 
 # Linux ARM64
-GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/linux-arm64/cws ./cmd/cws
-GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/linux-arm64/cwsd ./cmd/cwsd
+GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/linux-arm64/cws ./cmd/cws
+GOOS=linux GOARCH=arm64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/linux-arm64/cwsd ./cmd/cwsd
 
 # Windows x86_64
-GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/windows-amd64/cws.exe ./cmd/cws
-GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/cloudworkstation/pkg/version.Version=0.4.6" -o bin/release/windows-amd64/cwsd.exe ./cmd/cwsd
+GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/windows-amd64/cws.exe ./cmd/cws
+GOOS=windows GOARCH=amd64 go build -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=0.4.6" -o bin/release/windows-amd64/cwsd.exe ./cmd/cwsd
 ```
 
 ### 4. GUI Build Process (Platform-Specific)
@@ -185,27 +185,27 @@ Create compressed archives for each platform:
 ```bash
 # macOS Intel
 cd bin/release/darwin-amd64
-tar -czf ../../../dist/v0.4.6/cloudworkstation-v0.4.6-darwin-amd64.tar.gz cws cwsd
+tar -czf ../../../dist/v0.4.6/prism-v0.4.6-darwin-amd64.tar.gz prism cwsd
 cd ../../..
 
 # macOS Apple Silicon
 cd bin/release/darwin-arm64
-tar -czf ../../../dist/v0.4.6/cloudworkstation-v0.4.6-darwin-arm64.tar.gz cws cwsd
+tar -czf ../../../dist/v0.4.6/prism-v0.4.6-darwin-arm64.tar.gz prism cwsd
 cd ../../..
 
 # Linux x86_64
 cd bin/release/linux-amd64
-tar -czf ../../../dist/v0.4.6/cloudworkstation-v0.4.6-linux-amd64.tar.gz cws cwsd
+tar -czf ../../../dist/v0.4.6/prism-v0.4.6-linux-amd64.tar.gz prism cwsd
 cd ../../..
 
 # Linux ARM64
 cd bin/release/linux-arm64
-tar -czf ../../../dist/v0.4.6/cloudworkstation-v0.4.6-linux-arm64.tar.gz cws cwsd
+tar -czf ../../../dist/v0.4.6/prism-v0.4.6-linux-arm64.tar.gz prism cwsd
 cd ../../..
 
 # Windows x86_64
 cd bin/release/windows-amd64
-zip -r ../../../dist/v0.4.6/cloudworkstation-v0.4.6-windows-amd64.zip cws.exe cwsd.exe
+zip -r ../../../dist/v0.4.6/prism-v0.4.6-windows-amd64.zip cws.exe cwsd.exe
 cd ../../..
 ```
 
@@ -228,7 +228,7 @@ Create comprehensive release notes (example from v0.4.6):
 
 ```bash
 cat > dist/v0.4.6/RELEASE_NOTES.md << 'EOF'
-# CloudWorkstation v0.4.6 Release Notes
+# Prism v0.4.6 Release Notes
 
 **Release Date**: September 28, 2025
 **Tag**: `v0.4.6`
@@ -237,7 +237,7 @@ cat > dist/v0.4.6/RELEASE_NOTES.md << 'EOF'
 ## 🎯 Major Features
 
 ### Complete EFS Multi-Modal Integration
-CloudWorkstation v0.4.6 delivers comprehensive EFS volume management...
+Prism v0.4.6 delivers comprehensive EFS volume management...
 
 [Include detailed release notes with features, improvements, and breaking changes]
 EOF
@@ -250,7 +250,7 @@ EOF
 ```bash
 # Create annotated tag with release message
 git tag -a v0.4.6 -m "$(cat <<'EOF'
-CloudWorkstation v0.4.6: Complete EFS Multi-Modal Integration
+Prism v0.4.6: Complete EFS Multi-Modal Integration
 
 🎯 Major Features:
 • Complete EFS volume management across CLI, TUI, and GUI interfaces
@@ -271,7 +271,7 @@ CloudWorkstation v0.4.6: Complete EFS Multi-Modal Integration
 ✅ EFS Volume Sharing: Multi-instance file sharing for collaborative research
 ✅ Multi-Modal Access: Professional interfaces for all user preferences
 
-This release completes CloudWorkstation's Phase 4 enterprise research platform,
+This release completes Prism's Phase 4 enterprise research platform,
 providing comprehensive multi-instance file sharing capabilities while maintaining
 core simplicity and power for individual researchers.
 
@@ -300,7 +300,7 @@ git show v0.4.6
 ```bash
 # Create GitHub release using gh CLI
 gh release create v0.4.6 \
-  --title "CloudWorkstation v0.4.6: Complete EFS Multi-Modal Integration" \
+  --title "Prism v0.4.6: Complete EFS Multi-Modal Integration" \
   --notes-file dist/v0.4.6/RELEASE_NOTES.md \
   --prerelease=false \
   dist/v0.4.6/*.tar.gz \
@@ -313,10 +313,10 @@ gh release create v0.4.6 \
 
 If using the GitHub web interface:
 
-1. Navigate to https://github.com/scttfrdmn/cloudworkstation/releases
+1. Navigate to https://github.com/scttfrdmn/prism/releases
 2. Click "Draft a new release"
 3. Choose tag: `v0.4.6`
-4. Release title: `CloudWorkstation v0.4.6: Complete EFS Multi-Modal Integration`
+4. Release title: `Prism v0.4.6: Complete EFS Multi-Modal Integration`
 5. Upload all files from `dist/v0.4.6/`
 6. Paste release notes from `RELEASE_NOTES.md`
 7. Click "Publish release"
@@ -337,32 +337,32 @@ gh release view v0.4.6
 
 ```bash
 # Clone or navigate to homebrew tap repository
-cd /path/to/homebrew-cloudworkstation
+cd /path/to/homebrew-prism
 # or
-git clone https://github.com/scttfrdmn/homebrew-cloudworkstation.git
-cd homebrew-cloudworkstation
+git clone https://github.com/scttfrdmn/homebrew-prism.git
+cd homebrew-prism
 ```
 
 ### 2. Update Formula with New Version and Checksums
 
-Update `cloudworkstation.rb` with the new version and checksums:
+Update `prism.rb` with the new version and checksums:
 
 ```ruby
 class Cloudworkstation < Formula
   desc "Academic research computing platform - Launch cloud research environments"
-  homepage "https://github.com/scttfrdmn/cloudworkstation"
+  homepage "https://github.com/scttfrdmn/prism"
   license "MIT"
-  head "https://github.com/scttfrdmn/cloudworkstation.git", branch: "main"
+  head "https://github.com/scttfrdmn/prism.git", branch: "main"
 
   version "0.4.6"  # Update version
 
   # Use prebuilt binaries for faster installation
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.6/cloudworkstation-v0.4.6-darwin-arm64.tar.gz"
+      url "https://github.com/scttfrdmn/prism/releases/download/v0.4.6/prism-v0.4.6-darwin-arm64.tar.gz"
       sha256 "5d8a11d9031cbdbd65e937034c3d50151fe49976cd2b8a631c2e68b74b93f0e8"  # Update checksum
     else
-      url "https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.6/cloudworkstation-v0.4.6-darwin-amd64.tar.gz"
+      url "https://github.com/scttfrdmn/prism/releases/download/v0.4.6/prism-v0.4.6-darwin-amd64.tar.gz"
       sha256 "8171765b3ce9dc0c4305dcf88b277d95db092cd3f8c1928449fab9753a22279d"  # Update checksum
     end
   end
@@ -378,11 +378,11 @@ Update the caveats section to reflect new version features:
 ```ruby
 def caveats
   s = <<~EOS
-    CloudWorkstation #{version} has been installed with full functionality!
+    Prism #{version} has been installed with full functionality!
 
     📦 Installed Components:
       • CLI (cws) - Command-line interface with all latest features
-      • TUI (cws tui) - Terminal user interface
+      • TUI (prism tui) - Terminal user interface
       • Daemon (cwsd) - Background service
   EOS
 
@@ -395,19 +395,19 @@ def caveats
   s += <<~EOS
 
     🚀 Quick Start:
-      cws profiles add personal research --aws-profile aws --region us-west-2
-      cws profiles switch personal
-      cws launch "Python Machine Learning (Simplified)" my-project
+      prism profiles add personal research --aws-profile aws --region us-west-2
+      prism profiles switch personal
+      prism launch "Python Machine Learning (Simplified)" my-project
 
     📚 Documentation:
-      cws help                    # Full command reference (Cobra CLI)
-      cws templates               # List available templates
-      cws daemon status           # Check daemon status
+      prism help                    # Full command reference (Cobra CLI)
+      prism templates               # List available templates
+      prism daemon status           # Check daemon status
 
     🔧 Service Management (Auto-Start on Boot):
-      brew services start cloudworkstation   # Auto-start daemon with Homebrew
-      brew services stop cloudworkstation    # Stop daemon service
-      brew services restart cloudworkstation # Restart daemon service
+      brew services start prism   # Auto-start daemon with Homebrew
+      brew services stop prism    # Stop daemon service
+      brew services restart prism # Restart daemon service
 
     🎨 Version 0.4.6 EFS Multi-Modal Integration:
       • Complete EFS volume management across CLI, TUI, and GUI interfaces
@@ -416,9 +416,9 @@ def caveats
       • Interactive TUI with tabbed navigation and keyboard-driven operations
 
       Example EFS usage:
-        cws volumes list                    # List EFS volumes
-        cws volumes mount shared-data my-instance  # Mount volume to instance
-        cws tui                            # Access storage tab (Press 4)
+        prism volumes list                    # List EFS volumes
+        prism volumes mount shared-data my-instance  # Mount volume to instance
+        prism tui                            # Access storage tab (Press 4)
 
     Note: Version 0.4.6 completes Phase 4 enterprise research platform features.
   EOS
@@ -429,7 +429,7 @@ end
 
 ```bash
 # Add and commit changes
-git add cloudworkstation.rb
+git add prism.rb
 git commit -m "📦 HOMEBREW: Update v0.4.6 formula with EFS multi-modal integration
 
 - Updated version to 0.4.6
@@ -450,11 +450,11 @@ If you encounter merge conflicts during push:
 git pull origin main
 
 # Resolve conflicts manually
-# Edit cloudworkstation.rb to resolve conflicts
+# Edit prism.rb to resolve conflicts
 # Keep the newer version info and correct checksums
 
 # Complete the merge
-git add cloudworkstation.rb
+git add prism.rb
 git rebase --continue
 
 # Push resolved changes
@@ -467,13 +467,13 @@ git push origin main
 
 ```bash
 # Test installation from updated formula
-brew uninstall cloudworkstation  # if previously installed
-brew install scttfrdmn/cloudworkstation/cloudworkstation
+brew uninstall prism  # if previously installed
+brew install scttfrdmn/prism/prism
 
 # Verify installation
 which cws
 which cwsd
-cws --version
+prism --version
 cwsd --version
 ```
 
@@ -481,8 +481,8 @@ cwsd --version
 
 ```bash
 # Download and test release artifacts
-wget https://github.com/scttfrdmn/cloudworkstation/releases/download/v0.4.6/cloudworkstation-v0.4.6-darwin-arm64.tar.gz
-tar -xzf cloudworkstation-v0.4.6-darwin-arm64.tar.gz
+wget https://github.com/scttfrdmn/prism/releases/download/v0.4.6/prism-v0.4.6-darwin-arm64.tar.gz
+tar -xzf prism-v0.4.6-darwin-arm64.tar.gz
 ./cws --version
 ./cwsd --version
 ```
@@ -500,8 +500,8 @@ Test the major features introduced in the release:
 
 ```bash
 # Test EFS volume management (v0.4.6 example)
-cws volumes list
-cws tui  # Test storage interface
+prism volumes list
+prism tui  # Test storage interface
 
 # Test GUI functionality
 cws-gui  # Test volume management interface
@@ -543,8 +543,8 @@ git push origin v0.4.6
 ```bash
 # Solution: Manual resolution
 git pull origin main
-# Edit cloudworkstation.rb manually
-git add cloudworkstation.rb
+# Edit prism.rb manually
+git add prism.rb
 git rebase --continue
 git push origin main
 ```
@@ -568,7 +568,7 @@ gh auth status
 **Issue**: Upload failures
 ```bash
 # Solution: Retry with individual files
-gh release upload v0.4.6 dist/v0.4.6/cloudworkstation-v0.4.6-darwin-arm64.tar.gz
+gh release upload v0.4.6 dist/v0.4.6/prism-v0.4.6-darwin-arm64.tar.gz
 ```
 
 ## Release Checklist
@@ -652,4 +652,4 @@ This process was used successfully for:
 
 **Last Updated**: September 28, 2025
 **Process Version**: 1.0
-**Maintainer**: CloudWorkstation Development Team
+**Maintainer**: Prism Development Team

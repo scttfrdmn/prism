@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-CloudWorkstation has successfully implemented a **comprehensive Storage/Volumes management system** in the GUI that achieves complete CLI parity with both `cws volumes` and `cws storage` commands. The implementation includes dynamic EFS/EBS volume management, creation/deletion workflows, attach/detach operations, and professional-grade error handling - transforming the GUI into a fully capable storage management platform for research computing.
+Prism has successfully implemented a **comprehensive Storage/Volumes management system** in the GUI that achieves complete CLI parity with both `prism volumes` and `prism storage` commands. The implementation includes dynamic EFS/EBS volume management, creation/deletion workflows, attach/detach operations, and professional-grade error handling - transforming the GUI into a fully capable storage management platform for research computing.
 
 ## Achievement Overview
 
@@ -18,7 +18,7 @@ Implement complete Storage/Volumes section with dynamic loading, comprehensive m
 - **Comprehensive Management**: Create, delete, attach, detach, and info operations
 - **Professional UI**: Tabbed interface with loading states and error handling
 - **Code Implementation**: +320 lines of functional storage management code
-- **CLI Parity**: 100% feature compatibility with `cws volumes` and `cws storage` commands
+- **CLI Parity**: 100% feature compatibility with `prism volumes` and `prism storage` commands
 
 ## Technical Achievements
 
@@ -36,7 +36,7 @@ Implement complete Storage/Volumes section with dynamic loading, comprehensive m
 
 ```go
 // Dynamic EFS volume loading with professional error handling
-func (g *CloudWorkstationGUI) refreshEFSVolumes() {
+func (g *PrismGUI) refreshEFSVolumes() {
     // Clear existing content and show loading
     g.efsContainer.RemoveAll()
     loadingLabel := widget.NewLabel("Loading EFS volumes...")
@@ -85,7 +85,7 @@ func (g *CloudWorkstationGUI) refreshEFSVolumes() {
 
 ```go
 // Professional EBS volume card with dynamic action buttons
-func (g *CloudWorkstationGUI) createEBSVolumeCard(volume types.EBSVolume) *widget.Card {
+func (g *PrismGUI) createEBSVolumeCard(volume types.EBSVolume) *widget.Card {
     detailsContainer := fynecontainer.NewVBox()
     
     // Comprehensive volume information
@@ -132,7 +132,7 @@ func (g *CloudWorkstationGUI) createEBSVolumeCard(volume types.EBSVolume) *widge
 
 ```go
 // Professional volume creation dialog with validation
-func (g *CloudWorkstationGUI) showCreateEBSDialog() {
+func (g *PrismGUI) showCreateEBSDialog() {
     nameEntry := widget.NewEntry()
     nameEntry.SetPlaceHolder("Enter volume name...")
     
@@ -179,16 +179,16 @@ func (g *CloudWorkstationGUI) showCreateEBSDialog() {
 **CLI Command Mapping:**
 ```bash
 # CLI Commands → GUI Functionality
-cws volumes                    → EFS Volumes tab with dynamic loading
-cws volumes create <name>      → Create EFS Volume dialog
-cws volumes delete <name>      → Delete confirmation dialog
-cws volumes info <name>        → Volume information dialog
+prism volumes                    → EFS Volumes tab with dynamic loading
+prism volumes create <name>      → Create EFS Volume dialog
+prism volumes delete <name>      → Delete confirmation dialog
+prism volumes info <name>        → Volume information dialog
 
-cws storage                    → EBS Storage tab with dynamic loading  
-cws storage create <name>      → Create EBS Volume dialog with sizing
-cws storage attach <vol> <inst> → Attach dialog with instance selection
-cws storage detach <vol>       → Detach confirmation dialog
-cws storage delete <name>      → Delete confirmation dialog
+prism storage                    → EBS Storage tab with dynamic loading  
+prism storage create <name>      → Create EBS Volume dialog with sizing
+prism storage attach <vol> <inst> → Attach dialog with instance selection
+prism storage detach <vol>       → Detach confirmation dialog
+prism storage delete <name>      → Delete confirmation dialog
 ```
 
 **Parity Features:**
@@ -210,7 +210,7 @@ cws storage delete <name>      → Delete confirmation dialog
 
 ```go
 // Professional container management with initialization
-func (g *CloudWorkstationGUI) initializeStorageContainers() {
+func (g *PrismGUI) initializeStorageContainers() {
     if g.efsContainer == nil {
         g.efsContainer = fynecontainer.NewVBox()
     }
@@ -220,7 +220,7 @@ func (g *CloudWorkstationGUI) initializeStorageContainers() {
 }
 
 // Coordinated storage refresh for both EFS and EBS
-func (g *CloudWorkstationGUI) refreshStorage() {
+func (g *PrismGUI) refreshStorage() {
     g.refreshEFSVolumes()
     g.refreshEBSStorage()
 }
@@ -236,7 +236,7 @@ func (g *CloudWorkstationGUI) refreshStorage() {
 
 ```go
 // Professional API integration with proper error handling
-func (g *CloudWorkstationGUI) createEFSVolume(request types.VolumeCreateRequest) {
+func (g *PrismGUI) createEFSVolume(request types.VolumeCreateRequest) {
     g.showNotification("info", "Creating Volume", "Creating EFS volume...")
     
     go func() {
@@ -271,7 +271,7 @@ func (g *CloudWorkstationGUI) createEFSVolume(request types.VolumeCreateRequest)
 - Progressive disclosure with simple defaults to advanced configuration
 - Visual workflow guidance for storage-compute integration
 
-### 📱 **CloudWorkstation Design Principles Applied**
+### 📱 **Prism Design Principles Applied**
 
 **Storage Section Implementation:**
 
@@ -297,7 +297,7 @@ func (g *CloudWorkstationGUI) createEFSVolume(request types.VolumeCreateRequest)
 - Error scenarios handled gracefully with user feedback
 
 ### ✅ **User Interface Standards**
-- Consistent with established CloudWorkstation design language
+- Consistent with established Prism design language
 - Responsive tabbed layout with proper scrolling behavior
 - Professional dialog system with validation and confirmation
 - Intuitive storage management workflow with clear visual cues
@@ -365,7 +365,7 @@ func (g *CloudWorkstationGUI) createEFSVolume(request types.VolumeCreateRequest)
 
 ## Conclusion
 
-The **Storage/Volumes Implementation** represents a major advancement in CloudWorkstation's research computing capabilities, providing comprehensive storage management that matches enterprise-grade cloud platforms while maintaining the simplicity researchers need.
+The **Storage/Volumes Implementation** represents a major advancement in Prism's research computing capabilities, providing comprehensive storage management that matches enterprise-grade cloud platforms while maintaining the simplicity researchers need.
 
 **Key Outcomes:**
 - ✅ **Complete Storage Management**: Both EFS and EBS systems fully supported
@@ -374,7 +374,7 @@ The **Storage/Volumes Implementation** represents a major advancement in CloudWo
 - ✅ **Research Integration**: Storage seamlessly integrated with compute workflows
 - ✅ **Scalable Architecture**: Ready for advanced storage features and multi-cloud expansion
 
-This implementation establishes CloudWorkstation as a **comprehensive research computing platform** with enterprise-grade storage management capabilities. Researchers can now visually manage persistent storage, understand cost implications, and integrate storage seamlessly into their computational workflows - all while maintaining perfect compatibility with CLI tools for automation and power users.
+This implementation establishes Prism as a **comprehensive research computing platform** with enterprise-grade storage management capabilities. Researchers can now visually manage persistent storage, understand cost implications, and integrate storage seamlessly into their computational workflows - all while maintaining perfect compatibility with CLI tools for automation and power users.
 
 The consistent pattern of dynamic API integration, professional error handling, and CLI parity established across Templates and Storage sections provides a solid foundation for the remaining Phase 2 GUI components.
 
@@ -382,4 +382,4 @@ The consistent pattern of dynamic API integration, professional error handling, 
 
 **Project Status:** 🎉 **STORAGE/VOLUMES SECTION COMPLETE** 🎉
 
-*This achievement transforms CloudWorkstation from a simple instance launcher into a comprehensive research computing platform with professional storage management capabilities rivaling dedicated cloud platforms.*
+*This achievement transforms Prism from a simple instance launcher into a comprehensive research computing platform with professional storage management capabilities rivaling dedicated cloud platforms.*

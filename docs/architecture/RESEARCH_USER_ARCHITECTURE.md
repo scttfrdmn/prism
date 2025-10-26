@@ -2,7 +2,7 @@
 
 ## Overview
 
-CloudWorkstation's multi-user architecture implements a **one-user-per-instance** model where each instance contains:
+Prism's multi-user architecture implements a **one-user-per-instance** model where each instance contains:
 1. **System User**: For system administration and service management
 2. **Research User**: For actual research work, connected to the researcher's identity
 
@@ -11,7 +11,7 @@ Research users are **per-profile**, meaning each AWS account invitation creates 
 ## Core Principles
 
 ### Single-User Instance Model
-- **One research user per instance** - CloudWorkstation extends your laptop/workstation concept
+- **One research user per instance** - Prism extends your laptop/workstation concept
 - **No multi-tenancy** - Each instance is dedicated to one researcher  
 - **Profile-Based Identity** - Research user tied to profile (AWS account), not global
 - **Consistent Identity** - Same UID/GID across all instances in an AWS account
@@ -116,7 +116,7 @@ sequenceDiagram
     participant ProfileManager
     participant AWSManager
     
-    User->>CLI: cws profiles accept-invitation --encoded [token]
+    User->>CLI: prism profiles accept-invitation --encoded [token]
     CLI->>InvitationManager: DecodeInvitation(token)
     InvitationManager->>CLI: invitation
     
@@ -148,7 +148,7 @@ sequenceDiagram
     participant AWSManager
     participant Instance
     
-    User->>CLI: cws launch python-ml my-project
+    User->>CLI: prism launch python-ml my-project
     CLI->>TemplateResolver: ResolveTemplate() with profile
     TemplateResolver->>TemplateResolver: GenerateUserData() for research user
     CLI->>AWSManager: LaunchInstance() with enhanced user data
@@ -228,7 +228,7 @@ func (g *GlobusAuthClient) ExchangeAuthCode(code, state string, session *AuthSes
 
 ```bash
 # Enhanced invitation acceptance with optional Globus Auth
-$ cws profiles accept-invitation --encoded [token] --name "Lab Collaboration"
+$ prism profiles accept-invitation --encoded [token] --name "Lab Collaboration"
 
 # If invitation requires Globus Auth:
 Invitation requires Globus Auth for identity verification.
@@ -246,7 +246,7 @@ Creating profile 'Lab Collaboration'...
   ✓ Profile: Ready for use
 
 Profile 'Lab Collaboration' created successfully.
-Switch to it with: cws profiles switch Lab-Collaboration
+Switch to it with: prism profiles switch Lab-Collaboration
 ```
 
 ## Research User Provisioning
@@ -257,7 +257,7 @@ Enhanced user data generation for research user creation:
 
 ```bash
 #!/bin/bash
-# Enhanced CloudWorkstation user data with research user
+# Enhanced Prism user data with research user
 
 # Create research user with consistent UID/GID
 RESEARCH_USER="alice_researcher"
@@ -271,7 +271,7 @@ usermod -aG sudo,docker $RESEARCH_USER
 
 # Configure SSH access for research user
 mkdir -p /home/$RESEARCH_USER/.ssh
-echo "ssh-rsa AAAA... alice_researcher@cloudworkstation" > /home/$RESEARCH_USER/.ssh/authorized_keys
+echo "ssh-rsa AAAA... alice_researcher@prism" > /home/$RESEARCH_USER/.ssh/authorized_keys
 chmod 600 /home/$RESEARCH_USER/.ssh/authorized_keys
 chown -R $RESEARCH_USER:$RESEARCH_USER /home/$RESEARCH_USER/.ssh
 

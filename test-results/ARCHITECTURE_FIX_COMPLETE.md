@@ -20,7 +20,7 @@ the architecture 'arm64' of the specified AMI.
 ### After Fix
 ```
 # Different error now - IAM profile setup (AWS account configuration issue)
-Error: Value (CloudWorkstation-Instance-Profile) for parameter iamInstanceProfile.name is invalid
+Error: Value (Prism-Instance-Profile) for parameter iamInstanceProfile.name is invalid
 ```
 **Impact**: Architecture mismatch RESOLVED ✅
 
@@ -29,7 +29,7 @@ Error: Value (CloudWorkstation-Instance-Profile) for parameter iamInstanceProfil
 ## What Was Fixed
 
 ### Root Cause
-CloudWorkstation was using `runtime.GOARCH` (local machine architecture) to select AMIs, then pairing them with instance types that might have different architectures.
+Prism was using `runtime.GOARCH` (local machine architecture) to select AMIs, then pairing them with instance types that might have different architectures.
 
 ### Solution Implemented
 **Option 1**: Query AWS for instance type architecture, then select matching AMI
@@ -159,7 +159,7 @@ the architecture 'arm64' of the specified AMI.
 ```bash
 $ ./bin/cws daemon stop && ./bin/cws daemon start
 $ ./bin/cws launch test-ssh arch-fix-test2 --size S
-Error: Value (CloudWorkstation-Instance-Profile) for parameter
+Error: Value (Prism-Instance-Profile) for parameter
 iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name
 ```
 **Result**: ✅ Architecture error GONE - new error is AWS IAM setup
@@ -185,7 +185,7 @@ This proves:
 **Example with Size=S on ARM64 Mac**:
 
 ```
-1. User runs: cws launch test-ssh my-instance --size S
+1. User runs: prism launch test-ssh my-instance --size S
 2. System determines: Size S → instance type t3.small
 3. System queries AWS: t3.small supports which architecture?
 4. AWS responds: t3.small → x86_64
@@ -195,7 +195,7 @@ This proves:
 
 **Before Fix (broken)**:
 ```
-1. User runs: cws launch test-ssh my-instance --size S
+1. User runs: prism launch test-ssh my-instance --size S
 2. System detects: Local machine is ARM64 Mac
 3. System selects: ARM64 AMI
 4. Template specifies: t3.small instance type (x86_64 only)
@@ -216,7 +216,7 @@ This proves:
 ### Immediate (Before Full Validation)
 
 **Issue**: AWS IAM Instance Profile not set up
-**Error**: `Value (CloudWorkstation-Instance-Profile) for parameter iamInstanceProfile.name is invalid`
+**Error**: `Value (Prism-Instance-Profile) for parameter iamInstanceProfile.name is invalid`
 
 **Options**:
 1. Create the IAM instance profile in AWS account
@@ -260,7 +260,7 @@ This proves:
 
 ## Design Principles Validated
 
-The fix now properly embodies CloudWorkstation design principles:
+The fix now properly embodies Prism design principles:
 
 ✅ **Default to Success**: Mac users can now succeed by default
 ✅ **Optimize by Default**: Correct architecture selected automatically

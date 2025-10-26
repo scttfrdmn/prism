@@ -4,8 +4,8 @@
 - main:
   - navigation:
     - button
-    - heading "CloudWorkstation" [level=2]:
-      - link "CloudWorkstation":
+    - heading "Prism" [level=2]:
+      - link "Prism":
         - /url: /
     - list:
       - listitem:
@@ -66,7 +66,7 @@
     - list
   - heading "Dashboard" [level=1]
   - button "Refresh"
-  - paragraph: CloudWorkstation research computing platform - manage your cloud environments
+  - paragraph: Prism research computing platform - manage your cloud environments
   - heading "Research Templates" [level=2]
   - text: Available Templates 27
   - button "Browse Templates"

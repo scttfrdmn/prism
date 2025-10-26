@@ -107,7 +107,7 @@ $ AWS_REGION=us-west-2 ./bin/cws launch test-ssh region-fix-test --size S
 🚀 Instance region-fix-test launched successfully
 
 # Verify region saved
-$ cat ~/.cloudworkstation/state.json | jq -r '.instances["region-fix-test"].region'
+$ cat ~/.prism/state.json | jq -r '.instances["region-fix-test"].region'
 us-west-2  # ✅ SUCCESS!
 ```
 
@@ -124,7 +124,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 	// This queries m.ec2 which is configured for m.region only
 	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: []ec2types.Filter{
-			// CloudWorkstation tag filter
+			// Prism tag filter
 		},
 	})
 	// Only gets instances from daemon's default region
@@ -184,10 +184,10 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 **Pros**:
 - Fast (only queries regions with instances)
 - Fewer API calls
-- Still shows all CloudWorkstation instances
+- Still shows all Prism instances
 
 **Cons**:
-- Won't discover instances created outside CloudWorkstation
+- Won't discover instances created outside Prism
 - Requires state file to be accurate
 
 #### Option 3: Use State File Only (Simple)
@@ -228,8 +228,8 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
    - Log warnings about "orphaned" instances
 
 3. **CLI Flag**: Add `--all-regions` flag
-   - `cws list` = fast (saved regions only)
-   - `cws list --all-regions` = comprehensive (all regions)
+   - `prism list` = fast (saved regions only)
+   - `prism list --all-regions` = comprehensive (all regions)
 
 ### Estimated Implementation Time
 

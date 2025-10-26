@@ -1,6 +1,6 @@
 # Template Dependency Resolution System
 
-CloudWorkstation's template dependency system enables the creation of modular, composable templates with clear relationships between them. This document explains how the dependency resolution system works and how to use it effectively.
+Prism's template dependency system enables the creation of modular, composable templates with clear relationships between them. This document explains how the dependency resolution system works and how to use it effectively.
 
 ## Key Concepts
 
@@ -73,39 +73,39 @@ The dependency graph is generated using a modified topological sort:
 
 ```bash
 # View dependencies for a template
-cws ami template dependency list my-template
+prism ami template dependency list my-template
 
 # Check if dependencies are satisfied
-cws ami template dependency check my-template
+prism ami template dependency check my-template
 
 # Analyze dependencies in detail
-cws ami template dependency analyze my-template
+prism ami template dependency analyze my-template
 ```
 
 ### Resolving Dependencies
 
 ```bash
 # Resolve dependencies (without fetching)
-cws ami template dependency resolve my-template
+prism ami template dependency resolve my-template
 
 # Resolve and fetch missing dependencies
-cws ami template dependency resolve my-template --fetch
+prism ami template dependency resolve my-template --fetch
 
 # View dependency graph
-cws ami template dependency graph my-template
+prism ami template dependency graph my-template
 ```
 
 ### Working with Template Versions
 
 ```bash
 # List all versions of a template
-cws ami template version list my-template
+prism ami template version list my-template
 
 # Search for versions matching criteria
-cws ami template version search my-template --min-version 2.0.0
+prism ami template version search my-template --min-version 2.0.0
 
 # Compare two versions
-cws ami template version compare 1.2.3 2.0.0
+prism ami template version compare 1.2.3 2.0.0
 ```
 
 ## Managing Dependencies
@@ -114,30 +114,30 @@ cws ami template version compare 1.2.3 2.0.0
 
 ```bash
 # Add a dependency with version constraint
-cws ami template dependency add my-template dependency-name --version 1.0.0 --operator ">="
+prism ami template dependency add my-template dependency-name --version 1.0.0 --operator ">="
 
 # Add an optional dependency
-cws ami template dependency add my-template optional-dep --optional
+prism ami template dependency add my-template optional-dep --optional
 ```
 
 ### Removing Dependencies
 
 ```bash
 # Remove a dependency
-cws ami template dependency remove my-template dependency-name
+prism ami template dependency remove my-template dependency-name
 ```
 
 ### Incrementing Template Versions
 
 ```bash
 # Increment major version (breaking changes)
-cws ami template version increment my-template major
+prism ami template version increment my-template major
 
 # Increment minor version (new features)
-cws ami template version increment my-template minor
+prism ami template version increment my-template minor
 
 # Increment patch version (bug fixes)
-cws ami template version increment my-template patch
+prism ami template version increment my-template patch
 ```
 
 ## Best Practices
@@ -165,7 +165,7 @@ When different templates require conflicting versions of the same dependency, th
 
 ### Registry Integration
 
-The dependency resolver can automatically fetch missing dependencies from the CloudWorkstation template registry when the `--fetch` option is used.
+The dependency resolver can automatically fetch missing dependencies from the Prism template registry when the `--fetch` option is used.
 
 ### Dependency Analysis
 
@@ -187,4 +187,4 @@ Common error messages and their solutions:
 
 ---
 
-The dependency resolution system ensures CloudWorkstation templates can be composed reliably while maintaining compatibility between different components. This aligns with CloudWorkstation's core design principles of Default to Success and Transparent Fallbacks.
+The dependency resolution system ensures Prism templates can be composed reliably while maintaining compatibility between different components. This aligns with Prism's core design principles of Default to Success and Transparent Fallbacks.

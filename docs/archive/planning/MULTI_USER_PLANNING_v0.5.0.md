@@ -1,7 +1,7 @@
-# Multi-User CloudWorkstation Planning (v0.5.0)
+# Multi-User Prism Planning (v0.5.0)
 
 ## Overview
-Planning document for comprehensive multi-user support in CloudWorkstation v0.5.0, enabling proper user identity management and consistent UID/GID mapping across instances for seamless EFS collaboration.
+Planning document for comprehensive multi-user support in Prism v0.5.0, enabling proper user identity management and consistent UID/GID mapping across instances for seamless EFS collaboration.
 
 ## Current State (v0.4.1)
 - Single default user per template (ubuntu, rocky, ec2-user)
@@ -22,7 +22,7 @@ Planning document for comprehensive multi-user support in CloudWorkstation v0.5.
       "uid": 2000,
       "gid": 2000,
       "primary_group": "alice",
-      "groups": ["researchers", "cloudworkstation-users"],
+      "groups": ["researchers", "prism-users"],
       "shell": "/bin/bash",
       "ssh_keys": ["ssh-rsa AAAAB3..."],
       "created": "2025-01-15T10:30:00Z"
@@ -40,7 +40,7 @@ Planning document for comprehensive multi-user support in CloudWorkstation v0.5.
   "groups": {
     "researchers": {"gid": 4000, "description": "Research team members"},
     "admins": {"gid": 4001, "description": "Administrative users"},
-    "cloudworkstation-users": {"gid": 3000, "description": "All CWS users"}
+    "prism-users": {"gid": 3000, "description": "All CWS users"}
   }
 }
 ```
@@ -48,28 +48,28 @@ Planning document for comprehensive multi-user support in CloudWorkstation v0.5.
 #### 2. CLI Commands
 ```bash
 # User management
-cws user add <username> [--uid <uid>] [--groups <group1,group2>]
-cws user remove <username> [--preserve-data]
-cws user list [--instance <name>]
-cws user info <username>
-cws user modify <username> --add-group <group> | --remove-group <group>
+prism user add <username> [--uid <uid>] [--groups <group1,group2>]
+prism user remove <username> [--preserve-data]
+prism user list [--instance <name>]
+prism user info <username>
+prism user modify <username> --add-group <group> | --remove-group <group>
 
 # User provisioning  
-cws user provision <username> <instance1,instance2,...>
-cws user deprovision <username> <instance1,instance2,...>
-cws user sync [--instance <name>]  # Sync registry to instance(s)
+prism user provision <username> <instance1,instance2,...>
+prism user deprovision <username> <instance1,instance2,...>
+prism user sync [--instance <name>]  # Sync registry to instance(s)
 
 # SSH key management
-cws user add-key <username> <public-key-file>
-cws user remove-key <username> <key-fingerprint>
-cws user list-keys <username>
+prism user add-key <username> <public-key-file>
+prism user remove-key <username> <key-fingerprint>
+prism user list-keys <username>
 
 # Group management
-cws group add <groupname> [--gid <gid>]
-cws group remove <groupname>
-cws group list
-cws group add-member <groupname> <username>
-cws group remove-member <groupname> <username>
+prism group add <groupname> [--gid <gid>]
+prism group remove <groupname>
+prism group list
+prism group add-member <groupname> <username>
+prism group remove-member <groupname> <username>
 ```
 
 #### 3. Template Enhancements
@@ -82,7 +82,7 @@ default_user: "ubuntu"  # Preserved for backwards compatibility
 # Multi-user settings
 multi_user:
   enabled: true
-  default_groups: ["cloudworkstation-users", "researchers"]
+  default_groups: ["prism-users", "researchers"]
   home_base: "/home"
   efs_permissions: "group_shared"  # group_shared | user_private | posix_acl
 
@@ -92,7 +92,7 @@ packages:
   - amazon-efs-utils       # EFS mounting
 
 groups:
-  - name: cloudworkstation-users
+  - name: prism-users
     gid: 3000
   - name: researchers
     gid: 4000
@@ -117,7 +117,7 @@ efs_config:
 ├── projects/
 │   ├── project-alpha/   (varies by project owner)
 │   └── project-beta/
-└── scratch/             (root:cloudworkstation-users, 1777) # temp space
+└── scratch/             (root:prism-users, 1777) # temp space
 ```
 
 **B) Group Shared**
@@ -138,7 +138,7 @@ sudo setfacl -m u:alice:rwx /mnt/shared/projects/alice-project
 
 #### 5. State Management
 ```json
-// Enhanced CloudWorkstation state
+// Enhanced Prism state
 {
   "instances": {...},
   "volumes": {...},
@@ -201,11 +201,11 @@ DELETE /api/v1/groups/{groupname}/members/{username}    # Remove member
 ### Migration Strategy
 1. **Backwards Compatibility**: Existing single-user instances continue working unchanged
 2. **Opt-in Multi-User**: Templates explicitly enable multi-user with `multi_user.enabled: true`
-3. **Gradual Adoption**: Users can migrate existing instances via `cws user sync`
+3. **Gradual Adoption**: Users can migrate existing instances via `prism user sync`
 4. **Data Preservation**: User removal preserves data by default with `--preserve-data` flag
 
 ### Security Considerations
-- UID range reservation (2000-9999 for CloudWorkstation users)
+- UID range reservation (2000-9999 for Prism users)
 - SSH key validation and deduplication
 - Audit trail for all user management operations
 - Group membership verification before EFS access
@@ -241,4 +241,4 @@ DELETE /api/v1/groups/{groupname}/members/{username}    # Remove member
 
 ---
 
-**Note**: This represents a significant architectural enhancement to CloudWorkstation, transforming it from a single-user research tool into a collaborative multi-user platform while maintaining the core principle of "Default to Success" for simple use cases.
+**Note**: This represents a significant architectural enhancement to Prism, transforming it from a single-user research tool into a collaborative multi-user platform while maintaining the core principle of "Default to Success" for simple use cases.

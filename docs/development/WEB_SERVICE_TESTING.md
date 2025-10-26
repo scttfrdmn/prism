@@ -2,20 +2,20 @@
 
 ## Overview
 
-This document provides testing procedures for the automatic web service tunneling feature implemented in CloudWorkstation.
+This document provides testing procedures for the automatic web service tunneling feature implemented in Prism.
 
 ## Features to Test
 
 ### 1. Automatic Tunnel Creation on Connect
 
-**Test**: `cws connect` should automatically create tunnels for all web services
+**Test**: `prism connect` should automatically create tunnels for all web services
 
 ```bash
 # Launch instance with web services
-cws launch python-ml test-jupyter --size S
+prism launch python-ml test-jupyter --size S
 
 # Connect - should show tunnel creation
-cws connect test-jupyter
+prism connect test-jupyter
 
 # Expected output:
 # 🌐 Setting up tunnels for web services...
@@ -33,10 +33,10 @@ cws connect test-jupyter
 
 ### 2. Web Service List Command
 
-**Test**: `cws web list` shows all available services with tunnel status
+**Test**: `prism web list` shows all available services with tunnel status
 
 ```bash
-cws web list test-jupyter
+prism web list test-jupyter
 
 # Expected output:
 # Web services for test-jupyter:
@@ -56,10 +56,10 @@ cws web list test-jupyter
 
 ### 3. Web Service Open Command
 
-**Test**: `cws web open` creates tunnel and opens browser
+**Test**: `prism web open` creates tunnel and opens browser
 
 ```bash
-cws web open test-jupyter jupyter
+prism web open test-jupyter jupyter
 
 # Expected output:
 # 🌐 Creating tunnel for jupyter...
@@ -76,14 +76,14 @@ cws web open test-jupyter jupyter
 
 ### 4. Web Service Close Command
 
-**Test**: `cws web close` closes tunnels
+**Test**: `prism web close` closes tunnels
 
 ```bash
 # Close specific service
-cws web close test-jupyter jupyter
+prism web close test-jupyter jupyter
 
 # Close all services
-cws web close test-jupyter
+prism web close test-jupyter
 
 # Expected output:
 # 🔒 Closing tunnel for test-jupyter/jupyter...
@@ -101,12 +101,12 @@ cws web close test-jupyter
 
 ```bash
 # Launch Jupyter instance
-cws launch python-ml test-jupyter --size S
+prism launch python-ml test-jupyter --size S
 
 # Connect or open web service
-cws connect test-jupyter
+prism connect test-jupyter
 # or
-cws web open test-jupyter jupyter
+prism web open test-jupyter jupyter
 ```
 
 **Validation**:
@@ -121,13 +121,13 @@ cws web open test-jupyter jupyter
 
 ```bash
 # Launch R instance (has RStudio + Shiny)
-cws launch r-research test-r --size M
+prism launch r-research test-r --size M
 
 # Create tunnels for all services
-cws connect test-r
+prism connect test-r
 
 # List all tunnels
-cws web list test-r
+prism web list test-r
 ```
 
 **Validation**:
@@ -142,10 +142,10 @@ cws web list test-r
 
 ```bash
 # Launch instance
-cws launch python-ml test-services --size S
+prism launch python-ml test-services --size S
 
 # Check instance has services
-cws show test-services | grep -i service
+prism show test-services | grep -i service
 ```
 
 **Validation**:
@@ -178,14 +178,14 @@ cws-gui
 
 ### Minimal Test Instance
 ```bash
-cws launch python-ml test-web-minimal --size S --spot
+prism launch python-ml test-web-minimal --size S --spot
 # Fast launch, low cost
 # Services: Jupyter Lab (port 8888)
 ```
 
 ### Full-Featured Test Instance
 ```bash
-cws launch r-research test-web-full --size M
+prism launch r-research test-web-full --size M
 # Complete testing
 # Services: RStudio Server (8787), Shiny Server (3838)
 ```
@@ -224,8 +224,8 @@ cws launch r-research test-web-full --size M
 After testing, remove test instances:
 
 ```bash
-cws delete test-web-services --yes
-cws delete test-jupyter --yes
-cws delete test-r --yes
+prism delete test-web-services --yes
+prism delete test-jupyter --yes
+prism delete test-r --yes
 # etc.
 ```

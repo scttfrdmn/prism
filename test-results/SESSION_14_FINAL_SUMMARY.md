@@ -93,7 +93,7 @@ $ AWS_REGION=us-west-2 ./bin/cws launch test-ssh region-fix-test --size S
 ✅ PASS - Region saved correctly
 
 # 2. Verify in state
-$ cat ~/.cloudworkstation/state.json | jq -r '.instances["region-fix-test"].region'
+$ cat ~/.prism/state.json | jq -r '.instances["region-fix-test"].region'
 us-west-2
 ✅ PASS - Region persisted
 
@@ -178,7 +178,7 @@ $ ./bin/cws launch test-ssh test --size S
 
 # After architecture fix, IAM blocking (Session 13 bug)
 $ ./bin/cws launch test-ssh test --size S
-❌ Error: IAM profile CloudWorkstation-Instance-Profile invalid
+❌ Error: IAM profile Prism-Instance-Profile invalid
 
 # After IAM fix, region bug (Session 14 bug)
 $ AWS_REGION=us-west-2 ./bin/cws launch test-ssh test --size S

@@ -1,8 +1,8 @@
-# CloudWorkstation Marketplace Commands Test Guide
+# Prism Marketplace Commands Test Guide
 
 ## Overview
 
-The CloudWorkstation marketplace system has been fully implemented with complete CLI integration and daemon backend support. All marketplace commands now use real daemon API calls instead of mock responses.
+The Prism marketplace system has been fully implemented with complete CLI integration and daemon backend support. All marketplace commands now use real daemon API calls instead of mock responses.
 
 ## Available Marketplace Commands
 

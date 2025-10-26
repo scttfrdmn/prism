@@ -1,4 +1,4 @@
-# CloudWorkstation v0.5.2 Release Notes
+# Prism v0.5.2 Release Notes
 
 **Release Date**: March 2026 (Planned)
 **Release Type**: Major Feature Release - Universal AMI System
@@ -6,7 +6,7 @@
 
 ## 🎯 **Release Focus**
 
-v0.5.2 introduces the **Universal AMI System**, transforming CloudWorkstation from script-only provisioning to intelligent hybrid deployment that dramatically improves launch times and reliability for any research environment.
+v0.5.2 introduces the **Universal AMI System**, transforming Prism from script-only provisioning to intelligent hybrid deployment that dramatically improves launch times and reliability for any research environment.
 
 ---
 
@@ -23,7 +23,7 @@ v0.5.2 introduces the **Universal AMI System**, transforming CloudWorkstation fr
 **Multi-Tier Intelligent Resolution**:
 ```bash
 # Automatic AMI resolution with transparent fallbacks
-cws launch python-ml my-research
+prism launch python-ml my-research
 🔍 Resolving AMI for template: python-ml
 ✅ Found optimized AMI: ami-0123456789abcdef0
 📈 Performance: 4.2x faster launch (30s vs 6min)
@@ -57,21 +57,21 @@ ami_config:
 **Create AMIs from Templates**:
 ```bash
 # Generate AMI from successful instance
-cws ami create python-ml my-instance --name "Python ML v2.1.0" --public
+prism ami create python-ml my-instance --name "Python ML v2.1.0" --public
 🔧 Creating AMI from instance: my-instance
 📸 Creating snapshot of root volume...
 🏗️  Building AMI: Python ML v2.1.0
 ✅ AMI created: ami-0123456789abcdef0
 
 # Share with community
-cws ami share ami-0123456789abcdef0 --community cloudworkstation
-✅ AMI shared with cloudworkstation community
+prism ami share ami-0123456789abcdef0 --community prism
+✅ AMI shared with prism community
 ```
 
 **Multi-Region Deployment**:
 ```bash
 # Deploy AMI across multiple regions
-cws ami create-multi python-ml my-instance --regions us-east-1,us-west-2,eu-west-1
+prism ami create-multi python-ml my-instance --regions us-east-1,us-west-2,eu-west-1
 🌍 Creating AMI in multiple regions...
 📸 Creating master AMI in us-east-1...
 🔄 Copying to us-west-2... ✅
@@ -82,7 +82,7 @@ cws ami create-multi python-ml my-instance --regions us-east-1,us-west-2,eu-west
 **AMI Testing & Validation**:
 ```bash
 # Test AMI availability across regions
-cws ami test python-ml --all-regions
+prism ami test python-ml --all-regions
 🧪 Testing AMI availability for template: python-ml
 
 ✅ us-east-1: ami-0123456789abcdef0 (available)
@@ -123,7 +123,7 @@ ap-south-1 → ap-southeast-1, ap-northeast-1, us-east-1
 ### **🔍 AMI Resolution Preview**
 ```bash
 # Show resolution strategy before launch
-cws launch python-ml my-research --dry-run --show-ami-resolution
+prism launch python-ml my-research --dry-run --show-ami-resolution
 🔍 AMI Resolution Preview:
 
 Strategy: ami_preferred
@@ -143,7 +143,7 @@ Cost Comparison:
 ### **⚠️ Intelligent Warnings & Guidance**
 ```bash
 # Smart fallback with user choice
-cws launch python-ml my-research --prefer-script
+prism launch python-ml my-research --prefer-script
 ⚠️  Script provisioning requested (6 minutes estimated)
 🔍 AMI available: ami-0123456789abcdef0 (30 seconds)
 Continue with script provisioning? [y/N]: n
@@ -153,7 +153,7 @@ Continue with script provisioning? [y/N]: n
 ### **🌍 Regional Deployment Intelligence**
 ```bash
 # Automatic cross-region resolution
-cws launch python-ml my-research --region ap-south-1
+prism launch python-ml my-research --region ap-south-1
 🔍 Resolving AMI in ap-south-1...
 ❌ No AMI in ap-south-1
 🔄 Searching fallback regions...
@@ -331,4 +331,4 @@ GET /api/v1/ami/costs                   # Get AMI deployment costs
 
 ---
 
-**CloudWorkstation v0.5.2** represents a significant advancement in research computing deployment speed and reliability. The Universal AMI System transforms the platform from script-based provisioning into an intelligent hybrid system that provides researchers with faster, more reliable research environments while maintaining complete flexibility and backwards compatibility.
+**Prism v0.5.2** represents a significant advancement in research computing deployment speed and reliability. The Universal AMI System transforms the platform from script-based provisioning into an intelligent hybrid system that provides researchers with faster, more reliable research environments while maintaining complete flexibility and backwards compatibility.

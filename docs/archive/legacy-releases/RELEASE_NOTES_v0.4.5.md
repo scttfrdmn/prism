@@ -1,8 +1,8 @@
-# CloudWorkstation v0.4.5 Release Notes
+# Prism v0.4.5 Release Notes
 
 ## 🎯 Release Summary
 
-CloudWorkstation v0.4.5 represents a major advancement in testing infrastructure and security hardening, building upon the enterprise research platform foundation of v0.4.2. This release delivers production-grade GUI testing coverage and enhanced template system capabilities.
+Prism v0.4.5 represents a major advancement in testing infrastructure and security hardening, building upon the enterprise research platform foundation of v0.4.2. This release delivers production-grade GUI testing coverage and enhanced template system capabilities.
 
 ## 🎉 Major Achievements
 
@@ -95,14 +95,14 @@ CloudWorkstation v0.4.5 represents a major advancement in testing infrastructure
 ## 🔄 Upgrade Path
 
 ### From v0.4.2/v0.4.3
-CloudWorkstation v0.4.5 is fully backward compatible:
+Prism v0.4.5 is fully backward compatible:
 
 ```bash
 # Existing installations will auto-update daemon
-cws daemon restart
+prism daemon restart
 
 # Verify upgrade
-cws --version  # Should show v0.4.5
+prism --version  # Should show v0.4.5
 ```
 
 ### Fresh Installation
@@ -110,10 +110,10 @@ Follow the standard installation process - all testing infrastructure is include
 
 ```bash
 # macOS
-brew install cloudworkstation
+brew install prism
 
 # Verify with included tests
-cws doctor
+prism doctor
 ```
 
 ## 🐛 Known Issues
@@ -152,4 +152,4 @@ cws doctor
 **Release Type**: Minor version with testing infrastructure and security improvements
 **Backward Compatibility**: Full compatibility with v0.4.x configurations and data
 
-🎉 **CloudWorkstation v0.4.5** - Production-grade GUI testing, enhanced security, and robust multi-platform support for academic research computing.
+🎉 **Prism v0.4.5** - Production-grade GUI testing, enhanced security, and robust multi-platform support for academic research computing.

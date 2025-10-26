@@ -1,4 +1,4 @@
-# CloudWorkstation Roadmap - October 2025 Update
+# Prism Roadmap - October 2025 Update
 
 ## Current Status: Ready for Cloudscape Migration
 
@@ -14,7 +14,7 @@
 **Impact**: School-deployment ready professional interface
 
 #### Why This Is Critical Now (October 2025)
-With schools actively interested in CloudWorkstation, the Cloudscape migration becomes our highest priority to deliver the professional interface they expect. The custom GUI, while functional, needs AWS-quality polish for institutional confidence.
+With schools actively interested in Prism, the Cloudscape migration becomes our highest priority to deliver the professional interface they expect. The custom GUI, while functional, needs AWS-quality polish for institutional confidence.
 
 #### November 2025 Deliverables
 - **Week 1**: Template selection with Cloudscape Cards and PropertyFilter
@@ -156,6 +156,6 @@ October 2025 represents the ideal timing for the Cloudscape migration:
 3. **Development Resources**: Team is ready to focus on migration
 4. **Market Timing**: AWS Cloudscape is mature and well-documented
 
-The November 2025 migration positions CloudWorkstation to meet school deployment needs with professional interface quality, accelerating adoption and enabling the research computing platform vision to be realized ahead of schedule.
+The November 2025 migration positions Prism to meet school deployment needs with professional interface quality, accelerating adoption and enabling the research computing platform vision to be realized ahead of schedule.
 
 **Next Action**: Begin Cloudscape migration implementation immediately to deliver professional interface by December 2025 for school pilot programs.

@@ -1,4 +1,4 @@
-# CloudWorkstation GUI: Comprehensive Remediation Plan
+# Prism GUI: Comprehensive Remediation Plan
 ## UX Improvements + WCAG 2.2 Accessibility Compliance
 
 **Date**: October 13, 2025
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This comprehensive plan integrates **18 UX improvements** and **17 accessibility fixes** into a prioritized, sprint-based implementation schedule. The plan ensures CloudWorkstation GUI meets both user experience best practices and WCAG 2.2 Level AA compliance standards before production launch.
+This comprehensive plan integrates **18 UX improvements** and **17 accessibility fixes** into a prioritized, sprint-based implementation schedule. The plan ensures Prism GUI meets both user experience best practices and WCAG 2.2 Level AA compliance standards before production launch.
 
 ### Overall Statistics
 
@@ -335,7 +335,7 @@ function App() {
   navigation={
     <nav aria-label="Main navigation" role="navigation">
       <SideNavigation
-        header={{ text: 'CloudWorkstation', href: '#/' }}
+        header={{ text: 'Prism', href: '#/' }}
         items={navItems}
         activeHref={`#${state.activeView}`}
       />
@@ -654,7 +654,7 @@ export const OnboardingModal: React.FC = () => {
     <Modal
       visible={visible}
       onDismiss={handleComplete}
-      header="Welcome to CloudWorkstation!"
+      header="Welcome to Prism!"
       size="large"
       footer={
         <Box float="right">
@@ -680,7 +680,7 @@ export const OnboardingModal: React.FC = () => {
         <SpaceBetween size="l">
           <Box variant="h2">Launch Research Environments in Seconds</Box>
           <Box>
-            CloudWorkstation provides pre-configured cloud computing environments
+            Prism provides pre-configured cloud computing environments
             for data analysis, machine learning, and research computing.
           </Box>
           <ColumnLayout columns={3}>

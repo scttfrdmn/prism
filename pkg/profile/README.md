@@ -40,7 +40,7 @@ The profile package has been dramatically simplified to focus on core functional
 ### New Simplified API (Use This)
 
 ```go
-import "github.com/scttfrdmn/cloudworkstation/pkg/profile"
+import "github.com/scttfrdmn/prism/pkg/profile"
 
 // Get simplified manager
 manager, err := profile.GetDefaultManager()
@@ -194,4 +194,4 @@ legacyProfiles, err := compat.ListProfiles() // Returns legacy format
 - [ ] Complete documentation
 - [ ] Performance benchmarks
 
-This simplification represents a fundamental improvement in the CloudWorkstation architecture, eliminating over-engineering while maintaining all essential functionality.
+This simplification represents a fundamental improvement in the Prism architecture, eliminating over-engineering while maintaining all essential functionality.

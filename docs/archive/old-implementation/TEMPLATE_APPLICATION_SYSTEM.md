@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CloudWorkstation Template Application System enables applying software templates to already running instances without requiring instance recreation. This revolutionary capability transforms CloudWorkstation from a simple instance launcher into a comprehensive research environment manager.
+The Prism Template Application System enables applying software templates to already running instances without requiring instance recreation. This revolutionary capability transforms Prism from a simple instance launcher into a comprehensive research environment manager.
 
 ## Key Benefits
 
@@ -21,17 +21,17 @@ The CloudWorkstation Template Application System enables applying software templ
 ## Core Capabilities
 
 ### 1. Template Application
-Apply any CloudWorkstation template to a running instance:
+Apply any Prism template to a running instance:
 
 ```bash
 # Apply machine learning stack to existing Python environment
-cws template apply cuda-ml my-workspace
+prism template apply cuda-ml my-workspace
 
 # Add bioinformatics tools to existing instance  
-cws template apply bioinformatics data-analysis --package-manager conda
+prism template apply bioinformatics data-analysis --package-manager conda
 
 # Preview changes before applying
-cws template apply r-research stats-box --dry-run
+prism template apply r-research stats-box --dry-run
 ```
 
 ### 2. Environment Difference Analysis
@@ -39,7 +39,7 @@ Calculate exactly what will change before applying templates:
 
 ```bash
 # See what packages/services will be installed
-cws template diff neuroimaging brain-analysis
+prism template diff neuroimaging brain-analysis
 
 # Example output:
 # Packages to install (conda):
@@ -57,7 +57,7 @@ Track the history of applied templates with full transparency:
 
 ```bash
 # View all applied template layers
-cws template layers my-workspace
+prism template layers my-workspace
 
 # Example output:
 # Applied Templates:
@@ -71,7 +71,7 @@ Undo template applications safely with checkpoint-based recovery:
 
 ```bash
 # Rollback to before ML stack was applied
-cws template rollback my-workspace checkpoint-002
+prism template rollback my-workspace checkpoint-002
 
 # Rollback removes:
 # - Packages installed in later templates
@@ -284,7 +284,7 @@ Content-Type: application/json
 
 **Apply Command**:
 ```bash
-cws template apply <template-name> <instance-name> [options]
+prism template apply <template-name> <instance-name> [options]
 
 Options:
   --package-manager    Preferred package manager (conda, pip, spack, apt)
@@ -295,7 +295,7 @@ Options:
 
 **Diff Command**:
 ```bash
-cws template diff <template-name> <instance-name>
+prism template diff <template-name> <instance-name>
 
 # Shows detailed differences:
 # - Packages to install/upgrade/remove
@@ -306,7 +306,7 @@ cws template diff <template-name> <instance-name>
 
 **Layers Command**:
 ```bash
-cws template layers <instance-name>
+prism template layers <instance-name>
 
 # Shows chronological history:
 # - Template name and application time
@@ -317,7 +317,7 @@ cws template layers <instance-name>
 
 **Rollback Command**:
 ```bash
-cws template rollback <instance-name> <checkpoint-id>
+prism template rollback <instance-name> <checkpoint-id>
 
 # Safe recovery:
 # - Validates checkpoint exists
@@ -333,16 +333,16 @@ cws template rollback <instance-name> <checkpoint-id>
 **Starting Point**: Basic Python instance
 ```bash
 # Launch basic instance
-cws launch basic-python ml-project
+prism launch basic-python ml-project
 
 # Add Jupyter for interactive development
-cws template apply jupyter-lab ml-project
+prism template apply jupyter-lab ml-project
 
 # Add machine learning stack when ready
-cws template apply cuda-ml ml-project --package-manager conda
+prism template apply cuda-ml ml-project --package-manager conda
 
 # Add specialized computer vision tools
-cws template apply cv-research ml-project
+prism template apply cv-research ml-project
 ```
 
 **Layer History**:
@@ -356,18 +356,18 @@ cws template apply cv-research ml-project
 **Standardization Across Team**:
 ```bash
 # Team lead creates base environment
-cws launch desktop-research bio-base
-cws template apply bioinformatics bio-base
-cws template apply visualization bio-base
+prism launch desktop-research bio-base
+prism template apply bioinformatics bio-base
+prism template apply visualization bio-base
 
 # Team members clone the environment
-cws template layers bio-base  # View applied layers
-cws launch desktop-research member1-workspace
-cws template apply bioinformatics member1-workspace
-cws template apply visualization member1-workspace
+prism template layers bio-base  # View applied layers
+prism launch desktop-research member1-workspace
+prism template apply bioinformatics member1-workspace
+prism template apply visualization member1-workspace
 
 # Specialized member adds genomics tools
-cws template apply genomics member1-workspace --package-manager spack
+prism template apply genomics member1-workspace --package-manager spack
 ```
 
 ### Experimental Development
@@ -375,15 +375,15 @@ cws template apply genomics member1-workspace --package-manager spack
 **Safe Experimentation**:
 ```bash
 # Working environment with important analysis
-cws template layers analysis-server
+prism template layers analysis-server
 # Output: base-r, tidyverse, stats-packages (checkpoint-123)
 
 # Try experimental package that might break things
-cws template diff experimental-ml analysis-server  # Preview changes
-cws template apply experimental-ml analysis-server # Apply carefully
+prism template diff experimental-ml analysis-server  # Preview changes
+prism template apply experimental-ml analysis-server # Apply carefully
 
 # If something breaks, rollback safely
-cws template rollback analysis-server checkpoint-123
+prism template rollback analysis-server checkpoint-123
 
 # Environment restored to working state
 ```
@@ -457,9 +457,9 @@ Solution: Ensure user has sudo access or use user-space package managers
 
 **Failed Applications**:
 1. **Automatic Rollback**: System automatically rolls back on critical failures
-2. **Manual Recovery**: Use `cws template rollback` to restore previous state
+2. **Manual Recovery**: Use `prism template rollback` to restore previous state
 3. **Checkpoint Verification**: Verify checkpoints exist before attempting recovery
-4. **State Inspection**: Use `cws template layers` to understand current state
+4. **State Inspection**: Use `prism template layers` to understand current state
 
 **Corrupted Checkpoints**:
 1. **Multiple Checkpoints**: System maintains multiple recovery points
@@ -525,4 +525,4 @@ Solution: Ensure user has sudo access or use user-space package managers
 - **Network Security**: All remote communications encrypted (SSH/TLS)
 - **Key Management**: Automatic SSH key rotation and secure storage
 
-This template application system represents a significant advancement in CloudWorkstation's capabilities, transforming it from a simple instance launcher into a comprehensive research environment management platform. The system maintains CloudWorkstation's core principles of simplicity and reliability while providing powerful new capabilities for dynamic environment management.
+This template application system represents a significant advancement in Prism's capabilities, transforming it from a simple instance launcher into a comprehensive research environment management platform. The system maintains Prism's core principles of simplicity and reliability while providing powerful new capabilities for dynamic environment management.

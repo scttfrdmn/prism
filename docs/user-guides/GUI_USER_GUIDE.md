@@ -1,12 +1,12 @@
-# CloudWorkstation GUI Guide
+# Prism GUI Guide
 
 <p align="center">
-  <img src="images/cloudworkstation.png" alt="CloudWorkstation Logo" width="200">
+  <img src="images/prism.png" alt="Prism Logo" width="200">
 </p>
 
-## Welcome to the CloudWorkstation GUI!
+## Welcome to the Prism GUI!
 
-The CloudWorkstation GUI makes managing your research cloud computers easy - no more typing commands! Just click buttons and see everything visually.
+The Prism GUI makes managing your research cloud computers easy - no more typing commands! Just click buttons and see everything visually.
 
 ## What is the GUI?
 
@@ -64,7 +64,7 @@ Manage your data storage visually:
 The GUI runs in your system tray or menu bar (top of your screen), so you can:
 - See status at a glance
 - Get notifications about your cloud computers
-- Access CloudWorkstation without opening a terminal
+- Access Prism without opening a terminal
 - Monitor costs continuously
 
 ### Profile Management
@@ -77,7 +77,7 @@ Manage different AWS accounts from one place:
 
 ### Automatic Updates
 The GUI checks for updates and lets you know when:
-- New CloudWorkstation versions are available
+- New Prism versions are available
 - New templates have been added
 - Your cloud computers need attention
 
@@ -91,9 +91,9 @@ Choose the colors that work best for you:
 
 1. **Starting the GUI**
    ```bash
-   cws gui
+   prism gui
    ```
-   Or click the CloudWorkstation icon in your applications menu.
+   Or click the Prism icon in your applications menu.
 
 2. **Launching a Cloud Computer**
    - Click "Launch New Instance"
@@ -115,7 +115,7 @@ Choose the colors that work best for you:
 
 ## Switching Between AWS Profiles
 
-The CloudWorkstation GUI makes it easy to switch between different AWS accounts:
+The Prism GUI makes it easy to switch between different AWS accounts:
 
 1. **See your current profile**
    - Look in the sidebar under "AWS Profile"
@@ -144,13 +144,13 @@ When you switch profiles, the GUI automatically refreshes to show the cloud comp
 
 If you need help with the GUI:
 
-1. Check the documentation at [docs.cloudworkstation.org](https://docs.cloudworkstation.org)
+1. Check the documentation at [docs.prism.org](https://docs.prism.org)
 
 2. Run the tests to check your setup:
    ```bash
-   cws test
+   prism test
    ```
 
-3. Visit the community forum at [community.cloudworkstation.org](https://community.cloudworkstation.org)
+3. Visit the community forum at [community.prism.org](https://community.prism.org)
 
-4. Report issues on GitHub at [github.com/scttfrdmn/cloudworkstation/issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+4. Report issues on GitHub at [github.com/scttfrdmn/prism/issues](https://github.com/scttfrdmn/prism/issues)

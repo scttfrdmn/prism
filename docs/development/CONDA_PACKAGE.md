@@ -1,14 +1,14 @@
-# CloudWorkstation Conda Package
+# Prism Conda Package
 
-This document describes how to set up and maintain the Conda package for CloudWorkstation.
+This document describes how to set up and maintain the Conda package for Prism.
 
 ## Overview
 
-[Conda](https://docs.conda.io/en/latest/) is a package manager widely used in scientific computing that simplifies software installation and environment management. The CloudWorkstation Conda package makes it easy for researchers to install and use CloudWorkstation in their scientific computing environments.
+[Conda](https://docs.conda.io/en/latest/) is a package manager widely used in scientific computing that simplifies software installation and environment management. The Prism Conda package makes it easy for researchers to install and use Prism in their scientific computing environments.
 
 ## Package Structure
 
-The CloudWorkstation Conda package is structured as follows:
+The Prism Conda package is structured as follows:
 
 ```
 packaging/conda/
@@ -37,7 +37,7 @@ Two build scripts handle platform-specific installation:
 - **build.sh**: For Unix-based systems (Linux, macOS)
 - **bld.bat**: For Windows systems
 
-These scripts copy the CloudWorkstation binaries and auxiliary files (completions, man pages) to the appropriate locations in the Conda environment.
+These scripts copy the Prism binaries and auxiliary files (completions, man pages) to the appropriate locations in the Conda environment.
 
 ## Updating the Package
 
@@ -68,14 +68,14 @@ To test the Conda package locally:
 conda build packaging/conda
 
 # Install from local build
-conda install --use-local cloudworkstation
+conda install --use-local prism
 
 # Test installation
-cws --version
+prism --version
 cwsd --version
 
 # Uninstall
-conda remove cloudworkstation
+conda remove prism
 ```
 
 ## Publishing to Anaconda Cloud
@@ -87,19 +87,19 @@ Once tested, the package can be uploaded to [Anaconda Cloud](https://anaconda.or
 anaconda login
 
 # Upload the package
-anaconda upload /path/to/conda/build/output/cloudworkstation-0.4.2-*.tar.bz2
+anaconda upload /path/to/conda/build/output/prism-0.4.2-*.tar.bz2
 ```
 
 ## Channel Setup
 
-The CloudWorkstation Conda package is distributed through a dedicated Conda channel:
+The Prism Conda package is distributed through a dedicated Conda channel:
 
 ```bash
 # Add the channel
 conda config --add channels scttfrdmn
 
-# Install CloudWorkstation
-conda install cloudworkstation
+# Install Prism
+conda install prism
 ```
 
 ## Continuous Integration
@@ -122,7 +122,7 @@ To enable CI automation, add the following secret to your GitHub repository:
 
 For scientific users, the Conda package offers several advantages:
 
-- **Environment Isolation**: CloudWorkstation can be installed in specific Conda environments
+- **Environment Isolation**: Prism can be installed in specific Conda environments
 - **Dependency Management**: Conda handles dependencies automatically
 - **Cross-Platform**: Works consistently across Linux, macOS, and Windows
 - **Research Workflow**: Integrates with existing Jupyter, R, and Python environments
@@ -138,14 +138,14 @@ For scientific users, the Conda package offers several advantages:
 ## Example Usage in Research Environments
 
 ```bash
-# Create a research environment with CloudWorkstation
-conda create -n research python=3.10 jupyter cloudworkstation
+# Create a research environment with Prism
+conda create -n research python=3.10 jupyter prism
 
 # Activate the environment
 conda activate research
 
 # Launch a Python research environment
-cws launch python-research my-analysis
+prism launch python-research my-analysis
 
 # Use with Jupyter for data analysis
 jupyter notebook

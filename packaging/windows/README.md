@@ -1,6 +1,6 @@
-# CloudWorkstation Windows MSI Installer
+# Prism Windows MSI Installer
 
-Professional Windows installer for CloudWorkstation using WiX Toolset, providing enterprise-grade installation experience with Windows service integration.
+Professional Windows installer for Prism using WiX Toolset, providing enterprise-grade installation experience with Windows service integration.
 
 ## 🎯 Features
 
@@ -31,7 +31,7 @@ Professional Windows installer for CloudWorkstation using WiX Toolset, providing
 - **Windows 10/11** (for building)
 - **WiX Toolset v3.11+** - Install from [wixtoolset.org](https://wixtoolset.org/)
 - **Visual Studio 2019/2022** or Build Tools (for custom actions)
-- **Go 1.21+** - For building CloudWorkstation binaries
+- **Go 1.21+** - For building Prism binaries
 - **.NET Framework 4.8 SDK** - For custom actions DLL
 
 ### **Installation Requirements**
@@ -78,26 +78,26 @@ Professional Windows installer for CloudWorkstation using WiX Toolset, providing
    make windows-sign-msi
    ```
 
-### **Installing CloudWorkstation**
+### **Installing Prism**
 
 1. **Interactive Installation**:
    ```cmd
-   CloudWorkstation-v0.4.3-x64.msi
+   Prism-v0.4.3-x64.msi
    ```
 
 2. **Silent Installation**:
    ```cmd
-   msiexec /i CloudWorkstation-v0.4.3-x64.msi /quiet
+   msiexec /i Prism-v0.4.3-x64.msi /quiet
    ```
 
 3. **Installation with Logging**:
    ```cmd
-   msiexec /i CloudWorkstation-v0.4.3-x64.msi /l*v install.log
+   msiexec /i Prism-v0.4.3-x64.msi /l*v install.log
    ```
 
 4. **Custom Installation Directory**:
    ```cmd
-   msiexec /i CloudWorkstation-v0.4.3-x64.msi INSTALLFOLDER="C:\Tools\CloudWorkstation"
+   msiexec /i Prism-v0.4.3-x64.msi INSTALLFOLDER="C:\Tools\Prism"
    ```
 
 ## 📁 Installer Architecture
@@ -105,7 +105,7 @@ Professional Windows installer for CloudWorkstation using WiX Toolset, providing
 ### **Directory Structure**
 ```
 packaging/windows/
-├── CloudWorkstation.wxs           # Main WiX installer definition
+├── Prism.wxs           # Main WiX installer definition
 ├── strings_en-us.wxl             # Localization strings
 ├── SetupCustomActions/           # Custom actions DLL project
 │   ├── SetupCustomActions.csproj # C# project file
@@ -120,7 +120,7 @@ scripts/
 ├── build-msi.ps1                # PowerShell build script
 ├── build-msi.bat                # Batch build script
 ├── sign-msi.ps1                 # MSI signing script
-└── CloudWorkstation.psm1        # PowerShell integration module
+└── Prism.psm1        # PowerShell integration module
 ```
 
 ### **Installation Components**
@@ -139,43 +139,43 @@ scripts/
 
 | Path | Purpose |
 |------|---------|
-| `C:\Program Files\CloudWorkstation\` | Application files |
-| `C:\Program Files\CloudWorkstation\bin\` | Executables |
-| `C:\Program Files\CloudWorkstation\templates\` | Research templates |
-| `C:\Program Files\CloudWorkstation\docs\` | Documentation |
-| `C:\ProgramData\CloudWorkstation\` | Configuration |
-| `C:\ProgramData\CloudWorkstation\Logs\` | Service logs |
+| `C:\Program Files\Prism\` | Application files |
+| `C:\Program Files\Prism\bin\` | Executables |
+| `C:\Program Files\Prism\templates\` | Research templates |
+| `C:\Program Files\Prism\docs\` | Documentation |
+| `C:\ProgramData\Prism\` | Configuration |
+| `C:\ProgramData\Prism\Logs\` | Service logs |
 
 ## 🔧 Advanced Configuration
 
 ### **Feature Selection**
 ```cmd
 # Install only core components
-msiexec /i CloudWorkstation.msi ADDLOCAL=CoreFeature,ServiceFeature
+msiexec /i Prism.msi ADDLOCAL=CoreFeature,ServiceFeature
 
 # Skip service installation
-msiexec /i CloudWorkstation.msi REMOVE=ServiceFeature
+msiexec /i Prism.msi REMOVE=ServiceFeature
 
 # Custom feature selection
-msiexec /i CloudWorkstation.msi ADDLOCAL=CoreFeature,TemplatesFeature,StartMenuFeature
+msiexec /i Prism.msi ADDLOCAL=CoreFeature,TemplatesFeature,StartMenuFeature
 ```
 
 ### **Silent Installation Options**
 ```cmd
 # Complete silent install
-msiexec /i CloudWorkstation.msi /quiet /norestart
+msiexec /i Prism.msi /quiet /norestart
 
 # Silent install with progress
-msiexec /i CloudWorkstation.msi /passive
+msiexec /i Prism.msi /passive
 
 # Unattended install (shows progress)
-msiexec /i CloudWorkstation.msi /qb
+msiexec /i Prism.msi /qb
 ```
 
 ### **Enterprise Deployment**
 ```cmd
 # Administrative installation (network share)
-msiexec /a CloudWorkstation.msi TARGETDIR="\\server\share\CloudWorkstation"
+msiexec /a Prism.msi TARGETDIR="\\server\share\Prism"
 
 # Group Policy deployment
 # 1. Copy MSI to domain controller
@@ -208,7 +208,7 @@ msiexec /a CloudWorkstation.msi TARGETDIR="\\server\share\CloudWorkstation"
 
 ### **Modifying the Installer**
 
-1. **Edit WiX Source** (`CloudWorkstation.wxs`):
+1. **Edit WiX Source** (`Prism.wxs`):
    - Add new components
    - Modify feature definitions  
    - Update registry settings
@@ -264,10 +264,10 @@ msiexec /a CloudWorkstation.msi TARGETDIR="\\server\share\CloudWorkstation"
 ### **Verification**
 ```powershell
 # Verify signature
-signtool verify /pa /v CloudWorkstation-v0.4.3-x64.msi
+signtool verify /pa /v Prism-v0.4.3-x64.msi
 
 # Check certificate details
-Get-AuthenticodeSignature CloudWorkstation-v0.4.3-x64.msi
+Get-AuthenticodeSignature Prism-v0.4.3-x64.msi
 ```
 
 ## 🚨 Troubleshooting
@@ -314,10 +314,10 @@ nuget restore packaging/windows/SetupCustomActions/packages.config
 Get-Service Tcpip, Dhcp
 
 # Verify service executable
-Test-Path "C:\Program Files\CloudWorkstation\bin\cwsd-service.exe"
+Test-Path "C:\Program Files\Prism\bin\cwsd-service.exe"
 
 # Manual service installation
-sc create CloudWorkstationDaemon binPath="C:\Program Files\CloudWorkstation\bin\cwsd-service.exe"
+sc create PrismDaemon binPath="C:\Program Files\Prism\bin\cwsd-service.exe"
 ```
 
 **Path Not Updated**:
@@ -333,25 +333,25 @@ $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
 **Service Won't Start**:
 ```powershell
 # Check service status
-Get-Service CloudWorkstationDaemon
+Get-Service PrismDaemon
 
 # View service logs
-Get-EventLog -LogName Application -Source CloudWorkstationDaemon -Newest 10
+Get-EventLog -LogName Application -Source PrismDaemon -Newest 10
 
 # Test daemon manually
-& "C:\Program Files\CloudWorkstation\bin\cwsd.exe" --version
+& "C:\Program Files\Prism\bin\cwsd.exe" --version
 ```
 
 **CLI Not Found**:
 ```powershell
 # Verify installation
-Test-Path "C:\Program Files\CloudWorkstation\bin\cws.exe"
+Test-Path "C:\Program Files\Prism\bin\cws.exe"
 
 # Check PATH
-$env:PATH -split ';' | Where-Object { $_ -like "*CloudWorkstation*" }
+$env:PATH -split ';' | Where-Object { $_ -like "*Prism*" }
 
 # Add to PATH manually
-$env:PATH += ";C:\Program Files\CloudWorkstation\bin"
+$env:PATH += ";C:\Program Files\Prism\bin"
 ```
 
 ## 📚 Resources
@@ -367,13 +367,13 @@ $env:PATH += ";C:\Program Files\CloudWorkstation\bin"
 - [SignTool](https://docs.microsoft.com/en-us/windows/win32/seccrypto/signtool) - Code signing
 
 ### **Support**
-- [CloudWorkstation Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+- [Prism Issues](https://github.com/scttfrdmn/prism/issues)
 - [WiX Community](https://github.com/wixtoolset/wix3)
 - [Windows Installer Forums](https://social.msdn.microsoft.com/Forums/windowsdesktop/)
 
 ## 🎉 Success Criteria
 
-A successful CloudWorkstation Windows installer should:
+A successful Prism Windows installer should:
 
 ✅ **Install cleanly** on Windows 10/11 systems  
 ✅ **Start Windows service** automatically after installation  
@@ -388,4 +388,4 @@ A successful CloudWorkstation Windows installer should:
 
 ---
 
-**CloudWorkstation Windows MSI Installer** - Professional enterprise-ready installation for researchers and institutions.
+**Prism Windows MSI Installer** - Professional enterprise-ready installation for researchers and institutions.

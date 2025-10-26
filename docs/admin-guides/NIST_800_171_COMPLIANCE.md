@@ -1,8 +1,8 @@
-# NIST 800-171 Compliance Guide for CloudWorkstation
+# NIST 800-171 Compliance Guide for Prism
 
 ## Overview
 
-This guide provides comprehensive NIST 800-171 compliance information for CloudWorkstation deployments handling Controlled Unclassified Information (CUI). NIST 800-171 is critical for research institutions working with federal contracts or processing CUI data.
+This guide provides comprehensive NIST 800-171 compliance information for Prism deployments handling Controlled Unclassified Information (CUI). NIST 800-171 is critical for research institutions working with federal contracts or processing CUI data.
 
 ## 🎯 NIST 800-171 Compliance Scope
 
@@ -22,9 +22,9 @@ This guide provides comprehensive NIST 800-171 compliance information for CloudW
 ## 📋 NIST 800-171 Control Families
 
 ### Access Control (AC) - 22 Controls
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | AC.1.001 | Limit system access to authorized users | Device binding with keychain authentication | ✅ |
 | AC.1.002 | Limit system access to transactions | Role-based API access controls | ✅ |
@@ -36,9 +36,9 @@ This guide provides comprehensive NIST 800-171 compliance information for CloudW
 | AC.2.015 | Route remote access via managed points | VPC-controlled network access | ✅ |
 
 ### Audit and Accountability (AU) - 12 Controls  
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | AU.2.041 | Create audit records | Comprehensive security audit logging | ✅ |
 | AU.2.042 | Provide audit record generation capability | Real-time audit record generation | ✅ |
@@ -46,9 +46,9 @@ This guide provides comprehensive NIST 800-171 compliance information for CloudW
 | AU.2.044 | Review audit records | Security dashboard and correlation | ✅ |
 
 ### Configuration Management (CM) - 11 Controls
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | CM.2.061 | Establish configuration baselines | Template-based configuration baselines | ✅ |
 | CM.2.062 | Employ configuration change control | Template application with change tracking | ✅ |
@@ -56,9 +56,9 @@ This guide provides comprehensive NIST 800-171 compliance information for CloudW
 | CM.2.065 | Track/document configuration changes | Audit logging of configuration changes | ✅ |
 
 ### Identification and Authentication (IA) - 11 Controls
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | IA.1.076 | Identify users uniquely | Device fingerprinting and binding | ✅ |
 | IA.1.077 | Identify devices uniquely | Hardware-based device identification | ✅ |
@@ -67,18 +67,18 @@ This guide provides comprehensive NIST 800-171 compliance information for CloudW
 | IA.2.081 | Use replay-resistant authentication | Cryptographic session tokens | ✅ |
 
 ### Incident Response (IR) - 6 Controls
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | IR.2.092 | Establish incident response capability | Security event monitoring and alerting | ✅ |
 | IR.2.093 | Detect and report events | Automated security event detection | ✅ |
 | IR.2.096 | Report incidents to organizational officials | Security event notifications | ✅ |
 
 ### System and Communications Protection (SC) - 20 Controls
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | SC.1.175 | Monitor/control communications | Network monitoring and analysis | ✅ |
 | SC.2.179 | Use authenticated encryption | AES-256-GCM encryption for CUI | ✅ |
@@ -86,9 +86,9 @@ This guide provides comprehensive NIST 800-171 compliance information for CloudW
 | SC.2.182 | Separate user functionality | Process isolation and sandboxing | ✅ |
 
 ### System and Information Integrity (SI) - 16 Controls  
-**CloudWorkstation Implementation Status: ✅ COMPLIANT**
+**Prism Implementation Status: ✅ COMPLIANT**
 
-| Control | Requirement | CloudWorkstation Implementation | Status |
+| Control | Requirement | Prism Implementation | Status |
 |---------|-------------|--------------------------------|---------|
 | SI.2.214 | Monitor system security alerts | Real-time security monitoring | ✅ |
 | SI.2.216 | Monitor communications for attacks | Network intrusion detection | ✅ |
@@ -144,7 +144,7 @@ health_checks:
 
 ## 📊 NIST 800-171 Assessment and Scoring
 
-### CloudWorkstation NIST 800-171 Assessment Results
+### Prism NIST 800-171 Assessment Results
 
 **Overall Compliance Score: 98/110 Controls (89.1%)**
 
@@ -173,7 +173,7 @@ health_checks:
 - **PS (Personnel Security)**: Personnel screening requirements
 - **PE (Physical Protection)**: Data center physical security controls
 
-**Note**: These controls are typically implemented at the organizational level rather than the system level and are outside CloudWorkstation's scope.
+**Note**: These controls are typically implemented at the organizational level rather than the system level and are outside Prism's scope.
 
 ## 🏛️ Federal Agency Specific Requirements
 
@@ -182,12 +182,12 @@ health_checks:
 - **DFARS 252.204-7019**: Notice and marking of CUI
 - **DFARS 252.204-7020**: NIST 800-171 compliance requirement
 
-**CloudWorkstation DOD Configuration:**
+**Prism DOD Configuration:**
 ```bash
 # DOD-specific security configuration
-cws security config --compliance dod
-cws security config --retention-days 2555
-cws security config --monitoring-level enhanced
+prism security config --compliance dod
+prism security config --retention-days 2555
+prism security config --monitoring-level enhanced
 ```
 
 ### National Science Foundation (NSF)
@@ -205,7 +205,7 @@ cws security config --monitoring-level enhanced
 ## 📚 Required Documentation
 
 ### System Security Plan (SSP)
-**CloudWorkstation provides with AWS Artifact alignment:**
+**Prism provides with AWS Artifact alignment:**
 - Security architecture documentation aligned with AWS compliance reports
 - Control implementation descriptions referencing AWS service capabilities
 - Security assessment procedures including AWS Artifact validation
@@ -225,10 +225,10 @@ cws security config --monitoring-level enhanced
 **AWS Artifact Documentation Integration:**
 ```bash
 # Generate SSP with AWS Artifact references
-cws security compliance report nist-800-171 --format ssp --aws-artifact
+prism security compliance report nist-800-171 --format ssp --aws-artifact
 
 # Include AWS service compliance evidence
-cws security compliance validate nist-800-171 --include-aws-evidence
+prism security compliance validate nist-800-171 --include-aws-evidence
 ```
 
 ### Plan of Action & Milestones (POA&M)
@@ -243,11 +243,11 @@ Status: Organizational responsibility
 ```
 
 ### Assessment Report
-**CloudWorkstation automated assessment:**
+**Prism automated assessment:**
 ```bash
 # Generate NIST 800-171 assessment report
-cws security assessment --framework nist-800-171
-cws security report --format compliance --output nist-800-171-report.pdf
+prism security assessment --framework nist-800-171
+prism security report --format compliance --output nist-800-171-report.pdf
 ```
 
 ## 🎯 Compliance Validation Commands
@@ -255,55 +255,55 @@ cws security report --format compliance --output nist-800-171-report.pdf
 ### Pre-Deployment Assessment
 ```bash
 # Validate NIST 800-171 configuration with AWS Artifact alignment
-cws security compliance validate nist-800-171
+prism security compliance validate nist-800-171
 
 # Generate comprehensive compliance report with AWS service alignment
-cws security compliance report nist-800-171
+prism security compliance report nist-800-171
 
 # Check AWS Service Control Policies for NIST 800-171
-cws security compliance scp nist-800-171
+prism security compliance scp nist-800-171
 
-# Traditional CloudWorkstation security validation  
-cws security validate --framework nist-800-171
+# Traditional Prism security validation  
+prism security validate --framework nist-800-171
 ```
 
 ### AWS Artifact Integration
 ```bash
 # Validate against all supported compliance frameworks
-cws security compliance frameworks
+prism security compliance frameworks
 
 # Multi-framework validation for comprehensive coverage
-cws security compliance validate soc-2      # SOC 2 Type II
-cws security compliance validate hipaa      # Healthcare compliance
-cws security compliance validate fedramp    # Federal authorization
-cws security compliance validate iso-27001  # International standard
+prism security compliance validate soc-2      # SOC 2 Type II
+prism security compliance validate hipaa      # Healthcare compliance
+prism security compliance validate fedramp    # Federal authorization
+prism security compliance validate iso-27001  # International standard
 ```
 
 ### Continuous Monitoring
 ```bash
 # Real-time compliance monitoring
-cws security monitor --compliance-mode nist-800-171
+prism security monitor --compliance-mode nist-800-171
 
 # Weekly compliance check
-cws security health --compliance nist-800-171 --schedule weekly
+prism security health --compliance nist-800-171 --schedule weekly
 
 # Audit log review
-cws security audit --filter nist-compliance --period monthly
+prism security audit --filter nist-compliance --period monthly
 ```
 
 ### Incident Response
 ```bash
 # Security event investigation
-cws security correlations --priority high --cui-related
+prism security correlations --priority high --cui-related
 
 # Generate incident report
-cws security incident --event-id <id> --format nist-800-171
+prism security incident --event-id <id> --format nist-800-171
 ```
 
 ## 🔍 Assessment and Certification Process
 
 ### Self-Assessment
-1. **Pre-Assessment**: Run CloudWorkstation security validation
+1. **Pre-Assessment**: Run Prism security validation
 2. **Gap Analysis**: Identify organizational policy gaps
 3. **Risk Assessment**: Document residual risks and mitigations
 4. **Implementation**: Deploy with NIST 800-171 configuration
@@ -315,7 +315,7 @@ cws security incident --event-id <id> --format nist-800-171
 4. **Continuous monitoring** and annual reassessment
 
 ### CMMC Alignment
-**CloudWorkstation supports CMMC Level 2 requirements:**
+**Prism supports CMMC Level 2 requirements:**
 - All 110 NIST 800-171 controls implemented or supported
 - Additional CMMC-specific requirements for maturity
 - Process documentation and assessment readiness
@@ -328,23 +328,23 @@ cws security incident --event-id <id> --format nist-800-171
 - DOD Cyber Crime Center (DC3)
 - Relevant federal agency CISO
 
-**CloudWorkstation automated reporting:**
+**Prism automated reporting:**
 ```bash
 # Configure incident reporting endpoints
-cws security config --incident-reporting federal
-cws security config --reporting-endpoint https://dibnet.dod.mil
+prism security config --incident-reporting federal
+prism security config --reporting-endpoint https://dibnet.dod.mil
 
 # Automated incident notifications
-cws security alerts --auto-report --severity high
+prism security alerts --auto-report --severity high
 ```
 
 ## 📞 Support and Resources
 
-### CloudWorkstation NIST 800-171 Support
+### Prism NIST 800-171 Support
 - **Security Documentation**: Complete NIST 800-171 control mappings
 - **Configuration Guidance**: Compliance-ready configurations
 - **Assessment Tools**: Automated validation and reporting
-- **Technical Support**: security-compliance@cloudworkstation.io
+- **Technical Support**: security-compliance@prism.io
 
 ### Federal Resources
 - **NIST 800-171**: https://csrc.nist.gov/publications/detail/sp/800-171/rev-2/final
@@ -356,7 +356,7 @@ cws security alerts --auto-report --severity high
 
 ## 📝 NIST 800-171 Compliance Summary
 
-**CloudWorkstation achieves:**
+**Prism achieves:**
 - ✅ **89.1% Control Implementation** (98/110 controls)
 - ✅ **Complete Technical Controls** for CUI protection
 - ✅ **Automated Compliance Monitoring** with real-time assessment
@@ -369,7 +369,7 @@ cws security alerts --auto-report --severity high
 - Security awareness training
 - Organizational policies and procedures
 
-**Security Contact**: For NIST 800-171 questions or compliance support, contact security-compliance@cloudworkstation.io
+**Security Contact**: For NIST 800-171 questions or compliance support, contact security-compliance@prism.io
 
 **Last Updated**: 2025-08-06
 **Version**: 1.0 (NIST 800-171 Rev 2 Compliance Guide)

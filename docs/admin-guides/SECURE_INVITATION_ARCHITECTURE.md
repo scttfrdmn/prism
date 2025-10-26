@@ -1,6 +1,6 @@
-# CloudWorkstation Secure Invitation Architecture
+# Prism Secure Invitation Architecture
 
-This document outlines the architecture for the enhanced secure invitation system in CloudWorkstation v0.4.3. The system provides a multi-level permissions model with device binding capabilities, similar to modern passkey systems.
+This document outlines the architecture for the enhanced secure invitation system in Prism v0.4.3. The system provides a multi-level permissions model with device binding capabilities, similar to modern passkey systems.
 
 ## Goals
 
@@ -14,7 +14,7 @@ This document outlines the architecture for the enhanced secure invitation syste
 
 ### Enhanced Permission System
 
-CloudWorkstation implements a hierarchical permission model for invitation-based profiles:
+Prism implements a hierarchical permission model for invitation-based profiles:
 
 | Permission | Description |
 |------------|-------------|
@@ -30,7 +30,7 @@ These permissions follow a hierarchical model:
 
 ### Keychain-Based Security
 
-For device binding, CloudWorkstation uses the system's native secure storage:
+For device binding, Prism uses the system's native secure storage:
 
 - **macOS**: Apple Keychain
 - **Windows**: Windows Credential Manager
@@ -46,7 +46,7 @@ This approach provides:
 A lightweight registry in S3 tracks invitation usage:
 
 ```
-s3://cloudworkstation-invitations/
+s3://prism-invitations/
   ├── registry/
   │   └── registry.json       # Master registry of all invitations
   ├── invitations/
@@ -72,11 +72,11 @@ The registry enables:
 
 ```bash
 # Professor creates TA invitation with invitation abilities
-cws profiles invitations create ta-access --type admin \
+prism profiles invitations create ta-access --type admin \
   --can-invite=true --transferable=false --device-bound=true --max-devices=3
 
 # TA creates student invitation with restricted permissions
-cws profiles invitations create student-access --type read_only \
+prism profiles invitations create student-access --type read_only \
   --can-invite=false --transferable=false --device-bound=true --max-devices=2
 ```
 
@@ -101,15 +101,15 @@ The system supports multiple approaches for multi-device usage:
 2. **Enrollment Flow**: For other platforms
    ```bash
    # On secondary device
-   cws profiles enroll ENROLLMENT_CODE
+   prism profiles enroll ENROLLMENT_CODE
    ```
 3. **Device Management**:
    ```bash
    # List authorized devices
-   cws profiles devices list
+   prism profiles devices list
    
    # Remove a device
-   cws profiles devices remove DEVICE_ID
+   prism profiles devices remove DEVICE_ID
    ```
 
 ## Technical Implementation
@@ -154,7 +154,7 @@ type Profile struct {
 
 ### Keychain Integration
 
-CloudWorkstation uses a cross-platform abstraction for secure storage:
+Prism uses a cross-platform abstraction for secure storage:
 
 ```go
 // Cross-platform keychain interface
@@ -196,7 +196,7 @@ func NewKeychainProvider() KeychainProvider {
        
        // Store in keychain
        bindingData, _ := json.Marshal(binding)
-       bindingRef := fmt.Sprintf("com.cloudworkstation.profile.%s", profile.AWSProfile)
+       bindingRef := fmt.Sprintf("com.prism.profile.%s", profile.AWSProfile)
        
        keychain := NewKeychainProvider()
        if err := keychain.Store(bindingRef, bindingData); err != nil {
@@ -238,13 +238,13 @@ Administrators can monitor and manage invitation usage:
 
 ```bash
 # View usage statistics
-cws profiles invitations usage INVITATION_TOKEN
+prism profiles invitations usage INVITATION_TOKEN
 
 # Revoke specific device
-cws profiles invitations revoke-device INVITATION_TOKEN DEVICE_ID
+prism profiles invitations revoke-device INVITATION_TOKEN DEVICE_ID
 
 # Revoke entire invitation
-cws profiles invitations revoke INVITATION_TOKEN
+prism profiles invitations revoke INVITATION_TOKEN
 ```
 
 The GUI will provide visual dashboards showing:

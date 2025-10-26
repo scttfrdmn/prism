@@ -1,4 +1,4 @@
-# CloudWorkstation Troubleshooting Guide
+# Prism Troubleshooting Guide
 
 ## Quick Fixes for Common Issues
 
@@ -6,16 +6,16 @@
 
 **What you see:**
 ```
-Error: daemon not running. Start with: cws daemon start
+Error: daemon not running. Start with: prism daemon start
 ```
 
 **Quick fix:**
 ```bash
 # Start the daemon
-cws daemon start
+prism daemon start
 
 # Verify it's running
-cws daemon status
+prism daemon status
 ```
 
 **If daemon won't start:**
@@ -27,7 +27,7 @@ lsof -i :8947
 kill -9 <PID>
 
 # Try starting again
-cws daemon start
+prism daemon start
 ```
 
 ---
@@ -49,7 +49,7 @@ aws sts get-caller-identity
 aws configure
 ```
 
-**If you have AWS credentials but CloudWorkstation can't find them:**
+**If you have AWS credentials but Prism can't find them:**
 ```bash
 # Check AWS profile
 echo $AWS_PROFILE
@@ -58,7 +58,7 @@ echo $AWS_PROFILE
 export AWS_PROFILE=your-profile-name
 
 # Or specify directly
-cws launch python-ml my-project --profile your-profile-name
+prism launch python-ml my-project --profile your-profile-name
 ```
 
 ---
@@ -74,8 +74,8 @@ Error: subnet not available
 
 **Quick fix:**
 ```bash
-# CloudWorkstation auto-discovers VPC/subnet (new feature!)
-cws launch python-ml my-project
+# Prism auto-discovers VPC/subnet (new feature!)
+prism launch python-ml my-project
 
 # If auto-discovery fails, check your VPC setup
 aws ec2 describe-vpcs --query 'Vpcs[?IsDefault==`true`]'
@@ -87,7 +87,7 @@ aws ec2 describe-vpcs --query 'Vpcs[?IsDefault==`true`]'
 aws ec2 create-default-vpc
 
 # Or specify manually (advanced)
-cws ami build python-ml --vpc vpc-12345 --subnet subnet-67890
+prism ami build python-ml --vpc vpc-12345 --subnet subnet-67890
 ```
 
 ---
@@ -103,28 +103,28 @@ Unexpected AWS charges
 **Quick fix:**
 ```bash
 # Check current instances and costs
-cws list
+prism list
 
 # Stop unused instances
-cws stop instance-name
+prism stop instance-name
 
 # Use hibernation to preserve work and reduce costs
-cws hibernate instance-name
+prism hibernate instance-name
 
 # Enable auto-hibernation for idle instances
-cws idle enable
+prism idle enable
 ```
 
 **Cost optimization commands:**
 ```bash
 # Use smaller instance sizes
-cws launch python-ml my-project --size S
+prism launch python-ml my-project --size S
 
 # Use spot instances (up to 90% savings)
-cws launch python-ml my-project --spot
+prism launch python-ml my-project --spot
 
 # Check institutional pricing discounts
-cws pricing show
+prism pricing show
 ```
 
 ---
@@ -141,19 +141,19 @@ Can't access Jupyter/RStudio
 **Quick fix:**
 ```bash
 # Check instance status
-cws list
+prism list
 
 # Ensure instance is running
-cws start instance-name
+prism start instance-name
 
 # Get fresh connection info
-cws connect instance-name
+prism connect instance-name
 ```
 
 **If SSH still fails:**
 ```bash
 # Check security group settings
-cws list --verbose
+prism list --verbose
 
 # Wait for instance to fully boot (can take 2-3 minutes)
 # Then try connecting again
@@ -173,12 +173,12 @@ Jupyter kernel crashes
 **Quick fix:**
 ```bash
 # Use larger instance size
-cws stop instance-name
-cws launch python-ml instance-name --size L
+prism stop instance-name
+prism launch python-ml instance-name --size L
 
 # Or add more storage
-cws storage create extra-space XL
-cws storage attach extra-space instance-name
+prism storage create extra-space XL
+prism storage attach extra-space instance-name
 ```
 
 ---
@@ -195,23 +195,23 @@ Command not available in instance
 **Quick fix:**
 ```bash
 # Validate template before launching
-cws templates validate python-ml
+prism templates validate python-ml
 
 # Check template contents
-cws templates info python-ml
+prism templates info python-ml
 
 # Apply additional packages to running instance
-cws apply docker-tools instance-name
+prism apply docker-tools instance-name
 ```
 
 **If template seems broken:**
 ```bash
 # Force refresh template cache
-rm -rf ~/.cloudworkstation/templates
-cws templates
+rm -rf ~/.prism/templates
+prism templates
 
 # Use AMI-based templates for reliability
-cws templates | grep "(AMI)"
+prism templates | grep "(AMI)"
 ```
 
 ---
@@ -228,10 +228,10 @@ AMI not found in region
 **Quick fix:**
 ```bash
 # Try different region
-cws launch python-ml my-project --region us-east-1
+prism launch python-ml my-project --region us-east-1
 
 # Use different instance size
-cws launch python-ml my-project --size M
+prism launch python-ml my-project --size M
 
 # Check region availability
 aws ec2 describe-availability-zones --region us-west-2
@@ -251,15 +251,15 @@ Interface unresponsive
 **Quick fix:**
 ```bash
 # For GUI issues on macOS
-# Allow keychain access when prompted (now shows "CloudWorkstation")
+# Allow keychain access when prompted (now shows "Prism")
 
 # For TUI display issues
 export TERM=xterm-256color
-cws tui
+prism tui
 
 # For interface problems, use CLI as backup
-cws list
-cws connect instance-name
+prism list
+prism connect instance-name
 ```
 
 ---
@@ -269,13 +269,13 @@ cws connect instance-name
 ### Enable Debug Logging
 ```bash
 # Set debug mode
-export CWS_DEBUG=1
+export PRISM_DEBUG=1
 
 # Check daemon logs
-cws daemon logs
+prism daemon logs
 
 # Or run commands with verbose output
-cws launch python-ml my-project --verbose
+prism launch python-ml my-project --verbose
 ```
 
 ### Check System Requirements
@@ -283,23 +283,23 @@ cws launch python-ml my-project --verbose
 # Verify AWS CLI version (need v2+)
 aws --version
 
-# Check CloudWorkstation version
-cws version
+# Check Prism version
+prism version
 
 # Verify network connectivity
 curl -I https://ec2.amazonaws.com
 ```
 
-### Reset CloudWorkstation
+### Reset Prism
 ```bash
 # Stop daemon
-cws daemon stop
+prism daemon stop
 
 # Clear cache and state
-rm -rf ~/.cloudworkstation/
+rm -rf ~/.prism/
 
 # Restart fresh
-cws daemon start
+prism daemon start
 ```
 
 ---
@@ -308,7 +308,7 @@ cws daemon start
 
 ### Before Opening an Issue
 
-1. **Check daemon status**: `cws daemon status`
+1. **Check daemon status**: `prism daemon status`
 2. **Verify AWS credentials**: `aws sts get-caller-identity`  
 3. **Try CLI interface**: Sometimes GUI/TUI have display issues
 4. **Check recent changes**: Did you update AWS credentials or change regions?
@@ -318,11 +318,11 @@ cws daemon start
 When asking for help, please include:
 
 ```bash
-# CloudWorkstation version
-cws version
+# Prism version
+prism version
 
 # Daemon status
-cws daemon status
+prism daemon status
 
 # AWS account info (no credentials)
 aws sts get-caller-identity --query 'Account'
@@ -335,8 +335,8 @@ uname -a
 
 ### Community Support
 
-- **GitHub Issues**: [Report bugs and request features](https://github.com/scttfrdmn/cloudworkstation/issues)
-- **Discussions**: [Get help from the community](https://github.com/scttfrdmn/cloudworkstation/discussions)
+- **GitHub Issues**: [Report bugs and request features](https://github.com/scttfrdmn/prism/issues)
+- **Discussions**: [Get help from the community](https://github.com/scttfrdmn/prism/discussions)
 - **Documentation**: [Complete guides in `/docs` folder](docs/)
 
 ---
@@ -346,22 +346,22 @@ uname -a
 ### Instance Stuck in Bad State
 ```bash
 # Force stop and restart
-cws stop instance-name --force
-cws start instance-name
+prism stop instance-name --force
+prism start instance-name
 
 # Or delete and recreate
-cws save instance-name backup-template  # Save work first
-cws delete instance-name
-cws launch backup-template instance-name-new
+prism save instance-name backup-template  # Save work first
+prism delete instance-name
+prism launch backup-template instance-name-new
 ```
 
 ### Accidentally Deleted Important Instance
 ```bash
 # Check if hibernated (data may be preserved)
-cws list --all
+prism list --all
 
 # Look for recent AMI snapshots
-cws ami list
+prism ami list
 
 # Contact AWS support for EBS snapshot recovery if critical
 ```
@@ -369,13 +369,13 @@ cws ami list
 ### Unexpected High AWS Bills
 ```bash
 # Immediately stop all instances
-cws list | grep running | awk '{print $1}' | xargs -I {} cws stop {}
+prism list | grep running | awk '{print $1}' | xargs -I {} prism stop {}
 
 # Check what's still running
-cws list
+prism list
 
 # Review hibernation options for the future
-cws idle profile list
+prism idle profile list
 ```
 
-**Remember**: CloudWorkstation is designed to "default to success." Most issues have simple solutions, and the error messages are designed to guide you to the fix.
+**Remember**: Prism is designed to "default to success." Most issues have simple solutions, and the error messages are designed to guide you to the fix.

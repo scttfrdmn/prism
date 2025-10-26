@@ -20,8 +20,8 @@ Phase 5A Multi-User Integration has been **fully implemented and integrated acro
 ### ✅ **Integration Verification Results**
 
 **CLI Integration**: ✅ **COMPLETE & ENHANCED**
-- Complete `cws user` command suite (845+ lines): create, list, delete, provision, ssh-key, status
-- Policy framework integration: `cws admin policy` commands for institutional governance
+- Complete `prism user` command suite (845+ lines): create, list, delete, provision, ssh-key, status
+- Policy framework integration: `prism admin policy` commands for institutional governance
 - All commands working and tested with comprehensive error handling
 - Live system test: `./bin/cws user list` shows managed research users
 
@@ -51,7 +51,7 @@ Phase 5A Multi-User Integration has been **fully implemented and integrated acro
 - Dual-user architecture integration with template-based user creation
 
 **Policy Framework**: ✅ **INSTITUTIONAL GOVERNANCE**
-- Complete CLI policy management: `cws admin policy status|list|assign|enable|disable|check`
+- Complete CLI policy management: `prism admin policy status|list|assign|enable|disable|check`
 - REST API endpoints for policy enforcement and management
 - Foundation for institutional access control and resource governance
 - Integration ready for advanced compliance and audit requirements
@@ -64,8 +64,8 @@ $ ./bin/cws research-user --help
 $ ./bin/cws research-user list
 🧑‍🔬 Research Users (2)
 USERNAME   UID    FULL NAME   EMAIL                             SSH KEYS   CREATED
-alice      5853   Alice       alice@cloudworkstation.local      1          2025-09-29
-testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-09-29
+alice      5853   Alice       alice@prism.local      1          2025-09-29
+testuser   5853   Testuser    testuser@prism.local   0          2025-09-29
 # ↳ System operational with existing research users
 ```
 
@@ -76,7 +76,7 @@ testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-
 #### **1. Research User System (`pkg/research/`)**
 - **Complete Backend Architecture**: 6 Go modules implementing the full research user lifecycle
 - **Dual User Design**: Separates system users (template-created) from research users (persistent identity)
-- **Profile Integration**: Seamless integration with existing CloudWorkstation profile system
+- **Profile Integration**: Seamless integration with existing Prism profile system
 - **Type-Safe Implementation**: Comprehensive data structures and interfaces
 
 #### **2. Consistent UID/GID Mapping**
@@ -87,7 +87,7 @@ testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-
 
 #### **3. SSH Key Management System**
 - **Multi-Key Support**: Ed25519 (recommended) and RSA key generation and management
-- **Per-Profile Storage**: SSH keys isolated by CloudWorkstation profile for security
+- **Per-Profile Storage**: SSH keys isolated by Prism profile for security
 - **Import/Export**: Support for existing SSH keys and backup/restore operations
 - **Automated Distribution**: Keys automatically installed on research user provisioning
 
@@ -95,7 +95,7 @@ testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-
 - **Remote Provisioning**: SSH-based user creation with generated shell scripts
 - **EFS Integration**: Automatic home directory setup on EFS volumes with proper permissions
 - **Asynchronous Jobs**: Background provisioning with progress tracking and status monitoring
-- **Template Integration**: Works with any CloudWorkstation template without modification
+- **Template Integration**: Works with any Prism template without modification
 
 #### **5. EFS Home Directory Integration**
 - **Persistent Storage**: `/efs/home/username` survives instance shutdowns and template changes
@@ -157,13 +157,13 @@ testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-
 - **Simplified Management**: One research identity per student/researcher across all courses/projects
 - **Consistent Backups**: EFS volumes with predictable user ownership enable enterprise backup
 - **Policy Ready**: Foundation for institutional controls and resource governance
-- **Scalable Architecture**: Supports 1000 research users per CloudWorkstation installation
+- **Scalable Architecture**: Supports 1000 research users per Prism installation
 
 ## 🔧 Technical Achievements
 
 ### Architecture Excellence
 - **2,300+ Lines of Production Go Code**: Comprehensive, type-safe implementation
-- **Zero Breaking Changes**: Fully backward compatible with existing CloudWorkstation installations
+- **Zero Breaking Changes**: Fully backward compatible with existing Prism installations
 - **Multi-Modal Ready**: Architecture designed for CLI, TUI, and GUI interfaces
 - **Profile Integration**: Seamless integration with existing profile and configuration systems
 
@@ -227,7 +227,7 @@ carol@viz-instance: python plot_results.py /efs/shared/dataset.parquet
 ### ✅ Phase 5A.2: Interface Integration (COMPLETE)
 
 #### **✅ CLI Integration - COMPLETE & OPERATIONAL**
-- ✅ Complete `cws research-user` command suite implemented and registered
+- ✅ Complete `prism research-user` command suite implemented and registered
 - ✅ User management: create, list, delete operations working with live data
 - ✅ SSH key management: generate, import, delete operations fully functional
 - ✅ Provisioning commands: provision users on instances, status monitoring complete
@@ -258,7 +258,7 @@ carol@viz-instance: python plot_results.py /efs/shared/dataset.parquet
 🎉 **POLICY FRAMEWORK COMPLETE**:
 - ✅ **Core Backend Architecture**: Complete policy evaluation engine with allow/deny effects (`pkg/policy/`)
 - ✅ **Educational Policy Sets**: Student (restricted) vs Researcher (full access) configurations
-- ✅ **CLI Management Interface**: Full `cws policy` command suite with 6 professional subcommands
+- ✅ **CLI Management Interface**: Full `prism policy` command suite with 6 professional subcommands
 - ✅ **Template Integration**: Automatic policy-based template filtering integrated into daemon
 - ✅ **Multi-Modal Foundation**: Backend ready for CLI, TUI, and GUI policy management
 - ✅ **Profile Integration**: User identification via enhanced profile system for policy assignment
@@ -266,18 +266,18 @@ carol@viz-instance: python plot_results.py /efs/shared/dataset.parquet
 **Enterprise Policy Features**:
 ```bash
 # Complete policy management CLI
-cws policy status              # Show enforcement status & assigned policies
-cws policy list                # List available policy sets
-cws policy assign student     # Assign educational policy restrictions
-cws policy check "GPU ML"     # Validate template access permissions
-cws policy enable/disable     # Control policy enforcement globally
+prism policy status              # Show enforcement status & assigned policies
+prism policy list                # List available policy sets
+prism policy assign student     # Assign educational policy restrictions
+prism policy check "GPU ML"     # Validate template access permissions
+prism policy enable/disable     # Control policy enforcement globally
 ```
 
 **Educational Institution Benefits**:
 - **Student Restrictions**: Block expensive GPU/Enterprise templates for coursework
 - **Researcher Freedom**: Full template access for research users
 - **Cost Management**: Policy-based prevention of expensive resource usage
-- **Access Control**: Template filtering across all CloudWorkstation interfaces (CLI/TUI/GUI)
+- **Access Control**: Template filtering across all Prism interfaces (CLI/TUI/GUI)
 - **Compliance Ready**: Foundation for institutional governance and audit requirements
 
 **Technical Implementation**:
@@ -295,12 +295,12 @@ cws policy enable/disable     # Control policy enforcement globally
 **New Research User Workflow**:
 ```bash
 # Before: Multi-step manual process
-cws launch python-ml my-project
-cws research-user create alice
-cws research-user provision alice my-project
+prism launch python-ml my-project
+prism research-user create alice
+prism research-user provision alice my-project
 
 # After: Single integrated command
-cws launch python-ml-research my-project --research-user alice
+prism launch python-ml-research my-project --research-user alice
 # ✅ Auto-creates research user, provisions SSH keys, sets up EFS home
 ```
 
@@ -322,7 +322,7 @@ cws launch python-ml-research my-project --research-user alice
 
 ## 🔮 Long-Term Vision
 
-The Phase 5A foundation enables CloudWorkstation's evolution into a comprehensive collaborative research platform:
+The Phase 5A foundation enables Prism's evolution into a comprehensive collaborative research platform:
 
 ### **Individual → Collaborative**
 From single-user research tool to multi-user research platform with persistent identity and seamless collaboration
@@ -366,7 +366,7 @@ From complex file copying and permission management to seamless file access acro
 - ✅ **Consistent UID/GID**: Same profile+username = same UID across all instances
 - ✅ **EFS Integration**: Persistent home directories with proper permissions
 - ✅ **SSH Key Management**: Complete key generation, storage, and distribution
-- ✅ **Template Compatibility**: Works with any existing CloudWorkstation template
+- ✅ **Template Compatibility**: Works with any existing Prism template
 - ✅ **Profile Integration**: Seamless integration with existing profile system
 - ✅ **Multi-Modal Architecture**: Ready for CLI, TUI, and GUI interfaces
 
@@ -385,7 +385,7 @@ From complex file copying and permission management to seamless file access acro
 
 ## 🎊 Final Status: Phase 5A Multi-User Foundation COMPLETE
 
-**🎉 CloudWorkstation Phase 5A Multi-User Foundation is 100% COMPLETE with full CLI/TUI/GUI integration and operational system.**
+**🎉 Prism Phase 5A Multi-User Foundation is 100% COMPLETE with full CLI/TUI/GUI integration and operational system.**
 
 ### **User Request FULFILLED**
 *"Pretty sure option A is done (or nearly so) so check and complete what's missing and document progress"*
@@ -405,8 +405,8 @@ From complex file copying and permission management to seamless file access acro
 $ ./bin/cws research-user list
 🧑‍🔬 Research Users (2)
 USERNAME   UID    FULL NAME   EMAIL                             SSH KEYS   CREATED
-alice      5853   Alice       alice@cloudworkstation.local      1          2025-09-29
-testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-09-29
+alice      5853   Alice       alice@prism.local      1          2025-09-29
+testuser   5853   Testuser    testuser@prism.local   0          2025-09-29
 ```
 **System Status**: ✅ **LIVE & OPERATIONAL** with existing research users
 
@@ -422,11 +422,11 @@ testuser   5853   Testuser    testuser@cloudworkstation.local   0          2025-
 - **✅ Enterprise Features**: Consistent UID/GID, SSH key management, EFS integration
 - **✅ Educational Deployment**: Multi-user classrooms, collaborative research support
 - **✅ Security Model**: Profile integration, proper permissions, audit trail
-- **✅ Template Compatibility**: Works with all existing CloudWorkstation templates
+- **✅ Template Compatibility**: Works with all existing Prism templates
 - **✅ Documentation**: Comprehensive guides for technical and user audiences
 
 ### **Key Achievement**
-**Phase 5A transforms CloudWorkstation from a powerful individual research tool into a complete collaborative research platform**, providing persistent identity management, multi-user workflows, and seamless template interoperability while maintaining CloudWorkstation's core simplicity and "Default to Success" principles.
+**Phase 5A transforms Prism from a powerful individual research tool into a complete collaborative research platform**, providing persistent identity management, multi-user workflows, and seamless template interoperability while maintaining Prism's core simplicity and "Default to Success" principles.
 
 **The Multi-User Foundation is production-ready and immediately available for educational institutions and collaborative research environments.**
 

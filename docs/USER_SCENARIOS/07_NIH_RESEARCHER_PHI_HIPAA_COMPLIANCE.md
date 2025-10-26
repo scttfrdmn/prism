@@ -12,16 +12,16 @@
 
 **This scenario is for educational purposes only and does not constitute legal, regulatory, or compliance advice.**
 
-Use of CloudWorkStation does not, by itself, ensure compliance with HIPAA, NIST 800-53, or any other requirement. Your institution is solely responsible for:
+Use of Prism does not, by itself, ensure compliance with HIPAA, NIST 800-53, or any other requirement. Your institution is solely responsible for:
 - Determining HIPAA applicability and covered entity obligations
 - Executing Business Associate Agreements (BAAs) with cloud providers
 - Conducting HIPAA Security Rule risk analyses
 - Implementing Administrative and Physical Safeguards beyond technical controls
 - Consulting with your HIPAA Privacy Officer, IRB, and Office of General Counsel
 
-**Always obtain institutional approval before using CloudWorkStation for Protected Health Information (PHI).**
+**Always obtain institutional approval before using Prism for Protected Health Information (PHI).**
 
-**Note**: HIPAA compliance features in CloudWorkStation are planned for v0.8.0 (Q4 2026). This scenario represents target architecture.
+**Note**: HIPAA compliance features in Prism are planned for v0.8.0 (Q4 2026). This scenario represents target architecture.
 
 See [COMPLIANCE_DISCLAIMER.md](../docs/admin-guides/COMPLIANCE_DISCLAIMER.md) for complete legal notice.
 
@@ -164,14 +164,14 @@ If discovered during routine audit:
 
 ---
 
-## CloudWorkstation Solution (HIPAA-Compliant Architecture)
+## Prism Solution (HIPAA-Compliant Architecture)
 
 ### Discovery & Setup
 
 **Dr. Chen's Path to Compliance**:
 
-1. **Medical Center IT Security Recommends CloudWorkstation**:
-   - University Medical Center IT Security validated CloudWorkStation for HIPAA research
+1. **Medical Center IT Security Recommends Prism**:
+   - University Medical Center IT Security validated Prism for HIPAA research
    - Provides compliance documentation: [HIPAA_COMPLIANCE_GUIDE.md](../docs/admin-guides/HIPAA_COMPLIANCE_GUIDE.md) (v0.8.0)
    - Meets HIPAA Technical Safeguards via NIST 800-53 control mapping
    - Includes Business Associate Agreement (BAA) framework for AWS
@@ -179,11 +179,11 @@ If discovered during routine audit:
 2. **Institutional HIPAA Compliance Profile**:
    Medical Center provides pre-configured HIPAA profile:
    ```bash
-   # Dr. Chen installs CloudWorkstation
-   brew install scttfrdmn/tap/cloudworkstation
+   # Dr. Chen installs Prism
+   brew install scttfrdmn/tap/prism
 
    # Import medical center's HIPAA compliance profile
-   cws profile import medical-center-hipaa-profile.json
+   prism profile import medical-center-hipaa-profile.json
    # Profile includes:
    # - HIPAA-compliant security group configurations (SC)
    # - Encrypted EBS/EFS with HIPAA-eligible KMS keys (SC.2.179, SC.3.191)
@@ -197,7 +197,7 @@ If discovered during routine audit:
 3. **HIPAA-Specific Launch Requirements**:
    ```bash
    # Launch HIPAA-compliant research environment
-   cws launch python-ml lung-cancer-genomics \
+   prism launch python-ml lung-cancer-genomics \
      --profile medical-center-hipaa \
      --project chen-lab-nih-r01 \
      --data-classification PHI \
@@ -206,7 +206,7 @@ If discovered during routine audit:
      --phi-audit-level enhanced \
      --no-internet-egress  # Prevent accidental PHI disclosure
 
-   # CloudWorkstation automatically:
+   # Prism automatically:
    # ✅ Verifies AWS BAA is in place for the account
    # ✅ Enables HIPAA-eligible services only (EC2, EBS, EFS, S3, CloudTrail)
    # ✅ Configures enhanced CloudTrail logging (all data events, 7-year retention)
@@ -239,7 +239,7 @@ If discovered during routine audit:
 
 ```bash
 # Connect to HIPAA-compliant workstation
-cws connect lung-cancer-genomics
+prism connect lung-cancer-genomics
 # ↑ Prompts for MFA token (HIPAA Technical Safeguard: Access Control)
 # ↑ Session timeout enforced (15 minutes idle)
 # ↑ All access logged with PHI audit flag
@@ -327,7 +327,7 @@ rsync -avz /mnt/efs/phi-data/patients/ collaborator@partner.edu:/shared/
 
 ```bash
 # Step 1: Verify BAA is in place
-$ cws project baa list
+$ prism project baa list
 # Output:
 # ✅ Partner Medical Center - BAA signed 2024-12-15, expires 2027-12-15
 # ✅ Authorized: De-identified datasets, limited data sets (dates shifted)
@@ -366,7 +366,7 @@ $ echo "Limited dataset available in secure transfer portal. BAA reference: Part
     mail -s "[SECURE] Biomarker Dataset - PHI Disclosure ID DISC-2025-0123" collaborator@partner-medical-center.edu
 
 # Step 5: Log disclosure in institutional tracking system
-$ cws phi disclosure-log add \
+$ prism phi disclosure-log add \
     --disclosure-id DISC-2025-0123 \
     --recipient "Partner Medical Center" \
     --baa-reference Partner-Medical-Center-BAA-2024 \
@@ -404,7 +404,7 @@ $ cws phi disclosure-log add \
 # 2. Dr. Chen requests access via medical center portal
 # Medical Center IT Security provisions access with minimum necessary principle
 
-$ cws project member add chen-lab-nih-r01 \
+$ prism project member add chen-lab-nih-r01 \
     jdoe@medical-center.edu \
     --role research-coordinator \
     --phi-access limited \
@@ -412,7 +412,7 @@ $ cws project member add chen-lab-nih-r01 \
     --hipaa-training-verified \
     --require-mfa
 
-# CloudWorkstation applies principle of least privilege:
+# Prism applies principle of least privilege:
 # ✅ Access to de-identified datasets: YES
 # ✅ Access to limited datasets: YES (dates shifted, reduced identifiers)
 # ✅ Access to full PHI: NO (requires PI approval + documented justification)
@@ -425,9 +425,9 @@ $ cws project member add chen-lab-nih-r01 \
 # - PHI breach reporting procedure
 
 # 4. Jane sets up her access
-$ brew install scttfrdmn/tap/cloudworkstation
-$ cws profile import medical-center-hipaa-profile.json
-$ cws connect lung-cancer-genomics
+$ brew install scttfrdmn/tap/prism
+$ prism profile import medical-center-hipaa-profile.json
+$ prism connect lung-cancer-genomics
 # MFA prompt: "Enter MFA code from authenticator app:"
 # ↑ First access triggers MFA enrollment workflow
 
@@ -441,7 +441,7 @@ phi-data/               # ❌ PERMISSION DENIED: Full PHI (requires PI role)
 $ cat /mnt/efs/phi-data/patients/cohort_2025.csv
 cat: /mnt/efs/phi-data/patients/cohort_2025.csv: Permission denied
 
-# CloudWorkstation automatically:
+# Prism automatically:
 # ✅ Logs unauthorized access attempt
 # ✅ Sends alert to Dr. Chen (PI) and IT Security
 # ✅ Records in HIPAA audit log (§ 164.312(b))
@@ -460,11 +460,11 @@ cat: /mnt/efs/phi-data/patients/cohort_2025.csv: Permission denied
 
 **Medical Center HIPAA Privacy Officer Requests Evidence**:
 
-**CloudWorkstation Automated Compliance Reporting**:
+**Prism Automated Compliance Reporting**:
 
 ```bash
 # Generate HIPAA compliance evidence package
-$ cws compliance report \
+$ prism compliance report \
     --framework "HIPAA Security Rule" \
     --standard "NIST 800-66 Rev 2" \
     --project chen-lab-nih-r01 \
@@ -551,7 +551,7 @@ $ cws compliance report \
 > **💡 GUI Note**: HIPAA Security Rule compliance reports with PHI audit trails available in GUI Compliance tab - *coming soon in v0.6.0*
 
 **Medical Center HIPAA Privacy Officer's Reaction**:
-"This is the most comprehensive HIPAA compliance documentation I've reviewed. CloudWorkstation's automated audit trail and evidence collection transformed what typically takes weeks into a 2-hour review. Your research group is now our institutional model for HIPAA-compliant cloud research computing."
+"This is the most comprehensive HIPAA compliance documentation I've reviewed. Prism's automated audit trail and evidence collection transformed what typically takes weeks into a 2-hour review. Your research group is now our institutional model for HIPAA-compliant cloud research computing."
 
 ---
 
@@ -570,7 +570,7 @@ $ cws compliance report \
 - Plus $50,000 setup = **$175,000 total**
 - Delays IRB approval by 4-6 months (impacts hiring, enrollment)
 
-### CloudWorkStation Approach (HIPAA-Compliant Cloud)
+### Prism Approach (HIPAA-Compliant Cloud)
 
 **Costs**:
 - **Setup**: $0 (self-service with institutional HIPAA profile)
@@ -583,7 +583,7 @@ $ cws compliance report \
   - VPC Flow Logs: $20/month (network monitoring)
   - Total: ~$4,200/year
 
-**💡 Effective Cost Reality** (CloudWorkstation Enables This!):
+**💡 Effective Cost Reality** (Prism Enables This!):
 - 24/7 assumption: $150/month × 12 = $1,800/year for compute
 - With hibernation: ~120 hours/month actual usage = $60/month = $720/year
 - **Additional annual savings: $1,080/year** through real-time banking
@@ -592,7 +592,7 @@ $ cws compliance report \
 - **Pay for compute time, not ownership**: No hardware depreciation
 
 **🔑 Why This Matters**:
-CloudWorkStation makes this kind of sophisticated cost control accessible to individual researchers and small labs. The cloud alone doesn't provide this - it typically requires large engineering teams to develop. CloudWorkStation brings enterprise-grade cost management to research!
+Prism makes this kind of sophisticated cost control accessible to individual researchers and small labs. The cloud alone doesn't provide this - it typically requires large engineering teams to develop. Prism brings enterprise-grade cost management to research!
 
 **Dr. Chen's Share**:
 - $16,140 (5 years, actual usage) vs. $175,000 (traditional)
@@ -604,7 +604,7 @@ CloudWorkStation makes this kind of sophisticated cost control accessible to ind
 
 **Quantified Benefits**:
 
-| Metric | Traditional On-Premise | CloudWorkstation | Improvement |
+| Metric | Traditional On-Premise | Prism | Improvement |
 |--------|------------------------|------------------|-------------|
 | Setup Cost | $50,000 | $0 | $50,000 saved |
 | Annual Cost | $25,000 | $3,228 (actual usage) | $21,772 saved/year |
@@ -627,7 +627,7 @@ CloudWorkStation makes this kind of sophisticated cost control accessible to ind
 
 ## Key HIPAA Compliance Mappings
 
-### How CloudWorkstation Addresses HIPAA Security Rule Technical Safeguards
+### How Prism Addresses HIPAA Security Rule Technical Safeguards
 
 **§ 164.312(a)(1) Access Control**:
 - **Unique User Identification**: Each researcher has unique CWS identity (NIST AC.1.001)
@@ -663,12 +663,12 @@ CloudWorkStation makes this kind of sophisticated cost control accessible to ind
 ### What Worked Well (HIPAA-Specific)
 
 1. **Business Associate Agreement (BAA) Framework**:
-   - CloudWorkstation's BAA verification before PHI workstation launch
+   - Prism's BAA verification before PHI workstation launch
    - Automated tracking of BAA status and expiration dates
    - Integration with institutional BAA repository
 
 2. **Minimum Necessary Principle Automation**:
-   - De-identification scripts built into CloudWorkstation templates
+   - De-identification scripts built into Prism templates
    - HIPAA Safe Harbor method implementation
    - Limited dataset creation with automated identifier removal
 
@@ -686,21 +686,21 @@ CloudWorkStation makes this kind of sophisticated cost control accessible to ind
 
 **Challenge 1: Re-identification Risk with Genomic Data**
 - **Problem**: Genomic data can uniquely identify individuals even without traditional identifiers
-- **Solution**: CloudWorkstation implements HIPAA "Expert Determination" method
+- **Solution**: Prism implements HIPAA "Expert Determination" method
   - Genomic data treated as PHI regardless of identifier removal
   - Additional encryption layer for genomic data
   - Statistical disclosure risk assessment before any data release
 
 **Challenge 2: Collaborator Data Sharing Across Institutions**
 - **Problem**: Each institution has different HIPAA compliance approaches
-- **Solution**: CloudWorkstation's portable HIPAA profiles + BAA verification
+- **Solution**: Prism's portable HIPAA profiles + BAA verification
   - Institutional HIPAA profiles ensure consistent compliance
   - BAA verification before any PHI disclosure
   - Automated audit trail of inter-institutional PHI transfers
 
 **Challenge 3: Patient Right to Access PHI**
 - **Problem**: HIPAA grants patients right to access their PHI within 30 days
-- **Solution**: CloudWorkstation maintains PHI attribution
+- **Solution**: Prism maintains PHI attribution
   - Code keys link de-identified research data back to MRNs (encrypted, access-restricted)
   - Medical center can fulfill patient access requests
   - Audit trail documents all patient data access requests
@@ -711,12 +711,12 @@ CloudWorkStation makes this kind of sophisticated cost control accessible to ind
 
 ### Institutional Adoption
 
-**After Dr. Chen's Success**, Medical Center IT Security promotes CloudWorkStation:
+**After Dr. Chen's Success**, Medical Center IT Security promotes Prism:
 
 **For Clinical Researchers**:
 ```bash
 # Every NIH clinical research study now uses:
-cws launch <research-template> <project-name> \
+prism launch <research-template> <project-name> \
   --profile medical-center-hipaa \
   --data-classification PHI \
   --require-baa \
@@ -731,21 +731,21 @@ cws launch <research-template> <project-name> \
 ```
 
 **Medical Center-Wide Benefits**:
-- **450+ NIH clinical studies** now using CloudWorkStation for HIPAA compliance
+- **450+ NIH clinical studies** now using Prism for HIPAA compliance
 - **$6.8M saved annually** vs. traditional on-premise HIPAA infrastructure
 - **98% reduction** in HIPAA compliance assessment time
-- **Zero HIPAA breaches** involving CloudWorkStation environments (24 months track record)
+- **Zero HIPAA breaches** involving Prism environments (24 months track record)
 - **Faster IRB approvals** - HIPAA compliance no longer a 4-6 month bottleneck
 
 **HIPAA Privacy Office Dashboard**:
 ```bash
-$ cws admin compliance summary --institution --framework HIPAA
+$ prism admin compliance summary --institution --framework HIPAA
 
 # Output:
 # ✅ 458 HIPAA-compliant research projects actively monitored
 # ✅ 2,134 researchers with HIPAA-compliant workstations
 # ✅ 100% pass rate on annual HIPAA Security Rule audits
-# ✅ 0 HIPAA breaches involving CloudWorkStation (24 months)
+# ✅ 0 HIPAA breaches involving Prism (24 months)
 # ✅ $6.8M annual savings vs. on-premise HIPAA infrastructure
 # ✅ Average compliance assessment time: 4 hours (vs. 160 hours previously)
 # ✅ 18,234 PHI disclosures tracked (100% with valid BAA, IRB approval)
@@ -803,4 +803,4 @@ $ cws admin compliance summary --institution --framework HIPAA
 **NIST 800-66 Version**: Revision 2 (February 2024)
 **Based On**: Real NIH clinical research compliance requirements and academic medical center HIPAA programs
 
-**Note**: HIPAA compliance features in CloudWorkStation are planned for v0.8.0 (Q4 2026). This scenario represents the target architecture and capabilities.
+**Note**: HIPAA compliance features in Prism are planned for v0.8.0 (Q4 2026). This scenario represents the target architecture and capabilities.

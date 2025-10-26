@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CloudWorkstation GUI now includes comprehensive template application capabilities, completing the multi-modal access strategy. Users can apply templates to running instances, view template history, and perform rollbacks through an intuitive visual interface that maintains CloudWorkstation's core principles of simplicity and safety.
+The Prism GUI now includes comprehensive template application capabilities, completing the multi-modal access strategy. Users can apply templates to running instances, view template history, and perform rollbacks through an intuitive visual interface that maintains Prism's core principles of simplicity and safety.
 
 ## Key Features
 
@@ -77,7 +77,7 @@ The rollback system prioritizes user safety while providing powerful recovery ca
 ## User Experience Design
 
 ### **Progressive Disclosure**
-Following CloudWorkstation's core design principle, the GUI provides:
+Following Prism's core design principle, the GUI provides:
 
 **Level 1 - Basic Access**:
 - Simple "Apply Template" and "Template History" buttons
@@ -119,7 +119,7 @@ The template application interface maintains consistency with existing GUI patte
 ## Technical Implementation
 
 ### **Architecture Integration**
-The GUI template application features integrate seamlessly with existing CloudWorkstation architecture:
+The GUI template application features integrate seamlessly with existing Prism architecture:
 
 **API Client Integration**:
 ```go
@@ -215,7 +215,7 @@ The GUI is structured to easily integrate with the template application API:
 
 ```go
 // Template application (ready for API integration)
-func (g *CloudWorkstationGUI) applyTemplateToInstance(...) {
+func (g *PrismGUI) applyTemplateToInstance(...) {
     // Current: Simulated progress tracking
     // Future: Replace with actual API calls to daemon
     
@@ -386,8 +386,8 @@ func (g *CloudWorkstationGUI) applyTemplateToInstance(...) {
 
 ## Conclusion
 
-The GUI template application integration represents a major milestone in CloudWorkstation's evolution toward comprehensive research environment management. By providing intuitive visual interfaces for complex template operations, the GUI democratizes access to advanced environment management capabilities while maintaining the safety and reliability that researchers require.
+The GUI template application integration represents a major milestone in Prism's evolution toward comprehensive research environment management. By providing intuitive visual interfaces for complex template operations, the GUI democratizes access to advanced environment management capabilities while maintaining the safety and reliability that researchers require.
 
-The implementation demonstrates CloudWorkstation's commitment to **progressive disclosure** - simple interfaces that reveal advanced capabilities when needed - and **safety-first design** that prevents costly mistakes while enabling powerful research computing workflows.
+The implementation demonstrates Prism's commitment to **progressive disclosure** - simple interfaces that reveal advanced capabilities when needed - and **safety-first design** that prevents costly mistakes while enabling powerful research computing workflows.
 
-With template application now available across CLI, GUI, and API interfaces, CloudWorkstation provides a truly comprehensive platform for research environment management that scales from individual researchers to large research teams and institutions.
+With template application now available across CLI, GUI, and API interfaces, Prism provides a truly comprehensive platform for research environment management that scales from individual researchers to large research teams and institutions.

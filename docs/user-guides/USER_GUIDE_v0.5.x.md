@@ -1,4 +1,4 @@
-# CloudWorkstation User Guide - v0.5.x Series
+# Prism User Guide - v0.5.x Series
 
 **Version**: 0.5.x Series (Universal AMI System Era)
 **Last Updated**: December 2025
@@ -6,7 +6,7 @@
 
 ## Overview
 
-CloudWorkstation v0.5.x introduces the **Universal AMI System**, revolutionizing how researchers launch cloud environments. Instead of waiting 5-8 minutes for software installation, you can now launch pre-built environments in **30 seconds** while maintaining full flexibility.
+Prism v0.5.x introduces the **Universal AMI System**, revolutionizing how researchers launch cloud environments. Instead of waiting 5-8 minutes for software installation, you can now launch pre-built environments in **30 seconds** while maintaining full flexibility.
 
 ## 🚀 What's New in v0.5.x
 
@@ -36,10 +36,10 @@ CloudWorkstation v0.5.x introduces the **Universal AMI System**, revolutionizing
 
 ## First-Time Setup
 
-If you're new to CloudWorkstation, start with the interactive onboarding wizard:
+If you're new to Prism, start with the interactive onboarding wizard:
 
 ```bash
-cws init
+prism init
 ```
 
 The wizard will guide you through:
@@ -60,7 +60,7 @@ Choose your primary research domain for personalized recommendations:
 Set a monthly budget to receive cost alerts:
 - Alert thresholds at 50%, 80%, and 100% of budget
 - Non-blocking alerts (workspaces continue running)
-- Adjust later with `cws budget` commands
+- Adjust later with `prism budget` commands
 
 ### 4. Hibernation Policy
 Automatically pause idle workspaces to save costs:
@@ -84,36 +84,36 @@ Once setup is complete, you'll see next steps for launching your first workspace
 
 You're all set! Here's how to launch your first workspace:
 
-  cws launch "Python Machine Learning (Simplified)" my-first-project
+  prism launch "Python Machine Learning (Simplified)" my-first-project
 
 Other helpful commands:
-  • cws templates list - List all available templates
-  • cws list - List your workspaces
-  • cws connect <name> - Connect to a workspace
-  • cws tui - Launch interactive interface
+  • prism templates list - List all available templates
+  • prism list - List your workspaces
+  • prism connect <name> - Connect to a workspace
+  • prism tui - Launch interactive interface
 ```
 
 ## Quick Start Guide
 
-> **Note**: If you've already run `cws init`, jump directly to launching workspaces below.
+> **Note**: If you've already run `prism init`, jump directly to launching workspaces below.
 
 ### 1. Launch with AMI Optimization
 ```bash
 # Automatic AMI resolution (fastest path)
-cws launch python-ml my-research
+prism launch python-ml my-research
 🔍 Resolving AMI for template: python-ml
 ✅ Found optimized AMI: ami-0123456789abcdef0
 📈 Performance: 4.2x faster launch (30s vs 6min)
 🚀 Launching with pre-built environment...
 
 # Preview AMI resolution before launch
-cws launch python-ml my-research --dry-run --show-ami-resolution
+prism launch python-ml my-research --dry-run --show-ami-resolution
 ```
 
 ### 2. Explore AMI Options
 ```bash
 # List available AMIs for templates
-cws ami list --template python-ml
+prism ami list --template python-ml
 📋 Available AMIs for template: python-ml
 
 Region: us-east-1
@@ -121,25 +121,25 @@ Region: us-east-1
   ami-0fedcba9876543210  Python ML v2.0.5   (official)   ⭐ 4.6/5
 
 # Test AMI availability across regions
-cws ami test python-ml --all-regions
+prism ami test python-ml --all-regions
 ```
 
 ### 3. Create and Share AMIs
 ```bash
 # Create AMI from your optimized instance
-cws ami create python-ml my-instance --name "My Python ML Setup"
+prism ami create python-ml my-instance --name "My Python ML Setup"
 🔧 Creating AMI from instance: my-instance
 ✅ AMI created: ami-0123456789abcdef0
 
 # Share with community
-cws ami share ami-0123456789abcdef0 --community cloudworkstation
+prism ami share ami-0123456789abcdef0 --community prism
 ```
 
 ## AMI System Deep Dive
 
 ### AMI Resolution Strategy
 
-CloudWorkstation uses intelligent **multi-tier resolution** to find the best deployment method:
+Prism uses intelligent **multi-tier resolution** to find the best deployment method:
 
 1. **Direct Mapping**: Region-specific AMI references (fastest - 30 seconds)
 2. **Dynamic Search**: Pattern-based AMI discovery (45 seconds)
@@ -179,7 +179,7 @@ When AMIs aren't available in your region:
 
 ```bash
 # Automatic cross-region resolution
-cws launch python-ml my-research --region ap-south-1
+prism launch python-ml my-research --region ap-south-1
 🔍 Resolving AMI in ap-south-1...
 ❌ No AMI in ap-south-1
 🔄 Searching fallback regions...
@@ -190,7 +190,7 @@ Continue? [y/N]: y
 
 ### Performance Optimization
 
-CloudWorkstation automatically optimizes for:
+Prism automatically optimizes for:
 - **Architecture**: ARM64 preferred for cost savings
 - **Instance Types**: Match AMI optimizations to instance families
 - **Regional Costs**: Consider data transfer for cross-region copies
@@ -202,7 +202,7 @@ Understanding AMI costs:
 
 ```bash
 # Compare deployment costs
-cws launch python-ml my-research --dry-run --show-costs
+prism launch python-ml my-research --dry-run --show-costs
 💰 Cost Analysis:
 
 AMI Launch:
@@ -222,7 +222,7 @@ Recommendation: AMI launch saves time and reduces setup costs
 
 ```bash
 # Browse community AMIs
-cws ami browse --category machine-learning
+prism ami browse --category machine-learning
 📂 Community AMIs: Machine Learning
 
 Python ML Environments:
@@ -231,7 +231,7 @@ Python ML Environments:
   ⭐ 4.5/5  TensorFlow Optimized (654 downloads)
 
 # Show detailed AMI information
-cws ami info ami-0123456789abcdef0
+prism ami info ami-0123456789abcdef0
 📋 AMI: Python ML v2.1.0
 Creator: ml-research-group@university.edu
 Description: Optimized Python ML with CUDA 12.0, PyTorch 2.1
@@ -243,13 +243,13 @@ Performance: 4.2x faster than script installation
 
 ```bash
 # Create optimized AMI from your work
-cws ami create python-ml my-instance \
+prism ami create python-ml my-instance \
   --name "Python ML with Custom Libraries" \
   --description "Includes bioinformatics and visualization tools" \
   --public
 
 # Multi-region deployment
-cws ami create-multi python-ml my-instance \
+prism ami create-multi python-ml my-instance \
   --regions us-east-1,us-west-2,eu-west-1 \
   --name "Global Python ML Environment"
 ```
@@ -277,7 +277,7 @@ cws ami create-multi python-ml my-instance \
 **AMI Not Available in Region**:
 ```bash
 # Check cross-region options
-cws ami test python-ml --region eu-central-1
+prism ami test python-ml --region eu-central-1
 ❌ No direct AMI in eu-central-1
 ✅ Available in eu-west-1 (copy cost: $0.02, time: 90s)
 ⚠️  Fallback to script provisioning available (6 minutes)
@@ -286,23 +286,23 @@ cws ami test python-ml --region eu-central-1
 **Slow AMI Resolution**:
 ```bash
 # Force specific resolution method
-cws launch python-ml my-research --ami-strategy direct_mapping
-cws launch python-ml my-research --ami-strategy marketplace
-cws launch python-ml my-research --prefer-script  # Skip AMI entirely
+prism launch python-ml my-research --ami-strategy direct_mapping
+prism launch python-ml my-research --ami-strategy marketplace
+prism launch python-ml my-research --prefer-script  # Skip AMI entirely
 ```
 
 **AMI Creation Failures**:
 ```bash
 # Verify instance state before creating AMI
-cws instance status my-instance
-cws ami create python-ml my-instance --wait-for-running
+prism instance status my-instance
+prism ami create python-ml my-instance --wait-for-running
 ```
 
 ### Getting Help
 
 **AMI System Support**:
-- Check AMI availability: `cws ami test <template>`
-- View resolution logs: `cws launch <template> <name> --debug`
+- Check AMI availability: `prism ami test <template>`
+- View resolution logs: `prism launch <template> <name> --debug`
 - Report AMI issues: Include AMI ID and region in support requests
 
 **Community Support**:
@@ -318,13 +318,13 @@ Coming in v0.5.3, templates can reference AMIs from different repositories:
 
 ```bash
 # Launch from community repository with AMI
-cws launch community/bioinformatics/genomics-pipeline my-project
+prism launch community/bioinformatics/genomics-pipeline my-project
 🔍 Resolving from community repository...
 ✅ Found optimized AMI: ami-0bio123456789def0
 🚀 Launching bioinformatics environment...
 
 # Launch from institutional repository
-cws launch university-edu/research-standard my-project
+prism launch university-edu/research-standard my-project
 🔐 Authenticating with university-edu...
 ✅ Found institutional AMI: ami-0uni123456789def0
 ```
@@ -335,7 +335,7 @@ Coming in v0.5.4, AMI launches can include configuration sync:
 
 ```bash
 # Launch with AMI + configuration sync
-cws launch python-ml my-research --config my-rstudio-setup --sync ~/research/data
+prism launch python-ml my-research --config my-rstudio-setup --sync ~/research/data
 ⚡ Using AMI: ami-0123456789abcdef0 (30s launch)
 ⚙️  Syncing RStudio configuration...
 📁 Setting up directory sync...
@@ -350,13 +350,13 @@ Existing templates work unchanged in v0.5.x:
 
 ```bash
 # Existing script-based template (still works)
-cws launch python-research my-old-project
+prism launch python-research my-old-project
 ⚙️  Using script provisioning (no AMI configured)
 ⏳ Installing packages... (6 minutes)
 ✅ Environment ready
 
 # Same template with AMI optimization
-cws launch python-ml my-new-project  # AMI-optimized version
+prism launch python-ml my-new-project  # AMI-optimized version
 ⚡ Using AMI (30 seconds)
 ✅ Environment ready
 ```
@@ -365,9 +365,9 @@ cws launch python-ml my-new-project  # AMI-optimized version
 
 Converting your templates to use AMIs:
 
-1. **Launch existing template**: `cws launch old-template optimization-instance`
+1. **Launch existing template**: `prism launch old-template optimization-instance`
 2. **Customize environment**: Install additional packages, configure settings
-3. **Create AMI**: `cws ami create old-template optimization-instance --name "Optimized Version"`
+3. **Create AMI**: `prism ami create old-template optimization-instance --name "Optimized Version"`
 4. **Update template**: Add AMI config to template YAML
 5. **Test new template**: Launch and verify functionality
 6. **Share improvements**: Contribute AMI to community
@@ -418,7 +418,7 @@ Converting your templates to use AMIs:
 ### Access Controls
 
 AMI access is controlled through AWS IAM:
-- **Public AMIs**: Available to all CloudWorkstation users
+- **Public AMIs**: Available to all Prism users
 - **Community AMIs**: Shared within research community
 - **Institutional AMIs**: Restricted to organization members
 - **Private AMIs**: Only available to creator
@@ -448,4 +448,4 @@ AMI access is controlled through AWS IAM:
 
 ---
 
-**CloudWorkstation v0.5.x** transforms research computing by providing **instant access to optimized environments** while maintaining the flexibility and reliability researchers depend on. The Universal AMI System represents the future of research cloud deployment - **fast, reliable, and community-driven**.
+**Prism v0.5.x** transforms research computing by providing **instant access to optimized environments** while maintaining the flexibility and reliability researchers depend on. The Universal AMI System represents the future of research cloud deployment - **fast, reliable, and community-driven**.

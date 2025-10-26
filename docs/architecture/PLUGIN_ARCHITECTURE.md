@@ -1,15 +1,15 @@
-# CloudWorkstation Plugin Architecture
+# Prism Plugin Architecture
 
 ## Overview
 
-CloudWorkstation's unified plugin system allows extending both CLI commands and daemon capabilities through a single plugin interface. This enables institutions, researchers, and third-party developers to add custom functionality while maintaining system stability and security.
+Prism's unified plugin system allows extending both CLI commands and daemon capabilities through a single plugin interface. This enables institutions, researchers, and third-party developers to add custom functionality while maintaining system stability and security.
 
 ## Architecture Components
 
 ### **Unified Plugin Interface**
 
 ```go
-// Plugin represents a CloudWorkstation extension
+// Plugin represents a Prism extension
 type Plugin interface {
     // Metadata
     Name() string
@@ -85,8 +85,8 @@ type PluginManager struct {
     pluginConfigs   map[string]PluginConfig
     
     // Plugin directories
-    systemPluginDir string  // /usr/lib/cloudworkstation/plugins
-    userPluginDir   string  // ~/.cloudworkstation/plugins
+    systemPluginDir string  // /usr/lib/prism/plugins
+    userPluginDir   string  // ~/.prism/plugins
     
     // Runtime state
     cliExtensions   *CLIExtensionRegistry
@@ -305,7 +305,7 @@ import (
     "fmt"
     "net/http"
     
-    "github.com/scttfrdmn/cloudworkstation/pkg/plugin"
+    "github.com/scttfrdmn/prism/pkg/plugin"
 )
 
 type ResearchAnalyticsPlugin struct {
@@ -549,27 +549,27 @@ job_script: |
 
 ```bash
 # Install plugin from repository
-cws plugin install research-analytics
+prism plugin install research-analytics
 # Downloaded: research-analytics v1.0.0
-# Installed to: ~/.cloudworkstation/plugins/research-analytics/
-# Available commands: cws analytics, cws analytics report
+# Installed to: ~/.prism/plugins/research-analytics/
+# Available commands: prism analytics, prism analytics report
 # Available APIs: /api/v1/analytics/*
 
 # Install from local file
-cws plugin install ./custom-slurm-plugin.cwsplugin
+prism plugin install ./custom-slurm-plugin.cwsplugin
 # Installed: slurm-integration v2.1.0
 # New service types: slurm_job
 # New template types: slurm_template
 
 # List installed plugins  
-cws plugin list
+prism plugin list
 # PLUGIN                VERSION   STATUS    CAPABILITIES
 # research-analytics    1.0.0     active    CLI, API, Events
 # slurm-integration     2.1.0     active    CLI, API, Templates
 # institutional-theme   1.5.0     active    GUI, Themes
 
 # Plugin status and health
-cws plugin status research-analytics
+prism plugin status research-analytics
 # Plugin: research-analytics v1.0.0
 # Status: Active
 # Health: Healthy
@@ -578,17 +578,17 @@ cws plugin status research-analytics
 # API requests: 1,247 total, 12 errors (0.97%)
 
 # Update plugin
-cws plugin update research-analytics
+prism plugin update research-analytics
 # Updated: research-analytics v1.0.0 → v1.1.0
 # Changes: Added cost prediction API, improved report formatting
 # Restart required: No (hot-reloadable)
 
 # Disable/enable plugin
-cws plugin disable slurm-integration
-cws plugin enable slurm-integration
+prism plugin disable slurm-integration
+prism plugin enable slurm-integration
 
 # Remove plugin
-cws plugin remove research-analytics --confirm
+prism plugin remove research-analytics --confirm
 ```
 
 ### **Plugin Security Model**
@@ -603,7 +603,7 @@ type PluginSandbox struct {
     maxNetworkBPS int64         // Maximum network bandwidth
     
     // Permission model
-    allowedAPIs      []string     // Which CloudWorkstation APIs plugin can call
+    allowedAPIs      []string     // Which Prism APIs plugin can call
     allowedPaths     []string     // Filesystem paths plugin can access
     allowedNetwork   []string     // Network endpoints plugin can access
     allowedEnvVars   []string     // Environment variables plugin can read
@@ -641,4 +641,4 @@ func (pm *PluginManager) validatePluginSecurity(plugin Plugin, config PluginConf
 }
 ```
 
-This unified plugin architecture enables CloudWorkstation to be extended for specialized research workflows while maintaining security, stability, and performance. Institutions can develop custom plugins for their specific needs (HPC integration, specialized analytics, custom authentication) while maintaining compatibility with core CloudWorkstation functionality.
+This unified plugin architecture enables Prism to be extended for specialized research workflows while maintaining security, stability, and performance. Institutions can develop custom plugins for their specific needs (HPC integration, specialized analytics, custom authentication) while maintaining compatibility with core Prism functionality.

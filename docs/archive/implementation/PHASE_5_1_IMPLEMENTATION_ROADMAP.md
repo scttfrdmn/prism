@@ -7,7 +7,7 @@
 
 ## 🎯 Phase Objectives
 
-Phase 5.1 transforms CloudWorkstation from script-only provisioning to intelligent hybrid deployment, delivering:
+Phase 5.1 transforms Prism from script-only provisioning to intelligent hybrid deployment, delivering:
 
 - **30-second launches** for optimized environments vs 5-8 minute script provisioning
 - **Universal AMI support** for any template (not just commercial software)
@@ -74,7 +74,7 @@ pkg/types/ami_requests.go    // NEW: API request/response types
 - [ ] Update `internal/cli/launch.go` with AMI resolution options
 - [ ] Add `--show-ami-resolution` flag for deployment preview
 - [ ] Implement `--ami-strategy` override flag
-- [ ] Create `cws ami test` command for template AMI testing
+- [ ] Create `prism ami test` command for template AMI testing
 
 **Day 5: Testing and Validation**
 - [ ] Create comprehensive unit tests for AMI resolver
@@ -103,17 +103,17 @@ pkg/ami/cost_calculator.go   // NEW: AMI cost analysis
 
 **Day 3-4: CLI AMI Commands**
 - [ ] Create `internal/cli/ami_commands.go` with full AMI command suite
-- [ ] Implement `cws ami create` command
-- [ ] Add `cws ami list` and `cws ami info` commands
-- [ ] Create `cws ami create-multi` for multi-region deployment
+- [ ] Implement `prism ami create` command
+- [ ] Add `prism ami list` and `prism ami info` commands
+- [ ] Create `prism ami create-multi` for multi-region deployment
 
 **CLI Commands to Implement**:
 ```bash
-cws ami create <template> <instance> [options]
-cws ami list [--template name] [--region region]
-cws ami info <ami-id>
-cws ami test <template> [--all-regions]
-cws ami create-multi <template> <instance> --regions us-east-1,us-west-2
+prism ami create <template> <instance> [options]
+prism ami list [--template name] [--region region]
+prism ami info <ami-id>
+prism ami test <template> [--all-regions]
+prism ami create-multi <template> <instance> --regions us-east-1,us-west-2
 ```
 
 **Day 5: AMI API Integration**
@@ -185,16 +185,16 @@ ami_sharing          # Sharing permissions
 
 **Day 1-2: CLI Community Commands**
 - [ ] Extend `internal/cli/ami_commands.go` with community features
-- [ ] Implement `cws ami browse` for community AMI discovery
-- [ ] Add `cws ami rate` and `cws ami share` commands
-- [ ] Create `cws ami submit` for community contributions
+- [ ] Implement `prism ami browse` for community AMI discovery
+- [ ] Add `prism ami rate` and `prism ami share` commands
+- [ ] Create `prism ami submit` for community contributions
 
 **Community CLI Commands**:
 ```bash
-cws ami browse [--category ml] [--creator user]
-cws ami rate <ami-id> <1-5> [--review "text"]
-cws ami share <ami-id> --community cloudworkstation
-cws ami submit <ami-id> --description "..." --public
+prism ami browse [--category ml] [--creator user]
+prism ami rate <ami-id> <1-5> [--review "text"]
+prism ami share <ami-id> --community prism
+prism ami submit <ami-id> --description "..." --public
 ```
 
 **Day 3-4: GUI Integration**
@@ -432,4 +432,4 @@ pkg/templates/ami_validator_test.go  // Template AMI validation
 
 ---
 
-**Phase 5.1 Implementation Roadmap** provides a comprehensive plan for delivering the **Universal AMI System** that will revolutionize CloudWorkstation's deployment speed and reliability. The 8-week timeline balances ambitious performance goals with thorough testing and documentation to ensure a production-ready system that maintains CloudWorkstation's core principles of simplicity and reliability.
+**Phase 5.1 Implementation Roadmap** provides a comprehensive plan for delivering the **Universal AMI System** that will revolutionize Prism's deployment speed and reliability. The 8-week timeline balances ambitious performance goals with thorough testing and documentation to ensure a production-ready system that maintains Prism's core principles of simplicity and reliability.

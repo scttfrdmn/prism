@@ -8,7 +8,7 @@
 
 ### Policy Framework TUI Implementation (COMPLETE)
 
-Successfully implemented the complete Policy Framework TUI, bringing CloudWorkstation TUI coverage from 50% to 56%.
+Successfully implemented the complete Policy Framework TUI, bringing Prism TUI coverage from 50% to 56%.
 
 #### Files Created/Modified:
 

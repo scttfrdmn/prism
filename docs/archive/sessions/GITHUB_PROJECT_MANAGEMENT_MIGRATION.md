@@ -6,7 +6,7 @@
 
 ## Summary
 
-Migrated CloudWorkstation from file-based project management (ROADMAP.md, TODO.md files) to professional GitHub-based project management following open-source best practices.
+Migrated Prism from file-based project management (ROADMAP.md, TODO.md files) to professional GitHub-based project management following open-source best practices.
 
 ## Problem Statement
 
@@ -173,7 +173,7 @@ Includes:
    - Provide instructions for manual steps
 
 2. **Create GitHub Projects Board** (Manual):
-   - Go to: https://github.com/scttfrdmn/cloudworkstation/projects
+   - Go to: https://github.com/scttfrdmn/prism/projects
    - Click "New project"
    - Choose "Board" view
    - Add columns: Backlog, Ready, In Progress, Review, Done
@@ -196,9 +196,9 @@ Includes:
 ### For Contributors
 
 **Finding Work**:
-1. Browse [GitHub Issues](https://github.com/scttfrdmn/cloudworkstation/issues)
+1. Browse [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
 2. Filter by label (e.g., `good first issue`)
-3. Check [Projects Board](https://github.com/scttfrdmn/cloudworkstation/projects) for prioritized work
+3. Check [Projects Board](https://github.com/scttfrdmn/prism/projects) for prioritized work
 4. Pick from "Ready" column
 
 **Contributing**:
@@ -233,10 +233,10 @@ Includes:
 ## GitHub Links
 
 Once setup scripts are run:
-- **Issues**: https://github.com/scttfrdmn/cloudworkstation/issues
-- **Projects**: https://github.com/scttfrdmn/cloudworkstation/projects
-- **Milestones**: https://github.com/scttfrdmn/cloudworkstation/milestones
-- **Labels**: https://github.com/scttfrdmn/cloudworkstation/labels
+- **Issues**: https://github.com/scttfrdmn/prism/issues
+- **Projects**: https://github.com/scttfrdmn/prism/projects
+- **Milestones**: https://github.com/scttfrdmn/prism/milestones
+- **Labels**: https://github.com/scttfrdmn/prism/labels
 
 ## Philosophy
 
@@ -278,7 +278,7 @@ Once setup scripts are run:
 
 ## Conclusion
 
-CloudWorkstation now has a professional, scalable project management system that:
+Prism now has a professional, scalable project management system that:
 - Separates documentation from tracking
 - Follows open-source best practices
 - Makes contribution clear and accessible

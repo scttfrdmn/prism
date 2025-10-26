@@ -1,6 +1,6 @@
-# CloudWorkstation DMG Implementation Summary
+# Prism DMG Implementation Summary
 
-Complete professional macOS DMG installer implementation for CloudWorkstation as an alternative to Homebrew installation.
+Complete professional macOS DMG installer implementation for Prism as an alternative to Homebrew installation.
 
 ## 🎯 Implementation Completed
 
@@ -18,7 +18,7 @@ Complete professional macOS DMG installer implementation for CloudWorkstation as
 - Professional icon generation system
 
 **3. Installation Assets** 
-- Custom DMG background image with CloudWorkstation branding
+- Custom DMG background image with Prism branding
 - Proper window layout and icon positioning
 - Drag-and-drop installation interface
 - README and installation instructions
@@ -51,17 +51,17 @@ Complete professional macOS DMG installer implementation for CloudWorkstation as
 
 ### DMG Structure
 ```
-CloudWorkstation-v0.4.2.dmg/
-├── CloudWorkstation.app/          # Native macOS application bundle
+Prism-v0.4.2.dmg/
+├── Prism.app/          # Native macOS application bundle
 │   ├── Contents/
 │   │   ├── Info.plist             # Bundle metadata and configuration
 │   │   ├── MacOS/
-│   │   │   ├── CloudWorkstation   # Smart launcher script
-│   │   │   ├── cws               # CLI client binary
+│   │   │   ├── Prism   # Smart launcher script
+│   │   │   ├── prism               # CLI client binary
 │   │   │   ├── cwsd              # Daemon service binary
 │   │   │   └── cws-gui           # GUI application binary
 │   │   ├── Resources/
-│   │   │   ├── CloudWorkstation.icns  # Professional app icon
+│   │   │   ├── Prism.icns  # Professional app icon
 │   │   │   ├── templates/        # Built-in template library
 │   │   │   └── scripts/          # Installation and service scripts
 │   │   └── Frameworks/           # Dependencies (if needed)
@@ -72,7 +72,7 @@ CloudWorkstation-v0.4.2.dmg/
 
 ### Application Bundle Features
 
-**Smart Launcher (`Contents/MacOS/CloudWorkstation`)**
+**Smart Launcher (`Contents/MacOS/Prism`)**
 - Welcome screen with setup options (GUI vs CLI)
 - Automatic CLI tools installation to `/usr/local/bin/`
 - PATH configuration for all major shells
@@ -111,7 +111,7 @@ CloudWorkstation-v0.4.2.dmg/
 ### Installation Workflow
 1. **Download** - Single DMG file from GitHub releases
 2. **Mount** - Double-click to mount disk image  
-3. **Install** - Drag CloudWorkstation.app to Applications
+3. **Install** - Drag Prism.app to Applications
 4. **Launch** - Open from Applications or Spotlight
 5. **Setup** - Choose GUI or CLI setup path
 6. **Configure** - AWS credentials and preferences
@@ -220,7 +220,7 @@ make dmg-all          # Complete pipeline (build → sign → notarize)
 ### Planned Features
 - **Auto-updater** integration for seamless updates
 - **Preferences pane** for system-wide configuration
-- **URL scheme** handling for `cloudworkstation://` links
+- **URL scheme** handling for `prism://` links
 - **Finder integration** for right-click workstation management
 - **Menu bar** application for quick access
 
@@ -264,7 +264,7 @@ make dmg-all          # Complete pipeline (build → sign → notarize)
 
 ## 🎉 Implementation Success
 
-This comprehensive DMG implementation provides CloudWorkstation users with a **professional, native macOS installation experience** that rivals commercial applications. The solution successfully addresses all requirements:
+This comprehensive DMG implementation provides Prism users with a **professional, native macOS installation experience** that rivals commercial applications. The solution successfully addresses all requirements:
 
 ### ✅ Professional macOS Experience
 - Native application bundle with proper metadata
@@ -284,8 +284,8 @@ This comprehensive DMG implementation provides CloudWorkstation users with a **p
 - Comprehensive documentation
 - Maintainable architecture
 
-The DMG installer establishes CloudWorkstation as a **professional-grade research platform** suitable for individual researchers, academic institutions, and enterprise deployments requiring native macOS integration.
+The DMG installer establishes Prism as a **professional-grade research platform** suitable for individual researchers, academic institutions, and enterprise deployments requiring native macOS integration.
 
 ---
 
-**CloudWorkstation macOS DMG Implementation** - Professional installation experience for the academic research cloud platform.
+**Prism macOS DMG Implementation** - Professional installation experience for the academic research cloud platform.

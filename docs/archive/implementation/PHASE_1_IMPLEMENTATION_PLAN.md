@@ -1,4 +1,4 @@
-# CloudWorkstation v0.4.4 Phase 1 Implementation Plan
+# Prism v0.4.4 Phase 1 Implementation Plan
 
 ## 🎯 Phase 1 Goals: Foundation & Performance (Weeks 1-2)
 
@@ -173,9 +173,9 @@ func NewAWSPermissionError(operation string, resource string) *ContextualError {
         Suggestions: []string{
             "Check your AWS credentials with: aws sts get-caller-identity",
             "Verify IAM permissions for EC2, EFS, and SSM",
-            "See AWS setup guide: https://cloudworkstation.io/docs/aws-setup",
+            "See AWS setup guide: https://prism.io/docs/aws-setup",
         },
-        HelpLink: "https://cloudworkstation.io/troubleshooting/aws-permissions",
+        HelpLink: "https://prism.io/troubleshooting/aws-permissions",
     }
 }
 ```

@@ -2,7 +2,7 @@
 
 ## Summary
 
-The CloudWorkstation TUI (Terminal User Interface) has been successfully re-enabled and modernized to achieve full CLI/TUI/GUI parity. The TUI now provides a complete interactive terminal interface for managing cloud workstations using the BubbleTea framework.
+The Prism TUI (Terminal User Interface) has been successfully re-enabled and modernized to achieve full CLI/TUI/GUI parity. The TUI now provides a complete interactive terminal interface for managing cloud workstations using the BubbleTea framework.
 
 ## Completion Status: ✅ COMPLETE
 
@@ -97,14 +97,14 @@ All TUI pages now functional with dynamic API integration:
 
 | Feature | CLI Command | GUI Section | TUI Page | Status |
 |---------|-------------|-------------|----------|---------|
-| Templates | `cws templates` | Templates tab | Templates page | ✅ Complete |
-| Launch Basic | `cws launch` | Launch dialog | Via CLI guidance | ✅ Complete |
-| Instance List | `cws list` | Instances tab | Instances page | ✅ Complete |
-| Instance Control | `cws start/stop` | Instance dialogs | Instance actions | ✅ Complete |
-| Storage EFS | `cws volumes` | Storage EFS tab | Storage page | ✅ Complete |
-| Storage EBS | `cws ebs-volumes` | Storage EBS tab | Storage page | ✅ Complete |
-| Profile Mgmt | `cws config` | Settings profiles | Profiles page | ✅ Complete |
-| Daemon Status | `cws daemon` | Settings daemon | Settings page | ✅ Complete |
+| Templates | `prism templates` | Templates tab | Templates page | ✅ Complete |
+| Launch Basic | `prism launch` | Launch dialog | Via CLI guidance | ✅ Complete |
+| Instance List | `prism list` | Instances tab | Instances page | ✅ Complete |
+| Instance Control | `prism start/stop` | Instance dialogs | Instance actions | ✅ Complete |
+| Storage EFS | `prism volumes` | Storage EFS tab | Storage page | ✅ Complete |
+| Storage EBS | `prism ebs-volumes` | Storage EBS tab | Storage page | ✅ Complete |
+| Profile Mgmt | `prism config` | Settings profiles | Profiles page | ✅ Complete |
+| Daemon Status | `prism daemon` | Settings daemon | Settings page | ✅ Complete |
 
 ### 4. Technical Architecture
 
@@ -178,7 +178,7 @@ internal/tui/
 ## Integration Benefits
 
 ### Multi-Modal Access Strategy
-CloudWorkstation now provides three complete interfaces:
+Prism now provides three complete interfaces:
 
 1. **CLI**: Power users, automation, scripting
 2. **TUI**: Interactive terminal users, remote access
@@ -217,6 +217,6 @@ While the TUI is complete and functional, future improvements could include:
 
 ## Conclusion
 
-The CloudWorkstation TUI re-enablement has been completed successfully, achieving all Phase 2 objectives. The TUI now provides a comprehensive, professional terminal interface that matches the functionality of both CLI and GUI interfaces. This completes CloudWorkstation's multi-modal access strategy, offering researchers flexible options for managing their cloud computing environments.
+The Prism TUI re-enablement has been completed successfully, achieving all Phase 2 objectives. The TUI now provides a comprehensive, professional terminal interface that matches the functionality of both CLI and GUI interfaces. This completes Prism's multi-modal access strategy, offering researchers flexible options for managing their cloud computing environments.
 
 **Phase 2 TUI Status: 🎉 COMPLETE**

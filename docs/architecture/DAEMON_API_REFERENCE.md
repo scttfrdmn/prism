@@ -1,4 +1,4 @@
-# CloudWorkstation Daemon API Reference
+# Prism Daemon API Reference
 
 ## Version: v0.5.5
 **Last Updated**: October 20, 2025
@@ -6,15 +6,15 @@
 **Base URL**: `http://localhost:8947`
 **Protocol**: REST API with JSON
 
-> **Note**: This API reference is maintained alongside the codebase. The version number reflects the current CloudWorkstation release. All endpoints are stable unless marked as "Future Enhancement" or "Planned".
+> **Note**: This API reference is maintained alongside the codebase. The version number reflects the current Prism release. All endpoints are stable unless marked as "Future Enhancement" or "Planned".
 
 ---
 
 ## 🔌 **API Architecture**
 
-The CloudWorkstation daemon provides a unified REST API that serves all client interfaces:
+The Prism daemon provides a unified REST API that serves all client interfaces:
 - **CLI Client** (`cmd/cws`) - Command-line interface
-- **TUI Client** (`cws tui`) - Interactive terminal interface  
+- **TUI Client** (`prism tui`) - Interactive terminal interface  
 - **GUI Client** (`cmd/cws-gui`) - Desktop application (Wails 3.x)
 
 All clients use the same API endpoints through the `pkg/api/client` library for consistent functionality across interfaces.
@@ -26,7 +26,7 @@ All clients use the same API endpoints through the `pkg/api/client` library for 
 ### **Templates**
 
 #### `GET /api/v1/templates`
-Retrieve all available CloudWorkstation templates.
+Retrieve all available Prism templates.
 
 **Response**:
 ```json
@@ -98,7 +98,7 @@ Get detailed information about a specific template including dependency chains a
 ### **Instances**
 
 #### `GET /api/v1/instances`
-List all CloudWorkstation instances with current status and metadata.
+List all Prism instances with current status and metadata.
 
 **Response**:
 ```json
@@ -127,7 +127,7 @@ List all CloudWorkstation instances with current status and metadata.
 ```
 
 #### `POST /api/v1/instances/launch`
-Launch a new CloudWorkstation instance.
+Launch a new Prism instance.
 
 **Request**:
 ```json
@@ -212,7 +212,7 @@ Get connection information for accessing an instance.
 ```json
 {
   "ssh": {
-    "command": "ssh -i ~/.ssh/cloudworkstation.pem ec2-user@54.123.45.67",
+    "command": "ssh -i ~/.ssh/prism.pem ec2-user@54.123.45.67",
     "host": "54.123.45.67", 
     "user": "ec2-user",
     "port": 22
@@ -221,7 +221,7 @@ Get connection information for accessing an instance.
     "jupyter": {
       "url": "http://54.123.45.67:8888",
       "token": "a1b2c3d4e5f6g7h8i9j0",
-      "local_forward": "ssh -L 8888:localhost:8888 -i ~/.ssh/cloudworkstation.pem ec2-user@54.123.45.67"
+      "local_forward": "ssh -L 8888:localhost:8888 -i ~/.ssh/prism.pem ec2-user@54.123.45.67"
     },
     "rstudio": {
       "url": "http://54.123.45.67:8787", 
@@ -531,7 +531,7 @@ Create new EFS or EBS storage volume.
 ### **Cost Tracking & Analytics**
 
 #### `GET /api/v1/costs/current`
-Get current AWS costs across all CloudWorkstation resources.
+Get current AWS costs across all Prism resources.
 
 **Response**:
 ```json
@@ -607,7 +607,7 @@ Get current active AWS profile and region configuration.
 ```
 
 #### `GET /api/v1/profiles`
-List all available CloudWorkstation profiles.
+List all available Prism profiles.
 
 **Response**:
 ```json
@@ -630,7 +630,7 @@ List all available CloudWorkstation profiles.
 ```
 
 #### `POST /api/v1/profiles/switch`
-Switch to a different CloudWorkstation profile.
+Switch to a different Prism profile.
 
 **Request**:
 ```json
@@ -781,7 +781,7 @@ instance, err := client.LaunchInstance(launchReq)
 // Frontend service integration example
 async function loadInstances() {
     try {
-        const instances = await window.wails.CloudWorkstationService.GetInstances();
+        const instances = await window.wails.PrismService.GetInstances();
         renderInstances(instances);
     } catch (error) {
         console.error('Failed to load instances:', error);
@@ -796,7 +796,7 @@ async function launchInstance(templateName, instanceName, size) {
         Size: size
     };
     
-    return await window.wails.CloudWorkstationService.LaunchInstance(request);
+    return await window.wails.PrismService.LaunchInstance(request);
 }
 ```
 
@@ -804,4 +804,4 @@ async function launchInstance(templateName, instanceName, size) {
 
 **Total API Endpoints**: 35+ endpoints across templates, instances, hibernation, projects, storage, costs, profiles, and system management.
 
-This comprehensive API reference provides complete documentation for integrating with the CloudWorkstation daemon across all client interfaces (CLI, TUI, GUI) and supports the full enterprise research platform feature set.
+This comprehensive API reference provides complete documentation for integrating with the Prism daemon across all client interfaces (CLI, TUI, GUI) and supports the full enterprise research platform feature set.

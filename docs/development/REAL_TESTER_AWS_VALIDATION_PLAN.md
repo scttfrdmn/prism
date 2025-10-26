@@ -51,7 +51,7 @@ go test -tags aws_integration ./pkg/ami/ -v
 
 ### Safety Features (Already Built In)
 - ✅ Test resources use `cwstest-` prefix
-- ✅ Tagged: `CreatedBy=CloudWorkstationIntegrationTest`
+- ✅ Tagged: `CreatedBy=PrismIntegrationTest`
 - ✅ Automatic cleanup on teardown
 - ✅ Cost-conscious (smallest instances)
 - ✅ Resource limits to prevent runaway costs
@@ -67,7 +67,7 @@ go test -tags aws_integration ./pkg/ami/ -v
 ## Phase 2: Critical User Workflows for Real Testers (4-6 hours)
 
 ### Workflow 1: First-Time Setup (CRITICAL)
-**User**: Never used CloudWorkstation before, not AWS expert
+**User**: Never used Prism before, not AWS expert
 
 **Test Steps**:
 1. Install binary (CLI or GUI)
@@ -85,7 +85,7 @@ go test -tags aws_integration ./pkg/ami/ -v
 **Test Script**:
 ```bash
 # Clean state
-rm -rf ~/.cloudworkstation
+rm -rf ~/.prism
 
 # First run
 ./bin/cws templates
@@ -100,7 +100,7 @@ rm -rf ~/.cloudworkstation
 **Test Steps**:
 1. Browse templates
 2. Pick a template (e.g., Python ML)
-3. Launch instance: `cws launch python-ml my-project`
+3. Launch instance: `prism launch python-ml my-project`
 4. Wait for instance to be ready
 5. Connect via SSH
 6. Verify software works (Python, Jupyter, etc.)
@@ -136,11 +136,11 @@ jupyter --version
 **User**: Needs to manage costs, stop when not using
 
 **Test Steps**:
-1. Stop instance: `cws stop test-instance`
+1. Stop instance: `prism stop test-instance`
 2. List instances (verify stopped)
-3. Start instance: `cws start test-instance`
+3. Start instance: `prism start test-instance`
 4. Wait for ready
-5. Delete instance: `cws delete test-instance`
+5. Delete instance: `prism delete test-instance`
 6. Verify cleanup
 
 **Success Criteria**:
@@ -172,8 +172,8 @@ jupyter --version
 **User**: Needs persistent data across instances
 
 **Test Steps**:
-1. Create EFS volume: `cws volume create shared-data`
-2. Mount to instance: `cws volume mount shared-data test-instance`
+1. Create EFS volume: `prism volume create shared-data`
+2. Mount to instance: `prism volume mount shared-data test-instance`
 3. SSH in, create file in mounted directory
 4. Delete instance
 5. Launch new instance
@@ -260,9 +260,9 @@ rstudio-server status  # or check service
 
 **Test Steps**:
 1. Launch instance
-2. Hibernate: `cws hibernate test-instance`
+2. Hibernate: `prism hibernate test-instance`
 3. Verify hibernation status
-4. Resume: `cws resume test-instance`
+4. Resume: `prism resume test-instance`
 5. Verify work resumed (check for running processes)
 
 **Success Criteria**:
@@ -557,7 +557,7 @@ go test -tags aws_integration ./internal/cli/ -v -run TestAWS 2>&1 | tee aws_tes
 
 # 3. Test critical workflow - First launch
 echo "Testing first-time launch workflow..."
-rm -rf ~/.cloudworkstation  # Clean state
+rm -rf ~/.prism  # Clean state
 ./bin/cws templates
 ./bin/cws launch python-ml real-test-$(date +%s)
 

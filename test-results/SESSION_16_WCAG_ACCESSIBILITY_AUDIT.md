@@ -1,8 +1,8 @@
-# CloudWorkstation GUI: WCAG 2.2 Level AA Accessibility Audit
+# Prism GUI: WCAG 2.2 Level AA Accessibility Audit
 
 **Date**: October 13, 2025
 **Audit Standard**: WCAG 2.2 Level AA
-**Scope**: CloudWorkstation GUI (Cloudscape Design System + React)
+**Scope**: Prism GUI (Cloudscape Design System + React)
 **Auditor Perspective**: Accessibility Specialist + Screen Reader User Simulation
 **Status**: ⚠️ **PARTIAL COMPLIANCE** - 12 issues identified
 
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-Conducted comprehensive accessibility audit against WCAG 2.2 Level AA standards. CloudWorkstation GUI benefits significantly from using Cloudscape Design System (which includes built-in accessibility features), but several violations and risks were identified that must be addressed before production.
+Conducted comprehensive accessibility audit against WCAG 2.2 Level AA standards. Prism GUI benefits significantly from using Cloudscape Design System (which includes built-in accessibility features), but several violations and risks were identified that must be addressed before production.
 
 ### Overall Assessment
 
@@ -152,7 +152,7 @@ Conducted comprehensive accessibility audit against WCAG 2.2 Level AA standards.
 <AppLayout
   navigation={
     <nav aria-label="Main navigation">
-      <SideNavigation ariaLabel="CloudWorkstation navigation" />
+      <SideNavigation ariaLabel="Prism navigation" />
     </nav>
   }
   content={
@@ -443,26 +443,26 @@ useEffect(() => {
 **Current State**:
 ```html
 <!-- index.html -->
-<title>CloudWorkstation</title>
+<title>Prism</title>
 ```
 
 **Problem**:
 - Title never changes based on view
 - Screen reader users don't know which view is active
-- Browser tabs all say "CloudWorkstation"
+- Browser tabs all say "Prism"
 
 **Solution**:
 ```typescript
 useEffect(() => {
   const titles = {
-    'dashboard': 'Dashboard - CloudWorkstation',
-    'templates': 'Templates - CloudWorkstation',
-    'instances': 'My Instances - CloudWorkstation',
-    'storage': 'Storage - CloudWorkstation',
+    'dashboard': 'Dashboard - Prism',
+    'templates': 'Templates - Prism',
+    'instances': 'My Instances - Prism',
+    'storage': 'Storage - Prism',
     // ... etc
   };
 
-  document.title = titles[state.activeView] || 'CloudWorkstation';
+  document.title = titles[state.activeView] || 'Prism';
 }, [state.activeView]);
 ```
 
@@ -841,9 +841,9 @@ errorText="Invalid instance name. Use lowercase letters, numbers, and hyphens on
 <AppLayout
   tools={
     <HelpPanel
-      header={<h2>CloudWorkstation Help</h2>}
+      header={<h2>Prism Help</h2>}
       footer={
-        <Link href="https://docs.cloudworkstation.io">
+        <Link href="https://docs.prism.io">
           View full documentation
         </Link>
       }
@@ -1176,7 +1176,7 @@ lhci autorun --collect.url=http://localhost:3000
 
 ## Conclusion
 
-CloudWorkstation GUI benefits from Cloudscape Design System's built-in accessibility, achieving approximately **60-70% WCAG 2.2 Level A compliance** and **50-60% Level AA compliance** out of the box.
+Prism GUI benefits from Cloudscape Design System's built-in accessibility, achieving approximately **60-70% WCAG 2.2 Level A compliance** and **50-60% Level AA compliance** out of the box.
 
 **Critical Issues** (P0 - ~13 hours):
 - Missing skip navigation link

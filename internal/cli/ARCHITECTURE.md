@@ -1,8 +1,8 @@
-# CloudWorkstation CLI Architecture
+# Prism CLI Architecture
 
 ## Overview
 
-CloudWorkstation CLI uses a **two-layer architecture** that separates user interface concerns from business logic. This document explains the architecture to prevent confusion about "duplicate" command files.
+Prism CLI uses a **two-layer architecture** that separates user interface concerns from business logic. This document explains the architecture to prevent confusion about "duplicate" command files.
 
 ## Architecture Pattern: Facade/Adapter
 

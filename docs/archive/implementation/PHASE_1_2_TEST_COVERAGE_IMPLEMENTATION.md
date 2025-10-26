@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the comprehensive test coverage implementation for the Phase 1 & 2 tabbed embedded connections features. The test coverage ensures all connection management functionality, AWS service integration, and proxy endpoints work correctly across the CloudWorkstation GUI.
+This document summarizes the comprehensive test coverage implementation for the Phase 1 & 2 tabbed embedded connections features. The test coverage ensures all connection management functionality, AWS service integration, and proxy endpoints work correctly across the Prism GUI.
 
 ## Test Coverage Summary
 
@@ -60,7 +60,7 @@ This document summarizes the comprehensive test coverage implementation for the 
 ### ✅ All Tests Passing
 
 ```bash
-cd /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui && go test -v
+cd /Users/scttfrdmn/src/prism/cmd/cws-gui && go test -v
 === RUN   TestNewConnectionManager
 --- PASS: TestNewConnectionManager (0.00s)
 === RUN   TestCreateConnection_SSH
@@ -68,7 +68,7 @@ cd /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui && go test -v
 [... 22 total tests ...]
 --- PASS: TestConnectionProxyEndpoints (0.00s)
 PASS
-ok  	github.com/scttfrdmn/cloudworkstation/cmd/cws-gui	2.189s
+ok  	github.com/scttfrdmn/prism/cmd/cws-gui	2.189s
 ```
 
 **Test Statistics**:
@@ -80,9 +80,9 @@ ok  	github.com/scttfrdmn/cloudworkstation/cmd/cws-gui	2.189s
 ### ✅ Build Verification
 
 All components build successfully with zero compilation errors:
-- ✅ **CloudWorkstation daemon** (cwsd)
-- ✅ **CloudWorkstation CLI** (cws)
-- ✅ **CloudWorkstation GUI** (cws-gui) with Wails + Cloudscape frontend
+- ✅ **Prism daemon** (cwsd)
+- ✅ **Prism CLI** (cws)
+- ✅ **Prism GUI** (cws-gui) with Wails + Cloudscape frontend
 
 ## Implementation Quality
 
