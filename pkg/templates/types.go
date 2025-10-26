@@ -55,6 +55,9 @@ type Template struct {
 	// Post-install script
 	PostInstall string `yaml:"post_install,omitempty" json:"post_install,omitempty"`
 
+	// File provisioning (S3-backed transfers) (v0.5.7)
+	Files []FileConfig `yaml:"files,omitempty" json:"files,omitempty"`
+
 	// User data script for instance initialization
 	UserData string `yaml:"user_data,omitempty" json:"user_data,omitempty"`
 
@@ -166,6 +169,32 @@ type UserConfig struct {
 	Name   string   `yaml:"name" json:"name"`
 	Groups []string `yaml:"groups,omitempty" json:"groups,omitempty"`
 	Shell  string   `yaml:"shell,omitempty" json:"shell,omitempty"` // Default: /bin/bash
+}
+
+// FileConfig defines a file to provision via S3 transfer (v0.5.7)
+type FileConfig struct {
+	// Source S3 location
+	S3Bucket string `yaml:"s3_bucket" json:"s3_bucket"` // S3 bucket name
+	S3Key    string `yaml:"s3_key" json:"s3_key"`       // S3 object key
+
+	// Destination on instance
+	DestinationPath string `yaml:"destination_path" json:"destination_path"` // Target path on instance
+
+	// File properties
+	Owner       string `yaml:"owner,omitempty" json:"owner,omitempty"`             // File owner (default: current user)
+	Group       string `yaml:"group,omitempty" json:"group,omitempty"`             // File group (default: current user's group)
+	Permissions string `yaml:"permissions,omitempty" json:"permissions,omitempty"` // File permissions (e.g., "0644")
+
+	// Transfer options
+	Checksum    bool `yaml:"checksum,omitempty" json:"checksum,omitempty"`         // Enable MD5 checksum verification (default: true)
+	AutoCleanup bool `yaml:"auto_cleanup,omitempty" json:"auto_cleanup,omitempty"` // Delete from S3 after successful download (default: false)
+
+	// Conditional provisioning
+	Required bool   `yaml:"required,omitempty" json:"required,omitempty"` // Fail template launch if file transfer fails (default: true)
+	OnlyIf   string `yaml:"only_if,omitempty" json:"only_if,omitempty"`   // Conditional expression (e.g., "arch == 'x86_64'")
+
+	// Description for documentation
+	Description string `yaml:"description,omitempty" json:"description,omitempty"` // Human-readable description
 }
 
 // InstanceDefaults defines default instance configuration

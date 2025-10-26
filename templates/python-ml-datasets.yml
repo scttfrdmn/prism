@@ -1,0 +1,143 @@
+name: "Python ML with Pre-loaded Datasets"
+slug: python-ml-datasets
+description: "Python Machine Learning environment with pre-loaded large datasets"
+long_description: |
+  Complete Python ML environment with pre-configured datasets stored in S3.
+  Includes popular ML libraries (PyTorch, TensorFlow, scikit-learn) and
+  automatically provisions large datasets from S3 during launch.
+
+  Pre-loaded datasets:
+  - ImageNet subset (10GB)
+  - COCO 2017 validation (1GB)
+  - Custom research dataset
+
+  Perfect for ML research requiring immediate access to large datasets
+  without manual download and setup.
+
+base: ubuntu-22.04
+complexity: moderate
+category: "Machine Learning"
+domain: ml
+icon: "🤖"
+popular: true
+
+package_manager: conda
+packages:
+  conda:
+    - python=3.11
+    - pytorch
+    - torchvision
+    - torchaudio
+    - tensorflow
+    - scikit-learn
+    - pandas
+    - numpy
+    - matplotlib
+    - jupyter
+    - jupyterlab
+
+# File provisioning via S3 transfer (v0.5.7)
+files:
+  # Large ImageNet subset (10GB)
+  - s3_bucket: prism-ml-datasets
+    s3_key: imagenet/imagenet_val_10gb.tar.gz
+    destination_path: /home/ubuntu/datasets/imagenet_val_10gb.tar.gz
+    description: "ImageNet validation subset (10GB)"
+    owner: ubuntu
+    group: ubuntu
+    permissions: "0644"
+    checksum: true
+    required: true  # Fail launch if this critical dataset is unavailable
+
+  # COCO 2017 validation dataset (1GB)
+  - s3_bucket: prism-ml-datasets
+    s3_key: coco/coco2017_val.zip
+    destination_path: /home/ubuntu/datasets/coco2017_val.zip
+    description: "COCO 2017 validation dataset (1GB)"
+    owner: ubuntu
+    group: ubuntu
+    permissions: "0644"
+    checksum: true
+    required: false  # Optional dataset, launch continues if unavailable
+
+  # Pre-trained model weights (500MB)
+  - s3_bucket: prism-ml-datasets
+    s3_key: models/resnet50_pretrained.pth
+    destination_path: /home/ubuntu/models/resnet50_pretrained.pth
+    description: "Pre-trained ResNet50 weights"
+    owner: ubuntu
+    group: ubuntu
+    permissions: "0644"
+    checksum: true
+    auto_cleanup: true  # Remove from S3 after successful download
+    only_if: "arch == 'x86_64'"  # Only for x86 instances
+
+services:
+  - name: jupyter
+    port: 8888
+    enable: true
+    config:
+      - "c.ServerApp.ip = '0.0.0.0'"
+      - "c.ServerApp.allow_origin = '*'"
+      - "c.ServerApp.token = ''"
+      - "c.ServerApp.password = ''"
+
+users:
+  - name: ubuntu
+    groups:
+      - sudo
+      - docker
+    shell: /bin/bash
+
+post_install: |
+  #!/bin/bash
+  # Extract downloaded datasets
+  cd /home/ubuntu/datasets
+
+  # Extract ImageNet if present
+  if [ -f imagenet_val_10gb.tar.gz ]; then
+    echo "Extracting ImageNet dataset..."
+    tar -xzf imagenet_val_10gb.tar.gz
+    rm imagenet_val_10gb.tar.gz
+  fi
+
+  # Extract COCO if present
+  if [ -f coco2017_val.zip ]; then
+    echo "Extracting COCO dataset..."
+    unzip -q coco2017_val.zip
+    rm coco2017_val.zip
+  fi
+
+  # Set proper permissions
+  chown -R ubuntu:ubuntu /home/ubuntu/datasets
+  chown -R ubuntu:ubuntu /home/ubuntu/models
+
+  echo "Dataset provisioning complete!"
+
+instance_defaults:
+  type: g5.xlarge  # GPU instance for ML workloads
+  ports:
+    - 22
+    - 8888
+  root_volume_gb: 100  # Large root volume for datasets
+  estimated_cost_per_hour:
+    x86_64: 1.006
+    arm64: 0.808
+
+estimated_launch_time: 15  # Longer due to large file transfers
+prerequisites:
+  - "Basic Python and ML knowledge"
+  - "Understanding of PyTorch/TensorFlow"
+  - "Familiarity with Jupyter notebooks"
+
+learning_resources:
+  - "https://pytorch.org/tutorials/"
+  - "https://www.tensorflow.org/tutorials"
+
+version: "1.0.0"
+validation_status: validated
+maintainer: "Prism Team"
+tags:
+  type: "ml-research"
+  gpu: "required"
+  datasets: "imagenet,coco"
