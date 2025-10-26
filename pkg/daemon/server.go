@@ -564,6 +564,10 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 	mux.HandleFunc("/api/v1/storage", applyMiddleware(s.handleStorage))
 	mux.HandleFunc("/api/v1/storage/", applyMiddleware(s.handleStorageOperations))
 
+	// Storage transfer operations (S3-backed file transfers) (v0.5.7)
+	mux.HandleFunc("/api/v1/storage/transfer", applyMiddleware(s.handleStorageTransfer))
+	mux.HandleFunc("/api/v1/storage/transfer/", applyMiddleware(s.handleStorageTransferOperations))
+
 	// Instance snapshot operations
 	mux.HandleFunc("/api/v1/snapshots", applyMiddleware(s.handleSnapshots))
 	mux.HandleFunc("/api/v1/snapshots/", applyMiddleware(s.handleSnapshotOperations))

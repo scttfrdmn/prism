@@ -20,6 +20,7 @@ import (
 	efsTypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamTypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
@@ -4600,6 +4601,11 @@ func (m *Manager) GetPolicyManager() *idle.PolicyManager {
 // GetAWSConfig returns the AWS config for creating additional service clients
 func (m *Manager) GetAWSConfig() aws.Config {
 	return m.cfg
+}
+
+// CreateS3Client creates a new S3 client using the manager's AWS config (v0.5.7)
+func (m *Manager) CreateS3Client() (*s3.Client, error) {
+	return s3.NewFromConfig(m.cfg), nil
 }
 
 // CheckAMIFreshness validates static AMI IDs against latest SSM values (v0.5.4)
