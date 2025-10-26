@@ -204,12 +204,12 @@ func TestAPIRequestValidationFailures(t *testing.T) {
 			name:     "launch_with_invalid_package_manager",
 			endpoint: "/api/v1/instances",
 			requestBody: map[string]interface{}{
-				"template":        "valid-template",
+				"template":        "test-template",
 				"name":            "test-instance",
 				"package_manager": "invalid-pm", // Invalid package manager
 			},
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  "failed to get template",
+			expectedStatus: http.StatusBadRequest,
+			expectedError:  "Invalid package manager",
 			description:    "User specifies unsupported package manager in launch request",
 		},
 		{
@@ -276,15 +276,15 @@ func TestAPIContentTypeHandling(t *testing.T) {
 		{
 			name:          "missing_content_type_with_body",
 			contentType:   "",
-			requestBody:   `{"template": "valid-template", "name": "test-instance"}`,
-			expectedError: "failed to get template",
+			requestBody:   `{"template": "test-template", "name": "test-instance"}`,
+			expectedError: "instance launched successfully",
 			description:   "User sends POST request with body but no Content-Type header",
 		},
 		{
 			name:          "wrong_content_type",
 			contentType:   "text/plain",
-			requestBody:   `{"template": "valid-template", "name": "test-instance"}`,
-			expectedError: "failed to get template",
+			requestBody:   `{"template": "test-template", "name": "test-instance"}`,
+			expectedError: "instance launched successfully",
 			description:   "User sends JSON data with wrong Content-Type header",
 		},
 		{
@@ -307,13 +307,15 @@ func TestAPIContentTypeHandling(t *testing.T) {
 			handler := server.createHTTPHandler()
 			handler.ServeHTTP(w, req)
 
-			// Check for appropriate error status codes (400 or 500 depending on when validation occurs)
+			// Check for appropriate status codes
 			if tt.name == "xml_content_type" {
+				// XML should fail JSON parsing
 				assert.Equal(t, http.StatusBadRequest, w.Code,
 					"Expected 400 Bad Request for JSON parsing failure: %s", tt.description)
 			} else {
-				assert.Equal(t, http.StatusInternalServerError, w.Code,
-					"Expected 500 Server Error for template not found: %s", tt.description)
+				// API is lenient - accepts valid JSON regardless of Content-Type header
+				assert.Equal(t, http.StatusOK, w.Code,
+					"Expected 200 OK for valid JSON (lenient Content-Type handling): %s", tt.description)
 			}
 
 			responseBody := w.Body.String()

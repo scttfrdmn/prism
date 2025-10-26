@@ -27,6 +27,32 @@ func createTestServer(t *testing.T) *Server {
 	})
 	_ = os.Setenv("HOME", tempDir)
 
+	// Create test templates directory
+	templatesDir := tempDir + "/.prism/templates"
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create a simple test template for validation tests
+	testTemplate := `name: "Test Template"
+slug: test-template
+description: "Minimal test template"
+base: ubuntu-22.04
+package_manager: apt
+packages:
+  apt:
+    - curl
+users:
+  - name: ubuntu
+    groups: [sudo]
+    shell: /bin/bash
+instance_defaults:
+  type: t3.micro
+  ports: [22]
+version: "1.0.0"
+`
+	err = os.WriteFile(templatesDir+"/test-template.yml", []byte(testTemplate), 0644)
+	require.NoError(t, err)
+
 	server, err := NewServerForTesting("8948") // Use test mode to skip AWS operations
 	require.NoError(t, err)
 	require.NotNil(t, server)

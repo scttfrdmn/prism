@@ -183,9 +183,26 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		// Track launch start time
 		launchStart := time.Now()
 
-		// Delegate to AWS manager
+		// Delegate to AWS manager (or return mock in test mode)
 		var err error
-		instance, err = awsManager.LaunchInstance(req)
+		if s.testMode {
+			// Return mock instance for testing
+			instance = &types.Instance{
+				ID:            "i-test123456",
+				Name:          req.Name,
+				State:         "running",
+				PublicIP:      "203.0.113.1",
+				PrivateIP:     "10.0.1.100",
+				InstanceType:  "t3.micro",
+				Template:      req.Template,
+				Username:      "ubuntu",
+				HourlyRate:    0.0104,
+				EffectiveRate: 0.0104,
+				LaunchTime:    time.Now(),
+			}
+		} else {
+			instance, err = awsManager.LaunchInstance(req)
+		}
 
 		// Record usage stats
 		launchDuration := int(time.Since(launchStart).Seconds())
@@ -195,11 +212,13 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		// Immediately query AWS to get actual current state (may have transitioned from pending to running)
+		// Immediately query AWS to get actual current state (skip in test mode)
 		// This keeps our cache fresh and prevents showing stale "pending" state for hours
-		refreshedInstance := s.refreshInstanceStateFromAWS(awsManager, instance.Name)
-		if refreshedInstance != nil {
-			instance = refreshedInstance
+		if !s.testMode {
+			refreshedInstance := s.refreshInstanceStateFromAWS(awsManager, instance.Name)
+			if refreshedInstance != nil {
+				instance = refreshedInstance
+			}
 		}
 
 		return nil
@@ -933,6 +952,13 @@ func (s *Server) validateLaunchRequest(req *types.LaunchRequest, w http.Response
 		}
 	}
 
+	// Validate package manager if provided
+	if req.PackageManager != "" {
+		if err := s.validatePackageManager(req.PackageManager, w); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -947,6 +973,19 @@ func (s *Server) validateInstanceSize(size string, w http.ResponseWriter) error 
 
 	s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid size '%s'. Valid sizes: %v", size, validSizes))
 	return fmt.Errorf("invalid size")
+}
+
+// validatePackageManager validates the package manager parameter
+func (s *Server) validatePackageManager(packageManager string, w http.ResponseWriter) error {
+	validPackageManagers := []string{"apt", "yum", "dnf", "conda", "brew"}
+	for _, valid := range validPackageManagers {
+		if packageManager == valid {
+			return nil
+		}
+	}
+
+	s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Invalid package manager '%s'. Valid package managers: %v", packageManager, validPackageManagers))
+	return fmt.Errorf("invalid package manager")
 }
 
 // checkInstanceNameUniqueness checks if the instance name is already taken
