@@ -380,18 +380,9 @@ func NewCommandFactoryRegistry(app *App) *CommandFactoryRegistry {
 
 // RegisterAllCommands adds all commands to root using factories
 func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
-	// Launch command
-	launchFactory := &LaunchCommandFactory{app: r.app}
-	rootCmd.AddCommand(launchFactory.CreateCommand())
-
-	// List command
-	rootCmd.AddCommand(r.createListCommand())
-
-	// Instance commands
-	instanceFactory := &InstanceCommandFactory{app: r.app}
-	for _, cmd := range instanceFactory.CreateCommands() {
-		rootCmd.AddCommand(cmd)
-	}
+	// NEW: Unified workspace command group (Phase 5.0.3 - CLI Consistency)
+	workspaceFactory := &WorkspaceCommandFactory{app: r.app}
+	rootCmd.AddCommand(workspaceFactory.CreateCommand())
 
 	// Logs command
 	logsCommands := NewLogsCommands(r.app)
@@ -466,13 +457,9 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	repoCobra := NewRepoCobraCommands(r.app)
 	rootCmd.AddCommand(repoCobra.CreateRepoCommand())
 
-	// System management commands
-	rootCmd.AddCommand(r.createDaemonCommand())
-
-	// Advanced commands (using new Cobra structure)
-	rightsizingCobra := NewRightsizingCobraCommands(r.app)
-	rootCmd.AddCommand(rightsizingCobra.CreateRightsizingCommand())
-	rootCmd.AddCommand(r.createScalingCommand())
+	// NEW: Unified admin command group (Phase 5.0.3 - CLI Consistency)
+	adminFactory := &AdminCommandFactory{app: r.app}
+	rootCmd.AddCommand(adminFactory.CreateCommand())
 }
 
 func (r *CommandFactoryRegistry) createListCommand() *cobra.Command {

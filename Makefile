@@ -213,7 +213,7 @@ test-smoke: build
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@./bin/cwsd > /tmp/smoke-daemon.log 2>&1 & echo $$! > /tmp/smoke-daemon.pid
 	@sleep 3
-	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws daemon status || (kill `cat /tmp/smoke-daemon.pid` 2>/dev/null; exit 1)
+	@CWS_DAEMON_AUTO_START_DISABLE=1 timeout 10s ./bin/cws admin daemon status || (kill `cat /tmp/smoke-daemon.pid` 2>/dev/null; exit 1)
 	@kill `cat /tmp/smoke-daemon.pid` 2>/dev/null && rm -f /tmp/smoke-daemon.pid /tmp/smoke-daemon.log
 	@echo "✅ Daemon API working"
 	@echo ""
