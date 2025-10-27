@@ -2,934 +2,938 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://cloudworkstation.io/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/CLAUDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/DESIGN_PRINCIPLES/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/DOCUMENTATION_AUDIT_REPORT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/TEMPLATE_FILE_PROVISIONING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_REQUIREMENTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/VISION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/01_SOLO_RESEARCHER_WALKTHROUGH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/02_LAB_ENVIRONMENT_WALKTHROUGH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/03_UNIVERSITY_CLASS_WALKTHROUGH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/06_NIH_RESEARCHER_CUI_COMPLIANCE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/07_NIH_RESEARCHER_PHI_HIPAA_COMPLIANCE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/USER_SCENARIOS/08_INSTITUTIONAL_RESEARCH_IT_WALKTHROUGH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/ADMINISTRATOR_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/ADMINISTRATOR_GUIDE_BATCH/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/AMI_POLICY_ENFORCEMENT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/AWS_IAM_PERMISSIONS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/AWS_QUOTA_MANAGEMENT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/BASIC_POLICY_EXAMPLES/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/BATCH_DEVICE_MANAGEMENT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/BATCH_INVITATION_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/BATCH_INVITATION_INTERFACE_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/COMPLIANCE_DISCLAIMER/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/COMPLIANCE_MATRIX/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/NIST_800_171_COMPLIANCE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/PROFILE_EXPORT_IMPORT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/RESEARCH_USER_MANAGEMENT_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/SECURE_INVITATION_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/SECURE_PROFILE_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/SECURITY_COMPLIANCE_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/SECURITY_HARDENING_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/admin-guides/TEMPLATE_POLICY_FRAMEWORK/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/API_AUTHENTICATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/ARCHITECTURE_SSH_KEYS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/AUTONOMOUS_IDLE_DETECTION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/AUTO_AMI_SYSTEM/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/DAEMON_API_REFERENCE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/DUAL_USER_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/GUI_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/GUI_DESIGN_SYSTEM/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/GUI_SKINNING_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/GUI_UX_DESIGN_REVIEW/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/IDLE_DETECTION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/INTERNATIONAL_SUPPORT_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/NICE_DCV_INTEGRATION_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/PHASE_5A_RESEARCH_USER_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/PHASE_5C_ADVANCED_STORAGE_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/PLUGIN_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/RESEARCH_USER_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/SAGEMAKER_INTEGRATION_DESIGN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/TABBED_EMBEDDED_CONNECTIONS_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/TEMPLATE_MARKETPLACE_ARCHITECTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/UI_ALIGNMENT_PRINCIPLES/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/UX_EVALUATION_AND_RECOMMENDATIONS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/architecture/WEB_SERVICE_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/audits/COMPREHENSIVE_PLACEHOLDER_AUDIT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/audits/GUI_FEATURE_PARITY_AUDIT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/audits/TUI_FEATURE_PARITY_AUDIT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/deprecated/COMMAND_STRUCTURE_REFACTOR/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/deprecated/COMPREHENSIVE_QUALITY_REFACTORING_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/deprecated/DEVELOPMENT_ROADMAP_v0.4.4/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/deprecated/GO_EXPERT_REFACTORING_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/deprecated/KEYCHAIN_ACCESS_ANALYSIS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/duplicates/DEPENDENCY_RESOLUTION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/duplicates/HOMEBREW_TAP_SETUP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/duplicates/TEMPLATE_SYSTEM/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/duplicates/TESTING_INFRASTRUCTURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/CLOUDSCAPE_BEFORE_AFTER/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/CLOUDSCAPE_CONNECTION_TABS_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/CLOUDSCAPE_MIGRATION_ANALYSIS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/DMG_IMPLEMENTATION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/EFS_SHARING_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/GUI_BUDGET_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/PHASE_1_2_TEST_COVERAGE_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/PHASE_1_IMPLEMENTATION_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/PHASE_5_1_AMI_CREATION_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/PHASE_5_1_IMPLEMENTATION_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/implementation/PHASE_5_2_TEMPLATE_MARKETPLACE_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/DEMO_COVERAGE_TESTING_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/DEMO_RESULTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/FINAL_RELEASE_CHECKLIST/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/RELEASE_NOTES_v0.4.1/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/RELEASE_NOTES_v0.4.4/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/RELEASE_NOTES_v0.4.5/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/legacy-releases/SYSTEM_TEST_RESULTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/AMI_BUILDER_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/AMI_CREATION_DESIGN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/AMI_USER_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/AWS_INTEGRATION_TESTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/CLI_ERROR_HANDLING_STANDARDIZATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/DAEMON_API_INTEGRATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/GUI_PACKAGE_MANAGER_SELECTION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/GUI_TEMPLATE_APPLICATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/GUI_TEMPLATE_TILE_DESIGN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/INSTANCE_TO_AMI_DESIGN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/INSTANCE_TO_AMI_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/LINUX_PACKAGING_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/PERFORMANCE_TESTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/RUNNING_INSTANCE_TEMPLATE_APPLICATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/SERVICE_STARTUP_INTEGRATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/TEMPLATE_APPLICATION_ENGINE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/TEMPLATE_APPLICATION_SYSTEM/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/TEMPLATE_SYSTEM_API_INTEGRATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/CLEAN_BUILD_ACHIEVEMENT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/CLI_PACKAGE_MANAGER_SUPPORT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/ISSUES_FIXED_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_COMPLETION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_DAEMON_MONITORING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_GUI_FOUNDATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_INSTANCE_MANAGEMENT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_STORAGE_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_TEMPLATES_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_TUI_COMPLETED/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_2_TUI_REENABLE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_3_ACCOMPLISHMENTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_3_IMPLEMENTATION_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/PHASE_3_SPRINT_1_COMPLETED/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/SESSION_COMPLETION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-implementation/architecture/STATE_MANAGEMENT_UNIFICATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/GUI_REFINEMENTS_TODOLIST/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/IMPLEMENTATION_PLAN_V0.4.2/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/RELEASE_READINESS_v0.4.2/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/ROADMAP_v0.4.2_to_v0.5.0/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/STRATEGIC_REFACTORING_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/TODO/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/old-planning/WORK_NEEDED_2025-08-08/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/COMMERCIAL_SOFTWARE_TEMPLATES_PLANNING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/CONFIG_SYNC_PLANNING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/CONSOLIDATED_IMPLEMENTATION_PRIORITY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/DIRECTORY_SYNC_PLANNING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/DOCUMENTATION_ORGANIZATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/FAKE_IMPLEMENTATIONS_TO_FIX/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/LEGACY_REMOVAL_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/MACOS_DMG_INSTALLATION_PLANNED/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/MULTI_USER_PLANNING_v0.5.0/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/REMAINING_WORK/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/planning/ROADMAP_archived_2025-10-19/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/GUI_FUTURE_ENHANCEMENTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/OS_VERSION_EXPANSION_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/PACKAGE_MANAGER_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/PHASE_5A_MULTI_USER_FOUNDATION_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/PHASE_5A_POLICY_FRAMEWORK/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/PHASE_5C_ADVANCED_STORAGE_USER_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/PHASE_5_DEVELOPMENT_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/REMAINING_WORK_ITEMS_2025-08-15/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/ROADMAP_OCTOBER_2025_UPDATE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/SYSTEM_IMPLEMENTATION_v0.5.x/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/TECHNICAL_DEBT_BACKLOG/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/TEMPLATE_MARKETPLACE_PLANNING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/TEMPLATE_SIGNING_COSIGN_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/TUI_MOCK_FIX_REMAINING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/UNIVERSAL_AMI_SYSTEM_ENHANCEMENTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/UNIVERSAL_AMI_SYSTEM_PLANNING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/roadmap/UPDATED_ROADMAP_DECEMBER_2024/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/COMPLETION_TRACKER/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/GITHUB_PROJECT_MANAGEMENT_MIGRATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/PHASE_5A_COMPLETION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/PROJECT_STATUS_COMPREHENSIVE_v0.5.0/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_10_11_GUI_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_12_CONTINUATION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_12_FINAL_COMPLETE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_12_FINAL_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_12_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_8_COMPLETE_STATUS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_COMPLETION_OCT17_2025/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_COMPLETION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_PLACEHOLDER_ELIMINATION_COMPLETE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_POLICY_FRAMEWORK_COMPLETE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_SPRINT_COMPLETE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SESSION_SUMMARY_OCT15_2025/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/sessions/SPRINT_0-2_COMPLETION_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/summaries/COVERAGE_ANALYSIS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/summaries/FEATURE_PARITY_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/summaries/IMPLEMENTATION_PROGRESS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/archive/summaries/PRIORITY_1_COMPLETED_SUMMARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/demos/DEMO_SEQUENCE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/CHOCOLATEY_PACKAGE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/CODE_QUALITY_BEST_PRACTICES/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/CONDA_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/CONDA_PACKAGE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/DAEMON_AUTO_START_FEATURE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/DEVELOPMENT_SETUP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/DISTRIBUTION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/DMG_BUILD_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/GO_QUALITY_BASELINE_ASSESSMENT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/GUI_TESTING_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/HOMEBREW_RELEASE_PROCESS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/HOMEBREW_TAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/ISSUE_66_IMPLEMENTATION_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/PACKAGING_IMPROVEMENTS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/PRODUCTION_READINESS_CHECKLIST/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/REAL_TESTER_AWS_VALIDATION_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/RELEASE_PROCESS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/RELEASE_UPDATE_CHECKLIST/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/REPOSITORIES/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/SINGLETON_AND_AUTOSTART_TESTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TEMPLATE_INHERITANCE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TEMPLATE_SYSTEM_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TESTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TESTING_AND_LINTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TESTING_PLAN/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TESTING_ROADMAP/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/TESTING_STRATEGY_80_85/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/VERSION_SYSTEM_IMPLEMENTATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/development/WEB_SERVICE_TESTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/examples/batch_invitation_examples/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/releases/RELEASE_NOTES/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/releases/RELEASE_NOTES_v0.5.1/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/releases/RELEASE_NOTES_v0.5.2/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
+    </url>
+    <url>
+         <loc>https://cloudworkstation.io/releases/RELEASE_NOTES_v0.5.7/</loc>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/testing/test_marketplace_commands/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/AWS_SETUP_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/CONDA_PACKAGE_MANAGER/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/GETTING_STARTED/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/GUI_TROUBLESHOOTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/GUI_USER_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/LINUX_INSTALLATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/MACOS_INSTALLATION/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/MULTI_PROFILE_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/SCHOOL_PILOT_QUICKSTART/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/TEMPLATE_FORMAT/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/TEMPLATE_FORMAT_ADVANCED/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/TEMPLATE_MARKETPLACE_USER_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/TERMINOLOGY_GLOSSARY/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/TROUBLESHOOTING/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/TUI_USER_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/USER_GUIDE_RESEARCH_USERS/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/USER_GUIDE_v0.5.x/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/WEB_SERVICES_INTEGRATION_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/ZERO_SETUP_GUIDE/</loc>
-         <lastmod>2025-10-26</lastmod>
+         <lastmod>2025-10-27</lastmod>
     </url>
 </urlset>
