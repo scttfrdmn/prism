@@ -95,10 +95,10 @@ Get detailed information about a specific template including dependency chains a
 
 ---
 
-### **Instances**
+### **Workspaces**
 
 #### `GET /api/v1/instances`
-List all Prism instances with current status and metadata.
+List all Prism workspaces with current status and metadata.
 
 **Response**:
 ```json
@@ -127,7 +127,7 @@ List all Prism instances with current status and metadata.
 ```
 
 #### `POST /api/v1/instances/launch`
-Launch a new Prism instance.
+Launch a new Prism workspace.
 
 **Request**:
 ```json
@@ -160,7 +160,7 @@ Launch a new Prism instance.
 ```
 
 #### `POST /api/v1/instances/{name}/stop`
-Stop a running instance (preserves EBS storage).
+Stop a running workspace (preserves EBS storage).
 
 **Response**:
 ```json
@@ -168,12 +168,12 @@ Stop a running instance (preserves EBS storage).
   "name": "my-ml-research",
   "previous_state": "running", 
   "new_state": "stopping",
-  "message": "Instance stopping - all data preserved"
+  "message": "Workspace stopping - all data preserved"
 }
 ```
 
 #### `POST /api/v1/instances/{name}/start`  
-Start a stopped instance.
+Start a stopped workspace.
 
 **Response**:
 ```json
@@ -186,7 +186,7 @@ Start a stopped instance.
 ```
 
 #### `POST /api/v1/instances/{name}/terminate`
-Permanently terminate an instance (destroys all data).
+Permanently terminate a workspace (destroys all data).
 
 **Request**:
 ```json
@@ -201,12 +201,12 @@ Permanently terminate an instance (destroys all data).
 {
   "name": "my-ml-research",
   "state": "terminating",
-  "message": "Instance terminating - all data will be permanently lost"
+  "message": "Workspace terminating - all data will be permanently lost"
 }
 ```
 
 #### `GET /api/v1/instances/{name}/connect`
-Get connection information for accessing an instance.
+Get connection information for accessing a workspace.
 
 **Response**:
 ```json
@@ -237,7 +237,7 @@ Get connection information for accessing an instance.
 ### **Hibernation System** (Phase 3)
 
 #### `POST /api/v1/instances/{name}/hibernate`
-Hibernate an instance (preserves RAM state + EBS storage).
+Hibernate a workspace (preserves RAM state + EBS storage).
 
 **Response**:
 ```json
@@ -251,7 +251,7 @@ Hibernate an instance (preserves RAM state + EBS storage).
 ```
 
 #### `POST /api/v1/instances/{name}/resume`  
-Resume a hibernated instance (restores RAM state).
+Resume a hibernated workspace (restores RAM state).
 
 **Response**:
 ```json
@@ -265,7 +265,7 @@ Resume a hibernated instance (restores RAM state).
 ```
 
 #### `GET /api/v1/instances/{name}/hibernation-status`
-Check hibernation capability and status for an instance.
+Check hibernation capability and status for a workspace.
 
 **Response**:
 ```json
@@ -328,7 +328,7 @@ Create a new idle detection profile.
 ```
 
 #### `POST /api/v1/idle/instances/{name}/configure`
-Configure idle detection for a specific instance.
+Configure idle detection for a specific workspace.
 
 **Request**:
 ```json
@@ -582,7 +582,7 @@ Get historical cost data with trends and analysis.
   "cost_trends": {
     "trend_direction": "increasing",
     "percentage_change": 15.3,
-    "primary_driver": "additional GPU instances"
+    "primary_driver": "additional GPU workspaces"
   }
 }
 ```
@@ -734,18 +734,18 @@ Gracefully shutdown the daemon service.
     "code": "INSTANCE_NOT_FOUND",
     "message": "Instance 'my-research' not found in current region", 
     "details": "Check instance name and ensure correct AWS profile/region",
-    "remediation": "Use 'cws list' to see available instances",
+    "remediation": "Use 'cws list' to see available workspaces",
     "timestamp": "2024-06-15T10:30:00Z"
   }
 }
 ```
 
 ### **Common Error Codes**
-- `INSTANCE_NOT_FOUND` - Instance doesn't exist
+- `INSTANCE_NOT_FOUND` - Workspace doesn't exist
 - `TEMPLATE_INVALID` - Template validation failed  
 - `AWS_PERMISSION_DENIED` - Insufficient AWS permissions
 - `BUDGET_EXCEEDED` - Project budget limits exceeded
-- `HIBERNATION_NOT_SUPPORTED` - Instance type doesn't support hibernation
+- `HIBERNATION_NOT_SUPPORTED` - Workspace type doesn't support hibernation
 - `DAEMON_UNREACHABLE` - Cannot connect to daemon service
 
 ---
@@ -760,13 +760,13 @@ client := api.NewClientWithOptions("http://localhost:8947", client.Options{
     AWSRegion:  "us-west-2",
 })
 
-// List instances
+// List workspaces
 instances, err := client.GetInstances()
 if err != nil {
     log.Fatal(err)
 }
 
-// Launch new instance
+// Launch new workspace
 launchReq := &api.LaunchInstanceRequest{
     Name:     "new-ml-workstation",
     Template: "Python Machine Learning (Simplified)",
@@ -782,10 +782,10 @@ instance, err := client.LaunchInstance(launchReq)
 async function loadInstances() {
     try {
         const instances = await window.wails.PrismService.GetInstances();
-        renderInstances(instances);
+        renderWorkspaces(workspaces);
     } catch (error) {
-        console.error('Failed to load instances:', error);
-        showError(`Failed to load instances: ${error.message}`);
+        console.error('Failed to load workspaces:', error);
+        showError(`Failed to load workspaces: ${error.message}`);
     }
 }
 
@@ -802,6 +802,6 @@ async function launchInstance(templateName, instanceName, size) {
 
 ---
 
-**Total API Endpoints**: 35+ endpoints across templates, instances, hibernation, projects, storage, costs, profiles, and system management.
+**Total API Endpoints**: 35+ endpoints across templates, workspaces, hibernation, projects, storage, costs, profiles, and system management.
 
 This comprehensive API reference provides complete documentation for integrating with the Prism daemon across all client interfaces (CLI, TUI, GUI) and supports the full enterprise research platform feature set.

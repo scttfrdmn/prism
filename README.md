@@ -119,7 +119,7 @@ prism launch python-ml my-research
 # Connect via SSH
 prism connect my-research
 
-# View running instances
+# View running workspaces
 prism list
 ```
 
@@ -146,7 +146,7 @@ prism list
 
 ### 🏢 Enterprise & Collaboration
 - **Project-Based Organization**: Multi-user projects with role-based access
-- **Research User System**: Persistent identities across instances
+- **Research User System**: Persistent identities across workspaces
 - **Multi-Account Support**: Manage multiple AWS profiles efficiently
 - **Template Marketplace**: Share and discover community templates
 
@@ -176,30 +176,30 @@ prism templates info python-ml
 
 ## 💻 Usage Examples
 
-### Basic Instance Management
+### Basic Workspace Management
 ```bash
-# Launch an instance
+# Launch a workspace
 prism launch python-ml my-project
 
-# List running instances
+# List running workspaces
 prism list
 
 # Connect via SSH
 prism connect my-project
 
-# Stop instance
+# Stop workspace
 prism stop my-project
 ```
 
 ### Cost Optimization
 ```bash
 # Hibernate to preserve state while saving costs
-prism hibernate my-instance
-prism resume my-instance
+prism hibernate my-workspace
+prism resume my-workspace
 
 # Automated idle policies
 prism idle profile list
-prism idle instance my-gpu --profile gpu
+prism idle workspace my-gpu --profile gpu
 ```
 
 ### Project Management
@@ -210,7 +210,7 @@ prism project create ml-research --budget 500
 # Add team members
 prism project member add ml-research user@example.com --role member
 
-# Launch instance in project
+# Launch workspace in project
 prism launch python-ml analysis --project ml-research
 ```
 
@@ -253,7 +253,7 @@ prism doctor                      # System health check
 - **Package Management**: Available via Homebrew (macOS), Scoop (Windows), deb, rpm, apk
 
 ### v0.5.3 - Research User System & Template Marketplace
-- **Multi-User Architecture**: Persistent research identities across instances
+- **Multi-User Architecture**: Persistent research identities across workspaces
 - **SSH Key Management**: Complete key generation and distribution
 - **Template Registry**: Multi-registry support with community templates
 - **Policy Framework**: Institutional governance and access control
