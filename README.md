@@ -95,19 +95,32 @@ scoop install prism
 
 ## 🚀 Quick Start
 
-### 1. Configure AWS Credentials
+### First-Time Users: Interactive Wizard (⏱️ 30 seconds)
+
+**New in v0.5.8**: Launch your first workspace with a guided wizard!
 
 ```bash
-# If you already have AWS CLI configured, skip to step 2
+# Configure AWS credentials (if not already set up)
 aws configure
+
+# Launch the interactive wizard
+prism init
 ```
 
-Prism automatically discovers credentials from:
-- Environment variables (AWS_PROFILE, AWS_ACCESS_KEY_ID)
-- AWS CLI configuration (~/.aws/credentials)
-- Prism profiles (for multi-account management)
+The wizard will guide you through:
+1. ✅ **Template Selection**: Browse by category (ML/AI, Data Science, Bioinformatics, Web)
+2. ✅ **Workspace Configuration**: Name and size with cost estimates
+3. ✅ **Review**: See exactly what you're launching
+4. ✅ **Launch**: Real-time progress tracking
+5. ✅ **Connect**: SSH connection details and next steps
 
-### 2. Launch Your First Workstation
+**Time to first workspace: ~30 seconds** 🚀
+
+---
+
+### Advanced: Direct Commands
+
+For experienced users or automation:
 
 ```bash
 # View available templates
@@ -123,12 +136,17 @@ prism connect my-research
 prism list
 ```
 
-**What happens automatically:**
+**Automatic Features:**
 - ✅ Daemon starts if not running
 - ✅ Optimal instance type selected
 - ✅ Security groups configured
 - ✅ SSH keys generated and managed
 - ✅ Template provisioned and ready
+
+**Credential Discovery** (automatic):
+- Environment variables (AWS_PROFILE, AWS_ACCESS_KEY_ID)
+- AWS CLI configuration (~/.aws/credentials)
+- Prism profiles (for multi-account management)
 
 ## 🌟 Key Features
 
