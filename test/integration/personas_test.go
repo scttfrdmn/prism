@@ -26,7 +26,8 @@ func TestSoloResearcherPersona(t *testing.T) {
 	t.Run("Phase1_LaunchBioinformaticsWorkspace", func(t *testing.T) {
 		// Launch instance with bioinformatics template
 		// Per walkthrough: "prism launch bioinformatics-suite rnaseq-analysis --size M"
-		instance, err := ctx.LaunchInstance("python-ml", instanceName, "M")
+		// Using Python ML Workstation template (slug: python-ml-workstation)
+		instance, err := ctx.LaunchInstance("python-ml-workstation", instanceName, "M")
 		AssertNoError(t, err, "Launch bioinformatics workspace")
 
 		// Verify instance details

@@ -21,12 +21,21 @@ type Manager struct {
 
 // NewManager creates a new state manager
 func NewManager() (*Manager, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get home directory: %w", err)
+	var stateDir string
+
+	// Check for custom state directory via environment variable
+	// This allows users to specify a custom location and enables test isolation
+	if customDir := os.Getenv("PRISM_STATE_DIR"); customDir != "" {
+		stateDir = customDir
+	} else {
+		// Default to ~/.prism for backward compatibility
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get home directory: %w", err)
+		}
+		stateDir = filepath.Join(homeDir, ".prism")
 	}
 
-	stateDir := filepath.Join(homeDir, ".prism")
 	if err := os.MkdirAll(stateDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
