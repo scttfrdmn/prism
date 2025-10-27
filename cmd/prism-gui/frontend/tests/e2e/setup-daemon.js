@@ -18,15 +18,15 @@ async function isDaemonRunning() {
 
 // Function to start the daemon
 async function startDaemon() {
-  const daemonPath = path.join(process.cwd(), '..', '..', '..', 'bin', 'cwsd')
-  
+  const daemonPath = path.join(process.cwd(), '..', '..', '..', 'bin', 'prismd')
+
   // Check if daemon binary exists
   if (!fs.existsSync(daemonPath)) {
     console.error(`Daemon binary not found at ${daemonPath}`)
     console.log('Building daemon...')
-    
+
     // Build the daemon
-    const buildCmd = 'cd ../../.. && go build -o bin/cwsd ./cmd/cwsd'
+    const buildCmd = 'cd ../../.. && go build -o bin/prismd ./cmd/prismd'
     await execAsync(buildCmd)
     
     if (!fs.existsSync(daemonPath)) {
