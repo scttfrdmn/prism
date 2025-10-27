@@ -31,7 +31,10 @@ import {
   Link,
   ButtonDropdown,
   Tabs,
-  PropertyFilter
+  PropertyFilter,
+  Wizard,
+  ProgressBar,
+  TextContent
 } from '@cloudscape-design/components';
 
 // Type definitions
@@ -1100,6 +1103,17 @@ export default function PrismApp() {
     return completed === 'true';
   });
 
+  // Quick Start Wizard state
+  const [quickStartWizardVisible, setQuickStartWizardVisible] = useState(false);
+  const [quickStartActiveStepIndex, setQuickStartActiveStepIndex] = useState(0);
+  const [quickStartConfig, setQuickStartConfig] = useState({
+    selectedTemplate: null as Template | null,
+    workspaceName: '',
+    size: 'M',
+    launchInProgress: false,
+    launchedWorkspaceId: null as string | null
+  });
+
   // Bulk selection state for instances
   const [selectedInstances, setSelectedInstances] = useState<Instance[]>([]);
 
@@ -1416,6 +1430,34 @@ export default function PrismApp() {
   // Dashboard View
   const DashboardView = () => (
     <SpaceBetween size="l">
+      {/* Hero Section with Quick Start CTA */}
+      <Container>
+        <SpaceBetween size="l">
+          <Box textAlign="center" padding={{ top: 'xl', bottom: 'l' }}>
+            <SpaceBetween size="m">
+              <TextContent>
+                <h1>Welcome to Prism</h1>
+                <p>
+                  <Box variant="p" fontSize="heading-m" color="text-body-secondary">
+                    Launch your research workspace in seconds
+                  </Box>
+                </p>
+              </TextContent>
+              <Button
+                variant="primary"
+                iconName="add-plus"
+                onClick={() => setQuickStartWizardVisible(true)}
+              >
+                Quick Start - Launch Workspace
+              </Button>
+              <Box color="text-body-secondary">
+                Pre-configured environments for ML, Data Science, Bioinformatics, and more
+              </Box>
+            </SpaceBetween>
+          </Box>
+        </SpaceBetween>
+      </Container>
+
       <Header
         variant="h1"
         description="Prism research computing platform - manage your cloud environments"
