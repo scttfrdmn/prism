@@ -171,9 +171,9 @@ func TestSoloResearcherPersona(t *testing.T) {
 		t.Logf("✅ Instance deleted successfully")
 
 		// Poll until instance no longer appears in list (AWS eventual consistency)
-		// Terminated instances can take time to disappear from AWS
+		// Terminated instances can take 3-5 minutes to disappear from AWS
 		t.Log("Polling for instance to disappear from list...")
-		deadline := time.Now().Add(2 * time.Minute)
+		deadline := time.Now().Add(5 * time.Minute)
 		instanceGone := false
 
 		for time.Now().Before(deadline) {
