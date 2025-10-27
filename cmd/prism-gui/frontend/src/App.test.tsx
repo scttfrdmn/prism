@@ -129,7 +129,7 @@ describe('Prism App', () => {
       fireEvent.click(instancesLink);
 
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
         expect(screen.getByText('(1)')).toBeInTheDocument(); // Instance counter
         expect(screen.getByText('my-ml-research')).toBeInTheDocument();
       });
@@ -320,7 +320,7 @@ describe('Prism App', () => {
       // Navigate to instances
       fireEvent.click(screen.getByText('Instances'));
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
       });
 
       // Navigate to settings

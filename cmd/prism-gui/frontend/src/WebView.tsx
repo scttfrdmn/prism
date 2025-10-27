@@ -110,8 +110,8 @@ const WebView: React.FC<WebViewProps> = ({ url, serviceName, instanceName }) => 
               <Box>
                 <strong>Troubleshooting:</strong>
                 <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
-                  <li>Verify the service is running on the instance</li>
-                  <li>Check if the instance is accessible via SSH</li>
+                  <li>Verify the service is running on the workspace</li>
+                  <li>Check if the workspace is accessible via SSH</li>
                   <li>Ensure the correct port is open in security groups</li>
                   <li>Try opening in external browser to check connectivity</li>
                 </ul>

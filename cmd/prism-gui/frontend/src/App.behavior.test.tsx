@@ -179,7 +179,7 @@ describe('Prism Behavioral Tests', () => {
 
       // Wait for instances to load
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
         expect(screen.getByText('(3)')).toBeInTheDocument(); // Instance count
       });
 
@@ -259,7 +259,7 @@ describe('Prism Behavioral Tests', () => {
       await user.click(screen.getByText('Instances'));
 
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
       });
 
       // Select multiple instances
@@ -318,7 +318,7 @@ describe('Prism Behavioral Tests', () => {
       await user.click(screen.getByText('Instances'));
 
       await waitFor(() => {
-        expect(screen.getByText('No instances running')).toBeInTheDocument();
+        expect(screen.getByText('No workspaces running')).toBeInTheDocument();
         expect(screen.getByText('Launch your first research environment to get started')).toBeInTheDocument();
       });
     });
@@ -338,7 +338,7 @@ describe('Prism Behavioral Tests', () => {
       // Test that navigation works
       await user.click(screen.getByText('Instances'));
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
       });
 
       // Navigate back to verify state management
@@ -386,7 +386,7 @@ describe('Prism Behavioral Tests', () => {
       await user.click(screen.getByText('Instances'));
 
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
       });
 
       // Navigate to settings
@@ -414,7 +414,7 @@ describe('Prism Behavioral Tests', () => {
       await user.click(screen.getByText('Instances'));
 
       await waitFor(() => {
-        expect(screen.getByText('My Instances')).toBeInTheDocument();
+        expect(screen.getByText('My Workspaces')).toBeInTheDocument();
       });
 
       // Click refresh button

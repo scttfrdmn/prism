@@ -103,7 +103,7 @@ const Terminal: React.FC<TerminalProps> = React.memo(({ instanceName }) => {
 
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
-      setError('Connection error - check if instance is running');
+      setError('Connection error - check if workspace is running');
       setIsConnected(false);
     };
 

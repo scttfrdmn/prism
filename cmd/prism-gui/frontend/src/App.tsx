@@ -1403,7 +1403,7 @@ export default function PrismApp() {
           {
             type: 'error',
             header: 'Launch Failed',
-            content: `Failed to launch instance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            content: `Failed to launch workspace: ${error instanceof Error ? error.message : 'Unknown error'}`,
             dismissible: true,
             id: Date.now().toString()
           },
@@ -1487,13 +1487,13 @@ export default function PrismApp() {
             onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
             disabled={Object.keys(state.templates).length === 0}
           >
-            Launch New Instance
+            Launch New Workspace
           </Button>
           <Button
             onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
             disabled={state.instances.length === 0}
           >
-            View Instances ({state.instances.length})
+            View Workspaces ({state.instances.length})
           </Button>
           <Button onClick={() => setState(prev => ({ ...prev, activeView: 'storage' }))}>
             Storage Management
@@ -1667,7 +1667,7 @@ export default function PrismApp() {
                     {
                       type: 'error',
                       header: 'Delete Failed',
-                      content: `Failed to delete instance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      content: `Failed to delete workspace: ${error instanceof Error ? error.message : 'Unknown error'}`,
                       dismissible: true,
                       id: Date.now().toString()
                     }
@@ -1702,7 +1702,7 @@ export default function PrismApp() {
       setTimeout(loadApplicationData, 1000);
 
     } catch (error) {
-      console.error(`Failed to ${action} instance ${instance.name}:`, error);
+      console.error(`Failed to ${action} workspace ${instance.name}:`, error);
 
       setState(prev => ({
         ...prev,
@@ -1712,7 +1712,7 @@ export default function PrismApp() {
           {
             type: 'error',
             header: 'Action Failed',
-            content: `Failed to ${action} instance ${instance.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            content: `Failed to ${action} workspace ${instance.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
             dismissible: true,
             id: Date.now().toString()
           }
@@ -1744,7 +1744,7 @@ export default function PrismApp() {
     if (action === 'delete') {
       setDeleteModalConfig({
         type: 'instance',
-        name: `${selectedInstances.length} instance${selectedInstances.length > 1 ? 's' : ''}`,
+        name: `${selectedInstances.length} workspace${selectedInstances.length > 1 ? 's' : ''}`,
         requireNameConfirmation: false,
         onConfirm: async () => {
           await executeBulkAction('delete');
@@ -1816,7 +1816,7 @@ export default function PrismApp() {
           {
             type: 'error',
             header: 'Bulk Action Failed',
-            content: `Failed to ${action} instances: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            content: `Failed to ${action} workspaces: ${error instanceof Error ? error.message : 'Unknown error'}`,
             dismissible: true,
             id: Date.now().toString()
           }
@@ -1887,12 +1887,12 @@ export default function PrismApp() {
                   variant="primary"
                   onClick={() => setState(prev => ({ ...prev, activeView: 'templates' }))}
                 >
-                  Launch New Instance
+                  Launch New Workspace
                 </Button>
               </SpaceBetween>
             }
           >
-            My Instances
+            My Workspaces
           </Header>
         }
       >
@@ -1935,7 +1935,7 @@ export default function PrismApp() {
         {selectedInstances.length > 0 && (
           <SpaceBetween direction="horizontal" size="xs">
             <Box variant="awsui-key-label">
-              {selectedInstances.length} instance{selectedInstances.length !== 1 ? 's' : ''} selected
+              {selectedInstances.length} workspace{selectedInstances.length !== 1 ? 's' : ''} selected
             </Box>
             <Button
               onClick={() => handleBulkAction('start')}
@@ -2949,7 +2949,7 @@ export default function PrismApp() {
             {state.users.reduce((sum, u) => sum + (u.ssh_keys || 0), 0)}
           </Box>
         </Container>
-        <Container header={<Header variant="h3">Provisioned Instances</Header>}>
+        <Container header={<Header variant="h3">Provisioned Workspaces</Header>}>
           <Box fontSize="display-l" fontWeight="bold" color="text-status-warning">
             {state.users.reduce((sum, u) => sum + (u.provisioned_instances?.length || 0), 0)}
           </Box>
@@ -3093,7 +3093,7 @@ export default function PrismApp() {
                 No users found
               </Box>
               <Box variant="p" padding={{ bottom: 's' }} color="text-body-secondary">
-                Create your first research user to enable persistent identity across instances.
+                Create your first research user to enable persistent identity across workspaces.
               </Box>
               <Button variant="primary">Create User</Button>
             </Box>
@@ -3170,7 +3170,7 @@ export default function PrismApp() {
                     </Box>
                   ))
                 ) : (
-                  <Box color="text-body-secondary">No running instances available</Box>
+                  <Box color="text-body-secondary">No running workspaces available</Box>
                 )}
               </SpaceBetween>
             )}
@@ -3574,9 +3574,9 @@ export default function PrismApp() {
                     <Alert type="info" header="💡 Cost Optimization Tips">
                       <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
                         <li>Hibernate idle workspaces to reduce costs while preserving state</li>
-                        <li>Use spot instances for non-critical workloads (up to 90% savings)</li>
+                        <li>Use spot workspaces for non-critical workloads (up to 90% savings)</li>
                         <li>Configure auto-hibernation policies for unused workspaces</li>
-                        <li>Right-size instances based on actual usage patterns</li>
+                        <li>Right-size workspaces based on actual usage patterns</li>
                       </ul>
                     </Alert>
                   )}
@@ -3671,7 +3671,7 @@ export default function PrismApp() {
             <Box variant="awsui-key-label">Active Resources</Box>
             <Box fontSize="heading-m">{state.instances.length + state.efsVolumes.length + state.ebsVolumes.length}</Box>
             <Box color="text-body-secondary">
-              Instances, EFS and EBS volumes
+              Workspaces, EFS and EBS volumes
             </Box>
           </SpaceBetween>
         </ColumnLayout>
@@ -4428,7 +4428,7 @@ export default function PrismApp() {
                           No AMIs available
                         </Box>
                         <Box variant="p" padding={{ bottom: 's' }} color="text-body-secondary">
-                          Build an AMI to enable fast instance launching (30 seconds vs 5-8 minutes).
+                          Build an AMI to enable fast workspace launching (30 seconds vs 5-8 minutes).
                         </Box>
                         <Button variant="primary" onClick={() => setBuildModalVisible(true)}>Build AMI</Button>
                       </Box>
@@ -4931,7 +4931,7 @@ export default function PrismApp() {
               {state.idlePolicies.length}
             </Box>
           </Container>
-          <Container header={<Header variant="h3">Monitored Instances</Header>}>
+          <Container header={<Header variant="h3">Monitored Workspaces</Header>}>
             <Box fontSize="display-l" fontWeight="bold" color="text-status-success">
               {state.idleSchedules.filter(s => s.enabled).length}
             </Box>
@@ -5008,7 +5008,7 @@ export default function PrismApp() {
                       <Box textAlign="center" padding="xl">
                         <Box variant="strong">No idle policies configured</Box>
                         <Box variant="p" color="text-body-secondary">
-                          Idle policies automatically hibernate or stop instances when they're not being used.
+                          Idle policies automatically hibernate or stop workspaces when they're not being used.
                         </Box>
                       </Box>
                     }
@@ -5149,10 +5149,10 @@ export default function PrismApp() {
               <Alert type="info">
                 <Box variant="strong">How It Works:</Box>
                 <Box variant="p">
-                  This policy monitors instance activity. When CPU, memory, and network usage all fall below
+                  This policy monitors workspace activity. When CPU, memory, and network usage all fall below
                   the specified thresholds for {selectedPolicy.idle_minutes} consecutive minutes, the system will
                   automatically {selectedPolicy.action === 'hibernate' ? 'hibernate (preserve RAM state)' :
-                  selectedPolicy.action === 'stop' ? 'stop the instance' : 'send a notification'}.
+                  selectedPolicy.action === 'stop' ? 'stop the workspace' : 'send a notification'}.
                 </Box>
               </Alert>
 
@@ -5161,7 +5161,7 @@ export default function PrismApp() {
                   <Box variant="strong">Cost Savings with Hibernation:</Box>
                   <Box variant="p">
                     Hibernation preserves your RAM state to disk, allowing instant resume while only paying for
-                    EBS storage (~$0.10/GB/month). This can save ~40% on compute costs for instances that are
+                    EBS storage (~$0.10/GB/month). This can save ~40% on compute costs for workspaces that are
                     idle for extended periods.
                   </Box>
                 </Alert>
@@ -5174,7 +5174,7 @@ export default function PrismApp() {
         <Container header={<Header variant="h2">About Idle Detection</Header>}>
           <SpaceBetween size="m">
             <Box variant="p">
-              Idle detection monitors your instances and automatically hibernates or stops them when they're not
+              Idle detection monitors your workspaces and automatically hibernates or stops them when they're not
               being used, saving significant compute costs while preserving your work environment.
             </Box>
             <ColumnLayout columns={3}>
@@ -5188,8 +5188,8 @@ export default function PrismApp() {
               <div>
                 <Box variant="strong">Stop</Box>
                 <Box variant="small" color="text-body-secondary">
-                  Fully stops the instance. Cheaper than hibernation but requires full restart.
-                  Best for instances that don't need quick resumption.
+                  Fully stops the workspace. Cheaper than hibernation but requires full restart.
+                  Best for workspaces that don't need quick resumption.
                 </Box>
               </div>
               <div>
@@ -5232,8 +5232,8 @@ export default function PrismApp() {
 
         // Generate mock logs for demonstration
         const mockLogs = [
-          `[${new Date().toISOString()}] Instance ${selectedInstance} logs (${logType})`,
-          `[INFO] Instance started successfully`,
+          `[${new Date().toISOString()}] Workspace ${selectedInstance} logs (${logType})`,
+          `[INFO] Workspace started successfully`,
           `[INFO] Loading configuration...`,
           `[INFO] Mounting EFS volumes...`,
           `[INFO] Starting services...`,
@@ -5241,7 +5241,7 @@ export default function PrismApp() {
           `[INFO] All services running`,
           `[DEBUG] Memory usage: 1.2GB / 8GB`,
           `[DEBUG] CPU usage: 5%`,
-          `[INFO] Instance ready for use`,
+          `[INFO] Workspace ready for use`,
           `[INFO] SSH access: ssh ${state.instances.find(i => i.name === selectedInstance)?.public_ip || 'N/A'}`,
           `--- End of ${logType} log ---`
         ];
@@ -5275,7 +5275,7 @@ export default function PrismApp() {
           Workspace Logs Viewer
         </Header>
 
-        {/* Instance and Log Type Selection */}
+        {/* Workspace and Log Type Selection */}
         <Container>
           <SpaceBetween size="m">
             <FormField
@@ -5293,8 +5293,8 @@ export default function PrismApp() {
                   label: `${i.name} (${i.state})`,
                   value: i.name
                 }))}
-                placeholder="Choose an instance"
-                selectedAriaLabel="Selected instance"
+                placeholder="Choose a workspace"
+                selectedAriaLabel="Selected workspace"
                 disabled={runningInstances.length === 0}
               />
             </FormField>
@@ -5405,11 +5405,11 @@ export default function PrismApp() {
         ) : (
           <Container>
             <Box textAlign="center" padding="xl">
-              <Box variant="strong">Select an Instance</Box>
+              <Box variant="strong">Select a Workspace</Box>
               <Box variant="p" color="text-body-secondary">
                 {runningInstances.length === 0
-                  ? 'No running or stopped instances available. Start an instance to view its logs.'
-                  : 'Choose an instance from the dropdown above to view its logs.'}
+                  ? 'No running or stopped workspaces available. Start a workspace to view its logs.'
+                  : 'Choose a workspace from the dropdown above to view its logs.'}
               </Box>
             </Box>
           </Container>
@@ -5419,9 +5419,9 @@ export default function PrismApp() {
         <Container header={<Header variant="h2">About Log Viewing</Header>}>
           <SpaceBetween size="m">
             <Box variant="p">
-              View real-time console output and system logs from your Prism instances.
+              View real-time console output and system logs from your Prism workspaces.
               Logs are useful for troubleshooting startup issues, monitoring application output,
-              and understanding instance behavior.
+              and understanding workspace behavior.
             </Box>
             <ColumnLayout columns={4}>
               <div>
@@ -5450,7 +5450,7 @@ export default function PrismApp() {
               </div>
             </ColumnLayout>
             <Alert type="info">
-              <Box variant="strong">Note:</Box> Log viewing is read-only. To interact with your instance,
+              <Box variant="strong">Note:</Box> Log viewing is read-only. To interact with your workspace,
               use SSH: <Box fontFamily="monospace" variant="code">
                 ssh {selectedInstance && state.instances.find(i => i.name === selectedInstance)?.public_ip || 'instance-ip'}
               </Box>
@@ -5486,7 +5486,7 @@ export default function PrismApp() {
       return (
         <Container header={<Header variant="h1">Web Services</Header>}>
           <Alert type="info">
-            No running instances with web services available. Launch an instance with Jupyter or RStudio to access web services.
+            No running instances with web services available. Launch a workspace with Jupyter or RStudio to access web services.
           </Alert>
         </Container>
       );
@@ -5549,7 +5549,7 @@ export default function PrismApp() {
     const getDeleteMessage = () => {
       switch (deleteModalConfig.type) {
         case 'instance':
-          return `You are about to permanently delete the instance "${deleteModalConfig.name}". This action cannot be undone.`;
+          return `You are about to permanently delete the workspace "${deleteModalConfig.name}". This action cannot be undone.`;
         case 'efs-volume':
           return `You are about to permanently delete the EFS volume "${deleteModalConfig.name}". All data on this volume will be lost. This action cannot be undone.`;
         case 'ebs-volume':
@@ -5651,7 +5651,7 @@ export default function PrismApp() {
               disabled={!launchConfig.name.trim()}
               onClick={handleLaunchInstance}
             >
-              Launch Instance
+              Launch Workspace
             </Button>
           </SpaceBetween>
         </Box>
@@ -5827,7 +5827,7 @@ export default function PrismApp() {
                 <Container header={<Header variant="h3">What's Included</Header>}>
                   <SpaceBetween size="s">
                     <Box>✓ Pre-installed software and dependencies</Box>
-                    <Box>✓ Optimized instance sizing for your workload</Box>
+                    <Box>✓ Optimized workspace sizing for your workload</Box>
                     <Box>✓ Persistent storage for your data</Box>
                     <Box>✓ SSH and remote access configured</Box>
                     <Box>✓ Security best practices applied</Box>
@@ -5840,7 +5840,7 @@ export default function PrismApp() {
             </SpaceBetween>
           )}
 
-          {/* Step 3: Launch Your First Instance */}
+          {/* Step 3: Launch Your First Workspace */}
           {onboardingStep === 2 && (
             <SpaceBetween size="m">
               <Box variant="h2">Step 3: Launch Your First Workstation</Box>
@@ -5854,12 +5854,12 @@ export default function PrismApp() {
                     <Box>Choose a template that matches your research needs from the Templates page.</Box>
                   </div>
                   <div>
-                    <Box variant="h4">2. Configure Instance</Box>
+                    <Box variant="h4">2. Configure Workspace</Box>
                     <Box>Give your workstation a name and select the appropriate size (Small, Medium, Large).</Box>
                   </div>
                   <div>
                     <Box variant="h4">3. Launch & Connect</Box>
-                    <Box>Prism creates your instance in minutes. Connect via SSH or web interface when ready.</Box>
+                    <Box>Prism creates your workspace in minutes. Connect via SSH or web interface when ready.</Box>
                   </div>
                 </SpaceBetween>
               </Container>
@@ -5868,8 +5868,8 @@ export default function PrismApp() {
                 browse templates, and launch your first cloud workstation.
               </Alert>
               <Box variant="p" color="text-body-secondary">
-                💡 <strong>Tip:</strong> Start with a Medium (M) sized instance for most workloads.
-                You can always stop, resize, or terminate instances to manage costs.
+                💡 <strong>Tip:</strong> Start with a Medium (M) sized workspace for most workloads.
+                You can always stop, resize, or terminate workspaces to manage costs.
               </Box>
             </SpaceBetween>
           )}
@@ -6022,7 +6022,7 @@ export default function PrismApp() {
                   return (
                     <Container header={<Header variant="h1">SSH Terminal</Header>}>
                       <Alert type="info">
-                        No running instances available. Launch an instance to access the SSH terminal.
+                        No running workspaces available. Launch a workspace to access the SSH terminal.
                       </Alert>
                     </Container>
                   );
