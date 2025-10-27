@@ -217,6 +217,7 @@ type Instance struct {
 	IdlePolicyEnabled bool    `json:"idle_policy_enabled,omitempty"`
 	SpotEligible      bool    `json:"spot_eligible,omitempty"`
 	IsSpot            bool    `json:"is_spot,omitempty"`
+	IsHibernating     bool    `json:"is_hibernating,omitempty"` // Currently in stopping state due to hibernation (stopping IS billable during hibernation)
 	ARMCompatible     bool    `json:"arm_compatible,omitempty"`
 	Architecture      string  `json:"architecture,omitempty"`
 	AlwaysOn          bool    `json:"always_on,omitempty"`

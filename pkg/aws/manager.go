@@ -33,9 +33,10 @@ import (
 
 // AWS instance state constants
 const (
-	instanceStateRunning = "running"
-	instanceStateStopped = "stopped"
-	volumeTypeIO2        = "io2"
+	instanceStateRunning  = "running"
+	instanceStateStopped  = "stopped"
+	instanceStateStopping = "stopping"
+	volumeTypeIO2         = "io2"
 )
 
 // Manager handles all AWS operations
@@ -950,6 +951,26 @@ func (m *Manager) HibernateInstance(name string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("failed to hibernate instance: %w", err)
+	}
+
+	// Mark instance as hibernating in state (stopping state IS billable during hibernation)
+	localState, err := m.stateManager.LoadState()
+	if err != nil {
+		log.Printf("Warning: failed to update hibernating flag: %v", err)
+	} else {
+		// Find and update instance
+		for instanceName, inst := range localState.Instances {
+			if inst.Name == name {
+				// Copy instance, modify, and save back (can't modify map value directly in Go)
+				inst.IsHibernating = true
+				localState.Instances[instanceName] = inst
+				if err := m.stateManager.SaveInstance(inst); err != nil {
+					log.Printf("Warning: failed to save hibernating flag: %v", err)
+				}
+				log.Printf("✅ Marked instance %s as hibernating (stopping state is billable during hibernation)", name)
+				break
+			}
+		}
 	}
 
 	return nil
@@ -2276,13 +2297,23 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	// Calculate EBS storage costs using AWS API (persist when stopped/hibernated)
 	ebsStorageCostPerHour := b.calculateInstanceEBSCosts(*ec2Instance.InstanceId)
 
+	// Get hibernation status from local state for accurate billing calculation
+	// Hibernation exception: "stopping" state IS billable during hibernation
+	isHibernating := false
+	if localState != nil {
+		if localInstance, exists := localState.Instances[name]; exists {
+			isHibernating = localInstance.IsHibernating
+		}
+	}
+
 	// Calculate actual costs using state history and running state start time for accurate billing
 	// AWS only bills for time in "running" state, not "pending" state
+	// Hibernation exception: "stopping" state IS billable during hibernation
 	billingStartTime := launchTime
 	if runningStateStartTime != nil {
 		billingStartTime = *runningStateStartTime
 	}
-	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, billingStartTime, state, stateHistory)
+	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, billingStartTime, state, stateHistory, isHibernating)
 
 	// Create instance
 	instance := &ctypes.Instance{
@@ -2309,6 +2340,20 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	if localState != nil {
 		if localInstance, exists := localState.Instances[name]; exists {
 			instance.DeletionTime = localInstance.DeletionTime
+
+			// Manage IsHibernating flag for accurate hibernation billing
+			// - If instance was hibernating and is now "stopped", clear the flag (hibernation complete)
+			// - If instance is "stopping" or still marked as hibernating, preserve the flag
+			if localInstance.IsHibernating {
+				if strings.ToLower(state) == instanceStateStopped {
+					// Hibernation complete - clear flag (stopped state is not billable)
+					instance.IsHibernating = false
+					log.Printf("Instance %s hibernation complete (stopped state reached, no longer billable)", name)
+				} else if strings.ToLower(state) == instanceStateStopping {
+					// Still hibernating - preserve flag (stopping state IS billable during hibernation)
+					instance.IsHibernating = true
+				}
+			}
 		}
 	}
 
@@ -3465,7 +3510,7 @@ func estimateInstanceCost(instanceType string) float64 {
 // calculateActualCosts calculates actual costs based on instance running time
 // billingStartTime should be the running state start time (not launch time) for accuracy
 // AWS only bills for "running" state, not "pending" state before running
-func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, billingStartTime time.Time, currentState string, stateHistory []ctypes.StateTransition) (currentSpend, effectiveRate float64) {
+func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, billingStartTime time.Time, currentState string, stateHistory []ctypes.StateTransition, isHibernating bool) (currentSpend, effectiveRate float64) {
 	now := time.Now()
 	totalHours := now.Sub(billingStartTime).Hours()
 
@@ -3477,7 +3522,7 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 	var runningHours float64
 	if len(stateHistory) > 0 {
 		// Use state history for accurate cost calculation
-		runningHours = calculateRunningHoursFromHistory(billingStartTime, currentState, stateHistory)
+		runningHours = calculateRunningHoursFromHistory(billingStartTime, currentState, stateHistory, isHibernating)
 	} else {
 		// Fallback to estimation if no state history (legacy instances or first launch)
 		switch strings.ToLower(currentState) {
@@ -3514,7 +3559,8 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 
 // calculateRunningHoursFromHistory calculates actual running hours from state transition history
 // billingStartTime is the time when billing started (running state start, not launch time)
-func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState string, history []ctypes.StateTransition) float64 {
+// isHibernating indicates if instance is currently hibernating (stopping state IS billable during hibernation)
+func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState string, history []ctypes.StateTransition, isHibernating bool) float64 {
 	if len(history) == 0 {
 		// No history - use simple calculation based on current state
 		now := time.Now()
@@ -3554,8 +3600,13 @@ func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState s
 		// Calculate duration in previous state
 		duration := transition.Timestamp.Sub(lastStateTime).Hours()
 
-		// Add to running hours if previous state was a "running" state
+		// Add to running hours if previous state was billable
+		// AWS billing rule: "running" and "pending" are always billable
+		// Hibernation exception: "stopping" is also billable during hibernation
 		if lastState == instanceStateRunning || lastState == "pending" {
+			runningHours += duration
+		} else if isHibernating && lastState == instanceStateStopping {
+			// Hibernation exception: stopping state IS billable during hibernation
 			runningHours += duration
 		}
 
@@ -3568,6 +3619,9 @@ func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState s
 	now := time.Now()
 	finalDuration := now.Sub(lastStateTime).Hours()
 	if lastState == instanceStateRunning || lastState == "pending" {
+		runningHours += finalDuration
+	} else if isHibernating && lastState == instanceStateStopping {
+		// Hibernation exception: stopping state IS billable during hibernation
 		runningHours += finalDuration
 	}
 
