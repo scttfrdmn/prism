@@ -68,6 +68,18 @@ Smith Lab Organization
 
 ### ✅ Lab Setup (Phase 4 Complete)
 
+**AWS Profile Configuration** (Lab IT Setup):
+
+![AWS Profile Configuration](images/02-lab-environment/gui-settings-profiles.png)
+
+*Screenshot shows the AWS profile configuration interface. Dr. Smith validates institutional AWS credentials for the entire lab, ensuring all 8 PhD students will have consistent access to the lab's AWS account with proper SSO integration.*
+
+**What Dr. Smith configures**:
+- **Institutional Profile**: Lab-wide AWS profile (`smith-lab-research`) connected to university AWS Organization
+- **SSO Integration**: University credentials work for all lab members via institutional identity provider
+- **Region Selection**: `us-west-2` (optimized for GPU instance availability and west coast university location)
+- **Cost Allocation Tags**: Automatic tagging for departmental chargeback system
+
 #### Step 1: PI Creates Organization
 ```bash
 # Dr. Smith creates lab organization
@@ -142,9 +154,34 @@ prism project budget alert add "NIH-R01-2023" \
 # Same for other projects...
 ```
 
+**Quick Start Wizard** (Team Onboarding):
+
+![Quick Start Wizard](images/02-lab-environment/gui-quick-start-wizard.png)
+
+*Screenshot shows the template selection wizard interface. Dr. Torres uses this visual wizard to onboard new lab members, walking them through the 30-second process to launch their first workspace with lab-approved templates.*
+
+**What Dr. Torres uses for onboarding**:
+- **Visual Template Gallery**: Lab-approved templates (Bioinformatics Suite, R Research, Python ML) prominently displayed
+- **Template Filtering**: Lab members see only pre-approved templates that fit within grant budgets
+- **Resource Estimates**: Clear $2.40/day cost estimates help students understand budget impact
+- **One-Click Launch**: New students launch correctly-configured workspaces without CLI knowledge
+
 ### ✅ Daily Lab Operations (What Works)
 
 #### Scenario: James (Grad Student) Runs RNA-seq Pipeline
+
+**Shared Data Management** (Lab Collaboration):
+
+![Storage Management](images/02-lab-environment/gui-storage-management.png)
+
+*Screenshot shows the storage management interface. The Smith Lab maintains a 5TB shared EFS volume (`/data/smith-lab-shared`) that all 8 PhD students access simultaneously, enabling seamless collaboration on genomic datasets without manual file transfers.*
+
+**What the lab uses for shared storage**:
+- **Shared EFS Volume**: `smith-lab-shared` (5TB) mounted at `/data` on all lab workspaces automatically
+- **Collaborative Access**: All 8 students see same datasets instantly - no Dropbox uploads or email attachments
+- **Cost Visibility**: $150/month storage cost (3% of lab budget) clearly displayed with usage trends
+- **Department Datasets**: RNA-seq reference genomes, protein databases shared across entire lab
+
 ```bash
 # James launches workspace
 prism launch bioinformatics-suite rnaseq-sample-42 \
@@ -192,6 +229,19 @@ prism project cost show "NIH-R01-2023"
 > **💡 GUI Note**: Project cost tracking available in GUI Projects tab with visual breakdown - *coming soon in v0.6.0*
 
 #### Scenario: Lab Manager Monitors Usage
+
+**Lab Dashboard** (Multi-User Workspace Management):
+
+![Workspaces List](images/02-lab-environment/gui-workspaces-list.png)
+
+*Screenshot shows the workspace management interface. Dr. Torres sees all 8 concurrent student workspaces at a glance, with lab-wide visibility into who's running what, real-time costs, and hibernation status - essential for managing shared GPU resources and preventing budget surprises.*
+
+**What Dr. Torres monitors**:
+- **8 Concurrent Workspaces**: Full lab visibility - james.wilson's RNA-seq, maria.garcia's protein folding, etc.
+- **Real-Time Costs**: Each workspace shows daily cost ($2.40/day vs $24.80/day GPU) for immediate budget impact
+- **Hibernation Status**: Quickly identify idle workspaces wasting budget (manual intervention until automated policies)
+- **Student Attribution**: Filter by grant project (NIH R01 vs NSF ML) for per-grant cost allocation tracking
+
 ```bash
 # Dr. Torres checks overall lab status
 prism project list --tree
@@ -216,6 +266,18 @@ prism project list --tree
 ```
 
 > **💡 GUI Note**: Project tree view available in GUI Projects tab - *coming soon in v0.6.0*
+
+**Grant Budget Management** (Multi-Project Tracking):
+
+![Projects Dashboard](images/02-lab-environment/gui-projects-dashboard.png)
+
+*Screenshot shows the project management interface. Dr. Smith (PI) tracks 3 concurrent grants (NIH R01: $2,000/mo, NSF ML: $1,500/mo, Discretionary: $1,000/mo) with real-time budget consumption, automated alerts at 75%/90% thresholds, and per-student cost allocation for grant compliance reporting.*
+
+**What Dr. Smith tracks**:
+- **Multi-Grant Portfolio**: 3 concurrent projects with hierarchical budgets ($4,500/month total lab budget)
+- **Per-Student Allocation**: James Wilson ($400/mo), Maria Garcia ($300/mo) tracked against their allocated budgets
+- **Automated Alerts**: Email notifications when students reach 75% budget consumption (prevent overruns)
+- **Grant Compliance**: Monthly cost reports by grant code for NIH/NSF financial reporting requirements
 
 ---
 
