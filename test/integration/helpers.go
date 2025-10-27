@@ -71,9 +71,9 @@ func NewTestContext(t *testing.T) *TestContext {
 // StartDaemon starts the daemon process for testing
 func (ctx *TestContext) StartDaemon() {
 	// Find daemon binary
-	daemonPath := ctx.findBinary("cwsd")
+	daemonPath := ctx.findBinary("prismd")
 	if daemonPath == "" {
-		ctx.T.Fatal("Daemon binary 'cwsd' not found. Run 'make build' first.")
+		ctx.T.Fatal("Daemon binary 'prismd' not found. Run 'make build' first.")
 	}
 
 	// Start daemon
