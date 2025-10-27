@@ -1,7 +1,7 @@
 # Persona 6: Institutional Research IT / Research Enablement
 
 **Last Updated**: October 2025
-**Version**: 0.5.5
+**Version**: 0.5.8
 
 ---
 
@@ -450,7 +450,7 @@ prism launch cs401-assignment1 homework1 --project cs401-fall2025
 ```bash
 # Track student progress
 prism admin report cs401-fall2025 \
-  --metric instances-launched \
+  --metric workspaces-launched \
   --metric compute-hours \
   --metric costs \
   --format dashboard
@@ -653,12 +653,12 @@ budgets:
   actions:
     at_75_percent: "send-warning"
     at_90_percent: "send-urgent-warning"
-    at_100_percent: "auto-hibernate-instances"
+    at_100_percent: "auto-hibernate-workspaces"
 
-instance_limits:
+workspace_limits:
   max_hourly_cost_without_approval: 5.00
-  max_simultaneous_instances: 10
-  max_gpu_instances: 2
+  max_simultaneous_workspaces: 10
+  max_gpu_workspaces: 2
 
 cost_optimization:
   auto_hibernate_after_idle: "60-minutes"

@@ -134,20 +134,22 @@
 ### 7. 08_INSTITUTIONAL_RESEARCH_IT_WALKTHROUGH.md
 **Changes Made**:
 - ✅ Updated version reference: v0.5.5 → v0.5.8
-- ✅ Replaced "launch instance" → "launch workspace"
-- ✅ Replaced "launches instance" → "launches workspace"
-- ✅ Replaced "researcher instances" → "researcher workspaces"
-- ✅ Replaced generic " instances " → " workspaces "
+- ✅ Replaced "auto-hibernate-instances" → "auto-hibernate-workspaces"
+- ✅ Replaced "instance_limits" → "workspace_limits"
+- ✅ Replaced "max_simultaneous_instances" → "max_simultaneous_workspaces"
+- ✅ Replaced "max_gpu_instances" → "max_gpu_workspaces"
+- ✅ Replaced "instances-launched" metric → "workspaces-launched"
 
 **Sections Affected**:
-- Institutional deployment workflows
-- Template curation
-- Chargeback model configuration
-- Usage monitoring and reporting
+- Cost management policies (budget action thresholds)
+- Workspace limits configuration
+- Institutional monitoring metrics
+- Usage tracking and reporting
 
 **Notes**:
 - Research IT admin persona uses advanced administrative commands
 - Wizard not relevant for this administrative/infrastructure management role
+- Already had "workspaces" in most places (line 530), only policy configs needed updates
 
 ---
 
@@ -236,6 +238,21 @@ All original files backed up with `.bak` extension before modifications.
 3. **Testing**: Validate command examples still work with new terminology
 4. **Documentation**: Update any cross-references in other docs that point to these scenarios
 
+### 8. 07_NIH_RESEARCHER_PHI_HIPAA_COMPLIANCE.md
+**Changes Made**:
+- ✅ No version number update needed (compliance-focused document, no version reference)
+- ✅ Already used "workspace" terminology throughout
+- ✅ No "launch instance" or similar phrases found
+
+**Sections Affected**:
+- None - document already aligned with v0.5.8 terminology
+
+**Notes**:
+- HIPAA compliance persona is experienced researcher using advanced features
+- Document correctly uses "workspace" in user-facing contexts
+- "EC2 instance" preserved for AWS infrastructure references
+- No changes required - document was already current
+
 ---
 
-**Status**: ✅ All 7 documents successfully updated for v0.5.8
+**Status**: ✅ All 8 persona documents successfully updated for v0.5.8

@@ -1,6 +1,6 @@
 # Prism Daemon API Reference
 
-## Version: v0.5.5
+## Version: v0.5.8
 **Last Updated**: October 20, 2025
 **Port**: 8947 (CWS on phone keypad)
 **Base URL**: `http://localhost:8947`
@@ -464,7 +464,7 @@ Get comprehensive cost analysis and optimization recommendations.
       "recommendation": "Enable automated hibernation after 30 minutes idle"
     },
     {
-      "type": "rightsizing", 
+      "type": "rightsizing",
       "instance": "web-scraper-micro",
       "potential_savings": 180.40,
       "recommendation": "Downsize from t3.medium to t3.small - current CPU usage <10%"
@@ -732,8 +732,8 @@ Gracefully shutdown the daemon service.
 {
   "error": {
     "code": "INSTANCE_NOT_FOUND",
-    "message": "Instance 'my-research' not found in current region", 
-    "details": "Check instance name and ensure correct AWS profile/region",
+    "message": "Workspace 'my-research' not found in current region",
+    "details": "Check workspace name and ensure correct AWS profile/region",
     "remediation": "Use 'cws list' to see available workspaces",
     "timestamp": "2024-06-15T10:30:00Z"
   }

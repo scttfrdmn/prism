@@ -1,6 +1,6 @@
 # Prism School Pilot Quick Start Guide
 
-*Last Updated: October 2025 • Version 0.5.5*
+*Last Updated: October 2025 • Version 0.5.8*
 
 ## 🎯 For Educational Institutions & School Pilots
 
