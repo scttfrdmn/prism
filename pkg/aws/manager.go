@@ -2227,6 +2227,40 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		}
 	}
 
+	// Parse StateTransitionReason to get exact running state start time (for accurate billing)
+	// AWS only bills for time in "running" state, not "pending" state
+	var runningStateStartTime *time.Time
+	if ec2Instance.StateTransitionReason != nil && *ec2Instance.StateTransitionReason != "" {
+		// StateTransitionReason format: "User initiated (2025-10-27 22:36:06 GMT)"
+		// For running instances, this tells us when they entered running state
+		if strings.ToLower(state) == instanceStateRunning {
+			if parsedTime, err := parseStateTransitionReason(*ec2Instance.StateTransitionReason); err == nil {
+				runningStateStartTime = &parsedTime
+				log.Printf("Instance %s entered running state at %s (billing start)", name, parsedTime.Format(time.RFC3339))
+			} else {
+				log.Printf("Warning: Failed to parse StateTransitionReason for %s: %v", name, err)
+			}
+		}
+	}
+
+	// If StateTransitionReason not available or parsing failed, estimate running state start
+	// by adding typical pending duration (30-60 seconds) to LaunchTime
+	if runningStateStartTime == nil {
+		// Use cached value if available (preserves across refreshes)
+		if localState != nil {
+			if localInstance, exists := localState.Instances[name]; exists && localInstance.RunningStateStartTime != nil {
+				runningStateStartTime = localInstance.RunningStateStartTime
+			}
+		}
+
+		// If still no cached value, estimate (LaunchTime + 45 seconds for pending state)
+		if runningStateStartTime == nil && strings.ToLower(state) == instanceStateRunning {
+			estimated := launchTime.Add(45 * time.Second) // Conservative estimate
+			runningStateStartTime = &estimated
+			log.Printf("Warning: StateTransitionReason not available for %s, estimating running state start", name)
+		}
+	}
+
 	// Calculate cost metrics based on instance type and runtime
 	instanceType := string(ec2Instance.InstanceType)
 
@@ -2242,26 +2276,32 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	// Calculate EBS storage costs using AWS API (persist when stopped/hibernated)
 	ebsStorageCostPerHour := b.calculateInstanceEBSCosts(*ec2Instance.InstanceId)
 
-	// Calculate actual costs using state history for accurate tracking
-	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, launchTime, state, stateHistory)
+	// Calculate actual costs using state history and running state start time for accurate billing
+	// AWS only bills for time in "running" state, not "pending" state
+	billingStartTime := launchTime
+	if runningStateStartTime != nil {
+		billingStartTime = *runningStateStartTime
+	}
+	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, billingStartTime, state, stateHistory)
 
 	// Create instance
 	instance := &ctypes.Instance{
-		ID:                *ec2Instance.InstanceId,
-		Name:              name,
-		Template:          template,
-		State:             state,
-		PublicIP:          publicIP,
-		AvailabilityZone:  availabilityZone,
-		ProjectID:         project,
-		InstanceLifecycle: instanceLifecycle,
-		KeyName:           keyName,
-		LaunchTime:        launchTime,
-		InstanceType:      instanceType,
-		HourlyRate:        hourlyRate,
-		CurrentSpend:      currentSpend,
-		EffectiveRate:     effectiveRate,
-		StateHistory:      stateHistory,
+		ID:                    *ec2Instance.InstanceId,
+		Name:                  name,
+		Template:              template,
+		State:                 state,
+		PublicIP:              publicIP,
+		AvailabilityZone:      availabilityZone,
+		ProjectID:             project,
+		InstanceLifecycle:     instanceLifecycle,
+		KeyName:               keyName,
+		LaunchTime:            launchTime,
+		RunningStateStartTime: runningStateStartTime,
+		InstanceType:          instanceType,
+		HourlyRate:            hourlyRate,
+		CurrentSpend:          currentSpend,
+		EffectiveRate:         effectiveRate,
+		StateHistory:          stateHistory,
 	}
 
 	// Merge remaining metadata from local state if available
@@ -3422,10 +3462,12 @@ func estimateInstanceCost(instanceType string) float64 {
 	return baseRate * multiplier
 }
 
-// calculateActualCosts calculates current spend and effective rate based on actual usage
-func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, launchTime time.Time, currentState string, stateHistory []ctypes.StateTransition) (currentSpend, effectiveRate float64) {
+// calculateActualCosts calculates actual costs based on instance running time
+// billingStartTime should be the running state start time (not launch time) for accuracy
+// AWS only bills for "running" state, not "pending" state before running
+func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, billingStartTime time.Time, currentState string, stateHistory []ctypes.StateTransition) (currentSpend, effectiveRate float64) {
 	now := time.Now()
-	totalHours := now.Sub(launchTime).Hours()
+	totalHours := now.Sub(billingStartTime).Hours()
 
 	if totalHours <= 0 {
 		return 0, 0
@@ -3435,7 +3477,7 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 	var runningHours float64
 	if len(stateHistory) > 0 {
 		// Use state history for accurate cost calculation
-		runningHours = calculateRunningHoursFromHistory(launchTime, currentState, stateHistory)
+		runningHours = calculateRunningHoursFromHistory(billingStartTime, currentState, stateHistory)
 	} else {
 		// Fallback to estimation if no state history (legacy instances or first launch)
 		switch strings.ToLower(currentState) {
@@ -3471,31 +3513,32 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 }
 
 // calculateRunningHoursFromHistory calculates actual running hours from state transition history
-func calculateRunningHoursFromHistory(launchTime time.Time, currentState string, history []ctypes.StateTransition) float64 {
+// billingStartTime is the time when billing started (running state start, not launch time)
+func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState string, history []ctypes.StateTransition) float64 {
 	if len(history) == 0 {
 		// No history - use simple calculation based on current state
 		now := time.Now()
-		totalHours := now.Sub(launchTime).Hours()
+		totalHours := now.Sub(billingStartTime).Hours()
 		if strings.ToLower(currentState) == instanceStateRunning || currentState == "pending" {
 			return totalHours
 		}
 		return 0
 	}
 
-	// Filter out transitions that happened before current launch time
+	// Filter out transitions that happened before current billing start time
 	// This handles the case where an instance was stopped and restarted,
-	// and the launch time was updated but old state history remains
+	// and the billing start time was updated but old state history remains
 	var relevantHistory []ctypes.StateTransition
 	for _, transition := range history {
-		if transition.Timestamp.After(launchTime) {
+		if transition.Timestamp.After(billingStartTime) {
 			relevantHistory = append(relevantHistory, transition)
 		}
 	}
 
-	// If no relevant history after launch time, use simple calculation
+	// If no relevant history after billing start time, use simple calculation
 	if len(relevantHistory) == 0 {
 		now := time.Now()
-		totalHours := now.Sub(launchTime).Hours()
+		totalHours := now.Sub(billingStartTime).Hours()
 		if strings.ToLower(currentState) == instanceStateRunning || currentState == "pending" {
 			return totalHours
 		}
@@ -3503,7 +3546,7 @@ func calculateRunningHoursFromHistory(launchTime time.Time, currentState string,
 	}
 
 	var runningHours float64
-	lastStateTime := launchTime
+	lastStateTime := billingStartTime
 	lastState := instanceStateRunning // Instances start in running/pending state
 
 	// Process each state transition to calculate running time
@@ -3529,6 +3572,38 @@ func calculateRunningHoursFromHistory(launchTime time.Time, currentState string,
 	}
 
 	return runningHours
+}
+
+// parseStateTransitionReason extracts the timestamp from AWS StateTransitionReason field
+// Format: "User initiated (2025-10-27 22:36:06 GMT)" or "User initiated (2025-10-27 22:36:06 UTC)"
+// Returns the timestamp when the instance transitioned to the current state
+func parseStateTransitionReason(reason string) (time.Time, error) {
+	if reason == "" {
+		return time.Time{}, fmt.Errorf("empty state transition reason")
+	}
+
+	// Find timestamp within parentheses: (YYYY-MM-DD HH:MM:SS GMT/UTC)
+	start := strings.Index(reason, "(")
+	end := strings.Index(reason, ")")
+	if start == -1 || end == -1 || start >= end {
+		return time.Time{}, fmt.Errorf("invalid format: missing parentheses")
+	}
+
+	// Extract timestamp string (between parentheses)
+	timestampStr := reason[start+1 : end]
+
+	// Parse timestamp - AWS uses format "2006-01-02 15:04:05 GMT" or "2006-01-02 15:04:05 UTC"
+	// Try GMT first (most common)
+	t, err := time.Parse("2006-01-02 15:04:05 GMT", timestampStr)
+	if err != nil {
+		// Try UTC format
+		t, err = time.Parse("2006-01-02 15:04:05 UTC", timestampStr)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("failed to parse timestamp '%s': %w", timestampStr, err)
+		}
+	}
+
+	return t, nil
 }
 
 // calculateStorageCosts calculates hourly EBS storage costs for this instance
@@ -4106,10 +4181,69 @@ func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.Re
 // Instance Readiness Waiting
 // ==========================================
 
+// waitForStatusChecks waits for both AWS system and instance status checks to pass
+// This ensures the instance is fully initialized before use
+func (m *Manager) waitForStatusChecks(ctx context.Context, regionalClient EC2ClientInterface, instanceID string, progressCallback func(stage string, progress float64, description string)) error {
+	maxAttempts := 60 // 5 minutes at 5-second intervals
+	attemptDelay := 5 * time.Second
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		output, err := regionalClient.DescribeInstanceStatus(ctx, &ec2.DescribeInstanceStatusInput{
+			InstanceIds: []string{instanceID},
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to describe instance status: %w", err)
+		}
+
+		// Status checks may not be available immediately
+		if len(output.InstanceStatuses) == 0 {
+			if progressCallback != nil {
+				progress := float64(attempt) / float64(maxAttempts)
+				progressCallback("status_checks", progress, fmt.Sprintf("Initializing status checks (attempt %d/%d)...", attempt, maxAttempts))
+			}
+			time.Sleep(attemptDelay)
+			continue
+		}
+
+		status := output.InstanceStatuses[0]
+		systemOK := status.SystemStatus != nil && status.SystemStatus.Status == ec2types.SummaryStatusOk
+		instanceOK := status.InstanceStatus != nil && status.InstanceStatus.Status == ec2types.SummaryStatusOk
+
+		// Both checks must pass
+		if systemOK && instanceOK {
+			log.Printf("✅ Instance %s system status checks passed (2/2)", instanceID)
+			return nil
+		}
+
+		// Report progress with current status
+		if progressCallback != nil {
+			progress := float64(attempt) / float64(maxAttempts)
+			systemStatus := "initializing"
+			instanceStatus := "initializing"
+			if status.SystemStatus != nil {
+				systemStatus = string(status.SystemStatus.Status)
+			}
+			if status.InstanceStatus != nil {
+				instanceStatus = string(status.InstanceStatus.Status)
+			}
+			description := fmt.Sprintf("Status checks: system=%s, instance=%s (attempt %d/%d)", systemStatus, instanceStatus, attempt, maxAttempts)
+			progressCallback("status_checks", progress, description)
+		}
+
+		if attempt < maxAttempts {
+			time.Sleep(attemptDelay)
+		}
+	}
+
+	return fmt.Errorf("timeout: status checks did not pass within 5 minutes")
+}
+
 // waitForInstanceReadyWithProgress waits for an instance to be fully ready for use with progress reporting
 // This includes:
 // 1. Instance reaching "running" state
-// 2. SSH port (22) being accessible
+// 2. AWS system status checks (2/2 passing)
+// 3. SSH port (22) being accessible
 func (m *Manager) waitForInstanceReadyWithProgress(instanceID, region string, progressCallback func(stage string, progress float64, description string)) error {
 	ctx := context.Background()
 
@@ -4133,7 +4267,21 @@ func (m *Manager) waitForInstanceReadyWithProgress(instanceID, region string, pr
 		progressCallback("instance_ready", 1.0, "Instance is running")
 	}
 
-	// Step 2: Get public IP address for SSH check
+	// Step 2: Wait for AWS system status checks (2/2 passing)
+	if progressCallback != nil {
+		progressCallback("status_checks", 0.0, "Waiting for system status checks...")
+	}
+
+	err = m.waitForStatusChecks(ctx, regionalClient, instanceID, progressCallback)
+	if err != nil {
+		return fmt.Errorf("system status checks failed: %w", err)
+	}
+
+	if progressCallback != nil {
+		progressCallback("status_checks", 1.0, "System status checks passed (2/2)")
+	}
+
+	// Step 3: Get public IP address for SSH check
 	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
@@ -4152,7 +4300,7 @@ func (m *Manager) waitForInstanceReadyWithProgress(instanceID, region string, pr
 
 	publicIP := *instance.PublicIpAddress
 
-	// Step 3: Wait for SSH to be accessible (typically 10-30 more seconds)
+	// Step 4: Wait for SSH to be accessible (typically 10-30 more seconds)
 	if progressCallback != nil {
 		progressCallback("ssh_ready", 0.0, "Waiting for SSH to be accessible...")
 	}
