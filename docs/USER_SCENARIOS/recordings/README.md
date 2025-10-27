@@ -279,6 +279,8 @@ prism init
 5. **Iterate if Needed**: Re-record until satisfied with timing and flow
 6. **Commit**: Add `.cast` files to git and integrate into documentation
 
+**Note**: The helper script (`record-solo-researcher.sh`) automatically adds `bin/` to your PATH, so you can use `prism` directly instead of `./bin/prism` in your recordings for a cleaner demonstration.
+
 **Questions?**: See [VISUAL_DOCUMENTATION_ENHANCEMENT_PLAN.md](../VISUAL_DOCUMENTATION_ENHANCEMENT_PLAN.md) for detailed strategy and best practices.
 
 ---
