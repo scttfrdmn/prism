@@ -30,6 +30,18 @@
 
 ### ✅ Pre-Workshop Setup (1 Week Before)
 
+**AWS Profile Configuration** (Conference workshop setup):
+
+![AWS Profile Settings Interface](images/04-conference-workshop/gui-settings-profiles.png)
+
+*Screenshot shows Cloudscape Settings interface for AWS profile management. Dr. Kim validates conference-provided AWS credits and verifies region configuration 1 week before the 3-hour ISMB workshop.*
+
+**What Dr. Kim validates**:
+- **AWS Credentials**: Conference AWS credits (part of $200 fixed budget for 50 participants)
+- **Region Selection**: us-west-2 (closest to conference venue for minimal latency)
+- **Profile Testing**: Validates AWS access works before workshop day (no second chances)
+- **Budget Verification**: Confirms $200 allocation is active and ready for 3-hour workshop
+
 ```bash
 # Alex sets up workshop environment
 prism profile create neurips-workshop --aws-profile alex-research --region us-west-2
@@ -71,6 +83,18 @@ prism profiles invitations extend neurips-workshop --add-days 1
 # Great for: Homework completion, extended tutorials, follow-up work
 ```
 
+**Quick Start Wizard** (Rapid 50-participant onboarding):
+
+![Quick Start Wizard Interface](images/04-conference-workshop/gui-quick-start-wizard.png)
+
+*Screenshot shows Cloudscape Quick Start wizard for template selection. Dr. Kim uses this interface to guide 50 workshop participants to launch identical bioinformatics workspaces in under 5 minutes during the workshop opening.*
+
+**What Dr. Kim demonstrates**:
+- **Template Selection**: "Bioinformatics Pipeline" template (pre-configured for workshop)
+- **Fixed Size**: All participants use Small (t3.medium) instances for cost control
+- **Rapid Launch**: 50 identical workspaces launching in parallel during workshop opening
+- **Time-Limited**: All workspaces auto-terminate 3 hours after workshop ends
+
 ### ✅ Day Before Workshop (Early Access Testing)
 
 ```bash
@@ -88,6 +112,18 @@ prism project workspaces neurips-dl-workshop
 # ⚠️  3 participants having issues (Alex contacts them)
 # 💰 Current spend: $4.20 (within budget)
 ```
+
+**Workshop Materials Storage** (Read-only tutorial datasets):
+
+![Storage Management Interface](images/04-conference-workshop/gui-storage-management.png)
+
+*Screenshot shows Cloudscape Storage interface for EFS management. Dr. Kim pre-loads 50GB of read-only tutorial datasets on shared EFS that all 50 workshop participants access during the 3-hour session.*
+
+**What Dr. Kim pre-provisions**:
+- **Shared EFS**: Read-only tutorial datasets (50GB genomics data pre-loaded)
+- **Workshop Materials**: Jupyter notebooks, scripts, and example data
+- **Zero Write Costs**: Read-only access minimizes storage costs during workshop
+- **Instant Access**: All 50 participants mount same EFS at workspace launch
 
 ---
 
@@ -216,6 +252,18 @@ prism workshop dashboard neurips-dl-workshop
 **Current workaround**: Manual `prism list` + `prism project instances` polling
 **Impact**: Can't proactively help struggling participants
 
+**Live Workshop Monitoring** (50 concurrent workspaces):
+
+![Workspaces List Interface](images/04-conference-workshop/gui-workspaces-list.png)
+
+*Screenshot shows Cloudscape Workspaces table with management actions. Dr. Kim monitors all 50 workshop participant workspaces in real-time during the 3-hour tutorial session, identifying issues before participants need to ask for help.*
+
+**What Dr. Kim monitors during workshop**:
+- **Status Tracking**: 50 workspaces running, real-time status for all participants
+- **Problem Detection**: Quickly spot stopped instances or connection issues
+- **Time Remaining**: Countdown to auto-termination (3 hours after workshop start)
+- **Quick Actions**: Restart, connect, or troubleshoot participant workspaces during tutorial
+
 ### ❌ Problem 5: No Post-Workshop Data Preservation
 
 **Scenario**: Participants want to keep their workshop code after workspaces terminate
@@ -254,6 +302,18 @@ prism workshop export-all neurips-dl-workshop \
 
 **Current workaround**: Participants manually SCP files (most don't)
 **Impact**: Lost learning artifacts, can't reproduce workshop results
+
+**Workshop Budget Management** (Fixed $200 hard stop):
+
+![Projects Dashboard Interface](images/04-conference-workshop/gui-projects-dashboard.png)
+
+*Screenshot shows Cloudscape Projects dashboard with budget tracking. Dr. Kim monitors the fixed $200 conference budget throughout the 3-hour workshop, ensuring no overruns while tracking real-time spend across all 50 participants.*
+
+**What Dr. Kim tracks**:
+- **Fixed Budget**: $200 conference allocation with hard stop (no overruns allowed)
+- **Real-Time Spend**: Current workshop costs across 50 concurrent workspaces
+- **Cost Per Participant**: Individual workspace costs during 3-hour session
+- **Time-Limited Tracking**: Budget resets to zero after auto-termination (no ongoing costs)
 
 ---
 

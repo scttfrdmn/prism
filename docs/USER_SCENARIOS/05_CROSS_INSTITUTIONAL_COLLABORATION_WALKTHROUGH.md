@@ -380,6 +380,18 @@ stanford$ prism collaboration end nih-neuro-consortium \
 
 ### Month 1: Stanford Sets Up Cross-Account Collaboration
 
+**AWS Profile Configuration** (Multi-institution setup):
+
+![AWS Profile Settings](images/05-cross-institutional/gui-settings-profiles.png)
+
+*Screenshot shows AWS profile configuration interface. Dr. Thompson (lead institution coordinator) ensures all 4 institutions (MIT, Stanford, UCSF, JHU) have validated their AWS credentials and institutional SSO access.*
+
+**What Dr. Thompson coordinates**:
+- **Multi-Institution Validation**: Each institution configures their own AWS profile with institutional SSO (OAuth/SAML)
+- **Region Consistency**: All 4 universities standardized on us-west-2 (Oregon) for data proximity to shared EFS
+- **Cross-Account Setup**: Stanford (lead institution) account validated, MIT/UCSF/JHU profiles prepared for invitation-based access
+- **Compliance Verification**: Each institution's IT confirms HIPAA BAA and institutional data governance policies are active
+
 ```bash
 # Dr. Smith (Stanford) creates collaboration project
 stanford$ prism project create nih-neuro-consortium \
@@ -430,6 +442,18 @@ stanford$ prism profiles invitations create-collaboration \
 # Cost attribution enabled: All launches tagged by collaborator
 ```
 
+**Standardized Workspace Template** (Consortium-wide onboarding):
+
+![Quick Start Wizard](images/05-cross-institutional/gui-quick-start-wizard.png)
+
+*Screenshot shows template selection wizard. All 4 institutions (MIT, Stanford, UCSF, JHU) use standardized "Python Machine Learning" and "R Research Environment" templates to ensure consistent research environments across the consortium.*
+
+**What consortium researchers launch**:
+- **Standardized Templates**: MIT (algorithm development), Stanford (pipeline integration), UCSF (validation), JHU (clinical analysis) all use same base templates
+- **Consistent Environments**: Python 3.11 + PyTorch 2.0 + CUDA 11.8 identical across all 4 institutions
+- **Pre-configured Dependencies**: Shared neuroimaging libraries (nibabel, nipy, FSL) pre-installed in all templates
+- **Template Governance**: Stanford IT maintains approved template marketplace with security-validated templates for consortium use
+
 ### Month 2-18: Active Collaboration
 
 **MIT Algorithm Development**:
@@ -457,6 +481,18 @@ mit-instance$ python train_model.py --data /mnt/neuro-dataset/raw-data/
 # Training on Stanford's data from MIT workspace...
 ```
 
+**Shared Data Lake** (Cross-institutional EFS access):
+
+![Storage Management](images/05-cross-institutional/gui-storage-management.png)
+
+*Screenshot shows EFS storage management interface. Dr. Thompson's consortium shares a 10TB genomics data lake (neuro-dataset) accessible across all 4 institutions with institution-specific access controls.*
+
+**What the 4 institutions access**:
+- **10TB Shared EFS**: Cross-institutional neuro-dataset visible to MIT (read-only), Stanford (read-write, owner), UCSF (read-write), JHU (read-only)
+- **Institution-Specific Access**: MIT/JHU read raw data, Stanford/UCSF write analysis results and pipeline outputs
+- **Multi-Mount Support**: Same EFS mounted by 15 concurrent workspaces across all 4 institutions simultaneously
+- **Collaborative Directories**: `/consortium/mit/`, `/consortium/stanford/`, `/consortium/ucsf/`, `/consortium/jhu/` for institution-specific intermediate files
+
 **Berkeley Analysis**:
 ```bash
 # Dr. Lee (Berkeley) accepts invitation
@@ -479,6 +515,19 @@ berkeley-instance$ cp results.csv /mnt/neuro-dataset/analysis-results/berkeley/
 ```
 
 **Stanford Monitoring**:
+
+**Consortium Workspace Dashboard** (Multi-institution visibility):
+
+![Workspaces List](images/05-cross-institutional/gui-workspaces-list.png)
+
+*Screenshot shows workspace management interface. Dr. Thompson (consortium coordinator) monitors 15 concurrent workspaces across all 4 institutions (MIT, Stanford, UCSF, JHU) with institution tags and researcher attribution.*
+
+**What Dr. Thompson monitors**:
+- **Multi-Institution Workspaces**: 15 active workspaces tagged by institution (MIT: 5, Stanford: 3, UCSF: 4, JHU: 3)
+- **Researcher Attribution**: Each workspace tagged with researcher name and institutional affiliation for cost tracking
+- **Cross-Account Visibility**: Stanford (lead institution) sees all consortium workspaces despite being launched in different AWS accounts
+- **Resource Utilization**: Real-time monitoring of compute hours, storage access, and data transfer across all 4 institutions
+
 ```bash
 # Dr. Smith monitors collaboration
 stanford$ prism project status nih-neuro-consortium --detail
@@ -513,6 +562,18 @@ stanford$ prism project status nih-neuro-consortium --detail
 # Policy Violations: 0 ✅
 # Collaboration Health: Excellent ✅
 ```
+
+**NIH Grant Budget Management** (Consortium-wide cost tracking):
+
+![Projects Dashboard](images/05-cross-institutional/gui-projects-dashboard.png)
+
+*Screenshot shows project budget management interface. Dr. Thompson tracks the NIH U01 consortium grant ($5000/month) with per-institution subaward budgets for all 4 universities (MIT, Stanford, UCSF, JHU).*
+
+**What Dr. Thompson tracks**:
+- **Primary Grant Budget**: NIH U01 consortium grant with $5000/month total budget managed by Stanford (lead institution)
+- **Per-Institution Subawards**: MIT ($2000/month, 40% allocation), Stanford ($1500/month, 30%), UCSF ($1000/month, 20%), JHU ($500/month, 10%)
+- **Cross-Institutional Cost Attribution**: Automated tagging of every workspace launch by researcher and institution for NIH reporting
+- **Subaward Burn Rates**: Real-time monitoring shows MIT at 145% (algorithm-heavy), Stanford at 82%, UCSF at 69%, JHU at 31% - rebalancing needed
 
 ### Month 17: Approaching Collaboration End
 

@@ -62,6 +62,18 @@
 
 ### ✅ Pre-Semester Setup (What Works)
 
+**University IT Validates AWS Configuration** (before course setup):
+
+![GUI Settings Profiles for University Class](images/03-university-class/gui-settings-profiles.png)
+
+*Screenshot shows AWS profile configuration interface. For university courses managing 120+ students, IT administrators validate institutional AWS credentials and configure department billing accounts before professors begin course setup.*
+
+**What University IT configures**:
+- **AWS Account**: Department-funded AWS account (e.g., "CS-Department-Edu")
+- **Region Selection**: University-preferred region (typically us-east-1 for .edu discounts)
+- **Billing Tags**: Automated tags for chargeback to CS Department budget
+- **Bulk Access**: Credentials shared with course instructors (Prof. Johnson) via SSO
+
 #### Week 1 (August): Dr. Martinez Creates Course Project
 ```bash
 # Create course project
@@ -86,6 +98,19 @@ prism project member add "CS229-Fall2024" \
 ```
 
 #### Week 2: Create Shared Course Materials (EFS)
+
+**120 Individual Student Storage Volumes** (assignment submission isolation):
+
+![GUI Storage Management for University Class](images/03-university-class/gui-storage-management.png)
+
+*Screenshot shows EFS and EBS storage management interface. For CS 473 with 120 students, Prof. Johnson provisions 120 individual 50GB EBS volumes for student assignment work, plus 1 shared read-only EFS volume for course datasets - ensuring academic integrity through complete workspace isolation.*
+
+**What Prof. Johnson manages in Storage**:
+- **120 EBS Volumes**: Individual 50GB volumes per student (homework1-student001 through homework1-student120)
+- **Bulk Operations**: "Stop all after class" (3:15 PM), "Hibernate overnight" (auto-resume 8:00 AM)
+- **Shared EFS**: 1 read-only 500GB EFS for course datasets (mounted to all 120 workspaces)
+- **Assignment Isolation**: Students cannot access each other's EBS volumes (academic integrity)
+
 ```bash
 # Create shared read-only storage for course content
 prism volume create cs229-course-materials \
@@ -209,6 +234,18 @@ prism ta annotate ml-hw3 --student sophie.martinez@university.edu \
 
 ### ❌ Problem 2: No Budget Distribution Enforcement
 **Scenario**: Student accidentally launches expensive instance
+
+**CS Department Semester Budget Tracking** (project-level cost management):
+
+![GUI Projects Dashboard for University Class](images/03-university-class/gui-projects-dashboard.png)
+
+*Screenshot shows project and budget management interface. For CS 473 with 120 students, the CS Department allocates $2,000/semester to Prof. Johnson's course - the Projects dashboard tracks real-time spending across all 120 student workspaces with automated alerts at 75% budget threshold to prevent department overruns.*
+
+**What CS Department administrators see**:
+- **Course Budget**: CS 473 Fall 2024 - $1,487 spent / $2,000 allocated (74% - warning threshold)
+- **Per-Student Tracking**: 120 students, average $12.39/student (target $16.67), 8 students over-budget
+- **Section Breakdown**: Section A ($512), Section B ($489), Section C ($486) - balanced distribution
+- **Automated Alerts**: Email to Prof. Johnson at 75%, 85%, 95% thresholds with "Stop all workspaces" recommendation
 
 **What should happen** (MISSING):
 ```bash
@@ -532,6 +569,18 @@ prism course import-students "CS229-Fall2024" \
 
 ### Week 1: Student Onboarding (First Day of Class)
 
+**120 Students Launch Identical Workspaces** (via Quick Start wizard):
+
+![GUI Quick Start Wizard for University Class](images/03-university-class/gui-quick-start-wizard.png)
+
+*Screenshot shows template selection wizard. For CS 473 with 120 students, Prof. Johnson pre-configures the "Data Science 101" template as the default - all students launch identical workspaces ensuring consistent assignment environments.*
+
+**What students see in the Quick Start wizard**:
+- **Pre-Selected Template**: "Data Science 101" (course-approved, no choice needed)
+- **Auto-Configuration**: Instance type (t3.medium), storage (50GB EBS) set by instructor
+- **One-Click Launch**: Students only choose workspace name, everything else predetermined
+- **Budget Visibility**: "$15 remaining of $20 semester budget" shown before launch
+
 ```bash
 # Emily (student) receives welcome email:
 #
@@ -625,6 +674,18 @@ emily@hw1:~/hw1$ jupyter lab --ip=0.0.0.0
 ```
 
 ### Week 5: Sophie Needs TA Help (Office Hours)
+
+**Prof. Johnson Monitors 120 Active Workspaces** (class dashboard view):
+
+![GUI Workspaces List for University Class](images/03-university-class/gui-workspaces-list.png)
+
+*Screenshot shows workspace management table with filtering and sorting. For CS 473 with 120 students, Prof. Johnson views all active workspaces filtered by course section (Section A/B/C), sorts by cost to identify budget issues, and performs bulk actions like "Stop all Section A workspaces after Tuesday lab."*
+
+**What Prof. Johnson sees in the Class Dashboard**:
+- **120 Workspaces**: All student workspaces visible, filterable by section (A/B/C), assignment (hw1/hw2/hw3)
+- **Bulk Actions**: "Stop all Section A" (40 workspaces), "Hibernate overnight" (scheduled auto-resume)
+- **Cost Sorting**: Identify students exceeding $15/month budget threshold (red warning badges)
+- **Status Overview**: 87 running, 21 stopped, 12 hibernated - real-time class resource utilization
 
 ```bash
 # Sophie (struggling) joins office hours
