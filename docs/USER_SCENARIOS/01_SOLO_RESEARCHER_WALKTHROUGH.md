@@ -35,6 +35,19 @@ aws configure
 prism init
 ```
 
+**Settings & Profile Configuration**:
+
+![Settings Interface](images/01-solo-researcher/gui-settings-profiles.png)
+
+*Screenshot shows the Settings interface where users configure AWS profiles, regions, and Prism daemon settings. The welcome wizard overlay shows AWS configuration (Step 1 of 3). This interface validates credentials and tests connectivity before launching workspaces.*
+
+**Configuration Options**:
+- **AWS Profile**: Select from ~/.aws/credentials profiles (shows "aws" profile)
+- **Region**: Choose default AWS region for workspaces (us-west-2)
+- **System Status**: View daemon status, API version, and active resources
+- **Advanced Features**: Enable hibernation policies and cost tracking
+- **Profile Validation**: Test AWS connectivity before first workspace launch
+
 **What Sarah experiences** (30-second guided setup):
 
 ```
@@ -141,6 +154,19 @@ prism idle profile set-default budget-safe
 - Stops compute charges immediately
 - Sarah can resume work exactly where she left off
 
+**Persistent Storage Management**:
+
+![Storage Interface](images/01-solo-researcher/gui-storage-management.png)
+
+*Screenshot shows the Storage management interface with Shared Storage (EFS) and Private Storage (EBS) sections. The welcome wizard overlay shows AWS configuration. This interface enables researchers to create persistent storage that survives workspace termination, ensuring datasets and results are never lost.*
+
+**What Sarah can configure**:
+- **Shared Storage (EFS)**: Multi-workspace file system for collaborative projects and persistent datasets
+- **Private Storage (EBS)**: High-performance workspace-specific volumes for compute-intensive work
+- **Storage Selection Guide**: Clear guidance on when to use EFS vs EBS
+- **Cost Transparency**: Monthly cost estimates for each storage type
+- **Easy Management**: Create, attach, and delete storage volumes with visual interface
+
 ### ✅ First Workspace Success (Day 1)
 
 After the wizard completes:
@@ -206,9 +232,38 @@ prism cost summary
 #    Prism: Pay $18.50 for 60 actual hours, bank the rest!
 ```
 
+**GUI Workspace Management**:
+
+![My Workspaces Interface](images/01-solo-researcher/gui-workspaces-list.png)
+
+*Screenshot shows the "My Workspaces" interface with professional Cloudscape design. The workspace list displays running environments with real-time status indicators, and the welcome wizard (Step 1 of 3) shows AWS configuration for first-time users. This interface provides quick access to launch, monitor, and manage all research workspaces.*
+
+**What Sarah sees in GUI**:
+- **Workspace List**: All workspaces with name, template, status, and running time
+- **Search & Filter**: Quickly find workspaces by name or template
+- **Quick Actions**: Connect, stop, hibernate, or terminate with one click
+- **Status Indicators**: Visual badges showing running, stopped, or hibernated state
+- **Launch Button**: One-click access to Quick Start wizard for new workspaces
+
 > **💡 GUI Note**: Cost summary is available in the GUI Dashboard (Costs tab) with visual charts - *coming soon in v0.6.0*
 
 **What Sarah thinks**: *"The hibernation is working! Every time it hibernates, I'm banking money for future compute. I'm only paying $0.31/hour instead of $2.40/hour! No anxiety!"*
+
+**Project Management Dashboard** (Future Enhancement - v0.6.0):
+
+![Projects Dashboard](images/01-solo-researcher/gui-projects-dashboard.png)
+
+*Screenshot shows the Project Management interface with budget tracking, collaboration features, and project analytics. The welcome wizard overlay shows AWS configuration. This represents the future state where Sarah can organize workspaces by research project and track grant-funded budgets separately with real-time alerts.*
+
+**Planned Features** (v0.6.0):
+- **Project-Based Organization**: Group workspaces by research project or grant
+- **Budget Allocation**: Set per-project budgets with configurable alerts (75%, 90%, 100%)
+- **Real-Time Tracking**: Current spend vs allocated budget with visual indicators
+- **Team Collaboration**: Add members with granular permissions (Owner, Admin, Member, Viewer)
+- **Cost Analytics**: Month-end automated reports and spending forecasts
+- **Budget Enforcement**: Prevent launches when project budget exceeded
+
+This addresses all the pain points Sarah currently experiences with cost management (see below).
 
 ---
 
