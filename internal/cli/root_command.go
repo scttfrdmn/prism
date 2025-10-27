@@ -384,6 +384,10 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	workspaceFactory := &WorkspaceCommandFactory{app: r.app}
 	rootCmd.AddCommand(workspaceFactory.CreateCommand())
 
+	// Init command (Quick Start wizard for first-time users - v0.5.8)
+	initCobra := NewInitCobraCommands(r.app)
+	rootCmd.AddCommand(initCobra.CreateInitCommand())
+
 	// Logs command
 	logsCommands := NewLogsCommands(r.app)
 	rootCmd.AddCommand(logsCommands.CreateLogsCommand())
