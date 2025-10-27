@@ -1,6 +1,6 @@
 # Prism Development Roadmap
 
-**Current Version**: v0.5.7 (Release Candidate)
+**Current Version**: v0.5.7 (Released)
 **Last Updated**: October 26, 2025
 **Status**: Active Development
 
@@ -11,41 +11,9 @@ This roadmap outlines planned features and enhancements for Prism. All items are
 ## 🎯 Current Focus: Phase 5.0 - UX Redesign
 
 **Priority**: CRITICAL - HIGHEST PRIORITY
-**Target**: v0.6.0 (Q1 2026)
+**Target**: v0.5.8 and v0.5.9 (December 2025 - January 2026)
 
 Prism is shifting focus from feature development to user experience optimization. The current 15-minute learning curve for first workspace needs to be reduced to 30 seconds.
-
-### Phase 5.0.1: Quick Wins (2 weeks - Due: November 15, 2025)
-**Milestone**: [Phase 5.0.1: Quick Wins](https://github.com/scttfrdmn/prism/milestone/2)
-
-High-impact, low-effort improvements:
-- [#13](https://github.com/scttfrdmn/prism/issues/13) - Home Page with Quick Start wizard
-- [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
-- ✅ [#15](https://github.com/scttfrdmn/prism/issues/15) - Rename "Instances" → "Workspaces" **(COMPLETE)**
-- [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
-- ✅ [#17](https://github.com/scttfrdmn/prism/issues/17) - Add `prism init` onboarding wizard **(COMPLETE)**
-
-**Deferred**:
-- ~~[#65](https://github.com/scttfrdmn/prism/issues/65) - Project rename~~ *(deferred - final name TBD)*
-
-### Phase 5.0.2: Information Architecture (4 weeks - Due: December 15, 2025)
-**Milestone**: [Phase 5.0.2: Information Architecture](https://github.com/scttfrdmn/prism/milestone/3)
-
-Navigation and structural improvements:
-- [#18](https://github.com/scttfrdmn/prism/issues/18) - Unified Storage UI (EFS + EBS)
-- [#19](https://github.com/scttfrdmn/prism/issues/19) - Integrate Budgets into Projects
-- Navigation reorganization (14 → 6 items)
-- Role-based visibility (hide admin features from non-admins)
-- Context-aware recommendations
-
-### Phase 5.0.3: CLI Consistency (2 weeks - Due: December 31, 2025)
-**Milestone**: [Phase 5.0.3: CLI Consistency](https://github.com/scttfrdmn/prism/milestone/4)
-
-Command structure improvements:
-- [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
-- Unified storage commands (`prism storage` replacing `volume` + `storage`)
-- Predictable command patterns
-- Enhanced tab completion
 
 **Why This Matters**: New researchers face cognitive overload before completing basic tasks. UX redesign will dramatically improve first-time user experience.
 
@@ -55,7 +23,7 @@ Command structure improvements:
 
 ## 📅 Release Schedule
 
-### v0.5.7 (October 2025): Template Provisioning & Test Infrastructure ✅ READY
+### v0.5.7 (October 2025): Template Provisioning & Test Infrastructure ✅ RELEASED
 **Release Date**: October 26, 2025
 **Focus**: S3-backed template provisioning + Test infrastructure stability
 
@@ -83,19 +51,73 @@ Command structure improvements:
 - ✅ Documentation consistency verification
 - **Impact**: Consistent branding across entire codebase
 
-**Status**: ✅ Release Candidate - Ready for final verification
+**Status**: ✅ Released - [View Release](https://github.com/scttfrdmn/prism/releases/tag/v0.5.7)
 
 ---
 
-### v0.6.0 (Q1 2026): UX Redesign + Enterprise Authentication
-**Release Date**: January 15, 2026
-**Focus**: User experience transformation + Enterprise-ready authentication
+### v0.5.8 (December 2025): Quick Start Experience
+**Release Date**: Target December 13, 2025
+**Focus**: First-time user experience - zero to workspace in <30 seconds
+**Release Plan**: [RELEASE_PLAN_v0.5.8.md](releases/RELEASE_PLAN_v0.5.8.md)
 
-#### UX Redesign Components
-**Milestones**: [5.0.1](https://github.com/scttfrdmn/prism/milestone/2), [5.0.2](https://github.com/scttfrdmn/prism/milestone/3), [5.0.3](https://github.com/scttfrdmn/prism/milestone/4)
-- Complete Phase 5.0.1, 5.0.2, 5.0.3 (detailed above)
-- Home page, navigation restructure, CLI consistency
-- **Impact**: Reduce onboarding from 15min to 30sec
+#### Quick Start Features
+**Milestone**: [Phase 5.0.1: Quick Wins](https://github.com/scttfrdmn/prism/milestone/2)
+
+- [#15](https://github.com/scttfrdmn/prism/issues/15) - Rename "Instances" → "Workspaces"
+- [#13](https://github.com/scttfrdmn/prism/issues/13) - Home Page with Quick Start wizard (GUI)
+- [#17](https://github.com/scttfrdmn/prism/issues/17) - CLI `prism init` onboarding wizard
+
+#### Success Metrics
+- ⏱️ Time to first workspace launch: 15min → 30sec
+- 🎯 First-attempt success rate: >90%
+- 😃 User confusion: Reduce by 70%
+
+**Implementation Schedule**: 2 weeks (Dec 2-13, 2025)
+- Week 1: Rename + Quick Start design and implementation start
+- Week 2: Complete wizard + CLI init + persona testing
+
+**Status**: 📋 Planned
+
+---
+
+### v0.5.9 (January 2026): Navigation Restructure
+**Release Date**: Target January 3, 2026
+**Focus**: Reduce navigation complexity from 14 to 6 items
+**Release Plan**: [RELEASE_PLAN_v0.5.9.md](releases/RELEASE_PLAN_v0.5.9.md)
+
+#### Navigation Features
+**Milestones**: [Phase 5.0.2: Info Architecture](https://github.com/scttfrdmn/prism/milestone/3)
+
+- [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
+- [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
+- [#18](https://github.com/scttfrdmn/prism/issues/18) - Unified Storage UI (EFS + EBS)
+- [#19](https://github.com/scttfrdmn/prism/issues/19) - Integrate Budgets into Projects
+
+#### Success Metrics
+- 🧭 Navigation complexity: 14 → 6 top-level items
+- ⏱️ Time to find features: <10 seconds
+- 😃 User confusion: Further 30% reduction
+- 📱 Advanced feature discoverability: >95%
+
+**Implementation Schedule**: 2 weeks (Dec 16-27, 2025)
+- Week 1: Terminal/WebView merge + Unified Storage
+- Week 2: Settings restructure + Budget integration + testing
+
+**Status**: 📋 Planned
+
+---
+
+### v0.6.0 (Q2 2026): Enterprise Authentication + Advanced Features
+**Release Date**: Target February 2026
+**Focus**: Enterprise-ready authentication and advanced enterprise features
+
+#### CLI Consistency Improvements
+**Milestone**: [Phase 5.0.3: CLI Consistency](https://github.com/scttfrdmn/prism/milestone/4)
+
+- [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
+- Unified storage commands (`prism storage` replacing `volume` + `storage`)
+- Predictable command patterns
+- Enhanced tab completion
 
 #### Enterprise Authentication
 - OAuth/OIDC integration (Google, Microsoft, institutional SSO)
@@ -311,25 +333,30 @@ Reliable auto-launch requires daemon to be running OR AWS Lambda function:
 
 ## 📊 Feature Status
 
-### v0.5.6 Components (Q4 2025 - Q1 2026)
+### v0.5.8: Quick Start Experience (December 2025)
 
 | Feature | Status | Milestone | Issues |
 |---------|--------|-----------|--------|
-| **Phase 5.0.1: Quick Wins** | 🟡 In Progress (2/5 complete) | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#13](https://github.com/scttfrdmn/prism/issues/13), [#14](https://github.com/scttfrdmn/prism/issues/14), ~~[#15](https://github.com/scttfrdmn/prism/issues/15)~~, [#16](https://github.com/scttfrdmn/prism/issues/16), ~~[#17](https://github.com/scttfrdmn/prism/issues/17)~~ |
-| Home Page + Quick Start | 🟡 In Progress | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#13](https://github.com/scttfrdmn/prism/issues/13) |
-| Merge Terminal/WebView | 🟡 In Progress | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#14](https://github.com/scttfrdmn/prism/issues/14) |
-| Rename to "Workspaces" | ✅ Complete | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#15](https://github.com/scttfrdmn/prism/issues/15) |
-| Collapse Advanced Features | 🟡 In Progress | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#16](https://github.com/scttfrdmn/prism/issues/16) |
-| `prism init` Wizard | ✅ Complete | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#17](https://github.com/scttfrdmn/prism/issues/17) |
-| **Phase 5.0.2: Info Architecture** | 📋 Planned | [#3](https://github.com/scttfrdmn/prism/milestone/3) | [#18](https://github.com/scttfrdmn/prism/issues/18), [#19](https://github.com/scttfrdmn/prism/issues/19) |
+| Rename to "Workspaces" | 📋 Planned | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#15](https://github.com/scttfrdmn/prism/issues/15) |
+| Home Page + Quick Start Wizard | 📋 Planned | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#13](https://github.com/scttfrdmn/prism/issues/13) |
+| `prism init` CLI Wizard | 📋 Planned | [#2](https://github.com/scttfrdmn/prism/milestone/2) | [#17](https://github.com/scttfrdmn/prism/issues/17) |
+
+### v0.5.9: Navigation Restructure (January 2026)
+
+| Feature | Status | Milestone | Issues |
+|---------|--------|-----------|--------|
+| Merge Terminal/WebView | 📋 Planned | [#3](https://github.com/scttfrdmn/prism/milestone/3) | [#14](https://github.com/scttfrdmn/prism/issues/14) |
+| Collapse Advanced Features | 📋 Planned | [#3](https://github.com/scttfrdmn/prism/milestone/3) | [#16](https://github.com/scttfrdmn/prism/issues/16) |
 | Unified Storage UI | 📋 Planned | [#3](https://github.com/scttfrdmn/prism/milestone/3) | [#18](https://github.com/scttfrdmn/prism/issues/18) |
 | Integrate Budgets into Projects | 📋 Planned | [#3](https://github.com/scttfrdmn/prism/milestone/3) | [#19](https://github.com/scttfrdmn/prism/issues/19) |
-| **Phase 5.0.3: CLI Consistency** | 📋 Planned | [#4](https://github.com/scttfrdmn/prism/milestone/4) | [#20](https://github.com/scttfrdmn/prism/issues/20) |
+
+### v0.6.0: CLI Consistency + Enterprise (February 2026)
+
+| Feature | Status | Milestone | Issues |
+|---------|--------|-----------|--------|
 | Consistent CLI Commands | 📋 Planned | [#4](https://github.com/scttfrdmn/prism/milestone/4) | [#20](https://github.com/scttfrdmn/prism/issues/20) |
-| **Template Provisioning** | 📋 Planned | [#13](https://github.com/scttfrdmn/prism/milestone/13) | [#30](https://github.com/scttfrdmn/prism/issues/30), [#31](https://github.com/scttfrdmn/prism/issues/31), [#64](https://github.com/scttfrdmn/prism/issues/64) |
-| SSM File Operations | 📋 Planned | [#13](https://github.com/scttfrdmn/prism/milestone/13) | [#30](https://github.com/scttfrdmn/prism/issues/30) |
-| S3 File Transfer + Progress | 📋 Planned | [#13](https://github.com/scttfrdmn/prism/milestone/13) | [#64](https://github.com/scttfrdmn/prism/issues/64) |
-| Template Asset Management | 📋 Planned | [#13](https://github.com/scttfrdmn/prism/milestone/13) | [#31](https://github.com/scttfrdmn/prism/issues/31) |
+| OAuth/OIDC Integration | 📋 Planned | TBD | Coming Soon |
+| LDAP/Active Directory | 📋 Planned | TBD | Coming Soon |
 
 ### Future Releases (v0.6.0+)
 
@@ -351,18 +378,28 @@ Reliable auto-launch requires daemon to be running OR AWS Lambda function:
 
 Prism tracks these metrics to measure progress:
 
-### Current State (v0.5.5)
+### Current State (v0.5.7)
 - ⏱️ **Time to first workspace**: ~15 minutes (needs improvement)
 - 🧭 **Navigation complexity**: 14 flat items (needs simplification)
 - 😃 **User confusion rate**: ~40% of support tickets (needs reduction)
 - 🎯 **CLI first-attempt success**: ~60% (needs improvement)
 
-### Target State (v0.6.0)
-- ⏱️ **Time to first workspace**: 30 seconds
-- 🧭 **Navigation complexity**: 6 primary categories
-- 😃 **User confusion rate**: <15% of support tickets
-- 🎯 **CLI first-attempt success**: >85%
+### Target State (v0.5.8 + v0.5.9)
+**v0.5.8 Targets (Quick Start Experience)**:
+- ⏱️ **Time to first workspace**: 30 seconds (from 15 minutes)
+- 🎯 **First-attempt success rate**: >90%
+- 😃 **User confusion**: Reduce by 70%
+
+**v0.5.9 Targets (Navigation Restructure)**:
+- 🧭 **Navigation complexity**: 6 primary categories (from 14 items)
+- ⏱️ **Time to find features**: <10 seconds
+- 😃 **User confusion**: Further 30% reduction
+- 📱 **Advanced feature discoverability**: >95%
+
+**v0.6.0+ Targets (Enterprise Features)**:
 - 📈 **Version adoption**: >70% on latest within 7 days
+- 🔐 **Enterprise adoption**: Support institutional authentication
+- 🎯 **CLI consistency**: Predictable command patterns across all features
 
 ---
 

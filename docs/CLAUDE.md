@@ -29,8 +29,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Prism is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
 
-**Current Version**: v0.5.7
-**Current Focus**: [Phase 5.0 UX Redesign](ROADMAP.md#-current-focus-phase-50---ux-redesign) (HIGHEST PRIORITY)
+**Current Version**: v0.5.7 (Released)
+**Current Focus**: [Phase 5.0 UX Redesign - v0.5.8 and v0.5.9](ROADMAP.md#-current-focus-phase-50---ux-redesign) (HIGHEST PRIORITY)
 
 ---
 
@@ -82,7 +82,7 @@ Simple by default, detailed when needed. Power users can access advanced feature
 
 ## 🚀 Current Development Status
 
-**Current Version**: v0.5.5
+**Current Version**: v0.5.7 (Released)
 **Current Milestone**: [Phase 5.0: UX Redesign](https://github.com/scttfrdmn/prism/milestone/1)
 
 ### Completed Phases
@@ -93,10 +93,11 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - ✅ Phase 4.6: Cloudscape GUI Migration
 - ✅ Phase 5A: Multi-User Foundation
 - ✅ Phase 5B: Template Marketplace
+- ✅ v0.5.7: Template Provisioning & Test Infrastructure
 
 ### Current Priority: Phase 5.0 UX Redesign
 
-**Status**: 🟡 IN PROGRESS (v0.5.6 - Q4 2025 / Q1 2026)
+**Status**: 📋 PLANNED (v0.5.8 + v0.5.9 - December 2025 - January 2026)
 **Priority**: 🔴 **CRITICAL - HIGHEST PRIORITY**
 
 **Why This is Priority #1**:
@@ -106,43 +107,46 @@ Simple by default, detailed when needed. Power users can access advanced feature
 - **Track progress**: [GitHub Milestones](https://github.com/scttfrdmn/prism/milestones)
 - **See UX analysis**: [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md)
 
-#### Phase 5.0.1: Quick Wins (Due: November 15, 2025)
-**Milestone**: [#2](https://github.com/scttfrdmn/prism/milestone/2) | **Status**: 🟡 In Progress
+### v0.5.8: Quick Start Experience (December 2025)
+**Release Date**: Target December 13, 2025
+**Release Plan**: [RELEASE_PLAN_v0.5.8.md](releases/RELEASE_PLAN_v0.5.8.md)
+**Milestone**: [#2](https://github.com/scttfrdmn/prism/milestone/2) | **Status**: 📋 Planned
 
-High-impact, low-effort improvements (2 weeks):
-- [#13](https://github.com/scttfrdmn/prism/issues/13) - Home Page with Quick Start wizard
-- [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
+Features (2 weeks):
 - [#15](https://github.com/scttfrdmn/prism/issues/15) - Rename "Instances" → "Workspaces"
-- [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
-- [#17](https://github.com/scttfrdmn/prism/issues/17) - Add `prism init` onboarding wizard
+- [#13](https://github.com/scttfrdmn/prism/issues/13) - Home Page with Quick Start wizard (GUI)
+- [#17](https://github.com/scttfrdmn/prism/issues/17) - CLI `prism init` onboarding wizard
 
-**Deferred**: ~~[#65](https://github.com/scttfrdmn/prism/issues/65) - Project rename~~ *(final name TBD)*
+Success Metrics:
+- ⏱️ Time to first workspace: 15min → 30sec
+- 🎯 First-attempt success rate: >90%
+- 😃 User confusion: Reduce by 70%
 
-#### Phase 5.0.2: Information Architecture (Due: December 15, 2025)
+### v0.5.9: Navigation Restructure (January 2026)
+**Release Date**: Target January 3, 2026
+**Release Plan**: [RELEASE_PLAN_v0.5.9.md](releases/RELEASE_PLAN_v0.5.9.md)
 **Milestone**: [#3](https://github.com/scttfrdmn/prism/milestone/3) | **Status**: 📋 Planned
 
-Navigation and structural improvements (4 weeks):
+Features (2 weeks):
+- [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
+- [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
 - [#18](https://github.com/scttfrdmn/prism/issues/18) - Unified Storage UI (EFS + EBS)
 - [#19](https://github.com/scttfrdmn/prism/issues/19) - Integrate Budgets into Projects
-- Navigation reorganization (14 → 6 items)
-- Role-based visibility (hide admin features)
 
-#### Phase 5.0.3: CLI Consistency (Due: December 31, 2025)
+Success Metrics:
+- 🧭 Navigation complexity: 14 → 6 top-level items
+- ⏱️ Time to find features: <10 seconds
+- 😃 User confusion: Further 30% reduction
+- 📱 Advanced feature discoverability: >95%
+
+### v0.6.0: CLI Consistency + Enterprise (February 2026)
 **Milestone**: [#4](https://github.com/scttfrdmn/prism/milestone/4) | **Status**: 📋 Planned
 
-Command structure improvements (2 weeks):
+Features:
 - [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
-- Unified storage commands (`prism storage`)
-- Predictable command patterns
-- Enhanced tab completion
-
-#### Template Provisioning Enhancements (Also in v0.5.6)
-**Milestone**: [#13](https://github.com/scttfrdmn/prism/milestone/13) | **Status**: 📋 Planned
-
-Advanced provisioning capabilities:
-- [#30](https://github.com/scttfrdmn/prism/issues/30) - SSM File Operations for Large Files
-- [#64](https://github.com/scttfrdmn/prism/issues/64) - S3-Backed File Transfer with Progress
-- [#31](https://github.com/scttfrdmn/prism/issues/31) - Template Asset Management
+- OAuth/OIDC integration for institutional SSO
+- LDAP/Active Directory support
+- Auto-update feature
 
 ---
 
