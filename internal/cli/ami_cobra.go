@@ -147,8 +147,8 @@ func (ac *AMICobraCommands) createPublishCommand() *cobra.Command {
 func (ac *AMICobraCommands) createSaveCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "save <workspace-name> <ami-name>",
-		Short: "Save instance as AMI",
-		Long:  `Save a running instance as an AMI for faster future launches.`,
+		Short: "Save workspace as AMI",
+		Long:  `Save a running workspace as an AMI for faster future launches.`,
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return ac.app.AMI([]string{"save", args[0], args[1]})
@@ -172,7 +172,7 @@ func (ac *AMICobraCommands) createTestCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "test <ami-id>",
 		Short: "Test AMI functionality",
-		Long:  `Test an AMI by launching a temporary instance and validating functionality.`,
+		Long:  `Test an AMI by launching a temporary workspace and validating functionality.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return ac.app.AMI([]string{"test", args[0]})

@@ -722,7 +722,7 @@ func (p *AMISaveArgParser) parseDescription(cmdArgs map[string]string, instanceN
 	if description := cmdArgs["description"]; description != "" {
 		return description
 	}
-	return fmt.Sprintf("Custom template saved from instance %s", instanceName)
+	return fmt.Sprintf("Custom template saved from workspace %s", instanceName)
 }
 
 // parseRegion parses region with fallback (Single Responsibility)
@@ -781,13 +781,13 @@ func (s *InstanceValidationService) ValidateInstance(saveConfig *AMISaveConfig) 
 			if inst.Name == saveConfig.InstanceName {
 				// Validate instance state
 				if inst.State != "running" {
-					return nil, fmt.Errorf("instance '%s' must be running to save as AMI (current state: %s)", saveConfig.InstanceName, inst.State)
+					return nil, fmt.Errorf("workspace '%s' must be running to save as AMI (current state: %s)", saveConfig.InstanceName, inst.State)
 				}
 				return &inst, nil
 			}
 		}
 
-		return nil, fmt.Errorf("instance '%s' not found", saveConfig.InstanceName)
+		return nil, fmt.Errorf("workspace '%s' not found", saveConfig.InstanceName)
 	}
 
 	return nil, fmt.Errorf("API client does not support instance listing")
@@ -804,7 +804,7 @@ func NewAMISaveConfirmationService() *AMISaveConfirmationService {
 // ConfirmSave displays save details and gets user confirmation (Single Responsibility)
 func (s *AMISaveConfirmationService) ConfirmSave(saveConfig *AMISaveConfig, instance *types.Instance) bool {
 	// Display save information
-	fmt.Printf("💾 Saving instance '%s' as template '%s'\n", saveConfig.InstanceName, saveConfig.TemplateName)
+	fmt.Printf("💾 Saving workspace '%s' as template '%s'\n", saveConfig.InstanceName, saveConfig.TemplateName)
 	fmt.Printf("📍 Instance ID: %s\n", instance.ID)
 	fmt.Printf("🏷️  Description: %s\n", saveConfig.Description)
 	if len(saveConfig.CopyToRegions) > 0 {
@@ -812,9 +812,9 @@ func (s *AMISaveConfirmationService) ConfirmSave(saveConfig *AMISaveConfig, inst
 	}
 
 	// Warning about temporary stop
-	fmt.Printf("\n⚠️  WARNING: Instance will be temporarily stopped to create a consistent AMI\n")
+	fmt.Printf("\n⚠️  WARNING: Workspace will be temporarily stopped to create a consistent AMI\n")
 	fmt.Printf("   This ensures the AMI captures a clean state of the filesystem.\n")
-	fmt.Printf("   The instance will be automatically restarted after AMI creation.\n\n")
+	fmt.Printf("   The workspace will be automatically restarted after AMI creation.\n\n")
 
 	// Get user confirmation
 	fmt.Printf("Continue? (y/N): ")
@@ -901,7 +901,7 @@ func (s *AMISaveBuilderService) executeSaveAndDisplayResults(ctx context.Context
 
 // displaySaveResults displays the save operation results (Single Responsibility)
 func (s *AMISaveBuilderService) displaySaveResults(result *ami.BuildResult, templateName string) error {
-	fmt.Printf("\n🎉 Successfully saved instance as AMI!\n")
+	fmt.Printf("\n🎉 Successfully saved workspace as AMI!\n")
 	fmt.Printf("📸 AMI ID: %s\n", result.AMIID)
 	fmt.Printf("🕒 Build time: %s\n", result.BuildDuration)
 
@@ -912,7 +912,7 @@ func (s *AMISaveBuilderService) displaySaveResults(result *ami.BuildResult, temp
 		}
 	}
 
-	fmt.Printf("\n✨ Template '%s' is now available for launching new instances:\n", templateName)
+	fmt.Printf("\n✨ Template '%s' is now available for launching new workspaces:\n", templateName)
 	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
 
 	return nil
@@ -1364,7 +1364,7 @@ func (a *App) handleAMICreate(args []string) error {
 	if description := cmdArgs["description"]; description != "" {
 		request.Description = description
 	} else {
-		request.Description = fmt.Sprintf("Custom AMI created from instance %s", instanceName)
+		request.Description = fmt.Sprintf("Custom AMI created from workspace %s", instanceName)
 	}
 
 	// Add tags
@@ -1377,7 +1377,7 @@ func (a *App) handleAMICreate(args []string) error {
 		}
 	}
 
-	fmt.Printf("🚀 Creating AMI from instance '%s'...\n\n", instanceName)
+	fmt.Printf("🚀 Creating AMI from workspace '%s'...\n\n", instanceName)
 
 	// Make API call to create AMI
 	response, err := a.apiClient.CreateAMI(a.ctx, request)
@@ -1741,11 +1741,11 @@ func (a *App) handleAMISnapshotCreate(args []string) error {
 	if description := cmdArgs["description"]; description != "" {
 		request["description"] = description
 	} else {
-		request["description"] = fmt.Sprintf("Snapshot of instance %s created on %s",
+		request["description"] = fmt.Sprintf("Snapshot of workspace %s created on %s",
 			instanceID, time.Now().Format("2006-01-02 15:04:05"))
 	}
 
-	fmt.Printf("📸 Creating snapshot of instance %s...\n", instanceID)
+	fmt.Printf("📸 Creating snapshot of workspace %s...\n", instanceID)
 
 	if request["no_reboot"] == false {
 		fmt.Printf("⚠️  Instance will be temporarily stopped to ensure consistent snapshot\n")

@@ -154,7 +154,7 @@ func (f *WorkspaceCommandFactory) createHibernateCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "hibernate <name>",
 		Short: "Hibernate a workspace (save state, reduce costs)",
-		Long: `Hibernate a workspace to save memory state to disk and stop the instance.
+		Long: `Hibernate a workspace to save memory state to disk and stop the workspace.
 This reduces costs while preserving your work session for fast resume.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
