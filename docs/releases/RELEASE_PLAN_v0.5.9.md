@@ -469,6 +469,38 @@ Continue extending walkthroughs from v0.5.8:
 - [ ] Old URL redirects
 - [ ] Feature location mapping
 
+### Persona Walkthrough Updates ✨
+**Critical**: All 5 persona walkthroughs must be updated to reflect v0.5.9 features:
+
+**a) Implemented Features Integration**:
+- [ ] Update navigation paths (14 → 6 items)
+- [ ] Document integrated Terminal/WebView in Workspaces tab
+- [ ] Show unified Storage UI (EFS + EBS in one place)
+- [ ] Update budget management in Projects context
+- [ ] Document advanced features under Settings section
+- [ ] Update all navigation references (old → new paths)
+
+**b) GUI Screenshots**:
+- [ ] New 6-item navigation bar (Home, Workspaces, Templates, Storage, Projects, Settings)
+- [ ] Integrated workspace view with Terminal/WebView tabs
+- [ ] Unified Storage UI showing both EFS and EBS
+- [ ] Project details with integrated budget tab
+- [ ] Settings page with Advanced submenu (AMI, Idle Detection, System)
+- [ ] Role-based visibility (admin vs non-admin views)
+
+**Persona-Specific Updates**:
+1. **Solo Researcher**: Show integrated terminal access from workspace view
+2. **Lab Environment**: Document unified storage for team file sharing
+3. **University Class**: Show project budgets integrated with class projects
+4. **Conference Workshop**: Simplified navigation for workshop participants
+5. **Cross-Institutional**: Advanced features accessibility under Settings
+
+**Before/After Comparisons**:
+- [ ] Navigation: 14-item sidebar → 6-item organized navigation
+- [ ] Workspace access: Separate Terminal/WebView pages → Integrated tabs
+- [ ] Storage management: Two pages → Unified tabbed view
+- [ ] Budget tracking: Separate Budgets page → Integrated in Projects
+
 ---
 
 ## 🚀 Release Criteria

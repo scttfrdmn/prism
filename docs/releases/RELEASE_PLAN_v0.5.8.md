@@ -348,6 +348,30 @@ For v0.5.8, extend each persona walkthrough to include:
 - [ ] Troubleshooting (new wizard errors)
 - [ ] Architecture docs (new components)
 
+### Persona Walkthrough Updates ✨
+**Critical**: All 5 persona walkthroughs must be updated to reflect v0.5.8 features:
+
+**a) Implemented Features Integration**:
+- [ ] Update walkthroughs to use "Workspaces" terminology (not "Instances")
+- [ ] Add Quick Start wizard flow to first-time user scenarios
+- [ ] Include `prism init` CLI workflow for CLI-focused personas
+- [ ] Document new home page navigation
+- [ ] Update connection workflows (30-second target)
+
+**b) GUI Screenshots**:
+- [ ] Quick Start wizard steps (template selection, configuration, launch, success)
+- [ ] Home page with recent workspaces and system status
+- [ ] Connection dialog with SSH/Jupyter options
+- [ ] Workspace "Workspaces" terminology in all GUI screens
+- [ ] Updated navigation with new home page
+
+**Persona-Specific Updates**:
+1. **Solo Researcher**: Add Quick Start wizard walkthrough, show 30-second workspace launch
+2. **Lab Environment**: Document team onboarding with Quick Start wizard
+3. **University Class**: Show instructor using Quick Start for class templates
+4. **Conference Workshop**: Emphasize fast workshop setup with `prism init`
+5. **Cross-Institutional**: Update multi-profile Quick Start scenarios
+
 ---
 
 ## 🚀 Release Criteria
