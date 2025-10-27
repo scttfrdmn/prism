@@ -76,9 +76,25 @@ func (ctx *TestContext) StartDaemon() {
 		ctx.T.Fatal("Daemon binary 'prismd' not found. Run 'make build' first.")
 	}
 
-	// Start daemon
+	// Create temporary state directory for isolated test environment
+	tempStateDir, err := os.MkdirTemp("", "prism-test-state-*")
+	if err != nil {
+		ctx.T.Fatalf("Failed to create temp state dir: %v", err)
+	}
+	ctx.T.Logf("Using test state directory: %s", tempStateDir)
+
+	// Add cleanup for state directory
+	ctx.AddCleanup(func() {
+		os.RemoveAll(tempStateDir)
+		ctx.T.Logf("Cleaned up test state directory")
+	})
+
+	// Start daemon with isolated state directory
 	cmd := exec.Command(daemonPath)
-	cmd.Env = os.Environ()
+	// Set environment to use test state directory (matches user experience with custom state location)
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("PRISM_STATE_DIR=%s", tempStateDir))
+	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
