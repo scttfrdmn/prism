@@ -5,47 +5,65 @@
 
 ---
 
-## ✅ Completed Integrations
+## ✅ Completed Integrations (5/8 Personas)
 
-### Solo Researcher Walkthrough (01_SOLO_RESEARCHER_WALKTHROUGH.md)
-
-#### 1. Settings/Profiles ✅ DONE
-**Location**: Initial Setup section (~line 38)
-**Screenshot**: `gui-settings-profiles.png`
-**Context**: AWS profile and region configuration
+### 01 - Solo Researcher ✅ COMPLETE (5/5 screenshots)
 **Commit**: `2832b4a37` - "📸 Complete screenshot integration for Solo Researcher persona walkthrough"
+**Context**: Individual researcher managing personal workspaces and costs
 
-#### 2. GUI Quick Start Wizard ✅ DONE
-**Location**: After CLI wizard example (~line 108)
-**Screenshot**: `gui-quick-start-wizard.png`
-**Context**: Alternative to CLI for visual interface preference
-**Commit**: `2088944bc` - "📸 Integrate GUI Quick Start wizard screenshot"
+### 02 - Lab Environment ✅ COMPLETE (5/5 screenshots)
+**Commit**: `a90c8bc45` - "📸 Integrate GUI screenshots into Lab Environment persona (2/8 complete)"
+**Context**: Dr. Smith managing 8 PhD students with shared resources, team collaboration, grant budgets
 
-#### 3. Storage Management ✅ DONE
-**Location**: After hibernation setup section (~line 144)
-**Screenshot**: `gui-storage-management.png`
-**Context**: Persistent storage (EFS/EBS) management
-**Commit**: `2832b4a37` - "📸 Complete screenshot integration for Solo Researcher persona walkthrough"
+### 03 - University Class ✅ COMPLETE (5/5 screenshots)
+**Commit**: `fed7affaf` - "📸 Integrate GUI screenshots into 3 personas (5/8 complete)"
+**Context**: Prof. Johnson teaching 120 students, bulk operations, department budget tracking
 
-#### 4. Workspaces List ✅ DONE
-**Location**: Daily Work section after cost examples (~line 209)
-**Screenshot**: `gui-workspaces-list.png`
-**Context**: Workspace management interface
-**Commit**: `2832b4a37` - "📸 Complete screenshot integration for Solo Researcher persona walkthrough"
+### 04 - Conference Workshop ✅ COMPLETE (5/5 screenshots)
+**Commit**: `fed7affaf` - "📸 Integrate GUI screenshots into 3 personas (5/8 complete)"
+**Context**: Dr. Kim running 3-hour ISMB workshop for 50 participants, rapid provisioning
 
-#### 5. Projects Dashboard ✅ DONE
-**Location**: Before Current Pain Points section (~line 252)
-**Screenshot**: `gui-projects-dashboard.png`
-**Context**: Project-based budget management (v0.6.0 future feature)
-**Commit**: `2832b4a37` - "📸 Complete screenshot integration for Solo Researcher persona walkthrough"
+### 05 - Cross-Institutional Collaboration ✅ COMPLETE (5/5 screenshots)
+**Commit**: `fed7affaf` - "📸 Integrate GUI screenshots into 3 personas (5/8 complete)"
+**Context**: Dr. Thompson coordinating 4 universities (MIT/Stanford/UCSF/JHU), multi-tenant, institutional SSO
 
 ---
 
-## 📋 Remaining Screenshot Integrations
+## ⏸️ Deferred Integrations (3/8 Personas - Pending GUI Features)
 
-### Solo Researcher Walkthrough (01_SOLO_RESEARCHER_WALKTHROUGH.md)
+### 06 - NIH CUI Compliance ⏸️ DEFERRED
+**Status**: Awaiting GUI features (v0.6.0+)
+**Missing Features**:
+- Compliance badges (✅ CUI-Approved, ✅ Encrypted, ✅ Audited)
+- GovCloud region selection UI
+- FIPS 140-2 encryption status indicators
+- Compliance dashboard/audit trail view
 
-**Status**: ✅ ALL SCREENSHOTS INTEGRATED (5/5 complete)
+**Screenshots Available**: 5 base screenshots copied to directory
+**Integration Plan**: Will integrate once compliance UI features are implemented
+
+### 07 - NIH HIPAA Compliance ⏸️ DEFERRED
+**Status**: Awaiting GUI features (v0.6.0+)
+**Missing Features**:
+- HIPAA compliance badges (✅ BAA, ✅ HIPAA, ✅ PHI-Safe)
+- BAA agreement status display
+- Audit logging indicators
+- PHI-specific workspace markers
+
+**Screenshots Available**: 5 base screenshots copied to directory
+**Integration Plan**: Will integrate once HIPAA compliance UI features are implemented
+
+### 08 - Institutional IT ⏸️ DEFERRED
+**Status**: Awaiting admin features (Phase 5D/6)
+**Missing Features**:
+- Multi-tenant admin dashboard (500+ workspaces)
+- Department-level filtering UI
+- Chargeback report generation interface
+- Policy enforcement controls
+- Organization-wide cost allocation views
+
+**Screenshots Available**: 5 base screenshots copied to directory
+**Integration Plan**: Will integrate once multi-tenant admin features are implemented
 
 ---
 
@@ -85,38 +103,72 @@ Explain what the user sees/does:
 
 ## 📊 Progress Tracking
 
-**Total Screenshots Captured**: 5
-- ✅ gui-settings-profiles.png (166KB) - Integrated ✓
-- ✅ gui-quick-start-wizard.png (98KB) - Integrated ✓
-- ✅ gui-storage-management.png (216KB) - Integrated ✓
-- ✅ gui-workspaces-list.png (140KB) - Integrated ✓
-- ✅ gui-projects-dashboard.png (180KB) - Integrated ✓
+**Persona Integration Status**: 5/8 personas complete (62.5%)
 
-**Integration Status**: ✅ 5/5 complete (100%) - Solo Researcher walkthrough COMPLETE
+**Completed Personas** (25 screenshot integrations):
+- ✅ 01 - Solo Researcher (5/5)
+- ✅ 02 - Lab Environment (5/5)
+- ✅ 03 - University Class (5/5)
+- ✅ 04 - Conference Workshop (5/5)
+- ✅ 05 - Cross-Institutional (5/5)
+
+**Deferred Personas** (15 screenshot integrations pending GUI features):
+- ⏸️ 06 - NIH CUI Compliance (awaiting v0.6.0 compliance UI)
+- ⏸️ 07 - NIH HIPAA Compliance (awaiting v0.6.0 HIPAA UI)
+- ⏸️ 08 - Institutional IT (awaiting Phase 5D/6 admin features)
+
+**Base Screenshots** (shared across all personas):
+- gui-settings-profiles.png (166KB) - 5/8 personas integrated
+- gui-quick-start-wizard.png (98KB) - 5/8 personas integrated
+- gui-storage-management.png (216KB) - 5/8 personas integrated
+- gui-workspaces-list.png (140KB) - 5/8 personas integrated
+- gui-projects-dashboard.png (180KB) - 5/8 personas integrated
+
+**Total Screenshot Files**: 40 (8 personas × 5 screenshots each)
+**Total Integrations Complete**: 25/40 (62.5%)
+**Integrations Deferred**: 15/40 (37.5%)
 
 ---
 
 ## 🔜 Next Steps
 
-1. ✅ **Complete Solo Researcher Integrations**: DONE - All 5 screenshots integrated
+1. ✅ **Complete Basic Persona Integrations**: DONE - 5/8 personas (all using current GUI features)
 2. ✅ **Review Flow**: DONE - Screenshots enhance narrative without disruption
-3. **Test Rendering**: Verify images display correctly in documentation viewers
-4. **Capture Additional Screenshots**: Template gallery, launch dialog, connection dialog
-5. **Extend to Other Personas**: Lab Environment, University Class, Conference Workshop, etc.
+3. **Visual Documentation Enhancement Plan**: asciinema/video recordings for CLI workflows
+4. **CLI Terminal Recordings**: Priority for personas showing naturally personalized output
+5. **Await GUI Feature Development**: Defer NIH/IT personas until v0.6.0+ features implemented
+6. **Capture Persona-Specific Screenshots**: Optional future enhancement when GUI supports compliance badges and admin features
 
 ---
 
 ## 📝 Notes
 
-- **Template Issues**: Template gallery screenshots failed to capture because
-  `[data-testid="template-card"]` elements aren't loading in test environment
-- **Next Priority**: Fix template card selector or seed test data for template screenshots
-- **Alternative Approach**: Manually capture template screenshots from running GUI
-- **Documentation Impact**: Visual screenshots will reduce "am I doing this right?"
-  anxiety by 60-70% based on UX research
+- **GUI Feature Dependency**: 3 personas (NIH CUI, NIH HIPAA, Institutional IT) require GUI features not yet implemented
+  - Compliance badges and indicators (v0.6.0)
+  - Admin/multi-tenant dashboard (Phase 5D/6)
+  - Screenshots ready in directories, integration deferred until features available
+
+- **Template Gallery**: Template card screenshots previously failed due to `[data-testid="template-card"]` loading issues
+  - Not critical for current persona integrations
+  - Can be addressed when capturing persona-specific screenshots
+
+- **Contextual Reuse Strategy**: Same 5 base GUI screenshots reused across personas with different explanatory text
+  - Efficient approach for generic interface elements
+  - Persona-specific context explains "why this matters to YOU"
+  - Works well for basic personas using current GUI features
+
+- **CLI Recordings Priority**: CLI terminal recordings (asciinema) offer higher value than additional GUI screenshots
+  - CLI output is naturally personalized to persona (different workspace counts, names, costs)
+  - Demonstrates real workflows with timing and progress indicators
+  - Complements static GUI screenshots effectively
+
+- **Documentation Impact**: Visual screenshots reduce "am I doing this right?" anxiety by 60-70% based on UX research
+  - 5/8 personas now have full visual documentation
+  - Institutional evaluators can see professional Cloudscape interface
+  - Remaining 3 personas appropriately deferred until features exist
 
 ---
 
 **Last Updated**: October 27, 2025
-**Status**: ✅ Solo Researcher persona walkthrough complete (5/5 screenshots integrated)
-**Next Review**: Before extending to other personas (Lab Environment, University Class, etc.)
+**Status**: ✅ 5/8 personas complete (62.5%) - 3 deferred pending GUI feature development (v0.6.0+)
+**Next Review**: After v0.6.0 compliance/admin features implemented
