@@ -18,25 +18,98 @@
 
 ---
 
-## Current State (v0.5.5): What Works Today
+## Current State (v0.5.8): What Works Today
 
-### ✅ Initial Setup (Day 0)
+### ✅ Initial Setup (Day 0) - 30-Second Quick Start
+
+**New in v0.5.8**: Interactive wizard for first-time users!
+
 ```bash
 # Install Prism
 brew install scttfrdmn/tap/prism
 
-# Start daemon and configure AWS
-prism daemon start
-prism profile create personal-research --aws-profile my-aws --region us-west-2
+# Configure AWS credentials (one-time)
+aws configure
 
-# Browse available templates
-prism templates
+# Launch the Quick Start wizard
+prism init
 ```
 
-**What Sarah sees**: 22 pre-configured templates with estimated costs
-- `Python Machine Learning` - $1.20/day (t3.large)
-- `R Research Environment` - $0.80/day (t3.medium)
-- `Bioinformatics Suite` - $2.40/day (r5.xlarge - memory-optimized)
+**What Sarah experiences** (30-second guided setup):
+
+```
+🎉 Welcome to Prism!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This wizard will help you launch your first research workspace.
+Launch time: ~30 seconds
+
+✅ AWS credentials validated
+
+📦 Step 1: Select a Template
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Choose a category:
+  1) ML/AI (8 templates)
+  2) Data Science (6 templates)
+  3) Bioinformatics (5 templates) ← Sarah selects this
+  4) Web Development (3 templates)
+  5) All Templates (22 templates)
+
+📋 Bioinformatics Templates:
+
+  1) Bioinformatics Suite
+     Complete toolkit: BLAST, bowtie2, samtools, bedtools
+     Recommended: M (~$0.16/hour)
+
+  2) Genomics Workstation
+     NGS analysis: BWA, GATK, IGV
+     Recommended: L (~$0.32/hour)
+
+Select template [1-2]: 1
+
+⚙️  Step 2: Configure Workspace
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Workspace name (default: my-workspace-1027): rnaseq-analysis
+
+Choose workspace size:
+  1) S - 2 vCPU, 4GB RAM (~$0.08/hour)
+  2) M - 4 vCPU, 8GB RAM (~$0.16/hour) ← Recommended
+  3) L - 8 vCPU, 16GB RAM (~$0.32/hour)
+  4) XL - 16 vCPU, 32GB RAM (~$0.64/hour)
+
+💡 Tip: Size 'M' is recommended for this template
+
+Select size [1-4]: 2
+
+📋 Step 3: Review Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Your workspace configuration:
+  Template:  Bioinformatics Suite
+  Name:      rnaseq-analysis
+  Size:      M
+
+  Estimated cost: $0.16/hour (~$3.84/day if running 24/7)
+
+💡 Tip: Use 'prism stop' when not in use to save costs
+
+Launch this workspace? [y/N]: y
+
+🚀 Step 4: Launching Workspace
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏳ Launching workspace... This may take 1-2 minutes
+✅ Workspace launching successfully
+```
+
+**What Sarah thinks**: *"Wow, that was actually easier than I expected! Clear cost estimates upfront, and it just asked me exactly what I needed to know."*
+
+**Alternative: Advanced users can still use direct commands**:
+```bash
+# Direct launch (no wizard)
+prism launch bioinformatics-suite rnaseq-analysis --size M
+```
 
 ### ✅ Enable Hibernation (Cost Safety Net)
 ```bash
@@ -55,26 +128,41 @@ prism idle profile set-default budget-safe
 - Stops compute charges immediately
 - Sarah can resume work exactly where she left off
 
-### ✅ Launch First Workspace (Day 1)
-```bash
-# Launch bioinformatics workstation
-prism launch bioinformatics-suite rnaseq-analysis --size M
+### ✅ First Workspace Success (Day 1)
 
-# Prism output:
-# ✅ Workspace launching: rnaseq-analysis
-# 📊 Estimated cost: $2.40/day ($72/month if running 24/7)
-# ⚙️  Hibernation policy: budget-safe (15min idle)
-# 🔗 SSH ready in ~90 seconds...
+After the wizard completes:
+
+```
+✅ Success! Your workspace is ready
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📡 Connection Information:
+  Name:      rnaseq-analysis
+  Status:    running
+  Public IP: 54.123.45.67
+
+🔗 Connect via SSH:
+  ssh ubuntu@54.123.45.67
+
+📚 Next Steps:
+  • Connect:  prism connect rnaseq-analysis
+  • Monitor:  prism list
+  • Stop:     prism stop rnaseq-analysis
+  • Delete:   prism delete rnaseq-analysis
+
+💡 Run 'prism --help' to see all available commands
 ```
 
-**What Sarah thinks**: *"Okay, $2.40/day... if I work 15 days this month, that's $36. That's within budget!"*
+**What Sarah thinks**: *"Okay, $0.16/hour... if I work 4 hours/day for 15 days, that's only $9.60! Way under budget!"*
+
+**Note**: Sarah can now set up hibernation policies to automatically save costs (see next section).
 
 ### ✅ Daily Work (Days 1-15)
 ```bash
 # Morning: Resume work
-prism list                    # See status: hibernated
+prism list                    # See status: hibernated (note: now called "workspaces" in v0.5.8)
 prism start rnaseq-analysis   # Resume in 30 seconds
-prism ssh rnaseq-analysis     # Start working
+prism connect rnaseq-analysis # Start working (shortcut for SSH)
 
 # Work session: 4 hours
 # - Run RNA-seq pipeline
