@@ -543,6 +543,7 @@ func (l *InstanceLauncher) createDryRunInstance(req ctypes.LaunchRequest, hourly
 
 // executeInstanceLaunch performs the actual EC2 instance launch
 func (l *InstanceLauncher) executeInstanceLaunch(ctx context.Context, runInput *ec2.RunInstancesInput) (*ec2types.Instance, error) {
+	// Launch the instance (IAM profile readiness is verified during profile creation)
 	result, err := l.manager.ec2.RunInstances(ctx, runInput)
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch instance: %w", err)
@@ -1870,10 +1871,30 @@ func (m *Manager) checkIAMInstanceProfileExists(profileName string) bool {
 		return false
 	}
 
-	// Wait a moment for IAM changes to propagate
-	time.Sleep(2 * time.Second)
-
 	log.Printf("✅ Successfully created IAM instance profile '%s' with SSM access and idle detection permissions", profileName)
+
+	// Wait for IAM eventual consistency - poll until profile is accessible
+	log.Printf("⏳ Waiting for IAM profile to be ready (eventual consistency)...")
+	maxAttempts := 10
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		_, err := m.iam.GetInstanceProfile(ctx, &iam.GetInstanceProfileInput{
+			InstanceProfileName: aws.String(profileName),
+		})
+		if err == nil {
+			log.Printf("✅ IAM profile verified and ready for use")
+			return true
+		}
+
+		// Profile not ready yet, wait and retry
+		if attempt < maxAttempts-1 {
+			waitTime := time.Duration(attempt+1) * 1 * time.Second
+			log.Printf("   Retry %d/%d - waiting %v...", attempt+1, maxAttempts, waitTime)
+			time.Sleep(waitTime)
+		}
+	}
+
+	log.Printf("⚠️  Warning: IAM profile created but not yet accessible after %d attempts", maxAttempts)
+	log.Printf("   The profile should become available shortly - AWS eventual consistency delay")
 	return true
 }
 
