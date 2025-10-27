@@ -22,6 +22,7 @@ const (
 	// Timeouts
 	DaemonStartTimeout    = 30 * time.Second
 	InstanceReadyTimeout  = 10 * time.Minute
+	InstanceStopTimeout   = 10 * time.Minute // GPU instances can take 10+ minutes to stop
 	InstanceDeleteTimeout = 5 * time.Minute
 	PollInterval          = 10 * time.Second
 )
@@ -309,7 +310,8 @@ func (ctx *TestContext) HibernateInstance(name string) error {
 		return fmt.Errorf("failed to hibernate instance: %w", err)
 	}
 
-	return ctx.WaitForInstanceState(name, "stopped", InstanceDeleteTimeout)
+	// GPU instances can take 10+ minutes to stop - use extended timeout
+	return ctx.WaitForInstanceState(name, "stopped", InstanceStopTimeout)
 }
 
 // StartInstance starts a stopped/hibernated instance

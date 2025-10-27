@@ -170,14 +170,35 @@ func TestSoloResearcherPersona(t *testing.T) {
 
 		t.Logf("✅ Instance deleted successfully")
 
-		// Verify instance no longer exists
-		listResp, err := ctx.Client.ListInstances(context.Background())
-		AssertNoError(t, err, "List instances after deletion")
+		// Poll until instance no longer appears in list (AWS eventual consistency)
+		// Terminated instances can take time to disappear from AWS
+		t.Log("Polling for instance to disappear from list...")
+		deadline := time.Now().Add(2 * time.Minute)
+		instanceGone := false
 
-		for _, instance := range listResp.Instances {
-			if instance.Name == instanceName {
-				t.Fatalf("Instance '%s' still exists after deletion", instanceName)
+		for time.Now().Before(deadline) {
+			listResp, err := ctx.Client.ListInstances(context.Background())
+			AssertNoError(t, err, "List instances after deletion")
+
+			found := false
+			for _, instance := range listResp.Instances {
+				if instance.Name == instanceName {
+					found = true
+					t.Logf("  Instance still visible in state: %s (waiting...)", instance.State)
+					break
+				}
 			}
+
+			if !found {
+				instanceGone = true
+				break
+			}
+
+			time.Sleep(10 * time.Second)
+		}
+
+		if !instanceGone {
+			t.Fatalf("Instance '%s' still exists after deletion timeout", instanceName)
 		}
 
 		t.Log("✅ Cleanup verified - instance no longer in list")
