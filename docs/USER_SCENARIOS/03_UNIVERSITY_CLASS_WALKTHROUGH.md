@@ -16,7 +16,7 @@
 - **Technical level**: Graduate student (expert) - CS PhD candidate
 - **Concerns**: Helping struggling students debug remotely, preventing cheating
 - **Needs**: View/access student workspaces for debugging, monitor student progress
-- **Authority**: Can SSH into student instances, extend deadlines, reset instances
+- **Authority**: Can SSH into student workspaces, extend deadlines, reset instances
 
 ### Priya Sharma & Kevin Wong (Teaching Assistants)
 - **Role**: Section TAs, grade assignments, hold office hours
@@ -58,7 +58,7 @@
 
 ---
 
-## Current State (v0.5.5): What Works Today
+## Current State (v0.5.8): What Works Today
 
 ### ✅ Pre-Semester Setup (What Works)
 
@@ -269,7 +269,7 @@ prism project cost show "CS229-Fall2024"
 ```bash
 # December 13, 2024 23:59:59 (last day of semester)
 # Automatic actions:
-# 1. Stop all 50 student instances
+# 1. Stop all 50 student workspaces
 # 2. Revoke student SSH keys
 # 3. Archive student workspaces to S3
 # 4. Generate grade correlation report
@@ -899,7 +899,7 @@ david@laptop:~$ prism launch ml-final-project final-project
 **Target**: TAs can efficiently help students
 
 4. **TA Debug Access** (2 weeks)
-   - View student instances
+   - View student workspaces
    - Temporary SSH access (logged)
    - Workspace reset capability
    - Student messaging

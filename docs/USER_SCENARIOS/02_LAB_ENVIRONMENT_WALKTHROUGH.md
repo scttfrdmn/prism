@@ -62,7 +62,9 @@ Smith Lab Organization
 
 ---
 
-## Current State (v0.5.5): What Works Today
+## Current State (v0.5.8): What Works Today
+
+**Note**: Throughout this document, "workspace" refers to the Prism research environment (what users interact with), while "EC2 instance" refers to the underlying AWS infrastructure.
 
 ### ✅ Lab Setup (Phase 4 Complete)
 
@@ -144,7 +146,7 @@ prism project budget alert add "NIH-R01-2023" \
 
 #### Scenario: James (Grad Student) Runs RNA-seq Pipeline
 ```bash
-# James launches instance
+# James launches workspace
 prism launch bioinformatics-suite rnaseq-sample-42 \
   --project "NIH-R01-2023" \
   --size M

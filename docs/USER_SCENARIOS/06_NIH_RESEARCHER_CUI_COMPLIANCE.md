@@ -517,7 +517,7 @@ prism compliance report \
 
 **Identification & Authentication (IA) - 11 Controls**:
 - **IA.1.076** (Unique Users): Each researcher has unique CWS identity
-- **IA.2.078** (MFA): Required for all CUI workstation access
+- **IA.2.078** (MFA): Required for all CUI workspace access
 - **IA.2.079** (Network MFA): MFA required for SSH connections
 - **IA.2.081** (Replay Resistance): Cryptographic session tokens
 

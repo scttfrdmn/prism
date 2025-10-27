@@ -26,7 +26,7 @@
 
 ---
 
-## Current State (v0.5.5): What Works Today
+## Current State (v0.5.8): What Works Today
 
 ### ✅ Pre-Workshop Setup (1 Week Before)
 
@@ -431,7 +431,7 @@ prism workshop report neurips-dl-workshop --export-pdf
 # 📊 NeurIPS 2025 Deep Learning Workshop - Final Report
 #
 # Participants:     58 / 60 registered (97%)
-# Active instances: 58 workspaces for 3 hours
+# Active workspaces: 58 workspaces for 3 hours
 # Total uptime:     174 instance-hours
 #
 # Budget:

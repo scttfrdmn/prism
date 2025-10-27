@@ -38,7 +38,7 @@
 
 ---
 
-## Current State (v0.5.5): What Works Today with Invitations
+## Current State (v0.5.8): What Works Today with Invitations
 
 ### ✅ Stanford Creates Collaboration Invitations (Month 1)
 
@@ -144,7 +144,7 @@ berkeley$ prism launch "R Research Environment" berkeley-analysis
 
 ### ❌ Problem 1: No Cross-Account EFS Access
 
-**Scenario**: Stanford's 50TB neuroimaging dataset needs to be accessible to MIT and Berkeley instances
+**Scenario**: Stanford's 50TB neuroimaging dataset needs to be accessible to MIT and Berkeley workspaces
 
 **What should happen** (MISSING):
 ```bash
@@ -444,7 +444,7 @@ mit$ prism launch "Python Machine Learning" mit-algorithm-dev
 # Mount Stanford's shared dataset
 mit$ prism volume mount neuro-dataset mit-algorithm-dev
 # ✅ Mounted at /mnt/neuro-dataset (read-only, cross-account)
-# 📊 50TB dataset accessible from MIT instance
+# 📊 50TB dataset accessible from MIT workspace
 
 # SSH into instance
 mit$ prism ssh mit-algorithm-dev
@@ -454,7 +454,7 @@ mit-instance$ ls /mnt/neuro-dataset/
 # raw-data/ (50TB neuroimaging scans - read-only)
 
 mit-instance$ python train_model.py --data /mnt/neuro-dataset/raw-data/
-# Training on Stanford's data from MIT instance...
+# Training on Stanford's data from MIT workspace...
 ```
 
 **Berkeley Analysis**:
@@ -494,7 +494,7 @@ stanford$ prism project status nih-neuro-consortium --detail
 #    Active compute: 10 workspaces (2,554 hours this month)
 #    Hibernation savings banked: $3,890 (available for extended compute)
 #
-# Active Instances:
+# Active Workspaces:
 #   Stanford (3):  stanford-integration-1, stanford-pipeline-2, stanford-viz-3
 #   MIT (5):       mit-algorithm-dev, mit-validation, mit-test-1/2/3
 #   Berkeley (2):  berkeley-analysis, berkeley-validation
