@@ -88,18 +88,38 @@ func NewMockAPIClient() *MockAPIClient {
 			"python-ml": {
 				Name:        "python-ml",
 				Description: "Python Machine Learning environment",
+				AMI: map[string]map[string]string{
+					"us-west-2": {
+						"x86_64": "ami-test123456", // Mock AMI to prevent progress monitoring
+					},
+				},
 			},
 			"Python Machine Learning (Simplified)": {
 				Name:        "Python Machine Learning (Simplified)",
 				Description: "Simplified Python ML environment",
+				AMI: map[string]map[string]string{
+					"us-west-2": {
+						"x86_64": "ami-test234567", // Mock AMI to prevent progress monitoring
+					},
+				},
 			},
 			"r-research": {
 				Name:        "r-research",
 				Description: "R Research environment",
+				AMI: map[string]map[string]string{
+					"us-west-2": {
+						"x86_64": "ami-test345678", // Mock AMI to prevent progress monitoring
+					},
+				},
 			},
 			"Rocky Linux 9 + Conda Stack": {
 				Name:        "Rocky Linux 9 + Conda Stack",
 				Description: "Rocky Linux 9 with Conda stack",
+				AMI: map[string]map[string]string{
+					"us-west-2": {
+						"x86_64": "ami-test456789", // Mock AMI to prevent progress monitoring
+					},
+				},
 			},
 		},
 		StorageVolumes: []types.StorageVolume{

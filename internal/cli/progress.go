@@ -385,6 +385,8 @@ func (s *Spinner) Start() {
 	go func() {
 		defer s.wg.Done()
 		frameIndex := 0
+		ticker := time.NewTicker(s.delay)
+		defer ticker.Stop()
 
 		for {
 			select {
@@ -392,12 +394,14 @@ func (s *Spinner) Start() {
 				// Clear the spinner line
 				fmt.Fprintf(s.writer, "\r%s\r", strings.Repeat(" ", len(s.message)+5))
 				return
-			default:
+			case <-ticker.C:
 				// Print current frame
 				frame := s.frames[frameIndex%len(s.frames)]
-				fmt.Fprintf(s.writer, "\r%s %s", frame, s.message)
+				s.mu.Lock()
+				msg := s.message
+				s.mu.Unlock()
+				fmt.Fprintf(s.writer, "\r%s %s", frame, msg)
 				frameIndex++
-				time.Sleep(s.delay)
 			}
 		}
 	}()

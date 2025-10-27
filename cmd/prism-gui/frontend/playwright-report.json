@@ -1,10 +1,10 @@
 {
   "config": {
-    "configFile": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/playwright.config.js",
-    "rootDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+    "configFile": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/playwright.config.js",
+    "rootDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
-    "globalSetup": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/global-setup.js",
+    "globalSetup": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/global-setup.js",
     "globalTeardown": null,
     "globalTimeout": 0,
     "grep": {},
@@ -37,7 +37,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -45,15 +45,15 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 120000
       },
       {
-        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -61,15 +61,15 @@
         },
         "id": "firefox",
         "name": "firefox",
-        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 120000
       },
       {
-        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results",
+        "outputDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -77,18 +77,18 @@
         },
         "id": "webkit",
         "name": "webkit",
-        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e",
+        "testDir": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
         ],
-        "timeout": 30000
+        "timeout": 120000
       }
     ],
     "shard": null,
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
-    "version": "1.54.2",
+    "version": "1.56.0",
     "workers": 1,
     "webServer": {
       "command": "npm run dev",
@@ -99,25 +99,25 @@
   },
   "suites": [
     {
-      "title": "cloudscape-components.spec.js",
-      "file": "cloudscape-components.spec.js",
+      "title": "capture-screenshots.spec.js",
+      "file": "capture-screenshots.spec.js",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Cloudscape Components Integration",
-          "file": "cloudscape-components.spec.js",
-          "line": 3,
+          "title": "GUI Screenshots for Persona Documentation",
+          "file": "capture-screenshots.spec.js",
+          "line": 26,
           "column": 6,
           "specs": [
             {
-              "title": "should load Cloudscape design system assets",
+              "title": "01 - Template Gallery (Home Page)",
               "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -127,819 +127,443 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 0,
+                      "duration": 10571,
                       "error": {
-                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n",
-                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js:13:16",
+                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:33:16",
                         "location": {
-                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                           "column": 16,
-                          "line": 13
+                          "line": 33
                         },
-                        "snippet": "  11 |     page.on('console', msg => console.log('PAGE LOG:', msg.text()));\n  12 |\n> 13 |     await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });\n     |                ^\n  14 |\n  15 |     // Wait for React to load\n  16 |     await page.waitForTimeout(3000);"
+                        "snippet": "  31 |\n  32 |     // Wait for templates to load\n> 33 |     await page.waitForSelector('[data-testid=\"template-card\"]', { timeout: 10000 });\n     |                ^\n  34 |\n  35 |     // Take full page screenshot\n  36 |     await page.screenshot({"
                       },
                       "errors": [
                         {
                           "location": {
-                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                             "column": 16,
-                            "line": 13
+                            "line": 33
                           },
-                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n\n\n  11 |     page.on('console', msg => console.log('PAGE LOG:', msg.text()));\n  12 |\n> 13 |     await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });\n     |                ^\n  14 |\n  15 |     // Wait for React to load\n  16 |     await page.waitForTimeout(3000);\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js:13:16"
+                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n\n  31 |\n  32 |     // Wait for templates to load\n> 33 |     await page.waitForSelector('[data-testid=\"template-card\"]', { timeout: 10000 });\n     |                ^\n  34 |\n  35 |     // Take full page screenshot\n  36 |     await page.screenshot({\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:33:16"
                         }
                       ],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "📸 Screenshots will be saved to: /Users/scttfrdmn/src/cloudworkstation/docs/USER_SCENARIOS/images/01-solo-researcher\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:19.770Z",
+                      "startTime": "2025-10-27T19:38:25.276Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/cloudscape-components-Clou-bf326-dscape-design-system-assets-chromium/test-failed-1.png"
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-60c3b-Template-Gallery-Home-Page--chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-60c3b-Template-Gallery-Home-Page--chromium/video.webm"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/cloudscape-components-Clou-bf326-dscape-design-system-assets-chromium/error-context.md"
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-60c3b-Template-Gallery-Home-Page--chromium/error-context.md"
                         }
                       ],
                       "errorLocation": {
-                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                         "column": 16,
-                        "line": 13
+                        "line": 33
                       }
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-684c6c4aac4825444ac7",
-              "file": "cloudscape-components.spec.js",
-              "line": 19,
+              "id": "4561872f222a55a1d2b2-0a0993eba3384c1bcd72",
+              "file": "capture-screenshots.spec.js",
+              "line": 28,
               "column": 3
             },
             {
-              "title": "should display CloudWorkstation header with Cloudscape components",
+              "title": "02 - Quick Start Wizard (if available)",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5662,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "📸 Screenshots will be saved to: /Users/scttfrdmn/src/cloudworkstation/docs/USER_SCENARIOS/images/01-solo-researcher\n"
+                        },
+                        {
+                          "text": "⚠️  No Quick Start wizard dialog found\n"
+                        },
+                        {
+                          "text": "✅ Captured: gui-quick-start-wizard.png\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.774Z",
+                      "startTime": "2025-10-27T19:38:36.333Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "skipped"
+                  "status": "expected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-53c4eec420489d3c0a26",
-              "file": "cloudscape-components.spec.js",
-              "line": 36,
+              "id": "4561872f222a55a1d2b2-b3d267e7d0957a543c24",
+              "file": "capture-screenshots.spec.js",
+              "line": 44,
               "column": 3
             },
             {
-              "title": "should have functional navigation tabs (Cloudscape TabsContainer)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-d208b7bbf4db2c13152f",
-              "file": "cloudscape-components.spec.js",
-              "line": 46,
-              "column": 3
-            },
-            {
-              "title": "should display templates in Cloudscape Cards or Table",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-73cb8baabddf4aa05c55",
-              "file": "cloudscape-components.spec.js",
-              "line": 62,
-              "column": 3
-            },
-            {
-              "title": "should have working launch functionality with Cloudscape Form components",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-c02a61261f3bcd8a9b58",
-              "file": "cloudscape-components.spec.js",
-              "line": 99,
-              "column": 3
-            },
-            {
-              "title": "should display instances with Cloudscape status indicators",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-a12f5e38204bbcbd6cd5",
-              "file": "cloudscape-components.spec.js",
-              "line": 121,
-              "column": 3
-            },
-            {
-              "title": "should have responsive Cloudscape layout",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-25357213c151ee944a7e",
-              "file": "cloudscape-components.spec.js",
-              "line": 155,
-              "column": 3
-            },
-            {
-              "title": "should have proper Cloudscape theming and accessibility",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-565169166947a847ec4b",
-              "file": "cloudscape-components.spec.js",
-              "line": 175,
-              "column": 3
-            },
-            {
-              "title": "should handle Cloudscape component interactions",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-f308b42daceb1f73797c",
-              "file": "cloudscape-components.spec.js",
-              "line": 197,
-              "column": 3
-            },
-            {
-              "title": "should load and display real AWS data through Cloudscape components",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:22.775Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-ef928e4f5f1b6f125dd0",
-              "file": "cloudscape-components.spec.js",
-              "line": 230,
-              "column": 3
-            },
-            {
-              "title": "should load Cloudscape design system assets",
+              "title": "03 - Template Card Detail View",
               "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
                       "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 0,
+                      "duration": 10426,
                       "error": {
-                        "message": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n",
-                        "stack": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js:13:16",
+                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:74:16",
                         "location": {
-                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                           "column": 16,
-                          "line": 13
+                          "line": 74
                         },
-                        "snippet": "  11 |     page.on('console', msg => console.log('PAGE LOG:', msg.text()));\n  12 |\n> 13 |     await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });\n     |                ^\n  14 |\n  15 |     // Wait for React to load\n  16 |     await page.waitForTimeout(3000);"
+                        "snippet": "  72 |\n  73 |     // Wait for templates to load\n> 74 |     await page.waitForSelector('[data-testid=\"template-card\"]', { timeout: 10000 });\n     |                ^\n  75 |\n  76 |     // Click on first template card to show details\n  77 |     const firstTemplate = await page.locator('[data-testid=\"template-card\"]').first();"
                       },
                       "errors": [
                         {
                           "location": {
-                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                             "column": 16,
-                            "line": 13
+                            "line": 74
                           },
-                          "message": "Error: page.goto: NS_ERROR_CONNECTION_REFUSED\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n\n\n  11 |     page.on('console', msg => console.log('PAGE LOG:', msg.text()));\n  12 |\n> 13 |     await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });\n     |                ^\n  14 |\n  15 |     // Wait for React to load\n  16 |     await page.waitForTimeout(3000);\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js:13:16"
+                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n\n  72 |\n  73 |     // Wait for templates to load\n> 74 |     await page.waitForSelector('[data-testid=\"template-card\"]', { timeout: 10000 });\n     |                ^\n  75 |\n  76 |     // Click on first template card to show details\n  77 |     const firstTemplate = await page.locator('[data-testid=\"template-card\"]').first();\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:74:16"
                         }
                       ],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:23.062Z",
+                      "startTime": "2025-10-27T19:38:42.093Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/cloudscape-components-Clou-bf326-dscape-design-system-assets-firefox/test-failed-1.png"
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-f3ebe---Template-Card-Detail-View-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-f3ebe---Template-Card-Detail-View-chromium/video.webm"
                         },
                         {
                           "name": "error-context",
                           "contentType": "text/markdown",
-                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/cloudscape-components-Clou-bf326-dscape-design-system-assets-firefox/error-context.md"
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-f3ebe---Template-Card-Detail-View-chromium/error-context.md"
                         }
                       ],
                       "errorLocation": {
-                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                         "column": 16,
-                        "line": 13
+                        "line": 74
                       }
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-98f71f61aa5b1ad0f80e",
-              "file": "cloudscape-components.spec.js",
-              "line": 19,
+              "id": "4561872f222a55a1d2b2-89cd359d4798d537a92f",
+              "file": "capture-screenshots.spec.js",
+              "line": 70,
               "column": 3
             },
             {
-              "title": "should display CloudWorkstation header with Cloudscape components",
+              "title": "04 - Workspaces Tab (Instances List)",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1604,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "📸 Screenshots will be saved to: /Users/scttfrdmn/src/cloudworkstation/docs/USER_SCENARIOS/images/01-solo-researcher\n"
+                        },
+                        {
+                          "text": "✅ Captured: gui-workspaces-list.png\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
+                      "startTime": "2025-10-27T19:38:52.846Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "skipped"
+                  "status": "expected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-a0ecbe3a14e5f5a9d2e0",
-              "file": "cloudscape-components.spec.js",
-              "line": 36,
+              "id": "4561872f222a55a1d2b2-32ee57857cc7de4e0d04",
+              "file": "capture-screenshots.spec.js",
+              "line": 92,
               "column": 3
             },
             {
-              "title": "should have functional navigation tabs (Cloudscape TabsContainer)",
+              "title": "05 - Projects Tab (if available)",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1570,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Captured: gui-projects-dashboard.png\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
+                      "startTime": "2025-10-27T19:38:54.552Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "skipped"
+                  "status": "expected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-4c138bb2592247e03984",
-              "file": "cloudscape-components.spec.js",
-              "line": 46,
+              "id": "4561872f222a55a1d2b2-4d1469d4a2be12779c77",
+              "file": "capture-screenshots.spec.js",
+              "line": 115,
               "column": 3
             },
             {
-              "title": "should display templates in Cloudscape Cards or Table",
+              "title": "06 - Storage Tab",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1591,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Captured: gui-storage-management.png\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
+                      "startTime": "2025-10-27T19:38:56.127Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "skipped"
+                  "status": "expected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-5e18f947ee933d0615c6",
-              "file": "cloudscape-components.spec.js",
-              "line": 62,
+              "id": "4561872f222a55a1d2b2-130ba475f1dfdce23c9f",
+              "file": "capture-screenshots.spec.js",
+              "line": 136,
               "column": 3
             },
             {
-              "title": "should have working launch functionality with Cloudscape Form components",
+              "title": "07 - Settings/Profiles Tab",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1597,
                       "errors": [],
-                      "stdout": [],
+                      "stdout": [
+                        {
+                          "text": "✅ Captured: gui-settings-profiles.png\n"
+                        }
+                      ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
+                      "startTime": "2025-10-27T19:38:57.722Z",
                       "annotations": [],
                       "attachments": []
                     }
                   ],
-                  "status": "skipped"
+                  "status": "expected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-f37d347a390404b732f9",
-              "file": "cloudscape-components.spec.js",
-              "line": 99,
+              "id": "4561872f222a55a1d2b2-98b0dc5980491b1711ef",
+              "file": "capture-screenshots.spec.js",
+              "line": 157,
               "column": 3
             },
             {
-              "title": "should display instances with Cloudscape status indicators",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-f669ce01ca43766c8bd4",
-              "file": "cloudscape-components.spec.js",
-              "line": 121,
-              "column": 3
-            },
-            {
-              "title": "should have responsive Cloudscape layout",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-e552a71965e66ac48c8c",
-              "file": "cloudscape-components.spec.js",
-              "line": 155,
-              "column": 3
-            },
-            {
-              "title": "should have proper Cloudscape theming and accessibility",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-6a8080c8c5b0cd93ed5b",
-              "file": "cloudscape-components.spec.js",
-              "line": 175,
-              "column": 3
-            },
-            {
-              "title": "should handle Cloudscape component interactions",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.506Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-92c833379ef78f7299d8",
-              "file": "cloudscape-components.spec.js",
-              "line": 197,
-              "column": 3
-            },
-            {
-              "title": "should load and display real AWS data through Cloudscape components",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "firefox",
-                  "projectName": "firefox",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.507Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-970368a42de85820223e",
-              "file": "cloudscape-components.spec.js",
-              "line": 230,
-              "column": 3
-            },
-            {
-              "title": "should load Cloudscape design system assets",
+              "title": "08 - Launch Dialog (Template Selection)",
               "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
+                  "timeout": 120000,
                   "annotations": [],
                   "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 0,
+                      "duration": 10409,
                       "error": {
-                        "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n",
-                        "stack": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js:13:16",
+                        "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
+                        "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:184:16",
                         "location": {
-                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                          "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                           "column": 16,
-                          "line": 13
+                          "line": 184
                         },
-                        "snippet": "  11 |     page.on('console', msg => console.log('PAGE LOG:', msg.text()));\n  12 |\n> 13 |     await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });\n     |                ^\n  14 |\n  15 |     // Wait for React to load\n  16 |     await page.waitForTimeout(3000);"
+                        "snippet": "  182 |\n  183 |     // Wait for templates\n> 184 |     await page.waitForSelector('[data-testid=\"template-card\"]', { timeout: 10000 });\n      |                ^\n  185 |\n  186 |     // Find and click Launch button on first template\n  187 |     const launchButton = await page.locator('button:has-text(\"Launch\")').first();"
                       },
                       "errors": [
                         {
                           "location": {
-                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                            "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                             "column": 16,
-                            "line": 13
+                            "line": 184
                           },
-                          "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"networkidle\"\u001b[22m\n\n\n  11 |     page.on('console', msg => console.log('PAGE LOG:', msg.text()));\n  12 |\n> 13 |     await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });\n     |                ^\n  14 |\n  15 |     // Wait for React to load\n  16 |     await page.waitForTimeout(3000);\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js:13:16"
+                          "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n\n  182 |\n  183 |     // Wait for templates\n> 184 |     await page.waitForSelector('[data-testid=\"template-card\"]', { timeout: 10000 });\n      |                ^\n  185 |\n  186 |     // Find and click Launch button on first template\n  187 |     const launchButton = await page.locator('button:has-text(\"Launch\")').first();\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:184:16"
                         }
                       ],
-                      "stdout": [
-                        {
-                          "text": "PAGE LOG: Failed to load resource: Could not connect to the server.\n"
-                        }
-                      ],
+                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:26.785Z",
+                      "startTime": "2025-10-27T19:38:59.323Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/test-results/cloudscape-components-Clou-bf326-dscape-design-system-assets-webkit/test-failed-1.png"
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-a2345--Dialog-Template-Selection--chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-a2345--Dialog-Template-Selection--chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/test-results/capture-screenshots-GUI-Sc-a2345--Dialog-Template-Selection--chromium/error-context.md"
                         }
                       ],
                       "errorLocation": {
-                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/cws-gui/frontend/tests/e2e/cloudscape-components.spec.js",
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
                         "column": 16,
-                        "line": 13
+                        "line": 184
                       }
                     }
                   ],
                   "status": "unexpected"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-739e23d1f29b5ca5a903",
-              "file": "cloudscape-components.spec.js",
-              "line": 19,
+              "id": "4561872f222a55a1d2b2-d945ad6caadfbbac67fa",
+              "file": "capture-screenshots.spec.js",
+              "line": 180,
               "column": 3
-            },
+            }
+          ]
+        },
+        {
+          "title": "CLI Screenshots (Terminal Output)",
+          "file": "capture-screenshots.spec.js",
+          "line": 212,
+          "column": 6,
+          "specs": [
             {
-              "title": "should display CloudWorkstation header with Cloudscape components",
+              "title": "CLI screenshots require separate terminal capture",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
+                  "timeout": 120000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js",
+                        "line": 214,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
                   "results": [
                     {
                       "workerIndex": -1,
@@ -950,7 +574,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
+                      "startTime": "2025-10-27T19:39:09.757Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -958,282 +582,10 @@
                   "status": "skipped"
                 }
               ],
-              "id": "7bfe86baa6890fd00ba4-f2a494db21a32a61be37",
-              "file": "cloudscape-components.spec.js",
-              "line": 36,
-              "column": 3
-            },
-            {
-              "title": "should have functional navigation tabs (Cloudscape TabsContainer)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-2f2f5c0ff2a83def1261",
-              "file": "cloudscape-components.spec.js",
-              "line": 46,
-              "column": 3
-            },
-            {
-              "title": "should display templates in Cloudscape Cards or Table",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-519700af0f661e2d20ba",
-              "file": "cloudscape-components.spec.js",
-              "line": 62,
-              "column": 3
-            },
-            {
-              "title": "should have working launch functionality with Cloudscape Form components",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-00c0dae901a8823af2fe",
-              "file": "cloudscape-components.spec.js",
-              "line": 99,
-              "column": 3
-            },
-            {
-              "title": "should display instances with Cloudscape status indicators",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-79b2bc7a51c6e6b4dc62",
-              "file": "cloudscape-components.spec.js",
-              "line": 121,
-              "column": 3
-            },
-            {
-              "title": "should have responsive Cloudscape layout",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-3dfeb077ef777f93b62d",
-              "file": "cloudscape-components.spec.js",
-              "line": 155,
-              "column": 3
-            },
-            {
-              "title": "should have proper Cloudscape theming and accessibility",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-31f0704f1c91ffbd42dd",
-              "file": "cloudscape-components.spec.js",
-              "line": 175,
-              "column": 3
-            },
-            {
-              "title": "should handle Cloudscape component interactions",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-5584021544d6c5038841",
-              "file": "cloudscape-components.spec.js",
-              "line": 197,
-              "column": 3
-            },
-            {
-              "title": "should load and display real AWS data through Cloudscape components",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 30000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "webkit",
-                  "projectName": "webkit",
-                  "results": [
-                    {
-                      "workerIndex": -1,
-                      "parallelIndex": -1,
-                      "status": "skipped",
-                      "duration": 0,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-10-06T01:07:29.013Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "skipped"
-                }
-              ],
-              "id": "7bfe86baa6890fd00ba4-451551dd145ee13a8aac",
-              "file": "cloudscape-components.spec.js",
-              "line": 230,
-              "column": 3
+              "id": "4561872f222a55a1d2b2-ffba8f3a16fb06299527",
+              "file": "capture-screenshots.spec.js",
+              "line": 214,
+              "column": 8
             }
           ]
         }
@@ -1242,10 +594,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-06T01:07:19.011Z",
-    "duration": 10019.404,
-    "expected": 0,
-    "skipped": 27,
+    "startTime": "2025-10-27T19:38:23.956Z",
+    "duration": 45811.816,
+    "expected": 5,
+    "skipped": 1,
     "unexpected": 3,
     "flaky": 0
   }
