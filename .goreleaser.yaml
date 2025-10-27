@@ -14,10 +14,10 @@ before:
 
 # Build configuration
 builds:
-  # CLI binary (cws)
-  - id: cws
-    binary: cws
-    main: ./cmd/cws
+  # CLI binary (prism)
+  - id: prism
+    binary: prism
+    main: ./cmd/prism
     env:
       - CGO_ENABLED=0
     overrides:
@@ -42,10 +42,10 @@ builds:
       - -X github.com/scttfrdmn/prism/pkg/version.BuildDate={{.Date}}
       - -X github.com/scttfrdmn/prism/pkg/version.GitCommit={{.Commit}}
 
-  # Daemon binary (cwsd)
-  - id: cwsd
-    binary: cwsd
-    main: ./cmd/cwsd
+  # Daemon binary (prismd)
+  - id: prismd
+    binary: prismd
+    main: ./cmd/prismd
     env:
       - CGO_ENABLED=0
     overrides:
@@ -94,8 +94,8 @@ archives:
       - docs/user-guides/GETTING_STARTED.md
       - docs/admin-guides/AWS_IAM_PERMISSIONS.md
     builds:
-      - cws
-      - cwsd
+      - prism
+      - prismd
 
 # Checksum configuration
 checksum:
@@ -150,8 +150,8 @@ brews:
 
     # Installation configuration
     install: |
-      bin.install "cws"
-      bin.install "cwsd"
+      bin.install "prism"
+      bin.install "prismd"
 
       # Install documentation
       doc.install "README.md"
@@ -165,19 +165,19 @@ brews:
 
     # Post-install message
     caveats: |
-      CloudWorkstation has been installed!
+      Prism has been installed!
 
       Command Line Interface (CLI):
-        cws --help
+        prism --help
 
       Terminal User Interface (TUI):
-        cws tui
+        prism tui
 
       Quick start:
-        cws templates                           # List available templates
-        cws launch <template-name> <instance>   # Launch a workstation
+        prism templates                           # List available templates
+        prism launch <template-name> <instance>   # Launch a workstation
 
-      The daemon (cwsd) starts automatically when needed - no manual setup required!
+      The daemon (prismd) starts automatically when needed - no manual setup required!
 
       AWS credentials are required:
         aws configure
@@ -186,8 +186,8 @@ brews:
 
     # Test block
     test: |
-      system "#{bin}/cws", "--version"
-      system "#{bin}/cwsd", "--version"
+      system "#{bin}/prism", "--version"
+      system "#{bin}/prismd", "--version"
 
     # Dependencies
     dependencies:
@@ -210,7 +210,7 @@ scoops:
     license: "MIT"
 
     # Post-install message
-    post_install: ["Write-Host 'CloudWorkstation installed successfully!'", "Write-Host 'Run: cws --help to get started'"]
+    post_install: ["Write-Host 'Prism installed successfully!'", "Write-Host 'Run: prism --help to get started'"]
 
 # Linux packages (deb and rpm)
 nfpms:
