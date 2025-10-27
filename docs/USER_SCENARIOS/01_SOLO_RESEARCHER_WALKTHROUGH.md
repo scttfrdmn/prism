@@ -105,6 +105,19 @@ Launch this workspace? [y/N]: y
 
 **What Sarah thinks**: *"Wow, that was actually easier than I expected! Clear cost estimates upfront, and it just asked me exactly what I needed to know."*
 
+**Alternative: GUI Quick Start Wizard** (for visual interface preference):
+
+![GUI Quick Start Wizard - Template Selection](images/01-solo-researcher/gui-quick-start-wizard.png)
+
+*Screenshot shows the GUI Quick Start wizard with professional Cloudscape design. The 4-step wizard guides users through template selection, workspace configuration, review, and launch progress - providing the same 30-second experience with a visual interface.*
+
+**What Sarah experiences in GUI**:
+1. Click "Dashboard" → Opens Quick Start wizard automatically for first-time users
+2. **Step 1**: Browse templates by category (ML/AI, Data Science, Bioinformatics) with visual cards
+3. **Step 2**: Configure workspace name and size with real-time cost estimates
+4. **Step 3**: Review configuration summary with estimated costs
+5. **Step 4**: Watch real-time launch progress with connection details on success
+
 **Alternative: Advanced users can still use direct commands**:
 ```bash
 # Direct launch (no wizard)
