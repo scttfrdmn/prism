@@ -127,7 +127,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 10571,
+                      "duration": 10907,
                       "error": {
                         "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
                         "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:33:16",
@@ -155,7 +155,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:25.276Z",
+                      "startTime": "2025-10-28T18:05:25.813Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -205,7 +205,7 @@
                       "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 5662,
+                      "duration": 5602,
                       "errors": [],
                       "stdout": [
                         {
@@ -220,7 +220,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:36.333Z",
+                      "startTime": "2025-10-28T18:05:37.281Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -249,7 +249,7 @@
                       "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 10426,
+                      "duration": 10257,
                       "error": {
                         "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
                         "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:74:16",
@@ -273,7 +273,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:42.093Z",
+                      "startTime": "2025-10-28T18:05:42.997Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -323,7 +323,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1604,
+                      "duration": 1535,
                       "errors": [],
                       "stdout": [
                         {
@@ -335,7 +335,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:52.846Z",
+                      "startTime": "2025-10-28T18:05:53.615Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -364,7 +364,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1570,
+                      "duration": 1564,
                       "errors": [],
                       "stdout": [
                         {
@@ -373,7 +373,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:54.552Z",
+                      "startTime": "2025-10-28T18:05:55.245Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -402,7 +402,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1591,
+                      "duration": 1568,
                       "errors": [],
                       "stdout": [
                         {
@@ -411,7 +411,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:56.127Z",
+                      "startTime": "2025-10-28T18:05:56.813Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -440,7 +440,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1597,
+                      "duration": 1555,
                       "errors": [],
                       "stdout": [
                         {
@@ -449,7 +449,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:57.722Z",
+                      "startTime": "2025-10-28T18:05:58.386Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -478,7 +478,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 10409,
+                      "duration": 10276,
                       "error": {
                         "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
                         "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:184:16",
@@ -502,7 +502,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:38:59.323Z",
+                      "startTime": "2025-10-28T18:05:59.945Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -574,7 +574,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-27T19:39:09.757Z",
+                      "startTime": "2025-10-28T18:06:10.244Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -594,8 +594,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-27T19:38:23.956Z",
-    "duration": 45811.816,
+    "startTime": "2025-10-28T18:05:21.997Z",
+    "duration": 48273.418,
     "expected": 5,
     "skipped": 1,
     "unexpected": 3,

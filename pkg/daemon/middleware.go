@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -65,6 +66,12 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		state, err := s.stateManager.LoadState()
 		if err != nil {
 			s.writeError(w, http.StatusInternalServerError, "Failed to load server configuration")
+			return
+		}
+
+		// Check if running in test mode (bypasses authentication)
+		if os.Getenv("PRISM_TEST_MODE") == "true" {
+			next(w, r)
 			return
 		}
 

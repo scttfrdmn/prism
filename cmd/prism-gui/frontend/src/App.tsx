@@ -318,6 +318,7 @@ interface IdleSchedule {
 
 interface AppState {
   activeView: 'dashboard' | 'templates' | 'workspaces' | 'storage' | 'projects' | 'project-detail' | 'users' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
+  settingsSection: 'general' | 'profiles' | 'users' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs';
   templates: Record<string, Template>;
   instances: Instance[];
   efsVolumes: EFSVolume[];
@@ -1045,6 +1046,7 @@ export default function PrismApp() {
 
   const [state, setState] = useState<AppState>({
     activeView: 'dashboard',
+    settingsSection: 'general',
     templates: {},
     instances: [],
     efsVolumes: [],
@@ -1619,7 +1621,7 @@ export default function PrismApp() {
             {templateList.map((template, index) => (
               <Container
                 key={getTemplateName(template)}
-                data-testid="card"
+                data-testid="template-card"
               >
                 <SpaceBetween size="s">
                   <Box>
@@ -3659,24 +3661,50 @@ export default function PrismApp() {
   };
 
   // Settings View
-  const SettingsView = () => (
-    <SpaceBetween size="l">
-      <Header
-        variant="h1"
-        description="Configure Prism preferences and system settings"
-        actions={
-          <SpaceBetween direction="horizontal" size="xs">
-            <Button onClick={loadApplicationData} disabled={state.loading}>
-              {state.loading ? <Spinner /> : 'Refresh'}
-            </Button>
-            <Button variant="primary">
-              Save Settings
-            </Button>
-          </SpaceBetween>
-        }
-      >
-        Settings
-      </Header>
+  const SettingsView = () => {
+    // Settings side navigation items
+    const settingsNavItems = [
+      { type: "link", text: "General", href: "#general" },
+      { type: "link", text: "Profiles", href: "#profiles" },
+      { type: "link", text: "Users", href: "#users" },
+      { type: "divider" },
+      {
+        type: "expandable-link-group",
+        text: "Advanced",
+        href: "#advanced",
+        items: [
+          { type: "link", text: "AMI Management", href: "#ami" },
+          { type: "link", text: "Rightsizing", href: "#rightsizing" },
+          { type: "link", text: "Policy Framework", href: "#policy" },
+          { type: "link", text: "Template Marketplace", href: "#marketplace" },
+          { type: "link", text: "Idle Detection", href: "#idle" },
+          { type: "link", text: "Logs Viewer", href: "#logs" }
+        ]
+      }
+    ];
+
+    // Render content based on current section
+    const renderSettingsContent = () => {
+      switch (state.settingsSection) {
+        case 'general':
+          return (
+            <SpaceBetween size="l">
+              <Header
+                variant="h1"
+                description="Configure Prism preferences and system settings"
+                actions={
+                  <SpaceBetween direction="horizontal" size="xs">
+                    <Button onClick={loadApplicationData} disabled={state.loading}>
+                      {state.loading ? <Spinner /> : 'Refresh'}
+                    </Button>
+                    <Button variant="primary">
+                      Save Settings
+                    </Button>
+                  </SpaceBetween>
+                }
+              >
+                General Settings
+              </Header>
 
       {/* System Status Section */}
       <Container
@@ -3906,8 +3934,66 @@ export default function PrismApp() {
           </ColumnLayout>
         </SpaceBetween>
       </Container>
-    </SpaceBetween>
-  );
+            </SpaceBetween>
+          );
+
+        case 'profiles':
+          return <ProfileSelectorView />;
+
+        case 'users':
+          return <UserManagementView />;
+
+        case 'ami':
+          return <AMIManagementView />;
+
+        case 'rightsizing':
+          return <RightsizingView />;
+
+        case 'policy':
+          return <PolicyView />;
+
+        case 'marketplace':
+          return <MarketplaceView />;
+
+        case 'idle':
+          return <IdleDetectionView />;
+
+        case 'logs':
+          return <LogsView />;
+
+        default:
+          return (
+            <Alert type="error">
+              Unknown settings section: {state.settingsSection}
+            </Alert>
+          );
+      }
+    };
+
+    // Return the layout with side navigation
+    return (
+      <div style={{ display: 'flex', height: '100%' }}>
+        <div style={{ width: '280px', borderRight: '1px solid #e9ebed', padding: '20px 0' }}>
+          <SideNavigation
+            activeHref={`#${state.settingsSection}`}
+            header={{ text: "Settings", href: "#general" }}
+            items={settingsNavItems}
+            onFollow={(e) => {
+              e.preventDefault();
+              const href = e.detail.href.replace('#', '');
+              setState(prev => ({
+                ...prev,
+                settingsSection: href as typeof prev.settingsSection
+              }));
+            }}
+          />
+        </div>
+        <div style={{ flex: 1, padding: '20px', overflow: 'auto' }}>
+          {renderSettingsContent()}
+        </div>
+      </div>
+    );
+  };
 
   // Budget Management View
   const BudgetManagementView = () => {
@@ -6301,7 +6387,7 @@ export default function PrismApp() {
               { type: "divider" },
               {
                 type: "link",
-                text: "Research Templates",
+                text: "Templates",
                 href: "/templates",
                 info: Object.keys(state.templates).length > 0 ?
                       <Badge color="blue">{Object.keys(state.templates).length}</Badge> : undefined
@@ -6340,57 +6426,12 @@ export default function PrismApp() {
                 text: "Projects",
                 href: "/projects"
               },
-              {
-                type: "link",
-                text: "Users",
-                href: "/users"
-              },
-              { type: "divider" },
-              {
-                type: "link",
-                text: "AMI Management",
-                href: "/ami",
-                info: <Badge>{state.amis.length} AMIs</Badge>
-              },
-              {
-                type: "link",
-                text: "Rightsizing",
-                href: "/rightsizing",
-                info: state.rightsizingRecommendations.length > 0 ?
-                      <Badge color="green">{state.rightsizingRecommendations.length} recommendations</Badge> : undefined
-              },
-              {
-                type: "link",
-                text: "Policy Framework",
-                href: "/policy",
-                info: state.policyStatus?.enabled ?
-                      <Badge color="green">Enforced</Badge> :
-                      <Badge color="grey">Disabled</Badge>
-              },
-              {
-                type: "link",
-                text: "Template Marketplace",
-                href: "/marketplace",
-                info: state.marketplaceTemplates.length > 0 ?
-                      <Badge color="blue">{state.marketplaceTemplates.length} templates</Badge> : undefined
-              },
-              {
-                type: "link",
-                text: "Idle Detection",
-                href: "/idle",
-                info: state.idlePolicies.filter(p => p.enabled).length > 0 ?
-                      <Badge color="green">{state.idlePolicies.filter(p => p.enabled).length} active</Badge> : undefined
-              },
-              {
-                type: "link",
-                text: "Logs Viewer",
-                href: "/logs"
-              },
               { type: "divider" },
               {
                 type: "link",
                 text: "Settings",
-                href: "/settings"
+                href: "/settings",
+                info: <Badge color="grey">Advanced</Badge>
               }
             ]}
             onFollow={event => {

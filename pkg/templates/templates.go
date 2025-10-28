@@ -7,6 +7,7 @@ package templates
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,38 +18,64 @@ import (
 
 // DefaultTemplateDirs returns the default template directories to scan
 func DefaultTemplateDirs() []string {
+	log.Printf("🔍 DEFAULT TEMPLATE DIRS CALLED - STARTING DISCOVERY")
 	dirs := []string{}
 
-	// HIGHEST PRIORITY: Current working directory's templates/ (for development)
-	if wd, err := os.Getwd(); err == nil {
-		devTemplatesPath := filepath.Join(wd, "templates")
-		if _, err := os.Stat(devTemplatesPath); err == nil {
-			dirs = append(dirs, devTemplatesPath)
+	// HIGHEST PRIORITY: Environment variable override (for tests and custom setups)
+	if envDir := os.Getenv("PRISM_TEMPLATE_DIR"); envDir != "" {
+		envDir = filepath.Clean(envDir)
+		if info, err := os.Stat(envDir); err == nil && info.IsDir() {
+			dirs = append(dirs, envDir)
+			return dirs // Use ONLY the environment variable path when set
 		}
 	}
 
-	// Add project templates directory for development (binary-relative)
+	// Binary-relative path (most reliable for development and production)
 	if exe, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exe)
 
 		// Development: binary is in bin/, templates are in ../templates
-		devTemplatesPath := filepath.Join(exeDir, "..", "templates")
-		if _, err := os.Stat(devTemplatesPath); err == nil {
+		devTemplatesPath := filepath.Clean(filepath.Join(exeDir, "..", "templates"))
+		if info, err := os.Stat(devTemplatesPath); err == nil && info.IsDir() {
 			dirs = append(dirs, devTemplatesPath)
 		}
 
 		// Homebrew installation: binary is in bin/, templates are in ../share/templates
-		homebrewTemplatesPath := filepath.Join(exeDir, "..", "share", "templates")
-		if _, err := os.Stat(homebrewTemplatesPath); err == nil {
+		homebrewTemplatesPath := filepath.Clean(filepath.Join(exeDir, "..", "share", "templates"))
+		if info, err := os.Stat(homebrewTemplatesPath); err == nil && info.IsDir() {
 			dirs = append(dirs, homebrewTemplatesPath)
 		}
 	}
 
+	// Current working directory's templates/ (fallback for development)
+	if wd, err := os.Getwd(); err == nil {
+		devTemplatesPath := filepath.Join(wd, "templates")
+		if info, err := os.Stat(devTemplatesPath); err == nil && info.IsDir() {
+			// Only add if not already in list (avoid duplicates)
+			isDuplicate := false
+			for _, dir := range dirs {
+				if dir == devTemplatesPath {
+					isDuplicate = true
+					break
+				}
+			}
+			if !isDuplicate {
+				dirs = append(dirs, devTemplatesPath)
+			}
+		}
+	}
+
 	// User templates directory
-	dirs = append(dirs, filepath.Join(os.Getenv("HOME"), ".prism", "templates"))
+	userTemplatesPath := filepath.Join(os.Getenv("HOME"), ".prism", "templates")
+	if info, err := os.Stat(userTemplatesPath); err == nil && info.IsDir() {
+		dirs = append(dirs, userTemplatesPath)
+	}
 
 	// System templates directory
-	dirs = append(dirs, "/etc/cloudworkstation/templates")
+	systemTemplatesPath := "/etc/cloudworkstation/templates"
+	if info, err := os.Stat(systemTemplatesPath); err == nil && info.IsDir() {
+		dirs = append(dirs, systemTemplatesPath)
+	}
 
 	// Add Homebrew installation paths
 	if homebrewPrefix := os.Getenv("HOMEBREW_PREFIX"); homebrewPrefix != "" {
@@ -64,6 +91,16 @@ func DefaultTemplateDirs() []string {
 	for _, path := range commonHomebrewPaths {
 		if _, err := os.Stat(path); err == nil {
 			dirs = append(dirs, path)
+		}
+	}
+
+	log.Printf("[TEMPLATE DISCOVERY] Total template directories found: %d", len(dirs))
+	if len(dirs) == 0 {
+		log.Println("[TEMPLATE DISCOVERY] ⚠️  WARNING: NO template directories found! Templates will not be available!")
+	} else {
+		log.Println("[TEMPLATE DISCOVERY] Template directories:")
+		for i, dir := range dirs {
+			log.Printf("[TEMPLATE DISCOVERY]   %d. %s", i+1, dir)
 		}
 	}
 

@@ -12,6 +12,13 @@ The Prism GUI is a modern, single-page application built with Go and Wails v3 th
 - **Content switching** - Navigation changes the main content area
 - **Consistent layout** - Sidebar navigation with main content area
 
+### Progressive Disclosure (v0.5.9+)
+- **Simple by default** - Core features prominent in main navigation
+- **Advanced when needed** - Power features accessible via Settings
+- **Reduced cognitive load** - 40% fewer navigation items (15→9)
+- **Clear learning path** - New users see essential features first
+- **Feature discoverability** - Advanced features organized and searchable
+
 ### Modern Visual Design
 - **Card-based layouts** for organized information presentation
 - **Grid systems** for consistent spacing and alignment
@@ -21,85 +28,186 @@ The Prism GUI is a modern, single-page application built with Go and Wails v3 th
 
 ## Architecture Components
 
+### Main Application Layout
+
 ```
 ┌─────────────┬──────────────────────────────────┐
 │   Sidebar   │           Main Content           │
 │  (20% width)│          (80% width)             │
 ├─────────────┼──────────────────────────────────┤
-│ App Info    │   ┌─ Notifications (inline) ─┐   │
-│ - Logo      │   │ ✅ Success/Error alerts   │   │
-│ - Version   │   │ ℹ️  Info messages         │   │
-│ - Cost      │   │ ❌ Error notifications    │   │
-│             │   └──────────────────────────┘   │
-├─────────────┤                                  │
-│ Navigation  │     📊 Dynamic Content Area      │
-│ 🏠 Dashboard│     ┌─────────────────────────┐   │
-│ 💻 Instances│     │  Dashboard / Instances  │   │
-│ 📋 Templates│     │  Templates / Storage    │   │
-│ 💾 Storage  │     │  Billing / Settings     │   │
-│ 💰 Billing  │     └─────────────────────────┘   │
+│ Navigation  │   ┌─ Notifications (inline) ─┐   │
+│ (v0.5.9+)   │   │ ✅ Success/Error alerts   │   │
+│             │   │ ℹ️  Info messages         │   │
+│ 🏠 Dashboard│   │ ❌ Error notifications    │   │
+│ 📋 Templates│   └──────────────────────────┘   │
+│ 💻 Workspaces│                                  │
+│ 🖥️ Terminal │     📊 Dynamic Content Area      │
+│ 🌐 Web Svc  │     ┌─────────────────────────┐   │
+│ ─────────── │     │  Dashboard / Templates  │   │
+│ 💾 Storage  │     │  Workspaces / Projects  │   │
+│ 📊 Projects │     │  Storage / Settings     │   │
+│ ─────────── │     └─────────────────────────┘   │
 │ ⚙️ Settings │                                  │
-├─────────────┤                                  │
-│ Quick Actions│                                  │
-│ - R Env     │                                  │
-│ - Python ML │                                  │
-│ - Ubuntu    │                                  │
-├─────────────┤                                  │
-│ Status      │                                  │
-│ - Connection│                                  │
-│ - Health    │                                  │
+│   + Advanced│                                  │
 └─────────────┴──────────────────────────────────┘
+```
+
+### Settings Internal Navigation (v0.5.9+)
+
+When Settings is selected, the main content area includes a side navigation:
+
+```
+┌─────────────┬─────────────┬────────────────────┐
+│Main Nav     │Settings Nav │  Settings Content  │
+├─────────────┼─────────────┼────────────────────┤
+│ ...         │ General     │ ┌────────────────┐ │
+│ ⚙️ Settings │ Profiles    │ │ System Status  │ │
+│   (active)  │ Users       │ │ Configuration  │ │
+│ ...         │ ─────────── │ │ AWS Settings   │ │
+│             │ ▶ Advanced  │ │ Feature Mgmt   │ │
+│             │   • AMI     │ │ Debug Tools    │ │
+│             │   • Sizing  │ └────────────────┘ │
+│             │   • Policy  │                    │
+│             │   • Market  │                    │
+│             │   • Idle    │                    │
+│             │   • Logs    │                    │
+└─────────────┴─────────────┴────────────────────┘
 ```
 
 ## Navigation Sections
 
+### Main Navigation (9 Items - v0.5.9+)
+
 ### 🏠 Dashboard (Primary)
 **Purpose**: Overview and quick actions
 **Features**:
-- Overview cards (active instances, daily cost, totals)
+- Overview cards (active workspaces, daily cost, totals)
 - Quick launch form with template/name/size selection
-- Recent instances list with management shortcuts
+- Recent workspaces list with management shortcuts
 - Real-time cost and status updates
 
-### 💻 Instances 
-**Purpose**: Complete instance management
-**Features**:
-- Detailed instance cards with full information
-- State-aware action buttons (Connect/Start/Stop/Delete)
-- Visual status indicators with color coding
-- Launch new instance shortcut
-
 ### 📋 Templates
-**Purpose**: Template discovery and launching
+**Purpose**: Research environment template discovery and launching
 **Features**:
-- Visual template gallery with descriptions
+- Visual template gallery with descriptions and badges
 - Pre-configured environment details
+- AMI-optimized and script-based templates
 - One-click template launching
-- Future: Custom template creation
+- Template filtering and search
+
+### 💻 My Workspaces
+**Purpose**: Complete workspace management
+**Features**:
+- Detailed workspace cards with full information
+- State-aware action buttons (Connect/Start/Stop/Hibernate/Delete)
+- Visual status indicators with color coding
+- Launch new workspace shortcut
+- Connection information and SSH access
+
+### 🖥️ Terminal
+**Purpose**: Direct terminal access to workspaces
+**Features**:
+- Embedded terminal interface
+- Quick SSH connection
+- Multi-tab terminal support (future)
+
+### 🌐 Web Services
+**Purpose**: Web-based service access
+**Features**:
+- Jupyter Notebook access
+- RStudio Server connections
+- Custom web services
+- Embedded browser interface
 
 ### 💾 Storage
 **Purpose**: Volume and storage management
 **Features**:
-- EFS volume management (future)
-- EBS volume operations (future)
-- Storage cost tracking (future)
-- Attachment/detachment workflows (future)
+- Unified EFS and EBS volume management
+- Tabbed interface (Shared/Private)
+- Volume creation and deletion
+- Attachment/detachment workflows
+- Storage cost tracking
 
-### 💰 Billing
-**Purpose**: Cost monitoring and control
+### 📊 Projects
+**Purpose**: Multi-user collaboration and budgeting
 **Features**:
-- Current cost breakdown
-- Daily/monthly estimates
-- Running vs total instance costs
-- Advanced billing features (future)
+- Project creation and management
+- Budget tracking and alerts
+- Member management and roles
+- Cost analysis and reporting
+- Project-specific resource views
 
 ### ⚙️ Settings
-**Purpose**: Application configuration
-**Features**:
-- Daemon connection settings
-- Connection testing
-- Application information
-- About and help links
+**Purpose**: Application configuration and advanced features
+**Features**: *(See Settings Internal Navigation below)*
+- General settings (system status, configuration)
+- Profile management (AWS profiles and regions)
+- User management (research users)
+- **Advanced features** (expandable section with 6 power features)
+
+## Settings Internal Navigation (v0.5.9+)
+
+Settings uses a side navigation to organize configuration and advanced features:
+
+### General (Default)
+- System status and health monitoring
+- Daemon connection configuration
+- Auto-refresh interval settings
+- Default workspace sizes
+- AWS profile and region information
+- Feature toggles and management
+- Debug tools and troubleshooting links
+
+### Profiles
+- AWS profile management and switching
+- Region configuration and selection
+- Credential validation
+- Profile-specific settings
+
+### Users
+- Research user management
+- SSH key generation and management
+- User provisioning and creation
+- Multi-user collaboration setup
+- UID/GID mapping configuration
+
+### Advanced (Expandable Section)
+
+**🔧 AMI Management**
+- Custom AMI creation from workspaces
+- AMI optimization and sharing
+- Cross-region AMI distribution
+- Community AMI discovery
+
+**📏 Rightsizing**
+- Instance sizing recommendations
+- Cost optimization suggestions
+- Resource utilization analysis
+- Scaling predictions
+
+**🔐 Policy Framework**
+- Institutional governance controls
+- Access control policies
+- Template restrictions
+- Compliance and audit settings
+
+**🏪 Template Marketplace**
+- Community template discovery
+- Template rating and reviews
+- Template installation
+- Repository management
+
+**⏰ Idle Detection**
+- Automated hibernation policies
+- Cost optimization through idle detection
+- Policy configuration (GPU, batch, balanced)
+- Hibernation history and savings tracking
+
+**📋 Logs Viewer**
+- System logs and diagnostics
+- Error tracking and debugging
+- API call history
+- Performance monitoring
 
 ## Backend Integration
 

@@ -35,13 +35,21 @@ async function startDaemon() {
   }
   
   // Start daemon in background
-  console.log('Starting CloudWorkstation daemon for testing...')
+  console.log('Starting Prism daemon for testing...')
+
+  // Calculate absolute path to templates directory (repository root + /templates)
+  const repoRoot = path.join(process.cwd(), '..', '..', '..')
+  const templatesPath = path.join(repoRoot, 'templates')
+
+  console.log(`Setting PRISM_TEMPLATE_DIR=${templatesPath}`)
+
   const daemon = spawn(daemonPath, [], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
       ...process.env,
-      CLOUDWORKSTATION_TEST_MODE: 'true'
+      PRISM_TEST_MODE: 'true',
+      PRISM_TEMPLATE_DIR: templatesPath
     }
   })
   
