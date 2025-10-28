@@ -127,7 +127,7 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 10907,
+                      "duration": 10951,
                       "error": {
                         "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
                         "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:33:16",
@@ -155,7 +155,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:25.813Z",
+                      "startTime": "2025-10-28T18:37:58.933Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -205,7 +205,7 @@
                       "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 5602,
+                      "duration": 5631,
                       "errors": [],
                       "stdout": [
                         {
@@ -220,7 +220,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:37.281Z",
+                      "startTime": "2025-10-28T18:38:10.484Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -249,7 +249,7 @@
                       "workerIndex": 1,
                       "parallelIndex": 0,
                       "status": "failed",
-                      "duration": 10257,
+                      "duration": 10337,
                       "error": {
                         "message": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n",
                         "stack": "TimeoutError: page.waitForSelector: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-testid=\"template-card\"]') to be visible\u001b[22m\n\n    at /Users/scttfrdmn/src/cloudworkstation/cmd/prism-gui/frontend/tests/e2e/capture-screenshots.spec.js:74:16",
@@ -273,7 +273,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:42.997Z",
+                      "startTime": "2025-10-28T18:38:16.223Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -323,7 +323,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1535,
+                      "duration": 1905,
                       "errors": [],
                       "stdout": [
                         {
@@ -335,7 +335,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:53.615Z",
+                      "startTime": "2025-10-28T18:38:26.965Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -364,7 +364,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1564,
+                      "duration": 1570,
                       "errors": [],
                       "stdout": [
                         {
@@ -373,7 +373,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:55.245Z",
+                      "startTime": "2025-10-28T18:38:29.046Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -402,7 +402,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1568,
+                      "duration": 1547,
                       "errors": [],
                       "stdout": [
                         {
@@ -411,7 +411,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:56.813Z",
+                      "startTime": "2025-10-28T18:38:30.621Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -440,7 +440,7 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 1555,
+                      "duration": 1558,
                       "errors": [],
                       "stdout": [
                         {
@@ -449,7 +449,7 @@
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:58.386Z",
+                      "startTime": "2025-10-28T18:38:32.172Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -502,7 +502,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:05:59.945Z",
+                      "startTime": "2025-10-28T18:38:33.734Z",
                       "annotations": [],
                       "attachments": [
                         {
@@ -574,7 +574,7 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-10-28T18:06:10.244Z",
+                      "startTime": "2025-10-28T18:38:44.034Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -594,8 +594,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-10-28T18:05:21.997Z",
-    "duration": 48273.418,
+    "startTime": "2025-10-28T18:37:56.160Z",
+    "duration": 47907.218,
     "expected": 5,
     "skipped": 1,
     "unexpected": 3,

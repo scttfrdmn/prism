@@ -1129,7 +1129,9 @@ export default function PrismApp() {
 
       console.log('Loading Prism data...');
 
-      const [templatesData, instancesData, efsVolumesData, ebsVolumesData, projectsData, usersData, budgetsData, amisData, amiBuildsData, amiRegionsData, rightsizingRecommendationsData, rightsizingStatsData, policyStatusData, policySetsData, marketplaceTemplatesData, marketplaceCategoriesData, idlePoliciesData, idleSchedulesData] = await Promise.all([
+      // Use Promise.allSettled to allow individual API calls to fail without breaking the entire load
+      // This is essential for test environments where some endpoints may not have AWS credentials
+      const results = await Promise.allSettled([
         api.getTemplates(),
         api.getInstances(),
         api.getEFSVolumes(),
@@ -1149,6 +1151,20 @@ export default function PrismApp() {
         api.getIdlePolicies(),
         api.getIdleSchedules()
       ]);
+
+      // Extract successful results, using empty fallbacks for failed promises
+      const [templatesData, instancesData, efsVolumesData, ebsVolumesData, projectsData, usersData, budgetsData, amisData, amiBuildsData, amiRegionsData, rightsizingRecommendationsData, rightsizingStatsData, policyStatusData, policySetsData, marketplaceTemplatesData, marketplaceCategoriesData, idlePoliciesData, idleSchedulesData] = results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return result.value;
+        } else {
+          console.warn(`API call ${index} failed:`, result.reason);
+          // Return appropriate empty fallback based on expected type
+          if (index === 0) return {}; // templates (object)
+          if (index === 11) return null; // rightsizingStats (nullable)
+          if (index === 12) return null; // policyStatus (nullable)
+          return []; // everything else (arrays)
+        }
+      });
 
       console.log('Templates loaded:', Object.keys(templatesData).length);
       console.log('Instances loaded:', instancesData.length);
