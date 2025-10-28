@@ -50,6 +50,9 @@ type Server struct {
 	recoveryManager  *RecoveryManager
 	healthMonitor    *HealthMonitor
 
+	// Background state monitoring (v0.5.8)
+	stateMonitor *StateMonitor
+
 	// Cost optimization components
 	budgetTracker *project.BudgetTracker
 	alertManager  *cost.AlertManager
@@ -234,6 +237,9 @@ func NewServer(port string) (*Server, error) {
 	// Initialize daemon stability
 	stabilityManager := NewStabilityManager(performanceMonitor)
 
+	// Initialize state monitor for background instance monitoring (v0.5.8)
+	stateMonitor := NewStateMonitor(awsManager, stateManager)
+
 	// Initialize CloudWatch client for rightsizing metrics
 	var cloudwatchClient *cloudwatch.Client
 	if awsManager != nil {
@@ -258,6 +264,7 @@ func NewServer(port string) (*Server, error) {
 		connManager:         connManager,
 		reliabilityManager:  reliabilityManager,
 		stabilityManager:    stabilityManager,
+		stateMonitor:        stateMonitor,
 		budgetTracker:       budgetTracker,
 		alertManager:        alertManager,
 		marketplaceRegistry: marketplaceRegistry,
@@ -365,6 +372,11 @@ func (s *Server) Start() error {
 	go s.stabilityManager.Start(ctx)
 	go s.healthMonitor.Start(ctx)
 
+	// Start background state monitor for async instance state tracking (v0.5.8)
+	if err := s.stateMonitor.Start(); err != nil {
+		log.Printf("Warning: Failed to start state monitor: %v", err)
+	}
+
 	// Enable memory management
 	s.stabilityManager.EnableForceGC(true)
 	log.Printf("Daemon stability systems started")
@@ -405,6 +417,9 @@ func (s *Server) Start() error {
 		// Stop integrated monitoring
 		s.stopIntegratedMonitoring()
 
+		// Stop state monitor (v0.5.8)
+		s.stateMonitor.Stop()
+
 		// Stop security manager
 		if err := s.securityManager.Stop(); err != nil {
 			log.Printf("Warning: Failed to stop security manager: %v", err)
@@ -431,6 +446,9 @@ func (s *Server) Stop() error {
 
 	// Stop integrated monitoring
 	s.stopIntegratedMonitoring()
+
+	// Stop state monitor (v0.5.8)
+	s.stateMonitor.Stop()
 
 	// Shutdown HTTP server with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
