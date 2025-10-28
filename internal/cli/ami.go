@@ -696,7 +696,7 @@ func NewAMISaveArgParser() *AMISaveArgParser {
 // Parse parses command line arguments into save configuration (Single Responsibility)
 func (p *AMISaveArgParser) Parse(args []string) (*AMISaveConfig, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf("usage: cws ami save <instance-name> <template-name> [options]")
+		return nil, fmt.Errorf("usage: cws ami save <workspace-name> <template-name> [options]")
 	}
 
 	instanceName := args[0]
@@ -1332,7 +1332,7 @@ func getSlice(data interface{}, key string) []interface{} {
 // handleAMICreate creates an AMI from a running instance
 func (a *App) handleAMICreate(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami create <instance-name> --name <ami-name> [--description <description>] [--template <template>] [--public] [--no-reboot]")
+		return fmt.Errorf("usage: cws ami create <workspace-name> --name <ami-name> [--description <description>] [--template <template>] [--public] [--no-reboot]")
 	}
 
 	instanceName := args[0]
@@ -1469,7 +1469,7 @@ func (a *App) handleAMIListUser(args []string) error {
 	amis := getSlice(response, "amis")
 	if len(amis) == 0 {
 		fmt.Printf("No custom AMIs found.\n")
-		fmt.Printf("💡 Create one with: cws ami create <instance-name> --name <ami-name>\n")
+		fmt.Printf("💡 Create one with: cws ami create <workspace-name> --name <ami-name>\n")
 		return nil
 	}
 

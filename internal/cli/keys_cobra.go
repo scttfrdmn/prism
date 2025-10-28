@@ -368,7 +368,7 @@ func (k *KeysCobraCommands) handleDeleteKey(profileName string, force bool) erro
 		}
 		fmt.Printf("\n❌ Cannot delete key while instances are using it\n")
 		fmt.Printf("💡 Options:\n")
-		fmt.Printf("   1. Delete the instances first: cws delete <instance-name>\n")
+		fmt.Printf("   1. Delete the instances first: cws delete <workspace-name>\n")
 		fmt.Printf("   2. Force deletion (DANGEROUS): cws keys delete %s --force\n", profileName)
 		return fmt.Errorf("key is in use")
 	}

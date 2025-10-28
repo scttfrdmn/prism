@@ -81,7 +81,7 @@ For shared storage (EFS), use 'cws volume' commands.`,
 	cmd.AddCommand(
 		createCmd,
 		&cobra.Command{
-			Use:   "attach <volume> <instance>",
+			Use:   "attach <volume> <workspace>",
 			Short: "Attach volume to instance",
 			Args:  cobra.ExactArgs(2),
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -170,7 +170,7 @@ Use 'cws storage' for local storage (EBS volumes).`,
 			},
 		},
 		&cobra.Command{
-			Use:   "mount <volume> <instance> [mount-point]",
+			Use:   "mount <volume> <workspace> [mount-point]",
 			Short: "Mount volume to instance",
 			Args:  cobra.RangeArgs(2, 3),
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -182,7 +182,7 @@ Use 'cws storage' for local storage (EBS volumes).`,
 			},
 		},
 		&cobra.Command{
-			Use:   "unmount <volume> <instance>",
+			Use:   "unmount <volume> <workspace>",
 			Short: "Unmount volume from instance",
 			Args:  cobra.ExactArgs(2),
 			RunE: func(cmd *cobra.Command, args []string) error {

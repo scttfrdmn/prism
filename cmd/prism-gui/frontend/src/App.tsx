@@ -317,7 +317,7 @@ interface IdleSchedule {
 }
 
 interface AppState {
-  activeView: 'dashboard' | 'templates' | 'instances' | 'storage' | 'projects' | 'project-detail' | 'users' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
+  activeView: 'dashboard' | 'templates' | 'workspaces' | 'storage' | 'projects' | 'project-detail' | 'users' | 'ami' | 'rightsizing' | 'policy' | 'marketplace' | 'idle' | 'logs' | 'settings' | 'terminal' | 'webview';
   templates: Record<string, Template>;
   instances: Instance[];
   efsVolumes: EFSVolume[];
@@ -1082,7 +1082,7 @@ export default function PrismApp() {
   // Delete confirmation modal state
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteModalConfig, setDeleteModalConfig] = useState<{
-    type: 'instance' | 'efs-volume' | 'ebs-volume' | 'project' | 'user' | null;
+    type: 'workspace' | 'efs-volume' | 'ebs-volume' | 'project' | 'user' | null;
     name: string;
     requireNameConfirmation: boolean;
     onConfirm: () => Promise<void>;
@@ -1333,7 +1333,7 @@ export default function PrismApp() {
         const viewMap: Record<string, string> = {
           '1': 'dashboard',
           '2': 'templates',
-          '3': 'instances',
+          '3': 'workspaces',
           '4': 'storage',
           '5': 'projects',
           '6': 'users',
@@ -1497,7 +1497,7 @@ export default function PrismApp() {
               </Box>
             </Box>
             <Button
-              onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+              onClick={() => setState(prev => ({ ...prev, activeView: 'workspaces' }))}
             >
               Manage Workspaces
             </Button>
@@ -1532,7 +1532,7 @@ export default function PrismApp() {
             Launch New Workspace
           </Button>
           <Button
-            onClick={() => setState(prev => ({ ...prev, activeView: 'instances' }))}
+            onClick={() => setState(prev => ({ ...prev, activeView: 'workspaces' }))}
             disabled={state.instances.length === 0}
           >
             View Workspaces ({state.instances.length})
@@ -1679,7 +1679,7 @@ export default function PrismApp() {
           // Show confirmation modal instead of deleting immediately
           setState(prev => ({ ...prev, loading: false }));
           setDeleteModalConfig({
-            type: 'instance',
+            type: 'workspace',
             name: instance.name,
             requireNameConfirmation: true,
             onConfirm: async () => {
@@ -1785,7 +1785,7 @@ export default function PrismApp() {
     // For delete, show confirmation modal
     if (action === 'delete') {
       setDeleteModalConfig({
-        type: 'instance',
+        type: 'workspace',
         name: `${selectedInstances.length} workspace${selectedInstances.length > 1 ? 's' : ''}`,
         requireNameConfirmation: false,
         onConfirm: async () => {
@@ -2038,7 +2038,7 @@ export default function PrismApp() {
                     item.state === 'hibernated' ? 'pending' :
                     item.state === 'pending' ? 'in-progress' : 'error'
                   }
-                  ariaLabel={getStatusLabel('instance', item.state)}
+                  ariaLabel={getStatusLabel('workspace', item.state)}
                 >
                   {item.state}
                 </StatusIndicator>
@@ -3063,7 +3063,7 @@ export default function PrismApp() {
               }
             },
             {
-              id: "instances",
+              id: "workspaces",
               header: "Workspaces",
               cell: (item: User) => {
                 const count = item.provisioned_instances?.length || 0;
@@ -3205,7 +3205,7 @@ export default function PrismApp() {
                     <Box key={instance.id}>
                       <StatusIndicator
                         type="success"
-                        ariaLabel={getStatusLabel('instance', 'running', instance.name)}
+                        ariaLabel={getStatusLabel('workspace', 'running', instance.name)}
                       >
                         {instance.name}
                       </StatusIndicator>
@@ -5590,7 +5590,7 @@ export default function PrismApp() {
   const DeleteConfirmationModal = () => {
     const getDeleteMessage = () => {
       switch (deleteModalConfig.type) {
-        case 'instance':
+        case 'workspace':
           return `You are about to permanently delete the workspace "${deleteModalConfig.name}". This action cannot be undone.`;
         case 'efs-volume':
           return `You are about to permanently delete the EFS volume "${deleteModalConfig.name}". All data on this volume will be lost. This action cannot be undone.`;
@@ -6253,7 +6253,7 @@ export default function PrismApp() {
                           <Button
                             variant="primary"
                             onClick={() => {
-                              setState(prev => ({ ...prev, activeView: 'instances' }));
+                              setState(prev => ({ ...prev, activeView: 'workspaces' }));
                               handleWizardCancel();
                             }}
                           >
@@ -6417,7 +6417,7 @@ export default function PrismApp() {
           <div id="main-content" role="main">
             {state.activeView === 'dashboard' && <DashboardView />}
             {state.activeView === 'templates' && <TemplateSelectionView />}
-            {state.activeView === 'instances' && <InstanceManagementView />}
+            {state.activeView === 'workspaces' && <InstanceManagementView />}
             <div style={{ display: state.activeView === 'terminal' ? 'block' : 'none' }}>
               {(() => {
                 const runningInstances = state.instances.filter(i => i.state === 'running');

@@ -660,7 +660,7 @@ func NewTemplateSnapshotArgParser() *TemplateSnapshotArgParser {
 // Parse parses command line arguments into configuration (Single Responsibility)
 func (p *TemplateSnapshotArgParser) Parse(args []string) (*TemplateSnapshotConfig, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf(`usage: cws templates snapshot <instance-name> <template-name> [options]
+		return nil, fmt.Errorf(`usage: cws templates snapshot <workspace-name> <template-name> [options]
 
 Create a template from a running workstation's current configuration.
 
@@ -1001,7 +1001,7 @@ func NewTemplateApplyArgParser() *TemplateApplyArgParser {
 // Parse parses command line arguments into apply configuration (Single Responsibility)
 func (p *TemplateApplyArgParser) Parse(args []string) (*TemplateApplyConfig, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf("usage: cws apply <template> <instance-name> [options]\n" +
+		return nil, fmt.Errorf("usage: cws apply <template> <workspace-name> [options]\n" +
 			"  options: --dry-run --force --with <package-manager>")
 	}
 
@@ -1276,7 +1276,7 @@ func NewTemplateDiffArgParser() *TemplateDiffArgParser {
 // Parse parses command line arguments into diff configuration (Single Responsibility)
 func (p *TemplateDiffArgParser) Parse(args []string) (*TemplateDiffConfig, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf("usage: cws diff <template> <instance-name>")
+		return nil, fmt.Errorf("usage: cws diff <template> <workspace-name>")
 	}
 
 	return &TemplateDiffConfig{

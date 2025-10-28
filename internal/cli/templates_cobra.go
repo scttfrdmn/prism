@@ -295,7 +295,7 @@ func (tc *TemplateCobraCommands) createVersionCommand() *cobra.Command {
 // createSnapshotCommand creates the snapshot subcommand
 func (tc *TemplateCobraCommands) createSnapshotCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "snapshot <instance-name>",
+		Use:   "snapshot <workspace-name>",
 		Short: "Create template from running instance",
 		Long: `Create a new template by capturing the current state of a running instance,
 including installed packages, services, and users.`,

@@ -30,7 +30,7 @@ func (a *App) Diff(args []string) error {
 // Layers handles the layers command
 func (a *App) Layers(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws layers <instance-name>")
+		return fmt.Errorf("usage: cws layers <workspace-name>")
 	}
 
 	instanceName := args[0]
@@ -81,7 +81,7 @@ func (a *App) Layers(args []string) error {
 // Rollback handles the rollback command
 func (a *App) Rollback(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws rollback <instance-name> [--to-checkpoint=<checkpoint-id>]")
+		return fmt.Errorf("usage: cws rollback <workspace-name> [--to-checkpoint=<checkpoint-id>]")
 	}
 
 	instanceName := args[0]

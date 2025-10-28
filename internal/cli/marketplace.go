@@ -277,7 +277,7 @@ func (a *App) handleMarketplaceInstall(args []string) error {
 // handleMarketplacePublish publishes a template to the marketplace
 func (a *App) handleMarketplacePublish(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace publish <instance-name> --name <template-name> --category <category> [options]")
+		return fmt.Errorf("usage: cws marketplace publish <workspace-name> --name <template-name> --category <category> [options]")
 	}
 
 	instanceName := args[0]
