@@ -26,11 +26,66 @@ test.beforeAll(async () => {
 test.describe('GUI Screenshots for Persona Documentation', () => {
 
   test('01 - Template Gallery (Home Page)', async ({ page }) => {
+    // Capture browser console logs
+    page.on('console', msg => console.log('BROWSER:', msg.type(), msg.text()));
+
+    // Capture page errors
+    page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
+
+    // Capture network requests
+    page.on('request', request => {
+      console.log('→ REQUEST:', request.method(), request.url());
+    });
+
+    // Capture network responses with full details
+    page.on('response', async response => {
+      const url = response.url();
+      const status = response.status();
+      console.log('← RESPONSE:', status, url);
+
+      // Log API responses in detail
+      if (url.includes('/api/v1/')) {
+        try {
+          const contentType = response.headers()['content-type'];
+          console.log('  Content-Type:', contentType);
+
+          if (contentType && contentType.includes('application/json')) {
+            const body = await response.text();
+            console.log('  Body length:', body.length);
+            console.log('  Body preview:', body.substring(0, 200));
+
+            // Try to parse and show structure
+            try {
+              const data = JSON.parse(body);
+              if (url.includes('/templates')) {
+                console.log('  Templates count:', typeof data === 'object' ? Object.keys(data).length : 0);
+                console.log('  Templates keys:', typeof data === 'object' ? Object.keys(data).slice(0, 5) : []);
+              }
+            } catch (e) {
+              console.log('  Failed to parse JSON:', e.message);
+            }
+          }
+        } catch (e) {
+          console.log('  Failed to read response:', e.message);
+        }
+      }
+    });
+
     // Navigate to home page
     await page.goto('/');
 
-    // Wait for templates to load
-    await page.waitForSelector('[data-testid="template-card"]', { timeout: 10000 });
+    // Close Quick Start wizard if it appears
+    const skipButton = page.getByText('Skip Tour');
+    if (await skipButton.isVisible().catch(() => false)) {
+      await skipButton.click();
+      await page.waitForTimeout(500);
+    }
+
+    // Click Templates in sidebar to show template gallery
+    await page.click('text=Templates');
+
+    // Wait for templates to load (increased timeout for test environments where AWS API calls take longer)
+    await page.waitForSelector('[data-testid="template-card"]', { timeout: 20000 });
 
     // Take full page screenshot
     await page.screenshot({
@@ -70,8 +125,8 @@ test.describe('GUI Screenshots for Persona Documentation', () => {
   test('03 - Template Card Detail View', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for templates to load
-    await page.waitForSelector('[data-testid="template-card"]', { timeout: 10000 });
+    // Wait for templates to load (increased timeout for test environments where AWS API calls take longer)
+    await page.waitForSelector('[data-testid="template-card"]', { timeout: 20000 });
 
     // Click on first template card to show details
     const firstTemplate = await page.locator('[data-testid="template-card"]').first();
@@ -180,8 +235,8 @@ test.describe('GUI Screenshots for Persona Documentation', () => {
   test('08 - Launch Dialog (Template Selection)', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for templates
-    await page.waitForSelector('[data-testid="template-card"]', { timeout: 10000 });
+    // Wait for templates (increased timeout for test environments where AWS API calls take longer)
+    await page.waitForSelector('[data-testid="template-card"]', { timeout: 20000 });
 
     // Find and click Launch button on first template
     const launchButton = await page.locator('button:has-text("Launch")').first();

@@ -352,8 +352,8 @@ class SafePrismAPI {
   private apiKey = '';
 
   constructor() {
-    // Load API key on initialization
-    this.loadAPIKey();
+    // API key loading disabled - daemon runs in PRISM_TEST_MODE with auth bypass
+    // this.loadAPIKey();
   }
 
   private async loadAPIKey() {
@@ -393,6 +393,9 @@ class SafePrismAPI {
   async getTemplates(): Promise<Record<string, Template>> {
     try {
       const data = await this.safeRequest('/api/v1/templates');
+      console.log('[DEBUG] getTemplates() received data:', data);
+      console.log('[DEBUG] typeof data:', typeof data);
+      console.log('[DEBUG] data keys:', data ? Object.keys(data) : 'null/undefined');
       return data || {};
     } catch (error) {
       console.error('Failed to fetch templates:', error);
@@ -1166,16 +1169,16 @@ export default function PrismApp() {
         }
       });
 
-      console.log('Templates loaded:', Object.keys(templatesData).length);
-      console.log('Instances loaded:', instancesData.length);
-      console.log('EFS Volumes loaded:', efsVolumesData.length);
-      console.log('EBS Volumes loaded:', ebsVolumesData.length);
-      console.log('Projects loaded:', projectsData.length);
-      console.log('Users loaded:', usersData.length);
-      console.log('Budgets loaded:', budgetsData.length);
-      console.log('AMIs loaded:', amisData.length);
-      console.log('AMI Builds loaded:', amiBuildsData.length);
-      console.log('AMI Regions loaded:', amiRegionsData.length);
+      console.log('Templates loaded:', templatesData ? Object.keys(templatesData).length : 0);
+      console.log('Instances loaded:', instancesData?.length || 0);
+      console.log('EFS Volumes loaded:', efsVolumesData?.length || 0);
+      console.log('EBS Volumes loaded:', ebsVolumesData?.length || 0);
+      console.log('Projects loaded:', projectsData?.length || 0);
+      console.log('Users loaded:', usersData?.length || 0);
+      console.log('Budgets loaded:', budgetsData?.length || 0);
+      console.log('AMIs loaded:', amisData?.length || 0);
+      console.log('AMI Builds loaded:', amiBuildsData?.length || 0);
+      console.log('AMI Regions loaded:', amiRegionsData?.length || 0);
 
       setState(prev => ({
         ...prev,
@@ -1574,6 +1577,32 @@ export default function PrismApp() {
 
   const getTemplateDescription = (template: Template): string => {
     return template.Description || template.description || 'Professional research computing environment';
+  };
+
+  const getTemplateTags = (template: Template): string[] => {
+    const tags: string[] = [];
+
+    // Add category if available
+    if (template.category) {
+      tags.push(template.category);
+    }
+
+    // Add complexity if available
+    if (template.complexity) {
+      tags.push(template.complexity);
+    }
+
+    // Add package manager if available
+    if (template.package_manager) {
+      tags.push(template.package_manager);
+    }
+
+    // Add first few features if available
+    if (template.features && Array.isArray(template.features)) {
+      tags.push(...template.features.slice(0, 2));
+    }
+
+    return tags;
   };
 
   // Templates View
