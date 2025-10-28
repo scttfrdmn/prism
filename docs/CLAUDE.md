@@ -281,7 +281,8 @@ Current priority is [Phase 5.0 UX Redesign](ROADMAP.md#-current-focus-phase-50--
 - [Development Setup](development/DEVELOPMENT_SETUP.md)
 - [Testing Guide](development/TESTING.md)
 - [Code Quality](development/CODE_QUALITY_BEST_PRACTICES.md)
-- [Release Process](development/RELEASE_PROCESS.md)
+- [Release Process](development/RELEASE_PROCESS.md) - Legacy manual process
+- [GoReleaser Release Process](development/GORELEASER_RELEASE_PROCESS.md) - **RECOMMENDED**: Automated release process
 
 **User/Admin**:
 - [User Guide v0.5.x](user-guides/USER_GUIDE_v0.5.x.md)
@@ -311,6 +312,42 @@ Current priority is [Phase 5.0 UX Redesign](ROADMAP.md#-current-focus-phase-50--
 1. ✅ Check [ROADMAP.md](ROADMAP.md) for current phase and status
 2. ✅ Review [persona walkthroughs](USER_SCENARIOS/) to understand user needs
 3. ✅ Read [UX evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md) to understand pain points
+
+### Creating a Release (GoReleaser)
+**See [GoReleaser Release Process](development/GORELEASER_RELEASE_PROCESS.md) for complete documentation.**
+
+Quick steps for creating a release:
+
+1. ✅ Ensure version is synchronized (pkg/version/version.go, cmd/prism-gui/frontend/package.json)
+2. ✅ Commit and push all changes to main branch
+3. ✅ Create annotated git tag:
+   ```bash
+   git tag -a v0.5.8 -m "Release v0.5.8: [Brief Description]"
+   git push origin v0.5.8
+   ```
+4. ✅ Set GitHub token:
+   ```bash
+   export GITHUB_TOKEN=$(gh auth token)
+   ```
+5. ✅ Run GoReleaser:
+   ```bash
+   goreleaser release --clean
+   ```
+6. ✅ Verify release: https://github.com/scttfrdmn/prism/releases/tag/v0.5.8
+
+**What GoReleaser Does Automatically:**
+- ✅ Builds binaries for all platforms (Linux, macOS, Windows; amd64, arm64)
+- ✅ Creates archives (.tar.gz, .zip)
+- ✅ Generates Linux packages (deb, rpm, apk)
+- ✅ Creates GitHub release with all artifacts
+- ✅ Updates Homebrew formula in scttfrdmn/homebrew-tap
+- ✅ Updates Scoop manifest in scttfrdmn/scoop-bucket
+- ✅ Calculates checksums
+
+**Common Issues:**
+- **GITHUB_TOKEN not set**: Run `export GITHUB_TOKEN=$(gh auth token)`
+- **Dirty git state**: Commit all changes before running GoReleaser
+- **Tag on wrong commit**: Delete and recreate tag on correct commit
 
 ---
 
