@@ -131,6 +131,7 @@ They prioritize usability and clarity by showing complete end-to-end workflows w
 ### 📋 Releases
 
 - [Release Notes](releases/RELEASE_NOTES.md) - All versions
+- [v0.5.8](RELEASE_NOTES_v0.5.8.md) - Quick Start Experience, Billing Accuracy, and Reliability
 - [v0.5.7](releases/RELEASE_NOTES_v0.5.7.md) - Template File Provisioning & Test Infrastructure
 - [v0.5.2](releases/RELEASE_NOTES_v0.5.2.md) - Template Marketplace
 - [v0.5.1](releases/RELEASE_NOTES_v0.5.1.md) - Command updates

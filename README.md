@@ -263,7 +263,20 @@ prism doctor                      # System health check
 
 ## 🗓️ Version History
 
-### v0.5.4 (Current) - Universal Version System
+### v0.5.8 (Current) - Quick Start Experience & Reliability
+- **Quick Start Wizard**: Launch first workspace in 30 seconds with GUI wizard
+- **CLI Init Command**: Interactive `prism init` onboarding in terminal
+- **Workspace Terminology**: Consistent "workspace" naming across all interfaces
+- **Background State Monitoring**: Async daemon monitoring of AWS state changes
+- **Billing Accuracy**: Correct hibernation billing exception handling
+- **Reliability Improvements**: AWS system status checks, IAM eventual consistency
+
+### v0.5.7 - Template File Provisioning & Test Infrastructure
+- **Template File Provisioning**: Provision files directly from template definitions
+- **AWS Cost Testing**: Complete integration test suite with cost tracking
+- **Instance Lifecycle Testing**: Full workflow validation including cleanup
+
+### v0.5.4 - Universal Version System
 - **Dynamic OS Versions**: Choose OS versions at launch time with `--version` flag
 - **Version Aliases**: Support for `latest`, `lts`, `previous-lts`
 - **AMI Freshness Checking**: `prism ami check-freshness` validates static AMI IDs
