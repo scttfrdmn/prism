@@ -292,64 +292,11 @@ Features:
 
 ---
 
-### 4. Issue #19: Integrate Budgets into Projects
-**Priority**: P1 (Simplification)
-**Effort**: Small (1-2 days)
-**Impact**: Medium (Reduces navigation by 1 item)
+### 4. ~~Issue #19: Integrate Budgets into Projects~~ **MOVED TO v0.5.10**
 
-**Current State**:
-- Projects: Project management
-- Budgets: Budget management (separate)
+**Note**: Budget integration has been moved to v0.5.10 (Multi-Project Budgets) to implement a more comprehensive budget redesign that allows budgets to be allocated across multiple projects.
 
-**Proposed State**:
-- Projects: Integrated view
-  - Each project has optional budget
-  - Budget shown in project details
-  - Budget alerts in project card
-
-**Implementation**:
-
-```typescript
-// cmd/prism-gui/frontend/src/pages/Projects.tsx
-interface ProjectCard {
-  project: Project;
-  budget?: Budget;
-  currentSpend: number;
-  workspaces: number;
-  members: number;
-}
-
-Features:
-- Project card shows budget status
-- Budget indicator (progress bar)
-- Alert badges for budget warnings
-- Budget tab in project details
-```
-
-**Project Detail Tabs**:
-```
-- Overview (description, status, members)
-- Workspaces (list of project workspaces)
-- Budget (budget config, spending history, alerts)
-- Settings (permissions, policies)
-```
-
-**API Changes** (if needed):
-- Include budget in project response
-- Aggregate spending by project
-- Budget alerts API
-
-**Migration**:
-- Remove "Budgets" navigation item
-- Redirect /budgets → /projects?tab=budget
-- Update documentation
-
-**Testing**:
-- [ ] Projects show budget status
-- [ ] Budget configuration works
-- [ ] Budget alerts display
-- [ ] Spending aggregation correct
-- [ ] All personas can manage budgets
+See [RELEASE_PLAN_v0.5.10.md](RELEASE_PLAN_v0.5.10.md) for details.
 
 ---
 
@@ -375,16 +322,11 @@ Features:
 - Add role-based visibility
 - Test all settings accessible
 
-**Day 4**: Issue #19 - Integrate Budgets
-- Add budget to project cards
-- Implement budget detail tab
-- Remove budgets navigation
-- Test budget workflows
-
-**Day 5**: Testing & polish
+**Day 4-5**: Testing & polish
 - Extended persona walkthroughs
 - Navigation flow testing
 - Performance testing
+- Documentation updates
 - Bug fixes
 
 ---
@@ -553,24 +495,25 @@ Track for 2 weeks after release:
 
 ---
 
-## 🔄 Backward Compatibility
+## 🔄 Breaking Changes
 
-### URL Redirects
-```
-Old URL                  → New URL
-/terminal               → /workspaces?tab=terminal
-/webview                → /workspaces?tab=services
-/volumes                → /storage?type=ebs
-/ami                    → /settings/advanced/ami
-/idle                   → /settings/advanced/idle
-/budgets                → /projects?tab=budgets
-```
+**Note**: Per user feedback, backward compatibility is not required for this release.
 
-### API Compatibility
-- All existing APIs remain functional
-- New unified endpoints added
-- Deprecation notices for old endpoints
-- Migration guide for API consumers
+### Removed Navigation Items
+- Terminal (merged into Workspaces)
+- WebView (merged into Workspaces)
+- Volumes (merged into Storage)
+- AMI Management (moved to Settings → Advanced)
+- Idle Detection (moved to Settings → Advanced)
+- Profiles (moved to Settings)
+- Users (moved to Settings)
+
+### Navigation Structure Changes
+- 14 top-level items → 6 top-level items
+- Advanced features now under Settings submenu
+- Storage unified (EFS + EBS in one view)
+
+Users will need to learn new navigation paths, but the simpler structure should reduce overall confusion.
 
 ---
 

@@ -29,8 +29,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Prism is a command-line tool that provides academic researchers with pre-configured cloud workstations, eliminating the need for manual environment configuration.
 
-**Current Version**: v0.5.7 (Released)
-**Current Focus**: [Phase 5.0 UX Redesign - v0.5.8 and v0.5.9](ROADMAP.md#-current-focus-phase-50---ux-redesign) (HIGHEST PRIORITY)
+**Current Version**: v0.5.8 (Released)
+**Current Focus**: [Phase 5.0 UX Redesign - v0.5.9, v0.5.10, v0.5.11](ROADMAP.md#-current-focus-phase-50---ux-redesign) (HIGHEST PRIORITY)
+**Strategy**: Extended 0.5.x track for stability before v0.6.0
 
 ---
 
@@ -131,7 +132,6 @@ Features (2 weeks):
 - [#14](https://github.com/scttfrdmn/prism/issues/14) - Merge Terminal/WebView into Workspaces
 - [#16](https://github.com/scttfrdmn/prism/issues/16) - Collapse Advanced Features under Settings
 - [#18](https://github.com/scttfrdmn/prism/issues/18) - Unified Storage UI (EFS + EBS)
-- [#19](https://github.com/scttfrdmn/prism/issues/19) - Integrate Budgets into Projects
 
 Success Metrics:
 - 🧭 Navigation complexity: 14 → 6 top-level items
@@ -139,13 +139,84 @@ Success Metrics:
 - 😃 User confusion: Further 30% reduction
 - 📱 Advanced feature discoverability: >95%
 
-### v0.6.0: CLI Consistency + Enterprise (February 2026)
+### v0.5.10: Multi-Project Budgets (February 2026)
+**Release Date**: Target February 14, 2026
+**Release Plan**: [RELEASE_PLAN_v0.5.10.md](releases/RELEASE_PLAN_v0.5.10.md)
+**Status**: 📋 Planned
+
+Features (2 weeks):
+- Shared budget pools allocable to multiple projects
+- Project-level budget allocation tracking
+- Budget reallocation between projects
+- Multi-project cost rollup and reporting
+
+Success Metrics:
+- Grant-funded research: Single grant budget → multiple projects
+- Lab budgets: Department budget → research group projects
+- Class budgets: Course budget → student project groups
+
+### v0.5.11: User Invitation & Role Systems (March 2026)
+**Release Date**: Target March 14, 2026
+**Release Plan**: [RELEASE_PLAN_v0.5.11.md](releases/RELEASE_PLAN_v0.5.11.md)
+**Status**: 📋 Planned
+
+Features (2 weeks):
+- Email-based invitation workflow
+- Enhanced role-based permissions (Owner/Admin/Member/Viewer)
+- Invitation management interface
+- Bulk invitation for classes/groups (CSV upload)
+- Integration with research user system (auto-provisioning)
+- AWS quota validation for invitations
+
+Success Metrics:
+- Lab onboarding: Invite new member → active < 5 minutes
+- Class setup: Bulk invite 30 students < 10 minutes
+- Role clarity: Zero "permission denied" tickets after first week
+- Quota awareness: Professors warned before capacity exceeded
+
+### v0.5.12: Operational Stability & CLI Consistency (April 2026)
+**Release Date**: Target April 2026
+**Release Plan**: [RELEASE_PLAN_v0.5.12.md](releases/RELEASE_PLAN_v0.5.12.md)
+**Status**: 📋 Planned
+
+Features (4 weeks):
+- Workspace launch rate limiting (2/min default)
+- Retry logic for transient AWS failures
+- Improved error messages with actionable guidance
+- [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
+- [#57-60](https://github.com/scttfrdmn/prism/issues/57) - AWS Quota Management
+
+Success Metrics:
+- Bulk launch: 30 workspaces without errors (100% success)
+- CLI consistency: All commands follow same patterns
+- Quota management: Proactive alerts, easy requesting
+
+### v0.5.13: UX Re-evaluation & Polish (May 2026)
+**Release Date**: Target May 2026
+**Release Plan**: [RELEASE_PLAN_v0.5.13.md](releases/RELEASE_PLAN_v0.5.13.md)
+**Status**: 📋 Planned
+
+Focus (4 weeks):
+- Comprehensive UX audit of v0.5.9-v0.5.12
+- Persona walkthrough validation (all 5 personas)
+- Quick wins and refinements
+- Performance improvements
+- Documentation updates
+- Code quality cleanup
+
+Success Metrics:
+- Time to first workspace: Still <30 seconds
+- Navigation efficiency: <3 clicks to any feature
+- Feature discoverability: >95%
+
+### v0.6.0: Enterprise Authentication (June 2026)
 **Milestone**: [#4](https://github.com/scttfrdmn/prism/milestone/4) | **Status**: 📋 Planned
 
 Features:
-- [#20](https://github.com/scttfrdmn/prism/issues/20) - Consistent CLI Command Structure
 - OAuth/OIDC integration for institutional SSO
 - LDAP/Active Directory support
+- SAML support
+- Integration with user invitation system from v0.5.11
 - Auto-update feature
 
 ---
