@@ -38,7 +38,11 @@
 
 ---
 
-## Current State (v0.5.8): What Works Today with Invitations
+## Version Legend
+- ✅ **v0.5.7 (Current)**: Features available today
+- 🔄 **v0.5.8+ (Planned)**: Features in development (see linked GitHub issues)
+
+## Current State (v0.5.7): What Works Today with Invitations
 
 ### ✅ Stanford Creates Collaboration Invitations (Month 1)
 
@@ -142,7 +146,8 @@ berkeley$ prism launch "R Research Environment" berkeley-analysis
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No Cross-Account EFS Access
+### ❌ Problem 1: No Cross-Account EFS Access (Coming in v0.5.8+)
+**Tracking:** See issue [#185](https://github.com/scttfrdmn/prism/issues/185)
 
 **Scenario**: Stanford's 50TB neuroimaging dataset needs to be accessible to MIT and Berkeley workspaces
 
@@ -184,7 +189,8 @@ berkeley$ prism volume mount neuro-dataset berkeley-analysis
 **Current workaround**: All workspaces must be in Stanford's account to access EFS
 **Risk**: Cannot use collaborators' institutional AWS credits/accounts
 
-### ❌ Problem 2: No Cost Attribution for Collaborators
+### ❌ Problem 2: No Cost Attribution for Collaborators (Coming in v0.5.8+)
+**Tracking:** See issue [#186](https://github.com/scttfrdmn/prism/issues/186)
 
 **Scenario**: Who launched what? Stanford needs to track collaborator usage
 
@@ -243,7 +249,8 @@ stanford$ prism project chargeback nih-neuro-consortium \
 **Current workaround**: Manual tagging and AWS Cost Explorer queries
 **Impact**: Cannot accurately report grant expenditures by institution
 
-### ❌ Problem 3: No Invitation-Based Policy Enforcement
+### ❌ Problem 3: No Invitation-Based Policy Enforcement (Coming in v0.5.8+)
+**Tracking:** See issue [#187](https://github.com/scttfrdmn/prism/issues/187)
 
 **Scenario**: Berkeley should only launch small workspaces for analysis (not expensive GPUs)
 
@@ -282,7 +289,8 @@ berkeley$ prism launch "GPU ML Workstation" expensive-gpu --size XL
 **Current workaround**: Trust-based + budget alerts
 **Risk**: Single expensive launch depletes monthly budget
 
-### ❌ Problem 4: No Audit Trail for Collaborative Access
+### ❌ Problem 4: No Audit Trail for Collaborative Access (Coming in v0.5.8+)
+**Tracking:** See issue [#188](https://github.com/scttfrdmn/prism/issues/188)
 
 **Scenario**: Stanford needs compliance audit of who accessed what data when
 
@@ -325,7 +333,8 @@ stanford$ prism audit collaboration nih-neuro-consortium \
 **Current workaround**: Manual AWS CloudTrail queries
 **Impact**: 40+ hours/year of manual compliance reporting
 
-### ❌ Problem 5: No Graceful Collaboration End
+### ❌ Problem 5: No Graceful Collaboration End (Coming in v0.5.8+)
+**Tracking:** See issue [#189](https://github.com/scttfrdmn/prism/issues/189)
 
 **Scenario**: Project ends June 2027, need to revoke access and preserve work
 

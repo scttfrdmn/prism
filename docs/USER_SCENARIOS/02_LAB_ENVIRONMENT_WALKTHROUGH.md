@@ -62,7 +62,11 @@ Smith Lab Organization
 
 ---
 
-## Current State (v0.5.8): What Works Today
+## Version Legend
+- ✅ **v0.5.7 (Current)**: Features available today
+- 🔄 **v0.5.8+ (Planned)**: Features in development (see linked GitHub issues)
+
+## Current State (v0.5.7): What Works Today
 
 **Note**: Throughout this document, "workspace" refers to the Prism research environment (what users interact with), while "EC2 instance" refers to the underlying AWS infrastructure.
 
@@ -283,7 +287,9 @@ prism project list --tree
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No Sub-Budget Hierarchy
+### ❌ Problem 1: No Sub-Budget Hierarchy (Coming in v0.5.8+)
+**Tracking:** See issue [#148](https://github.com/scttfrdmn/prism/issues/148)
+
 **Scenario**: Dr. Park wants to allocate her $800 between her own work and grad student Maria
 
 **What should work** (MISSING):
@@ -305,7 +311,9 @@ prism project budget allocate "NSF-2024-ML" \
 **Workaround**: Manual tracking in spreadsheet, trust system
 **Impact**: Dr. Park can't manage her sub-team independently
 
-### ❌ Problem 2: No Approval Workflows
+### ❌ Problem 2: No Approval Workflows (Coming in v0.5.8+)
+**Tracking:** See issue [#150](https://github.com/scttfrdmn/prism/issues/150)
+
 **Scenario**: Maria (beginner grad student) tries to launch expensive GPU workspace
 
 **What should happen** (MISSING):
@@ -350,7 +358,9 @@ prism launch gpu-ml-workstation protein-experiment --project "NSF-2024-ML"
 **Workaround**: Maria asks in Slack, someone with admin role launches for her
 **Impact**: Bypasses audit trails, confusion about who launched what
 
-### ❌ Problem 3: No Time-Boxed Collaborator Access
+### ❌ Problem 3: No Time-Boxed Collaborator Access (Coming in v0.5.8+)
+**Tracking:** See issue [#151](https://github.com/scttfrdmn/prism/issues/151)
+
 **Scenario**: Visiting scholar Dr. Kim joins for 3-month collaboration
 
 **What should work** (MISSING):
@@ -397,7 +407,9 @@ prism project member add "NIH-R01-2023" \
 **Workaround**: Calendar reminders, manual revocation
 **Impact**: Forgotten temp users accumulate, security risk, budget waste
 
-### ❌ Problem 4: No Resource Quotas by Role
+### ❌ Problem 4: No Resource Quotas by Role (Coming in v0.5.8+)
+**Tracking:** See issue [#152](https://github.com/scttfrdmn/prism/issues/152)
+
 **Scenario**: Grad students should have workspace limits to prevent mistakes
 
 **What should work** (MISSING):
@@ -446,7 +458,9 @@ prism launch gpu-ml-workstation experiment-gpu --project "NIH-R01-2023"
 **Workaround**: Trust-based system, post-incident corrections
 **Impact**: Accidental expensive launches, budget surprises
 
-### ❌ Problem 5: No Grant Period Management
+### ❌ Problem 5: No Grant Period Management (Coming in v0.5.8+)
+**Tracking:** See issue [#159](https://github.com/scttfrdmn/prism/issues/159)
+
 **Scenario**: NIH grant ends June 30 - need to freeze project and generate final report
 
 **What should work** (MISSING):

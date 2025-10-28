@@ -18,11 +18,15 @@
 
 ---
 
-## Current State (v0.5.8): What Works Today
+## Version Legend
+- ✅ **v0.5.7 (Current)**: Features available today
+- 🔄 **v0.5.8+ (Planned)**: Features in development (see linked GitHub issues)
+
+## Current State (v0.5.7): What Works Today
 
 ### ✅ Initial Setup (Day 0) - 30-Second Quick Start
 
-**New in v0.5.8**: Interactive wizard for first-time users!
+**New in v0.5.8 (planned)**: Interactive wizard for first-time users!
 
 ```bash
 # Install Prism
@@ -269,7 +273,9 @@ This addresses all the pain points Sarah currently experiences with cost managem
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No Budget Enforcement
+### ❌ Problem 1: No Budget Enforcement (Coming in v0.5.8+)
+**Tracking:** See issue [#138](https://github.com/scttfrdmn/prism/issues/138)
+
 **Scenario**: Week 3, Sarah accidentally launches GPU workspace
 
 ```bash
@@ -295,7 +301,9 @@ prism launch gpu-ml-workstation protein-folding --size L
 **Current workaround**: Sarah has to remember to check costs manually
 **Risk**: One forgotten GPU workspace = entire month's budget gone in 4 days
 
-### ❌ Problem 2: No Budget Alerts
+### ❌ Problem 2: No Budget Alerts (Coming in v0.5.8+)
+**Tracking:** See issue [#139](https://github.com/scttfrdmn/prism/issues/139)
+
 **Scenario**: Week 4, Sarah hits 80% of budget
 
 **What should happen** (MISSING):
@@ -316,7 +324,9 @@ prism launch gpu-ml-workstation protein-folding --size L
 **Current workaround**: Sarah checks `prism cost summary` daily
 **Impact**: Constant cognitive load, anxiety about overspending
 
-### ❌ Problem 3: No Spending Forecasts
+### ❌ Problem 3: No Spending Forecasts (Coming in v0.5.8+)
+**Tracking:** See issue [#140](https://github.com/scttfrdmn/prism/issues/140)
+
 **Scenario**: Mid-month, Sarah wants to know if she can launch another instance
 
 **What should happen** (MISSING):
@@ -343,7 +353,9 @@ prism budget forecast
 **Current workaround**: Sarah does mental math and Excel calculations
 **Impact**: Decision paralysis - hesitant to launch workspaces even when budget allows
 
-### ❌ Problem 4: No Month-End Reporting
+### ❌ Problem 4: No Month-End Reporting (Coming in v0.5.8+)
+**Tracking:** See issue [#141](https://github.com/scttfrdmn/prism/issues/141)
+
 **Scenario**: End of month, PI asks "How much did you spend and on what?"
 
 **What should happen** (MISSING):

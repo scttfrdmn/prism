@@ -58,7 +58,11 @@
 
 ---
 
-## Current State (v0.5.8): What Works Today
+## Version Legend
+- ✅ **v0.5.7 (Current)**: Features available today
+- 🔄 **v0.5.8+ (Planned)**: Features in development (see linked GitHub issues)
+
+## Current State (v0.5.7): What Works Today
 
 ### ✅ Pre-Semester Setup (What Works)
 
@@ -157,7 +161,9 @@ prism project member import "CS229-Fall2024" \
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No TA "God Mode" (Debug Access)
+### ❌ Problem 1: No TA "God Mode" (Debug Access) (Coming in v0.5.8+)
+**Tracking:** See issue [#160](https://github.com/scttfrdmn/prism/issues/160)
+
 **Scenario**: Sophie (struggling student) can't get assignment working, asks for help in office hours
 
 **What should happen** (MISSING):
@@ -232,7 +238,9 @@ prism ta annotate ml-hw3 --student sophie.martinez@university.edu \
 **Current workaround**: Sophie shares screen in Zoom, slow and frustrating
 **Impact**: Office hours inefficient, students feel unsupported
 
-### ❌ Problem 2: No Budget Distribution Enforcement
+### ❌ Problem 2: No Budget Distribution Enforcement (Coming in v0.5.8+)
+**Tracking:** See issue [#161](https://github.com/scttfrdmn/prism/issues/161)
+
 **Scenario**: Student accidentally launches expensive instance
 
 **CS Department Semester Budget Tracking** (project-level cost management):
@@ -299,7 +307,9 @@ prism project cost show "CS229-Fall2024"
 **Current workaround**: Trust students, hope for the best
 **Impact**: Budget surprises, student anxiety, administrative burden
 
-### ❌ Problem 3: No Automatic Semester End Cleanup
+### ❌ Problem 3: No Automatic Semester End Cleanup (Coming in v0.5.8+)
+**Tracking:** See issue [#162](https://github.com/scttfrdmn/prism/issues/162)
+
 **Scenario**: Semester ends, students leave workspaces running into winter break
 
 **What should happen** (MISSING):
@@ -352,7 +362,9 @@ prism project cost show "CS229-Fall2024"
 **Current workaround**: Email reminder to students, manual cleanup
 **Impact**: Continued spending over break, administrative burden
 
-### ❌ Problem 4: No Academic Integrity Monitoring
+### ❌ Problem 4: No Academic Integrity Monitoring (Coming in v0.5.8+)
+**Tracking:** See issue [#167](https://github.com/scttfrdmn/prism/issues/167)
+
 **Scenario**: Two students' code suspiciously similar
 
 **What should happen** (MISSING):
@@ -414,7 +426,9 @@ prism ta audit --students emily.chen@university.edu,david.kim@university.edu \
 **Current workaround**: Manual code comparison, no access logs
 **Impact**: Difficult to prove plagiarism, academic integrity concerns
 
-### ❌ Problem 5: No Student Workspace Reset
+### ❌ Problem 5: No Student Workspace Reset (Coming in v0.5.8+)
+**Tracking:** See issue [#175](https://github.com/scttfrdmn/prism/issues/175)
+
 **Scenario**: Student breaks their environment, needs fresh start
 
 **What should happen** (MISSING):

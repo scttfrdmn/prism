@@ -26,7 +26,11 @@
 
 ---
 
-## Current State (v0.5.8): What Works Today
+## Version Legend
+- ✅ **v0.5.7 (Current)**: Features available today
+- 🔄 **v0.5.8+ (Planned)**: Features in development (see linked GitHub issues)
+
+## Current State (v0.5.7): What Works Today
 
 ### ✅ Pre-Workshop Setup (1 Week Before)
 
@@ -129,7 +133,8 @@ prism project workspaces neurips-dl-workshop
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No Automatic Workspace Termination
+### ❌ Problem 1: No Automatic Workspace Termination (Coming in v0.5.8+)
+**Tracking:** See issue [#176](https://github.com/scttfrdmn/prism/issues/176)
 
 **Scenario**: Workshop ends at 3:00 PM, workspaces should terminate at 6:00 PM
 
@@ -148,7 +153,8 @@ prism launch pytorch-ml workshop-instance --hours 6
 **Current workaround**: Alex must manually stop 60 workspaces or rely on participants
 **Risk**: If forgotten, $200 budget exhausted in 3 days
 
-### ❌ Problem 2: No Template Whitelisting at Invitation Level
+### ❌ Problem 2: No Template Whitelisting at Invitation Level (Coming in v0.5.8+)
+**Tracking:** See issue [#179](https://github.com/scttfrdmn/prism/issues/179)
 
 **Scenario**: Participants should ONLY be able to launch PyTorch ML template
 
@@ -173,7 +179,8 @@ participant$ prism launch gpu-ml-workstation expensive-instance
 **Current workaround**: Trust participants + budget alerts
 **Risk**: Single participant launches GPU workspace → $600/day → budget blown in 8 hours
 
-### ❌ Problem 3: No Bulk Launch for Pre-Provisioning
+### ❌ Problem 3: No Bulk Launch for Pre-Provisioning (Coming in v0.5.8+)
+**Tracking:** See issue [#180](https://github.com/scttfrdmn/prism/issues/180)
 
 **Scenario**: Workshop starts at 9:00 AM, Alex wants all environments ready at 8:45 AM
 
@@ -212,7 +219,8 @@ prism project bulk-launch neurips-dl-workshop \
 **Current workaround**: Participants launch on-demand (slow, error-prone)
 **Impact**: First 30 minutes wasted on environment setup
 
-### ❌ Problem 4: No Real-Time Workshop Dashboard
+### ❌ Problem 4: No Real-Time Workshop Dashboard (Coming in v0.5.8+)
+**Tracking:** See issue [#182](https://github.com/scttfrdmn/prism/issues/182)
 
 **Scenario**: During workshop, Alex needs to see participant progress at a glance
 
@@ -264,7 +272,8 @@ prism workshop dashboard neurips-dl-workshop
 - **Time Remaining**: Countdown to auto-termination (3 hours after workshop start)
 - **Quick Actions**: Restart, connect, or troubleshoot participant workspaces during tutorial
 
-### ❌ Problem 5: No Post-Workshop Data Preservation
+### ❌ Problem 5: No Post-Workshop Data Preservation (Coming in v0.5.8+)
+**Tracking:** See issue [#177](https://github.com/scttfrdmn/prism/issues/177)
 
 **Scenario**: Participants want to keep their workshop code after workspaces terminate
 
