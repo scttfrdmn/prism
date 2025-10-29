@@ -215,6 +215,26 @@ and enable cost tracking for research projects.`,
 				return pc.app.Project([]string{"budget", "history", args[0]})
 			},
 		},
+		&cobra.Command{
+			Use:   "prevent-launches <project>",
+			Short: "Block new instance launches for project",
+			Long: `Prevent new instance launches for a project due to budget limits.
+This is typically used when a project reaches its budget hard cap.`,
+			Args: cobra.ExactArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return pc.app.Project([]string{"budget", "prevent-launches", args[0]})
+			},
+		},
+		&cobra.Command{
+			Use:   "allow-launches <project>",
+			Short: "Allow instance launches for project",
+			Long: `Remove launch prevention for a project, allowing new instances to be created.
+This clears the budget hard cap block temporarily.`,
+			Args: cobra.ExactArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return pc.app.Project([]string{"budget", "allow-launches", args[0]})
+			},
+		},
 	)
 
 	return cmd

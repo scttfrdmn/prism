@@ -1498,6 +1498,38 @@ func (c *HTTPClient) DisableProjectBudget(ctx context.Context, projectID string)
 	return result, nil
 }
 
+// PreventProjectLaunches prevents new instance launches for a project
+func (c *HTTPClient) PreventProjectLaunches(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/projects/%s/prevent-launches", projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// AllowProjectLaunches allows instance launches for a project
+func (c *HTTPClient) AllowProjectLaunches(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	resp, err := c.makeRequest(ctx, "POST", fmt.Sprintf("/api/v1/projects/%s/allow-launches", projectID), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result map[string]interface{}
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 // GetCostTrends retrieves cost trends for analysis
 func (c *HTTPClient) GetCostTrends(ctx context.Context, projectID, period string) (map[string]interface{}, error) {
 	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/cost/trends?project_id=%s&period=%s", projectID, period), nil)

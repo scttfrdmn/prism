@@ -1,8 +1,10 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -155,6 +157,11 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	// Validate the launch request
 	if err := s.validateLaunchRequest(&req, w); err != nil {
 		return // Error response already written by validateLaunchRequest
+	}
+
+	// Check budget hard cap if this launch is associated with a project
+	if s.isLaunchBlockedByBudget(&req, w) {
+		return // Error response already written by isLaunchBlockedByBudget
 	}
 
 	// Check instance name uniqueness (skip in test mode)
@@ -1016,4 +1023,58 @@ func (s *Server) checkInstanceNameUniqueness(req *types.LaunchRequest, w http.Re
 		return true
 	}
 	return false
+}
+
+// isLaunchBlockedByBudget checks if the launch is blocked by budget hard cap
+// Returns true if launch is blocked (error already written), false if allowed
+func (s *Server) isLaunchBlockedByBudget(req *types.LaunchRequest, w http.ResponseWriter) bool {
+	// If no project is associated, budget cap doesn't apply
+	if req.ProjectID == "" {
+		return false
+	}
+
+	// Check if launches are prevented for this project
+	ctx := context.Background()
+	launchPrevented, err := s.projectManager.IsLaunchPrevented(ctx, req.ProjectID)
+	if err != nil {
+		// Log the error but don't block the launch (fail open for safety)
+		log.Printf("Warning: Failed to check budget hard cap for project %s: %v", req.ProjectID, err)
+		return false
+	}
+
+	// If launch is not prevented, allow it
+	if !launchPrevented {
+		return false
+	}
+
+	// Launch is prevented by budget hard cap - get budget status for error message
+	budgetStatus, err := s.projectManager.CheckBudgetStatus(ctx, req.ProjectID)
+	if err != nil {
+		// Fallback error message if we can't get budget details
+		s.writeError(w, http.StatusForbidden,
+			fmt.Sprintf("Instance launch blocked: Project '%s' has reached its budget hard cap. Contact project owner to increase budget or clear hard cap.", req.ProjectID))
+		return true
+	}
+
+	// Build detailed error message with budget information
+	errorMsg := fmt.Sprintf("Instance launch blocked: Project '%s' budget hard cap reached.\n\n", req.ProjectID)
+	errorMsg += fmt.Sprintf("Budget Status:\n")
+	errorMsg += fmt.Sprintf("  Total Budget: $%.2f\n", budgetStatus.TotalBudget)
+	errorMsg += fmt.Sprintf("  Spent: $%.2f (%.1f%%)\n", budgetStatus.SpentAmount, budgetStatus.SpentPercentage*100)
+	errorMsg += fmt.Sprintf("  Remaining: $%.2f\n", budgetStatus.RemainingBudget)
+
+	if len(budgetStatus.TriggeredActions) > 0 {
+		errorMsg += fmt.Sprintf("\nTriggered Actions:\n")
+		for _, action := range budgetStatus.TriggeredActions {
+			errorMsg += fmt.Sprintf("  - %s\n", action)
+		}
+	}
+
+	errorMsg += fmt.Sprintf("\nTo continue launching instances:\n")
+	errorMsg += fmt.Sprintf("  1. Contact project owner to increase the budget\n")
+	errorMsg += fmt.Sprintf("  2. Stop or hibernate running instances to reduce costs\n")
+	errorMsg += fmt.Sprintf("  3. Clear the hard cap temporarily with: prism project allow-launches %s\n", req.ProjectID)
+
+	s.writeError(w, http.StatusForbidden, errorMsg)
+	return true
 }

@@ -102,6 +102,8 @@ type PrismAPI interface {
 	GetProjectCostBreakdown(context.Context, string, time.Time, time.Time) (*types.ProjectCostBreakdown, error)
 	GetProjectResourceUsage(context.Context, string, time.Duration) (*types.ProjectResourceUsage, error)
 	GetCostTrends(context.Context, string, string) (map[string]interface{}, error)
+	PreventProjectLaunches(context.Context, string) (map[string]interface{}, error)
+	AllowProjectLaunches(context.Context, string) (map[string]interface{}, error)
 
 	// Policy management operations (Phase 5A.5)
 	GetPolicyStatus(context.Context) (*PolicyStatusResponse, error)

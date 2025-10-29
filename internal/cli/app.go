@@ -1216,6 +1216,10 @@ func (a *App) projectBudget(args []string) error {
 		return a.projectBudgetDisable(remainingArgs)
 	case "history":
 		return a.projectBudgetHistory(remainingArgs)
+	case "prevent-launches":
+		return a.projectBudgetPreventLaunches(remainingArgs)
+	case "allow-launches":
+		return a.projectBudgetAllowLaunches(remainingArgs)
 	default:
 		// Legacy support: if first arg is not a subcommand, assume it's a project name for status
 		return a.projectBudgetStatus(args)
@@ -1381,6 +1385,53 @@ func (a *App) projectBudgetHistory(args []string) error {
 	fmt.Printf("📊 Budget History for '%s':\n", projectName)
 	fmt.Printf("   (Cost history functionality would be implemented here)\n")
 	fmt.Printf("   💡 Use 'cws project budget status %s' for current spending\n", projectName)
+
+	return nil
+}
+
+func (a *App) projectBudgetPreventLaunches(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: prism project budget prevent-launches <project>")
+	}
+
+	projectName := args[0]
+
+	// Call API to prevent launches
+	response, err := a.apiClient.PreventProjectLaunches(a.ctx, projectName)
+	if err != nil {
+		return fmt.Errorf("failed to prevent launches: %w", err)
+	}
+
+	fmt.Printf("🚫 Launch prevention enabled for project '%s'\n", projectName)
+	fmt.Printf("   New instance launches are now blocked\n")
+	fmt.Printf("   💡 To allow launches again: prism project budget allow-launches %s\n", projectName)
+
+	if message, ok := response["message"].(string); ok {
+		fmt.Printf("   %s\n", message)
+	}
+
+	return nil
+}
+
+func (a *App) projectBudgetAllowLaunches(args []string) error {
+	if len(args) < 1 {
+		return fmt.Errorf("usage: prism project budget allow-launches <project>")
+	}
+
+	projectName := args[0]
+
+	// Call API to allow launches
+	response, err := a.apiClient.AllowProjectLaunches(a.ctx, projectName)
+	if err != nil {
+		return fmt.Errorf("failed to allow launches: %w", err)
+	}
+
+	fmt.Printf("✅ Launch prevention cleared for project '%s'\n", projectName)
+	fmt.Printf("   New instance launches are now allowed\n")
+
+	if message, ok := response["message"].(string); ok {
+		fmt.Printf("   %s\n", message)
+	}
 
 	return nil
 }
