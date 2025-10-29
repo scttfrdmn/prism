@@ -13,10 +13,10 @@
 //
 // Examples:
 //
-//	cws user create alice
-//	cws user ssh-key generate alice
-//	cws user provision alice my-ml-instance
-//	cws user list
+//	prism user create alice
+//	prism user ssh-key generate alice
+//	prism user provision alice my-ml-instance
+//	prism user list
 package cli
 
 import (
@@ -86,10 +86,10 @@ directories that persist across different template environments. This enables se
 collaboration and workflow continuity.
 
 Examples:
-  cws user create alice              # Create user 'alice'
-  cws user list                      # List all users
-  cws user ssh-key generate alice   # Generate SSH keys for alice
-  cws user provision alice my-instance # Provision alice on workspace`,
+  prism user create alice              # Create user 'alice'
+  prism user list                      # List all users
+  prism user ssh-key generate alice   # Generate SSH keys for alice
+  prism user provision alice my-instance # Provision alice on workspace`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -125,8 +125,8 @@ The user will be assigned a deterministic UID/GID based on your profile,
 ensuring consistent file ownership across all Prism workspaces.
 
 Examples:
-  cws user create alice
-  cws user create bob --full-name "Bob Smith" --email bob@university.edu`,
+  prism user create alice
+  prism user create bob --full-name "Bob Smith" --email bob@university.edu`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			username := args[0]
@@ -180,8 +180,8 @@ Examples:
 			fmt.Printf("   Docker Access: %t\n", user.DockerAccess)
 
 			fmt.Printf("\n💡 Next Steps:\n")
-			fmt.Printf("   1. Generate SSH keys: cws user ssh-key generate %s\n", username)
-			fmt.Printf("   2. Provision on workspace: cws user provision %s <workspace-name>\n", username)
+			fmt.Printf("   1. Generate SSH keys: prism user ssh-key generate %s\n", username)
+			fmt.Printf("   2. Provision on workspace: prism user provision %s <workspace-name>\n", username)
 
 			return nil
 		},
@@ -220,7 +220,7 @@ Shows username, UID, creation date, and SSH key status for each user.`,
 
 			if len(users) == 0 {
 				fmt.Printf("📭 No users found for current profile.\n\n")
-				fmt.Printf("💡 Create a user: cws user create <username>\n")
+				fmt.Printf("💡 Create a user: prism user create <username>\n")
 				return nil
 			}
 
@@ -633,8 +633,8 @@ func (r *UserCommands) outputUsersAsTable(users []*research.ResearchUserConfig) 
 	_ = w.Flush()
 
 	fmt.Printf("\n💡 Usage:\n")
-	fmt.Printf("   cws user status <username>     # Detailed user status\n")
-	fmt.Printf("   cws user provision <username> <workspace>  # Provision on workspace\n")
+	fmt.Printf("   prism user status <username>     # Detailed user status\n")
+	fmt.Printf("   prism user provision <username> <workspace>  # Provision on workspace\n")
 
 	return nil
 }

@@ -244,7 +244,7 @@ func (pr *ProgressReporter) ShowCompletion(instance *types.Instance) {
 		fmt.Printf("🌐 Public IP: %s\n", instance.PublicIP)
 	}
 
-	fmt.Printf("🔗 Connect: cws connect %s\n", pr.instanceName)
+	fmt.Printf("🔗 Connect: prism connect %s\n", pr.instanceName)
 
 	// Show setup summary
 	if pr.templateType == "package" {
@@ -269,8 +269,8 @@ func (pr *ProgressReporter) ShowError(err error, instance *types.Instance) {
 	}
 
 	fmt.Printf("💡 Troubleshooting:\n")
-	fmt.Printf("   • Check logs: cws daemon logs\n")
-	fmt.Printf("   • Retry with: cws launch %s %s\n", pr.templateName, pr.instanceName)
+	fmt.Printf("   • Check logs: prism daemon logs\n")
+	fmt.Printf("   • Retry with: prism launch %s %s\n", pr.templateName, pr.instanceName)
 	fmt.Printf("   • Try different region: --region us-west-2\n")
 	fmt.Printf("   • Try smaller size: --size S\n")
 }

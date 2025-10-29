@@ -17,10 +17,10 @@ func (f *AdminCommandFactory) CreateCommand() *cobra.Command {
 		Long: `Administrative commands for system management, daemon control, and advanced configuration.
 
 Examples:
-  cws admin daemon status          # Check daemon status
-  cws admin daemon start           # Start daemon
-  cws admin policy list            # List policies
-  cws admin rightsizing analyze    # Analyze instance sizing`,
+  prism admin daemon status          # Check daemon status
+  prism admin daemon start           # Start daemon
+  prism admin policy list            # List policies
+  prism admin rightsizing analyze    # Analyze instance sizing`,
 		GroupID: "system",
 	}
 

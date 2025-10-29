@@ -108,7 +108,7 @@ func (a *App) fetchMarketplaceTemplates(queryParams map[string]string) ([]interf
 func (a *App) displayMarketplaceTemplates(templates []interface{}) error {
 	if len(templates) == 0 {
 		fmt.Printf("📦 No templates found in marketplace\n\n")
-		fmt.Printf("💡 Try different filters or browse categories: cws marketplace categories\n")
+		fmt.Printf("💡 Try different filters or browse categories: prism marketplace categories\n")
 		return nil
 	}
 
@@ -119,7 +119,7 @@ func (a *App) displayMarketplaceTemplates(templates []interface{}) error {
 // handleMarketplaceSearch searches for templates
 func (a *App) handleMarketplaceSearch(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace search <query> [--category <category>] [--tags <tags>]")
+		return fmt.Errorf("usage: prism marketplace search <query> [--category <category>] [--tags <tags>]")
 	}
 
 	query := args[0]
@@ -165,7 +165,7 @@ func (a *App) handleMarketplaceSearch(args []string) error {
 
 	if len(templates) == 0 {
 		fmt.Printf("🔍 No templates found for query: '%s'\n\n", query)
-		fmt.Printf("💡 Try different search terms or browse categories: cws marketplace categories\n")
+		fmt.Printf("💡 Try different search terms or browse categories: prism marketplace categories\n")
 		return nil
 	}
 
@@ -178,7 +178,7 @@ func (a *App) handleMarketplaceSearch(args []string) error {
 // handleMarketplaceInfo shows detailed information about a template
 func (a *App) handleMarketplaceInfo(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace info <template-id>")
+		return fmt.Errorf("usage: prism marketplace info <template-id>")
 	}
 
 	templateID := args[0]
@@ -198,7 +198,7 @@ func (a *App) handleMarketplaceInfo(args []string) error {
 // handleMarketplaceInstall installs a template from the marketplace
 func (a *App) handleMarketplaceInstall(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace install <template-id> [--as <local-name>]")
+		return fmt.Errorf("usage: prism marketplace install <template-id> [--as <local-name>]")
 	}
 
 	templateID := args[0]
@@ -255,9 +255,9 @@ func (a *App) handleMarketplaceInstall(args []string) error {
 
 	// Show usage examples
 	fmt.Printf("\n💻 Usage:\n")
-	fmt.Printf("   Launch: cws launch %s my-project\n", localName)
-	fmt.Printf("   Info: cws templates info %s\n", localName)
-	fmt.Printf("   List: cws templates list\n")
+	fmt.Printf("   Launch: prism launch %s my-project\n", localName)
+	fmt.Printf("   Info: prism templates info %s\n", localName)
+	fmt.Printf("   List: prism templates list\n")
 
 	// Track download for marketplace analytics
 	trackingEvent := map[string]interface{}{
@@ -277,7 +277,7 @@ func (a *App) handleMarketplaceInstall(args []string) error {
 // handleMarketplacePublish publishes a template to the marketplace
 func (a *App) handleMarketplacePublish(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace publish <workspace-name> --name <template-name> --category <category> [options]")
+		return fmt.Errorf("usage: prism marketplace publish <workspace-name> --name <template-name> --category <category> [options]")
 	}
 
 	instanceName := args[0]
@@ -345,12 +345,12 @@ func (a *App) handleMarketplacePublish(args []string) error {
 			for _, id := range ids {
 				fmt.Printf("   • %s\n", id)
 			}
-			fmt.Printf("\n💡 Check AMI creation status: cws ami status <creation-id>\n")
+			fmt.Printf("\n💡 Check AMI creation status: prism ami status <creation-id>\n")
 		}
 	}
 
-	fmt.Printf("\n💡 View your template: cws marketplace info %s\n", getString(response, "template_id"))
-	fmt.Printf("💡 Launch your template: cws launch marketplace:%s my-project\n", getString(response, "template_id"))
+	fmt.Printf("\n💡 View your template: prism marketplace info %s\n", getString(response, "template_id"))
+	fmt.Printf("💡 Launch your template: prism launch marketplace:%s my-project\n", getString(response, "template_id"))
 
 	return nil
 }
@@ -358,7 +358,7 @@ func (a *App) handleMarketplacePublish(args []string) error {
 // handleMarketplaceReview adds a review for a template
 func (a *App) handleMarketplaceReview(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace review <template-id> --rating <1-5> --title <title> --comment <comment>")
+		return fmt.Errorf("usage: prism marketplace review <template-id> --rating <1-5> --title <title> --comment <comment>")
 	}
 
 	templateID := args[0]
@@ -417,7 +417,7 @@ func (a *App) handleMarketplaceReview(args []string) error {
 // handleMarketplaceFork forks a template
 func (a *App) handleMarketplaceFork(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws marketplace fork <template-id> --name <new-name> --description <new-description>")
+		return fmt.Errorf("usage: prism marketplace fork <template-id> --name <new-name> --description <new-description>")
 	}
 
 	templateID := args[0]
@@ -456,7 +456,7 @@ func (a *App) handleMarketplaceFork(args []string) error {
 	fmt.Printf("🆔 Forked: %s\n", getString(response, "forked_template_id"))
 	fmt.Printf("📝 Name: %s\n", getString(response, "forked_template_name"))
 
-	fmt.Printf("\n💡 Launch your fork: cws launch marketplace:%s my-project\n",
+	fmt.Printf("\n💡 Launch your fork: prism launch marketplace:%s my-project\n",
 		getString(response, "forked_template_id"))
 
 	return nil
@@ -542,7 +542,7 @@ func (a *App) handleMarketplaceCategories(args []string) error {
 		fmt.Printf("\n")
 	}
 
-	fmt.Printf("💡 Browse category: cws marketplace list --category <category-id>\n")
+	fmt.Printf("💡 Browse category: prism marketplace list --category <category-id>\n")
 	return nil
 }
 
@@ -560,7 +560,7 @@ func (a *App) handleMyPublications(args []string) error {
 
 	if len(publications) == 0 {
 		fmt.Printf("📚 You haven't published any templates yet\n\n")
-		fmt.Printf("💡 Publish a template: cws marketplace publish <instance> --name <name> --category <category> --description <desc>\n")
+		fmt.Printf("💡 Publish a template: prism marketplace publish <instance> --name <name> --category <category> --description <desc>\n")
 		return nil
 	}
 
@@ -611,7 +611,7 @@ func (a *App) displayTemplateList(templates []interface{}) error {
 			fmt.Printf("   %s\n", strings.Join(badges, " "))
 		}
 
-		fmt.Printf("   💻 Launch: cws launch marketplace:%s my-project\n",
+		fmt.Printf("   💻 Launch: prism launch marketplace:%s my-project\n",
 			getString(template, "template_id"))
 		fmt.Printf("\n")
 	}
@@ -693,11 +693,11 @@ func (a *App) displayTemplateInfo(template map[string]interface{}) {
 
 	// Usage examples
 	fmt.Printf("\n💻 Usage:\n")
-	fmt.Printf("   Launch: cws launch marketplace:%s my-project\n", getString(template, "template_id"))
-	fmt.Printf("   Info: cws marketplace info %s\n", getString(template, "template_id"))
-	fmt.Printf("   Review: cws marketplace review %s --rating 5 --title \"Great!\" --comment \"Works perfectly\"\n",
+	fmt.Printf("   Launch: prism launch marketplace:%s my-project\n", getString(template, "template_id"))
+	fmt.Printf("   Info: prism marketplace info %s\n", getString(template, "template_id"))
+	fmt.Printf("   Review: prism marketplace review %s --rating 5 --title \"Great!\" --comment \"Works perfectly\"\n",
 		getString(template, "template_id"))
-	fmt.Printf("   Fork: cws marketplace fork %s --name \"My Custom Version\" --description \"Customized for my needs\"\n",
+	fmt.Printf("   Fork: prism marketplace fork %s --name \"My Custom Version\" --description \"Customized for my needs\"\n",
 		getString(template, "template_id"))
 }
 

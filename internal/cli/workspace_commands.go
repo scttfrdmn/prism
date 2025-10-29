@@ -20,10 +20,10 @@ func (f *WorkspaceCommandFactory) CreateCommand() *cobra.Command {
 cloud research computing environments.
 
 Examples:
-  cws workspace launch python-ml my-project    # Launch new workspace
-  cws workspace list                            # List all workspaces
-  cws workspace stop my-workspace               # Stop a workspace
-  cws workspace connect my-workspace            # Connect via SSH`,
+  prism workspace launch python-ml my-project    # Launch new workspace
+  prism workspace list                            # List all workspaces
+  prism workspace stop my-workspace               # Stop a workspace
+  prism workspace connect my-workspace            # Connect via SSH`,
 		GroupID: "core",
 	}
 

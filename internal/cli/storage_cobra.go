@@ -35,10 +35,10 @@ func (sc *StorageCobraCommands) CreateStorageCommand() *cobra.Command {
 		Short: "Manage Prism storage (all types)",
 		Long: `Manage all storage types (workspace and shared).
 
-'cws storage list' shows all storage volumes (both workspace EBS and shared EFS).
-'cws storage create' creates workspace storage (EBS volumes).
+'prism storage list' shows all storage volumes (both workspace EBS and shared EFS).
+'prism storage create' creates workspace storage (EBS volumes).
 
-For shared storage (EFS), use 'cws volume' commands.`,
+For shared storage (EFS), use 'prism volume' commands.`,
 	}
 
 	// Create commands separately to add flags
@@ -127,7 +127,7 @@ func (sc *StorageCobraCommands) CreateVolumeCommand() *cobra.Command {
 Shared storage can be mounted to multiple workspaces simultaneously,
 making it ideal for collaborative projects and shared datasets.
 
-Use 'cws storage' for local storage (EBS volumes).`,
+Use 'prism storage' for local storage (EBS volumes).`,
 	}
 
 	// Create command with flags

@@ -720,9 +720,9 @@ func (a *App) ListComplianceFrameworks() error {
 	}
 
 	fmt.Println("\nUsage:")
-	fmt.Println("  cws security compliance validate <framework>")
-	fmt.Println("  cws security compliance report <framework>")
-	fmt.Println("  cws security compliance scp <framework>")
+	fmt.Println("  prism security compliance validate <framework>")
+	fmt.Println("  prism security compliance report <framework>")
+	fmt.Println("  prism security compliance scp <framework>")
 
 	return nil
 }

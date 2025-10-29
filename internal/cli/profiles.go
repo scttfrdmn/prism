@@ -666,7 +666,7 @@ func runProfilesMainCommand(config *Config) {
 		fmt.Println()
 		fmt.Println()
 		fmt.Println("💡 Your Prism is ready to use! Try:")
-		fmt.Println("   cws launch python-ml my-project")
+		fmt.Println("   prism launch python-ml my-project")
 		fmt.Println()
 
 		reader := bufio.NewReader(os.Stdin)

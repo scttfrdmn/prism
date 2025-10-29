@@ -18,10 +18,10 @@
 //
 // Usage Examples:
 //
-//	cws budget list                    # Show all budgets and current status
-//	cws budget create my-project 1000  # Create $1000 project budget
-//	cws budget status my-project       # Show detailed budget status
-//	cws budget breakdown my-project    # Cost breakdown by service/instance
+//	prism budget list                    # Show all budgets and current status
+//	prism budget create my-project 1000  # Create $1000 project budget
+//	prism budget status my-project       # Show detailed budget status
+//	prism budget breakdown my-project    # Cost breakdown by service/instance
 package cli
 
 import (
@@ -99,24 +99,24 @@ func (bc *BudgetCommands) budgetHelp() error {
 	fmt.Printf("💰 Prism Budget Management\n\n")
 
 	fmt.Printf("🏗️ Budget Management:\n")
-	fmt.Printf("   cws budget list                    List all budgets and status\n")
-	fmt.Printf("   cws budget create <project> <amt>  Create new budget\n")
-	fmt.Printf("   cws budget update <budget-id>      Update budget settings\n")
-	fmt.Printf("   cws budget delete <budget-id>      Delete budget\n")
-	fmt.Printf("   cws budget info <budget-id>        Show detailed budget info\n")
+	fmt.Printf("   prism budget list                    List all budgets and status\n")
+	fmt.Printf("   prism budget create <project> <amt>  Create new budget\n")
+	fmt.Printf("   prism budget update <budget-id>      Update budget settings\n")
+	fmt.Printf("   prism budget delete <budget-id>      Delete budget\n")
+	fmt.Printf("   prism budget info <budget-id>        Show detailed budget info\n")
 	fmt.Printf("\n")
 
 	fmt.Printf("📊 Budget Monitoring:\n")
-	fmt.Printf("   cws budget status [budget-id]      Show current spending status\n")
-	fmt.Printf("   cws budget usage <budget-id>       Show detailed usage metrics\n")
-	fmt.Printf("   cws budget history <budget-id>     Show spending history\n")
-	fmt.Printf("   cws budget alerts <budget-id>      Manage budget alerts\n")
+	fmt.Printf("   prism budget status [budget-id]      Show current spending status\n")
+	fmt.Printf("   prism budget usage <budget-id>       Show detailed usage metrics\n")
+	fmt.Printf("   prism budget history <budget-id>     Show spending history\n")
+	fmt.Printf("   prism budget alerts <budget-id>      Manage budget alerts\n")
 	fmt.Printf("\n")
 
 	fmt.Printf("🔍 Budget Analysis:\n")
-	fmt.Printf("   cws budget forecast <budget-id>    Show spending forecast\n")
-	fmt.Printf("   cws budget savings [budget-id]     Show hibernation savings\n")
-	fmt.Printf("   cws budget breakdown <budget-id>   Cost breakdown by service\n")
+	fmt.Printf("   prism budget forecast <budget-id>    Show spending forecast\n")
+	fmt.Printf("   prism budget savings [budget-id]     Show hibernation savings\n")
+	fmt.Printf("   prism budget breakdown <budget-id>   Cost breakdown by service\n")
 	fmt.Printf("\n")
 
 	// Show quick budget overview if daemon is running
@@ -129,9 +129,9 @@ func (bc *BudgetCommands) budgetHelp() error {
 	}
 
 	fmt.Printf("💡 Examples:\n")
-	fmt.Printf("   cws budget create my-research 500    # Create $500 project budget\n")
-	fmt.Printf("   cws budget status my-research        # Check spending status\n")
-	fmt.Printf("   cws budget breakdown my-research     # Detailed cost analysis\n")
+	fmt.Printf("   prism budget create my-research 500    # Create $500 project budget\n")
+	fmt.Printf("   prism budget status my-research        # Check spending status\n")
+	fmt.Printf("   prism budget breakdown my-research     # Detailed cost analysis\n")
 
 	return nil
 }
@@ -144,7 +144,7 @@ func (bc *BudgetCommands) showQuickOverview() error {
 	}
 
 	if len(projects.Projects) == 0 {
-		fmt.Printf("   No budgets found. Create one with: cws budget create <project> <amount>\n")
+		fmt.Printf("   No budgets found. Create one with: prism budget create <project> <amount>\n")
 		return nil
 	}
 
@@ -161,7 +161,7 @@ func (bc *BudgetCommands) showQuickOverview() error {
 	}
 
 	if budgetCount == 0 {
-		fmt.Printf("   No active budgets. Enable budget tracking with: cws budget create\n")
+		fmt.Printf("   No active budgets. Enable budget tracking with: prism budget create\n")
 		return nil
 	}
 
@@ -494,7 +494,7 @@ func (bc *BudgetCommands) listBudgets() error {
 
 	if len(projects.Projects) == 0 {
 		fmt.Printf("No projects found.\n")
-		fmt.Printf("💡 Create a project with budget: cws budget create <project> <amount>\n")
+		fmt.Printf("💡 Create a project with budget: prism budget create <project> <amount>\n")
 		return nil
 	}
 
@@ -570,9 +570,9 @@ func (bc *BudgetCommands) listBudgets() error {
 	w.Flush()
 
 	fmt.Printf("\n💡 Commands:\n")
-	fmt.Printf("   cws budget create <project> <amount>  # Create new budget\n")
-	fmt.Printf("   cws budget status <project>          # Detailed status\n")
-	fmt.Printf("   cws budget breakdown <project>       # Cost breakdown\n")
+	fmt.Printf("   prism budget create <project> <amount>  # Create new budget\n")
+	fmt.Printf("   prism budget status <project>          # Detailed status\n")
+	fmt.Printf("   prism budget breakdown <project>       # Cost breakdown\n")
 
 	return nil
 }
@@ -744,8 +744,8 @@ func (bc *BudgetCommands) displayCreateBudgetSuccess(projectName string, amount 
 	}
 
 	fmt.Printf("\n💡 Next Steps:\n")
-	fmt.Printf("   cws budget status %s     # Check budget status\n", projectName)
-	fmt.Printf("   cws launch <template> <instance> --project %s  # Launch with budget tracking\n", projectName)
+	fmt.Printf("   prism budget status %s     # Check budget status\n", projectName)
+	fmt.Printf("   prism launch <template> <instance> --project %s  # Launch with budget tracking\n", projectName)
 }
 
 // updateBudget updates an existing budget
@@ -969,7 +969,7 @@ func (bc *BudgetCommands) displayBudgetInfo(budgetID string, proj *types.Project
 
 	if !budgetStatus.BudgetEnabled {
 		fmt.Printf("\n❌ Budget: Not enabled\n")
-		fmt.Printf("💡 Enable budget tracking with: cws budget create %s <amount>\n", budgetID)
+		fmt.Printf("💡 Enable budget tracking with: prism budget create %s <amount>\n", budgetID)
 		return
 	}
 
@@ -1089,9 +1089,9 @@ func (bc *BudgetCommands) displayActiveAlertsAndActions(budgetStatus *project.Bu
 // displayInfoCommands displays helpful command suggestions
 func (bc *BudgetCommands) displayInfoCommands(budgetID string) {
 	fmt.Printf("\n💡 Commands:\n")
-	fmt.Printf("   cws budget breakdown %s    # Detailed cost breakdown\n", budgetID)
-	fmt.Printf("   cws budget usage %s       # Resource usage analysis\n", budgetID)
-	fmt.Printf("   cws budget forecast %s    # Spending forecast\n", budgetID)
+	fmt.Printf("   prism budget breakdown %s    # Detailed cost breakdown\n", budgetID)
+	fmt.Printf("   prism budget usage %s       # Resource usage analysis\n", budgetID)
+	fmt.Printf("   prism budget forecast %s    # Spending forecast\n", budgetID)
 }
 
 // statusBudget shows current budget status
@@ -1121,7 +1121,7 @@ func (bc *BudgetCommands) displayBudgetStatus(budgetID string, budgetStatus *pro
 
 	if !budgetStatus.BudgetEnabled {
 		fmt.Printf("❌ Budget: Not enabled\n")
-		fmt.Printf("💡 Enable with: cws budget create %s <amount>\n", budgetID)
+		fmt.Printf("💡 Enable with: prism budget create %s <amount>\n", budgetID)
 		return
 	}
 
@@ -1210,11 +1210,11 @@ func (bc *BudgetCommands) displayStatusActions(budgetStatus *project.BudgetStatu
 // displayStatusQuickActions displays helpful command suggestions
 func (bc *BudgetCommands) displayStatusQuickActions(budgetID string, usagePercent float64) {
 	fmt.Printf("\n💡 Quick Actions:\n")
-	fmt.Printf("   cws budget breakdown %s    # See where money is spent\n", budgetID)
-	fmt.Printf("   cws budget savings %s      # Find cost optimization opportunities\n", budgetID)
+	fmt.Printf("   prism budget breakdown %s    # See where money is spent\n", budgetID)
+	fmt.Printf("   prism budget savings %s      # Find cost optimization opportunities\n", budgetID)
 	if usagePercent >= 80 {
-		fmt.Printf("   cws list --project %s      # Review running instances\n", budgetID)
-		fmt.Printf("   cws hibernate <instance>   # Hibernate idle instances\n")
+		fmt.Printf("   prism list --project %s      # Review running instances\n", budgetID)
+		fmt.Printf("   prism hibernate <instance>   # Hibernate idle instances\n")
 	}
 }
 
@@ -1610,9 +1610,9 @@ func (bc *BudgetCommands) displaySavingsRecommendations(totalPotentialSavings fl
 	fmt.Printf("   • Implement automated idle detection policies\n")
 
 	fmt.Printf("\n💡 Quick Actions:\n")
-	fmt.Printf("   cws idle profile create aggressive --idle-minutes 15\n")
-	fmt.Printf("   cws list | grep STOPPED  # Find stopped instances to terminate\n")
-	fmt.Printf("   cws rightsizing analyze  # Get right-sizing recommendations\n")
+	fmt.Printf("   prism idle profile create aggressive --idle-minutes 15\n")
+	fmt.Printf("   prism list | grep STOPPED  # Find stopped instances to terminate\n")
+	fmt.Printf("   prism rightsizing analyze  # Get right-sizing recommendations\n")
 }
 
 func (bc *BudgetCommands) breakdownBudget(cmd *cobra.Command, args []string) error {
@@ -1823,7 +1823,7 @@ func (bc *BudgetCommands) listAlerts(budgetID string) error {
 
 	if project.Budget == nil || len(project.Budget.AlertThresholds) == 0 {
 		fmt.Printf("No alerts configured.\n")
-		fmt.Printf("💡 Add an alert: cws budget alerts %s --action add --threshold 80 --type email\n", budgetID)
+		fmt.Printf("💡 Add an alert: prism budget alerts %s --action add --threshold 80 --type email\n", budgetID)
 		return nil
 	}
 
@@ -1847,8 +1847,8 @@ func (bc *BudgetCommands) listAlerts(budgetID string) error {
 	w.Flush()
 
 	fmt.Printf("\n💡 Alert Actions:\n")
-	fmt.Printf("   cws budget alerts %s --action add     # Add new alert\n", budgetID)
-	fmt.Printf("   cws budget alerts %s --action test    # Test alert delivery\n", budgetID)
+	fmt.Printf("   prism budget alerts %s --action add     # Add new alert\n", budgetID)
+	fmt.Printf("   prism budget alerts %s --action test    # Test alert delivery\n", budgetID)
 
 	return nil
 }
@@ -1980,7 +1980,7 @@ func (bc *BudgetCommands) testAlert(cmd *cobra.Command, budgetID string) error {
 
 	if project.Budget == nil || len(project.Budget.AlertThresholds) == 0 {
 		fmt.Printf("   ⚠️  No alerts configured. Configure alerts first:\n")
-		fmt.Printf("      cws budget alerts %s --action add --threshold 80 --type email\n", budgetID)
+		fmt.Printf("      prism budget alerts %s --action add --threshold 80 --type email\n", budgetID)
 		return nil
 	}
 

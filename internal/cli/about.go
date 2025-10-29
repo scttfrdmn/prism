@@ -100,9 +100,9 @@ func runAbout() {
 	fmt.Println("💡 Quick Start")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Println("   cws --help             Show all available commands")
-	fmt.Println("   cws templates          List available templates")
-	fmt.Println("   cws launch <template> <name>  Launch a new workstation")
-	fmt.Println("   cws tui                Launch terminal interface")
-	fmt.Println("   cws gui                Launch graphical interface")
+	fmt.Println("   prism templates          List available templates")
+	fmt.Println("   prism launch <template> <name>  Launch a new workstation")
+	fmt.Println("   prism tui                Launch terminal interface")
+	fmt.Println("   prism gui                Launch graphical interface")
 	fmt.Println()
 }

@@ -82,7 +82,7 @@ func (wc *WebCommands) List(args []string) error {
 		if tunnelActive {
 			fmt.Printf("\n   URL: %s", localURL)
 		} else {
-			fmt.Printf("\n   Not tunneled - use 'cws web open %s %s' to access", instanceName, service.Name)
+			fmt.Printf("\n   Not tunneled - use 'prism web open %s %s' to access", instanceName, service.Name)
 		}
 		fmt.Printf("\n\n")
 	}

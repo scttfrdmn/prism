@@ -115,7 +115,7 @@ func (s *IdleInstanceService) FindAndValidateInstance(instanceName string) (*Idl
 	// Check daemon is running
 	if pingable, ok := s.apiClient.(interface{ Ping(interface{}) error }); ok {
 		if err := pingable.Ping(nil); err != nil {
-			return nil, fmt.Errorf("daemon not running. Start with: cws daemon start")
+			return nil, fmt.Errorf("daemon not running. Start with: prism daemon start")
 		}
 	}
 
@@ -362,7 +362,7 @@ func (s *IdleDisplayService) displayConfigurationStatus(instanceName string, con
 		fmt.Printf("   Idle threshold:      %d minutes (ignored while disabled)\n", config.IdleMinutes)
 		fmt.Printf("   Hibernate threshold: %d minutes (ignored while disabled)\n", config.HibernateMinutes)
 		fmt.Printf("   Check interval:      %d minutes (minimal overhead)\n", config.CheckInterval)
-		fmt.Printf("   💡 Enable with: cws idle configure %s --enable\n", instanceName)
+		fmt.Printf("   💡 Enable with: prism idle configure %s --enable\n", instanceName)
 	}
 }
 

@@ -3,7 +3,7 @@
 **Release Version**: v0.5.8
 **Release Date**: Target December 13, 2025
 **Milestone**: [Phase 5.0: UX Redesign](https://github.com/scttfrdmn/prism/milestone/23)
-**Status**: 🟡 IN PROGRESS (1 open issue remaining)
+**Status**: ✅ READY FOR RELEASE (all issues complete)
 
 ---
 

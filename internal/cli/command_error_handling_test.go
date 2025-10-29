@@ -220,7 +220,7 @@ func TestCLIUserWorkflowErrors(t *testing.T) {
 	}{
 		{
 			name:        "student_first_time_setup",
-			workflow:    "Student runs 'cws launch python-ml my-first-project' without AWS setup",
+			workflow:    "Student runs 'prism launch python-ml my-first-project' without AWS setup",
 			expectation: "Clear AWS credentials configuration guidance",
 			errorType:   "CredentialsNotFound",
 			description: "Student hasn't configured AWS credentials yet",

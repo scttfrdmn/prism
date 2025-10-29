@@ -28,11 +28,11 @@ func TestSimplified_README_QuickStartWorkflow(t *testing.T) {
 	})
 
 	t.Run("First_Workstation_Launch", func(t *testing.T) {
-		// Test: cws daemon start
+		// Test: prism daemon start
 		err := app.Daemon([]string{"start"})
 		assert.NoError(t, err, "Daemon start should work as documented")
 
-		// Test: cws launch "Python Machine Learning (Simplified)" my-research
+		// Test: prism launch "Python Machine Learning (Simplified)" my-research
 		err = app.Launch([]string{"Python Machine Learning (Simplified)", "my-research"})
 		assert.NoError(t, err, "Launch should work with exact template name from README")
 
@@ -41,12 +41,12 @@ func TestSimplified_README_QuickStartWorkflow(t *testing.T) {
 		assert.Equal(t, "Python Machine Learning (Simplified)", mockClient.LaunchCalls[0].Template)
 		assert.Equal(t, "my-research", mockClient.LaunchCalls[0].Name)
 
-		// Test: cws connect my-research
+		// Test: prism connect my-research
 		err = app.Connect([]string{"my-research"})
 		assert.NoError(t, err, "Connect should work with instance name")
 		assert.Contains(t, mockClient.ConnectCalls, "my-research")
 
-		// Test: cws hibernate my-research
+		// Test: prism hibernate my-research
 		err = app.Hibernate([]string{"my-research"})
 		assert.NoError(t, err, "Hibernate should work as documented")
 		assert.Contains(t, mockClient.HibernateCalls, "my-research")
@@ -59,19 +59,19 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 	app := NewAppWithClient("v0.4.2", mockClient)
 
 	t.Run("Phase2_First_Launch", func(t *testing.T) {
-		// Test: cws templates list
+		// Test: prism templates list
 		err := app.Templates([]string{"list"})
 		assert.NoError(t, err, "Template listing should work")
 
-		// Test: cws launch "Python Machine Learning (Simplified)" ml-research
+		// Test: prism launch "Python Machine Learning (Simplified)" ml-research
 		err = app.Launch([]string{"Python Machine Learning (Simplified)", "ml-research"})
 		assert.NoError(t, err, "Template launch should work")
 
-		// Test: cws list
+		// Test: prism list
 		err = app.List([]string{})
 		assert.NoError(t, err, "Instance listing should work")
 
-		// Test: cws connect ml-research
+		// Test: prism connect ml-research
 		err = app.Connect([]string{"ml-research"})
 		assert.NoError(t, err, "Connection should work")
 
@@ -84,15 +84,15 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 		// Reset call tracking for this phase
 		mockClient.ResetCallTracking()
 
-		// Test: cws templates info "Rocky Linux 9 + Conda Stack"
+		// Test: prism templates info "Rocky Linux 9 + Conda Stack"
 		err := app.Templates([]string{"info", "Rocky Linux 9 + Conda Stack"})
 		assert.NoError(t, err, "Stacked template info should work")
 
-		// Test: cws launch "Rocky Linux 9 + Conda Stack" data-analysis
+		// Test: prism launch "Rocky Linux 9 + Conda Stack" data-analysis
 		err = app.Launch([]string{"Rocky Linux 9 + Conda Stack", "data-analysis"})
 		assert.NoError(t, err, "Stacked template should be launchable")
 
-		// Test: cws connect data-analysis
+		// Test: prism connect data-analysis
 		err = app.Connect([]string{"data-analysis"})
 		assert.NoError(t, err, "Connection to inherited template instance should work")
 
@@ -126,19 +126,19 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 			})
 		}
 
-		// Test: cws hibernate ml-research
+		// Test: prism hibernate ml-research
 		err := app.Hibernate([]string{"ml-research"})
 		assert.NoError(t, err, "Manual hibernation should work")
 
-		// Test: cws list (to show hibernated state)
+		// Test: prism list (to show hibernated state)
 		err = app.List([]string{})
 		assert.NoError(t, err, "List after hibernation should work")
 
-		// Test: cws resume ml-research
+		// Test: prism resume ml-research
 		err = app.Resume([]string{"ml-research"})
 		assert.NoError(t, err, "Resume should work")
 
-		// Test: cws connect ml-research (environment preserved)
+		// Test: prism connect ml-research (environment preserved)
 		err = app.Connect([]string{"ml-research"})
 		assert.NoError(t, err, "Reconnection after hibernation should work")
 
@@ -148,37 +148,37 @@ func TestSimplified_DEMO_SEQUENCE_CorePhases(t *testing.T) {
 	})
 
 	t.Run("Phase7_Storage", func(t *testing.T) {
-		// Test: cws storage list
+		// Test: prism storage list
 		err := app.Storage([]string{"list"})
 		assert.NoError(t, err, "Storage listing should work")
 
-		// Test: cws storage create shared-data --size 100GB
+		// Test: prism storage create shared-data --size 100GB
 		err = app.Storage([]string{"create", "shared-data", "--size", "100GB"})
 		assert.NoError(t, err, "Storage creation should work")
 
-		// Test: cws storage attach shared-data ml-research /mnt/shared
+		// Test: prism storage attach shared-data ml-research /mnt/shared
 		err = app.Storage([]string{"attach", "shared-data", "ml-research", "/mnt/shared"})
 		assert.NoError(t, err, "Storage attachment should work")
 
-		// Test: cws connect ml-research (with attached storage)
+		// Test: prism connect ml-research (with attached storage)
 		err = app.Connect([]string{"ml-research"})
 		assert.NoError(t, err, "Connection with attached storage should work")
 	})
 
 	t.Run("Phase8_Cleanup", func(t *testing.T) {
-		// Test: cws hibernate ml-research
+		// Test: prism hibernate ml-research
 		err := app.Hibernate([]string{"ml-research"})
 		assert.NoError(t, err, "Instance hibernation for preservation should work")
 
-		// Test: cws hibernate data-analysis
+		// Test: prism hibernate data-analysis
 		err = app.Hibernate([]string{"data-analysis"})
 		assert.NoError(t, err, "Second instance hibernation should work")
 
-		// Test: cws list (final status check)
+		// Test: prism list (final status check)
 		err = app.List([]string{})
 		assert.NoError(t, err, "Final status check should work")
 
-		// Test: cws daemon stop
+		// Test: prism daemon stop
 		err = app.Daemon([]string{"stop"})
 		assert.NoError(t, err, "Clean shutdown should work")
 

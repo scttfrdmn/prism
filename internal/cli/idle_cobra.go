@@ -39,22 +39,22 @@ Available policy templates:
 - production: Safety-first for production (5% estimated)
 - research: Optimized for ML/research workloads (45% estimated)`,
 		Example: `  # List available idle policies
-  cws idle policy list
+  prism idle policy list
 
   # Apply a policy to an instance
-  cws idle policy apply my-instance balanced
+  prism idle policy apply my-instance balanced
 
   # View policies applied to an instance
-  cws idle policy status my-instance
+  prism idle policy status my-instance
 
   # Get policy recommendation for an instance
-  cws idle policy recommend my-instance
+  prism idle policy recommend my-instance
 
   # View idle schedules
-  cws idle schedule list
+  prism idle schedule list
 
   # Generate savings report
-  cws idle savings --period 30d`,
+  prism idle savings --period 30d`,
 	}
 
 	// Add subcommands
@@ -130,7 +130,7 @@ func (hc *IdleCobraCommands) createPolicyListCommand() *cobra.Command {
 
 			_ = w.Flush()
 
-			fmt.Println("\n💡 Tip: Use 'cws idle policy details <policy-id>' to see full details")
+			fmt.Println("\n💡 Tip: Use 'prism idle policy details <policy-id>' to see full details")
 			fmt.Println("💰 Estimated savings are based on typical usage patterns")
 
 			return nil
@@ -224,7 +224,7 @@ func (hc *IdleCobraCommands) createPolicyStatusCommand() *cobra.Command {
 
 			if len(policies) == 0 {
 				fmt.Printf("No idle policies applied to workspace '%s'\n", instanceName)
-				fmt.Println("\n💡 Tip: Use 'cws idle policy apply' to add a policy")
+				fmt.Println("\n💡 Tip: Use 'prism idle policy apply' to add a policy")
 				return nil
 			}
 
@@ -290,7 +290,7 @@ func (hc *IdleCobraCommands) createPolicyRecommendCommand() *cobra.Command {
 			}
 
 			fmt.Printf("\n✨ To apply this policy, run:\n")
-			fmt.Printf("   cws idle policy apply %s %s\n", instanceName, policy.ID)
+			fmt.Printf("   prism idle policy apply %s %s\n", instanceName, policy.ID)
 
 			return nil
 		},

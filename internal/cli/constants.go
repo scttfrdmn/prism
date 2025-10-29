@@ -193,13 +193,13 @@ const (
 	SetupTimeoutMessage = "⚠️  Setup monitoring timeout (20 min). Instance may still be setting up."
 
 	// SetupTimeoutHelpMessage provides help when setup times out
-	SetupTimeoutHelpMessage = "💡 Check status with: cws list"
+	SetupTimeoutHelpMessage = "💡 Check status with: prism list"
 
 	// SetupTimeoutConnectMessage suggests connecting when setup times out
-	SetupTimeoutConnectMessage = "💡 Try connecting: cws connect %s"
+	SetupTimeoutConnectMessage = "💡 Try connecting: prism connect %s"
 
 	// AMITimeoutMessage is displayed when AMI launch monitoring times out
-	AMITimeoutMessage = "⚠️  Timeout waiting for instance to start (5 min). Check status with: cws list"
+	AMITimeoutMessage = "⚠️  Timeout waiting for instance to start (5 min). Check status with: prism list"
 )
 
 // =============================================================================
@@ -217,7 +217,7 @@ const (
 	StateMessageRunningReady = "✅ Instance running! Ready to connect."
 
 	// StateMessageConnectCommand provides the connect command template
-	StateMessageConnectCommand = "🔗 Connect: cws connect %s"
+	StateMessageConnectCommand = "🔗 Connect: prism connect %s"
 
 	// StateMessageDryRunSuccess is displayed for successful dry runs
 	StateMessageDryRunSuccess = "✅ Dry-run validation successful! No actual instance launched."

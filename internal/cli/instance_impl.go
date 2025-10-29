@@ -214,7 +214,7 @@ func (ic *InstanceCommands) Start(args []string) error {
 	}
 
 	if targetInstance == nil {
-		return NewNotFoundError("workspace", name, "Use 'cws list' to see available instances")
+		return NewNotFoundError("workspace", name, "Use 'prism list' to see available instances")
 	}
 
 	// Check current state and handle appropriately
@@ -223,8 +223,8 @@ func (ic *InstanceCommands) Start(args []string) error {
 		fmt.Printf("✅ Workspace %s is already running\n", name)
 		return nil
 	case "hibernated":
-		fmt.Printf("🛌 Workspace %s is hibernated - use 'cws resume %s' for instant startup\n", name, name)
-		fmt.Printf("   Or use 'cws start %s' for regular boot (slower)\n", name)
+		fmt.Printf("🛌 Workspace %s is hibernated - use 'prism resume %s' for instant startup\n", name, name)
+		fmt.Printf("   Or use 'prism start %s' for regular boot (slower)\n", name)
 		fmt.Printf("   Proceeding with regular start...\n")
 	case "stopped", "stopping":
 		// Normal case - proceed with start
@@ -594,7 +594,7 @@ func (ic *InstanceCommands) getInstanceForResize(instanceName string) (*types.In
 		}
 	}
 
-	return nil, NewNotFoundError("workspace", instanceName, "Use 'cws list' to see available instances")
+	return nil, NewNotFoundError("workspace", instanceName, "Use 'prism list' to see available instances")
 }
 
 // resolveTargetInstanceType determines the target workspace type from options
@@ -745,8 +745,8 @@ func (ic *InstanceCommands) executeResize(instanceName, targetType string, opts 
 		return ic.monitorResizeProgress(instanceName)
 	}
 
-	fmt.Printf("💡 Monitor progress with: cws list\n")
-	fmt.Printf("💡 Check when ready: cws connect %s\n", instanceName)
+	fmt.Printf("💡 Monitor progress with: prism list\n")
+	fmt.Printf("💡 Check when ready: prism connect %s\n", instanceName)
 	return nil
 }
 
@@ -798,7 +798,7 @@ func (ic *InstanceCommands) monitorResizeProgress(instanceName string) error {
 		switch instance.State {
 		case "running":
 			fmt.Printf("✅ Resize complete! Instance is running with new configuration.\n")
-			fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
+			fmt.Printf("🔗 Connect: prism connect %s\n", instanceName)
 			return nil
 		case "stopped", "stopping":
 			fmt.Printf("⏳ Instance stopping for resize... (%ds)\n", i*5)
@@ -814,6 +814,6 @@ func (ic *InstanceCommands) monitorResizeProgress(instanceName string) error {
 	}
 
 	fmt.Printf("⚠️  Resize monitoring timeout. Instance may still be resizing.\n")
-	fmt.Printf("💡 Check status with: cws list\n")
+	fmt.Printf("💡 Check status with: prism list\n")
 	return nil
 }

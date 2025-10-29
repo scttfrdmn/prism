@@ -109,7 +109,7 @@ func (sc *StorageCommands) volumeList(_ []string) error {
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println("No shared storage volumes found. Create one with 'cws volume create'.")
+		fmt.Println("No shared storage volumes found. Create one with 'prism volume create'.")
 		return nil
 	}
 
@@ -300,7 +300,7 @@ func (sc *StorageCommands) storageList(_ []string) error {
 	}
 
 	if len(volumes) == 0 {
-		fmt.Println("No storage volumes found. Create one with 'cws storage create'.")
+		fmt.Println("No storage volumes found. Create one with 'prism storage create'.")
 		return nil
 	}
 

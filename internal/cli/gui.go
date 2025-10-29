@@ -40,7 +40,7 @@ func runGUI() {
 
 		if err := startDaemonForGUI(); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", FormatErrorForCLI(err, "start daemon for GUI"))
-			fmt.Println("Please start the daemon manually with: cws daemon start")
+			fmt.Println("Please start the daemon manually with: prism daemon start")
 			os.Exit(1)
 		}
 
@@ -57,7 +57,7 @@ func runGUI() {
 		fmt.Println("\nTo install GUI support:")
 		fmt.Println("  1. Install Wails CLI: go install github.com/wailsapp/wails/v3/cmd/wails@latest")
 		fmt.Println("  2. Build GUI: make build-gui")
-		fmt.Println("  3. Or use TUI instead: cws tui")
+		fmt.Println("  3. Or use TUI instead: prism tui")
 		os.Exit(1)
 	}
 
@@ -163,7 +163,7 @@ The Prism GUI requires the cws-gui binary to be built and available.
 Installation options:
   • Homebrew (includes GUI): brew install cloudworkstation
   • Manual build: make build-gui (requires Wails CLI)
-  • Alternative: Use TUI instead with 'cws tui'
+  • Alternative: Use TUI instead with 'prism tui'
 
 For GUI development:
   • Install Wails: go install github.com/wailsapp/wails/v3/cmd/wails@latest

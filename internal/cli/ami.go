@@ -137,7 +137,7 @@ func (a *App) handleAMIList(args []string) error {
 		for _, template := range templates {
 			fmt.Printf("- %s\n", template)
 		}
-		fmt.Println("\nUse 'cws ami list <template>' to see AMIs for a specific template")
+		fmt.Println("\nUse 'prism ami list <template>' to see AMIs for a specific template")
 	}
 
 	return nil
@@ -208,7 +208,7 @@ func (a *App) handleAMIValidate(args []string) error {
 // handleAMIPublish updates the registry with a new AMI
 func (a *App) handleAMIPublish(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws ami publish <template> <ami-id>")
+		return fmt.Errorf("usage: prism ami publish <template> <ami-id>")
 	}
 
 	templateName := args[0]
@@ -696,7 +696,7 @@ func NewAMISaveArgParser() *AMISaveArgParser {
 // Parse parses command line arguments into save configuration (Single Responsibility)
 func (p *AMISaveArgParser) Parse(args []string) (*AMISaveConfig, error) {
 	if len(args) < 2 {
-		return nil, fmt.Errorf("usage: cws ami save <workspace-name> <template-name> [options]")
+		return nil, fmt.Errorf("usage: prism ami save <workspace-name> <template-name> [options]")
 	}
 
 	instanceName := args[0]
@@ -763,7 +763,7 @@ func (s *InstanceValidationService) ValidateInstance(saveConfig *AMISaveConfig) 
 	// Check daemon is running
 	if pingable, ok := s.apiClient.(interface{ Ping(context.Context) error }); ok {
 		if err := pingable.Ping(ctx); err != nil {
-			return nil, fmt.Errorf("daemon not running. Start with: cws daemon start")
+			return nil, fmt.Errorf("daemon not running. Start with: prism daemon start")
 		}
 	}
 
@@ -913,7 +913,7 @@ func (s *AMISaveBuilderService) displaySaveResults(result *ami.BuildResult, temp
 	}
 
 	fmt.Printf("\n✨ Template '%s' is now available for launching new workspaces:\n", templateName)
-	fmt.Printf("   cws launch %s my-new-instance\n", templateName)
+	fmt.Printf("   prism launch %s my-new-instance\n", templateName)
 
 	return nil
 }
@@ -946,7 +946,7 @@ func (a *App) handleAMIResolve(args []string) error {
 // parseAMIResolveArgs validates and parses AMI resolve command arguments
 func (a *App) parseAMIResolveArgs(args []string) (string, map[string]string, error) {
 	if len(args) == 0 {
-		return "", nil, fmt.Errorf("usage: cws ami resolve <template-name> [--details] [--region <region>]")
+		return "", nil, fmt.Errorf("usage: prism ami resolve <template-name> [--details] [--region <region>]")
 	}
 
 	templateName := args[0]
@@ -1083,7 +1083,7 @@ func (a *App) displayWarningsAndExtras(cmdArgs map[string]string, response map[s
 // handleAMITest tests AMI availability across regions for a template
 func (a *App) handleAMITest(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami test <template-name> [--regions <region1,region2,...>]")
+		return fmt.Errorf("usage: prism ami test <template-name> [--regions <region1,region2,...>]")
 	}
 
 	templateName := args[0]
@@ -1145,7 +1145,7 @@ func (a *App) handleAMITest(args []string) error {
 // handleAMICosts provides cost analysis for AMI vs script deployment
 func (a *App) handleAMICosts(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami costs <template-name>")
+		return fmt.Errorf("usage: prism ami costs <template-name>")
 	}
 
 	templateName := args[0]
@@ -1190,7 +1190,7 @@ func (a *App) handleAMICosts(args []string) error {
 // handleAMIPreview shows what would happen during AMI resolution without executing
 func (a *App) handleAMIPreview(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami preview <template-name>")
+		return fmt.Errorf("usage: prism ami preview <template-name>")
 	}
 
 	templateName := args[0]
@@ -1332,7 +1332,7 @@ func getSlice(data interface{}, key string) []interface{} {
 // handleAMICreate creates an AMI from a running instance
 func (a *App) handleAMICreate(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami create <workspace-name> --name <ami-name> [--description <description>] [--template <template>] [--public] [--no-reboot]")
+		return fmt.Errorf("usage: prism ami create <workspace-name> --name <ami-name> [--description <description>] [--template <template>] [--public] [--no-reboot]")
 	}
 
 	instanceName := args[0]
@@ -1394,7 +1394,7 @@ func (a *App) handleAMICreate(args []string) error {
 	fmt.Printf("⏱️  Estimated completion: %d minutes\n", getInt(response, "estimated_completion_minutes"))
 	fmt.Printf("💰 Storage cost: $%.4f/month\n", getFloat64(response, "storage_cost"))
 
-	fmt.Printf("\n💡 Check status with: cws ami status %s\n", getString(response, "ami_id"))
+	fmt.Printf("\n💡 Check status with: prism ami status %s\n", getString(response, "ami_id"))
 
 	return nil
 }
@@ -1402,7 +1402,7 @@ func (a *App) handleAMICreate(args []string) error {
 // handleAMIStatus checks the status of AMI creation
 func (a *App) handleAMIStatus(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami status <creation-id|ami-id>")
+		return fmt.Errorf("usage: prism ami status <creation-id|ami-id>")
 	}
 
 	creationID := args[0]
@@ -1469,7 +1469,7 @@ func (a *App) handleAMIListUser(args []string) error {
 	amis := getSlice(response, "amis")
 	if len(amis) == 0 {
 		fmt.Printf("No custom AMIs found.\n")
-		fmt.Printf("💡 Create one with: cws ami create <workspace-name> --name <ami-name>\n")
+		fmt.Printf("💡 Create one with: prism ami create <workspace-name> --name <ami-name>\n")
 		return nil
 	}
 
@@ -1584,7 +1584,7 @@ func (a *App) handleAMICleanup(args []string) error {
 // handleAMIDelete deletes a specific AMI by ID
 func (a *App) handleAMIDelete(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami delete <ami-id> [--force] [--deregister-only]")
+		return fmt.Errorf("usage: prism ami delete <ami-id> [--force] [--deregister-only]")
 	}
 
 	amiID := args[0]
@@ -1646,7 +1646,7 @@ func (a *App) handleAMIDelete(args []string) error {
 // handleAMISnapshot manages AMI snapshots and creates AMIs from snapshots
 func (a *App) handleAMISnapshot(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami snapshot <subcommand>\n" +
+		return fmt.Errorf("usage: prism ami snapshot <subcommand>\n" +
 			"Subcommands:\n" +
 			"  list                    List available snapshots\n" +
 			"  create <instance-id>    Create snapshot from instance\n" +
@@ -1696,7 +1696,7 @@ func (a *App) handleAMISnapshotList(args []string) error {
 	snapshots := getSlice(response, "snapshots")
 	if len(snapshots) == 0 {
 		fmt.Printf("No snapshots found.\n")
-		fmt.Printf("💡 Create one with: cws ami snapshot create <instance-id>\n")
+		fmt.Printf("💡 Create one with: prism ami snapshot create <instance-id>\n")
 		return nil
 	}
 
@@ -1726,7 +1726,7 @@ func (a *App) handleAMISnapshotList(args []string) error {
 // handleAMISnapshotCreate creates a snapshot from an instance
 func (a *App) handleAMISnapshotCreate(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami snapshot create <instance-id> [--description <desc>] [--no-reboot]")
+		return fmt.Errorf("usage: prism ami snapshot create <instance-id> [--description <desc>] [--no-reboot]")
 	}
 
 	instanceID := args[0]
@@ -1766,7 +1766,7 @@ func (a *App) handleAMISnapshotCreate(args []string) error {
 	fmt.Printf("   ⏱️  Estimated completion: %d minutes\n", getInt(response, "estimated_completion_minutes"))
 	fmt.Printf("   💰 Storage cost: $%.3f/month\n", getFloat(response, "storage_cost_monthly"))
 
-	fmt.Printf("\n💡 Check progress with: cws ami snapshot list --instance-id %s\n", instanceID)
+	fmt.Printf("\n💡 Check progress with: prism ami snapshot list --instance-id %s\n", instanceID)
 
 	return nil
 }
@@ -1774,7 +1774,7 @@ func (a *App) handleAMISnapshotCreate(args []string) error {
 // handleAMISnapshotRestore creates an AMI from a snapshot
 func (a *App) handleAMISnapshotRestore(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami snapshot restore <snapshot-id> --name <ami-name> [--description <desc>] [--architecture <arch>]")
+		return fmt.Errorf("usage: prism ami snapshot restore <snapshot-id> --name <ami-name> [--description <desc>] [--architecture <arch>]")
 	}
 
 	snapshotID := args[0]
@@ -1821,7 +1821,7 @@ func (a *App) handleAMISnapshotRestore(args []string) error {
 	fmt.Printf("   🏛️  Architecture: %s\n", getString(response, "architecture"))
 	fmt.Printf("   ⏱️  Estimated completion: %d minutes\n", getInt(response, "estimated_completion_minutes"))
 
-	fmt.Printf("\n💡 Check status with: cws ami status %s\n", getString(response, "ami_id"))
+	fmt.Printf("\n💡 Check status with: prism ami status %s\n", getString(response, "ami_id"))
 
 	return nil
 }
@@ -1829,7 +1829,7 @@ func (a *App) handleAMISnapshotRestore(args []string) error {
 // handleAMISnapshotDelete deletes a specific snapshot
 func (a *App) handleAMISnapshotDelete(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws ami snapshot delete <snapshot-id> [--force]")
+		return fmt.Errorf("usage: prism ami snapshot delete <snapshot-id> [--force]")
 	}
 
 	snapshotID := args[0]

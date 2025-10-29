@@ -144,7 +144,7 @@ func (p *PolicyCobraCommands) handlePolicyStatus() error {
 	}
 
 	fmt.Println()
-	fmt.Println("💡 Tip: Use 'cws policy assign <policy-set>' to configure access controls")
+	fmt.Println("💡 Tip: Use 'prism policy assign <policy-set>' to configure access controls")
 
 	return nil
 }
@@ -182,7 +182,7 @@ func (p *PolicyCobraCommands) handlePolicyList() error {
 	}
 
 	fmt.Println()
-	fmt.Println("Use 'cws policy assign <policy-set>' to assign a policy set")
+	fmt.Println("Use 'prism policy assign <policy-set>' to assign a policy set")
 
 	return nil
 }
@@ -204,7 +204,7 @@ func (p *PolicyCobraCommands) handlePolicyAssign(args []string) error {
 	if response.Success {
 		fmt.Printf("✅ %s\n", response.Message)
 		fmt.Println()
-		fmt.Printf("💡 Policy enforcement is %s. Use 'cws policy enable' to activate.\n", response.EnforcementStatus)
+		fmt.Printf("💡 Policy enforcement is %s. Use 'prism policy enable' to activate.\n", response.EnforcementStatus)
 	} else {
 		fmt.Printf("❌ Failed to assign policy set '%s'\n", policySet)
 	}

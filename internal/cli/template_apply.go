@@ -30,7 +30,7 @@ func (a *App) Diff(args []string) error {
 // Layers handles the layers command
 func (a *App) Layers(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws layers <workspace-name>")
+		return fmt.Errorf("usage: prism layers <workspace-name>")
 	}
 
 	instanceName := args[0]
@@ -48,7 +48,7 @@ func (a *App) Layers(args []string) error {
 
 	if len(layers) == 0 {
 		fmt.Printf("📋 No templates applied to instance '%s'\n", instanceName)
-		fmt.Printf("💡 Apply a template with: cws apply <template> %s\n", instanceName)
+		fmt.Printf("💡 Apply a template with: prism apply <template> %s\n", instanceName)
 		return nil
 	}
 
@@ -72,8 +72,8 @@ func (a *App) Layers(args []string) error {
 
 	_ = w.Flush()
 
-	fmt.Printf("\n💡 Use 'cws rollback %s --to-checkpoint=<checkpoint>' to rollback to a specific layer\n", instanceName)
-	fmt.Printf("💡 Use 'cws rollback %s' to rollback to the previous checkpoint\n", instanceName)
+	fmt.Printf("\n💡 Use 'prism rollback %s --to-checkpoint=<checkpoint>' to rollback to a specific layer\n", instanceName)
+	fmt.Printf("💡 Use 'prism rollback %s' to rollback to the previous checkpoint\n", instanceName)
 
 	return nil
 }
@@ -81,7 +81,7 @@ func (a *App) Layers(args []string) error {
 // Rollback handles the rollback command
 func (a *App) Rollback(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws rollback <workspace-name> [--to-checkpoint=<checkpoint-id>]")
+		return fmt.Errorf("usage: prism rollback <workspace-name> [--to-checkpoint=<checkpoint-id>]")
 	}
 
 	instanceName := args[0]
@@ -132,8 +132,8 @@ func (a *App) Rollback(args []string) error {
 	}
 
 	fmt.Printf("✅ Successfully rolled back instance '%s' to checkpoint '%s'\n", instanceName, checkpointID)
-	fmt.Printf("💡 Use 'cws layers %s' to see the current state\n", instanceName)
-	fmt.Printf("💡 Use 'cws list' to verify the instance is healthy\n")
+	fmt.Printf("💡 Use 'prism layers %s' to see the current state\n", instanceName)
+	fmt.Printf("💡 Use 'prism list' to verify the instance is healthy\n")
 
 	return nil
 }

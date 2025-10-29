@@ -55,9 +55,9 @@ This command analyzes CPU, memory, storage, and network utilization patterns
 to provide intelligent sizing recommendations with cost impact analysis.
 
 Examples:
-  cws rightsizing analyze my-workspace
-  cws rightsizing analyze gpu-training --period 168  # 1 week analysis
-  cws rightsizing analyze my-server --refresh         # Force refresh metrics`,
+  prism rightsizing analyze my-workspace
+  prism rightsizing analyze gpu-training --period 168  # 1 week analysis
+  prism rightsizing analyze my-server --refresh         # Force refresh metrics`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Convert Cobra flags to args format expected by existing method
@@ -95,9 +95,9 @@ This command provides a fleet-wide view of rightsizing opportunities with
 potential cost savings and optimization recommendations.
 
 Examples:
-  cws rightsizing recommendations
-  cws rightsizing recommendations --format json
-  cws rightsizing recommendations --savings-only      # Show only cost-saving opportunities`,
+  prism rightsizing recommendations
+  prism rightsizing recommendations --format json
+  prism rightsizing recommendations --savings-only      # Show only cost-saving opportunities`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Convert flags to args format
 			recArgs := []string{"recommendations"}
@@ -134,9 +134,9 @@ This command provides detailed resource utilization statistics, performance
 metrics, and comprehensive analysis for informed rightsizing decisions.
 
 Examples:
-  cws rightsizing stats my-workspace
-  cws rightsizing stats gpu-server --detailed
-  cws rightsizing stats my-analysis --format json`,
+  prism rightsizing stats my-workspace
+  prism rightsizing stats gpu-server --detailed
+  prism rightsizing stats my-analysis --format json`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			statsArgs := []string{"stats", args[0]}
@@ -170,9 +170,9 @@ including total potential savings, resource utilization trends, and optimization
 opportunities.
 
 Examples:
-  cws rightsizing summary
-  cws rightsizing summary --detailed
-  cws rightsizing summary --format json`,
+  prism rightsizing summary
+  prism rightsizing summary --detailed
+  prism rightsizing summary --format json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			summaryArgs := []string{"summary"}
 
@@ -204,9 +204,9 @@ This command exports raw metrics data in various formats for integration
 with external monitoring systems, reporting tools, or custom analysis.
 
 Examples:
-  cws rightsizing export my-workspace
-  cws rightsizing export gpu-server --format csv --output metrics.csv
-  cws rightsizing export my-analysis --period 168  # Export 1 week of data`,
+  prism rightsizing export my-workspace
+  prism rightsizing export gpu-server --format csv --output metrics.csv
+  prism rightsizing export my-analysis --period 168  # Export 1 week of data`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			exportArgs := []string{"export", args[0]}

@@ -395,9 +395,9 @@ func (pw *ProfileWizard) showProfileCreated(newProfile profile.Profile) {
 
 	fmt.Println()
 	fmt.Println("💡 What's next?")
-	fmt.Println("   • List all profiles: cws profiles list")
-	fmt.Println("   • Switch profiles: cws profiles switch <profile-id>")
-	fmt.Println("   • Launch an instance: cws launch python-ml my-project")
+	fmt.Println("   • List all profiles: prism profiles list")
+	fmt.Println("   • Switch profiles: prism profiles switch <profile-id>")
+	fmt.Println("   • Launch an instance: prism launch python-ml my-project")
 	fmt.Println()
 }
 

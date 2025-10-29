@@ -189,8 +189,8 @@ func (k *KeysCobraCommands) handleListKeys() error {
 
 	w.Flush()
 
-	fmt.Printf("\n💡 Use 'cws keys show <profile>' for detailed information\n")
-	fmt.Printf("💡 Use 'cws keys export <profile> -o <file>' to backup a key\n")
+	fmt.Printf("\n💡 Use 'prism keys show <profile>' for detailed information\n")
+	fmt.Printf("💡 Use 'prism keys export <profile> -o <file>' to backup a key\n")
 
 	return nil
 }
@@ -236,8 +236,8 @@ func (k *KeysCobraCommands) handleShowKey(profileName string) error {
 	}
 
 	fmt.Printf("\n💡 Commands:\n")
-	fmt.Printf("   Export key:       cws keys export %s -o ~/backup/%s.pem\n", profileName, profileName)
-	fmt.Printf("   Show public key:  cws keys public %s\n", profileName)
+	fmt.Printf("   Export key:       prism keys export %s -o ~/backup/%s.pem\n", profileName, profileName)
+	fmt.Printf("   Show public key:  prism keys public %s\n", profileName)
 
 	return nil
 }
@@ -319,8 +319,8 @@ func (k *KeysCobraCommands) handleImportKey(profileName, region, keyFilePath str
 	fmt.Printf("   Region:      %s\n", region)
 	fmt.Printf("   Source File: %s\n", keyFilePath)
 	fmt.Printf("\n💡 The key is now ready to use with Prism\n")
-	fmt.Printf("💡 View details: cws keys show %s\n", profileName)
-	fmt.Printf("💡 Launch an instance: cws launch <template> <name>\n")
+	fmt.Printf("💡 View details: prism keys show %s\n", profileName)
+	fmt.Printf("💡 Launch an instance: prism launch <template> <name>\n")
 
 	return nil
 }
@@ -368,8 +368,8 @@ func (k *KeysCobraCommands) handleDeleteKey(profileName string, force bool) erro
 		}
 		fmt.Printf("\n❌ Cannot delete key while instances are using it\n")
 		fmt.Printf("💡 Options:\n")
-		fmt.Printf("   1. Delete the instances first: cws delete <workspace-name>\n")
-		fmt.Printf("   2. Force deletion (DANGEROUS): cws keys delete %s --force\n", profileName)
+		fmt.Printf("   1. Delete the instances first: prism delete <workspace-name>\n")
+		fmt.Printf("   2. Force deletion (DANGEROUS): prism keys delete %s --force\n", profileName)
 		return fmt.Errorf("key is in use")
 	}
 

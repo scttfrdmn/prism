@@ -42,22 +42,22 @@ Research users complement template-created system users and enable:
 - Consistent development environments across instance types
 - Professional multi-user research computing workflows`,
 		Example: `  # List all research users in the current profile
-  cws research-user list
+  prism research-user list
 
   # Create a new research user
-  cws research-user create alice
+  prism research-user create alice
 
   # Get details about a research user
-  cws research-user info alice
+  prism research-user info alice
 
   # Generate SSH keys for a research user
-  cws research-user keys generate alice
+  prism research-user keys generate alice
 
   # List SSH keys for a research user
-  cws research-user keys list alice
+  prism research-user keys list alice
 
   # Update research user settings
-  cws research-user update alice --full-name "Alice Smith" --email "alice@university.edu"`,
+  prism research-user update alice --full-name "Alice Smith" --email "alice@university.edu"`,
 	}
 
 	// Add subcommands
@@ -96,7 +96,7 @@ func (ruc *ResearchUserCobraCommands) createListCommand() *cobra.Command {
 
 			if len(users) == 0 {
 				fmt.Println("No research users found")
-				fmt.Println("\n💡 Tip: Use 'cws research-user create <username>' to create your first research user")
+				fmt.Println("\n💡 Tip: Use 'prism research-user create <username>' to create your first research user")
 				return nil
 			}
 
@@ -131,7 +131,7 @@ func (ruc *ResearchUserCobraCommands) createListCommand() *cobra.Command {
 			fmt.Println("   • Each user has consistent UID/GID across all instances")
 			fmt.Println("   • Home directories persist on EFS volumes for collaboration")
 			fmt.Println("   • SSH keys enable secure, passwordless access")
-			fmt.Printf("\n💡 Use 'cws research-user info <username>' for detailed information\n")
+			fmt.Printf("\n💡 Use 'prism research-user info <username>' for detailed information\n")
 
 			return nil
 		},
@@ -203,8 +203,8 @@ func (ruc *ResearchUserCobraCommands) createCreateCommand() *cobra.Command {
 			fmt.Printf("   • Professional research computing environment\n")
 
 			fmt.Printf("\n💡 Next steps:\n")
-			fmt.Printf("   • Generate SSH keys: cws research-user keys generate %s\n", username)
-			fmt.Printf("   • View full details: cws research-user info %s\n", username)
+			fmt.Printf("   • Generate SSH keys: prism research-user keys generate %s\n", username)
+			fmt.Printf("   • View full details: prism research-user info %s\n", username)
 			fmt.Printf("   • Launch instance with research user integration\n")
 
 			return nil
@@ -519,7 +519,7 @@ func (ruc *ResearchUserCobraCommands) createKeysListCommand() *cobra.Command {
 
 			if len(keyResponse.Keys) == 0 {
 				fmt.Printf("No SSH keys found for research user '%s'\n", username)
-				fmt.Printf("\n💡 Generate a key pair: cws research-user keys generate %s\n", username)
+				fmt.Printf("\n💡 Generate a key pair: prism research-user keys generate %s\n", username)
 				return nil
 			}
 
@@ -615,7 +615,7 @@ func (ruc *ResearchUserCobraCommands) createKeysGenerateCommand() *cobra.Command
 			fmt.Printf("\n🔗 Next steps:\n")
 			fmt.Printf("   • SSH keys are automatically installed on new instances\n")
 			fmt.Printf("   • Connect with: ssh %s@<instance-ip>\n", username)
-			fmt.Printf("   • View all keys: cws research-user keys list %s\n", username)
+			fmt.Printf("   • View all keys: prism research-user keys list %s\n", username)
 
 			return nil
 		},

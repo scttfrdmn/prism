@@ -59,7 +59,7 @@ func (s *SnapshotCommands) Snapshot(args []string) error {
 // createSnapshot creates a snapshot from an instance
 func (s *SnapshotCommands) createSnapshot(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws snapshot create <workspace-name> <snapshot-name> [options]")
+		return fmt.Errorf("usage: prism snapshot create <workspace-name> <snapshot-name> [options]")
 	}
 
 	instanceName := args[0]
@@ -119,7 +119,7 @@ func (s *SnapshotCommands) createSnapshot(args []string) error {
 		return s.monitorSnapshotProgress(result.SnapshotID, result.SnapshotName)
 	}
 
-	fmt.Printf("\n💡 Check progress with: cws snapshot info %s\n", snapshotName)
+	fmt.Printf("\n💡 Check progress with: prism snapshot info %s\n", snapshotName)
 
 	return nil
 }
@@ -138,7 +138,7 @@ func (s *SnapshotCommands) listSnapshots(args []string) error {
 
 	if len(response.Snapshots) == 0 {
 		fmt.Println("No snapshots found.")
-		fmt.Println("Create one with: cws snapshot create <workspace-name> <snapshot-name>")
+		fmt.Println("Create one with: prism snapshot create <workspace-name> <snapshot-name>")
 		return nil
 	}
 
@@ -166,7 +166,7 @@ func (s *SnapshotCommands) listSnapshots(args []string) error {
 	}
 
 	fmt.Printf("\n💰 Total monthly storage cost: $%.2f\n", totalCost)
-	fmt.Printf("💡 Use 'cws snapshot info <name>' for detailed information\n")
+	fmt.Printf("💡 Use 'prism snapshot info <name>' for detailed information\n")
 
 	return nil
 }
@@ -174,7 +174,7 @@ func (s *SnapshotCommands) listSnapshots(args []string) error {
 // getSnapshotInfo gets detailed information about a snapshot
 func (s *SnapshotCommands) getSnapshotInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws snapshot info <snapshot-name>")
+		return fmt.Errorf("usage: prism snapshot info <snapshot-name>")
 	}
 
 	snapshotName := args[0]
@@ -211,8 +211,8 @@ func (s *SnapshotCommands) getSnapshotInfo(args []string) error {
 	}
 
 	fmt.Printf("\n💡 Operations:\n")
-	fmt.Printf("   Restore: cws snapshot restore %s <new-instance-name>\n", snapshot.SnapshotName)
-	fmt.Printf("   Delete: cws snapshot delete %s\n", snapshot.SnapshotName)
+	fmt.Printf("   Restore: prism snapshot restore %s <new-instance-name>\n", snapshot.SnapshotName)
+	fmt.Printf("   Delete: prism snapshot delete %s\n", snapshot.SnapshotName)
 
 	return nil
 }
@@ -220,7 +220,7 @@ func (s *SnapshotCommands) getSnapshotInfo(args []string) error {
 // deleteSnapshot deletes a snapshot
 func (s *SnapshotCommands) deleteSnapshot(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws snapshot delete <snapshot-name>")
+		return fmt.Errorf("usage: prism snapshot delete <snapshot-name>")
 	}
 
 	snapshotName := args[0]
@@ -263,7 +263,7 @@ func (s *SnapshotCommands) deleteSnapshot(args []string) error {
 // restoreSnapshot restores an instance from a snapshot
 func (s *SnapshotCommands) restoreSnapshot(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws snapshot restore <snapshot-name> <new-instance-name> [options]")
+		return fmt.Errorf("usage: prism snapshot restore <snapshot-name> <new-instance-name> [options]")
 	}
 
 	snapshotName := args[0]
@@ -310,8 +310,8 @@ func (s *SnapshotCommands) restoreSnapshot(args []string) error {
 		return s.app.monitorLaunchProgress(result.NewInstanceName, result.SourceTemplate)
 	}
 
-	fmt.Printf("\n💡 Check progress with: cws list\n")
-	fmt.Printf("💡 Connect when ready: cws connect %s\n", result.NewInstanceName)
+	fmt.Printf("\n💡 Check progress with: prism list\n")
+	fmt.Printf("💡 Connect when ready: prism connect %s\n", result.NewInstanceName)
 
 	return nil
 }
@@ -330,7 +330,7 @@ func (s *SnapshotCommands) monitorSnapshotProgress(snapshotID, snapshotName stri
 		if elapsed > maxDuration {
 			fmt.Printf("⚠️  Snapshot monitoring timeout (%s). Snapshot may still be creating.\n",
 				s.formatDuration(maxDuration))
-			fmt.Printf("💡 Check status with: cws snapshot info %s\n", snapshotName)
+			fmt.Printf("💡 Check status with: prism snapshot info %s\n", snapshotName)
 			return nil
 		}
 
@@ -402,17 +402,17 @@ Restore Options:
   --wait                 Wait and monitor instance launch progress
 
 Examples:
-  cws snapshot create my-workspace backup-v1
-  cws snapshot create gpu-training checkpoint-epoch-10 --description "Training checkpoint after 10 epochs"
-  cws snapshot list
-  cws snapshot info backup-v1
-  cws snapshot restore backup-v1 my-new-workstation
-  cws snapshot delete old-backup
+  prism snapshot create my-workspace backup-v1
+  prism snapshot create gpu-training checkpoint-epoch-10 --description "Training checkpoint after 10 epochs"
+  prism snapshot list
+  prism snapshot info backup-v1
+  prism snapshot restore backup-v1 my-new-workstation
+  prism snapshot delete old-backup
 
 Cost Information:
   Snapshots are stored as AMIs with associated EBS snapshots
   Cost: ~$0.05/GB/month for EBS snapshot storage
-  Use 'cws snapshot list' to see total monthly costs
+  Use 'prism snapshot list' to see total monthly costs
 
 💡 Snapshots preserve the complete instance state including:
    • Operating system and configuration

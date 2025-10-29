@@ -392,8 +392,8 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 		if elapsed > maxDuration {
 			fmt.Printf("⚠️  Launch monitoring timeout (%s). Workspace may still be setting up.\n",
 				reporter.FormatDuration(maxDuration))
-			fmt.Printf("💡 Check status with: cws list\n")
-			fmt.Printf("💡 Try connecting: cws connect %s\n", reporter.instanceName)
+			fmt.Printf("💡 Check status with: prism list\n")
+			fmt.Printf("💡 Try connecting: prism connect %s\n", reporter.instanceName)
 			return nil
 		}
 
@@ -406,7 +406,7 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 			} else {
 				// After 30 seconds, show as potential issue
 				fmt.Printf("⚠️  Unable to get instance status after %s\n", reporter.FormatDuration(elapsed))
-				fmt.Printf("💡 Workspace may still be launching. Check with: cws list\n")
+				fmt.Printf("💡 Workspace may still be launching. Check with: prism list\n")
 			}
 			time.Sleep(5 * time.Second)
 			continue
@@ -494,7 +494,7 @@ func (h *RunningStateHandler) Handle(state string, elapsed int, instanceName str
 		_, connErr := h.apiClient.ConnectInstance(h.ctx, instanceName)
 		if connErr == nil {
 			fmt.Printf("✅ Setup complete! Workspace ready.\n")
-			fmt.Printf("🔗 Connect: cws connect %s\n", instanceName)
+			fmt.Printf("🔗 Connect: prism connect %s\n", instanceName)
 			return false, nil
 		}
 	}
@@ -773,7 +773,7 @@ func (a *App) List(args []string) error {
 		fmt.Printf("   Total accumulated:  $%.4f (since launch)\n", totalCurrentCost)
 		fmt.Printf("   Effective rate:     $%.4f/hr (actual usage)\n", totalEffectiveCost)
 		fmt.Printf("   Estimated daily:    $%.2f (at current rate)\n", totalEffectiveCost*24)
-		fmt.Printf("\n💡 Tip: Use 'cws list cost' for detailed cost breakdown with savings analysis\n")
+		fmt.Printf("\n💡 Tip: Use 'prism list cost' for detailed cost breakdown with savings analysis\n")
 	}
 
 	return nil
@@ -842,7 +842,7 @@ func (a *App) ListCost(args []string) error {
 	// Display cost summary
 	a.displayCostSummary(summary, hasDiscounts, pricingConfig)
 
-	fmt.Printf("\n💡 Tip: Use 'cws list' for a clean workspace overview without cost data\n")
+	fmt.Printf("\n💡 Tip: Use 'prism list' for a clean workspace overview without cost data\n")
 
 	return nil
 }
@@ -1004,7 +1004,7 @@ func (a *App) AMIDiscover(args []string) error {
 
 	fmt.Printf("\n💡 Templates with ✅ use pre-built AMIs for faster deployment\n")
 	fmt.Printf("💡 Templates with ⏱️ will take several minutes to install packages\n")
-	fmt.Printf("\n🛠️  To build AMIs: cws ami build <template-name>\n")
+	fmt.Printf("\n🛠️  To build AMIs: prism ami build <template-name>\n")
 
 	return nil
 }
@@ -1016,7 +1016,7 @@ func (a *App) AMIDiscover(args []string) error {
 // Project command implementation
 func (a *App) Project(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project <action> [args]")
+		return fmt.Errorf("usage: prism project <action> [args]")
 	}
 
 	action := args[0]
@@ -1024,7 +1024,7 @@ func (a *App) Project(args []string) error {
 
 	// Check daemon is running
 	if err := a.apiClient.Ping(a.ctx); err != nil {
-		return fmt.Errorf("daemon not running. Start with: cws daemon start")
+		return fmt.Errorf("daemon not running. Start with: prism daemon start")
 	}
 
 	switch action {
@@ -1051,7 +1051,7 @@ func (a *App) Project(args []string) error {
 
 func (a *App) projectCreate(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project create <name> [options]")
+		return fmt.Errorf("usage: prism project create <name> [options]")
 	}
 
 	name := args[0]
@@ -1111,7 +1111,7 @@ func (a *App) projectList(_ []string) error {
 	}
 
 	if len(projectResponse.Projects) == 0 {
-		fmt.Println("No projects found. Create one with: cws project create <name>")
+		fmt.Println("No projects found. Create one with: prism project create <name>")
 		return nil
 	}
 
@@ -1148,7 +1148,7 @@ func (a *App) projectList(_ []string) error {
 
 func (a *App) projectInfo(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project info <name>")
+		return fmt.Errorf("usage: prism project info <name>")
 	}
 
 	name := args[0]
@@ -1184,7 +1184,7 @@ func (a *App) projectInfo(args []string) error {
 	}
 
 	// Instance information (placeholder - would need API extension to get project instances)
-	fmt.Printf("\n🖥️ Instances: (Use 'cws project instances %s' for detailed list)\n", project.Name)
+	fmt.Printf("\n🖥️ Instances: (Use 'prism project instances %s' for detailed list)\n", project.Name)
 
 	// Member information
 	fmt.Printf("\n👥 Members: %d\n", len(project.Members))
@@ -1199,7 +1199,7 @@ func (a *App) projectInfo(args []string) error {
 
 func (a *App) projectBudget(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project budget <action> <project> [options]")
+		return fmt.Errorf("usage: prism project budget <action> <project> [options]")
 	}
 
 	action := args[0]
@@ -1228,7 +1228,7 @@ func (a *App) projectBudget(args []string) error {
 
 func (a *App) projectBudgetStatus(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project budget status <project>")
+		return fmt.Errorf("usage: prism project budget status <project>")
 	}
 
 	projectName := args[0]
@@ -1243,7 +1243,7 @@ func (a *App) projectBudgetStatus(args []string) error {
 
 	if !budgetStatus.BudgetEnabled {
 		fmt.Printf("   Budget: Not enabled\n")
-		fmt.Printf("   💡 Enable cost tracking with: cws project budget set %s <amount>\n", projectName)
+		fmt.Printf("   💡 Enable cost tracking with: prism project budget set %s <amount>\n", projectName)
 		return nil
 	}
 
@@ -1280,7 +1280,7 @@ func (a *App) projectBudgetStatus(args []string) error {
 
 func (a *App) projectBudgetSet(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: cws project budget set <project> <amount> [options]")
+		return fmt.Errorf("usage: prism project budget set <project> <amount> [options]")
 	}
 
 	projectName := args[0]
@@ -1330,7 +1330,7 @@ func (a *App) projectBudgetSet(args []string) error {
 
 func (a *App) projectBudgetUpdate(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project budget update <project> [options]")
+		return fmt.Errorf("usage: prism project budget update <project> [options]")
 	}
 
 	projectName := args[0]
@@ -1354,7 +1354,7 @@ func (a *App) projectBudgetUpdate(args []string) error {
 
 func (a *App) projectBudgetDisable(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project budget disable <project>")
+		return fmt.Errorf("usage: prism project budget disable <project>")
 	}
 
 	projectName := args[0]
@@ -1376,7 +1376,7 @@ func (a *App) projectBudgetDisable(args []string) error {
 
 func (a *App) projectBudgetHistory(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project budget history <project> [--days N]")
+		return fmt.Errorf("usage: prism project budget history <project> [--days N]")
 	}
 
 	projectName := args[0]
@@ -1384,7 +1384,7 @@ func (a *App) projectBudgetHistory(args []string) error {
 	// For now, show a placeholder - this would be enhanced with actual cost history data
 	fmt.Printf("📊 Budget History for '%s':\n", projectName)
 	fmt.Printf("   (Cost history functionality would be implemented here)\n")
-	fmt.Printf("   💡 Use 'cws project budget status %s' for current spending\n", projectName)
+	fmt.Printf("   💡 Use 'prism project budget status %s' for current spending\n", projectName)
 
 	return nil
 }
@@ -1438,7 +1438,7 @@ func (a *App) projectBudgetAllowLaunches(args []string) error {
 
 func (a *App) projectInstances(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project instances <name>")
+		return fmt.Errorf("usage: prism project instances <name>")
 	}
 
 	projectName := args[0]
@@ -1459,7 +1459,7 @@ func (a *App) projectInstances(args []string) error {
 
 	if len(projectInstances) == 0 {
 		fmt.Printf("No instances found in project '%s'\n", projectName)
-		fmt.Printf("Launch one with: cws launch <template> <workspace-name> --project %s\n", projectName)
+		fmt.Printf("Launch one with: prism launch <template> <workspace-name> --project %s\n", projectName)
 		return nil
 	}
 
@@ -1490,7 +1490,7 @@ func (a *App) projectInstances(args []string) error {
 
 func (a *App) projectTemplates(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project templates <name>")
+		return fmt.Errorf("usage: prism project templates <name>")
 	}
 
 	name := args[0]
@@ -1498,14 +1498,14 @@ func (a *App) projectTemplates(args []string) error {
 	// For now, show a placeholder since project templates integration is complex
 	fmt.Printf("🏗️ Custom templates in project '%s':\n", name)
 	fmt.Printf("(Project template integration is being developed)\n")
-	fmt.Printf("Save an instance as template with: cws save <instance> <template> --project %s\n", name)
+	fmt.Printf("Save an instance as template with: prism save <instance> <template> --project %s\n", name)
 
 	return nil
 }
 
 func (a *App) projectMembers(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project members <name> [action] [member-email] [role]")
+		return fmt.Errorf("usage: prism project members <name> [action] [member-email] [role]")
 	}
 
 	name := args[0]
@@ -1516,7 +1516,7 @@ func (a *App) projectMembers(args []string) error {
 		switch action {
 		case "add":
 			if len(args) < 4 {
-				return fmt.Errorf("usage: cws project members <name> add <email> <role>")
+				return fmt.Errorf("usage: prism project members <name> add <email> <role>")
 			}
 			email := args[2]
 			role := args[3]
@@ -1545,7 +1545,7 @@ func (a *App) projectMembers(args []string) error {
 
 		case "remove":
 			if len(args) < 3 {
-				return fmt.Errorf("usage: cws project members <name> remove <email>")
+				return fmt.Errorf("usage: prism project members <name> remove <email>")
 			}
 			email := args[2]
 
@@ -1567,7 +1567,7 @@ func (a *App) projectMembers(args []string) error {
 
 	if len(members) == 0 {
 		fmt.Printf("No members found in project '%s'\n", name)
-		fmt.Printf("Add members with: cws project members %s add <email> <role>\n", name)
+		fmt.Printf("Add members with: prism project members %s add <email> <role>\n", name)
 		return nil
 	}
 
@@ -1589,15 +1589,15 @@ func (a *App) projectMembers(args []string) error {
 	_ = w.Flush()
 
 	fmt.Printf("\nRoles: owner, admin, member, viewer\n")
-	fmt.Printf("Add member: cws project members %s add <email> <role>\n", name)
-	fmt.Printf("Remove member: cws project members %s remove <email>\n", name)
+	fmt.Printf("Add member: prism project members %s add <email> <role>\n", name)
+	fmt.Printf("Remove member: prism project members %s remove <email>\n", name)
 
 	return nil
 }
 
 func (a *App) projectDelete(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: cws project delete <name>")
+		return fmt.Errorf("usage: prism project delete <name>")
 	}
 
 	name := args[0]
@@ -1703,14 +1703,14 @@ func (a *App) monitorSetupProgress(instance *types.Instance) error {
 			if strings.Contains(status, "Complete") || strings.Contains(status, "ready") {
 				fmt.Printf("\n✅ Setup complete! Workspace ready.\n")
 				fmt.Printf("⏱️  Total setup time: %s\n", elapsed.Round(time.Second))
-				fmt.Printf("🔗 Connect: cws connect %s\n", instance.Name)
+				fmt.Printf("🔗 Connect: prism connect %s\n", instance.Name)
 				return nil
 			}
 
 			// Timeout after 15 minutes
 			if elapsed > 15*time.Minute {
 				fmt.Printf("\n⚠️  Setup taking longer than expected\n")
-				fmt.Printf("💡 Workspace may still be configuring. Check with: cws list\n")
+				fmt.Printf("💡 Workspace may still be configuring. Check with: prism list\n")
 				return nil
 			}
 		}

@@ -101,9 +101,9 @@ func AddBatchConfigCommands(invitationsCmd *cobra.Command, config *Config) {
 			// Batch config commands disabled during Phase 1 simplification
 			fmt.Println("⚠️  Batch configuration commands temporarily disabled during Phase 1.")
 			fmt.Println("Core profile commands are available:")
-			fmt.Println("  cws profiles list    # List available profiles")
-			fmt.Println("  cws profiles create  # Create new profile")
-			fmt.Println("  cws profiles set     # Set current profile")
+			fmt.Println("  prism profiles list    # List available profiles")
+			fmt.Println("  prism profiles create  # Create new profile")
+			fmt.Println("  prism profiles set     # Set current profile")
 			fmt.Println("")
 			fmt.Println("Advanced batch features will return in Phase 2.")
 		},

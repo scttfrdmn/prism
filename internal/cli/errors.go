@@ -290,7 +290,7 @@ Prism couldn't launch your research environment.
 - Check template validation: prism templates validate
 - Try different instance type: prism launch template-name instance-name --instance-type t3.medium
 
-Need template help? Each template shows its requirements with 'cws templates'
+Need template help? Each template shows its requirements with 'prism templates'
 
 Original error: %v`, err)
 }

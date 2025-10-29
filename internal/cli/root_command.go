@@ -141,10 +141,10 @@ This command provides powerful remote execution capabilities with support for:
 • Verbose output and execution details (--verbose flag)
 
 Examples:
-  cws exec my-workspace "ls -la"                    # List directory contents
-  cws exec my-workspace "python script.py" --user researcher --timeout 60
-  cws exec my-workspace "cd /data && df -h" --working-dir /data
-  cws exec my-workspace "export VAR=value && echo $VAR" --env=VAR=value`,
+  prism exec my-workspace "ls -la"                    # List directory contents
+  prism exec my-workspace "python script.py" --user researcher --timeout 60
+  prism exec my-workspace "cd /data && df -h" --working-dir /data
+  prism exec my-workspace "export VAR=value && echo $VAR" --env=VAR=value`,
 		Args: cobra.MinimumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return f.app.Exec(args)
@@ -247,10 +247,10 @@ The resize operation requires instance shutdown and will cause 2-5 minutes of do
 All data and configuration are preserved during the resize operation.
 
 Examples:
-  cws resize my-workspace --size L                  # Resize to Large t-shirt size
-  cws resize gpu-training --instance-type p3.2xlarge # Resize to specific GPU instance
-  cws resize my-analysis --size XL --dry-run       # Preview resize to Extra Large
-  cws resize my-server --size M --wait             # Resize and wait for completion`,
+  prism resize my-workspace --size L                  # Resize to Large t-shirt size
+  prism resize gpu-training --instance-type p3.2xlarge # Resize to specific GPU instance
+  prism resize my-analysis --size XL --dry-run       # Preview resize to Extra Large
+  prism resize my-server --size M --wait             # Resize and wait for completion`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			instanceCommands := NewInstanceCommands(f.app)
@@ -516,9 +516,9 @@ Snapshots capture the complete state of your workspaces including:
 • Template metadata for easy restoration
 
 Examples:
-  cws snapshot create my-workspace backup-v1
-  cws snapshot list
-  cws snapshot restore backup-v1 my-new-workspace`,
+  prism snapshot create my-workspace backup-v1
+  prism snapshot list
+  prism snapshot restore backup-v1 my-new-workspace`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Snapshot(args)
 		},
@@ -540,9 +540,9 @@ Data backups provide granular backup capabilities with:
 • Cost-effective storage with deduplication
 
 Examples:
-  cws backup create my-workspace daily-backup
-  cws backup list
-  cws backup restore daily-backup target-workspace`,
+  prism backup create my-workspace daily-backup
+  prism backup list
+  prism backup restore daily-backup target-workspace`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Backup(args)
 		},
@@ -564,9 +564,9 @@ Restore capabilities include:
 • Progress monitoring and dry-run preview
 
 Examples:
-  cws restore daily-backup my-workspace
-  cws restore daily-backup my-workspace --path /data --selective /home/user
-  cws restore daily-backup my-workspace --dry-run`,
+  prism restore daily-backup my-workspace
+  prism restore daily-backup my-workspace --path /data --selective /home/user
+  prism restore daily-backup my-workspace --dry-run`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Restore(args)
 		},
@@ -587,10 +587,10 @@ Web service management provides seamless access to:
 • Custom web applications
 
 Examples:
-  cws web list my-jupyter         # List all web services for workspace
-  cws web open my-jupyter jupyter # Open Jupyter in browser with auto-tunneling
-  cws web close my-jupyter         # Close all tunnels for workspace
-  cws web close my-jupyter jupyter # Close specific service tunnel`,
+  prism web list my-jupyter         # List all web services for workspace
+  prism web open my-jupyter jupyter # Open Jupyter in browser with auto-tunneling
+  prism web close my-jupyter         # Close all tunnels for workspace
+  prism web close my-jupyter jupyter # Close specific service tunnel`,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return r.app.Web(args)
 		},
@@ -747,7 +747,7 @@ func (r *CommandFactoryRegistry) createConfigCommand() *cobra.Command {
 
 func (r *CommandFactoryRegistry) handleConfigCommand(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: cws config <action> [args]")
+		return fmt.Errorf("usage: prism config <action> [args]")
 	}
 
 	action := args[0]
@@ -758,12 +758,12 @@ func (r *CommandFactoryRegistry) handleConfigCommand(args []string) error {
 		return r.app.configShow()
 	case "profile", "set-aws-profile":
 		if len(configArgs) != 1 {
-			return fmt.Errorf("usage: cws config profile <aws-profile>")
+			return fmt.Errorf("usage: prism config profile <aws-profile>")
 		}
 		return r.app.configSetProfile(configArgs[0])
 	case "region":
 		if len(configArgs) != 1 {
-			return fmt.Errorf("usage: cws config region <aws-region>")
+			return fmt.Errorf("usage: prism config region <aws-region>")
 		}
 		return r.app.configSetRegion(configArgs[0])
 	default:
@@ -918,8 +918,8 @@ func (a *App) configShow() error {
 	}
 
 	fmt.Printf("\n💡 Usage:\n")
-	fmt.Printf("   cws config profile <aws-profile>  # Set default AWS profile\n")
-	fmt.Printf("   cws config region <aws-region>    # Set default AWS region\n")
+	fmt.Printf("   prism config profile <aws-profile>  # Set default AWS profile\n")
+	fmt.Printf("   prism config region <aws-region>    # Set default AWS region\n")
 	fmt.Printf("   export AWS_PROFILE=profile        # Override profile for session\n")
 
 	return nil
