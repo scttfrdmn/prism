@@ -479,6 +479,7 @@ func NewProvisioningJobManager(provisioner *ResearchUserProvisioner) *Provisioni
 }
 
 // SubmitProvisioningJob submits a new asynchronous provisioning job
+// Returns a copy of the job to avoid data races when reading job fields
 func (pjm *ProvisioningJobManager) SubmitProvisioningJob(req *UserProvisioningRequest) (*ProvisioningJob, error) {
 	pjm.mu.Lock()
 	pjm.jobCounter++
@@ -493,12 +494,15 @@ func (pjm *ProvisioningJobManager) SubmitProvisioningJob(req *UserProvisioningRe
 	}
 
 	pjm.jobs[jobID] = job
+
+	// Return a copy to avoid data races
+	jobCopy := *job
 	pjm.mu.Unlock()
 
 	// Start job in background
 	go pjm.executeJob(job)
 
-	return job, nil
+	return &jobCopy, nil
 }
 
 // executeJob executes a provisioning job
@@ -530,6 +534,7 @@ func (pjm *ProvisioningJobManager) executeJob(job *ProvisioningJob) {
 }
 
 // GetJob retrieves a provisioning job by ID
+// Returns a copy of the job to avoid data races when reading job fields
 func (pjm *ProvisioningJobManager) GetJob(jobID string) (*ProvisioningJob, error) {
 	pjm.mu.RLock()
 	defer pjm.mu.RUnlock()
@@ -538,17 +543,23 @@ func (pjm *ProvisioningJobManager) GetJob(jobID string) (*ProvisioningJob, error
 	if !exists {
 		return nil, fmt.Errorf("job %s not found", jobID)
 	}
-	return job, nil
+
+	// Return a copy to avoid data races
+	jobCopy := *job
+	return &jobCopy, nil
 }
 
 // ListJobs lists all provisioning jobs
+// Returns copies of jobs to avoid data races when reading job fields
 func (pjm *ProvisioningJobManager) ListJobs() []*ProvisioningJob {
 	pjm.mu.RLock()
 	defer pjm.mu.RUnlock()
 
 	jobs := make([]*ProvisioningJob, 0, len(pjm.jobs))
 	for _, job := range pjm.jobs {
-		jobs = append(jobs, job)
+		// Return a copy to avoid data races
+		jobCopy := *job
+		jobs = append(jobs, &jobCopy)
 	}
 	return jobs
 }
