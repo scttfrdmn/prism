@@ -1773,3 +1773,21 @@ func (m *MockClient) CheckAMIFreshness(ctx context.Context) (map[string]interfac
 		},
 	}, nil
 }
+
+// PreventProjectLaunches prevents new instance launches for a project (mock)
+func (m *MockClient) PreventProjectLaunches(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Project '%s' launch prevention enabled successfully (mock)", projectID),
+		"status":  "launches_prevented",
+	}, nil
+}
+
+// AllowProjectLaunches allows new instance launches for a project (mock)
+func (m *MockClient) AllowProjectLaunches(ctx context.Context, projectID string) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Project '%s' launch prevention disabled successfully (mock)", projectID),
+		"status":  "launches_allowed",
+	}, nil
+}
