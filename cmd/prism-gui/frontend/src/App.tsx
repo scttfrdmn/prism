@@ -1108,6 +1108,13 @@ export default function PrismApp() {
     return completed === 'true';
   });
 
+  // First-time user detection (for context-aware dashboard)
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(() => {
+    // Check if user has ever launched a workspace
+    const hasLaunched = localStorage.getItem('prism_has_launched_workspace');
+    return hasLaunched !== 'true';
+  });
+
   // Quick Start Wizard state
   const [quickStartWizardVisible, setQuickStartWizardVisible] = useState(false);
   const [quickStartActiveStepIndex, setQuickStartActiveStepIndex] = useState(0);
@@ -1317,6 +1324,14 @@ export default function PrismApp() {
     }
   }, [onboardingComplete, state.connected, state.loading]);
 
+  // Update first-time user status when user launches workspaces
+  useEffect(() => {
+    if (state.instances.length > 0) {
+      localStorage.setItem('prism_has_launched_workspace', 'true');
+      setIsFirstTimeUser(false);
+    }
+  }, [state.instances]);
+
   // Keyboard shortcuts for common actions
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -1448,19 +1463,20 @@ export default function PrismApp() {
     }
   };
 
-  // Dashboard View
-  const DashboardView = () => (
-    <SpaceBetween size="l">
-      {/* Hero Section with Quick Start CTA */}
-      <Container>
-        <SpaceBetween size="l">
-          <Box textAlign="center" padding={{ top: 'xl', bottom: 'l' }}>
-            <SpaceBetween size="m">
+  // Recent Workspaces Component (for returning users)
+  const RecentWorkspaces = () => {
+    // Get most recent 3 workspaces
+    const recentWorkspaces = state.instances.slice(0, 3);
+
+    return (
+      <Container header={<Header variant="h2">Recent Workspaces</Header>}>
+        <SpaceBetween size="m">
+          {recentWorkspaces.length === 0 ? (
+            <Box textAlign="center" padding={{ vertical: 'l' }}>
               <TextContent>
-                <h1>Welcome to Prism</h1>
                 <p>
-                  <Box variant="p" fontSize="heading-m" color="text-body-secondary">
-                    Launch your research workspace in seconds
+                  <Box variant="p" color="text-body-secondary">
+                    No workspaces yet. Launch your first workspace to get started.
                   </Box>
                 </p>
               </TextContent>
@@ -1469,15 +1485,159 @@ export default function PrismApp() {
                 iconName="add-plus"
                 onClick={() => setQuickStartWizardVisible(true)}
               >
-                Quick Start - Launch Workspace
+                Launch Workspace
               </Button>
-              <Box color="text-body-secondary">
-                Pre-configured environments for ML, Data Science, Bioinformatics, and more
-              </Box>
+            </Box>
+          ) : (
+            <>
+              {recentWorkspaces.map((instance) => (
+                <Container key={instance.name}>
+                  <SpaceBetween size="s">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <Box variant="h3">{instance.name}</Box>
+                        <Box variant="small" color="text-body-secondary">
+                          Template: {instance.template} | Type: {instance.instance_type || 'N/A'}
+                        </Box>
+                      </div>
+                      <StatusIndicator type={
+                        instance.state === 'running' ? 'success' :
+                        instance.state === 'stopped' ? 'stopped' :
+                        instance.state === 'pending' ? 'in-progress' :
+                        'error'
+                      }>
+                        {instance.state}
+                      </StatusIndicator>
+                    </div>
+                    <SpaceBetween direction="horizontal" size="xs">
+                      {instance.state === 'running' && (
+                        <Button
+                          iconName="external"
+                          onClick={() => {
+                            setConnectionInfo({
+                              instanceName: instance.name,
+                              publicIP: instance.public_ip || '',
+                              sshCommand: `ssh -i ~/.ssh/your-key.pem ubuntu@${instance.public_ip}`,
+                              webPort: ''
+                            });
+                            setConnectionModalVisible(true);
+                          }}
+                        >
+                          Connect
+                        </Button>
+                      )}
+                      {instance.state === 'stopped' && (
+                        <Button
+                          onClick={async () => {
+                            try {
+                              await api.startInstance(instance.name);
+                              setState(prev => ({
+                                ...prev,
+                                notifications: [...prev.notifications, {
+                                  type: 'success',
+                                  content: `Starting workspace "${instance.name}"`,
+                                  dismissible: true,
+                                  id: Date.now().toString()
+                                }]
+                              }));
+                              setTimeout(loadApplicationData, 2000);
+                            } catch (error) {
+                              setState(prev => ({
+                                ...prev,
+                                notifications: [...prev.notifications, {
+                                  type: 'error',
+                                  content: `Failed to start workspace: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                                  dismissible: true,
+                                  id: Date.now().toString()
+                                }]
+                              }));
+                            }
+                          }}
+                        >
+                          Start
+                        </Button>
+                      )}
+                      <Button
+                        variant="normal"
+                        onClick={() => setState({ ...state, activeView: 'workspaces' })}
+                      >
+                        Manage
+                      </Button>
+                    </SpaceBetween>
+                  </SpaceBetween>
+                </Container>
+              ))}
+              {state.instances.length > 3 && (
+                <Box textAlign="center">
+                  <Link onFollow={() => setState({ ...state, activeView: 'workspaces' })}>
+                    View all {state.instances.length} workspaces
+                  </Link>
+                </Box>
+              )}
+            </>
+          )}
+        </SpaceBetween>
+      </Container>
+    );
+  };
+
+  // Dashboard View
+  const DashboardView = () => (
+    <SpaceBetween size="l">
+      {/* Context-aware Hero Section */}
+      <Container>
+        <SpaceBetween size="l">
+          <Box textAlign="center" padding={{ top: 'xl', bottom: 'l' }}>
+            <SpaceBetween size="m">
+              <TextContent>
+                <h1>Welcome to Prism</h1>
+                <p>
+                  <Box variant="p" fontSize="heading-m" color="text-body-secondary">
+                    {isFirstTimeUser
+                      ? 'Launch your research workspace in seconds'
+                      : 'Manage your research workspaces'}
+                  </Box>
+                </p>
+              </TextContent>
+              {isFirstTimeUser && (
+                <>
+                  <Button
+                    variant="primary"
+                    iconName="add-plus"
+                    onClick={() => setQuickStartWizardVisible(true)}
+                  >
+                    Quick Start - Launch Workspace
+                  </Button>
+                  <Box color="text-body-secondary">
+                    Pre-configured environments for ML, Data Science, Bioinformatics, and more
+                  </Box>
+                </>
+              )}
+              {!isFirstTimeUser && (
+                <SpaceBetween direction="horizontal" size="s">
+                  <Button
+                    variant="primary"
+                    iconName="add-plus"
+                    onClick={() => setQuickStartWizardVisible(true)}
+                  >
+                    New Workspace
+                  </Button>
+                  <Button
+                    variant="normal"
+                    iconName="view-full"
+                    onClick={() => setState({ ...state, activeView: 'workspaces' })}
+                  >
+                    View All Workspaces
+                  </Button>
+                </SpaceBetween>
+              )}
             </SpaceBetween>
           </Box>
         </SpaceBetween>
       </Container>
+
+      {/* Show Recent Workspaces for returning users */}
+      {!isFirstTimeUser && <RecentWorkspaces />}
 
       <Header
         variant="h1"
