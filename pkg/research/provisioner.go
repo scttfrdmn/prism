@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -442,6 +443,7 @@ type ProvisioningJobManager struct {
 	provisioner *ResearchUserProvisioner
 	jobs        map[string]*ProvisioningJob
 	jobCounter  int
+	mu          sync.RWMutex // Protects jobs map and job fields
 }
 
 // ProvisioningJob represents an asynchronous provisioning job
@@ -478,6 +480,7 @@ func NewProvisioningJobManager(provisioner *ResearchUserProvisioner) *Provisioni
 
 // SubmitProvisioningJob submits a new asynchronous provisioning job
 func (pjm *ProvisioningJobManager) SubmitProvisioningJob(req *UserProvisioningRequest) (*ProvisioningJob, error) {
+	pjm.mu.Lock()
 	pjm.jobCounter++
 	jobID := fmt.Sprintf("provision-%d-%s", pjm.jobCounter, req.ResearchUser.Username)
 
@@ -490,6 +493,7 @@ func (pjm *ProvisioningJobManager) SubmitProvisioningJob(req *UserProvisioningRe
 	}
 
 	pjm.jobs[jobID] = job
+	pjm.mu.Unlock()
 
 	// Start job in background
 	go pjm.executeJob(job)
@@ -499,14 +503,17 @@ func (pjm *ProvisioningJobManager) SubmitProvisioningJob(req *UserProvisioningRe
 
 // executeJob executes a provisioning job
 func (pjm *ProvisioningJobManager) executeJob(job *ProvisioningJob) {
+	pjm.mu.Lock()
 	job.Status = ProvisioningJobStatusRunning
 	job.Progress = 0.1
+	pjm.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	response, err := pjm.provisioner.ProvisionResearchUser(ctx, job.Request)
 
+	pjm.mu.Lock()
 	endTime := time.Now()
 	job.EndTime = &endTime
 
@@ -519,10 +526,14 @@ func (pjm *ProvisioningJobManager) executeJob(job *ProvisioningJob) {
 	}
 
 	job.Progress = 1.0
+	pjm.mu.Unlock()
 }
 
 // GetJob retrieves a provisioning job by ID
 func (pjm *ProvisioningJobManager) GetJob(jobID string) (*ProvisioningJob, error) {
+	pjm.mu.RLock()
+	defer pjm.mu.RUnlock()
+
 	job, exists := pjm.jobs[jobID]
 	if !exists {
 		return nil, fmt.Errorf("job %s not found", jobID)
@@ -532,6 +543,9 @@ func (pjm *ProvisioningJobManager) GetJob(jobID string) (*ProvisioningJob, error
 
 // ListJobs lists all provisioning jobs
 func (pjm *ProvisioningJobManager) ListJobs() []*ProvisioningJob {
+	pjm.mu.RLock()
+	defer pjm.mu.RUnlock()
+
 	jobs := make([]*ProvisioningJob, 0, len(pjm.jobs))
 	for _, job := range pjm.jobs {
 		jobs = append(jobs, job)

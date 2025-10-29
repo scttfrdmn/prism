@@ -43,6 +43,7 @@ type MockEC2Client struct {
 	CreateTagsFunc                    func(ctx context.Context, params *ec2.CreateTagsInput) (*ec2.CreateTagsOutput, error)
 	DescribeInstanceTypeOfferingsFunc func(ctx context.Context, params *ec2.DescribeInstanceTypeOfferingsInput) (*ec2.DescribeInstanceTypeOfferingsOutput, error)
 	DescribeInstanceTypesFunc         func(ctx context.Context, params *ec2.DescribeInstanceTypesInput) (*ec2.DescribeInstanceTypesOutput, error)
+	DescribeInstanceStatusFunc        func(ctx context.Context, params *ec2.DescribeInstanceStatusInput) (*ec2.DescribeInstanceStatusOutput, error)
 }
 
 func (m *MockEC2Client) RunInstances(ctx context.Context, params *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
@@ -439,4 +440,11 @@ func (m *MockStateManager) UpdateConfig(config types.Config) error {
 		return m.UpdateConfigFunc(config)
 	}
 	return nil
+}
+
+func (m *MockEC2Client) DescribeInstanceStatus(ctx context.Context, params *ec2.DescribeInstanceStatusInput, optFns ...func(*ec2.Options)) (*ec2.DescribeInstanceStatusOutput, error) {
+	if m.DescribeInstanceStatusFunc != nil {
+		return m.DescribeInstanceStatusFunc(ctx, params)
+	}
+	return &ec2.DescribeInstanceStatusOutput{}, nil
 }
