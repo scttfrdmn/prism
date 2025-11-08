@@ -1,8 +1,8 @@
-title: CloudWorkstation
+title: Prism
 description: Launch research environments in the cloud in seconds, not hours
-baseurl: "/cloudworkstation"
+baseurl: "/prism"
 url: "https://scttfrdmn.github.io"
-logo: /images/cloudworkstation.png
+logo: /images/prism.png
 
 # Theme settings
 theme: jekyll-theme-cayman

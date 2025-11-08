@@ -79,8 +79,8 @@
         "iam:PassRole"
       ],
       "Resource": [
-        "arn:aws:iam::*:role/CloudWorkstation-Instance-Profile-Role",
-        "arn:aws:iam::*:instance-profile/CloudWorkstation-Instance-Profile"
+        "arn:aws:iam::*:role/Prism-Instance-Profile-Role",
+        "arn:aws:iam::*:instance-profile/Prism-Instance-Profile"
       ]
     },
     {
