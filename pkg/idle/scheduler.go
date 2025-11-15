@@ -51,6 +51,7 @@ type Schedule struct {
 	Description string       `json:"description"`
 	Type        ScheduleType `json:"type"`
 	Enabled     bool         `json:"enabled"`
+	PolicyID    string       `json:"policy_id,omitempty"` // Track which policy created this schedule
 
 	// Target instances
 	TargetInstances []string `json:"target_instances,omitempty"` // Specific instance names, empty means all

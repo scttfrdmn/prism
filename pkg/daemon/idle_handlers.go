@@ -288,10 +288,59 @@ func (s *Server) handleInstanceIdlePolicy(w http.ResponseWriter, r *http.Request
 
 // getInstanceIdlePolicies returns idle policies applied to an instance
 func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request, instanceName string) {
-	// Get applied policies from AWS manager
-	policies, err := s.awsManager.GetInstancePolicies(instanceName)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get instance policies: %v", err), http.StatusInternalServerError)
+	// Get scheduler and policy manager from AWS manager
+	var policies []*idle.PolicyTemplate
+	var policyErr error
+
+	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
+		// Get the idle scheduler
+		scheduler := awsManager.GetIdleScheduler()
+		if scheduler == nil {
+			// No scheduler available, return empty list
+			policies = []*idle.PolicyTemplate{}
+			return nil
+		}
+
+		// Get schedules for this instance
+		schedules := scheduler.GetInstanceSchedules(instanceName)
+		if len(schedules) == 0 {
+			// No schedules applied, return empty list
+			policies = []*idle.PolicyTemplate{}
+			return nil
+		}
+
+		// Get policy manager to resolve policy IDs to templates
+		policyManager := awsManager.GetPolicyManager()
+		if policyManager == nil {
+			policyErr = fmt.Errorf("policy manager not available")
+			return policyErr
+		}
+
+		// Collect unique policy IDs from schedules (Issue #289)
+		policyIDs := make(map[string]bool)
+		for _, schedule := range schedules {
+			if schedule.PolicyID != "" {
+				policyIDs[schedule.PolicyID] = true
+			}
+		}
+
+		// Get policy templates for each unique PolicyID
+		policies = make([]*idle.PolicyTemplate, 0, len(policyIDs))
+		for policyID := range policyIDs {
+			policy, err := policyManager.GetTemplate(policyID)
+			if err != nil {
+				// Skip policies that can't be found
+				continue
+			}
+			policies = append(policies, policy)
+		}
+
+		return nil
+	})
+
+	// Check for errors from withAWSManager
+	if policyErr != nil {
+		http.Error(w, policyErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -332,6 +381,8 @@ func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Reques
 			schedule := policy.Schedules[i]
 			// Set this instance as the target
 			schedule.TargetInstances = []string{instanceName}
+			// Tag schedule with policy ID for status tracking (Issue #289)
+			schedule.PolicyID = policyID
 			if err := scheduler.AddSchedule(&schedule); err != nil {
 				policyErr = fmt.Errorf("failed to add schedule: %w", err)
 				return policyErr
