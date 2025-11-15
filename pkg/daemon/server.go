@@ -16,7 +16,6 @@ import (
 	"github.com/scttfrdmn/prism/pkg/aws"
 	"github.com/scttfrdmn/prism/pkg/connection"
 	"github.com/scttfrdmn/prism/pkg/cost"
-	"github.com/scttfrdmn/prism/pkg/idle"
 	"github.com/scttfrdmn/prism/pkg/invitation"
 	"github.com/scttfrdmn/prism/pkg/marketplace"
 	"github.com/scttfrdmn/prism/pkg/monitoring"
@@ -164,17 +163,8 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize AWS manager: %w", err)
 	}
 
-	// Initialize idle policy scheduler (Issue #288)
-	if awsManager != nil {
-		// Create metrics collector for idle detection
-		metricsCollector := idle.NewMetricsCollector(awsManager.GetAWSConfig())
-
-		// Create and start idle policy scheduler
-		scheduler := idle.NewScheduler(awsManager, metricsCollector)
-		awsManager.SetIdleScheduler(scheduler)
-		scheduler.Start()
-		log.Printf("Idle policy scheduler initialized and started")
-	}
+	// Idle policy scheduler automatically initialized and started by AWS Manager (Issue #288)
+	// No additional initialization needed - scheduler is ready in NewManager()
 
 	// Legacy idle management removed - using universal idle detection via template resolver
 
