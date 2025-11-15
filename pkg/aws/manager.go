@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
-	"github.com/scttfrdmn/prism/pkg/idle"
 	"github.com/scttfrdmn/prism/pkg/security"
 	"github.com/scttfrdmn/prism/pkg/state"
 	"github.com/scttfrdmn/prism/pkg/templates"
@@ -54,8 +53,6 @@ type Manager struct {
 	pricingClient  *PricingClient
 	discountConfig ctypes.DiscountConfig
 	stateManager   StateManagerInterface
-	idleScheduler  *idle.Scheduler
-	policyManager  *idle.PolicyManager
 
 	// Universal AMI System components (Phase 5.1)
 	amiResolver *UniversalAMIResolver
@@ -145,53 +142,8 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		architectureCache: make(map[string]string), // Initialize architecture cache
 	}
 
-	// Initialize hibernation components with adapter to break circular dependency
-	awsAdapter := idle.NewAWSManagerAdapter(
-		manager.HibernateInstance,
-		manager.ResumeInstance,
-		manager.StopInstance,
-		manager.StartInstance,
-		func() ([]string, error) {
-			// Get instance names from ListInstances
-			instances, err := manager.ListInstances()
-			if err != nil {
-				return nil, err
-			}
-			names := make([]string, len(instances))
-			for i, inst := range instances {
-				names[i] = inst.Name
-			}
-			return names, nil
-		},
-		func(name string) (string, error) {
-			// Get instance ID from name via state manager
-			instances, err := manager.ListInstances()
-			if err != nil {
-				return "", err
-			}
-			for _, inst := range instances {
-				if inst.Name == name {
-					return inst.ID, nil
-				}
-			}
-			return "", fmt.Errorf("instance not found: %s", name)
-		},
-	)
-
-	// Create CloudWatch metrics collector for idle detection
-	metricsCollector := idle.NewMetricsCollector(cfg)
-
-	// Create scheduler with metrics collector
-	idleScheduler := idle.NewScheduler(awsAdapter, metricsCollector)
-	policyManager := idle.NewPolicyManager()
-	policyManager.SetScheduler(idleScheduler)
-
-	// Assign to manager
-	manager.idleScheduler = idleScheduler
-	manager.policyManager = policyManager
-
-	// Start the idle scheduler
-	idleScheduler.Start()
+	// Idle detection components moved to daemon level (Issue #289 fix)
+	// Scheduler and policy manager are now daemon-level singletons initialized in pkg/daemon/server.go
 
 	return manager, nil
 }
@@ -1087,125 +1039,6 @@ func (m *Manager) GetInstanceHibernationStatus(name string) (bool, string, bool,
 	possiblyHibernated := hibernationSupported && currentState == instanceStateStopped
 
 	return hibernationSupported, currentState, possiblyHibernated, nil
-}
-
-// ApplyHibernationPolicy applies a hibernation policy template to an instance
-func (m *Manager) ApplyHibernationPolicy(instanceName string, policyID string) error {
-	// Get the instance ID
-	instanceID, err := m.findInstanceByName(instanceName)
-	if err != nil {
-		return fmt.Errorf("failed to find instance: %w", err)
-	}
-
-	// Apply the policy
-	if err := m.policyManager.ApplyTemplate(instanceID, policyID); err != nil {
-		return fmt.Errorf("failed to apply hibernation policy: %w", err)
-	}
-
-	// Add schedules to the scheduler
-	template, err := m.policyManager.GetTemplate(policyID)
-	if err != nil {
-		return fmt.Errorf("failed to get policy template: %w", err)
-	}
-
-	// Register each schedule with the instance
-	for _, schedule := range template.Schedules {
-		// Create a copy of the schedule with instance-specific ID
-		instanceSchedule := schedule
-		instanceSchedule.ID = fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
-
-		if err := m.idleScheduler.AddSchedule(&instanceSchedule); err != nil {
-			return fmt.Errorf("failed to add schedule %s: %w", schedule.Name, err)
-		}
-	}
-
-	return nil
-}
-
-// RemoveHibernationPolicy removes a hibernation policy from an instance
-func (m *Manager) RemoveHibernationPolicy(instanceName string, policyID string) error {
-	// Get the instance ID
-	instanceID, err := m.findInstanceByName(instanceName)
-	if err != nil {
-		return fmt.Errorf("failed to find instance: %w", err)
-	}
-
-	// Get the policy template to find schedules
-	template, err := m.policyManager.GetTemplate(policyID)
-	if err != nil {
-		return fmt.Errorf("failed to get policy template: %w", err)
-	}
-
-	// Remove schedules from the scheduler
-	for _, schedule := range template.Schedules {
-		scheduleID := fmt.Sprintf("%s-%s-%s", instanceID, policyID, schedule.Name)
-		if err := m.idleScheduler.DeleteSchedule(scheduleID); err != nil {
-			// Log but don't fail if schedule doesn't exist
-			fmt.Printf("Warning: failed to delete schedule %s: %v\n", scheduleID, err)
-		}
-	}
-
-	// Remove the policy
-	if err := m.policyManager.RemoveTemplate(instanceID, policyID); err != nil {
-		return fmt.Errorf("failed to remove hibernation policy: %w", err)
-	}
-
-	return nil
-}
-
-// ListHibernationPolicies returns all available hibernation policy templates
-func (m *Manager) ListIdlePolicies() []*idle.PolicyTemplate {
-	return m.policyManager.ListTemplates()
-}
-
-// GetIdlePolicy gets a specific idle policy template
-func (m *Manager) GetIdlePolicy(policyID string) (*idle.PolicyTemplate, error) {
-	return m.policyManager.GetTemplate(policyID)
-}
-
-// GetInstancePolicies returns the idle policies applied to an instance
-func (m *Manager) GetInstancePolicies(instanceName string) ([]*idle.PolicyTemplate, error) {
-	// Get the instance ID
-	instanceID, err := m.findInstanceByName(instanceName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find instance: %w", err)
-	}
-
-	return m.policyManager.GetAppliedTemplates(instanceID)
-}
-
-// RecommendIdlePolicy recommends an idle policy based on instance characteristics
-func (m *Manager) RecommendIdlePolicy(instanceName string) (*idle.PolicyTemplate, error) {
-	// Get instance details
-	instanceID, err := m.findInstanceByName(instanceName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find instance: %w", err)
-	}
-
-	ctx := context.Background()
-	result, err := m.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-		InstanceIds: []string{instanceID},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe instance: %w", err)
-	}
-
-	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
-		return nil, fmt.Errorf("instance not found")
-	}
-
-	instance := result.Reservations[0].Instances[0]
-
-	// Extract instance type and tags
-	instanceType := string(instance.InstanceType)
-	tags := make(map[string]string)
-	for _, tag := range instance.Tags {
-		if tag.Key != nil && tag.Value != nil {
-			tags[*tag.Key] = *tag.Value
-		}
-	}
-
-	return m.policyManager.RecommendTemplate(instanceType, tags)
 }
 
 // GetConnectionInfo returns connection information for an instance with SSH key path
@@ -4864,21 +4697,6 @@ func (m *Manager) calculateAMIStorageCost(image ec2types.Image) float64 {
 	}
 
 	return totalCost
-}
-
-// GetIdleScheduler returns the idle scheduler for direct access
-func (m *Manager) GetIdleScheduler() *idle.Scheduler {
-	return m.idleScheduler
-}
-
-// SetIdleScheduler sets the idle scheduler
-func (m *Manager) SetIdleScheduler(scheduler *idle.Scheduler) {
-	m.idleScheduler = scheduler
-}
-
-// GetPolicyManager returns the policy manager for direct access
-func (m *Manager) GetPolicyManager() *idle.PolicyManager {
-	return m.policyManager
 }
 
 // GetInstanceNames returns a list of all instance names (implements idle.AWSInstanceManager interface)

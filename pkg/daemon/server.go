@@ -16,6 +16,7 @@ import (
 	"github.com/scttfrdmn/prism/pkg/aws"
 	"github.com/scttfrdmn/prism/pkg/connection"
 	"github.com/scttfrdmn/prism/pkg/cost"
+	"github.com/scttfrdmn/prism/pkg/idle"
 	"github.com/scttfrdmn/prism/pkg/invitation"
 	"github.com/scttfrdmn/prism/pkg/marketplace"
 	"github.com/scttfrdmn/prism/pkg/monitoring"
@@ -79,6 +80,10 @@ type Server struct {
 
 	// Test mode flag (skips AWS operations for unit testing)
 	testMode bool
+
+	// Idle detection components (daemon singletons - Issue #289)
+	idleScheduler *idle.Scheduler
+	policyManager *idle.PolicyManager
 }
 
 // NewServer creates a new daemon server
@@ -163,8 +168,23 @@ func NewServer(port string) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize AWS manager: %w", err)
 	}
 
-	// Idle policy scheduler automatically initialized and started by AWS Manager (Issue #288)
-	// No additional initialization needed - scheduler is ready in NewManager()
+	// Initialize idle detection components as daemon singletons (Issue #289 fix)
+	var idleScheduler *idle.Scheduler
+	var policyManager *idle.PolicyManager
+	if awsManager != nil {
+		// Create metrics collector with AWS config
+		metricsCollector := idle.NewMetricsCollector(awsManager.GetAWSConfig())
+
+		// Create scheduler and policy manager as daemon-level singletons
+		idleScheduler = idle.NewScheduler(awsManager, metricsCollector)
+		policyManager = idle.NewPolicyManager()
+		policyManager.SetScheduler(idleScheduler)
+
+		// Start the scheduler
+		idleScheduler.Start()
+
+		log.Printf("Idle detection system initialized (daemon singleton)")
+	}
 
 	// Legacy idle management removed - using universal idle detection via template resolver
 
@@ -335,6 +355,8 @@ func NewServer(port string) (*Server, error) {
 		marketplaceRegistry: marketplaceRegistry,
 		tunnelManager:       tunnelManager,
 		cloudwatchClient:    cloudwatchClient,
+		idleScheduler:       idleScheduler,
+		policyManager:       policyManager,
 	}
 
 	// Configure budget tracker with action executor

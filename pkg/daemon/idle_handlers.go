@@ -141,15 +141,14 @@ func (s *Server) recommendIdlePolicy(w http.ResponseWriter, r *http.Request) {
 
 // listIdleSchedules returns active idle schedules
 func (s *Server) listIdleSchedules(w http.ResponseWriter, r *http.Request) {
-	// Get scheduler from AWS manager
-	scheduler := s.awsManager.GetIdleScheduler()
-	if scheduler == nil {
+	// Use daemon-level singleton scheduler (Issue #289 fix)
+	if s.idleScheduler == nil {
 		http.Error(w, "Scheduler not available", http.StatusServiceUnavailable)
 		return
 	}
 
 	// Get all schedules from scheduler
-	schedules := scheduler.ListSchedules()
+	schedules := s.idleScheduler.ListSchedules()
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(schedules); err != nil {
@@ -241,9 +240,10 @@ func (s *Server) generateSavingsRecommendations() []map[string]interface{} {
 	if instances, err := s.awsManager.ListInstances(); err == nil {
 		instancesWithoutPolicy := 0
 		for _, instance := range instances {
-			// Check if instance has idle policy
-			if policies, err := s.awsManager.GetInstancePolicies(instance.Name); err == nil {
-				if len(policies) == 0 {
+			// Check if instance has idle policy (use daemon-level scheduler)
+			if s.idleScheduler != nil {
+				schedules := s.idleScheduler.GetInstanceSchedules(instance.Name)
+				if len(schedules) == 0 {
 					instancesWithoutPolicy++
 				}
 			}
@@ -288,60 +288,46 @@ func (s *Server) handleInstanceIdlePolicy(w http.ResponseWriter, r *http.Request
 
 // getInstanceIdlePolicies returns idle policies applied to an instance
 func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request, instanceName string) {
-	// Get scheduler and policy manager from AWS manager
-	var policies []*idle.PolicyTemplate
-	var policyErr error
-
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		// Get the idle scheduler
-		scheduler := awsManager.GetIdleScheduler()
-		if scheduler == nil {
-			// No scheduler available, return empty list
-			policies = []*idle.PolicyTemplate{}
-			return nil
+	// Use daemon-level singleton components (Issue #289 fix)
+	if s.idleScheduler == nil || s.policyManager == nil {
+		// No idle detection components, return empty list
+		policies := []*idle.PolicyTemplate{}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(policies); err != nil {
+			http.Error(w, "Failed to encode policies", http.StatusInternalServerError)
 		}
-
-		// Get schedules for this instance
-		schedules := scheduler.GetInstanceSchedules(instanceName)
-		if len(schedules) == 0 {
-			// No schedules applied, return empty list
-			policies = []*idle.PolicyTemplate{}
-			return nil
-		}
-
-		// Get policy manager to resolve policy IDs to templates
-		policyManager := awsManager.GetPolicyManager()
-		if policyManager == nil {
-			policyErr = fmt.Errorf("policy manager not available")
-			return policyErr
-		}
-
-		// Collect unique policy IDs from schedules (Issue #289)
-		policyIDs := make(map[string]bool)
-		for _, schedule := range schedules {
-			if schedule.PolicyID != "" {
-				policyIDs[schedule.PolicyID] = true
-			}
-		}
-
-		// Get policy templates for each unique PolicyID
-		policies = make([]*idle.PolicyTemplate, 0, len(policyIDs))
-		for policyID := range policyIDs {
-			policy, err := policyManager.GetTemplate(policyID)
-			if err != nil {
-				// Skip policies that can't be found
-				continue
-			}
-			policies = append(policies, policy)
-		}
-
-		return nil
-	})
-
-	// Check for errors from withAWSManager
-	if policyErr != nil {
-		http.Error(w, policyErr.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Get schedules for this instance
+	schedules := s.idleScheduler.GetInstanceSchedules(instanceName)
+	if len(schedules) == 0 {
+		// No schedules applied, return empty list
+		policies := []*idle.PolicyTemplate{}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(policies); err != nil {
+			http.Error(w, "Failed to encode policies", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Collect unique policy IDs from schedules (Issue #289)
+	policyIDs := make(map[string]bool)
+	for _, schedule := range schedules {
+		if schedule.PolicyID != "" {
+			policyIDs[schedule.PolicyID] = true
+		}
+	}
+
+	// Get policy templates for each unique PolicyID
+	policies := make([]*idle.PolicyTemplate, 0, len(policyIDs))
+	for policyID := range policyIDs {
+		policy, err := s.policyManager.GetTemplate(policyID)
+		if err != nil {
+			// Skip policies that can't be found
+			continue
+		}
+		policies = append(policies, policy)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -353,49 +339,30 @@ func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request,
 
 // applyIdlePolicyToInstance applies an idle policy to an instance
 func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Request, instanceName, policyID string) {
-	// Get scheduler and policy manager from AWS manager
-	var policyErr error
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		// Get the idle scheduler
-		scheduler := awsManager.GetIdleScheduler()
-		if scheduler == nil {
-			policyErr = fmt.Errorf("scheduler not available")
-			return policyErr
-		}
-
-		// Get policy template from policy manager
-		policyManager := awsManager.GetPolicyManager()
-		if policyManager == nil {
-			policyErr = fmt.Errorf("policy manager not available")
-			return policyErr
-		}
-
-		policy, err := policyManager.GetTemplate(policyID)
-		if err != nil {
-			policyErr = fmt.Errorf("policy not found: %s", policyID)
-			return policyErr
-		}
-
-		// Apply policy by adding its schedules to the scheduler
-		for i := range policy.Schedules {
-			schedule := policy.Schedules[i]
-			// Set this instance as the target
-			schedule.TargetInstances = []string{instanceName}
-			// Tag schedule with policy ID for status tracking (Issue #289)
-			schedule.PolicyID = policyID
-			if err := scheduler.AddSchedule(&schedule); err != nil {
-				policyErr = fmt.Errorf("failed to add schedule: %w", err)
-				return policyErr
-			}
-		}
-
-		return nil
-	})
-
-	// If withAWSManager returned early with an error, it already wrote the response
-	if policyErr != nil {
-		http.Error(w, policyErr.Error(), http.StatusInternalServerError)
+	// Use daemon-level singleton components (Issue #289 fix)
+	if s.idleScheduler == nil || s.policyManager == nil {
+		http.Error(w, "Idle detection not initialized", http.StatusServiceUnavailable)
 		return
+	}
+
+	// Get policy template
+	policy, err := s.policyManager.GetTemplate(policyID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Policy not found: %s", policyID), http.StatusNotFound)
+		return
+	}
+
+	// Apply policy by adding its schedules to the scheduler
+	for i := range policy.Schedules {
+		schedule := policy.Schedules[i]
+		// Set this instance as the target
+		schedule.TargetInstances = []string{instanceName}
+		// Tag schedule with policy ID for status tracking (Issue #289)
+		schedule.PolicyID = policyID
+		if err := s.idleScheduler.AddSchedule(&schedule); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to add schedule: %v", err), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	response := map[string]string{
@@ -412,21 +379,35 @@ func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Reques
 
 // removeIdlePolicyFromInstance removes an idle policy from an instance
 func (s *Server) removeIdlePolicyFromInstance(w http.ResponseWriter, r *http.Request, instanceName, policyID string) {
-	// Remove the idle policy via AWS manager
-	var policyErr error
-	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		policyErr = awsManager.RemoveHibernationPolicy(instanceName, policyID)
-		return policyErr
-	})
+	// Use daemon-level singleton components (Issue #289 fix)
+	if s.idleScheduler == nil {
+		http.Error(w, "Idle detection not initialized", http.StatusServiceUnavailable)
+		return
+	}
 
-	// If withAWSManager returned early with an error, it already wrote the response
-	if policyErr != nil {
+	// Get all schedules for this instance
+	schedules := s.idleScheduler.GetInstanceSchedules(instanceName)
+
+	// Remove schedules matching the policy ID
+	removedCount := 0
+	for _, schedule := range schedules {
+		if schedule.PolicyID == policyID {
+			if err := s.idleScheduler.RemoveScheduleFromInstance(schedule.ID, instanceName); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to remove schedule: %v", err), http.StatusInternalServerError)
+				return
+			}
+			removedCount++
+		}
+	}
+
+	if removedCount == 0 {
+		http.Error(w, fmt.Sprintf("No schedules found for policy %s on instance %s", policyID, instanceName), http.StatusNotFound)
 		return
 	}
 
 	response := map[string]string{
 		"status":  "success",
-		"message": fmt.Sprintf("Successfully removed idle policy %s from instance %s", policyID, instanceName),
+		"message": fmt.Sprintf("Successfully removed idle policy %s from instance %s (%d schedules removed)", policyID, instanceName, removedCount),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
