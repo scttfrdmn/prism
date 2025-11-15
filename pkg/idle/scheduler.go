@@ -389,6 +389,15 @@ func (s *Scheduler) AddSchedule(schedule *Schedule) error {
 	schedule.EstimatedMonthlySavings = s.calculateEstimatedSavings(schedule)
 
 	s.schedules[schedule.ID] = schedule
+
+	// Update instance-to-schedule mapping for quick lookup (Issue #289)
+	for _, instanceName := range schedule.TargetInstances {
+		if s.instanceSchedules[instanceName] == nil {
+			s.instanceSchedules[instanceName] = []string{}
+		}
+		s.instanceSchedules[instanceName] = append(s.instanceSchedules[instanceName], schedule.ID)
+	}
+
 	return nil
 }
 
