@@ -304,15 +304,46 @@ func (s *Server) getInstanceIdlePolicies(w http.ResponseWriter, r *http.Request,
 
 // applyIdlePolicyToInstance applies an idle policy to an instance
 func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Request, instanceName, policyID string) {
-	// Apply the idle policy via AWS manager
+	// Get scheduler and policy manager from AWS manager
 	var policyErr error
 	s.withAWSManager(w, r, func(awsManager *aws.Manager) error {
-		policyErr = awsManager.ApplyHibernationPolicy(instanceName, policyID)
-		return policyErr
+		// Get the idle scheduler
+		scheduler := awsManager.GetIdleScheduler()
+		if scheduler == nil {
+			policyErr = fmt.Errorf("scheduler not available")
+			return policyErr
+		}
+
+		// Get policy template from policy manager
+		policyManager := awsManager.GetPolicyManager()
+		if policyManager == nil {
+			policyErr = fmt.Errorf("policy manager not available")
+			return policyErr
+		}
+
+		policy, err := policyManager.GetTemplate(policyID)
+		if err != nil {
+			policyErr = fmt.Errorf("policy not found: %s", policyID)
+			return policyErr
+		}
+
+		// Apply policy by adding its schedules to the scheduler
+		for i := range policy.Schedules {
+			schedule := policy.Schedules[i]
+			// Set this instance as the target
+			schedule.TargetInstances = []string{instanceName}
+			if err := scheduler.AddSchedule(&schedule); err != nil {
+				policyErr = fmt.Errorf("failed to add schedule: %w", err)
+				return policyErr
+			}
+		}
+
+		return nil
 	})
 
 	// If withAWSManager returned early with an error, it already wrote the response
 	if policyErr != nil {
+		http.Error(w, policyErr.Error(), http.StatusInternalServerError)
 		return
 	}
 

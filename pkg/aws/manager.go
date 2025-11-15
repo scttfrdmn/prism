@@ -4871,9 +4871,44 @@ func (m *Manager) GetIdleScheduler() *idle.Scheduler {
 	return m.idleScheduler
 }
 
+// SetIdleScheduler sets the idle scheduler
+func (m *Manager) SetIdleScheduler(scheduler *idle.Scheduler) {
+	m.idleScheduler = scheduler
+}
+
 // GetPolicyManager returns the policy manager for direct access
 func (m *Manager) GetPolicyManager() *idle.PolicyManager {
 	return m.policyManager
+}
+
+// GetInstanceNames returns a list of all instance names (implements idle.AWSInstanceManager interface)
+func (m *Manager) GetInstanceNames() ([]string, error) {
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+
+	names := make([]string, 0, len(state.Instances))
+	for name := range state.Instances {
+		names = append(names, name)
+	}
+
+	return names, nil
+}
+
+// GetInstanceID returns the AWS instance ID for a given instance name (implements idle.AWSInstanceManager interface)
+func (m *Manager) GetInstanceID(name string) (string, error) {
+	state, err := m.stateManager.LoadState()
+	if err != nil {
+		return "", fmt.Errorf("failed to load state: %w", err)
+	}
+
+	instance, ok := state.Instances[name]
+	if !ok {
+		return "", fmt.Errorf("instance %s not found", name)
+	}
+
+	return instance.ID, nil
 }
 
 // GetAWSConfig returns the AWS config for creating additional service clients
