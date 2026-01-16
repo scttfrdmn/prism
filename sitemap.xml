@@ -1021,11 +1021,19 @@
          <lastmod>2026-01-16</lastmod>
     </url>
     <url>
+         <loc>https://cloudworkstation.io/user-guides/AMI_BEST_PRACTICES/</loc>
+         <lastmod>2026-01-16</lastmod>
+    </url>
+    <url>
          <loc>https://cloudworkstation.io/user-guides/AWS_SETUP_GUIDE/</loc>
          <lastmod>2026-01-16</lastmod>
     </url>
     <url>
          <loc>https://cloudworkstation.io/user-guides/CONDA_PACKAGE_MANAGER/</loc>
+         <lastmod>2026-01-16</lastmod>
+    </url>
+    <url>
+         <loc>https://cloudworkstation.io/user-guides/CUSTOM_AMI_WORKFLOW/</loc>
          <lastmod>2026-01-16</lastmod>
     </url>
     <url>
