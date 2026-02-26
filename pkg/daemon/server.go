@@ -405,6 +405,12 @@ func NewServer(port string) (*Server, error) {
 		testMode:            os.Getenv("PRISM_TEST_MODE") == "true", // E2E test mode - skip AWS operations
 	}
 
+	// Load persisted idle schedules into scheduler (Issue #288)
+	if server.idleScheduler != nil {
+		server.loadIdleSchedules()
+		logger.Info("Idle schedules loaded from persisted state")
+	}
+
 	// Print reduced mode banner if AWS credentials unavailable (Issue #356)
 	if reducedMode {
 		logger.Warn("Starting in reduced functionality mode")

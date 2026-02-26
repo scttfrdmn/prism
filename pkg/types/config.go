@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Config manages application configuration
 type Config struct {
@@ -16,6 +19,7 @@ type State struct {
 	Instances      map[string]Instance      `json:"instances"`
 	StorageVolumes map[string]StorageVolume `json:"storage_volumes"`
 	Config         Config                   `json:"config"`
+	IdleSchedules  json.RawMessage          `json:"idle_schedules,omitempty"` // Persisted idle schedules (Issue #288)
 }
 
 // CurrentStateVersion is the current version of the state file format

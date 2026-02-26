@@ -1711,6 +1711,36 @@ class SafePrismAPI {
     }
   }
 
+  // Per-instance Idle Policy APIs (Issue #288)
+  async getInstanceIdlePolicies(instanceName: string): Promise<IdlePolicy[]> {
+    try {
+      const data = await this.safeRequest(`/api/v1/instances/${instanceName}/idle/policies`);
+      if (!data || !Array.isArray(data)) return [];
+      return (data as Record<string, unknown>[]).map((p) => ({
+        id: (p.id as string) || '',
+        name: (p.name as string) || (p.Name as string) || '',
+        idle_minutes: (p.idle_minutes as number) || 0,
+        action: ((p.action as string) || 'notify') as 'hibernate' | 'stop' | 'notify',
+        cpu_threshold: (p.cpu_threshold as number) || 10,
+        memory_threshold: (p.memory_threshold as number) || 10,
+        network_threshold: (p.network_threshold as number) || 1,
+        description: (p.description as string) || '',
+        enabled: p.enabled !== undefined ? (p.enabled as boolean) : true
+      }));
+    } catch (error) {
+      logger.error(`Failed to fetch idle policies for ${instanceName}:`, error);
+      return [];
+    }
+  }
+
+  async applyIdlePolicy(instanceName: string, policyId: string): Promise<void> {
+    await this.safeRequest(`/api/v1/instances/${instanceName}/idle/policies/${policyId}`, 'PUT');
+  }
+
+  async removeIdlePolicy(instanceName: string, policyId: string): Promise<void> {
+    await this.safeRequest(`/api/v1/instances/${instanceName}/idle/policies/${policyId}`, 'DELETE');
+  }
+
   // Profile Management APIs
   async getProfiles(): Promise<any[]> {
     try {
@@ -1847,6 +1877,9 @@ export default function PrismApp() {
   // Hibernate confirmation modal state
   const [hibernateModalVisible, setHibernateModalVisible] = useState(false);
   const [hibernateModalInstance, setHibernateModalInstance] = useState<Instance | null>(null);
+
+  // Idle policy modal state (Issue #288)
+  const [idlePolicyModalInstance, setIdlePolicyModalInstance] = useState<string | null>(null);
 
   // Onboarding wizard state
   const [onboardingVisible, setOnboardingVisible] = useState(false);
@@ -3256,6 +3289,10 @@ export default function PrismApp() {
             loading: false
           }));
           return; // Don't continue with normal flow
+        case 'manage-idle-policy':
+          setState(prev => ({ ...prev, loading: false }));
+          setIdlePolicyModalInstance(instance.name);
+          return;
         case 'delete':
           // Show confirmation modal instead of deleting immediately
           setState(prev => ({ ...prev, loading: false }));
@@ -3701,6 +3738,7 @@ export default function PrismApp() {
                       { text: 'Start', id: 'start', disabled: item.state === 'running' },
                       { text: 'Hibernate', id: 'hibernate', disabled: item.state !== 'running' },
                       { text: 'Resume', id: 'resume', disabled: item.state !== 'stopped' && item.state !== 'hibernated' },
+                      { text: 'Manage Idle Policy', id: 'manage-idle-policy' },
                       { text: 'Delete', id: 'delete', disabled: item.state === 'running' || item.state === 'pending' }
                     ]}
                     onItemClick={({ detail }) => {
@@ -10328,6 +10366,176 @@ export default function PrismApp() {
     );
   };
 
+  // Idle Policy Modal — apply/remove idle policies on a specific instance (Issue #288)
+  const IdlePolicyModal = () => {
+    const [availablePolicies, setAvailablePolicies] = useState<IdlePolicy[]>([]);
+    const [appliedPolicies, setAppliedPolicies] = useState<IdlePolicy[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+      if (!idlePolicyModalInstance) return;
+      setLoading(true);
+      Promise.all([
+        api.getIdlePolicies(),
+        api.getInstanceIdlePolicies(idlePolicyModalInstance)
+      ]).then(([all, applied]) => {
+        setAvailablePolicies(all);
+        setAppliedPolicies(applied);
+      }).catch(err => {
+        logger.error('Failed to load idle policies:', err);
+      }).finally(() => setLoading(false));
+    }, [idlePolicyModalInstance]);
+
+    if (!idlePolicyModalInstance) return null;
+
+    const appliedIds = new Set(appliedPolicies.map(p => p.id));
+
+    const handleApply = async (policyId: string, policyName: string) => {
+      setIdlePolicyModalInstance(null);
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, {
+          type: 'info',
+          header: 'Applying Idle Policy',
+          content: `Applying "${policyName}" to ${idlePolicyModalInstance}...`,
+          dismissible: true,
+          id: Date.now().toString()
+        }]
+      }));
+      try {
+        await api.applyIdlePolicy(idlePolicyModalInstance, policyId);
+        setState(prev => ({
+          ...prev,
+          notifications: [...prev.notifications, {
+            type: 'success',
+            header: 'Idle Policy Applied',
+            content: `"${policyName}" applied to ${idlePolicyModalInstance}`,
+            dismissible: true,
+            id: Date.now().toString()
+          }]
+        }));
+      } catch (error) {
+        setState(prev => ({
+          ...prev,
+          notifications: [...prev.notifications, {
+            type: 'error',
+            header: 'Failed to Apply Policy',
+            content: `${error instanceof Error ? error.message : String(error)}`,
+            dismissible: true,
+            id: Date.now().toString()
+          }]
+        }));
+      }
+    };
+
+    const handleRemove = async (policyId: string, policyName: string) => {
+      setIdlePolicyModalInstance(null);
+      setState(prev => ({
+        ...prev,
+        notifications: [...prev.notifications, {
+          type: 'info',
+          header: 'Removing Idle Policy',
+          content: `Removing "${policyName}" from ${idlePolicyModalInstance}...`,
+          dismissible: true,
+          id: Date.now().toString()
+        }]
+      }));
+      try {
+        await api.removeIdlePolicy(idlePolicyModalInstance, policyId);
+        setState(prev => ({
+          ...prev,
+          notifications: [...prev.notifications, {
+            type: 'success',
+            header: 'Idle Policy Removed',
+            content: `"${policyName}" removed from ${idlePolicyModalInstance}`,
+            dismissible: true,
+            id: Date.now().toString()
+          }]
+        }));
+      } catch (error) {
+        setState(prev => ({
+          ...prev,
+          notifications: [...prev.notifications, {
+            type: 'error',
+            header: 'Failed to Remove Policy',
+            content: `${error instanceof Error ? error.message : String(error)}`,
+            dismissible: true,
+            id: Date.now().toString()
+          }]
+        }));
+      }
+    };
+
+    return (
+      <Modal
+        visible={!!idlePolicyModalInstance}
+        onDismiss={() => setIdlePolicyModalInstance(null)}
+        header={`Manage Idle Policy — ${idlePolicyModalInstance}`}
+        size="medium"
+        data-testid="idle-policy-modal"
+        footer={
+          <Box float="right">
+            <Button variant="link" onClick={() => setIdlePolicyModalInstance(null)}>Close</Button>
+          </Box>
+        }
+      >
+        <SpaceBetween size="m">
+          {appliedPolicies.length > 0 && (
+            <Alert type="info" header="Currently Applied">
+              {appliedPolicies.map(p => (
+                <SpaceBetween key={p.id} direction="horizontal" size="xs">
+                  <Box variant="span"><strong>{p.name}</strong> — {p.description}</Box>
+                  <Button
+                    variant="link"
+                    onClick={() => handleRemove(p.id, p.name)}
+                    data-testid={`remove-idle-policy-${p.id}`}
+                  >
+                    Remove
+                  </Button>
+                </SpaceBetween>
+              ))}
+            </Alert>
+          )}
+          {loading ? (
+            <Box textAlign="center"><Spinner /></Box>
+          ) : (
+            <Table
+              data-testid="idle-policy-templates-table"
+              columnDefinitions={[
+                { id: 'name', header: 'Policy', cell: (item: IdlePolicy) => item.name },
+                { id: 'description', header: 'Description', cell: (item: IdlePolicy) => item.description || '' },
+                { id: 'savings', header: 'Est. Savings', cell: (item: IdlePolicy) => `${(item as unknown as Record<string, unknown>).estimated_savings_percent ?? '—'}%` },
+                {
+                  id: 'action',
+                  header: '',
+                  cell: (item: IdlePolicy) => appliedIds.has(item.id) ? (
+                    <Button
+                      variant="link"
+                      onClick={() => handleRemove(item.id, item.name)}
+                      data-testid={`remove-idle-policy-${item.id}`}
+                    >
+                      Remove
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={() => handleApply(item.id, item.name)}
+                      data-testid={`apply-idle-policy-${item.id}`}
+                    >
+                      Apply
+                    </Button>
+                  )
+                }
+              ]}
+              items={availablePolicies}
+              empty={<Box textAlign="center">No idle policy templates available</Box>}
+            />
+          )}
+        </SpaceBetween>
+      </Modal>
+    );
+  };
+
   const HibernateConfirmationModal = () => {
     if (!hibernateModalInstance) return null;
 
@@ -11943,6 +12151,7 @@ export default function PrismApp() {
       <RestoreBackupModal />
       <DeleteConfirmationModal />
       <HibernateConfirmationModal />
+      <IdlePolicyModal />
       <OnboardingWizard />
       <QuickStartWizard />
       <CreateProjectModal />

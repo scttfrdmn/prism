@@ -455,6 +455,36 @@ func (s *Scheduler) DeleteSchedule(id string) error {
 	return nil
 }
 
+// RemoveSchedule removes a schedule and cleans up all instance associations (Issue #288)
+func (s *Scheduler) RemoveSchedule(scheduleID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := s.schedules[scheduleID]; !exists {
+		return fmt.Errorf("schedule not found: %s", scheduleID)
+	}
+
+	delete(s.schedules, scheduleID)
+	delete(s.active, scheduleID)
+
+	// Clean up all instance->schedule mappings that reference this schedule
+	for name, ids := range s.instanceSchedules {
+		filtered := ids[:0]
+		for _, id := range ids {
+			if id != scheduleID {
+				filtered = append(filtered, id)
+			}
+		}
+		if len(filtered) == 0 {
+			delete(s.instanceSchedules, name)
+		} else {
+			s.instanceSchedules[name] = filtered
+		}
+	}
+
+	return nil
+}
+
 // GetSchedule retrieves a schedule
 func (s *Scheduler) GetSchedule(id string) (*Schedule, error) {
 	s.mu.RLock()

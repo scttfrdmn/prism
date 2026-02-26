@@ -18,7 +18,44 @@ func (s *Server) RegisterIdleRoutes(mux *http.ServeMux, applyMiddleware func(htt
 	mux.HandleFunc("/api/v1/idle/policies/apply", applyMiddleware(s.handleIdlePolicyApply)) // Register specific route before wildcard
 	mux.HandleFunc("/api/v1/idle/policies/", applyMiddleware(s.handleIdlePolicyOperations)) // Wildcard route last
 	mux.HandleFunc("/api/v1/idle/schedules", applyMiddleware(s.handleIdleSchedules))
+	mux.HandleFunc("/api/v1/idle/schedules/", applyMiddleware(s.handleIdleScheduleByID)) // Per-schedule operations (Issue #288)
 	mux.HandleFunc("/api/v1/idle/savings", applyMiddleware(s.handleIdleSavings))
+}
+
+// saveIdleSchedules persists current scheduler state to disk (best-effort, Issue #288)
+func (s *Server) saveIdleSchedules() {
+	if s.idleScheduler == nil || s.stateManager == nil {
+		return
+	}
+	schedules := s.idleScheduler.ListSchedules()
+	data, err := json.Marshal(schedules)
+	if err != nil {
+		return
+	}
+	state, err := s.stateManager.LoadState()
+	if err != nil {
+		return
+	}
+	state.IdleSchedules = json.RawMessage(data)
+	_ = s.stateManager.SaveState(state)
+}
+
+// loadIdleSchedules hydrates the scheduler from persisted state on startup (Issue #288)
+func (s *Server) loadIdleSchedules() {
+	if s.idleScheduler == nil || s.stateManager == nil {
+		return
+	}
+	state, err := s.stateManager.LoadState()
+	if err != nil || len(state.IdleSchedules) == 0 {
+		return
+	}
+	var schedules []*idle.Schedule
+	if err := json.Unmarshal(state.IdleSchedules, &schedules); err != nil {
+		return
+	}
+	for _, schedule := range schedules {
+		_ = s.idleScheduler.AddSchedule(schedule)
+	}
 }
 
 // handleIdlePolicies handles /api/v1/idle/policies
@@ -79,6 +116,32 @@ func (s *Server) handleIdleSavings(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		s.getIdleSavingsReport(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleIdleScheduleByID handles /api/v1/idle/schedules/{id} (Issue #288)
+func (s *Server) handleIdleScheduleByID(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimPrefix(r.URL.Path, "/api/v1/idle/schedules/")
+	if id == "" {
+		http.Error(w, "Schedule ID required", http.StatusBadRequest)
+		return
+	}
+
+	if s.idleScheduler == nil {
+		http.Error(w, "Scheduler not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	switch r.Method {
+	case "DELETE":
+		if err := s.idleScheduler.RemoveSchedule(id); err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		s.saveIdleSchedules()
+		w.WriteHeader(http.StatusNoContent)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -368,6 +431,9 @@ func (s *Server) applyIdlePolicyToInstance(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
+	// Persist schedules after applying policy (Issue #288)
+	s.saveIdleSchedules()
+
 	response := map[string]string{
 		"status":  "success",
 		"message": fmt.Sprintf("Successfully applied idle policy %s to instance %s", policyID, instanceName),
@@ -407,6 +473,9 @@ func (s *Server) removeIdlePolicyFromInstance(w http.ResponseWriter, r *http.Req
 		http.Error(w, fmt.Sprintf("No schedules found for policy %s on instance %s", policyID, instanceName), http.StatusNotFound)
 		return
 	}
+
+	// Persist schedules after removing policy (Issue #288)
+	s.saveIdleSchedules()
 
 	response := map[string]string{
 		"status":  "success",
