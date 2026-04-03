@@ -32,8 +32,10 @@
   .hero-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
   .btn-hero-primary { background: #fff; color: #5a4fcf !important; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 1rem; text-decoration: none !important; box-shadow: 0 2px 12px rgba(0,0,0,0.3); transition: transform 0.15s; }
   .btn-hero-primary:hover { transform: translateY(-2px); color: #3d35a8 !important; }
+  .btn-hero-primary:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
   .btn-hero-secondary { background: rgba(255,255,255,0.12); color: #fff !important; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 1rem; border: 1px solid rgba(255,255,255,0.25); text-decoration: none !important; transition: background 0.15s; }
   .btn-hero-secondary:hover { background: rgba(255,255,255,0.2); color: #fff !important; }
+  .btn-hero-secondary:focus-visible { outline: 3px solid rgba(255,255,255,0.85); outline-offset: 3px; }
   .install-block { display: inline-flex; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 12px 24px; }
   .install-block code { font-family: "SF Mono", "Fira Code", monospace; font-size: 0.95rem; color: rgba(255,255,255,0.9); background: none; }
 
@@ -65,6 +67,7 @@
   .download-card strong { font-size: 0.95rem; }
   .btn-download { background: #5a4fcf; color: #ffffff !important; padding: 8px 20px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; text-decoration: none !important; }
   .btn-download:hover { background: #3d35a8; color: #ffffff !important; text-decoration: none !important; }
+  .btn-download:focus-visible { outline: 3px solid #5a4fcf; outline-offset: 3px; }
   .downloads-note { font-size: 0.88rem; color: var(--md-default-fg-color--light); margin-top: 0.5rem; }
 </style>
 
