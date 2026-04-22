@@ -45,6 +45,10 @@ const (
 	volumeTypeIO2         = "io2"
 
 	dcvPasswordChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+
+	// sporeBotLambdaURL is the shared spore-bot Lambda serving Slack/Teams commands for both
+	// spore.host and prism. Lifecycle notifications are sent here by spored when tags are set.
+	sporeBotLambdaURL = "https://awdzf7fbbsvqcrnrzusqjsuybm0iiyvf.lambda-url.us-east-1.on.aws"
 )
 
 // generateDCVPassword returns a 20-character cryptographically random alphanumeric password
@@ -483,6 +487,13 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 	}
 	if req.IdlePolicy {
 		tags = append(tags, ec2types.Tag{Key: aws.String("prism:hibernate-on-idle"), Value: aws.String("true")})
+	}
+
+	// Slack/Teams lifecycle notification tags (#607)
+	// spored reads these at startup to fire DMs on TTL warning, idle, spot interruption, etc.
+	if req.SlackWorkspaceID != "" {
+		tags = append(tags, ec2types.Tag{Key: aws.String("prism:slack-workspace-id"), Value: aws.String(req.SlackWorkspaceID)})
+		tags = append(tags, ec2types.Tag{Key: aws.String("prism:notify-url"), Value: aws.String(sporeBotLambdaURL)})
 	}
 
 	// Add test mode tags for E2E tests (helps identify and cleanup test resources)

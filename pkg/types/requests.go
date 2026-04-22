@@ -54,6 +54,9 @@ type LaunchRequest struct {
 	DNSName     string `json:"dns_name,omitempty"`     // DNS record name (defaults to sanitized workspace name)
 	TTL         string `json:"ttl,omitempty"`          // Time-to-live (e.g., "8h", "24h"); empty = no limit
 	IdleTimeout string `json:"idle_timeout,omitempty"` // Idle timeout override (e.g., "30m", "2h")
+
+	// Slack/Teams bot notifications (#607)
+	SlackWorkspaceID string `json:"slack_workspace_id,omitempty"` // Enables lifecycle DMs via spore-bot
 }
 
 // LaunchResponse represents a successful launch response

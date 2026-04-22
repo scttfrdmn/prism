@@ -504,6 +504,10 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	// v0.20.0: EC2 Capacity Blocks (#63)
 	capacityBlockCobra := NewCapacityBlockCobraCommands(r.app)
 	rootCmd.AddCommand(capacityBlockCobra.CreateCapacityBlockCommand())
+
+	// Slack/Teams bot integration (#607)
+	botCobra := NewBotCobraCommands(r.app)
+	rootCmd.AddCommand(botCobra.CreateBotCommand())
 }
 
 func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
