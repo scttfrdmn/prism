@@ -24,17 +24,27 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/spf13/cobra"
 )
 
 const (
-	// botAdminURL is the API Gateway admin endpoint (AWS IAM auth, SigV4 signed).
+	// botAdminURL is the API Gateway admin endpoint (SigV4-signed via assumed role).
 	// Distinct from the Lambda Function URL used for Slack/Teams webhooks.
 	botAdminURL   = "https://g8iytgzrn8.execute-api.us-east-1.amazonaws.com"
 	botAWSRegion  = "us-east-1"
 	botAWSService = "execute-api"
+
+	// botAdminRoleARN is a public assume-role in spore-host-infra that grants
+	// execute-api:Invoke on the admin API. Cross-account HTTP API v2 with AWS_IAM
+	// auth cannot use resource policies, so callers assume this role instead.
+	// The Lambda's verifyWorkspaceOwner() check enforces per-account isolation.
+	botAdminRoleARN    = "arn:aws:iam::966362334030:role/SpawnBotAdminCaller"
+	botAdminExternalID = "spore-bot"
 )
 
 // BotCobraCommands provides the `prism bot` command group.
@@ -435,8 +445,10 @@ func (b *BotCobraCommands) setEnabled(cmd *cobra.Command, enabled bool) error {
 	return nil
 }
 
-// callAdmin makes an AWS SigV4-signed HTTPS request to the spore-bot Lambda admin API.
-// Uses the current AWS profile credentials to authenticate — no separate API key needed.
+// callAdmin makes an AWS SigV4-signed HTTPS request to the spore-bot admin API.
+// Assumes the public SpawnBotAdminCaller role in spore-host-infra so the caller
+// is same-account to the HTTP API (cross-account HTTP API v2 IAM auth is unsupported).
+// The Lambda enforces per-account isolation via verifyWorkspaceOwner().
 func (b *BotCobraCommands) callAdmin(ctx context.Context, method, path string, payload interface{}) (map[string]interface{}, error) {
 	var bodyBytes []byte
 	var err error
@@ -455,14 +467,22 @@ func (b *BotCobraCommands) callAdmin(ctx context.Context, method, path string, p
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Prism-Tag-Prefix", "prism")
 
-	// Sign with current AWS credentials (SigV4) to prove identity
-	cfg, err := config.LoadDefaultConfig(ctx)
+	// Load base config from current AWS profile, then assume the admin role.
+	// stscreds.NewAssumeRoleProvider handles caching and automatic refresh.
+	baseCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load AWS config: %w", err)
 	}
-	creds, err := cfg.Credentials.Retrieve(ctx)
+	stsClient := sts.NewFromConfig(baseCfg)
+	roleProvider := stscreds.NewAssumeRoleProvider(stsClient, botAdminRoleARN,
+		func(o *stscreds.AssumeRoleOptions) {
+			o.RoleSessionName = "prism-bot-admin"
+			o.ExternalID = aws.String(botAdminExternalID)
+		},
+	)
+	creds, err := roleProvider.Retrieve(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("retrieve AWS credentials: %w", err)
+		return nil, fmt.Errorf("assume admin role: %w", err)
 	}
 
 	h := sha256.Sum256(bodyBytes)
