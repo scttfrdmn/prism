@@ -144,14 +144,9 @@ at rest in DynamoDB and isolated by workspace key.`,
 			}
 			fmt.Println()
 			fmt.Println("Next steps:")
-			fmt.Println("  1. Deploy cross-account IAM role in your AWS account:")
-			fmt.Println("       aws cloudformation deploy \\")
-			fmt.Println("         --stack-name prism-bot-cross-account \\")
-			fmt.Println("         --template-file spawn/deployment/cloudformation/bot-cross-account-role.yaml \\")
-			fmt.Println("         --capabilities CAPABILITY_NAMED_IAM \\")
-			fmt.Println("         --parameter-overrides TagPrefix=prism")
-			fmt.Println("  2. Register users:  prism bot register --user email@example.com ...")
-			fmt.Println("  3. Enable access:   prism bot enable ...")
+			fmt.Println("  1. Register users:  prism bot register --user email@example.com --instance <name> --nickname <short-name>")
+			fmt.Println("     (cross-account IAM role is created automatically)")
+			fmt.Println("  2. Enable access:   prism bot enable --user email@example.com --workspace-id <id> --nickname <short-name>")
 			return nil
 		},
 	}
