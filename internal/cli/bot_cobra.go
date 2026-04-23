@@ -17,6 +17,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,6 +29,8 @@ import (
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/spf13/cobra"
 )
@@ -42,9 +45,13 @@ const (
 	// botAdminRoleARN is a public assume-role in spore-host-infra that grants
 	// execute-api:Invoke on the admin API. Cross-account HTTP API v2 with AWS_IAM
 	// auth cannot use resource policies, so callers assume this role instead.
-	// The Lambda's verifyWorkspaceOwner() check enforces per-account isolation.
 	botAdminRoleARN    = "arn:aws:iam::966362334030:role/SpawnBotAdminCaller"
 	botAdminExternalID = "spore-bot"
+
+	// botCrossAccountRoleName is the IAM role created in the professor's AWS account
+	// that allows the spore-bot Lambda to call EC2 start/stop/describe.
+	botCrossAccountRoleName   = "SpawnBotCrossAccount"
+	botLambdaExecutionRoleARN = "arn:aws:iam::966362334030:role/prism-bot-PrismBotFunctionRole-U2vZFZXgWBeM"
 )
 
 // BotCobraCommands provides the `prism bot` command group.
@@ -225,6 +232,20 @@ one-time code, then pass it via --connect-code here.`,
 				return fmt.Errorf("one of --user, --user-id, or --connect-code is required")
 			}
 
+			// Auto-create the cross-account IAM role if not explicitly provided.
+			if roleARN == "" {
+				fmt.Println("Ensuring SpawnBotCrossAccount role exists in your account...")
+				baseCfg, err := config.LoadDefaultConfig(cmd.Context())
+				if err != nil {
+					return fmt.Errorf("load AWS config: %w", err)
+				}
+				roleARN, err = ensureCrossAccountRole(cmd.Context(), baseCfg)
+				if err != nil {
+					return fmt.Errorf("create cross-account role: %w (use --role-arn to provide an existing role)", err)
+				}
+				fmt.Printf("  ✓ %s\n", roleARN)
+			}
+
 			payload := map[string]interface{}{
 				"platform":   platform,
 				"instance":   instance,
@@ -274,12 +295,11 @@ one-time code, then pass it via --connect-code here.`,
 	cmd.Flags().String("connect-code", "", "One-time code from /prism connect")
 	cmd.Flags().String("instance", "", "Prism instance name or ID")
 	cmd.Flags().String("nickname", "", "Short name for slash commands (e.g., rstudio)")
-	cmd.Flags().String("role-arn", "", "Cross-account IAM role ARN (from bot-cross-account-role stack)")
+	cmd.Flags().String("role-arn", "", "Cross-account IAM role ARN (auto-created if omitted; requires iam:CreateRole)")
 	cmd.Flags().String("allow", "start,stop,status,hibernate,url", "Comma-separated allowed actions")
 	cmd.Flags().String("platform", "slack", "Platform: slack or teams")
 	_ = cmd.MarkFlagRequired("instance")
 	_ = cmd.MarkFlagRequired("nickname")
-	_ = cmd.MarkFlagRequired("role-arn")
 	return cmd
 }
 
@@ -443,6 +463,68 @@ func (b *BotCobraCommands) setEnabled(cmd *cobra.Command, enabled bool) error {
 		fmt.Printf("   Re-enable: prism bot enable --user %s --nickname %s\n", displayUser, nickname)
 	}
 	return nil
+}
+
+// ensureCrossAccountRole creates (or reuses) the SpawnBotCrossAccount IAM role in the
+// caller's AWS account. This role allows the spore-bot Lambda to call EC2 start/stop
+// on the professor's instances. Called automatically by 'prism bot register' when
+// --role-arn is not provided. Requires iam:GetRole, iam:CreateRole, iam:PutRolePolicy.
+func ensureCrossAccountRole(ctx context.Context, cfg aws.Config) (string, error) {
+	client := iam.NewFromConfig(cfg)
+
+	existing, err := client.GetRole(ctx, &iam.GetRoleInput{
+		RoleName: aws.String(botCrossAccountRoleName),
+	})
+	if err == nil {
+		return *existing.Role.Arn, nil
+	}
+
+	// Check it's a not-found error, not something else
+	var notFound *iamtypes.NoSuchEntityException
+	if !errors.As(err, &notFound) {
+		return "", fmt.Errorf("check role: %w", err)
+	}
+
+	trustPolicy := fmt.Sprintf(`{
+		"Version": "2012-10-17",
+		"Statement": [{
+			"Effect": "Allow",
+			"Principal": {"AWS": %q},
+			"Action": "sts:AssumeRole",
+			"Condition": {"StringEquals": {"sts:ExternalId": "spawn-bot"}}
+		}]
+	}`, botLambdaExecutionRoleARN)
+
+	created, err := client.CreateRole(ctx, &iam.CreateRoleInput{
+		RoleName:                 aws.String(botCrossAccountRoleName),
+		AssumeRolePolicyDocument: aws.String(trustPolicy),
+		Description:              aws.String("Allows spore-bot Lambda to control EC2 instances via Slack/Teams"),
+	})
+	if err != nil {
+		return "", fmt.Errorf("create role: %w", err)
+	}
+
+	_, err = client.PutRolePolicy(ctx, &iam.PutRolePolicyInput{
+		RoleName:   aws.String(botCrossAccountRoleName),
+		PolicyName: aws.String("SpawnBotEC2Control"),
+		PolicyDocument: aws.String(`{
+			"Version": "2012-10-17",
+			"Statement": [{
+				"Effect": "Allow",
+				"Action": [
+					"ec2:DescribeInstances",
+					"ec2:DescribeTags",
+					"ec2:StartInstances",
+					"ec2:StopInstances"
+				],
+				"Resource": "*"
+			}]
+		}`),
+	})
+	if err != nil {
+		return "", fmt.Errorf("attach policy: %w", err)
+	}
+	return *created.Role.Arn, nil
 }
 
 // callAdmin makes an AWS SigV4-signed HTTPS request to the spore-bot admin API.
