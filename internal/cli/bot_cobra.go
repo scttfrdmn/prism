@@ -30,10 +30,11 @@ import (
 )
 
 const (
-	// sporeBotLambdaURL is also defined in pkg/aws/manager.go — keep in sync.
-	botLambdaURL  = "https://awdzf7fbbsvqcrnrzusqjsuybm0iiyvf.lambda-url.us-east-1.on.aws"
+	// botAdminURL is the API Gateway admin endpoint (AWS IAM auth, SigV4 signed).
+	// Distinct from the Lambda Function URL used for Slack/Teams webhooks.
+	botAdminURL   = "https://g8iytgzrn8.execute-api.us-east-1.amazonaws.com"
 	botAWSRegion  = "us-east-1"
-	botAWSService = "lambda"
+	botAWSService = "execute-api"
 )
 
 // BotCobraCommands provides the `prism bot` command group.
@@ -446,7 +447,7 @@ func (b *BotCobraCommands) callAdmin(ctx context.Context, method, path string, p
 		}
 	}
 
-	url := botLambdaURL + path
+	url := botAdminURL + path
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
