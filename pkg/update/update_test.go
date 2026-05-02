@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/scttfrdmn/prism/pkg/version"
 )
 
 // mockTransport redirects any HTTP request to the provided handler.
@@ -172,16 +174,42 @@ func TestChecker_CheckForUpdates_NewVersion(t *testing.T) {
 }
 
 func TestChecker_CheckForUpdates_UpToDate(t *testing.T) {
-	// Mock returns the same version as current
+	// Mock returns a much lower version than current; semver compare must
+	// recognize the running build is newer and report no update available.
 	c := testChecker(t, releaseHandler("v0.0.1", false, false))
-	// Inject a very low current version to ensure it reads "not available" correctly:
-	// compareVersions returns true when latest > current (string comparison)
-	// We use v0.0.1 which is lower than real version, so IsUpdateAvailable == false
 	info, err := c.CheckForUpdates(context.Background())
 	require.NoError(t, err)
 	require.NotNil(t, info)
-	// 0.0.1 <= current version (e.g., 0.21.0) → no update available
 	assert.False(t, info.IsUpdateAvailable)
+}
+
+// TestChecker_CheckForUpdates_StaleCacheRecomputed guards against the
+// "0.30.0 -> 0.35.4" replay bug: after a user upgrades, the cached UpdateInfo
+// still has the old CurrentVersion, but CheckForUpdates must report the
+// actually-running version and re-evaluate IsUpdateAvailable.
+func TestChecker_CheckForUpdates_StaleCacheRecomputed(t *testing.T) {
+	prev := version.Version
+	version.Version = "0.35.4"
+	t.Cleanup(func() { version.Version = prev })
+
+	c := testChecker(t, releaseHandler("v0.35.4", false, false))
+
+	// Pre-populate the cache with a stale entry that was written when the
+	// user was on 0.30.0.
+	stale := &UpdateInfo{
+		CurrentVersion:    "0.30.0",
+		LatestVersion:     "0.35.4",
+		IsUpdateAvailable: true,
+		ReleaseURL:        "https://example.com/v0.35.4",
+		LastChecked:       time.Now(),
+	}
+	c.cacheUpdate(stale)
+
+	info, err := c.CheckForUpdates(context.Background())
+	require.NoError(t, err)
+	require.NotNil(t, info)
+	assert.Equal(t, "0.35.4", info.CurrentVersion, "should reflect running binary, not cached value")
+	assert.False(t, info.IsUpdateAvailable, "0.35.4 == 0.35.4 means no update")
 }
 
 func TestChecker_CheckForUpdates_NetworkError(t *testing.T) {
@@ -213,6 +241,35 @@ func TestChecker_CheckForUpdates_Prerelease_Skipped(t *testing.T) {
 	_, err := c.CheckForUpdates(context.Background())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "prerelease")
+}
+
+// ── compareVersions ───────────────────────────────────────────────────────
+
+func TestCompareVersions(t *testing.T) {
+	cases := []struct {
+		current, latest string
+		want            bool
+		name            string
+	}{
+		// Bug #N: raw string comparison reported "0.10.0" < "0.9.0" because
+		// '1' < '9' lexicographically. semver compare must order by number.
+		{"0.9.0", "0.10.0", true, "minor digit boundary"},
+		{"0.10.0", "0.9.0", false, "minor digit boundary reversed"},
+		{"0.99.0", "0.100.0", true, "two-digit to three-digit minor"},
+		{"1.0.0", "2.0.0", true, "major bump"},
+		{"0.35.4", "0.35.4", false, "equal"},
+		{"0.35.4", "0.35.3", false, "older latest"},
+		{"v0.35.4", "v0.35.5", true, "with v prefix"},
+		{"dev", "99.0.0", false, "dev never updates"},
+		{"unknown", "99.0.0", false, "unknown never updates"},
+		{"", "1.0.0", false, "empty current"},
+		{"garbage", "1.0.0", false, "invalid current rejected"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, compareVersions(tc.current, tc.latest))
+		})
+	}
 }
 
 // ── ClearCache ────────────────────────────────────────────────────────────

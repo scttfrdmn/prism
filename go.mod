@@ -34,6 +34,7 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/crypto v0.48.0
+	golang.org/x/mod v0.32.0
 	golang.org/x/sys v0.41.0
 	golang.org/x/text v0.34.0
 	gopkg.in/yaml.v3 v3.0.1

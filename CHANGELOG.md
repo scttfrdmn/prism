@@ -5,6 +5,12 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Update checker replays stale `CurrentVersion`**: after a user upgrades, the cached `update_check.json` still held the pre-upgrade version, so `prism` would print `New version available: 0.30.0 -> 0.35.4` even when already on 0.35.4. Cached entries are now re-evaluated against the running binary on read.
+- **Update checker version comparison**: `compareVersions` used raw string ordering, which ranked `0.10.0 < 0.9.0`. Replaced with `golang.org/x/mod/semver`, with explicit guards for `dev`/`unknown`/empty/invalid versions so unreleased builds never trigger an update prompt.
+
 ## [0.35.4] - 2026-04-20
 
 ### Documentation
