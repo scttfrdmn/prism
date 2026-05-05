@@ -484,24 +484,43 @@ type CostCalculationStrategy interface {
 	FormatRow(instance types.Instance, analysis CostAnalysis) string
 }
 
-// CostAnalysis holds the result of cost calculations
+// CostAnalysis holds the result of cost calculations.
+//
+// Field semantics (kept consistent with pkg/types/runtime.go):
+//   - DailyCost / ListDailyCost: cost per day at the instance's running rate (USD/day).
+//   - ActualSpend: lifetime accumulated dollars since launch (USD).
+//   - CurrentCostPerMin / ListCostPerMin: present per-minute burn rate (USD/min).
+//   - Age: wall-clock duration since launch (not actual running time).
 type CostAnalysis struct {
 	DailyCost         float64
 	ListDailyCost     float64
 	ActualSpend       float64
 	CurrentCostPerMin float64
 	ListCostPerMin    float64
-	RunningTime       string
+	Age               string
 	TypeIndicator     string
 	Savings           float64
 	SavingsPercent    float64
+}
+
+// stoppedStorageRatePerMin returns the per-minute storage-only cost for an
+// instance in a non-running state. Mirrors the formula used by
+// printInstanceRow in app.go: $0.005/hr per attached EBS volume, with a
+// minimum of one volume (the root device).
+func stoppedStorageRatePerMin(instance types.Instance) float64 {
+	const ebsHourlyPerVolume = 0.005
+	numEBSVolumes := len(instance.AttachedEBSVolumes)
+	if numEBSVolumes == 0 {
+		numEBSVolumes = 1
+	}
+	return (ebsHourlyPerVolume * float64(numEBSVolumes)) / 60.0
 }
 
 // BasicCostStrategy calculates costs without institutional discounts
 type BasicCostStrategy struct{}
 
 func (b *BasicCostStrategy) CalculateInstanceCost(instance types.Instance, calculator *pricing.Calculator) CostAnalysis {
-	// Calculate total lifetime
+	// Wall-clock lifetime since launch (or until deletion).
 	var totalLifetime time.Duration
 	if !instance.LaunchTime.IsZero() {
 		if instance.DeletionTime != nil && !instance.DeletionTime.IsZero() {
@@ -511,15 +530,20 @@ func (b *BasicCostStrategy) CalculateInstanceCost(instance types.Instance, calcu
 		}
 	}
 
-	dailyCost := instance.CurrentSpend
-	totalMinutes := totalLifetime.Minutes()
-	actualSpend := (dailyCost / (24.0 * 60.0)) * totalMinutes
+	// CurrentSpend is lifetime accumulated dollars (see pkg/types/runtime.go),
+	// not a daily rate. Display it directly as the lifetime total.
+	actualSpend := instance.CurrentSpend
 
+	// dailyCost is what the instance costs per day at its current running rate.
+	dailyCost := instance.HourlyRate * 24.0
+
+	// currentCostPerMin: present burn rate. Compute rate when running;
+	// storage-only rate when stopped/hibernated.
 	var currentCostPerMin float64
 	if instance.State == "running" {
-		currentCostPerMin = dailyCost / (24.0 * 60.0)
+		currentCostPerMin = instance.HourlyRate / 60.0
 	} else {
-		currentCostPerMin = (dailyCost * 0.1) / (24.0 * 60.0) // Storage only
+		currentCostPerMin = stoppedStorageRatePerMin(instance)
 	}
 
 	typeIndicator := "OD"
@@ -533,7 +557,7 @@ func (b *BasicCostStrategy) CalculateInstanceCost(instance types.Instance, calcu
 		ActualSpend:       actualSpend,
 		CurrentCostPerMin: currentCostPerMin,
 		ListCostPerMin:    currentCostPerMin,
-		RunningTime:       b.formatRunningTime(totalLifetime),
+		Age:               b.formatAge(totalLifetime),
 		TypeIndicator:     typeIndicator,
 		Savings:           0,
 		SavingsPercent:    0,
@@ -541,7 +565,7 @@ func (b *BasicCostStrategy) CalculateInstanceCost(instance types.Instance, calcu
 }
 
 func (b *BasicCostStrategy) GetHeaders() []string {
-	return []string{"INSTANCE", "STATE", "TYPE", "RUNNING", "TOTAL SPEND", "COST/MIN"}
+	return []string{"INSTANCE", "STATE", "TYPE", "AGE", "TOTAL SPEND", "COST/MIN"}
 }
 
 func (b *BasicCostStrategy) FormatRow(instance types.Instance, analysis CostAnalysis) string {
@@ -549,12 +573,14 @@ func (b *BasicCostStrategy) FormatRow(instance types.Instance, analysis CostAnal
 		instance.Name,
 		strings.ToUpper(instance.State),
 		analysis.TypeIndicator,
-		analysis.RunningTime,
+		analysis.Age,
 		analysis.ActualSpend,
 		analysis.CurrentCostPerMin)
 }
 
-func (b *BasicCostStrategy) formatRunningTime(duration time.Duration) string {
+// formatAge formats a wall-clock duration since launch as
+// "HH:MM:SS" (under one day) or "D:HH:MM:SS" (one day or more).
+func (b *BasicCostStrategy) formatAge(duration time.Duration) string {
 	days := int(duration.Hours()) / 24
 	hours := int(duration.Hours()) % 24
 	minutes := int(duration.Minutes()) % 60
@@ -572,7 +598,9 @@ type InstitutionalCostStrategy struct{}
 func (i *InstitutionalCostStrategy) CalculateInstanceCost(instance types.Instance, calculator *pricing.Calculator) CostAnalysis {
 	basic := (&BasicCostStrategy{}).CalculateInstanceCost(instance, calculator)
 
-	// Calculate discounted costs if instance type is available
+	// Apply institutional discounts when we have an instance type and a
+	// non-zero hourly rate. basic.DailyCost = HourlyRate * 24, so dividing
+	// by 24 recovers the hourly list price expected by the calculator.
 	if instance.InstanceType != "" && basic.DailyCost > 0 {
 		estimatedHourlyListPrice := basic.DailyCost / 24.0
 		result := calculator.CalculateInstanceCost(instance.InstanceType, estimatedHourlyListPrice, "us-west-2")
@@ -583,9 +611,11 @@ func (i *InstitutionalCostStrategy) CalculateInstanceCost(instance types.Instanc
 			basic.ListCostPerMin = basic.ListDailyCost / (24.0 * 60.0)
 
 			if instance.State == "running" {
+				// Discounted hourly = DailyEstimate / 24, per-minute = / 60.
 				basic.CurrentCostPerMin = basic.DailyCost / (24.0 * 60.0)
 			} else {
-				basic.CurrentCostPerMin = (basic.DailyCost * 0.1) / (24.0 * 60.0)
+				// Discounts apply to compute, not EBS storage; same rate as basic.
+				basic.CurrentCostPerMin = stoppedStorageRatePerMin(instance)
 			}
 
 			basic.Savings = basic.ListCostPerMin - basic.CurrentCostPerMin
@@ -599,7 +629,7 @@ func (i *InstitutionalCostStrategy) CalculateInstanceCost(instance types.Instanc
 }
 
 func (i *InstitutionalCostStrategy) GetHeaders() []string {
-	return []string{"INSTANCE", "STATE", "TYPE", "RUNNING", "TOTAL SPEND", "COST/MIN", "LIST RATE", "SAVINGS"}
+	return []string{"INSTANCE", "STATE", "TYPE", "AGE", "TOTAL SPEND", "COST/MIN", "LIST RATE", "SAVINGS"}
 }
 
 func (i *InstitutionalCostStrategy) FormatRow(instance types.Instance, analysis CostAnalysis) string {
@@ -607,7 +637,7 @@ func (i *InstitutionalCostStrategy) FormatRow(instance types.Instance, analysis 
 		instance.Name,
 		strings.ToUpper(instance.State),
 		analysis.TypeIndicator,
-		analysis.RunningTime,
+		analysis.Age,
 		analysis.ActualSpend,
 		analysis.CurrentCostPerMin,
 		analysis.ListCostPerMin,

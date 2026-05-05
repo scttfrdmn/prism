@@ -5,6 +5,12 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- `prism workspace cost` now reports correct lifetime spend and per-minute burn rate. The previous formula treated `instance.CurrentSpend` (lifetime accumulated dollars, per `pkg/types/runtime.go`) as if it were a daily rate, then multiplied it by lifetime fraction --- producing values that differed from `prism workspace list` by orders of magnitude. `TOTAL SPEND` now reads `CurrentSpend` directly; `COST/MIN` derives from `HourlyRate / 60` when running and from the storage-only EBS rate when stopped/hibernated. The institutional-discount path uses the same storage-only rate when stopped, since EBS storage is not subject to compute discounts.
+- `prism workspace cost` `RUNNING` column renamed to `AGE`. The displayed value was wall-clock time since launch, not actual running time. Renamed `CostAnalysis.RunningTime` to `Age` and `formatRunningTime` to `formatAge` for consistency.
+
 ## [0.35.4] - 2026-04-20
 
 ### Documentation
@@ -141,7 +147,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remaining `setState(notifications)` silent drops converted to `toast.*` calls: `onProvision` callback, `EditProjectModal` onSubmit, `EditUserModal` onSubmit, `CreateEFSVolumeModal` (removed `onNotify` prop), `CreateEBSVolumeModal` (same).
 - `WorkshopPage.ts` and `CoursePage.ts` E2E nav selectors scoped to `[data-sidebar="menu-button"]` to prevent strict-mode collision with same-named content-area buttons.
 - `settings.spec.ts` Templates nav selector scoped to sidebar to prevent collision with SettingsView "Template Marketplace" sub-nav button during parallel test runs.
-
 ## [0.31.0] - 2026-04-06
 
 ### Changed
