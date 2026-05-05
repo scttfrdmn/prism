@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -241,16 +242,26 @@ one-time code, then pass it via --connect-code here.`,
 				fmt.Printf("  ✓ %s\n", roleARN)
 			}
 
+			// Resolve Prism instance name → EC2 instance ID via the daemon.
+			instanceID := instance
+			if !strings.HasPrefix(instance, "i-") {
+				if inst, err := b.app.apiClient.GetInstance(cmd.Context(), instance); err == nil && inst.ID != "" {
+					instanceID = inst.ID
+				}
+			}
+
 			payload := map[string]interface{}{
-				"platform":   platform,
-				"instance":   instance,
-				"nickname":   nickname,
-				"role_arn":   roleARN,
-				"tag_prefix": "prism",
-				"allow":      allow,
+				"platform":    platform,
+				"instance_id": instanceID,
+				"nickname":    nickname,
+				"role_arn":    roleARN,
+				"tag_prefix":  "prism",
+				"allow":       allow,
 			}
 			if user != "" {
-				payload["user"] = user
+				// Send as user_email; Lambda resolves to Slack user ID server-side
+				// using the bot token stored for this workspace.
+				payload["user_email"] = user
 			}
 			if userID != "" {
 				payload["user_id"] = userID
@@ -341,7 +352,7 @@ func (b *BotCobraCommands) createRevokeCommand() *cobra.Command {
 				"nickname":     nickname,
 			}
 			if user != "" {
-				payload["user"] = user
+				payload["user_email"] = user
 			}
 			if userID != "" {
 				payload["user_id"] = userID
@@ -435,7 +446,7 @@ func (b *BotCobraCommands) setEnabled(cmd *cobra.Command, enabled bool) error {
 		"enabled":      enabled,
 	}
 	if user != "" {
-		payload["user"] = user
+		payload["user_email"] = user
 	}
 	if userID != "" {
 		payload["user_id"] = userID

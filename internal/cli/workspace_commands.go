@@ -98,6 +98,8 @@ func (f *WorkspaceCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []str
 	args = appendStringFlag(cmd, args, "capacity-block", "--capacity-block")
 	args = appendBoolFlag(cmd, args, "request-approval", "--request-approval")
 	args = appendStringFlag(cmd, args, "approval", "--approval")
+	args = appendStringFlag(cmd, args, "slack-workspace", "--slack-workspace")
+	args = appendStringFlag(cmd, args, "active-processes", "--active-processes")
 	return f.app.Launch(args)
 }
 
@@ -120,6 +122,8 @@ func (f *WorkspaceCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().String("capacity-block", "", "Pin launch to a pre-reserved EC2 Capacity Block ID (#63)")
 	cmd.Flags().Bool("request-approval", false, "Request PI/admin approval instead of launching (#495)")
 	cmd.Flags().String("approval", "", "Launch using a pre-approved request ID (#495)")
+	cmd.Flags().String("slack-workspace", "", "Slack workspace ID for lifecycle notifications (e.g., T0AU2S6FU86)")
+	cmd.Flags().String("active-processes", "", "Processes that keep instance active, preventing idle shutdown (e.g., rsession or rsession,jupyter)")
 }
 
 func (f *WorkspaceCommandFactory) createListCommand() *cobra.Command {

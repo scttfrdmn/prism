@@ -62,6 +62,10 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&DNSCommand{})
 	dispatcher.RegisterCommand(&TTLCommand{})
 
+	// Slack/Teams bot notifications (#607)
+	dispatcher.RegisterCommand(&SlackWorkspaceCommand{})
+	dispatcher.RegisterCommand(&ActiveProcessesCommand{})
+
 	return dispatcher
 }
 
@@ -1787,5 +1791,36 @@ func (c *TTLCommand) Execute(req *types.LaunchRequest, args []string, index int)
 		return index, fmt.Errorf("--ttl: invalid duration %q (examples: 8h, 24h, 30m)", args[index+1])
 	}
 	req.TTL = args[index+1]
+	return index + 1, nil
+}
+
+// SlackWorkspaceCommand handles --slack-workspace flag (#607)
+type SlackWorkspaceCommand struct{}
+
+func (c *SlackWorkspaceCommand) CanHandle(arg string) bool {
+	return arg == "--slack-workspace"
+}
+
+func (c *SlackWorkspaceCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--slack-workspace requires a workspace ID (e.g., T0AU2S6FU86)")
+	}
+	req.SlackWorkspaceID = args[index+1]
+	return index + 1, nil
+}
+
+// ActiveProcessesCommand handles --active-processes flag (#607)
+// Comma-separated process names that prevent idle shutdown when running (e.g., "rsession,jupyter").
+type ActiveProcessesCommand struct{}
+
+func (c *ActiveProcessesCommand) CanHandle(arg string) bool {
+	return arg == "--active-processes"
+}
+
+func (c *ActiveProcessesCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--active-processes requires a value (e.g., rsession or rsession,jupyter)")
+	}
+	req.ActiveProcesses = args[index+1]
 	return index + 1, nil
 }

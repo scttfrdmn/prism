@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/mod/semver"
+
 	"github.com/scttfrdmn/prism/pkg/version"
 )
 
@@ -48,7 +50,14 @@ func NewChecker() (*Checker, error) {
 func (c *Checker) CheckForUpdates(ctx context.Context) (*UpdateInfo, error) {
 	// Try to get cached result first
 	if cached := c.getCachedUpdate(); cached != nil && !cached.IsExpired() {
-		return cached.UpdateInfo, nil
+		// The cache stores the CurrentVersion captured at the time of the
+		// check, but the running binary may have been upgraded since. Recompute
+		// against the actual running version so we don't replay a stale
+		// "0.30.0 -> 0.35.4" notification after the user has already updated.
+		info := *cached.UpdateInfo
+		info.CurrentVersion = version.Version
+		info.IsUpdateAvailable = compareVersions(version.Version, info.LatestVersion)
+		return &info, nil
 	}
 
 	// Fetch latest version from GitHub
@@ -135,15 +144,22 @@ func (c *Checker) fetchLatestVersion(ctx context.Context) (version, url, notes s
 	return version, release.HTMLURL, release.Body, release.PublishedAt, nil
 }
 
-// compareVersions returns true if latest > current
+// compareVersions returns true if latest > current using semver ordering.
+// Dev/unknown current versions are never treated as upgradable, since the user
+// is running an unreleased build and we have no meaningful comparison point.
 func compareVersions(current, latest string) bool {
-	// Strip 'v' prefix if present
 	current = strings.TrimPrefix(current, "v")
 	latest = strings.TrimPrefix(latest, "v")
-
-	// Simple string comparison (works for semantic versioning like "0.6.3" vs "0.7.0")
-	// For production, consider using semver library
-	return latest > current && current != "dev" && current != "unknown"
+	if current == "" || current == "dev" || current == "unknown" {
+		return false
+	}
+	// semver.Compare requires a "v" prefix and treats invalid versions as less
+	// than valid ones, so guard explicitly to avoid false update prompts.
+	cv, lv := "v"+current, "v"+latest
+	if !semver.IsValid(cv) || !semver.IsValid(lv) {
+		return false
+	}
+	return semver.Compare(lv, cv) > 0
 }
 
 // getCachedUpdate retrieves cached update check result

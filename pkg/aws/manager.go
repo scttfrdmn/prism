@@ -494,6 +494,10 @@ func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest,
 	if req.SlackWorkspaceID != "" {
 		tags = append(tags, ec2types.Tag{Key: aws.String("prism:slack-workspace-id"), Value: aws.String(req.SlackWorkspaceID)})
 		tags = append(tags, ec2types.Tag{Key: aws.String("prism:notify-url"), Value: aws.String(sporeBotLambdaURL)})
+		tags = append(tags, ec2types.Tag{Key: aws.String("prism:notify-command"), Value: aws.String("/prism")})
+	}
+	if req.ActiveProcesses != "" {
+		tags = append(tags, ec2types.Tag{Key: aws.String("prism:active-processes"), Value: aws.String(req.ActiveProcesses)})
 	}
 
 	// Add test mode tags for E2E tests (helps identify and cleanup test resources)

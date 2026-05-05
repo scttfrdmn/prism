@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `prism workspace cost` now reports correct lifetime spend and per-minute burn rate. The previous formula treated `instance.CurrentSpend` (lifetime accumulated dollars, per `pkg/types/runtime.go`) as if it were a daily rate, then multiplied it by lifetime fraction --- producing values that differed from `prism workspace list` by orders of magnitude. `TOTAL SPEND` now reads `CurrentSpend` directly; `COST/MIN` derives from `HourlyRate / 60` when running and from the storage-only EBS rate when stopped/hibernated. The institutional-discount path uses the same storage-only rate when stopped, since EBS storage is not subject to compute discounts.
 - `prism workspace cost` `RUNNING` column renamed to `AGE`. The displayed value was wall-clock time since launch, not actual running time. Renamed `CostAnalysis.RunningTime` to `Age` and `formatRunningTime` to `formatAge` for consistency.
+- **Update checker replays stale `CurrentVersion`**: after a user upgrades, the cached `update_check.json` still held the pre-upgrade version, so `prism` would print `New version available: 0.30.0 -> 0.35.4` even when already on 0.35.4. Cached entries are now re-evaluated against the running binary on read.
+- **Update checker version comparison**: `compareVersions` used raw string ordering, which ranked `0.10.0 < 0.9.0`. Replaced with `golang.org/x/mod/semver`, with explicit guards for `dev`/`unknown`/empty/invalid versions so unreleased builds never trigger an update prompt.
 
 ## [0.35.4] - 2026-04-20
 

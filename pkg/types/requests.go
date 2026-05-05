@@ -57,6 +57,7 @@ type LaunchRequest struct {
 
 	// Slack/Teams bot notifications (#607)
 	SlackWorkspaceID string `json:"slack_workspace_id,omitempty"` // Enables lifecycle DMs via spore-bot
+	ActiveProcesses  string `json:"active_processes,omitempty"`   // Comma-separated process names that keep instance active (e.g., "rsession,jupyter")
 }
 
 // LaunchResponse represents a successful launch response
