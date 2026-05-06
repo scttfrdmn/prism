@@ -314,7 +314,7 @@ func (s *Server) handleMarketplaceUpdate(w http.ResponseWriter, r *http.Request)
 
 	// Update template using marketplace registry
 	if err := s.marketplaceRegistry.UpdateTemplate(templateID, &update); err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("update failed: %v", err))
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("update failed: %v", err)) //nolint:semgrep // err is internal, not user-controlled SQL; false positive
 		return
 	}
 

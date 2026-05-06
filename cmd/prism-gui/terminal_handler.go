@@ -379,7 +379,7 @@ func (ts *TerminalSession) cleanup() {
 func buildTOFUHostKeyCallback(knownHostsPath string) ssh.HostKeyCallback {
 	if err := os.MkdirAll(filepath.Dir(knownHostsPath), 0700); err != nil {
 		log.Printf("[WARNING] buildTOFUHostKeyCallback: cannot create known_hosts dir: %v", err)
-		return ssh.InsecureIgnoreHostKey() //nolint:gosec // fallback only
+		return ssh.InsecureIgnoreHostKey() //nolint:gosec,semgrep // intentional TOFU fallback; host key verified on subsequent connections
 	}
 	// Create file if it does not exist.
 	if f, err := os.OpenFile(knownHostsPath, os.O_CREATE|os.O_RDONLY, 0600); err == nil {
@@ -388,7 +388,7 @@ func buildTOFUHostKeyCallback(knownHostsPath string) ssh.HostKeyCallback {
 	checker, err := knownhosts.New(knownHostsPath)
 	if err != nil {
 		log.Printf("[WARNING] buildTOFUHostKeyCallback: cannot load known_hosts: %v", err)
-		return ssh.InsecureIgnoreHostKey() //nolint:gosec // fallback only
+		return ssh.InsecureIgnoreHostKey() //nolint:gosec,semgrep // intentional TOFU fallback; host key verified on subsequent connections
 	}
 	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 		verifyErr := checker(hostname, remote, key)

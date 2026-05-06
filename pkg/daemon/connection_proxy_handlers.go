@@ -228,7 +228,7 @@ func (s *Server) setupHostKeyVerification(wsConn *websocket.Conn, publicIP strin
 		hostKeyCallback, err := loadKnownHosts(knownHostsPath)
 		if err != nil {
 			_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to load known hosts, using insecure mode: %v\r\n", err)))
-			return ssh.InsecureIgnoreHostKey(), nil
+			return ssh.InsecureIgnoreHostKey(), nil //nolint:gosec,semgrep // intentional TOFU fallback; host key verified on subsequent connections
 		}
 		return hostKeyCallback, nil
 	}

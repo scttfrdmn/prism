@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/rand" //nolint:gosec // math/rand used for retry jitter, not cryptography
 	"net"
 	"strings"
 	"time"

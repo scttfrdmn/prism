@@ -135,7 +135,7 @@ func NewCertificatePinner() (*CertificatePinner, error) {
 	// Load pinned certificate fingerprints from config or use defaults
 	pinnedFingerprints := []string{
 		// AWS S3 certificate fingerprints (these would be real in production)
-		"sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", // Example pinned cert
+		"sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", //nolint:semgrep // placeholder fingerprint, not a real secret
 		"sha256:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=", // Backup cert
 	}
 

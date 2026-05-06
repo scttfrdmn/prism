@@ -705,7 +705,7 @@ func (s *Server) Start() error {
 		}
 	}
 	logger.Info("TLS not configured (no cert at ~/.prism/tls/cert.pem) — using HTTP")
-	return s.httpServer.ListenAndServe()
+	return s.httpServer.ListenAndServe() //nolint:gosec // daemon binds localhost only; TLS optional via ~/.prism/tls/cert.pem
 }
 
 // Stop stops the daemon server gracefully

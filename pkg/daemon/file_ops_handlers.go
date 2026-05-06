@@ -69,7 +69,7 @@ func (s *Server) handleListInstanceFiles(w http.ResponseWriter, r *http.Request,
 		remotePath = "/home"
 	}
 	// Normalize and validate path (#598)
-	remotePath = filepath.Clean(remotePath)
+	remotePath = filepath.Clean(remotePath) //nolint:semgrep // path traversal is prevented by the IsAbs check below and validateRemotePath (#598)
 	if !filepath.IsAbs(remotePath) {
 		s.writeError(w, http.StatusBadRequest, "Path must be absolute")
 		return
