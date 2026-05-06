@@ -23,7 +23,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.34.7
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.1
-	github.com/fatih/color v1.18.0
+	github.com/fatih/color v1.19.0
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
@@ -35,7 +35,7 @@ require (
 	github.com/zalando/go-keyring v0.2.6
 	golang.org/x/crypto v0.48.0
 	golang.org/x/mod v0.32.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 	golang.org/x/text v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
 )
