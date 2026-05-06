@@ -5,7 +5,7 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.35.5] - 2026-05-05
 
 ### Fixed
 - `prism workspace cost` now reports correct lifetime spend and per-minute burn rate. The previous formula treated `instance.CurrentSpend` (lifetime accumulated dollars, per `pkg/types/runtime.go`) as if it were a daily rate, then multiplied it by lifetime fraction --- producing values that differed from `prism workspace list` by orders of magnitude. `TOTAL SPEND` now reads `CurrentSpend` directly; `COST/MIN` derives from `HourlyRate / 60` when running and from the storage-only EBS rate when stopped/hibernated. The institutional-discount path uses the same storage-only rate when stopped, since EBS storage is not subject to compute discounts.
