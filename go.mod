@@ -24,7 +24,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.1
 	github.com/fatih/color v1.18.0
-	github.com/godbus/dbus/v5 v5.1.0
+	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/scttfrdmn/substrate v0.48.0
