@@ -1,0 +1,18 @@
+# Semgrep ignore patterns
+# https://semgrep.dev/docs/ignoring-files-folders-code/
+
+# Third-party dependencies
+cmd/prism-gui/frontend/node_modules/
+vendor/
+
+# Generated code
+cmd/prism-gui/frontend/dist/
+
+# Test files — test code uses intentional patterns (insecure SSH, math/rand, etc.)
+*_test.go
+test/
+tests/
+
+# Windows service wrapper uses exec.Command with a validated binary path,
+# not user-controlled input — semgrep dangerous-exec-command is a false positive here.
+scripts/windows-service-wrapper.go

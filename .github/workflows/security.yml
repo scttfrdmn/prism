@@ -61,7 +61,12 @@ jobs:
           exit-code: 1
 
       # --- Semgrep SAST ---
+      # Use curated Go ruleset rather than 'auto' (all 1000+ rules) to avoid
+      # false positives on legitimate patterns (text/template, exec.Command with
+      # validated input, MD5 for checksums, etc).
       - name: Semgrep
         uses: returntocorp/semgrep-action@v1
         with:
-          config: auto
+          config: >-
+            p/golang
+            p/secrets
