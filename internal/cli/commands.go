@@ -524,10 +524,15 @@ func stoppedStorageRatePerMin(instance types.Instance) float64 {
 type BasicCostStrategy struct{}
 
 func (b *BasicCostStrategy) CalculateInstanceCost(instance types.Instance, calculator *pricing.Calculator) CostAnalysis {
-	// Wall-clock lifetime since launch (or until deletion).
+	// Wall-clock lifetime since launch (or until deletion). Guard against a
+	// stale DeletionTime that precedes LaunchTime: an instance that was
+	// marked deleted and later resurrected (or whose LaunchTime was later
+	// corrected) can leave the two fields out of order. Treat such a
+	// DeletionTime as invalid and fall back to time since launch.
 	var totalLifetime time.Duration
 	if !instance.LaunchTime.IsZero() {
-		if instance.DeletionTime != nil && !instance.DeletionTime.IsZero() {
+		if instance.DeletionTime != nil && !instance.DeletionTime.IsZero() &&
+			instance.DeletionTime.After(instance.LaunchTime) {
 			totalLifetime = instance.DeletionTime.Sub(instance.LaunchTime)
 		} else {
 			totalLifetime = time.Since(instance.LaunchTime)
