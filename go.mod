@@ -12,14 +12,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.57.0
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.63.8
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.3
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.300.0
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.304.0
 	github.com/aws/aws-sdk-go-v2/service/efs v1.41.16
-	github.com/aws/aws-sdk-go-v2/service/fsx v1.65.10
+	github.com/aws/aws-sdk-go-v2/service/fsx v1.66.0
 	github.com/aws/aws-sdk-go-v2/service/health v1.37.6
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.10
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.51.3
-	github.com/aws/aws-sdk-go-v2/service/pricing v1.41.2
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.1
+	github.com/aws/aws-sdk-go-v2/service/pricing v1.42.0
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.101.0
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.34.7
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.1
