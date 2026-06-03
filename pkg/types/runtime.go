@@ -254,6 +254,40 @@ type StateTransition struct {
 	Initiator string    `json:"initiator,omitempty"` // Who/what initiated (user, system, policy)
 }
 
+// BilledCostPeriod is one time bucket of AWS-billed cost, read from AWS Cost
+// Explorer. Estimated is true when AWS has not yet finalized the period (the
+// current, still-accruing month).
+type BilledCostPeriod struct {
+	Start     string  `json:"start"`  // inclusive, YYYY-MM-DD
+	End       string  `json:"end"`    // exclusive, YYYY-MM-DD
+	Amount    float64 `json:"amount"` // UnblendedCost for the period
+	Estimated bool    `json:"estimated"`
+}
+
+// BilledCostResult is the AWS-billed ("billed so far") cost for one workspace.
+// It comes from AWS Cost Explorer (the meter), not from prism's local
+// CurrentSpend accumulator (the model). The two can diverge: see the cost
+// command's reconciliation view.
+//
+// Per-instance isolation relies on an activated cost-allocation tag. When the
+// tag is not active, TagActive is false and BilledTotal falls back to the
+// region's EC2 total (FallbackRegionTotal), which may include other instances;
+// Note then explains the limitation.
+type BilledCostResult struct {
+	Name                string             `json:"name"`
+	BilledTotal         float64            `json:"billed_total"`
+	Currency            string             `json:"currency"`
+	Monthly             []BilledCostPeriod `json:"monthly"`
+	Start               string             `json:"start"` // window start, YYYY-MM-DD
+	End                 string             `json:"end"`   // window end (exclusive), YYYY-MM-DD
+	Region              string             `json:"region"`
+	Source              string             `json:"source"`     // e.g. "AWS Cost Explorer (UnblendedCost)"
+	TagActive           bool               `json:"tag_active"` // whether per-instance tag isolation worked
+	FallbackRegionTotal float64            `json:"fallback_region_total,omitempty"`
+	Estimated           bool               `json:"estimated"` // any period still AWS-estimated
+	Note                string             `json:"note,omitempty"`
+}
+
 // IdleDetection represents idle detection configuration for an instance
 type IdleDetection struct {
 	Enabled        bool      `json:"enabled"`

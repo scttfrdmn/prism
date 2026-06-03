@@ -738,6 +738,7 @@ func (s *Server) handleInstanceSubOperation(w http.ResponseWriter, r *http.Reque
 		"progress":              s.handleGetProgress,      // Launch progress monitoring (v0.7.2 - Issue #453)
 		"files":                 s.handleInstanceFiles,    // SSM file ops (#30)
 		"s3-mounts":             s.handleInstanceS3Mounts, // S3 mount ops (#22)
+		"billed-cost":           s.handleBilledCost,       // AWS-billed cost from Cost Explorer
 	}
 
 	if handler, exists := operationHandlers[operation]; exists {

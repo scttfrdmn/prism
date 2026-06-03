@@ -88,6 +88,20 @@ func (m *MockClient) GetInstance(ctx context.Context, name string) (*types.Insta
 	return nil, fmt.Errorf("instance not found: %s", name)
 }
 
+func (m *MockClient) GetBilledCost(ctx context.Context, name string) (*types.BilledCostResult, error) {
+	if instance, exists := m.instances[name]; exists {
+		return &types.BilledCostResult{
+			Name:        name,
+			BilledTotal: instance.CurrentSpend,
+			Currency:    "USD",
+			Region:      instance.Region,
+			Source:      "mock",
+			TagActive:   true,
+		}, nil
+	}
+	return nil, fmt.Errorf("instance not found: %s", name)
+}
+
 func (m *MockClient) StartInstance(ctx context.Context, name string) error {
 	if instance, exists := m.instances[name]; exists {
 		instance.State = "running"

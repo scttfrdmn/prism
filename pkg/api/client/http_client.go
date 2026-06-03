@@ -262,6 +262,23 @@ func (c *HTTPClient) GetInstance(ctx context.Context, name string) (*types.Insta
 	return &result, nil
 }
 
+// GetBilledCost returns the AWS-billed ("billed so far") cost for a workspace,
+// sourced from AWS Cost Explorer rather than prism's local estimate.
+func (c *HTTPClient) GetBilledCost(ctx context.Context, name string) (*types.BilledCostResult, error) {
+	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/instances/%s/billed-cost", name), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result types.BilledCostResult
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 // GetProgress returns the current setup progress for an instance (v0.7.2 - Issue #453)
 func (c *HTTPClient) GetProgress(ctx context.Context, name string) (*types.ProgressResponse, error) {
 	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/instances/%s/progress", name), nil)

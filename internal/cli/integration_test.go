@@ -288,6 +288,55 @@ func TestListCostCommand(t *testing.T) {
 	}
 }
 
+func TestListBilledCostCommand(t *testing.T) {
+	t.Run("reconcile view shows billed, estimate, and delta", func(t *testing.T) {
+		mock := NewMockAPIClient()
+		// Give the workspace a known local estimate; the mock returns the same
+		// value as billed, so the delta should be zero.
+		for i := range mock.Instances {
+			if mock.Instances[i].Name == "test-instance" {
+				mock.Instances[i].CurrentSpend = 42.50
+			}
+		}
+		app := NewAppWithClient("1.0.0", mock)
+
+		out := captureStdout(t, func() {
+			require.NoError(t, app.ListBilledCost("test-instance", "", false))
+		})
+
+		assert.Contains(t, out, "BILLED SO FAR")
+		assert.Contains(t, out, "PRISM EST")
+		assert.Contains(t, out, "DELTA")
+		assert.Contains(t, out, "test-instance")
+		assert.Contains(t, out, "$42.5000")
+		assert.Contains(t, out, "+0.0000") // billed == estimate in the mock
+	})
+
+	t.Run("billed-only hides estimate and delta columns", func(t *testing.T) {
+		mock := NewMockAPIClient()
+		app := NewAppWithClient("1.0.0", mock)
+
+		out := captureStdout(t, func() {
+			require.NoError(t, app.ListBilledCost("test-instance", "", true))
+		})
+
+		assert.Contains(t, out, "BILLED SO FAR")
+		assert.NotContains(t, out, "PRISM EST")
+		assert.NotContains(t, out, "DELTA")
+	})
+
+	t.Run("unknown workspace name reports not found", func(t *testing.T) {
+		mock := NewMockAPIClient()
+		app := NewAppWithClient("1.0.0", mock)
+
+		out := captureStdout(t, func() {
+			require.NoError(t, app.ListBilledCost("does-not-exist", "", false))
+		})
+
+		assert.Contains(t, out, "not found")
+	})
+}
+
 // TestConnectCommandIntegration tests the connect command delegation
 func TestConnectCommandIntegration(t *testing.T) {
 	mockClient := NewMockAPIClient()
