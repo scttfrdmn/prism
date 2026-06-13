@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `os.WriteFile` against `~/.prism/approvals.json`. Public API unchanged; all existing behavior
   and tests preserved. A legacy `approvals.json` is migrated into the seam on first run (then
   retired). This is the first manager converged; project/budget/rbac follow.
+- **`ProjectManager` now persists through the seam** as one record per project (rather than a
+  single `projects.json` rewritten on every mutation) — the granularity shared state needs, so
+  Prism and prp editing different projects don't clobber each other. The in-memory map and all
+  existing mutation call sites are unchanged; `loadProjects`/`saveProjects` are backed by the seam
+  (`saveProjects` reconciles: write all in-map, delete records dropped from the map). A legacy
+  `projects.json` is migrated on first run (then retired). Public API and tests preserved.
 
 ## [0.35.5] - 2026-05-05
 
