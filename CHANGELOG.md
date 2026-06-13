@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing mutation call sites are unchanged; `loadProjects`/`saveProjects` are backed by the seam
   (`saveProjects` reconciles: write all in-map, delete records dropped from the map). A legacy
   `projects.json` is migrated on first run (then retired). Public API and tests preserved.
+- **`BudgetManager` now persists through the seam** — three seam stores (budgets, allocations,
+  reallocations), one record each, replacing the three flat JSON files rewritten wholesale. The
+  in-memory maps, lookup indexes, and all call sites are unchanged; the six load/save methods are
+  seam-backed (saves reconcile). Legacy `budgets.json` / `budget_allocations.json` /
+  `budget_reallocations.json` migrate on first run (then retire). Public API and tests preserved.
 
 ## [0.35.5] - 2026-05-05
 

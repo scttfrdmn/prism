@@ -15,14 +15,20 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/scttfrdmn/prism/pkg/seam"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// BudgetManager handles budget pools and project allocations
+// BudgetManager handles budget pools and project allocations.
+//
+// Persistence runs through the seam (design §5): three seam stores (budgets, allocations,
+// reallocations), each fronted by an in-memory map. Per-record storage (rather than three big
+// JSON files rewritten wholesale) is what makes shared state safe across Prism and prp (§4).
 type BudgetManager struct {
-	budgetsPath       string
-	allocationsPath   string
-	reallocationsPath string
+	budgetStore       seam.Store[types.Budget]
+	allocationStore   seam.Store[types.ProjectBudgetAllocation]
+	reallocationStore seam.Store[ReallocationRecord]
 	mutex             sync.RWMutex
 	budgets           map[string]*types.Budget                  // budget_id → Budget
 	allocations       map[string]*types.ProjectBudgetAllocation // allocation_id → Allocation
@@ -33,6 +39,38 @@ type BudgetManager struct {
 	allocationReallocations map[string][]*ReallocationRecord            // allocation_id → [Reallocations]
 	// Optional project manager for name/allocation enrichment (injected via SetProjectManager).
 	projectManager *Manager
+}
+
+// budgetSeamScope is the tenancy key budget records are stored under. Single-tenant on the
+// desktop (the zero Scope); the cloud deployment overrides it per Principal.
+var budgetSeamScope = seam.Scope{}
+
+// migrateLegacyMap imports a legacy map[id]*T JSON file into a seam store keyed by each record's
+// id, then renames the file aside. The id is read back from the JSON map key (which the old code
+// used as the record ID), so no per-type field accessor is needed.
+func migrateLegacyMap[T any](ctx context.Context, store seam.Store[T], scope seam.Scope, legacyPath string) error {
+	// #nosec G304 G703 -- legacyPath is composed internally from the state dir, not external input.
+	data, err := os.ReadFile(legacyPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var records map[string]*T
+	if err := json.Unmarshal(data, &records); err != nil {
+		return fmt.Errorf("parse legacy %s: %w", filepath.Base(legacyPath), err)
+	}
+	for id, rec := range records {
+		if rec == nil {
+			continue
+		}
+		if err := store.Put(ctx, scope, id, *rec); err != nil {
+			return fmt.Errorf("migrate %s record %q: %w", filepath.Base(legacyPath), id, err)
+		}
+	}
+	// #nosec G703 -- legacyPath is internally composed (see above), not external input.
+	return os.Rename(legacyPath, legacyPath+".migrated")
 }
 
 // SetProjectManager injects a project manager so GetBudgetSummary and
@@ -58,20 +96,21 @@ func NewBudgetManager() (*BudgetManager, error) {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
-	budgetsPath := filepath.Join(stateDir, "budgets.json")
-	allocationsPath := filepath.Join(stateDir, "budget_allocations.json")
-	reallocationsPath := filepath.Join(stateDir, "budget_reallocations.json")
-
 	manager := &BudgetManager{
-		budgetsPath:             budgetsPath,
-		allocationsPath:         allocationsPath,
-		reallocationsPath:       reallocationsPath,
+		budgetStore:             filestore.New[types.Budget](filepath.Join(stateDir, "budgets")),
+		allocationStore:         filestore.New[types.ProjectBudgetAllocation](filepath.Join(stateDir, "budget_allocations")),
+		reallocationStore:       filestore.New[ReallocationRecord](filepath.Join(stateDir, "budget_reallocations")),
 		budgets:                 make(map[string]*types.Budget),
 		allocations:             make(map[string]*types.ProjectBudgetAllocation),
 		reallocations:           make(map[string]*ReallocationRecord),
 		projectAllocations:      make(map[string][]*types.ProjectBudgetAllocation),
 		budgetAllocations:       make(map[string][]*types.ProjectBudgetAllocation),
 		allocationReallocations: make(map[string][]*ReallocationRecord),
+	}
+
+	// One-time migration of the legacy flat JSON files into the seam.
+	if err := manager.migrateLegacy(stateDir); err != nil {
+		return nil, fmt.Errorf("failed to migrate legacy budget data: %w", err)
 	}
 
 	// Load existing data
@@ -701,87 +740,85 @@ func (bm *BudgetManager) ActivateBackupFunding(ctx context.Context, projectID st
 	return nil
 }
 
-// loadBudgets loads budgets from disk
+// loadBudgets loads all budget records from the seam into the in-memory map.
 func (bm *BudgetManager) loadBudgets() error {
-	// Check if budgets file exists
-	if _, err := os.Stat(bm.budgetsPath); os.IsNotExist(err) {
-		// No budgets file exists yet, start with empty map
-		return nil
-	}
-
-	data, err := os.ReadFile(bm.budgetsPath)
+	all, err := bm.budgetStore.List(context.Background(), budgetSeamScope)
 	if err != nil {
-		return fmt.Errorf("failed to read budgets file: %w", err)
+		return fmt.Errorf("failed to load budgets: %w", err)
 	}
-
-	var budgets map[string]*types.Budget
-	if err := json.Unmarshal(data, &budgets); err != nil {
-		return fmt.Errorf("failed to parse budgets file: %w", err)
+	budgets := make(map[string]*types.Budget, len(all))
+	for i := range all {
+		b := all[i]
+		budgets[b.ID] = &b
 	}
-
 	bm.budgets = budgets
 	return nil
 }
 
-// saveBudgets saves budgets to disk
+// saveBudgets reconciles the budget store to the in-memory map (Put all in-map, Delete dropped).
 func (bm *BudgetManager) saveBudgets() error {
-	data, err := json.MarshalIndent(bm.budgets, "", "  ")
+	ctx := context.Background()
+	existing, err := bm.budgetStore.List(ctx, budgetSeamScope)
 	if err != nil {
-		return fmt.Errorf("failed to marshal budgets: %w", err)
+		return fmt.Errorf("failed to list budgets for save: %w", err)
 	}
-
-	// Write to temporary file first, then rename for atomicity
-	tempPath := bm.budgetsPath + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write temporary budgets file: %w", err)
+	for i := range existing {
+		id := existing[i].ID
+		if _, ok := bm.budgets[id]; !ok {
+			if err := bm.budgetStore.Delete(ctx, budgetSeamScope, id); err != nil && !errorsIsNotFound(err) {
+				return fmt.Errorf("failed to delete budget %q: %w", id, err)
+			}
+		}
 	}
-
-	if err := os.Rename(tempPath, bm.budgetsPath); err != nil {
-		return fmt.Errorf("failed to rename budgets file: %w", err)
+	for id, b := range bm.budgets {
+		if b == nil {
+			continue
+		}
+		if err := bm.budgetStore.Put(ctx, budgetSeamScope, id, *b); err != nil {
+			return fmt.Errorf("failed to save budget %q: %w", id, err)
+		}
 	}
-
 	return nil
 }
 
-// loadAllocations loads allocations from disk
+// loadAllocations loads all allocation records from the seam into the in-memory map.
 func (bm *BudgetManager) loadAllocations() error {
-	// Check if allocations file exists
-	if _, err := os.Stat(bm.allocationsPath); os.IsNotExist(err) {
-		// No allocations file exists yet, start with empty map
-		return nil
-	}
-
-	data, err := os.ReadFile(bm.allocationsPath)
+	all, err := bm.allocationStore.List(context.Background(), budgetSeamScope)
 	if err != nil {
-		return fmt.Errorf("failed to read allocations file: %w", err)
+		return fmt.Errorf("failed to load allocations: %w", err)
 	}
-
-	var allocations map[string]*types.ProjectBudgetAllocation
-	if err := json.Unmarshal(data, &allocations); err != nil {
-		return fmt.Errorf("failed to parse allocations file: %w", err)
+	allocations := make(map[string]*types.ProjectBudgetAllocation, len(all))
+	for i := range all {
+		a := all[i]
+		allocations[a.ID] = &a
 	}
-
 	bm.allocations = allocations
 	return nil
 }
 
-// saveAllocations saves allocations to disk
+// saveAllocations reconciles the allocation store to the in-memory map.
 func (bm *BudgetManager) saveAllocations() error {
-	data, err := json.MarshalIndent(bm.allocations, "", "  ")
+	ctx := context.Background()
+	existing, err := bm.allocationStore.List(ctx, budgetSeamScope)
 	if err != nil {
-		return fmt.Errorf("failed to marshal allocations: %w", err)
+		return fmt.Errorf("failed to list allocations for save: %w", err)
 	}
-
-	// Write to temporary file first, then rename for atomicity
-	tempPath := bm.allocationsPath + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write temporary allocations file: %w", err)
+	for i := range existing {
+		id := existing[i].ID
+		if _, ok := bm.allocations[id]; !ok {
+			if err := bm.allocationStore.Delete(ctx, budgetSeamScope, id); err != nil && !errorsIsNotFound(err) {
+				return fmt.Errorf("failed to delete allocation %q: %w", id, err)
+			}
+		}
 	}
-
-	if err := os.Rename(tempPath, bm.allocationsPath); err != nil {
-		return fmt.Errorf("failed to rename allocations file: %w", err)
+	for id, a := range bm.allocations {
+		if a == nil {
+			continue
+		}
+		if err := bm.allocationStore.Put(ctx, budgetSeamScope, id, *a); err != nil {
+			return fmt.Errorf("failed to save allocation %q: %w", id, err)
+		}
 	}
-
 	return nil
 }
 
@@ -802,46 +839,58 @@ func (bm *BudgetManager) rebuildIndexes() {
 	}
 }
 
-// loadReallocations loads reallocation history from disk
+// loadReallocations loads all reallocation records from the seam into the in-memory map.
 func (bm *BudgetManager) loadReallocations() error {
-	// Check if reallocations file exists
-	if _, err := os.Stat(bm.reallocationsPath); os.IsNotExist(err) {
-		// No reallocations file exists yet, start with empty map
-		return nil
-	}
-
-	data, err := os.ReadFile(bm.reallocationsPath)
+	all, err := bm.reallocationStore.List(context.Background(), budgetSeamScope)
 	if err != nil {
-		return fmt.Errorf("failed to read reallocations file: %w", err)
+		return fmt.Errorf("failed to load reallocations: %w", err)
 	}
-
-	var reallocations map[string]*ReallocationRecord
-	if err := json.Unmarshal(data, &reallocations); err != nil {
-		return fmt.Errorf("failed to parse reallocations file: %w", err)
+	reallocations := make(map[string]*ReallocationRecord, len(all))
+	for i := range all {
+		r := all[i]
+		reallocations[r.ID] = &r
 	}
-
 	bm.reallocations = reallocations
 	return nil
 }
 
-// saveReallocations saves reallocation history to disk
+// saveReallocations reconciles the reallocation store to the in-memory map.
 func (bm *BudgetManager) saveReallocations() error {
-	data, err := json.MarshalIndent(bm.reallocations, "", "  ")
+	ctx := context.Background()
+	existing, err := bm.reallocationStore.List(ctx, budgetSeamScope)
 	if err != nil {
-		return fmt.Errorf("failed to marshal reallocations: %w", err)
+		return fmt.Errorf("failed to list reallocations for save: %w", err)
 	}
-
-	// Write to temporary file first, then rename for atomicity
-	tempPath := bm.reallocationsPath + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write temporary reallocations file: %w", err)
+	for i := range existing {
+		id := existing[i].ID
+		if _, ok := bm.reallocations[id]; !ok {
+			if err := bm.reallocationStore.Delete(ctx, budgetSeamScope, id); err != nil && !errorsIsNotFound(err) {
+				return fmt.Errorf("failed to delete reallocation %q: %w", id, err)
+			}
+		}
 	}
-
-	if err := os.Rename(tempPath, bm.reallocationsPath); err != nil {
-		return fmt.Errorf("failed to rename reallocations file: %w", err)
+	for id, r := range bm.reallocations {
+		if r == nil {
+			continue
+		}
+		if err := bm.reallocationStore.Put(ctx, budgetSeamScope, id, *r); err != nil {
+			return fmt.Errorf("failed to save reallocation %q: %w", id, err)
+		}
 	}
-
 	return nil
+}
+
+// migrateLegacy folds the pre-seam flat JSON files (budgets.json, budget_allocations.json,
+// budget_reallocations.json) into the seam stores, then retires each. Absent files → no-op.
+func (bm *BudgetManager) migrateLegacy(stateDir string) error {
+	ctx := context.Background()
+	if err := migrateLegacyMap[types.Budget](ctx, bm.budgetStore, budgetSeamScope, filepath.Join(stateDir, "budgets.json")); err != nil {
+		return err
+	}
+	if err := migrateLegacyMap[types.ProjectBudgetAllocation](ctx, bm.allocationStore, budgetSeamScope, filepath.Join(stateDir, "budget_allocations.json")); err != nil {
+		return err
+	}
+	return migrateLegacyMap[ReallocationRecord](ctx, bm.reallocationStore, budgetSeamScope, filepath.Join(stateDir, "budget_reallocations.json"))
 }
 
 // ReallocateFunds moves funds between allocations atomically (v0.5.10+ Issue #99)
