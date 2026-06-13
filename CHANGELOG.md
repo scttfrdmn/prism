@@ -14,8 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file-backed implementation (`pkg/seam/filestore`, desktop-standalone) and a conformance suite.
   The contract is byte-identical to prism-research-portal's seam — same `Principal.Key()`, same
   record shapes — so a record one client writes is the record the other reads (shared state, no
-  sync protocol). Prism remains fully usable standalone (file-backed); the same managers will back
-  the shared cloud (DynamoDB-backed) without changing their logic.
+  sync protocol). Prism remains fully usable standalone (file-backed); the same managers back the
+  shared cloud (DynamoDB-backed) without changing their logic.
+- **DynamoDB-backed seam store (`pkg/seam/dynamostore`)** — the shared cloud-core implementation,
+  single-table (`pk = scope.Key()`, `sk = id`, `body = JSON`), encoding byte-identical to
+  prism-research-portal's. This is what lets a desktop Prism pointed at the cloud table see prp's
+  writes and vice versa. Passes the same conformance suite as the file-backed store (driven by an
+  in-memory fake of the four DynamoDB calls — no live AWS, no new dependency).
 
 ### Changed
 - **`ApprovalManager` now persists through the seam** instead of inlining `os.ReadFile` /
