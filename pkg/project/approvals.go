@@ -16,14 +16,20 @@
 package project
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/scttfrdmn/prism/pkg/seam"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 )
 
 // ApprovalType identifies the kind of approval being requested
@@ -102,14 +108,28 @@ type ApprovalRequest struct {
 	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
 }
 
-// ApprovalManager handles approval request lifecycle with file-backed persistence
+// ApprovalManager handles approval request lifecycle, persisting through the seam (design §5).
+//
+// Persistence is no longer inlined file I/O: it goes through a seam.Store[ApprovalRequest], so the
+// SAME manager logic backs the desktop (filestore) and the shared cloud (dynamostore). A record
+// written by prp (web) is the same record Prism (desktop) reads — that is the shared-state
+// guarantee (design §4), not a sync protocol.
+//
+// Approvals are not yet multi-tenant in Prism, so every record lives under the zero Scope
+// (approvalScope). When Prism grows per-tenant approvals, the scope becomes the caller's Principal
+// and nothing else here changes — that is the point of the seam.
 type ApprovalManager struct {
-	dataPath string
-	mu       sync.RWMutex
-	requests map[string]*ApprovalRequest // keyed by request ID
+	store seam.Store[ApprovalRequest]
+	mu    sync.RWMutex
 }
 
-// NewApprovalManager creates an approval manager persisting to ~/.prism/approvals.json
+// approvalScope is the tenancy key approvals are stored under. Prism approvals are single-tenant
+// today, so this is the zero Scope; the cloud deployment overrides it per Principal.
+var approvalScope = seam.Scope{}
+
+// NewApprovalManager creates an approval manager persisting to ~/.prism (via the file-backed seam
+// store). Signature unchanged, so existing callers (the daemon) need no edit. Any legacy
+// ~/.prism/approvals.json is migrated into the seam on first construction.
 func NewApprovalManager() (*ApprovalManager, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -121,24 +141,57 @@ func NewApprovalManager() (*ApprovalManager, error) {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
-	am := &ApprovalManager{
-		dataPath: filepath.Join(stateDir, "approvals.json"),
-		requests: make(map[string]*ApprovalRequest),
-	}
+	// Records live under ~/.prism/approvals/ (one JSON file per request), via the seam.
+	store := filestore.New[ApprovalRequest](filepath.Join(stateDir, "approvals"))
+	am := NewApprovalManagerWithStore(store)
 
-	if err := am.load(); err != nil {
-		return nil, fmt.Errorf("failed to load approvals: %w", err)
+	// One-time migration: fold a legacy flat approvals.json into the seam, then retire it.
+	if err := am.migrateLegacy(filepath.Join(stateDir, "approvals.json")); err != nil {
+		return nil, fmt.Errorf("failed to migrate legacy approvals: %w", err)
 	}
-
 	return am, nil
 }
 
-// Submit creates a new pending approval request and returns it
+// NewApprovalManagerWithStore builds a manager over an injected seam store — used by tests (with a
+// filestore in a temp dir) and by the cloud (with a dynamostore). This is the seam in action: the
+// manager logic is identical regardless of backend.
+func NewApprovalManagerWithStore(store seam.Store[ApprovalRequest]) *ApprovalManager {
+	return &ApprovalManager{store: store}
+}
+
+// migrateLegacy imports a pre-seam flat approvals.json (map[id]*ApprovalRequest) into the store,
+// then renames it aside so the import runs once. Absent file → no-op.
+func (am *ApprovalManager) migrateLegacy(legacyPath string) error {
+	data, err := os.ReadFile(legacyPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var requests map[string]*ApprovalRequest
+	if err := json.Unmarshal(data, &requests); err != nil {
+		return fmt.Errorf("parse legacy approvals: %w", err)
+	}
+	ctx := context.Background()
+	for id, req := range requests {
+		if req == nil {
+			continue
+		}
+		if err := am.store.Put(ctx, approvalScope, id, *req); err != nil {
+			return fmt.Errorf("migrate approval %q: %w", id, err)
+		}
+	}
+	// Retire the legacy file so we don't re-import on next start.
+	return os.Rename(legacyPath, legacyPath+".migrated")
+}
+
+// Submit creates a new pending approval request and persists it through the seam.
 func (am *ApprovalManager) Submit(projectID, requestedBy string, typ ApprovalType, details map[string]interface{}, reason string) (*ApprovalRequest, error) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
-	req := &ApprovalRequest{
+	req := ApprovalRequest{
 		ID:          uuid.New().String(),
 		ProjectID:   projectID,
 		RequestedBy: requestedBy,
@@ -150,144 +203,133 @@ func (am *ApprovalManager) Submit(projectID, requestedBy string, typ ApprovalTyp
 		ExpiresAt:   time.Now().Add(7 * 24 * time.Hour),
 	}
 
-	am.requests[req.ID] = req
-	return req, am.save()
+	if err := am.store.Put(context.Background(), approvalScope, req.ID, req); err != nil {
+		return nil, err
+	}
+	out := req
+	return &out, nil
 }
 
-// Get retrieves an approval request by ID
+// Get retrieves an approval request by ID.
 func (am *ApprovalManager) Get(id string) (*ApprovalRequest, error) {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
 
-	req, ok := am.requests[id]
-	if !ok {
-		return nil, fmt.Errorf("approval request %q not found", id)
+	req, err := am.store.Get(context.Background(), approvalScope, id)
+	if err != nil {
+		if errorsIsNotFound(err) {
+			return nil, fmt.Errorf("approval request %q not found", id)
+		}
+		return nil, err
 	}
-
-	copy := *req
-	return &copy, nil
+	return &req, nil
 }
 
-// List returns all approval requests, optionally filtered by project and status
+// List returns all approval requests, optionally filtered by project and status.
 func (am *ApprovalManager) List(projectID string, status ApprovalStatus) ([]*ApprovalRequest, error) {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
 
+	all, err := am.store.List(context.Background(), approvalScope)
+	if err != nil {
+		return nil, err
+	}
+
 	var results []*ApprovalRequest
-	for _, req := range am.requests {
+	for i := range all {
+		req := all[i]
 		if projectID != "" && req.ProjectID != projectID {
 			continue
 		}
 		if status != "" && req.Status != status {
 			continue
 		}
-		copy := *req
-		results = append(results, &copy)
+		out := req
+		results = append(results, &out)
 	}
-
+	// Stable order (the old map-based List was unordered, but a deterministic order is strictly
+	// better for callers and tests; sort by creation time, then ID).
+	sort.Slice(results, func(i, j int) bool {
+		if !results[i].CreatedAt.Equal(results[j].CreatedAt) {
+			return results[i].CreatedAt.Before(results[j].CreatedAt)
+		}
+		return results[i].ID < results[j].ID
+	})
 	return results, nil
 }
 
-// Approve marks a request as approved
+// Approve marks a request as approved.
 func (am *ApprovalManager) Approve(id, reviewerID, note string) (*ApprovalRequest, error) {
-	am.mu.Lock()
-	defer am.mu.Unlock()
-
-	req, ok := am.requests[id]
-	if !ok {
-		return nil, fmt.Errorf("approval request %q not found", id)
-	}
-
-	if req.Status != ApprovalStatusPending {
-		return nil, fmt.Errorf("cannot approve request in status %q", req.Status)
-	}
-
-	now := time.Now()
-	req.Status = ApprovalStatusApproved
-	req.ReviewedBy = reviewerID
-	req.ReviewNote = note
-	req.ReviewedAt = &now
-
-	copy := *req
-	return &copy, am.save()
+	return am.review(id, ApprovalStatusApproved, reviewerID, note)
 }
 
-// Deny marks a request as denied
+// Deny marks a request as denied.
 func (am *ApprovalManager) Deny(id, reviewerID, note string) (*ApprovalRequest, error) {
+	return am.review(id, ApprovalStatusDenied, reviewerID, note)
+}
+
+// review is the shared approve/deny transition: a pending request moves to the target status,
+// stamped with the reviewer and time, then persisted.
+func (am *ApprovalManager) review(id string, target ApprovalStatus, reviewerID, note string) (*ApprovalRequest, error) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
-	req, ok := am.requests[id]
-	if !ok {
-		return nil, fmt.Errorf("approval request %q not found", id)
+	ctx := context.Background()
+	req, err := am.store.Get(ctx, approvalScope, id)
+	if err != nil {
+		if errorsIsNotFound(err) {
+			return nil, fmt.Errorf("approval request %q not found", id)
+		}
+		return nil, err
 	}
-
 	if req.Status != ApprovalStatusPending {
-		return nil, fmt.Errorf("cannot deny request in status %q", req.Status)
+		verb := "approve"
+		if target == ApprovalStatusDenied {
+			verb = "deny"
+		}
+		return nil, fmt.Errorf("cannot %s request in status %q", verb, req.Status)
 	}
 
 	now := time.Now()
-	req.Status = ApprovalStatusDenied
+	req.Status = target
 	req.ReviewedBy = reviewerID
 	req.ReviewNote = note
 	req.ReviewedAt = &now
 
-	copy := *req
-	return &copy, am.save()
+	if err := am.store.Put(ctx, approvalScope, id, req); err != nil {
+		return nil, err
+	}
+	out := req
+	return &out, nil
 }
 
-// PruneExpired marks all pending requests that have passed their ExpiresAt as expired
+// PruneExpired marks all pending requests that have passed their ExpiresAt as expired.
 func (am *ApprovalManager) PruneExpired() (int, error) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
 
+	ctx := context.Background()
+	all, err := am.store.List(ctx, approvalScope)
+	if err != nil {
+		return 0, err
+	}
+
 	count := 0
 	now := time.Now()
-	for _, req := range am.requests {
+	for i := range all {
+		req := all[i]
 		if req.Status == ApprovalStatusPending && now.After(req.ExpiresAt) {
 			req.Status = ApprovalStatusExpired
+			if err := am.store.Put(ctx, approvalScope, req.ID, req); err != nil {
+				return count, err
+			}
 			count++
 		}
 	}
-
-	if count == 0 {
-		return 0, nil
-	}
-
-	return count, am.save()
+	return count, nil
 }
 
-// load reads approval data from disk (must be called with lock or during init)
-func (am *ApprovalManager) load() error {
-	if _, err := os.Stat(am.dataPath); os.IsNotExist(err) {
-		return nil
-	}
-
-	data, err := os.ReadFile(am.dataPath)
-	if err != nil {
-		return fmt.Errorf("failed to read approvals file: %w", err)
-	}
-
-	var requests map[string]*ApprovalRequest
-	if err := json.Unmarshal(data, &requests); err != nil {
-		return fmt.Errorf("failed to parse approvals file: %w", err)
-	}
-
-	am.requests = requests
-	return nil
-}
-
-// save writes approval data to disk atomically (must be called with lock held)
-func (am *ApprovalManager) save() error {
-	data, err := json.MarshalIndent(am.requests, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal approvals: %w", err)
-	}
-
-	tmpPath := am.dataPath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write approvals file: %w", err)
-	}
-
-	return os.Rename(tmpPath, am.dataPath)
+// errorsIsNotFound reports whether err is the seam's not-found sentinel.
+func errorsIsNotFound(err error) bool {
+	return errors.Is(err, seam.ErrNotFound)
 }

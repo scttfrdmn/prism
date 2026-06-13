@@ -1,6 +1,7 @@
 package project
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -25,8 +26,11 @@ func newTestApprovalManager(t *testing.T) *ApprovalManager {
 func TestNewApprovalManager(t *testing.T) {
 	am := newTestApprovalManager(t)
 	assert.NotNil(t, am)
-	assert.NotEmpty(t, am.dataPath)
-	assert.NotNil(t, am.requests)
+	assert.NotNil(t, am.store)
+	// A fresh manager lists no requests and errors on no particular id.
+	results, err := am.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 0)
 }
 
 func TestApprovalManager_Submit(t *testing.T) {
@@ -224,13 +228,13 @@ func TestApprovalManager_PruneExpired(t *testing.T) {
 	_, err = am.Submit("proj-1", "bob", ApprovalTypeEmergency, nil, "reason")
 	require.NoError(t, err)
 
-	// Bypass Submit's 7-day expiry by mutating the stored requests
-	am.mu.Lock()
-	for _, req := range am.requests {
-		pastTime := time.Now().Add(-1 * time.Hour)
-		req.ExpiresAt = pastTime
+	// Bypass Submit's 7-day expiry by backdating the stored requests through the seam store.
+	listed, err := am.List("", "")
+	require.NoError(t, err)
+	for _, req := range listed {
+		req.ExpiresAt = time.Now().Add(-1 * time.Hour)
+		require.NoError(t, am.store.Put(context.Background(), approvalScope, req.ID, *req))
 	}
-	am.mu.Unlock()
 
 	count, err := am.PruneExpired()
 	require.NoError(t, err)
@@ -252,6 +256,39 @@ func TestApprovalManager_PruneExpired_None(t *testing.T) {
 	count, err := am.PruneExpired()
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
+}
+
+func TestApprovalManager_MigratesLegacyFile(t *testing.T) {
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+	_ = os.Setenv("HOME", tempDir)
+
+	// Seed a pre-seam flat approvals.json (the old on-disk format).
+	stateDir := tempDir + "/.prism"
+	require.NoError(t, os.MkdirAll(stateDir, 0o755))
+	legacy := `{"legacy-1":{"id":"legacy-1","project_id":"proj-old","requested_by":"alice","type":"gpu_instance","status":"pending","reason":"old request","created_at":"2026-01-01T00:00:00Z","expires_at":"2030-01-01T00:00:00Z"}}`
+	require.NoError(t, os.WriteFile(stateDir+"/approvals.json", []byte(legacy), 0o644))
+
+	// Constructing the manager migrates it into the seam.
+	am, err := NewApprovalManager()
+	require.NoError(t, err)
+
+	got, err := am.Get("legacy-1")
+	require.NoError(t, err)
+	assert.Equal(t, "proj-old", got.ProjectID)
+	assert.Equal(t, ApprovalStatusPending, got.Status)
+
+	// The legacy file is retired so it won't re-import.
+	_, statErr := os.Stat(stateDir + "/approvals.json")
+	assert.True(t, os.IsNotExist(statErr), "legacy approvals.json should be renamed aside")
+
+	// A second manager (same HOME) sees the migrated record and does not double-import.
+	am2, err := NewApprovalManager()
+	require.NoError(t, err)
+	all, err := am2.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, all, 1)
 }
 
 func TestApprovalManager_Persistence(t *testing.T) {

@@ -5,6 +5,24 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **The persistence seam (`pkg/seam`)** — the shared record/persistence + identity interface
+  Prism's governance managers converge onto (the prism-research-portal design §5). `Principal` /
+  `Scope` (tenant/project/pi/grant + account) and a generic, scoped `Store[T]` repository, with a
+  file-backed implementation (`pkg/seam/filestore`, desktop-standalone) and a conformance suite.
+  The contract is byte-identical to prism-research-portal's seam — same `Principal.Key()`, same
+  record shapes — so a record one client writes is the record the other reads (shared state, no
+  sync protocol). Prism remains fully usable standalone (file-backed); the same managers will back
+  the shared cloud (DynamoDB-backed) without changing their logic.
+
+### Changed
+- **`ApprovalManager` now persists through the seam** instead of inlining `os.ReadFile` /
+  `os.WriteFile` against `~/.prism/approvals.json`. Public API unchanged; all existing behavior
+  and tests preserved. A legacy `approvals.json` is migrated into the seam on first run (then
+  retired). This is the first manager converged; project/budget/rbac follow.
+
 ## [0.35.5] - 2026-05-05
 
 ### Fixed
