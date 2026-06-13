@@ -30,15 +30,12 @@ import (
 // different projects don't clobber each other's writes (design §4).
 type Manager struct {
 	store               seam.Store[types.Project]
+	scope               seam.Scope
 	mutex               sync.RWMutex
 	projects            map[string]*types.Project
 	budgetTracker       *BudgetTracker
 	activeInstancesFunc func(projectID string) ([]string, error)
 }
-
-// projectScope is the tenancy key projects are stored under. Prism projects are single-tenant
-// today, so this is the zero Scope; the cloud deployment overrides it per Principal.
-var projectScope = seam.Scope{}
 
 // SetActiveInstancesFunc registers a callback used by DeleteProject to check
 // whether any running instances belong to the given project. The daemon wires
@@ -84,11 +81,18 @@ func NewManager() (*Manager, error) {
 	return manager, nil
 }
 
-// NewManagerWithStore builds a Manager over an injected seam store — used by tests (filestore in a
-// temp dir) and the cloud (dynamostore). Same logic regardless of backend.
+// NewManagerWithStore builds a Manager over an injected seam store under the zero Scope — used by
+// tests (filestore in a temp dir) and single-tenant callers.
 func NewManagerWithStore(store seam.Store[types.Project], budgetTracker *BudgetTracker) (*Manager, error) {
+	return NewManagerForScope(store, seam.Scope{}, budgetTracker)
+}
+
+// NewManagerForScope builds a Manager over an injected store scoped to a Principal — the
+// cloud/multi-tenant entry point. Records partition by scope; the method logic is unchanged.
+func NewManagerForScope(store seam.Store[types.Project], scope seam.Scope, budgetTracker *BudgetTracker) (*Manager, error) {
 	m := &Manager{
 		store:         store,
+		scope:         scope,
 		projects:      make(map[string]*types.Project),
 		budgetTracker: budgetTracker,
 	}
@@ -119,7 +123,7 @@ func (m *Manager) migrateLegacyProjects(legacyPath string) error {
 		if p == nil {
 			continue
 		}
-		if err := m.store.Put(ctx, projectScope, id, *p); err != nil {
+		if err := m.store.Put(ctx, m.scope, id, *p); err != nil {
 			return fmt.Errorf("migrate project %q: %w", id, err)
 		}
 	}
@@ -497,7 +501,7 @@ func (m *Manager) CheckBudgetStatus(ctx context.Context, projectID string) (*Bud
 
 // loadProjects loads all project records from the seam into the in-memory map.
 func (m *Manager) loadProjects() error {
-	all, err := m.store.List(context.Background(), projectScope)
+	all, err := m.store.List(context.Background(), m.scope)
 	if err != nil {
 		return fmt.Errorf("failed to load projects: %w", err)
 	}
@@ -517,7 +521,7 @@ func (m *Manager) loadProjects() error {
 func (m *Manager) saveProjects() error {
 	ctx := context.Background()
 
-	existing, err := m.store.List(ctx, projectScope)
+	existing, err := m.store.List(ctx, m.scope)
 	if err != nil {
 		return fmt.Errorf("failed to list projects for save: %w", err)
 	}
@@ -526,7 +530,7 @@ func (m *Manager) saveProjects() error {
 	for i := range existing {
 		id := existing[i].ID
 		if _, ok := m.projects[id]; !ok {
-			if err := m.store.Delete(ctx, projectScope, id); err != nil && !errorsIsNotFound(err) {
+			if err := m.store.Delete(ctx, m.scope, id); err != nil && !errorsIsNotFound(err) {
 				return fmt.Errorf("failed to delete project %q: %w", id, err)
 			}
 		}
@@ -537,7 +541,7 @@ func (m *Manager) saveProjects() error {
 		if p == nil {
 			continue
 		}
-		if err := m.store.Put(ctx, projectScope, id, *p); err != nil {
+		if err := m.store.Put(ctx, m.scope, id, *p); err != nil {
 			return fmt.Errorf("failed to save project %q: %w", id, err)
 		}
 	}

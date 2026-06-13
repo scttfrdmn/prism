@@ -115,17 +115,14 @@ type ApprovalRequest struct {
 // written by prp (web) is the same record Prism (desktop) reads — that is the shared-state
 // guarantee (design §4), not a sync protocol.
 //
-// Approvals are not yet multi-tenant in Prism, so every record lives under the zero Scope
-// (approvalScope). When Prism grows per-tenant approvals, the scope becomes the caller's Principal
-// and nothing else here changes — that is the point of the seam.
+// On the desktop the scope is the zero Scope (single-tenant); the cloud deployment sets a
+// per-Principal scope via NewApprovalManagerForScope, and nothing else here changes — that is the
+// point of the seam.
 type ApprovalManager struct {
 	store seam.Store[ApprovalRequest]
+	scope seam.Scope
 	mu    sync.RWMutex
 }
-
-// approvalScope is the tenancy key approvals are stored under. Prism approvals are single-tenant
-// today, so this is the zero Scope; the cloud deployment overrides it per Principal.
-var approvalScope = seam.Scope{}
 
 // NewApprovalManager creates an approval manager persisting to ~/.prism (via the file-backed seam
 // store). Signature unchanged, so existing callers (the daemon) need no edit. Any legacy
@@ -152,11 +149,18 @@ func NewApprovalManager() (*ApprovalManager, error) {
 	return am, nil
 }
 
-// NewApprovalManagerWithStore builds a manager over an injected seam store — used by tests (with a
-// filestore in a temp dir) and by the cloud (with a dynamostore). This is the seam in action: the
-// manager logic is identical regardless of backend.
+// NewApprovalManagerWithStore builds a manager over an injected seam store under the zero Scope —
+// used by tests (filestore in a temp dir) and single-tenant callers. This is the seam in action:
+// the manager logic is identical regardless of backend.
 func NewApprovalManagerWithStore(store seam.Store[ApprovalRequest]) *ApprovalManager {
 	return &ApprovalManager{store: store}
+}
+
+// NewApprovalManagerForScope builds a manager over an injected store scoped to a Principal — the
+// cloud/multi-tenant entry point. Records partition by scope (tenant/pi/grant); the method logic
+// is unchanged from the desktop path.
+func NewApprovalManagerForScope(store seam.Store[ApprovalRequest], scope seam.Scope) *ApprovalManager {
+	return &ApprovalManager{store: store, scope: scope}
 }
 
 // migrateLegacy imports a pre-seam flat approvals.json (map[id]*ApprovalRequest) into the store,
@@ -178,7 +182,7 @@ func (am *ApprovalManager) migrateLegacy(legacyPath string) error {
 		if req == nil {
 			continue
 		}
-		if err := am.store.Put(ctx, approvalScope, id, *req); err != nil {
+		if err := am.store.Put(ctx, am.scope, id, *req); err != nil {
 			return fmt.Errorf("migrate approval %q: %w", id, err)
 		}
 	}
@@ -203,7 +207,7 @@ func (am *ApprovalManager) Submit(projectID, requestedBy string, typ ApprovalTyp
 		ExpiresAt:   time.Now().Add(7 * 24 * time.Hour),
 	}
 
-	if err := am.store.Put(context.Background(), approvalScope, req.ID, req); err != nil {
+	if err := am.store.Put(context.Background(), am.scope, req.ID, req); err != nil {
 		return nil, err
 	}
 	out := req
@@ -215,7 +219,7 @@ func (am *ApprovalManager) Get(id string) (*ApprovalRequest, error) {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
 
-	req, err := am.store.Get(context.Background(), approvalScope, id)
+	req, err := am.store.Get(context.Background(), am.scope, id)
 	if err != nil {
 		if errorsIsNotFound(err) {
 			return nil, fmt.Errorf("approval request %q not found", id)
@@ -230,7 +234,7 @@ func (am *ApprovalManager) List(projectID string, status ApprovalStatus) ([]*App
 	am.mu.RLock()
 	defer am.mu.RUnlock()
 
-	all, err := am.store.List(context.Background(), approvalScope)
+	all, err := am.store.List(context.Background(), am.scope)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +279,7 @@ func (am *ApprovalManager) review(id string, target ApprovalStatus, reviewerID, 
 	defer am.mu.Unlock()
 
 	ctx := context.Background()
-	req, err := am.store.Get(ctx, approvalScope, id)
+	req, err := am.store.Get(ctx, am.scope, id)
 	if err != nil {
 		if errorsIsNotFound(err) {
 			return nil, fmt.Errorf("approval request %q not found", id)
@@ -296,7 +300,7 @@ func (am *ApprovalManager) review(id string, target ApprovalStatus, reviewerID, 
 	req.ReviewNote = note
 	req.ReviewedAt = &now
 
-	if err := am.store.Put(ctx, approvalScope, id, req); err != nil {
+	if err := am.store.Put(ctx, am.scope, id, req); err != nil {
 		return nil, err
 	}
 	out := req
@@ -309,7 +313,7 @@ func (am *ApprovalManager) PruneExpired() (int, error) {
 	defer am.mu.Unlock()
 
 	ctx := context.Background()
-	all, err := am.store.List(ctx, approvalScope)
+	all, err := am.store.List(ctx, am.scope)
 	if err != nil {
 		return 0, err
 	}
@@ -320,7 +324,7 @@ func (am *ApprovalManager) PruneExpired() (int, error) {
 		req := all[i]
 		if req.Status == ApprovalStatusPending && now.After(req.ExpiresAt) {
 			req.Status = ApprovalStatusExpired
-			if err := am.store.Put(ctx, approvalScope, req.ID, req); err != nil {
+			if err := am.store.Put(ctx, am.scope, req.ID, req); err != nil {
 				return count, err
 			}
 			count++

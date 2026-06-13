@@ -24,10 +24,8 @@ type Manager struct {
 	userRoles map[string]string // userID -> roleID
 	mutex     sync.RWMutex
 	store     seam.Store[rbacState]
+	scope     seam.Scope // tenancy key; zero Scope on the desktop, per-Principal in the cloud
 }
-
-// rbacScope is the tenancy key RBAC state is stored under (single-tenant on the desktop).
-var rbacScope = seam.Scope{}
 
 // rbacStateID is the fixed record id for the single RBAC state object.
 const rbacStateID = "rbac"
@@ -56,12 +54,20 @@ func NewManager() (*Manager, error) {
 	return m, nil
 }
 
-// NewManagerWithStore builds a Manager over an injected seam store (tests / cloud).
+// NewManagerWithStore builds a Manager over an injected seam store under the zero Scope (tests /
+// single-tenant callers).
 func NewManagerWithStore(store seam.Store[rbacState]) *Manager {
+	return NewManagerForScope(store, seam.Scope{})
+}
+
+// NewManagerForScope builds a Manager over an injected store scoped to a Principal — the
+// cloud/multi-tenant entry point. The role-binding state partitions by scope; logic is unchanged.
+func NewManagerForScope(store seam.Store[rbacState], scope seam.Scope) *Manager {
 	m := &Manager{
 		roles:     make(map[string]*Role),
 		userRoles: make(map[string]string),
 		store:     store,
+		scope:     scope,
 	}
 	m.registerDefaultRoles()
 	_ = m.load()
@@ -82,7 +88,7 @@ func (m *Manager) migrateLegacy(legacyPath string) error {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return fmt.Errorf("parse legacy rbac: %w", err)
 	}
-	if err := m.store.Put(context.Background(), rbacScope, rbacStateID, state); err != nil {
+	if err := m.store.Put(context.Background(), m.scope, rbacStateID, state); err != nil {
 		return err
 	}
 	return os.Rename(legacyPath, legacyPath+".migrated")
@@ -231,11 +237,11 @@ type rbacState struct {
 }
 
 func (m *Manager) save() error {
-	return m.store.Put(context.Background(), rbacScope, rbacStateID, rbacState{UserRoles: m.userRoles})
+	return m.store.Put(context.Background(), m.scope, rbacStateID, rbacState{UserRoles: m.userRoles})
 }
 
 func (m *Manager) load() error {
-	state, err := m.store.Get(context.Background(), rbacScope, rbacStateID)
+	state, err := m.store.Get(context.Background(), m.scope, rbacStateID)
 	if err != nil {
 		if errors.Is(err, seam.ErrNotFound) {
 			return nil

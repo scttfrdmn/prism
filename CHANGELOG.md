@@ -42,6 +42,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seam record instead of `~/.prism/rbac.json`. Built-in default roles, public API, and tests
   unchanged; a legacy `rbac.json` migrates on first run (then retires). This completes the first
   pass of the §5 manager convergence (approvals, project, budget, rbac).
+- **Per-tenant scope plumbed through the converged managers.** Each manager now carries a
+  `seam.Scope` field (the zero Scope on the desktop, so behavior is unchanged) with new
+  `…ForScope` constructors — `NewApprovalManagerForScope`, `NewManagerForScope`,
+  `NewBudgetManagerForScope`, `rbac.NewManagerForScope` — that the multi-tenant cloud uses to
+  partition records per `Principal`. No existing public signature changed. A scope-isolation test
+  proves two scopes over one shared store never see each other's records — the property that lets a
+  single cloud table serve every tenant safely (design §4, §6.2).
 
 ## [0.35.5] - 2026-05-05
 

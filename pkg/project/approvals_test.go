@@ -8,6 +8,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/scttfrdmn/prism/pkg/seam"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 )
 
 // newTestApprovalManager creates an ApprovalManager rooted in a temp directory
@@ -21,6 +24,35 @@ func newTestApprovalManager(t *testing.T) *ApprovalManager {
 	am, err := NewApprovalManager()
 	require.NoError(t, err)
 	return am
+}
+
+// TestApprovalManager_ScopeIsolation proves the multi-tenant guarantee: two managers over the
+// SAME store but different scopes see only their own records — the property that lets one shared
+// cloud table serve every tenant without leakage (design §4, §6.2).
+func TestApprovalManager_ScopeIsolation(t *testing.T) {
+	store := filestore.New[ApprovalRequest](t.TempDir())
+	harvard := NewApprovalManagerForScope(store, seam.Scope{Tenant: "harvard", PI: "curie"})
+	mit := NewApprovalManagerForScope(store, seam.Scope{Tenant: "mit", PI: "bohr"})
+
+	hReq, err := harvard.Submit("proj-h", "curie", ApprovalTypeGPUInstance, nil, "harvard work")
+	require.NoError(t, err)
+	_, err = mit.Submit("proj-m", "bohr", ApprovalTypeEmergency, nil, "mit work")
+	require.NoError(t, err)
+
+	// Each tenant lists only its own request.
+	hList, err := harvard.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, hList, 1)
+	assert.Equal(t, "proj-h", hList[0].ProjectID)
+
+	mList, err := mit.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, mList, 1)
+	assert.Equal(t, "proj-m", mList[0].ProjectID)
+
+	// MIT cannot Get Harvard's request id (different scope partition).
+	_, err = mit.Get(hReq.ID)
+	assert.Error(t, err)
 }
 
 func TestNewApprovalManager(t *testing.T) {
@@ -233,7 +265,7 @@ func TestApprovalManager_PruneExpired(t *testing.T) {
 	require.NoError(t, err)
 	for _, req := range listed {
 		req.ExpiresAt = time.Now().Add(-1 * time.Hour)
-		require.NoError(t, am.store.Put(context.Background(), approvalScope, req.ID, *req))
+		require.NoError(t, am.store.Put(context.Background(), am.scope, req.ID, *req))
 	}
 
 	count, err := am.PruneExpired()
