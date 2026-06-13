@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in-memory maps, lookup indexes, and all call sites are unchanged; the six load/save methods are
   seam-backed (saves reconcile). Legacy `budgets.json` / `budget_allocations.json` /
   `budget_reallocations.json` migrate on first run (then retire). Public API and tests preserved.
+- **RBAC `Manager` now persists through the seam** — its single role-binding state is stored as one
+  seam record instead of `~/.prism/rbac.json`. Built-in default roles, public API, and tests
+  unchanged; a legacy `rbac.json` migrates on first run (then retires). This completes the first
+  pass of the §5 manager convergence (approvals, project, budget, rbac).
 
 ## [0.35.5] - 2026-05-05
 
