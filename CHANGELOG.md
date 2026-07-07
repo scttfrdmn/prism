@@ -49,6 +49,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   partition records per `Principal`. No existing public signature changed. A scope-isolation test
   proves two scopes over one shared store never see each other's records — the property that lets a
   single cloud table serve every tenant safely (design §4, §6.2).
+- **General dependency refresh (minor/patch only).** Root Go module: AWS SDK for Go v2 (core +
+  ~20 service clients, e.g. `ec2` v1.300→v1.313, `s3` v1.100→v1.105, `dynamodb` v1.57→v1.60),
+  `golang.org/x/crypto` v0.52→v0.53, `x/mod`, `x/sys`, `x/text`, `zalando/go-keyring` v0.2.6→v0.2.8,
+  `smithy-go`. GUI module: matching AWS SDK / `x/*` bumps plus `go-git` v5.19.0→v5.19.1,
+  `coder/websocket`, `ebitengine/purego`, `samber/lo`. Frontend: `npm update` within existing
+  semver ranges (radix-ui suite, `react`/`react-dom` 19.2.3→19.2.7, `msw`, `zod`, `framer-motion`,
+  `recharts`, `@playwright/test`, `lucide-react`; lockfile-only, no `package.json` changes).
+  No major-version jumps; Wails held at alpha.74 and `scttfrdmn/substrate` at v0.48.0 (both defer
+  to focused follow-up PRs). Build, `go vet`, `govulncheck`, Trivy, typecheck, Go tests, and all
+  286 frontend unit tests pass; `npm audit` reports 0 vulnerabilities.
+
+### Security
+- Bump `golang.org/x/crypto` v0.48.0 → v0.52.0 in both the root and `cmd/prism-gui` modules,
+  clearing GO-2026-5015 and GO-2026-5013 (SSH server panics reachable via `pkg/web/terminal.go`).
+- Bump `github.com/go-git/go-git/v5` v5.16.4 → v5.19.0 (+ `go-billy/v5` → v5.9.0) in `cmd/prism-gui`,
+  clearing GO-2026-4910, GO-2026-4909, GO-2026-4473, CVE-2026-45022, and CVE-2026-44973.
+- Bump `golang.org/x/net` → v0.55.0 in both modules, clearing CVE-2026-25681, CVE-2026-27136,
+  CVE-2026-39821, and CVE-2026-42502 (html/idna). `govulncheck ./...` and the CI Trivy filesystem
+  scan (HIGH/CRITICAL) now both report zero findings in every module.
+- Clear 6 `npm audit` findings in the `cmd/prism-gui/frontend` dev-dependency tree (vitest
+  critical GHSA-5xrq-8626-4rwp, vite/ws high, @babel/core, js-yaml, brace-expansion) via a
+  non-breaking `npm audit fix` (lockfile-only; no `package.json` version changes). Together with
+  the Go bumps this unblocks the "Vulnerability & SAST Scan" CI gate on all open PRs.
 
 ## [0.35.5] - 2026-05-05
 
