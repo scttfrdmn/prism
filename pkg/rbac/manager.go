@@ -23,7 +23,7 @@ type Manager struct {
 	roles     map[string]*Role
 	userRoles map[string]string // userID -> roleID
 	mutex     sync.RWMutex
-	store     seam.Store[rbacState]
+	store     seam.Store[State]
 	scope     seam.Scope // tenancy key; zero Scope on the desktop, per-Principal in the cloud
 }
 
@@ -41,7 +41,7 @@ func NewManager() (*Manager, error) {
 	m := &Manager{
 		roles:     make(map[string]*Role),
 		userRoles: make(map[string]string),
-		store:     filestore.New[rbacState](filepath.Join(stateDir, "rbac")),
+		store:     filestore.New[State](filepath.Join(stateDir, "rbac")),
 	}
 
 	m.registerDefaultRoles()
@@ -56,13 +56,13 @@ func NewManager() (*Manager, error) {
 
 // NewManagerWithStore builds a Manager over an injected seam store under the zero Scope (tests /
 // single-tenant callers).
-func NewManagerWithStore(store seam.Store[rbacState]) *Manager {
+func NewManagerWithStore(store seam.Store[State]) *Manager {
 	return NewManagerForScope(store, seam.Scope{})
 }
 
 // NewManagerForScope builds a Manager over an injected store scoped to a Principal — the
 // cloud/multi-tenant entry point. The role-binding state partitions by scope; logic is unchanged.
-func NewManagerForScope(store seam.Store[rbacState], scope seam.Scope) *Manager {
+func NewManagerForScope(store seam.Store[State], scope seam.Scope) *Manager {
 	m := &Manager{
 		roles:     make(map[string]*Role),
 		userRoles: make(map[string]string),
@@ -84,7 +84,7 @@ func (m *Manager) migrateLegacy(legacyPath string) error {
 		}
 		return err
 	}
-	var state rbacState
+	var state State
 	if err := json.Unmarshal(data, &state); err != nil {
 		return fmt.Errorf("parse legacy rbac: %w", err)
 	}
@@ -232,12 +232,15 @@ func (m *Manager) ListUserAssignments() map[string]string {
 
 // persistence
 
-type rbacState struct {
+// State is the persisted RBAC record: the single role-binding object stored through the seam. It
+// is exported so seam wiring (e.g. the DynamoDB-backed daemon path) can name the store's type
+// parameter — `seam.Store[rbac.State]`.
+type State struct {
 	UserRoles map[string]string `json:"user_roles"`
 }
 
 func (m *Manager) save() error {
-	return m.store.Put(context.Background(), m.scope, rbacStateID, rbacState{UserRoles: m.userRoles})
+	return m.store.Put(context.Background(), m.scope, rbacStateID, State{UserRoles: m.userRoles})
 }
 
 func (m *Manager) load() error {
