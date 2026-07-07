@@ -55,7 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clearing GO-2026-5015 and GO-2026-5013 (SSH server panics reachable via `pkg/web/terminal.go`).
 - Bump `github.com/go-git/go-git/v5` v5.16.4 → v5.17.1 in `cmd/prism-gui`, clearing GO-2026-4910,
   GO-2026-4909, and GO-2026-4473. `govulncheck ./...` now reports zero affecting vulnerabilities
-  in both modules, unblocking the "Vulnerability & SAST Scan" CI gate on all open PRs.
+  in both modules.
+- Clear 6 `npm audit` findings in the `cmd/prism-gui/frontend` dev-dependency tree (vitest
+  critical GHSA-5xrq-8626-4rwp, vite/ws high, @babel/core, js-yaml, brace-expansion) via a
+  non-breaking `npm audit fix` (lockfile-only; no `package.json` version changes). Together with
+  the Go bumps this unblocks the "Vulnerability & SAST Scan" CI gate on all open PRs.
 
 ## [0.35.5] - 2026-05-05
 
