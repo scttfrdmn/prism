@@ -395,6 +395,22 @@ func (m *MockClient) GetInstance(ctx context.Context, name string) (*types.Insta
 	return nil, fmt.Errorf("instance not found: %s", name)
 }
 
+// GetBilledCost returns mock AWS-billed cost for an instance.
+func (m *MockClient) GetBilledCost(ctx context.Context, name string) (*types.BilledCostResult, error) {
+	instance, exists := m.Instances[name]
+	if !exists {
+		return nil, fmt.Errorf("instance not found: %s", name)
+	}
+	return &types.BilledCostResult{
+		Name:        name,
+		BilledTotal: instance.CurrentSpend,
+		Currency:    "USD",
+		Region:      instance.Region,
+		Source:      "mock",
+		TagActive:   true,
+	}, nil
+}
+
 // GetProgress returns mock progress for an instance (v0.7.2 - Issue #453)
 func (m *MockClient) GetProgress(ctx context.Context, name string) (*types.ProgressResponse, error) {
 	if _, exists := m.Instances[name]; !exists {

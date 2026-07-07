@@ -1006,6 +1006,119 @@ func (a *App) ListCost(args []string) error {
 	return nil
 }
 
+// ListBilledCost shows the AWS-billed ("billed so far") cost for workspaces,
+// read from AWS Cost Explorer, next to prism's local estimate (CurrentSpend).
+// The estimate is a model accumulated by the daemon; the billed figure is the
+// metered amount AWS has charged. When name is non-empty it scopes to one
+// workspace; billedOnly drops the estimate and delta columns.
+func (a *App) ListBilledCost(name, projectFilter string, billedOnly bool) error {
+	if err := a.ensureDaemonRunning(); err != nil {
+		return err
+	}
+
+	response, err := a.apiClient.ListInstances(a.ctx)
+	if err != nil {
+		return WrapAPIError("list workspaces for cost analysis", err)
+	}
+
+	var instances []types.Instance
+	for _, inst := range response.Instances {
+		if name != "" && inst.Name != name {
+			continue
+		}
+		if projectFilter != "" && inst.ProjectID != projectFilter {
+			continue
+		}
+		instances = append(instances, inst)
+	}
+
+	if len(instances) == 0 {
+		switch {
+		case name != "":
+			fmt.Printf("Workspace '%s' not found.\n", name)
+		case projectFilter != "":
+			fmt.Printf("No workstations found in project '%s'.\n", projectFilter)
+		default:
+			fmt.Println("No workstations found.")
+		}
+		return nil
+	}
+
+	fmt.Println("💰 Prism Billed Cost (AWS Cost Explorer)")
+	fmt.Println()
+
+	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
+	if billedOnly {
+		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tBILLED SO FAR")
+	} else {
+		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tBILLED SO FAR\tPRISM EST\tDELTA")
+	}
+
+	var notes []string
+	var sourceLine string
+	var anyTagInactive, anyEstimated bool
+	for _, inst := range instances {
+		billed, err := a.apiClient.GetBilledCost(a.ctx, inst.Name)
+		if err != nil {
+			if billedOnly {
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", inst.Name, strings.ToUpper(inst.State), "error")
+			} else {
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t$%.4f\t%s\n",
+					inst.Name, strings.ToUpper(inst.State), "error", inst.CurrentSpend, "n/a")
+			}
+			notes = append(notes, fmt.Sprintf("%s: %v", inst.Name, err))
+			continue
+		}
+
+		if sourceLine == "" {
+			sourceLine = billed.Source
+		}
+		marker := ""
+		if !billed.TagActive {
+			marker += "*"
+			anyTagInactive = true
+		}
+		if billed.Estimated {
+			marker += "~"
+			anyEstimated = true
+		}
+
+		if billedOnly {
+			_, _ = fmt.Fprintf(w, "%s\t%s\t$%.4f%s\n",
+				inst.Name, strings.ToUpper(inst.State), billed.BilledTotal, marker)
+		} else {
+			// DELTA = prism estimate minus AWS billed; positive means prism over-counts.
+			delta := inst.CurrentSpend - billed.BilledTotal
+			_, _ = fmt.Fprintf(w, "%s\t%s\t$%.4f%s\t$%.4f\t%+.4f\n",
+				inst.Name, strings.ToUpper(inst.State), billed.BilledTotal, marker, inst.CurrentSpend, delta)
+		}
+
+		if billed.Note != "" {
+			notes = append(notes, fmt.Sprintf("%s: %s", inst.Name, billed.Note))
+		}
+	}
+	_ = w.Flush()
+
+	fmt.Println()
+	if sourceLine != "" {
+		fmt.Printf("Source: %s\n", sourceLine)
+	}
+	if !billedOnly {
+		fmt.Println("DELTA = prism estimate minus AWS billed (positive means prism over-counts).")
+	}
+	if anyTagInactive {
+		fmt.Println("* region fallback: per-instance cost-allocation tag not active.")
+	}
+	if anyEstimated {
+		fmt.Println("~ includes a current period AWS has not yet finalized.")
+	}
+	for _, n := range notes {
+		fmt.Printf("  - %s\n", n)
+	}
+
+	return nil
+}
+
 func (a *App) Connect(args []string) error {
 	return a.instanceCommands.Connect(args)
 }

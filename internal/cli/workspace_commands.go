@@ -154,19 +154,42 @@ func (f *WorkspaceCommandFactory) createListCommand() *cobra.Command {
 
 func (f *WorkspaceCommandFactory) createCostCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "cost",
-		Short: "Detailed cost breakdown with savings analysis",
-		Long: `Show detailed cost analysis for all workspaces, including running time,
-per-minute costs, monthly estimates, and institutional discount savings.`,
+		Use:   "cost [name]",
+		Short: "Cost breakdown (local estimate, or AWS-billed with --billed)",
+		Long: `Show cost analysis for workspaces.
+
+By default this shows prism's local estimate: per-minute burn rate, monthly
+projection, and institutional discount savings.
+
+Use --billed to show the AWS-billed "billed so far" cost from AWS Cost
+Explorer -- the authoritative meter -- next to prism's estimate and the delta
+between them. The estimate is a model the daemon accumulates locally; the
+billed figure is what AWS has actually charged, so the two can diverge. Pass a
+workspace name to scope to one.`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			project, _ := cmd.Flags().GetString("project")
+			billed, _ := cmd.Flags().GetBool("billed")
+			billedOnly, _ := cmd.Flags().GetBool("billed-only")
+
+			if billed || billedOnly {
+				var name string
+				if len(args) == 1 {
+					name = args[0]
+				}
+				return f.app.ListBilledCost(name, project, billedOnly)
+			}
+
 			var flagArgs []string
-			if project, _ := cmd.Flags().GetString("project"); project != "" {
+			if project != "" {
 				flagArgs = append(flagArgs, "--project", project)
 			}
 			return f.app.ListCost(flagArgs)
 		},
 	}
 	cmd.Flags().String("project", "", "Filter by project ID")
+	cmd.Flags().Bool("billed", false, "Show AWS-billed cost from Cost Explorer alongside prism's estimate")
+	cmd.Flags().Bool("billed-only", false, "Show only the AWS-billed cost (implies --billed; hides estimate/delta)")
 	return cmd
 }
 
