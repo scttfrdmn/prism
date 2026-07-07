@@ -26,7 +26,7 @@ jobs:
         run: bash scripts/build-dmg.sh --dev
 
       - name: Upload to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/dmg/Prism-*.dmg
           fail_on_unmatched_files: false

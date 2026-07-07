@@ -35,7 +35,7 @@ jobs:
         run: pwsh scripts/build-msi.ps1 -Version ${{ steps.version.outputs.VERSION }}
 
       - name: Upload to Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/windows/Prism-*.msi
           fail_on_unmatched_files: true
