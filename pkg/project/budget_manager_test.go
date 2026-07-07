@@ -1020,6 +1020,49 @@ func TestBudgetManager_Persistence(t *testing.T) {
 	assert.Equal(t, 10000.0, loadedAllocation.AllocatedAmount)
 }
 
+// TestBudgetManager_MigratesLegacyFiles verifies the pre-seam flat budgets.json /
+// budget_allocations.json files are imported into the seam on first construction.
+func TestBudgetManager_MigratesLegacyFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	originalStateDir := os.Getenv("PRISM_STATE_DIR")
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", originalHome)
+		_ = os.Setenv("PRISM_STATE_DIR", originalStateDir)
+	})
+	_ = os.Setenv("HOME", tempDir)
+	_ = os.Unsetenv("PRISM_STATE_DIR")
+
+	stateDir := tempDir + "/.prism"
+	require.NoError(t, os.MkdirAll(stateDir, 0o755))
+	require.NoError(t, os.WriteFile(stateDir+"/budgets.json",
+		[]byte(`{"bud-legacy":{"id":"bud-legacy","name":"Legacy Grant","total_amount":1000}}`), 0o644))
+	require.NoError(t, os.WriteFile(stateDir+"/budget_allocations.json",
+		[]byte(`{"alloc-legacy":{"id":"alloc-legacy","budget_id":"bud-legacy","project_id":"proj-1","allocated_amount":250}}`), 0o644))
+
+	ctx := context.Background()
+	mgr, err := NewBudgetManager()
+	require.NoError(t, err)
+
+	b, err := mgr.GetBudget(ctx, "bud-legacy")
+	require.NoError(t, err)
+	assert.Equal(t, "Legacy Grant", b.Name)
+
+	a, err := mgr.GetAllocation(ctx, "alloc-legacy")
+	require.NoError(t, err)
+	assert.Equal(t, "bud-legacy", a.BudgetID)
+
+	// Legacy files retired; a second manager does not double-import.
+	_, statErr := os.Stat(stateDir + "/budgets.json")
+	assert.True(t, os.IsNotExist(statErr), "legacy budgets.json should be renamed aside")
+
+	mgr2, err := NewBudgetManager()
+	require.NoError(t, err)
+	all, err := mgr2.ListBudgets(ctx)
+	require.NoError(t, err)
+	assert.Len(t, all, 1)
+}
+
 // TestBudgetManager_UpdateBudget_EdgeCases tests additional edge cases for budget updates
 func TestBudgetManager_UpdateBudget_EdgeCases(t *testing.T) {
 	manager := setupTestBudgetManager(t)

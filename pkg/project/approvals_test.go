@@ -1,12 +1,16 @@
 package project
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/scttfrdmn/prism/pkg/seam"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 )
 
 // newTestApprovalManager creates an ApprovalManager rooted in a temp directory
@@ -22,11 +26,43 @@ func newTestApprovalManager(t *testing.T) *ApprovalManager {
 	return am
 }
 
+// TestApprovalManager_ScopeIsolation proves the multi-tenant guarantee: two managers over the
+// SAME store but different scopes see only their own records — the property that lets one shared
+// cloud table serve every tenant without leakage (design §4, §6.2).
+func TestApprovalManager_ScopeIsolation(t *testing.T) {
+	store := filestore.New[ApprovalRequest](t.TempDir())
+	harvard := NewApprovalManagerForScope(store, seam.Scope{Tenant: "harvard", PI: "curie"})
+	mit := NewApprovalManagerForScope(store, seam.Scope{Tenant: "mit", PI: "bohr"})
+
+	hReq, err := harvard.Submit("proj-h", "curie", ApprovalTypeGPUInstance, nil, "harvard work")
+	require.NoError(t, err)
+	_, err = mit.Submit("proj-m", "bohr", ApprovalTypeEmergency, nil, "mit work")
+	require.NoError(t, err)
+
+	// Each tenant lists only its own request.
+	hList, err := harvard.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, hList, 1)
+	assert.Equal(t, "proj-h", hList[0].ProjectID)
+
+	mList, err := mit.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, mList, 1)
+	assert.Equal(t, "proj-m", mList[0].ProjectID)
+
+	// MIT cannot Get Harvard's request id (different scope partition).
+	_, err = mit.Get(hReq.ID)
+	assert.Error(t, err)
+}
+
 func TestNewApprovalManager(t *testing.T) {
 	am := newTestApprovalManager(t)
 	assert.NotNil(t, am)
-	assert.NotEmpty(t, am.dataPath)
-	assert.NotNil(t, am.requests)
+	assert.NotNil(t, am.store)
+	// A fresh manager lists no requests and errors on no particular id.
+	results, err := am.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, results, 0)
 }
 
 func TestApprovalManager_Submit(t *testing.T) {
@@ -224,13 +260,13 @@ func TestApprovalManager_PruneExpired(t *testing.T) {
 	_, err = am.Submit("proj-1", "bob", ApprovalTypeEmergency, nil, "reason")
 	require.NoError(t, err)
 
-	// Bypass Submit's 7-day expiry by mutating the stored requests
-	am.mu.Lock()
-	for _, req := range am.requests {
-		pastTime := time.Now().Add(-1 * time.Hour)
-		req.ExpiresAt = pastTime
+	// Bypass Submit's 7-day expiry by backdating the stored requests through the seam store.
+	listed, err := am.List("", "")
+	require.NoError(t, err)
+	for _, req := range listed {
+		req.ExpiresAt = time.Now().Add(-1 * time.Hour)
+		require.NoError(t, am.store.Put(context.Background(), am.scope, req.ID, *req))
 	}
-	am.mu.Unlock()
 
 	count, err := am.PruneExpired()
 	require.NoError(t, err)
@@ -252,6 +288,39 @@ func TestApprovalManager_PruneExpired_None(t *testing.T) {
 	count, err := am.PruneExpired()
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
+}
+
+func TestApprovalManager_MigratesLegacyFile(t *testing.T) {
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	t.Cleanup(func() { _ = os.Setenv("HOME", originalHome) })
+	_ = os.Setenv("HOME", tempDir)
+
+	// Seed a pre-seam flat approvals.json (the old on-disk format).
+	stateDir := tempDir + "/.prism"
+	require.NoError(t, os.MkdirAll(stateDir, 0o755))
+	legacy := `{"legacy-1":{"id":"legacy-1","project_id":"proj-old","requested_by":"alice","type":"gpu_instance","status":"pending","reason":"old request","created_at":"2026-01-01T00:00:00Z","expires_at":"2030-01-01T00:00:00Z"}}`
+	require.NoError(t, os.WriteFile(stateDir+"/approvals.json", []byte(legacy), 0o644))
+
+	// Constructing the manager migrates it into the seam.
+	am, err := NewApprovalManager()
+	require.NoError(t, err)
+
+	got, err := am.Get("legacy-1")
+	require.NoError(t, err)
+	assert.Equal(t, "proj-old", got.ProjectID)
+	assert.Equal(t, ApprovalStatusPending, got.Status)
+
+	// The legacy file is retired so it won't re-import.
+	_, statErr := os.Stat(stateDir + "/approvals.json")
+	assert.True(t, os.IsNotExist(statErr), "legacy approvals.json should be renamed aside")
+
+	// A second manager (same HOME) sees the migrated record and does not double-import.
+	am2, err := NewApprovalManager()
+	require.NoError(t, err)
+	all, err := am2.List("", "")
+	require.NoError(t, err)
+	assert.Len(t, all, 1)
 }
 
 func TestApprovalManager_Persistence(t *testing.T) {

@@ -1621,6 +1621,42 @@ func TestManager_StatePersistence(t *testing.T) {
 	assert.Len(t, loadedProject.Members, 2, "Should have owner + 1 member")
 }
 
+// TestManager_MigratesLegacyProjectsFile verifies a pre-seam flat projects.json is imported into
+// the seam on first construction, so existing users lose nothing in the convergence.
+func TestManager_MigratesLegacyProjectsFile(t *testing.T) {
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	originalStateDir := os.Getenv("PRISM_STATE_DIR")
+	t.Cleanup(func() {
+		_ = os.Setenv("HOME", originalHome)
+		_ = os.Setenv("PRISM_STATE_DIR", originalStateDir)
+	})
+	_ = os.Setenv("HOME", tempDir)
+	_ = os.Unsetenv("PRISM_STATE_DIR")
+
+	stateDir := filepath.Join(tempDir, ".prism")
+	require.NoError(t, os.MkdirAll(stateDir, 0o755))
+	legacy := `{"proj-legacy":{"id":"proj-legacy","name":"Legacy Project","owner":"alice","status":"active"}}`
+	require.NoError(t, os.WriteFile(filepath.Join(stateDir, "projects.json"), []byte(legacy), 0o644))
+
+	mgr, err := NewManager()
+	require.NoError(t, err)
+
+	got, err := mgr.GetProject(context.Background(), "proj-legacy")
+	require.NoError(t, err)
+	assert.Equal(t, "Legacy Project", got.Name)
+
+	// Legacy file retired; a second manager does not double-import.
+	_, statErr := os.Stat(filepath.Join(stateDir, "projects.json"))
+	assert.True(t, os.IsNotExist(statErr), "legacy projects.json should be renamed aside")
+
+	mgr2, err := NewManager()
+	require.NoError(t, err)
+	all, err := mgr2.ListProjects(context.Background(), nil)
+	require.NoError(t, err)
+	assert.Len(t, all, 1)
+}
+
 // TestRequestValidation tests validation methods for various request types
 func TestRequestValidation_AddMemberRequest(t *testing.T) {
 	tests := []struct {

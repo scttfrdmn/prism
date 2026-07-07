@@ -1,24 +1,34 @@
 package rbac
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/scttfrdmn/prism/pkg/seam"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 )
 
 // Manager handles role-based access control for Prism.
 // User identities are profile names (as returned by profile.GetCurrentProfile().Name).
-// Assignments are persisted to ~/.prism/rbac.json.
+// Assignments are persisted through the seam (design §5) — file-backed on the desktop, and the
+// same logic backs the shared cloud, so role bindings are part of the shared state (§4).
 type Manager struct {
-	roles       map[string]*Role
-	userRoles   map[string]string // userID -> roleID
-	mutex       sync.RWMutex
-	storagePath string
+	roles     map[string]*Role
+	userRoles map[string]string // userID -> roleID
+	mutex     sync.RWMutex
+	store     seam.Store[rbacState]
+	scope     seam.Scope // tenancy key; zero Scope on the desktop, per-Principal in the cloud
 }
+
+// rbacStateID is the fixed record id for the single RBAC state object.
+const rbacStateID = "rbac"
 
 // NewManager creates a Manager with built-in default roles and loads any persisted assignments.
 func NewManager() (*Manager, error) {
@@ -27,16 +37,61 @@ func NewManager() (*Manager, error) {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
+	stateDir := filepath.Join(homeDir, ".prism")
 	m := &Manager{
-		roles:       make(map[string]*Role),
-		userRoles:   make(map[string]string),
-		storagePath: filepath.Join(homeDir, ".prism", "rbac.json"),
+		roles:     make(map[string]*Role),
+		userRoles: make(map[string]string),
+		store:     filestore.New[rbacState](filepath.Join(stateDir, "rbac")),
 	}
 
 	m.registerDefaultRoles()
-	_ = m.load() // best-effort: no file on first run
+	// One-time migration of a legacy rbac.json, then load (best-effort: empty on first run).
+	if err := m.migrateLegacy(filepath.Join(stateDir, "rbac.json")); err != nil {
+		return nil, fmt.Errorf("failed to migrate legacy rbac: %w", err)
+	}
+	_ = m.load()
 
 	return m, nil
+}
+
+// NewManagerWithStore builds a Manager over an injected seam store under the zero Scope (tests /
+// single-tenant callers).
+func NewManagerWithStore(store seam.Store[rbacState]) *Manager {
+	return NewManagerForScope(store, seam.Scope{})
+}
+
+// NewManagerForScope builds a Manager over an injected store scoped to a Principal — the
+// cloud/multi-tenant entry point. The role-binding state partitions by scope; logic is unchanged.
+func NewManagerForScope(store seam.Store[rbacState], scope seam.Scope) *Manager {
+	m := &Manager{
+		roles:     make(map[string]*Role),
+		userRoles: make(map[string]string),
+		store:     store,
+		scope:     scope,
+	}
+	m.registerDefaultRoles()
+	_ = m.load()
+	return m
+}
+
+// migrateLegacy imports a pre-seam rbac.json into the store, then retires it. Absent → no-op.
+func (m *Manager) migrateLegacy(legacyPath string) error {
+	// #nosec G304 G703 -- legacyPath is the manager's own ~/.prism/rbac.json, composed internally.
+	data, err := os.ReadFile(legacyPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var state rbacState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return fmt.Errorf("parse legacy rbac: %w", err)
+	}
+	if err := m.store.Put(context.Background(), m.scope, rbacStateID, state); err != nil {
+		return err
+	}
+	return os.Rename(legacyPath, legacyPath+".migrated")
 }
 
 func (m *Manager) registerDefaultRoles() {
@@ -182,27 +237,15 @@ type rbacState struct {
 }
 
 func (m *Manager) save() error {
-	state := rbacState{UserRoles: m.userRoles}
-	data, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(m.storagePath), 0700); err != nil {
-		return err
-	}
-	return os.WriteFile(m.storagePath, data, 0600)
+	return m.store.Put(context.Background(), m.scope, rbacStateID, rbacState{UserRoles: m.userRoles})
 }
 
 func (m *Manager) load() error {
-	data, err := os.ReadFile(m.storagePath)
-	if os.IsNotExist(err) {
-		return nil
-	}
+	state, err := m.store.Get(context.Background(), m.scope, rbacStateID)
 	if err != nil {
-		return err
-	}
-	var state rbacState
-	if err := json.Unmarshal(data, &state); err != nil {
+		if errors.Is(err, seam.ErrNotFound) {
+			return nil
+		}
 		return err
 	}
 	if state.UserRoles != nil {

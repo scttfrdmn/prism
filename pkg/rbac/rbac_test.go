@@ -1,6 +1,8 @@
 package rbac
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -216,4 +218,27 @@ func TestPersistence(t *testing.T) {
 
 	role := m2.GetUserRole("persist-user")
 	assert.Equal(t, RoleAdmin, role.ID)
+}
+
+func TestMigratesLegacyFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+
+	// Seed a pre-seam rbac.json (the old single-state format).
+	stateDir := filepath.Join(tmpDir, ".prism")
+	require.NoError(t, os.MkdirAll(stateDir, 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(stateDir, "rbac.json"),
+		[]byte(`{"user_roles":{"legacy-user":"`+RoleAdmin+`"}}`), 0o600))
+
+	m, err := NewManager()
+	require.NoError(t, err)
+	assert.Equal(t, RoleAdmin, m.GetUserRole("legacy-user").ID)
+
+	// Legacy file retired; a second manager still sees the binding and doesn't double-import.
+	_, statErr := os.Stat(filepath.Join(stateDir, "rbac.json"))
+	assert.True(t, os.IsNotExist(statErr), "legacy rbac.json should be renamed aside")
+
+	m2, err := NewManager()
+	require.NoError(t, err)
+	assert.Equal(t, RoleAdmin, m2.GetUserRole("legacy-user").ID)
 }

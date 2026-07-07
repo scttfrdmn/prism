@@ -17,12 +17,20 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/scttfrdmn/prism/pkg/alerting"
+	"github.com/scttfrdmn/prism/pkg/seam"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
-// Manager handles project lifecycle, budget tracking, and cost controls
+// Manager handles project lifecycle, budget tracking, and cost controls.
+//
+// Persistence runs through the seam (design §5): an in-memory map fronts a
+// seam.Store[types.Project] of per-project records. Per-project records (rather than one big
+// projects.json) are what make shared state safe — prp (web) and Prism (desktop) editing
+// different projects don't clobber each other's writes (design §4).
 type Manager struct {
-	projectsPath        string
+	store               seam.Store[types.Project]
+	scope               seam.Scope
 	mutex               sync.RWMutex
 	projects            map[string]*types.Project
 	budgetTracker       *BudgetTracker
@@ -51,25 +59,76 @@ func NewManager() (*Manager, error) {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
-	projectsPath := filepath.Join(stateDir, "projects.json")
-
 	budgetTracker, err := NewBudgetTracker()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create budget tracker: %w", err)
 	}
 
 	manager := &Manager{
-		projectsPath:  projectsPath,
+		store:         filestore.New[types.Project](filepath.Join(stateDir, "projects")),
 		projects:      make(map[string]*types.Project),
 		budgetTracker: budgetTracker,
 	}
 
-	// Load existing projects
+	// One-time migration of a legacy flat projects.json into the seam, then load.
+	if err := manager.migrateLegacyProjects(filepath.Join(stateDir, "projects.json")); err != nil {
+		return nil, fmt.Errorf("failed to migrate legacy projects: %w", err)
+	}
 	if err := manager.loadProjects(); err != nil {
 		return nil, fmt.Errorf("failed to load projects: %w", err)
 	}
 
 	return manager, nil
+}
+
+// NewManagerWithStore builds a Manager over an injected seam store under the zero Scope — used by
+// tests (filestore in a temp dir) and single-tenant callers.
+func NewManagerWithStore(store seam.Store[types.Project], budgetTracker *BudgetTracker) (*Manager, error) {
+	return NewManagerForScope(store, seam.Scope{}, budgetTracker)
+}
+
+// NewManagerForScope builds a Manager over an injected store scoped to a Principal — the
+// cloud/multi-tenant entry point. Records partition by scope; the method logic is unchanged.
+func NewManagerForScope(store seam.Store[types.Project], scope seam.Scope, budgetTracker *BudgetTracker) (*Manager, error) {
+	m := &Manager{
+		store:         store,
+		scope:         scope,
+		projects:      make(map[string]*types.Project),
+		budgetTracker: budgetTracker,
+	}
+	if err := m.loadProjects(); err != nil {
+		return nil, fmt.Errorf("failed to load projects: %w", err)
+	}
+	return m, nil
+}
+
+// migrateLegacyProjects imports a pre-seam flat projects.json (map[id]*Project) into the store,
+// then renames it aside so the import runs once. Absent file → no-op.
+func (m *Manager) migrateLegacyProjects(legacyPath string) error {
+	// #nosec G304 G703 -- legacyPath is the manager's own ~/.prism/projects.json, composed
+	// internally from the state dir, not external input.
+	data, err := os.ReadFile(legacyPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	var projects map[string]*types.Project
+	if err := json.Unmarshal(data, &projects); err != nil {
+		return fmt.Errorf("parse legacy projects: %w", err)
+	}
+	ctx := context.Background()
+	for id, p := range projects {
+		if p == nil {
+			continue
+		}
+		if err := m.store.Put(ctx, m.scope, id, *p); err != nil {
+			return fmt.Errorf("migrate project %q: %w", id, err)
+		}
+	}
+	// #nosec G703 -- legacyPath is internally composed (see above), not external input.
+	return os.Rename(legacyPath, legacyPath+".migrated")
 }
 
 // CreateProject creates a new research project
@@ -440,45 +499,52 @@ func (m *Manager) CheckBudgetStatus(ctx context.Context, projectID string) (*Bud
 	return m.budgetTracker.CheckBudgetStatus(projectID)
 }
 
-// loadProjects loads projects from disk
+// loadProjects loads all project records from the seam into the in-memory map.
 func (m *Manager) loadProjects() error {
-	// Check if projects file exists
-	if _, err := os.Stat(m.projectsPath); os.IsNotExist(err) {
-		// No projects file exists yet, start with empty map
-		return nil
-	}
-
-	data, err := os.ReadFile(m.projectsPath)
+	all, err := m.store.List(context.Background(), m.scope)
 	if err != nil {
-		return fmt.Errorf("failed to read projects file: %w", err)
+		return fmt.Errorf("failed to load projects: %w", err)
 	}
-
-	var projects map[string]*types.Project
-	if err := json.Unmarshal(data, &projects); err != nil {
-		return fmt.Errorf("failed to parse projects file: %w", err)
+	projects := make(map[string]*types.Project, len(all))
+	for i := range all {
+		p := all[i]
+		projects[p.ID] = &p
 	}
-
 	m.projects = projects
 	return nil
 }
 
-// saveProjects saves projects to disk
+// saveProjects reconciles the seam store to the in-memory map: every project in the map is
+// written, and any record in the store no longer in the map is deleted. This keeps all the
+// existing mutation call sites (which mutate the map then call saveProjects) working unchanged,
+// while persisting one record per project — the granularity shared state needs (design §4).
 func (m *Manager) saveProjects() error {
-	data, err := json.MarshalIndent(m.projects, "", "  ")
+	ctx := context.Background()
+
+	existing, err := m.store.List(ctx, m.scope)
 	if err != nil {
-		return fmt.Errorf("failed to marshal projects: %w", err)
+		return fmt.Errorf("failed to list projects for save: %w", err)
 	}
 
-	// Write to temporary file first, then rename for atomicity
-	tempPath := m.projectsPath + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write temporary projects file: %w", err)
+	// Delete records that are no longer present in the map (handles DeleteProject).
+	for i := range existing {
+		id := existing[i].ID
+		if _, ok := m.projects[id]; !ok {
+			if err := m.store.Delete(ctx, m.scope, id); err != nil && !errorsIsNotFound(err) {
+				return fmt.Errorf("failed to delete project %q: %w", id, err)
+			}
+		}
 	}
 
-	if err := os.Rename(tempPath, m.projectsPath); err != nil {
-		return fmt.Errorf("failed to rename projects file: %w", err)
+	// Put every project currently in the map.
+	for id, p := range m.projects {
+		if p == nil {
+			continue
+		}
+		if err := m.store.Put(ctx, m.scope, id, *p); err != nil {
+			return fmt.Errorf("failed to save project %q: %w", id, err)
+		}
 	}
-
 	return nil
 }
 

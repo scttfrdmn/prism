@@ -5,6 +5,64 @@ All notable changes to Prism will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **The persistence seam (`pkg/seam`)** — the shared record/persistence + identity interface
+  Prism's governance managers converge onto (the prism-research-portal design §5). `Principal` /
+  `Scope` (tenant/project/pi/grant + account) and a generic, scoped `Store[T]` repository, with a
+  file-backed implementation (`pkg/seam/filestore`, desktop-standalone) and a conformance suite.
+  The contract is byte-identical to prism-research-portal's seam — same `Principal.Key()`, same
+  record shapes — so a record one client writes is the record the other reads (shared state, no
+  sync protocol). Prism remains fully usable standalone (file-backed); the same managers back the
+  shared cloud (DynamoDB-backed) without changing their logic.
+- **DynamoDB-backed seam store (`pkg/seam/dynamostore`)** — the shared cloud-core implementation,
+  single-table (`pk = scope.Key()`, `sk = id`, `body = JSON`), encoding byte-identical to
+  prism-research-portal's. This is what lets a desktop Prism pointed at the cloud table see prp's
+  writes and vice versa. Passes the same conformance suite as the file-backed store (driven by an
+  in-memory fake of the four DynamoDB calls — no live AWS, no new dependency).
+
+### Changed
+- **`ApprovalManager` now persists through the seam** instead of inlining `os.ReadFile` /
+  `os.WriteFile` against `~/.prism/approvals.json`. Public API unchanged; all existing behavior
+  and tests preserved. A legacy `approvals.json` is migrated into the seam on first run (then
+  retired). This is the first manager converged; project/budget/rbac follow.
+- **`ProjectManager` now persists through the seam** as one record per project (rather than a
+  single `projects.json` rewritten on every mutation) — the granularity shared state needs, so
+  Prism and prp editing different projects don't clobber each other. The in-memory map and all
+  existing mutation call sites are unchanged; `loadProjects`/`saveProjects` are backed by the seam
+  (`saveProjects` reconciles: write all in-map, delete records dropped from the map). A legacy
+  `projects.json` is migrated on first run (then retired). Public API and tests preserved.
+- **`BudgetManager` now persists through the seam** — three seam stores (budgets, allocations,
+  reallocations), one record each, replacing the three flat JSON files rewritten wholesale. The
+  in-memory maps, lookup indexes, and all call sites are unchanged; the six load/save methods are
+  seam-backed (saves reconcile). Legacy `budgets.json` / `budget_allocations.json` /
+  `budget_reallocations.json` migrate on first run (then retire). Public API and tests preserved.
+- **RBAC `Manager` now persists through the seam** — its single role-binding state is stored as one
+  seam record instead of `~/.prism/rbac.json`. Built-in default roles, public API, and tests
+  unchanged; a legacy `rbac.json` migrates on first run (then retires). This completes the first
+  pass of the §5 manager convergence (approvals, project, budget, rbac).
+- **Per-tenant scope plumbed through the converged managers.** Each manager now carries a
+  `seam.Scope` field (the zero Scope on the desktop, so behavior is unchanged) with new
+  `…ForScope` constructors — `NewApprovalManagerForScope`, `NewManagerForScope`,
+  `NewBudgetManagerForScope`, `rbac.NewManagerForScope` — that the multi-tenant cloud uses to
+  partition records per `Principal`. No existing public signature changed. A scope-isolation test
+  proves two scopes over one shared store never see each other's records — the property that lets a
+  single cloud table serve every tenant safely (design §4, §6.2).
+
+### Security
+- Bump `golang.org/x/crypto` v0.48.0 → v0.52.0 in both the root and `cmd/prism-gui` modules,
+  clearing GO-2026-5015 and GO-2026-5013 (SSH server panics reachable via `pkg/web/terminal.go`).
+- Bump `github.com/go-git/go-git/v5` v5.16.4 → v5.19.0 (+ `go-billy/v5` → v5.9.0) in `cmd/prism-gui`,
+  clearing GO-2026-4910, GO-2026-4909, GO-2026-4473, CVE-2026-45022, and CVE-2026-44973.
+- Bump `golang.org/x/net` → v0.55.0 in both modules, clearing CVE-2026-25681, CVE-2026-27136,
+  CVE-2026-39821, and CVE-2026-42502 (html/idna). `govulncheck ./...` and the CI Trivy filesystem
+  scan (HIGH/CRITICAL) now both report zero findings in every module.
+- Clear 6 `npm audit` findings in the `cmd/prism-gui/frontend` dev-dependency tree (vitest
+  critical GHSA-5xrq-8626-4rwp, vite/ws high, @babel/core, js-yaml, brace-expansion) via a
+  non-breaking `npm audit fix` (lockfile-only; no `package.json` version changes). Together with
+  the Go bumps this unblocks the "Vulnerability & SAST Scan" CI gate on all open PRs.
+
 ## [0.35.5] - 2026-05-05
 
 ### Fixed
