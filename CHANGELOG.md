@@ -50,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   proves two scopes over one shared store never see each other's records — the property that lets a
   single cloud table serve every tenant safely (design §4, §6.2).
 
+### Security
+- Bump `golang.org/x/crypto` v0.48.0 → v0.52.0 in both the root and `cmd/prism-gui` modules,
+  clearing GO-2026-5015 and GO-2026-5013 (SSH server panics reachable via `pkg/web/terminal.go`).
+- Bump `github.com/go-git/go-git/v5` v5.16.4 → v5.17.1 in `cmd/prism-gui`, clearing GO-2026-4910,
+  GO-2026-4909, and GO-2026-4473. `govulncheck ./...` now reports zero affecting vulnerabilities
+  in both modules, unblocking the "Vulnerability & SAST Scan" CI gate on all open PRs.
+
 ## [0.35.5] - 2026-05-05
 
 ### Fixed
