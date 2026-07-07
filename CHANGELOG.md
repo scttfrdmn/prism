@@ -53,9 +53,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Bump `golang.org/x/crypto` v0.48.0 → v0.52.0 in both the root and `cmd/prism-gui` modules,
   clearing GO-2026-5015 and GO-2026-5013 (SSH server panics reachable via `pkg/web/terminal.go`).
-- Bump `github.com/go-git/go-git/v5` v5.16.4 → v5.17.1 in `cmd/prism-gui`, clearing GO-2026-4910,
-  GO-2026-4909, and GO-2026-4473. `govulncheck ./...` now reports zero affecting vulnerabilities
-  in both modules.
+- Bump `github.com/go-git/go-git/v5` v5.16.4 → v5.19.0 (+ `go-billy/v5` → v5.9.0) in `cmd/prism-gui`,
+  clearing GO-2026-4910, GO-2026-4909, GO-2026-4473, CVE-2026-45022, and CVE-2026-44973.
+- Bump `golang.org/x/net` → v0.55.0 in both modules, clearing CVE-2026-25681, CVE-2026-27136,
+  CVE-2026-39821, and CVE-2026-42502 (html/idna). `govulncheck ./...` and the CI Trivy filesystem
+  scan (HIGH/CRITICAL) now both report zero findings in every module.
 - Clear 6 `npm audit` findings in the `cmd/prism-gui/frontend` dev-dependency tree (vitest
   critical GHSA-5xrq-8626-4rwp, vite/ws high, @babel/core, js-yaml, brace-expansion) via a
   non-breaking `npm audit fix` (lockfile-only; no `package.json` version changes). Together with
