@@ -141,6 +141,17 @@ func (sm *StateMonitor) checkInstance(inst types.Instance) {
 	if awsInstance.State != inst.State {
 		log.Printf("✅ State changed: %s (%s → %s)", inst.Name, inst.State, awsInstance.State)
 
+		// Preserve and extend state history. GetInstance returns a fresh
+		// instance object built from AWS data, so StateHistory must be
+		// copied from the cached record before we append the transition.
+		awsInstance.StateHistory = append(inst.StateHistory, types.StateTransition{
+			FromState: inst.State,
+			ToState:   awsInstance.State,
+			Timestamp: time.Now(),
+			Reason:    "aws_observed",
+			Initiator: "system",
+		})
+
 		// Update state
 		if err := sm.stateManager.SaveInstance(*awsInstance); err != nil {
 			log.Printf("Warning: Failed to update instance state: %v", err)

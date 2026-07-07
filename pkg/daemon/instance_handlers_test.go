@@ -95,3 +95,40 @@ func TestApplyExpectedTransitionalState(t *testing.T) {
 		server.applyExpectedTransitionalState("does-not-exist", "pending")
 	})
 }
+
+func TestIsUnpropagatedAWSState(t *testing.T) {
+	tests := []struct {
+		name   string
+		cached string
+		aws    string
+		want   bool
+	}{
+		// Propagation lag cases (must skip rollback)
+		{"start lag: pending vs stopped", "pending", "stopped", true},
+		{"stop lag: stopping vs running", "stopping", "running", true},
+		{"terminate lag: shutting-down vs running", "shutting-down", "running", true},
+		{"terminate lag: shutting-down vs stopped", "shutting-down", "stopped", true},
+
+		// Legitimate forward progressions (must NOT skip)
+		{"pending -> running", "pending", "running", false},
+		{"stopping -> stopped", "stopping", "stopped", false},
+		{"shutting-down -> terminated", "shutting-down", "terminated", false},
+
+		// Non-transitional cached states (must NOT skip)
+		{"running observed as stopped", "running", "stopped", false},
+		{"stopped observed as running", "stopped", "running", false},
+		{"running observed as stopping", "running", "stopping", false},
+		{"stopped observed as pending", "stopped", "pending", false},
+
+		// Same-state queries (caller guards on != already, but verify)
+		{"pending vs pending", "pending", "pending", false},
+		{"stopping vs stopping", "stopping", "stopping", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isUnpropagatedAWSState(tt.cached, tt.aws)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

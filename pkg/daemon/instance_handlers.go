@@ -1016,8 +1016,20 @@ func (s *Server) refreshInstanceStateFromAWS(awsManager *aws.Manager, instanceNa
 	// Preserve existing state history
 	liveInstance.StateHistory = cachedInstance.StateHistory
 
-	// Record state transition if state changed
+	// Record state transition if state changed, unless AWS hasn't propagated
+	// the most recent lifecycle action yet. After a Start/Stop/Hibernate call,
+	// AWS may briefly continue to report the prior state for ~1s while it
+	// processes the request. Without this guard, the optimistic transitional
+	// state written by applyExpectedTransitionalState gets immediately rolled
+	// back here (e.g., pending -> stopped, stopping -> running), corrupting
+	// state history and breaking cost accounting.
 	if cachedInstance.State != liveInstance.State {
+		if isUnpropagatedAWSState(cachedInstance.State, liveInstance.State) {
+			// Keep the optimistic cached state; the state monitor will
+			// record the real transition once AWS actually propagates.
+			liveInstance.State = cachedInstance.State
+			return liveInstance
+		}
 		transition := types.StateTransition{
 			FromState: cachedInstance.State,
 			ToState:   liveInstance.State,
@@ -1029,6 +1041,26 @@ func (s *Server) refreshInstanceStateFromAWS(awsManager *aws.Manager, instanceNa
 	}
 
 	return liveInstance
+}
+
+// isUnpropagatedAWSState reports whether an AWS-reported state is the
+// pre-lifecycle-action predecessor of the locally cached transitional state.
+// When this returns true, the AWS response reflects a request that hasn't
+// propagated through EC2's control plane yet; treating it as a state change
+// would erase the user's intent and produce a phantom rollback transition.
+func isUnpropagatedAWSState(cachedState, awsState string) bool {
+	switch cachedState {
+	case "pending":
+		// Start issued; AWS may still report "stopped" briefly.
+		return awsState == "stopped"
+	case "stopping":
+		// Stop/hibernate issued; AWS may still report "running" briefly.
+		return awsState == "running"
+	case "shutting-down":
+		// Terminate issued; AWS may still report "running" or "stopped".
+		return awsState == "running" || awsState == "stopped"
+	}
+	return false
 }
 
 // handleStartInstance starts a stopped instance
