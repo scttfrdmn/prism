@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/scttfrdmn/prism/pkg/alerting"
 	"github.com/scttfrdmn/prism/pkg/aws"
@@ -291,11 +292,22 @@ func NewServer(port string) (*Server, error) {
 
 	// Legacy idle management removed - using universal idle detection via template resolver
 
-	// Initialize project manager
-	projectManager, err := project.NewManager()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize project manager: %w", err)
+	// Initialize the four seam-backed governance managers (project, budget, rbac, approval)
+	// together — they share one backend decision (file-backed ~/.prism by default, or the shared
+	// DynamoDB table when PRISM_SEAM_BACKEND=dynamodb).
+	var seamAWSCfg *awssdk.Config
+	if awsManager != nil {
+		cfg := awsManager.GetAWSConfig()
+		seamAWSCfg = &cfg
 	}
+	seamMgrs, err := initSeamManagers(seamAWSCfg)
+	if err != nil {
+		return nil, err
+	}
+	projectManager := seamMgrs.project
+	budgetManager := seamMgrs.budget
+	rbacManager := seamMgrs.rbac
+
 	// Wire active-instance check so DeleteProject blocks while instances are running (#539)
 	projectManager.SetActiveInstancesFunc(func(projectID string) ([]string, error) {
 		st, err := stateManager.LoadState()
@@ -311,11 +323,6 @@ func NewServer(port string) (*Server, error) {
 		return active, nil
 	})
 
-	// Initialize budget manager (v0.5.10 multi-budget system)
-	budgetManager, err := project.NewBudgetManager()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize budget manager: %w", err)
-	}
 	budgetManager.SetProjectManager(projectManager)
 
 	// Initialize invitation manager (v0.5.11 user invitation system)
@@ -393,12 +400,7 @@ func NewServer(port string) (*Server, error) {
 	policyService := policy.NewService()
 	logger.Info("Policy service initialized")
 
-	// Initialize RBAC manager
-	rbacManager, err := rbac.NewManager()
-	if err != nil {
-		logger.Warn("Failed to initialize RBAC manager, using defaults", "error", err)
-		rbacManager, _ = rbac.NewManager() // retry with defaults
-	}
+	// RBAC manager comes from the seam-backed managers initialized above.
 	logger.Info("RBAC manager initialized")
 
 	// Initialize process manager
@@ -461,12 +463,8 @@ func NewServer(port string) (*Server, error) {
 		gdewTracker:         project.NewGDEWTracker(),               // GDEW credit tracker (v0.11.0 - Issue #206)
 	}
 
-	// Initialize approval manager (v0.12.0 - Issue #148/#149/#153/#157)
-	if am, err := project.NewApprovalManager(); err == nil {
-		server.approvalManager = am
-	} else {
-		logger.Info(fmt.Sprintf("Warning: approval manager unavailable: %v", err))
-	}
+	// Approval manager (v0.12.0 - Issue #148/#149/#153/#157) comes from the seam-backed managers.
+	server.approvalManager = seamMgrs.approval
 
 	// Initialize course manager (v0.14.0 - Issue #45)
 	if cm, err := course.NewManager(); err == nil {

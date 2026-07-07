@@ -49,6 +49,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   partition records per `Principal`. No existing public signature changed. A scope-isolation test
   proves two scopes over one shared store never see each other's records — the property that lets a
   single cloud table serve every tenant safely (design §4, §6.2).
+- **DynamoDB seam backend wired into the daemon.** The daemon now selects the persistence backend
+  for the four converged managers (project, budget, rbac, approval) at startup: file-backed
+  `~/.prism` by default (unchanged desktop behavior), or the shared DynamoDB-backed seam when
+  `PRISM_SEAM_BACKEND=dynamodb`. Each record type gets its own table (`PRISM_SEAM_TABLE_PREFIX`,
+  default `prism` → `prism-projects`, `prism-budgets`, `prism-budget-allocations`,
+  `prism-budget-reallocations`, `prism-rbac`, `prism-approvals`) because the dynamostore's only
+  type namespace is the table name — mirroring how the file backend separates the same types by
+  directory. The cloud path runs under the zero `Scope` for now (single partition); reading a
+  per-Principal scope from configuration is the next step. If the DynamoDB backend is requested but
+  AWS config is unavailable or setup fails, the daemon logs and falls back to file-backed
+  persistence rather than failing to start. `rbac.State` (the persisted role-binding record) is now
+  exported so the wiring can name the store's type parameter.
 - **General dependency refresh (minor/patch only).** Root Go module: AWS SDK for Go v2 (core +
   ~20 service clients, e.g. `ec2` v1.300→v1.313, `s3` v1.100→v1.105, `dynamodb` v1.57→v1.60),
   `golang.org/x/crypto` v0.52→v0.53, `x/mod`, `x/sys`, `x/text`, `zalando/go-keyring` v0.2.6→v0.2.8,
