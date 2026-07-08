@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-07-07
+
 ### Added
 - `prism workspace cost --billed [name]` reports the AWS-billed ("billed so far") cost from AWS Cost Explorer next to prism's local estimate and the delta between them. prism's existing cost numbers are a model the daemon accumulates from observed state transitions (`Instance.CurrentSpend`); the billed figure is the metered amount AWS has actually charged, read via `ce:GetCostAndUsage` using the UnblendedCost metric. This surfaces drift between the two --- for example, the same workspace controlled from two machines can report different local estimates while AWS bills one number. Per-instance isolation uses the `prism:instance-id` cost-allocation tag when it is activated in the Billing console; when the tag is inactive, the command falls back to the region's EC2 total and warns that it may include other instances. `--billed-only` shows just the AWS figure. New daemon endpoint `GET /api/v1/instances/{name}/billed-cost`. Requires the daemon's AWS identity to hold the `ce:GetCostAndUsage` permission; access-denied errors include the fix.
 - **The persistence seam (`pkg/seam`)** — the shared record/persistence + identity interface
