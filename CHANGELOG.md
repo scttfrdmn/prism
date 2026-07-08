@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Bump Wails v3 `v3.0.0-alpha.74` → `v3.0.0-alpha.102`** in `cmd/prism-gui`. No application code
+  changes required; the bump also drops a large set of transitive dependencies (Wails alpha.102 no
+  longer pulls in `go-git`, `ProtonMail/go-crypto`, `cloudflare/circl`, `x/net`, etc.) and swaps
+  `wailsapp/go-webview2` → `wailsapp/wails/webview2`. Verified: both modules build, `go vet` and
+  `govulncheck` clean, GUI Go tests show zero new failures vs. baseline (two pre-existing
+  nil-pointer test panics — `TestGetInstanceAccess`, `TestEmbeddedWebView` — are unchanged by this
+  bump), and the GUI launches and initializes the Wails runtime end-to-end on alpha.102 (system
+  tray + AssetServer serving the React app).
+
 ## [0.36.0] - 2026-07-07
 
 ### Added
