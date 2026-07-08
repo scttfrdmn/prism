@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Bump Wails v3 `v3.0.0-alpha.74` → `v3.0.0-alpha.102`** in `cmd/prism-gui`. No application code
+  changes required; the bump also drops a large set of transitive dependencies (Wails alpha.102 no
+  longer pulls in `go-git`, `ProtonMail/go-crypto`, `cloudflare/circl`, `x/net`, etc.) and swaps
+  `wailsapp/go-webview2` → `wailsapp/wails/webview2`. Verified: both modules build, `go vet` and
+  `govulncheck` clean, and the GUI launches and initializes the Wails runtime end-to-end on
+  alpha.102 (system tray + AssetServer serving the React app).
+
+### Fixed
+- GUI tests `TestGetInstanceAccess` and `TestEmbeddedWebView` no longer panic with a nil-pointer
+  dereference. They constructed a `PrismService` with only `daemonURL`/`client` set, but the code
+  had since moved to the typed `apiClient` (`s.apiClient.GetInstance`), so the calls dereferenced a
+  nil client. Rewritten to inject a seeded `pkg/api/mock` client and assert current behavior (SSH +
+  web access derived from the instance's services); the stale assertions for removed RDP/desktop
+  port detection were dropped.
+
 ## [0.36.0] - 2026-07-07
 
 ### Added
