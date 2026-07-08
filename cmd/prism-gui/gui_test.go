@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/scttfrdmn/prism/pkg/api/mock"
+	"github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TestPrismService tests the Prism service
@@ -129,25 +132,30 @@ func TestInstanceActions(t *testing.T) {
 	// Only StopInstance is implemented, which is what we're testing above
 }
 
+// newTestServiceWithInstance builds a PrismService backed by a seeded mock API client. It mirrors
+// how the real service talks to the daemon (through apiClient, not raw HTTP) — see service.go — so
+// tests exercise the current code path. daemonURL is still set because some methods (e.g.
+// OpenWebInterface) compose proxy URLs from it.
+func newTestServiceWithInstance(inst types.Instance) *PrismService {
+	return &PrismService{
+		daemonURL: "http://daemon.test",
+		apiClient: &mock.MockClient{
+			Instances: map[string]types.Instance{inst.Name: inst},
+		},
+	}
+}
+
 // TestGetInstanceAccess tests instance access information retrieval
 func TestGetInstanceAccess(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"id":                "i-123",
-			"name":              "test",
-			"public_ip":         "1.2.3.4",
-			"has_web_interface": true,
-			"web_port":          8888,
-			"ports":             []int{22, 3389, 8888},
-			"username":          "ubuntu",
-		})
-	}))
-	defer server.Close()
-
-	service := &PrismService{
-		daemonURL: server.URL,
-		client:    &http.Client{Timeout: 5 * time.Second},
-	}
+	// A web-capable instance: GetInstanceAccess derives the web port and access type from the
+	// instance's Services (the daemon populates these), and SSH is always available.
+	service := newTestServiceWithInstance(types.Instance{
+		ID:       "i-123",
+		Name:     "test",
+		PublicIP: "1.2.3.4",
+		Username: "ubuntu",
+		Services: []types.Service{{Name: "jupyter", Port: 8888, Type: "web"}},
+	})
 
 	access, err := service.GetInstanceAccess(context.Background(), "test")
 	if err != nil {
@@ -166,21 +174,22 @@ func verifyInstanceAccessBasics(t *testing.T, access *InstanceAccess) {
 	if access.WebPort != 8888 {
 		t.Errorf("Expected web port 8888, got %d", access.WebPort)
 	}
-	if access.RDPPort != 3389 {
-		t.Errorf("Expected RDP port 3389, got %d", access.RDPPort)
+	if access.Username != "ubuntu" {
+		t.Errorf("Expected username ubuntu, got %s", access.Username)
+	}
+	if access.SSHPort != 22 {
+		t.Errorf("Expected SSH port 22, got %d", access.SSHPort)
 	}
 }
 
-// verifyInstanceAccessTypes verifies access type availability
+// verifyInstanceAccessTypes verifies access type availability. GetInstanceAccess always offers
+// terminal (SSH) access and adds web access when the instance exposes a web service.
 func verifyInstanceAccessTypes(t *testing.T, access *InstanceAccess) {
-	hasDesktop := false
 	hasWeb := false
 	hasTerminal := false
 
 	for _, at := range access.AccessTypes {
 		switch at {
-		case AccessTypeDesktop:
-			hasDesktop = true
 		case AccessTypeWeb:
 			hasWeb = true
 		case AccessTypeTerminal:
@@ -188,9 +197,8 @@ func verifyInstanceAccessTypes(t *testing.T, access *InstanceAccess) {
 		}
 	}
 
-	if !hasDesktop || !hasWeb || !hasTerminal {
-		t.Errorf("Missing access types: desktop=%v, web=%v, terminal=%v",
-			hasDesktop, hasWeb, hasTerminal)
+	if !hasWeb || !hasTerminal {
+		t.Errorf("Missing access types: web=%v, terminal=%v", hasWeb, hasTerminal)
 	}
 }
 
@@ -258,19 +266,12 @@ func TestTemplateHelpers(t *testing.T) {
 
 // TestEmbeddedWebView tests embedded web view configuration
 func TestEmbeddedWebView(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"name":              "test",
-			"has_web_interface": true,
-			"web_port":          8888,
-		})
-	}))
-	defer server.Close()
-
-	service := &PrismService{
-		daemonURL: server.URL,
-		client:    &http.Client{Timeout: 5 * time.Second},
-	}
+	// CreateEmbeddedWebView -> OpenWebInterface -> GetInstanceAccess: needs an instance with a web
+	// service so WebPort is non-zero, then composes the proxy URL from daemonURL.
+	service := newTestServiceWithInstance(types.Instance{
+		Name:     "test",
+		Services: []types.Service{{Name: "jupyter", Port: 8888, Type: "web"}},
+	})
 
 	webView, err := service.CreateEmbeddedWebView(context.Background(), "test")
 	if err != nil {
