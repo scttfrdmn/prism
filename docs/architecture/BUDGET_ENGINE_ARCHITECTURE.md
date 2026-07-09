@@ -266,17 +266,21 @@ So the three are a **family sharing the seam `Scope` key and infrastructure**, b
 in the scope hierarchy than projects and spend sits at/below project+account. They are siblings in a
 governance bounded-context, not children of Project.
 
-### Open decision — bank/borrow scope: per-allocation vs. pool
-With banking alone this was a utilization preference. It stays a policy question here:
-- **Per-allocation** (default lean): a project banks/borrows against its *own* allocation. Isolated
-  — one lab cannot affect another. Simple blast radius.
-- **Pool-level**: unused capacity returns to the shared pool for any project to burst on. Maximizes
-  utilization, but couples projects — one project's bursting draws from capacity another was
-  counting on.
+### Decision — bank/borrow scope: **per-allocation**
+The signed `pace_deviation` (bank/borrow) is scoped **per-allocation**: a project banks/borrows
+against its *own* allocation, isolated — one lab cannot affect another, and the blast radius of any
+over-bursting is a single allocation.
 
-Recommended default: **per-allocation**, with pool-level as an explicit opt-in policy. (Note: since
-borrowing here never goes below the pool's real $0, there is no cross-project *insolvency* risk —
-this is purely a utilization/isolation choice, not a liability one.)
+Per-allocation is chosen because it is the **more general** of the two: pool-level behavior is
+recoverable as a *composition* of per-allocation state (a pool view sums its allocations' deviations),
+whereas the reverse is not — you cannot recover per-allocation isolation from a single shared pool
+accumulator. So per-allocation is the primitive; any pool-level "shared burst room" feature is built
+on top as an explicit policy that reallocates capacity between allocations, never as a change to
+where the accumulator lives.
+
+(There is no cross-project *insolvency* risk in either case, since borrowing never goes below the
+pool's real $0 — this is purely a utilization/isolation choice, not a liability one. Per-allocation
+simply keeps the isolation guarantee available by default.)
 
 ---
 
@@ -294,11 +298,18 @@ this is purely a utilization/isolation choice, not a liability one.)
 
 ---
 
-## 8. Open decisions (tracked)
+## 8. Decisions
 
-1. **Bank/borrow scope** — per-allocation (lean) vs. pool-level (opt-in). §6.
-2. **Engine module home** — standalone repo (`github.com/scttfrdmn/budgetengine`) vs. internal
-   `pkg/budget` first, extracted later.
+### Decided
+1. **Bank/borrow scope — per-allocation.** The more general primitive; pool-level behavior composes
+   on top. §6.
+2. **Engine module home — standalone module from day one** (`github.com/scttfrdmn/budgetengine`),
+   not an internal `pkg/budget` extracted later. The engine takes no dependency on Prism; Prism
+   consumes it like any third party via the injected ports (§5.3). Building it standalone from the
+   start forces the host-agnostic boundary to be real rather than aspirational, and makes adoption
+   by other tools (and by prp) a matter of importing the module, not extracting from Prism.
+
+### Still open
 3. **Checkpointing** — do hosts persist a folded-state checkpoint for performance, and if so how is
    it invalidated on out-of-order event arrival? (Log stays authoritative regardless.)
 4. **prp record parity now vs. later** — adopt prp's `CostLineItem`/budget shapes as the target from
