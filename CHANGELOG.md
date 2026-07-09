@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   web access derived from the instance's services); the stale assertions for removed RDP/desktop
   port detection were dropped.
 
+### Security
+- Bump the Go directive to **1.26.5** in both modules (and pin the CI/release workflows to 1.26.5),
+  clearing **GO-2026-5856** — an Encrypted Client Hello privacy leak in the `crypto/tls` standard
+  library reachable from the daemon's HTTPS server, the web proxy, and the API client. `govulncheck`
+  now reports zero affecting vulnerabilities under go1.26.5.
+
 ## [0.36.0] - 2026-07-07
 
 ### Added
