@@ -24,10 +24,11 @@ a clean, standalone engine worthwhile:
 
 1. **Reuse.** The model below is not Prism-specific. Any tool that meters cloud spend against
    time-boxed funding wants it. It should be adoptable as a library with no dependency on Prism.
-2. **Convergence.** `prism-research-portal` (prp) already persists budget and spend as separate
-   seam-backed record types (`BudgetStore`/`SpendStore`). A shared engine over shared record shapes
-   lets a desktop tool and the web portal fold the *same* records into the *same* answer — the
-   whole point of the persistence seam.
+2. **Convergence.** `prism-research-portal` (prp) is a second host — a web portal with its own early
+   budget sketch (`BudgetStore`/`SpendStore`/`CheckLaunch`), not yet shipping. Rather than maintain
+   two budget brains, both Prism and prp adopt **this** engine and its record shapes, so a desktop
+   tool and the web portal fold the *same* records into the *same* answer — the whole point of the
+   persistence seam. The engine defines the records; prp's sketch is replaced (§7).
 
 ---
 
@@ -194,25 +195,47 @@ budgetengine/
   plan.go         # Window, FundingSource, Allocation — plain data, IDs only
   state.go        # Fold: (planLog, spendLog, now) -> EngineState
   engine.go       # Engine.Evaluate(now) -> BurnState   (the pure controller)
+  checklaunch.go  # Engine.CheckLaunch(scope, cost) -> Decision   (pre-flight query)
   policy/
     sourcing.go   # SourcingPolicy interface + built-ins
     pacing.go     # PacingPolicy interface + built-ins
     projection.go # ProjectionPolicy interface + built-ins
-  ports.go        # EventStore, Clock, ActionSink interfaces (host-supplied)
+  ports.go        # read/write persistence, Clock, ActionSink interfaces (host-supplied)
 ```
+
+### 5.2a Two interaction shapes: query (pull) and react (push)
+
+The engine is used two independent ways; a host may use either or both:
+
+- **Query — pre-flight, synchronous.** `CheckLaunch(scope, estimatedCost) → Decision` answers
+  *"may this action proceed, and how close to the ceiling is it?"* **before** the host acts. This is
+  prp's entire budget model, and it also replaces Prism's daemon "projected > limit → 403" gate.
+- **React — post-state, push.** `ActionSink.OnState(scope, BurnState)` fires **after** spend has
+  moved. This drives Prism's alerts and hibernate/stop. A read-mostly host (prp) may leave it a
+  no-op.
+
+`CheckLaunch` is **budget-only.** It does not absorb non-budget preconditions — prp today bundles an
+auto-stop-policy requirement into its launch gate (`engine.GatedLaunch`); that stays host-side. The
+engine answers the budget question; the host composes any other gates around it.
 
 ### 5.3 The ports (host-supplied seams)
 
-```go
-// Persistence: the host owns storage. A seam-backed adapter satisfies this trivially.
-type EventStore interface {
-    AppendSpend(ctx, scope, SpendEvent) error
-    AppendPlan(ctx, scope, PlanEvent) error
-    Spend(ctx, scope) ([]SpendEvent, error)   // ordered
-    Plan(ctx, scope)  ([]PlanEvent, error)     // ordered
-}
+**Persistence is split into read and write**, because one host writes spend and the other does not.
+Prism's daemon observes state transitions and *appends* spend; prp's spend is written by an external
+collector/CUR pipeline (not prp's code), and prp only *reads* it. A single mandatory-append port
+would make the read-only host a degenerate/error case; splitting makes it first-class.
 
-// Enforcement: the engine emits an intent; the host performs the effect.
+```go
+// READ — both hosts implement. The engine only ever needs to read to evaluate/check.
+type SpendSource interface { Spend(ctx, scope) ([]SpendEvent, error) } // ordered
+type PlanSource  interface { Plan(ctx, scope)  ([]PlanEvent, error)  } // ordered
+
+// WRITE — the appending host implements (Prism). A read-only host (prp) omits these;
+// its writes come from the external collector, not from engine calls.
+type SpendWriter interface { AppendSpend(ctx, scope, SpendEvent) error }
+type PlanWriter  interface { AppendPlan(ctx, scope, PlanEvent) error }
+
+// Enforcement (push): the engine emits state; the host performs any effect.
 // Mirrors today's already-decoupled ActionExecutor (budget never learns how to hibernate).
 type ActionSink interface {
     OnState(ctx, scope, BurnState) error       // alerts, hibernate, throttle — host's call
@@ -221,8 +244,18 @@ type ActionSink interface {
 type Clock interface { Now() time.Time }        // injectable for determinism/tests
 ```
 
-`scope` is the seam `Scope` (tenant/pi/grant/project + account). The engine is scope-parameterized
-but scope-agnostic — see §6.
+The engine's evaluation/query path depends only on the **read** ports (`SpendSource`/`PlanSource`)
++ `Clock`. `CheckLaunch` and `Evaluate` need nothing more. Writing and reacting are separate
+capabilities a host opts into.
+
+A seam-backed adapter satisfies the read ports trivially: `SpendSource` over
+`seam.Store[SpendEvent].List(scope)` — which is exactly prp's existing `SpendStore.Rollup`
+(list-by-scope + fold).
+
+`scope` is the seam `Scope` (tenant/pi/grant/project + account) — **byte-identical** in Prism and
+prp today (same `Principal`/`Store[T]` contract, verified). The engine is scope-parameterized but
+scope-agnostic: it evaluates against whatever single `Scope` it is handed and never climbs the
+scope hierarchy itself (§6).
 
 ### 5.4 The output
 
@@ -241,15 +274,59 @@ type BurnState struct {
 Both projection readouts are always computed; the `ProjectionPolicy` decides which drives `OnTrack`
 and what `ActionSink` acts on.
 
-### 5.5 How a host adopts it (Prism as the reference consumer)
-- Implement `EventStore` over the persistence seam (`seam.Store[SpendEvent]`,
-  `seam.Store[PlanEvent]`) — Prism already has the seam.
-- Implement `ActionSink` to fan out to Prism's existing alerting + the `ActionExecutor`
-  (hibernate-all, throttle).
-- Provide a real `Clock`.
-- Everything else — pools, allocations, sources, the three policies — is engine-internal.
+`CheckLaunch` returns a `Decision` — a three-valued verdict plus the numbers that explain it. This
+shape is adopted from prp's `budget.Decision` (which the engine replaces), generalized onto the
+engine's model:
 
-Project identity stays in Prism. The engine only ever sees `ProjectID` / `AllocationID` strings.
+```go
+type Verdict int   // Allow | Warn | Block
+
+type Decision struct {
+    Verdict          Verdict
+    EstimatedCost    float64   // the action's estimated cost, as checked
+    EffectiveBalance float64   // the spendable ceiling for this scope right now
+    Spent            float64   // authoritative spend (from SpendSource, never client-supplied)
+    Projected        float64   // Spent + EstimatedCost
+    Remaining        float64   // headroom before the action (≥ 0)
+    Reason           string    // human-facing explanation
+}
+```
+
+Verdict rules (ordered), mirroring prp so the two hosts decide identically:
+1. **Block** — scope is frozen (`LaunchPrevented`, e.g. a grant period ended). Unconditional.
+2. **Block** — `Projected > EffectiveBalance` (would exceed the ceiling).
+3. **Warn** — `Projected ≥ EffectiveBalance × warnThreshold` (default 0.80): allowed, surfaces headroom.
+4. **Allow** — within budget.
+
+The mapping to the engine's model, stated explicitly so it's not lost:
+`EffectiveBalance = remaining_principal + min(banked_deviation, cap)` — which **generalizes** prp's
+`PeriodAllocation + min(bankedSurplus, TotalBudget × surplusCapPercent)`: prp's single-period
+allocation is the degenerate one-source, one-window case of the engine's capacity curve. `Spent` is
+supplied by `SpendSource` (server-authoritative); the engine never accepts a client-supplied spend.
+"Frozen scope" is a first-class engine input (a plan-level freeze), distinct from "over budget".
+
+### 5.5 How two very different hosts adopt it
+
+The design is validated by fitting **both** consumers. Prism is a long-lived local daemon that
+*writes* spend from observed state; prp is a stateless Lambda behind API-Gateway with cross-account
+assume-role, *read-mostly* on spend. If one port set fits both, the boundary is right. It does:
+
+| Port | Prism (daemon) | prp (Lambda) |
+|---|---|---|
+| `SpendSource` / `PlanSource` (read) | local seam store | DynamoDB seam over Lambda; = prp's existing `SpendStore.Rollup` (list-by-scope + fold) |
+| `SpendWriter` / `PlanWriter` (append) | daemon **writes** spend from observed state transitions | **omitted** — spend is written by the external collector/CUR, not prp; prp wires read ports only |
+| `CheckLaunch` (query, budget-only) | daemon launch gate — replaces today's `projected > limit → 403` | replaces prp's `budget.CheckLaunch`; host still wraps its own non-budget gate (auto-stop policy) |
+| `ActionSink.OnState` (react) | alerts + `ActionExecutor` (hibernate/stop/prevent-launch) | no-op, or a warning in the API response (read-mostly) |
+| `Clock` | real — earns its keep for idle/scheduled work | near no-op — prp is clockless; a real wall-clock injected per request |
+| `Scope` | zero → per-`Principal` (multi-tenant cloud) | `seam.Principal` from the verified JWT; host resolves most-specific (grant→PI→tenant) *before* calling |
+
+Reading the table by row is the proof: no port needs a host-specific shape it can't express. The
+only asymmetry — spend append — is handled by the read/write split (§5.3), not by bending a port.
+
+**Both hosts keep their own non-engine concerns.** Project identity stays in the host; the engine
+only ever sees `ProjectID` / `AllocationID` strings. prp keeps cross-account `Directory`/assume-role
+and chargeback attribution (§7E). Prism keeps its `ActionExecutor` effects. The engine is the shared
+budget brain; the hosts are the bodies.
 
 ---
 
@@ -282,6 +359,15 @@ where the accumulator lives.
 pool's real $0 — this is purely a utilization/isolation choice, not a liability one. Per-allocation
 simply keeps the isolation guarantee available by default.)
 
+### Hierarchy resolution is the host's job, not the engine's
+prp resolves a "most-specific" scope (grant → PI → tenant) in two places: cross-account binding
+(`crossaccount.Directory.Resolve`) and spend attribution (`spentForScope`). The engine does **not**
+climb this hierarchy. It is scope-*parameterized*: it evaluates against exactly the one `Scope` it is
+handed, per call. The host decides which scope that is — prp picks the most-specific bound dimension
+before calling; Prism passes its per-Principal (or zero) scope. Keeping hierarchy resolution
+host-side keeps the engine's contract a single clean `(scope) → answer`, and means prp's
+grant-beats-PI-beats-tenant logic never leaks into engine surface.
+
 ---
 
 ## 7. Migration & convergence (informational)
@@ -292,9 +378,23 @@ simply keeps the isolation guarantee available by default.)
   shared `pkg/types`, (c) converting the two concrete back-references (`Manager`↔tracker,
   budget→project) to interfaces, (d) moving webhook delivery behind the existing `alerting`
   dispatcher. Only `pkg/daemon` consumes budget, so the blast radius is one package.
-- **prp convergence**: adopt prp's `CostLineItem` as the `SpendEvent` shape and align the budget
-  record shapes so both clients fold identical logs. Then Budget and Spend become two more
-  byte-identical shared-state domains alongside the ones already on the seam.
+- **prp convergence (direction corrected)**: prp is **not shipping and has no users**, so it is
+  *downstream* of this engine, not a contract to converge toward. The engine **defines** the record
+  shapes (`SpendEvent`, `PlanEvent`, and the plan/allocation types); prp and Prism both adopt them.
+  prp's current `pkg/budget` (`Snapshot`/`CheckLaunch`/`Decision`), `BudgetRecord`, and
+  `CostLineItem` are **replaced** by the engine — they were a first sketch, not a foundation. What
+  the engine keeps *from* that sketch is the good part: the three-valued `Verdict`, the warn/block
+  thresholds, and the `EffectiveBalance` formula (which the engine generalizes to a capacity curve).
+
+### 7E. What stays in each host (the engine does NOT absorb)
+- **prp**: cross-account `Directory` / assume-role, JWT→`Principal` federation, and chargeback
+  attribution (CUR/collector tagging by `prp:` dimension). The engine consumes an *already-attributed*
+  `SpendEvent`; **how** a host attributes a raw cost line to a scope is out of scope. prp's spend
+  **writer** is the external collector — prp adopts the engine's read ports only.
+- **Prism**: the `ActionExecutor` effects (hibernate/stop/prevent-launch), alerting transport, and
+  project identity/lifecycle. Prism supplies the write ports (it observes and appends spend).
+- **Both**: they keep their own launch orchestration and any non-budget preconditions; the engine
+  answers only the budget question via `CheckLaunch`.
 
 ---
 
@@ -308,20 +408,63 @@ simply keeps the isolation guarantee available by default.)
    consumes it like any third party via the injected ports (§5.3). Building it standalone from the
    start forces the host-agnostic boundary to be real rather than aspirational, and makes adoption
    by other tools (and by prp) a matter of importing the module, not extracting from Prism.
+3. **Checkpointing — log is authoritative; a folded-state checkpoint is an optional host-side cache.**
+   The engine always *can* recompute state by folding the two logs. A host **may** cache a folded
+   checkpoint for performance; if it does, appending a spend/plan event with a timestamp ≤ the
+   checkpoint's high-water mark invalidates it (out-of-order arrival → recompute from log). The
+   engine's correctness never depends on a checkpoint, so the two hosts can differ freely: prp
+   (stateless Lambda) folds per request over a bounded window and caches nothing; Prism (daemon) may
+   hold a checkpoint. State stays reproducible either way — the checkpoint is never a second source
+   of truth.
+4. **prp record parity — engine defines, both hosts adopt.** prp is not shipping; the engine is the
+   source of truth for the record shapes, and prp's `pkg/budget`/`BudgetRecord`/`CostLineItem` are
+   replaced (§7). Not "converge toward prp"; prp converges onto the engine, same as Prism.
 
-### Still open
-3. **Checkpointing** — do hosts persist a folded-state checkpoint for performance, and if so how is
-   it invalidated on out-of-order event arrival? (Log stays authoritative regardless.)
-4. **prp record parity now vs. later** — adopt prp's `CostLineItem`/budget shapes as the target from
-   day one, or refactor Prism-internally and reconcile as a second step.
+*(All four decisions resolved. Interaction shape — query + react — and the read/write port split
+were added in this pass; see §5.2a and §5.3.)*
 
 ---
 
-## 9. Summary
+## 9. Worked two-host scenario
+
+One scenario folded through both hosts, to show they produce the **same Decision from the same
+records**. A grant with two dated sources, banked pacing, per-allocation, `fixed-date` projection:
+
+- **Plan (event log):** `SourceAdded{A: $60k, Jan 1–Jun 30}`, `SourceAdded{B: $120k, Apr 1–Dec 31}`,
+  `Window{Jan 1–Dec 31}`, `Allocation{alloc-1 → project-X}`.
+- **Spend (event log):** line items accrued Jan–Sep, folded to `Spent = $95k` for `alloc-1`'s scope.
+- **State at Oct 1** (folded): both sources are active (B since April), so far `$100k` of the grant's
+  `$180k` is available-to-date under the pacing policy; `Spent = $95k`; the effective ceiling for a
+  launch check works out to `EffectiveBalance = $100k` (available-to-date + capped bank). `Remaining
+  = $5k`.
+
+Now a launch estimated at `$9k` arrives. `Projected = Spent + est = $95k + $9k = $104k > $100k`:
+
+- **prp (Lambda):** JWT → `Principal{tenant, pi, grant}`; host resolves the most-specific scope, then
+  calls `engine.CheckLaunch(scope, 9_000)` with `SpendSource` = its DynamoDB seam read. Gets
+  `Decision{Verdict: Block, Projected: 104_000, EffectiveBalance: 100_000, Remaining: 5_000}`. prp
+  maps Block → HTTP 402 with the Decision attached. (Had the estimate been `$4k`, `Projected = $99k`
+  would land in the warn band → `Warn`, allowed with a headroom message.) prp then applies its own
+  non-budget gate (is an auto-stop policy present?) — separate from the engine.
+- **Prism (daemon):** same `engine.CheckLaunch(scope, 9_000)`, `SpendSource` = local seam read. Same
+  fold → **identical `Decision{Block, 104_000, 100_000, 5_000}`**. Prism maps Block → refuse the
+  launch (replacing today's ad-hoc 403). Separately, its `ActionSink.OnState` fires as spend accrues,
+  driving alerts/hibernate.
+
+The point: identical engine call, identical folded inputs, identical `Decision`. The hosts differ
+only in *transport* (HTTP 402 vs. daemon refusal), *who writes spend* (external collector vs. daemon),
+and *what they do with the verdict* — never in the budget math. That is the boundary working.
+
+---
+
+## 10. Summary
 
 One conserved quantity (`remaining_principal ≥ 0`), moved in time, never negative. State
 event-sourced from two logs (actuals + plan mutations) so it is derived and reproducible. A small
 memoryless controller at the core; all richness in **three orthogonal policy axes** (Sourcing,
-Pacing, Projection) plus a signed pace accumulator for banking/borrowing. Packaged as a
-host-agnostic library with three injected ports (`EventStore`, `ActionSink`, `Clock`), consumed by
-Prism over its persistence seam and converging with prp on shared record shapes.
+Pacing, Projection) plus a signed pace accumulator for banking/borrowing. Two interaction shapes: a
+synchronous **`CheckLaunch`** query (budget-only, three-valued Allow/Warn/Block) and a reactive
+**`ActionSink.OnState`** push. Persistence is **split read/write** so a writing host (Prism) and a
+read-only host (prp) both fit. Packaged as a host-agnostic module; **the engine defines the records,
+and both Prism and prp adopt them** — prp's prior budget code is replaced, not converged toward. All
+four design decisions are resolved.
