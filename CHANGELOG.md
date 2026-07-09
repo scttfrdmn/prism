@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-07-08
+
 ### Changed
 - **Bump Wails v3 `v3.0.0-alpha.74` → `v3.0.0-alpha.102`** in `cmd/prism-gui`. No application code
   changes required; the bump also drops a large set of transitive dependencies (Wails alpha.102 no
