@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.36.1] - 2026-07-08
+### Changed
+- **Budget engine adoption, Phase 1 (#643).** The launch-time monthly-budget gate
+  (`Server.isLaunchBlockedByBudget`) now makes its projected-over-limit decision via the standalone
+  `github.com/scttfrdmn/budgetengine` library (`engine.CheckLaunch`) instead of an inline
+  comparison. A new `pkg/daemon/budget_engine.go` adapter feeds the engine a single-source,
+  read-only view of the project's existing embedded budget — **no change to budget storage, the
+  spend model, or the HTTP API.** Block/allow behavior is a verified parity of the previous
+  flat-limit check (`budget_engine_test.go`); fail-open on engine error is preserved. Depends on
+  `github.com/scttfrdmn/budgetengine v0.1.0` (a public, zero-dependency module). Later phases move
+  spend to an event ledger (#644) and retire the JSON tracker (#645).
 
 ### Changed
 - **Bump Wails v3 `v3.0.0-alpha.74` → `v3.0.0-alpha.102`** in `cmd/prism-gui`. No application code

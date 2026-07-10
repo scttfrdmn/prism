@@ -1665,9 +1665,17 @@ func (s *Server) isLaunchBlockedByBudget(req *types.LaunchRequest, w http.Respon
 	currentSpend := proj.Budget.SpentAmount
 	monthlyLimit := *proj.Budget.MonthlyLimit
 
-	// Check if this launch would exceed the monthly limit
-	projectedSpend := currentSpend + estimatedMonthlyCost
-	if projectedSpend > monthlyLimit {
+	// Budget engine adoption Phase 1 (#643): the projected>limit decision is now made by the
+	// standalone budgetengine via engine.CheckLaunch, fed a single-source view of this monthly
+	// budget. Block/allow behavior is a faithful parity of the previous flat-limit comparison; the
+	// engine gains multi-source/banking semantics in later phases. Fail open on engine error.
+	decision, decErr := s.checkMonthlyLimitViaEngine(proj.Budget, estimatedMonthlyCost)
+	if decErr != nil {
+		log.Printf("Warning: budget engine check failed for project %s, allowing launch: %v", req.ProjectID, decErr)
+		return false // Fail open
+	}
+	projectedSpend := decision.Projected
+	if !decision.Allowed() {
 		// Block the launch - would exceed budget
 		errorMsg := fmt.Sprintf("⛔ Instance launch blocked: Would exceed monthly budget limit\n\n")
 		errorMsg += "Budget Analysis:\n"
