@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Budget engine adoption, Phase 2 (#644) — real spend ledger.** Prism now accrues per-instance
+  spend into an append-only, seam-backed `budgetengine` ledger, replacing Phase 1's synthetic
+  single spend event. A spend observer (`pkg/daemon/spend_observer.go`) runs on the `StateMonitor`
+  tick, internally throttled to a 10-minute accrual cadence, and appends a `SpendEvent` per running
+  project-attributed instance as the **delta** of a cumulative list-price estimate
+  (`HourlyRate × runtime`). A per-instance checkpoint (persisted through the seam) makes accrual
+  idempotent across restarts — no double-counting. The launch gate now reads this real ledger as
+  its `SpendSource` when populated, falling back to the cached `SpentAmount` while the ledger warms
+  up (so it never becomes more permissive than Phase 1). Spend is project-scoped for now
+  (`AllocationID = "project"`). Authoritative Cost Explorer reconciliation and per-funding-allocation
+  attribution are deferred to follow-ups; `BudgetTracker`/HTTP handlers are untouched.
+
 ### Changed
 - **Budget engine adoption, Phase 1 (#643).** The launch-time monthly-budget gate
   (`Server.isLaunchBlockedByBudget`) now makes its projected-over-limit decision via the standalone

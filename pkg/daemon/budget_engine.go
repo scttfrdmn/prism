@@ -79,20 +79,28 @@ func newMonthlyLimitEngine(b *types.ProjectBudget, win be.Window, evalAt time.Ti
 			{Kind: be.KindAllocationChanged, Seq: 3,
 				Allocation: &be.Allocation{ID: engineAllocationID, ProjectID: "", Amount: 0}}, // uncapped: draws whole source
 		},
-		// Phase 1: cached spend as one synthetic event, stamped at window start so it counts as
-		// already-incurred (available_to_date at `now` is the full paced ceiling to date).
+		// Fallback spend feed: the cached SpentAmount as one synthetic event, stamped at window start
+		// so it counts as already-incurred. Used only when the real ledger has no events yet.
 		spend: []be.SpendEvent{
 			{ID: "cached-spend", AllocationID: engineAllocationID, Amount: b.SpentAmount, At: win.Start, Source: "prism-cached"},
 		},
 	}
 
-	eng := be.New(view, view, be.FixedClock{T: evalAt},
+	eng := be.New(view, view, be.FixedClock{T: evalAt}, bepolicyDefaults()...)
+	return eng, view
+}
+
+// bepolicyDefaults is the single-source parity policy trio used by the monthly-limit gate:
+// ExpiryFirst × RateAdjust × DeadlineFloatPolicy, with the warn band effectively disabled so
+// block/allow decisions match the legacy flat-limit check. Shared by the synthesized-fallback and
+// real-ledger engine constructions so both decide identically.
+func bepolicyDefaults() []be.Option {
+	return []be.Option{
 		be.WithSourcing(bepolicy.ExpiryFirst{}),
 		be.WithPacing(bepolicy.RateAdjust{}),
 		be.WithProjection(bepolicy.DeadlineFloatPolicy{}),
-		be.WithWarnThreshold(0.999), // effectively disable the warn band for Phase 1 parity
-	)
-	return eng, view
+		be.WithWarnThreshold(0.999),
+	}
 }
 
 // checkMonthlyLimitViaEngine is the engine-backed replacement for the launch gate's
@@ -102,10 +110,25 @@ func newMonthlyLimitEngine(b *types.ProjectBudget, win be.Window, evalAt time.Ti
 // For a monthly budget, the engine's paced ceiling at end-of-window equals the full monthly limit,
 // which is the quantity the old code compared against — so with a whole-window source and the cached
 // spend, Decision.Projected/EffectiveBalance mirror currentSpend+estimate vs. monthlyLimit.
-func (s *Server) checkMonthlyLimitViaEngine(b *types.ProjectBudget, estimatedCost float64) (be.Decision, error) {
+func (s *Server) checkMonthlyLimitViaEngine(projectID string, b *types.ProjectBudget, estimatedCost float64) (be.Decision, error) {
 	// Evaluate at window end so available_to_date == full monthly limit (paced ceiling matches the
-	// flat limit the legacy gate used). This keeps Phase 1 a faithful parity of the old comparison.
+	// flat limit the legacy gate used).
 	win := budgetWindow(b, time.Now())
-	eng, _ := newMonthlyLimitEngine(b, win, win.End)
-	return eng.CheckLaunch(context.Background(), be.Scope{}, engineAllocationID, estimatedCost)
+	eng, view := newMonthlyLimitEngine(b, win, win.End)
+
+	// Phase 2 (#644): prefer the real, persisted spend ledger as the SpendSource. The engine's plan
+	// is still synthesized from the project budget (view), but spend comes from the append-only
+	// ledger scoped to this project when it has data. If the ledger is empty (e.g. spend hasn't
+	// accrued yet, or a fresh install), fall back to the synthesized cached-SpentAmount event so the
+	// gate never becomes MORE permissive than Phase 1 while the ledger warms up.
+	spendSource := be.SpendSource(view)
+	scope := projectScope(projectID)
+	if s.spendLedger != nil && projectID != "" {
+		if evs, err := s.spendLedger.Spend(context.Background(), scope); err == nil && len(evs) > 0 {
+			spendSource = s.spendLedger
+		}
+	}
+	eng = be.New(spendSource, view, be.FixedClock{T: win.End},
+		bepolicyDefaults()...)
+	return eng.CheckLaunch(context.Background(), scope, engineAllocationID, estimatedCost)
 }
