@@ -61,7 +61,7 @@ func TestObserver_CumulativeToDelta(t *testing.T) {
 	inst := runningInstance("i-1", "proj-1", 2.0, launched) // $2/hr
 
 	insts := []types.Instance{inst}
-	obs := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true)
+	obs := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true, spendObserverOptions{})
 
 	// t+10h → cumulative $20. Then t+25h → cumulative $50. Deltas: $20, then $30. Total $50.
 	obs.clock = func() time.Time { return launched.Add(10 * time.Hour) }
@@ -87,7 +87,7 @@ func TestObserver_Throttle(t *testing.T) {
 	s := newTestSpendStore(t)
 	launched := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	insts := []types.Instance{runningInstance("i-1", "proj-1", 2.0, launched)}
-	obs := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true)
+	obs := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true, spendObserverOptions{})
 
 	obs.clock = func() time.Time { return launched.Add(10 * time.Hour) }
 	obs.Observe(context.Background())
@@ -109,7 +109,7 @@ func TestObserver_IdempotentAcrossRestart(t *testing.T) {
 	insts := []types.Instance{runningInstance("i-1", "proj-1", 2.0, launched)}
 
 	at := launched.Add(10 * time.Hour)
-	obs1 := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true)
+	obs1 := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true, spendObserverOptions{})
 	obs1.clock = func() time.Time { return at }
 	obs1.Observe(context.Background())
 
@@ -117,7 +117,7 @@ func TestObserver_IdempotentAcrossRestart(t *testing.T) {
 	// persisted checkpoint means only the genuine delta since the checkpoint accrues — NOT the whole
 	// cumulative again. At t+10h20m, cumulative = $2/hr × 10.333h ≈ $20.67, so the ledger total must
 	// equal the new cumulative (~$20.67), proving no double-count of the first $20.
-	obs2 := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true)
+	obs2 := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true, spendObserverOptions{})
 	obs2.clock = func() time.Time { return at.Add(20 * time.Minute) }
 	obs2.Observe(context.Background())
 
@@ -140,7 +140,7 @@ func TestObserver_SkipsNonRunningAndUnattributed(t *testing.T) {
 	stopped.State = "stopped"
 	noProj := runningInstance("i-np", "", 2.0, launched)
 	insts := []types.Instance{stopped, noProj}
-	obs := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true)
+	obs := newSpendObserver(s, func() ([]types.Instance, error) { return insts, nil }, true, spendObserverOptions{})
 	obs.clock = func() time.Time { return launched.Add(10 * time.Hour) }
 	obs.Observe(context.Background())
 

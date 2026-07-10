@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Opt-in Cost Explorer billed-cost reconciliation (#644).** The budget spend ledger can now
+  reconcile its list-price estimates against authoritative AWS Cost Explorer billed cost, so a
+  project's recorded spend converges on real dollars (e.g. reflecting RIs/Savings Plans/spot). It is
+  **off by default** — CE calls cost money (~$0.01/call, 1–2 per instance), are rate-limited, and lag
+  ~a day — and enabled via `daemon_config.json` (`cost_reconciliation_enabled`) or
+  `PRISM_COST_RECONCILIATION=true`. The frequency is configurable
+  (`cost_reconciliation_interval_minutes`, default 1440 = daily; or `PRISM_COST_RECONCILIATION_INTERVAL`
+  as a Go duration) and clamped to a **1-hour floor**. When the per-instance `prism:instance-id`
+  cost-allocation tag isn't active in AWS Billing, reconciliation is skipped (the region-total blob
+  isn't per-instance) and the estimate is kept, with a warning to activate the tag. Reconciliation is
+  additionally skipped in test/reduced mode; the reversal+billed correction is idempotent.
 - **Budget engine adoption, Phase 2 (#644) — real spend ledger.** Prism now accrues per-instance
   spend into an append-only, seam-backed `budgetengine` ledger, replacing Phase 1's synthetic
   single spend event. A spend observer (`pkg/daemon/spend_observer.go`) runs on the `StateMonitor`
