@@ -3,15 +3,18 @@ package daemon
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	be "github.com/scttfrdmn/budgetengine"
 
 	"github.com/scttfrdmn/prism/pkg/daemon/logger"
 	"github.com/scttfrdmn/prism/pkg/project"
 	"github.com/scttfrdmn/prism/pkg/rbac"
 	"github.com/scttfrdmn/prism/pkg/seam"
 	"github.com/scttfrdmn/prism/pkg/seam/dynamostore"
+	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
@@ -23,6 +26,7 @@ type seamManagers struct {
 	budget   *project.BudgetManager
 	rbac     *rbac.Manager
 	approval *project.ApprovalManager
+	spend    *spendStore // Phase 2 (#644): the budgetengine spend ledger
 }
 
 // seamBackendKind is the persistence backend the converged managers run on.
@@ -103,12 +107,31 @@ func initSeamManagersFile() (seamManagers, error) {
 	if err != nil {
 		return seamManagers{}, fmt.Errorf("failed to initialize approval manager: %w", err)
 	}
+	dir := seamStateDir()
+	spend := newSpendStore(
+		filestore.New[be.SpendEvent](filepath.Join(dir, "spend_events")),
+		filestore.New[spendCheckpoint](filepath.Join(dir, "spend_checkpoints")),
+	)
 	return seamManagers{
 		project:  projectManager,
 		budget:   budgetManager,
 		rbac:     rbacManager,
 		approval: approvalManager,
+		spend:    spend,
 	}, nil
+}
+
+// seamStateDir returns the file-backed seam root (PRISM_STATE_DIR or ~/.prism), mirroring
+// project.NewManager / NewBudgetManager.
+func seamStateDir() string {
+	if d := os.Getenv("PRISM_STATE_DIR"); d != "" {
+		return d
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ".prism"
+	}
+	return filepath.Join(home, ".prism")
 }
 
 // initSeamManagersDynamo builds the managers over the DynamoDB-backed seam. Each record type gets a
@@ -142,11 +165,16 @@ func initSeamManagersDynamo(cfg awssdk.Config) (seamManagers, error) {
 		dynamostore.New[rbac.State](ddb, table("rbac")), scope)
 	approvalManager := project.NewApprovalManagerForScope(
 		dynamostore.New[project.ApprovalRequest](ddb, table("approvals")), scope)
+	spend := newSpendStore(
+		dynamostore.New[be.SpendEvent](ddb, table("spend-events")),
+		dynamostore.New[spendCheckpoint](ddb, table("spend-checkpoints")),
+	)
 
 	return seamManagers{
 		project:  projectManager,
 		budget:   budgetManager,
 		rbac:     rbacManager,
 		approval: approvalManager,
+		spend:    spend,
 	}, nil
 }

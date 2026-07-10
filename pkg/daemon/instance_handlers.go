@@ -1669,7 +1669,7 @@ func (s *Server) isLaunchBlockedByBudget(req *types.LaunchRequest, w http.Respon
 	// standalone budgetengine via engine.CheckLaunch, fed a single-source view of this monthly
 	// budget. Block/allow behavior is a faithful parity of the previous flat-limit comparison; the
 	// engine gains multi-source/banking semantics in later phases. Fail open on engine error.
-	decision, decErr := s.checkMonthlyLimitViaEngine(proj.Budget, estimatedMonthlyCost)
+	decision, decErr := s.checkMonthlyLimitViaEngine(req.ProjectID, proj.Budget, estimatedMonthlyCost)
 	if decErr != nil {
 		log.Printf("Warning: budget engine check failed for project %s, allowing launch: %v", req.ProjectID, decErr)
 		return false // Fail open

@@ -34,6 +34,7 @@ import (
 	"github.com/scttfrdmn/prism/pkg/sleepwake"
 	"github.com/scttfrdmn/prism/pkg/state"
 	"github.com/scttfrdmn/prism/pkg/throttle"
+	"github.com/scttfrdmn/prism/pkg/types"
 	"github.com/scttfrdmn/prism/pkg/workshop"
 )
 
@@ -54,6 +55,7 @@ type Server struct {
 	securityManager    *security.SecurityManager
 	policyService      *policy.Service
 	rbacManager        *rbac.Manager
+	spendLedger        *spendStore // Phase 2 (#644): budgetengine spend ledger (SpendSource/Writer)
 	processManager     ProcessManager
 
 	// Connection reliability components
@@ -307,6 +309,7 @@ func NewServer(port string) (*Server, error) {
 	projectManager := seamMgrs.project
 	budgetManager := seamMgrs.budget
 	rbacManager := seamMgrs.rbac
+	spendLedger := seamMgrs.spend // Phase 2 (#644): budgetengine spend ledger
 
 	// Wire active-instance check so DeleteProject blocks while instances are running (#539)
 	projectManager.SetActiveInstancesFunc(func(projectID string) ([]string, error) {
@@ -440,6 +443,7 @@ func NewServer(port string) (*Server, error) {
 		securityManager:     securityManager,
 		policyService:       policyService,
 		rbacManager:         rbacManager,
+		spendLedger:         spendLedger,
 		processManager:      processManager,
 		performanceMonitor:  performanceMonitor,
 		connManager:         connManager,
@@ -465,6 +469,24 @@ func NewServer(port string) (*Server, error) {
 
 	// Approval manager (v0.12.0 - Issue #148/#149/#153/#157) comes from the seam-backed managers.
 	server.approvalManager = seamMgrs.approval
+
+	// Phase 2 (#644): register the spend observer as a StateMonitor tick hook so per-instance spend
+	// accrues into the budgetengine ledger. Self-throttled (10m estimate cadence) despite the 10s
+	// tick. Loads instances from the state manager; skips Cost Explorer in test mode.
+	if spendLedger != nil {
+		observer := newSpendObserver(spendLedger, func() ([]types.Instance, error) {
+			st, err := stateManager.LoadState()
+			if err != nil {
+				return nil, err
+			}
+			out := make([]types.Instance, 0, len(st.Instances))
+			for _, inst := range st.Instances {
+				out = append(out, inst)
+			}
+			return out, nil
+		}, server.testMode)
+		stateMonitor.SetTickHook(func() { observer.Observe(context.Background()) })
+	}
 
 	// Initialize course manager (v0.14.0 - Issue #45)
 	if cm, err := course.NewManager(); err == nil {

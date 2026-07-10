@@ -38,7 +38,7 @@ func TestCheckMonthlyLimitViaEngine_ParityWithFlatLimit(t *testing.T) {
 			// Old logic, the parity oracle.
 			oldBlocked := (c.spent + c.estimatedCost) > c.limit
 
-			dec, err := s.checkMonthlyLimitViaEngine(b, c.estimatedCost)
+			dec, err := s.checkMonthlyLimitViaEngine("", b, c.estimatedCost)
 			if err != nil {
 				t.Fatalf("engine check errored: %v", err)
 			}
@@ -73,7 +73,7 @@ func TestBudgetWindow_Monthly(t *testing.T) {
 func TestCheckMonthlyLimitViaEngine_CeilingEqualsLimit(t *testing.T) {
 	s := &Server{}
 	b := &types.ProjectBudget{MonthlyLimit: ptr(1000), SpentAmount: 0, BudgetPeriod: types.BudgetPeriodMonthly}
-	dec, err := s.checkMonthlyLimitViaEngine(b, 1)
+	dec, err := s.checkMonthlyLimitViaEngine("", b, 1)
 	if err != nil {
 		t.Fatal(err)
 	}

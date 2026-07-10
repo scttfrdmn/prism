@@ -20,6 +20,16 @@ type StateMonitor struct {
 	wg           sync.WaitGroup
 	mu           sync.Mutex
 	running      bool
+	// onTick is an optional hook invoked each tick after the transitional-state check. Phase 2
+	// (#644) uses it to run the spend observer's accrual pass. Nil = no-op.
+	onTick func()
+}
+
+// SetTickHook registers a callback run at the end of every monitor tick (e.g. the spend observer).
+func (sm *StateMonitor) SetTickHook(fn func()) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.onTick = fn
 }
 
 // NewStateMonitor creates a new state monitor
@@ -77,6 +87,12 @@ func (sm *StateMonitor) monitorLoop() {
 		select {
 		case <-sm.ticker.C:
 			sm.checkTransitionalInstances()
+			sm.mu.Lock()
+			hook := sm.onTick
+			sm.mu.Unlock()
+			if hook != nil {
+				hook()
+			}
 		case <-sm.stopCh:
 			return
 		}
