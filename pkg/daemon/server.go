@@ -472,8 +472,17 @@ func NewServer(port string) (*Server, error) {
 
 	// Phase 2 (#644): register the spend observer as a StateMonitor tick hook so per-instance spend
 	// accrues into the budgetengine ledger. Self-throttled (10m estimate cadence) despite the 10s
-	// tick. Loads instances from the state manager; skips Cost Explorer in test mode.
+	// tick. Loads instances from the state manager. Cost Explorer reconciliation is opt-in (config /
+	// PRISM_COST_RECONCILIATION) and only wired when a live AWS manager is present; skipped in test
+	// mode. The billed-cost func is bound from awsManager so the observer stays AWS-free and testable.
 	if spendLedger != nil {
+		opts := spendObserverOptions{
+			reconcileEnabled:  config.CostReconciliationEnabled,
+			reconcileInterval: config.GetCostReconciliationInterval(),
+		}
+		if awsManager != nil {
+			opts.billedCost = awsManager.GetBilledCost
+		}
 		observer := newSpendObserver(spendLedger, func() ([]types.Instance, error) {
 			st, err := stateManager.LoadState()
 			if err != nil {
@@ -484,8 +493,11 @@ func NewServer(port string) (*Server, error) {
 				out = append(out, inst)
 			}
 			return out, nil
-		}, server.testMode)
+		}, server.testMode, opts)
 		stateMonitor.SetTickHook(func() { observer.Observe(context.Background()) })
+		if opts.reconcileEnabled && opts.billedCost != nil {
+			logger.Info("Budget cost reconciliation enabled", "interval", opts.reconcileInterval.String())
+		}
 	}
 
 	// Initialize course manager (v0.14.0 - Issue #45)
