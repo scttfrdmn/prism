@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/scttfrdmn/prism/pkg/alerting"
 	"github.com/scttfrdmn/prism/pkg/seam"
 	"github.com/scttfrdmn/prism/pkg/seam/filestore"
 	"github.com/scttfrdmn/prism/pkg/types"
@@ -33,7 +32,6 @@ type Manager struct {
 	scope               seam.Scope
 	mutex               sync.RWMutex
 	projects            map[string]*types.Project
-	budgetTracker       *BudgetTracker
 	activeInstancesFunc func(projectID string) ([]string, error)
 }
 
@@ -59,15 +57,9 @@ func NewManager() (*Manager, error) {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
-	budgetTracker, err := NewBudgetTracker()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create budget tracker: %w", err)
-	}
-
 	manager := &Manager{
-		store:         filestore.New[types.Project](filepath.Join(stateDir, "projects")),
-		projects:      make(map[string]*types.Project),
-		budgetTracker: budgetTracker,
+		store:    filestore.New[types.Project](filepath.Join(stateDir, "projects")),
+		projects: make(map[string]*types.Project),
 	}
 
 	// One-time migration of a legacy flat projects.json into the seam, then load.
@@ -83,18 +75,17 @@ func NewManager() (*Manager, error) {
 
 // NewManagerWithStore builds a Manager over an injected seam store under the zero Scope — used by
 // tests (filestore in a temp dir) and single-tenant callers.
-func NewManagerWithStore(store seam.Store[types.Project], budgetTracker *BudgetTracker) (*Manager, error) {
-	return NewManagerForScope(store, seam.Scope{}, budgetTracker)
+func NewManagerWithStore(store seam.Store[types.Project]) (*Manager, error) {
+	return NewManagerForScope(store, seam.Scope{})
 }
 
 // NewManagerForScope builds a Manager over an injected store scoped to a Principal — the
 // cloud/multi-tenant entry point. Records partition by scope; the method logic is unchanged.
-func NewManagerForScope(store seam.Store[types.Project], scope seam.Scope, budgetTracker *BudgetTracker) (*Manager, error) {
+func NewManagerForScope(store seam.Store[types.Project], scope seam.Scope) (*Manager, error) {
 	m := &Manager{
-		store:         store,
-		scope:         scope,
-		projects:      make(map[string]*types.Project),
-		budgetTracker: budgetTracker,
+		store:    store,
+		scope:    scope,
+		projects: make(map[string]*types.Project),
 	}
 	if err := m.loadProjects(); err != nil {
 		return nil, fmt.Errorf("failed to load projects: %w", err)
@@ -186,11 +177,8 @@ func (m *Manager) CreateProject(ctx context.Context, req *CreateProjectRequest) 
 			LastUpdated:     time.Now(),
 		}
 		project.Budget = budget
-
-		// Initialize budget tracking
-		if err := m.budgetTracker.InitializeProject(project.ID, budget); err != nil {
-			return nil, fmt.Errorf("failed to initialize budget tracking: %w", err)
-		}
+		// Budget spend is tracked by the budgetengine ledger in the daemon (#645); no per-project
+		// tracker to initialize here.
 	}
 
 	// Store project
@@ -313,11 +301,6 @@ func (m *Manager) DeleteProject(ctx context.Context, projectID string) error {
 	}
 	if len(activeInstances) > 0 {
 		return fmt.Errorf("cannot delete project with %d active instances - stop instances first", len(activeInstances))
-	}
-
-	// Clean up budget tracking
-	if err := m.budgetTracker.RemoveProject(projectID); err != nil {
-		return fmt.Errorf("failed to clean up budget tracking: %w", err)
 	}
 
 	// Remove project
@@ -463,10 +446,13 @@ func (m *Manager) GetProjectCostBreakdown(ctx context.Context, projectID string,
 		return nil, fmt.Errorf("project %q not found", projectID)
 	}
 
-	return m.budgetTracker.GetCostBreakdown(projectID, startDate, endDate)
+	// Cost breakdown is derived from the budgetengine spend ledger in the daemon layer (#654,
+	// Phase 3d). The project Manager no longer owns cost analytics; return an empty breakdown for
+	// the DTO shape until the daemon-side ledger aggregation lands.
+	return &types.ProjectCostBreakdown{ProjectID: projectID}, nil
 }
 
-// GetProjectResourceUsage retrieves resource utilization metrics for a project
+// GetProjectResourceUsage retrieves resource utilization metrics for a project.
 func (m *Manager) GetProjectResourceUsage(ctx context.Context, projectID string, period time.Duration) (*types.ProjectResourceUsage, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -476,27 +462,8 @@ func (m *Manager) GetProjectResourceUsage(ctx context.Context, projectID string,
 		return nil, fmt.Errorf("project %q not found", projectID)
 	}
 
-	return m.budgetTracker.GetResourceUsage(projectID, period)
-}
-
-// CheckBudgetStatus checks the current budget status and triggers alerts if needed
-func (m *Manager) CheckBudgetStatus(ctx context.Context, projectID string) (*BudgetStatus, error) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	project, exists := m.projects[projectID]
-	if !exists {
-		return nil, fmt.Errorf("project %q not found", projectID)
-	}
-
-	if project.Budget == nil {
-		return &BudgetStatus{
-			ProjectID:     projectID,
-			BudgetEnabled: false,
-		}, nil
-	}
-
-	return m.budgetTracker.CheckBudgetStatus(projectID)
+	// Resource usage is a daemon-layer, ledger-derived concern (#654, Phase 3d); empty for now.
+	return &types.ProjectResourceUsage{ProjectID: projectID}, nil
 }
 
 // loadProjects loads all project records from the seam into the in-memory map.
@@ -553,12 +520,6 @@ func (m *Manager) Close() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	if m.budgetTracker != nil {
-		if err := m.budgetTracker.Close(); err != nil {
-			return fmt.Errorf("failed to close budget tracker: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -587,12 +548,7 @@ func (m *Manager) SetProjectBudget(ctx context.Context, projectID string, budget
 	project.Budget = budget
 	project.UpdatedAt = time.Now()
 
-	// Initialize budget tracking
-	if m.budgetTracker != nil {
-		if err := m.budgetTracker.InitializeProject(projectID, budget); err != nil {
-			return fmt.Errorf("failed to initialize budget tracking: %w", err)
-		}
-	}
+	// Budget spend is tracked by the budgetengine ledger in the daemon (#645); no tracker here.
 
 	// Save projects to disk
 	if err := m.saveProjects(); err != nil {
@@ -620,12 +576,7 @@ func (m *Manager) UpdateProjectBudget(ctx context.Context, projectID string, bud
 	project.Budget = budget
 	project.UpdatedAt = time.Now()
 
-	// Re-initialize budget tracking with updated configuration
-	if m.budgetTracker != nil {
-		if err := m.budgetTracker.InitializeProject(projectID, budget); err != nil {
-			return fmt.Errorf("failed to update budget tracking: %w", err)
-		}
-	}
+	// Budget spend is tracked by the budgetengine ledger in the daemon (#645); no tracker here.
 
 	// Save projects to disk
 	if err := m.saveProjects(); err != nil {
@@ -649,12 +600,7 @@ func (m *Manager) DisableProjectBudget(ctx context.Context, projectID string) er
 	project.Budget = nil
 	project.UpdatedAt = time.Now()
 
-	// Remove from budget tracker
-	if m.budgetTracker != nil {
-		if err := m.budgetTracker.RemoveProject(projectID); err != nil {
-			return fmt.Errorf("failed to remove budget tracking: %w", err)
-		}
-	}
+	// Budget spend is tracked by the budgetengine ledger in the daemon (#645); no tracker here.
 
 	// Save projects to disk
 	if err := m.saveProjects(); err != nil {
@@ -852,11 +798,9 @@ func (m *Manager) GetProjectForecast(ctx context.Context, projectID string, req 
 		months = 6
 	}
 
-	// Retrieve cost history for regression.
-	history, err := m.budgetTracker.GetCostHistory(projectID)
-	if err != nil {
-		history = nil // fall back to rate-only projection
-	}
+	// Cost history for the regression is a daemon-layer, ledger-derived concern (#654, Phase 3d);
+	// until that lands, forecast with no history — the predictor falls back to a rate-only projection.
+	var history []CostDataPoint
 
 	budget := project.Budget
 	if budget == nil {
@@ -939,15 +883,6 @@ func (m *Manager) buildHistoricalData(projectID string, months int) []ForecastDa
 	}
 
 	return historicalData
-}
-
-// SetAlerter passes an AlertDispatcher through to the underlying BudgetTracker.
-// This allows operators to configure notification backends (Slack, webhook, etc.)
-// at daemon startup without re-creating the budget tracker.
-func (m *Manager) SetAlerter(d alerting.AlertDispatcher) {
-	if m.budgetTracker != nil {
-		m.budgetTracker.SetAlerter(d)
-	}
 }
 
 // ===========================================================================

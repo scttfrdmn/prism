@@ -254,11 +254,7 @@ func (s *Server) calculateActiveInstances(projectID string) int {
 }
 
 func (s *Server) calculateProjectCost(projectID string) float64 {
-	if s.budgetTracker == nil {
-		return 0.0
-	}
-
-	budgetStatus, err := s.budgetTracker.CheckBudgetStatus(projectID)
+	budgetStatus, err := s.budgetStatus(context.Background(), projectID)
 	if err != nil || !budgetStatus.BudgetEnabled {
 		return 0.0
 	}
@@ -528,16 +524,10 @@ func (s *Server) handleProjectBudgetHistory(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	if s.budgetTracker == nil {
-		s.writeError(w, http.StatusNotFound, "Budget tracker not configured")
-		return
-	}
-
-	history, err := s.budgetTracker.GetProjectCostHistory(projectID, days)
-	if err != nil {
-		s.writeError(w, http.StatusNotFound, fmt.Sprintf("No cost history for project: %v", err))
-		return
-	}
+	// Phase 3c (#653): the BudgetTracker cost-history store is retired. Ledger-derived history lands in
+	// Phase 3d (#654); until then this endpoint returns an empty series (its prior prod shape — the
+	// tracker never accumulated history in production).
+	history := []project.CostDataPoint{}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"project_id": projectID,
@@ -550,7 +540,7 @@ func (s *Server) handleProjectBudgetHistory(w http.ResponseWriter, r *http.Reque
 // handleGetProjectBudgetStatus retrieves budget status for a project
 func (s *Server) handleGetProjectBudgetStatus(w http.ResponseWriter, r *http.Request, projectID string) {
 	ctx := context.Background()
-	budgetStatus, err := s.projectManager.CheckBudgetStatus(ctx, projectID)
+	budgetStatus, err := s.budgetStatus(ctx, projectID)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get budget status: %v", err))
 		return
@@ -1462,7 +1452,9 @@ func (s *Server) handleProjectMonthlyReport(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	history, _ := s.budgetTracker.GetCostHistory(projectID)
+	// Phase 3c (#653): tracker cost history retired; ledger-derived history is Phase 3d (#654). The
+	// monthly report renders from budget + (empty) history until then.
+	var history []project.CostDataPoint
 
 	report, err := project.GenerateMonthlyReport(projectID, month, history, proj.Budget)
 	if err != nil {

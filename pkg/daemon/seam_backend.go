@@ -136,20 +136,17 @@ func seamStateDir() string {
 
 // initSeamManagersDynamo builds the managers over the DynamoDB-backed seam. Each record type gets a
 // prefix-<type> table; all share one Scope and one dynamodb.Client. No legacy migration runs here —
-// the cloud table is authoritative shared state, not a local file to import. The project manager
-// gets its own budget tracker, mirroring how the file-backed project.NewManager builds one.
+// the cloud table is authoritative shared state, not a local file to import. Phase 3c (#653): the
+// project manager no longer owns a budget tracker; budget status is derived from the spend ledger in
+// the daemon layer.
 func initSeamManagersDynamo(cfg awssdk.Config) (seamManagers, error) {
-	budgetTracker, err := project.NewBudgetTracker()
-	if err != nil {
-		return seamManagers{}, fmt.Errorf("budget tracker (dynamo): %w", err)
-	}
 	ddb := dynamodb.NewFromConfig(cfg)
 	prefix := seamTablePrefix()
 	scope := seamScope()
 	table := func(kind string) string { return prefix + "-" + kind }
 
 	projectManager, err := project.NewManagerForScope(
-		dynamostore.New[types.Project](ddb, table("projects")), scope, budgetTracker)
+		dynamostore.New[types.Project](ddb, table("projects")), scope)
 	if err != nil {
 		return seamManagers{}, fmt.Errorf("project manager (dynamo): %w", err)
 	}

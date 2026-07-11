@@ -45,7 +45,6 @@ func TestNewManager(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, manager)
-				assert.NotNil(t, manager.budgetTracker)
 				assert.NotNil(t, manager.projects)
 
 				// Verify state directory was created
@@ -2162,44 +2161,8 @@ func TestManager_GetProjectResourceUsage(t *testing.T) {
 	_, _ = manager.GetProjectResourceUsage(ctx, project.ID, 24*time.Hour)
 }
 
-// TestManager_CheckBudgetStatus tests budget status checking
-func TestManager_CheckBudgetStatus(t *testing.T) {
-	manager := setupTestManager(t)
-	ctx := context.Background()
-
-	// Test with non-existent project
-	_, err := manager.CheckBudgetStatus(ctx, "non-existent")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
-
-	// Test with project that has no budget
-	project, err := manager.CreateProject(ctx, &CreateProjectRequest{
-		Name:        "No Budget Project",
-		Description: "Project without budget",
-		Owner:       "test-user",
-	})
-	require.NoError(t, err)
-
-	status, err := manager.CheckBudgetStatus(ctx, project.ID)
-	assert.NoError(t, err)
-	assert.NotNil(t, status)
-	assert.Equal(t, project.ID, status.ProjectID)
-	assert.False(t, status.BudgetEnabled, "project should not have budget enabled")
-
-	// Test with project that has a budget
-	projectWithBudget, err := manager.CreateProject(ctx, &CreateProjectRequest{
-		Name:        "Budgeted Project",
-		Description: "Project with budget",
-		Owner:       "test-user",
-		Budget: &CreateProjectBudgetRequest{
-			TotalBudget: 10000.0,
-		},
-	})
-	require.NoError(t, err)
-
-	// This may return an error if budget tracker isn't fully initialized, but it exercises the code path
-	_, _ = manager.CheckBudgetStatus(ctx, projectWithBudget.ID)
-}
+// Budget status derivation moved to the daemon layer (Phase 3c, #653); see
+// pkg/daemon/budget_status_test.go. Manager no longer owns budget status.
 
 // ============ v0.12.0 Tests ============
 
