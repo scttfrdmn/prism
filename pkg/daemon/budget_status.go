@@ -15,7 +15,7 @@ import (
 // gate (checkMonthlyLimitViaEngine) and the status readout now fold the same events.
 //
 // The engine is fed the same synthesized plan view as the launch gate (budgetWindow +
-// newMonthlyLimitEngine) but reads spend from the persisted ledger when it has events, falling back
+// newMonthlyLimitView) but reads spend from the persisted ledger when it has events, falling back
 // to the project's cached SpentAmount otherwise. We evaluate BurnState at "now" (the status view of
 // the world) rather than at window-end (the gate's ceiling view).
 //
@@ -82,16 +82,33 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 		}
 	}
 
-	// Phase 3d (#654): period-aware burn rate from the ledger-derived cost-history series. Reuses the
-	// existing BurnRateCalculator (the same analytics the retired tracker fed). The 7-day trailing rate
-	// needs a few weeks of history, so pull a 90-day window; ComputeBurnRate re-clips to the period.
-	if series, err := s.ledgerCostSeries(ctx, projectID, now.AddDate(0, 0, -90), now); err == nil && len(series) >= 2 {
-		allocation := totalBudget
-		if budget.MonthlyAmount > 0 {
-			allocation = budget.MonthlyAmount
-		}
+	// Ledger-derived cost-history series feeds both burn-rate (3d) and surplus (3e). The 7-day
+	// trailing rate and the period-surplus walk both need several weeks of history, so pull 90 days;
+	// the calculators re-clip to their respective windows.
+	series, serr := s.ledgerCostSeries(ctx, projectID, now.AddDate(0, 0, -90), now)
+
+	// allocation is the current-period allowance: the per-month grant amount when set, else the total
+	// budget. Shared by burn-rate and surplus so the two agree.
+	allocation := totalBudget
+	if budget.MonthlyAmount > 0 {
+		allocation = budget.MonthlyAmount
+	}
+
+	// Phase 3d (#654): period-aware burn rate. Reuses the existing BurnRateCalculator (the same
+	// analytics the retired tracker fed).
+	if serr == nil && len(series) >= 2 {
 		calc := &project.BurnRateCalculator{}
 		status.BurnRate = calc.ComputeBurnRate(series, budget.BudgetPeriod, budget.StartDate, allocation)
+	}
+
+	// Phase 3e (#655): banking / rollover surplus for PERIODIC budgets only. Project-lifetime budgets
+	// don't bank across periods (BankedSurplus returns 0 for them), so Surplus stays nil there —
+	// mirroring how the retired tracker gated it. ComputeSurplusWithRollover honors the project's
+	// RolloverEnabled/RolloverCap fields and fills all five SurplusInfo fields from the real ledger
+	// series.
+	if serr == nil && budget.BudgetPeriod != "" && budget.BudgetPeriod != types.BudgetPeriodProject {
+		scalc := &project.SurplusCalculator{}
+		status.Surplus = scalc.ComputeSurplusWithRollover(series, budget, allocation)
 	}
 
 	return status, nil
@@ -110,7 +127,7 @@ func ledgerSpent(ctx context.Context, ledger *spendStore, projectID string, budg
 	if ledger != nil && projectID != "" {
 		if evs, err := ledger.Spend(ctx, projectScope(projectID)); err == nil && len(evs) > 0 {
 			win := budgetWindow(budget, now)
-			_, view := newMonthlyLimitEngine(budget, win, now)
+			view := newMonthlyLimitView(budget, win)
 			eng := be.New(ledger, view, be.FixedClock{T: now}, bepolicyDefaults()...)
 			if d, err := eng.CheckLaunch(ctx, projectScope(projectID), engineAllocationID, 0); err == nil {
 				return d.Spent
@@ -125,7 +142,7 @@ func ledgerSpent(ctx context.Context, ledger *spendStore, projectID string, budg
 // launch gate's source selection. ok is false only when Evaluate errors.
 func (s *Server) evaluateBurnState(ctx context.Context, projectID string, budget *types.ProjectBudget, now time.Time) (be.BurnState, bool) {
 	win := budgetWindow(budget, now)
-	_, view := newMonthlyLimitEngine(budget, win, now)
+	view := newMonthlyLimitView(budget, win)
 
 	spendSource := be.SpendSource(view)
 	if s.spendLedger != nil && projectID != "" {
@@ -133,7 +150,10 @@ func (s *Server) evaluateBurnState(ctx context.Context, projectID string, budget
 			spendSource = s.spendLedger
 		}
 	}
-	eng := be.New(spendSource, view, be.FixedClock{T: now}, bepolicyDefaults()...)
+	// Phase 3e (#655): the status read pace matches the budget kind — grants bank underspend
+	// (BankAndReserve × fixed-date), simple budgets re-pace (RateAdjust × floating-date). The launch
+	// gate stays on bepolicyDefaults(); CheckLaunch ignores pacing, so gate parity is unaffected.
+	eng := be.New(spendSource, view, be.FixedClock{T: now}, bepolicyFor(budget)...)
 	bs, err := eng.Evaluate(ctx, projectScope(projectID), engineAllocationID)
 	if err != nil {
 		return be.BurnState{}, false
