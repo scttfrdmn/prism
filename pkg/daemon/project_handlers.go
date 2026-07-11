@@ -524,10 +524,16 @@ func (s *Server) handleProjectBudgetHistory(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	// Phase 3c (#653): the BudgetTracker cost-history store is retired. Ledger-derived history lands in
-	// Phase 3d (#654); until then this endpoint returns an empty series (its prior prod shape — the
-	// tracker never accumulated history in production).
-	history := []project.CostDataPoint{}
+	// Phase 3d (#654): daily cost history is the ledger-derived series over the trailing window.
+	now := time.Now()
+	history, err := s.ledgerCostSeries(context.Background(), projectID, now.AddDate(0, 0, -days), now)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get cost history: %v", err))
+		return
+	}
+	if history == nil {
+		history = []project.CostDataPoint{}
+	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"project_id": projectID,
@@ -573,7 +579,7 @@ func (s *Server) handleProjectCosts(w http.ResponseWriter, r *http.Request, proj
 	}
 
 	ctx := context.Background()
-	costBreakdown, err := s.projectManager.GetProjectCostBreakdown(ctx, projectID, startDate, endDate)
+	costBreakdown, err := s.costBreakdown(ctx, projectID, startDate, endDate)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get cost breakdown: %v", err))
 		return
@@ -599,7 +605,7 @@ func (s *Server) handleProjectUsage(w http.ResponseWriter, r *http.Request, proj
 	}
 
 	ctx := context.Background()
-	usage, err := s.projectManager.GetProjectResourceUsage(ctx, projectID, period)
+	usage, err := s.resourceUsage(ctx, projectID, period)
 	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get resource usage: %v", err))
 		return
@@ -1446,15 +1452,24 @@ func (s *Server) handleProjectMonthlyReport(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Retrieve project and cost history
-	proj, err := s.projectManager.GetProject(context.Background(), projectID)
+	ctx := context.Background()
+	proj, err := s.projectManager.GetProject(ctx, projectID)
 	if err != nil {
 		s.writeError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
-	// Phase 3c (#653): tracker cost history retired; ledger-derived history is Phase 3d (#654). The
-	// monthly report renders from budget + (empty) history until then.
+	// Phase 3d (#654): feed GenerateMonthlyReport the real ledger-derived series for the target month.
+	// GenerateMonthlyReport re-clips to the month itself, but scoping the query keeps it cheap.
 	var history []project.CostDataPoint
+	if mt, perr := time.Parse("2006-01", month); perr == nil {
+		monthStart := time.Date(mt.Year(), mt.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthEnd := monthStart.AddDate(0, 1, 0)
+		if history, err = s.ledgerCostSeries(ctx, projectID, monthStart, monthEnd); err != nil {
+			s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to build cost history: %v", err))
+			return
+		}
+	}
 
 	report, err := project.GenerateMonthlyReport(projectID, month, history, proj.Budget)
 	if err != nil {

@@ -66,7 +66,7 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 		SpentAmount:     spent,
 		RemainingBudget: remaining,
 		SpentPercentage: spentPct,
-		// BurnRate/Surplus are ledger-derived analytics deferred to 3d/3e (#654/#655).
+		// Surplus (banking/rollover) stays nil — Phase 3e (#655). BurnRate is populated below (3d).
 		ActiveAlerts:     []string{},
 		TriggeredActions: []string{},
 		LastUpdated:      now,
@@ -80,6 +80,18 @@ func (s *Server) budgetStatus(ctx context.Context, projectID string) (*project.B
 			days := int(bs.ProjectedZeroDate.Sub(now).Hours() / 24)
 			status.DaysUntilBudgetExhausted = &days
 		}
+	}
+
+	// Phase 3d (#654): period-aware burn rate from the ledger-derived cost-history series. Reuses the
+	// existing BurnRateCalculator (the same analytics the retired tracker fed). The 7-day trailing rate
+	// needs a few weeks of history, so pull a 90-day window; ComputeBurnRate re-clips to the period.
+	if series, err := s.ledgerCostSeries(ctx, projectID, now.AddDate(0, 0, -90), now); err == nil && len(series) >= 2 {
+		allocation := totalBudget
+		if budget.MonthlyAmount > 0 {
+			allocation = budget.MonthlyAmount
+		}
+		calc := &project.BurnRateCalculator{}
+		status.BurnRate = calc.ComputeBurnRate(series, budget.BudgetPeriod, budget.StartDate, allocation)
 	}
 
 	return status, nil

@@ -2117,52 +2117,9 @@ func TestRequestValidation_TransferProjectRequest(t *testing.T) {
 	}
 }
 
-// TestManager_GetProjectCostBreakdown tests cost breakdown retrieval
-func TestManager_GetProjectCostBreakdown(t *testing.T) {
-	manager := setupTestManager(t)
-	ctx := context.Background()
-
-	// Test with non-existent project
-	_, err := manager.GetProjectCostBreakdown(ctx, "non-existent", time.Now().Add(-24*time.Hour), time.Now())
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
-
-	// Test with existing project (may fail if budget tracker not initialized, but covers the function)
-	project, err := manager.CreateProject(ctx, &CreateProjectRequest{
-		Name:        "Cost Test Project",
-		Description: "For cost breakdown testing",
-		Owner:       "test-user",
-	})
-	require.NoError(t, err)
-
-	// This may return an error if budget tracker isn't fully initialized, but it exercises the code path
-	_, _ = manager.GetProjectCostBreakdown(ctx, project.ID, time.Now().Add(-24*time.Hour), time.Now())
-}
-
-// TestManager_GetProjectResourceUsage tests resource usage retrieval
-func TestManager_GetProjectResourceUsage(t *testing.T) {
-	manager := setupTestManager(t)
-	ctx := context.Background()
-
-	// Test with non-existent project
-	_, err := manager.GetProjectResourceUsage(ctx, "non-existent", 24*time.Hour)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
-
-	// Test with existing project
-	project, err := manager.CreateProject(ctx, &CreateProjectRequest{
-		Name:        "Resource Test Project",
-		Description: "For resource usage testing",
-		Owner:       "test-user",
-	})
-	require.NoError(t, err)
-
-	// This may return an error if budget tracker isn't fully initialized, but it exercises the code path
-	_, _ = manager.GetProjectResourceUsage(ctx, project.ID, 24*time.Hour)
-}
-
-// Budget status derivation moved to the daemon layer (Phase 3c, #653); see
-// pkg/daemon/budget_status_test.go. Manager no longer owns budget status.
+// Cost breakdown and resource usage moved to the daemon layer (Phase 3d, #654); see
+// pkg/daemon/cost_aggregation_test.go. Budget status likewise (Phase 3c, #653); see
+// pkg/daemon/budget_status_test.go. The Manager no longer owns any cost/budget analytics.
 
 // ============ v0.12.0 Tests ============
 
