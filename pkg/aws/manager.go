@@ -72,18 +72,19 @@ func generateDCVPassword() string {
 
 // Manager handles all AWS operations
 type Manager struct {
-	cfg               aws.Config
-	ec2               EC2ClientInterface
-	efs               EFSClientInterface
-	iam               *iam.Client
-	ssm               SSMClientInterface
-	sts               STSClientInterface
-	region            string
-	templates         map[string]ctypes.Template
-	pricingClient     *PricingClient
-	spotPricingClient *SpotPricingClient
-	discountConfig    ctypes.DiscountConfig
-	stateManager      StateManagerInterface
+	cfg                   aws.Config
+	ec2                   EC2ClientInterface
+	efs                   EFSClientInterface
+	iam                   *iam.Client
+	ssm                   SSMClientInterface
+	sts                   STSClientInterface
+	region                string
+	templates             map[string]ctypes.Template
+	pricingClient         *PricingClient // EBS volume rates (on-demand compute moved to truffle)
+	onDemandPricingClient *OnDemandPricingClient
+	spotPricingClient     *SpotPricingClient
+	discountConfig        ctypes.DiscountConfig
+	stateManager          StateManagerInterface
 
 	// launcher is the instance launch/lifecycle engine (spawn adoption).
 	// Defaults to the EC2-backed ec2Launcher; swappable for tests and, in a
@@ -171,10 +172,12 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	// Initialize Universal Version System (v0.5.4)
 	amiDiscovery := NewAMIDiscovery(ssmClient)
 
-	// Initialize AWS Pricing API client with caching
+	// Initialize AWS Pricing client (EBS volume rates; on-demand compute moved to truffle)
 	pricingClient := NewPricingClient(cfg)
 
-	// Initialize spot pricing client (truffle-backed) for accurate spot-instance estimates (#659)
+	// Initialize on-demand + spot pricing clients (truffle-backed) for accurate
+	// per-region instance-rate estimates (spawn adoption; spot from #659)
+	onDemandPricingClient := NewOnDemandPricingClient(cfg)
 	spotPricingClient := NewSpotPricingClient(cfg)
 
 	// Initialize Quota and Availability Management (v0.7.0)
@@ -184,24 +187,25 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 
 	// Create manager first (needed for adapter)
 	manager := &Manager{
-		cfg:                 cfg,
-		ec2:                 ec2Client,
-		efs:                 efsClient,
-		iam:                 iamClient,
-		ssm:                 ssmClient,
-		sts:                 stsClient,
-		region:              region,
-		templates:           getTemplates(),
-		pricingClient:       pricingClient,
-		spotPricingClient:   spotPricingClient,
-		discountConfig:      ctypes.DiscountConfig{}, // No discounts by default
-		stateManager:        stateManager,
-		amiResolver:         amiResolver,
-		amiDiscovery:        amiDiscovery,
-		architectureCache:   make(map[string]string), // Initialize architecture cache
-		quotaManager:        quotaManager,
-		availabilityManager: availabilityManager,
-		healthMonitor:       healthMonitor,
+		cfg:                   cfg,
+		ec2:                   ec2Client,
+		efs:                   efsClient,
+		iam:                   iamClient,
+		ssm:                   ssmClient,
+		sts:                   stsClient,
+		region:                region,
+		templates:             getTemplates(),
+		pricingClient:         pricingClient,
+		onDemandPricingClient: onDemandPricingClient,
+		spotPricingClient:     spotPricingClient,
+		discountConfig:        ctypes.DiscountConfig{}, // No discounts by default
+		stateManager:          stateManager,
+		amiResolver:           amiResolver,
+		amiDiscovery:          amiDiscovery,
+		architectureCache:     make(map[string]string), // Initialize architecture cache
+		quotaManager:          quotaManager,
+		availabilityManager:   availabilityManager,
+		healthMonitor:         healthMonitor,
 	}
 
 	// Default the launch/lifecycle engine to the hybrid launcher: Prism's own
@@ -2740,23 +2744,25 @@ func (c *InstanceStateConverter) isHibernationConfigured(ec2Instance ec2types.In
 
 // InstanceBuilder builds Prism instance objects (Builder Pattern - SOLID)
 type InstanceBuilder struct {
-	tagExtractor      *InstanceTagExtractor
-	stateConverter    *InstanceStateConverter
-	ec2Client         EC2ClientInterface
-	pricingClient     *PricingClient
-	spotPricingClient *SpotPricingClient
-	region            string
+	tagExtractor          *InstanceTagExtractor
+	stateConverter        *InstanceStateConverter
+	ec2Client             EC2ClientInterface
+	pricingClient         *PricingClient // EBS volume rates only (compute rates moved to truffle)
+	onDemandPricingClient *OnDemandPricingClient
+	spotPricingClient     *SpotPricingClient
+	region                string
 }
 
 // NewInstanceBuilder creates instance builder
-func NewInstanceBuilder(ec2Client EC2ClientInterface, pricingClient *PricingClient, spotPricingClient *SpotPricingClient, region string) *InstanceBuilder {
+func NewInstanceBuilder(ec2Client EC2ClientInterface, pricingClient *PricingClient, onDemandPricingClient *OnDemandPricingClient, spotPricingClient *SpotPricingClient, region string) *InstanceBuilder {
 	return &InstanceBuilder{
-		tagExtractor:      &InstanceTagExtractor{},
-		stateConverter:    &InstanceStateConverter{},
-		ec2Client:         ec2Client,
-		pricingClient:     pricingClient,
-		spotPricingClient: spotPricingClient,
-		region:            region,
+		tagExtractor:          &InstanceTagExtractor{},
+		stateConverter:        &InstanceStateConverter{},
+		ec2Client:             ec2Client,
+		pricingClient:         pricingClient,
+		onDemandPricingClient: onDemandPricingClient,
+		spotPricingClient:     spotPricingClient,
+		region:                region,
 	}
 }
 
@@ -2901,12 +2907,12 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	// Calculate cost metrics based on instance type and runtime
 	instanceType := string(ec2Instance.InstanceType)
 
-	// Get accurate hourly rate from AWS Pricing API (with fallback to estimates)
+	// Get the accurate on-demand hourly rate via truffle (with fallback to estimates)
 	ctx := context.Background()
-	hourlyRate, err := b.pricingClient.GetInstanceHourlyRate(ctx, b.region, instanceType)
+	hourlyRate, err := b.onDemandPricingClient.GetOnDemandHourlyRate(ctx, instanceType, b.region)
 	if err != nil {
-		// Fall back to hardcoded estimate on error (pricing API failure)
-		log.Printf("Warning: Pricing API failed for %s in %s: %v. Using estimate.", instanceType, b.region, err)
+		// Fall back to hardcoded estimate on error (pricing lookup failure)
+		log.Printf("Warning: on-demand pricing failed for %s in %s: %v. Using estimate.", instanceType, b.region, err)
 		hourlyRate = getHourlyRate(instanceType)
 	}
 
@@ -2970,10 +2976,10 @@ type InstanceListProcessor struct {
 }
 
 // NewInstanceListProcessor creates instance list processor
-func NewInstanceListProcessor(ec2Client EC2ClientInterface, pricingClient *PricingClient, spotPricingClient *SpotPricingClient, region string) *InstanceListProcessor {
+func NewInstanceListProcessor(ec2Client EC2ClientInterface, pricingClient *PricingClient, onDemandPricingClient *OnDemandPricingClient, spotPricingClient *SpotPricingClient, region string) *InstanceListProcessor {
 	return &InstanceListProcessor{
 		stateLoader:     &StateLoader{},
-		instanceBuilder: NewInstanceBuilder(ec2Client, pricingClient, spotPricingClient, region),
+		instanceBuilder: NewInstanceBuilder(ec2Client, pricingClient, onDemandPricingClient, spotPricingClient, region),
 	}
 }
 
@@ -3018,7 +3024,7 @@ func (m *Manager) GetInstance(instanceID string) (*ctypes.Instance, error) {
 	}
 
 	// Process the single instance
-	processor := NewInstanceListProcessor(m.ec2, m.pricingClient, m.spotPricingClient, m.region)
+	processor := NewInstanceListProcessor(m.ec2, m.pricingClient, m.onDemandPricingClient, m.spotPricingClient, m.region)
 	instances := processor.ProcessReservations(result.Reservations)
 
 	if len(instances) == 0 {
@@ -3091,7 +3097,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		}
 
 		// Process instances from this region
-		processor := NewInstanceListProcessor(regionalClient, m.pricingClient, m.spotPricingClient, region)
+		processor := NewInstanceListProcessor(regionalClient, m.pricingClient, m.onDemandPricingClient, m.spotPricingClient, region)
 		regionalInstances := processor.ProcessReservations(result.Reservations)
 
 		// Ensure each instance has the region set and merge cached metadata

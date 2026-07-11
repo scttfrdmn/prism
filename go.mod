@@ -18,7 +18,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/health v1.39.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.55.0
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.52.0
-	github.com/aws/aws-sdk-go-v2/service/pricing v1.43.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.36.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.71.0
@@ -48,6 +47,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.73.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ebs v1.34.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/imagebuilder v1.55.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/pricing v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.33.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sns v1.39.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.27 // indirect

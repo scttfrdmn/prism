@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The
+  on-demand compute rate recorded on every instance (`Instance.HourlyRate`) is
+  now sourced from `github.com/spore-host/truffle` via a new
+  `OnDemandPricingClient` (`pkg/aws/ondemand_pricing.go`), mirroring the spot
+  path shipped in #659. This completes the truffle pricing consolidation:
+  truffle wraps the AWS Price List API with a 24h cache and a static fallback and
+  is **region-aware**, replacing Prism's hand-rolled Price List query whose
+  static fallback table was us-east-1-only — so per-region estimates (e.g.
+  us-west-2) are now accurate rather than us-east-1 approximations. The static
+  `getHourlyRate` estimate is retained purely as the on-truffle-error fallback,
+  so `HourlyRate` is never left at 0 on the list/refresh path. The old on-demand
+  Price List code (`GetInstanceHourlyRate`/`queryPricingAPI`/`parsePriceFromJSON`
+  + its 24h cache) is removed; `PricingClient` now holds only EBS volume rates
+  (truffle has no storage pricing). Spot/on-demand rate selection
+  (`EffectiveComputeRate`) is unchanged. Verified against real AWS (t3.large
+  us-west-2 → the correct regional list price).
+
 ### Added
 - **spawn adoption — opt-in launch capabilities (Phase 3a).** Three new opt-in
   `prism workspace launch` flags, all default-off (empty/false = today's
