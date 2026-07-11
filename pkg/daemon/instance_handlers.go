@@ -1611,7 +1611,7 @@ func (s *Server) isLaunchBlockedByBudget(req *types.LaunchRequest, w http.Respon
 
 	// If launch is manually prevented, block it
 	if launchPrevented {
-		budgetStatus, err := s.projectManager.CheckBudgetStatus(ctx, req.ProjectID)
+		budgetStatus, err := s.budgetStatus(ctx, req.ProjectID)
 		if err != nil {
 			// Fallback error message if we can't get budget details
 			s.writeError(w, http.StatusForbidden,

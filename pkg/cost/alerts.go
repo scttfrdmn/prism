@@ -603,43 +603,45 @@ func isAutomatedAction(actionType string) bool {
 	return actionType == "notify"
 }
 
-// BudgetTrackerAdapter adapts a BudgetTracker to the CostDataProvider interface
-type BudgetTrackerAdapter struct {
+// FuncCostDataProvider adapts a pair of closures to the CostDataProvider interface. The daemon backs
+// it with the project manager + budgetengine spend ledger (Phase 3c, #653); it previously wrapped the
+// retired BudgetTracker, hence the closure shape.
+type FuncCostDataProvider struct {
 	getBudgetDataFunc  func(projectID string) (currentCost, budget, dailyCost float64, costHistory []float64, err error)
 	getAllProjectsFunc func() ([]string, error)
 }
 
-// NewBudgetTrackerAdapter creates a new adapter for a budget tracker
-func NewBudgetTrackerAdapter(
+// NewFuncCostDataProvider creates a closure-backed CostDataProvider.
+func NewFuncCostDataProvider(
 	getBudgetDataFunc func(projectID string) (float64, float64, float64, []float64, error),
 	getAllProjectsFunc func() ([]string, error),
-) *BudgetTrackerAdapter {
-	return &BudgetTrackerAdapter{
+) *FuncCostDataProvider {
+	return &FuncCostDataProvider{
 		getBudgetDataFunc:  getBudgetDataFunc,
 		getAllProjectsFunc: getAllProjectsFunc,
 	}
 }
 
 // GetProjectCurrentCost returns the current cost for a project
-func (bta *BudgetTrackerAdapter) GetProjectCurrentCost(projectID string) (float64, error) {
+func (bta *FuncCostDataProvider) GetProjectCurrentCost(projectID string) (float64, error) {
 	currentCost, _, _, _, err := bta.getBudgetDataFunc(projectID)
 	return currentCost, err
 }
 
 // GetProjectBudget returns the budget for a project
-func (bta *BudgetTrackerAdapter) GetProjectBudget(projectID string) (float64, error) {
+func (bta *FuncCostDataProvider) GetProjectBudget(projectID string) (float64, error) {
 	_, budget, _, _, err := bta.getBudgetDataFunc(projectID)
 	return budget, err
 }
 
 // GetProjectDailyCost returns the daily cost for a project
-func (bta *BudgetTrackerAdapter) GetProjectDailyCost(projectID string) (float64, error) {
+func (bta *FuncCostDataProvider) GetProjectDailyCost(projectID string) (float64, error) {
 	_, _, dailyCost, _, err := bta.getBudgetDataFunc(projectID)
 	return dailyCost, err
 }
 
 // GetProjectCostHistory returns cost history for calculating trends/anomalies
-func (bta *BudgetTrackerAdapter) GetProjectCostHistory(projectID string, days int) ([]float64, error) {
+func (bta *FuncCostDataProvider) GetProjectCostHistory(projectID string, days int) ([]float64, error) {
 	_, _, _, costHistory, err := bta.getBudgetDataFunc(projectID)
 	if err != nil {
 		return nil, err
@@ -653,7 +655,7 @@ func (bta *BudgetTrackerAdapter) GetProjectCostHistory(projectID string, days in
 }
 
 // GetAllProjectIDs returns all project IDs being tracked
-func (bta *BudgetTrackerAdapter) GetAllProjectIDs() ([]string, error) {
+func (bta *FuncCostDataProvider) GetAllProjectIDs() ([]string, error) {
 	if bta.getAllProjectsFunc == nil {
 		return []string{"default"}, nil
 	}

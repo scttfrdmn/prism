@@ -1406,3 +1406,8 @@ func TestBudgetManager_GetProjectAllocations_MultipleTest(t *testing.T) {
 	}
 	assert.Equal(t, 35000.0, totalAllocated, "total allocated from both sources")
 }
+
+// timePtr returns a pointer to t (was defined in the deleted budget_tracker_test.go).
+func timePtr(t time.Time) *time.Time {
+	return &t
+}

@@ -16,7 +16,6 @@ import (
 
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
-	"github.com/scttfrdmn/prism/pkg/alerting"
 	"github.com/scttfrdmn/prism/pkg/aws"
 	"github.com/scttfrdmn/prism/pkg/connection"
 	"github.com/scttfrdmn/prism/pkg/cost"
@@ -73,7 +72,6 @@ type Server struct {
 	storageStateMonitor *StorageStateMonitor
 
 	// Cost optimization components
-	budgetTracker   *project.BudgetTracker
 	alertManager    *cost.AlertManager
 	rateLimiter     *RateLimiter              // Launch rate limiting (v0.5.12)
 	launchThrottler *throttle.LaunchThrottler // Advanced launch throttling (v0.6.0)
@@ -212,27 +210,22 @@ func initCloudWatchClient(awsMgr *aws.Manager) *cloudwatch.Client {
 	return cloudwatch.NewFromConfig(awsMgr.GetAWSConfig())
 }
 
-// makeCostDataFn returns a cost data provider function backed by the given BudgetTracker.
-func makeCostDataFn(bt *project.BudgetTracker) func(string) (float64, float64, float64, []float64, error) {
+// makeCostDataFn returns a cost data provider function backed by the project manager (budget plan)
+// and the budgetengine spend ledger (actuals). Phase 3c (#653): the BudgetTracker that used to back
+// this feed is gone — spend now comes from the ledger via ledgerSpent, and cost history is empty
+// until the ledger-derived series lands in Phase 3d (#654) (the alert manager degrades to the
+// point-in-time spent/budget it already tolerated for fresh projects).
+func makeCostDataFn(pm *project.Manager, ledger *spendStore) func(string) (float64, float64, float64, []float64, error) {
 	return func(projectID string) (float64, float64, float64, []float64, error) {
-		budgetStatus, err := bt.CheckBudgetStatus(projectID)
-		if err != nil {
+		ctx := context.Background()
+		proj, err := pm.GetProject(ctx, projectID)
+		if err != nil || proj.Budget == nil {
 			return 0, 0, 0, []float64{}, nil
 		}
-		costHistory, err := bt.GetProjectCostHistory(projectID, 90)
-		if err != nil {
-			costHistory = []float64{}
-		}
-		dailyCost := budgetStatus.SpentAmount
-		if len(costHistory) >= 2 {
-			recentCost := costHistory[len(costHistory)-1]
-			previousCost := costHistory[len(costHistory)-2]
-			dailyCost = recentCost - previousCost
-			if dailyCost < 0 {
-				dailyCost = 0
-			}
-		}
-		return budgetStatus.SpentAmount, budgetStatus.TotalBudget, dailyCost, costHistory, nil
+		spent := ledgerSpent(ctx, ledger, projectID, proj.Budget, time.Now())
+		// dailyCost/costHistory are ledger-derived analytics deferred to 3d (#654); the feed tolerates
+		// an empty history and a spent-as-daily approximation (this alert path is currently inert).
+		return spent, proj.Budget.TotalBudget, spent, []float64{}, nil
 	}
 }
 
@@ -337,17 +330,20 @@ func NewServer(port string) (*Server, error) {
 	// Initialize shared token manager (v0.5.13 shared token system)
 	sharedTokenManager := invitation.NewSharedTokenManager()
 
-	// Initialize cost optimization components
-	budgetTracker, err := project.NewBudgetTracker()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize budget tracker: %w", err)
-	}
-
-	// Create cost data provider adapter for alert manager
-	costDataProvider := cost.NewBudgetTrackerAdapter(
-		makeCostDataFn(budgetTracker),
+	// Create cost data provider adapter for the alert manager. Phase 3c (#653): backed by the project
+	// manager + spend ledger (the BudgetTracker is retired), not a separate budget store.
+	costDataProvider := cost.NewFuncCostDataProvider(
+		makeCostDataFn(projectManager, spendLedger),
 		func() ([]string, error) {
-			return budgetTracker.GetAllProjectIDs(), nil
+			projects, err := projectManager.ListProjects(context.Background(), nil)
+			if err != nil {
+				return nil, err
+			}
+			ids := make([]string, 0, len(projects))
+			for _, p := range projects {
+				ids = append(ids, p.ID)
+			}
+			return ids, nil
 		},
 	)
 
@@ -451,7 +447,6 @@ func NewServer(port string) (*Server, error) {
 		stabilityManager:    stabilityManager,
 		stateMonitor:        stateMonitor,
 		storageStateMonitor: storageStateMonitor,
-		budgetTracker:       budgetTracker,
 		alertManager:        alertManager,
 		rateLimiter:         rateLimiter,
 		launchThrottler:     launchThrottler,
@@ -526,18 +521,9 @@ func NewServer(port string) (*Server, error) {
 		logger.Info(getReducedModeBanner())
 	}
 
-	// Configure budget tracker with action executor
-	budgetTracker.SetActionExecutor(server)
-
-	// Wire AlertDispatcher into budget tracker (Issue #138).
-	// If PRISM_SLACK_WEBHOOK is set, use a WebhookDispatcher; otherwise keep the default LogDispatcher.
-	if slackURL := os.Getenv("PRISM_SLACK_WEBHOOK"); slackURL != "" {
-		webhookDisp := alerting.NewWebhookDispatcher(alerting.WebhookConfig{
-			Channels: []alerting.Channel{{Type: alerting.ChannelSlack, Target: slackURL}},
-		})
-		server.SetAlerterOnBudgetTracker(webhookDisp)
-		logger.Info("Budget alert dispatcher configured", "channel", "slack")
-	}
+	// Phase 3c (#653): the BudgetTracker that owned the auto-action executor and the alert dispatcher
+	// is retired. Live budget enforcement (hibernate/stop/prevent-launch via the engine ActionSink)
+	// and alert-dispatcher wiring are tracked as a net-new feature (#656); this path was inert in prod.
 
 	// Initialize recovery and health monitoring (need server reference)
 	server.recoveryManager = NewRecoveryManager(stabilityManager, nil) // Will be set after server creation
@@ -1429,15 +1415,4 @@ func (s *Server) ExecutePreventLaunch(projectID string) error {
 
 	logger.Info("Budget auto action prevented new launches", "project", projectID)
 	return nil
-}
-
-// SetAlerterOnBudgetTracker configures an AlertDispatcher on the budget tracker.
-// Called at startup when PRISM_SLACK_WEBHOOK or another notifier is configured.
-func (s *Server) SetAlerterOnBudgetTracker(d alerting.AlertDispatcher) {
-	if s.budgetTracker != nil {
-		s.budgetTracker.SetAlerter(d)
-	}
-	if s.projectManager != nil {
-		s.projectManager.SetAlerter(d)
-	}
 }

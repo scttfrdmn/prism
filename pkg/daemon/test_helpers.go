@@ -79,14 +79,16 @@ func setupTestBudget(t *testing.T, server *Server, projectID string, totalBudget
 
 	t.Logf("Created budget and allocation for project %s: $%.2f", projectID, totalBudget)
 
-	// Also initialize the project in the budgetTracker so cost/trends/status endpoints work
-	if server.budgetTracker != nil {
+	// Phase 3c (#653): budget status now derives from the project's embedded budget + the spend
+	// ledger (not a separate tracker). Set the project budget so status/cost endpoints see it.
+	if server.projectManager != nil {
 		monthlyLimit := totalBudget
 		projectBudget := &types.ProjectBudget{
+			TotalBudget:  totalBudget,
 			MonthlyLimit: &monthlyLimit,
 		}
-		if err := server.budgetTracker.InitializeProject(projectID, projectBudget); err != nil {
-			t.Logf("Warning: failed to initialize project in budget tracker: %v", err)
+		if err := server.projectManager.SetProjectBudget(ctx, projectID, projectBudget); err != nil {
+			t.Logf("Warning: failed to set project budget: %v", err)
 		}
 	}
 }

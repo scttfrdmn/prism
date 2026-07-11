@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Budget status is now derived from the spend ledger, not the retired tracker (Phase 3c, #653).**
+  The daemon computes `BudgetStatus` (`pkg/daemon/budget_status.go`) directly from the `budgetengine`
+  spend ledger + the project's embedded budget plan: `SpentAmount` is the ledger fold (falling back to
+  the project's cached `SpentAmount` only while the ledger is empty), and `RemainingBudget` /
+  `SpentPercentage` / `ProjectedMonthlySpend` / days-until-exhausted derive from that and the engine's
+  `BurnState`. The launch gate and the status readout now fold the **same** events — there is no
+  longer a parallel budget model. `pkg/project.Manager` sheds all budget concerns and returns to pure
+  project identity/lifecycle (its `budgetTracker`, `CheckBudgetStatus`, and `SetAlerter` are removed;
+  `NewManagerForScope`/`NewManagerWithStore` drop the tracker argument). Cost-history / trends /
+  monthly-report endpoints keep their response shape but return an empty series until the
+  ledger-derived aggregates land in Phase 3d (#654). `cost.BudgetTrackerAdapter` is renamed
+  `cost.FuncCostDataProvider` (closure-backed, now fed by the project manager + ledger).
 - **Spend ledger records per-resource, per-component line items (#652).** The spend observer now
   populates the v0.2.0 `SpendEvent` line-item fields: each event carries `ResourceID` (instance id)
   and an **un-blended** split of `Compute` and `Storage` (Network unmodeled) that sums to `Amount`.
@@ -17,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only running ones. This gives the ledger the detail Phase 3d aggregates into the cost-breakdown /
   resource-usage / report DTOs. Reconciliation now tracks estimate and billed baselines in their own
   units so the two never conflate.
+
+### Removed
+- **`pkg/project.BudgetTracker` and its `budget_data.json` persistence (Phase 3c, #653).** The legacy
+  budget tracker — a parallel spend/analytics model that was hollow in production (its
+  `UpdateProjectCosts`/`UpdateProjectSpending` had no prod callers and its auto-action path was
+  inert) — is deleted in favor of the single `budgetengine` ledger. No working behavior is lost;
+  live budget enforcement via the engine `ActionSink` is tracked separately (#656).
 
 ### Added
 - **Opt-in Cost Explorer billed-cost reconciliation (#644).** The budget spend ledger can now

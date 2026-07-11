@@ -1,11 +1,13 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/scttfrdmn/prism/pkg/cost"
+	"github.com/scttfrdmn/prism/pkg/project"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
@@ -207,11 +209,21 @@ func (s *Server) handleGetCostTrends(w http.ResponseWriter, r *http.Request) {
 		period = "30d"
 	}
 
-	// Get cost trends from budget tracker
-	trends, err := s.budgetTracker.GetCostTrends(projectID, period)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	// Phase 3c (#653): the BudgetTracker cost-history store is retired; ledger-derived trends land in
+	// Phase 3d (#654). Preserve the response shape with an empty series until then.
+	days := 30
+	switch period {
+	case "7d":
+		days = 7
+	case "90d":
+		days = 90
+	}
+	trends := map[string]interface{}{
+		"project_id": projectID,
+		"period":     period,
+		"days":       days,
+		"trends":     []project.CostDataPoint{},
+		"count":      0,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -226,10 +238,35 @@ func (s *Server) handleGetBudgetStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := s.budgetTracker.GetBudgetStatus(projectID)
+	// Phase 3c (#653): derive from the engine-backed budget status (ledger spend + budget plan) rather
+	// than the retired BudgetTracker. Response shape preserved.
+	bs, err := s.budgetStatus(context.Background(), projectID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	proj, err := s.projectManager.GetProject(context.Background(), projectID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	budgetLimit := 0.0
+	if proj.Budget != nil && proj.Budget.MonthlyLimit != nil {
+		budgetLimit = *proj.Budget.MonthlyLimit
+	}
+	usagePercent := 0.0
+	if budgetLimit > 0 {
+		usagePercent = (bs.SpentAmount / budgetLimit) * 100
+	}
+	status := map[string]interface{}{
+		"project_id":     projectID,
+		"budget_limit":   budgetLimit,
+		"current_spend":  bs.SpentAmount,
+		"usage_percent":  usagePercent,
+		"budget":         proj.Budget,
+		"last_updated":   bs.LastUpdated,
+		"alerts_enabled": proj.Budget != nil && len(proj.Budget.AlertThresholds) > 0,
+		"recent_alerts":  len(bs.ActiveAlerts),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
