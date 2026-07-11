@@ -92,28 +92,41 @@ func configToRunInput(cfg spawn.LaunchConfig) *ec2.RunInstancesInput {
 	minCount := int32(1)
 	maxCount := int32(1)
 
+	// NetworkInterfaces (not top-level subnet/SG) so the instance always gets a
+	// public IP even in subnets with MapPublicIpOnLaunch=false (Issue #439). When
+	// EFA is requested, the NIC carries InterfaceType="efa" (mirrors spawn
+	// client.go:388-421 so the eventual launch swap is behavior-identical).
+	nic := ec2types.InstanceNetworkInterfaceSpecification{
+		DeviceIndex:              aws.Int32(0),
+		SubnetId:                 aws.String(cfg.SubnetID),
+		Groups:                   cfg.SecurityGroupIDs,
+		AssociatePublicIpAddress: aws.Bool(true),
+	}
+	if cfg.EFAEnabled {
+		nic.InterfaceType = aws.String("efa")
+	}
+
 	runInput := &ec2.RunInstancesInput{
-		ImageId:      aws.String(cfg.AMI),
-		InstanceType: ec2types.InstanceType(cfg.InstanceType),
-		MinCount:     &minCount,
-		MaxCount:     &maxCount,
-		UserData:     aws.String(cfg.UserData),
-		// NetworkInterfaces (not top-level subnet/SG) so the instance always gets
-		// a public IP even in subnets with MapPublicIpOnLaunch=false (Issue #439).
-		NetworkInterfaces: []ec2types.InstanceNetworkInterfaceSpecification{
-			{
-				DeviceIndex:              aws.Int32(0),
-				SubnetId:                 aws.String(cfg.SubnetID),
-				Groups:                   cfg.SecurityGroupIDs,
-				AssociatePublicIpAddress: aws.Bool(true),
-			},
-		},
+		ImageId:           aws.String(cfg.AMI),
+		InstanceType:      ec2types.InstanceType(cfg.InstanceType),
+		MinCount:          &minCount,
+		MaxCount:          &maxCount,
+		UserData:          aws.String(cfg.UserData),
+		NetworkInterfaces: []ec2types.InstanceNetworkInterfaceSpecification{nic},
 		TagSpecifications: []ec2types.TagSpecification{
 			{
 				ResourceType: ec2types.ResourceTypeInstance,
 				Tags:         tagsMapToEC2(cfg.Tags),
 			},
 		},
+	}
+
+	// Cluster placement group for tightly-coupled / MPI workloads (mirrors spawn
+	// client.go:423-433). AZ is left to the subnet, as before.
+	if cfg.PlacementGroup != "" {
+		runInput.Placement = &ec2types.Placement{
+			GroupName: aws.String(cfg.PlacementGroup),
+		}
 	}
 
 	if cfg.KeyName != "" {

@@ -565,6 +565,16 @@ func (p *LaunchOptionsProcessor) ValidateOptions(req ctypes.LaunchRequest, insta
 		return fmt.Errorf("instance type %s does not support idle policy (hibernation)\n\n💡 Idle policy is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --idle-policy flag or choose a different instance size", instanceType)
 	}
 
+	// A spot max price only makes sense for a spot launch (spawn adoption #3a)
+	if req.SpotMaxPrice != "" && !req.Spot {
+		return fmt.Errorf("--spot-max-price requires --spot\n\n💡 Max price only applies to spot instances. Add --spot, or drop --spot-max-price to launch on-demand")
+	}
+
+	// EFA requires an EFA-capable instance type (spawn adoption #3a)
+	if req.EFA && !supportsEFA(instanceType) {
+		return fmt.Errorf("instance type %s does not support EFA (Elastic Fabric Adapter)\n\n💡 EFA is available on HPC and select network-optimized families, e.g.:\n  • HPC: hpc7a, hpc7g, hpc6id, hpc6a\n  • Compute: c7i, c7g, c7gn, c6in, c6gn, c5n\n  • GPU/ML: p4d, p4de, p5, g5, g6, trn1\n\nTip: Remove --efa or choose an EFA-capable instance type", instanceType)
+	}
+
 	return nil
 }
 
@@ -891,6 +901,9 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 		RootVolumeGB:          rootVolumeGB,
 		Hibernate:             req.IdlePolicy,
 		Spot:                  req.Spot,
+		SpotMaxPrice:          req.SpotMaxPrice,
+		EFA:                   req.EFA,
+		PlacementGroup:        req.PlacementGroup,
 		CapacityReservationID: req.CapacityBlockID,
 		IAMInstanceProfile:    o.configBuilder.resolveIAMInstanceProfile(),
 		HourlyRate:            hourlyCost,
@@ -3998,6 +4011,38 @@ func (m *Manager) supportsHibernation(instanceType string) bool {
 
 	family := instanceType[:dotIndex]
 	return supportedFamilies[family]
+}
+
+// supportsEFA reports whether an instance type's family can attach an Elastic
+// Fabric Adapter. Modeled on supportsHibernation: a static allowlist of the
+// EFA-capable families from AWS docs (opt-in --efa validation, spawn adoption
+// Phase 3a). Kept as a list rather than a DescribeInstanceTypes call to match
+// the existing capability-check pattern and avoid an AWS round-trip at launch.
+// Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/efa-instance-types.html
+func supportsEFA(instanceType string) bool {
+	efaFamilies := map[string]bool{
+		// HPC
+		"hpc7a": true, "hpc7g": true, "hpc6id": true, "hpc6a": true,
+		// Compute optimized (network-optimized variants)
+		"c5n": true, "c6in": true, "c6gn": true, "c7g": true, "c7gn": true, "c7i": true, "c7a": true,
+		// Memory optimized
+		"r7g": true, "r7i": true, "r7a": true, "r7iz": true, "x2idn": true, "x2iedn": true,
+		// General purpose
+		"m5n": true, "m5dn": true, "m6i": true, "m6a": true, "m7g": true, "m7i": true, "m7a": true,
+		// Storage / IO optimized
+		"i3en": true, "i4i": true, "im4gn": true,
+		// GPU / accelerated computing
+		"p3dn": true, "p4d": true, "p4de": true, "p5": true, "p5e": true,
+		"g5": true, "g6": true, "g6e": true, "gr6": true, "g4dn": true,
+		// ML accelerators
+		"trn1": true, "trn1n": true, "inf2": true, "dl1": true, "dl2q": true,
+	}
+
+	dotIndex := strings.Index(instanceType, ".")
+	if dotIndex == -1 {
+		return efaFamilies[instanceType]
+	}
+	return efaFamilies[instanceType[:dotIndex]]
 }
 
 // getHourlyRate returns the AWS list price per hour for an instance type

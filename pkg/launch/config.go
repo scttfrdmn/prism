@@ -41,9 +41,20 @@ type Inputs struct {
 	// hibernation-support validations have already passed in pkg/aws.
 	Hibernate bool
 
-	// Spot requests a one-time spot instance. Phase 1 sets no max price to match
-	// today's on-demand-capped behavior; SpotMaxPrice is a Phase 3 opt-in.
+	// Spot requests a one-time spot instance.
 	Spot bool
+
+	// SpotMaxPrice is an optional max spot price in $/hr (e.g. "0.50"); only
+	// meaningful with Spot. Empty = the on-demand-capped default.
+	SpotMaxPrice string
+
+	// EFA requests an Elastic Fabric Adapter network interface (opt-in; the
+	// caller validates the instance type is EFA-capable before mapping).
+	EFA bool
+
+	// PlacementGroup is an optional cluster placement group name for
+	// tightly-coupled / MPI workloads.
+	PlacementGroup string
 
 	// CapacityReservationID targets a pre-reserved EC2 Capacity Block (req.CapacityBlockID).
 	CapacityReservationID string
@@ -82,6 +93,9 @@ func ToLaunchConfig(in Inputs) spawn.LaunchConfig {
 		RootVolumeSizeGiB:  rootVolumeInt32(in.RootVolumeGB),
 		Hibernate:          in.Hibernate,
 		Spot:               in.Spot,
+		SpotMaxPrice:       in.SpotMaxPrice,
+		EFAEnabled:         in.EFA,
+		PlacementGroup:     in.PlacementGroup,
 		ReservationID:      in.CapacityReservationID,
 		IamInstanceProfile: in.IAMInstanceProfile,
 		PricePerHour:       in.HourlyRate,

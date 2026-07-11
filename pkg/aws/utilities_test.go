@@ -34,6 +34,62 @@ func TestSupportsHibernationExtended(t *testing.T) {
 	}
 }
 
+// TestSupportsEFA covers the EFA-capability allowlist (spawn adoption Phase 3a).
+func TestSupportsEFA(t *testing.T) {
+	tests := []struct {
+		instanceType string
+		expected     bool
+	}{
+		{"hpc7a.48xlarge", true}, // HPC family
+		{"c7i.large", true},      // network-optimized compute
+		{"c5n.9xlarge", true},    // classic EFA compute
+		{"p4d.24xlarge", true},   // GPU/ML
+		{"trn1.32xlarge", true},  // ML accelerator
+		{"t3.micro", false},      // general burstable, no EFA
+		{"m5.large", false},      // non-EFA general purpose
+		{"", false},              // empty
+		{"invalid-type", false},  // unknown
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.instanceType, func(t *testing.T) {
+			assert.Equal(t, tt.expected, supportsEFA(tt.instanceType))
+		})
+	}
+}
+
+// TestValidateOptions_SpawnFlags covers the Phase-3a cross-field launch rules.
+func TestValidateOptions_SpawnFlags(t *testing.T) {
+	p := &LaunchOptionsProcessor{manager: &Manager{}}
+
+	t.Run("spot-max-price without spot is rejected", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{SpotMaxPrice: "0.50"}, "c7i.large")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "--spot-max-price requires --spot")
+	})
+
+	t.Run("spot-max-price with spot is allowed", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{Spot: true, SpotMaxPrice: "0.50"}, "c7i.large")
+		assert.NoError(t, err)
+	})
+
+	t.Run("efa on a non-EFA type is rejected", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{EFA: true}, "t3.micro")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "does not support EFA")
+	})
+
+	t.Run("efa on an EFA-capable type is allowed", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{EFA: true}, "hpc7a.48xlarge")
+		assert.NoError(t, err)
+	})
+
+	t.Run("no spawn flags is allowed", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{}, "t3.micro")
+		assert.NoError(t, err)
+	})
+}
+
 // TestAddEFSMountToUserDataComprehensive tests EFS mount addition
 func TestAddEFSMountToUserDataComprehensive(t *testing.T) {
 	manager := &Manager{}

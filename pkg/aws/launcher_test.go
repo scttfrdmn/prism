@@ -258,6 +258,68 @@ func TestToLaunchConfig_EmptySGLeavesSliceNil(t *testing.T) {
 	}
 }
 
+// TestToLaunchConfig_MapsSpawnCapabilities covers the Phase-3a opt-in fields.
+func TestToLaunchConfig_MapsSpawnCapabilities(t *testing.T) {
+	cfg := launch.ToLaunchConfig(launch.Inputs{
+		InstanceType:   "c7i.large",
+		Spot:           true,
+		SpotMaxPrice:   "0.50",
+		EFA:            true,
+		PlacementGroup: "cluster-1",
+	})
+	if cfg.SpotMaxPrice != "0.50" {
+		t.Errorf("SpotMaxPrice = %q; want 0.50", cfg.SpotMaxPrice)
+	}
+	if !cfg.EFAEnabled {
+		t.Error("EFAEnabled should be true")
+	}
+	if cfg.PlacementGroup != "cluster-1" {
+		t.Errorf("PlacementGroup = %q; want cluster-1", cfg.PlacementGroup)
+	}
+}
+
+// TestConfigToRunInput_EFAAndPlacement asserts the EFA NIC (InterfaceType=efa)
+// and the cluster placement group land on the RunInstances input.
+func TestConfigToRunInput_EFAAndPlacement(t *testing.T) {
+	in := configToRunInput(spawn.LaunchConfig{
+		InstanceType:      "c7i.large",
+		AMI:               "ami-123",
+		SubnetID:          "subnet-1",
+		SecurityGroupIDs:  []string{"sg-1"},
+		RootVolumeSizeGiB: 20,
+		EFAEnabled:        true,
+		PlacementGroup:    "cluster-1",
+	})
+
+	if len(in.NetworkInterfaces) != 1 {
+		t.Fatalf("expected 1 NIC, got %d", len(in.NetworkInterfaces))
+	}
+	nic := in.NetworkInterfaces[0]
+	if nic.InterfaceType == nil || *nic.InterfaceType != "efa" {
+		t.Errorf("NIC InterfaceType = %v; want efa", nic.InterfaceType)
+	}
+	if in.Placement == nil || in.Placement.GroupName == nil || *in.Placement.GroupName != "cluster-1" {
+		t.Errorf("Placement.GroupName not set to cluster-1: %+v", in.Placement)
+	}
+}
+
+// TestConfigToRunInput_NoEFANoPlacement confirms the default path leaves the NIC
+// without an EFA interface type and sets no placement group.
+func TestConfigToRunInput_NoEFANoPlacement(t *testing.T) {
+	in := configToRunInput(spawn.LaunchConfig{
+		InstanceType:      "t3.micro",
+		AMI:               "ami-123",
+		SubnetID:          "subnet-1",
+		RootVolumeSizeGiB: 20,
+	})
+	if in.NetworkInterfaces[0].InterfaceType != nil {
+		t.Errorf("InterfaceType should be nil without EFA, got %v", *in.NetworkInterfaces[0].InterfaceType)
+	}
+	if in.Placement != nil {
+		t.Errorf("Placement should be nil without a placement group, got %+v", in.Placement)
+	}
+}
+
 // TestHybridLauncher_RoutesLaunchToEC2AndLifecycleToSpawn documents the Phase-2
 // split: Launch stays on the EC2 path while lifecycle goes to spawn. We can't
 // easily stand up a real *spawn.Client here, so this asserts the delegation

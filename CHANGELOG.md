@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **spawn adoption — opt-in launch capabilities (Phase 3a).** Three new opt-in
+  `prism workspace launch` flags, all default-off (empty/false = today's
+  behavior): `--spot-max-price <$/hr>` (a real spot bid cap; requires `--spot`),
+  `--efa` (attach an Elastic Fabric Adapter NIC for MPI/HPC), and
+  `--placement-group <name>` (launch into a cluster placement group). They thread
+  through `types.LaunchRequest` → `launch.ToLaunchConfig` → the EC2 launcher
+  (`configToRunInput` builds the EFA NIC and placement group, mirroring spawn so
+  the eventual launch swap stays behavior-identical). Validation:
+  `--spot-max-price` without `--spot` is rejected, and `--efa` on a non-EFA
+  instance type is rejected via a new `supportsEFA` capability allowlist
+  (modeled on `supportsHibernation`). CLI-only for now (the GUI launch form
+  already omits optional launch fields from the wire); GUI exposure is a
+  follow-up. Third step of the spawn-adoption milestone.
 - **spawn adoption — instance lifecycle now runs on spawn (Phase 2).** Instance
   stop/start/hibernate/terminate now route through `github.com/spore-host/spawn`'s
   client via a `hybridLauncher` (`pkg/aws/hybrid_launcher.go`): lifecycle → spawn,

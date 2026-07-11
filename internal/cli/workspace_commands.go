@@ -78,6 +78,9 @@ func appendStringFlag(cmd *cobra.Command, args []string, flagName, argName strin
 func (f *WorkspaceCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []string) error {
 	args = appendBoolFlag(cmd, args, "hibernation", "--hibernation")
 	args = appendBoolFlag(cmd, args, "spot", "--spot")
+	args = appendStringFlag(cmd, args, "spot-max-price", "--spot-max-price")
+	args = appendBoolFlag(cmd, args, "efa", "--efa")
+	args = appendStringFlag(cmd, args, "placement-group", "--placement-group")
 	args = appendStringFlag(cmd, args, "size", "--size")
 	args = appendStringFlag(cmd, args, "subnet", "--subnet")
 	args = appendStringFlag(cmd, args, "vpc", "--vpc")
@@ -106,6 +109,9 @@ func (f *WorkspaceCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []str
 func (f *WorkspaceCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("hibernation", false, "Enable hibernation support")
 	cmd.Flags().Bool("spot", false, "Use spot instances for cost savings")
+	cmd.Flags().String("spot-max-price", "", "Max spot price in $/hr (e.g. 0.50); requires --spot. Empty = on-demand cap")
+	cmd.Flags().Bool("efa", false, "Attach an Elastic Fabric Adapter NIC (requires an EFA-capable instance type)")
+	cmd.Flags().String("placement-group", "", "Launch into a cluster placement group (MPI / tightly-coupled HPC)")
 	cmd.Flags().String("size", "", "Workspace size: XS=1vCPU,2GB | S=2vCPU,4GB | M=2vCPU,8GB | L=4vCPU,16GB | XL=8vCPU,32GB")
 	cmd.Flags().String("subnet", "", "Specify subnet ID")
 	cmd.Flags().String("vpc", "", "Specify VPC ID")

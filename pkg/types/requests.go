@@ -18,7 +18,10 @@ type LaunchRequest struct {
 	FundingAllocationID string                 `json:"funding_allocation_id,omitempty"` // Budget allocation to charge (v0.5.10+)
 	SSHKeyName          string                 `json:"ssh_key_name,omitempty"`          // AWS key pair name to use
 	Spot                bool                   `json:"spot,omitempty"`
-	IdlePolicy          bool                   `json:"idle_policy,omitempty"` // Enable idle policy for automatic cost optimization
+	SpotMaxPrice        string                 `json:"spot_max_price,omitempty"`  // Max spot price in $/hr (e.g. "0.50"); requires Spot. Empty = on-demand cap.
+	EFA                 bool                   `json:"efa,omitempty"`             // Attach an Elastic Fabric Adapter NIC (requires an EFA-capable instance type)
+	PlacementGroup      string                 `json:"placement_group,omitempty"` // Cluster placement group name (MPI / tightly-coupled HPC)
+	IdlePolicy          bool                   `json:"idle_policy,omitempty"`     // Enable idle policy for automatic cost optimization
 	DryRun              bool                   `json:"dry_run,omitempty"`
 	Wait                bool                   `json:"wait,omitempty"`          // Wait and show launch progress
 	Quiet               bool                   `json:"quiet,omitempty"`         // Suppress progress output (for scripting)
