@@ -299,11 +299,31 @@ Verdict rules (ordered), mirroring prp so the two hosts decide identically:
 4. **Allow** — within budget.
 
 The mapping to the engine's model, stated explicitly so it's not lost:
-`EffectiveBalance = remaining_principal + min(banked_deviation, cap)` — which **generalizes** prp's
-`PeriodAllocation + min(bankedSurplus, TotalBudget × surplusCapPercent)`: prp's single-period
-allocation is the degenerate one-source, one-window case of the engine's capacity curve. `Spent` is
-supplied by `SpendSource` (server-authoritative); the engine never accepts a client-supplied spend.
-"Frozen scope" is a first-class engine input (a plan-level freeze), distinct from "over budget".
+
+```
+EffectiveBalance    = available_to_date          // the paced ceiling right now
+headroom            = available_to_date − spent   // grows when you under-spend = banking
+remaining_principal = landed − spent  ≥ 0         // hard solvency floor (real money)
+pace_deviation      = available_to_date − spent   // signed: + banked / − borrowed
+```
+
+> **Reconciliation (build finding, #647).** An earlier draft of this section wrote
+> `EffectiveBalance = remaining_principal + min(banked_deviation, cap)`. Implementing it against §9's
+> own numbers showed that formula **double-counts the −spent term**: `banked_deviation` is
+> `(available_to_date − spent)` and `remaining_principal` is `(landed − spent)`, so summing them
+> subtracts spend twice. In a *continuous, never-resetting* budget there is no separate "carried bank"
+> pot — that was a discrete-period artifact of prp's per-month model; under-spending simply makes
+> `(available_to_date − spent)` larger, and that **is** your banked headroom. So the engine uses
+> `EffectiveBalance = available_to_date`, which is what §9's `$100k` reflects. This still
+> **generalizes** prp's `PeriodAllocation + min(bankedSurplus, TotalBudget × surplusCapPercent)`: prp's
+> single-period allocation is the degenerate one-source, one-window case of the engine's capacity
+> curve, where `available_to_date` collapses to that period's allocation. (The optional
+> `BankCap`/`BankFraction` knob that would bound how much banked headroom counts toward the ceiling
+> is declared on the `Allocation` record but not yet wired into the fold — deferred to a later engine
+> version.)
+
+`Spent` is supplied by `SpendSource` (server-authoritative); the engine never accepts a client-supplied
+spend. "Frozen scope" is a first-class engine input (a plan-level freeze), distinct from "over budget".
 
 ### 5.5 How two very different hosts adopt it
 
@@ -435,8 +455,8 @@ records**. A grant with two dated sources, banked pacing, per-allocation, `fixed
 - **Spend (event log):** line items accrued Jan–Sep, folded to `Spent = $95k` for `alloc-1`'s scope.
 - **State at Oct 1** (folded): both sources are active (B since April), so far `$100k` of the grant's
   `$180k` is available-to-date under the pacing policy; `Spent = $95k`; the effective ceiling for a
-  launch check works out to `EffectiveBalance = $100k` (available-to-date + capped bank). `Remaining
-  = $5k`.
+  launch check is `EffectiveBalance = available_to_date = $100k` (the paced ceiling — banking is
+  already reflected in it, not added on top; see §5.4). `Remaining = $5k`.
 
 Now a launch estimated at `$9k` arrives. `Projected = Spent + est = $95k + $9k = $104k > $100k`:
 
