@@ -16,6 +16,50 @@ func instanceWithStorage(id, projectID string, hourly, storageGB float64, launch
 	}
 }
 
+// TestObserver_SpotRateUsedForCompute (#659): a spot instance with a captured SpotHourlyRate accrues
+// compute at the spot rate, not the on-demand HourlyRate.
+func TestObserver_SpotRateUsedForCompute(t *testing.T) {
+	s := newTestSpendStore(t)
+	launched := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	inst := instanceWithStorage("i-1", "proj-1", 2.0, 0, launched) // on-demand list $2/hr
+	inst.InstanceLifecycle = "spot"
+	inst.SpotHourlyRate = 0.60 // billed at spot
+	obs := newSpendObserver(s, func() ([]types.Instance, error) { return []types.Instance{inst}, nil }, true, spendObserverOptions{})
+
+	obs.clock = func() time.Time { return launched.Add(10 * time.Hour) }
+	obs.Observe(context.Background())
+
+	evs, _ := s.Spend(context.Background(), projectScope("proj-1"))
+	if len(evs) != 1 {
+		t.Fatalf("want 1 event, got %d", len(evs))
+	}
+	// compute = $0.60 × 10h = $6 (spot), NOT $2 × 10h = $20 (on-demand list).
+	if e := evs[0]; e.Compute < 5.9 || e.Compute > 6.1 {
+		t.Fatalf("Compute = %.4f, want ~6 (spot rate, not on-demand $20)", e.Compute)
+	}
+}
+
+// TestObserver_SpotWithoutRateFallsBackToOnDemand (#659): a spot instance with no captured rate uses
+// the on-demand HourlyRate (fail-soft), so accrual is never blocked by a missing spot lookup.
+func TestObserver_SpotWithoutRateFallsBackToOnDemand(t *testing.T) {
+	s := newTestSpendStore(t)
+	launched := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	inst := instanceWithStorage("i-1", "proj-1", 2.0, 0, launched)
+	inst.InstanceLifecycle = "spot" // SpotHourlyRate unset (lookup failed / not yet captured)
+	obs := newSpendObserver(s, func() ([]types.Instance, error) { return []types.Instance{inst}, nil }, true, spendObserverOptions{})
+
+	obs.clock = func() time.Time { return launched.Add(10 * time.Hour) }
+	obs.Observe(context.Background())
+
+	evs, _ := s.Spend(context.Background(), projectScope("proj-1"))
+	if len(evs) != 1 {
+		t.Fatalf("want 1 event, got %d", len(evs))
+	}
+	if e := evs[0]; e.Compute < 19.9 || e.Compute > 20.1 {
+		t.Fatalf("Compute = %.4f, want ~20 (on-demand fallback)", e.Compute)
+	}
+}
+
 // TestObserver_LineItemsSplitComputeStorage: a running instance with a root volume produces events
 // carrying non-zero Compute AND Storage, ResourceID = instance ID, and Compute+Storage == Amount.
 func TestObserver_LineItemsSplitComputeStorage(t *testing.T) {

@@ -299,8 +299,9 @@ func (s *Server) resourceUsage(ctx context.Context, projectID string, period tim
 		// not (i.e. the avoided on-demand cost of the stopped time).
 		windowHours := now.Sub(start).Hours()
 		stopped := windowHours - running
-		if stopped > 0 && inst.HourlyRate > 0 {
-			usage.IdleSavings += stopped * inst.HourlyRate
+		if rate := inst.EffectiveComputeRate(); stopped > 0 && rate > 0 {
+			// Avoided compute cost of the stopped time — spot rate for spot instances (#659).
+			usage.IdleSavings += stopped * rate
 		}
 	}
 

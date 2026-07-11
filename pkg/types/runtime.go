@@ -199,7 +199,8 @@ type Instance struct {
 	LaunchTime            time.Time               `json:"launch_time"`
 	RunningStateStartTime *time.Time              `json:"running_state_start_time,omitempty"` // When instance entered running state (billing starts)
 	DeletionTime          *time.Time              `json:"deletion_time,omitempty"`            // When user initiated deletion
-	HourlyRate            float64                 `json:"hourly_rate"`                        // AWS list price per hour
+	HourlyRate            float64                 `json:"hourly_rate"`                        // AWS list price per hour (on-demand)
+	SpotHourlyRate        float64                 `json:"spot_hourly_rate,omitempty"`         // Captured spot $/hr (spot instances only; 0 = not captured)
 	CurrentSpend          float64                 `json:"current_spend"`                      // Actual accumulated cost since launch
 	EffectiveRate         float64                 `json:"effective_rate"`                     // Current spend ÷ hours since launch
 	AttachedVolumes       []string                `json:"attached_volumes"`                   // EFS volume names
@@ -242,6 +243,24 @@ type Instance struct {
 
 	// ExpiresAt is when this instance should be auto-stopped/hibernated (#146)
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+}
+
+// IsSpotInstance reports whether the instance runs on the spot market, tolerating either signal
+// (the AWS-derived InstanceLifecycle string or the IsSpot flag).
+func (i Instance) IsSpotInstance() bool {
+	return i.InstanceLifecycle == "spot" || i.IsSpot
+}
+
+// EffectiveComputeRate is the $/hr to use for cost estimation. For a spot instance with a captured
+// SpotHourlyRate it returns that (spot is billed well below list price and is fixed once running);
+// otherwise it falls back to the on-demand HourlyRate. This is the single rate-selection point for
+// the spend observer and cost aggregation, so on-demand behavior is unchanged and spot logic lives
+// in one place (#659).
+func (i Instance) EffectiveComputeRate() float64 {
+	if i.IsSpotInstance() && i.SpotHourlyRate > 0 {
+		return i.SpotHourlyRate
+	}
+	return i.HourlyRate
 }
 
 // StateTransition records when an instance changes state for cost tracking

@@ -69,17 +69,18 @@ func generateDCVPassword() string {
 
 // Manager handles all AWS operations
 type Manager struct {
-	cfg            aws.Config
-	ec2            EC2ClientInterface
-	efs            EFSClientInterface
-	iam            *iam.Client
-	ssm            SSMClientInterface
-	sts            STSClientInterface
-	region         string
-	templates      map[string]ctypes.Template
-	pricingClient  *PricingClient
-	discountConfig ctypes.DiscountConfig
-	stateManager   StateManagerInterface
+	cfg               aws.Config
+	ec2               EC2ClientInterface
+	efs               EFSClientInterface
+	iam               *iam.Client
+	ssm               SSMClientInterface
+	sts               STSClientInterface
+	region            string
+	templates         map[string]ctypes.Template
+	pricingClient     *PricingClient
+	spotPricingClient *SpotPricingClient
+	discountConfig    ctypes.DiscountConfig
+	stateManager      StateManagerInterface
 
 	// Universal AMI System components (Phase 5.1)
 	amiResolver *UniversalAMIResolver
@@ -165,6 +166,9 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 	// Initialize AWS Pricing API client with caching
 	pricingClient := NewPricingClient(cfg)
 
+	// Initialize spot pricing client (truffle-backed) for accurate spot-instance estimates (#659)
+	spotPricingClient := NewSpotPricingClient(cfg)
+
 	// Initialize Quota and Availability Management (v0.7.0)
 	quotaManager := NewQuotaManager(cfg, region)
 	availabilityManager := NewAvailabilityManager(cfg, region)
@@ -181,6 +185,7 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		region:              region,
 		templates:           getTemplates(),
 		pricingClient:       pricingClient,
+		spotPricingClient:   spotPricingClient,
 		discountConfig:      ctypes.DiscountConfig{}, // No discounts by default
 		stateManager:        stateManager,
 		amiResolver:         amiResolver,
@@ -2832,21 +2837,23 @@ func (c *InstanceStateConverter) isHibernationConfigured(ec2Instance ec2types.In
 
 // InstanceBuilder builds Prism instance objects (Builder Pattern - SOLID)
 type InstanceBuilder struct {
-	tagExtractor   *InstanceTagExtractor
-	stateConverter *InstanceStateConverter
-	ec2Client      EC2ClientInterface
-	pricingClient  *PricingClient
-	region         string
+	tagExtractor      *InstanceTagExtractor
+	stateConverter    *InstanceStateConverter
+	ec2Client         EC2ClientInterface
+	pricingClient     *PricingClient
+	spotPricingClient *SpotPricingClient
+	region            string
 }
 
 // NewInstanceBuilder creates instance builder
-func NewInstanceBuilder(ec2Client EC2ClientInterface, pricingClient *PricingClient, region string) *InstanceBuilder {
+func NewInstanceBuilder(ec2Client EC2ClientInterface, pricingClient *PricingClient, spotPricingClient *SpotPricingClient, region string) *InstanceBuilder {
 	return &InstanceBuilder{
-		tagExtractor:   &InstanceTagExtractor{},
-		stateConverter: &InstanceStateConverter{},
-		ec2Client:      ec2Client,
-		pricingClient:  pricingClient,
-		region:         region,
+		tagExtractor:      &InstanceTagExtractor{},
+		stateConverter:    &InstanceStateConverter{},
+		ec2Client:         ec2Client,
+		pricingClient:     pricingClient,
+		spotPricingClient: spotPricingClient,
+		region:            region,
 	}
 }
 
@@ -2905,6 +2912,32 @@ func mergeLocalStateMetadata(instance *ctypes.Instance, name, state string, loca
 			instance.IsHibernating = true
 		}
 	}
+
+	// Preserve a previously-captured spot rate (#659): the refresh builder recomputes every tick and
+	// must not re-query DescribeSpotPriceHistory each time. Spot rate is fixed for the instance's life.
+	if instance.SpotHourlyRate == 0 && localInstance.SpotHourlyRate > 0 {
+		instance.SpotHourlyRate = localInstance.SpotHourlyRate
+	}
+}
+
+// captureSpotRate looks up and stores the spot $/hr for a spot instance that doesn't have one yet.
+// It is a no-op for on-demand instances, for instances that already carry a rate (from a prior
+// capture preserved via local state), and when no spot pricing client is wired (reduced/test mode).
+// Any lookup error is logged and swallowed — EffectiveComputeRate falls back to the on-demand rate,
+// and billed reconciliation (#644) still corrects the total if enabled.
+func (b *InstanceBuilder) captureSpotRate(ctx context.Context, instance *ctypes.Instance) {
+	if instance == nil || !instance.IsSpotInstance() || instance.SpotHourlyRate > 0 {
+		return
+	}
+	if b.spotPricingClient == nil {
+		return
+	}
+	rate, err := b.spotPricingClient.GetSpotHourlyRate(ctx, instance.InstanceType, b.region)
+	if err != nil {
+		log.Printf("Warning: spot price lookup failed for %s in %s: %v. Using on-demand estimate.", instance.InstanceType, b.region, err)
+		return
+	}
+	instance.SpotHourlyRate = rate
 }
 
 // BuildInstance creates Prism instance from EC2 instance
@@ -3015,8 +3048,14 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		StateHistory:          stateHistory,
 	}
 
-	// Merge remaining metadata from local state if available
+	// Merge remaining metadata from local state if available (preserves a captured SpotHourlyRate
+	// across refreshes, so the lazy lookup below runs at most once per instance).
 	mergeLocalStateMetadata(instance, name, state, localState)
+
+	// Spot instances (#659): capture the real spot rate once so the spend estimate uses it instead of
+	// the on-demand HourlyRate. Only when we don't already have it (from this build or preserved local
+	// state); fail-soft to the on-demand rate on any lookup error (never block, warn once).
+	b.captureSpotRate(ctx, instance)
 
 	return instance
 }
@@ -3028,10 +3067,10 @@ type InstanceListProcessor struct {
 }
 
 // NewInstanceListProcessor creates instance list processor
-func NewInstanceListProcessor(ec2Client EC2ClientInterface, pricingClient *PricingClient, region string) *InstanceListProcessor {
+func NewInstanceListProcessor(ec2Client EC2ClientInterface, pricingClient *PricingClient, spotPricingClient *SpotPricingClient, region string) *InstanceListProcessor {
 	return &InstanceListProcessor{
 		stateLoader:     &StateLoader{},
-		instanceBuilder: NewInstanceBuilder(ec2Client, pricingClient, region),
+		instanceBuilder: NewInstanceBuilder(ec2Client, pricingClient, spotPricingClient, region),
 	}
 }
 
@@ -3049,6 +3088,12 @@ func (p *InstanceListProcessor) ProcessReservations(reservations []ec2types.Rese
 	}
 
 	return instances
+}
+
+// GetSpotPrice returns the current minimum spot $/hr for an instance type in the manager's region,
+// via the truffle-backed spot pricing client (#659).
+func (m *Manager) GetSpotPrice(ctx context.Context, instanceType string) (float64, error) {
+	return m.spotPricingClient.GetSpotHourlyRate(ctx, instanceType, m.region)
 }
 
 // GetInstance retrieves real-time information for a specific instance from AWS
@@ -3070,7 +3115,7 @@ func (m *Manager) GetInstance(instanceID string) (*ctypes.Instance, error) {
 	}
 
 	// Process the single instance
-	processor := NewInstanceListProcessor(m.ec2, m.pricingClient, m.region)
+	processor := NewInstanceListProcessor(m.ec2, m.pricingClient, m.spotPricingClient, m.region)
 	instances := processor.ProcessReservations(result.Reservations)
 
 	if len(instances) == 0 {
@@ -3143,7 +3188,7 @@ func (m *Manager) ListInstances() ([]ctypes.Instance, error) {
 		}
 
 		// Process instances from this region
-		processor := NewInstanceListProcessor(regionalClient, m.pricingClient, region)
+		processor := NewInstanceListProcessor(regionalClient, m.pricingClient, m.spotPricingClient, region)
 		regionalInstances := processor.ProcessReservations(result.Reservations)
 
 		// Ensure each instance has the region set and merge cached metadata

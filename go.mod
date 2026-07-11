@@ -27,9 +27,10 @@ require (
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/scttfrdmn/substrate v0.48.0
+	github.com/scttfrdmn/substrate v0.70.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/spf13/cobra v1.10.2
+	github.com/spore-host/truffle v0.39.0
 	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zalando/go-keyring v0.2.8
@@ -39,6 +40,8 @@ require (
 	golang.org/x/text v0.39.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+require github.com/spore-host/libs v0.37.0 // indirect
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.14 // indirect
