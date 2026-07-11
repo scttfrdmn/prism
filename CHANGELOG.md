@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Live budget enforcement — auto-actions fire again (#656).** Per-project budget auto-actions
+  (`AutoActions[]`: threshold %% → hibernate/stop/prevent-launch/notify) and the safety cushion
+  (headroom → one action) are evaluated against the `budgetengine` spend ledger on the daemon's
+  monitoring tick and executed when breached — restoring behavior that went dead when the legacy
+  BudgetTracker was retired. A new daemon `budgetEnforcer` (`pkg/daemon/budget_enforcer.go`) folds each
+  budgeted project's ledger via the same `budgetStatus` the API returns, so enforcement and the status
+  readout agree; it drives the existing `Server.ExecuteHibernateAll/StopAll/PreventLaunch` executors
+  and the surviving `CushionEvaluator`, and sends notifications through the alert dispatcher
+  (Slack webhook when `PRISM_SLACK_WEBHOOK` is set, else log). **Off by default** — destructive actions
+  require an explicit opt-in via `budget_enforcement_enabled` (or `PRISM_BUDGET_ENFORCEMENT=true`);
+  the evaluation cadence is `budget_enforcement_interval_minutes` (default 10, 1-minute floor).
+  Dedup is fire-once-per-budget-period via `LastTriggered` timestamps (persisted on each action and the
+  cushion), so a breach acts once per month rather than every tick.
+
 ### Changed
 - **Spend estimate uses the real spot price for spot instances (#659).** The spend observer's compute
   estimate previously used `Instance.HourlyRate` (on-demand list price) for every instance, badly
