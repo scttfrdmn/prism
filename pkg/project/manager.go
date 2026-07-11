@@ -436,35 +436,9 @@ func (m *Manager) UpdateProjectMember(ctx context.Context, projectID, userID str
 	return m.saveProjects()
 }
 
-// GetProjectCostBreakdown retrieves detailed cost analysis for a project
-func (m *Manager) GetProjectCostBreakdown(ctx context.Context, projectID string, startDate, endDate time.Time) (*types.ProjectCostBreakdown, error) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	_, exists := m.projects[projectID]
-	if !exists {
-		return nil, fmt.Errorf("project %q not found", projectID)
-	}
-
-	// Cost breakdown is derived from the budgetengine spend ledger in the daemon layer (#654,
-	// Phase 3d). The project Manager no longer owns cost analytics; return an empty breakdown for
-	// the DTO shape until the daemon-side ledger aggregation lands.
-	return &types.ProjectCostBreakdown{ProjectID: projectID}, nil
-}
-
-// GetProjectResourceUsage retrieves resource utilization metrics for a project.
-func (m *Manager) GetProjectResourceUsage(ctx context.Context, projectID string, period time.Duration) (*types.ProjectResourceUsage, error) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	_, exists := m.projects[projectID]
-	if !exists {
-		return nil, fmt.Errorf("project %q not found", projectID)
-	}
-
-	// Resource usage is a daemon-layer, ledger-derived concern (#654, Phase 3d); empty for now.
-	return &types.ProjectResourceUsage{ProjectID: projectID}, nil
-}
+// Cost breakdown and resource usage are derived from the budgetengine spend ledger in the daemon
+// layer (Phase 3d, #654) — see pkg/daemon/cost_aggregation.go. The project Manager owns identity and
+// lifecycle only, and deliberately stays ledger-free.
 
 // loadProjects loads all project records from the seam into the in-memory map.
 func (m *Manager) loadProjects() error {

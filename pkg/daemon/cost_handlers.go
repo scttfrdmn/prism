@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/scttfrdmn/prism/pkg/cost"
-	"github.com/scttfrdmn/prism/pkg/project"
 	"github.com/scttfrdmn/prism/pkg/types"
 )
 
@@ -209,21 +208,12 @@ func (s *Server) handleGetCostTrends(w http.ResponseWriter, r *http.Request) {
 		period = "30d"
 	}
 
-	// Phase 3c (#653): the BudgetTracker cost-history store is retired; ledger-derived trends land in
-	// Phase 3d (#654). Preserve the response shape with an empty series until then.
-	days := 30
-	switch period {
-	case "7d":
-		days = 7
-	case "90d":
-		days = 90
-	}
-	trends := map[string]interface{}{
-		"project_id": projectID,
-		"period":     period,
-		"days":       days,
-		"trends":     []project.CostDataPoint{},
-		"count":      0,
+	// Phase 3d (#654): ledger-derived daily trends, in the {date,spent,budget} shape the CLI history
+	// table renders (see costTrends).
+	trends, err := s.costTrends(context.Background(), projectID, period)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

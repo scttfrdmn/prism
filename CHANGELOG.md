@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Cost breakdown / resource usage / trends / monthly report now aggregate the real spend ledger
+  (Phase 3d, #654).** The four cost-analytics surfaces that returned zeros after Phase 3c are computed
+  from the `budgetengine` spend ledger in a new `pkg/daemon/cost_aggregation.go`. Everything derives
+  from one primitive, `ledgerCostSeries`, a day-bucketed fold over the project's events: `estimate`
+  events (which carry `ResourceID` + un-blended `Compute`/`Storage`, #652) attribute per-instance
+  per-day; `billed`/`billed-reversal` reconciliation events (no `ResourceID`) fold into the day's
+  project total only. From that series: `GET /projects/{id}/costs` returns a populated
+  `ProjectCostBreakdown` (per-instance compute/storage + running/stopped hours from `StateHistory`,
+  synthesized per-instance root-volume storage lines); `GET /projects/{id}/usage` returns real
+  `ProjectResourceUsage` (active/total counts, compute hours, idle savings); the monthly report and
+  budget-history endpoints render the real series; and `BudgetStatus.BurnRate` is now populated (via
+  the existing `BurnRateCalculator`). **`GET /cost/trends`** now emits the `{date, spent, budget}`
+  shape the CLI history table actually renders (the pre-3c stub emitted `CostDataPoint`, which the CLI
+  never parsed, so `prism budget history` was always blank). The Manager's `GetProjectCostBreakdown`/
+  `GetProjectResourceUsage` stubs are removed — the daemon owns cost aggregation, keeping `pkg/project`
+  ledger-free. `BudgetStatus.Surplus` stays nil pending banking/rollover (Phase 3e, #655).
 - **Budget status is now derived from the spend ledger, not the retired tracker (Phase 3c, #653).**
   The daemon computes `BudgetStatus` (`pkg/daemon/budget_status.go`) directly from the `budgetengine`
   spend ledger + the project's embedded budget plan: `SpentAmount` is the ledger fold (falling back to
