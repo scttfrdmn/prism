@@ -20,12 +20,15 @@ import (
 //   - Estimate (cheap, frequent): every accrualInterval, per running instance, append the delta of
 //     a cumulative list-price estimate (HourlyRate × running hours). This is a pure function of the
 //     instance record, so it needs no AWS call.
-//   - Billed reconciliation (authoritative, ~daily): OPT-IN (#644 follow-up). When enabled via
-//     config (CostReconciliationEnabled) and a live AWS manager is present, reconcileInstance calls
-//     the injected billedCost (awsManager.GetBilledCost) on the reconcileInterval and replaces the
-//     estimate slice with the authoritative Cost Explorer billed slice (reversal + billed events).
-//     OFF by default; skipped in test/reduced mode and when the per-instance cost-allocation tag is
-//     inactive (keeps the estimate, warns).
+//   - Billed reconciliation (authoritative, ~daily): OPT-IN (#644 follow-up). For a plain on-demand
+//     instance the estimate already matches the bill to the penny (known rate × known time), so
+//     reconciliation is a near-no-op. Its purpose is the cases where list-price and the actual bill
+//     genuinely diverge: spot pricing, Reserved Instances / Savings Plans, credits/EDP/negotiated
+//     rates, and storage nuances (snapshots, provisioned IOPS, transfer). When enabled and a live AWS
+//     manager is present, reconcileInstance calls billedCost (awsManager.GetBilledCost) on the
+//     reconcileInterval and replaces the estimate slice with the authoritative Cost Explorer figure
+//     (reversal + billed events). OFF by default; skipped in test/reduced mode and when the
+//     per-instance cost-allocation tag is inactive (keeps the estimate, warns).
 //
 // Cumulative→delta: sources are cumulative but the ledger is delta-append, so the observer keeps a
 // per-instance checkpoint (last cumulative) and appends newCumulative − last, with a unique-per-delta
@@ -102,13 +105,27 @@ func (o *spendObserver) Observe(ctx context.Context) {
 	}
 	now := o.clock()
 	for _, inst := range instances {
-		if inst.ProjectID == "" || inst.State != "running" {
-			continue // spend accrues only for running, project-attributed instances
+		if inst.ProjectID == "" || !accruesSpend(inst) {
+			continue
 		}
 		o.accrueInstance(ctx, inst, now)
 		if o.reconcilesActive() {
 			o.reconcileInstance(ctx, inst, now)
 		}
+	}
+}
+
+// accruesSpend reports whether an instance still incurs cost: a running instance (compute+storage),
+// or a stopped one that still has a root volume (storage persists and bills while stopped, #652).
+// Terminated instances accrue nothing.
+func accruesSpend(inst types.Instance) bool {
+	switch inst.State {
+	case "terminated", "shutting-down":
+		return false
+	case "running":
+		return true
+	default: // stopped / stopping / hibernated — still billed for storage if a volume exists
+		return inst.StorageGB > 0
 	}
 }
 
@@ -121,10 +138,20 @@ func (o *spendObserver) accrueInstance(ctx context.Context, inst types.Instance,
 		return // throttled
 	}
 
-	cumulative := estimateCumulativeCost(inst, now)
-	delta := cumulative - cp.LastCumulative
+	// Per-component cumulatives on independent clocks (compute stops when the instance stops;
+	// storage bills for the whole lifetime). Deltas are each component's growth since the checkpoint.
+	compCum, storeCum := estimateComponents(inst, now)
+	deltaCompute := compCum - cp.LastComputeCum
+	deltaStorage := storeCum - cp.LastStorageCum
+	if deltaCompute < 0 {
+		deltaCompute = 0 // guard against any non-monotonic estimate
+	}
+	if deltaStorage < 0 {
+		deltaStorage = 0
+	}
+	delta := deltaCompute + deltaStorage
 	if delta <= 0 {
-		// No new cost (or a stale/decreasing estimate) — just advance the throttle timestamp.
+		// No new cost — just advance the throttle timestamp.
 		cp.LastAccrualAt = now
 		_ = o.store.saveCheckpoint(ctx, scope, cp)
 		return
@@ -136,12 +163,17 @@ func (o *spendObserver) accrueInstance(ctx context.Context, inst types.Instance,
 		Amount:       delta,
 		At:           now,
 		Source:       "estimate",
+		ResourceID:   inst.ID,
+		Compute:      deltaCompute,
+		Storage:      deltaStorage,
+		// Network unmodeled (0).
 	}
 	if err := o.store.AppendSpend(ctx, scope, ev); err != nil {
 		return // fail-open; retry next tick (checkpoint unchanged, so no lost spend)
 	}
 	cp.InstanceID = inst.ID
-	cp.LastCumulative = cumulative
+	cp.LastComputeCum = compCum
+	cp.LastStorageCum = storeCum
 	cp.LastAccrualAt = now
 	_ = o.store.saveCheckpoint(ctx, scope, cp)
 }
@@ -179,7 +211,13 @@ func (o *spendObserver) reconcileInstance(ctx context.Context, inst types.Instan
 		return
 	}
 
-	estimateSlice := cp.LastCumulative - cp.ReconciledBilled
+	// Slices are measured in their own units from the last reconcile: the estimate accrued into the
+	// ledger since then (current total estimate − estimate at last reconcile) vs. the authoritative
+	// billed for the same window (billed − billed at last reconcile). Replacing one with the other
+	// nets the ledger to billed without ever conflating estimate and billed dollars.
+	compCum, storeCum := estimateComponents(inst, now)
+	estimateNow := compCum + storeCum
+	estimateSlice := estimateNow - cp.ReconciledEstimate
 	billedSlice := res.BilledTotal - cp.ReconciledBilled
 	if estimateSlice == 0 && billedSlice == 0 {
 		cp.LastReconcileAt = now
@@ -205,25 +243,76 @@ func (o *spendObserver) reconcileInstance(ctx context.Context, inst types.Instan
 	}); err != nil {
 		return // fail-open; the reversal above is idempotent on retry via fresh IDs + baseline unchanged
 	}
+	// Advance BOTH reconcile baselines to this point (in their own units). The per-component accrual
+	// baselines (LastComputeCum/LastStorageCum) are deliberately left untouched — the estimate feed
+	// keeps accruing monotonically; reconciliation only overlays a correction on top of it.
 	cp.InstanceID = inst.ID
+	cp.ReconciledEstimate = estimateNow
 	cp.ReconciledBilled = res.BilledTotal
-	cp.LastCumulative = res.BilledTotal // rebase the estimate baseline to billed so future estimate deltas accrue on top
 	cp.LastReconcileAt = now
 	_ = o.store.saveCheckpoint(ctx, scope, cp)
 }
 
-// estimateCumulativeCost is a self-contained, monotonic list-price estimate of an instance's spend
-// since launch: HourlyRate × hours since LaunchTime. It intentionally does not read the possibly-
-// stale cached CurrentSpend; it recomputes so successive observations produce a clean cumulative
-// series the delta logic can difference. (Running-vs-stopped nuance and storage-only rates are a
-// refinement for the billed-reconciliation path; this estimate is the coarse frequent feed.)
-func estimateCumulativeCost(inst types.Instance, now time.Time) float64 {
-	if inst.LaunchTime.IsZero() || inst.HourlyRate <= 0 {
+// ebsGBMonthRate is the standard gp3 EBS storage price ($/GB-month), mirroring the value used in
+// pkg/aws/ami_cost_analyzer.go. Coarse but fine for the estimate feed — billed reconciliation
+// corrects the authoritative total. hoursPerMonth converts it to $/GB-hour.
+const (
+	ebsGBMonthRate = 0.10
+	hoursPerMonth  = 730.0
+)
+
+// estimateComponents is a self-contained, monotonic list-price estimate of an instance's cumulative
+// cost since launch, split into compute and storage on INDEPENDENT clocks (#652):
+//
+//   - compute = HourlyRate × running-hours — compute is billed only while the instance is running,
+//     so it stops accruing when the instance stops (from StateHistory).
+//   - storage = RootVolumeGB × ($/GB-hour) × total-hours — EBS persists and bills for the whole
+//     lifetime, running or stopped.
+//
+// This mirrors pkg/aws/manager.go:calculateActualCosts (running-hours compute vs total-hours
+// storage) but stays self-contained (no pkg/aws dependency), recomputing from the instance record so
+// successive observations difference into clean per-component deltas.
+func estimateComponents(inst types.Instance, now time.Time) (compute, storage float64) {
+	if inst.LaunchTime.IsZero() {
+		return 0, 0
+	}
+	totalHours := now.Sub(inst.LaunchTime).Hours()
+	if totalHours <= 0 {
+		return 0, 0
+	}
+	if inst.HourlyRate > 0 {
+		compute = inst.HourlyRate * runningHours(inst, now)
+	}
+	if inst.StorageGB > 0 {
+		storage = inst.StorageGB * (ebsGBMonthRate / hoursPerMonth) * totalHours
+	}
+	return compute, storage
+}
+
+// runningHours sums the time the instance has spent in the "running" state since launch, from its
+// StateHistory. When there's no history, it falls back to total elapsed time if currently running,
+// else 0 (a stopped instance with no history accrues no compute). Storage does not use this — it
+// bills for the full lifetime regardless of state.
+func runningHours(inst types.Instance, now time.Time) float64 {
+	if len(inst.StateHistory) == 0 {
+		if inst.State == "running" {
+			return now.Sub(inst.LaunchTime).Hours()
+		}
 		return 0
 	}
-	hours := now.Sub(inst.LaunchTime).Hours()
-	if hours <= 0 {
-		return 0
+	var hours float64
+	// Walk transitions; accumulate time spent in "running" between each transition and the next.
+	for i, tr := range inst.StateHistory {
+		if tr.ToState != "running" {
+			continue
+		}
+		end := now
+		if i+1 < len(inst.StateHistory) {
+			end = inst.StateHistory[i+1].Timestamp
+		}
+		if end.After(tr.Timestamp) {
+			hours += end.Sub(tr.Timestamp).Hours()
+		}
 	}
-	return inst.HourlyRate * hours
+	return hours
 }

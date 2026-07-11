@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Spend ledger records per-resource, per-component line items (#652).** The spend observer now
+  populates the v0.2.0 `SpendEvent` line-item fields: each event carries `ResourceID` (instance id)
+  and an **un-blended** split of `Compute` and `Storage` (Network unmodeled) that sums to `Amount`.
+  Compute and storage accrue on **independent clocks** — compute on running-hours (it stops when the
+  instance stops), storage on total-hours at the standard EBS rate (it persists and bills while
+  stopped). Consequently the observer now also accrues for stopped-but-storage-bearing instances, not
+  only running ones. This gives the ledger the detail Phase 3d aggregates into the cost-breakdown /
+  resource-usage / report DTOs. Reconciliation now tracks estimate and billed baselines in their own
+  units so the two never conflate.
+
 ### Added
 - **Opt-in Cost Explorer billed-cost reconciliation (#644).** The budget spend ledger can now
   reconcile its list-price estimates against authoritative AWS Cost Explorer billed cost, so a

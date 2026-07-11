@@ -31,11 +31,17 @@ func projectScope(projectID string) be.Scope {
 // convert a cumulative estimate/billed figure into an append-only delta (newCumulative − last).
 // Persisted as its own seam record (durable across daemon restart) to avoid re-appending spend.
 type spendCheckpoint struct {
-	InstanceID       string    `json:"instance_id"`
-	LastCumulative   float64   `json:"last_cumulative"`   // last cumulative estimate appended
-	LastAccrualAt    time.Time `json:"last_accrual_at"`   // throttle: last estimate append
-	LastReconcileAt  time.Time `json:"last_reconcile_at"` // throttle: last billed reconciliation
-	ReconciledBilled float64   `json:"reconciled_billed"` // last authoritative billed total applied
+	InstanceID string `json:"instance_id"`
+	// Per-component estimate baselines — monotonic cumulative estimate by component; the accrual
+	// path measures each delta from these and advances them. NEVER rebased by reconciliation (that
+	// would mix estimate and billed units). Their sum is the total cumulative estimate.
+	LastComputeCum float64   `json:"last_compute_cum"` // cumulative compute estimate (#652)
+	LastStorageCum float64   `json:"last_storage_cum"` // cumulative storage estimate (#652)
+	LastAccrualAt  time.Time `json:"last_accrual_at"`  // throttle: last estimate append
+	// Reconciliation baselines, kept in their OWN units so estimateSlice/billedSlice never conflate:
+	LastReconcileAt    time.Time `json:"last_reconcile_at"`   // throttle: last billed reconciliation
+	ReconciledEstimate float64   `json:"reconciled_estimate"` // total estimate at last reconcile (#652)
+	ReconciledBilled   float64   `json:"reconciled_billed"`   // authoritative billed total at last reconcile
 }
 
 // spendStore adapts two seam stores (spend events + per-instance checkpoints) into the engine's
