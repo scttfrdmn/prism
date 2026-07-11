@@ -39,6 +39,9 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&FundingCommand{})
 	dispatcher.RegisterCommand(&PackageManagerCommand{})
 	dispatcher.RegisterCommand(&SpotCommand{})
+	dispatcher.RegisterCommand(&SpotMaxPriceCommand{})   // spawn adoption Phase 3a
+	dispatcher.RegisterCommand(&EFACommand{})            // spawn adoption Phase 3a
+	dispatcher.RegisterCommand(&PlacementGroupCommand{}) // spawn adoption Phase 3a
 	dispatcher.RegisterCommand(&IdlePolicyCommand{})
 	dispatcher.RegisterCommand(&DryRunCommand{})
 	dispatcher.RegisterCommand(&WaitCommand{})
@@ -261,6 +264,48 @@ func (s *SpotCommand) CanHandle(arg string) bool {
 func (s *SpotCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
 	req.Spot = true
 	return index, nil
+}
+
+// SpotMaxPriceCommand handles --spot-max-price flag (spawn adoption Phase 3a)
+type SpotMaxPriceCommand struct{}
+
+func (s *SpotMaxPriceCommand) CanHandle(arg string) bool {
+	return arg == "--spot-max-price"
+}
+
+func (s *SpotMaxPriceCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--spot-max-price requires a value (e.g. --spot-max-price 0.50)")
+	}
+	req.SpotMaxPrice = args[index+1]
+	return index + 1, nil
+}
+
+// EFACommand handles --efa flag (spawn adoption Phase 3a)
+type EFACommand struct{}
+
+func (e *EFACommand) CanHandle(arg string) bool {
+	return arg == "--efa"
+}
+
+func (e *EFACommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	req.EFA = true
+	return index, nil
+}
+
+// PlacementGroupCommand handles --placement-group flag (spawn adoption Phase 3a)
+type PlacementGroupCommand struct{}
+
+func (p *PlacementGroupCommand) CanHandle(arg string) bool {
+	return arg == "--placement-group"
+}
+
+func (p *PlacementGroupCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--placement-group requires a placement group name")
+	}
+	req.PlacementGroup = args[index+1]
+	return index + 1, nil
 }
 
 // IdlePolicyCommand handles --idle-policy flag (formerly --hibernation)

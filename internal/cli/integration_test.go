@@ -176,6 +176,45 @@ func TestLaunchCommandWithProjectFiltering(t *testing.T) {
 	assert.Equal(t, "my-project", mockClient.LaunchCalls[0].ProjectID)
 }
 
+// TestLaunchCommandSpawnFlags verifies the Phase-3a opt-in launch flags
+// (--spot-max-price, --efa, --placement-group) propagate onto the LaunchRequest.
+func TestLaunchCommandSpawnFlags(t *testing.T) {
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	args := []string{
+		"python-ml", "test-instance",
+		"--spot", "--spot-max-price", "0.50",
+		"--efa",
+		"--placement-group", "my-cluster",
+	}
+	err := app.Launch(args)
+
+	assert.NoError(t, err)
+	assert.Len(t, mockClient.LaunchCalls, 1)
+	req := mockClient.LaunchCalls[0]
+	assert.True(t, req.Spot, "spot should be set")
+	assert.Equal(t, "0.50", req.SpotMaxPrice, "spot-max-price should propagate")
+	assert.True(t, req.EFA, "efa should be set")
+	assert.Equal(t, "my-cluster", req.PlacementGroup, "placement-group should propagate")
+}
+
+// TestLaunchCommandSpawnFlagsDefaultEmpty confirms the new flags are absent by
+// default (opt-in), so existing launches are unchanged.
+func TestLaunchCommandSpawnFlagsDefaultEmpty(t *testing.T) {
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	err := app.Launch([]string{"python-ml", "test-instance"})
+
+	assert.NoError(t, err)
+	assert.Len(t, mockClient.LaunchCalls, 1)
+	req := mockClient.LaunchCalls[0]
+	assert.Empty(t, req.SpotMaxPrice)
+	assert.False(t, req.EFA)
+	assert.Empty(t, req.PlacementGroup)
+}
+
 // TestListCommand tests the list command
 func TestListCommand(t *testing.T) {
 	tests := []struct {

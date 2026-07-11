@@ -27,9 +27,10 @@ require (
 	github.com/godbus/dbus/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/scttfrdmn/substrate v0.70.0
+	github.com/scttfrdmn/substrate v0.71.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/spf13/cobra v1.10.2
+	github.com/spore-host/spawn v0.65.0
 	github.com/spore-host/truffle v0.39.0
 	github.com/stretchr/testify v1.11.1
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -41,7 +42,24 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/spore-host/libs v0.37.0 // indirect
+require (
+	github.com/Microsoft/hcsshim v0.14.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/account v1.32.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.73.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ebs v1.34.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/imagebuilder v1.55.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.33.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sns v1.39.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.42.27 // indirect
+	github.com/aws/aws-sdk-go-v2/service/xray v1.36.23 // indirect
+	github.com/containerd/cgroups/v3 v3.0.5 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spore-host/libs v0.37.0 // indirect
+	go.opencensus.io v0.24.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/github.com/aws/aws-sdk-go-v2/otelaws v0.68.0 // indirect
+)
 
 require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.14 // indirect
