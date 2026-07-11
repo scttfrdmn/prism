@@ -489,10 +489,25 @@ func NewServer(port string) (*Server, error) {
 			}
 			return out, nil
 		}, server.testMode, opts)
-		stateMonitor.SetTickHook(func() { observer.Observe(context.Background()) })
 		if opts.reconcileEnabled && opts.billedCost != nil {
 			logger.Info("Budget cost reconciliation enabled", "interval", opts.reconcileInterval.String())
 		}
+
+		// Live budget enforcement (#656): opt-in, off by default. When enabled, evaluate each project's
+		// budget against the ledger and fire its auto-actions/cushion. Shares the single StateMonitor
+		// tick hook with the observer (only one hook is supported), running enforcement after accrual so
+		// it sees the freshest spend.
+		enforcer := server.newBudgetEnforcer(config)
+		if enforcer != nil && enforcer.enabled {
+			logger.Info("Budget enforcement enabled", "interval", enforcer.interval.String())
+		}
+		stateMonitor.SetTickHook(func() {
+			ctx := context.Background()
+			observer.Observe(ctx)
+			if enforcer != nil {
+				enforcer.Enforce(ctx)
+			}
+		})
 	}
 
 	// Initialize course manager (v0.14.0 - Issue #45)
@@ -521,9 +536,10 @@ func NewServer(port string) (*Server, error) {
 		logger.Info(getReducedModeBanner())
 	}
 
-	// Phase 3c (#653): the BudgetTracker that owned the auto-action executor and the alert dispatcher
-	// is retired. Live budget enforcement (hibernate/stop/prevent-launch via the engine ActionSink)
-	// and alert-dispatcher wiring are tracked as a net-new feature (#656); this path was inert in prod.
+	// Live budget enforcement (#656) is wired above via newBudgetEnforcer + the shared StateMonitor
+	// tick hook (see pkg/daemon/budget_enforcer.go). It is opt-in (BudgetEnforcementEnabled) and off by
+	// default. The Server implements project.ActionExecutor (ExecuteHibernateAll/StopAll/PreventLaunch)
+	// and the enforcer selects a Slack/log alert dispatcher.
 
 	// Initialize recovery and health monitoring (need server reference)
 	server.recoveryManager = NewRecoveryManager(stabilityManager, nil) // Will be set after server creation

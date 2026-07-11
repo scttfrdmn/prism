@@ -244,6 +244,9 @@ type CushionBudgetConfig struct {
 	Mode               string   `json:"mode"`
 	NotifyBeforeAction bool     `json:"notify_before_action"`
 	WarnLeadHours      int      `json:"warn_lead_hours"`
+	// LastTriggeredAt records when the cushion last fired, for fire-once-per-budget-period dedup by
+	// the live enforcer (#656). Nil = never fired.
+	LastTriggeredAt *time.Time `json:"last_triggered_at,omitempty"`
 }
 
 // BudgetAlert defines a spending threshold that triggers notifications
