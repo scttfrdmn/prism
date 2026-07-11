@@ -1022,7 +1022,7 @@ func (s *Server) handleProjectForecast(w http.ResponseWriter, r *http.Request, p
 	}
 
 	ctx := context.Background()
-	forecast, err := s.projectManager.GetProjectForecast(ctx, projectID, req)
+	forecast, err := s.forecast(ctx, projectID, req)
 	if err != nil {
 		s.writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to generate forecast: %v", err))
 		return

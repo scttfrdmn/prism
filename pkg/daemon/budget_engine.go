@@ -58,20 +58,19 @@ func budgetWindow(b *types.ProjectBudget, now time.Time) be.Window {
 	}
 }
 
-// newMonthlyLimitEngine builds an engine + view for the monthly-limit launch gate over an explicit
-// window, evaluated at evalAt. The funding "source" is the monthly limit spread over the window; a
-// single synthetic spend event carries the cached SpentAmount. Policies are the single-source parity
-// trio (ExpiryFirst × RateAdjust × DeadlineFloatPolicy): no banking, block at the ceiling — matching
-// today's projected>limit→403 behavior. warnThreshold ~1.0 disables the warn band in Phase 1 so the
-// gate's block/allow decisions are identical to the current code (Warn is introduced in a later
-// phase once spend is a real ledger).
-func newMonthlyLimitEngine(b *types.ProjectBudget, win be.Window, evalAt time.Time) (*be.Engine, projectBudgetView) {
+// newMonthlyLimitView builds the read-only engine view (plan + fallback spend) for the monthly-limit
+// budget over an explicit window. The funding "source" is the monthly limit spread over the window; a
+// single synthetic spend event carries the cached SpentAmount (used only when the real ledger is
+// empty). Callers construct the engine themselves with the clock and policy trio they need
+// (bepolicyDefaults for the launch gate, bepolicyFor for the status read), so this returns only the
+// view.
+func newMonthlyLimitView(b *types.ProjectBudget, win be.Window) projectBudgetView {
 	limit := 0.0
 	if b.MonthlyLimit != nil {
 		limit = *b.MonthlyLimit
 	}
 
-	view := projectBudgetView{
+	return projectBudgetView{
 		plan: []be.PlanEvent{
 			{Kind: be.KindWindowExtended, Seq: 1, At: win.Start, Window: &be.Window{Start: win.Start, End: win.End}},
 			{Kind: be.KindSourceAdded, Seq: 2, At: win.Start,
@@ -85,9 +84,6 @@ func newMonthlyLimitEngine(b *types.ProjectBudget, win be.Window, evalAt time.Ti
 			{ID: "cached-spend", AllocationID: engineAllocationID, Amount: b.SpentAmount, At: win.Start, Source: "prism-cached"},
 		},
 	}
-
-	eng := be.New(view, view, be.FixedClock{T: evalAt}, bepolicyDefaults()...)
-	return eng, view
 }
 
 // bepolicyDefaults is the single-source parity policy trio used by the monthly-limit gate:
@@ -103,6 +99,36 @@ func bepolicyDefaults() []be.Option {
 	}
 }
 
+// isGrantBudget reports whether a budget is a multi-month grant (as opposed to a simple monthly/cloud
+// budget). Grants are paced to last to a deadline; cloud budgets answer "when do I run out at this
+// pace". Detected by the multi-month allocation fields (#144).
+func isGrantBudget(b *types.ProjectBudget) bool {
+	return b != nil && (b.MonthlyAmount > 0 || b.AllocationMonths > 1)
+}
+
+// bepolicyFor selects the pacing/projection composition for a budget's BurnState readout (Phase 3e,
+// #655), per the architecture doc's two worked compositions:
+//   - multi-month grant → ExpiryFirst × BankAndReserve × RateTargetPolicy (fixed-date: hold the
+//     nominal rate, bank underspend, stay on track unless borrowed past tolerance).
+//   - simple cloud/monthly budget → the default ExpiryFirst × RateAdjust × DeadlineFloatPolicy
+//     (memoryless re-pacing: "at this pace, when do I run out?").
+//
+// This governs only the status/reactive read (evaluateBurnState). The launch gate
+// (checkMonthlyLimitViaEngine) deliberately keeps bepolicyDefaults() — CheckLaunch never invokes the
+// pacing policy (it compares projected spend against AvailableToDate), so gate decisions are unchanged
+// regardless of pacing choice, preserving byte-for-byte launch parity.
+func bepolicyFor(b *types.ProjectBudget) []be.Option {
+	if !isGrantBudget(b) {
+		return bepolicyDefaults()
+	}
+	return []be.Option{
+		be.WithSourcing(bepolicy.ExpiryFirst{}),
+		be.WithPacing(bepolicy.BankAndReserve{}),
+		be.WithProjection(bepolicy.RateTargetPolicy{}),
+		be.WithWarnThreshold(0.999),
+	}
+}
+
 // checkMonthlyLimitViaEngine is the engine-backed replacement for the launch gate's
 // projected>monthly-limit check. It returns the engine Decision for a launch of estimatedCost
 // against the project's monthly budget. The caller maps Block→403 and Allow/Warn→proceed.
@@ -114,7 +140,7 @@ func (s *Server) checkMonthlyLimitViaEngine(projectID string, b *types.ProjectBu
 	// Evaluate at window end so available_to_date == full monthly limit (paced ceiling matches the
 	// flat limit the legacy gate used).
 	win := budgetWindow(b, time.Now())
-	eng, view := newMonthlyLimitEngine(b, win, win.End)
+	view := newMonthlyLimitView(b, win)
 
 	// Phase 2 (#644): prefer the real, persisted spend ledger as the SpendSource. The engine's plan
 	// is still synthesized from the project budget (view), but spend comes from the append-only
@@ -128,7 +154,7 @@ func (s *Server) checkMonthlyLimitViaEngine(projectID string, b *types.ProjectBu
 			spendSource = s.spendLedger
 		}
 	}
-	eng = be.New(spendSource, view, be.FixedClock{T: win.End},
+	eng := be.New(spendSource, view, be.FixedClock{T: win.End},
 		bepolicyDefaults()...)
 	return eng.CheckLaunch(context.Background(), scope, engineAllocationID, estimatedCost)
 }

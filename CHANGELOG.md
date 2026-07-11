@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Real banking/rollover surplus + ledger-backed forecast complete the budget-engine adoption
+  (Phase 3e, #655; closes #645).** `BudgetStatus.Surplus` is now populated for periodic
+  (monthly/weekly/daily) budgets — via the existing `SurplusCalculator.ComputeSurplusWithRollover`
+  over the real ledger cost series, honoring the project's `RolloverEnabled`/`RolloverCap`
+  (project-lifetime budgets stay nil, as they don't bank across periods). The budget forecast moves
+  daemon-side (`pkg/daemon/forecast.go`) and runs the `BudgetPredictor` over the **real** ledger
+  series instead of the empty history the retired `Manager.GetProjectForecast` used, so
+  `CurrentMonthlyRate`/`ForecastData`/exhaustion projections reflect actual spend. Multi-month grant
+  budgets now pace their status read with **`BankAndReserve` × `RateTargetPolicy`** (hold the plan
+  rate, bank underspend) while simple cloud budgets keep `RateAdjust` × `DeadlineFloatPolicy`; the
+  launch gate is unaffected (it never invokes pacing). Requires **budgetengine v0.3.0**, which makes
+  `BankAndReserve` genuinely distinct from `RateAdjust` (previously identical). `Manager` sheds its
+  forecast stub, staying ledger-free.
 - **Cost breakdown / resource usage / trends / monthly report now aggregate the real spend ledger
   (Phase 3d, #654).** The four cost-analytics surfaces that returned zeros after Phase 3c are computed
   from the `budgetengine` spend ledger in a new `pkg/daemon/cost_aggregation.go`. Everything derives

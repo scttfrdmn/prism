@@ -153,3 +153,84 @@ func TestBudgetStatus_OverspentClampsRemaining(t *testing.T) {
 		t.Fatalf("RemainingBudget = %.2f, want 0 (clamped)", st.RemainingBudget)
 	}
 }
+
+// TestBudgetStatus_SurplusForPeriodicBudget (Phase 3e, #655): a periodic (monthly) budget with a
+// seeded ledger gets a populated Surplus. StartDate = start of the current month so there are no
+// completed prior periods — isolating CurrentPeriodSurplus = allocation − spent.
+func TestBudgetStatus_SurplusForPeriodicBudget(t *testing.T) {
+	s := newTestBudgetServer(t)
+	ctx := context.Background()
+	projID := seedBudgetedProject(t, s, 1000, 1000)
+
+	// Anchor StartDate to the first of the current month; enable rollover (unlimited cap).
+	now := time.Now().UTC()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+	proj, _ := s.projectManager.GetProject(ctx, projID)
+	proj.Budget.StartDate = monthStart
+	proj.Budget.RolloverEnabled = true
+	if err := s.projectManager.SetProjectBudget(ctx, projID, proj.Budget); err != nil {
+		t.Fatalf("set budget: %v", err)
+	}
+
+	// Spend $200 across two days this month (need >=2 points for the series).
+	_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
+		ID: "e1", AllocationID: engineAllocationID, Amount: 120, At: monthStart.Add(24 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 120,
+	})
+	_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
+		ID: "e2", AllocationID: engineAllocationID, Amount: 80, At: monthStart.Add(48 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 80,
+	})
+
+	st, err := s.budgetStatus(ctx, projID)
+	if err != nil {
+		t.Fatalf("budgetStatus: %v", err)
+	}
+	if st.Surplus == nil {
+		t.Fatal("Surplus should be populated for a periodic budget")
+	}
+	// Allocation falls back to TotalBudget (1000) since MonthlyAmount isn't set. PeriodSpend differences
+	// the cumulative series endpoints within the window (200 − 120 = 80; the first in-window point is
+	// the baseline — the established BurnRateCalculator.PeriodSpend behavior), so surplus = 1000 − 80.
+	if st.Surplus.CurrentPeriodSurplus < 919 || st.Surplus.CurrentPeriodSurplus > 921 {
+		t.Fatalf("CurrentPeriodSurplus = %.2f, want ~920", st.Surplus.CurrentPeriodSurplus)
+	}
+	// No completed prior periods → banked 0; effective balance = allocation + banked (0).
+	if st.Surplus.BankedSurplus != 0 {
+		t.Fatalf("BankedSurplus = %.2f, want 0 (no completed prior periods)", st.Surplus.BankedSurplus)
+	}
+	if st.Surplus.EffectiveBalance < 999 || st.Surplus.EffectiveBalance > 1001 {
+		t.Fatalf("EffectiveBalance = %.2f, want ~1000", st.Surplus.EffectiveBalance)
+	}
+}
+
+// TestBudgetStatus_NoSurplusForProjectLifetime (Phase 3e, #655): a project-lifetime budget does not
+// bank across periods, so Surplus stays nil.
+func TestBudgetStatus_NoSurplusForProjectLifetime(t *testing.T) {
+	s := newTestBudgetServer(t)
+	ctx := context.Background()
+	proj, err := s.projectManager.CreateProject(ctx, &project.CreateProjectRequest{
+		Name:  "Lifetime Budget",
+		Owner: "tester@example.com",
+		Budget: &project.CreateProjectBudgetRequest{
+			TotalBudget:  1000,
+			BudgetPeriod: types.BudgetPeriodProject,
+		},
+	})
+	if err != nil {
+		t.Fatalf("create project: %v", err)
+	}
+	now := time.Now()
+	_ = s.spendLedger.AppendSpend(ctx, projectScope(proj.ID), be.SpendEvent{
+		ID: "e1", AllocationID: engineAllocationID, Amount: 100, At: now.Add(-48 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 100,
+	})
+	_ = s.spendLedger.AppendSpend(ctx, projectScope(proj.ID), be.SpendEvent{
+		ID: "e2", AllocationID: engineAllocationID, Amount: 50, At: now.Add(-24 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 50,
+	})
+
+	st, err := s.budgetStatus(ctx, proj.ID)
+	if err != nil {
+		t.Fatalf("budgetStatus: %v", err)
+	}
+	if st.Surplus != nil {
+		t.Fatalf("Surplus should be nil for a project-lifetime budget, got %+v", st.Surplus)
+	}
+}
