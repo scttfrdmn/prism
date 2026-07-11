@@ -18,7 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/scttfrdmn/prism/pkg/state"
 	ctypes "github.com/scttfrdmn/prism/pkg/types"
-	"github.com/scttfrdmn/substrate"
+	"github.com/scttfrdmn/substrate/emulator"
 )
 
 // setupSubstrateVPC creates a VPC and public subnet in the Substrate server,
@@ -52,13 +52,13 @@ func setupSubstrateVPC(t *testing.T, cfg aws.Config) (vpcID, subnetID string) {
 // setupSubstrateManager starts an in-process Substrate server and returns a
 // Manager wired to it. No Docker, no external processes — the server is
 // automatically shut down when the test ends via t.Cleanup().
-func setupSubstrateManager(t *testing.T) (*Manager, *substrate.TestServer) {
+func setupSubstrateManager(t *testing.T) (*Manager, *emulator.TestServer) {
 	t.Helper()
 
 	// Isolated state directory so tests don't touch ~/.prism
 	t.Setenv("PRISM_STATE_DIR", t.TempDir())
 
-	ts := substrate.StartTestServer(t)
+	ts := emulator.StartTestServer(t)
 
 	cfg := aws.Config{
 		Region: "us-east-1",

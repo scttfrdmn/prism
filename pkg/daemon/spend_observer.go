@@ -18,13 +18,15 @@ import (
 // throttled — Cost Explorer is far too costly/rate-limited to call per tick):
 //
 //   - Estimate (cheap, frequent): every accrualInterval, per running instance, append the delta of
-//     a cumulative list-price estimate (HourlyRate × running hours). This is a pure function of the
-//     instance record, so it needs no AWS call.
+//     a cumulative estimate (EffectiveComputeRate × running hours). The rate is the captured spot
+//     rate for spot instances (#659), else the on-demand HourlyRate — a pure function of the instance
+//     record, so accrual needs no AWS call.
 //   - Billed reconciliation (authoritative, ~daily): OPT-IN (#644 follow-up). For a plain on-demand
-//     instance the estimate already matches the bill to the penny (known rate × known time), so
-//     reconciliation is a near-no-op. Its purpose is the cases where list-price and the actual bill
-//     genuinely diverge: spot pricing, Reserved Instances / Savings Plans, credits/EDP/negotiated
-//     rates, and storage nuances (snapshots, provisioned IOPS, transfer). When enabled and a live AWS
+//     instance the estimate already matches the bill to the penny (known rate × known time); with the
+//     spot rate captured at launch (#659), spot is now a near-no-op too. Reconciliation's remaining
+//     purpose is the cases where the estimate and the actual bill still diverge: Reserved Instances /
+//     Savings Plans, credits/EDP/negotiated rates, and storage nuances (snapshots, provisioned IOPS,
+//     transfer). When enabled and a live AWS
 //     manager is present, reconcileInstance calls billedCost (awsManager.GetBilledCost) on the
 //     reconcileInterval and replaces the estimate slice with the authoritative Cost Explorer figure
 //     (reversal + billed events). OFF by default; skipped in test/reduced mode and when the
@@ -261,10 +263,11 @@ const (
 	hoursPerMonth  = 730.0
 )
 
-// estimateComponents is a self-contained, monotonic list-price estimate of an instance's cumulative
-// cost since launch, split into compute and storage on INDEPENDENT clocks (#652):
+// estimateComponents is a self-contained, monotonic estimate of an instance's cumulative cost since
+// launch, split into compute and storage on INDEPENDENT clocks (#652):
 //
-//   - compute = HourlyRate × running-hours — compute is billed only while the instance is running,
+//   - compute = EffectiveComputeRate × running-hours — the captured spot rate for spot instances
+//     (#659), else the on-demand HourlyRate. Compute is billed only while the instance is running,
 //     so it stops accruing when the instance stops (from StateHistory).
 //   - storage = RootVolumeGB × ($/GB-hour) × total-hours — EBS persists and bills for the whole
 //     lifetime, running or stopped.
@@ -280,8 +283,9 @@ func estimateComponents(inst types.Instance, now time.Time) (compute, storage fl
 	if totalHours <= 0 {
 		return 0, 0
 	}
-	if inst.HourlyRate > 0 {
-		compute = inst.HourlyRate * runningHours(inst, now)
+	if rate := inst.EffectiveComputeRate(); rate > 0 {
+		// EffectiveComputeRate is the captured spot rate for spot instances (#659), else on-demand.
+		compute = rate * runningHours(inst, now)
 	}
 	if inst.StorageGB > 0 {
 		storage = inst.StorageGB * (ebsGBMonthRate / hoursPerMonth) * totalHours

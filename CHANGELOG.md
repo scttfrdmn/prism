@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Spend estimate uses the real spot price for spot instances (#659).** The spend observer's compute
+  estimate previously used `Instance.HourlyRate` (on-demand list price) for every instance, badly
+  over-stating spot workloads (spot is billed 60–90% below list). Prism now captures the real spot
+  rate once per spot instance — via **`github.com/spore-host/truffle`** (prism's first spore.host
+  dependency; `HourlyRate(…, "spot")` → min current spot across AZs) — persists it as
+  `Instance.SpotHourlyRate`, and a new `Instance.EffectiveComputeRate()` selects it over the on-demand
+  rate. Capture is lazy in the instance refresh builder (once, then preserved across refreshes) and
+  fails soft to the on-demand rate on any lookup error, so accrual is never blocked. This makes the
+  ledger estimate accurate for the common HPC/burst case without needing daily Cost Explorer
+  reconciliation. Account-level discounts/credits and Savings Plans/RI remain reconciliation's job.
 - **Real banking/rollover surplus + ledger-backed forecast complete the budget-engine adoption
   (Phase 3e, #655; closes #645).** `BudgetStatus.Surplus` is now populated for periodic
   (monthly/weekly/daily) budgets — via the existing `SurplusCalculator.ComputeSurplusWithRollover`
