@@ -8,6 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **spawn adoption — instance lifecycle now runs on spawn (Phase 2).** Instance
+  stop/start/hibernate/terminate now route through `github.com/spore-host/spawn`'s
+  client via a `hybridLauncher` (`pkg/aws/hybrid_launcher.go`): lifecycle → spawn,
+  launch → Prism's existing EC2 path. Behavior is preserved — spawn's `StopInstance`
+  maps hibernate directly, its errors are `%w`-wrapped so the graceful "already
+  gone" delete still fires, and Prism's transient-failure retry is kept by wrapping
+  the spawn calls in `WithRetry`. Launch deliberately stays on Prism's launcher for
+  now: spawn v0.65.0 hardcodes the root block-device name to `/dev/xvda` and doesn't
+  derive it from the AMI, which would misplace the root-volume-size override on
+  Prism's Ubuntu/Rocky AMIs (root `/dev/sda1`); launch moves to spawn once that gap
+  is closed upstream. Validated end-to-end against real AWS
+  (`test/integration/spawn_lifecycle_test.go`: launch → stop → start → hibernate
+  → resume → terminate on a live Ubuntu 24.04 instance). Second step of the
+  spawn-adoption milestone.
+- **spawn adoption — launch/lifecycle seam (Phase 1).** Introduced a narrow, host-owned
+  `Launcher` port (`pkg/launch`) expressed in `github.com/spore-host/spawn`'s own types
+  (`Launch(ctx, spawn.LaunchConfig) (*spawn.LaunchResult, error)` + stop/start/terminate), plus a
+  pure `ToLaunchConfig` mapping. Prism's EC2 launch and lifecycle
+  (`Manager.LaunchInstance`/`Stop`/`Start`/`Hibernate`/`Delete`) now flow through this port,
+  defaulting to an EC2-backed implementation (`pkg/aws/ec2_launcher.go`) that reproduces today's
+  behavior byte-for-byte — public-IP NIC, gp3 root volume, spot/hibernation options, AZ failover.
+  This is the seam-only refactor: no behavior change and the CLI/GUI wire contracts and the daemon
+  budget launch-gate are untouched; a later phase swaps the default for `*spawn.Client` (which
+  already satisfies the port). Pins `spore-host/spawn v0.65.0` (transitively bumps
+  `scttfrdmn/substrate` v0.70.0 → v0.71.0). First step of the spawn-adoption milestone, following
+  the truffle adoption (#659).
 - **Live budget enforcement — auto-actions fire again (#656).** Per-project budget auto-actions
   (`AutoActions[]`: threshold %% → hibernate/stop/prevent-launch/notify) and the safety cushion
   (headroom → one action) are evaluated against the `budgetengine` spend ledger on the daemon's

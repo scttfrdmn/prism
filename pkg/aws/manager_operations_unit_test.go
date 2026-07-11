@@ -27,14 +27,14 @@ func TestAWSManagerCoreOperationsUnit(t *testing.T) {
 			},
 		}
 
-		ami, instanceType, dailyCost, err := extractor.ExtractConfig(template, "x86_64")
+		ami, instanceType, hourlyCost, err := extractor.ExtractConfig(template, "x86_64")
 
 		assert.NoError(t, err, "Template config extraction should succeed")
 		assert.Equal(t, "ami-12345", ami, "AMI should match")
 		assert.Equal(t, "t3.medium", instanceType, "Instance type should match")
-		assert.InDelta(t, 1.2, dailyCost, 0.01, "Daily cost should be calculated correctly (0.05 * 24)")
+		assert.InDelta(t, 0.05, hourlyCost, 0.01, "Hourly cost should be the per-hour rate (not ×24)")
 
-		t.Logf("Successfully extracted: AMI=%s, Type=%s, Cost=%.2f", ami, instanceType, dailyCost)
+		t.Logf("Successfully extracted: AMI=%s, Type=%s, Cost=%.2f", ami, instanceType, hourlyCost)
 	})
 
 	// Test instance state conversion

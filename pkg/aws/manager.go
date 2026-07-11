@@ -30,6 +30,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
+	spawnpkg "github.com/spore-host/spawn/pkg/aws"
+
+	"github.com/scttfrdmn/prism/pkg/launch"
 	"github.com/scttfrdmn/prism/pkg/security"
 	"github.com/scttfrdmn/prism/pkg/state"
 	"github.com/scttfrdmn/prism/pkg/templates"
@@ -81,6 +84,11 @@ type Manager struct {
 	spotPricingClient *SpotPricingClient
 	discountConfig    ctypes.DiscountConfig
 	stateManager      StateManagerInterface
+
+	// launcher is the instance launch/lifecycle engine (spawn adoption).
+	// Defaults to the EC2-backed ec2Launcher; swappable for tests and, in a
+	// later phase, for *spawn.Client. See pkg/launch.Launcher.
+	launcher launch.Launcher
 
 	// Universal AMI System components (Phase 5.1)
 	amiResolver *UniversalAMIResolver
@@ -196,10 +204,22 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		healthMonitor:       healthMonitor,
 	}
 
+	// Default the launch/lifecycle engine to the hybrid launcher: Prism's own
+	// ec2Launcher for launch, spawn's client for lifecycle (stop/start/terminate).
+	// Launch moves to spawn once spawn derives the root device name from the AMI.
+	manager.launcher = newHybridLauncher(manager)
+
 	// Idle detection components moved to daemon level (Issue #289 fix)
 	// Scheduler and policy manager are now daemon-level singletons initialized in pkg/daemon/server.go
 
 	return manager, nil
+}
+
+// WithLauncher overrides the instance launch/lifecycle engine. Used by tests to
+// inject a fake, and reserved for wiring spawn's client in a later phase.
+func (m *Manager) WithLauncher(l launch.Launcher) *Manager {
+	m.launcher = l
+	return m
 }
 
 // GetDefaultRegion returns the default AWS region
@@ -306,7 +326,11 @@ type TemplateConfigExtractor struct {
 	region string
 }
 
-// ExtractConfig extracts AMI, instance type, and cost from template
+// ExtractConfig extracts AMI, instance type, and the per-hour compute rate from
+// the template. The rate is genuinely per-hour: an earlier version returned a
+// daily figure (×24) that was then stored as Instance.HourlyRate, briefly
+// mis-reporting cost until the first list/refresh corrected it (fixed with the
+// spawn adoption).
 func (e *TemplateConfigExtractor) ExtractConfig(template *ctypes.RuntimeTemplate, arch string) (string, string, float64, error) {
 	ami, exists := template.AMI[e.region][arch]
 	if !exists {
@@ -318,8 +342,8 @@ func (e *TemplateConfigExtractor) ExtractConfig(template *ctypes.RuntimeTemplate
 		return "", "", 0, fmt.Errorf("instance type not available for architecture %s", arch)
 	}
 
-	dailyCost := template.EstimatedCostPerHour[arch] * 24
-	return ami, instanceType, dailyCost, nil
+	hourlyCost := template.EstimatedCostPerHour[arch]
+	return ami, instanceType, hourlyCost, nil
 }
 
 // UserDataProcessor processes and configures user data (Single Responsibility - SOLID)
@@ -416,155 +440,106 @@ type InstanceConfigBuilder struct {
 	manager *Manager
 }
 
-// BuildRunInstancesInput creates configured RunInstancesInput
-func (b *InstanceConfigBuilder) BuildRunInstancesInput(req ctypes.LaunchRequest, ami, instanceType, userDataEncoded, subnetID, securityGroupID, primaryUsername string) (*ec2.RunInstancesInput, error) {
-	minCount := int32(1)
-	maxCount := int32(1)
-
+// BuildTags builds the full EC2 tag set for a launch, keyed as a map so it can
+// be handed to spawn.LaunchConfig.Tags (spawn appends them verbatim). The
+// prism:-namespaced lifecycle tags here are the contract the already-deployed
+// spored reads (SPORED_TAG_PREFIX=prism), so this is where launch-time tag
+// parity lives (Issue #128, #588, #607).
+func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsername string) map[string]string {
 	// Get current user for lifecycle tracking
 	currentUser := "unknown"
 	if u, err := user.Current(); err == nil {
 		currentUser = u.Username
 	}
 
-	// Build enhanced tag list (Issue #128: Enhanced Resource Tagging)
-	tags := []ec2types.Tag{
+	tags := map[string]string{
 		// User-facing identification
-		{Key: aws.String("Name"), Value: &req.Name},
+		"Name": req.Name,
 
 		// Prism identification (namespaced for AWS best practices)
-		{Key: aws.String("prism:managed"), Value: aws.String("true")},
-		{Key: aws.String("prism:version"), Value: aws.String(version.Version)},
-		{Key: aws.String("prism:instance-id"), Value: &req.Name},
+		"prism:managed":     "true",
+		"prism:version":     version.Version,
+		"prism:instance-id": req.Name,
 
 		// Workload information
-		{Key: aws.String("prism:template"), Value: &req.Template},
-		{Key: aws.String("prism:package-manager"), Value: &req.PackageManager},
-		{Key: aws.String("prism:primary-user"), Value: aws.String(primaryUsername)},
+		"prism:template":        req.Template,
+		"prism:package-manager": req.PackageManager,
+		"prism:primary-user":    primaryUsername,
 
 		// Lifecycle tracking (Issue #128: Zombie resource detection)
-		{Key: aws.String("prism:launched-at"), Value: aws.String(time.Now().Format(time.RFC3339))},
-		{Key: aws.String("prism:launched-by"), Value: aws.String(currentUser)},
+		"prism:launched-at": time.Now().Format(time.RFC3339),
+		"prism:launched-by": currentUser,
 
 		// AWS Cost Explorer integration tags (Issue #128: Cost allocation)
-		{Key: aws.String("Application"), Value: aws.String("Prism")},
-		{Key: aws.String("Environment"), Value: aws.String("research")},
+		"Application": "Prism",
+		"Environment": "research",
 
 		// Legacy tags (maintained for backwards compatibility)
-		{Key: aws.String("Prism"), Value: aws.String("true")},
-		{Key: aws.String("LaunchedBy"), Value: aws.String("Prism")},
-		{Key: aws.String("Template"), Value: &req.Template},
-		{Key: aws.String("PackageManager"), Value: &req.PackageManager},
-		{Key: aws.String("PrimaryUser"), Value: aws.String(primaryUsername)},
+		"Prism":          "true",
+		"LaunchedBy":     "Prism",
+		"Template":       req.Template,
+		"PackageManager": req.PackageManager,
+		"PrimaryUser":    primaryUsername,
 	}
 
 	// Add project tags if project is specified (Issue #128: Project/budget tracking)
 	if req.ProjectID != "" {
-		tags = append(tags,
-			ec2types.Tag{Key: aws.String("prism:project-id"), Value: &req.ProjectID},
-			ec2types.Tag{Key: aws.String("CostCenter"), Value: &req.ProjectID}, // AWS Cost Explorer
-		)
+		tags["prism:project-id"] = req.ProjectID
+		tags["CostCenter"] = req.ProjectID // AWS Cost Explorer
 	}
 
 	// Add funding allocation if specified (v0.5.10: Budget tracking)
 	if req.FundingAllocationID != "" {
-		tags = append(tags,
-			ec2types.Tag{Key: aws.String("prism:funding-allocation-id"), Value: &req.FundingAllocationID},
-		)
+		tags["prism:funding-allocation-id"] = req.FundingAllocationID
 	}
 
 	// Add research user if specified (Phase 5A: Multi-user support)
 	if req.ResearchUser != "" {
-		tags = append(tags,
-			ec2types.Tag{Key: aws.String("prism:research-user"), Value: &req.ResearchUser},
-		)
+		tags["prism:research-user"] = req.ResearchUser
 	}
 
 	// spored lifecycle tags (#588) — only set non-empty values
 	if req.DNSName != "" {
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:dns-name"), Value: aws.String(req.DNSName)})
+		tags["prism:dns-name"] = req.DNSName
 	}
 	if req.TTL != "" {
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:ttl"), Value: aws.String(req.TTL)})
+		tags["prism:ttl"] = req.TTL
 	}
 	if req.IdleTimeout != "" {
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:idle-timeout"), Value: aws.String(req.IdleTimeout)})
+		tags["prism:idle-timeout"] = req.IdleTimeout
 	}
 	if req.IdlePolicy {
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:hibernate-on-idle"), Value: aws.String("true")})
+		tags["prism:hibernate-on-idle"] = "true"
 	}
 
 	// Slack/Teams lifecycle notification tags (#607)
 	// spored reads these at startup to fire DMs on TTL warning, idle, spot interruption, etc.
 	if req.SlackWorkspaceID != "" {
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:slack-workspace-id"), Value: aws.String(req.SlackWorkspaceID)})
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:notify-url"), Value: aws.String(sporeBotLambdaURL)})
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:notify-command"), Value: aws.String("/prism")})
+		tags["prism:slack-workspace-id"] = req.SlackWorkspaceID
+		tags["prism:notify-url"] = sporeBotLambdaURL
+		tags["prism:notify-command"] = "/prism"
 	}
 	if req.ActiveProcesses != "" {
-		tags = append(tags, ec2types.Tag{Key: aws.String("prism:active-processes"), Value: aws.String(req.ActiveProcesses)})
+		tags["prism:active-processes"] = req.ActiveProcesses
 	}
 
 	// Add test mode tags for E2E tests (helps identify and cleanup test resources)
 	if os.Getenv("PRISM_TEST_MODE") == "true" {
-		tags = append(tags,
-			ec2types.Tag{Key: aws.String("prism:test-mode"), Value: aws.String("e2e")},
-			ec2types.Tag{Key: aws.String("prism:test-run"), Value: aws.String(time.Now().Format("20060102-150405"))},
-		)
+		tags["prism:test-mode"] = "e2e"
+		tags["prism:test-run"] = time.Now().Format("20060102-150405")
 	}
 
-	// Use NetworkInterfaces format to enable public IP assignment (Issue #439)
-	// This ensures instances get public IPs even in subnets with MapPublicIpOnLaunch=false
-	runInput := &ec2.RunInstancesInput{
-		ImageId:      &ami,
-		InstanceType: ec2types.InstanceType(instanceType),
-		MinCount:     &minCount,
-		MaxCount:     &maxCount,
-		UserData:     &userDataEncoded,
-		NetworkInterfaces: []ec2types.InstanceNetworkInterfaceSpecification{
-			{
-				DeviceIndex:              aws.Int32(0),
-				SubnetId:                 aws.String(subnetID),
-				Groups:                   []string{securityGroupID},
-				AssociatePublicIpAddress: aws.Bool(true), // Explicitly request public IP
-			},
-		},
-		// IAM Instance Profile is optional - only add if it exists
-		// This makes onboarding painless for new users
-		TagSpecifications: []ec2types.TagSpecification{
-			{
-				ResourceType: ec2types.ResourceTypeInstance,
-				Tags:         tags,
-			},
-		},
-	}
+	return tags
+}
 
-	// Add SSH key pair if provided
-	if req.SSHKeyName != "" {
-		runInput.KeyName = aws.String(req.SSHKeyName)
-	}
-
-	// Pin to a pre-reserved EC2 Capacity Block (#63)
-	if req.CapacityBlockID != "" {
-		runInput.CapacityReservationSpecification = &ec2types.CapacityReservationSpecification{
-			CapacityReservationTarget: &ec2types.CapacityReservationTarget{
-				CapacityReservationId: aws.String(req.CapacityBlockID),
-			},
-		}
-	}
-
-	// Optionally add IAM instance profile if it exists
-	// This enables SSM access for advanced features while not blocking new users
+// resolveIAMInstanceProfile returns the Prism instance-profile name if it exists,
+// or "" otherwise. The profile is optional so onboarding stays painless for new
+// users; when absent, SSM-backed features are simply unavailable.
+func (b *InstanceConfigBuilder) resolveIAMInstanceProfile() string {
 	if b.manager.checkIAMInstanceProfileExists("Prism-Instance-Profile") {
-		runInput.IamInstanceProfile = &ec2types.IamInstanceProfileSpecification{
-			Name: aws.String("Prism-Instance-Profile"),
-		}
-		log.Printf("Using IAM instance profile for SSM access")
-	} else {
-		log.Printf("IAM instance profile not found - launching without it (SSM features will be unavailable)")
+		return "Prism-Instance-Profile"
 	}
-
-	return runInput, nil
+	return ""
 }
 
 // LaunchOptionsProcessor processes hibernation and spot options (Strategy Pattern - SOLID)
@@ -572,10 +547,11 @@ type LaunchOptionsProcessor struct {
 	manager *Manager
 }
 
-// ProcessOptions validates and applies hibernation/spot options
-func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, ami, instanceType string, rootVolumeGB int) error {
-	fmt.Printf("DEBUG [ProcessOptions:379]: Received rootVolumeGB parameter: %d GB\n", rootVolumeGB)
-
+// ValidateOptions checks hibernation/spot prerequisites before launch. The
+// actual block-device, hibernation, and spot RunInstances fields are now built
+// from the spawn.LaunchConfig in configToRunInput; this keeps only the
+// user-facing validations that must run up front (formerly ProcessOptions).
+func (p *LaunchOptionsProcessor) ValidateOptions(req ctypes.LaunchRequest, instanceType string) error {
 	// Support IdlePolicy flag
 	enableIdlePolicy := req.IdlePolicy
 
@@ -584,45 +560,9 @@ func (p *LaunchOptionsProcessor) ProcessOptions(req ctypes.LaunchRequest, runInp
 		return fmt.Errorf("idle policy (hibernation) and spot instances cannot be used together\n\n💡 AWS Limitation:\n  • Spot instances can be interrupted at any time\n  • Idle policies preserve instance state for later resume\n  • These features are incompatible\n\nChoose one:\n  • Use --idle-policy for cost-effective session preservation\n  • Use --spot for discounted compute pricing\n  • Use both flags separately on different instances")
 	}
 
-	// Determine root device name (AWS uses different names for different AMIs)
-	rootDevice := "/dev/sda1"
-	if strings.Contains(strings.ToLower(ami), "amazon") || strings.Contains(strings.ToLower(ami), "amzn") {
-		rootDevice = "/dev/xvda"
-	}
-
-	// Always set root volume size from template (default 20GB if not specified)
-	fmt.Printf("DEBUG [ProcessOptions:395]: Setting BlockDeviceMapping with %d GB root volume on device %s\n", rootVolumeGB, rootDevice)
-	runInput.BlockDeviceMappings = []ec2types.BlockDeviceMapping{
-		{
-			DeviceName: aws.String(rootDevice),
-			Ebs: &ec2types.EbsBlockDevice{
-				VolumeType:          ec2types.VolumeTypeGp3,
-				VolumeSize:          aws.Int32(int32(rootVolumeGB)),
-				Encrypted:           aws.Bool(enableIdlePolicy), // Only encrypt if hibernation enabled
-				DeleteOnTermination: aws.Bool(true),
-			},
-		},
-	}
-
-	// Add idle policy support if requested
-	if enableIdlePolicy {
-		if !p.manager.supportsHibernation(instanceType) {
-			return fmt.Errorf("instance type %s does not support idle policy (hibernation)\n\n💡 Idle policy is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --idle-policy flag or choose a different instance size", instanceType)
-		}
-
-		runInput.HibernationOptions = &ec2types.HibernationOptionsRequest{
-			Configured: aws.Bool(true),
-		}
-	}
-
-	// Add spot instance support if requested
-	if req.Spot {
-		runInput.InstanceMarketOptions = &ec2types.InstanceMarketOptionsRequest{
-			MarketType: ec2types.MarketTypeSpot,
-			SpotOptions: &ec2types.SpotMarketOptions{
-				SpotInstanceType: ec2types.SpotInstanceTypeOneTime,
-			},
-		}
+	// Idle policy (hibernation) requires a supported instance type
+	if enableIdlePolicy && !p.manager.supportsHibernation(instanceType) {
+		return fmt.Errorf("instance type %s does not support idle policy (hibernation)\n\n💡 Idle policy is supported on:\n  • General Purpose: T2, T3, T3a, M3-M7 families (including M6i, M6a, M6g, M7i, M7a, M7g)\n  • Compute Optimized: C3-C7 families (including C6i, C6a, C6g, C7i, C7a, C7g)\n  • Memory Optimized: R3-R7 families (including R6i, R6a, R6g, R7i, R7a, R7g), X1, X1e\n  • Accelerated Computing: G4dn, G4ad, G5, G5g\n\nTip: Remove --idle-policy flag or choose a different instance size", instanceType)
 	}
 
 	return nil
@@ -705,98 +645,17 @@ func (l *InstanceLauncher) createDryRunInstance(req ctypes.LaunchRequest, hourly
 	}
 }
 
-// executeInstanceLaunch performs the actual EC2 instance launch with intelligent AZ failover (v0.7.0)
 // hasSubnetConfig returns true if either the direct SubnetId or a NetworkInterface SubnetId is set.
+// (The former executeInstanceLaunch is relocated to Manager.runInstancesWithFailover in
+// ec2_launcher.go, so the default launcher can drive it from a spawn.LaunchConfig.)
 func hasSubnetConfig(runInput *ec2.RunInstancesInput) bool {
 	return (runInput.SubnetId != nil && *runInput.SubnetId != "") ||
 		(len(runInput.NetworkInterfaces) > 0 && runInput.NetworkInterfaces[0].SubnetId != nil)
 }
 
-func (l *InstanceLauncher) executeInstanceLaunch(ctx context.Context, runInput *ec2.RunInstancesInput, instanceType string) (*ec2types.Instance, error) {
-	// When a subnet is specified, AWS automatically uses the subnet's AZ.
-	// Don't override placement AZ in this case (Issue #427, #439)
-
-	if hasSubnetConfig(runInput) {
-		// Launch directly without AZ failover since subnet determines the AZ
-		var result *ec2.RunInstancesOutput
-		err := WithRetry(ctx, DefaultRetryConfig(), func(ctx context.Context) error {
-			var runErr error
-			result, runErr = l.manager.ec2.RunInstances(ctx, runInput)
-			return runErr
-		})
-
-		if err != nil {
-			return nil, EnhanceError(err, "Launch instance")
-		}
-
-		if len(result.Instances) == 0 {
-			return nil, fmt.Errorf("no instances returned from launch")
-		}
-
-		instance := &result.Instances[0]
-		selectedAZ := ""
-		if instance.Placement != nil && instance.Placement.AvailabilityZone != nil {
-			selectedAZ = *instance.Placement.AvailabilityZone
-		}
-
-		log.Printf("✅ Successfully launched instance %s in AZ %s (from subnet)", *instance.InstanceId, selectedAZ)
-		return instance, nil
-	}
-
-	// No subnet specified - use AvailabilityManager for intelligent AZ selection and automatic failover
-	instanceID, selectedAZ, err := l.manager.availabilityManager.AttemptLaunchWithFailover(
-		ctx,
-		instanceType,
-		func(ctx context.Context, az string) (string, error) {
-			// Update runInput with the target AZ
-			if runInput.Placement == nil {
-				runInput.Placement = &ec2types.Placement{}
-			}
-			runInput.Placement.AvailabilityZone = aws.String(az)
-
-			// Launch the instance with retry logic for transient failures
-			var result *ec2.RunInstancesOutput
-			err := WithRetry(ctx, DefaultRetryConfig(), func(ctx context.Context) error {
-				var runErr error
-				result, runErr = l.manager.ec2.RunInstances(ctx, runInput)
-				return runErr
-			})
-
-			if err != nil {
-				return "", err
-			}
-
-			if len(result.Instances) == 0 {
-				return "", fmt.Errorf("no instances returned from launch")
-			}
-
-			return *result.Instances[0].InstanceId, nil
-		},
-	)
-
-	if err != nil {
-		// Enhance error with actionable guidance (v0.5.12)
-		return nil, EnhanceError(err, "Launch instance")
-	}
-
-	// Retrieve the launched instance details
-	describeOutput, err := l.manager.ec2.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-		InstanceIds: []string{instanceID},
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve launched instance details: %w", err)
-	}
-
-	if len(describeOutput.Reservations) == 0 || len(describeOutput.Reservations[0].Instances) == 0 {
-		return nil, fmt.Errorf("launched instance not found: %s", instanceID)
-	}
-
-	log.Printf("✅ Successfully launched instance %s in AZ %s", instanceID, selectedAZ)
-	return &describeOutput.Reservations[0].Instances[0], nil
-}
-
-// buildInstanceFromEC2 builds Prism instance from EC2 instance
+// buildInstanceFromEC2 builds Prism instance from EC2 instance.
+// Retained for the InstanceBuilder refresh path and unit tests; the launch path
+// now uses buildInstanceFromLaunchResult.
 func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername string, rootVolumeGB int) *ctypes.Instance {
 	instanceType := string(instance.InstanceType)
 	launchTime := time.Now()
@@ -874,32 +733,29 @@ func (l *InstanceLauncher) waitForInstanceReady(instanceID string) {
 	}
 }
 
-// LaunchInstance orchestrates instance launch with extracted helper methods
-func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec2.RunInstancesInput, hourlyRate float64, template *ctypes.RuntimeTemplate, primaryUsername string, instanceType string) (*ctypes.Instance, error) {
+// LaunchInstance orchestrates instance launch through the launcher port. It maps
+// the already-resolved inputs into a spawn.LaunchConfig, drives m.launcher.Launch
+// (the EC2-backed default in Phase 1), and builds the Prism instance from the
+// launch result.
+func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, cfg spawnpkg.LaunchConfig, hourlyRate float64, template *ctypes.RuntimeTemplate, primaryUsername string, rootVolumeGB int) (*ctypes.Instance, error) {
 	// Extract services from template
 	services := l.extractServicesFromTemplate(template)
 
-	// Get root volume size from template (default 20GB if not specified)
-	rootVolumeGB := template.RootVolumeGB
-	if rootVolumeGB == 0 {
-		rootVolumeGB = 20
-	}
-
-	// Handle dry run
+	// Handle dry run — never reaches the launcher.
 	if req.DryRun {
 		return l.createDryRunInstance(req, hourlyRate, services, primaryUsername), nil
 	}
 
-	// Launch instance with AZ failover (v0.7.0) - generous timeout to accommodate AWS variability
+	// Launch via the port with a generous timeout for AWS variability.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
-	instance, err := l.executeInstanceLaunch(ctx, runInput, instanceType)
+	result, err := l.manager.launcher.Launch(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build Prism instance from EC2 instance
-	cwsInstance := l.buildInstanceFromEC2(instance, req, hourlyRate, services, primaryUsername, rootVolumeGB)
+	// Build Prism instance from the launch result
+	cwsInstance := l.buildInstanceFromLaunchResult(result, req, hourlyRate, services, primaryUsername, cfg.InstanceType, rootVolumeGB)
 
 	// Propagate connection type from template so CLI connect routing works correctly
 	if template.ConnectionType != "" {
@@ -912,6 +768,52 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, runInput *ec
 	// l.waitForInstanceReady(cwsInstance.ID)
 
 	return cwsInstance, nil
+}
+
+// buildInstanceFromLaunchResult builds a Prism instance from a spawn.LaunchResult.
+// LaunchResult omits instance type and root volume size, so those are carried in
+// from the caller (they are known at launch time). Mirrors buildInstanceFromEC2's
+// field population so the two paths produce equivalent instances.
+func (l *InstanceLauncher) buildInstanceFromLaunchResult(result *spawnpkg.LaunchResult, req ctypes.LaunchRequest, hourlyRate float64, services []ctypes.Service, primaryUsername, instanceType string, rootVolumeGB int) *ctypes.Instance {
+	launchTime := time.Now()
+
+	// Calculate storage costs that persist even when stopped/hibernated
+	storageCostPerHour := calculateStorageCosts(req.Volumes, req.EBSVolumes)
+
+	// Record initial state transition for cost tracking
+	initialState := result.State // Usually "pending" at launch
+	stateHistory := []ctypes.StateTransition{
+		{
+			FromState: "", // Empty for initial launch
+			ToState:   initialState,
+			Timestamp: launchTime,
+			Reason:    "instance_launch",
+			Initiator: "user",
+		},
+	}
+
+	return &ctypes.Instance{
+		ID:                 result.InstanceID,
+		Name:               req.Name,
+		Template:           req.Template,
+		Region:             l.region,
+		AvailabilityZone:   result.AvailabilityZone,
+		PublicIP:           result.PublicIP,
+		PrivateIP:          result.PrivateIP,
+		State:              initialState,
+		InstanceType:       instanceType,
+		LaunchTime:         launchTime,
+		HourlyRate:         hourlyRate,
+		CurrentSpend:       storageCostPerHour,              // Only storage costs at launch
+		EffectiveRate:      hourlyRate + storageCostPerHour, // Will include storage
+		AttachedVolumes:    req.Volumes,
+		AttachedEBSVolumes: req.EBSVolumes,
+		Services:           services,
+		Username:           primaryUsername,
+		KeyName:            result.KeyName,
+		StateHistory:       stateHistory,
+		StorageGB:          float64(rootVolumeGB),
+	}
 }
 
 // LaunchOrchestrator coordinates instance launch using SOLID principles (Strategy Pattern - SOLID)
@@ -944,7 +846,7 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 	}
 
 	// Extract template configuration
-	ami, instanceType, dailyCost, err := o.configExtractor.ExtractConfig(template, arch)
+	ami, instanceType, hourlyCost, err := o.configExtractor.ExtractConfig(template, arch)
 	if err != nil {
 		return nil, err
 	}
@@ -965,23 +867,39 @@ func (o *LaunchOrchestrator) ExecuteLaunch(req ctypes.LaunchRequest, template *c
 		return nil, err
 	}
 
-	// Build run configuration
-	runInput, err := o.configBuilder.BuildRunInstancesInput(req, ami, instanceType, userDataEncoded, subnetID, securityGroupID, primaryUsername)
-	if err != nil {
+	// Validate hibernation/spot prerequisites up front (formerly ProcessOptions)
+	if err := o.optionsProcessor.ValidateOptions(req, instanceType); err != nil {
 		return nil, err
 	}
 
-	// Process launch options (pass root volume size from template)
+	// Resolve root volume size from template (default 20GB if not specified)
 	rootVolumeGB := template.RootVolumeGB
 	if rootVolumeGB == 0 {
-		rootVolumeGB = 20 // Default if not specified
-	}
-	if err := o.optionsProcessor.ProcessOptions(req, runInput, ami, instanceType, rootVolumeGB); err != nil {
-		return nil, err
+		rootVolumeGB = 20
 	}
 
-	// Execute launch with AZ failover (v0.7.0)
-	instance, err := o.instanceLauncher.LaunchInstance(req, runInput, dailyCost, template, primaryUsername, instanceType)
+	// Map resolved inputs into a spawn.LaunchConfig (Phase 1: EC2-backed launcher).
+	cfg := launch.ToLaunchConfig(launch.Inputs{
+		InstanceType:          instanceType,
+		Region:                o.instanceLauncher.region,
+		AMI:                   ami,
+		SubnetID:              subnetID,
+		SecurityGroupID:       securityGroupID,
+		KeyName:               req.SSHKeyName,
+		UserDataEncoded:       userDataEncoded,
+		PrimaryUsername:       primaryUsername,
+		RootVolumeGB:          rootVolumeGB,
+		Hibernate:             req.IdlePolicy,
+		Spot:                  req.Spot,
+		CapacityReservationID: req.CapacityBlockID,
+		IAMInstanceProfile:    o.configBuilder.resolveIAMInstanceProfile(),
+		HourlyRate:            hourlyCost,
+		Name:                  req.Name,
+		Tags:                  o.configBuilder.BuildTags(req, primaryUsername),
+	})
+
+	// Execute launch through the launcher port (with AZ failover in the default impl)
+	instance, err := o.instanceLauncher.LaunchInstance(req, cfg, hourlyCost, template, primaryUsername, rootVolumeGB)
 	if err != nil {
 		return nil, err
 	}
@@ -1153,17 +1071,9 @@ func (m *Manager) DeleteInstance(name string) error {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
-	// Get regional EC2 client
-	regionalClient := m.getRegionalEC2Client(region)
-
-	// Terminate the instance with retry logic for transient failures (v0.5.12)
+	// Terminate the instance through the launcher port (retry handled inside).
 	ctx := context.Background()
-	err = WithRetry(ctx, DefaultRetryConfig(), func(ctx context.Context) error {
-		_, terminateErr := regionalClient.TerminateInstances(ctx, &ec2.TerminateInstancesInput{
-			InstanceIds: []string{instanceID},
-		})
-		return terminateErr
-	})
+	err = m.launcher.Terminate(ctx, region, instanceID)
 	if err != nil {
 		// Check if instance already doesn't exist (graceful handling for Issue #423)
 		if strings.Contains(err.Error(), "InvalidInstanceID.NotFound") ||
@@ -1194,17 +1104,9 @@ func (m *Manager) StartInstance(name string) error {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
-	// Get regional EC2 client
-	regionalClient := m.getRegionalEC2Client(region)
-
-	// Start the instance with retry logic for transient failures (v0.5.12)
+	// Start the instance through the launcher port (retry handled inside).
 	ctx := context.Background()
-	err = WithRetry(ctx, DefaultRetryConfig(), func(ctx context.Context) error {
-		_, startErr := regionalClient.StartInstances(ctx, &ec2.StartInstancesInput{
-			InstanceIds: []string{instanceID},
-		})
-		return startErr
-	})
+	err = m.launcher.StartInstance(ctx, region, instanceID)
 	if err != nil {
 		// Enhance error with actionable guidance (v0.5.12)
 		return EnhanceError(err, "Start instance")
@@ -1227,17 +1129,9 @@ func (m *Manager) StopInstance(name string) error {
 		return fmt.Errorf("failed to find instance: %w", err)
 	}
 
-	// Get regional EC2 client
-	regionalClient := m.getRegionalEC2Client(region)
-
+	// Stop the instance through the launcher port (retry handled inside).
 	ctx := context.Background()
-	// Stop the instance with retry logic for transient failures (v0.5.12)
-	err = WithRetry(ctx, DefaultRetryConfig(), func(ctx context.Context) error {
-		_, stopErr := regionalClient.StopInstances(ctx, &ec2.StopInstancesInput{
-			InstanceIds: []string{instanceID},
-		})
-		return stopErr
-	})
+	err = m.launcher.StopInstance(ctx, region, instanceID, false)
 	if err != nil {
 		// Enhance error with actionable guidance (v0.5.12)
 		return EnhanceError(err, "Stop instance")
@@ -1311,12 +1205,8 @@ func (m *Manager) HibernateInstance(name string) error {
 		return m.StopInstance(name)
 	}
 
-	// Stop the instance with hibernation
-	_, err = regionalClient.StopInstances(ctx, &ec2.StopInstancesInput{
-		InstanceIds: []string{instanceID},
-		Hibernate:   aws.Bool(true), // This enables hibernation
-	})
-	if err != nil {
+	// Stop the instance with hibernation through the launcher port.
+	if err := m.launcher.StopInstance(ctx, region, instanceID, true); err != nil {
 		return fmt.Errorf("failed to hibernate instance: %w", err)
 	}
 
