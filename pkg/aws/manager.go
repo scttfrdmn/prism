@@ -87,8 +87,8 @@ type Manager struct {
 	stateManager          StateManagerInterface
 
 	// launcher is the instance launch/lifecycle engine (spawn adoption).
-	// Defaults to the EC2-backed ec2Launcher; swappable for tests and, in a
-	// later phase, for *spawn.Client. See pkg/launch.Launcher.
+	// Defaults to the spawn-backed spawnLauncher; swappable for tests via
+	// WithLauncher. See pkg/launch.Launcher.
 	launcher launch.Launcher
 
 	// Universal AMI System components (Phase 5.1)
@@ -208,10 +208,10 @@ func NewManager(opts ...ManagerOptions) (*Manager, error) {
 		healthMonitor:         healthMonitor,
 	}
 
-	// Default the launch/lifecycle engine to the hybrid launcher: Prism's own
-	// ec2Launcher for launch, spawn's client for lifecycle (stop/start/terminate).
-	// Launch moves to spawn once spawn derives the root device name from the AMI.
-	manager.launcher = newHybridLauncher(manager)
+	// Default the launch/lifecycle engine to spawn (launch + lifecycle all route
+	// through *spawn.Client). Unblocked once spawn v0.72.0 (spore-host/spawn#284)
+	// derives the root block-device name from the AMI.
+	manager.launcher = newSpawnLauncher(manager)
 
 	// Idle detection components moved to daemon level (Issue #289 fix)
 	// Scheduler and policy manager are now daemon-level singletons initialized in pkg/daemon/server.go
@@ -444,11 +444,15 @@ type InstanceConfigBuilder struct {
 	manager *Manager
 }
 
-// BuildTags builds the full EC2 tag set for a launch, keyed as a map so it can
+// BuildTags builds the prism: EC2 tag set for a launch, keyed as a map so it can
 // be handed to spawn.LaunchConfig.Tags (spawn appends them verbatim). The
 // prism:-namespaced lifecycle tags here are the contract the already-deployed
 // spored reads (SPORED_TAG_PREFIX=prism), so this is where launch-time tag
 // parity lives (Issue #128, #588, #607).
+//
+// The "Name" tag is intentionally NOT set here: spawn stamps Name from
+// LaunchConfig.Name, and adding it to this map too would produce a duplicate
+// Name tag (spawn appends caller tags without dedup).
 func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsername string) map[string]string {
 	// Get current user for lifecycle tracking
 	currentUser := "unknown"
@@ -457,9 +461,6 @@ func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsern
 	}
 
 	tags := map[string]string{
-		// User-facing identification
-		"Name": req.Name,
-
 		// Prism identification (namespaced for AWS best practices)
 		"prism:managed":     "true",
 		"prism:version":     version.Version,
@@ -657,14 +658,6 @@ func (l *InstanceLauncher) createDryRunInstance(req ctypes.LaunchRequest, hourly
 		Services:      services,
 		Username:      primaryUsername,
 	}
-}
-
-// hasSubnetConfig returns true if either the direct SubnetId or a NetworkInterface SubnetId is set.
-// (The former executeInstanceLaunch is relocated to Manager.runInstancesWithFailover in
-// ec2_launcher.go, so the default launcher can drive it from a spawn.LaunchConfig.)
-func hasSubnetConfig(runInput *ec2.RunInstancesInput) bool {
-	return (runInput.SubnetId != nil && *runInput.SubnetId != "") ||
-		(len(runInput.NetworkInterfaces) > 0 && runInput.NetworkInterfaces[0].SubnetId != nil)
 }
 
 // buildInstanceFromEC2 builds Prism instance from EC2 instance.

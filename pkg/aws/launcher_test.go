@@ -152,8 +152,9 @@ func TestBuildTags_ParityWithLegacyTagSet(t *testing.T) {
 	tags := b.BuildTags(req, "ubuntu")
 
 	// Static keys always present, keyed with the prism: namespace spored reads.
+	// Note: "Name" is NOT here — spawn stamps it from LaunchConfig.Name; BuildTags
+	// must not also emit it (would duplicate the Name tag).
 	want := map[string]string{
-		"Name":                  "ws1",
 		"prism:managed":         "true",
 		"prism:instance-id":     "ws1",
 		"prism:template":        "python-ml",
@@ -188,6 +189,10 @@ func TestBuildTags_ParityWithLegacyTagSet(t *testing.T) {
 	// prism:version is present but value tracks the build; just require non-empty.
 	if tags["prism:version"] == "" {
 		t.Error("prism:version tag missing")
+	}
+	// "Name" must NOT be in the map — spawn stamps it, and a dup would collide.
+	if _, ok := tags["Name"]; ok {
+		t.Error(`BuildTags must not emit "Name" (spawn stamps it from LaunchConfig.Name)`)
 	}
 }
 
@@ -278,64 +283,16 @@ func TestToLaunchConfig_MapsSpawnCapabilities(t *testing.T) {
 	}
 }
 
-// TestConfigToRunInput_EFAAndPlacement asserts the EFA NIC (InterfaceType=efa)
-// and the cluster placement group land on the RunInstances input.
-func TestConfigToRunInput_EFAAndPlacement(t *testing.T) {
-	in := configToRunInput(spawn.LaunchConfig{
-		InstanceType:      "c7i.large",
-		AMI:               "ami-123",
-		SubnetID:          "subnet-1",
-		SecurityGroupIDs:  []string{"sg-1"},
-		RootVolumeSizeGiB: 20,
-		EFAEnabled:        true,
-		PlacementGroup:    "cluster-1",
-	})
-
-	if len(in.NetworkInterfaces) != 1 {
-		t.Fatalf("expected 1 NIC, got %d", len(in.NetworkInterfaces))
-	}
-	nic := in.NetworkInterfaces[0]
-	if nic.InterfaceType == nil || *nic.InterfaceType != "efa" {
-		t.Errorf("NIC InterfaceType = %v; want efa", nic.InterfaceType)
-	}
-	if in.Placement == nil || in.Placement.GroupName == nil || *in.Placement.GroupName != "cluster-1" {
-		t.Errorf("Placement.GroupName not set to cluster-1: %+v", in.Placement)
-	}
-}
-
-// TestConfigToRunInput_NoEFANoPlacement confirms the default path leaves the NIC
-// without an EFA interface type and sets no placement group.
-func TestConfigToRunInput_NoEFANoPlacement(t *testing.T) {
-	in := configToRunInput(spawn.LaunchConfig{
-		InstanceType:      "t3.micro",
-		AMI:               "ami-123",
-		SubnetID:          "subnet-1",
-		RootVolumeSizeGiB: 20,
-	})
-	if in.NetworkInterfaces[0].InterfaceType != nil {
-		t.Errorf("InterfaceType should be nil without EFA, got %v", *in.NetworkInterfaces[0].InterfaceType)
-	}
-	if in.Placement != nil {
-		t.Errorf("Placement should be nil without a placement group, got %+v", in.Placement)
-	}
-}
-
-// TestHybridLauncher_RoutesLaunchToEC2AndLifecycleToSpawn documents the Phase-2
-// split: Launch stays on the EC2 path while lifecycle goes to spawn. We can't
-// easily stand up a real *spawn.Client here, so this asserts the delegation
-// wiring (launch -> ec2Launcher) via the manager's mock EC2 client, and that the
-// hybrid satisfies the port. The spawn lifecycle delegation is covered by the
-// manager-level lifecycle tests below (through fakeLauncher).
-func TestHybridLauncher_SatisfiesPort(t *testing.T) {
-	// Compile-time already asserted in hybrid_launcher.go; this guards the
-	// constructor wiring: both engines are set.
+// TestSpawnLauncher_SatisfiesPort guards the constructor wiring: the launcher is
+// backed by a spawn client and satisfies the launch.Launcher port. Launch and
+// lifecycle both route through spawn now (the EFA NIC / placement group / root
+// device building is spawn's job — covered by spawn's own tests and Prism's
+// real-AWS launch integration test).
+func TestSpawnLauncher_SatisfiesPort(t *testing.T) {
 	m := &Manager{region: "us-west-2"} // empty cfg is fine; no AWS calls made here
-	h := newHybridLauncher(m)
-	if h.launch == nil {
-		t.Error("hybridLauncher.launch (ec2Launcher) not set")
-	}
-	if h.lifecycle == nil {
-		t.Error("hybridLauncher.lifecycle (spawn client) not set")
+	l := newSpawnLauncher(m)
+	if l.client == nil {
+		t.Error("spawnLauncher.client (spawn client) not set")
 	}
 }
 
