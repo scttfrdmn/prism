@@ -60,6 +60,10 @@ export function useCrudHandlers(options: UseCrudHandlersOptions) {
       const result = await api.launchInstance(templateSlug, instanceName, instanceSize, isDryRun, {
         dnsName: config.dnsName,
         ttl: config.ttl,
+        spot: config.spot,
+        spotMaxPrice: config.spotMaxPrice,
+        efa: config.efa,
+        placementGroup: config.placementGroup,
       });
       // HTTP 202 approval pending (#495)
       if (result && (result as any).approval_pending) {
