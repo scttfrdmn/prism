@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   us-west-2 → the correct regional list price).
 
 ### Added
+- **GUI launch form exposes the opt-in launch options.** The launch modal now
+  offers **Spot max price** ($/hr, enabled only when Spot is selected), an **EFA**
+  toggle, and a **Placement group** field — the GUI counterpart to the Phase-3a
+  CLI flags. This also fixes a latent bug: the modal's existing **Spot** toggle
+  was in form state but never sent to the daemon, so it had no effect; it (and the
+  three new fields) now thread through `SafePrismAPI.launchInstance` to the
+  `/api/v1/instances` request with the `spot`/`spot_max_price`/`efa`/
+  `placement_group` keys matching `pkg/types.LaunchRequest`. All default-off.
 - **spawn adoption — opt-in launch capabilities (Phase 3a).** Three new opt-in
   `prism workspace launch` flags, all default-off (empty/false = today's
   behavior): `--spot-max-price <$/hr>` (a real spot bid cap; requires `--spot`),

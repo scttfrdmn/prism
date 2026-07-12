@@ -18,6 +18,9 @@ export interface LaunchConfig {
   name: string
   size: string
   spot: boolean
+  spotMaxPrice?: string
+  efa?: boolean
+  placementGroup?: string
   hibernation: boolean
   dryRun: boolean
   dnsName?: string
@@ -147,12 +150,45 @@ export function LaunchModal({ visible, selectedTemplate, onDismiss, onLaunch }: 
                 Spot instance - use lower-cost spot pricing
               </Checkbox>
               <Checkbox
+                checked={launchConfig.efa || false}
+                onChange={({ detail }) => setLaunchConfig(prev => ({ ...prev, efa: detail.checked }))}
+              >
+                EFA - attach an Elastic Fabric Adapter (MPI / tightly-coupled HPC; requires an EFA-capable instance type)
+              </Checkbox>
+              <Checkbox
                 checked={launchConfig.hibernation || false}
                 onChange={({ detail }) => setLaunchConfig(prev => ({ ...prev, hibernation: detail.checked }))}
               >
                 Hibernation - enable instance hibernation support
               </Checkbox>
             </SpaceBetween>
+          </FormField>
+
+          <FormField
+            label="Spot max price"
+            description="Optional maximum spot price in $/hr (e.g. 0.50). Leave empty for the on-demand cap. Requires the Spot instance option."
+          >
+            <Input
+              type="text"
+              value={launchConfig.spotMaxPrice ?? ''}
+              onChange={({ detail }) => setLaunchConfig(prev => ({ ...prev, spotMaxPrice: detail.value }))}
+              placeholder="on-demand cap"
+              disabled={!launchConfig.spot}
+              data-testid="launch-spot-max-price"
+            />
+          </FormField>
+
+          <FormField
+            label="Placement group"
+            description="Optional cluster placement group name for tightly-coupled / MPI workloads."
+          >
+            <Input
+              type="text"
+              value={launchConfig.placementGroup ?? ''}
+              onChange={({ detail }) => setLaunchConfig(prev => ({ ...prev, placementGroup: detail.value }))}
+              placeholder="none"
+              data-testid="launch-placement-group"
+            />
           </FormField>
 
           <FormField

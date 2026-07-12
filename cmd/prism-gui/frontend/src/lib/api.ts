@@ -160,7 +160,7 @@ export class SafePrismAPI {
     }
   }
 
-  async launchInstance(templateSlug: string, name: string, size: string = 'M', dryRun: boolean = false, options?: { dnsName?: string; ttl?: string }): Promise<Instance & { approval_pending?: boolean; approval_request_id?: string; message?: string }> {
+  async launchInstance(templateSlug: string, name: string, size: string = 'M', dryRun: boolean = false, options?: { dnsName?: string; ttl?: string; spot?: boolean; spotMaxPrice?: string; efa?: boolean; placementGroup?: string }): Promise<Instance & { approval_pending?: boolean; approval_request_id?: string; message?: string }> {
     const body: Record<string, unknown> = {
       template: templateSlug,
       name,
@@ -174,6 +174,19 @@ export class SafePrismAPI {
     }
     if (options?.ttl) {
       body.ttl = options.ttl;
+    }
+    // Optional launch capabilities (keys must match pkg/types.LaunchRequest json tags).
+    if (options?.spot) {
+      body.spot = true;
+    }
+    if (options?.spotMaxPrice) {
+      body.spot_max_price = options.spotMaxPrice;
+    }
+    if (options?.efa) {
+      body.efa = true;
+    }
+    if (options?.placementGroup) {
+      body.placement_group = options.placementGroup;
     }
     return this.safeRequest('/api/v1/instances', 'POST', body);
   }
