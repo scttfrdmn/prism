@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`.golangci.yml` migrated to the golangci-lint v2 schema.** The config
+  declared `version: 2` but used v1-schema keys (`linters-settings`,
+  `issues.exclude-rules`, `run.skip-dirs`, `output.format`), which golangci-lint
+  v2 silently rejected and replaced with defaults — so `make lint` was running
+  with the wrong linter set (cyclop threshold 10 instead of 15, test-file
+  exclusions ignored). Rewrote to the valid v2 layout (`linters.settings`,
+  `linters.exclusions.rules/paths`, `default: standard`); `golangci-lint config
+  verify` now passes and the intended thresholds/exclusions apply. Note:
+  `make lint` is a local developer tool (CI gates on `go vet` + `gofmt`, not
+  golangci-lint); with the config now honored it surfaces pre-existing lint debt
+  to be addressed separately.
+
 ### Changed
 - **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The
   on-demand compute rate recorded on every instance (`Instance.HourlyRate`) is
