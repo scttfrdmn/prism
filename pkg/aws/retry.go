@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	// nosemgrep: go.lang.security.audit.crypto.math_random.math-random-used -- retry jitter, not cryptography.
 	"math/rand" //nolint:gosec // math/rand used for retry jitter, not cryptography
 	"net"
 	"strings"

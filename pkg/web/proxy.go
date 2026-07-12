@@ -63,8 +63,11 @@ func (pm *ProxyManager) RegisterInstance(instance *types.Instance) error {
 		return fmt.Errorf("invalid target URL: %w", err)
 	}
 
-	// Create reverse proxy with custom director
+	// Create reverse proxy with custom director. Director sets scheme/host +
+	// forwarding headers explicitly and drops none, so the Rewrite-vs-Director
+	// header-stripping concern the linter guards against does not apply here.
 	proxy := &httputil.ReverseProxy{
+		// nosemgrep: go.lang.security.reverseproxy-director.reverseproxy-director -- Director drops no caller headers; see comment above.
 		Director: func(req *http.Request) {
 			req.URL.Scheme = targetURL.Scheme
 			req.URL.Host = targetURL.Host
@@ -88,8 +91,12 @@ func (pm *ProxyManager) RegisterInstance(instance *types.Instance) error {
 		},
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // Allow self-signed certificates on EC2 instances (#596)
-				// TODO: Add instance CA to custom cert pool instead of disabling verification
+				MinVersion: tls.VersionTLS12,
+				// nosemgrep: go.lang.security.audit.crypto.missing-ssl-minversion.missing-ssl-minversion -- MinVersion is set above (TLS 1.2).
+				// InsecureSkipVerify is intentional: the proxy connects to self-signed certs on
+				// ephemeral EC2 instances (#596). TODO: add the instance CA to a custom cert pool
+				// instead of disabling verification.
+				InsecureSkipVerify: true, //nolint:gosec // self-signed EC2 instance certs (#596)
 			},
 			DialContext: (&net.Dialer{
 				Timeout:   30 * time.Second,
@@ -295,7 +302,9 @@ func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	dialer := websocket.Dialer{
 		HandshakeTimeout: 10 * time.Second,
-		TLSClientConfig:  &tls.Config{InsecureSkipVerify: true},
+		// nosemgrep: go.lang.security.audit.crypto.missing-ssl-minversion.missing-ssl-minversion -- MinVersion set to TLS 1.2.
+		// InsecureSkipVerify is intentional: self-signed certs on ephemeral EC2 instances (#596).
+		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, InsecureSkipVerify: true}, //nolint:gosec // self-signed EC2 instance certs (#596)
 	}
 
 	backendConn, resp, err := dialer.Dial(backendURL+r.URL.Path, nil)

@@ -228,7 +228,8 @@ func (s *Server) setupHostKeyVerification(wsConn *websocket.Conn, publicIP strin
 		hostKeyCallback, err := loadKnownHosts(knownHostsPath)
 		if err != nil {
 			_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to load known hosts, using insecure mode: %v\r\n", err)))
-			return ssh.InsecureIgnoreHostKey(), nil //nolint:gosec,semgrep // intentional TOFU fallback; host key verified on subsequent connections
+			// nosemgrep: go.lang.security.audit.crypto.insecure_ssh.avoid-ssh-insecure-ignore-host-key -- intentional TOFU fallback; host key verified on subsequent connections.
+			return ssh.InsecureIgnoreHostKey(), nil //nolint:gosec // intentional TOFU fallback; host key verified on subsequent connections
 		}
 		return hostKeyCallback, nil
 	}
@@ -236,7 +237,8 @@ func (s *Server) setupHostKeyVerification(wsConn *websocket.Conn, publicIP strin
 	// Create known hosts file if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(knownHostsPath), 0700); err != nil {
 		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Warning: Failed to create known hosts directory, using insecure mode: %v\r\n", err)))
-		return ssh.InsecureIgnoreHostKey(), nil
+		// nosemgrep: go.lang.security.audit.crypto.insecure_ssh.avoid-ssh-insecure-ignore-host-key -- intentional TOFU fallback when known_hosts dir can't be created; host key verified on subsequent connections.
+		return ssh.InsecureIgnoreHostKey(), nil //nolint:gosec // intentional TOFU fallback; host key verified on subsequent connections
 	}
 
 	// Use trust-on-first-use

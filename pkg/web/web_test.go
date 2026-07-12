@@ -51,6 +51,33 @@ func newDashboard() *DashboardServer {
 
 // ── DashboardServer ───────────────────────────────────────────────────────
 
+func TestSameOriginCheck(t *testing.T) {
+	tests := []struct {
+		name   string
+		host   string
+		origin string
+		want   bool
+	}{
+		{"no origin (CLI/native client)", "example.com", "", true},
+		{"same origin", "app.example.com", "http://app.example.com", true},
+		{"same origin with port", "app.example.com:8947", "http://app.example.com:8947", true},
+		{"loopback origin", "app.example.com", "http://localhost:3000", true},
+		{"127.0.0.1 origin", "app.example.com", "http://127.0.0.1:5173", true},
+		{"cross-site origin rejected", "app.example.com", "http://evil.example.net", false},
+		{"malformed origin rejected", "app.example.com", "://not a url", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, "http://"+tt.host+"/terminal", nil)
+			r.Host = tt.host
+			if tt.origin != "" {
+				r.Header.Set("Origin", tt.origin)
+			}
+			assert.Equal(t, tt.want, sameOriginCheck(r))
+		})
+	}
+}
+
 func TestDashboardServer_Dashboard(t *testing.T) {
 	srv := httptest.NewServer(newDashboard())
 	defer srv.Close()
