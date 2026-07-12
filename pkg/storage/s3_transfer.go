@@ -602,6 +602,7 @@ func computeFileMD5(filePath string) (string, error) {
 	}
 	defer file.Close()
 
+	// nosemgrep: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-md5 -- S3 defines ETag as the MD5 of the object; this verifies against that ETag, not a security signature.
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", err

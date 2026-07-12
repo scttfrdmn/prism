@@ -69,7 +69,8 @@ func (s *Server) handleListInstanceFiles(w http.ResponseWriter, r *http.Request,
 		remotePath = "/home"
 	}
 	// Normalize and validate path (#598)
-	remotePath = filepath.Clean(remotePath) //nolint:semgrep // path traversal is prevented by the IsAbs check below and validateRemotePath (#598)
+	// nosemgrep: go.lang.security.filepath-clean-misuse.filepath-clean-misuse -- not used as the traversal defense; the IsAbs check below and validateRemotePath (#598) enforce that.
+	remotePath = filepath.Clean(remotePath)
 	if !filepath.IsAbs(remotePath) {
 		s.writeError(w, http.StatusBadRequest, "Path must be absolute")
 		return

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
+  Scan workflow runs Semgrep full-repo on push to `main` and had been red on 15
+  findings (PR scans are diff-aware, so they passed). Root cause for most: prior
+  triage used `//nolint:...,semgrep` comments, which Semgrep does not read — it
+  honors `// nosemgrep: <rule-id>`. Resolved all 15 with real fixes where
+  warranted and justified suppressions otherwise:
+  - **Fixes:** added `MinVersion: tls.VersionTLS12` to the reverse-proxy TLS
+    configs (`pkg/web/proxy.go`); replaced the terminal WebSocket's
+    always-true `CheckOrigin` with a real same-origin/loopback check
+    (`sameOriginCheck`, `pkg/web/terminal.go`) to close a cross-site WebSocket
+    hijacking (CSRF) gap; bound the desktop GUI's local terminal bridge to
+    `127.0.0.1:8948` instead of all interfaces (`cmd/prism-gui/main.go`).
+  - **Justified (`// nosemgrep` with rationale):** SSH `InsecureIgnoreHostKey`
+    TOFU fallbacks (host key recorded + verified on subsequent connects), `math/rand`
+    used for retry jitter (not crypto), `filepath.Clean` (traversal enforced by an
+    `IsAbs` + validator check, #598), an `fmt.Sprintf` HTTP error string
+    mis-flagged as SQL injection, a placeholder cert-pin fingerprint mis-flagged
+    as a secret, MD5 used to verify S3 ETags (not a signature), `ReverseProxy.Director`
+    (drops no headers), and `InsecureSkipVerify` for self-signed EC2 instance
+    certs (#596). Establishes the `nosemgrep` convention for the repo.
+
 ### Fixed
 - **`.golangci.yml` migrated to the golangci-lint v2 schema.** The config
   declared `version: 2` but used v1-schema keys (`linters-settings`,

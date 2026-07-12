@@ -314,7 +314,8 @@ func (s *Server) handleMarketplaceUpdate(w http.ResponseWriter, r *http.Request)
 
 	// Update template using marketplace registry
 	if err := s.marketplaceRegistry.UpdateTemplate(templateID, &update); err != nil {
-		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("update failed: %v", err)) //nolint:semgrep // err is internal, not user-controlled SQL; false positive
+		// nosemgrep: go.lang.security.injection.tainted-sql-string.tainted-sql-string -- fmt.Sprintf builds an HTTP error string, not SQL; err is internal. False positive.
+		s.writeError(w, http.StatusInternalServerError, fmt.Sprintf("update failed: %v", err))
 		return
 	}
 

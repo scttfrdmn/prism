@@ -222,8 +222,12 @@ func main() {
 			}
 		})
 
-		log.Println("🔌 Starting WebSocket server on :8948")
-		if err := http.ListenAndServe(":8948", mux); err != nil {
+		log.Println("🔌 Starting WebSocket server on 127.0.0.1:8948")
+		// Bind loopback only: this is a local IPC bridge between the desktop GUI
+		// and its own process, never exposed off-host. TLS is unwarranted for a
+		// localhost socket.
+		// nosemgrep: go.lang.security.audit.net.use-tls.use-tls -- localhost-only desktop IPC bridge; not network-exposed.
+		if err := http.ListenAndServe("127.0.0.1:8948", mux); err != nil {
 			log.Printf("❌ WebSocket server error: %v", err)
 		}
 	}()

@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os/exec"
 
 	"github.com/gorilla/websocket"
@@ -60,6 +62,37 @@ type OutputData struct {
 	Data string `json:"data"`
 }
 
+// sameOriginCheck is the WebSocket upgrader's origin guard. It accepts requests
+// with no Origin header (non-browser clients such as the CLI/desktop app, which
+// don't set one) and requests whose Origin host matches the request Host or is
+// loopback. Cross-site origins are rejected to prevent cross-site WebSocket
+// hijacking (CSRF) — a browser page on another site cannot open this socket.
+func sameOriginCheck(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		// No Origin: not a browser-initiated cross-site request (CLI/native client).
+		return true
+	}
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	originHost := hostOnly(u.Host)
+	if originHost == hostOnly(r.Host) {
+		return true
+	}
+	// Allow loopback origins — the terminal server is fronted locally.
+	return originHost == "localhost" || originHost == "127.0.0.1" || originHost == "::1"
+}
+
+// hostOnly strips any :port from a host[:port] string.
+func hostOnly(hostport string) string {
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		return h
+	}
+	return hostport
+}
+
 // NewTerminalServer creates a new terminal server
 func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 	return &TerminalServer{
@@ -68,16 +101,18 @@ func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  32 * 1024,
 			WriteBufferSize: 32 * 1024,
-			CheckOrigin: func(r *http.Request) bool {
-				return true // Allow all origins for terminal access
-			},
+			// Guard against cross-site WebSocket hijacking (CSRF): only accept
+			// same-origin handshakes, or non-browser clients that send no Origin.
+			CheckOrigin: sameOriginCheck,
 		},
 	}
 }
 
 // ServeHTTP handles terminal WebSocket connections
 func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Upgrade HTTP connection to WebSocket
+	// Upgrade HTTP connection to WebSocket. Origin is validated by the upgrader's
+	// sameOriginCheck (set in NewTerminalServer) — this is not an unguarded upgrade.
+	// nosemgrep: go.gorilla.security.audit.websocket-missing-origin-check.websocket-missing-origin-check -- CheckOrigin=sameOriginCheck enforces same-origin/loopback; the rule can't see the non-literal CheckOrigin.
 	conn, err := ts.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("WebSocket upgrade failed: %v", err), http.StatusInternalServerError)
