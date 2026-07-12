@@ -17,13 +17,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSpawnLifecycle_FullCycle validates the Phase-2 spawn adoption end to end
-// against real AWS: instance lifecycle (stop/start/hibernate/resume/terminate)
-// now routes through spore.host/spawn's client via the daemon's hybridLauncher.
+// TestSpawnLifecycle_FullCycle validates the completed spawn adoption end to end
+// against real AWS: BOTH launch and lifecycle (stop/start/hibernate/resume/
+// terminate) now route through spore.host/spawn's client (spawn v0.72.0).
 //
-// Launch still uses Prism's own ec2Launcher (spawn's launch path is deferred),
-// so this test also confirms the hybrid split works: launch on ec2Launcher,
-// lifecycle on spawn, with no observable behavior change.
+// The launch leg is the key check for the launch→spawn swap: it launches an
+// Ubuntu 24.04 AMI (root device /dev/sda1) and asserts the requested root volume
+// size took effect — the regression spore-host/spawn#284 fixed (spawn deriving
+// the root device from the AMI instead of hardcoding /dev/xvda).
 //
 // Requires a running daemon (real AWS, NOT PRISM_TEST_MODE) and its API key in
 // PRISM_TEST_API_KEY. INCURS AWS CHARGES (~$0.05–0.20).
@@ -45,13 +46,14 @@ func TestSpawnLifecycle_FullCycle(t *testing.T) {
 
 	// Launch (ec2Launcher path). Register cleanup up front so a mid-test failure
 	// still terminates the instance (terminate itself is the spawn path).
-	t.Logf("Launching instance %s (Ubuntu Basic, S)...", instanceName)
-	_, err := apiClient.LaunchInstance(ctx, types.LaunchRequest{
+	t.Logf("Launching instance %s (Ubuntu 24.04, S) via spawn...", instanceName)
+	launchResp, err := apiClient.LaunchInstance(ctx, types.LaunchRequest{
 		Template: "Ubuntu 24.04 LTS (x86_64)",
 		Name:     instanceName,
 		Size:     "S",
 	})
-	require.NoError(t, err, "launch should succeed")
+	require.NoError(t, err, "spawn launch should succeed")
+	require.NotEmpty(t, launchResp.Instance.ID, "launch should return an instance ID")
 
 	t.Cleanup(func() {
 		t.Logf("Cleanup: terminating %s (spawn Terminate)...", instanceName)
@@ -62,6 +64,22 @@ func TestSpawnLifecycle_FullCycle(t *testing.T) {
 
 	require.NoError(t, fixtures.WaitForInstanceState(t, apiClient, instanceName, "running", 5*time.Minute),
 		"instance should reach running")
+
+	// Launch parity → spawn built the RunInstances input and the instance booted.
+	// That an Ubuntu 24.04 (/dev/sda1) AMI reaches running at all is the end-to-end
+	// proof of the #284 fix: spawn derives the root device from the AMI, so the root
+	// mapping lands on /dev/sda1 rather than a phantom /dev/xvda that would fail or
+	// mis-size the launch. (The AMI-root-device selection itself is unit-tested in
+	// spawn; StorageGB is not asserted here — the daemon's refresh path recomputes
+	// it from live EBS and doesn't carry the launch-time value.)
+	t.Run("LaunchParity", func(t *testing.T) {
+		inst, err := apiClient.GetInstance(ctx, instanceName)
+		require.NoError(t, err)
+		assert.Equal(t, "running", inst.State)
+		assert.NotEmpty(t, inst.ID, "instance ID should be populated")
+		assert.NotEmpty(t, inst.InstanceType, "instance type should be populated")
+		t.Logf("✓ launched %s (%s) via spawn; reached running", inst.ID, inst.InstanceType)
+	})
 
 	// Stop → spawn.StopInstance(hibernate=false)
 	t.Run("Stop", func(t *testing.T) {

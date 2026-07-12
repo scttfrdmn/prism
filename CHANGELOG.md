@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Instance launch now runs on spawn — spawn adoption complete.** With
+  `spore-host/spawn` v0.72.0 (which derives the root block device from the AMI's
+  `RootDeviceName`, spore-host/spawn#284), Prism's launch path moves off its
+  hand-rolled `RunInstances` builder onto `*spawn.Client` — the same client that
+  already handled lifecycle. Launch and stop/start/hibernate/terminate now all
+  route through one spawn client (`pkg/aws/spawn_launcher.go`); the parallel
+  `ec2Launcher`/`configToRunInput` path (~250 lines) is deleted. Behavior is
+  preserved: `prism:`-namespaced tags spored reads still ride along via
+  `LaunchConfig.Tags`, and the root-volume-size override now lands on the correct
+  root device for Ubuntu/Rocky (`/dev/sda1`) AMIs — the regression that had kept
+  launch off spawn. The `Name` tag is now stamped once by spawn (removed from
+  `BuildTags` to avoid a duplicate). Verified end-to-end against real AWS
+  (`test/integration/spawn_lifecycle_test.go`: launch → stop → start → hibernate
+  → resume → terminate a live Ubuntu 24.04 instance via spawn). Bumps
+  `spore-host/spawn` v0.65.0 → v0.72.0.
+
 ### Security
 - **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
   Scan workflow runs Semgrep full-repo on push to `main` and had been red on 15
