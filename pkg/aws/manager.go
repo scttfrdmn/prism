@@ -517,6 +517,18 @@ func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsern
 		tags["prism:hibernate-on-idle"] = "true"
 	}
 
+	// Completion signaling (spawn adoption Phase 3b) — spored watches
+	// prism:completion-file and runs prism:on-complete after prism:completion-delay.
+	if req.OnComplete != "" {
+		tags["prism:on-complete"] = req.OnComplete
+	}
+	if req.CompletionFile != "" {
+		tags["prism:completion-file"] = req.CompletionFile
+	}
+	if req.CompletionDelay != "" {
+		tags["prism:completion-delay"] = req.CompletionDelay
+	}
+
 	// Slack/Teams lifecycle notification tags (#607)
 	// spored reads these at startup to fire DMs on TTL warning, idle, spot interruption, etc.
 	if req.SlackWorkspaceID != "" {
@@ -578,6 +590,18 @@ func (p *LaunchOptionsProcessor) ValidateOptions(req ctypes.LaunchRequest, insta
 	// EFA requires an EFA-capable instance type (spawn adoption #3a)
 	if req.EFA && !supportsEFA(instanceType) {
 		return fmt.Errorf("instance type %s does not support EFA (Elastic Fabric Adapter)\n\n💡 EFA is available on HPC and select network-optimized families, e.g.:\n  • HPC: hpc7a, hpc7g, hpc6id, hpc6a\n  • Compute: c7i, c7g, c7gn, c6in, c6gn, c5n\n  • GPU/ML: p4d, p4de, p5, g5, g6, trn1\n\nTip: Remove --efa or choose an EFA-capable instance type", instanceType)
+	}
+
+	// Completion signaling (spawn adoption #3b): validate the action and that the
+	// file/delay modifiers aren't set without an action.
+	switch req.OnComplete {
+	case "", "terminate", "stop", "hibernate":
+		// ok
+	default:
+		return fmt.Errorf("--on-complete must be one of: terminate, stop, hibernate (got %q)", req.OnComplete)
+	}
+	if req.OnComplete == "" && (req.CompletionFile != "" || req.CompletionDelay != "") {
+		return fmt.Errorf("--completion-file/--completion-delay require --on-complete\n\n💡 They only matter when an on-complete action is set (terminate/stop/hibernate)")
 	}
 
 	return nil

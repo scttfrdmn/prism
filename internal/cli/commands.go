@@ -39,9 +39,12 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	dispatcher.RegisterCommand(&FundingCommand{})
 	dispatcher.RegisterCommand(&PackageManagerCommand{})
 	dispatcher.RegisterCommand(&SpotCommand{})
-	dispatcher.RegisterCommand(&SpotMaxPriceCommand{})   // spawn adoption Phase 3a
-	dispatcher.RegisterCommand(&EFACommand{})            // spawn adoption Phase 3a
-	dispatcher.RegisterCommand(&PlacementGroupCommand{}) // spawn adoption Phase 3a
+	dispatcher.RegisterCommand(&SpotMaxPriceCommand{})    // spawn adoption Phase 3a
+	dispatcher.RegisterCommand(&EFACommand{})             // spawn adoption Phase 3a
+	dispatcher.RegisterCommand(&PlacementGroupCommand{})  // spawn adoption Phase 3a
+	dispatcher.RegisterCommand(&OnCompleteCommand{})      // spawn adoption Phase 3b
+	dispatcher.RegisterCommand(&CompletionFileCommand{})  // spawn adoption Phase 3b
+	dispatcher.RegisterCommand(&CompletionDelayCommand{}) // spawn adoption Phase 3b
 	dispatcher.RegisterCommand(&IdlePolicyCommand{})
 	dispatcher.RegisterCommand(&DryRunCommand{})
 	dispatcher.RegisterCommand(&WaitCommand{})
@@ -305,6 +308,51 @@ func (p *PlacementGroupCommand) Execute(req *types.LaunchRequest, args []string,
 		return index, fmt.Errorf("--placement-group requires a placement group name")
 	}
 	req.PlacementGroup = args[index+1]
+	return index + 1, nil
+}
+
+// OnCompleteCommand handles --on-complete flag (spawn adoption Phase 3b)
+type OnCompleteCommand struct{}
+
+func (c *OnCompleteCommand) CanHandle(arg string) bool {
+	return arg == "--on-complete"
+}
+
+func (c *OnCompleteCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--on-complete requires an action (terminate, stop, or hibernate)")
+	}
+	req.OnComplete = args[index+1]
+	return index + 1, nil
+}
+
+// CompletionFileCommand handles --completion-file flag (spawn adoption Phase 3b)
+type CompletionFileCommand struct{}
+
+func (c *CompletionFileCommand) CanHandle(arg string) bool {
+	return arg == "--completion-file"
+}
+
+func (c *CompletionFileCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--completion-file requires a file path")
+	}
+	req.CompletionFile = args[index+1]
+	return index + 1, nil
+}
+
+// CompletionDelayCommand handles --completion-delay flag (spawn adoption Phase 3b)
+type CompletionDelayCommand struct{}
+
+func (c *CompletionDelayCommand) CanHandle(arg string) bool {
+	return arg == "--completion-delay"
+}
+
+func (c *CompletionDelayCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--completion-delay requires a duration (e.g. 30s)")
+	}
+	req.CompletionDelay = args[index+1]
 	return index + 1, nil
 }
 

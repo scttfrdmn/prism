@@ -199,6 +199,28 @@ func TestLaunchCommandSpawnFlags(t *testing.T) {
 	assert.Equal(t, "my-cluster", req.PlacementGroup, "placement-group should propagate")
 }
 
+// TestLaunchCommandCompletionFlags verifies the Phase-3b completion-signaling
+// flags (--on-complete, --completion-file, --completion-delay) propagate.
+func TestLaunchCommandCompletionFlags(t *testing.T) {
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	args := []string{
+		"python-ml", "test-instance",
+		"--on-complete", "terminate",
+		"--completion-file", "/tmp/done",
+		"--completion-delay", "1m",
+	}
+	err := app.Launch(args)
+
+	assert.NoError(t, err)
+	assert.Len(t, mockClient.LaunchCalls, 1)
+	req := mockClient.LaunchCalls[0]
+	assert.Equal(t, "terminate", req.OnComplete, "on-complete should propagate")
+	assert.Equal(t, "/tmp/done", req.CompletionFile, "completion-file should propagate")
+	assert.Equal(t, "1m", req.CompletionDelay, "completion-delay should propagate")
+}
+
 // TestLaunchCommandSpawnFlagsDefaultEmpty confirms the new flags are absent by
 // default (opt-in), so existing launches are unchanged.
 func TestLaunchCommandSpawnFlagsDefaultEmpty(t *testing.T) {

@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Instance launch now runs on spawn — spawn adoption complete.** With
+### Added
+- **Completion signaling: `--on-complete` / `--completion-file` / `--completion-delay`
+  launch flags (spawn adoption Phase 3b).** Opt-in, default-off: run a batch job and
+  have the on-instance agent (spored) auto **terminate / stop / hibernate** the
+  workspace when the job signals completion. spored watches `--completion-file`
+  (default `/tmp/SPAWN_COMPLETE`) and runs the `--on-complete` action after an
+  optional `--completion-delay` grace period. Wired via the existing `prism:`-prefixed
+  tag path (`BuildTags` stamps `prism:on-complete`/`prism:completion-file`/
+  `prism:completion-delay`; spored reads them under `SPORED_TAG_PREFIX=prism`), so no
+  daemon/wire changes and no namespace flip. Validation rejects an unknown action or
+  a completion-file/delay set without an action. CLI-only for now. With
   `spore-host/spawn` v0.72.0 (which derives the root block device from the AMI's
   `RootDeviceName`, spore-host/spawn#284), Prism's launch path moves off its
   hand-rolled `RunInstances` builder onto `*spawn.Client` — the same client that
