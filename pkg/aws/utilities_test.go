@@ -88,6 +88,23 @@ func TestValidateOptions_SpawnFlags(t *testing.T) {
 		err := p.ValidateOptions(types.LaunchRequest{}, "t3.micro")
 		assert.NoError(t, err)
 	})
+
+	t.Run("valid on-complete action is allowed", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{OnComplete: "terminate", CompletionFile: "/tmp/done", CompletionDelay: "30s"}, "t3.micro")
+		assert.NoError(t, err)
+	})
+
+	t.Run("invalid on-complete action is rejected", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{OnComplete: "explode"}, "t3.micro")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "--on-complete must be one of")
+	})
+
+	t.Run("completion-file without on-complete is rejected", func(t *testing.T) {
+		err := p.ValidateOptions(types.LaunchRequest{CompletionFile: "/tmp/done"}, "t3.micro")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "require --on-complete")
+	})
 }
 
 // TestAddEFSMountToUserDataComprehensive tests EFS mount addition

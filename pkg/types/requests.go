@@ -58,6 +58,12 @@ type LaunchRequest struct {
 	TTL         string `json:"ttl,omitempty"`          // Time-to-live (e.g., "8h", "24h"); empty = no limit
 	IdleTimeout string `json:"idle_timeout,omitempty"` // Idle timeout override (e.g., "30m", "2h")
 
+	// Completion signaling (spawn adoption Phase 3b): spored watches CompletionFile
+	// and runs OnComplete (terminate/stop/hibernate) after CompletionDelay when it appears.
+	OnComplete      string `json:"on_complete,omitempty"`      // Action on completion: terminate | stop | hibernate
+	CompletionFile  string `json:"completion_file,omitempty"`  // File spored watches (default /tmp/SPAWN_COMPLETE); requires OnComplete
+	CompletionDelay string `json:"completion_delay,omitempty"` // Grace delay before the action (e.g. "30s"); requires OnComplete
+
 	// Slack/Teams bot notifications (#607)
 	SlackWorkspaceID string `json:"slack_workspace_id,omitempty"` // Enables lifecycle DMs via spore-bot
 	ActiveProcesses  string `json:"active_processes,omitempty"`   // Comma-separated process names that keep instance active (e.g., "rsession,jupyter")

@@ -147,6 +147,9 @@ func TestBuildTags_ParityWithLegacyTagSet(t *testing.T) {
 		IdlePolicy:          true,
 		SlackWorkspaceID:    "T123",
 		ActiveProcesses:     "jupyter,rsession",
+		OnComplete:          "terminate",
+		CompletionFile:      "/tmp/done",
+		CompletionDelay:     "1m",
 	}
 
 	tags := b.BuildTags(req, "ubuntu")
@@ -180,6 +183,9 @@ func TestBuildTags_ParityWithLegacyTagSet(t *testing.T) {
 		"prism:notify-url":            sporeBotLambdaURL,
 		"prism:notify-command":        "/prism",
 		"prism:active-processes":      "jupyter,rsession",
+		"prism:on-complete":           "terminate",
+		"prism:completion-file":       "/tmp/done",
+		"prism:completion-delay":      "1m",
 	}
 	for k, v := range want {
 		if got := tags[k]; got != v {
@@ -208,6 +214,7 @@ func TestBuildTags_OmitsUnsetConditionalTags(t *testing.T) {
 		"prism:project-id", "CostCenter", "prism:funding-allocation-id",
 		"prism:research-user", "prism:dns-name", "prism:ttl", "prism:idle-timeout",
 		"prism:hibernate-on-idle", "prism:slack-workspace-id", "prism:active-processes",
+		"prism:on-complete", "prism:completion-file", "prism:completion-delay",
 	} {
 		if _, ok := tags[k]; ok {
 			t.Errorf("tag %q should be absent when unset, got %q", k, tags[k])
