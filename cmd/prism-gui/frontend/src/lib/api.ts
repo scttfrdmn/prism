@@ -160,7 +160,7 @@ export class SafePrismAPI {
     }
   }
 
-  async launchInstance(templateSlug: string, name: string, size: string = 'M', dryRun: boolean = false, options?: { dnsName?: string; ttl?: string; spot?: boolean; spotMaxPrice?: string; efa?: boolean; placementGroup?: string }): Promise<Instance & { approval_pending?: boolean; approval_request_id?: string; message?: string }> {
+  async launchInstance(templateSlug: string, name: string, size: string = 'M', dryRun: boolean = false, options?: { dnsName?: string; ttl?: string; spot?: boolean; spotMaxPrice?: string; efa?: boolean; placementGroup?: string; onComplete?: string; completionFile?: string; completionDelay?: string }): Promise<Instance & { approval_pending?: boolean; approval_request_id?: string; message?: string }> {
     const body: Record<string, unknown> = {
       template: templateSlug,
       name,
@@ -187,6 +187,16 @@ export class SafePrismAPI {
     }
     if (options?.placementGroup) {
       body.placement_group = options.placementGroup;
+    }
+    // Completion signaling (Phase 3b): spored auto terminate/stop/hibernate on completion.
+    if (options?.onComplete) {
+      body.on_complete = options.onComplete;
+    }
+    if (options?.completionFile) {
+      body.completion_file = options.completionFile;
+    }
+    if (options?.completionDelay) {
+      body.completion_delay = options.completionDelay;
     }
     return this.safeRequest('/api/v1/instances', 'POST', body);
   }

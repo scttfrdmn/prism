@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **GUI launch form exposes the completion-signaling options.** The launch modal
+  now offers an **On completion** dropdown (None / terminate / stop / hibernate)
+  plus **Completion file** and **Completion delay** inputs (enabled only when an
+  action is chosen) — the GUI counterpart to the Phase-3b CLI flags. They thread
+  through `SafePrismAPI.launchInstance` to the `/api/v1/instances` request with the
+  `on_complete`/`completion_file`/`completion_delay` keys matching
+  `pkg/types.LaunchRequest`. All default-off; the GUI launch surface is now at
+  parity with the CLI.
 - **Completion signaling: `--on-complete` / `--completion-file` / `--completion-delay`
   launch flags (spawn adoption Phase 3b).** Opt-in, default-off: run a batch job and
   have the on-instance agent (spored) auto **terminate / stop / hibernate** the
