@@ -14,6 +14,77 @@ import {
 import { Template } from '../lib/types'
 import { getTemplateName, getTemplateDescription } from '../lib/template-utils'
 
+// onCompleteLabel maps an on-complete action value to its dropdown label.
+function onCompleteLabel(v?: string): string {
+  switch (v) {
+    case 'terminate':
+      return 'Terminate'
+    case 'stop':
+      return 'Stop'
+    case 'hibernate':
+      return 'Hibernate'
+    default:
+      return 'None (stay running)'
+  }
+}
+
+// CompletionOptions renders the completion-signaling controls (Phase 3b): spored
+// auto terminate/stop/hibernate the workspace when the completion file appears.
+// Extracted from LaunchModal to keep that component's complexity in check.
+function CompletionOptions({ config, setConfig }: {
+  config: LaunchConfig
+  setConfig: React.Dispatch<React.SetStateAction<LaunchConfig>>
+}) {
+  return (
+    <>
+      <FormField
+        label="On completion"
+        description="Auto-terminate/stop/hibernate the workspace when the job signals completion (writes the completion file)."
+      >
+        <Select
+          selectedOption={{ value: config.onComplete ?? '', label: onCompleteLabel(config.onComplete) }}
+          onChange={({ detail }) => setConfig(prev => ({ ...prev, onComplete: detail.selectedOption.value || undefined }))}
+          options={[
+            { value: '', label: 'None (stay running)' },
+            { value: 'terminate', label: 'Terminate' },
+            { value: 'stop', label: 'Stop' },
+            { value: 'hibernate', label: 'Hibernate' },
+          ]}
+          data-testid="launch-on-complete"
+        />
+      </FormField>
+
+      <FormField
+        label="Completion file"
+        description="File spored watches to trigger the on-completion action (default /tmp/SPAWN_COMPLETE). Requires an on-completion action."
+      >
+        <Input
+          type="text"
+          value={config.completionFile ?? ''}
+          onChange={({ detail }) => setConfig(prev => ({ ...prev, completionFile: detail.value }))}
+          placeholder="/tmp/SPAWN_COMPLETE"
+          disabled={!config.onComplete}
+          data-testid="launch-completion-file"
+        />
+      </FormField>
+
+      <FormField
+        label="Completion delay"
+        description="Grace period before the on-completion action (e.g. 30s). Requires an on-completion action."
+      >
+        <Input
+          type="text"
+          value={config.completionDelay ?? ''}
+          onChange={({ detail }) => setConfig(prev => ({ ...prev, completionDelay: detail.value }))}
+          placeholder="30s"
+          disabled={!config.onComplete}
+          data-testid="launch-completion-delay"
+        />
+      </FormField>
+    </>
+  )
+}
+
 export interface LaunchConfig {
   name: string
   size: string
@@ -25,6 +96,9 @@ export interface LaunchConfig {
   dryRun: boolean
   dnsName?: string
   ttl?: string
+  onComplete?: string
+  completionFile?: string
+  completionDelay?: string
 }
 
 export interface LaunchModalProps {
@@ -190,6 +264,8 @@ export function LaunchModal({ visible, selectedTemplate, onDismiss, onLaunch }: 
               data-testid="launch-placement-group"
             />
           </FormField>
+
+          <CompletionOptions config={launchConfig} setConfig={setLaunchConfig} />
 
           <FormField
             label="Validation"

@@ -64,6 +64,9 @@ export function useCrudHandlers(options: UseCrudHandlersOptions) {
         spotMaxPrice: config.spotMaxPrice,
         efa: config.efa,
         placementGroup: config.placementGroup,
+        onComplete: config.onComplete,
+        completionFile: config.completionFile,
+        completionDelay: config.completionDelay,
       });
       // HTTP 202 approval pending (#495)
       if (result && (result as any).approval_pending) {

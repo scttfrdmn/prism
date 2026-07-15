@@ -39,6 +39,20 @@ describe('SafePrismAPI.launchInstance wire body', () => {
     expect(body.placement_group).toBe('cluster-1');
   });
 
+  it('sends on_complete, completion_file, and completion_delay when set', async () => {
+    const api = new SafePrismAPI();
+    await api.launchInstance('python-ml', 'ws', 'M', false, {
+      onComplete: 'terminate',
+      completionFile: '/tmp/done',
+      completionDelay: '1m',
+    });
+
+    const body = lastBody();
+    expect(body.on_complete).toBe('terminate');
+    expect(body.completion_file).toBe('/tmp/done');
+    expect(body.completion_delay).toBe('1m');
+  });
+
   it('omits the optional keys when unset (opt-in, matches Go omitempty)', async () => {
     const api = new SafePrismAPI();
     await api.launchInstance('python-ml', 'ws', 'M');
@@ -48,6 +62,9 @@ describe('SafePrismAPI.launchInstance wire body', () => {
     expect(body.spot_max_price).toBeUndefined();
     expect(body.efa).toBeUndefined();
     expect(body.placement_group).toBeUndefined();
+    expect(body.on_complete).toBeUndefined();
+    expect(body.completion_file).toBeUndefined();
+    expect(body.completion_delay).toBeUndefined();
     // core fields still present
     expect(body.template).toBe('python-ml');
     expect(body.name).toBe('ws');
