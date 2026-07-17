@@ -74,7 +74,7 @@ Instance Setup:
 prism user create alice
 
 # Generate SSH keys automatically
-prism user ssh-key generate alice ed25519
+prism user keys generate alice ed25519
 ```
 
 ### 2. Launch Instances with Research Users
@@ -154,7 +154,7 @@ One set of SSH keys works everywhere:
 
 ```bash
 # Generate keys once
-prism user ssh-key generate alice ed25519
+prism user keys generate alice ed25519
 
 # Use same key for all instances
 ssh alice@python-instance    # Works
@@ -199,27 +199,27 @@ ssh alice@rocky-instance     # Works
 
 ```bash
 # Generate Ed25519 key (recommended)
-prism user ssh-key generate alice ed25519
+prism user keys generate alice ed25519
 
 # Or generate RSA key for compatibility
-prism user ssh-key generate alice rsa
+prism user keys generate alice rsa
 ```
 
 ### Import Existing Keys
 
 ```bash
 # Import your existing public key
-prism user ssh-key import alice ~/.ssh/id_rsa.pub "My laptop key"
+prism user keys add alice ~/.ssh/id_rsa.pub "My laptop key"
 ```
 
 ### List and Manage Keys
 
 ```bash
 # List all SSH keys
-prism user ssh-key list alice
+prism user keys list alice
 
 # Delete a key
-prism user ssh-key delete alice key-id
+prism user keys remove alice key-id
 ```
 
 ## Working with Templates
@@ -296,11 +296,11 @@ research_user:
 2. **Share EFS volumes across instances**:
    ```bash
    # Create shared EFS volume
-   prism volumes create team-research-data
+   prism volume create team-research-data
 
    # Mount on all instances
-   prism volumes mount team-research-data alice-instance
-   prism volumes mount team-research-data bob-instance
+   prism volume mount team-research-data alice-instance
+   prism volume mount team-research-data bob-instance
    ```
 
 3. **Collaborate with consistent permissions**:
@@ -376,10 +376,10 @@ tar -xzf my-research-backup.tar.gz
 
 ```bash
 # Import your existing SSH key
-prism user ssh-key import alice ~/.ssh/id_rsa.pub "Migrated key"
+prism user keys add alice ~/.ssh/id_rsa.pub "Migrated key"
 
 # Or generate new keys and update GitHub/servers
-prism user ssh-key generate alice ed25519
+prism user keys generate alice ed25519
 cat /efs/home/alice/.ssh/id_ed25519.pub  # Add to GitHub, servers
 ```
 
@@ -390,7 +390,7 @@ cat /efs/home/alice/.ssh/id_ed25519.pub  # Add to GitHub, servers
 **Q: I can't SSH into my instance with my research user**
 ```bash
 # Check SSH key is properly configured
-prism user ssh-key list alice
+prism user keys list alice
 
 # Verify user was provisioned
 prism user status alice --instance my-instance
@@ -408,7 +408,7 @@ ssh alice@my-instance "mount | grep efs"
 ssh alice@my-instance "ls -la /efs/home/"
 
 # Check if EFS volume is mounted
-prism volumes list
+prism volume list
 ```
 
 **Q: File permissions are wrong**

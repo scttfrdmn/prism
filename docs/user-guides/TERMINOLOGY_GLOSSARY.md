@@ -185,7 +185,7 @@ Some terms are inherently technical and remain AWS-specific in Prism:
 **How they relate**:
 ```bash
 # Prism profile references an AWS profile
-prism profile create research \
+prism profiles add personal research \
   --aws-profile my-aws-creds \
   --region us-west-2
 ```

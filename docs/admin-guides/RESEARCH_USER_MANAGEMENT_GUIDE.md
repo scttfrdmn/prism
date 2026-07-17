@@ -25,26 +25,26 @@ This guide provides comprehensive information for managing research users in Pri
 
 ```bash
 # Research User Management
-prism research-user create <username>                    # Create research user
-prism research-user list                                 # List all research users
-prism research-user status <username>                   # Check user status
-prism research-user delete <username>                   # Remove research user
+prism user create <username>                    # Create research user
+prism user list                                 # List all research users
+prism user status <username>                   # Check user status
+prism user delete <username>                   # Remove research user
 
 # SSH Key Management
-prism research-user ssh-key generate <username> ed25519 # Generate SSH key pair
-prism research-user ssh-key import <username> <pubkey>  # Import existing key
-prism research-user ssh-key list <username>             # List user's keys
-prism research-user ssh-key delete <username> <key-id>  # Remove SSH key
+prism user keys generate <username> ed25519 # Generate SSH key pair
+prism user keys add <username> <pubkey>  # Import existing key
+prism user keys list <username>             # List user's keys
+prism user keys remove <username> <key-id>  # Remove SSH key
 
 # Instance Integration
 prism workspace launch <template> <instance> --research-user <username>  # Launch with research user
-prism research-user provision <username> --instance <name>     # Provision user on instance
-prism research-user status <username> --instance <name>        # Check user on instance
+prism user provision <username> --instance <name>     # Provision user on instance
+prism user status <username> --instance <name>        # Check user on instance
 
 # EFS and Storage
-prism volumes create <name>                             # Create EFS volume
-prism volumes mount <volume> <instance>                 # Mount EFS volume
-prism volumes list                                      # List EFS volumes
+prism volume create <name>                             # Create EFS volume
+prism volume mount <volume> <instance>                 # Mount EFS volume
+prism volume list                                      # List EFS volumes
 ```
 
 ### Key File Locations
@@ -144,57 +144,57 @@ prism volumes list                                      # List EFS volumes
 
 ```bash
 # Create research user with automatic UID assignment
-prism research-user create alice
+prism user create alice
 
 # Create with custom full name and email
-prism research-user create alice --full-name "Alice Smith" --email "alice@university.edu"
+prism user create alice --full-name "Alice Smith" --email "alice@university.edu"
 
 # Create with SSH key generation
-prism research-user create alice --generate-ssh-key
+prism user create alice --generate-ssh-key
 ```
 
 #### Advanced User Creation
 
 ```bash
 # Create with specific shell
-prism research-user create alice --shell /bin/zsh
+prism user create alice --shell /bin/zsh
 
 # Create with custom groups
-prism research-user create alice --groups research,docker,jupyter-users
+prism user create alice --groups research,docker,jupyter-users
 
 # Create with EFS configuration
-prism research-user create alice --efs-volume fs-1234567890abcdef0 --efs-mount /efs
+prism user create alice --efs-volume fs-1234567890abcdef0 --efs-mount /efs
 ```
 
 ### Modifying Research Users
 
 ```bash
 # Update user information
-prism research-user update alice --full-name "Dr. Alice Smith"
-prism research-user update alice --email "alice.smith@university.edu"
+prism user update alice --full-name "Dr. Alice Smith"
+prism user update alice --email "alice.smith@university.edu"
 
 # Add/remove groups
-prism research-user update alice --add-groups jupyter-users
-prism research-user update alice --remove-groups docker
+prism user update alice --add-groups jupyter-users
+prism user update alice --remove-groups docker
 
 # Change shell
-prism research-user update alice --shell /bin/zsh
+prism user update alice --shell /bin/zsh
 ```
 
 ### Listing and Inspecting Users
 
 ```bash
 # List all research users in current profile
-prism research-user list
+prism user list
 
 # List with detailed information
-prism research-user list --detailed
+prism user list --detailed
 
 # Show specific user information
-prism research-user show alice
+prism user show alice
 
 # Show user with SSH keys and instance history
-prism research-user show alice --include-keys --include-instances
+prism user show alice --include-keys --include-instances
 ```
 
 #### Example Output
@@ -214,16 +214,16 @@ Research Users (Profile: personal-research)
 
 ```bash
 # Delete user (with confirmation)
-prism research-user delete alice
+prism user delete alice
 
 # Force delete without confirmation
-prism research-user delete alice --force
+prism user delete alice --force
 
 # Delete user and clean up SSH keys
-prism research-user delete alice --cleanup-keys
+prism user delete alice --cleanup-keys
 
 # Delete user but preserve EFS home directory
-prism research-user delete alice --preserve-home
+prism user delete alice --preserve-home
 ```
 
 ## SSH Key Management
@@ -232,45 +232,45 @@ prism research-user delete alice --preserve-home
 
 ```bash
 # Generate Ed25519 key (recommended)
-prism research-user ssh-key generate alice ed25519
+prism user keys generate alice ed25519
 
 # Generate RSA key for compatibility
-prism research-user ssh-key generate alice rsa
+prism user keys generate alice rsa
 
 # Generate with custom comment
-prism research-user ssh-key generate alice ed25519 --comment "alice-laptop-2025"
+prism user keys generate alice ed25519 --comment "alice-laptop-2025"
 ```
 
 ### Key Import and Export
 
 ```bash
 # Import existing public key
-prism research-user ssh-key import alice ~/.ssh/id_rsa.pub
+prism user keys add alice ~/.ssh/id_rsa.pub
 
 # Import with custom comment
-prism research-user ssh-key import alice ~/.ssh/id_rsa.pub --comment "Personal laptop key"
+prism user keys add alice ~/.ssh/id_rsa.pub --comment "Personal laptop key"
 
 # Export all keys for backup
-prism research-user ssh-key export alice --output alice-keys-backup.tar.gz
+prism user ssh-key export alice --output alice-keys-backup.tar.gz
 
 # Export single key
-prism research-user ssh-key export alice --key-id <key-id> --output alice-key.pub
+prism user ssh-key export alice --key-id <key-id> --output alice-key.pub
 ```
 
 ### Key Management
 
 ```bash
 # List all SSH keys for user
-prism research-user ssh-key list alice
+prism user keys list alice
 
 # Show detailed key information
-prism research-user ssh-key show alice <key-id>
+prism user ssh-key show alice <key-id>
 
 # Delete specific key
-prism research-user ssh-key delete alice <key-id>
+prism user keys remove alice <key-id>
 
 # Rotate keys (generate new, deactivate old)
-prism research-user ssh-key rotate alice ed25519
+prism user ssh-key rotate alice ed25519
 ```
 
 #### SSH Key Listing Example
@@ -290,13 +290,13 @@ SSH Keys for alice (Profile: personal-research)
 
 ```bash
 # Generate authorized_keys content for user
-prism research-user ssh-key authorized-keys alice
+prism user ssh-key authorized-keys alice
 
 # Save to file
-prism research-user ssh-key authorized-keys alice > alice_authorized_keys
+prism user ssh-key authorized-keys alice > alice_authorized_keys
 
 # Generate for multiple users
-prism research-user ssh-key authorized-keys alice,bob,carol > team_authorized_keys
+prism user ssh-key authorized-keys alice,bob,carol > team_authorized_keys
 ```
 
 ## EFS Integration
@@ -305,39 +305,39 @@ prism research-user ssh-key authorized-keys alice,bob,carol > team_authorized_ke
 
 ```bash
 # Create EFS volume for research users
-prism volumes create research-home --type efs --performance generalPurpose
+prism volume create research-home --type efs --performance generalPurpose
 
 # Create high-performance EFS for shared data
-prism volumes create shared-datasets --type efs --performance provisioned --throughput 500
+prism volume create shared-datasets --type efs --performance provisioned --throughput 500
 
 # List EFS volumes
-prism volumes list --type efs
+prism volume list --type efs
 ```
 
 ### Home Directory Setup
 
 ```bash
 # Configure research user with EFS home
-prism research-user create alice --efs-volume research-home --efs-mount /efs
+prism user create alice --efs-volume research-home --efs-mount /efs
 
 # Update existing user with EFS
-prism research-user update alice --efs-volume research-home --efs-mount /efs
+prism user update alice --efs-volume research-home --efs-mount /efs
 
 # Create home directory structure
-prism research-user setup-home alice --create-directories projects,scratch,archive
+prism user setup-home alice --create-directories projects,scratch,archive
 ```
 
 ### EFS Mounting and Permissions
 
 ```bash
 # Mount EFS volume to instance
-prism volumes mount research-home my-instance --mount-point /efs
+prism volume mount research-home my-instance --mount-point /efs
 
 # Check mount status
-prism volumes status research-home
+prism volume status research-home
 
 # Set up permissions for research users
-prism research-user setup-efs-permissions alice --volume research-home
+prism user setup-efs-permissions alice --volume research-home
 ```
 
 #### EFS Directory Structure
@@ -370,16 +370,16 @@ prism research-user setup-efs-permissions alice --volume research-home
 
 ```bash
 # Provision research user on existing instance
-prism research-user provision alice --instance my-python-instance
+prism user provision alice --instance my-python-instance
 
 # Provision with custom EFS mount
-prism research-user provision alice --instance my-instance --efs-volume research-data --mount-point /data
+prism user provision alice --instance my-instance --efs-volume research-data --mount-point /data
 
 # Provision multiple users
-prism research-user provision alice,bob,carol --instance shared-instance
+prism user provision alice,bob,carol --instance shared-instance
 
 # Provision with specific SSH user
-prism research-user provision alice --instance my-instance --ssh-user ubuntu --ssh-key ~/.ssh/my-key
+prism user provision alice --instance my-instance --ssh-user ubuntu --ssh-key ~/.ssh/my-key
 ```
 
 ### Instance Launch with Research Users
@@ -399,16 +399,16 @@ prism workspace launch "Python ML" gpu-training --research-user alice --efs-volu
 
 ```bash
 # Check research user status on instance
-prism research-user status alice --instance ml-work
+prism user status alice --instance ml-work
 
 # Monitor provisioning progress
-prism research-user provision-status <job-id>
+prism user provision-status <job-id>
 
 # List all research user instances
-prism research-user instances alice
+prism user instances alice
 
 # Check what instances a user can access
-prism research-user list-access alice
+prism user list-access alice
 ```
 
 #### Status Output Example
@@ -436,15 +436,15 @@ Research User Status: alice on ml-work
 
 ```bash
 # Create team research users
-prism research-user create alice --full-name "Alice Smith" --email "alice@lab.edu"
-prism research-user create bob --full-name "Bob Johnson" --email "bob@lab.edu"
-prism research-user create carol --full-name "Carol Davis" --email "carol@lab.edu"
+prism user create alice --full-name "Alice Smith" --email "alice@lab.edu"
+prism user create bob --full-name "Bob Johnson" --email "bob@lab.edu"
+prism user create carol --full-name "Carol Davis" --email "carol@lab.edu"
 
 # Create shared EFS volume
-prism volumes create team-research --type efs --performance provisioned --throughput 300
+prism volume create team-research --type efs --performance provisioned --throughput 300
 
 # Setup shared directories
-prism research-user setup-collaboration --users alice,bob,carol --volume team-research
+prism user setup-collaboration --users alice,bob,carol --volume team-research
 ```
 
 ### Collaborative Workflows
@@ -489,14 +489,14 @@ ls -la /efs/shared/analysis/
 
 ```bash
 # Create project-specific groups
-prism research-user create-group ml-team --members alice,bob
-prism research-user create-group viz-team --members alice,carol
-prism research-user create-group stats-team --members bob,carol
+prism user create-group ml-team --members alice,bob
+prism user create-group viz-team --members alice,carol
+prism user create-group stats-team --members bob,carol
 
 # Set directory permissions for groups
-prism research-user set-permissions /efs/shared/ml-project --group ml-team --mode 775
-prism research-user set-permissions /efs/shared/visualizations --group viz-team --mode 775
-prism research-user set-permissions /efs/shared/statistics --group stats-team --mode 775
+prism user set-permissions /efs/shared/ml-project --group ml-team --mode 775
+prism user set-permissions /efs/shared/visualizations --group viz-team --mode 775
+prism user set-permissions /efs/shared/statistics --group stats-team --mode 775
 ```
 
 ## Monitoring and Analytics
@@ -505,16 +505,16 @@ prism research-user set-permissions /efs/shared/statistics --group stats-team --
 
 ```bash
 # Show research user activity summary
-prism research-user analytics --profile personal-research
+prism user analytics --profile personal-research
 
 # Show detailed usage for specific user
-prism research-user analytics alice --detailed
+prism user analytics alice --detailed
 
 # Show team usage summary
-prism research-user analytics --users alice,bob,carol --timeframe 30d
+prism user analytics --users alice,bob,carol --timeframe 30d
 
 # Export usage data
-prism research-user analytics alice --export csv --output alice-usage.csv
+prism user analytics alice --export csv --output alice-usage.csv
 ```
 
 #### Analytics Output Example
@@ -539,32 +539,32 @@ Research User Analytics (Last 30 days)
 
 ```bash
 # Check UID/GID allocation status
-prism research-user system-status --uid-allocations
+prism user system-status --uid-allocations
 
 # Check SSH key health
-prism research-user system-status --ssh-keys
+prism user system-status --ssh-keys
 
 # Check EFS integration status
-prism research-user system-status --efs-integration
+prism user system-status --efs-integration
 
 # Full system health check
-prism research-user system-status --full
+prism user system-status --full
 ```
 
 ### Audit and Security Monitoring
 
 ```bash
 # Show recent research user activities
-prism research-user audit-log --recent 24h
+prism user audit-log --recent 24h
 
 # Show specific user's audit trail
-prism research-user audit-log alice --timeframe 7d
+prism user audit-log alice --timeframe 7d
 
 # Show SSH key usage patterns
-prism research-user audit-log --ssh-keys --timeframe 30d
+prism user audit-log --ssh-keys --timeframe 30d
 
 # Export audit logs
-prism research-user audit-log --export json --output audit-2025-09.json
+prism user audit-log --export json --output audit-2025-09.json
 ```
 
 ## Troubleshooting
@@ -577,18 +577,18 @@ prism research-user audit-log --export json --output audit-2025-09.json
 
 ```bash
 # Diagnosis
-prism research-user status alice --instance my-instance
-prism research-user ssh-key list alice
+prism user status alice --instance my-instance
+prism user keys list alice
 
 # Solutions
 # Check if user is provisioned
-prism research-user provision alice --instance my-instance
+prism user provision alice --instance my-instance
 
 # Verify SSH keys are installed
 ssh ubuntu@my-instance "sudo cat /efs/home/alice/.ssh/authorized_keys"
 
 # Re-provision if needed
-prism research-user provision alice --instance my-instance --force
+prism user provision alice --instance my-instance --force
 ```
 
 #### 2. File Permission Issues
@@ -602,7 +602,7 @@ ssh alice@instance "groups"
 
 # Solutions
 # Check if user is in research group
-prism research-user update alice --add-groups research
+prism user update alice --add-groups research
 
 # Fix file permissions
 ssh alice@instance "sudo chgrp research /efs/shared/problematic-file"
@@ -620,13 +620,13 @@ ssh alice@instance "ls -la /efs/"
 
 # Solutions
 # Check EFS mount status
-prism volumes status research-home
+prism volume status research-home
 
 # Remount EFS volume
-prism volumes mount research-home my-instance --mount-point /efs
+prism volume mount research-home my-instance --mount-point /efs
 
 # Fix EFS permissions
-prism research-user setup-efs-permissions alice --volume research-home
+prism user setup-efs-permissions alice --volume research-home
 ```
 
 #### 4. UID Conflicts
@@ -640,29 +640,29 @@ ssh alice@instance2 "id alice"  # Should also be 5001
 
 # Solutions
 # Check UID allocation
-prism research-user show alice --include-uid
+prism user show alice --include-uid
 
 # Re-provision user with correct UID
-prism research-user provision alice --instance instance2 --force
+prism user provision alice --instance instance2 --force
 
 # Clear and regenerate UID cache
-prism research-user system-maintenance --clear-uid-cache
+prism user system-maintenance --clear-uid-cache
 ```
 
 ### Diagnostic Commands
 
 ```bash
 # Comprehensive system diagnostics
-prism research-user diagnose
+prism user diagnose
 
 # Diagnose specific user
-prism research-user diagnose alice
+prism user diagnose alice
 
 # Diagnose specific instance
-prism research-user diagnose --instance my-instance
+prism user diagnose --instance my-instance
 
 # Generate diagnostic report
-prism research-user diagnose --report diagnostic-report.txt
+prism user diagnose --report diagnostic-report.txt
 ```
 
 ### Recovery Procedures
@@ -671,26 +671,26 @@ prism research-user diagnose --report diagnostic-report.txt
 
 ```bash
 # Recreate research user from backup
-prism research-user restore alice --from-backup alice-backup.json
+prism user restore alice --from-backup alice-backup.json
 
 # Recreate with same UID (if known)
-prism research-user create alice --force-uid 5001
+prism user create alice --force-uid 5001
 
 # Restore SSH keys
-prism research-user ssh-key import-backup alice alice-keys-backup.tar.gz
+prism user ssh-key import-backup alice alice-keys-backup.tar.gz
 ```
 
 #### Reset Research User System
 
 ```bash
 # Clear all research user data (DESTRUCTIVE)
-prism research-user system-reset --confirm
+prism user system-reset --confirm
 
 # Reset specific profile
-prism research-user system-reset --profile personal-research --confirm
+prism user system-reset --profile personal-research --confirm
 
 # Reset UID allocations only
-prism research-user system-reset --uid-allocations --confirm
+prism user system-reset --uid-allocations --confirm
 ```
 
 ## Security Best Practices
@@ -699,18 +699,18 @@ prism research-user system-reset --uid-allocations --confirm
 
 1. **Use Ed25519 Keys**: Prefer Ed25519 over RSA for new key generation
    ```bash
-   prism research-user ssh-key generate alice ed25519
+   prism user keys generate alice ed25519
    ```
 
 2. **Regular Key Rotation**: Rotate SSH keys periodically
    ```bash
    # Monthly key rotation
-   prism research-user ssh-key rotate alice ed25519 --deactivate-old-after 30d
+   prism user ssh-key rotate alice ed25519 --deactivate-old-after 30d
    ```
 
 3. **Monitor Key Usage**: Track SSH key usage patterns
    ```bash
-   prism research-user audit-log alice --ssh-keys --timeframe 7d
+   prism user audit-log alice --ssh-keys --timeframe 7d
    ```
 
 ### Access Control
@@ -718,24 +718,24 @@ prism research-user system-reset --uid-allocations --confirm
 1. **Principle of Least Privilege**: Only grant necessary permissions
    ```bash
    # Remove docker access if not needed
-   prism research-user update alice --remove-groups docker
+   prism user update alice --remove-groups docker
    ```
 
 2. **Regular Access Reviews**: Review user permissions quarterly
    ```bash
-   prism research-user list --detailed --include-permissions
+   prism user list --detailed --include-permissions
    ```
 
 3. **Group-Based Permissions**: Use groups for shared access
    ```bash
-   prism research-user create-group project-alpha --members alice,bob
+   prism user create-group project-alpha --members alice,bob
    ```
 
 ### Data Security
 
 1. **EFS Encryption**: Use encrypted EFS volumes
    ```bash
-   prism volumes create secure-research --type efs --encrypted
+   prism volume create secure-research --type efs --encrypted
    ```
 
 2. **Home Directory Isolation**: Ensure proper home directory permissions
@@ -761,12 +761,12 @@ prism research-user system-reset --uid-allocations --confirm
 
 2. **Regular Security Scans**: Check for security issues
    ```bash
-   prism research-user security-scan --profile personal-research
+   prism user security-scan --profile personal-research
    ```
 
 3. **Compliance Reporting**: Generate compliance reports
    ```bash
-   prism research-user compliance-report --format pdf --output compliance-2025-Q3.pdf
+   prism user compliance-report --format pdf --output compliance-2025-Q3.pdf
    ```
 
 ## Institutional Deployment
@@ -777,25 +777,25 @@ prism research-user system-reset --uid-allocations --confirm
 
 ```bash
 # Batch user creation from CSV
-prism research-user batch-create --from-csv students-cs501.csv
+prism user batch-create --from-csv students-cs501.csv
 
 # Template optimization for education
-prism research-user configure-education --class cs501 --template "Python ML" --users-from-csv students.csv
+prism user configure-education --class cs501 --template "Python ML" --users-from-csv students.csv
 
 # Automated EFS setup for classes
-prism research-user setup-class-storage cs501 --volume-size 1TB --shared-quota 100GB-per-user
+prism user setup-class-storage cs501 --volume-size 1TB --shared-quota 100GB-per-user
 ```
 
 #### Research Institution (500+ Users)
 
 ```bash
 # Department-based organization
-prism research-user create-department computer-science --quota 10TB
-prism research-user create-department biology --quota 25TB
-prism research-user create-department physics --quota 15TB
+prism user create-department computer-science --quota 10TB
+prism user create-department biology --quota 25TB
+prism user create-department physics --quota 15TB
 
 # Automated provisioning pipeline
-prism research-user setup-auto-provisioning --ldap-integration --department-quotas
+prism user setup-auto-provisioning --ldap-integration --department-quotas
 ```
 
 ### Integration with External Systems
@@ -804,23 +804,23 @@ prism research-user setup-auto-provisioning --ldap-integration --department-quot
 
 ```bash
 # Configure LDAP authentication
-prism research-user configure-ldap --server ldap.university.edu --base-dn "ou=users,dc=university,dc=edu"
+prism user configure-ldap --server ldap.university.edu --base-dn "ou=users,dc=university,dc=edu"
 
 # Sync users from LDAP
-prism research-user ldap-sync --department computer-science
+prism user ldap-sync --department computer-science
 
 # Map LDAP groups to research user groups
-prism research-user map-ldap-groups "cn=CS Students,ou=groups,dc=university,dc=edu" students
+prism user map-ldap-groups "cn=CS Students,ou=groups,dc=university,dc=edu" students
 ```
 
 #### Single Sign-On (SSO) Integration
 
 ```bash
 # Configure SAML SSO
-prism research-user configure-sso --provider saml --metadata-url https://sso.university.edu/metadata
+prism user configure-sso --provider saml --metadata-url https://sso.university.edu/metadata
 
 # Configure OAuth integration
-prism research-user configure-sso --provider oauth --client-id university-cws --discovery-url https://oauth.university.edu/.well-known
+prism user configure-sso --provider oauth --client-id university-cws --discovery-url https://oauth.university.edu/.well-known
 ```
 
 ### Policy Management
@@ -829,26 +829,26 @@ prism research-user configure-sso --provider oauth --client-id university-cws --
 
 ```bash
 # Create policy templates for different user types
-prism research-user create-policy undergraduate --max-instances 2 --max-storage 10GB --templates "Python ML,R Research"
-prism research-user create-policy graduate --max-instances 5 --max-storage 100GB --templates "*"
-prism research-user create-policy faculty --max-instances unlimited --max-storage 1TB --templates "*"
+prism user create-policy undergraduate --max-instances 2 --max-storage 10GB --templates "Python ML,R Research"
+prism user create-policy graduate --max-instances 5 --max-storage 100GB --templates "*"
+prism user create-policy faculty --max-instances unlimited --max-storage 1TB --templates "*"
 
 # Apply policies to users
-prism research-user apply-policy alice undergraduate
-prism research-user apply-policy bob graduate
+prism user apply-policy alice undergraduate
+prism user apply-policy bob graduate
 ```
 
 #### Compliance and Governance
 
 ```bash
 # Enable data residency controls
-prism research-user configure-compliance --data-residency US --encryption required
+prism user configure-compliance --data-residency US --encryption required
 
 # Set retention policies
-prism research-user configure-retention --inactive-users 365d --archive-data 7y
+prism user configure-retention --inactive-users 365d --archive-data 7y
 
 # Configure audit requirements
-prism research-user configure-audit --level comprehensive --retention 10y --export-format syslog
+prism user configure-audit --level comprehensive --retention 10y --export-format syslog
 ```
 
 ## Advanced Configuration
@@ -951,26 +951,26 @@ prism plugin configure research-user-ldap-sync --server ldap.university.edu
 
 ```bash
 # Backup all research user configurations
-prism research-user backup --profile personal-research --output research-users-backup.tar.gz
+prism user backup --profile personal-research --output research-users-backup.tar.gz
 
 # Backup SSH keys
-prism research-user backup-ssh-keys --profile personal-research --output ssh-keys-backup.tar.gz
+prism user backup-ssh-keys --profile personal-research --output ssh-keys-backup.tar.gz
 
 # Backup EFS data
-prism volumes snapshot research-home --description "Weekly backup $(date +%Y-%m-%d)"
+prism volume snapshot research-home --description "Weekly backup $(date +%Y-%m-%d)"
 ```
 
 #### Recovery Procedures
 
 ```bash
 # Restore research users from backup
-prism research-user restore --from-backup research-users-backup.tar.gz
+prism user restore --from-backup research-users-backup.tar.gz
 
 # Restore SSH keys
-prism research-user restore-ssh-keys --from-backup ssh-keys-backup.tar.gz
+prism user restore-ssh-keys --from-backup ssh-keys-backup.tar.gz
 
 # Restore EFS from snapshot
-prism volumes restore research-home --from-snapshot snap-1234567890abcdef0
+prism volume restore research-home --from-snapshot snap-1234567890abcdef0
 ```
 
 ## Conclusion
