@@ -315,7 +315,7 @@ Quick reference for Prism compliance coverage across major security frameworks.
 | **Security Hardening** | [SECURITY_HARDENING_GUIDE.md](SECURITY_HARDENING_GUIDE.md) | ✅ Complete |
 | **AWS IAM** | [AWS_IAM_PERMISSIONS.md](AWS_IAM_PERMISSIONS.md) | ✅ Complete |
 | **Template Policies** | [TEMPLATE_POLICY_FRAMEWORK.md](TEMPLATE_POLICY_FRAMEWORK.md) | ✅ Complete |
-| **Security & Compliance** | [SECURITY_COMPLIANCE_ROADMAP.md](SECURITY_COMPLIANCE_ROADMAP.md) | ✅ Complete |
+| **Security & Compliance** | SECURITY_COMPLIANCE_ROADMAP.md | ✅ Complete |
 | **HIPAA** | `HIPAA_COMPLIANCE_GUIDE.md` | 🟠 Planned (v0.8.0) |
 | **FISMA** | `FISMA_COMPLIANCE_GUIDE.md` | 🟠 Planned (v0.7.0) |
 | **GDPR** | `GDPR_COMPLIANCE_GUIDE.md` | 🟠 Planned (v0.7.0) |

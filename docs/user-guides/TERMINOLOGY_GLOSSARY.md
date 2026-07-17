@@ -332,4 +332,4 @@ aws ec2 describe-instances --instance-ids i-abc123456789
 - [Issue #15 - Instances → Workspaces Rename](https://github.com/scttfrdmn/prism/issues/15)
 - [Issue #66 - Storage Terminology Simplification](https://github.com/scttfrdmn/prism/issues/66)
 - [Design Principles](../DESIGN_PRINCIPLES.md)
-- [User Requirements](../USER_REQUIREMENTS.md)
+- User Requirements

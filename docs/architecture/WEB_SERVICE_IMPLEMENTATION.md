@@ -270,7 +270,7 @@ ConnectionConfig {
 
 ## Testing
 
-See [WEB_SERVICE_TESTING.md](../WEB_SERVICE_TESTING.md) for comprehensive testing procedures.
+See WEB_SERVICE_TESTING.md for comprehensive testing procedures.
 
 Quick test:
 ```bash

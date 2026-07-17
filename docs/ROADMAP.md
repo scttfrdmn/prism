@@ -50,7 +50,7 @@ Candidates (to be prioritized):
 ### v0.6.0 (December 2025): Test Infrastructure & API Documentation ✅ RELEASED
 **Release Date**: December 13, 2025
 **Focus**: Backend unit test foundation and Phase 4/5 API documentation
-**Release Notes**: [RELEASE_NOTES_v0.6.0.md](releases/RELEASE_NOTES_v0.6.0.md)
+**Release Notes**: RELEASE_NOTES_v0.6.0.md
 
 #### Features Delivered
 
@@ -84,8 +84,8 @@ Candidates (to be prioritized):
 ### v0.6.1 (December 2025): Pragmatic Testing Strategy ✅ IN PROGRESS
 **Release Date**: Target December 27, 2025
 **Focus**: Production-ready release with measured coverage and clear technical debt tracking
-**Coverage Report**: [COVERAGE_v0.6.1.md](COVERAGE_v0.6.1.md)
-**Planning Doc**: [TESTING_IMPROVEMENT_ROADMAP.md](releases/TESTING_IMPROVEMENT_ROADMAP.md)
+**Coverage Report**: COVERAGE_v0.6.1.md
+**Planning Doc**: TESTING_IMPROVEMENT_ROADMAP.md
 
 #### Status: Ready for Release
 
@@ -235,7 +235,7 @@ Candidates (to be prioritized):
 **Release Date**: January 15, 2026
 **Focus**: Chaos engineering, edge case coverage, LocalStack integration, enterprise features
 **GitHub Milestone**: [v0.7.0](https://github.com/scttfrdmn/prism/milestone/40)
-**Release Notes**: [RELEASE_NOTES_v0.7.0.md](releases/RELEASE_NOTES_v0.7.0.md)
+**Release Notes**: RELEASE_NOTES_v0.7.0.md
 
 #### Goals
 
@@ -364,8 +364,8 @@ Candidates (to be prioritized):
 ### v0.5.8 (November 2025): Quick Start Experience ✅ RELEASED
 **Release Date**: November 8, 2025
 **Focus**: First-time user experience - zero to workspace in <30 seconds
-**Release Plan**: [RELEASE_PLAN_v0.5.8.md](releases/RELEASE_PLAN_v0.5.8.md)
-**Release Notes**: [RELEASE_NOTES_v0.5.8.md](releases/RELEASE_NOTES_v0.5.8.md)
+**Release Plan**: RELEASE_PLAN_v0.5.8.md
+**Release Notes**: RELEASE_NOTES_v0.5.8.md
 
 #### Quick Start Features ✅ COMPLETE
 **Milestone**: [Phase 5.0.1: Quick Wins](https://github.com/scttfrdmn/prism/milestone/2) - 100% Complete
@@ -394,8 +394,8 @@ Candidates (to be prioritized):
 ### v0.5.9 (November 2025): Navigation Restructure ✅
 **Release Date**: November 7, 2025
 **Focus**: Reduce navigation complexity from 14 to 6 items
-**Release Plan**: [RELEASE_PLAN_v0.5.9.md](releases/RELEASE_PLAN_v0.5.9.md)
-**Release Notes**: [RELEASE_NOTES_v0.5.9.md](releases/RELEASE_NOTES_v0.5.9.md)
+**Release Plan**: RELEASE_PLAN_v0.5.9.md
+**Release Notes**: RELEASE_NOTES_v0.5.9.md
 
 #### Navigation Features
 **Milestones**: [Phase 5.0.2: Info Architecture](https://github.com/scttfrdmn/prism/milestone/3)
@@ -435,7 +435,7 @@ Candidates (to be prioritized):
 ### v0.5.10 (November 2025): Multi-Project Budgets ✅ RELEASED (Core Infrastructure)
 **Release Date**: November 8, 2025
 **Focus**: Budget system core infrastructure for multi-project allocation
-**Release Plan**: [RELEASE_PLAN_v0.5.10.md](releases/RELEASE_PLAN_v0.5.10.md)
+**Release Plan**: RELEASE_PLAN_v0.5.10.md
 
 **Note**: v0.5.10 delivered the **core budget tracking backend** (5,300+ lines). GUI completion and soft warnings will be added in v0.6.0 (Issue #369).
 
@@ -561,7 +561,7 @@ Candidates (to be prioritized):
 **Release Date**: November 12, 2025
 **Focus**: Advanced cost control and system power management
 **Issues**: #90, #91, #252
-**Release Notes**: [RELEASE_NOTES_v0.5.13.md](releases/RELEASE_NOTES_v0.5.13.md)
+**Release Notes**: RELEASE_NOTES_v0.5.13.md
 
 #### Features In Development
 
@@ -615,7 +615,7 @@ Candidates (to be prioritized):
 **Focus**: Nice DCV foundation for desktop GUI applications
 **Issues**: #253-#256
 **Milestone**: [v0.5.14](https://github.com/scttfrdmn/prism/milestone/33)
-**Release Plan**: [RELEASE_PLAN_v0.5.14.md](releases/RELEASE_PLAN_v0.5.14.md)
+**Release Plan**: RELEASE_PLAN_v0.5.14.md
 
 #### Completed Features
 
@@ -1783,15 +1783,15 @@ Create an issue: [github.com/scttfrdmn/prism/issues/new](https://github.com/sctt
 Join discussions: [github.com/scttfrdmn/prism/discussions](https://github.com/scttfrdmn/prism/discussions)
 
 **Technical implementation details?**  
-See: [Technical Debt Backlog](archive/roadmap/TECHNICAL_DEBT_BACKLOG.md)
+See: Technical Debt Backlog
 
 ---
 
 ## 📚 Related Documentation
 
 - [VISION.md](VISION.md) - Long-term product vision
-- [UX Evaluation](architecture/UX_EVALUATION_AND_RECOMMENDATIONS.md) - Current UX issues
-- [Technical Debt Backlog](archive/roadmap/TECHNICAL_DEBT_BACKLOG.md) - Implementation tracking
+- UX Evaluation - Current UX issues
+- Technical Debt Backlog - Implementation tracking
 - [GitHub Projects](https://github.com/scttfrdmn/prism/projects) - Sprint planning
 
 ---

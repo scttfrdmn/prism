@@ -185,6 +185,6 @@ Resolution:
 
 ## Technical References
 
-- [Secure Profile Implementation](SECURE_PROFILE_IMPLEMENTATION.md): Detailed technical documentation
+- Secure Profile Implementation: Detailed technical documentation
 - [Profile Export/Import Guide](PROFILE_EXPORT_IMPORT.md): Information on secure profile migration
-- [Secure Invitation Architecture](SECURE_INVITATION_ARCHITECTURE.md): Design documentation
+- Secure Invitation Architecture: Design documentation

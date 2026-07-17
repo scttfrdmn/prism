@@ -30,7 +30,7 @@ Prism provides researchers with **pre-configured cloud workstations** for data a
 
 **From individual researchers to institutional deployments** - research computing made simple, scalable, and cost-effective.
 
-**Learn more at [prismcloud.io](https://prismcloud.io)**
+**Learn more at [prismcloud.host](https://prismcloud.host)**
 
 ## 🎯 Core Design Principles
 

@@ -172,7 +172,7 @@ If discovered during routine audit:
 
 1. **Medical Center IT Security Recommends Prism**:
    - University Medical Center IT Security validated Prism for HIPAA research
-   - Provides compliance documentation: [HIPAA_COMPLIANCE_GUIDE.md](../admin-guides/HIPAA_COMPLIANCE_GUIDE.md) (v0.8.0)
+   - Provides compliance documentation: HIPAA_COMPLIANCE_GUIDE.md (v0.8.0)
    - Meets HIPAA Technical Safeguards via NIST 800-53 control mapping
    - Includes Business Associate Agreement (BAA) framework for AWS
 
@@ -791,9 +791,9 @@ $ prism admin compliance summary --institution --framework HIPAA
 
 ## Related Documentation
 
-- **[HIPAA Compliance Guide](../admin-guides/HIPAA_COMPLIANCE_GUIDE.md)** - Detailed HIPAA Security Rule implementation (v0.8.0 - Q4 2026)
+- **HIPAA Compliance Guide** - Detailed HIPAA Security Rule implementation (v0.8.0 - Q4 2026)
 - **[NIST 800-171 Compliance Guide](../admin-guides/NIST_800_171_COMPLIANCE.md)** - CUI compliance (Persona 6 comparison)
-- **[Security & Compliance Roadmap](../admin-guides/SECURITY_COMPLIANCE_ROADMAP.md)** - Comprehensive compliance framework
+- **Security & Compliance Roadmap** - Comprehensive compliance framework
 - **[Compliance Matrix](../admin-guides/COMPLIANCE_MATRIX.md)** - Quick reference for all frameworks
 
 ---

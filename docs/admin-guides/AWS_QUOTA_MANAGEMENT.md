@@ -462,7 +462,7 @@ Press 'r' to refresh | Press 'q' to quit
 
 ## Related Documentation
 
-- **Technical Debt Backlog**: [TECHNICAL_DEBT_BACKLOG.md](../archive/roadmap/TECHNICAL_DEBT_BACKLOG.md) (Item #2)
+- **Technical Debt Backlog**: TECHNICAL_DEBT_BACKLOG.md (Item #2)
 - **GitHub Issues**: [#57](https://github.com/scttfrdmn/prism/issues/57), [#58](https://github.com/scttfrdmn/prism/issues/58), [#59](https://github.com/scttfrdmn/prism/issues/59), [#60](https://github.com/scttfrdmn/prism/issues/60)
 - **AWS IAM Permissions**: [AWS_IAM_PERMISSIONS.md](AWS_IAM_PERMISSIONS.md) - Required permissions for quota APIs
 - **Administrator Guide**: [ADMINISTRATOR_GUIDE.md](ADMINISTRATOR_GUIDE.md) - General administration

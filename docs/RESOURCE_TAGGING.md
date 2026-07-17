@@ -577,6 +577,6 @@ Plus:
 
 ## Related Documentation
 
-- [Multi-Budget System](docs/BUDGET_PHILOSOPHY.md) (Issue #236 - planned)
-- [Project Management](docs/USER_GUIDE_PROJECTS.md)
-- [AWS Setup Guide](docs/AWS_SETUP.md)
+- Multi-Budget System (Issue #236 - planned)
+- Project Management
+- AWS Setup Guide

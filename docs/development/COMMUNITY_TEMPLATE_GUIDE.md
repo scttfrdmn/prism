@@ -454,7 +454,7 @@ packages:
 - Adding specific packages to general-purpose base
 - Creating template family (basic → intermediate → advanced)
 
-See [Template Inheritance Documentation](../../templates/README.md#inheritance) for details.
+See Template Inheritance Documentation for details.
 
 ---
 
@@ -602,8 +602,8 @@ Ready to contribute? Great!
 
 ## Related Documentation
 
-- [Template README](../../templates/README.md) - Template structure and inheritance
-- [Template Review Checklist](TEMPLATE_REVIEW_CHECKLIST.md) - Maintainer review guide
+- Template README - Template structure and inheritance
+- Template Review Checklist - Maintainer review guide
 - [AWS Setup Guide](../user-guides/AWS_SETUP_GUIDE.md) - Setting up AWS access
 
 ---

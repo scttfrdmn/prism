@@ -961,4 +961,4 @@ Before creating and sharing an AMI:
 
 - [Custom AMI Workflow](CUSTOM_AMI_WORKFLOW.md) - Step-by-step guide
 - [Multi-User Instance Setup](MULTI_USER_INSTANCE_SETUP.md) - Team collaboration
-- [Cost Management](COST_MANAGEMENT.md) - Optimizing costs
+- Cost Management - Optimizing costs

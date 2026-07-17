@@ -987,9 +987,9 @@ Research User Management in Prism v0.5.0 provides a comprehensive foundation for
 The research user system transforms Prism from a single-user tool into a collaborative research platform while maintaining the simplicity and flexibility that makes Prism powerful.
 
 For additional support:
-- 📚 **Technical Documentation**: [Phase 5A Research User Architecture](PHASE_5A_RESEARCH_USER_ARCHITECTURE.md)
-- 👥 **User Guide**: [Research Users User Guide](USER_GUIDE_RESEARCH_USERS.md)
-- 🏗️ **Architecture Guide**: [Dual User Architecture](DUAL_USER_ARCHITECTURE.md)
+- 📚 **Technical Documentation**: Phase 5A Research User Architecture
+- 👥 **User Guide**: Research Users User Guide
+- 🏗️ **Architecture Guide**: Dual User Architecture
 - 🐛 **Support**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
 
 ---

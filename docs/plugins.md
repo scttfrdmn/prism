@@ -774,7 +774,7 @@ Want to add a new plugin?
    - Test template
    - Documentation updates
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
+See CONTRIBUTING.md for details.
 
 ---
 

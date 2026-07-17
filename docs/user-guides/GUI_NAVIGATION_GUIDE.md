@@ -189,7 +189,7 @@ Planned improvements for Settings navigation:
 
 - [GUI Architecture](../architecture/GUI_ARCHITECTURE.md)
 - 
-- [GUI UX Design Review](../architecture/GUI_UX_DESIGN_REVIEW.md)
+- GUI UX Design Review
 - 
 
 ---
