@@ -249,6 +249,11 @@ type Instance struct {
 	// filter over the flat state map, identical to ProjectID/CourseID.
 	JobArrayID    string `json:"job_array_id,omitempty"`    // Shared array id across members
 	JobArrayIndex int    `json:"job_array_index,omitempty"` // This member's index, 0..N-1
+
+	// Parameter-sweep membership (spawn adoption): set when this instance was
+	// launched as part of a sweep so `prism list` can group members.
+	SweepID    string `json:"sweep_id,omitempty"`    // Shared sweep id across members
+	SweepIndex int    `json:"sweep_index,omitempty"` // This member's index, 0..N-1
 }
 
 // IsSpotInstance reports whether the instance runs on the spot market, tolerating either signal

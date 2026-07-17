@@ -14,6 +14,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -398,6 +399,62 @@ func (m *Manager) LaunchArray(ctx context.Context, req ctypes.LaunchRequest, cou
 	return instances, errs
 }
 
+// GenerateSweepID builds a shared sweep id: <name>-<YYYYMMDD>-<6hex>, matching
+// spawn's format. Exported so the daemon can generate the id up front and report
+// it in the launch response.
+func GenerateSweepID(name string) string { return generateJobArrayID(name) }
+
+// LaunchSweep launches a parameter sweep: one member per parameter set in
+// paramSets, named <req.Name>-0..<req.Name>-(N-1), all sharing a generated sweep
+// id. Each member additionally carries its own parameter set (stamped as
+// prism:param:<k> tags; an on-instance shell exports them as PARAM_<k>). Members
+// are independent — a member failure is collected and the rest continue (partial
+// success). Mirrors LaunchArray; the fan-out is a loop over the single-launch path.
+func (m *Manager) LaunchSweep(ctx context.Context, req ctypes.LaunchRequest, paramSets []map[string]string) ([]*ctypes.Instance, []error) {
+	if len(paramSets) < 1 {
+		return nil, []error{fmt.Errorf("sweep requires at least one parameter set, got %d", len(paramSets))}
+	}
+
+	sweepID := req.SweepID
+	if sweepID == "" {
+		sweepID = generateJobArrayID(req.Name)
+	}
+	sweepName := req.SweepName
+	if sweepName == "" {
+		sweepName = req.Name
+	}
+	baseName := req.Name
+	size := len(paramSets)
+
+	instances := make([]*ctypes.Instance, 0, size)
+	var errs []error
+
+	for i, params := range paramSets {
+		member := req // copy — LaunchRequest is a value type
+		member.Name = fmt.Sprintf("%s-%d", baseName, i)
+		member.DNSName = "" // let ExecuteLaunch default per-member DNS from the member name
+		member.SweepID = sweepID
+		member.SweepName = sweepName
+		member.SweepSize = size
+		member.SweepIndex = i
+		member.SweepParams = params
+
+		inst, err := m.LaunchInstanceWithContext(ctx, member)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("param set %d (%s): %w", i, member.Name, err))
+			continue
+		}
+		// Stamp sweep membership on the returned instance so state can group members.
+		if inst != nil {
+			inst.SweepID = sweepID
+			inst.SweepIndex = i
+		}
+		instances = append(instances, inst)
+	}
+
+	return instances, errs
+}
+
 // TemplateConfigExtractor extracts configuration from unified template (Single Responsibility - SOLID)
 type TemplateConfigExtractor struct {
 	region string
@@ -446,6 +503,13 @@ func (p *UserDataProcessor) ProcessUserData(template *ctypes.RuntimeTemplate, re
 
 	// Install spored instance daemon (#588)
 	userData = addSporedInstallToUserData(userData)
+
+	// Parameter sweep (spawn adoption): export PARAM_*/SWEEP_* from the
+	// prism:param:* / prism:sweep-* tags on boot. Only appended for sweep members
+	// so non-sweep launches are byte-identical.
+	if req.SweepID != "" {
+		userData = addParamSweepExporterToUserData(userData)
+	}
 
 	// Gzip-compress the script. cloud-init detects the gzip magic bytes
 	// and decompresses automatically, so this is transparent to templates.
@@ -622,6 +686,27 @@ func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsern
 		tags["prism:job-array-index"] = strconv.Itoa(req.JobArrayIndex)
 	}
 
+	// Parameter-sweep tags (spawn adoption) — the on-instance prism-params shell
+	// (installed with spored) reads prism:sweep-* and prism:param:<k> and exports
+	// SWEEP_*/PARAM_<k> env vars. Cap params at 35 to stay well under AWS's 50-tag
+	// limit (Prism already stamps ~15 baseline tags).
+	if req.SweepID != "" {
+		tags["prism:sweep-id"] = req.SweepID
+		tags["prism:sweep-name"] = req.SweepName
+		tags["prism:sweep-size"] = strconv.Itoa(req.SweepSize)
+		tags["prism:sweep-index"] = strconv.Itoa(req.SweepIndex)
+
+		const maxParamTags = 35
+		paramCount := 0
+		for _, k := range sortedParamKeys(req.SweepParams) {
+			if paramCount >= maxParamTags {
+				break
+			}
+			tags["prism:param:"+k] = req.SweepParams[k]
+			paramCount++
+		}
+	}
+
 	// Add test mode tags for E2E tests (helps identify and cleanup test resources)
 	if os.Getenv("PRISM_TEST_MODE") == "true" {
 		tags["prism:test-mode"] = "e2e"
@@ -629,6 +714,17 @@ func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsern
 	}
 
 	return tags
+}
+
+// sortedParamKeys returns the keys of a parameter map in sorted order, so the
+// ≤35 tag cap selects a deterministic subset and tag output is stable.
+func sortedParamKeys(params map[string]string) []string {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // resolveIAMInstanceProfile returns the Prism instance-profile name if it exists,
@@ -2651,6 +2747,47 @@ systemctl enable spored
 systemctl start spored || true
 `
 	return userData + sporedInstall
+}
+
+// addParamSweepExporterToUserData appends a shell snippet that, on boot, reads this
+// instance's own prism:sweep-* and prism:param:<k> tags and writes
+// /etc/profile.d/prism-params.sh exporting SWEEP_ID/SWEEP_NAME/SWEEP_SIZE/
+// SWEEP_INDEX and PARAM_<k> for all shells. This is Prism's namespace-aware
+// counterpart to spawn's bootstrap PARAM_* exporter (which is hardcoded to
+// spawn:param:* and lives in a bootstrap Prism does not use). Only appended for
+// sweep members (see ProcessUserData). Idempotent and best-effort — a missing IMDS
+// or describe-tags failure just skips the export rather than failing the boot.
+func addParamSweepExporterToUserData(userData string) string {
+	exporter := `
+
+# Parameter-sweep environment exporter (prism)
+# Reads this instance's prism:sweep-* and prism:param:<k> tags and exports them.
+TOKEN=$(curl -sf -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300" 2>/dev/null || echo "")
+IMDS_H=""
+[ -n "$TOKEN" ] && IMDS_H="-H X-aws-ec2-metadata-token:$TOKEN"
+PSWEEP_ID=$(curl -sf $IMDS_H http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null || echo "")
+PSWEEP_REGION=$(curl -sf $IMDS_H http://169.254.169.254/latest/meta-data/placement/region 2>/dev/null || echo "us-east-1")
+if [ -n "$PSWEEP_ID" ] && command -v aws >/dev/null 2>&1; then
+  PSWEEP_TAGS=$(aws ec2 describe-tags --region "$PSWEEP_REGION" \
+    --filters "Name=resource-id,Values=$PSWEEP_ID" \
+    --query 'Tags[].[Key,Value]' --output text 2>/dev/null || echo "")
+  if [ -n "$PSWEEP_TAGS" ]; then
+    echo "# Parameter sweep environment (generated by prism)" > /etc/profile.d/prism-params.sh
+    printf '%s\n' "$PSWEEP_TAGS" | while IFS=$'\t' read -r key value; do
+      case "$key" in
+        prism:sweep-id)    echo "export SWEEP_ID=\"$value\"" >> /etc/profile.d/prism-params.sh ;;
+        prism:sweep-name)  echo "export SWEEP_NAME=\"$value\"" >> /etc/profile.d/prism-params.sh ;;
+        prism:sweep-size)  echo "export SWEEP_SIZE=\"$value\"" >> /etc/profile.d/prism-params.sh ;;
+        prism:sweep-index) echo "export SWEEP_INDEX=\"$value\"" >> /etc/profile.d/prism-params.sh ;;
+        prism:param:*)     echo "export PARAM_${key#prism:param:}=\"$value\"" >> /etc/profile.d/prism-params.sh ;;
+      esac
+    done
+    chmod 644 /etc/profile.d/prism-params.sh
+    echo "prism: parameter-sweep environment written to /etc/profile.d/prism-params.sh"
+  fi
+fi
+`
+	return userData + exporter
 }
 
 // sanitizeDNSName converts a workspace name to a valid DNS label.

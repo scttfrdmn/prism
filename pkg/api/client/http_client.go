@@ -237,6 +237,23 @@ func (c *HTTPClient) LaunchArray(ctx context.Context, req types.LaunchArrayReque
 	return &result, nil
 }
 
+// LaunchSweep launches a parameter sweep: one instance per parameter set, sharing
+// a sweep id. Returns the per-member outcome (partial success is normal).
+func (c *HTTPClient) LaunchSweep(ctx context.Context, req types.LaunchSweepRequest) (*types.LaunchSweepResponse, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/instances/sweep", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result types.LaunchSweepResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 // ListInstances lists all instances
 func (c *HTTPClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
 	return c.ListInstancesWithRefresh(ctx, false)

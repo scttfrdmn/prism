@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Parameter sweeps: launch one instance per parameter set (spawn adoption).** New
+  `prism workspace launch <template> <name> --param-file <file.json|yaml|csv>`
+  launches a sweep — one workspace named `<name>-0`..`<name>-(N-1)` per parameter
+  set in the file, all sharing a generated sweep id. Each member's parameters are
+  stamped as `prism:param:<key>` tags (capped at 35 to stay under AWS's 50-tag
+  limit) and exported on-instance as `PARAM_<key>` environment variables by a
+  Prism-installed boot shell — the namespace-aware counterpart to spawn's bootstrap
+  exporter (which is hardcoded to `spawn:param:*` and lives in a bootstrap Prism
+  does not use). `--sweep-name` sets a user-facing name. The parameter file
+  (JSON/YAML/CSV, parsed client-side via spawn's `params` package; `defaults` merged
+  under each set's overrides) is resolved by the CLI, not the daemon. Server-side: a
+  new `POST /api/v1/instances/sweep` endpoint (`LaunchSweepRequest` →
+  `LaunchSweepResponse{SweepID, Requested, Launched, Instances, Errors}`) reuses the
+  job-array fan-out — up-front name-uniqueness, count-aware budget gate, batch-aware
+  rate limiter, per-member partial success. `Instance` now carries optional
+  `sweep_id`/`sweep_index` for `prism list` grouping. CLI-only for now (GUI deferred).
 - **Job arrays: launch N instances from one request (spawn adoption).** New
   `prism workspace launch <template> <name> --count N` launches a job array of N
   homogeneous workspaces named `<name>-0`..`<name>-(N-1)` that share a generated

@@ -42,6 +42,8 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/spore-host/spawn/pkg/params"
+
 	"github.com/scttfrdmn/prism/pkg/api/client"
 	"github.com/scttfrdmn/prism/pkg/aws"
 	"github.com/scttfrdmn/prism/pkg/pricing"
@@ -257,6 +259,11 @@ func (a *App) Launch(args []string) error {
 	template := args[0]
 	name := args[1]
 
+	// Extract the parameter-sweep flags (--param-file, --sweep-name) before flag
+	// dispatch: they resolve to a list of parameter sets, not a single LaunchRequest
+	// field, so the dispatcher (which mutates one req) never sees them.
+	paramFile, sweepName, args := extractSweepFlags(args)
+
 	// Parse options using Command Pattern (SOLID: Single Responsibility)
 	req := types.LaunchRequest{
 		Template: template,
@@ -271,6 +278,11 @@ func (a *App) Launch(args []string) error {
 	// Ensure daemon is running (auto-start if needed)
 	if err := a.ensureDaemonRunning(); err != nil {
 		return err
+	}
+
+	// Parameter sweep (--param-file): one instance per parameter set.
+	if paramFile != "" {
+		return a.launchSweep(req, paramFile, sweepName)
 	}
 
 	// Job array (--count > 1): launch N members through the array endpoint.
@@ -438,6 +450,135 @@ func (a *App) renderArrayResult(req *types.LaunchRequest, resp *types.LaunchArra
 		fmt.Printf("\n📁 Project: %s — members tracked under project budget\n", req.ProjectID)
 	}
 	fmt.Printf("\n💡 List members: prism workspace list\n")
+}
+
+// extractSweepFlags pulls --param-file and --sweep-name (each with a value) out of
+// args, returning their values and args with those tokens removed. Done before flag
+// dispatch because a sweep resolves to a list of parameter sets, not a single
+// LaunchRequest field.
+func extractSweepFlags(args []string) (paramFile, sweepName string, rest []string) {
+	rest = make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--param-file":
+			if i+1 < len(args) {
+				paramFile = args[i+1]
+				i++
+			}
+		case "--sweep-name":
+			if i+1 < len(args) {
+				sweepName = args[i+1]
+				i++
+			}
+		default:
+			rest = append(rest, args[i])
+		}
+	}
+	return paramFile, sweepName, rest
+}
+
+// launchSweep parses the parameter file into per-member parameter sets and launches
+// a sweep (one instance per set) via the sweep endpoint. Members are independent —
+// partial success is reported per-member, not failed as a whole.
+func (a *App) launchSweep(req types.LaunchRequest, paramFile, sweepName string) error {
+	paramSets, err := parseParamSets(paramFile)
+	if err != nil {
+		return WrapAPIError("parse parameter file "+paramFile, err)
+	}
+	if len(paramSets) == 0 {
+		return NewUsageError("parameter file must contain at least one parameter set",
+			"see 'params' array in the JSON/YAML file, or one row per line in a CSV")
+	}
+
+	if confirmed := a.confirmSweepLaunch(&req, len(paramSets)); !confirmed {
+		fmt.Println("Launch cancelled.")
+		return nil
+	}
+
+	var spinner *Spinner
+	if !req.Quiet {
+		spinner = NewSpinner(fmt.Sprintf("Launching parameter sweep '%s' (%d parameter sets) from template '%s'", req.Name, len(paramSets), req.Template))
+		spinner.Start()
+	}
+
+	resp, err := a.apiClient.LaunchSweep(a.ctx, types.LaunchSweepRequest{
+		LaunchRequest: req,
+		ParamSets:     paramSets,
+		SweepName:     sweepName,
+	})
+	if err != nil {
+		if spinner != nil {
+			spinner.Stop()
+		}
+		return WrapAPIError("launch parameter sweep "+req.Name, err)
+	}
+
+	if spinner != nil {
+		spinner.StopWithMessage(fmt.Sprintf("✅ Sweep %s: %d/%d instances launched", resp.SweepID, resp.Launched, resp.Requested))
+	}
+	a.renderSweepResult(&req, resp)
+	return nil
+}
+
+// confirmSweepLaunch shows the per-instance cost preview (×N sets) and prompts for
+// confirmation. Returns true to proceed (also when quiet/dry-run/auto-yes skip the
+// prompt, or when the estimate can't be computed).
+func (a *App) confirmSweepLaunch(req *types.LaunchRequest, n int) bool {
+	if req.Quiet || req.DryRun || req.AutoYes {
+		return true
+	}
+	confirmed, err := a.showCostPreview(req)
+	if err != nil {
+		if !strings.Contains(err.Error(), "not found") {
+			fmt.Printf("⚠️  Could not calculate cost estimate: %v\n\n", err)
+		}
+		return true
+	}
+	if !confirmed {
+		return false
+	}
+	fmt.Printf("ℹ️  Launching a parameter sweep of %d instances (per-instance cost shown above ×%d).\n\n", n, n)
+	return true
+}
+
+// renderSweepResult prints the launched members and any per-member errors.
+func (a *App) renderSweepResult(req *types.LaunchRequest, resp *types.LaunchSweepResponse) {
+	for _, inst := range resp.Instances {
+		fmt.Printf("   • %s (%s)\n", inst.Name, inst.State)
+	}
+	if len(resp.Errors) > 0 {
+		fmt.Printf("\n⚠️  %d member(s) failed to launch:\n", len(resp.Errors))
+		for _, e := range resp.Errors {
+			fmt.Printf("   • %s\n", e)
+		}
+	}
+	if req.Quiet {
+		return
+	}
+	fmt.Printf("\n💡 Each instance exposes its parameters as PARAM_<key> env vars. List members: prism workspace list\n")
+}
+
+// parseParamSets reads a JSON/YAML/CSV parameter file (via spawn's params parser)
+// and returns one string-keyed parameter set per sweep member, with the file's
+// shared defaults merged under each set's own overrides. Values are stringified so
+// they map cleanly onto prism:param:<k> tags / PARAM_<k> env vars.
+func parseParamSets(path string) ([]map[string]string, error) {
+	format, err := params.ParseParamFile(path)
+	if err != nil {
+		return nil, err
+	}
+	sets := make([]map[string]string, 0, len(format.Params))
+	for _, p := range format.Params {
+		merged := make(map[string]string)
+		for k, v := range format.Defaults {
+			merged[k] = fmt.Sprintf("%v", v)
+		}
+		for k, v := range p {
+			merged[k] = fmt.Sprintf("%v", v)
+		}
+		sets = append(sets, merged)
+	}
+	return sets, nil
 }
 
 // showCostPreview displays an estimated cost table and prompts the user to confirm.

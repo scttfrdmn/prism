@@ -119,6 +119,8 @@ func (f *WorkspaceCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []str
 	args = appendStringFlag(cmd, args, "active-processes", "--active-processes")
 	args = appendIntFlag(cmd, args, "count", "--count", 1)
 	args = appendStringFlag(cmd, args, "job-array-name", "--job-array-name")
+	args = appendStringFlag(cmd, args, "param-file", "--param-file")
+	args = appendStringFlag(cmd, args, "sweep-name", "--sweep-name")
 	return f.app.Launch(args)
 }
 
@@ -151,6 +153,8 @@ func (f *WorkspaceCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().String("active-processes", "", "Processes that keep instance active, preventing idle shutdown (e.g., rsession or rsession,jupyter)")
 	cmd.Flags().Int("count", 1, "Launch a job array of N instances named <name>-0..<name>-(N-1) sharing a job-array id (MPI / parameter sweeps)")
 	cmd.Flags().String("job-array-name", "", "User-facing name for the job array (defaults to the workspace name); only used with --count > 1")
+	cmd.Flags().String("param-file", "", "Parameter sweep file (JSON/YAML/CSV): launch one instance per parameter set, exposing each as PARAM_<key> env vars")
+	cmd.Flags().String("sweep-name", "", "User-facing name for the parameter sweep (defaults to the workspace name); only used with --param-file")
 }
 
 func (f *WorkspaceCommandFactory) createListCommand() *cobra.Command {

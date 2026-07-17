@@ -13,8 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// postArray marshals req and POSTs it to the array endpoint, returning the recorder.
-func postArray(t *testing.T, handler http.Handler, req interface{}) *httptest.ResponseRecorder {
+// postJSON marshals req (or sends it verbatim if it's a string) and POSTs it to
+// path, returning the recorder. Shared by the array and sweep handler tests.
+func postJSON(t *testing.T, handler http.Handler, path string, req interface{}) *httptest.ResponseRecorder {
 	t.Helper()
 	var body []byte
 	if str, ok := req.(string); ok {
@@ -24,11 +25,17 @@ func postArray(t *testing.T, handler http.Handler, req interface{}) *httptest.Re
 		body, err = json.Marshal(req)
 		require.NoError(t, err)
 	}
-	httpReq := httptest.NewRequest("POST", "/api/v1/instances/array", bytes.NewReader(body))
+	httpReq := httptest.NewRequest("POST", path, bytes.NewReader(body))
 	httpReq.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, httpReq)
 	return w
+}
+
+// postArray POSTs req to the array endpoint, returning the recorder.
+func postArray(t *testing.T, handler http.Handler, req interface{}) *httptest.ResponseRecorder {
+	t.Helper()
+	return postJSON(t, handler, "/api/v1/instances/array", req)
 }
 
 // TestHandleLaunchArray_FansOutDistinctNames verifies a count=3 array launches 3

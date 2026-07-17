@@ -1,10 +1,16 @@
 package aws
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
+	"io"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	ctypes "github.com/scttfrdmn/prism/pkg/types"
 )
 
 // TestAddSporedInstallToUserData verifies that the spored installation script
@@ -105,4 +111,60 @@ func TestAddSporedInstallToUserDataIdempotency(t *testing.T) {
 	withBase := addSporedInstallToUserData("#!/bin/bash\n")
 	assert.True(t, strings.HasSuffix(withBase, result),
 		"script content should be the same regardless of base input")
+}
+
+// TestAddParamSweepExporterToUserData verifies the parameter-sweep exporter snippet
+// reads the prism-namespaced tags and writes PARAM_*/SWEEP_* to a profile.d file.
+func TestAddParamSweepExporterToUserData(t *testing.T) {
+	const base = "#!/bin/bash\necho base\n"
+	result := addParamSweepExporterToUserData(base)
+
+	assert.True(t, strings.HasPrefix(result, base), "base UserData must be preserved")
+	assert.Contains(t, result, "prism:param:", "must read prism:param:* tags (not spawn:param:*)")
+	assert.Contains(t, result, "prism:sweep-id", "must read the sweep-id tag")
+	assert.Contains(t, result, "/etc/profile.d/prism-params.sh", "must write the profile.d exporter file")
+	assert.Contains(t, result, "export PARAM_", "must export PARAM_<key> env vars")
+	assert.Contains(t, result, "export SWEEP_INDEX", "must export SWEEP_INDEX")
+	assert.NotContains(t, result, "spawn:param:", "must NOT read spawn: namespace (Prism uses prism:)")
+}
+
+// TestProcessUserData_ParamExporterOnlyForSweep confirms the PARAM_* exporter is
+// appended only when the request is a sweep member, so non-sweep launches are
+// byte-identical to before.
+func TestProcessUserData_ParamExporterOnlyForSweep(t *testing.T) {
+	p := &UserDataProcessor{manager: &Manager{region: "us-west-2"}, region: "us-west-2"}
+	tmpl := &ctypes.RuntimeTemplate{UserData: "#!/bin/bash\necho hi\n"}
+
+	// Non-sweep launch: no exporter.
+	plain := decodeUserData(t, p.ProcessUserData(tmpl, ctypes.LaunchRequest{Name: "plain", Template: "python-ml"}))
+	assert.NotContains(t, plain, "/etc/profile.d/prism-params.sh",
+		"non-sweep launch must not carry the param exporter")
+
+	// Sweep member: exporter present.
+	sweep := decodeUserData(t, p.ProcessUserData(tmpl, ctypes.LaunchRequest{
+		Name: "hp-0", Template: "python-ml", SweepID: "hp-x", SweepIndex: 0, SweepSize: 2,
+	}))
+	assert.Contains(t, sweep, "/etc/profile.d/prism-params.sh",
+		"sweep member must carry the param exporter")
+}
+
+// decodeUserData reverses ProcessUserData's gzip+base64 so tests can assert on the
+// shell script content.
+func decodeUserData(t *testing.T, encoded string) string {
+	t.Helper()
+	raw, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		t.Fatalf("base64 decode: %v", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(raw))
+	if err != nil {
+		// Not gzipped (fallback path) — return as-is.
+		return string(raw)
+	}
+	defer zr.Close()
+	out, err := io.ReadAll(zr)
+	if err != nil {
+		t.Fatalf("gzip read: %v", err)
+	}
+	return string(out)
 }

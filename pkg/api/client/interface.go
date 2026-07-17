@@ -31,6 +31,7 @@ type PrismAPI interface {
 	// Instance operations
 	LaunchInstance(context.Context, types.LaunchRequest) (*types.LaunchResponse, error)
 	LaunchArray(context.Context, types.LaunchArrayRequest) (*types.LaunchArrayResponse, error)
+	LaunchSweep(context.Context, types.LaunchSweepRequest) (*types.LaunchSweepResponse, error)
 	ListInstances(context.Context) (*types.ListResponse, error)
 	ListInstancesWithRefresh(context.Context, bool) (*types.ListResponse, error)
 	GetInstance(context.Context, string) (*types.Instance, error)
