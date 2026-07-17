@@ -44,6 +44,7 @@ type MockAPIClient struct {
 
 	// Call tracking
 	LaunchCalls        []types.LaunchRequest
+	LaunchArrayCalls   []types.LaunchArrayRequest
 	StartCalls         []string
 	StopCalls          []string
 	DeleteCalls        []string
@@ -227,6 +228,38 @@ func (m *MockAPIClient) LaunchInstance(ctx context.Context, req types.LaunchRequ
 		EstimatedCost:  "$2.40/day",
 		ConnectionInfo: fmt.Sprintf("prism workspace connect %s", req.Name),
 	}, nil
+}
+
+func (m *MockAPIClient) LaunchArray(ctx context.Context, req types.LaunchArrayRequest) (*types.LaunchArrayResponse, error) {
+	m.LaunchArrayCalls = append(m.LaunchArrayCalls, req)
+
+	if m.LaunchError != nil {
+		return nil, m.LaunchError
+	}
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+
+	resp := &types.LaunchArrayResponse{
+		JobArrayID: fmt.Sprintf("%s-mock", req.Name),
+		Requested:  req.Count,
+	}
+	for i := 0; i < req.Count; i++ {
+		inst := types.Instance{
+			ID:            fmt.Sprintf("i-%d-%d", time.Now().Unix(), i),
+			Name:          fmt.Sprintf("%s-%d", req.Name, i),
+			Template:      req.Template,
+			State:         "running",
+			LaunchTime:    time.Now(),
+			ProjectID:     req.ProjectID,
+			JobArrayID:    resp.JobArrayID,
+			JobArrayIndex: i,
+		}
+		m.Instances = append(m.Instances, inst)
+		resp.Instances = append(resp.Instances, inst)
+		resp.Launched++
+	}
+	return resp, nil
 }
 
 func (m *MockAPIClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {

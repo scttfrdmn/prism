@@ -199,6 +199,42 @@ func TestLaunchCommandSpawnFlags(t *testing.T) {
 	assert.Equal(t, "my-cluster", req.PlacementGroup, "placement-group should propagate")
 }
 
+// TestLaunchCommandJobArray verifies --count > 1 branches to the array endpoint,
+// carrying the count and job-array name, and does NOT call the single-launch path.
+func TestLaunchCommandJobArray(t *testing.T) {
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	args := []string{
+		"python-ml", "sweep",
+		"--count", "4",
+		"--job-array-name", "my-sweep",
+	}
+	err := app.Launch(args)
+
+	assert.NoError(t, err)
+	assert.Empty(t, mockClient.LaunchCalls, "single-launch path must not be used for an array")
+	require.Len(t, mockClient.LaunchArrayCalls, 1)
+	arr := mockClient.LaunchArrayCalls[0]
+	assert.Equal(t, "python-ml", arr.Template)
+	assert.Equal(t, "sweep", arr.Name)
+	assert.Equal(t, 4, arr.Count)
+	assert.Equal(t, "my-sweep", arr.JobArrayName)
+}
+
+// TestLaunchCommandCountOneUsesSingleLaunch verifies --count 1 (the default) stays
+// on the single-instance path, not the array endpoint.
+func TestLaunchCommandCountOneUsesSingleLaunch(t *testing.T) {
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	err := app.Launch([]string{"python-ml", "solo", "--count", "1"})
+
+	assert.NoError(t, err)
+	assert.Len(t, mockClient.LaunchCalls, 1)
+	assert.Empty(t, mockClient.LaunchArrayCalls)
+}
+
 // TestLaunchCommandCompletionFlags verifies the Phase-3b completion-signaling
 // flags (--on-complete, --completion-file, --completion-delay) propagate.
 func TestLaunchCommandCompletionFlags(t *testing.T) {

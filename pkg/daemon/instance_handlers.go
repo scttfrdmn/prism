@@ -1594,6 +1594,17 @@ func (s *Server) checkInstanceNameUniqueness(req *types.LaunchRequest, w http.Re
 // isLaunchBlockedByBudget checks if the launch is blocked by budget hard cap
 // Returns true if launch is blocked (error already written), false if allowed
 func (s *Server) isLaunchBlockedByBudget(req *types.LaunchRequest, w http.ResponseWriter) bool {
+	return s.isLaunchBlockedByBudgetN(req, 1, w)
+}
+
+// isLaunchBlockedByBudgetN is the count-aware budget gate: it estimates the cost
+// of launching `count` identical instances (a job array) and blocks if the batch
+// would breach the project's monthly limit. count=1 is the single-launch path.
+// Returns true if launch is blocked (error already written), false if allowed.
+func (s *Server) isLaunchBlockedByBudgetN(req *types.LaunchRequest, count int, w http.ResponseWriter) bool {
+	if count < 1 {
+		count = 1
+	}
 	// If no project is associated, budget cap doesn't apply
 	if req.ProjectID == "" {
 		return false
@@ -1657,9 +1668,11 @@ func (s *Server) isLaunchBlockedByBudget(req *types.LaunchRequest, w http.Respon
 	// Determine instance type that will be launched
 	instanceType := s.getInstanceTypeForLaunch(req)
 
-	// Estimate monthly cost for this instance (using cost calculator from project package)
+	// Estimate monthly cost for this launch (using cost calculator from project package).
+	// For a job array (count > 1) the estimate is the per-member cost × count, so the
+	// gate reflects the whole batch — an array can't slip past the monthly limit.
 	var costCalc project.CostCalculator
-	estimatedMonthlyCost := costCalc.EstimateMonthlyCost(instanceType, 20) // 20GB default root volume
+	estimatedMonthlyCost := costCalc.EstimateMonthlyCost(instanceType, 20) * float64(count) // 20GB default root volume
 
 	// Get current spending
 	currentSpend := proj.Budget.SpentAmount

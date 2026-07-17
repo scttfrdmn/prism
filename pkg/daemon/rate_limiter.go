@@ -38,16 +38,7 @@ func (rl *RateLimiter) CheckAndRecordLaunch() error {
 	}
 
 	now := time.Now()
-
-	// Remove expired launch timestamps (outside the window)
-	cutoff := now.Add(-rl.window)
-	validLaunches := make([]time.Time, 0)
-	for _, launchTime := range rl.launches {
-		if launchTime.After(cutoff) {
-			validLaunches = append(validLaunches, launchTime)
-		}
-	}
-	rl.launches = validLaunches
+	rl.pruneExpired(now)
 
 	// Check if we've hit the limit
 	if len(rl.launches) >= rl.maxLaunches {
@@ -66,6 +57,57 @@ func (rl *RateLimiter) CheckAndRecordLaunch() error {
 	// Record this launch
 	rl.launches = append(rl.launches, now)
 	return nil
+}
+
+// CheckAndRecordLaunches admits a batch of n launches (e.g. a job array) as a
+// unit and records n timestamps. Unlike CheckAndRecordLaunch, it is gated on the
+// window NOT already being at the limit, but does not reject a batch merely for
+// being larger than maxLaunches — an intentional array of N is not the accidental
+// runaway the per-launch limiter guards against. If the window is already full,
+// the whole batch is rejected (retry later); otherwise it is admitted and all n
+// timestamps recorded so subsequent single launches see the array's footprint.
+func (rl *RateLimiter) CheckAndRecordLaunches(n int) error {
+	if n <= 1 {
+		return rl.CheckAndRecordLaunch()
+	}
+
+	rl.mutex.Lock()
+	defer rl.mutex.Unlock()
+
+	if !rl.enabled {
+		return nil
+	}
+
+	now := time.Now()
+	rl.pruneExpired(now)
+
+	// Reject only if the window is already saturated by prior launches.
+	if len(rl.launches) >= rl.maxLaunches {
+		oldestLaunch := rl.launches[0]
+		return &RateLimitError{
+			Current:    len(rl.launches),
+			Limit:      rl.maxLaunches,
+			Window:     rl.window,
+			RetryAfter: rl.window - now.Sub(oldestLaunch),
+		}
+	}
+
+	for i := 0; i < n; i++ {
+		rl.launches = append(rl.launches, now)
+	}
+	return nil
+}
+
+// pruneExpired drops launch timestamps outside the sliding window. Caller holds the mutex.
+func (rl *RateLimiter) pruneExpired(now time.Time) {
+	cutoff := now.Add(-rl.window)
+	validLaunches := make([]time.Time, 0, len(rl.launches))
+	for _, launchTime := range rl.launches {
+		if launchTime.After(cutoff) {
+			validLaunches = append(validLaunches, launchTime)
+		}
+	}
+	rl.launches = validLaunches
 }
 
 // GetStatus returns current rate limiter status
