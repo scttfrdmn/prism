@@ -640,7 +640,7 @@ prism admin compliance summary --institution
 ## Related Documentation
 
 - **[NIST 800-171 Compliance Guide](../admin-guides/NIST_800_171_COMPLIANCE.md)** - Detailed control-by-control compliance mapping
-- **[Security & Compliance Roadmap](../admin-guides/SECURITY_COMPLIANCE_ROADMAP.md)** - Comprehensive compliance framework
+- **Security & Compliance Roadmap** - Comprehensive compliance framework
 - **[Compliance Matrix](../admin-guides/COMPLIANCE_MATRIX.md)** - Quick reference for all frameworks
 
 ---

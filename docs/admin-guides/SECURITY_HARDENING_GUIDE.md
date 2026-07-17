@@ -392,10 +392,10 @@ export PRISM_EMAIL_ALERTS="security@example.com"
 
 ## 📚 Additional Resources
 
-- [Prism Security Architecture](./SECURITY_ARCHITECTURE.md)
-- [API Security Reference](./API_SECURITY.md)
-- [Compliance Checklist](./COMPLIANCE_CHECKLIST.md)
-- [Incident Response Playbook](./INCIDENT_RESPONSE.md)
+- Prism Security Architecture
+- API Security Reference
+- Compliance Checklist
+- Incident Response Playbook
 
 ## 🆘 Support and Troubleshooting
 

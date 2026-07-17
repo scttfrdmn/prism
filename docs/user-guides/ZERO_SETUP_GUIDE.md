@@ -31,7 +31,7 @@ The Prism daemon (`prismd`) starts automatically when needed:
 ```bash
 prism workspace launch template my-instance
 # ✅ Daemon starts automatically if not running
-# ✅ No need for: prism daemon start
+# ✅ No need for: prism admin daemon start
 # ✅ No systemd/launchd configuration needed
 ```
 
@@ -334,7 +334,7 @@ You should be doing research, not configuring infrastructure. Prism makes that p
 
 ## 📚 Learn More
 
-- [Quick Start Guide](../README.md#-quick-start---zero-setup-experience)
+- Quick Start Guide
 - [Administrator Guide](../admin-guides/ADMINISTRATOR_GUIDE.md) (for manual AWS configuration)
 - [Template Format](TEMPLATE_FORMAT.md) (creating custom templates)
 - [Getting Started Guide](QUICK_START.md) (complete CLI reference)

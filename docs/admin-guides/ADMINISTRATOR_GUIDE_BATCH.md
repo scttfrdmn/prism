@@ -398,4 +398,4 @@ with open(sys.argv[1], 'r') as infile:
 
 The batch invitation system provides powerful tools for managing Prism access at scale. By following the strategies and best practices in this guide, administrators can efficiently manage invitations across organizations of any size while maintaining security and control.
 
-For more detailed information about specific interfaces, refer to the [Batch Invitation Interface Guide](./BATCH_INVITATION_INTERFACE_GUIDE.md).
+For more detailed information about specific interfaces, refer to the Batch Invitation Interface Guide.

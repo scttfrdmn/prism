@@ -185,7 +185,7 @@ Some terms are inherently technical and remain AWS-specific in Prism:
 **How they relate**:
 ```bash
 # Prism profile references an AWS profile
-prism profile create research \
+prism profiles add personal research \
   --aws-profile my-aws-creds \
   --region us-west-2
 ```
@@ -332,4 +332,4 @@ aws ec2 describe-instances --instance-ids i-abc123456789
 - [Issue #15 - Instances → Workspaces Rename](https://github.com/scttfrdmn/prism/issues/15)
 - [Issue #66 - Storage Terminology Simplification](https://github.com/scttfrdmn/prism/issues/66)
 - [Design Principles](../DESIGN_PRINCIPLES.md)
-- [User Requirements](../USER_REQUIREMENTS.md)
+- User Requirements

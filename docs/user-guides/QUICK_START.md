@@ -47,7 +47,7 @@ aws sts get-caller-identity
 **Step 2 — Add a Prism profile**:
 
 ```bash
-prism profile add
+prism profiles add
 ```
 
 This interactive wizard links a Prism profile to your AWS credentials and default region. You only need to do this once.
@@ -56,7 +56,7 @@ This interactive wizard links a Prism profile to your AWS credentials and defaul
 
 ## 3. First-time wizard (optional)
 
-If this is your first time running Prism, `prism init` covers credential validation, profile creation, and a test launch in one flow:
+If this is your first time running Prism, `prism init` validates your AWS credentials, walks you through picking a template and size, and launches your first workspace — all in one guided flow:
 
 ```bash
 prism init

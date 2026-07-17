@@ -56,13 +56,13 @@ brew install awscli
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip && sudo ./aws/install
 
-# Verify (must be v2.32.0+ for aws login)
+# Verify (must be v2.32+ for aws login)
 aws --version
 ```
 
 ### Option A: Browser-based login (recommended)
 
-`aws login` authenticates via your browser using IAM user or federated identity credentials — no key management required. Requires AWS CLI v2.32.0+.
+`aws login` authenticates via your browser using IAM user or federated identity credentials — no key management required. Requires AWS CLI v2.32+.
 
 ```bash
 # Authenticate (opens browser)

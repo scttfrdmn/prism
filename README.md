@@ -30,7 +30,7 @@ Prism provides researchers with **pre-configured cloud workstations** for data a
 
 **From individual researchers to institutional deployments** - research computing made simple, scalable, and cost-effective.
 
-**Learn more at [prismcloud.io](https://prismcloud.io)**
+**Learn more at [prismcloud.host](https://prismcloud.host)**
 
 ## 🎯 Core Design Principles
 
@@ -51,34 +51,24 @@ Prism provides researchers with **pre-configured cloud workstations** for data a
 brew install scttfrdmn/tap/prism
 ```
 
-**Manual Installation**
-```bash
-# Download and extract
-curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism_0.5.11_darwin_arm64.tar.gz | tar xz
+**Desktop app (GUI)**
 
-# Install binaries
-sudo mv prism prismd /usr/local/bin/
-```
+Download the latest `.dmg` (macOS) or `.msi` (Windows) from the
+[releases page](https://github.com/scttfrdmn/prism/releases/latest).
 
 ### Linux
 
-**Debian/Ubuntu**
+Download the latest release archive from the
+[releases page](https://github.com/scttfrdmn/prism/releases/latest), extract, and
+move the binaries onto your `PATH`:
+
 ```bash
-wget https://github.com/scttfrdmn/prism/releases/download/v0.5.11/prism_0.5.11_linux_amd64.deb
-sudo dpkg -i prism_0.5.11_linux_amd64.deb
+# Replace the URL with the asset for your platform from the releases page
+tar xz -f prism_<version>_linux_amd64.tar.gz
+sudo mv prism prismd /usr/local/bin/
 ```
 
-**RHEL/CentOS/Fedora**
-```bash
-wget https://github.com/scttfrdmn/prism/releases/download/v0.5.11/prism_0.5.11_linux_amd64.rpm
-sudo rpm -i prism_0.5.11_linux_amd64.rpm
-```
-
-**Alpine Linux**
-```bash
-wget https://github.com/scttfrdmn/prism/releases/download/v0.5.11/prism_0.5.11_linux_amd64.apk
-sudo apk add --allow-untrusted prism_0.5.11_linux_amd64.apk
-```
+Or build from source (see [Build from Source](#build-from-source) below).
 
 ### Windows
 
@@ -129,13 +119,13 @@ For experienced users or automation:
 prism templates
 
 # Launch a Python ML environment
-prism launch python-ml my-research
+prism workspace launch python-ml my-research
 
 # Connect via SSH
-prism connect my-research
+prism workspace connect my-research
 
 # View running workspaces
-prism list
+prism workspace list
 ```
 
 **Automatic Features:**
@@ -195,10 +185,10 @@ prism list
 prism templates
 
 # Launch a base OS template
-prism launch ubuntu-24-04-x86 my-instance
+prism workspace launch ubuntu-24-04-x86 my-instance
 
 # Launch a community template with applications
-prism launch python-ml my-ml-project
+prism workspace launch python-ml my-ml-project
 
 # Get detailed template info
 prism templates info python-ml
@@ -211,23 +201,23 @@ prism templates info python-ml
 ### Basic Workspace Management
 ```bash
 # Launch a workspace
-prism launch python-ml my-project
+prism workspace launch python-ml my-project
 
 # List running workspaces
-prism list
+prism workspace list
 
 # Connect via SSH
-prism connect my-project
+prism workspace connect my-project
 
 # Stop workspace
-prism stop my-project
+prism workspace stop my-project
 ```
 
 ### Cost Optimization
 ```bash
 # Hibernate to preserve state while saving costs
-prism hibernate my-workspace
-prism resume my-workspace
+prism workspace hibernate my-workspace
+prism workspace resume my-workspace
 
 # Automated idle policies
 prism idle profile list
@@ -243,7 +233,7 @@ prism project create ml-research --budget 500
 prism project member add ml-research user@example.com --role member
 
 # Launch workspace in project
-prism launch python-ml analysis --project ml-research
+prism workspace launch python-ml analysis --project ml-research
 ```
 
 ### Multi-Modal Access
@@ -263,7 +253,7 @@ curl http://localhost:8947/api/v1/instances
 prism --help                      # Show all commands
 prism templates                   # List available templates
 prism templates info <template>   # Detailed template info
-prism doctor                      # System health check
+prism admin daemon status         # Daemon / system health check
 ```
 
 **Guides:**
@@ -276,73 +266,13 @@ prism doctor                      # System health check
 - [Budget System Philosophy](docs/BUDGET_PHILOSOPHY.md) - Multi-budget system design and conceptual model (v0.5.10+)
 - [Budget Banking Philosophy](docs/BUDGET_BANKING_PHILOSOPHY.md) - Surplus tracking and burst budgeting
 - [Resource Tagging](docs/RESOURCE_TAGGING.md) - Cost optimization and zombie resource cleanup
-- [Security & Compliance](docs/admin-guides/SECURITY_COMPLIANCE_ROADMAP.md) - NIST 800-171, HIPAA, GDPR, FISMA compliance
+- [Compliance Matrix](docs/admin-guides/COMPLIANCE_MATRIX.md) - NIST 800-171, HIPAA, and framework support
 - [Changelog](CHANGELOG.md) - Version history and release notes
 
 ## 🗓️ Version History
 
-### v0.5.11 (Current) - Complete User Invitation & Collaboration System
-- **User Invitation System**: Individual, bulk, and shared token invitations with full lifecycle management
-- **Automatic Provisioning**: Research users created with SSH keys, UID/GID, and EFS home directories on invitation acceptance
-- **Quota Validation**: Pre-flight AWS capacity checking prevents bulk invitation failures
-- **Professional GUI**: Cloudscape-based invitation management interface with QR code generation
-- **Zero Manual Setup**: End-to-end automation from invitation send to workspace access
-
-### v0.5.10 - Multi-Project Budget System & Rebranding
-- **Multi-Project Budgets**: Projects can reference multiple budgets for complex funding scenarios
-- **Budget Surplus Banking**: Track and leverage surplus funds for burst research needs
-- **Budget Performance Metrics**: ROI analysis, utilization tracking, and forecasting
-- **Complete Prism Rebrand**: CloudWorkStation → Prism across entire codebase (29,225 files)
-- **Binary Rename**: `cws`/`prismd` → `prism`/`prismd`
-
-### v0.5.9 - Navigation Restructure & UX Polish
-- **Streamlined Navigation**: 14 → 6 top-level menu items for clearer workspace focus
-- **Unified Storage**: Single storage interface combining EFS and EBS management
-- **Hierarchical Settings**: Advanced features organized under collapsible settings
-- **Terminal/WebView Integration**: Merged into workspaces view for better context
-
-### v0.5.8 - Quick Start Experience & Reliability
-- **Quick Start Wizard**: Launch first workspace in 30 seconds with GUI wizard
-- **CLI Init Command**: Interactive `prism init` onboarding in terminal
-- **Workspace Terminology**: Consistent "workspace" naming across all interfaces
-- **Background State Monitoring**: Async daemon monitoring of AWS state changes
-- **Billing Accuracy**: Correct hibernation billing exception handling
-- **Reliability Improvements**: AWS system status checks, IAM eventual consistency
-
-### v0.5.7 - Template File Provisioning & Test Infrastructure
-- **Template File Provisioning**: Provision files directly from template definitions
-- **AWS Cost Testing**: Complete integration test suite with cost tracking
-- **Instance Lifecycle Testing**: Full workflow validation including cleanup
-
-### v0.5.6 - Complete Prism Rebrand
-- **Project Rename**: CloudWorkStation → Prism (complete rebrand)
-- **Repository Rename**: `prism` → `prism` on GitHub
-- **Configuration Directory**: `.prism` → `.prism`
-- **Module Path Update**: Complete Go module path migration
-
-### v0.5.5 - AWS Research Services Integration
-- **EMR Studio**: Big data analytics and Spark-based research
-- **Amazon Braket**: Quantum computing research access
-- **Web Service Framework**: Unified interface for EC2 + AWS research services
-
-### v0.5.4 - Universal Version System
-- **Dynamic OS Versions**: Choose OS versions at launch time with `--version` flag
-- **Version Aliases**: Support for `latest`, `lts`, `previous-lts`
-- **AMI Freshness Checking**: `prism ami check-freshness` validates static AMI IDs
-- **AWS SSM Integration**: Automatic latest AMI discovery for major distributions
-- **Package Management**: Available via Homebrew (macOS), Scoop (Windows), deb, rpm, apk
-
-### v0.5.3 - Research User System & Template Marketplace
-- **Multi-User Architecture**: Persistent research identities across workspaces
-- **SSH Key Management**: Complete key generation and distribution
-- **Template Registry**: Multi-registry support with community templates
-- **Policy Framework**: Institutional governance and access control
-
-### v0.4.5 - Enterprise Research Platform
-- **Project-Based Organization**: Multi-user projects with role-based access
-- **Budget Management**: Real-time cost tracking and automated controls
-- **Hibernation Ecosystem**: Manual + automated idle detection policies
-- **Template Inheritance**: Stackable template system
+See **[CHANGELOG.md](CHANGELOG.md)** for the full, up-to-date version history
+following [Keep a Changelog](https://keepachangelog.com/) and semantic versioning.
 
 ## 🚀 Roadmap
 
@@ -376,12 +306,12 @@ make test
 
 ## 🆘 Support
 
-- **Documentation**: [Complete docs site](https://scttfrdmn.github.io/prism/) or `prism --help`
-- **System Check**: `prism doctor`
+- **Documentation**: [Complete docs site](https://docs.prismcloud.host/) or `prism --help`
+- **System Check**: `prism admin daemon status`
 - **Issues**: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/scttfrdmn/prism/discussions)
 - **AWS Setup**: See [AWS Setup Guide](docs/user-guides/AWS_SETUP_GUIDE.md)
 
 ---
 
-**Prism v0.5.11** - Research computing environments made accessible | [prismcloud.io](https://prismcloud.io)
+**Prism** - Research computing environments made accessible | [prismcloud.host](https://prismcloud.host)

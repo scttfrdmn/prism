@@ -511,8 +511,8 @@ userData += script
 
 ## See Also
 
-- [S3 Transfer API Documentation](S3_TRANSFER_API.md)
-- [Template Schema Reference](TEMPLATE_SCHEMA.md)
+- S3 Transfer API Documentation
+- Template Schema Reference
 - [IAM Best Practices](https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html)
 - [S3 Pricing](https://aws.amazon.com/s3/pricing/)
 

@@ -1,4 +1,4 @@
-# Prism v0.5.4 Installation Guide
+# Prism Installation Guide
 
 ## Quick Start (Package Managers - Recommended)
 
@@ -51,15 +51,15 @@ make install
 ## First Launch
 
 ```bash
-# Start the daemon
-prism daemon start
-
-# Launch your first workstation
-prism launch "Python Machine Learning (Simplified)" my-research
+# Launch your first workstation (the daemon auto-starts on first use)
+prism workspace launch "Python Machine Learning (Simplified)" my-research
 
 # Connect to your workstation
-prism connect my-research
+prism workspace connect my-research
 ```
+
+> The daemon starts automatically when you run any command. To manage it
+> explicitly, use `prism admin daemon status|start|stop`.
 
 ## Platform-Specific Notes
 
@@ -83,15 +83,24 @@ prism connect my-research
 ### Development Mode (Optional)
 To avoid keychain password prompts during development:
 ```bash
-export CLOUDWORKSTATION_DEV=true
+export PRISM_DEV=true
 # Or add to ~/.bashrc or ~/.zshrc
 ```
 
 ### AWS Credentials
 
-Prism requires AWS credentials to launch cloud workstations. See the **[AWS Setup Guide](AWS_SETUP_GUIDE.md)** for complete configuration instructions.
+Prism requires AWS credentials to launch cloud workstations. See the **[AWS Setup Guide](docs/user-guides/AWS_SETUP_GUIDE.md)** for complete configuration instructions and the IAM permissions Prism needs.
 
-**Quick setup:**
+**Quick setup (browser login, recommended — AWS CLI v2.32+):**
+```bash
+# Authenticate via your browser (IAM Identity Center / federated identity)
+aws login
+
+# Verify
+aws sts get-caller-identity
+```
+
+**Alternative — long-term access keys:**
 ```bash
 # Configure with your preferred AWS profile name
 aws configure --profile aws  # or any name you prefer
@@ -104,7 +113,7 @@ export AWS_REGION=us-west-2
 echo 'export AWS_PROFILE=aws' >> ~/.zshrc
 ```
 
-**Need help?** The [AWS Setup Guide](AWS_SETUP_GUIDE.md) covers:
+**Need help?** The [AWS Setup Guide](docs/user-guides/AWS_SETUP_GUIDE.md) covers:
 - AWS account setup and permissions
 - Using non-default profiles (like 'aws' instead of 'default')
 - Regional configuration
@@ -152,7 +161,7 @@ scoop bucket rm scttfrdmn
 ### Manual
 ```bash
 # Remove binaries
-sudo rm -f /usr/local/bin/cws /usr/local/bin/prismd /usr/local/bin/prism-gui
+sudo rm -f /usr/local/bin/prism /usr/local/bin/prismd /usr/local/bin/prism-gui
 
 # Remove configuration (optional)
 rm -rf ~/.prism
@@ -164,19 +173,14 @@ rm -rf ~/.prism
 
 **Daemon won't start:**
 ```bash
-prism daemon stop
-prism daemon start
-```
-
-**Keychain password prompts:**
-```bash
-export CLOUDWORKSTATION_DEV=true
+prism admin daemon stop
+prism admin daemon start
 ```
 
 **AWS permission errors:**
 ```bash
 aws sts get-caller-identity
-prism doctor
+prism admin daemon status
 ```
 
-For more help, see the [Troubleshooting Guide](https://github.com/scttfrdmn/prism/blob/main/TROUBLESHOOTING.md).
+For more help, see the [Troubleshooting Guide](docs/user-guides/TROUBLESHOOTING.md).

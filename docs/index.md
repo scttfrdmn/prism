@@ -69,7 +69,7 @@ brew install scttfrdmn/tap/prism
 aws login
 
 # Add a Prism profile
-prism profile add
+prism profiles add
 
 # Launch a research environment
 prism workspace launch python-ml my-project
