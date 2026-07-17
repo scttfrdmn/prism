@@ -19,6 +19,9 @@
         "ec2:DeleteVolume",
         "ec2:AttachVolume",
         "ec2:DetachVolume",
+        "ec2:ModifyVolume",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:GetConsoleOutput",
         "ec2:CreateTags",
         "ec2:DescribeTags"
       ],
@@ -31,6 +34,7 @@
         "ec2:DescribeVpcs",
         "ec2:DescribeSubnets",
         "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeRouteTables",
         "ec2:DescribeSecurityGroups",
         "ec2:CreateSecurityGroup",
         "ec2:AuthorizeSecurityGroupIngress",
@@ -49,6 +53,38 @@
       "Resource": "*"
     },
     {
+      "Sid": "EC2SpotPricing",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeSpotPriceHistory"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2SnapshotAndImage",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage",
+        "ec2:RegisterImage",
+        "ec2:DeregisterImage",
+        "ec2:ModifyImageAttribute",
+        "ec2:CreateSnapshot",
+        "ec2:DeleteSnapshot",
+        "ec2:DescribeSnapshots"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2CapacityReservations",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateCapacityReservation",
+        "ec2:DescribeCapacityReservations",
+        "ec2:CancelCapacityReservation"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "EFSVolumeManagement",
       "Effect": "Allow",
       "Action": [
@@ -62,6 +98,41 @@
         "elasticfilesystem:DescribeTags"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "FSxLustreManagement",
+      "Effect": "Allow",
+      "Action": [
+        "fsx:CreateFileSystem",
+        "fsx:DeleteFileSystem",
+        "fsx:UpdateFileSystem",
+        "fsx:DescribeFileSystems",
+        "fsx:TagResource",
+        "fsx:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3WorkspaceData",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::prism-temp-*",
+        "arn:aws:s3:::prism-temp-*/*",
+        "arn:aws:s3:::prism-backups-*",
+        "arn:aws:s3:::prism-backups-*/*",
+        "arn:aws:s3:::prism-efs-*",
+        "arn:aws:s3:::prism-efs-*/*",
+        "arn:aws:s3:::prism-transfer*",
+        "arn:aws:s3:::prism-transfer*/*"
+      ]
     },
     {
       "Sid": "IAMInstanceProfileManagement",
@@ -92,6 +163,42 @@
         "ssm:ListCommands",
         "ssm:ListCommandInvocations",
         "ssm:DescribeInstanceInformation"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ComputePricing",
+      "Effect": "Allow",
+      "Action": [
+        "pricing:GetProducts"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CostAndUsageReporting",
+      "Effect": "Allow",
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchMetrics",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:GetMetricData",
+        "cloudwatch:ListMetrics"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ServiceQuotaPreflight",
+      "Effect": "Allow",
+      "Action": [
+        "servicequotas:GetServiceQuota",
+        "servicequotas:ListServiceQuotas"
       ],
       "Resource": "*"
     },
