@@ -135,7 +135,6 @@ nav:
   - User Guide:
     - CLI Reference: user-guides/CLI_REFERENCE.md
     - GUI Guide: user-guides/GUI_USER_GUIDE.md
-    - GUI Navigation: user-guides/GUI_NAVIGATION_GUIDE.md
     - Workspace Lifecycle: user-guides/WORKSPACE_LIFECYCLE.md
     - Templates: user-guides/TEMPLATE_FORMAT.md
     - Templates (Advanced): user-guides/TEMPLATE_FORMAT_ADVANCED.md
@@ -153,7 +152,6 @@ nav:
     - Collaboration Quickstart: user-guides/COLLABORATION_QUICKSTART.md
     - Marketplace: user-guides/TEMPLATE_MARKETPLACE_USER_GUIDE.md
     - Troubleshooting: user-guides/TROUBLESHOOTING.md
-    - GUI Troubleshooting: user-guides/GUI_TROUBLESHOOTING.md
 
   - R / RStudio:
     - Getting Started with R: user-guides/R_GETTING_STARTED.md
@@ -168,10 +166,8 @@ nav:
     - AWS Quota Management: admin-guides/AWS_QUOTA_MANAGEMENT.md
     - Security Hardening: admin-guides/SECURITY_HARDENING_GUIDE.md
     - Template Policy: admin-guides/TEMPLATE_POLICY_FRAMEWORK.md
-    - Policy Examples: admin-guides/BASIC_POLICY_EXAMPLES.md
     - Research User Management: admin-guides/RESEARCH_USER_MANAGEMENT_GUIDE.md
     - Profile Export/Import: admin-guides/PROFILE_EXPORT_IMPORT.md
-    - Invitations (Batch): admin-guides/BATCH_INVITATION_GUIDE.md
     - Compliance Matrix: admin-guides/COMPLIANCE_MATRIX.md
     - NIST 800-171: admin-guides/NIST_800_171_COMPLIANCE.md
     - Compliance Disclaimer: admin-guides/COMPLIANCE_DISCLAIMER.md
@@ -186,15 +182,12 @@ nav:
 
   - Architecture:
     - API Reference: architecture/DAEMON_API_REFERENCE.md
-    - API Authentication: architecture/API_AUTHENTICATION.md
     - spored Daemon: architecture/SPORED_DAEMON.md
     - Idle Detection: architecture/AUTONOMOUS_IDLE_DETECTION.md
     - Budget Engine: architecture/BUDGET_ENGINE_ARCHITECTURE.md
     - GUI Architecture: architecture/GUI_ARCHITECTURE.md
     - SSH Keys: architecture/ARCHITECTURE_SSH_KEYS.md
     - Research Users: architecture/RESEARCH_USER_ARCHITECTURE.md
-    - Plugin Architecture: architecture/PLUGIN_ARCHITECTURE.md
-    - Web Services: architecture/WEB_SERVICE_IMPLEMENTATION.md
     - NICE DCV: architecture/NICE_DCV_ARCHITECTURE.md
 
   - Scenarios:
