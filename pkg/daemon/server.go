@@ -1091,6 +1091,9 @@ func (s *Server) registerV1Routes(mux *http.ServeMux, applyMiddleware func(http.
 
 	// Instance operations (requires AWS)
 	mux.HandleFunc("/api/v1/instances", applyAWSMiddleware(s.handleInstances))
+	// Job-array launch (spawn adoption): must be registered BEFORE the
+	// /api/v1/instances/ catch-all, or the mux routes it to handleInstanceOperations.
+	mux.HandleFunc("/api/v1/instances/array", applyAWSMiddleware(s.handleLaunchArray))
 	mux.HandleFunc("/api/v1/instances/", applyAWSMiddleware(s.handleInstanceOperations))
 
 	// EC2 Capacity Blocks (#63)

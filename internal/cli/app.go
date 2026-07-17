@@ -273,6 +273,11 @@ func (a *App) Launch(args []string) error {
 		return err
 	}
 
+	// Job array (--count > 1): launch N members through the array endpoint.
+	if req.JobArraySize > 1 {
+		return a.launchArray(req)
+	}
+
 	// Show cost preview and prompt for confirmation (unless quiet/dry-run/auto-yes)
 	if !req.Quiet && !req.DryRun && !req.AutoYes {
 		confirmed, err := a.showCostPreview(&req)
@@ -355,6 +360,84 @@ func (a *App) Launch(args []string) error {
 		fmt.Printf("   Then run: cloud-init status\n")
 	}
 	return nil
+}
+
+// launchArray launches a job array (--count > 1): N instances named
+// <name>-0..<name>-(N-1) sharing a job-array id, via the array endpoint. Members
+// are independent — partial success is normal, so per-member errors are reported
+// alongside the launched members rather than failing the whole command.
+func (a *App) launchArray(req types.LaunchRequest) error {
+	count := req.JobArraySize
+
+	if confirmed := a.confirmArrayLaunch(&req, count); !confirmed {
+		fmt.Println("Launch cancelled.")
+		return nil
+	}
+
+	var spinner *Spinner
+	if !req.Quiet {
+		spinner = NewSpinner(fmt.Sprintf("Launching job array '%s' (%d instances) from template '%s'", req.Name, count, req.Template))
+		spinner.Start()
+	}
+
+	resp, err := a.apiClient.LaunchArray(a.ctx, types.LaunchArrayRequest{
+		LaunchRequest: req,
+		Count:         count,
+		JobArrayName:  req.JobArrayName,
+	})
+	if err != nil {
+		if spinner != nil {
+			spinner.Stop()
+		}
+		return WrapAPIError("launch job array "+req.Name, err)
+	}
+
+	if spinner != nil {
+		spinner.StopWithMessage(fmt.Sprintf("✅ Job array %s: %d/%d instances launched", resp.JobArrayID, resp.Launched, resp.Requested))
+	}
+	a.renderArrayResult(&req, resp)
+	return nil
+}
+
+// confirmArrayLaunch shows the per-instance cost preview (×count) and prompts for
+// confirmation. Returns true to proceed (also when quiet/dry-run/auto-yes skip the
+// prompt, or when the estimate can't be computed).
+func (a *App) confirmArrayLaunch(req *types.LaunchRequest, count int) bool {
+	if req.Quiet || req.DryRun || req.AutoYes {
+		return true
+	}
+	confirmed, err := a.showCostPreview(req)
+	if err != nil {
+		if !strings.Contains(err.Error(), "not found") {
+			fmt.Printf("⚠️  Could not calculate cost estimate: %v\n\n", err)
+		}
+		return true // cost preview failed — proceed as the single-launch path does
+	}
+	if !confirmed {
+		return false
+	}
+	fmt.Printf("ℹ️  Launching a job array of %d instances (per-instance cost shown above ×%d).\n\n", count, count)
+	return true
+}
+
+// renderArrayResult prints the launched members and any per-member errors.
+func (a *App) renderArrayResult(req *types.LaunchRequest, resp *types.LaunchArrayResponse) {
+	for _, inst := range resp.Instances {
+		fmt.Printf("   • %s (%s)\n", inst.Name, inst.State)
+	}
+	if len(resp.Errors) > 0 {
+		fmt.Printf("\n⚠️  %d member(s) failed to launch:\n", len(resp.Errors))
+		for _, e := range resp.Errors {
+			fmt.Printf("   • %s\n", e)
+		}
+	}
+	if req.Quiet {
+		return
+	}
+	if req.ProjectID != "" {
+		fmt.Printf("\n📁 Project: %s — members tracked under project budget\n", req.ProjectID)
+	}
+	fmt.Printf("\n💡 List members: prism workspace list\n")
 }
 
 // showCostPreview displays an estimated cost table and prompts the user to confirm.

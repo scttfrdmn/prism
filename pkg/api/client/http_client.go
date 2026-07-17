@@ -220,6 +220,23 @@ func (c *HTTPClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 	return &result, nil
 }
 
+// LaunchArray launches a job array: Count homogeneous instances sharing a
+// job-array id. Returns the per-member outcome (partial success is normal).
+func (c *HTTPClient) LaunchArray(ctx context.Context, req types.LaunchArrayRequest) (*types.LaunchArrayResponse, error) {
+	resp, err := c.makeRequest(ctx, "POST", "/api/v1/instances/array", req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result types.LaunchArrayResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 // ListInstances lists all instances
 func (c *HTTPClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
 	return c.ListInstancesWithRefresh(ctx, false)

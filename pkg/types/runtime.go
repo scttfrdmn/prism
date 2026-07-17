@@ -243,6 +243,12 @@ type Instance struct {
 
 	// ExpiresAt is when this instance should be auto-stopped/hibernated (#146)
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+
+	// Job array membership (spawn adoption): set when this instance was launched
+	// as part of a job array so `prism list` can group members. Membership is a
+	// filter over the flat state map, identical to ProjectID/CourseID.
+	JobArrayID    string `json:"job_array_id,omitempty"`    // Shared array id across members
+	JobArrayIndex int    `json:"job_array_index,omitempty"` // This member's index, 0..N-1
 }
 
 // IsSpotInstance reports whether the instance runs on the spot market, tolerating either signal

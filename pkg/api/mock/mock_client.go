@@ -262,6 +262,29 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 	return resp, nil
 }
 
+func (m *MockClient) LaunchArray(ctx context.Context, req types.LaunchArrayRequest) (*types.LaunchArrayResponse, error) {
+	if err := m.validateLaunchRequest(req.LaunchRequest); err != nil {
+		return nil, err
+	}
+	resp := &types.LaunchArrayResponse{
+		JobArrayID: fmt.Sprintf("%s-%d", req.Name, time.Now().Unix()),
+		Requested:  req.Count,
+	}
+	for i := 0; i < req.Count; i++ {
+		member := req.LaunchRequest
+		member.Name = fmt.Sprintf("%s-%d", req.Name, i)
+		instanceID := fmt.Sprintf("i-%s-%d", member.Name, time.Now().Unix())
+		costPerHour := m.calculateInstanceCost(member)
+		instance := m.buildInstance(member, instanceID, "54.84.123.45", costPerHour)
+		instance.JobArrayID = resp.JobArrayID
+		instance.JobArrayIndex = i
+		m.Instances[member.Name] = instance
+		resp.Instances = append(resp.Instances, instance)
+		resp.Launched++
+	}
+	return resp, nil
+}
+
 func (m *MockClient) validateLaunchRequest(req types.LaunchRequest) error {
 	if _, exists := m.Templates[req.Template]; !exists {
 		return fmt.Errorf("template not found: %s", req.Template)

@@ -222,6 +222,66 @@ func TestBuildTags_OmitsUnsetConditionalTags(t *testing.T) {
 	}
 }
 
+// TestBuildTags_StampsJobArrayTags confirms the job-array fields are stamped with
+// the prism: namespace spored reads for peer discovery, only when the req carries
+// an array id.
+func TestBuildTags_StampsJobArrayTags(t *testing.T) {
+	b := &InstanceConfigBuilder{}
+	req := ctypes.LaunchRequest{
+		Name:          "sweep-2",
+		Template:      "python-ml",
+		JobArrayID:    "sweep-20260717-abc123",
+		JobArrayName:  "my-sweep",
+		JobArraySize:  4,
+		JobArrayIndex: 2,
+	}
+
+	tags := b.BuildTags(req, "ubuntu")
+
+	want := map[string]string{
+		"prism:job-array-id":    "sweep-20260717-abc123",
+		"prism:job-array-name":  "my-sweep",
+		"prism:job-array-size":  "4",
+		"prism:job-array-index": "2",
+	}
+	for k, v := range want {
+		if got := tags[k]; got != v {
+			t.Errorf("tag %q = %q; want %q", k, got, v)
+		}
+	}
+}
+
+// TestBuildTags_OmitsJobArrayTagsWhenUnset confirms non-array launches carry no
+// job-array tags (so spored doesn't treat a plain workspace as an array member).
+func TestBuildTags_OmitsJobArrayTagsWhenUnset(t *testing.T) {
+	b := &InstanceConfigBuilder{}
+	tags := b.BuildTags(ctypes.LaunchRequest{Name: "plain", Template: "python-ml"}, "ubuntu")
+
+	for _, k := range []string{
+		"prism:job-array-id", "prism:job-array-name", "prism:job-array-size", "prism:job-array-index",
+	} {
+		if _, ok := tags[k]; ok {
+			t.Errorf("tag %q should be absent for a non-array launch, got %q", k, tags[k])
+		}
+	}
+}
+
+// TestGenerateJobArrayID_FormatAndUniqueness confirms the id embeds the base name
+// and a date, and two calls for the same name differ (random suffix).
+func TestGenerateJobArrayID_FormatAndUniqueness(t *testing.T) {
+	a := GenerateJobArrayID("sweep")
+	b := GenerateJobArrayID("sweep")
+
+	if a == b {
+		t.Errorf("two array ids for the same name collided: %q", a)
+	}
+	for _, id := range []string{a, b} {
+		if len(id) <= len("sweep-") || id[:len("sweep-")] != "sweep-" {
+			t.Errorf("array id %q does not start with the base name", id)
+		}
+	}
+}
+
 // TestToLaunchConfig_MapsResolvedInputs confirms the pure mapping populates the
 // spawn.LaunchConfig fields Phase 1 relies on, and pre-resolves the SG.
 func TestToLaunchConfig_MapsResolvedInputs(t *testing.T) {

@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Job arrays: launch N instances from one request (spawn adoption).** New
+  `prism workspace launch <template> <name> --count N` launches a job array of N
+  homogeneous workspaces named `<name>-0`..`<name>-(N-1)` that share a generated
+  job-array id, so the on-instance agent (spored) can discover peers and write
+  `/etc/spawn/job-array-peers.json` for MPI / tightly-coupled and parameter-sweep
+  workloads. `--job-array-name` sets a user-facing array name. Wired via the
+  existing `prism:`-prefixed tag path (`BuildTags` stamps `prism:job-array-id`/
+  `-name`/`-size`/`-index`; spored reads them under `SPORED_TAG_PREFIX=prism`) — no
+  namespace flip. Server-side: a new `POST /api/v1/instances/array` endpoint
+  (`LaunchArrayRequest` → `LaunchArrayResponse{JobArrayID, Requested, Launched,
+  Instances, Errors}`) fans out over the single-launch seam, uniqueness-checks all N
+  member names up front (no half-launched arrays), and enforces cost controls as a
+  batch: the budget gate multiplies the per-instance estimate by the count, and the
+  launch rate limiter admits the array as a unit rather than tripping the
+  accidental-runaway guard. Members are independent workspaces — a member failure is
+  reported per-member (partial success), not rolled back. `Instance` now carries
+  optional `job_array_id`/`job_array_index` so `prism list` can group members.
+  CLI-only for now (GUI deferred).
 - **GUI launch form exposes the completion-signaling options.** The launch modal
   now offers an **On completion** dropdown (None / terminate / stop / hibernate)
   plus **Completion file** and **Completion delay** inputs (enabled only when an

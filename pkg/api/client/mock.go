@@ -64,6 +64,28 @@ func (m *MockClient) LaunchInstance(ctx context.Context, req types.LaunchRequest
 	}, nil
 }
 
+func (m *MockClient) LaunchArray(ctx context.Context, req types.LaunchArrayRequest) (*types.LaunchArrayResponse, error) {
+	resp := &types.LaunchArrayResponse{
+		JobArrayID: req.Name + "-mock",
+		Requested:  req.Count,
+	}
+	for i := 0; i < req.Count; i++ {
+		name := fmt.Sprintf("%s-%d", req.Name, i)
+		inst := &types.Instance{
+			ID:            "mock-" + name,
+			Name:          name,
+			Template:      req.Template,
+			State:         "running",
+			JobArrayID:    resp.JobArrayID,
+			JobArrayIndex: i,
+		}
+		m.instances[name] = inst
+		resp.Instances = append(resp.Instances, *inst)
+		resp.Launched++
+	}
+	return resp, nil
+}
+
 func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
 	return m.ListInstancesWithRefresh(ctx, false)
 }

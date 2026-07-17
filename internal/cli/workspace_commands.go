@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"strconv"
+
 	"github.com/spf13/cobra"
 )
 
@@ -75,6 +77,15 @@ func appendStringFlag(cmd *cobra.Command, args []string, flagName, argName strin
 	return args
 }
 
+// appendIntFlag appends a CLI flag + value to args if the named int flag differs
+// from its default (skipped when equal, keeping re-emitted args minimal).
+func appendIntFlag(cmd *cobra.Command, args []string, flagName, argName string, def int) []string {
+	if v, _ := cmd.Flags().GetInt(flagName); v != def {
+		return append(args, argName, strconv.Itoa(v))
+	}
+	return args
+}
+
 func (f *WorkspaceCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []string) error {
 	args = appendBoolFlag(cmd, args, "hibernation", "--hibernation")
 	args = appendBoolFlag(cmd, args, "spot", "--spot")
@@ -106,6 +117,8 @@ func (f *WorkspaceCommandFactory) buildLaunchArgs(cmd *cobra.Command, args []str
 	args = appendStringFlag(cmd, args, "approval", "--approval")
 	args = appendStringFlag(cmd, args, "slack-workspace", "--slack-workspace")
 	args = appendStringFlag(cmd, args, "active-processes", "--active-processes")
+	args = appendIntFlag(cmd, args, "count", "--count", 1)
+	args = appendStringFlag(cmd, args, "job-array-name", "--job-array-name")
 	return f.app.Launch(args)
 }
 
@@ -136,6 +149,8 @@ func (f *WorkspaceCommandFactory) addLaunchFlags(cmd *cobra.Command) {
 	cmd.Flags().String("approval", "", "Launch using a pre-approved request ID (#495)")
 	cmd.Flags().String("slack-workspace", "", "Slack workspace ID for lifecycle notifications (e.g., T0AU2S6FU86)")
 	cmd.Flags().String("active-processes", "", "Processes that keep instance active, preventing idle shutdown (e.g., rsession or rsession,jupyter)")
+	cmd.Flags().Int("count", 1, "Launch a job array of N instances named <name>-0..<name>-(N-1) sharing a job-array id (MPI / parameter sweeps)")
+	cmd.Flags().String("job-array-name", "", "User-facing name for the job array (defaults to the workspace name); only used with --count > 1")
 }
 
 func (f *WorkspaceCommandFactory) createListCommand() *cobra.Command {

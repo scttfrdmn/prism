@@ -71,6 +71,8 @@ func NewLaunchCommandDispatcher() *LaunchCommandDispatcher {
 	// Slack/Teams bot notifications (#607)
 	dispatcher.RegisterCommand(&SlackWorkspaceCommand{})
 	dispatcher.RegisterCommand(&ActiveProcessesCommand{})
+	dispatcher.RegisterCommand(&CountCommand{})        // spawn adoption job arrays
+	dispatcher.RegisterCommand(&JobArrayNameCommand{}) // spawn adoption job arrays
 
 	return dispatcher
 }
@@ -1920,5 +1922,41 @@ func (c *ActiveProcessesCommand) Execute(req *types.LaunchRequest, args []string
 		return index, fmt.Errorf("--active-processes requires a value (e.g., rsession or rsession,jupyter)")
 	}
 	req.ActiveProcesses = args[index+1]
+	return index + 1, nil
+}
+
+// CountCommand handles --count <N> (spawn adoption job arrays): launch N instances
+// as a job array. Parsed into JobArraySize; App.Launch branches to the array
+// endpoint when it is > 1.
+type CountCommand struct{}
+
+func (c *CountCommand) CanHandle(arg string) bool {
+	return arg == "--count"
+}
+
+func (c *CountCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--count requires a number")
+	}
+	n, err := strconv.Atoi(args[index+1])
+	if err != nil || n < 1 {
+		return index, fmt.Errorf("--count must be a positive integer, got %q", args[index+1])
+	}
+	req.JobArraySize = n
+	return index + 1, nil
+}
+
+// JobArrayNameCommand handles --job-array-name <name> (spawn adoption job arrays).
+type JobArrayNameCommand struct{}
+
+func (c *JobArrayNameCommand) CanHandle(arg string) bool {
+	return arg == "--job-array-name"
+}
+
+func (c *JobArrayNameCommand) Execute(req *types.LaunchRequest, args []string, index int) (int, error) {
+	if index+1 >= len(args) {
+		return index, fmt.Errorf("--job-array-name requires a value")
+	}
+	req.JobArrayName = args[index+1]
 	return index + 1, nil
 }

@@ -325,6 +325,79 @@ func (m *Manager) LaunchInstanceWithContext(ctx context.Context, req ctypes.Laun
 	return m.launchWithUnifiedTemplateSystemWithContext(ctx, req, arch)
 }
 
+// GenerateJobArrayID builds a shared array id for a job array: <name>-<YYYYMMDD>-<6hex>,
+// matching spawn's format so tooling that parses either is consistent. Exported so
+// the daemon can generate the id up front and report it in the launch response.
+func GenerateJobArrayID(name string) string { return generateJobArrayID(name) }
+
+// generateJobArrayID builds a shared array id for a job array: <name>-<YYYYMMDD>-<6hex>,
+// matching spawn's format so tooling that parses either is consistent.
+func generateJobArrayID(name string) string {
+	now := time.Now()
+	b := make([]byte, 3)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand should never fail; fall back to nanosecond entropy.
+		return fmt.Sprintf("%s-%s-%06x", name, now.Format("20060102"), now.UnixNano()&0xffffff)
+	}
+	return fmt.Sprintf("%s-%s-%x", name, now.Format("20060102"), b)
+}
+
+// LaunchArray launches a job array: count homogeneous members from req, named
+// <req.Name>-0..<req.Name>-(count-1), all sharing a generated job-array id so
+// spored can discover peers. Members are independent — a member failure is
+// collected and the rest continue (partial success). Returns the launched
+// instances and a parallel-not-guaranteed slice of per-member errors.
+//
+// Fan-out is a loop over LaunchInstanceWithContext (the same per-instance path a
+// single launch uses), mirroring the workshop provisioning pattern. Each call
+// re-resolves the template fresh, so the DCV-password placebo substitution and
+// DNS defaulting are per-member correct.
+func (m *Manager) LaunchArray(ctx context.Context, req ctypes.LaunchRequest, count int) ([]*ctypes.Instance, []error) {
+	if count < 1 {
+		return nil, []error{fmt.Errorf("array count must be >= 1, got %d", count)}
+	}
+
+	// Honor a caller-supplied array id (the daemon generates one so it can report
+	// it in the response); otherwise generate one here.
+	arrayID := req.JobArrayID
+	if arrayID == "" {
+		arrayID = generateJobArrayID(req.Name)
+	}
+	jobArrayName := req.JobArrayName
+	if jobArrayName == "" {
+		jobArrayName = req.Name
+	}
+	baseName := req.Name
+
+	instances := make([]*ctypes.Instance, 0, count)
+	var errs []error
+
+	for i := 0; i < count; i++ {
+		member := req // copy — LaunchRequest is a value type (slices/maps shared, not mutated here)
+		member.Name = fmt.Sprintf("%s-%d", baseName, i)
+		member.DNSName = "" // let ExecuteLaunch default per-member DNS from the member name
+		member.JobArrayID = arrayID
+		member.JobArrayName = jobArrayName
+		member.JobArraySize = count
+		member.JobArrayIndex = i
+
+		inst, err := m.LaunchInstanceWithContext(ctx, member)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("member %d (%s): %w", i, member.Name, err))
+			continue
+		}
+		// Stamp array membership on the returned instance so state can group members
+		// (the instance builder doesn't carry these through from the request).
+		if inst != nil {
+			inst.JobArrayID = arrayID
+			inst.JobArrayIndex = i
+		}
+		instances = append(instances, inst)
+	}
+
+	return instances, errs
+}
+
 // TemplateConfigExtractor extracts configuration from unified template (Single Responsibility - SOLID)
 type TemplateConfigExtractor struct {
 	region string
@@ -538,6 +611,15 @@ func (b *InstanceConfigBuilder) BuildTags(req ctypes.LaunchRequest, primaryUsern
 	}
 	if req.ActiveProcesses != "" {
 		tags["prism:active-processes"] = req.ActiveProcesses
+	}
+
+	// Job-array tags (spawn adoption) — spored reads prism:job-array-id to
+	// discover peers via DescribeInstances and writes /etc/spawn/job-array-peers.json.
+	if req.JobArrayID != "" {
+		tags["prism:job-array-id"] = req.JobArrayID
+		tags["prism:job-array-name"] = req.JobArrayName
+		tags["prism:job-array-size"] = strconv.Itoa(req.JobArraySize)
+		tags["prism:job-array-index"] = strconv.Itoa(req.JobArrayIndex)
 	}
 
 	// Add test mode tags for E2E tests (helps identify and cleanup test resources)
