@@ -235,6 +235,53 @@ func TestLaunchCommandCountOneUsesSingleLaunch(t *testing.T) {
 	assert.Empty(t, mockClient.LaunchArrayCalls)
 }
 
+// TestLaunchCommandParamSweep verifies --param-file parses a JSON parameter file
+// into per-member parameter sets (defaults merged under overrides) and branches to
+// the sweep endpoint, not the single-launch or array path.
+func TestLaunchCommandParamSweep(t *testing.T) {
+	dir := t.TempDir()
+	paramFile := dir + "/sweep.json"
+	require.NoError(t, os.WriteFile(paramFile, []byte(`{
+		"defaults": {"epochs": "10"},
+		"params": [
+			{"lr": "0.01"},
+			{"lr": "0.1", "epochs": "20"}
+		]
+	}`), 0644))
+
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	err := app.Launch([]string{"python-ml", "hp", "--param-file", paramFile, "--sweep-name", "tuning"})
+
+	assert.NoError(t, err)
+	assert.Empty(t, mockClient.LaunchCalls, "single-launch path must not be used for a sweep")
+	assert.Empty(t, mockClient.LaunchArrayCalls, "array path must not be used for a sweep")
+	require.Len(t, mockClient.LaunchSweepCalls, 1)
+
+	sw := mockClient.LaunchSweepCalls[0]
+	assert.Equal(t, "python-ml", sw.Template)
+	assert.Equal(t, "hp", sw.Name)
+	assert.Equal(t, "tuning", sw.SweepName)
+	require.Len(t, sw.ParamSets, 2)
+	// Defaults merged under per-set overrides.
+	assert.Equal(t, "0.01", sw.ParamSets[0]["lr"])
+	assert.Equal(t, "10", sw.ParamSets[0]["epochs"], "default epochs merged into set 0")
+	assert.Equal(t, "0.1", sw.ParamSets[1]["lr"])
+	assert.Equal(t, "20", sw.ParamSets[1]["epochs"], "set 1 overrides the default epochs")
+}
+
+// TestLaunchCommandParamFileMissing surfaces a parse error for a nonexistent file.
+func TestLaunchCommandParamFileMissing(t *testing.T) {
+	mockClient := NewMockAPIClient()
+	app := NewAppWithClient("1.0.0", mockClient)
+
+	err := app.Launch([]string{"python-ml", "hp", "--param-file", "/no/such/file.json"})
+
+	assert.Error(t, err)
+	assert.Empty(t, mockClient.LaunchSweepCalls)
+}
+
 // TestLaunchCommandCompletionFlags verifies the Phase-3b completion-signaling
 // flags (--on-complete, --completion-file, --completion-delay) propagate.
 func TestLaunchCommandCompletionFlags(t *testing.T) {

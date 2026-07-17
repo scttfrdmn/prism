@@ -285,6 +285,29 @@ func (m *MockClient) LaunchArray(ctx context.Context, req types.LaunchArrayReque
 	return resp, nil
 }
 
+func (m *MockClient) LaunchSweep(ctx context.Context, req types.LaunchSweepRequest) (*types.LaunchSweepResponse, error) {
+	if err := m.validateLaunchRequest(req.LaunchRequest); err != nil {
+		return nil, err
+	}
+	resp := &types.LaunchSweepResponse{
+		SweepID:   fmt.Sprintf("%s-%d", req.Name, time.Now().Unix()),
+		Requested: len(req.ParamSets),
+	}
+	for i := range req.ParamSets {
+		member := req.LaunchRequest
+		member.Name = fmt.Sprintf("%s-%d", req.Name, i)
+		instanceID := fmt.Sprintf("i-%s-%d", member.Name, time.Now().Unix())
+		costPerHour := m.calculateInstanceCost(member)
+		instance := m.buildInstance(member, instanceID, "54.84.123.45", costPerHour)
+		instance.SweepID = resp.SweepID
+		instance.SweepIndex = i
+		m.Instances[member.Name] = instance
+		resp.Instances = append(resp.Instances, instance)
+		resp.Launched++
+	}
+	return resp, nil
+}
+
 func (m *MockClient) validateLaunchRequest(req types.LaunchRequest) error {
 	if _, exists := m.Templates[req.Template]; !exists {
 		return fmt.Errorf("template not found: %s", req.Template)

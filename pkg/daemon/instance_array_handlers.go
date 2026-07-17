@@ -18,6 +18,13 @@ import (
 // control. Kept generous enough for realistic MPI cohorts / parameter sweeps.
 const maxJobArraySize = 64
 
+// Synthetic addresses used for test-mode instances (RFC 5737 TEST-NET-3 public IP
+// + RFC 1918 private IP), so tests never surface a plausibly-real address.
+const (
+	testModePublicIP  = "203.0.113.1"
+	testModePrivateIP = "10.0.1.100"
+)
+
 // handleLaunchArray launches a job array: Count homogeneous instances sharing a
 // generated job-array id, named <base>-0..<base>-(Count-1). spored discovers the
 // members via the prism:job-array-* tags Manager.BuildTags stamps and writes
@@ -138,8 +145,8 @@ func (s *Server) fanOutArrayTestMode(req *types.LaunchRequest, arrayID string, m
 			ID:            fmt.Sprintf("i-testarray%d-%d", time.Now().UnixNano()%10000000000, i),
 			Name:          name,
 			State:         "running",
-			PublicIP:      "203.0.113.1",
-			PrivateIP:     "10.0.1.100",
+			PublicIP:      testModePublicIP,
+			PrivateIP:     testModePrivateIP,
 			InstanceType:  "t3.micro",
 			Template:      req.Template,
 			Username:      "ubuntu",

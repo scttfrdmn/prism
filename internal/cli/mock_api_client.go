@@ -45,6 +45,7 @@ type MockAPIClient struct {
 	// Call tracking
 	LaunchCalls        []types.LaunchRequest
 	LaunchArrayCalls   []types.LaunchArrayRequest
+	LaunchSweepCalls   []types.LaunchSweepRequest
 	StartCalls         []string
 	StopCalls          []string
 	DeleteCalls        []string
@@ -254,6 +255,38 @@ func (m *MockAPIClient) LaunchArray(ctx context.Context, req types.LaunchArrayRe
 			ProjectID:     req.ProjectID,
 			JobArrayID:    resp.JobArrayID,
 			JobArrayIndex: i,
+		}
+		m.Instances = append(m.Instances, inst)
+		resp.Instances = append(resp.Instances, inst)
+		resp.Launched++
+	}
+	return resp, nil
+}
+
+func (m *MockAPIClient) LaunchSweep(ctx context.Context, req types.LaunchSweepRequest) (*types.LaunchSweepResponse, error) {
+	m.LaunchSweepCalls = append(m.LaunchSweepCalls, req)
+
+	if m.LaunchError != nil {
+		return nil, m.LaunchError
+	}
+	if m.ShouldReturnError {
+		return nil, fmt.Errorf("%s", m.ErrorMessage)
+	}
+
+	resp := &types.LaunchSweepResponse{
+		SweepID:   fmt.Sprintf("%s-mock", req.Name),
+		Requested: len(req.ParamSets),
+	}
+	for i := range req.ParamSets {
+		inst := types.Instance{
+			ID:         fmt.Sprintf("i-%d-%d", time.Now().Unix(), i),
+			Name:       fmt.Sprintf("%s-%d", req.Name, i),
+			Template:   req.Template,
+			State:      "running",
+			LaunchTime: time.Now(),
+			ProjectID:  req.ProjectID,
+			SweepID:    resp.SweepID,
+			SweepIndex: i,
 		}
 		m.Instances = append(m.Instances, inst)
 		resp.Instances = append(resp.Instances, inst)

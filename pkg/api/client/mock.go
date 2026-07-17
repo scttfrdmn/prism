@@ -86,6 +86,28 @@ func (m *MockClient) LaunchArray(ctx context.Context, req types.LaunchArrayReque
 	return resp, nil
 }
 
+func (m *MockClient) LaunchSweep(ctx context.Context, req types.LaunchSweepRequest) (*types.LaunchSweepResponse, error) {
+	resp := &types.LaunchSweepResponse{
+		SweepID:   req.Name + "-mock",
+		Requested: len(req.ParamSets),
+	}
+	for i := range req.ParamSets {
+		name := fmt.Sprintf("%s-%d", req.Name, i)
+		inst := &types.Instance{
+			ID:         "mock-" + name,
+			Name:       name,
+			Template:   req.Template,
+			State:      "running",
+			SweepID:    resp.SweepID,
+			SweepIndex: i,
+		}
+		m.instances[name] = inst
+		resp.Instances = append(resp.Instances, *inst)
+		resp.Launched++
+	}
+	return resp, nil
+}
+
 func (m *MockClient) ListInstances(ctx context.Context) (*types.ListResponse, error) {
 	return m.ListInstancesWithRefresh(ctx, false)
 }

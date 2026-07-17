@@ -282,6 +282,106 @@ func TestGenerateJobArrayID_FormatAndUniqueness(t *testing.T) {
 	}
 }
 
+// TestBuildTags_StampsSweepTags confirms the sweep + per-member parameter fields
+// are stamped with the prism: namespace the on-instance exporter reads, only when
+// the req carries a sweep id.
+func TestBuildTags_StampsSweepTags(t *testing.T) {
+	b := &InstanceConfigBuilder{}
+	req := ctypes.LaunchRequest{
+		Name:        "hp-1",
+		Template:    "python-ml",
+		SweepID:     "hp-20260717-abc123",
+		SweepName:   "hyperparam",
+		SweepSize:   3,
+		SweepIndex:  1,
+		SweepParams: map[string]string{"lr": "0.01", "batch": "64"},
+	}
+
+	tags := b.BuildTags(req, "ubuntu")
+
+	want := map[string]string{
+		"prism:sweep-id":    "hp-20260717-abc123",
+		"prism:sweep-name":  "hyperparam",
+		"prism:sweep-size":  "3",
+		"prism:sweep-index": "1",
+		"prism:param:lr":    "0.01",
+		"prism:param:batch": "64",
+	}
+	for k, v := range want {
+		if got := tags[k]; got != v {
+			t.Errorf("tag %q = %q; want %q", k, got, v)
+		}
+	}
+}
+
+// TestBuildTags_OmitsSweepTagsWhenUnset confirms non-sweep launches carry no sweep
+// or param tags.
+func TestBuildTags_OmitsSweepTagsWhenUnset(t *testing.T) {
+	b := &InstanceConfigBuilder{}
+	tags := b.BuildTags(ctypes.LaunchRequest{Name: "plain", Template: "python-ml"}, "ubuntu")
+	for _, k := range []string{"prism:sweep-id", "prism:sweep-name", "prism:sweep-size", "prism:sweep-index"} {
+		if _, ok := tags[k]; ok {
+			t.Errorf("tag %q should be absent for a non-sweep launch, got %q", k, tags[k])
+		}
+	}
+	for k := range tags {
+		if len(k) >= len("prism:param:") && k[:len("prism:param:")] == "prism:param:" {
+			t.Errorf("unexpected param tag %q on a non-sweep launch", k)
+		}
+	}
+}
+
+// TestBuildTags_CapsParamTagsAt35 confirms the parameter-tag cap keeps Prism well
+// under AWS's 50-tag limit: only 35 prism:param:* tags are stamped even with more
+// parameters, and the selection is deterministic (sorted keys).
+func TestBuildTags_CapsParamTagsAt35(t *testing.T) {
+	b := &InstanceConfigBuilder{}
+	params := make(map[string]string, 50)
+	for i := 0; i < 50; i++ {
+		// zero-pad so sort order is p00..p49
+		params[fmt.Sprintf("p%02d", i)] = fmt.Sprintf("v%d", i)
+	}
+	req := ctypes.LaunchRequest{
+		Name: "big", Template: "python-ml",
+		SweepID: "big-x", SweepName: "big", SweepSize: 1, SweepIndex: 0,
+		SweepParams: params,
+	}
+
+	tags := b.BuildTags(req, "ubuntu")
+
+	count := 0
+	for k := range tags {
+		if len(k) >= len("prism:param:") && k[:len("prism:param:")] == "prism:param:" {
+			count++
+		}
+	}
+	if count != 35 {
+		t.Errorf("param tag count = %d; want 35 (cap)", count)
+	}
+	// Deterministic: the first 35 sorted keys (p00..p34) are present, p35+ absent.
+	if _, ok := tags["prism:param:p00"]; !ok {
+		t.Error("expected first sorted param p00 to be stamped")
+	}
+	if _, ok := tags["prism:param:p49"]; ok {
+		t.Error("param p49 should be dropped by the 35-tag cap")
+	}
+}
+
+// TestGenerateSweepID_FormatAndUniqueness confirms the sweep id embeds the base
+// name and two calls differ.
+func TestGenerateSweepID_FormatAndUniqueness(t *testing.T) {
+	a := GenerateSweepID("hp")
+	b := GenerateSweepID("hp")
+	if a == b {
+		t.Errorf("two sweep ids for the same name collided: %q", a)
+	}
+	for _, id := range []string{a, b} {
+		if len(id) <= len("hp-") || id[:len("hp-")] != "hp-" {
+			t.Errorf("sweep id %q does not start with the base name", id)
+		}
+	}
+}
+
 // TestToLaunchConfig_MapsResolvedInputs confirms the pure mapping populates the
 // spawn.LaunchConfig fields Phase 1 relies on, and pre-resolves the SG.
 func TestToLaunchConfig_MapsResolvedInputs(t *testing.T) {
