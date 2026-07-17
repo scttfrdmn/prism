@@ -31,7 +31,7 @@ The Prism daemon (`prismd`) starts automatically when needed:
 ```bash
 prism workspace launch template my-instance
 # ✅ Daemon starts automatically if not running
-# ✅ No need for: prism daemon start
+# ✅ No need for: prism admin daemon start
 # ✅ No systemd/launchd configuration needed
 ```
 

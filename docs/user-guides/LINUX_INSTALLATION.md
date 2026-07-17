@@ -288,7 +288,7 @@ aws sts get-caller-identity
 
 # Check Prism AWS config
 prism profiles current
-prism daemon status
+prism admin daemon status
 ```
 
 #### Permission Errors
