@@ -7,7 +7,7 @@ implementation. No code has been written against it yet.
 **Relationship to existing docs**:
 - [BUDGET_PHILOSOPHY.md](../BUDGET_PHILOSOPHY.md) — the user-facing *organizational* model
   (Pools → Allocations → Projects, v0.5.10). Still valid; this doc generalizes it.
-- [BUDGET_BANKING_PHILOSOPHY.md](../BUDGET_BANKING_PHILOSOPHY.md) — the user-facing *temporal*
+- [BUDGET_PHILOSOPHY.md](../BUDGET_PHILOSOPHY.md) — the user-facing *temporal*
   model (surplus/banking). Still valid; this doc gives it a formal engine and adds borrowing,
   multi-source dated funding, and the projection choice.
 

@@ -264,7 +264,7 @@ prism admin daemon status         # Daemon / system health check
 - [AMI Best Practices](docs/user-guides/AMI_BEST_PRACTICES.md) - Best practices for AMI management, security, and cost optimization
 - [Installation Guide](INSTALL.md) - Comprehensive installation instructions
 - [Budget System Philosophy](docs/BUDGET_PHILOSOPHY.md) - Multi-budget system design and conceptual model (v0.5.10+)
-- [Budget Banking Philosophy](docs/BUDGET_BANKING_PHILOSOPHY.md) - Surplus tracking and burst budgeting
+- [Budget Banking Philosophy](docs/BUDGET_PHILOSOPHY.md) - Surplus tracking and burst budgeting
 - [Resource Tagging](docs/RESOURCE_TAGGING.md) - Cost optimization and zombie resource cleanup
 - [Compliance Matrix](docs/admin-guides/COMPLIANCE_MATRIX.md) - NIST 800-171, HIPAA, and framework support
 - [Changelog](CHANGELOG.md) - Version history and release notes

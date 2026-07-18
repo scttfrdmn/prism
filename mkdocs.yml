@@ -125,11 +125,9 @@ nav:
 
   - Getting Started:
     - Quick Start: user-guides/QUICK_START.md
+    - Installation: user-guides/INSTALLATION.md
     - Zero-Setup Guide: user-guides/ZERO_SETUP_GUIDE.md
     - AWS Setup: user-guides/AWS_SETUP_GUIDE.md
-    - macOS Install: user-guides/MACOS_INSTALLATION.md
-    - Linux Install: user-guides/LINUX_INSTALLATION.md
-    - Windows Install: user-guides/WINDOWS_INSTALLATION.md
     - Terminology: user-guides/TERMINOLOGY_GLOSSARY.md
 
   - User Guide:
@@ -137,7 +135,6 @@ nav:
     - GUI Guide: user-guides/GUI_USER_GUIDE.md
     - Workspace Lifecycle: user-guides/WORKSPACE_LIFECYCLE.md
     - Templates: user-guides/TEMPLATE_FORMAT.md
-    - Templates (Advanced): user-guides/TEMPLATE_FORMAT_ADVANCED.md
     - Conda Package Manager: user-guides/CONDA_PACKAGE_MANAGER.md
     - Profiles & Credentials: user-guides/MULTI_PROFILE_GUIDE.md
     - Custom AMI Workflow: user-guides/CUSTOM_AMI_WORKFLOW.md
@@ -155,7 +152,6 @@ nav:
 
   - R / RStudio:
     - Getting Started with R: user-guides/R_GETTING_STARTED.md
-    - R Research Template: user-guides/R_RESEARCH_TEMPLATE_GUIDE.md
 
   - Education:
     - School Pilot Quickstart: user-guides/SCHOOL_PILOT_QUICKSTART.md
@@ -167,7 +163,6 @@ nav:
     - Security Hardening: admin-guides/SECURITY_HARDENING_GUIDE.md
     - Template Policy: admin-guides/TEMPLATE_POLICY_FRAMEWORK.md
     - Research User Management: admin-guides/RESEARCH_USER_MANAGEMENT_GUIDE.md
-    - Profile Export/Import: admin-guides/PROFILE_EXPORT_IMPORT.md
     - Compliance Matrix: admin-guides/COMPLIANCE_MATRIX.md
     - NIST 800-171: admin-guides/NIST_800_171_COMPLIANCE.md
     - Compliance Disclaimer: admin-guides/COMPLIANCE_DISCLAIMER.md
@@ -175,7 +170,6 @@ nav:
   - Concepts:
     - Design Principles: DESIGN_PRINCIPLES.md
     - Budget Philosophy: BUDGET_PHILOSOPHY.md
-    - Budget Banking: BUDGET_BANKING_PHILOSOPHY.md
     - Resource Tagging: RESOURCE_TAGGING.md
     - Template File Provisioning: TEMPLATE_FILE_PROVISIONING.md
     - Plugins: plugins.md
@@ -192,12 +186,7 @@ nav:
   - Scenarios:
     - Solo Researcher: USER_SCENARIOS/01_SOLO_RESEARCHER_WALKTHROUGH.md
     - Lab Environment: USER_SCENARIOS/02_LAB_ENVIRONMENT_WALKTHROUGH.md
-    - University Class: USER_SCENARIOS/03_UNIVERSITY_CLASS_WALKTHROUGH.md
-    - Conference Workshop: USER_SCENARIOS/04_CONFERENCE_WORKSHOP_WALKTHROUGH.md
-    - Cross-Institutional: USER_SCENARIOS/05_CROSS_INSTITUTIONAL_COLLABORATION_WALKTHROUGH.md
     - NIH CUI Compliance: USER_SCENARIOS/06_NIH_RESEARCHER_CUI_COMPLIANCE.md
-    - NIH HIPAA Compliance: USER_SCENARIOS/07_NIH_RESEARCHER_PHI_HIPAA_COMPLIANCE.md
-    - Institutional IT: USER_SCENARIOS/08_INSTITUTIONAL_RESEARCH_IT_WALKTHROUGH.md
 
   - Contributing:
     - Community Templates: development/COMMUNITY_TEMPLATE_GUIDE.md
