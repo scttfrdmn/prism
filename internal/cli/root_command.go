@@ -508,6 +508,11 @@ func (r *CommandFactoryRegistry) RegisterAllCommands(rootCmd *cobra.Command) {
 	// Slack/Teams bot integration (#607)
 	botCobra := NewBotCobraCommands(r.app)
 	rootCmd.AddCommand(botCobra.CreateBotCommand())
+
+	// Security & compliance (status/health/dashboard/keychain/config + AWS
+	// compliance validate/report/scp). The backend /api/v1/security/* endpoints
+	// already exist; this wires the fully-built command tree to the root.
+	rootCmd.AddCommand(r.app.SecurityCommand())
 }
 
 func (r *CommandFactoryRegistry) createSnapshotCommand() *cobra.Command {
