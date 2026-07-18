@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`prism security` command exposed.** The fully-built security & compliance
+  command tree (`security status|health|dashboard|correlations|keychain|config`
+  and `security compliance validate|report|scp|frameworks`) was implemented and
+  had matching daemon endpoints (`/api/v1/security/*`) but was never registered
+  on the root command — so it was unreachable. It is now wired up and documented
+  in the CLI reference.
 - **Parameter sweeps: launch one instance per parameter set (spawn adoption).** New
   `prism workspace launch <template> <name> --param-file <file.json|yaml|csv>`
   launches a sweep — one workspace named `<name>-0`..`<name>-(N-1)` per parameter

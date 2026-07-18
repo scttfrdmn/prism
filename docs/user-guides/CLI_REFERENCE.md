@@ -200,9 +200,24 @@ prism admin daemon start                     # Start explicitly (usually not nee
 prism admin daemon stop                      # Stop the daemon
 
 prism admin policy list                      # List access control policies
-prism admin quota show                       # Check AWS service quotas
+prism admin quota show --instance-type t3.large   # Check AWS quota for a type
 prism admin aws-health                       # AWS service health status
 prism admin rightsizing analyze              # Instance sizing recommendations
+```
+
+---
+
+## Security & compliance
+
+```bash
+prism security status                        # Security monitoring / audit status
+prism security health                        # Run a security health check
+prism security dashboard                     # Threat analysis and recommendations
+prism security keychain                      # Keychain provider diagnostics
+
+prism security compliance frameworks         # List supported frameworks
+prism security compliance validate nist-800-171   # Validate against a framework
+prism security compliance report hipaa       # Generate a compliance report
 ```
 
 ---
@@ -211,7 +226,7 @@ prism admin rightsizing analyze              # Instance sizing recommendations
 
 ```bash
 prism gui                                    # Launch the desktop GUI
-prism init                                   # First-run wizard (AWS setup, profile creation)
+prism init                                   # Guided first launch (validates AWS creds, launches a workspace)
 prism version                                # Show current version
 prism templates                              # Alias: same as prism templates list
 ```
