@@ -68,8 +68,8 @@ brew install scttfrdmn/tap/prism
 # Authenticate with AWS (browser-based, no keys needed)
 aws login
 
-# Add a Prism profile
-prism profiles add
+# Add a Prism profile (interactive)
+prism profiles setup
 
 # Launch a research environment
 prism workspace launch python-ml my-project
@@ -102,23 +102,19 @@ prism workspace connect my-project
   <h2 id="downloads-heading">Downloads</h2>
   <div class="downloads-grid">
     <article class="download-card">
-      <strong> macOS Apple Silicon</strong>
-      <a href="https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-arm64.tar.gz" class="btn-download">Download</a>
-    </article>
-    <article class="download-card">
-      <strong> macOS Intel</strong>
-      <a href="https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-amd64.tar.gz" class="btn-download">Download</a>
+      <strong><span aria-hidden="true">🍎</span> macOS</strong>
+      <span>Homebrew: <code>brew install scttfrdmn/tap/prism</code>, or the <code>.dmg</code> from Releases.</span>
     </article>
     <article class="download-card">
       <strong><span aria-hidden="true">🪟</span> Windows</strong>
-      <a href="https://github.com/scttfrdmn/prism/releases/latest/download/prism-windows-amd64.zip" class="btn-download">Download</a>
+      <span>Scoop: <code>scoop install prism</code>, or the <code>.msi</code> from Releases.</span>
     </article>
     <article class="download-card">
       <strong><span aria-hidden="true">🐧</span> Linux</strong>
-      <a href="https://github.com/scttfrdmn/prism/releases/latest/download/prism-linux-amd64.tar.gz" class="btn-download">Download</a>
+      <span>Download the release archive and add the binaries to your <code>PATH</code>.</span>
     </article>
   </div>
-  <p class="downloads-note">All releases and changelogs on the <a href="https://github.com/scttfrdmn/prism/releases" target="_blank">GitHub releases page</a>.</p>
+  <p class="downloads-note">Get all builds on the <a href="https://github.com/scttfrdmn/prism/releases/latest" target="_blank">latest release page</a>. See the <a href="user-guides/INSTALLATION/">Installation guide</a> for full instructions.</p>
 </section>
 
 </main>

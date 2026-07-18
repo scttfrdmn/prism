@@ -105,7 +105,8 @@ prism templates info python-ml
 Profiles map a name to an AWS credential profile and region. The daemon uses the active profile for all AWS operations.
 
 ```bash
-prism profiles add                            # Interactive: add a new profile
+prism profiles setup                          # Interactive wizard (recommended)
+prism profiles add personal <name> --aws-profile <p> --region <r>   # Add explicitly
 prism profiles list                           # Show all profiles (active profile marked)
 prism profiles switch <name>                  # Make a profile active
 prism profiles delete <name>                  # Remove a profile

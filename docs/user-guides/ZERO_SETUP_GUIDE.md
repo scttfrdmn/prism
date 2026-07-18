@@ -9,16 +9,15 @@ Prism is designed to work **immediately** after installation, with zero configur
 Zero-setup means you can go from installation to running workstation in **one command**:
 
 ```bash
-# Install Prism (see Installation Guide for your platform)
-brew install scttfrdmn/prism   # macOS/Linux
-# or: scoop install prism       # Windows (via Scoop)
-# or: conda install prism       # Any platform via Conda
+# Install Prism (see the Installation guide for all platforms)
+brew install scttfrdmn/tap/prism   # macOS/Linux
+# or: scoop install prism          # Windows
 
 # Launch a workstation - that's it!
-prism workspace launch "Python Machine Learning (Simplified)" my-research
+prism workspace launch python-ml my-research
 ```
 
-For detailed installation instructions, see the main [Installation Guide](../index.md#installation).
+For all install methods, see the [Installation guide](INSTALLATION.md).
 
 **No configuration files. No setup scripts. No manual steps.**
 
@@ -195,13 +194,11 @@ prism workspace launch template my-instance \
 
 ### Issue: "AWS credentials not found"
 
-**Solution:** Configure AWS CLI once:
+**Solution:** Authenticate once (browser-based):
 ```bash
 aws login
-# Enter your Access Key ID
-# Enter your Secret Access Key
-# Enter default region (us-west-2)
-# Enter output format (json)
+# Opens a browser to sign in; caches credentials for ~12h.
+# Prefer long-term keys? Use `aws configure` instead.
 ```
 
 ### Issue: "No default VPC in region"
@@ -233,12 +230,12 @@ While zero-setup works for most users, power users can customize:
 Manage multiple AWS accounts:
 ```bash
 # Add a research account
-prism profiles add research \
+prism profiles add personal research \
   --aws-profile research \
   --region eu-central-1
 
 # Add a personal account  
-prism profiles add personal \
+prism profiles add personal personal \
   --aws-profile personal \
   --region us-west-2
 
