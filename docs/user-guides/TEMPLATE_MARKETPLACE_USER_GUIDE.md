@@ -1,8 +1,6 @@
 # Template Marketplace User Guide
 
-**Version**: v0.35.3
-**Last Updated**: October 4, 2025
-**Status**: Production Ready
+Browse, install, publish, and review community templates with `prism marketplace`.
 
 ## Overview
 

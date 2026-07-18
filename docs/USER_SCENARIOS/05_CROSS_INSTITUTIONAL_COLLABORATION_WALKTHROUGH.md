@@ -1,6 +1,6 @@
 # Scenario 5: Cross-Institutional Research Collaboration
 
-> **Implementation Status (v0.35.3)**
+> **Implementation Status **
 > - ✅ Shared storage (EFS volumes accessible across workspaces)
 > - ✅ Project invitations for collaborators (`prism project invitations`)
 > - ✅ Per-project budget tracking
@@ -48,15 +48,15 @@
 
 ## Version Legend
 - ✅ **v0.35.3 (Current)**: Features available today
-- 🔄 **Partially Planned**: Some features in this section are available in v0.35.3; others are planned for future releases
+- 🔄 **Partially Planned**: Some features in this section are available today; others are planned for future releases
 
-## Current State (v0.35.3): What Works Today with Invitations
+## Current State : What Works Today with Invitations
 
 ### ✅ Stanford Creates Collaboration Invitations (Month 1)
 
 ```bash
 # Dr. Smith (Stanford) sets up collaboration project
-stanford$ prism profile use stanford-neuroscience
+stanford$ prism profiles switch stanford-neuroscience
 stanford$ prism project create nih-neuro-consortium \
   --budget 5000 \
   --description "NIH R01: Multi-site neuroimaging analysis" \
@@ -239,7 +239,7 @@ stanford$ prism project cost nih-neuro-consortium --by-user
 # Chargeback Report: Available in project_chargeback_june2026.csv
 ```
 
-> **💡 GUI Note**: Cross-institutional cost tracking with chargeback available in GUI Projects tab - *available in v0.35.3**
+> **💡 GUI Note**: Cross-institutional cost tracking with chargeback available in GUI Projects tab - *available today**
 
 ```bash
 # Optional: Enable chargeback to collaborator accounts
@@ -694,7 +694,7 @@ stanford$ prism collaboration report nih-neuro-consortium --final
 #   - Shared data: Retained by Stanford
 ```
 
-> **💡 GUI Note**: Cross-institutional final reports with 18-month analytics available in GUI Reports tab - *available in v0.35.3**
+> **💡 GUI Note**: Cross-institutional final reports with 18-month analytics available in GUI Reports tab - *available today**
 
 ```bash
 #

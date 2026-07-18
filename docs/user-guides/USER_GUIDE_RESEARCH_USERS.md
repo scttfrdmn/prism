@@ -464,6 +464,6 @@ Start using Research Users today to streamline your cloud research workflows!
 ---
 
 **Need Help?**
-- 📚 Full documentation: [Research User Architecture](../architecture/DUAL_USER_ARCHITECTURE.md)
+- 📚 Full documentation: Research User Architecture
 - 🐛 Report issues: [GitHub Issues](https://github.com/scttfrdmn/prism/issues)
 - 💬 Discuss: [GitHub Discussions](https://github.com/scttfrdmn/prism/discussions)

@@ -1,12 +1,14 @@
 # Prism Profile Export/Import Guide
 
-Prism v0.4.2 introduces profile export and import functionality, allowing users to:
+Prism's profile export/import lets you:
 
-1. Back up their Prism profiles
+1. Back up your Prism profiles
 2. Share profile configurations between machines
 3. Transfer profiles to team members
 
-This document explains how to use these features effectively.
+Exports are ZIP (default) or JSON, optionally password-encrypted, and can include
+AWS credentials or be limited to specific profiles. This document explains how to
+use these features effectively.
 
 ## Profile Export
 

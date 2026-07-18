@@ -168,7 +168,7 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
    brew install scttfrdmn/tap/prism
 
    # Import university's CUI compliance profile
-   prism profile import university-cui-profile.json
+   prism profiles import university-cui-profile.json
    # Profile includes:
    # - Required security group configurations
    # - Encrypted EBS/EFS settings (KMS key: university-managed)
@@ -180,7 +180,7 @@ rsync -avz results/ collaborator@anl.gov:/shared/battery-research/
 3. **Quick Start Guide from Research IT**:
    ```bash
    # Verify compliance profile is active
-   prism profile list
+   prism profiles list
    # Output shows: [university-cui] ✅ NIST 800-171 Rev. 3 Compliant
 
    # Launch CUI-compliant research environment
@@ -330,7 +330,7 @@ prism project member add chen-lab-nih-r01 \
 
 # 4. Dr. Martinez sets up access
 brew install scttfrdmn/tap/prism
-prism profile import university-cui-profile.json
+prism profiles import university-cui-profile.json
 prism workspace connect lung-cancer-genomics  # Prompts for MFA setup on first use
 
 # 5. Access logged for compliance
@@ -349,18 +349,16 @@ prism workspace connect lung-cancer-genomics  # Prompts for MFA setup on first u
 
 ### Scenario 4: Annual Compliance Assessment
 
-**University CISO Requests Evidence** for Annual NIST 800-171 Assessment:
+**University CISO Requests Evidence** for Annual NIST 800-171 Assessment.
 
-**Prism Makes This Easy**:
+Prism's control mappings for NIST 800-171 are documented in the
+[Compliance Matrix](../admin-guides/COMPLIANCE_MATRIX.md) and
+[NIST 800-171 guide](../admin-guides/NIST_800_171_COMPLIANCE.md). Evidence is
+gathered from the resources Prism tags (`ManagedBy=Prism`) plus your account's
+CloudTrail, IAM, and Cost Explorer records. A representative evidence package
+covers:
 
-```bash
-# Generate compliance evidence package
-prism compliance report \
-  --framework "NIST 800-171 Rev 3" \
-  --project chen-lab-nih-r01 \
-  --output chen-lab-compliance-evidence.pdf
-
-# Report automatically includes:
+```text
 # ✅ Access Control Evidence:
 #    - List of authorized users with MFA status
 #    - Security group configurations
@@ -423,7 +421,7 @@ prism compliance report \
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-> **💡 GUI Note**: NIST 800-171 compliance reports with automated evidence generation available in GUI Compliance tab - *available in v0.35.3**
+> **💡 GUI Note**: NIST 800-171 compliance reports with automated evidence generation available in GUI Compliance tab - *available today**
 
 **Dr. Chen's Reaction**:
 "Wait, that's it? I thought this would take weeks of meetings and documentation. Prism just... did all of that automatically?"

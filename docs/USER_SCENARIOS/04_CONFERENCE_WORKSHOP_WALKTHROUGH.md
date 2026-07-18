@@ -1,6 +1,6 @@
 # Scenario 4: Conference Workshop
 
-> **Implementation Status (v0.35.3)**
+> **Implementation Status **
 > - ✅ Shared invitation links (`prism project invitations shared create/show`)
 > - ✅ Bulk invitations (`prism project invitations bulk`)
 > - ✅ Budget management and alerts
@@ -37,9 +37,9 @@
 
 ## Version Legend
 - ✅ **v0.35.3 (Current)**: Features available today
-- 🔄 **Partially Planned**: Some features in this section are available in v0.35.3; others are planned for future releases
+- 🔄 **Partially Planned**: Some features in this section are available today; others are planned for future releases
 
-## Current State (v0.35.3): What Works Today
+## Current State : What Works Today
 
 ### ✅ Pre-Workshop Setup (1 Week Before)
 
@@ -107,7 +107,7 @@ prism project invitations shared create neurips-dl-workshop \
 #    🔗 URL: https://prism.dev/join/WORKSHOP-NEURIPS-2026-A4F2
 #    💡 This single token works for all 60 participants (first-come-first-served)
 #
-#    When participants accept (available in v0.35.3):
+#    When participants accept (available today):
 #    ✅ Automatic project member addition (Issue #102)
 #    ✅ Research user auto-provisioning with SSH keys (Issue #106)
 #    ✅ UID/GID allocation for file consistency
@@ -123,7 +123,7 @@ prism project invitations shared create neurips-dl-workshop \
 - ✅ **No pre-registration**: Participants don't need to provide emails ahead of time
 - ✅ **First-come-first-served**: 60 redemptions then token becomes invalid
 - ✅ **Atomic redemption**: Thread-safe counter prevents over-redemption
-- ✅ **Auto-provisioning**: Research users with SSH keys created on redemption (available in v0.35.3)
+- ✅ **Auto-provisioning**: Research users with SSH keys created on redemption (available today)
 - 🔄 **QR code support**: Print token as QR code for easy mobile access (coming soon)
 
 💡 **Monitor Token Usage**:
@@ -215,11 +215,11 @@ prism project workspaces neurips-dl-workshop
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ✅ Automatic Workspace Termination via TTL (Available in v0.35.3)
+### ✅ Automatic Workspace Termination via TTL (Available today)
 
 **Scenario**: Workshop ends at 3:00 PM, workspaces should stop at 6:00 PM
 
-**How to use it** (v0.35.3):
+**How to use it** :
 ```bash
 # Launch workspaces with TTL — they stop automatically after 6 hours
 prism workspace launch pytorch-ml workshop-instance --ttl 6h
@@ -295,7 +295,7 @@ prism project bulk-launch neurips-dl-workshop \
 # 9:00 AM - participants arrive, workspaces are ready
 ```
 
-> **💡 GUI Note**: Workshop scheduling available in GUI Projects tab with calendar view - *available in v0.35.3**
+> **💡 GUI Note**: Workshop scheduling available in GUI Projects tab with calendar view - *available today**
 
 **Current workaround**: Participants launch on-demand (slow, error-prone)
 **Impact**: First 30 minutes wasted on environment setup
@@ -336,7 +336,7 @@ prism workshop dashboard neurips-dl-workshop
 # └─────────────────────────────────────────────────────────┘
 ```
 
-> **💡 GUI Note**: Live workshop dashboard available in GUI with real-time participant status - *available in v0.35.3**
+> **💡 GUI Note**: Live workshop dashboard available in GUI with real-time participant status - *available today**
 
 **Current workaround**: Manual `prism workspace list` + `prism project instances` polling
 **Impact**: Can't proactively help struggling participants
@@ -634,7 +634,7 @@ prism workshop report neurips-dl-workshop --export-pdf
 # 📧 Post-workshop survey sent to all participants
 ```
 
-> **💡 GUI Note**: Workshop reports with charts and PDF export available in GUI Reports tab - *available in v0.35.3**
+> **💡 GUI Note**: Workshop reports with charts and PDF export available in GUI Reports tab - *available today**
 
 ---
 
@@ -664,7 +664,7 @@ prism workshop report neurips-dl-workshop --export-pdf
 
 ## 🎯 Priority Recommendations
 
-### Phase 1: Workshop Safety Net (Implemented in v0.35.3)
+### Phase 1: Workshop Safety Net (Implemented today)
 **Target**: Workshops can run without budget disasters
 
 1. **Auto-Terminate Timer** (1 week)

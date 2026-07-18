@@ -3,7 +3,7 @@
 **Last Updated**: April 2026
 **Version**: 0.35.3
 
-> **⚠️ Note on CLI commands**: Some `prism admin` commands shown in this scenario (e.g., `prism admin policy set`, `prism admin billing`, `prism admin compliance`) describe **planned** administrative capabilities, not all of which are available in v0.35.3. Currently available admin commands: `prism admin daemon status/start/stop`, `prism admin scaling`. Governance, billing reports, and compliance features are in progress.
+> **⚠️ Note on CLI commands**: Some `prism admin` commands shown in this scenario (e.g., `prism admin policy set`, `prism admin billing`, `prism admin compliance`) describe **planned** administrative capabilities, not all of which are available today. Currently available admin commands: `prism admin daemon status/start/stop`, `prism admin scaling`. Governance, billing reports, and compliance features are in progress.
 
 ---
 
@@ -91,7 +91,7 @@ brew tap scttfrdmn/prism
 brew install prism
 
 # Configure institutional AWS account
-prism profile create university-research \
+prism profiles add personal university-research \
   --aws-profile state-university-research \
   --region us-west-2 \
   --description "State University Research Computing"
@@ -270,7 +270,7 @@ prism admin billing report --month 2025-10 \
 # - Chargeback amounts by chartstring
 ```
 
-> **💡 GUI Note**: Institutional billing reports with department chargeback available in GUI Admin Console - *available in v0.35.3**
+> **💡 GUI Note**: Institutional billing reports with department chargeback available in GUI Admin Console - *available today**
 
 **Month 3: Training & Documentation**
 
@@ -549,7 +549,7 @@ Risk Findings:
 ✅ All findings within acceptable parameters
 ```
 
-> **💡 GUI Note**: Institutional audit reports with cost efficiency tracking available in GUI Admin Console - *available in v0.35.3**
+> **💡 GUI Note**: Institutional audit reports with cost efficiency tracking available in GUI Admin Console - *available today**
 
 ### Template Reuse
 
@@ -763,7 +763,7 @@ prism admin compliance report \
 # - Export control verification
 ```
 
-> **💡 GUI Note**: NSF/NIH grant compliance reports with cost efficiency metrics available in GUI Admin Console - *available in v0.35.3**
+> **💡 GUI Note**: NSF/NIH grant compliance reports with cost efficiency metrics available in GUI Admin Console - *available today**
 
 **Template Marketplace Curation**:
 ```bash
