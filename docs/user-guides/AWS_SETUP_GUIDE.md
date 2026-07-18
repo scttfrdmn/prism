@@ -256,7 +256,7 @@ aws ec2 describe-instances --profile aws --region us-west-2
 **Prism can't find your profile:**
 ```bash
 # Create explicit Prism profile
-prism profiles add research --aws-profile aws --region us-west-2
+prism profiles add personal research --aws-profile aws --region us-west-2
 prism profiles switch research
 
 # Verify it's active
@@ -301,9 +301,9 @@ prism workspace hibernate my-project
 
 ```bash
 # Organize profiles by project/purpose
-prism profiles add personal-research --aws-profile aws --region us-west-2
-prism profiles add team-project --aws-profile work --region us-east-1
-prism profiles add gpu-experiments --aws-profile aws --region us-west-2
+prism profiles add personal personal-research --aws-profile aws --region us-west-2
+prism profiles add personal team-project --aws-profile work --region us-east-1
+prism profiles add personal gpu-experiments --aws-profile aws --region us-west-2
 ```
 
 ## 8. Example Complete Setup

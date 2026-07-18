@@ -21,20 +21,17 @@ Prism is an academic research platform that provides pre-configured cloud enviro
 
 ### Step 1: Install Prism
 
-**For IT Administrators (Recommended)**
 ```bash
-# Install via Homebrew (macOS/Linux)
-brew tap scttfrdmn/prism
-brew install prism
+# macOS
+brew install scttfrdmn/tap/prism
 
-# Or download directly
-curl -L https://github.com/scttfrdmn/prism/releases/latest/download/prism-darwin-arm64.tar.gz
+# Windows
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
+scoop install prism
 ```
 
-**For Individual Educators**
-- Download from [GitHub Releases](https://github.com/scttfrdmn/prism/releases)
-- Choose your platform: macOS, Linux, or Windows
-- Extract and run - no complex installation required
+See the [Installation guide](INSTALLATION.md) for all platforms and the desktop
+app.
 
 ### Step 2: AWS Account Setup (One-time per School)
 

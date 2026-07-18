@@ -23,11 +23,16 @@ Verify:
 prism version
 ```
 
+Other install methods (DMG/MSI, build from source) are in the
+[Installation guide](INSTALLATION.md).
+
 ---
 
 ## 2. Authenticate with AWS
 
-Prism uses your AWS credentials to launch instances in your account.
+Prism runs in **your own AWS account**. You need AWS credentials with permission
+to launch instances — see the [AWS Setup guide](AWS_SETUP_GUIDE.md) for the exact
+IAM policy Prism needs and how to attach it.
 
 **Step 1 — Log in** (requires AWS CLI v2.32+):
 
@@ -37,7 +42,7 @@ aws login
 
 This opens a browser window. Sign in with your IAM user or federated identity. Credentials are cached for up to 12 hours and refresh automatically.
 
-> **No browser?** Use `aws login --remote` for cross-device authentication, or `aws configure` to set up long-term access keys (see [AWS Setup Guide](AWS_SETUP_GUIDE.md)).
+> **No browser?** Use `aws login --remote` for cross-device authentication, or `aws configure` to set up long-term access keys (see [AWS Setup guide](AWS_SETUP_GUIDE.md)).
 
 Verify it works:
 ```bash
@@ -47,10 +52,10 @@ aws sts get-caller-identity
 **Step 2 — Add a Prism profile**:
 
 ```bash
-prism profiles add
+prism profiles setup
 ```
 
-This interactive wizard links a Prism profile to your AWS credentials and default region. You only need to do this once.
+This interactive wizard links a Prism profile to your AWS credentials and default region. You only need to do this once. (Prefer a one-liner? `prism profiles add personal my-profile --aws-profile default --region us-west-2`.)
 
 ---
 
