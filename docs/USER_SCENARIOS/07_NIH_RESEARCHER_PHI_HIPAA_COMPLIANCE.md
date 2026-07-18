@@ -183,7 +183,7 @@ If discovered during routine audit:
    brew install scttfrdmn/tap/prism
 
    # Import medical center's HIPAA compliance profile
-   prism profile import medical-center-hipaa-profile.json
+   prism profiles import medical-center-hipaa-profile.json
    # Profile includes:
    # - HIPAA-compliant security group configurations (SC)
    # - Encrypted EBS/EFS with HIPAA-eligible KMS keys (SC.2.179, SC.3.191)
@@ -426,7 +426,7 @@ $ prism project member add chen-lab-nih-r01 \
 
 # 4. Jane sets up her access
 $ brew install scttfrdmn/tap/prism
-$ prism profile import medical-center-hipaa-profile.json
+$ prism profiles import medical-center-hipaa-profile.json
 $ prism workspace connect lung-cancer-genomics
 # MFA prompt: "Enter MFA code from authenticator app:"
 # ↑ First access triggers MFA enrollment workflow
@@ -460,18 +460,16 @@ cat: /mnt/efs/phi-data/patients/cohort_2025.csv: Permission denied
 
 **Medical Center HIPAA Privacy Officer Requests Evidence**:
 
-**Prism Automated Compliance Reporting**:
+**Gathering HIPAA compliance evidence**:
 
-```bash
-# Generate HIPAA compliance evidence package
-$ prism compliance report \
-    --framework "HIPAA Security Rule" \
-    --standard "NIST 800-66 Rev 2" \
-    --project chen-lab-nih-r01 \
-    --output chen-lab-hipaa-evidence.pdf \
-    --include-phi-audit-logs
+Prism's HIPAA/NIST control mappings are documented in the
+[Compliance Matrix](../admin-guides/COMPLIANCE_MATRIX.md). Evidence is assembled
+from Prism's tagged resources plus your account's CloudTrail, IAM, and billing
+records. A representative HIPAA evidence package (§ 164.312(b) Audit Controls)
+covers:
 
-# Report automatically includes (§ 164.312(b) Audit Controls):
+```text
+# ✅ Administrative Safeguards:
 
 # ✅ Administrative Safeguards:
 #    - Security Management Process (risk assessment, sanctions policy)
@@ -548,7 +546,7 @@ $ prism compliance report \
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-> **💡 GUI Note**: HIPAA Security Rule compliance reports with PHI audit trails available in GUI Compliance tab - *available in v0.35.3**
+> **💡 GUI Note**: HIPAA Security Rule compliance reports with PHI audit trails available in GUI Compliance tab - *available today**
 
 **Medical Center HIPAA Privacy Officer's Reaction**:
 "This is the most comprehensive HIPAA compliance documentation I've reviewed. Prism's automated audit trail and evidence collection transformed what typically takes weeks into a 2-hour review. Your research group is now our institutional model for HIPAA-compliant cloud research computing."

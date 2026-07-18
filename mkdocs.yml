@@ -188,7 +188,6 @@ nav:
     - GUI Architecture: architecture/GUI_ARCHITECTURE.md
     - SSH Keys: architecture/ARCHITECTURE_SSH_KEYS.md
     - Research Users: architecture/RESEARCH_USER_ARCHITECTURE.md
-    - NICE DCV: architecture/NICE_DCV_ARCHITECTURE.md
 
   - Scenarios:
     - Solo Researcher: USER_SCENARIOS/01_SOLO_RESEARCHER_WALKTHROUGH.md

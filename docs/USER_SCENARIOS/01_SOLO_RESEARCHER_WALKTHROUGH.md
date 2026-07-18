@@ -22,11 +22,11 @@
 - ✅ **v0.35.3 (Current)**: Features available today
 - 🔄 **Future**: Features planned for future versions
 
-## Current State (v0.35.3): What Works Today
+## Current State : What Works Today
 
 ### ✅ Initial Setup (Day 0) - 30-Second Quick Start
 
-**Available in v0.35.3**: Interactive wizard for first-time users!
+**Available today**: Interactive wizard for first-time users!
 
 ```bash
 # Install Prism
@@ -247,7 +247,7 @@ prism budget list
 - **Status Indicators**: Visual badges showing running, stopped, or hibernated state
 - **Launch Button**: One-click access to Quick Start wizard for new workspaces
 
-> **💡 GUI Note**: Cost summary is available in the GUI Dashboard (Costs tab) with visual charts - *available in v0.35.3**
+> **💡 GUI Note**: Cost summary is available in the GUI Dashboard (Costs tab) with visual charts - *available today**
 
 **What Sarah thinks**: *"The hibernation is working! Every time it hibernates, I'm banking money for future compute. I'm only paying $0.31/hour instead of $2.40/hour! No anxiety!"*
 
@@ -271,7 +271,7 @@ This addresses all the pain points Sarah currently experiences with cost managem
 
 ## ⚠️ Current Pain Points: What Doesn't Work
 
-### ❌ Problem 1: No Budget Enforcement (Available since v0.35.x)
+### ❌ Problem 1: No Budget Enforcement (Available today)
 **Tracking:** See issue [#138](https://github.com/scttfrdmn/prism/issues/138)
 
 **Scenario**: Week 3, Sarah accidentally launches GPU workspace
@@ -299,7 +299,7 @@ prism workspace launch gpu-ml-workstation protein-folding --size L
 **Current workaround**: Sarah has to remember to check costs manually
 **Risk**: One forgotten GPU workspace = entire month's budget gone in 4 days
 
-### ❌ Problem 2: No Budget Alerts (Available since v0.35.x)
+### ❌ Problem 2: No Budget Alerts (Available today)
 **Tracking:** See issue [#139](https://github.com/scttfrdmn/prism/issues/139)
 
 **Scenario**: Week 4, Sarah hits 80% of budget
@@ -322,7 +322,7 @@ prism workspace launch gpu-ml-workstation protein-folding --size L
 **Current workaround**: Sarah checks `prism budget list` daily
 **Impact**: Constant cognitive load, anxiety about overspending
 
-### ❌ Problem 3: No Spending Forecasts (Available since v0.35.x)
+### ❌ Problem 3: No Spending Forecasts (Available today)
 **Tracking:** See issue [#140](https://github.com/scttfrdmn/prism/issues/140)
 
 **Scenario**: Mid-month, Sarah wants to know if she can launch another instance
@@ -351,7 +351,7 @@ prism budget forecast
 **Current workaround**: Sarah does mental math and Excel calculations
 **Impact**: Decision paralysis - hesitant to launch workspaces even when budget allows
 
-### ❌ Problem 4: No Month-End Reporting (Available since v0.35.x)
+### ❌ Problem 4: No Month-End Reporting (Available today)
 **Tracking:** See issue [#141](https://github.com/scttfrdmn/prism/issues/141)
 
 **Scenario**: End of month, PI asks "How much did you spend and on what?"
@@ -438,7 +438,7 @@ prism budget info
 #    This aligns with grant year budgets and encourages efficient usage.
 ```
 
-> **💡 GUI Note**: Budget configuration available in GUI Settings (Budget tab) - *available in v0.35.3**
+> **💡 GUI Note**: Budget configuration available in GUI Settings (Budget tab) - *available today**
 
 ### Day 1: Launch with Budget Awareness
 
@@ -473,7 +473,7 @@ prism workspace launch bioinformatics-suite rnaseq-analysis --size M
 # 🔗 SSH ready in ~90 seconds...
 ```
 
-> **💡 GUI Note**: Workspace launch with budget preview available in GUI Templates tab - *available in v0.35.3**
+> **💡 GUI Note**: Workspace launch with budget preview available in GUI Templates tab - *available today**
 
 ### Week 3: Budget Alert (80% threshold)
 
@@ -534,7 +534,7 @@ prism budget status
 #   💡 Consider stopping workspaces over weekend if not needed ($4.80 savings)
 ```
 
-> **💡 GUI Note**: Budget status available in GUI Dashboard (Budget tab) with real-time charts - *available in v0.35.3**
+> **💡 GUI Note**: Budget status available in GUI Dashboard (Budget tab) with real-time charts - *available today**
 
 ### Week 4: Attempting Over-Budget Launch
 
@@ -615,7 +615,7 @@ prism budget report --month september --pdf --output ~/Desktop/sept-prism-report
 #    - Ready to attach to expense report
 ```
 
-> **💡 GUI Note**: Monthly reports available in GUI Dashboard (Reports tab) with export to PDF - *available in v0.35.3**
+> **💡 GUI Note**: Monthly reports available in GUI Dashboard (Reports tab) with export to PDF - *available today**
 
 ---
 
@@ -644,7 +644,7 @@ prism budget report --month september --pdf --output ~/Desktop/sept-prism-report
 
 ## 🎯 Priority Recommendations
 
-### Phase 1: Budget Safety Net (Implemented in v0.35.3)
+### Phase 1: Budget Safety Net (Implemented today)
 **Target**: Solo researchers can confidently stay within budget
 
 1. **Budget Configuration** (1 week)

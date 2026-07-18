@@ -1,6 +1,6 @@
 # Scenario 3: University Class Management
 
-> **Implementation Status (v0.35.3)**
+> **Implementation Status **
 > - ✅ Core workspace and project operations
 > - ✅ Invitation-based access (`prism project invitations`)
 > - ✅ Budget management (`prism budget create/list/alerts`)
@@ -70,9 +70,9 @@
 
 ## Version Legend
 - ✅ **v0.35.3 (Current)**: Features available today
-- 🔄 **Partially Planned**: Some features in this section are available in v0.35.3; others are planned for future releases
+- 🔄 **Partially Planned**: Some features in this section are available today; others are planned for future releases
 
-## Current State (v0.35.3): What Works Today
+## Current State : What Works Today
 
 ### ✅ Pre-Semester Setup (What Works)
 
@@ -183,7 +183,7 @@ curl -X POST http://localhost:8947/api/v1/invitations/quota-check \
 # }
 # ✅ Quota check passed - safe to send 50 invitations
 
-# Step 2: Send bulk invitations (available in v0.35.3)
+# Step 2: Send bulk invitations (available today)
 prism project invitations bulk "CS229-Fall2024" \
   --file students.csv \
   --message "Welcome to CS 229! Please accept this invitation to access your course workspace." \
@@ -203,7 +203,7 @@ prism project invitations bulk "CS229-Fall2024" \
 # - Budget: $24.00 per student
 # - Expires: 14 days (deadline to accept)
 #
-# 💡 When students accept invitations (available in v0.35.3):
+# 💡 When students accept invitations (available today):
 #    ✅ Automatic project member addition with validated role (Issue #102)
 #    ✅ Research user auto-provisioning with SSH keys (Issue #106)
 #    ✅ UID/GID allocation for consistent file permissions
@@ -304,7 +304,7 @@ prism ta annotate ml-hw3 --student sophie.martinez@university.edu \
 **Current workaround**: Sophie shares screen in Zoom, slow and frustrating
 **Impact**: Office hours inefficient, students feel unsupported
 
-### ✅ Budget Distribution Enforcement (Available in v0.35.3)
+### ✅ Budget Distribution Enforcement (Available today)
 **Tracking:** See issue [#161](https://github.com/scttfrdmn/prism/issues/161)
 
 **Scenario**: Student accidentally launches expensive instance
@@ -355,7 +355,7 @@ prism project cost show "CS229-Fall2024"
 #    3. OR: Emily can't do assignments for rest of semester
 ```
 
-> **💡 GUI Note**: Class budget monitoring available in GUI Projects tab with per-student breakdown - *available in v0.35.3**
+> **💡 GUI Note**: Class budget monitoring available in GUI Projects tab with per-student breakdown - *available today**
 
 **Current workaround**: Trust students, hope for the best
 **Impact**: Budget surprises, student anxiety, administrative burden
