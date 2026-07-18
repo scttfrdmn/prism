@@ -22,9 +22,28 @@ python3 -m http.server -d landing 8000   # then visit http://localhost:8000
 
 ## Deploying to prismcloud.host
 
-The page is a single static file, so it works on any static host (Netlify,
-Cloudflare Pages, S3 + CloudFront, GitHub Pages, etc.). Point the apex domain at
-your chosen host and upload `landing/`.
+Prism follows the **same AWS pattern spore.host uses** (S3 static website +
+CloudFront + ACM + Route 53), run from the `prism-infra` AWS profile:
+
+```bash
+AWS_PROFILE=prism-infra ./landing/deploy.sh
+```
+
+`deploy.sh` creates/uses the `prismcloud-host-website` S3 bucket, enables static
+hosting, sets a public-read policy, uploads `landing/`, and (once
+`PRISM_CLOUDFRONT_ID` is set) invalidates the CloudFront cache. It mirrors
+`~/src/spore-host/spore-host/web/deploy.sh`.
+
+**One-time infra setup** (see the deploy tracking issue for exact commands):
+1. ACM certificate for `prismcloud.host` in **us-east-1**.
+2. CloudFront distribution: origin = the S3 website endpoint, alternate domain
+   name = `prismcloud.host`, viewer policy = redirect-HTTP-to-HTTPS, cert from
+   step 1. Note its distribution ID → set `PRISM_CLOUDFRONT_ID`.
+3. Route 53 apex A/ALIAS record `prismcloud.host` → the CloudFront distribution.
+
+Docs (`docs.prismcloud.host`) deploy separately — the existing MkDocs `gh-pages`
+site, retargeted to the `docs.` subdomain (or its own S3+CloudFront like
+`docs.spore.host`). See the tracking issue for the coordinated cutover.
 
 ### Domain topology
 
