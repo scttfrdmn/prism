@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prism — Cloud research workstations in seconds</title>
+  <meta name="description" content="Pre-configured AWS research environments for scientists, labs, and classrooms. Launch with one command, stop paying when you're done.">
+  <link rel="icon" type="image/png" href="assets/prism-icon.png">
+  <meta property="og:title" content="Prism — Cloud research workstations">
+  <meta property="og:description" content="Pre-configured AWS research environments. Launch in seconds, not hours.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://prismcloud.host">
+  <style>
+    :root {
+      --bg: #0b0a1f;
+      --bg-2: #12102e;
+      --surface: #17153a;
+      --surface-2: #1e1b48;
+      --border: rgba(255,255,255,0.10);
+      --text: #ecebff;
+      --text-dim: rgba(236,235,255,0.66);
+      --accent: #7c6cff;
+      --accent-2: #5a4fcf;
+      --grad-a: #a78bfa;
+      --grad-b: #60a5fa;
+      --radius: 12px;
+      --maxw: 1120px;
+    }
+    [data-theme="light"] {
+      --bg: #f7f7fb;
+      --bg-2: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #f0f0f7;
+      --border: rgba(20,18,50,0.12);
+      --text: #16142e;
+      --text-dim: rgba(22,20,46,0.66);
+      --grad-a: #6d4bd8;
+      --grad-b: #2b6fd8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    code, pre, .mono { font-family: "SF Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace; }
+    a { color: inherit; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 1.5rem; }
+    .skip { position: absolute; left: -999px; }
+    .skip:focus { left: 1rem; top: 1rem; background: #fff; color: #000; padding: .5rem 1rem; border-radius: 6px; z-index: 100; }
+
+    /* Nav */
+    nav {
+      position: sticky; top: 0; z-index: 50;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner { display: flex; align-items: center; gap: 1.5rem; height: 60px; }
+    .brand { display: flex; align-items: center; gap: .6rem; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+    .brand img { width: 28px; height: 28px; }
+    .nav-links { display: flex; gap: 1.4rem; margin-left: auto; align-items: center; }
+    .nav-links a { text-decoration: none; color: var(--text-dim); font-size: .92rem; font-weight: 500; transition: color .15s; }
+    .nav-links a:hover { color: var(--text); }
+    .theme-toggle { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; width: 36px; height: 34px; cursor: pointer; font-size: 1rem; }
+    @media (max-width: 640px) { .nav-links a:not(.nav-cta) { display: none; } }
+
+    .nav-cta { background: var(--accent-2); color: #fff !important; padding: 7px 16px; border-radius: 8px; font-weight: 600; }
+    .nav-cta:hover { background: var(--accent); }
+
+    /* Hero */
+    .hero { position: relative; overflow: hidden; padding: 6rem 0 4.5rem; text-align: center; }
+    .hero::before {
+      content: ""; position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 30% 40%, rgba(124,108,255,0.28), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 72% 30%, rgba(96,165,250,0.20), transparent 60%);
+    }
+    .hero-inner { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; }
+    .hero img.logo { width: 84px; height: 84px; margin-bottom: 1.4rem; filter: drop-shadow(0 0 34px rgba(124,108,255,0.55)); }
+    .hero h1 { font-size: clamp(2.1rem, 5.5vw, 3.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+    .grad { background: linear-gradient(90deg, var(--grad-a), var(--grad-b)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p.sub { font-size: 1.18rem; color: var(--text-dim); max-width: 620px; margin: 1.2rem auto 0; }
+    .pills { display: flex; flex-wrap: wrap; gap: .55rem; justify-content: center; margin: 1.8rem 0 2.2rem; }
+    .pill { font-size: .82rem; color: var(--text-dim); background: var(--surface); border: 1px solid var(--border); padding: 6px 13px; border-radius: 999px; }
+    .cta-row { display: flex; gap: .9rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.2rem; }
+    .btn { padding: 12px 26px; border-radius: 9px; font-weight: 700; font-size: 1rem; text-decoration: none; transition: transform .15s, background .15s; display: inline-block; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #fff; box-shadow: 0 6px 24px rgba(124,108,255,0.35); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .install-inline { display: inline-flex; align-items: center; gap: .6rem; background: #000; border: 1px solid var(--border); border-radius: 10px; padding: 11px 18px; font-size: .93rem; }
+    .install-inline .prompt { color: var(--accent); }
+    .install-inline .copy { margin-left: .4rem; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: .85rem; }
+
+    /* Sections */
+    section { padding: 4.5rem 0; }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto 2.8rem; }
+    .kicker { text-transform: uppercase; letter-spacing: .12em; font-size: .78rem; font-weight: 700; color: var(--accent); margin-bottom: .5rem; }
+    .section-head h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 800; letter-spacing: -0.01em; }
+    .section-head p { color: var(--text-dim); margin-top: .7rem; }
+    .alt { background: var(--bg-2); }
+
+    /* Feature cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.6rem; transition: transform .15s, border-color .15s; }
+    .card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+    .card .icon { font-size: 1.7rem; margin-bottom: .8rem; }
+    .card h3 { font-size: 1.1rem; margin-bottom: .4rem; }
+    .card p { font-size: .92rem; color: var(--text-dim); }
+
+    /* Install tabs */
+    .tabs { max-width: 720px; margin: 0 auto; }
+    .tab-btns { display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap; justify-content: center; }
+    .tab-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: .9rem; font-weight: 600; }
+    .tab-btn.active { background: var(--accent-2); color: #fff; border-color: var(--accent-2); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    pre { background: #000; border: 1px solid var(--border); border-radius: var(--radius); padding: 1.3rem 1.5rem; overflow-x: auto; font-size: .9rem; line-height: 1.7; color: #d6d4f5; }
+    pre .c { color: #6f6a99; }
+    pre .p { color: var(--accent); }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.1rem; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+    .step .n { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; background: var(--accent-2); color: #fff; font-weight: 700; margin-bottom: .8rem; }
+    .step h3 { font-size: 1rem; margin-bottom: .35rem; }
+    .step p { font-size: .9rem; color: var(--text-dim); }
+    .step code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: .85rem; }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--border); padding: 3rem 0; background: var(--bg-2); }
+    .foot-inner { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: space-between; }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 1.3rem; }
+    .foot-links a { color: var(--text-dim); text-decoration: none; font-size: .9rem; }
+    .foot-links a:hover { color: var(--text); }
+    .foot-tag { color: var(--text-dim); font-size: .88rem; }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip">Skip to content</a>
+  <nav>
+    <div class="wrap nav-inner">
+      <a href="/" class="brand"><img src="assets/prism-icon.png" alt=""> Prism</a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="https://docs.prismcloud.host">Docs</a>
+        <a href="https://github.com/scttfrdmn/prism">GitHub</a>
+        <a href="#install" class="nav-cta">Get started</a>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- Hero -->
+    <header class="hero">
+      <div class="wrap hero-inner">
+        <img class="logo" src="assets/prism-icon.png" alt="Prism logo">
+        <h1>Cloud research workstations<br><span class="grad">in seconds, not hours</span></h1>
+        <p class="sub">Pre-configured AWS environments for researchers, labs, and classrooms. Launch with one command, stop paying when you're done — in your own AWS account.</p>
+        <div class="pills">
+          <span class="pill">Avoid surprise bills</span>
+          <span class="pill">GPU-ready templates</span>
+          <span class="pill">Idle auto-hibernation</span>
+          <span class="pill">Budgets for labs &amp; classes</span>
+          <span class="pill">CLI &amp; desktop app</span>
+        </div>
+        <div class="cta-row">
+          <a href="#install" class="btn btn-primary">Get started</a>
+          <a href="https://github.com/scttfrdmn/prism" class="btn btn-secondary">View on GitHub</a>
+        </div>
+        <div class="install-inline mono">
+          <span><span class="prompt">$</span> brew install scttfrdmn/tap/prism</span>
+          <button class="copy" data-copy="brew install scttfrdmn/tap/prism">copy</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Features -->
+    <section id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">Why Prism</div>
+          <h2>Research computing, without the setup tax</h2>
+          <p>Prism runs in your own AWS account and handles the parts researchers shouldn't have to: instance choice, storage, provisioning, and cost.</p>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="icon">⚡</div>
+            <h3>Launch in seconds</h3>
+            <p>One command picks the right instance, configures storage, and installs your tools. <code class="mono">prism workspace launch python-ml my-project</code>.</p>
+          </div>
+          <div class="card">
+            <div class="icon">💰</div>
+            <h3>Cost control built in</h3>
+            <p>Per-project budgets with live enforcement, spot pricing, idle detection, and automatic hibernation — no surprise bills.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🧪</div>
+            <h3>Research-ready templates</h3>
+            <p>Python ML, R/RStudio, genomics, bioinformatics — pre-configured with the tools your field actually uses.</p>
+          </div>
+          <div class="card">
+            <div class="icon">👥</div>
+            <h3>Built for labs &amp; classes</h3>
+            <p>Provision workstations for a whole class via invitation codes. Projects, budget pools, and per-student usage tracking.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🖥️</div>
+            <h3>CLI and desktop app</h3>
+            <p>Script it from the terminal or manage visually in the desktop app. Both share one always-on daemon.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🔒</div>
+            <h3>Your account, your data</h3>
+            <p>Runs in your AWS account with per-project IAM scoping, SSH key management, and encrypted storage. Nothing leaves your control.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Install -->
+    <section id="install" class="alt">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">Get started</div>
+          <h2>Up and running in minutes</h2>
+          <p>Install Prism, authenticate with AWS, and launch your first workspace.</p>
+        </div>
+        <div class="tabs">
+          <div class="tab-btns" role="tablist">
+            <button class="tab-btn active" data-tab="mac">macOS</button>
+            <button class="tab-btn" data-tab="win">Windows</button>
+            <button class="tab-btn" data-tab="linux">Linux</button>
+          </div>
+          <div class="tab-panel active" id="tab-mac">
+<pre><span class="c"># 1. Install</span>
+brew install scttfrdmn/tap/prism
+
+<span class="c"># 2. Authenticate with AWS (browser login)</span>
+aws login
+
+<span class="c"># 3. Launch your first workspace</span>
+prism workspace launch python-ml my-project</pre>
+          </div>
+          <div class="tab-panel" id="tab-win">
+<pre><span class="c"># 1. Install (Scoop)</span>
+scoop bucket add scttfrdmn https://github.com/scttfrdmn/scoop-bucket
+scoop install prism
+
+<span class="c"># 2. Authenticate with AWS</span>
+aws login
+
+<span class="c"># 3. Launch your first workspace</span>
+prism workspace launch python-ml my-project</pre>
+          </div>
+          <div class="tab-panel" id="tab-linux">
+<pre><span class="c"># 1. Download the latest release from</span>
+<span class="c">#    github.com/scttfrdmn/prism/releases/latest</span>
+tar xz -f prism_&lt;version&gt;_linux_amd64.tar.gz
+sudo mv prism prismd /usr/local/bin/
+
+<span class="c"># 2. Authenticate with AWS</span>
+aws login
+
+<span class="c"># 3. Launch your first workspace</span>
+prism workspace launch python-ml my-project</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="kicker">How it works</div>
+          <h2>From zero to workstation</h2>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="n">1</div>
+            <h3>Pick a template</h3>
+            <p>Choose from research-ready environments, or run <code>prism init</code> for a guided first launch.</p>
+          </div>
+          <div class="step">
+            <div class="n">2</div>
+            <h3>Launch</h3>
+            <p>Prism sizes the instance, sets up storage and SSH, and provisions your tools automatically.</p>
+          </div>
+          <div class="step">
+            <div class="n">3</div>
+            <h3>Work</h3>
+            <p>Connect over SSH or open Jupyter/RStudio in your browser via a secure tunnel.</p>
+          </div>
+          <div class="step">
+            <div class="n">4</div>
+            <h3>Stop paying</h3>
+            <p>Hibernate or stop when idle — automatically. Storage persists; compute cost doesn't.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="alt" style="text-align:center;">
+      <div class="wrap">
+        <div class="section-head" style="margin-bottom:1.6rem;">
+          <h2>Launch your first workspace</h2>
+          <p>Free and open source. Runs in your own AWS account.</p>
+        </div>
+        <div class="cta-row">
+          <a href="https://docs.prismcloud.host/user-guides/QUICK_START/" class="btn btn-primary">Read the Quick Start</a>
+          <a href="https://github.com/scttfrdmn/prism" class="btn btn-secondary">Star on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot-inner">
+      <div>
+        <a href="/" class="brand" style="font-size:1rem;"><img src="assets/prism-icon.png" alt="" style="width:22px;height:22px;"> Prism</a>
+        <div class="foot-tag" style="margin-top:.5rem;">Cloud research workstations in seconds. © 2026 Scott Friedman.</div>
+      </div>
+      <div class="foot-links">
+        <a href="https://docs.prismcloud.host">Docs</a>
+        <a href="https://github.com/scttfrdmn/prism">GitHub</a>
+        <a href="https://github.com/scttfrdmn/prism/releases">Releases</a>
+        <a href="https://github.com/scttfrdmn/prism/issues">Issues</a>
+        <a href="https://github.com/scttfrdmn/prism/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle (persists in localStorage; dark default)
+    var root = document.documentElement, tog = document.getElementById('themeToggle');
+    var saved = localStorage.getItem('prism-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+    function syncIcon(){ tog.textContent = root.getAttribute('data-theme') === 'light' ? '☀️' : '🌙'; }
+    syncIcon();
+    tog.addEventListener('click', function(){
+      var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      root.setAttribute('data-theme', next); localStorage.setItem('prism-theme', next); syncIcon();
+    });
+    // Install tabs
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.addEventListener('click', function(){
+        document.querySelectorAll('.tab-btn').forEach(function(x){ x.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(function(x){ x.classList.remove('active'); });
+        b.classList.add('active');
+        document.getElementById('tab-' + b.dataset.tab).classList.add('active');
+      });
+    });
+    // Copy button
+    document.querySelectorAll('.copy').forEach(function(b){
+      b.addEventListener('click', function(){
+        navigator.clipboard.writeText(b.dataset.copy).then(function(){
+          var t = b.textContent; b.textContent = 'copied'; setTimeout(function(){ b.textContent = t; }, 1400);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
