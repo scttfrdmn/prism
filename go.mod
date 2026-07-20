@@ -20,7 +20,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.52.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.36.0
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.71.0
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.72.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.44.0
 	github.com/fatih/color v1.19.0
 	github.com/godbus/dbus/v5 v5.2.2
