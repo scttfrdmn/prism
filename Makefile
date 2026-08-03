@@ -430,7 +430,11 @@ lint:
 	@gocyclo -over 15 . || true
 	@echo "  • Running misspell (spelling errors)..."
 	@command -v misspell >/dev/null 2>&1 || { echo "misspell not found. Install with: go install github.com/client9/misspell/cmd/misspell@latest"; exit 1; }
-	@misspell -error -i node_modules .
+	@# misspell's -i takes words to ignore, not paths, so `-i node_modules` never
+	@# excluded the directory and every run drowned in vendored JS. Feeding it the
+	@# tracked file list excludes node_modules (gitignored) and everything else we
+	@# do not own. `comandos` is correct Spanish in packaging/rpm/prism.spec.
+	@git ls-files -z | xargs -0 misspell -error -i comandos
 	@echo "  • Running staticcheck (static analysis)..."
 	@command -v staticcheck >/dev/null 2>&1 || { echo "staticcheck not found. Install with: go install honnef.co/go/tools/cmd/staticcheck@latest"; exit 1; }
 	@staticcheck ./...
