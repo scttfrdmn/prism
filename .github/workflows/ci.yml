@@ -42,6 +42,21 @@ jobs:
             exit 1
           fi
 
+      # cmd/prism-gui is a separate module that consumes the root module via
+      # `replace github.com/scttfrdmn/prism => ../../`. Go's pruned module graph
+      # makes it record the root module's indirect requirements, so bumping a
+      # dependency in the root go.mod leaves it stale and breaks `make build` --
+      # while every job here stays green, because none of them build the GUI.
+      # `go mod tidy -diff` reports the drift without writing anything, and
+      # needs no wails3, no npm, and no frontend build.
+      - name: Check prism-gui module is tidy
+        working-directory: cmd/prism-gui
+        run: |
+          if ! go mod tidy -diff; then
+            echo "::error::cmd/prism-gui/go.mod is out of sync with the root module. Fix with: cd cmd/prism-gui && go mod tidy"
+            exit 1
+          fi
+
       - name: Build CLI
         run: go build -o bin/prism ./cmd/prism
 
