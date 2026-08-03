@@ -9,6 +9,14 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 # Build flags
 LDFLAGS := -ldflags "-X github.com/scttfrdmn/prism/pkg/version.Version=$(VERSION) -X github.com/scttfrdmn/prism/pkg/version.BuildDate=$(BUILD_TIME) -X github.com/scttfrdmn/prism/pkg/version.GitCommit=$(GIT_COMMIT)"
 
+# Resolve the wails3 binary once: PATH first, then the default `go install`
+# location. Resolving up front replaces the
+# `command -v wails3 && wails3 task build || $$HOME/go/bin/wails3 task build`
+# idiom, where the `||` cannot tell "wails3 is not on PATH" from "the build
+# failed" -- so on a machine that has wails3 on PATH, a failing build silently
+# ran a second time and reported the second attempt's status.
+WAILS3 := $(shell command -v wails3 2>/dev/null || echo "$$HOME/go/bin/wails3")
+
 # Check if VERSION matches pkg/version/version.go
 .PHONY: check-version
 check-version:
@@ -30,7 +38,11 @@ build-for-tests: clean
 	@echo "🔨 Force rebuilding all binaries (daemon, CLI, GUI)..."
 	@go build -a $(LDFLAGS) -o bin/prismd ./cmd/prismd
 	@go build -a $(LDFLAGS) -o bin/prism ./cmd/prism
-	@cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build) || echo "⚠️ GUI build skipped"
+	@if [ ! -x "$(WAILS3)" ]; then \
+		echo "⚠️  Wails v3 CLI not found - GUI build skipped"; \
+	elif ! (cd cmd/prism-gui && "$(WAILS3)" task build); then \
+		echo "⚠️  GUI build FAILED - continuing with daemon and CLI only"; \
+	fi
 	@echo "✅ Fresh build complete"
 
 # Build daemon binary
@@ -49,24 +61,35 @@ build-cli:
 .PHONY: build-gui
 build-gui:
 	@echo "Building Prism GUI (Wails 3.x)..."
-	@if ! command -v wails3 >/dev/null 2>&1 && ! [ -f "$$HOME/go/bin/wails3" ]; then \
+	@if [ ! -x "$(WAILS3)" ]; then \
 		echo "❌ Wails v3 CLI not found. Install with: go install github.com/wailsapp/wails/v3/cmd/wails3@latest"; \
 		exit 1; \
 	fi
-	@cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build)
+	@cd cmd/prism-gui && "$(WAILS3)" task build
 
-# Build GUI binary (optional - won't fail if prerequisites missing)
+# Build GUI binary (optional - a missing Wails CLI is skipped, not an error)
+#
+# "Optional" means the *prerequisite* is optional. A GUI build that runs and
+# fails is a real failure and stops `make build`: scripts/build-dmg.sh calls
+# `make build` on the release path and only verifies that bin/prism and
+# bin/prismd exist, so a GUI build that failed silently would package whatever
+# stale bin/prism-gui happened to be left over from an earlier build.
 .PHONY: build-gui-optional
 build-gui-optional:
 	@echo "🎨 Building Prism GUI (optional)..."
-	@if command -v wails3 >/dev/null 2>&1 || [ -f "$$HOME/go/bin/wails3" ]; then \
-		echo "✅ Wails CLI found, building GUI..."; \
-		cd cmd/prism-gui && (command -v wails3 >/dev/null 2>&1 && wails3 task build || $$HOME/go/bin/wails3 task build); \
-		echo "✅ GUI built successfully"; \
-	else \
+	@if [ ! -x "$(WAILS3)" ]; then \
 		echo "⚠️  Wails v3 CLI not found - GUI build skipped"; \
 		echo "   To include GUI: go install github.com/wailsapp/wails/v3/cmd/wails3@latest"; \
 		echo "   GUI can be built separately with: make build-gui"; \
+		exit 0; \
+	fi; \
+	echo "✅ Wails CLI found, building GUI..."; \
+	if (cd cmd/prism-gui && "$(WAILS3)" task build); then \
+		echo "✅ GUI built successfully"; \
+	else \
+		echo "❌ GUI build FAILED (see the wails3 output above)"; \
+		echo "   If the error mentions go.mod, run: cd cmd/prism-gui && go mod tidy"; \
+		exit 1; \
 	fi
 
 # Force GUI build (for development/testing only)
