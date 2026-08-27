@@ -104,6 +104,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     certs (#596). Establishes the `nosemgrep` convention for the repo.
 
 ### Fixed
+- **`--dry-run` no longer claims a launch or leaves a phantom workspace.** A dry
+  run correctly skipped AWS but was then treated like any other launch: the daemon
+  answered "Instance X launched successfully", persisted the synthetic instance to
+  `~/.prism/state.json`, and recorded an `instance.launch` audit event. The phantom
+  record then collided with the name-uniqueness check, so the real launch of that
+  name came back HTTP 409 until the user ran `prism workspace delete` on a workspace
+  that had never existed. Dry runs now write no state and no audit entry, report
+  what was validated instead of what was launched, and drop the empty-IP connection
+  string; the same guard covers the job-array (`--count`) and parameter-sweep
+  (`--param-file`) fan-out paths, which wrote one phantom per member. A `dry-run`
+  record left in `state.json` by an earlier version no longer reserves the name. On
+  the client side, a dry run now returns without entering progress monitoring: that
+  poll loop has no early exit on error, so once the daemon stopped writing the
+  record it watched for, a dry run would otherwise have hung silently for 20
+  minutes. Test mode now synthesizes dry-run instances in the same shape production
+  does, which is why the suite stayed green through all of this (#703).
 - **`.golangci.yml` migrated to the golangci-lint v2 schema.** The config
   declared `version: 2` but used v1-schema keys (`linters-settings`,
   `issues.exclude-rules`, `run.skip-dirs`, `output.format`), which golangci-lint
