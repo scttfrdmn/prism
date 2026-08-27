@@ -326,6 +326,50 @@ func (s *Server) maybeStartProgressMonitoring(instance *types.Instance) {
 	s.progressTracker.StartMonitoring(instance, sshKeyPath)
 }
 
+// recordLaunch persists the launched instance and writes the audit trail for it.
+// Returns false if the state write failed, in which case the error response has
+// already been written. Callers skip it for dry runs, which launched nothing.
+func (s *Server) recordLaunch(req *types.LaunchRequest, instance *types.Instance, w http.ResponseWriter) bool {
+	log.Printf("[DEBUG] handleLaunchInstance: Saving instance state for %s", instance.Name)
+	if err := s.stateManager.SaveInstance(*instance); err != nil {
+		log.Printf("[ERROR] handleLaunchInstance: Failed to save state: %v", err)
+		s.writeError(w, http.StatusInternalServerError, "Failed to save instance state")
+		return false
+	}
+	log.Printf("[DEBUG] handleLaunchInstance: Instance state saved for %s", instance.Name)
+
+	// Audit the successful launch.
+	s.securityManager.LogOperationalEvent("instance.launch", instance.Name, "", true, "",
+		map[string]interface{}{
+			"template":      instance.Template,
+			"instance_type": instance.InstanceType,
+			"instance_id":   instance.ID,
+			"hourly_rate":   instance.HourlyRate,
+		})
+
+	// Course audit log entry (#165)
+	if req.CourseID != "" && s.courseManager != nil {
+		userID := "default_user"
+		if pm, err := profile.NewManagerEnhanced(); err == nil {
+			if cp, err := pm.GetCurrentProfile(); err == nil {
+				userID = cp.Name
+			}
+		}
+		_ = s.courseManager.AppendCourseAudit(req.CourseID, course.AuditEntry{
+			CourseID: req.CourseID,
+			Actor:    userID,
+			Action:   course.AuditActionInstanceLaunch,
+			Target:   instance.Name,
+			Detail: map[string]interface{}{
+				"instance_id":   instance.ID,
+				"template":      instance.Template,
+				"instance_type": instance.InstanceType,
+			},
+		})
+	}
+	return true
+}
+
 // handleLaunchInstance launches a new instance
 func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	var req types.LaunchRequest
@@ -531,7 +575,19 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	var instance *types.Instance
 
 	// In test mode, skip AWS entirely and return mock instance
-	if s.testMode {
+	if s.testMode && req.DryRun {
+		// Mirror the production dry-run shape (aws.createDryRunInstance): no id, no
+		// IPs, state "dry-run". Test mode used to synthesize a running instance even
+		// for a dry run, which is how the whole test suite stayed green through #703.
+		instance = &types.Instance{
+			Name:          req.Name,
+			Template:      req.Template,
+			State:         "dry-run",
+			Username:      "ubuntu",
+			HourlyRate:    0.0104,
+			EffectiveRate: 0.0104,
+		}
+	} else if s.testMode {
 		// Return mock instance for testing — use unique ID per launch to avoid
 		// React duplicate-key warnings when multiple instances are created in a test run
 		instance = &types.Instance{
@@ -600,48 +656,16 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 	s.maybeStartProgressMonitoring(instance)
 	log.Printf("[DEBUG] handleLaunchInstance: Progress monitoring setup done for %s", instance.Name)
 
-	// Save state with actual current AWS state
-	log.Printf("[DEBUG] handleLaunchInstance: Saving instance state for %s", instance.Name)
-	if err := s.stateManager.SaveInstance(*instance); err != nil {
-		log.Printf("[ERROR] handleLaunchInstance: Failed to save state: %v", err)
-		s.writeError(w, http.StatusInternalServerError, "Failed to save instance state")
-		return
-	}
-	log.Printf("[DEBUG] handleLaunchInstance: Instance state saved for %s", instance.Name)
-
 	// Set ProjectID from CourseID when not already set (#172)
 	if req.CourseID != "" && instance.ProjectID == "" {
 		instance.ProjectID = req.CourseID
 	}
 
-	// Audit the successful launch.
-	s.securityManager.LogOperationalEvent("instance.launch", instance.Name, "", true, "",
-		map[string]interface{}{
-			"template":      instance.Template,
-			"instance_type": instance.InstanceType,
-			"instance_id":   instance.ID,
-			"hourly_rate":   instance.HourlyRate,
-		})
-
-	// Course audit log entry (#165)
-	if req.CourseID != "" && s.courseManager != nil {
-		userID := "default_user"
-		if pm, err := profile.NewManagerEnhanced(); err == nil {
-			if cp, err := pm.GetCurrentProfile(); err == nil {
-				userID = cp.Name
-			}
-		}
-		_ = s.courseManager.AppendCourseAudit(req.CourseID, course.AuditEntry{
-			CourseID: req.CourseID,
-			Actor:    userID,
-			Action:   course.AuditActionInstanceLaunch,
-			Target:   instance.Name,
-			Detail: map[string]interface{}{
-				"instance_id":   instance.ID,
-				"template":      instance.Template,
-				"instance_type": instance.InstanceType,
-			},
-		})
+	// Remembering the launch — state record, audit trail — is for launches that
+	// happened. A dry run created nothing on AWS (#703), and the phantom record it
+	// used to leave behind then blocked the real launch of that name with a 409.
+	if !req.DryRun && !s.recordLaunch(&req, instance, w) {
+		return // Error response already written by recordLaunch
 	}
 
 	response := types.LaunchResponse{
@@ -649,6 +673,14 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 		Message:        fmt.Sprintf("Instance %s launched successfully", instance.Name),
 		EstimatedCost:  fmt.Sprintf("$%.3f/hr (effective: $%.3f/hr)", instance.HourlyRate, instance.EffectiveRate),
 		ConnectionInfo: fmt.Sprintf("ssh ubuntu@%s", instance.PublicIP),
+	}
+	if req.DryRun {
+		// Nothing was created, so there is no host to connect to and no success to
+		// report. The cost estimate is the point of the exercise, so it stays.
+		response.Message = fmt.Sprintf(
+			"Dry run complete: %s validated against template %s. No workspace was launched.",
+			instance.Name, instance.Template)
+		response.ConnectionInfo = ""
 	}
 
 	log.Printf("[DEBUG] handleLaunchInstance: Encoding response for %s", instance.Name)
@@ -1548,7 +1580,10 @@ func (s *Server) validatePackageManager(packageManager string, w http.ResponseWr
 // for cases where local state was wiped while instances are still running).
 func (s *Server) checkInstanceNameUniqueness(req *types.LaunchRequest, w http.ResponseWriter, r *http.Request) bool {
 	isActive := func(state string) bool {
-		return state != "terminated" && state != "terminating"
+		// "dry-run" records describe a workspace that was never created. Older
+		// versions persisted them (#703), and one sitting in state.json must not
+		// reserve the name against the real launch it was rehearsing.
+		return state != "terminated" && state != "terminating" && state != "dry-run"
 	}
 	conflictMsg := func(id, state string) string {
 		return fmt.Sprintf(
