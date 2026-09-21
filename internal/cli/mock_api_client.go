@@ -32,6 +32,11 @@ type MockAPIClient struct {
 	HibernationStatusError error // Specific error for GetInstanceHibernationStatus method
 	LaunchError            error // Specific error for LaunchInstance method
 
+	// BilledCostTagInactive makes GetBilledCost return the region-fallback shape:
+	// the cost-allocation tag is not active, so the figure is the region's EC2
+	// total rather than one instance's cost.
+	BilledCostTagInactive bool
+
 	// Mock data
 	Instances      []types.Instance
 	Templates      map[string]types.Template
@@ -334,14 +339,26 @@ func (m *MockAPIClient) GetBilledCost(ctx context.Context, name string) (*types.
 
 	for _, instance := range m.Instances {
 		if instance.Name == name {
-			return &types.BilledCostResult{
+			// Cost Explorer always reports a region, so the mock supplies one
+			// even when the fixture instance carries no region of its own.
+			region := instance.Region
+			if region == "" {
+				region = "us-west-2"
+			}
+			result := &types.BilledCostResult{
 				Name:        name,
 				BilledTotal: instance.CurrentSpend,
 				Currency:    "USD",
-				Region:      instance.Region,
+				Region:      region,
 				Source:      "mock",
 				TagActive:   true,
-			}, nil
+			}
+			if m.BilledCostTagInactive {
+				result.TagActive = false
+				result.FallbackRegionTotal = instance.CurrentSpend
+				result.Note = "cost-allocation tag not active"
+			}
+			return result, nil
 		}
 	}
 

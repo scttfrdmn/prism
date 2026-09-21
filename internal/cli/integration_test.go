@@ -469,6 +469,51 @@ func TestListBilledCostCommand(t *testing.T) {
 		assert.NotContains(t, out, "DELTA")
 	})
 
+	t.Run("tag active: scope names the instance and delta is a number", func(t *testing.T) {
+		// When the cost-allocation tag is active, the billed figure really is
+		// this one workspace's, so subtracting prism's estimate from it means
+		// something.
+		mock := NewMockAPIClient()
+		for i := range mock.Instances {
+			if mock.Instances[i].Name == "test-instance" {
+				mock.Instances[i].CurrentSpend = 42.50
+			}
+		}
+		app := NewAppWithClient("1.0.0", mock)
+
+		out := captureStdout(t, func() {
+			require.NoError(t, app.ListBilledCost("test-instance", "", false))
+		})
+
+		assert.Contains(t, out, "SCOPE")
+		assert.Contains(t, out, "instance")
+		assert.Contains(t, out, "+0.0000")
+		assert.NotContains(t, out, "n/a")
+	})
+
+	t.Run("region fallback: scope names the region and delta is withheld", func(t *testing.T) {
+		// Without the tag, the figure is the region's whole EC2 total. Two
+		// workspaces in one region get the same number, and subtracting a
+		// per-instance estimate from a region total is not a meaningful
+		// difference, so DELTA is withheld rather than printed.
+		mock := NewMockAPIClient()
+		mock.BilledCostTagInactive = true
+		for i := range mock.Instances {
+			if mock.Instances[i].Name == "test-instance" {
+				mock.Instances[i].CurrentSpend = 42.50
+			}
+		}
+		app := NewAppWithClient("1.0.0", mock)
+
+		out := captureStdout(t, func() {
+			require.NoError(t, app.ListBilledCost("test-instance", "", false))
+		})
+
+		assert.Contains(t, out, "us-west-2 region")
+		assert.Contains(t, out, "n/a")
+		assert.NotContains(t, out, "+0.0000")
+	})
+
 	t.Run("unknown workspace name reports not found", func(t *testing.T) {
 		mock := NewMockAPIClient()
 		app := NewAppWithClient("1.0.0", mock)

@@ -104,6 +104,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     certs (#596). Establishes the `nosemgrep` convention for the repo.
 
 ### Fixed
+- **`prism workspace cost --billed` says what each figure covers.** When the
+  `prism:instance-id` cost-allocation tag is not active, Cost Explorer can only
+  report the region's whole EC2 total, and that total went into a column headed
+  BILLED SO FAR with a `*` explained in a footnote below the table — so two
+  workspaces in one region showed the same number twice, in a column whose header
+  says these are per-workspace figures. A new SCOPE column now reads `instance`
+  or `<region> region` beside every row, taken from the `Region` already on
+  `BilledCostResult`. DELTA is withheld (`n/a`) on a region-fallback row, where
+  subtracting a per-instance estimate from a region total compares two different
+  things. The footnote now also says such rows cannot be added together.
 - **`.golangci.yml` migrated to the golangci-lint v2 schema.** The config
   declared `version: 2` but used v1-schema keys (`linters-settings`,
   `issues.exclude-rules`, `run.skip-dirs`, `output.format`), which golangci-lint
