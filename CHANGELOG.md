@@ -85,14 +85,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Green the Security Scan again (red on `main` since late July).** govulncheck
   flagged 10 reachable vulnerabilities: eight in the Go standard library (Go
   1.26.5 → 1.26.9 in both `go.mod` files and the CI/release workflows),
-  `golang.org/x/crypto` (0.53.0 → 0.56.0) and `go.opentelemetry.io/otel/sdk`
-  (1.43.0 → 1.45.0). `npm audit` reported 2 critical and 6 high advisories in
+  `golang.org/x/crypto` (0.53.0 → 0.57.0) and `go.opentelemetry.io/otel/sdk`
+  (1.43.0 → 1.45.0). Trivy, which had not run since July, also flagged
+  `golang.org/x/mod` (→ 0.41.0), `golang.org/x/net` (→ 0.60.0) and
+  `google.golang.org/grpc` (→ 1.83.2). `npm audit` reported 2 critical and 6 high advisories in
   frontend dependencies; `npm audit fix` plus vitest 3 → 5.0.3 clears all of
   them. The `cmd/prism-gui` module is re-tidied, which also picks up the
   ec2/cloudwatch drift from #695.
 - **Every security scanner now runs even when an earlier one fails (#698).**
   The scanners ran in sequence and the first failure skipped the rest, so
-  Trivy and Semgrep had produced no results since ~Jul 20. Each scanner now
+  Trivy and Semgrep had produced no results since ~Jul 20 (Trivy's first run
+  after this change found the five advisories above). Each scanner now
   runs with `continue-on-error`, and a final step fails the job if any of them
   failed.
 - **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
