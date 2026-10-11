@@ -172,12 +172,14 @@ func TestBudgetStatus_SurplusForPeriodicBudget(t *testing.T) {
 		t.Fatalf("set budget: %v", err)
 	}
 
-	// Spend $200 across two days this month (need >=2 points for the series).
+	// Spend $200 at two points this month (need >=2 points for the series). The points sit within the
+	// elapsed part of the month — fixed day offsets land in the future on the 1st/2nd and get dropped.
+	elapsed := now.Sub(monthStart)
 	_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
-		ID: "e1", AllocationID: engineAllocationID, Amount: 120, At: monthStart.Add(24 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 120,
+		ID: "e1", AllocationID: engineAllocationID, Amount: 120, At: monthStart.Add(elapsed / 3), Source: "estimate", ResourceID: "i-1", Compute: 120,
 	})
 	_ = s.spendLedger.AppendSpend(ctx, projectScope(projID), be.SpendEvent{
-		ID: "e2", AllocationID: engineAllocationID, Amount: 80, At: monthStart.Add(48 * time.Hour), Source: "estimate", ResourceID: "i-1", Compute: 80,
+		ID: "e2", AllocationID: engineAllocationID, Amount: 80, At: monthStart.Add(2 * elapsed / 3), Source: "estimate", ResourceID: "i-1", Compute: 80,
 	})
 
 	st, err := s.budgetStatus(ctx, projID)
