@@ -51,9 +51,12 @@ export function useCrudHandlers(options: UseCrudHandlersOptions) {
     handleModalDismiss();
 
     // Show progress notification via Sonner toast (Flashbar was removed in Phase 2)
-    const toastId = toast.loading(`Launching ${instanceName}... This may take a few minutes.`, {
-      description: 'Launching Workspace'
-    });
+    // A dry run validates the configuration and launches nothing (#703/#704), so each toast says so.
+    const toastId = isDryRun
+      ? toast.loading(`Validating ${instanceName} (dry run)...`, { description: 'Dry Run' })
+      : toast.loading(`Launching ${instanceName}... This may take a few minutes.`, {
+          description: 'Launching Workspace'
+        });
 
     // Fire-and-forget
     try {
@@ -80,6 +83,13 @@ export function useCrudHandlers(options: UseCrudHandlersOptions) {
         ).catch(() => {});
         return;
       }
+      if (isDryRun) {
+        toast.success(`Dry Run Passed`, {
+          id: toastId,
+          description: result?.message || `Configuration for ${instanceName} is valid. Nothing was launched.`
+        });
+        return; // nothing changed, so no reload
+      }
       toast.success(`Workspace Launched`, {
         id: toastId,
         description: `Successfully launched ${instanceName} using ${templateName}`
@@ -87,9 +97,12 @@ export function useCrudHandlers(options: UseCrudHandlersOptions) {
       // Reload data in background (don't block the success notification)
       setTimeout(loadApplicationData, 1000);
     } catch (error) {
-      toast.error(`Launch Failed`, {
+      const reason = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(isDryRun ? `Dry Run Failed` : `Launch Failed`, {
         id: toastId,
-        description: `Failed to launch ${instanceName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        description: isDryRun
+          ? `Configuration for ${instanceName} did not validate: ${reason}`
+          : `Failed to launch ${instanceName}: ${reason}`
       });
     }
   };
