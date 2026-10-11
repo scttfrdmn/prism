@@ -82,6 +82,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `spore-host/spawn` v0.65.0 → v0.72.0.
 
 ### Security
+- **Green the Security Scan again (red on `main` since late July).** govulncheck
+  flagged 10 reachable vulnerabilities: eight in the Go standard library (Go
+  1.26.5 → 1.26.9 in both `go.mod` files and the CI/release workflows),
+  `golang.org/x/crypto` (0.53.0 → 0.57.0) and `go.opentelemetry.io/otel/sdk`
+  (1.43.0 → 1.45.0). Trivy, which had not run since July, also flagged
+  `golang.org/x/mod` (→ 0.41.0), `golang.org/x/net` (→ 0.60.0) and
+  `google.golang.org/grpc` (→ 1.83.2). `npm audit` reported 2 critical and 6 high advisories in
+  frontend dependencies; `npm audit fix` plus vitest 3 → 5.0.3 clears all of
+  them. The `cmd/prism-gui` module is re-tidied, which also picks up the
+  ec2/cloudwatch drift from #695.
+- **Every security scanner now runs even when an earlier one fails (#698).**
+  The scanners ran in sequence and the first failure skipped the rest, so
+  Trivy and Semgrep had produced no results since ~Jul 20 (Trivy's first run
+  after this change found the five advisories above). Each scanner now
+  runs with `continue-on-error`, and a final step fails the job if any of them
+  failed.
 - **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
   Scan workflow runs Semgrep full-repo on push to `main` and had been red on 15
   findings (PR scans are diff-aware, so they passed). Root cause for most: prior
@@ -115,6 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `make lint` is a local developer tool (CI gates on `go vet` + `gofmt`, not
   golangci-lint); with the config now honored it surfaces pre-existing lint debt
   to be addressed separately.
+- **`TestBudgetStatus_SurplusForPeriodicBudget` no longer fails on the 1st and
+  2nd of the month.** It seeded spend at fixed offsets of +24h and +48h from the
+  start of the month, which are in the future on those days and were dropped.
+  The seeded points now fall within the elapsed part of the month.
 
 ### Changed
 - **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The

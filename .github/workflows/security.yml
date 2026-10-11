@@ -26,6 +26,8 @@ jobs:
           cache: true
 
       - name: govulncheck
+        id: govulncheck
+        continue-on-error: true
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
@@ -39,11 +41,15 @@ jobs:
           cache-dependency-path: cmd/prism-gui/frontend/package-lock.json
 
       - name: npm audit
+        id: npm_audit
+        continue-on-error: true
         working-directory: cmd/prism-gui/frontend
         run: npm audit
 
       # --- Trivy filesystem scan (Go + npm deps + secrets) ---
       - name: Trivy filesystem scan
+        id: trivy_fs
+        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
@@ -53,6 +59,8 @@ jobs:
 
       # --- Trivy IaC scan (Dockerfile misconfigurations) ---
       - name: Trivy IaC scan
+        id: trivy_iac
+        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
@@ -65,8 +73,29 @@ jobs:
       # false positives on legitimate patterns (text/template, exec.Command with
       # validated input, MD5 for checksums, etc).
       - name: Semgrep
+        id: semgrep
+        continue-on-error: true
         uses: returntocorp/semgrep-action@v1
         with:
           config: >-
             p/golang
             p/secrets
+
+      # Every scanner above runs even when an earlier one fails (continue-on-error),
+      # so one red scanner never hides the others' results (#698). This step fails
+      # the job if any of them failed.
+      - name: Fail if any scanner failed
+        if: always()
+        env:
+          GOVULNCHECK: ${{ steps.govulncheck.outcome }}
+          NPM_AUDIT: ${{ steps.npm_audit.outcome }}
+          TRIVY_FS: ${{ steps.trivy_fs.outcome }}
+          TRIVY_IAC: ${{ steps.trivy_iac.outcome }}
+          SEMGREP: ${{ steps.semgrep.outcome }}
+        run: |
+          failed=0
+          for v in GOVULNCHECK NPM_AUDIT TRIVY_FS TRIVY_IAC SEMGREP; do
+            echo "$v: ${!v}"
+            [ "${!v}" = "success" ] || failed=1
+          done
+          exit $failed

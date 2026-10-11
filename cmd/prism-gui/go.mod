@@ -1,6 +1,6 @@
 module github.com/scttfrdmn/prism/cmd/prism-gui
 
-go 1.26.5
+go 1.26.9
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/scttfrdmn/prism v0.35.5
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.102
-	golang.org/x/crypto v0.53.0
+	golang.org/x/crypto v0.57.0
 )
 
 require (
@@ -50,8 +50,8 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/wailsapp/wails/webview2 v1.0.24 // indirect
 	github.com/zalando/go-keyring v0.2.8 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
