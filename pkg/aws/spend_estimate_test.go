@@ -173,3 +173,75 @@ func TestCalculateActualCosts_RunningChargesBothRates(t *testing.T) {
 		t.Errorf("effective rate = %.5f, want %.5f", rate, testComputeRate+testStorageRate)
 	}
 }
+
+func TestCalculateRunningHoursFromHistory_FirstTransitionLeavesStopped(t *testing.T) {
+	// The walk used to open by assuming the instance was running, so the hours
+	// between the billing start and the first recorded transition were billed
+	// as running hours even when that transition says the instance was leaving
+	// "stopped". Here the workspace was stopped for 20 hours, started, and has
+	// run for 10.
+	start := hoursAgo(30)
+	history := []ctypes.StateTransition{
+		transition(instanceStateStopped, "pending", hoursAgo(10)),
+		transition("pending", instanceStateRunning, hoursAgo(10)),
+	}
+
+	got := calculateRunningHoursFromHistory(start, instanceStateRunning, history, false, nil)
+
+	if !closeTo(got, 10, 0.01) {
+		t.Errorf("running hours = %.4f, want 10 (the 20 hours before the start were stopped)", got)
+	}
+}
+
+func TestCalculateRunningHoursFromHistory_FirstTransitionLeavesRunning(t *testing.T) {
+	// The other side of the same rule. The first transition says the instance
+	// was leaving "running", so the hours before it were running hours and are
+	// billed, as they always were.
+	start := hoursAgo(30)
+	history := []ctypes.StateTransition{
+		transition(instanceStateRunning, instanceStateStopping, hoursAgo(10)),
+		transition(instanceStateStopping, instanceStateStopped, hoursAgo(10)),
+	}
+
+	got := calculateRunningHoursFromHistory(start, instanceStateStopped, history, false, nil)
+
+	if !closeTo(got, 20, 0.01) {
+		t.Errorf("running hours = %.4f, want 20 (billing start to the recorded stop)", got)
+	}
+}
+
+func TestCalculateRunningHoursFromHistory_LaunchEntryKeepsRunningAssumption(t *testing.T) {
+	// A launch is recorded with an empty FromState, which names no earlier
+	// state to read. That case keeps the old assumption, so behaviour for a
+	// freshly launched instance does not change.
+	start := hoursAgo(5)
+	history := []ctypes.StateTransition{
+		transition("", "pending", hoursAgo(4)),
+	}
+
+	got := calculateRunningHoursFromHistory(start, instanceStateRunning, history, false, nil)
+
+	if !closeTo(got, 5, 0.01) {
+		t.Errorf("running hours = %.4f, want 5 (pending is billable, as is the span before it)", got)
+	}
+}
+
+func TestCalculateRunningHoursFromHistory_StoppedSpanAndUnrecordedStop(t *testing.T) {
+	// Both corrections at once, which is the shape the bristol-workspace-2
+	// history actually has: a stopped span before the recorded restart, and a
+	// stop after it that nothing recorded. Billing starts 120 hours ago, the
+	// workspace was stopped until it restarted 100 hours ago, and AWS dates its
+	// stop to 40 hours ago. Only those 60 hours are billable.
+	start := hoursAgo(120)
+	stoppedAt := hoursAgo(40)
+	history := []ctypes.StateTransition{
+		transition(instanceStateStopped, "pending", hoursAgo(100)),
+		transition("pending", instanceStateRunning, hoursAgo(100)),
+	}
+
+	got := calculateRunningHoursFromHistory(start, instanceStateStopped, history, false, &stoppedAt)
+
+	if !closeTo(got, 60, 0.01) {
+		t.Errorf("running hours = %.4f, want 60 (restart 100h ago to stop 40h ago)", got)
+	}
+}

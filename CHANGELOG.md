@@ -120,6 +120,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     certs (#596). Establishes the `nosemgrep` convention for the repo.
 
 ### Fixed
+- **Spend estimate no longer bills the span before the first recorded transition
+  as running time.** `calculateRunningHoursFromHistory` opened its walk with
+  `lastState := instanceStateRunning`, so the hours between the billing start and
+  the first entry in the history were charged at the compute rate even when that
+  entry reads `stopped → pending`, which says the instance was off for all of
+  them. The walk now reads the first transition's `FromState`, which names the
+  state the instance was leaving, and keeps the running assumption only for a
+  launch entry, whose `FromState` is empty by design.
 - **Spend estimate no longer bills a stopped or hibernated instance as if it were
   running.** `calculateRunningHoursFromHistory` ended by charging every hour from
   the last *recorded* transition to now whenever that transition was a start — it

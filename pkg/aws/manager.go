@@ -4534,7 +4534,17 @@ func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState s
 
 	var runningHours float64
 	lastStateTime := billingStartTime
-	lastState := instanceStateRunning // Instances start in running/pending state
+	// lastState is the state the instance was in between billingStartTime and
+	// the first recorded transition. That transition names the state it was
+	// leaving, so read the state from there rather than assuming the instance
+	// was running: a history that opens with "stopped -> pending" means the span
+	// before it was stopped, and billing it as running hours charges the compute
+	// rate for a machine that was off. A launch entry names no earlier state
+	// (its FromState is empty), so the running assumption stands for that case.
+	lastState := instanceStateRunning
+	if from := strings.ToLower(relevantHistory[0].FromState); from != "" {
+		lastState = from
+	}
 
 	// Process each state transition to calculate running time
 	for _, transition := range relevantHistory {
