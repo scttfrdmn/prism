@@ -1,6 +1,6 @@
 module github.com/scttfrdmn/prism/cmd/prism-gui
 
-go 1.26.5
+go 1.26.9
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
@@ -9,7 +9,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/scttfrdmn/prism v0.35.5
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.102
-	golang.org/x/crypto v0.53.0
+	golang.org/x/crypto v0.56.0
 )
 
 require (
@@ -22,9 +22,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.31 // indirect
 	github.com/aws/aws-sdk-go-v2/service/artifact v1.18.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.62.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.63.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.66.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.313.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.316.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/efs v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/fsx v1.67.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.13 // indirect
@@ -50,8 +50,8 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/wailsapp/wails/webview2 v1.0.24 // indirect
 	github.com/zalando/go-keyring v0.2.8 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
