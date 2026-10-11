@@ -184,6 +184,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2nd of the month.** It seeded spend at fixed offsets of +24h and +48h from the
   start of the month, which are in the future on those days and were dropped.
   The seeded points now fall within the elapsed part of the month.
+- **The budget ledger no longer charges compute for a stopped or hibernated
+  workspace whose stop went unrecorded (#720, #717).** The daemon saved AWS's
+  view of an instance on list refresh and on `refresh` without recording the
+  state change. So a stop prism didn't initiate (on-instance idle hibernation,
+  the console, the TTL safety valve) left the history ending at `→ running`,
+  and the ledger, which drives the launch gate and live enforcement, kept
+  billing compute up to now on every accrual pass. Every save of an
+  AWS-observed instance now records the transition, timestamped with AWS's own
+  stop time when known (new `observed_stop_time` field). The ledger and the
+  cost analytics walk (`runningHoursInWindow`) bound a trailing `→ running`
+  segment the way #715 bounds the displayed estimate, which covers records
+  already missing their stop. An over-accrued ledger stops growing but isn't
+  reduced (negative deltas are clamped); billed reconciliation corrects it
+  where active.
 
 ### Changed
 - **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The

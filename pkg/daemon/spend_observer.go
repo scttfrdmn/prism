@@ -310,7 +310,7 @@ func runningHours(inst types.Instance, now time.Time) float64 {
 		if tr.ToState != "running" {
 			continue
 		}
-		end := now
+		end := trailingRunEnd(inst, tr, now)
 		if i+1 < len(inst.StateHistory) {
 			end = inst.StateHistory[i+1].Timestamp
 		}
@@ -319,4 +319,23 @@ func runningHours(inst types.Instance, now time.Time) float64 {
 		}
 	}
 	return hours
+}
+
+// stoppedStates are the states in which an instance accrues no compute. "stopping" is excluded:
+// it is transient and billable during hibernation.
+var stoppedStates = map[string]bool{"stopped": true, "hibernated": true, "terminated": true, "shutting-down": true}
+
+// trailingRunEnd returns where the history's final "running" segment (starting at tr) ends. While the
+// instance is still running that is until. If it has stopped, the history ending at a start means the
+// stop went unrecorded (#717): the segment ends at AWS's own stop time when known, otherwise at the
+// start itself -- under-counting an unrecorded window is bounded by that window, over-counting it is
+// not (#720, mirroring #715's fix to the displayed estimate).
+func trailingRunEnd(inst types.Instance, tr types.StateTransition, until time.Time) time.Time {
+	if !stoppedStates[inst.State] {
+		return until
+	}
+	if stop := inst.ObservedStopTime; stop != nil && stop.After(tr.Timestamp) && stop.Before(until) {
+		return *stop
+	}
+	return tr.Timestamp
 }

@@ -96,7 +96,14 @@ func (s *Server) handleListInstances(w http.ResponseWriter, r *http.Request) {
 				bestByName[instance.Name] = instance
 			}
 		}
-		for _, instance := range bestByName {
+		cached := map[string]types.Instance{}
+		if st, err := s.stateManager.LoadState(); err == nil {
+			cached = st.Instances
+		}
+		for name, instance := range bestByName {
+			if prev, ok := cached[name]; ok && (prev.ID == "" || prev.ID == instance.ID) {
+				recordObservedTransition(prev, &instance, "aws_observed", "system")
+			}
 			_ = s.stateManager.SaveInstance(instance)
 		}
 	} else {
@@ -858,6 +865,7 @@ func (s *Server) handleGetInstance(w http.ResponseWriter, r *http.Request, ident
 	if cachedInstance.Username != "" {
 		liveInstance.Username = cachedInstance.Username
 	}
+	recordObservedTransition(cachedInstance, liveInstance, "aws_observed", "system")
 
 	// Update state with latest AWS data
 	if err := s.stateManager.SaveInstance(*liveInstance); err != nil {
@@ -1046,34 +1054,49 @@ func (s *Server) refreshInstanceStateFromAWS(awsManager *aws.Manager, instanceNa
 		liveInstance.DeletionTime = cachedInstance.DeletionTime
 	}
 
-	// Preserve existing state history
-	liveInstance.StateHistory = cachedInstance.StateHistory
-
-	// Record state transition if state changed, unless AWS hasn't propagated
-	// the most recent lifecycle action yet. After a Start/Stop/Hibernate call,
-	// AWS may briefly continue to report the prior state for ~1s while it
-	// processes the request. Without this guard, the optimistic transitional
-	// state written by applyExpectedTransitionalState gets immediately rolled
-	// back here (e.g., pending -> stopped, stopping -> running), corrupting
-	// state history and breaking cost accounting.
-	if cachedInstance.State != liveInstance.State {
-		if isUnpropagatedAWSState(cachedInstance.State, liveInstance.State) {
-			// Keep the optimistic cached state; the state monitor will
-			// record the real transition once AWS actually propagates.
-			liveInstance.State = cachedInstance.State
-			return liveInstance
-		}
-		transition := types.StateTransition{
-			FromState: cachedInstance.State,
-			ToState:   liveInstance.State,
-			Timestamp: time.Now(),
-			Reason:    "user_action", // State change triggered by user via API
-			Initiator: "user",        // User-initiated state change
-		}
-		liveInstance.StateHistory = append(liveInstance.StateHistory, transition)
-	}
+	recordObservedTransition(cachedInstance, liveInstance, "user_action", "user") // State change triggered by user via API
 
 	return liveInstance
+}
+
+// recordObservedTransition carries the cached record's state history onto a freshly built AWS view
+// of the same instance and, when AWS reports a different state, records that change. Every path
+// that persists an AWS-observed instance must go through here: saving the AWS view as-is updates
+// State but leaves the history ending at the old state, so a stop prism did not initiate (on-instance
+// idle hibernation, the console, the TTL safety valve) never appears in the history, and every
+// reader of it -- the spend estimate and the budget ledger -- bills compute up to now (#717, #720).
+//
+// A stop is timestamped with AWS's own stop time when that is known and later than the last
+// recorded transition, rather than with whenever the daemon happened to notice it.
+//
+// AWS may briefly keep reporting the prior state for ~1s after a Start/Stop/Hibernate call. Without
+// the isUnpropagatedAWSState guard, the optimistic transitional state written by
+// applyExpectedTransitionalState would be rolled back here (e.g., pending -> stopped, stopping ->
+// running), corrupting state history and breaking cost accounting. In that case the cached state is
+// kept and the state monitor records the real transition once AWS propagates.
+func recordObservedTransition(cached types.Instance, live *types.Instance, reason, initiator string) {
+	live.StateHistory = cached.StateHistory
+	if cached.State == live.State {
+		return
+	}
+	if isUnpropagatedAWSState(cached.State, live.State) {
+		live.State = cached.State
+		return
+	}
+	now := time.Now()
+	at := now
+	if stop := live.ObservedStopTime; stop != nil && stop.Before(now) {
+		if n := len(cached.StateHistory); n == 0 || stop.After(cached.StateHistory[n-1].Timestamp) {
+			at = *stop
+		}
+	}
+	live.StateHistory = append(live.StateHistory, types.StateTransition{
+		FromState: cached.State,
+		ToState:   live.State,
+		Timestamp: at,
+		Reason:    reason,
+		Initiator: initiator,
+	})
 }
 
 // isUnpropagatedAWSState reports whether an AWS-reported state is the

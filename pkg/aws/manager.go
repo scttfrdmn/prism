@@ -3211,6 +3211,7 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		KeyName:               keyName,
 		LaunchTime:            launchTime,
 		RunningStateStartTime: runningStateStartTime,
+		ObservedStopTime:      observedStopTime,
 		InstanceType:          instanceType,
 		HourlyRate:            hourlyRate,
 		CurrentSpend:          currentSpend,

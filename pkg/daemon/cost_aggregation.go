@@ -401,7 +401,7 @@ func runningHoursInWindow(inst types.Instance, start, end time.Time) float64 {
 		if tr.ToState != "running" {
 			continue
 		}
-		segEnd := end
+		segEnd := trailingRunEnd(inst, tr, end)
 		if i+1 < len(inst.StateHistory) {
 			segEnd = inst.StateHistory[i+1].Timestamp
 		}
