@@ -3032,6 +3032,27 @@ func resolveRunningStateStartTime(ec2Instance ec2types.Instance, name, state str
 	return nil
 }
 
+// resolveObservedStopTime returns AWS's timestamp for the most recent stop of a
+// non-running instance, parsed from StateTransitionReason, or nil when the
+// instance is running or AWS supplied nothing parseable.
+//
+// The spend estimate needs this because prism's own state history can miss a
+// stop. When it does, the history's last entry is a start and the estimate
+// would otherwise charge the compute rate for every hour since.
+func resolveObservedStopTime(ec2Instance ec2types.Instance, state string) *time.Time {
+	if strings.ToLower(state) == instanceStateRunning || state == "pending" {
+		return nil
+	}
+	if ec2Instance.StateTransitionReason == nil || *ec2Instance.StateTransitionReason == "" {
+		return nil
+	}
+	parsed, err := parseStateTransitionReason(*ec2Instance.StateTransitionReason)
+	if err != nil {
+		return nil
+	}
+	return &parsed
+}
+
 // mergeLocalStateMetadata copies fields from local state that AWS does not track and manages
 // the IsHibernating flag transitions.
 func mergeLocalStateMetadata(instance *ctypes.Instance, name, state string, localState *ctypes.State) {
@@ -3171,7 +3192,11 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	if runningStateStartTime != nil {
 		billingStartTime = *runningStateStartTime
 	}
-	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, billingStartTime, state, stateHistory, isHibernating)
+	// AWS's own timestamp for the most recent stop, used when prism's state
+	// history never recorded that the instance stopped.
+	observedStopTime := resolveObservedStopTime(ec2Instance, state)
+
+	currentSpend, effectiveRate := calculateActualCosts(hourlyRate, ebsStorageCostPerHour, billingStartTime, state, stateHistory, isHibernating, observedStopTime)
 
 	// Create instance
 	instance := &ctypes.Instance{
@@ -4411,7 +4436,7 @@ func estimateInstanceCost(instanceType string) float64 {
 // calculateActualCosts calculates actual costs based on instance running time
 // billingStartTime should be the running state start time (not launch time) for accuracy
 // AWS only bills for "running" state, not "pending" state before running
-func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, billingStartTime time.Time, currentState string, stateHistory []ctypes.StateTransition, isHibernating bool) (currentSpend, effectiveRate float64) {
+func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, billingStartTime time.Time, currentState string, stateHistory []ctypes.StateTransition, isHibernating bool, observedStopTime *time.Time) (currentSpend, effectiveRate float64) {
 	now := time.Now()
 	totalHours := now.Sub(billingStartTime).Hours()
 
@@ -4423,7 +4448,7 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 	var runningHours float64
 	if len(stateHistory) > 0 {
 		// Use state history for accurate cost calculation
-		runningHours = calculateRunningHoursFromHistory(billingStartTime, currentState, stateHistory, isHibernating)
+		runningHours = calculateRunningHoursFromHistory(billingStartTime, currentState, stateHistory, isHibernating, observedStopTime)
 	} else {
 		// Fallback to estimation if no state history (legacy instances or first launch)
 		switch strings.ToLower(currentState) {
@@ -4432,8 +4457,15 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 			runningHours = totalHours
 
 		case instanceStateStopped, "hibernated":
-			// If currently stopped/hibernated and no history, estimate it ran for part of the time
-			runningHours = totalHours * 0.6 // Conservative estimate
+			// AWS dates the stop in StateTransitionReason. When we have that,
+			// the running window is known exactly and no guess is needed.
+			if observedStopTime != nil && observedStopTime.After(billingStartTime) {
+				runningHours = observedStopTime.Sub(billingStartTime).Hours()
+			} else {
+				// No history and no stop timestamp: fall back to a fraction of
+				// elapsed time rather than charging all of it.
+				runningHours = totalHours * 0.6
+			}
 
 		case "pending", "shutting-down":
 			// Transitional states - estimate partial running time
@@ -4461,13 +4493,15 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 // calculateRunningHoursFromHistory calculates actual running hours from state transition history
 // billingStartTime is the time when billing started (running state start, not launch time)
 // isHibernating indicates if instance is currently hibernating (stopping state IS billable during hibernation)
+// observedStopTime is AWS's own timestamp for the most recent stop, parsed from
+// StateTransitionReason, or nil when AWS did not supply one.
 // isBillableState returns true if the given instance state incurs AWS billing charges.
 func isBillableState(state string, isHibernating bool) bool {
 	return state == instanceStateRunning || state == "pending" ||
 		(isHibernating && state == instanceStateStopping)
 }
 
-func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState string, history []ctypes.StateTransition, isHibernating bool) float64 {
+func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState string, history []ctypes.StateTransition, isHibernating bool, observedStopTime *time.Time) float64 {
 	if len(history) == 0 {
 		// No history - use simple calculation based on current state
 		now := time.Now()
@@ -4517,10 +4551,23 @@ func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState s
 		lastState = transition.ToState
 	}
 
-	// Add time from last transition to now
-	finalDuration := time.Now().Sub(lastStateTime).Hours()
+	// Add time from the last recorded transition up to the present. lastState is
+	// the last state prism wrote down, which is not always the state the
+	// instance is in: a missed stop leaves a start as the final entry and the
+	// machine stopped hours or weeks ago. AWS's currentState is observed rather
+	// than recorded, so it decides whether this stretch is billable at all.
 	if isBillableState(lastState, isHibernating) {
-		runningHours += finalDuration
+		billableUntil := time.Now()
+		if !isBillableState(strings.ToLower(currentState), isHibernating) {
+			// The instance stopped at some point prism did not record. Bill up to
+			// AWS's own stop timestamp when there is one, and otherwise stop
+			// billing at the last transition we can actually vouch for.
+			billableUntil = lastStateTime
+			if observedStopTime != nil && observedStopTime.After(lastStateTime) {
+				billableUntil = *observedStopTime
+			}
+		}
+		runningHours += billableUntil.Sub(lastStateTime).Hours()
 	}
 
 	return runningHours

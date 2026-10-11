@@ -120,6 +120,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     certs (#596). Establishes the `nosemgrep` convention for the repo.
 
 ### Fixed
+- **Spend estimate no longer bills a stopped or hibernated instance as if it were
+  running.** `calculateRunningHoursFromHistory` ended by charging every hour from
+  the last *recorded* transition to now whenever that transition was a start — it
+  never consulted the instance's actual current state, which it already receives
+  as a parameter. When the daemon misses a stop (as it did for a hibernated
+  workspace whose history ends at `pending → running`), the estimate keeps
+  accruing the full hourly rate indefinitely: one 26-day-old hibernated
+  `m7i.xlarge` showed `CurrentSpend` of $129.86 against roughly $7.40 of actual
+  AWS charges, an effective rate of $0.20999/hour against a $0.2016 list rate.
+  AWS's observed state now decides whether that final stretch is billable, and
+  AWS's own stop timestamp (parsed from `StateTransitionReason` by the existing
+  `parseStateTransitionReason`) bounds it when available. The no-history fallback
+  likewise prefers that timestamp over its `totalHours * 0.6` guess. Adds the
+  first unit tests for `calculateActualCosts` and
+  `calculateRunningHoursFromHistory`.
 - **`--dry-run` no longer claims a launch or leaves a phantom workspace.** A dry
   run correctly skipped AWS but was then treated like any other launch: the daemon
   answered "Instance X launched successfully", persisted the synthetic instance to
