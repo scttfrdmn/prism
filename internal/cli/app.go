@@ -1310,9 +1310,9 @@ func (a *App) ListBilledCost(name, projectFilter string, billedOnly bool) error 
 
 	w := tabwriter.NewWriter(os.Stdout, TabWriterMinWidth, TabWriterTabWidth, TabWriterPadding, TabWriterPadChar, TabWriterFlags)
 	if billedOnly {
-		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tBILLED SO FAR")
+		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tBILLED SO FAR\tSCOPE")
 	} else {
-		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tBILLED SO FAR\tPRISM EST\tDELTA")
+		_, _ = fmt.Fprintln(w, "INSTANCE\tSTATE\tBILLED SO FAR\tSCOPE\tPRISM EST\tDELTA")
 	}
 
 	var notes []string
@@ -1322,10 +1322,10 @@ func (a *App) ListBilledCost(name, projectFilter string, billedOnly bool) error 
 		billed, err := a.apiClient.GetBilledCost(a.ctx, inst.Name)
 		if err != nil {
 			if billedOnly {
-				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", inst.Name, strings.ToUpper(inst.State), "error")
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", inst.Name, strings.ToUpper(inst.State), "error", "-")
 			} else {
-				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t$%.4f\t%s\n",
-					inst.Name, strings.ToUpper(inst.State), "error", inst.CurrentSpend, "n/a")
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t$%.4f\t%s\n",
+					inst.Name, strings.ToUpper(inst.State), "error", "-", inst.CurrentSpend, "n/a")
 			}
 			notes = append(notes, fmt.Sprintf("%s: %v", inst.Name, err))
 			continue
@@ -1335,9 +1335,16 @@ func (a *App) ListBilledCost(name, projectFilter string, billedOnly bool) error 
 			sourceLine = billed.Source
 		}
 		marker := ""
+		// SCOPE says what the billed figure actually covers. With the
+		// cost-allocation tag active it is this one workspace. Without it,
+		// Cost Explorer can only give the region's whole EC2 total, which every
+		// workspace in that region shares, so the column has to say so next to
+		// the number rather than only in a footnote.
+		scope := "instance"
 		if !billed.TagActive {
 			marker += "*"
 			anyTagInactive = true
+			scope = fmt.Sprintf("%s region", billed.Region)
 		}
 		if billed.Estimated {
 			marker += "~"
@@ -1345,13 +1352,19 @@ func (a *App) ListBilledCost(name, projectFilter string, billedOnly bool) error 
 		}
 
 		if billedOnly {
-			_, _ = fmt.Fprintf(w, "%s\t%s\t$%.4f%s\n",
-				inst.Name, strings.ToUpper(inst.State), billed.BilledTotal, marker)
+			_, _ = fmt.Fprintf(w, "%s\t%s\t$%.4f%s\t%s\n",
+				inst.Name, strings.ToUpper(inst.State), billed.BilledTotal, marker, scope)
 		} else {
 			// DELTA = prism estimate minus AWS billed; positive means prism over-counts.
-			delta := inst.CurrentSpend - billed.BilledTotal
-			_, _ = fmt.Fprintf(w, "%s\t%s\t$%.4f%s\t$%.4f\t%+.4f\n",
-				inst.Name, strings.ToUpper(inst.State), billed.BilledTotal, marker, inst.CurrentSpend, delta)
+			// It is withheld on a region-fallback row, where subtracting a
+			// per-instance estimate from a region total compares two different
+			// things.
+			deltaCol := "n/a"
+			if billed.TagActive {
+				deltaCol = fmt.Sprintf("%+.4f", inst.CurrentSpend-billed.BilledTotal)
+			}
+			_, _ = fmt.Fprintf(w, "%s\t%s\t$%.4f%s\t%s\t$%.4f\t%s\n",
+				inst.Name, strings.ToUpper(inst.State), billed.BilledTotal, marker, scope, inst.CurrentSpend, deltaCol)
 		}
 
 		if billed.Note != "" {
@@ -1366,9 +1379,13 @@ func (a *App) ListBilledCost(name, projectFilter string, billedOnly bool) error 
 	}
 	if !billedOnly {
 		fmt.Println("DELTA = prism estimate minus AWS billed (positive means prism over-counts).")
+		if anyTagInactive {
+			fmt.Println("DELTA is withheld where SCOPE is a region: the two figures cover different things.")
+		}
 	}
 	if anyTagInactive {
-		fmt.Println("* region fallback: per-instance cost-allocation tag not active.")
+		fmt.Println("* region fallback: per-instance cost-allocation tag not active, so the figure is")
+		fmt.Println("  the region's whole EC2 total and rows sharing a region cannot be added together.")
 	}
 	if anyEstimated {
 		fmt.Println("~ includes a current period AWS has not yet finalized.")
