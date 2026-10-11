@@ -717,6 +717,19 @@ func TestCheckInstanceNameUniqueness(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "stopped-proj")
 	})
 
+	t.Run("dry-run record allows name reuse", func(t *testing.T) {
+		// A dry run creates nothing on AWS (#703). Older versions still persisted a
+		// synthetic record for it, so the name check must not let such a record
+		// reserve a name -- otherwise the real launch of that name comes back 409.
+		saveInstance("dry-proj", "", "dry-run")
+		conflict := server.checkInstanceNameUniqueness(
+			&types.LaunchRequest{Name: "dry-proj", Template: "test-template"},
+			httptest.NewRecorder(),
+			httptest.NewRequest("POST", "/", nil),
+		)
+		assert.False(t, conflict)
+	})
+
 	t.Run("terminated instance allows name reuse", func(t *testing.T) {
 		saveInstance("old-proj", "i-ccc333", "terminated")
 		conflict := server.checkInstanceNameUniqueness(
