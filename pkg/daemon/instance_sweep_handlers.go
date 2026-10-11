@@ -143,6 +143,18 @@ func (s *Server) fanOutSweepTestMode(req *types.LaunchRequest, sweepID string, m
 		if req.ExpiresAt != nil {
 			inst.ExpiresAt = req.ExpiresAt
 		}
+		if req.DryRun {
+			// Nothing was created, so strip the fields a real launch would have filled
+			// in and report the member as a preview (#703). Recording it would leave a
+			// phantom that blocks the real launch of that name.
+			inst.ID = ""
+			inst.State = "dry-run"
+			inst.PublicIP = ""
+			inst.PrivateIP = ""
+			inst.LaunchTime = time.Time{}
+			resp.Instances = append(resp.Instances, inst)
+			continue
+		}
 		if err := s.stateManager.SaveInstance(inst); err != nil {
 			resp.Errors = append(resp.Errors, fmt.Sprintf("%s: failed to save state: %v", name, err))
 			continue
@@ -174,6 +186,13 @@ func (s *Server) fanOutSweep(ctx context.Context, awsManager *aws.Manager, req *
 		if inst == nil {
 			continue
 		}
+		// A dry run created nothing on AWS (#703): there is no instance to refresh,
+		// monitor, remember, or audit. The member is reported as a preview only.
+		if req.DryRun {
+			resp.Instances = append(resp.Instances, *inst)
+			continue
+		}
+
 		if refreshed := s.refreshInstanceStateFromAWS(awsManager, inst.Name); refreshed != nil {
 			inst = refreshed
 		}
