@@ -338,6 +338,16 @@ func (a *App) Launch(args []string) error {
 		spinner.StopWithMessage(fmt.Sprintf("✅ %s", response.Message))
 	}
 
+	// Everything below describes a workspace that now exists: its project budget,
+	// its setup progress, how to connect to it. A dry run created none, so it says
+	// what to do next and stops (#703).
+	if req.DryRun {
+		if !req.Quiet {
+			fmt.Printf("\n💡 Run the same command without --dry-run to launch it.\n")
+		}
+		return nil
+	}
+
 	// Show project information if launched in a project (unless quiet mode)
 	if !req.Quiet && req.ProjectID != "" {
 		fmt.Printf("📁 Project: %s\n", req.ProjectID)
@@ -405,7 +415,12 @@ func (a *App) launchArray(req types.LaunchRequest) error {
 	}
 
 	if spinner != nil {
-		spinner.StopWithMessage(fmt.Sprintf("✅ Job array %s: %d/%d instances launched", resp.JobArrayID, resp.Launched, resp.Requested))
+		msg := fmt.Sprintf("✅ Job array %s: %d/%d instances launched", resp.JobArrayID, resp.Launched, resp.Requested)
+		if req.DryRun {
+			msg = fmt.Sprintf("✅ Dry run: job array %s validated, %d member(s), nothing launched",
+				resp.JobArrayID, len(resp.Instances))
+		}
+		spinner.StopWithMessage(msg)
 	}
 	a.renderArrayResult(&req, resp)
 	return nil
@@ -444,6 +459,12 @@ func (a *App) renderArrayResult(req *types.LaunchRequest, resp *types.LaunchArra
 		}
 	}
 	if req.Quiet {
+		return
+	}
+	if req.DryRun {
+		// No members exist, so the project-budget line below would be describing
+		// workspaces that were never created.
+		fmt.Printf("\n💡 Run the same command without --dry-run to launch them.\n")
 		return
 	}
 	if req.ProjectID != "" {
@@ -514,7 +535,12 @@ func (a *App) launchSweep(req types.LaunchRequest, paramFile, sweepName string) 
 	}
 
 	if spinner != nil {
-		spinner.StopWithMessage(fmt.Sprintf("✅ Sweep %s: %d/%d instances launched", resp.SweepID, resp.Launched, resp.Requested))
+		msg := fmt.Sprintf("✅ Sweep %s: %d/%d instances launched", resp.SweepID, resp.Launched, resp.Requested)
+		if req.DryRun {
+			msg = fmt.Sprintf("✅ Dry run: sweep %s validated, %d member(s), nothing launched",
+				resp.SweepID, len(resp.Instances))
+		}
+		spinner.StopWithMessage(msg)
 	}
 	a.renderSweepResult(&req, resp)
 	return nil
@@ -553,6 +579,10 @@ func (a *App) renderSweepResult(req *types.LaunchRequest, resp *types.LaunchSwee
 		}
 	}
 	if req.Quiet {
+		return
+	}
+	if req.DryRun {
+		fmt.Printf("\n💡 Run the same command without --dry-run to launch them.\n")
 		return
 	}
 	fmt.Printf("\n💡 Each instance exposes its parameters as PARAM_<key> env vars. List members: prism workspace list\n")
@@ -710,6 +740,13 @@ func (a *App) resolveInstanceTypeForPreview(req *types.LaunchRequest) string {
 // It always returns true when --wait is set, and also when the template has no
 // pre-built AMI (package installation templates take 5-10 minutes).
 func (a *App) shouldMonitorLaunch(req *types.LaunchRequest) bool {
+	// A dry run created no workspace, so there is no state to watch and nothing for
+	// --wait to wait for. Monitoring one polls the daemon for a record it correctly
+	// never wrote, and the poll loop has no early exit on error, so it would sit
+	// silent for its full 20 minutes (#703).
+	if req.DryRun {
+		return false
+	}
 	if req.Wait {
 		return true
 	}

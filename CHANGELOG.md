@@ -82,6 +82,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `spore-host/spawn` v0.65.0 → v0.72.0.
 
 ### Security
+- **Green the Security Scan again (red on `main` since late July).** govulncheck
+  flagged 10 reachable vulnerabilities: eight in the Go standard library (Go
+  1.26.5 → 1.26.9 in both `go.mod` files and the CI/release workflows),
+  `golang.org/x/crypto` (0.53.0 → 0.57.0) and `go.opentelemetry.io/otel/sdk`
+  (1.43.0 → 1.45.0). Trivy, which had not run since July, also flagged
+  `golang.org/x/mod` (→ 0.41.0), `golang.org/x/net` (→ 0.60.0) and
+  `google.golang.org/grpc` (→ 1.83.2). `npm audit` reported 2 critical and 6 high advisories in
+  frontend dependencies; `npm audit fix` plus vitest 3 → 5.0.3 clears all of
+  them. The `cmd/prism-gui` module is re-tidied, which also picks up the
+  ec2/cloudwatch drift from #695.
+- **Every security scanner now runs even when an earlier one fails (#698).**
+  The scanners ran in sequence and the first failure skipped the rest, so
+  Trivy and Semgrep had produced no results since ~Jul 20 (Trivy's first run
+  after this change found the five advisories above). Each scanner now
+  runs with `continue-on-error`, and a final step fails the job if any of them
+  failed.
 - **Green the Semgrep SAST scan (15 blocking findings on `main`).** The Security
   Scan workflow runs Semgrep full-repo on push to `main` and had been red on 15
   findings (PR scans are diff-aware, so they passed). Root cause for most: prior
@@ -114,6 +130,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BilledCostResult`. DELTA is withheld (`n/a`) on a region-fallback row, where
   subtracting a per-instance estimate from a region total compares two different
   things. The footnote now also says such rows cannot be added together.
+- **Spend estimate no longer bills the span before the first recorded transition
+  as running time.** `calculateRunningHoursFromHistory` opened its walk with
+  `lastState := instanceStateRunning`, so the hours between the billing start and
+  the first entry in the history were charged at the compute rate even when that
+  entry reads `stopped → pending`, which says the instance was off for all of
+  them. The walk now reads the first transition's `FromState`, which names the
+  state the instance was leaving, and keeps the running assumption only for a
+  launch entry, whose `FromState` is empty by design.
+- **Spend estimate no longer bills a stopped or hibernated instance as if it were
+  running.** `calculateRunningHoursFromHistory` ended by charging every hour from
+  the last *recorded* transition to now whenever that transition was a start — it
+  never consulted the instance's actual current state, which it already receives
+  as a parameter. When the daemon misses a stop (as it did for a hibernated
+  workspace whose history ends at `pending → running`), the estimate keeps
+  accruing the full hourly rate indefinitely: one 26-day-old hibernated
+  `m7i.xlarge` showed `CurrentSpend` of $129.86 against roughly $7.40 of actual
+  AWS charges, an effective rate of $0.20999/hour against a $0.2016 list rate.
+  AWS's observed state now decides whether that final stretch is billable, and
+  AWS's own stop timestamp (parsed from `StateTransitionReason` by the existing
+  `parseStateTransitionReason`) bounds it when available. The no-history fallback
+  likewise prefers that timestamp over its `totalHours * 0.6` guess. Adds the
+  first unit tests for `calculateActualCosts` and
+  `calculateRunningHoursFromHistory`.
+- **`--dry-run` no longer claims a launch or leaves a phantom workspace.** A dry
+  run correctly skipped AWS but was then treated like any other launch: the daemon
+  answered "Instance X launched successfully", persisted the synthetic instance to
+  `~/.prism/state.json`, and recorded an `instance.launch` audit event. The phantom
+  record then collided with the name-uniqueness check, so the real launch of that
+  name came back HTTP 409 until the user ran `prism workspace delete` on a workspace
+  that had never existed. Dry runs now write no state and no audit entry, report
+  what was validated instead of what was launched, and drop the empty-IP connection
+  string; the same guard covers the job-array (`--count`) and parameter-sweep
+  (`--param-file`) fan-out paths, which wrote one phantom per member. A `dry-run`
+  record left in `state.json` by an earlier version no longer reserves the name. On
+  the client side, a dry run now returns without entering progress monitoring: that
+  poll loop has no early exit on error, so once the daemon stopped writing the
+  record it watched for, a dry run would otherwise have hung silently for 20
+  minutes. Test mode now synthesizes dry-run instances in the same shape production
+  does, which is why the suite stayed green through all of this (#703).
 - **`.golangci.yml` migrated to the golangci-lint v2 schema.** The config
   declared `version: 2` but used v1-schema keys (`linters-settings`,
   `issues.exclude-rules`, `run.skip-dirs`, `output.format`), which golangci-lint
@@ -125,6 +180,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `make lint` is a local developer tool (CI gates on `go vet` + `gofmt`, not
   golangci-lint); with the config now honored it surfaces pre-existing lint debt
   to be addressed separately.
+- **`TestBudgetStatus_SurplusForPeriodicBudget` no longer fails on the 1st and
+  2nd of the month.** It seeded spend at fixed offsets of +24h and +48h from the
+  start of the month, which are in the future on those days and were dropped.
+  The seeded points now fall within the elapsed part of the month.
 
 ### Changed
 - **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The
