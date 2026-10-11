@@ -184,6 +184,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2nd of the month.** It seeded spend at fixed offsets of +24h and +48h from the
   start of the month, which are in the future on those days and were dropped.
   The seeded points now fall within the elapsed part of the month.
+- **The GUI no longer reports a launch after a dry run (#704).** The launch
+  toasts were hardcoded, so ticking "dry run" in the launch dialog still showed
+  "Launching… This may take a few minutes" and then "Workspace Launched". A
+  dry run now shows "Validating… (dry run)", then "Dry Run Passed" with the
+  daemon's own message (truthful since #705) or "Dry Run Failed", and skips
+  the post-launch data reload. Adds the first unit tests for
+  `use-crud-handlers`.
 
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →
