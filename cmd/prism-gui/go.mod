@@ -22,9 +22,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.31 // indirect
 	github.com/aws/aws-sdk-go-v2/service/artifact v1.18.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.62.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.63.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.66.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.313.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.316.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/efs v1.43.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/fsx v1.67.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.13 // indirect
