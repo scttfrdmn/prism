@@ -47,7 +47,7 @@ func TestRunningHours_UnrecordedStop(t *testing.T) {
 		{"AWS stop time bounds the trailing segment", hibernatedWithUnrecordedStop(&stop), 2 + 5},
 		{"no AWS stop time: nothing billed past the last start", hibernatedWithUnrecordedStop(nil), 2},
 		{"stop time before the last start is ignored", hibernatedWithUnrecordedStop(&early), 2},
-		{"stop time after now is ignored", hibernatedWithUnrecordedStop(&late), 2},
+		{"stop time after now (clock skew) clips at now", hibernatedWithUnrecordedStop(&late), 2 + 90},
 		{"still running: bills to now (unchanged)", func() types.Instance {
 			inst := hibernatedWithUnrecordedStop(nil)
 			inst.State = "running"
@@ -170,7 +170,41 @@ func TestInstancesToCheck_SweepIncludesRunning(t *testing.T) {
 	for _, inst := range got {
 		ids[inst.ID] = true
 	}
-	if len(got) != 2 || !ids["i-a"] || !ids["i-b"] {
-		t.Fatalf("sweep tick = %+v, want the running and the transitional instance", got)
+	// Stopped is swept too: a start prism didn't initiate would otherwise under-bill the ledger.
+	if len(got) != 3 || !ids["i-a"] || !ids["i-b"] || !ids["i-c"] {
+		t.Fatalf("sweep tick = %+v, want running, transitional and stopped (not the ID-less one)", got)
+	}
+	if !isTransitionalState("hibernating") {
+		t.Fatal("hibernating must be polled, or an instance caught mid-hibernation is never re-checked")
+	}
+}
+
+// A stop time past the end of the window means the run covered the whole rest of the window: clip,
+// don't drop.
+func TestTrailingRunEnd_StopAfterWindowClips(t *testing.T) {
+	stop := unrecordedStopLaunch.Add(300 * time.Hour)
+	inst := hibernatedWithUnrecordedStop(&stop)
+	got := runningHoursInWindow(inst, unrecordedStopLaunch, unrecordedStopLaunch.Add(100*time.Hour))
+	if want := 2.0 + 90.0; got < want-0.01 || got > want+0.01 {
+		t.Fatalf("runningHoursInWindow = %.2f, want %.2f (clipped at the window end)", got, want)
+	}
+}
+
+func TestObservedTransitionTime_StartUsesAWSRunningStart(t *testing.T) {
+	stoppedAt := time.Now().Add(-10 * time.Hour)
+	cached := types.Instance{State: "stopped", StateHistory: []types.StateTransition{
+		{FromState: "running", ToState: "stopped", Timestamp: stoppedAt},
+	}}
+
+	started := stoppedAt.Add(4 * time.Hour)
+	live := &types.Instance{State: "running", RunningStateStartTime: &started}
+	if got := observedTransitionTime(cached, live); !got.Equal(started) {
+		t.Fatalf("start timestamp = %s, want AWS running start %s", got, started)
+	}
+
+	stale := stoppedAt.Add(-time.Hour) // e.g. a cached value from the previous run
+	live = &types.Instance{State: "running", RunningStateStartTime: &stale}
+	if got := observedTransitionTime(cached, live); got.Before(stoppedAt) {
+		t.Fatalf("stale running start %s was used; want ~now", got)
 	}
 }

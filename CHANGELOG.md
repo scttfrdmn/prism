@@ -195,9 +195,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stop time when known (new `observed_stop_time` field). The ledger and the
   cost analytics walk (`runningHoursInWindow`) bound a trailing `→ running`
   segment the way #715 bounds the displayed estimate, which covers records
-  already missing their stop. The state monitor now also checks running
-  instances every 5 minutes (it previously polled only transitional states),
-  so such a stop is noticed without anyone running `--refresh`. A refresh also
+  already missing their stop. The state monitor now also checks running,
+  stopped and hibernated instances every 5 minutes (it previously polled only
+  transitional states), so a stop or start made outside prism is noticed
+  without anyone running `--refresh`. A missed start had the opposite effect:
+  the ledger accrued no compute while the instance ran. A refresh also
   no longer drops the launch-time root volume size (`StorageGB`), which had
   stopped the ledger accruing EBS storage for stopped instances after their
   first state change. An over-accrued ledger stops growing but isn't reduced

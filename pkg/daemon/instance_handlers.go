@@ -1092,13 +1092,18 @@ func recordObservedTransition(cached types.Instance, live *types.Instance, reaso
 	})
 }
 
-// observedTransitionTime is when an AWS-observed state change happened: AWS's own stop time when it
-// is known, not in the future, and later than the last recorded transition; otherwise now.
+// observedTransitionTime is when an AWS-observed state change happened: AWS's own timestamp for it
+// -- the stop time for a stop, the running-state start time for a start -- when that is known, not
+// in the future, and later than the last recorded transition; otherwise now.
 func observedTransitionTime(cached types.Instance, live *types.Instance) time.Time {
 	now := time.Now()
-	if stop := live.ObservedStopTime; stop != nil && stop.Before(now) {
-		if n := len(cached.StateHistory); n == 0 || stop.After(cached.StateHistory[n-1].Timestamp) {
-			return *stop
+	awsTime := live.ObservedStopTime
+	if live.State == "running" {
+		awsTime = live.RunningStateStartTime
+	}
+	if awsTime != nil && awsTime.Before(now) {
+		if n := len(cached.StateHistory); n == 0 || awsTime.After(cached.StateHistory[n-1].Timestamp) {
+			return *awsTime
 		}
 	}
 	return now

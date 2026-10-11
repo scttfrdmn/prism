@@ -334,7 +334,10 @@ func trailingRunEnd(inst types.Instance, tr types.StateTransition, until time.Ti
 	if !stoppedStates[inst.State] {
 		return until
 	}
-	if stop := inst.ObservedStopTime; stop != nil && stop.After(tr.Timestamp) && stop.Before(until) {
+	if stop := inst.ObservedStopTime; stop != nil && stop.After(tr.Timestamp) {
+		if stop.After(until) {
+			return until // the stop is past the window (or clock skew): the run covers all of it
+		}
 		return *stop
 	}
 	return tr.Timestamp
