@@ -154,3 +154,23 @@ func TestRecordObservedTransition(t *testing.T) {
 		}
 	})
 }
+
+func TestInstancesToCheck_SweepIncludesRunning(t *testing.T) {
+	instances := map[string]types.Instance{
+		"a": {ID: "i-a", State: "running"},
+		"b": {ID: "i-b", State: "stopping"},
+		"c": {ID: "i-c", State: "stopped"},
+		"d": {ID: "", State: "running"}, // never launched (no AWS ID): nothing to ask AWS about
+	}
+	if got := instancesToCheck(instances, false); len(got) != 1 || got[0].ID != "i-b" {
+		t.Fatalf("non-sweep tick = %+v, want only the transitional instance", got)
+	}
+	got := instancesToCheck(instances, true)
+	ids := map[string]bool{}
+	for _, inst := range got {
+		ids[inst.ID] = true
+	}
+	if len(got) != 2 || !ids["i-a"] || !ids["i-b"] {
+		t.Fatalf("sweep tick = %+v, want the running and the transitional instance", got)
+	}
+}

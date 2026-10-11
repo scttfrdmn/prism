@@ -1083,20 +1083,25 @@ func recordObservedTransition(cached types.Instance, live *types.Instance, reaso
 		live.State = cached.State
 		return
 	}
-	now := time.Now()
-	at := now
-	if stop := live.ObservedStopTime; stop != nil && stop.Before(now) {
-		if n := len(cached.StateHistory); n == 0 || stop.After(cached.StateHistory[n-1].Timestamp) {
-			at = *stop
-		}
-	}
 	live.StateHistory = append(live.StateHistory, types.StateTransition{
 		FromState: cached.State,
 		ToState:   live.State,
-		Timestamp: at,
+		Timestamp: observedTransitionTime(cached, live),
 		Reason:    reason,
 		Initiator: initiator,
 	})
+}
+
+// observedTransitionTime is when an AWS-observed state change happened: AWS's own stop time when it
+// is known, not in the future, and later than the last recorded transition; otherwise now.
+func observedTransitionTime(cached types.Instance, live *types.Instance) time.Time {
+	now := time.Now()
+	if stop := live.ObservedStopTime; stop != nil && stop.Before(now) {
+		if n := len(cached.StateHistory); n == 0 || stop.After(cached.StateHistory[n-1].Timestamp) {
+			return *stop
+		}
+	}
+	return now
 }
 
 // isUnpropagatedAWSState reports whether an AWS-reported state is the
