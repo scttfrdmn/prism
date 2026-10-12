@@ -252,6 +252,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Found by staticcheck SA4023/SA1026; the remaining hits in those two checks
   are unimplemented AMI-resolution tiers and other platforms' keychain stubs,
   now annotated.
+- **AMI resolution checks mapped AMIs with AWS, and can no longer crash the
+  daemon (#730).** A direct `ami_mappings` entry was "validated" by a
+  placeholder that accepted any ID and reported it as `x86_64`, so
+  `prism ami resolve/test/costs/preview` showed made-up details and never fell
+  back for a missing image. It is now looked up with `DescribeImages`; a
+  missing or unavailable AMI falls through to the next tier and then to
+  script provisioning, with a warning. Separately, cross-region search
+  re-entered itself through the cyclic default region mapping, so a template
+  no tier could satisfy recursed until a fatal stack overflow took the daemon
+  down; cross-region search now tries only the in-region tiers.
 
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
