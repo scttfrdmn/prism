@@ -266,7 +266,13 @@ func (s *Server) checkLaunchPolicies(req *types.LaunchRequest, w http.ResponseWr
 // Returns false and writes an error response if the launch should be blocked.
 func (s *Server) preLaunchChecks(req *types.LaunchRequest, w http.ResponseWriter, r *http.Request) bool {
 	if s.rateLimiter != nil {
-		if err := s.rateLimiter.CheckAndRecordLaunch(); err != nil {
+		// A dry run sees the same verdict but records nothing, so previews never use up
+		// the rate limit a real launch needs.
+		admit := s.rateLimiter.CheckAndRecordLaunch
+		if req.DryRun {
+			admit = func() error { return s.rateLimiter.CheckLaunches(1) }
+		}
+		if err := admit(); err != nil {
 			rateLimitErr, ok := err.(*RateLimitError)
 			if !ok {
 				s.writeError(w, http.StatusTooManyRequests, err.Error())
@@ -627,9 +633,11 @@ func (s *Server) handleLaunchInstance(w http.ResponseWriter, r *http.Request) {
 			var err error
 			instance, err = awsManager.LaunchInstanceWithContext(r.Context(), req)
 
-			// Record usage stats
-			launchDuration := int(time.Since(launchStart).Seconds())
-			templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
+			// Record usage stats (a dry run launched nothing, so it isn't a launch to count)
+			if !req.DryRun {
+				launchDuration := int(time.Since(launchStart).Seconds())
+				templates.GetUsageStats().RecordLaunch(req.Template, err == nil, launchDuration)
+			}
 
 			if err != nil {
 				return err

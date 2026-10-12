@@ -29,6 +29,30 @@ func NewRateLimiter(maxLaunches int, window time.Duration) *RateLimiter {
 // CheckAndRecordLaunch checks if a launch is allowed and records it if so
 // Returns nil if allowed, error with retry time if rate limited
 func (rl *RateLimiter) CheckAndRecordLaunch() error {
+	return rl.admit(1, true)
+}
+
+// CheckAndRecordLaunches admits a batch of n launches (e.g. a job array) as a
+// unit and records n timestamps. Like CheckAndRecordLaunch, it is gated on the
+// window NOT already being at the limit, and does not reject a batch merely for
+// being larger than maxLaunches — an intentional array of N is not the accidental
+// runaway the per-launch limiter guards against. If the window is already full,
+// the whole batch is rejected (retry later); otherwise it is admitted and all n
+// timestamps recorded so subsequent single launches see the array's footprint.
+func (rl *RateLimiter) CheckAndRecordLaunches(n int) error {
+	return rl.admit(n, true)
+}
+
+// CheckLaunches reports whether CheckAndRecordLaunches(n) would admit the launch(es),
+// without recording anything. A launch dry run uses it, so previewing a launch never
+// uses up the rate limit a real launch needs.
+func (rl *RateLimiter) CheckLaunches(n int) error {
+	return rl.admit(n, false)
+}
+
+// admit rejects when the window is already saturated by prior launches; otherwise it
+// admits n launches, recording their timestamps when record is set.
+func (rl *RateLimiter) admit(n int, record bool) error {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
 
@@ -40,49 +64,8 @@ func (rl *RateLimiter) CheckAndRecordLaunch() error {
 	now := time.Now()
 	rl.pruneExpired(now)
 
-	// Check if we've hit the limit
 	if len(rl.launches) >= rl.maxLaunches {
 		// Calculate when the oldest launch will expire
-		oldestLaunch := rl.launches[0]
-		retryAfter := rl.window - now.Sub(oldestLaunch)
-
-		return &RateLimitError{
-			Current:    len(rl.launches),
-			Limit:      rl.maxLaunches,
-			Window:     rl.window,
-			RetryAfter: retryAfter,
-		}
-	}
-
-	// Record this launch
-	rl.launches = append(rl.launches, now)
-	return nil
-}
-
-// CheckAndRecordLaunches admits a batch of n launches (e.g. a job array) as a
-// unit and records n timestamps. Unlike CheckAndRecordLaunch, it is gated on the
-// window NOT already being at the limit, but does not reject a batch merely for
-// being larger than maxLaunches — an intentional array of N is not the accidental
-// runaway the per-launch limiter guards against. If the window is already full,
-// the whole batch is rejected (retry later); otherwise it is admitted and all n
-// timestamps recorded so subsequent single launches see the array's footprint.
-func (rl *RateLimiter) CheckAndRecordLaunches(n int) error {
-	if n <= 1 {
-		return rl.CheckAndRecordLaunch()
-	}
-
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-
-	if !rl.enabled {
-		return nil
-	}
-
-	now := time.Now()
-	rl.pruneExpired(now)
-
-	// Reject only if the window is already saturated by prior launches.
-	if len(rl.launches) >= rl.maxLaunches {
 		oldestLaunch := rl.launches[0]
 		return &RateLimitError{
 			Current:    len(rl.launches),
@@ -92,8 +75,13 @@ func (rl *RateLimiter) CheckAndRecordLaunches(n int) error {
 		}
 	}
 
-	for i := 0; i < n; i++ {
-		rl.launches = append(rl.launches, now)
+	if record {
+		if n < 1 {
+			n = 1 // a single launch, however the batch size was expressed
+		}
+		for i := 0; i < n; i++ {
+			rl.launches = append(rl.launches, now)
+		}
 	}
 	return nil
 }

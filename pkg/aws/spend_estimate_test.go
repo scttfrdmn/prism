@@ -245,3 +245,40 @@ func TestCalculateRunningHoursFromHistory_StoppedSpanAndUnrecordedStop(t *testin
 		t.Errorf("running hours = %.4f, want 60 (restart 100h ago to stop 40h ago)", got)
 	}
 }
+
+// No transition since billing started, and AWS says the instance has since stopped: it ran from
+// the billing start until AWS's stop time, which used to be billed as 0 hours (#715 follow-up).
+func TestCalculateRunningHoursFromHistory_NoTransitionSinceBillingStartThenStopped(t *testing.T) {
+	start := hoursAgo(50)
+	stoppedAt := hoursAgo(20)
+	history := []ctypes.StateTransition{ // everything recorded predates this run
+		transition("", "running", hoursAgo(200)),
+		transition("running", "stopped", hoursAgo(150)),
+	}
+
+	if got := calculateRunningHoursFromHistory(start, instanceStateStopped, history, false, &stoppedAt); !closeTo(got, 30, 0.01) {
+		t.Errorf("running hours = %.4f, want 30 (billing start 50h ago to AWS stop 20h ago)", got)
+	}
+	if got := calculateRunningHoursFromHistory(start, instanceStateStopped, history, false, nil); got != 0 {
+		t.Errorf("running hours = %.4f, want 0 when AWS gives no stop time", got)
+	}
+	if got := calculateRunningHoursFromHistory(start, instanceStateRunning, history, false, nil); !closeTo(got, 50, 0.01) {
+		t.Errorf("running hours = %.4f, want 50 for an instance still running", got)
+	}
+	future := time.Now().Add(time.Hour) // clock skew
+	if got := calculateRunningHoursFromHistory(start, instanceStateStopped, history, false, &future); !closeTo(got, 50, 0.01) {
+		t.Errorf("running hours = %.4f, want 50 (a stop time past now is clipped to now)", got)
+	}
+}
+
+// A transition's ToState is compared in lowercase, like its FromState.
+func TestCalculateRunningHoursFromHistory_ToStateCaseInsensitive(t *testing.T) {
+	start := hoursAgo(30)
+	history := []ctypes.StateTransition{
+		transition("stopped", "Running", hoursAgo(20)),
+		transition("running", "stopped", hoursAgo(10)),
+	}
+	if got := calculateRunningHoursFromHistory(start, instanceStateStopped, history, false, nil); !closeTo(got, 10, 0.01) {
+		t.Errorf("running hours = %.4f, want 10 (the 20h→10h-ago run)", got)
+	}
+}

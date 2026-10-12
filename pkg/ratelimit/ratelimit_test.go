@@ -120,3 +120,18 @@ func TestTokenBucket_ContextCancellation(t *testing.T) {
 	err := limiter.Allow(cancelled)
 	assert.Error(t, err)
 }
+
+// TestTokenBucket_CheckDoesNotConsume: Check gives Allow's verdict without using a token, so a
+// preview (a launch dry run) never takes capacity from the real request.
+func TestTokenBucket_CheckDoesNotConsume(t *testing.T) {
+	ctx := context.Background()
+	tb := ratelimit.NewTokenBucket(1, 1) // one token, ~1/min refill
+
+	for i := 0; i < 5; i++ {
+		require.NoError(t, tb.Check(ctx), "Check #%d should pass while a token is available", i+1)
+	}
+	assert.Equal(t, int64(0), tb.GetMetrics().TotalRequests, "Check must not count as a request")
+
+	require.NoError(t, tb.Allow(ctx), "the token must still be there for the real request")
+	assert.Error(t, tb.Check(ctx), "once the token is spent, Check reports the limit like Allow")
+}

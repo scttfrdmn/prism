@@ -4497,26 +4497,40 @@ func calculateActualCosts(computeHourlyRate float64, storageHourlyRate float64, 
 	return currentSpend, effectiveRate
 }
 
-// calculateRunningHoursFromHistory calculates actual running hours from state transition history
-// billingStartTime is the time when billing started (running state start, not launch time)
-// isHibernating indicates if instance is currently hibernating (stopping state IS billable during hibernation)
-// observedStopTime is AWS's own timestamp for the most recent stop, parsed from
-// StateTransitionReason, or nil when AWS did not supply one.
 // isBillableState returns true if the given instance state incurs AWS billing charges.
 func isBillableState(state string, isHibernating bool) bool {
 	return state == instanceStateRunning || state == "pending" ||
 		(isHibernating && state == instanceStateStopping)
 }
 
+// runningHoursWithoutTransitions covers an instance with no recorded transition since
+// billingStartTime: it has been in one state all along, or it stopped without prism recording it.
+// A running instance bills to now. A stopped one bills up to AWS's own stop time when known --
+// it was running from billingStartTime until then -- and otherwise nothing, since under-counting an
+// unrecorded window is bounded by that window and over-counting it is not.
+func runningHoursWithoutTransitions(billingStartTime time.Time, currentState string, isHibernating bool, observedStopTime *time.Time) float64 {
+	now := time.Now()
+	if isBillableState(strings.ToLower(currentState), isHibernating) {
+		return now.Sub(billingStartTime).Hours()
+	}
+	if observedStopTime != nil && observedStopTime.After(billingStartTime) {
+		end := *observedStopTime
+		if end.After(now) {
+			end = now
+		}
+		return end.Sub(billingStartTime).Hours()
+	}
+	return 0
+}
+
+// calculateRunningHoursFromHistory calculates actual running hours from state transition history
+// billingStartTime is the time when billing started (running state start, not launch time)
+// isHibernating indicates if instance is currently hibernating (stopping state IS billable during hibernation)
+// observedStopTime is AWS's own timestamp for the most recent stop, parsed from
+// StateTransitionReason, or nil when AWS did not supply one.
 func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState string, history []ctypes.StateTransition, isHibernating bool, observedStopTime *time.Time) float64 {
 	if len(history) == 0 {
-		// No history - use simple calculation based on current state
-		now := time.Now()
-		totalHours := now.Sub(billingStartTime).Hours()
-		if strings.ToLower(currentState) == instanceStateRunning || currentState == "pending" {
-			return totalHours
-		}
-		return 0
+		return runningHoursWithoutTransitions(billingStartTime, currentState, isHibernating, observedStopTime)
 	}
 
 	// Filter out transitions that happened before current billing start time
@@ -4529,14 +4543,9 @@ func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState s
 		}
 	}
 
-	// If no relevant history after billing start time, use simple calculation
+	// No transition since billing started: one state throughout, or an unrecorded stop
 	if len(relevantHistory) == 0 {
-		now := time.Now()
-		totalHours := now.Sub(billingStartTime).Hours()
-		if strings.ToLower(currentState) == instanceStateRunning || currentState == "pending" {
-			return totalHours
-		}
-		return 0
+		return runningHoursWithoutTransitions(billingStartTime, currentState, isHibernating, observedStopTime)
 	}
 
 	var runningHours float64
@@ -4565,7 +4574,7 @@ func calculateRunningHoursFromHistory(billingStartTime time.Time, currentState s
 
 		// Update for next iteration
 		lastStateTime = transition.Timestamp
-		lastState = transition.ToState
+		lastState = strings.ToLower(transition.ToState)
 	}
 
 	// Add time from the last recorded transition up to the present. lastState is

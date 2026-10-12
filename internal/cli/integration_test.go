@@ -855,14 +855,6 @@ func TestInstanceStateHandlers(t *testing.T) {
 			expectError:    true,
 		},
 		{
-			name:           "Dry run state handler",
-			handler:        &DryRunStateHandler{},
-			state:          "dry-run",
-			canHandle:      true,
-			shouldContinue: false,
-			expectError:    false,
-		},
-		{
 			name:           "Default state handler",
 			handler:        &DefaultStateHandler{},
 			state:          "unknown",

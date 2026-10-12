@@ -292,7 +292,11 @@ func (s *Server) activeInstanceNames(w http.ResponseWriter, r *http.Request) map
 // the count-aware budget gate. Returns true if the array may proceed.
 func (s *Server) preLaunchChecksArray(req *types.LaunchRequest, count int, w http.ResponseWriter) bool {
 	if s.rateLimiter != nil {
-		if err := s.rateLimiter.CheckAndRecordLaunches(count); err != nil {
+		admit := s.rateLimiter.CheckAndRecordLaunches
+		if req.DryRun {
+			admit = s.rateLimiter.CheckLaunches // preview: same verdict, nothing recorded
+		}
+		if err := admit(count); err != nil {
 			s.writeError(w, http.StatusTooManyRequests, err.Error())
 			return false
 		}
