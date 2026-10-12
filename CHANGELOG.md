@@ -278,6 +278,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   asserted (deleted user and group are now checked to be nil; the bulk
   invitation test checks results against its entries).
 
+### Removed
+- **About 1,350 lines of unused code** (staticcheck U1000), all confirmed
+  unreachable before removal: the superseded user-management HTTP handlers
+  (`/api/v1/users` has been served by the research-user handlers, which cover
+  every call the GUI makes), the never-registered `prism uninstall` command
+  (the standalone `scripts/*uninstall*.sh` remain), the synchronous
+  instance-readiness waiters (disabled because they caused HTTP timeouts;
+  readiness is tracked asynchronously), the CLI's test-only
+  `LaunchProgressMonitor` strategy types, and assorted dead helpers.
+
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
   1.338.3), applied to both Go modules (replaces #726).

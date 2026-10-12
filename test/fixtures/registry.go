@@ -2,7 +2,6 @@ package fixtures
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -167,21 +166,4 @@ func (r *FixtureRegistry) cleanup() {
 // Note: Cleanup is automatically called via t.Cleanup(), so this is optional
 func (r *FixtureRegistry) Cleanup() {
 	r.cleanup()
-}
-
-// logError is a helper to log errors consistently
-func (r *FixtureRegistry) logError(resource, id string, err error) {
-	r.t.Helper()
-	r.t.Logf("Error with %s %s: %v", resource, id, err)
-}
-
-// formatDuration formats a duration for logging
-func formatDuration(d time.Duration) string {
-	if d < time.Second {
-		return fmt.Sprintf("%.0fms", d.Seconds()*1000)
-	}
-	if d < time.Minute {
-		return fmt.Sprintf("%.1fs", d.Seconds())
-	}
-	return fmt.Sprintf("%.1fm", d.Minutes())
 }

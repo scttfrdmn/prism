@@ -167,18 +167,3 @@ func setupTestMarketplaceTemplate(t *testing.T, server *Server, templateSlug str
 	// So just verify manager exists and skip if not working
 	t.Logf("State manager available for marketplace template: %s", templateSlug)
 }
-
-// setupTestProjectMember adds a test member to a project
-// If project manager is not available, the test is skipped
-func setupTestProjectMember(t *testing.T, server *Server, projectID, userID, role string) {
-	t.Helper()
-
-	if server.projectManager == nil {
-		t.Skip("Project manager not initialized - skipping test")
-		return
-	}
-
-	// For project members, we would need the invitation system to be set up
-	// For unit tests, just verify manager exists
-	t.Logf("Project manager available for adding member %s to project %s with role %s", userID, projectID, role)
-}
