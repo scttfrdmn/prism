@@ -198,6 +198,7 @@ type Instance struct {
 	State                 string                  `json:"state"`
 	LaunchTime            time.Time               `json:"launch_time"`
 	RunningStateStartTime *time.Time              `json:"running_state_start_time,omitempty"` // When instance entered running state (billing starts)
+	ObservedStopTime      *time.Time              `json:"observed_stop_time,omitempty"`       // AWS's timestamp of the most recent stop (nil while running/pending)
 	DeletionTime          *time.Time              `json:"deletion_time,omitempty"`            // When user initiated deletion
 	HourlyRate            float64                 `json:"hourly_rate"`                        // AWS list price per hour (on-demand)
 	SpotHourlyRate        float64                 `json:"spot_hourly_rate,omitempty"`         // Captured spot $/hr (spot instances only; 0 = not captured)

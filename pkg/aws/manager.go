@@ -3084,6 +3084,12 @@ func mergeLocalStateMetadata(instance *ctypes.Instance, name, state string, loca
 	if instance.SpotHourlyRate == 0 && localInstance.SpotHourlyRate > 0 {
 		instance.SpotHourlyRate = localInstance.SpotHourlyRate
 	}
+
+	// Preserve the root volume size recorded at launch (#720): AWS's instance view doesn't carry it,
+	// and without it the budget ledger stops accruing EBS storage for a stopped instance (#652).
+	if instance.StorageGB == 0 && localInstance.StorageGB > 0 {
+		instance.StorageGB = localInstance.StorageGB
+	}
 }
 
 // captureSpotRate looks up and stores the spot $/hr for a spot instance that doesn't have one yet.
@@ -3211,6 +3217,7 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		KeyName:               keyName,
 		LaunchTime:            launchTime,
 		RunningStateStartTime: runningStateStartTime,
+		ObservedStopTime:      observedStopTime,
 		InstanceType:          instanceType,
 		HourlyRate:            hourlyRate,
 		CurrentSpend:          currentSpend,

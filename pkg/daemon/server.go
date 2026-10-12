@@ -687,6 +687,7 @@ func (s *Server) Start() error {
 	go s.healthMonitor.Start(ctx)
 
 	// Start background state monitor for async instance state tracking (v0.5.8)
+	s.stateMonitor.sweepRunning = !s.testMode && !s.reducedMode
 	if err := s.stateMonitor.Start(); err != nil {
 		logger.Warn("Failed to start state monitor", "error", err)
 	}

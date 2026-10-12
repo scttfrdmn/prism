@@ -23,7 +23,21 @@ type StateMonitor struct {
 	// onTick is an optional hook invoked each tick after the transitional-state check. Phase 2
 	// (#644) uses it to run the spend observer's accrual pass. Nil = no-op.
 	onTick func()
+	// sweepRunning also checks settled (running/stopped/hibernated) instances every
+	// runningSweepEvery ticks, so a stop or start prism did not initiate (on-instance idle
+	// hibernation, the console, the TTL safety valve) is noticed and recorded rather than leaving
+	// the cached state stale indefinitely (#717). A missed stop over-bills the budget ledger; a
+	// missed start under-bills it. Set before Start; off in test and reduced mode, where there is
+	// no AWS to ask.
+	sweepRunning bool
+	ticks        int
+	// terminating holds instance IDs whose removal handleTerminatedInstance is already polling for,
+	// so repeated ticks don't stack duplicate pollers. Guarded by mu.
+	terminating map[string]bool
 }
+
+// runningSweepEvery is how many 10s ticks pass between checks of settled instances (5 minutes).
+const runningSweepEvery = 30
 
 // SetTickHook registers a callback run at the end of every monitor tick (e.g. the spend observer).
 func (sm *StateMonitor) SetTickHook(fn func()) {
@@ -120,19 +134,18 @@ func (sm *StateMonitor) checkTransitionalInstances() {
 		}
 	}
 
-	// Find instances in transitional states
-	var transitionalInstances []types.Instance
-	for _, inst := range state.Instances {
-		if isTransitionalState(inst.State) {
-			transitionalInstances = append(transitionalInstances, inst)
-		}
-	}
+	// Find instances in transitional states, plus running ones on sweep ticks
+	sm.ticks++
+	sweep := sm.sweepRunning && sm.ticks%runningSweepEvery == 0
+	transitionalInstances := instancesToCheck(state.Instances, sweep)
 
 	if len(transitionalInstances) == 0 {
 		return // No instances to monitor
 	}
 
-	log.Printf("🔍 State monitor checking %d instance(s) in transitional states", len(transitionalInstances))
+	if !sweep {
+		log.Printf("🔍 State monitor checking %d instance(s) in transitional states", len(transitionalInstances))
+	}
 
 	// Check each transitional instance
 	for _, inst := range transitionalInstances {
@@ -148,7 +161,7 @@ func (sm *StateMonitor) checkInstance(inst types.Instance) {
 		// Instance might be terminated and gone from AWS
 		if inst.State == "shutting-down" {
 			// If it was shutting-down and now not found, it's terminated
-			sm.handleTerminatedInstance(inst)
+			sm.removeWhenGone(inst)
 		}
 		return
 	}
@@ -163,7 +176,7 @@ func (sm *StateMonitor) checkInstance(inst types.Instance) {
 		awsInstance.StateHistory = append(inst.StateHistory, types.StateTransition{
 			FromState: inst.State,
 			ToState:   awsInstance.State,
-			Timestamp: time.Now(),
+			Timestamp: observedTransitionTime(inst, awsInstance),
 			Reason:    "aws_observed",
 			Initiator: "system",
 		})
@@ -175,9 +188,34 @@ func (sm *StateMonitor) checkInstance(inst types.Instance) {
 
 		// Handle terminated instances
 		if awsInstance.State == "terminated" {
-			sm.handleTerminatedInstance(*awsInstance)
+			sm.removeWhenGone(*awsInstance)
 		}
 	}
+}
+
+// removeWhenGone runs handleTerminatedInstance in the background, once per instance. That poll can
+// take up to 5 minutes (AWS keeps terminated instances visible for a while); run inline it would
+// stall the monitor loop -- transitional checks, the spend observer's tick hook, and Stop.
+func (sm *StateMonitor) removeWhenGone(inst types.Instance) {
+	sm.mu.Lock()
+	if sm.terminating == nil {
+		sm.terminating = map[string]bool{}
+	}
+	if sm.terminating[inst.ID] {
+		sm.mu.Unlock()
+		return
+	}
+	sm.terminating[inst.ID] = true
+	sm.mu.Unlock()
+
+	go func() {
+		defer func() {
+			sm.mu.Lock()
+			delete(sm.terminating, inst.ID)
+			sm.mu.Unlock()
+		}()
+		sm.handleTerminatedInstance(inst)
+	}()
 }
 
 // handleTerminatedInstance removes a terminated instance after AWS confirms it's gone
@@ -208,9 +246,24 @@ func (sm *StateMonitor) handleTerminatedInstance(inst types.Instance) {
 }
 
 // isTransitionalState returns true if the instance state is transitional
+// instancesToCheck selects the instances to poll AWS for this tick: those in a transitional state,
+// plus settled ones on a sweep tick.
+func instancesToCheck(instances map[string]types.Instance, sweep bool) []types.Instance {
+	var out []types.Instance
+	for _, inst := range instances {
+		if isTransitionalState(inst.State) || (sweep && sweptStates[inst.State] && inst.ID != "") {
+			out = append(out, inst)
+		}
+	}
+	return out
+}
+
+// sweptStates are the settled states a sweep re-checks with AWS.
+var sweptStates = map[string]bool{"running": true, "stopped": true, "hibernated": true}
+
 func isTransitionalState(state string) bool {
 	switch state {
-	case "pending", "stopping", "shutting-down":
+	case "pending", "stopping", "hibernating", "shutting-down":
 		return true
 	default:
 		return false
