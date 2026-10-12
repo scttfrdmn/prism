@@ -131,11 +131,13 @@ func (r *UniversalAMIResolver) tryAMIResolution(ctx context.Context, template *t
 	}
 
 	// Tier 2: Dynamic AMI search
+	//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 	if ami, err := r.tryDynamicSearch(ctx, template, region, result); err == nil {
 		return ami, types.ResolutionDynamicSearch, nil
 	}
 
 	// Tier 3: Marketplace search
+	//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 	if ami, err := r.tryMarketplaceSearch(ctx, template, region, result); err == nil {
 		return ami, types.ResolutionMarketplace, nil
 	}
@@ -250,6 +252,7 @@ func (r *UniversalAMIResolver) tryCrossRegionSearch(ctx context.Context, templat
 		if ami, _, err := r.tryAMIResolution(ctx, template, sourceRegion, tempResult); err == nil {
 			// Found AMI in source region, initiate copy
 			copiedAMI, err := r.copyAMIToRegion(ctx, ami, sourceRegion, region)
+			//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 			if err == nil {
 				result.SourceRegion = sourceRegion
 				result.Warning = fmt.Sprintf("AMI copied from %s (additional cost: $%.3f)", sourceRegion, r.estimateCopyICost(ami, sourceRegion, region))

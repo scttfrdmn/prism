@@ -170,6 +170,20 @@ func (rm *RecoveryManager) HandleMemoryPressure() error {
 	return fmt.Errorf("memory recovery failed: no memory freed")
 }
 
+// goroutineLeakThreshold is the goroutine count above which the daemon treats itself as leaking.
+const goroutineLeakThreshold = 500
+
+// CheckGoroutineLeak reports a leak only when the goroutine count is over goroutineLeakThreshold,
+// and handles it then. HandleGoroutineLeak always reports one -- it is the response to a leak, not
+// the check for one -- so calling it as a check dumped a 1MB stack trace and recorded a
+// high-severity error on every call, whatever the count.
+func (rm *RecoveryManager) CheckGoroutineLeak() error {
+	if runtime.NumGoroutine() <= goroutineLeakThreshold {
+		return nil
+	}
+	return rm.HandleGoroutineLeak()
+}
+
 // HandleGoroutineLeak handles excessive goroutine count
 func (rm *RecoveryManager) HandleGoroutineLeak() error {
 	goroutineCount := runtime.NumGoroutine()
@@ -229,9 +243,7 @@ func (rm *RecoveryManager) attemptRecovery(component string, err error) {
 	}
 
 	// Check for goroutine leaks
-	if runtime.NumGoroutine() > 500 { // Threshold
-		_ = rm.HandleGoroutineLeak()
-	}
+	_ = rm.CheckGoroutineLeak()
 
 	// Try specific error recovery
 	_ = rm.RecoverFromError(component, err)
@@ -319,8 +331,8 @@ func (rm *RecoveryManager) HealthCheck() error {
 	}
 
 	// Check goroutine count
-	if runtime.NumGoroutine() > 500 {
-		return fmt.Errorf("high goroutine count: %d", runtime.NumGoroutine())
+	if n := runtime.NumGoroutine(); n > goroutineLeakThreshold {
+		return fmt.Errorf("high goroutine count: %d", n)
 	}
 
 	return nil

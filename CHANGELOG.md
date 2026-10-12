@@ -237,6 +237,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the stored record (when it is the same EC2 instance) and overwrites
   only the fields AWS owns. A stored record with no launch time no longer
   replaces AWS's, which had made the estimate bill every hour since year 1.
+- **`prism storage upload` / `download` work again.** `TransferOptions` has a
+  function-typed `ProgressCallback` with no `json:"-"` tag, and the CLI always
+  sends options, so every transfer request failed to marshal ("json:
+  unsupported type") before reaching the daemon.
+- **Applying a template to a workspace over SSH works.** The SSH executor
+  (used for any instance with a public IP) resolved the instance IP through an
+  unimplemented stub that always failed. It now looks the IP up in prism's
+  state, like the SSM executor.
+- **The `goroutine_check` recovery operation no longer always reports a leak.**
+  It called the leak *handler*, which always errors, so every check dumped a
+  1 MB stack trace and recorded a high-severity stability error. It now checks
+  the 500-goroutine threshold first.
+- Found by staticcheck SA4023/SA1026; the remaining hits in those two checks
+  are unimplemented AMI-resolution tiers and other platforms' keychain stubs,
+  now annotated.
 
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
