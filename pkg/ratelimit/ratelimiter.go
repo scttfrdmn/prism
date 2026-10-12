@@ -139,6 +139,32 @@ func (tb *TokenBucket) Allow(ctx context.Context) error {
 	tb.rateLimitedCount++
 	tb.updateSuccessRate()
 
+	return tb.limitError()
+}
+
+// Check reports whether a request would be allowed right now, without consuming a token or
+// counting toward the metrics. It is for previews such as a launch dry run, which must see the
+// same verdict as Allow but must not use up capacity a real request needs.
+func (tb *TokenBucket) Check(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
+	tb.refillTokens()
+	if tb.tokens >= 1.0 {
+		return nil
+	}
+	return tb.limitError()
+}
+
+// limitError builds the RateLimitError for the current token count.
+// Must be called with mutex held
+func (tb *TokenBucket) limitError() *RateLimitError {
 	// Calculate retry after duration
 	// Multiply by float64(time.Second) before converting to time.Duration
 	// to preserve sub-second precision (time.Duration is in nanoseconds)

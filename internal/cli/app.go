@@ -890,10 +890,6 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 			err := fmt.Errorf("workspace terminated during launch")
 			reporter.ShowError(err, instance)
 			return err
-
-		case "dry-run":
-			fmt.Printf("✅ Dry-run validation successful! No actual workspace launched.\n")
-			return nil
 		}
 
 		// Wait before next check
@@ -974,18 +970,6 @@ func (h *ErrorStateHandler) Handle(state string, elapsed int, instanceName strin
 	return false, nil
 }
 
-// DryRunStateHandler handles dry-run state
-type DryRunStateHandler struct{}
-
-func (h *DryRunStateHandler) CanHandle(state string) bool {
-	return state == "dry-run"
-}
-
-func (h *DryRunStateHandler) Handle(state string, elapsed int, instanceName string) (bool, error) {
-	fmt.Printf("✅ Dry-run validation successful! No actual workspace launched.\n")
-	return false, nil
-}
-
 // DefaultStateHandler handles unknown states
 type DefaultStateHandler struct{}
 
@@ -1012,7 +996,6 @@ func NewLaunchProgressMonitor(apiClient client.PrismAPI, ctx context.Context) *L
 			&PendingStateHandler{},
 			&RunningStateHandler{apiClient: apiClient, ctx: ctx},
 			&ErrorStateHandler{},
-			&DryRunStateHandler{},
 			&DefaultStateHandler{}, // Must be last as fallback
 		},
 		apiClient: apiClient,

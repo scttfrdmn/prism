@@ -212,6 +212,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   daemon's own message (truthful since #705) or "Dry Run Failed", and skips
   the post-launch data reload. Adds the first unit tests for
   `use-crud-handlers`.
+- **A dry run no longer counts as a launch anywhere (#705 follow-up).** Dry runs
+  were recorded against the launch rate limiter and consumed the throttler's
+  token buckets, so a few previews could get the real launch rejected with
+  HTTP 429. They also inflated template launch statistics. Dry runs now get
+  the same rate-limit and throttle verdict through new check-only paths
+  (`RateLimiter.CheckLaunches`, `LaunchThrottler.CheckLaunch`,
+  `TokenBucket.Check`) and record nothing. The CLI's unreachable dry-run
+  progress handlers are removed.
+- **Spend estimate: a stop with no transition since billing start is billed up
+  to AWS's stop time (#715 follow-up).** When no transition fell after the
+  billing start, a stopped instance got 0 compute hours even when AWS dated
+  the stop; it now gets the hours from billing start to that stop (clipped to
+  now). Transition `ToState` values are compared in lowercase, like
+  `FromState`.
 
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →

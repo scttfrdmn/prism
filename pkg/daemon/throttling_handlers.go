@@ -206,7 +206,12 @@ func (s *Server) checkLaunchThrottling(req *types.LaunchRequest, w http.Response
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := s.launchThrottler.AllowLaunch(ctx, throttleReq)
+	// A dry run sees the same verdict but consumes no throttle capacity.
+	allow := s.launchThrottler.AllowLaunch
+	if req.DryRun {
+		allow = s.launchThrottler.CheckLaunch
+	}
+	err := allow(ctx, throttleReq)
 	if err != nil {
 		// Throttle error - reject launch
 		if throttleErr, ok := err.(*throttle.ThrottleError); ok {

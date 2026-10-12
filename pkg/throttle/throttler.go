@@ -56,6 +56,17 @@ func (lt *LaunchThrottler) SetBudgetUsageFunc(fn func(projectID string) (used fl
 // This method checks all applicable throttling scopes (global, user, project)
 // and returns an error if any scope rejects the launch.
 func (lt *LaunchThrottler) AllowLaunch(ctx context.Context, req LaunchRequest) error {
+	return lt.evaluate(ctx, req, (*ratelimit.TokenBucket).Allow)
+}
+
+// CheckLaunch reports whether AllowLaunch would admit req, without consuming any scope's
+// capacity. A launch dry run uses it, so previewing a launch never throttles the real one.
+func (lt *LaunchThrottler) CheckLaunch(ctx context.Context, req LaunchRequest) error {
+	return lt.evaluate(ctx, req, (*ratelimit.TokenBucket).Check)
+}
+
+// evaluate runs req through every applicable scope, using admit (Allow or Check) per bucket.
+func (lt *LaunchThrottler) evaluate(ctx context.Context, req LaunchRequest, admit func(*ratelimit.TokenBucket, context.Context) error) error {
 	lt.mu.RLock()
 	enabled := lt.config.Enabled
 	lt.mu.RUnlock()
@@ -66,7 +77,7 @@ func (lt *LaunchThrottler) AllowLaunch(ctx context.Context, req LaunchRequest) e
 
 	// Check global throttle
 	if lt.globalBucket != nil {
-		if err := lt.globalBucket.Allow(ctx); err != nil {
+		if err := admit(lt.globalBucket, ctx); err != nil {
 			return lt.formatThrottleError("global", err)
 		}
 	}
@@ -74,7 +85,7 @@ func (lt *LaunchThrottler) AllowLaunch(ctx context.Context, req LaunchRequest) e
 	// Check per-user throttle
 	if lt.config.PerUser && req.UserID != "" {
 		bucket := lt.getUserBucket(req.UserID)
-		if err := bucket.Allow(ctx); err != nil {
+		if err := admit(bucket, ctx); err != nil {
 			return lt.formatThrottleError(fmt.Sprintf("user:%s", req.UserID), err)
 		}
 	}
@@ -88,7 +99,7 @@ func (lt *LaunchThrottler) AllowLaunch(ctx context.Context, req LaunchRequest) e
 			lt.applyBudgetThrottling(req.ProjectID, bucket)
 		}
 
-		if err := bucket.Allow(ctx); err != nil {
+		if err := admit(bucket, ctx); err != nil {
 			return lt.formatThrottleError(fmt.Sprintf("project:%s", req.ProjectID), err)
 		}
 	}

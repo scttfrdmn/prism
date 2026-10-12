@@ -414,3 +414,17 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, 0.80, config.BudgetThreshold)
 	assert.Equal(t, "reject", config.QueueMode)
 }
+
+// TestCheckLaunch_DoesNotConsume: CheckLaunch gives AllowLaunch's verdict without using any
+// scope's capacity (#705 follow-up: dry runs used to throttle the real launch).
+func TestCheckLaunch_DoesNotConsume(t *testing.T) {
+	ctx := context.Background()
+	lt := NewLaunchThrottler(Config{Enabled: true, MaxLaunches: 1, TimeWindow: "1h", BurstSize: 1, PerUser: true})
+	req := LaunchRequest{UserID: "alice", TemplateName: "python-ml"}
+
+	for i := 0; i < 5; i++ {
+		require.NoError(t, lt.CheckLaunch(ctx, req), "dry run #%d", i+1)
+	}
+	require.NoError(t, lt.AllowLaunch(ctx, req), "the real launch must still be admitted")
+	assert.Error(t, lt.CheckLaunch(ctx, req), "after the real launch, a preview reports the throttle")
+}

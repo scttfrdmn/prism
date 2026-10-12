@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -206,4 +207,26 @@ func TestLaunchSweepDryRun_WritesNoInstanceState(t *testing.T) {
 		_, exists := state.Instances[name]
 		assert.False(t, exists, "dry-run sweep member %s must leave no record", name)
 	}
+}
+
+// TestLaunchDryRun_DoesNotUseRateLimit: dry runs are previews, so they must not use up the
+// launch rate limit -- with a limit of 1, any number of dry runs still leaves room for the real
+// launch (#705 follow-up).
+func TestLaunchDryRun_DoesNotUseRateLimit(t *testing.T) {
+	server := createTestServer(t)
+	server.rateLimiter = NewRateLimiter(1, time.Minute)
+	handler := server.createHTTPHandler()
+
+	for i := 0; i < 3; i++ {
+		w := postJSON(t, handler, "/api/v1/instances", types.LaunchRequest{Template: "test-template", Name: "rl-check", DryRun: true})
+		require.Equal(t, http.StatusOK, w.Code, "dry run #%d: %s", i+1, w.Body.String())
+	}
+	w := postJSON(t, handler, "/api/v1/instances/array", types.LaunchArrayRequest{
+		LaunchRequest: types.LaunchRequest{Template: "test-template", Name: "rl-arr", DryRun: true},
+		Count:         3,
+	})
+	require.Equal(t, http.StatusOK, w.Code, "array dry run: %s", w.Body.String())
+
+	w = postJSON(t, handler, "/api/v1/instances", types.LaunchRequest{Template: "test-template", Name: "rl-check"})
+	assert.NotEqual(t, http.StatusTooManyRequests, w.Code, "the real launch was rate-limited by dry runs: %s", w.Body.String())
 }

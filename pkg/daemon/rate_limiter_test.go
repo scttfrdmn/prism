@@ -67,3 +67,20 @@ func TestCheckAndRecordLaunches_DisabledAlwaysAllows(t *testing.T) {
 		t.Fatalf("disabled limiter should admit any batch, got: %v", err)
 	}
 }
+
+// TestCheckLaunches_RecordsNothing: the dry-run path sees the same verdict but leaves the
+// window untouched.
+func TestCheckLaunches_RecordsNothing(t *testing.T) {
+	rl := NewRateLimiter(1, time.Minute)
+	for i := 0; i < 5; i++ {
+		if err := rl.CheckLaunches(1); err != nil {
+			t.Fatalf("CheckLaunches #%d: %v", i+1, err)
+		}
+	}
+	if err := rl.CheckAndRecordLaunch(); err != nil {
+		t.Fatalf("real launch rejected after dry runs: %v", err)
+	}
+	if err := rl.CheckLaunches(1); err == nil {
+		t.Fatal("once the window is full, CheckLaunches must report the limit")
+	}
+}
