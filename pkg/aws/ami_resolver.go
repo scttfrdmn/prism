@@ -4,8 +4,13 @@ package aws
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
 	"github.com/scttfrdmn/prism/pkg/templates"
 	"github.com/scttfrdmn/prism/pkg/types"
@@ -125,6 +130,25 @@ func (r *UniversalAMIResolver) resolveAMIFallback(ctx context.Context, template 
 
 // tryAMIResolution attempts multi-tier AMI resolution
 func (r *UniversalAMIResolver) tryAMIResolution(ctx context.Context, template *templates.Template, region string, result *types.AMIResolutionResult) (*types.AMIInfo, types.AMIResolutionMethod, error) {
+	// Tiers 1-3: in this region
+	if ami, method, err := r.tryInRegion(ctx, template, region, result); err == nil {
+		return ami, method, nil
+	}
+
+	// Tier 4: Cross-region search
+	if ami, err := r.tryCrossRegionSearch(ctx, template, region, result); err == nil {
+		return ami, types.ResolutionCrossRegion, nil
+	}
+
+	return nil, types.ResolutionFailed, fmt.Errorf("all AMI resolution methods failed")
+}
+
+// tryInRegion runs the resolution tiers that look only in one region (1-3). Cross-region search
+// uses it for each source region: running the full tryAMIResolution there re-entered cross-region
+// search, and the default region mapping has cycles (us-west-2 -> us-east-1 -> us-west-2), so a
+// template no tier could satisfy recursed until the stack overflowed -- a fatal, unrecoverable
+// crash of the daemon (#730).
+func (r *UniversalAMIResolver) tryInRegion(ctx context.Context, template *templates.Template, region string, result *types.AMIResolutionResult) (*types.AMIInfo, types.AMIResolutionMethod, error) {
 	// Tier 1: Direct AMI mapping
 	if ami, err := r.tryDirectMapping(ctx, template, region, result); err == nil {
 		return ami, types.ResolutionDirectMapping, nil
@@ -142,12 +166,7 @@ func (r *UniversalAMIResolver) tryAMIResolution(ctx context.Context, template *t
 		return ami, types.ResolutionMarketplace, nil
 	}
 
-	// Tier 4: Cross-region search
-	if ami, err := r.tryCrossRegionSearch(ctx, template, region, result); err == nil {
-		return ami, types.ResolutionCrossRegion, nil
-	}
-
-	return nil, types.ResolutionFailed, fmt.Errorf("all AMI resolution methods failed")
+	return nil, types.ResolutionFailed, fmt.Errorf("no AMI found in %s", region)
 }
 
 // tryDirectMapping checks direct AMI mappings
@@ -249,7 +268,7 @@ func (r *UniversalAMIResolver) tryCrossRegionSearch(ctx context.Context, templat
 	for _, sourceRegion := range fallbackRegions {
 		// Try to find AMI in source region
 		tempResult := &types.AMIResolutionResult{TargetRegion: sourceRegion}
-		if ami, _, err := r.tryAMIResolution(ctx, template, sourceRegion, tempResult); err == nil {
+		if ami, _, err := r.tryInRegion(ctx, template, sourceRegion, tempResult); err == nil {
 			// Found AMI in source region, initiate copy
 			copiedAMI, err := r.copyAMIToRegion(ctx, ami, sourceRegion, region)
 			//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
@@ -271,26 +290,14 @@ func (r *UniversalAMIResolver) validateAndGetAMI(ctx context.Context, amiID, reg
 		return cachedAMI, nil
 	}
 
-	// Query AWS for AMI information - placeholder for now
-	// ami, err := r.ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{...})
-	ami, err := r.validateAMIExists(ctx, amiID)
+	// Query AWS for the AMI. The EC2 client is regional, so an AMI that exists only in another
+	// region is reported as not found here, and resolution falls through to the next tier.
+	amiInfo, err := r.validateAMIExists(ctx, amiID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate AMI %s: %w", amiID, err)
 	}
-
-	// Convert to our AMI info structure
-	amiInfo := &types.AMIInfo{
-		AMIID:        ami.AMIID,
-		Name:         ami.Name,
-		Description:  ami.Description,
-		Region:       region,
-		Architecture: ami.Architecture,
-		Owner:        ami.Owner,
-		CreationDate: ami.CreationDate,
-		State:        ami.State,
-		Public:       ami.Public,
-		LaunchTime:   30 * time.Second, // Estimated AMI launch time
-	}
+	amiInfo.Region = region
+	amiInfo.LaunchTime = 30 * time.Second // Estimated AMI launch time
 
 	// Cache the result
 	r.cache.SetAMI(amiID, region, amiInfo)
@@ -385,16 +392,48 @@ func (r *UniversalAMIResolver) copyAMIToRegion(ctx context.Context, ami *types.A
 	return nil, fmt.Errorf("cross-region AMI copy not yet implemented")
 }
 
-// validateAMIExists is a placeholder method for AMI validation
+// validateAMIExists looks the AMI up in AWS and returns its details, or an error when it doesn't
+// exist or isn't available -- so a direct mapping to a mistyped, deregistered or other-region AMI
+// falls through to the next resolution tier instead of failing later at RunInstances (#730).
 func (r *UniversalAMIResolver) validateAMIExists(ctx context.Context, amiID string) (*types.AMIInfo, error) {
-	// Placeholder implementation - in production this would use DescribeImages
-	return &types.AMIInfo{
-		AMIID:        amiID,
-		Name:         "Placeholder AMI",
-		Description:  "Placeholder description",
-		Architecture: "x86_64",
-		Public:       false,
-	}, nil
+	if os.Getenv("PRISM_TEST_MODE") == "true" {
+		return &types.AMIInfo{AMIID: amiID, Name: "test-mode AMI", Architecture: "x86_64", State: string(ec2types.ImageStateAvailable)}, nil
+	}
+	if r.ec2Client == nil {
+		return nil, fmt.Errorf("no EC2 client to validate AMI %s", amiID)
+	}
+
+	out, err := r.ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{ImageIds: []string{amiID}})
+	if err != nil {
+		return nil, fmt.Errorf("describe AMI %s: %w", amiID, err) // includes InvalidAMIID.NotFound
+	}
+	if len(out.Images) == 0 {
+		return nil, fmt.Errorf("AMI %s not found", amiID)
+	}
+	img := out.Images[0]
+	if img.State != ec2types.ImageStateAvailable {
+		return nil, fmt.Errorf("AMI %s is %s, not available", amiID, img.State)
+	}
+
+	info := &types.AMIInfo{
+		AMIID:        aws.ToString(img.ImageId),
+		Name:         aws.ToString(img.Name),
+		Description:  aws.ToString(img.Description),
+		Architecture: string(img.Architecture),
+		Owner:        aws.ToString(img.OwnerId),
+		State:        string(img.State),
+		Public:       aws.ToBool(img.Public),
+	}
+	if created, err := time.Parse(time.RFC3339, aws.ToString(img.CreationDate)); err == nil {
+		info.CreationDate = created
+	}
+	if len(img.Tags) > 0 {
+		info.Tags = make(map[string]string, len(img.Tags))
+		for _, tag := range img.Tags {
+			info.Tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+		}
+	}
+	return info, nil
 }
 
 // AMI Creation Methods (Phase 5.1 Enhancement)
