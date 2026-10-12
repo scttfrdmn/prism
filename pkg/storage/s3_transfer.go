@@ -148,8 +148,10 @@ type TransferOptions struct {
 	// CheckpointDir is where to save resume checkpoints
 	CheckpointDir string
 
-	// ProgressCallback is called periodically with transfer progress
-	ProgressCallback func(progress *TransferProgress)
+	// ProgressCallback is called periodically with transfer progress. It is a local hook, not part
+	// of the wire format: without the json:"-" tag, any TransferOptions made encoding/json fail, so
+	// every `prism storage upload/download` request failed to marshal.
+	ProgressCallback func(progress *TransferProgress) `json:"-"`
 
 	// ProgressInterval is how often to call ProgressCallback
 	ProgressInterval time.Duration

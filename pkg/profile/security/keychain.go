@@ -1,6 +1,8 @@
 // Package security provides secure storage and verification for Prism profiles.
 package security
 
+//lint:file-ignore SA4023 the other platforms' constructors are stubs that always error on this GOOS; their real implementations can succeed
+
 import (
 	"errors"
 	"fmt"

@@ -1,6 +1,8 @@
 // Package security provides keychain information and diagnostics
 package security
 
+//lint:file-ignore SA4023 the other platforms' constructors are stubs that always error on this GOOS; their real implementations can succeed
+
 import (
 	"fmt"
 	"runtime"

@@ -296,7 +296,7 @@ func (s *Server) createRemoteExecutor(instance types.Instance) (templates.Remote
 		keyPath := s.getSSHKeyPath(instance)
 		username := s.getSSHUsername(instance)
 
-		return templates.NewSSHRemoteExecutor(keyPath, username), nil
+		return templates.NewSSHRemoteExecutor(keyPath, username, s.stateManager), nil
 	} else {
 		// Use Systems Manager for private instances
 		region := s.getAWSRegion()

@@ -305,7 +305,7 @@ func (s *Server) handleMemoryPressure() (string, bool) {
 
 // handleGoroutineCheck checks for goroutine leaks
 func (s *Server) handleGoroutineCheck() (string, bool) {
-	if err := s.recoveryManager.HandleGoroutineLeak(); err != nil {
+	if err := s.recoveryManager.CheckGoroutineLeak(); err != nil {
 		return fmt.Sprintf("Goroutine leak detected: %v", err), false
 	}
 	return "No goroutine leaks detected", true
