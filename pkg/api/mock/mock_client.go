@@ -543,7 +543,7 @@ func (m *MockClient) GetInstanceHibernationStatus(ctx context.Context, name stri
 
 	return &types.HibernationStatus{
 		HibernationSupported: true,
-		IsHibernated:         instance.State == "hibernated",
+		PossiblyHibernated:   instance.State == "hibernated",
 		InstanceName:         name,
 	}, nil
 }

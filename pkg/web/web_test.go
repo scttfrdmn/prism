@@ -218,6 +218,42 @@ func TestProxyManager_RegisterAndServe(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "hello from backend")
 }
 
+// TestProxyManager_ForwardsCleanRequest pins what the instance receives through the Rewrite-based
+// proxy: the prefix-stripped path, the target host, exactly one X-Forwarded-For (the client's, not
+// a spoofed one), and the prism headers.
+func TestProxyManager_ForwardsCleanRequest(t *testing.T) {
+	var got *http.Request
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = r.Clone(r.Context())
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(backend.Close)
+	u, err := url.Parse(backend.URL)
+	require.NoError(t, err)
+	port, _ := strconv.Atoi(u.Port())
+
+	pm := NewProxyManager(func(*http.Request) (bool, string) { return true, "alice" })
+	require.NoError(t, pm.RegisterInstance(&types.Instance{
+		ID: "i-fwd", Name: "fwd-inst", PublicIP: u.Hostname(), WebPort: port, HasWebInterface: true,
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/proxy/fwd-inst/lab/tree?x=1", nil)
+	req.RemoteAddr = "198.51.100.9:40000"
+	req.Header.Set("X-Forwarded-For", "10.6.6.6") // client-supplied: must not reach the instance
+	rec := httptest.NewRecorder()
+	pm.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.NotNil(t, got, "backend was not reached")
+	assert.Equal(t, "/lab/tree", got.URL.Path)
+	assert.Equal(t, "x=1", got.URL.RawQuery)
+	assert.Equal(t, u.Host, got.Host)
+	assert.Equal(t, []string{"198.51.100.9"}, got.Header.Values("X-Forwarded-For"))
+	assert.Equal(t, "http", got.Header.Get("X-Forwarded-Proto"))
+	assert.Equal(t, "fwd-inst", got.Header.Get("X-Prism-Instance"))
+	assert.Equal(t, "alice", got.Header.Get("X-Prism-User"))
+}
+
 func TestProxyManager_GetProxyStats(t *testing.T) {
 	_, host, port := testBackend(t)
 

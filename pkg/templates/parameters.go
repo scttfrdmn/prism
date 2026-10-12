@@ -123,10 +123,10 @@ func (pp *ParameterProcessor) processString(input string) (string, error) {
 		availableVars := strings.Join(pp.getVariableNames(), ", ")
 
 		if strings.Contains(err.Error(), "can't evaluate field") {
-			return "", fmt.Errorf("template execution failed - undefined variable: %w\nAvailable variables: [%s]\nTemplate preview: %.200s...", err, availableVars, input)
+			return "", fmt.Errorf("template execution failed - undefined variable: %w\nAvailable variables: [%s]\nTemplate preview (first 200 chars): %.200s", err, availableVars, input)
 		}
 
-		return "", fmt.Errorf("template execution failed: %w\nAvailable variables: [%s]\nTemplate preview: %.200s...", err, availableVars, input)
+		return "", fmt.Errorf("template execution failed: %w\nAvailable variables: [%s]\nTemplate preview (first 200 chars): %.200s", err, availableVars, input)
 	}
 
 	return buf.String(), nil

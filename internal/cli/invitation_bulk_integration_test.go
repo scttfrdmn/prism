@@ -144,6 +144,13 @@ func TestBulkInvitation_PartialFailure(t *testing.T) {
 		},
 	}
 
+	// The response covers every submitted entry, in order
+	if assert.Len(t, resp.Results, len(entries)) {
+		for i, entry := range entries {
+			assert.Equal(t, entry.Email, resp.Results[i].Email, "result %d", i)
+		}
+	}
+
 	// Verify summary counts
 	assert.Equal(t, 10, resp.Summary.Total, "Should have 10 total")
 	assert.Equal(t, 7, resp.Summary.Sent, "Should have 7 sent")

@@ -245,7 +245,7 @@ func (m *Manager) CloseCourse(ctx context.Context, courseID string) error {
 	if err := m.saveCourses(); err != nil {
 		return err
 	}
-	caller, _ := ctx.Value("caller_id").(string)
+	caller := CallerFrom(ctx)
 	m.appendAudit(courseID, AuditEntry{
 		CourseID: courseID,
 		Actor:    caller,
@@ -307,7 +307,7 @@ func (m *Manager) EnrollMember(ctx context.Context, courseID string, req *Enroll
 		}
 	}
 
-	addedBy, _ := ctx.Value("caller_id").(string)
+	addedBy := CallerFrom(ctx)
 	if addedBy == "" {
 		addedBy = c.Owner
 	}
@@ -393,7 +393,7 @@ func (m *Manager) BulkEnroll(ctx context.Context, courseID string, req *BulkEnro
 		return 0, nil, ErrCourseClosed
 	}
 
-	callerID, _ := ctx.Value("caller_id").(string)
+	callerID := CallerFrom(ctx)
 	if callerID == "" {
 		callerID = c.Owner
 	}
@@ -470,7 +470,7 @@ func (m *Manager) UnenrollMember(ctx context.Context, courseID, userID string) e
 			if err := m.saveCourses(); err != nil {
 				return err
 			}
-			caller, _ := ctx.Value("caller_id").(string)
+			caller := CallerFrom(ctx)
 			m.appendAudit(courseID, AuditEntry{
 				CourseID: courseID,
 				Actor:    caller,
@@ -615,7 +615,7 @@ func (m *Manager) DistributeBudget(ctx context.Context, courseID string, amountP
 	if err := m.saveCourses(); err != nil {
 		return err
 	}
-	caller, _ := ctx.Value("caller_id").(string)
+	caller := CallerFrom(ctx)
 	m.appendAudit(courseID, AuditEntry{
 		CourseID: courseID,
 		Actor:    caller,
@@ -891,7 +891,7 @@ func (m *Manager) GrantTAAccess(ctx context.Context, courseID, taEmail, displayN
 	if err != nil {
 		return nil, err
 	}
-	caller, _ := ctx.Value("caller_id").(string)
+	caller := CallerFrom(ctx)
 	m.appendAudit(courseID, AuditEntry{
 		CourseID: courseID,
 		Actor:    caller,
@@ -930,7 +930,7 @@ func (m *Manager) RevokeTAAccess(ctx context.Context, courseID, taEmail string) 
 	if err := m.UnenrollMember(ctx, courseID, taUserID); err != nil {
 		return err
 	}
-	caller, _ := ctx.Value("caller_id").(string)
+	caller := CallerFrom(ctx)
 	m.appendAudit(courseID, AuditEntry{
 		CourseID: courseID,
 		Actor:    caller,
@@ -1003,7 +1003,7 @@ func (m *Manager) SetCourseMaterials(ctx context.Context, courseID, efsID, mount
 		return err
 	}
 
-	caller, _ := ctx.Value("caller_id").(string)
+	caller := CallerFrom(ctx)
 	m.appendAudit(courseID, AuditEntry{
 		CourseID: courseID,
 		Actor:    caller,

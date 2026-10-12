@@ -3,7 +3,6 @@ package templates
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -68,7 +67,7 @@ func DefaultPluginDirs() []string {
 
 // LoadPluginsFromDirectory loads all plugin manifests from a directory
 func (r *PluginRegistry) LoadPluginsFromDirectory(dir string) error {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return fmt.Errorf("failed to read plugin directory %s: %w", dir, err)
 	}
@@ -102,7 +101,7 @@ func (r *PluginRegistry) LoadPluginsFromDirectory(dir string) error {
 
 // LoadPlugin loads a single plugin manifest from a file
 func (r *PluginRegistry) LoadPlugin(path string) error {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read plugin file: %w", err)
 	}

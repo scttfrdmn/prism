@@ -1766,7 +1766,7 @@ func (s *Server) isLaunchBlockedByBudgetN(req *types.LaunchRequest, count int, w
 	projectedSpend := decision.Projected
 	if !decision.Allowed() {
 		// Block the launch - would exceed budget
-		errorMsg := fmt.Sprintf("⛔ Instance launch blocked: Would exceed monthly budget limit\n\n")
+		errorMsg := "⛔ Instance launch blocked: Would exceed monthly budget limit\n\n"
 		errorMsg += "Budget Analysis:\n"
 		errorMsg += fmt.Sprintf("  Monthly Limit: $%.2f\n", monthlyLimit)
 		errorMsg += fmt.Sprintf("  Current Spend: $%.2f (%.1f%% of limit)\n", currentSpend, (currentSpend/monthlyLimit)*100)

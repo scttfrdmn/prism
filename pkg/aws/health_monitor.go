@@ -311,7 +311,7 @@ func (hm *HealthMonitor) generateRecommendedAction(status *HealthStatus) string 
 	switch status.ImpactLevel {
 	case "high":
 		actions = append(actions, "Consider using an alternative region")
-		actions = append(actions, fmt.Sprintf("Run: prism admin aws-health --all-regions"))
+		actions = append(actions, "Run: prism admin aws-health --all-regions")
 		actions = append(actions, "Monitor AWS Service Health Dashboard for updates")
 
 	case "medium":
