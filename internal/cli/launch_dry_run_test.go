@@ -12,11 +12,11 @@ import (
 // Dry-run regression tests for the client side (#703).
 //
 // These guard against a hang introduced by the daemon-side fix. The CLI's
-// dry-run success message used to come from LaunchProgressMonitor: it polled
-// GetInstance, found the phantom record the daemon had saved, read state
+// dry-run success message used to come from the launch progress monitor: it
+// polled GetInstance, found the phantom record the daemon had saved, read state
 // "dry-run", and printed success. Once the daemon stops writing that record,
-// GetInstance fails on every poll -- and Monitor swallows errors with no early
-// exit, so the loop runs its full 240 iterations at 5 seconds each. A dry run
+// GetInstance fails on every poll -- and the monitor swallows errors with no
+// early exit, so the loop runs its full 240 iterations at 5 seconds each. A dry run
 // would sit silent for 20 minutes before timing out.
 //
 // So the CLI must decide not to monitor a dry run on its own, without consulting

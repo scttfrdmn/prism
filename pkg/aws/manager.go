@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -923,25 +922,6 @@ func (l *InstanceLauncher) buildInstanceFromEC2(instance *ec2types.Instance, req
 	return cwsInstance
 }
 
-// waitForInstanceReady waits for instance to be ready with user feedback
-func (l *InstanceLauncher) waitForInstanceReady(instanceID string) {
-	log.Printf("⏳ Waiting for instance to be ready for connections...")
-	if err := l.manager.waitForInstanceReadyWithProgress(instanceID, l.region, func(stage string, progress float64, description string) {
-		// Provide user feedback during readiness waiting
-		if progress == 0.0 {
-			log.Printf("  → %s", description)
-		} else if progress == 1.0 {
-			log.Printf("  ✓ %s", description)
-		}
-	}); err != nil {
-		// Don't fail the launch if waiting times out - instance is still created
-		log.Printf("⚠️  Warning: Instance launched but readiness check timed out: %v", err)
-		log.Printf("    The instance may need a few more moments before you can connect")
-	} else {
-		log.Printf("✅ Instance %s is ready for SSH connections", instanceID)
-	}
-}
-
 // LaunchInstance orchestrates instance launch through the launcher port. It maps
 // the already-resolved inputs into a spawn.LaunchConfig, drives m.launcher.Launch
 // (the EC2-backed default in Phase 1), and builds the Prism instance from the
@@ -974,7 +954,6 @@ func (l *InstanceLauncher) LaunchInstance(req ctypes.LaunchRequest, cfg spawnpkg
 	// Don't wait for readiness synchronously - return immediately so client gets response
 	// The progress monitoring system will track readiness asynchronously
 	// This prevents HTTP timeouts when status checks take longer than expected
-	// l.waitForInstanceReady(cwsInstance.ID)
 
 	return cwsInstance, nil
 }
@@ -5250,200 +5229,6 @@ func (m *Manager) ResizeInstance(resizeRequest ctypes.ResizeRequest) (*ctypes.Re
 // ==========================================
 // Instance Readiness Waiting
 // ==========================================
-
-// isStatusCheckPassing returns true when both system and instance status checks pass.
-func isStatusCheckPassing(s ec2types.InstanceStatus) bool {
-	return s.SystemStatus != nil && s.SystemStatus.Status == ec2types.SummaryStatusOk &&
-		s.InstanceStatus != nil && s.InstanceStatus.Status == ec2types.SummaryStatusOk
-}
-
-// statusCheckDescription returns human-readable labels for the current system and instance check states.
-func statusCheckDescription(s ec2types.InstanceStatus) (systemStatus, instanceStatus string) {
-	systemStatus = "initializing"
-	instanceStatus = "initializing"
-	if s.SystemStatus != nil {
-		systemStatus = string(s.SystemStatus.Status)
-	}
-	if s.InstanceStatus != nil {
-		instanceStatus = string(s.InstanceStatus.Status)
-	}
-	return
-}
-
-// waitForStatusChecks waits for both AWS system and instance status checks to pass
-// This ensures the instance is fully initialized before use
-func (m *Manager) waitForStatusChecks(ctx context.Context, regionalClient EC2ClientInterface, instanceID string, progressCallback func(stage string, progress float64, description string)) error {
-	maxAttempts := 60 // 5 minutes at 5-second intervals
-	attemptDelay := 5 * time.Second
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		// Check if context is cancelled
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context cancelled while waiting for status checks: %w", ctx.Err())
-		default:
-		}
-
-		output, err := regionalClient.DescribeInstanceStatus(ctx, &ec2.DescribeInstanceStatusInput{
-			InstanceIds: []string{instanceID},
-		})
-
-		if err != nil {
-			return fmt.Errorf("failed to describe instance status: %w", err)
-		}
-
-		// Status checks may not be available immediately
-		if len(output.InstanceStatuses) == 0 {
-			if progressCallback != nil {
-				progress := float64(attempt) / float64(maxAttempts)
-				progressCallback("status_checks", progress, fmt.Sprintf("Initializing status checks (attempt %d/%d)...", attempt, maxAttempts))
-			}
-			time.Sleep(attemptDelay)
-			continue
-		}
-
-		status := output.InstanceStatuses[0]
-
-		// Both checks must pass
-		if isStatusCheckPassing(status) {
-			log.Printf("✅ Instance %s system status checks passed (2/2)", instanceID)
-			return nil
-		}
-
-		// Report progress with current status
-		if progressCallback != nil {
-			progress := float64(attempt) / float64(maxAttempts)
-			systemStatus, instanceStatus := statusCheckDescription(status)
-			description := fmt.Sprintf("Status checks: system=%s, instance=%s (attempt %d/%d)", systemStatus, instanceStatus, attempt, maxAttempts)
-			progressCallback("status_checks", progress, description)
-		}
-
-		if attempt < maxAttempts {
-			// Use context-aware sleep so we can cancel immediately
-			select {
-			case <-time.After(attemptDelay):
-			case <-ctx.Done():
-				return fmt.Errorf("context cancelled while waiting: %w", ctx.Err())
-			}
-		}
-	}
-
-	return fmt.Errorf("timeout: status checks did not pass within 5 minutes")
-}
-
-// waitForSSHAccessible polls until SSH port 22 is reachable on publicIP or ctx is cancelled.
-func waitForSSHAccessible(ctx context.Context, publicIP string, progressCallback func(stage string, progress float64, description string)) error {
-	if progressCallback != nil {
-		progressCallback("ssh_ready", 0.0, "Waiting for SSH to be accessible...")
-	}
-
-	maxAttempts := 20
-	attemptDelay := 3 * time.Second
-
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		// Check if context is cancelled
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context cancelled while waiting for SSH: %w", ctx.Err())
-		default:
-		}
-
-		// Try to connect to SSH port (don't actually authenticate, just check if port is open)
-		conn, err := net.DialTimeout("tcp", publicIP+":22", 2*time.Second)
-		if err == nil {
-			conn.Close()
-			if progressCallback != nil {
-				progressCallback("ssh_ready", 1.0, "SSH is accepting connections")
-			}
-			return nil
-		}
-
-		if progressCallback != nil {
-			progress := float64(attempt) / float64(maxAttempts)
-			description := fmt.Sprintf("Waiting for SSH (attempt %d/%d)...", attempt, maxAttempts)
-			progressCallback("ssh_ready", progress, description)
-		}
-
-		if attempt < maxAttempts {
-			// Use context-aware sleep so we can cancel immediately
-			select {
-			case <-time.After(attemptDelay):
-			case <-ctx.Done():
-				return fmt.Errorf("context cancelled while waiting for SSH: %w", ctx.Err())
-			}
-		}
-	}
-
-	return fmt.Errorf("timeout waiting for SSH to become accessible after %d attempts", maxAttempts)
-}
-
-// waitForInstanceReadyWithProgress waits for an instance to be fully ready for use with progress reporting
-// This includes:
-// 1. Instance reaching "running" state
-// 2. AWS system status checks (2/2 passing)
-// 3. SSH port (22) being accessible
-func (m *Manager) waitForInstanceReadyWithProgress(instanceID, region string, progressCallback func(stage string, progress float64, description string)) error {
-	// Use context with generous timeout to accommodate AWS variability
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
-	defer cancel()
-
-	// Get regional EC2 client
-	regionalClient := m.getRegionalEC2Client(region)
-
-	// Step 1: Wait for instance to reach "running" state (typically 30-60 seconds, but can take longer)
-	// No artificial timeout - let AWS SDK waiter poll until instance is running
-	if progressCallback != nil {
-		progressCallback("instance_ready", 0.0, "Waiting for instance to start...")
-	}
-
-	waiter := ec2.NewInstanceRunningWaiter(regionalClient)
-	err := waiter.Wait(ctx, &ec2.DescribeInstancesInput{
-		InstanceIds: []string{instanceID},
-	}, 30*time.Minute) // Generous timeout to accommodate AWS variability
-	if err != nil {
-		return fmt.Errorf("failed waiting for instance to start: %w", err)
-	}
-
-	if progressCallback != nil {
-		progressCallback("instance_ready", 1.0, "Instance is running")
-	}
-
-	// Step 2: Wait for AWS system status checks (2/2 passing)
-	if progressCallback != nil {
-		progressCallback("status_checks", 0.0, "Waiting for system status checks...")
-	}
-
-	err = m.waitForStatusChecks(ctx, regionalClient, instanceID, progressCallback)
-	if err != nil {
-		return fmt.Errorf("system status checks failed: %w", err)
-	}
-
-	if progressCallback != nil {
-		progressCallback("status_checks", 1.0, "System status checks passed (2/2)")
-	}
-
-	// Step 3: Get public IP address for SSH check
-	result, err := regionalClient.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-		InstanceIds: []string{instanceID},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get instance details: %w", err)
-	}
-
-	if len(result.Reservations) == 0 || len(result.Reservations[0].Instances) == 0 {
-		return fmt.Errorf("instance not found")
-	}
-
-	instance := result.Reservations[0].Instances[0]
-	if instance.PublicIpAddress == nil {
-		return fmt.Errorf("instance has no public IP address")
-	}
-
-	publicIP := *instance.PublicIpAddress
-
-	// Step 4: Wait for SSH to be accessible (typically 10-30 more seconds)
-	return waitForSSHAccessible(ctx, publicIP, progressCallback)
-}
 
 // ==========================================
 // Instance Snapshot Management

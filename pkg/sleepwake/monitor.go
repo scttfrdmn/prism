@@ -369,27 +369,6 @@ func (m *Monitor) selectInstancesForHibernation(ctx context.Context, instances [
 	return toHibernate, skipped
 }
 
-// filterExcluded filters out excluded instances (legacy method, kept for compatibility)
-func (m *Monitor) filterExcluded(instances []string) []string {
-	if len(m.config.ExcludedInstances) == 0 {
-		return instances
-	}
-
-	excluded := make(map[string]bool)
-	for _, name := range m.config.ExcludedInstances {
-		excluded[name] = true
-	}
-
-	result := make([]string, 0, len(instances))
-	for _, name := range instances {
-		if !excluded[name] {
-			result = append(result, name)
-		}
-	}
-
-	return result
-}
-
 // GetStatus returns the current monitor status
 func (m *Monitor) GetStatus() Status {
 	m.mu.RLock()
