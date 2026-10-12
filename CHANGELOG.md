@@ -205,8 +205,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first state change. An over-accrued ledger stops growing but isn't reduced
   (negative deltas are clamped); billed reconciliation corrects it where
   active.
+- **The GUI no longer reports a launch after a dry run (#704).** The launch
+  toasts were hardcoded, so ticking "dry run" in the launch dialog still showed
+  "Launching… This may take a few minutes" and then "Workspace Launched". A
+  dry run now shows "Validating… (dry run)", then "Dry Run Passed" with the
+  daemon's own message (truthful since #705) or "Dry Run Failed", and skips
+  the post-launch data reload. Adds the first unit tests for
+  `use-crud-handlers`.
 
 ### Changed
+- **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →
+  1.325.1) and `stretchr/testify` 1.12.1, applied to both Go modules so
+  `cmd/prism-gui` stays tidy (replaces #702 and #706).
 - **On-demand instance pricing now uses truffle (spawn adoption Phase 3d).** The
   on-demand compute rate recorded on every instance (`Instance.HourlyRate`) is
   now sourced from `github.com/spore-host/truffle` via a new

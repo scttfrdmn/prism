@@ -20,7 +20,7 @@ jobs:
 
       # --- Go vulnerability check ---
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -34,7 +34,7 @@ jobs:
 
       # --- npm dependency audit ---
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
