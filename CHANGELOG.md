@@ -264,6 +264,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   down; cross-region search now tries only the in-region tiers.
 
 ### Changed
+- **S3 transfers use `feature/s3/transfermanager`.** `pkg/storage` moved off
+  the deprecated `feature/s3/manager` Uploader/Downloader to its replacement
+  (v0.4.16). Same multipart uploads and ranged parallel downloads, with the
+  same part size and concurrency settings. The localstack test uses
+  `s3.Options.BaseEndpoint` instead of the deprecated global endpoint
+  resolver. Verified with a real 20 MiB round trip against S3.
 - **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
   1.338.3), applied to both Go modules (replaces #726).
 - **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →

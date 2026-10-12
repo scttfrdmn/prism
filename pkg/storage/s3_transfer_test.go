@@ -153,12 +153,8 @@ func TestNewTransferManager(t *testing.T) {
 		t.Error("S3 client not set correctly")
 	}
 
-	if tm.uploader == nil {
-		t.Error("Uploader not initialized")
-	}
-
-	if tm.downloader == nil {
-		t.Error("Downloader not initialized")
+	if tm.transferClient == nil {
+		t.Error("Transfer client not initialized")
 	}
 
 	if tm.transfers == nil {
@@ -284,19 +280,8 @@ func TestDeleteObject(t *testing.T) {
 	ctx := context.Background()
 
 	// Configure S3 client for localstack
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service == s3.ServiceID {
-			return aws.Endpoint{
-				URL:               "http://localhost:4566",
-				HostnameImmutable: true,
-			}, nil
-		}
-		return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-	})
-
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
-		config.WithEndpointResolverWithOptions(customResolver),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
 	)
 	if err != nil {
@@ -304,6 +289,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 
 	s3Client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String("http://localhost:4566")
 		o.UsePathStyle = true // Required for localstack
 	})
 

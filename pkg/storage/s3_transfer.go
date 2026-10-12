@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -172,9 +172,10 @@ func DefaultTransferOptions() *TransferOptions {
 
 // TransferManager manages S3 file transfers with progress tracking and resume capability
 type TransferManager struct {
-	s3Client   *s3.Client
-	uploader   *manager.Uploader
-	downloader *manager.Downloader
+	s3Client *s3.Client
+	// transferClient runs multipart uploads and ranged parallel downloads. It replaces the deprecated
+	// feature/s3/manager Uploader/Downloader (superseded by feature/s3/transfermanager).
+	transferClient *transfermanager.Client
 
 	// Track active transfers
 	transfers   map[string]*TransferProgress
@@ -191,25 +192,18 @@ func NewTransferManager(s3Client *s3.Client, options *TransferOptions) *Transfer
 		options = DefaultTransferOptions()
 	}
 
-	// Create uploader with configured part size and concurrency
-	uploader := manager.NewUploader(s3Client, func(u *manager.Uploader) {
-		u.PartSize = options.PartSize
-		u.Concurrency = options.Concurrency
-	})
-
-	// Create downloader with configured part size and concurrency
-	downloader := manager.NewDownloader(s3Client, func(d *manager.Downloader) {
-		d.PartSize = options.PartSize
-		d.Concurrency = options.Concurrency
+	// One client for uploads and downloads, with the configured part size and concurrency
+	transferClient := transfermanager.New(s3Client, func(o *transfermanager.Options) {
+		o.PartSizeBytes = options.PartSize
+		o.Concurrency = options.Concurrency
 	})
 
 	return &TransferManager{
-		s3Client:    s3Client,
-		uploader:    uploader,
-		downloader:  downloader,
-		transfers:   make(map[string]*TransferProgress),
-		cancelFuncs: make(map[string]context.CancelFunc),
-		options:     options,
+		s3Client:       s3Client,
+		transferClient: transferClient,
+		transfers:      make(map[string]*TransferProgress),
+		cancelFuncs:    make(map[string]context.CancelFunc),
+		options:        options,
 	}
 }
 
@@ -287,7 +281,7 @@ func (tm *TransferManager) UploadFile(ctx context.Context, localPath, bucket, ke
 	uploadCtx, cancel := context.WithTimeout(cancelCtx, TransferTimeout)
 	defer cancel()
 
-	_, err = tm.uploader.Upload(uploadCtx, &s3.PutObjectInput{
+	_, err = tm.transferClient.UploadObject(uploadCtx, &transfermanager.UploadObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 		Body:   progressReader,
@@ -384,9 +378,10 @@ func (tm *TransferManager) DownloadFile(ctx context.Context, bucket, key, localP
 	downloadCtx, cancel := context.WithTimeout(cancelCtx, TransferTimeout)
 	defer cancel()
 
-	_, err = tm.downloader.Download(downloadCtx, progressWriter, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+	_, err = tm.transferClient.DownloadObject(downloadCtx, &transfermanager.DownloadObjectInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(key),
+		WriterAt: progressWriter,
 	})
 
 	if err != nil {
