@@ -228,6 +228,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `FromState`.
 
 ### Changed
+- **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →
+  1.338.3), applied to both Go modules (replaces #726).
 - **Dependencies:** AWS SDK for Go v2 group (19 modules, e.g. `service/ec2` →
   1.325.1) and `stretchr/testify` 1.12.1, applied to both Go modules so
   `cmd/prism-gui` stays tidy (replaces #702 and #706).
