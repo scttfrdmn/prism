@@ -226,6 +226,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the stop; it now gets the hours from billing start to that stop (clipped to
   now). Transition `ToState` values are compared in lowercase, like
   `FromState`.
+- **Refreshing a workspace from AWS no longer drops prism's own fields (#721).**
+  Every refresh path (list `--refresh`, `refresh`, the state monitor,
+  start/stop/hibernate) rebuilt the record from AWS's view alone, so the first
+  save after a state change lost about 27 fields only prism knows: region,
+  private IP, attached EFS/EBS volumes, services, username, DCV password,
+  idle-detection and always-on settings, applied templates, job-array and
+  sweep membership, TTL, and more. Visible effects included `cost --billed`
+  losing its region and idle policies silently reverting. A refresh now starts
+  from the stored record (when it is the same EC2 instance) and overwrites
+  only the fields AWS owns. A stored record with no launch time no longer
+  replaces AWS's, which had made the estimate bill every hour since year 1.
 
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →

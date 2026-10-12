@@ -3053,6 +3053,35 @@ func resolveObservedStopTime(ec2Instance ec2types.Instance, state string) *time.
 	return &parsed
 }
 
+// overlayAWSFields copies onto a stored record the fields a refresh derives from AWS's view of the
+// instance (fresh), leaving every field only prism knows as stored. Tag-derived fields are taken only
+// when the tag is present. IsHibernating is reset so mergeLocalStateMetadata recomputes it from the
+// observed state, as it does for a record built from scratch.
+func overlayAWSFields(stored, fresh *ctypes.Instance) {
+	stored.ID = fresh.ID
+	stored.Name = fresh.Name
+	if fresh.Template != "" {
+		stored.Template = fresh.Template
+	}
+	if fresh.ProjectID != "" {
+		stored.ProjectID = fresh.ProjectID
+	}
+	stored.State = fresh.State
+	stored.PublicIP = fresh.PublicIP
+	stored.AvailabilityZone = fresh.AvailabilityZone
+	stored.InstanceLifecycle = fresh.InstanceLifecycle
+	stored.KeyName = fresh.KeyName
+	stored.LaunchTime = fresh.LaunchTime
+	stored.RunningStateStartTime = fresh.RunningStateStartTime
+	stored.ObservedStopTime = fresh.ObservedStopTime
+	stored.InstanceType = fresh.InstanceType
+	stored.HourlyRate = fresh.HourlyRate
+	stored.CurrentSpend = fresh.CurrentSpend
+	stored.EffectiveRate = fresh.EffectiveRate
+	stored.StateHistory = fresh.StateHistory
+	stored.IsHibernating = false
+}
+
 // mergeLocalStateMetadata copies fields from local state that AWS does not track and manages
 // the IsHibernating flag transitions.
 func mergeLocalStateMetadata(instance *ctypes.Instance, name, state string, localState *ctypes.State) {
@@ -3156,8 +3185,11 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 	var stateHistory []ctypes.StateTransition
 	if localState != nil {
 		if localInstance, exists := localState.Instances[name]; exists {
-			// Use cached launch time to preserve cost tracking across stop/start cycles
-			launchTime = localInstance.LaunchTime
+			// Use cached launch time to preserve cost tracking across stop/start cycles. A zero one
+			// (e.g. a phantom record from an old dry run) would bill every hour since year 1.
+			if !localInstance.LaunchTime.IsZero() {
+				launchTime = localInstance.LaunchTime
+			}
 			// Get state history for accurate cost calculation
 			stateHistory = localInstance.StateHistory
 		}
@@ -3223,6 +3255,17 @@ func (b *InstanceBuilder) BuildInstance(ec2Instance ec2types.Instance, localStat
 		CurrentSpend:          currentSpend,
 		EffectiveRate:         effectiveRate,
 		StateHistory:          stateHistory,
+	}
+
+	// Start from the stored record when it is this same EC2 instance, so the fields only prism knows
+	// (region, attached volumes, services, idle/always-on settings, DCV password, ...) survive the
+	// refresh instead of being dropped by every caller that saves this view (#721).
+	if localState != nil {
+		if local, ok := localState.Instances[name]; ok && local.ID == instance.ID {
+			merged := local
+			overlayAWSFields(&merged, instance)
+			instance = &merged
+		}
 	}
 
 	// Merge remaining metadata from local state if available (preserves a captured SpotHourlyRate
