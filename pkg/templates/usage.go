@@ -3,6 +3,7 @@ package templates
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -157,7 +158,7 @@ func (u *UsageStats) load() {
 		return
 	}
 
-	data, err := os.ReadFile(statsPath)
+	data, err := os.ReadFile(statsPath) //nolint:gosec // G304: fixed path ~/.prism/template_usage.json
 	if err != nil {
 		// File doesn't exist yet, that's ok
 		return
@@ -184,7 +185,7 @@ func (u *UsageStats) save() {
 
 	// Ensure directory exists
 	dir := filepath.Dir(statsPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return
 	}
 
@@ -198,9 +199,13 @@ func (u *UsageStats) save() {
 
 	// Write atomically
 	tmpPath := statsPath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return
 	}
 
-	os.Rename(tmpPath, statsPath)
+	if err := os.Rename(tmpPath, statsPath); err != nil {
+		// Usage stats are best-effort; don't leave the temp file behind.
+		log.Printf("warning: failed to save template usage stats: %v", err)
+		_ = os.Remove(tmpPath)
+	}
 }

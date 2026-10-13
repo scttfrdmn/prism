@@ -50,12 +50,13 @@ func (e *SSHRemoteExecutor) Execute(ctx context.Context, instanceName string, co
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: destination/command can never be parsed as ssh flags
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
 	}
 
 	// Execute command with context
-	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
+	cmd := exec.CommandContext(ctx, "ssh", sshArgs...) //nolint:gosec // G204: fixed binary with argv (no local shell); remote command is the template's own provisioning script by design
 
 	// Capture output
 	stdout, err := cmd.Output()
@@ -98,12 +99,13 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: destination/command can never be parsed as ssh flags
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
 	}
 
 	// Execute script with context
-	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
+	cmd := exec.CommandContext(ctx, "ssh", sshArgs...) //nolint:gosec // G204: fixed binary with argv (no local shell); remote command is the template's own provisioning script by design
 
 	// Capture output
 	stdout, err := cmd.Output()
@@ -141,12 +143,13 @@ func (e *SSHRemoteExecutor) CopyFile(ctx context.Context, instanceName string, l
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: a path starting with "-" can't be parsed as an scp flag
 		localPath,
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 	}
 
 	// Execute SCP with context
-	cmd := exec.CommandContext(ctx, "scp", scpArgs...)
+	cmd := exec.CommandContext(ctx, "scp", scpArgs...) //nolint:gosec // G204: fixed binary with argv (no shell), options terminated with "--"
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("SCP copy failed: %w", err)
@@ -169,12 +172,13 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: a path starting with "-" can't be parsed as an scp flag
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 		localPath,
 	}
 
 	// Execute SCP with context
-	cmd := exec.CommandContext(ctx, "scp", scpArgs...)
+	cmd := exec.CommandContext(ctx, "scp", scpArgs...) //nolint:gosec // G204: fixed binary with argv (no shell), options terminated with "--"
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("SCP download failed: %w", err)
@@ -372,7 +376,7 @@ func (e *SystemsManagerExecutor) CopyFile(ctx context.Context, instanceName stri
 	// 3. Clean up S3 object
 
 	// Read local file
-	fileData, err := os.ReadFile(localPath)
+	fileData, err := os.ReadFile(localPath) //nolint:gosec // G304: caller-chosen local file to upload to the user's own instance
 	if err != nil {
 		return fmt.Errorf("failed to read local file %s: %w", localPath, err)
 	}
@@ -465,7 +469,7 @@ func (e *SystemsManagerExecutor) GetFile(ctx context.Context, instanceName strin
 	}
 
 	// Write to local file
-	if err := os.WriteFile(localPath, fileData, 0644); err != nil {
+	if err := os.WriteFile(localPath, fileData, 0644); err != nil { //nolint:gosec // G306: user-requested download to a caller-chosen path; same default perms as scp
 		// Clean up S3 object before returning error
 		_ = e.cleanupS3Object(ctx, s3Key)
 		return fmt.Errorf("failed to write local file %s: %w", localPath, err)

@@ -14,6 +14,7 @@ package mock
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/scttfrdmn/prism/pkg/api/client"
@@ -685,7 +686,7 @@ func (m *MockClient) CreateStorage(ctx context.Context, req types.StorageCreateR
 	default:
 		// Try to parse as specific GB size
 		var size int
-		if _, err := fmt.Sscanf(req.Size, "%d", &size); err == nil {
+		if _, err := fmt.Sscanf(req.Size, "%d", &size); err == nil && size > 0 && size <= math.MaxInt32 {
 			sizeGB = int32(size)
 		}
 	}
@@ -2690,7 +2691,8 @@ func (m *MockClient) ListWorkshops(ctx context.Context, params string) (map[stri
 }
 
 func (m *MockClient) CreateWorkshop(ctx context.Context, req map[string]interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"id": "mock-workshop-id", "title": req["title"], "status": "draft", "join_token": "WS-MOCKTOKEN"}, nil
+	return map[string]interface{}{"id": "mock-workshop-id", //nolint:gosec // G101: static mock join token, not a credential
+		"title": req["title"], "status": "draft", "join_token": "WS-MOCKTOKEN"}, nil
 }
 
 func (m *MockClient) GetWorkshop(ctx context.Context, workshopID string) (map[string]interface{}, error) {
@@ -2730,7 +2732,8 @@ func (m *MockClient) SaveWorkshopConfig(ctx context.Context, workshopID, name st
 }
 
 func (m *MockClient) CreateWorkshopFromConfig(ctx context.Context, configName string, req map[string]interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"id": "mock-workshop-from-config", "title": req["title"], "join_token": "WS-MOCKTOKEN"}, nil
+	return map[string]interface{}{"id": "mock-workshop-from-config", //nolint:gosec // G101: static mock join token, not a credential
+		"title": req["title"], "join_token": "WS-MOCKTOKEN"}, nil
 }
 
 func (m *MockClient) AddWorkshopParticipant(ctx context.Context, workshopID string, req map[string]interface{}) (map[string]interface{}, error) {

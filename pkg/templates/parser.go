@@ -65,7 +65,7 @@ func (p *TemplateParser) ParseTemplate(content []byte) (*Template, error) {
 
 // ParseTemplateFile parses a template from a YAML file
 func (p *TemplateParser) ParseTemplateFile(filename string) (*Template, error) {
-	content, err := os.ReadFile(filename)
+	content, err := os.ReadFile(filename) //nolint:gosec // G304: template file from the user's own template dirs or CLI argument
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file %s: %w", filename, err)
 	}

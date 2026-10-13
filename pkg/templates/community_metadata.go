@@ -108,7 +108,7 @@ func (cms *CommunityMetadataStore) getMetadataLocked(templateName, sourceURL str
 	}
 
 	// Read metadata file
-	data, err := os.ReadFile(metadataPath)
+	data, err := os.ReadFile(metadataPath) //nolint:gosec // G304: path is metadataDir + filename with path separators stripped (getMetadataPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metadata file: %w", err)
 	}
@@ -135,7 +135,7 @@ func (cms *CommunityMetadataStore) setMetadataLocked(templateName, sourceURL str
 	metadata.TemplateName = templateName
 
 	// Ensure metadata directory exists
-	if err := os.MkdirAll(cms.metadataDir, 0755); err != nil {
+	if err := os.MkdirAll(cms.metadataDir, 0700); err != nil {
 		return fmt.Errorf("failed to create metadata directory: %w", err)
 	}
 
@@ -148,7 +148,7 @@ func (cms *CommunityMetadataStore) setMetadataLocked(templateName, sourceURL str
 	}
 
 	// Write metadata file
-	if err := os.WriteFile(metadataPath, data, 0644); err != nil {
+	if err := os.WriteFile(metadataPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write metadata file: %w", err)
 	}
 
@@ -266,7 +266,7 @@ func (cms *CommunityMetadataStore) ListAllMetadata() ([]*CommunityMetadata, erro
 		}
 
 		metadataPath := filepath.Join(cms.metadataDir, entry.Name())
-		data, err := os.ReadFile(metadataPath)
+		data, err := os.ReadFile(metadataPath) //nolint:gosec // G304: entry from os.ReadDir of the Prism-owned metadata dir
 		if err != nil {
 			continue
 		}

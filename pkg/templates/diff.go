@@ -67,7 +67,7 @@ func (d *TemplateDiffCalculator) calculatePackageDiffs(currentState *InstanceSta
 	case "apt", "dnf":
 		templatePackages = template.Packages.System
 	case "conda":
-		templatePackages = append(template.Packages.Conda, template.Packages.Pip...)
+		templatePackages = append(append([]string{}, template.Packages.Conda...), template.Packages.Pip...)
 	case "spack":
 		templatePackages = template.Packages.Spack
 	case "ami":

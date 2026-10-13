@@ -1014,7 +1014,8 @@ func (m *MockClient) ListWorkshops(ctx context.Context, params string) (map[stri
 }
 
 func (m *MockClient) CreateWorkshop(ctx context.Context, req map[string]interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"id": "mock-workshop-id", "title": req["title"], "status": "draft", "join_token": "WS-MOCKTOKEN"}, nil
+	return map[string]interface{}{"id": "mock-workshop-id", //nolint:gosec // G101: static mock join token, not a credential
+		"title": req["title"], "status": "draft", "join_token": "WS-MOCKTOKEN"}, nil
 }
 
 func (m *MockClient) GetWorkshop(ctx context.Context, workshopID string) (map[string]interface{}, error) {
@@ -1054,7 +1055,8 @@ func (m *MockClient) SaveWorkshopConfig(ctx context.Context, workshopID, name st
 }
 
 func (m *MockClient) CreateWorkshopFromConfig(ctx context.Context, configName string, req map[string]interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"id": "mock-workshop-from-config", "title": req["title"], "join_token": "WS-MOCKTOKEN"}, nil
+	return map[string]interface{}{"id": "mock-workshop-from-config", //nolint:gosec // G101: static mock join token, not a credential
+		"title": req["title"], "join_token": "WS-MOCKTOKEN"}, nil
 }
 
 func (m *MockClient) AddWorkshopParticipant(ctx context.Context, workshopID string, req map[string]interface{}) (map[string]interface{}, error) {

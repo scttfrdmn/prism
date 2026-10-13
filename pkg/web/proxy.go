@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -295,7 +296,7 @@ func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("WebSocket upgrade failed: %v", err), http.StatusInternalServerError)
 		return
 	}
-	defer clientConn.Close()
+	defer func() { _ = clientConn.Close() }() // teardown; nothing useful to do with a close error
 
 	// Connect to backend WebSocket
 	backendURL := strings.Replace(wp.targetURL.String(), "http://", "ws://", 1)
@@ -310,13 +311,15 @@ func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	backendConn, resp, err := dialer.Dial(backendURL+r.URL.Path, nil)
 	if err != nil {
-		clientConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Backend connection failed: %v", err)))
+		if werr := clientConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Backend connection failed: %v", err))); werr != nil {
+			log.Printf("websocket proxy: failed to notify client of backend error: %v", werr)
+		}
 		return
 	}
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
 	}
-	defer backendConn.Close()
+	defer func() { _ = backendConn.Close() }() // teardown; nothing useful to do with a close error
 
 	// Bidirectional proxy
 	done := make(chan struct{})

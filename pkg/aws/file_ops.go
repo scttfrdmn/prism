@@ -60,7 +60,9 @@ func validateRemotePath(path string) error {
 	if strings.Contains(path, "..") {
 		return fmt.Errorf("path traversal not allowed: %s", path)
 	}
-	for _, c := range []string{";", "|", "&", "`", "$(", "'", "\n", "\r"} {
+	// The path is interpolated inside double quotes, so `"`, `\` and `$` must
+	// also be rejected or they could break out of / expand within the quoting.
+	for _, c := range []string{";", "|", "&", "`", "$", "'", "\"", "\\", "\n", "\r"} {
 		if strings.Contains(path, c) {
 			return fmt.Errorf("path contains disallowed character %q: %s", c, path)
 		}
@@ -108,11 +110,11 @@ func (m *Manager) PushFile(ctx context.Context, instanceName, localPath, remoteP
 
 	// Upload local file to S3 temp bucket
 	log.Printf("[file_ops] uploading %s → s3://%s/%s", localPath, tempBucket, transferKey)
-	f, err := os.Open(localPath)
+	f, err := os.Open(localPath) //nolint:gosec // G304: local source path chosen by the user via the authenticated local CLI/daemon API; daemon runs as that user
 	if err != nil {
 		return nil, fmt.Errorf("failed to open local file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only file; close error carries no data-loss risk
 
 	s3Client := m.newS3Client()
 	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
@@ -174,7 +176,7 @@ echo "OK: $(stat -c %%s '%s') bytes"
 // PullFile downloads a file from a running instance to the local machine.
 //
 // The instance SSM role must allow s3:PutObject on the temp bucket.
-func (m *Manager) PullFile(ctx context.Context, instanceName, remotePath, localPath string) (*FileOpResult, error) {
+func (m *Manager) PullFile(ctx context.Context, instanceName, remotePath, localPath string) (_ *FileOpResult, retErr error) {
 	if err := validateRemotePath(remotePath); err != nil {
 		return nil, fmt.Errorf("invalid remote path: %w", err)
 	}
@@ -238,14 +240,18 @@ echo "OK"
 	}
 	defer getResp.Body.Close()
 
-	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil { //nolint:gosec // G301: user-chosen download destination directory, not Prism state; standard user dir perms
 		return nil, fmt.Errorf("failed to create local directory: %w", err)
 	}
-	dest, err := os.Create(localPath)
+	dest, err := os.Create(localPath) //nolint:gosec // G304: local destination path chosen by the user via the authenticated local CLI/daemon API; daemon runs as that user
 	if err != nil {
 		return nil, fmt.Errorf("failed to create local file: %w", err)
 	}
-	defer dest.Close()
+	defer func() {
+		if cerr := dest.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to close local file: %w", cerr)
+		}
+	}()
 
 	var written int64
 	buf := make([]byte, 32*1024)
@@ -335,7 +341,9 @@ func parseLsOutput(output, basePath string) []RemoteFileEntry {
 
 		var sizeBytes int64
 		if !isDir {
-			fmt.Sscanf(fields[4], "%d", &sizeBytes)
+			if _, err := fmt.Sscanf(fields[4], "%d", &sizeBytes); err != nil {
+				sizeBytes = 0 // unparseable size column; report as unknown (0)
+			}
 		}
 
 		var modTime time.Time

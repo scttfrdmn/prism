@@ -121,7 +121,7 @@ func WithRetry(ctx context.Context, config *RetryConfig, operation RetryableOper
 			delay = time.Duration(float64(delay) * config.Multiplier)
 
 			// Apply jitter (random ±10% by default)
-			jitter := time.Duration(float64(delay) * config.JitterFraction * (2*rand.Float64() - 1))
+			jitter := time.Duration(float64(delay) * config.JitterFraction * (2*rand.Float64() - 1)) //nolint:gosec // G404: retry backoff jitter, not security-sensitive
 			delay += jitter
 
 			// Cap at max delay

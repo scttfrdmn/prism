@@ -3,6 +3,7 @@ package templates
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,9 +36,10 @@ func NewSourceManager() *SourceManager {
 	}
 
 	// Load existing sources
+	// A missing file is not an error (first run); anything else is a corrupt or
+	// unreadable config, so start with empty sources but say so.
 	if err := sm.Load(); err != nil {
-		// If load fails, start with empty sources
-		// This is expected on first run
+		log.Printf("warning: ignoring community template sources config: %v", err)
 	}
 
 	return sm
@@ -199,7 +201,7 @@ func (sm *SourceManager) UpdateLastSync(name string) error {
 func (sm *SourceManager) Save() error {
 	// Ensure directory exists
 	dir := filepath.Dir(sm.configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -210,7 +212,7 @@ func (sm *SourceManager) Save() error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(sm.configPath, data, 0644); err != nil {
+	if err := os.WriteFile(sm.configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write sources file: %w", err)
 	}
 

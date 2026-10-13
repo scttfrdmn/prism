@@ -156,13 +156,13 @@ func (r *UniversalAMIResolver) tryInRegion(ctx context.Context, template *templa
 
 	// Tier 2: Dynamic AMI search
 	//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
-	if ami, err := r.tryDynamicSearch(ctx, template, region, result); err == nil {
+	if ami, err := r.tryDynamicSearch(ctx, template, region, result); err == nil { //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 		return ami, types.ResolutionDynamicSearch, nil
 	}
 
 	// Tier 3: Marketplace search
 	//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
-	if ami, err := r.tryMarketplaceSearch(ctx, template, region, result); err == nil {
+	if ami, err := r.tryMarketplaceSearch(ctx, template, region, result); err == nil { //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 		return ami, types.ResolutionMarketplace, nil
 	}
 
@@ -206,7 +206,7 @@ func (r *UniversalAMIResolver) tryDirectMapping(ctx context.Context, template *t
 }
 
 // tryDynamicSearch performs dynamic AMI search
-func (r *UniversalAMIResolver) tryDynamicSearch(ctx context.Context, template *templates.Template, region string, result *types.AMIResolutionResult) (*types.AMIInfo, error) {
+func (r *UniversalAMIResolver) tryDynamicSearch(ctx context.Context, template *templates.Template, region string, result *types.AMIResolutionResult) (*types.AMIInfo, error) { //nolint:staticcheck // SA4023: related info for the always-error placeholder tiers (see tryInRegion/cross-region fallback)
 	result.FallbackChain = append(result.FallbackChain, "dynamic_search")
 
 	if template.AMIConfig.AMISearch == nil {
@@ -243,7 +243,7 @@ func (r *UniversalAMIResolver) tryDynamicSearch(ctx context.Context, template *t
 }
 
 // tryMarketplaceSearch performs AWS Marketplace AMI search
-func (r *UniversalAMIResolver) tryMarketplaceSearch(ctx context.Context, template *templates.Template, region string, result *types.AMIResolutionResult) (*types.AMIInfo, error) {
+func (r *UniversalAMIResolver) tryMarketplaceSearch(ctx context.Context, template *templates.Template, region string, result *types.AMIResolutionResult) (*types.AMIInfo, error) { //nolint:staticcheck // SA4023: related info for the always-error placeholder tiers (see tryInRegion/cross-region fallback)
 	result.FallbackChain = append(result.FallbackChain, "marketplace_search")
 
 	if template.AMIConfig.MarketplaceSearch == nil {
@@ -270,9 +270,9 @@ func (r *UniversalAMIResolver) tryCrossRegionSearch(ctx context.Context, templat
 		tempResult := &types.AMIResolutionResult{TargetRegion: sourceRegion}
 		if ami, _, err := r.tryInRegion(ctx, template, sourceRegion, tempResult); err == nil {
 			// Found AMI in source region, initiate copy
-			copiedAMI, err := r.copyAMIToRegion(ctx, ami, sourceRegion, region)
+			copiedAMI, err := r.copyAMIToRegion(ctx, ami, sourceRegion, region) //nolint:staticcheck // SA4023: related info for the always-error placeholder tiers (see tryInRegion/cross-region fallback)
 			//lint:ignore SA4023 placeholder that always errors until implemented; keep the tier so templates configuring it fall through
-			if err == nil {
+			if err == nil { //nolint:staticcheck // SA4023: placeholder that always errors until implemented; keep the tier so templates configuring it fall through
 				result.SourceRegion = sourceRegion
 				result.Warning = fmt.Sprintf("AMI copied from %s (additional cost: $%.3f)", sourceRegion, r.estimateCopyICost(ami, sourceRegion, region))
 				return copiedAMI, nil
@@ -387,7 +387,7 @@ func (r *UniversalAMIResolver) searchAMIByCriteria(ctx context.Context, criteria
 	return nil, fmt.Errorf("dynamic AMI search not yet implemented")
 }
 
-func (r *UniversalAMIResolver) copyAMIToRegion(ctx context.Context, ami *types.AMIInfo, sourceRegion, targetRegion string) (*types.AMIInfo, error) {
+func (r *UniversalAMIResolver) copyAMIToRegion(ctx context.Context, ami *types.AMIInfo, sourceRegion, targetRegion string) (*types.AMIInfo, error) { //nolint:staticcheck // SA4023: related info for the always-error placeholder tiers (see tryInRegion/cross-region fallback)
 	// This would implement AWS EC2 CopyImage API call
 	return nil, fmt.Errorf("cross-region AMI copy not yet implemented")
 }

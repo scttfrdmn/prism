@@ -433,7 +433,7 @@ func testPackageAvailability(ctx context.Context, template *Template) TestResult
 
 	var issues []string
 
-	allPackages := append(template.Packages.System, template.Packages.Conda...)
+	allPackages := append(append([]string{}, template.Packages.System...), template.Packages.Conda...)
 	allPackages = append(allPackages, template.Packages.Pip...)
 
 	for _, pkg := range allPackages {
@@ -732,7 +732,7 @@ func isParameterInServices(paramRef string, services []ServiceConfig) bool {
 
 // isParameterInPackages checks for parameter usage in package lists
 func isParameterInPackages(paramRef string, template *Template) bool {
-	allPackages := append(template.Packages.System, template.Packages.Conda...)
+	allPackages := append(append([]string{}, template.Packages.System...), template.Packages.Conda...)
 	allPackages = append(allPackages, template.Packages.Pip...)
 	allPackages = append(allPackages, template.Packages.Spack...)
 

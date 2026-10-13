@@ -33,7 +33,7 @@ func DefaultPluginDirs() []string {
 	// Environment variable override (for tests and custom setups)
 	if envDir := os.Getenv("PRISM_PLUGIN_DIR"); envDir != "" {
 		envDir = filepath.Clean(envDir)
-		if info, err := os.Stat(envDir); err == nil && info.IsDir() {
+		if info, err := os.Stat(envDir); err == nil && info.IsDir() { //nolint:gosec // G703: PRISM_PLUGIN_DIR is the local user's own config, only stat'd
 			dirs = append(dirs, envDir)
 			return dirs // Use ONLY the environment variable path when set
 		}
@@ -101,7 +101,7 @@ func (r *PluginRegistry) LoadPluginsFromDirectory(dir string) error {
 
 // LoadPlugin loads a single plugin manifest from a file
 func (r *PluginRegistry) LoadPlugin(path string) error {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: plugin manifest discovered in local plugin dirs (user/system config)
 	if err != nil {
 		return fmt.Errorf("failed to read plugin file: %w", err)
 	}
@@ -291,10 +291,14 @@ func compareVersionStrings(v1, v2 string) int {
 	for i := 0; i < maxLen; i++ {
 		var n1, n2 int
 		if i < len(parts1) {
-			fmt.Sscanf(parts1[i], "%d", &n1)
+			if _, err := fmt.Sscanf(parts1[i], "%d", &n1); err != nil {
+				n1 = 0 // non-numeric component compares as 0
+			}
 		}
 		if i < len(parts2) {
-			fmt.Sscanf(parts2[i], "%d", &n2)
+			if _, err := fmt.Sscanf(parts2[i], "%d", &n2); err != nil {
+				n2 = 0 // non-numeric component compares as 0
+			}
 		}
 		if n1 < n2 {
 			return -1

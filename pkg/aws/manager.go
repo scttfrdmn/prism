@@ -2147,6 +2147,10 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.Storag
 	if err != nil {
 		return nil, fmt.Errorf("invalid size: %w", err)
 	}
+	// EBS volumes are 1 GiB to 64 TiB; also keeps the int32 conversions below safe.
+	if sizeGB < 1 || sizeGB > 65536 {
+		return nil, fmt.Errorf("invalid size: %d GB is outside the EBS range 1-65536 GB", sizeGB)
+	}
 
 	// Set defaults
 	volumeType := "gp3"
@@ -2186,12 +2190,12 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.Storag
 
 	// Set IOPS for io2 and gp3 volumes
 	if volumeType == volumeTypeIO2 || volumeType == "gp3" {
-		input.Iops = aws.Int32(int32(iops))
+		input.Iops = aws.Int32(int32(iops)) //nolint:gosec // G115: calculatePerformanceParams clamps IOPS to <= 64000
 	}
 
 	// Set throughput for gp3 volumes
 	if volumeType == "gp3" {
-		input.Throughput = aws.Int32(int32(throughput))
+		input.Throughput = aws.Int32(int32(throughput)) //nolint:gosec // G115: calculatePerformanceParams clamps throughput to <= 1000
 	}
 
 	ctx := context.Background()
@@ -2216,8 +2220,8 @@ func (m *Manager) CreateStorage(req ctypes.StorageCreateRequest) (*ctypes.Storag
 	costPerGB := m.getEBSCostPerGB(volumeType)
 
 	sizeGB32 := int32(sizeGB)
-	iops32 := int32(iops)
-	throughput32 := int32(throughput)
+	iops32 := int32(iops)             //nolint:gosec // G115: clamped to <= 64000 by calculatePerformanceParams
+	throughput32 := int32(throughput) //nolint:gosec // G115: clamped to <= 1000 by calculatePerformanceParams
 
 	volume := &ctypes.StorageVolume{
 		Name:            req.Name,
@@ -2585,7 +2589,8 @@ func (m *Manager) getInstanceTypeForSize(size string) string {
 }
 
 // getLocalArchitecture detects the local system architecture
-// DEPRECATED: Use getInstanceTypeArchitecture instead for cloud instance launches
+//
+// Deprecated: Use getInstanceTypeArchitecture instead for cloud instance launches
 // This method should only be used for local system detection, not for selecting cloud AMIs
 func (m *Manager) getLocalArchitecture() string {
 	arch := runtime.GOARCH
