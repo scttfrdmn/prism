@@ -82,6 +82,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `spore-host/spawn` v0.65.0 → v0.72.0.
 
 ### Security
+- **Credential files are really encrypted (#738).** When the OS keychain can't
+  hold a profile's AWS credentials, Prism writes an encrypted
+  `~/.prism/credentials/<profile>.creds`. Its key was derived from the home
+  directory path and service name with a static salt, so anyone who could read
+  the file could derive the key. The key is now either a random 256-bit key
+  held in the OS keychain, or, on headless hosts with no keychain, derived with
+  scrypt and a per-file salt from a passphrase in the new
+  **`PRISM_CREDENTIALS_PASSPHRASE`** environment variable. With neither,
+  storing to the file fails with that guidance instead of writing a derivable
+  ciphertext. Files in the old format are still read and are re-encrypted on
+  first read when a key source is available.
 - **Cross-site WebSocket hijacking closed.** The GUI's terminal server
   (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
   from any origin and hands out SSH sessions, so any web page the user visited
