@@ -8,6 +8,11 @@ For the complete changelog with all details, see [CHANGELOG.md on GitHub](https:
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| [v0.37.0](#v0370) | 2026-10-13 | Security hardening release; job arrays, parameter sweeps, completion signaling; spend-ledger fixes |
+| [v0.36.1](#v0361) | 2026-07-08 | Security patch: Go 1.26.5 (GO-2026-5856); Wails v3 alpha.102 |
+| [v0.36.0](#v0360) | 2026-07-07 | `workspace cost --billed`, persistence seam with DynamoDB backend |
+| [v0.35.5](#v0355) | 2026-05-05 | Correct lifetime spend and burn rate in `workspace cost`; update-checker fixes |
+| [v0.35.4](#v0354) | 2026-04-20 | Documentation overhaul |
 | [v0.35.3](#v0353) | 2026-04-09 | Security hardening: proxy validation, shell quoting, CSP/CORS, API path encoding |
 | [v0.35.2](#v0352) | 2026-04-09 | Security: spored checksum, S3 encryption, TLS daemon support, proxy CSP |
 | [v0.35.1](#v0351) | 2026-04-09 | Security: shell injection defense, file permissions, localhost binding, auto API key |
@@ -25,6 +30,85 @@ For the complete changelog with all details, see [CHANGELOG.md on GitHub](https:
 | [v0.29.0](#v0290) | 2026-04-02 | File operations (`workspace files push/pull/list`), Substrate integration tests |
 | [v0.28.1](#v0281) | 2026-04-02 | AMI, Marketplace, Idle Detection E2E tests |
 | [v0.28.0](#v0280) | 2026-04-01 | Cloudscape 3.0.1255 upgrade, Windows GUID, semver constraints |
+
+---
+
+## v0.37.0
+
+**Released**: 2026-10-13
+
+### ⚠️ Action required on headless machines
+- **Set `PRISM_CREDENTIALS_PASSPHRASE` to save profile credentials.** On a host with no OS keychain (for example a Linux server without a Secret Service), saving profile credentials now fails unless `PRISM_CREDENTIALS_PASSPHRASE` is set; the passphrase encrypts the `~/.prism/credentials/*.creds` file. Credentials saved before this release remain readable, and are re-encrypted once the variable is set. Machines with a keychain (macOS, Windows, desktop Linux) need no change. (#738)
+
+### Security
+- **Cross-site WebSocket hijacking closed**: the GUI terminal server (no other authentication) accepted any origin, so any web page could open a shell on your workstations; the daemon's SSH proxy accepted lookalike origins such as `localhost.evil.com`. Only local origins and the GUI webview are accepted now. (#737)
+- **Credential files really encrypted**: the fallback `.creds` file key was derivable from public data; it's now a keychain-held random key or your passphrase. (#738)
+- **SSH host keys verified**: ssh no longer disables host-key checking; keys are recorded on first use, checked afterwards, and bound to the instance ID (EC2 reuses IPs). (#739)
+- **`workspace connect` runs no shell**: ssh is invoked with an argument list; the GUI's open-terminal validates and quotes. (#740)
+- **SSRF in the AWS console proxy**, **zip slip and decompression bomb on profile import**, **path traversal** through invitation tokens and research usernames, **TLS pinning skipped on resumed sessions**, and several **command-injection** paths fixed. Policy evaluation fails closed on malformed policies, and files under `~/.prism` are created owner-only. (#737)
+- Go 1.26.9 and patched x/crypto, x/net, x/mod, grpc and otel clear all govulncheck and Trivy findings; every security scanner now runs on every build. (#698, #719)
+
+### Added
+- **Job arrays** (`--count`) and **parameter sweeps** (`--param-file`): launch many workspaces from one request.
+- **Completion signaling** (`--on-complete`, `--completion-file`, `--completion-delay`): workspaces can stop, hibernate or terminate themselves when work finishes; also in the GUI launch form.
+- **`prism security`** command tree (status, health, compliance reports) is now reachable.
+
+### Fixed
+- **Spend accuracy**: the budget ledger and cost estimate no longer bill stopped or hibernated workspaces as running when a stop went unrecorded; stops and starts made outside Prism are now detected; `workspace cost --billed` labels region-wide figures. (#715, #716, #718, #720, #722)
+- **Refreshes no longer drop workspace settings** (region, volumes, idle/always-on, TTL and more). (#721)
+- **`--dry-run`** no longer claims a launch, leaves a phantom workspace, or uses up launch rate limits — in the CLI or the GUI. (#703, #704, #725)
+- **`prism storage upload/download`** and **applying templates over SSH** work again. (#729)
+- **`prism ami`** commands check mapped AMIs with AWS and can no longer crash the daemon. (#730)
+
+### Changed
+- S3 transfers use AWS's `feature/s3/transfermanager`; AWS SDK and other dependencies updated.
+
+### Removed
+- About 1,350 lines of unused code, including the never-registered `prism uninstall` command (the uninstall scripts remain).
+
+---
+
+## v0.36.1
+
+**Released**: 2026-07-08
+
+### Security
+- **Go 1.26.5** clears GO-2026-5856, an Encrypted Client Hello privacy leak in `crypto/tls` reachable from the daemon HTTPS server, web proxy and API client.
+
+### Changed
+- Wails v3 `alpha.74` → `alpha.102` for the GUI (no application changes; fewer transitive dependencies).
+
+---
+
+## v0.36.0
+
+**Released**: 2026-07-07
+
+### Added
+- **`prism workspace cost --billed`**: AWS-billed cost from Cost Explorer next to Prism's estimate.
+- **Persistence seam** (`pkg/seam`) with a **DynamoDB backend**; approvals, projects, budgets and RBAC persist through it.
+
+### Security
+- x/crypto, x/net and go-git updates; `npm audit` findings cleared.
+
+---
+
+## v0.35.5
+
+**Released**: 2026-05-05
+
+### Fixed
+- `prism workspace cost` reports correct lifetime spend and per-minute burn rate; the `RUNNING` column is renamed `AGE`.
+- The update checker no longer replays a stale current version after an upgrade, and compares versions numerically.
+
+---
+
+## v0.35.4
+
+**Released**: 2026-04-20
+
+### Documentation
+- Documentation overhaul: new user guides (workspace lifecycle, courses, workshops, approvals), architecture docs, CLI reference updates, and stale command and version references fixed across 120+ files.
 
 ---
 
