@@ -41,6 +41,8 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/spore-host/spawn/pkg/params"
 
@@ -897,6 +899,16 @@ func (a *App) monitorLaunchWithEnhancedProgress(reporter *ProgressReporter, temp
 	}
 }
 
+// capitalizeFirst upper-cases the first letter of s ("deletion" -> "Deletion"), replacing the
+// deprecated strings.Title for these single-word operation names.
+func capitalizeFirst(s string) string {
+	r, n := utf8.DecodeRuneInString(s)
+	if r == utf8.RuneError {
+		return s
+	}
+	return string(unicode.ToUpper(r)) + s[n:]
+}
+
 // InstanceStateHandler interface for handling different instance states (Strategy Pattern - SOLID)
 type InstanceStateHandler interface {
 	CanHandle(state string) bool
@@ -1458,7 +1470,7 @@ func (a *App) waitForInstanceState(name string, targetStates []string, operation
 				// For delete operations, "not found" means success
 				if operation == "deletion" && (strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "does not exist")) {
 					elapsed := time.Since(startTime)
-					fmt.Printf("✅ %s complete (took %s)\n", strings.Title(operation), elapsed.Round(time.Second))
+					fmt.Printf("✅ %s complete (took %s)\n", capitalizeFirst(operation), elapsed.Round(time.Second))
 					return nil
 				}
 				// For other operations, retry on error
@@ -1470,7 +1482,7 @@ func (a *App) waitForInstanceState(name string, targetStates []string, operation
 			for _, targetState := range targetStates {
 				if instance.State == targetState {
 					elapsed := time.Since(startTime)
-					fmt.Printf("✅ %s complete - instance is %s (took %s)\n", strings.Title(operation), instance.State, elapsed.Round(time.Second))
+					fmt.Printf("✅ %s complete - instance is %s (took %s)\n", capitalizeFirst(operation), instance.State, elapsed.Round(time.Second))
 					return nil
 				}
 			}

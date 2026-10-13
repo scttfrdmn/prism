@@ -134,11 +134,11 @@ func (v *VimPluginInstaller) Validate(ctx context.Context, plugin *PluginManifes
 	// Check if Vim is installed
 	result, err := v.executor.Execute(ctx, v.instanceName, "vim --version")
 	if err != nil {
-		return fmt.Errorf("Vim is not installed: %w", err)
+		return fmt.Errorf("vim is not installed: %w", err)
 	}
 
 	if result.ExitCode != 0 {
-		return fmt.Errorf("Vim is not available (exit code %d): %s", result.ExitCode, result.Stderr)
+		return fmt.Errorf("vim is not available (exit code %d): %s", result.ExitCode, result.Stderr)
 	}
 
 	// Check for plugin manager (vim-plug is common)

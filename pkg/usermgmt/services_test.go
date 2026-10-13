@@ -230,6 +230,7 @@ func TestUserManagementServiceUserOperations(t *testing.T) {
 	retrievedUser, err = service.GetUser("service-user-1")
 	assert.Error(t, err)
 	assert.Equal(t, ErrUserNotFound, err)
+	assert.Nil(t, retrievedUser, "a deleted user must not be returned")
 }
 
 // TestUserManagementServiceGroupOperations tests group operations on service
@@ -293,6 +294,7 @@ func TestUserManagementServiceGroupOperations(t *testing.T) {
 	retrievedGroup, err = service.GetGroup("service-group-1")
 	assert.Error(t, err)
 	assert.Equal(t, ErrGroupNotFound, err)
+	assert.Nil(t, retrievedGroup, "a deleted group must not be returned")
 }
 
 // TestUserManagementServiceUserGroupOperations tests user-group operations

@@ -236,7 +236,7 @@ func VerifyRSessionWorks(t *testing.T, host, user string) error {
 	cmd := "R --version"
 	output, err := SSHCommand(t, host, user, cmd)
 	if err != nil {
-		return fmt.Errorf("R command failed: %w", err)
+		return fmt.Errorf("running R failed: %w", err)
 	}
 
 	if !strings.Contains(output, "R version") {
@@ -247,11 +247,11 @@ func VerifyRSessionWorks(t *testing.T, host, user string) error {
 	cmd = "Rscript -e 'cat(\"R works\")'"
 	output, err = SSHCommand(t, host, user, cmd)
 	if err != nil {
-		return fmt.Errorf("Rscript command failed: %w", err)
+		return fmt.Errorf("running Rscript failed: %w", err)
 	}
 
 	if !strings.Contains(output, "R works") {
-		return fmt.Errorf("R script did not execute correctly: %s", output)
+		return fmt.Errorf("the R script did not execute correctly: %s", output)
 	}
 
 	t.Logf("✓ R session verified working")

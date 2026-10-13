@@ -262,6 +262,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   re-entered itself through the cyclic default region mapping, so a template
   no tier could satisfy recursed until a fatal stack overflow took the daemon
   down; cross-region search now tries only the in-region tiers.
+- **Web proxy sends one clean `X-Forwarded-For`.** The workspace web proxy used
+  the deprecated `ReverseProxy.Director`, after which the standard library
+  appended the client IP again, so instances saw it twice. It now uses
+  `Rewrite`, which also drops client-supplied forwarding headers before the
+  proxy sets its own.
+- **Course authorization reads the caller from a typed context key.** The
+  caller ID moved from a bare `"caller_id"` string key to
+  `course.WithCaller`/`course.CallerFrom`. The TA SSH-connect handler no
+  longer reads a `"user_id"` context value that nothing set; the TA identity
+  is the client-asserted `X-User-ID` header, as before.
+- Remaining staticcheck correctness and API findings: `strings.Title`,
+  `io/ioutil`, the deprecated `HibernationStatus.IsHibernated` in mocks,
+  unneeded `Sprintf`s, error-string style, and test values that were never
+  asserted (deleted user and group are now checked to be nil; the bulk
+  invitation test checks results against its entries).
 
 ### Changed
 - **Dependencies:** AWS SDK for Go v2 group (15 updates, e.g. `service/ec2` →

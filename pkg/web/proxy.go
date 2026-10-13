@@ -63,31 +63,32 @@ func (pm *ProxyManager) RegisterInstance(instance *types.Instance) error {
 		return fmt.Errorf("invalid target URL: %w", err)
 	}
 
-	// Create reverse proxy with custom director. Director sets scheme/host +
-	// forwarding headers explicitly and drops none, so the Rewrite-vs-Director
-	// header-stripping concern the linter guards against does not apply here.
+	// Rewrite (not the deprecated Director): it starts from a copy of the inbound request with
+	// hop-by-hop and client-supplied forwarding headers already removed, so the forwarding headers
+	// below are the only ones the instance sees. Director mode also appended the client IP to the
+	// X-Forwarded-For set here, so the instance saw it twice.
 	proxy := &httputil.ReverseProxy{
-		// nosemgrep: go.lang.security.reverseproxy-director.reverseproxy-director -- Director drops no caller headers; see comment above.
-		Director: func(req *http.Request) {
-			req.URL.Scheme = targetURL.Scheme
-			req.URL.Host = targetURL.Host
-			req.Host = targetURL.Host
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.Out.URL.Scheme = targetURL.Scheme
+			pr.Out.URL.Host = targetURL.Host
+			pr.Out.Host = targetURL.Host
 
 			// Strip the proxy path prefix
 			proxyPath := fmt.Sprintf("/proxy/%s", instance.Name)
-			if strings.HasPrefix(req.URL.Path, proxyPath) {
-				req.URL.Path = strings.TrimPrefix(req.URL.Path, proxyPath)
-				if !strings.HasPrefix(req.URL.Path, "/") {
-					req.URL.Path = "/" + req.URL.Path
+			if strings.HasPrefix(pr.Out.URL.Path, proxyPath) {
+				pr.Out.URL.Path = strings.TrimPrefix(pr.Out.URL.Path, proxyPath)
+				pr.Out.URL.RawPath = ""
+				if !strings.HasPrefix(pr.Out.URL.Path, "/") {
+					pr.Out.URL.Path = "/" + pr.Out.URL.Path
 				}
 			}
 
 			// Add forwarding headers
-			if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
-				req.Header.Set("X-Forwarded-For", clientIP)
+			if clientIP, _, err := net.SplitHostPort(pr.In.RemoteAddr); err == nil {
+				pr.Out.Header.Set("X-Forwarded-For", clientIP)
 			}
-			req.Header.Set("X-Forwarded-Proto", "http")
-			req.Header.Set("X-Prism-Instance", instance.Name)
+			pr.Out.Header.Set("X-Forwarded-Proto", "http")
+			pr.Out.Header.Set("X-Prism-Instance", instance.Name)
 		},
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{

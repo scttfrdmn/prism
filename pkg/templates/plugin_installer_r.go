@@ -132,11 +132,11 @@ func (r *RPackageInstaller) Validate(ctx context.Context, plugin *PluginManifest
 	// Check if R is installed
 	result, err := r.executor.Execute(ctx, r.instanceName, "R --version")
 	if err != nil {
-		return fmt.Errorf("R is not installed: %w", err)
+		return fmt.Errorf("no R installation found: %w", err)
 	}
 
 	if result.ExitCode != 0 {
-		return fmt.Errorf("R is not available (exit code %d): %s", result.ExitCode, result.Stderr)
+		return fmt.Errorf("no working R installation (exit code %d): %s", result.ExitCode, result.Stderr)
 	}
 
 	// Check compatibility constraints if specified

@@ -169,7 +169,7 @@ func NewMockAPIClient() *MockAPIClient {
 		},
 		HibernationStatus: &types.HibernationStatus{
 			HibernationSupported: true,
-			IsHibernated:         false,
+			PossiblyHibernated:   false,
 			InstanceName:         "test-instance",
 		},
 	}

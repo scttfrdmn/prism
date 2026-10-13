@@ -607,7 +607,7 @@ func (s *Server) handleCourseTA(w http.ResponseWriter, r *http.Request, courseID
 
 func (s *Server) handleTADebug(w http.ResponseWriter, r *http.Request, courseID, taID, studentID string) {
 	// Build a context carrying the caller ID for authorization
-	ctx := context.WithValue(r.Context(), "caller_id", taID) //nolint:staticcheck
+	ctx := course.WithCaller(r.Context(), taID)
 
 	info, err := s.courseManager.GetStudentDebugInfo(ctx, courseID, taID, studentID)
 	if err != nil {
@@ -656,7 +656,7 @@ func (s *Server) handleTAReset(w http.ResponseWriter, r *http.Request, courseID,
 		req.BackupRetentionDays = 7
 	}
 
-	ctx := context.WithValue(r.Context(), "caller_id", taID) //nolint:staticcheck
+	ctx := course.WithCaller(r.Context(), taID)
 
 	if err := s.courseManager.ResetStudentInstance(ctx, courseID, taID, &req); err != nil {
 		switch err {
@@ -983,11 +983,9 @@ func (s *Server) handleTASSHConnect(w http.ResponseWriter, r *http.Request, cour
 		return
 	}
 
-	// Get TA identity from context (set by auth middleware)
-	taID, _ := r.Context().Value("user_id").(string)
-	if taID == "" {
-		taID = r.Header.Get("X-User-ID")
-	}
+	// TA identity is client-asserted: the daemon authenticates a single API key and has no per-user
+	// identity in the request context (the "user_id" value previously read here was never set).
+	taID := r.Header.Get("X-User-ID")
 	if taID == "" {
 		taID = "ta-user" // fallback for test mode
 	}
@@ -1150,7 +1148,7 @@ func (s *Server) handleMountCourseMaterials(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Record the mount action
-	ctx := context.WithValue(r.Context(), "caller_id", "system")
+	ctx := course.WithCaller(r.Context(), "system")
 	_ = s.courseManager.AppendCourseAudit(courseID, course.AuditEntry{
 		CourseID: courseID,
 		Actor:    "system",
