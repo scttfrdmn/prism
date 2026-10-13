@@ -10,6 +10,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -44,6 +45,9 @@ func (m *Manager) ReserveCapacityBlock(ctx context.Context, req CapacityBlockReq
 	if req.InstanceCount <= 0 {
 		req.InstanceCount = 1
 	}
+	if req.InstanceCount > math.MaxInt32 {
+		return nil, fmt.Errorf("instance_count %d is too large", req.InstanceCount)
+	}
 	if req.DurationHours <= 0 {
 		return nil, fmt.Errorf("duration_hours must be positive")
 	}
@@ -52,7 +56,7 @@ func (m *Manager) ReserveCapacityBlock(ctx context.Context, req CapacityBlockReq
 
 	input := &ec2.CreateCapacityReservationInput{
 		InstanceType:          aws.String(req.InstanceType),
-		InstanceCount:         aws.Int32(int32(req.InstanceCount)),
+		InstanceCount:         aws.Int32(int32(req.InstanceCount)), //nolint:gosec // G115: bounded to (0, MaxInt32] above
 		InstancePlatform:      ec2Types.CapacityReservationInstancePlatformLinuxUnix,
 		InstanceMatchCriteria: ec2Types.InstanceMatchCriteriaTargeted,
 		StartDate:             aws.Time(req.StartTime),

@@ -53,7 +53,7 @@ func NewSecurityAuditLogger() (*SecurityAuditLogger, error) {
 	logFileName := fmt.Sprintf("security-audit-%s.log", time.Now().Format("2006-01-02"))
 	logPath := filepath.Join(auditDir, logFileName)
 
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600) //nolint:gosec // G304: fixed date-stamped file name under ~/.prism/security/audit
 	if err != nil {
 		return nil, fmt.Errorf("failed to open audit log file: %w", err)
 	}
@@ -286,7 +286,7 @@ func (a *SecurityAuditLogger) RotateLog() error {
 	logFileName := fmt.Sprintf("security-audit-%s.log", time.Now().Format("2006-01-02"))
 	logPath := filepath.Join(filepath.Dir(a.logPath), logFileName)
 
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600) //nolint:gosec // G304: fixed date-stamped file name in the existing audit log directory
 	if err != nil {
 		return fmt.Errorf("failed to create new log file: %w", err)
 	}

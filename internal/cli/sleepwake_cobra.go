@@ -265,7 +265,7 @@ func (c *SleepWakeCobraCommands) printStatus(status sleepwake.Status) {
 	fmt.Fprintf(w, "  Idle Check Timeout:\t%s\n", status.IdleCheckTimeout)
 	fmt.Fprintf(w, "  Resume on Wake:\t%v\n", status.ResumeOnWake)
 	fmt.Fprintf(w, "  Grace Period:\t%s\n", status.GracePeriod)
-	w.Flush()
+	_ = w.Flush() // stdout table; printStatus has no error return and a failed terminal write is not actionable
 
 	if len(status.ExcludedInstances) > 0 {
 		fmt.Println("\nExcluded Instances:")
@@ -288,7 +288,7 @@ func (c *SleepWakeCobraCommands) printStatus(status sleepwake.Status) {
 	fmt.Fprintf(w, "  Total Hibernated:\t%d\n", status.Stats.TotalHibernated)
 	fmt.Fprintf(w, "  Total Resumed:\t%d\n", status.Stats.TotalResumed)
 	fmt.Fprintf(w, "  Currently Tracked:\t%d\n", status.Stats.ActivelyTracked)
-	w.Flush()
+	_ = w.Flush() // stdout table; printStatus has no error return and a failed terminal write is not actionable
 
 	// Currently hibernated instances
 	if len(status.HibernatedInstances) > 0 {

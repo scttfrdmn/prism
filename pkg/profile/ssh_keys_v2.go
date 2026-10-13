@@ -142,7 +142,7 @@ func (m *SSHKeyManagerV2) ListKeys() ([]*KeyMetadata, error) {
 
 		// Load public key content
 		publicKeyPath := key.LocalPath + ".pub"
-		if content, err := os.ReadFile(publicKeyPath); err == nil {
+		if content, err := os.ReadFile(publicKeyPath); err == nil { //nolint:gosec // G304: key path under the manager's keys directory, derived from a local profile name //nolint:gosec // G304: key path under the manager's keys directory, derived from a local profile name
 			key.PublicKey = strings.TrimSpace(string(content))
 		}
 
@@ -169,7 +169,7 @@ func (m *SSHKeyManagerV2) GetKeyMetadata(profileName string) (*KeyMetadata, erro
 	// Set computed fields
 	key.LocalPath = filepath.Join(m.keysDir, safeName)
 	publicKeyPath := key.LocalPath + ".pub"
-	if content, err := os.ReadFile(publicKeyPath); err == nil {
+	if content, err := os.ReadFile(publicKeyPath); err == nil { //nolint:gosec // G304: key path under the manager's keys directory, derived from a local profile name
 		key.PublicKey = strings.TrimSpace(string(content))
 	}
 
@@ -187,7 +187,7 @@ func (m *SSHKeyManagerV2) ExportKey(profileName, destPath string) error {
 	}
 
 	// Read source key
-	keyContent, err := os.ReadFile(srcPath)
+	keyContent, err := os.ReadFile(srcPath) //nolint:gosec // G304: key path under the manager's keys directory, derived from a local profile name
 	if err != nil {
 		return fmt.Errorf("failed to read key: %w", err)
 	}
@@ -199,7 +199,7 @@ func (m *SSHKeyManagerV2) ExportKey(profileName, destPath string) error {
 	}
 
 	// Write to destination with proper permissions
-	if err := os.WriteFile(destPath, keyContent, 0600); err != nil {
+	if err := os.WriteFile(destPath, keyContent, 0600); err != nil { //nolint:gosec // G703: export destination is the local user's own CLI argument
 		return fmt.Errorf("failed to write key: %w", err)
 	}
 
@@ -217,7 +217,7 @@ func (m *SSHKeyManagerV2) ImportKey(profileName, region, keyFilePath string) err
 	}
 
 	// Validate and read the private key file
-	privateKeyContent, err := os.ReadFile(keyFilePath)
+	privateKeyContent, err := os.ReadFile(keyFilePath) //nolint:gosec // G304: key file to import is the local user's own CLI argument
 	if err != nil {
 		return fmt.Errorf("failed to read key file: %w", err)
 	}
@@ -252,15 +252,15 @@ func (m *SSHKeyManagerV2) ImportKey(profileName, region, keyFilePath string) err
 	}
 
 	// Write private key to normalized location
-	if err := os.WriteFile(destPath, privateKeyContent, 0600); err != nil {
+	if err := os.WriteFile(destPath, privateKeyContent, 0600); err != nil { //nolint:gosec // G703: key path under the manager's keys directory, derived from a local profile name
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
 	// Generate and write public key
 	publicKey, err := ssh.NewPublicKey(&privateKey.PublicKey)
 	if err != nil {
-		// Clean up private key on failure
-		os.Remove(destPath)
+		// Clean up private key on failure (best effort; the original error is returned)
+		_ = os.Remove(destPath)
 		return fmt.Errorf("failed to generate public key: %w", err)
 	}
 
@@ -268,18 +268,18 @@ func (m *SSHKeyManagerV2) ImportKey(profileName, region, keyFilePath string) err
 	publicKeyLine := fmt.Sprintf("%s prism-imported\n",
 		strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey))))
 
-	if err := os.WriteFile(publicPath, []byte(publicKeyLine), 0644); err != nil {
-		// Clean up on failure
-		os.Remove(destPath)
+	if err := os.WriteFile(publicPath, []byte(publicKeyLine), 0644); err != nil { //nolint:gosec // G306: SSH public key is non-secret; 0644 is the standard mode
+		// Clean up on failure (best effort; the original error is returned)
+		_ = os.Remove(destPath)
 		return fmt.Errorf("failed to write public key: %w", err)
 	}
 
 	// Create metadata entry
 	awsKeyName := fmt.Sprintf("prism-%s-%s", safeName, region)
 	if err := m.updateMetadata(safeName, profileName, region, awsKeyName, []string{}); err != nil {
-		// Clean up on failure
-		os.Remove(destPath)
-		os.Remove(publicPath)
+		// Clean up on failure (best effort; the original error is returned)
+		_ = os.Remove(destPath)
+		_ = os.Remove(publicPath)
 		return fmt.Errorf("failed to create metadata: %w", err)
 	}
 
@@ -380,7 +380,7 @@ func (m *SSHKeyManagerV2) GetPublicKeyContent(profileName string) (string, error
 	safeName := m.normalizeProfileName(profileName)
 	publicKeyPath := filepath.Join(m.keysDir, safeName) + ".pub"
 
-	content, err := os.ReadFile(publicKeyPath)
+	content, err := os.ReadFile(publicKeyPath) //nolint:gosec // G304: key path under the manager's keys directory, derived from a local profile name
 	if err != nil {
 		return "", fmt.Errorf("failed to read public key: %w", err)
 	}
@@ -410,7 +410,7 @@ func (m *SSHKeyManagerV2) keyPairExists(privateKeyPath, publicKeyPath string) bo
 }
 
 // generateKeyPair generates a new RSA 2048 key pair
-func (m *SSHKeyManagerV2) generateKeyPair(privateKeyPath, publicKeyPath string) error {
+func (m *SSHKeyManagerV2) generateKeyPair(privateKeyPath, publicKeyPath string) (retErr error) {
 	// Generate RSA private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -424,14 +424,17 @@ func (m *SSHKeyManagerV2) generateKeyPair(privateKeyPath, publicKeyPath string) 
 	}
 
 	// Write private key with secure permissions
-	privateFile, err := os.OpenFile(privateKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	privateFile, err := os.OpenFile(privateKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600) //nolint:gosec // G304: key path under the manager's keys directory, derived from a local profile name
 	if err != nil {
 		return fmt.Errorf("failed to create private key file: %w", err)
 	}
-	defer privateFile.Close()
 
 	if err := pem.Encode(privateFile, privateKeyPEM); err != nil {
+		_ = privateFile.Close() // already failing; the write error is what matters
 		return fmt.Errorf("failed to write private key: %w", err)
+	}
+	if err := privateFile.Close(); err != nil {
+		return fmt.Errorf("failed to close private key file: %w", err)
 	}
 
 	// Generate public key
@@ -441,11 +444,15 @@ func (m *SSHKeyManagerV2) generateKeyPair(privateKeyPath, publicKeyPath string) 
 	}
 
 	// Write public key
-	publicFile, err := os.OpenFile(publicKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	publicFile, err := os.OpenFile(publicKeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644) //nolint:gosec // G302/G304: SSH public key is non-secret (0644 is standard); key path under the manager's keys directory, derived from a local profile name
 	if err != nil {
 		return fmt.Errorf("failed to create public key file: %w", err)
 	}
-	defer publicFile.Close()
+	defer func() {
+		if cerr := publicFile.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to close public key file: %w", cerr)
+		}
+	}()
 
 	publicKeyLine := fmt.Sprintf("%s prism-managed\n",
 		strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey))))

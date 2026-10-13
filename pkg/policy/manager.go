@@ -205,9 +205,11 @@ func (m *Manager) evaluateTemplateAccessPolicy(policy *Policy, request *PolicyRe
 	}
 
 	// Parse template access conditions
-	conditionsJSON, _ := json.Marshal(policy.Conditions)
 	var templatePolicy TemplateAccessPolicy
-	json.Unmarshal(conditionsJSON, &templatePolicy)
+	if err := decodeConditions(policy.Conditions, &templatePolicy); err != nil {
+		// Fail closed: a malformed policy must not silently grant access.
+		return true, fmt.Sprintf("Invalid policy conditions: %v", err)
+	}
 
 	templateName := request.Resource
 
@@ -243,9 +245,11 @@ func (m *Manager) evaluateResourceLimitsPolicy(policy *Policy, request *PolicyRe
 		return false, "No resource limit conditions"
 	}
 
-	conditionsJSON, _ := json.Marshal(policy.Conditions)
 	var limits ResourceLimitsPolicy
-	json.Unmarshal(conditionsJSON, &limits)
+	if err := decodeConditions(policy.Conditions, &limits); err != nil {
+		// Fail closed: a malformed policy must not silently grant access.
+		return true, fmt.Sprintf("Invalid policy conditions: %v", err)
+	}
 
 	ctx := request.Context
 
@@ -313,9 +317,11 @@ func (m *Manager) evaluateResearchUserPolicy(policy *Policy, request *PolicyRequ
 	}
 
 	// Parse research user conditions
-	conditionsJSON, _ := json.Marshal(policy.Conditions)
 	var researchPolicy ResearchUserPolicy
-	json.Unmarshal(conditionsJSON, &researchPolicy)
+	if err := decodeConditions(policy.Conditions, &researchPolicy); err != nil {
+		// Fail closed: a malformed policy must not silently grant access.
+		return true, fmt.Sprintf("Invalid policy conditions: %v", err)
+	}
 
 	action := request.Action
 
@@ -507,4 +513,14 @@ func (m *Manager) GetProfileUserID() string {
 
 	// Use profile name as user identifier for policy evaluation
 	return currentProfile.Name
+}
+
+// decodeConditions round-trips a policy's generic conditions map through JSON
+// into a typed policy struct.
+func decodeConditions(conditions map[string]interface{}, out interface{}) error {
+	data, err := json.Marshal(conditions)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
 }

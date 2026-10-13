@@ -134,7 +134,9 @@ func summarizeBilled(results []cetypes.ResultByTime) *billedQueryResult {
 		amount := 0.0
 		if metric, ok := period.Total["UnblendedCost"]; ok && metric.Amount != nil {
 			// Amount arrives as a decimal string, e.g. "70.1414001792".
-			fmt.Sscanf(*metric.Amount, "%f", &amount)
+			if _, err := fmt.Sscanf(*metric.Amount, "%f", &amount); err != nil {
+				amount = 0 // malformed amount; treat the period as zero cost
+			}
 		}
 		res.total += amount
 		if period.Estimated {

@@ -95,7 +95,7 @@ func NewBatchConfigManager() (*BatchConfigManager, error) {
 	}
 
 	configDir := filepath.Join(homeDir, ".prism")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -158,7 +158,7 @@ func (m *BatchConfigManager) Save() error {
 	}
 
 	// Write config file
-	if err := os.WriteFile(m.configPath, data, 0644); err != nil {
+	if err := os.WriteFile(m.configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

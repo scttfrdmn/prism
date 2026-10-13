@@ -19,9 +19,9 @@ func WaitForRStudioServer(t *testing.T, host string, port int, timeout time.Dura
 	t.Logf("Waiting for RStudio Server at %s (timeout: %v)", rstudioURL, timeout)
 
 	for time.Now().Before(deadline) {
-		resp, err := http.Get(rstudioURL)
+		resp, err := http.Get(rstudioURL) //nolint:gosec // G107: URL is the test instance endpoint under test
 		if err == nil && resp.StatusCode == http.StatusOK {
-			resp.Body.Close()
+			_ = resp.Body.Close() // probe only; body unused, close error irrelevant
 			t.Logf("✓ RStudio Server is accessible at %s", rstudioURL)
 			return nil
 		}
@@ -29,7 +29,7 @@ func WaitForRStudioServer(t *testing.T, host string, port int, timeout time.Dura
 		if err != nil {
 			t.Logf("RStudio Server not ready: %v (retrying...)", err)
 		} else {
-			resp.Body.Close()
+			_ = resp.Body.Close() // probe only; body unused, close error irrelevant
 			t.Logf("RStudio Server returned %d (waiting for 200)", resp.StatusCode)
 		}
 
@@ -103,12 +103,12 @@ func VerifyRStudioLogin(t *testing.T, host string, port int, username, password 
 
 	// First, verify login page is accessible
 	loginPageURL := baseURL + "/auth-sign-in"
-	resp, err := http.Get(loginPageURL)
+	resp, err := http.Get(loginPageURL) //nolint:gosec // G107: URL is the test instance endpoint under test
 	if err != nil {
 		t.Logf("Failed to access login page: %v", err)
 		return false
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close() // probe only; body unused, close error irrelevant
 
 	if resp.StatusCode != http.StatusOK {
 		t.Logf("Login page returned unexpected status: %d", resp.StatusCode)

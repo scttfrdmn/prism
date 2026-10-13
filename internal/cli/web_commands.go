@@ -177,11 +177,13 @@ func openBrowser(url string) error {
 
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", url)
+		cmd = exec.Command("open", url) //nolint:gosec // G204: open, URL is a single argv element, not shell
 	case "linux":
-		cmd = exec.Command("xdg-open", url)
+		cmd = exec.Command("xdg-open", url) //nolint:gosec // G204: xdg-open, URL is a single argv element, not shell
 	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", url)
+		// Avoid `cmd /c start <url>`: cmd.exe would interpret metacharacters
+		// such as '&' in the URL (query strings) as command separators.
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url) //nolint:gosec // G204: rundll32, URL is a single argv element, not shell
 	default:
 		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
 	}

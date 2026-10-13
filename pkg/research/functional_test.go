@@ -43,7 +43,6 @@ func (m *MockProfileManager) UpdateProfileConfig(profileID string, config interf
 
 // TestResearchUserFunctionalWorkflows tests real-world research user scenarios
 func TestResearchUserFunctionalWorkflows(t *testing.T) {
-
 	t.Run("university_research_user_creation_workflow", func(t *testing.T) {
 		// User scenario: University creates research users for collaborative projects
 		profileMgr := &MockProfileManager{}

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"log"
+	"slices"
 	"sync"
 	"time"
 
@@ -173,7 +174,9 @@ func (sm *StateMonitor) checkInstance(inst types.Instance) {
 		// Preserve and extend state history. GetInstance returns a fresh
 		// instance object built from AWS data, so StateHistory must be
 		// copied from the cached record before we append the transition.
-		awsInstance.StateHistory = append(inst.StateHistory, types.StateTransition{
+		// Clip so append always allocates and never writes into the cached
+		// record's backing array.
+		awsInstance.StateHistory = append(slices.Clip(inst.StateHistory), types.StateTransition{
 			FromState: inst.State,
 			ToState:   awsInstance.State,
 			Timestamp: observedTransitionTime(inst, awsInstance),

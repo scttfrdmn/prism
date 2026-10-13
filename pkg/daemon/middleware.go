@@ -14,6 +14,15 @@ const (
 	authenticatedKey contextKey = iota + 2 // Start after awsRegionKey
 )
 
+// logSafeReplacer strips line breaks from request-derived values before they
+// are logged, so a client cannot forge additional log lines.
+var logSafeReplacer = strings.NewReplacer("\r", "\\r", "\n", "\\n")
+
+// logSafe returns s with CR/LF escaped for safe inclusion in log output.
+func logSafe(s string) string {
+	return logSafeReplacer.Replace(s)
+}
+
 // AWSHeadersMiddleware extracts AWS-related headers from the request
 // and adds them to the request context
 func (s *Server) awsHeadersMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -21,7 +30,7 @@ func (s *Server) awsHeadersMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		// Extract AWS profile header
 		awsProfile := r.Header.Get("X-AWS-Profile")
 		if awsProfile != "" {
-			log.Printf("Using AWS profile: %s", awsProfile)
+			log.Printf("Using AWS profile: %s", logSafe(awsProfile)) //nolint:gosec // G706: CR/LF escaped by logSafe
 			// Store in context for later use
 			ctx := setAWSProfile(r.Context(), awsProfile)
 			r = r.WithContext(ctx)
@@ -71,7 +80,7 @@ func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		// Check if running in test mode (bypasses authentication)
 		testMode := os.Getenv("PRISM_TEST_MODE")
-		log.Printf("DEBUG: PRISM_TEST_MODE=%q, checking authentication for %s %s", testMode, r.Method, r.URL.Path)
+		log.Printf("DEBUG: PRISM_TEST_MODE=%q, checking authentication for %s %s", testMode, logSafe(r.Method), logSafe(r.URL.Path)) //nolint:gosec // G706: CR/LF escaped by logSafe
 		if testMode == "true" {
 			log.Printf("DEBUG: Test mode enabled, bypassing authentication")
 			next(w, r)

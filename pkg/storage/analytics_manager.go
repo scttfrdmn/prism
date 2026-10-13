@@ -102,7 +102,9 @@ func (m *AnalyticsManager) GetStorageCostAnalysis(req AnalyticsRequest) (*CostAn
 
 			if group.Metrics != nil {
 				if costMetric, exists := group.Metrics["UnblendedCost"]; exists && costMetric.Amount != nil {
-					fmt.Sscanf(*costMetric.Amount, "%f", &cost)
+					if _, err := fmt.Sscanf(*costMetric.Amount, "%f", &cost); err != nil {
+						cost = 0 // unparseable amount from Cost Explorer: count as zero rather than a partial value
+					}
 					totalCost += cost
 				}
 				if usageMetric, exists := group.Metrics["UsageQuantity"]; exists && usageMetric.Amount != nil {

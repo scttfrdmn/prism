@@ -18,11 +18,11 @@ import (
 // ParseInvitationFile parses a file containing invitation data
 // Automatically detects format (CSV or plain text) based on file extension
 func ParseInvitationFile(filePath string) ([]types.BulkInvitationEntry, error) {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) //nolint:gosec // G304: path supplied by the local CLI user (--file flag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // read-only; close error carries no data-loss risk
 
 	// Detect format based on file extension
 	if strings.HasSuffix(strings.ToLower(filePath), ".csv") {

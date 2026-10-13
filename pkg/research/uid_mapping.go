@@ -229,12 +229,12 @@ func (allocator *UIDGIDAllocator) generateDeterministicUIGID(profileID, username
 	uidOffset := binary.BigEndian.Uint64(hash[:8])
 
 	// Map to allowed UID range
-	uidRange := uint64(allocator.maxUID - allocator.baseUID + 1)
-	targetUID := allocator.baseUID + int(uidOffset%uidRange)
+	uidRange := uint64(allocator.maxUID - allocator.baseUID + 1) //nolint:gosec // G115: maxUID >= baseUID by construction, so the range is positive
+	targetUID := allocator.baseUID + int(uidOffset%uidRange)     //nolint:gosec // G115: value is < uidRange, which came from an int
 
 	// Find next available UID starting from target
 	uid = targetUID
-	for attempts := 0; attempts < int(uidRange); attempts++ {
+	for attempts := 0; attempts < int(uidRange); attempts++ { //nolint:gosec // G115: uidRange was computed from int UID bounds
 		if _, exists := allocator.uidIndex[uid]; !exists {
 			// Found available UID
 			gid = uid // GID matches UID for simplicity

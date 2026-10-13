@@ -85,16 +85,16 @@ func initializeGlobalProvider() {
 		case "darwin":
 			globalProvider, initError = initializeMacOSKeychain()
 		case "windows":
-			native, err := NewWindowsCredentialManagerNative()
-			if err != nil {
+			native, err := NewWindowsCredentialManagerNative() //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
+			if err != nil {                                    //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
 				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Windows Credential Manager, using secure file storage: %v\n", err)
 				globalProvider, initError = NewFileSecureStorage()
 			} else {
 				globalProvider, initError = native, nil
 			}
 		case "linux":
-			native, err := NewLinuxSecretServiceNative()
-			if err != nil {
+			native, err := NewLinuxSecretServiceNative() //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
+			if err != nil {                              //nolint:staticcheck // SA4023: other platforms' constructors are stubs that always error on this GOOS; real implementations can succeed
 				fmt.Fprintf(os.Stderr, "Warning: Failed to initialize native Linux Secret Service, using secure file storage: %v\n", err)
 				globalProvider, initError = NewFileSecureStorage()
 			} else {
@@ -224,7 +224,7 @@ func (f *FileSecureStorage) Retrieve(key string) ([]byte, error) {
 	}
 
 	// Read encrypted data
-	encryptedData, err := os.ReadFile(filePath)
+	encryptedData, err := os.ReadFile(filePath) //nolint:gosec // G304: path built by getFilePath from the storage base dir and a sanitized key
 	if err != nil {
 		return nil, fmt.Errorf("failed to read secure file: %w", err)
 	}

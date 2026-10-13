@@ -54,7 +54,6 @@ func (m *mockAWSManager) GetInstanceID(name string) (string, error) {
 
 // TestPolicyManagerWorkflows tests the complete hibernation policy management workflows
 func TestPolicyManagerWorkflows(t *testing.T) {
-
 	t.Run("apply_hibernation_policy_to_gpu_instance", func(t *testing.T) {
 		// User scenario: ML researcher applies hibernation to expensive GPU instance
 		pm := NewPolicyManager()
@@ -190,7 +189,6 @@ func TestPolicyManagerWorkflows(t *testing.T) {
 
 // TestSchedulerExecutionLogic tests the hibernation schedule execution logic
 func TestSchedulerExecutionLogic(t *testing.T) {
-
 	t.Run("daily_hibernation_schedule_logic", func(t *testing.T) {
 		// User scenario: Research instance hibernates during business hours (9 AM to 6 PM)
 		// NOTE: Current implementation has limitations with overnight schedules (22:00-08:00)
@@ -290,7 +288,6 @@ func TestSchedulerExecutionLogic(t *testing.T) {
 
 // TestPolicyTemplateLibrary tests the built-in hibernation policy templates
 func TestPolicyTemplateLibrary(t *testing.T) {
-
 	t.Run("default_policy_templates_available", func(t *testing.T) {
 		// User scenario: New user explores available hibernation policies
 		pm := NewPolicyManager()

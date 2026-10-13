@@ -373,11 +373,9 @@ func (c *HTTPClient) ResumeInstance(ctx context.Context, name string) error {
 func (c *HTTPClient) GetInstanceHibernationStatus(ctx context.Context, name string) (*types.HibernationStatus, error) {
 	resp, err := c.makeRequest(ctx, "GET", fmt.Sprintf("/api/v1/instances/%s/hibernation-status", name), nil)
 	if err != nil {
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
-		}
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var status types.HibernationStatus
 	if err := c.handleResponse(resp, &status); err != nil {
@@ -391,11 +389,9 @@ func (c *HTTPClient) GetInstanceHibernationStatus(ctx context.Context, name stri
 func (c *HTTPClient) DeleteInstance(ctx context.Context, name string) error {
 	resp, err := c.makeRequest(ctx, "DELETE", fmt.Sprintf("/api/v1/instances/%s", name), nil)
 	if err != nil {
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
-		}
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2457,6 +2453,7 @@ func (c *HTTPClient) GetProjectQuotas(ctx context.Context, projectID string) ([]
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var quotas []types.RoleQuota
 	if err := c.handleResponse(resp, &quotas); err != nil {
 		return nil, err
@@ -2470,6 +2467,7 @@ func (c *HTTPClient) SetProjectQuota(ctx context.Context, projectID string, quot
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2479,6 +2477,7 @@ func (c *HTTPClient) GetGrantPeriod(ctx context.Context, projectID string) (*typ
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var gp types.GrantPeriod
 	if err := c.handleResponse(resp, &gp); err != nil {
 		return nil, err
@@ -2492,6 +2491,7 @@ func (c *HTTPClient) SetGrantPeriod(ctx context.Context, projectID string, gp ty
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2501,6 +2501,7 @@ func (c *HTTPClient) DeleteGrantPeriod(ctx context.Context, projectID string) er
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2510,6 +2511,7 @@ func (c *HTTPClient) ShareProjectBudget(ctx context.Context, req types.BudgetSha
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var record types.BudgetShareRecord
 	if err := c.handleResponse(resp, &record); err != nil {
 		return nil, err
@@ -2523,6 +2525,7 @@ func (c *HTTPClient) ListProjectBudgetShares(ctx context.Context, projectID stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var records []*types.BudgetShareRecord
 	if err := c.handleResponse(resp, &records); err != nil {
 		return nil, err
@@ -2536,6 +2539,7 @@ func (c *HTTPClient) DeleteProjectBudgetShare(ctx context.Context, projectID, sh
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2550,6 +2554,7 @@ func (c *HTTPClient) SubmitApproval(ctx context.Context, projectID string, appro
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var ar project.ApprovalRequest
 	if err := c.handleResponse(resp, &ar); err != nil {
 		return nil, err
@@ -2567,6 +2572,7 @@ func (c *HTTPClient) ListApprovals(ctx context.Context, projectID string, status
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var reqs []*project.ApprovalRequest
 	if err := c.handleResponse(resp, &reqs); err != nil {
 		return nil, err
@@ -2584,6 +2590,7 @@ func (c *HTTPClient) ListAllApprovals(ctx context.Context, status project.Approv
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var reqs []*project.ApprovalRequest
 	if err := c.handleResponse(resp, &reqs); err != nil {
 		return nil, err
@@ -2598,6 +2605,7 @@ func (c *HTTPClient) ApproveRequest(ctx context.Context, projectID, requestID, n
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var ar project.ApprovalRequest
 	if err := c.handleResponse(resp, &ar); err != nil {
 		return nil, err
@@ -2612,6 +2620,7 @@ func (c *HTTPClient) DenyRequest(ctx context.Context, projectID, requestID, note
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var ar project.ApprovalRequest
 	if err := c.handleResponse(resp, &ar); err != nil {
 		return nil, err
@@ -2625,6 +2634,7 @@ func (c *HTTPClient) GetApproval(ctx context.Context, projectID, approvalID stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var ar project.ApprovalRequest
 	if err := c.handleResponse(resp, &ar); err != nil {
 		return nil, err
@@ -2661,6 +2671,7 @@ func (c *HTTPClient) ListOnboardingTemplates(ctx context.Context, projectID stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var tmpls []types.OnboardingTemplate
 	if err := c.handleResponse(resp, &tmpls); err != nil {
 		return nil, err
@@ -2674,6 +2685,7 @@ func (c *HTTPClient) AddOnboardingTemplate(ctx context.Context, projectID string
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2683,6 +2695,7 @@ func (c *HTTPClient) DeleteOnboardingTemplate(ctx context.Context, projectID, na
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2731,6 +2744,7 @@ func (c *HTTPClient) CloseCourse(ctx context.Context, courseID string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2740,6 +2754,7 @@ func (c *HTTPClient) DeleteCourse(ctx context.Context, courseID string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2775,6 +2790,7 @@ func (c *HTTPClient) UnenrollCourseMember(ctx context.Context, courseID, userID 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2796,6 +2812,7 @@ func (c *HTTPClient) AddCourseTemplate(ctx context.Context, courseID, templateSl
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2805,6 +2822,7 @@ func (c *HTTPClient) RemoveCourseTemplate(ctx context.Context, courseID, templat
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -2993,6 +3011,7 @@ func (c *HTTPClient) DeleteWorkshop(ctx context.Context, workshopID string) erro
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -3043,6 +3062,7 @@ func (c *HTTPClient) RemoveWorkshopParticipant(ctx context.Context, workshopID, 
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -3060,6 +3080,7 @@ func (c *HTTPClient) ListInstanceFiles(ctx context.Context, instanceName, path s
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result []interface{}
 	return result, c.handleResponse(resp, &result)
 }
@@ -3085,6 +3106,7 @@ func (c *HTTPClient) ListCapacityBlocks(ctx context.Context) ([]interface{}, err
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result []interface{}
 	return result, c.handleResponse(resp, &result)
 }
@@ -3102,6 +3124,7 @@ func (c *HTTPClient) CancelCapacityBlock(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -3112,6 +3135,7 @@ func (c *HTTPClient) ListInstanceS3Mounts(ctx context.Context, instanceName stri
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result []interface{}
 	return result, c.handleResponse(resp, &result)
 }
@@ -3133,6 +3157,7 @@ func (c *HTTPClient) UnmountS3Bucket(ctx context.Context, instanceName, mountPat
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	return c.handleResponse(resp, nil)
 }
 
@@ -3159,6 +3184,7 @@ func (c *HTTPClient) makeRequestJSON(ctx context.Context, method, path string, b
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var result map[string]interface{}
 	return result, c.handleResponse(resp, &result)
 }

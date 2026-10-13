@@ -5,6 +5,8 @@
 package storage
 
 import (
+	"fmt"
+	"math"
 	"time"
 )
 
@@ -955,4 +957,13 @@ type ActiveS3Mount struct {
 	MountPath   string `json:"mount_path"`
 	MountMethod string `json:"mount_method"`
 	ReadOnly    bool   `json:"read_only"`
+}
+
+// storageSizeInt32 converts a requested size (GB/GiB) to the int32 the AWS
+// APIs take, rejecting values that are negative or would overflow.
+func storageSizeInt32(size int64) (int32, error) {
+	if size < 0 || size > math.MaxInt32 {
+		return 0, fmt.Errorf("invalid storage size %d: must be between 0 and %d", size, math.MaxInt32)
+	}
+	return int32(size), nil
 }

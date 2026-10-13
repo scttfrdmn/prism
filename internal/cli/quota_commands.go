@@ -65,7 +65,7 @@ Shows:
 	}
 
 	cmd.Flags().StringVar(&instanceType, "instance-type", "", "Instance type to check (e.g., t3.medium, m5.large)")
-	cmd.MarkFlagRequired("instance-type")
+	_ = cmd.MarkFlagRequired("instance-type") // only errors if the flag is undefined; it is defined above
 
 	return cmd
 }
@@ -96,7 +96,7 @@ Provides:
 	}
 
 	cmd.Flags().StringVar(&instanceType, "instance-type", "", "Instance type for quota increase")
-	cmd.MarkFlagRequired("instance-type")
+	_ = cmd.MarkFlagRequired("instance-type") // only errors if the flag is undefined; it is defined above
 
 	return cmd
 }

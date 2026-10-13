@@ -44,6 +44,13 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+// run executes the daemon and returns the process exit code. It is split out
+// of main so that deferred cleanup (singleton lock release) runs before the
+// process exits.
+func run() int {
 	var (
 		port    = flag.String("port", "8947", "Port to listen on (default: 8947 - CWS on phone keypad)")
 		showVer = flag.Bool("version", false, "Show version")
@@ -53,12 +60,12 @@ func main() {
 
 	if *help {
 		printUsage()
-		return
+		return 0
 	}
 
 	if *showVer {
 		fmt.Println(version.GetDaemonVersionInfo())
-		return
+		return 0
 	}
 
 	// Initialize logging with appropriate level
@@ -75,7 +82,11 @@ func main() {
 	if err := singleton.Acquire(); err != nil {
 		logger.Fatal("Failed to acquire singleton lock", "error", err)
 	}
-	defer singleton.Release()
+	defer func() {
+		if err := singleton.Release(); err != nil {
+			logger.Error("Failed to release singleton lock", "error", err)
+		}
+	}()
 
 	logger.Info("Singleton lock acquired", "pid", os.Getpid())
 
@@ -86,7 +97,8 @@ func main() {
 	// Start the main daemon server with integrated monitoring
 	server, err := daemon.NewServer(*port)
 	if err != nil {
-		logger.Fatal("Failed to create server", "error", err)
+		logger.Error("Failed to create server", "error", err)
+		return 1
 	}
 
 	// Start the daemon server in a goroutine
@@ -100,7 +112,8 @@ func main() {
 	// Wait for shutdown signals or server error
 	select {
 	case err := <-serverErr:
-		logger.Fatal("Server failed", "error", err)
+		logger.Error("Server failed", "error", err)
+		return 1
 	case sig := <-sigChan:
 		logger.Info("Received signal", "signal", sig)
 
@@ -121,9 +134,9 @@ func main() {
 			}
 
 			logger.Info("Prism daemon shutdown complete")
-			os.Exit(0)
 		}
 	}
+	return 0
 }
 
 func printUsage() {

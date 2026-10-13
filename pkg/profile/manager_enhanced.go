@@ -42,7 +42,7 @@ func NewManagerEnhanced() (*ManagerEnhanced, error) {
 
 	// Create Prism directory if it doesn't exist
 	cwsDir := filepath.Join(homeDir, ".prism")
-	if err := os.MkdirAll(cwsDir, 0755); err != nil {
+	if err := os.MkdirAll(cwsDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -113,7 +113,7 @@ func (m *ManagerEnhanced) save() error {
 		return err
 	}
 
-	return os.WriteFile(m.configPath, data, 0644)
+	return os.WriteFile(m.configPath, data, 0600)
 }
 
 // GetCurrentProfile returns the currently active profile

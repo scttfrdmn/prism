@@ -37,3 +37,11 @@ func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, data interface
 		log.Printf("Error encoding JSON response: %v", err)
 	}
 }
+
+// encodeJSONResponse encodes v as JSON to w. Callers have already set headers
+// (and possibly the status code), so an encode failure can only be logged.
+func encodeJSONResponse(w http.ResponseWriter, v interface{}) {
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf("Error encoding JSON response: %v", err)
+	}
+}

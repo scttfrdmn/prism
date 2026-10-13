@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"strconv"
+
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +59,7 @@ func (mc *MarketplaceCobraCommands) createListCommand() *cobra.Command {
 				marketplaceArgs = append(marketplaceArgs, "--category", category)
 			}
 			if limit > 0 {
-				marketplaceArgs = append(marketplaceArgs, "--limit", string(rune(limit)))
+				marketplaceArgs = append(marketplaceArgs, "--limit", strconv.Itoa(limit))
 			}
 
 			return mc.app.Marketplace(marketplaceArgs)
@@ -195,7 +197,7 @@ func (mc *MarketplaceCobraCommands) createReviewCommand() *cobra.Command {
 
 			marketplaceArgs := []string{"review", args[0]}
 			if rating > 0 {
-				marketplaceArgs = append(marketplaceArgs, "--rating", string(rune(rating)))
+				marketplaceArgs = append(marketplaceArgs, "--rating", strconv.Itoa(rating))
 			}
 			if comment != "" {
 				marketplaceArgs = append(marketplaceArgs, "--comment", comment)

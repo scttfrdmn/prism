@@ -4,6 +4,7 @@ package cost
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
 	"sync"
 	"time"
@@ -267,7 +268,9 @@ func (am *AlertManager) evaluateTrendConditions(conditions AlertConditions) bool
 	days := 7
 	if conditions.TrendWindow != "" {
 		// Simple parsing: "7d" -> 7, "30d" -> 30
-		fmt.Sscanf(conditions.TrendWindow, "%dd", &days)
+		if _, err := fmt.Sscanf(conditions.TrendWindow, "%dd", &days); err != nil {
+			days = 7 // unparseable window: fall back to the default
+		}
 	}
 
 	// Get cost history
@@ -297,7 +300,9 @@ func (am *AlertManager) evaluateAnomalyConditions(conditions AlertConditions) bo
 	// Parse baseline window (default to 7 days)
 	days := 7
 	if conditions.BaselineWindow != "" {
-		fmt.Sscanf(conditions.BaselineWindow, "%dd", &days)
+		if _, err := fmt.Sscanf(conditions.BaselineWindow, "%dd", &days); err != nil {
+			days = 7 // unparseable window: fall back to the default
+		}
 	}
 
 	// Get cost history
@@ -419,7 +424,10 @@ func (am *AlertManager) executeAutomatedActions(alert *Alert) {
 	for i, action := range alert.Actions {
 		if action.Automated {
 			// Execute the action
-			am.executeAction(alert, &action)
+			if err := am.executeAction(alert, &action); err != nil {
+				log.Printf("cost alerts: action %q for alert %s failed: %v", action.Type, alert.ID, err)
+				continue
+			}
 
 			// Update execution time
 			now := time.Now()
@@ -526,10 +534,18 @@ func (am *AlertManager) ResolveAlert(alertID string) error {
 	return nil
 }
 
+// addDefaultRule adds a built-in rule, logging (rather than returning) any
+// failure so that CreateDefaultRules can install the remaining rules.
+func (am *AlertManager) addDefaultRule(rule *AlertRule) {
+	if err := am.AddRule(rule); err != nil {
+		log.Printf("cost alerts: failed to add default rule %q: %v", rule.Name, err)
+	}
+}
+
 // CreateDefaultRules creates default alert rules
 func (am *AlertManager) CreateDefaultRules() {
 	// Budget threshold rules
-	am.AddRule(&AlertRule{
+	am.addDefaultRule(&AlertRule{
 		Name:    "Budget 75% Warning",
 		Type:    AlertTypeThreshold,
 		Enabled: true,
@@ -540,7 +556,7 @@ func (am *AlertManager) CreateDefaultRules() {
 		Cooldown: 6 * time.Hour,
 	})
 
-	am.AddRule(&AlertRule{
+	am.addDefaultRule(&AlertRule{
 		Name:    "Budget 90% Critical",
 		Type:    AlertTypeThreshold,
 		Enabled: true,
@@ -552,7 +568,7 @@ func (am *AlertManager) CreateDefaultRules() {
 	})
 
 	// Cost anomaly rule
-	am.AddRule(&AlertRule{
+	am.addDefaultRule(&AlertRule{
 		Name:    "Cost Anomaly Detection",
 		Type:    AlertTypeAnomaly,
 		Enabled: true,
@@ -565,7 +581,7 @@ func (am *AlertManager) CreateDefaultRules() {
 	})
 
 	// Daily cost threshold
-	am.AddRule(&AlertRule{
+	am.addDefaultRule(&AlertRule{
 		Name:    "Daily Cost Threshold",
 		Type:    AlertTypeThreshold,
 		Enabled: true,

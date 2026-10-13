@@ -224,7 +224,7 @@ func (k *MacOSKeychainNative) Retrieve(key string) ([]byte, error) {
 	var data unsafe.Pointer
 	var dataLength C.UInt32
 
-	status := C.retrieveFromKeychain(cService, cAccount, &data, &dataLength)
+	status := C.retrieveFromKeychain(cService, cAccount, &data, &dataLength) //nolint:gocritic // dupSubExpr: false positive in cgo-generated code for this C call, not in our source
 
 	if status == C.errSecItemNotFound {
 		return nil, ErrKeychainNotFound

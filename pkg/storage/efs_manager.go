@@ -402,13 +402,13 @@ func (m *EFSManager) ListAccessPoints(filesystemId string) ([]AccessPointInfo, e
 
 		if ap.PosixUser != nil {
 			info.PosixUser = &PosixUser{
-				Uid: uint32(*ap.PosixUser.Uid),
-				Gid: uint32(*ap.PosixUser.Gid),
+				Uid: uint32(*ap.PosixUser.Uid), //nolint:gosec // G115: AWS constrains POSIX UIDs to 0..4294967295
+				Gid: uint32(*ap.PosixUser.Gid), //nolint:gosec // G115: AWS constrains POSIX GIDs to 0..4294967295
 			}
 			if len(ap.PosixUser.SecondaryGids) > 0 {
 				// Convert int64 slice to uint32 slice
 				for _, gid := range ap.PosixUser.SecondaryGids {
-					info.PosixUser.SecondaryGids = append(info.PosixUser.SecondaryGids, uint32(gid))
+					info.PosixUser.SecondaryGids = append(info.PosixUser.SecondaryGids, uint32(gid)) //nolint:gosec // G115: AWS constrains POSIX GIDs to 0..4294967295
 				}
 			}
 		}

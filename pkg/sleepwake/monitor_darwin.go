@@ -113,7 +113,7 @@ func (m *darwinMonitor) Start(eventCh chan<- Event) error {
 		&m.connection,
 		&m.notifyPort,
 		&m.notifier,
-		C.uintptr_t(refcon),
+		C.uintptr_t(refcon), //nolint:gocritic // dupSubExpr: false positive in cgo-generated call wrapper; this source has no == expression
 	)
 
 	if result != C.kIOReturnSuccess {

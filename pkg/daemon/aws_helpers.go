@@ -44,7 +44,7 @@ func (s *Server) createAWSManagerFromRequest(r *http.Request) (*aws.Manager, err
 // and handles error cases, writing the error to the response
 func (s *Server) withAWSManager(w http.ResponseWriter, r *http.Request,
 	fn func(*aws.Manager) error) {
-	log.Printf("[DEBUG] withAWSManager: Starting for %s", r.URL.Path)
+	log.Printf("[DEBUG] withAWSManager: Starting for %s", logSafe(r.URL.Path)) //nolint:gosec // G706: CR/LF escaped by logSafe
 
 	// Track this as an AWS operation specifically with operation name derived from URL
 	opType := "AWS-" + extractOperationType(r.URL.Path)

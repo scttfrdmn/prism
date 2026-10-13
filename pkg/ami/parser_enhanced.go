@@ -18,7 +18,7 @@ func (p *Parser) ParseEnhancedTemplate(templatePath string) (*Template, error) {
 	}
 
 	// Read file
-	data, err := os.ReadFile(templatePath)
+	data, err := os.ReadFile(templatePath) //nolint:gosec // G304: local template file path from the CLI user/template directory
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file: %w", err)
 	}

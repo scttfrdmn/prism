@@ -107,7 +107,7 @@ func LoadInstitutionalPricing() (*InstitutionalPricingConfig, error) {
 
 // loadPricingConfigFromFile loads pricing config from a specific file
 func loadPricingConfigFromFile(path string) (*InstitutionalPricingConfig, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: institutional pricing config from fixed local search paths / env override
 	if err != nil {
 		return nil, fmt.Errorf("failed to read pricing config file %s: %w", path, err)
 	}

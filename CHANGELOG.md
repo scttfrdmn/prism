@@ -82,6 +82,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `spore-host/spawn` v0.65.0 → v0.72.0.
 
 ### Security
+- **Cross-site WebSocket hijacking closed.** The GUI's terminal server
+  (`127.0.0.1:8948`, no other authentication) accepted WebSocket handshakes
+  from any origin and hands out SSH sessions, so any web page the user visited
+  while the GUI ran could open a shell on their workstations. The daemon's SSH
+  proxy accepted any origin *containing* "localhost" (`https://localhost.evil.com`).
+  All upgraders now use `web.LocalOriginCheck`: exact loopback hosts, the
+  request's own host, and the Wails webview only.
+- **SSRF in the AWS console proxy.** `/aws-proxy/` put the `region` query
+  parameter straight into the reverse-proxy target host, so `evil.com/#`
+  pointed it (and any federation token) at an arbitrary host. `region` must
+  now be a well-formed AWS region.
+- **Zip slip and decompression bomb on profile import.** Archive entries that
+  resolve outside the extraction directory are rejected and each file is
+  capped at 64 MiB. Credential export archives were world-readable under the
+  default umask; they are now 0600.
+- **Path traversal through untrusted names.** An invitation token became a
+  file name under `received/`, and a research username from the HTTP path
+  became a file name, so `Delete` could remove any reachable `.json`. Both
+  are validated; SSH key-store IDs and repository template paths too.
+- **Certificate pinning on resumed TLS sessions.** The registry client's pin
+  check now runs via `VerifyConnection` on every connection; resumed sessions
+  used to skip it.
+- **Command injection hardening.** Windows `openBrowser` used `cmd /c start
+  <url>` (`&` in a URL was a command separator). ssh/scp arguments end option
+  parsing with `--`. `connect --user` must be a POSIX username (the connection
+  string runs via `sh -c`). SSM file-transfer paths reject `"`, `\` and `$`.
+  Template scripts run through a heredoc with a random delimiter (a line
+  `EOF` used to end it early).
+- **Policy evaluation fails closed.** Template-access, resource-limit and
+  research-user policies whose conditions can't be decoded now deny instead of
+  allowing.
+- **Private files are private.** Files and directories under `~/.prism`
+  holding config, state, credentials, keys, tokens, invitations, course
+  reports or caches are created 0600/0700 (existing directories keep their
+  mode). SSH public keys stay 0644.
+- **golangci-lint release gate passes.** `make lint` was failing on 2,856
+  golangci-lint findings. `.golangci.yml` now keeps the bug-finding linters
+  strict (errcheck, gosec, bodyclose, staticcheck, gocritic diagnostics) and
+  holds style and complexity to limits the code meets: goconst, unparam and
+  prealloc are off, staticcheck QF* and gocritic style checks are off, and
+  cyclop is 30, gocognit 60. All remaining findings are fixed, including
+  hundreds of dropped errors and three slice-aliasing `append` bugs; every
+  suppression names its rule and reason. The integration-tagged tests in
+  `pkg/aws` and `pkg/ami` compile again.
 - **Green the Security Scan again (red on `main` since late July).** govulncheck
   flagged 10 reachable vulnerabilities: eight in the Go standard library (Go
   1.26.5 → 1.26.9 in both `go.mod` files and the CI/release workflows),

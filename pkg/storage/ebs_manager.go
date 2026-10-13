@@ -100,8 +100,13 @@ func (m *EBSManager) parseVolumeConfiguration(req StorageRequest) (types.VolumeT
 
 // buildVolumeInput constructs the EC2 CreateVolumeInput
 func (m *EBSManager) buildVolumeInput(ctx context.Context, req StorageRequest, volumeType types.VolumeType, iops, throughput int32) (*ec2.CreateVolumeInput, error) {
+	size, err := storageSizeInt32(req.Size)
+	if err != nil {
+		return nil, err
+	}
+
 	input := &ec2.CreateVolumeInput{
-		Size:       aws.Int32(int32(req.Size)),
+		Size:       aws.Int32(size),
 		VolumeType: volumeType,
 		Encrypted:  aws.Bool(true), // Always encrypt by default
 	}

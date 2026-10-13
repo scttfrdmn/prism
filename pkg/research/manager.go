@@ -109,9 +109,13 @@ func (rum *ResearchUserManager) GetResearchUser(profileID, username string) (*Re
 	rum.mu.RLock()
 	defer rum.mu.RUnlock()
 
+	// username is used as a file name; reject anything that could escape the config dir.
+	if err := rum.validateUsername(username); err != nil {
+		return nil, fmt.Errorf("invalid research username %q: %w", username, err)
+	}
 	configFile := rum.getResearchUserConfigPath(profileID, username)
 
-	data, err := os.ReadFile(configFile)
+	data, err := os.ReadFile(configFile) //nolint:gosec // G304: username validated above; path is under the Prism config dir
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("research user %s not found for profile %s", username, profileID)
@@ -159,7 +163,7 @@ func (rum *ResearchUserManager) ListResearchUsersForProfile(profileID string) ([
 
 			// Read user config directly (avoid deadlock with GetResearchUser)
 			configFile := rum.getResearchUserConfigPath(profileID, username)
-			data, err := os.ReadFile(configFile)
+			data, err := os.ReadFile(configFile) //nolint:gosec // G304: file name comes from os.ReadDir of the Prism config dir itself
 			if err != nil {
 				continue // Skip invalid configs
 			}
@@ -185,9 +189,13 @@ func (rum *ResearchUserManager) UpdateResearchUser(profileID string, user *Resea
 	rum.mu.Lock()
 	defer rum.mu.Unlock()
 
+	if err := rum.validateUsername(user.Username); err != nil {
+		return fmt.Errorf("invalid research username %q: %w", user.Username, err)
+	}
+
 	// Validate the user exists by reading directly (avoid deadlock with GetResearchUser)
 	configFile := rum.getResearchUserConfigPath(profileID, user.Username)
-	data, err := os.ReadFile(configFile)
+	data, err := os.ReadFile(configFile) //nolint:gosec // G304: username validated above; path is under the Prism config dir
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("research user does not exist: research user %s not found for profile %s", user.Username, profileID)
@@ -215,6 +223,10 @@ func (rum *ResearchUserManager) DeleteResearchUser(profileID, username string) e
 	rum.mu.Lock()
 	defer rum.mu.Unlock()
 
+	// username is used as a file name; reject anything that could escape the config dir.
+	if err := rum.validateUsername(username); err != nil {
+		return fmt.Errorf("invalid research username %q: %w", username, err)
+	}
 	configFile := rum.getResearchUserConfigPath(profileID, username)
 
 	// Check if user exists before attempting deletion
@@ -321,8 +333,8 @@ func (rum *ResearchUserManager) allocateUIGID(profileID, username string) (uid, 
 	uidOffset := binary.BigEndian.Uint64(hash[:8])
 
 	// Map to allowed UID range
-	uidRange := uint64(ResearchUserMaxUID - rum.baseUID + 1)
-	uid = rum.baseUID + int(uidOffset%uidRange)
+	uidRange := uint64(ResearchUserMaxUID - rum.baseUID + 1) //nolint:gosec // G115: baseUID <= ResearchUserMaxUID (constants), so the range is small and positive
+	uid = rum.baseUID + int(uidOffset%uidRange)              //nolint:gosec // G115: value is < uidRange (<= 1000), fits in int
 
 	// For deterministic allocation, we don't need to check for conflicts
 	// The same profile:username combination will always produce the same UID
@@ -341,7 +353,7 @@ func (rum *ResearchUserManager) saveResearchUser(profileID string, user *Researc
 	configDir := filepath.Dir(configFile)
 
 	// Create directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 

@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -40,7 +39,7 @@ func (s *Server) handleAuditEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	encodeJSONResponse(w, map[string]interface{}{
 		"events": events,
 		"count":  len(events),
 	})

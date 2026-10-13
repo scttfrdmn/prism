@@ -2,7 +2,6 @@
 package daemon
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 )
@@ -36,7 +35,7 @@ func (s *Server) requireAWSMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(errResponse)
+			encodeJSONResponse(w, errResponse)
 			return
 		}
 

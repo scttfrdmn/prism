@@ -52,7 +52,7 @@ func NewInvitationCache() (*InvitationCache, error) {
 	}
 
 	stateDir := filepath.Join(homeDir, ".prism")
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 

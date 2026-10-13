@@ -1324,10 +1324,20 @@ func hasPackages(template *templates.Template) bool {
 		len(template.Packages.Spack) > 0
 }
 
+// allTemplatePackages returns all package names of a template in a newly
+// allocated slice, so the template's own package slices are never mutated.
+func allTemplatePackages(template *templates.Template) []string {
+	p := template.Packages
+	all := make([]string, 0, len(p.System)+len(p.Conda)+len(p.Pip)+len(p.Spack))
+	all = append(all, p.System...)
+	all = append(all, p.Conda...)
+	all = append(all, p.Pip...)
+	all = append(all, p.Spack...)
+	return all
+}
+
 func containsGPUPackages(template *templates.Template) bool {
-	allPackages := append(template.Packages.System, template.Packages.Conda...)
-	allPackages = append(allPackages, template.Packages.Pip...)
-	allPackages = append(allPackages, template.Packages.Spack...)
+	allPackages := allTemplatePackages(template)
 
 	for _, pkg := range allPackages {
 		for _, indicator := range GPUPackageIndicators {
@@ -1340,9 +1350,7 @@ func containsGPUPackages(template *templates.Template) bool {
 }
 
 func containsMemoryPackages(template *templates.Template) bool {
-	allPackages := append(template.Packages.System, template.Packages.Conda...)
-	allPackages = append(allPackages, template.Packages.Pip...)
-	allPackages = append(allPackages, template.Packages.Spack...)
+	allPackages := allTemplatePackages(template)
 
 	for _, pkg := range allPackages {
 		for _, indicator := range MemoryPackageIndicators {
@@ -1355,9 +1363,7 @@ func containsMemoryPackages(template *templates.Template) bool {
 }
 
 func containsComputePackages(template *templates.Template) bool {
-	allPackages := append(template.Packages.System, template.Packages.Conda...)
-	allPackages = append(allPackages, template.Packages.Pip...)
-	allPackages = append(allPackages, template.Packages.Spack...)
+	allPackages := allTemplatePackages(template)
 
 	for _, pkg := range allPackages {
 		for _, indicator := range ComputePackageIndicators {

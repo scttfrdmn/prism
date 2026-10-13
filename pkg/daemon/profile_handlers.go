@@ -101,7 +101,7 @@ func (s *Server) handleListProfiles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(responses)
+	encodeJSONResponse(w, responses)
 }
 
 // handleGetCurrentProfile returns the currently active profile
@@ -128,7 +128,7 @@ func (s *Server) handleGetCurrentProfile(w http.ResponseWriter, r *http.Request)
 	resp.Default = true
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	encodeJSONResponse(w, resp)
 }
 
 // handleProfileOperations handles operations on specific profiles
@@ -188,7 +188,7 @@ func (s *Server) handleGetProfile(w http.ResponseWriter, r *http.Request, profil
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	encodeJSONResponse(w, resp)
 }
 
 // handleProfiles handles /api/v1/profiles (list or create)
@@ -275,7 +275,7 @@ func (s *Server) handleCreateProfile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdProfile)
+	encodeJSONResponse(w, createdProfile)
 }
 
 // handleUpdateProfile updates an existing profile
@@ -344,7 +344,7 @@ func (s *Server) handleUpdateProfile(w http.ResponseWriter, r *http.Request, pro
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	encodeJSONResponse(w, resp)
 }
 
 // handleDeleteProfile deletes a profile
@@ -408,7 +408,7 @@ func (s *Server) handleActivateProfile(w http.ResponseWriter, r *http.Request, p
 	resp.Default = true
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	encodeJSONResponse(w, resp)
 }
 
 // profileToResponse converts a profile.Profile to ProfileResponse

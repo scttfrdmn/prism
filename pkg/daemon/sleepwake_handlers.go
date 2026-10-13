@@ -28,7 +28,7 @@ func (s *Server) handleSleepWakeStatus(w http.ResponseWriter, r *http.Request) {
 			"error":   "Sleep/wake monitoring not initialized on this platform",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -87,5 +87,5 @@ func (s *Server) handleSleepWakeConfigure(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }

@@ -12,7 +12,6 @@ import (
 
 // TestSecurityValidationWorkflows tests real-world security validation scenarios
 func TestSecurityValidationWorkflows(t *testing.T) {
-
 	t.Run("university_deployment_security_audit", func(t *testing.T) {
 		// User scenario: University IT runs security audit before campus deployment
 		validator := NewSecurityValidator()
@@ -176,7 +175,6 @@ func TestSecurityValidationWorkflows(t *testing.T) {
 
 // TestAccessControlWorkflows tests access control and dynamic permissions
 func TestAccessControlWorkflows(t *testing.T) {
-
 	t.Run("professor_grants_student_temporary_access", func(t *testing.T) {
 		// User scenario: Professor gives student temporary access to GPU resources
 		accessManager := NewDynamicAccessManager()
@@ -287,7 +285,6 @@ func TestAccessControlWorkflows(t *testing.T) {
 
 // TestSecurityIncidentResponse tests security incident detection and response
 func TestSecurityIncidentResponse(t *testing.T) {
-
 	t.Run("suspicious_activity_detection", func(t *testing.T) {
 		// User scenario: System detects unusual access patterns
 		incidentDetector := NewSecurityIncidentDetector()

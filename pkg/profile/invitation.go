@@ -153,7 +153,6 @@ func (i *InvitationToken) IsValid() bool {
 func GenerateSecureInvitationToken(ownerProfile, ownerAccount, name string,
 	invType InvitationType, validDays int, s3ConfigPath string,
 	canInvite, transferable, deviceBound bool, maxDevices int, parentToken string) (*InvitationToken, error) {
-
 	// Generate basic token
 	token, err := GenerateInvitationToken(ownerProfile, ownerAccount, name, invType, validDays, s3ConfigPath)
 	if err != nil {

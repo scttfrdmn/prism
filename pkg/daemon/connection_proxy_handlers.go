@@ -15,7 +15,9 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+
 	"github.com/scttfrdmn/prism/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/web"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -35,12 +37,13 @@ func (s *Server) RegisterConnectionProxyRoutes(mux *http.ServeMux, applyMiddlewa
 }
 
 // WebSocket upgrader for SSH connections
+// awsRegionPattern matches AWS region names such as us-west-2 or us-gov-east-1.
+var awsRegionPattern = regexp.MustCompile(`^[a-z]{2}(-[a-z]+)+-[0-9]+$`)
+
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		// Allow connections from the Prism GUI
-		origin := r.Header.Get("Origin")
-		return strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1")
-	},
+	// Exact-match local origins only: the previous substring test admitted
+	// e.g. https://localhost.evil.com.
+	CheckOrigin: web.LocalOriginCheck,
 }
 
 // handleSSHProxy handles WebSocket connections for embedded SSH terminals with full SSH multiplexing
@@ -84,8 +87,9 @@ func (s *Server) handleSSHProxy(w http.ResponseWriter, r *http.Request) {
 		_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: %v\r\n", err)))
 		return
 	}
-	defer sshClient.Close()
-	defer session.Close()
+	// Read-side SSH resources: close errors on teardown carry no actionable information.
+	defer func() { _ = sshClient.Close() }()
+	defer func() { _ = session.Close() }()
 
 	// Setup SSH pipes
 	sshStdin, sshStdout, sshStderr, err := s.setupSSHPipes(session)
@@ -174,7 +178,7 @@ func (s *Server) setupSSHConnection(wsConn *websocket.Conn, instance *types.Inst
 	// Create SSH session
 	session, err := sshClient.NewSession()
 	if err != nil {
-		sshClient.Close()
+		_ = sshClient.Close() // already returning the session error
 		return nil, nil, fmt.Errorf("failed to create SSH session: %w", err)
 	}
 
@@ -186,8 +190,8 @@ func (s *Server) setupSSHConnection(wsConn *websocket.Conn, instance *types.Inst
 	}
 
 	if err := session.RequestPty("xterm-256color", 80, 40, modes); err != nil {
-		session.Close()
-		sshClient.Close()
+		_ = session.Close()   // already returning the PTY error
+		_ = sshClient.Close() // already returning the PTY error
 		return nil, nil, fmt.Errorf("failed to request PTY: %w", err)
 	}
 
@@ -202,7 +206,7 @@ func (s *Server) loadSSHKey(wsConn *websocket.Conn) (ssh.Signer, error) {
 	}
 
 	keyPath := filepath.Join(homeDir, ".prism", "ssh_keys", "id_ed25519")
-	keyBytes, err := os.ReadFile(keyPath)
+	keyBytes, err := os.ReadFile(keyPath) //nolint:gosec // G304: fixed path under the user's ~/.prism/ssh_keys
 	if err != nil {
 		return nil, fmt.Errorf("failed to read SSH key: %w", err)
 	}
@@ -360,7 +364,7 @@ func (s *Server) handleDCVProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL) //nolint:gosec // G704: host is the instance's PublicIP from daemon state, port validated to 1-65535
 
 	// Replace upstream security headers with Prism-safe values for iframe embedding (#596)
 	proxy.ModifyResponse = func(resp *http.Response) error {
@@ -391,6 +395,12 @@ func (s *Server) handleAWSServiceProxy(w http.ResponseWriter, r *http.Request) {
 
 	if region == "" {
 		region = "us-west-2" // Default region
+	}
+	// The region is interpolated into the proxy target host; reject anything
+	// that isn't a plain AWS region name so it can't redirect the proxy (SSRF).
+	if !awsRegionPattern.MatchString(region) {
+		s.writeError(w, http.StatusBadRequest, "Invalid AWS region")
+		return
 	}
 
 	// Build target AWS service URL based on service name
@@ -441,7 +451,7 @@ func (s *Server) handleAWSServiceProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create reverse proxy with federation support
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL) //nolint:gosec // G704: host is a fixed *.aws.amazon.com endpoint; region is validated against awsRegionPattern
 
 	// Replace upstream security headers for Prism iframe embedding (#603)
 	proxy.ModifyResponse = func(resp *http.Response) error {
@@ -504,7 +514,7 @@ func (s *Server) handleWebProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create reverse proxy with enhanced CORS headers for iframe embedding
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy := httputil.NewSingleHostReverseProxy(targetURL) //nolint:gosec // G704: host is the instance's PublicIP from daemon state, port validated to 1-65535
 
 	// Replace upstream security headers with Prism-safe values for iframe embedding (#603)
 	proxy.ModifyResponse = func(resp *http.Response) error {
@@ -531,7 +541,7 @@ func (s *Server) handleWebProxy(w http.ResponseWriter, r *http.Request) {
 
 // loadKnownHosts loads SSH known hosts from file
 func loadKnownHosts(path string) (ssh.HostKeyCallback, error) {
-	knownHostsBytes, err := os.ReadFile(path)
+	knownHostsBytes, err := os.ReadFile(path) //nolint:gosec // G304: path is the daemon's own known_hosts file under the user's home dir
 	if err != nil {
 		return nil, fmt.Errorf("failed to read known hosts: %w", err)
 	}
@@ -587,7 +597,7 @@ func trustOnFirstUse(knownHostsPath, hostname string) ssh.HostKeyCallback {
 	return func(host string, remote net.Addr, key ssh.PublicKey) error {
 		// Read existing known_hosts
 		knownHosts := make(map[string]string)
-		if data, err := os.ReadFile(knownHostsPath); err == nil {
+		if data, err := os.ReadFile(knownHostsPath); err == nil { //nolint:gosec // G304: daemon's own known_hosts file under the user's home dir
 			lines := strings.Split(string(data), "\n")
 			for _, line := range lines {
 				line = strings.TrimSpace(line)
@@ -623,14 +633,17 @@ func trustOnFirstUse(knownHostsPath, hostname string) ssh.HostKeyCallback {
 		knownHostEntry := fmt.Sprintf("%s %s", hostname, strings.TrimSpace(string(authorizedKey)))
 
 		// Append to known_hosts file
-		f, err := os.OpenFile(knownHostsPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+		f, err := os.OpenFile(knownHostsPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600) //nolint:gosec // G304: daemon's own known_hosts file under the user's home dir
 		if err != nil {
 			return fmt.Errorf("failed to open known_hosts for writing: %w", err)
 		}
-		defer f.Close()
 
 		if _, err := f.WriteString(knownHostEntry + "\n"); err != nil {
+			_ = f.Close() // already returning the write error
 			return fmt.Errorf("failed to write to known_hosts: %w", err)
+		}
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("failed to close known_hosts: %w", err)
 		}
 
 		return nil

@@ -331,7 +331,7 @@ func (s *Server) getSSHKeyPath(instance types.Instance) string {
 	}
 	// Try exact key name (e.g. "prism-test-aws-west2-key")
 	plain := filepath.Join(home, ".ssh", instance.KeyName)
-	if _, err := os.Stat(plain); err == nil {
+	if _, err := os.Stat(plain); err == nil { //nolint:gosec // G703: KeyName is the EC2 key pair name from daemon state, not request input; only stat'ed
 		return plain
 	}
 	// Try with .pem extension

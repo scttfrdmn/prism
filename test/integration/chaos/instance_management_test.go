@@ -387,7 +387,7 @@ func TestConnectToTerminatedInstance(t *testing.T) {
 	t.Logf("")
 	t.Logf("📋 Attempting to get connection info after termination")
 
-	connectionInfo, err = ctx.Client.ConnectInstance(context.Background(), instance.Name)
+	_, err = ctx.Client.ConnectInstance(context.Background(), instance.Name)
 	if err != nil {
 		errorMsg := strings.ToLower(err.Error())
 		if strings.Contains(errorMsg, "terminated") ||

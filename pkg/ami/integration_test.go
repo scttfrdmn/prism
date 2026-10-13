@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -31,13 +32,7 @@ func setupLocalstackClients(t *testing.T) (*ec2.Client, *ssm.Client) {
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion("us-east-1"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
-		config.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
-			func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL:           localstackEndpoint,
-					SigningRegion: "us-east-1",
-				}, nil
-			})),
+		config.WithBaseEndpoint(localstackEndpoint),
 	)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
@@ -107,6 +102,7 @@ func TestValidateRegion(t *testing.T) {
 func TestGetDefaultSecurityGroup(t *testing.T) {
 	builder := setupLocalstackBuilder(t)
 	ec2Client := builder.EC2Client
+	ctx := context.Background()
 
 	// Create a test security group in LocalStack
 	createSgInput := &ec2.CreateSecurityGroupInput{
@@ -122,20 +118,9 @@ func TestGetDefaultSecurityGroup(t *testing.T) {
 		t.Logf("Created security group: %s", *createSgOutput.GroupId)
 	}
 
-	// Test with explicit security group
-	securityGroup, err := builder.getDefaultSecurityGroup("sg-explicit", "vpc-test123")
-	assert.NoError(t, err)
-	assert.Equal(t, "sg-explicit", securityGroup)
-
-	// Test with default security group from builder
-	builder.SecurityGroupID = "sg-builder-default"
-	securityGroup, err = builder.getDefaultSecurityGroup("", "vpc-test123")
-	assert.NoError(t, err)
-	assert.Equal(t, "sg-builder-default", securityGroup)
-
-	// Test with lookup - this will likely be limited in LocalStack
-	builder.SecurityGroupID = ""
-	securityGroup, err = builder.getDefaultSecurityGroup("", "vpc-test123")
+	// getDefaultSecurityGroup looks up the VPC's "default" group in EC2.
+	// This will likely be limited in LocalStack.
+	securityGroup, err := builder.getDefaultSecurityGroup(ctx, "vpc-test123")
 	// This might fail in LocalStack - check both possibilities
 	if err == nil {
 		t.Logf("Found security group: %s", securityGroup)
@@ -171,10 +156,10 @@ func TestInitializeBaseAMIs(t *testing.T) {
 // TestParseTemplate tests template parsing
 func TestParseTemplate(t *testing.T) {
 	// Create a test parser
-	parser := NewParser(nil)
+	parser := NewParser()
 
 	// Valid template YAML
-	validTemplate := []byte(`
+	validTemplate := `
 name: "Test Template"
 base: "ubuntu-22.04-server-lts"
 description: "Test template for integration tests"
@@ -186,7 +171,7 @@ validation:
   - name: "System check"
     command: "echo success"
     success: true
-`)
+`
 
 	// Parse valid template
 	template, err := parser.ParseTemplate(validTemplate)
@@ -197,10 +182,10 @@ validation:
 	assert.Equal(t, 1, len(template.Validation))
 
 	// Invalid template YAML (missing required fields)
-	invalidTemplate := []byte(`
+	invalidTemplate := `
 name: "Invalid Template"
 description: "Missing required base field"
-`)
+`
 
 	// Parse invalid template
 	template, err = parser.ParseTemplate(invalidTemplate)
@@ -210,11 +195,16 @@ description: "Missing required base field"
 
 // TestListTemplates tests template listing
 func TestListTemplates(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "ami-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
+	// Parser.ListTemplates scans ./templates and ~/.prism/templates (plus a
+	// system directory), so point both the working directory and HOME at a
+	// temp tree containing a templates/ directory.
+	tempDir := t.TempDir()
+	templatesDir := filepath.Join(tempDir, "templates")
+	if err := os.MkdirAll(templatesDir, 0o750); err != nil {
+		t.Fatalf("Failed to create templates directory: %v", err)
 	}
-	defer func() { _ = os.RemoveAll(tempDir) }()
+	t.Chdir(tempDir)
+	t.Setenv("HOME", tempDir)
 
 	// Create test template files
 	templateContent := `
@@ -232,25 +222,25 @@ validation:
 `
 
 	// Write test templates
-	if err := os.WriteFile(tempDir+"/template1.yml", []byte(templateContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(templatesDir, "template1.yml"), []byte(templateContent), 0o600); err != nil {
 		t.Fatalf("Failed to write template file: %v", err)
 	}
-	if err := os.WriteFile(tempDir+"/template2.yaml", []byte(templateContent), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(templatesDir, "template2.yaml"), []byte(templateContent), 0o600); err != nil {
 		t.Fatalf("Failed to write template file: %v", err)
 	}
 
 	// Create a test parser with base AMIs
-	baseAMIs := map[string]map[string]string{
+	parser := NewParser()
+	parser.BaseAMIs = map[string]map[string]string{
 		"us-east-1": {
 			"ubuntu-22.04-server-lts": "ami-test",
 		},
 	}
-	parser := NewParser(baseAMIs)
 
-	// List templates
-	templates, err := parser.ListTemplates(tempDir)
+	// List templates (a system-wide template directory may add more entries)
+	templates, err := parser.ListTemplates()
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(templates))
+	assert.GreaterOrEqual(t, len(templates), 2)
 	assert.Contains(t, templates, "template1")
 	assert.Contains(t, templates, "template2")
 }
@@ -258,38 +248,36 @@ validation:
 // TestAMIRegistry tests the AMI registry functionality
 func TestAMIRegistry(t *testing.T) {
 	_, ssmClient := setupLocalstackClients(t)
+	ctx := context.Background()
 
 	registry := &Registry{
 		SSMClient:       ssmClient,
 		ParameterPrefix: "/prism/ami/test/",
 	}
 
-	// Test reference registration
-	ref := Reference{
+	// Test reference registration (PublishAMI builds the Reference from a BuildResult)
+	build := &BuildResult{
 		AMIID:        "ami-test123",
 		Region:       "us-east-1",
 		Architecture: "x86_64",
 		TemplateName: "test-template",
 		Version:      "1.0.0",
-		BuildDate:    time.Now(),
-		Tags: map[string]string{
-			"Name":    "test-ami",
-			"Purpose": "testing",
-		},
+		BuildTime:    time.Now(),
 	}
 
 	// Register AMI reference
-	err := registry.RegisterAMI(ref)
+	err := registry.PublishAMI(ctx, build)
 	if err != nil {
 		// LocalStack limitations may cause this to fail
-		t.Logf("Warning: RegisterAMI failed due to LocalStack limitations: %v", err)
+		t.Logf("Warning: PublishAMI failed due to LocalStack limitations: %v", err)
 	} else {
 		// Test lookup - may also fail due to LocalStack limitations
-		found, err := registry.LookupAMI("test-template", "us-east-1", "x86_64")
+		found, err := registry.LookupAMI(ctx, "test-template", "us-east-1", "x86_64")
 		if err != nil {
 			t.Logf("Warning: LookupAMI failed due to LocalStack limitations: %v", err)
 		} else {
-			assert.Equal(t, ref.AMIID, found.AMIID)
+			assert.Equal(t, build.AMIID, found.AMIID)
+			assert.Equal(t, build.Version, found.Version)
 		}
 	}
 }
@@ -333,13 +321,18 @@ func TestCreateDryRun(t *testing.T) {
 	}
 
 	// Execute dry run
-	result, err := builder.CreateAMI(request)
+	result, err := builder.BuildAMI(context.Background(), request)
 
-	// This should succeed even in LocalStack as it's a dry run
+	// This should succeed even in LocalStack as it's a dry run. The pipeline
+	// marks a finished dry run "completed" and creates no AMI.
 	assert.NoError(t, err)
-	assert.Equal(t, "dry-run", result.Status)
-	assert.Equal(t, request.TemplateName, result.TemplateID)
-	assert.Equal(t, request.Region, result.Region)
+	if assert.NotNil(t, result) {
+		assert.True(t, result.IsSuccessful())
+		assert.Empty(t, result.AMIID)
+		assert.Equal(t, request.BuildID, result.TemplateID)
+		assert.Equal(t, request.TemplateName, result.TemplateName)
+		assert.Equal(t, request.Region, result.Region)
+	}
 }
 
 // TestCrossRegionCopyPreparation tests the preparation for cross-region copying
@@ -347,17 +340,14 @@ func TestCrossRegionCopyPreparation(t *testing.T) {
 	builder := setupLocalstackBuilder(t)
 
 	// Test cross-region copy preparation with multiple regions
+	// The source region is taken from the builder's EC2 client (us-east-1).
 	regions := []string{"us-west-1", "eu-west-1"}
-	sourceRegion := "us-east-1"
 	amiID := "ami-test123"
 	name := "test-ami"
-	tags := map[string]string{
-		"Name": name,
-		"Test": "Value",
-	}
+	description := "Integration test AMI"
 
 	// Execute the function - should succeed even with LocalStack limitations
-	copiedAMIs, err := builder.copyAMIToRegions(amiID, name, sourceRegion, regions, tags)
+	copiedAMIs, err := builder.copyAMIToRegions(context.Background(), amiID, name, description, regions)
 
 	// This may fail in LocalStack due to cross-region limitations
 	if err != nil {

@@ -54,7 +54,7 @@ func NewManager(emailSender EmailSender) (*Manager, error) {
 		stateDir = filepath.Join(homeDir, ".prism")
 	}
 
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0700); err != nil { //nolint:gosec // G703: PRISM_STATE_DIR is set by the local operator/test harness, not remote input
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 

@@ -60,7 +60,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Read config file
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(configPath) //nolint:gosec // G304: fixed path ~/.prism/daemon_config.json from GetConfigPath
 	if err != nil {
 		return nil, fmt.Errorf("failed to read daemon config: %w", err)
 	}
@@ -116,7 +116,7 @@ func SaveConfig(config *Config) error {
 
 	// Ensure config directory exists
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -127,7 +127,7 @@ func SaveConfig(config *Config) error {
 	}
 
 	// Write config file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write daemon config: %w", err)
 	}
 

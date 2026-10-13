@@ -47,7 +47,7 @@ func getCPUUsageLinux() float64 {
 	if err != nil {
 		return 0.0
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // read-only; close error is not actionable
 
 	scanner := bufio.NewScanner(file)
 	if !scanner.Scan() {

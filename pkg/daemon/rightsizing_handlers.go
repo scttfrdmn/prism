@@ -57,7 +57,7 @@ func (s *Server) performRightsizingAnalysis(w http.ResponseWriter, r *http.Reque
 	// In test mode, return empty analysis without making CloudWatch API calls
 	if s.testMode {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(types.RightsizingAnalysisResponse{
+		encodeJSONResponse(w, types.RightsizingAnalysisResponse{
 			Recommendation:      nil,
 			MetricsAvailable:    false,
 			DataPointsCount:     0,
@@ -102,7 +102,7 @@ func (s *Server) performRightsizingAnalysis(w http.ResponseWriter, r *http.Reque
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -126,7 +126,7 @@ func (s *Server) performRightsizingAnalysis(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRightsizingRecommendations handles GET /api/v1/rightsizing/recommendations
@@ -144,7 +144,7 @@ func (s *Server) getAllRightsizingRecommendations(w http.ResponseWriter, r *http
 	// In test mode, return empty recommendations without making CloudWatch API calls
 	if s.testMode {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(types.RightsizingRecommendationsResponse{
+		encodeJSONResponse(w, types.RightsizingRecommendationsResponse{
 			Recommendations:  []types.RightsizingRecommendation{},
 			TotalInstances:   0,
 			ActiveInstances:  0,
@@ -192,7 +192,7 @@ func (s *Server) getAllRightsizingRecommendations(w http.ResponseWriter, r *http
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRightsizingStats handles GET /api/v1/rightsizing/stats?instance=<name>
@@ -216,7 +216,7 @@ func (s *Server) getRightsizingStats(w http.ResponseWriter, r *http.Request) {
 	// In test mode, return empty stats without making CloudWatch API calls
 	if s.testMode {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(types.RightsizingStatsResponse{
+		encodeJSONResponse(w, types.RightsizingStatsResponse{
 			InstanceName:   instanceName,
 			RecentMetrics:  []types.InstanceMetrics{},
 			Recommendation: nil,
@@ -246,7 +246,7 @@ func (s *Server) getRightsizingStats(w http.ResponseWriter, r *http.Request) {
 	statsResponse := s.generateRightsizingStats(targetInstance)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(statsResponse)
+	encodeJSONResponse(w, statsResponse)
 }
 
 // handleRightsizingExport handles GET /api/v1/rightsizing/export?instance=<name>
@@ -290,7 +290,7 @@ func (s *Server) exportRightsizingData(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s-metrics.json", instanceName))
-	json.NewEncoder(w).Encode(metrics)
+	encodeJSONResponse(w, metrics)
 }
 
 // handleRightsizingSummary handles GET /api/v1/rightsizing/summary
@@ -419,7 +419,7 @@ func (s *Server) getInstanceSpecificMetrics(w http.ResponseWriter, r *http.Reque
 	metrics := s.generateSampleMetrics(targetInstance, limit)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(metrics)
+	encodeJSONResponse(w, metrics)
 }
 
 // Helper methods for generating rightsizing data

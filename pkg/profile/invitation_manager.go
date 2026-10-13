@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -32,7 +33,7 @@ func NewInvitationManager(profileManager *ManagerEnhanced) (*InvitationManager, 
 	receivedDir := filepath.Join(invitationsDir, "received")
 
 	for _, dir := range []string{invitationsDir, generatedDir, receivedDir} {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0700); err != nil {
 			return nil, fmt.Errorf("failed to create invitations directory %s: %w", dir, err)
 		}
 	}
@@ -78,7 +79,7 @@ func (m *InvitationManager) loadInvitations() error {
 		}
 
 		filePath := filepath.Join(m.generatedPath, file.Name())
-		data, err := os.ReadFile(filePath)
+		data, err := os.ReadFile(filePath) //nolint:gosec // G304: entry from os.ReadDir of our own invitations directory
 		if err != nil {
 			continue // Skip files we can't read
 		}
@@ -141,7 +142,7 @@ func (m *InvitationManager) saveInvitation(invitation *InvitationToken) error {
 	filename := fmt.Sprintf("%s.json", invitation.Token)
 	filePath := filepath.Join(m.generatedPath, filename)
 
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write invitation file: %w", err)
 	}
 
@@ -215,6 +216,12 @@ func (m *InvitationManager) AddToProfile(encoded string, profileName string) err
 		return fmt.Errorf("invitation has expired")
 	}
 
+	// The token comes from an externally supplied invitation and is used as a
+	// file name below, so it must be a single, plain path component.
+	if !isSafeFileComponent(invitation.Token) {
+		return fmt.Errorf("invalid invitation: malformed token")
+	}
+
 	// Create profile from invitation
 	profile := Profile{
 		Type:               ProfileTypeInvitation,
@@ -242,9 +249,18 @@ func (m *InvitationManager) AddToProfile(encoded string, profileName string) err
 	filename := fmt.Sprintf("%s.json", invitation.Token)
 	filePath := filepath.Join(m.receivedPath, filename)
 
-	if err := os.WriteFile(filePath, data, 0644); err != nil {
+	if err := os.WriteFile(filePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to save received invitation: %w", err)
 	}
 
 	return nil
+}
+
+// isSafeFileComponent reports whether name can be used as a single file name
+// component without escaping its parent directory.
+func isSafeFileComponent(name string) bool {
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
+	return !strings.ContainsAny(name, "/\\\x00")
 }

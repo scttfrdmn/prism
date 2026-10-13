@@ -112,12 +112,13 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 		"-o", "ServerAliveInterval=60", // Keep connection alive
 		"-o", "ServerAliveCountMax=3", // Retry 3 times
 		"-i", keyPath, // SSH key
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP), // Connection
 	}
 
 	fmt.Printf("[DEBUG] Creating SSH tunnel: ssh %s\n", strings.Join(args, " "))
 
-	cmd := exec.CommandContext(ctx, "ssh", args...)
+	cmd := exec.CommandContext(ctx, "ssh", args...) //nolint:gosec // G204: fixed ssh binary, args are argv not shell; user/IP/key come from daemon state
 	// Capture output for debugging
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
@@ -195,7 +196,7 @@ func (tm *TunnelManager) isPortAvailable(port int) bool {
 	if err != nil {
 		return false // Port is in use
 	}
-	listener.Close()
+	_ = listener.Close() // probe listener only; the bind succeeding is the answer
 	return true
 }
 
@@ -384,6 +385,7 @@ func (tm *TunnelManager) extractJupyterToken(instance *types.Instance, tunnel *S
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "ConnectTimeout=5",
 		"-i", tunnel.KeyPath,
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP),
 		"jupyter", "server", "list", "2>/dev/null", "||", "jupyter", "notebook", "list", "2>/dev/null",
 	}
@@ -391,7 +393,7 @@ func (tm *TunnelManager) extractJupyterToken(instance *types.Instance, tunnel *S
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "ssh", args...)
+	cmd := exec.CommandContext(ctx, "ssh", args...) //nolint:gosec // G204: fixed ssh binary, args are argv; the remote command is a fixed literal
 	output, err := cmd.Output()
 	if err != nil {
 		// Token extraction is optional - don't fail if it doesn't work

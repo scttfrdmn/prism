@@ -1436,7 +1436,7 @@ post_install: |
 	err = os.WriteFile(timeoutPath, []byte(timeoutTemplate), 0644)
 	integration.AssertNoError(t, err, "Failed to write timeout template")
 
-	tmpl, err = parser.ParseTemplateFile(timeoutPath)
+	_, err = parser.ParseTemplateFile(timeoutPath)
 	integration.AssertNoError(t, err, "Timeout template should parse")
 
 	t.Logf("✅ Timeout template configured")

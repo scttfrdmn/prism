@@ -64,7 +64,7 @@ func (cc *CommunityCache) Get(sourceURL, branch, templatePath string) (*Template
 	}
 
 	// Read cache entry
-	data, err := os.ReadFile(cachePath)
+	data, err := os.ReadFile(cachePath) //nolint:gosec // G304: path is cacheDir + sha256 hex key, no user-controlled path segments
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to read cache file: %w", err)
 	}
@@ -90,7 +90,7 @@ func (cc *CommunityCache) Get(sourceURL, branch, templatePath string) (*Template
 // Set stores a template in the cache
 func (cc *CommunityCache) Set(sourceURL, branch, templatePath string, template *Template) error {
 	// Ensure cache directory exists
-	if err := os.MkdirAll(cc.cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cc.cacheDir, 0700); err != nil {
 		return fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
@@ -113,7 +113,7 @@ func (cc *CommunityCache) Set(sourceURL, branch, templatePath string, template *
 	}
 
 	// Write to cache file
-	if err := os.WriteFile(cachePath, data, 0644); err != nil {
+	if err := os.WriteFile(cachePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 
@@ -153,7 +153,7 @@ func (cc *CommunityCache) InvalidateSource(sourceURL, branch string) error {
 		cachePath := filepath.Join(cc.cacheDir, entry.Name())
 
 		// Read cache entry to check source
-		data, err := os.ReadFile(cachePath)
+		data, err := os.ReadFile(cachePath) //nolint:gosec // G304: entry from os.ReadDir of the Prism-owned cache dir
 		if err != nil {
 			continue // Skip files that can't be read
 		}
@@ -202,7 +202,7 @@ func (cc *CommunityCache) CleanExpired() error {
 		cachePath := filepath.Join(cc.cacheDir, entry.Name())
 
 		// Read cache entry
-		data, err := os.ReadFile(cachePath)
+		data, err := os.ReadFile(cachePath) //nolint:gosec // G304: entry from os.ReadDir of the Prism-owned cache dir
 		if err != nil {
 			continue // Skip files that can't be read
 		}
@@ -250,7 +250,7 @@ func (cc *CommunityCache) GetCacheInfo() (totalEntries, expiredEntries int, tota
 		}
 
 		// Check if expired
-		data, err := os.ReadFile(cachePath)
+		data, err := os.ReadFile(cachePath) //nolint:gosec // G304: entry from os.ReadDir of the Prism-owned cache dir
 		if err != nil {
 			continue
 		}
@@ -303,7 +303,7 @@ func (cc *CommunityCache) ListCachedTemplates() ([]CacheEntry, error) {
 		cachePath := filepath.Join(cc.cacheDir, entry.Name())
 
 		// Read cache entry
-		data, err := os.ReadFile(cachePath)
+		data, err := os.ReadFile(cachePath) //nolint:gosec // G304: entry from os.ReadDir of the Prism-owned cache dir
 		if err != nil {
 			continue // Skip files that can't be read
 		}

@@ -269,13 +269,13 @@ func (lt *LaunchThrottler) applyBudgetThrottling(projectID string, bucket *ratel
 
 	// Calculate budget usage percentage
 	usagePercent := used / limit
-
-	// If over threshold, reduce rate
-	if usagePercent >= lt.config.BudgetThreshold {
-		// Note: In practice, we'd need to modify the bucket's rate dynamically
-		// For now, we just track that adjustment is needed
-		// Full implementation would require extending TokenBucket to support rate updates
+	if usagePercent < lt.config.BudgetThreshold {
+		return // under threshold, no adjustment needed
 	}
+
+	// Over threshold: the bucket's rate should be reduced here. This is not yet
+	// implemented — it requires extending TokenBucket to support dynamic rate
+	// updates — so no adjustment is currently made.
 }
 
 // calculateRateAndBurst converts max launches and time window to rate and burst

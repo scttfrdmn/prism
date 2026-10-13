@@ -198,7 +198,7 @@ func (sm *StabilityManager) CheckMemoryPressure() bool {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	currentMemory := int64(m.HeapAlloc)
+	currentMemory := int64(m.HeapAlloc) //nolint:gosec // G115: heap size in bytes cannot approach MaxInt64
 	return currentMemory > sm.memoryThreshold
 }
 
@@ -286,7 +286,7 @@ func (sm *StabilityManager) GetStabilityMetrics() StabilityMetrics {
 	metrics.MemoryUsageMB = float64(m.HeapAlloc) / 1024 / 1024
 	metrics.GoroutineCount = runtime.NumGoroutine()
 	metrics.GCCount = m.NumGC
-	metrics.LastGCPause = time.Duration(m.PauseNs[(m.NumGC+255)%256])
+	metrics.LastGCPause = time.Duration(m.PauseNs[(m.NumGC+255)%256]) //nolint:gosec // G115: a single GC pause in ns is far below MaxInt64
 	metrics.Uptime = time.Since(sm.lastHealthCheck)
 
 	// Calculate health score

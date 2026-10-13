@@ -101,8 +101,8 @@ Examples:
 	cmd.Flags().StringVar(&expiresIn, "expires-in", "7d", "Expiration duration (e.g., 7d, 14d, 48h)")
 	cmd.Flags().StringVar(&expiresOn, "expires-on", "", "Absolute expiration date (e.g., 2025-12-31)")
 
-	cmd.MarkFlagRequired("name")
-	cmd.MarkFlagRequired("redemption-limit")
+	_ = cmd.MarkFlagRequired("name")             // only errors if the flag is undefined; it is defined above
+	_ = cmd.MarkFlagRequired("redemption-limit") // only errors if the flag is undefined; it is defined above
 
 	return cmd
 }

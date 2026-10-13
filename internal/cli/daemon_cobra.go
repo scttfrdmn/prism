@@ -98,9 +98,8 @@ func (dc *DaemonCobraCommands) createRestartCommand() *cobra.Command {
 		Short: "Restart the Prism daemon",
 		Long:  "Stop and then start the Prism daemon service.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := dc.systemCommands.daemonStop(); err != nil {
-				// Continue even if stop fails (daemon might not be running)
-			}
+			// Continue even if stop fails (daemon might not be running)
+			_ = dc.systemCommands.daemonStop()
 			return dc.systemCommands.daemonStart()
 		},
 	}

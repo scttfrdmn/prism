@@ -148,7 +148,6 @@ func TestBudgetEnforcement_PreventsLaunch(t *testing.T) {
 		if !strings.Contains(err.Error(), fmt.Sprintf("%.2f", budgetStatus.SpentAmount)) {
 			t.Log("  Note: Error message could be improved to show current spend")
 		}
-
 	} else {
 		t.Log("⚠️  Launch succeeded - budget enforcement may not be implemented")
 		t.Log("Expected behavior: Launch should be blocked when exceeding monthly budget limit")

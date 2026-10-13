@@ -411,7 +411,7 @@ func (hm *HealthMonitor) collectSystemMetrics() SystemMetrics {
 		MemoryUsageMB:   float64(m.HeapAlloc) / 1024 / 1024,
 		GoroutineCount:  runtime.NumGoroutine(),
 		GCCount:         m.NumGC,
-		LastGCPause:     time.Duration(m.PauseNs[(m.NumGC+255)%256]),
+		LastGCPause:     time.Duration(m.PauseNs[(m.NumGC+255)%256]), //nolint:gosec // G115: a single GC pause in ns is far below MaxInt64
 		Uptime:          time.Since(hm.lastHealthCheck),
 		CPUUsagePercent: getCachedCPUUsage(),
 		LoadAverage:     getCachedLoadAverage(),

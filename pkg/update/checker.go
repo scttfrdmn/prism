@@ -166,7 +166,7 @@ func compareVersions(current, latest string) bool {
 func (c *Checker) getCachedUpdate() *CachedUpdateCheck {
 	cachePath := filepath.Join(c.cacheDir, cacheFileName)
 
-	data, err := os.ReadFile(cachePath)
+	data, err := os.ReadFile(cachePath) //nolint:gosec // G304: fixed cache file name under ~/.prism/cache
 	if err != nil {
 		return nil
 	}
@@ -195,11 +195,14 @@ func (c *Checker) cacheUpdate(info *UpdateInfo) {
 		return
 	}
 
+	// The cache is best-effort: on failure we simply re-check next time.
 	// Ensure cache directory exists
-	os.MkdirAll(c.cacheDir, 0755)
+	if err := os.MkdirAll(c.cacheDir, 0700); err != nil {
+		return
+	}
 
 	// Write cache file
-	os.WriteFile(cachePath, data, 0644)
+	_ = os.WriteFile(cachePath, data, 0600) // best-effort cache; a failed write only means a fresh check next run
 }
 
 // ClearCache removes cached update check

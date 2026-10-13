@@ -4,6 +4,7 @@ package ami
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -261,6 +262,9 @@ func (b *Builder) executeStep(ctx context.Context, instanceID string, step Build
 
 	// Set default timeout if not specified
 	timeoutSeconds := int32(600) // 10 minutes default
+	if step.TimeoutSeconds > math.MaxInt32 {
+		return "", fmt.Errorf("build step %q: timeout_seconds %d exceeds maximum %d", step.Name, step.TimeoutSeconds, math.MaxInt32)
+	}
 	if step.TimeoutSeconds > 0 {
 		timeoutSeconds = int32(step.TimeoutSeconds)
 	}
@@ -430,7 +434,7 @@ func (b *Builder) restartInstanceBestEffort(ctx context.Context, instanceID stri
 func (b *Builder) createTemplateDefinition(request InstanceSaveRequest, result *BuildResult) error {
 	templateDir := "templates"
 	if _, err := os.Stat(templateDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(templateDir, 0755); err != nil {
+		if err := os.MkdirAll(templateDir, 0755); err != nil { //nolint:gosec // G301: project templates/ directory holds public, non-secret template YAML
 			return fmt.Errorf("failed to create templates directory: %w", err)
 		}
 	}
@@ -485,7 +489,7 @@ tags:
 		}
 	}
 
-	return os.WriteFile(templateFile, []byte(templateContent), 0644)
+	return os.WriteFile(templateFile, []byte(templateContent), 0644) //nolint:gosec // G306: generated template YAML (AMI IDs) is public, non-secret content
 }
 
 // copyAMIToRegions copies an AMI to multiple regions

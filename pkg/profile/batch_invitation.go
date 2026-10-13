@@ -322,11 +322,11 @@ func (m *BatchInvitationManager) CreateBatchInvitationsFromCSVFile(
 	hasHeader bool,
 ) (*BatchInvitationResult, error) {
 	// Open CSV file
-	file, err := os.Open(csvPath)
+	file, err := os.Open(csvPath) //nolint:gosec // G304: CSV input path is a local CLI argument
 	if err != nil {
 		return nil, fmt.Errorf("failed to open CSV file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() // read-only; close error is not actionable
 
 	// Import invitations from CSV
 	invitations, err := m.ImportBatchInvitationsFromCSV(file, hasHeader)
@@ -344,13 +344,17 @@ func (m *BatchInvitationManager) ExportBatchInvitationsToCSVFile(
 	csvPath string,
 	results *BatchInvitationResult,
 	includeEncodedData bool,
-) error {
+) (retErr error) {
 	// Create CSV file
-	file, err := os.Create(csvPath)
+	file, err := os.Create(csvPath) //nolint:gosec // G304: CSV output path is a local CLI argument
 	if err != nil {
 		return fmt.Errorf("failed to create CSV file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && retErr == nil {
+			retErr = fmt.Errorf("failed to close CSV file: %w", cerr)
+		}
+	}()
 
 	// Export invitations to CSV
 	return m.ExportBatchInvitationsToCSV(file, results, includeEncodedData)

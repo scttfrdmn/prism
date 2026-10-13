@@ -36,7 +36,7 @@ func NewManager() (*Manager, error) {
 		stateDir = filepath.Join(homeDir, ".prism")
 	}
 
-	if err := os.MkdirAll(stateDir, 0700); err != nil {
+	if err := os.MkdirAll(stateDir, 0700); err != nil { //nolint:gosec // G703: state path under PRISM_STATE_DIR or ~/.prism (local user config), not external input
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
@@ -98,7 +98,7 @@ func (m *Manager) LoadState() (*types.State, error) {
 
 // loadStateFile loads and validates a state file
 func (m *Manager) loadStateFile(path string) (*types.State, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // G304: state path under PRISM_STATE_DIR or ~/.prism (local user config), not external input
 	if err != nil {
 		return nil, fmt.Errorf("failed to read state file: %w", err)
 	}
@@ -150,13 +150,13 @@ func (m *Manager) newEmptyState() *types.State {
 
 // restoreBackup atomically restores a backup to the primary state file
 func (m *Manager) restoreBackup(backupPath string) error {
-	data, err := os.ReadFile(backupPath)
+	data, err := os.ReadFile(backupPath) //nolint:gosec // G304: state path under PRISM_STATE_DIR or ~/.prism (local user config), not external input
 	if err != nil {
 		return err
 	}
 
 	tempPath := m.statePath + ".tmp"
-	if err := os.WriteFile(tempPath, data, 0600); err != nil {
+	if err := os.WriteFile(tempPath, data, 0600); err != nil { //nolint:gosec // G703: state path under PRISM_STATE_DIR or ~/.prism (local user config), not external input
 		return err
 	}
 
@@ -223,8 +223,9 @@ func (m *Manager) rotateBackups() error {
 			continue
 		}
 
-		// Remove destination if it exists
-		os.Remove(backup.to)
+		// Remove destination if it exists (best effort: the WriteFile/Rename
+		// below overwrites it and reports any real failure)
+		_ = os.Remove(backup.to)
 
 		// Copy file (preserve original for atomic write)
 		if backup.from == m.statePath {
@@ -232,7 +233,7 @@ func (m *Manager) rotateBackups() error {
 			if err != nil {
 				return fmt.Errorf("failed to read state for backup: %w", err)
 			}
-			if err := os.WriteFile(backup.to, data, 0600); err != nil {
+			if err := os.WriteFile(backup.to, data, 0600); err != nil { //nolint:gosec // G703: state path under PRISM_STATE_DIR or ~/.prism (local user config), not external input
 				return fmt.Errorf("failed to write backup: %w", err)
 			}
 		} else {

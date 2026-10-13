@@ -142,7 +142,7 @@ func (m *Manager) saveConfig() error {
 	}
 
 	// Write config file
-	if err := os.WriteFile(m.configPath, data, 0644); err != nil {
+	if err := os.WriteFile(m.configPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -184,7 +184,7 @@ func (m *Manager) saveCache() error {
 	}
 
 	// Write cache file
-	if err := os.WriteFile(m.cacheFilePath, data, 0644); err != nil {
+	if err := os.WriteFile(m.cacheFilePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write cache file: %w", err)
 	}
 
@@ -526,7 +526,7 @@ func (m *Manager) updateLocalCache(repo *Repository) error {
 		return fmt.Errorf("repository.yaml not found in %q", repo.Path)
 	}
 
-	data, err := os.ReadFile(repoFilePath)
+	data, err := os.ReadFile(repoFilePath) //nolint:gosec // G304: repository.yaml inside a local repository path the user configured
 	if err != nil {
 		return fmt.Errorf("failed to read repository.yaml: %w", err)
 	}
@@ -632,10 +632,20 @@ func (m *Manager) updateS3Cache(repo *Repository) error {
 	return m.saveCache()
 }
 
-// ensureDir ensures a directory exists, creating it if necessary.
+// ensureDir ensures a private Prism directory (config/cache under ~/.prism)
+// exists, creating it owner-only if necessary.
 func ensureDir(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.MkdirAll(path, 0755)
+		return os.MkdirAll(path, 0700)
+	}
+	return nil
+}
+
+// ensureSharedDir ensures a user-facing template directory (download
+// destination or local repository) exists, creating it world-readable.
+func ensureSharedDir(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.MkdirAll(path, 0755) //nolint:gosec // G301: user-chosen template directory holding public, non-secret template YAML
 	}
 	return nil
 }
@@ -649,7 +659,7 @@ func (m *Manager) DownloadTemplate(ref TemplateReference, destDir string) (strin
 	}
 
 	// Ensure destination directory exists
-	if err := ensureDir(destDir); err != nil {
+	if err := ensureSharedDir(destDir); err != nil {
 		return "", fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
@@ -672,7 +682,7 @@ func (m *Manager) DownloadTemplate(ref TemplateReference, destDir string) (strin
 
 	// Write template to destination
 	destFile := filepath.Join(destDir, filepath.Base(templateMeta.Path))
-	if err := os.WriteFile(destFile, templateContent, 0644); err != nil {
+	if err := os.WriteFile(destFile, templateContent, 0644); err != nil { //nolint:gosec // G306: downloaded template YAML is public, non-secret content
 		return "", fmt.Errorf("failed to write template file: %w", err)
 	}
 
@@ -682,7 +692,12 @@ func (m *Manager) DownloadTemplate(ref TemplateReference, destDir string) (strin
 // downloadFromLocal reads a template from a local repository
 func (m *Manager) downloadFromLocal(repo *Repository, templatePath string) ([]byte, error) {
 	fullPath := filepath.Join(repo.Path, templatePath)
-	content, err := os.ReadFile(fullPath)
+	// templatePath comes from repository metadata; refuse paths that escape
+	// the repository root (e.g. "../../.ssh/id_rsa").
+	if rel, err := filepath.Rel(filepath.Clean(repo.Path), fullPath); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("template path %q escapes repository %q", templatePath, repo.Path)
+	}
+	content, err := os.ReadFile(fullPath) //nolint:gosec // G304: path validated above to stay within the repository root
 	if err != nil {
 		return nil, fmt.Errorf("failed to read local template: %w", err)
 	}
@@ -817,7 +832,7 @@ func (m *Manager) UploadTemplate(templatePath string, ref TemplateReference) err
 	}
 
 	// Read template file
-	templateContent, err := os.ReadFile(templatePath)
+	templateContent, err := os.ReadFile(templatePath) //nolint:gosec // G304: local template file chosen by the CLI user
 	if err != nil {
 		return fmt.Errorf("failed to read template file: %w", err)
 	}
@@ -838,7 +853,7 @@ func (m *Manager) UploadTemplate(templatePath string, ref TemplateReference) err
 // uploadToLocal writes a template to a local repository
 func (m *Manager) uploadToLocal(repo *Repository, templateName string, content []byte) error {
 	// Ensure repository directory exists
-	if err := ensureDir(repo.Path); err != nil {
+	if err := ensureSharedDir(repo.Path); err != nil {
 		return fmt.Errorf("failed to create repository directory: %w", err)
 	}
 
@@ -846,7 +861,7 @@ func (m *Manager) uploadToLocal(repo *Repository, templateName string, content [
 	destPath := filepath.Join(repo.Path, templateName+".yml")
 
 	// Write template file
-	if err := os.WriteFile(destPath, content, 0644); err != nil {
+	if err := os.WriteFile(destPath, content, 0644); err != nil { //nolint:gosec // G306: template YAML in a shared repository is public, non-secret content
 		return fmt.Errorf("failed to write template: %w", err)
 	}
 

@@ -34,7 +34,8 @@ func ErrorHandlingMiddleware(next http.Handler, errorHandler ErrorHandler) http.
 
 		// Log request duration
 		duration := time.Since(start)
-		log.Printf("%s %s completed in %v", r.Method, r.URL.Path, duration)
+		// %q escapes control characters in the client-supplied path (log injection).
+		log.Printf("%s %q completed in %v", r.Method, r.URL.Path, duration) //nolint:gosec // G706: path is %q-quoted, so control characters cannot forge log lines
 	})
 }
 

@@ -55,7 +55,8 @@ func (s *Server) handleGenerateAPIKey(w http.ResponseWriter, _ *http.Request) {
 		Message:   "API key generated successfully. This key will not be shown again.",
 	}
 
-	_ = json.NewEncoder(w).Encode(response)
+	// The generated key is intentionally returned once to the caller.
+	_ = json.NewEncoder(w).Encode(response) //nolint:gosec // G117: returning the newly generated API key to its requester is the purpose of this endpoint
 }
 
 // handleGetAuthStatus gets the current authentication status

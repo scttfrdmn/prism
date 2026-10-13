@@ -113,7 +113,9 @@ func (h *CLIHandler) listPolicySets() error {
 			status)
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to write policy sets: %w", err)
+	}
 	fmt.Println()
 	fmt.Println("Use 'prism policy assign <policy-set>' to assign a policy set")
 	return nil

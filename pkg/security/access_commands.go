@@ -177,11 +177,15 @@ func testHTTPConnection(host string, port int, timeout time.Duration) bool {
 	if err != nil {
 		return false
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }() // probe connection; close error is not actionable
 
 	// Try HTTP GET request
-	conn.SetDeadline(time.Now().Add(timeout))
-	fmt.Fprintf(conn, "GET / HTTP/1.0\r\nHost: %s\r\n\r\n", host)
+	if err := conn.SetDeadline(time.Now().Add(timeout)); err != nil {
+		return false
+	}
+	if _, err := fmt.Fprintf(conn, "GET / HTTP/1.0\r\nHost: %s\r\n\r\n", host); err != nil {
+		return false
+	}
 
 	// Read response (just check if we get something back)
 	buffer := make([]byte, 1024)

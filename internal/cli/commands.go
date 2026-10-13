@@ -1164,13 +1164,13 @@ func (s *TemplateSnapshotSaveService) saveTemplateAndDisplayResults(config *Temp
 	templatesDir := filepath.Join(homeDir, ".prism", "templates")
 
 	// Create templates directory if it doesn't exist
-	if err := os.MkdirAll(templatesDir, 0755); err != nil {
+	if err := os.MkdirAll(templatesDir, 0700); err != nil {
 		return fmt.Errorf("failed to create templates directory: %w", err)
 	}
 
 	// Save template file
 	templateFile := filepath.Join(templatesDir, config.TemplateName+".yml")
-	if err := os.WriteFile(templateFile, []byte(template), 0644); err != nil {
+	if err := os.WriteFile(templateFile, []byte(template), 0600); err != nil {
 		return fmt.Errorf("failed to write template file: %w", err)
 	}
 

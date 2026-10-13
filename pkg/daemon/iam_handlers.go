@@ -1,7 +1,6 @@
 package daemon
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/scttfrdmn/prism/pkg/aws"
@@ -28,7 +27,7 @@ func (s *Server) handleIAMValidate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	encodeJSONResponse(w, result)
 }
 
 // handleIAMPermissions lists the required AWS permissions for launching instances.
@@ -45,5 +44,5 @@ func (s *Server) handleIAMPermissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	encodeJSONResponse(w, resp)
 }

@@ -656,7 +656,6 @@ func TestCacheExpirationLogic(t *testing.T) {
 	})
 
 	t.Run("Cache operations with regional pricing", func(t *testing.T) {
-
 		// First call should populate cache
 		price1 := manager.getRegionalEC2Price("t3.medium")
 		assert.Greater(t, price1, 0.0)

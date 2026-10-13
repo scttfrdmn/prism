@@ -84,7 +84,7 @@ func NewProcessManager() ProcessManager {
 	configDir := filepath.Join(homeDir, ".prism")
 
 	// Ensure config directory exists
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		log.Printf("Warning: Cannot create config directory: %v", err)
 	}
 
@@ -499,7 +499,7 @@ func (pm *DefaultProcessManager) saveRegistry(registry *DaemonRegistry) error {
 		return fmt.Errorf("failed to marshal registry: %w", err)
 	}
 
-	if err := os.WriteFile(pm.registryFile, data, 0644); err != nil {
+	if err := os.WriteFile(pm.registryFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write registry: %w", err)
 	}
 
@@ -509,7 +509,7 @@ func (pm *DefaultProcessManager) saveRegistry(registry *DaemonRegistry) error {
 // writePIDFile writes the daemon PID to the PID file
 func (pm *DefaultProcessManager) writePIDFile(pid int) error {
 	pidStr := fmt.Sprintf("%d\n", pid)
-	return os.WriteFile(pm.pidFile, []byte(pidStr), 0644)
+	return os.WriteFile(pm.pidFile, []byte(pidStr), 0600) //nolint:gosec // G703: pidFile is the fixed ~/.prism/daemon.pid path set in the constructor
 }
 
 // GetPIDFilePath returns the path to the PID file
@@ -559,14 +559,14 @@ func (pm *DefaultProcessManager) WaitForShutdown(pid int, timeout time.Duration)
 func (pm *DefaultProcessManager) getProcessCommand(pid int) string {
 	switch runtime.GOOS {
 	case "darwin", "linux":
-		cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=")
+		cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "command=") //nolint:gosec // G204: fixed ps binary, pid is an int formatted as argv
 		output, err := cmd.Output()
 		if err != nil {
 			return "unknown"
 		}
 		return strings.TrimSpace(string(output))
 	case "windows":
-		cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV")
+		cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/FO", "CSV") //nolint:gosec // G204: fixed tasklist binary, pid is an int formatted as argv
 		output, err := cmd.Output()
 		if err != nil {
 			return "unknown"
@@ -586,7 +586,7 @@ func (pm *DefaultProcessManager) getProcessCommand(pid int) string {
 func (pm *DefaultProcessManager) getProcessStartTime(pid int) time.Time {
 	switch runtime.GOOS {
 	case "darwin", "linux":
-		cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "lstart=")
+		cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "lstart=") //nolint:gosec // G204: fixed ps binary, pid is an int formatted as argv
 		output, err := cmd.Output()
 		if err != nil {
 			return time.Now()
@@ -609,7 +609,7 @@ func (pm *DefaultProcessManager) getProcessWorkingDir(pid int) string {
 			return wd
 		}
 	case "darwin":
-		cmd := exec.Command("lsof", "-p", strconv.Itoa(pid), "-d", "cwd", "-Fn")
+		cmd := exec.Command("lsof", "-p", strconv.Itoa(pid), "-d", "cwd", "-Fn") //nolint:gosec // G204: fixed lsof binary, pid is an int formatted as argv
 		output, err := cmd.Output()
 		if err == nil {
 			lines := strings.Split(string(output), "\n")
@@ -627,7 +627,7 @@ func (pm *DefaultProcessManager) getProcessWorkingDir(pid int) string {
 func (pm *DefaultProcessManager) getProcessUser(pid int) string {
 	switch runtime.GOOS {
 	case "darwin", "linux":
-		cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "user=")
+		cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "user=") //nolint:gosec // G204: fixed ps binary, pid is an int formatted as argv
 		output, err := cmd.Output()
 		if err != nil {
 			return "unknown"

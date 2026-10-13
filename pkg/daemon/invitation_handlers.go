@@ -189,7 +189,7 @@ func (s *Server) handleSendInvitation(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleListProjectInvitations lists all invitations for a project
@@ -238,11 +238,17 @@ func (s *Server) handleListProjectInvitations(w http.ResponseWriter, r *http.Req
 
 	// Parse pagination
 	if limit := r.URL.Query().Get("limit"); limit != "" {
-		fmt.Sscanf(limit, "%d", &filter.Limit)
+		if _, err := fmt.Sscanf(limit, "%d", &filter.Limit); err != nil {
+			s.writeError(w, http.StatusBadRequest, "Invalid limit parameter")
+			return
+		}
 	}
 
 	if offset := r.URL.Query().Get("offset"); offset != "" {
-		fmt.Sscanf(offset, "%d", &filter.Offset)
+		if _, err := fmt.Sscanf(offset, "%d", &filter.Offset); err != nil {
+			s.writeError(w, http.StatusBadRequest, "Invalid offset parameter")
+			return
+		}
 	}
 
 	// List invitations
@@ -266,7 +272,7 @@ func (s *Server) handleListProjectInvitations(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleListMyInvitations lists invitations received by the current user
@@ -290,11 +296,17 @@ func (s *Server) handleListMyInvitations(w http.ResponseWriter, r *http.Request)
 
 	// Parse pagination
 	if limit := r.URL.Query().Get("limit"); limit != "" {
-		fmt.Sscanf(limit, "%d", &filter.Limit)
+		if _, err := fmt.Sscanf(limit, "%d", &filter.Limit); err != nil {
+			s.writeError(w, http.StatusBadRequest, "Invalid limit parameter")
+			return
+		}
 	}
 
 	if offset := r.URL.Query().Get("offset"); offset != "" {
-		fmt.Sscanf(offset, "%d", &filter.Offset)
+		if _, err := fmt.Sscanf(offset, "%d", &filter.Offset); err != nil {
+			s.writeError(w, http.StatusBadRequest, "Invalid offset parameter")
+			return
+		}
 	}
 
 	// List invitations
@@ -318,7 +330,7 @@ func (s *Server) handleListMyInvitations(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleGetInvitation retrieves an invitation by token (public endpoint)
@@ -361,7 +373,7 @@ func (s *Server) handleGetInvitation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleGetInvitationByID retrieves an invitation by its ID (v0.6.2)
@@ -404,7 +416,7 @@ func (s *Server) handleGetInvitationByID(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleAcceptInvitation accepts an invitation and adds user to project
@@ -502,7 +514,7 @@ func (s *Server) handleAcceptInvitation(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleDeclineInvitation declines an invitation
@@ -521,9 +533,9 @@ func (s *Server) handleDeclineInvitation(w http.ResponseWriter, r *http.Request)
 	var req struct {
 		Reason string `json:"reason,omitempty"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// Ignore decode errors for optional body
-	}
+	// The body is optional (empty or absent means no reason), so a decode
+	// failure just leaves Reason empty.
+	_ = json.NewDecoder(r.Body).Decode(&req)
 
 	// Decline invitation
 	inv, err := s.invitationManager.DeclineInvitation(r.Context(), token, req.Reason)
@@ -550,7 +562,7 @@ func (s *Server) handleDeclineInvitation(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleResendInvitation resends an invitation email
@@ -609,7 +621,7 @@ func (s *Server) handleResendInvitation(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRevokeInvitation revokes a pending invitation
@@ -657,7 +669,7 @@ func (s *Server) handleRevokeInvitation(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleBulkInvitation creates multiple invitations from a bulk request
@@ -740,7 +752,7 @@ func (s *Server) handleBulkInvitation(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // QuotaCheckRequest represents a request to check AWS quotas for bulk invitations
@@ -798,7 +810,7 @@ func (s *Server) handleQuotaCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleValidateInvitation validates invitation profile association and credentials (#357)
@@ -841,12 +853,12 @@ func (s *Server) handleValidateInvitation(w http.ResponseWriter, r *http.Request
 	if !result.Valid {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleGetCredentialStatus returns the current credential status for an invitation (#357)
@@ -874,7 +886,7 @@ func (s *Server) handleGetCredentialStatus(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	encodeJSONResponse(w, status)
 }
 
 // handleTestCredentials tests if credentials work for an invitation (#357)
@@ -916,7 +928,7 @@ func (s *Server) handleTestCredentials(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -927,5 +939,5 @@ func (s *Server) handleTestCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }

@@ -79,10 +79,14 @@ func (l *AuditLog) Append(entry AuditEntry) error {
 	if err != nil {
 		return fmt.Errorf("audit open: %w", err)
 	}
-	defer f.Close()
-
-	_, err = fmt.Fprintf(f, "%s\n", data)
-	return err
+	if _, err := fmt.Fprintf(f, "%s\n", data); err != nil {
+		_ = f.Close() // the write error is the one worth reporting
+		return fmt.Errorf("audit write: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("audit close: %w", err)
+	}
+	return nil
 }
 
 // Query returns audit entries matching the optional filters.
@@ -98,7 +102,7 @@ func (l *AuditLog) Query(studentID string, since time.Time, limit int) ([]AuditE
 	if err != nil {
 		return nil, fmt.Errorf("audit open: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only; close error carries no data-loss risk
 
 	var results []AuditEntry
 	scanner := bufio.NewScanner(f)

@@ -114,7 +114,6 @@ func TestInheritanceValidator_FunctionalValidation(t *testing.T) {
 
 				// Log the validation message for debugging
 				t.Logf("Validation error (expected): %s", validationErr.Error())
-
 			} else {
 				assert.NoError(t, err, "Expected no validation error for: %s", tt.description)
 			}

@@ -62,8 +62,8 @@ func runGUI() {
 	}
 
 	// Execute the GUI with any passed flags
-	args := os.Args[2:] // Skip "prism gui"
-	cmd := exec.Command(guiPath, args...)
+	args := os.Args[2:]                   // Skip "prism gui"
+	cmd := exec.Command(guiPath, args...) //nolint:gosec // G204: prism-gui binary located by findGUIBinary, user args are argv not shell
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -111,7 +111,7 @@ func startDaemonForGUI() error {
 	}
 
 	// Start daemon
-	cmd := exec.Command(prismdPath)
+	cmd := exec.Command(prismdPath) //nolint:gosec // G204: prismd binary from PATH or ./bin, no args
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 

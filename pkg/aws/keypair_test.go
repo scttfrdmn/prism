@@ -14,7 +14,6 @@ import (
 
 // TestEnsureKeyPairExists tests the SSH key pair management with force update logic
 func TestEnsureKeyPairExists(t *testing.T) {
-
 	t.Run("key_does_not_exist_imports_new_key", func(t *testing.T) {
 		// User scenario: Fresh launch with no existing AWS key pair
 		mockEC2 := &MockEC2Client{}

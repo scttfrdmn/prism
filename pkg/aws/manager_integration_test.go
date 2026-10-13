@@ -5,18 +5,39 @@ package aws
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/scttfrdmn/prism/pkg/templates"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
 	cwstypes "github.com/scttfrdmn/prism/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 )
+
+// newRealAWSManager builds a Manager the same way production does (NewManager),
+// honouring AWS_PROFILE / AWS_REGION from the environment.
+func newRealAWSManager(t *testing.T) *Manager {
+	t.Helper()
+	manager, err := NewManager(ManagerOptions{
+		Profile: os.Getenv("AWS_PROFILE"),
+		Region:  os.Getenv("AWS_REGION"),
+	})
+	require.NoError(t, err, "Failed to create AWS manager")
+	return manager
+}
+
+// sdkEC2 returns a raw EC2 SDK client built from the manager's own aws.Config,
+// used for verification/cleanup steps that have no Manager equivalent.
+func sdkEC2(manager *Manager) *ec2.Client {
+	return ec2.NewFromConfig(manager.GetAWSConfig())
+}
 
 // TestAWSManagerIntegration tests real AWS operations
 // Run with: go test -tags=integration -v ./pkg/aws
@@ -26,119 +47,101 @@ func TestAWSManagerIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
-
-	// Load AWS config
-	cfg, err := config.LoadDefaultConfig(ctx)
-	require.NoError(t, err, "Failed to load AWS config")
-
-	// Create manager
-	manager := &Manager{
-		ec2Client:   ec2.NewFromConfig(cfg),
-		efsClient:   nil, // Will be initialized as needed
-		region:      cfg.Region,
-		profileName: "integration-test",
-	}
+	manager := newRealAWSManager(t)
+	ec2Client := sdkEC2(manager)
 
 	// Test VPC discovery
 	t.Run("VPC Discovery", func(t *testing.T) {
-		vpcs, err := manager.DescribeVPCs(ctx)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, vpcs, "Should find at least one VPC")
+		vpcID, err := manager.DiscoverDefaultVPC()
+		require.NoError(t, err)
+		require.NotEmpty(t, vpcID, "Should find the default VPC")
 
-		// Verify default VPC exists
-		hasDefault := false
-		for _, vpc := range vpcs {
-			if vpc.IsDefault != nil && *vpc.IsDefault {
-				hasDefault = true
-				break
-			}
-		}
-		assert.True(t, hasDefault, "Should have a default VPC")
+		result, err := ec2Client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{VpcIds: []string{vpcID}})
+		require.NoError(t, err)
+		require.Len(t, result.Vpcs, 1)
+		assert.True(t, aws.ToBool(result.Vpcs[0].IsDefault), "Discovered VPC should be the default VPC")
 	})
 
 	// Test Subnet discovery
 	t.Run("Subnet Discovery", func(t *testing.T) {
-		subnets, err := manager.DescribeSubnets(ctx)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, subnets, "Should find at least one subnet")
+		vpcID, err := manager.DiscoverDefaultVPC()
+		require.NoError(t, err)
 
-		// Verify subnets have required fields
-		for _, subnet := range subnets {
-			assert.NotNil(t, subnet.SubnetId)
-			assert.NotNil(t, subnet.VpcId)
-			assert.NotNil(t, subnet.AvailabilityZone)
-		}
+		subnetID, err := manager.DiscoverPublicSubnet(vpcID)
+		require.NoError(t, err)
+		require.NotEmpty(t, subnetID, "Should find a public subnet")
+
+		result, err := ec2Client.DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{SubnetIds: []string{subnetID}})
+		require.NoError(t, err)
+		require.Len(t, result.Subnets, 1)
+		subnet := result.Subnets[0]
+		assert.Equal(t, vpcID, aws.ToString(subnet.VpcId))
+		assert.NotEmpty(t, aws.ToString(subnet.AvailabilityZone))
 	})
 
-	// Test Security Group operations
+	// Test Security Group operations. GetOrCreatePrismSecurityGroup returns the
+	// shared "prism-access" group used by real workspaces, so it is not deleted.
 	t.Run("Security Group Operations", func(t *testing.T) {
-		// Create a test security group
-		sgName := "prism-integration-test-" + time.Now().Format("20060102-150405")
-		sgID, err := manager.CreateSecurityGroup(ctx, sgName, "Integration test SG")
+		vpcID, err := manager.DiscoverDefaultVPC()
+		require.NoError(t, err)
+
+		sgID, err := manager.GetOrCreatePrismSecurityGroup(vpcID)
 		require.NoError(t, err)
 		require.NotEmpty(t, sgID)
 
-		// Clean up
-		defer func() {
-			deleteInput := &ec2.DeleteSecurityGroupInput{
-				GroupId: &sgID,
-			}
-			_, _ = manager.ec2Client.DeleteSecurityGroup(ctx, deleteInput)
-		}()
-
-		// Verify security group exists
-		describeInput := &ec2.DescribeSecurityGroupsInput{
+		result, err := ec2Client.DescribeSecurityGroups(ctx, &ec2.DescribeSecurityGroupsInput{
 			GroupIds: []string{sgID},
-		}
-		result, err := manager.ec2Client.DescribeSecurityGroups(ctx, describeInput)
-		assert.NoError(t, err)
-		assert.Len(t, result.SecurityGroups, 1)
-		assert.Equal(t, sgID, *result.SecurityGroups[0].GroupId)
+		})
+		require.NoError(t, err)
+		require.Len(t, result.SecurityGroups, 1)
+		assert.Equal(t, sgID, aws.ToString(result.SecurityGroups[0].GroupId))
+		assert.Equal(t, vpcID, aws.ToString(result.SecurityGroups[0].VpcId))
+
+		// Idempotent: a second call returns the same group.
+		again, err := manager.GetOrCreatePrismSecurityGroup(vpcID)
+		require.NoError(t, err)
+		assert.Equal(t, sgID, again)
 	})
 
 	// Test AMI lookup
 	t.Run("AMI Lookup", func(t *testing.T) {
-		// Test Ubuntu AMI lookup
-		amiID, err := manager.GetLatestAMI(ctx, "ubuntu", "22.04", "amd64")
-		assert.NoError(t, err)
-		assert.NotEmpty(t, amiID, "Should find Ubuntu 22.04 AMI")
+		amiID, err := manager.GetAMIDiscovery().GetLatestAMI(ctx, "ubuntu", "22.04", manager.GetDefaultRegion(), "x86_64")
+		require.NoError(t, err)
+		require.NotEmpty(t, amiID, "Should find Ubuntu 22.04 AMI")
 
-		// Verify AMI exists
-		describeInput := &ec2.DescribeImagesInput{
-			ImageIds: []string{amiID},
-		}
-		result, err := manager.ec2Client.DescribeImages(ctx, describeInput)
-		assert.NoError(t, err)
-		assert.Len(t, result.Images, 1)
+		result, err := ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{ImageIds: []string{amiID}})
+		require.NoError(t, err)
+		require.Len(t, result.Images, 1)
 		assert.Equal(t, types.ImageStateAvailable, result.Images[0].State)
 	})
 
-	// Test Instance Type validation
+	// Test Instance Type validation (instance type offered in this region)
 	t.Run("Instance Type Validation", func(t *testing.T) {
-		// Test valid instance type
-		valid := manager.IsValidInstanceType(ctx, "t3.micro")
-		assert.True(t, valid, "t3.micro should be valid")
+		am := manager.GetAvailabilityManager()
 
-		// Test invalid instance type
-		invalid := manager.IsValidInstanceType(ctx, "invalid.type")
-		assert.False(t, invalid, "invalid.type should not be valid")
+		azs, err := am.GetAvailableAZsForInstanceType(ctx, "t3.micro")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, azs, "t3.micro should be offered")
 
-		// Test GPU instance type
-		gpuValid := manager.IsValidInstanceType(ctx, "g4dn.xlarge")
+		_, err = am.GetAvailableAZsForInstanceType(ctx, "invalid.type")
+		assert.Error(t, err, "invalid.type should not be offered")
+
 		// Note: This may fail in regions without GPU instances
-		t.Logf("GPU instance g4dn.xlarge valid: %v", gpuValid)
+		gpuAZs, gpuErr := am.GetAvailableAZsForInstanceType(ctx, "g4dn.xlarge")
+		t.Logf("GPU instance g4dn.xlarge AZs: %v (err: %v)", gpuAZs, gpuErr)
 	})
 
 	// Test Availability Zone listing
 	t.Run("Availability Zones", func(t *testing.T) {
-		azs, err := manager.GetAvailabilityZones(ctx)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, azs, "Should have at least one AZ")
+		azs, err := manager.GetAvailabilityManager().GetAvailableAZsForInstanceType(ctx, "t3.micro")
+		require.NoError(t, err)
+		require.NotEmpty(t, azs, "Should have at least one AZ")
 
-		for _, az := range azs {
-			assert.NotEmpty(t, az.ZoneName)
-			assert.NotEmpty(t, az.State)
-			assert.Equal(t, "available", az.State, "AZ should be available")
+		result, err := ec2Client.DescribeAvailabilityZones(ctx, &ec2.DescribeAvailabilityZonesInput{ZoneNames: azs})
+		require.NoError(t, err)
+		for _, az := range result.AvailabilityZones {
+			assert.NotEmpty(t, aws.ToString(az.ZoneName))
+			assert.Equal(t, types.AvailabilityZoneStateAvailable, az.State, "AZ should be available")
 		}
 	})
 
@@ -146,65 +149,53 @@ func TestAWSManagerIntegration(t *testing.T) {
 	t.Run("Key Pair Operations", func(t *testing.T) {
 		keyName := "prism-test-" + time.Now().Format("20060102-150405")
 
-		// Create key pair
-		keyMaterial, err := manager.CreateKeyPair(ctx, keyName)
+		pub, _, err := ed25519.GenerateKey(rand.Reader)
 		require.NoError(t, err)
-		require.NotEmpty(t, keyMaterial, "Should return private key material")
+		sshPub, err := ssh.NewPublicKey(pub)
+		require.NoError(t, err)
 
-		// Clean up
+		err = manager.EnsureKeyPairExists(keyName, string(ssh.MarshalAuthorizedKey(sshPub)))
+		require.NoError(t, err)
+
 		defer func() {
-			deleteInput := &ec2.DeleteKeyPairInput{
-				KeyName: &keyName,
-			}
-			_, _ = manager.ec2Client.DeleteKeyPair(ctx, deleteInput)
+			_ = manager.DeleteKeyPair(keyName)
 		}()
 
-		// Verify key pair exists
-		describeInput := &ec2.DescribeKeyPairsInput{
-			KeyNames: []string{keyName},
-		}
-		result, err := manager.ec2Client.DescribeKeyPairs(ctx, describeInput)
-		assert.NoError(t, err)
-		assert.Len(t, result.KeyPairs, 1)
-		assert.Equal(t, keyName, *result.KeyPairs[0].KeyName)
+		result, err := ec2Client.DescribeKeyPairs(ctx, &ec2.DescribeKeyPairsInput{KeyNames: []string{keyName}})
+		require.NoError(t, err)
+		require.Len(t, result.KeyPairs, 1)
+		assert.Equal(t, keyName, aws.ToString(result.KeyPairs[0].KeyName))
+
+		names, err := manager.ListPrismKeyPairs()
+		require.NoError(t, err)
+		assert.Contains(t, names, keyName)
 	})
 
 	// Test EBS Volume operations
 	t.Run("EBS Volume Operations", func(t *testing.T) {
-		// Get first available AZ
-		azs, err := manager.GetAvailabilityZones(ctx)
-		require.NoError(t, err)
-		require.NotEmpty(t, azs)
-
-		az := azs[0].ZoneName
-
-		// Create test volume
 		volumeName := "prism-test-vol-" + time.Now().Format("20060102-150405")
-		volumeID, err := manager.CreateEBSVolume(ctx, volumeName, 10, "gp3", az)
+		volume, err := manager.CreateStorage(cwstypes.StorageCreateRequest{
+			Name:       volumeName,
+			Size:       "10",
+			VolumeType: "gp3",
+		})
 		require.NoError(t, err)
-		require.NotEmpty(t, volumeID)
+		require.NotEmpty(t, volume.VolumeID)
 
-		// Clean up
 		defer func() {
-			deleteInput := &ec2.DeleteVolumeInput{
-				VolumeId: &volumeID,
-			}
-			_, _ = manager.ec2Client.DeleteVolume(ctx, deleteInput)
+			_ = manager.DeleteStorage(volumeName)
 		}()
 
-		// Wait for volume to be available
-		time.Sleep(5 * time.Second)
-
-		// Verify volume exists
-		volumes, err := manager.ListEBSVolumes(ctx)
-		assert.NoError(t, err)
+		volumes, err := manager.ListEBSVolumes()
+		require.NoError(t, err)
 
 		found := false
 		for _, vol := range volumes {
-			if vol.VolumeID == volumeID {
+			if vol.VolumeID == volume.VolumeID {
 				found = true
 				assert.Equal(t, volumeName, vol.Name)
-				assert.Equal(t, 10, vol.Size)
+				require.NotNil(t, vol.SizeGB)
+				assert.Equal(t, int32(10), *vol.SizeGB)
 				break
 			}
 		}
@@ -220,6 +211,23 @@ func TestAWSManagerIntegration(t *testing.T) {
 	})
 }
 
+// waitForInstanceState blocks until the instance reaches the given state using
+// the AWS SDK waiters (Manager has no public wait helper).
+func waitForInstanceState(ctx context.Context, t *testing.T, client *ec2.Client, instanceID, state string, timeout time.Duration) {
+	t.Helper()
+	input := &ec2.DescribeInstancesInput{InstanceIds: []string{instanceID}}
+	var err error
+	switch state {
+	case "running":
+		err = ec2.NewInstanceRunningWaiter(client).Wait(ctx, input, timeout)
+	case "stopped":
+		err = ec2.NewInstanceStoppedWaiter(client).Wait(ctx, input, timeout)
+	default:
+		t.Fatalf("unsupported wait state %q", state)
+	}
+	assert.NoError(t, err, "instance %s did not reach %s", instanceID, state)
+}
+
 // TestInstanceLifecycleIntegration tests full instance lifecycle
 func TestInstanceLifecycleIntegration(t *testing.T) {
 	if os.Getenv("AWS_INTEGRATION_TESTS") != "true" {
@@ -231,101 +239,65 @@ func TestInstanceLifecycleIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	manager := newRealAWSManager(t)
+	ec2Client := sdkEC2(manager)
 
-	// Load AWS config
-	cfg, err := config.LoadDefaultConfig(ctx)
-	require.NoError(t, err)
-
-	manager := &Manager{
-		ec2Client:   ec2.NewFromConfig(cfg),
-		region:      cfg.Region,
-		profileName: "integration-test",
-	}
-
-	// Create test instance
 	instanceName := "prism-test-" + time.Now().Format("20060102-150405")
 
-	// Use minimal Ubuntu template for testing
-	template := &templates.RuntimeTemplate{
-		Name:           "test-ubuntu",
-		OS:             "ubuntu",
-		PackageManager: "apt",
+	// Minimal Ubuntu base template; Size XS maps to t3.micro.
+	launchRequest := cwstypes.LaunchRequest{
+		Template: "ubuntu-22-04-x86",
+		Name:     instanceName,
+		Size:     "XS",
+		Spot:     false,
 	}
 
-	launchRequest := &cwstypes.LaunchRequest{
-		Template:     template.Name,
-		Name:         instanceName,
-		InstanceType: "t3.micro",
-		VolumeSize:   10,
-		SpotInstance: false,
-	}
-
-	// Launch instance
-	instanceID, err := manager.LaunchInstance(ctx, launchRequest, template)
+	instance, err := manager.LaunchInstance(launchRequest)
 	require.NoError(t, err)
-	require.NotEmpty(t, instanceID)
+	require.NotNil(t, instance)
+	require.NotEmpty(t, instance.ID)
+	instanceID := instance.ID
 
-	// Clean up
 	defer func() {
-		// Terminate instance
-		_ = manager.TerminateInstance(ctx, instanceID)
+		_ = manager.DeleteInstance(instanceName)
 	}()
 
-	// Wait for instance to be running
-	err = manager.WaitForInstanceState(ctx, instanceID, "running", 5*time.Minute)
-	assert.NoError(t, err)
+	waitForInstanceState(ctx, t, ec2Client, instanceID, "running", 5*time.Minute)
 
-	// Get instance details
-	instance, err := manager.DescribeInstance(ctx, instanceID)
-	assert.NoError(t, err)
-	assert.Equal(t, instanceID, instance.ID)
-	assert.Equal(t, instanceName, instance.Name)
-	assert.Equal(t, "running", instance.State)
-	assert.NotEmpty(t, instance.PublicIP)
+	described, err := manager.GetInstance(instanceID)
+	require.NoError(t, err)
+	assert.Equal(t, instanceID, described.ID)
+	assert.Equal(t, instanceName, described.Name)
+	assert.Equal(t, "running", described.State)
+	assert.NotEmpty(t, described.PublicIP)
 
 	// Test stop/start cycle
 	t.Run("Stop/Start Cycle", func(t *testing.T) {
-		// Stop instance
-		err := manager.StopInstance(ctx, instanceID)
-		assert.NoError(t, err)
+		assert.NoError(t, manager.StopInstance(instanceName))
+		waitForInstanceState(ctx, t, ec2Client, instanceID, "stopped", 3*time.Minute)
 
-		// Wait for stopped state
-		err = manager.WaitForInstanceState(ctx, instanceID, "stopped", 3*time.Minute)
-		assert.NoError(t, err)
-
-		// Start instance
-		err = manager.StartInstance(ctx, instanceID)
-		assert.NoError(t, err)
-
-		// Wait for running state
-		err = manager.WaitForInstanceState(ctx, instanceID, "running", 3*time.Minute)
-		assert.NoError(t, err)
+		assert.NoError(t, manager.StartInstance(instanceName))
+		waitForInstanceState(ctx, t, ec2Client, instanceID, "running", 3*time.Minute)
 	})
 
 	// Test hibernation (if supported)
 	t.Run("Hibernation Test", func(t *testing.T) {
-		status, err := manager.GetInstanceHibernationStatus(ctx, instanceID)
+		supported, state, _, err := manager.GetInstanceHibernationStatus(instanceName)
 		assert.NoError(t, err)
+		t.Logf("Hibernation supported=%v state=%s", supported, state)
 
-		if status.Configured && status.Supported {
-			// Try to hibernate
-			err := manager.HibernateInstance(ctx, instanceID)
-			if err == nil {
-				// Wait for hibernated state
-				err = manager.WaitForInstanceState(ctx, instanceID, "stopped", 3*time.Minute)
-				assert.NoError(t, err)
-
-				// Resume from hibernation
-				err = manager.ResumeInstance(ctx, instanceID)
-				assert.NoError(t, err)
-
-				// Wait for running state
-				err = manager.WaitForInstanceState(ctx, instanceID, "running", 3*time.Minute)
-				assert.NoError(t, err)
-			}
-		} else {
+		if !supported {
 			t.Log("Hibernation not supported for this instance")
+			return
 		}
+		if err := manager.HibernateInstance(instanceName); err != nil {
+			t.Logf("HibernateInstance failed: %v", err)
+			return
+		}
+		waitForInstanceState(ctx, t, ec2Client, instanceID, "stopped", 3*time.Minute)
+
+		assert.NoError(t, manager.ResumeInstance(instanceName))
+		waitForInstanceState(ctx, t, ec2Client, instanceID, "running", 3*time.Minute)
 	})
 
 	// Test tagging
@@ -335,15 +307,22 @@ func TestInstanceLifecycleIntegration(t *testing.T) {
 			"Integration": "true",
 		}
 
-		err := manager.TagInstance(ctx, instanceID, tags)
-		assert.NoError(t, err)
+		for k, v := range tags {
+			assert.NoError(t, manager.TagInstance(instanceID, k, v))
+		}
 
-		// Verify tags
-		instance, err := manager.DescribeInstance(ctx, instanceID)
-		assert.NoError(t, err)
+		result, err := ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{InstanceIds: []string{instanceID}})
+		require.NoError(t, err)
+		require.NotEmpty(t, result.Reservations)
+		require.NotEmpty(t, result.Reservations[0].Instances)
 
-		// Check if tags are present in instance metadata
-		t.Logf("Instance tags applied successfully")
+		got := map[string]string{}
+		for _, tag := range result.Reservations[0].Instances[0].Tags {
+			got[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+		}
+		for k, v := range tags {
+			assert.Equal(t, v, got[k], "tag %s", k)
+		}
 	})
 }
 
@@ -358,37 +337,25 @@ func TestEFSIntegration(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	manager := newRealAWSManager(t)
 
-	cfg, err := config.LoadDefaultConfig(ctx)
-	require.NoError(t, err)
-
-	manager := &Manager{
-		ec2Client:   ec2.NewFromConfig(cfg),
-		region:      cfg.Region,
-		profileName: "integration-test",
-	}
-
-	// Initialize EFS client
-	err = manager.initEFSClient(ctx)
-	require.NoError(t, err)
-
-	// Create EFS volume
 	volumeName := "prism-test-efs-" + time.Now().Format("20060102-150405")
 
-	fsID, err := manager.CreateEFSVolume(ctx, volumeName)
+	// CreateVolume waits for the file system to become available.
+	volume, err := manager.CreateVolume(cwstypes.VolumeCreateRequest{Name: volumeName})
 	require.NoError(t, err)
-	require.NotEmpty(t, fsID)
+	require.NotEmpty(t, volume.FileSystemID)
+	fsID := volume.FileSystemID
 
-	// Clean up
+	// Clean up directly via the SDK: Manager.DeleteVolume resolves the file
+	// system from daemon state, which this test does not write to.
 	defer func() {
-		_ = manager.DeleteEFSVolume(ctx, fsID)
+		_, _ = efs.NewFromConfig(manager.GetAWSConfig()).DeleteFileSystem(ctx, &efs.DeleteFileSystemInput{
+			FileSystemId: aws.String(fsID),
+		})
 	}()
 
-	// Wait for EFS to be available
-	time.Sleep(10 * time.Second)
-
-	// List EFS volumes
-	volumes, err := manager.ListEFSVolumes(ctx)
+	volumes, err := manager.ListEFSVolumes()
 	assert.NoError(t, err)
 
 	found := false
@@ -409,19 +376,16 @@ func TestCostCalculations(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	manager := newRealAWSManager(t)
+	region := manager.GetDefaultRegion()
 
-	cfg, err := config.LoadDefaultConfig(ctx)
-	require.NoError(t, err)
-
-	manager := &Manager{
-		ec2Client:   ec2.NewFromConfig(cfg),
-		region:      cfg.Region,
-		profileName: "integration-test",
+	onDemandPrice := func(instanceType string) (float64, error) {
+		return manager.onDemandPricingClient.GetOnDemandHourlyRate(ctx, instanceType, region)
 	}
 
 	// Test on-demand pricing
 	t.Run("On-Demand Pricing", func(t *testing.T) {
-		price, err := manager.GetInstancePrice(ctx, "t3.micro", false)
+		price, err := onDemandPrice("t3.micro")
 		assert.NoError(t, err)
 		assert.Greater(t, price, 0.0, "Should return positive price")
 		assert.Less(t, price, 0.1, "t3.micro should be less than $0.10/hour")
@@ -429,17 +393,18 @@ func TestCostCalculations(t *testing.T) {
 
 	// Test spot pricing
 	t.Run("Spot Pricing", func(t *testing.T) {
-		spotPrice, err := manager.GetInstancePrice(ctx, "t3.micro", true)
+		spotPrice, err := manager.GetSpotPrice(ctx, "t3.micro")
 		assert.NoError(t, err)
 		assert.Greater(t, spotPrice, 0.0, "Should return positive spot price")
 
-		onDemandPrice, _ := manager.GetInstancePrice(ctx, "t3.micro", false)
-		assert.Less(t, spotPrice, onDemandPrice, "Spot price should be less than on-demand")
+		onDemand, err := onDemandPrice("t3.micro")
+		require.NoError(t, err)
+		assert.Less(t, spotPrice, onDemand, "Spot price should be less than on-demand")
 	})
 
 	// Test GPU instance pricing
 	t.Run("GPU Instance Pricing", func(t *testing.T) {
-		price, err := manager.GetInstancePrice(ctx, "g4dn.xlarge", false)
+		price, err := onDemandPrice("g4dn.xlarge")
 		if err == nil {
 			assert.Greater(t, price, 0.5, "GPU instance should be more expensive")
 			assert.Less(t, price, 5.0, "GPU instance should be reasonable")

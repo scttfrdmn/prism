@@ -6,7 +6,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -420,16 +419,4 @@ func TestHibernation_MultipleInstances(t *testing.T) {
 	})
 
 	t.Log("✅ Multiple instance hibernation test complete")
-}
-
-// Helper function to check if instance type is GPU-enabled
-func isGPUInstance(instanceType string) bool {
-	gpuPrefixes := []string{"p2", "p3", "p4", "g4", "g5"}
-	lowerType := strings.ToLower(instanceType)
-	for _, prefix := range gpuPrefixes {
-		if strings.HasPrefix(lowerType, prefix) {
-			return true
-		}
-	}
-	return false
 }

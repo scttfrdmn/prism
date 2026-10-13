@@ -279,9 +279,9 @@ func (m *Manager) launchWithResolvedTemplate(req types.LaunchRequest, template *
 		instance.BootTime = amiResult.LaunchTime
 		instance.CostSavings = amiResult.CostSavings
 
-		// Add warning if applicable
+		// Surface any resolution warning (e.g. cross-region copy cost)
 		if amiResult.Warning != "" {
-			// In a production system, this would be logged or stored for user notification
+			log.Printf("AMI resolution warning for %s: %s", instance.Name, amiResult.Warning)
 		}
 	}
 

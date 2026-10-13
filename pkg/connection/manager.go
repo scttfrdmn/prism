@@ -463,7 +463,7 @@ func (cm *ConnectionManager) readSSHBanner(ctx context.Context, host string, por
 	if err != nil {
 		return "", fmt.Errorf("failed to connect: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }() // banner probe; close error is not actionable
 
 	// Set read deadline
 	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {

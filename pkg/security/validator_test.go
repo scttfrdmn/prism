@@ -862,7 +862,7 @@ func TestValidateKeychainProvider(t *testing.T) {
 
 	// Keychain validation may fail in test environment, but should not panic
 	// The important thing is that it handles errors gracefully
-	assert.True(t, len(result.Issues) >= 0) // May have issues due to test environment
+	assert.NotNil(t, result.Issues) // May have issues due to test environment
 }
 
 // TestSecurityValidationResultJSONSerialization tests JSON serialization

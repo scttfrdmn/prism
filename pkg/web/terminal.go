@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
+	"log"
 	"net/http"
-	"net/url"
 	"os/exec"
 
 	"github.com/gorilla/websocket"
@@ -62,37 +61,6 @@ type OutputData struct {
 	Data string `json:"data"`
 }
 
-// sameOriginCheck is the WebSocket upgrader's origin guard. It accepts requests
-// with no Origin header (non-browser clients such as the CLI/desktop app, which
-// don't set one) and requests whose Origin host matches the request Host or is
-// loopback. Cross-site origins are rejected to prevent cross-site WebSocket
-// hijacking (CSRF) — a browser page on another site cannot open this socket.
-func sameOriginCheck(r *http.Request) bool {
-	origin := r.Header.Get("Origin")
-	if origin == "" {
-		// No Origin: not a browser-initiated cross-site request (CLI/native client).
-		return true
-	}
-	u, err := url.Parse(origin)
-	if err != nil {
-		return false
-	}
-	originHost := hostOnly(u.Host)
-	if originHost == hostOnly(r.Host) {
-		return true
-	}
-	// Allow loopback origins — the terminal server is fronted locally.
-	return originHost == "localhost" || originHost == "127.0.0.1" || originHost == "::1"
-}
-
-// hostOnly strips any :port from a host[:port] string.
-func hostOnly(hostport string) string {
-	if h, _, err := net.SplitHostPort(hostport); err == nil {
-		return h
-	}
-	return hostport
-}
-
 // NewTerminalServer creates a new terminal server
 func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 	return &TerminalServer{
@@ -103,7 +71,7 @@ func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 			WriteBufferSize: 32 * 1024,
 			// Guard against cross-site WebSocket hijacking (CSRF): only accept
 			// same-origin handshakes, or non-browser clients that send no Origin.
-			CheckOrigin: sameOriginCheck,
+			CheckOrigin: LocalOriginCheck,
 		},
 	}
 }
@@ -111,19 +79,19 @@ func NewTerminalServer(sshConfig *ssh.ClientConfig) *TerminalServer {
 // ServeHTTP handles terminal WebSocket connections
 func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Upgrade HTTP connection to WebSocket. Origin is validated by the upgrader's
-	// sameOriginCheck (set in NewTerminalServer) — this is not an unguarded upgrade.
-	// nosemgrep: go.gorilla.security.audit.websocket-missing-origin-check.websocket-missing-origin-check -- CheckOrigin=sameOriginCheck enforces same-origin/loopback; the rule can't see the non-literal CheckOrigin.
+	// LocalOriginCheck (set in NewTerminalServer) — this is not an unguarded upgrade.
+	// nosemgrep: go.gorilla.security.audit.websocket-missing-origin-check.websocket-missing-origin-check -- CheckOrigin=LocalOriginCheck enforces same-origin/loopback/GUI; the rule can't see the non-literal CheckOrigin.
 	conn, err := ts.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("WebSocket upgrade failed: %v", err), http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }() // teardown; nothing useful to do with a close error
 
 	// Read connection parameters from first message
 	var connectData ConnectData
 	if err := conn.ReadJSON(&connectData); err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Error: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("Error: %v", err)))
 		return
 	}
 
@@ -131,18 +99,18 @@ func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	addr := fmt.Sprintf("%s:%d", connectData.Host, connectData.Port)
 	sshClient, err := ssh.Dial("tcp", addr, ts.sshConfig)
 	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("SSH connection failed: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("SSH connection failed: %v", err)))
 		return
 	}
-	defer sshClient.Close()
+	defer func() { _ = sshClient.Close() }() // teardown; nothing useful to do with a close error
 
 	// Create SSH session
 	sshSession, err := sshClient.NewSession()
 	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("SSH session failed: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("SSH session failed: %v", err)))
 		return
 	}
-	defer sshSession.Close()
+	defer func() { _ = sshSession.Close() }() // teardown; session may already be closed by Wait
 
 	// Set up terminal modes
 	modes := ssh.TerminalModes{
@@ -152,26 +120,26 @@ func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := sshSession.RequestPty("xterm-256color", 40, 80, modes); err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("PTY request failed: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("PTY request failed: %v", err)))
 		return
 	}
 
 	// Connect SSH pipes
 	stdinPipe, err := sshSession.StdinPipe()
 	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Stdin pipe failed: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("Stdin pipe failed: %v", err)))
 		return
 	}
 
 	stdoutPipe, err := sshSession.StdoutPipe()
 	if err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Stdout pipe failed: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("Stdout pipe failed: %v", err)))
 		return
 	}
 
 	// Start shell
 	if err := sshSession.Shell(); err != nil {
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Shell start failed: %v", err)))
+		writeTerminalError(conn, []byte(fmt.Sprintf("Shell start failed: %v", err)))
 		return
 	}
 
@@ -207,7 +175,18 @@ func (ts *TerminalServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	<-done
-	sshSession.Wait()
+	if err := sshSession.Wait(); err != nil {
+		// Non-zero exit or connection drop when the browser disconnects; informational only.
+		log.Printf("terminal: ssh session ended: %v", err)
+	}
+}
+
+// writeTerminalError sends an error message to the browser terminal. A write
+// failure means the client already went away, so it is only logged.
+func writeTerminalError(conn *websocket.Conn, msg []byte) {
+	if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+		log.Printf("terminal: failed to send error to client: %v", err)
+	}
 }
 
 // LocalTerminal provides local terminal execution (for development)
@@ -270,7 +249,9 @@ func (lt *LocalTerminal) Close() error {
 // ServeTerminalHTML serves the terminal HTML interface
 func ServeTerminalHTML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(terminalHTML))
+	if _, err := w.Write([]byte(terminalHTML)); err != nil {
+		log.Printf("terminal: failed to write terminal HTML: %v", err)
+	}
 }
 
 // HTML for the terminal interface

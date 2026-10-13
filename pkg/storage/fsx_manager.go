@@ -156,6 +156,11 @@ func (m *FSxManager) DeleteFSxFilesystem(name string, skipFinalBackup bool) erro
 
 // createLustreFilesystem creates a Lustre filesystem
 func (m *FSxManager) createLustreFilesystem(ctx context.Context, req StorageRequest) (*StorageInfo, error) {
+	capacity, err := storageSizeInt32(req.Size)
+	if err != nil {
+		return nil, err
+	}
+
 	// Prepare Lustre configuration
 	lustreConfig := &fsxTypes.CreateFileSystemLustreConfiguration{
 		DeploymentType: fsxTypes.LustreDeploymentTypeScratch1,
@@ -167,7 +172,7 @@ func (m *FSxManager) createLustreFilesystem(ctx context.Context, req StorageRequ
 
 	createInput := &fsx.CreateFileSystemInput{
 		FileSystemType:      fsxTypes.FileSystemTypeLustre,
-		StorageCapacity:     aws.Int32(int32(req.Size)),
+		StorageCapacity:     aws.Int32(capacity),
 		SubnetIds:           req.FSxConfig.SubnetIds,
 		LustreConfiguration: lustreConfig,
 		Tags: []fsxTypes.Tag{
@@ -198,6 +203,11 @@ func (m *FSxManager) createLustreFilesystem(ctx context.Context, req StorageRequ
 
 // createOpenZFSFilesystem creates an OpenZFS filesystem
 func (m *FSxManager) createOpenZFSFilesystem(ctx context.Context, req StorageRequest) (*StorageInfo, error) {
+	capacity, err := storageSizeInt32(req.Size)
+	if err != nil {
+		return nil, err
+	}
+
 	// Prepare OpenZFS configuration
 	zfsConfig := &fsxTypes.CreateFileSystemOpenZFSConfiguration{
 		DeploymentType:     fsxTypes.OpenZFSDeploymentTypeSingleAz1,
@@ -213,7 +223,7 @@ func (m *FSxManager) createOpenZFSFilesystem(ctx context.Context, req StorageReq
 
 	createInput := &fsx.CreateFileSystemInput{
 		FileSystemType:       fsxTypes.FileSystemTypeOpenzfs,
-		StorageCapacity:      aws.Int32(int32(req.Size)),
+		StorageCapacity:      aws.Int32(capacity),
 		SubnetIds:            req.FSxConfig.SubnetIds,
 		OpenZFSConfiguration: zfsConfig,
 		Tags: []fsxTypes.Tag{
@@ -244,6 +254,11 @@ func (m *FSxManager) createOpenZFSFilesystem(ctx context.Context, req StorageReq
 
 // createWindowsFilesystem creates a Windows File Server filesystem
 func (m *FSxManager) createWindowsFilesystem(ctx context.Context, req StorageRequest) (*StorageInfo, error) {
+	capacity, err := storageSizeInt32(req.Size)
+	if err != nil {
+		return nil, err
+	}
+
 	// Windows configuration requires Active Directory integration
 	if req.FSxConfig.WindowsConfig == nil || req.FSxConfig.WindowsConfig.ActiveDirectoryId == "" {
 		return nil, fmt.Errorf("active Directory ID is required for Windows File Server")
@@ -261,7 +276,7 @@ func (m *FSxManager) createWindowsFilesystem(ctx context.Context, req StorageReq
 
 	createInput := &fsx.CreateFileSystemInput{
 		FileSystemType:       fsxTypes.FileSystemTypeWindows,
-		StorageCapacity:      aws.Int32(int32(req.Size)),
+		StorageCapacity:      aws.Int32(capacity),
 		SubnetIds:            req.FSxConfig.SubnetIds,
 		WindowsConfiguration: windowsConfig,
 		Tags: []fsxTypes.Tag{
@@ -292,6 +307,11 @@ func (m *FSxManager) createWindowsFilesystem(ctx context.Context, req StorageReq
 
 // createNetAppFilesystem creates a NetApp ONTAP filesystem
 func (m *FSxManager) createNetAppFilesystem(ctx context.Context, req StorageRequest) (*StorageInfo, error) {
+	capacity, err := storageSizeInt32(req.Size)
+	if err != nil {
+		return nil, err
+	}
+
 	// Prepare NetApp ONTAP configuration
 	ontapConfig := &fsxTypes.CreateFileSystemOntapConfiguration{
 		DeploymentType:     fsxTypes.OntapDeploymentTypeSingleAz1,
@@ -304,7 +324,7 @@ func (m *FSxManager) createNetAppFilesystem(ctx context.Context, req StorageRequ
 
 	createInput := &fsx.CreateFileSystemInput{
 		FileSystemType:     fsxTypes.FileSystemTypeOntap,
-		StorageCapacity:    aws.Int32(int32(req.Size)),
+		StorageCapacity:    aws.Int32(capacity),
 		SubnetIds:          req.FSxConfig.SubnetIds,
 		OntapConfiguration: ontapConfig,
 		Tags: []fsxTypes.Tag{

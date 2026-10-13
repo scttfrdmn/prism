@@ -124,7 +124,7 @@ Use 'devices', 'revoke-device', and 'revoke-all' to manage registered devices.`,
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
 					deviceID, hostname, username, created, lastValidated)
 			}
-			w.Flush() //nolint:errcheck
+			_ = w.Flush() // stdout table; Run has no error return and a failed terminal write is not actionable
 		},
 	}
 	invitationsCmd.AddCommand(devicesCmd)

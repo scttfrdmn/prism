@@ -40,7 +40,7 @@ func NewSingletonManager() (*SingletonManager, error) {
 	}
 
 	stateDir := filepath.Join(homeDir, ".prism")
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create state directory: %w", err)
 	}
 
@@ -114,7 +114,7 @@ func (s *SingletonManager) readPIDFile() (int, error) {
 // writePIDFile writes the PID to the PID file
 func (s *SingletonManager) writePIDFile(pid int) error {
 	data := []byte(fmt.Sprintf("%d\n", pid))
-	return os.WriteFile(s.pidFile, data, 0644)
+	return os.WriteFile(s.pidFile, data, 0600)
 }
 
 // isProcessRunning checks if a process with the given PID is running
@@ -139,7 +139,7 @@ func (s *SingletonManager) isProcessRunning(pid int) bool {
 // isPrismDProcess checks if the process is actually prismd
 func (s *SingletonManager) isPrismDProcess(pid int) bool {
 	// On macOS/Linux, read process name from /proc or ps
-	cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "comm=")
+	cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "comm=") //nolint:gosec // G204: fixed ps binary, pid is an int formatted as argv
 	output, err := cmd.Output()
 	if err != nil {
 		return false

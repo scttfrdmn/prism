@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -141,7 +142,7 @@ func (s *Server) handleCreateSharedToken(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRedeemSharedToken redeems a shared token
@@ -195,7 +196,7 @@ func (s *Server) handleRedeemSharedToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	encodeJSONResponse(w, resp)
 }
 
 // handleGetSharedToken retrieves shared token information
@@ -217,7 +218,7 @@ func (s *Server) handleGetSharedToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(token)
+	encodeJSONResponse(w, token)
 }
 
 // handleListSharedTokens lists all shared tokens for a project
@@ -254,7 +255,7 @@ func (s *Server) handleListSharedTokens(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleExtendSharedToken extends the expiration of a shared token
@@ -321,7 +322,7 @@ func (s *Server) handleExtendSharedToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleRevokeSharedToken revokes a shared token
@@ -367,7 +368,7 @@ func (s *Server) handleRevokeSharedToken(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleGenerateQRCode generates a QR code for a shared token
@@ -415,7 +416,9 @@ func (s *Server) handleGenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		// Return PNG image directly
 		w.Header().Set("Content-Type", "image/png")
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.png", tokenCode))
-		w.Write(qrCode)
+		if _, err := w.Write(qrCode); err != nil { //nolint:gosec // G705: server-generated PNG bytes served as image/png, not HTML
+			log.Printf("Error writing QR code response: %v", err)
+		}
 
 	case "json":
 		// Return JSON with base64-encoded PNG
@@ -428,7 +431,7 @@ func (s *Server) handleGenerateQRCode(w http.ResponseWriter, r *http.Request) {
 			"message":        "QR code generated successfully",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 
 	default:
 		http.Error(w, "Invalid format (use 'json' or 'png')", http.StatusBadRequest)

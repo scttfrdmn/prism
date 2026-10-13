@@ -277,30 +277,18 @@ func (pr *ProgressReporter) ShowError(err error, instance *types.Instance) {
 
 // getStageIndexFromState maps instance state to progress stage
 func (pr *ProgressReporter) getStageIndexFromState(state string) int {
-	if pr.templateType == "ami" {
-		switch state {
-		case "pending", "initializing":
-			return 0 // initialize
-		case "starting":
-			return 1 // starting
-		case "running":
-			return 2 // ready
-		default:
-			return -1 // unknown state
-		}
-	} else {
-		switch state {
-		case "pending", "initializing":
-			return 0 // initialize
-		case "starting":
-			return 1 // starting
-		case "running":
-			// For package-based, we need to determine sub-stage
-			// This would ideally check setup completion status
-			return 2 // setup (could be 2, 3, 4, or 5 depending on actual progress)
-		default:
-			return -1 // unknown state
-		}
+	// AMI-based and package-based templates currently share the same mapping.
+	// For package-based templates, "running" could ideally map to a later
+	// setup sub-stage (2-5) once setup completion status is checked.
+	switch state {
+	case "pending", "initializing":
+		return 0 // initialize
+	case "starting":
+		return 1 // starting
+	case "running":
+		return 2 // ready (AMI) / setup (package-based)
+	default:
+		return -1 // unknown state
 	}
 }
 

@@ -361,7 +361,7 @@ func (m *TemplateManager) ExportToFile(templateName, filePath string, options *T
 	}
 
 	// Create file
-	file, err := os.Create(filePath)
+	file, err := os.Create(filePath) //nolint:gosec // G304: export destination chosen by the local CLI user
 	if err != nil {
 		return TemplateExportError("failed to create export file", err).
 			WithContext("file_path", filePath)

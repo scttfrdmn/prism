@@ -61,7 +61,7 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	// Find daemon PID
 	daemonPID, err := findDaemonProcess()
 	if err != nil {
-		t.Skip(fmt.Sprintf("Could not find daemon process: %v", err))
+		t.Skipf("Could not find daemon process: %v", err)
 	}
 
 	t.Logf("✅ Found daemon process: PID %d", daemonPID)
@@ -172,7 +172,7 @@ func TestDaemonCrashDuringOperation(t *testing.T) {
 	// Find daemon binary
 	daemonBinary, err := findDaemonBinary()
 	if err != nil {
-		t.Skip(fmt.Sprintf("Could not find daemon binary: %v", err))
+		t.Skipf("Could not find daemon binary: %v", err)
 	}
 
 	t.Logf("Starting daemon: %s", daemonBinary)
@@ -321,8 +321,8 @@ func TestOutOfMemoryHandling(t *testing.T) {
 
 	t.Logf("✅ Successfully allocated %.2f MB", float64(totalAllocated)/(1024*1024))
 
-	// Clean up allocations
-	allocatedChunks = nil
+	// Keep the chunks live until here, then let them become garbage.
+	runtime.KeepAlive(allocatedChunks)
 	runtime.GC()
 	runtime.ReadMemStats(&mem)
 

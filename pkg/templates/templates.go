@@ -18,7 +18,7 @@ import (
 
 // appendIfDir appends path to dirs if it exists and is a directory.
 func appendIfDir(dirs []string, path string) []string {
-	if info, err := os.Stat(path); err == nil && info.IsDir() {
+	if info, err := os.Stat(path); err == nil && info.IsDir() { //nolint:gosec // G703: candidate template dirs from local env/home/binary location, only stat'd
 		return append(dirs, path)
 	}
 	return dirs
@@ -64,7 +64,7 @@ func DefaultTemplateDirs() []string {
 	// HIGHEST PRIORITY: Environment variable override (for tests and custom setups)
 	if envDir := os.Getenv("PRISM_TEMPLATE_DIR"); envDir != "" {
 		envDir = filepath.Clean(envDir)
-		if info, err := os.Stat(envDir); err == nil && info.IsDir() {
+		if info, err := os.Stat(envDir); err == nil && info.IsDir() { //nolint:gosec // G703: PRISM_TEMPLATE_DIR is the local user's own config, only stat'd
 			return []string{envDir} // Use ONLY the environment variable path when set
 		}
 	}
@@ -86,13 +86,13 @@ func DefaultTemplateDirs() []string {
 		}
 	}
 
-	log.Printf("[TEMPLATE DISCOVERY] Total template directories found: %d", len(dirs))
+	log.Printf("[TEMPLATE DISCOVERY] Total template directories found: %d", len(dirs)) //nolint:gosec // G706: integer count only, cannot inject log content
 	if len(dirs) == 0 {
 		log.Println("[TEMPLATE DISCOVERY] ⚠️  WARNING: NO template directories found! Templates will not be available!")
 	} else {
 		log.Println("[TEMPLATE DISCOVERY] Template directories:")
 		for i, dir := range dirs {
-			log.Printf("[TEMPLATE DISCOVERY]   %d. %s", i+1, dir)
+			log.Printf("[TEMPLATE DISCOVERY]   %d. %s", i+1, dir) //nolint:gosec // G706: dir comes from the local user's env/filesystem, not remote input
 		}
 	}
 
@@ -511,7 +511,7 @@ func CreateExampleTemplate(filename string) error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0644); err != nil { //nolint:gosec // G306: example template is a non-secret, shareable user file
 		return fmt.Errorf("failed to write template file: %w", err)
 	}
 

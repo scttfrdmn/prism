@@ -4,6 +4,8 @@ package templates
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -50,12 +52,13 @@ func (e *SSHRemoteExecutor) Execute(ctx context.Context, instanceName string, co
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: destination/command can never be parsed as ssh flags
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
 	}
 
 	// Execute command with context
-	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
+	cmd := exec.CommandContext(ctx, "ssh", sshArgs...) //nolint:gosec // G204: fixed binary with argv (no local shell); remote command is the template's own provisioning script by design
 
 	// Capture output
 	stdout, err := cmd.Output()
@@ -90,7 +93,7 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 	}
 
 	// Create temporary script file and execute it
-	command := fmt.Sprintf("cat > /tmp/prism-script.sh << 'EOF'\n%s\nEOF\nchmod +x /tmp/prism-script.sh\n/tmp/prism-script.sh\nrm -f /tmp/prism-script.sh", script)
+	command := scriptCommand(script)
 
 	// Build SSH command
 	sshArgs := []string{
@@ -98,12 +101,13 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: destination/command can never be parsed as ssh flags
 		fmt.Sprintf("%s@%s", e.user, instanceIP),
 		command,
 	}
 
 	// Execute script with context
-	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
+	cmd := exec.CommandContext(ctx, "ssh", sshArgs...) //nolint:gosec // G204: fixed binary with argv (no local shell); remote command is the template's own provisioning script by design
 
 	// Capture output
 	stdout, err := cmd.Output()
@@ -141,12 +145,13 @@ func (e *SSHRemoteExecutor) CopyFile(ctx context.Context, instanceName string, l
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: a path starting with "-" can't be parsed as an scp flag
 		localPath,
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 	}
 
 	// Execute SCP with context
-	cmd := exec.CommandContext(ctx, "scp", scpArgs...)
+	cmd := exec.CommandContext(ctx, "scp", scpArgs...) //nolint:gosec // G204: fixed binary with argv (no shell), options terminated with "--"
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("SCP copy failed: %w", err)
@@ -169,18 +174,33 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
+		"--", // end of options: a path starting with "-" can't be parsed as an scp flag
 		fmt.Sprintf("%s@%s:%s", e.user, instanceIP, remotePath),
 		localPath,
 	}
 
 	// Execute SCP with context
-	cmd := exec.CommandContext(ctx, "scp", scpArgs...)
+	cmd := exec.CommandContext(ctx, "scp", scpArgs...) //nolint:gosec // G204: fixed binary with argv (no shell), options terminated with "--"
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("SCP download failed: %w", err)
 	}
 
 	return nil
+}
+
+// scriptCommand wraps script in a remote shell command that writes it to a temp file, runs it and
+// removes it. The heredoc delimiter is random and checked not to occur in the script: with a fixed
+// 'EOF', a script containing a line "EOF" ended the heredoc early and the rest of the script ran as
+// separate commands of the outer shell.
+func scriptCommand(script string) string {
+	delim := "PRISM_SCRIPT_EOF"
+	for strings.Contains(script, delim) {
+		buf := make([]byte, 8)
+		_, _ = rand.Read(buf) // crypto/rand.Read does not fail on supported platforms
+		delim = "PRISM_SCRIPT_EOF_" + hex.EncodeToString(buf)
+	}
+	return fmt.Sprintf("cat > /tmp/prism-script.sh << '%s'\n%s\n%s\nchmod +x /tmp/prism-script.sh\n/tmp/prism-script.sh\nrm -f /tmp/prism-script.sh", delim, script, delim)
 }
 
 // getInstanceIP gets the IP address for an instance from Prism state
@@ -372,7 +392,7 @@ func (e *SystemsManagerExecutor) CopyFile(ctx context.Context, instanceName stri
 	// 3. Clean up S3 object
 
 	// Read local file
-	fileData, err := os.ReadFile(localPath)
+	fileData, err := os.ReadFile(localPath) //nolint:gosec // G304: caller-chosen local file to upload to the user's own instance
 	if err != nil {
 		return fmt.Errorf("failed to read local file %s: %w", localPath, err)
 	}
@@ -465,7 +485,7 @@ func (e *SystemsManagerExecutor) GetFile(ctx context.Context, instanceName strin
 	}
 
 	// Write to local file
-	if err := os.WriteFile(localPath, fileData, 0644); err != nil {
+	if err := os.WriteFile(localPath, fileData, 0644); err != nil { //nolint:gosec // G306: user-requested download to a caller-chosen path; same default perms as scp
 		// Clean up S3 object before returning error
 		_ = e.cleanupS3Object(ctx, s3Key)
 		return fmt.Errorf("failed to write local file %s: %w", localPath, err)

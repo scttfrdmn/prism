@@ -34,3 +34,23 @@ func TestSSHRemoteExecutor_GetInstanceIP(t *testing.T) {
 		t.Fatal("no state manager: want an error, not a panic or an IP")
 	}
 }
+
+// TestScriptCommand_DelimiterNotInScript: a script containing the heredoc delimiter on a line of its
+// own used to end the heredoc early (fixed 'EOF'); the delimiter must never occur in the script.
+func TestScriptCommand_DelimiterNotInScript(t *testing.T) {
+	for _, script := range []string{
+		"echo hi",
+		"cat <<EOF\nnested\nEOF\necho after",
+		"echo PRISM_SCRIPT_EOF\necho still inside",
+	} {
+		cmd := scriptCommand(script)
+		first := strings.SplitN(cmd, "\n", 2)[0] // cat > /tmp/prism-script.sh << '<delim>'
+		delim := strings.TrimSuffix(strings.SplitN(first, "<< '", 2)[1], "'")
+		if strings.Contains(script, delim) {
+			t.Fatalf("delimiter %q occurs in script %q", delim, script)
+		}
+		if !strings.Contains(cmd, "\n"+script+"\n"+delim+"\n") {
+			t.Fatalf("script not wrapped intact:\n%s", cmd)
+		}
+	}
+}
