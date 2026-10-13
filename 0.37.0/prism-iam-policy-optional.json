@@ -1,0 +1,30 @@
+{
+  "_comment": "OPTIONAL Prism permissions. Attach IN ADDITION to prism-iam-policy.json only if you use the corresponding features. Prism degrades gracefully without these: the feature is simply unavailable, not broken.",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ComplianceReporting",
+      "Effect": "Allow",
+      "Action": [
+        "organizations:ListPolicies",
+        "organizations:DescribeOrganization",
+        "artifact:ListReports",
+        "artifact:GetReport"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TemplateMarketplaceRegistry",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:*:*:table/prism-*"
+    }
+  ]
+}
