@@ -4,6 +4,8 @@ package templates
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -91,7 +93,7 @@ func (e *SSHRemoteExecutor) ExecuteScript(ctx context.Context, instanceName stri
 	}
 
 	// Create temporary script file and execute it
-	command := fmt.Sprintf("cat > /tmp/prism-script.sh << 'EOF'\n%s\nEOF\nchmod +x /tmp/prism-script.sh\n/tmp/prism-script.sh\nrm -f /tmp/prism-script.sh", script)
+	command := scriptCommand(script)
 
 	// Build SSH command
 	sshArgs := []string{
@@ -185,6 +187,20 @@ func (e *SSHRemoteExecutor) GetFile(ctx context.Context, instanceName string, re
 	}
 
 	return nil
+}
+
+// scriptCommand wraps script in a remote shell command that writes it to a temp file, runs it and
+// removes it. The heredoc delimiter is random and checked not to occur in the script: with a fixed
+// 'EOF', a script containing a line "EOF" ended the heredoc early and the rest of the script ran as
+// separate commands of the outer shell.
+func scriptCommand(script string) string {
+	delim := "PRISM_SCRIPT_EOF"
+	for strings.Contains(script, delim) {
+		buf := make([]byte, 8)
+		_, _ = rand.Read(buf) // crypto/rand.Read does not fail on supported platforms
+		delim = "PRISM_SCRIPT_EOF_" + hex.EncodeToString(buf)
+	}
+	return fmt.Sprintf("cat > /tmp/prism-script.sh << '%s'\n%s\n%s\nchmod +x /tmp/prism-script.sh\n/tmp/prism-script.sh\nrm -f /tmp/prism-script.sh", delim, script, delim)
 }
 
 // getInstanceIP gets the IP address for an instance from Prism state

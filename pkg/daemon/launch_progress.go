@@ -115,6 +115,7 @@ func (m *LaunchProgressMonitor) isSSHAvailable(ctx context.Context) bool {
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
 		"-i", m.sshKeyPath,
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", m.username, m.instance.PublicIP),
 		"echo ready",
 	)
@@ -134,6 +135,7 @@ func (m *LaunchProgressMonitor) checkCloudInitStatus(ctx context.Context) (*Clou
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
 		"-i", m.sshKeyPath,
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", m.username, m.instance.PublicIP),
 		"cloud-init status 2>/dev/null || echo 'status: unknown'",
 	)
@@ -177,6 +179,7 @@ func (m *LaunchProgressMonitor) parseProgressMarkers(ctx context.Context) error 
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
 		"-i", m.sshKeyPath,
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", m.username, m.instance.PublicIP),
 		"tail -100 /var/log/prism-setup.log 2>/dev/null | grep 'PRISM-PROGRESS' || echo 'NOTREADY'",
 	)

@@ -51,7 +51,7 @@ func newDashboard() *DashboardServer {
 
 // ── DashboardServer ───────────────────────────────────────────────────────
 
-func TestSameOriginCheck(t *testing.T) {
+func TestLocalOriginCheck(t *testing.T) {
 	tests := []struct {
 		name   string
 		host   string
@@ -65,6 +65,12 @@ func TestSameOriginCheck(t *testing.T) {
 		{"127.0.0.1 origin", "app.example.com", "http://127.0.0.1:5173", true},
 		{"cross-site origin rejected", "app.example.com", "http://evil.example.net", false},
 		{"malformed origin rejected", "app.example.com", "://not a url", false},
+		{"lookalike loopback host rejected", "127.0.0.1:8948", "https://localhost.evil.com", false},
+		{"lookalike loopback IP rejected", "127.0.0.1:8948", "http://127.0.0.1.evil.com", false},
+		{"opaque null origin rejected", "127.0.0.1:8948", "null", false},
+		{"Wails webview (macOS/Linux)", "127.0.0.1:8948", "wails://localhost", true},
+		{"Wails webview (Windows)", "127.0.0.1:8948", "http://wails.localhost", true},
+		{"any site against the GUI terminal port rejected", "127.0.0.1:8948", "https://example.com", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -73,7 +79,7 @@ func TestSameOriginCheck(t *testing.T) {
 			if tt.origin != "" {
 				r.Header.Set("Origin", tt.origin)
 			}
-			assert.Equal(t, tt.want, sameOriginCheck(r))
+			assert.Equal(t, tt.want, LocalOriginCheck(r))
 		})
 	}
 }

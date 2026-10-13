@@ -15,7 +15,9 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+
 	"github.com/scttfrdmn/prism/pkg/types"
+	"github.com/scttfrdmn/prism/pkg/web"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -39,11 +41,9 @@ func (s *Server) RegisterConnectionProxyRoutes(mux *http.ServeMux, applyMiddlewa
 var awsRegionPattern = regexp.MustCompile(`^[a-z]{2}(-[a-z]+)+-[0-9]+$`)
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		// Allow connections from the Prism GUI
-		origin := r.Header.Get("Origin")
-		return strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1")
-	},
+	// Exact-match local origins only: the previous substring test admitted
+	// e.g. https://localhost.evil.com.
+	CheckOrigin: web.LocalOriginCheck,
 }
 
 // handleSSHProxy handles WebSocket connections for embedded SSH terminals with full SSH multiplexing

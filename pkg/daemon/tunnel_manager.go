@@ -112,6 +112,7 @@ func (tm *TunnelManager) CreateTunnel(instance *types.Instance, service types.Se
 		"-o", "ServerAliveInterval=60", // Keep connection alive
 		"-o", "ServerAliveCountMax=3", // Retry 3 times
 		"-i", keyPath, // SSH key
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP), // Connection
 	}
 
@@ -384,6 +385,7 @@ func (tm *TunnelManager) extractJupyterToken(instance *types.Instance, tunnel *S
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "ConnectTimeout=5",
 		"-i", tunnel.KeyPath,
+		"--", // end of ssh options: a username starting with "-" is not parsed as a flag
 		fmt.Sprintf("%s@%s", tunnel.Username, tunnel.PublicIP),
 		"jupyter", "server", "list", "2>/dev/null", "||", "jupyter", "notebook", "list", "2>/dev/null",
 	}

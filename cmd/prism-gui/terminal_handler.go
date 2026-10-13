@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/scttfrdmn/prism/pkg/web"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -22,10 +24,10 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(_ *http.Request) bool {
-		// Allow connections from the same origin (GUI frontend)
-		return true
-	},
+	// Only the GUI's own webview (and local dev/test pages). This server hands out SSH sessions to
+	// the user's instances with no other authentication, so admitting any origin let any web page
+	// the user visited open a shell on their workstations (cross-site WebSocket hijacking).
+	CheckOrigin: web.LocalOriginCheck,
 }
 
 // TerminalSize represents terminal dimensions

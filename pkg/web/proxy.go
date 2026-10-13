@@ -273,9 +273,7 @@ func NewWebSocketProxy(targetURL string) (*WebSocketProxy, error) {
 	return &WebSocketProxy{
 		targetURL: u,
 		upgrader: &WebSocketUpgrader{
-			CheckOrigin: func(r *http.Request) bool {
-				return true // Allow all origins for now
-			},
+			CheckOrigin: LocalOriginCheck,
 		},
 	}, nil
 }
@@ -286,9 +284,7 @@ func (wp *WebSocketProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  32 * 1024,
 		WriteBufferSize: 32 * 1024,
-		CheckOrigin: func(r *http.Request) bool {
-			return true // Allow all origins for proxy
-		},
+		CheckOrigin:     LocalOriginCheck, // not any origin: blocks cross-site WebSocket hijacking
 	}
 
 	clientConn, err := upgrader.Upgrade(w, r, nil)
